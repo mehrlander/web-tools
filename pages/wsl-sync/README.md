@@ -94,7 +94,7 @@ top-level lists are re-fetched every run regardless.
 | `rcws` | object keyed by `BillId` | `parseRcwXml(xml, billId)` — includes the pension classification |
 | `history`, `actions` | object keyed by `BillNumber`, values arrays | `parseHistoryXml` / `parseActionsXml` — fetched only for pension/adjacent bills |
 
-`data/meta.json` records when the snapshot was fetched and its counts.
+`data/<biennium>/meta.json` records when the snapshot was fetched and its counts.
 
 ## Dependency pin: fast-xml-parser 4.5.1
 

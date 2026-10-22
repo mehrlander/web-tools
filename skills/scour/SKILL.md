@@ -1,6 +1,6 @@
 ---
 name: scour
-description: Fan out agents to acquire source material that does not exist locally, mapping who says what about a subject across the open web. Use when the user wants to survey a field, find the actors or institutions in some arena, gather primary sources at breadth, build a corpus to delve into later, or says "scour", "find everything about", "map the landscape", "who talks about X", "cast a wide net". This is acquisition fan-out, not judgment fan-out: the agents go get material rather than generate opinions about material already present. Not for reviewing an artifact you already have (use a review panel), and not for answering a question you could answer from one search.
+description: "Fan out agents to acquire source material that does not exist locally, mapping who says what about a subject across the open web. Use when the user wants to survey a field, find the actors or institutions in some arena, gather primary sources at breadth, build a corpus to delve into later, or says \"scour\", \"find everything about\", \"map the landscape\", \"who talks about X\", \"cast a wide net\". This is acquisition fan-out, not judgment fan-out: the agents go get material rather than generate opinions about material already present. Not for reviewing an artifact you already have (use a review panel), and not for answering a question you could answer from one search."
 ---
 
 # Scour
@@ -200,10 +200,11 @@ subagent's full turn-by-turn transcript is a real file at
 `~/.claude/projects/<session>/subagents/agent-<id>.jsonl`, holding every tool
 call with its arguments. That means the **fetch sequence is recoverable after
 the fact** even when the agents' written output dropped it: this estate
-recovered 1,687 fetches across 511 hosts from transcripts, having preserved a
+recovered 1,734 fetches across 511 hosts from transcripts, having preserved a
 URL in only 7 of 776 content files. The transcripts sit outside every repo and
 die with the environment, so distil what matters into a committed artifact
-while it is alive (`analysis/extract_agent_trace.py` is the worked example).
+while it is alive (`projects/wa-budget-landscape/analysis/extract_agent_trace.py`
+in `mehrlander/home` is the worked example).
 
 What transcripts do **not** give you is link structure, because WebFetch
 returns a small model's answer rather than the page's markdown. So:

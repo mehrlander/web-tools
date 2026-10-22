@@ -1,6 +1,6 @@
 ---
 name: excel-com
-description: Drive a live Excel from Windows PowerShell over COM: build a formatted sheet, read the active workbook, walk tables and pivots. Use when writing PowerShell that touches Excel, when a script must reach the running application rather than a file on disk, or when Excel COM throws something that points at the wrong line (a Double-to-String cast on Value2, a FormatException out of a Range call). Carries the traps that cost a round trip each, the ExcelService inventory so existing functions are not rebuilt, and the route gate that asks whether a live Excel is needed at all. Not for writing .xlsx without Excel (xlsx), Power Query M (power-query), or Office Scripts (office-scripts-shape-ui).
+description: "Drive a live Excel from Windows PowerShell over COM: build a formatted sheet, read the active workbook, walk tables and pivots. Use when writing PowerShell that touches Excel, when a script must reach the running application rather than a file on disk, or when Excel COM throws something that points at the wrong line (a Double-to-String cast on Value2, a FormatException out of a Range call). Carries the traps that cost a round trip each, the ExcelService inventory so existing functions are not rebuilt, and the route gate that asks whether a live Excel is needed at all. Not for writing .xlsx without Excel (xlsx), Power Query M (power-query), or Office Scripts (office-scripts-shape-ui)."
 ---
 
 # Excel over COM, from PowerShell
@@ -30,8 +30,9 @@ workbook's contents is almost never that.
 
 ## 2. Do not rebuild `ExcelService`
 
-`mehrlander/home` at `projects/wps/app/Modules/ExcelService/`. Two files, two
-routes, one module. Check here before writing a function.
+`mehrlander/home` at `projects/wps/app/Modules/ExcelService/`. Two routes, in
+the two files below; `ExcelService.psm1` loads the rest. Check here before
+writing a function.
 
 **`ExcelCom.ps1`, the live application:**
 

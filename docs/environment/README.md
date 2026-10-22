@@ -19,7 +19,7 @@ The remote container sandbox running on Anthropic infrastructure:
   screenshots, rendering a repo page, and the jsdom and Alpine logic recipe.
 * **[extending.md](extending.md)**: how Claude Code itself is extended: the
   component model (skills, agents, MCP, hooks, plugins, LSP) and the hooks this
-  repo actually runs (the SessionStart install hook).
+  repo and its plugin run.
 
 ## Antigravity Local Host Environment
 

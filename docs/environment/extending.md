@@ -2,8 +2,8 @@
 
 Claude Code supports [skills](https://code.claude.com/docs/en/skills), [subagents](https://code.claude.com/docs/en/sub-agents), [MCP servers](https://code.claude.com/docs/en/mcp), [hooks](https://code.claude.com/docs/en/hooks), [LSP servers](https://code.claude.com/docs/en/plugins-reference#lsp-servers), and [plugins](https://code.claude.com/docs/en/plugins).
 
-This repository uses local Git hooks, two Claude startup delegates, and one
-plugin hook:
+This repository uses local Git hooks, two Claude startup delegates, and plugin
+hooks (the full set is registered in [`skills/hooks/hooks.json`](../../skills/hooks/hooks.json)):
 
 * Two Claude Code `SessionStart` scripts that delegate checkout configuration
   and remote dependency installation to the shared setup entry point.
@@ -15,7 +15,7 @@ plugin hook:
 * A `Stop` hook carried by the `portable` plugin, which records the session where a checkout declares a store. It runs in every session that installs the plugin, not only in sessions on this repo, which is the point of putting it there. See [Stop: the session recorder](#stop-the-session-recorder) below.
 * A `SessionStart` hook, also carried by the plugin, which tells a session whose record store is *not* checked out to invoke the skill that fetches it. See [SessionStart: the sessions-store directive](#sessionstart-the-sessions-store-directive) below.
 
-**Do not assume the `PreToolUse` hook ran** *(observed 2026-07-25, cause found 2026-07-27)*. `git commit` calls completed with `dist/web-tools.js` left stale, while `.claude/hooks/build-on-commit.sh` exited 0 and behaved correctly when piped its JSON payload by hand. The script was sound and the harness did not invoke it.
+**Do not assume the `PreToolUse` hook ran** *(observed 2026-07-25, cause found 2026-07-27)*. `git commit` calls completed with `dist/web-tools.js` left stale, while `.claude/hooks/build-on-commit.sh` (since removed) exited 0 and behaved correctly when piped its JSON payload by hand. The script was sound and the harness did not invoke it.
 
 The cause is **where the session's project root sits**, which is not something this repository controls. A session can open with the repo one level *below* the root: primary working directory `/home/user`, repo at `/home/user/web-tools`, arriving as an additional directory. Claude Code then reads project settings from `/home/user/.claude/settings.json`, which does not exist, so this repo's `.claude/settings.json` is never loaded and none of its hooks are registered. Confirmed three ways: the session transcript is written to `~/.claude/projects/-home-user/`, naming the root; `/home/user/.claude/` is absent; and a probe at line 1 of the hook script never wrote its log, for a `$CLAUDE_PROJECT_DIR`-relative command and an absolute one alike. Repo-side settings edits cannot reach it, because the file holding them is the file that is not read. The tell is cheap: `ls ~/.claude/projects/` names the root the session is using.
 
@@ -102,7 +102,7 @@ as part of the Claude Code environment.
 
 `jsdom`, `alpinejs`, `fake-indexeddb`, and `idb-keyval` support browser-logic tests under Node. `playwright` drives the Chromium installation supplied by the web environment. It is pinned to `1.56.0` to match that browser build. See [capabilities.md](capabilities.md).
 
-The remaining packages are local copies of libraries used by the pages at runtime: `@tailwindcss/browser`, `@tailwindcss/typography`, `daisyui`, `@phosphor-icons/web`, `@alpinejs/collapse`, and `@alpinejs/sort`. The render tools use these copies in place of CDN requests.
+Most of the remaining packages in `package.json` are local copies of libraries used by the pages at runtime, among them `@tailwindcss/browser`, `@tailwindcss/typography`, `daisyui`, `@phosphor-icons/web`, `@alpinejs/collapse`, and `@alpinejs/sort`. The render tools use these copies in place of CDN requests.
 
 The dependencies support:
 
@@ -128,7 +128,7 @@ The hook applies only to sessions using a branch that contains its configuration
 
 #### SessionStart: the invoke-default directive
 
-*Added 2026-09-10.* [`skills/hooks/invoke-default.sh`](../../skills/hooks/invoke-default.sh), a second `SessionStart` entry in the plugin's [`hooks.json`](../../skills/hooks/hooks.json). It prints one instruction, and only when the surfacing conventions did not arrive on their own: no checkout the session read carries a resolved `@`-import of them.
+*Added 2026-09-10.* [`skills/hooks/invoke-default.sh`](../../skills/hooks/invoke-default.sh), its own `SessionStart` entry in the plugin's [`hooks.json`](../../skills/hooks/hooks.json). It prints one instruction, and only when the surfacing conventions did not arrive on their own: no checkout the session read carries a resolved `@`-import of them.
 
 **It asks whether they ARRIVED, not whether a repo intends them**, and the two answers differ. home's `CLAUDE.md` names `/web-tools` in prose and imports nothing, so a session on home alone starts without the primitives while looking configured. `lib/kits/portable-align.js`'s `conventionsWired()` answers the intent question for the app's adoption column and is deliberately not reused here; they are different claims, so no `owners.csv` repetition is owed.
 
@@ -225,7 +225,7 @@ This setup uses:
 
 - [`.claude/settings.json`](../../.claude/settings.json): denies `AskUserQuestion`, and registers no hooks. Both of this repo's are `session-*.sh` files the dispatcher finds by name, which is what makes them fire from any project root. *(as of 2026-08-06)*
 
-  **A multi-repo session does not read that file at all.** Project scope resolves against the session's project root, and a session carrying home, web-tools and web-tools-private roots at `/home/user`, above all three, where no `.claude/` exists. The proof is one line of the same file: web-tools' project settings then set `portable@web-tools` to `false`, project outranks user, and the plugin loads regardless. So in that session shape the project row is dormant; the only guard is the plugin's `ask-question-guard.sh`. That is the same cause that put this repo's hooks in `session-*.sh` rather than in settings. *(measured 2026-09-14)*
+  **A multi-repo session does not read that file at all.** Project scope resolves against the session's project root, and a session carrying home, web-tools and web-tools-private roots at `/home/user`, above all three, where no `.claude/` exists. The proof was one line of the same file: web-tools' project settings then set `portable@web-tools` to `false`, project outranks user, and the plugin loaded regardless. So in that session shape the project row is dormant; the only guard is the plugin's `ask-question-guard.sh`. That is the same cause that put this repo's hooks in `session-*.sh` rather than in settings. *(measured 2026-09-14)*
 - `~/.claude/settings.json`: registers the `web-tools` marketplace and enables `portable@web-tools`, and nothing else. *(verified 2026-10-06)*
 
 The Local scope (`.claude/settings.local.json`) is per-user and meant to stay uncommitted, so the repository carries only the project file above.
@@ -320,5 +320,5 @@ background it rather than hold the session open.
 
 Every dispatched script gets **`$WEB_TOOLS_HOOKS`**, the directory the plugin's
 own hooks live in, so a repo can call something the plugin ships without knowing
-where the cache put it or which commit it is pinned at. There is one such script
-today, and it is the reason the variable exists.
+where the cache put it or which commit it is pinned at. No dispatched script
+uses it today.

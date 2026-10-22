@@ -14,8 +14,8 @@ description: >-
   "assess the tracker", "refine the tracker", "groom the tracker", "clean up
   the backlog", "audit the tasks", or "prune stale tasks", or when a follow-up
   needs to survive across sessions. Owns the tracker's operations and filing
-  rules; the default skill owns PR bodies, surfacing links, and the merge
-  guide, so route those there.
+  rules; the default skill loads the conventions for PR bodies and surfacing
+  links, so route those there.
 ---
 
 # tasks
@@ -268,6 +268,6 @@ remember it.
 
 ## Boundary with web-tools
 
-This skill owns the tracker. The `default` skill owns PR bodies, `[new]`,
-`[main]` and `[diff]` links, the 🎫 marker's display form, the merge guide,
-and wrap-up.
+This skill owns the tracker, the 🎫 marker included. The `default` skill
+loads the rest: `[new]`, `[main]` and `[diff]` links are in `SURFACING.md`,
+and PR bodies and wrap-up are in the surfacing course.

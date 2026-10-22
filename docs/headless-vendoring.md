@@ -17,10 +17,14 @@ rest of web-tools to use this; it is indexed for on-demand distribution in
 ## The problem in one paragraph
 
 Cloud coding sandboxes (Claude Code on the web and similar) route outbound
-traffic through an allowlist proxy. `registry.npmjs.org` and `github.com` are
-typically reachable, but the **JS CDNs pages load at runtime are not**:
-`cdn.jsdelivr.net`, `unpkg.com`, `esm.sh`, `cdnjs.cloudflare.com` all return a
-denial. So a page whose `<head>` pulls Tailwind/daisyUI/Alpine off jsDelivr
+traffic through a proxy, and a headless browser there may not reach the **JS
+CDNs pages load at runtime** (`cdn.jsdelivr.net`, `unpkg.com`, `esm.sh`,
+`cdnjs.cloudflare.com`), even where `registry.npmjs.org` is reachable. In Claude
+Code on the web the shell reaches the CDNs, and the headless browser reached no
+host at all, CDN or not
+([capabilities.md](environment/capabilities.md#network-access-two-gates-and-a-browser-with-no-egress)
+has the measurements); an allowlist proxy can also deny the CDNs outright. Either
+way, a page whose `<head>` pulls Tailwind/daisyUI/Alpine off jsDelivr
 **cannot boot as-is** headless: those `<script>`/`<link>` requests fail and you
 get an unstyled, inert page. The fix is two moves: **vendor** the libraries, then
 **intercept** the page's CDN requests and answer them from the vendored copies.
@@ -236,7 +240,7 @@ console.log('wrote', outArg);
 ## Worked example
 
 A self-contained page exercising all four libraries. Note each library is its
-own tag (no `/combine/`, see below) and Alpine loads from unpkg. Save as
+own tag (no `/combine/`, see above) and Alpine loads from unpkg. Save as
 `page.html`:
 
 ```html
@@ -377,9 +381,10 @@ so screenshot the viewport, not `fullPage`. Each library is a separate tag (no
 ## Edge cases (the parts this recipe deliberately omits)
 
 - **`esm.sh` / `cdnjs` modules** aren't plain npm files; `esm.sh` does
-  server-side CJS→ESM bundling that a raw tarball doesn't reproduce. The mirror
-  serves an installed ESM package (CodeMirror 6 included); a CJS-only or
-  uninstalled one answers empty, and `cdnjs` is not mirrored.
+  server-side CJS→ESM bundling that a raw tarball doesn't reproduce. web-tools'
+  own interceptor, `node/render/cdn.mjs`, serves an installed ESM package
+  (CodeMirror 6 included); a CJS-only or uninstalled one answers empty, and
+  `cdnjs` is not served.
 - **`/+esm` imports.** A jsDelivr `...@x/+esm` URL wants the package's ESM entry,
   not the browser-global default. If your pages use these, resolve such specs to
   `package.json` `exports["."].import` (or `module`). CJS-only packages still

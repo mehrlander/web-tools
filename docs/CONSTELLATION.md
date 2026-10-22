@@ -70,10 +70,12 @@ hardening.
 
 "How do we start a new repo from the same base" and "how do we keep repos
 current as conventions evolve" are the same question, answered by one mechanism.
-Drop the committed bootstrap seed into a new repo and it pulls the current
-conventions on its first session. There is no separate initialize step to drift
-from the update step. The only thing ever copied is that seed, the minimal thing
-that lets everything else be pulled; a repo cannot pull the mechanism by which it
+Commit the marketplace subscription block
+([MARKETPLACE.md](MARKETPLACE.md#how-to-subscribe)) into a new repo's
+`.claude/settings.json` and it pulls the current conventions on its first
+session. There is no separate initialize step to drift from the update step. The
+only thing ever copied is that block, the minimal thing that lets everything else
+be pulled; a repo cannot pull the mechanism by which it
 pulls.
 
 ## Principle 5: the repo owns its own story

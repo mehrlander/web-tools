@@ -47,7 +47,7 @@ function render(reg, owners) {
   lines.push('from [`docs.csv`](docs.csv), the documentation registry, which also renders');
   lines.push('live in [the Web Tools app\'s Map → Docs → Inventory](https://mehrlander.github.io/web-tools/app/?view=map&tab=docs).');
   lines.push('A **record** preserves a moment and is');
-  lines.push('corrected by markers, never rewritten; a **measured** doc carries dated');
+  lines.push('never rewritten: a later dated sentence corrects it; a **measured** doc carries dated');
   lines.push('observations and is corrected by re-probing; everything else is living and');
   lines.push('must stay correct.');
   lines.push('');

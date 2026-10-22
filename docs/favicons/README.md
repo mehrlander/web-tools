@@ -24,7 +24,7 @@ File: [`web-tools-icon-3d.png`](web-tools-icon-3d.png). A 180 × 180 candidate w
 
 ### Per-page emoji marks
 
-Eleven pages carry their own emoji favicon, written inline as a `data:image/svg+xml` URI holding a single `<text>` glyph: 🌿 branch, 📊 data-view, 🔖 links, 🧪 console-playground, 💎 shorter, 🔍 review and pdf-inspect, ✍️ word-select, 🐈‍⬛ compression-helper, 🥏 toss-render. A page that declares none inherits the hex nut from `gh-boot.js`, so the estate needs no per-page icon file and no registry.
+Many pages carry their own emoji favicon, written inline as a `data:image/svg+xml` URI holding a single `<text>` glyph, among them 🌿 branch, 📊 data-view, 🔖 links, 🧪 console-playground, 💎 shorter, 🔍 review and pdf-inspect, ✍️ word-select, 🐈‍⬛ compression-helper, 🥏 toss-render. A page that declares none inherits the hex nut from `gh-boot.js`, so the estate needs no per-page icon file and no registry.
 
 ## Treatments
 

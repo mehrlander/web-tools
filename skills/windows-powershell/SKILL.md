@@ -28,7 +28,7 @@ These cause immediate parse/runtime failure in 5.1:
 The `+=` operator on arrays is O(n²): each addition allocates a new array and copies all elements.
 
 ```powershell
-# BAD - exponential slowdown
+# BAD - quadratic slowdown
 $results = @()
 foreach ($item in $data) { $results += $item }
 

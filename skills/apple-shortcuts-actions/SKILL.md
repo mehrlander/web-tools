@@ -74,13 +74,13 @@ control-flow entries, so for anything else this is the sole source.
 
 ## Not this skill
 
-Delivering a shortcut, rather than composing one, is [`shortcut-links`](../../skills/shortcut-links/SKILL.md):
+Delivering a shortcut, rather than composing one, is [`shortcut-links`](../shortcut-links/SKILL.md):
 installing, running remotely, opening a settings page, and the return channel.
 This skill ends at the clipboard.
 
 ## Extending
 
-`docs/shortcuts-format-notes.md` in the repo carries the format: control flow,
+`docs/shortcuts-format-notes.md` in `mehrlander/shortcut-tools` carries the format: control flow,
 the two attachment forms, the aggrandizements, and the coercion that runs
 JavaScript from a `data:` URL. Parameter shapes for Match Text and Combine Text
 are still unrecorded, and `tools/unpack.py` is how to settle them.

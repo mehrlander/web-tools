@@ -353,7 +353,7 @@ geometry-dependent behavior — `visible`, census geoReg, lasso rectangles,
 `grow {by:'style'}`, geometric joins — is exercised by a second, manual pass
 through real Chromium:
 [`node/test/playground-pass.mjs`](../node/test/playground-pass.mjs) drives
-[`pages/console-playground.html`](../../pages/console-playground.html)
+[`pages/console-playground.html`](../pages/console-playground.html)
 (fixtures for every mod: a table, hashy cards, class-less soup, a truly
 virtualized feed, an offline `/fake-api/`, microdata). Run it with
 `node node/test/playground-pass.mjs`; it exits nonzero on any failure.

@@ -202,7 +202,7 @@ function main(workbook: ExcelScript.Workbook) {
   renderCard(newKey);
 
   // Helpers: collapse, positionExpanded, renderMessage, renderCard,
-  // paint, clearHighlight, stamp: see templates.
+  // paint, clearHighlight, stamp: not shown.
 }
 ```
 

@@ -26,7 +26,7 @@ change handoff. The boundary, worth stating so the two do not drift:
 
 They share DNA (tappable GitHub links at a ref) but answer different
 questions. When the ask is about change, follow
-[`SURFACING.md`](../../docs/SURFACING.md); about structure, use this.
+[`SURFACING.md`](https://github.com/mehrlander/web-tools/blob/main/docs/SURFACING.md); about structure, use this.
 
 Substitute the current repo into all URL templates. The rendering rules
 below are the applied form of [`claude-markdown`](../claude-markdown/SKILL.md);
@@ -36,7 +36,7 @@ table cell.
 ## The generator
 
 Hand-building nested links with correct blob/tree URLs is exactly the
-tedious, error-prone work to script. [`python/build-tree.py`](../../python/build-tree.py)
+tedious, error-prone work to script. [`python/build-tree.py`](https://github.com/mehrlander/web-tools/blob/main/python/build-tree.py)
 (python3 stdlib, argv-parameterized, raw-URL fetchable) emits the table.
 It produces structure, links, and icons; it leaves the gloss column empty,
 because a one-line "what this is" needs judgement the walker lacks (same
@@ -184,10 +184,10 @@ json/toml/yaml/sh/config ⚙️; images 🖼️. The map lives in
 
 ## Boundary with surfacing and Web Tools
 
-This skill owns structure rendering. [`SURFACING.md`](../../docs/SURFACING.md)
+This skill owns structure rendering. [`SURFACING.md`](https://github.com/mehrlander/web-tools/blob/main/docs/SURFACING.md)
 owns change surfacing: the branch-page caption by default, the
 `[new]/[main]/[diff]` file list as fallback, and render lines. The
-[`surfacing-course`](../../docs/surfacing-course.md) owns PR bodies and the
+[`surfacing-course`](https://github.com/mehrlander/web-tools/blob/main/docs/surfacing-course.md) owns PR bodies and the
 merge guide. A tree is not a change handoff: it carries no change state and no
 diff links. If the ask is "what did I touch," follow the surfacing contract; a
 tree that also marks change is a deliberate combined view, not the default.

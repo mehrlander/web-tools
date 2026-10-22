@@ -90,23 +90,23 @@ refuse the same way.
   through a token held on the web-tools origin, which a foreign origin does not
   have and must not be given, and Inspect lists what `gh.load()` fetched, which
   on a foreign page is nothing. What a foreign page does hold is its own
-  content, presented through a **vanilla swipe deck** with a collapsible header metadata disclosure.
+  content, presented through a **vanilla swipe deck**.
 
-  - **Header Metadata Disclosure (`[ ℹ Page Info ▾ ]`):** Title, address, meta description, and the user's current selection sit in an expandable header dropdown, freeing the entire drawer body for content.
   - **Paste & Hold (`[ Paste ]`):** Holds clipboard or page-copied content inside the drawer like a local Stage item (`Held Paste`), rendering Markdown, extracting links, and routing `[ Copy ]`, `[ Stage ]`, and `[ Store ]` through the held content. Supports iOS Safari clipboard access via `navigator.clipboard.readText()` with offscreen `<textarea inputmode="none">` `execCommand('paste')` fallback, automatic interception of host-page `copy` events (1-tap `Hold in Drawer` / `Read Aloud` banner), `+ Paste` accumulation, and an inline paste composer.
   - **Read Aloud (`[ Read ]` / speaker icon):** Built-in `speechSynthesis` reader ported from `lib/kits/read-aloud.js` with iOS-safe cancel-and-remember pause/resume, active block highlighting, tap-paragraph-to-seek in the Markdown preview, and a customizer drawer for speed (`0.85×`–`2×`), voice selection, code block handling (`Skip` / `Announce` / `Read`), tables, blockquotes, and path shortening.
   - **Fullscreen Deck (`[ ⤢ ]`):** Toggle the drawer into full-bleed view directly from the header or the hold menu for reading on small screens or deep reading on desktop.
 
+  Among the slides (the full list is `ALL_SLIDES` in [`lib/launcher.js`](lib/launcher.js)):
+
   | Slide | Holds | Actions |
   | --- | --- | --- |
-  | **Markdown** | Composed brief with metadata, selection, and readable prose (or Held Paste) | `[ Copy ]`, `[ Stage ]`, `[ Read ]` |
+  | **Markdown** | Composed brief with metadata, selection, and readable prose (or Held Paste), from the `Local` engine or the Jina AI Reader (`r.jina.ai`) | `[ Copy ]`, `[ Stage ]`, `[ Read ]` |
   | **Text** | Extracted page prose, live feed accumulation, or Held Paste text | `[ + Merge ]`, `[ Paste ]` |
   | **Links** | Deduplicated off-page link checklist (or links extracted from Held Paste) | `[ All ]`, `[ None ]`, checkbox toggle |
   | **HTML** | Clean outerHTML snapshot of the full page DOM | `[ Copy ]`, `[ Stage ]` |
   | **JSON** | Structured envelope of page metadata, links, and prose | `[ Copy ]`, `[ Stage ]` |
-  | **Jina** | Live markdown from Jina AI Reader (`r.jina.ai`) | `Open in Jina ↗`, `[ Copy ]`, `[ Stage ]` |
 
-  **Universal Footer:** A single `[ Copy ]` button and dynamic `[ Stage ]` handoff link automatically track whichever slide is active, accompanied by 6 tap-target pager dots (`● ○ ○ ○ ○ ○`) and a live character / KB counter.
+  **Universal Footer:** A single `[ Copy ]` button and dynamic `[ Stage ]` handoff link automatically track whichever slide is active, accompanied by a tap-target pager dot per slide and a live character / KB counter.
 
   The header carries a **refresh**, because a read is a moment and a news front
   page is not. **Collect** answers the harder version: a virtual-scroll feed

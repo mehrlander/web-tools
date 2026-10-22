@@ -84,15 +84,16 @@ until 2026-09-26 and is gone from live code: it cached a branch for about
 twelve hours and needed purges.
 
 **`entry.js` resolves its ref in this order:** `?ref=` on its own import
-URL (a page's own pin), then `window.__lib`, then the page's `?use=`, then
-`main`.
+URL (a page's own pin), then `window.__lib`, then the selection's web-tools
+entry (`window.__refs`, or `?refs=` on a deployed page), then the page's
+`?use=`, then `main`.
 
 ### Under the toss
 
 A page rendered by `pages/toss-render.html` has no query string of its own:
 by default it runs in a `blob:` frame (top mode, below, is the exception). The renderer answers the page's reads of its own
 address instead, through a params shim, and it tells the page which Web Tools
-to load through three channels, each with one meaning:
+to load through these channels, each with one meaning:
 
 | Channel | Meaning | Set when |
 |---|---|---|
@@ -245,8 +246,8 @@ Reads a page builds by hand take `GH.refFor(repo, path)`.
   a `loadedscripts` event), seeded with `gh-api.js` and itself. It mirrors
   each resolved `read()` onto `window.__reads` (newest value per path,
   fires a `reads` event; the export kit's input), injects the project
-  favicon when a page declares none, and under `?use=` paints the corner
-  ref badge and auto-mounts the FAB unless the page mounts its own
+  favicon when a page declares none, and auto-mounts the FAB unless the
+  page mounts its own or opts out with `data-no-fab`
   (registering `alpineComponents/path-picker.js` alongside it, since the
   FAB's render tab mounts one and a component file loaded after Alpine
   starts never registers). The
@@ -264,7 +265,8 @@ Reads a page builds by hand take `GH.refFor(repo, path)`.
   progress"). Pages whose boot doesn't fit the module-top-level-await
   model can call `window.ghAuth.bootDone()` at the end of their chain to
   suppress the handler. Also exposes
-  `window.ghAuth.{resolve,save,clear,prompt,bootDone}` for explicit use.
+  `window.ghAuth.{resolve,save,clear,prompt,bootDone}`, among other
+  members, for explicit use.
   Loaded automatically by `gh-boot.js` on bootstrap pages; pages that
   import `gh-api.js` without `@<ref>` must `await gh.load('gh-auth.js')`
   themselves.
@@ -305,7 +307,7 @@ itself; a page that instantiates `GH` by hand gets only what it loads.
 | `__trafficRate`, `__trafficRateAt`, `__trafficRateReset` | `gh-boot.js` | newest `x-ratelimit-remaining` seen on any response, when it was seen, and when the window resets |
 | `__ghFiles` (+ `ghfiles` event) | `gh-boot.js` | per-path `{ bytes, inlined, sha }` from a `get()` wrapper. `inlined` is true when the pre-build served the file from its cache (sha `build:<ref>`), which is how the FAB's Scripts rows tell a load that cost nothing from one that cost a fetch |
 | `Traffic` | `kits/traffic.js` | the pure read over the two above plus Resource Timing: classification, roll-ups, formatting, and the three-state size vocabulary (network / cached / undisclosed) |
-| `ghAuth` | `gh-auth.js` | `resolve` / `save` / `clear` / `prompt` / `bootDone` |
+| `ghAuth` | `gh-auth.js` | `resolve` / `save` / `clear` / `prompt` / `bootDone`, among others |
 | `console.history` / `.subscribe` / `.filter`, `consoleKit` | `kits/console.js` | structured console retention over the base wrapper |
 | `html`, the DOM helpers (`ea`, `el`, …), `copy()` | `vanilla-bundle.js` | ambient string/DOM utilities |
 | `proof` | `kits/proof.js` | sandboxed proof documents (srcdoc builders); vanilla-demo and chat-render sit on it |
@@ -314,7 +316,7 @@ itself; a page that instantiates `GH` by hand gets only what it loads.
 | `swipeDeck` | `swipe-deck.js` | the house swipe format: a snap track of slides, and the fullscreen takeover that frames it. Self-contained (no Alpine, no boot dependency), so a consumer page can load it first in its chain; see [Consumers in other repos](#consumers-in-other-repos) for why not a plain `<script src>` at `@main` |
 | `TransformWorkbench` | `alpineComponents/transform-workbench.js` | the multi-tab transform workbench: `panelHTML()` markup plus the `transformWorkbench` / `tfViewer` Alpine components. Not boot-chain: page-loaded through `gh.load`; `pages/transform.html` and the budget-drs app both mount it |
 | Alpine stores `browser`, `toasts`; magics `$clip`, `$paste`, `$toast` | `alpine-bundle.js` | exist only after `alpine:init` |
-| `Annotate` | `kits/annotate.js` | notes pinned to selections/elements/regions of a target document, or to the page as a whole; the set (or one note of it) serializes to markdown/JSON, and saves as a jot. The card reads its own set behind an expander; the FAB drawer no longer carries a Notes tab, only the two ways of starting the annotator. FAB take "Annotate" and `pages/annotate.html` drive it. Chain `kits/dictate.js` before it for the voice composer |
+| `Annotate` | `kits/annotate.js` | notes pinned to selections/elements/regions of a target document, or to the page as a whole; the set (or one note of it) serializes to markdown/JSON, and saves as a jot. The FAB's launcher menu and Note tab, and `pages/annotate.html`, drive it ([fab.md](fab.md#notes-and-the-annotator)). Chain `kits/dictate.js` before it for the voice composer |
 | `Dictate` | `kits/dictate.js` | voice input as a text buffer over `SpeechRecognition`, with the punctuation and casing rules that make stitched utterances read as prose. Soft dependency of `annotate.js`: absent, the composer simply shows no microphone |
 | `__builtOffline` | a build (`build.js` output) | present only on baked/offline pages |
 | `window.<kit>` namespaces | each kit | see [kits/README.md](../lib/kits/README.md) |

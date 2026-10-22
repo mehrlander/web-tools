@@ -98,7 +98,7 @@ Returning `false` no longer prevents default.
 </div>
 
 <!-- ✅ After -->
-<div x-data="{ blockInput(e) { e.preventDefault() }">
+<div x-data="{ blockInput(e) { e.preventDefault() } }">
     <input type="text" @input="blockInput($event)">
 </div>
 ```

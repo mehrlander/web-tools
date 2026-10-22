@@ -25,18 +25,7 @@ A catalog of available skills is at:
 https://raw.githubusercontent.com/mehrlander/web-tools/main/skills/manifest.csv
 ```
 
-Shape:
-
-```json
-{
-  "source": "https://raw.githubusercontent.com/mehrlander/web-tools/main/skills",
-  "skills": [
-    { "name": "apple-shortcuts-actions", "description": "Compose Apple Shortcuts actions..." },
-    { "name": "atomic-decomposition", "description": "Break a document into the claims it makes..." },
-    ...
-  ]
-}
-```
+It is a CSV with the columns `name`, `group` and `description`, one row per skill.
 
 If the user asks "what skills are available?" or "list my skills," fetch and summarize this file.
 
@@ -79,8 +68,9 @@ Do not fire on general topic overlap.
 ## Third-party skills
 
 This library contains skills created or adapted here. Anthropic's document and
-authoring skills come from separately attributed dependencies in the
-[marketplace](https://github.com/mehrlander/web-tools/blob/main/docs/MARKETPLACE.md).
+authoring skills are not in it; the
+[marketplace](https://github.com/mehrlander/web-tools/blob/main/docs/MARKETPLACE.md)
+notes say how they reach a session.
 Use the installed or host-provided skill first. Without either, fetch the complete
 official skill folder, including its scripts and references; a link alone does
 not supply those resources. Retired personal skills are preserved in the

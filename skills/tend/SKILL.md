@@ -45,7 +45,7 @@ subject, such as `snags`, a project folder, or a pull request.
 (Prod, below).
 
 Tend deletes no branch and proposes no deletion. `findings.py` sits beside
-this file; [`docs/views/tending.md`](../../docs/views/tending.md) states the
+this file; [`docs/views/tending.md`](https://github.com/mehrlander/web-tools/blob/main/docs/views/tending.md) states the
 record.
 
 1. **Reassess.** `findings.py check` names the findings whose witnesses

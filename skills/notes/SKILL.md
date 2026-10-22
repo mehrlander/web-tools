@@ -34,7 +34,7 @@ recommendation, empty to withdraw. An author's latest vote counts, as in the
 Text collection's reviews.
 
 `finding` marks a tending conclusion
-([`docs/views/tending.md`](../../docs/views/tending.md)). Change one with
+([`docs/views/tending.md`](https://github.com/mehrlander/web-tools/blob/main/docs/views/tending.md)). Change one with
 `skills/tend/findings.py update`; a plain reply is a comment and changes
 nothing.
 
@@ -50,7 +50,7 @@ nothing.
 
 A note is one kind of reference among several in the estate. The kinds of
 locator, and how a reference is tested for broken or changed, are in
-[`docs/locators.md`](../../docs/locators.md).
+[`docs/locators.md`](https://github.com/mehrlander/web-tools/blob/main/docs/locators.md).
 
 ## Process
 

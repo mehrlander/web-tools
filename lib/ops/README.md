@@ -61,8 +61,8 @@ inferred, and both held by `node/test/ops.test.mjs`:
   appears in none of the fifteen library dumps.
 
 It reads `state/session-menu.json` in web-tools-private, a **purpose-built**
-46 KB index written by the same crawl that writes `state/sessions.json`
-(`lib/kits/repo-sessions-cache.js`, "The phone's copy"). Not the 1.16 MB cache
+index written by the same crawl that writes `state/sessions.json`
+(`lib/kits/repo-sessions-cache.js`, "The phone's copy"). Not the cache
 itself, which carries every tool call of every session to answer a question that
 needs three fields.
 

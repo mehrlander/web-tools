@@ -144,6 +144,6 @@ function Add-ThemeToControl {
 $null -ne [System.Windows.Application]::Current.Resources['GhostButton']
 ```
 
-## Related, but a separate skill
+## Related, but not covered here
 
-Serializing a live, themed form back to XAML via `[System.Windows.Markup.XamlWriter]::Save` drops the programmatically merged theme dictionary, leaving any `{DynamicResource}` references in the output dangling. That serialization round-trip has its own cluster of findings (what survives, what vanishes, what gets baked in) and its own triggers. It isn't covered here.
+Serializing a live, themed form back to XAML via `[System.Windows.Markup.XamlWriter]::Save` drops the programmatically merged theme dictionary, leaving any `{DynamicResource}` references in the output dangling. That serialization round-trip has its own cluster of findings (what survives, what vanishes, what gets baked in). No skill covers it.

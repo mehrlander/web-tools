@@ -25,7 +25,7 @@ repo; they resolve the corpus root at the git root by default.
 
 ## The two commands
 
-**Find** — `corpus_search.py <pattern>`:
+**Find** (`corpus_search.py <pattern>`):
 
 ```
 [<source>] <path-or-id>  <title>  (<n> matches)
@@ -34,20 +34,7 @@ repo; they resolve the corpus root at the git root by default.
 ```
 
 then a final `N documents matched` line. Hits are ranked most-matches-first,
-then by path. Real run:
-
-```
-$ python3 skills/file-retrieval/corpus_search.py "toss-render" --max 6
-[docs] docs/showing.md  Showing: which link shows what  (12 matches)
-    L44: ...the toss-render address mode reaches a branch page that github.io cannot...
-    ... 9 more
-[tracker] tracker/tasks/0003.md  Singleton fab with toss-render integration  (8 matches)
-    L3: --- id: 0003 title: Singleton fab with toss-render integration status...
-    ... 5 more
-
-16 documents matched, showing 6
-(stopped at --max=6; results are not exhaustive)
-```
+then by path.
 
 Flags: `--regex` (pattern instead of substring), `--case` (case-sensitive;
 default is insensitive), `--max N` (stop after N docs, default 100, prints the
@@ -56,7 +43,7 @@ snippets), `--source NAME` (restrict to one named source, repeatable),
 `--since` / `--until` (date filter for extractors that carry a date; inert for
 the file-per-document default, which carries none, so nothing is dropped).
 
-**Read** — `read_doc.py <path-or-id>`: a header (title, path, size) then the
+**Read** (`read_doc.py <path-or-id>`): a header (title, path, size) then the
 whole body; `--meta` prints just the one-line summary. Use it to open a hit,
 never to dump a whole container.
 

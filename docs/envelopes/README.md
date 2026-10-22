@@ -1,8 +1,8 @@
 # Content envelopes
 
-An **envelope** is a JSON document that carries a curated, annotated set of items for a reader to open, rendered by a web-tools page rather than by a bespoke viewer. Files, chats, and diffs stay where they live; the envelope layers selection, arrangement, and commentary over them, travels as one unit, and renders through a shared page. This folder is the family's home: the format contracts, the JSON Schemas that validate them, and this note on how the members relate.
+An **envelope** is a JSON document that carries a curated, annotated set of items for a reader to open, rendered by a web-tools page rather than by a bespoke viewer. Files, chats, and diffs stay where they live; the envelope layers selection, arrangement, and commentary over them, travels as one unit, and renders through a shared page. This folder is the family's home: the format contracts, the JSON Schemas that describe them, and this note on how the members relate.
 
-The `schemas/` here are the validation source of truth; the `.md` files carry concepts, conventions, and worked examples.
+The `schemas/` here are written contracts that nothing yet validates against (see [`surface.md`](surface.md)); the `.md` files carry concepts, conventions, and worked examples.
 
 ## The members
 

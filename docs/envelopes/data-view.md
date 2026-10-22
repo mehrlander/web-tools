@@ -76,7 +76,7 @@ The second half of that rule is what keeps a legitimate payload safe. `{"items":
 
 ## Views
 
-`view` is a module id from the viewer's registry, currently `raw`, `code`, `preview`, `table`, `tree`, `codepen`. It is a preference, not a demand: the viewer honors it only when that mode is actually available for the file, and otherwise falls back to raw. Nothing validates the id on the way in, so the vocabulary here tracks the viewer's with nothing to keep in sync.
+`view` is a module id from the viewer's registry in [`lib/alpineComponents/viewer.js`](../../lib/alpineComponents/viewer.js), such as `raw`, `code`, `preview`, `table` or `tree`. It is a preference, not a demand: the viewer honors it only when that mode is actually available for the file, and otherwise falls back to raw. Nothing validates the id on the way in, so the vocabulary here tracks the viewer's with nothing to keep in sync.
 
 Omit it and the page picks by content, not just extension:
 

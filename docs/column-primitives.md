@@ -4,11 +4,11 @@ One property, `column_primitive`, saying what kind of thing a column holds. It i
 the coarse question that sits above [`LINKAGE.md`](https://github.com/mehrlander/home/blob/main/projects/budget-drs/data/design/LINKAGE.md)'s
 `column_domain`.
 
-**Populated here on 2026-09-10.** `docs/properties.csv` declares it on all 178
-rows, measured against each property's real column rather than read off its
-gloss: **value 86, label 63, locator 27, id 2.** Two more property tables remain,
-both in budget-drs: `data/design/properties.csv` (49 rows) and `lineage/columns.csv`
-(1,171).
+**Populated here on 2026-09-10.** `docs/properties.csv` then declared it on all
+178 rows, measured against each property's real column rather than read off its
+gloss: **value 86, label 63, locator 27, id 2.** The two budget-drs property
+tables, `data/design/properties.csv` and `lineage/columns.csv`, have declared it
+since. Today's counts are in the files themselves.
 
 ## The four
 
@@ -84,7 +84,7 @@ instantiated across rows: does it repeat, what is its domain, may it be summed,
 does it join. A key that occurs once in one object has none of those answers. So
 the tabular reading is not a stylistic preference, it is the precondition for the
 questions, and the rule that follows is: **tabulate first, then classify.**
-`docs/manifest-fields.csv` is that rule already at work, a table whose 58 rows
+`docs/manifest-fields.csv` is that rule already at work, a table whose rows
 are JSON keys.
 
 ## The pilot, and the one thing the four do not cover

@@ -2,15 +2,16 @@
 
 The guide-PR lifecycle: the PR body as a workstream's running record, and the phases it moves
 through. [SURFACING.md](SURFACING.md) holds the primitives and is injected into every session;
-this file is not, and is delivered by the `pr-subscribe-hint` hook at the moment a PR is opened,
-which is when the course first applies.
+this file is not. The `pr-subscribe-hint` hook delivers it when a session opens a PR through the
+GitHub MCP, which is when the course first applies; a PR the platform creates fires no hook, and
+`/portable:default` loads the course instead.
 
 ## The two modes: GitHub flow and Real-time
 
 We operate in two modes:
 
 * **GitHub flow (Branch & PR):** The standard route for code, tooling, features, and documentation. Changes live on a branch, follow the PR guide lifecycle below, and merge via pull request.
-* **Real-time (Direct to `main`):** For shared state that concurrent sessions and tools rely on as live truth: task trackers, personal capture lists, session telemetry, and crawl caches. These commit straight to `main` and push to GitHub as you go so everyone stays synchronized in real time. See [direct-to-main.csv](direct-to-main.csv) for the registry of writers and paths.
+* **Real-time (Direct to `main`):** For shared state that concurrent sessions and tools rely on as live truth: task trackers, personal capture lists, session telemetry, and crawl caches. These commit straight to `main` and push to GitHub as you go so everyone stays synchronized in real time. See [direct-to-main.csv](https://github.com/mehrlander/web-tools/blob/main/docs/direct-to-main.csv) for the registry of writers and paths.
 
 ## Assistant identity and attribution
 
@@ -23,7 +24,7 @@ Four AI assistants contribute across this ecosystem. Each assistant identifies i
 | **Gemini** | `gemini/<slug>` | `Co-Authored-By: Gemini <gemini@google.com>` | Include trailer on all commits |
 | **Grok** | `grok/<slug>` | `Signed: Chief of Staff (Grok)` | Include signature on all commits |
 
-A commit or branch that carries no assistant prefix or trailer is **unclassified**, not human. Read as human, it stated a finding the classifier never made: on 2026-09-18 four Gemini branches went out without the prefix and the Activity view reported them as a person's work. A branch that predates this table, or went out without its prefix, is declared by a row in [assistant-branches.csv](assistant-branches.csv) with the basis for the claim; the Activity view reads declarations only and guesses nothing.
+A commit or branch that carries no assistant prefix or trailer is **unclassified**, not human. Read as human, it stated a finding the classifier never made: on 2026-09-18 four Gemini branches went out without the prefix and the Activity view reported them as a person's work. A branch that predates this table, or went out without its prefix, is declared by a row in [assistant-branches.csv](https://github.com/mehrlander/web-tools/blob/main/docs/assistant-branches.csv) with the basis for the claim; the Activity view reads declarations only and guesses nothing.
 
 Two rules hold for every assistant, whichever tool it runs in:
 

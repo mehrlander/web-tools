@@ -86,6 +86,7 @@ A branch is a workbench, not a second home.
 ---
 
 In this repo, this is the "why" behind the surfacing course's rule that
-post-merge edits need a new PR ([SURFACING.md](../SURFACING.md)): when a session
-continues editing after a merge (Option 2), the follow-up commits go out as a
-*new* PR from the branch rather than reopening the merged one.
+post-merge edits need a new PR ([surfacing-course.md](../surfacing-course.md)): when a session
+continues editing after a merge, the follow-up work starts a new branch from
+the current tip of the target branch and goes out as a *new* PR rather than
+reopening the merged one.

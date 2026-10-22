@@ -106,7 +106,7 @@ state a real Pages URL would have, then exercise the actual control via the UI.
 
 `build.mjs` does **not** rewrite the dependency graph. It emits the real
 `gh-api.js` loader with `GH.prototype.get` overridden by an inlined cache of every
-own-repo file the page reaches. The actual loader runs — same strip+wrap+execute,
+own-repo file the page reaches. The actual loader runs — same wrap+execute, with no source rewriting,
 same `gh-boot` registry/attribution, same `read()` tracking — only the source
 bytes come from memory instead of the API. Third-party libs are untouched: they
 stay on the page's CDN `<script>`/`<link>` tags.
@@ -214,9 +214,7 @@ cost of carrying components a given page may not use (harmless — an unused
 [`build-app.mjs`](build/build-app.mjs) walks the app's **reach** (every lib path
 named as a string literal, transitively, plus every component an `x-data`
 names, mapped through its `Alpine.data('name')` registration) and hands that
-set to the same emitter. Measured 2026-09-02: 73 of 104 lib files, 22
-components registered at import rather than 32, 3.1 MB against 4.0 (0.93 MB
-gzipped against 1.2). Five heavy kits a reader reaches only by an explicit act
+set to the same emitter. Five heavy kits a reader reaches only by an explicit act
 (`annotate`, `pdf`, `dictate`, `xlsx`, `redact`) are left out on purpose and load on
 first use through the contents API, which is the loader's ordinary cache-miss
 path. The same limit as the per-page walker applies: a path computed at
@@ -225,8 +223,8 @@ Both artifacts are committed and held to `lib/` by the commit hook and by
 `derived-artifacts.test.mjs`; `npm run build:app -- --check` is the app's
 half of that gate.
 
-**Staying current.** `dist/web-tools.js` is **committed** (the one exception to
-the gitignored `dist/`) and served same-origin by Pages. It's held to
+**Staying current.** `dist/web-tools.js` is **committed** (an exception to
+the gitignored `dist/`, listed in `.gitignore`) and served same-origin by Pages. It's held to
 `lib/` by the commit-time hook (see [The refresh model](#the-refresh-model)).
 The build is deterministic (sorted cache + sorted boot, no date stamp), so it
 only shows a diff when `lib/` actually changed. Don't hand-edit
@@ -280,23 +278,27 @@ property: whether its generator is **deterministic**.
 commit-time hook ([`.githooks/pre-commit`](../.githooks/pre-commit), a git hook
 rather than a Claude Code hook, so it fires whatever the session's project root
 is) runs before every `git commit` and regenerates + stages whatever the pending
-changes touch:
+changes touch, in this order (the full list, warn-only legs included, is the
+hook's `# --- leg` headers, derived into [`docs/hook-legs.csv`](../docs/hook-legs.csv)):
 
 | Source dirty | Generator | Staged into the same commit |
 |---|---|---|
 | `lib/` | `npm run build:lib` | `dist/web-tools.js` |
+| `lib/`, `pages/dictate.html` | `npm run build:dictate` | `dist/dictate.js` |
+| `lib/`, `app/index.html` | `npm run build:app` | `dist/app.js` |
 | `console/` | `npm run build:console` | `console/suite.js` |
 | `pages/**/*.html` | `npm run pages-index` | `pages/README.md`, `pages/index.html`, `pages/pages.csv` |
-| skills, `lib/`, `pages/`, `docs/` | `npm run docs-reach` | `reach` and `words` in `docs/docs.csv` |
-| `docs/docs.csv` | `npm run docs-readme` | `docs/README.md` |
 | `node/test/` | `npm run tests-index` | derived fields in `docs/tests.csv` |
-| `node/`, `python/`, any markdown | `npm run tools-index` | derived fields in `docs/harness.csv` |
+| `node/`, `python/`, any markdown | `npm run tools-index` | derived fields in `docs/harness.csv`, and `docs/hook-legs.csv` |
 | `lib/kits/`, or a file that loads a kit | `npm run kits-index` | `docs/kits.csv` |
 | `lib/`, `pages/` | `npm run registries-reach` | `renders_in` in `docs/registries.csv` |
-| any markdown | `npm run themes-graph` | `docs/themes.csv` |
+| skills, `lib/`, `pages/`, `docs/` | `npm run docs-reach` | `reach` and `words` in `docs/docs.csv` |
 | `docs/SURFACING.md`, `docs/surfacing-course.md`, `docs/QUALIFIED-WRITING.md` | `npm run vendor-docs` | the plugin's copies under `skills/default/` |
 | `docs/house-policies.md` | `npm run policy-skills` | the h plugin's skills under `plugins/h/skills/` |
+| any markdown | `npm run themes-graph` | `docs/themes.csv` |
+| `docs/docs.csv` | `npm run docs-readme` | `docs/README.md` |
 | `tracker/tasks/` | `npm run tracker-board` | `tracker/board.md`, `tracker/board.csv`, `tracker/board-tags.csv` |
+| any tracked CSV | `python3 python/csv-census.py` | `data/csv-census.csv` |
 
 Most of these files are generated whole. Four are not. `docs/docs.csv`,
 `docs/harness.csv`, `docs/tests.csv` and `docs/registries.csv` are hand-edited
@@ -387,8 +389,8 @@ and check out that tree locally, run `npm run artifacts:refresh` followed by
 the repair. Setup alone makes no claim about those paths.
 
 Committed artifacts are the truth, which is what lets a branch be previewed
-pre-merge via `?use=<sha>`. Authored docs (the merge guide,
-`docs/environment/`, this file) are never auto-generated.
+pre-merge via `?use=<sha>`. Authored docs (`docs/environment/`,
+this file) are never auto-generated.
 
 One human touch remains: a new page lists under its `<title>` until a blurb is
 added to the `NOTES` map at the top of `pages-index.mjs`.

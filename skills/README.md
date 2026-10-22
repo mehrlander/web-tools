@@ -7,21 +7,25 @@ Caveman belongs here and credits its source in its own file.
 Retired work stays in the [skill archive](../archive/skills/README.md).
 
 The source of the `portable` plugin: one folder per skill, plus the plugin's
-hooks in `hooks/`. The plugin registers every skill that
+hooks in `hooks/` and its agent definitions in `agents/`. The plugin registers
+every skill that
 [`.claude-plugin/marketplace.json`](../.claude-plugin/marketplace.json) lists,
 as `/portable:<name>`, in every session that installs it.
 
-`manifest.csv` has one row per skill: `name`, `group`, and the `description`
-its `SKILL.md` carries. Each folder's `SKILL.md` is the skill; companion files
-(`scripts/`, `references/`, `assets/`) sit beside it.
+`manifest.csv` has one row per skill: `name`, `group`, and a `description`
+written for the catalog, not always its `SKILL.md` line verbatim. Each folder's
+`SKILL.md` is the skill; companion files (`scripts/`, `references/`, `assets/`)
+sit beside it.
 
 Without the plugin, `/load-skill` fetches a skill by URL from
 `https://raw.githubusercontent.com/mehrlander/web-tools/main/skills`.
 
 ## Editing
 
-Edit a skill in place. A session picks up the change at its next start, when the
-plugin's refresher moves to `main`.
+Edit a skill in place, except a vendored copy: the files listed in
+[`data/vendored-copies.txt`](../data/vendored-copies.txt) are edited at their
+source and refreshed here. A session picks up the change at its next start,
+when the plugin's refresher moves to `main`.
 
 **A copy uploaded to claude.ai is not updated by edits here**, and in a session
 that has both, either copy may fire. Re-upload after editing, or delete the

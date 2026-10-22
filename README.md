@@ -78,7 +78,8 @@ also lists development scratchpads not named here.
 
 GitHub strips `javascript:` from rendered markdown, so direct drag from this
 README won't work. Open the source, copy the file's contents, paste into a
-new bookmark.
+new bookmark. A selection follows; [`bookmarklets/README.md`](bookmarklets/README.md)
+lists every one and what it loads.
 
 - [`page-toggle`](bookmarklets/page-toggle.js): flip a tab between its
   rendered URL on github.io and its source on github.com. From anywhere
@@ -197,8 +198,9 @@ written in a specific shape (IIFE, `window.foo =`, no `import`/`export`)
 so they can be pulled in without a build step. `gh-api.js`'s
 auto-bootstrap sets a `loadBase` of `lib/`, so a page's
 `gh.load('kits/x.js')` resolves under `lib/` without spelling out the
-prefix, and chains `gh-boot.js`, which auto-loads `gh-auth.js`,
-`gh-fetch.js`, `kits/console.js`, and `vanilla-bundle.js` and keeps a
+prefix, and chains `gh-boot.js`, which auto-loads its `BOOT` list
+(`gh-auth.js`, `gh-fetch.js`, `kits/console.js` and `vanilla-bundle.js` among
+them; [docs/loader.md](docs/loader.md) has the whole list) and keeps a
 registry of every load on `window.__loadedScripts`. A bootstrap page
 therefore starts with authenticated reads, console retention, and the
 vanilla DOM helpers already aboard. `alpine-bundle.js` handles Alpine's
@@ -262,8 +264,8 @@ The shape of a loaded page in one block:
 
 ```html
 <script type="module">
-  // entry.js boots window.gh and chains gh-boot.js, which auto-loads
-  // gh-auth.js, gh-fetch.js, kits/console.js, and vanilla-bundle.js. The page
+  // entry.js boots window.gh and chains gh-boot.js, which auto-loads its
+  // BOOT list (gh-auth.js, gh-fetch.js, kits/console.js, and more). The page
   // just calls gh.load() from here on. ?use=<branch|tag|sha> pins everything
   // entry.js loads to a ref; defaults to main.
   await import('https://mehrlander.github.io/web-tools/lib/entry.js');
@@ -282,7 +284,7 @@ The shape of a loaded page in one block:
 </script>
 ```
 
-The `?use=` query parameter is the runtime ref-pinning hatch: the HTML harness is served by GitHub Pages from main, but every file the page loads at runtime comes from whatever ref `?use=` specifies (any branch name, tag, or commit SHA). Default is main, so production URLs are unchanged. Branch-pinning a page for review is a one-URL change with no per-branch hosting. Append `?use=feature-x` to any loader page. A branch name is cache-safe: under `?use=`, [`lib/entry.js`](lib/entry.js) fetches `gh-api.js` from `raw.githubusercontent` (a five-minute cache, fetched `no-store`) and blob-imports it, and everything `gh-api.js` then loads comes fresh through the contents API at that ref, so no SHA is needed. With no `?use=`, `entry.js` imports main's `gh-api.js` natively from GitHub Pages instead; [docs/loader.md](docs/loader.md) has why the two routes differ.
+The `?use=` query parameter is the runtime ref-pinning hatch: the HTML harness is served by GitHub Pages from main, but every file the page loads at runtime comes from whatever ref `?use=` specifies (any branch name, tag, or commit SHA). Default is main, so production URLs are unchanged. For review, the preview link is a 🥏 toss, which `npm run showing` picks ([docs/showing.md](docs/showing.md)); a `?use=` link pins a deployed page's loaded code to a ref and still works where one was handed over. A branch name is cache-safe: under `?use=`, [`lib/entry.js`](lib/entry.js) fetches `gh-api.js` from `raw.githubusercontent` (a five-minute cache, fetched `no-store`) and blob-imports it, and everything `gh-api.js` then loads comes fresh through the contents API at that ref, so no SHA is needed. With no `?use=`, `entry.js` imports main's `gh-api.js` natively from GitHub Pages instead; [docs/loader.md](docs/loader.md) has why the two routes differ.
 
 `?use=` covers the *loaded code* but not the page's own HTML/boot script, which is pinned to whatever main serves. To preview branch edits to the HTML itself, render the page through toss-render (`pages/toss-render.html#gh=owner/repo@<ref>:<path>`, which the FAB's ref bar opens); `npm run showing` picks the link.
 

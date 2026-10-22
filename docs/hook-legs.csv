@@ -12,8 +12,8 @@ order,leg,gloss,watches,runs,stages,mode,in_repair
 11,plugin-copies,the traveling docs -> the plugin's copies,docs/SURFACING.md;docs/surfacing-course.md;docs/QUALIFIED-WRITING.md;node/build/vendor-docs.mjs,npm run vendor-docs,skills/default/SURFACING.md;skills/default/surfacing-course.md;skills/default/QUALIFIED-WRITING.md,regenerates,yes
 12,policy-skills,docs/house-policies.md -> the h plugin's skills,docs/house-policies.md;node/build/policy-skills.mjs,npm run policy-skills,plugins/h/skills,regenerates,yes
 13,themes-graph,any markdown -> the theme graph,*.md;python/duplicated-claims.py,npm run themes-graph,docs/themes.csv,regenerates,yes
-14,docs-readme,docs/docs.json -> docs/README.md,docs/docs.csv;node/build/docs-readme.mjs,npm run docs-readme;npm run docs-reach,docs/README.md;docs/docs.csv,regenerates,yes
-15,tracker-board,tracker/tasks/ -> tracker/board.md + board.json,tracker/tasks/,npm run tracker-board,tracker/board.md;tracker/board.csv;tracker/board-tags.csv,regenerates,yes
+14,docs-readme,docs/docs.csv -> docs/README.md,docs/docs.csv;node/build/docs-readme.mjs,npm run docs-readme;npm run docs-reach,docs/README.md;docs/docs.csv,regenerates,yes
+15,tracker-board,tracker/tasks/ -> tracker/board.md + board.csv,tracker/tasks/,npm run tracker-board,tracker/board.md;tracker/board.csv;tracker/board-tags.csv,regenerates,yes
 16,csv-census,each tracked CSV -> the repo's own Data census,*.csv;.web-tools.json;python/csv-census.py,python/csv-census.py,data/csv-census.csv,regenerates,yes
 17,reading-columns,reading columns (warn only),,skills/hooks/reading-column.py,,warns,yes
 18,sunset-markers,SUNSET markers now due (warn only),,python/sunset-scan.py,,warns,yes

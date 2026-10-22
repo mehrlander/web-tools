@@ -18,7 +18,7 @@ key is a property of the key.
 
 It went flat on 2026-08-16. The members of an array or object key used to sit
 nested inside their parent's row, which meant the registry counted **20 rows while
-its own scope claimed every key in use**. There are 46. They are rows now,
+its own scope claimed every key in use**. They are rows now,
 addressed `pages[].path` and `stage.files`, and a `required` column says whether
 a member has to be present, blank on a top-level key because that was never
 recorded.
@@ -78,7 +78,7 @@ looked. The rule and its fallback for contexts that strip the '#' are in
 Every path in that config is an address, and nothing used to read them: `dead-links.py` enumerates a repo with `git ls-files *.md`, so a declared page could be moved or deleted with no check anywhere noticing. [`python/declared-paths.py`](../python/declared-paths.py) checks `landing`, `pages[].path` and `stage.files` against the working tree and sibling checkouts, and belongs in the declaring repo's own verify suite: the mover is the only party who can catch a rename at the moment of the rename. That makes declaring a page load-bearing rather than decorative. If it is worth another repo embedding, it is worth declaring here.
 
 The fields themselves are **not listed here.** They live as data in
-[`docs/manifest.json`](manifest.json), one row per field with its type, its
+[`docs/manifest-fields.csv`](manifest-fields.csv), one row per field with its type, its
 consumer, and what it does, held to the estate's real manifests by
 `node/test/manifest-registry.test.mjs`. This section used to carry that list as
 prose, and prose could not be checked against anything: `quickLink` was live in two of the four manifests
@@ -117,8 +117,8 @@ setting only `pages` gets the gallery as the landing. Neither arrangement hides
 the other.
 
 **When an app view is the right call.** A view whose subject is *the estate* is
-built into the shell (Activity, Sessions, Repos, Surfaces, Stage, Map,
-Proposals, and the Lists pane, which is operational to the tool). A view whose subject
+built into the shell (the rows of [app-routes.csv](app-routes.csv) with group
+`estate`, the Lists pane among them, which is operational to the tool). A view whose subject
 is *content* is an app view over the repo that owns it: the renderer stays
 public here, the content stays wherever it belongs. News and Links are both that
 shape, home's data through a web-tools page. Two consequences before building
@@ -318,7 +318,7 @@ branch. The scripts an errand runs stay on main (`errands/prompts/`, `sites/`),
 where `run.script` addresses them; web-tools-private's README, "Three layers",
 says why the records moved.
 
-Two methods need no one at the Stage, because neither borrows the Stage's
+Three methods need no one at the Stage, because none borrows the Stage's
 token:
 
 - **`workflow-run`** (venue `actions-hosted`) is a script run by
@@ -563,8 +563,8 @@ token.
   repo view, so it sits with the views rather than behind an icon; the sidebar's
   top-bar gear was retired as a duplicate of that row. Another repo's config
   stays a dialog, so opening it does not move you off the repo you are in.
-- **Layout**: the Settings pane is two sections built the same way, **General**
-  and **Projects**, each a header line over a bordered card. Field widths are
+- **Layout**: the Settings pane's sections, **General**, **Projects**,
+  **Pages** and **Stage**, are built the same way, each a header line over a bordered card. Field widths are
   **container** queries (`@container` on the column, `@md:`/`@xl:` on the grids),
   not viewport breakpoints, because that column is half a pane on desktop and a
   whole screen on a phone: `lg:grid-cols-6` would put six columns in a 360px
@@ -609,8 +609,7 @@ token.
   fields already follow. Adding a project is `projects` only. Creating the
   workspace, its tracker, and its README is repo work that happens in the repo.
 
-- **Pages and Stage** (Config view only): the last two fields that were
-  JSON-pane-only. **Pages** lists the catalog, one card per entry, with the path,
+- **Pages and Stage** (Config view only): **Pages** lists the catalog, one card per entry, with the path,
   title, note, and the app-view toggle editable and an add-by-path box; a
   qualified `owner/repo[@ref]:path` entry carries a `cross-repo` badge, since
   that file is not in this repo. A page's `icon`, `thumb`, `project`, and
@@ -620,7 +619,7 @@ token.
   line-per-entry text, the same shape as Pins. **Scope** sits in General beside
   Note, since it is prose about the repo; it renders monospaced when its value
   is a `.md` path, which is the one hint that the field takes both forms.
-- **Scope of the form**: every manifest field now has a control except a page's
-  `icon`, `thumb`, `project`, and `viewLabel`, the `links` board path, and the `research` declarations. Those
-  are preserved on save and edited in the JSON pane. An icon picker is still the
+- **Scope of the form**: the form edits only the keys its sections show. Every
+  other key, a page's `icon`, `thumb`, `project`, and `viewLabel` among them, is
+  preserved on save and edited in the JSON pane. An icon picker is still the
   open piece.

@@ -99,7 +99,7 @@ the rule types decidable from a cell alone.
 
 `cells` is the one kind that is not a table and is never cut. It is the shape
 home's PowerShell exporter (`Get-WsDetail`) writes and the fund view's reader
-(`app/fund-balance/workbook-fill.js`) consumes, one object per sheet:
+(home's `projects/budget-drs/app/fund-balance/workbook-fill.js`) consumes, one object per sheet:
 `{ SheetName, Dimension, MergedCells: ['A1:B1', …], Cells: [{ Address, Formula,
 Value }, …] }`. `Value` is the cached value as a string, raw rather than
 formatted, because a reader parses `35624913.378` and cannot parse
@@ -126,7 +126,7 @@ A `ref` that is a commit SHA is the only form that still resolves to these bytes
 later.
 
 **What was left behind.** In v1, `picked` and `left` are complements over the
-workbook's sheets and the twelve kinds. In v2, they record each selected
+workbook's sheets and the thirteen kinds. In v2, they record each selected
 sheet's readings, the omitted readings on that sheet, and individually chosen
 or omitted objects. Without `left`, a reader cannot tell a partial selection
 from the whole file.
@@ -315,7 +315,7 @@ Each trap cost a handover in this format's own pull request, which is why the
 rule is in the command rather than in this paragraph.
 
 It is sized to show rather than to assert: 800 ledger rows, so the picker's
-smallest cap visibly bites and a cell reads `500 of 802`; all twelve kinds
+smallest cap visibly bites and a cell reads `500 of 802`; all thirteen kinds
 present on at least one sheet; a form-shaped `Summary` whose values are almost
 nothing while its merges and styles are not; and a hidden `Archive`, so the
 matrix carries real zeros. The minimal fixture in
