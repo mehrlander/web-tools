@@ -108,6 +108,23 @@ test('a comment naming the trap is documentation, not markup', { skip: !installe
   });
 });
 
+// A page that registers the theme colours compiles every family, so nothing on
+// it is dead. Measured 2026-10-22 on three pages the Budget DRS app embeds, all
+// fifteen of whose reported classes painted in their theme colour.
+test('a page carrying the @theme registration has no dead family', { skip: !installed && 'daisyUI not installed' }, () => {
+  withFile('<style type="text/tailwindcss">@theme inline{--color-base-300:var(--color-base-300);}</style>\n' +
+           '<div class="divide-y divide-base-300 ring-primary fill-base-content"></div>', (f) => {
+    assert.match(run([f]).out, /dead-family: none/);
+  });
+});
+
+test('a page booting through the hub, which injects the registration, has none either', { skip: !installed && 'daisyUI not installed' }, () => {
+  withFile('<script type="module">await import("https://mehrlander.github.io/web-tools/lib/entry.js");</script>\n' +
+           '<div class="ring-base-100 stroke-base-content/60"></div>', (f) => {
+    assert.match(run([f]).out, /dead-family: none/);
+  });
+});
+
 test('--check turns the advisory into a gate', { skip: !installed && 'daisyUI not installed' }, () => {
   withFile('<div class="divide-base-200"></div>', (f) => {
     assert.equal(run([f]).code, 0, 'advisory by default');
