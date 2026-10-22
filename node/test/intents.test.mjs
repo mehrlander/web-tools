@@ -25,7 +25,7 @@ test('every intent has its words, and no key appears twice', () => {
   assert.ok(intents.length, 'docs/intents.csv has no rows');
   assert.equal(new Set(intents.map(r => r.intent)).size, intents.length, 'an intent key appears twice');
   for (const r of intents)
-    for (const f of ['want', 'path', 'who', 'lands', 'catch'])
+    for (const f of ['use_when', 'path', 'gloss', 'caveat'])
       assert.ok(String(r[f] || '').trim(), `${r.intent}: ${f} is blank`);
 });
 
