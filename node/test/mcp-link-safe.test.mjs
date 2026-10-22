@@ -145,14 +145,12 @@ test('--check exits non-zero only when something would be defanged', () => {
 // into a PR body. It did until 2026-08-25, contradicting SURFACING.md's own
 // "The body does not enumerate files" since 2026-08-08.
 test('the guide-body sync does not prescribe a file list in the body', () => {
-  // The rule moved out of the caption skill and into the surfacing course when
-  // the skill was retired (2026-08-31), and into SURFACING.md's guide pointer
-  // when the course was (2026-10-22).
+  // The rule lives in SURFACING.md's Guide pointer, which every session loads.
   const doc = readFileSync(path.join(repoRoot, 'docs', 'SURFACING.md'), 'utf8');
   const guide = doc.slice(doc.indexOf('* **Guide pointer'));
-  assert.ok(/Leave files and checks to the page/.test(guide),
+  assert.ok(/Leave files and checks to the branch page/.test(guide),
     'the guide should carry judgment, not a file list');
-  assert.ok(/plain prose with plain paths/.test(guide),
+  assert.ok(/in plain prose/.test(guide),
     'the guide template should ask for prose, not the caption\'s link triplets');
   assert.ok(/mcp-link-safe\.py/.test(guide),
     'the guide should name the checker for anything written to a body');

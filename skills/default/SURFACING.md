@@ -11,7 +11,7 @@ substituting the current repo in URL templates.
 ### Every reply
 
 * **Closing state.** Use exactly one, last, understandable without the message it closes. Write the glyph at the start of the line, then a bold lead: the name as shown, or for 🔵 the question.
-  - 🟢 **Ready to continue:** The session has a clear path to proceed, approved or implied by user interest. It never instructs the reader. When the next step is merging the branch, nothing else is open, the per-session refreshes the repo's `CLAUDE.md` names have run, and checks have passed on the latest commit, lead **Ready to merge:** instead; "go" merges.
+  - 🟢 **Ready to continue:** The session has a clear path to proceed, approved or implied by user interest. It never instructs the reader. When the next step is merging the branch and nothing else is open, lead **Ready to merge:** instead, and "go" merges. Before it, run the per-session refreshes the repo's `CLAUDE.md` names, and confirm the PR has no conflicts and its checks passed on the latest commit.
   - ❇️ **Ready to assess:** The session assesses: "go" means report back, not implement.
   - 🟡 **Pending:** Waiting on an action or dependency, not on direction.
   - 🪧 **Direction needed:** Next steps appear to diverge. Offer to take the reader's direction or to make a full assessment and recommendation; "go" asks for the assessment.
@@ -20,7 +20,7 @@ substituting the current repo in URL templates.
   - ✍️ **Sign-off needed:** Documentation wording, laid out above as a doc review (see the doc-craft skill), waits on the reader's approval. Say what the session will do once it is given.
   - 🟠 **Attention:** A concrete problem must be settled before proceeding.
   - ⚪ **Clean exit:** Nothing remains here; the reader decides whether to wrap up.
-  - 🟣 **Merged:** This branch merged. State what shipped in one line.
+  - 🟣 **Merged:** GitHub reports this branch merged. State what shipped in one line. Further edits go in a new PR.
   - 🔴 **Closed:** This branch closed unmerged. State why in one line.
   - ⚫ **Done:** Every workstream merged or closed and nothing remains open. Nothing follows.
   - 🔵 **Short answer:** The question is answered and nothing is proposed. Lead with the question in place of the name, then the answer: 🔵 **Did the merge land?** Yes.
@@ -41,13 +41,13 @@ substituting the current repo in URL templates.
 
 * **Open the branch 🌿.** Use `…/pages/branch.html#gh=owner/repo@branch[&base=ref]`, or `…#gh=owner/repo&pr=<n>` for a PR's head and base. Add `&file=<path>` to open a file or `&pane=files` to open the file list.
 
-* **Guide pointer 🧭.** A PR's guide is the part of its body between `[//]: # (guide)` and `[//]: # (/guide)`; the branch page shows the body above the files. After a push that changes the branch's state, rewrite the guide with `update_pull_request`, once `python3 python/mcp-link-safe.py --check body.md` passes in web-tools. Leave files and checks to the page:
+* **Guide pointer 🧭.** A PR's guide is the part of its body between `[//]: # (guide)` and `[//]: # (/guide)`. The branch page shows the body above the files. After a push that changes the branch's state, rewrite the guide with `update_pull_request`, once `python3 python/mcp-link-safe.py --check body.md`, run from a web-tools checkout, passes. Leave files and checks to the branch page. Use:
 
   ```markdown
   ## What this PR does
   <one sentence: the resulting capability>
   ## Why this branch exists
-  <the problem, and what a reader needs to resume, in plain prose with plain paths>
+  <the problem, and what a reader needs to resume, in plain prose>
   ## Open threads
   1. 🟢 **<title>**: <state and next step>
   2. 🟡 **<title>**: <what it waits on>
