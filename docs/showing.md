@@ -30,6 +30,16 @@ one was handed over, and nothing mints a new one
 code changed, and `--top` asks for it otherwise. [`loader.md`](loader.md)
 documents how a toss hands a page its versions.
 
+## Landing on a place
+
+A 🥏 link on any route can carry a look marker in the rendered page's own
+fragment, which makes it a look link: `--intro` greets the reader, and `--at`
+scrolls to one element, tints it and says why, or walks through several.
+`npm run showing` puts the fragment on whichever route the picker chose. The
+grammar is in the header of [`lib/kits/look.js`](../lib/kits/look.js);
+[`skills/look-markers/SKILL.md`](../skills/look-markers/SKILL.md) says how to
+make one and which pages it reaches.
+
 ## Nesting
 
 A 🥏 link is served by main's `toss-render.html`, so the deployed shell parses the
