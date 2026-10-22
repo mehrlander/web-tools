@@ -809,7 +809,15 @@ def address(mech, page, sha, slug, view=None, at="", query="", entries=None, pag
     pretty = page[:-len("index.html")] if page.endswith("/index.html") else page
     frag = "#" + at.lstrip("#") if at else ""
     if mech in ("toss-gh", "toss-app", "overlay", "toss-data"):
-        frag = frag.replace("%", "%25")
+        # The separator is written `%23` and the fragment's own `&` as `%26`;
+        # the toss's one decode brings both back. A second raw `#` is not a
+        # legal URL character, and the Claude app on an iPhone re-encodes a link
+        # holding one, `%` included, so an intro arrived one decode short and
+        # its card read "Swipe%20between%20sessions" (2026-10-22; the same link
+        # with `%23` read cleanly). With no raw `#` left, the shell's own look
+        # gate (lib/gh-boot.js lookOnDemand) reads the whole fragment, so a
+        # page key after a raw `&` would surface as the shell's.
+        frag = ("%23" + frag[1:].replace("%", "%25").replace("&", "%26")) if frag else ""
     if mech == "toss-gh":
         # NO ?use= ON THE SHELL, and this is not a tidiness call: that link
         # crashes Safari's web process on an iPhone, every time, which is what
