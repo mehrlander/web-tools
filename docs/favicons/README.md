@@ -16,11 +16,11 @@ This is the library-wide mark. `lib/gh-boot.js` inlines a copy and injects it as
 
 ## Drawn marks
 
-A project's own icon is an SVG drawn to the rules of the budget-drs app icon (`mehrlander/home:projects/budget-drs/app/favicon.svg`), as are the repository marks in review below:
+A project's own icon is an SVG drawn to the rules of the budget-drs app icon (`mehrlander/home:projects/budget-drs/app/favicon.svg`), as are the repository and Map marks in review below:
 
 - `viewBox="1.5 1.75 29 29"`, solid fills, no strokes.
 - Every gap at least 2.5 units, about 1.4 CSS px at 16.
-- A project's mark takes a colour no other project uses. A repository's mark is filled with `currentColor`, which an `<img>` draws black, so a page paints it as a CSS mask in its text colour.
+- A project's mark takes a colour no other project uses. Every other mark is filled with `currentColor`, which an `<img>` draws black, so a page paints it as a CSS mask in its text colour.
 - The hub's repositories share a hexagon, and the public-record stores stand on the detached base bar (`<rect x="2" y="24.4" width="28" height="4.6"/>`).
 - A `<desc>` says what the mark depicts.
 
@@ -35,6 +35,10 @@ File: [`web-tools-icon-3d.png`](web-tools-icon-3d.png). A 180 × 180 candidate w
 ### Estate repository marks
 
 Files: [`estate/`](estate/). A first pass, drawn 2026-10-22: one mark per estate repository except web-tools, whose mark is the hex nut. No page shows them: the repository `icon` field takes only a Phosphor class, and `loadReach` in [`lib/alpineComponents/map.js`](../../lib/alpineComponents/map.js) drops any other value.
+
+### Map marks
+
+Files: [`map/`](map/). A first pass, drawn 2026-10-22: one mark for each of the Map's seven tab groups, each a miniature of the view it opens, and one for each outpost but Work PowerShell, which wears the wps project's mark. No page shows them yet.
 
 ### Per-page emoji marks
 
