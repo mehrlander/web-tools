@@ -1,0 +1,13 @@
+# Files in this repository that are copies. Each is edited at its source
+# and refreshed here; an edit made here is overwritten at the next refresh.
+# Written by vendored.py in mehrlander/web-tools-private; do not edit.
+python/annotate/check.py
+python/annotate/materialize.py
+python/annotate/ops.py
+python/annotate/reanchor.py
+python/annotate/seams.py
+python/annotate/segment.py
+skills/doc-audit/SKILL.md
+skills/doc-audit/references/shorter.json
+skills/doc-audit/scripts/run.py
+skills/doc-audit/vocab.tsv
