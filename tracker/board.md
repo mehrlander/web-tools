@@ -16,6 +16,7 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Separate authored from derived data across the registries](tasks/registry-authored-derived-split-v3qm2x.md) · M
 - 🎫 [Move the Repos grid into Map › Reach](tasks/repos-grid-into-map-reach-1eheiq.md) · L
 - 🎫 [Retire `shell`, and name the parts instead of the collection](tasks/retire-shell-name-the-parts-r152bt.md) · M
+- 🎫 [Retire docs/surfacing-course.md into the documents that already cover its parts](tasks/retire-surfacing-course-5szz7c.md) · M
 - 🎫 [Give the stage a way to carry part of a file](tasks/stage-partial-file-selection-k8mtou.md) · M
 - 🎫 [Convert the title attributes outside the app to title-tips](tasks/stranded-titles-panel-or-drop-o6hqom.md) · M
 - 🎫 [Hold SURFACING.md to surfacing.csv by content, not by lead-in](tasks/surfacing-gate-content-okwnp6.md) · S
