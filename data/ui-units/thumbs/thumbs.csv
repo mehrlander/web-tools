@@ -16,7 +16,7 @@ web-tools:map/showing,web-tools-map-showing.desk.jpg,web-tools-map-showing.phone
 web-tools:map/skills,web-tools-map-skills.desk.jpg,web-tools-map-skills.phone.jpg,2026-10-06,app/index.html?view=map&tab=skills,slots @59,card-grid
 web-tools:map/surfacing,web-tools-map-surfacing.desk.jpg,web-tools-map-surfacing.phone.jpg,2026-10-06,app/index.html?view=map&tab=surfacing,slots @59,card-grid
 web-tools:map/tests,web-tools-map-tests.desk.jpg,web-tools-map-tests.phone.jpg,2026-10-06,app/index.html?view=map&tab=tests,slots @59,list
-web-tools:map/themes,web-tools-map-themes.desk.jpg,web-tools-map-themes.phone.jpg,2026-10-22,app/index.html?view=map&tab=themes,slots @59,linked-swiper
+web-tools:map/themes,web-tools-map-themes.desk.jpg,web-tools-map-themes.phone.jpg,2026-10-22,app/index.html?view=map&tab=themes,slots @69,linked-swiper
 web-tools:map/views,web-tools-map-views.desk.jpg,web-tools-map-views.phone.jpg,2026-10-06,app/index.html?view=map&tab=views · node/render/scenarios/map-views.mjs,slots @59,list
 web-tools:pages/approve.html,web-tools-pages-approve-html.desk.jpg,web-tools-pages-approve-html.phone.jpg,2026-10-06,pages/approve.html,,
 web-tools:pages/branch.html,web-tools-pages-branch-html.desk.jpg,web-tools-pages-branch-html.phone.jpg,2026-10-06,pages/branch.html?#gh=mehrlander/web-tools@claude/map-view-ui-patterns-jhdczz,slots @37,header-swiper
