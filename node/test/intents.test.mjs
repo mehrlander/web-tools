@@ -24,9 +24,15 @@ const intents = Csv.rows(read('docs/intents.csv'));
 test('every intent has its words, and no key appears twice', () => {
   assert.ok(intents.length, 'docs/intents.csv has no rows');
   assert.equal(new Set(intents.map(r => r.intent)).size, intents.length, 'an intent key appears twice');
-  for (const r of intents)
-    for (const f of ['use_when', 'path', 'gloss', 'caveat'])
+  for (const r of intents) {
+    for (const f of ['label', 'path', 'caveat', 'caveat_at'])
       assert.ok(String(r[f] || '').trim(), `${r.intent}: ${f} is blank`);
+    assert.match(r.label, /\?$/, `${r.intent}: a label is the question the row answers`);
+    // The caveat is drawn under one box of the lit path, so it stays short
+    // and belongs to a step the path has.
+    assert.ok(r.caveat.split(/\s+/).length <= 10, `${r.intent}: a caveat is a few words, drawn under a box`);
+    assert.ok(Csv.list(r.path).includes(r.caveat_at), `${r.intent}: caveat_at ${r.caveat_at} is not a step of its path`);
+  }
 });
 
 test('every intent is a path the Set diagram draws', () => {

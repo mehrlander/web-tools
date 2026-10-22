@@ -219,10 +219,10 @@ writers,mode,recorded,,value,list,no,,value,"how it sets: replace a file, append
 writers,write_kind,recorded,,counted,list,no,,value,the Writes view kinds its commits read as (lib/kits/write-kinds.js); blank where not yet measured
 writers,defined_in,recorded,,value,column,yes,,locator,"the file that defines or documents it, a path here or owner/repo@ref:path"
 writers,gloss,recorded,,value,column,yes,,value,what it does
-intents,use_when,recorded,,value,column,yes,,value,"what you want done, completing ""I want to…""; the row is one of a set a reader chooses among"
+intents,label,recorded,,value,column,yes,,label,"the how-to question the row answers, as the Set tab lists it"
 intents,path,recorded,,value,list,no,,value,"start:<what starts it>, then the writers that carry it in order by their writers key, then dest:<where it lands>; every step a line the Set diagram draws"
-intents,gloss,recorded,,value,column,yes,,value,"the route in a sentence: who acts, and where the result lands"
-intents,caveat,recorded,,value,column,yes,,value,the limit a reader would otherwise find out the hard way
+intents,caveat,recorded,,value,column,yes,,value,"the one thing to know at the step it concerns, in a few words, shown under that step while the path is lit"
+intents,caveat_at,recorded,,value,column,yes,,id,"the step of the path the caveat belongs to: a writer key, start:<what> or dest:<where>"
 intents,doc,recorded,,none,column,yes,,locator,"the document that owns the route, a path in this tree"
 context-sources,circle,recorded,,value,column,yes,account;environment;user;plugin;repo;session,label,"where the source is defined, outermost first: the claude.ai account, the cloud environment, user scope in the container, the portable plugin, a checked-out repo, or the session itself"
 context-sources,item,recorded,,value,column,yes,,value,the short name a reader knows the source by
