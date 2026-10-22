@@ -397,6 +397,18 @@ def classify(paths):
 OVERLAY_CAP = 20
 TEST_BASE_SHA = "b" * 40
 
+def vendored_copies():
+    """The plugin's copies of the traveling docs, named by VENDORED in
+    node/build/vendor-docs.mjs, which writes them whole. Not skills/default/
+    entire: its SKILL.md is authored."""
+    try:
+        src = (ROOT / "node/build/vendor-docs.mjs").read_text(encoding="utf-8")
+    except OSError:
+        return ()
+    m = re.search(r"export const VENDORED = \[([^\]]*)\]", src)
+    return tuple(f"skills/default/{n}" for n in re.findall(r"'([^']+)'", m.group(1))) if m else ()
+
+
 # Files a merge regenerates rather than takes from either side: the builds,
 # the files the commit hook writes whole (node/README.md, "The refresh
 # model"), and the catalogs .gitattributes merges with the derived-csv driver.
@@ -404,7 +416,7 @@ TEST_BASE_SHA = "b" * 40
 # and says so, and they do not count against it as files main also changed.
 WHOLE_GENERATED = ("dist/", "console/suite.js", "pages/README.md", "pages/index.html", "pages/thumbs/",
                    "docs/README.md", "tracker/board.md", "tracker/board.csv", "tracker/board-tags.csv",
-                   ".claude/skills/default/")
+                   *vendored_copies())
 
 def derived_paths():
     try:

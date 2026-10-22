@@ -1,6 +1,6 @@
 unit,desk,phone,shot_at,recipe,focus,pattern
 web-tools:map/aims,web-tools-map-aims.desk.jpg,web-tools-map-aims.phone.jpg,2026-10-06,app/index.html?view=map&tab=aims,slots @59,fields
-web-tools:map/claims,web-tools-map-claims.desk.jpg,web-tools-map-claims.phone.jpg,2026-10-06,app/index.html?view=map&tab=claims,slots @59,card-grid
+web-tools:map/themes,web-tools-map-themes.desk.jpg,web-tools-map-themes.phone.jpg,2026-10-06,app/index.html?view=map&tab=themes,slots @59,card-grid
 web-tools:map/context,web-tools-map-context.desk.jpg,web-tools-map-context.phone.jpg,2026-10-06,app/index.html?view=map&tab=context,slots @59,figure
 web-tools:map/data,web-tools-map-data.desk.jpg,web-tools-map-data.phone.jpg,2026-10-06,app/index.html?view=map&tab=data,slots @59,list
 web-tools:map/dimensions,web-tools-map-dimensions.desk.jpg,web-tools-map-dimensions.phone.jpg,2026-10-06,app/index.html?view=map&tab=dimensions,slots @59,list

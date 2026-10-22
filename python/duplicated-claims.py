@@ -2,8 +2,7 @@
 """Advisory scan: near-duplicated prose across the repo's markdown.
 
 The one-owner-per-claim principle (a claim lives in one document; others
-link, and docs/owners.csv records who owns a statement the coordination
-layer repeats) fails quietly: the same paragraph gets restated across
+link) fails quietly: the same paragraph gets restated across
 README layers and the copies age at different rates. This detector is
 mechanical, advisory, and never blocking, in the idiom of dead-links.py
 and unclaimed-code.py: run it, read the pairs, assign an owner or
@@ -59,8 +58,7 @@ from pathlib import Path
 SHINGLE = 10        # words per window
 SHARED_MIN = 3      # shared windows before a pair is reported
 
-# The plugin's vendored conventions are byte-copies by hook (gated by
-# portable-manifest.test.mjs), task files quote the docs they scope, and
+# .claude/ is harness configuration, task files quote the docs they scope, and
 # archive/ preserves retired projects whose exports contain copies of their
 # own docs by construction (restatement there is the record, not the rot).
 # outside/ holds pinned copies of skills other people wrote
@@ -81,6 +79,20 @@ QUOTED = 3          # runs carried per edge in the emitted graph;
 FENCE = re.compile(r"^(```|~~~)")
 TABLE_OR_HR = re.compile(r"^\s*[|\-=+*_ ]+\s*$|^\s*\|")
 WORD = re.compile(r"[a-z0-9']+")
+
+
+def vendored_paths(root: Path) -> set:
+    """The plugin's copies of the traveling docs, skills/default/<name>, read
+    from VENDORED in node/build/vendor-docs.mjs: the list the copy step and its
+    byte check (derived-artifacts.test.mjs) run from, so this cannot drift from
+    it. A copy held byte for byte would head every report. The folder is not
+    excluded whole, since its SKILL.md is authored."""
+    try:
+        src = (root / "node" / "build" / "vendor-docs.mjs").read_text(encoding="utf-8")
+    except OSError:
+        return set()
+    m = re.search(r"export const VENDORED = \[([^\]]*)\]", src)
+    return {"skills/default/" + n for n in re.findall(r"'([^']+)'", m.group(1))} if m else set()
 
 
 def record_paths(root: Path) -> set:
@@ -159,8 +171,7 @@ def states_a_rule(quoted):
 
 
 def payload(files, hits):
-    """The graph as committed data. No registry membership rides here: which
-    pairs a registry names is owners.csv's to say, and the app joins the two."""
+    """The graph as committed data."""
     edges = []
     for n, (a, b), shs in hits:
         quoted = runs(shs)[:QUOTED]
@@ -185,7 +196,7 @@ def main(argv):
     files = [f for f in subprocess.run(["git", "ls-files", "-z", "--", scope],
                                        capture_output=True, text=True, cwd=root
                                        ).stdout.split("\0") if f]
-    records = record_paths(root)
+    records = record_paths(root) | vendored_paths(root)
     files = [f for f in files if f.endswith(".md")
              and not any(f.startswith(p) for p in EXCLUDE_PREFIXES)
              and f not in EXCLUDE_PATHS

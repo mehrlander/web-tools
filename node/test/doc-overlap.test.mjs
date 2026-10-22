@@ -73,13 +73,15 @@ test('offsets cut the recorded text out of every file the scan still describes',
   assert.ok(checked > rows.length / 2, `only ${checked} of ${rows.length * 2} passage cuts are checkable; rerun python/doc-overlap.py`);
 });
 
-test('the Map reads the tables and keeps the lens out of the shingle controls', () => {
+test('the Map reads the tables and keeps similar wording apart from the shingle dial', () => {
   const src = readFileSync(path.join(repoRoot, 'lib', 'alpineComponents', 'map.js'), 'utf8');
   assert.match(src, /const OVERLAP_MATCHES = 'data\/doc-overlap\/matches\.csv'/);
-  assert.match(src, /\{ k: 'related', n: 'Related', i: 'ph-swap' \}/);
-  assert.match(src, /themeGraph && lens !== 'owners' && lens !== 'related'/,
-    'the shingle dial and its concern counts must not apply to the embedding lens');
-  assert.match(src, /text\.slice\(start, end\)/, 'the lens cuts passages by UTF-16 offset, as this test does');
+  const open = src.indexOf('data-at="similar-wording"');
+  assert.ok(open > 0, 'the Themes tab has a Similar wording section');
+  const section = src.slice(open, src.indexOf('</details>', open));
+  assert.match(section, /@toggle="\$el\.open && loadOverlap\(\)"/, 'the tables load when the section opens');
+  assert.doesNotMatch(section, /themeTh/, 'the shingle threshold must not apply to the embedding measure');
+  assert.match(src, /text\.slice\(start, end\)/, 'the section cuts passages by UTF-16 offset, as this test does');
 });
 
 // data/doc-overlap/gold-set/gold.csv — the hand-labelled sample that scores the

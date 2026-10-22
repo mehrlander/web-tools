@@ -60,8 +60,6 @@ const surfCsv = readFileSync(path.join(repoRoot, 'docs', 'surfacing.csv'), 'utf8
 const surfDoc = readFileSync(path.join(repoRoot, 'docs', 'SURFACING.md'), 'utf8');
 // The Overview and every Sources panel read the real sentences.
 const mapTabsCsv = readFileSync(path.join(repoRoot, 'docs', 'map-tabs.csv'), 'utf8');
-const ownersCsv = readFileSync(path.join(repoRoot, 'docs', 'owners.csv'), 'utf8');
-const repsCsv = readFileSync(path.join(repoRoot, 'docs', 'repetitions.csv'), 'utf8');
 const propsRegCsv = readFileSync(path.join(repoRoot, 'docs', 'registries.csv'), 'utf8');
 const propsDeclCsv = readFileSync(path.join(repoRoot, 'docs', 'properties.csv'), 'utf8');
 const propsVocabCsv = readFileSync(path.join(repoRoot, 'docs', 'vocabularies.csv'), 'utf8');
@@ -107,8 +105,6 @@ window.GH = class {
     if (p === 'docs/surfacing.csv') return { text: surfCsv };
     if (p === 'docs/SURFACING.md') return { text: surfDoc };
     if (p === 'docs/map-tabs.csv') return { text: mapTabsCsv };
-    if (p === 'docs/owners.csv') return { text: ownersCsv };
-    if (p === 'docs/repetitions.csv') return { text: repsCsv };
     if (p === 'docs/registries.csv') return { text: propsRegCsv };
     if (p === 'docs/properties.csv') return { text: propsDeclCsv };
     if (p === 'docs/vocabularies.csv') return { text: propsVocabCsv };
@@ -157,7 +153,7 @@ test('every Map address has one source control and keeps its description in the 
 
 test('source provenance follows the selected collection and preserves an external census ref', () => {
   const old = { mapTab: data.mapTab, skillSet: data.skillSet, agentSet: data.agentSet,
-    docRepo: data.docRepo, dataScope: data.dataScope, dataCensus: data.dataCensus, lens: data.lens };
+    docRepo: data.docRepo, dataScope: data.dataScope, dataCensus: data.dataCensus };
   try {
     const paths = () => Array.from(data.mapSources, s => s.path);
     data.mapTab = 'skills'; data.skillSet = 'estate';
@@ -173,9 +169,8 @@ test('source provenance follows the selected collection and preserves an externa
     data.mapTab = 'docs'; data.docRepo = 'mehrlander/home';
     assert.ok(paths().includes('state/docs.json'));
     assert.ok(!paths().includes('docs/docs.csv'));
-    data.mapTab = 'claims'; data.lens = 'owners';
-    assert.ok(paths().includes('docs/owners.csv'));
-    assert.ok(!paths().includes('docs/themes.csv'));
+    data.mapTab = 'themes';
+    for (const p of ['docs/themes.csv', 'data/doc-overlap/matches.csv']) assert.ok(paths().includes(p), p);
     data.mapTab = 'data'; data.dataScope = 'mehrlander/home';
     data.dataCensus = [{ repo: 'mehrlander/home', ref: 'feature/census', path: 'data/inventory.csv', files: [], state: 'ready' }];
     assert.equal(data.mapSources[0].addr, 'mehrlander/home@feature/census:data/inventory.csv');
@@ -383,22 +378,6 @@ test('Docs loads on demand and carries the registry', async () => {
   await data.loadDocsReg();
   assert.equal(data.docsErr, '');
   assert.ok(data.docsReg.documents.length > 30);
-});
-
-// The two tabs shared a fetch while the owners table was a second block inside
-// docs.csv. Since 2026-08-09 each loads its own file, and the point of the
-// split is that opening Docs does not pull owners and the reverse.
-test('Owners loads its own file, separately from Docs', async () => {
-  assert.equal(data.ownersReg, null, 'the registry is not fetched until the tab is opened');
-  await data.loadOwnersReg();
-  assert.equal(data.ownersErr, '');
-  assert.ok(data.ownersReg.owners.length > 3);
-  // Two files, not three: the tab pulled docs/registries.csv as well while its
-  // header carried a scope line, and stopped on 2026-08-26 when the header came
-  // off. The scope is read on the Registries tab, where every registry's is.
-  assert.equal(data.propsReg, null, 'opening Claims does not pull the registry pair');
-  assert.equal(data.OWNERS_MANIFEST, 'docs/owners.csv');
-  assert.equal(data.OWNERS_REPS, 'docs/repetitions.csv');
 });
 
 // The kit shelf: every column derived, so the tab's whole job is to filter
@@ -911,7 +890,7 @@ test('a tab tap renders, loads, and hands the tab to the shell', async () => {
   await tick(2);
   assert.equal(d2.mapTab, 'docs');
   assert.equal(d2.displayTab, 'docs');
-  assert.equal(JSON.stringify(d2.subviews.map(s => s.k)), JSON.stringify(['docs', 'growth', 'policy', 'claims', 'registries']),
+  assert.equal(JSON.stringify(d2.subviews.map(s => s.k)), JSON.stringify(['docs', 'growth', 'policy', 'themes', 'registries']),
     'Docs exposes Inventory first, then Purpose, Growth, Policy, Themes, and Registries');
   assert.deepEqual([...taps], ['docs'], 'the shell is told, so the URL gets stamped');
   assert.ok(d2.docsReg, 'the tab fetched its own manifest');
