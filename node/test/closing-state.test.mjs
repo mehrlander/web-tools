@@ -63,6 +63,13 @@ test('have a look reads in all four spellings of its joined glyph', () => {
   assert.deepEqual(CS.marks('See [👁️‍🗨️](https://x) **here**.'), [], 'the glyph mid-line is not a state');
 });
 
+test('a glyph that is its own link still opens a state, and the link stays out of its text', () => {
+  const md = 'Done.\n\n[👁️‍🗨️](https://mehrlander.github.io/web-tools/pages/toss-render.html#gh=o/r@b:app/index.html?view=map%23intro=x) **Have a look:** the Set tab.';
+  assert.deepEqual(CS.marks(md), ['look']);
+  const [c] = CS.closings(md);
+  assert.equal(c.text, '**Have a look:** the Set tab.');
+});
+
 test('sign-off needed reads in both spellings', () => {
   assert.deepEqual(CS.marks('✍️ **Sign-off needed:** the wording above.'), ['signoff']);
   assert.deepEqual(CS.marks('✍ **Sign-off needed:** the wording above.'), ['signoff']);
