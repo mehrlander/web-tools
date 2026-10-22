@@ -379,6 +379,18 @@ each the only separator of some pair: `medium` (a task file from a snag),
   only when aimed at the one pair the shape names bundled, which is why the
   script takes `x:` crosses.
 
+## How to display a category map
+
+A category map is read best as a picture, so the display was explored before
+the skill was rewritten to feed one. [`idea-board.json`](idea-board.json) holds
+a Crazy Eights round from the design-sprint skill: four sketchers, each blind to
+the others, drew two concepts each from one angle (classification forms, spatial
+metaphor, process, instances first), all over the registry test's data. Three of
+the eight independently drew the same field, "stands for" against "after
+written", with the words as regions. The proposed selection takes the per-word
+docket as its base and puts that field above it. It opens in
+[the idea board page](https://mehrlander.github.io/web-tools/pages/idea-board.html#gh=mehrlander/web-tools@claude/amazing-edison-w6l3ho:research/category-mapping/idea-board.json).
+
 ## Sources
 
 Citations marked secondhand were not read in the original.
