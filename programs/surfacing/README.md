@@ -18,7 +18,7 @@ and listed in the Map view's Programs tab; a program is defined in
 | Area | Measure | Working means |
 | --- | --- | --- |
 | Reply | web-tools-private `state/closings.json` on the `background` branch: each day's closing states in the session records | the share of Choice needed closings falls, while Direction needed and Ready to assess take the replies whose next step is unclear |
-| Showing | web-tools-private `state/render-links.json` on the `background` branch: each day's turns that changed a page, sorted by what a reply after the edit gave (a render link to that page, one to another, a screenshot or a "No render link" line, or nothing) | every turn that changed a page hands over a render link to it, or says why none reaches |
+| Showing | web-tools-private `state/render-links.json` on the `background` branch: each day's turns that changed a page, sorted by what a reply after the edit gave | every turn that changed a page hands over a render link to it, or says why none reaches and sends a screenshot |
 | Forms | none yet; a candidate is the share of form pages classified in the UI codebook (`data/ui-units/`) | a form met mid-session is recognizable by its kind |
 
 ## Reviewers
