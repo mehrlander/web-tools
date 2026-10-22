@@ -12,8 +12,9 @@ import { repoRoot } from './bootstrap.mjs';
 
 const HOOK = join(repoRoot, 'skills/hooks/program-files.sh');
 const manifest = JSON.stringify({ programs: [{ name: 'surfacing', label: 'Surfacing',
-  path: 'programs/surfacing', governs: ['docs/SURFACING.md', 'python/showing.py'] }] });
-const files = { '.web-tools.json': manifest, 'docs/SURFACING.md': 'x', 'python/showing.py': 'x', 'docs/APP.md': 'x' };
+  path: 'programs/surfacing', governs: ['docs/SURFACING.md', 'python/showing.py', 'docs/forms/'] }] });
+const files = { '.web-tools.json': manifest, 'docs/SURFACING.md': 'x', 'python/showing.py': 'x', 'docs/APP.md': 'x',
+  'docs/forms/branch.md': 'x', 'docs/forms-old.md': 'x' };
 
 function repo(body = files) {
   const root = mkdtempSync(join(tmpdir(), 'program-files-'));
@@ -40,6 +41,14 @@ test('a governed file names its program and the skill, once per session', () => 
     assert.match(first.err, /\/portable:programs surfacing/);
     assert.equal(r.edit('docs/SURFACING.md').status, 0, 'the same program stays quiet for the rest of the session');
     assert.equal(r.edit('docs/SURFACING.md', 's2').status, 2, 'another session hears it');
+  } finally { r.done(); }
+});
+
+test('an entry ending in / covers the files under it, and only those', () => {
+  const r = repo();
+  try {
+    assert.equal(r.edit('docs/forms/branch.md').status, 2);
+    assert.equal(r.edit('docs/forms-old.md', 's3').status, 0, 'a sibling that shares the prefix is not inside the folder');
   } finally { r.done(); }
 });
 
