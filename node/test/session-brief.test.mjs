@@ -573,8 +573,8 @@ test('a fact carries its definition on data-title-tip, not in a title', () => {
   // way. A TEXT fact (day, ran) has its definition on a title-tip. A GLYPH fact
   // is a button whose panel names the unit, so it carries an aria-label rather
   // than a title-tip, which a hover would draw over the panel it opens. The
-  // SCOPE is one pill holding each repository's mark, whose tip lists them
-  // after "Checked out:" (owner, 2026-10-22).
+  // SCOPE is one pill holding each repository's mark, and a button of the
+  // same kind: it opens the checkouts panel (owner, 2026-10-22).
   const text = d.strip.filter(f => !f.panel && f.k !== 'repos');
   const glyphs = d.strip.filter(f => f.panel);
   assert.deepEqual(Array.from(text, f => f.k), ['day', 'ran']);
@@ -588,7 +588,8 @@ test('a fact carries its definition on data-title-tip, not in a title', () => {
   }
   const pill = strip.querySelectorAll('[data-scope-pill]');
   assert.equal(pill.length, 1, 'one pill for the whole scope');
-  assert.equal(pill[0].getAttribute('data-title-tip'), 'Checked out: web-tools');
+  assert.equal(pill[0].getAttribute('aria-label'), 'Checked out: web-tools');
+  assert.ok(pill[0].hasAttribute('data-fact-btn'), 'and it opens a panel like the counts do');
   assert.equal(pill[0].querySelectorAll('i.ph').length, d.scopeRepos.length, 'a mark per repository inside it');
 
   // THROUGH THE KIT, NOT A SECOND IMPLEMENTATION OF IT. `kits/title-tip.js` is this
@@ -685,6 +686,29 @@ test('the wider `attached` list wins where the record carries it', () => {
   try {
     d.record = { ...was, attached: ['home', 'web-tools'] };
     assert.deepEqual([...d.scopeRepos], ['home', 'web-tools']);
+  } finally { d.record = was; }
+});
+
+test('the checkouts panel says, per repository, whether the session committed there', () => {
+  // Best evidence first: a push the record names (schema 15), else commits
+  // past main at the last stop that never left the container, else a
+  // measured none. A record older than both fields says nothing at all.
+  const d = lent();
+  const was = d.record;
+  const words = () => Object.fromEntries(Array.from(d.scopeRows, x => [x.name, x.word]));
+  try {
+    d.record = { ...d.rec, schema: 15, attached: ['home', 'web-tools', 'web-tools-private'],
+      repos: [{ name: 'home', branch: 'claude/a-1', ahead_base: 2 },
+              { name: 'web-tools', branch: 'claude/a-1', ahead_base: 0 },
+              { name: 'web-tools-private', branch: 'main', ahead_base: 0 }],
+      pushed: [{ name: 'web-tools', branch: 'claude/a-1' }] };
+    assert.deepEqual(words(), { home: '2 commits, not pushed', 'web-tools': 'pushed', 'web-tools-private': 'no commits' });
+    assert.equal(d.scopePushed, 1);
+    assert.equal(d.scopeRows.find(x => x.name === 'web-tools-private').branch, '', 'main is no branch worth naming');
+    assert.match(d.scopeRows.find(x => x.name === 'home').url, /branch\.html#gh=me\/home@claude%2Fa-1$/);
+    d.record = { ...d.rec, schema: 4, attached: undefined, pushed: undefined,
+      repos: [{ name: 'web-tools', branch: 'claude/a-1' }] };
+    assert.deepEqual(words(), { 'web-tools': '' }, 'an old record makes no claim about commits');
   } finally { d.record = was; }
 });
 
