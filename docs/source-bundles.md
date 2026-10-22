@@ -25,6 +25,11 @@ A bundle takes one of two shapes:
   intakes, usually as dated snapshots inside it. budget-wa's
   `sources/<publisher-product>/` folders take this shape.
 
+A running record that a scheduled writer extends, such as a weekly pull folded
+into one ledger, is not a bundle: each run would leave the file table behind.
+List its folder under the declaration's `exclude` and describe it in the
+manifest's [`stores`](manifest.md#stores) instead.
+
 ## The README's frontmatter
 
 The frontmatter is a leading `---` block. Every value is double-quoted: an
@@ -36,7 +41,7 @@ standard library and reads only quoted scalars and block lists.
 |---|---|---|
 | `title` | yes | what the material is |
 | `acquired` | yes | the date it was taken, `YYYY-MM-DD`; for a series, the latest intake |
-| `publisher` | no | the organization that published it |
+| `publisher` | no | the organization that published it, by its usual short name: `OFM`, `LEAP` |
 | `source_page` | no | the address it was taken from |
 | `arrival` | no | how it reached the repository, where that was not a pull from `source_page`: supplied in a session, a screenshot, a forwarded file |
 | `note` | no | what a reader of the bundle table needs and the title does not say |
@@ -45,7 +50,7 @@ standard library and reads only quoted scalars and block lists.
 ```yaml
 ---
 title: "OFM State HR workforce files"
-publisher: "Office of Financial Management"
+publisher: "OFM"
 source_page: "https://ofm.wa.gov/data-research/state-employee-workforce/"
 acquired: "2026-10-21"
 not_taken:

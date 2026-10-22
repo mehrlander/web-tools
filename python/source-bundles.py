@@ -93,9 +93,13 @@ def declarations(config):
         cap = d.get("enumerateMax", ENUMERATE_MAX)
         if not isinstance(cap, int) or cap < 1:
             raise ValueError(f"{where}.enumerateMax must be a positive integer")
+        exclude = d.get("exclude", [])
+        if not isinstance(exclude, list) or not all(valid_path(x) for x in exclude):
+            raise ValueError(f"{where}.exclude must be a list of relative folder paths")
         out.append({"base": base, "roots": roots, "table": d["table"],
                     "fileTable": d["fileTable"], "fileSources": sources,
-                    "skip": ALWAYS_SKIP | set(skip), "enumerateMax": cap})
+                    "skip": ALWAYS_SKIP | set(skip), "enumerateMax": cap,
+                    "exclude": set(exclude)})
     return out
 
 
@@ -236,14 +240,18 @@ def build(root, d, blobs):
     roots = [join(base, r) for r in d["roots"]]
     files = tracked(root, roots)
     brows, frows, missing = [], [], []
+    excluded = set()
     for r in roots:
         names = sorted({p[len(r) + 1:].split("/", 1)[0] for p in files
                         if p.startswith(r + "/") and p[len(r) + 1:].count("/") >= 1})
         for name in names:
             bdir = f"{r}/{name}"
+            bundle = bdir[len(base) + 1:] if base else bdir
+            if bundle in d["exclude"]:
+                excluded.add(bundle)
+                continue
             if f"{bdir}/README.md" not in files:
                 continue
-            bundle = bdir[len(base) + 1:] if base else bdir
             mine = []
             for p in files:
                 if not p.startswith(bdir + "/"):
@@ -283,6 +291,9 @@ def build(root, d, blobs):
                           "not_taken": flatten_not_taken(fm.get("not_taken")),
                           "files": len(mine),
                           "bytes": total})
+    for x in sorted(d["exclude"] - excluded):
+        missing.append(f"exclude names {x}, which is not a folder under a declared root; "
+                       f"delete the entry")
     if d["fileSources"]:
         # Every authored per-file row must name a file the file table lists.
         path = root / join(base, d["fileSources"])

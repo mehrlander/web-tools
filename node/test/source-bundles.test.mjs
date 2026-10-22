@@ -97,6 +97,21 @@ test('past the enumeration cap a bundle gets one totals row', t => {
   assert.equal(files[0].sha256, '');
 });
 
+test('an excluded folder is not a bundle, and a stale exclusion fails', t => {
+  const root = fixture(t, { ...DECL, exclude: ['source/ledger'] });
+  put(root, 'proj/source/ledger/README.md', '# A running record, no frontmatter\n');
+  put(root, 'proj/source/ledger/pulls.csv', 'date\n');
+  put(root, 'proj/source/x/README.md', README('title: "X"\nacquired: "2026-01-01"'));
+  git(root, 'add', '.');
+  assert.equal(run(root).status, 0);
+  assert.deepEqual(table(root, 'proj/catalog/bundles.csv').map(b => b.bundle), ['source/x']);
+  writeFileSync(path.join(root, '.web-tools.json'),
+    JSON.stringify({ bundles: [{ ...DECL, exclude: ['source/ledger', 'source/gone'] }] }) + '\n');
+  const stale = run(root);
+  assert.notEqual(stale.status, 0);
+  assert.match(stale.stderr, /exclude names source\/gone, which is not a folder under a declared root/);
+});
+
 test('an authored per-file row must name a file the file table lists', t => {
   const root = fixture(t);
   put(root, 'proj/source/x/README.md', README('title: "X"\nacquired: "2026-01-01"'));

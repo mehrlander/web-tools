@@ -57,6 +57,7 @@ bundles[].fileTable,string,portable,,yes,"The file table: one row per tracked fi
 bundles[].fileSources,string,portable,,no,An authored per-file table; each row must name a file the file table lists.
 bundles[].skip,array,portable,,no,"Folder or file names left out of a bundle wherever they sit, besides dot-prefixed names and __pycache__."
 bundles[].enumerateMax,number,portable,,no,Files past which a bundle gets one totals row in the file table; 300 when absent.
+bundles[].exclude,array,portable,,no,"Folders under a root, relative to base, that are not bundles: a running record a scheduled writer extends, declared in stores instead. An entry naming no folder fails."
 checking,object,app,,no,"The repository's own test information for Map Tests: current execution declarations and optional dated readings of check-bearing files and their comparisons. Each repository owns its explanations; the private registry caches discovery and the public hub supplies the view. The dated comparison shape remains provisional and its kind column is not a closed domain."
 checking.files,string,app,,no,"Path to the file-grain reading, so the tab can tell a file with no comparison rows yet from a file that stops nowhere and is not a check."
 checking.comparisons,string,app,,no,Required for a dated reading: path to the comparison-grain rows; the join key to a file is the `script` column and nothing else.
