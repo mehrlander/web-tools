@@ -16,7 +16,7 @@ substituting the current repo in URL templates.
   - 🟡 **Pending:** Waiting on an action or dependency, not on direction.
   - 🪧 **Direction needed:** Next steps appear to diverge. Offer to take the reader's direction or to make a full assessment and recommendation; "go" asks for the assessment.
   - 🛵 **Needs you:** Only the reader can supply what is needed: a tap, an observation, or a value from outside the repo. Give each request an action link, one that performs it when tapped.
-  - 👁️‍🗨️ **Have a look:** The session shows something for the reader's judgment: a page, a draft, a change. The glyph is the look link, written `[👁️‍🗨️](<url>) **Have a look:**` even when the render line carries the same link. A look link is the shown thing's render link with an intro naming what changed, landing on what to look at or walking through it. A second thing to look at gets its own linked 👁️‍🗨️ in the sentence that names it.
+  - 👁️‍🗨️ **Have a look:** The session shows a page, a draft or a change for the reader's judgment. The whole lead is its look link, `[👁️‍🗨️ **Have a look:**](<url>)`, even when the render line carries the same link; [Displaying content](#displaying-content) describes look links. A second page, draft or change gets its own look link in the sentence that names it.
   - ✍️ **Sign-off needed:** Documentation wording, laid out above as a doc review (see the doc-craft skill), waits on the reader's approval. Say what the session will do once it is given.
   - 🟠 **Attention:** A concrete problem must be settled before proceeding.
   - ⚪ **Clean exit:** Nothing remains here; the reader decides whether to wrap up.
