@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="Map Watch">
+  <title>Map Watch</title>
+  <desc>An eye, for what to keep watch on: paths that start code on a machine, public files, addresses. Drawn in one ink on the budget-drs app icon's box and rules, for the page to paint in its text colour: solid, no strokes, and every gap at least 2.5 units, which is about 1.4 CSS pixels at 16.</desc>
+  <g fill="currentColor">
+    <path fill-rule="evenodd" d="M2 16.25 Q16 -1 30 16.25 Q16 33.5 2 16.25 Z M16 10.75 A5.5 5.5 0 1 0 16 21.75 A5.5 5.5 0 1 0 16 10.75 Z"/>
+    <circle cx="16" cy="16.25" r="3"/>
+  </g>
+</svg>

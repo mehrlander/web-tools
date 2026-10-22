@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `node/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 18 are named by CLAUDE.md,
-21 by a skill, 39 by a page or component. The remaining 46 are
+22 by a skill, 39 by a page or component. The remaining 45 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -136,7 +136,7 @@ marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/favicons/
 
-- [`README.md`](favicons/README.md) *(orphan)* — the favicon archive: active marks and retired ones
+- [`README.md`](favicons/README.md) — the favicon archive: active marks and retired ones
 
 ## docs/forms/
 

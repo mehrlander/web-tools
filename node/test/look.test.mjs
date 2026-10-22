@@ -30,7 +30,7 @@ const wait = (ms) => new Promise(r => setTimeout(r, ms));
 const open = [];
 afterEach(() => { for (const w of open.splice(0)) { try { w.Look?.stop(); } catch {} w.close(); } });
 
-function realm(body, hash = '', at = 'https://localhost/test/', { gh = true } = {}) {
+function realm(body, hash = '', at = 'https://localhost/test/', { gh = true, before } = {}) {
   const { window } = makeWindow({
     html: `<!doctype html><html><head></head><body>${body}</body></html>`,
     url: at + (hash ? '#' + hash : ''),
@@ -47,6 +47,7 @@ function realm(body, hash = '', at = 'https://localhost/test/', { gh = true } = 
   window.TextDecoder = TextDecoder;
   // The steps ride as base64url through gh-api.js's GH, which every page boots.
   if (gh) window.GH = withBase64({});
+  if (before) before(window);
   new window.Function(KIT)();
   open.push(window);
   return window;
@@ -254,16 +255,16 @@ test('one message per card: an intro is the first card\'s message only when that
   assert.match(card(two).textContent, /1 of 2/);
 });
 
-test('base64 steps wait for gh-api.js rather than reading as unreadable', async () => {
-  // The toss data route ran this kit before the page's boot loaded gh-api.js.
-  const steps = Buffer.from(JSON.stringify([{ at: 'x', say: 'Here' }])).toString('base64url');
+test('base64 steps read on a page without gh-api.js, UTF-8 intact', async () => {
+  // The toss data route ran this kit before the page's boot loaded gh-api.js
+  // (2026-10-21), and a tossed page that boots nothing never loads it at all
+  // (2026-10-22), so the kit decodes with the platform's own codec.
+  const steps = Buffer.from(JSON.stringify([{ at: 'x', say: 'Here · €5 – ✓' }])).toString('base64url');
   const w = realm('<p data-at="x">Hello</p>', 'steps=' + steps, undefined, { gh: false });
   await loaded(w);
   await wait(30);
-  assert.equal(card(w), null, 'nothing read before the codec is there');
-  w.GH = withBase64({});
-  await wait(150);
-  assert.equal(said(w), 'Here');
+  assert.equal(said(w), 'Here · €5 – ✓');
+  assert.equal(w.Look.encode([{ at: 'x', say: 'Here · €5 – ✓' }]), steps, 'and encodes as Node does');
 });
 
 test('a broken walkthrough still shows its intro, then says what broke', async () => {
@@ -396,6 +397,48 @@ test('Next toward a stop on another page goes there, carrying the walkthrough, t
   assert.equal(stop, '2');
   assert.deepEqual(steps, [{ at: 'test/!a', say: 'here' }, { at: 'pages/other.html!b', say: 'over there' }],
     'all of the walkthrough, so Back works there too');
+});
+
+// THE TOSS RENDERER'S TOP MODE HIDES ITS OWN KEYS: any URLSearchParams holding
+// `top` answers as if `top` and the address key were absent (topParamsShim in
+// pages/toss-render.html), a stand-in for which is installed here. Read through
+// it, every tossed page was this page, and a stop on another was walked here
+// (measured on the live site, 2026-10-22).
+function tossTopShim(w) {
+  const S = w.URLSearchParams, SP = S.prototype, g = SP.get, h = SP.has, en = SP.entries;
+  const hid = (k) => k === 'top' || k === 'gh';
+  const mine = (t) => h.call(t, 'top');
+  const clean = (t) => { const c = new S(); for (const [k, v] of en.call(t)) if (!hid(k)) c.append(k, v); return c; };
+  SP.get = function (k) { return mine(this) && hid(k) ? null : g.call(this, k); };
+  SP.has = function (k) { return mine(this) && hid(k) ? false : h.call(this, k); };
+  SP.entries = function () { return mine(this) ? en.call(clean(this)) : en.call(this); };
+  SP[Symbol.iterator] = SP.entries;
+}
+
+test('a stop on another tossed page is another page, though top mode hides the address', async () => {
+  const T = 'pages/toss-render.html?top&gh=o/r@main:';
+  const steps = encodeURIComponent(JSON.stringify([{ at: T + 'a.html!a', say: 'here' }, { at: T + 'b.html!b', say: 'over there' }]));
+  const w = realm('<p data-at="a">a</p>', 'steps=' + steps, 'https://localhost/' + T + 'a.html', { before: tossTopShim });
+  await loaded(w);
+  await wait(30);
+  assert.equal(said(w), 'here');
+  assert.equal(halo(w).style.display, 'block', 'a.html is this page, so the first stop lands');
+  let went = '';
+  w.Look.leave = (href) => { went = href; };
+  card(w).querySelector('[aria-label="Next"]').click();
+  assert.ok(went, 'b.html is another page, so Next leaves for it');
+  const { u, stop } = readWalkthrough(went);
+  assert.match(decodeURIComponent(u.search), /[?&]gh=o\/r@main:b\.html(&|$)/);
+  assert.equal(stop, '2');
+});
+
+test('a page that rewrites its fragment as it boots keeps the walkthrough the link asked for', async () => {
+  const steps = encodeURIComponent(JSON.stringify([{ at: 'a', say: 'here' }, { at: 'b', say: 'and here' }]));
+  const w = realm('<p data-at="a">a</p><p data-at="b">b</p>', 'tab=drs&steps=' + steps + '&stop=2');
+  w.history.replaceState(null, '', '/test/#tab=drs&sec=135');   // the page's own boot, as Budget bills does it
+  await loaded(w);
+  await wait(30);
+  assert.equal(said(w), 'and here', 'the walkthrough starts, at the stop the link named');
 });
 
 test('on the far page, Back goes to the stop before it', async () => {
@@ -551,6 +594,93 @@ test('Escape takes the marker down', async () => {
   await wait(30);
   w.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Escape' }));
   assert.equal(w.document.querySelector('[data-look]'), null);
+});
+
+// EVERY STEP ONE TAP AWAY, AND A NOTE ON ANY OF THEM (the owner, 2026-10-22).
+const three = [{ at: 'a', say: 'First' }, { at: 'b', say: 'Second' }, { at: 'c', say: 'Third' }];
+const threeBody = '<p data-at="a">Alpha</p><p data-at="b">Beta</p><p data-at="c">Gamma</p>';
+
+test('the dock\'s counter opens every step as a list, and a row goes to its step', async () => {
+  const w = realm(threeBody);
+  w.Look.start(three);
+  await wait(30);
+  card(w).querySelector('[data-list]').click();
+  const rows = [...w.document.querySelectorAll('[data-look="steps"] [data-jump]')];
+  assert.deepEqual(rows.map(b => b.textContent), ['1First', '2Second', '3Third']);
+  assert.equal(rows[0].getAttribute('aria-current'), 'step', 'the current step is marked');
+  rows[2].click();
+  await wait(30);
+  assert.equal(said(w), 'Third');
+  assert.equal(w.document.querySelector('[data-look="steps"]'), null, 'the list closes on the jump');
+});
+
+test('a note is kept as a draft per walkthrough, follows it when a page is stamped in, and can be removed', async () => {
+  const w = realm(threeBody);
+  w.Look.start(three);
+  await wait(30);
+  card(w).querySelector('[data-comment]').click();
+  const area = card(w).querySelector('[data-draft]');
+  area.value = 'Is this the right label?';
+  area.dispatchEvent(new w.Event('input'));
+  card(w).querySelector('[data-add]').click();
+  const key = Object.keys(w.localStorage).find(k => k.startsWith('look:notes:'));
+  const kept = JSON.parse(w.localStorage.getItem(key));
+  assert.equal(kept.length, 1);
+  assert.equal(kept[0].text, 'Is this the right label?');
+  assert.equal(kept[0].step, 0);
+  assert.equal(kept[0].quote, 'Alpha', 'the marked words, short enough to quote');
+  assert.match(kept[0].where, /step 1 of 3: "First"/);
+  assert.match(card(w).querySelector('[data-send]').textContent, /Send 1/);
+  // The same walkthrough with a page stamped into its first stop, as a carried
+  // tap leaves it, reads the same drafts.
+  w.Look.start([{ ...three[0], at: 'test/!a' }, three[1], three[2]]);
+  await wait(30);
+  card(w).querySelector('[data-comment]').click();
+  assert.equal(card(w).querySelectorAll('[data-drop]').length, 1, 'the draft is shown on its step');
+  card(w).querySelector('[data-drop]').click();
+  assert.equal(w.localStorage.getItem(key), null, 'removing the last draft clears its key');
+  assert.equal(card(w).querySelector('[data-send]'), null);
+});
+
+test('Send appends each draft as a note about the file its step shows, then lets the draft go', async () => {
+  const at = 'https://mehrlander.github.io/web-tools/pages/toss-render.html?top&gh=o/r@main:pages/a.html';
+  const w = realm(threeBody, '', at);
+  const appended = [];
+  w.TOKEN = 't0ken';
+  w.GH = function GH(conf) { this.repo = conf.repo; this.ref = conf.ref; };
+  w.RepoAddress = {};
+  w.Notes = {
+    author: async () => 'reader',
+    make: (n) => ({ id: 'n1', ...n }),
+    append: async (reg, n) => { appended.push({ repo: reg.repo, ref: reg.ref, ...n }); },
+  };
+  w.Look.start(three);
+  await wait(30);
+  card(w).querySelector('[data-comment]').click();
+  card(w).querySelector('[data-draft]').value = 'Rename this';
+  card(w).querySelector('[data-add]').click();
+  card(w).querySelector('[data-send]').click();
+  await wait(30);
+  assert.equal(appended.length, 1);
+  const n = appended[0];
+  assert.equal(n.repo, 'mehrlander/web-tools-private', 'the estate\'s notes store, on main');
+  assert.equal(n.ref, 'main');
+  assert.equal(n.about, 'o/r:pages/a.html', 'about the file the toss shows, not the renderer');
+  assert.equal(n.author, 'reader');
+  assert.deepEqual(JSON.parse(JSON.stringify(n.anchor)), { exact: 'Alpha' });
+  assert.match(n.text, /^Rename this\n\nWritten on walkthrough step 1 of 3: "First"$/);
+  assert.equal(Object.keys(w.localStorage).filter(k => k.startsWith('look:notes:')).length, 0, 'the draft is let go');
+  assert.match(card(w).querySelector('[data-status]').textContent, /Sent 1 note\./);
+});
+
+test('Escape in the note closes the note, not the walkthrough', async () => {
+  const w = realm(threeBody);
+  w.Look.start(three);
+  await wait(30);
+  card(w).querySelector('[data-comment]').click();
+  card(w).querySelector('[data-draft]').dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  assert.ok(card(w), 'the walkthrough is still up');
+  assert.equal(card(w).querySelector('[data-draft]'), null, 'the note is closed');
 });
 
 test('an anchor is a data-at name first, then an id, then words or a selector', () => {
