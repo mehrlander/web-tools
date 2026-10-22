@@ -5,17 +5,18 @@ because we need to know where it came from. Each bundle has a README whose
 frontmatter states what a person knows about the material: what it is, who
 published it, where it was taken from and when. A script reads every bundle a
 repository declares and writes two tables from them, so the whole holding can
-be read in one place and an empty field shows. Do not add a per-bundle
-manifest file such as `source.json`: budget-drs retired 35 of them on
-2026-09-10 because nothing read them and they hid which fields were empty.
+be read in one place and an empty field shows. Keep a bundle's provenance in
+its frontmatter, not in a per-bundle file such as `source.json`: budget-drs
+retired 35 of those on 2026-09-10 because nothing read them and they hid which
+fields were empty.
 
 ## What a bundle is
 
 A bundle is a folder that holds a tracked `README.md` and sits either one level
 below a declared root or at a path the declaration names under `folders`, for
-bundles that share no parent folder. Everything tracked beside and below that README belongs to the
-bundle, except path parts that start with a dot, `__pycache__`, and the names a
-declaration lists under `skip`.
+bundles that share no parent folder. Everything tracked beside and below that
+README belongs to the bundle, except path parts that start with a dot,
+`__pycache__`, and the names a declaration lists under `skip`.
 
 A bundle takes one of two shapes:
 
