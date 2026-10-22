@@ -5,13 +5,13 @@
 // Tap opens the drawer, a held finger opens the short menu, a drag moves it:
 // the fab's three gestures, in the fab's order.
 //
-// WHAT THE DRAWER IS NOT is the fab's. Two of that drawer's tabs cannot
+// WHAT THE DRAWER IS NOT is the fab's. Two of that drawer's four tabs cannot
 // mean anything off our origin: Render reads the GitHub API through a token
 // held in localStorage on the web-tools origin, which a foreign origin does not
 // have and must not be given, and Inspect lists the modules gh.load() fetched,
 // of which a foreign page has none. What a foreign page DOES hold is its own
-// content, so the slides here (ALL_SLIDES, below) are the answers it can give:
-// what this page is, what it links to, what it says.
+// content, so the three panes here are the three answers it can give: what this
+// page is, what it links to, what it says.
 //
 // TWO ROUTES OUT, because one payload shape cannot carry both. Send hands the
 // capture to the Log-Repo shortcut and it lands in the repo, but it rides
