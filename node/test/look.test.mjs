@@ -618,7 +618,6 @@ test('a note is kept as a draft per walkthrough, follows it when a page is stamp
   const w = realm(threeBody);
   w.Look.start(three);
   await wait(30);
-  card(w).querySelector('[data-comment]').click();
   const area = card(w).querySelector('[data-draft]');
   area.value = 'Is this the right label?';
   area.dispatchEvent(new w.Event('input'));
@@ -635,7 +634,6 @@ test('a note is kept as a draft per walkthrough, follows it when a page is stamp
   // tap leaves it, reads the same drafts.
   w.Look.start([{ ...three[0], at: 'test/!a' }, three[1], three[2]]);
   await wait(30);
-  card(w).querySelector('[data-comment]').click();
   assert.equal(card(w).querySelectorAll('[data-drop]').length, 1, 'the draft is shown on its step');
   card(w).querySelector('[data-drop]').click();
   assert.equal(w.localStorage.getItem(key), null, 'removing the last draft clears its key');
@@ -646,22 +644,27 @@ test('Send appends each draft as a note about the file its step shows, then lets
   const at = 'https://mehrlander.github.io/web-tools/pages/toss-render.html?top&gh=o/r@main:pages/a.html';
   const w = realm(threeBody, '', at);
   const appended = [];
+  let writes = 0;
   w.TOKEN = 't0ken';
   w.GH = function GH(conf) { this.repo = conf.repo; this.ref = conf.ref; };
   w.RepoAddress = {};
   w.Notes = {
     author: async () => 'reader',
     make: (n) => ({ id: 'n1', ...n }),
-    append: async (reg, n) => { appended.push({ repo: reg.repo, ref: reg.ref, ...n }); },
+    append: async (reg, list) => { writes++; for (const n of list) appended.push({ repo: reg.repo, ref: reg.ref, ...n }); },
   };
   w.Look.start(three);
   await wait(30);
-  card(w).querySelector('[data-comment]').click();
   card(w).querySelector('[data-draft]').value = 'Rename this';
+  card(w).querySelector('[data-add]').click();
+  card(w).querySelector('[data-go="1"]').click();
+  await wait(30);
+  card(w).querySelector('[data-draft]').value = 'And this';
   card(w).querySelector('[data-add]').click();
   card(w).querySelector('[data-send]').click();
   await wait(30);
-  assert.equal(appended.length, 1);
+  assert.equal(writes, 1, 'every draft in one write');
+  assert.equal(appended.length, 2);
   const n = appended[0];
   assert.equal(n.repo, 'mehrlander/web-tools-private', 'the estate\'s notes store, on main');
   assert.equal(n.ref, 'main');
@@ -670,17 +673,32 @@ test('Send appends each draft as a note about the file its step shows, then lets
   assert.deepEqual(JSON.parse(JSON.stringify(n.anchor)), { exact: 'Alpha' });
   assert.match(n.text, /^Rename this\n\nWritten on walkthrough step 1 of 3: "First"$/);
   assert.equal(Object.keys(w.localStorage).filter(k => k.startsWith('look:notes:')).length, 0, 'the draft is let go');
-  assert.match(card(w).querySelector('[data-status]').textContent, /Sent 1 note\./);
+  assert.match(appended[1].text, /^And this\n\nWritten on walkthrough step 2 of 3: "Second"$/);
+  assert.match(card(w).querySelector('[data-status]').textContent, /Sent 2 notes\./);
 });
 
-test('Escape in the note closes the note, not the walkthrough', async () => {
+test('Enter adds the note, and Escape in it leaves the field, not the walkthrough', async () => {
   const w = realm(threeBody);
   w.Look.start(three);
   await wait(30);
-  card(w).querySelector('[data-comment]').click();
+  const field = card(w).querySelector('[data-draft]');
+  field.value = 'Typed, then Enter';
+  field.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+  assert.equal(card(w).querySelectorAll('[data-drop]').length, 1, 'Enter added it');
   card(w).querySelector('[data-draft]').dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
   assert.ok(card(w), 'the walkthrough is still up');
-  assert.equal(card(w).querySelector('[data-draft]'), null, 'the note is closed');
+});
+
+test('the step list shows each step\'s drafted notes as text under its row', async () => {
+  const w = realm(threeBody);
+  w.Look.start(three);
+  await wait(30);
+  const field = card(w).querySelector('[data-draft]');
+  field.value = 'A remark on the first';
+  card(w).querySelector('[data-add]').click();
+  card(w).querySelector('[data-list]').click();
+  const list = w.document.querySelector('[data-look="steps"]');
+  assert.match(list.textContent, /1FirstA remark on the first2Second/);
 });
 
 test('an anchor is a data-at name first, then an id, then words or a selector', () => {
