@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `node/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 18 are named by CLAUDE.md,
-22 by a skill, 41 by a page or component. The remaining 44 are
+22 by a skill, 41 by a page or component. The remaining 45 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -97,6 +97,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`house-policies.md`](house-policies.md) — the house policies: one entry per policy, each a preference with its scope, its shortcuts and a link to the document that holds its detail
 - [`css-baseline.csv`](css-baseline.csv) *(measured)* — the CSS baseline: the most unexempt hand-written CSS declarations each file may carry, a ratchet on the house rule against vanilla CSS
 - [`hook-events.csv`](hook-events.csv) — every event Claude Code accepts a hook on, with the summary its /hooks menu gives
+- [`source-bundles.md`](source-bundles.md) *(orphan)* — the shared source-bundle convention: what a bundle is, its README frontmatter, the two tables and how a repository declares them
 
 ## docs/envelopes/
 
