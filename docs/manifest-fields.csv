@@ -31,6 +31,15 @@ checks[].staleOver,number,app,,no,dir-count: the count above which a folder mean
 checks[].ignore,array,app,,no,dir-count: names not counted. Defaults to .gitkeep.
 checks[].awaitingOver,number,app,,no,tracker: the number of tasks awaiting someone above which the check fails. Default 0.
 links,string,app,,,Path to the repo's links board (the store pages/links.html renders). The shell surfaces items flagged `rail: true` as the rail. Which board is this field; what is on the rail is the board itself.
+programs,array,app,,,"The repo's programs: ongoing concerns that keep a standard other work follows, each governing files wherever they sit and naming its charter, measures and reviewers (docs/CONSTELLATION.md, Programs). Read by the Map's Programs tab, the programs skill and the program-files hook."
+programs[].name,string,app,,yes,"The program's key: what /portable:programs takes, and the `project:` value its tasks carry in the repo's tracker."
+programs[].label,string,app,,no,Display name. Defaults to the name.
+programs[].icon,string,app,,yes,A `ph-` glyph drawn wherever the program is named.
+programs[].charter,string,app,,yes,"The repo-root-relative Markdown file stating the program's purpose, standard, measures, manager and reviewers."
+programs[].governs,array,session-hook,,yes,"Repo-root-relative paths the program governs. A file belongs to at most one program; the program-files hook names the program when a session edits one."
+programs[].measures,array,app,,no,"Data files that measure the standard, as repo-root-relative paths or qualified 'owner/repo[@ref]:path' locators."
+programs[].reviewers,array,app,,no,"Agent ids from docs/agents.csv that a proposed change to the program's files goes to before the owner sees it."
+programs[].views,array,app,,no,"App addresses that display the program, as query strings such as '?view=map&tab=surfacing'."
 projects,array,app,,,"The repo's workspaces, as bare folder paths or { path, label, icon, tracker, landing, inbox, powershellOutpost } objects. An entry's `inbox` is the repo-level field one level down, same grammar, naming where a deposit aimed at that workspace lands; unlike `tracker` it is declared rather than derived, because a board is a link whose wrong guess costs a 404 while an inbox is a write target whose wrong guess misfiles a deposit into a folder nothing drains. Rendered in three lists with one destination: the estate sidebar's Repos index, the repo's own sidebar, and the repo's Repos-grid card. A project may have a tracker or declare `tracker: false`; the manifest names its home. Edited in the Config view's Projects section, whose Scan reads the tree for folders carrying tracker/tasks/ and offers whatever this field does not yet declare."
 projects[].path,string,app,,yes,The workspace folder.
 projects[].label,string,app,,no,Display name. Defaults to the path's last segment.

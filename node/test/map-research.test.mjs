@@ -16,7 +16,10 @@ window.TOKEN = '';
 const hub = 'mehrlander/web-tools', home = 'mehrlander/home';
 const account = (path, label, kind = 'probe') => ({ path, label, kind });
 const manifests = {
-  [hub]: { research: [account('research/excel/README.md', 'Excel findings')] },
+  [hub]: { research: [account('research/excel/README.md', 'Excel findings')], tracker: 'tracker/board.md',
+    programs: [{ name: 'surfacing', label: 'Surfacing', icon: 'ph-megaphone', charter: 'docs/programs/surfacing.md',
+      governs: ['docs/SURFACING.md', 'python/showing.py'], measures: ['owner/private@background:state/closings.json'],
+      reviewers: ['portable:owner-proxy'], views: ['?view=map&tab=surfacing'] }, { label: 'unnamed' }] },
   [home]: { estate: true, projects: [
     { path: 'projects/text', label: 'Text', tracker: false },
     { path: 'projects/text/nested', label: 'Nested', tracker: 'boards/text.md' },
@@ -44,6 +47,8 @@ window.GH = class {
       return { text: JSON.stringify(manifests[this.opts.repo]) };
     }
     if (file === 'boards/text.csv') return { text: 'id,title,status\na,A,backlog\nb,B,in-progress\nc,C,blocked\nd,D,done\n' };
+    if (file === 'tracker/board.csv' && this.opts.repo === hub)
+      return { text: 'id,title,status,project\na,A,backlog,surfacing\nb,B,done,surfacing\nc,C,in-progress,app\n' };
     if (file === 'state/configs.json') return { text: JSON.stringify({ repos:
       Object.fromEntries(Object.entries({ ...manifests, [hub]: { research: [] } })
         .map(([repo, config]) => [repo, { config }])) }) };
@@ -110,7 +115,8 @@ test('Projects lists each repository as a workspace with its projects on shared 
   assert.equal(at(home + ':projects/text').research, 2);
   const nested = at(home + ':projects/text/nested');
   data.workTasks(nested); await tick(3);
-  assert.deepEqual({ ...data.workTasks(nested) }, { deck: 1, doing: 1, blocked: 1 }, 'done tasks are not open');
+  const { deck, doing, blocked } = data.workTasks(nested);
+  assert.deepEqual({ deck, doing, blocked }, { deck: 1, doing: 1, blocked: 1 }, 'done tasks are not open');
   assert.equal(data.workTaskLine(nested), '1 in progress · 1 on deck · 1 blocked');
   assert.equal(data.workTasks(at(home + ':projects/budget')), null, 'an unreadable board stays a dash');
   assert.equal(data.workTasks(at(home + ':projects/text')), null, 'tracker: false has no board');
@@ -124,6 +130,20 @@ test('a repository row opens the research filed under no project', () => {
   assert.equal(data.researchProject, '.');
   assert.deepEqual([...data.researchRows.map(r => r.label)], ['Excel findings']);
   data.researchProject = ''; data.researchRepo = ''; data.setTab('research');
+});
+
+test('Programs lists each declaration on shared columns, with its open tasks from the tracker', async () => {
+  const rows = data.programRows;
+  assert.deepEqual([...rows.map(p => p.key)], [hub + ':surfacing'], 'a program without a name is not a row');
+  const p = rows[0];
+  assert.equal(p.governs.length, 2);
+  data.programTasks(p); await tick(3);
+  assert.equal(data.programTasks(p), 1, 'open rows whose project is the program');
+  assert.equal(data.measureName(p.measures[0]), 'closings.json');
+  assert.equal(data.programViewLabel(p.views[0]), 'Surfacing');
+  data.openProgramView(p.views[0]);
+  assert.equal(data.mapTab, 'surfacing');
+  data.setTab('research');
 });
 
 test('Docs omits research folders and declared studies while keeping neighboring documents', () => {

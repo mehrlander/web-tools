@@ -97,6 +97,17 @@ sessions needs one; a project does not need a tracker to exist. Repositories
 declare their projects in `.web-tools.json`, which the Map's Projects view and
 the project navigation both read.
 
+A program keeps a standard that other work follows. A project is bounded by its
+folder and produces its own work; a program is bounded by a concern, governs
+files wherever they sit, and measures how closely other work follows its
+standard. Repositories declare programs in `.web-tools.json` under `programs`:
+the governed files, a charter in `docs/programs/`, the measures, and the agents
+that review a proposed change. A program's tasks carry its name as `project:`
+in the repository's tracker, and the Map's Programs view lists the
+declarations. A session takes on a program's manager role through
+`/portable:programs <name>`, so the record stays with the program whoever fills
+the role.
+
 Research keeps a question together with what was tried or gathered, the
 findings, and the material that lets someone inspect them. It lives outside
 `docs/`, usually under `research/` in its repository or project. A small probe
