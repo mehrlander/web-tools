@@ -128,6 +128,23 @@ test('a lead line is its own bold row above the title-tip, and never markup', ()
   TitleTip.close();
 });
 
+test('pills take the place of the text, each one text, and the plain reading stays', () => {
+  // A count and a median for every square of a lane: the same two pills each time
+  // read faster than a sentence that changes shape. data-title-tip stays the plain
+  // reading, so TitleTip.text and a kit without the attribute still say it.
+  const el = $('#c');
+  el.setAttribute('data-title-tip-pills', '68 people | $72K median|<b>x</b>|');
+  TitleTip.open(el);
+  const panel = window.document.getElementById('wt-title-tip');
+  const pills = [...panel.querySelectorAll('.wt-title-tip-pills > span')].map(s => s.textContent);
+  assert.deepEqual(pills, ['68 people', '$72K median', '<b>x</b>'], 'one pill per part, blanks dropped');
+  assert.equal(panel.querySelectorAll('.wt-title-tip-pills b').length, 0, 'a pill was parsed as markup');
+  assert.equal(panel.querySelector('.wt-title-tip-lead').textContent, 'slm4303:', 'the lead line stays above');
+  assert.equal(TitleTip.text(el), 'input the hours anticipated');
+  el.removeAttribute('data-title-tip-pills');
+  TitleTip.close();
+});
+
 test('a lead line written as text stays text', () => {
   const el = $('#c');
   el.setAttribute('data-title-tip-lead', '<img src=x onerror=alert(1)>');

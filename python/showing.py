@@ -798,6 +798,19 @@ def join_query(own, query=""):
 # view, and rebuilding the address by hand to add one query re-typed the SHA
 # too. A flag for the part that was missing is cheaper than a rule asking for
 # more care, and it keeps the whole address coming from one command.
+# THE RENDERER'S HOST. A toss is drawn by toss-render.html on a deployed Pages
+# site, and the only checkout that carries one is web-tools; every other repo is
+# tossed by web-tools' renderer, which reads it by its #gh= address. Until
+# 2026-10-21 a page in any repo got its own repo's Pages host, which for a
+# private repo with no site is a 404: budget-wa's explorer.html, handed over
+# from both the default pick and --path that day.
+def renderer_base(slug):
+    top = sh("git", "rev-parse", "--show-toplevel")
+    if top and (Path(top) / PIN_READERS[0]).exists():
+        return f"https://{slug.split('/')[0]}.github.io/{slug.split('/')[1]}/"
+    return "https://mehrlander.github.io/web-tools/"
+
+
 def address(mech, page, sha, slug, view=None, at="", query="", entries=None, page_ref="", inner=""):
     sha, page_ref = short(sha), short(page_ref)
     # The subject's ref: the commit, with its branch ahead of it once main's
@@ -805,11 +818,19 @@ def address(mech, page, sha, slug, view=None, at="", query="", entries=None, pag
     # takes a plain ref.
     pin = f"{PIN_BRANCH}@{sha}" if PIN_BRANCH else sha
     entries = [short_entry(e) for e in (entries or [])]
-    base = f"https://{slug.split('/')[0]}.github.io/{slug.split('/')[1]}/"
+    base = renderer_base(slug)
     pretty = page[:-len("index.html")] if page.endswith("/index.html") else page
     frag = "#" + at.lstrip("#") if at else ""
     if mech in ("toss-gh", "toss-app", "overlay", "toss-data"):
-        frag = frag.replace("%", "%25")
+        # The separator is written `%23` and the fragment's own `&` as `%26`;
+        # the toss's one decode brings both back. A second raw `#` is not a
+        # legal URL character, and the Claude app on an iPhone re-encodes a link
+        # holding one, `%` included, so an intro arrived one decode short and
+        # its card read "Swipe%20between%20sessions" (2026-10-22; the same link
+        # with `%23` read cleanly). With no raw `#` left, the shell's own look
+        # gate (lib/gh-boot.js lookOnDemand) reads the whole fragment, so a
+        # page key after a raw `&` would surface as the shell's.
+        frag = ("%23" + frag[1:].replace("%", "%25").replace("&", "%26")) if frag else ""
     if mech == "toss-gh":
         # NO ?use= ON THE SHELL, and this is not a tidiness call: that link
         # crashes Safari's web process on an iPhone, every time, which is what

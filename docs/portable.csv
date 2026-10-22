@@ -65,6 +65,7 @@ doc,,docs/QUALIFIED-WRITING.md,Qualified writing,the canonical prose rules; a by
 doc,,docs/venues.md,Venues,"the venue map: the places agent work can run, what each reaches, and which programs there run attended",live
 doc,,docs/TRACKER.md,Project tracker,opt-in cross-session tracker: one file per task plus a generated board,adopt
 doc,,docs/CONSTELLATION.md,Constellation architecture,"the portable kernel of the what-goes-where doctrine: commit discipline, visibility forces repo boundaries, conventions pull from a public hub, the repo owns its own scope, documentation has four places. The theory behind the app's Map view",reference
+doc,,docs/source-bundles.md,Source bundles,"the shared way to keep material from outside a repository: a folder per bundle with a frontmatter README, and the two tables python/source-bundles.py writes from them",adopt
 doc,,docs/APP.md,Web Tools app,"the Web Tools app: mission, goals, boundary, addresses, and what every view shares",on-demand
 doc,,docs/artifacts.md,Artifacts,the bake-and-publish pipeline and the 📦 marker's place in the link-choice matrix,on-demand
 doc,,docs/headless-vendoring.md,Headless vendoring,build with CDN stacks and test them headless where the sandbox blocks their CDNs,on-demand
@@ -91,6 +92,7 @@ script,,python/doc-placement.py,doc-placement.py,,on-demand
 script,,python/csv-census.py,csv-census.py,,on-demand
 script,,python/declared-paths.py,declared-paths.py,,on-demand
 script,,python/dead-links.py,dead-links.py,,on-demand
+script,,python/source-bundles.py,source-bundles.py,,on-demand
 script,,python/css-blocks.py,css-blocks.py,,on-demand
 script,,python/embedded-prose.py,embedded-prose.py,,on-demand
 script,,python/stranded-titles.py,stranded-titles.py,,on-demand
