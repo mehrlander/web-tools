@@ -476,26 +476,6 @@ test('Surfacing loads on demand and names its authoritative doc', async () => {
   assert.equal(data.SURF_DOC, 'docs/SURFACING.md');
 });
 
-// The cards index one document, the primitives, and the tab says so with a
-// door to each sibling. The doors were read off SURFACING.md's h2 headings
-// until 2026-09-10, which stopped being possible when the course became its
-// own file: a heading cannot name a sibling. So the list is declared, and what
-// this holds is that every declared path is a file that exists and says when
-// it reaches a session. A sibling renamed or deleted fails here rather than
-// leaving a dead door.
-
-test('Surfacing declares a door per sibling document, and each one exists', async () => {
-  await data.loadSurf();
-  const doors = Array.from(data.surf.regions, r => ({ path: r.path, gloss: r.gloss }));
-  assert.ok(doors.length >= 1, 'the course gets a door');
-  for (const d of doors) {
-    assert.ok(existsSync(path.join(repoRoot, d.path)), 'door to a file that is gone: ' + d.path);
-    assert.ok(d.gloss, 'a door must say when its document reaches a session: ' + d.path);
-  }
-  // The primitives are the cards, never a door to themselves.
-  assert.ok(!doors.some(d => d.path === data.SURF_DOC), 'the primitives are the cards, not a door');
-});
-
 test('Docs loads on demand and carries the registry', async () => {
   assert.equal(data.docsReg, null, 'the registry is not fetched until the tab is opened');
   await data.loadDocsReg();

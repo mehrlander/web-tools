@@ -185,9 +185,7 @@ json/toml/yaml/sh/config ⚙️; images 🖼️. The map lives in
 ## Boundary with surfacing and Web Tools
 
 This skill owns structure rendering. [`SURFACING.md`](../../docs/SURFACING.md)
-owns change surfacing: the branch-page caption by default, the
-`[new]/[main]/[diff]` file list as fallback, and render lines. The
-[`surfacing-course`](../../docs/surfacing-course.md) owns PR bodies and the
-merge guide. A tree is not a change handoff: it carries no change state and no
-diff links. If the ask is "what did I touch," follow the surfacing contract; a
+owns change surfacing and PR bodies: the branch-page caption by default, the
+`[new]/[main]/[diff]` file list as fallback, and render lines. A tree is not a
+change handoff: it carries no change state and no diff links. If the ask is "what did I touch," follow the surfacing contract; a
 tree that also marks change is a deliberate combined view, not the default.
