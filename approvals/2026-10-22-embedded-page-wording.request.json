@@ -1,0 +1,83 @@
+{
+  "manifest": {
+    "name": "html-style: embedded pages, and where theme colours compile",
+    "created_at": "2026-10-22T22:27:38Z",
+    "schema": {
+      "name": "surface",
+      "version": 2
+    },
+    "profile": {
+      "name": "approval",
+      "version": 1
+    }
+  },
+  "context": {
+    "id": "2026-10-22-embedded-page-wording",
+    "kind": "documentation",
+    "reply_to": "mehrlander/web-tools:approvals",
+    "repo": "mehrlander/web-tools",
+    "base": "4d0abbee2ca93e319c6c81d33228a9a8d102e501",
+    "branch": "claude/embedded-page-wording",
+    "occasion": "correction",
+    "session": "https://claude.ai/code/session_01HEz99SYSzn7ocDU6i7mTha",
+    "rationale": "Your walkthrough notes on steps 14 and 15 asked for these two passages committed and offered for approval: \"embedded page\" in place of \"tenant page\" with the same examples, and a much tighter convention 7 with no dated reference. Rule 5 also takes two facts the Budget DRS appendix fixes established: a list over a strip needs an h-dvh root, and width queries inside a frame measure the frame. Approve, approve with edits, or return it."
+  },
+  "items": [
+    {
+      "id": "p1",
+      "title": "skills/html-style/SKILL.md",
+      "type": "file",
+      "target": {
+        "source": {
+          "repository": "mehrlander/web-tools"
+        },
+        "path": "skills/html-style/SKILL.md"
+      },
+      "change": {
+        "status": "modified",
+        "patch": "@@ -69,11 +69,15 @@ options as pills on one line that scrolls sideways rather than wrapping. Don't\n embed a deck in a page; a strip under its own list (rule 12) is the exception,\n since its takeover is one tap away.\n \n-**5. A tenant page uses normal flow.** A page another page may embed (an\n+**5. An embedded page has no fixed root.** A page another page may embed (an\n appendix, a toss render, a stage preview) takes rule 4's shape without the fixed\n-root: `min-h-dvh` and sticky chrome over document scrolling. In an iframe on\n+root: `min-h-dvh` and sticky chrome over document scrolling, or, for a list over\n+a strip (rule 12), an `h-dvh` root whose panes scroll inside it. In an iframe on\n iOS, a fixed child measures against the outer viewport and loses its right-hand\n-column, which headless Chromium does not show. With sticky chrome, save and\n+column, which headless Chromium does not show. Inside the frame, `lg:` and every\n+other width query measure the frame, not the window, so the wide layout has to\n+hold at the frame's width: 992px in the Budget DRS app on a 1280px window. With\n+sticky chrome, save and\n restore document scroll when a detail view replaces a long list, and drop\n `viewport-fit=cover` unless the page is edge-to-edge.\n \n"
+      },
+      "commentary": "Rule 5 is retitled for an embedded page and keeps its three examples. It now admits rule 12's h-dvh root, which document scrolling alone had ruled out, and adds that lg: and every other width query measure the frame, so a wide layout has to hold at the frame's width. The 992px figure could instead live only in home's app view README, since it belongs to one host.",
+      "related": [
+        {
+          "item": "skills/html-style/SKILL.md",
+          "relation": "rule 12, the list over a strip that needs the h-dvh root"
+        },
+        {
+          "item": "mehrlander/home:projects/budget-drs/app/view/README.md",
+          "relation": "the host whose pane is 992px wide"
+        }
+      ]
+    },
+    {
+      "id": "p2",
+      "title": "skills/html-style/references/mechanics.md",
+      "type": "file",
+      "target": {
+        "source": {
+          "repository": "mehrlander/web-tools"
+        },
+        "path": "skills/html-style/references/mechanics.md"
+      },
+      "change": {
+        "status": "modified",
+        "patch": "@@ -210,7 +210,7 @@ composition views. Demo:\n 4. Alpine's `x-data`, `x-show`, `x-bind` for reactivity: no React\n 5. Use Phosphor Icons via CDN for iconography: no inline SVGs. A project's or repository's own mark is the exception: an SVG file drawn to the [Drawn marks](https://github.com/mehrlander/web-tools/blob/main/docs/favicons/README.md#drawn-marks) rules.\n 6. No `<style>` blocks: no vanilla CSS, no `<style type=\"text/tailwindcss\">`, no `@apply`. Generally, avoid all efforts to override styles in third-party components. Where no utility can reach, write `/* exempt(<kind>): <reason> */` before the rule, with a kind from [`python/css-blocks.py`](https://github.com/mehrlander/web-tools/blob/main/python/css-blocks.py). Enforced by `npm run css-scan`, gated in `node/test/css-blocks.test.mjs` against [`docs/css-baseline.csv`](https://github.com/mehrlander/web-tools/blob/main/docs/css-baseline.csv), a per-file ceiling; after converting a file, lower its row with `--write`.\n-7. A daisyUI semantic colour works only in the utility families daisyUI itself ships, and there are **exactly three**: `bg`, `border`, `text`. Derived from daisyUI 5.7.28's own stylesheet on 2026-09-08, not estimated: it defines 207 classes on a semantic colour across 25 families, and every family but those three is a daisyUI COMPONENT (`btn-primary`, `badge-error`, `alert-warning`), which is a different thing. So `bg-base-200`, `text-base-content` and `border-base-300` resolve, while `divide-base-200`, `ring-primary`, `outline-primary`, `accent-primary`, `from-base-100`, `via-`, `to-`, `fill-`, `stroke-`, `caret-`, `placeholder-`, `decoration-` and `shadow-` on a semantic colour all compile to nothing and are dropped silently. **The fix is mechanical: write the same utility with an arbitrary value, `ring-primary` to `ring-[var(--color-primary)]`.** Measured 2026-09-08 in headless Chromium: the arbitrary form sets `--tw-ring-color` to the theme colour where the semantic name set nothing, `divide-[var(--color-base-200)]` paints at `oklch(0.98 0 0)` where `divide-base-200` painted in the text colour, and an opacity step rides along unchanged (`/40` becomes `color-mix(... 40%, transparent)`). So the ring stays a ring and takes no layout space, which swapping to `border-*` would not preserve, and the colour still follows the theme, which a palette colour would not. One exception measured: `shadow-*` leaves `--tw-shadow-color` unset in the arbitrary form, so a shadow tint has to be written out. **Run it rather than remember it: `npm run family-scan`** ([`python/dead-family.py`](https://github.com/mehrlander/web-tools/blob/main/python/dead-family.py)), which derives the supported set from the installed daisyUI, names the substitution per finding, and gates the tree in `node/test/dead-family.test.mjs`. Tailwind v4 then defaults `border-color` to `currentColor` (v3 defaulted to `gray-200`), so `divide-y` alone paints hairlines in the **text colour**: black lines where a faint grey was intended. The same trap waits in `ring-*`, `outline-*`, and `accent-*`. Separate rows with `gap`, or write the border explicitly (`[&>*+*]:border-t [&>*+*]:border-base-200`). A Tailwind palette name (`divide-slate-300`) also works and is the tell: if swapping the colour name fixes it, the semantic name was never compiling. Inside an `x-for`, reach for the index rather than the adjacency selector; see 8.\n+7. **A daisyUI theme colour compiles in three utility families, `bg`, `border` and `text`, unless the page registers the theme colours with Tailwind.** On a page without the registration, `divide-base-200`, `ring-primary`, `outline-`, `from-`, `fill-`, `stroke-` and the rest compile to nothing and drop silently, while components such as `btn-primary` work. A page that boots through the hub is registered by `lib/gh-boot.js`, and so is one that carries its own `@theme inline` block. Elsewhere, write the same utility with an arbitrary value, `ring-[var(--color-primary)]`, which keeps the theme colour and any opacity step; a `shadow-*` tint has to be written out. `npm run family-scan` ([`python/dead-family.py`](https://github.com/mehrlander/web-tools/blob/main/python/dead-family.py)) finds them and names the fix, and [its tests](https://github.com/mehrlander/web-tools/blob/main/node/test/dead-family.test.mjs) hold the measured cases. Tailwind v4 also defaults the border colour to `currentColor`, so `divide-y` alone draws text-coloured hairlines: separate rows with `gap`, or colour the border (`[&>*+*]:border-t [&>*+*]:border-base-200`; inside an `x-for`, see 8).\n 8. **Structural selectors are wrong inside an `x-for`, including the adjacency fix above.** Alpine inserts each clone *after* the `<template>` rather than replacing it, so the template stays in the DOM and occupies the parent's first child slot. Measured with jsdom against the real runtime, three rows in a bare parent:\n \n    ```\n"
+      },
+      "commentary": "Convention 7 now says the three-family limit holds only on a page that does not register the theme colours, and every page booting through the hub registers them in lib/gh-boot.js. It is cut from about 2,400 characters to about 1,200; the dated measurements give way to a link to the scan's tests, which hold the measured cases. The currentColor hairline trap and the border fix that convention 8 points back to are kept.",
+      "related": [
+        {
+          "item": "lib/gh-boot.js",
+          "relation": "registers the theme colours"
+        },
+        {
+          "item": "python/dead-family.py",
+          "relation": "the scan, which skips registered pages"
+        },
+        {
+          "item": "node/test/dead-family.test.mjs",
+          "relation": "the measured cases"
+        }
+      ]
+    }
+  ]
+}
