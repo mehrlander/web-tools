@@ -1,6 +1,6 @@
 # Favicon archive
 
-The project's icon work in one place: the marks it ships, and the ones it has retired. New favicon designs live here so the history stays visible and nothing gets lost the next time we iterate.
+The project's icon work in one place: the marks it ships, the rules for the marks drawn for repositories and projects, and the ones it has retired. New favicon designs live here so the history stays visible and nothing gets lost the next time we iterate.
 
 ## Active
 
@@ -14,6 +14,18 @@ The root [`apple-touch-icon.png`](../../apple-touch-icon.png) is the same mark r
 
 This is the library-wide mark. `lib/gh-boot.js` inlines a copy and injects it as the default favicon on any loader page that declares no icon of its own, and the [pages index](../../pages/index.html) points its `<link rel="icon">` and header logo here too.
 
+## Drawn marks
+
+A project, and in time a repository, can declare an SVG mark of its own in place of a Phosphor glyph. Each one is drawn on the box and to the rules of the budget-drs app icon (`mehrlander/home:projects/budget-drs/app/favicon.svg`), so the marks read as one set:
+
+- `viewBox="1.5 1.75 29 29"`.
+- Solid fills, with no strokes.
+- Every gap at least 2.5 units, about 1.4 CSS px at 16. A toss desaturates a favicon, so the silhouette has to identify the mark on its own.
+- A project's mark is filled in one colour that no other project uses, and a page shows it as an image. A repository's mark is filled with `currentColor`, and a page paints it as a CSS mask in the text colour, as it would a Phosphor glyph.
+- Two shapes mark a family: the hexagon for the hub's repositories, and the detached base bar (`<rect x="2" y="24.4" width="28" height="4.6"/>`) for the Washington public-record stores. Other marks use neither.
+
+Each file's `<desc>` says what its mark depicts. A project's mark lives in its project folder and is named by `projects[].icon` in the repository's `.web-tools.json`.
+
 ## In review
 
 ### Angled 3D hex nut
@@ -21,6 +33,10 @@ This is the library-wide mark. `lib/gh-boot.js` inlines a copy and injects it as
 <img src="web-tools-icon-3d.png" width="96" height="96" alt="blue hex nut rendered at a slight three-dimensional angle on graphite gray">
 
 File: [`web-tools-icon-3d.png`](web-tools-icon-3d.png). A 180 × 180 candidate with a lighter graphite tile, the blue mark reduced to roughly two-thirds of the canvas, and shallow extrusion. The [iPhone size check](../../pages/scratch/web-tools-icon-preview.html) compares the production-size raster with the active tile at 60, 40, and 29 CSS pixels. This is a design candidate, not the shipped Home Screen icon.
+
+### Estate repository marks
+
+Files: [`estate/`](estate/). A first pass, drawn 2026-10-22: one mark for each estate repository except web-tools, whose mark is the hex nut. web-tools-private is the hexagon with a keyhole; budget-wa, spend-wa, fn-data, wa-bills and legal-data stand on the base bar; home, chat-histories, fun and shortcut-tools use neither shape. No page shows them yet. The repository `icon` field in `.web-tools.json` takes only a Phosphor class, and the Map's routes diagram drops any other value (`loadReach` in [`lib/alpineComponents/map.js`](../../lib/alpineComponents/map.js)). Adopting a mark means moving its file into its repository and letting `icon` name a path, as `projects[].icon` does.
 
 ### Per-page emoji marks
 

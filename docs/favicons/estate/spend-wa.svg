@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="spend-wa">
+  <title>spend-wa</title>
+  <desc>A banknote, its portrait and corner marks cut out: what Washington spends and whom it pays. It stands on the detached base bar that marks the Washington public-record stores. Drawn in one ink on the budget-drs app icon's box and rules, for the page to paint in its text colour: solid, no strokes, and every gap at least 2.5 units, which is about 1.4 CSS pixels at 16.</desc>
+  <g fill="currentColor">
+    <path fill-rule="evenodd" d="M2 7.5 H30 V21.9 H2 Z M16 10.2 A4.5 4.5 0 1 0 16 19.2 A4.5 4.5 0 1 0 16 10.2 Z M6.25 13.45 A1.25 1.25 0 1 0 6.25 15.95 A1.25 1.25 0 1 0 6.25 13.45 Z M25.75 13.45 A1.25 1.25 0 1 0 25.75 15.95 A1.25 1.25 0 1 0 25.75 13.45 Z"/>
+    <rect x="2" y="24.4" width="28" height="4.6"/>
+  </g>
+</svg>
