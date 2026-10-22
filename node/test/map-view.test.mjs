@@ -206,7 +206,26 @@ test('Themes lists the dial\'s groups, then the pairs only similar in wording', 
     assert.equal(data.themeRows[0].sims.length, 1, 'a group carries the similar wording of its own pairs');
     assert.equal(data.themeRows[1].n, 1, 'a passage under 20 words is left out');
     assert.deepEqual(Array.from(data.themeItems.filter(i => i.label), i => i.label), ['g', 's'], 'a label heads each measure');
-    assert.deepEqual({ ...data.themeTally }, { groups: 1, pairs: 1 });
+    assert.deepEqual({ ...data.themeTally }, { groups: 1, pairs: 1, review: 0 });
+  } finally { Object.assign(data, old); }
+});
+
+// The mark the tab carried until the lenses went, and carries again: a repeat
+// whose text states a rule and whose every copy leaves the repo (skills/, or a
+// docs/portable.csv row) is the one no single reader sees drift.
+test('Themes marks a repeat to review: a rule, in files that all leave the repo', () => {
+  const old = { themeGraph: data.themeGraph, overlap: data.overlap, themeTh: data.themeTh, manifest: data.manifest };
+  try {
+    data.themeTh = 12;
+    data.manifest = { items: [{ path: 'docs/SHIPPED.md' }] };
+    data.themeGraph = { shingle: 10, scanned: 6, edges: [
+      { a: 'docs/SHIPPED.md', b: 'skills/x/SKILL.md', w: 20, rule: true, quoted: ['you must do this'] },
+      { a: 'docs/LOCAL.md', b: 'skills/y/SKILL.md', w: 18, rule: true, quoted: ['you must do that'] },
+      { a: 'skills/z/SKILL.md', b: 'skills/w/SKILL.md', w: 15, rule: false, quoted: ['a description'] } ] };
+    data.overlap = { docs: {}, rows: [] };
+    assert.deepEqual(Array.from(data.themeRows, r => r.review), [true, false, false],
+      'a rule in shipped files only; a rule with one local copy, or a shipped description, is not');
+    assert.equal(data.themeTally.review, 1);
   } finally { Object.assign(data, old); }
 });
 
