@@ -91,41 +91,53 @@
       <div class="overflow-x-auto rounded-lg border border-base-300 bg-base-100">
         <table class="table table-sm text-sm">
           <thead><tr class="text-xs">
-            <th>Area</th><th class="text-right">Docs</th><th class="text-right max-sm:hidden">Changed</th><th class="text-right max-sm:hidden">Deleted</th>
-            <th class="text-right max-sm:hidden">Words</th><th class="w-1/4 min-w-16"></th><th class="text-right">Cut</th><th class="text-right">Survey est.</th>
+            <th>Area</th><th class="text-right max-sm:hidden">Docs</th><th class="text-right max-sm:hidden">Changed</th><th class="text-right max-sm:hidden">Deleted</th>
+            <th class="text-right max-sm:hidden">Words</th><th class="w-1/5 min-w-16" x-html="key"></th><th class="text-right">Cut</th><th class="text-right">Survey est.</th>
           </tr></thead>
           <tbody>
-            <template x-for="r in areaRows" :key="r.area">
+            <template x-for="r in areaRows.filter(r => r.words)" :key="r.area">
               <tr class="cursor-pointer hover:bg-base-200" @click="filterTo({ area: r.area })">
-                <td class="whitespace-nowrap" x-text="r.area"></td>
-                <td class="text-right tabular-nums" x-text="r.docs"></td>
+                <td class="sm:whitespace-nowrap" x-text="r.area"></td>
+                <td class="text-right tabular-nums max-sm:hidden" x-text="r.docs"></td>
                 <td class="text-right tabular-nums max-sm:hidden" x-text="r.changed"></td>
                 <td class="text-right tabular-nums max-sm:hidden" x-text="r.deleted || ''"></td>
-                <td class="whitespace-nowrap text-right font-mono text-xs tabular-nums max-sm:hidden" x-text="r.words ? fmt(r.before) + ' → ' + fmt(r.after) : ''"></td>
-                <td><div x-show="r.words" x-html="bar(r.before, r.after, maxAreaWords)"></div></td>
-                <td class="text-right tabular-nums" x-text="r.words ? pct(r.before, r.after) : ''"></td>
-                <td class="text-right tabular-nums text-base-content/60" x-text="r.est == null ? '' : r.est + '%'"></td>
+                <td class="whitespace-nowrap text-right tabular-nums max-sm:hidden" x-text="fmt(r.before) + ' → ' + fmt(r.after)"></td>
+                <td x-html="bar(r.before, r.after, maxAreaWords)"></td>
+                <td class="text-right tabular-nums" x-text="pct(r.before, r.after)"></td>
+                <td class="text-right tabular-nums text-base-content/60" x-text="r.est == null ? '' : '−' + r.est + '%'"></td>
+              </tr>
+            </template>
+            <tr class="border-t-2 border-base-300 font-semibold">
+              <td>Living documents</td><td class="text-right tabular-nums max-sm:hidden" x-text="totals.docs"></td>
+              <td class="text-right tabular-nums max-sm:hidden" x-text="totals.changed"></td>
+              <td class="text-right tabular-nums max-sm:hidden" x-text="totals.deleted"></td>
+              <td class="whitespace-nowrap text-right tabular-nums max-sm:hidden" x-text="fmt(totals.before) + ' → ' + fmt(totals.after)"></td>
+              <td x-html="bar(totals.before, totals.after, 0)"></td>
+              <td class="text-right tabular-nums" x-text="pct(totals.before, totals.after)"></td>
+              <td class="text-right tabular-nums" x-text="totals.est == null ? '' : '−' + totals.est + '%'"></td>
+            </tr>
+            <template x-for="r in areaRows.filter(r => !r.words)" :key="r.area">
+              <tr class="cursor-pointer text-base-content/60 hover:bg-base-200" @click="filterTo({ area: r.area })">
+                <td class="sm:whitespace-nowrap" x-text="r.area"></td>
+                <td class="text-right tabular-nums max-sm:hidden" x-text="r.docs"></td>
+                <td class="text-right tabular-nums max-sm:hidden" x-text="r.changed"></td>
+                <td class="text-right tabular-nums max-sm:hidden" x-text="r.deleted || ''"></td>
+                <td class="max-sm:hidden"></td><td></td><td></td><td></td>
               </tr>
             </template>
           </tbody>
-          <tfoot><tr class="text-xs">
-            <th>All documents</th><th class="text-right" x-text="totals.docs"></th><th class="text-right max-sm:hidden" x-text="totals.changed"></th>
-            <th class="text-right max-sm:hidden" x-text="totals.deleted"></th>
-            <th class="whitespace-nowrap text-right font-mono max-sm:hidden" x-text="fmt(totals.before) + ' → ' + fmt(totals.after)"></th>
-            <th></th><th class="text-right" x-text="pct(totals.before, totals.after)"></th><th class="text-right" x-text="totals.est == null ? '' : totals.est + '%'"></th>
-          </tr></tfoot>
         </table>
       </div>
       <div class="flex min-w-0 flex-col gap-3">
       <div class="overflow-x-auto rounded-lg border border-base-300 bg-base-100">
         <table class="table table-sm text-sm">
-          <thead><tr class="text-xs"><th>Stage</th><th class="text-right"></th><th></th></tr></thead>
+          <thead><tr class="text-xs"><th>Stage</th><th class="text-right" colspan="2">Count</th></tr></thead>
           <tbody>
             <template x-for="st in ctx.stages || []" :key="st.name">
-              <tr>
+              <tr class="align-top">
                 <td x-text="st.name"></td>
-                <td class="whitespace-nowrap text-right font-mono text-xs tabular-nums" x-text="fmt(st.count)"></td>
-                <td><span x-text="st.unit"></span><span class="block text-xs text-base-content/60" x-text="st.detail"></span></td>
+                <td class="whitespace-nowrap text-right tabular-nums" x-text="fmt(st.count)"></td>
+                <td><span x-text="st.unit"></span><span class="block text-base-content/60" x-text="st.detail"></span></td>
               </tr>
             </template>
           </tbody>
@@ -133,14 +145,15 @@
       </div>
       <div class="overflow-x-auto rounded-lg border border-base-300 bg-base-100">
         <table class="table table-sm text-sm">
-          <thead><tr class="text-xs"><th>Outcome</th><th class="text-right">Docs</th><th class="text-right">Words removed</th><th class="w-1/3"></th></tr></thead>
+          <thead><tr class="text-xs"><th>Outcome</th><th class="text-right">Docs</th><th class="text-right" colspan="2">Words removed</th><th class="w-4"></th></tr></thead>
           <tbody>
             <template x-for="r in outcomeRows" :key="r.outcome">
               <tr class="cursor-pointer hover:bg-base-200" @click="filterTo({ outcome: r.outcome })">
                 <td class="whitespace-nowrap" x-text="r.outcome"></td>
                 <td class="text-right tabular-nums" x-text="r.docs"></td>
-                <td class="text-right font-mono text-xs tabular-nums" x-text="r.removed ? fmt(r.removed) : ''"></td>
-                <td><div class="h-2 rounded-sm bg-primary" x-show="r.removed > 0" :style="`width:${100 * r.removed / maxOutcomeRemoved}%`"></div></td>
+                <td class="text-right tabular-nums" x-text="r.removed ? fmt(r.removed) : ''"></td>
+                <td class="w-1/3"><div class="h-2 rounded-sm bg-error" x-show="r.removed > 0" :style="`width:${100 * r.removed / maxOutcomeRemoved}%`"></div></td>
+                <td class="text-base-content/40"><i class="ph ph-caret-right"></i></td>
               </tr>
             </template>
           </tbody>
@@ -149,15 +162,16 @@
       </div>
       <div class="overflow-x-auto rounded-lg border border-base-300 bg-base-100 xl:col-span-2">
         <table class="table table-sm text-sm">
-          <thead><tr class="text-xs"><th>Largest reductions</th><th class="max-sm:hidden">Area</th><th class="text-right max-sm:hidden">Words</th><th class="w-1/4 min-w-16"></th><th class="text-right">Cut</th></tr></thead>
+          <thead><tr class="text-xs"><th>Largest reductions</th><th class="max-sm:hidden">Area</th><th class="text-right max-sm:hidden">Words</th><th class="w-1/4 min-w-16" x-html="key"></th><th class="text-right">Cut</th><th class="w-4"></th></tr></thead>
           <tbody>
             <template x-for="d in largest" :key="d.id">
               <tr class="cursor-pointer hover:bg-base-200" @click="goto(d.id)">
-                <td class="max-w-0 truncate" x-html="pathHtml(d)"></td>
+                <td class="max-w-0" x-html="pathHtml(d)"></td>
                 <td class="whitespace-nowrap text-base-content/70 max-sm:hidden" x-text="d.facet"></td>
-                <td class="whitespace-nowrap text-right font-mono text-xs tabular-nums max-sm:hidden" x-text="fmt(m(d).words_before) + ' → ' + fmt(m(d).words_after)"></td>
+                <td class="whitespace-nowrap text-right tabular-nums max-sm:hidden" x-text="fmt(m(d).words_before) + ' → ' + fmt(m(d).words_after)"></td>
                 <td x-html="bar(m(d).words_before, m(d).words_after, largestMax)"></td>
                 <td class="text-right tabular-nums" x-text="pct(m(d).words_before, m(d).words_after)"></td>
+                <td class="text-base-content/40"><i class="ph ph-caret-right"></i></td>
               </tr>
             </template>
           </tbody>
@@ -224,7 +238,7 @@ document.addEventListener('alpine:init', () => {
     if (!window.marked) return esc(s);
     return inline ? marked.parseInline(String(s)) : marked.parse(String(s));
   };
-  const MD = '[&_a]:underline [&_code]:rounded [&_code]:bg-base-200 [&_code]:px-1 [&_code]:font-mono [&_p]:mb-2 [&_ul]:mb-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:mb-2 [&_ol]:list-decimal [&_ol]:pl-5';
+  const MD = 'text-pretty [&_a]:underline [&_code]:rounded [&_code]:bg-base-200 [&_code]:px-1 [&_code]:font-mono [&_p]:mb-2 [&_ul]:mb-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:mb-2 [&_ol]:list-decimal [&_ol]:pl-5';
   const label = t => `<div class="mb-1 text-xs font-semibold uppercase tracking-wide text-base-content/60">${esc(t)}</div>`;
   const LENSES = [['overview', 'Overview'], ['documents', 'Documents'], ['findings', 'Findings'], ['questions', 'Questions']];
 
@@ -264,9 +278,14 @@ document.addEventListener('alpine:init', () => {
       const tot = Math.max(before, after) || 1;
       return `<div class="flex h-2 overflow-hidden rounded-sm" style="width:${w}%">`
         + `<div class="bg-base-content/25" style="width:${100 * keep / tot}%"></div>`
-        + (cut ? `<div class="bg-primary" style="width:${100 * cut / tot}%"></div>` : '')
+        + (cut ? `<div class="bg-error" style="width:${100 * cut / tot}%"></div>` : '')
         + (grew ? `<div class="bg-base-content/60" style="width:${100 * grew / tot}%"></div>` : '')
         + '</div>';
+    },
+    // The bars' key, in the header cell above them.
+    get key() {
+      const dot = c => `<span class="inline-block size-2 rounded-sm ${c}"></span>`;
+      return `<span class="inline-flex items-center gap-1 font-normal">${dot('bg-base-content/25')}kept${dot('ml-2 bg-error')}cut</span>`;
     },
     estOf(d) { const v = parseFloat(String(this.m(d).survey?.cut_pct ?? '')); return isNaN(v) ? null : v; },
     weightedEst(list) {
@@ -286,7 +305,7 @@ document.addEventListener('alpine:init', () => {
     get headline() {
       const t = this.totals, open = this.questions.filter(q => this.m(q).status !== 'applied').length;
       return `${this.fmt(t.before)} → ${this.fmt(t.after)} words (${this.pct(t.before, t.after)}) · `
-        + `${t.changed} of ${t.docs} documents changed · ${t.deleted} deleted · ${open} open questions`;
+        + `${t.changed} of ${t.docs} living documents changed · ${t.deleted} deleted · ${open} open questions`;
     },
     get areaRows() {
       return (this.ctx.areas || []).map(area => {
@@ -381,9 +400,13 @@ document.addEventListener('alpine:init', () => {
     },
 
     // The list and the strip ------------------------------------------------
+    // The folder gives way before the filename does: it truncates, and the
+    // name keeps its width.
     pathHtml(d) {
       const p = d.title, i = p.lastIndexOf('/');
-      return (i >= 0 ? `<span class="text-base-content/50">${esc(p.slice(0, i + 1))}</span>` : '') + esc(p.slice(i + 1));
+      return `<span class="flex min-w-0">`
+        + (i >= 0 ? `<span class="min-w-0 truncate text-base-content/50">${esc(p.slice(0, i + 1))}</span>` : '')
+        + `<span class="min-w-0 shrink-0 truncate">${esc(p.slice(i + 1))}</span></span>`;
     },
     rowHtml(it) {
       const sel = this.sel[this.lens] === it.id;
@@ -398,7 +421,7 @@ document.addEventListener('alpine:init', () => {
       const name = it.type === 'file' ? this.pathHtml(it) : esc(this.plain(it.title));
       return `<div role="option" tabindex="0" data-item="${esc(it.id)}" aria-selected="${sel}"
         class="flex cursor-pointer items-baseline gap-2 border-b border-base-200 px-2.5 py-1.5 text-sm hover:bg-base-200 aria-selected:bg-base-300">
-        <span class="min-w-0 flex-1 truncate">${name}</span>${right}</div>`;
+        <span class="min-w-0 flex-1 ${it.type === 'file' ? '' : 'truncate'}">${name}</span>${right}</div>`;
     },
     listHtml(rows) {
       let group = null;
@@ -449,8 +472,8 @@ document.addEventListener('alpine:init', () => {
         title: LENSES.find(l => l[0] === this.lens)[1], icon: 'ph-broom', innerClass: 'w-full',
         index: i => ({ title: this.plain(rows[i].title), group: rows[i].facet }),
         render: (i, el) => {
-          el.innerHTML = `<h2 class="mb-1 text-lg font-bold break-words">${esc(this.plain(rows[i].title))}</h2>`
-            + `<div class="mb-3 font-mono text-xs text-base-content/60">${esc(rows[i].facet || '')}</div>` + this.cardHtml(rows[i].id);
+          el.innerHTML = `<h2 class="mb-1 text-2xl font-bold text-balance break-words">${esc(this.plain(rows[i].title))}</h2>`
+            + `<div class="mb-3 font-mono text-xs text-base-content/60">${esc(rows[i].facet || '')}</div>` + this.cardHtml(rows[i].id, true);
         },
         onSlide: i => this._swiper?.pick(rows[i].id),
         onClose: () => { this._deck = null; },
@@ -471,18 +494,20 @@ document.addEventListener('alpine:init', () => {
         ? `<button type="button" class="btn btn-sm" data-act="diff" data-id="${esc(it.id)}"><i class="ph ${icon}"></i>${text}</button>`
         : `<a class="btn btn-sm btn-ghost" target="_blank" href="${esc(href)}"><i class="ph ${icon}"></i>${text}</a>`).join('');
     },
-    cardHtml(id) {
+    // `big` is the takeover's reading size; the strip's card is a working surface.
+    cardHtml(id, big) {
       const it = this.byId(id);
       if (!it) return '';
-      return it.type === 'file' ? this.docCard(it) : this.noteCard(it);
+      const size = big ? 'text-xl leading-8' : 'text-sm';
+      return it.type === 'file' ? this.docCard(it, size) : this.noteCard(it, size);
     },
-    docCard(it) {
+    docCard(it, size) {
       const m = this.m(it), s = m.survey, out = [];
       const delta = m.words_before - m.words_after;
       const status = [this.repoOf(it), it.change ? it.change.status + (it.change.previous_path ? ' from ' + it.change.previous_path : '') : 'unchanged', m.outcome].join(' · ');
       out.push(`<div class="font-mono text-xs text-base-content/60">${esc(status)}</div>`);
       if (m.words_before || m.words_after) {
-        out.push(`<div><div class="mb-1 font-mono text-sm tabular-nums">${this.fmt(m.words_before)} → ${this.fmt(m.words_after)} words`
+        out.push(`<div><div class="mb-1 text-balance tabular-nums">${this.fmt(m.words_before)} → ${this.fmt(m.words_after)} words`
           + (delta ? ` · ${delta > 0 ? '−' : '+'}${this.fmt(Math.abs(delta))} (${this.pct(m.words_before, m.words_after)})` : '')
           + (s?.cut_pct ? `<span class="text-base-content/60"> · survey est. ${esc(s.cut_pct)}%</span>` : '') + '</div>'
           + this.bar(m.words_before, m.words_after, 0) + '</div>');
@@ -490,9 +515,11 @@ document.addEventListener('alpine:init', () => {
       out.push(`<div class="flex flex-wrap gap-1">${this.links(it)}</div>`);
       if (it.commentary) out.push(`<div>${label('Now')}<div class="${MD}">${md(it.commentary)}</div></div>`);
       if (m.cuts?.length) {
-        out.push(`<div>${label('Removed')}<div class="overflow-x-auto"><table class="table table-sm text-sm"><tbody>`
+        // daisyUI sizes the cells, not the table, so the takeover sizes them too.
+        const cells = size === 'text-sm' ? 'table-sm text-sm' : '[&_td]:text-xl [&_td]:leading-8';
+        out.push(`<div>${label('Removed')}<div class="overflow-x-auto"><table class="table ${cells}"><tbody>`
           + m.cuts.map(c => `<tr class="align-top"><td class="w-1/4 min-w-28 ${MD}">${md(c.section, true)}</td>`
-            + `<td class="whitespace-nowrap text-right font-mono text-xs tabular-nums">${c.words ? this.fmt(c.words) : ''}</td>`
+            + `<td class="whitespace-nowrap text-right tabular-nums">${c.words ? this.fmt(c.words) : ''}</td>`
             + `<td class="whitespace-nowrap font-mono text-xs text-base-content/60">${esc(c.kind || '')}</td>`
             + `<td class="${MD}">${md(c.why, true)}${c.owner ? ` <span class="text-base-content/60">→ ${md('`' + c.owner + '`', true)}</span>` : ''}</td></tr>`).join('')
           + '</tbody></table></div></div>');
@@ -509,16 +536,16 @@ document.addEventListener('alpine:init', () => {
         + `</div><div class="${MD}">${md(s.note, true)}</div><div class="mt-1 font-mono text-xs text-base-content/50">${esc(s.report)}</div></div>`);
       const related = this.relatedTo(it.id);
       if (related.length) out.push(`<div>${label('Raised in')}<div class="flex flex-col items-start gap-1">${related.map(r => this.gotoBtn(r)).join('')}</div></div>`);
-      return `<div class="space-y-4 text-sm">${out.join('')}</div>`;
+      return `<div class="space-y-4 ${size}">${out.join('')}</div>`;
     },
-    noteCard(it) {
+    noteCard(it, size) {
       const m = this.m(it), out = [];
       out.push(`<div class="font-mono text-xs text-base-content/60">${esc([it.facet, m.status].filter(Boolean).join(' · '))}</div>`);
       if (it.content) out.push(`<div class="${MD}">${md(it.content)}</div>`);
       if (it.commentary) out.push(`<div>${label('Recommended')}<div class="${MD}">${md(it.commentary)}</div></div>`);
       const rel = (it.related || []).map(r => this.byId(r.item)).filter(Boolean);
       if (rel.length) out.push(`<div>${label('Documents')}<div class="flex flex-col items-start gap-1">${rel.map(r => this.gotoBtn(r)).join('')}</div></div>`);
-      return `<div class="space-y-4 text-sm">${out.join('')}</div>`;
+      return `<div class="space-y-4 ${size}">${out.join('')}</div>`;
     },
     gotoBtn(r) {
       const text = r.type === 'file' ? `${this.repoOf(r)} ${r.title}` : this.plain(r.title);
@@ -544,11 +571,18 @@ document.addEventListener('alpine:init', () => {
         path: d.target.source.path, previousPath: d.change.previous_path, status: d.change.status,
         additions: this.m(d).lines_added, deletions: this.m(d).lines_removed,
       }));
-      fileDeck.open({
+      // Closing returns to the file it closed on, as the takeover does. The
+      // slide is recorded as it changes: once closed, the track has no position.
+      let last = Math.max(0, pool.findIndex(d => d.id === id));
+      const h = fileDeck.open({
         repo, ref: cmp.head.ref, base: cmp.base.revision, baseName: 'main', files,
-        start: Math.max(0, pool.findIndex(d => d.id === id)), title: 'Diffs', subtitle: repo,
-        openOn: 'mddiff', parent: this._deck || undefined,
+        start: last, title: 'Diffs', subtitle: repo, openOn: 'mddiff', parent: this._deck || undefined,
+        onClose: () => {
+          const to = pool[last]?.id;
+          if (to && to !== id && this.rows().some(r => r.id === to)) this._swiper?.pick(to);
+        },
       });
+      h?.deck?.onSlide?.(i => { last = i; });
     },
 
     // Loading -----------------------------------------------------------------
