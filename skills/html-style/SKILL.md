@@ -113,7 +113,8 @@ Do not use daisyUI's `tooltip`, `data-tip`, or `cursor-help`. Details are in
 capped near 40% of the height, over a strip of one card per item, swiped
 sideways. Each scrolls inside itself; the page does not. A pick in the list
 moves the strip, and a swipe moves the list's selection and keeps it in view.
-The strip's header opens the deck takeover (rule 4) at the card in view, and
+Up and Down in the list step the selection as a swipe steps the strip, and
+focus moves with the selected row. The strip's header opens the deck takeover (rule 4) at the card in view, and
 closing it returns to the list at the card where it closed. In a wide pane the
 list sits beside the strip; on a phone it stays in view above the strip. The
 reference is the linked-swiper kit
