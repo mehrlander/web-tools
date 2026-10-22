@@ -1815,7 +1815,13 @@ document.addEventListener('click',function(e){
   if (routeKey) {
     await showRoute(routeKey, param(routeKey).trim());
   } else if (gh) {
-    await showAddress(gh.trim());
+    // In top mode an address in the query leaves the real fragment to the page
+    // (topAddressInQuery puts it there), so that fragment is the address's
+    // #frag. Unread, a walkthrough arriving at ?top&gh=…#steps=… found no look
+    // key and a page that does not boot the loader got no kit (2026-10-22).
+    const topFrag = TOP && hashKey !== 'gh' && queryParams.has('gh') && !gh.includes('#') && location.hash.length > 1
+      ? location.hash : '';
+    await showAddress(gh.trim() + topFrag);
   } else if (gz) {
     try {
       const [payload, frag] = splitFrag(gz);
