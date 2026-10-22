@@ -11,7 +11,7 @@ Read [CLAUDE.md](CLAUDE.md) first for repository workflows and conventions.
 
 ## Assistant identity and attribution
 
-Every assistant identifies its work by branch prefix and commit trailer, so the Web Tools Activity view can classify a branch from what it declares. The table below repeats the one [docs/surfacing-course.md](docs/surfacing-course.md#assistant-identity-and-attribution) owns; change it there first.
+Every assistant identifies its work by branch prefix and commit trailer, so the Web Tools Activity view can classify a branch from what it declares.
 
 | Assistant | Branch Prefix | Commit Signature / Trailer | Notes |
 | :--- | :--- | :--- | :--- |
