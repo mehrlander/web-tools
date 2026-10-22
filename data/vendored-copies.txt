@@ -7,7 +7,14 @@ python/annotate/ops.py
 python/annotate/reanchor.py
 python/annotate/seams.py
 python/annotate/segment.py
+python/ocr-pdf.py
+python/page-strips.py
 skills/doc-audit/SKILL.md
 skills/doc-audit/references/shorter.json
 skills/doc-audit/scripts/run.py
 skills/doc-audit/vocab.tsv
+skills/document-visual-mapping/SKILL.md
+skills/excel-com/SKILL.md
+skills/office-scripts-shape-ui/SKILL.md
+skills/power-query/SKILL.md
+skills/source-anchored-xlsx/SKILL.md
