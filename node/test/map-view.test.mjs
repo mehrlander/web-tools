@@ -229,6 +229,9 @@ test('Themes marks a repeat to review: a rule, in files that all leave the repo'
   } finally { Object.assign(data, old); }
 });
 
+// The map's marks of one colour (its SVG takes daisyUI colours as var() values).
+const paint = (el, tag, colour) => [...el.querySelectorAll(tag)].filter(n => n.getAttribute('class').includes(`--color-${colour})`));
+
 // The card reads the files: a run is shown in its file's own text with the run
 // marked, and a similar passage that overlaps a run is left out, since for the
 // pairs that share runs most similar matches were the run again.
@@ -256,7 +259,50 @@ test('a Themes card shows a run in its file and drops similar wording the run al
     const kept = [...box.querySelectorAll('[data-theme-match] [data-theme-cut]')].map(n => n.textContent);
     assert.deepEqual(kept, [pa, pb], 'only the paraphrase is left');
     assert.equal(box.querySelector('[data-theme-count]').textContent, '1 similar passage');
+    // The map: a bar per file keyed by its number in the list, the run in the
+    // accent and the kept paraphrase in grey, joined across by ribbons.
+    assert.deepEqual([...box.querySelectorAll('[data-theme-card] > div:first-child > div > span:first-child')].map(n => n.textContent), ['1', '2']);
+    const map = () => box.querySelector('[data-theme-map]');
+    assert.equal(paint(map(), 'rect', 'primary').length, 2, 'the run, once in each file');
+    assert.equal(paint(map(), 'rect', 'base-content').length, 2, 'the paraphrase, once in each file');
+    assert.equal(map().querySelectorAll('polygon').length, 2, 'ribbons join each one across');
   } finally { Object.assign(data, old); }
+});
+
+// The map's view is one choice for every card: picking it on one card redraws
+// each card on the page, and the dot plot puts a repeat that kept its place in
+// both files on the diagonal.
+test('a Themes card switches its map between ribbons, bars and a dot plot, every card at once', async () => {
+  const run = 'one two three four five six seven eight nine ten eleven twelve';
+  const A = run + '\n\nmore text after it in the first file', B = 'lead in words here\n\n' + run;
+  const old = { themeGraph: data.themeGraph, overlap: data.overlap, themeTh: data.themeTh, themeFile: data.themeFile, themeView: data.themeView };
+  const cards = [];
+  try {
+    data.themeTh = 12;
+    data.themeView = 'ribbons';
+    data.themeGraph = { shingle: 10, scanned: 2, edges: [{ a: 'a.md', b: 'b.md', w: 12, quoted: [run] }] };
+    data.overlap = { docs: {}, rows: [] };
+    data.themeFile = async p => ({ text: p === 'a.md' ? A : B, sha: '' });
+    for (let i = 0; i < 2; i++) {
+      const box = window.document.createElement('div');
+      box.innerHTML = data.themeCard(data.themeRows[0]);
+      window.document.body.append(box);
+      await data.themeFill(box);
+      cards.push(box);
+    }
+    const pressed = box => box.querySelector('[data-theme-view][aria-checked="true"]').dataset.themeView;
+    assert.deepEqual(cards.map(pressed), ['ribbons', 'ribbons']);
+    await data.themeClick({ target: cards[0].querySelector('[data-theme-view="dots"]') });
+    assert.equal(data.themeView, 'dots');
+    assert.deepEqual(cards.map(pressed), ['dots', 'dots'], 'the other card follows');
+    const line = paint(cards[1].querySelector('[data-theme-map]'), 'line', 'primary')[0];
+    assert.ok(line, 'the run is a stroke in the pair\'s square');
+    assert.equal(+line.getAttribute('x1'), 0, 'it opens the first file');
+    assert.ok(+line.getAttribute('y1') > 0, 'and sits lower in the second');
+    await data.themeClick({ target: cards[1].querySelector('[data-theme-view="bars"]') });
+    assert.equal(cards[0].querySelectorAll('[data-theme-map] polygon').length, 0, 'bars draw no ribbons');
+    assert.equal(paint(cards[0].querySelector('[data-theme-map]'), 'rect', 'primary').length, 2);
+  } finally { cards.forEach(c => c.remove()); Object.assign(data, old); }
 });
 
 test('opening a source keeps its repository and ref in the in-app reader', async () => {
