@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="wa-bills">
   <title>wa-bills</title>
-  <desc>Two bill texts, the nearer cut clear of the one behind it, lines of text cut out: Washington legislation as a corpus. It stands on the detached base bar that marks the Washington public-record stores. Drawn in one ink on the budget-drs app icon's box and rules, for the page to paint in its text colour: solid, no strokes, and every gap at least 2.5 units, which is about 1.4 CSS pixels at 16.</desc>
+  <desc>Two bill texts, the nearer cut clear of the one behind it, lines of text cut out: Washington legislation as a corpus. It stands on the detached base bar that marks the public-record stores. Drawn in one ink on the budget-drs app icon's box and rules, for the page to paint in its text colour: solid, no strokes, and every gap at least 2.5 units, which is about 1.4 CSS pixels at 16.</desc>
   <mask id="clear" maskUnits="userSpaceOnUse" x="0" y="0" width="32" height="32">
     <rect width="32" height="32" fill="#fff"/>
     <rect x="2.5" y="5.5" width="22" height="19" fill="#000"/>
