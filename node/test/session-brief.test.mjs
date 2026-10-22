@@ -62,7 +62,10 @@ class FakeGH {
   constructor(conf = {}) { this.repo = conf.repo || ''; this.ref = conf.ref || 'main'; }
   async get(p) {
     log.push('get:' + this.repo + ':' + p);
-    if (p === PATH) return { text: JSON.stringify({ ...record, readFrom: this.repo }) };
+    // `__recordPatch` and `__recordSha` let a test serve a later record, and
+    // the blob sha GitHub reports beside it, without a second fixture.
+    if (p === PATH) return { text: JSON.stringify({ ...record, ...(window.__recordPatch || {}), readFrom: this.repo }),
+                             sha: window.__recordSha || undefined };
     // Gemini's topics file, on the branch the laptop daemon writes, and only
     // there: a read of it from main is a bug, and it 404s like one.
     if (p === TOPICS_PATH && this.ref === 'background' && window.__topicsDoc) {
@@ -173,29 +176,41 @@ test('the strip carries five facts and no more, and names which', () => {
     ['day', 'ran', 'calls', 'failures', 'repos']);
 });
 
-test('a unit word rides only the values that do not name themselves', () => {
-  // `f.k` stays the fact's NAME, which the notes and these tests key on; `unit`
-  // is the word actually drawn after the value. A date reads as a date and a
-  // duration reads as a duration, so those draw bare; 251 does not read as
-  // calls.
-  const units = Object.fromEntries(lent().strip.map(f => [f.k, f.unit]));
-  assert.deepEqual(units,
-    { day: '', ran: '', calls: 'tool calls', failures: 'failed', repos: '' });
+test('a count is a glyph that opens its panel; only the self-naming values are text', () => {
+  // `f.k` stays the fact's NAME, which the notes and these tests key on. A date
+  // reads as a date and a duration as a duration, so those draw bare text; 251
+  // does not read as calls, and since 2026-10-22 the glyph says so, as on the
+  // Activity view's Sessions row, with the unit in words in the panel the
+  // glyph opens. So no fact draws a unit word any more.
+  const f = Object.fromEntries(lent().strip.map(x => [x.k, x]));
+  assert.deepEqual(Object.fromEntries(Object.entries(f).map(([k, x]) => [k, x.unit])),
+    { day: '', ran: '', calls: '', failures: '', repos: '' });
+  assert.equal(f.calls.icon, 'ph-wrench');
+  assert.equal(f.calls.panel, 'tools');
+  assert.equal(f.failures.panel, 'tools', 'failures open the same list, where the failing tool is named');
+  assert.equal(f.failures.tone, 'text-warning');
+  assert.equal(f.day.panel, '', 'a text fact opens nothing');
 });
 
-test('the strip counts a zero rather than dropping it, and drops what is absent', () => {
-  // "no failures" and "not captured" are different answers and only one of them
-  // is about the session, which is the whole reason the filter tests for
-  // `v === 0` rather than truthiness.
+test('a zero failure count is stated in the tools panel, not on the strip', () => {
+  // "no failures" and "not captured" are different answers, and the panel is
+  // where the first one is said: its header reads "none failed". The strip
+  // follows the Sessions row, where failures ride the tools card and take a
+  // place of their own only when there are some (2026-10-22). Measured zero
+  // calls still count, which is why the filter tests `v === 0`.
   const bare = { id: 'x', day: '2026-08-05', exchanges: 0, calls: 0, failures: 0 };
   window.__probe = { id: 'x', repo: STORE, facts: bare, record: null };
   const el = window.document.createElement('div');
   el.setAttribute('x-data', 'sessionBrief(window.__probe)');
   window.document.body.append(el);
   Alpine.initTree(el);
-  const s = Object.fromEntries(Alpine.$data(el).strip.map(f => [f.k, f.v]));
-  assert.equal(s.failures, 0, 'measured zero is a fact');
+  const d = Alpine.$data(el);
+  const s = Object.fromEntries(d.strip.map(f => [f.k, f.v]));
+  assert.equal(s.calls, 0, 'measured zero calls is a fact');
+  assert.ok(!('failures' in s), 'a zero failure count leaves the strip');
+  assert.equal(d.toolTally.failures, 0, 'and the panel has it to state');
   assert.ok(!('ran' in s), 'a duration nothing could compute is absent, not zero');
+  assert.ok(!('agents' in s), 'and so is a fan-out nobody ran');
 });
 
 test('an unreadable record costs the outline and nothing else', () => {
@@ -554,6 +569,28 @@ test('a fact carries its definition on data-title-tip, not in a title', () => {
   const strip = el.querySelector('.flex.flex-wrap.items-center.gap-x-2\\.5');
   assert.ok(strip, 'the facts strip');
   assert.equal(strip.querySelectorAll('[title]').length, 0, 'no fact is stranded in a title');
+  // Three kinds of fact since 2026-10-22, and each carries its words its own
+  // way. A TEXT fact (day, ran) has its definition on a title-tip. A GLYPH fact
+  // is a button whose panel names the unit, so it carries an aria-label rather
+  // than a title-tip, which a hover would draw over the panel it opens. The
+  // SCOPE is one mark per repository, each with the definition and the
+  // repository's name as the tip's lead.
+  const text = d.strip.filter(f => !f.panel && f.k !== 'repos');
+  const glyphs = d.strip.filter(f => f.panel);
+  assert.deepEqual(Array.from(text, f => f.k), ['day', 'ran']);
+  // The Gemini mark is a button of the same kind and no fact of the record's;
+  // its own tests are below, with the topics file.
+  const buttons = [...strip.querySelectorAll('[data-fact-btn]:not([data-gemini-mark])')];
+  assert.equal(buttons.length, glyphs.length, 'one button per glyph fact');
+  for (const b of buttons) {
+    assert.ok(!b.hasAttribute('data-title-tip'), 'a glyph fact draws no title-tip over its panel');
+    assert.ok(b.getAttribute('aria-label'), 'and names itself to a reader who gets neither');
+  }
+  const marks = [...strip.querySelectorAll('[data-scope-marks] [data-title-tip-lead]')];
+  assert.deepEqual(marks.map(m => m.getAttribute('data-title-tip-lead')), Array.from(d.scopeRepos),
+    'one mark per repository, named on its tip');
+  const reposDef = d.strip.find(f => f.k === 'repos').t;
+  for (const m of marks) assert.equal(m.getAttribute('data-title-tip'), reposDef);
 
   // THROUGH THE KIT, NOT A SECOND IMPLEMENTATION OF IT. `kits/title-tip.js` is this
   // estate's tier between a title and a built panel, and a strip definition is
@@ -561,7 +598,7 @@ test('a fact carries its definition on data-title-tip, not in a title', () => {
   // hand-rolled a tap-to-reveal line for one commit, which was that kit again
   // with no keyboard, no screen reader and no affordance before the tap.
   const noted = [...el.querySelectorAll('[data-title-tip]')]
-    .filter(n => !n.closest('[role="search"]'));
+    .filter(n => !n.closest('[role="search"]') && !n.hasAttribute('data-title-tip-lead'));
   // Every fact, plus notes that are not facts about the SESSION: the id, the
   // `running <ref>` marker naming the ref this page's own code booted from,
   // the scope row, whose note says what tapping it will do, the pages mark,
@@ -574,7 +611,7 @@ test('a fact carries its definition on data-title-tip, not in a title', () => {
   // working: a note is cheap to add and this is the only thing that asks what
   // it is for, so it is raised by naming the newcomer, never by loosening the
   // comparison.
-  const shownValues = new Set(d.strip.map(f => String(f.v) + (f.unit ? ' ' + f.unit : '')));
+  const shownValues = new Set(text.map(f => String(f.v) + (f.unit ? ' ' + f.unit : '')));
   const extras = noted.filter(n => !shownValues.has(n.textContent.replace(/\s+/g, ' ').trim()));
   // Ten more joined on 2026-10-16, when every title in the app became a
   // title-tip: the labels on the icon-only controls, Contents, On GitHub,
@@ -584,14 +621,14 @@ test('a fact carries its definition on data-title-tip, not in a title', () => {
   assert.equal(extras.length, 15,
     'the id, the running-ref marker, the scope row, the pages mark, the Gemini summary and ten control labels off-strip: '
     + JSON.stringify(extras.map(n => n.textContent.trim() || n.getAttribute('data-title-tip'))));
-  assert.equal(noted.length, d.strip.length + 15, 'every fact and those fifteen, and nothing else');
+  assert.equal(noted.length, text.length + 15, 'every text fact and those fifteen, and nothing else');
   // MATCHED ON THE VALUE, not on the fact's name, because the name is no longer
   // drawn: the strip renders `2026-08-05` and `40 calls`, so a lookup keyed on
   // "day" or "calls" would find the definition of whichever fact happened to
   // start with those letters. The rendered text is what a reader points at, so
   // it is what the note has to be attached to.
   const byNote = new Map(noted.map(n => [n.textContent.replace(/\s+/g, ' ').trim(), n.getAttribute('data-title-tip')]));
-  for (const f of d.strip) {
+  for (const f of text) {
     const shown = String(f.v) + (f.unit ? ' ' + f.unit : '');
     assert.ok(byNote.has(shown), 'strip row ' + f.k + ' is on the page as "' + shown + '"');
     assert.equal(byNote.get(shown), f.t,
@@ -686,7 +723,9 @@ test('the act is one mark on the facts strip, not a row of its own', () => {
   // no Tailwind, so a layout claim is only answerable in the template.
   const src = readFileSync(path.join(repoRoot, 'lib/alpineComponents/session-brief.js'), 'utf8');
   assert.doesNotMatch(src, /Work on this scope/, 'the worded row is gone');
-  const link = src.match(/<template x-if="f\.k === 'repos' && scopeUrl">[\s\S]*?<\/template>/);
+  // Inside the repos fact's own block since the scope became marks
+  // (2026-10-22), so the condition is the link alone.
+  const link = src.match(/<template x-if="scopeUrl">[\s\S]*?<\/template>/);
   assert.ok(link, 'and what replaced it is an anchor, so it is still a link to somewhere');
   assert.match(link[0], /<a :href="scopeUrl"/, 'a real link, not a button that scripts a navigation');
   assert.match(link[0], /ph-microphone/, 'the microphone, which is what named the act');
@@ -704,7 +743,7 @@ test('the note names the checkouts and promises nothing runs unasked', () => {
   const src = readFileSync(path.join(repoRoot, 'lib/alpineComponents/session-brief.js'), 'utf8');
   // Scoped to the anchor: the facts on the strip carry notes of their own, and
   // a document-wide match reads whichever comes first.
-  const link = src.match(/<template x-if="f\.k === 'repos' && scopeUrl">[\s\S]*?<\/template>/)[0];
+  const link = src.match(/<template x-if="scopeUrl">[\s\S]*?<\/template>/)[0];
   const note = link.match(/:data-title-tip="([\s\S]*?)"\s*>/);
   assert.ok(note, 'the note is bound rather than written down, so it carries the real scope');
   assert.match(note[1], /scopeNames/, 'which is the same list the strip prints');
@@ -862,4 +901,100 @@ test('the outline is built once, with the turn notes, when the topics file is pr
     window.__topicsDoc = null;
     window.__topicsDelay = 0;
   }
+});
+
+// ── How far Gemini has read ─────────────────────────────────────────────────
+// The poller's staleness test, as far as a page can run it: no file yet, or a
+// file made from another version of the record. Each test serves a schema 8
+// record, where turn i is prompts[i], and names its own store for the memo.
+const TWO = [{ at: '2026-08-05T13:00:00Z', text: 'do the thing' },
+             { at: '2026-08-05T15:00:00Z', text: 'and one more' }];
+const mountRead = async (doc, repo, patch, sha) => {
+  window.__recordPatch = { schema: 8, ...patch };
+  window.__recordSha = sha;
+  try { return await mountTopics(doc, repo); }
+  finally { window.__recordPatch = null; window.__recordSha = undefined; window.__topicsDoc = null; }
+};
+
+test('every turn summarized from this version of the record reads as current', async () => {
+  const doc = { ...TOPICS_DOC, turn_count: 1, source_ended: record.ended, source_blob: 'aaa' };
+  const g = (await mountRead(doc, 'me/gemini-a', {}, 'aaa')).gemini;
+  assert.equal(g.state, 'current');
+  assert.equal(g.icon, 'ph-check');
+  assert.deepEqual(JSON.parse(JSON.stringify(g.head)), { count: '1/1', unit: 'turns summarized' });
+  assert.deepEqual(Array.from(g.rows, r => r.mark), ['done']);
+});
+
+test('a session that went on after Gemini read it is behind, by the turns it missed', async () => {
+  // The case that prompted this (2026-10-22): six turns in the record, five in
+  // the file, and nothing on the page said so.
+  const doc = { ...TOPICS_DOC, turn_count: 1, source_ended: record.ended, source_blob: 'aaa' };
+  const g = (await mountRead(doc, 'me/gemini-b', { prompts: TWO, ended: '2026-08-05T15:30:00Z' }, 'bbb')).gemini;
+  assert.equal(g.state, 'behind');
+  assert.equal(g.label, '1/2', 'the strip shows how far it got');
+  assert.deepEqual(Array.from(g.rows, r => r.mark), ['done', 'after']);
+  assert.ok(g.lines.some(l => /has moved since/.test(l)), 'and the panel says the record moved');
+});
+
+test('the blob decides where both sides have one, even when the end stamp agrees', async () => {
+  // The last exchange can grow without a new turn: replies land, `ended` is
+  // rewritten. The blob is the poller's own test, so it is this one's too.
+  const doc = { ...TOPICS_DOC, turn_count: 1, source_ended: record.ended, source_blob: 'aaa' };
+  const g = (await mountRead(doc, 'me/gemini-c', {}, 'ccc')).gemini;
+  assert.equal(g.state, 'behind');
+  assert.equal(g.icon, 'ph-arrows-clockwise', 'no turn to count, so a mark says it moved');
+});
+
+test('a file from before per-turn summaries reads as topics only, not as turns skipped', async () => {
+  // Format 4 has the summary and the topics and no `turns` at all; 95 of the
+  // 150 files on background were that shape on 2026-10-22.
+  const { turns, ...doc } = { ...TOPICS_DOC, format: 4, turn_count: 1, source_ended: record.ended };
+  const g = (await mountRead(doc, 'me/gemini-d')).gemini;
+  assert.equal(g.state, 'topics');
+  assert.equal(g.rows.length, 0, 'no rows, since there is nothing per turn to list');
+  assert.equal(g.head.unit, 'turns read');
+});
+
+test('a turn step 1 skipped is a gap, named as skipped', async () => {
+  const doc = { ...TOPICS_DOC, turn_count: 2, source_ended: record.ended,
+                turns: [...TOPICS_DOC.turns, { turn: 1, summary: null, headline: null }] };
+  const g = (await mountRead(doc, 'me/gemini-e', { prompts: TWO })).gemini;
+  assert.equal(g.state, 'gaps');
+  assert.equal(g.label, '1/2');
+  assert.deepEqual(Array.from(g.rows, r => r.mark), ['done', 'skipped']);
+});
+
+test('no file is "not yet", and a record with no path makes no claim at all', async () => {
+  const g = (await mountRead(null, 'me/gemini-f')).gemini;
+  assert.equal(g.state, 'none');
+  // A #gz= record was never in the store, so there is nothing to look for.
+  window.__gzMount = { record: { ...record, short: 'gz1' } };
+  const el = window.document.createElement('div');
+  el.setAttribute('x-data', 'sessionBrief(window.__gzMount)');
+  window.document.body.append(el);
+  Alpine.initTree(el);
+  await tick(4);
+  assert.equal(Alpine.$data(el).gemini, null);
+});
+
+// ── The tools panel ─────────────────────────────────────────────────────────
+test('the tools panel lists every tool, its failures, and the subagents by task', async () => {
+  window.__toolsMount = { record: { ...record, short: 'tl1', calls_total: 4, failures: 1,
+    tools: { Bash: 3, Agent: 1 },
+    calls: [{ name: 'Bash', ok: true }, { name: 'Bash', ok: false }, { name: 'Bash', ok: true }, { name: 'Agent', ok: true }],
+    agents: [{ label: 'Fetch the docs', type: 'web-fetch', tools: { WebFetch: 4 } }] } };
+  const el = window.document.createElement('div');
+  el.setAttribute('x-data', 'sessionBrief(window.__toolsMount)');
+  window.document.body.append(el);
+  Alpine.initTree(el);
+  await tick(4);
+  const t = JSON.parse(JSON.stringify(Alpine.$data(el).toolTally));
+  assert.deepEqual(t.rows, [{ name: 'Bash', n: 3, failed: 1 }, { name: 'Agent', n: 1, failed: 0 }]);
+  assert.deepEqual(t.agents, [{ label: 'Fetch the docs', type: 'web-fetch', calls: 4 }]);
+  assert.equal(t.note, '');
+  // A call list shorter than the count cannot say which tool failed.
+  const d = Alpine.$data(el);
+  d.record = { ...d.record, calls: d.record.calls.slice(0, 2) };
+  assert.equal(d.toolTally.rows[0].failed, 0);
+  assert.match(d.toolTally.note, /Which tools failed is not in this record/);
 });
