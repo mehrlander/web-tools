@@ -726,6 +726,22 @@ test('the checkouts panel lists every branch with work on it, under its reposito
   } finally { d.record = was; }
 });
 
+test('the Now section draws two branch rows at most, the most recently moved', () => {
+  // A long session pushed 23 branches under 14 names and drew fourteen rows of
+  // chips. The rest are one line that opens the checkouts panel.
+  const d = lent();
+  const work = d.work.branches;
+  const b = (branch, repoShort, updated) => ({ branch, repoShort, short: branch, slug: 'me/' + repoShort, updated });
+  try {
+    d.work.branches = [b('claude/old', 'home', '2026-10-01T00:00:00Z'), b('claude/new', 'web-tools', '2026-10-09T00:00:00Z'),
+                       b('claude/new', 'home', '2026-10-03T00:00:00Z'), b('claude/mid', 'web-tools', '2026-10-05T00:00:00Z')];
+    assert.equal(d.workGroups.length, 3);
+    assert.deepEqual(Array.from(d.shownWorkGroups, g => g.branch), ['claude/new', 'claude/mid']);
+    assert.deepEqual(Array.from(d.shownWorkGroups[0].items, x => x.n), [1, 2],
+      'a chip still opens the deck at its own place in the whole order');
+  } finally { d.work.branches = work; }
+});
+
 test('a session that names no checkout draws no pill', () => {
   const d = lent();
   const was = d.record;
