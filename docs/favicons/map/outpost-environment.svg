@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="Cloud environment outpost">
+  <title>Cloud environment outpost</title>
+  <desc>A cloud with two lines cut out of it: the environment settings on claude.ai, which hold two lines. Drawn in one ink on the budget-drs app icon's box and rules, for the page to paint in its text colour: solid, no strokes, and every gap at least 2.5 units, which is about 1.4 CSS pixels at 16.</desc>
+  <mask id="lines" maskUnits="userSpaceOnUse" x="0" y="0" width="32" height="32">
+    <rect width="32" height="32" fill="#fff"/>
+    <rect x="10" y="14.5" width="13" height="2.5" fill="#000"/>
+    <rect x="10" y="19.5" width="9" height="2.5" fill="#000"/>
+  </mask>
+  <g fill="currentColor">
+    <g mask="url(#lines)"><circle cx="9" cy="20" r="6"/><circle cx="16.5" cy="14" r="8.5"/><circle cx="23.5" cy="19.5" r="6.5"/><rect x="9" y="18" width="14.5" height="8"/></g>
+  </g>
+</svg>

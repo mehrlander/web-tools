@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="Map Overview">
+  <title>Map Overview</title>
+  <desc>The Contents list in miniature: two group headings, each with its addresses indented under it. Drawn in one ink on the budget-drs app icon's box and rules, for the page to paint in its text colour: solid, no strokes, and every gap at least 2.5 units, which is about 1.4 CSS pixels at 16.</desc>
+  <g fill="currentColor">
+    <rect x="2.5" y="3.5" width="15.5" height="3"/>
+    <rect x="7" y="9" width="3" height="3"/>
+    <rect x="12.5" y="9" width="17" height="3"/>
+    <rect x="7" y="14.5" width="3" height="3"/>
+    <rect x="12.5" y="14.5" width="12.5" height="3"/>
+    <rect x="2.5" y="20" width="15.5" height="3"/>
+    <rect x="7" y="25.5" width="3" height="3"/>
+    <rect x="12.5" y="25.5" width="15" height="3"/>
+  </g>
+</svg>
