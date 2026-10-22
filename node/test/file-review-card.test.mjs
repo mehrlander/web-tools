@@ -62,6 +62,10 @@ const { window, problems } = makeWindow({
     <div id="hosted" x-data="fileReview({ repo: 'acme/w', ref: 'feat/x', base: 'mb-sha',
          baseName: 'main', path: 'lib/d.js', status: 'modified', patch: '@@ -1 +1 @@',
          read: true, open: true, hosted: true })"></div>
+    <div id="withHost" x-data="fileReview({ repo: 'acme/w', ref: 'feat/x', base: 'main',
+         path: 'docs/hosted-summary.md', status: 'modified', read: true, open: true, openOn: 'host',
+         hostPane: { label: 'Summary', icon: 'ph-info', html: () => '<p id=hostText>what the cleanup did</p>' },
+         onView: (id) => { window.__picked = id } })"></div>
   </body></html>`,
 });
 
@@ -314,6 +318,36 @@ test('the file control goes dark while the rendered comparison is showing', () =
   d.tab = 'mddiff';
   assert.deepEqual(JSON.parse(JSON.stringify(lit())), ['rendered'],
     'one control lit, and it is the one showing');
+});
+
+// A host's own reading: pages/walkthrough.html puts its summary of a file in
+// the row beside the file and the comparisons, so the card is the whole view.
+test("a host's reading leads the row and opens without fetching the file", () => {
+  const d = data('withHost');
+  assert.deepEqual(JSON.parse(JSON.stringify(d.viewModes.map(m => m.key))),
+    ['host', 'file', 'rendered', 'split', 'unified']);
+  assert.equal(d.tab, 'host');
+  assert.ok(window.document.getElementById('hostText'), 'the host wrote the pane');
+  assert.equal(fetched.some(f => f.endsWith('docs/hosted-summary.md')), false,
+    'a summary needs none of the bytes');
+  assert.deepEqual(JSON.parse(JSON.stringify(d.viewModes.filter(m => m.on).map(m => m.key))), ['host'],
+    'the file control is dark while the host reading shows');
+});
+
+test('picking a reading tells the host, so the next card opens on it', async () => {
+  const d = data('withHost');
+  d.pickView(d.viewModes.find(m => m.key === 'rendered'));
+  assert.equal(window.__picked, 'mddiff');
+  await tick(4);
+  assert.equal(fetched.some(f => f.endsWith('docs/hosted-summary.md')), true, 'the comparison is what fetches');
+  d.pickView(d.viewModes.find(m => m.key === 'host'));
+  assert.equal(window.__picked, 'host');
+  assert.equal(d._tabUsable('host'), true, 'a reset keeps it');
+});
+
+test('a card with no host reading offers none', () => {
+  assert.equal(data('docRead').viewModes.some(m => m.key === 'host'), false);
+  assert.equal(data('docRead')._tabUsable('host'), false);
 });
 
 test('the rendered comparison is a tab a reset will keep', () => {

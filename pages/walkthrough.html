@@ -15,7 +15,7 @@
   left it and why, and what is left for the owner.
 
     #src=owner/repo[@ref]:path     the surface, fetched with the stored token
-    &lens=documents|findings|questions   &item=<item id>   &tab=summary|compare
+    &lens=documents|findings|questions   &item=<item id>   &tab=<reading>
     &repo= &outcome=               the Documents filters
 
   The surface is the one the builder beside the data writes (for the first use,
@@ -25,10 +25,11 @@
 
   The Documents list has three levels in one run of rows: the whole estate,
   then each area, then the area's documents, so the totals are the first card
-  rather than a page of their own. A document's Comparison mounts the same
-  file card the file deck and the Review page use (alpineComponents/
-  file-review.js), whose readings are the file, the source diff and the
-  rendered comparison.
+  rather than a page of their own. A document's card IS the file card the file
+  deck and the Review page use (alpineComponents/file-review.js): its row of
+  readings is this page's summary (the card's hostPane), the file, the
+  rendered comparison and the source diff, and the reading picked last opens
+  the next card.
 
   Lists are html-style rule 12 (kits/linked-swiper.js): one root, re-mounted
   with the rows of the lens in view.
@@ -155,7 +156,7 @@ document.addEventListener('alpine:init', () => {
 
   Alpine.data('walkthrough', () => ({
     env: null, src: '', srcInput: '', loading: true, error: '',
-    lens: 'documents', sel: {}, filters: { repo: '', outcome: '' }, tab: 'summary',
+    lens: 'documents', sel: {}, filters: { repo: '', outcome: '' }, tab: 'host',
     _swiper: null, _deck: null, _index: new Map(),
 
     get token() { return window.TOKEN || window.ghAuth?.resolve() || ''; },
@@ -289,7 +290,7 @@ document.addEventListener('alpine:init', () => {
       if (this.lens !== 'documents') h.set('lens', this.lens);
       for (const k of ['repo', 'outcome']) if (this.lens === 'documents' && this.filters[k]) h.set(k, this.filters[k]);
       if (this.sel[this.lens]) h.set('item', this.sel[this.lens]);
-      if (this.tab !== 'summary') h.set('tab', this.tab);
+      if (this.tab !== 'host') h.set('tab', this.tab);
       history.replaceState(null, '', '#' + h.toString().replace(/%2F/g, '/').replace(/%3A/g, ':').replace(/%40/g, '@'));
     },
 
@@ -342,7 +343,7 @@ document.addEventListener('alpine:init', () => {
           noun: 'item', seam: 'walkthrough-list', listMax: 'max-h-[38vh]',
           name: id => this.nameOf(id),
           body: id => this.cardHtml(id),
-          drawn: el => this.showTab(el),
+          drawn: el => this.mountReviews(el),
           release: (i, el) => this.releaseReview(el),
           empty: '<div class="p-4 text-sm text-base-content/60">Nothing matches.</div>',
           onPick: (id, via) => {
@@ -377,7 +378,7 @@ document.addEventListener('alpine:init', () => {
         render: (i, el) => {
           el.innerHTML = `<h2 class="mb-1 text-2xl font-bold text-balance break-words">${esc(this.plain(rows[i].title))}</h2>`
             + `<div class="mb-3 font-mono text-xs text-base-content/60">${esc(rows[i].facet || '')}</div>` + this.cardHtml(rows[i].id, true);
-          this.showTab(el);
+          this.mountReviews(el);
         },
         release: (i, el) => this.releaseReview(el),
         onSlide: i => this._swiper?.pick(rows[i].id),
@@ -393,7 +394,7 @@ document.addEventListener('alpine:init', () => {
       const size = big ? 'text-xl leading-8' : 'text-sm';
       const card = it.type === 'estate' ? this.estateCard(size) : it.type === 'area' ? this.areaCard(it, size)
         : it.type === 'file' ? this.docCard(it, size) : this.noteCard(it, size);
-      return `<div class="space-y-4 ${size}">${card}</div>`;
+      return it.type === 'file' ? card : `<div class="space-y-4 ${size}">${card}</div>`;
     },
     // daisyUI sizes a table's cells, not the table, so the takeover sizes them too.
     table(size) { return size === 'text-sm' ? 'table table-sm text-sm' : 'table [&_td]:text-xl [&_td]:leading-8 [&_th]:text-base'; },
@@ -477,21 +478,16 @@ document.addEventListener('alpine:init', () => {
       out.push(this.inline('Questions', c.questions));
       return out.join('');
     },
-    // A document's card has two readings, kept across cards as the reader moves:
-    // what the cleanup did to it, and the document itself against its base.
+    // A document's card is the file card, written into by this page: its first
+    // reading is the summary below (the card's hostPane), then the file and the
+    // comparisons.
     docCard(it, size) {
-      const m = this.m(it);
-      const tabs = [['summary', 'Summary'], ['compare', it.change ? 'Comparison' : 'Document']];
-      const strip = `<div role="tablist" class="tabs tabs-box tabs-sm w-fit" data-tabs>`
-        + tabs.map(([t, l]) => `<button type="button" role="tab" class="tab" data-act="tab" data-tab="${t}">${l}</button>`).join('') + '</div>';
-      const head = this.status([this.repoOf(it), it.change ? it.change.status + (it.change.previous_path ? ' from ' + it.change.previous_path : '') : 'unchanged', m.outcome])
-        + (m.words_before || m.words_after ? this.figure(m.words_before, m.words_after, m.survey?.cut_pct ? parseFloat(m.survey.cut_pct) || null : null) : '');
-      return head + strip
-        + `<div class="space-y-4" data-pane="summary">${this.docSummary(it, size)}</div>`
-        + `<div class="hidden" data-pane="compare"><div data-review="${esc(it.id)}"></div></div>`;
+      return `<div data-review="${esc(it.id)}" data-size="${size}"></div>`;
     },
     docSummary(it, size) {
       const m = this.m(it), s = m.survey, out = [];
+      out.push(this.status([this.repoOf(it), it.change ? it.change.status + (it.change.previous_path ? ' from ' + it.change.previous_path : '') : 'unchanged', m.outcome]));
+      if (m.words_before || m.words_after) out.push(this.figure(m.words_before, m.words_after, s?.cut_pct ? parseFloat(s.cut_pct) || null : null));
       if (it.commentary) out.push(`<div>${label('Now')}<div class="${MD}">${md(it.commentary)}</div></div>`);
       if (m.cuts?.length) {
         out.push(`<div>${label('Removed')}<div class="overflow-x-auto"><table class="${this.table(size)}"><tbody>`
@@ -514,7 +510,7 @@ document.addEventListener('alpine:init', () => {
       const c = this.concerning([it.id]);
       out.push(this.inline('Questions', c.questions));
       out.push(this.inline('Findings', c.findings));
-      return out.join('');
+      return `<div class="space-y-4 py-2 ${size}">${out.join('')}</div>`;
     },
     noteCard(it, size) {
       const m = this.m(it), out = [];
@@ -530,28 +526,25 @@ document.addEventListener('alpine:init', () => {
         + `<i class="ph ph-file-text"></i><span class="break-all">${esc(`${this.repoOf(r)} ${r.title}`)}</span></button>`;
     },
 
-    // The comparison -------------------------------------------------------
-    // Show the reading the reader last chose in a card just drawn, and mount the
-    // file card the first time its comparison is shown.
-    showTab(root) {
-      for (const strip of root.querySelectorAll('[data-tabs]'))
-        for (const b of strip.querySelectorAll('[data-tab]')) b.classList.toggle('tab-active', b.dataset.tab === this.tab);
-      for (const pane of root.querySelectorAll('[data-pane]')) pane.classList.toggle('hidden', pane.dataset.pane !== this.tab);
-      if (this.tab === 'compare') for (const box of root.querySelectorAll('[data-review]')) this.mountReview(box);
-    },
+    // The file card ------------------------------------------------------------
+    mountReviews(root) { for (const box of root.querySelectorAll('[data-review]')) this.mountReview(box); },
     // The same card the file deck mounts, with the same handoff: options through
     // a keyed global, so a path or a patch never has to survive an attribute.
+    // It opens on the reading picked last, and tells this page when the reader
+    // picks another.
     mountReview(box) {
       if (box.dataset.mounted) return;
       const it = this.byId(box.dataset.review), s = it?.target?.source;
       const cmp = (this.ctx.compares || []).find(c => c.repository === s?.repository);
       if (!s || !cmp || !window.Alpine) return;
-      const key = box.dataset.mounted = '__walkthrough_' + (SEQ++);
+      const key = box.dataset.mounted = '__walkthrough_' + (SEQ++), size = box.dataset.size || 'text-sm';
       window[key] = {
         repo: s.repository, ref: cmp.head.ref, base: cmp.base.revision, baseName: 'main',
         path: s.path, prevPath: it.change?.previous_path || '', status: STATUS[it.change?.status] || it.change?.status || '',
         additions: this.m(it).lines_added ?? null, deletions: this.m(it).lines_removed ?? null,
-        open: true, read: true, fill: true, openOn: it.change ? 'mddiff' : '',
+        open: true, read: true, fill: true, openOn: this.tab,
+        hostPane: { label: 'Summary', icon: 'ph-list-bullets', html: () => this.docSummary(it, size) },
+        onView: id => { this.tab = id; this.address(); },
       };
       const el = document.createElement('div');
       el.setAttribute('x-data', `fileReview(window.${key})`);
@@ -567,11 +560,6 @@ document.addEventListener('alpine:init', () => {
       if (!b) return;
       if (b.dataset.act === 'goto') { if (this._deck && this.lens !== 'documents') this._deck.close?.(); this.goto(b.dataset.id); }
       if (b.dataset.act === 'filter') this.setFilter(b.dataset.key, b.dataset.value);
-      if (b.dataset.act === 'tab') {
-        this.tab = b.dataset.tab;
-        this.address();
-        this.showTab(document);
-      }
     },
 
     // Loading -----------------------------------------------------------------
@@ -602,7 +590,7 @@ document.addEventListener('alpine:init', () => {
         this.index();
         const lens = LENSES.some(l => l[0] === this.param('lens')) ? this.param('lens') : 'documents';
         for (const k of ['repo', 'outcome']) this.filters[k] = this.param(k) || '';
-        if (this.param('tab') === 'compare') this.tab = 'compare';
+        if (this.param('tab')) this.tab = this.param('tab');
         this.sel[lens] = this.param('item') || undefined;
         this.setLens(lens);
       } catch (e) {
