@@ -1,9 +1,9 @@
 unit,desk,phone,shot_at,recipe,focus,pattern
 web-tools:map/aims,web-tools-map-aims.desk.jpg,web-tools-map-aims.phone.jpg,2026-10-06,app/index.html?view=map&tab=aims,slots @59,fields
-web-tools:map/themes,web-tools-map-themes.desk.jpg,web-tools-map-themes.phone.jpg,2026-10-06,app/index.html?view=map&tab=themes,slots @59,card-grid
 web-tools:map/context,web-tools-map-context.desk.jpg,web-tools-map-context.phone.jpg,2026-10-06,app/index.html?view=map&tab=context,slots @59,figure
 web-tools:map/data,web-tools-map-data.desk.jpg,web-tools-map-data.phone.jpg,2026-10-06,app/index.html?view=map&tab=data,slots @59,list
 web-tools:map/dimensions,web-tools-map-dimensions.desk.jpg,web-tools-map-dimensions.phone.jpg,2026-10-06,app/index.html?view=map&tab=dimensions,slots @59,list
+web-tools:map/distribution,web-tools-map-distribution.desk.jpg,web-tools-map-distribution.phone.jpg,2026-10-06,app/index.html?view=map&tab=distribution,slots @59,list
 web-tools:map/docs,web-tools-map-docs.desk.jpg,web-tools-map-docs.phone.jpg,2026-10-06,app/index.html?view=map&tab=docs,slots @59,list
 web-tools:map/growth,web-tools-map-growth.desk.jpg,web-tools-map-growth.phone.jpg,2026-10-06,app/index.html?view=map&tab=growth,slots @59,figure
 web-tools:map/harness,web-tools-map-harness.desk.jpg,web-tools-map-harness.phone.jpg,2026-10-06,app/index.html?view=map&tab=harness,slots @69,list
@@ -12,11 +12,11 @@ web-tools:map/outposts,web-tools-map-outposts.desk.jpg,web-tools-map-outposts.ph
 web-tools:map/patterns,web-tools-map-patterns.desk.jpg,web-tools-map-patterns.phone.jpg,2026-10-06,app/index.html?view=map&tab=patterns,slots @59,card-grid
 web-tools:map/policy,web-tools-map-policy.desk.jpg,web-tools-map-policy.phone.jpg,2026-10-06,app/index.html?view=map&tab=policy,slots @59,card-grid
 web-tools:map/registries,web-tools-map-registries.desk.jpg,web-tools-map-registries.phone.jpg,2026-10-06,app/index.html?view=map&tab=registries,slots @59,card-grid
-web-tools:map/distribution,web-tools-map-distribution.desk.jpg,web-tools-map-distribution.phone.jpg,2026-10-06,app/index.html?view=map&tab=distribution,slots @59,list
 web-tools:map/showing,web-tools-map-showing.desk.jpg,web-tools-map-showing.phone.jpg,2026-10-06,app/index.html?view=map&tab=showing,slots @59,card-grid
 web-tools:map/skills,web-tools-map-skills.desk.jpg,web-tools-map-skills.phone.jpg,2026-10-06,app/index.html?view=map&tab=skills,slots @59,card-grid
 web-tools:map/surfacing,web-tools-map-surfacing.desk.jpg,web-tools-map-surfacing.phone.jpg,2026-10-06,app/index.html?view=map&tab=surfacing,slots @59,card-grid
 web-tools:map/tests,web-tools-map-tests.desk.jpg,web-tools-map-tests.phone.jpg,2026-10-06,app/index.html?view=map&tab=tests,slots @59,list
+web-tools:map/themes,web-tools-map-themes.desk.jpg,web-tools-map-themes.phone.jpg,2026-10-22,app/index.html?view=map&tab=themes,slots @59,linked-swiper
 web-tools:map/views,web-tools-map-views.desk.jpg,web-tools-map-views.phone.jpg,2026-10-06,app/index.html?view=map&tab=views · node/render/scenarios/map-views.mjs,slots @59,list
 web-tools:pages/approve.html,web-tools-pages-approve-html.desk.jpg,web-tools-pages-approve-html.phone.jpg,2026-10-06,pages/approve.html,,
 web-tools:pages/branch.html,web-tools-pages-branch-html.desk.jpg,web-tools-pages-branch-html.phone.jpg,2026-10-06,pages/branch.html?#gh=mehrlander/web-tools@claude/map-view-ui-patterns-jhdczz,slots @37,header-swiper
