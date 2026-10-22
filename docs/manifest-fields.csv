@@ -36,7 +36,7 @@ programs[].name,string,app,,yes,"The program's key: what /portable:programs take
 programs[].label,string,app,,no,Display name. Defaults to the name.
 programs[].icon,string,app,,yes,A `ph-` glyph drawn wherever the program is named.
 programs[].path,string,app,,yes,"The program's folder, repo-root-relative. Its README.md is the charter, stating the program's purpose, standard, measures and reviewers; the program's own material accumulates beside it."
-programs[].governs,array,session-hook,,yes,"Repo-root-relative paths the program governs. A file belongs to at most one program; the program-files hook names the program when a session edits one."
+programs[].governs,array,session-hook,,yes,"Repo-root-relative paths the program governs; an entry ending in / covers everything under it. A file belongs to at most one program; the program-files hook names the program when a session edits one."
 programs[].measures,array,app,,no,"Data files that measure the standard, as repo-root-relative paths or qualified 'owner/repo[@ref]:path' locators."
 programs[].reviewers,array,app,,no,"Agent ids from docs/agents.csv that a proposed change to the program's files goes to before the owner sees it."
 programs[].views,array,app,,no,"App addresses that display the program, as query strings such as '?view=map&tab=surfacing'."

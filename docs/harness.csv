@@ -330,7 +330,7 @@ skills/hooks/invoke-sessions.sh,tells a session to invoke /portable:sessions whe
 skills/hooks/machine-paths.py,the machine-path gate a repo's .githooks/commit-msg calls: refuses a commit whose added lines name a path into one machine's user folder; --tree scans every tracked file for the suite,skills/hooks,139,imported,.githooks/commit-msg,no,no,yes
 skills/hooks/mcp-fail-hint.sh,turns an MCP -32003 approval wall into the sandbox-traps diagnosis at the moment it fires,skills/hooks,41,hook:PostToolUseFailure,,no,yes,no
 skills/hooks/pr-subscribe-hint.sh,reminds the session to subscribe a just-created PR and delivers the surfacing course,skills/hooks,88,hook:PostToolUse,,no,yes,no
-skills/hooks/program-files.sh,,skills/hooks,44,hook:PostToolUse,,yes,no,yes
+skills/hooks/program-files.sh,,skills/hooks,48,hook:PostToolUse,,yes,no,yes
 skills/hooks/reading-column-guard.sh,refuses an Edit or Write that narrows page text to a reading column,skills/hooks,105,hook:PreToolUse,,no,no,yes
 skills/hooks/reading-column.py,the guard's classifier: decides whether a Tailwind class narrows text,skills/hooks,222,npm:reading-column,.githooks/pre-commit,no,yes,yes
 skills/hooks/refresh-plugin.sh,"moves the portable plugin's pin to the tip of web-tools main at session start, and uninstalls the retired daisy-alpine and google-style-clarity plugins where a snapshot still has them",skills/hooks,70,hook:SessionStart,,no,yes,yes

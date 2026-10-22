@@ -48,15 +48,18 @@ test('every program names itself, an icon and a folder whose README.md is its ch
 });
 
 test('every governed path exists, and no file answers to two programs', () => {
-  const gaps = [], owner = new Map();
+  // An entry ending in / governs everything under it, so two entries collide
+  // when one equals the other or sits inside it.
+  const gaps = [], seen = [];
+  const inside = (a, b) => a === b || (b.endsWith('/') && a.startsWith(b));
   for (const { repo, root, e } of declarations()) {
     const governs = Array.isArray(e?.governs) ? e.governs : [];
     if (!governs.length) gaps.push(`${repo}: ${e?.name} governs nothing`);
     for (const g of governs) {
       if (typeof g !== 'string' || !existsSync(path.join(root, g))) { gaps.push(`${repo}: ${e?.name} governs missing ${g}`); continue; }
-      const key = repo + ':' + g;
-      if (owner.has(key)) gaps.push(`${key} is governed by both ${owner.get(key)} and ${e.name}`);
-      else owner.set(key, e.name);
+      const clash = seen.find(s => s.repo === repo && (inside(g, s.g) || inside(s.g, g)));
+      if (clash) gaps.push(`${repo}:${g} is governed by both ${clash.name} (${clash.g}) and ${e.name}`);
+      seen.push({ repo, g, name: e.name });
     }
   }
   assert.deepEqual(gaps, []);

@@ -82,13 +82,19 @@ def report(repo, prog, since):
     charter_path = f"{prog['path']}/README.md"
     charter = f"{me}:{charter_path}"
     subjects = {charter} | {f"{me}:{g}" for g in governs}
+
+    def about_program(locator):
+        # A locator names the program when it is the charter or a governed
+        # path, or sits under a governed folder (an entry ending in /).
+        loc = (locator or "").split("#")[0]
+        return loc in subjects or any(s.endswith("/") and loc.startswith(s) for s in subjects)
     print(f"# {prog.get('label') or prog['name']} program\n")
-    print(f"Charter: `{charter_path}` · {len(governs)} governed files\n")
+    print(f"Charter: `{charter_path}` · {len(governs)} governed paths\n")
 
     try:
         store_repo, store = note.find_store(None)
         notes = sorted((n for n in note.read_notes(store_repo, store)
-                        if n.get("about", "").split("#")[0] in subjects), key=lambda n: n["at"])
+                        if about_program(n.get("about"))), key=lambda n: n["at"])
     except SystemExit as e:
         store_repo, notes = None, None
         print(f"Notes: unavailable ({e})\n")
@@ -145,7 +151,7 @@ def report(repo, prog, since):
         items = json.loads(git(store_repo, "show", "origin/main:lists/snag.json").stdout)["items"] if store_repo else []
     except (ValueError, KeyError, TypeError):
         items = []
-    hits = [i for i in items if subjects & set(i.get("targets") or [])]
+    hits = [i for i in items if any(about_program(t) for t in i.get("targets") or [])]
     print("\n".join(f"- `{i['id']}` · {len(i.get('seen') or [])} dates · {i['text']}" for i in hits) if hits
           else ("None." if snag_file else "Unavailable: no snag list beside this checkout."))
 
@@ -167,7 +173,7 @@ def main(argv):
     progs = declared(repo)
     if a.cmd == "list":
         for p in progs:
-            print(f"{p['name']}\t{p.get('label', '')}\t{p['path']}\t{len(p.get('governs') or [])} files")
+            print(f"{p['name']}\t{p.get('label', '')}\t{p['path']}\t{len(p.get('governs') or [])} paths")
         return
     prog = next((p for p in progs if p.get("name") == a.name), None)
     if not prog:
