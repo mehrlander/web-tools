@@ -733,6 +733,24 @@ test('the checkouts panel lists every branch with work on it, under its reposito
   } finally { d.record = was; }
 });
 
+test('a Markdown view born with an empty html is read, once', async () => {
+  // Views are created with html '', and a fill that waited for html to be
+  // undefined read none of them: every document in the strip rendered blank.
+  const d = lent();
+  const was = window.marked;
+  window.marked = { parse: (t) => '<p>' + t.length + '</p>' };
+  try {
+    const views = [{ kind: 'md', slug: STORE, branch: 'main', path: PATH, html: '' },
+                   { kind: 'html', slug: STORE, branch: 'main', path: 'x.html', html: '' }];
+    const before = gets().length;
+    await d.fillMarkdown(views);
+    assert.match(views[0].html, /^<p>\d+<\/p>$/, 'the document is read and rendered');
+    assert.equal(views[1].html, '', 'a page is left to its frame');
+    await d.fillMarkdown(views);
+    assert.equal(gets().length, before + 1, 'and a second ask reads nothing again');
+  } finally { window.marked = was; }
+});
+
 test('a session that names no checkout draws no pill', () => {
   const d = lent();
   const was = d.record;

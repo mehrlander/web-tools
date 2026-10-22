@@ -300,7 +300,8 @@ test('a file over the contents cap comes back through its blob, raw', async () =
   }, () => gh.get('sessions/big.json'));
   assert.equal(file.text, BIG);
   assert.equal(file.sha, 'b1g');
-  assert.deepEqual(asked[1], ['git/blobs/b1g', 'application/vnd.github.raw+json'], 'the raw media type, by sha');
+  assert.deepEqual(asked[1], ['git/blobs/b1g?media=raw', 'application/vnd.github.raw+json'],
+    'the raw media type, by sha, at a URL of its own so the JSON readers of this blob never share its cache entry');
   assert.equal(asked.length, 2);
 });
 
