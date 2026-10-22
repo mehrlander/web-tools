@@ -87,6 +87,7 @@ test('a page committed since the owner\'s last message needs a render link', () 
   assert.match(d.reason, /site\/new\.html/);
   assert.doesNotMatch(d.reason, /old\.html/, 'a commit before the message is not this turn\'s');
   assert.equal(run({ last_assistant_message: reply.replace('Changed', '🥏 [new](x) Changed') }), null);
+  assert.equal(run({ last_assistant_message: reply.replace('Changed', '👁️‍🗨️ [new](x) Changed') }), null, 'a look link is a render link');
   assert.equal(run({ last_assistant_message: 'Changed it.\nNo render link: the page needs a token.\n\n🟢 **Ready to continue:** x' }), null);
 });
 

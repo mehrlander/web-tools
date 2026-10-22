@@ -24,7 +24,7 @@ THE TWO CHECKS.
   Render link: a commit made since the owner's last message, on the current
   branch of the working directory's checkout or of a checkout one level below
   it, added or changed an .html file, and the reply has none of 🥏, ⭐, 📦,
-  "No render link".
+  👁️‍🗨️ (a look link, which SURFACING.md marks in place of 🥏), "No render link".
 
 WHAT PASSES. A reply this hook already sent back in the same turn
 (stop_hook_active), and any run where something fails.
@@ -38,7 +38,7 @@ from pathlib import Path
 
 RECOMMENDED = re.compile(r'\bRecommended:', re.I)
 CALLS = ('⚖', '🆚')
-RENDER = ('🥏', '⭐', '📦', 'No render link')
+RENDER = ('🥏', '⭐', '📦', '👁', 'No render link')
 
 
 def turn_start(transcript):
