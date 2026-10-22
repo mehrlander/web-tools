@@ -153,10 +153,16 @@ test('a selection naming a repo the cache no longer carries falls back to the hu
 
 // ── Skills ───────────────────────────────────────────────────────────────────
 
-test('Docs source panel points at Context in the app', () => {
-  const panel = el.querySelector('[data-map-sources-panel]');
-  const link = [...panel.querySelectorAll('button')].find(b => b.textContent.trim() === 'Session context ↗');
-  assert.equal(link?.getAttribute('@click'), "setTab('context')");
+test('Docs About points at Context in the app', () => {
+  const old = data.mapTab, opened = [];
+  const setTab = data.setTab;
+  data.setTab = (k) => opened.push(k);
+  try {
+    data.mapTab = 'docs';
+    const link = data.about.links.find(l => l.label === 'Session context');
+    link.run();
+    assert.deepEqual(opened, ['context']);
+  } finally { data.setTab = setTab; data.mapTab = old; }
   assert.equal(el.querySelector('a[href*="session-context.html"]'), null, 'the retired page is no longer linked');
 });
 

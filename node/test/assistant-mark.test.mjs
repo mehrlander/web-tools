@@ -323,3 +323,26 @@ test('only assistant-mark.js lists the assistant branch prefixes', async () => {
   }
   assert.deepEqual(offenders, [], 'these list assistant prefixes themselves; use window.AssistantMark.shortBranch or PREFIX_RE');
 });
+
+// docs/surfacing-course.md owns the attribution table, and two files repeat it
+// for the assistants that read them first: AGENTS.md in full, GEMINI.md as its
+// own row's prefix and trailer. Nothing held the copies until 2026-10-22, by
+// which time AGENTS.md knew that `antigravity/` reads as Gemini and the owner
+// did not. Each row's prefix must also be one this kit classifies as that
+// assistant, so the table cannot promise a classification the code does not make.
+test('the attribution table matches its copies and the classifier', () => {
+  const rows = (file) => readFileSync(path.join(repoRoot, file), 'utf8')
+    .split('\n').filter(l => /^\| \*\*\w+\*\* \|/.test(l)).map(l => l.trim());
+  const owner = rows('docs/surfacing-course.md');
+  assert.ok(owner.length >= 4, 'the attribution table in docs/surfacing-course.md has rows');
+  assert.deepEqual(rows('AGENTS.md'), owner, 'AGENTS.md repeats the table docs/surfacing-course.md owns; change it there first');
+  const gemini = owner.find(r => r.startsWith('| **Gemini**')).split('|').map(c => c.trim());
+  const geminiMd = readFileSync(path.join(repoRoot, 'GEMINI.md'), 'utf8');
+  for (const cell of [gemini[2], gemini[3]]) assert.ok(geminiMd.includes(cell.replace(/`/g, '')), `GEMINI.md lost ${cell}`);
+  const { assistantMark } = load();
+  for (const r of owner) {
+    const [, name, prefix] = r.split('|').map(c => c.trim());
+    const branch = prefix.replace(/`/g, '').replace('<slug>', 'x');
+    assert.equal(assistantMark.classify({ name: branch }), name.replace(/\*/g, '').toLowerCase(), `${branch} does not classify as ${name}`);
+  }
+});

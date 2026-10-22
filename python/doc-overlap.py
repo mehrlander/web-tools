@@ -138,7 +138,7 @@ def main():
 
     scan = module(ROOT / 'python' / 'duplicated-claims.py', 'shingle_scan')
     segment = module(ROOT / 'python' / 'annotate' / 'segment.py', 'segment')
-    records = scan.record_paths(ROOT)
+    records = scan.record_paths(ROOT) | scan.vendored_paths(ROOT)
     tracked = [p for p in subprocess.check_output(['git', '-C', str(ROOT), 'ls-files', '-z'], text=True).split('\0') if p]
     paths = sorted(p for p in tracked if p.endswith('.md') and p not in records
                    and p not in scan.EXCLUDE_PATHS and not p.startswith(scan.EXCLUDE_PREFIXES))

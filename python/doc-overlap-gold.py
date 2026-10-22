@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Gold set for the Related lens: hand-labelled passage pairs that score a cutoff.
+"""Gold set for the Themes tab's similar wording: hand-labelled passage pairs that score a cutoff.
 
 python/doc-overlap.py nominates passage pairs by cosine. What it cannot say is
 whether a nominated pair restates, merely shares a subject, or contradicts. This

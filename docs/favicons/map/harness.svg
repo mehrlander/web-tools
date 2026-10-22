@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="Map Harness">
+  <title>Map Harness</title>
+  <desc>A spark, the model, held between square brackets: the scaffolding around it. Drawn in one ink on the budget-drs app icon's box and rules, for the page to paint in its text colour: solid, no strokes, and every gap at least 2.5 units, which is about 1.4 CSS pixels at 16.</desc>
+  <g fill="currentColor">
+    <path d="M2.5 3.5 H9.5 V7 H6 V25.5 H9.5 V29 H2.5 Z"/>
+    <path d="M29.5 3.5 H22.5 V7 H26 V25.5 H22.5 V29 H29.5 Z"/>
+    <path d="M16 8.75 L17.63 14.62 L23.5 16.25 L17.63 17.88 L16 23.75 L14.37 17.88 L8.5 16.25 L14.37 14.62 Z"/>
+  </g>
+</svg>

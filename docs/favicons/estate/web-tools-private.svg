@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="web-tools-private">
+  <title>web-tools-private</title>
+  <desc>The hub's hexagon with a keyhole for its bore: the private sister that holds what the public page must not. Drawn in one ink on the budget-drs app icon's box and rules, for the page to paint in its text colour: solid, no strokes, and every gap at least 2.5 units, which is about 1.4 CSS pixels at 16.</desc>
+  <g fill="currentColor">
+    <path fill-rule="evenodd" d="M9 4.12 L23 4.12 L30 16.25 L23 28.37 L9 28.37 L2 16.25 Z M14.6 16.92 A3.6 3.6 0 1 1 17.4 16.92 L18.6 23 L13.4 23 Z"/>
+  </g>
+</svg>

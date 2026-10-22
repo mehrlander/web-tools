@@ -16,7 +16,7 @@ Every assistant identifies its work by branch prefix and commit trailer, so the 
 | Assistant | Branch Prefix | Commit Signature / Trailer | Notes |
 | :--- | :--- | :--- | :--- |
 | **Claude** | `claude/<slug>` | `Claude-Session: <url>` | Automated by Claude Code harness |
-| **Codex** | `codex/<slug>` | `Co-Authored-By: Codex <codex@openai.com>` | Include trailer on all commits |
+| **Codex** | `codex/<slug>` | `Co-Authored-By: Codex <codex@openai.com>` | Include trailer on all commits; commits before 2026-09-20 carry the prefix alone |
 | **Gemini** | `gemini/<slug>` | `Co-Authored-By: Gemini <gemini@google.com>` | Include trailer on all commits; `antigravity/` reads as Gemini |
 | **Grok** | `grok/<slug>` | `Signed: Chief of Staff (Grok)` | Include signature on all commits |
 

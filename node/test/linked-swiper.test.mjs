@@ -39,7 +39,7 @@ function mountList(window, ids, o = {}) {
   root.innerHTML = '<div data-t="list"></div><div data-t="card"></div>';
   doc.body.append(root);
   const list = root.querySelector('[data-t="list"]');
-  list.innerHTML = ids.map(id => `<div role="option" tabindex="0" data-row="${id}" aria-selected="false">${id}</div>`).join('');
+  list.innerHTML = ids.map(id => `<div role="option"${o.focus === false ? '' : ' tabindex="0"'} data-row="${id}" aria-selected="false">${id}</div>`).join('');
   const picks = [];
   let sel = o.sel ?? ids[0];
   const handle = window.linkedSwiper.attach({
@@ -83,6 +83,45 @@ test('Enter or Space on a focused row picks it', async () => {
   row.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
   row.dispatchEvent(new w.KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true }));
   assert.deepEqual(s.picks, [['b', 'list'], ['b', 'list']]);
+});
+
+// Up and Down in the list do what a swipe does on the card, in every view
+// built on the kit (owner, 2026-10-22: "up and down does the same thing as
+// swiping"), and focus walks with the selection.
+// Without swipe-deck the card redraws on each pick, which jsdom can follow;
+// with it, the stubbed geometry snaps every strip back to its first slide.
+test('Up and Down in the list step the selection, the card following and focus moving with it', async () => {
+  const w = page({ swipe: false });
+  const s = mountList(w, ['a', 'b', 'c']);
+  const row = id => s.list.querySelector(`[data-row="${id}"]`);
+  const press = (el, key) => el.dispatchEvent(new w.KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+  await tick();
+  row('a').focus();
+  press(row('a'), 'ArrowDown');
+  await tick();
+  assert.deepEqual(s.picks.at(-1), ['b', 'list']);
+  assert.deepEqual(selected(s.list), ['b']);
+  assert.equal(headText(s.card), 'Row b2/3');
+  assert.match(s.card.textContent, /body b/, 'the card follows');
+  assert.equal(w.document.activeElement, row('b'), 'focus follows the row');
+  assert.deepEqual(Array.from(s.list.querySelectorAll('[data-row]'), r => r.tabIndex), [-1, 0, -1], 'one tab stop, on the selected row');
+  press(row('b'), 'ArrowUp');
+  await tick();
+  assert.deepEqual(selected(s.list), ['a']);
+  press(row('a'), 'ArrowUp');
+  assert.equal(s.picks.length, 2, 'the first row stays put at the top');
+});
+
+test('where no row takes focus the list does, so the arrows still reach it', async () => {
+  const w = page({ swipe: false });
+  const s = mountList(w, ['a', 'b', 'c'], { focus: false });
+  await tick();
+  assert.equal(s.list.tabIndex, 0);
+  s.list.querySelector('[data-row="b"]').dispatchEvent(new w.MouseEvent('click', { bubbles: true }));
+  assert.equal(w.document.activeElement, s.list, 'a tap leaves focus where the arrows are heard');
+  s.list.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
+  await tick();
+  assert.deepEqual(selected(s.list), ['c']);
 });
 
 test('a swipe moves the selection and reports itself as a swipe', async () => {
