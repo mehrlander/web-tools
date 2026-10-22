@@ -18,7 +18,7 @@ Arguments after the CSV are pairs to report on, written "a|b", and crosses to
 search for empty cells, written "x:c1,c2"; with no cross named, every pair of
 characteristics with two to four values is crossed.
 
-python3 separation-checks.py registry-instances.csv "writers.csv|direct-to-main.csv" x:stands_for,after_written
+python3 separation-checks.py coded.csv "writers.csv|direct-to-main.csv" x:stands_for,after_written
 """
 import csv, itertools, sys
 from collections import defaultdict

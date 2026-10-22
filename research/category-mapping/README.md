@@ -8,10 +8,10 @@ value, and only then name categories from where the instances cluster.
 
 Gathered 2026-10-22. The inquiry looks outward, at published skills and at
 established classification methods, and then tests what it found on one case
-inside the estate, the word "registry". The proposed skill was put to the owner
-in chat in session
+inside the estate, the word "registry". The skill it led to is
+[`skills/cat-map/`](../../skills/cat-map/SKILL.md), built in session
 [5ff9f92b](https://mehrlander.github.io/web-tools/pages/session.html#id=5ff9f92b);
-this account holds the research it rests on, not the proposal.
+this account holds the research behind it.
 
 ## Where the question came from
 
@@ -36,8 +36,15 @@ that step repeatable, and the research below asks what already exists for it.
 
 ## What the estate already has
 
-Seven pieces of existing work bear on the question. None does the whole job.
+Eight pieces of existing work bear on the question. One is a finished
+instance of the move; none states it as a method.
 
+- **[`docs/registries.md`](../../docs/registries.md#two-questions-not-a-kind), "Two questions, not a kind".**
+  The move, made once and kept. From 2026-08-09 to 2026-08-18 one `kind` column,
+  with the values census, catalog and crosswalk, answered two questions at once.
+  It was replaced by `membership` (computed or curated), `inherits` and `span`,
+  each a characteristic with its own values, and the section says not to
+  reintroduce a kind.
 - **[`docs/registries.md`](../../docs/registries.md#registries-and-streams), section "Registries and streams".**
   Two collection shapes, each defined by two characteristics: a registry entry
   stands for a thing and is edited when the thing changes; a stream entry stands
@@ -96,6 +103,36 @@ Seven pieces of existing work bear on the question. None does the whole job.
   to an "event log"; the Kimball reading maps a registry to a type 1 dimension
   table and a tracker task to an "accumulating snapshot". These are the
   standard terms a naming step would reach for first.
+
+### Earlier discussions
+
+The question has come up several times, each time for one case.
+
+- Session [2c5c7b71](https://mehrlander.github.io/web-tools/pages/session.html#id=2c5c7b71),
+  2026-08-16 to 18: which dimensions apply to documentation files, how to
+  declare that a set of values is mutually exclusive and exhaustive, and "We
+  want to be explicit about our distinctions." The retirement of the `kind`
+  column on 2026-08-18 appears to come from it.
+- Session [b11d0321](https://mehrlander.github.io/web-tools/pages/session.html#id=b11d0321),
+  2026-09-05: categorizing the estate's tests "from established frameworks",
+  which produced `data/checks-reading/`.
+- Session [314550f5](https://mehrlander.github.io/web-tools/pages/session.html#id=314550f5),
+  2026-09-09: grouping the skills, "Could have other characteristics if they
+  can name a clear dimension."
+- Session [c5014872](https://mehrlander.github.io/web-tools/pages/session.html#id=c5014872),
+  2026-10-04 to 05: the ui-units codebook above, and the request that its
+  categories read as ways of sorting one set rather than separate sets.
+
+Chats, which open only when signed in to the account:
+
+- [Examples and the problem of categorization](https://claude.ai/chat/14abaf51-e629-4b3e-853b-968319797bb0),
+  2026-04-04: a single example underdetermines a category.
+- [Hierarchical structure in Obsidian](https://claude.ai/chat/2fead8d0-5d5f-43f1-a402-fa37cdc8aced),
+  2026-03-17: hierarchy found after the fact rather than decided in advance,
+  "let connection density reveal clusters, then name them".
+- [Managing multi-leader budget allocations](https://claude.ai/chat/3422e4ad-2553-4916-a509-e9a967196c11),
+  2026-04-07: program indexes that ran together organizational home and
+  funding source.
 
 ## Agent skills that do part of this
 
@@ -257,10 +294,11 @@ procedure.
 
 ### What the checks found
 
-[`separation-checks.py`](separation-checks.py) runs the checks over the table:
+[`separation-checks.py`](../../skills/cat-map/separation-checks.py), bundled with the
+skill, runs the checks over the table:
 
 ```bash
-python3 research/category-mapping/separation-checks.py \
+python3 skills/cat-map/separation-checks.py \
   research/category-mapping/registry-instances.csv \
   "writers.csv|direct-to-main.csv" "task file|notes.jsonl" x:stands_for,after_written
 ```
