@@ -56,7 +56,7 @@ test('a look key arriving later loads them then, once', async () => {
   const { loaded, go } = run('#tab=x');
   await go('#tab=y');
   assert.deepEqual(loaded, []);
-  await go('#walk=tour');
+  await go('#walkthrough=tour');
   assert.deepEqual(loaded, ['kits/land.js', 'kits/look.js']);
   await go('#show=other');
   assert.deepEqual(loaded, ['kits/land.js', 'kits/look.js'], 'the kit takes later changes itself');

@@ -79,7 +79,7 @@ test('a page that already loads the kit is left alone, and one that loads Land g
   assert.equal(await withLook(inlined, 'show=x', 'main'), inlined);
   assert.deepEqual(fetched, []);
   ({ withLook, fetched } = build());
-  await withLook(PAGE.replace('window.page = 1;', 'window.Land = {};'), 'walk=w', 'main');
+  await withLook(PAGE.replace('window.page = 1;', 'window.Land = {};'), 'walkthrough=w', 'main');
   assert.deepEqual(fetched, ['mehrlander/web-tools@main:lib/kits/look.js']);
 });
 

@@ -4,8 +4,8 @@
 // Driven through the file system, the way a session runs it (the same shape as
 // showing-pick.test.mjs). Three things are pinned. What the source read counts
 // as an anchor, since a bound name and a literal one are different promises.
-// That every walk and opener a tracked page declares resolves, which is the
-// gate: a renamed control otherwise leaves a walk that only fails on the
+// That every walkthrough and opener a tracked page declares resolves, which is the
+// gate: a renamed control otherwise leaves a walkthrough that only fails on the
 // reader's screen. And that the two encoders agree, since a session encodes
 // steps here and the kit decodes them in the page.
 
@@ -38,7 +38,7 @@ const FIXTURE = page('fixture.html', `<!doctype html><html><head>
   <li x-bind:data-at="\`item-\${i}\`"></li>
   <p :data-at="'whole'"></p>
 </section>
-<script type="application/json" id="look-walks">
+<script type="application/json" id="look-walkthroughs">
 { "good": [{ "at": "tab-a", "tap": true }, { "at": "row-x" }, { "at": "plain" }, { "at": "text:Anything" }] }
 </script>
 </body></html>`);
@@ -50,27 +50,27 @@ test('a literal, a bound prefix, a whole bound literal and an id are each counte
   assert.ok(info.ids.includes('plain'));
   assert.deepEqual(info.opens, ['tab-a']);
   assert.equal(info.takes, true);
-  assert.deepEqual(Object.keys(info.walks), ['good']);
+  assert.deepEqual(Object.keys(info.walkthroughs), ['good']);
 });
 
-test('check passes a page whose walks and openers all resolve', () => {
+test('check passes a page whose walkthroughs and openers all resolve', () => {
   const r = py('check', FIXTURE);
   assert.equal(r.status, 0, r.stdout + r.stderr);
 });
 
-test('check names a walk step and an opener that resolve to nothing, and fails', () => {
+test('check names a walkthrough step and an opener that resolve to nothing, and fails', () => {
   const bad = page('bad.html', `<button data-at="real">x</button>
 <div data-at-open="gone" hidden></div>
-<script type="application/json" id="look-walks">{ "w": [{ "at": "real" }, { "at": "renamed" }, {}] }</script>`);
+<script type="application/json" id="look-walkthroughs">{ "w": [{ "at": "real" }, { "at": "renamed" }, {}] }</script>`);
   const r = py('check', bad);
   assert.equal(r.status, 1);
-  assert.match(r.stdout, /walk 'w' step 2: 'renamed' is not an anchor/);
-  assert.match(r.stdout, /walk 'w' step 3 has neither an anchor nor a message/);
+  assert.match(r.stdout, /walkthrough 'w' step 2: 'renamed' is not an anchor/);
+  assert.match(r.stdout, /walkthrough 'w' step 3 has neither an anchor nor a message/);
   assert.match(r.stdout, /data-at-open='gone' names no anchor/);
 });
 
-test('a walk block that is not JSON is a failure, not an empty set of walks', () => {
-  const r = py('check', page('broken.html', '<script type="application/json" id="look-walks">{ nope }</script>'));
+test('a walkthrough block that is not JSON is a failure, not an empty set of walkthroughs', () => {
+  const r = py('check', page('broken.html', '<script type="application/json" id="look-walkthroughs">{ nope }</script>'));
   assert.equal(r.status, 1);
   assert.match(r.stdout, /not valid JSON/);
 });
@@ -85,7 +85,7 @@ test('make prints the plainest fragment and exits 1 on an anchor the page lacks'
   r = py('make', FIXTURE, '--show', 'row-42');
   assert.equal(r.status, 0);
   assert.match(r.stderr, /matches only a bound prefix/, 'a prefix match passes, and says how weakly');
-  r = py('make', FIXTURE, '--walk', 'absent');
+  r = py('make', FIXTURE, '--walkthrough', 'absent');
   assert.equal(r.status, 1);
 });
 
@@ -133,12 +133,12 @@ test('steps encoded here decode to the same steps in the kit', () => {
   assert.deepEqual(read, steps.map(s => ({ at: s.at, say: s.say, tap: !!s.tap })));
 });
 
-test('every tracked page that declares a walk or an opener passes the check', () => {
-  // The gate. A walk is a set of names, and a renamed control leaves one that
+test('every tracked page that declares a walkthrough or an opener passes the check', () => {
+  // The gate. A walkthrough is a set of names, and a renamed control leaves one that
   // fails only on the reader's screen; this fails here instead.
   const files = execFileSync('git', ['ls-files', '*.html'], { cwd: repoRoot, encoding: 'utf8' })
     .split('\n').filter(Boolean)
-    .filter(f => /look-walks|data-at-open/.test(readFileSync(path.join(repoRoot, f), 'utf8')));
+    .filter(f => /look-walkthroughs|data-at-open/.test(readFileSync(path.join(repoRoot, f), 'utf8')));
   assert.ok(files.includes('lib/kits/demos/look.html'), 'the demo declares both, so the gate is never empty');
   const r = py('check', ...files);
   assert.equal(r.status, 0, r.stdout);
