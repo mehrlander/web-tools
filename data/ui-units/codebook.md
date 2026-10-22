@@ -51,16 +51,16 @@ The other fields record what draws the unit and how sure the reader is:
 | `confidence` | `high` (code and pixels), `medium` (code only), `low` (inferred) | |
 | `at` | the commit the unit was read at, where its `file:line` citations resolve | `git rev-parse --short=12 HEAD` in the unit's repo |
 
-A unit can hold several frame, reach and answer codes, and exactly one body
-and one occasion code. Code the unit as it first paints. A tab that opens on a chart, with a list one switch
-away, is coded on the chart.
+A unit can hold several frame, reach and answer codes, and exactly one body and
+one occasion code. Code the unit as it first paints. A tab that opens on a
+chart, with a list one switch away, is coded on the chart.
 
 ## Codes
 
-The codes are rows of [`codes.csv`](codes.csv), one per code, grouped by
-`axis`, which names the dimension: `frame`, `body`, `reach`, `binding`,
-`phone`, `occasion` and `answer`, plus the five `ring` rows no reader codes. Each row gives the
-code's arrangement (`gloss`), the `test` that decides it, what it is
+The codes are rows of [`codes.csv`](codes.csv), one per code, grouped by `axis`,
+which names the dimension: `frame`, `body`, `reach`, `binding`, `phone`,
+`occasion` and `answer`, plus the five `ring` rows no reader codes. Each row
+gives the code's arrangement (`gloss`), the `test` that decides it, what it is
 `not_to_confuse` with, and the `kits` that draw it where any do. A reader codes
 from that file, and the Map view renders the same rows, so a code changed there
 changes in both.
