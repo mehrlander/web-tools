@@ -18,7 +18,7 @@ The file is JSON: `format: "catmap/1"`, `title`, `question`, `made`, and `runs`,
 - `by`, `method`: who coded it and how.
 - `characteristics`: `{id, label, short, values}`, a question and its values.
 - `categories`: one per sense, `{id, word, sense, tag, at, requires, kind, verdict}`. `requires` maps a characteristic to the value the sense implies; a characteristic it leaves out is open. `at` is where the sense is defined or used.
-- `instances`: `{id, called, where, values, evidence}`. `called` lists the senses the thing is called by, empty for a contrast instance; `where` is the line that calls it so; `values` has every characteristic, `n/a` where the question does not apply; `evidence` holds the source for any value the instance does not show on its face.
+- `instances`: `{id, called, where, values, evidence}`. `called` lists the senses the thing is called by, empty for a contrast instance; `where` is the line that calls it so; `values` has every characteristic, `n/a` where the question does not apply; `evidence` lists `{char, evidence}`, the source for any value the instance does not show on its face.
 - `pairs` (the instances the user is unsure about), `field` (`{x, y}`, the two characteristics the page plots first), `findings` (written by the script), `outcome` (`{kinds, summary}`).
 
 `kind` is one of `value` (fixes one characteristic), `region` (fixes two or more at once), `list` (membership in a curated list is its only separating characteristic), `outside` (`n/a` on the characteristics the other senses share: another kind of thing) or `fuzzy` (typical and borderline members, no clean edge). `outcome.summary` says whether the words are alternatives on one axis, values on different axes, or a mix.

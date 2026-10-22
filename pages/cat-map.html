@@ -92,6 +92,8 @@ document.addEventListener('alpine:init', () => {
       return [...(c.values || []).filter(v => seen.has(v)), ...[...seen].filter(v => !(c.values || []).includes(v))];
     },
     val(i, id) { return (i.values || {})[id] ?? NA; },
+    // evidence is a list of {char, evidence}; an older file keys it by characteristic.
+    ev(i, id) { const e = i.evidence; return Array.isArray(e) ? (e.find(x => x.char === id) || {}).evidence || '' : (e || {})[id] || ''; },
     find(kind, id) { return (this.R.findings || []).find(f => f.kind === kind && f.chars && f.chars[0] === id); },
     struck(id) { return !!this.find('constant', id); },
     fixedBy(id) { const f = this.find('fixed', id); return f ? f.chars[1] : ''; },
@@ -130,7 +132,7 @@ document.addEventListener('alpine:init', () => {
       const calls = this.calledBy(i).map(c => `<div><span class="text-base-content/60">called </span><span class="font-semibold">${esc(this.label(c))}</span>`
         + (this.admits(c, i) ? '<span class="text-base-content/60"> · fits its charge</span>' : `<span class="text-error"> · breaks it on ${esc(this.breaks(c, i).map(k => this.short(this.char(k))).join(', '))}</span>`) + '</div>').join('');
       const rows = this.chars.map(h => `<dt class="text-base-content/60">${esc(this.short(h))}</dt><dd><span class="font-medium">${esc(this.val(i, h.id))}</span>`
-        + ((i.evidence || {})[h.id] ? `<span class="text-base-content/60"> · ${esc(i.evidence[h.id])}</span>` : '') + '</dd>').join('');
+        + (this.ev(i, h.id) ? `<span class="text-base-content/60"> · ${esc(this.ev(i, h.id))}</span>` : '') + '</dd>').join('');
       return `<div class="grid gap-2 rounded-box border border-primary/40 bg-base-100 p-3 text-sm whitespace-normal">
         <div class="flex items-baseline gap-2 flex-wrap"><span class="font-mono font-semibold">${esc(i.id)}</span><span class="text-base-content/60 [overflow-wrap:anywhere]">${esc(i.where || '')}</span></div>
         ${calls ? `<div>${calls}</div>` : ''}

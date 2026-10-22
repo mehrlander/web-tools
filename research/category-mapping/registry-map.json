@@ -227,9 +227,12 @@
       "lasts": "git",
       "keyed": "yes"
      },
-     "evidence": {
-      "in_registries_csv": "docs/registries.csv has no row for it"
-     }
+     "evidence": [
+      {
+       "char": "in_registries_csv",
+       "evidence": "docs/registries.csv has no row for it"
+      }
+     ]
     },
     {
      "id": "task file",
@@ -266,9 +269,12 @@
       "lasts": "git",
       "keyed": "yes"
      },
-     "evidence": {
-      "in_registries_csv": "web-tools docs/registries.csv lists no web-tools-private file"
-     }
+     "evidence": [
+      {
+       "char": "in_registries_csv",
+       "evidence": "web-tools docs/registries.csv lists no web-tools-private file"
+      }
+     ]
     },
     {
      "id": "trackers.md",
@@ -287,9 +293,12 @@
       "lasts": "git",
       "keyed": "yes"
      },
-     "evidence": {
-      "gets_in": "generate-tracker-registry.py walks the folders: entries derived by rule"
-     }
+     "evidence": [
+      {
+       "char": "gets_in",
+       "evidence": "generate-tracker-registry.py walks the folders: entries derived by rule"
+      }
+     ]
     },
     {
      "id": "snag.json",
@@ -322,9 +331,12 @@
       "lasts": "git",
       "keyed": "yes"
      },
-     "evidence": {
-      "keyed": "stores example declares key: id"
-     }
+     "evidence": [
+      {
+       "char": "keyed",
+       "evidence": "stores example declares key: id"
+      }
+     ]
     },
     {
      "id": "tending finding",
@@ -341,9 +353,12 @@
       "lasts": "git",
       "keyed": "yes"
      },
-     "evidence": {
-      "after_written": "a finding note is never edited; replies carrying finding change its state"
-     }
+     "evidence": [
+      {
+       "char": "after_written",
+       "evidence": "a finding note is never edited; replies carrying finding change its state"
+      }
+     ]
     },
     {
      "id": "session record",
@@ -360,9 +375,12 @@
       "lasts": "git",
       "keyed": "yes"
      },
-     "evidence": {
-      "after_written": "rewritten at the end of each turn until the session ends"
-     }
+     "evidence": [
+      {
+       "char": "after_written",
+       "evidence": "rewritten at the end of each turn until the session ends"
+      }
+     ]
     },
     {
      "id": "web-tools-private",
@@ -381,9 +399,12 @@
       "lasts": "git",
       "keyed": "n/a"
      },
-     "evidence": {
-      "stands_for": "a repository holding lists, notes, session records, caches and errands"
-     }
+     "evidence": [
+      {
+       "char": "stands_for",
+       "evidence": "a repository holding lists, notes, session records, caches and errands"
+      }
+     ]
     },
     {
      "id": "__loadedScripts",
@@ -402,9 +423,12 @@
       "lasts": "page",
       "keyed": "yes"
      },
-     "evidence": {
-      "after_written": "lib/gh-boot.js sets status and endT when the load completes"
-     }
+     "evidence": [
+      {
+       "char": "after_written",
+       "evidence": "lib/gh-boot.js sets status and endT when the load completes"
+      }
+     ]
     },
     {
      "id": "PyPI",
