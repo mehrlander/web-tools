@@ -26,7 +26,7 @@ you can't count on a token being present.
 | Situation | Link |
 |---|---|
 | Page on main | ⭐ deployed URL |
-| Branch work in lib/dist only | ⭐ `?use=<sha>` on the deployed URL |
+| Branch work in lib/dist only | 🥏 `#gh=` toss of a page that draws it |
 | Branch or private page; owner in a browser holding the token | 🥏 `#gh=` (live pointer) |
 | Branch or private page; owner in the Claude app (no token entered there) | 📦 artifact (baked); 🥏 `#gz=` when the page is small and no build is wanted |
 | Branch or private page; owner in the Claude app with a token entered there | 🥏 `#gh=` works too; 📦 still the zero-setup choice |

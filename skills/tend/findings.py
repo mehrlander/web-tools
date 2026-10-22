@@ -429,8 +429,8 @@ def candidates(store_repo):
     for repo, e in act.items():
         for p in e.get("openPRs") or []:
             idle, loc = age(p.get("updatedAt")), f"{repo}#{p['number']}"
-            if "✴️" in (p.get("body") or "") and (idle or 0) >= 7:
-                add_c("waiting-on-you", [loc], f"✴️ ask in the description, idle {idle}d")
+            if any(g in (p.get("body") or "") for g in ("🛵", "✴️")) and (idle or 0) >= 7:
+                add_c("waiting-on-you", [loc], f"🛵 ask in the description, idle {idle}d")
             if (idle or 0) >= 30:
                 add_c("sinking", [loc], f"idle {idle}d, {p.get('behindBy')} commits behind")
             if p["head"].startswith(NON_CLAUDE) and not p.get("draft") and (idle or 0) >= 3:

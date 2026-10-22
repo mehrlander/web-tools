@@ -60,10 +60,10 @@ Use "0. None." when nothing remains.
 * Keep the guide region below about 250 lines.
 * Do not list files, diff statistics, or CI results there.
 * Put session context that belongs nowhere else in the guide or a PR comment, never in a tracker task.
-* Make ✴️ requests in the reply and copy them into the PR body.
+* Make 🛵 requests in the reply and copy them into the PR body.
 * Update the guide after every push that materially changes state, rewriting only between the markers with `update_pull_request`. Verify URLs first with `python3 python/mcp-link-safe.py --check body.md`.
 * Put a decision to the user as a ⚖️ call, with its assessment and `Recommended:` clause, as [SURFACING.md](SURFACING.md) gives it, and state the consequence in the reply.
-* Do not create your own action item. If automation can perform it, do it now; if only the user can, make it ✴️.
+* Do not create your own action item. If automation can perform it, do it now; if only the user can, make it 🛵.
 * Correct discovered facts immediately.
 * Add a new thread, choice, or risk before continuing work on a new fork.
 * Close threads as implemented or declined. Retain resolved decisions only when marked resolved.

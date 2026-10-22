@@ -837,6 +837,7 @@ test('the state is the marker the reply closed with, as a key rather than a glyp
   // both are in the store. A glyph on the row would carry the difference onto
   // the screen; a key cannot.
   assert.equal(stateOf([reply('1', '⚪️ **Clean exit.** Nothing left here.')]), 'clean');
+  assert.equal(stateOf([reply('1', '🛵 **Needs you:** tap the link.')]), 'needs');
   assert.equal(stateOf([reply('1', '✴️ **Needs you:** tap the link.')]), 'needs');
   assert.equal(stateOf([reply('1', '✴ **Needs you:** tap the link.')]), 'needs');
 });
