@@ -66,6 +66,7 @@ class FakeGH {
     // Gemini's topics file, on the branch the laptop daemon writes, and only
     // there: a read of it from main is a bug, and it 404s like one.
     if (p === TOPICS_PATH && this.ref === 'background' && window.__topicsDoc) {
+      if (window.__topicsDelay) await new Promise(r => setTimeout(r, window.__topicsDelay));
       return { text: JSON.stringify(window.__topicsDoc) };
     }
     throw Object.assign(new Error('404'), { status: 404 });
@@ -838,4 +839,27 @@ test('an old record whose turn count disagrees gets no notes, rather than notes 
   assert.equal(data.turnNotes(), null);
   assert.equal(data.gist.summary, 'What Gemini made of it.', 'the session-level summary still applies');
   window.__topicsDoc = null;
+});
+
+test('the outline is built once, with the turn notes, when the topics file is prompt', async () => {
+  // It was built bare at settle and again when the file landed: two builds of
+  // every slide's outline, three slides at a time in the swiper, which on a
+  // phone was a memory spike beside a page already near Safari's ceiling.
+  const calls = [];
+  const was = window.sessionExport.index;
+  window.sessionExport.index = (rec, opts) => { calls.push(opts); return { el: window.document.createElement('div') }; };
+  // The file arrives after the record, as it does over the network: the old
+  // order built the outline before it landed and again after.
+  window.__topicsDelay = 50;
+  try {
+    const data = await mountTopics(TOPICS_DOC, 'me/topics-d');
+    await new Promise(r => setTimeout(r, 200));
+    assert.equal(calls.length, 1, 'one build, not one bare and one with the notes');
+    assert.ok(calls[0].notes?.[record.prompts[0].at], 'and the one build carries the notes');
+    assert.equal(data.outlineBuilt, true);
+  } finally {
+    window.sessionExport.index = was;
+    window.__topicsDoc = null;
+    window.__topicsDelay = 0;
+  }
 });
