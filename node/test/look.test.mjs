@@ -8,7 +8,7 @@
 // resolves to, that a hidden target is revealed by clicking each named opener
 // once and outermost first, that a miss says so instead of landing nowhere,
 // that a message from a URL never becomes markup, and that a fragment is read
-// the same way whether a page declared the walk or the link carried it.
+// the same way whether a page declared the walkthrough or the link carried it.
 
 import test, { afterEach } from 'node:test';
 import assert from 'node:assert/strict';
@@ -30,7 +30,7 @@ const wait = (ms) => new Promise(r => setTimeout(r, ms));
 const open = [];
 afterEach(() => { for (const w of open.splice(0)) { try { w.Look?.stop(); } catch {} w.close(); } });
 
-function realm(body, hash = '', at = 'https://localhost/test/') {
+function realm(body, hash = '', at = 'https://localhost/test/', { gh = true } = {}) {
   const { window } = makeWindow({
     html: `<!doctype html><html><head></head><body>${body}</body></html>`,
     url: at + (hash ? '#' + hash : ''),
@@ -46,7 +46,7 @@ function realm(body, hash = '', at = 'https://localhost/test/') {
   window.TextEncoder = TextEncoder;
   window.TextDecoder = TextDecoder;
   // The steps ride as base64url through gh-api.js's GH, which every page boots.
-  window.GH = withBase64({});
+  if (gh) window.GH = withBase64({});
   new window.Function(KIT)();
   open.push(window);
   return window;
@@ -109,7 +109,7 @@ test('a closed region is opened by the control it names', async () => {
 });
 
 test('nested regions open outermost first, and each opener is clicked once', async () => {
-  // A toggle clicked twice closes what the first click opened, so a walk that
+  // A toggle clicked twice closes what the first click opened, so a walkthrough that
   // retried the inner opener while the outer one was still shut would leave
   // the target hidden behind a region it had opened and closed again.
   const w = realm(
@@ -133,7 +133,7 @@ test('nested regions open outermost first, and each opener is clicked once', asy
 });
 
 test('doing a do step unlocks its forward arrow rather than moving on, and the tap reaches the page', async () => {
-  // The reader should see what the tap did before going on, so the walk
+  // The reader should see what the tap did before going on, so the walkthrough
   // stays on the step: the hand becomes the arrow, the number becomes a check.
   const w = realm('<button data-at="go">Go</button><p data-at="after">after</p>');
   let pressed = 0;
@@ -147,7 +147,7 @@ test('doing a do step unlocks its forward arrow rather than moving on, and the t
   w.document.querySelector('[data-at="go"]').click();
   await wait(250);
   assert.equal(pressed, 1, 'the page saw the tap');
-  assert.equal(said(w), 'tap it', 'the walk stays on the step');
+  assert.equal(said(w), 'tap it', 'the walkthrough stays on the step');
   assert.equal(card(w).querySelector('[data-where]'), null, 'the hand is gone');
   assert.ok(card(w).querySelector('[aria-label="Next"]'), 'and the arrow is there');
   assert.equal(card(w).querySelector('[aria-label^="Skip"]'), null, 'with nothing left to skip');
@@ -175,7 +175,7 @@ test('tapping the hand before the step is done gets a short tip and a ping from 
   assert.equal(tip.textContent, 'Complete the action first.');
   await wait(520);   // after the scroll that brings an off-screen target back, which this realm reports every target as
   assert.deepEqual([...new Set(moved)], ['halo'], 'and the ring sends out one ping, on the page');
-  assert.equal(said(w), 'open it', 'and the walk stays put');
+  assert.equal(said(w), 'open it', 'and the walkthrough stays put');
   w.document.querySelector('[data-at="go"]').click();
   await wait(30);
   assert.equal(w.document.querySelector('[data-look="tip"]'), null, 'doing the step takes the tip down');
@@ -200,7 +200,7 @@ test('a single tap link is unlocked by its tap and finished by Done; with nothin
   assert.equal(w.document.querySelector('[data-look]'), null, 'no dock to unlock, so the marker goes');
 });
 
-test('Next, Back and Done move through a walk, and Done takes everything down', async () => {
+test('Next, Back and Done move through a walkthrough, and Done takes everything down', async () => {
   const w = realm('<p data-at="a">a</p><p data-at="b">b</p>');
   w.Look.start([{ at: 'a', say: 'first' }, { at: 'b', say: 'second' }]);
   await wait(30);
@@ -254,14 +254,26 @@ test('one message per card: an intro is the first card\'s message only when that
   assert.match(card(two).textContent, /1 of 2/);
 });
 
-test('a broken walk still shows its intro, then says what broke', async () => {
-  const w = realm('<p data-at="x">Hello</p>', 'intro=' + encodeURIComponent('Read me first') + '&walk=absent');
+test('base64 steps wait for gh-api.js rather than reading as unreadable', async () => {
+  // The toss data route ran this kit before the page's boot loaded gh-api.js.
+  const steps = Buffer.from(JSON.stringify([{ at: 'x', say: 'Here' }])).toString('base64url');
+  const w = realm('<p data-at="x">Hello</p>', 'steps=' + steps, undefined, { gh: false });
+  await loaded(w);
+  await wait(30);
+  assert.equal(card(w), null, 'nothing read before the codec is there');
+  w.GH = withBase64({});
+  await wait(150);
+  assert.equal(said(w), 'Here');
+});
+
+test('a broken walkthrough still shows its intro, then says what broke', async () => {
+  const w = realm('<p data-at="x">Hello</p>', 'intro=' + encodeURIComponent('Read me first') + '&walkthrough=absent');
   await loaded(w);
   await wait(30);
   assert.equal(said(w), 'Read me first');
   card(w).querySelector('[aria-label="Next"]').click();
   await wait(30);
-  assert.match(said(w), /declares no walk named “absent”/);
+  assert.match(said(w), /declares no walkthrough named “absent”/);
 });
 
 test('a step with a message and no anchor survives cleaning as a note', async () => {
@@ -301,7 +313,7 @@ test('a tap that opens another page says in the hand\'s label that Back returns 
   assert.match(act(w), /^(Tap|Click) here$/, 'a link that only changes the query stays, as an app routes it in place');
 });
 
-test('the braces toggle the walk\'s JSON as a tooltip, not a section of the card', async () => {
+test('the braces toggle the walkthrough\'s JSON as a tooltip, not a section of the card', async () => {
   const w = realm('<p data-at="a">a</p><button data-at="b">b</button>',
     'intro=Hi&steps=' + encodeURIComponent(JSON.stringify([{ at: 'a', say: 'one' }, { at: 'b', tap: 'Press', say: 'two' }])));
   await loaded(w);
@@ -317,11 +329,11 @@ test('the braces toggle the walk\'s JSON as a tooltip, not a section of the card
   assert.equal(tipEl(), null, 'the braces close it again');
 });
 
-// THE WALK TRAVELS IN THE ADDRESS (2026-10-17): stops may name their page,
+// THE WALKTHROUGH TRAVELS IN THE ADDRESS (2026-10-17): stops may name their page,
 // the position rides as stop=<n>, and nothing is stored, so nothing expires.
 const steps3 = encodeURIComponent(JSON.stringify([{ at: 'a', say: 'one' }, { at: 'b', say: 'two' }, { at: 'c', say: 'three' }]));
 
-test('the stop reached rides in the address, reopens there, and ending the walk takes it out', async () => {
+test('the stop reached rides in the address, reopens there, and ending the walkthrough takes it out', async () => {
   const w = realm('<p data-at="a">a</p><p data-at="b">b</p><p data-at="c">c</p>', 'gh=o/r&steps=' + steps3);
   await loaded(w);
   await wait(30);
@@ -360,14 +372,14 @@ test('an address splits at the first ! only when a page comes before it', () => 
 });
 
 const twoPages = encodeURIComponent(JSON.stringify([{ at: 'test/!a', say: 'here' }, { at: 'pages/other.html!b', say: 'over there' }]));
-const readWalk = (href) => {
+const readWalkthrough = (href) => {
   const u = new URL(href);
   const h = new URLSearchParams(u.hash.slice(1));
   return { u, stop: h.get('stop'),
     steps: JSON.parse(Buffer.from(h.get('steps').replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString()) };
 };
 
-test('Next toward a stop on another page goes there, carrying the walk, the stop and the pin', async () => {
+test('Next toward a stop on another page goes there, carrying the walkthrough, the stop and the pin', async () => {
   // The arrows cross pages the way they cross stops (the owner, 2026-10-17).
   const w = realm('<p data-at="a">a</p>', 'steps=' + twoPages, 'https://localhost/test/?use=abc123');
   await loaded(w);
@@ -378,12 +390,12 @@ test('Next toward a stop on another page goes there, carrying the walk, the stop
   w.Look.leave = (href) => { went = href; };
   card(w).querySelector('[aria-label="Next"]').click();
   assert.ok(went, 'one tap, no Go card in between');
-  const { u, stop, steps } = readWalk(went);
+  const { u, stop, steps } = readWalkthrough(went);
   assert.equal(u.pathname, '/pages/other.html');
   assert.equal(u.searchParams.get('use'), 'abc123', 'the pin rides along, so the next page runs the same code');
   assert.equal(stop, '2');
   assert.deepEqual(steps, [{ at: 'test/!a', say: 'here' }, { at: 'pages/other.html!b', say: 'over there' }],
-    'all of the walk, so Back works there too');
+    'all of the walkthrough, so Back works there too');
 });
 
 test('on the far page, Back goes to the stop before it', async () => {
@@ -394,13 +406,13 @@ test('on the far page, Back goes to the stop before it', async () => {
   let went = '';
   w.Look.leave = (href) => { went = href; };
   card(w).querySelector('[aria-label="Back"]').click();
-  const { u, stop } = readWalk(went);
+  const { u, stop } = readWalkthrough(went);
   assert.equal(u.pathname, '/test/');
   assert.equal(stop, '1');
 });
 
 // TAP AS DIRECTED AND THE PANEL JUST UPDATES (the owner, 2026-10-17): a tap
-// that takes the page somewhere moves the walk on by itself, and Back undoes
+// that takes the page somewhere moves the walkthrough on by itself, and Back undoes
 // the move, whether the dock's or the browser's.
 const routed = encodeURIComponent(JSON.stringify([
   { at: 'go', tap: true, say: 'Open the tab' }, { at: 'b', say: 'In the tab' }]));
@@ -412,7 +424,7 @@ function routingRealm(how) {
   return w;
 }
 
-test('a tap that routes in place moves the walk on by itself, staying in this page', async () => {
+test('a tap that routes in place moves the walkthrough on by itself, staying in this page', async () => {
   const w = routingRealm('pushState');
   await loaded(w);
   await wait(30);
@@ -425,7 +437,7 @@ test('a tap that routes in place moves the walk on by itself, staying in this pa
   assert.match(w.location.search, /tab=b/);
 });
 
-test('Back over a tap that pushed a route goes back in history, and the walk follows', async () => {
+test('Back over a tap that pushed a route goes back in history, and the walkthrough follows', async () => {
   const w = routingRealm('pushState');
   await loaded(w);
   await wait(30);
@@ -438,7 +450,7 @@ test('Back over a tap that pushed a route goes back in history, and the walk fol
   assert.equal(said(w), 'Open the tab', 'and the tap\'s stop, ready to tap again');
 });
 
-test('the browser\'s Back after a routing tap takes the walk back too', async () => {
+test('the browser\'s Back after a routing tap takes the walkthrough back too', async () => {
   const w = routingRealm('pushState');
   await loaded(w);
   await wait(30);
@@ -465,15 +477,15 @@ test('Back over a tap that replaced the route loads the address the tap left fro
 });
 
 test('a tapped link carries an unaddressed next stop, and stamps the stops before it with this page', async () => {
-  const walk = encodeURIComponent(JSON.stringify([{ at: 'go', tap: true, say: 'Open it' }, { at: 'x', say: 'Arrived' }]));
-  const w = realm('<a data-at="go" href="/pages/other.html">Other</a>', 'steps=' + walk);
+  const walkthrough = encodeURIComponent(JSON.stringify([{ at: 'go', tap: true, say: 'Open it' }, { at: 'x', say: 'Arrived' }]));
+  const w = realm('<a data-at="go" href="/pages/other.html">Other</a>', 'steps=' + walkthrough);
   await loaded(w);
   await wait(30);
   const a = w.document.querySelector('[data-at="go"]');
   let seen = '';
   a.addEventListener('click', (e) => { seen = a.getAttribute('href'); e.preventDefault(); });
   a.click();
-  const { u, stop, steps } = readWalk(seen);
+  const { u, stop, steps } = readWalkthrough(seen);
   assert.equal(u.pathname, '/pages/other.html');
   assert.equal(stop, '2', 'the next page opens at the next stop');
   assert.deepEqual(steps, [{ at: 'test/!go', say: 'Open it', tap: true }, { at: 'x', say: 'Arrived' }],
@@ -487,16 +499,16 @@ test('a link that opens at a stop on another page offers Go, and leaves the addr
   assert.equal(said(w), 'over there', 'one line, the stop\'s own');
   const go = card(w).querySelector('[data-go-page]');
   assert.ok(go, 'Go, where Next would be');
-  assert.equal(readWalk(go.href).u.pathname, '/pages/other.html');
+  assert.equal(readWalkthrough(go.href).u.pathname, '/pages/other.html');
   assert.match(w.location.hash, /stop=2$/, 'the stop the link named, unchanged: nothing on this page was seen yet');
 });
 
-test('a tapped link to the next stop\'s page carries the walk; any other link is left alone', async () => {
-  const walk = (next) => encodeURIComponent(JSON.stringify([{ at: 'go', tap: true, say: 'Open it' }, { at: next, say: 'Arrived' }]));
-  const w = realm('<a data-at="go" href="/pages/other.html">Other</a>', 'steps=' + walk('pages/other.html!x'));
+test('a tapped link to the next stop\'s page carries the walkthrough; any other link is left alone', async () => {
+  const walkthrough = (next) => encodeURIComponent(JSON.stringify([{ at: 'go', tap: true, say: 'Open it' }, { at: next, say: 'Arrived' }]));
+  const w = realm('<a data-at="go" href="/pages/other.html">Other</a>', 'steps=' + walkthrough('pages/other.html!x'));
   await loaded(w);
   await wait(30);
-  assert.equal(act(w), 'Click to open', 'the walk goes along, so there is no Back to mention');
+  assert.equal(act(w), 'Click to open', 'the walkthrough goes along, so there is no Back to mention');
   const a = w.document.querySelector('[data-at="go"]');
   let seen = '';
   a.addEventListener('click', (e) => { seen = a.getAttribute('href'); e.preventDefault(); });
@@ -504,7 +516,7 @@ test('a tapped link to the next stop\'s page carries the walk; any other link is
   assert.match(seen, /^https:\/\/localhost\/pages\/other\.html#steps=[\w-]+&stop=2$/, 'carried at the moment of the tap');
   await wait(10);
   assert.equal(a.getAttribute('href'), '/pages/other.html', 'and put back after');
-  const v = realm('<a data-at="go" href="/pages/else.html">Else</a>', 'steps=' + walk('pages/other.html!x'));
+  const v = realm('<a data-at="go" href="/pages/else.html">Else</a>', 'steps=' + walkthrough('pages/other.html!x'));
   await loaded(v);
   await wait(30);
   assert.match(act(v), /Back returns here$/, 'a link elsewhere does not carry, so the label says how to come back');
@@ -559,7 +571,7 @@ test('an anchor is a data-at name first, then an id, then words or a selector', 
 
 test('every fragment form reads to the same cleaned steps', () => {
   const w = realm(
-    '<script type="application/json" id="look-walks">' +
+    '<script type="application/json" id="look-walkthroughs">' +
     '{"tour":[{"at":"a","say":"one","tap":1,"extra":"dropped"},{"at":"b"}]}</script>');
   const { encode } = w.Look;
   // The kit's arrays belong to the page's realm; compare them as data.
@@ -567,7 +579,7 @@ test('every fragment form reads to the same cleaned steps', () => {
   assert.deepEqual(fromHash('#show=a&say=hi'), [{ at: 'a', say: 'hi', tap: false }]);
   assert.deepEqual(fromHash('#tap=a&n=3&tab=x'), [{ at: 'a', say: '', tap: true }],
     'a nonce and a page\'s own keys ride beside it untouched');
-  assert.deepEqual(fromHash('#walk=tour'), [{ at: 'a', say: 'one', tap: true }, { at: 'b', say: '', tap: false }]);
+  assert.deepEqual(fromHash('#walkthrough=tour'), [{ at: 'a', say: 'one', tap: true }, { at: 'b', say: '', tap: false }]);
   const steps = [{ at: 'café', say: 'Ünïcode & "quotes" + slashes/', tap: true }];
   const carried = fromHash('#steps=' + encode(steps));
   assert.deepEqual(carried, steps, 'base64url carries any text through a URL intact');
@@ -581,7 +593,7 @@ test('every fragment form reads to the same cleaned steps', () => {
 test('a fragment that cannot be followed becomes a miss the reader sees', () => {
   const w = realm('');
   const { fromHash } = w.Look;
-  assert.match(fromHash('#walk=absent')[0].miss, /no walk named .absent./);
+  assert.match(fromHash('#walkthrough=absent')[0].miss, /no walkthrough named .absent./);
   assert.match(fromHash('#steps=!!!')[0].miss, /could not be read/);
   assert.match(fromHash('#steps=' + encodeURIComponent('[{"tap":true}]'))[0].miss, /no steps/,
     'a step with neither an anchor nor a message is nothing to show');
@@ -621,7 +633,7 @@ test('a second copy of the kit defers to the first', () => {
 });
 
 test('arriving scrolls every pane between the target and the page, not only the page', async () => {
-  // The browser's scrollIntoView walks each scroller, which is the point: a
+  // The browser's scrollIntoView walkthroughs each scroller, which is the point: a
   // target in a pane that is itself out of view must reach the reader.
   // Measured 2026-10-04 through a toss, where the page-only scroll left the
   // target clipped in its pane with the tint drawn over the content below.
@@ -654,7 +666,7 @@ test('a target scrolled out of its pane takes its mark with it', async () => {
   assert.equal(said(w), 'here', 'and the message stays');
 });
 
-test('a walk numbers its target and its dock alike, and the number becomes the way back', async () => {
+test('a walkthrough numbers its target and its dock alike, and the number becomes the way back', async () => {
   // The dock does not sit beside its target, so the number is what ties them.
   // Scrolled away, the dock's number turns into an arrow toward the target,
   // and tapping it brings the target back.
@@ -686,7 +698,7 @@ test('a walk numbers its target and its dock alike, and the number becomes the w
   assert.equal(w.document.querySelector('[data-look="num"]').style.display, 'inline-flex');
 });
 
-test('the arrow keys walk, but not while the reader is typing', async () => {
+test('the arrow keys walkthrough, but not while the reader is typing', async () => {
   const w = realm('<input id="field"><p data-at="a">a</p><p data-at="b">b</p>');
   w.Look.start([{ at: 'a', say: 'first' }, { at: 'b', say: 'second' }]);
   await wait(30);
@@ -697,7 +709,7 @@ test('the arrow keys walk, but not while the reader is typing', async () => {
   assert.equal(said(w), 'second');
   key('ArrowRight');
   await wait(30);
-  assert.equal(said(w), 'second', 'the last step stays: only Done ends a walk');
+  assert.equal(said(w), 'second', 'the last step stays: only Done ends a walkthrough');
   key('ArrowLeft', w.document.getElementById('field'));
   await wait(30);
   assert.equal(said(w), 'second', 'an arrow in a text field is the field\'s');
@@ -824,7 +836,7 @@ test('a target an earlier tap makes, reached by Next, sends the reader back to t
   assert.equal(said(w), 'mid');
   card(w).querySelector('[aria-label="Next"]').click();
   await wait(30);
-  assert.equal(said(w), 'save', 'and from there the walk carries on');
+  assert.equal(said(w), 'save', 'and from there the walkthrough carries on');
 });
 
 test('a missing target with no tap before it is still a wrong name', async () => {

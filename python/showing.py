@@ -781,7 +781,11 @@ def join_query(own, query=""):
 # address, and the link still resolves and renders, which is this script's own
 # failure shape one level down. The `at` below is that address: on a toss it
 # rides as a trailing #frag, which toss-render hands to the framed page as a
-# real location.hash; on a deployed page it is just the fragment.
+# real location.hash; on a deployed page it is just the fragment. The toss
+# percent-decodes its whole value once on the way, so its `%` are written as
+# `%25`: an intro or a look step's text naming "PR #1035" otherwise reaches the
+# frame with a bare `#` and splits there (2026-10-21, Snag list
+# look-intro-hash-cuts-the-walkthrough).
 #
 # Measured 2026-09-05, when this script emitted a branch-page toss with nothing
 # on it and the reader opened an empty form twice. Which pages need one is not
@@ -817,6 +821,16 @@ def address(mech, page, sha, slug, view=None, at="", query="", entries=None, pag
     base = renderer_base(slug)
     pretty = page[:-len("index.html")] if page.endswith("/index.html") else page
     frag = "#" + at.lstrip("#") if at else ""
+    if mech in ("toss-gh", "toss-app", "overlay", "toss-data"):
+        # The separator is written `%23` and the fragment's own `&` as `%26`;
+        # the toss's one decode brings both back. A second raw `#` is not a
+        # legal URL character, and the Claude app on an iPhone re-encodes a link
+        # holding one, `%` included, so an intro arrived one decode short and
+        # its card read "Swipe%20between%20sessions" (2026-10-22; the same link
+        # with `%23` read cleanly). With no raw `#` left, the shell's own look
+        # gate (lib/gh-boot.js lookOnDemand) reads the whole fragment, so a
+        # page key after a raw `&` would surface as the shell's.
+        frag = ("%23" + frag[1:].replace("%", "%25").replace("&", "%26")) if frag else ""
     if mech == "toss-gh":
         # NO ?use= ON THE SHELL, and this is not a tidiness call: that link
         # crashes Safari's web process on an iPhone, every time, which is what
@@ -979,10 +993,10 @@ GLYPH = {"toss-gh": "🥏", "toss-nested": "🥏", "toss-app": "🥏", "overlay"
 # reading lives in python/look-link.py, imported rather than repeated; where
 # that file is absent (this script fetched alone into another repo) the hint
 # is simply not given.
-LOOK_KEYS = ("show", "tap", "walk", "steps", "intro")
+LOOK_KEYS = ("show", "tap", "walkthrough", "steps", "intro")
 # The keys that name a place on the page, which are the ones an anchor check
 # reads; an intro is a message with no target.
-ANCHORED = ("show", "tap", "walk", "steps")
+ANCHORED = ("show", "tap", "walkthrough", "steps")
 _look = []
 
 
@@ -1026,16 +1040,16 @@ def look_hints(subjects, at, warn):
                     warn.append(f"the look link's steps= cannot be read; make it with {look_cmd()} make {p} --steps '<json>'.")
                     continue
             for miss in ll.asked(info, show=asked.get("show"), tap=asked.get("tap"),
-                                 walk=asked.get("walk"), steps=steps):
+                                 walkthrough=asked.get("walkthrough"), steps=steps):
                 warn.append(f"look link on {p}: {miss}, so the reader would get a \"not on this page\" card. "
                             f"Its anchors: {look_cmd()} anchors {p}")
-        elif info["names"] or info["prefixes"] or info["walks"]:
+        elif info["names"] or info["prefixes"] or info["walkthroughs"]:
             # Only a page that declares anchors gets the hint: every page that
             # boots the loader takes look links, and a hint on all of them
             # would be noise at every handover.
             names = sorted(info["names"])
             hints.append({"page": p, "anchors": names[:6], "more": max(0, len(names) - 6),
-                          "prefixes": sorted(info["prefixes"]), "walks": sorted(info["walks"])})
+                          "prefixes": sorted(info["prefixes"]), "walkthroughs": sorted(info["walkthroughs"])})
     return hints
 
 
@@ -1110,10 +1124,10 @@ def lines(d):
         for h in d.get("look", []):
             more = [f"+{h['more']} more"] if h["more"] else []
             named = h["anchors"] + more + [x + "*" for x in h["prefixes"]]
-            walks = f"; walks: {', '.join(h['walks'])}" if h["walks"] else ""
+            walkthroughs = f"; walkthroughs: {', '.join(h['walkthroughs'])}" if h["walkthroughs"] else ""
             make = f"{look_cmd()} make {h['page']} --show <anchor> --say '<why>'"
             out.append(f"look: {h['page']} takes look links, so the link can land on the place you mean "
-                       f"(anchors: {', '.join(named)}{walks}). Rerun with --at \"$({make})\".")
+                       f"(anchors: {', '.join(named)}{walkthroughs}). Rerun with --at \"$({make})\".")
     for w in d["warnings"]:
         out.append("! " + w)
     return out

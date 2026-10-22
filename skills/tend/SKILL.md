@@ -130,7 +130,7 @@ check each against `main`. Read open pull requests too, testing each head as
 Branches does.
 
 - **Find:** an open pull request `main` has overtaken, one holding work `main`
-  lacks, one whose ✴️ ask `main` has since answered, one nobody is moving, and
+  lacks, one whose 🛵 or ✴️ ask `main` has since answered, one nobody is moving, and
   a live thread.
 - **Owner only:** design direction; closing or merging any pull request. Do
   not edit merged bodies.

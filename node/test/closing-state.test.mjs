@@ -49,6 +49,25 @@ test('both spellings of the three variation-selector glyphs settle to one key', 
   assert.deepEqual(CS.marks('❇️ **a**'), CS.marks('❇ **a**'));
 });
 
+test('needs reads as 🛵, and ✴️ still reads as needs', () => {
+  // 🛵 replaced ✴️ for Needs you on 2026-10-21; past records carry ✴️, so it stays.
+  assert.deepEqual(CS.marks('🛵 **Needs you:** tap the link.'), ['needs']);
+  assert.deepEqual(CS.marks('✴️ **Needs you:** tap the link.'), ['needs']);
+  assert.equal(CS.GLYPH.needs, '🛵');
+});
+
+test('have a look reads in all four spellings of its joined glyph', () => {
+  // 👁️‍🗨️ is four code points joined; a client may drop either variation selector.
+  for (const g of ['👁️‍🗨️', '👁‍🗨️', '👁️‍🗨', '👁‍🗨'])
+    assert.deepEqual(CS.marks(g + ' **Have a look:** the page is up.'), ['look'], g);
+  assert.deepEqual(CS.marks('See [👁️‍🗨️](https://x) **here**.'), [], 'the glyph mid-line is not a state');
+});
+
+test('sign-off needed reads in both spellings', () => {
+  assert.deepEqual(CS.marks('✍️ **Sign-off needed:** the wording above.'), ['signoff']);
+  assert.deepEqual(CS.marks('✍ **Sign-off needed:** the wording above.'), ['signoff']);
+});
+
 test('order and duplicates survive, because an exchange that closed twice did', () => {
   const md = '🆚 **Choice needed.** Pick.\n\n…\n\n🟢 **Ready.** Go.\n\n🟢 **Ready.** Again.';
   assert.deepEqual(CS.marks(md), ['choice', 'ready', 'ready']);
@@ -64,7 +83,7 @@ test('every key the pattern can produce is complete in all three tables', () => 
     assert.ok(CS.HUE[k], 'no hue for ' + k);
     assert.equal(CS.MARK[CS.GLYPH[k]], k, 'glyph and key disagree for ' + k);
   }
-  assert.equal(keys.length, 12);
+  assert.equal(keys.length, 14);
 });
 
 test('direction and choice read in both spellings, and 🆚 still reads as choice', () => {
