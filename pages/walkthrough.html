@@ -63,9 +63,9 @@
             aria-label="Stages, pull requests and sources"><i class="ph ph-info text-lg"></i></button>
   </div>
   <div class="text-balance px-3 pb-1 font-mono text-xs tabular-nums text-base-content/70" x-show="env" x-text="headline"></div>
-  <div role="tablist" class="tabs tabs-border px-1" x-show="env">
+  <div role="tablist" class="tabs tabs-border flex-nowrap overflow-x-auto px-1" x-show="env">
     <template x-for="l in lenses" :key="l.id">
-      <button type="button" role="tab" class="tab gap-1.5 text-sm" :class="lens === l.id && 'tab-active'" @click="setLens(l.id)">
+      <button type="button" role="tab" class="tab flex-none gap-1.5 text-sm" :class="lens === l.id && 'tab-active'" @click="setLens(l.id)">
         <span x-text="l.label"></span><span class="font-mono text-xs text-base-content/50" x-show="l.n" x-text="l.n"></span>
       </button>
     </template>
@@ -91,17 +91,17 @@
       <div class="overflow-x-auto rounded-lg border border-base-300 bg-base-100">
         <table class="table table-sm text-sm">
           <thead><tr class="text-xs">
-            <th>Area</th><th class="text-right">Docs</th><th class="text-right">Changed</th><th class="text-right">Deleted</th>
-            <th class="text-right">Words</th><th class="w-1/4 min-w-24"></th><th class="text-right">Cut</th><th class="text-right">Survey est.</th>
+            <th>Area</th><th class="text-right">Docs</th><th class="text-right max-sm:hidden">Changed</th><th class="text-right max-sm:hidden">Deleted</th>
+            <th class="text-right max-sm:hidden">Words</th><th class="w-1/4 min-w-16"></th><th class="text-right">Cut</th><th class="text-right">Survey est.</th>
           </tr></thead>
           <tbody>
             <template x-for="r in areaRows" :key="r.area">
               <tr class="cursor-pointer hover:bg-base-200" @click="filterTo({ area: r.area })">
                 <td class="whitespace-nowrap" x-text="r.area"></td>
                 <td class="text-right tabular-nums" x-text="r.docs"></td>
-                <td class="text-right tabular-nums" x-text="r.changed"></td>
-                <td class="text-right tabular-nums" x-text="r.deleted || ''"></td>
-                <td class="whitespace-nowrap text-right font-mono text-xs tabular-nums" x-text="r.words ? fmt(r.before) + ' → ' + fmt(r.after) : ''"></td>
+                <td class="text-right tabular-nums max-sm:hidden" x-text="r.changed"></td>
+                <td class="text-right tabular-nums max-sm:hidden" x-text="r.deleted || ''"></td>
+                <td class="whitespace-nowrap text-right font-mono text-xs tabular-nums max-sm:hidden" x-text="r.words ? fmt(r.before) + ' → ' + fmt(r.after) : ''"></td>
                 <td><div x-show="r.words" x-html="bar(r.before, r.after, maxAreaWords)"></div></td>
                 <td class="text-right tabular-nums" x-text="r.words ? pct(r.before, r.after) : ''"></td>
                 <td class="text-right tabular-nums text-base-content/60" x-text="r.est == null ? '' : r.est + '%'"></td>
@@ -109,11 +109,26 @@
             </template>
           </tbody>
           <tfoot><tr class="text-xs">
-            <th>All documents</th><th class="text-right" x-text="totals.docs"></th><th class="text-right" x-text="totals.changed"></th>
-            <th class="text-right" x-text="totals.deleted"></th>
-            <th class="whitespace-nowrap text-right font-mono" x-text="fmt(totals.before) + ' → ' + fmt(totals.after)"></th>
+            <th>All documents</th><th class="text-right" x-text="totals.docs"></th><th class="text-right max-sm:hidden" x-text="totals.changed"></th>
+            <th class="text-right max-sm:hidden" x-text="totals.deleted"></th>
+            <th class="whitespace-nowrap text-right font-mono max-sm:hidden" x-text="fmt(totals.before) + ' → ' + fmt(totals.after)"></th>
             <th></th><th class="text-right" x-text="pct(totals.before, totals.after)"></th><th class="text-right" x-text="totals.est == null ? '' : totals.est + '%'"></th>
           </tr></tfoot>
+        </table>
+      </div>
+      <div class="flex min-w-0 flex-col gap-3">
+      <div class="overflow-x-auto rounded-lg border border-base-300 bg-base-100">
+        <table class="table table-sm text-sm">
+          <thead><tr class="text-xs"><th>Stage</th><th class="text-right"></th><th></th></tr></thead>
+          <tbody>
+            <template x-for="st in ctx.stages || []" :key="st.name">
+              <tr>
+                <td x-text="st.name"></td>
+                <td class="whitespace-nowrap text-right font-mono text-xs tabular-nums" x-text="fmt(st.count)"></td>
+                <td><span x-text="st.unit"></span><span class="block text-xs text-base-content/60" x-text="st.detail"></span></td>
+              </tr>
+            </template>
+          </tbody>
         </table>
       </div>
       <div class="overflow-x-auto rounded-lg border border-base-300 bg-base-100">
@@ -131,15 +146,16 @@
           </tbody>
         </table>
       </div>
+      </div>
       <div class="overflow-x-auto rounded-lg border border-base-300 bg-base-100 xl:col-span-2">
         <table class="table table-sm text-sm">
-          <thead><tr class="text-xs"><th>Largest reductions</th><th>Area</th><th class="text-right">Words</th><th class="w-1/4 min-w-24"></th><th class="text-right">Cut</th></tr></thead>
+          <thead><tr class="text-xs"><th>Largest reductions</th><th class="max-sm:hidden">Area</th><th class="text-right max-sm:hidden">Words</th><th class="w-1/4 min-w-16"></th><th class="text-right">Cut</th></tr></thead>
           <tbody>
             <template x-for="d in largest" :key="d.id">
               <tr class="cursor-pointer hover:bg-base-200" @click="goto(d.id)">
                 <td class="max-w-0 truncate" x-html="pathHtml(d)"></td>
-                <td class="whitespace-nowrap text-base-content/70" x-text="d.facet"></td>
-                <td class="whitespace-nowrap text-right font-mono text-xs tabular-nums" x-text="fmt(m(d).words_before) + ' → ' + fmt(m(d).words_after)"></td>
+                <td class="whitespace-nowrap text-base-content/70 max-sm:hidden" x-text="d.facet"></td>
+                <td class="whitespace-nowrap text-right font-mono text-xs tabular-nums max-sm:hidden" x-text="fmt(m(d).words_before) + ' → ' + fmt(m(d).words_after)"></td>
                 <td x-html="bar(m(d).words_before, m(d).words_after, largestMax)"></td>
                 <td class="text-right tabular-nums" x-text="pct(m(d).words_before, m(d).words_after)"></td>
               </tr>
@@ -178,14 +194,6 @@
 
 <dialog x-ref="info" class="modal">
   <div class="modal-box max-w-3xl text-sm">
-    <h2 class="mb-2 text-base font-bold">Stages</h2>
-    <table class="table table-sm mb-4">
-      <tbody>
-        <template x-for="s in ctx.stages || []" :key="s.name">
-          <tr><td x-text="s.name"></td><td class="text-right font-mono tabular-nums" x-text="fmt(s.count)"></td><td class="text-base-content/70" x-text="s.unit"></td></tr>
-        </template>
-      </tbody>
-    </table>
     <h2 class="mb-2 text-base font-bold">Repositories</h2>
     <table class="table table-sm mb-4">
       <tbody>
@@ -278,7 +286,7 @@ document.addEventListener('alpine:init', () => {
     get headline() {
       const t = this.totals, open = this.questions.filter(q => this.m(q).status !== 'applied').length;
       return `${this.fmt(t.before)} → ${this.fmt(t.after)} words (${this.pct(t.before, t.after)}) · `
-        + `${t.changed} of ${t.docs} documents changed · ${t.deleted} deleted · ${open} questions`;
+        + `${t.changed} of ${t.docs} documents changed · ${t.deleted} deleted · ${open} open questions`;
     },
     get areaRows() {
       return (this.ctx.areas || []).map(area => {
@@ -333,6 +341,7 @@ document.addEventListener('alpine:init', () => {
       return this.lens === 'findings' ? this.findings : this.questions;
     },
     byId(id) { return (this.env?.items || []).find(i => i.id === id); },
+    plain(t) { return String(t || '').replace(/`/g, ''); },
 
     setLens(l) {
       this._deck?.close?.();
@@ -386,7 +395,7 @@ document.addEventListener('alpine:init', () => {
       } else {
         right = `<span class="flex-none font-mono text-xs text-base-content/60">${esc(this.m(it).status || '')}</span>`;
       }
-      const name = it.type === 'file' ? this.pathHtml(it) : esc(it.title);
+      const name = it.type === 'file' ? this.pathHtml(it) : esc(this.plain(it.title));
       return `<div role="option" tabindex="0" data-item="${esc(it.id)}" aria-selected="${sel}"
         class="flex cursor-pointer items-baseline gap-2 border-b border-base-200 px-2.5 py-1.5 text-sm hover:bg-base-200 aria-selected:bg-base-300">
         <span class="min-w-0 flex-1 truncate">${name}</span>${right}</div>`;
@@ -422,10 +431,14 @@ document.addEventListener('alpine:init', () => {
       } else {
         this._swiper.mount();
       }
+      // Marked again after the kit has stacked the layout, which shortens the
+      // list under a phone's width after the first mark measured it.
+      const keep = () => linkedSwiper.mark(this.$refs.list, 'item', this.sel[this.lens]);
+      this.$nextTick(() => requestAnimationFrame(() => requestAnimationFrame(keep)));
     },
     nameOf(id) {
       const it = this.byId(id) || {};
-      if (it.type !== 'file') return { code: it.facet, title: it.title };
+      if (it.type !== 'file') return { code: it.facet, title: this.plain(it.title) };
       const p = it.title, i = p.lastIndexOf('/');
       return { code: this.repoOf(it) + ' ' + p.slice(0, i + 1), title: p.slice(i + 1) };
     },
@@ -434,9 +447,9 @@ document.addEventListener('alpine:init', () => {
       this._deck = swipeDeck.open({
         count: rows.length, start: Math.max(0, rows.findIndex(r => r.id === this.sel[this.lens])),
         title: LENSES.find(l => l[0] === this.lens)[1], icon: 'ph-broom', innerClass: 'w-full',
-        index: i => ({ title: rows[i].type === 'file' ? rows[i].title : rows[i].title, group: rows[i].facet }),
+        index: i => ({ title: this.plain(rows[i].title), group: rows[i].facet }),
         render: (i, el) => {
-          el.innerHTML = `<h2 class="mb-1 text-lg font-bold break-words">${esc(rows[i].title)}</h2>`
+          el.innerHTML = `<h2 class="mb-1 text-lg font-bold break-words">${esc(this.plain(rows[i].title))}</h2>`
             + `<div class="mb-3 font-mono text-xs text-base-content/60">${esc(rows[i].facet || '')}</div>` + this.cardHtml(rows[i].id);
         },
         onSlide: i => this._swiper?.pick(rows[i].id),
@@ -486,8 +499,9 @@ document.addEventListener('alpine:init', () => {
       }
       if (m.moved_to) out.push(`<div>${label('Moved to')}<div class="${MD}">${md('`' + m.moved_to + '`', true)}</div></div>`);
       if (m.kept_on_purpose) out.push(`<div>${label('Kept on purpose')}<div class="${MD}">${md(m.kept_on_purpose)}</div></div>`);
-      if (m.audit?.length) out.push(`<div>${label('Restored by the audit')}<ul class="list-disc space-y-1 pl-5 ${MD}">`
-        + m.audit.map(a => `<li>${md(a.what, true)}${a.why ? ` <span class="text-base-content/60">${md(a.why, true)}</span>` : ''}</li>`).join('') + '</ul></div>');
+      if (m.audit?.length) out.push(`<div>${label('Audit repairs')}<ul class="space-y-1 ${MD}">`
+        + m.audit.map(a => `<li><span class="mr-1 font-mono text-xs text-base-content/60">${esc(a.kind || '')}</span>${md(a.what, true)}`
+          + `${a.why ? ` <span class="text-base-content/60">${md(a.why, true)}</span>` : ''}</li>`).join('') + '</ul></div>');
       if (m.wave1?.length) out.push(`<div>${label('Wave 1 fixes')}<ul class="space-y-1 ${MD}">`
         + m.wave1.map(w => `<li><span class="mr-1 font-mono text-xs text-base-content/60">${esc(w.kind)}</span>${md(w.summary, true)}</li>`).join('') + '</ul></div>');
       if (s) out.push(`<div>${label('Survey')}<div class="mb-1"><span class="font-semibold">${esc(s.verdict)}</span>`
@@ -507,7 +521,7 @@ document.addEventListener('alpine:init', () => {
       return `<div class="space-y-4 text-sm">${out.join('')}</div>`;
     },
     gotoBtn(r) {
-      const text = r.type === 'file' ? `${this.repoOf(r)} ${r.title}` : r.title;
+      const text = r.type === 'file' ? `${this.repoOf(r)} ${r.title}` : this.plain(r.title);
       return `<button type="button" class="btn btn-ghost btn-sm h-auto min-h-0 justify-start py-1 text-left font-normal" data-act="goto" data-id="${esc(r.id)}">`
         + `<i class="ph ${r.type === 'file' ? 'ph-file-text' : r.role === 'finding' ? 'ph-magnifying-glass' : 'ph-question'}"></i><span class="break-all">${esc(text)}</span></button>`;
     },
