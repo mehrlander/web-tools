@@ -1,0 +1,544 @@
+{
+ "format": "catmap/1",
+ "title": "The word \"registry\"",
+ "question": "What does \"registry\" mean across the estate, and do its senses carve the collections cleanly?",
+ "made": "2026-10-22",
+ "runs": [
+  {
+   "by": "this session, coded by hand",
+   "method": "cat-map, first draft",
+   "characteristics": [
+    {
+     "id": "stands_for",
+     "label": "What one entry stands for",
+     "values": [
+      "a thing",
+      "an event"
+     ]
+    },
+    {
+     "id": "after_written",
+     "label": "Whether an entry changes after it is written",
+     "values": [
+      "edited in place",
+      "edited until it ends",
+      "never edited"
+     ]
+    },
+    {
+     "id": "gets_in",
+     "label": "How an entry gets in",
+     "values": [
+      "by rule",
+      "by author",
+      "on arrival"
+     ]
+    },
+    {
+     "id": "medium",
+     "label": "What holds the entries",
+     "values": [
+      "file",
+      "file per entry",
+      "entry in a shared file",
+      "repository",
+      "page memory",
+      "outside system"
+     ]
+    },
+    {
+     "id": "is_csv",
+     "label": "A committed CSV",
+     "values": [
+      "yes",
+      "no"
+     ]
+    },
+    {
+     "id": "in_registries_csv",
+     "label": "Listed in docs/registries.csv",
+     "values": [
+      "yes",
+      "no"
+     ]
+    },
+    {
+     "id": "provenance",
+     "label": "Provenance, as registries.md defines it",
+     "values": [
+      "derived",
+      "authored"
+     ]
+    },
+    {
+     "id": "lasts",
+     "label": "Where it lasts",
+     "values": [
+      "git",
+      "page",
+      "outside"
+     ]
+    },
+    {
+     "id": "keyed",
+     "label": "Found by a stable key",
+     "values": [
+      "yes"
+     ]
+    }
+   ],
+   "categories": [
+    {
+     "id": "listed",
+     "word": "registry",
+     "sense": "a CSV listed in docs/registries.csv",
+     "at": "CLAUDE.md, Registries",
+     "requires": {
+      "stands_for": "a thing",
+      "after_written": "edited in place",
+      "medium": "file",
+      "is_csv": "yes",
+      "in_registries_csv": "yes"
+     },
+     "kind": "list",
+     "verdict": "Only the listing separates it from CSVs of the same shape.",
+     "tag": "registry: listed"
+    },
+    {
+     "id": "shape",
+     "word": "registry",
+     "sense": "the shape in Registries and streams",
+     "at": "docs/registries.md#registries-and-streams",
+     "requires": {
+      "stands_for": "a thing",
+      "after_written": "edited in place"
+     },
+     "kind": "region",
+     "verdict": "Fixes two characteristics at once; the estate fills the combinations the pair leaves out.",
+     "tag": "registry: shape"
+    },
+    {
+     "id": "stream",
+     "word": "stream",
+     "sense": "the other shape in Registries and streams",
+     "at": "docs/registries.md#registries-and-streams",
+     "requires": {
+      "stands_for": "an event",
+      "after_written": "never edited"
+     },
+     "kind": "region",
+     "verdict": "The opposite corner of the same two characteristics.",
+     "tag": "stream"
+    },
+    {
+     "id": "private",
+     "word": "registry",
+     "sense": "the private registry, web-tools-private",
+     "at": "web-tools-private .web-tools.json",
+     "requires": {
+      "medium": "repository"
+     },
+     "kind": "outside",
+     "verdict": "Not applicable on every characteristic of an entry: a repository that holds collections.",
+     "tag": "registry: private"
+    },
+    {
+     "id": "standard",
+     "word": "registry",
+     "sense": "the standard sense: members enter themselves",
+     "at": "PyPI, the Windows registry",
+     "requires": {
+      "gets_in": "on arrival"
+     },
+     "kind": "value",
+     "verdict": "One value of how entries get in; no listed registry works this way.",
+     "tag": "registry: standard"
+    }
+   ],
+   "instances": [
+    {
+     "id": "kits.csv",
+     "called": [
+      "listed"
+     ],
+     "where": "docs/README.md: \"the kits registry\"",
+     "values": {
+      "stands_for": "a thing",
+      "after_written": "edited in place",
+      "gets_in": "by rule",
+      "medium": "file",
+      "is_csv": "yes",
+      "in_registries_csv": "yes",
+      "provenance": "derived",
+      "lasts": "git",
+      "keyed": "yes"
+     }
+    },
+    {
+     "id": "writers.csv",
+     "called": [
+      "listed"
+     ],
+     "where": "docs/manifest.md: \"writers registry\"",
+     "values": {
+      "stands_for": "a thing",
+      "after_written": "edited in place",
+      "gets_in": "by author",
+      "medium": "file",
+      "is_csv": "yes",
+      "in_registries_csv": "yes",
+      "provenance": "authored",
+      "lasts": "git",
+      "keyed": "yes"
+     }
+    },
+    {
+     "id": "board.csv",
+     "called": [
+      "listed"
+     ],
+     "where": "docs/registries.csv row tracker-tasks",
+     "values": {
+      "stands_for": "a thing",
+      "after_written": "edited in place",
+      "gets_in": "by rule",
+      "medium": "file",
+      "is_csv": "yes",
+      "in_registries_csv": "yes",
+      "provenance": "derived",
+      "lasts": "git",
+      "keyed": "yes"
+     }
+    },
+    {
+     "id": "direct-to-main.csv",
+     "called": [
+      "listed"
+     ],
+     "where": "docs/surfacing-course.md: \"the registry of writers and paths\"",
+     "values": {
+      "stands_for": "a thing",
+      "after_written": "edited in place",
+      "gets_in": "by author",
+      "medium": "file",
+      "is_csv": "yes",
+      "in_registries_csv": "no",
+      "provenance": "authored",
+      "lasts": "git",
+      "keyed": "yes"
+     },
+     "evidence": {
+      "in_registries_csv": "docs/registries.csv has no row for it"
+     }
+    },
+    {
+     "id": "task file",
+     "called": [
+      "shape"
+     ],
+     "where": "docs/registries.md: \"a task is a registry entry\"",
+     "values": {
+      "stands_for": "a thing",
+      "after_written": "edited in place",
+      "gets_in": "by author",
+      "medium": "file per entry",
+      "is_csv": "no",
+      "in_registries_csv": "no",
+      "provenance": "authored",
+      "lasts": "git",
+      "keyed": "yes"
+     }
+    },
+    {
+     "id": "triggers.csv",
+     "called": [
+      "listed"
+     ],
+     "where": "web-tools-private README.md: \"the trigger registry\"",
+     "values": {
+      "stands_for": "a thing",
+      "after_written": "edited in place",
+      "gets_in": "by author",
+      "medium": "file",
+      "is_csv": "yes",
+      "in_registries_csv": "no",
+      "provenance": "authored",
+      "lasts": "git",
+      "keyed": "yes"
+     },
+     "evidence": {
+      "in_registries_csv": "web-tools docs/registries.csv lists no web-tools-private file"
+     }
+    },
+    {
+     "id": "trackers.md",
+     "called": [
+      "standard"
+     ],
+     "where": "home tools/generate-tracker-registry.py: \"a tracker registers itself simply by existing\"",
+     "values": {
+      "stands_for": "a thing",
+      "after_written": "edited in place",
+      "gets_in": "by rule",
+      "medium": "file",
+      "is_csv": "no",
+      "in_registries_csv": "no",
+      "provenance": "derived",
+      "lasts": "git",
+      "keyed": "yes"
+     },
+     "evidence": {
+      "gets_in": "generate-tracker-registry.py walks the folders: entries derived by rule"
+     }
+    },
+    {
+     "id": "snag.json",
+     "called": [],
+     "where": "web-tools-private lists/snag.json",
+     "values": {
+      "stands_for": "a thing",
+      "after_written": "edited in place",
+      "gets_in": "by author",
+      "medium": "file",
+      "is_csv": "no",
+      "in_registries_csv": "no",
+      "provenance": "authored",
+      "lasts": "git",
+      "keyed": "yes"
+     }
+    },
+    {
+     "id": "notes.jsonl",
+     "called": [],
+     "where": "docs/manifest.md stores example: shape stream",
+     "values": {
+      "stands_for": "an event",
+      "after_written": "never edited",
+      "gets_in": "by author",
+      "medium": "file",
+      "is_csv": "no",
+      "in_registries_csv": "no",
+      "provenance": "authored",
+      "lasts": "git",
+      "keyed": "yes"
+     },
+     "evidence": {
+      "keyed": "stores example declares key: id"
+     }
+    },
+    {
+     "id": "tending finding",
+     "called": [],
+     "where": "docs/views/tending.md: \"Only a reply carrying finding changes it\"",
+     "values": {
+      "stands_for": "a thing",
+      "after_written": "never edited",
+      "gets_in": "by author",
+      "medium": "entry in a shared file",
+      "is_csv": "no",
+      "in_registries_csv": "no",
+      "provenance": "authored",
+      "lasts": "git",
+      "keyed": "yes"
+     },
+     "evidence": {
+      "after_written": "a finding note is never edited; replies carrying finding change its state"
+     }
+    },
+    {
+     "id": "session record",
+     "called": [],
+     "where": "web-tools-private sessions/README.md: written by the Stop hook each turn",
+     "values": {
+      "stands_for": "an event",
+      "after_written": "edited until it ends",
+      "gets_in": "by rule",
+      "medium": "file per entry",
+      "is_csv": "no",
+      "in_registries_csv": "no",
+      "provenance": "derived",
+      "lasts": "git",
+      "keyed": "yes"
+     },
+     "evidence": {
+      "after_written": "rewritten at the end of each turn until the session ends"
+     }
+    },
+    {
+     "id": "web-tools-private",
+     "called": [
+      "private"
+     ],
+     "where": "its .web-tools.json: \"The private registry\"; app/index.html REGISTRY_REPO",
+     "values": {
+      "stands_for": "n/a",
+      "after_written": "n/a",
+      "gets_in": "n/a",
+      "medium": "repository",
+      "is_csv": "no",
+      "in_registries_csv": "no",
+      "provenance": "n/a",
+      "lasts": "git",
+      "keyed": "n/a"
+     },
+     "evidence": {
+      "stands_for": "a repository holding lists, notes, session records, caches and errands"
+     }
+    },
+    {
+     "id": "__loadedScripts",
+     "called": [
+      "standard"
+     ],
+     "where": "README.md: \"a registry of every load\"; lib/gh-boot.js",
+     "values": {
+      "stands_for": "a thing",
+      "after_written": "edited in place",
+      "gets_in": "on arrival",
+      "medium": "page memory",
+      "is_csv": "no",
+      "in_registries_csv": "no",
+      "provenance": "derived",
+      "lasts": "page",
+      "keyed": "yes"
+     },
+     "evidence": {
+      "after_written": "lib/gh-boot.js sets status and endT when the load completes"
+     }
+    },
+    {
+     "id": "PyPI",
+     "called": [
+      "standard"
+     ],
+     "where": "home projects/text/doc-audit/model-delivery.md: \"Package registry\"",
+     "values": {
+      "stands_for": "a thing",
+      "after_written": "edited in place",
+      "gets_in": "on arrival",
+      "medium": "outside system",
+      "is_csv": "no",
+      "in_registries_csv": "no",
+      "provenance": "n/a",
+      "lasts": "outside",
+      "keyed": "yes"
+     }
+    },
+    {
+     "id": "Windows registry",
+     "called": [
+      "standard"
+     ],
+     "where": "home chron/2026/02/2026-02-25-chat-catalog-feb-8-to-24.md",
+     "values": {
+      "stands_for": "a thing",
+      "after_written": "edited in place",
+      "gets_in": "on arrival",
+      "medium": "outside system",
+      "is_csv": "no",
+      "in_registries_csv": "no",
+      "provenance": "n/a",
+      "lasts": "outside",
+      "keyed": "yes"
+     }
+    }
+   ],
+   "field": {
+    "x": "stands_for",
+    "y": "after_written"
+   },
+   "outcome": {
+    "kinds": [
+     "list",
+     "region",
+     "outside",
+     "value"
+    ],
+    "summary": "A mix. One word with four senses: the listed CSVs are a list, the shape is a region whose opposite corner is the stream, the private registry is outside the space, and the standard sense is one value of how entries get in."
+   },
+   "pairs": [
+    [
+     "writers.csv",
+     "direct-to-main.csv"
+    ],
+    [
+     "task file",
+     "notes.jsonl"
+    ],
+    [
+     "tending finding",
+     "notes.jsonl"
+    ],
+    [
+     "snag.json",
+     "task file"
+    ]
+   ],
+   "findings": [
+    {
+     "kind": "constant",
+     "chars": [
+      "keyed"
+     ],
+     "text": "keyed is yes wherever it applies, so it separates nothing"
+    },
+    {
+     "kind": "fixed",
+     "chars": [
+      "lasts",
+      "medium"
+     ],
+     "text": "lasts is fixed once medium is known"
+    },
+    {
+     "kind": "identical",
+     "instances": [
+      "kits.csv",
+      "board.csv"
+     ],
+     "text": "no characteristic separates kits.csv, board.csv"
+    },
+    {
+     "kind": "identical",
+     "instances": [
+      "direct-to-main.csv",
+      "triggers.csv"
+     ],
+     "text": "no characteristic separates direct-to-main.csv, triggers.csv"
+    },
+    {
+     "kind": "identical",
+     "instances": [
+      "PyPI",
+      "Windows registry"
+     ],
+     "text": "no characteristic separates PyPI, Windows registry"
+    },
+    {
+     "kind": "empty",
+     "chars": [
+      "stands_for",
+      "after_written"
+     ],
+     "values": [
+      "a thing",
+      "edited until it ends"
+     ],
+     "text": "no instance is a thing and edited until it ends"
+    },
+    {
+     "kind": "empty",
+     "chars": [
+      "stands_for",
+      "after_written"
+     ],
+     "values": [
+      "an event",
+      "edited in place"
+     ],
+     "text": "no instance is an event and edited in place"
+    }
+   ]
+  }
+ ]
+}
