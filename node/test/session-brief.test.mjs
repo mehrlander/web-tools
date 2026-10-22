@@ -573,8 +573,8 @@ test('a fact carries its definition on data-title-tip, not in a title', () => {
   // way. A TEXT fact (day, ran) has its definition on a title-tip. A GLYPH fact
   // is a button whose panel names the unit, so it carries an aria-label rather
   // than a title-tip, which a hover would draw over the panel it opens. The
-  // SCOPE is one mark per repository, whose tip is the repository's name and
-  // nothing more (owner, 2026-10-22).
+  // SCOPE is one pill holding each repository's mark, whose tip lists them
+  // after "Checked out:" (owner, 2026-10-22).
   const text = d.strip.filter(f => !f.panel && f.k !== 'repos');
   const glyphs = d.strip.filter(f => f.panel);
   assert.deepEqual(Array.from(text, f => f.k), ['day', 'ran']);
@@ -586,9 +586,10 @@ test('a fact carries its definition on data-title-tip, not in a title', () => {
     assert.ok(!b.hasAttribute('data-title-tip'), 'a glyph fact draws no title-tip over its panel');
     assert.ok(b.getAttribute('aria-label'), 'and names itself to a reader who gets neither');
   }
-  const marks = [...strip.querySelectorAll('[data-scope-mark]')];
-  assert.deepEqual(marks.map(m => m.getAttribute('data-title-tip')), Array.from(d.scopeRepos),
-    'one mark per repository, its tip the name alone');
+  const pill = strip.querySelectorAll('[data-scope-pill]');
+  assert.equal(pill.length, 1, 'one pill for the whole scope');
+  assert.equal(pill[0].getAttribute('data-title-tip'), 'Checked out: web-tools');
+  assert.equal(pill[0].querySelectorAll('i.ph').length, d.scopeRepos.length, 'a mark per repository inside it');
 
   // THROUGH THE KIT, NOT A SECOND IMPLEMENTATION OF IT. `kits/title-tip.js` is this
   // estate's tier between a title and a built panel, and a strip definition is
@@ -596,11 +597,12 @@ test('a fact carries its definition on data-title-tip, not in a title', () => {
   // hand-rolled a tap-to-reveal line for one commit, which was that kit again
   // with no keyboard, no screen reader and no affordance before the tap.
   const noted = [...el.querySelectorAll('[data-title-tip]')]
-    .filter(n => !n.closest('[role="search"]') && !n.hasAttribute('data-scope-mark'));
+    .filter(n => !n.closest('[role="search"]') && !n.hasAttribute('data-scope-pill'));
   // Every fact, plus notes that are not facts about the SESSION: the id, the
   // `running <ref>` marker naming the ref this page's own code booted from,
-  // the scope row, whose note says what tapping it will do, the pages mark,
-  // and the follow-up summary's note saying Gemini wrote it, not the record. They are found
+  // the pages mark, and the follow-up summary's note saying Gemini wrote it,
+  // not the record. The scope row's microphone was the fifth until it came
+  // off on 2026-10-22. They are found
   // by SUBTRACTING the strip rather than by matching their own text, so the
   // count stays exact without a second list to keep in step.
   //
@@ -616,10 +618,10 @@ test('a fact carries its definition on data-title-tip, not in a title', () => {
   // Previous view, Next view, Open the page in a new tab, Swipe through every
   // view full screen, Open the cards and read them aloud, Read n cards one at a
   // time, Open this session in Claude Code, and The stored record on GitHub.
-  assert.equal(extras.length, 15,
-    'the id, the running-ref marker, the scope row, the pages mark, the Gemini summary and ten control labels off-strip: '
+  assert.equal(extras.length, 14,
+    'the id, the running-ref marker, the pages mark, the Gemini summary and ten control labels off-strip: '
     + JSON.stringify(extras.map(n => n.textContent.trim() || n.getAttribute('data-title-tip'))));
-  assert.equal(noted.length, text.length + 15, 'every text fact and those fifteen, and nothing else');
+  assert.equal(noted.length, text.length + 14, 'every text fact and those fourteen, and nothing else');
   // MATCHED ON THE VALUE, not on the fact's name, because the name is no longer
   // drawn: the strip renders `2026-08-05` and `40 calls`, so a lookup keyed on
   // "day" or "calls" would find the definition of whichever fact happened to
@@ -669,86 +671,33 @@ test('the page tells the brief that no embedder draws its header', () => {
   assert.match(page, /x-show="!framed \|\| !target"/);
 });
 
-// ── Prepare a follow-up session ─────────────────────────────────────────────
-// The one act this page offers, and the third attempt at placing it. It was two
-// icons on every row of the Sessions LIST (off the same day: nothing there said
-// which session a mark would act on), then a full-width row of words here, now
-// one microphone riding the end of the facts strip beside the scope it carries.
-// What is under test is unchanged by any of that: the address is truthful and
-// chooses nothing else. The placement is held below.
-
-test('the scope link carries the checkouts, owned by the mounted store', () => {
-  const u = new URL(lent().scopeUrl);
-  assert.equal(u.pathname, '/web-tools/pages/dictate.html');
-  assert.equal(u.searchParams.get('repo'), 'me/web-tools',
-    'the owner comes from the store this brief was mounted with, not a constant');
-  assert.equal(u.searchParams.get('to'), 'send', 'painted as the lead, never acted on');
-  assert.equal(u.searchParams.get('target'), 'code');
-  assert.equal(lent().scopeNames, 'web-tools');
-});
+// ── The scope ───────────────────────────────────────────────────────────────
+// The checkouts the session stood in, drawn as one pill on the strip. A
+// microphone beside it opened a follow-up session on the same scope until
+// 2026-10-22; it went unused and came off, and its tests with it.
 
 test('the wider `attached` list wins where the record carries it', () => {
   // Record schema 8. `repos` is where the shell stood and misses a checkout
   // worked entirely through absolute paths; `attached` is what the container
-  // held. The union is what the link should preselect.
+  // held. The union is what the pill draws.
   const d = lent();
   const was = d.rec;
   try {
     d.record = { ...was, attached: ['home', 'web-tools'] };
     assert.deepEqual([...d.scopeRepos], ['home', 'web-tools']);
-    assert.equal(new URL(d.scopeUrl).searchParams.get('repo'), 'me/home,me/web-tools');
   } finally { d.record = was; }
 });
 
-test('a session that names no checkout offers no row', () => {
+test('a session that names no checkout draws no pill', () => {
   const d = lent();
   const was = d.record;
   try {
     d.record = { ...d.rec, repos: [], attached: [] };
     assert.deepEqual([...d.scopeRepos], []);
-    assert.equal(d.scopeUrl, '', 'absent rather than a link that preselects nothing');
+    assert.ok(!d.strip.some(f => f.k === 'repos'), 'absent rather than an empty pill');
   } finally { d.record = was; }
 });
 
-
-test('the act is one mark on the facts strip, not a row of its own', () => {
-  // The row of words was overkill for a control worth one tap (reported
-  // 2026-09-08). It sits on the strip now because it operates on the strip's
-  // last fact: repos says where the session ran, and this starts new work in
-  // the same place.
-  //
-  // Read off the SOURCE for the same reason the shell width is: jsdom compiles
-  // no Tailwind, so a layout claim is only answerable in the template.
-  const src = readFileSync(path.join(repoRoot, 'lib/alpineComponents/session-brief.js'), 'utf8');
-  assert.doesNotMatch(src, /Work on this scope/, 'the worded row is gone');
-  // Inside the repos fact's own block since the scope became marks
-  // (2026-10-22), so the condition is the link alone.
-  const link = src.match(/<template x-if="scopeUrl">[\s\S]*?<\/template>/);
-  assert.ok(link, 'and what replaced it is an anchor, so it is still a link to somewhere');
-  assert.match(link[0], /<a :href="scopeUrl"/, 'a real link, not a button that scripts a navigation');
-  assert.match(link[0], /ph-microphone/, 'the microphone, which is what named the act');
-  assert.doesNotMatch(link[0], /<span/, 'and no words beside it');
-  // THE WORDS ARE NOT LOST, they are one hover or tap away. A note reaches a
-  // touch screen and a screenshot, which is the property that lets an icon
-  // carry an act here where a title attribute could not (kits/title-tip.js).
-  assert.match(link[0], /data-title-tip=/, 'the note says what will happen');
-  assert.match(link[0], /aria-label="Prepare a follow-up session"/,
-    'and the same act is named for a reader who gets no note at all');
-});
-
-test('the note names the checkouts and promises nothing runs unasked', () => {
-  const d = lent();
-  const src = readFileSync(path.join(repoRoot, 'lib/alpineComponents/session-brief.js'), 'utf8');
-  // Scoped to the anchor: the facts on the strip carry notes of their own, and
-  // a document-wide match reads whichever comes first.
-  const link = src.match(/<template x-if="scopeUrl">[\s\S]*?<\/template>/)[0];
-  const note = link.match(/:data-title-tip="([\s\S]*?)"\s*>/);
-  assert.ok(note, 'the note is bound rather than written down, so it carries the real scope');
-  assert.match(note[1], /scopeNames/, 'which is the same list the strip prints');
-  assert.match(note[1], /Nothing runs until you send it/,
-    'the one promise the far end has to keep: to=send paints the destination, never acts');
-  assert.equal(d.scopeNames, 'web-tools');
-});
 
 test('branchGroups groups session fileRows by repository and branch', async () => {
   window.__branchGroupSession = {
