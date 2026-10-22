@@ -573,8 +573,8 @@ test('a fact carries its definition on data-title-tip, not in a title', () => {
   // way. A TEXT fact (day, ran) has its definition on a title-tip. A GLYPH fact
   // is a button whose panel names the unit, so it carries an aria-label rather
   // than a title-tip, which a hover would draw over the panel it opens. The
-  // SCOPE is one mark per repository, each with the definition and the
-  // repository's name as the tip's lead.
+  // SCOPE is one mark per repository, whose tip is the repository's name and
+  // nothing more (owner, 2026-10-22).
   const text = d.strip.filter(f => !f.panel && f.k !== 'repos');
   const glyphs = d.strip.filter(f => f.panel);
   assert.deepEqual(Array.from(text, f => f.k), ['day', 'ran']);
@@ -586,11 +586,9 @@ test('a fact carries its definition on data-title-tip, not in a title', () => {
     assert.ok(!b.hasAttribute('data-title-tip'), 'a glyph fact draws no title-tip over its panel');
     assert.ok(b.getAttribute('aria-label'), 'and names itself to a reader who gets neither');
   }
-  const marks = [...strip.querySelectorAll('[data-scope-marks] [data-title-tip-lead]')];
-  assert.deepEqual(marks.map(m => m.getAttribute('data-title-tip-lead')), Array.from(d.scopeRepos),
-    'one mark per repository, named on its tip');
-  const reposDef = d.strip.find(f => f.k === 'repos').t;
-  for (const m of marks) assert.equal(m.getAttribute('data-title-tip'), reposDef);
+  const marks = [...strip.querySelectorAll('[data-scope-mark]')];
+  assert.deepEqual(marks.map(m => m.getAttribute('data-title-tip')), Array.from(d.scopeRepos),
+    'one mark per repository, its tip the name alone');
 
   // THROUGH THE KIT, NOT A SECOND IMPLEMENTATION OF IT. `kits/title-tip.js` is this
   // estate's tier between a title and a built panel, and a strip definition is
@@ -598,7 +596,7 @@ test('a fact carries its definition on data-title-tip, not in a title', () => {
   // hand-rolled a tap-to-reveal line for one commit, which was that kit again
   // with no keyboard, no screen reader and no affordance before the tap.
   const noted = [...el.querySelectorAll('[data-title-tip]')]
-    .filter(n => !n.closest('[role="search"]') && !n.hasAttribute('data-title-tip-lead'));
+    .filter(n => !n.closest('[role="search"]') && !n.hasAttribute('data-scope-mark'));
   // Every fact, plus notes that are not facts about the SESSION: the id, the
   // `running <ref>` marker naming the ref this page's own code booted from,
   // the scope row, whose note says what tapping it will do, the pages mark,
