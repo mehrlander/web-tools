@@ -158,38 +158,42 @@ test('a lent row renders the strip and the title without waiting on the record',
   const s = strip(lent());
   assert.equal(s.calls, 40);
   assert.equal(s.failures, 1);
-  assert.equal(s.ran, '3h 0m');
+  assert.equal(lent().timeFacts.span, '3h 0m', 'how long it ran is the time panel\'s');
   assert.equal(s.repos, 'web-tools');
-  assert.equal(s.day, '2026-08-05');
+  // Short and friendly (owner, 2026-10-22), with the year only past a year
+  // ago, so this holds whichever side of that line the suite runs on.
+  assert.match(s.day, /^Aug 5(, 2026)?$/);
 });
 
-test('the strip carries five facts and no more, and names which', () => {
+test('the strip carries four facts and no more, and names which', () => {
   // A CEILING, not a list for its own sake. Nine facts wrapped the strip to
   // three lines at 430px, half of a phone's head, and two of the nine were
   // printed again 44px below as the Outline and Files tab counts. `asks` and
   // `files` went for that duplication, `schema` because it is the record
   // FORMAT's version rather than a fact about the session, and `out tokens`
-  // because nothing reads differently for a large one.
+  // because nothing reads differently for a large one. `ran` went into the
+  // start date's panel on 2026-10-22, beside when the session last moved.
   // Array.from, because a getter's return reaches a test through Alpine's
   // reactive proxy and deepEqual compares prototypes.
   assert.deepEqual(Array.from(lent().strip, f => f.k),
-    ['day', 'ran', 'calls', 'failures', 'repos']);
+    ['day', 'calls', 'failures', 'repos']);
 });
 
 test('a count is a glyph that opens its panel; only the self-naming values are text', () => {
   // `f.k` stays the fact's NAME, which the notes and these tests key on. A date
-  // reads as a date and a duration as a duration, so those draw bare text; 251
-  // does not read as calls, and since 2026-10-22 the glyph says so, as on the
-  // Activity view's Sessions row, with the unit in words in the panel the
-  // glyph opens. So no fact draws a unit word any more.
+  // reads as a date, so it draws bare; 251 does not read as calls, and since
+  // 2026-10-22 the glyph says so, as on the Activity view's Sessions row, with
+  // the unit in words in the panel the glyph opens. So no fact draws a unit
+  // word any more.
   const f = Object.fromEntries(lent().strip.map(x => [x.k, x]));
   assert.deepEqual(Object.fromEntries(Object.entries(f).map(([k, x]) => [k, x.unit])),
-    { day: '', ran: '', calls: '', failures: '', repos: '' });
+    { day: '', calls: '', failures: '', repos: '' });
   assert.equal(f.calls.icon, 'ph-wrench');
   assert.equal(f.calls.panel, 'tools');
   assert.equal(f.failures.panel, 'tools', 'failures open the same list, where the failing tool is named');
   assert.equal(f.failures.tone, 'text-warning');
-  assert.equal(f.day.panel, '', 'a text fact opens nothing');
+  assert.equal(f.day.panel, 'time', 'the date opens when it ran');
+  assert.equal(f.day.icon, '', 'and draws no glyph: the date names itself');
 });
 
 test('a zero failure count is stated in the tools panel, not on the strip', () => {
@@ -209,7 +213,7 @@ test('a zero failure count is stated in the tools panel, not on the strip', () =
   assert.equal(s.calls, 0, 'measured zero calls is a fact');
   assert.ok(!('failures' in s), 'a zero failure count leaves the strip');
   assert.equal(d.toolTally.failures, 0, 'and the panel has it to state');
-  assert.ok(!('ran' in s), 'a duration nothing could compute is absent, not zero');
+  assert.equal(d.timeFacts.span, '', 'a duration nothing could compute is absent, not zero');
   assert.ok(!('agents' in s), 'and so is a fan-out nobody ran');
 });
 
@@ -577,7 +581,7 @@ test('a fact carries its definition on data-title-tip, not in a title', () => {
   // same kind: it opens the checkouts panel (owner, 2026-10-22).
   const text = d.strip.filter(f => !f.panel && f.k !== 'repos');
   const glyphs = d.strip.filter(f => f.panel);
-  assert.deepEqual(Array.from(text, f => f.k), ['day', 'ran']);
+  assert.deepEqual(Array.from(text, f => f.k), [], 'every fact is a glyph or the date, each opening its panel');
   // The Gemini mark is a button of the same kind and no fact of the record's;
   // its own tests are below, with the topics file.
   const buttons = [...strip.querySelectorAll('[data-fact-btn]:not([data-gemini-mark])')];
@@ -717,18 +721,17 @@ test('the checkouts panel lists every branch with work on it, under its reposito
     assert.equal(d.scopePushed, 3, 'the header counts branches pushed');
     assert.match(d.scopeRows[0].branches[0].url, /branch\.html#gh=me\/home@claude%2Fa-1$/);
     // What the page read live, once loadWork has run: the PR, the branch's
-    // place in the branch deck, and its views counted from every view, not
-    // the strip's first 24, which once left a count that opened nothing.
-    const work = d.work.branches, all = d.work.allViews;
+    // place in the branch deck, and how many files it changed (files, not
+    // renderable views, since 2026-10-22).
+    const work = d.work.branches;
     d.work.branches = [{ repoShort: 'web-tools', branch: 'claude/z-9', ahead: 1 },
-                       { repoShort: 'home', branch: 'claude/a-1', pr: 7, prState: 'open', prUrl: 'pr7', ahead: 2, url: 'live-url' }];
-    d.work.allViews = [{ repoShort: 'home', branch: 'claude/a-1' }, { repoShort: 'home', branch: 'claude/a-1' },
-                       { repoShort: 'web-tools', branch: 'claude/a-1' }];
+                       { repoShort: 'home', branch: 'claude/a-1', pr: 7, prState: 'open', prUrl: 'pr7', ahead: 2,
+                         files: 5, url: 'live-url' }];
     const home = d.scopeRows[0].branches[0];
-    assert.deepEqual([home.pr, home.prState, home.views, home.word, home.url, home.n],
-                     [7, 'open', 2, 'pushed', 'live-url', 1]);
+    assert.deepEqual([home.pr, home.prState, home.files, home.word, home.url, home.n],
+                     [7, 'open', 5, 'pushed', 'live-url', 1]);
     assert.equal(d.scopeRows.find(g => g.name === 'web-tools-private').branches.length, 0);
-    d.work.branches = work; d.work.allViews = all;
+    d.work.branches = work;
     d.record = { ...d.rec, schema: 4, attached: undefined, pushed: undefined,
       repos: [{ name: 'web-tools', branch: 'claude/a-1' }] };
     assert.deepEqual(shape(), { 'web-tools': '' }, 'an old record makes no claim about commits');
@@ -806,6 +809,33 @@ test('a note names what it is about in the notes store\'s locators, and copies o
   } finally {
     d.pane = was.pane; d.work.views = was.views; d.vAt = was.vAt; d.notes = was.notes; d.noteAbout = was.about;
   }
+});
+
+test('the time panel reads a long span in days and counts the days the owner spoke', () => {
+  const d = lent();
+  const was = d.record;
+  try {
+    d.record = { ...d.rec, started: '2026-10-11T16:55:00Z', ended: '2026-10-21T01:28:00Z',
+      prompts: [{ at: '2026-10-11T17:00:00Z' }, { at: '2026-10-11T18:00:00Z' }, { at: '2026-10-15T18:00:00Z' }] };
+    const t = d.timeFacts;
+    assert.equal(t.span, '9d 8h', '224h 33m is exact and reads as nothing');
+    assert.equal(t.turns, 3);
+    assert.equal(t.days, 2);
+    assert.match(t.started, /Oct 11/);
+  } finally { d.record = was; }
+});
+
+test('the pill draws declared marks and counts the rest', () => {
+  // Nine checkouts drew six neutral bookmarks in a row on a phone (owner,
+  // 2026-10-22).
+  const d = lent();
+  const was = { record: d.record, marks: d.marks };
+  try {
+    d.record = { ...d.rec, attached: ['home', 'web-tools', 'wtp-a', 'wtp-b'] };
+    d.marks = { home: 'ph-house', 'web-tools': 'ph-toolbox', 'wtp-a': '', 'wtp-b': '' };
+    assert.deepEqual(Array.from(d.scopeMarked), ['home', 'web-tools']);
+    assert.equal(d.scopeRepos.length - d.scopeMarked.length, 2, 'drawn as +2');
+  } finally { d.record = was.record; d.marks = was.marks; }
 });
 
 test('a session that names no checkout draws no pill', () => {
