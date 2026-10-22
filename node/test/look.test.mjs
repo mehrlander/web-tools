@@ -255,16 +255,16 @@ test('one message per card: an intro is the first card\'s message only when that
   assert.match(card(two).textContent, /1 of 2/);
 });
 
-test('base64 steps wait for gh-api.js rather than reading as unreadable', async () => {
-  // The toss data route ran this kit before the page's boot loaded gh-api.js.
-  const steps = Buffer.from(JSON.stringify([{ at: 'x', say: 'Here' }])).toString('base64url');
+test('base64 steps read on a page without gh-api.js, UTF-8 intact', async () => {
+  // The toss data route ran this kit before the page's boot loaded gh-api.js
+  // (2026-10-21), and a tossed page that boots nothing never loads it at all
+  // (2026-10-22), so the kit decodes with the platform's own codec.
+  const steps = Buffer.from(JSON.stringify([{ at: 'x', say: 'Here · €5 – ✓' }])).toString('base64url');
   const w = realm('<p data-at="x">Hello</p>', 'steps=' + steps, undefined, { gh: false });
   await loaded(w);
   await wait(30);
-  assert.equal(card(w), null, 'nothing read before the codec is there');
-  w.GH = withBase64({});
-  await wait(150);
-  assert.equal(said(w), 'Here');
+  assert.equal(said(w), 'Here · €5 – ✓');
+  assert.equal(w.Look.encode([{ at: 'x', say: 'Here · €5 – ✓' }]), steps, 'and encodes as Node does');
 });
 
 test('a broken walkthrough still shows its intro, then says what broke', async () => {
@@ -430,6 +430,15 @@ test('a stop on another tossed page is another page, though top mode hides the a
   const { u, stop } = readWalkthrough(went);
   assert.match(decodeURIComponent(u.search), /[?&]gh=o\/r@main:b\.html(&|$)/);
   assert.equal(stop, '2');
+});
+
+test('a page that rewrites its fragment as it boots keeps the walkthrough the link asked for', async () => {
+  const steps = encodeURIComponent(JSON.stringify([{ at: 'a', say: 'here' }, { at: 'b', say: 'and here' }]));
+  const w = realm('<p data-at="a">a</p><p data-at="b">b</p>', 'tab=drs&steps=' + steps + '&stop=2');
+  w.history.replaceState(null, '', '/test/#tab=drs&sec=135');   // the page's own boot, as Budget bills does it
+  await loaded(w);
+  await wait(30);
+  assert.equal(said(w), 'and here', 'the walkthrough starts, at the stop the link named');
 });
 
 test('on the far page, Back goes to the stop before it', async () => {
