@@ -9,9 +9,9 @@ description: "Manage a declared program, which organizes work and related resour
 
 An ongoing concern, such as how a reply reaches the reader, changes often, and
 whichever session is at hand changes it. Nothing returns to ask whether a change
-did what it was meant to. A program gives the concern a declaration (`programs`
-in `.web-tools.json`), a charter in `docs/programs/`, measures, reviewers and a
-slice of the tracker. The manager is the role a session
+did what it was meant to. A program gives the concern a folder of its own
+(`programs/<name>/`, whose README.md is the charter), a declaration (`programs`
+in `.web-tools.json`), measures, reviewers and a slice of the tracker. The manager is the role a session
 takes on here; the record stays with the program, whoever fills the role.
 
 ## Goal and output
@@ -33,8 +33,9 @@ in chat. One note addressed to the charter closes each run.
    declaration names (Agent tool), then to the owner: wording as a doc review
    (doc-craft skill), anything else with its evidence.
 4. **Record.** Leave one note addressed to the charter
-   (`owner/repo:docs/programs/<name>.md`) with the notes skill: what the report
-   showed and what was decided. The next run starts from it.
+   (`owner/repo:programs/<name>/README.md`) with the notes skill: what the report
+   showed and what was decided. The next run starts from it. Material longer than
+   a note, such as a report, goes in the program's folder.
 
 ## Key insights
 

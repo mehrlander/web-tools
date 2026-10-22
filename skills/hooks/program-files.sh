@@ -35,7 +35,7 @@ if os.path.exists(mark):
 os.makedirs(os.path.dirname(mark), exist_ok=True)
 open(mark, "w").close()
 label = prog.get("label") or prog["name"]
-print(f"{rel} is governed by the {label} program (charter {prog.get('charter', '')}). "
+print(f"{rel} is governed by the {label} program (charter {prog.get('path', '')}/README.md). "
       f"Before handing the change over, run /portable:programs {prog['name']} to report "
       "the change against the charter's measures and send it to the program's reviewers.",
       file=sys.stderr)

@@ -2,7 +2,8 @@
 // programs[]). A declaration is the one list the Programs tab, the programs
 // skill and the program-files hook all read, so a path in it that no longer
 // exists misleads all three at once. This holds every declaration to the
-// files on disk: the charter and every governed path exist, no file answers
+// files on disk: the program's folder and its README.md charter exist, every
+// governed path exists, no file answers
 // to two programs, and every reviewer is an agent docs/agents.csv lists.
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -33,7 +34,7 @@ test('the hub declares at least one program', () => {
   assert.ok(declarations().some(d => d.repo === 'mehrlander/web-tools'));
 });
 
-test('every program names itself, an icon and a charter that exists', () => {
+test('every program names itself, an icon and a folder whose README.md is its charter', () => {
   const gaps = [], names = new Set();
   for (const { repo, root, e } of declarations()) {
     const id = `${repo}: ${e?.name || '(unnamed)'}`;
@@ -41,7 +42,7 @@ test('every program names itself, an icon and a charter that exists', () => {
     else if (names.has(e.name)) gaps.push(`${id} is declared twice`);
     else names.add(e.name);
     if (typeof e?.icon !== 'string' || !e.icon.startsWith('ph-')) gaps.push(`${id} needs a ph- icon`);
-    if (typeof e?.charter !== 'string' || !existsSync(path.join(root, e.charter))) gaps.push(`${id}'s charter ${e?.charter} is missing`);
+    if (typeof e?.path !== 'string' || !existsSync(path.join(root, e.path, 'README.md'))) gaps.push(`${id}'s charter ${e?.path}/README.md is missing`);
   }
   assert.deepEqual(gaps, []);
 });

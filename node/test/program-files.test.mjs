@@ -12,7 +12,7 @@ import { repoRoot } from './bootstrap.mjs';
 
 const HOOK = join(repoRoot, 'skills/hooks/program-files.sh');
 const manifest = JSON.stringify({ programs: [{ name: 'surfacing', label: 'Surfacing',
-  charter: 'docs/programs/surfacing.md', governs: ['docs/SURFACING.md', 'python/showing.py'] }] });
+  path: 'programs/surfacing', governs: ['docs/SURFACING.md', 'python/showing.py'] }] });
 const files = { '.web-tools.json': manifest, 'docs/SURFACING.md': 'x', 'python/showing.py': 'x', 'docs/APP.md': 'x' };
 
 function repo(body = files) {
@@ -36,7 +36,7 @@ test('a governed file names its program and the skill, once per session', () => 
   try {
     const first = r.edit('python/showing.py');
     assert.equal(first.status, 2);
-    assert.match(first.err, /governed by the Surfacing program \(charter docs\/programs\/surfacing\.md\)/);
+    assert.match(first.err, /governed by the Surfacing program \(charter programs\/surfacing\/README\.md\)/);
     assert.match(first.err, /\/portable:programs surfacing/);
     assert.equal(r.edit('docs/SURFACING.md').status, 0, 'the same program stays quiet for the rest of the session');
     assert.equal(r.edit('docs/SURFACING.md', 's2').status, 2, 'another session hears it');

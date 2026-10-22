@@ -17,7 +17,7 @@ const hub = 'mehrlander/web-tools', home = 'mehrlander/home';
 const account = (path, label, kind = 'probe') => ({ path, label, kind });
 const manifests = {
   [hub]: { research: [account('research/excel/README.md', 'Excel findings')], tracker: 'tracker/board.md',
-    programs: [{ name: 'surfacing', label: 'Surfacing', icon: 'ph-megaphone', charter: 'docs/programs/surfacing.md',
+    programs: [{ name: 'surfacing', label: 'Surfacing', icon: 'ph-megaphone', path: 'programs/surfacing',
       governs: ['docs/SURFACING.md', 'python/showing.py'], measures: ['owner/private@background:state/closings.json'],
       reviewers: ['portable:owner-proxy'], views: ['?view=map&tab=surfacing'] }, { label: 'unnamed' }] },
   [home]: { estate: true, projects: [

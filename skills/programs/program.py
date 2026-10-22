@@ -5,7 +5,8 @@ A program is declared under `programs` in a checkout's .web-tools.json
 (docs/CONSTELLATION.md, "Projects and research"). This reads the declaration
 and collects what needs no judgment: commits to the governed files since the
 program's last note, its open tasks, the snags whose targets include a governed
-file, the notes addressed to the charter or a governed file, and each measure's
+file, the notes addressed to the charter (the README.md of the program's folder)
+or a governed file, and each measure's
 summary. Reading it is the session's job.
 
   python3 program.py list
@@ -78,10 +79,11 @@ def table(columns, rows):
 def report(repo, prog, since):
     me = slug(repo)
     governs = prog.get("governs") or []
-    charter = f"{me}:{prog['charter']}"
+    charter_path = f"{prog['path']}/README.md"
+    charter = f"{me}:{charter_path}"
     subjects = {charter} | {f"{me}:{g}" for g in governs}
     print(f"# {prog.get('label') or prog['name']} program\n")
-    print(f"Charter: `{prog['charter']}` · {len(governs)} governed files\n")
+    print(f"Charter: `{charter_path}` · {len(governs)} governed files\n")
 
     try:
         store_repo, store = note.find_store(None)
@@ -165,7 +167,7 @@ def main(argv):
     progs = declared(repo)
     if a.cmd == "list":
         for p in progs:
-            print(f"{p['name']}\t{p.get('label', '')}\t{p['charter']}\t{len(p.get('governs') or [])} files")
+            print(f"{p['name']}\t{p.get('label', '')}\t{p['path']}\t{len(p.get('governs') or [])} files")
         return
     prog = next((p for p in progs if p.get("name") == a.name), None)
     if not prog:
