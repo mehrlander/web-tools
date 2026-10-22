@@ -689,26 +689,31 @@ test('the wider `attached` list wins where the record carries it', () => {
   } finally { d.record = was; }
 });
 
-test('the checkouts panel says, per repository, whether the session committed there', () => {
+test('the checkouts panel lists every branch with work on it, under its repository', () => {
   // Best evidence first: a push the record names (schema 15), else commits
-  // past main at the last stop that never left the container, else a
-  // measured none. A record older than both fields says nothing at all.
+  // past main at the last stop that never left the container. A branch with
+  // neither is only the checkout's name and is not listed; the repository
+  // says "no commits" instead. A record older than both fields says nothing.
   const d = lent();
   const was = d.record;
-  const words = () => Object.fromEntries(Array.from(d.scopeRows, x => [x.name, x.word]));
+  const shape = () => Object.fromEntries(Array.from(d.scopeRows, g =>
+    [g.name, g.branches.length ? Array.from(g.branches, b => b.branch + ': ' + b.word) : g.word]));
   try {
     d.record = { ...d.rec, schema: 15, attached: ['home', 'web-tools', 'web-tools-private'],
       repos: [{ name: 'home', branch: 'claude/a-1', ahead_base: 2 },
               { name: 'web-tools', branch: 'claude/a-1', ahead_base: 0 },
-              { name: 'web-tools-private', branch: 'main', ahead_base: 0 }],
-      pushed: [{ name: 'web-tools', branch: 'claude/a-1' }] };
-    assert.deepEqual(words(), { home: '2 commits, not pushed', 'web-tools': 'pushed', 'web-tools-private': 'no commits' });
-    assert.equal(d.scopePushed, 1);
-    assert.equal(d.scopeRows.find(x => x.name === 'web-tools-private').branch, '', 'main is no branch worth naming');
-    assert.match(d.scopeRows.find(x => x.name === 'home').url, /branch\.html#gh=me\/home@claude%2Fa-1$/);
+              { name: 'web-tools-private', branch: 'claude/a-1', ahead_base: 0 }],
+      pushed: [{ name: 'web-tools', branch: 'claude/a-1' }, { name: 'web-tools', branch: 'claude/b-2' }] };
+    assert.deepEqual(shape(), {
+      home: ['claude/a-1: 2 commits, not pushed'],
+      'web-tools': ['claude/a-1: pushed', 'claude/b-2: pushed'],
+      'web-tools-private': 'no commits',
+    }, 'two pushed branches in one repository are two lines, and a bare checkout branch is none');
+    assert.equal(d.scopePushed, 2, 'the header counts branches pushed');
+    assert.match(d.scopeRows[0].branches[0].url, /branch\.html#gh=me\/home@claude%2Fa-1$/);
     d.record = { ...d.rec, schema: 4, attached: undefined, pushed: undefined,
       repos: [{ name: 'web-tools', branch: 'claude/a-1' }] };
-    assert.deepEqual(words(), { 'web-tools': '' }, 'an old record makes no claim about commits');
+    assert.deepEqual(shape(), { 'web-tools': '' }, 'an old record makes no claim about commits');
   } finally { d.record = was; }
 });
 
