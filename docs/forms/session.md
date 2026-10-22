@@ -12,5 +12,8 @@ It has two carriers:
   with no token. The store is private, so `#id=` and `#gh=` need the viewer's
   token.
 
-The summary and topics come from the Sessions row, not the record, so the
-standalone page, which has no row, shows neither.
+The summary, the topics and a summary of each turn come from the session's
+topics file, `sessions/topics/` on the store's `background` branch, which the
+laptop daemon writes. The Sessions row lends the summary and topics until the
+file is read, so a slide shows them at once and the standalone page shows them
+once the file arrives. A turn's summary is a line on its Outline row.

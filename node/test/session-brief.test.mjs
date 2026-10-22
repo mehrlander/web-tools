@@ -25,6 +25,7 @@ import { makeWindow, tick, repoRoot, captureAlpineErrors } from './bootstrap.mjs
 
 const STORE = 'me/private';
 const PATH = 'sessions/2026/08/2026-08-05-b8fae678.json';
+const TOPICS_PATH = 'sessions/topics/2026/08/2026-08-05-b8fae678.json';
 
 const record = {
   schema: 4, short: 'b8fae678', day: '2026-08-05',
@@ -62,6 +63,11 @@ class FakeGH {
   async get(p) {
     log.push('get:' + this.repo + ':' + p);
     if (p === PATH) return { text: JSON.stringify({ ...record, readFrom: this.repo }) };
+    // Gemini's topics file, on the branch the laptop daemon writes, and only
+    // there: a read of it from main is a bug, and it 404s like one.
+    if (p === TOPICS_PATH && this.ref === 'background' && window.__topicsDoc) {
+      return { text: JSON.stringify(window.__topicsDoc) };
+    }
     throw Object.assign(new Error('404'), { status: 404 });
   }
   async req(p) {
@@ -781,4 +787,55 @@ test('mountRaw mounts JsonExplorer on demand and destroy cleans it up', async ()
 
   data.destroy();
   assert.equal(destroyed, true, 'destroy cleans up _rawExplorer');
+});
+
+// ── Gemini's topics file ────────────────────────────────────────────────────
+// Read by the form itself, from `background`, because the host's rollup row
+// carries no turns and a deep-linked slide was mounted before that row had
+// even been joined. The summary prefers it; the outline's notes come from it.
+// Each test names its own store: the reads are memoised per store and path for
+// a minute, which is the behaviour, so a shared key would hand one test the
+// file another test served.
+const mountTopics = async (doc, repo) => {
+  window.__topicsDoc = doc;
+  window.__topicsMount = { repo, path: PATH };
+  const el = window.document.createElement('div');
+  el.setAttribute('x-data', 'sessionBrief(window.__topicsMount)');
+  window.document.body.append(el);
+  Alpine.initTree(el);
+  await tick(8);
+  return Alpine.$data(el);
+};
+const TOPICS_DOC = {
+  format: 6, title: 'Gemini title', summary: 'What Gemini made of it.', topics: ['The thing'],
+  agenda: [{ topic: 'The thing', kind: 'new', turns: [0, 0], at: record.prompts[0].at }],
+  turns: [{ turn: 0, summary: 'The owner asked for the thing, and got it.', headline: 'The thing' }],
+};
+
+test('the topics file is read from background and outranks the row for the summary', async () => {
+  const data = await mountTopics(TOPICS_DOC, 'me/topics-a');
+  assert.ok(gets().includes('get:me/topics-a:' + TOPICS_PATH), 'read beside the record');
+  assert.equal(data.gist.summary, 'What Gemini made of it.');
+  assert.deepEqual(JSON.parse(JSON.stringify(data.turnNotes())),
+    { [record.prompts[0].at]: { summary: 'The owner asked for the thing, and got it.', headline: 'The thing' } },
+    'each note is keyed by the instant its turn was sent, which is what an outline row carries');
+  window.__topicsDoc = null;
+});
+
+test('a session with no topics file reads as it did before there were any', async () => {
+  const data = await mountTopics(null, 'me/topics-b');
+  assert.equal(data.topics, null);
+  assert.equal(data.turnNotes(), null);
+  assert.equal(data.gist.summary, '');
+});
+
+test('an old record whose turn count disagrees gets no notes, rather than notes on the wrong rows', async () => {
+  // Schema 4 predates the recorder separating injected prompts, so the file's
+  // turn numbering and the record's prompts can differ, and here they do.
+  const doc = { ...TOPICS_DOC, turns: [...TOPICS_DOC.turns, { turn: 1, summary: 'A second turn.' }] };
+  const data = await mountTopics(doc, 'me/topics-c');
+  assert.equal(data.record.schema, 4);
+  assert.equal(data.turnNotes(), null);
+  assert.equal(data.gist.summary, 'What Gemini made of it.', 'the session-level summary still applies');
+  window.__topicsDoc = null;
 });
