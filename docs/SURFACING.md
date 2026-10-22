@@ -45,9 +45,7 @@ substituting the current repo in URL templates.
 
 ### Displaying content
 
-* **A rendered view 🥏.** `toss-render.html` renders a page or other content from GitHub. Each browser needs a GitHub token for private repos. `npm run showing` prints the 🥏 links for the branch's changed files, and with `--path <file>` a link for any file. The printed line goes in the reply unchanged, refreshed after each commit. `npm run showing -- --help` lists the options for a fragment (the rendered page's own address), a query and a width.
-
-* **A look link 🥏.** A render link that greets the reader and lands on the place to see: `npm run showing -- --intro "<what changed>" --at "<fragment>"`, with the fragment from `python/look-link.py` (`show` or `tap` for one place, `walk` or `steps` for several; the `look-markers` skill). Send one whenever a reply asks the reader to look at or tap something on a page, and add `--width 390` when the look is about a phone.
+* **A rendered view 🥏.** `toss-render.html` renders a page or other content from GitHub. Each browser needs a GitHub token for private repos. `npm run showing` prints the 🥏 links for the branch's changed files, and with `--path <file>` a link for any file. The printed line goes in the reply unchanged, refreshed after each commit. `npm run showing -- --help` lists the options for a fragment (the rendered page's own address), a query and a width. When a reply asks the reader to look at or tap something on a page, make the link a look link: `--intro "<what changed>"` greets the reader, and `--at "<fragment>"` lands on the place to see, with the fragment from `python/look-link.py` (`show` or `tap` for one place, `walk` or `steps` for several; the `look-markers` skill). Add `--width 390` when the look is about a phone.
 
 * **Content in the link.** A `#gz=` link carries its content gzipped and base64url-encoded in the address, so it needs no commit or token; a link's length caps the content. `toss-render.html#gz=` renders a page carried this way. The Web Tools app's `#gz=` carries text files; in web-tools, `npm run -s stage-link -- <file>` prints one that opens the file with a Copy button.
 
