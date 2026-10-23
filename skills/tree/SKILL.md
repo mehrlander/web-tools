@@ -8,14 +8,14 @@ description: >-
   first because nested bullets balloon vertically on mobile. Use when the
   user says "tree", "show the repo structure", "file tree", "map the repo",
   "lay out the folders", "/tree", or names a subtree/depth to render.
-  Answers "what is here" (structure); the surfacing contract answers
+  Answers "what is here" (structure); CONVERSATION.md answers
   "what moved" (change).
 ---
 
 # tree
 
 An orientation view: the shape of a repo or a subtree, rendered for a chat
-reader on a phone. It is the structural sibling of the surfacing contract's
+reader on a phone. It is the structural sibling of CONVERSATION.md's
 change handoff. The boundary, worth stating so the two do not drift:
 
 - **Surfacing** answers *what moved* this session (axis: the git diff; a
@@ -188,5 +188,5 @@ This skill owns structure rendering. [`CONVERSATION.md`](../../docs/CONVERSATION
 owns change surfacing: the branch-page caption by default, the
 `[new]/[main]/[diff]` file list as fallback, render lines, and PR bodies. A tree
 is not a change handoff: it carries no change state and no diff links. If the
-ask is "what did I touch," follow the surfacing contract; a tree that also marks
+ask is "what did I touch," follow CONVERSATION.md; a tree that also marks
 change is a deliberate combined view, not the default.

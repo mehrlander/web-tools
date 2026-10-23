@@ -109,7 +109,7 @@ test('a session whose checkouts have no CLAUDE.md still gets the directive', () 
   assert.match(run(root), /Invoke \/portable:default/, 'no CLAUDE.md is no delivery, so it must ask');
 });
 
-test('an import resolving to a file without the primitives does not count', () => {
+test('an import resolving to a file without the rules does not count', () => {
   const root = build('wrong-target', {
     r: { 'CLAUDE.md': '@docs/OTHER.md\n', 'docs/OTHER.md': '# Something else\n' },
   });

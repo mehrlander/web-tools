@@ -1,5 +1,5 @@
 #!/bin/bash
-# SessionStart hook: when the surfacing conventions did NOT arrive on their own,
+# SessionStart hook: when the conventions did NOT arrive on their own,
 # tell the session to invoke the skill that fetches them.
 #
 # THE QUESTION IS "DID IT ARRIVE", NOT "DOES THE REPO INTEND IT". That
@@ -10,7 +10,7 @@
 # column; a repo can name /web-tools in prose, as home does, and still start a
 # session with none of the conventions in context. This asks the narrower
 # question a session can actually answer: is there a resolved `@`-import of the
-# primitives among the checkouts the harness read.
+# conversation rules among the checkouts the harness read.
 #
 # WHY A DIRECTIVE RATHER THAN A DESCRIPTION. A skill enters context two ways:
 # the user types /name, or the model reads its description and elects to. There
@@ -72,7 +72,7 @@ for base in (root, os.path.dirname(root)):
 # delivery off; each is its document's title.
 #
 # BOTH ARE REQUIRED, since 2026-09-12. The contract is two documents and this
-# tested one of them, so a repo importing the surfacing half alone read as fully
+# tested one of them, so a repo importing the conversation half alone read as fully
 # delivered and never received the instruction for the prose half. Half a contract silently
 # counted as all of it is the same shape as the injection channel delivering 5%
 # and reporting nothing, one document down instead of one channel down.
@@ -132,7 +132,7 @@ if delivered or not needing:
 # One sentence: the instruction, and what invoking it gets. It deliberately does
 # NOT say the conventions failed to arrive, though that is the condition it fires
 # on. Naming what is missing is no use to the reader who is missing it: a session
-# told it "did not get the surfacing conventions" has been handed a term it
+# told it "did not get the conventions" has been handed a term it
 # cannot resolve, which is the whole reason this hook fired. A purpose clause
 # resolves on its own.
 #

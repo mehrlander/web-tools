@@ -2,7 +2,7 @@
 name: default
 description: >-
   The context every session runs on: the portable conventions from
-  mehrlander/web-tools, the conversation conventions (docs/CONVERSATION.md) and
+  mehrlander/web-tools, the conversation rules (docs/CONVERSATION.md) and
   the Qualified writing rules (docs/QUALIFIED-WRITING.md), shipped beside
   this skill. Load them at the start of any session that did not receive
   them, and in any repo when the user
