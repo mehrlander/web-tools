@@ -23,7 +23,7 @@ import { repoRoot } from './bootstrap.mjs';
 const SCRIPT = path.join(repoRoot, 'python', 'mcp-link-safe.py');
 
 // Two real resolvable bases, padded with a ?x= query to an exact length.
-const LONG = 'https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md?x=';
+const LONG = 'https://github.com/mehrlander/web-tools/blob/main/docs/APP.md?x=';
 const SHORT = 'https://github.com/mehrlander/web-tools?x=';
 const url = (base, n) => base + '0123456789'.repeat(40).slice(0, n - base.length);
 const label = n => (n === 1 ? 'r' : '0123456789'.repeat(40).slice(0, n));
