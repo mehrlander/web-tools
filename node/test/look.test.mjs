@@ -736,6 +736,16 @@ test('a page can drive a walkthrough as its chooser: marks, a folded start, go a
     ['AFirst', 'BSecond', 'CThird']);
 });
 
+test('note steps fold as well, their message standing in the field, with nothing drawn on the page', async () => {
+  const w = realm(threeBody);
+  w.Look.start([{ say: 'Columns', mark: 'A' }, { say: 'Lines', mark: 'B' }], { folded: true });
+  await wait(30);
+  assert.ok(folded(w));
+  assert.equal(card(w).querySelector('[data-draft]').placeholder, 'Columns');
+  assert.equal(w.document.querySelector('[data-look="halo"]').style.display, 'none', 'no tint on the page');
+  assert.equal(w.document.querySelector('[data-look="num"]').style.display, 'none', 'and no badge');
+});
+
 test('a note is kept as a draft per walkthrough, follows it when a page is stamped in, and can be removed', async () => {
   const w = realm(threeBody);
   w.Look.start(three);
