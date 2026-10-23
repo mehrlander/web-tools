@@ -398,8 +398,8 @@ docket as its base and puts that field above it. It opens in
 
 The selection became [`pages/cat-map.html`](../../pages/cat-map.html), which
 draws a `catmap/1` file (the format is in the skill): the map's objective and
-strategy, with a run's outcome and method under them; a field of two
-characteristics chosen by pills, each sense a region of the cells it allows; a
+strategy, said once, in a first Brief tab when there are several runs; each
+run's outcome; a field of two characteristics chosen by pills, each sense a region of the cells it allows; a
 docket of each sense's required values with the things it names checked
 against them, a red row naming what it breaks; and, for a file with several
 runs, a Compare view. [`registry-map.json`](registry-map.json), the registry
