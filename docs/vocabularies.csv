@@ -3,10 +3,10 @@ app-routes,group,estate,Estate,"Above any repo: the view's subject is the estate
 app-routes,group,repo,Repo,"Reached with a repo open: the view's subject is one repository, or a workspace inside it for the project view.",
 app-routes,group,shell,Shell,Addresses that are not a screen of their own.,
 docs,reach,injected,injected,"loaded into every session: the portable plugin's start-up directive has each session invoke /portable:default, which reads these two",
-docs,reach,project,in context,"named by a document already in every session's context: the repository's own CLAUDE.md or AGENTS.md, or one of the two injected; one hop away, no invocation",
+docs,reach,project,in context,"named by a document already in every session's context: the repository's CLAUDE.md or AGENTS.md, or one of the two injected documents",
 docs,reach,skill,by a skill,"named by a skill, so invoking that skill pulls the document into context",
 docs,reach,app,by the app,"named in lib/, pages/ or app/ code, so a page loads it at runtime or opens it in the viewer; a mention in a comment does not count",
-docs,reach,orphan,orphan,"nothing points here; not dead, since the generated docs index lists it, but that index is the only thing reaching it",
+docs,reach,orphan,orphan,"no document, skill or app file names it; only the generated docs index lists it",
 harness,layer,python,,Python scripts,
 harness,layer,python/annotate,,"standalone scripts that segment, build, patch, project, and check a standoff annotation",
 harness,layer,node,,Node files at the folder root,
@@ -26,8 +26,8 @@ properties,mode,recorded,,"authored judgment, irreplaceable, never machine-edite
 properties,required,counted,,"a blank is legal and surfaced as a ledger figure, the count-rather-than-ban posture the computed sets run for authored judgment",
 properties,required,none,,"optional, or filled by practice with no gate behind it",
 properties,required,value,,"an assertion is present for every target: true of every computed field by construction, and of a recorded field a gate checks",
-registries,key_primitive,locator,Keyed by a locator,"the key is a path in this repository: it resolves into the declared identity space, and the suite checks that every key does",ph-link-simple
-registries,key_primitive,id,Keyed by a name,"the key is a name this registry assigns or records, and other rows and files address the row by it; nothing checks that it resolves to anything outside the row",ph-fingerprint
+registries,key_primitive,locator,Keyed by a locator,a path in this repository; the suite checks that each one exists,ph-link-simple
+registries,key_primitive,id,Keyed by a name,a name the registry assigns or records,ph-fingerprint
 registries,fields,governed,,"every non-key column must be a declared property, so an undeclared field appearing in a computed set is caught as the early symptom of an unaccounted classification",
 registries,fields,ungoverned,,"the columns are exempt from their property definitions. A smell and never a resting state: five registries were marked this way with a written reason and all five reasons were wrong, so the count is asserted at zero and adding one has to change a test",
 registries,membership,computed,,"the rule is executable (a folder, an extension, the router's own table), so the row set can be derived and compared to what is there. Only this side can carry a coverage gate, because only it has something independent to check against",

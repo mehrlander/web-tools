@@ -16,7 +16,7 @@ web-tools:lib/alpineComponents/file-review.js,web-tools,1757,0,0,0,1,0,0,0,0,0,0
 web-tools:lib/alpineComponents/here-view.js,web-tools,952,1,0,0,0,0,0,0,0,1,0,0,1,0,0,3,0,1,1,1,page-storage;persistence;swipe-deck;traffic-log,yes,,
 web-tools:lib/alpineComponents/idb-importer.js,web-tools,304,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,0,1,1,,,,
 web-tools:lib/alpineComponents/idb-tree.js,web-tools,125,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,,,,
-web-tools:lib/alpineComponents/map.js,web-tools,13934,3,0,1,7,0,0,0,36,1,0,2,201,6,0,1,0,2,0,26,call-answer;closing-state;csv;doc-index;dock-split;file-deck;land;linked-swiper;md-diff;md-doc;md-variants;panel-tip;record-deck;route-activity;route-join;source-peek;src-doc;swipe-deck;title-tip;user-calls,,,
+web-tools:lib/alpineComponents/map.js,web-tools,13933,3,0,1,7,0,0,0,36,1,0,2,201,6,0,1,0,2,0,26,call-answer;closing-state;csv;doc-index;dock-split;file-deck;land;linked-swiper;md-diff;md-doc;md-variants;panel-tip;record-deck;route-activity;route-join;source-peek;src-doc;swipe-deck;title-tip;user-calls,,,
 web-tools:lib/alpineComponents/mention.js,web-tools,452,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,,,,
 web-tools:lib/alpineComponents/path-picker.js,web-tools,489,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,1,,,,
 web-tools:lib/alpineComponents/powershell-file.js,web-tools,326,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,2,2,1,,,,
@@ -152,7 +152,7 @@ web-tools:pages/pivot-table.html,web-tools,700,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 web-tools:pages/probe-snap.html,web-tools,193,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,swipe-deck,,,
 web-tools:pages/probe-window.html,web-tools,198,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,probe,,,yes
 web-tools:pages/repo-atlas.html,web-tools,1065,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,9,io;treemap,,,
-web-tools:pages/review.html,web-tools,477,0,0,0,2,0,1,0,0,0,0,0,0,0,0,0,0,0,2,0,cm6-merge;file-deck;review-target;subject-channel;swipe-deck,,,
+web-tools:pages/review.html,web-tools,487,0,0,0,2,0,1,0,0,0,0,0,0,0,0,0,0,0,2,0,cm6-merge;file-deck;review-target;subject-channel;swipe-deck,,,
 web-tools:pages/scratch/base64-render-engine.html,web-tools,150,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,compression,,,
 web-tools:pages/scratch/define-test.html,web-tools,413,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,24,0,,,,
 web-tools:pages/scratch/demo-spacex.html,web-tools,83,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,3,0,,,,

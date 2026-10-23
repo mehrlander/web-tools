@@ -1,6 +1,6 @@
 # CSV census
 
-An estate repository opts into the Map's Data tab, Census, by declaring
+An estate repository opts into the CSVs view, on the Map's Data tab, by declaring
 `"data": {"census": "data/csv-census.csv"}` in `.web-tools.json` and committing
 the generated inventory at that repository-relative path. Each repository
 owns its inventory. The hub reads declarations through the config cache and

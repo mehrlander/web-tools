@@ -235,7 +235,7 @@ test('the two sub-tab encodings, counted', () => {
   // 44 to 45 on 2026-10-22: Harness took Programs, the declared programs.
   // 45 to 46 on 2026-10-23: Overview took Icons, the estate's icon families.
   // 46 to 47 the same day: the Map took Data, landing on Primitives, every
-  // declared column by the primitive it holds; Census and Registries moved
+  // declared column by the primitive it holds; CSVs and Registries moved
   // under it and kept their keys.
   assert.equal(params, 47, 'sub-tabs addressed as ?view=<parent>&tab=');
 });

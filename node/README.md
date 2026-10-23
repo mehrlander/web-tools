@@ -301,8 +301,6 @@ changes touch:
 Most of these files are generated whole. Three are not. `docs/docs.csv`,
 `docs/harness.csv` and `docs/registries.csv` are hand-edited except for the
 fields a generator stamps. Edit a row freely and leave those fields alone.
-`docs/tests.csv` became whole on 2026-10-23: what a person writes about a test
-is in `docs/tests-authored.csv`, whose values no generator changes.
 
 `docs-readme` and `docs-reach` are a cycle. `docs/README.md` is generated from
 the registry and is also a row in it, so the hook runs `docs-reach` a second

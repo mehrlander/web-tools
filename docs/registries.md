@@ -97,32 +97,6 @@ So `href: toss-render.html` in `pages` and `path: pages/toss-render.html` in
 it. Nesting is written into scopes instead. The `harness` scope covers `node/`
 and `python/` and excludes `node/test/`, which `tests` owns.
 
-### What kind of thing a key is
-
-A registry registers objects: a themed set of them, each found by its key and
-described by declared properties. Membership across registries is free, and
-`identity` exists so their keys can be compared. Property ownership is not
-free: one property about one target answers to one registry.
-
-`key_primitive` says what the key is, in
-[`column-primitives.md`](column-primitives.md)'s terms. A key is a `locator`
-when its identity space is the tree (`path`, or `path:<prefix>`) and the suite
-checks that every key names a file or folder in this checkout. Any other key is
-an `id`: a name the registry assigns or records, which other rows and files
-address it by, even where a rule could resolve it. A task's id names its file
-only by the tracker's convention, a glob selects a set rather than a target, and
-a pair of paths names a relation, so all three are ids. `assistant-branches`
-declares a `branch` identity, which keeps its keys comparable with any other
-branch-keyed registry, but nothing can check that a merged branch still exists,
-so its key is an id too.
-
-One locator registry is a snapshot. `doc-overlap-docs` records the documents a
-hand-run embedding pass measured, so a document deleted since is a pinned
-reference that broke, in [`locators.md`](locators.md)'s terms. The suite lists
-those keys exactly, and rerunning the pass clears them. A key naming a file git
-ignores, such as the lockfile `content.csv` classifies, is skipped, since only
-an install makes it.
-
 ### Two questions, not a kind
 
 A registry has no type. `membership` says how targets enter: `computed`, the
@@ -195,11 +169,11 @@ twice. What a stream must keep (ids, times, corrections) is the next document.
    other registries' keys.
 3. One table, one CSV file. Two registries never share a file.
 4. Add the row to `registries.csv`: `path`, `key`, `identity`, `membership`,
-   `inherits`, `target`, `scope`, `span`, `fields`, `gate`, `key_primitive`,
-   `title`, `gloss`. `fields` is `governed`; the suite asserts that no registry is
+   `inherits`, `target`, `scope`, `span`, `fields`, `gate`, `key_primitive`, `title`,
+   `gloss`. `fields` is `governed`; the suite asserts that no registry is
    `ungoverned`, so declaring one means changing the test and stating why.
-   `gate` is a test path, or the token `none`. `key_primitive` is `locator`
-   where `identity` is `path` or `path:<prefix>`, and `id` otherwise.
+   `gate` is a test path, or the token `none`. `key_primitive` is `locator` where
+   `identity` is `path` or `path:<prefix>`, and `id` otherwise.
 5. Add one row to `properties.csv` per non-key column: `mode`, `deriver` (for
    `computed`), `required`, `form`, `exclusive`, `values`, `column_primitive`,
    `gloss`.
@@ -218,17 +192,7 @@ A blank cell means *not asserted*, never an empty string or a checked result of
 none. Where that distinction matters, use a token: `gate: none` means checked,
 and nothing holds the registry. Read the token, not the cell's truthiness.
 
-Keep `recorded` and `computed` columns in separate files. A file that holds
-both is where a generator's rewrite meets a hand edit: a session that ran the
-tests generator and then wrote `protects` into `docs/tests.csv` was editing
-machine output. So `docs/tests-authored.csv` holds the two columns a person
-writes about a test, `docs/tests.csv` holds what `tests-index` derives, and
-`tests` declares `inherits: tests-authored`. The generator adds and drops rows
-in the authored file as test files come and go, and changes no value there.
-Five registries stay mixed by name, each with its reason in
-[`properties-registry.test.mjs`](../node/test/properties-registry.test.mjs):
-`registries`, `harness`, `docs`, `pages` and `doc-overlap-gold`. The list is
-exact in both directions.
+Keep `recorded` and `computed` properties in separate files, so a generator does not rewrite a file a person edits. `docs/tests-authored.csv` beside `docs/tests.csv` is the pattern. The exceptions are named, with reasons, in [`properties-registry.test.mjs`](../node/test/properties-registry.test.mjs).
 
 Store `recorded` values always; authored judgment cannot be recomputed. Store
 `computed` values only where a browser, a gate or a reviewable diff needs a
@@ -275,11 +239,9 @@ each have a registry row, and every non-key column in both has a declaration.
 
 ## Reader-facing fields
 
-`title` and `gloss` identify a registry in the Map view. `key_primitive`
-groups the tab: registries keyed by a locator, then those keyed by a name. It
-replaced `area` (`files`, `names`) on 2026-10-23, which asked whether the target
-has a path in this repository and had been answered without a stated rule for
-five registries. A topical grouping was tried before `area` and did not hold. `renders_in`
+`title` and `gloss` identify a registry in the Map view. `key_primitive` groups
+the tab: registries keyed by a locator, then those keyed by a name. A topical
+grouping was tried first and did not hold. `renders_in`
 is derived by [`registries-reach.mjs`](../node/build/registries-reach.mjs)
 from the files under `lib/`, `pages/` and `app/` that name the registry's path.
 That directory list is literal (`APP_DIRS`); when the app moves, move it. An

@@ -34,28 +34,6 @@ addresses under tabs, and `WITHIN` lists the addresses a subview opens inside
 itself rather than as a stop of its own on the strip: Automation's trigger row
 opens Events and Scheduled.
 
-## Data: what the estate's tables hold
-
-`?tab=primitives` lands the Data tab on Primitives, every declared column under
-its column primitive (`id`, `label`, `locator`, `value`;
-[column-primitives.md](../column-primitives.md)). The hub's columns are its
-registry pair: each row of [properties.csv](../properties.csv) by
-`column_primitive`, and each registry's key by `key_primitive` in
-[registries.csv](../registries.csv), unless the key is also declared as a
-property. Another repository joins by declaring its column registries under
-`data.columns` in `.web-tools.json` ([manifest-fields.csv](../manifest-fields.csv));
-the view reads those through the config cache with a token, as Census reads
-`data.census`. Each primitive's icon and definition are its row in
-[vocabularies.csv](../vocabularies.csv), so a new icon is a cell edit, and the
-Icons tab lists them as Vocabulary values.
-
-Census (`?tab=data`, from Reach) and Registries (`?tab=registries`, from Docs)
-moved under Data on 2026-10-23 and kept their keys. Census marks each header a
-column registry declares with its primitive's icon. Registries groups by
-`key_primitive`, and each property line wears its primitive's icon;
-[properties-registry.test.mjs](../../node/test/properties-registry.test.mjs)
-holds a locator key to a path identity and to a target in the tree.
-
 ## Views: the app's own destinations
 
 The Views tab reads `app-routes.csv` live at the ref the code came from

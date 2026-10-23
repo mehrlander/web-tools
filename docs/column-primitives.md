@@ -1,17 +1,10 @@
 # Column primitives
 
-One property, `column_primitive`, saying what kind of thing a column holds. It is
-the coarse question that sits above [`LINKAGE.md`](https://github.com/mehrlander/home/blob/main/projects/budget-drs/data/design/LINKAGE.md)'s
+One property, `column_primitive`, saying which of four roles a column plays in
+its row. It is the coarse question that sits above [`LINKAGE.md`](https://github.com/mehrlander/home/blob/main/projects/budget-drs/data/design/LINKAGE.md)'s
 `column_domain`.
 
-`docs/properties.csv` declares it on every row, and `docs/registries.csv`
-answers the same question for each registry's key as `key_primitive`. The
-current counts are not kept here: the Map's **Data tab, Primitives** draws every
-declared column under its primitive, the hub's and, with a token, those of any
-repository that declares its column registries under `data.columns` (budget-drs's
-`lineage/columns.csv` is the first). Each primitive's icon is its row's `icon` in
-[`vocabularies.csv`](vocabularies.csv). The first population, on 2026-09-10, is
-measured below.
+`docs/properties.csv` declares it on every row, and `docs/registries.csv` declares it for each registry's key as `key_primitive`. The Map's Primitives view, on its Data tab, lists every declared column by primitive, including the columns of registries other repositories declare under `data.columns`.
 
 ## The four
 
@@ -160,9 +153,7 @@ nothing and points nowhere.
 the 30 registries have no property row for their own key column: `registries.csv`
 declares the key in its `key` field, and `properties.csv` does not repeat it,
 which is the one-property-one-registry rule working correctly. So `properties.csv`
-sees almost no ids by construction. Since 2026-10-23 `registries.csv` classifies each
-registry's key as `key_primitive`, so the Primitives view counts the ids this
-table cannot see. The two that do appear, `aims-goals.key` and
+sees almost no ids by construction. The two that do appear, `aims-goals.key` and
 `aims-reading.path`, are the exceptions worth a second look.
 
 **Uniqueness alone does not earn `id`.** `registries.path` is distinct on all 30
