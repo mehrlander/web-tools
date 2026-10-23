@@ -69,9 +69,7 @@ for base in (root, os.path.dirname(root)):
 
 # Resolved `@`-imports whose targets carry the contract. The markers are
 # headings rather than filenames, so renaming a document does not silently turn
-# delivery off; each is its document's title. The conversation half also
-# accepts "## Surfacing primitives", its heading before the file was renamed
-# from SURFACING.md on 2026-10-23, for a repo importing an older copy.
+# delivery off; each is its document's title.
 #
 # BOTH ARE REQUIRED, since 2026-09-12. The contract is two documents and this
 # tested one of them, so a repo importing the surfacing half alone read as fully
@@ -83,7 +81,7 @@ for base in (root, os.path.dirname(root)):
 # imports on 2026-09-12 and takes delivery through the plugin like every
 # consumer, so the hook adds its instruction there on the same rule as anywhere else rather than
 # by an exception written into the detector.
-MARKERS = {"conversation": re.compile(r"^(# Conversation|## Surfacing primitives)$", re.M),
+MARKERS = {"conversation": re.compile(r"^# Conversation$", re.M),
            "writing": re.compile(r"^# Qualified writing", re.M)}
 IMPORT = re.compile(r"^@(\S+)", re.M)
 

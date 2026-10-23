@@ -1,9 +1,8 @@
 # Conversation
 
-How a session's replies hand its work to the reader, when chat is the only
-output channel. Local `CLAUDE.md` rules override these defaults. Apply repo- and
-branch-scoped rules per workstream, substituting the current repo in URL
-templates.
+Use these rules when chat is the only output channel. Local `CLAUDE.md` rules
+override these defaults. Apply repo- and branch-scoped rules per workstream,
+substituting the current repo in URL templates.
 
 ---
 

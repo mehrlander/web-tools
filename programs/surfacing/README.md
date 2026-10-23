@@ -1,7 +1,7 @@
 # Surfacing
 
-Surfacing is how work reaches its reader, the owner. This is the charter of the
-surfacing program. The files it governs are declared under `programs` in
+Surfacing is how work reaches its reader, the owner. The files the surfacing
+program governs are declared under `programs` in
 [`.web-tools.json`](../../.web-tools.json) and listed in the Map view's Programs
 tab; a program is defined in
 [CONSTELLATION.md](../../docs/CONSTELLATION.md#projects-and-research).
