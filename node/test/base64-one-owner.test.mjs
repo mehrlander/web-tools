@@ -31,6 +31,8 @@ const ALLOWED = {
   // The toss renderer injects the look kit into a tossed page that boots
   // nothing; it calls gh-api.js's codec wherever the page has one.
   'lib/kits/look.js': { n: 2, why: 'injected into pages that load no lib' },
+  // An op runs inside a data: page that boots nothing (lib/ops/README.md).
+  'lib/ops/session-menu.js': { n: 2, why: 'an op runs in a page that loads no lib' },
   // Sample chat turns that quote the API as text.
   'pages/chat-results.html': { n: 3, why: 'quoted sample code, not code that runs' },
   // Pages that load no library at all, so gh-api.js is not there to call.
