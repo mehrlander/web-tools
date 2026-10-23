@@ -47,7 +47,7 @@ docs/environment/harness-comparison.md,71dfa296e734,188,13,223
 docs/environment/testing.md,962b78a0c2c8,2352,61,2694
 docs/estate-span.md,3c9ddccf27a7,816,20,926
 docs/fab.md,4fa77128525c,2241,34,2368
-docs/favicons/README.md,2ae319e759ff,712,21,899
+docs/favicons/README.md,7f909e3f8b06,732,21,915
 docs/forms/README.md,59603e9ce016,304,7,319
 docs/forms/branch.md,576b9fcfa3be,600,19,697
 docs/forms/session.md,e28d4766a8ca,94,4,118
@@ -135,7 +135,7 @@ skills/content-registry/SKILL.md,cd6e3de4bfce,282,10,320
 skills/default/SKILL.md,89e329d27fc1,143,4,155
 skills/design-sprint/SKILL.md,b9a9cacf319a,658,21,737
 skills/doc-audit/SKILL.md,f7c49acd4764,879,23,1080
-skills/doc-craft/SKILL.md,7ae72cddbcc3,523,22,552
+skills/doc-craft/SKILL.md,41da193f0bc2,556,23,586
 skills/document-visual-mapping/SKILL.md,b44fd4595e70,416,15,471
 skills/drop-link/SKILL.md,0f1fedd21a3d,352,8,372
 skills/excel-com/SKILL.md,b0ad92522a82,599,31,676
@@ -144,7 +144,7 @@ skills/gold-set/SKILL.md,61ad1a54c340,1352,22,1418
 skills/html-style/SKILL.md,05bfd4c309cc,1111,27,1303
 skills/html-style/references/alpine-v3.md,77d6f25c8fc7,110,11,156
 skills/html-style/references/daisyui.md,3802c2431bcb,2262,290,2891
-skills/html-style/references/mechanics.md,076f58a6ae9f,2412,52,2913
+skills/html-style/references/mechanics.md,b84747c87325,2424,52,2925
 skills/html-style/references/reactivity-cost.md,b79a2313b71c,245,8,269
 skills/in-flight/SKILL.md,924eb3e4811c,929,25,967
 skills/inspire-excellence/SKILL.md,a750e7ab5eb1,582,58,579
