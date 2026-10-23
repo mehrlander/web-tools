@@ -40,7 +40,7 @@ as attaching to `expression`. The rule and its place among the other layers:
 
 | File | Input | Result |
 | --- | --- | --- |
-| `session-menu.js` | `{ input: <clipboard text>, token }` | `{ caption, rows, urls, menu, branch, id, state }` |
+| `session-menu.js` | `{ input: <clipboard's first line, or b64:<the whole clipboard>>, token }` | `{ caption, rows, urls, menu, branch, id, state }` |
 
 `session-menu.js` is the whole Claude menu the phone draws (its header has the
 fields), so a change to the menu's wording, order or verbs is a commit here and
@@ -60,6 +60,16 @@ inferred, and both held by `node/test/ops.test.mjs`:
 It reads `state/session-menu.json` in web-tools-private, a **purpose-built**
 index written by the same crawl that writes `state/sessions.json`
 (`lib/kits/repo-sessions-cache.js`, "The phone's copy"), not the full cache.
+
+A clipboard holding prose rather than a branch or a session link is read as a
+**copied reply**: the session it names in a 💬 caption, or else the session whose
+fingerprints in `state/reply-prints.json` account for most of it. The same crawl
+writes that file for the menu's 16 recent sessions (`lib/kits/session-index.js`,
+"The phone's reply prints", which also states the method and what it was measured
+to find), and it is about 200 KB gzipped, so the op reads it only for prose.
+`Run-Op` passes an op one line, so `Choose-Claude` sends the whole clipboard as
+`b64:` and its base64. A raw first line still works: on the sample it found the
+session for 99.5% of whole copied replies, against 99.9% of all copies whole.
 
 **A merge is the whole publish.** The address a caller off the app uses is
 GitHub's contents API, `https://api.github.com/repos/mehrlander/web-tools/contents/lib/ops/<name>.js?ref=main`,
