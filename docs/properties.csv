@@ -269,15 +269,15 @@ doc-overlap-gold,cosine,computed,python/doc-overlap-gold.py,value,column,yes,,va
 doc-overlap-gold,literal,computed,python/doc-overlap-gold.py,value,column,yes,yes;no,label,whether the two files share 3+ shingles in docs/themes.csv
 doc-overlap-gold,short,computed,python/doc-overlap-gold.py,value,column,yes,yes;no,label,whether the shorter passage is under 20 words
 doc-overlap-gold,a_path,computed,python/doc-overlap-gold.py,value,column,yes,,locator,the first passage's file
-doc-overlap-gold,a_start,computed,python/doc-overlap-gold.py,value,column,yes,,locator,"its start, in UTF-16 code units"
-doc-overlap-gold,a_end,computed,python/doc-overlap-gold.py,value,column,yes,,locator,"its end, in UTF-16 code units"
-doc-overlap-gold,a_line,computed,python/doc-overlap-gold.py,value,column,yes,,locator,the line it starts on
-doc-overlap-gold,a_hash,computed,python/doc-overlap-gold.py,value,column,yes,,label,first 12 hex digits of sha256 over its text when labelled
+doc-overlap-gold,a_start,computed,python/doc-overlap-gold.py,value,column,yes,,locator,"its start in the file at the commit the gold set's README names, in UTF-16 code units"
+doc-overlap-gold,a_end,computed,python/doc-overlap-gold.py,value,column,yes,,locator,"its end in the file at that commit, in UTF-16 code units"
+doc-overlap-gold,a_line,computed,python/doc-overlap-gold.py,value,column,yes,,locator,the line it starts on at that commit
+doc-overlap-gold,a_hash,computed,python/doc-overlap-gold.py,value,column,yes,,label,"first 12 hex digits of the sha256 of its text, which begin its id in passages.jsonl"
 doc-overlap-gold,b_path,computed,python/doc-overlap-gold.py,value,column,yes,,locator,the second passage's file
-doc-overlap-gold,b_start,computed,python/doc-overlap-gold.py,value,column,yes,,locator,"its start, in UTF-16 code units"
-doc-overlap-gold,b_end,computed,python/doc-overlap-gold.py,value,column,yes,,locator,"its end, in UTF-16 code units"
-doc-overlap-gold,b_line,computed,python/doc-overlap-gold.py,value,column,yes,,locator,the line it starts on
-doc-overlap-gold,b_hash,computed,python/doc-overlap-gold.py,value,column,yes,,label,first 12 hex digits of sha256 over its text when labelled
+doc-overlap-gold,b_start,computed,python/doc-overlap-gold.py,value,column,yes,,locator,"its start in the file at the commit the gold set's README names, in UTF-16 code units"
+doc-overlap-gold,b_end,computed,python/doc-overlap-gold.py,value,column,yes,,locator,"its end in the file at that commit, in UTF-16 code units"
+doc-overlap-gold,b_line,computed,python/doc-overlap-gold.py,value,column,yes,,locator,the line it starts on at that commit
+doc-overlap-gold,b_hash,computed,python/doc-overlap-gold.py,value,column,yes,,label,"first 12 hex digits of the sha256 of its text, which begin its id in passages.jsonl"
 doc-overlap-gold,reader_relation,recorded,,value,column,yes,same;summary;related;conflict;unrelated;fragment,label,"the reader agent's relation, blind to the cosine"
 doc-overlap-gold,reader_confidence,recorded,,value,column,yes,high;medium;low,label,the reader agent's confidence
 doc-overlap-gold,rationale,recorded,,value,column,yes,,value,the reader agent's one-clause reason
