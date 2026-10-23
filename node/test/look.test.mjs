@@ -201,6 +201,36 @@ test('a single tap link is unlocked by its tap and finished by Done; with nothin
   assert.equal(w.document.querySelector('[data-look]'), null, 'no dock to unlock, so the marker goes');
 });
 
+test('a single look ends on Done in place of the ✕; a walkthrough keeps its ✕', async () => {
+  let w = realm('<p data-at="a">a</p>');
+  w.Look.start([{ at: 'a', say: 'look here' }]);
+  await wait(30);
+  const done = card(w).querySelector('[aria-label="Done"]');
+  assert.ok(done, 'a single card offers Done');
+  assert.equal(card(w).querySelector('[aria-label="Close"]'), null, 'and no ✕ beside it');
+  done.click();
+  await wait(30);
+  assert.equal(w.document.querySelector('[data-look]'), null, 'Done takes the marker down');
+  w = realm('<p data-at="a">a</p><p data-at="b">b</p>');
+  w.Look.start([{ at: 'a', say: 'first' }, { at: 'b', say: 'second' }]);
+  await wait(30);
+  assert.ok(card(w).querySelector('[aria-label="Close"]'), 'a walkthrough can still be left midway');
+});
+
+test('the note check is grey until the field has text', async () => {
+  const w = realm('<p data-at="a">a</p>');
+  w.Look.start([{ at: 'a', say: 'look here' }]);
+  await wait(30);
+  const add = card(w).querySelector('[data-add]'), field = card(w).querySelector('[data-draft]');
+  assert.equal(add.getAttribute('aria-disabled'), 'true', 'empty: grey, nothing to add');
+  field.value = 'A note';
+  field.dispatchEvent(new w.Event('input', { bubbles: true }));
+  assert.equal(add.getAttribute('aria-disabled'), 'false', 'typed: green, it will act');
+  field.value = '  ';
+  field.dispatchEvent(new w.Event('input', { bubbles: true }));
+  assert.equal(add.getAttribute('aria-disabled'), 'true', 'spaces alone are nothing to add');
+});
+
 test('Next, Back and Done move through a walkthrough, and Done takes everything down', async () => {
   const w = realm('<p data-at="a">a</p><p data-at="b">b</p>');
   w.Look.start([{ at: 'a', say: 'first' }, { at: 'b', say: 'second' }]);
