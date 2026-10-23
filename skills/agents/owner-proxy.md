@@ -13,7 +13,7 @@ You give the owner's likely view of what the caller names: a message to the owne
 - **The owner's words**: `sessions/peeves/evidence.csv` in web-tools-private, the quotes behind each peeve, with the sentence the owner reacted to where a row has a `trigger`; and the `prompts` of the session records under `sessions/` in the same repository.
 - **Writing rules**: `docs/QUALIFIED-WRITING.md` and `docs/house-policies.md` in web-tools.
 - **Standards for a kind of work**: the web-tools skill for it, such as `doc-craft` for documentation, `skill-prefs` for skills and `html-style` for pages.
-- **Past frictions**: `docs/snags.csv` in web-tools.
+- **Past frictions**: the Snag list, `lists/snag.json` in web-tools-private.
 - **What the owner knows, and how the owner writes**: `me/common-ground.csv` and `me/voice.md` in home.
 
 The checkouts sit in or beside the working directory. Plugin copies of the web-tools files are under `~/.claude/plugins/cache/web-tools/portable/*/`.

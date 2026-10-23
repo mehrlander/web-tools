@@ -115,31 +115,15 @@ export default async function (page) {
   await page.getByRole('button', { name: 'All questions ↑', exact: true }).click();
   await page.waitForFunction(() => document.activeElement?.hasAttribute('data-context-question-index'));
 
-  const sources = page.locator('[data-map-sources-button]:visible');
-  const sourcesPanel = page.locator('[data-map-sources-panel]');
-  await sources.scrollIntoViewIfNeeded();
-  // All questions uses smooth scrolling. A source panel deliberately closes
-  // when its anchor scrolls away, so finish that navigation before opening it.
-  await page.evaluate(() => new Promise(resolve => {
-    let timer;
-    const done = () => { document.removeEventListener('scroll', moved, true); resolve(); };
-    const moved = () => { clearTimeout(timer); timer = setTimeout(done, 150); };
-    document.addEventListener('scroll', moved, true);
-    moved();
-  }));
-  await sources.click();
-  await sourcesPanel.waitFor({ state: 'visible' });
-  assert.match(await sourcesPanel.innerText(), /docs\/context-sources\.csv/);
-  assert.match(await sourcesPanel.innerText(), /skills\/hooks\/hooks\.json/);
-  await page.keyboard.press('Escape');
-  await sourcesPanel.waitFor({ state: 'hidden' });
-  assert.ok(await sources.evaluate(e => e === document.activeElement), 'Escape restores the source control');
-  await sources.click();
-  await sourcesPanel.getByRole('button', { name: 'Close sources', exact: true }).click();
-  await sourcesPanel.waitFor({ state: 'hidden' });
-  await sources.click();
-  await page.getByRole('tab', { name: /Tests/ }).click();
-  await sourcesPanel.waitFor({ state: 'hidden' });
+  // What the tab reads is in the app drawer's About tab since 2026-10-22: the
+  // launcher opens the drawer on it, and it follows the Map tab in view.
+  await page.evaluate(() => window.Alpine.$data(document.querySelector('[x-data^="fab"]')).toggle());
+  const about = page.locator('[data-fab-about]');
+  await about.waitFor({ state: 'visible' });
+  assert.match(await about.innerText(), /docs\/context-sources\.csv/);
+  assert.match(await about.innerText(), /skills\/hooks\/hooks\.json/);
+  await page.evaluate(() => window.Alpine.$data(document.querySelector('[x-data^="fab"]')).close());
+  await page.waitForFunction(() => !window.Alpine.$data(document.querySelector('[x-data^="fab"]')).open);
   await page.getByRole('tab', { name: /Context/ }).click();
 
   const result = await page.evaluate(() => {

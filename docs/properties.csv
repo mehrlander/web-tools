@@ -39,7 +39,7 @@ kits,demo,computed,node/build/kits-index.mjs,value,column,yes,yes;no,label,lib/k
 kits,users,computed,node/build/kits-index.mjs,value,column,yes,,value,"how many other files under lib/, pages/ and app/ name the kit by its load path; zero is the warning state"
 kits,tested,computed,node/build/kits-index.mjs,value,column,yes,yes;no,label,a file under node/test/ names it
 content,creation_mode,recorded,,none,column,yes,supplied;mechanical;human-authored;model-authored;hybrid-authored;mixed,label,what the artifact IS epistemically; the portable content skill owns the convention
-content,analysis_use,recorded,,none,column,yes,concept-vocabulary;prose-review;semantic-search;source-corpus;exclude,label,"what the artifact is good for downstream. The domain is closed and is owned by the content skill, not here; docs/owners.csv records the copy"
+content,analysis_use,recorded,,none,column,yes,concept-vocabulary;prose-review;semantic-search;source-corpus;exclude,label,"what the artifact is good for downstream. The domain is closed and is owned by the content skill, not here; content-domains.test.mjs holds this copy to it"
 content,description,recorded,,none,column,yes,,value,one line on the artifact
 portable,kind,recorded,,value,column,yes,skill;agent;doc;script;dir,label,what species of thing travels
 portable,command,recorded,,none,column,yes,,value,the invocation name; present on kind:skill rows only
@@ -47,11 +47,8 @@ portable,title,recorded,,none,column,yes,,value,display name
 portable,role,recorded,,counted,column,yes,,value,"what the item does for an adopting repo. NOT asserted where a registry already owns the claim: blank on the scripts harness describes, joined at render time, and on every skill, which skills/manifest.csv describes"
 portable,use,recorded,,none,column,yes,plugin;live;reference;adopt;on-demand,label,"how a consumer takes the item: installed by the plugin, read live, referenced, adopted once, or fetched on demand"
 tools,icon,recorded,,none,column,yes,,value,phosphor icon name
-owners,kind,recorded,,value,column,yes,statement;family,label,"whether the row owns one repeated statement or declares a rule over a scope; a family row is a DECLARATION in this model, carried here because the file that owns it is distributed"
-owners,applies_to,recorded,,none,column,yes,,value,the population a family rule covers; absent on a statement row
-owners,authoritative,recorded,,value,column,yes,,value,the one file that owns the statement; every other mention is a repetition
 skills,group,recorded,,value,column,yes,prose;documents;web;device;windows;session,label,"what the skill is FOR, the axis a reader browses on; authored, since nothing on disk carries a subject"
-skills,description,recorded,,value,column,yes,,value,"the skill's trigger description. A COPY: the authoritative file is the skill's own SKILL.md, per the family rule in docs/owners.csv"
+skills,description,recorded,,value,column,yes,,value,"the skill's trigger description. A COPY: the skill's own SKILL.md is authoritative"
 skill-archive,retired,recorded,,value,column,yes,,value,the date the skill left the roster
 skill-archive,reason,recorded,,value,column,yes,,value,"why it was retired, and where its guidance went"
 skill-archive,successor,recorded,,none,column,yes,,locator,the file that now carries its guidance; blank where nothing does
@@ -117,12 +114,12 @@ routes-paste,recognizes,recorded,,value,column,yes,,value,what the surface reads
 routes-paste,becomes,recorded,,value,column,yes,,value,what a recognized paste turns into there
 routes-paste,declines_to,recorded,,value,column,yes,,value,"where everything it does not recognize goes. The load-bearing field: a surface that routes some pastes has to say what happens to the rest, or the routing is a silent swallow"
 routes-paste,gate,recorded,,none,column,yes,,locator,the check holding the behavior; absent where nothing does
-surfacing,lead,recorded,,value,column,yes,,value,"the bullet lead-in, held two-way against SURFACING.md's prose"
-surfacing,title,recorded,,value,column,yes,,value,the short name
-surfacing,glyph,recorded,,counted,column,yes,,value,the caption marker; blank on the primitives that have no marker of their own
-surfacing,use,recorded,,value,column,yes,,value,"what the primitive is for, in one line"
-surfacing,boundary,recorded,,none,column,yes,,value,where it stops working; carried wherever there is an edge to name
-surfacing,form,recorded,,none,column,yes,,value,"the concrete shape, where the primitive has one"
+conversation,lead,recorded,,value,column,yes,,value,"the bullet lead-in, held two-way against CONVERSATION.md's prose"
+conversation,title,recorded,,value,column,yes,,value,the short name
+conversation,glyph,recorded,,counted,column,yes,,value,the caption marker; blank on the rules that have no marker of their own
+conversation,use,recorded,,value,column,yes,,value,"what the rule is for, in one line"
+conversation,boundary,recorded,,none,column,yes,,value,where it stops working; carried wherever there is an edge to name
+conversation,form,recorded,,none,column,yes,,value,"the concrete shape, where the rule has one"
 manifest-fields,type,recorded,,value,column,yes,string;number;boolean;object;array;boolean|object;string|array;string|boolean,label,the JSON type the key takes
 manifest-fields,consumer,recorded,,value,column,yes,app;portable;session-hook,label,"which tool reads the key: app (the Web Tools app presents the repo), portable (the conventions read it and the app ignores it), session-hook (a plugin hook reads it outside any page)"
 manifest-fields,summary,recorded,,value,column,yes,,value,what the key does and who owns its value
@@ -166,9 +163,6 @@ properties,values,recorded,,none,column,yes,,value,"the value domain, semicolon 
 properties,column_primitive,recorded,,value,column,no,id;label;locator;value,label,"what kind of thing the column holds: an id identifies its row, a label draws from a declared set, a locator resolves to a target outside the row, and a value is the content itself. docs/column-primitives.md owns the four tests. exclusive is no because a column can pass two of them, as a unique path that also resolves does."
 properties,gloss,recorded,,value,column,yes,,value,one line on what the property means
 manifest-fields,required,recorded,,none,column,yes,yes;no,label,"whether a member of an array or object key must be present; blank on a top-level key, whose requiredness was never recorded"
-repetitions,where,recorded,,value,column,yes,,locator,"the file, or the surface, carrying the repetition"
-repetitions,relation,recorded,,value,column,yes,copy;paraphrase;pointer;live read,label,how the repetition stands to the authoritative version
-repetitions,check,recorded,,counted,column,yes,,value,"the test holding this repetition to its owner; blank where nothing does, which is the honest state the table exists to show"
 vocabularies,gloss,recorded,,value,column,yes,,value,"what this one value means, in the terms a reader picking among them needs"
 vocabularies,label,recorded,,counted,column,yes,,label,"the display name for this value, where it differs from the value itself"
 tracker-tags,tag,computed,skills/tasks/build-board.py,value,column,yes,,label,"the frontmatter key. Deliberately undeclared as a domain: the layer is open by design, so a closed set here would be the promotion TRACKER.md says to make in the generator instead"
@@ -247,7 +241,7 @@ hook-events,summary,recorded,,value,column,yes,,value,"when the event fires, in 
 map-tabs,gloss,recorded,,value,column,yes,,value,"what the rows at this address are, in one sentence, never what the reader can do with them; listed with every other in the Overview, the Map's front door, and opening the address's own Sources and methods panel"
 map-tabs,refs,recorded,,counted,list,no,,locator,"the description's links: phrase=path pairs, each phrase a verbatim span of the gloss and each path the file or folder (ending in /) it opens"
 map-tabs,narrative,recorded,,value,column,yes,,value,"what the tab shows and where its data comes from, in a few sentences; the account the component's description carried until 2026-09-28"
-doc-overlap-docs,sha,computed,python/doc-overlap.py,value,column,yes,,label,first 12 hex digits of sha256 over the file as scanned; a file that no longer hashes to it has stale offsets
+doc-overlap-docs,sha,computed,python/doc-overlap.py,value,column,yes,,value,first 12 hex digits of sha256 over the file as scanned; a file that no longer hashes to it has stale offsets
 doc-overlap-docs,prose_words,computed,python/doc-overlap.py,value,column,yes,,value,"words in the file's analyzed prose passages (headings, code and tables excluded), the denominator of its passage share; not docs.csv's words, which counts the whole file"
 doc-overlap-docs,passages,computed,python/doc-overlap.py,value,column,yes,,value,how many passages the file was cut into
 doc-overlap-docs,shingles,computed,python/doc-overlap.py,value,column,yes,,value,"distinct 10-word shingles in the file, the denominator of its literal share"

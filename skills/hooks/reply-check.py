@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Stop hook: sends a reply back, once, when its closing line presents a call
-(⚖️) without the recommendation docs/SURFACING.md gives that line, or when this
+(⚖️) without the recommendation docs/CONVERSATION.md gives that line, or when this
 turn's commits changed a page and the reply gives no render link. Both checks
 are code; no model is called.
 
@@ -9,7 +9,7 @@ against twelve peeves and wrote the send-back, and its limits were
 instructions Haiku followed some of the time, so sessions were sent back up to
 five times in one turn. #1008 replaced it with this script and kept one Haiku
 question, whether a reply that waits on the owner puts a decision to them.
-That question went once SURFACING.md gave a call its own closing marker with
+That question went once CONVERSATION.md gave a call its own closing marker with
 a fixed recommendation clause, which code can check.
 
 THE MARKERS. ⚖️ Choice needed presents a call and carries the clause. 🪧
@@ -23,8 +23,17 @@ THE TWO CHECKS.
   "Recommended:" clause.
   Render link: a commit made since the owner's last message, on the current
   branch of the working directory's checkout or of a checkout one level below
-  it, added or changed an .html file, and the reply has none of 🥏, ⭐, 📦,
+  it, added or changed an .html file, and neither the reply nor any reply
+  written after the newest such commit has one of 🥏, ⭐, 📦,
   "No render link".
+
+  Why after the newest commit, not this reply alone. A PR event or a finished
+  job wakes the session with an entry that is not the owner's, so the window
+  stays open from the owner's last message, and the wake's reply is one line
+  by convention (CONVERSATION.md, "Close in one order"). Read alone, that line
+  was sent back for a link the reply before it had already given (web-tools
+  #1036, 2026-10-21). Read back to the newest page commit, a link already
+  given counts, and a wake that commits to a page again still owes a new one.
 
 WHAT PASSES. A reply this hook already sent back in the same turn
 (stop_hook_active), and any run where something fails.
@@ -34,6 +43,7 @@ import os
 import re
 import subprocess
 import sys
+from datetime import datetime
 from pathlib import Path
 
 RECOMMENDED = re.compile(r'\bRecommended:', re.I)
@@ -72,13 +82,40 @@ def checkouts(cwd):
 
 
 def pages_changed(cwd, since):
-    pages = []
+    """The pages changed since `since`, and the commit time of the newest
+    commit that changed one, in epoch seconds."""
+    pages, newest = [], 0
     for repo in checkouts(cwd):
         out = subprocess.run(['git', '-C', str(repo), 'log', '--first-parent', '--no-merges', '--diff-filter=d',
-                              f'--since={since}', '--name-only', '--format=', 'HEAD'],
+                              f'--since={since}', '--name-only', '--format=@%ct', 'HEAD'],
                              capture_output=True, text=True, timeout=10).stdout
-        pages += [f'{repo.name}/{p}' for p in out.splitlines() if p.endswith('.html')]
-    return sorted(set(pages))
+        at = 0
+        for line in out.splitlines():
+            if line.startswith('@'):
+                at = int(line[1:])
+            elif line.endswith('.html'):
+                pages.append(f'{repo.name}/{line}')
+                newest = max(newest, at)
+    return sorted(set(pages)), newest
+
+
+def linked_since(transcript, epoch):
+    """Whether a reply written at or after `epoch` carried a render link."""
+    with open(transcript, encoding='utf-8') as f:
+        for line in f:
+            try:
+                r = json.loads(line)
+                if r.get('type') != 'assistant':
+                    continue
+                if datetime.fromisoformat(r['timestamp'].replace('Z', '+00:00')).timestamp() < epoch:
+                    continue
+            except (ValueError, KeyError, AttributeError):
+                continue
+            text = ' '.join(b.get('text', '') for b in (r.get('message') or {}).get('content') or []
+                            if isinstance(b, dict) and b.get('type') == 'text')
+            if any(m in text for m in RENDER):
+                return True
+    return False
 
 
 def main():
@@ -90,8 +127,8 @@ def main():
     reasons = []
     since = hook.get('transcript_path') and turn_start(hook['transcript_path'])
     if since and not any(m in reply for m in RENDER):
-        pages = pages_changed(hook.get('cwd') or os.getcwd(), since)
-        if pages:
+        pages, newest = pages_changed(hook.get('cwd') or os.getcwd(), since)
+        if pages and not linked_since(hook['transcript_path'], newest):
             reasons.append(f'Commits since the owner\'s last message changed {", ".join(pages)}, and the reply has '
                            'no render link. Give the render line for them, or a "No render link:" line saying why '
                            'none reaches them.')

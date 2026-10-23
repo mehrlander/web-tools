@@ -8,14 +8,14 @@ description: >-
   first because nested bullets balloon vertically on mobile. Use when the
   user says "tree", "show the repo structure", "file tree", "map the repo",
   "lay out the folders", "/tree", or names a subtree/depth to render.
-  Answers "what is here" (structure); the surfacing contract answers
+  Answers "what is here" (structure); CONVERSATION.md answers
   "what moved" (change).
 ---
 
 # tree
 
 An orientation view: the shape of a repo or a subtree, rendered for a chat
-reader on a phone. It is the structural sibling of the surfacing contract's
+reader on a phone. It is the structural sibling of CONVERSATION.md's
 change handoff. The boundary, worth stating so the two do not drift:
 
 - **Surfacing** answers *what moved* this session (axis: the git diff; a
@@ -26,7 +26,7 @@ change handoff. The boundary, worth stating so the two do not drift:
 
 They share DNA (tappable GitHub links at a ref) but answer different
 questions. When the ask is about change, follow
-[`SURFACING.md`](../../docs/SURFACING.md); about structure, use this.
+[`CONVERSATION.md`](../../docs/CONVERSATION.md); about structure, use this.
 
 Substitute the current repo into all URL templates. The rendering rules
 below are the applied form of [`claude-markdown`](../claude-markdown/SKILL.md);
@@ -184,10 +184,9 @@ json/toml/yaml/sh/config ⚙️; images 🖼️. The map lives in
 
 ## Boundary with surfacing and Web Tools
 
-This skill owns structure rendering. [`SURFACING.md`](../../docs/SURFACING.md)
+This skill owns structure rendering. [`CONVERSATION.md`](../../docs/CONVERSATION.md)
 owns change surfacing: the branch-page caption by default, the
-`[new]/[main]/[diff]` file list as fallback, and render lines. The
-[`surfacing-course`](../../docs/surfacing-course.md) owns PR bodies and the
-merge guide. A tree is not a change handoff: it carries no change state and no
-diff links. If the ask is "what did I touch," follow the surfacing contract; a
-tree that also marks change is a deliberate combined view, not the default.
+`[new]/[main]/[diff]` file list as fallback, render lines, and PR bodies. A tree
+is not a change handoff: it carries no change state and no diff links. If the
+ask is "what did I touch," follow CONVERSATION.md; a tree that also marks
+change is a deliberate combined view, not the default.

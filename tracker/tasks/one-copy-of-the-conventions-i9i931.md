@@ -83,8 +83,8 @@ uninjected.
 
 ## Related
 
-- `docs/SURFACING.md`: canonical Surfacing prose (docs side of the remaining dual-copy)
-- `skills/default/SURFACING.md`: skill-side copy (same blob as docs; residual after #634)
+- `docs/CONVERSATION.md`: canonical Surfacing prose (docs side of the remaining dual-copy)
+- `skills/default/CONVERSATION.md`: skill-side copy (same blob as docs; residual after #634)
 - `skills/default/SKILL.md`: stage 1 path change (prefer plugin-root read over fetch)
 - `CLAUDE.md`: conventions home after PR #634 (`docs/CONVENTIONS.md` retired)
 - `.claude-plugin/marketplace.json`: declares skill payload source; why docs/ does not travel today

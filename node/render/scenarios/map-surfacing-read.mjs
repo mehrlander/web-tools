@@ -5,20 +5,19 @@
 //
 //   npm run shot -- app/index.html --script node/render/scenarios/map-surfacing-read.mjs
 //
-// The tab is public (it reads the hub's docs/surfacing.csv), so this needs no
+// The tab is public (it reads the hub's docs/conversation.csv), so this needs no
 // token: the sandbox's contents-API shim serves the manifest and the doc from
 // the working tree, which is what makes a branch's copy the one under test.
 //
 // MODE picks what is rendered:
 //   none   the tab as it stands, for the header and the lede
-//   peek   hover the header's SURFACING.md mark, for the card       (default)
+//   peek   hover the header's CONVERSATION.md mark, for the card       (default)
 //   deck   the deck door, filling the content pane
 //   dock   the door, then the pane toggle, so the doc sits beside the cards
 //   csv    docked, then swiped to the index slide, for the table rendition
 //   over   docked, then a peek opened from the list, which must sit ABOVE it
 //   docs   the Docs tab's own door, over its selected folder
 //   lead   a card title tapped, which docks the deck and marks its bullet
-//   region a region door tapped, which docks the deck and marks the heading
 //   tests  the Tests tab's door, over the suite as its strip has cut it
 
 export default async (page) => {
@@ -34,7 +33,7 @@ export default async (page) => {
   if (mode === 'peek') {
     // Exact title, since "… on GitHub" also matches rows rendered behind the
     // other tabs, and .first() would pick one of those.
-    await page.locator('a[title="docs/SURFACING.md on GitHub"]').first().hover();
+    await page.locator('a[title="docs/CONVERSATION.md on GitHub"]').first().hover();
     // Clears the card's 320 ms dwell plus the fetch. The doc is not one of the
     // manifests the view seeds, so this address is cold.
     await page.waitForTimeout(2200);
@@ -45,13 +44,6 @@ export default async (page) => {
     // A card well down the list, so the mark has to have scrolled the slide to
     // be visible at all: a shot of the top of the doc would pass either way.
     await page.locator('button[title^="Show Toss data"]').first().click();
-    await page.waitForTimeout(3200);
-    return;
-  }
-  if (mode === 'region') {
-    // The course's heading sits past every primitive, so a mark visible in
-    // the shot proves the deck landed there rather than merely opened.
-    await page.locator('button[title^="Show The surfacing course"]').first().click();
     await page.waitForTimeout(3200);
     return;
   }
@@ -90,7 +82,7 @@ export default async (page) => {
     // The regression this covers is a z-index one: the card is appended at
     // install and the deck's overlay when it opens, so an equal z-index put
     // every peek UNDER the deck the moment one was open.
-    await page.locator('a[title="docs/SURFACING.md on GitHub"]').first().hover();
+    await page.locator('a[title="docs/CONVERSATION.md on GitHub"]').first().hover();
     await page.waitForTimeout(1800);
   }
 };

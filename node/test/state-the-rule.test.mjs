@@ -99,7 +99,7 @@ test('a reference the annotation kept, then dropped from the rewrite, is a loss'
   assert.match(out, /REFERENCES lost 1: \['notes\.md'\]/);
 });
 
-// Learned twice on docs/SURFACING.md: writing `docs/envelopes/surface.md` where
+// Learned twice on docs/CONVERSATION.md: writing `docs/envelopes/surface.md` where
 // the source said `surface.md` is the SAME destination made more specific, and
 // reading it as a loss sent two passes chasing a defect that was not there.
 test('a path made more specific is not a lost reference', () => {
@@ -745,7 +745,7 @@ test('applying the projection retires its insertions, because the digest stops m
 // that separate the two orderings (a fence whose body holds blank lines, a
 // heading straight after a fence) are not ones a fixture author thinks to write.
 
-const CORPUS = ['docs/SURFACING.md', 'docs/TRACKER.md',
+const CORPUS = ['docs/CONVERSATION.md', 'docs/TRACKER.md',
                 'docs/annotation.md', 'CLAUDE.md', 'docs/registries.md',
                 'docs/showing.md', 'docs/stage.md', 'docs/loader.md',
                 // Added when docs/stage.md shrank from 7,366 words to 1,526 and
@@ -755,7 +755,7 @@ const CORPUS = ['docs/SURFACING.md', 'docs/TRACKER.md',
 
 // PYTHON INDEXES BY CODE POINT AND JAVASCRIPT BY UTF-16 CODE UNIT, so one astral
 // character (every emoji in these documents) shifts every later offset by one.
-// docs/SURFACING.md carries 49 of them, and a browser slicing at segment.py's
+// docs/CONVERSATION.md carries 49 of them, and a browser slicing at segment.py's
 // offsets reads a span starting two characters early. That is a defect in the
 // FORMAT, not in the classification this test is about, and no stored run hits
 // it yet (CONVENTIONS.md has none), so the offsets are converted here rather
@@ -828,13 +828,13 @@ test('a fence outranks the blank line inside it, and every other marker does not
 // fixture cannot stand in for this: the drift is proportional to how many emoji
 // precede a unit, so only a real document exercises the accumulation.
 //
-// SEVERAL documents, because SURFACING.md alone fell under the floor below:
+// SEVERAL documents, because CONVERSATION.md alone fell under the floor below:
 // 53 astral characters before 2026-09-07, 23 after the rarer primitives (📦 🗂️
 // 📊 📋 📲 🎫 🔍) left it and their holding file, surfacing-extended.md, was
 // deleted on 2026-10-07. The floor is a claim about the CORPUS, so it counts the
 // corpus; the round trip still runs per document, since drift accumulates
-// within one file. The course and the tree skill are the next richest in emoji.
-const EMOJI_DOCS = ['docs/SURFACING.md', 'docs/surfacing-course.md', 'skills/tree/SKILL.md'];
+// within one file. The tree skill is the next richest in emoji.
+const EMOJI_DOCS = ['docs/CONVERSATION.md', 'skills/tree/SKILL.md'];
 
 test('every unit of an emoji-carrying document resolves to the text segment.py recorded', () => {
   const astral = EMOJI_DOCS
