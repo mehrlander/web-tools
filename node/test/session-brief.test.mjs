@@ -62,7 +62,10 @@ class FakeGH {
   constructor(conf = {}) { this.repo = conf.repo || ''; this.ref = conf.ref || 'main'; }
   async get(p) {
     log.push('get:' + this.repo + ':' + p);
-    if (p === PATH) return { text: JSON.stringify({ ...record, readFrom: this.repo }) };
+    // `__recordPatch` and `__recordSha` let a test serve a later record, and
+    // the blob sha GitHub reports beside it, without a second fixture.
+    if (p === PATH) return { text: JSON.stringify({ ...record, ...(window.__recordPatch || {}), readFrom: this.repo }),
+                             sha: window.__recordSha || undefined };
     // Gemini's topics file, on the branch the laptop daemon writes, and only
     // there: a read of it from main is a bug, and it 404s like one.
     if (p === TOPICS_PATH && this.ref === 'background' && window.__topicsDoc) {
@@ -155,47 +158,63 @@ test('a lent row renders the strip and the title without waiting on the record',
   const s = strip(lent());
   assert.equal(s.calls, 40);
   assert.equal(s.failures, 1);
-  assert.equal(s.ran, '3h 0m');
+  assert.equal(lent().timeFacts.span, '3h 0m', 'how long it ran is the time panel\'s');
   assert.equal(s.repos, 'web-tools');
-  assert.equal(s.day, '2026-08-05');
+  // Short and friendly (owner, 2026-10-22), with the year only past a year
+  // ago, so this holds whichever side of that line the suite runs on.
+  assert.match(s.day, /^Aug 5(, 2026)?$/);
 });
 
-test('the strip carries five facts and no more, and names which', () => {
+test('the strip carries four facts and no more, and names which', () => {
   // A CEILING, not a list for its own sake. Nine facts wrapped the strip to
   // three lines at 430px, half of a phone's head, and two of the nine were
   // printed again 44px below as the Outline and Files tab counts. `asks` and
   // `files` went for that duplication, `schema` because it is the record
   // FORMAT's version rather than a fact about the session, and `out tokens`
-  // because nothing reads differently for a large one.
+  // because nothing reads differently for a large one. `ran` went into the
+  // start date's panel on 2026-10-22, beside when the session last moved.
   // Array.from, because a getter's return reaches a test through Alpine's
   // reactive proxy and deepEqual compares prototypes.
   assert.deepEqual(Array.from(lent().strip, f => f.k),
-    ['day', 'ran', 'calls', 'failures', 'repos']);
+    ['day', 'calls', 'failures', 'repos']);
 });
 
-test('a unit word rides only the values that do not name themselves', () => {
-  // `f.k` stays the fact's NAME, which the notes and these tests key on; `unit`
-  // is the word actually drawn after the value. A date reads as a date and a
-  // duration reads as a duration, so those draw bare; 251 does not read as
-  // calls.
-  const units = Object.fromEntries(lent().strip.map(f => [f.k, f.unit]));
-  assert.deepEqual(units,
-    { day: '', ran: '', calls: 'tool calls', failures: 'failed', repos: '' });
+test('a count is a glyph that opens its panel; only the self-naming values are text', () => {
+  // `f.k` stays the fact's NAME, which the notes and these tests key on. A date
+  // reads as a date, so it draws bare; 251 does not read as calls, and since
+  // 2026-10-22 the glyph says so, as on the Activity view's Sessions row, with
+  // the unit in words in the panel the glyph opens. So no fact draws a unit
+  // word any more.
+  const f = Object.fromEntries(lent().strip.map(x => [x.k, x]));
+  assert.deepEqual(Object.fromEntries(Object.entries(f).map(([k, x]) => [k, x.unit])),
+    { day: '', calls: '', failures: '', repos: '' });
+  assert.equal(f.calls.icon, 'ph-wrench');
+  assert.equal(f.calls.panel, 'tools');
+  assert.equal(f.failures.panel, 'tools', 'failures open the same list, where the failing tool is named');
+  assert.equal(f.failures.tone, 'text-warning');
+  assert.equal(f.day.panel, 'time', 'the date opens when it ran');
+  assert.equal(f.day.icon, '', 'and draws no glyph: the date names itself');
 });
 
-test('the strip counts a zero rather than dropping it, and drops what is absent', () => {
-  // "no failures" and "not captured" are different answers and only one of them
-  // is about the session, which is the whole reason the filter tests for
-  // `v === 0` rather than truthiness.
+test('a zero failure count is stated in the tools panel, not on the strip', () => {
+  // "no failures" and "not captured" are different answers, and the panel is
+  // where the first one is said: its header reads "none failed". The strip
+  // follows the Sessions row, where failures ride the tools card and take a
+  // place of their own only when there are some (2026-10-22). Measured zero
+  // calls still count, which is why the filter tests `v === 0`.
   const bare = { id: 'x', day: '2026-08-05', exchanges: 0, calls: 0, failures: 0 };
   window.__probe = { id: 'x', repo: STORE, facts: bare, record: null };
   const el = window.document.createElement('div');
   el.setAttribute('x-data', 'sessionBrief(window.__probe)');
   window.document.body.append(el);
   Alpine.initTree(el);
-  const s = Object.fromEntries(Alpine.$data(el).strip.map(f => [f.k, f.v]));
-  assert.equal(s.failures, 0, 'measured zero is a fact');
-  assert.ok(!('ran' in s), 'a duration nothing could compute is absent, not zero');
+  const d = Alpine.$data(el);
+  const s = Object.fromEntries(d.strip.map(f => [f.k, f.v]));
+  assert.equal(s.calls, 0, 'measured zero calls is a fact');
+  assert.ok(!('failures' in s), 'a zero failure count leaves the strip');
+  assert.equal(d.toolTally.failures, 0, 'and the panel has it to state');
+  assert.equal(d.timeFacts.span, '', 'a duration nothing could compute is absent, not zero');
+  assert.ok(!('agents' in s), 'and so is a fan-out nobody ran');
 });
 
 test('an unreadable record costs the outline and nothing else', () => {
@@ -554,6 +573,28 @@ test('a fact carries its definition on data-title-tip, not in a title', () => {
   const strip = el.querySelector('.flex.flex-wrap.items-center.gap-x-2\\.5');
   assert.ok(strip, 'the facts strip');
   assert.equal(strip.querySelectorAll('[title]').length, 0, 'no fact is stranded in a title');
+  // Three kinds of fact since 2026-10-22, and each carries its words its own
+  // way. A TEXT fact (day, ran) has its definition on a title-tip. A GLYPH fact
+  // is a button whose panel names the unit, so it carries an aria-label rather
+  // than a title-tip, which a hover would draw over the panel it opens. The
+  // SCOPE is one pill holding each repository's mark, and a button of the
+  // same kind: it opens the checkouts panel (owner, 2026-10-22).
+  const text = d.strip.filter(f => !f.panel && f.k !== 'repos');
+  const glyphs = d.strip.filter(f => f.panel);
+  assert.deepEqual(Array.from(text, f => f.k), [], 'every fact is a glyph or the date, each opening its panel');
+  // The Gemini mark is a button of the same kind and no fact of the record's;
+  // its own tests are below, with the topics file.
+  const buttons = [...strip.querySelectorAll('[data-fact-btn]:not([data-gemini-mark])')];
+  assert.equal(buttons.length, glyphs.length, 'one button per glyph fact');
+  for (const b of buttons) {
+    assert.ok(!b.hasAttribute('data-title-tip'), 'a glyph fact draws no title-tip over its panel');
+    assert.ok(b.getAttribute('aria-label'), 'and names itself to a reader who gets neither');
+  }
+  const pill = strip.querySelectorAll('[data-scope-pill]');
+  assert.equal(pill.length, 1, 'one pill for the whole scope');
+  assert.equal(pill[0].getAttribute('aria-label'), 'Checked out: web-tools');
+  assert.ok(pill[0].hasAttribute('data-fact-btn'), 'and it opens a panel like the counts do');
+  assert.equal(pill[0].querySelectorAll('i.ph').length, d.scopeRepos.length, 'a mark per repository inside it');
 
   // THROUGH THE KIT, NOT A SECOND IMPLEMENTATION OF IT. `kits/title-tip.js` is this
   // estate's tier between a title and a built panel, and a strip definition is
@@ -561,11 +602,12 @@ test('a fact carries its definition on data-title-tip, not in a title', () => {
   // hand-rolled a tap-to-reveal line for one commit, which was that kit again
   // with no keyboard, no screen reader and no affordance before the tap.
   const noted = [...el.querySelectorAll('[data-title-tip]')]
-    .filter(n => !n.closest('[role="search"]'));
+    .filter(n => !n.closest('[role="search"]') && !n.hasAttribute('data-scope-pill'));
   // Every fact, plus notes that are not facts about the SESSION: the id, the
   // `running <ref>` marker naming the ref this page's own code booted from,
-  // the scope row, whose note says what tapping it will do, the pages mark,
-  // and the follow-up summary's note saying Gemini wrote it, not the record. They are found
+  // the pages mark, and the follow-up summary's note saying Gemini wrote it,
+  // not the record. The scope row's microphone was the fifth until it came
+  // off on 2026-10-22. They are found
   // by SUBTRACTING the strip rather than by matching their own text, so the
   // count stays exact without a second list to keep in step.
   //
@@ -574,24 +616,26 @@ test('a fact carries its definition on data-title-tip, not in a title', () => {
   // working: a note is cheap to add and this is the only thing that asks what
   // it is for, so it is raised by naming the newcomer, never by loosening the
   // comparison.
-  const shownValues = new Set(d.strip.map(f => String(f.v) + (f.unit ? ' ' + f.unit : '')));
+  const shownValues = new Set(text.map(f => String(f.v) + (f.unit ? ' ' + f.unit : '')));
   const extras = noted.filter(n => !shownValues.has(n.textContent.replace(/\s+/g, ' ').trim()));
   // Ten more joined on 2026-10-16, when every title in the app became a
   // title-tip: the labels on the icon-only controls, Contents, On GitHub,
   // Previous view, Next view, Open the page in a new tab, Swipe through every
   // view full screen, Open the cards and read them aloud, Read n cards one at a
   // time, Open this session in Claude Code, and The stored record on GitHub.
+  // The eleventh joined on 2026-10-22: the notes mark, Notes on what you are
+  // looking at, copied out as JSON.
   assert.equal(extras.length, 15,
-    'the id, the running-ref marker, the scope row, the pages mark, the Gemini summary and ten control labels off-strip: '
+    'the id, the running-ref marker, the pages mark, the Gemini summary and eleven control labels off-strip: '
     + JSON.stringify(extras.map(n => n.textContent.trim() || n.getAttribute('data-title-tip'))));
-  assert.equal(noted.length, d.strip.length + 15, 'every fact and those fifteen, and nothing else');
+  assert.equal(noted.length, text.length + 15, 'every text fact and those fifteen, and nothing else');
   // MATCHED ON THE VALUE, not on the fact's name, because the name is no longer
   // drawn: the strip renders `2026-08-05` and `40 calls`, so a lookup keyed on
   // "day" or "calls" would find the definition of whichever fact happened to
   // start with those letters. The rendered text is what a reader points at, so
   // it is what the note has to be attached to.
   const byNote = new Map(noted.map(n => [n.textContent.replace(/\s+/g, ' ').trim(), n.getAttribute('data-title-tip')]));
-  for (const f of d.strip) {
+  for (const f of text) {
     const shown = String(f.v) + (f.unit ? ' ' + f.unit : '');
     assert.ok(byNote.has(shown), 'strip row ' + f.k + ' is on the page as "' + shown + '"');
     assert.equal(byNote.get(shown), f.t,
@@ -634,84 +678,176 @@ test('the page tells the brief that no embedder draws its header', () => {
   assert.match(page, /x-show="!framed \|\| !target"/);
 });
 
-// ── Prepare a follow-up session ─────────────────────────────────────────────
-// The one act this page offers, and the third attempt at placing it. It was two
-// icons on every row of the Sessions LIST (off the same day: nothing there said
-// which session a mark would act on), then a full-width row of words here, now
-// one microphone riding the end of the facts strip beside the scope it carries.
-// What is under test is unchanged by any of that: the address is truthful and
-// chooses nothing else. The placement is held below.
-
-test('the scope link carries the checkouts, owned by the mounted store', () => {
-  const u = new URL(lent().scopeUrl);
-  assert.equal(u.pathname, '/web-tools/pages/dictate.html');
-  assert.equal(u.searchParams.get('repo'), 'me/web-tools',
-    'the owner comes from the store this brief was mounted with, not a constant');
-  assert.equal(u.searchParams.get('to'), 'send', 'painted as the lead, never acted on');
-  assert.equal(u.searchParams.get('target'), 'code');
-  assert.equal(lent().scopeNames, 'web-tools');
-});
+// ── The scope ───────────────────────────────────────────────────────────────
+// The checkouts the session stood in, drawn as one pill on the strip. A
+// microphone beside it opened a follow-up session on the same scope until
+// 2026-10-22; it went unused and came off, and its tests with it.
 
 test('the wider `attached` list wins where the record carries it', () => {
   // Record schema 8. `repos` is where the shell stood and misses a checkout
   // worked entirely through absolute paths; `attached` is what the container
-  // held. The union is what the link should preselect.
+  // held. The union is what the pill draws.
   const d = lent();
   const was = d.rec;
   try {
     d.record = { ...was, attached: ['home', 'web-tools'] };
     assert.deepEqual([...d.scopeRepos], ['home', 'web-tools']);
-    assert.equal(new URL(d.scopeUrl).searchParams.get('repo'), 'me/home,me/web-tools');
   } finally { d.record = was; }
 });
 
-test('a session that names no checkout offers no row', () => {
+test('the checkouts panel lists every branch with work on it, under its repository', () => {
+  // Best evidence first: a push the record names (schema 15), else commits
+  // past main at the last stop that never left the container. A branch with
+  // neither is only the checkout's name and is not listed; the repository
+  // says "no commits" instead. A record older than both fields says nothing.
+  const d = lent();
+  const was = d.record;
+  const shape = () => Object.fromEntries(Array.from(d.scopeRows, g =>
+    [g.name, g.branches.length ? Array.from(g.branches, b => b.branch + ': ' + b.word) : g.word]));
+  try {
+    d.record = { ...d.rec, schema: 15, attached: ['home', 'web-tools', 'web-tools-private'],
+      repos: [{ name: 'home', branch: 'claude/a-1', ahead_base: 2 },
+              { name: 'web-tools', branch: 'claude/a-1', ahead_base: 0 },
+              { name: 'web-tools-private', branch: 'claude/a-1', ahead_base: 0 }],
+      pushed: [{ name: 'web-tools', branch: 'claude/a-1' }, { name: 'web-tools', branch: 'claude/b-2' },
+               { name: 'wt-extra', branch: 'claude/c-3' }] };
+    assert.deepEqual(shape(), {
+      home: ['claude/a-1: 2 commits, not pushed'],
+      'web-tools': ['claude/a-1: pushed', 'claude/b-2: pushed'],
+      'web-tools-private': 'no commits',
+      'wt-extra': ['claude/c-3: pushed'],
+    }, 'two pushed branches in one repository are two lines, a bare checkout branch is none, '
+       + 'and a checkout the session only pushed from is still a checkout');
+    assert.equal(d.scopePushed, 3, 'the header counts branches pushed');
+    assert.match(d.scopeRows[0].branches[0].url, /branch\.html#gh=me\/home@claude%2Fa-1$/);
+    // What the page read live, once loadWork has run: the PR, the branch's
+    // place in the branch deck, and how many files it changed (files, not
+    // renderable views, since 2026-10-22).
+    const work = d.work.branches;
+    d.work.branches = [{ repoShort: 'web-tools', branch: 'claude/z-9', ahead: 1 },
+                       { repoShort: 'home', branch: 'claude/a-1', pr: 7, prState: 'open', prUrl: 'pr7', ahead: 2,
+                         files: 5, url: 'live-url' }];
+    const home = d.scopeRows[0].branches[0];
+    assert.deepEqual([home.pr, home.prState, home.files, home.word, home.url, home.n],
+                     [7, 'open', 5, 'pushed', 'live-url', 1]);
+    assert.equal(d.scopeRows.find(g => g.name === 'web-tools-private').branches.length, 0);
+    d.work.branches = work;
+    d.record = { ...d.rec, schema: 4, attached: undefined, pushed: undefined,
+      repos: [{ name: 'web-tools', branch: 'claude/a-1' }] };
+    assert.deepEqual(shape(), { 'web-tools': '' }, 'an old record makes no claim about commits');
+  } finally { d.record = was; }
+});
+
+test('a Markdown view born with an empty html is read, once', async () => {
+  // Views are created with html '', and a fill that waited for html to be
+  // undefined read none of them: every document in the strip rendered blank.
+  const d = lent();
+  const was = window.marked;
+  window.marked = { parse: (t) => '<p>' + t.length + '</p>' };
+  try {
+    const views = [{ kind: 'md', slug: STORE, branch: 'main', path: PATH, html: '' },
+                   { kind: 'html', slug: STORE, branch: 'main', path: 'x.html', html: '' }];
+    const before = gets().length;
+    await d.fillMarkdown(views);
+    assert.match(views[0].html, /^<p>\d+<\/p>$/, 'the document is read and rendered');
+    assert.equal(views[1].html, '', 'a page is left to its frame');
+    await d.fillMarkdown(views);
+    assert.equal(gets().length, before + 1, 'and a second ask reads nothing again');
+  } finally { window.marked = was; }
+});
+
+test('one container: the views are a tab and the calls are the Calls tab\'s alone', () => {
+  // The page drew two: the head and a views card exactly one screen tall,
+  // with the tabs a screen down, and the user calls listed above them as
+  // well as in their own tab (owner, 2026-10-22). Read off the source, since
+  // jsdom lays nothing out.
+  const src = readFileSync(path.join(repoRoot, 'lib/alpineComponents/session-brief.js'), 'utf8');
+  const at = src.indexOf('── NOW: where the session');
+  const now = src.slice(at, src.indexOf('</section>', at));
+  assert.ok(at > 0 && now.length > 2000, 'the Now section, found and whole');
+  assert.doesNotMatch(now, /in calls"/, 'no call is listed above the tabs');
+  assert.doesNotMatch(now, /data-views/, 'and no views card');
+  assert.match(now, /<div x-show="now" data-peek-host/, 'the card is the action message, where there is one');
+  assert.doesNotMatch(src, /h-\[calc\(100dvh-4\.75rem\)\]/, 'nothing above the tabs is sized to the screen');
+  assert.match(src, /x-show="pane === 'views' && work\.views\.length"/, 'the views are a pane');
+  assert.match(src, /data-session-views-tab/, 'behind a tab of their own');
+  assert.match(src, /pane === 'views' && Math\.abs\(i - vAt\) <= 1/, 'whose frames wait for it to open');
+});
+
+test('a note names what it is about in the notes store\'s locators, and copies out as JSON', () => {
+  // The owner's idea (2026-10-22): note on any view or on the session, then
+  // carry the set into the session as JSON. `about` is the notes store's own
+  // locator (skills/notes), so each note says what it concerns and could be
+  // filed in the store unchanged.
+  const d = lent();
+  const was = { pane: d.pane, views: d.work.views, vAt: d.vAt, notes: d.notes, about: d.noteAbout };
+  try {
+    d.notes = [];
+    d.noteText = 'on the session';
+    d.addNote();
+    d.pane = 'views';
+    d.work.views = [{ name: 'a.md', repoShort: 'web-tools', short: 'x', slug: 'me/web-tools', branch: 'claude/x', path: 'docs/a.md' }];
+    d.vAt = 0; d.noteAbout = 'auto';
+    assert.equal(d.noteTarget.key, 'view', 'in the Views tab a note is about the view in front of the reader');
+    d.noteText = 'on the view';
+    d.addNote();
+    assert.equal(d.noteText, '', 'the field clears for the next one');
+    const j = JSON.parse(d.notesJson());
+    assert.equal(j.kind, 'session-notes');
+    assert.equal(j.session, 'b8fae678');
+    assert.equal(j.record, STORE + ':' + PATH);
+    assert.equal(j.agent_session, record.agent_session, 'and names the session to paste it into');
+    assert.deepEqual(j.notes.map(n => [n.about, n.text]),
+      [[STORE + ':' + PATH, 'on the session'], ['me/web-tools@claude/x:docs/a.md', 'on the view']]);
+    assert.ok(j.notes.every(n => !Number.isNaN(Date.parse(n.at))), 'each dated');
+    d.removeNote(0);
+    assert.equal(d.notes.length, 1);
+    d.clearNotes();
+    assert.equal(d.notes.length, 1, 'the first tap on Clear only asks');
+    d.clearNotes();
+    assert.equal(d.notes.length, 0);
+  } finally {
+    d.pane = was.pane; d.work.views = was.views; d.vAt = was.vAt; d.notes = was.notes; d.noteAbout = was.about;
+  }
+});
+
+test('the time panel reads a long span in days and counts the days the owner spoke', () => {
+  const d = lent();
+  const was = d.record;
+  try {
+    d.record = { ...d.rec, started: '2026-10-11T16:55:00Z', ended: '2026-10-21T01:28:00Z',
+      prompts: [{ at: '2026-10-11T17:00:00Z' }, { at: '2026-10-11T18:00:00Z' }, { at: '2026-10-15T18:00:00Z' }] };
+    const t = d.timeFacts;
+    assert.equal(t.span, '9d 8h', '224h 33m is exact and reads as nothing');
+    assert.equal(t.turns, 3);
+    assert.equal(t.days, 2);
+    assert.match(t.started, /Oct 11/);
+  } finally { d.record = was; }
+});
+
+test('the pill draws declared marks and counts the rest', () => {
+  // Nine checkouts drew six neutral bookmarks in a row on a phone (owner,
+  // 2026-10-22).
+  const d = lent();
+  const was = { record: d.record, marks: d.marks };
+  try {
+    d.record = { ...d.rec, attached: ['home', 'web-tools', 'wtp-a', 'wtp-b'] };
+    d.marks = { home: 'ph-house', 'web-tools': 'ph-toolbox', 'wtp-a': '', 'wtp-b': '' };
+    assert.deepEqual(Array.from(d.scopeMarked), ['home', 'web-tools']);
+    assert.equal(d.scopeRepos.length - d.scopeMarked.length, 2, 'drawn as +2');
+  } finally { d.record = was.record; d.marks = was.marks; }
+});
+
+test('a session that names no checkout draws no pill', () => {
   const d = lent();
   const was = d.record;
   try {
     d.record = { ...d.rec, repos: [], attached: [] };
     assert.deepEqual([...d.scopeRepos], []);
-    assert.equal(d.scopeUrl, '', 'absent rather than a link that preselects nothing');
+    assert.ok(!d.strip.some(f => f.k === 'repos'), 'absent rather than an empty pill');
   } finally { d.record = was; }
 });
 
-
-test('the act is one mark on the facts strip, not a row of its own', () => {
-  // The row of words was overkill for a control worth one tap (reported
-  // 2026-09-08). It sits on the strip now because it operates on the strip's
-  // last fact: repos says where the session ran, and this starts new work in
-  // the same place.
-  //
-  // Read off the SOURCE for the same reason the shell width is: jsdom compiles
-  // no Tailwind, so a layout claim is only answerable in the template.
-  const src = readFileSync(path.join(repoRoot, 'lib/alpineComponents/session-brief.js'), 'utf8');
-  assert.doesNotMatch(src, /Work on this scope/, 'the worded row is gone');
-  const link = src.match(/<template x-if="f\.k === 'repos' && scopeUrl">[\s\S]*?<\/template>/);
-  assert.ok(link, 'and what replaced it is an anchor, so it is still a link to somewhere');
-  assert.match(link[0], /<a :href="scopeUrl"/, 'a real link, not a button that scripts a navigation');
-  assert.match(link[0], /ph-microphone/, 'the microphone, which is what named the act');
-  assert.doesNotMatch(link[0], /<span/, 'and no words beside it');
-  // THE WORDS ARE NOT LOST, they are one hover or tap away. A note reaches a
-  // touch screen and a screenshot, which is the property that lets an icon
-  // carry an act here where a title attribute could not (kits/title-tip.js).
-  assert.match(link[0], /data-title-tip=/, 'the note says what will happen');
-  assert.match(link[0], /aria-label="Prepare a follow-up session"/,
-    'and the same act is named for a reader who gets no note at all');
-});
-
-test('the note names the checkouts and promises nothing runs unasked', () => {
-  const d = lent();
-  const src = readFileSync(path.join(repoRoot, 'lib/alpineComponents/session-brief.js'), 'utf8');
-  // Scoped to the anchor: the facts on the strip carry notes of their own, and
-  // a document-wide match reads whichever comes first.
-  const link = src.match(/<template x-if="f\.k === 'repos' && scopeUrl">[\s\S]*?<\/template>/)[0];
-  const note = link.match(/:data-title-tip="([\s\S]*?)"\s*>/);
-  assert.ok(note, 'the note is bound rather than written down, so it carries the real scope');
-  assert.match(note[1], /scopeNames/, 'which is the same list the strip prints');
-  assert.match(note[1], /Nothing runs until you send it/,
-    'the one promise the far end has to keep: to=send paints the destination, never acts');
-  assert.equal(d.scopeNames, 'web-tools');
-});
 
 test('branchGroups groups session fileRows by repository and branch', async () => {
   window.__branchGroupSession = {
@@ -862,4 +998,106 @@ test('the outline is built once, with the turn notes, when the topics file is pr
     window.__topicsDoc = null;
     window.__topicsDelay = 0;
   }
+});
+
+// ── How far Gemini has read ─────────────────────────────────────────────────
+// The poller's staleness test, as far as a page can run it: no file yet, or a
+// file made from another version of the record. Each test serves a schema 8
+// record, where turn i is prompts[i], and names its own store for the memo.
+const TWO = [{ at: '2026-08-05T13:00:00Z', text: 'do the thing' },
+             { at: '2026-08-05T15:00:00Z', text: 'and one more' }];
+const mountRead = async (doc, repo, patch, sha) => {
+  window.__recordPatch = { schema: 8, ...patch };
+  window.__recordSha = sha;
+  try { return await mountTopics(doc, repo); }
+  finally { window.__recordPatch = null; window.__recordSha = undefined; window.__topicsDoc = null; }
+};
+
+test('every turn summarized from this version of the record reads as current', async () => {
+  const doc = { ...TOPICS_DOC, turn_count: 1, source_ended: record.ended, source_blob: 'aaa' };
+  const d0 = await mountRead(doc, 'me/gemini-a', {}, 'aaa');
+  const g = d0.gemini && { ...d0.gemini, ...d0.geminiDetail };
+  assert.equal(g.state, 'current');
+  assert.equal(g.icon, 'ph-check');
+  assert.deepEqual(JSON.parse(JSON.stringify(g.head)), { count: '1/1', unit: 'turns summarized' });
+  assert.deepEqual(Array.from(g.rows, r => r.mark), ['done']);
+});
+
+test('a session that went on after Gemini read it is behind, by the turns it missed', async () => {
+  // The case that prompted this (2026-10-22): six turns in the record, five in
+  // the file, and nothing on the page said so.
+  const doc = { ...TOPICS_DOC, turn_count: 1, source_ended: record.ended, source_blob: 'aaa' };
+  const d0 = await mountRead(doc, 'me/gemini-b', { prompts: TWO, ended: '2026-08-05T15:30:00Z' }, 'bbb');
+  const g = d0.gemini && { ...d0.gemini, ...d0.geminiDetail };
+  assert.equal(g.state, 'behind');
+  assert.equal(g.label, '1/2', 'the strip shows how far it got');
+  assert.deepEqual(Array.from(g.rows, r => r.mark), ['done', 'after']);
+  assert.ok(g.lines.some(l => /has moved since/.test(l)), 'and the panel says the record moved');
+});
+
+test('the blob decides where both sides have one, even when the end stamp agrees', async () => {
+  // The last exchange can grow without a new turn: replies land, `ended` is
+  // rewritten. The blob is the poller's own test, so it is this one's too.
+  const doc = { ...TOPICS_DOC, turn_count: 1, source_ended: record.ended, source_blob: 'aaa' };
+  const d0 = await mountRead(doc, 'me/gemini-c', {}, 'ccc');
+  const g = d0.gemini && { ...d0.gemini, ...d0.geminiDetail };
+  assert.equal(g.state, 'behind');
+  assert.equal(g.icon, 'ph-arrows-clockwise', 'no turn to count, so a mark says it moved');
+});
+
+test('a file from before per-turn summaries reads as topics only, not as turns skipped', async () => {
+  // Format 4 has the summary and the topics and no `turns` at all; 95 of the
+  // 150 files on background were that shape on 2026-10-22.
+  const { turns, ...doc } = { ...TOPICS_DOC, format: 4, turn_count: 1, source_ended: record.ended };
+  const d0 = await mountRead(doc, 'me/gemini-d');
+  const g = d0.gemini && { ...d0.gemini, ...d0.geminiDetail };
+  assert.equal(g.state, 'topics');
+  assert.equal(g.rows.length, 0, 'no rows, since there is nothing per turn to list');
+  assert.equal(g.head.unit, 'turns read');
+});
+
+test('a turn step 1 skipped is a gap, named as skipped', async () => {
+  const doc = { ...TOPICS_DOC, turn_count: 2, source_ended: record.ended,
+                turns: [...TOPICS_DOC.turns, { turn: 1, summary: null, headline: null }] };
+  const d0 = await mountRead(doc, 'me/gemini-e', { prompts: TWO });
+  const g = d0.gemini && { ...d0.gemini, ...d0.geminiDetail };
+  assert.equal(g.state, 'gaps');
+  assert.equal(g.label, '1/2');
+  assert.deepEqual(Array.from(g.rows, r => r.mark), ['done', 'skipped']);
+});
+
+test('no file is "not yet", and a record with no path makes no claim at all', async () => {
+  const d0 = await mountRead(null, 'me/gemini-f');
+  const g = d0.gemini && { ...d0.gemini, ...d0.geminiDetail };
+  assert.equal(g.state, 'none');
+  // A #gz= record was never in the store, so there is nothing to look for.
+  window.__gzMount = { record: { ...record, short: 'gz1' } };
+  const el = window.document.createElement('div');
+  el.setAttribute('x-data', 'sessionBrief(window.__gzMount)');
+  window.document.body.append(el);
+  Alpine.initTree(el);
+  await tick(4);
+  assert.equal(Alpine.$data(el).gemini, null);
+});
+
+// ── The tools panel ─────────────────────────────────────────────────────────
+test('the tools panel lists every tool, its failures, and the subagents by task', async () => {
+  window.__toolsMount = { record: { ...record, short: 'tl1', calls_total: 4, failures: 1,
+    tools: { Bash: 3, Agent: 1 },
+    calls: [{ name: 'Bash', ok: true }, { name: 'Bash', ok: false }, { name: 'Bash', ok: true }, { name: 'Agent', ok: true }],
+    agents: [{ label: 'Fetch the docs', type: 'web-fetch', tools: { WebFetch: 4 } }] } };
+  const el = window.document.createElement('div');
+  el.setAttribute('x-data', 'sessionBrief(window.__toolsMount)');
+  window.document.body.append(el);
+  Alpine.initTree(el);
+  await tick(4);
+  const t = JSON.parse(JSON.stringify(Alpine.$data(el).toolTally));
+  assert.deepEqual(t.rows, [{ name: 'Bash', n: 3, failed: 1 }, { name: 'Agent', n: 1, failed: 0 }]);
+  assert.deepEqual(t.agents, [{ label: 'Fetch the docs', type: 'web-fetch', calls: 4 }]);
+  assert.equal(t.note, '');
+  // A call list shorter than the count cannot say which tool failed.
+  const d = Alpine.$data(el);
+  d.record = { ...d.record, calls: d.record.calls.slice(0, 2) };
+  assert.equal(d.toolTally.rows[0].failed, 0);
+  assert.match(d.toolTally.note, /Which tools failed is not in this record/);
 });

@@ -64,18 +64,22 @@ test('every Web Tools unit is still an address of the app', () => {
   }
 });
 
+// Every miss in one message: stopping at the first hid that home's store had
+// 32 uncoded units and 4 rows for units its fund view no longer has (2026-10-23).
 test('every unit in rings 0 to 2 is coded, with the commit it was read at', () => {
+  const misses = [];
   for (const dir of stores) {
     const coded = new Map(rows(path.join(dir, 'coded.csv')).map(c => [c.unit, c]));
     const units = rows(path.join(dir, 'units.csv'));
     for (const u of units.filter(u => u.app_ring !== '' && +u.app_ring <= 2))
-      assert.ok(coded.has(u.unit), `${u.unit} (ring ${u.app_ring}) is not coded; ${FIX}`);
+      if (!coded.has(u.unit)) misses.push(`${u.unit} (ring ${u.app_ring}) is not coded`);
     const known = new Set(units.map(u => u.unit));
     for (const c of coded.values()) {
-      assert.ok(known.has(c.unit), `${c.unit} is coded but not in ${path.relative(repoRoot, dir)}/units.csv`);
-      assert.match(c.at || '', /^[0-9a-f]{7,40}$/, `${c.unit}: at must name the commit the unit was read at`);
+      if (!known.has(c.unit)) misses.push(`${c.unit} is coded but not in ${path.relative(repoRoot, dir)}/units.csv`);
+      if (!/^[0-9a-f]{7,40}$/.test(c.at || '')) misses.push(`${c.unit}: at must name the commit the unit was read at`);
     }
   }
+  assert.deepEqual(misses, [], `${misses.length} coding gap(s); ${FIX}:\n${misses.join('\n')}`);
 });
 
 test('every coded value is a code of its dimension, one where the dimension takes one', () => {

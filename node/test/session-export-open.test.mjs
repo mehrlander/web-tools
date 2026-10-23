@@ -1100,6 +1100,16 @@ test('the labels are the record span, not the first card to the last', () => {
     .toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }));
 });
 
+test('a session across days names its ends by date, not by clock', () => {
+  // "4:55 PM ... 1:28 AM" over a nine-day session (bb88ffa7) hid the nine days
+  // (owner, 2026-10-22). The same record, its last write four days on.
+  const later = new Date(Date.parse(RECORD.started) + 4 * 864e5).toISOString();
+  buildWith({ ...RECORD, ended: later });
+  const day = (iso) => new Date(iso).toLocaleDateString([], { month: 'short', day: 'numeric' });
+  assert.equal(railOf().firstElementChild.textContent, day(RECORD.started));
+  assert.equal(railOf().lastElementChild.textContent, day(later));
+});
+
 test('a session with one card draws no rail, since a rail of one says nothing', () => {
   buildWith(MD_RECORD);
   assert.ok(railOf().classList.contains('hidden'), 'built but not shown');
