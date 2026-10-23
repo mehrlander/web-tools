@@ -20,10 +20,10 @@
   characteristic, with the instances called by it checked against the charge,
   then the instances no sense is applied to.
 
-  The map's objective and strategy are shared by every run, so they are said
-  once: above the run when there is one, and in a Brief tab, the first, when
-  there are several, such as blind readers' maps of one objective. Several
-  runs also get a Compare view.
+  The page opens on the map's backstory, a first tab shared by every run: what
+  the words are, why they needed mapping, and how the map was made, set large
+  for reading and spoken by kits/read-aloud.js on request. A file with several
+  runs, such as blind readers' maps of one question, also gets a Compare view.
 
   Address: #gh=owner/repo[@ref]:path or #gz=<gzipped JSON>; with neither, the
   registry test in research/category-mapping/registry-map.json.
@@ -43,6 +43,7 @@
   try {
     await gh.load('kits/gz-payload.js');
     await gh.load('kits/title-tip.js');
+    await gh.load('kits/read-aloud.js');
   } finally { window.__depsDone(); }
 </script>
 <script>
@@ -53,16 +54,27 @@ document.addEventListener('alpine:init', () => {
   const KIND = { list: 'a list', region: 'a region', value: 'a value', outside: 'outside the space', fuzzy: 'fuzzy edge', axis: 'one axis' };
 
   Alpine.data('catMap', () => ({
-    D: null, err: '', r: 0, view: 'map', x: '', y: '', open: '', from: '', more: false, long: false,
+    D: null, err: '', r: 0, view: 'backstory', x: '', y: '', open: '', from: '', more: false, long: false, voice: null, speech: 'idle',
 
     async init() {
       await window.__depsReady;
       try { this.D = await this.read(); } catch (e) { this.err = e.message; return; }
       const k = Number(param('run')), run = param('run') !== null && Number.isInteger(k) && k >= 0 && k < this.D.runs.length;
       this.r = run ? k : 0;
-      // Several runs open on the brief they share, unless the address names a run or the comparison.
-      if (this.D.runs.length > 1) this.view = param('view') === 'compare' ? 'compare' : run ? 'map' : 'brief';
+      // The page opens on the backstory, unless the address names a run or the comparison.
+      this.view = param('view') === 'compare' && this.D.runs.length > 1 ? 'compare' : run ? 'map' : 'backstory';
       this.axes();
+      this.$watch('view', v => { if (v !== 'backstory') this.voice?.stop(); });
+      addEventListener('pagehide', () => this.voice?.stop());
+    },
+    // The backstory read aloud by kits/read-aloud.js, which chunks it at sentences and keeps pause dependable.
+    get paras() { return String(this.D.backstory || '').split(/\n\s*\n/).filter(Boolean); },
+    speak() {
+      if (!this.voice) {
+        this.voice = window.readAloud.player({ onState: s => { this.speech = s.state; } });
+        this.voice.load([{ key: 'backstory', label: this.D.title, md: this.D.backstory }]);
+      }
+      this.voice.toggle();
     },
     async read() {
       const gz = param('gz'), spec = param('gh');
@@ -169,24 +181,27 @@ document.addEventListener('alpine:init', () => {
     <header class="sticky top-0 z-20 bg-base-100 border-b border-base-300">
       <div class="px-4 pt-3 pb-2 flex items-baseline gap-3 flex-wrap">
         <h1 class="text-lg font-semibold text-balance" x-text="D.title"></h1>
-        <span class="text-xs text-base-content/60 font-mono" x-text="view === 'map' ? `${cats.length} senses · ${chars.length} characteristics · ${insts.length} things · ${offCount} off their word` : `${D.runs.length} runs · ${words.length} words`"></span>
+        <span class="text-xs text-base-content/60 font-mono" x-text="view === 'map' ? `${cats.length} senses · ${chars.length} characteristics · ${insts.length} things · ${offCount} off their word` : `${D.runs.length} run${D.runs.length > 1 ? 's' : ''} · ${words.length} words`"></span>
       </div>
-      <template x-if="D.runs.length > 1">
-        <div class="px-4 pb-2 flex items-center gap-2 overflow-x-auto whitespace-nowrap">
-          <button class="btn btn-xs rounded-full" :class="view === 'brief' ? 'btn-neutral' : 'btn-ghost border-base-300'" @click="view = 'brief'">Brief</button>
-          <template x-for="(run, k) in D.runs" :key="k">
-            <button class="btn btn-xs rounded-full" :class="view === 'map' && r === k ? 'btn-neutral' : 'btn-ghost border-base-300'" @click="view = 'map'; pick(k)" x-text="run.by"></button>
-          </template>
-          <button class="btn btn-xs rounded-full" :class="view === 'compare' ? 'btn-neutral' : 'btn-ghost border-base-300'" @click="view = 'compare'">Compare</button>
-        </div>
-      </template>
+      <div class="px-4 pb-2 flex items-center gap-2 overflow-x-auto whitespace-nowrap">
+        <button class="btn btn-xs rounded-full" :class="view === 'backstory' ? 'btn-neutral' : 'btn-ghost border-base-300'" @click="view = 'backstory'">Backstory</button>
+        <template x-for="(run, k) in D.runs" :key="k">
+          <button class="btn btn-xs rounded-full" :class="view === 'map' && r === k ? 'btn-neutral' : 'btn-ghost border-base-300'" @click="view = 'map'; pick(k)" x-text="D.runs.length > 1 ? run.by : 'Map'"></button>
+        </template>
+        <button x-show="D.runs.length > 1" class="btn btn-xs rounded-full" :class="view === 'compare' ? 'btn-neutral' : 'btn-ghost border-base-300'" @click="view = 'compare'">Compare</button>
+      </div>
     </header>
 
-    <!-- The brief every run shares: its own tab when there are several runs, above the map when there is one -->
-    <section x-show="view === 'brief' || D.runs.length === 1" class="px-4 pt-4 grid gap-4">
-      <div class="grid gap-1"><h2 class="text-sm font-semibold">Objective</h2><p class="text-sm text-pretty" x-text="D.objective"></p></div>
-      <div class="grid gap-1"><h2 class="text-sm font-semibold">Strategy</h2><p class="text-sm text-pretty" x-text="D.strategy"></p></div>
-    </section>
+    <!-- The backstory, the front page: why the map was made and how, set large and read aloud on request -->
+    <article x-show="view === 'backstory'" class="px-4 py-6 grid gap-5 justify-items-start">
+      <button x-show="window.readAloud?.supported" class="btn btn-sm rounded-full" :class="speech === 'speaking' ? 'btn-neutral' : 'btn-ghost border-base-300'" @click="speak()">
+        <i class="ph" :class="speech === 'speaking' ? 'ph-pause' : 'ph-speaker-high'"></i>
+        <span x-text="speech === 'speaking' ? 'Pause' : speech === 'paused' ? 'Resume' : 'Read aloud'"></span>
+      </button>
+      <template x-for="(p, k) in paras" :key="k">
+        <p class="text-xl leading-8 text-pretty" x-text="p"></p>
+      </template>
+    </article>
 
     <!-- One run -->
     <main x-show="view === 'map'" class="px-4 py-4 grid gap-6">

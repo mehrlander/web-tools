@@ -13,9 +13,9 @@ The subject is the categories, not the things. Each word for a kind of thing (re
 
 One `catmap/1` file, drawn by web-tools `pages/cat-map.html`, and the verdict in the reply. Hand the page over as `https://mehrlander.github.io/web-tools/pages/cat-map.html#gh=<owner>/<repo>@<ref>:<path>`, or `#gz=` for an uncommitted file.
 
-The file is JSON: `format: "catmap/1"`, `title`, `objective`, `strategy`, `made`, and `runs`, one per run, several when blind readers map one objective. `objective` says what the map should settle and what waits on it; `strategy` says how: which words, which sources, what counts as an instance, and how many readers work blind. The page opens with both. A run holds:
+The file is JSON: `format: "catmap/1"`, `title`, `backstory`, `made`, and `runs`, one per run, several when blind readers take one question. `backstory` is two or three short paragraphs, separated by blank lines, for a reader who knows nothing of the repositories: what the words are and where they are used, what the map sets out to learn and why, and how it was made. The page opens on it and can read it aloud. A run holds:
 
-- `by`, `method`: who coded the run, and how it was made, as a record against the `strategy`.
+- `by`, `method`: who coded the run, and how.
 - `characteristics`: `{id, label, short, values}`, a question and its values.
 - `categories`: one per sense, `{id, word, sense, tag, where, requires, kind, verdict}`. `requires` maps a characteristic to the value the sense implies; a characteristic it leaves out is open. `where` is the line that defines or uses the sense.
 - `instances`: `{id, called, where, values, evidence}`. `called` lists the senses the thing is called by, empty for a contrast instance; `where` is the line that calls it so; `values` has every characteristic, `n/a` where the question does not apply; `evidence` lists `{char, evidence}`, the source for any value the instance does not show on its face.
@@ -25,7 +25,7 @@ The file is JSON: `format: "catmap/1"`, `title`, `objective`, `strategy`, `made`
 
 ## Process
 
-1. **Categories.** Write the `objective` and `strategy` first. List the words under test and, for a word used in more than one sense, each sense, with `where`. For each sense write `requires`, from its definitions read sentence by sentence (`atomic-decomposition`) and from how it is used. Output: `objective`, `strategy`, `categories`.
+1. **Categories.** Write the `backstory` first. List the words under test and, for a word used in more than one sense, each sense, with `where`. For each sense write `requires`, from its definitions read sentence by sentence (`atomic-decomposition`) and from how it is used. Output: `backstory`, `categories`.
 2. **Space.** Gather the characteristics the senses imply into `characteristics`, each a question with its values. Add a characteristic where two senses differ and no definition says how, found by comparing instances three at a time, two from an unsure pair: what do two share that the third lacks. Set `field` to the pair most senses constrain. Output: `characteristics`, `field`.
 3. **Instances.** Collect what each sense is applied to: search the repositories, counting referents, not occurrences. Add near neighbors no word is applied to. Code every instance on every characteristic. A value states what is observed ("edited in place"); it does not use a word under test. Stop when a new instance would add no new value. Run `separation-checks.py <map>.json --write` and answer each finding:
    - one value wherever it applies: drop the characteristic;

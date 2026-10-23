@@ -397,9 +397,9 @@ docket as its base and puts that field above it. It opens in
 [the idea board page](https://mehrlander.github.io/web-tools/pages/idea-board.html#gh=mehrlander/web-tools@claude/amazing-edison-w6l3ho:research/category-mapping/idea-board.json).
 
 The selection became [`pages/cat-map.html`](../../pages/cat-map.html), which
-draws a `catmap/1` file (the format is in the skill): the map's objective and
-strategy, said once, in a first Brief tab when there are several runs; each
-run's outcome; a field of two characteristics chosen by pills, each sense a region of the cells it allows; a
+draws a `catmap/1` file (the format is in the skill): the map's backstory, on a
+first tab in large type with a button that reads it aloud; each run's outcome;
+a field of two characteristics chosen by pills, each sense a region of the cells it allows; a
 docket of each sense's required values with the things it names checked
 against them, a red row naming what it breaks; and, for a file with several
 runs, a Compare view. [`registry-map.json`](registry-map.json), the registry

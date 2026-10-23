@@ -1,8 +1,7 @@
 {
  "format": "catmap/1",
  "title": "Collections: registry, stream, list, log, ledger, cache, snapshot, tracker, inbox",
- "objective": "Find what each of the estate's nine collection words implies about a collection, whether together they divide its collections into separate kinds, and which collections are called by a word they do not fit, before any of the words is redefined or replaced.",
- "strategy": "Code the collections in web-tools, web-tools-private and home against what each word's definitions and uses imply, and let the separation checks show what the words leave unseparated or empty. Four readers worked blind to one another: three following the cat-map skill, one with only the task and the file format.",
+ "backstory": "The Web Tools estate is three GitHub repositories holding many collections of records: lists of files, logs of events, caches, task trackers. Their documents call these collections by nine words: registry, stream, list, log, ledger, cache, snapshot, tracker and inbox. The words overlap. Collections that work alike get different words, and one word covers collections that work differently.\n\nThis map asks what each word promises about a collection, such as whether its entries change once written, and checks every collection against the word it goes by. The aim is to learn which words mark real differences before any of them is redefined.\n\nFour AI agents made the map, none seeing another's work. Three followed cat-map, a written procedure for this kind of question; the fourth had only the question.",
  "made": "2026-10-22",
  "runs": [
   {
