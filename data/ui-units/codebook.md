@@ -28,22 +28,22 @@ draws it.
 
 ## Fields
 
-A unit is coded on seven **dimensions**. `frame`, `body`, `reach`, `binding` and
-`phone` say how it is arranged; `job` and `answer` say what it is for
-([docs/forms/README.md](../../docs/forms/README.md)). Each is a row of
+A unit is coded on five **dimensions**. `job` and `answer` say what it is for
+([docs/forms/README.md](../../docs/forms/README.md)); `body`, `frame` and
+`phone` say how it is arranged. Each is a row of
 [`dimensions.csv`](dimensions.csv), which says what the dimension holds, the
-test that decides it, and whether a unit takes exactly one of its codes
-(`per_unit` is `one`) or any number of them (`any`). An eighth row, `ring`, is
-computed rather than coded (README, "Rings"). The codes a dimension divides the
-units into are the rows of `codes.csv` whose `axis` names it. The Map view
-renders both files: Dimensions shows each dimension with its codes and counts,
-and Gallery groups the units' shots by any one of them.
+test that decides it, whether a unit takes exactly one of its codes
+(`per_unit` is `one`) or any number of them (`any`), and its `basis`: `judged`
+(a reader's call is all there is), `checked` (`node/build/ui-instances.mjs` also
+compares the code with the markup) or `computed` (no reader codes it). A sixth
+row, `ring`, is computed (README, "Rings"). Reach and binding were retired on
+2026-10-23: nothing read either.
 
 The other fields record what draws the unit and how sure the reader is:
 
 | Field | Holds | Test |
 | --- | --- | --- |
-| `built_on` | the kits or components that draw `body` and `reach`, `;`-joined, or `hand` | a call or a mount in the unit's files |
+| `built_on` | the kits or components the unit calls, `;`-joined, or `hand` | a call or a mount in the unit's files |
 | `hand_evidence` | `file:line` of each part drawn by the unit's own code where a shared kit does the same job | blank when nothing qualifies |
 | `form` | the type of the one object a region draws, where one is drawn: a `docs/subjects.csv` key, or a candidate type marked `?` | a layout written for that type, knowing its fields in advance |
 | `style` | `house` (daisyUI and Tailwind, the app's look) or `own` (the page's own CSS vocabulary) | the screenshot |
@@ -51,15 +51,15 @@ The other fields record what draws the unit and how sure the reader is:
 | `confidence` | `high` (code and pixels), `medium` (code only), `low` (inferred) | |
 | `at` | the commit the unit was read at, where its `file:line` citations resolve | `git rev-parse --short=12 HEAD` in the unit's repo |
 
-A unit can hold several frame, reach, job and answer codes, and exactly one body
-code. Code the unit as it first paints. A tab that opens on a chart, with a list
-one switch away, is coded on the chart.
+A unit can hold several frame, job and answer codes, and exactly one body code.
+Code the unit as it first paints. A tab that opens on a chart, with a list one
+switch away, is coded on the chart.
 
 ## Codes
 
 The codes are rows of [`codes.csv`](codes.csv), one per code, grouped by `axis`,
-which names the dimension: `frame`, `body`, `reach`, `binding`, `phone`, `job`
-and `answer`, plus the five `ring` rows no reader codes. Each row gives the
+which names the dimension: `job`, `answer`, `body`, `frame` and `phone`, plus
+the five `ring` rows no reader codes. Each row gives the
 code's arrangement (`gloss`), the `test` that decides it, what it is
 `not_to_confuse` with, and the `kits` that draw it where any do. A reader codes
 from that file, and the Map view renders the same rows, so a code changed there
@@ -67,7 +67,6 @@ changes in both.
 
 Rules the rows cannot hold:
 
-- **Binding:** code the strongest tie present; `notes` may name the rest.
 - **Phone:** `hide` is written `hide:<region>`, naming what is dropped.
 - **Answer:** code every answer the unit can record, including one it records
   only on an address that carries a payload, such as a documentation call
