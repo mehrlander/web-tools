@@ -105,7 +105,7 @@ document.addEventListener('alpine:init', () => {
     get script() {
       const A = this.A, g = A.grid, out = [A.title, A.lede];
       g?.cells.forEach((row, i) => row.forEach((c, j) =>
-        out.push(`${g.across.values[j].label}, and ${g.down.values[i].label.toLowerCase()}: ${c.word || 'no word yet'}, ${c.means}.`)));
+        out.push(`${g.across.values[j].label}, and ${g.down.values[i].label.toLowerCase()}: ${c.word || (c.impossible ? 'impossible' : 'no word yet')}, ${c.means}.`)));
       if (g?.note) out.push(g.note);
       for (const w of A.add || []) out.push(`Add ${w.word}: ${w.means}.`);
       for (const n of A.renames || []) out.push(`${this.names(n.things)}, now called ${n.from}, become ${n.becomes}.`);
@@ -174,9 +174,11 @@ document.addEventListener('alpine:init', () => {
     struck(id) { return !!this.find('constant', id); },
     fixedBy(id) { const f = this.find('fixed', id); return f ? f.chars[1] : ''; },
 
-    // A sense admits an instance when every value it requires is the instance's.
-    admits(c, i) { return Object.entries(c.requires || {}).every(([k, v]) => this.val(i, k) === v); },
-    breaks(c, i) { return Object.entries(c.requires || {}).filter(([k, v]) => this.val(i, k) !== v).map(([k]) => k); },
+    // A sense admits an instance when every value it requires is the instance's; a required list is any of its values.
+    ok(want, v) { return Array.isArray(want) ? want.includes(v) : want === v; },
+    shown(want) { return Array.isArray(want) ? want.join(' or ') : want; },
+    admits(c, i) { return Object.entries(c.requires || {}).every(([k, v]) => this.ok(v, this.val(i, k))); },
+    breaks(c, i) { return Object.entries(c.requires || {}).filter(([k, v]) => !this.ok(v, this.val(i, k))).map(([k]) => k); },
     calledBy(i) { return (i.called || []).map(id => this.cats.find(c => c.id === id)).filter(Boolean); },
     off(i) { return this.calledBy(i).some(c => !this.admits(c, i)); },
     called(c) { return this.insts.filter(i => (i.called || []).includes(c.id)); },
@@ -186,7 +188,7 @@ document.addEventListener('alpine:init', () => {
 
     // The field: a sense claims a cell when it constrains one of the two axes and allows the cell on both.
     onAxes(c) { const q = c.requires || {}; return this.x in q || this.y in q; },
-    claims(c, xv, yv) { const q = c.requires || {}; return this.onAxes(c) && (!(this.x in q) || q[this.x] === xv) && (!(this.y in q) || q[this.y] === yv); },
+    claims(c, xv, yv) { const q = c.requires || {}; return this.onAxes(c) && (!(this.x in q) || this.ok(q[this.x], xv)) && (!(this.y in q) || this.ok(q[this.y], yv)); },
     cellCats(xv, yv) { return this.cats.filter(c => this.claims(c, xv, yv)).sort((a, b) => Object.keys(a.requires || {}).length - Object.keys(b.requires || {}).length); },
     cellInsts(xv, yv) { return this.insts.filter(i => this.val(i, this.x) === xv && this.val(i, this.y) === yv); },
     get offField() { return this.insts.filter(i => this.val(i, this.x) === NA || this.val(i, this.y) === NA); },
@@ -265,7 +267,7 @@ document.addEventListener('alpine:init', () => {
         </div>
 
         <template x-if="A.grid">
-          <div class="grid grid-cols-[minmax(0,5.5rem)_1fr_1fr] sm:grid-cols-[7.5rem_1fr_1fr] gap-2">
+          <div class="grid gap-2 [grid-template-columns:minmax(0,5.5rem)_var(--cols)] sm:[grid-template-columns:7.5rem_var(--cols)]" :style="`--cols: repeat(${A.grid.across.values.length}, minmax(0, 1fr))`">
             <div></div>
             <template x-for="v in A.grid.across.values" :key="v.label">
               <div class="px-2 sm:px-3 pb-1 text-base sm:text-lg font-semibold text-balance" x-text="v.label"></div>
@@ -274,15 +276,15 @@ document.addEventListener('alpine:init', () => {
               <div class="contents">
                 <div class="pr-1 sm:pr-2 pt-3 sm:pt-4 text-base sm:text-lg font-semibold text-right text-balance" x-text="A.grid.down.values[i].label"></div>
                 <template x-for="(c, j) in row" :key="j">
-                  <div class="rounded-2xl p-3 sm:p-4 grid content-start gap-1.5" :class="c.word ? 'bg-primary/10' : 'border-2 border-dashed border-base-300'">
-                    <div class="leading-none" :class="c.word ? 'text-2xl sm:text-[32px] font-bold text-primary' : 'text-xl sm:text-[26px] italic text-base-content/50'" x-text="c.word || 'no word yet'"></div>
+                  <div class="rounded-2xl p-3 sm:p-4 grid content-start gap-1.5" :class="c.word ? 'bg-primary/10' : c.impossible ? 'bg-[repeating-linear-gradient(45deg,transparent_0_6px,rgba(0,0,0,0.05)_6px_12px)]' : 'border-2 border-dashed border-base-300'">
+                    <div class="leading-none" :class="c.word ? 'text-2xl sm:text-[32px] font-bold text-primary' : 'text-xl sm:text-[26px] italic text-base-content/50'" x-text="c.word || (c.impossible ? 'impossible' : 'no word yet')"></div>
                     <div class="text-base sm:text-lg leading-6 text-pretty" x-text="c.means"></div>
                     <div class="font-mono text-xs sm:text-[15px] text-base-content/60 leading-5 sm:leading-6" x-html="ex(c.examples)"></div>
                   </div>
                 </template>
               </div>
             </template>
-            <p x-show="A.grid.note" class="col-start-2 col-span-2 pt-1 text-sm sm:text-base text-base-content/60 text-pretty" x-text="A.grid.note"></p>
+            <p x-show="A.grid.note" class="[grid-column:2/-1] pt-1 text-sm sm:text-base text-base-content/60 text-pretty" x-text="A.grid.note"></p>
           </div>
         </template>
 
@@ -419,7 +421,7 @@ document.addEventListener('alpine:init', () => {
           <div x-show="otherAxes.length" class="grid gap-0.5">
             <span class="text-xs text-base-content/60">Not on these axes</span>
             <template x-for="c in otherAxes" :key="'o' + c.id">
-              <div class="text-sm"><span class="font-semibold" x-text="tag(c)"></span><span class="text-base-content/60" x-text="' · ' + Object.entries(c.requires || {}).map(([k, v]) => short(char(k)) + ': ' + v).join(', ')"></span></div>
+              <div class="text-sm"><span class="font-semibold" x-text="tag(c)"></span><span class="text-base-content/60" x-text="' · ' + Object.entries(c.requires || {}).map(([k, v]) => short(char(k)) + ': ' + shown(v)).join(', ')"></span></div>
             </template>
           </div>
           <div x-show="offField.length" class="flex flex-wrap items-center gap-1">
@@ -456,7 +458,7 @@ document.addEventListener('alpine:init', () => {
                       <div class="text-xs text-base-content/60" x-text="kind(g.c.kind)"></div>
                     </th>
                     <template x-for="h in chars" :key="g.k + h.id">
-                      <td class="align-top whitespace-nowrap" :class="(g.c.requires || {})[h.id] ? 'font-semibold' : 'text-base-content/40'" x-text="(g.c.requires || {})[h.id] || 'open'"></td>
+                      <td class="align-top whitespace-nowrap" :class="(g.c.requires || {})[h.id] ? 'font-semibold' : 'text-base-content/40'" x-text="shown((g.c.requires || {})[h.id]) || 'open'"></td>
                     </template>
                   </tr>
                 </template>
@@ -470,8 +472,8 @@ document.addEventListener('alpine:init', () => {
                       <span x-show="!admits(g.c, g.i)" class="block text-xs font-sans text-error whitespace-normal" x-text="'breaks ' + breaks(g.c, g.i).map(k => short(char(k))).join(', ')"></span>
                     </th>
                     <template x-for="h in chars" :key="g.k + h.id">
-                      <td class="whitespace-nowrap" :class="!(h.id in (g.c.requires || {})) ? 'text-base-content/60' : val(g.i, h.id) === g.c.requires[h.id] ? 'text-base-content/40' : 'text-error font-semibold'"
-                          x-text="!(h.id in (g.c.requires || {})) ? val(g.i, h.id) : val(g.i, h.id) === g.c.requires[h.id] ? '✓' : val(g.i, h.id)"></td>
+                      <td class="whitespace-nowrap" :class="!(h.id in (g.c.requires || {})) ? 'text-base-content/60' : ok(g.c.requires[h.id], val(g.i, h.id)) ? 'text-base-content/40' : 'text-error font-semibold'"
+                          x-text="!(h.id in (g.c.requires || {})) ? val(g.i, h.id) : ok(g.c.requires[h.id], val(g.i, h.id)) ? '✓' : val(g.i, h.id)"></td>
                     </template>
                   </tr>
                 </template>

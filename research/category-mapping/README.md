@@ -550,6 +550,50 @@ The corrections were found by the readers and checked against the files
 before the key changed; a key revised after seeing the answers would otherwise
 be a weak result, and the uncorrected row is the one to quote against it.
 
+### Does the method generalize
+
+A fifth reader, new to the skill, took a second question through it end to
+end: the estate's words for when work or an instruction acts (standing,
+recurring, scheduled, periodic, routine, one-off, ad hoc, triggered), plus the
+owner's own word, occasioned. The result is
+[`timing-map.json`](timing-map.json): 14 senses, 9 characteristics, 33 things
+in the three repositories, 11 findings each answered, and an answer that passes
+the check. It reads as an answer, which the collections test did not until the
+skill's last step was rewritten:
+
+- **Two questions:** what sets it off (the clock, or something happening or
+  someone asking, which is occasioned), and whether it acts once, again as
+  written down, or again decided each time. One-off, scheduled, standing and
+  ad hoc fill four of the six cells; a timer set to go off once has no word
+  (the reader recommends reminder); a clock that decides anew each time is
+  impossible.
+- **Four words add to it:** on request, gated, polled and routine.
+- **Four names change:** news-fetch and the configuration crawl become
+  standing, being set off by a session start rather than a clock;
+  scheduled-tasks.yml and the morning brief become scheduled.
+- **Four calls for the owner:** adopt occasioned; reminder for a one-off
+  timer; retire triggered and periodic; whether news-fetch stays in the
+  scheduled-task registry.
+
+The hardest call, standing against recurring, was settled by a sentence quoted
+in home's term-lab report: "a recurring fork becomes a standing decision the
+moment a doc states it as a default." Whether what a thing does is written down
+became its own characteristic.
+
+The reader also listed twelve places where the skill made it guess, each now
+answered in the skill, the page or the check: a `kind` for a sense that names a
+characteristic itself (`axis`); `requires` taking a list of values; the grid's
+columns following the data rather than being fixed at two; an `impossible`
+cell, which the check refuses to find a thing in; a rule that an add-on word
+must leave each cell plain cases; a response to the identical-instances
+finding; which pair `field` takes; the vocabulary check across several
+repositories; when `called` applies; the fields the scripts read but the skill
+did not name (`short`, `{a, b, question}` pairs, `crosses`); the render
+command's wait; and the `where` of a word only the owner has used.
+
+What this does not show: one reader, so no agreement to measure, and its
+coding has had no second reader; its renames are its own proposals.
+
 ## Sources
 
 Citations marked secondhand were not read in the original.

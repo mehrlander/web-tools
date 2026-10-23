@@ -14,7 +14,7 @@ The subject is the categories, not the things. Each word for a kind of thing (re
 A poster that answers the question the map was made for, drawn by web-tools `pages/cat-map.html` from one `catmap/1` file, and the answer in the reply. In a web-tools checkout, render the poster to an image and send it as a file card:
 
 ```bash
-npm run shot -- pages/cat-map.html --hash 'src=../<path>.json&poster=1' --width 720 --scale 2 --full --out poster.png
+npm run shot -- pages/cat-map.html --hash 'src=../<path>.json&poster=1' --width 720 --scale 2 --full --wait 2500 --out poster.png
 ```
 
 For a map outside web-tools, `gz=` and the file gzipped and base64url-encoded replace `src=`. Hand the page over too, for the evidence behind the poster: `https://mehrlander.github.io/web-tools/pages/cat-map.html#gh=<owner>/<repo>@<ref>:<path>`.
@@ -23,8 +23,8 @@ The file is JSON: `format: "catmap/1"`, `title`, `answer`, `steps` (optional), `
 
 - `title`, `lede`: the question in the owner's words ("What kind of collection is it?") and the answer in a sentence.
 - `basis`: the run whose coded instances supply the examples.
-- `grid`: the two characteristics that decide the word, `{across, down, cells}`. Each axis is `{char, values}` and each value `{is, label}`: `char` is a characteristic of the basis run, `is` the coded value or values the column or row takes, `label` the plain question ("Each entry is a thing"). Each cell is `{word, means, examples}`: the word, empty where none fits yet; what it means, in plain words; two or three instance ids. `note`, optional, settles a case the two questions leave open.
-- `add`: words that add to the name when they apply, `{word, icon, means, requires, called, examples}`. `requires` maps characteristics to values and `called` lists senses, at least one of which must call the thing: the condition each example is held to; `icon` is a Phosphor icon name.
+- `grid`: the two characteristics that decide the word, `{across, down, cells}`. Each axis is `{char, values}` and each value `{is, label}`: `char` is a characteristic of the basis run, `is` the coded value or values the column or row takes, `label` the plain question ("Each entry is a thing"). The across values become columns, two or three of them; the down values become rows, as many as needed. Each cell is `{word, means, examples}`: the word, empty where none fits yet; what it means, in plain words; two or three instance ids. A cell no thing can occupy takes `impossible: true` and no examples, with `means` saying why. `note`, optional, settles a case the two questions leave open.
+- `add`: words that add to the name when they apply, `{word, icon, means, requires, called, examples}`. `requires` maps characteristics to values, the condition each example is held to; `called` lists senses, at least one of which must call the thing, for a word that is membership in a curated list and has no characteristic of its own. `icon` is a Phosphor icon name.
 - `renames`: names the answer changes, `{things, from, becomes, why}`, `things` being the instances now called `from`.
 - `open`: what only the owner can decide, `{question, recommend, why}`, with `recommend` empty where no recommendation is warranted.
 - `by`: whose answer it is and where its examples come from, the poster's footnote. With several runs, each row lists the runs that state it in `runs`.
@@ -32,30 +32,32 @@ The file is JSON: `format: "catmap/1"`, `title`, `answer`, `steps` (optional), `
 `steps` lists how the map was made, `{step, gloss, example}`, for the page's account of how the answer was reached. A run holds:
 
 - `by`, `method`: who coded the run, and how.
-- `characteristics`: `{id, label, short, values}`, a question and its values.
-- `categories`: one per sense, `{id, word, sense, tag, where, requires, kind, verdict}`. `requires` maps a characteristic to the value the sense implies; a characteristic it leaves out is open. `where` is the line that defines or uses the sense.
+- `characteristics`: `{id, label, short, values}`, a question, the short label the page's controls show, and its values.
+- `categories`: one per sense, `{id, word, sense, tag, where, requires, kind, verdict}`. `requires` maps a characteristic to the value the sense implies, or to a list of values any of which fits it ("occasioned" is an event or a request); a characteristic it leaves out is open. `where` is the line that defines or uses the sense; a sense only the owner has used takes "the owner" and the date.
 - `instances`: `{id, name, called, where, values, evidence}`. `name` is how the poster shows it; `called` lists the senses the thing is called by, empty for a contrast instance; `where` is the line that calls it so; `values` has every characteristic, `n/a` where the question does not apply; `evidence` lists `{char, evidence}`, the source for any value the instance does not show on its face.
-- `pairs` (the instances the user is unsure about), `field` (`{x, y}`, the two characteristics the page plots first), `findings` (written by the script, each answered in its `rationale`), `outcome` (`{kinds, summary}`).
+- `pairs` (the instances the user is unsure about, `[a, b]` or `{a, b, question}`), `field` (`{x, y}`, the two characteristics the page plots first), `crosses` (optional pairs of characteristics for the empty-combination check, in place of `field`; include `field` if it should still be crossed), `findings` (written by the script, each answered in its `rationale`), `outcome` (`{kinds, summary}`).
 
-`kind` is one of `value` (fixes one characteristic), `region` (fixes two or more at once), `list` (membership in a curated list is its only separating characteristic), `outside` (`n/a` on the characteristics the other senses share: another kind of thing) or `fuzzy` (typical and borderline members, no clean edge). `outcome.summary` says whether the words are alternatives on one axis, values on different axes, or a mix.
+`kind` is one of `value` (fixes one characteristic), `region` (fixes two or more at once), `axis` (names a characteristic itself, any value of it: "triggered" for any start), `list` (membership in a curated list is its only separating characteristic), `outside` (`n/a` on the characteristics the other senses share: another kind of thing) or `fuzzy` (typical and borderline members, no clean edge). `outcome.summary` says whether the words are alternatives on one axis, values on different axes, or a mix.
 
 ## Process
 
 1. **Categories.** List the words under test and, for a word used in more than one sense, each sense, with `where`. For each sense write `requires`, from its definitions read sentence by sentence (`atomic-decomposition`) and from how it is used. Output: `categories`.
-2. **Space.** Gather the characteristics the senses imply into `characteristics`, each a question with its values. Add a characteristic where two senses differ and no definition says how, found by comparing instances three at a time, two from an unsure pair: what do two share that the third lacks. Set `field` to the pair most senses constrain. Output: `characteristics`, `field`.
+2. **Space.** Gather the characteristics the senses imply into `characteristics`, each a question with its values. Add a characteristic where two senses differ and no definition says how, found by comparing instances three at a time, two from an unsure pair: what do two share that the third lacks. Set `field` to the pair most senses constrain; where two characteristics are equivalent, choose the pair the answer's grid will use. Output: `characteristics`, `field`.
 3. **Instances.** Collect what each sense is applied to: search the repositories, counting referents, not occurrences. Add near neighbors no word is applied to. Code every instance on every characteristic. A value states what is observed ("edited in place"); it does not use a word under test. Stop when a new instance would add no new value. Run `separation-checks.py <map>.json --write` and answer each finding:
    - one value wherever it applies: drop the characteristic;
    - the same split as another, or fixed by another: merge them, or find an instance that separates them;
+   - instances nothing separates: two words naming one kind, which the rationale says, or a characteristic missing;
    - an unsure pair nothing separates: a characteristic is missing;
    - a combination no instance has: say why it is impossible, or search for an instance.
 
    Output: `instances`, `pairs`, `findings`.
-4. **Answer.** Give each sense its `kind` and a one-line `verdict`, and the set its `outcome`. Then answer the question the map was made for, as the poster will show it: the question in the owner's words; the two characteristics that decide the word, with a plain meaning and two or three examples from the basis run in each cell; the words that add to it, each with the condition that makes it apply; the names that change; and what only the owner can decide, with a recommendation where one is warranted. Propose a name only where the answer calls for one, in this order: a standard term whose meaning matches the values; a phrase built from the values; the identifier itself for a one-member sense. Check each against the repository's declared vocabulary (`concept-index`). With several runs, draw one answer from all of them and mark each row with the runs that state it. Run `answer-check.py <map>.json`, fix each problem it names, then render the poster and look at it. Output: `kind`, `verdict`, `outcome`, `answer`.
+4. **Answer.** Give each sense its `kind` and a one-line `verdict`, and the set its `outcome`. Then answer the question the map was made for, as the poster will show it: the question in the owner's words; the two characteristics that decide the word, with a plain meaning and two or three examples from the basis run in each cell; the words that add to it, each with the condition that makes it apply; the names that change; and what only the owner can decide, with a recommendation where one is warranted. Propose a name only where the answer calls for one, in this order: a standard term whose meaning matches the values; a phrase built from the values; the identifier itself for a one-member sense. Check each against the declared vocabulary (`concept-index`) of every repository the senses come from, leaving session records out. With several runs, draw one answer from all of them and mark each row with the runs that state it. Run `answer-check.py <map>.json`, fix each problem it names, then render the poster and look at it. Output: `kind`, `verdict`, `outcome`, `answer`.
 
 ## The poster
 
 - **It opens on the owner's question**, in the owner's words, and the lede answers it. How the map was made is one footnote line.
 - **Every cell and word shows things the owner knows**, two or three, placed by the coding. A cell's examples are plain cases: one that also meets an add-on word's condition belongs under that word, and `answer-check.py` refuses it in the cell.
+- **An add-on word leaves each cell plain cases.** If its condition holds wherever a cell's column or row does, narrow the condition, or the word is a value of an axis: a plain "periodic" would have emptied the scheduled cell.
 - **An example can be found**: a path or file name wherever a common name could mean two things. "The traffic logs" sent three readers to the wrong collection; `logs/traffic/` would not have.
 - **A thing called by the wrong word shows it**, the old word struck through in red beside the name it should have.
 - **It ends in calls for the owner**, not in description.
@@ -75,7 +77,7 @@ The file is JSON: `format: "catmap/1"`, `title`, `answer`, `steps` (optional), `
 - **One example underdetermines a category.** Give two instances per value where the sample has them.
 - **Readers who disagree have found something.** Two blind runs that code one cell differently point at a characteristic whose test is unclear.
 
-Worked instances: web-tools `research/category-mapping/collections-map.json`, four blind runs and one answer, and `registry-map.json`, one run.
+Worked instances: web-tools `research/category-mapping/collections-map.json`, four blind runs and one answer; `registry-map.json`, one run; and `timing-map.json`, one run of a second question taken end to end by a reader new to the skill.
 
 ## Bundled
 

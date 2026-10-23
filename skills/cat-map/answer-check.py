@@ -5,7 +5,8 @@ follow from the coded instances of one run, its `basis`. Checked:
 
   grid       each example is an instance of the basis run, has the values of
              its cell on the grid's two characteristics, and meets no add-on
-             word's condition, so a cell shows only plain cases
+             word's condition, so a cell shows only plain cases; a cell marked
+             `impossible` has no example and no instance coded in it
   add        each example meets its word's condition: `requires`, a map of
              characteristic to value (or list of values), and `called`, senses
              of which it must be called by at least one
@@ -64,6 +65,12 @@ def check(doc):
                 name = cell.get('word') or f'empty cell {r + 1},{c + 1}'
                 if cell.get('word'):
                     cells[cell['word']] = cond
+                if cell.get('impossible'):
+                    if cell.get('examples'):
+                        errs.append(f'grid {name}: an impossible cell has examples')
+                    for i in run['instances']:
+                        if meets(i, cond):
+                            errs.append(f'grid {name}: marked impossible, but {i["id"]} is coded there')
                 for e in cell.get('examples', []):
                     if not known(f'grid {name}', e):
                         continue
