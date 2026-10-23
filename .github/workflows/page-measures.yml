@@ -43,7 +43,9 @@ concurrency:
 
 jobs:
   measure:
-    runs-on: ubuntu-latest
+    # Pinned, not ubuntu-latest: that resolved to 26.04 by 2026-10-23, where
+    # Playwright 1.56 cannot install its browsers. Move with the Playwright pin.
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       # Depth 2 is the PR's merge commit and its first parent, the base branch
