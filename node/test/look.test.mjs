@@ -714,6 +714,28 @@ test('a folded walkthrough opens on a step whose target is missing', async () =>
   assert.ok(!folded(w), 'the miss is shown whole');
 });
 
+test('a page can drive a walkthrough as its chooser: marks, a folded start, go and look:step', async () => {
+  const w = realm(threeBody);
+  const seen = [];
+  w.addEventListener('look:step', (e) => seen.push(e.detail.i));
+  w.Look.start(three.map((s, j) => ({ ...s, mark: 'ABC'[j] })), { folded: true });
+  await wait(30);
+  assert.ok(folded(w), 'folded from the start');
+  // Without layout the dock's number reads its target as out of sight and
+  // shows the way back, so the mark is read from the target's badge.
+  const badge = () => w.document.querySelector('[data-look="num"]').textContent;
+  assert.equal(badge(), 'A', 'the mark stands for the number');
+  w.Look.go(2);
+  await wait(30);
+  assert.equal(said(w), 'Third');
+  assert.equal(badge(), 'C');
+  assert.ok(folded(w), 'and stays folded');
+  assert.deepEqual(seen, [0, 2], 'the page hears each step drawn');
+  card(w).querySelector('[data-list]').click();
+  assert.deepEqual([...w.document.querySelectorAll('[data-look="steps"] [data-jump]')].map(b => b.textContent),
+    ['AFirst', 'BSecond', 'CThird']);
+});
+
 test('a note is kept as a draft per walkthrough, follows it when a page is stamped in, and can be removed', async () => {
   const w = realm(threeBody);
   w.Look.start(three);
