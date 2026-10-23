@@ -308,16 +308,9 @@ itself; a page that instantiates `GH` by hand gets only what it loads.
 | `ghAuth` | `gh-auth.js` | `resolve` / `save` / `clear` / `prompt` / `bootDone` |
 | `console.history` / `.subscribe` / `.filter`, `consoleKit` | `kits/console.js` | structured console retention over the base wrapper |
 | `html`, the DOM helpers (`ea`, `el`, …), `copy()` | `vanilla-bundle.js` | ambient string/DOM utilities |
-| `proof` | `kits/proof.js` | sandboxed proof documents (srcdoc builders); vanilla-demo and chat-render sit on it |
-| `chatRender` | `chat-render.js` | chat transcript renderer; fenced blocks become live artifacts. Loads after `swipe-deck.js` |
-| `sessionRender` | `session-render.js` | a session record (web-tools-private `sessions/**.json`) as a paged conversation: merges the record's three parallel turn lists on `at`, groups a card per exchange, folding the work behind one summary line (a run of calls plus the sentence that introduced it is a step; a run of steps folds together), and names what the record could not capture. Loads after `chat-render.js` |
-| `swipeDeck` | `swipe-deck.js` | the house swipe format: a snap track of slides, and the fullscreen takeover that frames it. Self-contained (no Alpine, no boot dependency), so a consumer page can load it first in its chain; see [Consumers in other repos](#consumers-in-other-repos) for why not a plain `<script src>` at `@main` |
-| `TransformWorkbench` | `alpineComponents/transform-workbench.js` | the multi-tab transform workbench: `panelHTML()` markup plus the `transformWorkbench` / `tfViewer` Alpine components. Not boot-chain: page-loaded through `gh.load`; `pages/transform.html` and the budget-drs app both mount it |
 | Alpine stores `browser`, `toasts`; magics `$clip`, `$paste`, `$toast` | `alpine-bundle.js` | exist only after `alpine:init` |
-| `Annotate` | `kits/annotate.js` | notes pinned to selections/elements/regions of a target document, or to the page as a whole; the set (or one note of it) serializes to markdown/JSON, and saves as a jot. The card reads its own set behind an expander; the FAB drawer no longer carries a Notes tab, only the two ways of starting the annotator. FAB take "Annotate" and `pages/annotate.html` drive it. Chain `kits/dictate.js` before it for the voice composer |
-| `Dictate` | `kits/dictate.js` | voice input as a text buffer over `SpeechRecognition`, with the punctuation and casing rules that make stitched utterances read as prose. Soft dependency of `annotate.js`: absent, the composer simply shows no microphone |
 | `__builtOffline` | a build (`build.js` output) | present only on baked/offline pages |
-| `window.<kit>` namespaces | each kit | see [kits/README.md](../lib/kits/README.md) |
+| `window.<kit>` namespaces | each kit | see the [Kits tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=kits) and [`kits.csv`](kits.csv), whose `boot` column marks the kits `gh-boot.js` loads |
 
 A new global with no row here is a doc bug; add the row in the same
 change that adds the global.
