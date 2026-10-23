@@ -27,7 +27,7 @@ import { repoRoot } from '../repo-root.mjs';
 // Every doc that ships inside the default skill. A doc added here must also be
 // linked as an absolute hub URL unless its target travels too: the
 // SHIPPED_TOGETHER check in portable-manifest.test.mjs holds that separately.
-export const VENDORED = ['SURFACING.md', 'QUALIFIED-WRITING.md'];
+export const VENDORED = ['CONVERSATION.md', 'QUALIFIED-WRITING.md'];
 
 const src = (name) => path.join(repoRoot, 'docs', name);
 const dst = (name) => path.join(repoRoot, 'skills', 'default', name);

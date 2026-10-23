@@ -1,6 +1,6 @@
 // A Surfacing card points at the bullet it paraphrases, and the anchor holds.
 //
-// docs/surfacing.csv's `lead` is the bold lead-in of a bullet in SURFACING.md,
+// docs/conversation.csv's `lead` is the bold lead-in of a bullet in CONVERSATION.md,
 // and surfacing-manifest.test.mjs already holds that membership both ways. What
 // it cannot say is whether the key SURVIVES RENDERING, which is the only form
 // the Map view's card ever meets it in: the card calls findLead() against the
@@ -25,9 +25,9 @@ import { marked } from 'marked';
 import { parseCsv } from '../build/registries-load.mjs';
 import { repoRoot } from './bootstrap.mjs';
 
-const leads = parseCsv(readFileSync(path.join(repoRoot, 'docs', 'surfacing.csv'), 'utf8'))
+const leads = parseCsv(readFileSync(path.join(repoRoot, 'docs', 'conversation.csv'), 'utf8'))
   .map(r => r.lead);
-const doc = readFileSync(path.join(repoRoot, 'docs', 'SURFACING.md'), 'utf8');
+const doc = readFileSync(path.join(repoRoot, 'docs', 'CONVERSATION.md'), 'utf8');
 
 // The component's own two functions, copied here rather than imported: map.js
 // is an Alpine component that needs a browser realm to evaluate, and the rule

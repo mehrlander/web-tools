@@ -165,14 +165,14 @@ test('the patch applies with git and reproduces the edit byte for byte', async (
   const { execFileSync } = await import('node:child_process');
   const os = await import('node:os');
   const dir = mkdtempSync(path.join(os.tmpdir(), 'md-patch-'));
-  const base = readFileSync(path.join(repoRoot, 'docs/SURFACING.md'), 'utf8');
+  const base = readFileSync(path.join(repoRoot, 'docs/CONVERSATION.md'), 'utf8');
   const text = base.replace('only output channel', 'single output channel') + '\nA closing line.\n';
   mkdirSync(path.join(dir, 'docs'));
-  writeFileSync(path.join(dir, 'docs/SURFACING.md'), base);
+  writeFileSync(path.join(dir, 'docs/CONVERSATION.md'), base);
   execFileSync('git', ['init', '-q'], { cwd: dir });
-  writeFileSync(path.join(dir, 'edit.patch'), M().patch('docs/SURFACING.md', base, text));
+  writeFileSync(path.join(dir, 'edit.patch'), M().patch('docs/CONVERSATION.md', base, text));
   execFileSync('git', ['apply', 'edit.patch'], { cwd: dir });
-  assert.equal(rd(path.join(dir, 'docs/SURFACING.md'), 'utf8'), text);
+  assert.equal(rd(path.join(dir, 'docs/CONVERSATION.md'), 'utf8'), text);
   assert.equal(M().patch('x.md', base, base), '', 'no edit, no patch');
 });
 

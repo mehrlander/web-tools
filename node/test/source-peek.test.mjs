@@ -263,7 +263,7 @@ test('a key that is not an address gets no mark rather than a guessed one', () =
 });
 
 test('the head carries exactly one mark, pointing at the address it shows', () => {
-  const head = SP.frame('me/web-tools@main:docs/SURFACING.md', '<pre></pre>');
+  const head = SP.frame('me/web-tools@main:docs/CONVERSATION.md', '<pre></pre>');
   const anchors = head.match(/<a /g) || [];
   assert.equal(anchors.length, 1, 'one door out of the card, not two');
   assert.match(head, /href="https:\/\/github\.com\/me\/web-tools\/blob\/main\/docs\/SURFACING\.md"/);

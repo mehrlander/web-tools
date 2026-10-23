@@ -69,8 +69,9 @@ for base in (root, os.path.dirname(root)):
 
 # Resolved `@`-imports whose targets carry the contract. The markers are
 # headings rather than filenames, so renaming a document does not silently turn
-# delivery off; the surfacing one is what surfacing-manifest.test.mjs already
-# parses the primitives out of, and the writing one is that document's title.
+# delivery off; each is its document's title. The conversation half also
+# accepts "## Surfacing primitives", its heading before the file was renamed
+# from SURFACING.md on 2026-10-23, for a repo importing an older copy.
 #
 # BOTH ARE REQUIRED, since 2026-09-12. The contract is two documents and this
 # tested one of them, so a repo importing the surfacing half alone read as fully
@@ -82,7 +83,8 @@ for base in (root, os.path.dirname(root)):
 # imports on 2026-09-12 and takes delivery through the plugin like every
 # consumer, so the hook adds its instruction there on the same rule as anywhere else rather than
 # by an exception written into the detector.
-MARKERS = ("## Surfacing primitives", "# Qualified writing")
+MARKERS = {"conversation": re.compile(r"^(# Conversation|## Surfacing primitives)$", re.M),
+           "writing": re.compile(r"^# Qualified writing", re.M)}
 IMPORT = re.compile(r"^@(\S+)", re.M)
 
 def reads(path, cap=200_000):
@@ -104,7 +106,7 @@ for repo in cands:
             if not os.path.isfile(resolved):
                 continue
             text = reads(resolved)
-            seen.update(m for m in MARKERS if m in text)
+            seen.update(half for half, mark in MARKERS.items() if mark.search(text))
         if seen.issuperset(MARKERS):
             delivered = os.path.basename(repo)
     if delivered:

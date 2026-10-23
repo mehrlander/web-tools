@@ -131,7 +131,7 @@ def line_at(text: str, s: int) -> str:
 
 def has_handle(text: str, s: int, term: str) -> bool:
     """A handle names the term. A link or code span merely nearby does not count:
-    measured on SURFACING.md, a 200-character window contains some link for 9 of
+    measured on CONVERSATION.md, a 200-character window contains some link for 9 of
     9 mentions of 'toss', which makes the loose test unable to say anything."""
     line = line_at(text, s)
     head = term.split()[0]

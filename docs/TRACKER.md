@@ -236,7 +236,7 @@ And the task's own progress log takes a dated line naming the originating repo.
 
 ## One logging axis
 
-A PR body logs by PR (a unit of delivery); the tracker logs by task (a unit of intent). Pick one as the primary log. Running both produces two records that drift. For solo, topic-driven work the task is the more natural unit. The tracker is independent of the surfacing primitives; adopt it alone or alongside them.
+A PR body logs by PR (a unit of delivery); the tracker logs by task (a unit of intent). Pick one as the primary log. Running both produces two records that drift. For solo, topic-driven work the task is the more natural unit. The tracker is independent of the conversation conventions; adopt it alone or alongside them.
 
 ## Extension points (set in local CLAUDE.md)
 

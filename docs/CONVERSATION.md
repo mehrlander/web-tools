@@ -1,14 +1,13 @@
-# Surfacing
+# Conversation
 
-Use these rules when chat is the only output channel. Local `CLAUDE.md` rules
-override these defaults. Apply repo- and branch-scoped rules per workstream,
-substituting the current repo in URL templates.
+How a session's replies hand its work to the reader, when chat is the only
+output channel. Local `CLAUDE.md` rules override these defaults. Apply repo- and
+branch-scoped rules per workstream, substituting the current repo in URL
+templates.
 
 ---
 
-## Surfacing primitives
-
-### Every reply
+## Every reply
 
 * **Closing state.** Use exactly one, last, understandable without the message it closes. Write the glyph at the start of the line, then a bold lead: the name as shown, or for 🔵 the question.
   - 🟢 **Ready to continue:** The session has a clear path to proceed, approved or implied by user interest. It never instructs the reader. When the next step is merging the branch and nothing else is open, lead **Ready to merge:** instead, and "go" merges. Before it, run the per-session refreshes the repo's `CLAUDE.md` names, and confirm the PR has no conflicts and its checks passed on the latest commit.
@@ -33,7 +32,7 @@ substituting the current repo in URL templates.
   `💬 [session](…/pages/session.html#id=<short>) · <N> files · [this turn](…/commit/<sha>)`
   `<short>` is the first eight characters of `$CLAUDE_CODE_SESSION_ID`. A reply that changed no files carries the link alone. Calculate `<N>` with `git diff origin/main...HEAD --name-only | wc -l`. Omit `this turn` on a single-commit branch. With no sessions store checked out, there is no record, so link the 🌿 branch in place of 💬. Mention files in prose only when something non-obvious must be said about them.
 
-### A reply that changed files
+## A reply that changed files
 
 * **Branch anchor.** The first reply that changes files begins with `Working branch: [branch-name](url)`. Code changes use GitHub flow on a branch with assistant prefixes (`claude/`, `codex/`, `gemini/`, `grok/`). Shared coordination state (task trackers, personal lists, session logs, crawl caches) uses Real-time mode directly on `main`. Include the assistant's commit trailer from [AGENTS.md](https://github.com/mehrlander/web-tools/blob/main/AGENTS.md#assistant-identity-and-attribution).
 
@@ -60,7 +59,7 @@ substituting the current repo in URL templates.
 
   Use `🧭 [PR #N](…) (body synced)` only when this turn rewrote the guide; otherwise use `(body not synced)`. Do not carry the marker forward from an earlier reply.
 
-### Displaying content
+## Displaying content
 
 * **A rendered view 🥏.** `toss-render.html` renders a page or other content from GitHub. Each browser needs a GitHub token for private repos. `npm run showing` prints the 🥏 links for the branch's changed files, and with `--path <file>` a link for any file. The printed line goes in the reply unchanged, refreshed after each commit. `npm run showing -- --help` lists the options for a fragment (the rendered page's own address), a query and a width. When a reply asks the reader to look at or tap something on a page, make the link a look link: `--intro "<what changed>"` greets the reader, and `--at "<fragment>"` lands on the place to see, with the fragment from `python/look-link.py` (`show` or `tap` for one place, `walkthrough` or `steps` for several; the `look-markers` skill). Add `--width 390` when the look is about a phone.
 
@@ -70,7 +69,7 @@ substituting the current repo in URL templates.
 
 * **A file card.** `SendUserFile` attaches a file to the chat as a file card, where images render inline and other types download to the device. The download can be useful for an uncommitted file or one opened in another application, such as a Word document or a workbook, but a rendered link is usually more convenient and preferred.
 
-### PR events
+## PR events
 
 * **Subscribe the workstream PR 📬.** Call the `subscribe_pr_activity` tool once, after opening a PR.
 

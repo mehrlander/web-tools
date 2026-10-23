@@ -114,7 +114,7 @@ routes-paste,recognizes,recorded,,value,column,yes,,value,what the surface reads
 routes-paste,becomes,recorded,,value,column,yes,,value,what a recognized paste turns into there
 routes-paste,declines_to,recorded,,value,column,yes,,value,"where everything it does not recognize goes. The load-bearing field: a surface that routes some pastes has to say what happens to the rest, or the routing is a silent swallow"
 routes-paste,gate,recorded,,none,column,yes,,locator,the check holding the behavior; absent where nothing does
-surfacing,lead,recorded,,value,column,yes,,value,"the bullet lead-in, held two-way against SURFACING.md's prose"
+surfacing,lead,recorded,,value,column,yes,,value,"the bullet lead-in, held two-way against CONVERSATION.md's prose"
 surfacing,title,recorded,,value,column,yes,,value,the short name
 surfacing,glyph,recorded,,counted,column,yes,,value,the caption marker; blank on the primitives that have no marker of their own
 surfacing,use,recorded,,value,column,yes,,value,"what the primitive is for, in one line"

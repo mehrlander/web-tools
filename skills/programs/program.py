@@ -88,7 +88,7 @@ def report(repo, prog, since):
         # path, or sits under a governed folder (an entry ending in /).
         loc = (locator or "").split("#")[0]
         return loc in subjects or any(s.endswith("/") and loc.startswith(s) for s in subjects)
-    print(f"# {prog.get('label') or prog['name']} program\n")
+    print(f"# {prog.get('label') or prog['name']}: program report\n")
     print(f"Charter: `{charter_path}` · {len(governs)} governed paths\n")
 
     try:

@@ -25,11 +25,11 @@ import os from 'node:os';
 import { repoRoot } from './bootstrap.mjs';
 
 const HOOK = path.join(repoRoot, 'skills/hooks/invoke-default.sh');
-const SURFACING = readFileSync(path.join(repoRoot, 'docs/SURFACING.md'), 'utf8');
+const SURFACING = readFileSync(path.join(repoRoot, 'docs/CONVERSATION.md'), 'utf8');
 const WRITING = readFileSync(path.join(repoRoot, 'docs/QUALIFIED-WRITING.md'), 'utf8');
 // The contract is two documents, so a fixture that delivers must carry both.
-const BOTH = { 'CLAUDE.md': '@docs/SURFACING.md\n@docs/QUALIFIED-WRITING.md\n',
-               'docs/SURFACING.md': SURFACING, 'docs/QUALIFIED-WRITING.md': WRITING };
+const BOTH = { 'CLAUDE.md': '@docs/CONVERSATION.md\n@docs/QUALIFIED-WRITING.md\n',
+               'docs/CONVERSATION.md': SURFACING, 'docs/QUALIFIED-WRITING.md': WRITING };
 
 // One temp root per run, and the fixtures go INSIDE it rather than beside it.
 // The hook scans the project root's siblings on purpose, so a fixture placed
@@ -67,7 +67,7 @@ test('a checkout that @-imports BOTH halves silences it', () => {
 // than by an exception.
 test('half the contract is not the contract', () => {
   const root = build('half', {
-    r: { 'CLAUDE.md': '@docs/SURFACING.md\n', 'docs/SURFACING.md': SURFACING },
+    r: { 'CLAUDE.md': '@docs/CONVERSATION.md\n', 'docs/CONVERSATION.md': SURFACING },
   });
   assert.notEqual(run(root), '', 'the surfacing half alone does not read as delivered');
 

@@ -23,7 +23,7 @@ import { repoRoot } from './bootstrap.mjs';
 const SCRIPT = path.join(repoRoot, 'python', 'mcp-link-safe.py');
 
 // Two real resolvable bases, padded with a ?x= query to an exact length.
-const LONG = 'https://github.com/mehrlander/web-tools/blob/main/docs/SURFACING.md?x=';
+const LONG = 'https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md?x=';
 const SHORT = 'https://github.com/mehrlander/web-tools?x=';
 const url = (base, n) => base + '0123456789'.repeat(40).slice(0, n - base.length);
 const label = n => (n === 1 ? 'r' : '0123456789'.repeat(40).slice(0, n));
@@ -91,7 +91,7 @@ test('the second label falls inside the fused span, the first does not', () => {
 
 test('comma-joining ends the run and puts each URL back on its own count', () => {
   // Rounds 8b and 9d: the controls at identical URLs. This is the substitution
-  // SURFACING.md prescribes, and the reason it works.
+  // CONVERSATION.md prescribes, and the reason it works.
   assert.equal(wraps(`[main](${url(LONG, 80)}), [diff](${url(LONG, 81)})`), false);
   assert.equal(wraps(`[main](${url(SHORT, 70)}), [diff](${url(SHORT, 71)})`), false);
   assert.equal(wraps(`[main](${url(LONG, 80)})`), false); // round 8e, lone link
@@ -142,11 +142,11 @@ test('--check exits non-zero only when something would be defanged', () => {
 // The instruction surfaces that feed the write path. The caption skill states
 // the slash-joined pair as the chat row shape, which is correct and stays; what
 // must not come back is the guide-body sync telling a session to write that list
-// into a PR body. It did until 2026-08-25, contradicting SURFACING.md's own
+// into a PR body. It did until 2026-08-25, contradicting CONVERSATION.md's own
 // "The body does not enumerate files" since 2026-08-08.
 test('the guide-body sync does not prescribe a file list in the body', () => {
-  // The rule lives in SURFACING.md's Guide pointer, which every session loads.
-  const doc = readFileSync(path.join(repoRoot, 'docs', 'SURFACING.md'), 'utf8');
+  // The rule lives in CONVERSATION.md's Guide pointer, which every session loads.
+  const doc = readFileSync(path.join(repoRoot, 'docs', 'CONVERSATION.md'), 'utf8');
   const guide = doc.slice(doc.indexOf('* **Guide pointer'));
   assert.ok(/Leave files and checks to the branch page/.test(guide),
     'the guide should carry judgment, not a file list');

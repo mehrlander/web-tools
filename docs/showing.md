@@ -1,6 +1,6 @@
 # Showing: how content reaches a viewer
 
-Showing follows surfacing ([SURFACING.md](SURFACING.md)): surfacing decides what
+Showing follows surfacing ([CONVERSATION.md](CONVERSATION.md)): surfacing decides what
 to hand over; showing is what makes it openable.
 
 **The reference is the app, not this file.** Each way of showing (a 🥏 toss, the
