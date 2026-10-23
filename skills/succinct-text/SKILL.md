@@ -5,8 +5,6 @@ description: Revise expository writing toward succinctness by establishing topic
 
 # Succinct Text
 
-*Maintenance: Every line pays toll. Cut the structural trope, narrative thread, obvious statements, over-claims, and derivable rationale before they regrow.*
-
 ## Premise
 
 Agents tend to over-explain, guarding against possible misunderstandings, and brevity takes more work than length.

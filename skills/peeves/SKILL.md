@@ -10,6 +10,7 @@ description: "The owner's pet peeves: a numbered list (peeves.csv beside this fi
 | Column | Holds |
 | --- | --- |
 | `id` | `P01` onward; cite it when a piece of work trips the peeve |
+| `name` | a short label, unique and six words or fewer, that the Map view lists the peeve by |
 | `area` | writing, chat-reply, page-design, code, process, git-pr, questions, reporting, naming |
 | `peeve` | the behavior, stated so a reviewer can check work against it |
 | `look_for` | what tripping it looks like in the work |

@@ -180,7 +180,7 @@ if (-not [string]::IsNullOrWhiteSpace($_.group)) { $_.group } else { 'Other' }
 
 ## Pipeline Design
 
-Return objects with properties from a function, not formatted strings; let callers format. Give a parameter with an obvious default (current computer, current directory) that default, and turn constants into parameters with defaults.
+Return objects with properties from a function, not formatted strings; let callers format. Where a parameter has an obvious default (current computer, current directory), set it, and turn constants into parameters with defaults.
 
 When both parameter and pipeline input are valid, use begin/process/end, looping inside `process` so an array passed by parameter and items piped one at a time both work:
 

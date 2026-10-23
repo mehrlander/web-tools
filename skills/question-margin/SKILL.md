@@ -85,7 +85,7 @@ The full list and the filtered one are **one structure with two masks**, never t
 
 **Withdrawn is not settled, and the filter cannot see the difference.** A question can be raised and parked in the same breath: *"I kinda want it to be a little bit like Wikipedia where you can go in and edit the section. But maybe that's not really feasible there for now."* That closes inside its turn, so the open-loop filter drops it, but it closed by abandonment rather than by an answer. Mark it `~` and give it the asker's own reason as its answer. It is usually the one item in a turn that nobody will come back to, which is why it is worth a row.
 
-Two independent passes agree on the contents at the high-severity end and not on the count. Present the list as approximately right: no total, no "N of M resolved."
+Two independent passes are expected to agree on the contents at the high-severity end and not on the count; no second pass has been run to test it. Present the list as approximately right: no total, no "N of M resolved."
 
 ## Output
 

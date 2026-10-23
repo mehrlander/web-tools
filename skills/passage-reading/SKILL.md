@@ -26,7 +26,7 @@ One `passage-reading/1` JSON file per passage, to the contract in [`docs/envelop
 
 The contract defines every field; these are the judgments it leaves open.
 
-- **Entities are what the passage leans on.** Most nouns are not entities. Choose each entity's `kind` by what its `gloss` describes, not by what it does in the passage: a general term takes the kind of the things it covers (*description* is a `record`, since each description is one), and an entity named for a role (*trigger*) takes the kind of whatever fills that role. A `general` gloss cannot be checked against anything on the page.
+- **Entities are what the passage leans on.** Most nouns are not entities. Choose each entity's `kind` by what its `gloss` describes, not by what it does in the passage: a general term takes the kind of the things it covers (*description* is a `record`, since each description is one), and an entity named for a role (*trigger*) takes the kind of whatever fills that role. A gloss whose `basis` is `general` cannot be checked against anything on the page.
 - **No empty slot, no ellipsis.** Where a sentence is about an entity but no word in it has an empty slot (*Lead with what the skill does* is about the skill's description), list the entity's id in the atoms' `on` instead.
 - **Main statement first.** The page labels a sentence with its first atom's type. An implied atom carries a `note` on why the sentence commits to it.
 - **The cards are the test.** A clean check proves anchoring, not reading. Each card should tell a reader something the sentence alone does not: a reference resolved, a term glossed, a dependency named. A card that restates its sentence was read too lightly; a card listing every obvious tie was read too heavily.

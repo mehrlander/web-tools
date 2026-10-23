@@ -60,7 +60,8 @@ lead-harvesting matters.
 ## Allocation: spread, do not deepen
 
 **Many seeds read shallowly beat few seeds read deeply, for discovery.** On
-this estate's 20 sources, leads grew with pages read at an exponent of 0.63
+the 20 sources of home's `projects/wa-budget-landscape/` run, leads grew with
+pages read at an exponent of 0.63
 (fit in [PRIOR-ART.md](PRIOR-ART.md)): each further page of the same source
 yields fewer organizations not already seen, so 32 pages spent as 8 sources at
 4 pages each return roughly 20 leads, against 9 from one source read 32 deep.
@@ -98,7 +99,7 @@ already named the scale. Work the session conceives is a proposal.
    it is the specific defence against homophily (below).
 6. Return to 3 with the promoted leads. Stop when a round promotes nothing.
 
-### Hunt hubs deliberately. Measured at 10x to 93x
+### Hunt hubs deliberately
 
 A **hub**, in Kleinberg's sense, is a page that points to many good sources:
 a member directory, a partners or funders page, a board list, a coalition
@@ -109,8 +110,8 @@ queue.
 
 **The predictor is organisational form, not publishing genre.** Ask: *does
 this body have a roster, and is publishing it part of what it is?* Across 14
-domains, three hub fetches each returned 87x to 93x the organizations of the
-same domains' article pages on membership associations, 30x to 47x on resource
+domains, with three hub fetches per domain, hub pages returned 87x to 93x the
+organizations of the same domains' article pages on membership associations, 30x to 47x on resource
 bodies and think tanks, 2x to 11x on unions, and 0 to 20x on state agencies,
 whose "resources" point inward at their own programs. Hub-hunting is worth
 almost nothing on government domains and almost everything on associations. A
@@ -155,7 +156,7 @@ encodes the politics of its seeds while looking complete from the inside.
 Two mitigations, both borrowed from respondent-driven sampling:
 
 - **Cap leads taken per source** so one well-connected node cannot flood the
-  roster. Roughly 3 to 10 is the range this estate ran at.
+  roster. Roughly 3 to 10 is the range that run used.
 - **Require independent corroboration** before promotion, per step 5.
 
 And state the seed set in the output. A reader cannot discount a bias that is

@@ -35,7 +35,7 @@ Text collection's reviews.
 
 `finding` marks a tending conclusion
 ([`docs/views/tending.md`](https://github.com/mehrlander/web-tools/blob/main/docs/views/tending.md)). Change one with
-`skills/tend/findings.py update`; a plain reply is a comment and changes
+`findings.py update` (beside the tend skill); a plain reply is a comment and changes
 nothing.
 
 | Subject | `about` |

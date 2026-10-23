@@ -4,8 +4,8 @@ description: >-
   Render a repository file tree in chat as a linked markdown table: folders
   and files as tappable GitHub blob/tree links, depth carried by an inline
   code-span connector prefix (the classic box art) or by invisible braille
-  indentation, filetype icons as anchors, an optional gloss column. Table-
-  first because nested bullets balloon vertically on mobile. Use when the
+  indentation, filetype icons as anchors, an optional gloss column.
+  Table-first because nested bullets balloon vertically on mobile. Use when the
   user says "tree", "show the repo structure", "file tree", "map the repo",
   "lay out the folders", "/tree", or names a subtree/depth to render.
   Answers "what is here" (structure); CONVERSATION.md answers

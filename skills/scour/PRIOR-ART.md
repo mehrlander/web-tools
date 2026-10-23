@@ -88,7 +88,8 @@ port directly:
 
 1. **Cap referrals per source.** RDS gives each participant a fixed small
    number of coupons so no single well-connected node floods the sample. The
-   `leads.md` files here ran 3 to 10, which is in range.
+   `leads.md` files of the measured run (home `projects/wa-budget-landscape/`)
+   ran 3 to 10, which is in range.
 2. **Weight by network size and recruitment pattern** to correct for
    differential connectivity.
 

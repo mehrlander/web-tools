@@ -44,7 +44,7 @@ and `SendUserFile` it instead of sending a link.
 curl -fsSL https://raw.githubusercontent.com/mehrlander/web-tools/main/docs/APP.md
 ```
 
-For stage work (the bench, the preview and its diff, the `#stage=` grammar),
+For stage work (the bench, the reader and its comparison, the `#stage=` grammar),
 fetch the stage's own reference the same way:
 
 ```bash
@@ -82,9 +82,9 @@ The `portable` plugin ships this skill to every repo that enables it, as
 `/portable:web-tools-app`. Without the plugin, from a session in the target repo:
 
 ```bash
-mkdir -p skills/web-tools-app
+mkdir -p .claude/skills/web-tools-app
 curl -fsSL https://raw.githubusercontent.com/mehrlander/web-tools/main/skills/web-tools-app/SKILL.md \
-  -o skills/web-tools-app/SKILL.md
+  -o .claude/skills/web-tools-app/SKILL.md
 ```
 
 Then commit and push. The skill becomes invocable in sessions started from a
