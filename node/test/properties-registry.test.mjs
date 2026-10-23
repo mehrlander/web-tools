@@ -324,7 +324,7 @@ const MIXED = {
   'pages': 'note is written by hand in the NOTES literal of pages-index.mjs and copied here on each run; moving that literal into a file of its own would split pages as tests was split',
   'doc-overlap-gold': 'a gold set is a computed sample with a reader\'s labels on each row, and a label belongs on the row it labels',
 };
-test('a registry file is authored or derived, or mixed by name', () => {
+test('a registry file is all recorded or all computed, or a named exception', () => {
   const mixed = [];
   for (const r of reg.registries.filter(r => r.fields === 'governed')) {
     const modes = new Set(decls.filter(d => d.registry === r.id).map(d => d.mode));

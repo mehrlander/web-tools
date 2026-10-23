@@ -2,11 +2,11 @@ registry,property,value,label,gloss,icon
 app-routes,group,estate,Estate,"Above any repo: the view's subject is the estate (docs/subjects.csv), the constellation read as one thing.",
 app-routes,group,repo,Repo,"Reached with a repo open: the view's subject is one repository, or a workspace inside it for the project view.",
 app-routes,group,shell,Shell,Addresses that are not a screen of their own.,
-docs,reach,injected,injected,"loaded into every session: the portable plugin's start-up directive has each session invoke /portable:default, which reads these two",
-docs,reach,project,in context,"named by a document already in every session's context: the repository's CLAUDE.md or AGENTS.md, or one of the two injected documents",
+docs,reach,injected,injected,"loaded into every session: the portable plugin's start-up directive has each session invoke /portable:default, which reads docs/CONVERSATION.md and docs/QUALIFIED-WRITING.md",
+docs,reach,project,in context,"named by a document already in every session's context: the repository's CLAUDE.md or AGENTS.md, docs/CONVERSATION.md or docs/QUALIFIED-WRITING.md",
 docs,reach,skill,by a skill,"named by a skill, so invoking that skill pulls the document into context",
 docs,reach,app,by the app,"named in lib/, pages/ or app/ code, so a page loads it at runtime or opens it in the viewer; a mention in a comment does not count",
-docs,reach,orphan,orphan,"no document, skill or app file names it; only the generated docs index lists it",
+docs,reach,orphan,orphan,listed only by the generated docs index,
 harness,layer,python,,Python scripts,
 harness,layer,python/annotate,,"standalone scripts that segment, build, patch, project, and check a standoff annotation",
 harness,layer,node,,Node files at the folder root,
@@ -26,8 +26,8 @@ properties,mode,recorded,,"authored judgment, irreplaceable, never machine-edite
 properties,required,counted,,"a blank is legal and surfaced as a ledger figure, the count-rather-than-ban posture the computed sets run for authored judgment",
 properties,required,none,,"optional, or filled by practice with no gate behind it",
 properties,required,value,,"an assertion is present for every target: true of every computed field by construction, and of a recorded field a gate checks",
-registries,key_primitive,locator,Keyed by a locator,a path in this repository; the suite checks that each one exists,ph-link-simple
-registries,key_primitive,id,Keyed by a name,a name the registry assigns or records,ph-fingerprint
+registries,key_primitive,locator,Locator keys,a path in this repository; the suite checks that each one exists,ph-link-simple
+registries,key_primitive,id,Id keys,"a name the registry assigns or records, unique within it",ph-fingerprint
 registries,fields,governed,,"every non-key column must be a declared property, so an undeclared field appearing in a computed set is caught as the early symptom of an unaccounted classification",
 registries,fields,ungoverned,,"the columns are exempt from their property definitions. A smell and never a resting state: five registries were marked this way with a written reason and all five reasons were wrong, so the count is asserted at zero and adding one has to change a test",
 registries,membership,computed,,"the rule is executable (a folder, an extension, the router's own table), so the row set can be derived and compared to what is there. Only this side can carry a coverage gate, because only it has something independent to check against",
@@ -56,8 +56,8 @@ writers,mode,replace,Replace,"Sets a file's whole content, creating it or replac
 writers,mode,append,Append,"Adds a record and replaces nothing: a line at the end of a file, or a new file per record.",
 writers,mode,propose,Propose,Sets on a branch for review; nothing reaches main until a merge.,
 writers,mode,merge,Merge,Commits a reviewed branch to main.,
-tests-authored,kind,behavior,,exercises the subject and asserts what it does; how it is reached is the method,
-tests-authored,kind,gate,,"holds a committed file to its source or to a rule, so a claim in the repo cannot quietly stop being true",
+tests-authored,kind,behavior,,runs the code under test and checks its result,
+tests-authored,kind,gate,,checks that a committed file still matches its source or a rule,
 skills,group,prose,Prose,"the writing itself is the subject: drafting, tightening, outlining, anchoring to sources, showing an edit",
 skills,group,documents,Documents,"a file format is the subject: docx, pdf, pptx, xlsx, and the query language that feeds them",
 skills,group,web,Web,"building something that renders in a browser: markup, components, icons, bundling",

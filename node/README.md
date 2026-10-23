@@ -298,9 +298,7 @@ changes touch:
 | `docs/house-policies.md` | `npm run policy-skills` | the h plugin's skills under `plugins/h/skills/` |
 | `tracker/tasks/` | `npm run tracker-board` | `tracker/board.md`, `tracker/board.csv`, `tracker/board-tags.csv` |
 
-Most of these files are generated whole. Three are not. `docs/docs.csv`,
-`docs/harness.csv` and `docs/registries.csv` are hand-edited except for the
-fields a generator stamps. Edit a row freely and leave those fields alone.
+Most of these files are generated whole. Four are not. `docs/docs.csv`, `docs/harness.csv`, `docs/registries.csv` and `docs/tests-authored.csv` are hand-edited except for the fields or rows a generator writes. Edit a row freely and leave those fields alone.
 
 `docs-readme` and `docs-reach` are a cycle. `docs/README.md` is generated from
 the registry and is also a row in it, so the hook runs `docs-reach` a second

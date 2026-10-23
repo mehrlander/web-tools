@@ -168,12 +168,7 @@ twice. What a stream must keep (ids, times, corrections) is the next document.
 2. Choose a stable key. Declare `identity` only if the key can be compared with
    other registries' keys.
 3. One table, one CSV file. Two registries never share a file.
-4. Add the row to `registries.csv`: `path`, `key`, `identity`, `membership`,
-   `inherits`, `target`, `scope`, `span`, `fields`, `gate`, `key_primitive`, `title`,
-   `gloss`. `fields` is `governed`; the suite asserts that no registry is
-   `ungoverned`, so declaring one means changing the test and stating why.
-   `gate` is a test path, or the token `none`. `key_primitive` is `locator` where
-   `identity` is `path` or `path:<prefix>`, and `id` otherwise.
+4. Add the row to `registries.csv`: `path`, `key`, `identity`, `membership`, `inherits`, `target`, `scope`, `span`, `fields`, `gate`, `key_primitive`, `title`, `gloss`. `fields` is `governed`; the suite asserts that no registry is `ungoverned`, so declaring one means changing the test and stating why. `gate` is a test path, or the token `none`. `key_primitive` is `locator` where `identity` is `path` or `path:<prefix>`, and `id` otherwise.
 5. Add one row to `properties.csv` per non-key column: `mode`, `deriver` (for
    `computed`), `required`, `form`, `exclusive`, `values`, `column_primitive`,
    `gloss`.
@@ -192,7 +187,7 @@ A blank cell means *not asserted*, never an empty string or a checked result of
 none. Where that distinction matters, use a token: `gate: none` means checked,
 and nothing holds the registry. Read the token, not the cell's truthiness.
 
-Keep `recorded` and `computed` properties in separate files, so a generator does not rewrite a file a person edits. `docs/tests-authored.csv` beside `docs/tests.csv` is the pattern. The exceptions are named, with reasons, in [`properties-registry.test.mjs`](../node/test/properties-registry.test.mjs).
+Keep `recorded` and `computed` properties in separate files, so a generator does not overwrite values a person writes: `tests-index` writes `docs/tests.csv` whole and only adds or removes rows in `docs/tests-authored.csv`. The exceptions are named, with reasons, in [`properties-registry.test.mjs`](../node/test/properties-registry.test.mjs).
 
 Store `recorded` values always; authored judgment cannot be recomputed. Store
 `computed` values only where a browser, a gate or a reviewable diff needs a
@@ -218,7 +213,7 @@ by its test names:
 - every `required: value` property is present on every row
 - a declared id is its registry key, and a declared label draws from a set or repeats
 - modes are coherent: computed names a real deriver, recorded names none
-- a registry file is authored or derived, or mixed by name
+- a registry file is all recorded or all computed, or a named exception
 - every registry declares its key primitive, and leads with a title and a gloss
 - a locator key resolves into the tree, and only a path identity makes one
 - `renders_in` matches its derivation on every registry
@@ -239,15 +234,7 @@ each have a registry row, and every non-key column in both has a declaration.
 
 ## Reader-facing fields
 
-`title` and `gloss` identify a registry in the Map view. `key_primitive` groups
-the tab: registries keyed by a locator, then those keyed by a name. A topical
-grouping was tried first and did not hold. `renders_in`
-is derived by [`registries-reach.mjs`](../node/build/registries-reach.mjs)
-from the files under `lib/`, `pages/` and `app/` that name the registry's path.
-That directory list is literal (`APP_DIRS`); when the app moves, move it. An
-empty `renders_in` says no app surface reads the registry, which is a question
-rather than a verdict, since a GitHub-rendered projection is a legitimate
-consumer.
+`title` and `gloss` identify a registry in the Map view. `key_primitive` groups the tab: registries keyed by a locator, then those keyed by a name. A topical grouping was tried first and did not hold. `renders_in` is derived by [`registries-reach.mjs`](../node/build/registries-reach.mjs) from the files under `lib/`, `pages/` and `app/` that name the registry's path. That directory list is literal (`APP_DIRS`); when the app moves, move it. An empty `renders_in` says no app surface reads the registry, which is a question rather than a verdict, since a GitHub-rendered projection is a legitimate consumer.
 
 ## Limits of the model
 
