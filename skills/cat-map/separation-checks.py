@@ -21,7 +21,8 @@ and crosses, written "x:c1,c2"; with no cross named, every pair of
 characteristics with two to four values is crossed.
 
 --write puts the findings into each run of a JSON file as `findings`, which
-pages/cat-map.html draws.
+pages/cat-map.html draws. A finding's `rationale`, the answer written to it,
+is kept when the same finding recurs.
 
 python3 separation-checks.py map.json --write
 python3 separation-checks.py coded.csv "writers.csv|direct-to-main.csv" x:stands_for,after_written
@@ -114,6 +115,9 @@ def main(argv):
             field = run.get('field') or {}
             crosses = [tuple(x) for x in run.get('crosses', [])] or ([(field['x'], field['y'])] if field.get('x') and field.get('y') else [])
             findings = check(rows, chars, pairs_of(run), crosses)
+            answered = {f['text']: f['rationale'] for f in run.get('findings', []) if f.get('rationale')}
+            for f in findings:
+                if f['text'] in answered: f['rationale'] = answered[f['text']]
             report(run.get('by', 'run'), rows, chars, findings)
             run['findings'] = findings
         if '--write' in rest:

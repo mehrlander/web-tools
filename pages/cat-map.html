@@ -283,7 +283,7 @@ document.addEventListener('alpine:init', () => {
                   </tr>
                 </template>
                 <template x-if="g.t === 'cat' && (g.c.sense || g.c.verdict)">
-                  <tr class="bg-base-200"><td :colspan="chars.length + 1" class="pt-0"><div class="sticky left-2 w-[min(60rem,calc(100vw-3rem))] text-pretty whitespace-normal"><span class="text-base-content/60" x-text="g.c.sense ? g.c.sense + '. ' : ''"></span><span x-text="g.c.verdict || ''"></span></div></td></tr>
+                  <tr class="bg-base-200"><td :colspan="chars.length + 1" class="pt-0"><div class="sticky left-2 w-[min(60rem,calc(100vw-3rem))] text-pretty whitespace-normal"><span class="text-base-content/60" x-text="g.c.sense ? g.c.sense.replace(/\.$/, '') + '. ' : ''"></span><span x-text="g.c.verdict || ''"></span></div></td></tr>
                 </template>
                 <template x-if="g.t === 'inst'">
                   <tr class="cursor-pointer hover:bg-base-200" :class="open === g.i.id && from === 'docket' ? 'bg-primary/10' : ''" @click="toggle(g.i.id, 'docket')">
@@ -328,7 +328,7 @@ document.addEventListener('alpine:init', () => {
         <h2 class="text-sm font-semibold">Checks</h2>
         <div class="grid grid-cols-[6rem_minmax(0,1fr)] gap-x-3 gap-y-1">
           <template x-for="(f, k) in rest" :key="'f' + k">
-            <div class="contents"><span class="text-xs font-mono text-base-content/60 pt-0.5" x-text="f.kind"></span><span class="text-sm text-pretty" x-text="f.text"></span></div>
+            <div class="contents"><span class="text-xs font-mono text-base-content/60 pt-0.5" x-text="f.kind"></span><div class="text-sm text-pretty"><div x-text="f.text"></div><div x-show="f.rationale" class="text-base-content/60" x-text="f.rationale"></div></div></div>
           </template>
         </div>
       </section>

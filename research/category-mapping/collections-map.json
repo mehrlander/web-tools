@@ -110,7 +110,6 @@
      "word": "registry",
      "sense": "A committed CSV recording properties of a defined set of targets, one row per target, found by a stable key and edited when the target changes.",
      "tag": "registry (CSV)",
-     "at": "web-tools/docs/registries.md:3-5, :50, :146; web-tools/CLAUDE.md (Registries section)",
      "requires": {
       "stands_for": "thing",
       "after_written": "changed in place",
@@ -118,28 +117,28 @@
       "declared": "row in registries.csv"
      },
      "kind": "region",
-     "verdict": "Holds for pages.csv, docs.csv, board.csv and aims-reading.csv, the (thing, changed in place) cell; it drifts where applied to tracker task files, which are markdown (registries.md:150-152 calls a task a registry entry), and to scheduled-tasks.csv, which has no registries.csv row and so no gate."
+     "verdict": "Holds for pages.csv, docs.csv, board.csv and aims-reading.csv, the (thing, changed in place) cell; it drifts where applied to tracker task files, which are markdown (registries.md:150-152 calls a task a registry entry), and to scheduled-tasks.csv, which has no registries.csv row and so no gate.",
+     "where": "web-tools/docs/registries.md:3-5, :50, :146; web-tools/CLAUDE.md (Registries section)"
     },
     {
      "id": "registry-index",
      "word": "registry",
      "sense": "A generated index of the trackers in a repo; a tracker registers itself by existing.",
      "tag": "registry (tracker index)",
-     "at": "web-tools/docs/TRACKER.md:244; home/trackers.md:3; home/CLAUDE.md (Project tracking, Registry extension point)",
      "requires": {
       "stands_for": "thing",
       "provenance": "derived",
       "form": "markdown"
      },
      "kind": "region",
-     "verdict": "trackers.md meets it, but by registries.md:53 it is a projection (generated, never authoritative) and no check holds it to the tracker folders; call it what TRACKER.md:244 already says, the tracker index."
+     "verdict": "trackers.md meets it, but by registries.md:53 it is a projection (generated, never authoritative) and no check holds it to the tracker folders; call it what TRACKER.md:244 already says, the tracker index.",
+     "where": "web-tools/docs/TRACKER.md:244; home/trackers.md:3; home/CLAUDE.md (Project tracking, Registry extension point)"
     },
     {
      "id": "registry-repo",
      "word": "registry",
      "sense": "The private sister repository itself, web-tools-private, named REGISTRY_REPO in the app.",
      "tag": "registry (the repo)",
-     "at": "web-tools-private/.web-tools.json:6; web-tools/docs/manifest.md:245-246, :269; web-tools/docs/views/lists.md:6; web-tools/docs/views/state.md:8",
      "requires": {
       "stands_for": "n/a",
       "after_written": "n/a",
@@ -151,14 +150,14 @@
       "declared": "n/a"
      },
      "kind": "outside",
-     "verdict": "Names a repository, not a collection, so every characteristic is n/a; call it web-tools-private or the private sister, since 'the private registry' sits beside the CSV sense in the same sentences (lists.md:6, state.md:8)."
+     "verdict": "Names a repository, not a collection, so every characteristic is n/a; call it web-tools-private or the private sister, since 'the private registry' sits beside the CSV sense in the same sentences (lists.md:6, state.md:8).",
+     "where": "web-tools-private/.web-tools.json:6; web-tools/docs/manifest.md:245-246, :269; web-tools/docs/views/lists.md:6; web-tools/docs/views/state.md:8"
     },
     {
      "id": "stream",
      "word": "stream",
      "sense": "A collection whose entries stand for events at the time they happened and are never edited; a later entry corrects an earlier one. Declared in a manifest stores block.",
      "tag": "stream",
-     "at": "web-tools/docs/registries.md:139-152; web-tools/docs/manifest.md:221-236",
      "requires": {
       "stands_for": "occurrence",
       "after_written": "never changed",
@@ -166,14 +165,14 @@
       "declared": "manifest stores block"
      },
      "kind": "region",
-     "verdict": "Notes, the news ledger, progress logs and traffic logs meet its first three values, but no instance meets the fourth: no manifest in the estate has a stores block. Session records, called a stream, are rewritten until the session ends, a cell the pair has no word for."
+     "verdict": "Notes, the news ledger, progress logs and traffic logs meet its first three values, but no instance meets the fourth: no manifest in the estate has a stores block. Session records, called a stream, are rewritten until the session ends, a cell the pair has no word for.",
+     "where": "web-tools/docs/registries.md:139-152; web-tools/docs/manifest.md:221-236"
     },
     {
      "id": "stream-chart",
      "word": "stream",
      "sense": "The Budget DRS Funding view (view=stream), a flow chart of budget items across sessions.",
      "tag": "stream (chart)",
-     "at": "home/.web-tools.json pages entry 'Funding' with query view=stream; home/projects/budget-drs/app/view/README.md:162 (#stream-chart)",
      "requires": {
       "stands_for": "n/a",
       "after_written": "n/a",
@@ -185,14 +184,14 @@
       "declared": "n/a"
      },
      "kind": "outside",
-     "verdict": "A chart in the Budget DRS Funding view: another kind of thing, unrelated to the collection sense."
+     "verdict": "A chart in the Budget DRS Funding view: another kind of thing, unrelated to the collection sense.",
+     "where": "home/.web-tools.json pages entry 'Funding' with query view=stream; home/projects/budget-drs/app/view/README.md:162 (#stream-chart)"
     },
     {
      "id": "snapshot-dated",
      "word": "snapshot",
      "sense": "A stream entry whose content is a registry as it stood at one time, such as a dated reading of the checks; not restamped.",
      "tag": "snapshot (dated reading)",
-     "at": "web-tools/docs/registries.md:154-156; web-tools/data/checks-reading/README.md:3, :11-13",
      "requires": {
       "stands_for": "thing",
       "after_written": "never changed",
@@ -200,14 +199,14 @@
       "currency": "fixed at its date"
      },
      "kind": "region",
-     "verdict": "Holds for the checks reading, delivery.json and source bundles. Defined as a stream entry, but its rows stand for things and never change: it is the (thing, never changed) cell that registry and stream leave out, a third value on those two axes."
+     "verdict": "Holds for the checks reading, delivery.json and source bundles. Defined as a stream entry, but its rows stand for things and never change: it is the (thing, never changed) cell that registry and stream leave out, a third value on those two axes.",
+     "where": "web-tools/docs/registries.md:154-156; web-tools/data/checks-reading/README.md:3, :11-13"
     },
     {
      "id": "snapshot-current",
      "word": "snapshot",
      "sense": "The latest derived copy of some state, replaced on each refresh (daily atlas, daily text occurrences, monthly bill data).",
      "tag": "snapshot (current copy)",
-     "at": "web-tools-private/probes/2026-10-19-constellation-atlas-refresh.md:1, :25; web-tools/docs/direct-to-main.csv:15; web-tools/docs/writers.csv (wsl-fetch row: 'sets the snapshot under pages/wsl-sync/data/')",
      "requires": {
       "after_written": "changed in place",
       "provenance": "derived",
@@ -215,87 +214,87 @@
       "rebuilt_by": "a run elsewhere"
      },
      "kind": "region",
-     "verdict": "Applied to derived files replaced daily or monthly (constellation atlas, text occurrences, wsl-sync data); nothing but the word separates them from entities.json, which is called a cache, and they share only the word with the dated sense. Call them caches rebuilt elsewhere and keep 'snapshot' for dated readings."
+     "verdict": "Applied to derived files replaced daily or monthly (constellation atlas, text occurrences, wsl-sync data); nothing but the word separates them from entities.json, which is called a cache, and they share only the word with the dated sense. Call them caches rebuilt elsewhere and keep 'snapshot' for dated readings.",
+     "where": "web-tools-private/probes/2026-10-19-constellation-atlas-refresh.md:1, :25; web-tools/docs/direct-to-main.csv:15; web-tools/docs/writers.csv (wsl-fetch row: 'sets the snapshot under pages/wsl-sync/data/')"
     },
     {
      "id": "cache",
      "word": "cache",
      "sense": "A derived copy kept so the app can read across repos without a live scan; never hand-edited, rewritten by a crawl only when its content changed.",
      "tag": "cache",
-     "at": "web-tools-private/README.md:61-66; web-tools/docs/manifest.md:261-283; web-tools/docs/views/state.md:3-12",
      "requires": {
       "after_written": "changed in place",
       "provenance": "derived",
       "currency": "may lag its source"
      },
      "kind": "region",
-     "verdict": "Holds for the state/ files: derived, replaced in place, may lag, never hand-edited. It fixes provenance and currency, not the registry and stream axes (cache rows stand for things in the activity cache and occurrences in the sessions cache); rebuilt_by splits the reader-rebuilt crawl caches from entities.json."
+     "verdict": "Holds for the state/ files: derived, replaced in place, may lag, never hand-edited. It fixes provenance and currency, not the registry and stream axes (cache rows stand for things in the activity cache and occurrences in the sessions cache); rebuilt_by splits the reader-rebuilt crawl caches from entities.json.",
+     "where": "web-tools-private/README.md:61-66; web-tools/docs/manifest.md:261-283; web-tools/docs/views/state.md:3-12"
     },
     {
      "id": "list-view",
      "word": "list",
      "sense": "One of the lists the Lists view holds: To-do, Jot, Pin, Snag, created lists, and also Ping (errands) and Note (notes).",
      "tag": "list (Lists view)",
-     "at": "web-tools/docs/views/lists.md:3-19; web-tools/CLAUDE.md (Snags section: 'the Lists view's Snag list')",
      "requires": {},
      "kind": "list",
-     "verdict": "Membership in the Lists view is the only thing it fixes: members take every value of stands_for and after_written (to-dos and snags are edited things, jots are material that leaves, Note is an appended stream, Ping is errands). Say 'a Lists view list' and name each member's shape with the other words."
+     "verdict": "Membership in the Lists view is the only thing it fixes: members take every value of stands_for and after_written (to-dos and snags are edited things, jots are material that leaves, Note is an appended stream, Ping is errands). Say 'a Lists view list' and name each member's shape with the other words.",
+     "where": "web-tools/docs/views/lists.md:3-19; web-tools/CLAUDE.md (Snags section: 'the Lists view's Snag list')"
     },
     {
      "id": "list-enumeration",
      "word": "list",
      "sense": "Any enumeration of members: the estate membership list, the guided reading list.",
      "tag": "list (enumeration)",
-     "at": "web-tools/docs/manifest.md:239-259; web-tools/docs/registries.csv:30 (aims-reading target 'a document on the guided reading list')",
      "requires": {},
      "kind": "fuzzy",
-     "verdict": "Plain English for any enumeration (a curated registry, a derived membership): no edge, no implication, not a collection kind."
+     "verdict": "Plain English for any enumeration (a curated registry, a derived membership): no edge, no implication, not a collection kind.",
+     "where": "web-tools/docs/manifest.md:239-259; web-tools/docs/registries.csv:30 (aims-reading target 'a document on the guided reading list')"
     },
     {
      "id": "log",
      "word": "log",
      "sense": "A dated, durable record of what happened, added to over time: the running log, the outer log, a task's progress log, the app's traffic log.",
      "tag": "log",
-     "at": "home/CLAUDE.md:50, :55; home/news/README.md:1-8; web-tools/docs/TRACKER.md:76; web-tools/docs/writers.csv (app-traffic row)",
      "requires": {
       "stands_for": "occurrence",
       "after_written": "never changed",
       "leaves": "stays"
      },
      "kind": "region",
-     "verdict": "Same cell as stream, met by the news ledger, progress logs and traffic logs; the running log, chron/, does not meet it, since its entries are dated documents and 69 of 315 were changed after creation. Keep log as an undeclared synonym of stream; call chron by its own name."
+     "verdict": "Same cell as stream, met by the news ledger, progress logs and traffic logs; the running log, chron/, does not meet it, since its entries are dated documents and 69 of 315 were changed after creation. Keep log as an undeclared synonym of stream; call chron by its own name.",
+     "where": "home/CLAUDE.md:50, :55; home/news/README.md:1-8; web-tools/docs/TRACKER.md:76; web-tools/docs/writers.csv (app-traffic row)"
     },
     {
      "id": "ledger-append",
      "word": "ledger",
      "sense": "An append-only record that is never rewritten: the news ledger, the PowerShell outpost observations ledger, the page's call ledger.",
      "tag": "ledger (append-only)",
-     "at": "home/news/README.md:27-29; home/CLAUDE.md:55; web-tools/docs/views/project.md:33-35; web-tools/docs/outposts.md:33-34; web-tools/lib/gh-boot.js:249",
      "requires": {
       "stands_for": "occurrence",
       "after_written": "never changed"
      },
      "kind": "region",
-     "verdict": "Same cell as stream and log, met by the news ledger and the outpost observations CSV; the page's call ledger also drops its oldest past 400. A third word for one cell."
+     "verdict": "Same cell as stream and log, met by the news ledger and the outpost observations CSV; the page's call ledger also drops its oldest past 400. A third word for one cell.",
+     "where": "home/news/README.md:27-29; home/CLAUDE.md:55; web-tools/docs/views/project.md:33-35; web-tools/docs/outposts.md:33-34; web-tools/lib/gh-boot.js:249"
     },
     {
      "id": "ledger-accounting",
      "word": "ledger",
      "sense": "An accounting-style table of financial actions: Budget DRS's decision (enacted) ledger, one row per budget item enacted in a session, and the state's general ledger.",
      "tag": "ledger (accounting)",
-     "at": "home/projects/budget-drs/data/design/tables.csv:6; home/tools/verify-artifacts.sh:424-425",
      "requires": {
       "stands_for": "occurrence"
      },
      "kind": "value",
-     "verdict": "Rows are enacted budget items per session, derived and rebuilt by build-decision-ledger.py, so it shares only stands_for with the append-only ledger. A domain term from accounting, not a collection kind; in the collection vocabulary it is a derived table held by a check, the (occurrence, changed in place) cell."
+     "verdict": "Rows are enacted budget items per session, derived and rebuilt by build-decision-ledger.py, so it shares only stands_for with the append-only ledger. A domain term from accounting, not a collection kind; in the collection vocabulary it is a derived table held by a check, the (occurrence, changed in place) cell.",
+     "where": "home/projects/budget-drs/data/design/tables.csv:6; home/tools/verify-artifacts.sh:424-425"
     },
     {
      "id": "tracker",
      "word": "tracker",
      "sense": "A workspace's task files, one per task, edited as a task moves through backlog, in-progress, blocked and done, with generated rollups; committed to main in real time.",
      "tag": "tracker",
-     "at": "web-tools/docs/TRACKER.md:1-15, :24-31, :78",
      "requires": {
       "stands_for": "thing",
       "after_written": "changed in place",
@@ -304,14 +303,14 @@
       "form": "one file per entry"
      },
      "kind": "region",
-     "verdict": "Holds for tracker task files: the registry cell plus an open-then-closed lifecycle, with a stream inside (the progress log) and projections beside it (board.md, board.csv). A value on the lifecycle axis, not an alternative to registry; to-dos, errands and proposals carry the same lifecycle without the word."
+     "verdict": "Holds for tracker task files: the registry cell plus an open-then-closed lifecycle, with a stream inside (the progress log) and projections beside it (board.md, board.csv). A value on the lifecycle axis, not an alternative to registry; to-dos, errands and proposals carry the same lifecycle without the word.",
+     "where": "web-tools/docs/TRACKER.md:1-15, :24-31, :78"
     },
     {
      "id": "inbox",
      "word": "inbox",
      "sense": "A receiver's declared landing folder for a deposit that names no directory; drained, so it trends toward empty.",
      "tag": "inbox",
-     "at": "web-tools/docs/manifest.md:342-405; home/CLAUDE.md:51; home/.web-tools.json:297",
      "requires": {
       "stands_for": "material",
       "leaves": "removed once placed elsewhere",
@@ -319,7 +318,8 @@
       "declared": "manifest path key"
      },
      "kind": "region",
-     "verdict": "Holds for chron/dump and fixes the leaves axis (removed once placed elsewhere), which no other word fixes. shortcuts/incoming and the Jot list behave the same way without the word, and web-tools-private declares inbox: inbox with no inbox/ folder."
+     "verdict": "Holds for chron/dump and fixes the leaves axis (removed once placed elsewhere), which no other word fixes. shortcuts/incoming and the Jot list behave the same way without the word, and web-tools-private declares inbox: inbox with no inbox/ folder.",
+     "where": "web-tools/docs/manifest.md:342-405; home/CLAUDE.md:51; home/.web-tools.json:297"
     }
    ],
    "instances": [
@@ -1337,7 +1337,8 @@
       "pages-csv",
       "aims-reading"
      ],
-     "text": "no characteristic separates pages-csv, aims-reading"
+     "text": "no characteristic separates pages-csv, aims-reading",
+     "rationale": "One kind: curated CSV registries with a registries.csv row. The 'reading list' name is the enumeration sense of list and implies nothing further. Kept as two instances of one value."
     },
     {
      "kind": "identical",
@@ -1345,7 +1346,8 @@
       "errands",
       "proposals"
      ],
-     "text": "no characteristic separates errands, proposals"
+     "text": "no characteristic separates errands, proposals",
+     "rationale": "One kind by design: web-tools-private/proposals/README.md:13 says the result file is the tombstone, 'the same convention errands/ uses'. A request file closed by a second file; none of the words under test names it (the Lists view calls errands 'Ping'). Proposed name: request queue, a standard term; 'queue' is undeclared in web-tools' vocabulary (concept-index), so it collides with nothing."
     },
     {
      "kind": "identical",
@@ -1354,7 +1356,8 @@
       "text-occurrences",
       "entities-json"
      ],
-     "text": "no characteristic separates constellation-atlas, text-occurrences, entities-json"
+     "text": "no characteristic separates constellation-atlas, text-occurrences, entities-json",
+     "rationale": "One kind: derived, replaced in place, may lag, rebuilt by a run elsewhere. Two are called snapshot and one cache, so the word varies where the kind does not; this is the evidence for the snapshot-current verdict."
     },
     {
      "kind": "empty",
@@ -1366,7 +1369,8 @@
       "material",
       "changed until its occurrence ends"
      ],
-     "text": "no instance is material and changed until its occurrence ends"
+     "text": "no instance is material and changed until its occurrence ends",
+     "rationale": "Impossible by definition: only an occurrence has an end."
     },
     {
      "kind": "empty",
@@ -1378,7 +1382,8 @@
       "thing",
       "changed until its occurrence ends"
      ],
-     "text": "no instance is thing and changed until its occurrence ends"
+     "text": "no instance is thing and changed until its occurrence ends",
+     "rationale": "Impossible by definition: only an occurrence has an end."
     },
     {
      "kind": "empty",
@@ -1390,7 +1395,8 @@
       "authored",
       "held to its source by a check"
      ],
-     "text": "no instance is authored and held to its source by a check"
+     "text": "no instance is authored and held to its source by a check",
+     "rationale": "Impossible by definition: an authored or captured entry has no upstream to be held to or to lag (registries.md:158-159: captured means gone if lost). An authored reading of a source is coded fixed at its date."
     },
     {
      "kind": "empty",
@@ -1402,7 +1408,8 @@
       "authored",
       "may lag its source"
      ],
-     "text": "no instance is authored and may lag its source"
+     "text": "no instance is authored and may lag its source",
+     "rationale": "Impossible by definition: an authored or captured entry has no upstream to be held to or to lag (registries.md:158-159: captured means gone if lost). An authored reading of a source is coded fixed at its date."
     },
     {
      "kind": "empty",
@@ -1414,7 +1421,8 @@
       "captured",
       "held to its source by a check"
      ],
-     "text": "no instance is captured and held to its source by a check"
+     "text": "no instance is captured and held to its source by a check",
+     "rationale": "Impossible by definition: an authored or captured entry has no upstream to be held to or to lag (registries.md:158-159: captured means gone if lost). An authored reading of a source is coded fixed at its date."
     },
     {
      "kind": "empty",
@@ -1426,7 +1434,8 @@
       "captured",
       "may lag its source"
      ],
-     "text": "no instance is captured and may lag its source"
+     "text": "no instance is captured and may lag its source",
+     "rationale": "Impossible by definition: an authored or captured entry has no upstream to be held to or to lag (registries.md:158-159: captured means gone if lost). An authored reading of a source is coded fixed at its date."
     },
     {
      "kind": "empty",
@@ -1438,7 +1447,8 @@
       "derived",
       "fixed at its date"
      ],
-     "text": "no instance is derived and fixed at its date"
+     "text": "no instance is derived and fixed at its date",
+     "rationale": "Possible and present outside the sample: frozen paths such as home/projects/budget-drs/.paths.json (research/budget-dive/data/receipt-data.json, frozen since 2026-07-06) and web-tools-private/.paths.json (sessions/sample-record.json). Each is a single pinned artifact, not a collection of entries, so none was added."
     },
     {
      "kind": "empty",
@@ -1450,7 +1460,8 @@
       "derived",
       "is its own source"
      ],
-     "text": "no instance is derived and is its own source"
+     "text": "no instance is derived and is its own source",
+     "rationale": "Impossible by definition: derived means rebuilt from something else."
     },
     {
      "kind": "empty",
@@ -1462,7 +1473,8 @@
       "material",
       "oldest dropped past a cap"
      ],
-     "text": "no instance is material and oldest dropped past a cap"
+     "text": "no instance is material and oldest dropped past a cap",
+     "rationale": "None found. The capped collections hold occurrences (sweeps, the sessions cache, the call ledger, the crawl runs ring); trays of material drain by placement instead."
     },
     {
      "kind": "empty",
@@ -1474,7 +1486,8 @@
       "material",
       "removed when its subject goes"
      ],
-     "text": "no instance is material and removed when its subject goes"
+     "text": "no instance is material and removed when its subject goes",
+     "rationale": "Impossible: material has no subject outside itself."
     },
     {
      "kind": "empty",
@@ -1486,7 +1499,8 @@
       "occurrence",
       "removed once placed elsewhere"
      ],
-     "text": "no instance is occurrence and removed once placed elsewhere"
+     "text": "no instance is occurrence and removed once placed elsewhere",
+     "rationale": "None found. The estate's queues keep a request and add a result file rather than deleting (proposals/README.md:11-13: gh-store has no delete), so consumed-and-removed occurrences do not arise."
     },
     {
      "kind": "empty",
@@ -1498,7 +1512,8 @@
       "occurrence",
       "removed when its subject goes"
      ],
-     "text": "no instance is occurrence and removed when its subject goes"
+     "text": "no instance is occurrence and removed when its subject goes",
+     "rationale": "Excluded by the stream rule: an occurrence outlives its subject (a note about a deleted branch stays). Searched notes, news and logs; none is removed with its subject."
     },
     {
      "kind": "empty",
@@ -1510,7 +1525,8 @@
       "thing",
       "oldest dropped past a cap"
      ],
-     "text": "no instance is thing and oldest dropped past a cap"
+     "text": "no instance is thing and oldest dropped past a cap",
+     "rationale": "None found. A collection of things that dropped live targets by age or moved them out would break its own scope; no sense calls for one."
     },
     {
      "kind": "empty",
@@ -1522,7 +1538,8 @@
       "thing",
       "removed once placed elsewhere"
      ],
-     "text": "no instance is thing and removed once placed elsewhere"
+     "text": "no instance is thing and removed once placed elsewhere",
+     "rationale": "None found. A collection of things that dropped live targets by age or moved them out would break its own scope; no sense calls for one."
     }
    ],
    "outcome": {
@@ -1555,60 +1572,6 @@
     },
     "summary": "A mix. Registry, stream, log, the append-only ledger and the dated snapshot are alternatives on one pair of axes (what an entry stands for, and whether it changes after it is written): stream, log and ledger name the same cell, the dated snapshot names the (thing, never changed) cell the registry and stream pair leaves out, and session records and the decision ledger sit in cells no word names. Cache and the current-copy snapshot are values on the provenance and currency axes, tracker on a lifecycle axis and inbox on a retention axis, so they combine with the first set rather than compete with it; list in the Lists view sense is curated membership only, and 'registry' for web-tools-private and 'stream' for the Funding chart are other kinds of thing."
    },
-   "answers": [
-    {
-     "finding": "identical: pages-csv, aims-reading",
-     "answer": "One kind: curated CSV registries with a registries.csv row. The 'reading list' name is the enumeration sense of list and implies nothing further. Kept as two instances of one value."
-    },
-    {
-     "finding": "identical: errands, proposals",
-     "answer": "One kind by design: web-tools-private/proposals/README.md:13 says the result file is the tombstone, 'the same convention errands/ uses'. A request file closed by a second file; none of the words under test names it (the Lists view calls errands 'Ping'). Proposed name: request queue, a standard term; 'queue' is undeclared in web-tools' vocabulary (concept-index), so it collides with nothing."
-    },
-    {
-     "finding": "identical: constellation-atlas, text-occurrences, entities-json",
-     "answer": "One kind: derived, replaced in place, may lag, rebuilt by a run elsewhere. Two are called snapshot and one cache, so the word varies where the kind does not; this is the evidence for the snapshot-current verdict."
-    },
-    {
-     "finding": "unseparated (first run): constellation-atlas, activity-cache",
-     "answer": "A characteristic was missing. rebuilt_by now separates them: the app rebuilds the activity cache when a tab opens or the cache is cold; the atlas needs the laptop's clones and is rebuilt only by the daemon."
-    },
-    {
-     "finding": "empty: thing or material, and changed until its occurrence ends",
-     "answer": "Impossible by definition: only an occurrence has an end."
-    },
-    {
-     "finding": "empty: authored or captured, and held to its source by a check or may lag its source",
-     "answer": "Impossible by definition: an authored or captured entry has no upstream to be held to or to lag (registries.md:158-159: captured means gone if lost). An authored reading of a source is coded fixed at its date."
-    },
-    {
-     "finding": "empty: derived and is its own source",
-     "answer": "Impossible by definition: derived means rebuilt from something else."
-    },
-    {
-     "finding": "empty: derived and fixed at its date",
-     "answer": "Possible and present outside the sample: frozen paths such as home/projects/budget-drs/.paths.json (research/budget-dive/data/receipt-data.json, frozen since 2026-07-06) and web-tools-private/.paths.json (sessions/sample-record.json). Each is a single pinned artifact, not a collection of entries, so none was added."
-    },
-    {
-     "finding": "empty: material and removed when its subject goes",
-     "answer": "Impossible: material has no subject outside itself."
-    },
-    {
-     "finding": "empty: occurrence and removed when its subject goes",
-     "answer": "Excluded by the stream rule: an occurrence outlives its subject (a note about a deleted branch stays). Searched notes, news and logs; none is removed with its subject."
-    },
-    {
-     "finding": "empty: occurrence and removed once placed elsewhere",
-     "answer": "None found. The estate's queues keep a request and add a result file rather than deleting (proposals/README.md:11-13: gh-store has no delete), so consumed-and-removed occurrences do not arise."
-    },
-    {
-     "finding": "empty: material and oldest dropped past a cap",
-     "answer": "None found. The capped collections hold occurrences (sweeps, the sessions cache, the call ledger, the crawl runs ring); trays of material drain by placement instead."
-    },
-    {
-     "finding": "empty: thing and oldest dropped past a cap; thing and removed once placed elsewhere",
-     "answer": "None found. A collection of things that dropped live targets by age or moved them out would break its own scope; no sense calls for one."
-    }
-   ],
    "short": "A"
   },
   {
@@ -1737,20 +1700,19 @@
      "word": "registry",
      "tag": "shape",
      "sense": "a collection whose entries stand for things, found by a key and edited when the thing changes, whatever its format",
-     "at": "web-tools/docs/registries.md:3-5 and 144-146 (the Registries and streams table)",
      "requires": {
       "stands_for": "thing",
       "after_written": "changes"
      },
      "kind": "region",
-     "verdict": "Holds for every collection called registry outside registries.csv (scheduled-tasks.csv, apps.json, the task files), but the same two values also cover the To-do list, user calls, the prune ledger, the config cache and the ui-units snapshot, so the shape is far wider than the word's use."
+     "verdict": "Holds for every collection called registry outside registries.csv (scheduled-tasks.csv, apps.json, the task files), but the same two values also cover the To-do list, user calls, the prune ledger, the config cache and the ui-units snapshot, so the shape is far wider than the word's use.",
+     "where": "web-tools/docs/registries.md:3-5 and 144-146 (the Registries and streams table)"
     },
     {
      "id": "registry-governed",
      "word": "registry",
      "tag": "governed CSV",
      "sense": "a committed CSV that inventories or classifies part of web-tools, declared by a row in docs/registries.csv and held by its gate",
-     "at": "web-tools/docs/registries.md:6 and 126-127; web-tools/CLAUDE.md, section Registries",
      "requires": {
       "stands_for": "thing",
       "after_written": "changes",
@@ -1759,135 +1721,135 @@
       "listed": "yes"
      },
      "kind": "list",
-     "verdict": "A curated list, not a shape: a row in registries.csv is the only characteristic that separates writers.csv from web-tools-private's scheduled-tasks.csv (core pair), so call it a declared registry, as registries.csv's own gloss does ('every registry the estate declares')."
+     "verdict": "A curated list, not a shape: a row in registries.csv is the only characteristic that separates writers.csv from web-tools-private's scheduled-tasks.csv (core pair), so call it a declared registry, as registries.csv's own gloss does ('every registry the estate declares').",
+     "where": "web-tools/docs/registries.md:6 and 126-127; web-tools/CLAUDE.md, section Registries"
     },
     {
      "id": "registry-repo",
      "word": "registry",
      "tag": "the private repo",
      "sense": "the web-tools-private repository itself, named REGISTRY_REPO by the app and 'the registry' or 'the private registry' in prose",
-     "at": "web-tools/docs/manifest.md:245-246; web-tools/docs/views/lists.md:6; web-tools/CLAUDE.md, section Snags ('committing to the registry's main')",
      "requires": {},
      "kind": "outside",
-     "verdict": "Another kind of thing: a repository holding collections of every shape; call it web-tools-private, or the private store as web-tools-private/user-calls/user-call.py:9 already does, so registry keeps one meaning."
+     "verdict": "Another kind of thing: a repository holding collections of every shape; call it web-tools-private, or the private store as web-tools-private/user-calls/user-call.py:9 already does, so registry keeps one meaning.",
+     "where": "web-tools/docs/manifest.md:245-246; web-tools/docs/views/lists.md:6; web-tools/CLAUDE.md, section Snags ('committing to the registry's main')"
     },
     {
      "id": "stream",
      "word": "stream",
      "tag": "event shape",
      "sense": "a collection whose entries stand for events at the time they happened and are never edited; a later entry corrects",
-     "at": "web-tools/docs/registries.md:147-152; web-tools/docs/manifest.md:221-233 (stores block, shape stream)",
      "requires": {
       "stands_for": "occurrence",
       "after_written": "fixed"
      },
      "kind": "region",
-     "verdict": "Two of its four called members fail it: session records are rewritten while their session runs and chron entries are revised afterwards, while fixed occurrence records are mostly called ledger, log, errand or proposal instead."
+     "verdict": "Two of its four called members fail it: session records are rewritten while their session runs and chron entries are revised afterwards, while fixed occurrence records are mostly called ledger, log, errand or proposal instead.",
+     "where": "web-tools/docs/registries.md:147-152; web-tools/docs/manifest.md:221-233 (stores block, shape stream)"
     },
     {
      "id": "snapshot-reading",
      "word": "snapshot",
      "tag": "frozen registry",
      "sense": "a registry as it stood at one time, kept as a dated entry; read across dates the snapshots form a stream",
-     "at": "web-tools/docs/registries.md:154-156; home/chron/2026/10/2026-10-12-surveying-the-estates-stores.md:242-245 (decision 3)",
      "requires": {
       "stands_for": "thing",
       "after_written": "fixed"
      },
      "kind": "region",
-     "verdict": "Names the cell the registry and stream pair leaves empty (entries for things, never edited) and holds for the dated checks reading and the config history; fails for ui-units, regenerated in place under a stable name, which is a computed registry carrying an as_of date."
+     "verdict": "Names the cell the registry and stream pair leaves empty (entries for things, never edited) and holds for the dated checks reading and the config history; fails for ui-units, regenerated in place under a stable name, which is a computed registry carrying an as_of date.",
+     "where": "web-tools/docs/registries.md:154-156; home/chron/2026/10/2026-10-12-surveying-the-estates-stores.md:242-245 (decision 3)"
     },
     {
      "id": "snapshot-environment",
      "word": "snapshot",
      "tag": "container image",
      "sense": "the cloud environment snapshot: the image a setup script builds and each new container starts from",
-     "at": "web-tools/docs/environment/container.md:78-81; web-tools/docs/environment/lifetimes.json:92-93",
      "requires": {},
      "kind": "outside",
-     "verdict": "The platform's built container image, not a collection of entries; keep the platform's own phrase, environment snapshot, and never shorten it."
+     "verdict": "The platform's built container image, not a collection of entries; keep the platform's own phrase, environment snapshot, and never shorten it.",
+     "where": "web-tools/docs/environment/container.md:78-81; web-tools/docs/environment/lifetimes.json:92-93"
     },
     {
      "id": "list-view",
      "word": "list",
      "tag": "Lists view tab",
      "sense": "one of the tabs of the Web Tools Lists view: To-do, Jot, Snag, Ping, Note, Pin and the lists created there",
-     "at": "web-tools/docs/views/lists.md:3-9 and 11-19",
      "requires": {
       "lists_view": "yes"
      },
      "kind": "list",
-     "verdict": "Membership is the whole category: the tabs span a registry (To-do), a tray (Jot), requests closed by a result file (Ping) and a stream (Note), and the Ping tab's errands differ from proposals only by being a tab."
+     "verdict": "Membership is the whole category: the tabs span a registry (To-do), a tray (Jot), requests closed by a result file (Ping) and a stream (Note), and the Ping tab's errands differ from proposals only by being a tab.",
+     "where": "web-tools/docs/views/lists.md:3-9 and 11-19"
     },
     {
      "id": "list-general",
      "word": "list",
      "tag": "any enumeration",
      "sense": "an enumerated or ordered selection of anything, used in passing ('reading list', 'membership list', 'the repo menu's three lists')",
-     "at": "web-tools/docs/README.md:29; web-tools/docs/registries.csv row aims-reading; web-tools/docs/manifest.md:239 and 432",
      "requires": {},
      "kind": "fuzzy",
-     "verdict": "Fixes nothing: the reading list is a declared registry no characteristic separates from writers.csv; what the word adds is an order a view reads in, which is another axis than any of these."
+     "verdict": "Fixes nothing: the reading list is a declared registry no characteristic separates from writers.csv; what the word adds is an order a view reads in, which is another axis than any of these.",
+     "where": "web-tools/docs/README.md:29; web-tools/docs/registries.csv row aims-reading; web-tools/docs/manifest.md:239 and 432"
     },
     {
      "id": "log",
      "word": "log",
      "tag": "dated durable record",
      "sense": "dated, durable entries kept in time order: the running log, the outer log, a task's progress log, the logs/ folders",
-     "at": "home/CLAUDE.md:50 and 55; web-tools/docs/TRACKER.md:76; web-tools-private/README.md:51-52",
      "requires": {
       "stands_for": "occurrence",
       "leaves": "stays"
      },
      "kind": "region",
-     "verdict": "A looser twin of stream: it requires dated entries that stay and leaves editing open, so it honestly covers chron's revised entries, while the news ledger, page reports and progress logs are streams as well."
+     "verdict": "A looser twin of stream: it requires dated entries that stay and leaves editing open, so it honestly covers chron's revised entries, while the news ledger, page reports and progress logs are streams as well.",
+     "where": "home/CLAUDE.md:50 and 55; web-tools/docs/TRACKER.md:76; web-tools-private/README.md:51-52"
     },
     {
      "id": "ledger",
      "word": "ledger",
      "tag": "append-only record",
      "sense": "an append-only record, one line or row per item, never rewritten; in budget-drs also the accounting sense, a table of money movements",
-     "at": "home/CLAUDE.md:55; home/news/README.md:28-29; web-tools/docs/views/project.md:35-37",
      "requires": {
       "stands_for": "occurrence",
       "after_written": "fixed"
      },
      "kind": "fuzzy",
-     "verdict": "Typical members (news, observations, the request ledger, the decision ledger) are fixed occurrence records, a synonym of stream; the prune decision ledger is one entry per shortcut edited in place, a registry, so the word has no clean edge."
+     "verdict": "Typical members (news, observations, the request ledger, the decision ledger) are fixed occurrence records, a synonym of stream; the prune decision ledger is one entry per shortcut edited in place, a registry, so the word has no clean edge.",
+     "where": "home/CLAUDE.md:55; home/news/README.md:28-29; web-tools/docs/views/project.md:35-37"
     },
     {
      "id": "cache-committed",
      "word": "cache",
      "tag": "state/ derived copy",
      "sense": "a derived copy committed in web-tools-private state/, rebuilt by a crawl (or, once, by a session) and never hand-edited",
-     "at": "web-tools-private/README.md:5 and 61-66; web-tools/docs/views/state.md:3-13; web-tools/docs/manifest.md:268-281",
      "requires": {
       "provenance": "derived",
       "committed": "yes",
       "in_state": "yes"
      },
      "kind": "list",
-     "verdict": "Every member is derived, but so are board.csv, apps.json, ui-units and the decision ledger; sitting in web-tools-private state/ is the only characteristic that separates a cache from apps.json (core pair), so the category is the folder and the name should say state/ cache."
+     "verdict": "Every member is derived, but so are board.csv, apps.json, ui-units and the decision ledger; sitting in web-tools-private state/ is the only characteristic that separates a cache from apps.json (core pair), so the category is the folder and the name should say state/ cache.",
+     "where": "web-tools-private/README.md:5 and 61-66; web-tools/docs/views/state.md:3-13; web-tools/docs/manifest.md:268-281"
     },
     {
      "id": "cache-local",
      "word": "cache",
      "tag": "local copy",
      "sense": "a copy kept outside git so a reader need not fetch again: the plugin cache, a browser's caches, the laptop daemon's cache folder",
-     "at": "home/CLAUDE.md:163-165; web-tools/docs/MARKETPLACE.md:55-57; web-tools/docs/views/state.md:10",
      "requires": {
       "provenance": "derived",
       "committed": "no"
      },
      "kind": "region",
-     "verdict": "Holds for the plugin cache, pinned copies rebuilt by reinstalling; fails for the laptop daemon's runs.json, which records when tasks fired and is what state/scheduled-daemon.json mirrors, so it is captured run state, as web-tools-private/README.md:58 calls its mirror."
+     "verdict": "Holds for the plugin cache, pinned copies rebuilt by reinstalling; fails for the laptop daemon's runs.json, which records when tasks fired and is what state/scheduled-daemon.json mirrors, so it is captured run state, as web-tools-private/README.md:58 calls its mirror.",
+     "where": "home/CLAUDE.md:163-165; web-tools/docs/MARKETPLACE.md:55-57; web-tools/docs/views/state.md:10"
     },
     {
      "id": "tracker",
      "word": "tracker",
      "tag": "workspace task files",
      "sense": "a workspace's task files, one file per task with a status, committed to main, plus the board generated from them",
-     "at": "web-tools/docs/TRACKER.md:3 and 11-16; home/CLAUDE.md:67-69",
      "requires": {
       "stands_for": "thing",
       "after_written": "changes",
@@ -1896,20 +1858,21 @@
       "provenance": "authored"
      },
      "kind": "region",
-     "verdict": "Holds for task files, but the To-do list has every value except form (items in one JSON, not a file per task) and user calls every value except provenance, so tracker names a storage convention for work items rather than a kind the others lack."
+     "verdict": "Holds for task files, but the To-do list has every value except form (items in one JSON, not a file per task) and user calls every value except provenance, so tracker names a storage convention for work items rather than a kind the others lack.",
+     "where": "web-tools/docs/TRACKER.md:3 and 11-16; home/CLAUDE.md:67-69"
     },
     {
      "id": "inbox",
      "word": "inbox",
      "tag": "declared drop folder",
      "sense": "a repository's or project's declared landing folder for a deposit that names no directory, drained toward empty",
-     "at": "web-tools/docs/manifest.md:342-346 and 396-404; home/CLAUDE.md:51; home/.web-tools.json:297",
      "requires": {
       "stands_for": "material-to-route",
       "leaves": "goes-when-handled"
      },
      "kind": "region",
-     "verdict": "Holds for chron/dump; the Jot list and shortcuts/incoming/ meet it without the word, and web-tools/dump/ is a tray no manifest declares, whose material stayed and is now cited in place."
+     "verdict": "Holds for chron/dump; the Jot list and shortcuts/incoming/ meet it without the word, and web-tools/dump/ is a tray no manifest declares, whose material stayed and is now cited in place.",
+     "where": "web-tools/docs/manifest.md:342-346 and 396-404; home/CLAUDE.md:51; home/.web-tools.json:297"
     }
    ],
    "instances": [
@@ -2944,7 +2907,7 @@
       "aims-reading"
      ],
      "text": "no characteristic separates writers-csv, aims-reading",
-     "answer": "Kept as found: both are authored declared registries, and the general sense of list fixes no characteristic. What 'reading list' adds is a reading order (registries.csv:30 gloss, 'the ordered reading paths'), an order a view reads in, which is a separate axis this map leaves out on purpose."
+     "rationale": "Kept as found: both are authored declared registries, and the general sense of list fixes no characteristic. What 'reading list' adds is a reading order (registries.csv:30 gloss, 'the ordered reading paths'), an order a view reads in, which is a separate axis this map leaves out on purpose."
     },
     {
      "kind": "identical",
@@ -2953,7 +2916,7 @@
       "env-snapshot"
      ],
      "text": "no characteristic separates wtp-repo, env-snapshot",
-     "answer": "Expected: both are coded n/a on every characteristic because neither is a collection of entries (a repository, a container image). That shared n/a is what marks registry-repo and snapshot-environment as outside senses."
+     "rationale": "Expected: both are coded n/a on every characteristic because neither is a collection of entries (a repository, a container image). That shared n/a is what marks registry-repo and snapshot-environment as outside senses."
     },
     {
      "kind": "empty",
@@ -2966,7 +2929,7 @@
       "goes-past-a-cap"
      ],
      "text": "no instance is material-to-route and goes-past-a-cap",
-     "answer": "Searched (the three dump folders, shortcuts/incoming/, the Jot list, captures/): none. A tray that kept only its newest N deposits would drop material nobody routed, the failure web-tools/docs/manifest.md:396-404 builds the declared inbox to avoid; the only capped intake found is outside the estate, the RSS feeds that roll items off (home/news/README.md:100-102)."
+     "rationale": "Searched (the three dump folders, shortcuts/incoming/, the Jot list, captures/): none. A tray that kept only its newest N deposits would drop material nobody routed, the failure web-tools/docs/manifest.md:396-404 builds the declared inbox to avoid; the only capped intake found is outside the estate, the RSS feeds that roll items off (home/news/README.md:100-102)."
     },
     {
      "kind": "empty",
@@ -2979,7 +2942,7 @@
       "goes-when-handled"
      ],
      "text": "no instance is occurrence and goes-when-handled",
-     "answer": "Empty by mechanism, not by chance: the app's store cannot delete a file ('gh-store has no delete, so the result file is the tombstone, the same convention errands/ uses', web-tools-private/proposals/README.md:11-13), so a handled request stays and a later entry closes it. Errands and proposals are the members that would otherwise sit here."
+     "rationale": "Empty by mechanism, not by chance: the app's store cannot delete a file ('gh-store has no delete, so the result file is the tombstone, the same convention errands/ uses', web-tools-private/proposals/README.md:11-13), so a handled request stays and a later entry closes it. Errands and proposals are the members that would otherwise sit here."
     },
     {
      "kind": "empty",
@@ -2992,7 +2955,7 @@
       "goes-when-handled"
      ],
      "text": "no instance is thing and goes-when-handled",
-     "answer": "Empty by convention: a finished work item is marked rather than removed. The To-do list keeps a done item with done_at (web-tools/docs/views/lists.md:13; 2 of 6 items in lists/to-do.json are done), and a done task keeps its file, status done, closed date and session (web-tools/docs/TRACKER.md:78-79). Only material to route leaves when handled."
+     "rationale": "Empty by convention: a finished work item is marked rather than removed. The To-do list keeps a done item with done_at (web-tools/docs/views/lists.md:13; 2 of 6 items in lists/to-do.json are done), and a done task keeps its file, status done, closed date and session (web-tools/docs/TRACKER.md:78-79). Only material to route leaves when handled."
     },
     {
      "kind": "empty",
@@ -3005,7 +2968,7 @@
       "open-done"
      ],
      "text": "no instance is material-to-route and open-done",
-     "answer": "Impossible by construction: handling a deposit is what removes it from the tray, so no handled deposit is ever left for a done flag to mark (home/CLAUDE.md:51, 'Trends toward empty'; web-tools/docs/views/lists.md:26 for jots)."
+     "rationale": "Impossible by construction: handling a deposit is what removes it from the tray, so no handled deposit is ever left for a done flag to mark (home/CLAUDE.md:51, 'Trends toward empty'; web-tools/docs/views/lists.md:26 for jots)."
     }
    ],
    "outcome": {
@@ -3175,145 +3138,144 @@
      "word": "registry",
      "sense": "a committed CSV that records properties of a defined set of targets, one row per target found by a stable key, registered as a row in web-tools docs/registries.csv and held by a gate",
      "tag": "CSV registry",
-     "at": "web-tools/docs/registries.md:3-6; web-tools/docs/registries.md:113-118; web-tools/docs/registries.csv; web-tools/CLAUDE.md, Registries",
      "requires": {
       "stands_for": "a thing",
       "held": "file on main",
       "listed": "yes"
      },
      "kind": "list",
-     "verdict": "Holds only by its list. Its members also differ in membership and in how they change (curated, computed), and what keeps home's board.csv and the scheduled tasks registry out is a row in registries.csv, nothing in the files; a name that says so is 'registered table', and an unlisted CSV called a registry (scheduled tasks, triggers, content in web-tools-private) is a registry in shape only."
+     "verdict": "Holds only by its list. Its members also differ in membership and in how they change (curated, computed), and what keeps home's board.csv and the scheduled tasks registry out is a row in registries.csv, nothing in the files; a name that says so is 'registered table', and an unlisted CSV called a registry (scheduled tasks, triggers, content in web-tools-private) is a registry in shape only.",
+     "where": "web-tools/docs/registries.md:3-6; web-tools/docs/registries.md:113-118; web-tools/docs/registries.csv; web-tools/CLAUDE.md, Registries"
     },
     {
      "id": "registry-shape",
      "word": "registry",
      "sense": "the declared shape: each entry stands for a thing, is found by its key and is edited when the thing changes, whatever the file format, by its repository's declaration in a stores block",
      "tag": "registry shape",
-     "at": "web-tools/docs/registries.md:139-147; home/chron/2026/10/2026-10-12-surveying-the-estates-stores.md:235-241; web-tools/docs/manifest.md:221-234",
      "requires": {
       "stands_for": "a thing",
       "after_written": "edited as its subject changes"
      },
      "kind": "region",
-     "verdict": "Holds as two values, and to-dos, snags, user calls and session records meet them uncalled; but the sense is made by a declaration nobody has written, since no .web-tools.json in the three repositories has a stores block, so by its own rule it has no members yet. The word fits the shape; the CSV sense is the one that needs the qualifier."
+     "verdict": "Holds as two values, and to-dos, snags, user calls and session records meet them uncalled; but the sense is made by a declaration nobody has written, since no .web-tools.json in the three repositories has a stores block, so by its own rule it has no members yet. The word fits the shape; the CSV sense is the one that needs the qualifier.",
+     "where": "web-tools/docs/registries.md:139-147; home/chron/2026/10/2026-10-12-surveying-the-estates-stores.md:235-241; web-tools/docs/manifest.md:221-234"
     },
     {
      "id": "registry-repo",
      "word": "registry",
      "sense": "the private registry: the web-tools-private repository itself (REGISTRY_REPO), which holds lists, caches and records",
      "tag": "registry repo",
-     "at": "web-tools/docs/manifest.md:244-247; web-tools/docs/views/lists.md:5-6; web-tools/CLAUDE.md, Snags ('committing to the registry's main')",
      "requires": {
       "stands_for": "n/a",
       "after_written": "n/a",
       "leaves": "n/a"
      },
      "kind": "outside",
-     "verdict": "Another kind of thing: a repository that holds collections, not a collection of entries. Call it by its identifier, web-tools-private, since 'the registry's main' reads as one of the CSVs."
+     "verdict": "Another kind of thing: a repository that holds collections, not a collection of entries. Call it by its identifier, web-tools-private, since 'the registry's main' reads as one of the CSVs.",
+     "where": "web-tools/docs/manifest.md:244-247; web-tools/docs/views/lists.md:5-6; web-tools/CLAUDE.md, Snags ('committing to the registry's main')"
     },
     {
      "id": "stream-event",
      "word": "stream",
      "sense": "a collection whose entries each stand for an event at the time it happened, never changed, corrected by a later entry",
      "tag": "event stream",
-     "at": "web-tools/docs/registries.md:139-152; web-tools/docs/manifest.md:229-233; web-tools/docs/policies.csv:102",
      "requires": {
       "stands_for": "an event",
       "after_written": "never edited",
       "leaves": "kept for good"
      },
      "kind": "region",
-     "verdict": "Holds for notes, the news ledger, commit history and progress logs. Misapplied twice: session records are rewritten while their session runs (a thing edited as it moves), and jots are deleted once promoted (an inbox). The shortcut run logs and the outpost ledger meet it under other words."
+     "verdict": "Holds for notes, the news ledger, commit history and progress logs. Misapplied twice: session records are rewritten while their session runs (a thing edited as it moves), and jots are deleted once promoted (an inbox). The shortcut run logs and the outpost ledger meet it under other words.",
+     "where": "web-tools/docs/registries.md:139-152; web-tools/docs/manifest.md:229-233; web-tools/docs/policies.csv:102"
     },
     {
      "id": "stream-live",
      "word": "stream",
      "sense": "a live work thread: stateful, directional, allowed to dry up and evaporate; the origin sketch of the tracker, retired",
      "tag": "live stream (retired)",
-     "at": "home/chron/2026/06/2026-06-01-streams-live-work-threads.md:3-4; home/chron/2026/06/2026-06-01-streams-live-work-threads.md:13-17",
      "requires": {
       "stands_for": "a thing",
       "after_written": "edited as its subject changes",
       "leaves": "removed once handled"
      },
      "kind": "region",
-     "verdict": "Retired, and its one heir does not meet it: the tracker keeps finished tasks rather than letting them evaporate. The word now names the opposite corner (events never edited), so this sense survives only as history and should not be read into old entries."
+     "verdict": "Retired, and its one heir does not meet it: the tracker keeps finished tasks rather than letting them evaporate. The word now names the opposite corner (events never edited), so this sense survives only as history and should not be read into old entries.",
+     "where": "home/chron/2026/06/2026-06-01-streams-live-work-threads.md:3-4; home/chron/2026/06/2026-06-01-streams-live-work-threads.md:13-17"
     },
     {
      "id": "snapshot-reading",
      "word": "snapshot",
      "sense": "a stream entry whose content is a registry as it stood at one time, dated and not restamped",
      "tag": "dated snapshot",
-     "at": "web-tools/docs/registries.md:154-156; home/chron/2026/10/2026-10-12-surveying-the-estates-stores.md:242-245; web-tools/data/checks-reading/README.md:10-12",
      "requires": {
       "stands_for": "a set as of a date",
       "after_written": "never edited",
       "leaves": "kept for good"
      },
      "kind": "region",
-     "verdict": "Holds for the checks reading. The estate already calls these readings (2026-10-12 decision 3), and Kimball's periodic snapshot is the standard term; both mean what the values say."
+     "verdict": "Holds for the checks reading. The estate already calls these readings (2026-10-12 decision 3), and Kimball's periodic snapshot is the standard term; both mean what the values say.",
+     "where": "web-tools/docs/registries.md:154-156; home/chron/2026/10/2026-10-12-surveying-the-estates-stores.md:242-245; web-tools/data/checks-reading/README.md:10-12"
     },
     {
      "id": "snapshot-current",
      "word": "snapshot",
      "sense": "the current state of a whole set, rewritten by each rebuild under a stable name, with git holding the earlier ones",
      "tag": "current snapshot",
-     "at": "web-tools/data/ui-units/README.md:6-7; web-tools/data/ui-units/README.md:26-29; web-tools-private/probes/2026-10-19-constellation-atlas-refresh.md:1; web-tools/docs/direct-to-main.csv, text-occurrences row",
      "requires": {
       "stands_for": "a set as of a date",
       "after_written": "regenerated whole",
       "leaves": "replaced by the next build"
      },
      "kind": "region",
-     "verdict": "The atlas and the ui-units file meet every requirement of a derived cache: in the tree each is the latest state of a set, overwritten, and the snapshots exist only as commits. Call the file a current-state cache, and keep 'snapshot' for dated readings that stay as written."
+     "verdict": "The atlas and the ui-units file meet every requirement of a derived cache: in the tree each is the latest state of a set, overwritten, and the snapshots exist only as commits. Call the file a current-state cache, and keep 'snapshot' for dated readings that stay as written.",
+     "where": "web-tools/data/ui-units/README.md:6-7; web-tools/data/ui-units/README.md:26-29; web-tools-private/probes/2026-10-19-constellation-atlas-refresh.md:1; web-tools/docs/direct-to-main.csv, text-occurrences row"
     },
     {
      "id": "snapshot-accumulating",
      "word": "snapshot",
      "sense": "an accumulating snapshot (Kimball): one entry per process with a date per milestone, updated as the process moves",
      "tag": "accumulating snapshot",
-     "at": "home/chron/2026/10/2026-10-12-surveying-the-estates-stores.md:57; home/chron/2026/10/2026-10-12-surveying-the-estates-stores.md:242-245; home/projects/library/2026-10-15-what-the-first-two-studies-mean-for-the-estate.md:81-87",
      "requires": {
       "stands_for": "a thing",
       "after_written": "edited as its subject changes",
       "leaves": "kept for good"
      },
      "kind": "region",
-     "verdict": "Fits session records and tasks, and equally to-dos, snags and user calls: it is the registry shape with entries kept after their subject is finished, one value more, not a third shape. The 2026-10-12 decision already declined it for tasks; it is the right standard name for the session record, which 'stream' is not."
+     "verdict": "Fits session records and tasks, and equally to-dos, snags and user calls: it is the registry shape with entries kept after their subject is finished, one value more, not a third shape. The 2026-10-12 decision already declined it for tasks; it is the right standard name for the session record, which 'stream' is not.",
+     "where": "home/chron/2026/10/2026-10-12-surveying-the-estates-stores.md:57; home/chron/2026/10/2026-10-12-surveying-the-estates-stores.md:242-245; home/projects/library/2026-10-15-what-the-first-two-studies-mean-for-the-estate.md:81-87"
     },
     {
      "id": "snapshot-environment",
      "word": "snapshot",
      "sense": "the Claude Code environment snapshot: the container image built from the setup script, which each new container starts from",
      "tag": "environment snapshot",
-     "at": "web-tools/docs/environment/container.md:23-55; web-tools/docs/environment/container.md:78; web-tools/docs/environment/lifetimes.json, layer snapshot",
      "requires": {
       "stands_for": "n/a",
       "after_written": "n/a",
       "leaves": "n/a"
      },
      "kind": "outside",
-     "verdict": "Another kind of thing: a platform image that holds no entries. It shares only the spelling."
+     "verdict": "Another kind of thing: a platform image that holds no entries. It shares only the spelling.",
+     "where": "web-tools/docs/environment/container.md:23-55; web-tools/docs/environment/container.md:78; web-tools/docs/environment/lifetimes.json, layer snapshot"
     },
     {
      "id": "log-dated",
      "word": "log",
      "sense": "a dated record that accumulates and is kept: the running log of what the owner did and thought (chron) and the outer log of what the world did (news)",
      "tag": "dated log",
-     "at": "home/CLAUDE.md:50; home/CLAUDE.md:55; home/news/README.md:3-8",
      "requires": {
       "stands_for": "an event",
       "leaves": "kept for good"
      },
      "kind": "region",
-     "verdict": "Holds, and covers the stream's cell without its no-edit rule: chron entries are edited later for upkeep (69 of 315), which a stream forbids. 'Log' is the honest word for chron, and 'stream' would not be."
+     "verdict": "Holds, and covers the stream's cell without its no-edit rule: chron entries are edited later for upkeep (69 of 315), which a stream forbids. 'Log' is the honest word for chron, and 'stream' would not be.",
+     "where": "home/CLAUDE.md:50; home/CLAUDE.md:55; home/news/README.md:3-8"
     },
     {
      "id": "log-progress",
      "word": "log",
      "sense": "a task's Progress log: dated lines appended at the bottom, oldest first, never rewritten to restamp a fact",
      "tag": "progress log",
-     "at": "web-tools/docs/TRACKER.md:76; web-tools/docs/registries.md:150-152",
      "requires": {
       "stands_for": "an event",
       "after_written": "never edited",
@@ -3321,95 +3283,95 @@
       "provenance": "authored"
      },
      "kind": "region",
-     "verdict": "Holds: the event stream nested inside a task, as registries.md says. It codes identically to the outpost ledger, so here 'log' and 'ledger' mark no difference."
+     "verdict": "Holds: the event stream nested inside a task, as registries.md says. It codes identically to the outpost ledger, so here 'log' and 'ledger' mark no difference.",
+     "where": "web-tools/docs/TRACKER.md:76; web-tools/docs/registries.md:150-152"
     },
     {
      "id": "log-machine",
      "word": "log",
      "sense": "records a device or page writes about its own runs and reports: logs/page, logs/traffic, shortcuts/log",
      "tag": "machine log",
-     "at": "web-tools-private/README.md:51-52; web-tools/docs/direct-to-main.csv, shortcut-logs, page-reports and traffic-logs rows; web-tools/docs/writers.csv, phone-log and app-traffic rows",
      "requires": {
       "stands_for": "an event",
       "after_written": "never edited",
       "provenance": "captured"
      },
      "kind": "region",
-     "verdict": "Holds for the run logs, and the news ledger and commit history meet it too; all that sets the run logs apart is what they are about, a machine's own runs rather than the world."
+     "verdict": "Holds for the run logs, and the news ledger and commit history meet it too; all that sets the run logs apart is what they are about, a machine's own runs rather than the world.",
+     "where": "web-tools-private/README.md:51-52; web-tools/docs/direct-to-main.csv, shortcut-logs, page-reports and traffic-logs rows; web-tools/docs/writers.csv, phone-log and app-traffic rows"
     },
     {
      "id": "ledger-append",
      "word": "ledger",
      "sense": "an append-only record of observed occurrences, never edited or deleted, from which state is derived",
      "tag": "append-only ledger",
-     "at": "home/news/README.md:27-30; home/CLAUDE.md:55; web-tools/docs/views/project.md:33-36; web-tools/docs/loader.md:304",
      "requires": {
       "stands_for": "an event",
       "after_written": "never edited",
       "leaves": "kept for good"
      },
      "kind": "region",
-     "verdict": "Same requirements as the event stream. Holds for the news ledger and the outpost ledger (which has no rows); breaks for the request ledger, which trims to its last 400 rows and is gone on reload."
+     "verdict": "Same requirements as the event stream. Holds for the news ledger and the outpost ledger (which has no rows); breaks for the request ledger, which trims to its last 400 rows and is gone on reload.",
+     "where": "home/news/README.md:27-30; home/CLAUDE.md:55; web-tools/docs/views/project.md:33-36; web-tools/docs/loader.md:304"
     },
     {
      "id": "ledger-count",
      "word": "ledger",
      "sense": "a count reported instead of a failure: blanks are legal and surfaced as a figure ('a ledger, not a ban')",
      "tag": "count, not ban",
-     "at": "web-tools/docs/vocabularies.csv:21; web-tools/node/test/tests-registry.test.mjs:17; web-tools/node/test/docs-registry.test.mjs:100",
      "requires": {
       "stands_for": "n/a",
       "after_written": "n/a",
       "leaves": "n/a"
      },
      "kind": "outside",
-     "verdict": "Another kind of thing: a reported count of blank cells, not a collection. The phrase means 'count, don't fail'."
+     "verdict": "Another kind of thing: a reported count of blank cells, not a collection. The phrase means 'count, don't fail'.",
+     "where": "web-tools/docs/vocabularies.csv:21; web-tools/node/test/tests-registry.test.mjs:17; web-tools/node/test/docs-registry.test.mjs:100"
     },
     {
      "id": "list-view",
      "word": "list",
      "sense": "a list in the Lists view: To-do, Jot, Pin, Snag and the lists created there, with Ping (errands) and Note (the notes store) shown beside them",
      "tag": "Lists view list",
-     "at": "web-tools/docs/views/lists.md:3-19; web-tools-private/README.md:31; web-tools/CLAUDE.md, Snags",
      "requires": {
       "lists_view": "yes"
      },
      "kind": "list",
-     "verdict": "Membership in the Lists view is all its members share: to-dos and snags are things edited in place, a jot is an inbox item, a note is an event. Call these the Lists view's panes; 'list' names a place in the app, not a kind of collection."
+     "verdict": "Membership in the Lists view is all its members share: to-dos and snags are things edited in place, a jot is an inbox item, a note is an event. Call these the Lists view's panes; 'list' names a place in the app, not a kind of collection.",
+     "where": "web-tools/docs/views/lists.md:3-19; web-tools-private/README.md:31; web-tools/CLAUDE.md, Snags"
     },
     {
      "id": "list-membership",
      "word": "list",
      "sense": "a set of repository names saying who belongs: the one estate membership list, aggregated from each repo's own flag, and the two rival lists it replaced",
      "tag": "membership list",
-     "at": "web-tools/docs/manifest.md:239-259",
      "requires": {
       "stands_for": "a thing",
       "membership": "every member of a population"
      },
      "kind": "region",
-     "verdict": "Shaped like a computed registry of repositories, but held as no file: it is an answer the config cache aggregates. The two retired lists drifted because they were authored copies of a property each repository states itself."
+     "verdict": "Shaped like a computed registry of repositories, but held as no file: it is an answer the config cache aggregates. The two retired lists drifted because they were authored copies of a property each repository states itself.",
+     "where": "web-tools/docs/manifest.md:239-259"
     },
     {
      "id": "cache-derived",
      "word": "cache",
      "sense": "a derived cache: rebuilt by a crawl or script from other repositories, never hand-edited, committed only when its content changed",
      "tag": "derived cache",
-     "at": "web-tools-private/README.md:61-66; web-tools/docs/views/state.md:3-15; web-tools/docs/manifest.md:268-281",
      "requires": {
       "provenance": "derived",
       "after_written": "regenerated whole",
       "kept_current": "rebuilt when run, may lag"
      },
      "kind": "region",
-     "verdict": "Holds for the state/ files, which vary freely on the other axes (a 20-version history per repo in configs, a 400-row window in sessions, one crawl's calls). The atlas and the ui-units file meet it under 'snapshot'. What separates a cache from a computed registry like home's board.csv is only what keeps it current."
+     "verdict": "Holds for the state/ files, which vary freely on the other axes (a 20-version history per repo in configs, a 400-row window in sessions, one crawl's calls). The atlas and the ui-units file meet it under 'snapshot'. What separates a cache from a computed registry like home's board.csv is only what keeps it current.",
+     "where": "web-tools-private/README.md:61-66; web-tools/docs/views/state.md:3-15; web-tools/docs/manifest.md:268-281"
     },
     {
      "id": "tracker-project",
      "word": "tracker",
      "sense": "a workspace's tasks folder: one file per task as the source of truth, edited as the task moves, with a progress log inside and generated board rollups, on main",
      "tag": "project tracker",
-     "at": "web-tools/docs/TRACKER.md:1-17; web-tools/docs/TRACKER.md:76; web-tools/skills/tasks/SKILL.md",
      "requires": {
       "stands_for": "a thing",
       "after_written": "edited as its subject changes",
@@ -3417,19 +3379,20 @@
       "membership": "chosen by someone"
      },
      "kind": "region",
-     "verdict": "Holds for task folders. The Snag list and the user calls meet every requirement too (things chosen, edited in place, each with a dated part that only grows), so in shape they are trackers under other words; only provenance labels separate a user call from a task."
+     "verdict": "Holds for task folders. The Snag list and the user calls meet every requirement too (things chosen, edited in place, each with a dated part that only grows), so in shape they are trackers under other words; only provenance labels separate a user call from a task.",
+     "where": "web-tools/docs/TRACKER.md:1-17; web-tools/docs/TRACKER.md:76; web-tools/skills/tasks/SKILL.md"
     },
     {
      "id": "inbox-landing",
      "word": "inbox",
      "sense": "a repository's declared landing folder for a deposit that names no directory, which something drains",
      "tag": "inbox",
-     "at": "web-tools/docs/manifest.md:342-348; web-tools/docs/manifest.md:396-405; home/CLAUDE.md:51; home/.web-tools.json, inbox",
      "requires": {
       "leaves": "removed once handled"
      },
      "kind": "value",
-     "verdict": "Holds for chron/dump, and fixes one value only. The Jot list and shortcuts/incoming are inboxes under other names; web-tools' root dump/ takes deposits and nothing drains it, so it keeps everything. Two declared inboxes (web-tools-private's inbox, budget-drs's dump) have no folder yet."
+     "verdict": "Holds for chron/dump, and fixes one value only. The Jot list and shortcuts/incoming are inboxes under other names; web-tools' root dump/ takes deposits and nothing drains it, so it keeps everything. Two declared inboxes (web-tools-private's inbox, budget-drs's dump) have no folder yet.",
+     "where": "web-tools/docs/manifest.md:342-348; web-tools/docs/manifest.md:396-405; home/CLAUDE.md:51; home/.web-tools.json, inbox"
     }
    ],
    "instances": [
@@ -4418,7 +4381,7 @@
       "outpost-ledger"
      ],
      "text": "no characteristic separates progress-log, outpost-ledger",
-     "answer": "Kept as two members of one cell on purpose: a log and a ledger that do the same thing (authored, dated, appended, never rewritten). The words mark no difference here; the outpost ledger is also empty."
+     "rationale": "Kept as two members of one cell on purpose: a log and a ledger that do the same thing (authored, dated, appended, never rewritten). The words mark no difference here; the outpost ledger is also empty."
     },
     {
      "kind": "identical",
@@ -4428,7 +4391,7 @@
       "protects-blanks"
      ],
      "text": "no characteristic separates registry-repo-wtp, environment-snapshot, protects-blanks",
-     "answer": "Expected: all three are n/a on every characteristic because none is a collection of entries (a repository, a container image, a count). They are the three outside senses."
+     "rationale": "Expected: all three are n/a on every characteristic because none is a collection of entries (a repository, a container image, a count). They are the three outside senses."
     },
     {
      "kind": "empty",
@@ -4441,7 +4404,7 @@
       "edited as its subject changes"
      ],
      "text": "no instance is a set as of a date and edited as its subject changes",
-     "answer": "Impossible: a set's state as of a date does not change afterwards. An entry edited to follow its subject stands for the set now, which is a registry or a cache."
+     "rationale": "Impossible: a set's state as of a date does not change afterwards. An entry edited to follow its subject stands for the set now, which is a registry or a cache."
     },
     {
      "kind": "empty",
@@ -4454,7 +4417,7 @@
       "edited later for upkeep"
      ],
      "text": "no instance is a set as of a date and edited later for upkeep",
-     "answer": "Possible, not found: a dated reading whose links were repointed would land here, as chron entries do for events. The readings in the sample say they are not restamped (web-tools/data/checks-reading/README.md:10-12)."
+     "rationale": "Possible, not found: a dated reading whose links were repointed would land here, as chron entries do for events. The readings in the sample say they are not restamped (web-tools/data/checks-reading/README.md:10-12)."
     },
     {
      "kind": "empty",
@@ -4467,7 +4430,7 @@
       "edited later for upkeep"
      ],
      "text": "no instance is a thing and edited later for upkeep",
-     "answer": "Possible, not found as a whole collection. Closed tracker tasks behave this way, since the Related-path check (web-tools/docs/TRACKER.md, Related) forces upkeep edits on finished tasks, but a tracker is coded by its open tasks."
+     "rationale": "Possible, not found as a whole collection. Closed tracker tasks behave this way, since the Related-path check (web-tools/docs/TRACKER.md, Related) forces upkeep edits on finished tasks, but a tracker is coded by its open tasks."
     },
     {
      "kind": "empty",
@@ -4480,7 +4443,7 @@
       "edited as its subject changes"
      ],
      "text": "no instance is an event and edited as its subject changes",
-     "answer": "Impossible: an event does not change after it happens. The session record is the borderline; it is coded a thing because its record is rewritten while the session runs, which is why the stream label does not fit it."
+     "rationale": "Impossible: an event does not change after it happens. The session record is the borderline; it is coded a thing because its record is rewritten while the session runs, which is why the stream label does not fit it."
     },
     {
      "kind": "empty",
@@ -4493,7 +4456,7 @@
       "dropped past a size cap"
      ],
      "text": "no instance is a set as of a date and dropped past a size cap",
-     "answer": "Possible, not found: a ring of the last N readings. The caches' runs rings (20 recent runs each) come closest, but each run is an event, not a set."
+     "rationale": "Possible, not found: a ring of the last N readings. The caches' runs rings (20 recent runs each) come closest, but each run is an event, not a set."
     },
     {
      "kind": "empty",
@@ -4506,7 +4469,7 @@
       "removed once handled"
      ],
      "text": "no instance is a set as of a date and removed once handled",
-     "answer": "Possible, not found: a reading deleted once acted on. Nothing in the three repositories does this."
+     "rationale": "Possible, not found: a reading deleted once acted on. Nothing in the three repositories does this."
     },
     {
      "kind": "empty",
@@ -4519,7 +4482,7 @@
       "removed when its subject goes"
      ],
      "text": "no instance is a set as of a date and removed when its subject goes",
-     "answer": "Impossible: the subject of a dated reading is a past state, which does not go away."
+     "rationale": "Impossible: the subject of a dated reading is a past state, which does not go away."
     },
     {
      "kind": "empty",
@@ -4532,7 +4495,7 @@
       "replaced by the next build"
      ],
      "text": "no instance is a thing and replaced by the next build",
-     "answer": "Impossible by the value's meaning: a rebuild rewrites a thing's entry under the same key, so it leaves only when the thing goes. 'Replaced by the next build' is for dated states superseded by newer ones, and for one build's events."
+     "rationale": "Impossible by the value's meaning: a rebuild rewrites a thing's entry under the same key, so it leaves only when the thing goes. 'Replaced by the next build' is for dated states superseded by newer ones, and for one build's events."
     },
     {
      "kind": "empty",
@@ -4545,7 +4508,7 @@
       "removed once handled"
      ],
      "text": "no instance is an event and removed once handled",
-     "answer": "Possible, and avoided on purpose: errands and proposals keep their request and write a result file as a tombstone because gh-store has no delete (web-tools-private/proposals/README.md, web-tools-private/errands/README.md:4-7)."
+     "rationale": "Possible, and avoided on purpose: errands and proposals keep their request and write a result file as a tombstone because gh-store has no delete (web-tools-private/proposals/README.md, web-tools-private/errands/README.md:4-7)."
     },
     {
      "kind": "empty",
@@ -4558,7 +4521,7 @@
       "removed when its subject goes"
      ],
      "text": "no instance is an event and removed when its subject goes",
-     "answer": "Impossible: an event does not go away."
+     "rationale": "Impossible: an event does not go away."
     },
     {
      "kind": "empty",
@@ -4571,7 +4534,7 @@
       "derived"
      ],
      "text": "no instance is edited as its subject changes and derived",
-     "answer": "Impossible as coded: a derived entry changes only when its builder regenerates it; derived paths are never hand-edited (web-tools-private/README.md:63)."
+     "rationale": "Impossible as coded: a derived entry changes only when its builder regenerates it; derived paths are never hand-edited (web-tools-private/README.md:63)."
     },
     {
      "kind": "empty",
@@ -4584,7 +4547,7 @@
       "captured"
      ],
      "text": "no instance is edited later for upkeep and captured",
-     "answer": "Not found: every captured collection in the sample is written only by its own process (a hook, a fetcher, a device, a page), and nothing rebuilds it (web-tools/docs/views/state.md:11-12); a hand edit for upkeep would be a second writer."
+     "rationale": "Not found: every captured collection in the sample is written only by its own process (a hook, a fetcher, a device, a page), and nothing rebuilds it (web-tools/docs/views/state.md:11-12); a hand edit for upkeep would be a second writer."
     },
     {
      "kind": "empty",
@@ -4597,7 +4560,7 @@
       "derived"
      ],
      "text": "no instance is edited later for upkeep and derived",
-     "answer": "Impossible: derived paths are never hand-edited (web-tools-private/README.md:63)."
+     "rationale": "Impossible: derived paths are never hand-edited (web-tools-private/README.md:63)."
     },
     {
      "kind": "empty",
@@ -4610,7 +4573,7 @@
       "derived"
      ],
      "text": "no instance is never edited and derived",
-     "answer": "Possible, not found: a derivation written once per source entry. The nearest is sessions/topics/ on the background branch, one model-written summary per session, which the topics-redo errand rewrites on request, so it is not never-edited."
+     "rationale": "Possible, not found: a derivation written once per source entry. The nearest is sessions/topics/ on the background branch, one model-written summary per session, which the topics-redo errand rewrites on request, so it is not never-edited."
     },
     {
      "kind": "empty",
@@ -4623,7 +4586,7 @@
       "authored"
      ],
      "text": "no instance is regenerated whole and authored",
-     "answer": "Impossible: a regenerated collection is written by a builder, which makes it derived."
+     "rationale": "Impossible: a regenerated collection is written by a builder, which makes it derived."
     },
     {
      "kind": "empty",
@@ -4636,7 +4599,7 @@
       "captured"
      ],
      "text": "no instance is regenerated whole and captured",
-     "answer": "Impossible: a captured record cannot be regenerated; captured means gone if lost (web-tools/docs/registries.md:158-159)."
+     "rationale": "Impossible: a captured record cannot be regenerated; captured means gone if lost (web-tools/docs/registries.md:158-159)."
     }
    ],
    "outcome": {
@@ -4764,224 +4727,223 @@
      "word": "registry",
      "sense": "an entry per thing, found by a stable key and edited when the thing changes",
      "tag": "registry: thing",
-     "at": "web-tools/docs/registries.md:3-5 and 141-152 (\"Registry | a thing, found by its key | being edited when the thing changes\")",
      "requires": {
       "grain": "thing",
       "change": "updated"
      },
      "kind": "region",
-     "verdict": "The estate's defining sense, and a clean one: CSV rows, task files, to-dos, snags, user calls and the news cursors all meet it, most of them without the name. The installed-app 'registry' fails it, because its rows are a dated capture of the phone."
+     "verdict": "The estate's defining sense, and a clean one: CSV rows, task files, to-dos, snags, user calls and the news cursors all meet it, most of them without the name. The installed-app 'registry' fails it, because its rows are a dated capture of the phone.",
+     "where": "web-tools/docs/registries.md:3-5 and 141-152 (\"Registry | a thing, found by its key | being edited when the thing changes\")"
     },
     {
      "id": "reg-csv",
      "word": "registry",
      "sense": "any committed CSV that inventories or classifies part of the tree",
      "tag": "registry: CSV",
-     "at": "web-tools/CLAUDE.md:58-59 (\"A committed CSV that inventories or classifies part of the tree is a registry\"); also web-tools/docs/policies.csv:103",
      "requires": {
       "form": "csv"
      },
      "kind": "value",
-     "verdict": "Defined by file format, so it cuts straight across the shape axes: read literally it takes in direct-to-main.csv, the outpost ledger and the dated checks reading, whose own README says 'A reading, not a registry'. The roster it obliges (registries.csv) says the opposite: 'no rule decides whether a file is a registry'."
+     "verdict": "Defined by file format, so it cuts straight across the shape axes: read literally it takes in direct-to-main.csv, the outpost ledger and the dated checks reading, whose own README says 'A reading, not a registry'. The roster it obliges (registries.csv) says the opposite: 'no rule decides whether a file is a registry'.",
+     "where": "web-tools/CLAUDE.md:58-59 (\"A committed CSV that inventories or classifies part of the tree is a registry\"); also web-tools/docs/policies.csv:103"
     },
     {
      "id": "reg-listed",
      "word": "registry",
      "sense": "a row in web-tools docs/registries.csv, held by its gates",
      "tag": "registry: listed",
-     "at": "web-tools/docs/registries.csv:26 (scope: \"registries the estate declares. Curated, not computed: no rule decides whether a file is a registry\"); web-tools/docs/registries.md:6-15",
      "requires": {
       "roster": "registries.csv"
      },
      "kind": "list",
-     "verdict": "Membership in one curated table is the whole test. It holds curated rows and computed rollups (tracker/board.csv) alike, and leaves out CSVs that meet the CLAUDE.md rule, so it says nothing about shape."
+     "verdict": "Membership in one curated table is the whole test. It holds curated rows and computed rollups (tracker/board.csv) alike, and leaves out CSVs that meet the CLAUDE.md rule, so it says nothing about shape.",
+     "where": "web-tools/docs/registries.csv:26 (scope: \"registries the estate declares. Curated, not computed: no rule decides whether a file is a registry\"); web-tools/docs/registries.md:6-15"
     },
     {
      "id": "reg-roster",
      "word": "registry",
      "sense": "the one place that lists every instance of something",
      "tag": "registry: roster",
-     "at": "web-tools/docs/TRACKER.md:244 (\"Registry: an optional generated index of all trackers\"); home/CLAUDE.md:71; web-tools-private/shortcuts/README.md:60 (\"The installed-app registry\")",
      "requires": {
       "grain": "thing"
      },
      "kind": "fuzzy",
-     "verdict": "Applied to enumerations of any form or authority; the same object (trackers.md) is called 'the authoritative list of instances', so this is list in its roster sense, and trackers.md is a generated projection, which registries.md says is 'never authoritative'."
+     "verdict": "Applied to enumerations of any form or authority; the same object (trackers.md) is called 'the authoritative list of instances', so this is list in its roster sense, and trackers.md is a generated projection, which registries.md says is 'never authoritative'.",
+     "where": "web-tools/docs/TRACKER.md:244 (\"Registry: an optional generated index of all trackers\"); home/CLAUDE.md:71; web-tools-private/shortcuts/README.md:60 (\"The installed-app registry\")"
     },
     {
      "id": "reg-repo",
      "word": "registry",
      "sense": "web-tools-private, the repository that holds the estate's private state",
      "tag": "registry: repo",
-     "at": "web-tools/docs/manifest.md:246 (\"REGISTRY_REPO = mehrlander/web-tools-private\"); web-tools-private/.web-tools.json:6 (\"The private registry\"); web-tools/CLAUDE.md:71 (\"committing to the registry's main\")",
      "requires": {
       "grain": "n/a",
       "change": "n/a"
      },
      "kind": "outside",
-     "verdict": "Another kind of thing: a repository that holds registries, streams, caches and lists. The container and its contents share the word, so 'the registry's main' and 'a registry' read alike."
+     "verdict": "Another kind of thing: a repository that holds registries, streams, caches and lists. The container and its contents share the word, so 'the registry's main' and 'a registry' read alike.",
+     "where": "web-tools/docs/manifest.md:246 (\"REGISTRY_REPO = mehrlander/web-tools-private\"); web-tools-private/.web-tools.json:6 (\"The private registry\"); web-tools/CLAUDE.md:71 (\"committing to the registry's main\")"
     },
     {
      "id": "stream-shape",
      "word": "stream",
      "sense": "an entry per event, at its event time, never edited; a later entry corrects it",
      "tag": "stream: event",
-     "at": "web-tools/docs/registries.md:141-152 (\"Stream | an event, at the time it happened | never; a later entry corrects it\")",
      "requires": {
       "grain": "event",
       "change": "appended"
      },
      "kind": "region",
-     "verdict": "Clean where it is applied (notes, task progress logs). The chron log, both ledgers and the page logs meet it under other words. Session records, which the State view and the 2026-10-12 survey call a stream, are rebuilt at every Stop while the session lives."
+     "verdict": "Clean where it is applied (notes, task progress logs). The chron log, both ledgers and the page logs meet it under other words. Session records, which the State view and the 2026-10-12 survey call a stream, are rebuilt at every Stop while the session lives.",
+     "where": "web-tools/docs/registries.md:141-152 (\"Stream | an event, at the time it happened | never; a later entry corrects it\")"
     },
     {
      "id": "stream-declared",
      "word": "stream",
      "sense": "a collection its repository declares as shape: stream in the manifest's stores block",
      "tag": "stream: declared",
-     "at": "web-tools/docs/policies.csv:102 (\"A collection is a registry or a stream by its repository's declaration, whatever its file format\"); web-tools/docs/manifest.md:221-236; web-tools/docs/manifest-fields.csv:111-117",
      "requires": {
       "manifest": "stores"
      },
      "kind": "list",
-     "verdict": "Admits nothing. None of the three .web-tools.json files has a stores block and no code under lib/, node/ or python/ reads one, so by this standard every non-CSV collection in the estate is at present neither a registry nor a stream. notes.jsonl is declared a stream only in the doc's example."
+     "verdict": "Admits nothing. None of the three .web-tools.json files has a stores block and no code under lib/, node/ or python/ reads one, so by this standard every non-CSV collection in the estate is at present neither a registry nor a stream. notes.jsonl is declared a stream only in the doc's example.",
+     "where": "web-tools/docs/policies.csv:102 (\"A collection is a registry or a stream by its repository's declaration, whatever its file format\"); web-tools/docs/manifest.md:221-236; web-tools/docs/manifest-fields.csv:111-117"
     },
     {
      "id": "stream-work",
      "word": "stream",
      "sense": "workstream: a line of work, as in 'the workstream PR' or an assessment's workstreams",
      "tag": "stream: work",
-     "at": "web-tools/docs/TRACKER.md:177 (\"the workstreams the open tasks form\"); web-tools/docs/policies.csv:47 (\"Subscribe the workstream PR\")",
      "requires": {
       "grain": "n/a",
       "change": "n/a"
      },
      "kind": "outside",
-     "verdict": "A unit of effort, not a collection of entries; it shares only the word."
+     "verdict": "A unit of effort, not a collection of entries; it shares only the word.",
+     "where": "web-tools/docs/TRACKER.md:177 (\"the workstreams the open tasks form\"); web-tools/docs/policies.csv:47 (\"Subscribe the workstream PR\")"
     },
     {
      "id": "snap-asof",
      "word": "snapshot",
      "sense": "a stream entry whose content is a registry as it stood at one time",
      "tag": "snapshot: as-of",
-     "at": "web-tools/docs/registries.md:154-156 (\"A snapshot is a stream entry whose content is a registry as it stood at one time, such as a dated reading of the checks\")",
      "requires": {
       "grain": "as-of",
       "change": "frozen"
      },
      "kind": "region",
-     "verdict": "Precise, and met by the checks reading and the budget-drs source bundles, which their own READMEs call a 'reading' and a 'source bundle'. The one registry row that says 'snapshot' (occurrences.json) names a file overwritten daily, which fails it."
+     "verdict": "Precise, and met by the checks reading and the budget-drs source bundles, which their own READMEs call a 'reading' and a 'source bundle'. The one registry row that says 'snapshot' (occurrences.json) names a file overwritten daily, which fails it.",
+     "where": "web-tools/docs/registries.md:154-156 (\"A snapshot is a stream entry whose content is a registry as it stood at one time, such as a dated reading of the checks\")"
     },
     {
      "id": "snap-copy",
      "word": "snapshot",
      "sense": "a derived copy fixed at its build and stale until rebuilt: the delivery snapshot, embedded page data, the environment snapshot",
      "tag": "snapshot: copy",
-     "at": "web-tools/node/README.md:122 (\"a delivery snapshot, regenerated on demand\"); web-tools/docs/artifacts.md:116 (\"Embedded data is a snapshot\"); web-tools/docs/environment/container.md:23; web-tools/docs/direct-to-main.csv:15 (\"occurrence snapshot, refreshed daily\")",
      "requires": {
       "provenance": "derived"
      },
      "kind": "value",
-     "verdict": "The working sense, and it is the cache sense under another word: container.md calls one filesystem image both 'that snapshot' and 'the environment cache'. It contradicts snapshot as-of, whose entries never change."
+     "verdict": "The working sense, and it is the cache sense under another word: container.md calls one filesystem image both 'that snapshot' and 'the environment cache'. It contradicts snapshot as-of, whose entries never change.",
+     "where": "web-tools/node/README.md:122 (\"a delivery snapshot, regenerated on demand\"); web-tools/docs/artifacts.md:116 (\"Embedded data is a snapshot\"); web-tools/docs/environment/container.md:23; web-tools/docs/direct-to-main.csv:15 (\"occurrence snapshot, refreshed daily\")"
     },
     {
      "id": "cache-derived",
      "word": "cache",
      "sense": "a derived copy kept current by a crawl or builder, never hand-edited",
      "tag": "cache: derived",
-     "at": "web-tools-private/README.md:61-63 (\"state/: derived caches ... Never hand-edit these\"); web-tools/docs/manifest.md:280 (\"the cache is derived\"); web-tools/docs/views/state.md:8-12",
      "requires": {
       "provenance": "derived",
       "change": "updated"
      },
      "kind": "region",
-     "verdict": "Sits on the provenance axis, not the shape axes: a cache's rows can be things (repo configs) or a window of a stream (the activity cache's commits). The state/ folder files a captured run record under it (calls.json), which state.md's own rule excludes: 'captured records get no rows, since nothing rebuilds them'."
+     "verdict": "Sits on the provenance axis, not the shape axes: a cache's rows can be things (repo configs) or a window of a stream (the activity cache's commits). The state/ folder files a captured run record under it (calls.json), which state.md's own rule excludes: 'captured records get no rows, since nothing rebuilds them'.",
+     "where": "web-tools-private/README.md:61-63 (\"state/: derived caches ... Never hand-edit these\"); web-tools/docs/manifest.md:280 (\"the cache is derived\"); web-tools/docs/views/state.md:8-12"
     },
     {
      "id": "list-view",
      "word": "list",
      "sense": "a collection shown in the Lists view",
      "tag": "list: view",
-     "at": "web-tools/docs/views/lists.md:3-9 (\"The Lists view holds To-do, Jot, Snag, Ping, Note, Pin and the lists created in it\")",
      "requires": {
       "roster": "lists-view"
      },
      "kind": "list",
-     "verdict": "Membership is the only shared trait: the view holds things with a done state (to-do), a tray that drains (jot), a recurrence record (snag), bookmarks (pin), an append-only stream (notes) and a request queue (ping errands)."
+     "verdict": "Membership is the only shared trait: the view holds things with a done state (to-do), a tray that drains (jot), a recurrence record (snag), bookmarks (pin), an append-only stream (notes) and a request queue (ping errands).",
+     "where": "web-tools/docs/views/lists.md:3-9 (\"The Lists view holds To-do, Jot, Snag, Ping, Note, Pin and the lists created in it\")"
     },
     {
      "id": "list-roster",
      "word": "list",
      "sense": "an enumeration of a population's members",
      "tag": "list: roster",
-     "at": "home/CLAUDE.md:69 (\"trackers.md at the repo root is the authoritative list of instances\"); web-tools/docs/manifest.md:239 (\"One membership list\")",
      "requires": {
       "grain": "thing"
      },
      "kind": "fuzzy",
-     "verdict": "Interchangeable with registry in its roster sense; neither word says whether the enumeration is authored or derived, which is the question that decides its authority."
+     "verdict": "Interchangeable with registry in its roster sense; neither word says whether the enumeration is authored or derived, which is the question that decides its authority.",
+     "where": "home/CLAUDE.md:69 (\"trackers.md at the repo root is the authoritative list of instances\"); web-tools/docs/manifest.md:239 (\"One membership list\")"
     },
     {
      "id": "log-record",
      "word": "log",
      "sense": "a dated, append-only running record of what was done or observed",
      "tag": "log: record",
-     "at": "home/CLAUDE.md:50 (\"chron/YYYY/MM/: the running log\"); home/CLAUDE.md:55 and home/news/README.md:3 (\"The outer log\")",
      "requires": {
       "grain": "event",
       "change": "appended"
      },
      "kind": "region",
-     "verdict": "Same requirements as stream: chron (authored) and news (captured) are both called logs. It does not carry stream's event-time rule; a chron entry is stamped with the day it was written."
+     "verdict": "Same requirements as stream: chron (authored) and news (captured) are both called logs. It does not carry stream's event-time rule; a chron entry is stamped with the day it was written.",
+     "where": "home/CLAUDE.md:50 (\"chron/YYYY/MM/: the running log\"); home/CLAUDE.md:55 and home/news/README.md:3 (\"The outer log\")"
     },
     {
      "id": "log-machine",
      "word": "log",
      "sense": "records a process files about its own runs: page reports, traffic findings, shortcut run logs",
      "tag": "log: machine",
-     "at": "web-tools-private/README.md:51-52 (\"the device's run logs\", \"bug reports a rendered page files about itself\"); web-tools/docs/writers.csv:12 (\"traffic log\")",
      "requires": {
       "grain": "event",
       "change": "appended",
       "provenance": "captured"
      },
      "kind": "region",
-     "verdict": "The ordinary computing sense; it holds, and on these axes it cannot be told from ledger."
+     "verdict": "The ordinary computing sense; it holds, and on these axes it cannot be told from ledger.",
+     "where": "web-tools-private/README.md:51-52 (\"the device's run logs\", \"bug reports a rendered page files about itself\"); web-tools/docs/writers.csv:12 (\"traffic log\")"
     },
     {
      "id": "log-progress",
      "word": "log",
      "sense": "the dated, append-only thread at the end of a task file",
      "tag": "log: progress",
-     "at": "web-tools/docs/TRACKER.md:76 (\"## Progress log is last, and appends at the bottom ... Do not rewrite a dated entry\")",
      "requires": {
       "grain": "event",
       "change": "appended",
       "form": "embedded"
      },
      "kind": "region",
-     "verdict": "A stream inside a registry entry, as registries.md:151-152 says. A snag's seen dates are the same structure and have no name."
+     "verdict": "A stream inside a registry entry, as registries.md:151-152 says. A snag's seen dates are the same structure and have no name.",
+     "where": "web-tools/docs/TRACKER.md:76 (\"## Progress log is last, and appends at the bottom ... Do not rewrite a dated entry\")"
     },
     {
      "id": "ledger",
      "word": "ledger",
      "sense": "an append-only record of observations, never edited or deleted",
      "tag": "ledger",
-     "at": "home/news/README.md:29 (\"The ledger is written only by appending; nothing in the pipeline edits or deletes a ledger line, ever\"); web-tools/docs/views/project.md:35 (\"appended, never rewritten\")",
      "requires": {
       "grain": "event",
       "change": "appended",
       "provenance": "captured"
      },
      "kind": "region",
-     "verdict": "Where it is defined it is a captured stream, and the news ledger is also called 'the outer log'. It is used loosely for prune.json, a per-shortcut decision record edited in place."
+     "verdict": "Where it is defined it is a captured stream, and the news ledger is also called 'the outer log'. It is used loosely for prune.json, a per-shortcut decision record edited in place.",
+     "where": "home/news/README.md:29 (\"The ledger is written only by appending; nothing in the pipeline edits or deletes a ledger line, ever\"); web-tools/docs/views/project.md:35 (\"appended, never rewritten\")"
     },
     {
      "id": "tracker",
      "word": "tracker",
      "sense": "a workspace's tasks, one file each with a status, plus a generated board",
      "tag": "tracker",
-     "at": "web-tools/docs/TRACKER.md:3-15 (\"Cross-session memory for the work of a workspace: what is planned, in flight, blocked, and done\"); home/CLAUDE.md:67-69",
      "requires": {
       "grain": "thing",
       "change": "updated",
@@ -4989,33 +4951,34 @@
       "form": "file-per-entry"
      },
      "kind": "region",
-     "verdict": "A registry with a workflow and a fixed form, and clean. User calls meet all four requirements and follow its commit-to-main discipline without the name; the to-do list misses only on form."
+     "verdict": "A registry with a workflow and a fixed form, and clean. User calls meet all four requirements and follow its commit-to-main discipline without the name; the to-do list misses only on form.",
+     "where": "web-tools/docs/TRACKER.md:3-15 (\"Cross-session memory for the work of a workspace: what is planned, in flight, blocked, and done\"); home/CLAUDE.md:67-69"
     },
     {
      "id": "inbox-declared",
      "word": "inbox",
      "sense": "the receiver's declared landing folder for a deposit that names no directory",
      "tag": "inbox: declared",
-     "at": "web-tools/docs/manifest.md:345-347 (\"inbox is the receiver's declared landing spot\") and 396-404 (\"An inbox is a write target\")",
      "requires": {
       "grain": "deposit",
       "manifest": "inbox"
      },
      "kind": "region",
-     "verdict": "Holds for home's chron/dump. web-tools-private declares \"inbox\": \"inbox\" with no folder and no drain named anywhere, and web-tools declares none, so its drop links fall back to a dump/ that nothing drains."
+     "verdict": "Holds for home's chron/dump. web-tools-private declares \"inbox\": \"inbox\" with no folder and no drain named anywhere, and web-tools declares none, so its drop links fall back to a dump/ that nothing drains.",
+     "where": "web-tools/docs/manifest.md:345-347 (\"inbox is the receiver's declared landing spot\") and 396-404 (\"An inbox is a write target\")"
     },
     {
      "id": "inbox-tray",
      "word": "inbox",
      "sense": "an intake tray drained toward empty",
      "tag": "inbox: tray",
-     "at": "home/.claude/skills/drain/SKILL.md:7 (\"Triage Inboxes (drain)\"); home/CLAUDE.md:51 (\"Trends toward empty. It is the repo's one tray\")",
      "requires": {
       "grain": "deposit",
       "change": "drained"
      },
      "kind": "region",
-     "verdict": "Clean. The jot list meets it under the word list; a tray nobody drains (web-tools dump/) turns into an accumulating pile that no word names."
+     "verdict": "Clean. The jot list meets it under the word list; a tray nobody drains (web-tools dump/) turns into an accumulating pile that no word names.",
+     "where": "home/.claude/skills/drain/SKILL.md:7 (\"Triage Inboxes (drain)\"); home/CLAUDE.md:51 (\"Trends toward empty. It is the repo's one tray\")"
     }
    ],
    "instances": [

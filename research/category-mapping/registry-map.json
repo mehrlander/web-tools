@@ -92,7 +92,6 @@
      "id": "listed",
      "word": "registry",
      "sense": "a CSV listed in docs/registries.csv",
-     "at": "CLAUDE.md, Registries",
      "requires": {
       "stands_for": "a thing",
       "after_written": "edited in place",
@@ -102,57 +101,58 @@
      },
      "kind": "list",
      "verdict": "Only the listing separates it from CSVs of the same shape.",
-     "tag": "registry: listed"
+     "tag": "registry: listed",
+     "where": "CLAUDE.md, Registries"
     },
     {
      "id": "shape",
      "word": "registry",
      "sense": "the shape in Registries and streams",
-     "at": "docs/registries.md#registries-and-streams",
      "requires": {
       "stands_for": "a thing",
       "after_written": "edited in place"
      },
      "kind": "region",
      "verdict": "Fixes two characteristics at once; the estate fills the combinations the pair leaves out.",
-     "tag": "registry: shape"
+     "tag": "registry: shape",
+     "where": "docs/registries.md#registries-and-streams"
     },
     {
      "id": "stream",
      "word": "stream",
      "sense": "the other shape in Registries and streams",
-     "at": "docs/registries.md#registries-and-streams",
      "requires": {
       "stands_for": "an event",
       "after_written": "never edited"
      },
      "kind": "region",
      "verdict": "The opposite corner of the same two characteristics.",
-     "tag": "stream"
+     "tag": "stream",
+     "where": "docs/registries.md#registries-and-streams"
     },
     {
      "id": "private",
      "word": "registry",
      "sense": "the private registry, web-tools-private",
-     "at": "web-tools-private .web-tools.json",
      "requires": {
       "medium": "repository"
      },
      "kind": "outside",
      "verdict": "Not applicable on every characteristic of an entry: a repository that holds collections.",
-     "tag": "registry: private"
+     "tag": "registry: private",
+     "where": "web-tools-private .web-tools.json"
     },
     {
      "id": "standard",
      "word": "registry",
      "sense": "the standard sense: members enter themselves",
-     "at": "PyPI, the Windows registry",
      "requires": {
       "gets_in": "on arrival"
      },
      "kind": "value",
      "verdict": "One value of how entries get in; no listed registry works this way.",
-     "tag": "registry: standard"
+     "tag": "registry: standard",
+     "where": "PyPI, the Windows registry"
     }
    ],
    "instances": [
