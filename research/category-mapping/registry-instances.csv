@@ -1,0 +1,16 @@
+instance,medium,stands_for,after_written,gets_in,in_registries_csv,lasts,keyed,is_csv,provenance
+kits.csv,file,a thing,edited in place,by rule,yes,git,yes,yes,derived
+writers.csv,file,a thing,edited in place,by author,yes,git,yes,yes,authored
+board.csv,file,a thing,edited in place,by rule,yes,git,yes,yes,derived
+direct-to-main.csv,file,a thing,edited in place,by author,no,git,yes,yes,authored
+task file,file per entry,a thing,edited in place,by author,no,git,yes,no,authored
+triggers.csv,file,a thing,edited in place,by author,no,git,yes,yes,authored
+trackers.md,file,a thing,edited in place,by rule,no,git,yes,no,derived
+snag.json,file,a thing,edited in place,by author,no,git,yes,no,authored
+notes.jsonl,file,an event,never edited,by author,no,git,yes,no,authored
+tending finding,entry in a shared file,a thing,never edited,by author,no,git,yes,no,authored
+session record,file per entry,an event,edited until it ends,by rule,no,git,yes,no,derived
+web-tools-private,repository,n/a,n/a,n/a,no,git,n/a,no,n/a
+__loadedScripts,page memory,a thing,edited in place,on arrival,no,page,yes,no,derived
+PyPI,outside system,a thing,edited in place,on arrival,no,outside,yes,no,n/a
+Windows registry,outside system,a thing,edited in place,on arrival,no,outside,yes,no,n/a

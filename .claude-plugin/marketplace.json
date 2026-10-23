@@ -37,6 +37,7 @@
         "./programs",
         "./atomic-decomposition",
         "./bake-page",
+        "./cat-map",
         "./caveman",
         "./claude-markdown",
         "./html-style",

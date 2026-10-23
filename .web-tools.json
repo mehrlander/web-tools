@@ -94,6 +94,11 @@
       "path": "research/DOC_CRAFT_STUDY.md",
       "label": "Documentation problems and drafting proposals",
       "kind": "probe"
+    },
+    {
+      "path": "research/category-mapping/README.md",
+      "label": "Category mapping: skills and methods for finding the characteristics that separate a set of things",
+      "kind": "exploration"
     }
   ],
   "programs": [

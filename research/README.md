@@ -21,6 +21,9 @@ The Excel research is in `projects/office/research/` in `mehrlander/home`.
 
 ## Exploration
 
-No outward-looking account is declared in this repository yet. Other
-repositories can declare their own accounts without copying their contents
-here.
+- [Category mapping](category-mapping/README.md): published skills and
+  classification methods for finding the characteristics that separate a set
+  of things, tested on the estate's word "registry".
+
+Other repositories can declare their own accounts without copying their
+contents here.
