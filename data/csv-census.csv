@@ -38,7 +38,7 @@ docs/harness.csv,341,9,69488,"[""path"",""role"",""layer"",""lines"",""invocatio
 docs/hook-events.csv,33,3,2018,"[""event"",""phase"",""summary""]"
 docs/hook-legs.csv,20,8,3194,"[""order"",""leg"",""gloss"",""watches"",""runs"",""stages"",""mode"",""in_repair""]"
 docs/intents.csv,11,6,1868,"[""intent"",""label"",""path"",""caveat"",""caveat_at"",""doc""]"
-docs/kits.csv,119,8,15687,"[""path"",""namespace"",""gloss"",""lines"",""boot"",""demo"",""users"",""tested""]"
+docs/kits.csv,120,8,15862,"[""path"",""namespace"",""gloss"",""lines"",""boot"",""demo"",""users"",""tested""]"
 docs/manifest-fields.csv,116,6,25859,"[""key"",""type"",""consumer"",""status"",""required"",""summary""]"
 docs/map-tabs.csv,34,4,22162,"[""tab"",""gloss"",""refs"",""narrative""]"
 docs/outposts.csv,4,12,2199,"[""id"",""title"",""gloss"",""declared"",""observed"",""reports"",""cadence"",""check"",""record"",""outpost_protocol"",""upkeep"",""doc""]"

@@ -16,8 +16,9 @@
      table view and the always-on tooltip are it. -->
 
 <meta name="shot-query" content="src=self">
-<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/alpinejs@3/dist/cdn.min.js,npm/@phosphor-icons/web,npm/fflate/umd/index.js,npm/marked/marked.min.js" defer></script>
-<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5,npm/@tailwindcss/typography/dist/typography.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/alpinejs@3/dist/cdn.min.js,npm/@phosphor-icons/web,npm/fflate/umd/index.js" defer></script>
+<script src="../lib/kits/doc-growth.js"></script>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
 </head>
 <body class="min-h-screen bg-base-200" x-data="growth()" x-init="boot()">
 
@@ -35,8 +36,6 @@
         <i class="ph ph-chart-scatter"></i>Chart</button>
       <button class="join-item btn btn-xs" :class="view==='table' && 'btn-active'" @click="setView('table')">
         <i class="ph ph-table"></i>Table</button>
-      <button class="join-item btn btn-xs" x-show="hasCare" :class="view==='ranked' && 'btn-active'" @click="setView('ranked')">
-        <i class="ph ph-list-numbers"></i>Ranked</button>
     </div>
   </div>
 
@@ -156,106 +155,19 @@
   </div>
 </div>
 
-<!-- ranked: the documents by focused edits per thousand words, a list over a strip
-     of the documents themselves; the strip's header opens them as a deck -->
-<div x-show="data && view==='ranked'" x-cloak class="max-w-6xl mx-auto px-3 sm:px-5 pb-5">
-  <div class="card bg-base-100 shadow-sm">
-    <div class="card-body p-2 sm:p-4 gap-2">
-      <div class="flex flex-wrap items-center gap-2 text-xs">
-        <div class="join">
-          <button class="join-item btn btn-xs" :class="rankBy==='density' && 'btn-active'" @click="rankBy='density'; rerank()">Per thousand words</button>
-          <button class="join-item btn btn-xs" :class="rankBy==='count' && 'btn-active'" @click="rankBy='count'; rerank()">Focused edits</button>
-        </div>
-        <label class="flex items-center gap-1.5">
-          <span class="opacity-60">min focused</span>
-          <input type="range" class="range range-xs w-24" min="1" max="30" x-model.number="minEdits" @input="rerank()">
-          <span class="font-mono w-5" x-text="minEdits"></span>
-        </label>
-        <div class="grow"></div>
-        <span class="opacity-60" x-text="`${rows.length} documents · focused: ${data?.focus ?? 5} or fewer files in the commit`"></span>
-      </div>
-
-      <div class="max-h-[40vh] overflow-y-auto rounded-box border border-base-300" x-ref="rlist">
-        <table class="table table-xs table-pin-rows">
-          <thead><tr>
-            <th class="text-right">#</th><th>Document</th><th class="text-right max-sm:hidden">Words</th>
-            <th class="text-right">Focused</th><th class="text-right">Per 1k</th><th class="text-right max-sm:hidden">Last</th>
-          </tr></thead>
-          <tbody>
-            <template x-for="(r, i) in rows" :key="r.p">
-              <tr class="cursor-pointer" :class="i === cur && 'bg-primary/10'" :data-row="i" @click="go(i)">
-                <td class="text-right tabular-nums opacity-60" x-text="i + 1"></td>
-                <td class="font-mono text-[11px]" x-text="wrapPath(r.p)"></td>
-                <td class="text-right tabular-nums max-sm:hidden" x-text="r.w.toLocaleString()"></td>
-                <td class="text-right tabular-nums" x-text="r.n"></td>
-                <td class="text-right tabular-nums font-medium" x-text="r.d.toFixed(1)"></td>
-                <td class="text-right tabular-nums opacity-60 max-sm:hidden" x-text="r.last"></td>
-              </tr>
-            </template>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="flex items-center gap-2" x-show="rows.length">
-        <span class="font-mono text-xs min-w-0" x-text="wrapPath(rows[cur]?.p)"></span>
-        <div class="grow"></div>
-        <span class="text-xs tabular-nums opacity-60" x-text="`${cur + 1} / ${rows.length}`"></span>
-        <button data-deck-open class="btn btn-xs btn-ghost btn-square" @click="openDeck()"><i class="ph ph-arrows-out"></i></button>
-      </div>
-      <div class="flex overflow-x-auto snap-x snap-mandatory h-[55vh] rounded-box border border-base-300"
-           x-ref="strip" @scroll.debounce.120ms="onStrip()">
-        <template x-for="(r, i) in rows" :key="r.p">
-          <article class="w-full shrink-0 snap-start overflow-y-auto p-3 sm:p-5">
-            <div class="prose !max-w-none text-pretty" x-html="docs[r.p] ?? ''"></div>
-          </article>
-        </template>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- the deck: the ranked documents, one per screen -->
-<div x-show="deck" x-cloak class="fixed inset-0 z-50 grid grid-rows-[auto_1fr_auto] bg-base-100">
-  <header class="flex items-center gap-2 px-4 py-2 border-b border-base-300">
-    <span class="text-xs tabular-nums opacity-60" x-text="`#${cur + 1}`"></span>
-    <span class="font-mono text-xs min-w-0" x-text="wrapPath(rows[cur]?.p)"></span>
-    <span class="text-xs tabular-nums opacity-60 max-sm:hidden"
-          x-text="rows[cur] ? `${rows[cur].w.toLocaleString()} words · ${rows[cur].n} focused · ${rows[cur].d.toFixed(1)} per 1k` : ''"></span>
-    <div class="grow"></div>
-    <span class="text-xs tabular-nums opacity-60" x-text="`${cur + 1} / ${rows.length}`"></span>
-    <button class="btn btn-sm btn-ghost btn-square" @click="closeDeck()"><i class="ph ph-x"></i></button>
-  </header>
-  <main class="overflow-y-auto px-4 sm:px-8 py-4" x-ref="deckBody">
-    <div class="prose prose-xl !max-w-none leading-8 text-pretty" x-html="docs[rows[cur]?.p] ?? ''"></div>
-  </main>
-  <footer class="flex items-center gap-3 px-4 py-2 border-t border-base-300">
-    <button class="btn btn-sm" :disabled="cur === 0" @click="go(cur - 1)"><i class="ph ph-caret-left"></i></button>
-    <progress class="progress progress-primary grow" :value="cur + 1" :max="rows.length"></progress>
-    <button class="btn btn-sm" :disabled="cur >= rows.length - 1" @click="go(cur + 1)"><i class="ph ph-caret-right"></i></button>
-  </footer>
-</div>
-
 <style type="text/tailwindcss">[x-cloak]{display:none}</style>
 
 <script>
-// Categorical hues: dataviz reference palette slots 1-3, the run that clears the
-// all-pairs floors in both modes. "Other" is deliberately achromatic.
-const LIGHT = ['#2a78d6', '#eb6834', '#1baf7a'], DARK = ['#3987e5', '#d95926', '#199e70'];
-
+// The chart and its arithmetic are kits/doc-growth.js, which the Map's Docs →
+// Growth tab draws with too; this page holds the state and the controls.
 function growth() {
   const dark = matchMedia('(prefers-color-scheme: dark)').matches;
   return {
-    HUE: dark ? DARK : LIGHT,
-    ink: dark ? '#e8e6e1' : '#0b0b0b',
-    grid: dark ? 'rgba(232,230,225,0.10)' : 'rgba(11,11,11,0.08)',
-    other: dark ? '#6f6d67' : '#a9a7a1',
-    surface: dark ? 'rgba(16,16,18,0.75)' : 'rgba(255,255,255,0.75)',
+    HUE: dark ? DocGrowth.DARK : DocGrowth.LIGHT,
     data: null, err: '', t: 0, playing: false, raf: 0,
     yMode: 'churn', unit: 'w', minEdits: 5, trails: true,
     picked: null, hovered: null, tipX: 0, tipY: 0, view: 'chart', bounds: null,
-    rankBy: 'density', rows: [], cur: 0, docs: {}, deck: false, hasCare: false,
-    visible: 0,
-    groups: [],
+    visible: 0, groups: [], hasCare: false, _pts: [],
 
     async boot() {
       const q = new URLSearchParams(location.search);
@@ -265,42 +177,17 @@ function growth() {
         this.err = `Could not load data: ${e.message}`;
         return;
       }
-      // Open on the three groups with the most actively maintained files. Picking
-      // by total bytes instead handed a hue slot to `archive`, which is exactly
-      // the material nobody is working on.
-      const live = {};
-      for (const f of this.data.files) {
-        if (f.edits < this.minEdits) continue;
-        const g = this.data.groups[f.g];
-        live[g] = (live[g] ?? 0) + 1;
-      }
-      this.groups = Object.entries(live).sort((a, b) => b[1] - a[1]).slice(0, 3).map(x => x[0]);
-      const all = this.data.files;
-      const peak = (f, k) => Math.max(...f[k].filter(v => v != null), 0);
-      this.bounds = {
-        w: { x: Math.max(100, ...all.map(f => peak(f, 'w'))) },
-        r: { x: Math.max(100, ...all.map(f => peak(f, 'r'))) },
-        net: Math.max(50, ...all.flatMap(f => f.n.map(Math.abs))),
-        churn: Math.max(4, ...all.flatMap((f) => f.e.map((_, k) => this.churn(f, k)))),
-        age: Math.max(this.data.days, ...all.map(f => this.age(f, f.w.length - 1))),
-      };
-      this.hasCare = all.some(f => Array.isArray(f.f));
-      this.bounds.care = Math.max(4, ...all.map(f => this.care(f, f.w.length - 1)));
+      this.groups = DocGrowth.groups(this.data, this.minEdits);
+      this.bounds = DocGrowth.bounds(this.data);
+      this.hasCare = DocGrowth.hasCare(this.data);
       if (this.hasCare && q.get('y') === 'care') this.yMode = 'care';
-      this.rerank();
+      if (q.get('view') === 'table') this.view = 'table';
       this.t = this.data.frames.length - 1;
       addEventListener('resize', () => this.draw());
-      addEventListener('keydown', (e) => this.key(e));
-      addEventListener('popstate', () => { if (this.deck) this.deck = false; });
-      const v = q.get('view'), at = this.rows.findIndex(r => r.p === q.get('doc'));
-      if (at >= 0) this.cur = at;
-      if (v === 'table' || (v === 'ranked' && this.hasCare)) this.$nextTick(() => {
-        this.setView(v);
-        if (v === 'ranked' && q.get('deck') === '1') this.openDeck();
-      });
       this.$nextTick(() => this.draw());
     },
 
+    setView(v) { this.view = v; if (v === 'chart') this.$nextTick(() => this.draw()); },
     slot(g) { return this.groups.indexOf(g); },
     toggleGroup(g) {
       const i = this.groups.indexOf(g);
@@ -310,16 +197,7 @@ function growth() {
     },
 
     get frameLabel() { return this.data?.frames[Math.round(this.t)] ?? ''; },
-    get caption() {
-      const n = this.visible, tot = this.shown().length;
-      if (this.yMode === 'churn')
-        return `${n} of ${tot} files on screen (edited in ${this.minEdits}+ commits). Up means actively worked; right means long.`;
-      if (this.yMode === 'age')
-        return `${n} of ${tot} files on screen. Up means untouched for longer, so the top right is a monument and the bottom right is contested.`;
-      if (this.yMode === 'care')
-        return `${n} of ${tot} files on screen (${this.minEdits}+ focused edits; hook-written files and logs left out). Above the dashed line, a file has had more than 10 focused edits per thousand words.`;
-      return `${n} of ${tot} files on screen. Above the line gained lines that week, below it gave some back.`;
-    },
+    get caption() { return DocGrowth.caption({ y: this.yMode, min: this.minEdits }, this.visible, this.shown().length); },
     get tipMeta() {
       const f = this.hovered; if (!f) return '';
       const k = Math.round(this.t);
@@ -332,96 +210,7 @@ function growth() {
                  b: s.findLast(v => v != null) ?? 0, e: f.edits };
       }).sort((x, y) => (y.b - y.a) - (x.b - x.a));
     },
-
-    shown() {
-      if (!this.data) return [];
-      if (this.yMode === 'care') return this.data.files.filter(f => this.careable(f) && f.focused >= this.minEdits);
-      return this.data.files.filter(f => f.edits >= this.minEdits);
-    },
-
-    // --- care: focused edits, the commits that touched few documents ---------
-    // A file the commit hook writes is marked `gen` by the extractor; logs and
-    // trays are the folders the governing-docs hook also leaves alone.
-    careable(f) { return Array.isArray(f.f) && !f.gen && !CARE_SKIP.test(f.p); },
-    care(f, t) {
-      if (!Array.isArray(f.f)) return 0;
-      const k = Math.round(t);
-      let s = 0;
-      for (let i = 0; i <= k && i < f.f.length; i++) s += f.f[i];
-      return s;
-    },
-    rerank() {
-      if (!this.data) return;
-      const k = this.data.frames.length - 1;
-      const keep = this.rows[this.cur]?.p;
-      this.rows = this.data.files
-        .filter(f => this.careable(f) && f.w[k] != null && f.w[k] >= 40 && f.focused >= this.minEdits)
-        .map(f => {
-          const w = Math.max(f[this.unit][k] ?? f.w[k], 40);
-          return { p: f.p, w, n: f.focused, d: 1000 * f.focused / w, last: f.lf ?? '' };
-        })
-        .sort((a, b) => this.rankBy === 'count' ? b.n - a.n || b.d - a.d : b.d - a.d);
-      const at = this.rows.findIndex(r => r.p === keep);
-      this.cur = at >= 0 ? at : 0;
-      if (this.view === 'ranked') this.$nextTick(() => this.go(this.cur, 'auto'));
-    },
-    setView(v) {
-      this.view = v;
-      if (v === 'chart') this.$nextTick(() => this.draw());
-      if (v === 'ranked') this.$nextTick(() => this.go(this.cur, 'auto'));
-    },
-    go(i, behavior = 'smooth') {
-      if (!this.rows.length) return;
-      this.cur = Math.max(0, Math.min(this.rows.length - 1, i));
-      const s = this.$refs.strip;
-      if (s && s.clientWidth) s.scrollTo({ left: this.cur * s.clientWidth, behavior });
-      this.$refs.rlist?.querySelector(`[data-row="${this.cur}"]`)?.scrollIntoView({ block: 'nearest' });
-      if (this.$refs.deckBody) this.$refs.deckBody.scrollTop = 0;
-      for (const j of [this.cur, this.cur + 1, this.cur - 1]) this.fetchDoc(this.rows[j]?.p);
-    },
-    onStrip() {
-      const s = this.$refs.strip;
-      if (!s || !s.clientWidth) return;
-      const i = Math.round(s.scrollLeft / s.clientWidth);
-      if (i !== this.cur && this.rows[i]) {
-        this.cur = i;
-        this.$refs.rlist?.querySelector(`[data-row="${i}"]`)?.scrollIntoView({ block: 'nearest' });
-        for (const j of [i, i + 1, i - 1]) this.fetchDoc(this.rows[j]?.p);
-      }
-    },
-    // a path breaks after a slash, not mid-name
-    wrapPath(p) { return (p ?? '').replaceAll('/', '/\u200b'); },
-    // Framed (the Map's Growth tab), a fixed overlay measures against the outer
-    // viewport on iOS (house style rule 5), so the deck opens in its own tab.
-    openDeck() {
-      if (window.top !== window.self) {
-        const u = new URL(location.href);
-        u.searchParams.set('view', 'ranked');
-        u.searchParams.set('doc', this.rows[this.cur]?.p ?? '');
-        u.searchParams.set('deck', '1');
-        window.open(u.href, '_blank', 'noopener');
-        return;
-      }
-      this.deck = true; history.pushState({ deck: 1 }, '');
-    },
-    closeDeck() { if (history.state?.deck) history.back(); else this.deck = false; },
-    key(e) {
-      if (this.view !== 'ranked' || e.target.closest?.('input')) return;
-      if (e.key === 'ArrowRight') { e.preventDefault(); this.go(this.cur + 1); }
-      else if (e.key === 'ArrowLeft') { e.preventDefault(); this.go(this.cur - 1); }
-      else if (e.key === 'Escape' && this.deck) this.closeDeck();
-    },
-    async fetchDoc(p) {
-      if (!p || this.docs[p] != null) return;
-      this.docs[p] = '<p class="opacity-50">Reading…</p>';
-      try {
-        const text = await readRepoFile(this.data.repo, this.data.branch, p);
-        if (!window.marked) throw new Error('the markdown renderer did not load');
-        this.docs[p] = marked.parse(text.replace(/^---\n[\s\S]*?\n---\n/, ''));
-      } catch (e) {
-        this.docs[p] = `<p class="text-error">Could not read ${p}: ${e.message}</p>`;
-      }
-    },
+    shown() { return this.data ? DocGrowth.shown(this.data, { y: this.yMode, min: this.minEdits }) : []; },
 
     toggle() {
       this.playing = !this.playing;
@@ -439,168 +228,16 @@ function growth() {
       this.raf = requestAnimationFrame(tick);
     },
 
-    // --- geometry -----------------------------------------------------------
-    // Values are read at a fractional frame so playback tweens rather than
-    // stepping: a bubble slides between its Tuesday and next-Tuesday sizes.
-    at(series, t) {
-      const a = Math.floor(t), b = Math.min(series.length - 1, a + 1), u = t - a;
-      const va = series[a], vb = series[b];
-      if (va == null) return vb == null ? null : vb;
-      return vb == null ? va : va + (vb - va) * u;
-    },
-    churn(f, t) {
-      const k = Math.round(t), lo = Math.max(0, k - 3);
-      return f.e.slice(lo, k + 1).reduce((s, v) => s + v, 0);
-    },
-    // Days since the file was last touched, at this frame. Read back out of the
-    // churn array rather than carried in the payload: it is the same fact
-    // counted from the other end, and a second copy is a second thing to keep
-    // true. A file never touched inside the window ages from its first frame.
-    age(f, t) {
-      const k = Math.round(t);
-      for (let i = k; i >= 0; i--) if (f.e[i]) return (k - i) * this.data.days;
-      return Math.max(0, k - f.born) * this.data.days;
-    },
-
     draw() {
-      if (!this.data) return;
-      const cv = this.$refs.cv, dpr = devicePixelRatio || 1;
-      const W = cv.clientWidth, H = cv.clientHeight;
-      cv.width = W * dpr; cv.height = H * dpr;
-      const c = cv.getContext('2d');
-      c.setTransform(dpr, 0, 0, dpr, 0, 0);
-      c.clearRect(0, 0, W, H);
-
-      const P = { l: 44, r: 14, t: 12, b: 30 };
-      const files = this.shown();
-      const net = this.yMode === 'net', age = this.yMode === 'age', care = this.yMode === 'care';
-
-      // x: words, log. y: effort (linear) or net change (symlog, zero centred).
-      const xMax = this.bounds[this.unit].x;
-      const lx = v => P.l + (Math.log10(Math.max(v, 10)) - 1) / (Math.log10(xMax) - 1) * (W - P.l - P.r);
-      const yTop = net ? this.bounds.net : age ? this.bounds.age : care ? this.bounds.care : this.bounds.churn;
-      const sym = v => Math.sign(v) * Math.log10(Math.abs(v) + 1);
-      const ly = v => net
-        ? P.t + (1 - (sym(v) / sym(yTop) + 1) / 2) * (H - P.t - P.b)
-        : P.t + (1 - Math.log1p(Math.max(v, 0)) / Math.log1p(yTop)) * (H - P.t - P.b);
-
-      // the big ghosted date, Rosling's clock
-      c.fillStyle = this.ink;
-      c.globalAlpha = 0.055;
-      c.font = `700 ${Math.min(W * 0.22, 150)}px ui-sans-serif, system-ui, sans-serif`;
-      c.textAlign = 'right'; c.textBaseline = 'bottom';
-      c.fillText(this.frameLabel.slice(0, 7), W - P.r - 6, H - P.b - 4);
-      c.globalAlpha = 1;
-
-      // grid + axes
-      c.strokeStyle = this.grid; c.lineWidth = 1;
-      c.fillStyle = this.ink; c.font = '10px ui-monospace, monospace';
-      c.textAlign = 'right'; c.textBaseline = 'middle';
-      const yTicks = net ? [-yTop, -yTop / 10, 0, yTop / 10, yTop]
-                   : age ? [0, 7, 28, yTop].filter((v, i, a) => v <= yTop && a.indexOf(v) === i)
-                         : [0, 1, 5, 20, yTop].filter((v, i, a) => v <= yTop && a.indexOf(v) === i);
-      for (const v of yTicks) {
-        const y = Math.round(ly(v)) + 0.5;
-        c.beginPath(); c.moveTo(P.l, y); c.lineTo(W - P.r, y);
-        c.strokeStyle = (net && v === 0) ? this.grid.replace(/[\d.]+\)$/, '0.35)') : this.grid;
-        c.stroke();
-        c.globalAlpha = 0.55;
-        c.fillText(net ? fmt(v) : Math.round(v) + (age ? 'd' : ''), P.l - 6, y);
-        c.globalAlpha = 1;
-      }
-      c.textAlign = 'center'; c.textBaseline = 'top';
-      for (let e = 1; Math.pow(10, e) <= xMax; e++) {
-        const x = Math.round(lx(Math.pow(10, e))) + 0.5;
-        c.beginPath(); c.moveTo(x, P.t); c.lineTo(x, H - P.b); c.stroke();
-        c.globalAlpha = 0.55;
-        c.fillText(fmt(Math.pow(10, e)), x, H - P.b + 6);
-        c.globalAlpha = 1;
-      }
-      c.textAlign = 'right';
-      c.globalAlpha = 0.45;
-      c.fillText('words →', W - P.r, H - P.b + 18);
-      c.save(); c.translate(11, P.t + 2); c.rotate(-Math.PI / 2); c.textAlign = 'right';
-      c.fillText(net ? 'lines gained ↑' : age ? 'days untouched ↑' : care ? 'focused edits ↑' : 'edits / month ↑', 0, 0);
-      c.restore();
-      c.globalAlpha = 1;
-
-      // care: the line where focused edits reach 10 per thousand words
-      if (care) {
-        c.setLineDash([4, 4]); c.strokeStyle = this.ink; c.globalAlpha = 0.35; c.lineWidth = 1;
-        c.beginPath();
-        for (let x = 10, first = true; x <= xMax * 1.1 && x / 100 <= yTop; x *= 1.1, first = false) {
-          const px = lx(x), py = ly(x / 100);
-          first ? c.moveTo(px, py) : c.lineTo(px, py);
-        }
-        c.stroke(); c.setLineDash([]); c.globalAlpha = 1;
-      }
-
-      // bubbles, largest first so the small ones stay clickable on top
-      const pts = [];
-      for (const f of files) {
-        const w = this.at(f[this.unit], this.t);
-        if (w == null || this.t < f.born - 0.5) continue;
-        const y = net ? this.at(f.n, this.t) : age ? this.age(f, this.t) : care ? this.care(f, this.t) : this.churn(f, this.t);
-        const r = Math.max(2.5, Math.sqrt(f.edits) * 1.5);
-        pts.push({ f, x: lx(w), y: ly(y ?? 0), r });
-      }
-      pts.sort((a, b) => b.r - a.r);
-
-      if (this.trails && this.picked) this.drawTrail(c, lx, ly, net, age, care);
-
-      for (const p of pts) {
-        const g = this.data.groups[p.f.g], s = this.slot(g);
-        const col = s >= 0 ? this.HUE[s] : this.other;
-        const on = this.picked === p.f || this.hovered === p.f;
-        c.globalAlpha = s >= 0 ? (on ? 1 : 0.72) : 0.3;
-        c.beginPath(); c.arc(p.x, p.y, p.r, 0, 7);
-        c.fillStyle = col; c.fill();
-        // 2px surface ring keeps overlapping marks separable
-        c.lineWidth = on ? 2 : 1.25;
-        c.strokeStyle = on ? this.ink : this.surface;
-        c.globalAlpha = on ? 1 : 0.5;
-        c.stroke();
-      }
-      c.globalAlpha = 1;
-      this._pts = pts;
-      this.visible = pts.length;
-
-      // direct label for the pinned file
-      if (this.picked) {
-        const p = pts.find(q => q.f === this.picked);
-        if (p) {
-          c.font = '600 11px ui-monospace, monospace';
-          c.fillStyle = this.ink; c.textAlign = 'left'; c.textBaseline = 'bottom';
-          const name = p.f.p.split('/').pop();
-          c.fillText(name, Math.min(p.x + p.r + 5, W - P.r - c.measureText(name).width), p.y - p.r - 2);
-        }
-      }
+      if (!this.data || !this.$refs.cv) return;
+      this._pts = DocGrowth.draw(this.$refs.cv, this.data, {
+        t: this.t, y: this.yMode, unit: this.unit, min: this.minEdits, groups: this.groups,
+        picked: this.picked, hovered: this.hovered, trails: this.trails, bounds: this.bounds });
+      this.visible = this._pts.length;
     },
-
-    drawTrail(c, lx, ly, net, age, care) {
-      const f = this.picked, s = f[this.unit];
-      c.beginPath();
-      let started = false;
-      for (let k = 0; k <= Math.round(this.t); k++) {
-        if (s[k] == null) continue;
-        const y = net ? f.n[k] : age ? this.age(f, k) : care ? this.care(f, k) : this.churn(f, k);
-        const x = lx(s[k]), yy = ly(y ?? 0);
-        started ? c.lineTo(x, yy) : (c.moveTo(x, yy), started = true);
-      }
-      const sl = this.slot(this.data.groups[f.g]);
-      c.strokeStyle = sl >= 0 ? this.HUE[sl] : this.other;
-      c.globalAlpha = 0.45; c.lineWidth = 2; c.stroke(); c.globalAlpha = 1;
-    },
-
     nearest(ev) {
       const r = this.$refs.cv.getBoundingClientRect();
-      const x = ev.clientX - r.left, y = ev.clientY - r.top;
-      let best = null, bd = 400;
-      for (const p of this._pts ?? []) {
-        const d = (p.x - x) ** 2 + (p.y - y) ** 2;
-        if (d < bd + p.r ** 2) { bd = d; best = p; }
-      }
-      return best;
+      return DocGrowth.nearest(this._pts, ev.clientX - r.left, ev.clientY - r.top);
     },
     hover(ev) {
       const p = this.nearest(ev);
@@ -624,25 +261,6 @@ function growth() {
 function savedToken() {
   try { return localStorage.getItem('ghToken') || ''; } catch { return ''; }
 }
-
-// Logs and intake trays: written freely by design, as the governing-docs hook
-// treats them, so their edits say nothing about care for a document.
-const CARE_SKIP = /(^|\/)(chron|tracker\/tasks|blog|dump|archive)\//;
-
-// One file at the payload's branch: through the stored token when there is one
-// (the only way into a private repo), else raw, which serves a public one.
-async function readRepoFile(repo, ref, path) {
-  const token = savedToken();
-  const r = token
-    ? await fetch(`https://api.github.com/repos/${repo}/contents/${path.split('/').map(encodeURIComponent).join('/')}?ref=${encodeURIComponent(ref)}`,
-                  { cache: 'no-store', headers: { Accept: 'application/vnd.github.raw', Authorization: `Bearer ${token}` } })
-    : await fetch(`https://raw.githubusercontent.com/${repo}/${ref}/${path}`, { cache: 'no-store' });
-  if (!r.ok) throw new Error(`HTTP ${r.status}${r.status === 404 && !token ? ', no stored token' : ''}`);
-  return r.text();
-}
-
-const fmt = v => Math.abs(v) >= 1000 ? (v / 1000).toFixed(Math.abs(v) < 10000 ? 1 : 0) + 'k'
-                                     : String(Math.round(v));
 
 // Three ways in, cheapest first: an inline payload, a plain URL, or a repo path
 // read through the viewer's stored token (the only route that reaches a private
