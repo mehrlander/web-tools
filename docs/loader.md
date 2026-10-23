@@ -68,8 +68,8 @@ it loads through the contents API at the same ref either way:
   ten-minute cache.
 - **Any other ref** (`?use=<ref>`): that ref's `gh-api.js` from
   `raw.githubusercontent`, fetched `no-store` and blob-imported, since raw
-  serves `text/plain` with `nosniff`. A branch name is cache-safe this way:
-  raw and the contents API are both fresh on a just-pushed branch.
+  serves `text/plain` with `nosniff`. The contents API is fresh on a push;
+  raw serves `max-age=300`, so it tracks a push within minutes.
 
 [`lib/entry.js`](../lib/entry.js)'s header gives the order in which it resolves
 its ref (its own `?ref=` first, `main` last) and why the main route stays a
@@ -224,13 +224,13 @@ Each file's header is its own account; these lines say what it is for.
   `FAB_BOOT` (the FAB and its path picker, unless the page sets `data-no-fab`)
   are declared as data at the top of the file; read them there. It also fills
   the load registry and the read mirror on `window`, installs the `fetch`
-  wrapper (both below), and injects the project favicon when a page declares
+  wrapper (all three below), and injects the project favicon when a page declares
   none. Nothing in it may break the boot chain.
 - `gh-auth.js`: the token and boot-failure layer. Its header covers the
   `headers` and `req` patches, the `unhandledrejection` handler and
   `window.ghAuth`. Loaded automatically by `gh-boot.js` on bootstrap pages;
-  pages that import `gh-api.js` without `@<ref>` must
-  `await gh.load('gh-auth.js')` themselves.
+  a page that imports `gh-api.js` other than through `entry.js` sets no
+  bootstrap signal and must `await gh.load('gh-auth.js')` itself.
 - `vanilla-bundle.js`: framework-free ambient helpers (DOM utilities,
   `window.html`, `window.copy()`), first in `BOOT`. No dependencies;
   idempotent on re-load.
@@ -257,7 +257,7 @@ itself; a page that instantiates `GH` by hand gets only what it loads.
 | `gh`, `GH` | `gh-api.js` bootstrap | the live loader instance; the class |
 | `__bundleRef` | `gh-api.js` bootstrap | the ref the bundle booted from |
 | `__consoleLogs` (+ `consolelog` event) | `gh-api.js` | flattened console capture; the fallback renderers use when `kits/console.js` is absent |
-| `__loadedScripts` (+ `loadedscripts` event) | `gh-boot.js` | the load registry: path, timing, status, `by:` attribution; the FAB's Scripts tab reads it |
+| `__loadedScripts` (+ `loadedscripts` event) | `gh-boot.js` | the load registry: path, timing, status, `by:` attribution; the FAB's Inspect tab reads it |
 | `__reads` (+ `reads` event) | `gh-boot.js` | newest `read()` value per path; the export kit's input |
 | `__traffic`, `__trafficTotals` (+ `traffic` event, coalesced to 250ms) | `gh-boot.js` | the request ledger: one row per `fetch`, with `method`, `via` (the repo path a `load()`/`read()` was fetching), status, elapsed, and `wire` from `content-length`. Rows are capped and the totals are not |
 | `__trafficRate`, `__trafficRateAt`, `__trafficRateReset` | `gh-boot.js` | newest `x-ratelimit-remaining` seen on any response, when it was seen, and when the window resets |
@@ -303,8 +303,9 @@ await new Function('gh', text)(scopedGh);                    // run it as-is
 ```
 
 The file is fetched and run **verbatim, with no source rewriting.** (`read()`,
-the data twin, is identical except it returns the file's value instead of
-discarding it.)
+the data twin, runs a file the same way but returns its value, tries a local
+sibling file first (rule 4), and does not apply `loadBase`: data paths are
+repo-root paths.)
 
 **We don't author modules.** A loaded file is a plain script body, not an ES
 module that the loader de-modularizes. It runs inside

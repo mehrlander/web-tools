@@ -140,9 +140,9 @@ branch is invisible from the estate (the cache is a main-derived artifact) until
 it merges, while the repo's own sidebar shows it as soon as you browse the
 branch.
 
-**Two fields are not the app's.** `conventions` is read by the portable
-conventions and `sessions` by a plugin hook outside any page. The registry's
-`consumer` column carries that distinction for every field.
+**Not every field is the app's.** `conventions`, for one, is read by the
+portable conventions, and `sessions` by a plugin hook outside any page. The
+registry's `consumer` column says which tool reads each field.
 
 ## Research declarations
 

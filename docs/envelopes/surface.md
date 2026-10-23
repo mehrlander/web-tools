@@ -4,8 +4,8 @@ A **surface** is a JSON file: a curated, annotated set of items presented for a 
 
 **A surface is not a saved stage**, and nothing in the app writes one. Pages
 read surfaces by profile: [`pages/branch.html`](../../pages/branch.html),
-through [`lib/kits/branch-brief.js`](../../lib/kits/branch-brief.js), reads
-`branch-review/1`; [`pages/inquiry.html`](../../pages/inquiry.html) reads
+through [`lib/kits/branch-brief.js`](../../lib/kits/branch-brief.js), and
+[`pages/walkthrough.html`](../../pages/walkthrough.html) read `branch-review/1`; [`pages/inquiry.html`](../../pages/inquiry.html) reads
 `inquiry/1`; [`pages/approve.html`](../../pages/approve.html) reads
 `approval/1` ([`approval.md`](approval.md)).
 
@@ -117,6 +117,7 @@ Worked example:
       "role": "intent",
       "view": { "mode": "full" },
       "format": "markdown",
+      "commentary": "Move the stage to the estate context without changing the deposit flow.",
       "content": "Look particularly for accidental semantic changes in the deposit flow."
     },
     {

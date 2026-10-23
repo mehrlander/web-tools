@@ -217,7 +217,8 @@ kept back either way.
 `never` is the backstop for the mirror-image failure, which is real: unhide a
 private sheet to work on it, forget, and drop the workbook, and `omit` alone
 takes it. A sheet named there is **reported rather than dropped**. It stays in
-the pick, the roster and its row draw it in the error colour, and the Stage
+the pick, the `in`/`out` roster under the band and the sheet's checklist row
+draw it in the error colour, and the Stage
 button goes dark and names it instead of handing anything over. Dropping it
 quietly would be the worse fix, since the reader would see a clean pick and
 learn nothing in exactly the case the usual signal lapsed. `omit` decides what

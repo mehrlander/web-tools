@@ -34,9 +34,11 @@ the inputs are durably sourced; otherwise it is data loss with extra steps.
 
 Commits follow two modes: GitHub flow, a branch and a pull request, for code,
 features, refactors and documentation; and Real-time, committed direct to `main`
-and pushed as you go, for shared state that concurrent sessions rely on as live
-truth (task trackers, capture lists, session telemetry, crawl caches), because an
-ephemeral container cannot read a sibling session's unmerged branch.
+and pushed as you go, for shared state that concurrent sessions and tools rely on
+as live truth (task trackers, capture lists, session telemetry, crawl caches),
+because an ephemeral container cannot read a sibling session's unmerged branch.
+[`direct-to-main.csv`](direct-to-main.csv) lists each writer that commits to
+`main` this way and the paths it owns.
 
 ## Principle 2: visibility is the (almost) only thing that forces a repo boundary
 

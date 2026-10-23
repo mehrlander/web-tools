@@ -30,14 +30,15 @@ The **harness** is the operational scaffolding wrapped around the model:
 | **Session Capture** | Whole-session JSON exported to `web-tools-private`. | Local SQLite index + JSONL transcript in `brain/<uuid>/`. |
 | **Telemetry Format** | Monolithic JSON with turn history and tool inputs. | Multi-part: SQLite summaries, JSONL trajectory, artifact files. |
 | **Remote Control** | Web chat via Anthropic cloud infrastructure. | Push sync via Google Cloud Hub (`daily-cloudcode-pa`). |
-| **Attribution** | `Claude-Session: <url>` commit trailer; `claude/*` branch. | `Co-Authored-By: Gemini` trailer; `gemini/*` branch. |
+| **Attribution** | `claude/*` branch and trailer, per [`AGENTS.md`](../../AGENTS.md#assistant-identity-and-attribution). | `gemini/*` branch and trailer, per the same table. |
 
 ---
 
 ## 3. Cross-Harness Continuity
 
-Because both harnesses operate across the same repository collection under
-`C:\Users\mehrl\Code\gh\`:
+Because both harnesses operate on the same repositories (the cloud harness on
+fresh clones under `/home/user`, Antigravity on the checkouts under
+`C:\Users\mehrl\Code\gh\`):
 
 1. **Shared Standards:** Both harnesses obey the conventions in `CLAUDE.md`,
    `docs/QUALIFIED-WRITING.md`, and `docs/CONVERSATION.md`.

@@ -62,11 +62,10 @@ bookmarklet twin to one address. A body must define `window.wt<Lib>` and do noth
 the stub calls it, so one body serves both routes.
 
 **Which route reaches a page** is in
-[`bookmarklets/README.md`](../bookmarklets/README.md#which-route-reaches-a-page).
-Under `script-src 'self'` the bookmarklet is refused and the userscript mounts,
-because the extension evaluates the body itself; that is why the off-site FAB
-is a userscript and why its styles are a constructed stylesheet rather than a
-`<style>` element, which `style-src` would refuse.
+[`bookmarklets/README.md`](../bookmarklets/README.md#which-route-reaches-a-page):
+under `script-src 'self'` only the userscript mounts. That is why the off-site
+FAB is a userscript, and why its styles are a constructed stylesheet rather
+than a `<style>` element, which `style-src` would refuse.
 
 - [`launcher.user.js`](launcher.user.js): **the off-site FAB**, the app's own
   button and drawer carried onto pages that have none, from

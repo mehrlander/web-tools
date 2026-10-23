@@ -275,5 +275,6 @@ before calling the move done.
 
 ## Boundary with web-tools
 
-This skill owns the tracker. The `default` skill owns PR bodies, `[new]`,
-`[main]` and `[diff]` links, and the 🎫 marker's display form.
+This skill owns the tracker, the 🎫 rows of its board caption included. The
+`default` skill loads the conversation rules (`docs/CONVERSATION.md`), which own
+PR bodies and the `[new]`, `[main]` and `[diff]` links.

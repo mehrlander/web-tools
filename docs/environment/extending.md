@@ -25,6 +25,7 @@ Hooks come from three places: git hooks in `.githooks/`, which `npm run setup` a
 | pr-subscribe-hint | `PostToolUse` on `create_pull_request` | [`pr-subscribe-hint.sh`](../../skills/hooks/pr-subscribe-hint.sh) | prompts a subscription to the PR just opened | |
 | wake-quiet-hint | `PostToolUse` on `ReadNotifications` | [`wake-quiet-hint.sh`](../../skills/hooks/wake-quiet-hint.sh) | says whether the PR events just read call for a reply | `wake-quiet-hint.test.mjs` |
 | warn-governing-docs | `PostToolUse` on Edit, Write | [`warn-governing-docs.sh`](../../skills/hooks/warn-governing-docs.sh) | warns after an edit to documentation | `warn-governing-docs.test.mjs` |
+| program-files | `PostToolUse` on Edit, Write | [`program-files.sh`](../../skills/hooks/program-files.sh) | after an edit to a file a declared program governs, names the program, its charter and the reviewing skill, once per program per session | `program-files.test.mjs` |
 | mcp-fail-hint | `PostToolUseFailure` on MCP tools | [`mcp-fail-hint.sh`](../../skills/hooks/mcp-fail-hint.sh) | turns the `-32003` approval error into its diagnosis | |
 | session-record | `Stop` | [`session-record.sh`](../../skills/hooks/session-record.sh) | records the session into the checkout that declares a session store | `session-record-hook.test.mjs` |
 | reply-check | `Stop` | [`reply-check.py`](../../skills/hooks/reply-check.py) | sends a reply back once when the turn changed a page and gave no render link | `reply-check.test.mjs` |
@@ -72,12 +73,6 @@ success, reporting that it is finished and naming itself for deletion.
 
 ### Stop: the session recorder
 
-`session-record.sh` is found by **default discovery**: `hooks/hooks.json` in the
-plugin root, and the plugin root is the marketplace entry's `source`. **The
-marketplace entry declares nothing, and must not.** A `hooks` key on the entry
-refuses the whole plugin (only an inline object is supported there), and the
-suite pins the key's absence.
-
 A plugin install is the only channel that repeats in every container, because
 the platform performs it at session start; a hook written by hand into
 `~/.claude/settings.json` lasts only as long as its container. So a hook that
@@ -106,6 +101,10 @@ environment settings to rebuild.
 
 ### Adding a plugin hook
 
+- **Every plugin hook is found by default discovery**: `hooks/hooks.json` in
+  the plugin root, which is the marketplace entry's `source`. **The marketplace
+  entry declares nothing, and must not**: a `hooks` key there in file-path or
+  array form refuses the whole plugin, and the suite pins the key's absence.
 - Give the hook its own entry in `hooks.json`. The harness caps output per
   hook entry, not across the event, so a line folded into another hook's
   output is the first thing truncated on a heavy session

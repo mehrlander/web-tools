@@ -18,9 +18,10 @@ Cloud coding sandboxes (Claude Code on the web and similar) route outbound
 traffic through a proxy, and a headless browser there may not reach the **JS
 CDNs pages load at runtime** (`cdn.jsdelivr.net`, `unpkg.com`, `esm.sh`,
 `cdnjs.cloudflare.com`), even where `registry.npmjs.org` is reachable. In Claude
-Code on the web the shell reaches the CDNs, and the headless browser reached no
-host at all, CDN or not
-([capabilities.md](environment/capabilities.md#network-access-two-gates-and-a-browser-with-no-egress)
+Code on the web the shell reaches the CDNs, and the headless browser's egress
+is unreliable: through Playwright's `proxy:` option it reaches jsDelivr, but one
+to three requests per page load fail
+([capabilities.md](environment/capabilities.md#network-access-two-gates-and-a-browser-with-unreliable-egress)
 has the measurements); an allowlist proxy can also deny the CDNs outright. Either
 way, a page whose `<head>` pulls Tailwind/daisyUI/Alpine off jsDelivr
 **cannot boot as-is** headless: those `<script>`/`<link>` requests fail and you
@@ -43,7 +44,7 @@ get an unstyled, inert page. The fix is two moves: **vendor** the libraries, the
 Emulating a service's behavior (faking jsDelivr's server-side value-adds, or
 impersonating a data API) is out of scope; see "Edge cases" at the end.
 
-## Step 1 — Vendor
+## Step 1: Vendor
 
 Install, as dev dependencies, every library your pages load off a CDN:
 
@@ -56,7 +57,7 @@ That is sufficient. The files now exist under `node_modules/<pkg>/...`; the only
 remaining question is *which* file inside each package the CDN URL maps to, which
 the interceptor handles next.
 
-## Step 2 — Intercept
+## Step 2: Intercept
 
 Playwright's `page.route()` lets you answer matched requests yourself. The
 mapping from a CDN URL to a local file is mechanical:

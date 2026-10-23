@@ -1,4 +1,4 @@
-# console/ — paste-into-DevTools toolkits
+# console/: paste-into-DevTools toolkits
 
 Code you paste into a browser console and run against the page in front of
 you. Nothing here is hosted or imported by pages; the deliverable is the
@@ -19,9 +19,9 @@ paste.
   single mod pastes as base + core + it. `tap.js` alone is fully standalone.
   [`recipe.js`](mods/recipe.js) loads last, wrapping the verbs the others
   installed.
-- [`suite.js`](suite.js): **generated**: base.js plus every mod, in one
-  paste. Rebuild with `npm run build:console` (the build-on-commit hook does
-  this automatically when `console/` changes). Don't edit it; edit base or a
+- [`suite.js`](suite.js): **generated**, base.js plus every mod in one
+  paste. Rebuild with `npm run build:console` (the commit hook does this
+  automatically when `base.js` or a mod changes). Don't edit it; edit base or a
   mod.
 - [`to-canvas.js`](to-canvas.js): unrelated one-off; renders the page into a
   scrollable canvas.
@@ -79,7 +79,7 @@ the file before using it.
 | [`recipe`](mods/recipe.js) | `glom.recipe()` | prints the session's `glom`/`q` calls back as a replayable script; loads last |
 | [`deck`](mods/deck.js) | `glom.deck()` | a live side-window table of the set |
 
-One `q()` trap no header states: `text=` filters the *current* members, so to
+One `q()` trap: `text=` filters the *current* members, so to
 search inside a container take a css hop first (`#cards div >> text=alpha`, not
 `#cards >> text=alpha`).
 

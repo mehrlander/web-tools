@@ -20,7 +20,7 @@ session reaches it, and how this repo treats git history and branches.
 
 - **[mcp.md](mcp.md)**: what the MCP layer does to a call and to the text it
   carries: which of two servers answers (and why the wrong one looks like a
-  permission wall), the 150-character threshold past which a written URL is
+  permission wall), the 150-character length at which a written URL is
   stored as dead literal text, and the readback that strips HTML anywhere in
   the string.
 - **[mcp-server-routing.md](mcp-server-routing.md)**: the 2026-07-15

@@ -157,7 +157,7 @@ it), and model2vec pulls `minishlab/potion-base-8M` from the Hugging Face
 Hub unauthenticated, so a tiny static-embedding model runs in-session with
 no torch. Heavier stacks (torch, sentence-transformers) untested.
 
-## Network access: two gates, and a browser with no egress
+## Network access: two gates, and a browser with unreliable egress
 
 *(host reachability measured 2026-08-05; browser egress 2026-09-29)*
 
@@ -176,11 +176,11 @@ loopback page server does not work alongside it: Chromium sent the page load to
 the proxy despite a `bypass`, and the proxy answered 405. What worked is serving
 the page by interception at a stand-in `https://` origin and letting every other
 request go live ([`node/test/showing-refs-live.mjs`](../../node/test/showing-refs-live.mjs)).
-So a live run can confirm what a page asked for and where it booted; a complete
-page load is not something to count on, so a repo page cannot be booted as-is in the headless browser, and not because
-a CDN is denied: [node/render/cdn.mjs](../../node/render/cdn.mjs)'s
-interception is what every render depends on, for every host rather than only
-the CDN ones. The technique in portable form is [`../headless-vendoring.md`](../headless-vendoring.md),
+So a live run can confirm what a page asked for and where it booted, but a
+complete page load is not something to count on. A repo page therefore cannot
+be booted as-is in the headless browser even where its CDNs answer:
+[node/render/cdn.mjs](../../node/render/cdn.mjs)'s interception is what every
+render depends on, for every host rather than only the CDN ones. The technique in portable form is [`../headless-vendoring.md`](../headless-vendoring.md),
 and where the interceptor still falls short of jsDelivr's value-adds
 (default-entry selection, generated `.min.*`, server-side CJS to ESM bundling)
 is catalogued in [testing.md](testing.md).

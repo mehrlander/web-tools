@@ -3,10 +3,10 @@
 A pair of GitHub Pages apps tracking Washington State Legislature pension
 bills for the current biennium:
 
-- [`wsl-sync.html`](wsl-sync.html) — the **syncer**: refreshes bill data from
+- [`wsl-sync.html`](wsl-sync.html), the **syncer**: refreshes bill data from
   the legislature's SOAP services (`wslwebservices.leg.wa.gov`), browses all
   six stores, and persists augmentations to the browser's IndexedDB.
-- [`pension-dash.html`](pension-dash.html) — the **reader**: renders the
+- [`pension-dash.html`](pension-dash.html), the **reader**: renders the
   bills that classify as pension-related. It never fetches from the
   legislature; it reads the committed snapshot (plus any IDB overlay).
 
@@ -20,22 +20,22 @@ in the browser and in Node (`fetch-data.mjs`), and
 
 | Data | Where | What it is |
 |---|---|---|
-| `rcw/*.json` | committed in this folder | Static **RCW corpus** (titles, chapters, full cite hierarchy of the Revised Code of Washington) — reference data for lookups, labels, and popups. Doesn't change with bills. |
-| Six bill stores | committed in `data/<biennium>/*.json`, overlaid by IndexedDB | **Per-biennium bill data**: `legislation`, `prefiles`, `sponsors`, `rcws` (RCW cites affected per bill — the classifier's input), `history`, `actions`. |
+| `rcw/*.json` | committed in this folder | Static **RCW corpus** (titles, chapters, full cite hierarchy of the Revised Code of Washington), reference data for lookups, labels, and popups. Doesn't change with bills. |
+| Six bill stores | committed in `data/<biennium>/*.json`, overlaid by IndexedDB | **Per-biennium bill data**: `legislation`, `prefiles`, `sponsors`, `rcws` (RCW cites affected per bill, the classifier's input), `history`, `actions`. |
 
 ## How the pages get bill data
 
 The **committed snapshot is the source of truth**: at load, both pages call
 `wsl.loadStore`, which fetches `data/<biennium>/<store>.json` alongside the
 page. IndexedDB (idb-keyval, keys `wsl-<biennium>-<store>`) overlays **only
-the keyed stores** (`rcws`, `history`, `actions`) — an in-browser sync can
+the keyed stores** (`rcws`, `history`, `actions`): an in-browser sync can
 persist per-bill data for bills beyond the snapshot, and those keys merge on
 top. The list stores (`legislation`, `prefiles`, `sponsors`) always come from
 the committed files, so a stale browser overlay can never shadow a refreshed
 snapshot.
 
 In-browser augmentation happens in wsl-sync.html, two ways: **direct sync**
-(CORS permitting — in practice blocked when served from GitHub Pages) and
+(CORS permitting, and in practice blocked when served from GitHub Pages) and
 **paste mode**, which generates per-store console snippets to run on
 `wslwebservices.leg.wa.gov` (where the fetches are same-origin), then parses
 the pasted response and saves it to IDB.
@@ -69,7 +69,7 @@ npm run wsl-fetch -- --biennium 2023-24    # a past biennium → data/2023-24/
 Each biennium archives to its own `data/<biennium>/` directory instead of
 overwriting. Closed biennia (sessions over) are fetched once and never
 change. An **open** biennium's per-bill data (`rcws`, `history`, `actions`)
-keeps growing, so refresh it with `--full` rather than incrementally — the
+keeps growing, so refresh it with `--full` rather than incrementally; the
 top-level lists are re-fetched every run regardless.
 
 ## Store shapes (`data/*.json` and the IDB overlay alike)
@@ -78,8 +78,8 @@ top-level lists are re-fetched every run regardless.
 |---|---|---|
 | `legislation`, `prefiles` | array of bills | `consolidate(parseLegislationXml(xml))` |
 | `sponsors` | array | `parseSponsorsXml(xml)` |
-| `rcws` | object keyed by `BillId` | `parseRcwXml(xml, billId)` — includes the pension classification |
-| `history`, `actions` | object keyed by `BillNumber`, values arrays | `parseHistoryXml` / `parseActionsXml` — fetched only for pension/adjacent bills |
+| `rcws` | object keyed by `BillId` | `parseRcwXml(xml, billId)`, which includes the pension classification |
+| `history`, `actions` | object keyed by `BillNumber`, values arrays | `parseHistoryXml` / `parseActionsXml`, fetched only for pension/adjacent bills |
 
 `data/<biennium>/meta.json` records when the snapshot was fetched and its counts.
 
@@ -91,5 +91,5 @@ devDependencies for `fetch-data.mjs` — so browser and Node run the identical
 transform/classify code. `npm audit` flags fast-xml-parser <5.7.0
 ([GHSA-gh4j-gqv2-49f6](https://github.com/advisories/GHSA-gh4j-gqv2-49f6)),
 but the advisory is against `XMLBuilder` (XML *writing*), which this code
-never uses — only `XMLParser`. The v5 major bump is deliberately deferred;
+never uses; it uses only `XMLParser`. The v5 major bump is deliberately deferred;
 if it ever happens, bump both runtimes together.

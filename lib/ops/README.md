@@ -52,7 +52,8 @@ inferred, and both held by `node/test/ops.test.mjs`:
 - **The caption never pads.** iOS draws the prompt in a proportional font, so
   leading spaces move a line by an amount no character count predicts.
 - **A `menu` row either opens an `https` page or is a bare shortcut name.** The
-  shell runs a row it cannot find in `urls` as a name, which is measured;
+  phone's shell (`Choose-Claude` in shortcut-tools) runs a row it cannot find
+  in `urls` as a name, which is measured;
   opening a `shortcuts://` link from inside a running shortcut is not, and
   appears in none of the fifteen library dumps.
 

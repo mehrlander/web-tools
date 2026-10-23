@@ -6,7 +6,7 @@ bookmarklets, popups, console), plus reference docs, all sharing one assumption:
 the host they're built against.
 
 What sets these apart from the top-level outputs is that assumption. A site's
-files are *allowed* to know their host intimately — URL shapes, DOM structure,
+files are *allowed* to know their host intimately: URL shapes, DOM structure,
 the host's IndexedDB databases, page-specific selectors. That tight coupling is
 the whole point. A tool that doesn't lean on a specific host is a general tool
 and belongs at the repo root (`pages/`, `bookmarklets/`, `popups/`, `console/`),

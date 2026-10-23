@@ -190,7 +190,7 @@ it, two collections by convention:
 
 Three docs go deeper:
 
-- **[loader.md](docs/loader.md)**: the loader contract. The canonical
+- **[loader.md](docs/loader.md)**: the loader contract. The annotated
   `<head>` block, what each piece of the boot chain contributes, how
   `gh.load()` works, the timing rules, the footgun list, and how that same
   contract lets a page be frozen into an offline **build**.

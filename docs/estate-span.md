@@ -11,7 +11,7 @@ prompted it.
 
 ## The asymmetry
 
-[portable.csv](portable.csv) enumerates what leaves the hub: 45 files, each with
+[portable.csv](portable.csv) enumerates what leaves the hub (45 files on 2026-08-20), each with
 the route a consumer takes it by. There is no inbound counterpart. The hub knows
 exactly what it ships and nothing about what came back, what was adopted, what
 forked, or what grew locally.
@@ -40,7 +40,8 @@ web-tools-private carry one each.
 The skills: home 10, chat-histories 4, wa-bills 1. The fork is wa-bills'
 `web-tools-conventions`, a 110-line copy of the hub's `default` skill whose
 description still names the merge-guide lifecycle retired on 2026-08-05, and
-which loads `CONVENTIONS.md` alone, missing the `SURFACING.md` split. The plugin
+which loads `CONVENTIONS.md` alone, missing the split that produced
+`SURFACING.md` (now `CONVERSATION.md`). The plugin
 has shipped the current version to that repo the whole time; the committed copy
 is what fires.
 
@@ -53,7 +54,7 @@ never followed, across seven repos, and nothing anywhere reports it.
 The estate already runs all three. Naming them is most of the work.
 
 **Hub-scoped.** Population and CSV both here; the checkout is a complete
-enumeration. Eighteen of twenty-two registries, and the right default.
+enumeration. Eighteen of twenty-two registries took this shape on 2026-08-20, and it is the right default.
 
 **Estate-scoped aggregate.** The population spans repos, the CSV stays here,
 and the rows are collected rather than inspected.

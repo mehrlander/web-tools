@@ -10,7 +10,7 @@ The members run from the most general to the most specific; [Membership](#member
 
 | Member | Contract | Renders through | Produced by | Carries |
 | --- | --- | --- | --- | --- |
-| **Surface** | [`surface.md`](surface.md) + [`schemas/surface-v2.schema.json`](schemas/surface-v2.schema.json) | [`pages/branch.html`](../../pages/branch.html), for a `branch-review/1` surface | none live; the Surfacer desktop app wrote v1 | a curated, annotated set of cross-repo items for any reason |
+| **Surface** | [`surface.md`](surface.md) + [`schemas/surface-v2.schema.json`](schemas/surface-v2.schema.json) | [`pages/branch.html`](../../pages/branch.html) and [`pages/walkthrough.html`](../../pages/walkthrough.html), for a `branch-review/1` surface | by hand, or a run's own builder (home `projects/text/runs/2026-10-22-doc-survey/build-walkthrough.py`); the Surfacer desktop app wrote v1 | a curated, annotated set of cross-repo items for any reason |
 | **Chat-results** | [`chat-results.md`](chat-results.md) | [`pages/chat-results.html`](../../pages/chat-results.html) | the `chat-histories` search skill | what a search over the chat archives found |
 | **Stage** | [`docs/stage.md`](../stage.md), `StageLink` | the Web Tools app | `StageLink.mint`, or by hand | a fileset in transit, plus authored review prompts and a mode |
 | **Data view** | [`data-view.md`](data-view.md) | [`pages/data-view.html`](../../pages/data-view.html) | by hand; a bare file needs none | data itself: a CSV, a JSON array, a log, or several of them with a view each |

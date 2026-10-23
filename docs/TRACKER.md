@@ -99,7 +99,7 @@ A tracker that still carries legacy ids (integers like `0001`, or the earlier da
 
 Both are open tags in the sense above, unrecognized by the generator and carried into `board-tags.csv`, so a consumer can select on either today. Promote either when grouping the board by it is worth the code, not before.
 
-**`venue: <channel>` says where the session happens** (`cli`, `cowork`, `dispatch` or `daemon`): the work needs something only that machine has, such as data that must not leave it, a local model, a runtime, or an hour of unattended time. Absent means anywhere. It is a routing hint only; a parked task is claimed, discussed and closed like any other.
+**`venue: <channel>` says where the session happens** (`cli`, `cowork`, `dispatch` or `daemon`). A task is parked on a venue when the work needs something only that machine has, such as data that must not leave it, a local model, a runtime, or an hour of unattended time. Absent means anywhere. It is a routing hint only; a parked task is claimed, discussed and closed like any other.
 
 **`action: <name>` says the method is already settled.** Its value names a procedure the claiming session executes rather than designs, resolved the way an invocation of the same name resolves: the repo's own skills first, then the plugin's, with the `namespace:` prefix to disambiguate. There is no separate registry of actions. Such a task is written thin, and its parameters live in the body, not in frontmatter, since the parser takes scalars only and a parameter set is routinely a list.
 
