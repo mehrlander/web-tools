@@ -823,12 +823,68 @@ def renderer_base(slug):
     return "https://mehrlander.github.io/web-tools/"
 
 
+# A WALKTHROUGH THAT CROSSES PAGES needs addresses the look kit can tell apart
+# (lib/kits/look.js, matches()), and a framed toss has none: its page is a
+# blob: URL, so every step reads as this page and a step on another one lands
+# as a miss. So a link whose steps name a page opens as the tab (?top), and a
+# step's page written as a path in this repository becomes that file's address
+# at the link's ref: a page by the toss as the tab, a document by the data
+# viewer, which has a real address of its own. Measured headless on 2026-10-22:
+# Next went from the Map's Set tab to Showing and back, and Back returned.
+def walk_steps(at):
+    ll = look_link()
+    m = re.search(r"(?:^|&)steps=([^&]*)", at or "")
+    if not (ll and m):
+        return None
+    try:
+        return ll.decode(m.group(1))
+    except Exception:
+        return None
+
+
+def crosses(at):
+    ll = look_link()
+    return any(ll.address(s.get("at"))[0] for s in walk_steps(at) or [])
+
+
+def is_page(path):
+    return bool(re.search(r"\.html?$", path))
+
+
+def walk_at(at, slug, pin):
+    steps = walk_steps(at)
+    if not steps:
+        return at
+    ll = look_link()
+    for s in steps:
+        page, anchor = ll.address(s.get("at"))
+        if not page or re.match(r"([a-z][a-z0-9+.-]*:|[/?#])|pages/(toss-render|data-view)\.html", page):
+            continue
+        path, query, frag = re.match(r"([^?#]*)(?:\?([^#]*))?(?:#(.*))?$", page).groups()
+        path = path + "index.html" if path.endswith("/") or not path else path
+        if not (ROOT / path).is_file():
+            continue
+        if is_page(path):
+            page = f"pages/toss-render.html?top&gh={slug}@{pin}:{path}" + (f"&{query}" if query else "")
+        else:
+            page = f"pages/data-view.html?src={slug}@{pin}:{path}"
+        s["at"] = page + (f"#{frag}" if frag else "") + "!" + anchor
+    return re.sub(r"(^|&)steps=[^&]*", lambda m: m.group(1) + "steps=" + look_link().encode(steps), at, count=1)
+
+
 def address(mech, page, sha, slug, view=None, at="", query="", entries=None, page_ref="", inner=""):
     sha, page_ref = short(sha), short(page_ref)
     # The subject's ref: the commit, with its branch ahead of it once main's
     # renderer reads that (pin_ready). Not the refs= entries, whose grammar
     # takes a plain ref.
     pin = f"{PIN_BRANCH}@{sha}" if PIN_BRANCH else sha
+    if mech in ("toss-gh", "toss-app", "overlay", "toss-data") and crosses(at):
+        at = walk_at(at, slug, pin)
+        if mech == "toss-data":
+            # The data route has no top mode that keeps a document's fragment,
+            # so the walkthrough starts on the data viewer's own address.
+            return (f"https://mehrlander.github.io/web-tools/pages/data-view.html"
+                    f"?src={slug}@{pin}:{quote(page, safe='/@:._-~')}#{at.lstrip('#')}")
     entries = [short_entry(e) for e in (entries or [])]
     base = renderer_base(slug)
     pretty = page[:-len("index.html")] if page.endswith("/index.html") else page
@@ -1087,8 +1143,13 @@ def decision(mech, subjects, sha, slug, hosted, why, warn, facts, at="", query="
                         "on a ?query instead takes --query 'view=sessions'.")
     links = [{"page": p, "view": v, "url": address(mech, p, sha, slug, v, at, query, entries, page_ref, inner)} for p, v in subjects]
     look = look_hints(subjects, at, warn)
-    return warn_cap({"mechanism": mech, "sha": sha, "branch": facts["branch"], "pushed": facts["pushed"],
-                     "repo": slug, "links": links, "why": why, "warnings": warn, "look": look})
+    d = {"mechanism": mech, "sha": sha, "branch": facts["branch"], "pushed": facts["pushed"],
+         "repo": slug, "links": links, "why": why, "warnings": warn, "look": look}
+    if crosses(at) and mech in ("toss-gh", "toss-app", "overlay"):
+        why.append("the walkthrough's steps name pages, which a framed toss cannot tell apart, so the toss "
+                   "carries ?top and each step's page is its address at this ref.")
+        d = as_tab(d, asked=False)
+    return warn_cap(d)
 
 
 # Counted again after every pass that lengthens a link (?top, --refs), so the
