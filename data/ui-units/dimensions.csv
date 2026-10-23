@@ -1,9 +1,7 @@
-dimension,name,holds,test,per_unit,read_from,color
-job,Job,"what the unit does for the reader: answer something work raised, keep track of something ongoing, take in a document, find their way through many items, or work on what they bring","code every job the unit does, at first paint or on an address that carries a payload; a unit that does two jobs carries both, and neither is primary",any,coded.csv job,
-answer,Answer,what the reader gives back on the unit,"a control on the unit records the reader's judgment of what it shows, and the unit writes it where the work that raised it can read it: a repository, a store or a reply address; browser storage and the clipboard do not count",any,coded.csv answer,
-body,Body,"the unit's main arrangement at first paint, at desktop width",the region that would remain if every control were removed,one,coded.csv body,#2563eb
-frame,Frame,how the reader chooses what the body shows,"the control changes what the body holds, not how it looks",any,coded.csv frame,#d97706
-reach,Reach,what one tap on the body opens,"the thing opens over or beside the body, rather than replacing the unit",any,coded.csv reach,
-binding,Binding,"how the body's regions, or the body and its reach, are tied",the strongest tie present,one,coded.csv binding,
-phone,Phone,what changes below 640 pixels wide,"compare the two screenshots, or read the breakpoint in code",one,coded.csv phone,
-ring,Ring,how far the unit sits from the Web Tools app's center,the declaration the unit's ring_basis names,one,units.csv app_ring,
+dimension,name,holds,test,per_unit,basis,read_from,color
+job,Job,"what the unit does for the reader: answer something work raised, keep track of something ongoing, take in a document, find their way through many items, or work on what they bring","code every job the unit does, at first paint or on an address that carries a payload; a unit that does two jobs carries both, and neither is primary",any,judged,coded.csv job,
+answer,Answer,what the reader gives back on the unit,"a control on the unit records the reader's judgment of what it shows, and the unit writes it where the work that raised it can read it: a repository, a store or a reply address; browser storage and the clipboard do not count",any,judged,coded.csv answer,
+body,Body,"the unit's main arrangement at first paint, at desktop width",the region that would remain if every control were removed,one,checked,coded.csv body,#2563eb
+frame,Frame,how the reader chooses what the body shows,"the control changes what the body holds, not how it looks",any,checked,coded.csv frame,#d97706
+phone,Phone,what changes below 640 pixels wide,"compare the two screenshots, or read the breakpoint in code",one,judged,coded.csv phone,
+ring,Ring,how far the unit sits from the Web Tools app's center,the declaration the unit's ring_basis names,one,computed,units.csv app_ring,
