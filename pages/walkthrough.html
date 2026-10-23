@@ -69,7 +69,6 @@
     <button type="button" class="btn btn-ghost btn-sm btn-square" x-show="env" @click="$refs.info.showModal()"
             aria-label="Pull requests and sources"><i class="ph ph-info text-lg"></i></button>
   </div>
-  <div class="text-balance px-3 pb-1 font-mono text-xs tabular-nums text-base-content/70" x-show="env" x-text="headline"></div>
   <div role="tablist" class="tabs tabs-border flex-nowrap overflow-x-auto px-1" x-show="env">
     <template x-for="l in lenses" :key="l.id">
       <button type="button" role="tab" class="tab flex-none gap-1.5 text-sm" :class="lens === l.id && 'tab-active'" @click="setLens(l.id)">
@@ -223,11 +222,6 @@ document.addEventListener('alpine:init', () => {
       };
     },
     get totals() { return this.stats(this.prose); },
-    get headline() {
-      const t = this.totals, open = this.questions.filter(q => this.m(q).status !== 'applied').length;
-      return `${this.fmt(t.before)} → ${this.fmt(t.after)} words (${this.pct(t.before, t.after)}) · `
-        + `${t.changed} of ${t.docs} living documents changed · ${t.deleted} deleted · ${open} open questions`;
-    },
     areaDocs(area) { return this.docs.filter(d => d.facet === area); },
 
     // Lenses and filters -----------------------------------------------------
@@ -354,8 +348,6 @@ document.addEventListener('alpine:init', () => {
           },
           deck: () => this.openDeck(),
         });
-        // The head row may wrap: a file's readings drop to a second line on a phone.
-        this.$refs.card.querySelector('[data-ls="head"]')?.classList.add('flex-wrap');
       } else {
         this._swiper.mount();
       }
@@ -579,16 +571,17 @@ document.addEventListener('alpine:init', () => {
       if (!d) return kit;
       const btn = 'btn btn-ghost btn-xs sm:btn-sm btn-square shrink-0';
       const gh = d.ghLinks.length ? `<details class="dropdown shrink-0"><summary class="btn btn-ghost btn-xs px-1 text-base-content/50" aria-label="This file on GitHub">`
-        + `<i class="ph ph-github-logo text-base"></i><i class="ph ph-caret-down text-[10px] opacity-60"></i></summary>`
+        + `<i class="ph ph-github-logo text-base"></i><i class="ph ph-caret-down text-[10px] opacity-60 max-sm:hidden"></i></summary>`
         + `<ul class="menu dropdown-content z-20 w-56 rounded-box border border-base-300 bg-base-100 p-1 text-sm shadow">`
         + d.ghLinks.map(l => `<li><a href="${esc(l.url)}" target="_blank" rel="noopener"><i class="ph ${esc(l.icon)}"></i>${esc(l.label)}`
           + `<span class="ml-auto font-mono text-xs opacity-50">${esc(l.hint || '')}</span></a></li>`).join('') + '</ul></details>' : '';
-      // On a phone the readings take a line of their own under the name, so the
-      // name keeps its width (the head row wraps; see mountList).
-      const views = `<div class="flex shrink-0 items-center max-sm:order-last max-sm:w-full">` + d.viewModes.map(m => `<button type="button" class="${btn}${m.on ? ' btn-active' : ''}"`
+      const views = `<div class="flex shrink-0 items-center">` + d.viewModes.map(m => `<button type="button" class="${btn}${m.on ? ' btn-active' : ''}"`
         + ` data-act="view" data-key="${esc(m.key)}" aria-label="${esc(m.label)}" aria-pressed="${!!m.on}"><i class="ph ${esc(m.icon)} text-base"></i></button>`).join('') + '</div>';
+      // On a phone the readings share the name's row, so the counter gives way:
+      // the list just above already marks the position.
       const cut = kit.indexOf('</h2>') + 5;
-      return kit.slice(0, cut) + gh + views + kit.slice(cut);
+      return kit.slice(0, cut) + gh + views
+        + kit.slice(cut).replace('<div class="flex flex-none items-center">', '<div class="flex flex-none items-center max-sm:hidden">');
     },
     releaseReview(root) {
       for (const box of root?.querySelectorAll?.('[data-mounted]') || []) delete window[box.dataset.mounted];
