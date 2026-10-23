@@ -284,16 +284,20 @@ test('modes are coherent: computed names a real deriver, recorded names none', (
 // a hand-kept REGISTRY_FIELDS set stood in for the check the registries get. Since
 // 2026-08-16 both halves of the pair have a row in registries.csv and a property
 // definition per column, so the ordinary check above reaches them and the stand-in
-// is gone. What is left here is content rather than schema. `area` is the reader's grouping and its rule is one question,
-// stated in docs/registries.md: does the target have a path in this tree? Nine
-// files, seven names. The first cut was three, splitting the names by topic,
-// which did not survive: two of them were names a program parses and two were
-// vocabulary a person picks from, so the seam ran through the group.
-const AREAS = ['files', 'names'];
-test('every registry declares its area, and leads with a title and a gloss', () => {
+// is gone. What is left here is content rather than schema.
+//
+// `key_primitive` replaced `area` (files, names) on 2026-10-23. `area` asked
+// whether the target has a path in this tree, and five registries had answered
+// `files` on a rule nobody stated: a task id names a file only by convention, a
+// glob selects a set, a pair of paths is a relation. The question that can be
+// checked is what kind of thing the key is, in docs/column-primitives.md's
+// terms: a locator resolves into a declared identity space and the suite proves
+// it resolves; anything else is an id, a name the registry assigns or records.
+const KEY_PRIMITIVES = ['id', 'locator'];
+test('every registry declares its key primitive, and leads with a title and a gloss', () => {
   for (const r of reg.registries) {
-    assert.ok(AREAS.includes(r.area),
-      `${r.id}: area must be one of ${AREAS.join(', ')}, got ${JSON.stringify(r.area)}`);
+    assert.ok(KEY_PRIMITIVES.includes(r.key_primitive),
+      `${r.id}: key_primitive must be one of ${KEY_PRIMITIVES.join(', ')}, got ${JSON.stringify(r.key_primitive)}`);
     assert.ok(r.title && r.title.length <= 40,
       `${r.id}: needs a short title, the identity a reader meets before the mechanics`);
     assert.ok(r.gloss && r.gloss.length > 40,
@@ -303,6 +307,48 @@ test('every registry declares its area, and leads with a title and a gloss', () 
   // Every property already glossed itself; no registry did, and that asymmetry
   // is what this pair of fields closes.
   for (const d of decls) assert.ok(d.gloss, `${d.registry}.${d.property}: no gloss`);
+});
+
+// A key is a locator exactly when its identity space is the tree: `path`, or
+// `path:<prefix>` for keys relative to a prefix. Another declared space (a
+// branch name, a registry id) keeps the key comparable across registries
+// without making it resolve, so it stays an id. And a locator has to locate:
+// every key, less any #fragment, names a file or folder in this checkout.
+//
+// The one ledger is a snapshot. data/doc-overlap/docs.csv records the documents
+// a hand-run embedding pass measured, and a document deleted since stays in the
+// measurement: a pinned reference, broken by a later edit, in docs/locators.md's
+// terms. The list is exact, so a further deletion fails here and says which
+// measurement still names the file; rerunning the pass empties it.
+const PINNED_BROKEN = {
+  'doc-overlap-docs': ['docs/SURFACING.md', 'docs/surfacing-course.md'],
+};
+// A key may also name a file git ignores, which exists only once something has
+// made it: content.csv classifies the lockfile npm writes on install, present in
+// a working checkout and absent from a bare one. Such a key is skipped, not
+// required to be missing.
+const IGNORED_TARGETS = {
+  'content': ['package-lock.json'],
+};
+test('a locator key resolves into the tree, and only a path identity makes one', () => {
+  for (const r of reg.registries) {
+    const isPath = /^path(:|$)/.test(r.identity || '');
+    assert.equal(r.key_primitive === 'locator', isPath,
+      `${r.id}: identity ${JSON.stringify(r.identity)} with key_primitive ${r.key_primitive}; ` +
+      `a key is a locator if and only if its identity is path or path:<prefix>`);
+    // Three registries also declare their key column as a property; where one
+    // does, the column's primitive is the key's.
+    const own = decls.find(d => d.registry === r.id && d.property === r.key);
+    if (own) assert.equal(own.column_primitive, r.key_primitive,
+      `${r.id}: properties.csv calls its key ${r.key} a ${own.column_primitive}, registries.csv a ${r.key_primitive}`);
+    if (!isPath) continue;
+    const prefix = r.identity.includes(':') ? r.identity.split(':')[1] : '';
+    const broken = registryRows(r).map(row => row[r.key])
+      .filter(k => !(IGNORED_TARGETS[r.id] || []).includes(k))
+      .filter(k => !existsSync(path.join(repoRoot, prefix + k.split('#')[0].replace(/\/$/, ''))));
+    assert.deepEqual(broken, PINNED_BROKEN[r.id] || [],
+      `${r.id}: these keys name nothing in the tree, so the registry's locators are broken`);
+  }
 });
 
 // `renders_in` is the registry row's one derived field: the app files that

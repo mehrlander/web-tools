@@ -97,6 +97,32 @@ So `href: toss-render.html` in `pages` and `path: pages/toss-render.html` in
 it. Nesting is written into scopes instead. The `harness` scope covers `node/`
 and `python/` and excludes `node/test/`, which `tests` owns.
 
+### What kind of thing a key is
+
+A registry registers objects: a themed set of them, each found by its key and
+described by declared properties. Membership across registries is free, and
+`identity` exists so their keys can be compared. Property ownership is not
+free: one property about one target answers to one registry.
+
+`key_primitive` says what the key is, in
+[`column-primitives.md`](column-primitives.md)'s terms. A key is a `locator`
+when its identity space is the tree (`path`, or `path:<prefix>`) and the suite
+checks that every key names a file or folder in this checkout. Any other key is
+an `id`: a name the registry assigns or records, which other rows and files
+address it by, even where a rule could resolve it. A task's id names its file
+only by the tracker's convention, a glob selects a set rather than a target, and
+a pair of paths names a relation, so all three are ids. `assistant-branches`
+declares a `branch` identity, which keeps its keys comparable with any other
+branch-keyed registry, but nothing can check that a merged branch still exists,
+so its key is an id too.
+
+One locator registry is a snapshot. `doc-overlap-docs` records the documents a
+hand-run embedding pass measured, so a document deleted since is a pinned
+reference that broke, in [`locators.md`](locators.md)'s terms. The suite lists
+those keys exactly, and rerunning the pass clears them. A key naming a file git
+ignores, such as the lockfile `content.csv` classifies, is skipped, since only
+an install makes it.
+
 ### Two questions, not a kind
 
 A registry has no type. `membership` says how targets enter: `computed`, the
@@ -169,11 +195,11 @@ twice. What a stream must keep (ids, times, corrections) is the next document.
    other registries' keys.
 3. One table, one CSV file. Two registries never share a file.
 4. Add the row to `registries.csv`: `path`, `key`, `identity`, `membership`,
-   `inherits`, `target`, `scope`, `span`, `fields`, `gate`, `area`, `title`,
-   `gloss`. `fields` is `governed`; the suite asserts that no registry is
+   `inherits`, `target`, `scope`, `span`, `fields`, `gate`, `key_primitive`,
+   `title`, `gloss`. `fields` is `governed`; the suite asserts that no registry is
    `ungoverned`, so declaring one means changing the test and stating why.
-   `gate` is a test path, or the token `none`. `area` is `files` where the
-   target has a path in this repository and `names` otherwise.
+   `gate` is a test path, or the token `none`. `key_primitive` is `locator`
+   where `identity` is `path` or `path:<prefix>`, and `id` otherwise.
 5. Add one row to `properties.csv` per non-key column: `mode`, `deriver` (for
    `computed`), `required`, `form`, `exclusive`, `values`, `column_primitive`,
    `gloss`.
@@ -216,7 +242,8 @@ by its test names:
 - every `required: value` property is present on every row
 - a declared id is its registry key, and a declared label draws from a set or repeats
 - modes are coherent: computed names a real deriver, recorded names none
-- every registry declares its area, and leads with a title and a gloss
+- every registry declares its key primitive, and leads with a title and a gloss
+- a locator key resolves into the tree, and only a path identity makes one
 - `renders_in` matches its derivation on every registry
 - no target answers to two registries for the same property
 - the ownership gate still fires when two registries do claim one pair (a
@@ -235,9 +262,11 @@ each have a registry row, and every non-key column in both has a declaration.
 
 ## Reader-facing fields
 
-`title` and `gloss` identify a registry in the Map view. `area` groups the tab
-by one question: does the target have a path in this repository (`files`) or
-not (`names`). A topical grouping was tried first and did not hold. `renders_in`
+`title` and `gloss` identify a registry in the Map view. `key_primitive`
+groups the tab: registries keyed by a locator, then those keyed by a name. It
+replaced `area` (`files`, `names`) on 2026-10-23, which asked whether the target
+has a path in this repository and had been answered without a stated rule for
+five registries. A topical grouping was tried before `area` and did not hold. `renders_in`
 is derived by [`registries-reach.mjs`](../node/build/registries-reach.mjs)
 from the files under `lib/`, `pages/` and `app/` that name the registry's path.
 That directory list is literal (`APP_DIRS`); when the app moves, move it. An

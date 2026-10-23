@@ -150,7 +150,7 @@ registries,scope,recorded,,value,column,yes,,value,the population the registry c
 registries,span,recorded,,value,column,yes,hub;estate,label,"whether this checkout bounds the population, or a complete enumeration needs another repo; the typed sibling of scope, which says the same thing in prose and so cannot be grouped or counted"
 registries,fields,recorded,,value,column,yes,governed;ungoverned,label,whether every non-key column of this registry must be a declared property
 registries,gate,recorded,,value,column,yes,,locator,the test that fails when the registry and the repo disagree; none when nothing holds it
-registries,area,recorded,,value,column,yes,files;names,label,the reader grouping in the Registries tab
+registries,key_primitive,recorded,,value,column,yes,id;locator,label,"the column primitive of the registry's key: a locator when the key resolves into a declared path identity and the suite checks that every key does, an id when the key is a name the registry assigns or records"
 registries,title,recorded,,value,column,yes,,value,display name
 registries,gloss,recorded,,value,column,yes,,value,one line on what the registry is for
 registries,renders_in,computed,node/build/registries-reach.mjs,counted,column,no,,label,"the lib/, pages/ and app/ files naming the path in code; empty marks a registry no app surface reads"
@@ -165,6 +165,7 @@ properties,gloss,recorded,,value,column,yes,,value,one line on what the property
 manifest-fields,required,recorded,,none,column,yes,yes;no,label,"whether a member of an array or object key must be present; blank on a top-level key, whose requiredness was never recorded"
 vocabularies,gloss,recorded,,value,column,yes,,value,"what this one value means, in the terms a reader picking among them needs"
 vocabularies,label,recorded,,counted,column,yes,,label,"the display name for this value, where it differs from the value itself"
+vocabularies,icon,recorded,,none,column,yes,,value,"the Phosphor glyph the app draws beside this value wherever the value is shown; blank on a value that has none"
 tracker-tags,tag,computed,skills/tasks/build-board.py,value,column,yes,,label,"the frontmatter key. Deliberately undeclared as a domain: the layer is open by design, so a closed set here would be the promotion TRACKER.md says to make in the generator instead"
 tracker-tags,value,computed,skills/tasks/build-board.py,value,column,yes,,label,the scalar the task file gave that key
 aims-goals,key,recorded,,none,column,yes,,id,"stable identifier, one word"
@@ -174,7 +175,7 @@ aims-initiatives,key,recorded,,none,column,yes,,id,"stable identifier, hyphenate
 aims-initiatives,name,recorded,,none,column,yes,,value,the initiative as a title
 aims-initiatives,gloss,recorded,,none,column,yes,,value,the initiative in one sentence
 aims-reading,repo,recorded,,none,column,yes,,value,owner/repo when the document lives outside the hub; blank means the hub
-aims-reading,path,recorded,,none,column,yes,,id,path within its repo
+aims-reading,path,recorded,,none,column,yes,,locator,path within its repo
 aims-reading,private,recorded,,none,column,yes,true,label,set when the link resolves only for the owner
 aims-reading,gloss,recorded,,none,column,yes,,value,why this document is on the list
 themes,a,computed,python/duplicated-claims.py,none,column,yes,,locator,"first file of the pair, sorted"

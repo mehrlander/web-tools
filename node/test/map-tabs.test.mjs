@@ -75,11 +75,12 @@ const MAP_ROUTES = [...routeKeys('MAP_TABS'), ...routeKeys('MAP_SUBVIEWS')];
 // Outposts and Data). Icons joined Overview on 2026-10-23.
 const GROUPS = [
   ['Overview', [['overview', 'Contents'], ['aims', 'Purpose'], ['icons', 'Icons']]],
-  ['Reach', [['reach', 'Routes'], ['projects', 'Projects'], ['distribution', 'Distribution'], ['outposts', 'Outposts'], ['data', 'Data']]],
+  ['Reach', [['reach', 'Routes'], ['projects', 'Projects'], ['distribution', 'Distribution'], ['outposts', 'Outposts']]],
   ['Research', [['research', 'Probes'], ['exploration', 'Exploration']]],
   ['Harness', [['harness', 'Automation'], ['programs', 'Programs'], ['set', 'Set'], ['tests', 'Tests'], ['skills', 'Skills'], ['agents', 'Agents'], ['peeves', 'Peeves'], ['context', 'Context'], ['lifetimes', 'Lifetimes'], ['surfacing', 'Surfacing']]],
   ['Browser', [['dimensions', 'Dimensions'], ['patterns', 'Gallery'], ['views', 'Views'], ['kits', 'Kits'], ['showing', 'Showing']]],
-  ['Docs', [['docs', 'Inventory'], ['growth', 'Growth'], ['policy', 'Policy'], ['themes', 'Themes'], ['registries', 'Registries']]],
+  ['Docs', [['docs', 'Inventory'], ['growth', 'Growth'], ['policy', 'Policy'], ['themes', 'Themes']]],
+  ['Data', [['primitives', 'Primitives'], ['data', 'Census'], ['registries', 'Registries']]],
   ['Watch', [['watch', 'Triggers'], ['public', 'Public'], ['names', 'Names']]],
 ];
 
@@ -107,7 +108,9 @@ test('every tab in the strip is one entry in the array that generates it', () =>
   // 7 to 6 on 2026-10-13: two doors. Purpose joined Overview, and Projects
   // joined Routes, Distribution, Outposts and Data under Reach.
   // 6 to 7 on 2026-10-19: Watch, by the owner's decision in session 1fd50ebd.
-  assert.equal(TABS.length, 7, 'seven top-level tabs, Overview first and Reach second');
+  // 7 to 8 on 2026-10-23: Data, holding Primitives with Reach's Census and
+  // Docs' Registries, on the owner's go-ahead in session 5d9aea14.
+  assert.equal(TABS.length, 8, 'eight top-level tabs, Overview first and Reach second');
   assert.deepEqual(TABS.map(t => t.n), GROUPS.map(([n]) => n), 'the tabs, by label, in strip order');
   assert.deepEqual(SUBVIEW_GROUPS.map(g => [TABS.find(t => t.k === g.parent)?.n, g.options]), GROUPS,
     'each tab carries exactly its subviews, in order, under their established keys');

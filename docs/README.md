@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `node/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 17 are named by CLAUDE.md,
-22 by a skill, 41 by a page or component. The remaining 46 are
+22 by a skill, 42 by a page or component. The remaining 45 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -30,7 +30,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`app-routes.csv`](app-routes.csv) — the app's own destinations: every address, what it is for, and which files draw it
 - [`artifacts.md`](artifacts.md) *(orphan)* — Claude Code artifacts and the link-choice matrix
 - [`code-layers.md`](code-layers.md) — the code layers and the admission rule that sorts a new file into one of them
-- [`column-primitives.md`](column-primitives.md) *(orphan)* — the column primitives: what kind of thing a column holds (id, label, locator, value), the role axis and its crossing with position
+- [`column-primitives.md`](column-primitives.md) — the column primitives: what kind of thing a column holds (id, label, locator, value), the role axis and its crossing with position
 - [`delivery.json`](delivery.json) *(measured)* — historical snapshots of the retired injection routes and an unshipped proposal; current content routes are in Map / Harness / Context
 - [`doc-growth.md`](doc-growth.md) *(orphan)* — the doc-growth chart: what it plots, how to generate its data file for a repo, and what makes the chart misleading
 - [`docs.csv`](docs.csv) — the documentation registry: what each file under docs/ is, on four axes

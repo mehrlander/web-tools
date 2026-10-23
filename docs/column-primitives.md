@@ -4,11 +4,14 @@ One property, `column_primitive`, saying what kind of thing a column holds. It i
 the coarse question that sits above [`LINKAGE.md`](https://github.com/mehrlander/home/blob/main/projects/budget-drs/data/design/LINKAGE.md)'s
 `column_domain`.
 
-**Populated here on 2026-09-10.** `docs/properties.csv` declares it on all 178
-rows, measured against each property's real column rather than read off its
-gloss: **value 86, label 63, locator 27, id 2.** Two more property tables remain,
-both in budget-drs: `data/design/properties.csv` (49 rows) and `lineage/columns.csv`
-(1,171).
+`docs/properties.csv` declares it on every row, and `docs/registries.csv`
+answers the same question for each registry's key as `key_primitive`. The
+current counts are not kept here: the Map's **Data tab, Primitives** draws every
+declared column under its primitive, the hub's and, with a token, those of any
+repository that declares its column registries under `data.columns` (budget-drs's
+`lineage/columns.csv` is the first). Each primitive's icon is its row's `icon` in
+[`vocabularies.csv`](vocabularies.csv). The first population, on 2026-09-10, is
+measured below.
 
 ## The four
 
@@ -157,7 +160,9 @@ nothing and points nowhere.
 the 30 registries have no property row for their own key column: `registries.csv`
 declares the key in its `key` field, and `properties.csv` does not repeat it,
 which is the one-property-one-registry rule working correctly. So `properties.csv`
-sees almost no ids by construction. The two that do appear, `aims-goals.key` and
+sees almost no ids by construction. Since 2026-10-23 `registries.csv` classifies each
+registry's key as `key_primitive`, so the Primitives view counts the ids this
+table cannot see. The two that do appear, `aims-goals.key` and
 `aims-reading.path`, are the exceptions worth a second look.
 
 **Uniqueness alone does not earn `id`.** `registries.path` is distinct on all 30

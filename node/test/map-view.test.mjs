@@ -994,8 +994,8 @@ test('a tab tap renders, loads, and hands the tab to the shell', async () => {
   await tick(2);
   assert.equal(d2.mapTab, 'docs');
   assert.equal(d2.displayTab, 'docs');
-  assert.equal(JSON.stringify(d2.subviews.map(s => s.k)), JSON.stringify(['docs', 'growth', 'policy', 'themes', 'registries']),
-    'Docs exposes Inventory first, then Purpose, Growth, Policy, Themes, and Registries');
+  assert.equal(JSON.stringify(d2.subviews.map(s => s.k)), JSON.stringify(['docs', 'growth', 'policy', 'themes']),
+    'Docs exposes Inventory first, then Growth, Policy and Themes; Registries moved to Data on 2026-10-23');
   assert.deepEqual([...taps], ['docs'], 'the shell is told, so the URL gets stamped');
   assert.ok(d2.docsReg, 'the tab fetched its own manifest');
 
