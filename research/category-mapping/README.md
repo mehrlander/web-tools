@@ -510,8 +510,9 @@ docs.csv.
 
 Three readers, blind to one another and to this account, got only the poster
 image and eight collections the poster does not show, and named each one.
-[`poster-test/`](poster-test/) holds the instructions, their answers and the
-scorer; the poster they saw is the Answer tab at commit `37908ad5`, regenerable
+[`poster-test/`](poster-test/) holds the instructions (`question.md`), their
+answers (`reader-p1.json`, `reader-p2.json`, `reader-p3.json`) and the scorer
+(`score.py`); the poster they saw is the Answer tab at commit `37908ad5`, regenerable
 with the command above. Seven collections have a key computed from Reader A's
 coding through the answer's own rules; the eighth, errands, probes a case the
 answer leaves open.
