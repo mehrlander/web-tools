@@ -305,7 +305,7 @@ function stubGrid() {
 }
 const headings = () => [...(menu()?.children || [])].filter(c => !c.matches('[role="menuitem"]')).map(c => c.textContent);
 const openHeader = (col, opts) => {
-  const out = RM.headerDefaults(opts).headerMenu(new window.MouseEvent('click', { clientX: 10, clientY: 10 }), col);
+  const out = RM.headerDefaults(opts).headerContextMenu(new window.MouseEvent('contextmenu', { clientX: 10, clientY: 10 }), col);
   assert.deepEqual(out, [], "Tabulator's own popup would draw beside this one");
 };
 
@@ -377,4 +377,24 @@ test('the filter switch hides the row on the table, or hands it to the host', ()
   assert.deepEqual(seen, [true]);
   openHeader(cols[1], opts);
   assert.ok(labels().includes('Hide header filters'));
+});
+
+test('a long press opens below the header and eats the release, so it neither sorts nor picks', () => {
+  reset();
+  const { cols } = stubGrid();
+  const touch = new window.Event('touchstart');
+  RM.headerDefaults().headerContextMenu(touch, cols[0]);
+  assert.ok(menu(), 'a long press raised no menu');
+  let sorted = 0;
+  cols[0].getElement().addEventListener('click', () => { sorted++; });
+  const release = new window.MouseEvent('click', { bubbles: true, cancelable: true });
+  cols[0].getElement().dispatchEvent(release);
+  assert.equal(sorted, 0, "the finger's release reached the header");
+  assert.ok(menu(), 'the release closed the menu it opened');
+  cols[0].getElement().dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+  assert.equal(sorted, 1, 'a later tap was eaten too');
+});
+
+test('the header carries no button: the menu is a right-click or a hold', () => {
+  assert.deepEqual(Object.keys(RM.headerDefaults()), ['headerContextMenu']);
 });
