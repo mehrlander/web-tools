@@ -218,6 +218,18 @@ A blank cell means *not asserted*, never an empty string or a checked result of
 none. Where that distinction matters, use a token: `gate: none` means checked,
 and nothing holds the registry. Read the token, not the cell's truthiness.
 
+Keep `recorded` and `computed` columns in separate files. A file that holds
+both is where a generator's rewrite meets a hand edit: a session that ran the
+tests generator and then wrote `protects` into `docs/tests.csv` was editing
+machine output. So `docs/tests-authored.csv` holds the two columns a person
+writes about a test, `docs/tests.csv` holds what `tests-index` derives, and
+`tests` declares `inherits: tests-authored`. The generator adds and drops rows
+in the authored file as test files come and go, and changes no value there.
+Five registries stay mixed by name, each with its reason in
+[`properties-registry.test.mjs`](../node/test/properties-registry.test.mjs):
+`registries`, `harness`, `docs`, `pages` and `doc-overlap-gold`. The list is
+exact in both directions.
+
 Store `recorded` values always; authored judgment cannot be recomputed. Store
 `computed` values only where a browser, a gate or a reviewable diff needs a
 committed artifact, and keep them held to their deriver. Never store what a
@@ -242,6 +254,7 @@ by its test names:
 - every `required: value` property is present on every row
 - a declared id is its registry key, and a declared label draws from a set or repeats
 - modes are coherent: computed names a real deriver, recorded names none
+- a registry file is authored or derived, or mixed by name
 - every registry declares its key primitive, and leads with a title and a gloss
 - a locator key resolves into the tree, and only a path identity makes one
 - `renders_in` matches its derivation on every registry

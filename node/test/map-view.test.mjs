@@ -66,6 +66,7 @@ const propsVocabCsv = readFileSync(path.join(repoRoot, 'docs', 'vocabularies.csv
 const skillsCsv = readFileSync(path.join(repoRoot, 'skills', 'manifest.csv'), 'utf8');
 const textFieldsCsv = readFileSync(path.join(repoRoot, 'docs', 'text-fields.csv'), 'utf8');
 const testsCsv = readFileSync(path.join(repoRoot, 'docs', 'tests.csv'), 'utf8');
+const testsAuthoredCsv = readFileSync(path.join(repoRoot, 'docs', 'tests-authored.csv'), 'utf8');
 const kitsCsv = readFileSync(path.join(repoRoot, 'docs', 'kits.csv'), 'utf8');
 const ctxCsv = readFileSync(path.join(repoRoot, 'docs', 'context-sources.csv'), 'utf8');
 const ctxTopicsCsv = readFileSync(path.join(repoRoot, 'docs', 'context-topics.csv'), 'utf8');
@@ -111,6 +112,7 @@ window.GH = class {
     if (p === 'skills/manifest.csv') return { text: skillsCsv };
     if (p === 'docs/text-fields.csv') return { text: textFieldsCsv };
     if (p === 'docs/tests.csv') return { text: testsCsv };
+    if (p === 'docs/tests-authored.csv') return { text: testsAuthoredCsv };
     if (p === 'docs/kits.csv') return { text: kitsCsv };
     if (p === 'docs/context-sources.csv') return { text: ctxCsv };
     if (p === 'docs/context-topics.csv') return { text: ctxTopicsCsv };

@@ -289,7 +289,7 @@ changes touch:
 | `pages/**/*.html` | `npm run pages-index` | `pages/README.md`, `pages/index.html`, `pages/pages.csv` |
 | skills, `lib/`, `pages/`, `docs/` | `npm run docs-reach` | `reach` and `words` in `docs/docs.csv` |
 | `docs/docs.csv` | `npm run docs-readme` | `docs/README.md` |
-| `node/test/` | `npm run tests-index` | derived fields in `docs/tests.csv` |
+| `node/test/` | `npm run tests-index` | `docs/tests.csv`, and rows added or dropped in `docs/tests-authored.csv` |
 | `node/`, `python/`, any markdown | `npm run tools-index` | derived fields in `docs/harness.csv` |
 | `lib/kits/`, or a file that loads a kit | `npm run kits-index` | `docs/kits.csv` |
 | `lib/`, `pages/` | `npm run registries-reach` | `renders_in` in `docs/registries.csv` |
@@ -298,10 +298,11 @@ changes touch:
 | `docs/house-policies.md` | `npm run policy-skills` | the h plugin's skills under `plugins/h/skills/` |
 | `tracker/tasks/` | `npm run tracker-board` | `tracker/board.md`, `tracker/board.csv`, `tracker/board-tags.csv` |
 
-Most of these files are generated whole. Four are not. `docs/docs.csv`,
-`docs/harness.csv`, `docs/tests.csv` and `docs/registries.csv` are hand-edited
-except for the fields a generator stamps. Edit a row freely and leave those
-fields alone.
+Most of these files are generated whole. Three are not. `docs/docs.csv`,
+`docs/harness.csv` and `docs/registries.csv` are hand-edited except for the
+fields a generator stamps. Edit a row freely and leave those fields alone.
+`docs/tests.csv` became whole on 2026-10-23: what a person writes about a test
+is in `docs/tests-authored.csv`, whose values no generator changes.
 
 `docs-readme` and `docs-reach` are a cycle. `docs/README.md` is generated from
 the registry and is also a row in it, so the hook runs `docs-reach` a second

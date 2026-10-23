@@ -9,8 +9,8 @@ docs,reach,computed,node/build/docs-reach.mjs,value,column,yes,injected;project;
 docs,words,computed,node/build/docs-reach.mjs,value,column,yes,,value,"the document's size, and its share of the folder"
 docs,maintenance,recorded,,counted,column,yes,,value,who keeps the document true; a bare row is counted by the registry rather than hidden
 docs,formerly,recorded,,none,column,yes,,locator,"prior paths of the same document, semicolon-separated; a read of one is a read of this row, so a rename keeps its readership"
-tests,kind,recorded,,value,column,yes,behavior;gate,label,"what the check claims: that code does the right thing, or that a committed file is still true. The vocabulary is closed and the gate holds rows to it"
-tests,protects,recorded,,counted,column,yes,,value,the one thing that breaks if the test is deleted; blanks are counted
+tests-authored,kind,recorded,,value,column,yes,behavior;gate,label,"what the check claims: that code does the right thing, or that a committed file is still true. The vocabulary is closed and the gate holds rows to it"
+tests-authored,protects,recorded,,counted,column,yes,,value,the one thing that breaks if the test is deleted; blanks are counted
 tests,test_count,computed,node/build/tests-index.mjs,counted,column,yes,,value,"how many top-level test() calls the file writes, a static lower bound, not a count of the assert calls inside them. Blank, never zero, on the browser-driven checks that are not node:test files, because test() is not their unit; the blank is the honest reading and the count is the ledger figure"
 tests,test_names,computed,node/build/tests-index.mjs,counted,column,no,,value,"what each top-level test() call is named, in source order; the file's own account of its coverage, so protects need not restate it. A parameterized name is carried as its template text. Blank on the same browser-driven checks as its count, for the same reason: test() is not their unit"
 tests,method,computed,node/build/tests-index.mjs,value,column,yes,kit;alpine;spawn;read;pure,label,"how the check reaches its subject, strongest present wins"
@@ -56,7 +56,7 @@ pages,top,computed,node/build/pages-index.mjs,value,column,yes,,label,"the top-l
 pages,group,computed,node/build/pages-index.mjs,counted,column,yes,,locator,"the page's own directory, as the gallery labels it; blank for a root page. Was a nesting level until 2026-08-18, when flattening it onto the row is what let the catalog become a CSV"
 pages,label,computed,node/build/pages-index.mjs,value,column,yes,,value,the short name the catalog card and the picker show
 pages,title,computed,node/build/pages-index.mjs,value,column,yes,,value,"the page's own <title>, read from the file"
-pages,note,computed,node/build/pages-index.mjs,counted,column,yes,,value,"the one-line blurb. Authored in the NOTES map inside the deriver, not here, and blank on more pages than not: the honest measure of how much of the gallery is unexplained, countable from this file rather than stated in it"
+pages,note,recorded,,counted,column,yes,,value,"the one-line blurb, written by hand in the NOTES map of node/build/pages-index.mjs and copied here on each run, so an edit here is lost; blank on more pages than not, the honest measure of how much of the gallery is unexplained"
 pages,thumb,computed,node/build/pages-index.mjs,value,column,yes,,locator,"the committed screenshot path; refreshed once per session, never by the commit hook"
 pages,code,computed,node/build/pages-index.mjs,value,column,yes,,locator,the GitHub blob URL for the page source
 tracker-tasks,title,computed,skills/tasks/build-board.py,value,column,yes,,value,"the task's short imperative, read from its frontmatter"

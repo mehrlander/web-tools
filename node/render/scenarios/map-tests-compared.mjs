@@ -20,14 +20,16 @@ const HOME = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '.
 const PROBE = 'projects/budget-drs/data/design/probes/2026-09-05-checks-reading/';
 export default async function (page) {
   const reg = await page.evaluate(() => fetch('../../docs/tests.csv').then(r => r.text()));
+  const authored = await page.evaluate(() => fetch('../../docs/tests-authored.csv').then(r => r.text()));
   const expl = await page.evaluate(() => fetch('../../data/checks-reading/explanations.csv').then(r => r.text()));
   const homeFiles = existsSync(path.join(HOME, PROBE, 'reading.csv')) ? readFileSync(path.join(HOME, PROBE, 'reading.csv'), 'utf8') : '';
   const homeComps = existsSync(path.join(HOME, PROBE, 'explanations.csv')) ? readFileSync(path.join(HOME, PROBE, 'explanations.csv'), 'utf8') : '';
-  const ok = await page.evaluate(([regText, explText, homeFiles, homeComps, probe]) => {
+  const ok = await page.evaluate(([regText, explText, homeFiles, homeComps, probe, authoredText]) => {
     if (!window.Alpine || !window.__shell || !window.GH) return 'no shell';
     const origGet = window.GH.prototype.get;
     window.GH.prototype.get = async function (name) {
       if (name === 'docs/tests.csv') return { text: regText };
+      if (name === 'docs/tests-authored.csv') return { text: authoredText };
       if (name === 'data/checks-reading/explanations.csv') return { text: explText };
       if (name === probe + 'reading.csv' && homeFiles) return { text: homeFiles };
       if (name === probe + 'explanations.csv' && homeComps) return { text: homeComps };
@@ -43,7 +45,7 @@ export default async function (page) {
     history.replaceState(null, '', u.toString());
     window.__shell.goMap();
     return true;
-  }, [reg, expl, homeFiles, homeComps, PROBE]);
+  }, [reg, expl, homeFiles, homeComps, PROBE, authored]);
   if (ok !== true) throw new Error('map-tests-compared scenario: ' + ok);
   const host = () => [...document.querySelectorAll('[x-data]')]
     .find(el => (el.getAttribute('x-data') || '').includes('map('));

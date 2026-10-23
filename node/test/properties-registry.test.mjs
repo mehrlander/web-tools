@@ -309,6 +309,34 @@ test('every registry declares its key primitive, and leads with a title and a gl
   for (const d of decls) assert.ok(d.gloss, `${d.registry}.${d.property}: no gloss`);
 });
 
+// A registry's file is authored or derived, not both: every property in it is
+// `recorded`, or every one is `computed`. A file holding both is where a
+// generator's rewrite meets a hand edit, which is how a session came to write
+// prose into docs/tests.csv on 2026-09-17, and how pages.note came to be
+// declared computed while a person wrote it. The tests registry split on
+// 2026-10-23; the owner decided on 2026-10-07 that the rest stay mixed by name,
+// each with the reason a split would cost more than it buys. The list is exact
+// in both directions, so an entry cannot outlive the mixing it excuses.
+const MIXED = {
+  'registries': 'renders_in is the one derived column, stamped by registries-reach.mjs beside thirteen authored ones; a file for one column would cost more than it buys',
+  'harness': 'role is the one authored column, over code files (.mjs, .py, .sh) that have no frontmatter to carry it',
+  'docs': 'reach and words are derived beside four authored columns; frontmatter in the documents themselves is the way out, and none uses it yet',
+  'pages': 'note is written by hand in the NOTES literal of pages-index.mjs and copied here on each run; moving that literal into a file of its own would split pages as tests was split',
+  'doc-overlap-gold': 'a gold set is a computed sample with a reader\'s labels on each row, and a label belongs on the row it labels',
+};
+test('a registry file is authored or derived, or mixed by name', () => {
+  const mixed = [];
+  for (const r of reg.registries.filter(r => r.fields === 'governed')) {
+    const modes = new Set(decls.filter(d => d.registry === r.id).map(d => d.mode));
+    if (modes.size > 1) mixed.push(r.id);
+  }
+  for (const id of mixed)
+    assert.ok(MIXED[id], `${id} holds recorded and computed properties in one file. Split the authored ` +
+      `columns into a file of their own, as docs/tests-authored.csv was, or name the exception here with its reason.`);
+  for (const id of Object.keys(MIXED))
+    assert.ok(mixed.includes(id), `${id} is excused as mixed but no longer mixes; drop it from MIXED`);
+});
+
 // A key is a locator exactly when its identity space is the tree: `path`, or
 // `path:<prefix>` for keys relative to a prefix. Another declared space (a
 // branch name, a registry id) keeps the key comparable across registries
