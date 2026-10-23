@@ -366,3 +366,135 @@ test('session-menu: the header never pads, because a space is not a column', () 
   const bar = load('session-menu.js', { body }).fn({ input: '', token: 't' }).caption.split('\n')[0];
   assert.match(bar, /^\u{1F4CB} [\u{1D656}-\u{1D66F} ]+$/u);
 });
+
+// ── A copied reply ───────────────────────────────────────────────────────────
+//
+// The op reads two files for a reply, the menu index and state/reply-prints.json,
+// so the network here answers each address on its own. The prints file is
+// BUILT BY THE KIT (kits/session-index.js), never written by hand: the op
+// repeats the kit's words and runs because an op loads nothing, and these tests
+// are where a drift between the two copies fails.
+
+const { default: GH } = await import(path.join(root, 'lib/gh-api.js'));
+const kit = { GH };
+new Function('window', readFileSync(path.join(root, 'lib/kits/session-index.js'), 'utf8'))(kit);
+const X = kit.SessionIndex;
+
+function loadRoutes(routes) {
+  const src = readFileSync(path.join(OPS, 'session-menu.js'), 'utf8');
+  const sent = [];
+  const ctx = vm.createContext({
+    Date, JSON, Math, RegExp, Error, Array, String, Object, isFinite, sent, atob,
+    XMLHttpRequest: function () {
+      this.open = (method, url, async) => { this.url = url; sent.push({ method, url, async }); };
+      this.setRequestHeader = (k, v) => sent.push([k, v]);
+      this.send = () => {
+        const hit = Object.entries(routes).find(([k]) => this.url.includes(k));
+        this.status = hit ? hit[1].status || 200 : 404;
+        this.responseText = JSON.stringify(hit ? hit[1].body : {});
+      };
+    },
+  });
+  const value = vm.runInContext(src, ctx);
+  return { fn: (input) => JSON.parse(JSON.stringify(value(input))), sent };
+}
+
+// Sessions that write like sessions: sentences drawn from one shared English
+// vocabulary, so their words overlap and only their order tells them apart,
+// and one line of boilerplate that every session writes.
+const VOCAB = ('the a to of and in that it is for on with as this was but be are at from or by '
+  + 'page file branch merge test commit check index phone menu reply session crawl build record store '
+  + 'link copy clipboard shortcut runs window print hash words match first last short long recent '
+  + 'older newer read write change pass fail green red open close draft ready review note list view '
+  + 'table header caption state token install replace tap screen device sample measure count size').split(' ');
+function sessionText(seed) {
+  let x = seed * 2654435761 >>> 0;
+  const rnd = () => (x = (Math.imul(x ^ (x >>> 15), 2246822507) + 0x6D2B79F5) >>> 0) / 4294967296;
+  const sentence = (n) => { const w = Array.from({ length: n }, () => VOCAB[Math.floor(rnd() * VOCAB.length)]);
+    return w[0][0].toUpperCase() + w[0].slice(1) + ' ' + w.slice(1).join(' ') + '.'; };
+  return Array.from({ length: 8 }, () =>
+    Array.from({ length: 3 }, () => sentence(8 + Math.floor(rnd() * 10))).join(' ')
+    + '\n\n' + Array.from({ length: 2 }, () => sentence(10)).join(' ')
+    + '\n\nCommitting the merge and pushing it now.');
+}
+const IDS = Array.from({ length: 6 }, (_, i) => 'a000000' + i);   // newest first
+const SAID = Object.fromEntries(IDS.map((id, i) => [id, sessionText(i + 1)]));
+const PRINTS_DOC = X.buildPrints(IDS, Object.fromEntries(IDS.map(id =>
+  [id, X.printsOf({ replies: SAID[id].map(text => ({ text })) })])));
+const MENU = index({ recent: IDS.map((id, i) => entry(id, 10 + i * 60, 'Ask ' + i, 'claude/topic-' + i + '-ab12cd', 'session_01' + id)) });
+const b64 = (s) => 'b64:' + Buffer.from(s, 'utf8').toString('base64');
+const reply = (input, routes = { 'session-menu.json': { body: MENU }, 'reply-prints.json': { body: PRINTS_DOC } }) =>
+  loadRoutes(routes).fn({ input, token: 't' });
+const PAGE = 'https://mehrlander.github.io/web-tools/pages/session.html#id=';
+
+test('session-menu: a whole copied reply leads with its session\'s page, landing on the reply', () => {
+  const r = reply(b64(SAID.a0000003[2]));
+  assert.equal(r.state, 'on-reply');
+  assert.equal(r.id, 'a0000003');
+  const h = header(r.caption);
+  assert.equal(h.rule, '🌿 reply recognized');
+  assert.match(h.line, /^topic-3 · \d+h · (\d+) of \1 words$/, h.line);
+  assert.deepEqual(r.menu.map(plainText), ['🌿 Session brief', '🌿 Open on claude.ai', '🕘 All sessions', 'Show-Loop', 'Out']);
+  assert.match(r.urls[r.menu[0]], new RegExp('^' + PAGE.replace(/[.?]/g, '\\$&') + 'a0000003&find=[^&]+$'));
+  assert.equal(r.urls[r.menu[1]], 'https://claude.ai/code/session_01a0000003');
+});
+
+test('session-menu: a selection inside unrelated words, and a first line alone, still find the reply', () => {
+  const words = SAID.a0000004[5].split(/\s+/);
+  const picked = words.slice(5, 25).join(' ');
+  const r = reply(b64('Here is the part I meant:\n' + picked + '\nand what do you think of it, honestly'));
+  assert.equal(r.id, 'a0000004');
+  assert.equal(r.state, 'on-reply');
+  // What Choose-Claude sent before it passed the whole clipboard: the raw
+  // first line, which Run-Op cuts the rest from.
+  const first = SAID.a0000001[0].split('\n')[0];
+  assert.equal(reply(first).id, 'a0000001');
+});
+
+test('session-menu: a first line that only looks like a branch still lets the reply under it be found', () => {
+  // A rendered copy of a reply opening on a file link starts with a lone path,
+  // which reads as a branch. No session has that branch, so the rest is tried.
+  const r = reply(b64('app/index.html\n\n' + SAID.a0000002[4]));
+  assert.equal(r.state, 'on-reply');
+  assert.equal(r.id, 'a0000002');
+  // A known branch keeps its reading, and an unknown one over a short caption
+  // stays the branch it names.
+  const known = loadRoutes({ 'session-menu.json': { body: index({ branches: { 'claude/x-aa11bb': entry('aaaaaaaa', 30, 'Ask') } }) } })
+    .fn({ input: b64('claude/x-aa11bb\n' + SAID.a0000002[4]), token: 't' });
+  assert.equal(known.state, 'on-branch');
+  assert.equal(reply(b64('claude/new-thing-zz99yy\nsecond line')).state, 'no-session');
+});
+
+test('session-menu: a reply ending on its 💬 caption names its session without the prints file', () => {
+  const text = SAID.a0000005[0] + '\n\n💬 [session](' + PAGE + 'a0000002)\n\n🟢 **Ready to continue:** more.';
+  const routes = { 'session-menu.json': { body: MENU }, 'reply-prints.json': { body: PRINTS_DOC } };
+  const { fn, sent } = loadRoutes(routes);
+  const r = fn({ input: b64(text), token: 't' });
+  assert.equal(r.id, 'a0000002', 'the link, not the words, which are another session\'s');
+  assert.match(header(r.caption).line, /its 💬 link$/);
+  assert.ok(!sent.some(s => s.method && /reply-prints/.test(s.url)));
+});
+
+test('session-menu: a copy no recent session wrote says so, with the index age, and draws the plain menu', () => {
+  const r = reply(b64('Nothing in this sentence was ever written by any of the sessions on file today.'));
+  assert.equal(r.state, 'no-reply');
+  const h = header(r.caption);
+  assert.equal(h.rule, '📋 reply not in recent sessions');
+  assert.match(h.line, /^“Nothing in this sentence.*” · index \d+m old$/);
+  assert.deepEqual(r.menu.map(plainText), ['⌨️ Claude Code', '💬 Claude chat', '🕘 All sessions', 'Show-Loop', 'Out']);
+});
+
+test('session-menu: an unreadable prints file is named in the header, and the menu still draws', () => {
+  const r = reply(b64(SAID.a0000003[2]), { 'session-menu.json': { body: MENU } });
+  assert.equal(r.state, 'reply-error');
+  assert.deepEqual(header(r.caption), { rule: '⚠️ reply prints unreadable', line: 'HTTP 404 reading state/reply-prints.json' });
+  assert.equal(r.menu.length, 5);
+});
+
+test('session-menu: boilerplate every session writes goes to a session that wrote it', () => {
+  // Which one is not decidable from the text, and the prints do not pretend:
+  // the winner is whichever kept more of those runs. Any of them is right.
+  const r = reply(b64('Committing the merge and pushing it now.'));
+  assert.ok(IDS.includes(r.id), r.id);
+  assert.ok(['on-reply', 'reply-guess'].includes(r.state), r.state);
+});

@@ -83,12 +83,17 @@ const RECORDS = {
 const reads = [];
 
 class FakeGH {
-  constructor(conf = {}) { this.repo = conf.repo || ''; }
+  constructor(conf = {}) { this.repo = conf.repo || ''; this.ref = conf.ref || 'main'; }
   async req(p) {
     assert.match(p, /^git\/trees\/main\?recursive=1$/);
     return { tree: Object.keys(RECORDS).map(p2 => ({ type: 'blob', path: p2, size: 100 })) };
   }
   async get(p) {
+    // The walk is the records on main. The topics file the form reads beside
+    // the record it lands on is on `background`, and is no part of the walk;
+    // nor is each scope repository's manifest, read for its mark once the
+    // record has landed.
+    if (this.ref !== 'main' || p === '.web-tools.json') throw Object.assign(new Error('404'), { status: 404 });
     reads.push(p);
     if (!RECORDS[p]) throw Object.assign(new Error('404'), { status: 404 });
     return { text: JSON.stringify(RECORDS[p]) };

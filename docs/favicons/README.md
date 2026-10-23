@@ -14,6 +14,24 @@ The root [`apple-touch-icon.png`](../../apple-touch-icon.png) is the same mark r
 
 This is the library-wide mark. `lib/gh-boot.js` inlines a copy and injects it as the default favicon on any loader page that declares no icon of its own, and the [pages index](../../pages/index.html) points its `<link rel="icon">` and header logo here too.
 
+### Estate repository marks
+
+Files: [`estate/`](estate/). Drawn 2026-10-22: one mark per estate repository except web-tools, whose mark is the hex nut. The app draws each wherever it lists repositories (the sidebar, the repo menu, Map › Reach and Map › Projects), reading the file named for the repository from the hub at main (`repoMarkSrc` in [`app/index.html`](../../app/index.html)).
+
+### Map marks
+
+Files: [`map/`](map/). Drawn 2026-10-22: one mark for each of the Map's seven tab groups, each a miniature of the view it opens, and one for each outpost but Work PowerShell, which wears the wps project's mark. The Map draws them on its tab strip, its Overview headings, and its outposts in Reach and in Outposts.
+
+## Drawn marks
+
+A project's own icon is an SVG drawn to the rules of the budget-drs app icon (`mehrlander/home:projects/budget-drs/app/favicon.svg`), as are the repository and Map marks above:
+
+- `viewBox="1.5 1.75 29 29"`, solid fills, no strokes.
+- Every gap at least 2.5 units, about 1.4 CSS px at 16.
+- A project's mark takes a colour no other project uses. Every other mark is filled with `currentColor`, which an `<img>` draws black, so a page paints it as a CSS mask in its text colour.
+- The hub's repositories share a hexagon, and the public-record stores stand on the detached base bar (`<rect x="2" y="24.4" width="28" height="4.6"/>`).
+- A `<desc>` says what the mark depicts.
+
 ## In review
 
 ### Angled 3D hex nut

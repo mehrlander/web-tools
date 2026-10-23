@@ -260,9 +260,9 @@ fi
 # that installed the plugin reads them off disk. docs/ is authoritative; this
 # keeps the copy from drifting in the commit that moves the source, which is
 # how it drifted before (resynced by hand in 2b785b2).
-if changed docs/SURFACING.md docs/surfacing-course.md docs/QUALIFIED-WRITING.md node/build/vendor-docs.mjs; then
+if changed docs/CONVERSATION.md docs/QUALIFIED-WRITING.md node/build/vendor-docs.mjs; then
   if npm run vendor-docs --silent >/dev/null 2>&1; then
-    stage skills/default/SURFACING.md skills/default/surfacing-course.md skills/default/QUALIFIED-WRITING.md
+    stage skills/default/CONVERSATION.md skills/default/QUALIFIED-WRITING.md
   else
     echo "build hook: 'npm run vendor-docs' failed - the plugin's doc copies may be stale" >&2
   fi
@@ -367,6 +367,15 @@ fi
 # is staged.
 if [ "$refresh_all" = 0 ] && [ -f python/annotate/anchors.py ]; then
   out="$(python3 python/annotate/anchors.py --staged 2>&1 || true)"
+  [ -n "$out" ] && printf '%s\n' "$out" | sed 's/^/build hook: /' >&2 || true
+fi
+
+# --- leg vendored: a staged change to a vendored copy (warn only) -------------
+# data/vendored-copies.txt lists the files whose source is in another repo; the
+# next refresh from that source overwrites an edit made here. The script names
+# each staged one; when the commit is that refresh, the warning is expected.
+if [ "$refresh_all" = 0 ] && [ -f python/vendored-copies.py ]; then
+  out="$(python3 python/vendored-copies.py --staged 2>&1 || true)"
   [ -n "$out" ] && printf '%s\n' "$out" | sed 's/^/build hook: /' >&2 || true
 fi
 

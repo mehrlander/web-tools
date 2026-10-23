@@ -1100,6 +1100,16 @@ test('the labels are the record span, not the first card to the last', () => {
     .toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }));
 });
 
+test('a session across days names its ends by date, not by clock', () => {
+  // "4:55 PM ... 1:28 AM" over a nine-day session (bb88ffa7) hid the nine days
+  // (owner, 2026-10-22). The same record, its last write four days on.
+  const later = new Date(Date.parse(RECORD.started) + 4 * 864e5).toISOString();
+  buildWith({ ...RECORD, ended: later });
+  const day = (iso) => new Date(iso).toLocaleDateString([], { month: 'short', day: 'numeric' });
+  assert.equal(railOf().firstElementChild.textContent, day(RECORD.started));
+  assert.equal(railOf().lastElementChild.textContent, day(later));
+});
+
 test('a session with one card draws no rail, since a rail of one says nothing', () => {
   buildWith(MD_RECORD);
   assert.ok(railOf().classList.contains('hidden'), 'built but not shown');
@@ -1267,4 +1277,52 @@ test('without an agenda nothing changes: no sections, no headers', () => {
   const view = build();
   assert.equal(view.el.querySelectorAll('section, [data-topic-head]').length, 0);
   assert.equal(view.jumpTo(0), false);
+});
+
+// ── Gemini's turn notes ────────────────────────────────────────────────────
+// The host hands in the topics file's per-turn summaries keyed by the instant
+// the turn was sent (session-brief's turnNotes), and a row whose ask carries
+// that instant gets one more line: Gemini's mark in the gutter, the summary
+// clamped beside it, and a chip that opens the summary whole.
+const NOTES = {
+  '2026-09-01T10:00:00Z': { headline: 'The first exchange, in brief',
+    summary: 'The owner asked for the first thing and the assistant did it, at some length, '
+           + 'so that the summary runs past two lines and the chip has something to report.' },
+};
+const noteOf = (n = 1) => rowOf(n)?.querySelector('[data-turn-note]');
+
+test('a turn with a note gets one more line, and a turn without one does not', () => {
+  build({ notes: NOTES });
+  assert.match(noteOf(1).textContent, /^The owner asked for the first thing/);
+  assert.equal(noteOf(2), null, 'the second ask has no note, so its row is unchanged');
+  build();
+  assert.equal(window.document.querySelector('[data-turn-note]'), null, 'no notes, no lines');
+});
+
+test('the note sits in the row\'s grid, in grey, under the reply', () => {
+  build({ notes: NOTES });
+  const row = rowOf(1);
+  const kids = [...row.children];
+  const note = noteOf(1);
+  assert.ok(kids.includes(note), 'the note is a direct cell, on the text edge');
+  assert.ok(kids.indexOf(note) > kids.indexOf(preview(1)), 'after the reply preview');
+  assert.ok(note.classList.contains('line-clamp-2'));
+  assert.match(note.className, /text-base-content\/60/);
+  assert.doesNotMatch(note.className, /primary/, 'blue is the owner\'s, not Gemini\'s');
+  assert.equal(note.style.background, '', 'and no fill, which is the ask\'s alone');
+});
+
+test('the note\'s chip opens the summary with its headline, and the ask and reply keep theirs', async () => {
+  build({ notes: NOTES });
+  layOut();
+  const t = trigs(1);
+  assert.equal(t.length, 3, 'three lines, three chips');
+  t[2].click();
+  await drawn();
+  assert.match(peekOf(1).textContent, /The first exchange, in brief/);
+  assert.match(peekOf(1).textContent, /chip has something to report/);
+  assert.match(peekOf(1).textContent, /Gemini/, 'the panel says whose reading it is');
+  t[0].click();
+  await drawn();
+  assert.match(peekOf(1).textContent, /First ask/, 'the ask chip still opens the ask');
 });

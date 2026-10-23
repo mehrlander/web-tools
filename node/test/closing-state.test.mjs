@@ -3,7 +3,7 @@
 // This kit exists to end a split, so most of what is worth pinning is that the
 // split stays ended: every key the pattern can produce has a glyph, a gloss and
 // a hue, and no consumer keeps a second table. A marker added to
-// SURFACING.md lands in one file or it does not land.
+// CONVERSATION.md lands in one file or it does not land.
 //
 // The parser itself is strict for one reason, and it is the reason a looser one
 // would look correct for months: this repo's own sessions EDIT the conventions,
@@ -29,7 +29,7 @@ test('a marker at the start of a line with a bold lead is a state', () => {
 });
 
 test('the vocabulary quoted as a list is not a state', () => {
-  // The exact shape a session editing SURFACING.md writes, which is why the
+  // The exact shape a session editing CONVERSATION.md writes, which is why the
   // pattern demands a line start: a list marker fails it.
   const doc = [
     '  - 🟢 **Ready to continue:** work is ready to do now.',
@@ -49,6 +49,35 @@ test('both spellings of the three variation-selector glyphs settle to one key', 
   assert.deepEqual(CS.marks('❇️ **a**'), CS.marks('❇ **a**'));
 });
 
+test('needs reads as 🛵, and ✴️ still reads as needs', () => {
+  // 🛵 replaced ✴️ for Needs you on 2026-10-21; past records carry ✴️, so it stays.
+  assert.deepEqual(CS.marks('🛵 **Needs you:** tap the link.'), ['needs']);
+  assert.deepEqual(CS.marks('✴️ **Needs you:** tap the link.'), ['needs']);
+  assert.equal(CS.GLYPH.needs, '🛵');
+});
+
+test('have a look reads in all four spellings of its joined glyph', () => {
+  // 👁️‍🗨️ is four code points joined; a client may drop either variation selector.
+  for (const g of ['👁️‍🗨️', '👁‍🗨️', '👁️‍🗨', '👁‍🗨'])
+    assert.deepEqual(CS.marks(g + ' **Have a look:** the page is up.'), ['look'], g);
+  assert.deepEqual(CS.marks('See [👁️‍🗨️](https://x) **here**.'), [], 'the glyph mid-line is not a state');
+});
+
+test('a lead that is its own link still opens a state, and the link stays out of its text', () => {
+  const url = 'https://mehrlander.github.io/web-tools/pages/toss-render.html#gh=o/r@b:app/index.html?view=map%23intro=x';
+  for (const md of ['Done.\n\n[👁️‍🗨️ **Have a look:**](' + url + ') the Set tab.',
+                    'Done.\n\n[👁️‍🗨️](' + url + ') **Have a look:** the Set tab.']) {
+    assert.deepEqual(CS.marks(md), ['look'], md);
+    const [c] = CS.closings(md);
+    assert.equal(c.text, '**Have a look:** the Set tab.', md);
+  }
+});
+
+test('sign-off needed reads in both spellings', () => {
+  assert.deepEqual(CS.marks('✍️ **Sign-off needed:** the wording above.'), ['signoff']);
+  assert.deepEqual(CS.marks('✍ **Sign-off needed:** the wording above.'), ['signoff']);
+});
+
 test('order and duplicates survive, because an exchange that closed twice did', () => {
   const md = '🆚 **Choice needed.** Pick.\n\n…\n\n🟢 **Ready.** Go.\n\n🟢 **Ready.** Again.';
   assert.deepEqual(CS.marks(md), ['choice', 'ready', 'ready']);
@@ -64,7 +93,7 @@ test('every key the pattern can produce is complete in all three tables', () => 
     assert.ok(CS.HUE[k], 'no hue for ' + k);
     assert.equal(CS.MARK[CS.GLYPH[k]], k, 'glyph and key disagree for ' + k);
   }
-  assert.equal(keys.length, 12);
+  assert.equal(keys.length, 14);
 });
 
 test('direction and choice read in both spellings, and 🆚 still reads as choice', () => {

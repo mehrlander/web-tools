@@ -11,8 +11,8 @@ observations and is corrected by re-probing; everything else is living and
 must stay correct.
 
 **Reach** (derived by `node/build/docs-reach.mjs`, gated against the registry):
-2 arrive in every session's context, 18 are named by CLAUDE.md,
-21 by a skill, 41 by a page or component. The remaining 45 are
+2 arrive in every session's context, 17 are named by CLAUDE.md,
+22 by a skill, 40 by a page or component. The remaining 46 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -22,7 +22,6 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`MARKETPLACE.md`](MARKETPLACE.md) — the plugin marketplace: how the set is published and subscribed to
 - [`QUALIFIED-WRITING.md`](QUALIFIED-WRITING.md) — the prose rules: qualify noun phrases, introduce before you refer, no em dashes
 - [`README.md`](README.md) — the docs folder's front door: the generated index of this registry
-- [`SURFACING.md`](SURFACING.md) — the surfacing primitives: the chat-handoff mechanics every reply uses
 - [`TRACKER.md`](TRACKER.md) — the opt-in cross-session project tracker: schema, ids, board
 - [`aims-initiatives.csv`](aims-initiatives.csv) — the five strategic initiatives the estate is pursuing
 - [`aims-goals.csv`](aims-goals.csv) — the five goals the estate's material is held to
@@ -45,13 +44,11 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`loader.md`](loader.md) — the loader contract: the canonical head block, gh.load, timing rules, and the load-build duality
 - [`manifest-fields.csv`](manifest-fields.csv) — the field registry for root .web-tools.json: every key's type, consumer, and effect
 - [`manifest.md`](manifest.md) — the .web-tools.json manifest: the file's contract and the registry machinery (config cache, errands, proposals, editing from the shell)
-- [`owners.csv`](owners.csv) — for a statement the coordination layer repeats, its one authoritative file
 - [`pdf-structure.md`](pdf-structure.md) *(orphan)* — recovering structure from a PDF in the browser: what the kit does and honestly does not
 - [`portable.csv`](portable.csv) — the portable set: what travels to another repo, and how a consumer takes it
 - [`properties.csv`](properties.csv) — every column of every registry: what it means, how it arises, and what it may hold
 - [`registries.csv`](registries.csv) — every registry the estate declares: its file, target, scope, and gate
 - [`registries.md`](registries.md) — the registry model: targets, keys, identity spaces, properties, assertions; one owner per assertion; how to add a registry and what the suite checks
-- [`repetitions.csv`](repetitions.csv) — where each registered statement is said again, how it relates, and what holds it
 - [`routes-kinds.csv`](routes-kinds.csv) — the content kinds: what a subject is, what opens it, and what a note can aim at inside it
 - [`routes-modes.csv`](routes-modes.csv) — the delivery modes toss-render accepts, and the trust posture each buys
 - [`routes-paste.csv`](routes-paste.csv) — what a paste becomes on each surface that reads the clipboard, and what each one declines to
@@ -60,8 +57,6 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`showing-mechanisms.csv`](showing-mechanisms.csv) — which link reaches which kind of change, and what each one silently misses
 - [`showing.md`](showing.md) — the frame behind the Showing tab: what ?use= and a 🥏 toss each reach, what resists preview, and how subjects and kinds are typed
 - [`stage.md`](stage.md) — the stage: bench and Saved, intake, the walkable preview and diff, Out, save-as-surface, and the #stage= link grammar
-- [`surfacing-course.md`](surfacing-course.md) — the guide-PR lifecycle: the PR body as a workstream’s running record, its template, and the six phases
-- [`surfacing.csv`](surfacing.csv) — the gated index of the surfacing primitives SURFACING.md defines
 - [`tests.csv`](tests.csv) — the test registry: every check, its kind, and what breaks if it is deleted
 - [`text-content.md`](text-content.md) *(measured, orphan)* — the estate's authored text: whether the data files holding it are organized, and how much never reached one
 - [`text-fields.csv`](text-fields.csv) — the names a prose-bearing CSV column or JSON key may take
@@ -97,6 +92,10 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`house-policies.md`](house-policies.md) — the house policies: one entry per policy, each a preference with its scope, its shortcuts and a link to the document that holds its detail
 - [`css-baseline.csv`](css-baseline.csv) *(measured)* — the CSS baseline: the most unexempt hand-written CSS declarations each file may carry, a ratchet on the house rule against vanilla CSS
 - [`hook-events.csv`](hook-events.csv) — every event Claude Code accepts a hook on, with the summary its /hooks menu gives
+- [`source-bundles.md`](source-bundles.md) *(orphan)* — the shared source-bundle convention: what a bundle is, its README frontmatter, the two tables and how a repository declares them
+- [`CONVERSATION.md`](CONVERSATION.md) — the conversation rules: the chat-handoff mechanics every reply uses
+- [`conversation.csv`](conversation.csv) — the gated index of the conversation rules CONVERSATION.md defines
+- [`intents.csv`](intents.csv) — what you might want done, each as a path through the Set diagram from what starts it to where it lands
 
 ## docs/envelopes/
 
@@ -137,12 +136,13 @@ marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/favicons/
 
-- [`README.md`](favicons/README.md) *(orphan)* — the favicon archive: active marks and retired ones
+- [`README.md`](favicons/README.md) — the favicon archive: active marks and retired ones
 
 ## docs/forms/
 
 - [`branch.md`](forms/branch.md) *(orphan)* — the branch form: the landed and stranded math behind a branch, and where the branch takeover is documented
 - [`session.md`](forms/session.md) *(orphan)* — the session form: one session read as a conversation in the deck, and its page
+- [`README.md`](forms/README.md) *(orphan)* — what a form is, the five jobs a page does for the reader, and the answer each respond form asks for
 
 ## docs/github/
 
@@ -168,6 +168,3 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`tending.md`](views/tending.md) — the Tending view: the finding record, how a finding changes, and how its witnesses are checked
 - [`repos.md`](views/repos.md) *(orphan)* — the Repos view: estate membership, cards, hidden and unfiled repos, token gating and the repo dialog
 - [`lists.md`](views/lists.md) — the Lists view: Pins, To-do, Jot, Ping and Note, and the files behind them
-
-12 shared statements are registered in
-[`owners.csv`](owners.csv), with each repetition in [`repetitions.csv`](repetitions.csv).

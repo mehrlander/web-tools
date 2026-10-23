@@ -397,6 +397,18 @@ def classify(paths):
 OVERLAY_CAP = 20
 TEST_BASE_SHA = "b" * 40
 
+def vendored_copies():
+    """The plugin's copies of the traveling docs, named by VENDORED in
+    node/build/vendor-docs.mjs, which writes them whole. Not skills/default/
+    entire: its SKILL.md is authored."""
+    try:
+        src = (ROOT / "node/build/vendor-docs.mjs").read_text(encoding="utf-8")
+    except OSError:
+        return ()
+    m = re.search(r"export const VENDORED = \[([^\]]*)\]", src)
+    return tuple(f"skills/default/{n}" for n in re.findall(r"'([^']+)'", m.group(1))) if m else ()
+
+
 # Files a merge regenerates rather than takes from either side: the builds,
 # the files the commit hook writes whole (node/README.md, "The refresh
 # model"), and the catalogs .gitattributes merges with the derived-csv driver.
@@ -404,7 +416,7 @@ TEST_BASE_SHA = "b" * 40
 # and says so, and they do not count against it as files main also changed.
 WHOLE_GENERATED = ("dist/", "console/suite.js", "pages/README.md", "pages/index.html", "pages/thumbs/",
                    "docs/README.md", "tracker/board.md", "tracker/board.csv", "tracker/board-tags.csv",
-                   ".claude/skills/default/")
+                   *vendored_copies())
 
 def derived_paths():
     try:
@@ -741,7 +753,7 @@ def pick_framed(paths, fr, base, sha, slug, hosted, warn, use_git, at="", query=
 
 
 # An MCP-written PR body or comment turns a URL of this many characters or more
-# into literal text (SURFACING.md, "Surfacing caption"; measured in
+# into literal text (CONVERSATION.md, "Surfacing caption"; measured in
 # environment/capabilities.md). Chat is untouched, so this is a warning about
 # WHERE the link may go, not about the link.
 MCP_URL_CAP = 150
@@ -781,7 +793,11 @@ def join_query(own, query=""):
 # address, and the link still resolves and renders, which is this script's own
 # failure shape one level down. The `at` below is that address: on a toss it
 # rides as a trailing #frag, which toss-render hands to the framed page as a
-# real location.hash; on a deployed page it is just the fragment.
+# real location.hash; on a deployed page it is just the fragment. The toss
+# percent-decodes its whole value once on the way, so its `%` are written as
+# `%25`: an intro or a look step's text naming "PR #1035" otherwise reaches the
+# frame with a bare `#` and splits there (2026-10-21, Snag list
+# look-intro-hash-cuts-the-walkthrough).
 #
 # Measured 2026-09-05, when this script emitted a branch-page toss with nothing
 # on it and the reader opened an empty form twice. Which pages need one is not
@@ -794,16 +810,95 @@ def join_query(own, query=""):
 # view, and rebuilding the address by hand to add one query re-typed the SHA
 # too. A flag for the part that was missing is cheaper than a rule asking for
 # more care, and it keeps the whole address coming from one command.
+# THE RENDERER'S HOST. A toss is drawn by toss-render.html on a deployed Pages
+# site, and the only checkout that carries one is web-tools; every other repo is
+# tossed by web-tools' renderer, which reads it by its #gh= address. Until
+# 2026-10-21 a page in any repo got its own repo's Pages host, which for a
+# private repo with no site is a 404: budget-wa's explorer.html, handed over
+# from both the default pick and --path that day.
+def renderer_base(slug):
+    top = sh("git", "rev-parse", "--show-toplevel")
+    if top and (Path(top) / PIN_READERS[0]).exists():
+        return f"https://{slug.split('/')[0]}.github.io/{slug.split('/')[1]}/"
+    return "https://mehrlander.github.io/web-tools/"
+
+
+# A WALKTHROUGH THAT CROSSES PAGES needs addresses the look kit can tell apart
+# (lib/kits/look.js, matches()), and a framed toss has none: its page is a
+# blob: URL, so every step reads as this page and a step on another one lands
+# as a miss. So a link whose steps name a page opens as the tab (?top), and a
+# step's page written as a path in this repository becomes that file's address
+# at the link's ref: a page by the toss as the tab, a document by the data
+# viewer, which has a real address of its own. Measured headless on 2026-10-22:
+# Next went from the Map's Set tab to Showing and back, and Back returned.
+def walk_steps(at):
+    ll = look_link()
+    m = re.search(r"(?:^|&)steps=([^&]*)", at or "")
+    if not (ll and m):
+        return None
+    try:
+        return ll.decode(m.group(1))
+    except Exception:
+        return None
+
+
+def crosses(at):
+    ll = look_link()
+    return any(ll.address(s.get("at"))[0] for s in walk_steps(at) or [])
+
+
+def is_page(path):
+    return bool(re.search(r"\.html?$", path))
+
+
+def walk_at(at, slug, pin):
+    steps = walk_steps(at)
+    if not steps:
+        return at
+    ll = look_link()
+    for s in steps:
+        page, anchor = ll.address(s.get("at"))
+        if not page or re.match(r"([a-z][a-z0-9+.-]*:|[/?#])|pages/(toss-render|data-view)\.html", page):
+            continue
+        path, query, frag = re.match(r"([^?#]*)(?:\?([^#]*))?(?:#(.*))?$", page).groups()
+        path = path + "index.html" if path.endswith("/") or not path else path
+        if not (ROOT / path).is_file():
+            continue
+        if is_page(path):
+            page = f"pages/toss-render.html?top&gh={slug}@{pin}:{path}" + (f"&{query}" if query else "")
+        else:
+            page = f"pages/data-view.html?src={slug}@{pin}:{path}"
+        s["at"] = page + (f"#{frag}" if frag else "") + "!" + anchor
+    return re.sub(r"(^|&)steps=[^&]*", lambda m: m.group(1) + "steps=" + look_link().encode(steps), at, count=1)
+
+
 def address(mech, page, sha, slug, view=None, at="", query="", entries=None, page_ref="", inner=""):
     sha, page_ref = short(sha), short(page_ref)
     # The subject's ref: the commit, with its branch ahead of it once main's
     # renderer reads that (pin_ready). Not the refs= entries, whose grammar
     # takes a plain ref.
     pin = f"{PIN_BRANCH}@{sha}" if PIN_BRANCH else sha
+    if mech in ("toss-gh", "toss-app", "overlay", "toss-data") and crosses(at):
+        at = walk_at(at, slug, pin)
+        if mech == "toss-data":
+            # The data route has no top mode that keeps a document's fragment,
+            # so the walkthrough starts on the data viewer's own address.
+            return (f"https://mehrlander.github.io/web-tools/pages/data-view.html"
+                    f"?src={slug}@{pin}:{quote(page, safe='/@:._-~')}#{at.lstrip('#')}")
     entries = [short_entry(e) for e in (entries or [])]
-    base = f"https://{slug.split('/')[0]}.github.io/{slug.split('/')[1]}/"
+    base = renderer_base(slug)
     pretty = page[:-len("index.html")] if page.endswith("/index.html") else page
     frag = "#" + at.lstrip("#") if at else ""
+    if mech in ("toss-gh", "toss-app", "overlay", "toss-data"):
+        # The separator is written `%23` and the fragment's own `&` as `%26`;
+        # the toss's one decode brings both back. A second raw `#` is not a
+        # legal URL character, and the Claude app on an iPhone re-encodes a link
+        # holding one, `%` included, so an intro arrived one decode short and
+        # its card read "Swipe%20between%20sessions" (2026-10-22; the same link
+        # with `%23` read cleanly). With no raw `#` left, the shell's own look
+        # gate (lib/gh-boot.js lookOnDemand) reads the whole fragment, so a
+        # page key after a raw `&` would surface as the shell's.
+        frag = ("%23" + frag[1:].replace("%", "%25").replace("&", "%26")) if frag else ""
     if mech == "toss-gh":
         # NO ?use= ON THE SHELL, and this is not a tidiness call: that link
         # crashes Safari's web process on an iPhone, every time, which is what
@@ -966,10 +1061,10 @@ GLYPH = {"toss-gh": "🥏", "toss-nested": "🥏", "toss-app": "🥏", "overlay"
 # reading lives in python/look-link.py, imported rather than repeated; where
 # that file is absent (this script fetched alone into another repo) the hint
 # is simply not given.
-LOOK_KEYS = ("show", "tap", "walk", "steps", "intro")
+LOOK_KEYS = ("show", "tap", "walkthrough", "steps", "intro")
 # The keys that name a place on the page, which are the ones an anchor check
 # reads; an intro is a message with no target.
-ANCHORED = ("show", "tap", "walk", "steps")
+ANCHORED = ("show", "tap", "walkthrough", "steps")
 _look = []
 
 
@@ -1013,16 +1108,16 @@ def look_hints(subjects, at, warn):
                     warn.append(f"the look link's steps= cannot be read; make it with {look_cmd()} make {p} --steps '<json>'.")
                     continue
             for miss in ll.asked(info, show=asked.get("show"), tap=asked.get("tap"),
-                                 walk=asked.get("walk"), steps=steps):
+                                 walkthrough=asked.get("walkthrough"), steps=steps):
                 warn.append(f"look link on {p}: {miss}, so the reader would get a \"not on this page\" card. "
                             f"Its anchors: {look_cmd()} anchors {p}")
-        elif info["names"] or info["prefixes"] or info["walks"]:
+        elif info["names"] or info["prefixes"] or info["walkthroughs"]:
             # Only a page that declares anchors gets the hint: every page that
             # boots the loader takes look links, and a hint on all of them
             # would be noise at every handover.
             names = sorted(info["names"])
             hints.append({"page": p, "anchors": names[:6], "more": max(0, len(names) - 6),
-                          "prefixes": sorted(info["prefixes"]), "walks": sorted(info["walks"])})
+                          "prefixes": sorted(info["prefixes"]), "walkthroughs": sorted(info["walkthroughs"])})
     return hints
 
 
@@ -1048,8 +1143,13 @@ def decision(mech, subjects, sha, slug, hosted, why, warn, facts, at="", query="
                         "on a ?query instead takes --query 'view=sessions'.")
     links = [{"page": p, "view": v, "url": address(mech, p, sha, slug, v, at, query, entries, page_ref, inner)} for p, v in subjects]
     look = look_hints(subjects, at, warn)
-    return warn_cap({"mechanism": mech, "sha": sha, "branch": facts["branch"], "pushed": facts["pushed"],
-                     "repo": slug, "links": links, "why": why, "warnings": warn, "look": look})
+    d = {"mechanism": mech, "sha": sha, "branch": facts["branch"], "pushed": facts["pushed"],
+         "repo": slug, "links": links, "why": why, "warnings": warn, "look": look}
+    if crosses(at) and mech in ("toss-gh", "toss-app", "overlay"):
+        why.append("the walkthrough's steps name pages, which a framed toss cannot tell apart, so the toss "
+                   "carries ?top and each step's page is its address at this ref.")
+        d = as_tab(d, asked=False)
+    return warn_cap(d)
 
 
 # Counted again after every pass that lengthens a link (?top, --refs), so the
@@ -1063,7 +1163,7 @@ def warn_cap(d):
     if over:
         warn.append(f"{len(over)}{CAP_WARNING}: fine in chat, literal text in an "
                     "MCP-written PR body or comment. There, drop the link to the chat caption "
-                    "(SURFACING.md's shortening ladder) rather than trimming the address by hand.")
+                    "(CONVERSATION.md's shortening ladder) rather than trimming the address by hand.")
     return d
 
 
@@ -1097,10 +1197,10 @@ def lines(d):
         for h in d.get("look", []):
             more = [f"+{h['more']} more"] if h["more"] else []
             named = h["anchors"] + more + [x + "*" for x in h["prefixes"]]
-            walks = f"; walks: {', '.join(h['walks'])}" if h["walks"] else ""
+            walkthroughs = f"; walkthroughs: {', '.join(h['walkthroughs'])}" if h["walkthroughs"] else ""
             make = f"{look_cmd()} make {h['page']} --show <anchor> --say '<why>'"
             out.append(f"look: {h['page']} takes look links, so the link can land on the place you mean "
-                       f"(anchors: {', '.join(named)}{walks}). Rerun with --at \"$({make})\".")
+                       f"(anchors: {', '.join(named)}{walkthroughs}). Rerun with --at \"$({make})\".")
     for w in d["warnings"]:
         out.append("! " + w)
     return out
@@ -1159,8 +1259,6 @@ def as_tab(d, asked=True):
     if asked:
         d.setdefault("why", []).append("--top asked for the tab: the toss carries ?top, so the page's title, "
                                        "icon, history and reload are the tab's, and Back walks its views.")
-    warn.append("?top on an iPhone is unmeasured (docs/showing-mechanisms.csv, toss-gh): if it misbehaves "
-                "there, drop ?top, and the framed link shows the page but not what it does to the tab.")
     return d
 
 

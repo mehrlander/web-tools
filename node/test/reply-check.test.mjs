@@ -90,6 +90,24 @@ test('a page committed since the owner\'s last message needs a render link', () 
   assert.equal(run({ last_assistant_message: 'Changed it.\nNo render link: the page needs a token.\n\n🟢 **Ready to continue:** x' }), null);
 });
 
+test('a link given after the newest page commit counts, so a wake\'s one-line reply passes', () => {
+  // The owner's message at 12:00 and the page commit at 12:10 come from the
+  // tests above. A wake's entry is not the owner's, so the window stays open.
+  const woken = path.join(tmp, 'woken.jsonl');
+  writeFileSync(woken, readFileSync(transcript, 'utf8') + [
+    { type: 'assistant', timestamp: '2026-10-20T12:15:00.000Z',
+      message: { content: [{ type: 'text', text: '🥏 [new.html](x)\n\n✴️ **Needs you:** try it.' }] } },
+    { type: 'user', origin: { kind: 'task-notification' }, timestamp: '2026-10-20T12:20:00.000Z',
+      message: { content: '<task-notification>' } },
+  ].map(r => JSON.stringify(r)).join('\n') + '\n');
+  const wake = 'CI passed on the PR.';
+  assert.equal(run({ transcript_path: woken, last_assistant_message: wake }), null);
+  writeFileSync(path.join(site, 'new.html'), '<p>fixed on the wake');
+  git(['add', '.']); git(['commit', '-q', '-m', 'a fix on the wake'], '2026-10-20T12:25:00Z');
+  assert.equal(run({ transcript_path: woken, last_assistant_message: wake }).decision, 'block',
+               'a page committed after the link owes a new one');
+});
+
 test('it is registered once, at Stop, through the plugin root', () => {
   const hooks = (HOOKS_JSON.hooks.Stop || []).flatMap(e => e.hooks).filter(h => (h.command || '').includes('reply-check.py'));
   assert.equal(hooks.length, 1);

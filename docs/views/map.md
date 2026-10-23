@@ -19,11 +19,12 @@ diagram of every repository and outpost the hub reaches, then offers Projects,
 Distribution, Outposts and Data. Until 2026-10-12 the Map itself opened on that
 diagram, and each tab headed its own screen with its sentence.
 
-Every address opens with the same toolbar: its controls and counts, then a
-database icon that opens Sources and methods, which holds the description, the
-files and builders, and notes on reading them. Below the `lg` breakpoint the two
-tab rows and the current group heading stay pinned while the pane scrolls; the
-controls and filter rows scroll away with the list.
+Every address that has controls or counts opens with them in one toolbar row.
+What the address is and reads (its description, the files and builders behind
+it, and notes on reading them) is in the app drawer's About tab, the tab the
+drawer opens on. Below the `lg` breakpoint the two tab rows and the current
+group heading stay pinned while the pane scrolls; the controls and filter rows
+scroll away with the list.
 
 The shell validates `?tab=` against `MAP_TABS` and `MAP_SUBVIEWS` in
 `app/index.html` before `map()` mounts. `SUBVIEWS` in `map.js` groups the
@@ -42,6 +43,26 @@ route chips on Branches rows.
 
 These are **app routes**. [routes-routes.csv](../routes-routes.csv) holds
 **toss routes**, content types mapped to renderer pages.
+
+## Docs: edits waiting on a document
+
+With a token, a document named by an open documentation user call, or by a
+Text collection proposal, carries a badge on its row
+([`lib/kits/user-calls.js`](../../lib/kits/user-calls.js)), and calls and
+proposals each have their own filter. A user call waits on the owner, so its
+badge, filter and marks take the attention colour, which a proposal from a
+batch process does not. In the reading deck a proposal is labelled on the paragraph it would
+change and applied or rejected in place. Each edit a call proposes is open
+there as a change container, and the call's mark, in the place of the
+container's number, confirms or discards it and takes a note. The call's sheet
+steps through the edits like a walkthrough and records the answer for all of
+them at once, in web-tools-private beside the call, with the confirmed edits
+as a patch for a session to apply
+([`lib/kits/call-answer.js`](../../lib/kits/call-answer.js), which Dictate
+shares). The sheet commits nothing: a call is read on main, so a commit from
+the browser would land there outside any pull request and skip the target
+repository's commit hook. To amend an edit or commit it, the sheet opens the
+call in Dictate.
 
 ## Tests: what checks protect and how they run
 

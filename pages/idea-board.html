@@ -242,7 +242,8 @@ document.addEventListener('alpine:init', () => {
   <!-- The list on top, kept in step with the strip below and with the deck the strip expands into -->
   <template x-if="B">
     <main data-pattern="linked-swiper" class="grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] min-h-0 min-w-0">
-      <ol x-ref="list" role="listbox" aria-label="Concepts"
+      <ol x-ref="list" role="listbox" aria-label="Concepts" tabindex="0"
+          @keydown.down.prevent="sync(Math.min(count - 1, cur + 1), 'list')" @keydown.up.prevent="sync(Math.max(0, cur - 1), 'list')"
           class="max-h-[38dvh] overflow-y-auto border-b border-base-300 grid grid-cols-[minmax(0,1fr)] sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 content-start">
         <template x-for="(d, i) in B.ideas" :key="d.n">
           <li role="option" :aria-selected="cur === i ? 'true' : 'false'" @click="sync(i, 'list')"

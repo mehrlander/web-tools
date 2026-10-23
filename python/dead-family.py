@@ -33,6 +33,18 @@ does not resolve either and "this family rejects the colour" cannot be told from
 "this class appears nowhere in the source". Both read as dead. The stylesheet
 answers what the page cannot.
 
+A PAGE THAT REACHES THE REGISTRATION HAS NO DEAD FAMILY, and that is most pages
+now. Since 2026-09-16 lib/gh-boot.js registers the twenty theme colours with
+Tailwind (`@theme inline`, self-referencing var()), and a page may carry the same
+block itself; either way every family above compiles, because the names are
+then Tailwind colours. Measured 2026-10-22 on three budget-wa pages the Budget
+DRS app embeds: divide-base-300 painted base-300, ring-base-100 set
+--tw-ring-color to base-100, fill- and stroke-base-content took base-content,
+on a page carrying the block and on pages booting through entry.js alike. This
+scan reported all fifteen as dead. So a file that reaches the registration is
+not scanned: the derivation above is the answer only for a page that does not.
+REACHES is dead-opacity.py's, which drew the same line on 2026-09-16.
+
 Advisory by default, in the idiom of dead-opacity.py beside it, which checks the
 opacity STEP on a class this one checks the existence of. `--check` makes it a
 gate. Exits 0 with a note when daisyUI is not installed, since the derivation
@@ -84,6 +96,11 @@ EXTS = ('.html', '.js', '.mjs')
 # problem only because it writes its fixtures to a tmpdir. A probe string is not
 # markup a browser meets. The pages those tests drive are scanned as themselves.
 SKIP_DIRS = {'node_modules', '.git', 'dist', 'archive'}
+# A file reaches the registration one of two ways: it carries the @theme block
+# itself, or it boots through the hub, which injects one. Shared with
+# python/dead-opacity.py.
+REACHES = re.compile(r'@theme inline|lib/entry\.js|gh-api\.js|gh-boot|dist/web-tools\.js'
+                     r'|dist/app\.js|dist/dictate\.js')
 SKIP_PREFIX = ('node/test/',)
 
 
@@ -116,9 +133,12 @@ def scan(root, ship, paths=None):
     hits = []
     for rel in (paths if paths is not None else tracked(root)):
         try:
-            lines = open(os.path.join(root, rel), encoding='utf-8', errors='ignore').read().splitlines()
+            text = open(os.path.join(root, rel), encoding='utf-8', errors='ignore').read()
         except OSError:
             continue
+        if REACHES.search(text):
+            continue
+        lines = text.splitlines()
         in_html_comment = False
         for n, line in enumerate(lines, 1):
             # A comment naming the trap is documentation, not markup, and this

@@ -28,8 +28,7 @@
     "pages",
     "console",
     "lib/alpineComponents",
-    "docs/SURFACING.md",
-    "docs/surfacing-course.md"
+    "docs/CONVERSATION.md"
   ],
   "pages": [
     {
@@ -92,24 +91,63 @@
   ],
   "research": [
     {
-      "path": "research/excel-validation-2026-09-24/README.md",
-      "label": "Native Excel validation and workbook delivery",
-      "kind": "probe"
-    },
-    {
-      "path": "research/excel-chart-review-2026-09-25/README.md",
-      "label": "Excel chart rendering: findings and current status",
-      "kind": "probe"
-    },
-    {
-      "path": "research/excel-chart-cleanup-2026-09-25/README.md",
-      "label": "Excel chart and PivotTable corrections",
-      "kind": "probe"
-    },
-    {
       "path": "research/DOC_CRAFT_STUDY.md",
       "label": "Documentation problems and drafting proposals",
       "kind": "probe"
+    }
+  ],
+  "programs": [
+    {
+      "name": "surfacing",
+      "label": "Surfacing",
+      "icon": "ph-megaphone",
+      "path": "programs/surfacing",
+      "governs": [
+        "docs/CONVERSATION.md",
+        "docs/conversation.csv",
+        "skills/claude-markdown/",
+        "skills/look-markers/",
+        "skills/hooks/reply-check.py",
+        "docs/showing.md",
+        "docs/showing-mechanisms.csv",
+        "docs/showing-consolidation.md",
+        "docs/routes.json",
+        "python/showing.py",
+        "python/look-link.py",
+        "pages/toss-render.html",
+        "skills/screenshot-review/",
+        "skills/show-diff/",
+        "docs/forms/",
+        "docs/envelopes/",
+        "docs/subjects.csv",
+        "pages/branch.html",
+        "pages/session.html",
+        "pages/approve.html",
+        "pages/data-view.html",
+        "pages/shorter.html",
+        "pages/chat-results.html",
+        "pages/passage-reader.html",
+        "pages/audit-render.html",
+        "pages/inquiry.html",
+        "lib/alpineComponents/branch-brief.js",
+        "lib/alpineComponents/session-brief.js",
+        "lib/alpineComponents/waiting.js",
+        "lib/alpineComponents/user-call-form.js"
+      ],
+      "measures": [
+        "mehrlander/web-tools-private@background:state/closings.json",
+        "mehrlander/web-tools-private@background:state/render-links.json"
+      ],
+      "reviewers": [
+        "portable:owner-proxy",
+        "portable:peeves-critic",
+        "portable:house-style-critic"
+      ],
+      "views": [
+        "?view=map&tab=surfacing",
+        "?view=map&tab=showing",
+        "?view=waiting"
+      ]
     }
   ]
 }

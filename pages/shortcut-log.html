@@ -5,6 +5,23 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Shortcut Log</title>
+<script>
+{ // A run handed over from chat arrives as #run=<shortcuts:// link> (see the
+  // note below). It fires once the document is parsed: fired from here, before
+  // parsing, it stalled the page in headless Chromium (2026-10-21), and it need
+  // not wait for the library chain or a token. The address drops it, so a
+  // reload or a Back cannot fire it again.
+  const m = /^#run=(.+)$/.exec(location.hash);
+  let link = m ? m[1] : '';
+  if (link && !/^shortcuts:\/\//i.test(link)) { try { link = decodeURIComponent(link); } catch {} }
+  if (/^shortcuts:\/\//i.test(link)) {
+    const q = new URL(link).searchParams;
+    window.handedOff = { name: q.get('name') || 'Shortcuts', base: link.split('?')[0], params: [...q.entries()], link };
+    history.replaceState(null, '', location.pathname + location.search);
+    document.addEventListener('DOMContentLoaded', () => { location.href = link; });
+  }
+}
+</script>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🧾</text></svg>">
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
@@ -38,6 +55,13 @@
 
   UNKNOWN IS SILENT. A row gets a verdict icon only when both the installed
   build and the baseline's build are in hand.
+
+  A RUN HANDED OVER FROM CHAT LANDS HERE. The Claude iPhone app does not open
+  a shortcuts:// link (2026-10-18), so a session links shortcut-run.html#<link>,
+  which redirects here as #run=<link>. A script at the top of <head> passes the
+  link to Shortcuts once the document is parsed, without waiting on the token,
+  and the page stays open on the log, which is where the run's row lands if it
+  reports.
 -->
 </head>
 <body class="min-h-dvh bg-base-100">
@@ -60,6 +84,32 @@
     <button @click="load(true)" class="btn btn-ghost btn-sm btn-square" aria-label="Refresh">
       <i class="ph ph-arrows-clockwise text-lg" :class="loading && 'animate-spin'"></i></button>
   </header>
+
+  <!-- The run handed over from chat: the shortcut, and the link it was sent as,
+       read back as code, one argument a row with its value decoded. -->
+  <template x-if="sent">
+    <section class="m-3 rounded-box border border-base-300 overflow-hidden" data-sent>
+      <div class="flex items-center gap-2 px-3 py-2 bg-base-200/60 border-b border-base-300">
+        <i class="ph ph-paper-plane-tilt text-base-content/50"></i>
+        <span class="text-xs font-mono uppercase tracking-wider text-base-content/50">sent</span>
+        <span class="min-w-0 truncate font-semibold" x-text="sent.name"></span>
+        <div class="grow"></div>
+        <button @click="copy(sent.link); copied = true; setTimeout(() => copied = false, 1500)"
+                class="btn btn-ghost btn-sm btn-square shrink-0" aria-label="Copy the link">
+          <i class="ph text-lg" :class="copied ? 'ph-check text-success' : 'ph-copy'"></i></button>
+        <a :href="sent.link" class="btn btn-primary btn-sm shrink-0"><i class="ph-fill ph-play"></i> Run again</a>
+      </div>
+      <div class="px-3 py-2 font-mono text-sm space-y-1" data-sent-link>
+        <div class="break-all"><span class="text-base-content/50" x-text="sent.base.replace(/[^/]*$/, '')"></span><span x-text="sent.base.replace(/^.*\//, '')"></span></div>
+        <template x-for="([k, v], i) in sent.params" :key="k">
+          <div class="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-2">
+            <span class="text-base-content/50" x-text="(i ? '&' : '?') + k"></span>
+            <span class="whitespace-pre-wrap break-words max-h-40 overflow-auto" x-text="v"></span>
+          </div>
+        </template>
+      </div>
+    </section>
+  </template>
 
   <p x-show="err" class="text-error px-3 py-2" x-text="err"></p>
 
@@ -290,11 +340,16 @@ document.addEventListener('alpine:init', () => Alpine.data('shortcutLog', () => 
   verdicts: {},       // stem -> verdict
   scrollY: 0,
   zip: { stem: '', loading: false, err: '', note: '', list: [], fold: null, folded: false },
+  sent: window.handedOff || null,   // {name, base, params, link}: the run the head script handed off
+  copied: false,
 
   async boot() {
     await this.load(false);
     window.ghAuth.bootDone();
     setInterval(() => { if (!document.hidden) this.load(false); }, 15000);
+    // Back from Shortcuts: reload at once rather than at the next poll, so a
+    // run's row shows as the reader looks for it.
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) this.load(false); });
   },
 
   async load(force) {

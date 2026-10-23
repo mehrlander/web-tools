@@ -44,8 +44,8 @@
 // the stub is pinned to a BRANCH and never changes again: that is what removes
 // the reinstall, and it costs the one thing a SHA pin gave for free, namely
 // knowing which copy ran. The stamp buys that back, and the drawer shows it.
-const BUILD = '56667b0';
-const BUILT = '2026-10-21T03:09:22Z';
+const BUILD = '861e0d1';
+const BUILT = '2026-10-21T03:35:13Z';
 const REF = 'main';
 
 // Where the current build id is published. The launcher compares its own stamp
@@ -1785,6 +1785,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
       max-width: none; cursor: zoom-out;
     }
     .snap-img[hidden] { display: none !important; }
+    .snap-placeholder { margin: 0; }
     .snap-foot {
       margin-top: .5rem; padding: .35rem .5rem;
       border-radius: .375rem; background: var(--wt-b200);
@@ -2322,7 +2323,7 @@ window.wtLauncher = ({ app = 'https://mehrlander.github.io/web-tools/app/' } = {
             <div class="slide-body-inner">
               <div class="snap-stage">
                 <img class="snap-img" alt="Rendered page viewport preview" title="Tap to toggle zoom" hidden />
-                <p class="none snap-placeholder" style="margin:0">Rendering current viewport (excluding launcher)…</p>
+                <p class="none snap-placeholder">Rendering current viewport (excluding launcher)…</p>
               </div>
               <div class="snap-foot"></div>
             </div>

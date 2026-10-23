@@ -75,6 +75,12 @@ window.GH = withBase64(class {});
 // shared shim: with clientWidth falling back to 1, a slide index and a pixel
 // offset coincide and go(2) lands on slide 2, which is what a logic test needs.
 deckGeometry(window);
+// jsdom has no object URLs, and the paste bar's image pill makes one per image.
+// The set is what is live, so a test can see a closed bar revoke its own.
+const liveUrls = new Set();
+let urlSeq = 0;
+window.URL.createObjectURL = () => { const u = 'blob:test/' + ++urlSeq; liveUrls.add(u); return u; };
+window.URL.revokeObjectURL = (u) => { liveUrls.delete(u); };
 
 // alpine-bundle.js defines the browser store; the stager composes dropZone and
 // pathPicker, and its inline reader mounts a viewer, so all three must be
@@ -988,6 +994,26 @@ test('an image carries no peek, since the card reads text', async () => {
   assert.equal(peeks().size, 0);
 });
 
+test('an image pill shows its image instead, and closing the bar lets the URL go', async () => {
+  reset();
+  await paste(fakeCd({ types: ['Files', 'text/plain'], data: { 'text/plain': 'hello there' },
+                       files: [fakeFile('image.png', 'image/png', 4096)] }));
+  const img = data.offers.find(o => o.type === 'image/png');
+  const url = data.flavorThumb(img);
+  assert.match(url, /^blob:/);
+  assert.equal(data.flavorThumb(img), url, 'one URL per image, however often the pill draws');
+  assert.equal(data.flavorThumb(data.offers.find(o => o.type === 'text/plain')), '', 'a text flavor has no picture');
+  await tick(2);
+  assert.ok([...window.document.querySelectorAll('#st img')].some(i => i.getAttribute('src') === url),
+    'and the pill draws it');
+  // A decoded flavor carries no File; its picture is the staged item's bytes.
+  data.landDerived({ name: 'decoded.png', b64: { bytes: new Uint8Array([1, 2, 3]), mime: 'image/png' }, tag: 'base64' });
+  const decoded = data.flavorThumb(data.offers.find(o => o.name === 'decoded.png'));
+  assert.match(decoded, /^blob:/);
+  data.dismissOffers();
+  assert.ok(!liveUrls.has(url) && !liveUrls.has(decoded), 'closing the bar revokes both');
+});
+
 // ---- the pill's menu -------------------------------------------------------
 //
 // The pill is the SUBJECT and its menu the verbs. Markdown had a pill of its own
@@ -1354,16 +1380,16 @@ test('takeFlavor stages one flavor under its own name, refs included', async () 
 
 test('a local image reads from its own bytes, with no repo behind it', async () => {
   reset();
-  // The 1x1 PNG, as the bytes a paste or a drop hands over.
-  const png = Uint8Array.from(atob(
-    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
-  ), c => c.charCodeAt(0));
-  store.stage = [{ local: true, id: 210, name: 'image.png', path: 'image.png', size: png.length, type: 'image/png', isText: false, bytes: png }];
+  // An SVG, as the bytes a paste or a drop hands over. A bitmap opens in the
+  // image editor instead (see the editor's tests below); an SVG is markup and
+  // reads in the viewer.
+  const svg = new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>');
+  store.stage = [{ local: true, id: 210, name: 'image.svg', path: 'image.svg', size: svg.length, type: 'image/svg+xml', isText: false, bytes: svg }];
   await data.view(data.localItems[0]);
   await shown();
   assert.equal(data.reader.note, '', 'an image is not refused as a binary');
   const vwr = readerViewer();
-  assert.match(vwr.content, /^data:image\/png;base64,/, 'the bytes ride as a data URI, the one form a repo-less file can supply');
+  assert.match(vwr.content, /^data:image\/svg\+xml;base64,/, 'the bytes ride as a data URI, the one form a repo-less file can supply');
   data.reader = null;
 });
 
@@ -2562,20 +2588,18 @@ test('the comparison walk keeps the sidebar following side A', async () => {
   data.reader = null;
 });
 
-test('the reader offers a door into the sidebar', async () => {
+// THE DOOR TO THE SIDEBAR IS GONE here too (2026-10-21), as from
+// kits/file-deck.js: the reader still announces, so the floating button's
+// sidebar opens on the file being read.
+test('no door to the sidebar on the reader header, and it still announces', async () => {
   reset();
   store.stage = [{ repo: 'me/a', ref: '', path: 'lib/x.js' }];
   await shown();
   await data.view(data.items[0]);
   await shown();
-  const door = data._rActions(0).find(a => a.icon === 'ph-sidebar-simple');
-  assert.ok(door, 'nothing else says the sidebar is now aimed at the file in front of you');
-  let tab = null;
-  const on = (e) => { tab = e.detail && e.detail.tab; };
-  window.addEventListener('web-tools:open-drawer', on);
-  door.onClick();
-  window.removeEventListener('web-tools:open-drawer', on);
-  assert.equal(tab, 'render', 'and it opens on the tab that names the file');
+  assert.equal(data._rActions(0).find(a => a.icon === 'ph-sidebar-simple'), undefined,
+    'the header carries the file\'s controls and nothing else');
+  assert.equal(said()?.path, 'lib/x.js', 'and the sidebar is still aimed at the file');
   data.reader = null;
 });
 
@@ -4137,4 +4161,93 @@ test('decodeLocals takes standard base64 with padding, as a shortcut emits it', 
   const lk = window.StageLink.parseLink('#gz=' + std);
   const back = await window.StageLink.decodeLocals(lk.gz);
   assert.equal(JSON.stringify(back), JSON.stringify(items));
+});
+
+// ── The image editor (kits/redact.js) ───────────────────────────────────────
+// The kit is canvas work and has no jsdom realm worth testing in, so it is
+// stubbed: what is held here is the Stage's half, the slide a staged image
+// opens on, the header that acts on it, and the swap that keeps an edit. The
+// swap is the point. A redaction that left the uncovered original staged
+// beside the result would be one tap from a deposit.
+
+const png = (id, name) => ({ local: true, id, name, path: name, size: 4, isText: false,
+  type: 'image/png', bytes: new Uint8Array([0x89, 0x50, 0x4e, 0x47]) });
+const withRedact = async (fn) => {
+  const had = window.Redact;
+  window.Redact = { mount: (el, cfg) => {
+    withRedact.cfg = cfg;
+    el.__redact = withRedact.ed = { active: false, mode: 'box', view: 'image', sel: null, selBox: null,
+      styleOpen: false, changed: false, meta: '4 × 4', copy() { this.copied = true; }, apply() {},
+      removeBox() { this.removed = true; }, showText() { this.view = 'text'; } };
+    return el;
+  } };
+  try { await fn(); } finally { if (had === undefined) delete window.Redact; else window.Redact = had; }
+};
+
+test('a staged image opens in the editor, with the brush and copy on the header and the check mark once edited', async () => {
+  reset();
+  store.stage = [png(901, 'shot.png'), local(902, 'a.md', 'one\n')];
+  await shown();
+  await withRedact(async () => {
+    await data.view(data.items[0]);
+    await shown();
+    assert.equal(withRedact.cfg?.name, 'shot.png', 'the slide is the editor, told what it is editing');
+    const titles = (n) => data._rActions(n).map(a => a.title || '');
+    // The brush is a menu: choosing to crop turns editing on in that mode.
+    data._rDeck.el.querySelector('.sd-header button[aria-label="Edit the image"]').click();
+    const row = [...document.querySelectorAll('.sd-hdr-menu button')].find(b => b.textContent === 'Crop the image');
+    assert.ok(row, 'the brush opens a menu of what to do');
+    row.click();
+    assert.equal(withRedact.ed.active, true);
+    assert.equal(withRedact.ed.mode, 'crop');
+    assert.ok(titles(0).includes('Editing: crop the image'), 'and then names what is being done');
+    withRedact.ed.mode = 'box';
+    assert.ok(!titles(0).includes('Delete the selected box'), 'no box selected, nothing to style or delete');
+    withRedact.ed.selBox = {}; withRedact.ed.sel = 1;
+    assert.ok(titles(0).includes('Style the selected box'));
+    data._rActions(0).find(a => a.title === 'Delete the selected box').onClick();
+    assert.ok(withRedact.ed.removed, 'the header deletes through the editor');
+    assert.ok(titles(0).includes('Copy the image'));
+    assert.ok(!titles(0).some(t => t.startsWith('Keep the edits')), 'nothing to keep before an edit');
+    withRedact.ed.changed = true;
+    assert.ok(titles(0).includes('Keep the edits: replace shot.png'));
+    data._rActions(0).find(a => a.title === 'Copy the image').onClick();
+    assert.ok(withRedact.ed.copied, 'the header copy is the editor\'s');
+    assert.ok(!titles(0).includes('Show the text in the image'), 'the text toggle steps aside while editing');
+    withRedact.ed.active = false;
+    data._rActions(0).find(a => a.title === 'Show the text in the image').onClick();
+    assert.equal(titles(0).slice(-2).join(' | '), 'Show the image | Copy the text',
+      'on the text the header turns back to the image and copies the text, with no brush and nothing to keep');
+    assert.ok(!titles(1).includes('Copy the image'), 'markdown is not an image');
+  });
+  data.reader = null;
+});
+
+test('a kept edit replaces the original, under a name that says so', async () => {
+  reset();
+  store.stage = [png(911, 'shot.png')];
+  data.startNote(data.localItems[0]);
+  data.noteDraft = 'the account page';
+  data.commitNote();
+  await data.keepEdit(store.stage[0], { arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer });
+  const imgs = store.stage.filter(it => !it.noteFor);
+  assert.deepEqual(plain_(imgs.map(it => it.name)), ['shot-redacted.png'], 'the original is gone, not kept beside it');
+  assert.deepEqual([...imgs[0].bytes], [1, 2, 3]);
+  assert.equal(imgs[0].isText, false);
+  await shown();
+  assert.equal(data.reader?.name, 'shot-redacted.png', 'the reader moves to the result');
+  const note = store.stage.find(it => it.noteFor);
+  assert.equal(note.noteFor, 'local:' + imgs[0].id, 'the note follows its subject');
+  assert.equal(note.name, 'shot-redacted.png.note.md');
+  assert.match(note.text, /the account page/);
+  data.reader = null;
+});
+
+test('a second kept edit keeps one -redacted suffix', async () => {
+  reset();
+  store.stage = [png(921, 'shot-redacted.png')];
+  await data.keepEdit(store.stage[0], { arrayBuffer: async () => new Uint8Array([7]).buffer });
+  assert.deepEqual(plain_(store.stage.map(it => it.name)), ['shot-redacted.png']);
+  assert.deepEqual([...store.stage[0].bytes], [7]);
+  data.reader = null;
 });

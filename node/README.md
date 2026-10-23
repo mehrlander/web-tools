@@ -216,8 +216,8 @@ named as a string literal, transitively, plus every component an `x-data`
 names, mapped through its `Alpine.data('name')` registration) and hands that
 set to the same emitter. Measured 2026-09-02: 73 of 104 lib files, 22
 components registered at import rather than 32, 3.1 MB against 4.0 (0.93 MB
-gzipped against 1.2). Four heavy kits a reader reaches only by an explicit act
-(`annotate`, `pdf`, `dictate`, `xlsx`) are left out on purpose and load on
+gzipped against 1.2). Five heavy kits a reader reaches only by an explicit act
+(`annotate`, `pdf`, `dictate`, `xlsx`, `redact`) are left out on purpose and load on
 first use through the contents API, which is the loader's ordinary cache-miss
 path. The same limit as the per-page walker applies: a path computed at
 runtime is invisible, and falls through to the API at runtime, correctly.
@@ -294,7 +294,7 @@ changes touch:
 | `lib/kits/`, or a file that loads a kit | `npm run kits-index` | `docs/kits.csv` |
 | `lib/`, `pages/` | `npm run registries-reach` | `renders_in` in `docs/registries.csv` |
 | any markdown | `npm run themes-graph` | `docs/themes.csv` |
-| `docs/SURFACING.md`, `docs/surfacing-course.md`, `docs/QUALIFIED-WRITING.md` | `npm run vendor-docs` | the plugin's copies under `skills/default/` |
+| `docs/CONVERSATION.md`, `docs/QUALIFIED-WRITING.md` | `npm run vendor-docs` | the plugin's copies under `skills/default/` |
 | `docs/house-policies.md` | `npm run policy-skills` | the h plugin's skills under `plugins/h/skills/` |
 | `tracker/tasks/` | `npm run tracker-board` | `tracker/board.md`, `tracker/board.csv`, `tracker/board-tags.csv` |
 

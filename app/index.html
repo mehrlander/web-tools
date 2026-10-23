@@ -351,7 +351,7 @@ html.dk-dragging main{transition:none !important}
      beneath). The sidebar shows or hides at every width, out by default on a
      wide screen and away on a phone; ?shell= sets how much of this frame a link
      opens with. See the design notes at the end of this file. -->
-<body class="h-dvh flex flex-col overflow-hidden bg-base-100 text-base-content" x-data="app()" x-cloak>
+<body class="h-dvh flex flex-col overflow-hidden bg-base-100 text-base-content [&_*::highlight(find-pill)]:bg-[rgb(250_204_21/0.45)]" x-data="app()" x-cloak>
 
 <!-- App-wide drag cue. Purely visual (pointer-events-none), so the drop still
      lands on the window handler wireAppDrop() registered. It stands down on the
@@ -426,7 +426,10 @@ html.dk-dragging main{transition:none !important}
      with no standalone page behind it to link to the way an app view or a
      custom landing has one. The way back is the FAB's Render tab, which
      carries the mode as a bar. ─────────────────────────────────────────── -->
-<header x-show="shellMode !== 'none'" class="shrink-0 z-30 bg-base-100 border-b border-base-300">
+<!-- z-[35], one past the Map's pinned tab strip (z-30 below lg), which would
+     otherwise paint over the find pill's bar hung from this header; still
+     under the sidebar's backdrop (z-40). -->
+<header x-show="shellMode !== 'none'" class="relative shrink-0 z-[35] bg-base-100 border-b border-base-300">
   <div class="max-w-full px-4">
     <div class="h-14 flex items-center gap-0.5">
       <!-- App-level views: Activity / Repos / Stage / Tools / Map, the
@@ -538,6 +541,78 @@ html.dk-dragging main{transition:none !important}
         </template>
       </div>
 
+      <!-- ── The find pill: a view's filter, from the header ──────────────────
+           A view marked data-find-hoist hides its own filter box, and this
+           drives it instead, so a filter costs no view a row and opens from
+           one place on every view that has one. The same at every width: a
+           magnifier here, or the term as a chip once one is set, and tapped,
+           a bar that slides down from the header's edge over the top of the
+           view (#find-bar, teleported there because this row cannot hold
+           it), so opening it moves nothing. Below lg the view also scrolls
+           its list up under the bar, so the rows that narrow with each
+           keystroke sit above the keyboard rather than behind it. Ctrl or Cmd+F opens it
+           too (wireAppTypeahead). The input is laid out even while the bar is
+           shut, only at no height, because iOS raises the keyboard only for a
+           focus made inside the tap. No Done button: the keyboard's Search
+           key, the iOS bar's Done, Enter, and a tap elsewhere all close it;
+           Escape clears it as well. -->
+      <div x-data="findPill()" x-effect="view; mapTab; projectTab; resolve()" x-show="has" class="contents">
+        <button type="button" @click="open ? $refs.box.blur() : $refs.box.focus()" @pointerdown="open && $event.preventDefault()"
+                class="shrink-0 flex items-center gap-1.5 h-9 px-2 rounded-lg transition-colors"
+                :class="q || open ? 'bg-primary/10 text-primary' : 'text-base-content/70 hover:bg-base-200'"
+                :aria-label="'Filter: ' + (q || placeholder)" :aria-expanded="open ? 'true' : 'false'">
+          <i class="ph ph-magnifying-glass text-lg leading-none"></i>
+          <span x-show="q && !open" class="max-w-28 truncate font-medium" x-text="q"></span>
+        </button>
+        <button type="button" x-show="!open && q" @click="clear()" aria-label="Clear the filter"
+                class="shrink-0 -ml-1 h-9 w-8 grid place-items-center rounded-lg text-primary hover:bg-base-200">
+          <i class="ph ph-x text-base leading-none"></i>
+        </button>
+        <template x-teleport="#find-bar">
+          <div x-show="has" class="grid transition-[grid-template-rows] duration-150" :class="open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'">
+            <div class="min-h-0 overflow-hidden">
+              <div data-find-bar class="pointer-events-auto bg-base-100 border-b border-base-300 shadow-md px-4 pt-1 pb-2.5
+                                        lg:ml-auto lg:mr-4 lg:w-[32rem] lg:px-3 lg:pt-2.5 lg:border-x lg:rounded-b-xl">
+                <label class="input flex items-center gap-2 w-full h-10">
+                  <i class="ph ph-magnifying-glass text-lg text-base-content/50"></i>
+                  <input x-ref="box" id="find-pill-box" type="search" inputmode="search" enterkeyhint="search"
+                         autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
+                         class="grow min-w-0 text-base [&::-webkit-search-cancel-button]:hidden"
+                         :placeholder="placeholder"
+                         x-model="q" @input="push()" @focus="expand()" @blur="collapse()"
+                         @keydown.enter.prevent="$el.blur()" @keydown.escape.prevent="clear(); $el.blur()">
+                  <span x-show="q && shown" class="shrink-0 text-sm tabular-nums text-base-content/50" x-text="shown"></span>
+                  <button type="button" x-show="q" @pointerdown.prevent @click="clear()" aria-label="Clear the filter"
+                          class="shrink-0 -mr-1 h-8 w-8 grid place-items-center rounded-md text-base-content/50 hover:text-base-content">
+                    <i class="ph ph-x-circle text-lg leading-none"></i>
+                  </button>
+                </label>
+                <!-- Where else the word landed, when a view's one query runs
+                     over several kinds of row (Activity's four panes): each a
+                     count that opens its pane in a tap. -->
+                <div x-show="q && also.length" class="flex items-center gap-1.5 pt-2 overflow-x-auto no-scrollbar text-sm">
+                  <span class="shrink-0 text-base-content/50">Also</span>
+                  <template x-for="a in also" :key="a.go + ':' + a.arg">
+                    <button type="button" @pointerdown.prevent @click="goAlso(a)"
+                            class="shrink-0 px-2.5 py-1 rounded-full bg-base-200 hover:text-primary tabular-nums" x-text="a.text"></button>
+                  </template>
+                </div>
+                <!-- Recent terms, only while the bar is open and empty. The bar
+                     lies over the view, so the row lengthens it without moving
+                     anything, and it goes the moment a key lands. -->
+                <div x-show="!q && recents.length" class="flex items-center gap-1.5 pt-2 overflow-x-auto no-scrollbar">
+                  <i class="ph ph-clock-counter-clockwise shrink-0 text-base-content/40"></i>
+                  <template x-for="t in recents" :key="t">
+                    <button type="button" @pointerdown.prevent @click="q = t; push()"
+                            class="shrink-0 px-2.5 py-1 rounded-full bg-base-200 text-sm" x-text="t"></button>
+                  </template>
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
+      </div>
+
       <!-- ── The ref switch: which ref THIS PAGE is running at ─────────────
            Last in the row, past the rail, behind a hairline. The rail's items
            are destinations you leave for; this one is a fact about the page you
@@ -613,6 +688,9 @@ html.dk-dragging main{transition:none !important}
       </button>
     </div>
   </div>
+  <!-- The find pill's bar lands here: hung from the header's bottom edge and
+       lying over the view, so opening it moves nothing beneath. -->
+  <div id="find-bar" class="absolute inset-x-0 top-full pointer-events-none"></div>
 </header>
 
 <div class="flex-1 flex min-h-0">
@@ -786,7 +864,8 @@ html.dk-dragging main{transition:none !important}
             <button @click="pickRepo(r.repo)"
                     class="w-full min-h-11 flex items-center gap-2.5 px-3 rounded-lg text-left text-base transition-colors hover:bg-base-200 active:bg-base-300"
                     :class="$store.browser.repo === r.repo ? 'text-primary font-semibold' : 'text-base-content/80'">
-              <i class="ph shrink-0 text-xl text-base-content/50" :class="r.icon"></i>
+              <span x-show="repoMarkSrc(r.repo)" class="inline-block size-5 shrink-0 bg-current text-base-content/50 [mask:var(--mark)_center/contain_no-repeat]" :style="markStyle(repoMarkSrc(r.repo))" aria-hidden="true"></span>
+              <i x-show="!repoMarkSrc(r.repo)" class="ph shrink-0 text-xl text-base-content/50" :class="r.icon"></i>
               <span class="min-w-0 flex-1 truncate font-mono" x-text="r.short"></span>
               <i x-show="r.priv" class="ph ph-lock shrink-0 text-sm text-base-content/30"></i>
               <i x-show="$store.browser.repo === r.repo" class="ph ph-check shrink-0 text-base text-primary"></i>
@@ -898,7 +977,8 @@ html.dk-dragging main{transition:none !important}
                   <button @click="openPinned(r.repo)" :data-title-tip="r.repo"
                           class="flex items-center gap-2 min-w-0 flex-1 min-h-9 pl-2 text-left transition-colors"
                           :class="$store.browser.repo===r.repo ? 'text-primary font-semibold' : 'text-base-content/80'">
-                    <i class="ph text-base shrink-0" :class="r.icon"></i><span class="truncate" x-text="r.short"></span>
+                    <span x-show="repoMarkSrc(r.repo)" class="inline-block size-4 shrink-0 bg-current [mask:var(--mark)_center/contain_no-repeat]" :style="markStyle(repoMarkSrc(r.repo))" aria-hidden="true"></span>
+                    <i x-show="!repoMarkSrc(r.repo)" class="ph text-base shrink-0" :class="r.icon"></i><span class="truncate" x-text="r.short"></span>
                   </button>
                   <button @click.stop="rowMenu(r.repo, $event, 'github')"
                           @mouseenter="rowMenuHover(r.repo, $event, 'github')" @mouseleave="hoverLeaveMenu()"
@@ -1313,7 +1393,7 @@ html.dk-dragging main{transition:none !important}
          renders both and switches on the shell view, so both share this lazy
          mount. Full width, so the repo grid runs three cards wide like the
          pages index; the Stage constrains its own column. -->
-    <div x-show="isEstate" data-pane="estate" class="h-full"
+    <div x-show="isEstate" data-pane="estate" data-find-hoist class="h-full [&_label:has(>input[data-find-box])]:hidden"
          :class="listsFill ? 'overflow-hidden flex flex-col' : 'overflow-y-auto'">
       <!-- w-full is load-bearing under listsFill and inert without it. An auto
            inline margin on a flex ITEM sizes it to its content instead of
@@ -1343,7 +1423,7 @@ html.dk-dragging main{transition:none !important}
 
     <!-- Public browse: the no-token jsDelivr file browser (estate-level, beside
          Repos / Stage). Lazy-mounted on first visit. -->
-    <div x-show="view==='public'" class="h-full overflow-y-auto">
+    <div x-show="view==='public'" data-find-hoist class="h-full overflow-y-auto [&_label:has(>input[data-find-box])]:hidden">
       <div class="mx-auto px-6 py-8 !max-w-none">
         <template x-if="publicSeen">
           <div x-data="publicBrowse()"></div>
@@ -1366,7 +1446,7 @@ html.dk-dragging main{transition:none !important}
 
     <!-- Pages: web-tools' own catalog, or any repo's `pages` entries, reached
          at ?view=pages or via the repo sidebar/tabs. -->
-    <div x-show="view==='pages'" class="h-full overflow-y-auto">
+    <div x-show="view==='pages'" data-find-hoist class="h-full overflow-y-auto [&_label:has(>input[data-find-box])]:hidden">
 
       <div class="!max-w-none px-6 py-8">
 
@@ -1405,7 +1485,7 @@ html.dk-dragging main{transition:none !important}
                   <!-- data-find-box: the Pages view's own filter, so a bare
                        keystroke narrows this list instead of opening the
                        sidebar finder (wireAppTypeahead). -->
-                  <input type="search" x-model.debounce="q" placeholder="filter by name…" data-find-box class="grow min-w-0">
+                  <input type="search" x-model.debounce="q" placeholder="Pages by name, title or note" data-find-box data-find-noun="page" :data-find-count="filteredGroups.reduce((n, g) => n + g.items.length, 0)" class="grow min-w-0">
                 </label>
               </div>
 
@@ -1772,7 +1852,7 @@ html.dk-dragging main{transition:none !important}
          same as a repo's custom landing), every other project gets its README.
          Pages and Docs are DERIVED rather than declared: see projectPages and
          loadProjectDocs below. -->
-    <div x-show="view==='project'" class="h-full flex flex-col">
+    <div x-show="view==='project'" data-find-hoist class="h-full flex flex-col [&_label:has(>input[data-find-box])]:hidden">
         <template x-if="project">
           <div class="flex flex-col h-full min-h-0">
             <div class="shrink-0 px-6 pt-6">
@@ -1852,7 +1932,7 @@ html.dk-dragging main{transition:none !important}
                 <i class="ph ph-magnifying-glass opacity-50"></i>
                 <!-- data-find-box: Docs' own filter, so a bare keystroke narrows
                      the tree instead of opening the sidebar finder. -->
-                <input type="search" x-model.debounce="projectDocsQ" placeholder="filter by path…" data-find-box class="grow min-w-0"></label>
+                <input type="search" x-model.debounce="projectDocsQ" placeholder="Docs by path" data-find-box data-find-noun="doc" :data-find-count="projectDocsGroups.reduce((n, g) => n + g.files.length, 0)" class="grow min-w-0"></label>
             </div>
             </div>
 
@@ -2183,7 +2263,7 @@ html.dk-dragging main{transition:none !important}
          repo-owned scope story plus a live adoption read. The operational face
          of the constellation doctrine. Estate-level, its own component and lazy
          mount. (Formerly "Portable"; ?view=portable still resolves here.) -->
-    <div x-show="view==='map'" data-pane="map" class="h-full overflow-y-auto">
+    <div x-show="view==='map'" data-pane="map" data-find-hoist class="h-full overflow-y-auto [&_label:has(>input[data-find-box])]:hidden">
       <div class="mx-auto px-4 lg:px-6 pt-4 pb-8 lg:pt-6 !max-w-none">
         <template x-if="mapSeen">
           <div x-data="map()"></div>
@@ -2375,6 +2455,8 @@ function catalogThumbPath(repo, path, query){
 // (projectIconSrc). Outside the shell's data because it is bookkeeping no view
 // draws, and a reactive copy would re-run every binding that consulted it.
 const PROJECT_ICONS_ASKED = new Set();
+// The same bookkeeping for the hub's drawn marks (hubMarkSrc).
+const HUB_MARKS_ASKED = new Set();
 
 // The links board's item kinds, as the shell renders them. It carries only the
 // glyph fallbacks pages/links.html uses, since the shell shows a rail item as a
@@ -2389,15 +2471,17 @@ const RAIL_KIND = { link: 'ph-arrow-up-right', action: 'ph-lightning', repo: 'ph
 // subview it lands on; every other address is a subview and keeps the key it
 // was first published at, so an old ?tab= link still lands where it pointed.
 const MAP_TABS = ['overview', 'reach', 'research', 'harness', 'dimensions', 'docs', 'watch'];
-const MAP_SUBVIEWS = ['aims', 'projects', 'distribution', 'outposts', 'data', 'exploration', 'events', 'scheduled', 'set', 'tests', 'skills', 'agents', 'peeves', 'context', 'lifetimes', 'surfacing', 'patterns', 'views', 'kits', 'showing', 'growth', 'policy', 'claims', 'registries', 'public', 'names'];
+const MAP_SUBVIEWS = ['aims', 'projects', 'distribution', 'outposts', 'data', 'exploration', 'events', 'scheduled', 'programs', 'set', 'tests', 'skills', 'agents', 'peeves', 'context', 'lifetimes', 'surfacing', 'patterns', 'views', 'kits', 'showing', 'growth', 'policy', 'themes', 'registries', 'public', 'names'];
 const MAP_ROUTES = [...MAP_TABS, ...MAP_SUBVIEWS];
 // Where a bare ?view=map lands, and so the one address its URL never stamps:
 // the Overview, every address with its sentence. Reach held it until
 // 2026-10-12, when the sentences left the tops of the tabs for one front door.
 const MAP_HOME = 'overview';
-// The Context subview's own sub-address (lib/alpineComponents/map.js,
-// syncCtxAddress): grouping, sort, question and source, one value each.
-const mapCtxOf = get => Object.fromEntries(['ctxlens', 'ctxsort', 'ctxtopic', 'ctxsource'].map(k => [k, get(k) || '']));
+// The Map subviews' own sub-addresses (lib/alpineComponents/map.js,
+// syncCtxAddress and syncSetAddress), each key with the tab it belongs to:
+// Context's grouping, sort, question and source, and Set's question.
+const MAP_CTX_TAB = { ctxlens: 'context', ctxsort: 'context', ctxtopic: 'context', ctxsource: 'context', setintent: 'set' };
+const mapCtxOf = get => Object.fromEntries(Object.keys(MAP_CTX_TAB).map(k => [k, get(k) || '']));
 
 // marked, loaded once on demand for the overview README render. kits/md-doc.js
 // rides with it, because every one of these renders lands in a fixed-width
@@ -2577,7 +2661,7 @@ function app(){ return {
   // Context's sub-address, held here for the same reason. Seeded only from an
   // address that opens Context, since the map row stamps it there alone and a
   // value armed from any other address would surface on the next visit.
-  mapCtx: (() => { const p = new URLSearchParams(location.search); return mapCtxOf(k => p.get('tab') === 'context' && p.get(k)); })(),
+  mapCtx: (() => { const p = new URLSearchParams(location.search); return mapCtxOf(k => p.get('tab') === MAP_CTX_TAB[k] && p.get(k)); })(),
   toolsSeen: false,       // mount the tools component lazily, on first visit
   searchSeen: false,      // mount the search view lazily, on first visit
   // What the Search view is showing, parked by goSearch (the finder's gate, the
@@ -2938,6 +3022,7 @@ function app(){ return {
     this.wireAppDrop();
     this.wireAppPaste();
     this.wireAppTypeahead();
+    this.guardFocusZoom();
     // PRELOAD THE CLIPBOARD KIT, because the header's Paste button cannot
     // afford to fetch it. Reading the clipboard needs the tap's own user
     // activation, and an await inside the handler spends it, so a lazy load
@@ -4758,6 +4843,7 @@ function app(){ return {
   projectTab: 'overview',   // 'overview' | 'app' | 'outpost' | 'board' | 'pages' | 'files' | 'docs' (Files' Docs mode)
   powershellOutpostItem: '', // the PowerShell outpost view's selected file (repo path), stamped as &item=
   projectIcons: {},         // repo@ref:file -> the project icon as a data URL ('' until read, or when the read failed)
+  hubMarks: {},             // hub path -> a drawn mark as a data URL ('' until read, or when the hub has no such file)
   projectAppRoute: '',      // the App tab's page query, a route into the app (?view=…), stamped as &item=
   projectPageThumbs: {},    // a route card's cached shot by thumb path, as a data URL ('' when the cache has none)
   projectHtml: '',
@@ -4891,6 +4977,34 @@ function app(){ return {
   // The glyph drawn while there is no picture: a declared `ph-` glyph, else the
   // kanban, which is what every project drew before icons were declared.
   projectGlyph(p){ return p?.icon?.startsWith('ph-') ? p.icon : 'ph-kanban'; },
+  // A drawn mark the hub keeps (docs/favicons/README.md, Drawn marks), read
+  // once at main. Such a mark is filled with currentColor, which an <img>
+  // draws black, so it is painted as a mask in the text colour (markStyle).
+  // '' while the read is out, or when the hub has no such file: the caller
+  // draws its stock glyph.
+  hubMarkSrc(path){
+    if (!path) return '';
+    if (!HUB_MARKS_ASKED.has(path)) {
+      HUB_MARKS_ASKED.add(path);
+      queueMicrotask(async () => {
+        if (!window.GH) return;
+        try {
+          const j = await new window.GH({ token: this.hasToken() ? window.TOKEN : '', repo: this.DEFAULT_REPO, ref: 'main' }).get(path);
+          this.hubMarks[path] = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(j.text);
+        } catch {}
+      });
+    }
+    return this.hubMarks[path] || '';
+  },
+  // A repository's mark: the file the hub draws for it, named for the
+  // repository, in docs/favicons/estate/. The hub itself wears the hex nut,
+  // and a repository of another owner shares no names with these files.
+  repoMarkSrc(repo){
+    const [owner, name] = String(repo || '').split('/');
+    if (!name || repo === this.DEFAULT_REPO || owner !== this.DEFAULT_REPO.split('/')[0]) return '';
+    return this.hubMarkSrc('docs/favicons/estate/' + name + '.svg');
+  },
+  markStyle(src){ return src ? { '--mark': 'url("' + src + '")' } : {}; },
   async loadProjectIcon(key, repo, ref, f){
     const s = Alpine.store('browser');
     const gh = repo === s.repo && s.gh ? s.gh
@@ -6321,22 +6435,19 @@ function app(){ return {
       open(u){
         // A restore onto Context re-reads its sub-address; onto any other tab
         // the held one stays, as the component's own state does.
-        if (u.tab === 'context') this.mapCtx = mapCtxOf(k => u[k]);
+        if (Object.values(MAP_CTX_TAB).includes(u.tab)) this.mapCtx = mapCtxOf(k => u.tab === MAP_CTX_TAB[k] && u[k]);
         this.goMap(u.tab);
       },
       stamp(p){
         // Same `tab` key the project view stamps, and the same rule: the
         // default stays out of the URL so a plain ?view=map link keeps working.
         if (this.mapTab && this.mapTab !== MAP_HOME) p.set('tab', this.mapTab);
-        // Context's four ride with Context alone. Written straight onto the
-        // address by map.js and cleared by nothing, they used to follow a
-        // picked question onto every later tab and view.
-        if (this.mapTab !== 'context') return;
-        const c = this.mapCtx;
-        if (c.ctxlens) p.set('ctxlens', c.ctxlens);
-        if (c.ctxsort) p.set('ctxsort', c.ctxsort);
-        if (c.ctxtopic) p.set('ctxtopic', c.ctxtopic);
-        if (c.ctxsource) p.set('ctxsource', c.ctxsource);
+        // A subview's keys ride with that subview alone: Context's four, Set's
+        // one. Written straight onto the address by map.js and cleared by
+        // nothing, Context's used to follow a picked question onto every later
+        // tab and view.
+        for (const [k, tab] of Object.entries(MAP_CTX_TAB))
+          if (tab === this.mapTab && this.mapCtx[k]) p.set(k, this.mapCtx[k]);
       } },
     // The repo's Files view: its tree beside the file it opens
     // (alpineComponents/file-browser.js). It was folded into Search until
@@ -6487,7 +6598,7 @@ function app(){ return {
               'sq', 'smode', 'srepo', 'sref', 'spath', 'sfile', 'sitem', 'sset', 'sscope', 'sextra',
               'session', 'list', 'topic', 'lens', 'grain', 'find', 'next',
               'aq', 'discussion', 'ascope', 'arepo', 'astate',
-              'ctxlens', 'ctxsort', 'ctxtopic', 'ctxsource',
+              'ctxlens', 'ctxsort', 'ctxtopic', 'ctxsource', 'setintent',
               'app', 'on', 'appRepo', 'appPath', 'appRef', 'appLabel', 'appIcon'],
 
   // Two lookups, deliberately not one. An ADDRESS may name a view by a retired
@@ -7155,10 +7266,13 @@ function app(){ return {
     if (!MAP_ROUTES.includes(tab) || tab === this.mapTab) return;
     this.mapTab = tab; this.syncUrl();
   },
-  // Context reports its sub-address here and the map row stamps it. A choice
-  // within one screen, so it replaces the entry rather than adding one per tap.
+  // Context and Set report their sub-addresses here and the map row stamps
+  // them. A choice within one screen, so it replaces the entry rather than
+  // adding one per tap. Only the keys a caller names change, so Set's pick
+  // leaves Context's question for the next visit, and Context's Set's.
   setMapCtx(spec){
-    this.mapCtx = mapCtxOf(k => spec?.[k]);
+    const named = Object.keys(MAP_CTX_TAB).filter(k => spec && k in spec);
+    this.mapCtx = { ...this.mapCtx, ...Object.fromEntries(named.map(k => [k, spec[k] || ''])) };
     const restoring = this._restoring;
     this._restoring = true;
     try { this.syncUrl(); } finally { this._restoring = restoring; }
@@ -8005,8 +8119,42 @@ function app(){ return {
   // class change lands a tick later and the default action has nowhere to go,
   // so that one path preventDefaults and seeds the character by hand, through
   // an `input` event so x-model writes it back to the component's own `q`.
+  // ── NO FOCUS ZOOM ON iOS ──────────────────────────────────────────────────
+  // iOS Safari zooms the page when a focused input's text is under 16px, and
+  // leaves it zoomed. Sizing each box to 16px did not stop it for the
+  // header's find pill opened through a toss (owner, 2026-10-21), and the
+  // decisive control is the TOP document's viewport tag: maximum-scale=1
+  // stops the focus zoom, while iOS has ignored it for pinch zoom since iOS
+  // 10 (kits/annotate.js guards its note box the same way, and restores the
+  // tag as it found it, so the two agree). iOS only, since Android Chrome
+  // does honor it for pinch; a cross-origin top is left alone.
+  guardFocusZoom(){
+    try {
+      const os = window.BrowserKind?.detect().os;
+      if (os !== 'iPhone' && os !== 'iPad') return;
+      const meta = window.top.document.querySelector('meta[name=viewport]');
+      if (meta && !/maximum-scale/.test(meta.content)) meta.content += ', maximum-scale=1';
+    } catch {}
+  },
+
   wireAppTypeahead(){
     window.addEventListener('keydown', (e) => {
+      // CTRL OR CMD+F OPENS THE VIEW'S OWN FILTER, where the view has one:
+      // its box if it shows one, else the header's find pill. The browser's
+      // find reads the page as text, which on a list the view already knows
+      // how to narrow is the weaker search. Pressed again with the filter
+      // focused, it is left to the browser, so its find is one more press
+      // away and never lost; on a view with no filter it is never taken.
+      if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && (e.key === 'f' || e.key === 'F')) {
+        if (window.swipeDeck?.stack?.length || document.querySelector('dialog[open]')) return;
+        const pill = document.getElementById('find-pill-box');
+        const to = Array.from(document.querySelectorAll('[data-find-box]')).find(el => el.getClientRects().length)
+          || (pill && pill.getClientRects().length ? pill : null);
+        if (!to || document.activeElement === to) return;
+        e.preventDefault();
+        to.focus();
+        return;
+      }
       // A bare printable key, one character wide, so every named key (Tab,
       // Enter, Escape, the arrows, the function row) passes untouched. Space
       // goes with them: it scrolls, it activates a focused button, and no
@@ -8036,6 +8184,11 @@ function app(){ return {
       const own = Array.from(document.querySelectorAll('[data-find-box]'))
         .find(el => el.getClientRects().length);
       if (own) { own.focus(); return; }
+      // Below sm a hoisting pane hides its own box, and the header's find
+      // pill stands in for it, so the key goes there rather than to the
+      // sidebar finder.
+      const pill = document.getElementById('find-pill-box');
+      if (pill && pill.getClientRects().length) { pill.focus(); return; }
 
       // showSidebar is about CONTENT, not about the viewer's choice: a
       // signed-out dashboard has no sidebar to open, so the finder is not
@@ -9199,6 +9352,224 @@ function gallery(){
       if (!m || !window.__shell) return;
       await window.__shell.ensureBrowser(p.repo);
       await window.__shell.openFile(m[1]);
+    },
+  };
+}
+
+// ── Find pill: a view's filter box, hoisted into the header ─────────────────
+// The pill owns no query. It writes to the open view's own box (the
+// [data-find-box] input inside a view marked data-find-hoist, which that view
+// hides) and dispatches `input`, so each view's x-model, filtering and URL
+// stamp run exactly as if typed there. What it adds is placement: no row of
+// the view, one place for every view's filter, below lg a full-width 16px
+// field when tapped with the list lifted to just under the header so it
+// narrows above the keyboard, and the matches marked through the CSS Custom
+// Highlight API, which colors text ranges without touching any view's markup.
+// The list is the view's data-part="list" (the UI-units codebook's marker),
+// else whatever follows the box's row. Two boxes stay where they are: the
+// Search view's, which is that view's whole subject, and Config's key filter,
+// inside a reference panel that starts closed.
+function findPill(){
+  // Elements stay out of Alpine's reactive state: a proxied node throws on
+  // dispatchEvent.
+  let box = null, list = null, scroller = null, saved = 0, watch = null, frame = 0, typed = 0;
+  const seen = el => !!el && el.getClientRects().length > 0;
+  const viewOf = el => el.closest('[data-find-hoist]');
+  // The nearest ancestor that scrolls, which is the view itself for most and
+  // an inner column for a project.
+  const scrollerOf = el => {
+    for (let n = el.parentElement; n && n !== document.body; n = n.parentElement)
+      if (/auto|scroll/.test(getComputedStyle(n).overflowY)) return n;
+    return null;
+  };
+  // A view's box is hidden by its view's class, so whether its tab is the one
+  // on screen is read off the row it sits in, whether it is shown there at
+  // all off the label's own x-show (Docs' box is only on the Docs tab), and
+  // whether it filters there off its search slot, which Activity drops on
+  // State and Traffic.
+  // A display:contents wrapper has no box of its own, so the row is the
+  // first ancestor that does.
+  const row = el => {
+    let n = el.parentElement;
+    while (n && getComputedStyle(n).display === 'contents') n = n.parentElement;
+    return n;
+  };
+  const live = el => {
+    const lab = el.closest('label');
+    return !!lab && lab.matches('[data-slot="frame:search"]') && lab.style.display !== 'none' && seen(row(lab));
+  };
+  const scope = () => { const s = window.__shell; return s ? s.view + (s.view === 'map' ? ':' + s.mapTab : '') : ''; };
+  return {
+    has: false, open: false, q: '', placeholder: 'Filter', shown: '', also: [], recents: [],
+
+    // Retried because a view mounts its component lazily on first visit.
+    resolve(){ this.$nextTick(() => [0, 250, 1000, 2500].forEach(ms => setTimeout(() => this.find(), ms))); },
+    find(){
+      const hit = [...document.querySelectorAll('[data-find-hoist] input[data-find-box]')]
+        .find(live) || null;
+      // The placeholder is read even when the box is the same one: Activity's
+      // four panes share a box whose placeholder follows the pane.
+      this.placeholder = hit?.placeholder || 'Filter';
+      if (hit === box) return;
+      this.release();
+      box = hit;
+      this.has = !!box;
+      this.q = box ? box.value : '';
+      watch?.disconnect();
+      if (box) {
+        watch = new MutationObserver(() => this.mark());
+        watch.observe(viewOf(box), { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['style', 'class', 'data-find-count', 'data-find-noun', 'data-find-also'] });
+      }
+      this.mark();
+    },
+
+    push(){
+      if (!box) return;
+      box.value = this.q;
+      box.dispatchEvent(new Event('input', { bubbles: true }));
+      typed = Date.now();
+      this.mark();
+    },
+    expand(){
+      if (!box) return;
+      this.open = true;
+      this.q = box.value;
+      this.placeholder = box.placeholder || this.placeholder;
+      this.recents = this.loadRecents();
+      // The lift is for a keyboard that covers half the screen; at lg and
+      // up the field is in the header already and the list stays put.
+      if (window.innerWidth >= 1024) return;
+      scroller = scrollerOf(box);
+      saved = scroller?.scrollTop || 0;
+      this.lift();
+    },
+    collapse(){
+      this.open = false;
+      const t = this.q.trim();
+      if (t) this.saveRecent(t); else this.restore();
+    },
+    clear(){
+      this.q = '';
+      this.push();
+      if (!this.open) this.restore();
+    },
+
+    // Bring the list's top to just under the header, or under whatever stays
+    // pinned over it: a sticky element whose parent spans the list (the
+    // Map's tab strips below lg, the Sessions day lane), else the pane's
+    // scroll-padding-top. A screen of padding below lets it stay there however
+    // far the filter shrinks the list, where the browser would otherwise clamp
+    // the scroll and drop it behind the keyboard. Scroll anchoring goes off
+    // for the same reason: Chromium keeps a row on screen by subtracting the
+    // rows filtered out above it, which walks the scroll back to the top.
+    lift(){
+      requestAnimationFrame(() => {
+        if (!box || !scroller) return;
+        scroller.style.paddingBottom = scroller.clientHeight + 'px';
+        scroller.style.overflowAnchor = 'none';
+        this.align('smooth');
+      });
+    },
+    // Re-run after each render a keystroke causes (mark, below), since the
+    // chips and notes above a list resize as it filters and would carry the
+    // list off its line. Only then: a reader scrolling the results by hand
+    // is not pulled back.
+    align(behavior = 'instant'){
+      const anchor = this.listOf() || this.after();
+      if (!anchor) return;
+      const pinned = [...scroller.querySelectorAll('[class*="sticky"]')]
+        .filter(el => seen(el) && !el.contains(anchor) && el.parentElement.contains(anchor)
+          && (el.compareDocumentPosition(anchor) & Node.DOCUMENT_POSITION_FOLLOWING)
+          && getComputedStyle(el).position === 'sticky')
+        .map(el => (parseFloat(getComputedStyle(el).top) || 0) + el.getBoundingClientRect().height);
+      // The bar lies over the top of the view, so the list lands below it
+      // too: at its natural height, since it may still be sliding open.
+      const card = document.querySelector('[data-find-bar]');
+      const slot = document.getElementById('find-bar');
+      const bar = card && slot ? slot.getBoundingClientRect().top + card.offsetHeight - scroller.getBoundingClientRect().top : 0;
+      const cover = Math.max(bar + 8, pinned.length ? Math.max(...pinned) + 8 : (parseFloat(getComputedStyle(scroller).scrollPaddingTop) || 8));
+      const top = scroller.scrollTop + anchor.getBoundingClientRect().top - scroller.getBoundingClientRect().top - cover;
+      scroller.scrollTo({ top: Math.max(0, top), behavior });
+    },
+    restore(){
+      const el = scroller;
+      this.release();
+      el?.scrollTo({ top: saved, behavior: 'smooth' });
+    },
+    release(){
+      if (scroller) scroller.style.paddingBottom = scroller.style.overflowAnchor = '';
+      scroller = null;
+    },
+    // Looked for inside the box's own section where it has one (a Map tab),
+    // so a list belonging to another tab can never be picked.
+    listOf(){
+      list = [...(box.closest('section') || viewOf(box)).querySelectorAll('[data-part="list"]')]
+        .find(el => seen(el) && (box.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING)) || null;
+      return list;
+    },
+    after(){
+      for (let el = box.closest('label'); el && !el.matches('section, [data-find-hoist]'); el = el.parentElement)
+        for (let n = el.nextElementSibling; n; n = n.nextElementSibling) if (seen(n)) return n;
+      return null;
+    },
+
+    mark(){
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        // The view can change its own query (a link, a reset); follow it
+        // unless the reader is typing.
+        if (box && !this.open && box.value !== this.q) this.q = box.value;
+        if (box && scroller && Date.now() - typed < 600) this.align();
+        const reg = window.CSS?.highlights;
+        const terms = this.q.toLowerCase().split(/\s+/).filter(Boolean);
+        // A count only where the view declares one on its box, with the
+        // noun for its rows: rows read off the page's structure miscounted
+        // wherever a list is grouped or holds its own empty line. A view whose
+        // query reaches other kinds of row declares those too (find-also).
+        const d = box?.dataset || {};
+        this.shown = d.findCount === undefined || d.findCount === '' ? '' : this.phrase(+d.findCount, d.findNoun || undefined);
+        let also = [];
+        try { also = JSON.parse(d.findAlso || '[]'); } catch {}
+        this.also = also.filter(a => a.n > 0).map(a => ({ ...a, text: this.phrase(a.n, a.noun) }));
+        if (!box || !terms.length) { reg?.delete('find-pill'); return; }
+        const root = this.listOf() || box.closest('section') || viewOf(box);
+        if (!reg) return;
+        const ranges = [], walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+        for (let n = walk.nextNode(); n && ranges.length < 500; n = walk.nextNode()) {
+          if (!n.data.trim() || n.parentElement?.closest('label:has(>input[data-find-box])') || !seen(n.parentElement)) continue;
+          const text = n.data.toLowerCase();
+          for (const t of terms)
+            for (let i = text.indexOf(t); i !== -1; i = text.indexOf(t, i + t.length)) {
+              const r = new Range(); r.setStart(n, i); r.setEnd(n, i + t.length); ranges.push(r);
+            }
+        }
+        reg.set('find-pill', new Highlight(...ranges));
+      });
+    },
+
+    // "1 session", "46 sessions"; a noun declared as "branch|branches" names
+    // its own plural.
+    phrase(n, noun = 'match|matches'){
+      const [one, many] = noun.includes('|') ? noun.split('|') : [noun, noun + 's'];
+      return n + ' ' + (n === 1 ? one : many);
+    },
+    // An Also entry names a method of the view's own component (the box's
+    // scope) and its argument, so the view decides what opening its other
+    // rows means: Activity widens the pane's scope to show every match.
+    goAlso(a){
+      const view = box && window.Alpine?.$data(box);
+      if (typeof view?.[a.go] === 'function') view[a.go](a.arg);
+      setTimeout(() => this.lift(), 250);
+    },
+
+    // The last few terms per view, offered while the field is open and empty.
+    loadRecents(){
+      try { return JSON.parse(localStorage.getItem('findPill:' + scope()) || '[]'); } catch { return []; }
+    },
+    saveRecent(t){
+      const list = [t, ...this.loadRecents().filter(x => x !== t)].slice(0, 6);
+      try { localStorage.setItem('findPill:' + scope(), JSON.stringify(list)); } catch {}
+      this.recents = list;
     },
   };
 }

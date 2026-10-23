@@ -747,11 +747,11 @@ test('pointerOf keeps the ask to one line, and omits it rather than showing an e
 
 test('a shell read of a doc counts, keyed to the checkout the command names', () => {
   const rec = { repos: [{ name: 'web-tools' }, { name: 'home' }], calls: [
-    { name: 'Bash', arg: 'cat /home/user/web-tools/docs/SURFACING.md' },
+    { name: 'Bash', arg: 'cat /home/user/web-tools/docs/CONVERSATION.md' },
     { name: 'Bash', arg: 'cd /home/user/home && sed -n 1,40p docs/TRACKER.md' },
   ] };
   const out = S.shellDocsOf(rec);
-  assert.equal(out['web-tools/docs/SURFACING.md'], 1, 'an absolute path names its own checkout');
+  assert.equal(out['web-tools/docs/CONVERSATION.md'], 1, 'an absolute path names its own checkout');
   assert.equal(out['home/docs/TRACKER.md'], 1, 'a cd in the same command governs the relative path after it');
 });
 
@@ -774,21 +774,21 @@ test('a docs path cut by the pre-schema-5 arg cap is dropped, not read as a shor
 
 test('a bare path in a multi-checkout session is dropped rather than guessed', () => {
   const many = { repos: [{ name: 'web-tools' }, { name: 'home' }], calls: [
-    { name: 'Bash', arg: 'grep -n toss docs/SURFACING.md' },
+    { name: 'Bash', arg: 'grep -n toss docs/CONVERSATION.md' },
   ] };
   assert.deepEqual(S.shellDocsOf(many), {},
     'two candidate checkouts and nothing to choose between them');
 
   const one = { repos: [{ name: 'web-tools' }], calls: [
-    { name: 'Bash', arg: 'grep -n toss docs/SURFACING.md' },
+    { name: 'Bash', arg: 'grep -n toss docs/CONVERSATION.md' },
   ] };
-  assert.equal(S.shellDocsOf(one)['web-tools/docs/SURFACING.md'], 1,
+  assert.equal(S.shellDocsOf(one)['web-tools/docs/CONVERSATION.md'], 1,
     'one checkout in the session makes the attribution unambiguous');
 });
 
 test('writing a doc is not reading it', () => {
   const rec = { repos: [{ name: 'web-tools' }], calls: [
-    { name: 'Bash', arg: 'cat build.md > docs/SURFACING.md' },
+    { name: 'Bash', arg: 'cat build.md > docs/CONVERSATION.md' },
     { name: 'Bash', arg: "sed -i 's/a/b/' docs/CONVENTIONS.md" },
     { name: 'Bash', arg: 'ls docs/' },
     { name: 'Read', arg: '/home/user/web-tools/docs/loader.md' },
@@ -825,7 +825,7 @@ test('the summarizer version is bumped, so the cache heals rather than reading e
 // prose rather than out of GitHub. Two things can go wrong and both are here:
 // reading the WRONG REPLY (the last one is routinely a PR-event acknowledgement
 // with the state a turn or two above it) and reading a QUOTATION (a session
-// that edited SURFACING.md has the whole vocabulary in its own text).
+// that edited CONVERSATION.md has the whole vocabulary in its own text).
 
 const reply = (at, text) => ({ at, text });
 const stateOf = (replies, over = {}) => S.closingState({ replies, ...over });
@@ -837,6 +837,7 @@ test('the state is the marker the reply closed with, as a key rather than a glyp
   // both are in the store. A glyph on the row would carry the difference onto
   // the screen; a key cannot.
   assert.equal(stateOf([reply('1', '⚪️ **Clean exit.** Nothing left here.')]), 'clean');
+  assert.equal(stateOf([reply('1', '🛵 **Needs you:** tap the link.')]), 'needs');
   assert.equal(stateOf([reply('1', '✴️ **Needs you:** tap the link.')]), 'needs');
   assert.equal(stateOf([reply('1', '✴ **Needs you:** tap the link.')]), 'needs');
 });
@@ -862,7 +863,7 @@ test('sorted by time, so a record whose replies arrive out of order still reads'
 });
 
 test('a quoted vocabulary is not a state: a list marker fails the pattern', () => {
-  // The session that edits SURFACING.md prints the whole vocabulary back. Every
+  // The session that edits CONVERSATION.md prints the whole vocabulary back. Every
   // line of it is a bullet, and the closing state never is.
   const doc = [
     'The states are:',
@@ -1025,7 +1026,7 @@ test('the row carries it, so the pane draws a glyph without opening the record',
 // three as having been read forty-three times, which is the failure the docs
 // registry was avoiding with a hard-coded "injected" string on two rows.
 const CONV = 'web-tools/docs/CONVENTIONS.md';
-const SURF = 'web-tools/docs/SURFACING.md';
+const SURF = 'web-tools/docs/CONVERSATION.md';
 
 function withStartup(entries, over = {}) {
   return { ...S.summarize(record({ startup_context: entries }), 'x'),
@@ -1408,8 +1409,8 @@ test('a typed @ reference is not an attachment and stays in the ask', () => {
   // The rule anchors on the uploads DIRECTORY, never on the @ sigil. A repo
   // path somebody typed is content, and stripping it would also drop it out of
   // the search corpus.
-  const { ask, files } = C.askParts('Read @docs/SURFACING.md then @lib/gh-api.js');
-  assert.equal(ask, 'Read @docs/SURFACING.md then @lib/gh-api.js');
+  const { ask, files } = C.askParts('Read @docs/CONVERSATION.md then @lib/gh-api.js');
+  assert.equal(ask, 'Read @docs/CONVERSATION.md then @lib/gh-api.js');
   assert.equal(files.length, 0);
 });
 

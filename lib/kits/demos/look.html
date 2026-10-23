@@ -119,7 +119,7 @@
         <tr><td class="font-mono whitespace-nowrap">#show=&lt;anchor&gt;</td><td>land on it and tint it</td></tr>
         <tr><td class="font-mono whitespace-nowrap">#tap=&lt;anchor&gt;</td><td>land, ring it, point at it until tapped</td></tr>
         <tr><td class="font-mono whitespace-nowrap">&amp;say=&lt;text&gt;</td><td>the message beside either</td></tr>
-        <tr><td class="font-mono whitespace-nowrap">#walk=&lt;name&gt;</td><td>a sequence the page declares</td></tr>
+        <tr><td class="font-mono whitespace-nowrap">#walkthrough=&lt;name&gt;</td><td>a sequence the page declares</td></tr>
         <tr><td class="font-mono whitespace-nowrap">#steps=&lt;base64url&gt;</td><td>a sequence carried in the link: <code class="font-mono">[{at, say, tap}]</code></td></tr>
         <tr><td class="font-mono whitespace-nowrap">data-at=&quot;name&quot;</td><td>names an element as an anchor; an <code class="font-mono">id</code> works too</td></tr>
         <tr><td class="font-mono whitespace-nowrap">text:&lt;words&gt;</td><td>the smallest element whose whole text is those words</td></tr>
@@ -131,7 +131,7 @@
   <form method="dialog" class="modal-backdrop"><button>close</button></form>
 </dialog>
 
-<script type="application/json" id="look-walks">
+<script type="application/json" id="look-walkthroughs">
 {
   "change-licenses": [
     { "at": "total",         "say": "This is the request's two-year total." },
@@ -193,8 +193,8 @@ document.addEventListener('alpine:init', () => Alpine.data('demo', () => ({
       { label: 'Land on a row inside a closed tab', href: '#show=row-licenses&say=' + say('This is the licenses line the note refers to.') },
       { label: 'Point at a button', href: '#tap=btn-recalc&say=' + say('Recalculate after changing an amount.') },
       { label: 'Point at a button by its words', href: '#tap=' + say('text:Export') + '&say=' + say('Export from here.') },
-      { label: 'A walk the page declares', href: '#walk=change-licenses' },
-      { label: 'A walk carried in the link', href: '#steps=' + Look.encode([
+      { label: 'A walkthrough the page declares', href: '#walkthrough=change-licenses' },
+      { label: 'A walkthrough carried in the link', href: '#steps=' + Look.encode([
         { at: 'tab-funds', tap: true, say: 'Open Funds.' },
         { at: 'fund-dedicated', say: 'The dedicated account carries most of the request.' },
         { at: 'btn-export', tap: true, say: 'Export from here.' },

@@ -41,8 +41,8 @@ const server = http.createServer(async (req, res) => {
 await new Promise(r => server.listen(0, '127.0.0.1', r));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
-const ADDR = 'me/web-tools@main:docs/SURFACING.md';
-const BLOB = 'https://github.com/me/web-tools/blob/main/docs/SURFACING.md';
+const ADDR = 'me/web-tools@main:docs/CONVERSATION.md';
+const BLOB = 'https://github.com/me/web-tools/blob/main/docs/CONVERSATION.md';
 
 const browser = await chromium.launch({ args: ['--no-sandbox', '--ignore-certificate-errors'] });
 const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });

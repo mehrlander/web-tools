@@ -110,7 +110,7 @@
 <!-- Input panel (empty state). -->
 <div id="empty" class="hidden h-full w-full flex-col items-center justify-center gap-4 p-8 text-center">
   <!-- THE FRISBEE, not ph-disc, and it is the chat convention's own mark:
-       SURFACING.md writes a render link as 🥏, so the page a reader lands on
+       CONVERSATION.md writes a render link as 🥏, so the page a reader lands on
        from one now opens with the same glyph rather than with a disc that only
        resembles it. No opacity: a Phosphor glyph mutes by losing contrast and
        an emoji mutes by looking faded, so the size carries it here. -->
@@ -510,9 +510,11 @@
   // Singleton guard for the sandboxed modes: stamp __fabHosted so a fab in
   // the tossed HTML declines to mount (the shell's fab owns the viewport).
   // Render-time only — tossLinkFn keeps encoding the original text.
+  // `<head(\s...)?>` rather than `<head[^>]*>`, which also matches a <header>
+  // and so put the stamp inside the header of a page with no <head> of its own.
   function guardHtml(text) {
     const g = '<script>window.__fabHosted=true;<\/script>';
-    if (/<head[^>]*>/i.test(text)) return text.replace(/<head[^>]*>/i, m => m + g);
+    if (/<head(\s[^>]*)?>/i.test(text)) return text.replace(/<head(\s[^>]*)?>/i, m => m + g);
     if (/<html[^>]*>/i.test(text)) return text.replace(/<html[^>]*>/i, m => m + '<head>' + g + '</head>');
     return '<head>' + g + '</head>' + text;
   }
@@ -1136,7 +1138,7 @@ document.addEventListener('click',function(e){
         '})();<\/script>';
     }
     prelude += fetchShim({ owner, name, ref: depRef, dir });
-    if (/<head[^>]*>/i.test(text)) return text.replace(/<head[^>]*>/i, m => m + prelude);
+    if (/<head(\s[^>]*)?>/i.test(text)) return text.replace(/<head(\s[^>]*)?>/i, m => m + prelude);
     if (/<html[^>]*>/i.test(text)) return text.replace(/<html[^>]*>/i, m => m + '<head>' + prelude + '</head>');
     return '<head>' + prelude + '</head>' + text;
   }
@@ -1298,7 +1300,7 @@ document.addEventListener('click',function(e){
   }
 
   // LOOK MARKERS ON A PAGE THAT NEVER ASKED FOR THEM. A trailing fragment
-  // carrying a look key (show=, tap=, walk=, steps=, intro=; lib/kits/look.js) asks the
+  // carrying a look key (show=, tap=, walkthrough=, steps=, intro=; lib/kits/look.js) asks the
   // page to land on a place and say why, and a page that loads the kit answers
   // it itself. One that does not gets the kit here, from Web Tools at the
   // version this render boots (`lib`), after its own scripts, so a look link
@@ -1307,7 +1309,7 @@ document.addEventListener('click',function(e){
   // no look key leaves the page byte for byte as it was, and a failed fetch
   // leaves it as it was too, since a page without its marker still renders.
   async function withLook(text, frag, lib) {
-    if (!/(?:^|&)(?:show|tap|walk|steps|intro)=/.test(frag || '')) return text;
+    if (!/(?:^|&)(?:show|tap|walkthrough|steps|intro)=/.test(frag || '')) return text;
     // Loading a kit, not naming it: a page that links to look.js's source must
     // still get the kit. A second copy would be harmless (look.js defers to
     // the first), so the test errs toward fetching.
@@ -1813,7 +1815,13 @@ document.addEventListener('click',function(e){
   if (routeKey) {
     await showRoute(routeKey, param(routeKey).trim());
   } else if (gh) {
-    await showAddress(gh.trim());
+    // In top mode an address in the query leaves the real fragment to the page
+    // (topAddressInQuery puts it there), so that fragment is the address's
+    // #frag. Unread, a walkthrough arriving at ?top&gh=…#steps=… found no look
+    // key and a page that does not boot the loader got no kit (2026-10-22).
+    const topFrag = TOP && hashKey !== 'gh' && queryParams.has('gh') && !gh.includes('#') && location.hash.length > 1
+      ? location.hash : '';
+    await showAddress(gh.trim() + topFrag);
   } else if (gz) {
     try {
       const [payload, frag] = splitFrag(gz);

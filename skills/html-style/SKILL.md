@@ -69,11 +69,13 @@ options as pills on one line that scrolls sideways rather than wrapping. Don't
 embed a deck in a page; a strip under its own list (rule 12) is the exception,
 since its takeover is one tap away.
 
-**5. A tenant page uses normal flow.** A page another page may embed (an
+**5. An embedded page has no fixed root.** A page another page may embed (an
 appendix, a toss render, a stage preview) takes rule 4's shape without the fixed
-root: `min-h-dvh` and sticky chrome over document scrolling. In an iframe on
+root: `min-h-dvh` and sticky chrome over document scrolling, or an `h-dvh` root
+for a list over a strip (rule 12). In an iframe on
 iOS, a fixed child measures against the outer viewport and loses its right-hand
-column, which headless Chromium does not show. With sticky chrome, save and
+column, which headless Chromium does not show. Width queries measure the frame,
+not the window. With sticky chrome, save and
 restore document scroll when a detail view replaces a long list, and drop
 `viewport-fit=cover` unless the page is edge-to-edge.
 
@@ -113,7 +115,8 @@ Do not use daisyUI's `tooltip`, `data-tip`, or `cursor-help`. Details are in
 capped near 40% of the height, over a strip of one card per item, swiped
 sideways. Each scrolls inside itself; the page does not. A pick in the list
 moves the strip, and a swipe moves the list's selection and keeps it in view.
-The strip's header opens the deck takeover (rule 4) at the card in view, and
+Up and Down in the list step the selection as a swipe steps the strip, and
+focus moves with the selected row. The strip's header opens the deck takeover (rule 4) at the card in view, and
 closing it returns to the list at the card where it closed. In a wide pane the
 list sits beside the strip; on a phone it stays in view above the strip. The
 reference is the linked-swiper kit

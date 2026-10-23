@@ -1,7 +1,7 @@
 # Showing: how content reaches a viewer
 
-Showing follows surfacing ([SURFACING.md](SURFACING.md)): surfacing decides what
-to hand over; showing is what makes it openable.
+Showing follows the conversation rules ([CONVERSATION.md](CONVERSATION.md)): they decide
+what a reply hands over; showing is what makes it openable.
 
 **The reference is the app, not this file.** Each way of showing (a 🥏 toss, the
 deployed page's own URL, content carried in the link, and others) is a row in
@@ -24,11 +24,22 @@ one was handed over, and nothing mints a new one
 |  | What runs | Reaches | Misses |
 | --- | --- | --- | --- |
 | **🥏 toss** | the page file at the ref, inside a frame | the page's inline code and its library | what the page does to the top-level document, and the FAB, which is the renderer's at main |
-| **🥏 toss with `?top`** | the page as the tab's own document | the same, plus the tab and the page's own FAB at its ref | not available with `?w=` or a `#gz=` payload, which keep the frame; unmeasured on an iPhone |
+| **🥏 toss with `?top`** | the page as the tab's own document | the same, plus the tab and the page's own FAB at its ref | not available with `?w=` or a `#gz=` payload, which keep the frame |
 
-`npm run showing` adds `?top` when a page's diff touches the tab or the FAB's own
-code changed, and `--top` asks for it otherwise. [`loader.md`](loader.md)
+`npm run showing` adds `?top` when a page's diff touches the tab, when the FAB's own
+code changed, or when a look link's steps name other pages, and `--top` asks for it
+otherwise. [`loader.md`](loader.md)
 documents how a toss hands a page its versions.
+
+## Landing on a place
+
+A 🥏 link on any route can carry a look marker in the rendered page's own
+fragment, which makes it a look link: `--intro` greets the reader, and `--at`
+scrolls to one element, tints it and says why, or walks through several.
+`npm run showing` puts the fragment on whichever route the picker chose. The
+grammar is in the header of [`lib/kits/look.js`](../lib/kits/look.js);
+[`skills/look-markers/SKILL.md`](../skills/look-markers/SKILL.md) says how to
+make one and which pages it reaches.
 
 ## Nesting
 

@@ -108,7 +108,7 @@ test('the longest declared prefix wins, so a nested view resolves to itself', ()
 
 // The mark rides the TARGET, so the three strips that draw these chips read one
 // value instead of each typing the character. It is the chat convention's own
-// glyph (SURFACING.md writes a render link as 🥏), which is the whole reason
+// glyph (CONVERSATION.md writes a render link as 🥏), which is the whole reason
 // for carrying it rather than leaving every template on ph-disc.
 test('every target carries the frisbee, framed or not', () => {
   const out = G.pageTargets(REPO, BRANCH, [

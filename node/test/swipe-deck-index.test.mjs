@@ -35,7 +35,7 @@ const pop = () => window.dispatchEvent(new window.Event('popstate'));
 const key = (k) => window.dispatchEvent(new window.KeyboardEvent('keydown', { key: k }));
 const overlays = () => window.document.body.querySelectorAll('.sd-overlay').length;
 
-const DOCS = ['APP.md', 'CONVENTIONS.md', 'SURFACING.md', 'TRACKER.md'];
+const DOCS = ['APP.md', 'CONVENTIONS.md', 'CONVERSATION.md', 'TRACKER.md'];
 const open = (extra = {}) => sd.open({
   count: DOCS.length,
   title: DOCS[0],

@@ -56,12 +56,10 @@ const aimsJson = readFileSync(path.join(repoRoot, 'docs', 'aims.json'), 'utf8');
 const aimsGoalsCsv = readFileSync(path.join(repoRoot, 'docs', 'aims-goals.csv'), 'utf8');
 const aimsInitiativesCsv = readFileSync(path.join(repoRoot, 'docs', 'aims-initiatives.csv'), 'utf8');
 const aimsReadingCsv = readFileSync(path.join(repoRoot, 'docs', 'aims-reading.csv'), 'utf8');
-const surfCsv = readFileSync(path.join(repoRoot, 'docs', 'surfacing.csv'), 'utf8');
-const surfDoc = readFileSync(path.join(repoRoot, 'docs', 'SURFACING.md'), 'utf8');
+const surfCsv = readFileSync(path.join(repoRoot, 'docs', 'conversation.csv'), 'utf8');
+const surfDoc = readFileSync(path.join(repoRoot, 'docs', 'CONVERSATION.md'), 'utf8');
 // The Overview and every Sources panel read the real sentences.
 const mapTabsCsv = readFileSync(path.join(repoRoot, 'docs', 'map-tabs.csv'), 'utf8');
-const ownersCsv = readFileSync(path.join(repoRoot, 'docs', 'owners.csv'), 'utf8');
-const repsCsv = readFileSync(path.join(repoRoot, 'docs', 'repetitions.csv'), 'utf8');
 const propsRegCsv = readFileSync(path.join(repoRoot, 'docs', 'registries.csv'), 'utf8');
 const propsDeclCsv = readFileSync(path.join(repoRoot, 'docs', 'properties.csv'), 'utf8');
 const propsVocabCsv = readFileSync(path.join(repoRoot, 'docs', 'vocabularies.csv'), 'utf8');
@@ -104,11 +102,9 @@ window.GH = class {
     if (p === 'docs/aims-goals.csv') return { text: aimsGoalsCsv };
     if (p === 'docs/aims-initiatives.csv') return { text: aimsInitiativesCsv };
     if (p === 'docs/aims-reading.csv') return { text: aimsReadingCsv };
-    if (p === 'docs/surfacing.csv') return { text: surfCsv };
-    if (p === 'docs/SURFACING.md') return { text: surfDoc };
+    if (p === 'docs/conversation.csv') return { text: surfCsv };
+    if (p === 'docs/CONVERSATION.md') return { text: surfDoc };
     if (p === 'docs/map-tabs.csv') return { text: mapTabsCsv };
-    if (p === 'docs/owners.csv') return { text: ownersCsv };
-    if (p === 'docs/repetitions.csv') return { text: repsCsv };
     if (p === 'docs/registries.csv') return { text: propsRegCsv };
     if (p === 'docs/properties.csv') return { text: propsDeclCsv };
     if (p === 'docs/vocabularies.csv') return { text: propsVocabCsv };
@@ -143,21 +139,28 @@ await tick(3);
 const el = window.document.getElementById('map');
 const data = Alpine.$data(el);
 
-test('every Map address has one source control and keeps its description in the shared panel', () => {
-  const panel = el.querySelector('[data-map-sources-panel]');
-  assert.ok(panel.querySelector('[data-map-description]'));
-  assert.equal(data.mapSourcesOpen, false, 'descriptions are closed on arrival');
+// What a tab is and reads went to the app drawer's About tab on 2026-10-22
+// (fab.js, pageAbout): every address supplies it through `about`, and a tab's
+// own screen leads with its controls where it has any.
+test('every Map address says what it is through about, and leads with its controls', () => {
+  assert.equal(el.querySelector('[data-map-sources-panel]'), null, 'the panel retired into the drawer');
   assert.equal(el.querySelector('[data-slot="frame:lede"]'), null);
-  for (const view of Object.values(data.SUBVIEWS).flat()) {
-    const section = [...el.querySelectorAll('section')].find(e => e.getAttribute('x-show') === `mapTab==='${view.k}'`);
-    assert.equal(section.querySelectorAll('[data-map-sources-button]').length, 1, view.k);
-    assert.equal(section.firstElementChild.dataset.slot, 'frame:toolbar', view.k + ': controls first');
-  }
+  const old = data.mapTab;
+  try {
+    for (const view of Object.values(data.SUBVIEWS).flat()) {
+      data.mapTab = view.k;
+      assert.equal(data.about.title, view.n, view.k + ': the About title is the tab');
+      assert.ok(Array.isArray(data.about.sources), view.k);
+      const section = [...el.querySelectorAll('section')].find(e => e.getAttribute('x-show') === `mapTab==='${view.k}'`);
+      const toolbar = section.querySelector(':scope > [data-slot="frame:toolbar"]');
+      if (toolbar) assert.equal(section.firstElementChild, toolbar, view.k + ': controls first');
+    }
+  } finally { data.mapTab = old; }
 });
 
 test('source provenance follows the selected collection and preserves an external census ref', () => {
   const old = { mapTab: data.mapTab, skillSet: data.skillSet, agentSet: data.agentSet,
-    docRepo: data.docRepo, dataScope: data.dataScope, dataCensus: data.dataCensus, lens: data.lens };
+    docRepo: data.docRepo, dataScope: data.dataScope, dataCensus: data.dataCensus };
   try {
     const paths = () => Array.from(data.mapSources, s => s.path);
     data.mapTab = 'skills'; data.skillSet = 'estate';
@@ -173,9 +176,8 @@ test('source provenance follows the selected collection and preserves an externa
     data.mapTab = 'docs'; data.docRepo = 'mehrlander/home';
     assert.ok(paths().includes('state/docs.json'));
     assert.ok(!paths().includes('docs/docs.csv'));
-    data.mapTab = 'claims'; data.lens = 'owners';
-    assert.ok(paths().includes('docs/owners.csv'));
-    assert.ok(!paths().includes('docs/themes.csv'));
+    data.mapTab = 'themes';
+    for (const p of ['docs/themes.csv', 'data/doc-overlap/matches.csv']) assert.ok(paths().includes(p), p);
     data.mapTab = 'data'; data.dataScope = 'mehrlander/home';
     data.dataCensus = [{ repo: 'mehrlander/home', ref: 'feature/census', path: 'data/inventory.csv', files: [], state: 'ready' }];
     assert.equal(data.mapSources[0].addr, 'mehrlander/home@feature/census:data/inventory.csv');
@@ -185,15 +187,131 @@ test('source provenance follows the selected collection and preserves an externa
   } finally { Object.assign(data, old); }
 });
 
+// Themes is one list over a strip since 2026-10-22: the groups of files the
+// dial makes, then the pairs similar only in wording. A pair whose matches are
+// all identical text shares runs below the dial; that is a run, not a
+// paraphrase, so it is not listed as similar wording.
+test('Themes lists the dial\'s groups, then the pairs only similar in wording', () => {
+  const old = { themeGraph: data.themeGraph, overlap: data.overlap, themeTh: data.themeTh };
+  const row = (source, target, cosine, words = 30) => ({ source, target, cosine, words, target_words: words,
+    start: 0, end: 10, line: 1, target_start: 0, target_end: 10, target_line: 1 });
+  try {
+    data.themeTh = 12;
+    data.themeGraph = { shingle: 10, scanned: 5, edges: [
+      { a: 'a.md', b: 'b.md', w: 20, quoted: ['one two three'] },
+      { a: 'c.md', b: 'd.md', w: 5, quoted: ['four five six'] } ] };
+    data.overlap = { docs: Object.fromEntries(['a', 'b', 'c', 'd', 'e'].map(f => [f + '.md', { words: 100, shingles: 90 }])),
+      rows: [row('a.md', 'b.md', 0.9), row('c.md', 'd.md', 1), row('a.md', 'e.md', 0.8), row('a.md', 'e.md', 0.79, 10)] };
+    assert.deepEqual(Array.from(data.themeRows, r => r.id), ['g:a.md|b.md', 's:a.md\ne.md']);
+    assert.equal(data.themeRows[0].sims.length, 1, 'a group carries the similar wording of its own pairs');
+    assert.equal(data.themeRows[1].n, 1, 'a passage under 20 words is left out');
+    assert.deepEqual(Array.from(data.themeItems.filter(i => i.label), i => i.label), ['g', 's'], 'a label heads each measure');
+    assert.deepEqual({ ...data.themeTally }, { groups: 1, pairs: 1, review: 0 });
+  } finally { Object.assign(data, old); }
+});
+
+// The mark the tab carried until the lenses went, and carries again: a repeat
+// whose text states a rule and whose every copy leaves the repo (skills/, or a
+// docs/portable.csv row) is the one no single reader sees drift.
+test('Themes marks a repeat to review: a rule, in files that all leave the repo', () => {
+  const old = { themeGraph: data.themeGraph, overlap: data.overlap, themeTh: data.themeTh, manifest: data.manifest };
+  try {
+    data.themeTh = 12;
+    data.manifest = { items: [{ path: 'docs/SHIPPED.md' }] };
+    data.themeGraph = { shingle: 10, scanned: 6, edges: [
+      { a: 'docs/SHIPPED.md', b: 'skills/x/SKILL.md', w: 20, rule: true, quoted: ['you must do this'] },
+      { a: 'docs/LOCAL.md', b: 'skills/y/SKILL.md', w: 18, rule: true, quoted: ['you must do that'] },
+      { a: 'skills/z/SKILL.md', b: 'skills/w/SKILL.md', w: 15, rule: false, quoted: ['a description'] } ] };
+    data.overlap = { docs: {}, rows: [] };
+    assert.deepEqual(Array.from(data.themeRows, r => r.review), [true, false, false],
+      'a rule in shipped files only; a rule with one local copy, or a shipped description, is not');
+    assert.equal(data.themeTally.review, 1);
+  } finally { Object.assign(data, old); }
+});
+
+// The map's marks of one colour (its SVG takes daisyUI colours as var() values).
+const paint = (el, tag, colour) => [...el.querySelectorAll(tag)].filter(n => n.getAttribute('class').includes(`--color-${colour})`));
+
+// The card reads the files: a run is shown in its file's own text with the run
+// marked, and a similar passage that overlaps a run is left out, since for the
+// pairs that share runs most similar matches were the run again.
+test('a Themes card shows a run in its file and drops similar wording the run already shows', async () => {
+  const run = 'The quick brown fox jumps over the lazy dog every single morning now.';
+  const A = 'Intro line.\n\n' + run + '\n\nA different paragraph about cats and the naps they take in the afternoon sun.';
+  const B = 'Other start.\n\n' + run + '\n\nSomething on felines, napping in sunlight after lunch, in other words.';
+  const at = (t, x) => [t.indexOf(x), t.indexOf(x) + x.length];
+  const pa = 'A different paragraph about cats and the naps they take in the afternoon sun.';
+  const pb = 'Something on felines, napping in sunlight after lunch, in other words.';
+  const old = { themeGraph: data.themeGraph, overlap: data.overlap, themeTh: data.themeTh, themeFile: data.themeFile };
+  const m = (s1, s2, cosine) => ({ source: 'a.md', target: 'b.md', cosine, words: 30, target_words: 30, line: 3, target_line: 3,
+    start: at(A, s1)[0], end: at(A, s1)[1], target_start: at(B, s2)[0], target_end: at(B, s2)[1] });
+  try {
+    data.themeTh = 12;
+    data.themeGraph = { shingle: 10, scanned: 2, edges: [{ a: 'a.md', b: 'b.md', w: 12,
+      quoted: ['the quick brown fox jumps over the lazy dog every single morning now'] }] };
+    data.overlap = { docs: { 'a.md': { sha: 'aaa', words: 40, shingles: 30 }, 'b.md': { sha: 'bbb', words: 40, shingles: 30 } },
+      rows: [m(run, run, 0.97), m(pa, pb, 0.8)] };
+    data.themeFile = async p => ({ text: p === 'a.md' ? A : B, sha: p === 'a.md' ? 'aaa' : 'bbb' });
+    const box = window.document.createElement('div');
+    box.innerHTML = data.themeCard(data.themeRows[0]);
+    await data.themeFill(box);
+    assert.equal(box.querySelector('[data-theme-run] mark').textContent, run.replace(/\.$/, ''), 'the run, marked in the file\'s own text');
+    const kept = [...box.querySelectorAll('[data-theme-match] [data-theme-cut]')].map(n => n.textContent);
+    assert.deepEqual(kept, [pa, pb], 'only the paraphrase is left');
+    assert.equal(box.querySelector('[data-theme-count]').textContent, '1 similar passage');
+    // The map: a bar per file keyed by its number in the list, the run in the
+    // accent and the kept paraphrase in grey, joined across by ribbons.
+    assert.deepEqual([...box.querySelectorAll('[data-theme-card] > div:first-child > div > span:first-child')].map(n => n.textContent), ['1', '2']);
+    const map = () => box.querySelector('[data-theme-map]');
+    assert.equal(paint(map(), 'rect', 'primary').length, 2, 'the run, once in each file');
+    assert.equal(paint(map(), 'rect', 'base-content').length, 2, 'the paraphrase, once in each file');
+    assert.equal(map().querySelectorAll('polygon').length, 2, 'ribbons join each one across');
+  } finally { Object.assign(data, old); }
+});
+
+// The map's view is one choice for every card: picking it on one card redraws
+// each card on the page, and the dot plot puts a repeat that kept its place in
+// both files on the diagonal.
+test('a Themes card switches its map between ribbons, bars and a dot plot, every card at once', async () => {
+  const run = 'one two three four five six seven eight nine ten eleven twelve';
+  const A = run + '\n\nmore text after it in the first file', B = 'lead in words here\n\n' + run;
+  const old = { themeGraph: data.themeGraph, overlap: data.overlap, themeTh: data.themeTh, themeFile: data.themeFile, themeView: data.themeView };
+  const cards = [];
+  try {
+    data.themeTh = 12;
+    data.themeView = 'ribbons';
+    data.themeGraph = { shingle: 10, scanned: 2, edges: [{ a: 'a.md', b: 'b.md', w: 12, quoted: [run] }] };
+    data.overlap = { docs: {}, rows: [] };
+    data.themeFile = async p => ({ text: p === 'a.md' ? A : B, sha: '' });
+    for (let i = 0; i < 2; i++) {
+      const box = window.document.createElement('div');
+      box.innerHTML = data.themeCard(data.themeRows[0]);
+      window.document.body.append(box);
+      await data.themeFill(box);
+      cards.push(box);
+    }
+    const pressed = box => box.querySelector('[data-theme-view][aria-checked="true"]').dataset.themeView;
+    assert.deepEqual(cards.map(pressed), ['ribbons', 'ribbons']);
+    await data.themeClick({ target: cards[0].querySelector('[data-theme-view="dots"]') });
+    assert.equal(data.themeView, 'dots');
+    assert.deepEqual(cards.map(pressed), ['dots', 'dots'], 'the other card follows');
+    const line = paint(cards[1].querySelector('[data-theme-map]'), 'line', 'primary')[0];
+    assert.ok(line, 'the run is a stroke in the pair\'s square');
+    assert.equal(+line.getAttribute('x1'), 0, 'it opens the first file');
+    assert.ok(+line.getAttribute('y1') > 0, 'and sits lower in the second');
+    await data.themeClick({ target: cards[1].querySelector('[data-theme-view="bars"]') });
+    assert.equal(cards[0].querySelectorAll('[data-theme-map] polygon').length, 0, 'bars draw no ribbons');
+    assert.equal(paint(cards[0].querySelector('[data-theme-map]'), 'rect', 'primary').length, 2);
+  } finally { cards.forEach(c => c.remove()); Object.assign(data, old); }
+});
+
 test('opening a source keeps its repository and ref in the in-app reader', async () => {
   const open = data.openFileDeck;
   const calls = [];
   data.openFileDeck = (...args) => calls.push(args);
   try {
-    data.mapSourcesOpen = true;
     await data.openMapSource({ path: 'data/census.csv', repo: 'mehrlander/home', ref: 'feature/census',
       addr: 'mehrlander/home@feature/census:data/census.csv', role: 'CSV census' });
-    assert.equal(data.mapSourcesOpen, false);
     assert.equal(calls[0][0][0].path, 'mehrlander/home@feature/census:data/census.csv');
     assert.equal(calls[0][2].label().subtitle, 'mehrlander/home · feature/census');
   } finally { data.openFileDeck = open; }
@@ -355,27 +473,7 @@ test('Surfacing loads on demand and names its authoritative doc', async () => {
   await data.loadSurf();
   assert.equal(data.surfErr, '');
   assert.ok(data.surf.primitives.length > 10);
-  assert.equal(data.SURF_DOC, 'docs/SURFACING.md');
-});
-
-// The cards index one document, the primitives, and the tab says so with a
-// door to each sibling. The doors were read off SURFACING.md's h2 headings
-// until 2026-09-10, which stopped being possible when the course became its
-// own file: a heading cannot name a sibling. So the list is declared, and what
-// this holds is that every declared path is a file that exists and says when
-// it reaches a session. A sibling renamed or deleted fails here rather than
-// leaving a dead door.
-
-test('Surfacing declares a door per sibling document, and each one exists', async () => {
-  await data.loadSurf();
-  const doors = Array.from(data.surf.regions, r => ({ path: r.path, gloss: r.gloss }));
-  assert.ok(doors.length >= 1, 'the course gets a door');
-  for (const d of doors) {
-    assert.ok(existsSync(path.join(repoRoot, d.path)), 'door to a file that is gone: ' + d.path);
-    assert.ok(d.gloss, 'a door must say when its document reaches a session: ' + d.path);
-  }
-  // The primitives are the cards, never a door to themselves.
-  assert.ok(!doors.some(d => d.path === data.SURF_DOC), 'the primitives are the cards, not a door');
+  assert.equal(data.SURF_DOC, 'docs/CONVERSATION.md');
 });
 
 test('Docs loads on demand and carries the registry', async () => {
@@ -383,22 +481,6 @@ test('Docs loads on demand and carries the registry', async () => {
   await data.loadDocsReg();
   assert.equal(data.docsErr, '');
   assert.ok(data.docsReg.documents.length > 30);
-});
-
-// The two tabs shared a fetch while the owners table was a second block inside
-// docs.csv. Since 2026-08-09 each loads its own file, and the point of the
-// split is that opening Docs does not pull owners and the reverse.
-test('Owners loads its own file, separately from Docs', async () => {
-  assert.equal(data.ownersReg, null, 'the registry is not fetched until the tab is opened');
-  await data.loadOwnersReg();
-  assert.equal(data.ownersErr, '');
-  assert.ok(data.ownersReg.owners.length > 3);
-  // Two files, not three: the tab pulled docs/registries.csv as well while its
-  // header carried a scope line, and stopped on 2026-08-26 when the header came
-  // off. The scope is read on the Registries tab, where every registry's is.
-  assert.equal(data.propsReg, null, 'opening Claims does not pull the registry pair');
-  assert.equal(data.OWNERS_MANIFEST, 'docs/owners.csv');
-  assert.equal(data.OWNERS_REPS, 'docs/repetitions.csv');
 });
 
 // The kit shelf: every column derived, so the tab's whole job is to filter
@@ -614,15 +696,15 @@ test('rendered deck documents hand repository links to deck navigation', async (
   await data.docDeckRead(host, 'docs/CONVENTIONS.md');
   assert.equal(wired.length, 1);
   assert.equal(wired[0].options.path, 'docs/CONVENTIONS.md');
-  assert.ok(wired[0].options.paths.has('docs/SURFACING.md'),
+  assert.ok(wired[0].options.paths.has('docs/CONVERSATION.md'),
     'the known-path set includes repository documents outside the current deck');
-  assert.equal(wired[0].options.href('docs/SURFACING.md', '#branch'),
-    data.hubUrl('docs/SURFACING.md') + '#branch');
+  assert.equal(wired[0].options.href('docs/CONVERSATION.md', '#branch'),
+    data.hubUrl('docs/CONVERSATION.md') + '#branch');
 
   const opened = [];
   const priorOpen = data.openDeckLink;
   data.openDeckLink = target => opened.push(target);
-  const target = { path: 'docs/SURFACING.md', hash: '#branch', source: 'authored' };
+  const target = { path: 'docs/CONVERSATION.md', hash: '#branch', source: 'authored' };
   wired[0].options.open(target);
   assert.deepEqual(opened, [target], 'the renderer resolves; the deck owns navigation');
   data.openDeckLink = priorOpen;
@@ -911,7 +993,7 @@ test('a tab tap renders, loads, and hands the tab to the shell', async () => {
   await tick(2);
   assert.equal(d2.mapTab, 'docs');
   assert.equal(d2.displayTab, 'docs');
-  assert.equal(JSON.stringify(d2.subviews.map(s => s.k)), JSON.stringify(['docs', 'growth', 'policy', 'claims', 'registries']),
+  assert.equal(JSON.stringify(d2.subviews.map(s => s.k)), JSON.stringify(['docs', 'growth', 'policy', 'themes', 'registries']),
     'Docs exposes Inventory first, then Purpose, Growth, Policy, Themes, and Registries');
   assert.deepEqual([...taps], ['docs'], 'the shell is told, so the URL gets stamped');
   assert.ok(d2.docsReg, 'the tab fetched its own manifest');
@@ -956,8 +1038,8 @@ test('a deep-linked tab opens on that tab and fetches its manifest', async () =>
   const d3 = Alpine.$data(el3);
   assert.equal(d3.mapTab, 'tests');
   assert.equal(d3.displayTab, 'harness', 'a Tests deep link selects its top-level Harness parent');
-  assert.equal(JSON.stringify(d3.subviews.map(s => s.k)), JSON.stringify(['harness', 'set', 'tests', 'skills', 'agents', 'peeves', 'context', 'lifetimes', 'surfacing']),
-    'Harness exposes Automation, Scheduled, Set, Tests, Skills, Agents, Peeves, Context, Lifetimes, and Surfacing');
+  assert.equal(JSON.stringify(d3.subviews.map(s => s.k)), JSON.stringify(['harness', 'programs', 'set', 'tests', 'skills', 'agents', 'peeves', 'context', 'lifetimes', 'surfacing']),
+    'Harness exposes Automation, Programs, Scheduled, Set, Tests, Skills, Agents, Peeves, Context, Lifetimes, and Surfacing');
   assert.ok(d3.testsReg, 'the deep-linked tab loaded without a tap');
   // The comparison-grain reading rides the same load, non-fatally, and joins
   // on the test file named first in each row's `check`.
@@ -1545,7 +1627,25 @@ test('Context\'s address rides with Context alone, and comes back with it', asyn
 
 test('an address that does not open Context arms none of its keys', () => {
   const { shell } = makeShell({ search: '?view=map&tab=tests&ctxtopic=house-style' });
-  assert.deepEqual({ ...shell.mapCtx }, { ctxlens: '', ctxsort: '', ctxtopic: '', ctxsource: '' });
+  assert.deepEqual({ ...shell.mapCtx }, { ctxlens: '', ctxsort: '', ctxtopic: '', ctxsource: '', setintent: '' });
+});
+
+test("Set's question rides with Set alone, and leaves Context's held address", async () => {
+  const { shell } = makeShell({ search: '?view=map&tab=set&setintent=gemini-errand' });
+  assert.equal(shell.mapCtx.setintent, 'gemini-errand', 'an address that opens Set arms its question');
+  await shell.routeFromUrl(shell.parseUrl());
+  assert.equal(shell.deepLinkParams().get('setintent'), 'gemini-errand');
+
+  shell.goMapTab('context');
+  shell.setMapCtx({ ctxlens: '', ctxsort: '', ctxtopic: 'house-style', ctxsource: '' });
+  assert.equal(shell.deepLinkParams().has('setintent'), false, 'setintent rode onto Context');
+  shell.goMapTab('set');
+  shell.setMapCtx({ setintent: 'edit-from-phone' });
+  assert.equal(shell.deepLinkParams().get('setintent'), 'edit-from-phone');
+  assert.equal(shell.deepLinkParams().has('ctxtopic'), false, 'ctxtopic rode onto Set');
+  assert.equal(shell.mapCtx.ctxtopic, 'house-style', "a Set pick leaves Context's question for its next visit");
+  shell.setMapCtx({ setintent: '' });
+  assert.equal(shell.deepLinkParams().has('setintent'), false, 'clearing the pick leaves the address');
 });
 
 test('the shell and the component agree on the tab set', () => {
@@ -1760,7 +1860,7 @@ test('every field the Registries markup reads exists on a registry row', async (
 // The deck's markdown path renders a registry as a table, and the risk in that
 // conversion is not layout: it is a cell being READ as markdown. docs/ holds a
 // dozen registries and several of them describe markdown, so the first pass
-// turned surfacing.csv's own `[caption](url)` into a link labelled "caption",
+// turned conversation.csv's own `[caption](url)` into a link labelled "caption",
 // which is a file misreporting itself in the one view meant to show it whole.
 
 test('a registry converts to a table with a delimiter row', () => {
@@ -1777,7 +1877,7 @@ test('a cell is data, so its markdown is escaped rather than run', () => {
 });
 
 test('a pipe inside a cell does not split the row', () => {
-  // surfacing.csv carries `#gz= | #gh=` in one field; unescaped it would read
+  // conversation.csv carries `#gz= | #gh=` in one field; unescaped it would read
   // as two columns and shift every cell after it.
   const md = data.csvToMarkdown('key,form\nk,"#gz= | #gh="\n');
   const row = md.split('\n')[2];
@@ -1802,7 +1902,7 @@ test('what is not a table declines rather than rendering as one', () => {
 
 // ── A card and its bullet ────────────────────────────────────────────────
 // The corpus half (does every card resolve against the rendered doc) is
-// surfacing-lead-anchor.test.mjs, which renders SURFACING.md for real. This is
+// surfacing-lead-anchor.test.mjs, which renders CONVERSATION.md for real. This is
 // the component half: the normalization and the selector the card actually
 // calls, plus the one failure mode that matters, which is a hit on the wrong
 // bullet rather than a miss.
@@ -1851,10 +1951,15 @@ test('the reading deck labels the paragraph a pending edit would change', async 
   const { marked } = await import('marked');
   const prior = window.marked;
   window.marked = marked;
-  if (!window.mdDiff) new window.Function(readFileSync(path.join(repoRoot, 'lib/kits/md-diff.js'), 'utf8'))();
+  // A call's edit opens as a change container, so md-diff's renderer and its
+  // two kits are here as they are in md-diff.test.mjs.
+  window.Diff ||= await import('diff');
+  for (const f of ['lib/kits/guide-render.js', 'lib/kits/swipe-deck.js', 'lib/kits/md-diff.js'])
+    new window.Function(readFileSync(path.join(repoRoot, f), 'utf8'))();
   const md = '# Title\n\nKeep this paragraph.\n\nAn **old** paragraph to tighten.\n\nA paragraph with a phrase here inside.\n';
   const box = window.document.createElement('div');
   box.innerHTML = marked.parse(md);
+  window.document.body.append(box);   // a container opens only on a connected paragraph
   data.docPending = new Map([['docs/x.md', {
     staged: 1, calls: [{ id: 'c1', kind: 'documentation', question: 'Fix the phrase?', why: 'general',
       edits: [{ from: 'a phrase here', to: 'a better phrase', why: 'the old phrase misleads' }] }],
@@ -1883,6 +1988,148 @@ test('the reading deck labels the paragraph a pending edit would change', async 
     data.docPending = null;
     if (prior === undefined) delete window.marked; else window.marked = prior;
   }
+});
+
+// Answering a documentation call where it is read: each edit confirmed or
+// discarded from its paragraph or the call's sheet, and one answer line
+// recorded beside the call with the confirmed edits as a patch, through
+// kits/call-answer.js. Nothing commits the document.
+test('a call is answered from the Docs deck: decisions, notes, a patch of the confirmed edits, and no commit', async () => {
+  const { marked } = await import('marked');
+  const Diff = await import('diff');
+  const prior = { marked: window.marked, gh: window.gh, GH: window.GH };
+  window.marked = marked;
+  window.Diff = Diff;
+  for (const f of ['lib/kits/guide-render.js', 'lib/kits/swipe-deck.js', 'lib/kits/md-diff.js', 'lib/kits/call-answer.js', 'lib/kits/md-surface.js'])
+    new window.Function(readFileSync(path.join(repoRoot, f), 'utf8'))();
+  const md = '# Title\n\nKeep this paragraph.\n\nA paragraph with a phrase here inside.\n\nAn ending to drop.\n';
+  const call = { id: 'c-test', kind: 'documentation', question: 'Apply 3 edits to docs/x.md?', pr: 'mehrlander/web-tools#9',
+    file: 'mehrlander/web-tools@main:docs/x.md', _repo: 'mehrlander/web-tools-private', _ref: 'main', _path: 'user-calls/c-test.json',
+    edits: [{ from: 'a phrase here', to: 'a better phrase', why: 'the phrase misleads' },
+            { from: 'An ending to drop.', to: 'A kept ending.' },
+            { from: 'not in the file', to: 'anything' }] };
+  const posted = [], wrote = [];
+  window.UserCallForm = { prOf: () => ({ slug: 'mehrlander/web-tools', n: 9 }),
+                          postAnswer: async (o) => { posted.push(o); return o.entry; } };
+  window.UserCalls = { where: (c) => c._repo + ':' + c._path, href: () => '#dictate', clear() {} };
+  window.GH = class extends prior.GH {
+    async get(p) { return p === 'docs/x.md' ? { text: md } : super.get(p); }
+    async req(p, o) { wrote.push(p); return {}; }
+  };
+  window.gh = { load: async () => {} };
+  const box = window.document.createElement('div');
+  box.dataset.deckContent = '';
+  box.innerHTML = marked.parse(md);
+  const host = window.document.createElement('div');
+  const slide = window.document.createElement('div');
+  slide.append(box);
+  window.document.body.append(slide);
+  const actionsSet = [];
+  data._deck = { el: host, deck: { active: () => 0, track: { children: [slide] } }, setActions: (a) => actionsSet.push(a) };
+  data._deckFiles = [{ path: 'docs/x.md' }];
+  data.docPending = new Map([['docs/x.md', { staged: 0, items: [], calls: [call] }]]);
+  data._callAns = null;
+  try { window.localStorage.removeItem('map:call-answer:c-test'); } catch {}
+  try {
+    assert.equal(await data.markDeckProposals(box, 'docs/x.md', md), 2, 'the two edits the file holds are labelled');
+    assert.ok(data.deckActions('docs/x.md').some(a => a.title === 'User call'), 'the header can open the sheet');
+    // From the container's chip, which stands in md-diff's index: Confirm.
+    const chip = box.querySelector('[data-call-edit="c-test:0"]');
+    assert.ok(chip.closest('.md-diff-change')?.querySelector('.md-diff-idx.hidden'), "the chip takes the index's place");
+    chip.querySelector('[data-act="confirmed"]').click();
+    assert.equal(chip.dataset.callDecision, 'confirmed');
+    await data.openCallSheet(call, 'docs/x.md');
+    const sheet = host.querySelector('[data-call-sheet]');
+    assert.ok(sheet, 'the sheet opens on the deck');
+    assert.deepEqual([...data.callDecisions(call)], ['confirmed', 'open', 'stale'], 'an edit the file lacks keeps its standing');
+    assert.equal(sheet.querySelectorAll('[data-call-set]').length, 0, 'a drawn edit is decided on its chip, a stale one not at all');
+    assert.ok(sheet.querySelector('[data-decision="stale"]'), 'the edit the file lacks shows its standing');
+    assert.equal(sheet.querySelector('[data-call-answer-note]').value, 'Apply the verdicts as given.', 'Send speaks for itself');
+    // A walk: stepping keeps the sheet and marks the edit's row.
+    data.stepCallEdit(call, 1);
+    data.stepCallEdit(call, 1);
+    assert.ok(host.querySelector('[data-call-sheet]'), 'the sheet stays open while the reader moves');
+    assert.equal(host.querySelector('[data-call-here]')?.dataset.callRow, '1');
+    assert.match(host.querySelector('[data-call-at]').textContent, /2\/3/);
+    assert.equal(data.docCallCount, 0, 'counted against the registry, which has no docs/x.md');
+    // From edit 2's chip: discard, with a note; then a note on the answer.
+    const chip2 = box.querySelector('[data-call-edit="c-test:1"]');
+    chip2.querySelector('[data-act="discarded"]').click();
+    chip2.querySelector('[data-act="note"]').click();
+    const ta = box.querySelector('[data-call-edit-box="c-test:1"] [data-call-note-box] textarea');
+    ta.value = 'keep the ending';
+    ta.dispatchEvent(new window.Event('input'));
+    ta.dispatchEvent(new window.Event('blur'));
+    assert.match(box.querySelector('[data-call-edit-box="c-test:1"] [data-call-note-box]').textContent, /keep the ending/);
+    assert.ok(host.querySelector('[data-call-row="1"] [data-call-note-mark]'), 'the sheet marks the row with a note');
+    const say = host.querySelector('[data-call-answer-note]');
+    say.value = 'Good call.';
+    say.dispatchEvent(new window.Event('input'));
+    assert.equal(box.querySelector('[data-call-edit="c-test:1"]').dataset.callDecision, 'discarded', 'the sheet repaints the paragraph');
+    assert.match(host.querySelector('[data-call-tally]').textContent, /1 confirmed, 1 discarded, 1 stale/);
+    // The draft outlives a reload of the view.
+    data._callAns = null;
+    assert.deepEqual([...data.callState(call).decisions], ['confirmed', 'discarded', 'open'], 'the draft outlives a reload');
+    data._callAns = null;
+    await data.openCallSheet(call, 'docs/x.md');
+    window.TOKEN = 'a-token';
+    await data.recordCallAnswer(call);
+    assert.equal(posted.length, 1, 'one line is recorded');
+    const line = posted[0].entry;
+    assert.equal(posted[0].path, 'user-calls/c-test.answers.jsonl');
+    assert.equal(line.answer, '1 confirmed, 1 discarded, 1 stale');
+    assert.equal(line.note, 'Good call.');
+    assert.deepEqual(JSON.parse(JSON.stringify(line.decisions)), [{ edit: 1, decision: 'confirmed' }, { edit: 2, decision: 'discarded', note: 'keep the ending' },
+                                      { edit: 3, decision: 'stale' }]);
+    assert.equal(line.apply, 'session');
+    assert.match(line.patch, /^diff --git a\/docs\/x\.md b\/docs\/x\.md/);
+    assert.match(line.patch, /\+A paragraph with a better phrase inside\./, 'the confirmed edit is in the patch');
+    assert.doesNotMatch(line.patch, /A kept ending/, 'the discarded one is not');
+    assert.ok(posted[0].pr, 'posted on the PR, the default for a call that names one');
+    assert.match(posted[0].comment, /answered in the Docs tab/);
+    assert.deepEqual(wrote, [], 'nothing was committed');
+    // Answered, the call is off the deck.
+    assert.equal(host.querySelector('[data-call-sheet]'), null);
+    assert.equal(box.querySelector('[data-call-edit]'), null);
+    assert.equal(data.docPending.has('docs/x.md'), false);
+    assert.equal(window.localStorage.getItem('map:call-answer:c-test'), null);
+  } finally {
+    data.closeCallSheet();
+    data._deck = null; data._deckFiles = null; data.docPending = null; data._callAns = null;
+    window.TOKEN = 'ignored-in-test';
+    for (const k of ['marked', 'gh', 'GH']) { if (prior[k] === undefined) delete window[k]; else window[k] = prior[k]; }
+    delete window.UserCallForm; delete window.UserCalls;
+  }
+});
+
+// Each note on a call's edit is for a kind, correct or clarify, and every
+// note shows on the edit's mark, corrections first; a `why` alone is one note
+// of no kind, and past four notes the rest fold into a "+n" that lists them.
+test("a call edit's mark shows a glyph per note, corrections first, and folds only past four", () => {
+  const note = (kind, text) => ({ kind, text });
+  const call = { id: 'k-test', question: 'Q?', edits: [
+    { from: 'a', to: 'b', notes: [note('clarify', 'reworded'), note('correct', 'was false')] },
+    { from: 'c', to: 'd', why: 'an old call' },
+    { from: 'e', to: 'f', notes: [1, 2, 3, 4, 5].map(n => note('clarify', 'n' + n)) },
+  ] };
+  data._callAns = null;
+  const kinds = (i) => {
+    const chip = window.document.createElement('div');
+    data.paintCallChip(chip, call, i);
+    return { glyphs: [...chip.querySelectorAll('[data-call-kind]')].map(g => g.dataset.callKind),
+             tips: [...chip.querySelectorAll('[data-call-kind]')].map(g => g.dataset.titleTip),
+             leads: [...chip.querySelectorAll('[data-call-kind]')].map(g => g.dataset.titleTipLead || ''),
+             more: chip.querySelector('[data-call-kinds] span')?.dataset.titleTip || '' };
+  };
+  const mixed = kinds(0);
+  assert.deepEqual(mixed.glyphs, ['correct', 'clarify'], 'both shown, the correction first');
+  assert.deepEqual(mixed.tips, ['was false', 'reworded']);
+  assert.deepEqual(mixed.leads, ['Correct', 'Clarify'], 'each tip leads with its kind, drawn as a pill');
+  assert.deepEqual(kinds(1).glyphs, ['none'], 'a why is one note of no kind');
+  const many = kinds(2);
+  assert.equal(many.glyphs.length, 3);
+  assert.equal(many.more, 'Clarify: n4; Clarify: n5', 'nothing is dropped: the fold lists the rest');
+  data._callAns = null;
 });
 
 test('a proposal basis is read into fields, and its tip counts from the collection', () => {

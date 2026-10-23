@@ -263,3 +263,73 @@ test('GH.decode and GH.decodeBytes read the contents API base64, line wraps and 
   assert.equal(GH.decode(''), '');
   assert.equal(GH.decodeBytes(null).length, 0);
 });
+
+test('decodeBytes takes the platform decoder where there is one, URL-safe and unpadded alike', () => {
+  // Uint8Array.fromBase64 (Chrome 140, Safari 18.2, Firefox 133) replaced a
+  // callback per byte that took 5.6s on a 57.5 MB record. Node 22 has none,
+  // so the test above covers the loop and this stands one in.
+  const real = Uint8Array.fromBase64;
+  const seen = [];
+  Uint8Array.fromBase64 = (s, o) => { seen.push([s, o]); return new Uint8Array(Buffer.from(s, 'base64')); };
+  try {
+    const bytes = Buffer.from([0xfb, 0xff, 0xbf, 0x01]);
+    const url = bytes.toString('base64url');            // '-' and '_', no pad
+    assert.deepEqual([...GH.decodeBytes(url)], [...bytes]);
+    assert.equal(seen[0][0], bytes.toString('base64').replace(/=+$/, ''), 'handed the standard alphabet');
+    assert.equal(seen[0][1].lastChunkHandling, 'loose', 'which takes the missing pad itself');
+  } finally {
+    if (real) Uint8Array.fromBase64 = real; else delete Uint8Array.fromBase64;
+  }
+});
+
+// ── bytes(): a file over the contents cap, read raw ─────────────────────────
+// The contents API withholds a file over 1 MB and names its blob. The blob's
+// JSON shape is base64 in an envelope (21.0 MB gzipped for the largest session
+// record, against 10.0 MB raw), so the read asks for the raw media type.
+const BIG = 'x'.repeat(40) + 'é🌳';
+const bigMeta = () => typed('application/json; charset=utf-8',
+  JSON.stringify({ sha: 'b1g', size: 2_000_000, html_url: 'u', content: '', encoding: 'none' }));
+const rawBody = (type, body) => ({ ...typed(type, body), arrayBuffer: async () => new TextEncoder().encode(body).buffer });
+
+test('a file over the contents cap comes back through its blob, raw', async () => {
+  const gh = new GH({ repo: 'o/r' });
+  const asked = [];
+  const file = await withFetch(async (url, init) => {
+    asked.push([url.replace('https://api.github.com/repos/o/r/', ''), init.headers.Accept]);
+    return url.includes('git/blobs/') ? rawBody('application/vnd.github.raw+json; charset=utf-8', BIG) : bigMeta();
+  }, () => gh.get('sessions/big.json'));
+  assert.equal(file.text, BIG);
+  assert.equal(file.sha, 'b1g');
+  assert.deepEqual(asked[1], ['git/blobs/b1g?media=raw', 'application/vnd.github.raw+json'],
+    'the raw media type, by sha, at a URL of its own so the JSON readers of this blob never share its cache entry');
+  assert.equal(asked.length, 2);
+});
+
+test('a blob answered from a cached JSON copy is decoded from its envelope', async () => {
+  const gh = new GH({ repo: 'o/r' });
+  const env = JSON.stringify({ sha: 'b1g', size: 2_000_000, encoding: 'base64',
+                               content: Buffer.from(BIG).toString('base64').replace(/(.{60})/g, '$1\n') });
+  const file = await withFetch(async (url) => url.includes('git/blobs/')
+    ? rawBody('application/json; charset=utf-8', env) : bigMeta(), () => gh.get('sessions/big.json'));
+  assert.equal(file.text, BIG);
+});
+
+test('a raw file that is itself JSON is the answer, not an envelope', async () => {
+  const gh = new GH({ repo: 'o/r' });
+  const own = JSON.stringify({ sha: 'not-this-blob', encoding: 'base64', content: 'QUJD' });
+  const file = await withFetch(async (url) => url.includes('git/blobs/')
+    ? rawBody('application/json; charset=utf-8', own) : bigMeta(), () => gh.get('sessions/big.json'));
+  assert.equal(file.text, own, 'an envelope names this blob\'s sha; a file that happens to look like one does not');
+});
+
+test('a raw blob read that fails goes back through req, so its error reads as before', async () => {
+  const gh = new GH({ repo: 'o/r' });
+  let blobTries = 0;
+  await withFetch(async (url) => {
+    if (!url.includes('git/blobs/')) return bigMeta();
+    blobTries++;
+    return { ok: false, status: 403, headers: { get: k => (k === 'x-ratelimit-remaining' ? '0' : null) },
+             json: async () => ({ message: 'API rate limit exceeded' }) };
+  }, () => assert.rejects(() => gh.get('sessions/big.json'), /GitHub Error 403: API rate limit exceeded/));
+  assert.equal(blobTries, 2, 'the raw read, then the one req() makes');
+});

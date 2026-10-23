@@ -25,7 +25,7 @@ export default async (page) => {
     ].join('\n');
     const html = `<div>
       <p><a href="https://github.com/mehrlander/web-tools/blob/main/docs/CONVENTIONS.md">Working conventions</a>
-         <a href="https://github.com/mehrlander/web-tools/blob/main/docs/SURFACING.md">Surfacing</a>
+         <a href="https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md">Surfacing</a>
          <a href="https://github.com/mehrlander/web-tools/blob/main/docs/MARKETPLACE.md">Portable docs</a></p>
       <p><a href="https://github.com/mehrlander/web-tools/blob/main/docs/stage.md">The stage</a>
          <a href="https://github.com/mehrlander/web-tools/blob/main/docs/APP.md">The app</a>

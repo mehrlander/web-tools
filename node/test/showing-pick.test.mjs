@@ -132,7 +132,6 @@ test('a shell change acting on the tab is tossed with ?top, since a frame never 
   assert.equal(d.top, true);
   assert.match(d.links[0].url, /toss-render\.html\?top#gh=mehrlander\/web-tools@0{12}:pages\/branch\.html$/);
   assert.match(d.why.join(' '), /document\.title/);
-  assert.ok(d.warnings.some(w => /iPhone is unmeasured/.test(w)), 'where ?top is unmeasured is said with the link');
   const back = withDiff('pages/branch.html', "+++ b/pages/branch.html\n+ history.pushState(null, '', next);\n");
   assert.equal(back.top, true, 'history is the tab too');
   // The control: the same file, a change that touches nothing top-level.
@@ -192,7 +191,68 @@ test('documents ride after the page links, and generated files are not documents
 test('the data route takes a look link like a page does, and spells a space', () => {
   const d = run('docs/a b.md', ['--at', 'show=text:Intro&say=Start here']);
   assert.equal(d.mechanism, 'toss-data');
-  assert.match(d.links[0].url, /#data=mehrlander\/web-tools@0{12}:docs\/a%20b\.md#show=text:Intro&say=Start here$/);
+  assert.match(d.links[0].url, /#data=mehrlander\/web-tools@0{12}:docs\/a%20b\.md%23show=text:Intro%26say=Start here$/);
+});
+
+test('a look fragment inside a toss keeps its escapes through the toss', () => {
+  // toss-render percent-decodes its whole value once, so a `%23` written for a
+  // "#" in an intro would reach the frame as a bare "#" and split the fragment.
+  const d = run('docs/a.md', ['--intro', 'PR #1035 & more']);
+  assert.match(d.links[0].url, /%23intro=PR%2520%25231035%2520%2526%2520more$/);
+  const url = d.links[0].url;
+  const once = decodeURIComponent(url.slice(url.indexOf('#') + 1));
+  assert.equal(new URLSearchParams(once.slice(once.indexOf('#') + 1)).get('intro'), 'PR #1035 & more');
+});
+
+test('a toss link holds one raw "#", so a client that re-encodes an invalid URL leaves it alone', () => {
+  // A second raw "#" is not a legal URL character. The Claude app on an iPhone
+  // re-encodes a link holding one, "%" included, and the intro's card read
+  // "Swipe%20between%20sessions" (2026-10-22). The page's fragment rides
+  // behind "%23", and its own "&" as "%26", so the shell's look gate, which
+  // reads the shell's whole fragment, finds no page key of its own.
+  const d = run('pages/index.html', ['--query', 'view=a&x=1', '--intro', 'Look here', '--at', 'show=row']);
+  const url = d.links[0].url;
+  assert.equal(url.split('#').length, 2, url);
+  const shell = new URLSearchParams(url.slice(url.indexOf('#') + 1));
+  for (const k of ['intro', 'show']) assert.equal(shell.has(k), false, 'the shell reads no ' + k + '=');
+  const value = decodeURIComponent(url.slice(url.indexOf('#') + 1));
+  const page = new URLSearchParams(value.slice(value.indexOf('#') + 1));
+  assert.equal(page.get('intro'), 'Look here');
+  assert.equal(page.get('show'), 'row');
+});
+
+test('a walkthrough whose steps name pages opens as the tab, each step at its address on this ref', () => {
+  // A framed toss's page is a blob: URL, so lib/kits/look.js reads every step
+  // as this page and a step on another one lands as a miss. Measured headless
+  // on 2026-10-22, the printed link went Set, Showing, then a document.
+  const steps = (s) => 'steps=' + Buffer.from(JSON.stringify(s)).toString('base64url');
+  const read = (url) => {
+    const v = decodeURIComponent(url.slice(url.indexOf('#') + 1));
+    return JSON.parse(Buffer.from(new URLSearchParams(v.slice(v.lastIndexOf('#') + 1)).get('steps'), 'base64url'));
+  };
+  const walk = steps([
+    { at: 'text:Set', say: 'here' },
+    { at: 'app/?view=map&tab=showing!text:Toss, data route', say: 'a tab' },
+    { at: 'docs/CONVERSATION.md!text:Have a look:', say: 'a document' },
+    { at: 'pages/toss-render.html?top&gh=o/r@main:x.html!row', say: 'written whole' },
+  ]);
+  const d = run('app/index.html', ['--query', 'view=map&tab=set', '--at', walk]);
+  assert.equal(d.top, true);
+  assert.match(d.links[0].url, /toss-render\.html\?top#gh=mehrlander\/web-tools@0{12}:app\/index\.html\?view=map&tab=set%23steps=/);
+  assert.deepEqual(read(d.links[0].url).map(s => s.at), [
+    'text:Set',
+    `pages/toss-render.html?top&gh=mehrlander/web-tools@${Z12}:app/index.html&view=map&tab=showing!text:Toss, data route`,
+    `pages/data-view.html?src=mehrlander/web-tools@${Z12}:docs/CONVERSATION.md!text:Have a look:`,
+    'pages/toss-render.html?top&gh=o/r@main:x.html!row',
+  ]);
+  // A document has no top mode that keeps its fragment, so a walkthrough
+  // starting on one starts on the data viewer's own address.
+  const doc = run('docs/showing.md', ['--at', walk]);
+  assert.match(doc.links[0].url, new RegExp(`^https://mehrlander\\.github\\.io/web-tools/pages/data-view\\.html\\?src=mehrlander/web-tools@${Z12}:docs/showing\\.md#steps=`));
+  // The control: steps on one page stay framed.
+  const one = run('app/index.html', ['--at', steps([{ at: 'text:Set' }, { at: 'text:Showing' }])]);
+  assert.equal(one.top, undefined);
+  assert.doesNotMatch(one.links[0].url, /\?top/);
 });
 
 test('any HTML outside archive/ is a page file, a kit demo or a dated prototype alike', () => {
@@ -252,6 +312,21 @@ test('--path links any named file at the real commit, a page by toss and a docum
   assert.match(d.documents[0].url, /toss-render\.html#data=mehrlander\/web-tools@(?:[\w./-]+@)?[0-9a-f]{12}:docs\/APP\.md$/);
 });
 
+// Only web-tools serves toss-render.html, so a page in any other repo is tossed
+// by web-tools' renderer. Until 2026-10-21 it got its own repo's Pages host,
+// a 404 for a private repo with no site.
+test('a page in a repo without the renderer is tossed by web-tools\' renderer', () => {
+  const dir = mkdtempSync(path.join(tmpdir(), 'showing-other-'));
+  const git = (...a) => execFileSync('git', a, { cwd: dir, encoding: 'utf8' });
+  git('init', '-q', '-b', 'main');
+  git('remote', 'add', 'origin', 'https://github.com/mehrlander/budget-wa.git');
+  writeFileSync(path.join(dir, 'page.html'), '<!doctype html><title>t</title>');
+  git('add', 'page.html');
+  git('-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'page');
+  const d = JSON.parse(execFileSync('python3', [SCRIPT, '--path', 'page.html', '--json'], { cwd: dir, encoding: 'utf8' }));
+  assert.match(d.links[0].url, /^https:\/\/mehrlander\.github\.io\/web-tools\/pages\/toss-render\.html#gh=mehrlander\/budget-wa@/);
+});
+
 test('--width puts ?w= on the renderer, and says so when it cancels ?top', () => {
   const d = run('pages/session.html', ['--width', '390']);
   assert.match(d.links[0].url, /toss-render\.html\?w=390#gh=/);
@@ -300,8 +375,10 @@ test('a page that routes on its own hash is warned about, and --at answers it', 
     'and the bare link carries no address');
 
   const at = run('pages/branch.html', ['--at', 'gh=owner/repo&pr=12']);
-  assert.ok(at.links[0].url.endsWith(':pages/branch.html#gh=owner/repo&pr=12'),
+  assert.ok(at.links[0].url.endsWith(':pages/branch.html%23gh=owner/repo%26pr=12'),
     'the address rides as a trailing fragment, which the toss hands the page as its own hash');
+  assert.ok(decodeURIComponent(at.links[0].url).endsWith(':pages/branch.html#gh=owner/repo&pr=12'),
+    'and the toss\'s one decode gives the page exactly that address');
   assert.equal(at.warnings.filter(w => /location\.hash/.test(w)).length, 0,
     'and the warning stands down once an address is given');
 });
@@ -455,7 +532,7 @@ test('--at puts a fragment on a framed link', () => {
   const d = runIn(framedRepo(), 'projects/budget-drs/submittal/submittal.html',
                   ['--at', 'note=abc']);
   assert.equal(d.mechanism, 'toss-app');
-  assert.match(d.links[0].url, /#note=abc$/);
+  assert.match(d.links[0].url, /%23note=abc$/);
 });
 
 // ── The overlay (docs/loader.md, "The selection") ───────────────────────────
@@ -559,7 +636,7 @@ test('a page that takes look links says so, and a look link naming no anchor is 
   assert.equal(d.look.length, 1);
   assert.equal(d.look[0].page, 'lib/kits/demos/look.html');
   assert.ok(d.look[0].anchors.includes('btn-export'));
-  assert.ok(d.look[0].walks.includes('change-licenses'));
+  assert.ok(d.look[0].walkthroughs.includes('change-licenses'));
   d = run('lib/kits/demos/look.html', ['--at', 'tap=btn-export&say=here']);
   assert.deepEqual(d.look, [], 'a link already carrying a look key needs no hint');
   assert.ok(!d.warnings.some(w => /look link/.test(w)), 'and a resolving anchor draws no warning');
