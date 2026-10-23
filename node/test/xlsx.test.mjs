@@ -1583,3 +1583,24 @@ test('a chart is parsed from xl/charts/ and placed in sheetLayout drawings', () 
   assert.ok(d.height > 0);
   assert.equal(d.chart.title, 'Quarterly Revenue');
 });
+
+// openpyxl writes a sheet's comments to xl/comments/comment1.xml, singular,
+// where Excel writes xl/comments1.xml. The part pattern took only the plural,
+// so every comment in such a workbook read as absent: no red corner in the
+// Sheet view, nothing in the comments reading, no author for a names check.
+test('a comments part named comment1.xml (openpyxl) is read like comments1.xml', () => {
+  const r = xlsxKit.analyze([
+    ['xl/workbook.xml', `<?xml version="1.0"?><workbook xmlns="wb" xmlns:r="rel"><sheets>
+      <sheet name="Staff" sheetId="1" r:id="rId1"/></sheets></workbook>`],
+    ['xl/_rels/workbook.xml.rels', `<?xml version="1.0"?><Relationships xmlns="rel">
+      <Relationship Id="rId1" Type=".../worksheet" Target="worksheets/sheet1.xml"/></Relationships>`],
+    ['xl/worksheets/sheet1.xml', `<?xml version="1.0"?><worksheet xmlns="ws"><sheetData>
+      <row r="1"><c r="A1" t="inlineStr"><is><t>x</t></is></c></row></sheetData></worksheet>`],
+    ['xl/worksheets/_rels/sheet1.xml.rels', `<?xml version="1.0"?><Relationships xmlns="rel">
+      <Relationship Id="rId1" Type=".../comments" Target="../comments/comment1.xml"/></Relationships>`],
+    ['xl/comments/comment1.xml', `<?xml version="1.0"?><comments xmlns="cm"><authors><author>Jordan Ellis</author></authors>
+      <commentList><comment ref="A1" authorId="0"><text><t>check</t></text></comment></commentList></comments>`],
+  ]);
+  const notes = xlsxKit.workbookNotes(r.xl).filter(n => n.kind === 'comment');
+  assert.deepEqual(notes.map(n => [n.sheet, n.cell, n.author, n.text]), [['Staff', 'A1', 'Jordan Ellis', 'check']]);
+});
