@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `node/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 17 are named by CLAUDE.md,
-22 by a skill, 39 by a page or component. The remaining 46 are
+22 by a skill, 40 by a page or component. The remaining 46 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -38,6 +38,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`harness.csv`](harness.csv) — the harness registry: every script under node/, python/ and the platform folders (.githooks/, .github/workflows/, .claude/, skills/hooks/), its role, and how it is invoked
 - [`headless-vendoring.md`](headless-vendoring.md) *(orphan)* — building with CDN libraries and rendering headless where the CDNs are blocked
 - [`inbound.md`](inbound.md) *(measured, orphan)* — the inbound map: how work reaches a session, the push-versus-pull split across the estate's channels, and the one channel an outside agent can reach
+- [`intents.csv`](intents.csv) — what you might want done, each as a path through the Set diagram from what starts it to where it lands
 - [`ios-haptics.md`](ios-haptics.md) *(orphan)* — whether a web page can fire iPhone haptics on its own gesture: measured, and no
 - [`ios-sheet-drags.md`](ios-sheet-drags.md) — why a drag inside a sheet-presented in-app browser dismisses the sheet, and the two fixes, measured on device
 - [`kits.csv`](kits.csv) — the kits registry: every module on the kit shelf, its namespace, its own headline, and who loads it
@@ -71,7 +72,6 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`annotation.md`](annotation.md) *(orphan)* — annotating a document: the standoff format, the audit page, the pass, and the edit rules, for any vocabulary
 - [`run-methods.csv`](run-methods.csv) *(orphan)* — how a person runs an errand's script: the venues each method allows and how its output returns
 - [`csv-census.md`](csv-census.md) — the per-repository tracked-CSV inventory: adoption, index measurements and Map reading
-- [`source-bundles.md`](source-bundles.md) *(orphan)* — the shared source-bundle convention: what a bundle is, its README frontmatter, the two tables and how a repository declares them
 - [`locators.md`](locators.md) — locators: the kinds, the container-and-part canonical form, inbound lookup, and how a reference is tested (broken or changed, follow or pin, the hash cascade, verdicts, cost tiers)
 - [`fab.md`](fab.md) — the FAB: the floating launcher, the drawer's four tabs, its menus, and the one-per-viewport rule
 - [`map-tabs.csv`](map-tabs.csv) — the Map view's per-address descriptions and the longer account of each tab
@@ -93,6 +93,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`house-policies.md`](house-policies.md) — the house policies: one entry per policy, each a preference with its scope, its shortcuts and a link to the document that holds its detail
 - [`css-baseline.csv`](css-baseline.csv) *(measured)* — the CSS baseline: the most unexempt hand-written CSS declarations each file may carry, a ratchet on the house rule against vanilla CSS
 - [`hook-events.csv`](hook-events.csv) — every event Claude Code accepts a hook on, with the summary its /hooks menu gives
+- [`source-bundles.md`](source-bundles.md) *(orphan)* — the shared source-bundle convention: what a bundle is, its README frontmatter, the two tables and how a repository declares them
 - [`CONVERSATION.md`](CONVERSATION.md) — the conversation rules: the chat-handoff mechanics every reply uses
 - [`conversation.csv`](conversation.csv) — the gated index of the conversation rules CONVERSATION.md defines
 
