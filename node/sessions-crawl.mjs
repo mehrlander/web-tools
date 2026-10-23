@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // sessions-crawl.mjs — refresh state/sessions.json, the phone's
-// state/session-menu.json and the session search shards from outside a browser,
-// so a session's record reaches them without waiting for someone to open the
-// app's Sessions view.
+// state/session-menu.json and state/reply-prints.json, and the session search
+// shards from outside a browser, so a session's record reaches them without
+// waiting for someone to open the app's Sessions view.
 //
 //   npm run sessions-refresh [-- --dry-run]
 //
@@ -60,7 +60,10 @@ function git(cmdArgs, input) {
     cwd: gitPath,
     input,
     encoding: 'utf8',
-    maxBuffer: 50 * 1024 * 1024,
+    // A record is one blob read whole, and records outgrew the 50 MB this was:
+    // 2026-10-22-be83ffa6.json is 62 MB, and every pass on the laptop daemon
+    // failed to read it with ENOBUFS (measured 2026-10-23).
+    maxBuffer: 512 * 1024 * 1024,
     windowsHide: true,
     stdio: ['pipe', 'pipe', 'pipe'],
   });
