@@ -11,6 +11,6 @@ Run them with [`python/portable-eval.py`](../../python/portable-eval.py), which 
 | `plain-dry` | a Haiku judge finds no P04 trip | [`skills/peeves/peeves.csv`](../../skills/peeves/peeves.csv), P04 |
 | `default-fired` | the session invoked `portable:default` (reported, not scored) | [`skills/hooks/invoke-default.sh`](../../skills/hooks/invoke-default.sh) |
 
-Before adding an `llm` grader for another peeve, check the peeve's precision in web-tools-private `sessions/peeves/gold/2026-10-23-scorecard.md`. Haiku was right on 61 of its 68 P04 flags across 200 labelled session replies, and right on fewer than 6 in 10 of its flags for eight of the 18 peeves scored.
+Before adding an `llm` grader for another peeve, check the peeve's precision in web-tools-private `sessions/peeves/gold/2026-10-23-scorecard.md`. Across 200 labelled session replies, Haiku was right on 55 to 61 of its 68 P04 flags (blind readers' labels and gold labels), and on fewer than 6 in 10 of its flags for eight of the 18 peeves even by the gold labels.
 
 Each case's `scaffold.sh` creates a small git repository, because `invoke-default.sh` adds its instruction only where it finds a checkout. The sessions see no `CLAUDE.md` and none of the account's settings or other plugins.
