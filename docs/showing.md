@@ -1,7 +1,7 @@
 # Showing: how content reaches a viewer
 
-Showing follows surfacing ([SURFACING.md](SURFACING.md)): surfacing decides what
-to hand over; showing is what makes it openable.
+Showing follows the conversation rules ([CONVERSATION.md](CONVERSATION.md)): they decide
+what a reply hands over; showing is what makes it openable.
 
 **The reference is the app, not this file.** Each way of showing (a 🥏 toss, the
 deployed page's own URL, content carried in the link, and others) is a row in

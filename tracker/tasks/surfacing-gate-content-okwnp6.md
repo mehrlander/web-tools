@@ -1,11 +1,11 @@
 ---
 id: surfacing-gate-content-okwnp6
-title: Hold SURFACING.md to surfacing.csv by content, not by lead-in
+title: Hold CONVERSATION.md to conversation.csv by content, not by lead-in
 status: backlog
 opened: 2026-09-10
 size: S
 ---
-# Hold SURFACING.md to surfacing.csv by content, not by lead-in
+# Hold CONVERSATION.md to conversation.csv by content, not by lead-in
 
 `node/test/surfacing-manifest.test.mjs` holds membership two ways: every
 primitive bullet in the prose has a manifest row, and every row points at a
@@ -14,7 +14,7 @@ and are deliberately unchecked, which `docs/docs.csv` says out loud.
 
 That leaves a hole this repo has now fallen into once. On 2026-09-07 a
 shortening pass cut "a wake that changed nothing says nothing at all" from the
-`Close in one order` bullet. The `close-order` row in `docs/surfacing.csv` kept
+`Close in one order` bullet. The `close-order` row in `docs/conversation.csv` kept
 the clause, byte for byte, and still carries the stronger form of it ("no
 state, no restated list"). The lead-in never moved, so the suite stayed green
 for three days while the prose and its index disagreed on a rule. The prose is
@@ -26,8 +26,8 @@ the copy a session reads, so the delivered rule was the weaker one, and 338 of
 ## Related
 
 - `node/test/surfacing-manifest.test.mjs`: lead-in-only membership gate that missed the drift
-- `docs/surfacing.csv`: manifest rows whose `boundary` clauses should stay in the prose
-- `docs/SURFACING.md`: prose bullets a session reads; source of the lost clause
+- `docs/conversation.csv`: manifest rows whose `boundary` clauses should stay in the prose
+- `docs/CONVERSATION.md`: prose bullets a session reads; source of the lost clause
 - `docs/docs.csv`: says summaries are paraphrases and deliberately unchecked
 - task `surplus-state-rate-reread-zyl265`: measures whether the restored close-order rule worked
 - PR #646: restored the clause; left this gate unchanged

@@ -397,6 +397,18 @@ def classify(paths):
 OVERLAY_CAP = 20
 TEST_BASE_SHA = "b" * 40
 
+def vendored_copies():
+    """The plugin's copies of the traveling docs, named by VENDORED in
+    node/build/vendor-docs.mjs, which writes them whole. Not skills/default/
+    entire: its SKILL.md is authored."""
+    try:
+        src = (ROOT / "node/build/vendor-docs.mjs").read_text(encoding="utf-8")
+    except OSError:
+        return ()
+    m = re.search(r"export const VENDORED = \[([^\]]*)\]", src)
+    return tuple(f"skills/default/{n}" for n in re.findall(r"'([^']+)'", m.group(1))) if m else ()
+
+
 # Files a merge regenerates rather than takes from either side: the builds,
 # the files the commit hook writes whole (node/README.md, "The refresh
 # model"), and the catalogs .gitattributes merges with the derived-csv driver.
@@ -404,7 +416,7 @@ TEST_BASE_SHA = "b" * 40
 # and says so, and they do not count against it as files main also changed.
 WHOLE_GENERATED = ("dist/", "console/suite.js", "pages/README.md", "pages/index.html", "pages/thumbs/",
                    "docs/README.md", "tracker/board.md", "tracker/board.csv", "tracker/board-tags.csv",
-                   ".claude/skills/default/")
+                   *vendored_copies())
 
 def derived_paths():
     try:
@@ -741,7 +753,7 @@ def pick_framed(paths, fr, base, sha, slug, hosted, warn, use_git, at="", query=
 
 
 # An MCP-written PR body or comment turns a URL of this many characters or more
-# into literal text (SURFACING.md, "Surfacing caption"; measured in
+# into literal text (CONVERSATION.md, "Surfacing caption"; measured in
 # environment/capabilities.md). Chat is untouched, so this is a warning about
 # WHERE the link may go, not about the link.
 MCP_URL_CAP = 150
@@ -1090,7 +1102,7 @@ def warn_cap(d):
     if over:
         warn.append(f"{len(over)}{CAP_WARNING}: fine in chat, literal text in an "
                     "MCP-written PR body or comment. There, drop the link to the chat caption "
-                    "(SURFACING.md's shortening ladder) rather than trimming the address by hand.")
+                    "(CONVERSATION.md's shortening ladder) rather than trimming the address by hand.")
     return d
 
 

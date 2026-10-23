@@ -238,8 +238,7 @@ test('the picker only routes to mechanisms that exist', () => {
 // a size failure arrived wearing a message about the showing material.
 
 // ── docs/showing.md, the copy that had no check ────────────────────────────
-// docs/repetitions.csv recorded two paraphrases of the showing mechanisms.
-// CLAUDE.md's was checked (pointer plus a word cap, in claude-md.test.mjs);
+// Two paraphrases of the showing mechanisms existed. CLAUDE.md's was checked (pointer plus a word cap, in claude-md.test.mjs);
 // showing.md's carried "check: none; the doc itself declares the manifest
 // authoritative", and a banner is not a check. The doc grew a full second copy
 // of the table under that banner and nothing said so for eleven days.

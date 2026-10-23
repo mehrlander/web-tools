@@ -104,7 +104,7 @@ A rendered page is worth it only when the margin has to sit beside the prose to 
 
 ## Auditing a document
 
-Run at paragraph grain over a document and **a section that yields no distinct question is carrying no criterion.** Measured on one section of `docs/SURFACING.md`: ten enumerated closing states yield one question repeated ten times, because a definition list is already in answer form, while the boundary paragraph beneath yields seven distinct questions, every one sharper as a question than as prose.
+Run at paragraph grain over a document and **a section that yields no distinct question is carrying no criterion.** Measured on one section of `docs/CONVERSATION.md`: ten enumerated closing states yield one question repeated ten times, because a definition list is already in answer form, while the boundary paragraph beneath yields seven distinct questions, every one sharper as a question than as prose.
 
 That is the same cut the conventions make in "what earns its place is the criterion inside a reason," so the digest doubles as a bloat detector. Report the sections that produced nothing rather than padding them with a question you had to invent.
 

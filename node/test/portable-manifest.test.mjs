@@ -144,7 +144,7 @@ test('every skill directory on disk is a manifest skill item', () => {
   assert.equal(inManifest.size, onDisk.length, 'manifest lists a skill with no directory on disk');
 });
 
-// The vendored copies. The plugin ships CONVENTIONS.md and SURFACING.md inside
+// The vendored copies. The plugin ships CONVENTIONS.md and CONVERSATION.md inside
 // the default skill so loading them costs no fetch; docs/ is the
 // authoritative and these are copies by design. They have drifted
 // before and were resynced by hand (2b785b2), which is exactly the failure
@@ -153,12 +153,12 @@ test('every skill directory on disk is a manifest skill item', () => {
 // A traveling doc's links have to resolve where it lands, not only where it is
 // written. These two ship inside the plugin and are also fetched into a
 // consumer session's context, so a relative link is dead in both places unless
-// its target travels with them. CONVENTIONS.md and SURFACING.md ship together,
+// its target travels with them. CONVENTIONS.md and CONVERSATION.md ship together,
 // so their mutual links stay relative; everything else in docs/ does not, and
 // is written as an absolute hub URL. Thirteen such links were dead in the
 // vendored copies until 2026-08-05 (dead-links.py found them); this is the
 // gate that keeps the next one from shipping.
-const SHIPPED_TOGETHER = ['SURFACING.md'];
+const SHIPPED_TOGETHER = ['CONVERSATION.md'];
 const MD_LINK = /\[[^\]]*\]\(([^)\s]+)\)/g;
 
 test('the traveling docs link only to targets that travel with them', () => {

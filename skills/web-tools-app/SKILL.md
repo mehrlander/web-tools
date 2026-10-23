@@ -75,7 +75,7 @@ in order:
 
 ## Relationship to the conventions
 
-The `#stage=` link is also a surfacing primitive in `docs/SURFACING.md`
+The `#stage=` link is also one of the rules in `docs/CONVERSATION.md`
 ("Stage a fileset 🗂️"), loaded by the `default` skill. The
 convention carries the marker and the honesty gate; this skill and `APP.md`
 carry the full instrument (browse, transfer, manifest schema). Load the
