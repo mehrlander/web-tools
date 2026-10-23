@@ -244,7 +244,9 @@ test('a tap selects and the band reads the cell; rows, columns and ranges read a
     root.append(pane); doc.body.append(root);
     const drawn = R.drawSheet(sheet, {}, 'k');
     pane.append(drawn);
-    const sel = R.mountSheetSelect(root, pane, () => ({ s: sheet, xl: {}, layout: drawn.__layout }));
+    const heard = [];
+    const sel = R.mountSheetSelect(root, pane, () => ({ s: sheet, xl: {}, layout: drawn.__layout, name: 'Data' }),
+      (r) => heard.push(r));
     const band = root.querySelector('[data-sheet="inspect"]');
     const text = (k) => band.querySelector(`[data-f="${k}"]`);
     const shown = (k) => !text(k).hidden;
@@ -265,6 +267,9 @@ test('a tap selects and the band reads the cell; rows, columns and ranges read a
 
     click(td('B2'), { shiftKey: true });
     assert.deepEqual(selected().sort(), ['B2', 'B3', 'C2', 'C3']);
+    // The selection as data: a plain rectangle a later feature can read.
+    assert.deepEqual({ ...sel.range() }, { sheet: 'Data', r1: 2, c1: 1, r2: 3, c2: 2, address: 'B2:C3', active: 'C3', kind: 'cell' });
+    assert.equal(heard.at(-1).address, 'B2:C3', 'and every change is heard');
     assert.equal(text('value').textContent, '2 rows × 2 columns');
     assert.equal(text('Sum').lastElementChild.textContent, '15');
     assert.ok(!shown('Comment') && !shown('formula'), 'a range clears what only a cell says');
@@ -308,6 +313,7 @@ test('a tap selects and the band reads the cell; rows, columns and ranges read a
 
     sel.reset();
     assert.equal(band.hidden, true, 'a redraw clears the selection');
+    assert.equal(heard.at(-1), null, 'and says so');
     assert.equal(key('ArrowRight'), false, 'with nothing selected, the arrows pass on to the deck');
     root.remove();
   } finally { Object.assign(kit, was); }
