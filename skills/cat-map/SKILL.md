@@ -23,8 +23,8 @@ The file is JSON: `format: "catmap/1"`, `title`, `answer`, `steps` (optional), `
 
 - `title`, `lede`: the question in the owner's words ("What kind of collection is it?") and the answer in a sentence.
 - `basis`: the run whose coded instances supply the examples.
-- `grid`: the two characteristics that decide the word, `{across, down, cells}`. Each axis is `{char, values}` and each value `{is, label}`: `char` is a characteristic of the basis run, `is` the coded value or values the column or row takes, `label` the plain question ("Each entry is a thing"). Each cell is `{word, means, examples}`: the word, empty where none fits yet; what it means, in plain words; two or three instance ids.
-- `add`: words that add to the name when they apply, `{word, icon, means, requires, called, examples}`. `requires` maps characteristics to values and `called` lists senses, the condition each example is held to; `icon` is a Phosphor icon name.
+- `grid`: the two characteristics that decide the word, `{across, down, cells}`. Each axis is `{char, values}` and each value `{is, label}`: `char` is a characteristic of the basis run, `is` the coded value or values the column or row takes, `label` the plain question ("Each entry is a thing"). Each cell is `{word, means, examples}`: the word, empty where none fits yet; what it means, in plain words; two or three instance ids. `note`, optional, settles a case the two questions leave open.
+- `add`: words that add to the name when they apply, `{word, icon, means, requires, called, examples}`. `requires` maps characteristics to values and `called` lists senses, at least one of which must call the thing: the condition each example is held to; `icon` is a Phosphor icon name.
 - `renames`: names the answer changes, `{things, from, becomes, why}`, `things` being the instances now called `from`.
 - `open`: what only the owner can decide, `{question, recommend, why}`, with `recommend` empty where no recommendation is warranted.
 - `by`: whose answer it is and where its examples come from, the poster's footnote. With several runs, each row lists the runs that state it in `runs`.
@@ -56,6 +56,7 @@ The file is JSON: `format: "catmap/1"`, `title`, `answer`, `steps` (optional), `
 
 - **It opens on the owner's question**, in the owner's words, and the lede answers it. How the map was made is one footnote line.
 - **Every cell and word shows things the owner knows**, two or three, placed by the coding. A cell's examples are plain cases: one that also meets an add-on word's condition belongs under that word, and `answer-check.py` refuses it in the cell.
+- **An example can be found**: a path or file name wherever a common name could mean two things. "The traffic logs" sent three readers to the wrong collection; `logs/traffic/` would not have.
 - **A thing called by the wrong word shows it**, the old word struck through in red beside the name it should have.
 - **It ends in calls for the owner**, not in description.
 - **The canvas is 720 pixels wide, rendered at twice that**, with body text at 18 pixels or more and examples at 15 in monospace, so the image reads on a phone. One accent marks the answer's words; red marks only a wrong name.

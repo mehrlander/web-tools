@@ -27,11 +27,11 @@
        "edited in place",
        "edited until it ends"
       ],
-      "label": "It changes after it is written"
+      "label": "An entry changes after it is written"
      },
      {
       "is": "never edited",
-      "label": "It never changes"
+      "label": "An entry never changes"
      }
     ]
    },

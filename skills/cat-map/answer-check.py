@@ -7,8 +7,8 @@ follow from the coded instances of one run, its `basis`. Checked:
              its cell on the grid's two characteristics, and meets no add-on
              word's condition, so a cell shows only plain cases
   add        each example meets its word's condition: `requires`, a map of
-             characteristic to value (or list of values), and `called`, the
-             senses it must be called by
+             characteristic to value (or list of values), and `called`, senses
+             of which it must be called by at least one
   renames    each thing is called by a sense of the word it is renamed from,
              and meets the condition of the word it becomes, when that word is
              one the answer defines
@@ -45,7 +45,7 @@ def check(doc):
         for char, want in (requires or {}).items():
             if val(i, char) not in (want if isinstance(want, list) else [want]):
                 return False
-        return all(c in (i.get('called') or []) for c in (called or []))
+        return not called or any(c in (i.get('called') or []) for c in called)
 
     def known(where, ident):
         if ident not in inst:

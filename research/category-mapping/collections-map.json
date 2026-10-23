@@ -27,11 +27,11 @@
        "changed in place",
        "changed until its occurrence ends"
       ],
-      "label": "It changes after it is written"
+      "label": "An entry changes after it is written"
      },
      {
       "is": "never changed",
-      "label": "It never changes"
+      "label": "An entry never changes"
      }
     ]
    },
@@ -48,16 +48,17 @@
      },
      {
       "word": "",
-      "means": "a record rewritten until its event ends",
+      "means": "an event's record, rewritten until the event ends",
       "examples": [
-       "session-records"
+       "session-records",
+       "traffic-ledger"
       ]
      }
     ],
     [
      {
       "word": "snapshot",
-      "means": "a reading, kept as of its date",
+      "means": "the state of something, kept as of one date",
       "examples": [
        "checks-reading",
        "delivery-json"
@@ -65,7 +66,7 @@
      },
      {
       "word": "stream",
-      "means": "added to as things happen, never edited",
+      "means": "one entry per happening, added over time, never edited",
       "examples": [
        "news-ledger",
        "progress-log",
@@ -79,13 +80,14 @@
     1,
     2,
     3
-   ]
+   ],
+   "note": "For a collection rebuilt from other files, ask about what each entry records, not about the rebuild."
   },
   "add": [
    {
     "word": "cache",
     "icon": "arrows-clockwise",
-    "means": "rebuilt from other files, and may lag them",
+    "means": "rebuilt from other files, with nothing checking it against them",
     "requires": {
      "provenance": "derived",
      "currency": "may lag its source"
@@ -144,7 +146,8 @@
     "icon": "list-checks",
     "means": "members chosen by hand",
     "called": [
-     "list-view"
+     "list-view",
+     "list-enumeration"
     ],
     "examples": [
      "to-do",
@@ -220,9 +223,9 @@
     "why": "No reader proposed one."
    },
    {
-    "question": "Request files closed by adding a result file (errands, proposals) never change either, but are not snapshots. What should they be called?",
+    "question": "Request files closed by adding a result file (errands, proposals) are not snapshots. What should they be called?",
     "recommend": "request queue",
-    "why": "Reader A's proposal: a standard term that collides with nothing in the estate's vocabulary. Reader D found the same gap.",
+    "why": "Reader A's proposal: a standard term that collides with nothing in the estate's vocabulary. Reader D found the same gap, and all three poster readers sent errands here.",
     "runs": [
      0,
      3
@@ -231,7 +234,7 @@
    {
     "question": "Should a collection that drops its oldest entries past a cap get its own word, window?",
     "recommend": "",
-    "why": "Only Reader D raised it, for chron/sweeps.md and the calls record.",
+    "why": "Reader D raised it, for chron/sweeps.md and the calls record; two of the eight collections in the poster test, window.__traffic and state/sessions.json, keep only their newest 400 entries.",
     "runs": [
      3
     ]
@@ -270,7 +273,7 @@
  "runs": [
   {
    "by": "Reader A (skill)",
-   "method": "cat-map skill, steps 1 to 4: senses and their requires read from the defining documents sentence by sentence; characteristics gathered from the senses and from comparing unsure pairs; instances found by searching the three checkouts and counted as referents; every instance coded on every characteristic; separation-checks.py run with --write and each finding answered; proposed names checked against web-tools' declared vocabulary with skills/concept-index/vocab.py (index written to stdout, not to disk). The first run left the unsure pair constellation-atlas and activity-cache unseparated; rebuilt_by was added in answer, from manifest.md:278-279 (a cold cache is rebuilt by its reader) against web-tools-private/README.md:80 and :84 (the atlas and entities.json are rebuilt elsewhere), with entities-json and source-bundle added as instances.",
+   "method": "cat-map skill, steps 1 to 4: senses and their requires read from the defining documents sentence by sentence; characteristics gathered from the senses and from comparing unsure pairs; instances found by searching the three checkouts and counted as referents; every instance coded on every characteristic; separation-checks.py run with --write and each finding answered; proposed names checked against web-tools' declared vocabulary with skills/concept-index/vocab.py (index written to stdout, not to disk). The first run left the unsure pair constellation-atlas and activity-cache unseparated; rebuilt_by was added in answer, from manifest.md:278-279 (a cold cache is rebuilt by its reader) against web-tools-private/README.md:80 and :84 (the atlas and entities.json are rebuilt elsewhere), with entities-json and source-bundle added as instances. One value was corrected afterwards by the session that set the test: the traffic ledger's after_written, which three poster readers showed changes until each request settles.",
    "characteristics": [
     {
      "id": "stands_for",
@@ -589,7 +592,7 @@
    "instances": [
     {
      "id": "pages-csv",
-     "name": "pages.csv",
+     "name": "pages/pages.csv",
      "called": [
       "registry-csv"
      ],
@@ -614,7 +617,7 @@
     },
     {
      "id": "docs-csv",
-     "name": "docs.csv",
+     "name": "docs/docs.csv",
      "called": [
       "registry-csv"
      ],
@@ -702,7 +705,7 @@
     },
     {
      "id": "board-csv",
-     "name": "board.csv",
+     "name": "tracker/board.csv",
      "called": [
       "registry-csv",
       "tracker"
@@ -794,7 +797,7 @@
     },
     {
      "id": "tracker-tasks",
-     "name": "tracker task files",
+     "name": "tracker/tasks/",
      "called": [
       "tracker",
       "registry-csv"
@@ -824,7 +827,7 @@
     },
     {
      "id": "progress-log",
-     "name": "progress logs",
+     "name": "a task's progress log",
      "called": [
       "log",
       "stream"
@@ -850,7 +853,7 @@
     },
     {
      "id": "to-do",
-     "name": "the to-do list",
+     "name": "lists/to-do.json",
      "called": [
       "list-view"
      ],
@@ -879,7 +882,7 @@
     },
     {
      "id": "jot",
-     "name": "the Jot list",
+     "name": "lists/jot.json",
      "called": [
       "list-view"
      ],
@@ -908,7 +911,7 @@
     },
     {
      "id": "snag",
-     "name": "the snag list",
+     "name": "lists/snag.json",
      "called": [
       "list-view"
      ],
@@ -1019,7 +1022,7 @@
     },
     {
      "id": "news-ledger",
-     "name": "the news ledger",
+     "name": "news/ledger",
      "called": [
       "ledger-append",
       "log",
@@ -1079,14 +1082,14 @@
     },
     {
      "id": "traffic-ledger",
-     "name": "the traffic ledger",
+     "name": "window.__traffic",
      "called": [
       "ledger-append"
      ],
      "where": "web-tools/lib/gh-boot.js:249 ('The traffic ledger: window.__traffic records every programmatic request')",
      "values": {
       "stands_for": "occurrence",
-      "after_written": "never changed",
+      "after_written": "changed until its occurrence ends",
       "provenance": "captured",
       "leaves": "oldest dropped past a cap",
       "lifecycle": "none",
@@ -1099,6 +1102,10 @@
       {
        "char": "leaves",
        "evidence": "web-tools/lib/gh-boot.js:282, :327: CAP = 400, oldest spliced off"
+      },
+      {
+       "char": "after_written",
+       "evidence": "Corrected after the poster test, from never changed: web-tools/lib/gh-boot.js:325 pushes each entry with status 0 and ms 0, and the request fills them in when it settles. All three poster readers found it."
       }
      ]
     },
@@ -1193,7 +1200,7 @@
     },
     {
      "id": "traffic-logs",
-     "name": "the traffic logs",
+     "name": "logs/traffic/",
      "called": [
       "log"
      ],
@@ -1218,7 +1225,7 @@
     },
     {
      "id": "session-records",
-     "name": "session records",
+     "name": "sessions/",
      "called": [
       "stream"
      ],
@@ -1255,7 +1262,7 @@
     },
     {
      "id": "activity-cache",
-     "name": "the activity cache",
+     "name": "state/activity.json",
      "called": [
       "cache"
      ],
@@ -1284,7 +1291,7 @@
     },
     {
      "id": "sessions-cache",
-     "name": "the sessions cache",
+     "name": "state/sessions.json",
      "called": [
       "cache"
      ],
@@ -1317,7 +1324,7 @@
     },
     {
      "id": "constellation-atlas",
-     "name": "the constellation atlas",
+     "name": "state/constellation-atlas.json",
      "called": [
       "snapshot-current",
       "cache"
@@ -1376,7 +1383,7 @@
     },
     {
      "id": "checks-reading",
-     "name": "checks readings",
+     "name": "data/checks-reading/",
      "called": [
       "snapshot-dated"
      ],
@@ -1409,7 +1416,7 @@
     },
     {
      "id": "delivery-json",
-     "name": "delivery.json",
+     "name": "docs/delivery.json",
      "called": [
       "snapshot-dated"
      ],
@@ -1438,7 +1445,7 @@
     },
     {
      "id": "chron-dump",
-     "name": "chron/dump",
+     "name": "chron/dump/",
      "called": [
       "inbox"
      ],
@@ -1467,7 +1474,7 @@
     },
     {
      "id": "shortcuts-incoming",
-     "name": "shortcuts/incoming",
+     "name": "shortcuts/incoming/",
      "called": [],
      "where": "web-tools-private/shortcuts/README.md:52, :97-100 ('anything waits in incoming/', fold-incoming.py)",
      "values": {
@@ -1494,7 +1501,7 @@
     },
     {
      "id": "entities-json",
-     "name": "entities.json",
+     "name": "state/entities.json",
      "called": [
       "cache"
      ],

@@ -106,6 +106,7 @@ document.addEventListener('alpine:init', () => {
       const A = this.A, g = A.grid, out = [A.title, A.lede];
       g?.cells.forEach((row, i) => row.forEach((c, j) =>
         out.push(`${g.across.values[j].label}, and ${g.down.values[i].label.toLowerCase()}: ${c.word || 'no word yet'}, ${c.means}.`)));
+      if (g?.note) out.push(g.note);
       for (const w of A.add || []) out.push(`Add ${w.word}: ${w.means}.`);
       for (const n of A.renames || []) out.push(`${this.names(n.things)}, now called ${n.from}, become ${n.becomes}.`);
       for (const o of A.open || []) out.push(o.question + (o.recommend ? ` Recommended: ${o.recommend}.` : ''));
@@ -281,6 +282,7 @@ document.addEventListener('alpine:init', () => {
                 </template>
               </div>
             </template>
+            <p x-show="A.grid.note" class="col-start-2 col-span-2 pt-1 text-sm sm:text-base text-base-content/60 text-pretty" x-text="A.grid.note"></p>
           </div>
         </template>
 
