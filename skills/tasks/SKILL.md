@@ -269,5 +269,4 @@ remember it.
 ## Boundary with web-tools
 
 This skill owns the tracker. The `default` skill owns PR bodies, `[new]`,
-`[main]` and `[diff]` links, the 🎫 marker's display form, the merge guide,
-and wrap-up.
+`[main]` and `[diff]` links, and the 🎫 marker's display form.

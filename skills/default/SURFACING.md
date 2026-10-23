@@ -11,7 +11,7 @@ substituting the current repo in URL templates.
 ### Every reply
 
 * **Closing state.** Use exactly one, last, understandable without the message it closes. Write the glyph at the start of the line, then a bold lead: the name as shown, or for 🔵 the question.
-  - 🟢 **Ready to continue:** The session has a clear path to proceed, approved or implied by user interest. It never instructs the reader. When the next step is merging the branch and nothing else is open, lead **Ready to merge:** instead; "go" merges.
+  - 🟢 **Ready to continue:** The session has a clear path to proceed, approved or implied by user interest. It never instructs the reader. When the next step is merging the branch and nothing else is open, lead **Ready to merge:** instead, and "go" merges. Before it, run the per-session refreshes the repo's `CLAUDE.md` names, and confirm the PR has no conflicts and its checks passed on the latest commit.
   - ❇️ **Ready to assess:** The session assesses: "go" means report back, not implement.
   - 🟡 **Pending:** Waiting on an action or dependency, not on direction.
   - 🪧 **Direction needed:** Next steps appear to diverge. Offer to take the reader's direction or to make a full assessment and recommendation; "go" asks for the assessment.
@@ -20,7 +20,7 @@ substituting the current repo in URL templates.
   - ✍️ **Sign-off needed:** Documentation wording, laid out above as a doc review (see the doc-craft skill), waits on the reader's approval. Say what the session will do once it is given.
   - 🟠 **Attention:** A concrete problem must be settled before proceeding.
   - ⚪ **Clean exit:** Nothing remains here; the reader decides whether to wrap up.
-  - 🟣 **Merged:** This branch merged. State what shipped in one line.
+  - 🟣 **Merged:** GitHub reports this branch merged. State what shipped in one line. Further edits go in a new PR.
   - 🔴 **Closed:** This branch closed unmerged. State why in one line.
   - ⚫ **Done:** Every workstream merged or closed and nothing remains open. Nothing follows.
   - 🔵 **Short answer:** The question is answered and nothing is proposed. Lead with the question in place of the name, then the answer: 🔵 **Did the merge land?** Yes.
@@ -35,13 +35,30 @@ substituting the current repo in URL templates.
 
 ### A reply that changed files
 
-* **Branch anchor.** The first reply that changes files begins with `Working branch: [branch-name](url)`. Code changes use GitHub flow on a branch with assistant prefixes (`claude/`, `codex/`, `gemini/`, `grok/`). Shared coordination state (task trackers, personal lists, session logs, crawl caches) uses Real-time mode directly on `main`. Include assistant commit trailers per [surfacing-course.md](surfacing-course.md).
+* **Branch anchor.** The first reply that changes files begins with `Working branch: [branch-name](url)`. Code changes use GitHub flow on a branch with assistant prefixes (`claude/`, `codex/`, `gemini/`, `grok/`). Shared coordination state (task trackers, personal lists, session logs, crawl caches) uses Real-time mode directly on `main`. Include the assistant's commit trailer from [AGENTS.md](https://github.com/mehrlander/web-tools/blob/main/AGENTS.md#assistant-identity-and-attribution).
 
 * **Reference is a link.** Use `[caption](url)` for anything the reader can open. Label touched source `[new]`, unchanged source `[main]`, and changes `[diff]`. Give a page, document, or data file a render link: 🥏 for a toss, ⭐ for the deployed page, 📦 for a Claude artifact. Cite every pull request this way, in prose as in lists: `[web-tools #997](…/pull/997) [🌿](…#gh=owner/repo&pr=997) [💬](…/pages/session.html#id=<short>) [<title>](https://claude.ai/code/<session>)`, writing (**this session's**) in place of the title for the writer's own; the Claude app draws a bare `#997`, even after an emoji, as a chip naming `owner/repo#997`. A PR's head commit's `Claude-Session` trailer names the session, the session record's `short` field gives `<short>`, and a part with nothing to point at is left out. Reserve `file:line` for grep and debugging.
 
 * **Open the branch 🌿.** Use `…/pages/branch.html#gh=owner/repo@branch[&base=ref]`, or `…#gh=owner/repo&pr=<n>` for a PR's head and base. Add `&file=<path>` to open a file or `&pane=files` to open the file list.
 
-* **Guide pointer 🧭.** Use `🧭 [PR #N](…) (body synced)` only when this turn rewrote the guide region; otherwise use `(body not synced)`. Do not carry the marker forward from an earlier reply.
+* **Guide pointer 🧭.** A PR's guide is the part of its body between `[//]: # (guide)` and `[//]: # (/guide)`. The branch page shows the body above the files. After a push that changes the branch's state, rewrite the guide with `update_pull_request`, once `python3 python/mcp-link-safe.py --check body.md`, run from a web-tools checkout, passes. Leave files and checks to the branch page. Use:
+
+  ```markdown
+  ## What this PR does
+  <one sentence: the resulting capability>
+  ## Why this branch exists
+  <the problem, and what a reader needs to resume, in plain prose>
+  ## Open threads
+  1. 🟢 **<title>**: <state and next step>
+  2. 🟡 **<title>**: <what it waits on>
+  3. ✅ **<title>**: <decision or result>
+  ## Risk
+  <an uncertainty, failing check or stale assumption, or "None.">
+  ---
+  🌿 [Open the branch](<branch URL>) · 🥏 [Live page](<render URL>)
+  ```
+
+  Use `🧭 [PR #N](…) (body synced)` only when this turn rewrote the guide; otherwise use `(body not synced)`. Do not carry the marker forward from an earlier reply.
 
 ### Displaying content
 

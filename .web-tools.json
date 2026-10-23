@@ -28,8 +28,7 @@
     "pages",
     "console",
     "lib/alpineComponents",
-    "docs/SURFACING.md",
-    "docs/surfacing-course.md"
+    "docs/SURFACING.md"
   ],
   "pages": [
     {
@@ -110,26 +109,48 @@
       "path": "programs/surfacing",
       "governs": [
         "docs/SURFACING.md",
-        "docs/surfacing-course.md",
         "docs/surfacing.csv",
+        "skills/claude-markdown/",
+        "skills/look-markers/",
+        "skills/hooks/reply-check.py",
         "docs/showing.md",
         "docs/showing-mechanisms.csv",
+        "docs/showing-consolidation.md",
+        "docs/routes.json",
         "python/showing.py",
         "python/look-link.py",
-        "skills/look-markers/SKILL.md",
-        "skills/claude-markdown/SKILL.md",
-        "skills/hooks/reply-check.py"
+        "pages/toss-render.html",
+        "skills/screenshot-review/",
+        "skills/show-diff/",
+        "docs/forms/",
+        "docs/envelopes/",
+        "docs/subjects.csv",
+        "pages/branch.html",
+        "pages/session.html",
+        "pages/approve.html",
+        "pages/data-view.html",
+        "pages/shorter.html",
+        "pages/chat-results.html",
+        "pages/passage-reader.html",
+        "pages/audit-render.html",
+        "pages/inquiry.html",
+        "lib/alpineComponents/branch-brief.js",
+        "lib/alpineComponents/session-brief.js",
+        "lib/alpineComponents/waiting.js",
+        "lib/alpineComponents/user-call-form.js"
       ],
       "measures": [
         "mehrlander/web-tools-private@background:state/closings.json"
       ],
       "reviewers": [
         "portable:owner-proxy",
-        "portable:peeves-critic"
+        "portable:peeves-critic",
+        "portable:house-style-critic"
       ],
       "views": [
         "?view=map&tab=surfacing",
-        "?view=map&tab=showing"
+        "?view=map&tab=showing",
+        "?view=waiting"
       ]
     }
   ]

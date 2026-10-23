@@ -106,5 +106,4 @@ script,,python/build-tree.py,build-tree.py,,on-demand
 script,,python/ocr-pdf.py,ocr-pdf.py,,on-demand
 script,,python/page-strips.py,page-strips.py,,on-demand
 doc,,docs/column-primitives.md,Column primitives,"what kind of thing a column holds: id, label, locator, value. The role axis, its crossing with the claim-versus-support position, and the dependency that a value domain is only askable under label or locator",reference
-doc,,docs/surfacing-course.md,Surfacing course,"the canonical guide-PR lifecycle; a byte-matched copy ships beside the default skill for PR work, and the pr-subscribe-hint hook injects it after an MCP-created PR",plugin
 doc,,docs/direct-to-main.csv,Direct-to-main registry,the registry of approved direct-to-main processes and synchronization discipline,reference
