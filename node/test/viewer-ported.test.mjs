@@ -163,6 +163,32 @@ const drawWith = (layout, kit = {}) => {
   finally { window.xlsxKit = prev; }
 };
 
+// Centred text with empty neighbours on both sides. The kit says how far the
+// neighbours ALLOW a spill; the renderer decides how far the text NEEDS one.
+const centredRow = (text, left, right) => ({
+  cols: [0, 1, 2, 3, 4].map(index => ({ index, width: 60 })),
+  rows: [{ row: 1, height: 20, cells: [0, 1, 2, 3, 4].map(col => ({
+    col, text: col === 2 ? text : '', numeric: false, style: col === 2 ? 7 : null, raw: null, cf: null,
+    colSpan: 1, rowSpan: 1, spillLeft: col === 2 ? left : 0, spillRight: col === 2 ? right : 0 })) }],
+  maxCol: 4, freeze: null, truncated: null, images: [], cfSkipped: 0, empty: false,
+});
+const centred = { cellStyle: (xl, s) => (String(s) === '7' ? { align: 'center' } : null) };
+
+test('short centred text stays in its own cell, however many neighbours are empty', () => {
+  // "6-8" over a run of blanks two to the left and one to the right was drawn
+  // centred over the whole run, across a column line from its own cell.
+  const html = drawWith(centredRow('6-8', 2, 1), centred);
+  assert.doesNotMatch(html, /margin-left:-/, 'no spill for text that fits');
+});
+
+test('long centred text spills the same distance each way, about its own centre', () => {
+  const html = drawWith(centredRow('A heading far wider than one sixty-pixel column', 2, 1), centred);
+  const m = /width:(\d+)px;margin-left:-(\d+)px;margin-right:-(\d+)px/.exec(html);
+  assert.ok(m, 'the text spills');
+  assert.equal(m[2], m[3], 'evenly, so its centre stays on its own cell');
+  assert.ok(Number(m[2]) <= 60, 'and no further than the narrower side allows');
+});
+
 test('a conditional format reaches the page as its own rule, not an inline style', () => {
   const html = drawWith(layoutWith({ cf: 3 }));
   assert.match(html, /td\.cf3\{[^}]*background:#ff0000/, 'the dxf became a rule');
