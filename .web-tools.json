@@ -100,7 +100,7 @@
     {
       "name": "surfacing",
       "label": "Surfacing",
-      "icon": "ph-megaphone",
+      "icon": "programs/surfacing/icon.svg",
       "path": "programs/surfacing",
       "governs": [
         "docs/CONVERSATION.md",
