@@ -22,6 +22,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`MARKETPLACE.md`](MARKETPLACE.md) — the plugin marketplace: how the set is published and subscribed to
 - [`QUALIFIED-WRITING.md`](QUALIFIED-WRITING.md) — the prose rules: qualify noun phrases, introduce before you refer, no em dashes
 - [`README.md`](README.md) — the docs folder's front door: the generated index of this registry
+- [`CONVERSATION.md`](CONVERSATION.md) — the conversation rules: the chat-handoff mechanics every reply uses
 - [`TRACKER.md`](TRACKER.md) — the opt-in cross-session project tracker: schema, ids, board
 - [`aims-initiatives.csv`](aims-initiatives.csv) — the five strategic initiatives the estate is pursuing
 - [`aims-goals.csv`](aims-goals.csv) — the five goals the estate's material is held to
@@ -57,6 +58,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`showing-mechanisms.csv`](showing-mechanisms.csv) — which link reaches which kind of change, and what each one silently misses
 - [`showing.md`](showing.md) — the frame behind the Showing tab: what ?use= and a 🥏 toss each reach, what resists preview, and how subjects and kinds are typed
 - [`stage.md`](stage.md) — the stage: bench and Saved, intake, the walkable preview and diff, Out, save-as-surface, and the #stage= link grammar
+- [`conversation.csv`](conversation.csv) — the gated index of the conversation rules CONVERSATION.md defines
 - [`tests.csv`](tests.csv) — the test registry: every check, its kind, and what breaks if it is deleted
 - [`text-content.md`](text-content.md) *(measured, orphan)* — the estate's authored text: whether the data files holding it are organized, and how much never reached one
 - [`text-fields.csv`](text-fields.csv) — the names a prose-bearing CSV column or JSON key may take
@@ -93,8 +95,6 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`css-baseline.csv`](css-baseline.csv) *(measured)* — the CSS baseline: the most unexempt hand-written CSS declarations each file may carry, a ratchet on the house rule against vanilla CSS
 - [`hook-events.csv`](hook-events.csv) — every event Claude Code accepts a hook on, with the summary its /hooks menu gives
 - [`source-bundles.md`](source-bundles.md) *(orphan)* — the shared source-bundle convention: what a bundle is, its README frontmatter, the two tables and how a repository declares them
-- [`CONVERSATION.md`](CONVERSATION.md) — the conversation rules: the chat-handoff mechanics every reply uses
-- [`conversation.csv`](conversation.csv) — the gated index of the conversation rules CONVERSATION.md defines
 - [`intents.csv`](intents.csv) — what you might want done, each as a path through the Set diagram from what starts it to where it lands
 
 ## docs/envelopes/
