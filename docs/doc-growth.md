@@ -10,13 +10,25 @@ Every file is a bubble: **x** is its length in words on a log scale, bubble area
 is lifetime edit count, and the play control sweeps the history one sample at a
 time. The page opens paused on the last sample and draws only files with at
 least 5 edits until the min edits slider (1 to 30) is lowered. **y** is one of
-three measures per sample:
+four measures per sample:
 
 | Mode | y is |
 | --- | --- |
 | Effort | edits in the trailing four samples |
 | Net change | lines added minus lines deleted, from `git log --numstat` |
 | Settled | days since the last sample with an edit, in multiples of `--days` |
+| Care | focused edits to date, with a dashed line at 10 per thousand words |
+
+A **focused edit** is a commit touching at most `--focus` markdown files
+(default 5), so a sweep across many documents does not count as attention to
+each. Care mode leaves out files a commit hook writes (`--generated`, marked
+`gen` in the data file) and logs and trays (`chron/`, `tracker/tasks/`, `blog/`,
+`dump/`, `archive/`), and the slider then counts focused edits.
+
+**Ranked** lists the same files by focused edits per thousand words, or by count,
+over a strip that renders each document; the strip's corner button opens it full
+screen. A document is read at the data file's branch, through the viewer's stored
+token when there is one. `?view=ranked` and `?y=care` open the page on either.
 
 `w` counts every token; `r` skips fenced code blocks and YAML frontmatter.
 Tables and indented code count in both, so a wide gap between the two means
@@ -45,8 +57,10 @@ so the chart starts at the shallow boundary however old the repo is. Run
 `git fetch --unshallow` first, and do not clone with `--filter=blob:none`, since
 `git log --numstat` would then fetch every blob over the network.
 
-**Renames are not followed.** The log runs with `--no-renames`, so a moved file
-starts over under its new path with one edit, and its old path ends.
+**Renames are followed.** The log runs with rename detection, and each earlier
+path is filed under the file's current one, so `docs/CONVERSATION.md` carries
+the history of `docs/SURFACING.md`. A move across repositories is not followed.
+`--branch` must be current: a stale local `main` drops everything after it.
 
 ## Opening a data file
 

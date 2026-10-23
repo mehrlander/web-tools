@@ -16,8 +16,8 @@
      table view and the always-on tooltip are it. -->
 
 <meta name="shot-query" content="src=self">
-<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/alpinejs@3/dist/cdn.min.js,npm/@phosphor-icons/web,npm/fflate/umd/index.js" defer></script>
-<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/alpinejs@3/dist/cdn.min.js,npm/@phosphor-icons/web,npm/fflate/umd/index.js,npm/marked/marked.min.js" defer></script>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5,npm/@tailwindcss/typography/dist/typography.min.css" rel="stylesheet">
 </head>
 <body class="min-h-screen bg-base-200" x-data="growth()" x-init="boot()">
 
@@ -30,9 +30,14 @@
     <span class="text-sm opacity-40" x-show="data"
           x-text="data ? `${data.files.length} files · ${data.frames.length} weeks` : ''"></span>
     <div class="grow"></div>
-    <button class="btn btn-xs btn-ghost" @click="showTable = !showTable">
-      <i class="ph ph-table"></i><span x-text="showTable ? 'Chart' : 'Table'"></span>
-    </button>
+    <div class="join" x-show="data">
+      <button class="join-item btn btn-xs" :class="view==='chart' && 'btn-active'" @click="setView('chart')">
+        <i class="ph ph-chart-scatter"></i>Chart</button>
+      <button class="join-item btn btn-xs" :class="view==='table' && 'btn-active'" @click="setView('table')">
+        <i class="ph ph-table"></i>Table</button>
+      <button class="join-item btn btn-xs" x-show="hasCare" :class="view==='ranked' && 'btn-active'" @click="setView('ranked')">
+        <i class="ph ph-list-numbers"></i>Ranked</button>
+    </div>
   </div>
 
   <div x-show="err" x-cloak class="alert alert-warning text-sm" x-text="err"></div>
@@ -44,7 +49,7 @@
   </div>
 
   <!-- chart -->
-  <div x-show="data && !showTable" class="card bg-base-100 shadow-sm">
+  <div x-show="data && view==='chart'" class="card bg-base-100 shadow-sm">
     <div class="card-body p-2 sm:p-4 gap-3">
 
       <div class="relative">
@@ -85,6 +90,8 @@
                   @click="yMode='net'; draw()">Net change</button>
           <button class="join-item btn btn-xs" :class="yMode==='age' && 'btn-active'"
                   @click="yMode='age'; draw()">Settled</button>
+          <button class="join-item btn btn-xs" x-show="hasCare" :class="yMode==='care' && 'btn-active'"
+                  @click="yMode='care'; draw()">Care</button>
         </div>
         <div class="join">
           <button class="join-item btn btn-xs" :class="unit==='w' && 'btn-active'"
@@ -95,7 +102,7 @@
         <!-- data-slot: the Map's Growth unit's Threshold dial (web-tools
              data/ui-units/codebook.md, "Slots"); nothing at runtime reads it. -->
         <label class="flex items-center gap-1.5" data-slot="frame:dial">
-          <span class="opacity-60">min edits</span>
+          <span class="opacity-60" x-text="yMode==='care' ? 'min focused' : 'min edits'"></span>
           <input type="range" class="range range-xs w-24" min="1" max="30"
                  x-model.number="minEdits" @input="draw()">
           <span class="font-mono w-5" x-text="minEdits"></span>
@@ -121,7 +128,7 @@
   </div>
 
   <!-- table view: the relief the light-mode contrast warn obliges -->
-  <div x-show="data && showTable" class="card bg-base-100 shadow-sm">
+  <div x-show="data && view==='table'" class="card bg-base-100 shadow-sm">
     <div class="card-body p-2 sm:p-4">
       <div class="overflow-x-auto">
         <table class="table table-xs table-pin-rows">
@@ -149,6 +156,85 @@
   </div>
 </div>
 
+<!-- ranked: the documents by focused edits per thousand words, a list over a strip
+     of the documents themselves; the strip's header opens them as a deck -->
+<div x-show="data && view==='ranked'" x-cloak class="max-w-6xl mx-auto px-3 sm:px-5 pb-5">
+  <div class="card bg-base-100 shadow-sm">
+    <div class="card-body p-2 sm:p-4 gap-2">
+      <div class="flex flex-wrap items-center gap-2 text-xs">
+        <div class="join">
+          <button class="join-item btn btn-xs" :class="rankBy==='density' && 'btn-active'" @click="rankBy='density'; rerank()">Per thousand words</button>
+          <button class="join-item btn btn-xs" :class="rankBy==='count' && 'btn-active'" @click="rankBy='count'; rerank()">Focused edits</button>
+        </div>
+        <label class="flex items-center gap-1.5">
+          <span class="opacity-60">min focused</span>
+          <input type="range" class="range range-xs w-24" min="1" max="30" x-model.number="minEdits" @input="rerank()">
+          <span class="font-mono w-5" x-text="minEdits"></span>
+        </label>
+        <div class="grow"></div>
+        <span class="opacity-60" x-text="`${rows.length} documents · focused: ${data?.focus ?? 5} or fewer files in the commit`"></span>
+      </div>
+
+      <div class="max-h-[40vh] overflow-y-auto rounded-box border border-base-300" x-ref="rlist">
+        <table class="table table-xs table-pin-rows">
+          <thead><tr>
+            <th class="text-right">#</th><th>Document</th><th class="text-right max-sm:hidden">Words</th>
+            <th class="text-right">Focused</th><th class="text-right">Per 1k</th><th class="text-right max-sm:hidden">Last</th>
+          </tr></thead>
+          <tbody>
+            <template x-for="(r, i) in rows" :key="r.p">
+              <tr class="cursor-pointer" :class="i === cur && 'bg-primary/10'" :data-row="i" @click="go(i)">
+                <td class="text-right tabular-nums opacity-60" x-text="i + 1"></td>
+                <td class="font-mono text-[11px]" x-text="wrapPath(r.p)"></td>
+                <td class="text-right tabular-nums max-sm:hidden" x-text="r.w.toLocaleString()"></td>
+                <td class="text-right tabular-nums" x-text="r.n"></td>
+                <td class="text-right tabular-nums font-medium" x-text="r.d.toFixed(1)"></td>
+                <td class="text-right tabular-nums opacity-60 max-sm:hidden" x-text="r.last"></td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="flex items-center gap-2" x-show="rows.length">
+        <span class="font-mono text-xs min-w-0" x-text="wrapPath(rows[cur]?.p)"></span>
+        <div class="grow"></div>
+        <span class="text-xs tabular-nums opacity-60" x-text="`${cur + 1} / ${rows.length}`"></span>
+        <button data-deck-open class="btn btn-xs btn-ghost btn-square" @click="openDeck()"><i class="ph ph-arrows-out"></i></button>
+      </div>
+      <div class="flex overflow-x-auto snap-x snap-mandatory h-[55vh] rounded-box border border-base-300"
+           x-ref="strip" @scroll.debounce.120ms="onStrip()">
+        <template x-for="(r, i) in rows" :key="r.p">
+          <article class="w-full shrink-0 snap-start overflow-y-auto p-3 sm:p-5">
+            <div class="prose !max-w-none text-pretty" x-html="docs[r.p] ?? ''"></div>
+          </article>
+        </template>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- the deck: the ranked documents, one per screen -->
+<div x-show="deck" x-cloak class="fixed inset-0 z-50 grid grid-rows-[auto_1fr_auto] bg-base-100">
+  <header class="flex items-center gap-2 px-4 py-2 border-b border-base-300">
+    <span class="text-xs tabular-nums opacity-60" x-text="`#${cur + 1}`"></span>
+    <span class="font-mono text-xs min-w-0" x-text="wrapPath(rows[cur]?.p)"></span>
+    <span class="text-xs tabular-nums opacity-60 max-sm:hidden"
+          x-text="rows[cur] ? `${rows[cur].w.toLocaleString()} words · ${rows[cur].n} focused · ${rows[cur].d.toFixed(1)} per 1k` : ''"></span>
+    <div class="grow"></div>
+    <span class="text-xs tabular-nums opacity-60" x-text="`${cur + 1} / ${rows.length}`"></span>
+    <button class="btn btn-sm btn-ghost btn-square" @click="closeDeck()"><i class="ph ph-x"></i></button>
+  </header>
+  <main class="overflow-y-auto px-4 sm:px-8 py-4" x-ref="deckBody">
+    <div class="prose prose-xl !max-w-none leading-8 text-pretty" x-html="docs[rows[cur]?.p] ?? ''"></div>
+  </main>
+  <footer class="flex items-center gap-3 px-4 py-2 border-t border-base-300">
+    <button class="btn btn-sm" :disabled="cur === 0" @click="go(cur - 1)"><i class="ph ph-caret-left"></i></button>
+    <progress class="progress progress-primary grow" :value="cur + 1" :max="rows.length"></progress>
+    <button class="btn btn-sm" :disabled="cur >= rows.length - 1" @click="go(cur + 1)"><i class="ph ph-caret-right"></i></button>
+  </footer>
+</div>
+
 <style type="text/tailwindcss">[x-cloak]{display:none}</style>
 
 <script>
@@ -166,7 +252,8 @@ function growth() {
     surface: dark ? 'rgba(16,16,18,0.75)' : 'rgba(255,255,255,0.75)',
     data: null, err: '', t: 0, playing: false, raf: 0,
     yMode: 'churn', unit: 'w', minEdits: 5, trails: true,
-    picked: null, hovered: null, tipX: 0, tipY: 0, showTable: false, bounds: null,
+    picked: null, hovered: null, tipX: 0, tipY: 0, view: 'chart', bounds: null,
+    rankBy: 'density', rows: [], cur: 0, docs: {}, deck: false, hasCare: false,
     visible: 0,
     groups: [],
 
@@ -197,8 +284,20 @@ function growth() {
         churn: Math.max(4, ...all.flatMap((f) => f.e.map((_, k) => this.churn(f, k)))),
         age: Math.max(this.data.days, ...all.map(f => this.age(f, f.w.length - 1))),
       };
+      this.hasCare = all.some(f => Array.isArray(f.f));
+      this.bounds.care = Math.max(4, ...all.map(f => this.care(f, f.w.length - 1)));
+      if (this.hasCare && q.get('y') === 'care') this.yMode = 'care';
+      this.rerank();
       this.t = this.data.frames.length - 1;
       addEventListener('resize', () => this.draw());
+      addEventListener('keydown', (e) => this.key(e));
+      addEventListener('popstate', () => { if (this.deck) this.deck = false; });
+      const v = q.get('view'), at = this.rows.findIndex(r => r.p === q.get('doc'));
+      if (at >= 0) this.cur = at;
+      if (v === 'table' || (v === 'ranked' && this.hasCare)) this.$nextTick(() => {
+        this.setView(v);
+        if (v === 'ranked' && q.get('deck') === '1') this.openDeck();
+      });
       this.$nextTick(() => this.draw());
     },
 
@@ -217,12 +316,14 @@ function growth() {
         return `${n} of ${tot} files on screen (edited in ${this.minEdits}+ commits). Up means actively worked; right means long.`;
       if (this.yMode === 'age')
         return `${n} of ${tot} files on screen. Up means untouched for longer, so the top right is a monument and the bottom right is contested.`;
+      if (this.yMode === 'care')
+        return `${n} of ${tot} files on screen (${this.minEdits}+ focused edits; hook-written files and logs left out). Above the dashed line, a file has had more than 10 focused edits per thousand words.`;
       return `${n} of ${tot} files on screen. Above the line gained lines that week, below it gave some back.`;
     },
     get tipMeta() {
       const f = this.hovered; if (!f) return '';
       const k = Math.round(this.t);
-      return `${(f[this.unit][k] ?? 0).toLocaleString()} words · ${f.edits} edits · ${this.data.groups[f.g]}`;
+      return `${(f[this.unit][k] ?? 0).toLocaleString()} words · ${f.edits} edits${Array.isArray(f.f) ? ` (${f.focused} focused)` : ''} · ${this.data.groups[f.g]}`;
     },
     get tableRows() {
       return this.shown().map(f => {
@@ -232,7 +333,95 @@ function growth() {
       }).sort((x, y) => (y.b - y.a) - (x.b - x.a));
     },
 
-    shown() { return this.data ? this.data.files.filter(f => f.edits >= this.minEdits) : []; },
+    shown() {
+      if (!this.data) return [];
+      if (this.yMode === 'care') return this.data.files.filter(f => this.careable(f) && f.focused >= this.minEdits);
+      return this.data.files.filter(f => f.edits >= this.minEdits);
+    },
+
+    // --- care: focused edits, the commits that touched few documents ---------
+    // A file the commit hook writes is marked `gen` by the extractor; logs and
+    // trays are the folders the governing-docs hook also leaves alone.
+    careable(f) { return Array.isArray(f.f) && !f.gen && !CARE_SKIP.test(f.p); },
+    care(f, t) {
+      if (!Array.isArray(f.f)) return 0;
+      const k = Math.round(t);
+      let s = 0;
+      for (let i = 0; i <= k && i < f.f.length; i++) s += f.f[i];
+      return s;
+    },
+    rerank() {
+      if (!this.data) return;
+      const k = this.data.frames.length - 1;
+      const keep = this.rows[this.cur]?.p;
+      this.rows = this.data.files
+        .filter(f => this.careable(f) && f.w[k] != null && f.w[k] >= 40 && f.focused >= this.minEdits)
+        .map(f => {
+          const w = Math.max(f[this.unit][k] ?? f.w[k], 40);
+          return { p: f.p, w, n: f.focused, d: 1000 * f.focused / w, last: f.lf ?? '' };
+        })
+        .sort((a, b) => this.rankBy === 'count' ? b.n - a.n || b.d - a.d : b.d - a.d);
+      const at = this.rows.findIndex(r => r.p === keep);
+      this.cur = at >= 0 ? at : 0;
+      if (this.view === 'ranked') this.$nextTick(() => this.go(this.cur, 'auto'));
+    },
+    setView(v) {
+      this.view = v;
+      if (v === 'chart') this.$nextTick(() => this.draw());
+      if (v === 'ranked') this.$nextTick(() => this.go(this.cur, 'auto'));
+    },
+    go(i, behavior = 'smooth') {
+      if (!this.rows.length) return;
+      this.cur = Math.max(0, Math.min(this.rows.length - 1, i));
+      const s = this.$refs.strip;
+      if (s && s.clientWidth) s.scrollTo({ left: this.cur * s.clientWidth, behavior });
+      this.$refs.rlist?.querySelector(`[data-row="${this.cur}"]`)?.scrollIntoView({ block: 'nearest' });
+      if (this.$refs.deckBody) this.$refs.deckBody.scrollTop = 0;
+      for (const j of [this.cur, this.cur + 1, this.cur - 1]) this.fetchDoc(this.rows[j]?.p);
+    },
+    onStrip() {
+      const s = this.$refs.strip;
+      if (!s || !s.clientWidth) return;
+      const i = Math.round(s.scrollLeft / s.clientWidth);
+      if (i !== this.cur && this.rows[i]) {
+        this.cur = i;
+        this.$refs.rlist?.querySelector(`[data-row="${i}"]`)?.scrollIntoView({ block: 'nearest' });
+        for (const j of [i, i + 1, i - 1]) this.fetchDoc(this.rows[j]?.p);
+      }
+    },
+    // a path breaks after a slash, not mid-name
+    wrapPath(p) { return (p ?? '').replaceAll('/', '/\u200b'); },
+    // Framed (the Map's Growth tab), a fixed overlay measures against the outer
+    // viewport on iOS (house style rule 5), so the deck opens in its own tab.
+    openDeck() {
+      if (window.top !== window.self) {
+        const u = new URL(location.href);
+        u.searchParams.set('view', 'ranked');
+        u.searchParams.set('doc', this.rows[this.cur]?.p ?? '');
+        u.searchParams.set('deck', '1');
+        window.open(u.href, '_blank', 'noopener');
+        return;
+      }
+      this.deck = true; history.pushState({ deck: 1 }, '');
+    },
+    closeDeck() { if (history.state?.deck) history.back(); else this.deck = false; },
+    key(e) {
+      if (this.view !== 'ranked' || e.target.closest?.('input')) return;
+      if (e.key === 'ArrowRight') { e.preventDefault(); this.go(this.cur + 1); }
+      else if (e.key === 'ArrowLeft') { e.preventDefault(); this.go(this.cur - 1); }
+      else if (e.key === 'Escape' && this.deck) this.closeDeck();
+    },
+    async fetchDoc(p) {
+      if (!p || this.docs[p] != null) return;
+      this.docs[p] = '<p class="opacity-50">Reading…</p>';
+      try {
+        const text = await readRepoFile(this.data.repo, this.data.branch, p);
+        if (!window.marked) throw new Error('the markdown renderer did not load');
+        this.docs[p] = marked.parse(text.replace(/^---\n[\s\S]*?\n---\n/, ''));
+      } catch (e) {
+        this.docs[p] = `<p class="text-error">Could not read ${p}: ${e.message}</p>`;
+      }
+    },
 
     toggle() {
       this.playing = !this.playing;
@@ -284,12 +473,12 @@ function growth() {
 
       const P = { l: 44, r: 14, t: 12, b: 30 };
       const files = this.shown();
-      const net = this.yMode === 'net', age = this.yMode === 'age';
+      const net = this.yMode === 'net', age = this.yMode === 'age', care = this.yMode === 'care';
 
       // x: words, log. y: effort (linear) or net change (symlog, zero centred).
       const xMax = this.bounds[this.unit].x;
       const lx = v => P.l + (Math.log10(Math.max(v, 10)) - 1) / (Math.log10(xMax) - 1) * (W - P.l - P.r);
-      const yTop = net ? this.bounds.net : age ? this.bounds.age : this.bounds.churn;
+      const yTop = net ? this.bounds.net : age ? this.bounds.age : care ? this.bounds.care : this.bounds.churn;
       const sym = v => Math.sign(v) * Math.log10(Math.abs(v) + 1);
       const ly = v => net
         ? P.t + (1 - (sym(v) / sym(yTop) + 1) / 2) * (H - P.t - P.b)
@@ -331,22 +520,33 @@ function growth() {
       c.globalAlpha = 0.45;
       c.fillText('words →', W - P.r, H - P.b + 18);
       c.save(); c.translate(11, P.t + 2); c.rotate(-Math.PI / 2); c.textAlign = 'right';
-      c.fillText(net ? 'lines gained ↑' : age ? 'days untouched ↑' : 'edits / month ↑', 0, 0);
+      c.fillText(net ? 'lines gained ↑' : age ? 'days untouched ↑' : care ? 'focused edits ↑' : 'edits / month ↑', 0, 0);
       c.restore();
       c.globalAlpha = 1;
+
+      // care: the line where focused edits reach 10 per thousand words
+      if (care) {
+        c.setLineDash([4, 4]); c.strokeStyle = this.ink; c.globalAlpha = 0.35; c.lineWidth = 1;
+        c.beginPath();
+        for (let x = 10, first = true; x <= xMax * 1.1 && x / 100 <= yTop; x *= 1.1, first = false) {
+          const px = lx(x), py = ly(x / 100);
+          first ? c.moveTo(px, py) : c.lineTo(px, py);
+        }
+        c.stroke(); c.setLineDash([]); c.globalAlpha = 1;
+      }
 
       // bubbles, largest first so the small ones stay clickable on top
       const pts = [];
       for (const f of files) {
         const w = this.at(f[this.unit], this.t);
         if (w == null || this.t < f.born - 0.5) continue;
-        const y = net ? this.at(f.n, this.t) : age ? this.age(f, this.t) : this.churn(f, this.t);
+        const y = net ? this.at(f.n, this.t) : age ? this.age(f, this.t) : care ? this.care(f, this.t) : this.churn(f, this.t);
         const r = Math.max(2.5, Math.sqrt(f.edits) * 1.5);
         pts.push({ f, x: lx(w), y: ly(y ?? 0), r });
       }
       pts.sort((a, b) => b.r - a.r);
 
-      if (this.trails && this.picked) this.drawTrail(c, lx, ly, net, age);
+      if (this.trails && this.picked) this.drawTrail(c, lx, ly, net, age, care);
 
       for (const p of pts) {
         const g = this.data.groups[p.f.g], s = this.slot(g);
@@ -377,13 +577,13 @@ function growth() {
       }
     },
 
-    drawTrail(c, lx, ly, net, age) {
+    drawTrail(c, lx, ly, net, age, care) {
       const f = this.picked, s = f[this.unit];
       c.beginPath();
       let started = false;
       for (let k = 0; k <= Math.round(this.t); k++) {
         if (s[k] == null) continue;
-        const y = net ? f.n[k] : age ? this.age(f, k) : this.churn(f, k);
+        const y = net ? f.n[k] : age ? this.age(f, k) : care ? this.care(f, k) : this.churn(f, k);
         const x = lx(s[k]), yy = ly(y ?? 0);
         started ? c.lineTo(x, yy) : (c.moveTo(x, yy), started = true);
       }
@@ -419,6 +619,28 @@ function growth() {
   };
 }
 
+// The viewer's stored GitHub token, the one place this page reads it: this page
+// boots without the library, so window.ghAuth is not there to ask.
+function savedToken() {
+  try { return localStorage.getItem('ghToken') || ''; } catch { return ''; }
+}
+
+// Logs and intake trays: written freely by design, as the governing-docs hook
+// treats them, so their edits say nothing about care for a document.
+const CARE_SKIP = /(^|\/)(chron|tracker\/tasks|blog|dump|archive)\//;
+
+// One file at the payload's branch: through the stored token when there is one
+// (the only way into a private repo), else raw, which serves a public one.
+async function readRepoFile(repo, ref, path) {
+  const token = savedToken();
+  const r = token
+    ? await fetch(`https://api.github.com/repos/${repo}/contents/${path.split('/').map(encodeURIComponent).join('/')}?ref=${encodeURIComponent(ref)}`,
+                  { cache: 'no-store', headers: { Accept: 'application/vnd.github.raw', Authorization: `Bearer ${token}` } })
+    : await fetch(`https://raw.githubusercontent.com/${repo}/${ref}/${path}`, { cache: 'no-store' });
+  if (!r.ok) throw new Error(`HTTP ${r.status}${r.status === 404 && !token ? ', no stored token' : ''}`);
+  return r.text();
+}
+
 const fmt = v => Math.abs(v) >= 1000 ? (v / 1000).toFixed(Math.abs(v) < 10000 ? 1 : 0) + 'k'
                                      : String(Math.round(v));
 
@@ -445,8 +667,7 @@ async function loadPayload(q) {
   // __refFor), else main.
   const [repo, named] = repoRef.split('@');
   const ref = named || (window.__refFor && window.__refFor(repo, path)) || 'main';
-  let token = '';
-  try { token = localStorage.getItem('ghToken') || ''; } catch {}
+  const token = savedToken();
   const r = await fetch(`https://api.github.com/repos/${repo}/contents/${path}?ref=${ref}`, {
     headers: { Accept: 'application/vnd.github.raw', ...(token && { Authorization: `Bearer ${token}` }) },
   });
