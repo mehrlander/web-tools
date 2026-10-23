@@ -27,9 +27,12 @@ each. Care mode leaves out files a commit hook writes (`--generated`, marked
 `gen` in the data file) and logs and trays (`chron/`, `tracker/tasks/`, `blog/`,
 `dump/`, `archive/`), and the slider then counts focused edits.
 
-**Ranked**, in the Growth tab, lists the same files by focused edits per
-thousand words, or by count, and each opens in the file deck. `?y=care` opens the
-full page on Care.
+The Growth tab puts a **ranked list** over the chart: the same files by focused
+edits per thousand words, or by count, as of the last sample, each opening in
+the file deck. Picking a row rings its bubble and draws its trail, and picking a
+bubble scrolls the list to its row. The tab opens the chart on Care, where a
+row's rank and its bubble's height above the dashed line agree. The full page
+opens on Effort; `?y=care`, `net` or `age` opens it on another measure.
 
 `w` counts every token; `r` skips fenced code blocks and YAML frontmatter.
 Tables and indented code count in both, so a wide gap between the two means
@@ -75,7 +78,7 @@ these it reads web-tools' own `data/doc-growth/web-tools.json`.
 A repo whose `.web-tools.json` sets `growth` to its data file's path
 ([field reference](manifest-fields.csv)) is listed in Map → Docs → Growth, which
 reads its data file at the selected repo's ref; `?growthrepo=` picks the repo and
-`?growthview=ranked` or `care` the view. The web-tools data file needs no token;
+`?growthy=` the chart's measure, written only when it is not Care. The web-tools data file needs no token;
 every other repo's needs the viewer's token. In Map → Docs →
 Inventory, the web-tools data file adds a sparkline and a net word change to each
 document row; the rows render without them when the file is missing.

@@ -2480,9 +2480,9 @@ const MAP_HOME = 'overview';
 // The Map subviews' own sub-addresses (lib/alpineComponents/map.js,
 // syncCtxAddress, syncSetAddress and syncGrowthAddress), each key with the tab
 // it belongs to: Context's grouping, sort, question and source, Set's question,
-// and Growth's corpus and way of showing it.
+// and Growth's corpus and chart measure.
 const MAP_CTX_TAB = { ctxlens: 'context', ctxsort: 'context', ctxtopic: 'context', ctxsource: 'context', setintent: 'set',
-                      growthrepo: 'growth', growthview: 'growth' };
+                      growthrepo: 'growth', growthy: 'growth' };
 const mapCtxOf = get => Object.fromEntries(Object.keys(MAP_CTX_TAB).map(k => [k, get(k) || '']));
 
 // marked, loaded once on demand for the overview README render. kits/md-doc.js

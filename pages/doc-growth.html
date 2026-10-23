@@ -180,7 +180,8 @@ function growth() {
       this.groups = DocGrowth.groups(this.data, this.minEdits);
       this.bounds = DocGrowth.bounds(this.data);
       this.hasCare = DocGrowth.hasCare(this.data);
-      if (this.hasCare && q.get('y') === 'care') this.yMode = 'care';
+      const y = q.get('y');
+      if (['net', 'age'].includes(y) || (y === 'care' && this.hasCare)) this.yMode = y;
       if (q.get('view') === 'table') this.view = 'table';
       this.t = this.data.frames.length - 1;
       addEventListener('resize', () => this.draw());
