@@ -19,7 +19,7 @@ on:
   workflow_dispatch:
     inputs:
       biennium:
-        description: 'Which biennium to fetch (e.g. 2025-26, 2023-24); blank takes fetch-data.mjs's default. Output lands in data/<biennium>/.'
+        description: "Which biennium to fetch (e.g. 2025-26, 2023-24); blank takes fetch-data.mjs's default. Output lands in data/<biennium>/."
         required: false
         default: ''
       limit:
