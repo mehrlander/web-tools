@@ -34,7 +34,7 @@ Chronology is deliberately not a type. "X happened, then Y happened" wears its t
 
 This is the fuzziest call in practice, the type-system equivalent of the grain problem, and prose makes it constantly. Pure cases are easy: "the program ran three years over schedule" is stated, "the troubled program" is evaluative. But most phrasing fuses them, a judgment wrapped around a factual core: "the program struggled with delays" asserts both that there were delays (stated) and that this amounted to struggling (evaluative).
 
-Do not tag the fused phrase as one or the other. Split it, the same way a sentence bundling four facts gets split:
+Do not tag the fused phrase as one or the other. Split it into one claim per commitment, as Method step 2 splits a sentence that bundles several facts:
 
 - *"The program struggled with delays."* -> **stated:** "The program experienced delays." **evaluative:** "The program's delays amounted to struggling." 
 

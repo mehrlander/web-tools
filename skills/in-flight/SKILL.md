@@ -7,7 +7,7 @@ description: "Check whether any branch, PR, or tracker task is already working o
 
 ## Premise
 
-Two sessions cannot see each other. What one leaves behind is a branch, a PR, and a tracker task, and both kinds of trace mislead. A tracker task says `in-progress` until someone edits it, so a claim outlives its work. Merging does not delete branches, so hundreds of refs can sit in a repo where two or three carry live work.
+Two sessions cannot see each other. What one leaves behind is a branch, a PR, and a tracker task, and the task and the branch both mislead. A tracker task says `in-progress` until someone edits it, so a claim outlives its work. Merging does not delete branches, so hundreds of refs can sit in a repo where two or three carry live work.
 
 One measurement cuts through both. A branch with no commits outside the base branch cannot be in flight, whatever its name, age, or diff suggests. That reduces a stale estate to a handful of candidates, small enough to check honestly.
 

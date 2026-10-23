@@ -22,9 +22,9 @@ narrow: only wording moves, and a rewrite that says something different is wrong
 rather than terse. That narrowness is what makes the result checkable.
 
 The name and the discipline about which words carry nothing come from
-[Julius Brussee's caveman](https://github.com/JuliusBrussee/caveman) (MIT); its
-broken-grammar register does not, nor its session-wide mode, intensity ladder
-or input-side proxy. What comes out of this skill is plain
+[Julius Brussee's caveman](https://github.com/JuliusBrussee/caveman) (MIT). Its
+broken-grammar register is not taken here, nor its session-wide mode, intensity
+ladder or input-side proxy. What comes out of this skill is plain
 professional prose with the slack taken out, because these values land in
 committed data and are read by someone next week.
 

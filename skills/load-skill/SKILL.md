@@ -53,7 +53,7 @@ Fetch it, follow its instructions in the current session. Companion files (scrip
 
 ## When to fire
 
-Only on an explicit signal from the user, such as the phrases in the description or "load skill X from source Y". Do not fire on general topic overlap.
+Only on an explicit signal from the user, such as the phrases in the description, "use my X skill for this", or "load skill X from source Y". Do not fire on general topic overlap.
 
 ## Third-party skills
 

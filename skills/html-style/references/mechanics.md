@@ -241,6 +241,11 @@ Use jsDelivr `combine` to bundle multiple packages in a single request. Tailwind
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
 ```
 
+### Alpine alone (unpkg, defer)
+```html
+<script defer src="https://unpkg.com/alpinejs"></script>
+```
+
 ### Alpine + plugins (jsDelivr combine, defer)
 ```html
 <script defer src="https://cdn.jsdelivr.net/combine/npm/@alpinejs/collapse/dist/cdn.min.js,npm/@alpinejs/sort/dist/cdn.min.js,npm/alpinejs/dist/cdn.min.js"></script>

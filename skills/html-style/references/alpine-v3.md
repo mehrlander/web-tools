@@ -39,10 +39,6 @@ Nested `x-data` inherits parent scope.
 An `init()` method on the `x-data` object runs on its own; calling it from
 `x-init` as well runs it twice.
 
-```html
-<div x-data="foo()"></div>
-```
-
 ## Register reusable components with Alpine.data()
 
 ```html

@@ -51,7 +51,8 @@ python3 "$CLAUDE_PLUGIN_ROOT/content-registry/registry.py" corpus <root> concept
    file, `analysis_use` decides whether content counts as the repo's
    authored voice, undeclared content falls back to heuristics.
 
-Build the design's later layers (provenance relations, a generated
-inventory, a comparison layer; summarized in the 2026-08-02 entry of
-`mehrlander/home`'s `projects/text/instruments/concept-lab/findings.md`)
-only when their operational need appears.
+Build the registry's later layers (provenance relations, a generated
+inventory, a comparison layer) only when their operational need appears.
+`mehrlander/home`'s `projects/text/instruments/concept-lab/findings.md`,
+entry "2026-08-02, the epistemic content registry (ADR initial stage)",
+summarizes them.
