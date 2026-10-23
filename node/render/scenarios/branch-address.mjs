@@ -27,7 +27,7 @@ export default async function (page, ctx) {
 
   const out = await page.evaluate(async (which) => {
     const wait = (ms) => new Promise(r => setTimeout(r, ms));
-    const files = ['docs/SURFACING.md', 'lib/kits/file-deck.js', 'pages/branch.html'];
+    const files = ['docs/CONVERSATION.md', 'lib/kits/file-deck.js', 'pages/branch.html'];
     const patch = '@@ -1,2 +1,3 @@\n a\n-b\n+c\n';
     window.GH.prototype.compare = async () => ({
       ahead_by: 3, behind_by: 0, total_commits: 3,

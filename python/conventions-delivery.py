@@ -10,7 +10,8 @@ This is the instrument that says how often it is taken.
 
 It reads what the session records already hold rather than adding a field:
 
-  import   docs/SURFACING.md appears in the record's startup_context, meaning a
+  import   docs/CONVERSATION.md (docs/SURFACING.md before 2026-10-23) appears
+           in the record's startup_context, meaning a
            resolved @-import put it in the session's context. Expected to fall
            to zero for web-tools sessions from 2026-09-12.
   invoke   no such import, and the session called the Skill tool on the
@@ -46,7 +47,9 @@ A directive that failed to resolve leaves no trace in a record at all.
 import argparse, collections, csv, glob, json, os, sys
 
 CONV = {'web-tools', 'default', 'portable:default', 'portable:web-tools'}
-SURFACING = 'docs/SURFACING.md'
+# The surfacing half's path; it was docs/SURFACING.md until 2026-10-23, and
+# records from before then carry that name.
+SURFACING = ('docs/CONVERSATION.md', 'docs/SURFACING.md')
 
 
 def skill_of(call):
@@ -75,13 +78,13 @@ def hub_facts(rec):
             checkout = True
             if e.get('sha256'):
                 shas.add(e['sha256'][:12])
-        elif SURFACING in path:
+        elif any(name in path for name in SURFACING):
             surfacing = True
     return checkout, surfacing, ' '.join(sorted(shas))
 
 
 def classify(rec):
-    imported = any(SURFACING in (e.get('path') or '')
+    imported = any(name in (e.get('path') or '') for name in SURFACING
                    for e in (rec.get('startup_context') or [])
                    if isinstance(e, dict))
     if imported:

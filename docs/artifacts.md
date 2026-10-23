@@ -3,7 +3,7 @@
 How artifacts work and where they fit among the surfacing links. Distilled
 from the [official documentation](https://code.claude.com/docs/en/artifacts)
 plus a publish trial run 2026-07-11; the 📦 marker and its siblings are
-defined in [SURFACING.md](SURFACING.md).
+defined in [CONVERSATION.md](CONVERSATION.md).
 
 ## What an artifact is
 

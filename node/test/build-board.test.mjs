@@ -147,7 +147,7 @@ test('the owning branch and the dependency render in a stable order, and nothing
   assert.match(md, /- 🎫 \[The waiting task\]\(tasks\/waiter-000001\.md\) \(`claude\/some-branch`\) \(needs: The blocking task\)$/m);
 });
 
-// The 🎫 marker's form is `🎫 [title](url)` (SURFACING.md): the title is the
+// The 🎫 marker's form is `🎫 [title](url)` (CONVERSATION.md): the title is the
 // link, so the board reads as a table of contents and one tap reaches the task
 // that holds the why and the progress log. This was the one place in the estate
 // emitting a bare 🎫, which also left the app's board pane resolving relative
