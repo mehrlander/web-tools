@@ -262,6 +262,7 @@ node/render/scenarios/stage-markdown-raw.mjs,"the html pill menu's payoff: the c
 node/render/scenarios/stage-paste-flavors.mjs,,node/render/scenarios,44,driver,,no,no,no
 node/render/scenarios/stage-reader-subject.mjs,"the stage reader announcing which staged file is on screen, so the FAB drawer names the file being read rather than the app shell hosting it",node/render/scenarios,102,driver,,no,no,no
 node/render/scenarios/stage-rename-local.mjs,,node/render/scenarios,23,driver,,no,no,no
+node/render/scenarios/stage-sheet-reader.mjs,,node/render/scenarios,62,driver,,no,no,no
 node/render/scenarios/stage-sniffed-name.mjs,,node/render/scenarios,25,driver,,no,no,no
 node/render/scenarios/stage-stitch.mjs,"the stage composer's stitch key: a caret in a sentence gap turns the full-stop cell into the cell that takes one back, the same swap the annotator's card makes off the same kit verb",node/render/scenarios,52,driver,,no,no,no
 node/render/scenarios/stage-transform-chip.mjs,"stages three transform-shaped items, opens one in the workbench, and asserts the table actually drew",node/render/scenarios,54,driver,,no,no,yes

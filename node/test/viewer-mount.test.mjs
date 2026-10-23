@@ -206,6 +206,88 @@ test('mounting stayed quiet apart from the failure it was told to report', () =>
   assert.deepEqual(noise, []);
 });
 
+// ── selection and the inspector band ─────────────────────────────────────────
+//
+// mountSheetSelect over a real drawSheet table: a tap selects a cell, a row
+// number a row, a column letter a column, shift extends, a merge selects as
+// one cell, and the copy text is tab-separated as the cells are shown. Driven
+// with click() rather than pixels, since what is under test is the reading of
+// the table and not where a finger lands; the pixels are the stage-sheet-reader
+// scenario's.
+
+test('a tap selects and the band reads the cell; rows, columns and ranges read as ranges', () => {
+  const kit = window.xlsxKit;
+  const was = { sheetLayout: kit.sheetLayout, colLetter: kit.colLetter, formulaText: kit.formulaText, cellFormat: kit.cellFormat };
+  const cell = (col, text, o = {}) => ({ col, text, numeric: false, style: null, raw: null,
+    colSpan: 1, rowSpan: 1, spillLeft: 0, spillRight: 0, ...o });
+  const layout = {
+    cols: [0, 1, 2].map(index => ({ index, width: 64 })),
+    rows: [
+      { row: 1, height: 20, cells: [cell(0, 'Title', { colSpan: 3 })] },
+      { row: 2, height: 20, cells: [cell(0, 'Qty'), cell(1, '2', { numeric: true }), cell(2, '4', { numeric: true })] },
+      { row: 3, height: 20, cells: [cell(0, 'a\tb'), cell(1, '3', { numeric: true }), cell(2, '6', { numeric: true,
+        note: { kind: 'comment', comment: { author: 'Ann', text: 'checked' } } })] },
+    ],
+    maxCol: 2, freeze: null, truncated: null, empty: false,
+  };
+  const sheet = { merges: [{ r1: 1, c1: 0, r2: 1, c2: 2 }],
+    rows: [{ row: 1, cells: { 0: 'Title' } }, { row: 2, cells: { 0: 'Qty', 1: '2', 2: '4' } },
+           { row: 3, cells: { 0: 'a\tb', 1: '3', 2: '6' }, formulas: { 2: 'B3*2' } }] };
+  Object.assign(kit, {
+    sheetLayout: () => layout,
+    colLetter: (n) => String.fromCharCode(65 + n),
+    formulaText: (s, row, col) => typeof row?.formulas?.[col] === 'string' ? '=' + row.formulas[col] : '',
+    cellFormat: () => null,
+  });
+  try {
+    const root = doc.createElement('div'), pane = doc.createElement('div');
+    root.append(pane); doc.body.append(root);
+    const drawn = R.drawSheet(sheet, {}, 'k');
+    pane.append(drawn);
+    const sel = R.mountSheetSelect(root, pane, () => ({ s: sheet, xl: {}, layout: drawn.__layout }));
+    const band = root.querySelector('[data-sheet="inspect"]');
+    const text = (k) => band.querySelector(`[data-f="${k}"]`);
+    const shown = (k) => !text(k).hidden;
+    const selected = () => Array.from(pane.querySelectorAll('td[data-sel]'), td => td.getAttribute('data-c'));
+    const td = (a) => pane.querySelector(`td[data-c="${a}"]`);
+    const click = (el, o = {}) => el.dispatchEvent(new window.MouseEvent('click', { bubbles: true, ...o }));
+
+    assert.equal(band.hidden, true, 'nothing selected, nothing read');
+    click(td('C3'));
+    assert.deepEqual(selected(), ['C3']);
+    assert.ok(td('C3').hasAttribute('data-cur'), 'the tapped cell is the active one');
+    assert.equal(band.hidden, false);
+    assert.equal(text('at').textContent, 'C3');
+    assert.equal(text('formula').textContent, '=B3*2');
+    assert.ok(shown('Shown') && text('Shown').lastElementChild.textContent === '6');
+    assert.ok(shown('Comment') && text('Comment').lastElementChild.textContent === 'Ann: checked');
+    assert.equal(drawn.querySelectorAll('th[data-sel]').length, 2, 'its column letter and row number are lit');
+
+    click(td('B2'), { shiftKey: true });
+    assert.deepEqual(selected().sort(), ['B2', 'B3', 'C2', 'C3']);
+    assert.equal(text('value').textContent, '2 rows × 2 columns');
+    assert.equal(text('Sum').lastElementChild.textContent, '15');
+    assert.ok(!shown('Comment') && !shown('formula'), 'a range clears what only a cell says');
+    assert.equal(sel.tsv(), '2\t4\n3\t6');
+
+    click(td('A1'));
+    assert.equal(text('at').textContent, 'A1:C1', 'a merge reads as one cell, named by its range');
+    assert.equal(text('Merged').lastElementChild.textContent, 'A1:C1');
+
+    click(drawn.querySelectorAll('tbody th')[2]);
+    assert.deepEqual(selected(), ['A3', 'B3', 'C3'], 'a row number selects the row');
+    assert.equal(sel.tsv(), '"a\tb"\t3\t6', 'a cell holding a tab is quoted, as Excel quotes it');
+
+    click(drawn.querySelectorAll('thead th')[2]);
+    assert.deepEqual(selected().sort(), ['A1', 'A2', 'A3', 'B2', 'B3', 'C2', 'C3'],
+      'a column letter selects the column, widened to every column the merge it cuts through covers');
+
+    sel.reset();
+    assert.equal(band.hidden, true, 'a redraw clears the selection');
+    root.remove();
+  } finally { Object.assign(kit, was); }
+});
+
 // ── links on the page render ─────────────────────────────────────────────────
 
 test('drawSheet draws an external link as an anchor and an internal one for locate', () => {

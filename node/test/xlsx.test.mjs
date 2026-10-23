@@ -121,6 +121,17 @@ test('kit surface', () => {
   }
 });
 
+test('formulaText: stored text, a shared follower under its master, and an entered cell', () => {
+  const sheet = { sharedFormulas: { 0: 'B2*2' } };
+  const row = { formulas: { 0: 'SUM(A1:A3)', 1: true, 2: true }, shared: { 1: '0' } };
+  assert.equal(xlsxKit.formulaText(sheet, row, 0), '=SUM(A1:A3)');
+  assert.equal(xlsxKit.formulaText(sheet, row, 1), '=[fill 0] B2*2',
+    'a follower stores no text, so it reads as its master, marked as filled');
+  assert.equal(xlsxKit.formulaText(sheet, row, 2), '=', 'computed with no stored text and no master');
+  assert.equal(xlsxKit.formulaText(sheet, row, 3), '', 'an entered cell has no formula');
+  assert.equal(xlsxKit.formulaText(sheet, undefined, 0), '');
+});
+
 test('colLetter: zero-based index to A1-style letters', () => {
   assert.equal(xlsxKit.colLetter(0), 'A');
   assert.equal(xlsxKit.colLetter(2), 'C');
