@@ -44,7 +44,7 @@ the triage first is how this becomes an XL.
 
 ## Related
 
-- `docs/SURFACING.md`: Next steps / open threads template this hardens into task-list items
+- `docs/CONVERSATION.md`: Next steps / open threads template this hardens into task-list items
 - `lib/kits/guide-render.js`: parsing precedent for PR-body fold
 - `lib/kits/repo-activity-cache.js`: crawl-in-shell / kit-fold split to mirror (guide-index.js was retired)
 - `lib/alpineComponents/estate.js`: estate Lists surface where a threads list would sit

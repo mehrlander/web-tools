@@ -25,7 +25,7 @@ For a short rundown, give each item only its heading, link line and 👉 line wi
 
 Items whose 👉 the owner pastes go under `## For you`, ordered quick calls, then calls that need reading, then wrap-ups. Items whose 👉 the rundown session sends go under `## For me to send`. After the items, one line names the sessions running now and one counts the idle sessions with nothing pending. Leave out the session writing the rundown.
 
-Cite each pull request in the form SURFACING.md gives, in prose too. Times are Pacific: the weekday within seven days, the date beyond.
+Cite each pull request in the form CONVERSATION.md gives, in prose too. Times are Pacific: the weekday within seven days, the date beyond.
 
 **Kinds:**
 

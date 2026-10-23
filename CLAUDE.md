@@ -1,6 +1,6 @@
 ## Where the rest of the system lives
 
-[docs/SURFACING.md](docs/SURFACING.md) and [docs/QUALIFIED-WRITING.md](docs/QUALIFIED-WRITING.md) are the whole cross-repo contract: how a session's work reaches a reader, and how the prose carrying it is written. Everything below is web-tools-specific.
+[docs/CONVERSATION.md](docs/CONVERSATION.md) and [docs/QUALIFIED-WRITING.md](docs/QUALIFIED-WRITING.md) are the whole cross-repo contract: how a session's work reaches a reader, and how the prose carrying it is written. Everything below is web-tools-specific.
 
 **Delivery is the plugin, here as everywhere.** This file `@`-imported both documents until 2026-09-12 and no longer imports either. At startup, resume and compaction, the `portable` plugin's `invoke-default` hook adds one instruction to the session's context, to invoke `/portable:default`, which loads both, unless a checkout's CLAUDE.md already imports them. That now covers nearly every session, including one with this repo checked out. The import was not part of the plugin, so it reached this repo alone, which made the hub the one place that never ran the delivery path everyone else depends on and therefore the one place that could not notice that path failing. Two channels for one contract was also a second source for a statement that has an owner. If the conventions are missing from a session here, either the hook did not add its instruction or the session did not act on it, and that is worth knowing rather than papering over. Three one-line defaults: this sandbox is one venue among several ([docs/venues.md](docs/venues.md)); before adding to a doc, ask whether the app derives it, the suite enforces it, or another document owns it, and link instead; be wary of improvements addressing hypothetical problems. What travels to other repos is indexed in [`docs/portable.csv`](docs/portable.csv); the distribution channel is the plugin marketplace ([docs/MARKETPLACE.md](docs/MARKETPLACE.md)).
 
@@ -26,7 +26,7 @@ Before a merge, if any `pages/*.html` changed this session (`git diff main...HEA
 
 ## Guide-PR support: platform auto-create is on
 
-The Claude Code web settings for this account enable "Create pull requests automatically" with "Create as draft" (turned on 2026-07-10), so a session started after that gets its draft PR on first push; a session predating the toggle, or one working in an added repo, opens the draft itself via the GitHub MCP (the toggle was probed not to fire retroactively into an in-flight session). Body sync is manual and follows the guide pointer in [docs/SURFACING.md](docs/SURFACING.md); no hook or CI tracks it. `BRANCH-GUIDE.md` files are historical (retired by PR #205); delete any stray one on sight.
+The Claude Code web settings for this account enable "Create pull requests automatically" with "Create as draft" (turned on 2026-07-10), so a session started after that gets its draft PR on first push; a session predating the toggle, or one working in an added repo, opens the draft itself via the GitHub MCP (the toggle was probed not to fire retroactively into an in-flight session). Body sync is manual and follows the guide pointer in [docs/CONVERSATION.md](docs/CONVERSATION.md); no hook or CI tracks it. `BRANCH-GUIDE.md` files are historical (retired by PR #205); delete any stray one on sight.
 
 ## The pre-build & the build-on-commit hook
 

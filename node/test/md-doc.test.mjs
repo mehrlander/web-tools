@@ -441,8 +441,8 @@ test('a node outside any declared render locates nothing', () => {
 // ── Enhance ─────────────────────────────────────────────────────────────────
 
 test('repository hrefs resolve from the current file without escaping the root', () => {
-  assert.deepEqual(mdDoc.repoPath('docs/guides/START.md', '../SURFACING.md#branch-anchor'),
-    { path: 'docs/SURFACING.md', hash: '#branch-anchor' },
+  assert.deepEqual(mdDoc.repoPath('docs/guides/START.md', '../CONVERSATION.md#branch-anchor'),
+    { path: 'docs/CONVERSATION.md', hash: '#branch-anchor' },
     'a sibling-tree link keeps its authored fragment');
   assert.deepEqual(mdDoc.repoPath('docs/guides/START.md', '/lib/kits/md-doc.js'),
     { path: 'lib/kits/md-doc.js', hash: '' },
@@ -530,7 +530,7 @@ test('binary repository links keep a usable href without becoming text-deck door
 test('authored file links and only unique whole-code filenames become repository doors', () => {
   const box = window.document.createElement('div');
   box.innerHTML = marked.parse([
-    '[Surfacing](../SURFACING.md#branch-anchor)',
+    '[Surfacing](../CONVERSATION.md#branch-anchor)',
     '',
     '`ONLY.md` `README.md` `missing.md` and `see ONLY.md`.',
     '',
@@ -538,11 +538,11 @@ test('authored file links and only unique whole-code filenames become repository
     'ONLY.md',
     '```',
     '',
-    '[Elsewhere](https://example.test/docs/SURFACING.md)',
+    '[Elsewhere](https://example.test/docs/CONVERSATION.md)',
   ].join('\n'));
   const paths = new Set([
     'docs/guides/START.md',
-    'docs/SURFACING.md',
+    'docs/CONVERSATION.md',
     'docs/unique/ONLY.md',
     'README.md',
     'docs/a/README.md',
@@ -559,9 +559,9 @@ test('authored file links and only unique whole-code filenames become repository
   assert.deepEqual(counts, { authored: 1, inferred: 1 });
   const authored = box.querySelector('a[data-repo-link="authored"]');
   assert.equal(authored.textContent, 'Surfacing', 'authored link text is preserved');
-  assert.equal(authored.dataset.repoPath, 'docs/SURFACING.md');
+  assert.equal(authored.dataset.repoPath, 'docs/CONVERSATION.md');
   assert.equal(authored.dataset.repoHash, '#branch-anchor');
-  assert.equal(authored.getAttribute('href'), '/repo/docs/SURFACING.md#branch-anchor');
+  assert.equal(authored.getAttribute('href'), '/repo/docs/CONVERSATION.md#branch-anchor');
 
   const inferred = box.querySelector('a[data-repo-link="inferred"]');
   assert.equal(inferred.dataset.repoPath, 'docs/unique/ONLY.md');
@@ -581,7 +581,7 @@ test('authored file links and only unique whole-code filenames become repository
   authored.dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true }));
   inferred.dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true }));
   assert.deepEqual(opened.map(t => [t.path, t.hash, t.source]), [
-    ['docs/SURFACING.md', '#branch-anchor', 'authored'],
+    ['docs/CONVERSATION.md', '#branch-anchor', 'authored'],
     ['docs/unique/ONLY.md', '', 'inferred'],
   ]);
 });
