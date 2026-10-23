@@ -41,7 +41,9 @@ test('every program names itself, an icon and a folder whose README.md is its ch
     if (typeof e?.name !== 'string' || !/^[a-z0-9-]+$/.test(e.name)) gaps.push(`${id} needs a lowercase name`);
     else if (names.has(e.name)) gaps.push(`${id} is declared twice`);
     else names.add(e.name);
-    if (typeof e?.icon !== 'string' || !e.icon.startsWith('ph-')) gaps.push(`${id} needs a ph- icon`);
+    // A ph- glyph, or an SVG file in the program's repository, as a project's icon may be.
+    const icon = typeof e?.icon === 'string' ? e.icon : '';
+    if (!icon.startsWith('ph-') && !(icon.endsWith('.svg') && existsSync(path.join(root, icon)))) gaps.push(`${id} needs a ph- icon or an SVG file`);
     if (typeof e?.path !== 'string' || !existsSync(path.join(root, e.path, 'README.md'))) gaps.push(`${id}'s charter ${e?.path}/README.md is missing`);
   }
   assert.deepEqual(gaps, []);

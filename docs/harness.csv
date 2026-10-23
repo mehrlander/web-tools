@@ -6,6 +6,7 @@ path,role,layer,lines,invocation,callers,emits,named,tested
 .githooks/pre-commit,the ordered derived-artifact refresher: updates pending sources during commits and can force every hook-owned leg for explicit repair,.githooks,383,git:pre-commit,,no,yes,yes
 .githooks/pre-merge-commit,runs the ordered refresher over a clean combined merge and pauses for gated continuation when the index tree changes,.githooks,26,git:pre-merge-commit,,no,yes,yes
 .github/workflows/activity-cache.yml,"refreshes the estate activity cache (state/activity.json in web-tools-private) when a merge lands, so the Activity view is current before anyone opens the app rather than after; runs the app's own crawl through node/activity-crawl.mjs, and does nothing until the ESTATE_CRAWL_TOKEN secret exists; the hourly pass also folds the session records into state/sessions.json and the phone's state/session-menu.json through node/sessions-crawl.mjs",.github/workflows,155,ci:push+repository_dispatch+workflow_dispatch,,no,no,yes
+.github/workflows/desktop.yml,"builds the Windows desktop and companion and checks activity, Git isolation, phone interactions and read-only access",.github/workflows,33,ci:pull_request+push,,no,no,no
 .github/workflows/errand-browser.yml,"Runs workflow-run errands: browser checks against live GitHub in WebKit and Chromium on a hosted runner, dispatched by a session, results read from the job log.",.github/workflows,92,ci:workflow_dispatch+pull_request,,no,yes,yes
 .github/workflows/page-measures.yml,measures the pages a pull request changes in headless Chromium and reports; a finding never fails it,.github/workflows,85,ci:pull_request+workflow_dispatch,,no,yes,no
 .github/workflows/refresh-derived.yml,runs the commit hook's repair pass on main after each push and commits what moved,.github/workflows,81,ci:push+workflow_dispatch,,yes,yes,no
@@ -46,7 +47,7 @@ node/doc-index-seed.mjs,"seed the document index (state/docs.json in web-tools-p
 node/git-change.mjs,,node,292,argv,,yes,no,yes
 node/gold-set.mjs,,node,199,npm:gold-set,,yes,yes,no
 node/powershell-units.mjs,Emit PowerShell statement inventories or before/after review units without executing the input,node,50,argv,,yes,no,no
-node/render/cdn.mjs,the CDN URL to local-file resolver both renderers share,node/render,797,imported,node/build/repo-pages-shots.mjs;node/render/netlog.mjs;node/render/screenshot.mjs;node/test/,no,yes,yes
+node/render/cdn.mjs,the CDN URL to local-file resolver both renderers share,node/render,816,imported,node/build/repo-pages-shots.mjs;node/render/netlog.mjs;node/render/screenshot.mjs;node/test/,no,yes,yes
 node/render/measure.mjs,,node/render,178,imported,node/render/page-measures.mjs;node/render/screenshot.mjs,no,no,yes
 node/render/netlog.mjs,"the Chromium request log: what a load costs by host and endpoint, writes blocked; the boot-cost measure",node/render,157,argv,,no,yes,no
 node/render/page-measures.mjs,,node/render,116,npm:page-measures,.github/workflows/page-measures.yml,yes,no,yes
@@ -337,6 +338,7 @@ skills/hooks/reading-column.py,the guard's classifier: decides whether a Tailwin
 skills/hooks/refresh-plugin.sh,"moves the portable plugin's pin to the tip of web-tools main at session start, and uninstalls the retired daisy-alpine and google-style-clarity plugins where a snapshot still has them",skills/hooks,70,hook:SessionStart,,no,yes,yes
 skills/hooks/reply-check.py,"sends the final reply back once at Stop: a closing ⚖️ call with no Recommended: clause, or a page committed this turn with no render link",skills/hooks,150,hook:Stop,,no,no,yes
 skills/hooks/send-later-guard.sh,refuses a scheduled self check-in: denies send_later under any server spelling and points at create_trigger for a reminder actually asked for,skills/hooks,56,hook:PreToolUse,,no,no,yes
+skills/hooks/session-activity.py,,skills/hooks,217,hook:SessionEnd,,no,yes,yes
 skills/hooks/session-dispatch.sh,the plugin's dispatcher: runs every checkout's own session-*.sh whatever the project root is,skills/hooks,251,hook:SessionStart,,no,yes,yes
 skills/hooks/session-record.sh,writes a session receipt at Stop where a checkout declares a sessions store; inert elsewhere,skills/hooks,103,hook:Stop,,no,yes,yes
 skills/hooks/wake-quiet-hint.sh,"after ReadNotifications, says whether the PR events read call for a reply; a failing check or unknown kind counts as work",skills/hooks,73,hook:PostToolUse,,no,no,yes

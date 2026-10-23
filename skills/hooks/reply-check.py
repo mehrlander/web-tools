@@ -24,7 +24,7 @@ THE TWO CHECKS.
   Render link: a commit made since the owner's last message, on the current
   branch of the working directory's checkout or of a checkout one level below
   it, added or changed an .html file, and neither the reply nor any reply
-  written after the newest such commit has one of 🥏, ⭐, 📦,
+  written after the newest such commit has one of 🥏, 🔷, 📦,
   "No render link".
 
   Why after the newest commit, not this reply alone. A PR event or a finished
@@ -48,7 +48,7 @@ from pathlib import Path
 
 RECOMMENDED = re.compile(r'\bRecommended:', re.I)
 CALLS = ('⚖', '🆚')
-RENDER = ('🥏', '⭐', '📦', 'No render link')
+RENDER = ('🥏', '🔷', '📦', 'No render link')
 
 
 def turn_start(transcript):
