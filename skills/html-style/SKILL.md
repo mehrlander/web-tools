@@ -74,10 +74,9 @@ appendix, a toss render, a stage preview) takes rule 4's shape without the fixed
 root: `min-h-dvh` and sticky chrome over document scrolling, or, for a list over
 a strip (rule 12), an `h-dvh` root whose panes scroll inside it. In an iframe on
 iOS, a fixed child measures against the outer viewport and loses its right-hand
-column, which headless Chromium does not show. Inside the frame, `lg:` and every
-other width query measure the frame, not the window, so the wide layout has to
-hold at the frame's width: 992px in the Budget DRS app on a 1280px window. With
-sticky chrome, save and
+column, which headless Chromium does not show. Width queries measure the frame,
+not the window: the Budget DRS app's pane is 992px wide on a 1280px window, so a
+page there gets its `md:` layout, not its `lg:` one. With sticky chrome, save and
 restore document scroll when a detail view replaces a long list, and drop
 `viewport-fit=cover` unless the page is edge-to-edge.
 
