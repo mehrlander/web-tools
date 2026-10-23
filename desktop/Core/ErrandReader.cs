@@ -19,11 +19,12 @@ public sealed class ErrandReader(string repository)
     private string? cloudSha;
     private string? cloudContentNotice;
     private CloudSnapshot cloud = new([], null, null);
+    private Dictionary<string, string> turns = [];
 
     private Task<string> Git(params string[] args) => Commands.Text("git", args, repository);
 
     public double SyncMilliseconds => remote.Milliseconds;
-    public CloudSnapshot Cloud => cloud;
+    public CloudSnapshot Cloud => CloudTurns.Merge(cloud, turns, DateTimeOffset.UtcNow);
 
     public async Task Synchronize(bool force = false)
     {
@@ -94,7 +95,7 @@ public sealed class ErrandReader(string repository)
         try {
             var current = await Git("rev-parse", "--verify", "refs/remotes/origin/background^{commit}");
             if (current != revision || cachedSeen != seenThrough) {
-                var tree = await Git("ls-tree", "-r", current, "--", "errands/requests", "errands/claims", "errands/results", "errands/output");
+                var tree = await Git("ls-tree", "-r", current, "--", "errands/requests", "errands/claims", "errands/results", "errands/output", "sessions/activity");
                 var files = new Dictionary<string, string>(StringComparer.Ordinal);
                 var outputs = new HashSet<string>(StringComparer.Ordinal);
                 foreach (var line in tree.Split('\n', StringSplitOptions.RemoveEmptyEntries)) {
@@ -113,7 +114,13 @@ public sealed class ErrandReader(string repository)
                     .Distinct().ToList();
                 var wanted = selected.SelectMany(p => new[] { p, p.Replace("/requests/", "/claims/", StringComparison.Ordinal), p.Replace("/requests/", "/results/", StringComparison.Ordinal) })
                     .Where(files.ContainsKey).ToDictionary(p => p, p => files[p]);
+                foreach (var path in files.Keys.Where(p => p.StartsWith("sessions/activity/", StringComparison.Ordinal)
+                    && p.Split('/') is { Length: 4 } parts && DateOnly.TryParseExact(parts[2], "yyyy-MM-dd", out var day)
+                    && day >= DateOnly.FromDateTime(now.UtcDateTime.AddDays(-1)) && day <= DateOnly.FromDateTime(now.UtcDateTime))
+                    .OrderDescending(StringComparer.Ordinal).Take(256)) wanted[path] = files[path];
                 var blobs = await ReadBlobs(wanted.Values.Distinct().ToList());
+                turns = wanted.Where(p => p.Key.StartsWith("sessions/activity/", StringComparison.Ordinal) && blobs.ContainsKey(p.Value))
+                    .ToDictionary(p => p.Key, p => Encoding.UTF8.GetString(blobs[p.Value]));
                 var invalid = new HashSet<string>();
                 JsonElement Parse(string path) {
                     if (!wanted.TryGetValue(path, out var sha) || !blobs.TryGetValue(sha, out var bytes)) return default;

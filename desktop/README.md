@@ -23,6 +23,9 @@ stays visible above either tab.
 - Published Claude checkpoints with topic titles, recent exchange summaries,
   measured activity and links to the resulting pull requests.
 - The Gemini worker's last reported task and report time, alongside its queue.
+  Tapping the phone card opens the latest twelve normalized reports and related errands.
+- Claude cloud turns from explicit prompt, tool and response hooks, with bounded
+  prompt and response text in the selected detail view.
 - Local places, service processes and the three newest Downloads files.
 
 An open application establishes no task state. A claim establishes ownership,
@@ -120,7 +123,29 @@ The phone projection omits request notes, filesystem fields, downloads and nativ
 actions. Polling uses conditional GET every two seconds in the foreground, pauses
 when hidden, refreshes immediately on return, and backs off to fifteen seconds on
 failure. The phone distinguishes local observation, Git synchronization and captured
-cloud updates. Published Claude records never imply live cloud execution.
+cloud updates. Published Claude records never imply live cloud execution. The portable plugin's
+`session-activity.py` hook separately reports `UserPromptSubmit`, throttled
+`PreToolUse`, `Stop`, `StopFailure` and `SessionEnd` events for cloud sessions.
+The hook discovers the same declared sessions store as the recorder and does
+nothing for local or subagent sessions. The hook stages a bounded signal outside
+the checkout, then publishes through a detached process using a temporary Git
+index. New hooks must be loaded in a cloud session before that session can report.
+A tool event can report an ongoing turn when the store is attached after its
+first prompt; the hook recovers prompt text from a bounded transcript tail when
+available. An old record alone never establishes working status.
+
+Signals live on the private `background` branch at
+`sessions/activity/YYYY-MM-DD/<short>.json`, with schema version 1, provider,
+location, session URL, state, start/update times, title, last tool name, prompt
+(up to 2,000 characters) and response (up to 4,000 characters). Raw tool inputs,
+paths and API error bodies are omitted. A later timestamp wins if concurrent
+publishers race; failed pushes retry three times without interrupting Claude.
+The existing recorder remains the owner of full transcripts. The reader takes
+up to 256 signal files from the last two UTC dates and expires signals after a day.
+These signals synchronize with errands every five seconds. An unfinished turn
+with no report for three minutes becomes quiet; a response or failure ends its
+working state. Published topic checkpoints keep their separate provenance and time.
+Tool heartbeats do not create new unseen-work badges.
 
 Remove `Web Tools Companion.lnk` from the current user's Startup folder to disable
 sign-in startup. Stop `WebTools.Companion` to stop collection. Disable the private

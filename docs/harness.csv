@@ -337,6 +337,7 @@ skills/hooks/reading-column.py,the guard's classifier: decides whether a Tailwin
 skills/hooks/refresh-plugin.sh,"moves the portable plugin's pin to the tip of web-tools main at session start, and uninstalls the retired daisy-alpine and google-style-clarity plugins where a snapshot still has them",skills/hooks,70,hook:SessionStart,,no,yes,yes
 skills/hooks/reply-check.py,"sends the final reply back once at Stop: a closing ⚖️ call with no Recommended: clause, or a page committed this turn with no render link",skills/hooks,150,hook:Stop,,no,no,yes
 skills/hooks/send-later-guard.sh,refuses a scheduled self check-in: denies send_later under any server spelling and points at create_trigger for a reminder actually asked for,skills/hooks,56,hook:PreToolUse,,no,no,yes
+skills/hooks/session-activity.py,,skills/hooks,217,hook:SessionEnd,,no,yes,yes
 skills/hooks/session-dispatch.sh,the plugin's dispatcher: runs every checkout's own session-*.sh whatever the project root is,skills/hooks,251,hook:SessionStart,,no,yes,yes
 skills/hooks/session-record.sh,writes a session receipt at Stop where a checkout declares a sessions store; inert elsewhere,skills/hooks,103,hook:Stop,,no,yes,yes
 skills/hooks/wake-quiet-hint.sh,"after ReadNotifications, says whether the PR events read call for a reply; a failing check or unknown kind counts as work",skills/hooks,73,hook:PostToolUse,,no,no,yes

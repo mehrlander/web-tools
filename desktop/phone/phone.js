@@ -17,12 +17,12 @@
   const observedTime = at => `<time data-at="${escape(at)}">${escape(stamp(at))}</time>`;
   const stamp = at => at ? new Date(at).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) : 'Not yet';
   const safeUrl = value => { try { const url = new URL(value); return url.origin === 'https://mehrlander.github.io' && url.pathname.startsWith('/web-tools/') ? url.href : ''; } catch { return ''; } };
-  let data, tab = 'now', assistant = '', timer, etag = '', failures = 0, pending = false, connected = false, accessDenied = false, lastDetail = '', savedScroll = 0, review;
+  let data, tab = 'now', assistant = '', timer, etag = '', failures = 0, pending = false, connected = false, accessDenied = false, savedScroll = 0, review;
   let unseen = [];
   const replies = new Map();
   const filtered = () => (data?.items || []).filter(i => !assistant || keyFor(i.provider) === assistant);
   const active = i => ['working','quiet','claimed','reply'].includes(i.state);
-  const finished = i => ['complete','failed','interrupted'].includes(i.state) || i.state === 'idle' && /codex/i.test(i.provider) || i.kind === 'cloud' && /recorded: (done|merged|closed|clean exit)/i.test(i.detail);
+  const finished = i => ['complete','failed','interrupted'].includes(i.state) || i.state === 'idle' && /codex/i.test(i.provider) || i.kind === 'cloud' && i.turn && i.state === 'idle' || i.kind === 'cloud' && /recorded: (done|merged|closed|clean exit)/i.test(i.detail);
   const selected = () => { try { return new URLSearchParams(location.hash.slice(1)).get('item') || ''; } catch { return ''; } };
 
   function connection() {
@@ -34,7 +34,7 @@
   }
 
   function row(item, position) {
-    return `<button data-pick="${escape(item.key)}" ${item.changeId ? `data-change="${escape(item.changeId)}"` : ''} class="block min-h-16 w-full border-b border-stone-100 bg-white px-4 py-4 text-left active:bg-stone-50"><span class="flex items-start gap-3">${position ? `<span class="w-5 shrink-0 pt-1 text-sm text-amber-700">${position}.</span>` : `<span class="pt-0.5 ${colours[keyFor(item.provider)]}">${mark(item.provider)}</span>`}<span class="min-w-0 flex-1"><span class="line-clamp-2 text-pretty text-base font-medium leading-6">${escape(item.title)}</span><span class="mt-2 flex flex-wrap items-center gap-2 text-xs text-stone-500">${badge(item.state)}<span>${escape(item.provider)} · ${escape(item.location)}</span>${observedTime(item.at)}</span>${(item.checkpoint?.headline || item.detail) ? `<span class="mt-2 line-clamp-2 text-pretty text-base leading-6 text-stone-600">${escape((item.changeId ? item.detail.replace(/ · Recorded.*$/, '') : item.checkpoint?.headline || item.detail).slice(0,200))}</span>` : ''}</span><span class="pt-1 text-stone-400" aria-hidden="true">›</span></span></button>`;
+    return `<button data-pick="${escape(item.key)}" ${item.changeId ? `data-change="${escape(item.changeId)}"` : ''} class="block min-h-16 w-full border-b border-stone-100 bg-white px-4 py-4 text-left active:bg-stone-50"><span class="flex items-start gap-3">${position ? `<span class="w-5 shrink-0 pt-1 text-sm text-amber-700">${position}.</span>` : `<span class="pt-0.5 ${colours[keyFor(item.provider)]}">${mark(item.provider)}</span>`}<span class="min-w-0 flex-1"><span class="line-clamp-2 text-pretty text-base font-medium leading-6">${escape(item.title)}</span><span class="mt-2 flex flex-wrap items-center gap-2 text-xs text-stone-500">${badge(item.state)}<span>${escape(item.provider)} · ${escape(item.location)}</span>${observedTime(item.at)}</span>${((item.turn ? item.detail : item.checkpoint?.headline || item.detail)) ? `<span class="mt-2 line-clamp-2 text-pretty text-base leading-6 text-stone-600">${escape((item.changeId ? item.detail.replace(/ · Recorded.*$/, '') : (item.turn ? item.detail : item.checkpoint?.headline || item.detail)).slice(0,200))}</span>` : ''}</span><span class="pt-1 text-stone-400" aria-hidden="true">›</span></span></button>`;
   }
 
   function group(title, items, empty = '', numbered = false) {
@@ -55,7 +55,7 @@
     const report = data.sources.workerActivity;
     if (!report || assistant && assistant !== 'gemini' || recentOnly && (data.sources.workerState !== 'detected' || Date.now() - Date.parse(report.at) > 900000)) return '';
     const job = report.itemId && data.items.find(i => i.kind === 'errand' && i.id === report.itemId);
-    return `<section class="mx-4 mt-4 rounded-lg border-l-4 border-blue-400 bg-blue-50 px-3 py-3"><p class="text-xs font-medium text-blue-900">Gemini worker · Last reported task</p><p class="mt-1 text-base leading-6">${escape(report.headline)}</p>${job ? `<p class="mt-1 text-sm text-stone-600">${escape(job.title)}</p>` : ''}<p class="mt-1 text-xs text-stone-500">Reported ${observedTime(report.at)}</p></section>`;
+    return `<button data-pick="worker:gemini" aria-label="Gemini worker details" class="mx-4 mt-4 block w-[calc(100%-2rem)] rounded-lg border-l-4 border-blue-400 bg-blue-50 px-3 py-3 text-left active:bg-blue-100"><span class="float-right text-xl text-blue-600" aria-hidden="true">›</span><p class="text-xs font-medium text-blue-900">Gemini worker · Last reported task</p><p class="mt-1 text-base leading-6">${escape(report.headline)}</p>${job ? `<p class="mt-1 text-sm text-stone-600">${escape(job.title)}</p>` : ''}<p class="mt-1 text-xs text-stone-500">Reported ${observedTime(report.at)}</p></button>`;
   }
 
   function render() {
@@ -100,16 +100,29 @@
   function detail() {
     const key = selected(), item = data?.items.find(i => i.key === key) || data?.changes?.filter(c => c.key === key).map(c => ({...c,kind:'change'}))[0];
     el('overview').hidden = !!key; el('detail').hidden = !key;
-    if (!key) { lastDetail = ''; return; }
+    if (!key) return;
+    if (key === 'worker:gemini') { workerDetail(); return; }
     if (!item) {
       html('detail','<header class="sticky top-0 border-b border-stone-200 bg-white p-3"><button data-back class="min-h-11 px-2 text-base">← Now</button></header><div id="detail-connection"></div><p class="p-4 text-base">Activity is no longer in the current snapshot.</p>');
       return;
     }
     const url = safeUrl(item.url), reply = replies.get(item.id);
     const events = data.events.filter(e => e.sessionId === item.id && e.provider === item.provider).slice(0,10);
-    const value = `<header class="sticky top-0 z-10 flex items-center justify-between border-b border-stone-200 bg-white/95 px-3 py-2 backdrop-blur"><button data-back class="min-h-11 px-2 text-base text-stone-700">← Now</button><span class="text-xs text-stone-500">${escape(item.location)}</span></header><div id="detail-connection"></div><article class="px-4 pt-5 pb-10"><div class="flex items-center gap-2 ${colours[keyFor(item.provider)]}">${mark(item.provider)}<span class="text-sm">${escape(item.provider)}</span></div><h2 class="mt-3 break-words text-balance text-xl font-semibold leading-7">${escape(item.title)}</h2><div class="mt-3 flex flex-wrap items-center gap-3">${badge(item.state)}<span class="text-xs text-stone-500">${escape(stamp(item.at))}</span></div>${item.detail ? `<p class="mt-5 whitespace-pre-wrap break-words text-pretty text-base leading-7">${escape(item.detail)}</p>` : ''}${window.NowView.checkpoint(item.checkpoint,{stamp,link:l => `<a class="inline-flex min-h-11 items-center rounded border border-stone-200 px-3 text-sm text-emerald-900" href="${escape(window.NowView.safeLink(l.url))}" rel="noreferrer">${escape(l.label)} ↗</a>`})}${url ? `<a class="mt-5 inline-flex min-h-11 items-center rounded border border-stone-200 px-3 text-base text-emerald-900" href="${escape(url)}">Open in Web Tools ↗</a>` : ''}${item.kind === 'errand' && ['reply','complete','failed'].includes(item.state) ? `<div id="reply" class="mt-6 whitespace-pre-wrap break-words text-base leading-7">${reply === undefined ? 'Reading result…' : escape(reply)}</div>` : ''}${events.length ? `<h3 class="mt-6 text-sm font-semibold text-stone-500">Observed activity</h3><ol class="mt-3 space-y-4">${events.map(e => `<li><p class="text-xs text-stone-500">${escape(stamp(e.at))}</p><p class="mt-1 text-base leading-7">${escape(e.detail || labels[e.state])}</p></li>`).join('')}</ol>` : ''}</article>`;
-    if (value !== lastDetail) { lastDetail = value; html('detail', value); }
+    const value = `<header class="sticky top-0 z-10 flex items-center justify-between border-b border-stone-200 bg-white/95 px-3 py-2 backdrop-blur"><button data-back class="min-h-11 px-2 text-base text-stone-700">← Now</button><span class="text-xs text-stone-500">${escape(item.location)}</span></header><div id="detail-connection"></div><article class="px-4 pt-5 pb-10"><div class="flex items-center gap-2 ${colours[keyFor(item.provider)]}">${mark(item.provider)}<span class="text-sm">${escape(item.provider)}</span></div><h2 class="mt-3 break-words text-balance text-xl font-semibold leading-7">${escape(item.title)}</h2><div class="mt-3 flex flex-wrap items-center gap-3">${badge(item.state)}<span class="text-xs text-stone-500">${escape(stamp(item.at))}</span></div>${item.detail ? `<p class="mt-5 whitespace-pre-wrap break-words text-pretty text-base leading-7">${escape(item.detail)}</p>` : ''}${window.NowView.turn(item.turn,{stamp})}${window.NowView.checkpoint(item.checkpoint,{stamp,link:l => `<a class="inline-flex min-h-11 items-center rounded border border-stone-200 px-3 text-sm text-emerald-900" href="${escape(window.NowView.safeLink(l.url))}" rel="noreferrer">${escape(l.label)} ↗</a>`})}${url ? `<a class="mt-5 inline-flex min-h-11 items-center rounded border border-stone-200 px-3 text-base text-emerald-900" href="${escape(url)}">Open in Web Tools ↗</a>` : ''}${item.kind === 'errand' && ['reply','complete','failed'].includes(item.state) ? `<div id="reply" class="mt-6 whitespace-pre-wrap break-words text-base leading-7">${reply === undefined ? 'Reading result…' : escape(reply)}</div>` : ''}${events.length ? `<h3 class="mt-6 text-sm font-semibold text-stone-500">Observed activity</h3><ol class="mt-3 space-y-4">${events.map(e => `<li><p class="text-xs text-stone-500">${escape(stamp(e.at))}</p><p class="mt-1 text-base leading-7">${escape(e.detail || labels[e.state])}</p></li>`).join('')}</ol>` : ''}</article>`;
+    html('detail', value);
     if (item.kind === 'errand' && ['reply','complete','failed'].includes(item.state) && reply === undefined) loadReply(item);
+  }
+
+  function workerDetail() {
+    if (!data) return;
+    const source = data.sources;
+    const reports = source.workerReports?.length ? source.workerReports : source.workerActivity ? [source.workerActivity] : [];
+    const jobs = data.items.filter(i => i.kind === 'errand' && ['queued','claimed','reply'].includes(i.state));
+    const queued = jobs.filter(i => i.state === 'queued').sort((a,b) => Date.parse(a.createdAt) - Date.parse(b.createdAt));
+    const accepted = jobs.filter(i => i.state !== 'queued');
+    const status = source.workerState === 'detected' ? 'Process detected' : source.workerState === 'absent' ? 'Process not detected' : 'Process status unavailable';
+    const reportRows = (reports.length ? `<ol class="px-4">${reports.map(r => { const job = r.itemId && data.items.find(i => i.kind === 'errand' && i.id === r.itemId); return `<li class="border-b border-stone-100 py-3"><p class="text-xs text-stone-500">${escape(stamp(r.at))}</p><p class="mt-1 text-base leading-6">${escape(r.headline)}</p>${job ? `<button data-pick="${escape(job.key)}" class="min-h-11 text-left text-sm text-blue-800">${escape(job.title)} ›</button>` : ''}</li>`; }).join('')}</ol>` : '<p class="px-4 py-3 text-stone-500">No reports available</p>');
+    html('detail', `<header class="sticky top-0 z-10 flex items-center justify-between border-b border-stone-200 bg-white/95 px-3 py-2 backdrop-blur"><button data-back class="min-h-11 px-2 text-base text-stone-700">← Now</button><span class="text-xs text-stone-500">Laptop</span></header><div id="detail-connection"></div><article class="pt-5 pb-10"><div class="px-4"><div class="flex items-center gap-2 text-blue-700">${mark('Gemini')}<h2 class="text-xl font-semibold">Gemini worker</h2></div><p class="mt-3 text-sm text-stone-600">${status}${source.recordsConnected ? '' : ' · Saved queue'}</p><div class="mt-4 flex gap-3 text-sm"><span class="rounded bg-amber-50 px-3 py-2">${source.queueAvailable ? queued.length + ' waiting' : 'Queue unavailable'}</span><span class="rounded bg-blue-50 px-3 py-2">${accepted.length} accepted</span></div></div><section><h3 class="px-4 pt-5 pb-2 text-sm font-semibold text-stone-600">Recent reports</h3>${reportRows}</section>${group('Waiting', queued, source.queueAvailable ? 'Queue clear' : 'Queue unavailable', true)}${accepted.length ? group('Accepted by worker',accepted) : ''}<p class="px-4 pt-5 text-xs leading-5 text-stone-500">Reports show the worker’s last recorded tasks. A detected process or accepted errand does not confirm that a task is still running.</p></article>`);
   }
 
   const replyRequests = new Set();

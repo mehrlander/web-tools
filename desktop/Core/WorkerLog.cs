@@ -6,9 +6,11 @@ namespace WebTools.Desktop;
 public static class WorkerLog
 {
     // Only known events become product copy. Raw commands, paths and errors stay local.
-    public static WorkerActivity? Parse(string tail)
+    public static WorkerActivity? Parse(string tail) => ParseReports(tail).FirstOrDefault();
+
+    public static List<WorkerActivity> ParseReports(string tail)
     {
-        WorkerActivity? latest = null;
+        var reports = new List<WorkerActivity>();
         foreach (var line in tail.Split('\n')) {
             if (line.Length < 21 || !DateTimeOffset.TryParseExact(line[..19], "yyyy-MM-dd HH:mm:ss",
                 CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var at)) continue;
@@ -19,7 +21,11 @@ public static class WorkerLog
             var published = Regex.Match(message, @"^\[\+\] Pushed [a-f0-9]+: (\d+) companion\(s\)");
             var errand = Regex.Match(message, @"^\[[+*\-]\] Errand ([a-zA-Z0-9.-]+)(?::| )");
             var scheduled = Regex.Match(message, @"^\[.*?\] Scheduled ([a-z0-9-]+):");
-            if (batch.Success) activity = new("topics", "Summarising " + batch.Groups[1].Value + " sessions", at);
+            if (batch.Success) {
+                var count = batch.Groups[1].Value;
+                activity = count == "0" ? new("idle", "No session summaries ready", at)
+                    : new("topics", "Summarising " + count + (count == "1" ? " session" : " sessions"), at);
+            }
             else if (published.Success) activity = new("published", "Published " + published.Groups[1].Value + " session summaries", at);
             else if (message.Contains("Update sessions cache", StringComparison.Ordinal) && message.StartsWith("[+] Pushed"))
                 activity = new("published", "Updated the session list", at);
@@ -32,18 +38,27 @@ public static class WorkerLog
             } else if (message == "[*] Nothing to do.") activity = new("idle", "Waiting for work", at);
             else if (message.StartsWith("[-]")) activity = new("error", "Worker reported a problem", at);
             else if (scheduled.Success) activity = new("scheduled", "Background job: " + scheduled.Groups[1].Value.Replace('-', ' '), at);
-            if (activity is not null) latest = activity;
+            if (activity is not null) reports.Add(activity);
         }
-        return latest;
+        var recent = new List<WorkerActivity>();
+        foreach (var report in reports.Distinct().OrderByDescending(r => r.At)) {
+            // Repeated idle polls are one pause, so actual work remains visible.
+            if (report.Kind == "idle" && recent.LastOrDefault()?.Kind == "idle") continue;
+            recent.Add(report);
+            if (recent.Count == 12) break;
+        }
+        return recent;
     }
 
-    public static WorkerActivity? Read(string path)
+    public static WorkerActivity? Read(string path) => ReadReports(path).FirstOrDefault();
+
+    public static List<WorkerActivity> ReadReports(string path)
     {
         try {
             using var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
             if (file.Length > 65536) file.Seek(-65536, SeekOrigin.End);
             using var text = new StreamReader(file);
-            return Parse(text.ReadToEnd());
-        } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return null; }
+            return ParseReports(text.ReadToEnd());
+        } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return []; }
     }
 }

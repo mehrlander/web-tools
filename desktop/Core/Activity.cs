@@ -15,12 +15,14 @@ public record ActivitySnapshot(DateTimeOffset ObservedAt, DateTimeOffset? Synced
 
 public record ApplicationSignal(string Name, string State, string Detail, int Processes);
 public record WorkerActivity(string Kind, string Headline, DateTimeOffset At, string? ItemId = null);
-public record DaemonSignal(string State, string Detail, DateTimeOffset? LastLogAt, WorkerActivity? Activity = null);
+public record DaemonSignal(string State, string Detail, DateTimeOffset? LastLogAt, WorkerActivity? Activity = null,
+    List<WorkerActivity>? Reports = null);
 public record Place(string Id, string Name, string Detail);
 public record RecentFile(string Id, string Name, DateTimeOffset ModifiedAt, long Bytes);
 public record LocalSession(string Id, string Provider, string Title, string State,
     DateTimeOffset UpdatedAt, string Workspace, string Detail = "", string Location = "Laptop",
-    SessionCheckpoint? Checkpoint = null);
+    SessionCheckpoint? Checkpoint = null, SessionTurn? Turn = null);
+public record SessionTurn(string Prompt, string Response, DateTimeOffset StartedAt, DateTimeOffset UpdatedAt, string LastTool);
 public record WorkLink(string Label, string Url);
 public record CheckpointTurn(int Turn, string Headline, string Summary, int Files, int Pushes, int Agents);
 public record SessionCheckpoint(string Summary, string Headline, DateTimeOffset At,

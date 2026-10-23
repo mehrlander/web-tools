@@ -32,9 +32,16 @@ public sealed class ChangeJournal(string path)
         foreach (var session in sessions) {
             var cloud = session.Location == "Cloud";
             if (!cloud && session.State is not ("working" or "idle" or "interrupted")) continue;
+            var key = cloud ? "cloud:" + session.Id : "session:" + session.Provider + ":" + session.Id;
+            if (cloud && session.Turn is { } turn && session.State != "recorded") {
+                var state = session.State == "quiet" ? "working" : session.State;
+                Add(key, session.Provider, session.Title, state, state == "working" ? turn.StartedAt : turn.UpdatedAt,
+                    state == "working" ? "Started cloud turn" : state == "idle" ? "Response recorded" : "Turn interrupted",
+                    session.Location, NavigationPolicy.AppUrl + "?view=sessions&session=" + Uri.EscapeDataString(session.Id), versioned: true);
+                continue;
+            }
             var detail = cloud ? session.Checkpoint?.Headline ?? session.Detail
                 : session.State == "working" ? "Started work" : session.State == "idle" ? "Turn finished" : "Turn interrupted";
-            var key = cloud ? "cloud:" + session.Id : "session:" + session.Provider + ":" + session.Id;
             Add(key, session.Provider, session.Title, session.State, session.Checkpoint?.At ?? session.UpdatedAt,
                 detail + (cloud && session.Checkpoint is not null ? " · " + session.Detail : ""), session.Location,
                 cloud ? NavigationPolicy.AppUrl + "?view=sessions&session=" + Uri.EscapeDataString(session.Id) : null);

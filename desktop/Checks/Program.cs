@@ -99,9 +99,22 @@ try {
     var damaged = await reader.Read(seen, force: true);
     Check(damaged.Errands.Count == 1 && damaged.Notice?.Contains("unreadable") == true,
         "A malformed result is reported and never turns completed work into a queued job.");
+    var turnAt = DateTimeOffset.UtcNow;
+    var turnPath = $"sessions/activity/{turnAt:yyyy-MM-dd}/aabbccdd.json";
+    Directory.CreateDirectory(Path.GetDirectoryName(Path.Combine(seed, turnPath))!);
+    await File.WriteAllTextAsync(Path.Combine(seed, turnPath), JsonSerializer.Serialize(new {
+        schemaVersion = 1, id = "aabbccdd", provider = "Claude", location = "Cloud",
+        agent = "https://claude.ai/code/session_fixture", updatedAt = turnAt, startedAt = turnAt,
+        state = "working", prompt = "New cloud work", lastTool = "Read"
+    }));
+    await CommitFixture();
+    var signaled = await reader.Read(seen, force: true);
+    Check(reader.Cloud.Items.Any(s => s.Id == "aabbccdd" && s.State == "working")
+        && statusBefore == await Commands.Text("git", ["status", "--porcelain"], checkout),
+        "Fresh background turn signals arrive without waiting for the thirty-second main cache or touching worker edits.");
     await Git(checkout, "remote", "set-url", "origin", Path.Combine(fixture, "missing-remote"));
     var offline = await reader.Read(seen, force: true);
-    Check(!offline.Connected && offline.Errands.Count == 1 && offline.Revision == damaged.Revision
+    Check(!offline.Connected && offline.Errands.Count == 1 && offline.Revision == signaled.Revision
         && offline.Notice?.Contains("last available") == true, "A failed fetch preserves the previous activity with an offline notice.");
     var missing = await new ErrandReader(Path.Combine(fixture, "missing-checkout")).Read(seen);
     Check(!missing.Connected && missing.Errands.Count == 0 && missing.Notice?.Contains("not found") == true,
@@ -116,4 +129,5 @@ try {
 SessionChecks.Run(Check);
 PhoneChecks.Run(Check);
 CheckpointChecks.Run(Check);
+CloudTurnChecks.Run(Check);
 Console.WriteLine($"{passed} checks passed.");

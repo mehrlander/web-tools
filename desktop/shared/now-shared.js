@@ -40,5 +40,9 @@
       .filter(([n]) => Number.isSafeInteger(n) && n > 0).map(([n,label]) => `<span class="rounded bg-violet-50 px-2 py-1 text-xs text-violet-900">${n} ${label}</span>`).join('') : '';
     return `<section class="mt-5 border-t border-stone-200 pt-4"><h3 class="text-sm font-semibold text-violet-900">Published checkpoint</h3><p class="mt-1 text-xs text-stone-500">${escape(stamp(cp.at))}</p>${cp.summary ? `<p class="mt-3 text-pretty text-base leading-7">${escape(cp.summary)}</p>` : ''}${facts ? `<p class="mt-3 text-xs text-stone-500">Latest exchange</p><div class="mt-1 flex flex-wrap gap-2" aria-label="Recorded activity in the latest exchange">${facts}</div>` : ''}${cp.links?.length ? `<div class="mt-3 flex flex-wrap gap-2">${cp.links.map((l,i) => safeLink(l.url) ? link(l,i) : '').join('')}</div>` : ''}${turns.length ? `<ol class="mt-5 space-y-4">${turns.map(t => `<li><h4 class="text-sm font-medium text-stone-700">${escape(t.headline || `Exchange ${t.turn + 1}`)}</h4><p class="mt-1 text-pretty text-base leading-7 text-stone-600">${escape(t.summary)}</p></li>`).join('')}</ol>` : ''}</section>`;
   }
-  window.NowView = {ReviewStore,safeLink,checkpoint};
+  function turn(value, {stamp}) {
+    if (!value) return '';
+    return `<section class="mt-6 border-t border-stone-200 pt-4"><h3 class="text-sm font-semibold text-stone-600">Latest turn</h3><p class="mt-1 text-xs text-stone-500">First observed ${escape(stamp(value.startedAt))}</p>${value.lastTool ? `<p class="mt-2 text-sm text-stone-500">Last tool: ${escape(value.lastTool)}</p>` : ''}${value.prompt ? `<h4 class="mt-4 text-xs font-medium text-stone-500">Prompt preview</h4><p class="mt-1 whitespace-pre-wrap break-words text-base leading-7">${escape(value.prompt)}</p>` : ''}${value.response ? `<h4 class="mt-4 text-xs font-medium text-stone-500">Response preview</h4><p class="mt-1 whitespace-pre-wrap break-words text-base leading-7">${escape(value.response)}</p>` : ''}</section>`;
+  }
+  window.NowView = {ReviewStore,safeLink,checkpoint,turn};
 })();
