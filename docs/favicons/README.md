@@ -14,13 +14,21 @@ The root [`apple-touch-icon.png`](../../apple-touch-icon.png) is the same mark r
 
 This is the library-wide mark. `lib/gh-boot.js` inlines a copy and injects it as the default favicon on any loader page that declares no icon of its own, and the [pages index](../../pages/index.html) points its `<link rel="icon">` and header logo here too.
 
+### Repository marks
+
+Files: [`repos/`](repos/). Drawn 2026-10-22: one mark per estate repository except web-tools, whose mark is the hex nut. The app draws each wherever it lists repositories (the sidebar, the repo menu, Map › Reach and Map › Projects), reading the file named for the repository from the hub at its selected ref, main outside a preview (`repoMarkSrc` in [`app/index.html`](../../app/index.html)).
+
+### Map marks
+
+Files: [`map/`](map/). Drawn 2026-10-22: one mark for each of the Map's seven tab groups, each a miniature of the view it opens, and one for each outpost but Work PowerShell, which wears the wps project's mark. The Map draws them on its tab strip, its Overview headings, and its outposts in Reach and in Outposts.
+
 ## Drawn marks
 
-A project's own icon is an SVG drawn to the rules of the budget-drs app icon (`mehrlander/home:projects/budget-drs/app/favicon.svg`), as are the repository and Map marks in review below:
+A project's or a program's own icon is an SVG drawn to the rules of the budget-drs app icon (`mehrlander/home:projects/budget-drs/app/favicon.svg`), as are an agent's icon and the repository and Map marks above:
 
 - `viewBox="1.5 1.75 29 29"`, solid fills, no strokes.
 - Every gap at least 2.5 units, about 1.4 CSS px at 16.
-- A project's mark takes a colour no other project uses. Every other mark is filled with `currentColor`, which an `<img>` draws black, so a page paints it as a CSS mask in its text colour.
+- A project's or a program's mark takes a colour no other project or program uses; an agent's icon is coloured too, and may repeat a project's colour. Every other mark is filled with `currentColor`, which an `<img>` draws black, so a page paints it as a CSS mask in its text colour.
 - The hub's repositories share a hexagon, and the public-record stores stand on the detached base bar (`<rect x="2" y="24.4" width="28" height="4.6"/>`).
 - A `<desc>` says what the mark depicts.
 
@@ -31,14 +39,6 @@ A project's own icon is an SVG drawn to the rules of the budget-drs app icon (`m
 <img src="web-tools-icon-3d.png" width="96" height="96" alt="blue hex nut rendered at a slight three-dimensional angle on graphite gray">
 
 File: [`web-tools-icon-3d.png`](web-tools-icon-3d.png). A 180 × 180 candidate with a lighter graphite tile, the blue mark reduced to roughly two-thirds of the canvas, and shallow extrusion. The [iPhone size check](../../pages/scratch/web-tools-icon-preview.html) compares the production-size raster with the active tile at 60, 40, and 29 CSS pixels. This is a design candidate, not the shipped Home Screen icon.
-
-### Estate repository marks
-
-Files: [`estate/`](estate/). A first pass, drawn 2026-10-22: one mark per estate repository except web-tools, whose mark is the hex nut. No page shows them: the repository `icon` field takes only a Phosphor class, and `loadReach` in [`lib/alpineComponents/map.js`](../../lib/alpineComponents/map.js) drops any other value.
-
-### Map marks
-
-Files: [`map/`](map/). A first pass, drawn 2026-10-22: one mark for each of the Map's seven tab groups, each a miniature of the view it opens, and one for each outpost but Work PowerShell, which wears the wps project's mark. No page shows them yet.
 
 ### Per-page emoji marks
 

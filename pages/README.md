@@ -3,7 +3,7 @@
 
 # pages/
 
-⭐ **[Open the live index →](https://mehrlander.github.io/web-tools/pages/)** — a screenshot card per page, each with a live-preview and source toggle.
+🔷 **[Open the live index →](https://mehrlander.github.io/web-tools/pages/)** — a screenshot card per page, each with a live-preview and source toggle.
 
 Catalog of the pages under `pages/`, plus the kit demos from `lib/kits/demos/`
 and the skill demos at `skills/<name>/demo.html`.
