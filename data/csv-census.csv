@@ -37,7 +37,7 @@ docs/docs.csv,128,7,32374,"[""path"",""subject"",""status"",""reach"",""words"",
 docs/harness.csv,341,9,69488,"[""path"",""role"",""layer"",""lines"",""invocation"",""callers"",""emits"",""named"",""tested""]"
 docs/hook-events.csv,33,3,2018,"[""event"",""phase"",""summary""]"
 docs/hook-legs.csv,20,8,3194,"[""order"",""leg"",""gloss"",""watches"",""runs"",""stages"",""mode"",""in_repair""]"
-docs/icon-families.csv,15,7,2126,"[""family"",""group"",""label"",""source"",""icon_column"",""name_column"",""gloss""]"
+docs/icon-families.csv,15,7,2148,"[""family"",""group"",""label"",""source"",""icon_column"",""name_column"",""gloss""]"
 docs/intents.csv,11,6,1868,"[""intent"",""label"",""path"",""caveat"",""caveat_at"",""doc""]"
 docs/kits.csv,119,8,15687,"[""path"",""namespace"",""gloss"",""lines"",""boot"",""demo"",""users"",""tested""]"
 docs/manifest-fields.csv,116,6,25859,"[""key"",""type"",""consumer"",""status"",""required"",""summary""]"

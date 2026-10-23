@@ -1,7 +1,7 @@
 family,group,label,source,icon_column,name_column,gloss
 hub,drawn,Web Tools,lib/favicon.svg,,,"The hex nut: the Web Tools app's favicon, and the hub's mark wherever the app stands for itself."
-repositories,drawn,Repositories,docs/favicons/estate/,,,"One mark per estate repository, painted in the text colour wherever the app names that repository."
-map,drawn,Map,docs/favicons/map/,,,"The Map's tab groups and its outposts, painted in the text colour on the tab strip and the Contents headings."
+repositories,drawn,Repositories,docs/favicons/estate/,,,"One mark per estate repository, painted in the text colour beside its name in the sidebar and the Map."
+map,drawn,Map,docs/favicons/map/,,,"The Map's tab groups and its outposts, painted in the text colour on the tab strip, the Contents headings and the outpost rows."
 projects,drawn,Projects,.web-tools.json,,,"A project's own icon, an SVG in its repository or a Phosphor glyph, read from each repository's projects declarations."
 programs,drawn,Programs,.web-tools.json,,,"A program's own icon, read from each repository's programs declarations."
 agents,drawn,Agents,docs/agents.csv,icon,id,"One icon per agent definition the portable plugin ships; an inline reader has none."
