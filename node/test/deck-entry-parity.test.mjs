@@ -9,7 +9,7 @@
 //
 // So each of those keeps a literal, and this is what stops the literals
 // drifting. It is the same shape the surfacing manifest uses against
-// SURFACING.md: a copy that cannot be eliminated is held two-way by test
+// CONVERSATION.md: a copy that cannot be eliminated is held two-way by test
 // instead. If someone restyles the door in the kit, this fails and names every
 // file that has to follow.
 //

@@ -16,10 +16,9 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Separate authored from derived data across the registries](tasks/registry-authored-derived-split-v3qm2x.md) · M
 - 🎫 [Move the Repos grid into Map › Reach](tasks/repos-grid-into-map-reach-1eheiq.md) · L
 - 🎫 [Retire `shell`, and name the parts instead of the collection](tasks/retire-shell-name-the-parts-r152bt.md) · M
-- 🎫 [Retire docs/surfacing-course.md into the documents that already cover its parts](tasks/retire-surfacing-course-5szz7c.md) · M
 - 🎫 [Give the stage a way to carry part of a file](tasks/stage-partial-file-selection-k8mtou.md) · M
 - 🎫 [Convert the title attributes outside the app to title-tips](tasks/stranded-titles-panel-or-drop-o6hqom.md) · M
-- 🎫 [Hold SURFACING.md to surfacing.csv by content, not by lead-in](tasks/surfacing-gate-content-okwnp6.md) · S
+- 🎫 [Hold CONVERSATION.md to conversation.csv by content, not by lead-in](tasks/surfacing-gate-content-okwnp6.md) · S
 - 🎫 [Split the app reference by view and form, and make the registries one model](tasks/views-forms-and-key-primitive-k5ngay.md) · L
 
 ## In progress
@@ -84,6 +83,7 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Render files over 1 MB in toss-render and the shell viewers](tasks/render-large-files-toss-render-xm9ex7.md)
 - 🎫 [Repo-designated inbox and outbox in .web-tools.json](tasks/repo-inbox-outbox-manifest-0g6c8s.md) (`claude/tracker-status-cjogjn`)
 - 🎫 [Repo-level GitHub links in show-repo's shield dialog](tasks/repo-level-github-links-shield-9aufgx.md)
+- 🎫 [Retire docs/surfacing-course.md into the documents that already cover its parts](tasks/retire-surfacing-course-5szz7c.md) (`claude/confident-brown-xg6m93`)
 - 🎫 [Resolve a branch's session from the commit trailer, not the open PR body](tasks/session-link-from-commit-trailer-7a407c.md) (`claude/active-work-branches-sd289p`)
 - 🎫 [Session-start nudge for repos that never opted in](tasks/session-start-nudge-unconfigured-z0g4zn.md) (`claude/zealous-fermat-s12v9r`)
 - 🎫 [Carry real session titles from the Dispatch export, without depending on it](tasks/session-titles-from-export-4vgu4x.md) (`claude/session-titles-join-7wq3vz`)

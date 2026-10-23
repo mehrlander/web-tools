@@ -122,7 +122,7 @@ export default async (page) => {
         children: [
           { name: 'dist', kind: 'folder', children: [{ name: 'web-tools.js', kind: 'file' }] },
           { name: 'docs', kind: 'folder', children: [
-            { name: 'APP.md', kind: 'file' }, { name: 'SURFACING.md', kind: 'file' }] },
+            { name: 'APP.md', kind: 'file' }, { name: 'CONVERSATION.md', kind: 'file' }] },
           { name: 'lib', kind: 'folder', children: [{ name: 'gh-api.js', kind: 'file' }] },
           { name: 'pages', kind: 'folder', children: [
             { name: 'branch.html', kind: 'file' }, { name: 'toss-render.html', kind: 'file' }] },

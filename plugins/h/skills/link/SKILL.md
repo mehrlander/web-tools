@@ -15,4 +15,4 @@ Link every file, pull request, session and page a reply mentions.
 
 **Covers:** replies, documents and PR bodies.
 
-**Detail:** [SURFACING.md](https://github.com/mehrlander/web-tools/blob/main/docs/SURFACING.md), "Reference is a link"; in web-tools, [showing.md](https://github.com/mehrlander/web-tools/blob/main/docs/showing.md) and `npm run showing`.
+**Detail:** [CONVERSATION.md](https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md), "Reference is a link"; in web-tools, [showing.md](https://github.com/mehrlander/web-tools/blob/main/docs/showing.md) and `npm run showing`.

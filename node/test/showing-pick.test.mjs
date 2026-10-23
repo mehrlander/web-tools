@@ -234,7 +234,7 @@ test('a walkthrough whose steps name pages opens as the tab, each step at its ad
   const walk = steps([
     { at: 'text:Set', say: 'here' },
     { at: 'app/?view=map&tab=showing!text:Toss, data route', say: 'a tab' },
-    { at: 'docs/SURFACING.md!text:Have a look:', say: 'a document' },
+    { at: 'docs/CONVERSATION.md!text:Have a look:', say: 'a document' },
     { at: 'pages/toss-render.html?top&gh=o/r@main:x.html!row', say: 'written whole' },
   ]);
   const d = run('app/index.html', ['--query', 'view=map&tab=set', '--at', walk]);
@@ -243,7 +243,7 @@ test('a walkthrough whose steps name pages opens as the tab, each step at its ad
   assert.deepEqual(read(d.links[0].url).map(s => s.at), [
     'text:Set',
     `pages/toss-render.html?top&gh=mehrlander/web-tools@${Z12}:app/index.html&view=map&tab=showing!text:Toss, data route`,
-    `pages/data-view.html?src=mehrlander/web-tools@${Z12}:docs/SURFACING.md!text:Have a look:`,
+    `pages/data-view.html?src=mehrlander/web-tools@${Z12}:docs/CONVERSATION.md!text:Have a look:`,
     'pages/toss-render.html?top&gh=o/r@main:x.html!row',
   ]);
   // A document has no top mode that keeps its fragment, so a walkthrough

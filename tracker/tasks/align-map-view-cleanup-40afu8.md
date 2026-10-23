@@ -113,7 +113,7 @@ well before minting new tabs.
 - `lib/alpineComponents/map.js`: Map implementation; names, URL keys, warning copy, tab strip
 - `docs/environment/capabilities.md`: still names a Map Injection tab (Context is the successor)
 - `pages/delivery.html`, `docs/delivery.json`: historical delivery surface behind the Injection to Context rename
-- `docs/SURFACING.md`: prose parent for the Surfacing tab family (PORTABLE.md is gone; portable travelers live in data)
+- `docs/CONVERSATION.md`: prose parent for the Surfacing tab family (PORTABLE.md is gone; portable travelers live in data)
 - task `stranded-titles-panel-or-drop-o6hqom`: queue after this; `map.js` is the largest remaining stranded-title carrier
 - task `registry-authored-derived-split-v3qm2x`: owns the warning words (its Layer 3, the `map.js` glossaries); item 5 here waits on it, not the other way round
 - `docs/docs.csv`, `docs/harness.csv`: carry two of the six warning words as column values, which is why item 5 is not a `map.js` edit

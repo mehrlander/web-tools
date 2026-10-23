@@ -1,6 +1,7 @@
 #!/bin/bash
 # PostToolUse hook on Edit|Write: when the edited file is governed by a program
-# the repo declares (.web-tools.json "programs"[].governs), exit 2 so the line on
+# the repo declares (.web-tools.json "programs"[].governs, where an entry ending
+# in / covers everything under it), exit 2 so the line on
 # stderr reaches Claude: the file's program, its charter, and the skill that
 # reviews a change against them. Once per program per session, so a run of
 # edits to one standard hears it once. A governed file may also be
@@ -25,7 +26,10 @@ try:
         programs = json.load(fh).get("programs") or []
 except (OSError, ValueError, AttributeError):
     sys.exit(0)
-prog = next((p for p in programs if isinstance(p, dict) and rel in (p.get("governs") or [])), None)
+def covers(g, rel):
+    return rel == g or (g.endswith("/") and rel.startswith(g))
+prog = next((p for p in programs if isinstance(p, dict)
+             and any(isinstance(g, str) and covers(g, rel) for g in p.get("governs") or [])), None)
 if not prog or not prog.get("name"):
     sys.exit(0)
 session = str(data.get("session_id") or "nosession").replace(os.sep, "_")

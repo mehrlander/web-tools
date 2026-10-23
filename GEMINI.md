@@ -13,5 +13,5 @@ Follow the repository contract in [CLAUDE.md](CLAUDE.md) and [AGENTS.md](AGENTS.
   ```
   Co-Authored-By: Gemini <gemini@google.com>
   ```
-- Operational modes: Follow GitHub flow for features and docs, and Real-time mode (direct to `main`) for shared tracker/registry updates as defined in [docs/surfacing-course.md](docs/surfacing-course.md).
+- Operational modes: Follow GitHub flow for features and docs, and Real-time mode (direct to `main`) for shared tracker/registry updates as defined in [docs/CONSTELLATION.md](docs/CONSTELLATION.md#principle-1-commit-discipline).
 - Prose constraint: Never use em dashes in prose or documentation.

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Stop hook: sends a reply back, once, when its closing line presents a call
-(⚖️) without the recommendation docs/SURFACING.md gives that line, or when this
+(⚖️) without the recommendation docs/CONVERSATION.md gives that line, or when this
 turn's commits changed a page and the reply gives no render link. Both checks
 are code; no model is called.
 
@@ -9,7 +9,7 @@ against twelve peeves and wrote the send-back, and its limits were
 instructions Haiku followed some of the time, so sessions were sent back up to
 five times in one turn. #1008 replaced it with this script and kept one Haiku
 question, whether a reply that waits on the owner puts a decision to them.
-That question went once SURFACING.md gave a call its own closing marker with
+That question went once CONVERSATION.md gave a call its own closing marker with
 a fixed recommendation clause, which code can check.
 
 THE MARKERS. ⚖️ Choice needed presents a call and carries the clause. 🪧
@@ -30,7 +30,7 @@ THE TWO CHECKS.
   Why after the newest commit, not this reply alone. A PR event or a finished
   job wakes the session with an entry that is not the owner's, so the window
   stays open from the owner's last message, and the wake's reply is one line
-  by convention (SURFACING.md, "Close in one order"). Read alone, that line
+  by convention (CONVERSATION.md, "Close in one order"). Read alone, that line
   was sent back for a link the reply before it had already given (web-tools
   #1036, 2026-10-21). Read back to the newest page commit, a link already
   given counts, and a wake that commits to a page again still owes a new one.

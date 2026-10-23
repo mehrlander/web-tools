@@ -137,7 +137,7 @@ Four collisions this property inherits rather than creates.
   than the sense used here.
 - **`label`** is already a column in five registries, where it means a display
   name. Freeing it needs a consumer count first.
-- **`primitive`** already names the surfacing set in `docs/surfacing.csv`, so
+- **`primitive`** already names the surfacing set in `docs/conversation.csv`, so
   this one is qualified at every use, never bare.
 - **`row_grain`** in budget-drs answers tidy data's *observation*. Whether to
   rename it is a separate decision, and `GRAINS.md` is its definition owner.

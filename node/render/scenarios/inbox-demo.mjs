@@ -20,7 +20,7 @@ export default async (page) => {
     app.hasToken = () => true;
     const s = window.Alpine.store('browser');
     s.stage = [{ repo: 'mehrlander/web-tools', ref: '', path: 'docs/CONVENTIONS.md' },
-               { repo: 'mehrlander/web-tools', ref: '', path: 'docs/SURFACING.md' }];
+               { repo: 'mehrlander/web-tools', ref: '', path: 'docs/CONVERSATION.md' }];
     app.goStage();
   });
   await page.waitForTimeout(900);
