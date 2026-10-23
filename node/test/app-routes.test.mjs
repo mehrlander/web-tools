@@ -548,7 +548,8 @@ test('every doc a view or a type names exists, and every view or form doc is nam
     }
   }
   for (const dir of ['docs/views', 'docs/forms']) {
-    for (const f of readdirSync(path.join(repoRoot, dir)).filter(f => f.endsWith('.md'))) {
+    // A folder's README indexes the family rather than documenting one view or form.
+    for (const f of readdirSync(path.join(repoRoot, dir)).filter(f => f.endsWith('.md') && f !== 'README.md')) {
       assert.ok(named.has(`${dir}/${f}`), `${dir}/${f} is named by no app-routes or subjects row`);
     }
   }
