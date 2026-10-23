@@ -217,7 +217,7 @@ test('mounting stayed quiet apart from the failure it was told to report', () =>
 
 test('a tap selects and the band reads the cell; rows, columns and ranges read as ranges', () => {
   const kit = window.xlsxKit;
-  const was = { sheetLayout: kit.sheetLayout, colLetter: kit.colLetter, formulaText: kit.formulaText, cellFormat: kit.cellFormat };
+  const was = { sheetLayout: kit.sheetLayout, colLetter: kit.colLetter, formulaText: kit.formulaText, formulaFor: kit.formulaFor, cellFormat: kit.cellFormat };
   const cell = (col, text, o = {}) => ({ col, text, numeric: false, style: null, raw: null,
     colSpan: 1, rowSpan: 1, spillLeft: 0, spillRight: 0, ...o });
   const layout = {
@@ -234,6 +234,7 @@ test('a tap selects and the band reads the cell; rows, columns and ranges read a
     rows: [{ row: 1, cells: { 0: 'Title' } }, { row: 2, cells: { 0: 'Qty', 1: '2', 2: '4' } },
            { row: 3, cells: { 0: 'a\tb', 1: '3', 2: '6' }, formulas: { 2: 'B3*2' } }] };
   Object.assign(kit, {
+    formulaFor: (s, row, col) => typeof row?.formulas?.[col] === 'string' ? '=' + row.formulas[col] : '',
     sheetLayout: () => layout,
     colLetter: (n) => String.fromCharCode(65 + n),
     formulaText: (s, row, col) => typeof row?.formulas?.[col] === 'string' ? '=' + row.formulas[col] : '',
@@ -271,11 +272,13 @@ test('a tap selects and the band reads the cell; rows, columns and ranges read a
     assert.deepEqual({ ...sel.range() }, { sheet: 'Data', r1: 2, c1: 1, r2: 3, c2: 2, address: 'B2:C3', active: 'C3', kind: 'cell' });
     assert.equal(heard.at(-1).address, 'B2:C3', 'and every change is heard');
     assert.equal(text('formula').textContent, '=B3*2', 'the field holds the active cell, as Excel\'s does');
-    assert.equal(text('Size').lastElementChild.textContent, '2 × 2');
+    assert.equal(text('Size').lastElementChild.textContent, '2R × 2C');
     assert.equal(text('Count').lastElementChild.textContent, '4');
     assert.equal(text('Sum').lastElementChild.textContent, '15');
     assert.ok(!shown('Comment') && !shown('Shown'), 'a range clears what only a cell says');
     assert.equal(sel.tsv(), '2\t4\n3\t6');
+    assert.equal(sel.tsv(true), '2\t4\n3\t=B3*2', 'with formulas, a computing cell is written as its formula');
+    assert.equal(text('sum').textContent, '2R × 2C · Count 4 · Sum 15', 'the range figures ride the bar\'s one row');
 
     click(td('A1'));
     assert.equal(text('at').textContent, 'A1:C1', 'a merge reads as one cell, named by its range');

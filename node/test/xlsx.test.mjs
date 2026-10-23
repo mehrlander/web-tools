@@ -132,6 +132,28 @@ test('formulaText: stored text, a shared follower under its master, and an enter
   assert.equal(xlsxKit.formulaText(sheet, undefined, 0), '');
 });
 
+test('shiftRefs moves relative references the way a fill does', () => {
+  const k = xlsxKit;
+  assert.equal(k.shiftRefs('B2*2', 1, 0), 'B3*2');
+  assert.equal(k.shiftRefs('SUM($A$1:A3)+B$2', 2, 1), 'SUM($A$1:B5)+C$2', 'a $ part stays put');
+  assert.equal(k.shiftRefs('Ledger!F:F', 0, 1), 'Ledger!G:G', 'whole columns move');
+  assert.equal(k.shiftRefs('3:5', 2, 0), '5:7', 'whole rows move');
+  assert.equal(k.shiftRefs('LOG10(A1)&"B2"', 1, 1), 'LOG10(B2)&"B2"', 'a function name and quoted text do not');
+  assert.equal(k.shiftRefs('FY2024!A1', 1, 0), 'FY2024!A2', 'nor a sheet named like a cell');
+  assert.equal(k.shiftRefs('A1', -1, 0), '#REF!', 'off the sheet is #REF!');
+});
+
+test('formulaFor gives a shared follower its own formula', () => {
+  const sheet = { sharedFormulas: { 0: 'B2*2' }, rows: [
+    { row: 2, formulas: { 2: 'B2*2' }, shared: { 2: '0' } },
+    { row: 5, formulas: { 2: true }, shared: { 2: '0' } },
+    { row: 6, cells: { 2: '7' } },
+  ] };
+  assert.equal(xlsxKit.formulaFor(sheet, sheet.rows[0], 2), '=B2*2');
+  assert.equal(xlsxKit.formulaFor(sheet, sheet.rows[1], 2), '=B5*2', 'three rows down from its master');
+  assert.equal(xlsxKit.formulaFor(sheet, sheet.rows[2], 2), '', 'an entered cell has none');
+});
+
 test('colLetter: zero-based index to A1-style letters', () => {
   assert.equal(xlsxKit.colLetter(0), 'A');
   assert.equal(xlsxKit.colLetter(2), 'C');
