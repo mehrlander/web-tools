@@ -14,7 +14,7 @@
   const mark = (provider, cls = 'size-5 shrink-0') => window.assistantMark?.svg(keyFor(provider), {cls}) || '';
   const badge = state => `<span class="rounded px-2 py-0.5 text-xs ${tones[state] || 'bg-stone-100 text-stone-600'}">${escape(labels[state] || state)}</span>`;
   const age = at => { const seconds = Math.max(0, Math.round((Date.now() - new Date(at).getTime()) / 1000)); return seconds < 60 ? 'just now' : seconds < 3600 ? `${Math.floor(seconds / 60)}m ago` : seconds < 86400 ? `${Math.floor(seconds / 3600)}h ago` : new Date(at).toLocaleDateString(); };
-  const observedTime = at => `<time data-at="${escape(at)}">${escape(stamp(at))}</time>`;
+  const observedTime = at => `<time data-at="${escape(at)}" datetime="${escape(at)}" title="${escape(stamp(at))}">${escape(stamp(at))}</time>`;
   const stamp = at => at ? new Date(at).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) : 'Not yet';
   const safeUrl = value => { try { const url = new URL(value); return url.origin === 'https://mehrlander.github.io' && url.pathname.startsWith('/web-tools/') ? url.href : ''; } catch { return ''; } };
   let data, tab = 'now', assistant = '', timer, etag = '', failures = 0, pending = false, connected = false, accessDenied = false, savedScroll = 0, review;
@@ -41,7 +41,7 @@
   const fullIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="size-4" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5M3 3l6 6m12-6-6 6M3 21l6-6m12 6-6-6"/></svg>';
   function row(item, position, inline = true) {
     const key = escape(item.key), summary = statusText(item);
-    return `<article data-item="${key}" ${item.changeId ? `data-change="${escape(item.changeId)}"` : ''} class="min-w-0 border-b border-stone-100 bg-white"><button ${inline ? `data-inspect="${key}" aria-expanded="false" aria-controls="inline-${encodeURIComponent(item.key)}"` : `data-pick="${key}"`} class="block min-h-16 w-full px-4 py-4 text-left active:bg-stone-50"><span class="flex items-start gap-3">${position ? `<span class="w-5 shrink-0 pt-1 text-sm text-amber-700">${position}.</span>` : `<span class="pt-0.5 ${colours[keyFor(item.provider)]}">${mark(item.provider)}</span>`}<span class="min-w-0 flex-1"><span class="line-clamp-2 text-pretty text-base font-medium leading-6">${escape(item.title)}</span><span class="mt-2 flex flex-wrap items-center gap-2 text-xs text-stone-500">${badge(item.state)}<span>${escape(item.provider)} · ${escape(item.location)}</span>${observedTime(item.at)}</span>${summary ? `<span class="mt-2 line-clamp-2 text-pretty text-base leading-6 text-stone-600">${escape(summary.slice(0,200))}</span>` : ''}</span><span data-caret class="pt-1 text-stone-400">${inline ? caret : fullIcon}</span></span></button>${inline ? `<div id="inline-${encodeURIComponent(item.key)}" data-inline="${key}" hidden></div>` : ''}</article>`;
+    return `<article data-item="${key}" ${item.changeId ? `data-change="${escape(item.changeId)}"` : ''} class="min-w-0 border-b border-stone-100 bg-white"><div class="relative"><button ${inline ? `data-inspect="${key}" aria-expanded="false" aria-controls="inline-${encodeURIComponent(item.key)}"` : `data-pick="${key}"`} class="block min-h-16 w-full px-4 py-3 text-left active:bg-stone-50"><span class="flex items-start gap-2.5">${position ? `<span class="w-5 shrink-0 pt-1 text-sm text-amber-700">${position}.</span>` : `<span class="pt-0.5 ${colours[keyFor(item.provider)]}">${mark(item.provider)}</span>`}<span class="min-w-0 flex-1"><span class="flex items-start gap-1 ${inline ? 'pr-9' : ''}"><span class="line-clamp-2 min-w-0 flex-1 text-pretty text-base font-medium leading-6">${escape(item.title)}</span><span data-caret class="shrink-0 pt-0.5 text-stone-400">${inline ? caret : fullIcon}</span></span><span class="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-stone-500">${badge(item.state)}<span>${escape(item.provider)} · ${escape(item.location)}</span>${observedTime(item.at)}</span>${summary ? `<span class="mt-1.5 line-clamp-2 text-pretty text-base leading-6 text-stone-600">${escape(summary.slice(0,200))}</span>` : ''}</span></span></button>${inline ? `<button data-pick="${key}" aria-label="Open full view: ${escape(item.title)}" title="Full view" class="absolute right-1 top-1 flex size-11 items-center justify-center rounded text-emerald-900 active:bg-stone-100">${fullIcon}</button>` : ''}</div>${inline ? `<div id="inline-${encodeURIComponent(item.key)}" data-inline="${key}" hidden></div>` : ''}</article>`;
   }
 
   function group(title, items, empty = '', numbered = false, inline = true) {
@@ -69,7 +69,7 @@
     if (!data) { connection(); return; }
     rememberPanelScroll();
     const focus = el('content').contains(document.activeElement) ? document.activeElement : null;
-    const focusAction = focus && ['inspect','pick','closeInline'].find(key => focus.dataset[key]);
+    const focusAction = focus && ['inspect','pick'].find(key => focus.dataset[key]);
     const focusKey = focusAction && focus.dataset[focusAction];
     const visibleTop = el('overview').querySelector('header')?.getBoundingClientRect().bottom || 0;
     const anchor = selected() ? null : [...document.querySelectorAll('#content [data-item]')].find(n => n.getBoundingClientRect().bottom > visibleTop);
@@ -133,13 +133,13 @@
     document.querySelectorAll('#content [data-inline]').forEach(panel => {
       const key = panel.dataset.inline, open = expanded.has(key);
       panel.hidden = !open;
-      const trigger = panel.parentElement.querySelector('[data-inspect]');
+      const trigger = panel.closest('[data-item]').querySelector('[data-inspect]');
       trigger?.setAttribute('aria-expanded', String(open));
       trigger?.querySelector('[data-caret]')?.classList.toggle('rotate-180', open);
       if (!open) return;
       const item = findItem(key);
       if (!item) return;
-      const value = `<div class="border-t border-stone-100 bg-stone-50 px-4 pb-4"><div class="flex items-center justify-between gap-2"><span class="text-xs text-stone-500">${escape(stamp(item.at))}</span><div class="flex items-center gap-1"><button data-pick="${escape(key)}" aria-label="Open full view: ${escape(item.title)}" class="inline-flex min-h-11 items-center gap-1.5 px-2 text-sm text-emerald-900">${fullIcon}Full view</button><button data-close-inline="${escape(key)}" aria-label="Close details" class="flex size-11 items-center justify-center text-xl text-stone-500">×</button></div></div><div data-panel-scroll="${escape(key)}" class="max-h-[60dvh] overflow-y-auto overscroll-contain">${itemBody(item,true)}</div></div>`;
+      const value = `<div class="border-t border-stone-100 bg-stone-50 px-4 py-3"><div data-panel-scroll="${escape(key)}" class="max-h-[60dvh] overflow-y-auto overscroll-contain [&>:first-child]:mt-0 [&>:first-child]:border-0 [&>:first-child]:pt-0">${itemBody(item,true)}</div></div>`;
       if (rendered.get(panel) !== value) { panel.innerHTML = value; rendered.set(panel,value); }
       const scroller = panel.querySelector('[data-panel-scroll]');
       if (panelScrolls.has(key)) scroller.scrollTop = panelScrolls.get(key);
@@ -211,12 +211,11 @@
 
   document.addEventListener('click', event => {
     const button = event.target.closest('button'); if (!button) return;
-    if (button.dataset.inspect || button.dataset.closeInline) {
+    if (button.dataset.inspect) {
       rememberPanelScroll();
-      const key = button.dataset.inspect || button.dataset.closeInline;
+      const key = button.dataset.inspect;
       if (expanded.has(key)) expanded.delete(key); else expanded.add(key);
       renderPanels();
-      if (button.dataset.closeInline) [...document.querySelectorAll('[data-inspect]')].find(n => n.dataset.inspect === key)?.focus({preventScroll:true});
       return;
     }
     if (button.hasAttribute('data-review')) {
