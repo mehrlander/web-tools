@@ -7,7 +7,7 @@
 // least one member, a folder must hold SVG files, one SVG must exist, and any
 // other row must have its own entry in ICON_READERS in
 // lib/alpineComponents/map.js. The reader set is held in both directions, so a
-// reader cannot outlive its row.
+// reader cannot outlive its row. A row's doc is held to the passage it names.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -42,6 +42,26 @@ test('every family is read by the Map, from a source that exists', () => {
     } else assert.equal(f.name_column, '', `${f.family}: a name column needs an icon column`);
   }
   assert.deepEqual([...READERS].sort(), coded.sort(), 'ICON_READERS has one entry per family read from code or a manifest, and no other');
+});
+
+// The doc's anchor is the one the Map slices a peek by: a Markdown heading's
+// GitHub anchor, or the key in a CSV's first column. A renamed heading or key
+// would leave the link opening the file and the peek empty.
+const slug = s => String(s).trim().toLowerCase().replace(/[^\p{L}\p{N}\s_-]/gu, '').replace(/\s/g, '-');
+test('every family names a doc passage that exists', () => {
+  for (const f of rows) {
+    const [file, frag] = f.doc.split('#');
+    assert.ok(existsSync(at(file)), `${f.family}: ${file} exists`);
+    if (!frag) continue;
+    const text = readFileSync(at(file), 'utf8');
+    if (file.endsWith('.md')) {
+      const heads = [...text.matchAll(/^#+\s+(.*)$/gm)].map(m => slug(m[1]));
+      assert.ok(heads.includes(frag), `${f.family}: ${file} has a heading whose anchor is #${frag}`);
+    } else {
+      assert.ok(file.endsWith('.csv'), `${f.family}: an anchor names a Markdown heading or a CSV key`);
+      assert.ok(parseCsv(text).some(r => Object.values(r)[0] === frag), `${f.family}: ${file} has a row keyed ${frag}`);
+    }
+  }
 });
 
 test('an SVG a CSV family names exists', () => {

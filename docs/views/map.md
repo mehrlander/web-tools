@@ -10,7 +10,8 @@ The Map has two doors. A bare `?view=map` opens the **Overview**, which says
 what the hub is and holds. Its **Contents** lists every address under the tab
 that holds it, with its sentence, so a reader new to the Map meets each set
 before its rows; its **Purpose** is the estate's mission, goals and reading
-paths. The Contents finder matches an address's name, its tab and its
+paths; its **Icons** lists each family of icons the estate uses, with the file
+that declares them and the passage that discusses them. The Contents finder matches an address's name, its tab and its
 sentence, and also the files the address names, which answers "which tab shows
 this file". The rows come from the `TABS` and `SUBVIEWS` arrays and the
 sentences from the CSV, so Contents holds no list of its own. The second door,

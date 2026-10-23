@@ -348,4 +348,4 @@ icon-families,label,recorded,,value,column,yes,,value,the family name a reader s
 icon-families,source,recorded,,value,column,yes,,locator,"the file or folder that declares the family's members: a CSV, a folder of SVG files, one SVG, the .web-tools.json that declares them, or the code holding a literal table"
 icon-families,icon_column,recorded,,none,column,yes,,value,"for a CSV source, the column holding each member's icon; blank otherwise"
 icon-families,name_column,recorded,,none,column,yes,,value,"for a CSV source, the column naming each member; blank otherwise"
-icon-families,gloss,recorded,,value,column,yes,,value,what the family's icons stand for
+icon-families,doc,recorded,,value,column,yes,,locator,"the passage that discusses the family's icons: a Markdown file's section by its heading's anchor, a CSV's row by its key after #, or a whole file"
