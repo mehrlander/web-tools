@@ -644,6 +644,76 @@ test('the dock\'s counter opens every step as a list, and a row goes to its step
   assert.equal(w.document.querySelector('[data-look="steps"]'), null, 'the list closes on the jump');
 });
 
+// ONE ROW OR THE WHOLE PANEL (the owner, 2026-10-23): chosen in the number's
+// list, kept from step to step, opened by typing and folded again when the
+// field is left empty.
+const folded = (w) => card(w).hasAttribute('data-folded');
+// The counter opens the list here, since without layout the number reads its
+// target as out of sight and offers the way back instead.
+const fold = async (w) => {
+  card(w).querySelector('[data-list]').click();
+  w.document.querySelector('[data-look="steps"] [data-fold]').click();
+  await wait(10);
+};
+
+test('the number\'s list folds the dock to one row, keeps it folded from step to step, and opens it again', async () => {
+  const w = realm(threeBody);
+  w.Look.start(three);
+  await wait(30);
+  card(w).querySelector('[data-list]').click();
+  const row = w.document.querySelector('[data-look="steps"] [data-fold]');
+  assert.equal(row.textContent, 'Fold to one row');
+  row.click();
+  assert.ok(folded(w), 'one row');
+  assert.equal(w.document.querySelector('[data-look="steps"]'), null, 'the list closes on the choice');
+  const field = card(w).querySelector('[data-draft]');
+  assert.ok(field.parentElement.contains(card(w).querySelector('[data-mark]')), 'the number sits beside the field');
+  assert.equal(field.placeholder, 'First', 'the message stands in the empty field');
+  assert.equal(card(w).querySelector('[data-say]').parentElement.style.display, 'none', 'the message line is hidden');
+  w.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'ArrowRight' }));
+  await wait(30);
+  assert.ok(folded(w), 'the next step stays folded');
+  assert.equal(card(w).querySelector('[data-draft]').placeholder, 'Second');
+  card(w).querySelector('[data-list]').click();
+  const back = w.document.querySelector('[data-look="steps"] [data-fold]');
+  assert.equal(back.textContent, 'Open the panel');
+  back.click();
+  assert.ok(!folded(w), 'the whole panel again');
+  assert.equal(card(w).querySelector('[data-draft]').placeholder, 'Add a note');
+});
+
+test('typing opens a folded dock, and it folds again only when the field is left empty', async () => {
+  const w = realm(threeBody);
+  w.Look.start(three);
+  await wait(30);
+  await fold(w);
+  const field = card(w).querySelector('[data-draft]');
+  field.focus();
+  assert.ok(!folded(w), 'open while the field has focus');
+  assert.equal(field.placeholder, 'Add a note');
+  field.blur();
+  await wait(10);
+  assert.ok(folded(w), 'left empty, it folds');
+  field.focus();
+  field.value = 'Half a thought';
+  field.dispatchEvent(new w.Event('input', { bubbles: true }));
+  field.blur();
+  await wait(10);
+  assert.ok(!folded(w), 'left with words in it, it stays open');
+});
+
+test('a folded walkthrough opens on a step whose target is missing', async () => {
+  const w = realm('<p data-at="a">Alpha</p>');
+  w.Look.start([{ at: 'a', say: 'First' }, { at: 'gone', say: 'Second' }], { wait: 0 });
+  await wait(30);
+  await fold(w);
+  assert.ok(folded(w));
+  w.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'ArrowRight' }));
+  await wait(60);
+  assert.match(said(w), /Not on this page/);
+  assert.ok(!folded(w), 'the miss is shown whole');
+});
+
 test('a note is kept as a draft per walkthrough, follows it when a page is stamped in, and can be removed', async () => {
   const w = realm(threeBody);
   w.Look.start(three);
