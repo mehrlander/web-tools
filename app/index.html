@@ -389,7 +389,14 @@ html.dk-dragging main{transition:none !important}
   </div>
 </div>
 
-<div class="toast toast-top toast-end z-[60]" x-data x-show="$store.toasts && $store.toasts.length">
+<!-- z-[95], above the swipe deck's band: the overlay at 70, its seam and the
+     FAB drawer at 75, menus and the correspondence dialog at 80, source-peek at
+     85, the deck's sign tip at 90. At z-[60] until 2026-10-23, the row sat
+     under the deck, so a toast raised from inside an open deck (the
+     workbench's sheet count, a Copied) showed only the strip above the deck's
+     top edge. A toast is the newest thing on screen and short-lived, so it
+     covers rather than waits. pages/dictate.html's row uses the same level. -->
+<div class="toast toast-top toast-end z-[95]" x-data x-show="$store.toasts && $store.toasts.length">
   <template x-for="t in ($store.toasts || [])" :key="t.id">
   <div class="alert text-base gap-2" :class="t.cls">
     <i class="ph" :class="'ph-'+t.icon"></i>
@@ -2375,7 +2382,7 @@ html.dk-dragging main{transition:none !important}
      because the rows live in an overflow-y-auto column that would clip an
      absolutely-positioned panel at the list's edge; mounted out here, past
      <aside>, for the same reason. z-[55] clears the drawer (z-50) that summons
-     it and stays under the toast row (z-[60]). A bottom sheet was tried for
+     it and stays under the toast row (z-[95]). A bottom sheet was tried for
      this and taken back out: nothing about a menu of five short actions
      justifies throwing it to the far edge of the screen.
 
