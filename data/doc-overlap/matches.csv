@@ -58,9 +58,9 @@ data/doc-overlap/gold-set/2026-09-29-scorecard.md,4837,4886,91,9,3d06a2918e67,da
 data/doc-overlap/gold-set/2026-09-29-scorecard.md,5319,5378,104,10,3d87fd505ed3,data/doc-overlap/gold-set/2026-09-29-held-out-scorecard.md,4685,4744,100,10,3d87fd505ed3,1.000
 data/doc-overlap/gold-set/2026-09-29-scorecard.md,5530,5590,111,10,6f926f49385a,data/doc-overlap/gold-set/2026-09-29-held-out-scorecard.md,4896,4956,107,10,6f926f49385a,1.000
 data/doc-overlap/gold-set/2026-09-29-scorecard.md,5733,6167,118,68,5f8fb5804a6d,data/doc-overlap/gold-set/2026-09-29-held-out-scorecard.md,5096,5477,114,60,b0f4cef9ecb0,0.959
-data/ui-units/README.md,5934,6358,95,79,30d9c184e9ea,data/ui-units/codebook.md,13666,13884,241,37,254c6525f680,0.769
+data/ui-units/README.md,5934,6358,95,79,30d9c184e9ea,data/ui-units/codebook.md,14425,14643,251,37,254c6525f680,0.769
 data/ui-units/codebook.md,919,1022,19,19,cb750a36a3e6,README.md,10801,11009,202,29,4c23e210bd1e,0.759
-data/ui-units/codebook.md,13666,13884,241,37,254c6525f680,data/ui-units/README.md,5934,6358,95,79,30d9c184e9ea,0.769
+data/ui-units/codebook.md,14425,14643,251,37,254c6525f680,data/ui-units/README.md,5934,6358,95,79,30d9c184e9ea,0.769
 docs/APP.md,21,135,3,11,776637202f58,docs/manifest.md,18647,19292,328,95,dc54caf53c94,0.765
 docs/APP.md,21,135,3,11,776637202f58,docs/views/repos.md,343,651,11,47,b43d48505686,0.753
 docs/APP.md,137,353,5,32,433ffa90c531,research/doc-craft-specimens/APP_living_spec_replacement.md,359,582,13,37,12c36d85ecdc,0.777
@@ -213,6 +213,7 @@ docs/environment/testing.md,16070,16433,313,53,a57fca805a5f,docs/headless-vendor
 docs/estate-span.md,51,349,3,33,60a11cab5543,docs/registries.md,405,910,9,62,853d4d3dd263,0.873
 docs/estate-span.md,3490,3911,74,70,0ab361762f63,docs/views/repos.md,343,651,11,47,b43d48505686,0.760
 docs/fab.md,4347,4735,31,65,8e4a9787627d,docs/manifest.md,18647,19292,328,95,dc54caf53c94,0.751
+docs/forms/README.md,963,1360,24,62,bd18230da2ba,docs/registries.md,933,1329,19,57,94376d7d8848,0.751
 docs/forms/branch.md,254,462,8,17,8dd4dbd98066,docs/CONVERSATION.md,5092,5304,40,27,0132f212379a,0.851
 docs/github/README.md,185,427,8,32,97c943677a94,docs/github/markdown.md,55,307,3,44,2450bf672e08,0.802
 docs/github/README.md,458,633,15,19,2c5de036aa48,docs/github/post-merge-branch-mutation.md,655,715,17,10,7e47caea4943,0.762
@@ -270,6 +271,7 @@ docs/manifest.md,18647,19292,328,95,dc54caf53c94,docs/APP.md,21,135,3,11,7766372
 docs/manifest.md,18647,19292,328,95,dc54caf53c94,docs/fab.md,4347,4735,31,65,8e4a9787627d,0.751
 docs/manifest.md,18647,19292,328,95,dc54caf53c94,skills/web-tools-app/SKILL.md,1167,1329,26,18,b38574eab4fb,0.764
 docs/registries.md,405,910,9,62,853d4d3dd263,docs/estate-span.md,51,349,3,33,60a11cab5543,0.873
+docs/registries.md,933,1329,19,57,94376d7d8848,docs/forms/README.md,963,1360,24,62,bd18230da2ba,0.751
 docs/registries.md,933,1329,19,57,94376d7d8848,docs/views/tools.md,9,460,3,67,43de18d284a1,0.755
 docs/registries.md,6140,6345,120,33,86266c084a82,CLAUDE.md,6507,7077,53,85,df96f234898a,0.776
 docs/registries.md,11594,11748,227,23,b2ea75f541bb,data/column-primitives/2026-09-10-first-population.md,1222,1508,26,44,ebd315537f3c,0.764
