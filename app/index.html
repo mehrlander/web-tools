@@ -864,7 +864,8 @@ html.dk-dragging main{transition:none !important}
             <button @click="pickRepo(r.repo)"
                     class="w-full min-h-11 flex items-center gap-2.5 px-3 rounded-lg text-left text-base transition-colors hover:bg-base-200 active:bg-base-300"
                     :class="$store.browser.repo === r.repo ? 'text-primary font-semibold' : 'text-base-content/80'">
-              <i class="ph shrink-0 text-xl text-base-content/50" :class="r.icon"></i>
+              <span x-show="repoMarkSrc(r.repo)" class="inline-block size-5 shrink-0 bg-current text-base-content/50 [mask:var(--mark)_center/contain_no-repeat]" :style="markStyle(repoMarkSrc(r.repo))" aria-hidden="true"></span>
+              <i x-show="!repoMarkSrc(r.repo)" class="ph shrink-0 text-xl text-base-content/50" :class="r.icon"></i>
               <span class="min-w-0 flex-1 truncate font-mono" x-text="r.short"></span>
               <i x-show="r.priv" class="ph ph-lock shrink-0 text-sm text-base-content/30"></i>
               <i x-show="$store.browser.repo === r.repo" class="ph ph-check shrink-0 text-base text-primary"></i>
@@ -976,7 +977,8 @@ html.dk-dragging main{transition:none !important}
                   <button @click="openPinned(r.repo)" :data-title-tip="r.repo"
                           class="flex items-center gap-2 min-w-0 flex-1 min-h-9 pl-2 text-left transition-colors"
                           :class="$store.browser.repo===r.repo ? 'text-primary font-semibold' : 'text-base-content/80'">
-                    <i class="ph text-base shrink-0" :class="r.icon"></i><span class="truncate" x-text="r.short"></span>
+                    <span x-show="repoMarkSrc(r.repo)" class="inline-block size-4 shrink-0 bg-current [mask:var(--mark)_center/contain_no-repeat]" :style="markStyle(repoMarkSrc(r.repo))" aria-hidden="true"></span>
+                    <i x-show="!repoMarkSrc(r.repo)" class="ph text-base shrink-0" :class="r.icon"></i><span class="truncate" x-text="r.short"></span>
                   </button>
                   <button @click.stop="rowMenu(r.repo, $event, 'github')"
                           @mouseenter="rowMenuHover(r.repo, $event, 'github')" @mouseleave="hoverLeaveMenu()"
@@ -2453,6 +2455,8 @@ function catalogThumbPath(repo, path, query){
 // (projectIconSrc). Outside the shell's data because it is bookkeeping no view
 // draws, and a reactive copy would re-run every binding that consulted it.
 const PROJECT_ICONS_ASKED = new Set();
+// The same bookkeeping for the hub's drawn marks (hubMarkSrc).
+const HUB_MARKS_ASKED = new Set();
 
 // The links board's item kinds, as the shell renders them. It carries only the
 // glyph fallbacks pages/links.html uses, since the shell shows a rail item as a
@@ -2473,9 +2477,11 @@ const MAP_ROUTES = [...MAP_TABS, ...MAP_SUBVIEWS];
 // the Overview, every address with its sentence. Reach held it until
 // 2026-10-12, when the sentences left the tops of the tabs for one front door.
 const MAP_HOME = 'overview';
-// The Context subview's own sub-address (lib/alpineComponents/map.js,
-// syncCtxAddress): grouping, sort, question and source, one value each.
-const mapCtxOf = get => Object.fromEntries(['ctxlens', 'ctxsort', 'ctxtopic', 'ctxsource'].map(k => [k, get(k) || '']));
+// The Map subviews' own sub-addresses (lib/alpineComponents/map.js,
+// syncCtxAddress and syncSetAddress), each key with the tab it belongs to:
+// Context's grouping, sort, question and source, and Set's question.
+const MAP_CTX_TAB = { ctxlens: 'context', ctxsort: 'context', ctxtopic: 'context', ctxsource: 'context', setintent: 'set' };
+const mapCtxOf = get => Object.fromEntries(Object.keys(MAP_CTX_TAB).map(k => [k, get(k) || '']));
 
 // marked, loaded once on demand for the overview README render. kits/md-doc.js
 // rides with it, because every one of these renders lands in a fixed-width
@@ -2655,7 +2661,7 @@ function app(){ return {
   // Context's sub-address, held here for the same reason. Seeded only from an
   // address that opens Context, since the map row stamps it there alone and a
   // value armed from any other address would surface on the next visit.
-  mapCtx: (() => { const p = new URLSearchParams(location.search); return mapCtxOf(k => p.get('tab') === 'context' && p.get(k)); })(),
+  mapCtx: (() => { const p = new URLSearchParams(location.search); return mapCtxOf(k => p.get('tab') === MAP_CTX_TAB[k] && p.get(k)); })(),
   toolsSeen: false,       // mount the tools component lazily, on first visit
   searchSeen: false,      // mount the search view lazily, on first visit
   // What the Search view is showing, parked by goSearch (the finder's gate, the
@@ -4837,6 +4843,7 @@ function app(){ return {
   projectTab: 'overview',   // 'overview' | 'app' | 'outpost' | 'board' | 'pages' | 'files' | 'docs' (Files' Docs mode)
   powershellOutpostItem: '', // the PowerShell outpost view's selected file (repo path), stamped as &item=
   projectIcons: {},         // repo@ref:file -> the project icon as a data URL ('' until read, or when the read failed)
+  hubMarks: {},             // hub path -> a drawn mark as a data URL ('' until read, or when the hub has no such file)
   projectAppRoute: '',      // the App tab's page query, a route into the app (?view=…), stamped as &item=
   projectPageThumbs: {},    // a route card's cached shot by thumb path, as a data URL ('' when the cache has none)
   projectHtml: '',
@@ -4970,6 +4977,34 @@ function app(){ return {
   // The glyph drawn while there is no picture: a declared `ph-` glyph, else the
   // kanban, which is what every project drew before icons were declared.
   projectGlyph(p){ return p?.icon?.startsWith('ph-') ? p.icon : 'ph-kanban'; },
+  // A drawn mark the hub keeps (docs/favicons/README.md, Drawn marks), read
+  // once at main. Such a mark is filled with currentColor, which an <img>
+  // draws black, so it is painted as a mask in the text colour (markStyle).
+  // '' while the read is out, or when the hub has no such file: the caller
+  // draws its stock glyph.
+  hubMarkSrc(path){
+    if (!path) return '';
+    if (!HUB_MARKS_ASKED.has(path)) {
+      HUB_MARKS_ASKED.add(path);
+      queueMicrotask(async () => {
+        if (!window.GH) return;
+        try {
+          const j = await new window.GH({ token: this.hasToken() ? window.TOKEN : '', repo: this.DEFAULT_REPO, ref: 'main' }).get(path);
+          this.hubMarks[path] = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(j.text);
+        } catch {}
+      });
+    }
+    return this.hubMarks[path] || '';
+  },
+  // A repository's mark: the file the hub draws for it, named for the
+  // repository, in docs/favicons/estate/. The hub itself wears the hex nut,
+  // and a repository of another owner shares no names with these files.
+  repoMarkSrc(repo){
+    const [owner, name] = String(repo || '').split('/');
+    if (!name || repo === this.DEFAULT_REPO || owner !== this.DEFAULT_REPO.split('/')[0]) return '';
+    return this.hubMarkSrc('docs/favicons/estate/' + name + '.svg');
+  },
+  markStyle(src){ return src ? { '--mark': 'url("' + src + '")' } : {}; },
   async loadProjectIcon(key, repo, ref, f){
     const s = Alpine.store('browser');
     const gh = repo === s.repo && s.gh ? s.gh
@@ -6400,22 +6435,19 @@ function app(){ return {
       open(u){
         // A restore onto Context re-reads its sub-address; onto any other tab
         // the held one stays, as the component's own state does.
-        if (u.tab === 'context') this.mapCtx = mapCtxOf(k => u[k]);
+        if (Object.values(MAP_CTX_TAB).includes(u.tab)) this.mapCtx = mapCtxOf(k => u.tab === MAP_CTX_TAB[k] && u[k]);
         this.goMap(u.tab);
       },
       stamp(p){
         // Same `tab` key the project view stamps, and the same rule: the
         // default stays out of the URL so a plain ?view=map link keeps working.
         if (this.mapTab && this.mapTab !== MAP_HOME) p.set('tab', this.mapTab);
-        // Context's four ride with Context alone. Written straight onto the
-        // address by map.js and cleared by nothing, they used to follow a
-        // picked question onto every later tab and view.
-        if (this.mapTab !== 'context') return;
-        const c = this.mapCtx;
-        if (c.ctxlens) p.set('ctxlens', c.ctxlens);
-        if (c.ctxsort) p.set('ctxsort', c.ctxsort);
-        if (c.ctxtopic) p.set('ctxtopic', c.ctxtopic);
-        if (c.ctxsource) p.set('ctxsource', c.ctxsource);
+        // A subview's keys ride with that subview alone: Context's four, Set's
+        // one. Written straight onto the address by map.js and cleared by
+        // nothing, Context's used to follow a picked question onto every later
+        // tab and view.
+        for (const [k, tab] of Object.entries(MAP_CTX_TAB))
+          if (tab === this.mapTab && this.mapCtx[k]) p.set(k, this.mapCtx[k]);
       } },
     // The repo's Files view: its tree beside the file it opens
     // (alpineComponents/file-browser.js). It was folded into Search until
@@ -6566,7 +6598,7 @@ function app(){ return {
               'sq', 'smode', 'srepo', 'sref', 'spath', 'sfile', 'sitem', 'sset', 'sscope', 'sextra',
               'session', 'list', 'topic', 'lens', 'grain', 'find', 'next',
               'aq', 'discussion', 'ascope', 'arepo', 'astate',
-              'ctxlens', 'ctxsort', 'ctxtopic', 'ctxsource',
+              'ctxlens', 'ctxsort', 'ctxtopic', 'ctxsource', 'setintent',
               'app', 'on', 'appRepo', 'appPath', 'appRef', 'appLabel', 'appIcon'],
 
   // Two lookups, deliberately not one. An ADDRESS may name a view by a retired
@@ -7234,10 +7266,13 @@ function app(){ return {
     if (!MAP_ROUTES.includes(tab) || tab === this.mapTab) return;
     this.mapTab = tab; this.syncUrl();
   },
-  // Context reports its sub-address here and the map row stamps it. A choice
-  // within one screen, so it replaces the entry rather than adding one per tap.
+  // Context and Set report their sub-addresses here and the map row stamps
+  // them. A choice within one screen, so it replaces the entry rather than
+  // adding one per tap. Only the keys a caller names change, so Set's pick
+  // leaves Context's question for the next visit, and Context's Set's.
   setMapCtx(spec){
-    this.mapCtx = mapCtxOf(k => spec?.[k]);
+    const named = Object.keys(MAP_CTX_TAB).filter(k => spec && k in spec);
+    this.mapCtx = { ...this.mapCtx, ...Object.fromEntries(named.map(k => [k, spec[k] || ''])) };
     const restoring = this._restoring;
     this._restoring = true;
     try { this.syncUrl(); } finally { this._restoring = restoring; }
