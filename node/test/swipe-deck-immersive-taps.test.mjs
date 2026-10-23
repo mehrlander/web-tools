@@ -54,11 +54,12 @@ test('a tap on a plain document toggles the chrome', async () => {
   h.drop();
 });
 
-for (const attr of ['data-sd-surface', 'data-sd-taps']) {
-  test(`a tap inside ${attr} leaves the chrome where it is`, async () => {
-    const { h, header, tap } = await openWith(attr);
-    tap();
-    assert.equal(header.classList.contains('hidden'), false, 'the slide owns its taps');
-    h.drop();
-  });
-}
+const holds = async (attr) => {
+  const { h, header, tap } = await openWith(attr);
+  tap();
+  assert.equal(header.classList.contains('hidden'), false, 'the slide owns its taps');
+  h.drop();
+};
+
+test('a tap inside a working surface leaves the chrome where it is', () => holds('data-sd-surface'));
+test('a tap inside a slide that selects on a tap leaves the chrome where it is', () => holds('data-sd-taps'));
