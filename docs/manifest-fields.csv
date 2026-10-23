@@ -34,7 +34,7 @@ links,string,app,,,Path to the repo's links board (the store pages/links.html re
 programs,array,app,,,"The repo's programs: each organizes work and related resources around an ongoing concern, with a folder of its own for its charter and material, governing files wherever they sit, and naming its measures and reviewers (docs/CONSTELLATION.md, Projects and research). Read by the Map's Programs tab, the programs skill and the program-files hook."
 programs[].name,string,app,,yes,"The program's key: what /portable:programs takes, and the `project:` value its tasks carry in the repo's tracker."
 programs[].label,string,app,,no,Display name. Defaults to the name.
-programs[].icon,string,app,,yes,A `ph-` glyph drawn wherever the program is named.
+programs[].icon,string,app,,yes,"A repo-root-relative SVG, drawn in its own colours wherever the program is named, or a `ph-` glyph."
 programs[].path,string,app,,yes,"The program's folder, repo-root-relative. Its README.md is the charter, stating the program's purpose, standard, measures and reviewers; the program's own material accumulates beside it."
 programs[].governs,array,session-hook,,yes,"Repo-root-relative paths the program governs; an entry ending in / covers everything under it. A file belongs to at most one program; the program-files hook names the program when a session edits one."
 programs[].measures,array,app,,no,"Data files that measure the standard, as repo-root-relative paths or qualified 'owner/repo[@ref]:path' locators."

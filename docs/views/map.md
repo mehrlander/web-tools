@@ -10,14 +10,16 @@ The Map has two doors. A bare `?view=map` opens the **Overview**, which says
 what the hub is and holds. Its **Contents** lists every address under the tab
 that holds it, with its sentence, so a reader new to the Map meets each set
 before its rows; its **Purpose** is the estate's mission, goals and reading
-paths. The Contents finder matches an address's name, its tab and its
-sentence, and also the files the address names, which answers "which tab shows
-this file". The rows come from the `TABS` and `SUBVIEWS` arrays and the
-sentences from the CSV, so Contents holds no list of its own. The second door,
-**Reach**, holds what the hub covers beyond itself. It lands on Routes, the
-diagram of every repository and outpost the hub reaches, then offers Projects,
-Distribution, Outposts and Data. Until 2026-10-12 the Map itself opened on that
-diagram, and each tab headed its own screen with its sentence.
+paths; its **Icons** lists each family of icons the estate uses, with the
+passage that discusses them. The Contents finder
+matches an address's name, its tab and its sentence, and also the files the
+address names, which answers "which tab shows this file". The rows come from
+the `TABS` and `SUBVIEWS` arrays and the sentences from the CSV, so Contents
+holds no list of its own. The second door, **Reach**, holds what the hub covers
+beyond itself. It lands on Routes, the diagram of every repository and outpost
+the hub reaches, then offers Projects, Distribution, Outposts and Data. Until
+2026-10-12 the Map itself opened on that diagram, and each tab headed its own
+screen with its sentence.
 
 Every address that has controls or counts opens with them in one toolbar row.
 What the address is and reads (its description, the files and builders behind
