@@ -32,12 +32,11 @@ many-revision input a session usually does not need, with skip-smudge).
 "Regenerable" is safe only when the builder is committed and deterministic and
 the inputs are durably sourced; otherwise it is data loss with extra steps.
 
-Commits follow two modes ([surfacing-course.md](surfacing-course.md#the-two-modes-github-flow-and-real-time)):
-GitHub flow, a branch and a pull request, for code, features, refactors and
-documentation; and Real-time, direct to `main`, for shared state that concurrent
-sessions rely on as live truth (task trackers, capture lists, session telemetry,
-crawl caches), because an ephemeral container cannot read a sibling session's
-unmerged branch.
+Commits follow two modes: GitHub flow, a branch and a pull request, for code,
+features, refactors and documentation; and Real-time, committed direct to `main`
+and pushed as you go, for shared state that concurrent sessions rely on as live
+truth (task trackers, capture lists, session telemetry, crawl caches), because an
+ephemeral container cannot read a sibling session's unmerged branch.
 
 ## Principle 2: visibility is the (almost) only thing that forces a repo boundary
 

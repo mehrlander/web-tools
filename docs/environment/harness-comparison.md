@@ -40,7 +40,7 @@ Because both harnesses operate across the same repository collection under
 `C:\Users\mehrl\Code\gh\`:
 
 1. **Shared Standards:** Both harnesses obey the conventions in `CLAUDE.md`,
-   `docs/QUALIFIED-WRITING.md`, and `docs/SURFACING.md`.
+   `docs/QUALIFIED-WRITING.md`, and `docs/CONVERSATION.md`.
 2. **Git Coordination:** Neither harness assumes the other's environment:
    * Claude sessions rely on the plugin's hooks and Linux toolchains.
    * Antigravity sessions execute native PowerShell and Windows scripts.

@@ -33,7 +33,7 @@ A branch is a workbench, not a second home.
 
 ---
 
-In this repo the rule is the surfacing course's "Merging ends the branch"
-([surfacing-course.md](../surfacing-course.md)): a session that continues after
-a merge starts a new branch from the current tip of the target branch and opens
-a *new* PR rather than reopening the merged one.
+In this repo the rule is the 🟣 Merged state's "Further edits go in a new PR"
+([CONVERSATION.md](../CONVERSATION.md)): a session that continues after a merge
+starts a new branch from the current tip of the target branch and opens a *new*
+PR rather than reopening the merged one.

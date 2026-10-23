@@ -1,8 +1,8 @@
 ## Where the rest of the system lives
 
-[docs/SURFACING.md](docs/SURFACING.md) and [docs/QUALIFIED-WRITING.md](docs/QUALIFIED-WRITING.md) are the whole cross-repo contract: how a session's work reaches a reader, and how the prose carrying it is written. Everything below is web-tools-specific.
+[docs/CONVERSATION.md](docs/CONVERSATION.md) and [docs/QUALIFIED-WRITING.md](docs/QUALIFIED-WRITING.md) are the whole cross-repo contract: how a session's work reaches a reader, and how the prose carrying it is written. Everything below is web-tools-specific.
 
-**Delivery is the plugin, here as everywhere.** At startup, resume and compaction, the `portable` plugin's `invoke-default` hook adds one instruction to the session's context, to invoke `/portable:default`, which loads both, unless a checkout's CLAUDE.md already imports them. This file imports neither, on purpose: an import would make the hub the one repo that could not notice the plugin path failing. If the conventions are missing from a session here, either the hook did not add its instruction or the session did not act on it, and that is worth knowing rather than papering over. The guide-PR lifecycle, [docs/surfacing-course.md](docs/surfacing-course.md), is not imported either, because it idles until a PR exists. The `pr-subscribe-hint` hook delivers it when a session opens a PR through the GitHub MCP; a PR the platform creates fires no hook, and `/portable:default` tells the session to load the course when it will drive one. Three one-line defaults: this sandbox is one venue among several ([docs/venues.md](docs/venues.md)); before adding to a doc, ask whether the app derives it, the suite enforces it, or another document owns it, and link instead; be wary of improvements addressing hypothetical problems. What travels to other repos is indexed in [`docs/portable.csv`](docs/portable.csv); the distribution channel is the plugin marketplace ([docs/MARKETPLACE.md](docs/MARKETPLACE.md)).
+**Delivery is the plugin, here as everywhere.** At startup, resume and compaction, the `portable` plugin's `invoke-default` hook adds one instruction to the session's context, to invoke `/portable:default`, which loads both, unless a checkout's CLAUDE.md already imports them. This file imports neither, on purpose: an import would make the hub the one repo that could not notice the plugin path failing. If the conventions are missing from a session here, either the hook did not add its instruction or the session did not act on it, and that is worth knowing rather than papering over. Three one-line defaults: this sandbox is one venue among several ([docs/venues.md](docs/venues.md)); before adding to a doc, ask whether the app derives it, the suite enforces it, or another document owns it, and link instead; be wary of improvements addressing hypothetical problems. What travels to other repos is indexed in [`docs/portable.csv`](docs/portable.csv); the distribution channel is the plugin marketplace ([docs/MARKETPLACE.md](docs/MARKETPLACE.md)).
 
 ## The Web Tools app
 
@@ -19,11 +19,11 @@ rule: where no link reaches a change, say so and send a headless screenshot.
 
 ## Per-session refresh: thumbnails
 
-At wrap-up, if any `pages/*.html` changed this session (`git diff main...HEAD --name-only`), regenerate just those pages' thumbnails (`npm run pages-shots -- <page…>`) and commit. Thumbs are refreshed once per session, not per commit, because screenshots are slow and not byte-deterministic; the commit hook only warns about them. The catalogs need no separate step; the hook regenerates them with each commit.
+Before a merge, if any `pages/*.html` changed this session (`git diff main...HEAD --name-only`), regenerate just those pages' thumbnails (`npm run pages-shots -- <page…>`) and commit. Thumbs are refreshed once per session, not per commit, because screenshots are slow and not byte-deterministic; the commit hook only warns about them. The catalogs need no separate step; the hook regenerates them with each commit.
 
 ## Guide-PR support: platform auto-create is on
 
-The account's Claude Code web settings ("Create pull requests automatically" with "Create as draft") create a draft PR on a session's first push. A session working in an added repo opens the draft itself through the GitHub MCP. Body sync is manual and follows [docs/surfacing-course.md](docs/surfacing-course.md); no hook or CI tracks it. `BRANCH-GUIDE.md` files are retired; delete any stray one on sight.
+The account's Claude Code web settings ("Create pull requests automatically" with "Create as draft") create a draft PR on a session's first push. A session working in an added repo opens the draft itself through the GitHub MCP. Body sync is manual and follows the guide pointer in [docs/CONVERSATION.md](docs/CONVERSATION.md); no hook or CI tracks it. `BRANCH-GUIDE.md` files are retired; delete any stray one on sight.
 
 ## The pre-build & the build-on-commit hook
 
@@ -33,7 +33,7 @@ The `gh.load` chain it replaces is the repo's default, not a legacy path. [`docs
 
 Every **deterministic** derived artifact is owned by one commit-time hook, [`.githooks/pre-commit`](.githooks/pre-commit). Before a `git commit` it regenerates and stages, in the same commit, whatever the pending changes touch. [`node/README.md`](node/README.md#the-refresh-model) lists the legs, the order they run in, and why that order matters.
 
-Don't hand-edit a file the hook writes; edit the source and let the hook refresh it. Thumbnails (`pages/thumbs/*.png`) are the exception: the hook only *warns* when a page changes without its thumb, and the refresh happens at wrap-up (see "Per-session refresh" above).
+Don't hand-edit a file the hook writes; edit the source and let the hook refresh it. Thumbnails (`pages/thumbs/*.png`) are the exception: the hook only *warns* when a page changes without its thumb, and the refresh happens before a merge (see "Per-session refresh" above).
 
 **Git owns the hook, not Claude:** a `PreToolUse` hook disappears when the session root sits above this repo. Run `npm run setup` once per checkout for hooks, the CSV merge driver, and dependencies; `npm run ready` checks without writing. Claude's startup scripts delegate to that shared path. `--no-verify` bypasses it. Details: [extending.md](docs/environment/extending.md).
 

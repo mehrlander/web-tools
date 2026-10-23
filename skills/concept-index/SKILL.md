@@ -23,7 +23,7 @@ use it, let it go.
 V=skills/concept-index/vocab.py          # or $CLAUDE_PLUGIN_ROOT/...
 
 python3 $V index . --output /tmp/vocab.json \
-  --hub docs/SURFACING.md --hub docs/QUALIFIED-WRITING.md --hub CLAUDE.md \
+  --hub docs/CONVERSATION.md --hub docs/QUALIFIED-WRITING.md --hub CLAUDE.md \
   --exclude skills/
 
 python3 $V check --index /tmp/vocab.json --repo mehrlander/web-tools < reply.md

@@ -73,7 +73,7 @@ in order:
 ## Relationship to the conventions
 
 The handoff rules for any link, a `#stage=` link included, are in
-`docs/SURFACING.md`, loaded by the `default` skill. Load the conventions for
+`docs/CONVERSATION.md`, loaded by the `default` skill. Load the conventions for
 handoff rules; load this for how the app works.
 
 ## Installing this skill into another repo

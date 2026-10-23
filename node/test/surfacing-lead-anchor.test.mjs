@@ -1,13 +1,13 @@
 // A Surfacing card points at the bullet it paraphrases, and the anchor holds.
 //
-// docs/surfacing.csv's `lead` is the bold lead-in of a bullet in SURFACING.md,
+// docs/conversation.csv's `lead` is the bold lead-in of a bullet in CONVERSATION.md,
 // and surfacing-manifest.test.mjs already holds that membership both ways. What
 // it cannot say is whether the key SURVIVES RENDERING, which is the only form
 // the Map view's card ever meets it in: the card calls findLead() against the
 // deck slide's DOM, not against the file.
 //
 // The gap between those two is a real one and it is exactly one selector wide.
-// The primitives are a LOOSE list, so marked wraps each item's content in a <p>
+// The rules are a LOOSE list, so marked wraps each item's content in a <p>
 // and the lead-in is `li > p > strong:first-child`. Driven against the real app
 // on 2026-09-04 the tight `li > strong:first-child` matched 0 of 22 and read as
 // a join that did not exist. Nothing in the file can show that; only the render
@@ -25,9 +25,9 @@ import { marked } from 'marked';
 import { parseCsv } from '../build/registries-load.mjs';
 import { repoRoot } from './bootstrap.mjs';
 
-const leads = parseCsv(readFileSync(path.join(repoRoot, 'docs', 'surfacing.csv'), 'utf8'))
+const leads = parseCsv(readFileSync(path.join(repoRoot, 'docs', 'conversation.csv'), 'utf8'))
   .map(r => r.lead);
-const doc = readFileSync(path.join(repoRoot, 'docs', 'SURFACING.md'), 'utf8');
+const doc = readFileSync(path.join(repoRoot, 'docs', 'CONVERSATION.md'), 'utf8');
 
 // The component's own two functions, copied here rather than imported: map.js
 // is an Alpine component that needs a browser realm to evaluate, and the rule
@@ -58,7 +58,7 @@ test('the anchor is the list item, since that is what gets marked', () => {
   }
 });
 
-test('a normalized key still tells the primitives apart', () => {
+test('a normalized key still tells the rules apart', () => {
   // The whole join rests on the key being unique after normalization. Two
   // bullets differing only by a trailing stop would make one card open the
   // other's paragraph, which is worse than no link at all.
@@ -75,6 +75,6 @@ test('the loose-list shape is what the selector is for', () => {
   const wrapped = new Set([...box.querySelectorAll('li > p > strong:first-child')]
     .map(el => leadKey(el.textContent)));
   const hit = (set) => leads.filter(l => set.has(leadKey(l))).length;
-  assert.equal(hit(tight), 0, 'the primitives are a loose list, so none is a bare <li><strong>');
+  assert.equal(hit(tight), 0, 'the rules are a loose list, so none is a bare <li><strong>');
   assert.equal(hit(wrapped), leads.length, 'and all of them are <li><p><strong>');
 });

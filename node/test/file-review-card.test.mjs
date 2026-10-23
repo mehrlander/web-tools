@@ -776,7 +776,7 @@ test('a list card keeps both rows and its named tabs', () => {
 // this card does not otherwise need, it may not have loaded when a card mounts,
 // and a card that called a `.md` plain source because a kit was late would be a
 // worse failure than the duplication. So they are held together by assertion,
-// the shape the estate already uses for docs.csv's reach and surfacing.csv's
+// the shape the estate already uses for docs.csv's reach and conversation.csv's
 // membership.
 
 // A probe card per path, left mounted. Tearing one down is what caused

@@ -2,7 +2,7 @@
 name: default
 description: >-
   The context every session runs on: the portable conventions from
-  mehrlander/web-tools, the surfacing primitives (docs/SURFACING.md) and
+  mehrlander/web-tools, the conversation rules (docs/CONVERSATION.md) and
   the Qualified writing rules (docs/QUALIFIED-WRITING.md), shipped beside
   this skill. Load them at the start of any session that did not receive
   them, and in any repo when the user
@@ -19,7 +19,7 @@ so a web-tools checkout does not mean they are in context. Read on whatever the
 checkout looks like, and stop only if both documents are demonstrably in context
 already.
 
-Load both. [`SURFACING.md`](SURFACING.md) governs how a reply reaches the reader;
+Load both. [`CONVERSATION.md`](CONVERSATION.md) governs how a reply reaches the reader;
 [`QUALIFIED-WRITING.md`](QUALIFIED-WRITING.md) governs the prose of every document, commit message, PR
 body, and reply the session writes. Neither is optional, and the writing half
 is the one a session is most likely to violate without noticing. Prefer the
@@ -28,15 +28,9 @@ otherwise:
 
 ```bash
 base=https://raw.githubusercontent.com/mehrlander/web-tools/main/docs
-curl -fsSL "$base/SURFACING.md"
+curl -fsSL "$base/CONVERSATION.md"
 curl -fsSL "$base/QUALIFIED-WRITING.md"
 ```
-
-Load the [`surfacing-course.md`](surfacing-course.md) copy beside this skill only when this session
-will open or drive a pull request: it is the guide-PR lifecycle and idles until
-one exists. If
-that vendored copy is unavailable, fetch canonical
-`docs/surfacing-course.md` from the same base URL.
 
 If `curl` is denied, use `mcp__github__get_file_contents` (owner `mehrlander`,
 repo `web-tools`), or WebFetch on the same raw URLs.

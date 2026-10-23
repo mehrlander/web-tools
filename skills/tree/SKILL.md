@@ -8,21 +8,19 @@ description: >-
   first because nested bullets balloon vertically on mobile. Use when the
   user says "tree", "show the repo structure", "file tree", "map the repo",
   "lay out the folders", "/tree", or names a subtree/depth to render.
-  Answers "what is here" (structure); the surfacing contract answers
+  Answers "what is here" (structure); CONVERSATION.md answers
   "what moved" (change).
 ---
 
 # tree
 
 An orientation view: the shape of a repo or a subtree, rendered for a chat
-reader on a phone. A tree answers *what is here* (the filesystem); the
-surfacing contract,
-[`SURFACING.md`](https://github.com/mehrlander/web-tools/blob/main/docs/SURFACING.md),
-answers *what moved* (the git diff), and the
-[`surfacing-course`](https://github.com/mehrlander/web-tools/blob/main/docs/surfacing-course.md)
-owns PR bodies and wrap-up. A tree carries no change state and no diff links:
-when the ask is "what did I touch", follow the surfacing contract, and treat a
-tree that also marks change as a deliberate combined view, not the default.
+reader on a phone. A tree answers *what is here* (the filesystem);
+[`CONVERSATION.md`](https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md)
+answers *what moved* (the git diff) and owns PR bodies. A tree carries no change
+state and no diff links: when the ask is "what did I touch", follow
+CONVERSATION.md, and treat a tree that also marks change as a deliberate
+combined view, not the default.
 
 Substitute the current repo into all URL templates. The rendering rules
 below are the applied form of [`claude-markdown`](../claude-markdown/SKILL.md),

@@ -34,7 +34,7 @@ and parses it as **data**, never executed. Fields:
     { "path": "pages/news/news.html", "title": "News", "note": "The news dashboard.",
       "appView": true, "viewLabel": "News", "icon": "ph-newspaper", "slug": "news" }
   ],
-  "pins": ["pages", "lib/alpineComponents", "docs/SURFACING.md"],
+  "pins": ["pages", "lib/alpineComponents", "docs/CONVERSATION.md"],
   "stage": {
     "files": ["lib/foo.js", "owner/repo@ref:path/to/bar.js"],
     "targets": ["owner/repo:dir"]

@@ -22,7 +22,7 @@ Hooks come from three places: git hooks in `.githooks/`, which `npm run setup` a
 | reading-column-guard | `PreToolUse` on Edit, Write | [`reading-column-guard.sh`](../../skills/hooks/reading-column-guard.sh) | refuses a class that narrows text to a reading column | |
 | send-later-guard | `PreToolUse` on `send_later` | [`send-later-guard.sh`](../../skills/hooks/send-later-guard.sh) | refuses a scheduled self check-in | `send-later-guard.test.mjs` |
 | ask-question-guard | `PreToolUse` on `AskUserQuestion` | [`ask-question-guard.sh`](../../skills/hooks/ask-question-guard.sh) | denies the tool and says to ask in prose; an `AskUserQuestion` prompt appearing means the guard is not firing | `plugin-setup-hooks.test.mjs` |
-| pr-subscribe-hint | `PostToolUse` on `create_pull_request` | [`pr-subscribe-hint.sh`](../../skills/hooks/pr-subscribe-hint.sh) | prompts a subscription to the PR just opened and delivers the surfacing course | |
+| pr-subscribe-hint | `PostToolUse` on `create_pull_request` | [`pr-subscribe-hint.sh`](../../skills/hooks/pr-subscribe-hint.sh) | prompts a subscription to the PR just opened | |
 | wake-quiet-hint | `PostToolUse` on `ReadNotifications` | [`wake-quiet-hint.sh`](../../skills/hooks/wake-quiet-hint.sh) | says whether the PR events just read call for a reply | `wake-quiet-hint.test.mjs` |
 | warn-governing-docs | `PostToolUse` on Edit, Write | [`warn-governing-docs.sh`](../../skills/hooks/warn-governing-docs.sh) | warns after an edit to documentation | `warn-governing-docs.test.mjs` |
 | mcp-fail-hint | `PostToolUseFailure` on MCP tools | [`mcp-fail-hint.sh`](../../skills/hooks/mcp-fail-hint.sh) | turns the `-32003` approval error into its diagnosis | |

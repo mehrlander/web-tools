@@ -276,7 +276,7 @@ hook's `# --- leg` headers, derived into [`docs/hook-legs.csv`](../docs/hook-leg
 | `lib/kits/`, or a file that loads a kit | `npm run kits-index` | `docs/kits.csv` |
 | `lib/`, `pages/` | `npm run registries-reach` | `renders_in` in `docs/registries.csv` |
 | skills, `lib/`, `pages/`, `docs/` | `npm run docs-reach` | `reach` and `words` in `docs/docs.csv` |
-| `docs/SURFACING.md`, `docs/surfacing-course.md`, `docs/QUALIFIED-WRITING.md` | `npm run vendor-docs` | the plugin's copies under `skills/default/` |
+| `docs/CONVERSATION.md`, `docs/QUALIFIED-WRITING.md` | `npm run vendor-docs` | the plugin's copies under `skills/default/` |
 | `docs/house-policies.md` | `npm run policy-skills` | the h plugin's skills under `plugins/h/skills/` |
 | any markdown | `npm run themes-graph` | `docs/themes.csv` |
 | `docs/docs.csv` | `npm run docs-readme` | `docs/README.md` |

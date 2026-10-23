@@ -275,6 +275,5 @@ before calling the move done.
 
 ## Boundary with web-tools
 
-This skill owns the tracker, the 🎫 marker included. The `default` skill
-loads the rest: `[new]`, `[main]` and `[diff]` links are in `SURFACING.md`,
-and PR bodies and wrap-up are in the surfacing course.
+This skill owns the tracker. The `default` skill owns PR bodies, `[new]`,
+`[main]` and `[diff]` links, and the 🎫 marker's display form.

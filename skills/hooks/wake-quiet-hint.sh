@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # PostToolUse on ReadNotifications: says whether the PR events just read call for
-# a reply. SURFACING.md's no-reply rule arrives once at start; the harness's own
+# a reply. CONVERSATION.md's no-reply rule arrives once at start; the harness's own
 # PR guidance arrives beside every event. This puts the rule at the same moment.
 # Prose, not enforcement. Evidence: 205 of 250 surplus closing states in the week
 # to 2026-09-28 followed a PR event (web-tools-private search.py --surplus).
