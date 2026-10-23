@@ -864,7 +864,8 @@ html.dk-dragging main{transition:none !important}
             <button @click="pickRepo(r.repo)"
                     class="w-full min-h-11 flex items-center gap-2.5 px-3 rounded-lg text-left text-base transition-colors hover:bg-base-200 active:bg-base-300"
                     :class="$store.browser.repo === r.repo ? 'text-primary font-semibold' : 'text-base-content/80'">
-              <i class="ph shrink-0 text-xl text-base-content/50" :class="r.icon"></i>
+              <span x-show="repoMarkSrc(r.repo)" class="inline-block size-5 shrink-0 bg-current text-base-content/50 [mask:var(--mark)_center/contain_no-repeat]" :style="markStyle(repoMarkSrc(r.repo))" aria-hidden="true"></span>
+              <i x-show="!repoMarkSrc(r.repo)" class="ph shrink-0 text-xl text-base-content/50" :class="r.icon"></i>
               <span class="min-w-0 flex-1 truncate font-mono" x-text="r.short"></span>
               <i x-show="r.priv" class="ph ph-lock shrink-0 text-sm text-base-content/30"></i>
               <i x-show="$store.browser.repo === r.repo" class="ph ph-check shrink-0 text-base text-primary"></i>
@@ -976,7 +977,8 @@ html.dk-dragging main{transition:none !important}
                   <button @click="openPinned(r.repo)" :data-title-tip="r.repo"
                           class="flex items-center gap-2 min-w-0 flex-1 min-h-9 pl-2 text-left transition-colors"
                           :class="$store.browser.repo===r.repo ? 'text-primary font-semibold' : 'text-base-content/80'">
-                    <i class="ph text-base shrink-0" :class="r.icon"></i><span class="truncate" x-text="r.short"></span>
+                    <span x-show="repoMarkSrc(r.repo)" class="inline-block size-4 shrink-0 bg-current [mask:var(--mark)_center/contain_no-repeat]" :style="markStyle(repoMarkSrc(r.repo))" aria-hidden="true"></span>
+                    <i x-show="!repoMarkSrc(r.repo)" class="ph text-base shrink-0" :class="r.icon"></i><span class="truncate" x-text="r.short"></span>
                   </button>
                   <button @click.stop="rowMenu(r.repo, $event, 'github')"
                           @mouseenter="rowMenuHover(r.repo, $event, 'github')" @mouseleave="hoverLeaveMenu()"
@@ -2453,6 +2455,8 @@ function catalogThumbPath(repo, path, query){
 // (projectIconSrc). Outside the shell's data because it is bookkeeping no view
 // draws, and a reactive copy would re-run every binding that consulted it.
 const PROJECT_ICONS_ASKED = new Set();
+// The same bookkeeping for the hub's drawn marks (hubMarkSrc).
+const HUB_MARKS_ASKED = new Set();
 
 // The links board's item kinds, as the shell renders them. It carries only the
 // glyph fallbacks pages/links.html uses, since the shell shows a rail item as a
@@ -4837,6 +4841,7 @@ function app(){ return {
   projectTab: 'overview',   // 'overview' | 'app' | 'outpost' | 'board' | 'pages' | 'files' | 'docs' (Files' Docs mode)
   powershellOutpostItem: '', // the PowerShell outpost view's selected file (repo path), stamped as &item=
   projectIcons: {},         // repo@ref:file -> the project icon as a data URL ('' until read, or when the read failed)
+  hubMarks: {},             // hub path -> a drawn mark as a data URL ('' until read, or when the hub has no such file)
   projectAppRoute: '',      // the App tab's page query, a route into the app (?view=…), stamped as &item=
   projectPageThumbs: {},    // a route card's cached shot by thumb path, as a data URL ('' when the cache has none)
   projectHtml: '',
@@ -4970,6 +4975,34 @@ function app(){ return {
   // The glyph drawn while there is no picture: a declared `ph-` glyph, else the
   // kanban, which is what every project drew before icons were declared.
   projectGlyph(p){ return p?.icon?.startsWith('ph-') ? p.icon : 'ph-kanban'; },
+  // A drawn mark the hub keeps (docs/favicons/README.md, Drawn marks), read
+  // once at main. Such a mark is filled with currentColor, which an <img>
+  // draws black, so it is painted as a mask in the text colour (markStyle).
+  // '' while the read is out, or when the hub has no such file: the caller
+  // draws its stock glyph.
+  hubMarkSrc(path){
+    if (!path) return '';
+    if (!HUB_MARKS_ASKED.has(path)) {
+      HUB_MARKS_ASKED.add(path);
+      queueMicrotask(async () => {
+        if (!window.GH) return;
+        try {
+          const j = await new window.GH({ token: this.hasToken() ? window.TOKEN : '', repo: this.DEFAULT_REPO, ref: 'main' }).get(path);
+          this.hubMarks[path] = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(j.text);
+        } catch {}
+      });
+    }
+    return this.hubMarks[path] || '';
+  },
+  // A repository's mark: the file the hub draws for it, named for the
+  // repository, in docs/favicons/estate/. The hub itself wears the hex nut,
+  // and a repository of another owner shares no names with these files.
+  repoMarkSrc(repo){
+    const [owner, name] = String(repo || '').split('/');
+    if (!name || repo === this.DEFAULT_REPO || owner !== this.DEFAULT_REPO.split('/')[0]) return '';
+    return this.hubMarkSrc('docs/favicons/estate/' + name + '.svg');
+  },
+  markStyle(src){ return src ? { '--mark': 'url("' + src + '")' } : {}; },
   async loadProjectIcon(key, repo, ref, f){
     const s = Alpine.store('browser');
     const gh = repo === s.repo && s.gh ? s.gh
