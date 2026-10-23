@@ -282,8 +282,33 @@ test('a tap selects and the band reads the cell; rows, columns and ranges read a
     assert.deepEqual(selected().sort(), ['A1', 'A2', 'A3', 'B2', 'B3', 'C2', 'C3'],
       'a column letter selects the column, widened to every column the merge it cuts through covers');
 
+    // The arrows. jsdom lays nothing out, so the root is given a box for the
+    // on-screen check; keeping a cell in view is the scenario's to show.
+    root.getBoundingClientRect = () => ({ width: 300, height: 200, left: 0, right: 300, top: 0, bottom: 200 });
+    const key = (k, o = {}) => {
+      const e = new window.KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true, ...o });
+      doc.body.dispatchEvent(e);
+      return e.defaultPrevented;
+    };
+    click(td('B2'));
+    assert.equal(key('ArrowRight'), true, 'with a selection, the sheet takes the arrow');
+    assert.deepEqual(selected(), ['C2']);
+    key('ArrowRight');
+    assert.deepEqual(selected(), ['C2'], 'the last column is a wall');
+    key('ArrowDown');
+    assert.deepEqual(selected(), ['C3']);
+    key('ArrowUp'); key('ArrowUp');
+    assert.deepEqual(selected(), ['A1'], 'stepping into a merge lands on the merge, by its anchor');
+    key('ArrowDown');
+    assert.deepEqual(selected(), ['A2'], 'and stepping out leaves from its edge');
+    key('ArrowRight', { shiftKey: true }); key('ArrowDown', { shiftKey: true });
+    assert.deepEqual(selected().sort(), ['A2', 'A3', 'B2', 'B3'], 'Shift grows the range');
+    assert.ok(td('A2').hasAttribute('data-cur'), 'from the cell that stays active');
+    assert.equal(key('ArrowLeft', { ctrlKey: true }), false, 'Ctrl+arrow is not the sheet\'s');
+
     sel.reset();
     assert.equal(band.hidden, true, 'a redraw clears the selection');
+    assert.equal(key('ArrowRight'), false, 'with nothing selected, the arrows pass on to the deck');
     root.remove();
   } finally { Object.assign(kit, was); }
 });
