@@ -175,7 +175,7 @@ const rowsOf = (item) => JSON.parse(item.content);
 test('kit surface', () => {
   assert.deepEqual(Object.keys(XlsxExtract).sort(),
     ['KIND', 'KINDS', 'SELECTED_KIND', 'catalog', 'extract', 'extractSelected', 'profileRows',
-     'receptionTarget', 'receptions', 'survey']);
+     'receptionTarget', 'receptions', 'sheetTables', 'survey']);
   assert.equal(XlsxExtract.KIND, 'workbook-extract/1');
   assert.equal(XlsxExtract.SELECTED_KIND, 'workbook-extract/2');
 });
@@ -590,4 +590,48 @@ test('`never` names sheets that must not land, and is reported rather than appli
   assert.equal(hidden.pick.sheets.some(s => s.name === 'Notes'), false);
   assert.deepEqual(hidden.never, ['Notes'], 'still declared, and not in breach because it is not picked');
   assert.deepEqual(XlsxExtract.receptions(cat, [{ id: 'g' }])[0].never, [], 'no declaration, no rule');
+});
+
+// ---- sheetTables: every sheet as rows for the transform workbench ----------
+
+test('sheetTables gives every sheet in workbook order, hidden ones flagged rather than dropped', () => {
+  const tables = XlsxExtract.sheetTables(read());
+  assert.deepEqual(tables.map(t => [t.name, t.hidden]), [['Ledger', false], ['Notes', true]]);
+  assert.deepEqual(tables[1].rows, [{ Row: 1, A: 'carried inline' }]);
+});
+
+test('sheetTables keeps the type the file gave each cell, so a pivot sums numbers', () => {
+  const [ledger] = XlsxExtract.sheetTables(read());
+  // A1 is a shared string under a number format: text, not a formatted number.
+  assert.deepEqual(ledger.rows[0], { Row: 1, A: 'Fund', B: 'Spend' });
+  // A2 is the shared string "600": a code that looks numeric stays text.
+  assert.deepEqual(ledger.rows[1], { Row: 2, A: '600', B: 17 });
+  // B4 is a shared formula's follower: its cached value, as a number.
+  assert.deepEqual(ledger.rows[3], { Row: 4, A: '600', B: 34 });
+});
+
+test('sheetTables gives every row every column the sheet uses, so a grid reading row one sees them all', () => {
+  const sheet = `<?xml version="1.0"?><worksheet xmlns="ws"><sheetData>
+    <row r="1"><c r="A1" t="inlineStr"><is><t>Title</t></is></c></row>
+    <row r="3"><c r="A3" t="inlineStr"><is><t>Prepared by</t></is></c><c r="C3" t="inlineStr"><is><t>Budget office</t></is></c></row>
+  </sheetData></worksheet>`;
+  const p = parts().map(([k, v]) => [k, k === 'xl/worksheets/sheet1.xml' ? sheet : v]);
+  const notes = XlsxExtract.sheetTables(xlsxKit.analyze(p)).find(t => t.name === 'Notes');
+  assert.deepEqual(notes.rows, [
+    { Row: 1, A: 'Title', C: '' },
+    { Row: 3, A: 'Prepared by', C: 'Budget office' },
+  ]);
+  assert.deepEqual(Object.keys(notes.rows[0]), ['Row', 'A', 'C'], 'in column order, and no column the sheet never uses');
+});
+
+test('sheetTables reads a date as ISO and a boolean as a boolean, and drops a row with no value', () => {
+  const styles = STYLES.replace('<cellXfs count="3">', '<cellXfs count="4">')
+    .replace('</cellXfs>', '<xf numFmtId="14"/></cellXfs>');
+  const sheet = `<?xml version="1.0"?><worksheet xmlns="ws"><sheetData>
+    <row r="1"><c r="A1" s="3"><v>46022</v></c><c r="B1" t="b"><v>1</v></c><c r="C1" t="e"><v>#REF!</v></c></row>
+    <row r="2" ht="30" customHeight="1"><c r="A2" s="1"/></row>
+  </sheetData></worksheet>`;
+  const p = parts().map(([k, v]) => [k, k === 'xl/styles.xml' ? styles : k === 'xl/worksheets/sheet1.xml' ? sheet : v]);
+  const notes = XlsxExtract.sheetTables(xlsxKit.analyze(p)).find(t => t.name === 'Notes');
+  assert.deepEqual(notes.rows, [{ Row: 1, A: '2025-12-31', B: true, C: '#REF!' }]);
 });
