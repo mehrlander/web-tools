@@ -17,6 +17,7 @@ public sealed class ErrandReader(string repository)
     private DateTimeOffset cachedSeen;
     private DateTimeOffset cloudAttempt;
     private string? cloudSha;
+    private string? cloudContentNotice;
     private CloudSnapshot cloud = new([], null, null);
 
     private Task<string> Git(params string[] args) => Commands.Text("git", args, repository);
@@ -43,11 +44,36 @@ public sealed class ErrandReader(string repository)
                 try {
                     await Git("fetch", "--quiet", "--no-tags", "origin", "+refs/heads/main:refs/remotes/origin/main");
                     var sha = await Git("rev-parse", "--verify", "refs/remotes/origin/main:state/sessions.json");
-                    if (sha != cloudSha) {
+                    string? background = null;
+                    string? topicSha = null;
+                    try {
+                        background = await Git("rev-parse", "--verify", "refs/remotes/origin/background^{commit}");
+                        topicSha = await Git("rev-parse", "--verify", background + ":state/session-topics.json");
+                    } catch { }
+                    var signature = sha + ":" + topicSha;
+                    if (signature != cloudSha) {
                         var parsed = CloudSessions.Parse(await Git("cat-file", "blob", sha), DateTimeOffset.UtcNow);
+                        if (topicSha is not null) {
+                            try {
+                                var rollup = await Git("cat-file", "blob", topicSha);
+                                var paths = SessionCheckpoints.Paths(rollup, parsed.Items);
+                                var companions = new Dictionary<string, string>();
+                                // A single background revision owns the rollup and all companions.
+                                var tree = await Git("ls-tree", "-r", background!, "--", "sessions/topics");
+                                var blobs = tree.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+                                    .Select(line => line.TrimEnd('\r').Split('\t')).Where(parts => parts.Length == 2)
+                                    .ToDictionary(parts => parts[1], parts => parts[0].Split(' ')[2]);
+                                var wanted = paths.Where(p => blobs.ContainsKey(p.Value)).ToDictionary(p => p.Key, p => blobs[p.Value]);
+                                var contents = await ReadBlobs(wanted.Values.Distinct().ToList());
+                                foreach (var (id, blob) in wanted) if (contents.TryGetValue(blob, out var bytes))
+                                    companions[id] = Encoding.UTF8.GetString(bytes);
+                                parsed = SessionCheckpoints.Enrich(parsed, rollup, companions);
+                            } catch { parsed = parsed with { Notice = "Session summaries unavailable; showing recorded session activity." }; }
+                        }
                         cloud = parsed;
-                        cloudSha = sha;
-                    } else cloud = cloud with { Notice = null };
+                        cloudContentNotice = parsed.Notice;
+                        cloudSha = signature;
+                    } else cloud = cloud with { Notice = cloudContentNotice };
                 } catch {
                     cloud = cloud with { Notice = cloud.CapturedAt is null ? "Cloud session records unavailable." : "Cloud sync unavailable; showing saved session records." };
                 }

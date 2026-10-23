@@ -11,13 +11,18 @@ stays visible above either tab.
   activity states, timestamps and explicit Laptop or Cloud labels.
 - Gemini worker queue: waiting errands in request order, claimed work, arriving
   replies, and distinct empty, unavailable and saved-snapshot states.
-- New results since the owner last marked results seen, with local output folders
+- Recent results with local output folders
   and the corresponding Web Tools errand one click away.
 - Gemini worker process detection and the last local log write time.
 - Current Codex and Gemini sessions, recent Claude desktop metadata, and Claude
   cloud session updates from Web Tools' existing captured-session cache.
 - An activity feed with assistant, state and text filters, plus a selected result
   or a short history of observed local session events.
+- Since you last looked: one latest meaningful change per piece of work, with
+  review memory saved separately in each desktop or phone browser.
+- Published Claude checkpoints with topic titles, recent exchange summaries,
+  measured activity and links to the resulting pull requests.
+- The Gemini worker's last reported task and report time, alongside its queue.
 - Local places, service processes and the three newest Downloads files.
 
 An open application establishes no task state. A claim establishes ownership,
@@ -58,8 +63,8 @@ The generated ICO includes sizes from 16 to 256 pixels and is bundled in the app
 
 The default repositories folder is `%USERPROFILE%\gh`. Settings chooses a
 different folder, or launch with `--root C:\path\to\repositories`. The private
-checkout is its `web-tools-private` child. Window size, the Web Tools address,
-and the time through which results were reviewed persist under
+checkout is its `web-tools-private` child. Window size and the Web Tools address
+persist under
 `%LOCALAPPDATA%\WebToolsDesktop\settings.json`. Browser storage lives beside
 that file. Ctrl+1 selects Web Tools; Ctrl+2 selects Now. The existing `--laptop`
 launch option still selects the Now tab.
@@ -105,7 +110,8 @@ Access settings, including the bearer, live in `companion-access.json` beside
 desktop settings; those settings never enter API responses or tracked files.
 
 - `GET /api/v1/now`: versioned phone projection, observation time, source freshness,
-  assistant work, queue, recent results and the last fifty observed events.
+  assistant work, queue, recent results, checkpoints, changes and the last fifty
+  observed events.
 - `GET /api/v1/results/<id>`: a selected reply, capped at 20,000 characters, plus
   the phone's link to its full saved result in Web Tools.
 - `GET /api/v1/desktop`: full desktop snapshot for the authenticated local app.
@@ -127,8 +133,8 @@ at one immutable Git revision through `ls-tree` and `cat-file --batch`. Fetch
 updates `origin/background` and, for cloud records, `origin/main`; the checkout, index, local edits, and checked-out
 branch are untouched.
 The latest eighty request filenames and every unresolved request are available;
-the list shows forty matching entries at once. A first launch treats results
-from the preceding day as new. Mark results seen advances the review time.
+the list shows forty matching entries at once. Browser review memory identifies
+which changes have been seen.
 
 The worker's record contract lives in the private repo's
 [`errands/README.md`](https://github.com/mehrlander/web-tools-private/blob/main/errands/README.md).
@@ -150,6 +156,25 @@ of the private repository's main branch. Recorded closing states identify
 published updates, including choices or requests for the owner; they never
 assert that a cloud session is running. Selecting a record opens its exact
 session in Web Tools. Signal details use the shared accessible title-tip kit.
+
+Checkpoint titles and summaries join the session cache to
+`state/session-topics.json` and its companions at one immutable revision of the
+private `background` branch. The latest three summarized exchanges and up to six
+validated PR links accompany each checkpoint. Checkpoint time stays separate from
+the session record's update time. Missing companions leave the rollup summary
+available; missing summaries leave the recorded session available.
+
+`activity-changes.json` retains the latest meaningful change per item for seven
+days, up to 150 items. Starting or finishing a local turn, publishing a cloud
+checkpoint, and errand transitions create changes. Local commentary alone does
+not. The browser initially shows changes from the preceding day and remembers
+the changes explicitly marked seen; newer changes to reviewed work reappear.
+Reviewing changes writes browser storage only and leaves the worker untouched.
+
+The worker view reads the last 64 KiB of `poller.log`, accepting known timestamped
+batch, publication, errand, scheduled-job and error events. The view shows a short
+description and its report time, without raw paths or error bodies. A report
+does not establish that the reported job is still executing.
 
 ## Desktop boundary
 

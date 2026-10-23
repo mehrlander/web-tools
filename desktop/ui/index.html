@@ -9,6 +9,7 @@
   <script src="vendor/claude-mark.js"></script>
   <script src="vendor/assistant-mark.js"></script>
   <script src="vendor/title-tip.js" defer></script>
+  <script src="now-shared.js" defer></script>
   <script src="laptop.js" defer></script>
 </head>
 <body class="m-0 bg-stone-50 font-sans text-stone-800 [&_button]:cursor-pointer [&_button:disabled]:cursor-default [&_button:disabled]:opacity-40 [&_button:focus-visible]:outline-2 [&_button:focus-visible]:outline-emerald-700 [&_button:focus-visible]:outline-offset-2">
@@ -21,8 +22,8 @@
     <section id="assistants" class="grid grid-cols-3 gap-3" aria-label="Assistant activity"></section>
     <div class="grid min-h-0 grid-cols-[minmax(0,1fr)_19rem] gap-4 max-[1000px]:grid-cols-[minmax(0,1fr)_16rem]">
       <section class="grid min-h-0 grid-rows-[auto_auto_minmax(0,2fr)_minmax(0,3fr)_auto] overflow-hidden rounded-lg border border-stone-200 bg-white" aria-labelledby="activity-title">
-        <div class="flex items-center justify-between gap-3 px-4 py-3"><h2 id="activity-title" class="text-base font-semibold">Activity</h2><button data-action="seen" id="seen" disabled class="text-sm text-emerald-800 hover:underline">Mark results seen</button></div>
-        <div class="flex items-center justify-between gap-3 border-b border-stone-200 px-4 pb-3"><div class="filters flex min-w-0 gap-1 overflow-x-auto text-sm [&_button]:whitespace-nowrap [&_button]:rounded [&_button]:px-2 [&_button]:py-1 [&_button]:text-stone-600 [&_button:hover]:bg-stone-100 [&_button[aria-pressed=true]]:bg-emerald-50 [&_button[aria-pressed=true]]:text-emerald-900" role="group" aria-label="Filter activity"><button data-filter="all" aria-pressed="true">Recent</button><button data-filter="open" aria-pressed="false">In progress <span id="running">0</span></button><button data-filter="queued" aria-pressed="false">Queued <span id="queued">0</span></button><button data-filter="new" aria-pressed="false">Needs you <span id="new-count">0</span></button><button data-filter="done" aria-pressed="false">Finished</button></div><input id="search" type="search" aria-label="Find activity" placeholder="Find activity…" class="w-36 min-w-20 rounded border border-stone-200 bg-stone-50 px-2 py-1 text-sm focus:outline-emerald-700"></div>
+        <div class="flex items-center justify-between gap-3 px-4 py-3"><h2 id="activity-title" class="text-base font-semibold">Activity</h2><button data-review id="seen" disabled class="text-sm text-emerald-800 hover:underline">Mark changes seen</button></div>
+        <div class="flex items-center justify-between gap-3 border-b border-stone-200 px-4 pb-3"><div class="filters flex min-w-0 gap-1 overflow-x-auto text-sm [&_button]:whitespace-nowrap [&_button]:rounded [&_button]:px-2 [&_button]:py-1 [&_button]:text-stone-600 [&_button:hover]:bg-stone-100 [&_button[aria-pressed=true]]:bg-emerald-50 [&_button[aria-pressed=true]]:text-emerald-900" role="group" aria-label="Filter activity"><button data-filter="changes" aria-pressed="true">Since last look <span id="changes-count">0</span></button><button data-filter="all" aria-pressed="false">Recent</button><button data-filter="open" aria-pressed="false">In progress <span id="running">0</span></button><button data-filter="queued" aria-pressed="false">Queued <span id="queued">0</span></button><button data-filter="new" aria-pressed="false">Needs you <span id="new-count">0</span></button><button data-filter="done" aria-pressed="false">Finished</button></div><input id="search" type="search" aria-label="Find activity" placeholder="Find activity…" class="w-36 min-w-20 rounded border border-stone-200 bg-stone-50 px-2 py-1 text-sm focus:outline-emerald-700"></div>
         <div id="errands" class="min-h-0 overflow-y-auto"><div class="p-5 text-base text-stone-500">Reading current activity…</div></div>
         <section id="detail" class="min-h-0 overflow-y-auto border-t border-stone-200 bg-stone-50/60 p-4" aria-label="Selected activity"></section>
         <div id="record-note" class="border-t border-stone-200 px-4 py-2 text-xs text-stone-500"></div>
@@ -31,6 +32,7 @@
         <section class="rounded-lg border border-stone-200 bg-white p-4" aria-labelledby="queue-title">
           <div class="flex items-center justify-between gap-2"><h2 id="queue-title" class="text-base font-semibold">Gemini worker</h2><span id="worker-state" class="text-xs text-stone-500"></span></div>
           <div id="queue-summary" class="mt-3 flex flex-wrap items-center gap-2 text-sm"></div>
+          <div id="worker-activity" class="mt-3 text-sm leading-6 text-stone-700"></div>
           <div id="queue" class="mt-3 space-y-3"></div>
           <div id="worker-log" class="mt-3 text-xs text-stone-500"></div>
         </section>

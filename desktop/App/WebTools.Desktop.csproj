@@ -17,6 +17,7 @@
     <ProjectReference Include="../Machine/WebTools.Desktop.Machine.csproj" />
     <ProjectReference Include="../Core/WebTools.Desktop.Core.csproj" />
     <Content Include="../ui/**" Link="ui/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../shared/now-shared.js" Link="ui/now-shared.js" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../node_modules/@tailwindcss/browser/dist/index.global.js" Link="ui/vendor/tailwind.js" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../lib/kits/assistant-mark.js" Link="ui/vendor/assistant-mark.js" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../lib/kits/claude-mark.js" Link="ui/vendor/claude-mark.js" CopyToOutputDirectory="PreserveNewest" />

@@ -1,6 +1,7 @@
 (() => {
   'use strict';
-  let snapshot, filter = 'all', assistant = 'all', search = '', selected = '', lastFeed = '', lastAssistants = '';
+  let snapshot, filter = 'changes', assistant = 'all', search = '', selected = '', lastFeed = '', lastAssistants = '', review;
+  let unseen = [];
   let entries = [], visible = [];
   const bridge = window.chrome?.webview;
   const el = id => document.getElementById(id);
@@ -43,6 +44,7 @@
     }
     for (const s of local.values()) if (recent(s.updatedAt)) result.push({...s,key:`session:${s.provider}:${s.id}`,kind:'session',location:s.location || 'Laptop',at:s.updatedAt});
     for (const s of data.cloud?.items || []) if (recent(s.updatedAt)) result.push({...s,key:`cloud:${s.id}`,kind:'cloud',location:'Cloud',at:s.updatedAt});
+    for (const c of data.changes || []) if (!result.some(i => i.key === c.key)) result.push({...c,kind:'change'});
     return result.sort((a,b) => Number(open(b) || needs(b) || b.state === 'queued') - Number(open(a) || needs(a) || a.state === 'queued') || new Date(b.at) - new Date(a.at));
   }
 
@@ -68,7 +70,7 @@
       const tip = key === 'claude' ? 'Cloud records are published after responses. Live cloud status is not reported.' : 'Local session events. Unfinished work with no event for three minutes appears quiet.';
       const sourceTip = [unavailable, key === 'claude' ? snapshot.cloud?.notice : '', appOpen ? 'Application process detected.' : '', snapshot.cloud?.capturedAt && key === 'claude' ? `Cloud cache captured ${stamp(snapshot.cloud.capturedAt)}.` : ''].filter(Boolean).join(' ');
       const sourceLabel = key === 'claude' ? cloudLoading ? 'Cloud records loading' : snapshot.cloud?.notice ? 'Saved cloud records' : records.length ? 'Cloud records connected' : 'No recent cloud records' : appOpen ? 'App open on this laptop' : 'Local sessions';
-      return `<article class="min-w-0 rounded-lg border-l-4 p-3 ${styles[key]}"><div class="flex items-center justify-between gap-2"><button data-assistant="${key}" aria-pressed="${assistant === key}" class="flex items-center gap-2 rounded text-base font-semibold hover:underline">${mark(key)}${name}</button><span class="text-xs ${working ? 'font-medium text-emerald-800' : 'text-stone-600'}" data-title-tip="${escape(tip)}">${escape(state)}</span></div><div class="mt-2 space-y-2">${display.map(s => `<button class="session block w-full rounded text-left hover:bg-white/70" data-pick="${escape(s.key)}"><span class="flex items-center gap-2 text-xs text-stone-500">${badge(s.state)}<span>${escape(s.provider === 'Gemini worker' ? 'Worker' : s.location)}</span>${time(s.at)}</span><span class="mt-1 block truncate text-base leading-6" data-title-tip="${escape(s.title)}">${escape(s.title)}</span>${s.detail && (s.state === 'working' || s.kind === 'cloud') ? `<span class="mt-0.5 block truncate text-sm text-stone-600" data-title-tip="${escape(s.detail)}">${escape(s.detail)}</span>` : ''}</button>`).join('') || '<p class="py-2 text-base text-stone-500">No recent sessions</p>'}</div><div class="mt-2 text-xs text-stone-500" data-title-tip="${escape(sourceTip)}">${sourceLabel}${key === 'gemini' ? ` · ${snapshot.activity.errands.filter(j => j.state === 'queued').length} queued` : ''}</div></article>`;
+      return `<article class="min-w-0 rounded-lg border-l-4 p-3 ${styles[key]}"><div class="flex items-center justify-between gap-2"><button data-assistant="${key}" aria-pressed="${assistant === key}" class="flex items-center gap-2 rounded text-base font-semibold hover:underline">${mark(key)}${name}</button><span class="text-xs ${working ? 'font-medium text-emerald-800' : 'text-stone-600'}" data-title-tip="${escape(tip)}">${escape(state)}</span></div><div class="mt-2 space-y-2">${display.map(s => `<button class="session block w-full rounded text-left hover:bg-white/70" data-pick="${escape(s.key)}"><span class="flex items-center gap-2 text-xs text-stone-500">${badge(s.state)}<span>${escape(s.provider === 'Gemini worker' ? 'Worker' : s.location)}</span>${time(s.at)}</span><span class="mt-1 block truncate text-base leading-6" data-title-tip="${escape(s.title)}">${escape(s.title)}</span>${(s.checkpoint?.headline || s.detail) && (s.state === 'working' || s.kind === 'cloud') ? `<span class="mt-0.5 block truncate text-sm text-stone-600" data-title-tip="${escape(s.checkpoint?.headline || s.detail)}">${escape(s.checkpoint?.headline || s.detail)}</span>` : ''}${s.checkpoint ? `<span class="mt-1 block text-xs text-violet-800">Checkpoint ${time(s.checkpoint.at)}</span>` : ''}</button>`).join('') || '<p class="py-2 text-base text-stone-500">No recent sessions</p>'}</div><div class="mt-2 text-xs text-stone-500" data-title-tip="${escape(sourceTip)}">${sourceLabel}${key === 'gemini' ? ` · ${snapshot.activity.errands.filter(j => j.state === 'queued').length} queued` : ''}</div></article>`;
     }).join(''));
   }
 
@@ -84,28 +86,33 @@
       const trail = (snapshot.events || []).filter(e => e.sessionId === item.id && e.provider === item.provider).slice(0,8);
       content = `<p class="mt-3 text-pretty text-base leading-7">${escape(item.detail || labels[item.state])}</p>${item.kind === 'cloud' ? `<button class="${actionClass} mt-3" data-action="cloud-session" data-id="${id}">Open recorded session ↗</button>` : item.workspace ? `<button class="${actionClass} mt-3" data-action="session-folder" data-id="${id}">Open project folder ↗</button>` : ''}${trail.length > 1 ? `<ol class="mt-4 space-y-3">${trail.map(e => `<li class="flex items-start gap-3"><span class="shrink-0 pt-1 text-xs text-stone-500">${time(e.at)}</span><span class="text-base leading-6">${escape(e.detail || labels[e.state])}</span></li>`).join('')}</ol>` : ''}`;
     }
+    content += window.NowView.checkpoint(item.checkpoint, {stamp,link:(l,i) => `<button class="${actionClass}" data-action="work-link" data-id="${id}:${i}">${escape(l.label)} ↗</button>`});
+    if (item.kind === 'change' && window.NowView.safeLink(item.url)) content += `<button class="${actionClass} mt-3" data-action="change-link" data-id="${escape(item.key)}">Open in Web Tools ↗</button>`;
     html('detail', `<article class="${item.kind === 'errand' ? 'errand-detail' : 'session-detail'}"><div class="flex items-start justify-between gap-4"><h3 class="text-balance text-base font-semibold">${escape(item.title)}</h3>${navigation}</div><div class="mt-2 flex flex-wrap items-center gap-3 text-xs text-stone-500">${badge(item.state)}<span>${escape(item.provider)}</span><span>${escape(item.location)}</span><time>${escape(stamp(item.at))}</time>${item.host ? `<span>${escape(item.host)}</span>` : ''}</div>${content}</article>`);
   }
 
   function renderFeed() {
     if (!snapshot) return;
+    const pending = new Map(unseen.map(c => [c.key,c]));
     visible = entries.filter(item => {
+      if (filter === 'changes' && !pending.has(item.key)) return false;
       if (assistant !== 'all' && keyFor(item.provider) !== assistant) return false;
       if (filter === 'open' && !open(item)) return false;
       if (filter === 'queued' && item.state !== 'queued') return false;
       if (filter === 'new' && !needs(item)) return false;
       if (filter === 'done' && !finished(item)) return false;
-      return !search || `${item.title} ${item.detail} ${item.provider} ${item.id}`.toLowerCase().includes(search);
+      return !search || `${item.title} ${item.detail} ${item.checkpoint?.summary || ''} ${item.provider} ${item.id}`.toLowerCase().includes(search);
     }).slice(0,40);
     if (!visible.some(e => e.key === selected)) selected = visible[0]?.key || '';
+    el('seen').disabled = !visible.some(c => unseen.some(u => u.key === c.key));
     document.querySelectorAll('.filters button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.filter === filter)));
-    const signature = JSON.stringify([visible,selected]);
+    const signature = JSON.stringify([visible,selected,visible.map(item => pending.get(item.key)?.id)]);
     if (signature !== lastFeed) {
       lastFeed = signature;
-      html('errands', visible.length ? visible.map(item => `<article class="activity-row border-b border-stone-100 px-4 py-3 ${item.key === selected ? 'bg-emerald-50/50' : ''}"><div class="flex items-start justify-between gap-4"><button class="activity-title ${item.kind === 'errand' ? 'errand-title' : ''} text-left text-base leading-6 hover:text-emerald-800" data-pick="${escape(item.key)}" aria-pressed="${item.key === selected}">${escape(item.title)}</button><span class="shrink-0 text-xs text-stone-500">${time(item.at)}</span></div><div class="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-stone-500">${badge(item.state)}<span>${escape(item.provider)}</span><span>${escape(item.location)}</span>${item.isNew ? '<span class="text-emerald-800">New result</span>' : ''}${item.hasLocalOutput ? '<span>Local output</span>' : ''}${item.kind !== 'errand' && item.detail ? `<span class="min-w-0 truncate">${escape(item.detail)}</span>` : ''}</div></article>`).join('') : `<p class="p-5 text-base text-stone-500">${search ? 'No matching activity' : filter === 'queued' ? 'No errands in the queue' : filter === 'open' ? 'No work in progress' : filter === 'new' ? 'No activity needs your attention' : filter === 'done' ? 'No recent completions' : 'No recent activity'}</p>`);
+      html('errands', visible.length ? visible.map(item => `<article class="activity-row border-b border-stone-100 px-4 py-3 ${item.key === selected ? 'bg-emerald-50/50' : ''}"><div class="flex items-start justify-between gap-4"><button class="activity-title ${item.kind === 'errand' ? 'errand-title' : ''} text-left text-base leading-6 hover:text-emerald-800" data-pick="${escape(item.key)}" aria-pressed="${item.key === selected}">${escape(item.title)}</button><span class="shrink-0 text-xs text-stone-500">${time(item.at)}</span></div><div class="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-stone-500">${badge(item.state)}<span>${escape(item.provider)}</span><span>${escape(item.location)}</span>${pending.has(item.key) ? '<span class="text-emerald-800">New change</span>' : ''}${item.hasLocalOutput ? '<span>Local output</span>' : ''}${item.kind !== 'errand' && (item.checkpoint?.headline || item.detail) ? `<span class="min-w-0 truncate">${escape(item.checkpoint?.headline || item.detail)}</span>` : ''}</div></article>`).join('') : `<p class="p-5 text-base text-stone-500">${search ? 'No matching activity' : filter === 'changes' ? 'You’re caught up. New changes will appear here.' : filter === 'queued' ? 'No errands in the queue' : filter === 'open' ? 'No work in progress' : filter === 'new' ? 'No activity needs your attention' : filter === 'done' ? 'No recent completions' : 'No recent activity'}</p>`);
     }
     renderDetail();
-    el('record-note').textContent = `${visible.length} shown · Past 24 hours and open errands${assistant !== 'all' ? ` · ${assistant}` : ''}`;
+    el('record-note').textContent = `${visible.length} shown · ${filter === 'changes' ? 'Changes remembered in this browser' : 'Past 24 hours and open errands'}${assistant !== 'all' ? ` · ${assistant}` : ''}`;
   }
 
   function renderQueue() {
@@ -120,10 +127,15 @@
     html('queue-summary', available ? `<button data-filter="queued" data-reset-assistant="true" class="rounded px-2 py-1 ${queued.length ? 'bg-amber-100 font-medium text-amber-900' : 'bg-emerald-50 text-emerald-800'}">${queued.length ? `${queued.length} waiting` : '✓ Queue clear'}</button>${claimed.length ? `<span class="rounded bg-blue-50 px-2 py-1 text-blue-900" data-title-tip="Claimed means accepted by the worker. Continued execution is not established by a claim.">${claimed.length} claimed</span>` : ''}${replies.length ? `<span class="rounded bg-emerald-50 px-2 py-1 text-emerald-900">${replies.length} replies arriving</span>` : ''}${!a.connected ? '<span class="text-xs text-amber-800">Saved queue</span>' : ''}` : '<span class="text-amber-800">Queue unavailable</span>');
     html('queue', [...queued.slice(0,5),...claimed.slice(0,2)].map((job,i) => `<button class="block w-full text-left text-base leading-6 hover:text-blue-800" data-queue-pick="errand:${escape(job.id)}"><span class="flex items-start gap-2"><span class="shrink-0 text-sm ${job.state === 'queued' ? 'text-amber-700' : 'text-blue-700'}">${job.state === 'queued' ? `${i + 1}.` : '↗'}</span><span>${escape(job.title)}</span></span><span class="ml-5 mt-1 block text-xs text-stone-500">${job.state === 'queued' ? 'Waiting' : 'Claimed'} · ${time(job.state === 'queued' ? job.createdAt : job.updatedAt)}</span></button>`).join(''));
     html('worker-log', worker.lastLogAt ? `<span data-title-tip="Last local log write. A log write is an activity signal, not a heartbeat.">Log ${time(worker.lastLogAt)}</span>` : 'No local worker log');
+    const report = worker.activity;
+    const job = report?.itemId && a.errands.find(j => j.id === report.itemId);
+    html('worker-activity', report ? `<p class="text-xs font-medium text-stone-500">Last reported task</p><p class="mt-1 text-base text-pretty">${escape(report.headline)}</p>${job ? `<p class="mt-1 text-pretty text-stone-600">${escape(job.title)}</p>` : ''}<p class="mt-1 text-xs text-stone-500">Reported ${time(report.at)}</p>` : '<p class="text-stone-500">No task report available</p>');
   }
 
   function render(data) {
     snapshot = data;
+    if (!review || review.key !== `web-tools-now-reviewed:${data.machineName}`) review = new window.NowView.ReviewStore(data.machineName);
+    unseen = review.pending(data.changes);
     entries = collect(data);
     el('machine').textContent = data.machineName;
     const working = entries.filter(e => e.kind === 'session' && e.state === 'working').length;
@@ -131,7 +143,7 @@
     el('running').textContent = entries.filter(open).length;
     el('queued').textContent = data.activity.errands.filter(j => j.state === 'queued').length;
     el('new-count').textContent = entries.filter(needs).length;
-    el('seen').disabled = !data.activity.errands.some(j => j.isNew);
+    el('changes-count').textContent = unseen.length;
     const notices = [data.activity.notice,...(data.sessions?.notices || [])].filter(Boolean);
     if (data.daemon.state === 'absent' && data.activity.errands.some(j => j.state === 'queued')) notices.push('Gemini errands are waiting. The worker was not detected.');
     html('notice', notices.length ? `<div class="rounded border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">${notices.map(escape).join('<br>')}</div>` : '');
@@ -151,6 +163,9 @@
     selected = key; renderAssistants(); renderFeed();
   }
   document.addEventListener('click', event => {
+    if (event.target.closest('[data-review]')) {
+      review.mark(unseen.filter(c => visible.some(i => i.key === c.key))); render(snapshot); return;
+    }
     const choice = event.target.closest('[data-assistant]');
     if (choice) { assistant = assistant === choice.dataset.assistant ? 'all' : choice.dataset.assistant; renderAssistants(); renderFeed(); return; }
     const queue = event.target.closest('[data-queue-pick]');
@@ -166,6 +181,7 @@
   });
   el('search').addEventListener('input', event => { search = event.target.value.toLowerCase().trim(); renderFeed(); });
   bridge?.addEventListener('message', event => { if (event.data?.type === 'snapshot') render(event.data.data); });
+  window.addEventListener('storage', event => { if (review && event.key === review.key) { review.load(); render(snapshot); } });
   window.setInterval(updateTimes,1000);
   send('ready');
 })();

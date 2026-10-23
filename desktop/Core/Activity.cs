@@ -14,19 +14,27 @@ public record ActivitySnapshot(DateTimeOffset ObservedAt, DateTimeOffset? Synced
     string? Revision, bool Connected, string? Notice, List<Errand> Errands);
 
 public record ApplicationSignal(string Name, string State, string Detail, int Processes);
-public record DaemonSignal(string State, string Detail, DateTimeOffset? LastLogAt);
+public record WorkerActivity(string Kind, string Headline, DateTimeOffset At, string? ItemId = null);
+public record DaemonSignal(string State, string Detail, DateTimeOffset? LastLogAt, WorkerActivity? Activity = null);
 public record Place(string Id, string Name, string Detail);
 public record RecentFile(string Id, string Name, DateTimeOffset ModifiedAt, long Bytes);
 public record LocalSession(string Id, string Provider, string Title, string State,
-    DateTimeOffset UpdatedAt, string Workspace, string Detail = "", string Location = "Laptop");
+    DateTimeOffset UpdatedAt, string Workspace, string Detail = "", string Location = "Laptop",
+    SessionCheckpoint? Checkpoint = null);
+public record WorkLink(string Label, string Url);
+public record CheckpointTurn(int Turn, string Headline, string Summary, int Files, int Pushes, int Agents);
+public record SessionCheckpoint(string Summary, string Headline, DateTimeOffset At,
+    DateTimeOffset? AnalyzedAt, List<CheckpointTurn> Turns, List<WorkLink> Links);
 public record SessionSnapshot(List<LocalSession> Items, List<string> Notices);
 public record CloudSnapshot(List<LocalSession> Items, DateTimeOffset? CapturedAt, string? Notice);
 public record ActivityEvent(string Id, string Provider, string Title, string State,
     DateTimeOffset At, string Detail, string Location, string SessionId);
+public record ActivityChange(string Key, string Id, string Provider, string Title, string State,
+    DateTimeOffset At, string Detail, string Location, string? Url);
 public record LaptopSnapshot(ActivitySnapshot Activity, DaemonSignal Daemon,
     List<ApplicationSignal> Applications, List<Place> Places, List<RecentFile> Downloads,
     string MachineName, DateTimeOffset SeenThrough, SessionSnapshot Sessions, double ScanMilliseconds,
-    CloudSnapshot Cloud, List<ActivityEvent> Events);
+    CloudSnapshot Cloud, List<ActivityEvent> Events, List<ActivityChange>? Changes = null);
 
 public static class Activity
 {

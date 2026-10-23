@@ -14,6 +14,7 @@ window.matchMedia = () => ({matches:true});
 window.eval(read('../../lib/kits/claude-mark.js'));
 window.eval(read('../../lib/kits/assistant-mark.js'));
 window.eval(read('../../lib/kits/title-tip.js'));
+window.eval(read('../shared/now-shared.js'));
 window.eval(read('../ui/laptop.js'));
 const now = new Date().toISOString();
 const earlier = seconds => new Date(Date.now() - seconds * 1000).toISOString();
@@ -30,6 +31,7 @@ const data = {
   places:[{id:'outputs',name:'Outputs'}],downloads:[{name:'<img src=x>.txt',modifiedAt:now}],
   sessions:{items:[{id:'local',provider:'Codex',title:'Current <b>session</b>',state:'working',updatedAt:now,workspace:'C:/fixture',detail:'Checking the queue',location:'Laptop'}],notices:[]},
   cloud:{capturedAt:now,items:[{id:'cloud',provider:'Claude',title:'Cloud work',state:'recorded',updatedAt:earlier(30),detail:'Recorded: choice needed',location:'Cloud'}],notice:null},
+  changes:[{key:'errand:result',id:'change-result',provider:'Gemini',title:'A result',state:'complete',at:now,detail:'Result ready',location:'Laptop'}, {key:'cloud:cloud',id:'change-cloud',provider:'Claude',title:'Cloud work',state:'recorded',at:now,detail:'Recorded checkpoint',location:'Cloud'}, {key:'session:Codex:local',id:'change-local',provider:'Codex',title:'Local work',state:'working',at:now,detail:'Started work',location:'Laptop'}],
   events:[{id:'event',sessionId:'local',provider:'Codex',title:'Current session',state:'working',at:earlier(5),detail:'Turn started',location:'Laptop'}],
 };
 const snapshot = () => receive({data:{type:'snapshot',data}});
@@ -89,6 +91,26 @@ check(doc.querySelector('[data-action=refresh]') === null && doc.querySelector('
 click('[data-filter=all]');
 const search = doc.querySelector('#search'); search.value = 'nothing matches'; search.dispatchEvent(new window.Event('input',{bubbles:true}));
 check(doc.querySelector('#errands').textContent.includes('No matching activity'), 'Search filters the combined activity feed.');
-click('[data-action=seen]'); check(messages.at(-1).action === 'seen', 'Marking results seen remains available.');
+search.value = ''; search.dispatchEvent(new window.Event('input',{bubbles:true}));
+click('[data-filter=changes]');
+check(doc.querySelector('#changes-count').textContent === '3', 'Changes are grouped once per piece of work.');
+click('[data-review]');
+check(doc.querySelector('#changes-count').textContent === '0' && doc.querySelector('#errands').textContent.includes('caught up'), 'Marking visible changes seen clears the browser review list.');
+snapshot();
+check(doc.querySelector('#changes-count').textContent === '0' && new window.NowView.ReviewStore(data.machineName).pending(data.changes).length === 0, 'Polling and browser review-store reloads preserve seen changes.');
+data.changes[0].id = 'later-result'; snapshot();
+check(doc.querySelector('#changes-count').textContent === '1', 'A later change to reviewed work becomes new again.');
+data.daemon.activity = {kind:'topics',headline:'Summarising 2 sessions',at:earlier(30)}; snapshot();
+check(doc.querySelector('#worker-activity').textContent.includes('Summarising 2 sessions') && doc.querySelector('#worker-activity').textContent.includes('Reported'), 'The worker shows its last reported task with an observation age.');
+data.cloud.items[0].checkpoint = {summary:'Published summary <b>text</b>',headline:'Latest useful checkpoint',at:earlier(300),turns:[{turn:2,headline:'A checkpoint',summary:'Work completed',files:2,pushes:1,agents:3}],links:[{label:'home #72',url:'https://github.com/mehrlander/home/pull/72'}]};
+snapshot(); click('[data-assistant=claude]'); click('[data-filter=all]');
+check(doc.querySelector('#assistants').textContent.includes('Latest useful checkpoint') && doc.querySelector('#detail').textContent.includes('Published checkpoint'), 'Cloud cards and details show published checkpoints separately from live activity.');
+check(!doc.querySelector('#detail b') && doc.querySelector('#detail').textContent.includes('<b>text</b>'), 'Checkpoint summaries remain text.');
+click('[data-action=work-link]'); check(messages.at(-1).id === 'cloud:0', 'Checkpoint links send only a known session and link index to the native bridge.');
+data.changes[1].id = 'cloud-latest'; snapshot();
+check(doc.querySelector('#errands').textContent.includes('New change'), 'A new change is visible in the Recent filter.');
+click('[data-review]');
+check(!doc.querySelector('#errands').textContent.includes('New change'), 'Reviewing work in Recent also removes its new-change badge without changing the item.');
+
 dom.window.close();
 console.log(`${checks} Now UI checks passed.`);

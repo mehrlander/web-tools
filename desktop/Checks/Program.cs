@@ -65,6 +65,16 @@ try {
         generatedAt = cacheAt, rows = new[] { new { id = "cloud-1", agent = "https://claude.ai/code/session_fixture",
             ask = "Cloud fixture", ended = cacheAt, state = "needs" } }
     }));
+    var topicPath = "sessions/topics/2026/10/2026-10-23-cloud-1.json";
+    Directory.CreateDirectory(Path.GetDirectoryName(Path.Combine(seed, topicPath))!);
+    await File.WriteAllTextAsync(Path.Combine(seed, "state/session-topics.json"), JsonSerializer.Serialize(new {
+        sessions = new Dictionary<string, object> { ["cloud-1"] = new {
+            path = topicPath, title = "Cloud checkpoint fixture", summary = "A captured result", source_ended = cacheAt
+        } }
+    }));
+    await File.WriteAllTextAsync(Path.Combine(seed, topicPath), JsonSerializer.Serialize(new {
+        short_id = "cloud-1", source_ended = cacheAt, turns = new[] { new { turn = 0, headline = "A published checkpoint", summary = "The result is ready" } }
+    }));
     await CommitFixture();
     await Git(seed, "push", "--quiet", "origin", "background:main");
     await Git(fixture, "clone", "--quiet", "--", remote, checkout);
@@ -77,6 +87,8 @@ try {
     Check(live.Connected && live.Errands.Count == 2, "A real Git object read joins the available worker records.");
     Check(reader.Cloud.Items.Single() is { State: "recorded", Location: "Cloud" },
         "The remote main cache supplies recorded cloud activity without asserting a running session.");
+    Check(reader.Cloud.Items.Single() is { Title: "Cloud checkpoint fixture", Checkpoint.Headline: "A published checkpoint" },
+        "Real Git objects join the main session cache with background topic companions.");
     Check(live.Errands.Single(j => j.Id == "test-1") is { State: "complete", HasOutput: true }, "Output presence and a result survive an old claim in Git.");
     Check(statusBefore == await Commands.Text("git", ["status", "--porcelain"], checkout)
         && headBefore == await Commands.Text("git", ["rev-parse", "HEAD"], checkout)
@@ -103,4 +115,5 @@ try {
 }
 SessionChecks.Run(Check);
 PhoneChecks.Run(Check);
+CheckpointChecks.Run(Check);
 Console.WriteLine($"{passed} checks passed.");

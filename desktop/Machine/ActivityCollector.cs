@@ -9,6 +9,7 @@ public sealed class ActivityCollector
 {
     private readonly SessionReader sessions = new(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
     private readonly ActivityJournal journal = new(Path.Combine(UserSettings.DataDirectory, "activity-history.json"));
+    private readonly ChangeJournal changes = new(Path.Combine(UserSettings.DataDirectory, "activity-changes.json"));
     private ErrandReader? reader;
     private string root = "";
     private DateTimeOffset processesChecked;
@@ -46,9 +47,11 @@ public sealed class ActivityCollector
                     }
                     var current = sessions.Read(now);
                     var events = journal.Observe(current.Items, now);
+                    var cloud = active.Cloud;
+                    var updates = changes.Observe(current.Items.Concat(cloud.Items), activity.Errands, now);
                     var snapshot = new LaptopSnapshot(activity, daemon, applications, LaptopSignals.Places(root),
                         LaptopSignals.Downloads(), Environment.MachineName, settings.SeenThrough, current,
-                        watch.Elapsed.TotalMilliseconds, active.Cloud, events);
+                        watch.Elapsed.TotalMilliseconds, cloud, events, updates);
                     Volatile.Write(ref latest, new(now, snapshot, active.SyncMilliseconds));
                     Volatile.Write(ref error, null);
                 } catch { Volatile.Write(ref error, "The latest local activity scan failed. Showing the last observation."); }

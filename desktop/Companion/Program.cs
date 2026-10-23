@@ -66,6 +66,7 @@ app.MapGet("/api/v1/results/{id}", (string id) => collector.Latest is { } activi
 var assets = new Dictionary<string, (string File, string Type)> {
     ["/"] = ("index.html", "text/html; charset=utf-8"),
     ["/phone.js"] = ("phone.js", "text/javascript; charset=utf-8"),
+    ["/now-shared.js"] = ("now-shared.js", "text/javascript; charset=utf-8"),
     ["/icon.svg"] = ("icon.svg", "image/svg+xml"),
     ["/apple-touch-icon.png"] = ("apple-touch-icon.png", "image/png"),
     ["/manifest.webmanifest"] = ("manifest.webmanifest", "application/manifest+json"),

@@ -183,6 +183,19 @@ public partial class MainWindow : Window
                 case "ready": await SendSnapshot(); break;
                 case "refresh": await Refresh(force: true); break;
                 case "seen": settings.SeenThrough = DateTimeOffset.UtcNow; settings.Save(); await Refresh(); break;
+                case "work-link":
+                    var parts = id.Split(':');
+                    if (parts.Length == 2 && int.TryParse(parts[1], out var linkIndex)) {
+                        var links = snapshot?.Cloud.Items.Find(s => s.Id == parts[0])?.Checkpoint?.Links;
+                        if (links is not null && linkIndex >= 0 && linkIndex < links.Count) OpenExternal(links[linkIndex].Url);
+                    }
+                    break;
+                case "change-link":
+                    var change = snapshot?.Changes?.Find(c => c.Key == id);
+                    if (change?.Url is { } changeUrl && NavigationPolicy.IsWebTools(changeUrl)) {
+                        settings.WebUrl = changeUrl; WebView.CoreWebView2?.Navigate(changeUrl); SelectLaptop(false);
+                    }
+                    break;
                 case "web": SelectLaptop(false); break;
                 case "activity":
                     settings.WebUrl = NavigationPolicy.AppUrl + "?view=sessions";

@@ -34,6 +34,7 @@ public static class LaptopSignals
         DateTimeOffset? lastLog = null;
         var log = Path.Combine(registry, "poller.log");
         if (File.Exists(log)) lastLog = new DateTimeOffset(File.GetLastWriteTimeUtc(log));
+        var activity = WorkerLog.Read(log);
         try {
             using var query = new ManagementObjectSearcher("SELECT CommandLine FROM Win32_Process WHERE Name='pythonw.exe' OR Name='python.exe'");
             using var rows = query.Get();
@@ -42,12 +43,12 @@ public static class LaptopSignals
                     var command = row["CommandLine"] as string ?? "";
                     if (command.Contains("poll_followup.py", StringComparison.OrdinalIgnoreCase)
                         && command.Contains("--daemon", StringComparison.Ordinal))
-                        return new("detected", "Gemini worker process detected. Log time is the last observed activity, not a heartbeat.", lastLog);
+                        return new("detected", "Gemini worker process detected. Reported tasks are observations, not a heartbeat.", lastLog, activity);
                 }
             }
-            return new("absent", "The Gemini worker process was not detected. Queued errands may wait until the worker starts.", lastLog);
+            return new("absent", "The Gemini worker process was not detected. Queued errands may wait until the worker starts.", lastLog, activity);
         } catch {
-            return new("unknown", "Worker process status could not be checked. The last log time is shown when available.", lastLog);
+            return new("unknown", "Worker process status could not be checked. The last report is shown when available.", lastLog, activity);
         }
     }
 

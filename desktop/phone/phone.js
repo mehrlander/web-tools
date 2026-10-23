@@ -2,7 +2,11 @@
   'use strict';
   const el = id => document.getElementById(id);
   const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const html = (id, value) => { const node = el(id); if (node && node.innerHTML !== value) node.innerHTML = value; };
+  const rendered = new WeakMap();
+  const html = (id, value) => {
+    const node = el(id);
+    if (node && rendered.get(node) !== value) { node.innerHTML = value; rendered.set(node,value); }
+  };
   const labels = {working:'Working',quiet:'Quiet',idle:'Idle',interrupted:'Interrupted',recent:'Recent',recorded:'Recorded',queued:'Waiting',claimed:'Claimed',reply:'Reply arriving',complete:'Complete',failed:'Needs review'};
   const tones = {working:'bg-emerald-100 text-emerald-900',quiet:'bg-amber-100 text-amber-900',queued:'bg-amber-100 text-amber-900',claimed:'bg-blue-100 text-blue-900',failed:'bg-rose-100 text-rose-900',interrupted:'bg-rose-100 text-rose-900',complete:'bg-emerald-50 text-emerald-900',recorded:'bg-violet-50 text-violet-900'};
   const colours = {codex:'text-emerald-700',gemini:'text-blue-700',claude:'text-orange-700'};
@@ -10,9 +14,11 @@
   const mark = (provider, cls = 'size-5 shrink-0') => window.assistantMark?.svg(keyFor(provider), {cls}) || '';
   const badge = state => `<span class="rounded px-2 py-0.5 text-xs ${tones[state] || 'bg-stone-100 text-stone-600'}">${escape(labels[state] || state)}</span>`;
   const age = at => { const seconds = Math.max(0, Math.round((Date.now() - new Date(at).getTime()) / 1000)); return seconds < 60 ? 'just now' : seconds < 3600 ? `${Math.floor(seconds / 60)}m ago` : seconds < 86400 ? `${Math.floor(seconds / 3600)}h ago` : new Date(at).toLocaleDateString(); };
+  const observedTime = at => `<time data-at="${escape(at)}">${escape(stamp(at))}</time>`;
   const stamp = at => at ? new Date(at).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) : 'Not yet';
   const safeUrl = value => { try { const url = new URL(value); return url.origin === 'https://mehrlander.github.io' && url.pathname.startsWith('/web-tools/') ? url.href : ''; } catch { return ''; } };
-  let data, tab = 'now', assistant = '', timer, etag = '', failures = 0, pending = false, connected = false, accessDenied = false, lastDetail = '', savedScroll = 0;
+  let data, tab = 'now', assistant = '', timer, etag = '', failures = 0, pending = false, connected = false, accessDenied = false, lastDetail = '', savedScroll = 0, review;
+  let unseen = [];
   const replies = new Map();
   const filtered = () => (data?.items || []).filter(i => !assistant || keyFor(i.provider) === assistant);
   const active = i => ['working','quiet','claimed','reply'].includes(i.state);
@@ -28,15 +34,34 @@
   }
 
   function row(item, position) {
-    return `<button data-pick="${escape(item.key)}" class="block min-h-16 w-full border-b border-stone-100 bg-white px-4 py-4 text-left active:bg-stone-50"><span class="flex items-start gap-3">${position ? `<span class="w-5 shrink-0 pt-1 text-sm text-amber-700">${position}.</span>` : `<span class="pt-0.5 ${colours[keyFor(item.provider)]}">${mark(item.provider)}</span>`}<span class="min-w-0 flex-1"><span class="line-clamp-2 text-pretty text-base font-medium leading-6">${escape(item.title)}</span><span class="mt-2 flex flex-wrap items-center gap-2 text-xs text-stone-500">${badge(item.state)}<span>${escape(item.provider)} · ${escape(item.location)}</span><span>${escape(age(item.at))}</span></span>${item.detail ? `<span class="mt-2 line-clamp-2 text-pretty text-base leading-6 text-stone-600">${escape(item.detail.slice(0,200))}</span>` : ''}</span><span class="pt-1 text-stone-400" aria-hidden="true">›</span></span></button>`;
+    return `<button data-pick="${escape(item.key)}" ${item.changeId ? `data-change="${escape(item.changeId)}"` : ''} class="block min-h-16 w-full border-b border-stone-100 bg-white px-4 py-4 text-left active:bg-stone-50"><span class="flex items-start gap-3">${position ? `<span class="w-5 shrink-0 pt-1 text-sm text-amber-700">${position}.</span>` : `<span class="pt-0.5 ${colours[keyFor(item.provider)]}">${mark(item.provider)}</span>`}<span class="min-w-0 flex-1"><span class="line-clamp-2 text-pretty text-base font-medium leading-6">${escape(item.title)}</span><span class="mt-2 flex flex-wrap items-center gap-2 text-xs text-stone-500">${badge(item.state)}<span>${escape(item.provider)} · ${escape(item.location)}</span>${observedTime(item.at)}</span>${(item.checkpoint?.headline || item.detail) ? `<span class="mt-2 line-clamp-2 text-pretty text-base leading-6 text-stone-600">${escape((item.changeId ? item.detail.replace(/ · Recorded.*$/, '') : item.checkpoint?.headline || item.detail).slice(0,200))}</span>` : ''}</span><span class="pt-1 text-stone-400" aria-hidden="true">›</span></span></button>`;
   }
 
   function group(title, items, empty = '', numbered = false) {
     return `<section><h2 class="flex items-center justify-between px-4 pt-5 pb-2 text-sm font-semibold text-stone-600"><span>${escape(title)}</span>${items.length ? `<span class="font-normal">${items.length}</span>` : ''}</h2>${items.length ? items.map((i,n) => row(i, numbered ? n + 1 : 0)).join('') : `<p class="px-4 py-4 text-base text-stone-500">${escape(empty)}</p>`}</section>`;
   }
 
+  function changeItems() {
+    return unseen.filter(c => !assistant || keyFor(c.provider) === assistant).map(c => {
+      const item = data.items.find(i => i.key === c.key);
+      return {...item,...c,id:item?.id || c.id,kind:item?.kind || 'change',checkpoint:item?.checkpoint,changeId:c.id};
+    });
+  }
+  function changesSection(limit) {
+    const items = changeItems();
+    return `<section aria-label="Since you last looked"><div class="flex items-center justify-between gap-3 px-4 pt-5 pb-2"><h2 class="text-sm font-semibold text-stone-600">Since you last looked <span class="font-normal">${items.length || ''}</span></h2>${items.length ? '<button data-review class="min-h-11 text-sm text-emerald-900">Mark shown seen</button>' : ''}</div>${items.length ? items.slice(0,limit).map(i => row(i)).join('') : '<p class="px-4 py-3 text-base text-stone-500">You’re caught up.</p>'}${items.length > limit ? '<button data-tab="recent" class="min-h-11 px-4 text-sm text-emerald-900">All changes →</button>' : ''}</section>`;
+  }
+  function workerReport(recentOnly = false) {
+    const report = data.sources.workerActivity;
+    if (!report || assistant && assistant !== 'gemini' || recentOnly && (data.sources.workerState !== 'detected' || Date.now() - Date.parse(report.at) > 900000)) return '';
+    const job = report.itemId && data.items.find(i => i.kind === 'errand' && i.id === report.itemId);
+    return `<section class="mx-4 mt-4 rounded-lg border-l-4 border-blue-400 bg-blue-50 px-3 py-3"><p class="text-xs font-medium text-blue-900">Gemini worker · Last reported task</p><p class="mt-1 text-base leading-6">${escape(report.headline)}</p>${job ? `<p class="mt-1 text-sm text-stone-600">${escape(job.title)}</p>` : ''}<p class="mt-1 text-xs text-stone-500">Reported ${observedTime(report.at)}</p></section>`;
+  }
+
   function render() {
     if (!data) { connection(); return; }
+    if (!review || review.key !== `web-tools-now-reviewed:${data.machineName}`) review = new window.NowView.ReviewStore(data.machineName);
+    unseen = review.pending(data.changes);
     el('machine').textContent = data.machineName;
     const waiting = data.items.filter(i => i.state === 'queued');
     el('queue-count').textContent = data.sources.queueAvailable ? waiting.length : '?';
@@ -59,20 +84,21 @@
     html('notice', notices.map(escape).join('<br>'));
     if (tab === 'queue') {
       const queued = items.filter(i => i.state === 'queued').sort((a,b) => new Date(a.createdAt) - new Date(b.createdAt));
-      html('content', `<div class="flex items-center justify-between gap-2 px-4 pt-4 text-xs text-stone-500"><span>Gemini worker · ${data.sources.workerState === 'detected' ? 'Detected' : data.sources.workerState === 'absent' ? 'Not detected' : 'Status unavailable'}</span><span>${data.sources.recordsConnected ? '' : 'Saved queue'}</span></div>` + group('Waiting', queued, !data.sources.queueAvailable ? 'Queue unavailable' : assistant && assistant !== 'gemini' ? 'Gemini queue hidden by assistant filter' : 'Queue clear', true) + (items.some(i => ['claimed','reply'].includes(i.state)) ? group('Accepted by worker', items.filter(i => ['claimed','reply'].includes(i.state))) : ''));
+      html('content', workerReport() + `<div class="flex items-center justify-between gap-2 px-4 pt-4 text-xs text-stone-500"><span>Gemini worker · ${data.sources.workerState === 'detected' ? 'Detected' : data.sources.workerState === 'absent' ? 'Not detected' : 'Status unavailable'}</span><span>${data.sources.recordsConnected ? '' : 'Saved queue'}</span></div>` + group('Waiting', queued, !data.sources.queueAvailable ? 'Queue unavailable' : assistant && assistant !== 'gemini' ? 'Gemini queue hidden by assistant filter' : 'Queue clear', true) + (items.some(i => ['claimed','reply'].includes(i.state)) ? group('Accepted by worker', items.filter(i => ['claimed','reply'].includes(i.state))) : ''));
     } else if (tab === 'recent') {
-      html('content', group('Recent results and sessions', items.filter(i => !['queued','claimed','working','quiet','reply'].includes(i.state)).slice(0,40), 'No recent results') + (data.events.length ? `<section><h2 class="px-4 pt-5 pb-2 text-sm font-semibold text-stone-600">Observed activity</h2>${data.events.filter(e => !assistant || keyFor(e.provider) === assistant).slice(0,15).map(e => `<div class="border-b border-stone-200 px-4 py-3"><div class="flex items-center gap-2 text-xs text-stone-500">${mark(e.provider,'size-4')}<span>${escape(e.provider)} · ${escape(age(e.at))}</span></div><p class="mt-1 text-base leading-6">${escape(e.detail || labels[e.state] || e.state)}</p><p class="mt-1 truncate text-xs text-stone-500">${escape(e.title)}</p></div>`).join('')}</section>` : ''));
+      html('content', changesSection(150) + group('Recent results and sessions', items.filter(i => !['queued','claimed','working','quiet','reply'].includes(i.state)).slice(0,40), 'No recent results') + (data.events.length ? `<section><h2 class="px-4 pt-5 pb-2 text-sm font-semibold text-stone-600">Observed activity</h2>${data.events.filter(e => !assistant || keyFor(e.provider) === assistant).slice(0,15).map(e => `<div class="border-b border-stone-200 px-4 py-3"><div class="flex items-center gap-2 text-xs text-stone-500">${mark(e.provider,'size-4')}<span>${escape(e.provider)} · ${escape(age(e.at))}</span></div><p class="mt-1 text-base leading-6">${escape(e.detail || labels[e.state] || e.state)}</p><p class="mt-1 truncate text-xs text-stone-500">${escape(e.title)}</p></div>`).join('')}</section>` : ''));
     } else {
       const needs = items.filter(i => i.needsAttention);
       const current = items.filter(active);
-      html('content', group('In progress', current, 'No current work observed') + (needs.length ? group('Needs you', needs) : '') + (items.some(finished) ? group('Recently finished', items.filter(finished).slice(0,4)) : '') + (!current.length && !needs.length && items.some(i => i.kind === 'cloud' && !finished(i)) ? group('Latest cloud records', items.filter(i => i.kind === 'cloud' && !finished(i)).slice(0,3)) : ''));
+      html('content', group('In progress', current, 'No current work observed') + workerReport(true) + changesSection(3) + (needs.length ? group('Needs you', needs) : '') + (items.some(finished) ? group('Recently finished', items.filter(finished).slice(0,4)) : '') + (!current.length && !needs.length && items.some(i => i.kind === 'cloud' && !finished(i)) ? group('Latest cloud records', items.filter(i => i.kind === 'cloud' && !finished(i)).slice(0,3)) : ''));
     }
     html('source-times', `Errands synced ${escape(stamp(data.sources.recordsSyncedAt))}<br>Cloud records captured ${escape(stamp(data.sources.cloudCapturedAt))}`);
     detail(); connection();
+    document.querySelectorAll('time[data-at]').forEach(node => { node.textContent = age(node.dataset.at); });
   }
 
   function detail() {
-    const key = selected(), item = data?.items.find(i => i.key === key);
+    const key = selected(), item = data?.items.find(i => i.key === key) || data?.changes?.filter(c => c.key === key).map(c => ({...c,kind:'change'}))[0];
     el('overview').hidden = !!key; el('detail').hidden = !key;
     if (!key) { lastDetail = ''; return; }
     if (!item) {
@@ -81,7 +107,7 @@
     }
     const url = safeUrl(item.url), reply = replies.get(item.id);
     const events = data.events.filter(e => e.sessionId === item.id && e.provider === item.provider).slice(0,10);
-    const value = `<header class="sticky top-0 z-10 flex items-center justify-between border-b border-stone-200 bg-white/95 px-3 py-2 backdrop-blur"><button data-back class="min-h-11 px-2 text-base text-stone-700">← Now</button><span class="text-xs text-stone-500">${escape(item.location)}</span></header><div id="detail-connection"></div><article class="px-4 pt-5 pb-10"><div class="flex items-center gap-2 ${colours[keyFor(item.provider)]}">${mark(item.provider)}<span class="text-sm">${escape(item.provider)}</span></div><h2 class="mt-3 break-words text-balance text-xl font-semibold leading-7">${escape(item.title)}</h2><div class="mt-3 flex flex-wrap items-center gap-3">${badge(item.state)}<span class="text-xs text-stone-500">${escape(stamp(item.at))}</span></div>${item.detail ? `<p class="mt-5 whitespace-pre-wrap break-words text-pretty text-base leading-7">${escape(item.detail)}</p>` : ''}${url ? `<a class="mt-5 inline-flex min-h-11 items-center rounded border border-stone-200 px-3 text-base text-emerald-900" href="${escape(url)}">Open in Web Tools ↗</a>` : ''}${item.kind === 'errand' && ['reply','complete','failed'].includes(item.state) ? `<div id="reply" class="mt-6 whitespace-pre-wrap break-words text-base leading-7">${reply === undefined ? 'Reading result…' : escape(reply)}</div>` : ''}${events.length ? `<h3 class="mt-6 text-sm font-semibold text-stone-500">Observed activity</h3><ol class="mt-3 space-y-4">${events.map(e => `<li><p class="text-xs text-stone-500">${escape(stamp(e.at))}</p><p class="mt-1 text-base leading-7">${escape(e.detail || labels[e.state])}</p></li>`).join('')}</ol>` : ''}</article>`;
+    const value = `<header class="sticky top-0 z-10 flex items-center justify-between border-b border-stone-200 bg-white/95 px-3 py-2 backdrop-blur"><button data-back class="min-h-11 px-2 text-base text-stone-700">← Now</button><span class="text-xs text-stone-500">${escape(item.location)}</span></header><div id="detail-connection"></div><article class="px-4 pt-5 pb-10"><div class="flex items-center gap-2 ${colours[keyFor(item.provider)]}">${mark(item.provider)}<span class="text-sm">${escape(item.provider)}</span></div><h2 class="mt-3 break-words text-balance text-xl font-semibold leading-7">${escape(item.title)}</h2><div class="mt-3 flex flex-wrap items-center gap-3">${badge(item.state)}<span class="text-xs text-stone-500">${escape(stamp(item.at))}</span></div>${item.detail ? `<p class="mt-5 whitespace-pre-wrap break-words text-pretty text-base leading-7">${escape(item.detail)}</p>` : ''}${window.NowView.checkpoint(item.checkpoint,{stamp,link:l => `<a class="inline-flex min-h-11 items-center rounded border border-stone-200 px-3 text-sm text-emerald-900" href="${escape(window.NowView.safeLink(l.url))}" rel="noreferrer">${escape(l.label)} ↗</a>`})}${url ? `<a class="mt-5 inline-flex min-h-11 items-center rounded border border-stone-200 px-3 text-base text-emerald-900" href="${escape(url)}">Open in Web Tools ↗</a>` : ''}${item.kind === 'errand' && ['reply','complete','failed'].includes(item.state) ? `<div id="reply" class="mt-6 whitespace-pre-wrap break-words text-base leading-7">${reply === undefined ? 'Reading result…' : escape(reply)}</div>` : ''}${events.length ? `<h3 class="mt-6 text-sm font-semibold text-stone-500">Observed activity</h3><ol class="mt-3 space-y-4">${events.map(e => `<li><p class="text-xs text-stone-500">${escape(stamp(e.at))}</p><p class="mt-1 text-base leading-7">${escape(e.detail || labels[e.state])}</p></li>`).join('')}</ol>` : ''}</article>`;
     if (value !== lastDetail) { lastDetail = value; html('detail', value); }
     if (item.kind === 'errand' && ['reply','complete','failed'].includes(item.state) && reply === undefined) loadReply(item);
   }
@@ -124,6 +150,10 @@
 
   document.addEventListener('click', event => {
     const button = event.target.closest('button'); if (!button) return;
+    if (button.hasAttribute('data-review')) {
+      const shown = new Set([...document.querySelectorAll('[data-change]')].map(n => n.dataset.change));
+      review.mark(unseen.filter(c => shown.has(c.id))); render(); return;
+    }
     if (button.dataset.tab) { tab = button.dataset.tab; render(); window.scrollTo(0,0); }
     if (button.dataset.assistant) { assistant = assistant === button.dataset.assistant ? '' : button.dataset.assistant; render(); }
     if (button.dataset.pick) { savedScroll = window.scrollY; history.pushState({nowDetail:true},'', '#item=' + encodeURIComponent(button.dataset.pick)); detail(); connection(); window.scrollTo(0,0); }
@@ -134,6 +164,7 @@
   });
   window.addEventListener('popstate', () => { detail(); connection(); window.scrollTo(0,savedScroll); });
   document.addEventListener('visibilitychange', () => { clearTimeout(timer); if (!document.hidden) poll(); });
+  window.addEventListener('storage', event => { if (review && event.key === review.key) { review.load(); render(); } });
   window.addEventListener('online', poll);
   window.addEventListener('offline', () => { connected = false; connection(); });
   try { const cached = JSON.parse(localStorage.getItem('web-tools-now-snapshot')); if (cached?.schemaVersion === 1 && Array.isArray(cached.items)) data = cached; } catch { }
