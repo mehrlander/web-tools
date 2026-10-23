@@ -78,10 +78,11 @@ these it reads web-tools' own `data/doc-growth/web-tools.json`.
 A repo whose `.web-tools.json` sets `growth` to its data file's path
 ([field reference](manifest-fields.csv)) is listed in Map → Docs → Growth, which
 reads its data file at the selected repo's ref; `?growthrepo=` picks the repo and
-`?growthy=` the chart's measure, written only when it is not Care. The web-tools data file needs no token;
-every other repo's needs the viewer's token. In Map → Docs →
-Inventory, the web-tools data file adds a sparkline and a net word change to each
-document row; the rows render without them when the file is missing.
+`?growthy=` the chart's measure, written only when it is not the one the tab
+opens on. The web-tools data file needs no token; every other repo's needs the
+viewer's token. In Map → Docs → Inventory, the web-tools data file adds a
+sparkline and a net word change to each document row; the rows render without
+them when the file is missing.
 
 ## Refreshing
 
