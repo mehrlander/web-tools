@@ -15,7 +15,8 @@
   and the outbound links, per file.
 
   Address grammar (kits/review-target.js), the toss-render #gh= address plus
-  a base; fragment preferred, query accepted:
+  a base; fragment preferred, query accepted, and the query read when the
+  fragment holds only a look link's keys (a walkthrough step on this page):
 
     #gh=owner/repo@branch                changeset: base...branch, one card
                                          per changed file (GitHub compare API)
@@ -264,7 +265,7 @@ function reviewApp() { return {
     // pre-build's import, so this page's own gh.load chain has not run yet.
     // See the gate above the module script.
     await window.__depsReady;
-    window.addEventListener('hashchange', () => this.boot());
+    window.addEventListener('hashchange', () => { if (this.address() !== this.booted) this.boot(); });
     await this.boot();
   },
 
@@ -286,14 +287,23 @@ function reviewApp() { return {
   get totalAdd() { return (this.data?.files || []).reduce((a, f) => a + (f.additions || 0), 0); },
   get totalDel() { return (this.data?.files || []).reduce((a, f) => a + (f.deletions || 0), 0); },
 
+  // The review's address: the fragment, or the query when the fragment holds
+  // none. A look link's keys take the fragment (#steps=…&stop=2), so a
+  // walkthrough step on this page carries the address in the query, and a
+  // fragment made only of those keys belongs to the walkthrough.
+  address() {
+    const h = location.hash.slice(1);
+    const looks = h && h.split('&').every(p => /^(show|tap|walkthrough|steps|intro|say|stop)=/.test(p));
+    return h && !looks ? location.hash : (location.search.includes('gh=') ? location.search : '');
+  },
+
   async boot() {
     this.error = '';
     this.data = null;
     this.files = [];
     this.mode = 'empty';
 
-    const frag = location.hash && location.hash.length > 1 ? location.hash
-      : (location.search.includes('gh=') ? location.search : '');
+    const frag = this.booted = this.address();
     if (!frag) return;
     let t = reviewTarget.parse(frag);
     if (!t) { this.error = 'Unrecognized address: ' + frag; return; }
