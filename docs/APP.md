@@ -1,6 +1,6 @@
 # The Web Tools app
 
-⭐ **Open it:** [Web Tools](https://mehrlander.github.io/web-tools/app/) (append `?repo=owner/repo` to open a repo)
+🔷 **Open it:** [Web Tools](https://mehrlander.github.io/web-tools/app/) (append `?repo=owner/repo` to open a repo)
 
 Web Tools is one place to find, understand, and continue work across the development estate: its repositories, branches, sessions, pages, and tools. GitHub holds the content and history. The page is `app/index.html`.
 

@@ -53,7 +53,7 @@ docs/routes-modes.csv,7,7,2462,"[""param"",""form"",""carries"",""trust"",""sand
 docs/routes-paste.csv,6,6,2680,"[""surface"",""path"",""recognizes"",""becomes"",""declines_to"",""gate""]"
 docs/routes-routes.csv,6,7,2377,"[""key"",""repo"",""ref"",""path"",""renders"",""doc"",""example""]"
 docs/run-methods.csv,7,5,2341,"[""method"",""venues"",""output_return"",""rules"",""gloss""]"
-docs/showing-mechanisms.csv,10,11,6917,"[""key"",""glyph"",""label"",""form"",""subject"",""version"",""viewer"",""reaches"",""misses"",""use"",""trap""]"
+docs/showing-mechanisms.csv,10,11,6923,"[""key"",""glyph"",""label"",""form"",""subject"",""version"",""viewer"",""reaches"",""misses"",""use"",""trap""]"
 docs/subjects.csv,9,8,2726,"[""key"",""label"",""needs"",""carrier"",""doc"",""detect"",""icon"",""gloss""]"
 docs/tests.csv,442,8,470600,"[""path"",""kind"",""protects"",""test_count"",""method"",""runner"",""boot_smoke"",""test_names""]"
 docs/text-fields.csv,13,5,4120,"[""field"",""audience"",""gloss"",""use_when"",""instead_of""]"
