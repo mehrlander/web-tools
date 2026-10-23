@@ -16,11 +16,10 @@ through, for example `--runs 5 -j 4 --model opus`.
 | `plain-dry` | a Haiku judge finds no P04 trip | [`skills/peeves/peeves.csv`](../../skills/peeves/peeves.csv), P04 |
 | `default-fired` | the session invoked `portable:default` (reported, not scored) | [`skills/hooks/invoke-default.sh`](../../skills/hooks/invoke-default.sh) |
 
-P04 is the one judgment peeve graded here because it is where a Haiku judge
-scored best against an independently labelled sample of 200 session replies:
-precision about 0.87, and the same verdict on about nine replies in ten when run
-twice. Most peeves scored far lower; the scorecard is in web-tools-private,
-`sessions/peeves/gold/2026-10-23-scorecard.md`.
+Before adding an `llm` grader for another peeve, check the peeve's precision in
+web-tools-private `sessions/peeves/gold/2026-10-23-scorecard.md`. Haiku was
+right on 61 of its 68 P04 flags across 200 labelled session replies, and right
+on fewer than 6 in 10 for most judgment peeves.
 
 Each case's `scaffold.sh` creates a small git repository, because
 `invoke-default.sh` adds its instruction only where it finds a checkout. The
