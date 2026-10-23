@@ -1,15 +1,16 @@
-# Surfacing program
+# Surfacing
 
-The surfacing program covers how work reaches its reader, the owner. The files it
-governs are declared under `programs` in [`.web-tools.json`](../../.web-tools.json)
-and listed in the Map view's Programs tab; a program is defined in
+Surfacing is how work reaches its reader, the owner. The files the surfacing
+program governs are declared under `programs` in
+[`.web-tools.json`](../../.web-tools.json) and listed in the Map view's Programs
+tab; a program is defined in
 [CONSTELLATION.md](../../docs/CONSTELLATION.md#projects-and-research).
 
 ## Areas
 
 | Area | Covers |
 | --- | --- |
-| Reply | what a reply hands over: its closing state, caption and links, stated in [`SURFACING.md`](../../docs/SURFACING.md) |
+| Reply | what a reply hands over: its closing state, caption and links, stated in [`CONVERSATION.md`](../../docs/CONVERSATION.md) |
 | Showing | the link that makes a thing openable, stated in [`showing.md`](../../docs/showing.md) |
 | Forms | the standard way to show content of a kind: the standing forms in [`docs/forms/`](../../docs/forms/), the envelopes in [`docs/envelopes/`](../../docs/envelopes/README.md), and the Waiting view |
 
@@ -17,8 +18,8 @@ and listed in the Map view's Programs tab; a program is defined in
 
 | Area | Measure | Working means |
 | --- | --- | --- |
-| Reply | web-tools-private `state/closings.json` on the `background` branch: each day's closing states in the session records | the share of Choice needed closings falls, while Direction needed and Ready to assess take the replies whose next step is unclear |
-| Showing | none yet; a candidate is the replies that changed a page, counted with and without a render link | every reply that changed a page carries a render link |
+| Reply | web-tools-private `state/closings.json` on the `background` branch: the closing state each turn ends on, by day | the share of Choice needed closings falls, while Direction needed and Ready to assess take the replies whose next step is unclear |
+| Showing | web-tools-private `state/render-links.json` on the `background` branch: each day's turns that changed a page, sorted by what a reply after the edit gave | every turn that changed a page hands over a render link to it, or says why none reaches and sends a screenshot |
 | Forms | none yet; a candidate is the share of form pages classified in the UI codebook (`data/ui-units/`) | a form met mid-session is recognizable by its kind |
 
 ## Reviewers

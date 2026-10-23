@@ -38,14 +38,14 @@ test('docs/QUALIFIED-WRITING.md stays under its ceiling', () => {
   const n = words(read('docs/QUALIFIED-WRITING.md'));
   assert.ok(n < WRITING_LIMIT,
     `docs/QUALIFIED-WRITING.md is ${n} words, over its ${WRITING_LIMIT}-word ` +
-    'ceiling. It loads at every session start beside SURFACING.md. Trim it. ' +
+    'ceiling. It loads at every session start beside CONVERSATION.md. Trim it. ' +
     'Raising the limit requires user approval.');
 });
 
-test('docs/SURFACING.md stays under its ceiling', () => {
-  const n = words(read('docs/SURFACING.md'));
+test('docs/CONVERSATION.md stays under its ceiling', () => {
+  const n = words(read('docs/CONVERSATION.md'));
   assert.ok(n < LIMIT,
-    `docs/SURFACING.md is ${n} words, over its ${LIMIT}-word ceiling. It loads ` +
+    `docs/CONVERSATION.md is ${n} words, over its ${LIMIT}-word ceiling. It loads ` +
     'at every session start. Trim it. ' +
     'Raising the limit requires user approval.');
 });

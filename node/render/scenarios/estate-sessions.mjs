@@ -235,7 +235,7 @@ const SESSIONS = [
 const ATTENTION = [
   { path: 'web-tools/lib/alpineComponents/estate.js', count: 31, sessions: 7, last: '2026-08-05T16:49:16Z' },
   { path: 'web-tools/CLAUDE.md', count: 12, sessions: 6, last: '2026-08-05T13:51:08Z' },
-  { path: 'web-tools/docs/SURFACING.md', count: 9, sessions: 4, last: '2026-08-04T18:10:00Z' },
+  { path: 'web-tools/docs/CONVERSATION.md', count: 9, sessions: 4, last: '2026-08-04T18:10:00Z' },
   { path: 'home/tracker/board.md', count: 8, sessions: 3, last: '2026-08-04T09:00:00Z' },
 ];
 
@@ -368,7 +368,7 @@ const TURNS_RECORD = {
     { at: at('15:44:29'), text: 'The Showing tab is up. It reads the CSV directly, so a new mechanism is a row rather than a paragraph, and the honesty gate survives because no script can supply it. The tab sorts by what each mechanism reaches, which is the column a reader scans, and the misses ride beside it rather than in a second table.\n\n❇️ **Ready to assess:** whether the CSV wants a column for what each mechanism misses, or whether that is already implied by what it reaches.' },
     { at: at('16:10:22'), text: 'Two readings, and they are not the same. If "misses" is the complement of "reaches" then yes, it is implied and a second column is a copy that will drift the first time one side is edited. But most of these do not have a clean complement: a toss reaches a page and misses same-repo relative dependencies, which is not the negation of anything in the reaches column. So the honest shape is one column for reach and one for the named exception, and the exception is empty for the mechanisms that have none.' },
     { at: at('16:30:40'), text: 'Done. The column is `misses`, empty where there is no named exception, and the tab renders it beside the reach rather than under it.' },
-    { at: at('16:41:18'), text: 'It survives. The tab is a renderer over the CSV with no per-row code, so a new mechanism is one row and nothing else. The one thing that does need touching is the test that holds the CSV against the prose in SURFACING.md, which is the gate that keeps a mechanism from being added to one and not the other.\n\n⚪ **Clean exit.** The column is in, the tab renders it, and the gate holds both sides.' },
+    { at: at('16:41:18'), text: 'It survives. The tab is a renderer over the CSV with no per-row code, so a new mechanism is one row and nothing else. The one thing that does need touching is the test that holds the CSV against the prose in CONVERSATION.md, which is the gate that keeps a mechanism from being added to one and not the other.\n\n⚪ **Clean exit.** The column is in, the tab renders it, and the gate holds both sides.' },
     { at: at('16:46:05'), text: 'Nothing blocking. The one open thread is that `docs/showing.md` still carries the frame and the record, and now that the app holds the mechanisms it could fold down to a pointer plus the dated decisions.' },
     { at: at('16:49:16'), text: 'The docs surfacing now runs through the **Map view** rather than through prose in `CLAUDE.md`:\n\n- `docs/showing-mechanisms.csv` is the data\n- the Showing tab renders it\n- `npm run showing` prints the line to paste\n\n```bash\nnpm run showing\n```\n\nSo the choice is executable rather than remembered.\n\n🟢 **Ready to continue.** Available on "go": folding `docs/showing.md` down to a pointer, now that the app holds the mechanisms.' },
   ],

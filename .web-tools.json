@@ -28,7 +28,7 @@
     "pages",
     "console",
     "lib/alpineComponents",
-    "docs/SURFACING.md"
+    "docs/CONVERSATION.md"
   ],
   "pages": [
     {
@@ -103,8 +103,8 @@
       "icon": "ph-megaphone",
       "path": "programs/surfacing",
       "governs": [
-        "docs/SURFACING.md",
-        "docs/surfacing.csv",
+        "docs/CONVERSATION.md",
+        "docs/conversation.csv",
         "skills/claude-markdown/",
         "skills/look-markers/",
         "skills/hooks/reply-check.py",
@@ -135,7 +135,8 @@
         "lib/alpineComponents/user-call-form.js"
       ],
       "measures": [
-        "mehrlander/web-tools-private@background:state/closings.json"
+        "mehrlander/web-tools-private@background:state/closings.json",
+        "mehrlander/web-tools-private@background:state/render-links.json"
       ],
       "reviewers": [
         "portable:owner-proxy",

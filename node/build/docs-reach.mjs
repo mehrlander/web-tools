@@ -44,7 +44,7 @@
 //
 //             Widened later the same day to include the injected pair, which
 //             the first cut had as sources of nothing. That was incoherent: a
-//             link from SURFACING.md is read by every session in every repo
+//             link from CONVERSATION.md is read by every session in every repo
 //             that installs the set, which is a wider audience than CLAUDE.md
 //             reaches, yet it counted for less than a skill mention. The key
 //             stays `project` rather than becoming `context`; the value is
@@ -115,7 +115,7 @@ export const CHANNELS = ['injected', 'project', 'skill', 'app', 'orphan'];
 // retired, so the list named one document that does not exist and missed one
 // that does. Both of these are what the default skill delivers and what the
 // invoke-default hook instructs a session to load; neither is @-imported any more.
-export const INJECTED = ['docs/SURFACING.md', 'docs/QUALIFIED-WRITING.md'];
+export const INJECTED = ['docs/CONVERSATION.md', 'docs/QUALIFIED-WRITING.md'];
 
 // Documents that are already in a session's context, and so are sources of the
 // `project` channel rather than merely targets of it. The root agent

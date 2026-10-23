@@ -37,7 +37,7 @@ import { makeWindow, repoRoot, captureAlpineErrors } from './bootstrap.mjs';
 
 const tick = (n = 1) => new Promise(r => setTimeout(r, n * 10));
 
-const FILES = ['docs/SURFACING.md', 'lib/kits/file-deck.js', 'pages/branch.html'];
+const FILES = ['docs/CONVERSATION.md', 'lib/kits/file-deck.js', 'pages/branch.html'];
 
 const calls = { compare: [] };
 
@@ -154,9 +154,9 @@ test('&file= opens the deck on that file, and asks for the compare itself', asyn
 // nothing and one by opening the list for no reason.
 test('&file= on a reviewable file opens the deck and leaves the list shut', async () => {
   reset();
-  await mount({ file: 'docs/SURFACING.md' });
+  await mount({ file: 'docs/CONVERSATION.md' });
   assert.equal(opened.length, 1);
-  assert.equal(opened[0].files[opened[0].start].path, 'docs/SURFACING.md');
+  assert.equal(opened[0].files[opened[0].start].path, 'docs/CONVERSATION.md');
   assert.equal(data.filesShown, false, 'the list was not opened to reach a file above it');
 });
 
@@ -169,7 +169,7 @@ test('&file= naming a path this branch does not touch opens nothing', async () =
 
 test('&file= fires once, so a dismissed deck stays dismissed', async () => {
   reset();
-  const d = await mount({ file: 'docs/SURFACING.md' });
+  const d = await mount({ file: 'docs/CONVERSATION.md' });
   assert.equal(opened.length, 1);
   // The reader closes the deck; the view re-reads for any reason.
   await d.load();

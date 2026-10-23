@@ -12,8 +12,8 @@ import { repoRoot } from './bootstrap.mjs';
 
 const HOOK = join(repoRoot, 'skills/hooks/program-files.sh');
 const manifest = JSON.stringify({ programs: [{ name: 'surfacing', label: 'Surfacing',
-  path: 'programs/surfacing', governs: ['docs/SURFACING.md', 'python/showing.py', 'docs/forms/'] }] });
-const files = { '.web-tools.json': manifest, 'docs/SURFACING.md': 'x', 'python/showing.py': 'x', 'docs/APP.md': 'x',
+  path: 'programs/surfacing', governs: ['docs/CONVERSATION.md', 'python/showing.py', 'docs/forms/'] }] });
+const files = { '.web-tools.json': manifest, 'docs/CONVERSATION.md': 'x', 'python/showing.py': 'x', 'docs/APP.md': 'x',
   'docs/forms/branch.md': 'x', 'docs/forms-old.md': 'x' };
 
 function repo(body = files) {
@@ -39,8 +39,8 @@ test('a governed file names its program and the skill, once per session', () => 
     assert.equal(first.status, 2);
     assert.match(first.err, /governed by the Surfacing program \(charter programs\/surfacing\/README\.md\)/);
     assert.match(first.err, /\/portable:programs surfacing/);
-    assert.equal(r.edit('docs/SURFACING.md').status, 0, 'the same program stays quiet for the rest of the session');
-    assert.equal(r.edit('docs/SURFACING.md', 's2').status, 2, 'another session hears it');
+    assert.equal(r.edit('docs/CONVERSATION.md').status, 0, 'the same program stays quiet for the rest of the session');
+    assert.equal(r.edit('docs/CONVERSATION.md', 's2').status, 2, 'another session hears it');
   } finally { r.done(); }
 });
 
@@ -55,8 +55,8 @@ test('an entry ending in / covers the files under it, and only those', () => {
 test('a file no program governs, or a repo with no programs, is silent', () => {
   const r = repo();
   try { assert.equal(r.edit('docs/APP.md').status, 0); } finally { r.done(); }
-  const bare = repo({ 'docs/SURFACING.md': 'x' });
-  try { assert.equal(bare.edit('docs/SURFACING.md').status, 0); } finally { bare.done(); }
-  const broken = repo({ '.web-tools.json': '{not json', 'docs/SURFACING.md': 'x' });
-  try { assert.equal(broken.edit('docs/SURFACING.md').status, 0); } finally { broken.done(); }
+  const bare = repo({ 'docs/CONVERSATION.md': 'x' });
+  try { assert.equal(bare.edit('docs/CONVERSATION.md').status, 0); } finally { bare.done(); }
+  const broken = repo({ '.web-tools.json': '{not json', 'docs/CONVERSATION.md': 'x' });
+  try { assert.equal(broken.edit('docs/CONVERSATION.md').status, 0); } finally { broken.done(); }
 });

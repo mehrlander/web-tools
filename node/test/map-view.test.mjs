@@ -56,8 +56,8 @@ const aimsJson = readFileSync(path.join(repoRoot, 'docs', 'aims.json'), 'utf8');
 const aimsGoalsCsv = readFileSync(path.join(repoRoot, 'docs', 'aims-goals.csv'), 'utf8');
 const aimsInitiativesCsv = readFileSync(path.join(repoRoot, 'docs', 'aims-initiatives.csv'), 'utf8');
 const aimsReadingCsv = readFileSync(path.join(repoRoot, 'docs', 'aims-reading.csv'), 'utf8');
-const surfCsv = readFileSync(path.join(repoRoot, 'docs', 'surfacing.csv'), 'utf8');
-const surfDoc = readFileSync(path.join(repoRoot, 'docs', 'SURFACING.md'), 'utf8');
+const surfCsv = readFileSync(path.join(repoRoot, 'docs', 'conversation.csv'), 'utf8');
+const surfDoc = readFileSync(path.join(repoRoot, 'docs', 'CONVERSATION.md'), 'utf8');
 // The Overview and every Sources panel read the real sentences.
 const mapTabsCsv = readFileSync(path.join(repoRoot, 'docs', 'map-tabs.csv'), 'utf8');
 const propsRegCsv = readFileSync(path.join(repoRoot, 'docs', 'registries.csv'), 'utf8');
@@ -102,8 +102,8 @@ window.GH = class {
     if (p === 'docs/aims-goals.csv') return { text: aimsGoalsCsv };
     if (p === 'docs/aims-initiatives.csv') return { text: aimsInitiativesCsv };
     if (p === 'docs/aims-reading.csv') return { text: aimsReadingCsv };
-    if (p === 'docs/surfacing.csv') return { text: surfCsv };
-    if (p === 'docs/SURFACING.md') return { text: surfDoc };
+    if (p === 'docs/conversation.csv') return { text: surfCsv };
+    if (p === 'docs/CONVERSATION.md') return { text: surfDoc };
     if (p === 'docs/map-tabs.csv') return { text: mapTabsCsv };
     if (p === 'docs/registries.csv') return { text: propsRegCsv };
     if (p === 'docs/properties.csv') return { text: propsDeclCsv };
@@ -473,7 +473,7 @@ test('Surfacing loads on demand and names its authoritative doc', async () => {
   await data.loadSurf();
   assert.equal(data.surfErr, '');
   assert.ok(data.surf.primitives.length > 10);
-  assert.equal(data.SURF_DOC, 'docs/SURFACING.md');
+  assert.equal(data.SURF_DOC, 'docs/CONVERSATION.md');
 });
 
 test('Docs loads on demand and carries the registry', async () => {
@@ -696,15 +696,15 @@ test('rendered deck documents hand repository links to deck navigation', async (
   await data.docDeckRead(host, 'docs/CONVENTIONS.md');
   assert.equal(wired.length, 1);
   assert.equal(wired[0].options.path, 'docs/CONVENTIONS.md');
-  assert.ok(wired[0].options.paths.has('docs/SURFACING.md'),
+  assert.ok(wired[0].options.paths.has('docs/CONVERSATION.md'),
     'the known-path set includes repository documents outside the current deck');
-  assert.equal(wired[0].options.href('docs/SURFACING.md', '#branch'),
-    data.hubUrl('docs/SURFACING.md') + '#branch');
+  assert.equal(wired[0].options.href('docs/CONVERSATION.md', '#branch'),
+    data.hubUrl('docs/CONVERSATION.md') + '#branch');
 
   const opened = [];
   const priorOpen = data.openDeckLink;
   data.openDeckLink = target => opened.push(target);
-  const target = { path: 'docs/SURFACING.md', hash: '#branch', source: 'authored' };
+  const target = { path: 'docs/CONVERSATION.md', hash: '#branch', source: 'authored' };
   wired[0].options.open(target);
   assert.deepEqual(opened, [target], 'the renderer resolves; the deck owns navigation');
   data.openDeckLink = priorOpen;
@@ -1842,7 +1842,7 @@ test('every field the Registries markup reads exists on a registry row', async (
 // The deck's markdown path renders a registry as a table, and the risk in that
 // conversion is not layout: it is a cell being READ as markdown. docs/ holds a
 // dozen registries and several of them describe markdown, so the first pass
-// turned surfacing.csv's own `[caption](url)` into a link labelled "caption",
+// turned conversation.csv's own `[caption](url)` into a link labelled "caption",
 // which is a file misreporting itself in the one view meant to show it whole.
 
 test('a registry converts to a table with a delimiter row', () => {
@@ -1859,7 +1859,7 @@ test('a cell is data, so its markdown is escaped rather than run', () => {
 });
 
 test('a pipe inside a cell does not split the row', () => {
-  // surfacing.csv carries `#gz= | #gh=` in one field; unescaped it would read
+  // conversation.csv carries `#gz= | #gh=` in one field; unescaped it would read
   // as two columns and shift every cell after it.
   const md = data.csvToMarkdown('key,form\nk,"#gz= | #gh="\n');
   const row = md.split('\n')[2];
@@ -1884,7 +1884,7 @@ test('what is not a table declines rather than rendering as one', () => {
 
 // ── A card and its bullet ────────────────────────────────────────────────
 // The corpus half (does every card resolve against the rendered doc) is
-// surfacing-lead-anchor.test.mjs, which renders SURFACING.md for real. This is
+// surfacing-lead-anchor.test.mjs, which renders CONVERSATION.md for real. This is
 // the component half: the normalization and the selector the card actually
 // calls, plus the one failure mode that matters, which is a hit on the wrong
 // bullet rather than a miss.

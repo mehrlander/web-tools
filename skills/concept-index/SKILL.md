@@ -23,7 +23,7 @@ use it, let it go.
 V=skills/concept-index/vocab.py          # or $CLAUDE_PLUGIN_ROOT/...
 
 python3 $V index . --output /tmp/vocab.json \
-  --hub docs/SURFACING.md --hub docs/QUALIFIED-WRITING.md --hub CLAUDE.md \
+  --hub docs/CONVERSATION.md --hub docs/QUALIFIED-WRITING.md --hub CLAUDE.md \
   --exclude skills/
 
 python3 $V check --index /tmp/vocab.json --repo mehrlander/web-tools < reply.md
@@ -67,7 +67,7 @@ Two findings, in confidence order:
    real tracked file and sits outside any `[](…)`. Decidable, so it leads.
 2. **Declared terms used without a handle.** A handle is a link, a code span, or
    an immediate parenthetical that *names the term*. Something merely nearby
-   does not count: on `docs/SURFACING.md` a 200-character window contains some
+   does not count: on `docs/CONVERSATION.md` a 200-character window contains some
    link for 9 of 9 mentions of "toss", so the loose test can never say anything.
 
 Fenced code blocks are stripped before checking, since a block quoting a tool's
