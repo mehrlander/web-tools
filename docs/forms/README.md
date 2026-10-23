@@ -23,10 +23,10 @@ tags: the Waiting, Proposals and Tending views.
 
 The test for each tag is its row in
 [data/ui-units/codes.csv](../../data/ui-units/codes.csv), and each page's tags
-are in [coded.csv](../../data/ui-units/coded.csv). The Map view's Gallery groups the
-pages by any one tag, listing a page under each of its tags. Read, explore and
-make have pages but no named form yet; the Gallery puts each job's pages side
-by side, which is where one gets chosen.
+are in [coded.csv](../../data/ui-units/coded.csv). The Map view's Gallery groups
+the pages by any one tag, listing a page under each of its tags. Read, explore
+and make have pages but no named form yet; the Gallery puts each job's pages
+side by side, which is where one gets chosen.
 
 ## Respond forms
 
