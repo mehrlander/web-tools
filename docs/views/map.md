@@ -16,8 +16,7 @@ this file". The rows come from the `TABS` and `SUBVIEWS` arrays and the
 sentences from the CSV, so Contents holds no list of its own. The second door,
 **Reach**, holds what the hub covers beyond itself. It lands on Routes, the
 diagram of every repository and outpost the hub reaches, then offers Projects,
-Distribution, Outposts and Data. Until 2026-10-12 the Map itself opened on that
-diagram, and each tab headed its own screen with its sentence.
+Distribution, Outposts and Data.
 
 Every address that has controls or counts opens with them in one toolbar row.
 What the address is and reads (its description, the files and builders behind
@@ -74,10 +73,6 @@ conditions. Those facts are not copied into another inventory. A missing job
 or step is shown as an unreadable declaration, with a link to its source.
 
 The command can also be run in a checkout with its required tools and inputs.
-GitHub Actions runs the workflow on the runner its job declares. A GitHub-hosted
-Linux or Windows runner is a temporary machine at GitHub; `self-hosted` names
-a separately registered machine. The tests belong to the repository and are
-available to every assistant and developer.
 
 The links to workflow runs open GitHub's results. The Map does not turn a
 workflow declaration into a passing badge: a result applies to the commit and
@@ -86,12 +81,11 @@ environment that ran it. Read the run's skipped checks and final verdict.
 ### Placement
 
 Each repository keeps the declarations, check descriptions, and workflow files
-for its own work. Web Tools owns the shared view and this public explanation.
-Home's test descriptions stay in Home. Web Tools Private supplies the derived
-configuration cache used to discover the other repositories; it does not own
-copies of their test descriptions. This applies the existing
-[repository ownership rule](../CONSTELLATION.md#principle-5-the-repo-owns-its-own-story)
-and [configuration-cache contract](../manifest.md#config-cache-stateconfigsjson).
+for its own work ([repository ownership rule](../CONSTELLATION.md#principle-5-the-repo-owns-its-own-story));
+Web Tools owns the shared view. Web Tools Private supplies only the derived
+configuration cache used to discover the other repositories
+([configuration-cache contract](../manifest.md#config-cache-stateconfigsjson)),
+never copies of their test descriptions.
 
 The public Web Tools declarations are read at the selected Web Tools revision.
 Other repositories are discovered through the private cache after sign-in;
