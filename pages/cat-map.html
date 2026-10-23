@@ -12,7 +12,8 @@
   skill: a set of category words that blur, what each implies, and how the
   things they are applied to fall. The format is in skills/cat-map/SKILL.md.
 
-  Two views of one run. The field plots two characteristics at a time, each
+  Every view opens with the map's objective and strategy; a run's view adds
+  that run's outcome and method. Two views of one run. The field plots two characteristics at a time, each
   sense a region of the cells its required values allow, each instance a chip
   in its cell; a sense that constrains neither axis is listed beside it, which
   is how "different axes" shows. The docket lists each sense's charge (the
@@ -49,7 +50,7 @@ document.addEventListener('alpine:init', () => {
   const KIND = { list: 'a list', region: 'a region', value: 'a value', outside: 'outside the space', fuzzy: 'fuzzy edge', axis: 'one axis' };
 
   Alpine.data('catMap', () => ({
-    D: null, err: '', r: 0, view: 'map', x: '', y: '', open: '', from: '', more: false,
+    D: null, err: '', r: 0, view: 'map', x: '', y: '', open: '', from: '', more: false, long: false,
 
     async init() {
       await window.__depsReady;
@@ -78,6 +79,8 @@ document.addEventListener('alpine:init', () => {
     get cats() { return this.R.categories; },
     get insts() { return this.R.instances; },
     pick(i) { this.r = i; this.open = ''; this.more = false; this.axes(); },
+    // Whether the clamped outcome or method hides any text at the current width.
+    fit() { this.$nextTick(() => { this.long = this.more || [this.$refs.outcome, this.$refs.method].some(e => e && e.scrollHeight > e.clientHeight + 1); }); },
     axes() {
       const f = this.R.field || {}, ids = this.plottable().map(c => c.id);
       this.x = ids.includes(f.x) ? f.x : ids[0] || '';
@@ -175,22 +178,25 @@ document.addEventListener('alpine:init', () => {
       </template>
     </header>
 
+    <!-- What the map is for and how it set out; in one run's view, that run's outcome and method under them -->
+    <section class="px-4 pt-4 grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-3 gap-y-2 items-baseline">
+      <span class="text-xs text-base-content/60">Objective</span><p class="text-sm text-pretty" x-text="D.objective"></p>
+      <span class="text-xs text-base-content/60">Strategy</span><p class="text-sm text-pretty" x-text="D.strategy"></p>
+      <template x-if="view === 'map'">
+        <div class="contents" x-effect="R.outcome; R.method; fit()" @resize.window.debounce="fit()">
+          <span class="text-xs text-base-content/60">Outcome</span><p x-ref="outcome" class="text-sm text-pretty" :class="more ? '' : 'line-clamp-3'" x-text="R.outcome?.summary"></p>
+          <span class="text-xs text-base-content/60">Method</span><p x-ref="method" class="text-sm text-pretty text-base-content/60" :class="more ? '' : 'line-clamp-2'" x-text="R.method"></p>
+          <span x-show="long"></span><button x-show="long" class="btn btn-ghost btn-xs px-1 justify-self-start" @click="more = !more" x-text="more ? 'Less' : 'All of it'"></button>
+        </div>
+      </template>
+    </section>
+
     <!-- One run -->
-    <main x-show="view === 'map'" class="px-4 py-4 grid gap-6">
-      <section class="grid gap-2">
-        <div class="grid justify-items-start gap-1">
-          <p class="text-sm text-pretty" :class="more ? '' : 'line-clamp-3'" x-text="R.outcome?.summary"></p>
-          <button x-show="(R.outcome?.summary || '').length > 280" class="btn btn-ghost btn-xs px-1" @click="more = !more" x-text="more ? 'Less' : 'All of it'"></button>
-        </div>
-        <div class="flex flex-wrap gap-1">
-          <template x-for="c in cats" :key="c.id">
-            <span class="rounded-full border border-base-300 px-2 py-0.5 text-sm leading-snug"><span class="font-medium" x-text="tag(c)"></span><span class="text-base-content/60" x-text="' · ' + kind(c.kind)"></span></span>
-          </template>
-        </div>
-        <details class="text-xs text-base-content/60">
-          <summary class="cursor-pointer" x-text="R.by + (R.method ? ' · how this run was made' : '')"></summary>
-          <p class="mt-1 text-pretty" x-text="R.method"></p>
-        </details>
+    <main x-show="view === 'map'" class="px-4 pt-6 pb-4 grid gap-6">
+      <section class="flex flex-wrap gap-1">
+        <template x-for="c in cats" :key="c.id">
+          <span class="rounded-full border border-base-300 px-2 py-0.5 text-sm leading-snug"><span class="font-medium" x-text="tag(c)"></span><span class="text-base-content/60" x-text="' · ' + kind(c.kind)"></span></span>
+        </template>
       </section>
 
       <!-- The field -->
@@ -335,8 +341,7 @@ document.addEventListener('alpine:init', () => {
     </main>
 
     <!-- Runs side by side -->
-    <main x-show="view === 'compare'" class="px-4 py-4 grid gap-6">
-      <p class="text-sm text-pretty" x-text="D.question"></p>
+    <main x-show="view === 'compare'" class="px-4 pt-6 pb-4 grid gap-6">
       <section x-show="(D.agreement || []).length" class="grid gap-2 min-w-0">
         <h2 class="text-sm font-semibold">Where the runs agree</h2>
         <div class="overflow-x-auto rounded-box border border-base-300">

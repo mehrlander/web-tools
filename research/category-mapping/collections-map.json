@@ -1,7 +1,8 @@
 {
  "format": "catmap/1",
  "title": "Collections: registry, stream, list, log, ledger, cache, snapshot, tracker, inbox",
- "question": "What does each word imply about a collection, do the words carve the estate's collections cleanly, and where is a collection called by a word whose implications it does not meet? Four blind readers: three with the cat-map skill, one without.",
+ "objective": "Find what each of the estate's nine collection words implies about a collection, whether together they divide its collections into separate kinds, and which collections are called by a word they do not fit, before any of the words is redefined or replaced.",
+ "strategy": "Code the collections in web-tools, web-tools-private and home against what each word's definitions and uses imply, and let the separation checks show what the words leave unseparated or empty. Four readers worked blind to one another: three following the cat-map skill, one with only the task and the file format.",
  "made": "2026-10-22",
  "runs": [
   {

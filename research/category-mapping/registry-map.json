@@ -1,7 +1,8 @@
 {
  "format": "catmap/1",
  "title": "The word \"registry\"",
- "question": "What does \"registry\" mean across the estate, and do its senses carve the collections cleanly?",
+ "objective": "Find which senses \"registry\" carries across the estate, whether they name one kind of collection, and which things called a registry fit none of them.",
+ "strategy": "Fifteen things the estate calls, or nearly calls, a registry, coded by hand on nine characteristics before the skill was written: six from the texts that define the word (docs/registries.md and CLAUDE.md), three from comparing instances. The separation checks then struck the one that separated nothing, whether an entry is found by a stable key.",
  "made": "2026-10-22",
  "runs": [
   {
