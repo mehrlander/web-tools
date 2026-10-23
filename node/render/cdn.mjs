@@ -627,9 +627,23 @@ export function resolveCdn(rawUrl, repoRoot, ref, headers = {}) {
   const CODE = /^(lib|dist)\//;
   const gitShow = (root, ref, rel) => {
     if (!ref || CODE.test(rel)) return null;
-    const r = spawnSync('git', ['-C', root, 'show', `${ref}:${rel}`],
+    const r = spawnSync('git', ['-C', root, 'cat-file', 'blob', `${ref}:${rel}`],
                         { maxBuffer: 64 * 1024 * 1024 });
     return r.status === 0 ? r.stdout : null;
+  };
+  // A folder at a ref is that ref's tree, listed as the contents API lists
+  // one. `git show` printed a tree as text, which went out as a file's bytes,
+  // so a page listing a folder at a ref read nothing (2026-10-23, the Map's
+  // Icons tab).
+  const gitTree = (root, ref, rel) => {
+    if (!ref || CODE.test(rel)) return null;
+    const r = spawnSync('git', ['-C', root, 'ls-tree', `${ref}:${rel}`], { encoding: 'utf8' });
+    if (r.status !== 0) return null;
+    return r.stdout.split('\n').filter(Boolean).map(line => {
+      const [meta, name] = line.split('\t'), [, type, sha] = meta.split(' ');
+      return { name, path: rel ? `${rel}/${name}` : name, type: type === 'tree' ? 'dir' : 'file',
+               sha, size: 0, html_url: '', download_url: '' };
+    });
   };
 
   // --- Own code: GitHub contents API (every load after gh-api.js) ---
@@ -647,6 +661,11 @@ export function resolveCdn(rawUrl, repoRoot, ref, headers = {}) {
           encoding: 'base64', sha: blobSha(atRef), size: atRef.length, html_url: '',
         }),
       };
+    }
+    const treeAtRef = gitTree(repoRoot, u.searchParams.get('ref'), rel);
+    if (treeAtRef) {
+      return { kind: 'fulfill', contentType: 'application/json; charset=utf-8',
+               tag: `api dir ${rel} @${u.searchParams.get('ref')}`, body: JSON.stringify(treeAtRef) };
     }
     if (existsSync(fp)) {
       // A directory path returns the contents-API array, not file bytes — and

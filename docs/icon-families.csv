@@ -1,0 +1,16 @@
+family,group,label,source,icon_column,name_column,gloss
+hub,drawn,Web Tools,lib/favicon.svg,,,"The hex nut: the Web Tools app's favicon, and the hub's mark wherever the app stands for itself."
+repositories,drawn,Repositories,docs/favicons/estate/,,,"One mark per estate repository, painted in the text colour wherever the app names that repository."
+map,drawn,Map,docs/favicons/map/,,,"The Map's tab groups and its outposts, painted in the text colour on the tab strip and the Contents headings."
+projects,drawn,Projects,.web-tools.json,,,"A project's own icon, an SVG in its repository or a Phosphor glyph, read from each repository's projects declarations."
+programs,drawn,Programs,.web-tools.json,,,"A program's own icon, read from each repository's programs declarations."
+agents,drawn,Agents,docs/agents.csv,icon,id,"One icon per agent definition the portable plugin ships; an inline reader has none."
+assistants,drawn,Assistants,lib/kits/assistant-mark.js,,,"Which assistant wrote a branch or a commit, drawn as a stroke mark in that assistant's colour."
+map-addresses,phosphor,Map addresses,lib/alpineComponents/map.js,,,The glyph each Map subview wears on its tab and in Contents.
+repository-glyphs,phosphor,Repository glyphs,.web-tools.json,,,"The glyph a repository declares as its icon, drawn where the hub keeps no mark for it."
+subjects,phosphor,Subjects,docs/subjects.csv,icon,label,"The glyph for each type of subject on screen, worn by the app drawer's layer row."
+tools,phosphor,Tools,docs/tools.csv,icon,path,The glyph each page in the Tools view wears.
+ui-units,phosphor,UI unit codes,data/ui-units/codes.csv,icon,name,The glyph each interface-unit code wears in the Browser tab's Dimensions.
+closing-states,emoji,Closing states,lib/kits/closing-state.js,,,The marker that opens a reply's last line and says where the session stands.
+conversation,emoji,Conversation rules,docs/conversation.csv,glyph,lead,The marker a conversation rule's link or line carries in a reply.
+showing,emoji,Showing mechanisms,docs/showing-mechanisms.csv,glyph,label,The marker each kind of link carries in a reply's render line.

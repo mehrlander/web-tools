@@ -343,3 +343,9 @@ peeves,owner,recorded,,counted,column,yes,,value,"the document or check that alr
 peeves,detector,recorded,,value,column,yes,reader;lint;hook;measure,label,"what catches a trip: a reader's judgment, a script, a hook at edit or commit time, or the page measures"
 peeves,sessions,recorded,,value,column,yes,,value,"roughly how many recorded sessions show the owner making the correction, summed across the readers that mined them; an order of magnitude, not a count to compare closely"
 css-baseline,declarations,computed,python/css-blocks.py,value,column,yes,,value,the most unexempt hand-written declarations the file may carry; --write lowers it to the measurement and never raises it
+icon-families,group,recorded,,value,column,yes,drawn;phosphor;emoji,label,"how the family's icons are made: an SVG drawn for the estate, a Phosphor glyph named by its class, or an emoji"
+icon-families,label,recorded,,value,column,yes,,value,the family name a reader sees
+icon-families,source,recorded,,value,column,yes,,locator,"the file or folder that declares the family's members: a CSV, a folder of SVG files, one SVG, the .web-tools.json that declares them, or the code holding a literal table"
+icon-families,icon_column,recorded,,none,column,yes,,value,"for a CSV source, the column holding each member's icon; blank otherwise"
+icon-families,name_column,recorded,,none,column,yes,,value,"for a CSV source, the column naming each member; blank otherwise"
+icon-families,gloss,recorded,,value,column,yes,,value,what the family's icons stand for
