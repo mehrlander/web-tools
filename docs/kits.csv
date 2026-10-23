@@ -10,7 +10,7 @@ lib/kits/call-answer.js,CallAnswer,answering a documentation user call (window.C
 lib/kits/chat-archive.js,chatArchive,"the chat archive as a venue of activity, read one month at a time.",330,no,no,4,yes
 lib/kits/chat-render.js,chatRender,"chat transcript renderer: markdown in, readable conversation out, with fenced code blocks promoted to live artifacts.",1201,no,no,9,yes
 lib/kits/claude-mark.js,claudeMark,"the Claude logomark, from one path.",62,yes,no,5,yes
-lib/kits/closing-state.js,ClosingState,"the conventions' CLOSING STATE, as one vocabulary.",146,no,no,4,yes
+lib/kits/closing-state.js,ClosingState,"the conventions' CLOSING STATE, as one vocabulary.",146,no,no,5,yes
 lib/kits/cm6-merge.js,cm6Merge,framework-free CodeMirror 6 *diff* factory: read-only side-by-side and unified merge views over two versions of a text.,162,no,no,8,yes
 lib/kits/cm6.js,cm6,framework-free CodeMirror 6 editor factory.,236,no,yes,19,yes
 lib/kits/code-doc.js,codeDoc,"SOURCE CODE AS A DECLARED RENDER: the second kind, and the one that says what the contract is actually for.",92,no,no,2,yes
@@ -91,7 +91,7 @@ lib/kits/session-render.js,sessionRender,a session record as a readable conversa
 lib/kits/sessions-crawl.js,SessionsCrawl,"The sessions crawl as a kit: the pass that folds the per-session records under sessions/ in the private registry into state/sessions.json, its phone copy…",217,no,no,1,yes
 lib/kits/shortcut-evidence.js,ShortcutEvidence,the device's return channel read as outpost evidence.,176,no,no,2,yes
 lib/kits/shorter-payload.js,ShorterPayload,Reading a shorter toss.,76,no,no,1,yes
-lib/kits/source-peek.js,SourcePeek,the hover card behind an exact-file GitHub jump-over.,562,yes,yes,12,yes
+lib/kits/source-peek.js,SourcePeek,the hover card behind an exact-file GitHub jump-over.,582,yes,yes,12,yes
 lib/kits/src-doc.js,srcDoc,"A RENDERED VIEW OF A SOURCE FILE SAYS SO, AND SAYS WHICH FILE.",118,no,no,8,yes
 lib/kits/stage-handoff.js,StageHandoff,"one paste, two documents",116,no,no,4,no
 lib/kits/standoff.js,Standoff,"The standoff annotation: its invariants, the six edits it admits, and the one serialization both of its writers must agree on.",655,no,no,4,yes

@@ -15,7 +15,7 @@ API at view time, or serve multiple routes.
 
 ## Where it fits: the link-choice matrix
 
-Mark artifact links **📦**, beside ⭐ (canonical hosted view) and 🥏 (toss
+Mark artifact links **📦**, beside 🔷 (canonical hosted view) and 🥏 (toss
 render). The chooser is viewer context, not just where the code lives. The
 Claude app's in-app browser keeps its own storage, so the `ghToken` a 🥏
 `#gh=` toss needs is not guaranteed there: historically absent, though it can be
@@ -25,7 +25,7 @@ you can't count on a token being present.
 
 | Situation | Link |
 |---|---|
-| Page on main | ⭐ deployed URL |
+| Page on main | 🔷 deployed URL |
 | Branch work in lib/dist only | 🥏 `#gh=` toss of a page that draws it |
 | Branch or private page; owner in a browser holding the token | 🥏 `#gh=` (live pointer) |
 | Branch or private page; owner in the Claude app (no token entered there) | 📦 artifact (baked); 🥏 `#gz=` when the page is small and no build is wanted |

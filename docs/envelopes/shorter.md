@@ -1,6 +1,6 @@
 # Shorter: the payload contract
 
-⭐ [pages/shorter.html](https://mehrlander.github.io/web-tools/pages/shorter.html) compares a text with a shorter version of it. It word-diffs the two and shows each difference as an edit, accepted by default; you reject the cuts that went too far, rewrite or regenerate a span, and copy the result. An optional in-browser model (Llama-3.2-1B through web-llm, which needs WebGPU) drafts a shorter version or rewrites a span, and nothing is fetched from huggingface.co until a ✨ action is pressed, so review works without it.
+🔷 [pages/shorter.html](https://mehrlander.github.io/web-tools/pages/shorter.html) compares a text with a shorter version of it. It word-diffs the two and shows each difference as an edit, accepted by default; you reject the cuts that went too far, rewrite or regenerate a span, and copy the result. An optional in-browser model (Llama-3.2-1B through web-llm, which needs WebGPU) drafts a shorter version or rewrites a span, and nothing is fetched from huggingface.co until a ✨ action is pressed, so review works without it.
 
 ## Delivery
 
