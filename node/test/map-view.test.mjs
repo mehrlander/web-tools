@@ -1627,7 +1627,25 @@ test('Context\'s address rides with Context alone, and comes back with it', asyn
 
 test('an address that does not open Context arms none of its keys', () => {
   const { shell } = makeShell({ search: '?view=map&tab=tests&ctxtopic=house-style' });
-  assert.deepEqual({ ...shell.mapCtx }, { ctxlens: '', ctxsort: '', ctxtopic: '', ctxsource: '' });
+  assert.deepEqual({ ...shell.mapCtx }, { ctxlens: '', ctxsort: '', ctxtopic: '', ctxsource: '', setintent: '' });
+});
+
+test("Set's question rides with Set alone, and leaves Context's held address", async () => {
+  const { shell } = makeShell({ search: '?view=map&tab=set&setintent=gemini-errand' });
+  assert.equal(shell.mapCtx.setintent, 'gemini-errand', 'an address that opens Set arms its question');
+  await shell.routeFromUrl(shell.parseUrl());
+  assert.equal(shell.deepLinkParams().get('setintent'), 'gemini-errand');
+
+  shell.goMapTab('context');
+  shell.setMapCtx({ ctxlens: '', ctxsort: '', ctxtopic: 'house-style', ctxsource: '' });
+  assert.equal(shell.deepLinkParams().has('setintent'), false, 'setintent rode onto Context');
+  shell.goMapTab('set');
+  shell.setMapCtx({ setintent: 'edit-from-phone' });
+  assert.equal(shell.deepLinkParams().get('setintent'), 'edit-from-phone');
+  assert.equal(shell.deepLinkParams().has('ctxtopic'), false, 'ctxtopic rode onto Set');
+  assert.equal(shell.mapCtx.ctxtopic, 'house-style', "a Set pick leaves Context's question for its next visit");
+  shell.setMapCtx({ setintent: '' });
+  assert.equal(shell.deepLinkParams().has('setintent'), false, 'clearing the pick leaves the address');
 });
 
 test('the shell and the component agree on the tab set', () => {
