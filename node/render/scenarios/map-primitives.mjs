@@ -12,7 +12,7 @@
 //
 // What the pixels prove: the four primitive chips with their icons and
 // counts, the By primitive groups headed by each primitive's icon and
-// definition, and one column's card opened. PRIM_LENS=table draws the By table
+// definition, and one column's card opened under its table's line. PRIM_LENS=table draws the By table
 // lens instead. PRIM_ESTATE=<path to a home checkout> also serves budget-drs's
 // column lineage as a declared data.columns registry, through a stubbed token
 // and config cache, so the estate half draws.
@@ -71,6 +71,10 @@ export default async function (page) {
     d.primRepo = repo;
     d.primSel = (repo ? d.primAll.find(c => c.repo === repo && c.origin === 'authored' && c.gloss)
       : d.primAll.find(c => c.table === 'registries' && c.column === 'key_primitive')) || null;
+    // The card opens under its table's line, which may sit past the first
+    // forty; show every line, then bring the card into view.
+    d.primMore = { id: true, label: true, locator: true, value: true, table: true };
+    d.$nextTick(() => document.querySelector('[data-prim-card]')?.scrollIntoView({ block: 'center' }));
   }, process.env.PRIM_REPO || '');
   await page.waitForTimeout(600);
 }
