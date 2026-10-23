@@ -254,11 +254,11 @@ test('a tap selects and the band reads the cell; rows, columns and ranges read a
     const td = (a) => pane.querySelector(`td[data-c="${a}"]`);
     const click = (el, o = {}) => el.dispatchEvent(new window.MouseEvent('click', { bubbles: true, ...o }));
 
-    assert.equal(band.hidden, true, 'nothing selected, nothing read');
+    assert.equal(text('at').hidden, true, 'nothing selected, nothing read');
     click(td('C3'));
     assert.deepEqual(selected(), ['C3']);
     assert.ok(td('C3').hasAttribute('data-cur'), 'the tapped cell is the active one');
-    assert.equal(band.hidden, false);
+    assert.equal(text('at').hidden, false);
     assert.equal(text('at').textContent, 'C3');
     assert.equal(text('formula').textContent, '=B3*2');
     assert.ok(shown('Shown') && text('Shown').lastElementChild.textContent === '6');
@@ -311,8 +311,14 @@ test('a tap selects and the band reads the cell; rows, columns and ranges read a
     assert.ok(td('A2').hasAttribute('data-cur'), 'from the cell that stays active');
     assert.equal(key('ArrowLeft', { ctrlKey: true }), false, 'Ctrl+arrow is not the sheet\'s');
 
+    // The formulas toggle: the only computed cell is C3, and the tint is a
+    // mark on the pane, so it outlives a redraw of the table inside it.
+    assert.deepEqual(Array.from(pane.querySelectorAll('td[data-fx]'), x => x.getAttribute('data-c')), ['C3']);
+    band.querySelector('[data-b="fx"]').click();
+    assert.ok(pane.hasAttribute('data-show-fx'));
+
     sel.reset();
-    assert.equal(band.hidden, true, 'a redraw clears the selection');
+    assert.equal(text('at').hidden, true, 'a redraw clears the selection');
     assert.equal(heard.at(-1), null, 'and says so');
     assert.equal(key('ArrowRight'), false, 'with nothing selected, the arrows pass on to the deck');
     root.remove();

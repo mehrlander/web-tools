@@ -415,11 +415,19 @@ test('a sheet cell asks the title-tip kit for Excel\'s comment box', () => {
 });
 
 test('every cell note wears the same box, not only the comments', () => {
-  // One sheet cannot show two kinds of tooltip. A cell whose only note is the
-  // stored value has no Excel counterpart and still gets Excel's frame.
+  // One sheet cannot show two kinds of tooltip. An input instruction is not a
+  // comment and still gets Excel's frame.
+  const instr = drawWith(layoutWith({ note: { kind: 'instruction', title: '', prompt: 'Enter the amount.' } }));
+  assert.match(instr, /data-title-tip-look="excel"/);
+  assert.match(instr, /data-title-tip="Enter the amount\."/);
+});
+
+test('a stored value is the formula bar\'s to show, not a tooltip\'s', () => {
+  // "Stored as 0.125" rode in a tooltip on every rounded number until the
+  // formula bar showed it on selection; repeated over a sheet of currency it
+  // was the tooltip's most common line and told the reader nothing new.
   const stored = drawWith(layoutWith({ raw: '0.125' }));
-  assert.match(stored, /data-title-tip-look="excel"/);
-  assert.match(stored, /data-title-tip="Stored as 0\.125"/);
+  assert.doesNotMatch(stored, /data-title-tip=/);
 });
 
 test('the Excel look is asked for per note, so it cannot leak to the page', () => {
