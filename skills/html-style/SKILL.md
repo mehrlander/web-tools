@@ -71,14 +71,12 @@ since its takeover is one tap away.
 
 **5. An embedded page has no fixed root.** A page another page may embed (an
 appendix, a toss render, a stage preview) takes rule 4's shape without the fixed
-root: `min-h-dvh` and sticky chrome over document scrolling, or, for a list over
-a strip (rule 12), an `h-dvh` root whose panes scroll inside it. In an iframe on
-iOS, a fixed child measures against the outer viewport and loses its right-hand
-column, which headless Chromium does not show. Width queries measure the frame,
-not the window: the Budget DRS app's pane is 992px wide on a 1280px window, so a
-page there gets its `md:` layout, not its `lg:` one. With sticky chrome, save and
-restore document scroll when a detail view replaces a long list, and drop
-`viewport-fit=cover` unless the page is edge-to-edge.
+root: `min-h-dvh` and sticky chrome over document scrolling, or an `h-dvh` root
+for a list over a strip (rule 12). In an iframe on iOS, a fixed child measures
+against the outer viewport and loses its right-hand column, which headless
+Chromium does not show. Width queries measure the frame, not the window. With
+sticky chrome, save and restore document scroll when a detail view replaces a
+long list, and drop `viewport-fit=cover` unless the page is edge-to-edge.
 
 **6. Type is for reading, not for fitting.** If type shrank to fit, the layout is
 wrong, not the type. Decks and documents run `text-xl` or larger with
