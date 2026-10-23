@@ -402,7 +402,7 @@ document.addEventListener('alpine:init', () => {
       return it.type === 'file' ? card : `<div class="space-y-4 ${size}">${card}</div>`;
     },
     // daisyUI sizes a table's cells, not the table, so the takeover sizes them too.
-    table(size) { return size === 'text-sm' ? 'table table-sm text-sm' : 'table [&_td]:text-xl [&_td]:leading-8 [&_th]:text-base'; },
+    table(size) { return size === 'text-sm' ? 'table table-sm text-sm' : 'table [&_td]:text-xl [&_td]:leading-8 [&_th]:text-base max-sm:[&_td]:px-2 max-sm:[&_th]:px-2'; },
     figure(before, after, est) {
       const delta = before - after;
       return `<div><div class="mb-1 text-balance tabular-nums">${this.fmt(before)} → ${this.fmt(after)} words`
@@ -436,11 +436,12 @@ document.addEventListener('alpine:init', () => {
       const areas = (this.ctx.areas || []).map(a => ({ area: a, ...this.stats(this.areaDocs(a)) })).filter(a => a.docs);
       const max = Math.max(1, ...areas.filter(a => a.counted).map(a => Math.max(a.before, a.after)));
       out.push(`<div>${label('Areas')}<div class="overflow-x-auto"><table class="${this.table(size)}">`
-        + `<thead><tr class="text-xs"><th>Area</th><th class="w-1/4 min-w-16">${this.key}</th><th class="text-right">Cut</th><th class="text-right">Survey est.</th></tr></thead><tbody>`
+        + `<thead><tr class="text-xs"><th>Area</th><th class="w-1/4 min-w-16">${this.key}</th><th class="text-right">Cut</th><th class="text-right max-sm:hidden">Survey est.</th></tr></thead><tbody>`
         + areas.map(a => `<tr class="cursor-pointer hover:bg-base-200 ${a.counted ? '' : 'text-base-content/60'}" data-act="goto" data-id="${esc('area:' + a.area)}">`
           + `<td>${esc(a.area)}</td><td>${a.counted ? this.bar(a.before, a.after, max) : ''}</td>`
-          + `<td class="text-right tabular-nums">${a.counted ? this.pct(a.before, a.after) : `${a.docs} files`}</td>`
-          + `<td class="text-right tabular-nums text-base-content/60">${a.counted && a.est != null ? '−' + a.est + '%' : ''}</td></tr>`).join('')
+          + `<td class="text-right tabular-nums">${a.counted ? this.pct(a.before, a.after) : `${a.docs} files`}`
+          + `${a.counted && a.est != null ? `<span class="block whitespace-nowrap text-base text-base-content/60 sm:hidden">est. −${a.est}%</span>` : ''}</td>`
+          + `<td class="text-right tabular-nums text-base-content/60 max-sm:hidden">${a.counted && a.est != null ? '−' + a.est + '%' : ''}</td></tr>`).join('')
         + '</tbody></table></div></div>');
       out.push(`<div>${label('Stages')}<div class="overflow-x-auto"><table class="${this.table(size)}"><tbody>`
         + (this.ctx.stages || []).map(st => `<tr class="align-top"><td>${esc(st.name)}</td>`
@@ -459,7 +460,7 @@ document.addEventListener('alpine:init', () => {
         + list.map(o => `<tr class="cursor-pointer hover:bg-base-200" data-act="filter" data-key="outcome" data-value="${esc(o.outcome)}">`
           + `<td>${esc(o.outcome)}</td><td class="text-right tabular-nums">${o.docs}</td>`
           + `<td class="text-right tabular-nums">${o.removed ? this.fmt(o.removed) : ''}</td>`
-          + `<td class="w-1/3">${o.removed ? `<div class="h-2 rounded-sm bg-error" style="width:${100 * o.removed / max}%"></div>` : ''}</td></tr>`).join('')
+          + `<td class="w-1/3 max-sm:hidden">${o.removed ? `<div class="h-2 rounded-sm bg-error" style="width:${100 * o.removed / max}%"></div>` : ''}</td></tr>`).join('')
         + '</tbody></table></div></div>';
     },
     areaCard(it, size) {
@@ -496,10 +497,10 @@ document.addEventListener('alpine:init', () => {
       if (it.commentary) out.push(`<div>${label('Now')}<div class="${MD}">${md(it.commentary)}</div></div>`);
       if (m.cuts?.length) {
         out.push(`<div>${label('Removed')}<div class="overflow-x-auto"><table class="${this.table(size)}"><tbody>`
-          + m.cuts.map(c => `<tr class="align-top"><td class="w-1/4 min-w-28 ${MD}">${md(c.section, true)}</td>`
-            + `<td class="whitespace-nowrap text-right tabular-nums">${c.words ? this.fmt(c.words) : ''}</td>`
-            + `<td class="whitespace-nowrap font-mono text-xs text-base-content/60">${esc(c.kind || '')}</td>`
-            + `<td class="${MD}">${md(c.why, true)}${c.owner ? ` <span class="text-base-content/60">→ ${md('`' + c.owner + '`', true)}</span>` : ''}</td></tr>`).join('')
+          + m.cuts.map(c => `<tr class="align-top max-sm:grid max-sm:grid-cols-[minmax(0,1fr)_auto_auto]"><td class="sm:w-1/4 sm:min-w-28 max-sm:border-b-0! ${MD}">${md(c.section, true)}</td>`
+            + `<td class="whitespace-nowrap text-right tabular-nums max-sm:border-b-0!">${c.words ? this.fmt(c.words) : ''}</td>`
+            + `<td class="whitespace-nowrap font-mono text-xs! text-base-content/60 max-sm:border-b-0!">${esc(c.kind || '')}</td>`
+            + `<td class="max-sm:col-span-3 max-sm:pt-0 [overflow-wrap:anywhere] ${MD}">${md(c.why, true)}${c.owner ? ` <span class="text-base-content/60">→ ${md('`' + c.owner + '`', true)}</span>` : ''}</td></tr>`).join('')
           + '</tbody></table></div></div>');
       }
       if (m.moved_to) out.push(`<div>${label('Moved to')}<div class="${MD}">${md('`' + m.moved_to + '`', true)}</div></div>`);
