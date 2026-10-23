@@ -14,9 +14,9 @@ The root [`apple-touch-icon.png`](../../apple-touch-icon.png) is the same mark r
 
 This is the library-wide mark. `lib/gh-boot.js` inlines a copy and injects it as the default favicon on any loader page that declares no icon of its own, and the [pages index](../../pages/index.html) points its `<link rel="icon">` and header logo here too.
 
-### Estate repository marks
+### Repository marks
 
-Files: [`estate/`](estate/). Drawn 2026-10-22: one mark per estate repository except web-tools, whose mark is the hex nut. The app draws each wherever it lists repositories (the sidebar, the repo menu, Map › Reach and Map › Projects), reading the file named for the repository from the hub at main (`repoMarkSrc` in [`app/index.html`](../../app/index.html)).
+Files: [`repos/`](repos/). Drawn 2026-10-22: one mark per estate repository except web-tools, whose mark is the hex nut. The app draws each wherever it lists repositories (the sidebar, the repo menu, Map › Reach and Map › Projects), reading the file named for the repository from the hub at main (`repoMarkSrc` in [`app/index.html`](../../app/index.html)).
 
 ### Map marks
 

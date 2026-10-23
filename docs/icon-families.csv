@@ -1,6 +1,5 @@
 family,group,label,source,icon_column,name_column,doc
-hub,drawn,Web Tools,lib/favicon.svg,,,docs/favicons/README.md#hex-nut-project-mark
-repositories,drawn,Repositories,docs/favicons/estate/,,,docs/favicons/README.md#estate-repository-marks
+repositories,drawn,Repositories,docs/favicons/repos/,,,docs/favicons/README.md#repository-marks
 map,drawn,Map,docs/favicons/map/,,,docs/favicons/README.md#map-marks
 projects,drawn,Projects,.web-tools.json,,,docs/manifest-fields.csv#projects[].icon
 programs,drawn,Programs,.web-tools.json,,,docs/manifest-fields.csv#programs[].icon

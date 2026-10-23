@@ -4978,10 +4978,11 @@ function app(){ return {
   // kanban, which is what every project drew before icons were declared.
   projectGlyph(p){ return p?.icon?.startsWith('ph-') ? p.icon : 'ph-kanban'; },
   // A drawn mark the hub keeps (docs/favicons/README.md, Drawn marks), read
-  // once at main. Such a mark is filled with currentColor, which an <img>
-  // draws black, so it is painted as a mask in the text colour (markStyle).
-  // '' while the read is out, or when the hub has no such file: the caller
-  // draws its stock glyph.
+  // once at the hub's selected ref: main, unless a preview names a branch, so
+  // a branch that moves or adds a mark previews it. It is painted as a mask in
+  // the text colour (markStyle), since the marks are filled with currentColor,
+  // which an <img> draws black. '' while the read is out, or when the hub has
+  // no such file: the caller draws its stock glyph.
   hubMarkSrc(path){
     if (!path) return '';
     if (!HUB_MARKS_ASKED.has(path)) {
@@ -4989,7 +4990,8 @@ function app(){ return {
       queueMicrotask(async () => {
         if (!window.GH) return;
         try {
-          const j = await new window.GH({ token: this.hasToken() ? window.TOKEN : '', repo: this.DEFAULT_REPO, ref: 'main' }).get(path);
+          const ref = window.GH.refFor?.(this.DEFAULT_REPO) || 'main';
+          const j = await new window.GH({ token: this.hasToken() ? window.TOKEN : '', repo: this.DEFAULT_REPO, ref }).get(path);
           this.hubMarks[path] = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(j.text);
         } catch {}
       });
@@ -4997,12 +4999,14 @@ function app(){ return {
     return this.hubMarks[path] || '';
   },
   // A repository's mark: the file the hub draws for it, named for the
-  // repository, in docs/favicons/estate/. The hub itself wears the hex nut,
-  // and a repository of another owner shares no names with these files.
+  // repository, in docs/favicons/repos/. The hub itself wears the hex nut, the
+  // app's own favicon, painted in the text colour like the rest; a repository
+  // of another owner shares no names with these files.
   repoMarkSrc(repo){
     const [owner, name] = String(repo || '').split('/');
-    if (!name || repo === this.DEFAULT_REPO || owner !== this.DEFAULT_REPO.split('/')[0]) return '';
-    return this.hubMarkSrc('docs/favicons/estate/' + name + '.svg');
+    if (repo === this.DEFAULT_REPO) return this.hubMarkSrc('lib/favicon.svg');
+    if (!name || owner !== this.DEFAULT_REPO.split('/')[0]) return '';
+    return this.hubMarkSrc('docs/favicons/repos/' + name + '.svg');
   },
   markStyle(src){ return src ? { '--mark': 'url("' + src + '")' } : {}; },
   async loadProjectIcon(key, repo, ref, f){
