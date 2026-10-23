@@ -41,7 +41,9 @@ permissions:
 
 jobs:
   probe:
-    runs-on: ubuntu-latest
+    # Pinned, not ubuntu-latest: that resolved to 26.04 by 2026-10-23, where
+    # Playwright 1.56 cannot install its browsers. Move with the Playwright pin.
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v5
