@@ -29,6 +29,7 @@ Content should only be included where behavior depends on it. For a basic test: 
 Check changes against the principles above, make any needed revisions, commit them on a branch, then present them in chat as a doc review:
 
 - **Open with the work**: A `📝 Doc review: <topic>` heading, one or two sentences on the work behind the edits, and a link to the commit.
+- **Walk the passages**: When the edits sit in two or more places, add a look link with a step on each edited passage (the look-markers skill). The diffs remain what the owner approves.
 - **Caption each document**: Its plain name, 🥏 render link, and one line on what it covers.
 - **Label each edit**: `Edit N · <kind> · <origin>`. Kind: Fix (the text is false), Alignment (two documents disagree), Addition (new content) or Wording (same claim, new words). Origin: this session's work or the existing text.
 - **Locate it, then show it**: Name the place by its content and say what changes, then show a fenced `diff` block with enough unchanged lines to locate it.
