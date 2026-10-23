@@ -7,10 +7,11 @@
 // is the menu's membership, its wording, what each item does, and the four ways
 // it goes away.
 //
-// The table is a stub rather than a real Tabulator, and deliberately: the kit
-// touches exactly three of that library's methods (`on`, `getColumns`,
+// The table is a stub rather than a real Tabulator, and deliberately: the row
+// menu touches exactly three of that library's methods (`on`, `getColumns`,
 // `getRows`), and a stub is how that stays true. A drift into a fourth fails
-// here rather than in a browser.
+// here rather than in a browser. The header menu is Tabulator's alone and gets
+// a stub of its own, at the depth it uses.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -60,6 +61,13 @@ function stubTable({ rows = ROWS, cols = COLS } = {}) {
       for (const fn of handlers.rowClick || []) {
         fn(e, { getData: () => rows[i], getElement: () => els[i] });
       }
+      return e;
+    },
+    // A right-click or a long press, which Tabulator reports as its own events.
+    fire(ev, i) {
+      const e = new window.MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 40, clientY: 60 });
+      Object.defineProperty(e, 'target', { value: els[i] });
+      for (const fn of handlers[ev] || []) fn(e, { getData: () => rows[i], getElement: () => els[i] });
       return e;
     },
     rowEl: (i) => els[i],
@@ -240,4 +248,133 @@ test('the kit touches only the three Tabulator calls it declares', () => {
   const used = new Set(t.calls.map(c => c.split(':')[0]));
   assert.deepEqual([...used].sort(), ['getColumns', 'getRows', 'on'],
     'the kit reached for a Tabulator method its header does not declare');
+});
+
+test('on: context opens on a right-click or a long press, and a tap stays a tap', () => {
+  reset();
+  const t = stubTable();
+  const off = RM.attach(t, { on: 'context', noun: 'row' });
+  t.tap(0);
+  assert.equal(menu(), null, 'a plain tap raised the context menu');
+  const e = t.fire('rowContext', 0);
+  assert.deepEqual(labels(), ['Copy this row', 'Copy 3 rows']);
+  assert.ok(e.defaultPrevented, "the browser's own menu would open over this one");
+  RM.close();
+  t.fire('rowTapHold', 1);
+  assert.ok(menu(), 'a long press, the touch path, raised nothing');
+  off();
+  t.fire('rowContext', 0);
+  assert.equal(menu(), null, 'detach left the context gesture wired');
+});
+
+// ── the header menu ─────────────────────────────────────────────────────────
+
+// A Tabulator table and its columns at the depth headerItems reads them.
+function stubGrid() {
+  const el = doc.createElement('div');
+  doc.body.append(el);
+  const state = { sorters: [], filters: {}, redraws: 0 };
+  const defs = [
+    { field: 'item_id', title: 'Item', headerFilter: 'input' },
+    { field: 'amount', title: 'Amount', headerFilter: 'input' },
+  ];
+  const table = {
+    element: el, options: {},
+    getSorters: () => state.sorters,
+    setSort: (field, dir) => { state.sorters = [{ field, dir }]; },
+    clearSort: () => { state.sorters = []; },
+    getHeaderFilterValue: (f) => state.filters[f],
+    setHeaderFilterValue: (f, v) => { state.filters[f] = v; },
+    getHeaderFilters: () => Object.entries(state.filters).filter(([, v]) => v).map(([field, value]) => ({ field, value })),
+    clearHeaderFilter: () => { state.filters = {}; },
+    getRows: () => ROWS.map(r => ({ getData: () => r })),
+    redraw: () => { state.redraws++; },
+  };
+  const cols = defs.map(d => {
+    const h = doc.createElement('div');
+    h.innerHTML = '<span class="tabulator-col-title">' + d.title + '</span><div class="tabulator-header-filter"><input></div>';
+    el.append(h);
+    let shown = true;
+    return {
+      getField: () => d.field, getDefinition: () => d, getElement: () => h, getTable: () => table,
+      isVisible: () => shown, hide: () => { shown = false; }, show: () => { shown = true; },
+    };
+  });
+  table.getColumns = () => cols;
+  return { table, cols, state, el };
+}
+const headings = () => [...(menu()?.children || [])].filter(c => !c.matches('[role="menuitem"]')).map(c => c.textContent);
+const openHeader = (col, opts) => {
+  const out = RM.headerDefaults(opts).headerMenu(new window.MouseEvent('click', { clientX: 10, clientY: 10 }), col);
+  assert.deepEqual(out, [], "Tabulator's own popup would draw beside this one");
+};
+
+test('a header menu has the column, then the table, under headings', () => {
+  reset();
+  const { cols } = stubGrid();
+  openHeader(cols[1]);
+  assert.deepEqual(headings(), ['Amount', 'Table']);
+  assert.deepEqual(labels(), [
+    'Sort ascending', 'Sort descending', 'Filter this column', 'Copy 3 values', 'Hide column',
+    'Hide header filters', 'Copy 3 rows',
+  ]);
+});
+
+test('the column section follows the column: its sort, its filter, its values', async () => {
+  reset();
+  const { cols, state } = stubGrid();
+  openHeader(cols[0]);
+  clickItem('Sort descending');
+  openHeader(cols[0]);
+  assert.deepEqual(labels().slice(0, 2), ['Sort ascending', 'Clear sort'], 'the current sort is still offered');
+
+  state.filters.item_id = 'a';
+  RM.close();
+  openHeader(cols[0]);
+  assert.ok(labels().includes('Clear this filter'));
+  assert.ok(labels().includes('Clear all filters'));
+  clickItem('Clear this filter');
+  assert.equal(state.filters.item_id, '');
+
+  const wrote = [];
+  window.io = { copy: (t) => { wrote.push(t); return Promise.resolve(true); } };
+  openHeader(cols[0]);
+  clickItem('Copy 3 values');
+  await new Promise(r => setTimeout(r, 0));
+  assert.deepEqual(wrote[0].split('\n'), ['Item', 'a-1', 'b-2', 'c-3']);
+});
+
+test('hiding a column is undone from the table section, and only what it hid', () => {
+  reset();
+  const { cols } = stubGrid();
+  openHeader(cols[0]);
+  clickItem('Hide column');
+  assert.equal(cols[0].isVisible(), false);
+  openHeader(cols[1]);
+  assert.ok(!labels().includes('Hide column'), 'the last column showing could be hidden');
+  clickItem('Show the hidden column');
+  assert.equal(cols[0].isVisible(), true);
+});
+
+test('the filter switch hides the row on the table, or hands it to the host', () => {
+  reset();
+  const { cols, el, state } = stubGrid();
+  openHeader(cols[0]);
+  clickItem('Hide header filters');
+  assert.deepEqual([...el.querySelectorAll('.tabulator-header-filter')].map(f => f.style.display), ['none', 'none']);
+  assert.equal(state.redraws, 1, 'a hidden filter row leaves the header its old height until a redraw');
+  openHeader(cols[0]);
+  assert.ok(labels().includes('Show header filters'), 'the switch does not say which way it goes now');
+  RM.close();
+
+  // A host that keeps the setting above one table (the workbench, across its
+  // grids) owns it: the menu reads it there and writes it there.
+  let on = false;
+  const seen = [];
+  const opts = { filters: { on: () => on, set: (v) => { seen.push(v); on = v; } } };
+  openHeader(cols[1], opts);
+  clickItem('Show header filters');
+  assert.deepEqual(seen, [true]);
+  openHeader(cols[1], opts);
+  assert.ok(labels().includes('Hide header filters'));
 });
