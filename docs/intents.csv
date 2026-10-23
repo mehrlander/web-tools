@@ -3,7 +3,7 @@ change-unattached-repo,How do I change a repo this session has not attached?,sta
 apply-proposal,How do I make a small edit in a repo no session has open?,start:you;app-tap;dest:branch,"four kinds of edit only, applied by your taps",app-tap,docs/views/proposals.md
 send-files,How do I send files into another repo?,start:you;app-tap;dest:main,"new files only, into the repo's inbox",dest:main,docs/manifest.md
 gemini-errand,How do I have Gemini do work on the laptop?,start:you;session-web;daemon;dest:branch,"lands in web-tools-private, not the target repo",dest:branch,docs/manifest.md
-gemini-attended,How do I have Gemini change a repo on the laptop?,start:you;gemini-antigravity;dest:branch,needs npm run setup in its clone,gemini-antigravity,docs/surfacing-course.md
+gemini-attended,How do I have Gemini change a repo on the laptop?,start:you;gemini-antigravity;dest:branch,needs npm run setup in its clone,gemini-antigravity,GEMINI.md
 read-unreachable-page,How do I read a page a session cannot reach?,start:you;app-tap;dest:main,"one bookmark tap on that page; it reads, never writes",app-tap,courier/README.md
 run-on-work-machine,How do I run a script on the work machine?,start:you;app-tap;dest:main,its output returns only through your paste,app-tap,docs/run-methods.csv
 edit-from-phone,How do I edit a file from my phone?,start:you;github-web;dest:main,"no commit hook runs, so generated files go stale",github-web,CLAUDE.md
