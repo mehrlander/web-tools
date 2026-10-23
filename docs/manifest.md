@@ -8,20 +8,12 @@ stays data, one row per key in [manifest-fields.csv](manifest-fields.csv), held
 to the estate's real manifests by `node/test/manifest-registry.test.mjs`; this
 doc is the prose around that registry, not a second copy of it.
 
-That registry is the structured stage for the field reference: one row per key, with its type, the tool that reads
-it, and what it does. What stays in prose is the part a registry cannot carry,
-design rationale and cross-field behaviour. The gate checks every key present in
-a real manifest against a row, so a field that gets used without being written
-down is a test failure rather than a discovery three months later. `consumer`
-records which tool reads each key: the file is shared, and which tool reads a
-key is a property of the key.
-
 Each registry row gives a key's type, the tool that reads it (`consumer`), and
 what it does. Members of an array or object key are rows of their own
 (`pages[].path`, `stage.files`), and a `required` column says whether a member
-has to be present. The gate checks every key present in a real manifest against
-a row, so a field used without being written down fails the test. What stays
-in prose is design rationale and cross-field behaviour.
+has to be present. The test checks every key in a real manifest against a row,
+so a field used without being written down fails it. What stays in prose here is
+design rationale and cross-field behaviour.
 
 Root `.web-tools.json` is the repo's canonical **web-tools config file**.
 The Web Tools app is one consumer: it reads the
@@ -450,7 +442,7 @@ Nothing expands, so nothing carries a chevron.
 **Repository**, **Pull requests**, **Issues**, its **Task board** (the
 `tracker` field), **Branches**, **Commits**, **Actions**, each with an
 out-arrow. The list is `lib/kits/github-links.js`, a pure string builder with no
-fetches, so the Activity view's repo chip fills the same panel from the same
+fetches, so the Branches view's repo chip fills the same panel from the same
 rows. This was a single **Open on GitHub** row inside the actions list, pointing
 at the repo root: the one destination a reader could have guessed, while the
 rest of a repo's GitHub surface had no route at all. Splitting it out is what
