@@ -222,6 +222,40 @@ test('a toss link holds one raw "#", so a client that re-encodes an invalid URL 
   assert.equal(page.get('show'), 'row');
 });
 
+test('a walkthrough whose steps name pages opens as the tab, each step at its address on this ref', () => {
+  // A framed toss's page is a blob: URL, so lib/kits/look.js reads every step
+  // as this page and a step on another one lands as a miss. Measured headless
+  // on 2026-10-22, the printed link went Set, Showing, then a document.
+  const steps = (s) => 'steps=' + Buffer.from(JSON.stringify(s)).toString('base64url');
+  const read = (url) => {
+    const v = decodeURIComponent(url.slice(url.indexOf('#') + 1));
+    return JSON.parse(Buffer.from(new URLSearchParams(v.slice(v.lastIndexOf('#') + 1)).get('steps'), 'base64url'));
+  };
+  const walk = steps([
+    { at: 'text:Set', say: 'here' },
+    { at: 'app/?view=map&tab=showing!text:Toss, data route', say: 'a tab' },
+    { at: 'docs/CONVERSATION.md!text:Have a look:', say: 'a document' },
+    { at: 'pages/toss-render.html?top&gh=o/r@main:x.html!row', say: 'written whole' },
+  ]);
+  const d = run('app/index.html', ['--query', 'view=map&tab=set', '--at', walk]);
+  assert.equal(d.top, true);
+  assert.match(d.links[0].url, /toss-render\.html\?top#gh=mehrlander\/web-tools@0{12}:app\/index\.html\?view=map&tab=set%23steps=/);
+  assert.deepEqual(read(d.links[0].url).map(s => s.at), [
+    'text:Set',
+    `pages/toss-render.html?top&gh=mehrlander/web-tools@${Z12}:app/index.html&view=map&tab=showing!text:Toss, data route`,
+    `pages/data-view.html?src=mehrlander/web-tools@${Z12}:docs/CONVERSATION.md!text:Have a look:`,
+    'pages/toss-render.html?top&gh=o/r@main:x.html!row',
+  ]);
+  // A document has no top mode that keeps its fragment, so a walkthrough
+  // starting on one starts on the data viewer's own address.
+  const doc = run('docs/showing.md', ['--at', walk]);
+  assert.match(doc.links[0].url, new RegExp(`^https://mehrlander\\.github\\.io/web-tools/pages/data-view\\.html\\?src=mehrlander/web-tools@${Z12}:docs/showing\\.md#steps=`));
+  // The control: steps on one page stay framed.
+  const one = run('app/index.html', ['--at', steps([{ at: 'text:Set' }, { at: 'text:Showing' }])]);
+  assert.equal(one.top, undefined);
+  assert.doesNotMatch(one.links[0].url, /\?top/);
+});
+
 test('any HTML outside archive/ is a page file, a kit demo or a dated prototype alike', () => {
   // showing-whitelists-pages-only: a branch whose only HTML sat in dump/ was
   // handed links to two pages it never touched.
