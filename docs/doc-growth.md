@@ -4,7 +4,9 @@
 an animated bubble chart of a repository's markdown over time, in the style of
 Gapminder. [`python/doc-growth.py`](../python/doc-growth.py) writes a JSON data
 file holding each markdown file's word counts and edits at every sample, and
-[`pages/doc-growth.html`](../pages/doc-growth.html) draws it.
+[`lib/kits/doc-growth.js`](../lib/kits/doc-growth.js) draws it, both in the
+Map's Docs → Growth tab and full page in
+[`pages/doc-growth.html`](../pages/doc-growth.html).
 
 Every file is a bubble: **x** is its length in words on a log scale, bubble area
 is lifetime edit count, and the play control sweeps the history one sample at a
@@ -25,10 +27,9 @@ each. Care mode leaves out files a commit hook writes (`--generated`, marked
 `gen` in the data file) and logs and trays (`chron/`, `tracker/tasks/`, `blog/`,
 `dump/`, `archive/`), and the slider then counts focused edits.
 
-**Ranked** lists the same files by focused edits per thousand words, or by count,
-over a strip that renders each document; the strip's corner button opens it full
-screen. A document is read at the data file's branch, through the viewer's stored
-token when there is one. `?view=ranked` and `?y=care` open the page on either.
+**Ranked**, in the Growth tab, lists the same files by focused edits per
+thousand words, or by count, and each opens in the file deck. `?y=care` opens the
+full page on Care.
 
 `w` counts every token; `r` skips fenced code blocks and YAML frontmatter.
 Tables and indented code count in both, so a wide gap between the two means
@@ -73,8 +74,9 @@ these it reads web-tools' own `data/doc-growth/web-tools.json`.
 
 A repo whose `.web-tools.json` sets `growth` to its data file's path
 ([field reference](manifest-fields.csv)) is listed in Map → Docs → Growth, which
-frames this page with `?src=` pointed at the selected repo. The web-tools data
-file needs no token; every other repo's needs the viewer's token. In Map → Docs →
+reads its data file at the selected repo's ref; `?growthrepo=` picks the repo and
+`?growthview=ranked` or `care` the view. The web-tools data file needs no token;
+every other repo's needs the viewer's token. In Map → Docs →
 Inventory, the web-tools data file adds a sparkline and a net word change to each
 document row; the rows render without them when the file is missing.
 
