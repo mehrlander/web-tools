@@ -479,6 +479,76 @@ reason the skill's last step now produces one.
 A question with no prior survey would test the method more fairly. Standing,
 occasioned and recurring, from the forms work of 2026-10-22, is one.
 
+## The poster
+
+The first answer was drawn as tables on the page's front tab, and it still did
+not read as an answer. It led with the study (readers, checks, agreement) and
+showed none of the owner's own collections. The poster turns that around: it
+opens on the question the owner asks ("What kind of collection is it?"), puts
+two or three of the estate's own files in every box, shows each misnamed thing
+with its wrong name struck through, and ends in the calls only the owner can
+make. How the map was made shrinks to a footnote. It is the page's Answer tab,
+and `poster=1` renders it alone as an image:
+
+```bash
+npm run shot -- pages/cat-map.html --hash 'src=../research/category-mapping/collections-map.json&poster=1' \
+  --width 720 --scale 2 --full --out poster.png
+```
+
+**Every placement is checked.** The answer names one run as its basis, and
+[`answer-check.py`](../../skills/cat-map/answer-check.py), run by the suite,
+holds each example to that run's coding: an example sits in its cell and meets
+no add-on word's condition, an add-on example meets its condition, a renamed
+thing is called by the old word. Its first run caught two slips in the
+hand-drawn draft, trackers.md shown as a plain registry though Reader A coded
+it a cache, and notes shown as a plain stream though the Lists view lists it,
+and it sharpened cache from "rebuilt from other files" to rebuilt with nothing
+checking it against them, which is what separates the activity cache from
+docs.csv.
+
+### Is the poster useful
+
+Three readers, blind to one another and to this account, got only the poster
+image and eight collections the poster does not show, and named each one.
+[`poster-test/`](poster-test/) holds the instructions, their answers and the
+scorer; the poster they saw is the Answer tab at commit `37908ad5`, regenerable
+with the command above. Seven collections have a key computed from Reader A's
+coding through the answer's own rules; the eighth, errands, probes a case the
+answer leaves open.
+
+| | Box right | Box and add-on words right |
+| --- | --- | --- |
+| Against the key as first drawn | 5 of 7, each reader | 3, 3 and 4 of 7 |
+| After two corrections to the key | 6 of 7, each reader | 5, 5 and 6 of 7 |
+
+The readers chose the same box as one another for all seven scored
+collections, and their notes traced two of their departures from the key to
+the key:
+
+- **A coding error.** Reader A coded the traffic ledger's entries "never
+  changed"; `lib/gh-boot.js:325` pushes each entry with status 0 and fills it
+  in when the request settles. The value is corrected in Reader A's run, with
+  that evidence, and the run's method says so.
+- **A meaning its rule did not match.** The list card said "members chosen by
+  hand", and the readers rightly called the aims reading list a list; the
+  rule accepted only the Lists view's sense. The rule now takes either list
+  sense.
+
+The third departure stays: all three readers called the decision ledger a
+stream and a cache, at low confidence, where Reader A coded an event whose
+entry changes. It exposed a real gap, that "does an entry change after it is
+written" is unclear for a collection rebuilt from other files; the grid now
+carries a note (ask about what each entry records, not the rebuild). All three
+sent errands to the open call for request files, which is where the poster
+meant them to go. Two of eight collections, `window.__traffic` and
+`state/sessions.json`, turned on the open call for a rolling window, which
+had been one reader's proposal. Examples are now named by findable paths:
+"the traffic logs" sent all three readers to the wrong collection.
+
+The corrections were found by the readers and checked against the files
+before the key changed; a key revised after seeing the answers would otherwise
+be a weak result, and the uncorrected row is the one to quote against it.
+
 ## Sources
 
 Citations marked secondhand were not read in the original.
