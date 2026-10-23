@@ -209,7 +209,7 @@ document.addEventListener('alpine:init', () => {
           </template>
         </div>
         <div class="overflow-x-auto">
-          <div class="grid gap-1 w-full" :style="`grid-template-columns: minmax(0, 4.5rem) repeat(${used(x).length}, minmax(7.5rem, 1fr))`">
+          <div class="grid gap-1 w-full" :style="`grid-template-columns: 4.5rem repeat(${used(x).length}, minmax(7.5rem, 1fr))`">
             <div></div>
             <template x-for="xv in used(x)" :key="'h' + xv">
               <div class="text-sm font-medium px-2 py-1" x-text="xv"></div>
