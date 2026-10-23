@@ -58,7 +58,7 @@ export default async function (page) {
       scope: wb?.scope ?? null,
       cols: wb?.raw?.[0] ? Object.keys(wb.raw[0]) : null,
       second: wb?.raw?.[1] ?? null,
-      tableRows: document.querySelectorAll('#tf-tab-target .tabulator-row').length,
+      tableRows: document.querySelectorAll('#tf-tab-target > :not(.hidden) .tabulator-row').length,
       toasts: window.__toasts,
       deck: !!Alpine.$data(document.querySelector('[x-data*="stager"]'))._tfDeck,
     };
