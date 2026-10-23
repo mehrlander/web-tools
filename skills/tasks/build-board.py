@@ -155,7 +155,7 @@ def row(m):
     dep = blocker(m)
     # 🎫 marks a tracker task wherever one is surfaced (see CONVENTIONS.md /
     # TRACKER.md): the ticket says "this is a filed task." The title is the
-    # link, per SURFACING.md's 🎫 form, so the board is a table of contents
+    # link, per CONVERSATION.md's 🎫 form, so the board is a table of contents
     # rather than a list of strings: one tap reaches the task that holds the
     # why, the definition of done, and the progress log. Brackets in a title
     # are escaped, since one unescaped `]` would truncate the link text.

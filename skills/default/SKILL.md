@@ -2,7 +2,7 @@
 name: default
 description: >-
   The context every session runs on: the portable conventions from
-  mehrlander/web-tools, the surfacing primitives (docs/SURFACING.md) and
+  mehrlander/web-tools, the conversation rules (docs/CONVERSATION.md) and
   the Qualified writing rules (docs/QUALIFIED-WRITING.md), shipped beside
   this skill. Load them at the start of any session that did not receive
   them, and in any repo when the user
@@ -26,7 +26,7 @@ this skill, the skill sees a checkout and says there is nothing to load, and the
 session proceeds without them having done everything right. Measured live on
 2026-09-13, the first session to run the plugin-only path.
 
-Load both. [`SURFACING.md`](SURFACING.md) governs how a reply reaches the reader;
+Load both. [`CONVERSATION.md`](CONVERSATION.md) governs how a reply reaches the reader;
 [`QUALIFIED-WRITING.md`](QUALIFIED-WRITING.md) governs the prose of every document, commit message, PR
 body, and reply the session writes. Neither is optional, and the writing half
 is the one a session is most likely to violate without noticing. Prefer the
@@ -35,7 +35,7 @@ otherwise:
 
 ```bash
 base=https://raw.githubusercontent.com/mehrlander/web-tools/main/docs
-curl -fsSL "$base/SURFACING.md"
+curl -fsSL "$base/CONVERSATION.md"
 curl -fsSL "$base/QUALIFIED-WRITING.md"
 ```
 

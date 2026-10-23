@@ -25,8 +25,8 @@ Run `python3 sessions/tools/search.py --surplus` in web-tools-private.
 
 ## Related
 
-- `docs/SURFACING.md`: close-order / surplus-state rules PR #646 added
-- `docs/surfacing.csv`: `close-order` row that kept the stronger clause during the drift
+- `docs/CONVERSATION.md`: close-order / surplus-state rules PR #646 added
+- `docs/conversation.csv`: `close-order` row that kept the stronger clause during the drift
 - task `surfacing-gate-content-okwnp6`: gate hole that let the weaker prose ship
 - PR #646: rules under measurement (run `sessions/tools/search.py --surplus` in web-tools-private)
 

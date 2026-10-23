@@ -1,6 +1,6 @@
 // Checks two tables in data/ui-units. units.csv lists the UI units, one row per
 // view, tab or page the apps show. coded.csv holds the codes a reader assigned
-// each unit on each codebook dimension (frame, body, reach, binding, phone).
+// each unit on each codebook dimension that dimensions.csv reads from coded.csv.
 //
 // The checks:
 //   every first-class address of the Web Tools app (docs/app-routes.csv,

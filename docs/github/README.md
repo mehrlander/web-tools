@@ -38,5 +38,5 @@ here so the rules have a place to point.
 
 - **[github-surfacing.md](github-surfacing.md)**: GitHub-native ways to expose
   work: branches, commits, compare views, draft pull requests, file permalinks,
-  and serialized diffs. The mechanical layer under the chat-handoff surfacing
-  primitives in [SURFACING.md](../SURFACING.md).
+  and serialized diffs. The mechanical layer under the chat-handoff
+  rules in [CONVERSATION.md](../CONVERSATION.md).
