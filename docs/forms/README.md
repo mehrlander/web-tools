@@ -1,24 +1,39 @@
 # Forms
 
-A **form** is the standard way one thing of a kind is shown, so that a reader
-knows the kind before reading the content. Forms come in two families, told
-apart by what brings the reader to them.
+A **form** is the standard way one kind of thing is shown, so that a reader
+knows the kind before reading the content. Before building a page, find the
+job it does here and reuse a form that serves it. A page that fits no form
+proposes one.
 
-- **Standing forms** show an object that persists and is revisited, reached by
-  navigating. Their objects are the types in [subjects.csv](../subjects.csv)
-  that need a form: the [branch](branch.md) and the [session](session.md).
-- **Occasioned forms** show one payload that work raised for the reader's
-  judgment: a proposed edit, a decision a session needs, items to label,
-  options to pick from. The link or file that opens one carries its content,
-  and most take an answer and then stand as a record. Their contracts are the
-  [envelopes](../envelopes/README.md) and the user call (`user-call/1`).
+## Jobs
 
-An **inbox** is a standing view that holds occasioned items until each is
-answered: the Waiting, Proposals and Tending views.
+Every page and view is tagged with the jobs it does for the reader. A page
+that does two jobs carries both tags, and neither is primary.
 
-## Answers
+| Job | The reader | Forms |
+| --- | --- | --- |
+| respond | judges something work raised | one per answer, below |
+| follow | keeps track of something ongoing | the [branch](branch.md); the [session](session.md); an inbox |
+| read | takes in a document or a result | none named yet |
+| explore | finds their way through a repo, a dataset or a collection | none named yet |
+| make | works on something they bring or own | none named yet |
 
-An occasioned form is known by the answer it asks for.
+An **inbox** holds respond items until each is answered, so it carries both
+tags: the Waiting, Proposals and Tending views.
+
+The test for each tag is its row in
+[data/ui-units/codes.csv](../../data/ui-units/codes.csv), and each page's tags
+are in [coded.csv](../../data/ui-units/coded.csv). The Map view's Gallery groups the
+pages by any one tag, listing a page under each of its tags. Read, explore and
+make have pages but no named form yet; the Gallery puts each job's pages side
+by side, which is where one gets chosen.
+
+## Respond forms
+
+A respond form usually opens on a payload that work made for the reader,
+carried by its link or file, under a contract: an
+[envelope](../envelopes/README.md) or the user call (`user-call/1`). It is
+known by the answer it asks for.
 
 | Answer | The reader | Form | The answer lands in |
 | --- | --- | --- | --- |
@@ -31,18 +46,9 @@ An occasioned form is known by the answer it asks for.
 
 An answer counts only where the form writes it for the work that raised it to
 read. The idea board and the design sprint's option page collect a choice, and
-Shorter a change review, but each keeps it in the browser or hands it over by
-copying, so it reaches the work only through chat. Choice is therefore a kind
-with no form yet.
+the Review page a judgment of a changeset, but each keeps it in the browser or
+records nothing, so it reaches the work only through chat. They are tagged
+respond with no answer, and choice is a kind with no form yet.
 
 A diff is a way of drawing a change, not a kind of form: a diff of a proposed
-edit belongs to a change form, and a diff of two pasted texts is a tool.
-
-Before building a page that asks the reader for a judgment, find its kind here
-and reuse that kind's form. A page that fits no kind proposes one.
-
-## Where each page falls
-
-Every coded page and view carries an `occasion` and an `answer` code in the
-[UI codebook](../../data/ui-units/codebook.md), beside how it is laid out. The
-Map view's Dimensions and Gallery tabs group the units by either.
+edit belongs to a change form, and a diff of two pasted texts is a make tool.
