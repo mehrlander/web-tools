@@ -12,15 +12,18 @@
   skill: a set of category words that blur, what each implies, and how the
   things they are applied to fall. The format is in skills/cat-map/SKILL.md.
 
-  Every view opens with the map's objective and strategy; a run's view adds
-  that run's outcome and method. Two views of one run. The field plots two characteristics at a time, each
-  sense a region of the cells its required values allow, each instance a chip
-  in its cell; a sense that constrains neither axis is listed beside it, which
-  is how "different axes" shows. The docket lists each sense's charge (the
-  values it requires) across every characteristic, with the instances called
-  by it checked against the charge, then the instances no sense is applied to.
-  A file with several runs, such as blind reviewers' maps of one question,
-  gets a run strip and a Compare view.
+  A run opens with its outcome, then two views of it. The field plots two
+  characteristics at a time, each sense a region of the cells its required
+  values allow, each instance a chip in its cell; a sense that constrains
+  neither axis is listed beside it, which is how "different axes" shows. The
+  docket lists each sense's charge (the values it requires) across every
+  characteristic, with the instances called by it checked against the charge,
+  then the instances no sense is applied to.
+
+  The map's objective and strategy are shared by every run, so they are said
+  once: above the run when there is one, and in a Brief tab, the first, when
+  there are several, such as blind readers' maps of one objective. Several
+  runs also get a Compare view.
 
   Address: #gh=owner/repo[@ref]:path or #gz=<gzipped JSON>; with neither, the
   registry test in research/category-mapping/registry-map.json.
@@ -55,9 +58,10 @@ document.addEventListener('alpine:init', () => {
     async init() {
       await window.__depsReady;
       try { this.D = await this.read(); } catch (e) { this.err = e.message; return; }
-      const k = Number(param('run'));
-      this.r = Number.isInteger(k) && k >= 0 && k < this.D.runs.length ? k : 0;
-      if (param('view') === 'compare' && this.D.runs.length > 1) this.view = 'compare';
+      const k = Number(param('run')), run = param('run') !== null && Number.isInteger(k) && k >= 0 && k < this.D.runs.length;
+      this.r = run ? k : 0;
+      // Several runs open on the brief they share, unless the address names a run or the comparison.
+      if (this.D.runs.length > 1) this.view = param('view') === 'compare' ? 'compare' : run ? 'map' : 'brief';
       this.axes();
     },
     async read() {
@@ -79,8 +83,8 @@ document.addEventListener('alpine:init', () => {
     get cats() { return this.R.categories; },
     get insts() { return this.R.instances; },
     pick(i) { this.r = i; this.open = ''; this.more = false; this.axes(); },
-    // Whether the clamped outcome or method hides any text at the current width.
-    fit() { this.$nextTick(() => { this.long = this.more || [this.$refs.outcome, this.$refs.method].some(e => e && e.scrollHeight > e.clientHeight + 1); }); },
+    // Whether the clamped outcome hides any text at the current width.
+    fit() { this.$nextTick(() => { const e = this.$refs.outcome; this.long = this.more || !!e && e.scrollHeight > e.clientHeight + 1; }); },
     axes() {
       const f = this.R.field || {}, ids = this.plottable().map(c => c.id);
       this.x = ids.includes(f.x) ? f.x : ids[0] || '';
@@ -165,11 +169,11 @@ document.addEventListener('alpine:init', () => {
     <header class="sticky top-0 z-20 bg-base-100 border-b border-base-300">
       <div class="px-4 pt-3 pb-2 flex items-baseline gap-3 flex-wrap">
         <h1 class="text-lg font-semibold text-balance" x-text="D.title"></h1>
-        <span class="text-xs text-base-content/60 font-mono" x-text="view === 'compare' ? `${D.runs.length} runs · ${words.length} words` : `${cats.length} senses · ${chars.length} characteristics · ${insts.length} things · ${offCount} off their word`"></span>
+        <span class="text-xs text-base-content/60 font-mono" x-text="view === 'map' ? `${cats.length} senses · ${chars.length} characteristics · ${insts.length} things · ${offCount} off their word` : `${D.runs.length} runs · ${words.length} words`"></span>
       </div>
       <template x-if="D.runs.length > 1">
         <div class="px-4 pb-2 flex items-center gap-2 overflow-x-auto whitespace-nowrap">
-          <span class="text-xs text-base-content/60 shrink-0">Run</span>
+          <button class="btn btn-xs rounded-full" :class="view === 'brief' ? 'btn-neutral' : 'btn-ghost border-base-300'" @click="view = 'brief'">Brief</button>
           <template x-for="(run, k) in D.runs" :key="k">
             <button class="btn btn-xs rounded-full" :class="view === 'map' && r === k ? 'btn-neutral' : 'btn-ghost border-base-300'" @click="view = 'map'; pick(k)" x-text="run.by"></button>
           </template>
@@ -178,25 +182,29 @@ document.addEventListener('alpine:init', () => {
       </template>
     </header>
 
-    <!-- What the map is for and how it set out; in one run's view, that run's outcome and method under them -->
-    <section class="px-4 pt-4 grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-3 gap-y-2 items-baseline">
-      <span class="text-xs text-base-content/60">Objective</span><p class="text-sm text-pretty" x-text="D.objective"></p>
-      <span class="text-xs text-base-content/60">Strategy</span><p class="text-sm text-pretty" x-text="D.strategy"></p>
-      <template x-if="view === 'map'">
-        <div class="contents" x-effect="R.outcome; R.method; fit()" @resize.window.debounce="fit()">
-          <span class="text-xs text-base-content/60">Outcome</span><p x-ref="outcome" class="text-sm text-pretty" :class="more ? '' : 'line-clamp-3'" x-text="R.outcome?.summary"></p>
-          <span class="text-xs text-base-content/60">Method</span><p x-ref="method" class="text-sm text-pretty text-base-content/60" :class="more ? '' : 'line-clamp-2'" x-text="R.method"></p>
-          <span x-show="long"></span><button x-show="long" class="btn btn-ghost btn-xs px-1 justify-self-start" @click="more = !more" x-text="more ? 'Less' : 'All of it'"></button>
-        </div>
-      </template>
+    <!-- The brief every run shares: its own tab when there are several runs, above the map when there is one -->
+    <section x-show="view === 'brief' || D.runs.length === 1" class="px-4 pt-4 grid gap-4">
+      <div class="grid gap-1"><h2 class="text-sm font-semibold">Objective</h2><p class="text-sm text-pretty" x-text="D.objective"></p></div>
+      <div class="grid gap-1"><h2 class="text-sm font-semibold">Strategy</h2><p class="text-sm text-pretty" x-text="D.strategy"></p></div>
     </section>
 
     <!-- One run -->
-    <main x-show="view === 'map'" class="px-4 pt-6 pb-4 grid gap-6">
-      <section class="flex flex-wrap gap-1">
-        <template x-for="c in cats" :key="c.id">
-          <span class="rounded-full border border-base-300 px-2 py-0.5 text-sm leading-snug"><span class="font-medium" x-text="tag(c)"></span><span class="text-base-content/60" x-text="' · ' + kind(c.kind)"></span></span>
-        </template>
+    <main x-show="view === 'map'" class="px-4 py-4 grid gap-6">
+      <section class="grid gap-2" x-effect="view; R.outcome; fit()" @resize.window.debounce="fit()">
+        <h2 class="text-sm font-semibold">Outcome</h2>
+        <div class="grid justify-items-start gap-1">
+          <p x-ref="outcome" class="text-sm text-pretty" :class="more ? '' : 'line-clamp-3'" x-text="R.outcome?.summary"></p>
+          <button x-show="long" class="btn btn-ghost btn-xs px-1" @click="more = !more" x-text="more ? 'Less' : 'All of it'"></button>
+        </div>
+        <div class="flex flex-wrap gap-1">
+          <template x-for="c in cats" :key="c.id">
+            <span class="rounded-full border border-base-300 px-2 py-0.5 text-sm leading-snug"><span class="font-medium" x-text="tag(c)"></span><span class="text-base-content/60" x-text="' · ' + kind(c.kind)"></span></span>
+          </template>
+        </div>
+        <details x-show="R.method" class="text-xs text-base-content/60">
+          <summary class="cursor-pointer">How this run was made</summary>
+          <p class="mt-1 text-sm text-pretty" x-text="R.method"></p>
+        </details>
       </section>
 
       <!-- The field -->
@@ -330,18 +338,18 @@ document.addEventListener('alpine:init', () => {
       </section>
 
       <!-- Every finding the checks wrote, including the ones the docket header marks -->
-      <section x-show="rest.length" class="grid gap-1 scroll-mt-28">
+      <section x-show="rest.length" class="grid gap-2 scroll-mt-28">
         <h2 class="text-sm font-semibold">Checks</h2>
-        <div class="grid grid-cols-[6rem_minmax(0,1fr)] gap-x-3 gap-y-1">
+        <ul class="grid gap-2">
           <template x-for="(f, k) in rest" :key="'f' + k">
-            <div class="contents"><span class="text-xs font-mono text-base-content/60 pt-0.5" x-text="f.kind"></span><div class="text-sm text-pretty"><div x-text="f.text"></div><div x-show="f.rationale" class="text-base-content/60" x-text="f.rationale"></div></div></div>
+            <li class="text-sm text-pretty"><div x-text="f.text"></div><div x-show="f.rationale" class="text-base-content/60" x-text="f.rationale"></div></li>
           </template>
-        </div>
+        </ul>
       </section>
     </main>
 
     <!-- Runs side by side -->
-    <main x-show="view === 'compare'" class="px-4 pt-6 pb-4 grid gap-6">
+    <main x-show="view === 'compare'" class="px-4 py-4 grid gap-6">
       <section x-show="(D.agreement || []).length" class="grid gap-2 min-w-0">
         <h2 class="text-sm font-semibold">Where the runs agree</h2>
         <div class="overflow-x-auto rounded-box border border-base-300">
