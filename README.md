@@ -352,3 +352,8 @@ one-sentence summary is enough.
 The repo's top-level `archive/` folder is reference material from earlier
 iterations, kept on disk for grep value. Not part of the current library or
 the menu above.
+## Web Tools Desktop
+
+[Web Tools Desktop](desktop/README.md) opens the same app in a Windows window,
+with a Now view for assistant work, the Gemini queue and recent results. A shared
+background companion supplies a private phone view through Tailscale.
