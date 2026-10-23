@@ -1,7 +1,196 @@
 {
  "format": "catmap/1",
  "title": "Collections: registry, stream, list, log, ledger, cache, snapshot, tracker, inbox",
- "backstory": "The Web Tools estate is three GitHub repositories holding many collections of records: lists of files, logs of events, caches, task trackers. Their documents call these collections by nine words: registry, stream, list, log, ledger, cache, snapshot, tracker and inbox. The words overlap. Collections that work alike get different words, and one word covers collections that work differently.\n\nThis map asks what each word promises about a collection, such as whether its entries change once written, and checks every collection against the word it goes by. The aim is to learn which words mark real differences before any of them is redefined.\n\nFour AI agents made the map, none seeing another's work. Three followed cat-map, a written procedure for this kind of question; the fourth had only the question.",
+ "answer": {
+  "summary": "The Web Tools estate calls its collections of records by nine overlapping words. Four AI agents mapped them separately and reached one answer. Two questions decide what to call a collection: does an entry stand for a thing or an event, and does it change after it is written? Four more words add to the name when they apply.",
+  "grid": {
+   "across": {
+    "label": "One entry stands for",
+    "values": [
+     "a thing",
+     "an event"
+    ]
+   },
+   "down": {
+    "label": "Once written, the entry",
+    "values": [
+     "changes",
+     "never changes"
+    ]
+   },
+   "cells": [
+    [
+     {
+      "word": "registry",
+      "note": "docs.csv, the tracker's task files"
+     },
+     {
+      "word": "",
+      "note": "session records, now called a stream"
+     }
+    ],
+    [
+     {
+      "word": "snapshot",
+      "note": "a reading kept as of its date"
+     },
+     {
+      "word": "stream",
+      "note": "notes, the news ledger"
+     }
+    ]
+   ],
+   "runs": [
+    0,
+    1,
+    2,
+    3
+   ]
+  },
+  "add": [
+   {
+    "when": "its entries are rebuilt from other files",
+    "word": "cache",
+    "note": "whatever the box",
+    "runs": [
+     0,
+     1,
+     2,
+     3
+    ]
+   },
+   {
+    "when": "each entry carries a status, such as open or done",
+    "word": "tracker",
+    "note": "a registry with a status",
+    "runs": [
+     0,
+     1,
+     2,
+     3
+    ]
+   },
+   {
+    "when": "entries leave once filed elsewhere",
+    "word": "inbox",
+    "note": "",
+    "runs": [
+     0,
+     1,
+     2,
+     3
+    ]
+   },
+   {
+    "when": "someone chooses the members by hand",
+    "word": "list",
+    "note": "membership, whatever the shape",
+    "runs": [
+     0,
+     1,
+     2,
+     3
+    ]
+   }
+  ],
+  "renames": [
+   {
+    "from": "snapshot, for a copy rebuilt in place (the constellation atlas, the occurrence index)",
+    "becomes": "cache",
+    "why": "It is rebuilt from other files, which is what cache means.",
+    "runs": [
+     0,
+     2,
+     3
+    ]
+   },
+   {
+    "from": "stream, for session records",
+    "becomes": "the empty box's word, still open",
+    "why": "A session record is rewritten while the session runs, so it is not a stream.",
+    "runs": [
+     0,
+     1,
+     2,
+     3
+    ]
+   },
+   {
+    "from": "registry, for the web-tools-private repository",
+    "becomes": "the private repository",
+    "why": "It holds several collections and is not one.",
+    "runs": [
+     0,
+     1,
+     2,
+     3
+    ]
+   }
+  ],
+  "open": [
+   {
+    "question": "Which one word covers events that never change: stream, log or ledger?",
+    "recommend": "stream",
+    "why": "docs/registries.md already defines it; log and ledger can stay as informal names for it.",
+    "runs": [
+     0,
+     1,
+     2,
+     3
+    ]
+   },
+   {
+    "question": "What word fits an event whose record changes while it is live, such as a session record?",
+    "recommend": "",
+    "why": "No reader proposed one."
+   },
+   {
+    "question": "Request files closed by adding a result file (errands, proposals) never change either, but are not snapshots. What should they be called?",
+    "recommend": "request queue",
+    "why": "Reader A's proposal: a standard term that collides with nothing in the estate's vocabulary. Reader D found the same gap.",
+    "runs": [
+     0,
+     3
+    ]
+   },
+   {
+    "question": "Should a collection that drops its oldest entries past a cap get its own word, window?",
+    "recommend": "",
+    "why": "Only Reader D raised it, for chron/sweeps.md and the calls record.",
+    "runs": [
+     3
+    ]
+   }
+  ],
+  "by": "Drawn from the four maps by the session that set the test; each row lists the readers whose maps state it."
+ },
+ "steps": [
+  {
+   "step": "Senses",
+   "gloss": "List each word and each distinct way the documents use it, with the line that uses it.",
+   "example": "\"Snapshot\" is used two ways: a dated reading kept as written, and a copy rebuilt in place."
+  },
+  {
+   "step": "Questions",
+   "gloss": "Turn what the senses imply into a few questions, each with a fixed set of answers.",
+   "example": "What does one entry stand for, a thing or an event? Does it change after it is written?"
+  },
+  {
+   "step": "Things",
+   "gloss": "Find the collections each word is used for, add some no word is used for, and answer every question for each.",
+   "example": "About thirty collections, such as task files, a news log and several caches."
+  },
+  {
+   "step": "Checks",
+   "gloss": "A script flags a question that tells nothing apart, two things no question tells apart, and a combination of answers nothing has. The reader answers each flag.",
+   "example": "Reader A could not tell two rebuilt copies apart, so added the question \"Who rebuilds it?\""
+  },
+  {
+   "step": "Verdicts",
+   "gloss": "Say what kind of category each sense turned out to be: one answer to one question, a box on two, or membership in a list.",
+   "example": "Stream, log and ledger are one box."
+  }
+ ],
  "made": "2026-10-22",
  "runs": [
   {

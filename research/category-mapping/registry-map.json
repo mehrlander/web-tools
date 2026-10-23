@@ -1,7 +1,73 @@
 {
  "format": "catmap/1",
  "title": "The word \"registry\"",
- "backstory": "The Web Tools estate is three GitHub repositories, and in them the word \"registry\" means at least four things: a CSV file listed in an index of such files; a kind of collection whose entries stand for things and change as those things do; the ordinary sense, a list its members join themselves; and one of the three repositories.\n\nThis map asks whether those senses name one kind of collection, and which things called a registry fit none of them.\n\nIt was the first map of its kind, made by hand before the cat-map procedure was written: fifteen things the estate calls, or nearly calls, a registry, each described by the same nine characteristics, such as whether its entries change once written.",
+ "answer": {
+  "summary": "The Web Tools estate uses the word \"registry\" four ways. One map of fifteen collections, made by hand before the cat-map procedure existed, says the word should keep one meaning: a collection whose entries stand for things and change as those things do. The other three uses name a membership, a repository and an outsider's sense.",
+  "grid": {
+   "across": {
+    "label": "One entry stands for",
+    "values": [
+     "a thing",
+     "an event"
+    ]
+   },
+   "down": {
+    "label": "Once written, the entry",
+    "values": [
+     "changes",
+     "never changes"
+    ]
+   },
+   "cells": [
+    [
+     {
+      "word": "registry",
+      "note": "writers.csv, the tracker's task files"
+     },
+     {
+      "word": "",
+      "note": "a session record, rewritten until the session ends"
+     }
+    ],
+    [
+     {
+      "word": "",
+      "note": "a tending finding, kept as notes that are never edited"
+     },
+     {
+      "word": "stream",
+      "note": "notes.jsonl"
+     }
+    ]
+   ]
+  },
+  "add": [
+   {
+    "when": "docs/registries.csv lists it",
+    "word": "listed",
+    "note": "the only thing separating writers.csv from its unlisted neighbor, direct-to-main.csv"
+   }
+  ],
+  "renames": [
+   {
+    "from": "registry, for the web-tools-private repository",
+    "becomes": "the private repository",
+    "why": "It holds several collections and is not one."
+   }
+  ],
+  "open": [
+   {
+    "question": "Should docs/direct-to-main.csv get a row in docs/registries.csv?",
+    "recommend": "yes",
+    "why": "CLAUDE.md asks for a row for every committed CSV that inventories part of the tree, and this one does."
+   },
+   {
+    "question": "What should the two empty boxes be called?",
+    "recommend": "",
+    "why": "Each holds one thing in this sample: a tending finding, and a session record."
+   }
+  ]
+ },
  "made": "2026-10-22",
  "runs": [
   {

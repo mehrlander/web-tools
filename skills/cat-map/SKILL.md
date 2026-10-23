@@ -11,9 +11,18 @@ The subject is the categories, not the things. Each word for a kind of thing (re
 
 ## Goal and output
 
-One `catmap/1` file, drawn by web-tools `pages/cat-map.html`, and the verdict in the reply. Hand the page over as `https://mehrlander.github.io/web-tools/pages/cat-map.html#gh=<owner>/<repo>@<ref>:<path>`, or `#gz=` for an uncommitted file.
+One `catmap/1` file, drawn by web-tools `pages/cat-map.html`, and the answer in the reply. Hand the page over as `https://mehrlander.github.io/web-tools/pages/cat-map.html#gh=<owner>/<repo>@<ref>:<path>`, or `#gz=` for an uncommitted file.
 
-The file is JSON: `format: "catmap/1"`, `title`, `backstory`, `made`, and `runs`, one per run, several when blind readers take one question. `backstory` is two or three short paragraphs, separated by blank lines, for a reader who knows nothing of the repositories: what the words are and where they are used, what the map sets out to learn and why, and how it was made. The page opens on it and can read it aloud. A run holds:
+The file is JSON: `format: "catmap/1"`, `title`, `answer`, `steps` (optional), `made`, and `runs`, one per run, several when blind readers take one question. The page opens on the answer:
+
+- `summary`: three or four sentences for a reader who knows nothing of the repositories: what the words are, and the answer. The page reads it aloud on request.
+- `grid`: the two characteristics that decide which word applies, `{across, down, cells}`. Each axis is `{label, values}`; each cell is `{word, note}`, with an empty `word` where no word fits yet.
+- `add`: words that add to the name when they apply, `{when, word, note}`.
+- `renames`: current names the answer changes, `{from, becomes, why}`.
+- `open`: what only the owner can decide, `{question, recommend, why}`, with `recommend` empty where no recommendation is warranted.
+- `by`: who drew the answer, when it is drawn from several runs; each row then lists the runs that state it in `runs`.
+
+`steps` lists how the map was made, `{step, gloss, example}`, for the page's account of how the answer was reached. A run holds:
 
 - `by`, `method`: who coded the run, and how.
 - `characteristics`: `{id, label, short, values}`, a question and its values.
@@ -25,7 +34,7 @@ The file is JSON: `format: "catmap/1"`, `title`, `backstory`, `made`, and `runs`
 
 ## Process
 
-1. **Categories.** Write the `backstory` first. List the words under test and, for a word used in more than one sense, each sense, with `where`. For each sense write `requires`, from its definitions read sentence by sentence (`atomic-decomposition`) and from how it is used. Output: `backstory`, `categories`.
+1. **Categories.** List the words under test and, for a word used in more than one sense, each sense, with `where`. For each sense write `requires`, from its definitions read sentence by sentence (`atomic-decomposition`) and from how it is used. Output: `categories`.
 2. **Space.** Gather the characteristics the senses imply into `characteristics`, each a question with its values. Add a characteristic where two senses differ and no definition says how, found by comparing instances three at a time, two from an unsure pair: what do two share that the third lacks. Set `field` to the pair most senses constrain. Output: `characteristics`, `field`.
 3. **Instances.** Collect what each sense is applied to: search the repositories, counting referents, not occurrences. Add near neighbors no word is applied to. Code every instance on every characteristic. A value states what is observed ("edited in place"); it does not use a word under test. Stop when a new instance would add no new value. Run `separation-checks.py <map>.json --write` and answer each finding:
    - one value wherever it applies: drop the characteristic;
@@ -34,10 +43,11 @@ The file is JSON: `format: "catmap/1"`, `title`, `backstory`, `made`, and `runs`
    - a combination no instance has: say why it is impossible, or search for an instance.
 
    Output: `instances`, `pairs`, `findings`.
-4. **Verdict.** Give each sense its `kind` and a one-line `verdict`, and the set its `outcome`. Propose a name only where a verdict calls for one, in this order: a standard term whose meaning matches the values; a phrase built from the values; the identifier itself for a one-member sense. Check each against the repository's declared vocabulary (`concept-index`). Output: `kind`, `verdict`, `outcome`.
+4. **Answer.** Give each sense its `kind` and a one-line `verdict`, and the set its `outcome`. Then answer the question the map was made for, usually what to call a thing: the two characteristics that decide the word (`grid`), the words that add to it (`add`), the current names that change (`renames`), and what only the owner can decide (`open`). Propose a name only where the answer calls for one, in this order: a standard term whose meaning matches the values; a phrase built from the values; the identifier itself for a one-member sense. Check each against the repository's declared vocabulary (`concept-index`). With several runs, draw one answer from all of them and mark each row with the runs that state it. Output: `kind`, `verdict`, `outcome`, `answer`.
 
 ## Key insights
 
+- **A map ends in an answer.** Verdicts on each sense describe the words; the owner asked what to call things. A map whose last step is a description leaves the reader to draw the answer, and four blind runs that agreed on nine of thirteen findings still did not write one down.
 - **The categories are the subject; the instances are the test.** A sense's `requires` comes from its definitions and use, and the instances show whether it holds.
 - **Rivals share an axis.** Two words that constrain different characteristics are not alternatives, and cannot be made exhaustive and exclusive; each becomes a value on its own axis. "Transient" was whether entries leave; "stack" was the order a view reads them in.
 - **One word can fix two characteristics.** Registry and stream each fix what an entry stands for and whether it is edited; the estate held both combinations the pair left out.

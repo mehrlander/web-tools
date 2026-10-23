@@ -397,9 +397,9 @@ docket as its base and puts that field above it. It opens in
 [the idea board page](https://mehrlander.github.io/web-tools/pages/idea-board.html#gh=mehrlander/web-tools@claude/amazing-edison-w6l3ho:research/category-mapping/idea-board.json).
 
 The selection became [`pages/cat-map.html`](../../pages/cat-map.html), which
-draws a `catmap/1` file (the format is in the skill): the map's backstory, on a
-first tab in large type with a button that reads it aloud; each run's outcome;
-a field of two characteristics chosen by pills, each sense a region of the cells it allows; a
+draws a `catmap/1` file (the format is in the skill): the map's answer on the
+first tab, in large type with a button that reads its summary aloud; each run's
+outcome; a field of two characteristics chosen by pills, each sense a region of the cells it allows; a
 docket of each sense's required values with the things it names checked
 against them, a red row naming what it breaks; and, for a file with several
 runs, a Compare view. [`registry-map.json`](registry-map.json), the registry
@@ -451,6 +451,15 @@ news ledger from the shortcut run logs and added what an entry is about. All
 three wrote an answer to every finding the checks left, each empty combination
 marked impossible or not found. Those
 are the discriminations a reader without a check has no prompt to make.
+
+**What no run did** was answer the question the test was for: what to call a
+collection. Each ended with a verdict per sense and a summary of kinds, so the
+answer was drawn afterwards, by this session, from all four. Two questions
+decide the word (what one entry stands for, and whether it changes once
+written); cache, tracker, inbox and list add to it; three current names change;
+four choices stay open. It is the `answer` block of
+[`collections-map.json`](collections-map.json), the page's first tab, and the
+reason the skill's last step now produces one.
 
 **What the test does not show.**
 
