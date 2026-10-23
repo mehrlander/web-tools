@@ -389,7 +389,14 @@ html.dk-dragging main{transition:none !important}
   </div>
 </div>
 
-<div class="toast toast-top toast-end z-[60]" x-data x-show="$store.toasts && $store.toasts.length">
+<!-- z-[95], above the swipe deck's band: the overlay at 70, its seam and the
+     FAB drawer at 75, menus and the correspondence dialog at 80, source-peek at
+     85, the deck's sign tip at 90. At z-[60] until 2026-10-23, the row sat
+     under the deck, so a toast raised from inside an open deck (the
+     workbench's sheet count, a Copied) showed only the strip above the deck's
+     top edge. A toast is the newest thing on screen and short-lived, so it
+     covers rather than waits. pages/dictate.html's row uses the same level. -->
+<div class="toast toast-top toast-end z-[95]" x-data x-show="$store.toasts && $store.toasts.length">
   <template x-for="t in ($store.toasts || [])" :key="t.id">
   <div class="alert text-base gap-2" :class="t.cls">
     <i class="ph" :class="'ph-'+t.icon"></i>
@@ -2375,7 +2382,7 @@ html.dk-dragging main{transition:none !important}
      because the rows live in an overflow-y-auto column that would clip an
      absolutely-positioned panel at the list's edge; mounted out here, past
      <aside>, for the same reason. z-[55] clears the drawer (z-50) that summons
-     it and stays under the toast row (z-[60]). A bottom sheet was tried for
+     it and stays under the toast row (z-[95]). A bottom sheet was tried for
      this and taken back out: nothing about a menu of five short actions
      justifies throwing it to the far edge of the screen.
 
@@ -2471,7 +2478,7 @@ const RAIL_KIND = { link: 'ph-arrow-up-right', action: 'ph-lightning', repo: 'ph
 // subview it lands on; every other address is a subview and keeps the key it
 // was first published at, so an old ?tab= link still lands where it pointed.
 const MAP_TABS = ['overview', 'reach', 'research', 'harness', 'dimensions', 'docs', 'watch'];
-const MAP_SUBVIEWS = ['aims', 'projects', 'distribution', 'outposts', 'data', 'exploration', 'events', 'scheduled', 'programs', 'set', 'tests', 'skills', 'agents', 'peeves', 'context', 'lifetimes', 'surfacing', 'patterns', 'views', 'kits', 'showing', 'growth', 'policy', 'themes', 'registries', 'public', 'names'];
+const MAP_SUBVIEWS = ['aims', 'icons', 'projects', 'distribution', 'outposts', 'data', 'exploration', 'events', 'scheduled', 'programs', 'set', 'tests', 'skills', 'agents', 'peeves', 'context', 'lifetimes', 'surfacing', 'patterns', 'views', 'kits', 'showing', 'growth', 'policy', 'themes', 'registries', 'public', 'names'];
 const MAP_ROUTES = [...MAP_TABS, ...MAP_SUBVIEWS];
 // Where a bare ?view=map lands, and so the one address its URL never stamps:
 // the Overview, every address with its sentence. Reach held it until
@@ -4980,10 +4987,11 @@ function app(){ return {
   // kanban, which is what every project drew before icons were declared.
   projectGlyph(p){ return p?.icon?.startsWith('ph-') ? p.icon : 'ph-kanban'; },
   // A drawn mark the hub keeps (docs/favicons/README.md, Drawn marks), read
-  // once at main. Such a mark is filled with currentColor, which an <img>
-  // draws black, so it is painted as a mask in the text colour (markStyle).
-  // '' while the read is out, or when the hub has no such file: the caller
-  // draws its stock glyph.
+  // once at the hub's selected ref: main, unless a preview names a branch, so
+  // a branch that moves or adds a mark previews it. It is painted as a mask in
+  // the text colour (markStyle), since the marks are filled with currentColor,
+  // which an <img> draws black. '' while the read is out, or when the hub has
+  // no such file: the caller draws its stock glyph.
   hubMarkSrc(path){
     if (!path) return '';
     if (!HUB_MARKS_ASKED.has(path)) {
@@ -4991,7 +4999,8 @@ function app(){ return {
       queueMicrotask(async () => {
         if (!window.GH) return;
         try {
-          const j = await new window.GH({ token: this.hasToken() ? window.TOKEN : '', repo: this.DEFAULT_REPO, ref: 'main' }).get(path);
+          const ref = window.GH.refFor?.(this.DEFAULT_REPO) || 'main';
+          const j = await new window.GH({ token: this.hasToken() ? window.TOKEN : '', repo: this.DEFAULT_REPO, ref }).get(path);
           this.hubMarks[path] = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(j.text);
         } catch {}
       });
@@ -4999,12 +5008,14 @@ function app(){ return {
     return this.hubMarks[path] || '';
   },
   // A repository's mark: the file the hub draws for it, named for the
-  // repository, in docs/favicons/estate/. The hub itself wears the hex nut,
-  // and a repository of another owner shares no names with these files.
+  // repository, in docs/favicons/repos/. The hub itself wears the hex nut, the
+  // app's own favicon, painted in the text colour like the rest; a repository
+  // of another owner shares no names with these files.
   repoMarkSrc(repo){
     const [owner, name] = String(repo || '').split('/');
-    if (!name || repo === this.DEFAULT_REPO || owner !== this.DEFAULT_REPO.split('/')[0]) return '';
-    return this.hubMarkSrc('docs/favicons/estate/' + name + '.svg');
+    if (repo === this.DEFAULT_REPO) return this.hubMarkSrc('lib/favicon.svg');
+    if (!name || owner !== this.DEFAULT_REPO.split('/')[0]) return '';
+    return this.hubMarkSrc('docs/favicons/repos/' + name + '.svg');
   },
   markStyle(src){ return src ? { '--mark': 'url("' + src + '")' } : {}; },
   async loadProjectIcon(key, repo, ref, f){

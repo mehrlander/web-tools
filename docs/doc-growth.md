@@ -1,6 +1,6 @@
 # Doc growth
 
-[⭐ Doc Growth](https://mehrlander.github.io/web-tools/pages/doc-growth.html) is
+[🔷 Doc Growth](https://mehrlander.github.io/web-tools/pages/doc-growth.html) is
 an animated bubble chart of a repository's markdown over time, in the style of
 Gapminder. [`python/doc-growth.py`](../python/doc-growth.py) writes a JSON data
 file holding each markdown file's word counts and edits at every sample, and
