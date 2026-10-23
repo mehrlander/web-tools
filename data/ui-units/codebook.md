@@ -34,16 +34,10 @@ A unit is coded on five **dimensions**. `job` and `answer` say what it is for
 [`dimensions.csv`](dimensions.csv), which says what the dimension holds, the
 test that decides it, whether a unit takes exactly one of its codes
 (`per_unit` is `one`) or any number of them (`any`), and its `basis`: `judged`
-where a reader's call against the test is the whole of it, `checked` where
-`node/build/ui-instances.mjs` also compares the code with what the markup
-declares ("Declaring a pattern in markup"), and `computed` where no reader codes
-it. A sixth row, `ring`, is computed (README, "Rings"). Reach and binding were
-coded until 2026-10-23 and then retired: nothing read either, binding's rule
-never said which tie was strongest, and the kit calls reach mostly recorded are
-counted in `docs/kits.csv`. The codes a dimension divides the units into are the
-rows of `codes.csv` whose `axis` names it. The Map view renders both files:
-Dimensions shows each dimension with its basis, codes and counts, and Gallery
-filters the units' shots by Job, Body and Frame.
+(a reader's call is all there is), `checked` (`node/build/ui-instances.mjs` also
+compares the code with the markup) or `computed` (no reader codes it). A sixth
+row, `ring`, is computed (README, "Rings"). Reach and binding were retired on
+2026-10-23: nothing read either.
 
 The other fields record what draws the unit and how sure the reader is:
 
