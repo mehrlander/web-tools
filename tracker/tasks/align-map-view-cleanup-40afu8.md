@@ -155,3 +155,4 @@ well before minting new tabs.
   undoes a circular claim: the two tasks had each been recorded as sequencing
   after the other. Size stays L on item 2's strength alone.
 - 2026-10-06: #702 and #829 already did item 3 and part of item 2; #872's Delivery lens does not answer item 1. Recorded in Related by the tending pass.
+- 2026-10-23: Item 5's dependency is cleared by registry-authored-derived-split-v3qm2x (web-tools #1087): `docs.reach`'s words are rows of docs/vocabularies.csv. `harness.invocation`'s `none found` stays a derived value of an open grammar with no vocabulary row, so item 5 takes that word from tools-index. The same PR gave the Map a top-level Data tab (Primitives, Census, Registries); Census (`?tab=data`) and Registries kept their keys, so no address in item 2 moved.
