@@ -270,9 +270,11 @@ test('a tap selects and the band reads the cell; rows, columns and ranges read a
     // The selection as data: a plain rectangle a later feature can read.
     assert.deepEqual({ ...sel.range() }, { sheet: 'Data', r1: 2, c1: 1, r2: 3, c2: 2, address: 'B2:C3', active: 'C3', kind: 'cell' });
     assert.equal(heard.at(-1).address, 'B2:C3', 'and every change is heard');
-    assert.equal(text('value').textContent, '2 rows × 2 columns');
+    assert.equal(text('formula').textContent, '=B3*2', 'the field holds the active cell, as Excel\'s does');
+    assert.equal(text('Size').lastElementChild.textContent, '2 × 2');
+    assert.equal(text('Count').lastElementChild.textContent, '4');
     assert.equal(text('Sum').lastElementChild.textContent, '15');
-    assert.ok(!shown('Comment') && !shown('formula'), 'a range clears what only a cell says');
+    assert.ok(!shown('Comment') && !shown('Shown'), 'a range clears what only a cell says');
     assert.equal(sel.tsv(), '2\t4\n3\t6');
 
     click(td('A1'));
