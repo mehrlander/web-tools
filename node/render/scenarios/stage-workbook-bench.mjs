@@ -73,9 +73,22 @@ export default async function (page) {
   });
   await page.waitForTimeout(800);
 
+  // HOVER=<batch name> rests the pointer on that chip until its peek opens,
+  // so the picture shows the hover card over the data-inputs row.
+  let peek = null;
+  if (process.env.HOVER) {
+    await page.locator('.tf-root .join button', { hasText: process.env.HOVER }).first().hover();
+    await page.waitForTimeout(1500);
+    peek = await page.evaluate(() => {
+      const card = document.querySelector('[role="tooltip"]:not([hidden])');
+      return card ? card.textContent.replace(/\s+/g, ' ').trim().slice(0, 160) : null;
+    });
+  }
+
   console.log('\n--- a workbook to the workbench ---');
   console.log('  recognized: ' + JSON.stringify(staged));
   console.log('  button:     ' + (button ? 'found in the reader header, tapped' : 'NOT FOUND'));
   console.log('  opened:     ' + JSON.stringify(opened));
+  if (process.env.HOVER) console.log('  peek:       ' + JSON.stringify(peek));
   console.log('');
 }
