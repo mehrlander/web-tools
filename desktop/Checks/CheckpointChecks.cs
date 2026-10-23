@@ -34,7 +34,10 @@ static class CheckpointChecks
         var mismatched = companion.Replace("\"short_id\":\"fixture\"", "\"short_id\":\"another\"");
         check(SessionCheckpoints.Enrich(cloud, rollup, new Dictionary<string, string> { ["fixture"] = mismatched })
             .Items.Single().Checkpoint!.Turns.Count == 0, "A companion for another session cannot contribute exchange details.");
-        check(SessionCheckpoints.Enrich(cloud, rollup.Replace(checkpointAt.ToString("O"), now.AddHours(1).ToString("O")), new Dictionary<string, string>())
+        var futureRollup = JsonSerializer.Serialize(new { sessions = new Dictionary<string, object> {
+            ["fixture"] = new { source_ended = now.AddHours(1) }
+        } });
+        check(SessionCheckpoints.Enrich(cloud, futureRollup, new Dictionary<string, string>())
             .Items.Single().Checkpoint is null, "A topic companion newer than its session record waits for the next record sync.");
 
         var dir = Path.Combine(Path.GetTempPath(), "now-checkpoints-" + Guid.NewGuid().ToString("N"));
