@@ -23,7 +23,7 @@ import { repoRoot } from './bootstrap.mjs';
 const SCRIPT = path.join(repoRoot, 'python', 'mcp-link-safe.py');
 
 // Two real resolvable bases, padded with a ?x= query to an exact length.
-const LONG = 'https://github.com/mehrlander/web-tools/blob/main/docs/SURFACING.md?x=';
+const LONG = 'https://github.com/mehrlander/web-tools/blob/main/docs/APP.md?x=';
 const SHORT = 'https://github.com/mehrlander/web-tools?x=';
 const url = (base, n) => base + '0123456789'.repeat(40).slice(0, n - base.length);
 const label = n => (n === 1 ? 'r' : '0123456789'.repeat(40).slice(0, n));
@@ -91,7 +91,7 @@ test('the second label falls inside the fused span, the first does not', () => {
 
 test('comma-joining ends the run and puts each URL back on its own count', () => {
   // Rounds 8b and 9d: the controls at identical URLs. This is the substitution
-  // SURFACING.md prescribes, and the reason it works.
+  // CONVERSATION.md prescribes, and the reason it works.
   assert.equal(wraps(`[main](${url(LONG, 80)}), [diff](${url(LONG, 81)})`), false);
   assert.equal(wraps(`[main](${url(SHORT, 70)}), [diff](${url(SHORT, 71)})`), false);
   assert.equal(wraps(`[main](${url(LONG, 80)})`), false); // round 8e, lone link
@@ -142,24 +142,18 @@ test('--check exits non-zero only when something would be defanged', () => {
 // The instruction surfaces that feed the write path. The caption skill states
 // the slash-joined pair as the chat row shape, which is correct and stays; what
 // must not come back is the guide-body sync telling a session to write that list
-// into a PR body. It did until 2026-08-25, contradicting SURFACING.md's own
+// into a PR body. It did until 2026-08-25, contradicting CONVERSATION.md's own
 // "The body does not enumerate files" since 2026-08-08.
 test('the guide-body sync does not prescribe a file list in the body', () => {
-  // The rule moved out of the caption skill and into the course when the skill
-  // was retired (2026-08-31): the course is the only place it is stated now, and
-  // it is delivered on PR creation, which is exactly when a sync is possible. The
-  // course became its own file on 2026-09-10, so this reads the file rather
-  // than a section of SURFACING.md.
-  const course = readFileSync(path.join(repoRoot, 'docs', 'surfacing-course.md'), 'utf8');
-  assert.ok(course.length > 0, 'the course document still exists');
-  // Reworded 2026-09-07 ("Do not list files, diff statistics, or CI results
-  // there"), so the pattern matches the rule rather than one phrasing of it.
-  assert.ok(/not (?:list|enumerate) files/i.test(course),
-    'the course should say the body carries judgment, not a file list');
-  assert.ok(/no link triplets/.test(course),
+  // The rule lives in CONVERSATION.md's Guide pointer, which every session loads.
+  const doc = readFileSync(path.join(repoRoot, 'docs', 'CONVERSATION.md'), 'utf8');
+  const guide = doc.slice(doc.indexOf('* **Guide pointer'));
+  assert.ok(/Leave files and checks to the branch page/.test(guide),
+    'the guide should carry judgment, not a file list');
+  assert.ok(/in plain prose/.test(guide),
     'the guide template should ask for prose, not the caption\'s link triplets');
-  assert.ok(/mcp-link-safe\.py/.test(course),
-    'the course should name the checker for anything written to a body');
+  assert.ok(/mcp-link-safe\.py/.test(guide),
+    'the guide should name the checker for anything written to a body');
 });
 
 // ── Bare URLs ───────────────────────────────────────────────────────────────

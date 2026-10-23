@@ -753,7 +753,7 @@ def pick_framed(paths, fr, base, sha, slug, hosted, warn, use_git, at="", query=
 
 
 # An MCP-written PR body or comment turns a URL of this many characters or more
-# into literal text (SURFACING.md, "Surfacing caption"; measured in
+# into literal text (CONVERSATION.md, "Surfacing caption"; measured in
 # environment/capabilities.md). Chat is untouched, so this is a warning about
 # WHERE the link may go, not about the link.
 MCP_URL_CAP = 150
@@ -1102,7 +1102,7 @@ def warn_cap(d):
     if over:
         warn.append(f"{len(over)}{CAP_WARNING}: fine in chat, literal text in an "
                     "MCP-written PR body or comment. There, drop the link to the chat caption "
-                    "(SURFACING.md's shortening ladder) rather than trimming the address by hand.")
+                    "(CONVERSATION.md's shortening ladder) rather than trimming the address by hand.")
     return d
 
 

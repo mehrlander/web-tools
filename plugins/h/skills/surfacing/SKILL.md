@@ -14,4 +14,4 @@ A reply hands over what the reader needs in order to act.
 
 **Covers:** every chat reply.
 
-**Detail:** [SURFACING.md](https://github.com/mehrlander/web-tools/blob/main/docs/SURFACING.md); for pull requests, [surfacing-course.md](https://github.com/mehrlander/web-tools/blob/main/docs/surfacing-course.md).
+**Detail:** [CONVERSATION.md](https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md).

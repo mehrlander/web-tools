@@ -3,7 +3,7 @@
 // This kit exists to end a split, so most of what is worth pinning is that the
 // split stays ended: every key the pattern can produce has a glyph, a gloss and
 // a hue, and no consumer keeps a second table. A marker added to
-// SURFACING.md lands in one file or it does not land.
+// CONVERSATION.md lands in one file or it does not land.
 //
 // The parser itself is strict for one reason, and it is the reason a looser one
 // would look correct for months: this repo's own sessions EDIT the conventions,
@@ -29,7 +29,7 @@ test('a marker at the start of a line with a bold lead is a state', () => {
 });
 
 test('the vocabulary quoted as a list is not a state', () => {
-  // The exact shape a session editing SURFACING.md writes, which is why the
+  // The exact shape a session editing CONVERSATION.md writes, which is why the
   // pattern demands a line start: a list marker fails it.
   const doc = [
     '  - 🟢 **Ready to continue:** work is ready to do now.',

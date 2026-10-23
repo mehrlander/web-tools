@@ -81,8 +81,8 @@ test('the answer line has the shape user-call.py reads, notes only when there ar
 
 test("a call's document is read where its address says, at main when it names no ref", () => {
   const { A } = load();
-  assert.deepEqual({ ...A.fileOf({ file: 'mehrlander/web-tools@main:docs/SURFACING.md' }) },
-    { repo: 'mehrlander/web-tools', ref: 'main', path: 'docs/SURFACING.md' });
+  assert.deepEqual({ ...A.fileOf({ file: 'mehrlander/web-tools@main:docs/CONVERSATION.md' }) },
+    { repo: 'mehrlander/web-tools', ref: 'main', path: 'docs/CONVERSATION.md' });
   assert.equal(A.fileOf({ file: 'o/r:a/b.md' }).ref, 'main');
   assert.equal(A.fileOf({ file: 'nonsense' }), null);
 });
