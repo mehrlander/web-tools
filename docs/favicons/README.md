@@ -16,7 +16,7 @@ This is the library-wide mark. `lib/gh-boot.js` inlines a copy and injects it as
 
 ### Repository marks
 
-Files: [`repos/`](repos/). Drawn 2026-10-22: one mark per estate repository except web-tools, whose mark is the hex nut. The app draws each wherever it lists repositories (the sidebar, the repo menu, Map › Reach and Map › Projects), reading the file named for the repository from the hub at main (`repoMarkSrc` in [`app/index.html`](../../app/index.html)).
+Files: [`repos/`](repos/). Drawn 2026-10-22: one mark per estate repository except web-tools, whose mark is the hex nut. The app draws each wherever it lists repositories (the sidebar, the repo menu, Map › Reach and Map › Projects), reading the file named for the repository from the hub at its selected ref, main outside a preview (`repoMarkSrc` in [`app/index.html`](../../app/index.html)).
 
 ### Map marks
 
