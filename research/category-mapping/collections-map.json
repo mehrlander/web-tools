@@ -2,41 +2,75 @@
  "format": "catmap/1",
  "title": "Collections: registry, stream, list, log, ledger, cache, snapshot, tracker, inbox",
  "answer": {
-  "summary": "The Web Tools estate calls its collections of records by nine overlapping words. Four AI agents mapped them separately and reached one answer. Two questions decide what to call a collection: does an entry stand for a thing or an event, and does it change after it is written? Four more words add to the name when they apply.",
+  "title": "What kind of collection is it?",
+  "lede": "Two questions name it. Four more words add to the name.",
+  "basis": 0,
   "grid": {
    "across": {
-    "label": "One entry stands for",
+    "char": "stands_for",
     "values": [
-     "a thing",
-     "an event"
+     {
+      "is": "thing",
+      "label": "Each entry is a thing"
+     },
+     {
+      "is": "occurrence",
+      "label": "Each entry is an event"
+     }
     ]
    },
    "down": {
-    "label": "Once written, the entry",
+    "char": "after_written",
     "values": [
-     "changes",
-     "never changes"
+     {
+      "is": [
+       "changed in place",
+       "changed until its occurrence ends"
+      ],
+      "label": "It changes after it is written"
+     },
+     {
+      "is": "never changed",
+      "label": "It never changes"
+     }
     ]
    },
    "cells": [
     [
      {
       "word": "registry",
-      "note": "docs.csv, the tracker's task files"
+      "means": "kept current, one entry per thing",
+      "examples": [
+       "pages-csv",
+       "docs-csv",
+       "scheduled-tasks-csv"
+      ]
      },
      {
       "word": "",
-      "note": "session records, now called a stream"
+      "means": "a record rewritten until its event ends",
+      "examples": [
+       "session-records"
+      ]
      }
     ],
     [
      {
       "word": "snapshot",
-      "note": "a reading kept as of its date"
+      "means": "a reading, kept as of its date",
+      "examples": [
+       "checks-reading",
+       "delivery-json"
+      ]
      },
      {
       "word": "stream",
-      "note": "notes, the news ledger"
+      "means": "added to as things happen, never edited",
+      "examples": [
+       "news-ledger",
+       "progress-log",
+       "traffic-logs"
+      ]
      }
     ]
    ],
@@ -49,9 +83,18 @@
   },
   "add": [
    {
-    "when": "its entries are rebuilt from other files",
     "word": "cache",
-    "note": "whatever the box",
+    "icon": "arrows-clockwise",
+    "means": "rebuilt from other files, and may lag them",
+    "requires": {
+     "provenance": "derived",
+     "currency": "may lag its source"
+    },
+    "examples": [
+     "activity-cache",
+     "constellation-atlas",
+     "entities-json"
+    ],
     "runs": [
      0,
      1,
@@ -60,9 +103,16 @@
     ]
    },
    {
-    "when": "each entry carries a status, such as open or done",
     "word": "tracker",
-    "note": "a registry with a status",
+    "icon": "check-square",
+    "means": "each entry carries a status, such as open or done",
+    "requires": {
+     "lifecycle": "open then closed"
+    },
+    "examples": [
+     "tracker-tasks",
+     "board-csv"
+    ],
     "runs": [
      0,
      1,
@@ -71,9 +121,17 @@
     ]
    },
    {
-    "when": "entries leave once filed elsewhere",
     "word": "inbox",
-    "note": "",
+    "icon": "tray",
+    "means": "entries leave once filed elsewhere",
+    "requires": {
+     "leaves": "removed once placed elsewhere"
+    },
+    "examples": [
+     "chron-dump",
+     "shortcuts-incoming",
+     "jot"
+    ],
     "runs": [
      0,
      1,
@@ -82,9 +140,16 @@
     ]
    },
    {
-    "when": "someone chooses the members by hand",
     "word": "list",
-    "note": "membership, whatever the shape",
+    "icon": "list-checks",
+    "means": "members chosen by hand",
+    "called": [
+     "list-view"
+    ],
+    "examples": [
+     "to-do",
+     "snag"
+    ],
     "runs": [
      0,
      1,
@@ -95,9 +160,13 @@
   ],
   "renames": [
    {
-    "from": "snapshot, for a copy rebuilt in place (the constellation atlas, the occurrence index)",
+    "things": [
+     "constellation-atlas",
+     "text-occurrences"
+    ],
+    "from": "snapshot",
     "becomes": "cache",
-    "why": "It is rebuilt from other files, which is what cache means.",
+    "why": "They are rebuilt from other files and may lag them, which is what cache means.",
     "runs": [
      0,
      2,
@@ -105,8 +174,11 @@
     ]
    },
    {
-    "from": "stream, for session records",
-    "becomes": "the empty box's word, still open",
+    "things": [
+     "session-records"
+    ],
+    "from": "stream",
+    "becomes": "the empty box's word, once chosen",
     "why": "A session record is rewritten while the session runs, so it is not a stream.",
     "runs": [
      0,
@@ -116,7 +188,10 @@
     ]
    },
    {
-    "from": "registry, for the web-tools-private repository",
+    "things": [
+     "wtp-repo"
+    ],
+    "from": "registry",
     "becomes": "the private repository",
     "why": "It holds several collections and is not one.",
     "runs": [
@@ -162,7 +237,7 @@
     ]
    }
   ],
-  "by": "Drawn from the four maps by the session that set the test; each row lists the readers whose maps state it."
+  "by": "The two questions and four words are stated by all four readers; the examples are placed by Reader A's coding, and the answer was drawn by the session that set the test."
  },
  "steps": [
   {
@@ -514,6 +589,7 @@
    "instances": [
     {
      "id": "pages-csv",
+     "name": "pages.csv",
      "called": [
       "registry-csv"
      ],
@@ -538,6 +614,7 @@
     },
     {
      "id": "docs-csv",
+     "name": "docs.csv",
      "called": [
       "registry-csv"
      ],
@@ -570,6 +647,7 @@
     },
     {
      "id": "aims-reading",
+     "name": "the aims reading list",
      "called": [
       "registry-csv",
       "list-enumeration"
@@ -595,6 +673,7 @@
     },
     {
      "id": "scheduled-tasks-csv",
+     "name": "scheduled-tasks.csv",
      "called": [
       "registry-csv"
      ],
@@ -623,6 +702,7 @@
     },
     {
      "id": "board-csv",
+     "name": "board.csv",
      "called": [
       "registry-csv",
       "tracker"
@@ -660,6 +740,7 @@
     },
     {
      "id": "trackers-md",
+     "name": "trackers.md",
      "called": [
       "registry-index"
      ],
@@ -688,6 +769,7 @@
     },
     {
      "id": "wtp-repo",
+     "name": "web-tools-private",
      "called": [
       "registry-repo"
      ],
@@ -712,6 +794,7 @@
     },
     {
      "id": "tracker-tasks",
+     "name": "tracker task files",
      "called": [
       "tracker",
       "registry-csv"
@@ -741,6 +824,7 @@
     },
     {
      "id": "progress-log",
+     "name": "progress logs",
      "called": [
       "log",
       "stream"
@@ -766,6 +850,7 @@
     },
     {
      "id": "to-do",
+     "name": "the to-do list",
      "called": [
       "list-view"
      ],
@@ -794,6 +879,7 @@
     },
     {
      "id": "jot",
+     "name": "the Jot list",
      "called": [
       "list-view"
      ],
@@ -822,6 +908,7 @@
     },
     {
      "id": "snag",
+     "name": "the snag list",
      "called": [
       "list-view"
      ],
@@ -846,6 +933,7 @@
     },
     {
      "id": "notes",
+     "name": "notes",
      "called": [
       "stream",
       "list-view"
@@ -879,6 +967,7 @@
     },
     {
      "id": "errands",
+     "name": "errands",
      "called": [
       "list-view"
      ],
@@ -907,6 +996,7 @@
     },
     {
      "id": "proposals",
+     "name": "proposals",
      "called": [],
      "where": "web-tools-private/README.md:47 ('edits a session leaves for the app to commit')",
      "values": {
@@ -929,6 +1019,7 @@
     },
     {
      "id": "news-ledger",
+     "name": "the news ledger",
      "called": [
       "ledger-append",
       "log",
@@ -959,6 +1050,7 @@
     },
     {
      "id": "outpost-observations",
+     "name": "outpost observations",
      "called": [
       "ledger-append"
      ],
@@ -987,6 +1079,7 @@
     },
     {
      "id": "traffic-ledger",
+     "name": "the traffic ledger",
      "called": [
       "ledger-append"
      ],
@@ -1011,6 +1104,7 @@
     },
     {
      "id": "decision-ledger",
+     "name": "the decision ledger",
      "called": [
       "ledger-accounting"
      ],
@@ -1047,6 +1141,7 @@
     },
     {
      "id": "chron-log",
+     "name": "the chron log",
      "called": [
       "log"
      ],
@@ -1075,6 +1170,7 @@
     },
     {
      "id": "sweeps",
+     "name": "sweeps.md",
      "called": [],
      "where": "home/CLAUDE.md:53 ('chron/sweeps.md: the rolling output ... newest five runs kept')",
      "values": {
@@ -1097,6 +1193,7 @@
     },
     {
      "id": "traffic-logs",
+     "name": "the traffic logs",
      "called": [
       "log"
      ],
@@ -1121,6 +1218,7 @@
     },
     {
      "id": "session-records",
+     "name": "session records",
      "called": [
       "stream"
      ],
@@ -1157,6 +1255,7 @@
     },
     {
      "id": "activity-cache",
+     "name": "the activity cache",
      "called": [
       "cache"
      ],
@@ -1185,6 +1284,7 @@
     },
     {
      "id": "sessions-cache",
+     "name": "the sessions cache",
      "called": [
       "cache"
      ],
@@ -1217,6 +1317,7 @@
     },
     {
      "id": "constellation-atlas",
+     "name": "the constellation atlas",
      "called": [
       "snapshot-current",
       "cache"
@@ -1246,6 +1347,7 @@
     },
     {
      "id": "text-occurrences",
+     "name": "the occurrence index",
      "called": [
       "snapshot-current"
      ],
@@ -1274,6 +1376,7 @@
     },
     {
      "id": "checks-reading",
+     "name": "checks readings",
      "called": [
       "snapshot-dated"
      ],
@@ -1306,6 +1409,7 @@
     },
     {
      "id": "delivery-json",
+     "name": "delivery.json",
      "called": [
       "snapshot-dated"
      ],
@@ -1334,6 +1438,7 @@
     },
     {
      "id": "chron-dump",
+     "name": "chron/dump",
      "called": [
       "inbox"
      ],
@@ -1362,6 +1467,7 @@
     },
     {
      "id": "shortcuts-incoming",
+     "name": "shortcuts/incoming",
      "called": [],
      "where": "web-tools-private/shortcuts/README.md:52, :97-100 ('anything waits in incoming/', fold-incoming.py)",
      "values": {
@@ -1388,6 +1494,7 @@
     },
     {
      "id": "entities-json",
+     "name": "entities.json",
      "called": [
       "cache"
      ],
@@ -1420,6 +1527,7 @@
     },
     {
      "id": "source-bundle",
+     "name": "source bundles",
      "called": [
       "snapshot-dated"
      ],

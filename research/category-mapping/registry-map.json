@@ -2,55 +2,97 @@
  "format": "catmap/1",
  "title": "The word \"registry\"",
  "answer": {
-  "summary": "The Web Tools estate uses the word \"registry\" four ways. One map of fifteen collections, made by hand before the cat-map procedure existed, says the word should keep one meaning: a collection whose entries stand for things and change as those things do. The other three uses name a membership, a repository and an outsider's sense.",
+  "title": "What should “registry” mean?",
+  "lede": "One meaning: a collection kept current, one entry per thing. Being listed in docs/registries.csv adds to the name, and the private repository is not a collection.",
+  "basis": 0,
   "grid": {
    "across": {
-    "label": "One entry stands for",
+    "char": "stands_for",
     "values": [
-     "a thing",
-     "an event"
+     {
+      "is": "a thing",
+      "label": "Each entry is a thing"
+     },
+     {
+      "is": "an event",
+      "label": "Each entry is an event"
+     }
     ]
    },
    "down": {
-    "label": "Once written, the entry",
+    "char": "after_written",
     "values": [
-     "changes",
-     "never changes"
+     {
+      "is": [
+       "edited in place",
+       "edited until it ends"
+      ],
+      "label": "It changes after it is written"
+     },
+     {
+      "is": "never edited",
+      "label": "It never changes"
+     }
     ]
    },
    "cells": [
     [
      {
       "word": "registry",
-      "note": "writers.csv, the tracker's task files"
+      "means": "kept current, one entry per thing",
+      "examples": [
+       "task file",
+       "triggers.csv",
+       "snag.json"
+      ]
      },
      {
       "word": "",
-      "note": "a session record, rewritten until the session ends"
+      "means": "a record rewritten until its event ends",
+      "examples": [
+       "session record"
+      ]
      }
     ],
     [
      {
       "word": "",
-      "note": "a tending finding, kept as notes that are never edited"
+      "means": "a thing kept as notes that are never edited",
+      "examples": [
+       "tending finding"
+      ]
      },
      {
       "word": "stream",
-      "note": "notes.jsonl"
+      "means": "added to as things happen, never edited",
+      "examples": [
+       "notes.jsonl"
+      ]
      }
     ]
    ]
   },
   "add": [
    {
-    "when": "docs/registries.csv lists it",
     "word": "listed",
-    "note": "the only thing separating writers.csv from its unlisted neighbor, direct-to-main.csv"
+    "icon": "list-bullets",
+    "means": "docs/registries.csv lists it",
+    "requires": {
+     "in_registries_csv": "yes"
+    },
+    "examples": [
+     "writers.csv",
+     "board.csv",
+     "kits.csv"
+    ]
    }
   ],
   "renames": [
    {
-    "from": "registry, for the web-tools-private repository",
+    "things": [
+     "web-tools-private"
+    ],
+    "from": "registry",
     "becomes": "the private repository",
     "why": "It holds several collections and is not one."
    }

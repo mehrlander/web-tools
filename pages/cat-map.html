@@ -20,17 +20,27 @@
   characteristic, with the instances called by it checked against the charge,
   then the instances no sense is applied to.
 
-  The page opens on the map's answer, a first tab shared by every run: a
-  summary spoken by kits/read-aloud.js on request, the characteristics that
-  decide the word, the words that add to it, the names it changes, what is left
-  open, and how the answer was reached. A file with several runs, such as blind
-  readers' maps of one question, marks each row with the runs that state it and
-  also gets a Compare view.
+  The page opens on the map's answer, a first tab shared by every run, laid out
+  as a poster: the question, the grid of the two characteristics that decide
+  the word with the map's own things in each cell, the words that add to it,
+  the names it changes, and the calls left open. Every placement on it is held
+  to the coding by skills/cat-map/answer-check.py. Read aloud speaks a script
+  built from the same answer. Below the poster, how the answer was reached. A
+  file with several runs, such as blind readers' maps of one question, also
+  gets a Compare view.
 
-  Address: #gh=owner/repo[@ref]:path or #gz=<gzipped JSON>; with neither, the
-  registry test in research/category-mapping/registry-map.json.
+  Address: #src=<path on this host>, #gh=owner/repo[@ref]:path or
+  #gz=<gzipped JSON>; with none, the registry test in
+  research/category-mapping/registry-map.json. poster=1 shows the poster alone,
+  for rendering to an image:
+    npm run shot -- pages/cat-map.html --hash 'src=../<map>.json&poster=1' \
+      --width 720 --scale 2 --full --out poster.png
 -->
-<script>window.__depsReady = new Promise(r => { window.__depsDone = r; });</script>
+<script>
+window.__depsReady = new Promise(r => { window.__depsDone = r; });
+// The poster alone is an image to share, so it skips the standing drawer button.
+if (/(^|[#&])poster=1(&|$)/.test(location.hash)) document.documentElement.setAttribute('data-no-fab', '');
+</script>
 <script type="module">
   const q = new URLSearchParams(location.search);
   const ref = q.get('use') || (q.getAll('refs').map(v => (String(v).match(/^mehrlander\/web-tools@([^:]+)$/) || [])[1]).find(Boolean));
@@ -56,7 +66,7 @@ document.addEventListener('alpine:init', () => {
   const KIND = { list: 'a list', region: 'a region', value: 'a value', outside: 'outside the space', fuzzy: 'fuzzy edge', axis: 'one axis' };
 
   Alpine.data('catMap', () => ({
-    D: null, err: '', r: 0, view: 'answer', x: '', y: '', open: '', from: '', more: false, long: false, voice: null, speech: 'idle',
+    D: null, err: '', r: 0, view: 'answer', x: '', y: '', open: '', from: '', more: false, long: false, voice: null, speech: 'idle', poster: param('poster') === '1',
 
     async init() {
       await window.__depsReady;
@@ -71,16 +81,44 @@ document.addEventListener('alpine:init', () => {
     },
     get A() { return this.D.answer || {}; },
     get multi() { return this.D.runs.length > 1; },
-    // The answer's summary read aloud by kits/read-aloud.js, which chunks it at sentences and keeps pause dependable.
+    // The run whose coding places the answer's examples (skills/cat-map/answer-check.py holds it to that coding).
+    get basis() { return this.D.runs[this.A.basis || 0]; },
+    nameOf(id) { return (this.basis.instances.find(i => i.id === id) || {}).name || id; },
+    names(ids) { const n = (ids || []).map(id => this.nameOf(id)); return n.length > 1 ? n.slice(0, -1).join(', ') + ' and ' + n.at(-1) : n[0] || ''; },
+    // An example the answer renames carries its current, wrong name.
+    ex(ids) {
+      return (ids || []).map(id => {
+        const fix = (this.A.renames || []).find(n => (n.things || []).includes(id));
+        return esc(this.nameOf(id)) + (fix ? `, <span class="text-error">called “${esc(fix.from)}”</span>` : '');
+      }).join(' · ');
+    },
+    // A row not every run states says which do.
+    partial(runs) {
+      if (!this.multi || !runs || runs.length === this.D.runs.length) return '';
+      return 'stated by ' + runs.map(k => this.D.runs[k].short || k + 1).join(', ').replace(/, ([^,]*)$/, ' and $1');
+    },
+    count(rows, noun) {
+      const n = (rows || []).length, w = ['No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'][n] || String(n);
+      return `${w} ${noun}${n === 1 ? '' : 's'}`;
+    },
+    // The poster as speech, built from the answer so it cannot say something the poster does not.
+    get script() {
+      const A = this.A, g = A.grid, out = [A.title, A.lede];
+      g?.cells.forEach((row, i) => row.forEach((c, j) =>
+        out.push(`${g.across.values[j].label}, and ${g.down.values[i].label.toLowerCase()}: ${c.word || 'no word yet'}, ${c.means}.`)));
+      for (const w of A.add || []) out.push(`Add ${w.word}: ${w.means}.`);
+      for (const n of A.renames || []) out.push(`${this.names(n.things)}, now called ${n.from}, become ${n.becomes}.`);
+      for (const o of A.open || []) out.push(o.question + (o.recommend ? ` Recommended: ${o.recommend}.` : ''));
+      return out.filter(Boolean).join('\n\n');
+    },
+    // Read aloud by kits/read-aloud.js, which chunks at sentences and keeps pause dependable.
     speak() {
       if (!this.voice) {
         this.voice = window.readAloud.player({ onState: s => { this.speech = s.state; } });
-        this.voice.load([{ key: 'answer', label: this.D.title, md: this.A.summary }]);
+        this.voice.load([{ key: 'answer', label: this.D.title, md: this.script }]);
       }
       this.voice.toggle();
     },
-    // Which runs state an answer row, as their short labels.
-    marks(runs) { return this.D.runs.map((r, k) => ({ s: r.short || String(k + 1), on: (runs || []).includes(k) })); },
     // The readers side by side, counted from their runs.
     get tally() {
       const answered = r => (r.findings || []).filter(f => f.rationale).length;
@@ -100,8 +138,11 @@ document.addEventListener('alpine:init', () => {
         try { return JSON.parse((await new GH({ token: tokenNow(), repo: a.repo, ...(a.ref ? { ref: a.ref } : {}) }).get(a.path)).text); }
         catch (e) { throw new Error(`Could not read ${spec}${tokenNow() ? '' : ' without a stored GitHub token'}: ${e.message}`); }
       }
-      const res = await fetch('../research/category-mapping/registry-map.json');
-      if (!res.ok) throw new Error('No map. Address one with #gh=owner/repo@ref:path or #gz=…');
+      // #src= is a path beside this page on the same host, such as a map committed to web-tools.
+      const src = param('src') || '../research/category-mapping/registry-map.json';
+      if (/^[a-z]+:|^\/\//i.test(src)) throw new Error('#src= takes a path on this host, not an address: ' + src);
+      const res = await fetch(src);
+      if (!res.ok) throw new Error(`No map at ${src}. Address one with #src=path, #gh=owner/repo@ref:path or #gz=…`);
       return res.json();
     },
 
@@ -193,7 +234,7 @@ document.addEventListener('alpine:init', () => {
   <template x-if="!D && !err"><p class="p-4 text-base-content/60">Loading…</p></template>
   <template x-if="D">
   <div>
-    <header class="sticky top-0 z-20 bg-base-100 border-b border-base-300">
+    <header x-show="!poster" class="sticky top-0 z-20 bg-base-100 border-b border-base-300">
       <div class="px-4 pt-3 pb-2 flex items-baseline gap-3 flex-wrap">
         <h1 class="text-lg font-semibold text-balance" x-text="D.title"></h1>
         <span class="text-xs text-base-content/60 font-mono" x-text="view === 'map' ? `${cats.length} senses · ${chars.length} characteristics · ${insts.length} things · ${offCount} off their word` : `${D.runs.length} run${D.runs.length > 1 ? 's' : ''} · ${words.length} words`"></span>
@@ -207,91 +248,84 @@ document.addEventListener('alpine:init', () => {
       </div>
     </header>
 
-    <!-- The answer, the front page: the question the map was made for, answered, then how the answer was reached -->
-    <article x-show="view === 'answer'" class="px-4 py-6 grid gap-8 text-lg">
-      <section class="grid gap-3 justify-items-start">
-        <button x-show="window.readAloud?.supported && A.summary" class="btn btn-sm rounded-full" :class="speech === 'speaking' ? 'btn-neutral' : 'btn-ghost border-base-300'" @click="speak()">
-          <i class="ph" :class="speech === 'speaking' ? 'ph-pause' : 'ph-speaker-high'"></i>
-          <span x-text="speech === 'speaking' ? 'Pause' : speech === 'paused' ? 'Resume' : 'Read aloud'"></span>
-        </button>
-        <p class="leading-8 text-pretty" x-text="A.summary"></p>
-      </section>
-
-      <template x-if="A.grid">
-        <section class="grid gap-2 min-w-0">
-          <h2 class="font-semibold">Name it by two questions</h2>
-          <div class="overflow-x-auto rounded-box border border-base-300">
-            <table class="table text-lg [&_:is(th,td)]:align-top max-sm:[&_:is(th,td)]:px-2">
-              <thead class="text-base-content">
-                <tr><th></th><th :colspan="A.grid.across.values.length" class="font-normal text-base-content/60" x-text="A.grid.across.label"></th></tr>
-                <tr>
-                  <th class="font-normal text-base-content/60 whitespace-normal" x-text="A.grid.down.label"></th>
-                  <template x-for="v in A.grid.across.values" :key="v"><th x-text="v"></th></template>
-                </tr>
-              </thead>
-              <tbody>
-                <template x-for="(row, i) in A.grid.cells" :key="i">
-                  <tr>
-                    <th x-text="A.grid.down.values[i]"></th>
-                    <template x-for="(c, j) in row" :key="j">
-                      <td><div :class="c.word ? 'font-semibold' : 'italic text-base-content/60'" x-text="c.word || 'no word yet'"></div><div class="text-base-content/60 text-pretty" x-text="c.note"></div></td>
-                    </template>
-                  </tr>
-                </template>
-              </tbody>
-            </table>
+    <!-- The answer, the front page: a poster, then how the answer was reached. With poster=1 in the
+         address the poster stands alone, the form npm run shot renders to an image. -->
+    <article x-show="view === 'answer'" class="grid">
+      <section class="px-6 sm:px-10 py-8 sm:py-10 grid gap-8 sm:gap-9">
+        <div class="grid gap-3">
+          <div class="flex items-start justify-between gap-4">
+            <h2 class="text-3xl sm:text-[44px] leading-tight font-bold text-balance" x-text="A.title"></h2>
+            <button x-show="!poster && window.readAloud?.supported" class="btn btn-sm rounded-full shrink-0 mt-2" :class="speech === 'speaking' ? 'btn-neutral' : 'btn-ghost border-base-300'" @click="speak()">
+              <i class="ph" :class="speech === 'speaking' ? 'ph-pause' : 'ph-speaker-high'"></i>
+              <span x-text="speech === 'speaking' ? 'Pause' : speech === 'paused' ? 'Resume' : 'Read aloud'"></span>
+            </button>
           </div>
-        </section>
-      </template>
-
-      <section x-show="(A.add || []).length" class="grid gap-2 min-w-0">
-        <h2 class="font-semibold">Then add whichever apply</h2>
-        <div class="overflow-x-auto rounded-box border border-base-300">
-          <table class="table text-lg [&_:is(th,td)]:align-top max-sm:[&_:is(th,td)]:px-2">
-            <thead class="text-base-content/60"><tr><th class="font-normal">If</th><th class="font-normal">Add</th><th x-show="multi" class="font-normal">Readers</th></tr></thead>
-            <tbody>
-              <template x-for="(a, k) in A.add || []" :key="k">
-                <tr>
-                  <td class="text-pretty" x-text="a.when"></td>
-                  <td><div class="font-semibold" x-text="a.word"></div><div class="text-base-content/60 text-pretty" x-text="a.note"></div></td>
-                  <td x-show="multi" class="font-mono text-xs whitespace-nowrap pt-4"><template x-for="m in marks(a.runs)" :key="m.s"><span class="mr-1" :class="m.on ? '' : 'text-base-content/20'" x-text="m.s"></span></template></td>
-                </tr>
-              </template>
-            </tbody>
-          </table>
+          <p class="text-lg sm:text-[22px] leading-7 sm:leading-8 text-base-content/70 text-balance" x-text="A.lede"></p>
         </div>
-      </section>
 
-      <section x-show="(A.renames || []).length" class="grid gap-2 min-w-0">
-        <h2 class="font-semibold">What it changes</h2>
-        <div class="overflow-x-auto rounded-box border border-base-300">
-          <table class="table text-lg [&_:is(th,td)]:align-top max-sm:[&_:is(th,td)]:px-2">
-            <thead class="text-base-content/60"><tr><th class="font-normal">Now called</th><th class="font-normal">Becomes</th><th x-show="multi" class="font-normal">Readers</th></tr></thead>
-            <tbody>
-              <template x-for="(n, k) in A.renames || []" :key="k">
-                <tr>
-                  <td class="text-pretty" x-text="n.from"></td>
-                  <td><div class="font-semibold" x-text="n.becomes"></div><div class="text-base-content/60 text-pretty" x-text="n.why"></div></td>
-                  <td x-show="multi" class="font-mono text-xs whitespace-nowrap pt-4"><template x-for="m in marks(n.runs)" :key="m.s"><span class="mr-1" :class="m.on ? '' : 'text-base-content/20'" x-text="m.s"></span></template></td>
-                </tr>
-              </template>
-            </tbody>
-          </table>
+        <template x-if="A.grid">
+          <div class="grid grid-cols-[minmax(0,5.5rem)_1fr_1fr] sm:grid-cols-[7.5rem_1fr_1fr] gap-2">
+            <div></div>
+            <template x-for="v in A.grid.across.values" :key="v.label">
+              <div class="px-2 sm:px-3 pb-1 text-base sm:text-lg font-semibold text-balance" x-text="v.label"></div>
+            </template>
+            <template x-for="(row, i) in A.grid.cells" :key="i">
+              <div class="contents">
+                <div class="pr-1 sm:pr-2 pt-3 sm:pt-4 text-base sm:text-lg font-semibold text-right text-balance" x-text="A.grid.down.values[i].label"></div>
+                <template x-for="(c, j) in row" :key="j">
+                  <div class="rounded-2xl p-3 sm:p-4 grid content-start gap-1.5" :class="c.word ? 'bg-primary/10' : 'border-2 border-dashed border-base-300'">
+                    <div class="leading-none" :class="c.word ? 'text-2xl sm:text-[32px] font-bold text-primary' : 'text-xl sm:text-[26px] italic text-base-content/50'" x-text="c.word || 'no word yet'"></div>
+                    <div class="text-base sm:text-lg leading-6 text-pretty" x-text="c.means"></div>
+                    <div class="font-mono text-xs sm:text-[15px] text-base-content/60 leading-5 sm:leading-6" x-html="ex(c.examples)"></div>
+                  </div>
+                </template>
+              </div>
+            </template>
+          </div>
+        </template>
+
+        <div x-show="(A.add || []).length" class="grid gap-3">
+          <h3 class="text-xl sm:text-[26px] font-bold">Then add any that apply</h3>
+          <div class="grid sm:grid-cols-2 gap-3">
+            <template x-for="w in A.add || []" :key="w.word">
+              <div class="rounded-2xl border border-base-300 p-4 grid content-start gap-1">
+                <div class="flex items-center gap-2 text-xl sm:text-[24px] font-bold"><i class="ph text-primary" :class="'ph-' + (w.icon || 'plus')"></i><span x-text="w.word"></span></div>
+                <div class="text-base sm:text-lg leading-6 text-pretty" x-text="w.means"></div>
+                <div class="font-mono text-xs sm:text-[15px] text-base-content/60 leading-5 sm:leading-6" x-html="ex(w.examples)"></div>
+                <div x-show="partial(w.runs)" class="text-xs sm:text-sm text-base-content/50" x-text="partial(w.runs)"></div>
+              </div>
+            </template>
+          </div>
         </div>
+
+        <div x-show="(A.renames || []).length" class="grid gap-3">
+          <h3 class="text-xl sm:text-[26px] font-bold" x-text="count(A.renames, 'name') + ' to fix'"></h3>
+          <div class="grid gap-4">
+            <template x-for="(n, k) in A.renames || []" :key="k">
+              <div class="grid gap-0.5 text-base sm:text-lg leading-6">
+                <div class="text-pretty"><span x-text="names(n.things) + ', now called '"></span><span class="text-error line-through" x-text="n.from"></span></div>
+                <div class="flex items-baseline gap-2"><i class="ph ph-arrow-right text-base-content/40"></i><span class="font-semibold" x-text="n.becomes"></span></div>
+                <div x-show="!poster" class="text-base-content/60 text-pretty" x-text="n.why"></div>
+                <div x-show="partial(n.runs)" class="text-xs sm:text-sm text-base-content/50" x-text="partial(n.runs)"></div>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <div x-show="(A.open || []).length" class="grid gap-3">
+          <h3 class="text-xl sm:text-[26px] font-bold" x-text="count(A.open, 'call') + ' for you'"></h3>
+          <ol class="grid gap-2 list-decimal pl-7 text-base sm:text-lg leading-7">
+            <template x-for="(o, k) in A.open || []" :key="k">
+              <li class="text-pretty"><span class="font-semibold" x-text="o.question"></span><span x-show="o.recommend" x-text="' Recommended: ' + o.recommend + '.'"></span> <span x-show="!poster" class="text-base-content/60" x-text="o.why"></span></li>
+            </template>
+          </ol>
+        </div>
+
+        <p x-show="A.by" class="pt-4 border-t border-base-300 text-xs sm:text-[15px] leading-6 text-base-content/50 text-pretty" x-text="A.by"></p>
       </section>
 
-      <section x-show="(A.open || []).length" class="grid gap-2">
-        <h2 class="font-semibold">Left open</h2>
-        <ol class="grid gap-3 list-decimal pl-6">
-          <template x-for="(o, k) in A.open || []" :key="k">
-            <li class="text-pretty"><div class="font-semibold" x-text="o.question"></div><div><span x-show="o.recommend" x-text="'Recommended: ' + o.recommend + '. '"></span><span class="text-base-content/60" x-text="o.why"></span></div></li>
-          </template>
-        </ol>
-      </section>
-
-      <section x-show="(D.steps || []).length || multi" class="grid gap-3 min-w-0">
+      <section x-show="!poster && ((D.steps || []).length || multi)" class="px-4 pt-2 pb-8 grid gap-3 min-w-0 text-lg">
         <h2 class="font-semibold">How the answer was reached</h2>
-        <p x-show="A.by" class="text-pretty text-base-content/60" x-text="A.by"></p>
         <div x-show="(D.steps || []).length" class="overflow-x-auto rounded-box border border-base-300">
           <table class="table text-lg [&_:is(th,td)]:align-top max-sm:[&_:is(th,td)]:px-2">
             <tbody>
