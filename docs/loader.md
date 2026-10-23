@@ -268,7 +268,7 @@ itself; a page that instantiates `GH` by hand gets only what it loads.
 | `html`, the DOM helpers (`ea`, `el`, …), `copy()` | `vanilla-bundle.js` | ambient string/DOM utilities |
 | Alpine stores `browser`, `toasts`; magics `$clip`, `$paste`, `$toast` | `alpine-bundle.js` | exist only after `alpine:init` |
 | `__builtOffline` | a build (`build.js` output) | present only on baked/offline pages |
-| `window.<kit>` namespaces | each kit | see the [Kits tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=kits) and [`docs/kits.csv`](kits.csv), whose `boot` column marks the kits `gh-boot.js` loads |
+| `window.<kit>` namespaces | each kit | see the [Kits tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=kits) and [`kits.csv`](kits.csv), whose `boot` column marks the kits `gh-boot.js` loads |
 
 A new global installed by `gh-api.js`, `gh-boot.js` or a bundle with no row
 here is a doc bug; add the row in the same change that adds the global. A kit

@@ -11,9 +11,9 @@ doc is the prose around that registry, not a second copy of it.
 Each registry row gives a key's type, the tool that reads it (`consumer`), and
 what it does. Members of an array or object key are rows of their own
 (`pages[].path`, `stage.files`), and a `required` column says whether a member
-has to be present. The gate checks every key present in a real manifest against
-a row, so a field used without being written down fails the test. What stays in
-prose is design rationale and cross-field behaviour.
+has to be present. The test checks every key in a real manifest against a row,
+so a field used without being written down fails it. What stays in prose here is
+design rationale and cross-field behaviour.
 
 Root `.web-tools.json` is the repo's canonical **web-tools config file** and the
 only config filename any reader uses. Its fields sit at the top level, not under
@@ -290,8 +290,7 @@ Folder is the default because a folder is visible in ordinary browsing while a
 branch is invisible unless something points at it, and a consumer that forgets
 the ref reads the default branch and silently finds nothing. Writing into a
 branch also presumes the branch exists: the Contents API can PUT to an existing
-one but cannot create a ref. A repo that wants transient bulk kept off its main
-history names a ref.
+one but cannot create a ref.
 
 **Inbox, on the send side.** The Stage view's send resolves an unaddressed
 deposit (a repo picked with no directory) against the *destination* repo's
