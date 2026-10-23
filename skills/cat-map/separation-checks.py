@@ -76,6 +76,11 @@ def check(rows, chars, pairs, crosses):
     return out
 
 
+def pairs_of(run):
+    """A run's unsure pairs, written [a, b] or {a, b, question}."""
+    return [(p['a'], p['b']) if isinstance(p, dict) else tuple(p) for p in run.get('pairs', [])]
+
+
 def reducts(rows, chars):
     by = {r['instance']: r for r in rows}
     sep = lambda a, b, cs: [c for c in cs if by[a][c] != by[b][c]]
@@ -108,7 +113,7 @@ def main(argv):
             rows = [{'instance': i['id'], **{c: i['values'].get(c, NA) for c in chars}} for i in run['instances']]
             field = run.get('field') or {}
             crosses = [tuple(x) for x in run.get('crosses', [])] or ([(field['x'], field['y'])] if field.get('x') and field.get('y') else [])
-            findings = check(rows, chars, [tuple(p) for p in run.get('pairs', [])], crosses)
+            findings = check(rows, chars, pairs_of(run), crosses)
             report(run.get('by', 'run'), rows, chars, findings)
             run['findings'] = findings
         if '--write' in rest:

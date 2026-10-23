@@ -49,7 +49,7 @@ document.addEventListener('alpine:init', () => {
   const KIND = { list: 'a list', region: 'a region', value: 'a value', outside: 'outside the space', fuzzy: 'fuzzy edge', axis: 'one axis' };
 
   Alpine.data('catMap', () => ({
-    D: null, err: '', r: 0, view: 'map', x: '', y: '', open: '', from: '',
+    D: null, err: '', r: 0, view: 'map', x: '', y: '', open: '', from: '', more: false,
 
     async init() {
       await window.__depsReady;
@@ -77,7 +77,7 @@ document.addEventListener('alpine:init', () => {
     get chars() { return this.R.characteristics; },
     get cats() { return this.R.categories; },
     get insts() { return this.R.instances; },
-    pick(i) { this.r = i; this.open = ''; this.axes(); },
+    pick(i) { this.r = i; this.open = ''; this.more = false; this.axes(); },
     axes() {
       const f = this.R.field || {}, ids = this.plottable().map(c => c.id);
       this.x = ids.includes(f.x) ? f.x : ids[0] || '';
@@ -162,7 +162,7 @@ document.addEventListener('alpine:init', () => {
     <header class="sticky top-0 z-20 bg-base-100 border-b border-base-300">
       <div class="px-4 pt-3 pb-2 flex items-baseline gap-3 flex-wrap">
         <h1 class="text-lg font-semibold text-balance" x-text="D.title"></h1>
-        <span class="text-xs text-base-content/60 font-mono" x-text="`${cats.length} senses · ${chars.length} characteristics · ${insts.length} things · ${offCount} off their word`"></span>
+        <span class="text-xs text-base-content/60 font-mono" x-text="view === 'compare' ? `${D.runs.length} runs · ${words.length} words` : `${cats.length} senses · ${chars.length} characteristics · ${insts.length} things · ${offCount} off their word`"></span>
       </div>
       <template x-if="D.runs.length > 1">
         <div class="px-4 pb-2 flex items-center gap-2 overflow-x-auto whitespace-nowrap">
@@ -178,13 +178,19 @@ document.addEventListener('alpine:init', () => {
     <!-- One run -->
     <main x-show="view === 'map'" class="px-4 py-4 grid gap-6">
       <section class="grid gap-2">
-        <p class="text-sm text-balance" x-text="R.outcome?.summary"></p>
+        <div class="grid justify-items-start gap-1">
+          <p class="text-sm text-pretty" :class="more ? '' : 'line-clamp-3'" x-text="R.outcome?.summary"></p>
+          <button x-show="(R.outcome?.summary || '').length > 280" class="btn btn-ghost btn-xs px-1" @click="more = !more" x-text="more ? 'Less' : 'All of it'"></button>
+        </div>
         <div class="flex flex-wrap gap-1">
           <template x-for="c in cats" :key="c.id">
             <span class="rounded-full border border-base-300 px-2 py-0.5 text-sm leading-snug"><span class="font-medium" x-text="tag(c)"></span><span class="text-base-content/60" x-text="' · ' + kind(c.kind)"></span></span>
           </template>
         </div>
-        <p class="text-xs text-base-content/60" x-text="R.method ? `${R.by} · ${R.method}` : R.by"></p>
+        <details class="text-xs text-base-content/60">
+          <summary class="cursor-pointer" x-text="R.by + (R.method ? ' · how this run was made' : '')"></summary>
+          <p class="mt-1 text-pretty" x-text="R.method"></p>
+        </details>
       </section>
 
       <!-- The field -->
@@ -268,14 +274,16 @@ document.addEventListener('alpine:init', () => {
                 <template x-if="g.t === 'cat'">
                   <tr class="bg-base-200">
                     <th class="sticky left-0 bg-base-200 z-10 align-top min-w-32 sm:min-w-48 max-w-44 sm:max-w-72 font-normal whitespace-normal">
-                      <div class="font-semibold" x-text="label(g.c)"></div>
+                      <div class="font-semibold" x-text="tag(g.c)"></div>
                       <div class="text-xs text-base-content/60" x-text="kind(g.c.kind)"></div>
-                      <div class="text-pretty mt-1" x-text="g.c.verdict"></div>
                     </th>
                     <template x-for="h in chars" :key="g.k + h.id">
                       <td class="align-top whitespace-nowrap" :class="(g.c.requires || {})[h.id] ? 'font-semibold' : 'text-base-content/40'" x-text="(g.c.requires || {})[h.id] || 'open'"></td>
                     </template>
                   </tr>
+                </template>
+                <template x-if="g.t === 'cat' && (g.c.sense || g.c.verdict)">
+                  <tr class="bg-base-200"><td :colspan="chars.length + 1" class="pt-0"><div class="sticky left-2 w-[min(60rem,calc(100vw-3rem))] text-pretty whitespace-normal"><span class="text-base-content/60" x-text="g.c.sense ? g.c.sense + '. ' : ''"></span><span x-text="g.c.verdict || ''"></span></div></td></tr>
                 </template>
                 <template x-if="g.t === 'inst'">
                   <tr class="cursor-pointer hover:bg-base-200" :class="open === g.i.id && from === 'docket' ? 'bg-primary/10' : ''" @click="toggle(g.i.id, 'docket')">
@@ -329,6 +337,28 @@ document.addEventListener('alpine:init', () => {
     <!-- Runs side by side -->
     <main x-show="view === 'compare'" class="px-4 py-4 grid gap-6">
       <p class="text-sm text-pretty" x-text="D.question"></p>
+      <section x-show="(D.agreement || []).length" class="grid gap-2 min-w-0">
+        <h2 class="text-sm font-semibold">Where the runs agree</h2>
+        <div class="overflow-x-auto rounded-box border border-base-300">
+          <table class="table text-sm [&_:is(th,td)]:px-2 [&_:is(th,td)]:py-1.5">
+            <thead><tr>
+              <th class="min-w-48 sm:min-w-64"></th>
+              <template x-for="(run, k) in D.runs" :key="'ah' + k"><th class="font-medium text-center whitespace-nowrap"><span class="sm:hidden" x-text="run.short || run.by"></span><span class="hidden sm:inline" x-text="run.by"></span></th></template>
+            </tr></thead>
+            <tbody>
+              <template x-for="(a, n) in D.agreement" :key="'a' + n">
+                <tr>
+                  <td class="text-pretty" x-text="a.finding"></td>
+                  <template x-for="(run, k) in D.runs" :key="'a' + n + '/' + k">
+                    <td class="text-center" :class="a.runs.includes(k) ? '' : 'text-base-content/30'" x-text="a.runs.includes(k) ? '●' : '·'"></td>
+                  </template>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+        <p x-show="D.agreement_by" class="text-xs text-base-content/60 text-pretty" x-text="D.agreement_by"></p>
+      </section>
       <section class="grid gap-2 min-w-0">
         <h2 class="text-sm font-semibold">Verdicts</h2>
         <div class="overflow-x-auto rounded-box border border-base-300">

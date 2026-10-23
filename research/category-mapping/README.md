@@ -134,6 +134,11 @@ Chats, which open only when signed in to the account:
   2026-04-07: program indexes that ran together organizational home and
   funding source.
 
+One earlier account covers the test question below directly: home's
+[surveying the estate's stores](https://github.com/mehrlander/home/blob/main/chron/2026/10/2026-10-12-surveying-the-estates-stores.md),
+2026-10-12, which classified every kind of store in the three repositories
+against the registry and stream vocabulary of the day before.
+
 ## Agent skills that do part of this
 
 **In the estate.** Besides the three plugin skills above, two cover a step at
@@ -390,6 +395,79 @@ the eight independently drew the same field, "stands for" against "after
 written", with the words as regions. The proposed selection takes the per-word
 docket as its base and puts that field above it. It opens in
 [the idea board page](https://mehrlander.github.io/web-tools/pages/idea-board.html#gh=mehrlander/web-tools@claude/amazing-edison-w6l3ho:research/category-mapping/idea-board.json).
+
+The selection became [`pages/cat-map.html`](../../pages/cat-map.html), which
+draws a `catmap/1` file (the format is in the skill): a field of two
+characteristics chosen by pills, each sense a region of the cells it allows; a
+docket of each sense's required values with the things it names checked
+against them, a red row naming what it breaks; and, for a file with several
+runs, a Compare view. [`registry-map.json`](registry-map.json), the registry
+test rebuilt in that format, is the page's default.
+
+## The blind test: collections
+
+The question: what do registry, stream, list, log, ledger, cache, snapshot,
+tracker and inbox imply about a collection, do they carve the estate's
+collections cleanly, and where is a collection called by a word whose
+implications it does not meet. Four readers answered it independently, each
+blind to the others and to this account: three following the skill (A, B, C)
+and one with only the question and the output format (D). Their maps are the
+four runs of [`collections-map.json`](collections-map.json), drawn in
+[the page](https://mehrlander.github.io/web-tools/pages/cat-map.html#gh=mehrlander/web-tools@claude/amazing-edison-w6l3ho:research/category-mapping/collections-map.json&view=compare),
+whose Compare view leads with where they agree.
+
+| | A | B | C | D, no skill |
+| --- | --- | --- | --- | --- |
+| Senses mapped | 15 | 14 | 19 | 20 |
+| Characteristics | 9 | 10 | 11 | 7 |
+| Things coded | 33 | 35 | 32 | 30 |
+| Things called by a word they do not meet | 8 | 5 | 5 | 6 |
+
+**They agree on most of it.** Nine of the thirteen findings in the file's
+agreement list were stated by all four readers, among them:
+
+- registry, stream and snapshot sit on one plane, what an entry stands for
+  crossed with whether it changes after it is written;
+- stream, log and ledger name the same cell;
+- cache, tracker, inbox and list each sit on an axis of their own (where
+  entries come from, a status, whether entries leave, curated membership);
+- session records are called a stream but are rewritten while the session
+  runs;
+- "snapshot" names both a dated reading kept as written and a derived copy
+  replaced in place.
+
+**The reader without the skill reached the same plane and the same main
+findings** with fewer characteristics, and its table, checked afterwards, has
+no characteristic that separates nothing, none fixed by another and no pair
+left unseparated. It also made the fullest naming proposal: two declared
+fields, grain and change, with the nouns reserved for named combinations and
+"window" added for a rolling one.
+
+**What the skill added** was the checks and the record of answering them.
+Reader A's first run could not separate the constellation atlas from the
+activity cache and added "who rebuilds it"; Reader C's could not separate the
+news ledger from the shortcut run logs and added what an entry is about. All
+three wrote an answer to every finding the checks left, each empty combination
+marked impossible or not found. Those
+are the discriminations a reader without a check has no prompt to make.
+
+**What the test does not show.**
+
+- **A shared source.** Home's 2026-10-12 survey of the estate's stores
+  classifies the same collections against the same vocabulary, and nothing
+  excluded it; Reader B cites it. Agreement may partly be that survey read
+  four times.
+- **A head start for the skill.** The skill's own key insights carry the
+  registry test's result (registry and stream bundle two characteristics),
+  which the readers following it had and D did not.
+- **One breach.** Reader B reported opening one of Reader C's scripts in a
+  shared scratch folder after B's map was finished; B's run records it.
+- **The marks are this session's.** The agreement list was marked from each
+  reader's outcome, verdicts and report; a blank is a finding the reader did
+  not state, not one it rejected.
+
+A question with no prior survey would test the method more fairly. Standing,
+occasioned and recurring, from the forms work of 2026-10-22, is one.
 
 ## Sources
 
