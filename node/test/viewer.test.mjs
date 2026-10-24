@@ -157,8 +157,12 @@ test('delimited metadata preserves source titles and avoids fallback key collisi
 });
 
 test('table mount passes header-only schema and mapped filters to the current explorer', async t => {
-  const prior = window.TabularExplorer;
-  t.after(() => { window.TabularExplorer = prior; });
+  const prior = window.TabularExplorer, priorStats = window.TableStats;
+  t.after(() => { window.TabularExplorer = prior; window.TableStats = priorStats; });
+  // The explorer needs kits/table-stats.js and the viewer waits for it when it
+  // is missing; with both present the mount is immediate, which is what the
+  // single frame below allows for.
+  window.TableStats = {};
   let mounted, built, input;
   window.TabularExplorer = { mount: (_target, options) => {
     mounted = options;
