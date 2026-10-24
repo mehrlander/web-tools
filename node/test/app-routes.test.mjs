@@ -193,7 +193,10 @@ test('the two sub-tab encodings, counted', () => {
   // 7 to 8 on 2026-10-15: Activity gained Traffic (?view=traffic), State's
   // sibling in the set-apart pill group, which reads what the open page has
   // fetched and why, rather than anything the estate keeps.
-  assert.equal(flattened, 8, 'sub-tabs addressed as their own ?view= key');
+  //
+  // 8 to 6 on 2026-10-24: ?view=jots and ?view=routes went with every other
+  // retired address, since nothing outside the estate's own repos used them.
+  assert.equal(flattened, 6, 'sub-tabs addressed as their own ?view= key');
   // 13 to 14 on 2026-08-29: the Map view gained an Aims tab. 14 to 15 on
   // 2026-09-05: it gained a Kits tab. 15 to 16 on 2026-09-08: it gained a Views
   // tab, which is the Routes pane arriving from Activity. 16 to 17 on
@@ -249,13 +252,6 @@ test("the Map's row names every address the shell accepts, and lands on its fron
   assert.deepEqual([...map.tabs].sort(), [...routes].sort());
   const home = shellSrc.match(/const MAP_HOME = '(\w+)'/)?.[1];
   assert.equal(map.lands, '?view=map&tab=' + home, 'the row lands where a bare ?view=map does');
-});
-
-test('an alias is a retired key, so it never doubles as a live one', () => {
-  const keys = new Set(manifest.routes.map(r => r.key));
-  for (const r of manifest.routes) {
-    if (r.alias) assert.ok(!keys.has(r.alias), `${r.key}: alias '${r.alias}' is also a live key`);
-  }
 });
 
 // ── The fold ────────────────────────────────────────────────────────────────

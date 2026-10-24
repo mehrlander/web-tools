@@ -234,12 +234,11 @@ test('every app route key the registry declares is storable', () => {
   // reported as drift that no edit fixes.
   for (const r of routes) {
     if (!r.key || r.key === 'shell') continue;
-    const spelling = r.writes || r.key;
-    const row = at(`${APP}?view=${spelling}`);
+    const row = at(`${APP}?view=${r.key}`);
     assert.ok(row.kind === 'route' || row.kind === 'unrecognized',
       r.key + ' classified as ' + row.kind);
     if (row.kind === 'unrecognized') {
-      assert.fail(`docs/app-routes.csv declares '${r.key}' (?view=${spelling}) and visit-log refuses it`);
+      assert.fail(`docs/app-routes.csv declares ?view=${r.key} and visit-log refuses it`);
     }
   }
 });
