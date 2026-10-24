@@ -938,7 +938,7 @@ const { page, makeShell } = await import('./shell.mjs');
 // sentence in Sources and methods, so the reader arriving cold meets every
 // set here first: the rows are the strip's own arrays and the sentences the
 // CSV's own cells, so neither can be a second list that drifts.
-test('the Overview\'s Contents lists every address but itself under its tab with its sentence, and finds one by name or by file', async () => {
+test('the Overview\'s Contents lists every address under its tab with its sentence, itself pinned as here, and finds one by name or by file', async () => {
   window.__shell = undefined;
   const el3 = window.document.createElement('div');
   el3.setAttribute('x-data', 'map()');
@@ -949,10 +949,11 @@ test('the Overview\'s Contents lists every address but itself under its tab with
   assert.equal(d3.mapTab, 'overview', 'a bare Map lands on the Overview');
   // An address drawn inside a subview (WITHIN) is listed after its host.
   const want = Object.values(d3.SUBVIEWS).flat().flatMap(v => [v, ...d3.WITHIN.filter(w => w.host === v.k)])
-    .map(v => v.k).filter(k => k !== 'overview');
+    .map(v => v.k);
   assert.ok(want.includes('events') && want.includes('scheduled'));
   const rows = d3.overviewGroups.flatMap(g => g.rows);
-  assert.deepEqual([...rows.map(r => r.k)], [...want], 'every other address, in strip order');
+  assert.deepEqual([...rows.map(r => r.k)], [...want], 'every address, in strip order');
+  assert.deepEqual([...rows.filter(r => r.here).map(r => r.k)], ['overview'], 'Contents is pinned as where the reader stands');
   assert.deepEqual([...d3.overviewGroups.map(g => g.n)], [...d3.TABS.map(t => t.n)], 'every tab heads a group, Overview included for its Purpose');
   const ledes = Object.fromEntries(window.Csv.rows(mapTabsCsv).map(r => [r.tab, r.gloss]));
   for (const r of rows) assert.equal(r.gloss, ledes[r.k], r.k + ': the sentence is its CSV row');

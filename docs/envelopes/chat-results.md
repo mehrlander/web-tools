@@ -1,6 +1,6 @@
 # Chat search results: the envelope contract
 
-⭐ [pages/chat-results.html](https://mehrlander.github.io/web-tools/pages/chat-results.html) renders a **results envelope**: a JSON document describing what a search over the chat archives found. The division of labor is deliberate: the model (a search skill running over `mehrlander/chat-histories`) is the search engine and emits the envelope; the page is only the presentation layer. The page renders whatever fields exist and skips whatever doesn't, so the same page shows one full chat, a flat list, or a categorized constellation with narrative.
+🔷 [pages/chat-results.html](https://mehrlander.github.io/web-tools/pages/chat-results.html) renders a **results envelope**: a JSON document describing what a search over the chat archives found. The division of labor is deliberate: the model (a search skill running over `mehrlander/chat-histories`) is the search engine and emits the envelope; the page is only the presentation layer. The page renders whatever fields exist and skips whatever doesn't, so the same page shows one full chat, a flat list, or a categorized constellation with narrative.
 
 ## Delivery
 

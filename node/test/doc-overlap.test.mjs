@@ -87,18 +87,28 @@ test('the Map reads the tables and keeps similar wording off the shingle dial', 
 // cutoff (python/doc-overlap-gold.py; the method is the gold-set skill). The
 // file is precious: a rerun of its agents would label a different set, so it is
 // never regenerated, only checked. More labels come from a new seed.
+//
+// passages.jsonl beside it holds the text each label is about, keyed by the
+// sha256 of that text: a content id, in docs/locators.md's terms, which no edit
+// to a doc can break. The rows' offsets are a span pinned to the commit the
+// labels were merged at (the README names it) and are checked here only against
+// the stored text, never against today's files. Until 2026-10-23 they were read
+// against today's files, so every edit above a sampled passage moved it, and 27
+// commits re-anchored the record by hand.
 const goldPath = path.join(dir, 'gold-set', 'gold.csv');
+const passagesPath = path.join(dir, 'gold-set', 'passages.jsonl');
+const sha = (s) => createHash('sha256').update(s, 'utf8').digest('hex');
 
-test('the gold set carries its labels in their domains, and each passage still cuts where recorded', () => {
+test('the gold set carries its labels in their domains, and the text each is about', () => {
   if (!existsSync(goldPath)) return;
   const gold = parseCsv(readFileSync(goldPath, 'utf8'));
   assert.ok(gold.length >= 100, 'the gold set parsed short');
   const RELATIONS = ['same', 'summary', 'related', 'conflict', 'unrelated', 'fragment'];
-  let checked = 0, present = 0;
-  const moved = [];
-  // Where a passage can begin: the file's start, a line's first non-blank
-  // character, or a sentence's first word.
-  const starts = (text) => [0, ...[...text.matchAll(/\n[ \t]*|[.!?] +/g)].map((m) => m.index + m[0].length)];
+  const stored = readFileSync(passagesPath, 'utf8').split('\n').filter(Boolean).map(l => JSON.parse(l));
+  for (const p of stored) assert.equal(sha(p.text), p.id, `${p.id.slice(0, 12)}: the stored text hashes to its id`);
+  const text = new Map(stored.map(p => [p.id.slice(0, 12), p.text]));
+  assert.equal(text.size, stored.length, 'no two stored passages share the 12 digits a row names them by');
+  const named = new Set();
   for (const g of gold) {
     assert.ok(RELATIONS.includes(g.relation) && RELATIONS.includes(g.reader_relation), `${g.id}: relation`);
     for (const k of ['reading', 'consolidate']) assert.ok(['yes', 'no'].includes(g[k]), `${g.id}: ${k}`);
@@ -106,23 +116,12 @@ test('the gold set carries its labels in their domains, and each passage still c
     if (g.verdict) assert.equal(g.verdict === 'confirm', g.relation === g.reader_relation, `${g.id}: verdict and relation disagree`);
     assert.ok(+g.stratum_seats >= 1 && +g.stratum_seats <= +g.stratum_size, `${g.id}: sampling weight`);
     for (const s of ['a', 'b']) {
-      const p = path.join(repoRoot, g[s + '_path']);
-      if (!existsSync(p)) continue;
-      const text = readFileSync(p, 'utf8'), a = +g[s + '_start'], b = +g[s + '_end'], h = g[s + '_hash'];
-      if (h12(text.slice(a, b)) === h) { present++; checked++; continue; }
-      const at = starts(text).find((i) => h12(text.slice(i, i + b - a)) === h);
-      if (at == null) continue;
-      present++;
-      moved.push(`${g.id}.${s} ${g[s + '_path']}: ${a} is now ${at}`);
+      const t = text.get(g[s + '_hash']);
+      assert.ok(t !== undefined, `${g.id} ${s}: the text it was labelled on is stored`);
+      // UTF-16 code units, the unit of the offsets and of a JS string's length.
+      assert.equal(+g[s + '_end'] - +g[s + '_start'], t.length, `${g.id} ${s}: the pinned span is as long as its text`);
+      named.add(g[s + '_hash']);
     }
   }
-  // Files move on; a gold row outlives its offsets. Most should still cut.
-  // A passage that is gone has no offsets to drift, so the share is taken over
-  // the passages still in their file: docs/SNAGS.md held 118 of the 550 when
-  // its entries moved to the Snag list on 2026-10-20, and the 2026-10-22
-  // documentation cleanup cut 267 more out of files that remain. A passage is
-  // found again by its hash at a line or sentence start, which is where the
-  // scan cuts; one found elsewhere in its file counts against the share.
-  assert.ok(checked > present / 2,
-    `only ${checked} of ${present} gold passages still in their file cut where recorded; moved:\n${moved.join('\n')}`);
+  assert.equal(named.size, stored.length, 'every stored passage belongs to a gold row');
 });

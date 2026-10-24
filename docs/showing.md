@@ -24,7 +24,7 @@ one was handed over, and nothing mints a new one
 |  | What runs | Reaches | Misses |
 | --- | --- | --- | --- |
 | **🥏 toss** | the page file at the ref, inside a frame | the page's inline code and its library | what the page does to the top-level document, and the FAB, which is the renderer's at main |
-| **🥏 toss with `?top`** | the page as the tab's own document | the same, plus the tab and the page's own FAB at its ref | not available with `?w=` or a `#gz=` payload, which keep the frame; unmeasured on an iPhone |
+| **🥏 toss with `?top`** | the page as the tab's own document | the same, plus the tab and the page's own FAB at its ref | not available with `?w=` or a `#gz=` payload, which keep the frame |
 
 `npm run showing` adds `?top` when a page's diff touches the tab, when the FAB's own
 code changed, or when a look link's steps name other pages, and `--top` asks for it

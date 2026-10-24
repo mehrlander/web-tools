@@ -12,6 +12,17 @@ The file is precious. A rerun of its agents would label a different set, so it
 is not regenerated, only checked (`node/test/doc-overlap.test.mjs`). More
 labels come from a new sample with a new seed.
 
+[`passages.jsonl`](passages.jsonl) holds the text each label is about: one
+`{"id", "text"}` line per passage, keyed by the sha256 of the text, the shape of
+home's `projects/text/passages.jsonl`. A row names its two passages by the first
+12 hex digits of that id. The offsets and lines in `gold.csv` are pinned to
+commit `b73171506`, where the second sample was merged and every passage cut its
+text. They record where each passage was cut and are not moved when a doc is
+edited. They were restored to those values on 2026-10-23, after 27 commits had
+moved them to follow later edits. `python3 python/doc-overlap-gold.py passages
+--at b73171506 --check` cuts them from that commit and confirms the stored text;
+without `--check` it rebuilds the file.
+
 Samples, told apart by the `seed` column:
 
 - seed 20260929: 159 of 545 pairs, `sample.csv` md5

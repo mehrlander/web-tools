@@ -10,7 +10,8 @@ the committed record is data/doc-overlap/gold-set/.
     sample    stratified, seeded draw of passage pairs -> run dir: sample.csv, batches
     check     validate a reader (or --skeptic) output file against its batch
     skeptic   prepare a skeptic batch from a checked reader file
-    merge     join sample, readers and skeptics into gold.csv
+    merge     join sample, readers and skeptics into gold.csv, and their text into passages.jsonl
+    passages  rebuild passages.jsonl from the files at the commit the offsets are pinned to, or --check it
     score     figures block for the scorecard, from gold.csv
 
 THE LABELS, which the reader prompt quotes from here and nowhere else:
@@ -38,32 +39,68 @@ Unit: an unordered pair of passages, one row however many directions matched.
 Strata: cosine band (0.05 wide from 0.75, last band 0.95+), whether the two
 files share 3+ shingles in docs/themes.csv, and whether the shorter passage is
 under 20 words. Seats by the square root of cell size, floor one.
+
+THE RECORD is two files. gold.csv holds the labels, and for each passage its
+file, its UTF-16 span and line, and the first 12 hex digits of the sha256 of its
+text. passages.jsonl holds that text, one {"id", "text"} line per passage keyed
+by the full sha256, the shape of home's projects/text/passages.jsonl: a content
+id, in docs/locators.md's terms, which no later edit to a doc can break. The
+span is pinned to the commit the labels were merged at, where it cut that text;
+it records where the passage was cut and is not maintained against later edits.
 """
 from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
+import io
 import json
 import math
 import random
 import re
+import subprocess
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 GOLD = ROOT / 'data' / 'doc-overlap' / 'gold-set'
+PASSAGES = GOLD / 'passages.jsonl'
 MACHINE_CUT = 0.80          # the lens's default, the claim the skeptic weighs
 RELATIONS = ['same', 'summary', 'related', 'conflict', 'unrelated', 'fragment']
 RESTATES = {'same', 'summary'}
 BATCH = 40
 
 
-def cut(path, a, b, cache={}):
-    """UTF-16 offsets into the file, as the lens slices it."""
-    if path not in cache:
-        cache[path] = (ROOT / path).read_text(encoding='utf-8').encode('utf-16-le')
-    return cache[path][2 * a:2 * b].decode('utf-16-le')
+def cut(path, a, b, at=None, cache={}):
+    """UTF-16 offsets into the file, as the lens slices it: the working tree's
+    copy, or with `at` the copy in that commit, read with the same newline
+    handling as read_text."""
+    if (at, path) not in cache:
+        text = (io.TextIOWrapper(io.BytesIO(subprocess.run(
+                    ['git', '-C', str(ROOT), 'show', f'{at}:{path}'], capture_output=True, check=True).stdout),
+                    encoding='utf-8').read()
+                if at else (ROOT / path).read_text(encoding='utf-8'))
+        cache[(at, path)] = text.encode('utf-16-le')
+    return cache[(at, path)][2 * a:2 * b].decode('utf-16-le')
+
+
+def sha(t):
+    return hashlib.sha256(t.encode('utf-8')).hexdigest()
+
+
+def load_passages():
+    """{id: text} from passages.jsonl."""
+    return {r['id']: r['text'] for r in load(PASSAGES)} if PASSAGES.exists() else {}
+
+
+def write_passages(store, rows):
+    """passages.jsonl, sorted by id, keeping only the passages a gold row names."""
+    named = {u[f'{s}_hash'] for u in rows for s in 'ab'}
+    with PASSAGES.open('w', encoding='utf-8', newline='\n') as f:
+        for k in sorted(store):
+            if k[:12] in named:
+                f.write(json.dumps({'id': k, 'text': store[k]}, ensure_ascii=False) + '\n')
 
 
 def around(path, a, b, n=500):
@@ -102,8 +139,7 @@ def sample(args):
     if (GOLD / 'gold.csv').exists():
         # Held out from every earlier sample, by file and passage hash, so a
         # pair whose label informed a choice cannot also score it.
-        import hashlib
-        h = lambda t: hashlib.sha256(t.encode('utf-8')).hexdigest()[:12]
+        h = lambda t: sha(t)[:12]
         seen = {frozenset([(g['a_path'], g['a_hash']), (g['b_path'], g['b_hash'])])
                 for g in csv.DictReader(open(GOLD / 'gold.csv', encoding='utf-8'))}
         before = len(universe)
@@ -243,7 +279,6 @@ GOLD_COLS = ['id', 'seed', 'stratum', 'stratum_size', 'stratum_seats', 'audit', 
 
 
 def merge(args):
-    import hashlib
     run = Path(args.run)
     rows = list(csv.DictReader(open(run / 'sample.csv', encoding='utf-8')))
     reader, skep = {}, {}
@@ -254,11 +289,13 @@ def merge(args):
         outp = run / p.name.replace('skeptic-in-', 'skeptic-out-')
         for r in load(outp):
             skep[r['id']] = dict(r, sent=sent[r['id']])
-    h = lambda t: hashlib.sha256(t.encode('utf-8')).hexdigest()[:12]
+    store = load_passages()
     for u in rows:
         r, s = reader[u['id']], skep.get(u['id'])
-        u['a_hash'] = h(cut(u['a_path'], int(u['a_start']), int(u['a_end'])))
-        u['b_hash'] = h(cut(u['b_path'], int(u['b_start']), int(u['b_end'])))
+        for side in 'ab':
+            t = cut(u[f'{side}_path'], int(u[f'{side}_start']), int(u[f'{side}_end']))
+            store[sha(t)] = t
+            u[f'{side}_hash'] = sha(t)[:12]
         u.update(reader_relation=r['relation'], reader_confidence=r['confidence'], rationale=r['rationale'],
                  sent=s['sent'] if s else '', verdict=s['verdict'] if s else '', note=s['note'] if s else '')
         final = s or r
@@ -280,7 +317,39 @@ def merge(args):
         w = csv.DictWriter(f, fieldnames=GOLD_COLS, lineterminator='\n')
         w.writeheader()
         w.writerows(rows)
-    print(f'gold.csv: {len(rows)} rows, {len(skep)} reviewed by a skeptic')
+    write_passages(store, rows)
+    print(f'gold.csv: {len(rows)} rows, {len(skep)} reviewed by a skeptic; '
+          f'commit both files, and name the commit in the README as the one this seed\'s offsets are pinned to')
+
+
+def passages(args):
+    """Cut every passage of the rows asked for from the files at commit `at`,
+    check each against its recorded hash, and write the texts to passages.jsonl,
+    or with --check report whether the committed file already holds them."""
+    rows = list(csv.DictReader(open(GOLD / 'gold.csv', encoding='utf-8')))
+    mine = [u for u in rows if not args.seed or u['seed'] == str(args.seed)]
+    cuts, bad = {}, []
+    for u in mine:
+        for side in 'ab':
+            try:
+                t = cut(u[f'{side}_path'], int(u[f'{side}_start']), int(u[f'{side}_end']), at=args.at)
+            except subprocess.CalledProcessError:
+                bad.append(f"{u['id']} {side}: {u[f'{side}_path']} is not in {args.at}")
+                continue
+            if sha(t)[:12] != u[f'{side}_hash']:
+                bad.append(f"{u['id']} {side}: {u[f'{side}_path']}")
+            cuts[sha(t)] = t
+    if bad:
+        sys.exit(f'{len(bad)} of {2 * len(mine)} passages do not hash to their record at {args.at}, '
+                 f'so the offsets are not pinned to it: ' + '; '.join(bad[:5]))
+    store = load_passages()
+    if args.check:
+        missing = [k for k in cuts if store.get(k) != cuts[k]]
+        print(f'passages.jsonl: {len(cuts) - len(missing)} of {len(cuts)} passages held'
+              + (f', {len(missing)} missing or different' if missing else ''))
+        sys.exit(1 if missing else 0)
+    write_passages({**store, **cuts}, rows)
+    print(f'passages.jsonl: {len(cuts)} passages from {2 * len(mine)} sides at {args.at}')
 
 
 def score(args):
@@ -358,9 +427,12 @@ def main():
     k.add_argument('--rest', action='store_true')
     k.add_argument('--all', action='store_true', help='send every row, first-pass reason kept')
     m = sub.add_parser('merge'); m.add_argument('--run', required=True)
+    q = sub.add_parser('passages'); q.add_argument('--at', required=True, help='the commit the offsets are pinned to')
+    q.add_argument('--seed', type=int, help='only this sample\'s rows')
+    q.add_argument('--check', action='store_true', help='exit 1 unless passages.jsonl already holds them')
     o = sub.add_parser('score'); o.add_argument('--seed', type=int, help='score one sample only')
     args = ap.parse_args()
-    dict(sample=sample, check=check, skeptic=skeptic, merge=merge, score=score)[args.cmd](args)
+    dict(sample=sample, check=check, skeptic=skeptic, merge=merge, passages=passages, score=score)[args.cmd](args)
 
 
 if __name__ == '__main__':

@@ -1,6 +1,6 @@
 # Data view: the payload contract
 
-⭐ [pages/data-view.html](https://mehrlander.github.io/web-tools/pages/data-view.html) renders **data**, where toss-render's other modes render a page: a CSV, a JSON array, a markdown file, a text log. It is the renderer behind the `#data=` toss route, and it is thin on purpose. The presentation is the shared multi-mode viewer ([`lib/alpineComponents/viewer.js`](../../lib/alpineComponents/viewer.js)), so the mode strip, Tabulator table, JSON tree, markdown preview, syntax highlighting, and GitHub/Raw/CDN links all come from the component every other page uses.
+🔷 [pages/data-view.html](https://mehrlander.github.io/web-tools/pages/data-view.html) renders **data**, where toss-render's other modes render a page: a CSV, a JSON array, a markdown file, a text log. It is the renderer behind the `#data=` toss route, and it is thin on purpose. The presentation is the shared multi-mode viewer ([`lib/alpineComponents/viewer.js`](../../lib/alpineComponents/viewer.js)), so the mode strip, Tabulator table, JSON tree, markdown preview, syntax highlighting, and GitHub/Raw/CDN links all come from the component every other page uses.
 
 ## Delivery
 

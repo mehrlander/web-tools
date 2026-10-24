@@ -20,7 +20,7 @@ One `passage-reading/1` JSON file per passage, to the contract in [`docs/envelop
 3. **Check it.** Run
    `python3 -I "${CLAUDE_PLUGIN_ROOT}/passage-reading/scripts/check.py" READING.json --root CHECKOUT --link`
    where `CHECKOUT` holds the context documents (repeat `--root` for several). Where the plugin is absent, fetch the script from `https://raw.githubusercontent.com/mehrlander/web-tools/main/skills/passage-reading/scripts/check.py`. Fix every error and run it again. Then read the cards it prints as the reader will (see "The cards are the test").
-4. **Hand it over.** With `--link`, the script's last line is a URL to the hosted page carrying the reading in its fragment; hand it over as `⭐ [<title>](<url>)`. No commit is needed and the fragment never reaches a server. For a reading the owner keeps, commit it where it belongs and link `https://mehrlander.github.io/web-tools/pages/toss-render.html#passage-reading=<owner>/<repo>@<ref>:<path>`. Where the context could not be checked (`--no-context`), say so.
+4. **Hand it over.** With `--link`, the script's last line is a URL to the hosted page carrying the reading in its fragment; hand it over as `🔷 [<title>](<url>)`. No commit is needed and the fragment never reaches a server. For a reading the owner keeps, commit it where it belongs and link `https://mehrlander.github.io/web-tools/pages/toss-render.html#passage-reading=<owner>/<repo>@<ref>:<path>`. Where the context could not be checked (`--no-context`), say so.
 
 ## Key insights
 

@@ -72,9 +72,9 @@ const MAP_ROUTES = [...routeKeys('MAP_TABS'), ...routeKeys('MAP_SUBVIEWS')];
 // Since 2026-10-13 the Map has two doors: Overview (what the hub is and holds:
 // Contents and Purpose) and Reach (what it covers: the routes diagram, which
 // Reach lands on and so shares its key with, then Projects, Distribution,
-// Outposts and Data).
+// Outposts and Data). Icons joined Overview on 2026-10-23.
 const GROUPS = [
-  ['Overview', [['overview', 'Contents'], ['aims', 'Purpose']]],
+  ['Overview', [['overview', 'Contents'], ['aims', 'Purpose'], ['icons', 'Icons']]],
   ['Reach', [['reach', 'Routes'], ['projects', 'Projects'], ['distribution', 'Distribution'], ['outposts', 'Outposts'], ['data', 'Data']]],
   ['Research', [['research', 'Probes'], ['exploration', 'Exploration']]],
   ['Harness', [['harness', 'Automation'], ['programs', 'Programs'], ['set', 'Set'], ['tests', 'Tests'], ['skills', 'Skills'], ['agents', 'Agents'], ['peeves', 'Peeves'], ['context', 'Context'], ['lifetimes', 'Lifetimes'], ['surfacing', 'Surfacing']]],
