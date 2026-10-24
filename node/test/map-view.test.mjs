@@ -1842,6 +1842,25 @@ test('the Skills search matches the trigger text, not only the slug', async () =
   assert.ok(hits.every(s => s.text.toLowerCase().includes('spreadsheet')));
 });
 
+// Under All the Data tab leads with the folders whose tables a registry
+// declares, so its first screen shows marks and colours rather than the grey
+// of tables nothing declares (owner, 2026-10-24).
+test('the Data tab lists folders holding a declared column first', async () => {
+  await data.loadPropsReg();
+  const old = { mapTab: data.mapTab, dataCensus: data.dataCensus, dataScope: data.dataScope };
+  try {
+    const raw = readFileSync(path.join(repoRoot, 'data', 'csv-census.csv'), 'utf8');
+    const files = window.Csv.rows(raw).map(r => ({ repo: data.hub(), ref: 'main', path: r.path, rows: +r.rows,
+      columns: +r.columns, bytes: +r.bytes, headers: JSON.parse(r.headers) }));
+    Object.assign(data, { mapTab: 'data', dataScope: '',
+      dataCensus: [{ repo: data.hub(), ref: 'main', path: 'data/csv-census.csv', state: 'declared', files }] });
+    const declared = data.tableGroups.map(g => g.tables.some(t => t.cols.some(c => c.primitive)));
+    assert.ok(declared.includes(false), 'some folder holds only undeclared tables, or the order proves nothing');
+    assert.ok(declared[0], 'the first folder holds a declared column');
+    assert.equal(declared.lastIndexOf(true), declared.indexOf(false) - 1, 'no declared folder follows an undeclared one');
+  } finally { Object.assign(data, old); }
+});
+
 test('every field the Data tab reads off a registry exists on a registry row', async () => {
   await data.loadPropsReg();
   const row = data.registryRows[0];
