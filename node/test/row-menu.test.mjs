@@ -38,7 +38,11 @@ function stubTable({ rows = ROWS, cols = COLS } = {}) {
   const handlers = {};
   const els = rows.map(() => doc.createElement('div'));
   rows.forEach((r, i) => { els[i].className = 'tabulator-row'; doc.body.append(els[i]); });
+  const element = doc.createElement('div');
+  els.forEach(el => element.append(el));
+  doc.body.append(element);
   return {
+    element,
     calls: [],
     on(ev, fn) { this.calls.push('on'); (handlers[ev] ||= []).push(fn); },
     off(ev, fn) { handlers[ev] = (handlers[ev] || []).filter(f => f !== fn); },
@@ -52,7 +56,7 @@ function stubTable({ rows = ROWS, cols = COLS } = {}) {
     },
     getRows(which) {
       this.calls.push('getRows:' + which);
-      return rows.map((r, i) => ({ getData: () => r, getElement: () => els[i] }));
+      return rows.map((r, i) => ({ getData: () => r, getElement: () => els[i], getCells: () => [] }));
     },
     // Drive a row tap the way Tabulator does: the native event, then the row.
     tap(i, target) {
@@ -250,7 +254,20 @@ test('the kit touches only the three Tabulator calls it declares', () => {
     'the kit reached for a Tabulator method its header does not declare');
 });
 
-test('on: context opens on a right-click or a long press, and a tap stays a tap', () => {
+// A finger on `el`: touchstart now, and the hold's timer left to run.
+const press = (el, x = 20, y = 20) => {
+  const e = new window.Event('touchstart', { bubbles: true });
+  Object.defineProperty(e, 'touches', { value: [{ clientX: x, clientY: y }] });
+  el.dispatchEvent(e);
+};
+const drag = (el, x, y) => {
+  const e = new window.Event('touchmove', { bubbles: true });
+  Object.defineProperty(e, 'touches', { value: [{ clientX: x, clientY: y }] });
+  el.dispatchEvent(e);
+};
+const wait = (ms) => new Promise(r => setTimeout(r, ms));
+
+test('on: context opens on a right-click or a held finger, and a tap stays a tap', async () => {
   reset();
   const t = stubTable();
   const off = RM.attach(t, { on: 'context', noun: 'row' });
@@ -260,11 +277,27 @@ test('on: context opens on a right-click or a long press, and a tap stays a tap'
   assert.deepEqual(labels(), ['Copy this row', 'Copy 3 rows']);
   assert.ok(e.defaultPrevented, "the browser's own menu would open over this one");
   RM.close();
-  t.fire('rowTapHold', 1);
-  assert.ok(menu(), 'a long press, the touch path, raised nothing');
+
+  press(t.rowEl(1));
+  await wait(250);
+  assert.equal(menu(), null, 'a quarter second is a tap, not a hold');
+  await wait(300);
+  assert.ok(menu(), 'a held finger, the touch path, raised nothing');
+  assert.ok(t.rowEl(1).classList.contains('row-menu-on'), 'the menu is not about the row under the finger');
+  doc.dispatchEvent(new window.Event('touchcancel', { bubbles: true }));
+  await wait(450);
+  RM.close();
+
+  press(t.rowEl(1), 20, 20);
+  drag(t.rowEl(1), 20, 60);
+  await wait(550);
+  assert.equal(menu(), null, 'a finger that moved was a scroll and still opened the menu');
+
   off();
   t.fire('rowContext', 0);
-  assert.equal(menu(), null, 'detach left the context gesture wired');
+  press(t.rowEl(0));
+  await wait(550);
+  assert.equal(menu(), null, 'detach left a gesture wired');
 });
 
 // ── the header menu ─────────────────────────────────────────────────────────
@@ -379,20 +412,47 @@ test('the filter switch hides the row on the table, or hands it to the host', ()
   assert.ok(labels().includes('Hide header filters'));
 });
 
-test('a long press opens below the header and eats the release, so it neither sorts nor picks', () => {
+// rowMenu.grid over the header stub: `new` on a function that returns an
+// object yields that object, which is all grid needs of Tabulator.
+const gridOver = (g, opts = {}) => {
+  const prior = window.Tabulator;
+  g.table.on = () => {};
+  window.Tabulator = function () { return g.table; };
+  try { return RM.grid(doc.createElement('div'), {}, { rows: false, ...opts }); } finally { window.Tabulator = prior; }
+};
+
+test('a held header opens its menu and eats the release, so it neither sorts nor picks', async () => {
   reset();
-  const { cols } = stubGrid();
-  const touch = new window.Event('touchstart');
-  RM.headerDefaults().headerContextMenu(touch, cols[0]);
-  assert.ok(menu(), 'a long press raised no menu');
+  const g = stubGrid();
+  gridOver(g);
   let sorted = 0;
-  cols[0].getElement().addEventListener('click', () => { sorted++; });
-  const release = new window.MouseEvent('click', { bubbles: true, cancelable: true });
-  cols[0].getElement().dispatchEvent(release);
-  assert.equal(sorted, 0, "the finger's release reached the header");
+  const head = g.cols[0].getElement();
+  head.className = 'tabulator-col';
+  head.addEventListener('click', () => { sorted++; });
+  press(head.querySelector('.tabulator-col-title'));
+  await wait(500);
+  assert.deepEqual(headings(), ['Item', 'Table'], 'a held header raised no menu, or the wrong one');
+  doc.dispatchEvent(new window.Event('touchend', { bubbles: true }));
+  head.dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  assert.equal(sorted, 0, "the finger's release reached the header and sorted it");
   assert.ok(menu(), 'the release closed the menu it opened');
-  cols[0].getElement().dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+  await wait(450);
+  head.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
   assert.equal(sorted, 1, 'a later tap was eaten too');
+});
+
+test('a hold on a header filter is the input\'s, and Tabulator\'s own hold opens nothing', async () => {
+  reset();
+  const g = stubGrid();
+  gridOver(g);
+  g.cols[0].getElement().className = 'tabulator-col';
+  press(g.cols[0].getElement().querySelector('input'));
+  await wait(500);
+  assert.equal(menu(), null, 'holding the filter box opened the menu over it');
+  assert.deepEqual(RM.headerDefaults().headerContextMenu(new window.Event('touchstart'), g.cols[0]), []);
+  assert.equal(menu(), null, "Tabulator's second-long hold opened a second menu");
+  assert.ok([...g.table.element.classList].some(c => c.includes('select-none')),
+    'cell text still selects on a touch screen, which is the gesture Safari takes over');
 });
 
 test('the header carries no button: the menu is a right-click or a hold', () => {
