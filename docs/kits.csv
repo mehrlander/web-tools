@@ -100,7 +100,7 @@ lib/kits/surface.js,Surface,"the surface envelope, in one place.",206,no,no,1,ye
 lib/kits/swipe-deck.js,swipeDeck,"the house swipe format: a snap-scrolling track of slides, and the fullscreen takeover that frames it.",1551,no,yes,35,yes
 lib/kits/sync-status.js,SyncStatus,"how a synchronization state looks, wherever the estate shows one.",31,no,no,4,yes
 lib/kits/table-stats.js,DataProfile,"a table's profile and its pivot, computed once for the estate TableStats.parseNum(v) -> number | null TableStats.profile(rows, { columns }) -> { rowCount,…",400,no,no,4,yes
-lib/kits/tabular-explorer.js,TabularExplorer,"Exploratory Data Analysis (EDA) and immersive inspection for tabular data (CSV, TSV, JSON rows).",844,no,no,2,yes
+lib/kits/tabular-explorer.js,TabularExplorer,"Exploratory Data Analysis (EDA) and immersive inspection for tabular data (CSV, TSV, JSON rows).",851,no,no,2,yes
 lib/kits/term-marks.js,TermMarks,a glossary's terms marked where a text first names them (window.TermMarks).,39,no,no,1,yes
 lib/kits/text-collection.js,TextCollection,"the shared Text collection, read in the browser.",556,no,no,6,yes
 lib/kits/text-diff.js,textDiff,"patience diff over lines, plus word-level diff inside a changed line pair.",318,no,no,4,yes
