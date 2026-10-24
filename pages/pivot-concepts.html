@@ -8,9 +8,10 @@
      rows, which run across, which is the value and which filter, each live on
      the shared engine (lib/kits/table-stats.js, TableStats.pivot) over the same
      sample, and one result view whose layout is chosen separately, so a
-     builder and a result shape can be compared in any pairing. Menus are the
-     estate's own (lib/kits/row-menu.js). Pills drag with a mouse at once and
-     with a finger after a short hold; a tap is never a drag. -->
+     builder and a result shape can be compared in any pairing. The filters
+     sit in their own strip over the table in every builder. Menus are the
+     estate's own (lib/kits/row-menu.js). A pill drags as soon as it moves,
+     by mouse or finger; a tap that does not move opens its menu. -->
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
 <script src="../lib/vanilla-bundle.js"></script>
@@ -18,7 +19,7 @@
 <script src="../lib/kits/row-menu.js"></script>
 </head>
 <body class="bg-base-100 text-base-content">
-<div class="h-dvh grid grid-rows-[auto_auto_minmax(0,1fr)] grid-cols-[minmax(0,1fr)]">
+<div class="h-dvh grid grid-rows-[auto_auto_auto_minmax(0,1fr)] grid-cols-[minmax(0,1fr)]">
 
   <header class="border-b border-base-300 px-4 pt-3 pb-2 flex flex-col gap-2">
     <div class="flex items-baseline gap-3">
@@ -36,6 +37,9 @@
   </header>
 
   <section id="builder" class="border-b border-base-300 px-4 py-3 select-none"></section>
+
+  <!-- The filters, over the table they narrow, whichever builder is up. -->
+  <section id="filters" class="border-b border-base-300 px-4 py-1.5 select-none bg-base-200/40" data-zone="filters"></section>
 
   <main id="result" class="min-h-0 overflow-auto"></main>
 </div>
@@ -76,6 +80,7 @@
   }
   const SCAN = P.scan(ROWS);
   const FIELDS = SCAN.cols;
+  const VALUES = Object.fromEntries(FIELDS.map(f => [f, [...new Set(ROWS.map(r => String(r[f] ?? '')))].sort()]));
 
   // ── state ───────────────────────────────────────────────────────────────────
   const st = {
@@ -143,9 +148,11 @@
   function pill(field, from, { role = from, cls = '', label } = {}) {
     const placed = role && role !== 'tray';
     const icon = placed ? ICON[role] : (SCAN.isNum[field] ? 'ph-hash' : 'ph-text-aa');
-    const extra = role === 'value' && st.value === field ? ` <span class="opacity-60 font-normal">${esc(st.agg)}</span>` : '';
+    const ex = st.excluded[field]?.size;
+    const extra = role === 'value' && st.value === field ? ` <span class="opacity-60 font-normal">${esc(st.agg)}</span>`
+      : role === 'filters' && ex ? ` <span class="opacity-60 font-normal">${VALUES[field].length - ex} of ${VALUES[field].length}</span>` : '';
     return `<button type="button" data-pill data-field="${esc(field)}" data-from="${from}"
-      class="btn btn-sm rounded-full gap-1 font-mono font-normal touch-manipulation [-webkit-touch-callout:none] ${placed ? 'btn-primary btn-soft' : 'btn-ghost bg-base-200'} ${cls}">
+      class="btn btn-sm rounded-full gap-1 font-mono font-normal touch-none [-webkit-touch-callout:none] ${placed ? 'btn-primary btn-soft' : 'btn-ghost bg-base-200'} ${cls}">
       <i class="ph ${icon} text-sm opacity-70"></i>${esc(label ?? field)}${extra}</button>`;
   }
   const empty = (zone, text) => `<span class="text-xs text-base-content/40 italic px-1" data-empty="${zone}">${text}</span>`;
@@ -167,17 +174,18 @@
       html: () => `<div class="flex flex-col gap-2">
         <div class="flex flex-wrap gap-1.5" data-zone="tray">${FIELDS.filter(f => !roleOf(f)).map(f => pill(f, 'tray')).join('') || empty('tray', 'every field is placed')}</div>
         <div class="rounded-box border border-base-300 overflow-hidden">
-          ${['rows', 'cols', 'value', 'filters'].map(shelfLine).join('')}
+          ${['rows', 'cols', 'value'].map(shelfLine).join('')}
         </div></div>`,
     },
-    quadrants: {
-      label: 'Quadrants', icon: 'ph-squares-four',
+    line: {
+      label: 'One line', icon: 'ph-text-align-left',
+      // The three roles as labelled groups on one wrapping line: as many rows
+      // as the pills need, rather than one per role.
       html: () => `<div class="flex flex-col gap-2">
         <div class="flex flex-wrap gap-1.5" data-zone="tray">${FIELDS.filter(f => !roleOf(f)).map(f => pill(f, 'tray')).join('') || empty('tray', 'every field is placed')}</div>
-        <div class="grid grid-cols-2 gap-1.5">
-          ${['filters', 'cols', 'rows', 'value'].map(z => `<div class="rounded-box border border-base-300 p-1.5 min-h-20 flex flex-col gap-1" data-zone="${z}">
-            <span class="text-xs text-base-content/60 flex items-center gap-1"><i class="ph ${ICON[z]}"></i>${ROLE[z]}</span>
-            <div class="flex flex-wrap gap-1">${list(z).length ? list(z).map(f => pill(f, z)).join('') : empty(z, 'drop here')}</div></div>`).join('')}
+        <div class="flex flex-wrap items-center gap-1.5">
+          ${['rows', 'cols', 'value'].map(z => `<div class="inline-flex flex-wrap items-center gap-1 min-h-10 rounded-full bg-base-200/60 p-1" data-zone="${z}">
+            ${list(z).length ? list(z).map(f => pill(f, z)).join('') : `<span class="px-2 text-xs text-base-content/50 flex items-center gap-1"><i class="ph ${ICON[z]}"></i>${ROLE[z]}</span>`}</div>`).join('')}
         </div></div>`,
     },
     tap: {
@@ -196,7 +204,7 @@
         const add = (zone, word) => ` <button type="button" class="btn btn-xs rounded-full btn-ghost bg-base-200 font-normal align-middle" data-slot="${zone}" data-index="-1"><i class="ph ph-plus"></i>${word}</button>`;
         const by = st.rows.map((f, i) => (i ? ' then ' : ' by ') + slot('rows', f, i)).join('') + (st.rows.length < 4 ? add('rows', st.rows.length ? 'then' : 'by') : '');
         const across = st.cols.length ? ' across ' + st.cols.map((f, i) => slot('cols', f, i)).join(' and ') : add('cols', 'across');
-        const where = st.filters.map((f, i) => (i ? ', ' : ' where ') + slot('filters', f, i)).join('') + add('filters', 'filter');
+        const where = '';
         const what = st.value
           ? `<button type="button" class="link link-primary decoration-dotted font-semibold" data-slot="agg">${esc(st.agg === 'avg' ? 'average' : st.agg)}</button> of ${slot('value', st.value, 0)}`
           : `<button type="button" class="link link-primary decoration-dotted font-semibold" data-slot="value" data-index="0">count of rows</button>`;
@@ -207,7 +215,7 @@
       label: 'In-table', icon: 'ph-table',
       // No builder of its own: the tray, and the result's header as the drop
       // targets (see grid()).
-      html: () => `<div class="flex gap-1.5 overflow-x-auto" data-zone="tray">${FIELDS.filter(f => !roleOf(f)).map(f => pill(f, 'tray', { cls: 'shrink-0' })).join('') || empty('tray', 'every field is placed')}</div>`,
+      html: () => `<div class="flex flex-wrap gap-1.5" data-zone="tray">${FIELDS.filter(f => !roleOf(f)).map(f => pill(f, 'tray')).join('') || empty('tray', 'every field is placed')}</div>`,
     },
   };
 
@@ -280,6 +288,10 @@
       chip(false, 'data-swap', '<i class="ph ph-arrows-left-right"></i>Swap'),
     ].join('');
     $('builder').innerHTML = BUILDERS[st.concept].html();
+    $('filters').innerHTML = `<div class="flex flex-wrap items-center gap-1.5 min-h-9">
+      <span class="text-xs text-base-content/60 flex items-center gap-1 pr-1"><i class="ph ph-funnel"></i>Filter</span>
+      ${st.filters.map(f => pill(f, 'filters', { cls: 'btn-xs' })).join('')}
+      <button type="button" class="btn btn-xs rounded-full btn-ghost font-normal" data-addfilter><i class="ph ph-plus"></i>filter</button></div>`;
     const out = compute();
     $('figure').textContent = `${out.n.toLocaleString()} of ${ROWS.length.toLocaleString()} rows` + (out.res.skipped ? ` · ${out.res.skipped} skipped, no ${st.value}` : '');
     $('result').innerHTML = st.layout === 'cards' && st.concept !== 'table' ? cards(out) : grid(out, st.concept === 'table');
@@ -299,7 +311,7 @@
       for (const a of ['sum', 'avg', 'min', 'max', 'count']) if (a !== st.agg) items.push({ icon: 'ph-function', label: a === 'avg' ? 'average' : a, run: () => { st.agg = a; render(); } });
     }
     if (from === 'filters') {
-      const vals = [...new Set(ROWS.map(r => String(r[field] ?? '')))].sort().slice(0, 40);
+      const vals = VALUES[field].slice(0, 40);
       const ex = st.excluded[field] ||= new Set();
       items.push({ heading: 'Show' });
       for (const v of vals) items.push({ icon: ex.has(v) ? 'ph-square' : 'ph-check-square', label: v || '(blank)', run: () => { ex.has(v) ? ex.delete(v) : ex.add(v); render(); fieldMenu(document.querySelector(`[data-pill][data-from="filters"][data-field="${CSS.escape(field)}"]`) || el, field, from); } });
@@ -327,36 +339,32 @@
     next ? place(f, next) : remove(f);
   };
 
-  // ── the drag ────────────────────────────────────────────────────────────────
-  // A mouse drags once it moves 4px. A finger drags after a 300ms hold, so a
-  // swipe still scrolls and a tap is still a tap; once held, the page stops
-  // scrolling under the finger (touchmove prevented while dragging).
-  const HOLD = 300;
+  // ── the drag ────────────────────────────────────────────────────────────
+  // A pill drags as soon as it moves 5px, by mouse or by finger: pills are
+  // touch-none, so a finger on one is the pill's, and a swipe that starts off
+  // the pills still scrolls. A press that does not move is a tap.
   let press = null, drag = null, suppress = false;
   document.addEventListener('pointerdown', (e) => {
     const p = e.target.closest('[data-pill]');
     if (!p || e.button > 0) return;
-    press = { p, x: e.clientX, y: e.clientY, id: e.pointerId, touch: e.pointerType !== 'mouse' };
-    if (press.touch) press.timer = setTimeout(() => begin(press.x, press.y), HOLD);
+    press = { p, x: e.clientX, y: e.clientY, id: e.pointerId };
   });
   document.addEventListener('pointermove', (e) => {
     if (!press || e.pointerId !== press.id) return;
-    const moved = Math.hypot(e.clientX - press.x, e.clientY - press.y);
     if (!drag) {
-      if (press.touch) { if (moved > 8) { clearTimeout(press.timer); press = null; } return; }
-      if (moved > 4) begin(e.clientX, e.clientY); else return;
+      if (Math.hypot(e.clientX - press.x, e.clientY - press.y) < 5) return;
+      begin(e.clientX, e.clientY);
     }
     follow(e.clientX, e.clientY);
   });
   document.addEventListener('touchmove', (e) => { if (drag) e.preventDefault(); }, { passive: false });
   const end = (e) => {
     if (!press || (e && e.pointerId !== press.id)) return;
-    clearTimeout(press.timer);
     if (drag) { drop(); suppress = true; setTimeout(() => { suppress = false; }, 350); }
     press = null;
   };
   document.addEventListener('pointerup', end);
-  document.addEventListener('pointercancel', () => { if (press) clearTimeout(press.timer); if (drag) cancelDrag(); press = null; });
+  document.addEventListener('pointercancel', () => { if (drag) cancelDrag(); press = null; });
 
   function begin(x, y) {
     const { p } = press;
@@ -420,6 +428,8 @@
     if (t.closest('[data-swap]')) { [st.rows, st.cols] = [st.cols, st.rows]; st.collapsed.clear(); return render(); }
     const f = t.closest('[data-fold]'); if (f) { const id = f.dataset.fold; st.collapsed.has(id) ? st.collapsed.delete(id) : st.collapsed.add(id); return render(); }
     const s = t.closest('[data-slot]'); if (s) return slotMenu(s);
+    const af = t.closest('[data-addfilter]');
+    if (af) return window.rowMenu.open({ ...at(af), items: [{ heading: 'Filter by' }, ...FIELDS.filter(f => !st.filters.includes(f)).map(f => ({ icon: SCAN.isNum[f] ? 'ph-hash' : 'ph-text-aa', label: f, run: () => place(f, 'filters') }))] });
     const p = t.closest('[data-pill]');
     if (p) {
       if (p.closest('[data-cycle]')) return cycle(p.dataset.field);
