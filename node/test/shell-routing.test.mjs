@@ -70,26 +70,11 @@ test('rows are well formed, and keys and addresses are unique', () => {
   }
 });
 
-test('an alias resolves to its row rather than to a view of its own', () => {
-  for (const r of rows.filter(r => r.alias))
-    assert.equal(shell.routeForUrl(r.alias)?.key, r.key, `alias ${r.alias} does not resolve to ${r.key}`);
-});
-
-// The word Activity means one thing in the nav and had meant another in the
-// address: the nav stop opens Sessions (goSessions), while ?view=activity
-// opened the branch pane, whose internal name happens to be 'activity'. So a
-// link shared from the Activity stop landed somewhere the reader had not been.
-// Reported 2026-09-08. The branch pane keeps its internal name and gives up the
-// address; ?view=branches, which the retired per-repo review already used, is
-// now what names it.
-test('the Activity address opens what the Activity nav stop opens', () => {
-  assert.equal(shell.routeForUrl('activity')?.key, 'sessions',
-    '?view=activity must land on Sessions, the pane the nav stop opens');
-  assert.equal(shell.routeForUrl('branches')?.key, 'branches',
-    '?view=branches names the branch pane, whose internal key is branches');
+// The Activity nav stop opens Sessions, so a link copied from it carries
+// ?view=sessions.
+test('the Activity nav stop opens Sessions', () => {
   const nav = page.match(/label: 'Activity', go: \(\) => this\.(\w+)\(\)/);
-  assert.equal(nav?.[1], 'goSessions',
-    'the nav stop moved; the address alias above has to move with it');
+  assert.equal(nav?.[1], 'goSessions');
 });
 
 // What each view needs on the shell before it has anything to stamp. A row
@@ -113,7 +98,7 @@ const REPOS = ['mehrlander/home', 'mehrlander/web-tools'];
 function landsOn(reopened, url) {
   if (!url) return 'dashboard';
   if (url.file) return 'files';
-  const r = reopened.routeForUrl(url.view);
+  const r = reopened.routeFor(url.view);
   return r && (!r.when || r.when(url)) ? r.key : 'landing';
 }
 
@@ -368,26 +353,13 @@ test('the repo sidebar hands its Files row to the central surface, scoped', () =
   assert.equal(onDefault.shell.searchSeed.ref, '', 'the default branch rides as the empty ref, not by name');
 });
 
-// The two retired per-repo views. Removing a view is not removing its links:
-// every ?view=files and ?view=branches ever shared has to land on whatever
-// took over, scoped as well as the old address described.
-test('the retired views alias onto what replaced them, carrying their scope', () => {
+// ?view=files carries a scope of its own: the folder the tree opens on.
+test('?view=files opens the tree on its ?path= folder', () => {
   const files = makeShell({ search: '?repo=mehrlander/home&view=files&path=docs',
                             browserStore: { repo: '' } });
-  assert.equal(files.shell.routeForUrl('files')?.key, 'files',
-    'the tree walk is a Files view of its own again (2026-09-24), no longer folded into Search');
-  files.shell.routeForUrl('files').open.call(files.shell, files.shell.parseUrl());
+  files.shell.routeFor('files').open.call(files.shell, files.shell.parseUrl());
   assert.equal(files.shell.view, 'files');
-  assert.equal(files.shell.filesPath, 'docs',
-    'an old ?path= opens the tree on that folder rather than being dropped on the floor');
-
-  const branches = makeShell({ search: '?repo=mehrlander/home&view=branches',
-                               browserStore: { repo: '' } });
-  assert.equal(branches.shell.routeForUrl('branches')?.key, 'branches',
-    "the per-repo branch review moved into Activity's Branches tab");
-
-  const keys = new Set(rows.map(r => r.key));
-  assert.ok(keys.has('files') && keys.has('branches'));
+  assert.equal(files.shell.filesPath, 'docs');
 });
 
 // A file named by a pin, a recent, or a ?file= link opens in the repo's Files

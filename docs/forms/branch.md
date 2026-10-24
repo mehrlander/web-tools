@@ -4,7 +4,7 @@ A branch is an object of type `branch` ([subjects.csv](../subjects.csv)). Its
 form has two carriers:
 
 - **In the app:** the branch takeover over the Branches view, addressed by
-  `&detail=` ([views/branches.md](../views/branches.md)).
+  `&detail=`.
 - **Standalone:** [`pages/branch.html`](../../pages/branch.html), the estate's
   shareable single-branch address: `#gh=owner/repo@branch[&base=ref]`, or
   `#gh=owner/repo&pr=<n>` for a PR's own head and base.

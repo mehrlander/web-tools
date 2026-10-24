@@ -115,12 +115,12 @@ node/render/scenarios/branch-guide.mjs,the branch page showing a branch with its
 node/render/scenarios/branch-page-cold.mjs,"the branch view mounted as a PAGE, with no host lending it facts or a verdict",node/render/scenarios,111,driver,,no,no,no
 node/render/scenarios/branch-page-subject.mjs,"the branch page announcing which of its documents is showing, and a real fab adopting it: the compare bar that gating hid",node/render/scenarios,126,driver,,no,no,no
 node/render/scenarios/branch-panes.mjs,,node/render/scenarios,103,driver,,no,no,no
-node/render/scenarios/branch-reach.mjs,"shoot the Branches pane's coverage line, patching the scan block after load since only a real crawl writes the fields it reads",node/render/scenarios,30,driver,,no,no,no
+node/render/scenarios/branch-reach.mjs,"shoot the Branches pane's coverage line, patching the scan block after load since only a real crawl writes the fields it reads",node/render/scenarios,28,driver,,no,no,no
 node/render/scenarios/branch-takeover.mjs,the app's branch-detail takeover with the embedded branch page fully rendered,node/render/scenarios,86,driver,,no,no,no
 node/render/scenarios/branch-verdict.mjs,the content verdict as a filter strip in the branch view's Files pane,node/render/scenarios,80,driver,,no,no,no
 node/render/scenarios/branches-window.mjs,the Branches window pill: the reader's time slice over the Recent scope,node/render/scenarios,61,driver,,no,no,no
 node/render/scenarios/chats-paging.mjs,"the Chats pane's paging control: one earlier month loaded on demand, shot at the footer",node/render/scenarios,20,driver,,no,no,no
-node/render/scenarios/chats-pane.mjs,the estate's Chats pane with the sibling-repo archive actually loaded,node/render/scenarios,23,driver,,no,no,no
+node/render/scenarios/chats-pane.mjs,the estate's Chats pane with the sibling-repo archive actually loaded,node/render/scenarios,20,driver,,no,no,no
 node/render/scenarios/chats-probe.mjs,"diagnostic: whether the Chats pane's failure state is a pending request or a pegged main thread, counted in animation frames",node/render/scenarios,22,driver,,no,no,no
 node/render/scenarios/chats-query.mjs,the Chats pane's text box over fixture rows,node/render/scenarios,74,driver,,no,no,no
 node/render/scenarios/code-layers-guide-lower.mjs,scroll the code-layers guide to its lower tabs for the pixel check,node/render/scenarios,14,driver,,no,no,no

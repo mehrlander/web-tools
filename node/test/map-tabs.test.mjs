@@ -186,7 +186,7 @@ test('the Map description points at the CSV instead of restating it', () => {
 test('a narrative is bounded, so the manual does not regrow in a cell', () => {
   for (const t of LEDES) {
     const words = t.narrative.split(/\s+/).length;
-    assert.ok(words <= 120, `${t.n}: narrative is ${words} words; cut it or move it to docs/views/map.md`);
+    assert.ok(words <= 120, `${t.n}: narrative is ${words} words; cut it`);
   }
 });
 
