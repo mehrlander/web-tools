@@ -15,7 +15,7 @@ Fetch a named skill from a defined source and apply its instructions. The mechan
 https://raw.githubusercontent.com/mehrlander/web-tools/main/skills
 ```
 
-That URL is publicly accessible; the web-tools repo is public and `raw.githubusercontent.com` is on the Claude Code sandbox allowlist, so fetching needs no auth.
+The repo is public, so fetching needs no auth.
 
 ## Discovery
 
@@ -25,18 +25,7 @@ A catalog of available skills is at:
 https://raw.githubusercontent.com/mehrlander/web-tools/main/skills/manifest.csv
 ```
 
-Shape:
-
-```json
-{
-  "source": "https://raw.githubusercontent.com/mehrlander/web-tools/main/skills",
-  "skills": [
-    { "name": "apple-shortcuts-actions", "description": "Compose Apple Shortcuts actions..." },
-    { "name": "atomic-decomposition", "description": "Break a document into the claims it makes..." },
-    ...
-  ]
-}
-```
+It is a CSV with the columns `name`, `group` and `description`, one row per skill.
 
 If the user asks "what skills are available?" or "list my skills," fetch and summarize this file.
 
@@ -62,53 +51,39 @@ Fetch it, follow its instructions in the current session. Companion files (scrip
 
 3. **GitHub MCP** (`mcp__github__get_file_contents` with owner `mehrlander`, repo `web-tools`, path `skills/<name>/SKILL.md`) if the raw URL is blocked.
 
-## Trigger phrases
+## When to fire
 
-Only fire this skill on explicit signals from the user. Examples:
-
-- "load skill succinct-text"
-- "load-skill succinct-text"
-- "/load-skill succinct-text"
-- "fetch the succinct-text skill"
-- "load my succinct-text skill"
-- "use my succinct-text skill for this"
-- "load skill X from source Y" (custom source)
-
-Do not fire on general topic overlap.
+Only on an explicit signal from the user, such as the phrases in the description, "use my X skill for this", or "load skill X from source Y". Do not fire on general topic overlap.
 
 ## Third-party skills
 
-This library contains skills created or adapted here. Anthropic's document and
-authoring skills come from separately attributed dependencies in the
-[marketplace](https://github.com/mehrlander/web-tools/blob/main/docs/MARKETPLACE.md).
-Use the installed or host-provided skill first. Without either, fetch the complete
-official skill folder, including its scripts and references; a link alone does
-not supply those resources. Retired personal skills are preserved in the
+Anthropic's document and authoring skills are not in this library; the
+[marketplace](https://github.com/mehrlander/web-tools/blob/main/docs/MARKETPLACE.md)
+notes say how they reach a session. Use the installed or host-provided skill
+first. Without either, fetch the complete official skill folder, including its
+scripts and references; a link alone does not supply those resources. Retired
+personal skills are in the
 [archive](https://github.com/mehrlander/web-tools/tree/main/archive/skills),
-which is outside the active library.
+outside the active library.
 
 ## Custom sources
 
 If the user names a source other than the default, use that as the base URL. Example: "load skill X from `https://raw.githubusercontent.com/other/repo/main/skills`".
 
-Any URL that resolves to `<base>/<name>/SKILL.md` is a valid source. This makes the mechanism reusable if the user standardizes another location later.
+Any URL that resolves to `<base>/<name>/SKILL.md` is a valid source.
 
-## Installing this skill into another repo
+## Installing this skill without the plugin
 
-The mechanism itself installs the same way `web-tools` does. From a session in the target repo:
+- **A repo:** from a session in it, fetch this file into place, then commit and
+  push; skills register at session start, so it is invocable in sessions
+  started from a branch that contains it.
 
-```bash
-mkdir -p .claude/skills/load-skill
-curl -fsSL https://raw.githubusercontent.com/mehrlander/web-tools/main/skills/load-skill/SKILL.md \
-  -o .claude/skills/load-skill/SKILL.md
-```
+  ```bash
+  mkdir -p .claude/skills/load-skill
+  curl -fsSL https://raw.githubusercontent.com/mehrlander/web-tools/main/skills/load-skill/SKILL.md \
+    -o .claude/skills/load-skill/SKILL.md
+  ```
 
-Then commit and push. Skills register at session start, so `load-skill` becomes invocable in sessions started from a branch that contains it.
-
-## Installing into the claude.ai account
-
-Copy the contents of this SKILL.md into Settings > Capabilities as a new skill named `load-skill`. Then every chat session and every Cowork session provisioned from the account can invoke it.
-
-## Why this exists
-
-It reaches a skill where the portable plugin is not installed, such as claude.ai chat, or where the skill comes from another library.
+- **The claude.ai account:** copy this SKILL.md into Settings > Capabilities as
+  a new skill named `load-skill`; every chat and Cowork session provisioned from
+  the account can then invoke it.

@@ -328,3 +328,36 @@ test('a seeded walk of joins, splits and moves over real documents keeps every c
   }
   assert.deepEqual(failures, [], JSON.stringify(failures, null, 1));
 });
+
+// ── What the walk found, held without it ──────────────────────────────────
+// Each was reached by the walk over skills/skill-prefs/SKILL.md on
+// 2026-10-22; these keep them fixed whatever the corpus holds.
+test('a split inside a link\'s text is one card with its green ¶', () => {
+  const base = 'Read alongside it, not instead of it. Where the host has no copy, read the [official skill folder](https://example.com/x).\n\n## Next\n';
+  const d = D.create({ win: {} });
+  d.text = base;
+  assert.ok(d.split(at(base, ' folder')));
+  const { out, runs } = checkAgainst(base, d.text);
+  assert.deepEqual(out, []);
+  assert.equal(runs.length, 1, 'the half that reads `folder](…)` is still the paragraph\'s');
+  assert.equal(host.querySelectorAll('[data-md-break="opened"]').length, 1);
+});
+
+test('a paragraph added above a split: the cards revert from the last up, and the split alone', () => {
+  const base = 'Alpha one two three four. Alpha five six.\n\nBravo para.\n\n- item words here.\n- other item.\n';
+  const d = D.create({ win: {} });
+  d.text = base;
+  assert.ok(d.move(...span(base, 'item words here.'), 0, true));
+  assert.ok(d.split(at(d.text, ' Alpha five')));
+  const { out, runs } = checkAgainst(base, d.text);
+  assert.deepEqual(out, []);
+  assert.equal(mdDiff.revert(base, d.text, runs[1]),
+    'item words here.\n\nAlpha one two three four. Alpha five six.\n\nBravo para.\n\n- other item.\n');
+});
+
+test('a paragraph and the list item tight under it, both added, revert from the last up', () => {
+  const base = 'Alpha one.\n\nCharlie one.\n';
+  const { out, runs } = checkAgainst(base, 'Alpha one.\n\nBravo:\n- item one.\n\nCharlie one.\n');
+  assert.deepEqual(out, []);
+  assert.equal(runs.length, 2);
+});

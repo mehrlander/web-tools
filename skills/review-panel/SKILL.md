@@ -38,9 +38,9 @@ web-tools:
    your own view, not the conversation. Blind is the point.
 4. **Run the closer** with the subject statement and every reader's output,
    labelled by seat.
-5. **Report** the closer's Convergent, Kept, Rejected and Decision sections,
-   then each seat's raw output folded below. Verify any finding you repeat as
-   your own against the cited place first.
+5. **Report** the closer's Convergent, Kept from one seat, Rejected and Decision
+   sections, then each seat's raw output folded below. Verify any finding you
+   repeat as your own against the cited place first.
 
 Where the plugin's agents are not installed, spawn a general-purpose subagent
 per seat told to read that seat's definition file (`skills/agents/<seat>.md`

@@ -14,17 +14,10 @@ description: >-
 
 # The default session context
 
-**A checkout is not delivery, and this instruction used to say it was.** Until
-2026-09-12 web-tools' `CLAUDE.md` `@`-imported both halves, so the presence of
-that checkout meant the conventions were already in context and this skill said
-to stop. No repo imports them now. Read on whatever the checkout looks like, and
-stop only if both documents are demonstrably in context already.
-
-The failure that rule would cause is a closed loop rather than a missing file:
-the directive fires because nothing delivered the conventions, the session invokes
-this skill, the skill sees a checkout and says there is nothing to load, and the
-session proceeds without them having done everything right. Measured live on
-2026-09-13, the first session to run the plugin-only path.
+**A checkout is not delivery.** No repo's `CLAUDE.md` imports these documents,
+so a web-tools checkout does not mean they are in context. Read on whatever the
+checkout looks like, and stop only if both documents are demonstrably in context
+already.
 
 Load both. [`CONVERSATION.md`](CONVERSATION.md) governs how a reply reaches the reader;
 [`QUALIFIED-WRITING.md`](QUALIFIED-WRITING.md) governs the prose of every document, commit message, PR

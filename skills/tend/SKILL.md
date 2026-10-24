@@ -11,12 +11,6 @@ disable-model-invocation: true
 
 # tend
 
-## Premise
-
-Tending is the cultivation of a workspace toward recognized objectives. It
-clears paths, prunes dead ends, and carries work forward. It readies the owner
-to see the vital choice and commit.
-
 ## Principles
 
 1. **Commitment belongs to the owner.** Merging code, deleting unique
@@ -45,7 +39,8 @@ subject, such as `snags`, a project folder, or a pull request.
 (Prod, below).
 
 Tend deletes no branch and proposes no deletion. `findings.py` sits beside
-this file; `lib/kits/findings.js` states the record.
+this file; [`lib/kits/findings.js`](https://github.com/mehrlander/web-tools/blob/main/lib/kits/findings.js) states the
+record.
 
 1. **Reassess.** `findings.py check` names the findings whose witnesses
    changed. Reread each and reply with `findings.py update`: revise it, confirm
