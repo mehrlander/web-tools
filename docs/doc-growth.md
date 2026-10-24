@@ -24,22 +24,36 @@ four measures per sample:
 A **focused edit** is a commit touching at most `--focus` markdown files
 (default 5), so a sweep across many documents does not count as attention to
 each. Care mode leaves out files a commit hook writes (`--generated`, marked
-`gen` in the data file) and logs and trays (`chron/`, `tracker/tasks/`, `blog/`,
-`dump/`, `archive/`), and the slider then counts focused edits.
+`gen` in the data file), since their edits are the hook's, and the slider then
+counts focused edits. Logs, tracker tasks and archives stay in.
 
-The Growth tab puts a **ranked list** over the chart: the same files by focused
-edits per thousand words, or by count, as of the last sample, each opening in
-the file deck. Picking a row rings its bubble and draws its trail, and picking a
-bubble scrolls the list to its row. The tab opens the chart on Care, where a
-row's rank and its bubble's height above the dashed line agree. The full page
-opens on Effort; `?y=care`, `net` or `age` opens it on another measure.
+The Growth tab puts a **ranked list** over the chart: the same files as of the
+last sample, each opening in the file deck. Its column heads sort it by focused
+edits, focused edits per thousand words (the default) or words, and a second
+click turns the order round. Picking a row rings its bubble and draws its
+trail, and picking a bubble scrolls the list to its row. The tab opens the chart
+on Care, where a row's rank and its bubble's height above the dashed line
+agree. The full page opens on Effort; `?y=care`, `net` or `age` opens it on
+another measure.
 
 The tab has no minimum-edits slider: it lists and draws files with at least 5
-focused edits, or 5 edits on the other measures. A row of count chips above the
-list narrows it by **kind**, which `kind()` in the kit reads from the path
-(agent instructions, a skill, an agent definition, a README, or any other
-document), and by top-level folder. The chart keeps every file and colours the
-ones the list holds. The tab fits the Map pane, so only the list scrolls.
+focused edits, or 5 edits on the other measures. Above the list, one row of
+count chips per facet narrows it, every value shown whatever the other row
+picks:
+
+- **Kind**, which `kind()` in the kit reads from the path alone: agent
+  instructions, tracker task, thread, blog post, log entry, archive, skill,
+  agent definition, README, skill reference, or any other document.
+- **Folder**, the file's top-level folder, `(root)` for a file at the top, or
+  two levels (`projects/budget-drs`) under a folder `--containers` names
+  (`projects`, `packages` and `apps` by default).
+
+A third row, **Colour**, gives the chart's colour to Kind or Folder, or one
+colour to every listed file. The three most common values over the whole list
+take a hue each and the rest a neutral, so a filter never repaints what it
+keeps; the chosen row's chips carry the dots, as the legend. The chart keeps
+every file and draws those outside the list faint. The tab fits the Map pane, so
+only the list scrolls.
 
 `w` counts every token; `r` skips fenced code blocks and YAML frontmatter.
 Tables and indented code count in both, so a wide gap between the two means

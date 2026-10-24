@@ -1,8 +1,9 @@
 // kits/doc-growth.js: the arithmetic behind the Map's Growth tab and the
-// full-page chart. What breaks without these: a file a commit hook writes, or a
-// log, ranked as a document someone tends; a file that no longer exists ranked
-// by its last size; focused edits summed past the sample in view; and a ranking
-// that orders by count when density was asked for.
+// full-page chart. What breaks without these: a file a commit hook writes
+// ranked as a document someone tends; a file that no longer exists ranked by
+// its last size; focused edits summed past the sample in view; a ranking that
+// orders by count when density was asked for; and a file filed under the wrong
+// kind, which the tab filters and colours by.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -31,16 +32,17 @@ const data = {
   ],
 };
 
-test('rank leaves out hook-written files, logs, files gone at the last sample and files under the minimum', () => {
+test('rank leaves out hook-written files, files gone at the last sample and files under the minimum', () => {
   const rows = G.rank(data, { min: 5 });
-  assert.deepEqual(rows.map(r => r.p), ['docs/short.md', 'docs/long.md']);
+  assert.deepEqual(rows.map(r => r.p), ['chron/2026/10/note.md', 'docs/short.md', 'docs/long.md']);
 });
 
-test('rank orders by focused edits per thousand words unless asked for the count', () => {
+test('rank orders by focused edits per thousand words unless asked for the count or the words', () => {
   const dens = G.rank(data, { min: 5 });
-  assert.equal(dens[0].p, 'docs/short.md');
-  assert.ok(Math.abs(dens[0].d - 1000 * 8 / 300) < 1e-9);
-  assert.deepEqual(G.rank(data, { min: 5, by: 'count' }).map(r => r.p), ['docs/long.md', 'docs/short.md']);
+  assert.deepEqual(dens.map(r => r.p), ['chron/2026/10/note.md', 'docs/short.md', 'docs/long.md']);
+  assert.ok(Math.abs(dens[1].d - 1000 * 8 / 300) < 1e-9);
+  assert.deepEqual(G.rank(data, { min: 5, by: 'count' }).map(r => r.p), ['chron/2026/10/note.md', 'docs/long.md', 'docs/short.md']);
+  assert.deepEqual(G.rank(data, { min: 5, by: 'words' }).map(r => r.p), ['docs/long.md', 'docs/short.md', 'chron/2026/10/note.md']);
 });
 
 test('care sums focused edits only through the sample in view', () => {
@@ -53,8 +55,8 @@ test('care sums focused edits only through the sample in view', () => {
 
 test('the Care measure draws only what the ranking could hold', () => {
   const shown = G.shown(data, { y: 'care', min: 5 }).map(f => f.p);
-  assert.ok(!shown.includes('docs/README.md') && !shown.includes('chron/2026/10/note.md'));
-  assert.ok(shown.includes('docs/short.md'));
+  assert.ok(!shown.includes('docs/README.md'), 'a hook-written file');
+  assert.ok(shown.includes('docs/short.md') && shown.includes('chron/2026/10/note.md'));
   assert.equal(G.shown(data, { y: 'churn', min: 5 }).length, data.files.filter(f => f.edits >= 5).length);
 });
 
@@ -66,13 +68,31 @@ test('a payload without focused edits says so, and older payloads still chart', 
   assert.ok(G.bounds(old).churn >= 4);
 });
 
-test('kind tells agent instructions, skills, agent definitions and READMEs from other documents by path alone', () => {
-  assert.equal(G.kind('CLAUDE.md'), 'instructions');
-  assert.equal(G.kind('projects/x/AGENTS.md'), 'instructions');
-  assert.equal(G.kind('skills/tend/SKILL.md'), 'skill');
-  assert.equal(G.kind('skills/agents/owner-proxy.md'), 'agent');
-  assert.equal(G.kind('.claude/agents/drs-budget-analyst.md'), 'agent');
-  assert.equal(G.kind('lib/kits/README.md'), 'readme');
-  assert.equal(G.kind('docs/agents.md'), 'doc', 'a file named for agents is not in an agents folder');
-  assert.deepEqual(G.rank(data, { min: 5 }).map(r => [r.k, r.g]), [['doc', 'docs'], ['doc', 'docs']]);
+test('kind tells what a file is by its path alone, the first match winning', () => {
+  const cases = {
+    'CLAUDE.md': 'instructions', 'projects/x/AGENTS.md': 'instructions',
+    'tracker/tasks/fix-x-ab12cd.md': 'task', 'projects/budget-drs/tracker/tasks/y.md': 'task',
+    'chron/threads/naming-things.md': 'thread', 'chron/blog/2026-10-01-post.md': 'blog',
+    'chron/2026/10/2026-10-01-entry.md': 'log', 'chron/dump/raw.md': 'log',
+    'archive/wring/README.md': 'archive',
+    'skills/tend/SKILL.md': 'skill', 'skills/agents/owner-proxy.md': 'agent',
+    '.claude/agents/drs-budget-analyst.md': 'agent', 'lib/kits/README.md': 'readme',
+    'skills/README.md': 'readme', 'skills/html-style/references/mechanics.md': 'reference',
+    'tracker/README.md': 'readme', 'docs/agents.md': 'doc', 'docs/claude.md': 'doc',
+  };
+  for (const [p, k] of Object.entries(cases)) assert.equal(G.kind(p), k, p);
+  assert.ok(Object.values(cases).every(k => G.KINDS.some(x => x.k === k)), 'every kind is a named one');
+  assert.deepEqual(G.rank(data, { min: 5 }).map(r => [r.k, r.g]), [['log', 'docs'], ['doc', 'docs'], ['doc', 'docs']]);
+});
+
+test('a hue function colours each file, and a mark draws the rest faint', () => {
+  const calls = [];
+  const cv = { clientWidth: 400, clientHeight: 300, width: 0, height: 0,
+    getContext: () => new Proxy({}, { get: (t, k) => k in t ? t[k] : (typeof k === 'string' && /^[a-z]/.test(k) ? (...a) => calls.push([k, ...a]) : undefined),
+                                      set: (t, k, v) => { t[k] = v; if (k === 'fillStyle') calls.push(['fill=', v]); return true; } }) };
+  globalThis.getComputedStyle = () => ({ color: 'rgb(11,11,11)' });
+  const pts = G.draw(cv, data, { t: 2, y: 'care', unit: 'w', min: 5, groups: [], bounds: G.bounds(data),
+    mark: new Set(['docs/long.md']), hue: f => f.p === 'docs/long.md' ? 1 : -1 });
+  assert.equal(pts.at(-1).f.p, 'docs/long.md', 'the marked file draws last, on top');
+  assert.ok(calls.some(c => c[0] === 'fill=' && c[1] === G.LIGHT[1]), 'its hue is the slot the function gave');
 });
