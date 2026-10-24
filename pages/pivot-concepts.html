@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pivot concepts</title>
+<!-- An idea board for the pivot builder: five ways to say which fields are
+     rows, which run across, which is the value and which filter, each live on
+     the shared engine (lib/kits/table-stats.js, TableStats.pivot) over the same
+     sample, and one result view whose layout is chosen separately, so a
+     builder and a result shape can be compared in any pairing. Menus are the
+     estate's own (lib/kits/row-menu.js). Pills drag with a mouse at once and
+     with a finger after a short hold; a tap is never a drag. -->
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script src="../lib/vanilla-bundle.js"></script>
+<script src="../lib/kits/table-stats.js"></script>
+<script src="../lib/kits/row-menu.js"></script>
+</head>
+<body class="bg-base-100 text-base-content">
+<div class="h-dvh grid grid-rows-[auto_auto_minmax(0,1fr)] grid-cols-[minmax(0,1fr)]">
+
+  <header class="border-b border-base-300 px-4 pt-3 pb-2 flex flex-col gap-2">
+    <div class="flex items-baseline gap-3">
+      <h1 class="text-lg font-semibold tracking-tight">Pivot concepts</h1>
+      <span id="figure" class="text-xs font-mono text-base-content/60"></span>
+    </div>
+    <div class="flex items-center gap-2 overflow-x-auto text-xs">
+      <span class="shrink-0 w-12 text-base-content/50">Builder</span>
+      <div id="concepts" class="flex gap-1.5"></div>
+    </div>
+    <div class="flex items-center gap-2 overflow-x-auto text-xs">
+      <span class="shrink-0 w-12 text-base-content/50">Result</span>
+      <div id="views" class="flex gap-1.5"></div>
+    </div>
+  </header>
+
+  <section id="builder" class="border-b border-base-300 px-4 py-3 select-none"></section>
+
+  <main id="result" class="min-h-0 overflow-auto"></main>
+</div>
+
+<!-- The pill under a finger or a mouse while it is dragged. -->
+<div id="ghost" class="hidden fixed z-[80] pointer-events-none -translate-x-1/2 -translate-y-1/2"></div>
+<!-- Where the dragged pill will land. -->
+<div id="caret" class="hidden fixed z-[79] pointer-events-none w-0.5 rounded-full bg-primary"></div>
+
+<script>
+(() => {
+  const S = window.TableStats, P = S.pivot;
+
+  // ── the sample ──────────────────────────────────────────────────────────────
+  // A state budget's shape: agency › program, fund, object of expenditure,
+  // fiscal year, dollars, and FTEs only on salary lines (blank elsewhere, so a
+  // pivot of FTEs shows the skipped-row count doing its job).
+  const rand = (() => { let a = 20261024; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; })();
+  const AGENCIES = {
+    Health: ['Public Health', 'Licensing', 'Labs'], Ecology: ['Air', 'Water', 'Toxics'],
+    Transportation: ['Highways', 'Ferries', 'Rail'], Corrections: ['Prisons', 'Community'],
+    Revenue: ['Audit', 'Taxpayer Services'],
+  };
+  const FUNDS = ['001 General', '108 Motor Vehicle', '17P Capital', '489 Federal'];
+  const OBJECTS = ['Salaries', 'Benefits', 'Goods', 'Travel', 'Grants'];
+  const ROWS = [];
+  for (const [agency, progs] of Object.entries(AGENCIES)) for (const program of progs) {
+    const funds = FUNDS.filter(() => rand() < 0.55).slice(0, 2);
+    if (!funds.length) funds.push(FUNDS[0]);
+    for (const fund of funds) for (const object of OBJECTS) for (const year of ['FY26', 'FY27']) {
+      const base = { Salaries: 9e5, Benefits: 3e5, Goods: 2e5, Travel: 4e4, Grants: 6e5 }[object];
+      ROWS.push({
+        agency, program, fund, object, year,
+        amount: Math.round(base * (0.4 + rand() * 1.2) * 100) / 100,
+        fte: object === 'Salaries' ? Math.round((6 + rand() * 40) * 10) / 10 : '',
+      });
+    }
+  }
+  const SCAN = P.scan(ROWS);
+  const FIELDS = SCAN.cols;
+
+  // ── state ───────────────────────────────────────────────────────────────────
+  const st = {
+    concept: 'shelves', layout: 'grid', compact: true, heat: false,
+    rows: ['agency'], cols: ['year'], value: 'amount', agg: 'sum',
+    filters: [], excluded: {},          // field -> Set of values left out
+    collapsed: new Set(),               // grid outline: paths folded shut
+  };
+  const ROLE = { rows: 'Rows', cols: 'Across', value: 'Value', filters: 'Filter' };
+  const ICON = { rows: 'ph-rows', cols: 'ph-columns', value: 'ph-sigma', filters: 'ph-funnel' };
+  const roleOf = (f) => st.rows.includes(f) ? 'rows' : st.cols.includes(f) ? 'cols' : st.value === f ? 'value' : null;
+  const list = (zone) => zone === 'value' ? (st.value ? [st.value] : []) : st[zone];
+
+  // A field holds one of rows, across and value at a time; a filter rides
+  // beside any of them. Placing a value that is not a number counts its rows.
+  function place(field, zone, at = Infinity) {
+    if (zone === 'tray') return remove(field);
+    if (zone === 'filters') {
+      const l = st.filters.filter(x => x !== field);
+      l.splice(Math.min(at, l.length), 0, field); st.filters = l;
+      return render();
+    }
+    st.rows = st.rows.filter(x => x !== field);
+    st.cols = st.cols.filter(x => x !== field);
+    if (st.value === field) st.value = null;
+    if (zone === 'value') {
+      st.value = field;
+      st.agg = SCAN.isNum[field] ? (st.agg === 'count' ? 'sum' : st.agg) : 'count';
+    } else {
+      const l = st[zone]; l.splice(Math.min(at, l.length), 0, field);
+    }
+    st.collapsed.clear();
+    render();
+  }
+  function remove(field, zone) {
+    if (zone === 'filters') { st.filters = st.filters.filter(x => x !== field); delete st.excluded[field]; return render(); }
+    st.rows = st.rows.filter(x => x !== field);
+    st.cols = st.cols.filter(x => x !== field);
+    if (st.value === field) st.value = null;
+    render();
+  }
+
+  // ── the engine, through TableStats ──────────────────────────────────────────
+  function compute() {
+    const rows = ROWS.filter(r => st.filters.every(f => !st.excluded[f]?.has(String(r[f] ?? ''))));
+    const agg = st.value ? st.agg : 'count';
+    const cfg = { rows: st.rows, cols: st.cols, measure: st.value, agg, dec: P.decFor(SCAN, st.value, agg) };
+    return { cfg, res: P.tree(rows, cfg), n: rows.length };
+  }
+
+  // ── formatting ──────────────────────────────────────────────────────────────
+  const esc = (s) => window.esc(String(s ?? ''));
+  const compactFmt = new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 });
+  const num = (v, dec) => v === '' || v == null ? '' : st.compact && Math.abs(v) >= 1000
+    ? compactFmt.format(v)
+    : Number(v).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: dec });
+  // Ten steps of the accent, the only opacities a daisyUI colour takes.
+  const TINT = ['', 'bg-primary/10', 'bg-primary/20', 'bg-primary/30', 'bg-primary/40', 'bg-primary/50'];
+  const tint = (v, max) => st.heat && max > 0 && v !== '' ? TINT[Math.max(1, Math.round((Math.abs(v) / max) * 5))] : '';
+  const aggName = () => st.value ? (st.agg === 'avg' ? 'Average' : st.agg[0].toUpperCase() + st.agg.slice(1)) + ' of ' + st.value : 'Rows';
+
+  // ── pills ───────────────────────────────────────────────────────────────────
+  // data-pill marks a draggable field; data-from names where it sits. A pill's
+  // role shows in its icon, so a pill means the same thing in every concept.
+  function pill(field, from, { role = from, cls = '', label } = {}) {
+    const placed = role && role !== 'tray';
+    const icon = placed ? ICON[role] : (SCAN.isNum[field] ? 'ph-hash' : 'ph-text-aa');
+    const extra = role === 'value' && st.value === field ? ` <span class="opacity-60 font-normal">${esc(st.agg)}</span>` : '';
+    return `<button type="button" data-pill data-field="${esc(field)}" data-from="${from}"
+      class="btn btn-sm rounded-full gap-1 font-mono font-normal touch-manipulation [-webkit-touch-callout:none] ${placed ? 'btn-primary btn-soft' : 'btn-ghost bg-base-200'} ${cls}">
+      <i class="ph ${icon} text-sm opacity-70"></i>${esc(label ?? field)}${extra}</button>`;
+  }
+  const empty = (zone, text) => `<span class="text-xs text-base-content/40 italic px-1" data-empty="${zone}">${text}</span>`;
+
+  // ── the five builders ───────────────────────────────────────────────────────
+  const TRAY = () => FIELDS.map(f => pill(f, 'tray', { role: roleOf(f) || 'tray' })).join('');
+
+  function shelfLine(zone) {
+    const items = list(zone);
+    return `<div class="flex items-center gap-2 min-h-10 px-2 py-1 border-b border-base-200 last:border-b-0" data-zone="${zone}">
+      <span class="shrink-0 w-14 flex items-center gap-1 text-xs text-base-content/60"><i class="ph ${ICON[zone]}"></i>${ROLE[zone]}</span>
+      <div class="flex flex-wrap items-center gap-1.5 min-w-0">${items.length ? items.map(f => pill(f, zone)).join('') : empty(zone, 'drop a field')}</div>
+    </div>`;
+  }
+
+  const BUILDERS = {
+    shelves: {
+      label: 'Shelves', icon: 'ph-rows',
+      html: () => `<div class="flex flex-col gap-2">
+        <div class="flex flex-wrap gap-1.5" data-zone="tray">${FIELDS.filter(f => !roleOf(f)).map(f => pill(f, 'tray')).join('') || empty('tray', 'every field is placed')}</div>
+        <div class="rounded-box border border-base-300 overflow-hidden">
+          ${['rows', 'cols', 'value', 'filters'].map(shelfLine).join('')}
+        </div></div>`,
+    },
+    quadrants: {
+      label: 'Quadrants', icon: 'ph-squares-four',
+      html: () => `<div class="flex flex-col gap-2">
+        <div class="flex flex-wrap gap-1.5" data-zone="tray">${FIELDS.filter(f => !roleOf(f)).map(f => pill(f, 'tray')).join('') || empty('tray', 'every field is placed')}</div>
+        <div class="grid grid-cols-2 gap-1.5">
+          ${['filters', 'cols', 'rows', 'value'].map(z => `<div class="rounded-box border border-base-300 p-1.5 min-h-20 flex flex-col gap-1" data-zone="${z}">
+            <span class="text-xs text-base-content/60 flex items-center gap-1"><i class="ph ${ICON[z]}"></i>${ROLE[z]}</span>
+            <div class="flex flex-wrap gap-1">${list(z).length ? list(z).map(f => pill(f, z)).join('') : empty(z, 'drop here')}</div></div>`).join('')}
+        </div></div>`,
+    },
+    tap: {
+      label: 'Tap', icon: 'ph-hand-tap',
+      // Every field on one wrapping line; a tap moves it to the next role.
+      html: () => `<div class="flex flex-wrap gap-1.5" data-zone="tray" data-cycle>${FIELDS.map(f => {
+        const r = roleOf(f), i = r === 'rows' ? st.rows.indexOf(f) : r === 'cols' ? st.cols.indexOf(f) : -1;
+        return pill(f, r || 'tray', { role: r || 'tray', label: f + (i >= 0 && list(r).length > 1 ? ' ' + (i + 1) : '') });
+      }).join('')}</div>`,
+    },
+    sentence: {
+      label: 'Sentence', icon: 'ph-chat-text',
+      html: () => {
+        const slot = (zone, f, i) => `<button type="button" class="link link-primary decoration-dotted font-semibold" data-slot="${zone}" data-index="${i}">${esc(f)}</button>`;
+        // An addition is a small worded chip, so it says what it adds.
+        const add = (zone, word) => ` <button type="button" class="btn btn-xs rounded-full btn-ghost bg-base-200 font-normal align-middle" data-slot="${zone}" data-index="-1"><i class="ph ph-plus"></i>${word}</button>`;
+        const by = st.rows.map((f, i) => (i ? ' then ' : ' by ') + slot('rows', f, i)).join('') + (st.rows.length < 4 ? add('rows', st.rows.length ? 'then' : 'by') : '');
+        const across = st.cols.length ? ' across ' + st.cols.map((f, i) => slot('cols', f, i)).join(' and ') : add('cols', 'across');
+        const where = st.filters.map((f, i) => (i ? ', ' : ' where ') + slot('filters', f, i)).join('') + add('filters', 'filter');
+        const what = st.value
+          ? `<button type="button" class="link link-primary decoration-dotted font-semibold" data-slot="agg">${esc(st.agg === 'avg' ? 'average' : st.agg)}</button> of ${slot('value', st.value, 0)}`
+          : `<button type="button" class="link link-primary decoration-dotted font-semibold" data-slot="value" data-index="0">count of rows</button>`;
+        return `<p class="text-xl leading-9 text-pretty">Show ${what}${by}${across}${where}</p>`;
+      },
+    },
+    table: {
+      label: 'In-table', icon: 'ph-table',
+      // No builder of its own: the tray, and the result's header as the drop
+      // targets (see grid()).
+      html: () => `<div class="flex gap-1.5 overflow-x-auto" data-zone="tray">${FIELDS.filter(f => !roleOf(f)).map(f => pill(f, 'tray', { cls: 'shrink-0' })).join('') || empty('tray', 'every field is placed')}</div>`,
+    },
+  };
+
+  // ── the result ──────────────────────────────────────────────────────────────
+  // GRID: one label column, the row fields nested in it as an outline rather
+  // than a column each, which is what keeps a phone's width for the numbers.
+  // A group row carries its subtotal and folds. The header and the label
+  // column stay put while the body scrolls both ways.
+  function grid({ cfg, res }, zones) {
+    const keys = res.colKeys, dec = cfg.dec, depth = cfg.rows.length;
+    const valueOf = (node) => keys.length ? node.value : node.value;
+    let max = 0;
+    const leaves = [];
+    (function walk(n, d) { if (d === depth) { leaves.push(n); for (const k of keys) if (k in n.cells) max = Math.max(max, Math.abs(n.cells[k])); if (!keys.length) max = Math.max(max, Math.abs(n.value)); } n.children.forEach(c => walk(c, d + 1)); })(res.tree, 0);
+    const th = 'sticky top-0 z-10 bg-base-200 px-2 py-1.5 text-right font-mono text-xs font-medium whitespace-nowrap';
+    const corner = zones
+      ? `<div class="flex flex-col gap-1 items-start" data-zone="rows">${st.rows.length ? st.rows.map(f => pill(f, 'rows', { cls: 'btn-xs' })).join('') : empty('rows', 'rows here')}</div>`
+      : `<span class="text-base-content/60">${esc(cfg.rows.join(' › ') || 'Total')}</span>`;
+    const band = zones ? `<tr><th class="sticky left-0 top-0 z-30 bg-base-200 px-2 py-1 text-left align-top" data-zone="value">${st.value ? pill(st.value, 'value', { cls: 'btn-xs' }) : empty('value', 'value here')}</th>
+        <th colspan="${keys.length + 1}" class="sticky top-0 z-20 bg-base-200 px-2 py-1 text-left" data-zone="cols"><div class="flex gap-1">${st.cols.length ? st.cols.map(f => pill(f, 'cols', { cls: 'btn-xs' })).join('') : empty('cols', 'across here')}</div></th></tr>` : '';
+    const top = zones ? 'top-9' : 'top-0';
+    const head = `<tr><th class="sticky left-0 ${top} z-30 bg-base-200 px-2 py-1.5 text-left text-xs font-medium align-bottom">${corner}</th>
+      ${keys.map(k => `<th class="${th} ${top}">${esc(k)}</th>`).join('')}
+      <th class="${th} ${top}">${keys.length ? 'Total' : esc(aggName())}</th></tr>`;
+    const body = [];
+    (function walk(n, d, path) {
+      if (d > 0) {
+        const id = path.join('\u0001'), group = d < depth, shut = st.collapsed.has(id);
+        body.push(`<tr class="${group ? 'bg-base-200/60 font-semibold' : ''}">
+          <th class="sticky left-0 z-[5] ${group ? 'bg-base-200' : 'bg-base-100'} px-2 py-1 text-left font-normal whitespace-nowrap max-w-44 truncate" style="padding-left:${0.5 + (d - 1) * 0.9}rem">
+            ${group ? `<button type="button" class="inline-flex items-center gap-1 font-semibold" data-fold="${esc(id)}"><i class="ph ${shut ? 'ph-caret-right' : 'ph-caret-down'} text-xs"></i>${esc(n.label)}</button>` : esc(n.label)}</th>
+          ${keys.map(k => `<td class="px-2 py-1 text-right font-mono tabular-nums whitespace-nowrap ${group ? '' : tint(n.cells[k] ?? '', max)}">${num(n.cells[k] ?? '', dec)}</td>`).join('')}
+          <td class="px-2 py-1 text-right font-mono tabular-nums whitespace-nowrap font-semibold ${!keys.length && !group ? tint(n.value, max) : ''}">${num(n.value, dec)}</td></tr>`);
+        if (group && shut) return;
+      }
+      n.children.forEach(c => walk(c, d + 1, [...path, c.label]));
+    })(res.tree, 0, []);
+    const t = res.tree;
+    const foot = `<tr class="font-bold"><th class="sticky left-0 bottom-0 z-20 bg-base-300 px-2 py-1.5 text-left">Total</th>
+      ${keys.map(k => `<td class="sticky bottom-0 bg-base-300 px-2 py-1.5 text-right font-mono tabular-nums">${num(t.cells[k] ?? '', dec)}</td>`).join('')}
+      <td class="sticky bottom-0 bg-base-300 px-2 py-1.5 text-right font-mono tabular-nums">${num(t.value, dec)}</td></tr>`;
+    return `<table class="text-sm border-separate border-spacing-0 min-w-full"><thead>${band}${head}</thead><tbody>${body.join('')}</tbody><tfoot>${foot}</tfoot></table>`;
+  }
+
+  // CARDS: one card per top group, no sideways scroll at all. The across
+  // values become label-value pairs, and a deeper level becomes lines.
+  function cards({ cfg, res }) {
+    const keys = res.colKeys, dec = cfg.dec;
+    if (!cfg.rows.length) return `<div class="p-4">${grid({ cfg, res })}</div>`;
+    const card = (n) => `<article class="rounded-box border border-base-300 p-3 flex flex-col gap-2">
+      <header class="flex items-baseline gap-2"><h2 class="font-semibold grow min-w-0 truncate">${esc(n.label)}</h2>
+        <span class="font-mono tabular-nums font-semibold">${num(n.value, dec)}</span></header>
+      ${keys.length ? `<dl class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-0.5 text-sm">${keys.map(k => `<dt class="font-mono text-xs text-base-content/60 self-center">${esc(k)}</dt><dd class="font-mono tabular-nums text-right">${num(n.cells[k] ?? '', dec)}</dd>`).join('')}</dl>` : ''}
+      ${n.children.length ? `<ul class="flex flex-col text-sm border-t border-base-200 pt-1">${n.children.map(c => `<li class="flex gap-2 py-0.5"><span class="grow min-w-0 truncate">${esc(c.label)}</span><span class="font-mono tabular-nums">${num(c.value, dec)}</span></li>`).join('')}</ul>` : ''}
+    </article>`;
+    return `<div class="p-4 grid gap-3 grid-cols-[repeat(auto-fill,minmax(min(100%,16rem),1fr))]">${res.tree.children.map(card).join('')}</div>`;
+  }
+
+  // ── drawing ─────────────────────────────────────────────────────────────────
+  const $ = (id) => document.getElementById(id);
+  const chip = (on, attrs, inner) => `<button type="button" ${attrs} class="btn btn-xs rounded-full shrink-0 font-normal ${on ? 'btn-primary' : 'btn-ghost bg-base-200'}">${inner}</button>`;
+
+  function render() {
+    $('concepts').innerHTML = Object.entries(BUILDERS).map(([k, b]) => chip(st.concept === k, `data-concept="${k}"`, `<i class="ph ${b.icon}"></i>${b.label}`)).join('');
+    $('views').innerHTML = [
+      chip(st.layout === 'grid', 'data-layout="grid"', '<i class="ph ph-table"></i>Grid'),
+      chip(st.layout === 'cards', 'data-layout="cards"', '<i class="ph ph-cards"></i>Cards'),
+      chip(st.compact, 'data-toggle="compact"', '1.2M'),
+      chip(st.heat, 'data-toggle="heat"', '<i class="ph ph-paint-bucket"></i>Tint'),
+      chip(false, 'data-swap', '<i class="ph ph-arrows-left-right"></i>Swap'),
+    ].join('');
+    $('builder').innerHTML = BUILDERS[st.concept].html();
+    const out = compute();
+    $('figure').textContent = `${out.n.toLocaleString()} of ${ROWS.length.toLocaleString()} rows` + (out.res.skipped ? ` · ${out.res.skipped} skipped, no ${st.value}` : '');
+    $('result').innerHTML = st.layout === 'cards' && st.concept !== 'table' ? cards(out) : grid(out, st.concept === 'table');
+  }
+
+  // ── menus ───────────────────────────────────────────────────────────────────
+  // The estate's own (kits/row-menu.js), so a pill's menu looks like a grid's.
+  const at = (el) => { const r = el.getBoundingClientRect(); return { x: r.left, y: r.bottom + 4 }; };
+  function fieldMenu(el, field, from) {
+    const items = [{ heading: field }];
+    for (const z of ['rows', 'cols', 'value', 'filters']) {
+      if (z === from || (z !== 'filters' && roleOf(field) === z)) continue;
+      items.push({ icon: ICON[z], label: (from === 'tray' || z === 'filters' ? 'Add to ' : 'Move to ') + ROLE[z], run: () => place(field, z) });
+    }
+    if (from === 'value' && SCAN.isNum[field]) {
+      items.push({ heading: 'Summarize by' });
+      for (const a of ['sum', 'avg', 'min', 'max', 'count']) if (a !== st.agg) items.push({ icon: 'ph-function', label: a === 'avg' ? 'average' : a, run: () => { st.agg = a; render(); } });
+    }
+    if (from === 'filters') {
+      const vals = [...new Set(ROWS.map(r => String(r[field] ?? '')))].sort().slice(0, 40);
+      const ex = st.excluded[field] ||= new Set();
+      items.push({ heading: 'Show' });
+      for (const v of vals) items.push({ icon: ex.has(v) ? 'ph-square' : 'ph-check-square', label: v || '(blank)', run: () => { ex.has(v) ? ex.delete(v) : ex.add(v); render(); fieldMenu(document.querySelector(`[data-pill][data-from="filters"][data-field="${CSS.escape(field)}"]`) || el, field, from); } });
+    }
+    if (from !== 'tray') items.push({ icon: 'ph-x', label: from === 'filters' ? 'Remove filter' : 'Remove', run: () => remove(field, from) });
+    window.rowMenu.open({ ...at(el), items });
+  }
+  // The sentence's words: the field lists for a slot, or the aggregates.
+  function slotMenu(el) {
+    const zone = el.dataset.slot, i = +el.dataset.index;
+    if (zone === 'agg') return window.rowMenu.open({ ...at(el), items: ['sum', 'avg', 'min', 'max', 'count'].map(a => ({ icon: 'ph-function', label: a === 'avg' ? 'average' : a, run: () => { st.agg = a; render(); } })) });
+    const cur = i >= 0 ? list(zone)[i] : null;
+    const opts = FIELDS.filter(f => zone === 'value' ? f !== cur : !list(zone).includes(f));
+    const items = [{ heading: ROLE[zone] }, ...opts.map(f => ({ icon: SCAN.isNum[f] ? 'ph-hash' : 'ph-text-aa', label: f, run: () => {
+      if (cur && zone !== 'value') remove(cur, zone);
+      place(f, zone, i >= 0 ? i : Infinity);
+    } }))];
+    if (zone === 'value' && st.value) items.push({ icon: 'ph-hash', label: 'count of rows', run: () => remove(st.value) });
+    if (cur && zone !== 'value') items.push({ icon: 'ph-x', label: 'Remove ' + cur, run: () => remove(cur, zone) });
+    window.rowMenu.open({ ...at(el), items });
+  }
+  const cycle = (f) => {
+    const order = [null, 'rows', 'cols', 'value'];
+    const next = order[(order.indexOf(roleOf(f)) + 1) % order.length];
+    next ? place(f, next) : remove(f);
+  };
+
+  // ── the drag ────────────────────────────────────────────────────────────────
+  // A mouse drags once it moves 4px. A finger drags after a 300ms hold, so a
+  // swipe still scrolls and a tap is still a tap; once held, the page stops
+  // scrolling under the finger (touchmove prevented while dragging).
+  const HOLD = 300;
+  let press = null, drag = null, suppress = false;
+  document.addEventListener('pointerdown', (e) => {
+    const p = e.target.closest('[data-pill]');
+    if (!p || e.button > 0) return;
+    press = { p, x: e.clientX, y: e.clientY, id: e.pointerId, touch: e.pointerType !== 'mouse' };
+    if (press.touch) press.timer = setTimeout(() => begin(press.x, press.y), HOLD);
+  });
+  document.addEventListener('pointermove', (e) => {
+    if (!press || e.pointerId !== press.id) return;
+    const moved = Math.hypot(e.clientX - press.x, e.clientY - press.y);
+    if (!drag) {
+      if (press.touch) { if (moved > 8) { clearTimeout(press.timer); press = null; } return; }
+      if (moved > 4) begin(e.clientX, e.clientY); else return;
+    }
+    follow(e.clientX, e.clientY);
+  });
+  document.addEventListener('touchmove', (e) => { if (drag) e.preventDefault(); }, { passive: false });
+  const end = (e) => {
+    if (!press || (e && e.pointerId !== press.id)) return;
+    clearTimeout(press.timer);
+    if (drag) { drop(); suppress = true; setTimeout(() => { suppress = false; }, 350); }
+    press = null;
+  };
+  document.addEventListener('pointerup', end);
+  document.addEventListener('pointercancel', () => { if (press) clearTimeout(press.timer); if (drag) cancelDrag(); press = null; });
+
+  function begin(x, y) {
+    const { p } = press;
+    drag = { field: p.dataset.field, from: p.dataset.from, src: p, target: null };
+    try { window.getSelection()?.removeAllRanges(); } catch {}
+    $('ghost').innerHTML = p.outerHTML;
+    $('ghost').firstElementChild.classList.add('shadow-lg', 'scale-110');
+    $('ghost').classList.remove('hidden');
+    p.classList.add('opacity-30');
+    follow(x, y);
+  }
+  function follow(x, y) {
+    const g = $('ghost'); g.style.left = x + 'px'; g.style.top = y + 'px';
+    document.querySelectorAll('[data-zone].ring-2').forEach(z => z.classList.remove('ring-2', 'ring-[var(--color-primary)]', 'bg-primary/10'));
+    const under = document.elementFromPoint(x, y);
+    const zone = under?.closest('[data-zone]');
+    const caret = $('caret');
+    if (!zone) { drag.target = null; caret.classList.add('hidden'); return; }
+    zone.classList.add('ring-2', 'ring-[var(--color-primary)]', 'bg-primary/10');
+    // The landing index: before the first pill in the zone whose middle is
+    // past the pointer on the pointer's own line.
+    const pills = [...zone.querySelectorAll('[data-pill]')].filter(el => el !== drag.src);
+    let index = pills.length, ref = null;
+    for (let i = 0; i < pills.length; i++) {
+      const r = pills[i].getBoundingClientRect();
+      if (y < r.top - 4) { index = i; ref = r; break; }
+      if (y <= r.bottom + 4 && x < r.left + r.width / 2) { index = i; ref = r; break; }
+    }
+    drag.target = { zone: zone.dataset.zone, index };
+    const z = zone.dataset.zone;
+    if (z === 'tray' || z === 'value' || !pills.length) { caret.classList.add('hidden'); return; }
+    const r = ref || pills[pills.length - 1].getBoundingClientRect();
+    caret.style.left = (ref ? r.left - 4 : r.right + 3) + 'px';
+    caret.style.top = r.top + 'px'; caret.style.height = r.height + 'px';
+    caret.classList.remove('hidden');
+  }
+  function cancelDrag() {
+    $('ghost').classList.add('hidden'); $('caret').classList.add('hidden');
+    drag?.src.classList.remove('opacity-30');
+    document.querySelectorAll('[data-zone].ring-2').forEach(z => z.classList.remove('ring-2', 'ring-[var(--color-primary)]', 'bg-primary/10'));
+    drag = null;
+  }
+  function drop() {
+    const d = drag; cancelDrag();
+    if (!d.target) return d.from !== 'tray' && remove(d.field, d.from);    // dropped nowhere: out
+    const { zone, index } = d.target;
+    if (zone === d.from && zone === 'tray') return;
+    // Moving within one line: the index counted the line without the pill.
+    if (zone === 'tray') return remove(d.field, d.from);
+    if (d.from === 'filters' && zone !== 'filters') remove(d.field, 'filters');
+    place(d.field, zone, index);
+  }
+
+  // ── taps ────────────────────────────────────────────────────────────────────
+  document.addEventListener('click', (e) => {
+    if (suppress) { e.preventDefault(); e.stopPropagation(); return; }
+    const t = e.target;
+    const c = t.closest('[data-concept]'); if (c) { st.concept = c.dataset.concept; return render(); }
+    const l = t.closest('[data-layout]'); if (l) { st.layout = l.dataset.layout; return render(); }
+    const g = t.closest('[data-toggle]'); if (g) { st[g.dataset.toggle] = !st[g.dataset.toggle]; return render(); }
+    if (t.closest('[data-swap]')) { [st.rows, st.cols] = [st.cols, st.rows]; st.collapsed.clear(); return render(); }
+    const f = t.closest('[data-fold]'); if (f) { const id = f.dataset.fold; st.collapsed.has(id) ? st.collapsed.delete(id) : st.collapsed.add(id); return render(); }
+    const s = t.closest('[data-slot]'); if (s) return slotMenu(s);
+    const p = t.closest('[data-pill]');
+    if (p) {
+      if (p.closest('[data-cycle]')) return cycle(p.dataset.field);
+      return fieldMenu(p, p.dataset.field, p.dataset.from);
+    }
+  }, true);
+
+  render();
+})();
+</script>
+</body>
+</html>

@@ -23,6 +23,7 @@ main,,passage-reader,Passage reader,passage-reader.html,thumbs/passage-reader.pn
 main,,pdf-inspect,PDF Inspect,pdf-inspect.html,thumbs/pdf-inspect.png,https://github.com/mehrlander/web-tools/blob/main/pages/pdf-inspect.html,
 main,,peek,Peek — DOM under a selection,peek.html,thumbs/peek.png,https://github.com/mehrlander/web-tools/blob/main/pages/peek.html,
 main,,pip-steps,Floating steps,pip-steps.html,thumbs/pip-steps.png,https://github.com/mehrlander/web-tools/blob/main/pages/pip-steps.html,"Steps that float over another app, through iOS Picture-in-Picture."
+main,,pivot-concepts,Pivot concepts,pivot-concepts.html,thumbs/pivot-concepts.png,https://github.com/mehrlander/web-tools/blob/main/pages/pivot-concepts.html,
 main,,pivot-table,Excel Pivot Table Viewer,pivot-table.html,thumbs/pivot-table.png,https://github.com/mehrlander/web-tools/blob/main/pages/pivot-table.html,
 main,,probe-snap,Probe snap,probe-snap.html,thumbs/probe-snap.png,https://github.com/mehrlander/web-tools/blob/main/pages/probe-snap.html,
 main,,probe-window,Probe window,probe-window.html,thumbs/probe-window.png,https://github.com/mehrlander/web-tools/blob/main/pages/probe-window.html,
