@@ -10,19 +10,9 @@ description: >-
 
 # Bake Page
 
-## Why this exists
-
-- The user builds HTML artifacts that must render inline (preview box, iPhone
-  shortcuts), where CDN support is limited.
-- Baking injects the pieces into the page, so it renders anywhere. Author in CDN
-  form, the editable source, and hand over the baked twin.
-
-## Supported libraries
-
-`scripts/bake.js` handles Tailwind and daisyUI (compiled) and Phosphor (icons
-inlined) directly, plus the runtime libraries in its `RUNTIME` map: Alpine,
-lodash, clipboard, jszip, get-xpath, winbox, tabulator, each baked when it
-appears in a recognized form (see Detection). For other libraries, see Extend.
+Author in CDN form, the editable source, and hand over the baked twin. Baking
+never alters authored markup (classes, `x-data`, icon names); to go back, keep
+or restore the source rather than reversing a baked file.
 
 ## Run
 
@@ -73,15 +63,11 @@ reported (`NOT baked, add a recipe`), not silently dropped.
   clicks means the inlined Alpine did not run.
 - **Injection uses function replacers, and must.** `String.replace` reads `$$`,
   `$&`, `` $` ``, `$'` and `$1` in a replacement *string* as patterns, and a
-  minified bundle is full of them. This was not theoretical: Alpine registers
-  every magic through ``Object.defineProperty(t, `$${n}`, …)``, so a string
-  replacement shipped ``` `${n}` ``` and each magic registered without its `$`.
-  Every expression using `$el`, `$refs`, `$dispatch`, `$watch` or `$nextTick`
-  then failed with "not defined", silently, in a bundle whose source clearly
-  contains the name. This entry used to read "inlined Alpine lacks `$nextTick`,
-  though the string appears in the bundle" and recommend `requestAnimationFrame`
-  as a drop-in. That was the symptom, one magic of five, mistaken for a
-  property of the runtime. **Verify by diffing:** the inlined bytes must equal
+  minified bundle is full of them. Alpine registers every magic through
+  ``Object.defineProperty(t, `$${n}`, …)``, so a string replacement registers
+  each magic without its `$`, and every expression using `$el`, `$refs`,
+  `$dispatch`, `$watch` or `$nextTick` fails with "not defined", silently, in a
+  bundle whose source clearly contains the name. **Verify by diffing:** the inlined bytes must equal
   the npm dist byte for byte.
 - **Blob URLs abort on opaque origins** (`file://`, data-URL pages): a worklet
   or worker module built via `URL.createObjectURL` throws. Build the module URL
@@ -89,38 +75,34 @@ reported (`NOT baked, add a recipe`), not silently dropped.
 - **Size floor** is roughly the inlined runtime JS (Alpine ~45 KB). CSS scales
   with classes used; a non-interactive page bakes small.
 
-## How it works
+## How it works, and adding a library
 
-The process recognizes three kinds of library, each baked a different way.
+Each library is one of three kinds, baked a different way; adding one means
+classifying it into a kind.
 
 - **Tailwind**: the engine generates CSS from the classes in the markup, so the
-  bucket holds Tailwind core and any Tailwind plugin (daisyUI is one). `@import
+  kind holds Tailwind core and any Tailwind plugin (daisyUI is one). `@import
   "tailwindcss" source(none);` plus a `@plugin` line per plugin, run through
   `@tailwindcss/cli --minify` with `@source` pointed at the page. The
   `source(none)` scopes the scan to the page alone, so only its used utilities
   and components ship and a busy working directory cannot leak stray classes in.
-  A plain stylesheet from another library is inlined as CSS (Inline), not
-  compiled.
-- **Swap** (Phosphor): a class maps to a static SVG. Scan markup, read the asset,
-  inline it, drop the font.
-- **Inline** (Alpine, lodash, clipboard, jszip, winbox, tabulator, most JS):
-  runtime behaviour, cannot become CSS. Paste the minified npm dist into a
-  `<script>`. Nearly free per library.
+  A new plugin is one more `@plugin` line.
+- **Swap** (Phosphor, or any class-to-asset mapping): a swapper finds the class
+  pattern, reads the asset (a static SVG), inlines it, carries the extra
+  attributes, and drops the font. Another icon set needs its own swapper.
+- **Inline** (Alpine and most runtime JS): runtime behaviour, cannot become
+  CSS. Paste the minified npm dist into a `<script>`; nearly free per library,
+  and Alpine goes last (any other ordering need is a change to the `order`
+  sort in `scripts/bake.js`). A new one is a line in the `RUNTIME` map in
+  `scripts/bake.js` (`name: { js: 'path', css: 'path' }`) pointing at the npm
+  dist file; install the package and re-run. A `css` path (Tabulator's) is
+  embedded whole in a `<style>` block, not compiled or pruned.
 
-## Extend
-
-Adding a library means classifying it into one of those three kinds:
-
-- **Tailwind** (a plugin): add its `@plugin` line to the compile input.
-- **Swap** (an icon set or other class-to-asset mapping): write a small swapper
-  that finds the class pattern, reads the asset, inlines it, and carries extra
-  attributes.
-- **Inline** (a runtime JS or CSS library): add one line to the `RUNTIME` map in
-  `scripts/bake.js` pointing at the npm dist file, install the package, re-run.
-
-`scripts/bake.js` prints `NOT baked, add a recipe` for unknown combine packages.
-Map and notes for the common combine stack (lodash, clipboard, winbox, jszip,
-get-xpath, tabulator, vanilla-jsoneditor): `references/library-recipes.md`.
+`scripts/bake.js` prints `NOT baked, add a recipe` for unknown combine
+packages; such a package is almost always the Inline kind. `vanilla-jsoneditor` arrives by dynamic `import()` from unpkg, not
+the combine URL, so it is never detected; to bake it, inline its standalone
+bundle and keep the `createJSONEditor` entry point, as a deliberate add since
+it is heavier than the others.
 
 ## Verify
 
@@ -130,9 +112,3 @@ takes a microphone probes with `--use-fake-ui-for-media-stream
 --use-fake-device-for-media-stream --autoplay-policy=no-user-gesture-required`.
 Recipe:
 `references/verify.md`.
-
-## Re-hydrate
-
-The CDN form is the source; baking never alters authored markup (classes,
-`x-data`, icon names). To go back, keep or restore the source rather than
-reversing a baked file.

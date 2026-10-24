@@ -9,7 +9,7 @@ A **look link** is a page link whose `#fragment` puts a **look marker** on one
 element: the page scrolls there, tints it, and shows a card saying why. A marker
 can also ring a control the reader must tap before going on, and a **walkthrough** is a
 sequence of markers. The grammar is in the header of
-[`lib/kits/look.js`](../../lib/kits/look.js).
+[`lib/kits/look.js`](https://github.com/mehrlander/web-tools/blob/main/lib/kits/look.js).
 
 Write "look marker", "look link" and "walkthrough" in full; "marker" and "walk"
 alone mean other things here.
@@ -75,4 +75,4 @@ Prefer `data-at` names and ids: only they are checked before sending.
   not route on them.
 
 `look-link.py check <page>` fails on a walkthrough step or an opener that names nothing,
-and the suite runs it over web-tools. Demo: [`lib/kits/demos/look.html`](../../lib/kits/demos/look.html).
+and the suite runs it over web-tools. Demo: [`lib/kits/demos/look.html`](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/look.html).

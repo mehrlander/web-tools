@@ -1,15 +1,16 @@
 # Alpine.js V3 Key Patterns
 
-This reference covers Alpine.js V3 patterns and critical differences from V2.
+Pages here are written for Alpine 3 only; loading it is in `mechanics.md`,
+"CDN Patterns".
 
-## Breaking Changes from V2
+## Scope
 
-### $el is now always the current element
+### $el is the current element
 
 `$el` represents the element the expression was executed on, not the component root.
 
 ```html
-<!-- V2: $el was the <div>, now it's the <button> -->
+<!-- $el is the <button> -->
 <div x-data>
     <button @click="console.log($el)"></button>
 </div>
@@ -20,54 +21,12 @@ This reference covers Alpine.js V3 patterns and critical differences from V2.
 </div>
 ```
 
-### init() functions auto-evaluate
-
-No need to call `init()` manually in `x-init`.
-
-```html
-<!-- 🚫 Before -->
-<div x-data="foo()" x-init="init()"></div>
-
-<!-- ✅ After -->
-<div x-data="foo()"></div>
-
-<script>
-    function foo() {
-        return {
-            init() {
-                // Runs automatically
-            }
-        }
-    }
-</script>
-```
-
-### x-show.transition is now x-transition
-
-```html
-<!-- 🚫 Before -->
-<div x-show.transition="open"></div>
-
-<!-- ✅ After -->
-<div x-show="open" x-transition></div>
-
-<!-- With duration -->
-<div x-show="open" x-transition.duration.500ms></div>
-
-<!-- Enter/leave separately -->
-<div
-    x-show="open"
-    x-transition:enter.duration.500ms
-    x-transition:leave.duration.750ms
-></div>
-```
-
 ### x-data cascading scope
 
-Nested `x-data` now inherits parent scope.
+Nested `x-data` inherits parent scope.
 
 ```html
-<!-- In V3, foo IS available in nested x-data -->
+<!-- foo IS available in nested x-data -->
 <div x-data="{ foo: 'bar' }">
     <div x-data="{}">
         <!-- foo is 'bar' -->
@@ -75,104 +34,14 @@ Nested `x-data` now inherits parent scope.
 </div>
 ```
 
-### x-init callback pattern changed
+### init() runs automatically
 
-Use `$nextTick()` instead of returning a function.
+An `init()` method on the `x-data` object runs on its own; calling it from
+`x-init` as well runs it twice.
 
-```html
-<!-- 🚫 Before -->
-<div x-data x-init="() => { ... }">...</div>
-
-<!-- ✅ After -->
-<div x-data x-init="$nextTick(() => { ... })">...</div>
-```
-
-### preventDefault requires explicit call
-
-Returning `false` no longer prevents default.
+## Register reusable components with Alpine.data()
 
 ```html
-<!-- 🚫 Before -->
-<div x-data="{ blockInput() { return false } }">
-    <input type="text" @input="blockInput()">
-</div>
-
-<!-- ✅ After -->
-<div x-data="{ blockInput(e) { e.preventDefault() }">
-    <input type="text" @input="blockInput($event)">
-</div>
-```
-
-### x-spread is now x-bind
-
-```html
-<!-- 🚫 Before -->
-<button x-spread="trigger">Toggle</button>
-
-<!-- ✅ After -->
-<button x-bind="trigger">Toggle</button>
-
-<script>
-    function dropdown() {
-        return {
-            open: false,
-            trigger: {
-                'x-on:click'() { this.open = !this.open },
-            },
-            dialogue: {
-                'x-show'() { return this.open },
-            },
-        }
-    }
-</script>
-```
-
-### Lifecycle events changed
-
-```html
-<!-- 🚫 Before -->
-<script>
-    window.deferLoadingAlpine = startAlpine => {
-        startAlpine()
-    }
-</script>
-
-<!-- ✅ After -->
-<script>
-    document.addEventListener('alpine:init', () => {
-        // Before Alpine initializes
-    })
-
-    document.addEventListener('alpine:initialized', () => {
-        // After Alpine initializes
-    })
-</script>
-```
-
-## Deprecated APIs
-
-### .away → .outside
-
-```html
-<!-- 🚫 Before -->
-<div x-show="open" @click.away="open = false">
-
-<!-- ✅ After -->
-<div x-show="open" @click.outside="open = false">
-```
-
-### Prefer Alpine.data() for reusable components
-
-```html
-<!-- 🚫 Before -->
-<div x-data="dropdown()">...</div>
-<script>
-    function dropdown() {
-        return { ... }
-    }
-</script>
-
-<!-- ✅ After -->
 <div x-data="dropdown">...</div>
 <script>
     document.addEventListener('alpine:init', () => {
@@ -185,18 +54,13 @@ Returning `false` no longer prevents default.
 
 Note: Define `Alpine.data()` extensions BEFORE calling `Alpine.start()`.
 
-## CDN Usage
+## Alpine 3 forms of v2 idioms
 
-For CDN usage (no build step):
-
-```html
-<script defer src="https://unpkg.com/alpinejs"></script>
-```
-
-For module imports:
-
-```javascript
-import Alpine from 'alpinejs'
-window.Alpine = Alpine
-Alpine.start()
-```
+- `x-show="open" x-transition` (`x-transition.duration.500ms`,
+  `x-transition:enter.duration.500ms`), not `x-show.transition`.
+- `x-init="$nextTick(() => { ... })"`, not an `x-init` that returns a function.
+- Returning `false` does not prevent default: pass `$event` to the handler and
+  call its `preventDefault()`.
+- `x-bind="trigger"` with an object of directives, not `x-spread`.
+- `@click.outside`, not `@click.away`.
+- `alpine:init` and `alpine:initialized` events, not `window.deferLoadingAlpine`.
