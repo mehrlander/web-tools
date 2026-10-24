@@ -316,9 +316,9 @@
 
   // ── the field's card ────────────────────────────────────────────────────────
   // What TableStats.profile reads in the column, the same figures the
-  // explorer's Columns view and the workbench's Profile show. The header line
-  // ends in a funnel that adds the field as a filter, or takes it off, so the
-  // card has no button row of its own.
+  // explorer's Columns view and the workbench's Profile show. No buttons of
+  // its own: a field becomes a filter the way it takes any role, by drag or by
+  // tap and drop onto the strip.
   // explorer's Columns view and the workbench's Profile show: its type, how
   // full it is, its distincts, a number's range, the commonest values.
   const PROFILE = Object.fromEntries(S.profile(ROWS).columns.map(c => [c.name, c]));
@@ -334,8 +334,7 @@
     card.innerHTML = `<div class="flex items-baseline gap-2 px-3 pt-2.5 pb-2 border-b border-base-200">
         <span class="font-mono font-semibold truncate ${SCAN.isNum[field] ? 'text-secondary' : ''}">${esc(field)}</span>
         <span class="text-xs text-base-content/60 whitespace-nowrap">${esc(c.type)} · ${c.distinctCount.toLocaleString()}${c.distinctCapped ? '+' : ''} distinct</span>
-        <span class="ml-auto text-xs text-base-content/60 whitespace-nowrap">${r ? ROLE[r] : 'not placed'}</span>
-        <button type="button" class="btn btn-xs btn-ghost btn-square -my-1 -mr-1.5 ${st.filters.includes(field) ? 'text-primary' : ''}" data-card-filter="${esc(field)}" aria-label="${st.filters.includes(field) ? 'Stop filtering by ' : 'Filter by '}${esc(field)}"><i class="ph ${st.filters.includes(field) ? 'ph-funnel-x' : 'ph-funnel'} text-sm"></i></button></div>
+        <span class="ml-auto text-xs text-base-content/60 whitespace-nowrap">${r ? ROLE[r] : 'not placed'}</span></div>
       ${c.numStats ? `<div class="px-3 py-2 border-b border-base-200 font-mono text-xs tabular-nums flex justify-between gap-2">
         <span><span class="text-base-content/50">min</span> ${n(c.numStats.min)}</span><span><span class="text-base-content/50">median</span> ${n(c.numStats.median)}</span><span><span class="text-base-content/50">max</span> ${n(c.numStats.max)}</span></div>` : ''}
       ${top.length && !unique && !(st.filters.includes(field) && !SCAN.isNum[field]) ? `<ul class="px-3 py-2 flex flex-col gap-1">${top.map(t => `<li class="grid grid-cols-[minmax(0,1fr)_auto] gap-2 items-center">
@@ -542,9 +541,6 @@
     const s = t.closest('[data-slot]'); if (s) return slotMenu(s);
     const inf = t.closest('[data-info]');
     if (inf) { e.preventDefault(); const p = inf.closest('[data-pill]'); return $('card').classList.contains('hidden') || $('card').dataset.field !== p.dataset.field ? ($('card').dataset.field = p.dataset.field, openCard(p, p.dataset.field)) : closeCard(); }
-    // The card's funnel adds the field as a filter, or, lit, takes it off.
-    const cf = t.closest('[data-card-filter]');
-    if (cf) { const f = cf.dataset.cardFilter; closeCard(); return st.filters.includes(f) ? remove(f, 'filters') : place(f, 'filters'); }
     const ca = t.closest('[data-card-agg]');
     if (ca) { st.agg = ca.dataset.cardAgg; render(); return openCard(document.querySelector('[data-zone="value"] [data-pill]') || ca, st.value); }
     const cs = t.closest('[data-card-sep]'); if (cs) { st.sep = cs.dataset.cardSep; render(); return openCard(document.querySelector('[data-zone="value"] [data-pill]') || cs, st.value); }
