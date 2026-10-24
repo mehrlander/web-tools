@@ -424,7 +424,9 @@ test('the filter switch hides the row on the table, or hands it to the host', ()
 // object yields that object, which is all grid needs of Tabulator.
 const gridOver = (g, opts = {}) => {
   const prior = window.Tabulator;
-  g.table.on = () => {};
+  const handlers = {};
+  g.table.on = (ev, fn) => { (handlers[ev] ||= []).push(fn); };
+  g.fire = (ev) => (handlers[ev] || []).forEach(fn => fn());
   window.Tabulator = function () { return g.table; };
   try { return RM.grid(doc.createElement('div'), {}, { rows: false, ...opts }); } finally { window.Tabulator = prior; }
 };
@@ -465,4 +467,32 @@ test('a hold on a header filter is the input\'s, and Tabulator\'s own hold opens
 
 test('the header carries no button: the menu is a right-click or a hold', () => {
   assert.deepEqual(Object.keys(RM.headerDefaults()), ['headerContextMenu']);
+});
+
+test('the table button opens the table section alone, and grid puts one in the header corner', () => {
+  reset();
+  const g = stubGrid();
+  const btn = RM.tableButton(g.table);
+  doc.body.append(btn);
+  btn.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+  assert.deepEqual(headings(), [], 'the table menu carries a column heading it has no column for');
+  assert.deepEqual(labels(), ['Hide header filters', 'Copy 3 rows']);
+  RM.close();
+
+  const head = doc.createElement('div');
+  head.className = 'tabulator-header';
+  g.el.append(head);
+  gridOver(g);
+  g.fire('tableBuilt');
+  assert.ok(head.querySelector(':scope > [data-table-menu] button'), 'the default grid has no table button');
+  g.fire('tableBuilt');
+  assert.equal(head.querySelectorAll('[data-table-menu]').length, 1, 'a second build stacked a second button');
+
+  const g2 = stubGrid();
+  const head2 = doc.createElement('div');
+  head2.className = 'tabulator-header';
+  g2.el.append(head2);
+  gridOver(g2, { tableMenu: false });
+  g2.fire('tableBuilt');
+  assert.equal(head2.querySelector('[data-table-menu]'), null, 'tableMenu: false still drew the button');
 });
