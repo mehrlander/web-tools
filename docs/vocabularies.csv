@@ -137,3 +137,7 @@ peeves,detector,measure,Measure,"web-tools' page-measures pass, on a rendered pa
 icon-families,group,drawn,Drawn marks,"an SVG drawn for the estate, each file its own picture"
 icon-families,group,phosphor,Phosphor glyphs,"a glyph from the Phosphor icon font, named by its ph- class"
 icon-families,group,emoji,Emoji,"an emoji, written as text where the icon appears"
+showing-mechanisms,glyph,diamond,Deployed page,"the page as the default branch deploys it, which anyone can open"
+showing-mechanisms,glyph,disc,Toss,"a render through pages/toss-render.html, of any ref and any repository the reader's token reaches"
+showing-mechanisms,glyph,box,Claude artifact,"a page published to claude.ai, private to the publisher until shared"
+showing-mechanisms,glyph,x,No marker,"a link handed over without a marker, or no link at all"
