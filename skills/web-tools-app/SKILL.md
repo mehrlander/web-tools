@@ -54,9 +54,9 @@ fetch the stage's own reference the same way:
 curl -fsSL https://raw.githubusercontent.com/mehrlander/web-tools/main/docs/stage.md
 ```
 
-`APP.md` covers what every view shares. For one view or form, fetch the document
-its row names in the `doc` column of `docs/app-routes.csv` or
-`docs/subjects.csv` (under `docs/views/` and `docs/forms/`).
+`APP.md` covers what every view shares; `docs/app-routes.csv` has a row per
+view. For one form, fetch the document its row names in the `doc` column of
+`docs/subjects.csv` (under `docs/forms/`).
 
 `raw.githubusercontent.com` is on the Claude Code web sandbox allowlist, and the
 repo is public, so this needs no auth. In `mehrlander/web-tools` itself the files

@@ -529,25 +529,20 @@ test('the manifest builder keeps the shell out of the routes and names it twice'
   assert.equal(manifest.groups.every(g => g.key && g.label), true);
 });
 
-// ── docs/views/ and docs/forms/ answer to the two registries ───────────────
+// ── docs/forms/ answers to the subjects registry ─────────────────────────
 //
-// Each view's document is named on its app-routes row, and each form's on its
-// subjects row. Held both ways: a named doc exists, and a file in either folder
-// is named by a row, so a document cannot drift out of the app's own index.
-test('every doc a view or a type names exists, and every view or form doc is named', async () => {
+// Each form's document is named on its subjects row. Held both ways: a named
+// doc exists, and a file in the folder is named by a row, so a document cannot
+// drift out of the app's own index.
+test('every doc a type names exists, and every form doc is named', async () => {
   const { readdirSync } = await import('node:fs');
   const named = new Set();
-  for (const [file, key] of [['app-routes.csv', 'key'], ['subjects.csv', 'key']]) {
-    for (const r of rows(file)) {
-      if (!r.doc) continue;
-      assert.ok(existsSync(path.join(repoRoot, r.doc)), `${file} ${r[key]}: doc missing on disk: ${r.doc}`);
-      named.add(r.doc);
-    }
+  for (const r of rows('subjects.csv')) {
+    if (!r.doc) continue;
+    assert.ok(existsSync(path.join(repoRoot, r.doc)), `subjects.csv ${r.key}: doc missing on disk: ${r.doc}`);
+    named.add(r.doc);
   }
-  for (const dir of ['docs/views', 'docs/forms']) {
-    // A folder's README indexes the family rather than documenting one view or form.
-    for (const f of readdirSync(path.join(repoRoot, dir)).filter(f => f.endsWith('.md') && f !== 'README.md')) {
-      assert.ok(named.has(`${dir}/${f}`), `${dir}/${f} is named by no app-routes or subjects row`);
-    }
+  for (const f of readdirSync(path.join(repoRoot, 'docs/forms')).filter(f => f.endsWith('.md') && f !== 'README.md')) {
+    assert.ok(named.has(`docs/forms/${f}`), `docs/forms/${f} is named by no subjects row`);
   }
 });

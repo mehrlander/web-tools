@@ -130,8 +130,8 @@ tables, which name the role a link addresses and keep the word.
 
 ## Done when
 
-APP.md is the app's reference and every estate view and form has a
-file of its own, linked from app-routes.csv and pages.csv by a tested
+APP.md is the app's reference, every view is a row of app-routes.csv, and
+every form has a file of its own, linked from subjects.csv by a tested
 column; the FAB captions a deck slide by its type with a deck row above it;
 `registries.csv` carries `key_primitive` in place of `area`, tested against
 `identity`, with the five loose registries settled; `subjects.csv` carries
@@ -144,3 +144,4 @@ column; the FAB captions a deck slide by its type with a deck row above it;
 - 2026-09-24: part 1 done on claude/show-docs-restructure-fc9r96 (PR #778, ready to merge); returned to backlog for parts 2 to 4. Also open: four code comments in app/index.html and lib still say "Installation pill", left for the next shell change.
 - 2026-10-06: Dropped depends-on typed-subject-registry-xys5g4, done 2026-09-22 (#756). Parts 2 to 4 remain open. Tending pass.
 - 2026-10-23: part 3 done on claude/hopeful-lamport-1cbnuy (web-tools #1087). `key_primitive` replaced `area`: a key is a locator if and only if its identity is `path` or `path:<prefix>`, and properties-registry.test.mjs checks that every such key names something in the tree. One departure from the text above: `assistant-branches` stays an id, since nothing can check that a merged branch still exists. Of the five loose registries, `aims-reading` took a `path` identity and became a locator; `tracker-tasks`, `assistant-branches`, `themes` and `sources` are ids. The Registries tab, now under the Map's Data tab, groups by it. Parts 2 and 4 remain.
+- 2026-10-24: part 1's view half reversed on the owner's call ("a doc per view as such is excessive"), on claude/views-registry: `docs/views/` retired, the `doc` column dropped from app-routes.csv, and each passage moved to the code, skill or manifest section that keeps the rule, or dropped where the app or the code already says it. `docs/forms/` stays. Done when amended to match. Parts 2 and 4 remain.

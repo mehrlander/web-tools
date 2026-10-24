@@ -134,7 +134,6 @@ app-routes,group,recorded,,value,column,yes,repo;estate;shell,label,"the subject
 app-routes,what,recorded,,value,column,yes,,value,"what the destination is for, one line"
 app-routes,files,recorded,,counted,column,no,,locator,"the files that render it, shell excluded. Blank is a finding, not a gap: three routes render from components defined inline in the shell and so have no code of their own, which the Routes pane counts rather than hides"
 app-routes,note,recorded,,none,column,yes,,value,"why a row has no files, or what qualifies the row"
-app-routes,doc,recorded,,none,column,yes,,locator,"the document for this view; blank where the row's what and note say enough, and a shared reference (stage.md, manifest.md) where one already owns the view"
 app-routes,tabs,recorded,,none,column,no,,label,the sub-tabs addressable within it
 app-routes,lands,recorded,,none,column,yes,,value,"the tab address a bare visit settles on, for a route that draws no screen of its own: the Map opens on a tab, and ?view=project opens on its Overview"
 app-routes,stop,recorded,,counted,column,yes,,value,"the nav destination it is reached as. Several routes collapse onto one stop (Activity and Lists each gather more than one ?view= key), so this is the level the router flattens away; the gate holds every estate route's value to estateNav; blank on the shell row, which draws every route and is addressable as none of them"

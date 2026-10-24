@@ -110,10 +110,11 @@ Use `x-blob` with an `owner/repo[@ref]:path` address for exact files. It derives
 
 | Subject | Reference |
 | --- | --- |
-| Views and forms | `doc` columns in [app-routes.csv](app-routes.csv) and [subjects.csv](subjects.csv) (under [views/](views/) and [forms/](forms/)) |
+| Views | [app-routes.csv](app-routes.csv), one row per view |
+| Forms | the `doc` column of [subjects.csv](subjects.csv), under [forms/](forms/) |
 | Stage and `#stage=` links | [stage.md](stage.md) |
 | Repo configuration, the config cache and errands | [manifest.md](manifest.md), [manifest-fields.csv](manifest-fields.csv) |
-| Proposals | [views/proposals.md](views/proposals.md) |
+| Proposals | [manifest.md](manifest.md#proposals) |
 | The branch takeover | [forms/branch.md](forms/branch.md) |
 | Choosing a presentation | [showing.md](showing.md), [showing-mechanisms.csv](showing-mechanisms.csv) |
 | Standalone changeset review | [review.html](../pages/review.html) |

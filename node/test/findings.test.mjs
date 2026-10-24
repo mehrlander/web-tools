@@ -1,4 +1,4 @@
-// lib/kits/findings.js: the fold and the witness comparison (docs/views/tending.md).
+// lib/kits/findings.js: the fold and the witness comparison (the record: skills/tend/SKILL.md).
 
 import test from 'node:test';
 import assert from 'node:assert/strict';

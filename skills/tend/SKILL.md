@@ -45,8 +45,7 @@ subject, such as `snags`, a project folder, or a pull request.
 (Prod, below).
 
 Tend deletes no branch and proposes no deletion. `findings.py` sits beside
-this file; [`docs/views/tending.md`](../../docs/views/tending.md) states the
-record.
+this file; [Findings](#findings) states the record.
 
 1. **Reassess.** `findings.py check` names the findings whose witnesses
    changed. Reread each and reply with `findings.py update`: revise it, confirm
@@ -84,6 +83,22 @@ Act unasked only on a mechanical test. Read GitHub through the GitHub MCP, not
 | `superseded` | The work landed or was overtaken elsewhere. *Evidence* names where. |
 
 The kinds are provisional; add one to `KINDS` in `findings.py` when none fits.
+
+A finding is a note carrying a `finding` object: its `kind`, its `subjects`
+(locators for everything it concerns, a session's record file included; the
+note's `about` is the first), `why` it matters, the `next` step, `evidence`
+(short verifiable facts) and `witnesses` (pinned references the conclusion
+rests on, inside the subjects or not). A decision the owner must make is a user
+call among the subjects; a finding never asks.
+
+A finding is open while it carries a `next`, unless the owner resolves it. Only
+a reply carrying `finding` changes it, replacing the fields it carries: a pass
+records progress with `did`, settles it (`status: "settled"`) once no `next`
+remains, or reopens it (`status: "open"`). The owner's Handled
+(`status: "resolved"`) acknowledges each changed witness as it stands, so only a
+later change brings the finding back. A reply without `finding` is a comment and
+changes nothing. When a witness counts as changed is stated in
+`lib/kits/findings.js`.
 
 ## Branches
 
@@ -138,7 +153,7 @@ Branches does.
 ## Snags
 
 Snags are the Lists view's Snag list (`lists/snag.json` in the registry, shape
-in `docs/views/lists.md`). How many dates an item's `seen` holds orders the
+in `lib/kits/lists.js`). How many dates an item's `seen` holds orders the
 reading and triggers nothing.
 
 - **Act:** log a trap this pass hits, as an item or as a date on the item that
