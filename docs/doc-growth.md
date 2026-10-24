@@ -28,18 +28,21 @@ Two drawing rules keep the picture readable without changing a count. Counts
 are whole numbers, so many files share one place, most often one edit and no
 opening session; each file is moved by its own fixed offsets, at most 30% of
 the way to the next whole count and never more than 12 pixels. And where the
-largest file holds more than sixteen times the words of the 90th-percentile
-file, every file above that size is drawn at that size, so one large source
-extract does not shrink every document to a dot.
+largest size any file has reached, at any sample, is more than sixteen times
+the words of the 90th-percentile file at the last sample, every file above
+that sixteen-times size is drawn at it, so one large source extract does not
+shrink every document to a dot.
 
 ## What counts as opening a file
 
-A session opened a file when one of its calls, a subagent's included, did:
+A session opened a file when one of its calls, a subagent's included, did, or,
+for a record that kept no calls, when its own tally of files lists the file as
+read:
 
 | Route | The call |
 | --- | --- |
 | file tool | the Read tool, a GitHub MCP file read, or a WebFetch of the file |
-| shell | a command led by `cat`, `head`, `tail`, `sed` (not `sed -i`), `awk`, `less`, `nl`, `grep`, `rg`, `diff` or `git show`, naming the file other than as a search pattern or a redirect's target |
+| shell | a command led by `cat`, `head`, `tail`, `sed` (not `sed -i`), `awk`, `less`, `more`, `nl`, `grep`, `egrep`, `rg`, `diff`, `bat` or `git show`, naming the file other than as a search pattern or a redirect's target |
 | skill | the Skill tool, which loads a skill's `SKILL.md` with no file tool |
 
 A session counts once however many times it opened the file, dated by the first
@@ -62,8 +65,9 @@ opens are not seen.
 
 ## The Growth tab
 
-A list over the chart, the same files in each. The list holds the chart's three
-counts as of the last sample, as Words, Edits and Opened columns; a column's
+A list over the chart. The list holds the files the last sample still has, with
+the chart's three counts as of that sample, as Words, Edits and Opened columns;
+the chart draws every file present at the sample in view. A column's
 head sorts by it and a second click turns the order round, and the list opens
 sorted by Opened. A phone keeps Edits and Opened. A path too long for its line
 loses its start, so the file's name stays in view.
@@ -82,8 +86,8 @@ whatever the other row picks:
   instructions, tracker task, thread, blog post, log entry, archive, skill,
   agent definition, README, skill reference, or any other document.
 - **Folder**, the file's top-level folder, `(root)` for a file at the top, or
-  two levels (`projects/budget-drs`) under a folder `--containers` names
-  (`projects`, `packages` and `apps` by default).
+  two levels (`projects/budget-drs`) for a file inside a subfolder of a folder
+  `--containers` names (`projects`, `packages` and `apps` by default).
 
 Above the plot sit the y axis's title, with an info button whose panel says
 what each dimension counts, and at the right the size key and a **colour box**,
@@ -101,8 +105,9 @@ python3 python/doc-growth.py <clone> -o data/doc-growth/<name>.json --name owner
 ```
 
 `npm run doc-growth --` runs the same command. `--name` is the label the page
-shows and the key the session counts are joined on; without it the label is the
-clone path. `--branch` defaults to `main`, which must exist as a branch of the
+shows and the key the full page joins the session counts on; the Growth tab
+joins them on the repository that declares the data file. Without `--name` the
+label is the clone path. `--branch` defaults to `main`, which must exist as a branch of the
 clone. `--min-edits N` drops files touched in fewer than N commits (default 1).
 `--days`, `--ext` and `--containers` are listed by `--help`.
 
@@ -132,7 +137,7 @@ The store is web-tools-private, whose `sessions/` holds one record per session;
 the script reads the records at `--ref` through `git cat-file`, so the store's
 working tree is not touched. Each `--repo` names a repository by the label its
 growth data file carries and a clone of it, read at `--branch` (default `main`)
-for its Markdown paths, renames and plugin sources. The output holds, per
+for its Markdown paths, renames, plugin sources and vendored copies. The output holds, per
 repository and file, `opened` and `context`, each a list of one day per session
 counted as days after `from`, the first record's day, and `via`, the opening
 sessions by route. It is derived from the records, so it stays in
@@ -145,7 +150,8 @@ The page reads `#gz=<data>` (the data file gzipped and base64url-encoded), else
 stored `ghToken` and is the only route that reaches a private repo. With none of
 these it reads web-tools' own `data/doc-growth/web-tools.json`. The session
 counts come from `?reads=owner/repo[@ref]:path`, else web-tools-private's
-`state/doc-reads.json`, through the same stored token.
+`state/doc-reads.json`, through the same stored token. `?view=table` opens the
+page on its table in place of the chart.
 
 ## Where it appears
 
@@ -155,8 +161,8 @@ reads its data file at the selected repo's ref and the session counts at
 web-tools-private's main; `?growthrepo=` picks the repo. The web-tools data file
 needs no token; every other repo's, and the session counts, need the viewer's
 token. In Map → Docs → Inventory, the web-tools data file adds a sparkline and a
-net word change to each document row; the rows render without them when the
-file is missing.
+net word change to each of the hub's document rows that the file holds at two
+or more samples; the rows render without them when the file is missing.
 
 ## Refreshing
 

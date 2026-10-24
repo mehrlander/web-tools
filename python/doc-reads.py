@@ -8,11 +8,13 @@ counts, for each Markdown file of each named repo, the sessions that OPENED it
 and, apart, the sessions it was IN CONTEXT for at startup. The two are never
 added: a CLAUDE.md loaded into every session has not been read by each.
 
-A session opened a file when one of its calls, its subagents' included, did:
+A session opened a file when one of its calls, its subagents' included, did,
+or, for a record that kept no calls, when its own `files` tally marks it read:
 
     tool    the Read tool, a GitHub MCP file read, or a WebFetch of the file
     shell   a command that reads it: cat, head, tail, sed (not sed -i), awk,
-            less, nl, grep, rg, diff or git show, never a redirect's target
+            less, more, nl, grep, egrep, rg, diff, bat or git show, never a
+            search pattern or a redirect's target
     skill   the Skill tool, which loads a skill's SKILL.md without a file tool
 
     python3 python/doc-reads.py ../web-tools-private --ref origin/main \\
@@ -53,6 +55,12 @@ def git(repo, *args):
     return r.stdout.decode('utf-8', 'replace')
 
 
+def shown(repo, ref, path):
+    """One file's text at a ref, or None where the ref has no such file."""
+    r = subprocess.run(['git', '-C', repo, 'show', f'{ref}:{path}'], capture_output=True)
+    return r.stdout.decode('utf-8', 'replace') if r.returncode == 0 else None
+
+
 class Repo:
     """One repo's Markdown as it has ever been named, and the ways a session
     can spell a path inside it."""
@@ -76,20 +84,17 @@ class Repo:
         self.ever.update(p for p in git(clone, 'ls-tree', '-r', '--name-only', branch).split('\n')
                          if p.endswith('.md'))
         self.copies = {}
-        try:
-            vendored = open(os.path.join(clone, 'node/build/vendor-docs.mjs')).read()
-            m = re.search(r'VENDORED\s*=\s*\[([^\]]*)\]', vendored)
-            for name in re.findall(r"'([^']+)'", m.group(1) if m else ''):
-                self.copies[f'skills/default/{name}'] = f'docs/{name}'
-        except OSError:
-            pass
+        vendored = shown(clone, branch, 'node/build/vendor-docs.mjs') or ''
+        m = re.search(r'VENDORED\s*=\s*\[([^\]]*)\]', vendored)
+        for name in re.findall(r"'([^']+)'", m.group(1) if m else ''):
+            self.copies[f'skills/default/{name}'] = f'docs/{name}'
         e = re.escape
         self.roots = [(re.compile(e(f'/home/user/{self.short}/')), ''),
                       (re.compile(e(f'raw.githubusercontent.com/{owner}/{self.short}/') + r'[^/\s]+/'), ''),
                       (re.compile(e(f'github.com/{owner}/{self.short}/blob/') + r'[^/\s]+/'), '')]
         self.plugins = {}
         try:
-            market = json.load(open(os.path.join(clone, '.claude-plugin/marketplace.json')))
+            market = json.loads(shown(clone, branch, '.claude-plugin/marketplace.json') or '')
             name = market['name']
             self.roots.append((re.compile(e(f'.claude/plugins/marketplaces/{name}/')), ''))
             for p in market.get('plugins', []):
@@ -97,7 +102,7 @@ class Repo:
                 pre = src + '/' if src and src != '.' else ''
                 self.plugins[p['name']] = pre
                 self.roots.append((re.compile(e(f'.claude/plugins/cache/{name}/{p["name"]}/') + r'[^/\s]+/'), pre))
-        except (OSError, KeyError, ValueError):
+        except (KeyError, ValueError):
             pass
 
     def canon(self, rel):
