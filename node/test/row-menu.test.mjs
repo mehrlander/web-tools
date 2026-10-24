@@ -323,7 +323,8 @@ function stubGrid() {
     element: el, options: {},
     getSorters: () => state.sorters,
     setSort: (field, dir) => { state.sorters = [{ field, dir }]; },
-    setGroupBy(field) { this.options.groupBy = field; },
+    setGroupBy(by) { this.options.groupBy = by; },
+    getColumn(f) { return this.getColumns().find(c => c.getField() === f); },
     clearSort: () => { state.sorters = []; },
     getHeaderFilterValue: (f) => state.filters[f],
     setHeaderFilterValue: (f, v) => { state.filters[f] = v; },
@@ -362,18 +363,45 @@ test('a header menu has the table, then the column, and no sorts or filter items
   ], 'a click on the header sorts and its filter box is under the title; the menu repeats neither');
 });
 
-test('the column section groups, copies its values, and the table section ungroups', async () => {
+test('grouping hides the column, a second one joins the name, and ungrouping brings both back', async () => {
   reset();
   const { cols, table } = stubGrid();
   openHeader(cols[0]);
   clickItem('Group by this column');
-  assert.equal(table.options.groupBy, 'item_id');
-  openHeader(cols[0]);
-  assert.ok(!labels().includes('Group by this column'), 'the column the grid is grouped by offered to group again');
-  assert.equal(labels()[0], 'Ungroup (Item)', 'ungrouping is not the first thing the table offers');
-  clickItem('Ungroup (Item)');
-  assert.equal(table.options.groupBy, false);
+  assert.equal(cols[0].isVisible(), false, 'the grouped column still shows a value its heading already says');
+  assert.equal(table.options.groupBy(ROWS[0]), 'a-1');
 
+  openHeader(cols[1]);
+  assert.ok(!labels().includes('Group by this column'), 'a grouped grid offered a second, separate grouping');
+  clickItem('Add to grouping');
+  assert.equal(cols[1].isVisible(), false);
+  assert.equal(table.options.groupBy(ROWS[0]), 'a-1 | 10', 'the group name is not every value, pipe-delimited');
+  assert.equal(table.options.groupBy(ROWS[1]), 'b-2 | (blank)', 'an empty value left a name with a hole in it');
+
+  // Both grouped columns are hidden, so the table section is the way back.
+  const wrote = [];
+  window.io = { copy: (t) => { wrote.push(t); return Promise.resolve(true); } };
+  RM.tableButton(table).dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+  assert.deepEqual(labels().slice(0, 3), ['Ungroup (Item | Amount)', 'Stop grouping by Item', 'Stop grouping by Amount']);
+  clickItem('Copy 3 rows');
+  await new Promise(r => setTimeout(r, 0));
+  assert.equal(wrote[0].split('\n')[0], 'Item\tAmount', 'a copy while grouped dropped the grouped columns');
+
+  RM.tableButton(table).dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+  clickItem('Stop grouping by Item');
+  assert.equal(cols[0].isVisible(), true);
+  assert.equal(cols[1].isVisible(), false);
+  assert.equal(table.options.groupBy(ROWS[0]), '10');
+
+  RM.tableButton(table).dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+  clickItem('Ungroup (Amount)');
+  assert.equal(table.options.groupBy, false);
+  assert.ok(cols.every(c => c.isVisible()), 'ungrouping left a column hidden');
+});
+
+test('a column copies its values as TSV', async () => {
+  reset();
+  const { cols } = stubGrid();
   const wrote = [];
   window.io = { copy: (t) => { wrote.push(t); return Promise.resolve(true); } };
   openHeader(cols[0]);
