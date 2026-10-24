@@ -11,7 +11,8 @@
      builder and a result shape can be compared in any pairing. The filters
      sit in their own strip over the table in every builder. Menus are the
      estate's own (lib/kits/row-menu.js). A pill drags as soon as it moves,
-     by mouse or finger; a tap that does not move opens its menu. -->
+     by mouse or finger; a tap picks it up, lights every place it can go,
+     and a tap on one of those puts it there. -->
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
 <script src="../lib/vanilla-bundle.js"></script>
@@ -88,6 +89,7 @@
     rows: ['agency'], cols: ['year'], value: 'amount', agg: 'sum',
     filters: [], excluded: {},          // field -> Set of values left out
     collapsed: new Set(),               // grid outline: paths folded shut
+    sel: null,                          // tap and drop: { field, from } picked up
   };
   const ROLE = { rows: 'Rows', cols: 'Across', value: 'Value', filters: 'Filter' };
   const ICON = { rows: 'ph-rows', cols: 'ph-columns', value: 'ph-sigma', filters: 'ph-funnel' };
@@ -145,15 +147,24 @@
   // ── pills ───────────────────────────────────────────────────────────────────
   // data-pill marks a draggable field; data-from names where it sits. A pill's
   // role shows in its icon, so a pill means the same thing in every concept.
-  function pill(field, from, { role = from, cls = '', label } = {}) {
+  // A pill's colour says what its field holds: numbers in the secondary hue,
+  // text in the page's own. Placed pills are filled; tray pills are plain;
+  // the selected pill is ringed. Only the Tap builder, which has no shelves
+  // to say a pill's role, gives it a role icon.
+  function pill(field, from, { role = from, cls = '', label, roleIcon = false } = {}) {
     const placed = role && role !== 'tray';
-    const icon = placed ? ICON[role] : (SCAN.isNum[field] ? 'ph-hash' : 'ph-text-aa');
+    const num = SCAN.isNum[field];
+    const sel = st.sel && st.sel.field === field && st.sel.from === from;
     const ex = st.excluded[field]?.size;
-    const extra = role === 'value' && st.value === field ? ` <span class="opacity-60 font-normal">${esc(st.agg)}</span>`
-      : role === 'filters' && ex ? ` <span class="opacity-60 font-normal">${VALUES[field].length - ex} of ${VALUES[field].length}</span>` : '';
-    return `<button type="button" data-pill data-field="${esc(field)}" data-from="${from}"
-      class="btn btn-sm rounded-full gap-1 font-mono font-normal touch-none [-webkit-touch-callout:none] ${placed ? 'btn-primary btn-soft' : 'btn-ghost bg-base-200'} ${cls}">
-      <i class="ph ${icon} text-sm opacity-70"></i>${esc(label ?? field)}${extra}</button>`;
+    const extra = role === 'filters' && ex ? ` <span class="opacity-60 font-normal">${VALUES[field].length - ex} of ${VALUES[field].length}</span>` : '';
+    const btn = `<button type="button" data-pill data-field="${esc(field)}" data-from="${from}"
+      class="btn btn-sm rounded-full gap-1 font-mono font-normal touch-none [-webkit-touch-callout:none] border ${placed ? 'bg-primary/10 border-primary/20' : 'bg-base-200 border-transparent'} ${num ? 'text-secondary' : ''} ${sel ? 'ring-2 ring-[var(--color-primary)] ring-offset-1 ring-offset-base-100' : ''} ${cls}">
+      ${roleIcon && placed ? `<i class="ph ${ICON[role]} text-sm opacity-70"></i>` : ''}${esc(label ?? field)}${extra}</button>`;
+    // The value carries its summary as a chip of its own beside it, the one
+    // choice a placed pill still makes by menu.
+    return role === 'value' && from === 'value' && st.value === field
+      ? btn + `<button type="button" data-agg class="btn btn-xs rounded-full btn-ghost bg-base-200 font-normal gap-0.5">${esc(st.agg === 'avg' ? 'average' : st.agg)}<i class="ph ph-caret-down"></i></button>`
+      : btn;
   }
   const empty = (zone, text) => `<span class="text-xs text-base-content/40 italic px-1" data-empty="${zone}">${text}</span>`;
 
@@ -193,7 +204,7 @@
       // Every field on one wrapping line; a tap moves it to the next role.
       html: () => `<div class="flex flex-wrap gap-1.5" data-zone="tray" data-cycle>${FIELDS.map(f => {
         const r = roleOf(f), i = r === 'rows' ? st.rows.indexOf(f) : r === 'cols' ? st.cols.indexOf(f) : -1;
-        return pill(f, r || 'tray', { role: r || 'tray', label: f + (i >= 0 && list(r).length > 1 ? ' ' + (i + 1) : '') });
+        return pill(f, r || 'tray', { role: r || 'tray', roleIcon: true, label: f + (i >= 0 && list(r).length > 1 ? ' ' + (i + 1) : '') });
       }).join('')}</div>`,
     },
     sentence: {
@@ -274,6 +285,14 @@
     return `<div class="p-4 grid gap-3 grid-cols-[repeat(auto-fill,minmax(min(100%,16rem),1fr))]">${res.tree.children.map(card).join('')}</div>`;
   }
 
+  // What the selected pill's field holds, as the engine reads it.
+  function info(f) {
+    const blanks = ROWS.filter(r => r[f] == null || r[f] === '').length;
+    const kind = SCAN.isNum[f] ? 'number' + (SCAN.dec[f] ? ', ' + SCAN.dec[f] + ' decimals' : '') : 'text';
+    const r = roleOf(f);
+    return `<span class="font-semibold ${SCAN.isNum[f] ? 'text-secondary' : 'text-base-content'}">${esc(f)}</span> · ${kind} · ${VALUES[f].length.toLocaleString()} distinct${blanks ? ' · ' + blanks + ' blank' : ''} · ${r ? ROLE[r] : 'not placed'}`;
+  }
+
   // ── drawing ─────────────────────────────────────────────────────────────────
   const $ = (id) => document.getElementById(id);
   const chip = (on, attrs, inner) => `<button type="button" ${attrs} class="btn btn-xs rounded-full shrink-0 font-normal ${on ? 'btn-primary' : 'btn-ghost bg-base-200'}">${inner}</button>`;
@@ -287,7 +306,7 @@
       chip(st.heat, 'data-toggle="heat"', '<i class="ph ph-paint-bucket"></i>Tint'),
       chip(false, 'data-swap', '<i class="ph ph-arrows-left-right"></i>Swap'),
     ].join('');
-    $('builder').innerHTML = BUILDERS[st.concept].html();
+    $('builder').innerHTML = BUILDERS[st.concept].html() + (st.sel ? `<div class="pt-2 text-xs font-mono text-base-content/70 truncate">${info(st.sel.field)}</div>` : '');
     $('filters').innerHTML = `<div class="flex flex-wrap items-center gap-1.5 min-h-9">
       <span class="text-xs text-base-content/60 flex items-center gap-1 pr-1"><i class="ph ph-funnel"></i>Filter</span>
       ${st.filters.map(f => pill(f, 'filters', { cls: 'btn-xs' })).join('')}
@@ -295,34 +314,42 @@
     const out = compute();
     $('figure').textContent = `${out.n.toLocaleString()} of ${ROWS.length.toLocaleString()} rows` + (out.res.skipped ? ` · ${out.res.skipped} skipped, no ${st.value}` : '');
     $('result').innerHTML = st.layout === 'cards' && st.concept !== 'table' ? cards(out) : grid(out, st.concept === 'table');
+    // TAP AND DROP: with a pill picked up, every place it can go lights up as
+    // a drop target does, and a tap there puts it there. The tray takes it
+    // back out; its own place is not a target.
+    // The filter strip is the one target render does not redraw, so the
+    // lighting is cleared everywhere before any is set.
+    const LIT = ['ring-2', 'ring-inset', 'ring-[var(--color-primary)]', 'bg-primary/10', 'cursor-pointer'];
+    document.querySelectorAll('[data-zone]').forEach(z => z.classList.remove(...LIT));
+    if (st.sel) for (const z of document.querySelectorAll('[data-zone]')) {
+      const zone = z.dataset.zone;
+      const own = zone === st.sel.from || (zone === 'tray' && st.sel.from === 'tray') || (zone === 'filters' && st.filters.includes(st.sel.field));
+      if (!own) z.classList.add(...LIT);
+    }
   }
 
   // ── menus ───────────────────────────────────────────────────────────────────
   // The estate's own (kits/row-menu.js), so a pill's menu looks like a grid's.
   const at = (el) => { const r = el.getBoundingClientRect(); return { x: r.left, y: r.bottom + 4 }; };
-  function fieldMenu(el, field, from) {
+  // A filter's values to tick, and the way out. Dense, since the list is long
+  // and every row is one short value.
+  function filterMenu(el, field) {
+    const ex = st.excluded[field] ||= new Set();
     const items = [{ heading: field }];
-    for (const z of ['rows', 'cols', 'value', 'filters']) {
-      if (z === from || (z !== 'filters' && roleOf(field) === z)) continue;
-      items.push({ icon: ICON[z], label: (from === 'tray' || z === 'filters' ? 'Add to ' : 'Move to ') + ROLE[z], run: () => place(field, z) });
-    }
-    if (from === 'value' && SCAN.isNum[field]) {
-      items.push({ heading: 'Summarize by' });
-      for (const a of ['sum', 'avg', 'min', 'max', 'count']) if (a !== st.agg) items.push({ icon: 'ph-function', label: a === 'avg' ? 'average' : a, run: () => { st.agg = a; render(); } });
-    }
-    if (from === 'filters') {
-      const vals = VALUES[field].slice(0, 40);
-      const ex = st.excluded[field] ||= new Set();
-      items.push({ heading: 'Show' });
-      for (const v of vals) items.push({ icon: ex.has(v) ? 'ph-square' : 'ph-check-square', label: v || '(blank)', run: () => { ex.has(v) ? ex.delete(v) : ex.add(v); render(); fieldMenu(document.querySelector(`[data-pill][data-from="filters"][data-field="${CSS.escape(field)}"]`) || el, field, from); } });
-    }
-    if (from !== 'tray') items.push({ icon: 'ph-x', label: from === 'filters' ? 'Remove filter' : 'Remove', run: () => remove(field, from) });
-    window.rowMenu.open({ ...at(el), items });
+    for (const v of VALUES[field].slice(0, 40)) items.push({
+      icon: ex.has(v) ? 'ph-square' : 'ph-check-square', label: v || '(blank)',
+      run: () => { ex.has(v) ? ex.delete(v) : ex.add(v); render(); filterMenu(document.querySelector(`#filters [data-field="${CSS.escape(field)}"]`) || el, field); },
+    });
+    items.push({ icon: 'ph-x', label: 'Remove filter', run: () => remove(field, 'filters') });
+    window.rowMenu.open({ ...at(el), items, dense: true });
   }
+  const aggMenu = (el) => window.rowMenu.open({ ...at(el), dense: true, items: ['sum', 'avg', 'min', 'max', 'count']
+    .filter(a => a !== st.agg).map(a => ({ icon: 'ph-function', label: a === 'avg' ? 'average' : a, run: () => { st.agg = a; render(); } })) });
+
   // The sentence's words: the field lists for a slot, or the aggregates.
   function slotMenu(el) {
     const zone = el.dataset.slot, i = +el.dataset.index;
-    if (zone === 'agg') return window.rowMenu.open({ ...at(el), items: ['sum', 'avg', 'min', 'max', 'count'].map(a => ({ icon: 'ph-function', label: a === 'avg' ? 'average' : a, run: () => { st.agg = a; render(); } })) });
+    if (zone === 'agg') return aggMenu(el);
     const cur = i >= 0 ? list(zone)[i] : null;
     const opts = FIELDS.filter(f => zone === 'value' ? f !== cur : !list(zone).includes(f));
     const items = [{ heading: ROLE[zone] }, ...opts.map(f => ({ icon: SCAN.isNum[f] ? 'ph-hash' : 'ph-text-aa', label: f, run: () => {
@@ -331,7 +358,7 @@
     } }))];
     if (zone === 'value' && st.value) items.push({ icon: 'ph-hash', label: 'count of rows', run: () => remove(st.value) });
     if (cur && zone !== 'value') items.push({ icon: 'ph-x', label: 'Remove ' + cur, run: () => remove(cur, zone) });
-    window.rowMenu.open({ ...at(el), items });
+    window.rowMenu.open({ ...at(el), items, dense: true });
   }
   const cycle = (f) => {
     const order = [null, 'rows', 'cols', 'value'];
@@ -369,6 +396,7 @@
   function begin(x, y) {
     const { p } = press;
     drag = { field: p.dataset.field, from: p.dataset.from, src: p, target: null };
+    st.sel = null;
     try { window.getSelection()?.removeAllRanges(); } catch {}
     $('ghost').innerHTML = p.outerHTML;
     $('ghost').firstElementChild.classList.add('shadow-lg', 'scale-110');
@@ -428,14 +456,31 @@
     if (t.closest('[data-swap]')) { [st.rows, st.cols] = [st.cols, st.rows]; st.collapsed.clear(); return render(); }
     const f = t.closest('[data-fold]'); if (f) { const id = f.dataset.fold; st.collapsed.has(id) ? st.collapsed.delete(id) : st.collapsed.add(id); return render(); }
     const s = t.closest('[data-slot]'); if (s) return slotMenu(s);
+    const ag = t.closest('[data-agg]'); if (ag) return aggMenu(ag);
     const af = t.closest('[data-addfilter]');
-    if (af) return window.rowMenu.open({ ...at(af), items: [{ heading: 'Filter by' }, ...FIELDS.filter(f => !st.filters.includes(f)).map(f => ({ icon: SCAN.isNum[f] ? 'ph-hash' : 'ph-text-aa', label: f, run: () => place(f, 'filters') }))] });
+    if (af) return window.rowMenu.open({ ...at(af), dense: true, items: [{ heading: 'Filter by' }, ...FIELDS.filter(f => !st.filters.includes(f)).map(f => ({ label: f, run: () => place(f, 'filters') }))] });
     const p = t.closest('[data-pill]');
     if (p) {
       if (p.closest('[data-cycle]')) return cycle(p.dataset.field);
-      return fieldMenu(p, p.dataset.field, p.dataset.from);
+      const field = p.dataset.field, from = p.dataset.from;
+      // A filter pill's tap is its values; it moves by drag.
+      if (from === 'filters' && !st.sel) return filterMenu(p, field);
+      st.sel = st.sel && st.sel.field === field && st.sel.from === from ? null : { field, from };
+      return render();
+    }
+    if (st.sel) {
+      const z = t.closest('[data-zone]');
+      const pick = st.sel; st.sel = null;
+      if (z && !t.closest('[role="menu"]')) {
+        const zone = z.dataset.zone;
+        if (zone === 'tray') return remove(pick.field, pick.from);
+        if (pick.from === 'filters' && zone !== 'filters') remove(pick.field, 'filters');
+        return place(pick.field, zone);
+      }
+      if (!t.closest('[role="menu"]')) return render();
     }
   }, true);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && st.sel) { st.sel = null; render(); } });
 
   render();
 })();
