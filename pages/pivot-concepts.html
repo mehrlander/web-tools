@@ -163,13 +163,19 @@
     const ex = st.excluded[field]?.size;
     const seg = 'inline-flex items-center self-stretch border-l border-base-content/10';
     const kept = role === 'filters' && ex ? `<span class="${seg} px-1.5 text-xs font-sans text-base-content/60">${VALUES[field].length - ex}/${VALUES[field].length}</span>` : '';
-    const agg = role === 'value' && from === 'value' && st.value === field
-      ? `<span data-agg class="${seg} px-1.5 gap-0.5 text-xs font-sans text-base-content/70">${esc(st.agg === 'avg' ? 'average' : st.agg)}<i class="ph ph-caret-down text-[10px]"></i></span>` : '';
+    // THE VALUE'S FUNCTION, a small pill inside its pill: sum, avg, min, max,
+    // each three letters, so the pill keeps one width whichever is in use. A
+    // tap steps to the next; count, which no longer summarizes the numbers but
+    // the rows, is on the field's card. A text value can only count, and its
+    // inner pill does not step.
+    const isValue = role === 'value' && from === 'value' && st.value === field;
+    const agg = isValue
+      ? `<span data-agg class="inline-flex items-center justify-center self-center h-5.5 w-10 ml-0.5 rounded-full bg-base-100 border border-base-300 text-[11px] font-sans text-base-content/70 ${num ? '' : 'opacity-60'}" aria-label="Summary: ${st.agg}, tap for the next">${st.agg}</span>` : '';
     return `<button type="button" data-pill data-field="${esc(field)}" data-from="${from}"
       class="inline-flex items-stretch h-7 max-w-full shrink-0 rounded-full border overflow-hidden font-mono text-[13px] leading-none touch-none select-none [-webkit-touch-callout:none]
         ${placed ? 'bg-primary/10 border-primary/40' : 'bg-base-100 border-base-300'} ${num ? 'text-secondary' : 'text-base-content'}
         ${sel ? 'ring-2 ring-[var(--color-primary)] ring-offset-1 ring-offset-base-100' : ''} ${cls}">
-      <span class="inline-flex items-center gap-1 pl-2.5 pr-1.5 min-w-0">${roleIcon && placed ? `<i class="ph ${ICON[role]} text-xs opacity-70"></i>` : ''}<span class="truncate">${esc(label ?? field)}</span></span>${kept}${agg}<span data-info class="${seg} px-1.5 text-base-content/50" aria-label="About ${esc(field)}"><i class="ph ph-caret-down text-[10px]"></i></span></button>`;
+      ${agg}<span class="inline-flex items-center gap-1 ${isValue ? 'pl-1.5' : 'pl-2.5'} pr-1.5 min-w-0">${roleIcon && placed ? `<i class="ph ${ICON[role]} text-xs opacity-70"></i>` : ''}<span class="truncate">${esc(label ?? field)}</span></span>${kept}<span data-info class="${seg} px-1.5 text-base-content/50" aria-label="About ${esc(field)}"><i class="ph ph-caret-down text-[10px]"></i></span></button>`;
   }
   const empty = (zone, text) => `<span class="text-xs text-base-content/40 italic px-1" data-empty="${zone}">${text}</span>`;
 
@@ -313,6 +319,7 @@
       ${top.length && !unique ? `<ul class="px-3 py-2 flex flex-col gap-1">${top.map(t => `<li class="grid grid-cols-[minmax(0,1fr)_auto] gap-2 items-center">
           <span class="relative truncate px-1 rounded-sm"><span class="absolute inset-y-0 left-0 bg-primary/10 rounded-sm" style="width:${Math.round(t.count / most * 100)}%"></span><span class="relative">${esc(t.value)}</span></span>
           <span class="font-mono text-xs tabular-nums text-base-content/60">${t.count}</span></li>`).join('')}</ul>` : ''}
+      ${r === 'value' ? `<div class="px-3 pt-2.5"><div class="join w-full">${(SCAN.isNum[field] ? ['sum', 'avg', 'min', 'max', 'count'] : ['count']).map(a => `<button type="button" data-card-agg="${a}" class="join-item btn btn-xs flex-1 font-normal ${st.agg === a ? 'btn-primary' : 'btn-ghost border border-base-300'}">${a}</button>`).join('')}</div></div>` : ''}
       ${st.filters.includes(field) ? '' : `<div class="px-3 py-2.5"><button type="button" class="btn btn-xs rounded-full btn-ghost border border-base-300 font-normal" data-card-filter="${esc(field)}"><i class="ph ph-funnel"></i>Filter by it</button></div>`}`;
     const a = anchor.getBoundingClientRect();
     card.classList.remove('hidden');
@@ -498,8 +505,17 @@
     const inf = t.closest('[data-info]');
     if (inf) { e.preventDefault(); const p = inf.closest('[data-pill]'); return $('card').classList.contains('hidden') || $('card').dataset.field !== p.dataset.field ? ($('card').dataset.field = p.dataset.field, openCard(p, p.dataset.field)) : closeCard(); }
     const cf = t.closest('[data-card-filter]'); if (cf) { closeCard(); return place(cf.dataset.cardFilter, 'filters'); }
+    const ca = t.closest('[data-card-agg]');
+    if (ca) { st.agg = ca.dataset.cardAgg; render(); return openCard(document.querySelector('[data-zone="value"] [data-pill]') || ca, st.value); }
     if (t.closest('#card')) return;
-    const ag = t.closest('[data-agg]'); if (ag) { e.preventDefault(); return aggMenu(ag); }
+    const ag = t.closest('[data-agg]');
+    if (ag) {
+      e.preventDefault();
+      if (!SCAN.isNum[st.value]) return;
+      const STEP = ['sum', 'avg', 'min', 'max'];
+      st.agg = STEP[(STEP.indexOf(st.agg) + 1) % STEP.length];
+      return render();
+    }
     const af = t.closest('[data-addfilter]');
     if (af) return window.rowMenu.open({ ...at(af), dense: true, items: [{ heading: 'Filter by' }, ...FIELDS.filter(f => !st.filters.includes(f)).map(f => ({ label: f, run: () => place(f, 'filters') }))] });
     const p = t.closest('[data-pill]');
