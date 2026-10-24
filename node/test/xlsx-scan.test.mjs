@@ -126,3 +126,22 @@ test('an image comes through the same, deflated or stored', async () => {
     assert.deepEqual(view(native), view(jszip), compression);
   }
 });
+
+// The sliced read (readZip's) and the one-go read (analyze) are the same
+// steps, so they return the same thing; the sliced one also says how far it
+// has got, rising to the end.
+test('a sliced read reports rising progress and returns what analyze returns', async () => {
+  const rows = [];
+  for (let r = 1; r <= 10000; r++) rows.push(`<row r="${r}"><c r="A${r}" t="s"><v>${r % 3}</v></c><c r="B${r}"><v>${r}</v></c></row>`);
+  const zip = new JSZip();
+  for (const [p, xml] of awkward()) zip.file(p, p.endsWith('sheet1.xml')
+    ? `<?xml version="1.0"?><worksheet xmlns="ws"><sheetData>${rows.join('')}</sheetData></worksheet>` : xml);
+  const bytes = await zip.generateAsync({ type: 'uint8array', compression: 'DEFLATE' });
+  const seen = [];
+  const sliced = await xlsxKit.readZip(bytes, { fresh: true, sliceMs: 0, onProgress: (p) => seen.push(p) });
+  const parts = await Promise.all(Object.entries((await JSZip.loadAsync(bytes)).files)
+    .map(async ([p, f]) => [p, await f.async('string')]));
+  assert.deepEqual(view(sliced), view(xlsxKit.analyze(parts)));
+  assert.ok(seen.length >= 5, `progress reported ${seen.length} times`);
+  assert.ok(seen.every((p, k) => p >= 0 && p <= 1 && (k === 0 || p >= seen[k - 1])), 'and only ever rising');
+});

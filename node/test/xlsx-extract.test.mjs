@@ -248,6 +248,10 @@ test('raw values carry a number as a number, where values carry it as text', () 
   assert.deepEqual(raw.find(r => r.Row === 2), { Row: 2, A: '600', B: 17 }, 'and a shared string of digits stays text');
   assert.deepEqual(raw.map(r => r.Row), [1, 2, 3, 4]);
   assert.equal(XlsxExtract.survey(read()).sheets[0].counts.raw, raw.length, 'the count is the rows the reading carries');
+  // Under a cap, the first rows typed and the rest reported, as Values does.
+  const cut = XlsxExtract.extractSelected(read(), { sheets: [{ name: 'Ledger', kinds: ['raw'] }] }, { now: NOW, maxRows: 2 }).items[0];
+  assert.deepEqual([cut.rows, cut.total, cut.truncated], [2, 4, true]);
+  assert.deepEqual(rowsOf(cut), raw.slice(0, 2).map(r => ({ Row: r.Row, A: r.A, B: r.B })).map(r => Object.fromEntries(Object.entries(r).filter(([, v]) => v !== undefined))));
 });
 
 test('v2 can include one pivot, cached rows, or a connection without selecting any sheet', () => {
