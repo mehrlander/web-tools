@@ -323,6 +323,7 @@ function stubGrid() {
     element: el, options: {},
     getSorters: () => state.sorters,
     setSort: (field, dir) => { state.sorters = [{ field, dir }]; },
+    setGroupBy(field) { this.options.groupBy = field; },
     clearSort: () => { state.sorters = []; },
     getHeaderFilterValue: (f) => state.filters[f],
     setHeaderFilterValue: (f, v) => { state.filters[f] = v; },
@@ -350,32 +351,28 @@ const openHeader = (col, opts) => {
   assert.deepEqual(out, [], "Tabulator's own popup would draw beside this one");
 };
 
-test('a header menu has the column, then the table, under headings', () => {
+test('a header menu has the table, then the column, and no sorts or filter items', () => {
   reset();
   const { cols } = stubGrid();
   openHeader(cols[1]);
-  assert.deepEqual(headings(), ['Amount', 'Table']);
+  assert.deepEqual(headings(), ['Table', 'Amount']);
   assert.deepEqual(labels(), [
-    'Sort ascending', 'Sort descending', 'Filter this column', 'Copy 3 values', 'Hide column',
     'Hide header filters', 'Copy 3 rows',
-  ]);
+    'Group by this column', 'Copy 3 values', 'Hide column',
+  ], 'a click on the header sorts and its filter box is under the title; the menu repeats neither');
 });
 
-test('the column section follows the column: its sort, its filter, its values', async () => {
+test('the column section groups, copies its values, and the table section ungroups', async () => {
   reset();
-  const { cols, state } = stubGrid();
+  const { cols, table } = stubGrid();
   openHeader(cols[0]);
-  clickItem('Sort descending');
+  clickItem('Group by this column');
+  assert.equal(table.options.groupBy, 'item_id');
   openHeader(cols[0]);
-  assert.deepEqual(labels().slice(0, 2), ['Sort ascending', 'Clear sort'], 'the current sort is still offered');
-
-  state.filters.item_id = 'a';
-  RM.close();
-  openHeader(cols[0]);
-  assert.ok(labels().includes('Clear this filter'));
-  assert.ok(labels().includes('Clear all filters'));
-  clickItem('Clear this filter');
-  assert.equal(state.filters.item_id, '');
+  assert.ok(!labels().includes('Group by this column'), 'the column the grid is grouped by offered to group again');
+  assert.equal(labels()[0], 'Ungroup (Item)', 'ungrouping is not the first thing the table offers');
+  clickItem('Ungroup (Item)');
+  assert.equal(table.options.groupBy, false);
 
   const wrote = [];
   window.io = { copy: (t) => { wrote.push(t); return Promise.resolve(true); } };
@@ -383,6 +380,18 @@ test('the column section follows the column: its sort, its filter, its values', 
   clickItem('Copy 3 values');
   await new Promise(r => setTimeout(r, 0));
   assert.deepEqual(wrote[0].split('\n'), ['Item', 'a-1', 'b-2', 'c-3']);
+});
+
+test('a column of a hundred or more distinct values does not offer to group', () => {
+  reset();
+  const { cols, table } = stubGrid();
+  const many = Array.from({ length: 150 }, (_, i) => ({ item_id: 'id-' + i, amount: i % 3 }));
+  table.getRows = () => many.map(r => ({ getData: () => r }));
+  openHeader(cols[0]);
+  assert.ok(!labels().includes('Group by this column'), '150 groups of one row is the table again');
+  RM.close();
+  openHeader(cols[1]);
+  assert.ok(labels().includes('Group by this column'), 'three distinct amounts should group');
 });
 
 test('hiding a column is undone from the table section, and only what it hid', () => {
@@ -441,7 +450,7 @@ test('a held header opens its menu and eats the release, so it neither sorts nor
   head.addEventListener('click', () => { sorted++; });
   press(head.querySelector('.tabulator-col-title'));
   await wait(500);
-  assert.deepEqual(headings(), ['Item', 'Table'], 'a held header raised no menu, or the wrong one');
+  assert.deepEqual(headings(), ['Table', 'Item'], 'a held header raised no menu, or the wrong one');
   doc.dispatchEvent(new window.Event('touchend', { bubbles: true }));
   head.dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true }));
   assert.equal(sorted, 0, "the finger's release reached the header and sorted it");
@@ -469,7 +478,7 @@ test('the header carries no button: the menu is a right-click or a hold', () => 
   assert.deepEqual(Object.keys(RM.headerDefaults()), ['headerContextMenu']);
 });
 
-test('the table button opens the table section alone, and grid puts one in the header corner', () => {
+test('the table button opens the table section alone, and grid places none over the headers', () => {
   reset();
   const g = stubGrid();
   const btn = RM.tableButton(g.table);
@@ -484,15 +493,5 @@ test('the table button opens the table section alone, and grid puts one in the h
   g.el.append(head);
   gridOver(g);
   g.fire('tableBuilt');
-  assert.ok(head.querySelector(':scope > [data-table-menu] button'), 'the default grid has no table button');
-  g.fire('tableBuilt');
-  assert.equal(head.querySelectorAll('[data-table-menu]').length, 1, 'a second build stacked a second button');
-
-  const g2 = stubGrid();
-  const head2 = doc.createElement('div');
-  head2.className = 'tabulator-header';
-  g2.el.append(head2);
-  gridOver(g2, { tableMenu: false });
-  g2.fire('tableBuilt');
-  assert.equal(head2.querySelector('[data-table-menu]'), null, 'tableMenu: false still drew the button');
+  assert.equal(head.children.length, 0, 'the grid put something over its own headers');
 });

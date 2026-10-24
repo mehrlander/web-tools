@@ -84,7 +84,7 @@ lib/kits/review-target.js,reviewTarget,parse and mint the address grammar for th
 lib/kits/root-has-prune.js,RootHasPrune,"daisyUI's :root:has() rules, removed from the loaded stylesheet so that a change anywhere in the page stops costing a restyle of all of it.",112,no,no,1,yes
 lib/kits/route-activity.js,routeActivity,"rank the app's own routes by when the code behind each last moved, and join each to the work in flight against it.",358,no,no,6,yes
 lib/kits/route-join.js,RouteJoin,"the app-route join: the hub's own route manifest, and for each open pull request against the hub, the files it touches.",129,no,no,2,yes
-lib/kits/row-menu.js,rowMenu,"a tap on a row, and what you can do with it",586,no,yes,7,yes
+lib/kits/row-menu.js,rowMenu,"a tap on a row, and what you can do with it",583,no,yes,7,yes
 lib/kits/session-export.js,sessionExport,"a session as a list of exchanges, plus the pure function that turns any part of one into markdown.",1590,no,no,5,yes
 lib/kits/session-index.js,SessionIndex,"a token index over what sessions SAID, so the exhaustive pass stops costing the whole store.",418,no,no,7,yes
 lib/kits/session-render.js,sessionRender,a session record as a readable conversation.,1294,no,no,3,yes
@@ -99,7 +99,7 @@ lib/kits/subject-channel.js,subjectChannel,telling the FAB sidebar what you are 
 lib/kits/surface.js,Surface,"the surface envelope, in one place.",206,no,no,1,yes
 lib/kits/swipe-deck.js,swipeDeck,"the house swipe format: a snap-scrolling track of slides, and the fullscreen takeover that frames it.",1551,no,yes,35,yes
 lib/kits/sync-status.js,SyncStatus,"how a synchronization state looks, wherever the estate shows one.",31,no,no,4,yes
-lib/kits/tabular-explorer.js,TabularExplorer,"Exploratory Data Analysis (EDA) and immersive inspection for tabular data (CSV, TSV, JSON rows).",1042,no,no,1,yes
+lib/kits/tabular-explorer.js,TabularExplorer,"Exploratory Data Analysis (EDA) and immersive inspection for tabular data (CSV, TSV, JSON rows).",1039,no,no,1,yes
 lib/kits/term-marks.js,TermMarks,a glossary's terms marked where a text first names them (window.TermMarks).,39,no,no,1,yes
 lib/kits/text-collection.js,TextCollection,"the shared Text collection, read in the browser.",556,no,no,6,yes
 lib/kits/text-diff.js,textDiff,"patience diff over lines, plus word-level diff inside a changed line pair.",318,no,no,4,yes
