@@ -28,13 +28,15 @@ each. Care mode leaves out files a commit hook writes (`--generated`, marked
 counts focused edits. Logs, tracker tasks and archives stay in.
 
 The Growth tab puts a **ranked list** over the chart: the same files as of the
-last sample, each opening in the file deck. Its column heads sort it by focused
-edits, focused edits per thousand words (the default) or words, and a second
-click turns the order round. Picking a row rings its bubble and draws its
-trail, and picking a bubble scrolls the list to its row. The tab opens the chart
-on Care, where a row's rank and its bubble's height above the dashed line
-agree. The full page opens on Effort; `?y=care`, `net` or `age` opens it on
-another measure.
+last sample, one line a row, each opening in the file deck. Its column heads
+sort it by focused edits, focused edits per thousand words (the default) or
+words, and a second click turns the order round; a phone shows the one count
+the list is sorted by, under a head a tap steps through the three. A path too
+long for its line loses its start, so the file's name stays in view. Picking a
+row rings its bubble and draws its trail, and picking a bubble scrolls the list
+to its row. The tab opens the chart on Care, where a row's rank and its
+bubble's height above the dashed line agree. The full page opens on Effort;
+`?y=care`, `net` or `age` opens it on another measure.
 
 The tab has no minimum-edits slider: it lists and draws files with at least 5
 focused edits, or 5 edits on the other measures. Above the list, one row of
@@ -48,15 +50,13 @@ picks:
   two levels (`projects/budget-drs`) under a folder `--containers` names
   (`projects`, `packages` and `apps` by default).
 
-The chart's controls sit on the chart, above the plot: the y measure, the
-prose-only and trail toggles, and at the right a **colour box**. Dragging a
-filter row's label (Kind or Folder) onto the box colours the chart by that
-facet; tapping the box steps through Kind, Folder and one colour, and its ×
-returns to one colour. The three most common values over the whole list take a
-hue each and the rest a neutral, so a filter never repaints what it keeps; the
-coloured row's chips carry the dots, as the legend. The chart keeps every file
-and draws those outside the list faint. The tab fits the Map pane, so only the
-list scrolls.
+The chart's controls sit on the chart, above the plot: at the left the measure
+up the chart, which a tap steps through, and the prose-only and trail toggles;
+at the right a **colour box**, which a tap steps through Kind, Folder and one
+colour. The three most common values over the whole list take a hue each and the
+rest a neutral, so a filter never repaints what it keeps; the coloured row's
+chips carry the dots, as the legend. The chart keeps every file and draws those
+outside the list faint. The tab fits the Map pane, so only the list scrolls.
 
 `w` counts every token; `r` skips fenced code blocks and YAML frontmatter.
 Tables and indented code count in both, so a wide gap between the two means
