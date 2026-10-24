@@ -74,7 +74,7 @@ test('an SVG a CSV family names exists', () => {
   }
 });
 
-// A drawn mark's alternatives (docs/favicons/README.md, Alternatives): each
+// A drawn mark's alternatives (docs/favicons/README.md, Drawn marks): each
 // file in an alternatives/ folder is <mark>.<option>.svg beside a mark that
 // exists, and keeps the drawn-mark rules a file can be read for: the shared
 // box, a <desc> saying what it depicts, no strokes, and the mark's own paint.

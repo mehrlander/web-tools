@@ -20,7 +20,7 @@ Files: [`repos/`](repos/). Drawn 2026-10-22: one mark per estate repository exce
 
 ### Map marks
 
-Files: [`map/`](map/). Drawn 2026-10-22: one mark for each of the Map's seven tab groups, each a miniature of the view it opens, and one for each outpost but Work PowerShell, which wears the wps project's mark. Reach's mark changed on 2026-10-24 to an orbit around the hub, which shows what the hub reaches rather than the routes diagram. The Map draws them on its tab strip, its Overview headings, and its outposts in Reach and in Outposts.
+Files: [`map/`](map/). Drawn 2026-10-22: one mark for each of the Map's seven tab groups, each a miniature of the view it opens, and one for each outpost but Work PowerShell, which wears the wps project's mark. The Map draws them on its tab strip, its Overview headings, and its outposts in Reach and in Outposts.
 
 ## Drawn marks
 
@@ -31,6 +31,7 @@ A project's or a program's own icon is an SVG drawn to the rules of the budget-d
 - A project's or a program's mark takes a colour no other project or program uses; an agent's icon is coloured too, and may repeat a project's colour. Every other mark is filled with `currentColor`, which an `<img>` draws black, so a page paints it as a CSS mask in its text colour.
 - The hub's repositories share a hexagon, and the public-record stores stand on the detached base bar (`<rect x="2" y="24.4" width="28" height="4.6"/>`).
 - A `<desc>` says what the mark depicts.
+- The options considered for a mark sit beside it in `alternatives/` as `<mark>.<option>.svg`. Choosing one swaps it with the mark, which moves into `alternatives/`.
 
 ## In review
 
@@ -39,10 +40,6 @@ A project's or a program's own icon is an SVG drawn to the rules of the budget-d
 <img src="web-tools-icon-3d.png" width="96" height="96" alt="blue hex nut rendered at a slight three-dimensional angle on graphite gray">
 
 File: [`web-tools-icon-3d.png`](web-tools-icon-3d.png). A 180 × 180 candidate with a lighter graphite tile, the blue mark reduced to roughly two-thirds of the canvas, and shallow extrusion. The [iPhone size check](../../pages/scratch/web-tools-icon-preview.html) compares the production-size raster with the active tile at 60, 40, and 29 CSS pixels. This is a design candidate, not the shipped Home Screen icon.
-
-### Alternatives
-
-The options considered for a drawn mark sit beside it in `alternatives/`, named `<mark>.<option>.svg` and drawn to the same rules, each with a `<desc>` saying what it depicts. The Map's Icons tab badges a mark that has them and shows them in its tip. Drawn 2026-10-24: three for Map › Reach and three for Map › Harness (corners, plug, cog), in [`map/alternatives/`](map/alternatives/). Reach took the orbit the same day, so its alternatives are ripples, arrows and routes, its former mark. Choosing one swaps it with the mark, which then moves into `alternatives/` in its place.
 
 ### Per-page emoji marks
 
