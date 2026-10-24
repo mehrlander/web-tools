@@ -72,7 +72,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`run-methods.csv`](run-methods.csv) *(orphan)* — how a person runs an errand's script: the venues each method allows and how its output returns
 - [`csv-census.md`](csv-census.md) — the per-repository tracked-CSV inventory: adoption, index measurements and Map reading
 - [`locators.md`](locators.md) — locators: the kinds, the container-and-part canonical form, inbound lookup, and how a reference is tested (broken or changed, follow or pin, the hash cascade, verdicts, cost tiers)
-- [`fab.md`](fab.md) — the FAB: the floating launcher, the drawer's five tabs, its menus, and the one-per-viewport rule
+- [`fab.md`](fab.md) — the FAB: what it signals, its sidebar's six tabs, its menus, and the one-per-viewport rule
 - [`map-tabs.csv`](map-tabs.csv) — the Map view's per-address descriptions and the longer account of each tab
 - [`context-sources.csv`](context-sources.csv) — the context registry: everything that enters a session, where it is defined, how it arrives, and who can change it
 - [`context-topics.csv`](context-topics.csv) — the topics two or more context sources speak to, each with a verdict on whether the overlap is by design
