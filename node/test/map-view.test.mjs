@@ -1651,7 +1651,14 @@ test('Context\'s address rides with Context alone, and comes back with it', asyn
 
 test('an address that does not open Context arms none of its keys', () => {
   const { shell } = makeShell({ search: '?view=map&tab=tests&ctxtopic=house-style' });
-  assert.deepEqual({ ...shell.mapCtx }, { ctxlens: '', ctxsort: '', ctxtopic: '', ctxsource: '', setintent: '' });
+  assert.deepEqual({ ...shell.mapCtx }, { ctxlens: '', ctxsort: '', ctxtopic: '', ctxsource: '', setintent: '', growthrepo: '' });
+});
+
+test("Growth's corpus rides with Growth alone", () => {
+  const { shell } = makeShell({ search: '?view=map&tab=growth&growthrepo=mehrlander/home' });
+  assert.equal(shell.mapCtx.growthrepo, 'mehrlander/home');
+  const other = makeShell({ search: '?view=map&tab=docs&growthrepo=mehrlander/home' }).shell;
+  assert.equal(other.mapCtx.growthrepo, '', 'an address that does not open Growth arms none of its keys');
 });
 
 test("Set's question rides with Set alone, and leaves Context's held address", async () => {

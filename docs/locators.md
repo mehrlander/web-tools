@@ -4,11 +4,10 @@ A **locator** is a string that names something outside the record holding it: a
 file, a part of a file, a record in a store, a passage of text, or an element on
 a live page. The estate already uses the word as a column type
 ([`vocabularies.csv`](vocabularies.csv): "resolves to a target outside the row:
-a path, a URL, or a key into another registry"), and some thirty registry
-columns are typed that way. This document gives the type its kinds, states how
+a path, a URL, or a key into another registry"), and registry columns are
+typed that way in [`properties.csv`](properties.csv). This document gives the type its kinds, states how
 a reference is found from the thing it points at, and states how a reference is
-tested for still being true. It adds no mechanism; where a piece exists, it is
-named and linked.
+tested for still being true; where a piece exists, it is named and linked.
 
 ## References are records
 
@@ -152,13 +151,14 @@ copy of the patterns, held to the same answers by
 [`notes-kit.test.mjs`](../node/test/notes-kit.test.mjs)); fragment locators in
 the content registry; spans pinned by a document hash in standoffs; quote
 anchors on notes; content-addressed passages; notes addressed to any locator,
-with `note.py show <about>` as the inbound lookup for notes; and the broken test
-with its verdicts in `dead-links.py`. `python/annotate/anchors.py` tests quotes on
+with `note.py show <about>` as the inbound lookup for notes; witnesses pinned
+on findings, checked by the [Tending view](views/tending.md) and `findings.py check`; and the broken
+test with its verdicts in `dead-links.py`. `python/annotate/anchors.py` tests quotes on
 notes and spans in standoffs; the pre-commit hook runs it on what a commit
 changes.
 
 **Does not exist yet:** a declared stance per kind of reference; stored witnesses
-on anything but standoffs; the cascade; an inbound index across kinds of
+on anything but standoffs and findings; the cascade; an inbound index across kinds of
 reference; and one checker applying these tests in place of one tool per kind.
 
 **One fact to resolve before building on this.** Notes address a tracker task by

@@ -77,7 +77,7 @@ OUTPUT_BUDGET="${WEB_TOOLS_OUTPUT_BUDGET:-28000}"
 # ── Told, not guessed (2026-08-30) ─────────────────────────────────────────
 #
 # The ceiling above is shared, and until now only this file knew it. A script
-# that sizes its own payload, which today means inject-conventions.sh, had to
+# that sizes its own payload had to
 # carry a second constant guessing at the ceiling MINUS its siblings, and that
 # guess could not see how many siblings there were. Measured 2026-08-30 across
 # three checkouts: the guess reserved 1,000 bytes and the siblings emitted
@@ -90,7 +90,7 @@ OUTPUT_BUDGET="${WEB_TOOLS_OUTPUT_BUDGET:-28000}"
 export WEB_TOOLS_OUTPUT_BUDGET="$OUTPUT_BUDGET"
 
 # Handed to every dispatched script so a repo can call something the plugin
-# ships (inject-conventions.sh) without knowing where the cache put it, or
+# ships without knowing where the cache put it, or
 # which commit it is pinned at. Resolved from this file rather than from
 # CLAUDE_PLUGIN_ROOT, which is substituted into hook commands but does not
 # resolve in a plain shell.

@@ -102,8 +102,9 @@ script as it refuses an errand's.
 page's JavaScript context, where a hostile page could wrap `fetch` and read an
 Authorization header. Here the token stays in the Stage's window, a realm the
 page never executed code in, and the page receives only the one script its own
-origin is owed, plus the storage reader above when you open the Page tab. So the errand list and the scripts can live in the private
-registry; nothing about an errand has to be public.
+origin is owed, plus the storage reader above when you open the Page tab. So
+the errand list and the scripts can live in the private registry; nothing about
+an errand has to be public.
 
 **The window is opened by the bookmark, synchronously.** A popup is permitted
 only while the user-gesture token is live, and the first `await` spends it. The
@@ -117,15 +118,13 @@ message. Held by `node/test/stage-courier.test.mjs`.
 
 - **A blocked popup.** The bookmark alerts and stops; allow popups for the site.
 - **A site that sends `Cross-Origin-Opener-Policy`** cuts the link between the
-  windows, and nothing arrives.
+  windows, and nothing arrives
+  ([which route reaches a page](../bookmarklets/README.md#which-route-reaches-a-page)).
 - **A Content Security Policy that forbids `eval`** refuses the script, which
   runs through `new Function`. The page's links still arrive.
 
-Until 2026-09-24 a second, tokenless route (`bookmarklets/courier.js` reading a
-public `courier/errands.json`) covered the first two cases. It was retired when
-errands moved to one private folder, since it needed the list and the scripts
-to be public. No page in use has needed it; if one does, a deliberately public
-errand is the way back, not a standing public list.
+If a page ever needs a route without the popup, a deliberately public errand is
+the way, not a standing public list of errands.
 
 ## An errand script
 
@@ -159,7 +158,7 @@ PDFs want the Stage's upload intake instead.
 
 ## Testing an errand before it ships
 
-The sandbox browser cannot reach external hosts, so the exchange is exercised in
+The sandbox browser cannot be relied on to reach external hosts, so the exchange is exercised in
 jsdom (`node/test/stage-courier.test.mjs`) with the registry reads stubbed. Run
 the errand script alone against a saved copy of the page first, then the
 courier end to end in a real browser.

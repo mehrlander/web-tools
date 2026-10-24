@@ -4,7 +4,7 @@
 // registry hold `reach` and `words`.
 //
 // The question it answers is the docs registry's `reach` question one level up.
-// The audits recorded in docs/registries.md found errors in two authored fields
+// An audit of the registries found errors in two authored fields
 // that nothing checked (`why` ran nought for five, `required` fifty-one for
 // fifty-four). A registry no surface renders is committed, gated, and read by
 // nobody, so nothing meets its claims either. The

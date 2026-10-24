@@ -1,9 +1,8 @@
 # Prior art for scouring
 
 What the existing literature already names, and what it says about the
-choices in [SKILL.md](SKILL.md). Assembled 2026-08-13. The short version:
-almost every intuition behind this skill is a named result from 1998 to 2002,
-and the genuinely new part is only the agent harness around them.
+choices in [SKILL.md](SKILL.md). Almost every intuition behind the skill is a
+named result from 1998 to 2002; the new part is the agent harness around them.
 
 ## 1. The hub idea is HITS, and it predicts a genre
 
@@ -36,10 +35,10 @@ here:
 | Term | Meaning | Here |
 | --- | --- | --- |
 | **Frontier** | queue of unvisited URLs awaiting priority | our lead list |
-| **Frontier prioritization** | deciding what to fetch next; *the* central problem | we did this ad hoc |
-| **Seed selection** | which URLs to start from; "can significantly influence the crawling efficiency" | we never chose systematically |
+| **Frontier prioritization** | deciding what to fetch next; *the* central problem | which lead to read next |
+| **Seed selection** | which URLs to start from; "can significantly influence the crawling efficiency" | the loop's Seed step |
 | **Whitelist strategy** | start from high-quality seeds and confine the crawl to their domains | close to what a roster does |
-| **Harvest rate** | relevant pages fetched divided by all pages fetched | we never computed it |
+| **Harvest rate** | relevant pages fetched divided by all pages fetched | to track per run (Instrumentation) |
 | **Tunneling** | crossing low-relevance pages to reach relevant clusters behind them | see the warning below |
 
 Cheap relevance predictors, all applied *before* fetching:
@@ -50,20 +49,18 @@ Cheap relevance predictors, all applied *before* fetching:
   relevant pages, not just the pages
 - **Ontology-driven** variants map pages onto domain concepts
 
-**The cheapest of these is free and we discard it.** Anchor text costs nothing
-to capture at fetch time and is the oldest known signal for whether a link is
-worth taking. Our pass kept no links at all, let alone their anchor text.
+**The cheapest of these is free.** Anchor text costs nothing to capture at
+fetch time and is the oldest known signal for whether a link is worth taking.
 
 ### The tunneling warning, which cuts against our own result
 
-We measured `leads = 1.04 x pages^0.63` and concluded breadth beats depth.
+Leads against pages read on 20 sources fit `leads = 1.04 x pages^0.63` (R^2 = 0.75), and the skill concludes breadth beats depth.
 Tunneling is the literature's counter-case: a highly relevant cluster can sit
 behind a page that scores low on its own, and a crawler that always stops
 early never reaches it. Interclass rules that capture linkage between topic
 classes exist specifically to let a crawler "cross tunnel."
 
-So the honest statement is narrower than what the skill claimed. Our exponent
-was measured on shallow reads of already-known-relevant sources, which is
+So the claim is narrow. The exponent was measured on shallow reads of already-known-relevant sources, which is
 exactly the regime where tunneling never happens. **Breadth beats depth for
 enumerating a known neighborhood. It says nothing about reaching a
 neighborhood you have not entered**, and may actively mislead there.
@@ -90,17 +87,16 @@ the politics of its seeds and looks complete from inside.
 port directly:
 
 1. **Cap referrals per source.** RDS gives each participant a fixed small
-   number of coupons so no single well-connected node floods the sample. Our
-   `leads.md` files informally ran 3 to 10, which is accidentally in range.
+   number of coupons so no single well-connected node floods the sample. The
+   `leads.md` files of the measured run (home `projects/wa-budget-landscape/`)
+   ran 3 to 10, which is in range.
 2. **Weight by network size and recruitment pattern** to correct for
    differential connectivity.
 
-And one thing this project already did right without knowing why: **promoting
-a lead only when two independent sources surface it.** That is a
+**Promoting a lead only when two independent sources surface it** is a
 corroboration filter against homophily, since a lead reachable from two
 different parts of the graph is less likely to be an artifact of one seed's
-circle. Of the four leads promoted in the actor pass, the strongest
-(`wacities-org`) was exactly the one surfaced independently by two passes.
+circle.
 
 ## 4. What is actually new
 

@@ -3,8 +3,8 @@
 Most pages here load their own code at runtime instead of shipping a bundle:
 a page imports `gh-api.js`, then calls `gh.load(...)` for each component and
 kit it needs, and each file is fetched (through the GitHub contents API) and
-run on the spot. There is no build step in the authoring loop — edit a file
-in `lib/`, reload, and the next run uses it.
+run on the spot. There is no build step in the authoring loop: edit a file in
+`lib/`, reload, and the next run uses it.
 
 The repo has two tiers of pages:
 
@@ -17,19 +17,17 @@ The repo has two tiers of pages:
   and its auto-loads; `gh-store.js` stays opt-in) plus `alpine-bundle.js` to
   load reusable components off the repo at runtime.
   `lib/kits/demos/{persistence,messaging,io}.html` are the small ones;
-  `pages/index.html` is loader-based too, and `app/index.html` is the large
-  one, though since 2026-09-02 it imports `dist/app.js` (its own pre-build)
-  rather than running the load chain. Which pages exist is
-  [`pages/pages.csv`](../pages/pages.csv)'s business, not this paragraph's:
-  the four named here before 2026-09-08 had two that no longer exist.
+  `pages/index.html` is loader-based too. `app/index.html` imports
+  `dist/app.js`, its own pre-build, rather than running the load chain. Which
+  pages exist is [`pages/pages.csv`](../pages/pages.csv)'s business.
 
 This doc is about the second tier: the contract a file must honor to be
-loadable this way, the timing invariants the boot sequence depends on, and —
+loadable this way, the timing invariants the boot sequence depends on, and,
 because that same contract is what lets a page be frozen into an offline
-**build** — how load and build are two readings of one set of rules (see
+**build**, how load and build are two readings of one set of rules (see
 [Load and build are one contract](#load-and-build-are-one-contract)). The
-build/bake tooling and the render harness that exercises all of this live
-under [`node/`](../node/README.md).
+build/bake tooling and the render harness live under
+[`node/`](../node/README.md).
 
 ## The loader-based page pattern, annotated
 
@@ -41,8 +39,8 @@ Every loader-based page's `<head>` looks like this, with minor variation:
 <script type="module">
   // ?use=<branch|tag|sha> pins everything entry.js loads to a ref; defaults to main.
   // entry.js imports gh-api.js at that ref, which sets window.gh and chains
-  // gh-boot.js, so by the time the import resolves gh-auth.js, gh-fetch.js,
-  // kits/console.js, and vanilla-bundle.js are loaded; gh-store.js stays opt-in.
+  // gh-boot.js, so by the time the import resolves gh-boot.js's BOOT list is
+  // loaded; gh-store.js stays opt-in.
   await import('https://mehrlander.github.io/web-tools/lib/entry.js');
 
   // await gh.load('gh-store.js');                // optional: write methods
@@ -68,31 +66,21 @@ it loads through the contents API at the same ref either way:
 - **Main** (no `?use=`): a native import of `gh-api.js` from beside
   `entry.js` on GitHub Pages, which serves JavaScript as JavaScript with a
   ten-minute cache.
-- **Any other ref** (`?use=<ref>`): that ref's `gh-api.js` from `raw.githubusercontent`,
-  fetched `no-store` and blob-imported, since raw serves `text/plain` with
-  `nosniff`. A branch name is cache-safe this way: raw and the contents API
-  are both fresh on a just-pushed branch.
+- **Any other ref** (`?use=<ref>`): that ref's `gh-api.js` from
+  `raw.githubusercontent`, fetched `no-store` and blob-imported, since raw
+  serves `text/plain` with `nosniff`. The contents API is fresh on a push;
+  raw serves `max-age=300`, so it tracks a push within minutes.
 
-The unpinned route stays a native import rather than the blob route at main.
-The device measurement behind that (the snag `shell-pin-kills-the-tab`)
-found that a toss shell pinned with `?use=<sha>` dies on an iPhone when it
-hosts a frame. It predates `entry.js`, and no cell has run the blob route at
-main, so whether the blob import or the shell's ref is the fatal part is
-open; `pages/scratch/shell-pin-probe.html` separates them. `entry.js` itself
-is served from Pages so that any page on any origin can import it. jsDelivr's `/gh/` route was the no-`?use` default
-until 2026-09-26 and is gone from live code: it cached a branch for about
-twelve hours and needed purges.
-
-**`entry.js` resolves its ref in this order:** `?ref=` on its own import
-URL (a page's own pin), then `window.__lib`, then the page's `?use=`, then
-`main`.
+[`lib/entry.js`](../lib/entry.js)'s header gives the order in which it resolves
+its ref (its own `?ref=` first, `main` last) and why the main route stays a
+native import (the snag `shell-pin-kills-the-tab`).
 
 ### Under the toss
 
 A page rendered by `pages/toss-render.html` has no query string of its own:
 by default it runs in a `blob:` frame (top mode, below, is the exception). The renderer answers the page's reads of its own
 address instead, through a params shim, and it tells the page which Web Tools
-to load through three channels, each with one meaning:
+to load through these channels, each with one meaning:
 
 | Channel | Meaning | Set when |
 |---|---|---|
@@ -110,9 +98,9 @@ a page of this repo, and `main` for a page of any other repo, since that
 page's ref names a branch of a different repository. So a page tossed from
 another repo loads `main` unless the link says otherwise, whether its boot
 reads `use` or reads `lib` and then `window.__lib`. The renderer never
-invents a `lib`: a default answered under that name looked like a selection
+invents a `lib`: a default answered under that name looks like a selection
 to anything that forwards selections, and a renderer run by another renderer
-imposed the outer default on the page inside (caught 2026-09-29). A page that frames views of its own,
+would impose the outer default on the page inside. A page that frames views of its own,
 such as the app, reads `window.__lib` to tell a selection it must pass on
 from a default each view derives for itself. The web-tools app does this in
 `appViewAddress`: a view's own ref and `lib` win, then the app's page ref (for
@@ -139,14 +127,6 @@ The channels in the table are stamped the same way, and `window.__tossTop`
 (`{ repo, ref, path, lib }`) replaces `window.__fabHosted`, since no renderer
 is on screen and the page mounts its own FAB. A forced width, a payload, and an
 address pasted into the renderer's panel keep the frame.
-
-The `gh-api.js` auto-bootstrap triggers on one signal:
-`window.__ghBlobBoot = { repo, ref }`, set by `entry.js` before either
-import. A signal rather than parsing `import.meta.url`, because on the `?use=`
-route that is an opaque `blob:` URL. It sets the
-loader's `loadBase` to `lib/`, so every later `gh.load('kits/x.js')` resolves
-under `lib/`. A page that imports `gh-api.js` any other way sets no signal, so
-the bootstrap stays dormant and the page instantiates `GH` by hand.
 
 ### The selection
 
@@ -183,27 +163,35 @@ takes path entries only. A page that reads a file and writes it back reads it
 at its write branch, never through the selection; its own parameter
 (`?data=`) is the one thing that moves read and write together.
 
-**Where it is applied.** The renderer, for the displayed file, its inlined
-scripts and stylesheets and its relative `fetch()` (each resolved per path),
-and the Web Tools boot. `entry.js`, for the Web Tools ref and a path entry for
-`gh-api.js` itself. The `GH` client's reads (`get`, `bytes`, `ls`, `history`,
-`recentFiles`, `rawUrl`, `flatTree`). A pre-built bundle's cache, which answers
-a read only when the read resolves to the ref the build was loaded at: the
-build's own repository, and a ref from `opts.ref`, else the client's
-`readRef(path)`, equal to the build's. Anything else goes to GitHub, so one
-changed file previews over an unchanged build and a pinned client never gets
-the build's copy. A build GitHub Pages served takes the default branch as its
-ref whatever was asked, since those are the bytes it holds; a page whose own
-resolve fell back to it then shows the unmet ask in the FAB. The web-tools app and home's budget-drs app forward the
-selection to every view and tenant they frame and every toss link they mint.
-Reads a page builds by hand take `GH.refFor(repo, path)`.
+**Which resources follow which selection**, in a toss and on a deployed page:
+
+| Resource | Version |
+|---|---|
+| The page file | The address's ref |
+| The page's relative `<script src>` and `<link rel=stylesheet>` | The file's own entry in the selection, else the address's ref, inlined by the renderer, in both modes |
+| The page's relative `fetch()` GETs | As above, through the renderer's fetch shim, in both modes |
+| The page's relative `<img>`, CSS `url()`, `import()`, `<iframe src>`, and a relative favicon | The deployed site, main, through the stamped `<base>`, in both modes; absent for a private repository |
+| `lib/entry.js` | The deployed site, always |
+| `lib/gh-api.js` and every `gh.load` file | The Web Tools selection: raw and the contents API at that ref, or Pages for main |
+| A pre-built bundle (`dist/app.js`, `dist/web-tools.js`, `dist/dictate.js`) | The Web Tools selection. Its cache answers only a read of its own repository that resolves to the ref it was loaded at, so one changed file previews over an unchanged build and a pinned client never gets the build's copy. A build GitHub Pages served takes the default branch as its ref whatever was asked, and a page whose own resolve fell back to it shows the unmet ask in the FAB |
+| home's `surfacer.html` bundle | The Web Tools selection, resolved to a commit; main's deployed build, reporting main, if the resolve fails |
+| A routed toss's viewer page (`#data=`, `#pdf=`) | The Web Tools selection, else the route's ref |
+| The renderer, its FAB and its Alpine | main, in frame mode. In top mode the page replaces the renderer, and the page's own FAB follows the Web Tools selection |
+| Another repository's data | The page's own parameter, else the selection, else main; the reads kept on main on purpose are below |
+| A view the web-tools app frames | Its own ref and `lib`, else the app's, by `appViewAddress` ([Under the toss](#under-the-toss)) |
+
+The `GH` client's reads (`get`, `bytes`, `ls`, `history`, `recentFiles`,
+`rawUrl`, `flatTree`) resolve each path through the selection; reads a page
+builds by hand take `GH.refFor(repo, path)`. The web-tools app and home's
+budget-drs app forward the selection to every view and tenant they frame and
+every toss link they mint.
 
 **Kept on purpose, and why.**
 
 | Reads that name their ref | Why |
 |---|---|
 | The registry and session store in `mehrlander/web-tools-private` (state, caches, notes, errands, jots, sessions) | Live shared state that crawls, devices and sessions write on `main`; a preview must show the current state |
-| Device folders (`shortcuts/log`, `shortcuts/manifests`, `push-shortcuts`) | The device writes only to `main`; reading them at a preview ref was a real bug (2026-08-18) |
+| Device folders (`shortcuts/log`, `shortcuts/manifests`, `push-shortcuts`) | The device writes only to `main`; reading them at a preview ref was a real bug |
 | `shortcut-log.html`'s main-versus-branch scoring | A deliberate comparison |
 | Read-modify-write editors (`links`, `news`, `text-lab`, `dictate`, the library's prune ledger, `repo-proposals`) | What is read is written back; `?data=` moves both |
 | The app's Files view and config form | A visible, user-chosen browse ref that also targets writes |
@@ -215,72 +203,42 @@ Reads a page builds by hand take `GH.refFor(repo, path)`.
 
 ### What each piece contributes
 
-- `lib/gh-api.js` — ESM default export, `class GH`. Imported via
-  `<script type="module">`, not `gh.load` (bootstrap: it *is* the loader).
-  Minimal cached root: provides `req / get / read / bytes / load` and the
-  request/cache plumbing. Read methods (`ls / repos / history / parseUrl / …`)
-  live in `gh-fetch.js`, which patches them onto `GH.prototype`; write methods live in `gh-store.js`; token resolution
-  lives in `gh-auth.js`. All three are loaded via `gh.load(...)` and patch
-  `GH.prototype` in place. **Auto-bootstrap:** when `window.__ghBlobBoot`
-  names a repo and ref, the file instantiates `window.gh`, sets
-  `window.__bundleRef`, sets `loadBase` to `lib/`, and chains `gh-boot.js`.
-- `lib/entry.js` — the page's one import, from GitHub Pages. Reads `?use=`,
-  sets `window.__ghBlobBoot`, and imports `gh-api.js` by one of the two routes
-  above. Always main's copy, which is why it holds nothing but the boot.
-- `gh-boot.js` — the startup list, kept out of `gh-api.js` so the loader
-  itself changes rarely. Loaded by the
-  auto-bootstrap. Its `BOOT` manifest is the unconditional sequence, declared
-  as data so the cost of starting a page can be read without reading the boot
-  function; it runs, in this order: `vanilla-bundle.js`,
-  `gh-auth.js`, `gh-fetch.js`, `kits/repo-address.js`, `kits/source-peek.js`,
-  `kits/traffic.js`, `kits/claude-mark.js`, `kits/assistant-mark.js` and
-  `kits/console.js` (structured
-  console retention; see [kits/README.md](../lib/kits/README.md)). Read `BOOT`
-  itself rather than this list, which is a copy. A separate `FAB_BOOT` carries
-  the conditional standing equipment. It
-  also owns the boot's observability: it wraps `GH.prototype.load` so
-  every load lands on `window.__loadedScripts` (path, timing, status,
-  `by:` attribution; deduped by path; a still-pending row flips to a
-  visible error after 15s and self-heals if the load later settles; fires
-  a `loadedscripts` event), seeded with `gh-api.js` and itself. It mirrors
-  each resolved `read()` onto `window.__reads` (newest value per path,
-  fires a `reads` event; the export kit's input), injects the project
-  favicon when a page declares none, and under `?use=` paints the corner
-  ref badge and auto-mounts the FAB unless the page mounts its own
-  (registering `alpineComponents/path-picker.js` alongside it, since the
-  FAB's render tab mounts one and a component file loaded after Alpine
-  starts never registers). The
-  cosmetic pieces are wrapped best-effort; nothing in it may break the
-  boot chain.
-- `gh-auth.js` — optional augmentation. Patches the `headers` getter so
-  that any request with a missing or sentinel-bearing token (`🎟️GitHubToken`)
-  lazily resolves from `localStorage.ghToken`. Lets a page do
-  `new GH({ repo })` without plumbing tokens through the constructor while
-  still preserving the iOS-Shortcut data-URL substitution path. Also
-  patches `req` so a 401/403 takes over the page with a token-entry form
-  (idempotent), and installs a window `unhandledrejection` handler that
-  renders a generic "Boot failed" UI for other rejections that fire while
-  `document.readyState === 'loading'` (the heuristic for "boot in
-  progress"). Pages whose boot doesn't fit the module-top-level-await
-  model can call `window.ghAuth.bootDone()` at the end of their chain to
-  suppress the handler. Also exposes
-  `window.ghAuth.{resolve,save,clear,prompt,bootDone}` for explicit use.
-  Loaded automatically by `gh-boot.js` on bootstrap pages; pages that
-  import `gh-api.js` without `@<ref>` must `await gh.load('gh-auth.js')`
-  themselves.
-- `vanilla-bundle.js` — framework-free ambient helpers, auto-loaded by
-  `gh-boot.js`: DOM utilities (`ea`, `el`, `ids`, `ui`, `grab`, `fill`,
-  `attr`, `cls`, `listen`, `data`, `tpl`, `on`, `route`), the
-  Tailwind/daisyUI string helpers on `window.html` (`html.tip`,
-  `html.btn`, …), and `window.copy()`. No dependencies; idempotent on
-  re-load.
-- `alpine-bundle.js` — IIFE. Inside an `alpine:init` handler it creates
+Each file's header is its own account; these lines say what it is for.
+
+- `lib/gh-api.js`: ESM default export, `class GH`, imported rather than
+  `gh.load`ed, since it is the loader. A minimal root: `req / get / read /
+  bytes / load` and the request and cache plumbing. Read methods
+  (`gh-fetch.js`), write methods (`gh-store.js`) and token resolution
+  (`gh-auth.js`) are loaded through `gh.load(...)` and patch `GH.prototype` in
+  place. **Auto-bootstrap** triggers on one signal, `window.__ghBlobBoot =
+  { repo, ref }`, set by `entry.js` before either import (a signal rather than
+  `import.meta.url`, which is an opaque `blob:` URL on the `?use=` route): the
+  file instantiates `window.gh`, sets `window.__bundleRef`, sets `loadBase` to
+  `lib/` (so `gh.load('kits/x.js')` resolves under `lib/`), and chains
+  `gh-boot.js`. A page that imports `gh-api.js` any other way sets no signal,
+  so the bootstrap stays dormant and the page instantiates `GH` by hand.
+- `lib/entry.js`: the page's one import, from GitHub Pages. Always main's copy,
+  which is why it holds nothing but the boot.
+- `gh-boot.js`: the startup list, kept out of `gh-api.js` so the loader itself
+  changes rarely. Its `BOOT` manifest (the unconditional sequence) and
+  `FAB_BOOT` (the FAB and its path picker, unless the page sets `data-no-fab`)
+  are declared as data at the top of the file; read them there. It also fills
+  the load registry and the read mirror on `window`, installs the `fetch`
+  wrapper (all three below), and injects the project favicon when a page declares
+  none. Nothing in it may break the boot chain.
+- `gh-auth.js`: the token and boot-failure layer. Its header covers the
+  `headers` and `req` patches, the `unhandledrejection` handler and
+  `window.ghAuth`. Loaded automatically by `gh-boot.js` on bootstrap pages;
+  a page that imports `gh-api.js` other than through `entry.js` sets no
+  bootstrap signal and must `await gh.load('gh-auth.js')` itself.
+- `vanilla-bundle.js`: framework-free ambient helpers (DOM utilities,
+  `window.html`, `window.copy()`), first in `BOOT`. No dependencies;
+  idempotent on re-load.
+- `alpine-bundle.js`: IIFE. Inside an `alpine:init` handler it creates
   `Alpine.store('browser')`, `Alpine.store('toasts')`, and magics `$clip`,
-  `$paste`, `$toast`. After registering the listener it injects two
-  `<script>` tags to load the Alpine collapse plugin, then Alpine itself —
-  which fires `alpine:init`, runs all registered handlers, then initializes
-  the DOM.
-- `alpineComponents/*.js` — each calls `document.addEventListener('alpine:init', …)`
+  `$paste`, `$toast`; it then injects the Alpine collapse plugin and Alpine
+  itself (invariant 3).
+- `alpineComponents/*.js`: each calls `document.addEventListener('alpine:init', …)`
   with `Alpine.data('name', fn)` inside. They reach across to other
   components via `Alpine.store('browser')` and via per-element back-pointers
   (`this.$root.__viewer = this`).
@@ -299,41 +257,37 @@ itself; a page that instantiates `GH` by hand gets only what it loads.
 | `gh`, `GH` | `gh-api.js` bootstrap | the live loader instance; the class |
 | `__bundleRef` | `gh-api.js` bootstrap | the ref the bundle booted from |
 | `__consoleLogs` (+ `consolelog` event) | `gh-api.js` | flattened console capture; the fallback renderers use when `kits/console.js` is absent |
-| `__loadedScripts` (+ `loadedscripts` event) | `gh-boot.js` | the load registry: path, timing, status, `by:` attribution; the FAB's Scripts tab reads it |
+| `__loadedScripts` (+ `loadedscripts` event) | `gh-boot.js` | the load registry: path, timing, status, `by:` attribution; the FAB's Inspect tab reads it |
 | `__reads` (+ `reads` event) | `gh-boot.js` | newest `read()` value per path; the export kit's input |
-| `__traffic`, `__trafficTotals` (+ `traffic` event, coalesced to 250ms) | `gh-boot.js` | the request ledger: one row per `fetch`, with `method`, status, elapsed, and `wire` from `content-length` (`null` when the response declared none). `method` is what separates a write from a read, since `gh-store` PUTs to the same `contents/` endpoint `gh.load()` GETs from, and `via` is the repo path a `load()`/`read()` was fetching, which separates the loader pulling own code from a page reading a file over that same endpoint. The rows are capped at 400 and the totals are not, so a long crawl trims its history without deflating its count |
+| `__traffic`, `__trafficTotals` (+ `traffic` event, coalesced to 250ms) | `gh-boot.js` | the request ledger: one row per `fetch`, with `method`, `via` (the repo path a `load()`/`read()` was fetching), status, elapsed, and `wire` from `content-length`. Rows are capped and the totals are not |
 | `__trafficRate`, `__trafficRateAt`, `__trafficRateReset` | `gh-boot.js` | newest `x-ratelimit-remaining` seen on any response, when it was seen, and when the window resets |
-| `__ghFiles` (+ `ghfiles` event) | `gh-boot.js` | per-path `{ bytes, inlined, sha }` from a `get()` wrapper. `inlined` is true when the pre-build served the file from its cache (sha `build:<ref>`), which is how the FAB's Scripts rows tell a load that cost nothing from one that cost a fetch |
+| `__ghFiles` (+ `ghfiles` event) | `gh-boot.js` | per-path `{ bytes, inlined, sha }` from a `get()` wrapper; `inlined` marks a file the pre-build served from its cache |
 | `Traffic` | `kits/traffic.js` | the pure read over the two above plus Resource Timing: classification, roll-ups, formatting, and the three-state size vocabulary (network / cached / undisclosed) |
-| `ghAuth` | `gh-auth.js` | `resolve` / `save` / `clear` / `prompt` / `bootDone` |
+| `ghAuth` | `gh-auth.js` | `resolve` / `save` / `clear` / `prompt` / `bootDone`, among others |
 | `console.history` / `.subscribe` / `.filter`, `consoleKit` | `kits/console.js` | structured console retention over the base wrapper |
 | `html`, the DOM helpers (`ea`, `el`, …), `copy()` | `vanilla-bundle.js` | ambient string/DOM utilities |
 | Alpine stores `browser`, `toasts`; magics `$clip`, `$paste`, `$toast` | `alpine-bundle.js` | exist only after `alpine:init` |
 | `__builtOffline` | a build (`build.js` output) | present only on baked/offline pages |
 | `window.<kit>` namespaces | each kit | see the [Kits tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=kits) and [`kits.csv`](kits.csv), whose `boot` column marks the kits `gh-boot.js` loads |
 
-A new global with no row here is a doc bug; add the row in the same
-change that adds the global.
+A new global installed by `gh-api.js`, `gh-boot.js` or a bundle with no row
+here is a doc bug; add the row in the same change that adds the global. A kit
+or component documents its own global in its header comment.
 
-#### The one thing the chain patches: `window.fetch`
+The chain patches one global: `gh-boot.js` replaces `window.fetch` with a
+wrapper that records the URL, the status, the elapsed time, and
+`content-length`. Its boundaries are what make it safe to keep:
 
-`gh-boot.js` replaces `window.fetch` with a wrapper that records the URL,
-the status, the elapsed time, and `content-length`. It is worth stating
-plainly because a global patch is the kind of thing that should never be
-a surprise, and because the boundaries are what make it safe to keep:
-
-- **It never touches the body.** No `clone()`, no `text()`. The same
-  `Response` object comes back, with its stream unread, so nothing
-  downstream can be starved by the instrument. The cost is that only the
-  compressed length is known, which is the figure the tab wants anyway.
-- **It never swallows an error.** A rejected fetch is recorded and
-  rethrown unchanged.
-- **It installs once**, guarded by `__trafficWrapped`, so a re-boot or a
-  second bundle on the page does not stack wrappers.
+- **It never touches the body.** The same `Response` comes back with its
+  stream unread, so nothing downstream can be starved by the instrument; only
+  the compressed length is known.
+- **It never swallows an error.** A rejected fetch is recorded and rethrown
+  unchanged.
+- **It installs once**, guarded by `__trafficWrapped`, so a re-boot or a second
+  bundle on the page does not stack wrappers.
 - **It sees only what comes after it.** The document, the CDN tags and
-  `gh-api.js` itself are already in flight when the wrapper installs;
-  those are Resource Timing's job, which is why the FAB's Traffic tab
-  reads both and keeps them in separate bands rather than one total.
+  `gh-api.js` itself are Resource Timing's job, which is why the FAB's Traffic
+  tab reads both and keeps them in separate bands.
 
 A page that wraps `fetch` itself should do so before the bundle import or
 accept that its wrapper sits outside this one.
@@ -348,43 +302,36 @@ const scopedGh = new Proxy(this, { /* stamps `by:` on nested gh.load */ });
 await new Function('gh', text)(scopedGh);                    // run it as-is
 ```
 
-The file is fetched and run **verbatim — no source rewriting.** (`read()`,
-the data twin, is identical except it returns the file's value instead of
-discarding it.) That "as-is" is the whole contract, and it's worth stating
-plainly because the docs used to describe the opposite: `load()` *once*
-stripped `export` / `export default` out of the source and auto-`return`ed
-the first top-level `class`/`function` it found. Both are gone. The strip was
-removed (commit `451f963`) because rewriting every file silently corrupted
-any that merely *carried* the word `export` in a string or comment —
-`build.js`, which emits an `export default` in its output template, was
-the file that exposed it.
+The file is fetched and run **verbatim, with no source rewriting.** (`read()`,
+the data twin, runs a file the same way but returns its value, tries a local
+sibling file first (rule 4), and does not apply `loadBase`: data paths are
+repo-root paths.)
 
-The framing the strip obscured, and the one to keep: **we don't author
-modules.** A loaded file is a plain script body, not an ES module that the
-loader de-modularizes. It runs inside `new Function('gh', text)(...)`, so:
+**We don't author modules.** A loaded file is a plain script body, not an ES
+module that the loader de-modularizes. It runs inside
+`new Function('gh', text)(...)`, so:
 
-1. **No `import` / `export`, ever.** Not "stripped" — *invalid*. Either
-   keyword inside a `new Function` body throws `SyntaxError` at load. A file
-   that needs a library reaches a global (a `<script>` already on the page)
-   or uses `await import(...)`, which is an ordinary expression and is fine.
+1. **No `import` / `export`, ever.** Either keyword inside a `new Function`
+   body throws `SyntaxError` at load. A file that needs a library reaches a
+   global (a `<script>` already on the page) or uses `await import(...)`,
+   which is an ordinary expression and is fine.
 2. **`gh` is in scope.** The loader injects the instance as the function's
    one argument, so a loaded file calls `gh.load(...)` / `gh.get(...)`
-   directly — the injected `gh` is a proxy that records which file each
+   directly; the injected `gh` is a proxy that records which file each
    nested load came from (`by:` attribution). `window.gh` works too.
 3. **`load()` discards the return value; it runs files for their side
    effects.** A loaded file makes itself available by *doing* something:
    `window.X = …`, `Alpine.data('name', …)` inside an `alpine:init` listener,
    or patching `GH.prototype` (as `gh-fetch.js` / `gh-store.js` do). Top-level
-   `const`/`let` are local to the run and vanish; there is no auto-`return`
-   of a named declaration anymore.
+   `const`/`let` are local to the run and vanish.
 4. **`read()` is the value-returning twin.** When a file's job is to
    *produce* a value rather than register a side effect, it ends with a
    top-level `return X;` and the caller uses `gh.read(path)` (or, for a local
    sibling file on `file://`, deposits on `document.currentScript.value`).
    That's the data path, distinct from code loading.
 
-The consequence for outside code: anything genuinely modular — Alp's
-`utils/kits/` with `import { brotli } from './brotli.js'`, say — **cannot go
+The consequence for outside code: anything genuinely modular, such as Alp's
+`utils/kits/` with `import { brotli } from './brotli.js'`, **cannot go
 through `gh.load()`**. It's ESM; load it with native `import()` instead.
 
 ## The timing invariants, stated explicitly
@@ -401,60 +348,59 @@ anything we add:
    Concretely: every `gh.load('alpineComponents/*.js')` call must happen
    *before* `gh.load('alpine-bundle.js')`. Alpine doesn't start until
    alpine-bundle injects the Alpine `<script>` tag, so the serial `await`s
-   in the module script guarantee this. `alpineComponents/viewer.js` is
-   exempt: it registers at once if Alpine is already running.
+   in the module script guarantee this. Registering after it is a race on
+   Alpine's CDN speed, so it fails intermittently. `alpineComponents/viewer.js`
+   is exempt: it registers at once if Alpine is already running.
 3. **`alpine-bundle.js` is the boot signal.** It registers the `browser`
    and `toasts` stores on `alpine:init`, then appends Alpine's script tag.
    Whenever Alpine loads, its `alpine:init` fires, our handlers run, stores
    exist, and only then does Alpine walk the DOM and call `init()` on each
-   `x-data` component. By that point `Alpine.store('browser')` is defined.
+   `x-data` component. Stores therefore do not exist at a file's top level:
+   reach `Alpine.store(...)` inside `init()`, methods or getters.
 4. **`x-init="init()"` on the body still races the module script.** That's
    why `app/index.html`'s `app.init()` opens with
    `const ready = await waitFor(() => window.GH);`, a bounded poll helper
-   defined in the same file (it replaced a bare `while` spin).
-   Alpine can reach `init()` before the module script's final
-   `gh.load(...)` resolves, because the two tasks (module script vs.
-   Alpine boot) aren't coordinated.
+   defined in the same file. Alpine can reach `init()` before the module
+   script's final `gh.load(...)` resolves, because the two tasks (module script
+   vs. Alpine boot) aren't coordinated.
 5. **Component-to-component handles rely on element back-pointers.**
    `init() { this.$root.__viewer = this }` in `viewer.js`, and a caller reaches
    it as `el.__viewer?.show(...)`, after `$nextTick` where the element was just
-   rendered. The optional chain replaced the spin loop this section used to
-   show: a caller that arrives early now no-ops rather than blocking.
+   rendered. A caller that arrives early no-ops rather than blocking.
 6. **Token sentinel `🎟️GitHubToken`.** Both `gh-api.js` (in `headers`) and
-   pages look for that exact string and replace it (or fall back to
-   `localStorage.ghToken`). Anything we add that touches tokens must use
-   the same sentinel.
+   pages look for that exact string and replace it (or fall back to the saved
+   token). Anything we add that touches tokens must use the same sentinel and
+   fall back through `window.ghAuth.resolve()`, which gh-boot loads on every
+   page and which stays data-URL-safe. Only a file that runs before any library
+   has loaded, or on a page that loads none, reads `localStorage.ghToken`
+   itself; [`token-one-owner.test.mjs`](../node/test/token-one-owner.test.mjs)
+   names each one.
 7. **Boot failures are handled centrally by `gh-auth.js`.** Loader-based
-   pages no longer wrap their module script in `try { ... } catch { ... }`.
+   pages do not wrap their module script in `try { ... } catch { ... }`.
    The boot chain is just a sequence of `await` calls. Failures propagate
    as unhandled rejections; gh-auth.js's `unhandledrejection` handler
    renders either the 401/403 token-entry form (via the `req` patch) or a
    generic "Boot failed" UI (gated on `document.readyState === 'loading'`).
    Module top-level await keeps readyState at `'loading'` until the chain
-   settles, so the gate cleanly distinguishes boot-time rejections from
-   later ones (e.g., from a click handler). Pages whose boot lives in a
-   classic-script IIFE — where readyState transitions before the IIFE
-   awaits resolve — should either convert to `<script type="module">` or
-   call `window.ghAuth.bootDone()` at the end of their chain to opt into
-   "boot is over, stop showing boot UI" semantics.
+   settles, so the gate distinguishes boot-time rejections from later ones
+   (e.g., from a click handler). Pages whose boot lives in a classic-script
+   IIFE, where readyState transitions before the IIFE's awaits resolve,
+   should either convert to `<script type="module">` or call
+   `window.ghAuth.bootDone()` at the end of their chain.
 8. **A pre-build page boots Alpine inside its import, so its own `gh.load`
    chain always runs late.** This is invariant 4 in its sharpest form. A page
    that does `await import('../dist/web-tools.js')` gets the whole auto-boot
    chain, ending in `alpine-bundle.js`, before the import resolves; the
    `gh.load(...)` calls it writes underneath therefore run *after* Alpine has
-   walked the DOM and called `init()`. Every kit such a page loads for itself
-   is undefined at component-init time. Which one you notice is arbitrary: it
-   is whichever the component touches first, so the same bug surfaced as
-   `reviewTarget.parse` on one path and `BranchBrief.fetchBrief` one `await`
-   later on another (2026-08-07, `branch.html`, in a real browser).
+   walked the DOM and called `init()`, and every kit such a page loads for
+   itself is undefined at component-init time.
 
-   The build fixes its own two instances of this by forcing `url-params.js`
-   and `repo-address.js` into the auto-boot chain, and
-   [`node/build/build-lib.mjs`](../node/build/build-lib.mjs) says why in
-   those words. That does not extend to a kit only one page wants, so such a
-   page declares a **ready gate**: a plain `<script>` *above* the module
-   creating `window.__depsReady`, the module resolving `window.__depsDone()`
-   in a `finally`, and the component opening `init()` with
+   The build forces the kits it needs itself into the auto-boot chain
+   ([`node/build/build-lib.mjs`](../node/build/build-lib.mjs) says which and
+   why). A kit only one page wants is the page's job, so such a page declares
+   a **ready gate**: a plain `<script>` *above* the module creating
+   `window.__depsReady`, the module resolving `window.__depsDone()` in a
+   `finally`, and the component opening `init()` with
    `await window.__depsReady`. The promise has to be created above the module
    because a component that starts during the import would otherwise find the
    promise itself undefined. Held by
@@ -462,83 +408,43 @@ anything we add:
    which is static: the failure is a race, so a passing run proves nothing and
    only the shape can be pinned.
 
-## What breaks the pattern
-
-A short list of footguns to avoid when adding new files:
-
-- **Adding `import` / `export` to a file loaded via `gh.load()`.** Both are
-  invalid inside the loader's `new Function` body and throw at load; they
-  are *not* stripped. Reach a global or use `await import(...)` instead.
-- **Expecting `gh.load()` to hand back a value.** It doesn't; it runs the
-  file for side effects and discards the result. Expose via `window.X`,
-  `Alpine.data(...)`, or a `GH.prototype` patch; if you genuinely need a
-  returned value, that's `read()`, not `load()`.
-- **Computing a `gh.load(...)` path at runtime** (`gh.load(name)` or a
-  template literal). It loads fine, but the static build walker only sees
-  string-literal arguments, so a computed path is invisible to the build and
-  won't be cached, and the offline page then silently falls back to the network
-  for it. Keep load paths literal; see [Load and build](#load-and-build-are-one-contract).
-- **Registering `alpine:init` handlers after `alpine-bundle.js` loads.**
-  Race depends on Alpine's CDN speed; intermittent. The rule is: all
-  component files go before alpine-bundle.
-- **Declaring top-level `const X = …` and expecting it to be visible
-  elsewhere.** It's local to the eval'd function body and vanishes. Assign
-  to `window.X`, or register a side effect.
-- **Forgetting the `🎟️GitHubToken` sentinel.** Any new file that wants a
-  token should look for that exact sentinel and fall back to the saved token
-  through `window.ghAuth.resolve()`, which gh-boot loads on every page and which
-  stays data-URL-safe. Only a file that runs before any library has loaded, or
-  on a page that loads none, reads `localStorage` itself;
-  [`token-one-owner.test.mjs`](../node/test/token-one-owner.test.mjs) names each one.
-- **Relying on `Alpine.store('…')` at file top level.** Stores only exist
-  after `alpine-bundle.js`'s `alpine:init` listener runs. Access them inside
-  `init()` / methods / getters, not at the top level of the file.
-- **A backtick inside an HTML or CSS comment in a template literal.**
-  The backtick ends the JavaScript string even though the embedded markup
-  treats it as a comment. Name the term in plain words and run `node --check`
-  before the build. [`lib-parses.test.mjs`](../node/test/lib-parses.test.mjs)
-  also checks that loadable files compile as function bodies.
-
 ## Load and build are one contract
 
 The same rules that make a file *loadable* also make a page *buildable* into a
-single offline artifact — because the build is the loader, not a separate
+single offline artifact, because the build is the loader, not a separate
 pipeline. `node/build/build.mjs` (and the in-browser FAB export) emit the
 real `gh-api.js` with exactly one thing overridden: `GH.prototype.get` reads
 from an inlined `path → source` cache instead of the network. Everything
-above still applies verbatim — same `new Function('gh', text)`, same
-side-effect convention, same timing — only the *origin of the bytes* changes.
+above still applies verbatim; only the *origin of the bytes* changes.
 
 So the contract has two readings:
 
 - **Load** (runtime, the dev loop): own code is fetched per-file through the
-  contents API, freshest-wins, ref-pinnable with `?use=<ref>`. Edit a file in
-  `lib/`, reload, see it. This is what the rest of this doc describes.
+  contents API, freshest-wins, ref-pinnable with `?use=<ref>`. This is what
+  the rest of this doc describes.
 - **Build** (delivery): the reachable set of own-code files is frozen into
   `dist/<page>.js`, which a page adopts by importing the local build instead
-  of `entry.js`. `bake` goes one further and inlines
-  that into the page's HTML, so the page opens with zero own-code network. The
-  build still honors `?use=<ref>` (an explicit ref falls through to the
-  network), so a built page can be re-pinned for review.
+  of `entry.js`. `bake` goes one further and inlines that into the page's
+  HTML, so the page opens with zero own-code network. The build still honors
+  `?use=<ref>` (an explicit ref falls through to the network), so a built page
+  can be re-pinned for review.
 
-A file that honors the contract is buildable for free — that's the *payoff*
-of the discipline, not just its cost. Two consequences follow directly from
-the mechanism:
+A file that honors the contract is buildable for free. Two consequences follow
+from the mechanism:
 
 - **Dependency edges must be statically discoverable.** The build's graph
   walker finds what to cache by scanning source for *string-literal*
   `gh.load('…')` / `_selfLoad('…')` arguments. A path computed at runtime
-  loads but is invisible to the build, so it won't be cached and the offline
-  page falls back to the network for it (the footgun above). Keep load paths
-  literal.
+  (`gh.load(name)`, a template literal) loads but is invisible to the build,
+  so it is not cached and the offline page silently falls back to the network
+  for it.
 - **`gh.load`-style vs. native ESM also decides build-portability.** A
   `gh.load`-loaded file rides into the build automatically; a file pulled in
   with native `import()` is opaque to the build the same way a third-party CDN
-  lib is — it stays on the network. So choosing between ESM and `gh.load` is
-  also choosing whether the file can ship inside an offline build.
+  lib is, and stays on the network.
 
-The operational side — the four verbs `load → build → bake → export`, the
-commands, and the byte-identical `verify-build` guarantee — lives in
+The operational side (the four verbs `load → build → bake → export`, the
+commands, and the byte-identical `verify-build` guarantee) lives in
 [`node/README.md`](../node/README.md).
 
 ## Consumers in other repos
@@ -563,11 +469,8 @@ routes this repo's own pages take, and no third:
 
 **Not a plain `<script src>` for a `lib/` file.** Raw cannot back one (its
 `nosniff`), and GitHub Pages can only for main, which would skip `?use=`. That
-is why `entry.js` is the only file a page loads by URL. The host used before,
-jsDelivr, also cached a branch URL twelve hours at the edge and told the
-browser to keep it seven days. Measured 2026-09-04: PR #584 merged at 09:35 and the budget-drs
-submittal page in `mehrlander/home`, loading `viewer.js` that way, showed the
-old render all day. Third-party libraries keep their CDN tags on both routes.
+is why `entry.js` is the only file a page loads by URL. Third-party libraries
+keep their CDN tags on both routes.
 
 Two things differ from a page in this repo:
 
@@ -591,20 +494,20 @@ Worked examples in `mehrlander/home`: `projects/budget-drs/app/view/app.html` (t
 
 ## Quick checklist for "can I load this file through gh.load?"
 
-- [ ] Any `import` / `export` at the top? → **Remove them — they throw at
-      load. Reach a global or use `await import(...)`.**
-- [ ] Does it need to produce a value for the caller? → **That's `read()`,
-      not `load()`. End the file with `return X;` and call `gh.read(path)`.**
-- [ ] Side-effect file (component / kit / augmentation)? → **Expose via
-      `window.X`, `Alpine.data(...)`, or a `GH.prototype` patch — `load()`
-      ignores the return value.**
-- [ ] Are its `gh.load(...)` paths string literals? → **Keep them literal so
-      the build can see them; a computed path won't be cached offline.**
-- [ ] Does it use `Alpine.store(...)` / `Alpine.data(...)`? → **Register them
-      inside `document.addEventListener('alpine:init', …)` and load the file
-      before `alpine-bundle.js`.**
-- [ ] Does it need a token? → **Use the `🎟️GitHubToken` sentinel with the
-      `localStorage.ghToken` fallback, data-URL-safe.**
+- [ ] No `import` / `export` (load mechanism, rule 1).
+- [ ] A value for the caller is `read()`, not `load()` (rule 4).
+- [ ] Side effects are exposed via `window.X`, `Alpine.data(...)`, or a
+      `GH.prototype` patch, not a top-level `const` (rule 3).
+- [ ] Keep load paths literal; see [Load and build](#load-and-build-are-one-contract).
+- [ ] Alpine registration sits inside `alpine:init`, in a file loaded before
+      `alpine-bundle.js`, and `Alpine.store(...)` is read only after it
+      (invariants 2 and 3).
+- [ ] A token comes through the sentinel (invariant 6).
+- [ ] No backtick inside an HTML or CSS comment in a template literal: it ends
+      the JavaScript string even though the markup treats it as a comment.
+      Name the term in plain words and run `node --check` before the build;
+      [`lib-parses.test.mjs`](../node/test/lib-parses.test.mjs) also checks
+      that loadable files compile as function bodies.
 
 If a file is genuinely modular (real `import`/`export`), use a native
 `import()` instead of `gh.load()` for it. Mixing is fine: a page can do
