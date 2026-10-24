@@ -4,9 +4,9 @@ The FAB is the draggable floating button every page and app view carries, and a 
 
 ## What the FAB says
 
-The FAB doubles as an indicator. Its colour, the glyph at its centre and two corner badges say which version of the view is on screen and whether a newer one exists, whether this browser holds a GitHub token, and whether selected text can become a note. Each signal is a row of [`fab-signals.csv`](fab-signals.csv), with when it shows, what it means and what a tap does; the Map view's Showing tab renders the table under **What the FAB says**, and [`fab-signals.test.mjs`](../node/test/fab-signals.test.mjs) holds its live rows to the FAB's markup in both directions.
+The FAB doubles as an indicator. Its colour, the glyph at its centre and two corner badges say which version of the view is on screen and whether a newer one exists, whether this browser holds a GitHub token, and whether selected text can become a note. Each signal is a row of [`fab-signals.csv`](fab-signals.csv): when it shows, what it means and what a tap does. The Map view's Showing tab renders the rows under **What the FAB says**, and [`fab-signals.test.mjs`](../node/test/fab-signals.test.mjs) holds the live ones to the FAB's markup, so a glyph added to `fab.js` fails the suite until its row exists.
 
-Two facts the table does not carry. The newer-commits check runs when the view changes and when the tab comes back into view, never on a timer, and only where a token is saved, since the anonymous rate limit is shared by the whole browser. And off the default branch the sidebar's ref bar turns warning too, and grows a button labeled with the default branch ("main") that returns to the live deployed page, or, where the repo serves no Pages and no such page exists, re-addresses this same view at that branch.
+The newer-commits check runs when the view changes and when the tab comes back into view, never on a timer, and only where a token is saved, since the anonymous rate limit is shared by the whole browser.
 
 ## The FAB sidebar
 
@@ -18,7 +18,7 @@ Above the tabs, not inside one, sits the LAYER strip naming the frame stack this
 
 ## Render: the ref bar
 
-Render leads with a ref bar naming the ref this view is rendered at, which opens a dropdown of the branches carrying a different version of this page (blob-compare against the default branch); one tap renders there, outside a toss by navigating to toss-render, inside one by re-addressing in place via __tossNavigate; over a file deck or the Stage's reader it asks __deckNavigate first, which re-renders where the reader stands.
+Render leads with a ref bar naming the ref this view is rendered at, which opens a dropdown of the branches carrying a different version of this page (blob-compare against the default branch); one tap renders there, outside a toss by navigating to toss-render, inside one by re-addressing in place via __tossNavigate; over a file deck or the Stage's reader it asks __deckNavigate first, which re-renders where the reader stands. Off the default branch the ref bar turns warning and grows a button labeled with the default branch ("main") that returns to the live deployed page, or, where the repo serves no Pages and no such page exists, re-addresses this same view at that branch.
 
 ## Render: the width bar
 
