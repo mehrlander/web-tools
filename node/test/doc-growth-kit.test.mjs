@@ -65,3 +65,14 @@ test('a payload without focused edits says so, and older payloads still chart', 
   assert.deepEqual(G.rank(old, { min: 1 }), []);
   assert.ok(G.bounds(old).churn >= 4);
 });
+
+test('kind tells agent instructions, skills, agent definitions and READMEs from other documents by path alone', () => {
+  assert.equal(G.kind('CLAUDE.md'), 'instructions');
+  assert.equal(G.kind('projects/x/AGENTS.md'), 'instructions');
+  assert.equal(G.kind('skills/tend/SKILL.md'), 'skill');
+  assert.equal(G.kind('skills/agents/owner-proxy.md'), 'agent');
+  assert.equal(G.kind('.claude/agents/drs-budget-analyst.md'), 'agent');
+  assert.equal(G.kind('lib/kits/README.md'), 'readme');
+  assert.equal(G.kind('docs/agents.md'), 'doc', 'a file named for agents is not in an agents folder');
+  assert.deepEqual(G.rank(data, { min: 5 }).map(r => [r.k, r.g]), [['doc', 'docs'], ['doc', 'docs']]);
+});

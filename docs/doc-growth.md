@@ -34,6 +34,13 @@ bubble scrolls the list to its row. The tab opens the chart on Care, where a
 row's rank and its bubble's height above the dashed line agree. The full page
 opens on Effort; `?y=care`, `net` or `age` opens it on another measure.
 
+The tab has no minimum-edits slider: it lists and draws files with at least 5
+focused edits, or 5 edits on the other measures. A row of count chips above the
+list narrows it by **kind**, which `kind()` in the kit reads from the path
+(agent instructions, a skill, an agent definition, a README, or any other
+document), and by top-level folder. The chart keeps every file and colours the
+ones the list holds. The tab fits the Map pane, so only the list scrolls.
+
 `w` counts every token; `r` skips fenced code blocks and YAML frontmatter.
 Tables and indented code count in both, so a wide gap between the two means
 mostly fenced code. The page toggles between them.
