@@ -17,6 +17,10 @@ const sd = window.swipeDeck;
 const doc = window.document;
 const frame = () => new Promise((r) => window.requestAnimationFrame(() => setTimeout(r, 0)));
 
+// jsdom has no ResizeObserver; this one is fired by hand.
+const observers = [];
+window.ResizeObserver = class { constructor(cb) { this.cb = cb; observers.push(this); } observe(el) { this.el = el; } disconnect() { this.el = null; } };
+
 const W = 300, GAP = 12;
 function laidOut(n, { smooth = false, width = W } = {}) {
   const s = doc.createElement('div');
@@ -26,8 +30,10 @@ function laidOut(n, { smooth = false, width = W } = {}) {
   s.scrollLeft = 0;
   s.box = width;
   s.getBoundingClientRect = () => ({ left: 0, width: s.box });
+  Object.defineProperty(s, 'clientWidth', { get: () => s.box });
+  // Each card is the strip's width, so narrowing the strip moves every card.
   [...s.querySelectorAll('[data-slide]')].forEach((k, i) => {
-    k.getBoundingClientRect = () => ({ left: i * (W + GAP) - s.scrollLeft, width: W });
+    k.getBoundingClientRect = () => ({ left: i * ((s.box || W) + GAP) - s.scrollLeft, width: s.box || W });
   });
   s.calls = [];
   // A smooth scroll leaves the strip where it was until the test moves it.
@@ -131,6 +137,18 @@ test('a component that keeps its own index is read, not shadowed', () => {
   s.scrollLeft = 3 * (W + GAP); d.read();
   assert.deepEqual(slid, [3, 3]);
   assert.equal(d.at, 3);
+});
+
+test('a strip swiped by hand, never driven, is kept on its card when its width changes', async () => {
+  const s = laidOut(5);
+  const d = sd.strip({ el: () => s });
+  s.scrollLeft = 2 * (W + GAP); d.read();
+  const ro = observers.find((o) => o.el === s);
+  assert.ok(ro, 'one reading is enough to watch the strip');
+  s.box = 250; ro.cb();   // a phone turned: card 2 is now 2 × (250 + 12) in
+  await frame();
+  assert.equal(s.scrollLeft, 2 * (250 + GAP));
+  assert.equal(s.calls.at(-1).behavior, 'instant');
 });
 
 test('destroy() stops every reading', async () => {
