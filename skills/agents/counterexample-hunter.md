@@ -1,6 +1,6 @@
 ---
 name: counterexample-hunter
-description: Review-panel seat that tries to falsify the subject's claims: finds the case, input or file where a stated rule, finding or guarantee does not hold. Summon on an analysis, a convention, a test's claim of coverage, or any 'always' or 'every'.
+description: "Review-panel seat that tries to falsify the subject's claims: finds the case, input or file where a stated rule, finding or guarantee does not hold. Summon on an analysis, a convention, a test's claim of coverage, or any 'always' or 'every'."
 tools: Read, Grep, Glob
 model: sonnet
 ---

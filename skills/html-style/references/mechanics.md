@@ -1,20 +1,20 @@
 # DaisyUI, Tailwind and Alpine mechanics
 
 How a page here is built. What it should look like is the house style in
-[`SKILL.md`](SKILL.md) beside this file; that one is binding and this one is the
-means. Every rule below is here because it compiles, renders, or silently does
-nothing in a way nobody would guess from reading the class list.
+[`SKILL.md`](../SKILL.md) one folder up; that one is binding and this one is the
+means.
 
 ## Rules that look like taste and are not
 
-**A theme colour takes opacity in tens, 10 through 90.** `bg-success/10`,
-`text-base-content/60`. Anything else on a daisyUI theme colour generates no
-rule: `/0`, `/100`, every step off the tens, and the bracket form (`/[5%]`).
-Stock palette colours are unaffected and take any step, so `bg-red-500/33` is
-fine. The reason to care is the direction of the failure, not the tidiness: a
-background falls back to transparent and TEXT falls back to FULL strength, so a
-line meant to be quiet comes out louder than the line above it. Nothing errors,
-which is why it survives review. Enforced by `npm run opacity-scan`
+**A theme colour takes opacity in tens, 10 through 90, unless the page
+registers the theme colours.** A page that boots through `lib/gh-boot.js`, which
+registers them (`@theme inline`), composes every step. On a page that does not,
+only a static step in tens survives (`bg-success/10`,
+`text-base-content/60`); `/0`, `/100`, every step off the tens, the bracket form
+(`/[5%]`) and any variant (`hover:bg-primary/10`) generate no rule. A background
+then falls back to transparent and text keeps its resting colour, so a line
+meant to be quiet or to change does not, and nothing errors. Stock palette
+colours take any step (`bg-red-500/33`). Enforced by `npm run opacity-scan`
 (`python/dead-opacity.py`), gated in `node/test/dead-opacity.test.mjs`, which
 also carries the measurement.
 
@@ -28,12 +28,10 @@ enforces it, gated in `node/test/blank-icons.test.mjs`.
 whenever the expression contains a dot, and `bind()` removes an attribute only
 for `null`, `undefined` and `false`, so `''` takes the other branch and WRITES
 it. A property that is simply absent therefore disables the button, freezes the
-input, or checks the box, and the author is looking at a field that is plainly
-not true. Only a bare fetch is exposed: `!row.busy` and `row.busy === true`
-already yield a real boolean and need nothing. Two shipped controls were dead
-this way before anyone found the cause (PR #469), both with passing suites,
-because a test that calls a method on the component cannot see an attribute the
-template put on a button. Enforced by `npm run bool-attr-scan`
+input, or checks the box. Only a bare fetch is exposed: `!row.busy` and
+`row.busy === true` already yield a real boolean and need nothing. A passing
+suite does not clear it, since a test that calls a method on the component
+cannot see an attribute the template put on a button. Enforced by `npm run bool-attr-scan`
 (`python/bound-boolean-attrs.py`), gated in
 `node/test/bound-boolean-attrs.test.mjs`.
 
@@ -115,9 +113,8 @@ quotes, `<`, and closing script text; ordinary data alone does not check escapin
 
 ## Title-tips and panel-tips
 
-**This section is the one statement of the house popup rule.** Rule 11 of the
-style guide, the kit headers and page comments point here rather than
-restating it.
+This section is the one statement of the house popup rule; rule 11 of the
+style guide, the kit headers and page comments point here.
 
 A popup is a **title-tip** or a **panel-tip**, and one question decides which:
 **can the reader tap anything inside it?** A link, a ↗ reference, a copy button,
@@ -127,10 +124,8 @@ rests on, it is also a panel-tip, and it names its source with a ↗. Size and
 importance do not enter into it. The standard terms are a tooltip (ARIA
 `role="tooltip"`) and a popover.
 
-A `title` attribute is neither, and is not used: the browser draws it only on
-mouse hover and outside the page, so phones and screenshots omit it. daisyUI's
-`tooltip`, `data-tip` and `cursor-help` are not used; this overrides
-`references/daisyui.md`.
+A `title` attribute is neither, and neither are daisyUI's `tooltip`,
+`data-tip` and `cursor-help`; none is used (rule 11).
 
 | | Title-tip | Panel-tip | Panel-tip, pinned |
 | --- | --- | --- | --- |
@@ -197,15 +192,15 @@ composition views. Demo:
 
 ## References
 
-- **DaisyUI 5 components**: See `daisyui.md` for complete component syntax, class names, and usage rules
-- **Alpine.js V3 patterns**: See `alpine-v3.md` for V3 API and key differences from V2
+- **DaisyUI 5 components**: See `daisyui.md` for component syntax, class names, and usage rules, an excerpt of upstream's list
+- **Alpine.js V3 patterns**: See `alpine-v3.md` for the scope and registration rules that trip a page, and the Alpine 3 forms of v2 idioms
 - **Reactivity cost in long lists**: See `reactivity-cost.md` for the per-row binding pattern that scales badly with N, the direct-DOM fix, and the DOM-reuse gotcha
 - **Full demo**: See `demo-sortable.html` for a complete working example demonstrating CDN usage, DaisyUI components, Alpine.js patterns, Phosphor Icons, and third-party library integration
 
 ## Key Conventions
 
 1. Use CDN delivery (jsDelivr for Tailwind/DaisyUI/libraries, unpkg for Alpine): no build step
-2. Single-file artifacts: inline styles and scripts
+2. Single-file artifacts: inline scripts
 3. DaisyUI semantic colors (`primary`, `base-100`, etc.) over Tailwind color names
 4. Alpine's `x-data`, `x-show`, `x-bind` for reactivity: no React
 5. Use Phosphor Icons via CDN for iconography: no inline SVGs. A project's or repository's own mark, or one of the Map's marks for its tab groups and outposts, is the exception: an SVG file drawn to the [Drawn marks](https://github.com/mehrlander/web-tools/blob/main/docs/favicons/README.md#drawn-marks) rules.
@@ -220,15 +215,15 @@ composition views. Demo:
    :scope > * + * hits:           span,span,span
    ```
 
-   So `first:` matches nothing at all, `last:` matches only when the loop is the last thing in its parent (add a footer under it and that silently stops too), and `[&>*+*]:border-t` puts a border on **every** row including the first, because the first clone's preceding sibling is the template. All three compile and all three are real CSS, so nothing warns; the rule just lands on the wrong element or on none.
+   So `first:` matches nothing at all, `last:` matches only when the loop is the last thing in its parent (add a footer under it and that silently stops too), and `[&>*+*]:border-t` puts a border on **every** row including the first, because the first clone's preceding sibling is the template. All three compile, so nothing warns.
 
    Take the position from the loop, which is the one source that knows it: `x-for="(row, i) in rows"` then `:class="{ 'border-t border-base-200': i }"`. Or separate with `gap` on a flex/grid parent, which is ordinal-free. Reserve `first:`/`last:`/`[&>*+*]:` for static markup.
 
-9. **A daisyUI control does not fill its parent, and a phone is where you find out.** `.input` and `.textarea` compute to `width: clamp(3rem, 20rem, 100%)`, so in a column narrower than 20rem they look correct and in a wider one they stop short while their label runs on. Measured at a 390px viewport: the label 342px, the field 320px, a ragged right edge down the whole form. Put `w-full` on every input, textarea, and select rather than relying on the flex parent to stretch it, since `align-self: stretch` does not apply to an item with an explicit width.
+9. **A daisyUI control does not fill its parent, and a phone is where you find out.** `.input` and `.textarea` compute to `width: clamp(3rem, 20rem, 100%)`, so in a column narrower than 20rem they look correct and in a wider one they stop short while their label runs on, leaving a ragged right edge down the form. Put `w-full` on every input, textarea, and select rather than relying on the flex parent to stretch it, since `align-self: stretch` does not apply to an item with an explicit width.
 
 10. **Size a pane by its container, not by the viewport.** A pane that is half a screen on desktop and the whole screen on a phone cannot be laid out with `sm:`/`lg:`, which ask how wide the *window* is: the same `lg:grid-cols-6` that reads well full-width puts six columns in a 360px column when the pane is split. Put `@container` on the column and use `@md:`/`@xl:`, which ask how wide the *column* is. The variants degrade to one column where they are unsupported, which is the safe direction.
 
-11. **Tailwind v4 layers its utilities; the typography stylesheet is unlayered, and unlayered wins.** `.prose{max-width:65ch}` therefore beats `.max-w-none` on the cascade-layer rule rather than on specificity, and nothing in the class list looks wrong. Reach for `!max-w-none`, or keep the 65ch measure on purpose and centre the column. Prefer `lib/kits/guide-render.js` for anything new, which brings its own CSS and sidesteps this; do not convert a working surface just for symmetry. Any hand-written or kit-injected stylesheet wins the same way, so a utility beside such a rule may never have applied, and converting the rule switches it on: keep what rendered, and drop the utility that never did.
+11. **Tailwind v4 layers its utilities, and an unlayered stylesheet beats them on the cascade-layer rule rather than on specificity.** The typography `prose` cap is the case `SKILL.md` rule 3 names (`!max-w-none`); the guide renderer above sidesteps it. Any hand-written or kit-injected stylesheet wins the same way, so a utility beside such a rule may never have applied, and converting the rule switches it on: keep what rendered, and drop the utility that never did.
 
 12. **An `x-data` expression sees every registered component name.** Alpine injects each name passed to `Alpine.data` into the scope of an `x-data` expression, so a config that closes over host state, such as `x-data="refPicker({ repo: () => repo })"`, reads the `repo` component's factory when one is registered under that name, not the host's field. A callback built in that expression and invoked bare has `this` bound to the same scope proxy, and `$data` is that proxy too. Build a child mount's config in the host's `init()`, over a `self` captured there, and pass the stored object: `x-data="refPicker(pickerCfg.ref)"`.
 
@@ -246,6 +241,11 @@ Use jsDelivr `combine` to bundle multiple packages in a single request. Tailwind
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
 ```
 
+### Alpine alone (unpkg, defer)
+```html
+<script defer src="https://unpkg.com/alpinejs"></script>
+```
+
 ### Alpine + plugins (jsDelivr combine, defer)
 ```html
 <script defer src="https://cdn.jsdelivr.net/combine/npm/@alpinejs/collapse/dist/cdn.min.js,npm/@alpinejs/sort/dist/cdn.min.js,npm/alpinejs/dist/cdn.min.js"></script>
@@ -255,9 +255,4 @@ Alpine core must load last when combining with plugins. Use `defer` so Alpine in
 
 ### Phosphor Icons
 
-Use `<i class="ph ph-icon-name">` for regular weight, `ph-bold`, `ph-fill`, etc. for variants. Avoids inline SVGs entirely.
-```html
-<i class="ph ph-caret-down"></i>
-<i class="ph ph-file-text"></i>
-<i class="ph ph-check"></i>
-```
+The combine above loads them; the [`phosphor-icons` skill](../../phosphor-icons/SKILL.md) has the class syntax and weights.

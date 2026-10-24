@@ -11,7 +11,7 @@ The page reads `#gz=` before `?src=`, and shows its embedded payload when it has
 | `#gz=<base64url>` | a gzipped `audit/1` payload in the URL fragment | handing over an audit without a commit; the fragment never reaches a server |
 | `#audit=<spec>` | the toss route: `…/toss-render.html#audit=<owner>/<repo>[@<ref>]:<path>` | the shortest link to a committed file; resolves into this page's `?src=` |
 | `?src=<spec>` | `owner/repo[@ref]:path`, fetched via the contents API | a committed `audit/1` payload, or a `standoff/1` file, whose document the page reads from `target.path` on the same branch and checks against `target.sha256` |
-| (none) | the page's embedded payload, a binding audit of `docs/CONVENTIONS.md` | a look at the page |
+| (none) | the page's embedded payload, a binding audit of `docs/CONVENTIONS.md`, a document since retired | a look at the page |
 
 `?view=review` (or `#view=review`) opens the page on Review, one label's units at a time. An edit made in the page is saved to the standoff's `self.path` when the page reads a branch other than the repository's default; otherwise it leaves as a patch, copied or downloaded from the page's patch dialog, for `ops.py` to apply.
 

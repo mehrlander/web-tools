@@ -17,12 +17,9 @@ disable-model-invocation: true
 
 # repo-review
 
-One protocol at three depths. A repo accumulates state its owner cannot hold in
-their head: motion that no index names, checks that quietly went red, corners
-going stale, connections nobody drew. This skill reads that state and reports
-it.
-
-The three depths differ in cost and in what they are for, not in method:
+One protocol at three depths: each reads the repo's own state (motion no index
+names, checks that went red, corners going stale, connections nobody drew) and
+reports it. The depths differ in cost and in what they are for, not in method:
 
 | Depth | Cost | For | Ends in |
 | --- | --- | --- | --- |
@@ -30,9 +27,7 @@ The three depths differ in cost and in what they are for, not in method:
 | **`SOR`** | expensive | the on-demand audit, by request only | a ranked write-up |
 | **`sweep`** | parallel fan-out | what the repo noticed unprompted | a rolling file |
 
-Invoke as `/repo-review <depth>`. The depth names are the vocabulary, not
-`light`/`deep`/`heavy`: `rounds` is doing rounds, `SOR` is the state of the
-repo, `sweep` is the fan-out.
+Invoke as `/repo-review <depth>`; `SOR` stands for state of the repo.
 
 Pick from the ask when no depth is named: "how are things", "what's moving" is
 `rounds`; "look at everything", "full review", "audit" is `SOR`; "what has the
@@ -62,7 +57,7 @@ less than a declared one.
 Every depth starts here. Run the repo's instruments first and let their output
 set the agenda. Impressions formed by reading files miss what only execution
 catches: a tool that crashes on a missing dependency, a tool that lies because
-of a date-parse bug. Two of the founding review's findings were exactly those.
+of a date-parse bug.
 
 Freshness stamps against actual motion are the cheapest staleness detector any
 repo has: compare the as-of date on each generated surface to recent commit
@@ -89,8 +84,7 @@ points at it, and say so if you did.
 
 By request only, and never on a schedule. The mandate is broader than the
 checklist: **look at everything, every layer, and find anything that stands
-out.** The steps below are instruments in service of that, not a routine to
-complete. Anything genuinely noticed counts, whether or not a step asked for it.
+out**, whether or not a step below asked for it.
 
 1. **Every probe**, including the slow ones. Start the slowest in the background
    and read while it runs.
@@ -99,8 +93,7 @@ complete. Anything genuinely noticed counts, whether or not a step asked for it.
    its documented state match its actual state; and the periphery, what has
    quietly rotted and what is fine but unstamped. Between them cover what the
    probes cannot see into: doctrine against practice, generated surfaces against
-   their sources, the skills against how sessions actually behave. Standing out
-   is the bar, not membership in a category.
+   their sources, the skills against how sessions actually behave.
 3. **Report**, in this order: ranked actionable findings, most consequential
    first, each grounded in a probe output or a file and each with the fix named;
    then time-sensitive items, separated from mere drift, which is where an
@@ -115,8 +108,7 @@ quiet, an old entry that suddenly rhymes with current work.
 
 **The one rule: surface the work, not the worker.** A find is about the material
 (files, commits, gaps). It is never a behavior observation about the person
-("you tend to", "you haven't"). That is the surveillance failure mode, and it is
-the kill test in synthesis.
+("you tend to", "you haven't"); synthesis drops any candidate that is.
 
 1. **Probe and load context.** Run the staleness probe, read the destination
    file's existing runs (that is the dedupe set), and read whatever the repo
