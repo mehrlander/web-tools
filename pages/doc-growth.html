@@ -5,9 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Doc Growth</title>
 <!-- Gapminder-style animated bubble chart of a repo's markdown over time: every
-     file is a bubble, x is its length in words, y is how hard it is being worked,
-     and the whole cloud drifts right as documentation accretes. Data comes from
-     python/doc-growth.py as one JSON payload; see docs/doc-growth.md.
+     file is a bubble whose area is its words, x is its edits to date and y is
+     the sessions that opened it to date, so the cloud drifts right as files are
+     edited and up as they are read. Data comes from python/doc-growth.py as one
+     JSON payload and python/doc-reads.py as the session counts; see
+     docs/doc-growth.md.
 
      Colors are the dataviz reference palette. A bubble chart is scored on the
      ALL-PAIRS pairlist, where only three categorical slots clear the floors, so
@@ -29,7 +31,7 @@
     <h1 class="text-xl sm:text-2xl font-semibold">Doc Growth</h1>
     <span class="text-sm opacity-60" x-text="data ? data.repo : ''"></span>
     <span class="text-sm opacity-40" x-show="data"
-          x-text="data ? `${data.files.length} files · ${data.frames.length} weeks` : ''"></span>
+          x-text="data ? `${data.files.length} files · ${data.frames.length} weeks` + (data.reads ? '' : ' · no session counts') : ''"></span>
     <div class="grow"></div>
     <div class="join" x-show="data">
       <button class="join-item btn btn-xs" :class="view==='chart' && 'btn-active'" @click="setView('chart')">
@@ -82,30 +84,7 @@
 
       <!-- controls -->
       <div class="flex flex-wrap items-center gap-2 text-xs">
-        <div class="join">
-          <button class="join-item btn btn-xs" :class="yMode==='churn' && 'btn-active'"
-                  @click="yMode='churn'; draw()">Effort</button>
-          <button class="join-item btn btn-xs" :class="yMode==='net' && 'btn-active'"
-                  @click="yMode='net'; draw()">Net change</button>
-          <button class="join-item btn btn-xs" :class="yMode==='age' && 'btn-active'"
-                  @click="yMode='age'; draw()">Settled</button>
-          <button class="join-item btn btn-xs" x-show="hasCare" :class="yMode==='care' && 'btn-active'"
-                  @click="yMode='care'; draw()">Care</button>
-        </div>
-        <div class="join">
-          <button class="join-item btn btn-xs" :class="unit==='w' && 'btn-active'"
-                  @click="unit='w'; draw()">All words</button>
-          <button class="join-item btn btn-xs" :class="unit==='r' && 'btn-active'"
-                  @click="unit='r'; draw()">Prose only</button>
-        </div>
-        <!-- data-slot: the Map's Growth unit's Threshold dial (web-tools
-             data/ui-units/codebook.md, "Slots"); nothing at runtime reads it. -->
-        <label class="flex items-center gap-1.5" data-slot="frame:dial" x-show="yMode !== 'care'">
-          <span class="opacity-60">min edits</span>
-          <input type="range" class="range range-xs w-24" min="1" max="30"
-                 x-model.number="minEdits" @input="draw()">
-          <span class="font-mono w-5" x-text="minEdits"></span>
-        </label>
+        <span class="opacity-60">area: words</span>
         <label class="label cursor-pointer gap-1.5 py-0">
           <input type="checkbox" class="checkbox checkbox-xs" x-model="trails" @change="draw()">
           <span class="opacity-60">trails</span>
@@ -122,7 +101,6 @@
         </template>
       </div>
 
-      <p class="text-xs opacity-50 leading-relaxed" x-text="caption"></p>
     </div>
   </div>
 
@@ -132,20 +110,17 @@
       <div class="overflow-x-auto">
         <table class="table table-xs table-pin-rows">
           <thead><tr>
-            <th>File</th><th>Group</th><th class="text-right">First</th>
-            <th class="text-right">Now</th><th class="text-right">Change</th><th class="text-right">Edits</th>
+            <th>File</th><th>Group</th><th class="text-right">Words</th>
+            <th class="text-right">Edits</th><th class="text-right">Opened</th>
           </tr></thead>
           <tbody>
             <template x-for="r in tableRows" :key="r.p">
               <tr>
                 <td class="font-mono text-[11px] break-all" x-text="r.p"></td>
                 <td class="opacity-60" x-text="r.g"></td>
-                <td class="text-right tabular-nums" x-text="r.a.toLocaleString()"></td>
-                <td class="text-right tabular-nums" x-text="r.b.toLocaleString()"></td>
-                <td class="text-right tabular-nums font-medium"
-                    :class="r.b - r.a > 0 ? 'text-warning' : 'text-success'"
-                    x-text="(r.b - r.a > 0 ? '+' : '') + (r.b - r.a).toLocaleString()"></td>
-                <td class="text-right tabular-nums opacity-60" x-text="r.e"></td>
+                <td class="text-right tabular-nums" x-text="r.w.toLocaleString()"></td>
+                <td class="text-right tabular-nums" x-text="r.e"></td>
+                <td class="text-right tabular-nums font-medium" x-text="data.reads ? r.o : ''"></td>
               </tr>
             </template>
           </tbody>
@@ -164,24 +139,21 @@ function growth() {
   const dark = matchMedia('(prefers-color-scheme: dark)').matches;
   return {
     HUE: dark ? DocGrowth.DARK : DocGrowth.LIGHT,
-    data: null, err: '', t: 0, playing: false, raf: 0,
-    yMode: 'churn', unit: 'w', minEdits: 1, trails: true,
-    picked: null, hovered: null, tipX: 0, tipY: 0, view: 'chart', bounds: null,
-    visible: 0, groups: [], hasCare: false, _pts: [],
+    data: null, err: '', t: 0, playing: false, raf: 0, trails: true,
+    picked: null, hovered: null, tipX: 0, tipY: 0, view: 'chart',
+    visible: 0, groups: [], _pts: [],
 
     async boot() {
       const q = new URLSearchParams(location.search);
+      let data;
       try {
-        this.data = await loadPayload(q);
+        [data, this.reads] = await Promise.all([loadPayload(q), loadReads(q)]);
       } catch (e) {
         this.err = `Could not load data: ${e.message}`;
         return;
       }
-      this.groups = DocGrowth.groups(this.data, this.minEdits);
-      this.bounds = DocGrowth.bounds(this.data);
-      this.hasCare = DocGrowth.hasCare(this.data);
-      const y = q.get('y');
-      if (['net', 'age'].includes(y) || (y === 'care' && this.hasCare)) this.yMode = y;
+      this.data = DocGrowth.join(data, this.reads?.repos?.[data.repo] || null, this.reads?.from);
+      this.groups = DocGrowth.groups(this.data);
       if (q.get('view') === 'table') this.view = 'table';
       this.t = this.data.frames.length - 1;
       addEventListener('resize', () => this.draw());
@@ -198,20 +170,12 @@ function growth() {
     },
 
     get frameLabel() { return this.data?.frames[Math.round(this.t)] ?? ''; },
-    get caption() { return DocGrowth.caption({ y: this.yMode, min: this.minEdits }, this.visible, this.shown().length); },
     get tipMeta() {
       const f = this.hovered; if (!f) return '';
       const k = Math.round(this.t);
-      return `${(f[this.unit][k] ?? 0).toLocaleString()} words · ${f.edits} edits${Array.isArray(f.a) ? ` (${f.weighted.toFixed(1)} weighted)` : ''} · ${this.data.groups[f.g]}`;
+      return `${(f.w[k] ?? 0).toLocaleString()} words · ${f.ec[k]} edits${this.data.reads ? ` · opened in ${f.o[k]} sessions` : ''} · ${this.data.groups[f.g]}`;
     },
-    get tableRows() {
-      return this.shown().map(f => {
-        const s = f[this.unit];
-        return { p: f.p, g: this.data.groups[f.g], a: s[f.born] ?? 0,
-                 b: s.findLast(v => v != null) ?? 0, e: f.edits };
-      }).sort((x, y) => (y.b - y.a) - (x.b - x.a));
-    },
-    shown() { return this.data ? DocGrowth.shown(this.data, { y: this.yMode, min: this.minEdits }) : []; },
+    get tableRows() { return this.data ? DocGrowth.rank(this.data) : []; },
 
     toggle() {
       this.playing = !this.playing;
@@ -232,8 +196,7 @@ function growth() {
     draw() {
       if (!this.data || !this.$refs.cv) return;
       this._pts = DocGrowth.draw(this.$refs.cv, this.data, {
-        t: this.t, y: this.yMode, unit: this.unit, min: this.minEdits, groups: this.groups,
-        picked: this.picked, hovered: this.hovered, trails: this.trails, bounds: this.bounds });
+        t: this.t, groups: this.groups, picked: this.picked, hovered: this.hovered, trails: this.trails });
       this.visible = this._pts.length;
     },
     nearest(ev) {
@@ -281,6 +244,12 @@ async function loadPayload(q) {
     if (!r.ok) throw new Error(`web-tools.json (HTTP ${r.status})`);
     return r.json();
   }
+  return readRepoJson(src);
+}
+
+// One JSON file from `owner/repo[@ref]:path`, through the stored token when
+// there is one.
+async function readRepoJson(src) {
   const [repoRef, path] = src.split(':');
   // No @ref: the selection's ref for that file (a renderer stamps
   // __refFor), else main.
@@ -300,6 +269,14 @@ async function loadPayload(q) {
     return JSON.parse(new TextDecoder().decode(Uint8Array.from(bin, ch => ch.charCodeAt(0))));
   }
   return d;
+}
+
+// The session counts the y axis reads: `?reads=owner/repo[@ref]:path`, else
+// the private registry's at main, through the viewer's stored token. Any
+// failure is null, and every file sits at zero up the chart.
+async function loadReads(q) {
+  if (!savedToken()) return null;
+  return readRepoJson(q.get('reads') || 'mehrlander/web-tools-private@main:state/doc-reads.json').catch(() => null);
 }
 </script>
 

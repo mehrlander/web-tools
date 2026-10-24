@@ -1,29 +1,20 @@
 #!/usr/bin/env python3
-"""Weekly size-and-churn series for a repo's markdown, as one JSON payload.
+"""Weekly size-and-edits series for a repo's markdown, as one JSON payload.
 
 Samples the default branch every N days, records every matching file's size in
-words at each sample, and folds in per-file commit churn from `git log
---numstat`. Output feeds pages/doc-growth.html.
+words at each sample (`w`) and the commits that changed it in each sample's
+week (`e`), from `git log --numstat`. Output feeds pages/doc-growth.html and the
+Map's Docs → Growth tab, which join it to python/doc-reads.py's session counts.
 
 History follows renames, so a moved file keeps its edits under its current path.
-Each edit is also WEIGHTED by 1 / the matching files its commit changed: a commit
-to one file counts 1 for it, a sweep across ten counts 0.1 for each, so a sweep is
-not read as attention to every document it touched, and no cutoff decides which
-commits count. Files a commit hook writes (--generated) are marked `gen`, since
-their edits are the hook's, not a reader's.
+Files a commit hook writes (--generated) are marked `gen`, since their edits are
+the hook's, not a reader's.
 
     python3 python/doc-growth.py . -o data/doc-growth/web-tools.json --name mehrlander/web-tools
-
-Words come in two counts: `w` counts every token, `r` skips fenced code and YAML
-frontmatter. Tables and indented code count in both, so the two diverge where a
-file is mostly fenced code.
 """
 import argparse, json, re, subprocess, sys, threading, time
 from collections import defaultdict
 from datetime import datetime, timezone
-
-FENCE = re.compile(r'^\s*(```|~~~)')
-
 
 def git(repo, *args, binary=False):
     r = subprocess.run(['git', '-C', repo, *args], capture_output=True)
@@ -32,26 +23,13 @@ def git(repo, *args, binary=False):
     return r.stdout if binary else r.stdout.decode('utf-8', 'replace')
 
 
-def counts(text):
-    """(all words, prose words) for one markdown blob."""
-    lines = text.split('\n')
-    prose, infence, i = [], False, 0
-    if lines and lines[0].strip() == '---':          # YAML frontmatter
-        for j in range(1, len(lines)):
-            if lines[j].strip() == '---':
-                i = j + 1
-                break
-    for ln in lines[i:]:
-        if FENCE.match(ln):
-            infence = not infence
-            continue
-        if not infence:
-            prose.append(ln)
-    return len(text.split()), len('\n'.join(prose).split())
+def words(text):
+    """Words in one markdown blob: every whitespace-separated token."""
+    return len(text.split())
 
 
 # Markdown the hub's and home's commit hooks write. Their edit counts measure the
-# hook, so the page leaves them out of the Care reading.
+# hook, so the chart leaves them out.
 GENERATED = [r'(^|/)tracker/board\.md$', r'^trackers\.md$', r'^full-picture\.md$',
              r'^chron/(blog/)?index\.md$', r'^pages/README\.md$', r'^docs/README\.md$',
              r'^skills/default/(CONVERSATION|QUALIFIED-WRITING)\.md$']
@@ -107,11 +85,11 @@ def main():
     first, last = min(stamps), max(stamps)
     step = a.days * 86400
 
-    # --- churn: which commits touched what, and by how many lines -------------
+    # --- edits: which commits touched what --------------------------------------
     # The log runs newest first, so a rename is met before the older commits
     # that used the old path: `alias` maps each earlier path to the file's
     # current one, and every row is filed under that.
-    touched = defaultdict(list)          # current path -> [(ts, added, deleted, weight)]
+    touched = defaultdict(list)          # current path -> [commit time]
     alias = {}
     commits, rows = [], None
     for line in git(repo, 'log', '--numstat', '-M', '--format=C|%ct',
@@ -120,17 +98,17 @@ def main():
             rows = []
             commits.append((int(line[2:]), rows))
         elif line and rows is not None:
-            add, dele, field = line.split('\t')
+            field = line.split('\t')[2]
             old, new = renamed(field)
             if not new.endswith(a.ext):
                 continue
             cur = alias.get(new, new)
             if old != new:
                 alias[old] = cur
-            rows.append((cur, int(add) if add != '-' else 0, int(dele) if dele != '-' else 0))
+            rows.append(cur)
     for ts, rows in commits:
-        for cur, add, dele in rows:
-            touched[cur].append((ts, add, dele, 1 / len(rows)))
+        for cur in rows:
+            touched[cur].append(ts)
 
     # --- weekly trees ---------------------------------------------------------
     frames, trees = [], []
@@ -167,7 +145,7 @@ def main():
     for sha in blobs:
         header = proc.stdout.readline().split()
         n = int(header[2])
-        sizes[sha] = counts(proc.stdout.read(n).decode('utf-8', 'replace'))
+        sizes[sha] = words(proc.stdout.read(n).decode('utf-8', 'replace'))
         proc.stdout.read(1)
     writer.join()
     proc.wait()
@@ -190,24 +168,18 @@ def main():
     gi = {g: i for i, g in enumerate(groups)}
     files = []
     for p in paths:
-        w, pr, ed, wt, net = [], [], [], [], []
+        w, ed = [], []
         for k, snap in enumerate(trees):
             sha = snap.get(p)
-            w.append(sizes[sha][0] if sha else None)
-            pr.append(sizes[sha][1] if sha else None)
+            w.append(sizes[sha] if sha else None)
             lo = first + (k - 1) * step
             hi = first + k * step
-            ev = [e for e in touched.get(p, []) if lo < e[0] <= hi]
-            ed.append(len(ev))
-            wt.append(round(sum(e[3] for e in ev), 3))
-            net.append(sum(e[1] - e[2] for e in ev))
+            ed.append(sum(1 for ts in touched.get(p, []) if lo < ts <= hi))
         live = [i for i, v in enumerate(w) if v is not None]
-        row = {'p': p, 'g': gi[group_of(p, containers)],
-               'w': w, 'r': pr, 'e': ed, 'a': wt, 'n': net,
+        row = {'p': p, 'g': gi[group_of(p, containers)], 'w': w, 'e': ed,
                'born': live[0] if live else 0,
-               'edits': len(touched.get(p, [])),
-               'weighted': round(sum(e[3] for e in touched.get(p, [])), 3)}
-        le = max((e[0] for e in touched.get(p, [])), default=0)
+               'edits': len(touched.get(p, []))}
+        le = max(touched.get(p, []), default=0)
         if le:
             row['le'] = datetime.fromtimestamp(le, timezone.utc).strftime('%Y-%m-%d')
         if any(g.search(p) for g in generated):
