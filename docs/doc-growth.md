@@ -48,12 +48,15 @@ picks:
   two levels (`projects/budget-drs`) under a folder `--containers` names
   (`projects`, `packages` and `apps` by default).
 
-A third row, **Colour**, gives the chart's colour to Kind or Folder, or one
-colour to every listed file. The three most common values over the whole list
-take a hue each and the rest a neutral, so a filter never repaints what it
-keeps; the chosen row's chips carry the dots, as the legend. The chart keeps
-every file and draws those outside the list faint. The tab fits the Map pane, so
-only the list scrolls.
+The chart's controls sit on the chart, above the plot: the y measure, the
+prose-only and trail toggles, and at the right a **colour box**. Dragging a
+filter row's label (Kind or Folder) onto the box colours the chart by that
+facet; tapping the box steps through Kind, Folder and one colour, and its ×
+returns to one colour. The three most common values over the whole list take a
+hue each and the rest a neutral, so a filter never repaints what it keeps; the
+coloured row's chips carry the dots, as the legend. The chart keeps every file
+and draws those outside the list faint. The tab fits the Map pane, so only the
+list scrolls.
 
 `w` counts every token; `r` skips fenced code blocks and YAML frontmatter.
 Tables and indented code count in both, so a wide gap between the two means
