@@ -33,11 +33,12 @@ last sample, one line a row. Its column heads sort it by edits, weighted edits,
 weighted edits per thousand words (the default) or words, and a second click
 turns the order round; a phone keeps weighted edits and the rate. A path too
 long for its line loses its start, so the file's name stays in view. Tapping a
-name opens the file's panel: its counts, the date it was last edited, the file
-deck and its GitHub page. Picking a row rings its bubble and draws its trail,
-and picking a bubble scrolls the list to its row. The tab opens the chart on
-Care. The full page opens on Effort; `?y=care`, `net` or `age` opens it on
-another measure.
+name opens the file's panel: its folder over its name, with the GitHub icon
+after the name; its kind, its place in the list's order and its last edit; its
+weighted edits week by week; its counts; and Read, which opens the file deck.
+Picking a row rings its bubble and draws its trail, and picking a bubble scrolls
+the list to its row. The tab opens the chart on Care. The full page opens on
+Effort; `?y=care`, `net` or `age` opens it on another measure.
 
 The tab sets no minimum: it lists and draws every file the history edited.
 Above the list, one row of count chips per facet narrows it, every value shown
