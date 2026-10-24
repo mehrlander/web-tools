@@ -160,7 +160,7 @@ properties,required,recorded,,value,column,yes,value;counted;none,label,"what th
 properties,form,recorded,,value,column,yes,column;list,label,column reserves a slot on every row; list records only where the assertion holds
 properties,exclusive,recorded,,value,column,yes,yes;no,label,whether one row may hold more than one value from the domain
 properties,values,recorded,,none,column,yes,,value,"the value domain, semicolon separated, where it is closed; blank means open"
-properties,column_primitive,recorded,,value,column,no,id;label;locator;value,label,"what kind of thing the column holds: an id identifies its row, a label draws from a declared set, a locator resolves to a target outside the row, and a value is the content itself. docs/column-primitives.md owns the four tests. exclusive is no because a column can pass two of them, as a unique path that also resolves does."
+properties,column_primitive,recorded,,value,column,no,id;label;locator;value,label,"the role the column plays in its row: an id identifies its row, a label draws from a declared set, a locator resolves to a target outside the row, and a value is the content itself. docs/column-primitives.md owns the four tests. exclusive is no because a column can pass two of them, as a unique path that also resolves does."
 properties,gloss,recorded,,value,column,yes,,value,one line on what the property means
 manifest-fields,required,recorded,,none,column,yes,yes;no,label,"whether a member of an array or object key must be present; blank on a top-level key, whose requiredness was never recorded"
 vocabularies,gloss,recorded,,value,column,yes,,value,"what this one value means, in the terms a reader picking among them needs"

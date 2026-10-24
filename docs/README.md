@@ -30,7 +30,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`app-routes.csv`](app-routes.csv) — the app's own destinations: every address, what it is for, and which files draw it
 - [`artifacts.md`](artifacts.md) *(orphan)* — Claude Code artifacts and the link-choice matrix
 - [`code-layers.md`](code-layers.md) — the code layers and the admission rule that sorts a new file into one of them
-- [`column-primitives.md`](column-primitives.md) — the column primitives: what kind of thing a column holds (id, label, locator, value), the role axis and its crossing with position
+- [`column-primitives.md`](column-primitives.md) — the column primitives: which of four roles a column plays in its row (id, label, locator, value), the role axis and its crossing with position
 - [`delivery.json`](delivery.json) *(measured)* — historical snapshots of the retired injection routes and an unshipped proposal; current content routes are in Map / Harness / Context
 - [`doc-growth.md`](doc-growth.md) *(orphan)* — the doc-growth chart: what it plots, how to generate its data file for a repo, and what makes the chart misleading
 - [`docs.csv`](docs.csv) — the documentation registry: what each file under docs/ is, on four axes
