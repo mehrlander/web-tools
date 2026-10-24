@@ -55,3 +55,17 @@ test("the explorer's Pivot reads the shared engine: an Across column and a skipp
   assert.match(container.textContent, /1 row skipped: no number in amount/, 'the "n/a" row vanished without a word');
   exp.destroy();
 });
+
+test('list joins each group\'s distinct values, leaves blanks out, and caps a long one', () => {
+  const rows = [
+    { g: 'a', v: 'x' }, { g: 'a', v: 'y' }, { g: 'a', v: 'x' }, { g: 'a', v: '' },
+    { g: 'b', v: 'z' },
+  ];
+  const res = TableStats.pivot.tree(rows, { rows: ['g'], measure: 'v', agg: 'list', sep: ' | ' });
+  assert.deepEqual(JSON.parse(JSON.stringify(res.tree.children.map(c => [c.label, c.value]))), [['a', 'x | y'], ['b', 'z']]);
+  assert.equal(res.tree.value, 'x | y | z');
+  assert.equal(res.partition, false, 'a list is not a partition');
+  const many = Array.from({ length: 25 }, (_, i) => ({ g: 'a', v: 'v' + String(i).padStart(2, '0') }));
+  const long = TableStats.pivot.tree(many, { rows: ['g'], measure: 'v', agg: 'list' }).tree.value;
+  assert.match(long, /, \+5$/, 'twenty-five values did not stop at twenty with a count of the rest');
+});

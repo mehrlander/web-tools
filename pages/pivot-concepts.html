@@ -92,8 +92,15 @@
     filters: [], excluded: {},          // field -> Set of values left out
     collapsed: new Set(),               // grid outline: paths folded shut
     sel: null,                          // tap and drop: { field, from } picked up
+    ranges: {},                         // number filter: field -> { lo, hi }
+    sep: ', ',                          // what a list joins its values with
   };
   const ROLE = { rows: 'Rows', cols: 'Across', value: 'Value', filters: 'Filter' };
+  // The value's functions as its pill shows them: three letters or fewer, so
+  // the pill keeps one width. A tap steps through the ones that fit the field.
+  const SHORT = { sum: 'sum', avg: 'avg', min: 'min', max: 'max', count: 'ct', list: 'list' };
+  const STEPS = (f) => SCAN.isNum[f] ? ['sum', 'avg', 'min', 'max'] : ['count', 'list'];
+  const AGGS = (f) => SCAN.isNum[f] ? ['sum', 'avg', 'min', 'max', 'count', 'list'] : ['count', 'list'];
   const ICON = { rows: 'ph-rows', cols: 'ph-columns', value: 'ph-sigma', filters: 'ph-funnel' };
   const roleOf = (f) => st.rows.includes(f) ? 'rows' : st.cols.includes(f) ? 'cols' : st.value === f ? 'value' : null;
   const list = (zone) => zone === 'value' ? (st.value ? [st.value] : []) : st[zone];
@@ -112,7 +119,7 @@
     if (st.value === field) st.value = null;
     if (zone === 'value') {
       st.value = field;
-      st.agg = SCAN.isNum[field] ? (st.agg === 'count' ? 'sum' : st.agg) : 'count';
+      st.agg = AGGS(field).includes(st.agg) && st.agg !== 'count' ? st.agg : STEPS(field)[0];
     } else {
       const l = st[zone]; l.splice(Math.min(at, l.length), 0, field);
     }
@@ -120,7 +127,7 @@
     render();
   }
   function remove(field, zone) {
-    if (zone === 'filters') { st.filters = st.filters.filter(x => x !== field); delete st.excluded[field]; return render(); }
+    if (zone === 'filters') { st.filters = st.filters.filter(x => x !== field); delete st.excluded[field]; delete st.ranges[field]; return render(); }
     st.rows = st.rows.filter(x => x !== field);
     st.cols = st.cols.filter(x => x !== field);
     if (st.value === field) st.value = null;
@@ -129,22 +136,32 @@
 
   // ── the engine, through TableStats ──────────────────────────────────────────
   function compute() {
-    const rows = ROWS.filter(r => st.filters.every(f => !st.excluded[f]?.has(String(r[f] ?? ''))));
+    // A text filter leaves out the values unticked; a number filter keeps the
+    // rows between its bounds, either bound open.
+    const inRange = (f, r) => {
+      const g = st.ranges[f]; if (!g || (g.lo == null && g.hi == null)) return true;
+      const v = S.parseNum(r[f]); if (v === null) return false;
+      return (g.lo == null || v >= g.lo) && (g.hi == null || v <= g.hi);
+    };
+    const rows = ROWS.filter(r => st.filters.every(f => !st.excluded[f]?.has(String(r[f] ?? '')) && inRange(f, r)));
     const agg = st.value ? st.agg : 'count';
-    const cfg = { rows: st.rows, cols: st.cols, measure: st.value, agg, dec: P.decFor(SCAN, st.value, agg) };
+    const cfg = { rows: st.rows, cols: st.cols, measure: st.value, agg, sep: st.sep, dec: P.decFor(SCAN, st.value, agg) };
     return { cfg, res: P.tree(rows, cfg), n: rows.length };
   }
 
   // ── formatting ──────────────────────────────────────────────────────────────
   const esc = (s) => window.esc(String(s ?? ''));
   const compactFmt = new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 });
-  const num = (v, dec) => v === '' || v == null ? '' : st.compact && Math.abs(v) >= 1000
+  // A list's cell is text, truncated to a column's width; the card and the
+  // Cards view show it whole.
+  const num = (v, dec) => typeof v === 'string' && v !== '' ? `<span class="inline-block max-w-56 truncate align-bottom font-sans text-left">${esc(v)}</span>`
+    : v === '' || v == null ? '' : st.compact && Math.abs(v) >= 1000
     ? compactFmt.format(v)
     : Number(v).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: dec });
   // Ten steps of the accent, the only opacities a daisyUI colour takes.
   const TINT = ['', 'bg-primary/10', 'bg-primary/20', 'bg-primary/30', 'bg-primary/40', 'bg-primary/50'];
-  const tint = (v, max) => st.heat && max > 0 && v !== '' ? TINT[Math.max(1, Math.round((Math.abs(v) / max) * 5))] : '';
-  const aggName = () => st.value ? (st.agg === 'avg' ? 'Average' : st.agg[0].toUpperCase() + st.agg.slice(1)) + ' of ' + st.value : 'Rows';
+  const tint = (v, max) => st.heat && max > 0 && typeof v === 'number' ? TINT[Math.max(1, Math.round((Math.abs(v) / max) * 5))] : '';
+  const aggName = () => st.value ? ({ avg: 'Average', count: 'Count', list: 'List' }[st.agg] || st.agg[0].toUpperCase() + st.agg.slice(1)) + ' of ' + st.value : 'Rows';
 
   // ── pills ───────────────────────────────────────────────────────────────────
   // data-pill marks a draggable field; data-from names where it sits. A pill's
@@ -162,7 +179,8 @@
     const sel = st.sel && st.sel.field === field && st.sel.from === from;
     const ex = st.excluded[field]?.size;
     const seg = 'inline-flex items-center self-stretch border-l border-base-content/10';
-    const kept = role === 'filters' && ex ? `<span class="${seg} px-1.5 text-xs font-sans text-base-content/60">${VALUES[field].length - ex}/${VALUES[field].length}</span>` : '';
+    const g = st.ranges[field], ranged = role === 'filters' && g && (g.lo != null || g.hi != null);
+    const kept = role === 'filters' && (ex || ranged) ? `<span class="${seg} px-1.5 text-xs font-sans text-base-content/60">${ranged ? (g.lo != null ? '≥' + g.lo : '') + (g.lo != null && g.hi != null ? ' ' : '') + (g.hi != null ? '≤' + g.hi : '') : (VALUES[field].length - ex) + '/' + VALUES[field].length}</span>` : '';
     // THE VALUE'S FUNCTION, a small pill inside its pill: sum, avg, min, max,
     // each three letters, so the pill keeps one width whichever is in use. A
     // tap steps to the next; count, which no longer summarizes the numbers but
@@ -170,7 +188,7 @@
     // inner pill does not step.
     const isValue = role === 'value' && from === 'value' && st.value === field;
     const agg = isValue
-      ? `<span data-agg class="inline-flex items-center justify-center self-center h-5.5 w-10 ml-0.5 rounded-full bg-base-100 border border-base-300 text-[11px] font-sans text-base-content/70 ${num ? '' : 'opacity-60'}" aria-label="Summary: ${st.agg}, tap for the next">${st.agg}</span>` : '';
+      ? `<span data-agg class="inline-flex items-center justify-center self-center h-5.5 w-10 ml-0.5 rounded-full bg-base-100 border border-base-300 text-[11px] font-sans text-base-content/70" aria-label="Summary: ${st.agg}, tap for the next">${SHORT[st.agg]}</span>` : '';
     return `<button type="button" data-pill data-field="${esc(field)}" data-from="${from}"
       class="inline-flex items-stretch h-7 max-w-full shrink-0 rounded-full border overflow-hidden font-mono text-[13px] leading-none touch-none select-none [-webkit-touch-callout:none]
         ${placed ? 'bg-primary/10 border-primary/40' : 'bg-base-100 border-base-300'} ${num ? 'text-secondary' : 'text-base-content'}
@@ -319,8 +337,10 @@
       ${top.length && !unique ? `<ul class="px-3 py-2 flex flex-col gap-1">${top.map(t => `<li class="grid grid-cols-[minmax(0,1fr)_auto] gap-2 items-center">
           <span class="relative truncate px-1 rounded-sm"><span class="absolute inset-y-0 left-0 bg-primary/10 rounded-sm" style="width:${Math.round(t.count / most * 100)}%"></span><span class="relative">${esc(t.value)}</span></span>
           <span class="font-mono text-xs tabular-nums text-base-content/60">${t.count}</span></li>`).join('')}</ul>` : ''}
-      ${r === 'value' ? `<div class="px-3 pt-2.5"><div class="join w-full">${(SCAN.isNum[field] ? ['sum', 'avg', 'min', 'max', 'count'] : ['count']).map(a => `<button type="button" data-card-agg="${a}" class="join-item btn btn-xs flex-1 font-normal ${st.agg === a ? 'btn-primary' : 'btn-ghost border border-base-300'}">${a}</button>`).join('')}</div></div>` : ''}
-      ${st.filters.includes(field) ? '' : `<div class="px-3 py-2.5"><button type="button" class="btn btn-xs rounded-full btn-ghost border border-base-300 font-normal" data-card-filter="${esc(field)}"><i class="ph ph-funnel"></i>Filter by it</button></div>`}`;
+      ${r === 'value' ? `<div class="px-3 pt-2.5 flex flex-col gap-1.5"><div class="join w-full">${AGGS(field).map(a => `<button type="button" data-card-agg="${a}" class="join-item btn btn-xs flex-1 font-normal ${st.agg === a ? 'btn-primary' : 'btn-ghost border border-base-300'}">${SHORT[a]}</button>`).join('')}</div>
+        ${st.agg === 'list' ? `<div class="flex items-center gap-1 text-xs"><span class="text-base-content/60 pr-1">joined by</span>${[', ', ' | ', '; '].map(x => `<button type="button" data-card-sep="${esc(x)}" class="btn btn-xs font-mono font-normal ${st.sep === x ? 'btn-primary' : 'btn-ghost border border-base-300'}">${esc(x.trim())}</button>`).join('')}</div>` : ''}</div>` : ''}
+      ${st.filters.includes(field) ? filterControls(field) : ''}
+      ${st.filters.includes(field) ? '<div class="pb-2.5"></div>' : `<div class="px-3 py-2.5"><button type="button" class="btn btn-xs rounded-full btn-ghost border border-base-300 font-normal" data-card-filter="${esc(field)}"><i class="ph ph-funnel"></i>Filter by it</button></div>`}`;
     const a = anchor.getBoundingClientRect();
     card.classList.remove('hidden');
     const w = card.offsetWidth, h = card.offsetHeight;
@@ -365,7 +385,9 @@
     // back out; its own place is not a target.
     // The filter strip is the one target render does not redraw, so the
     // lighting is cleared everywhere before any is set.
-    const LIT = ['ring-2', 'ring-inset', 'ring-[var(--color-primary)]', 'bg-primary/10', 'cursor-pointer'];
+    // Quietly: a dashed outline on each place it can go. The full light is the
+    // drag's, on the one place under the pointer.
+    const LIT = ['outline-1', 'outline-dashed', '-outline-offset-2', 'outline-[color-mix(in_oklab,var(--color-primary)_55%,transparent)]', 'cursor-pointer'];
     document.querySelectorAll('[data-zone]').forEach(z => z.classList.remove(...LIT));
     if (st.sel) for (const z of document.querySelectorAll('[data-zone]')) {
       const zone = z.dataset.zone;
@@ -379,18 +401,22 @@
   const at = (el) => { const r = el.getBoundingClientRect(); return { x: r.left, y: r.bottom + 4 }; };
   // A filter's values to tick, and the way out. Dense, since the list is long
   // and every row is one short value.
-  function filterMenu(el, field) {
-    const ex = st.excluded[field] ||= new Set();
-    const items = [{ heading: field }];
-    for (const v of VALUES[field].slice(0, 40)) items.push({
-      icon: ex.has(v) ? 'ph-square' : 'ph-check-square', label: v || '(blank)',
-      run: () => { ex.has(v) ? ex.delete(v) : ex.add(v); render(); filterMenu(document.querySelector(`#filters [data-field="${CSS.escape(field)}"]`) || el, field); },
-    });
-    items.push({ icon: 'ph-x', label: 'Remove filter', run: () => remove(field, 'filters') });
-    window.rowMenu.open({ ...at(el), items, dense: true });
+  // A FILTER'S CONTROLS live in its card. A text field: its values to tick,
+  // in a list that scrolls. A number field: two bounds, either left open, so
+  // "above", "below" and "between" are one control.
+  function filterControls(field) {
+    if (SCAN.isNum[field]) {
+      const g = st.ranges[field] || {};
+      const box = (k, ph) => `<input type="number" inputmode="decimal" data-range="${k}" data-field="${esc(field)}" value="${g[k] ?? ''}" placeholder="${ph}" class="input input-xs w-full font-mono">`;
+      return `<div class="px-3 pt-2.5 flex items-center gap-1.5 text-xs"><span class="text-base-content/60">from</span>${box('lo', 'any')}<span class="text-base-content/60">to</span>${box('hi', 'any')}</div>`;
+    }
+    const ex = st.excluded[field] || new Set();
+    return `<div class="px-3 pt-2.5 flex flex-col gap-1">
+      <div class="flex gap-2 text-xs"><button type="button" class="link link-hover" data-tick-all="${esc(field)}">all</button><button type="button" class="link link-hover" data-tick-none="${esc(field)}">none</button></div>
+      <ul class="max-h-40 overflow-auto flex flex-col">${VALUES[field].map(v => `<li><label class="flex items-center gap-2 py-0.5 cursor-pointer"><input type="checkbox" class="checkbox checkbox-xs" data-tick="${esc(v)}" data-field="${esc(field)}" ${ex.has(v) ? '' : 'checked'}><span class="truncate">${esc(v || '(blank)')}</span></label></li>`).join('')}</ul></div>`;
   }
   const aggMenu = (el) => window.rowMenu.open({ ...at(el), dense: true, items: ['sum', 'avg', 'min', 'max', 'count']
-    .filter(a => a !== st.agg).map(a => ({ icon: 'ph-function', label: a === 'avg' ? 'average' : a, run: () => { st.agg = a; render(); } })) });
+    .filter(a => a !== st.agg && AGGS(st.value).includes(a)).concat(AGGS(st.value).includes('list') && st.agg !== 'list' ? ['list'] : []).map(a => ({ icon: 'ph-function', label: { avg: 'average', count: 'count', list: 'list of values' }[a] || a, run: () => { st.agg = a; render(); } })) });
 
   // The sentence's words: the field lists for a slot, or the aggregates.
   function slotMenu(el) {
@@ -507,12 +533,18 @@
     const cf = t.closest('[data-card-filter]'); if (cf) { closeCard(); return place(cf.dataset.cardFilter, 'filters'); }
     const ca = t.closest('[data-card-agg]');
     if (ca) { st.agg = ca.dataset.cardAgg; render(); return openCard(document.querySelector('[data-zone="value"] [data-pill]') || ca, st.value); }
+    const cs = t.closest('[data-card-sep]'); if (cs) { st.sep = cs.dataset.cardSep; render(); return openCard(document.querySelector('[data-zone="value"] [data-pill]') || cs, st.value); }
+    const ta = t.closest('[data-tick-all], [data-tick-none]');
+    if (ta) {
+      const f = ta.dataset.tickAll ?? ta.dataset.tickNone;
+      st.excluded[f] = ta.dataset.tickAll != null ? new Set() : new Set(VALUES[f]);
+      render(); return openCard(document.querySelector(`#filters [data-field="${CSS.escape(f)}"]`) || ta, f);
+    }
     if (t.closest('#card')) return;
     const ag = t.closest('[data-agg]');
     if (ag) {
       e.preventDefault();
-      if (!SCAN.isNum[st.value]) return;
-      const STEP = ['sum', 'avg', 'min', 'max'];
+      const STEP = STEPS(st.value);
       st.agg = STEP[(STEP.indexOf(st.agg) + 1) % STEP.length];
       return render();
     }
@@ -522,8 +554,6 @@
     if (p) {
       if (p.closest('[data-cycle]')) return cycle(p.dataset.field);
       const field = p.dataset.field, from = p.dataset.from;
-      // A filter pill's tap is its values; it moves by drag.
-      if (from === 'filters' && !st.sel) return filterMenu(p, field);
       st.sel = st.sel && st.sel.field === field && st.sel.from === from ? null : { field, from };
       return render();
     }
@@ -539,6 +569,23 @@
       if (!t.closest('[role="menu"]')) return render();
     }
   }, true);
+  // The card's own inputs: ticks and bounds apply as they change, and the card
+  // stays open over the redrawn page.
+  $('card').addEventListener('change', (e) => {
+    const t = e.target;
+    if (t.dataset.tick == null) return;
+    const ex = st.excluded[t.dataset.field] ||= new Set();
+    t.checked ? ex.delete(t.dataset.tick) : ex.add(t.dataset.tick);
+    render();
+  });
+  $('card').addEventListener('input', (e) => {
+    const t = e.target;
+    if (!t.dataset.range) return;
+    const g = st.ranges[t.dataset.field] ||= {};
+    const v = t.value === '' ? null : Number(t.value);
+    g[t.dataset.range] = Number.isFinite(v) ? v : null;
+    render();
+  });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeCard(); if (st.sel) { st.sel = null; render(); } } });
 
   render();
