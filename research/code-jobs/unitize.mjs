@@ -123,8 +123,14 @@ function unitsOf(file, text) {
     };
     for (const f of fns) {
       const { node } = f;
+      const own = cut(node.start, node.end, f.kids);
+      // A wrapper whose whole body is one nested function starting on its own
+      // line (`x => list.forEach(...)`) is a single line once that function is
+      // cut out: it says nothing, and it would share the inner unit's id. The
+      // 2026-10-24 batches predate this rule and carry six such wrappers.
+      if (!own.includes('\n')) continue;
       emit(f.name, node.loc.start.line + base - 1, node.loc.end.line + base - 1,
-        cut(node.start, node.end, f.kids), span(node), f.kids.length);
+        own, span(node), f.kids.length);
     }
     const tops = fns.filter((f) => !f.owner);
     const top = cut(0, code.length, tops);

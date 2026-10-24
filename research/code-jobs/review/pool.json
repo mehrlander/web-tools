@@ -1,0 +1,504 @@
+{
+ "top": 20,
+ "methods": [
+  "code",
+  "code+emb",
+  "haiku",
+  "haiku+emb"
+ ],
+ "pairs": [
+  {
+   "pair": 1,
+   "a": "lib/kits/xlsx.js:2313",
+   "b": "lib/kits/xlsx-extract.js:177",
+   "proposed_by": {
+    "haiku": 6,
+    "haiku+emb": 2
+   }
+  },
+  {
+   "pair": 2,
+   "a": "lib/alpineComponents/transform-workbench.js:159",
+   "b": "lib/alpineComponents/here-view.js:699",
+   "proposed_by": {
+    "code": 3,
+    "code+emb": 20
+   }
+  },
+  {
+   "pair": 3,
+   "a": "lib/alpineComponents/transform-workbench.js:159",
+   "b": "lib/alpineComponents/here-view.js:732",
+   "proposed_by": {
+    "code": 1,
+    "code+emb": 17
+   }
+  },
+  {
+   "pair": 4,
+   "a": "lib/kits/json-explorer.js:23",
+   "b": "lib/kits/swipe-deck.js:147",
+   "proposed_by": {
+    "code+emb": 10
+   }
+  },
+  {
+   "pair": 5,
+   "a": "lib/alpineComponents/transform-workbench.js:1609",
+   "b": "lib/kits/tabular-explorer.js:888",
+   "proposed_by": {
+    "code": 18
+   }
+  },
+  {
+   "pair": 6,
+   "a": "lib/alpineComponents/transform-workbench.js:159",
+   "b": "lib/kits/swipe-deck.js:403",
+   "proposed_by": {
+    "code": 12
+   }
+  },
+  {
+   "pair": 7,
+   "a": "lib/kits/xlsx.js:1332",
+   "b": "lib/kits/xlsx-extract.js:264",
+   "proposed_by": {
+    "haiku": 4
+   }
+  },
+  {
+   "pair": 8,
+   "a": "lib/kits/tabular-explorer.js:61",
+   "b": "lib/kits/xlsx.js:2367",
+   "proposed_by": {
+    "code": 19
+   }
+  },
+  {
+   "pair": 9,
+   "a": "lib/kits/xlsx.js:2313",
+   "b": "lib/kits/xlsx-extract.js:91",
+   "proposed_by": {
+    "code": 15
+   }
+  },
+  {
+   "pair": 10,
+   "a": "lib/kits/xlsx.js:351",
+   "b": "lib/kits/xlsx-extract.js:91",
+   "proposed_by": {
+    "code+emb": 16
+   }
+  },
+  {
+   "pair": 11,
+   "a": "lib/kits/xlsx.js:1426",
+   "b": "lib/kits/xlsx-extract.js:264",
+   "proposed_by": {
+    "haiku": 17
+   }
+  },
+  {
+   "pair": 12,
+   "a": "lib/kits/xlsx.js:1884",
+   "b": "lib/kits/xlsx-extract.js:207",
+   "proposed_by": {
+    "code": 10,
+    "haiku": 2,
+    "haiku+emb": 5
+   }
+  },
+  {
+   "pair": 13,
+   "a": "lib/kits/tabular-explorer.js:76",
+   "b": "pages/pivot-table.html:559",
+   "proposed_by": {
+    "haiku+emb": 14
+   }
+  },
+  {
+   "pair": 14,
+   "a": "lib/alpineComponents/file-browser.js:241",
+   "b": "lib/alpineComponents/here-view.js:127",
+   "proposed_by": {
+    "code": 14
+   }
+  },
+  {
+   "pair": 15,
+   "a": "lib/alpineComponents/transform-workbench.js:1763",
+   "b": "lib/kits/json-explorer.js:348",
+   "proposed_by": {
+    "code": 7,
+    "code+emb": 19
+   }
+  },
+  {
+   "pair": 16,
+   "a": "lib/alpineComponents/transform-workbench.js:123",
+   "b": "lib/alpineComponents/here-view.js:699",
+   "proposed_by": {
+    "code": 4
+   }
+  },
+  {
+   "pair": 17,
+   "a": "lib/kits/xlsx.js:2395",
+   "b": "lib/kits/xlsx-extract.js:264",
+   "proposed_by": {
+    "haiku+emb": 19
+   }
+  },
+  {
+   "pair": 18,
+   "a": "lib/alpineComponents/transform-workbench.js:123",
+   "b": "lib/alpineComponents/here-view.js:732",
+   "proposed_by": {
+    "code": 2,
+    "code+emb": 8
+   }
+  },
+  {
+   "pair": 19,
+   "a": "lib/kits/xlsx.js:1793",
+   "b": "lib/kits/xlsx-extract.js:316",
+   "proposed_by": {
+    "haiku+emb": 17
+   }
+  },
+  {
+   "pair": 20,
+   "a": "lib/alpineComponents/transform-workbench.js:269",
+   "b": "lib/alpineComponents/user-call-form.js:810",
+   "proposed_by": {
+    "haiku": 10
+   }
+  },
+  {
+   "pair": 21,
+   "a": "lib/alpineComponents/file-browser.js:27",
+   "b": "lib/alpineComponents/here-view.js:39",
+   "proposed_by": {
+    "haiku": 1,
+    "haiku+emb": 1
+   }
+  },
+  {
+   "pair": 22,
+   "a": "lib/kits/tabular-explorer.js:888",
+   "b": "pages/pivot-table.html:496",
+   "proposed_by": {
+    "haiku": 5,
+    "haiku+emb": 15
+   }
+  },
+  {
+   "pair": 23,
+   "a": "lib/kits/swipe-deck.js:147",
+   "b": "lib/alpineComponents/here-view.js:40#4",
+   "proposed_by": {
+    "code+emb": 3
+   }
+  },
+  {
+   "pair": 24,
+   "a": "lib/kits/json-explorer.js:628",
+   "b": "pages/pivot-table.html:593",
+   "proposed_by": {
+    "haiku+emb": 11
+   }
+  },
+  {
+   "pair": 25,
+   "a": "lib/kits/json-explorer.js:23",
+   "b": "lib/kits/swipe-deck.js:442#4",
+   "proposed_by": {
+    "code+emb": 6
+   }
+  },
+  {
+   "pair": 26,
+   "a": "lib/kits/json-explorer.js:205#2",
+   "b": "lib/kits/swipe-deck.js:147",
+   "proposed_by": {
+    "code+emb": 13
+   }
+  },
+  {
+   "pair": 27,
+   "a": "lib/alpineComponents/here-view.js:40#3",
+   "b": "lib/alpineComponents/user-call-form.js:69#4",
+   "proposed_by": {
+    "code+emb": 7
+   }
+  },
+  {
+   "pair": 28,
+   "a": "lib/alpineComponents/file-browser.js:28",
+   "b": "lib/alpineComponents/here-view.js:40#3",
+   "proposed_by": {
+    "haiku": 19
+   }
+  },
+  {
+   "pair": 29,
+   "a": "lib/kits/xlsx.js:2120",
+   "b": "lib/kits/xlsx-extract.js:292",
+   "proposed_by": {
+    "haiku": 3,
+    "haiku+emb": 7
+   }
+  },
+  {
+   "pair": 30,
+   "a": "lib/kits/json-explorer.js:284",
+   "b": "lib/kits/swipe-deck.js:874",
+   "proposed_by": {
+    "code": 17,
+    "haiku+emb": 13
+   }
+  },
+  {
+   "pair": 31,
+   "a": "lib/kits/xlsx.js:1793",
+   "b": "lib/kits/xlsx-extract.js:381",
+   "proposed_by": {
+    "haiku": 7,
+    "haiku+emb": 6
+   }
+  },
+  {
+   "pair": 32,
+   "a": "lib/alpineComponents/transform-workbench.js:468",
+   "b": "lib/alpineComponents/here-view.js:623",
+   "proposed_by": {
+    "haiku+emb": 10
+   }
+  },
+  {
+   "pair": 33,
+   "a": "lib/kits/xlsx.js:1436",
+   "b": "lib/kits/json-explorer.js:257",
+   "proposed_by": {
+    "code": 9
+   }
+  },
+  {
+   "pair": 34,
+   "a": "lib/alpineComponents/transform-workbench.js:1617",
+   "b": "lib/kits/report-layout.js:80",
+   "proposed_by": {
+    "haiku+emb": 16
+   }
+  },
+  {
+   "pair": 35,
+   "a": "lib/kits/xlsx.js:2658",
+   "b": "lib/kits/xlsx-extract.js:336",
+   "proposed_by": {
+    "haiku": 15,
+    "haiku+emb": 3
+   }
+  },
+  {
+   "pair": 36,
+   "a": "lib/kits/json-explorer.js:205#2",
+   "b": "lib/kits/swipe-deck.js:442#4",
+   "proposed_by": {
+    "code+emb": 4
+   }
+  },
+  {
+   "pair": 37,
+   "a": "lib/kits/xlsx.js:2180",
+   "b": "lib/kits/xlsx-extract.js:91",
+   "proposed_by": {
+    "code+emb": 11
+   }
+  },
+  {
+   "pair": 38,
+   "a": "lib/kits/json-explorer.js:284",
+   "b": "lib/kits/swipe-deck.js:633",
+   "proposed_by": {
+    "code": 11,
+    "haiku": 18,
+    "haiku+emb": 4
+   }
+  },
+  {
+   "pair": 39,
+   "a": "lib/kits/tabular-explorer.js:403",
+   "b": "lib/kits/json-explorer.js:331",
+   "proposed_by": {
+    "haiku+emb": 12
+   }
+  },
+  {
+   "pair": 40,
+   "a": "lib/alpineComponents/file-browser.js:209",
+   "b": "lib/alpineComponents/here-view.js:683",
+   "proposed_by": {
+    "haiku": 9
+   }
+  },
+  {
+   "pair": 41,
+   "a": "lib/kits/xlsx.js:2332",
+   "b": "lib/kits/xlsx-extract.js:91",
+   "proposed_by": {
+    "code+emb": 12
+   }
+  },
+  {
+   "pair": 42,
+   "a": "lib/alpineComponents/transform-workbench.js:1274",
+   "b": "lib/kits/json-explorer.js:348",
+   "proposed_by": {
+    "code": 6,
+    "haiku": 16,
+    "code+emb": 15
+   }
+  },
+  {
+   "pair": 43,
+   "a": "lib/kits/swipe-deck.js:442#4",
+   "b": "lib/alpineComponents/here-view.js:40#4",
+   "proposed_by": {
+    "code+emb": 1
+   }
+  },
+  {
+   "pair": 44,
+   "a": "lib/kits/xlsx.js:2658",
+   "b": "lib/kits/xlsx-extract.js:560",
+   "proposed_by": {
+    "haiku": 20
+   }
+  },
+  {
+   "pair": 45,
+   "a": "lib/kits/report-layout.js:63",
+   "b": "pages/pivot-table.html:553",
+   "proposed_by": {
+    "haiku+emb": 20
+   }
+  },
+  {
+   "pair": 46,
+   "a": "lib/kits/swipe-deck.js:403",
+   "b": "lib/alpineComponents/here-view.js:699",
+   "proposed_by": {
+    "code": 5
+   }
+  },
+  {
+   "pair": 47,
+   "a": "lib/alpineComponents/transform-workbench.js:142",
+   "b": "lib/kits/tabular-explorer.js:386",
+   "proposed_by": {
+    "haiku": 13
+   }
+  },
+  {
+   "pair": 48,
+   "a": "lib/alpineComponents/file-browser.js:198",
+   "b": "lib/alpineComponents/user-call-form.js:1498",
+   "proposed_by": {
+    "code": 8,
+    "code+emb": 14
+   }
+  },
+  {
+   "pair": 49,
+   "a": "lib/kits/xlsx.js:2332",
+   "b": "lib/kits/xlsx-extract.js:177",
+   "proposed_by": {
+    "haiku": 8,
+    "code+emb": 18,
+    "haiku+emb": 18
+   }
+  },
+  {
+   "pair": 50,
+   "a": "lib/alpineComponents/here-view.js:701",
+   "b": "lib/alpineComponents/user-call-form.js:1498",
+   "proposed_by": {
+    "code": 16
+   }
+  },
+  {
+   "pair": 51,
+   "a": "lib/alpineComponents/here-view.js:812",
+   "b": "lib/alpineComponents/user-call-form.js:275",
+   "proposed_by": {
+    "haiku": 12
+   }
+  },
+  {
+   "pair": 52,
+   "a": "lib/kits/json-explorer.js:205#2",
+   "b": "lib/alpineComponents/here-view.js:40#4",
+   "proposed_by": {
+    "code+emb": 5
+   }
+  },
+  {
+   "pair": 53,
+   "a": "lib/kits/json-explorer.js:23",
+   "b": "lib/alpineComponents/here-view.js:40#4",
+   "proposed_by": {
+    "code+emb": 2
+   }
+  },
+  {
+   "pair": 54,
+   "a": "lib/kits/row-menu.js:35",
+   "b": "lib/kits/json-explorer.js:23",
+   "proposed_by": {
+    "haiku": 11
+   }
+  },
+  {
+   "pair": 55,
+   "a": "lib/alpineComponents/transform-workbench.js:1776#4",
+   "b": "lib/alpineComponents/here-view.js:40#3",
+   "proposed_by": {
+    "code+emb": 9
+   }
+  },
+  {
+   "pair": 56,
+   "a": "lib/kits/xlsx.js:2594",
+   "b": "lib/kits/xlsx-extract.js:336",
+   "proposed_by": {
+    "code": 20,
+    "haiku+emb": 8
+   }
+  },
+  {
+   "pair": 57,
+   "a": "lib/alpineComponents/transform-workbench.js:123",
+   "b": "lib/kits/swipe-deck.js:403",
+   "proposed_by": {
+    "code": 13
+   }
+  },
+  {
+   "pair": 58,
+   "a": "lib/alpineComponents/file-browser.js:198",
+   "b": "lib/alpineComponents/here-view.js:694",
+   "proposed_by": {
+    "haiku": 14
+   }
+  },
+  {
+   "pair": 59,
+   "a": "lib/alpineComponents/transform-workbench.js:1360",
+   "b": "lib/kits/json-explorer.js:91",
+   "proposed_by": {
+    "haiku+emb": 9
+   }
+  }
+ ]
+}
