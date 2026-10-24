@@ -156,8 +156,12 @@ the right unit size, and finds pairs the reader misses.
   related (pair 58, both finding the slide nearest a strip's edge). Topic size
   was the same open question in the session topics key.
 - **One reader model.** Gemini was asked to read the same batches through the
-  laptop daemon (errand `daemon-2026-10-24-ping-871828`), and the laptop was
-  asleep; its answers land in `runs/gemini/` if it runs.
+  laptop daemon's `ping` errand, and neither attempt returned anything: all
+  nine batches (`daemon-2026-10-24-ping-871828`), then batch 2 alone, 43 units
+  (`daemon-2026-10-24-ping-cbf66c`), each closed with "Worker gave no response
+  within 600s". The limit is the channel's wait for a first reply, not a
+  measure of Gemini. A fair run needs batches of about ten units, some 55
+  errands, or a laptop script that calls Gemini directly.
 - **Fourteen files**, chosen because they hold known cases. The rate of new
   findings elsewhere is unmeasured.
 - **Six one-line wrappers** share an id with the function they wrap in these
