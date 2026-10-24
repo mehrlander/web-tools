@@ -34,7 +34,7 @@ recommendation, empty to withdraw. An author's latest vote counts, as in the
 Text collection's reviews.
 
 `finding` marks a tending conclusion
-([tend skill](../tend/SKILL.md#findings)). Change one with
+([`lib/kits/findings.js`](../../lib/kits/findings.js)). Change one with
 `skills/tend/findings.py update`; a plain reply is a comment and changes
 nothing.
 

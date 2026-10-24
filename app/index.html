@@ -4,8 +4,7 @@
      gestures, boundaries), docs/app-routes.csv for its views, one row each,
      and one document per form, named in the `doc` column of docs/subjects.csv.
      Those are the reader-facing account and the ones to update when
-     behaviour changes. A rule a view's own code keeps is stated beside that
-     code, or in the header of the kit that keeps it.
+     behaviour changes.
 
      THE COMMENTS HERE explain the code they sit beside, and are addressed to
      whoever edits it: why a control is where it is, what left and why, the
@@ -3785,7 +3784,7 @@ function app(){ return {
   // scan (lib/kits/branch-status.js) once and stores it, so the branches view and
   // the cross-repo Activity view render from the cache instead of a per-visit
   // fanout. The material-change gate keeps commits sparse; the watermark gate
-  // below keeps the calls sparse. The invariants are in lib/kits/repo-activity-cache.js.
+  // below keeps the calls sparse.
   //
   // 30 MINUTES, down from 12 hours. The old number was set when every pass paid
   // for the whole estate whether or not anything had moved, and half a day was

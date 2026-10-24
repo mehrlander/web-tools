@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Findings: what a tending pass concluded, stored as notes, and when to look again.
 
-SKILL.md, "Findings", states the record and its lifecycle; lib/kits/findings.js
-folds and compares the same way, held to it by node/test/findings.test.mjs.
+lib/kits/findings.js states the record, and folds and compares the same way,
+held to it by node/test/findings.test.mjs.
 `check` observes witnesses from the checkouts beside the store and the crawl's
 cache, settled findings included.
 

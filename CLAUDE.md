@@ -68,7 +68,7 @@ never by renaming a side, which keeps the duplicate.
 
 ## Snags
 
-Snags go in the Lists view's Snag list, `lists/snag.json` in web-tools-private, which holds every repo's; the item shape is in [`lib/kits/lists.js`](lib/kits/lists.js). A session adds one by editing that file and committing to the registry's main. A repeat is another date on the item it belongs to, never a second item, and the third date earns a tracker task that removes the cause. A citation names a snag by its `id`, the slug its heading carried in `docs/SNAGS.md` before 2026-10-20.
+Snags go in the Lists view's Snag list, `lists/snag.json` in web-tools-private, which holds every repo's. A session adds one, or a date to the item a repeat belongs to, by editing that file and committing to the registry's main. A citation names a snag by its `id`, the slug its heading carried in `docs/SNAGS.md` before 2026-10-20.
 
 ## Environment & testing
 
