@@ -316,6 +316,9 @@
 
   // ── the field's card ────────────────────────────────────────────────────────
   // What TableStats.profile reads in the column, the same figures the
+  // explorer's Columns view and the workbench's Profile show. The header line
+  // ends in a funnel that adds the field as a filter, or takes it off, so the
+  // card has no button row of its own.
   // explorer's Columns view and the workbench's Profile show: its type, how
   // full it is, its distincts, a number's range, the commonest values.
   const PROFILE = Object.fromEntries(S.profile(ROWS).columns.map(c => [c.name, c]));
@@ -331,16 +334,17 @@
     card.innerHTML = `<div class="flex items-baseline gap-2 px-3 pt-2.5 pb-2 border-b border-base-200">
         <span class="font-mono font-semibold truncate ${SCAN.isNum[field] ? 'text-secondary' : ''}">${esc(field)}</span>
         <span class="text-xs text-base-content/60 whitespace-nowrap">${esc(c.type)} · ${c.distinctCount.toLocaleString()}${c.distinctCapped ? '+' : ''} distinct</span>
-        <span class="ml-auto text-xs text-base-content/60 whitespace-nowrap">${r ? ROLE[r] : 'not placed'}</span></div>
+        <span class="ml-auto text-xs text-base-content/60 whitespace-nowrap">${r ? ROLE[r] : 'not placed'}</span>
+        <button type="button" class="btn btn-xs btn-ghost btn-square -my-1 -mr-1.5 ${st.filters.includes(field) ? 'text-primary' : ''}" data-card-filter="${esc(field)}" aria-label="${st.filters.includes(field) ? 'Stop filtering by ' : 'Filter by '}${esc(field)}"><i class="ph ${st.filters.includes(field) ? 'ph-funnel-x' : 'ph-funnel'} text-sm"></i></button></div>
       ${c.numStats ? `<div class="px-3 py-2 border-b border-base-200 font-mono text-xs tabular-nums flex justify-between gap-2">
         <span><span class="text-base-content/50">min</span> ${n(c.numStats.min)}</span><span><span class="text-base-content/50">median</span> ${n(c.numStats.median)}</span><span><span class="text-base-content/50">max</span> ${n(c.numStats.max)}</span></div>` : ''}
-      ${top.length && !unique ? `<ul class="px-3 py-2 flex flex-col gap-1">${top.map(t => `<li class="grid grid-cols-[minmax(0,1fr)_auto] gap-2 items-center">
+      ${top.length && !unique && !(st.filters.includes(field) && !SCAN.isNum[field]) ? `<ul class="px-3 py-2 flex flex-col gap-1">${top.map(t => `<li class="grid grid-cols-[minmax(0,1fr)_auto] gap-2 items-center">
           <span class="relative truncate px-1 rounded-sm"><span class="absolute inset-y-0 left-0 bg-primary/10 rounded-sm" style="width:${Math.round(t.count / most * 100)}%"></span><span class="relative">${esc(t.value)}</span></span>
           <span class="font-mono text-xs tabular-nums text-base-content/60">${t.count}</span></li>`).join('')}</ul>` : ''}
       ${r === 'value' ? `<div class="px-3 pt-2.5 flex flex-col gap-1.5"><div class="join w-full">${AGGS(field).map(a => `<button type="button" data-card-agg="${a}" class="join-item btn btn-xs flex-1 font-normal ${st.agg === a ? 'btn-primary' : 'btn-ghost border border-base-300'}">${SHORT[a]}</button>`).join('')}</div>
         ${st.agg === 'list' ? `<div class="flex items-center gap-1 text-xs"><span class="text-base-content/60 pr-1">joined by</span>${[', ', ' | ', '; '].map(x => `<button type="button" data-card-sep="${esc(x)}" class="btn btn-xs font-mono font-normal ${st.sep === x ? 'btn-primary' : 'btn-ghost border border-base-300'}">${esc(x.trim())}</button>`).join('')}</div>` : ''}</div>` : ''}
       ${st.filters.includes(field) ? filterControls(field) : ''}
-      ${st.filters.includes(field) ? '<div class="pb-2.5"></div>' : `<div class="px-3 py-2.5"><button type="button" class="btn btn-xs rounded-full btn-ghost border border-base-300 font-normal" data-card-filter="${esc(field)}"><i class="ph ph-funnel"></i>Filter by it</button></div>`}`;
+      <div class="pb-2.5"></div>`;
     const a = anchor.getBoundingClientRect();
     card.classList.remove('hidden');
     const w = card.offsetWidth, h = card.offsetHeight;
@@ -410,10 +414,18 @@
       const box = (k, ph) => `<input type="number" inputmode="decimal" data-range="${k}" data-field="${esc(field)}" value="${g[k] ?? ''}" placeholder="${ph}" class="input input-xs w-full font-mono">`;
       return `<div class="px-3 pt-2.5 flex items-center gap-1.5 text-xs"><span class="text-base-content/60">from</span>${box('lo', 'any')}<span class="text-base-content/60">to</span>${box('hi', 'any')}</div>`;
     }
+    // One list, not two: each value's row is its tick, its bar and its count,
+    // commonest first, standing in for the card's own list of top values.
     const ex = st.excluded[field] || new Set();
-    return `<div class="px-3 pt-2.5 flex flex-col gap-1">
+    const counts = new Map();
+    for (const r of ROWS) { const v = String(r[field] ?? ''); counts.set(v, (counts.get(v) || 0) + 1); }
+    const vals = [...counts].sort((a, b) => b[1] - a[1]), most = Math.max(1, ...counts.values());
+    return `<div class="px-3 pt-2 flex flex-col gap-1">
       <div class="flex gap-2 text-xs"><button type="button" class="link link-hover" data-tick-all="${esc(field)}">all</button><button type="button" class="link link-hover" data-tick-none="${esc(field)}">none</button></div>
-      <ul class="max-h-40 overflow-auto flex flex-col">${VALUES[field].map(v => `<li><label class="flex items-center gap-2 py-0.5 cursor-pointer"><input type="checkbox" class="checkbox checkbox-xs" data-tick="${esc(v)}" data-field="${esc(field)}" ${ex.has(v) ? '' : 'checked'}><span class="truncate">${esc(v || '(blank)')}</span></label></li>`).join('')}</ul></div>`;
+      <ul class="max-h-52 overflow-auto flex flex-col gap-1">${vals.map(([v, n]) => `<li><label class="grid grid-cols-[auto_minmax(0,1fr)_auto] gap-2 items-center cursor-pointer">
+        <input type="checkbox" class="checkbox checkbox-xs" data-tick="${esc(v)}" data-field="${esc(field)}" ${ex.has(v) ? '' : 'checked'}>
+        <span class="relative truncate px-1 rounded-sm ${ex.has(v) ? 'opacity-50' : ''}"><span class="absolute inset-y-0 left-0 bg-primary/10 rounded-sm" style="width:${Math.round(n / most * 100)}%"></span><span class="relative">${esc(v || '(blank)')}</span></span>
+        <span class="font-mono text-xs tabular-nums text-base-content/60">${n}</span></label></li>`).join('')}</ul></div>`;
   }
   const aggMenu = (el) => window.rowMenu.open({ ...at(el), dense: true, items: ['sum', 'avg', 'min', 'max', 'count']
     .filter(a => a !== st.agg && AGGS(st.value).includes(a)).concat(AGGS(st.value).includes('list') && st.agg !== 'list' ? ['list'] : []).map(a => ({ icon: 'ph-function', label: { avg: 'average', count: 'count', list: 'list of values' }[a] || a, run: () => { st.agg = a; render(); } })) });
@@ -530,7 +542,9 @@
     const s = t.closest('[data-slot]'); if (s) return slotMenu(s);
     const inf = t.closest('[data-info]');
     if (inf) { e.preventDefault(); const p = inf.closest('[data-pill]'); return $('card').classList.contains('hidden') || $('card').dataset.field !== p.dataset.field ? ($('card').dataset.field = p.dataset.field, openCard(p, p.dataset.field)) : closeCard(); }
-    const cf = t.closest('[data-card-filter]'); if (cf) { closeCard(); return place(cf.dataset.cardFilter, 'filters'); }
+    // The card's funnel adds the field as a filter, or, lit, takes it off.
+    const cf = t.closest('[data-card-filter]');
+    if (cf) { const f = cf.dataset.cardFilter; closeCard(); return st.filters.includes(f) ? remove(f, 'filters') : place(f, 'filters'); }
     const ca = t.closest('[data-card-agg]');
     if (ca) { st.agg = ca.dataset.cardAgg; render(); return openCard(document.querySelector('[data-zone="value"] [data-pill]') || ca, st.value); }
     const cs = t.closest('[data-card-sep]'); if (cs) { st.sep = cs.dataset.cardSep; render(); return openCard(document.querySelector('[data-zone="value"] [data-pill]') || cs, st.value); }
