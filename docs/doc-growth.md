@@ -28,15 +28,15 @@ each. Care mode leaves out files a commit hook writes (`--generated`, marked
 counts focused edits. Logs, tracker tasks and archives stay in.
 
 The Growth tab puts a **ranked list** over the chart: the same files as of the
-last sample, one line a row, each opening in the file deck. Its column heads
-sort it by focused edits, focused edits per thousand words (the default) or
-words, and a second click turns the order round; a phone shows the one count
-the list is sorted by, under a head a tap steps through the three. A path too
-long for its line loses its start, so the file's name stays in view. Picking a
-row rings its bubble and draws its trail, and picking a bubble scrolls the list
-to its row. The tab opens the chart on Care, where a row's rank and its
-bubble's height above the dashed line agree. The full page opens on Effort;
-`?y=care`, `net` or `age` opens it on another measure.
+last sample, one line a row. Its column heads sort it by focused edits, focused
+edits per thousand words (the default) or words, and a second click turns the
+order round; a phone keeps the first two. A path too long for its line loses its
+start, so the file's name stays in view. Tapping a name opens the file's panel:
+its counts, the date of its last focused edit, the file deck and its GitHub
+page. Picking a row rings its bubble and draws its trail, and picking a bubble
+scrolls the list to its row. The tab opens the chart on Care, where a row's rank
+and its bubble's height above the dashed line agree. The full page opens on
+Effort; `?y=care`, `net` or `age` opens it on another measure.
 
 The tab has no minimum-edits slider: it lists and draws files with at least 5
 focused edits, or 5 edits on the other measures. Above the list, one row of
@@ -50,13 +50,15 @@ picks:
   two levels (`projects/budget-drs`) under a folder `--containers` names
   (`projects`, `packages` and `apps` by default).
 
-The chart's controls sit on the chart, above the plot: at the left the measure
-up the chart, which a tap steps through, and the prose-only and trail toggles;
-at the right a **colour box**, which a tap steps through Kind, Folder and one
-colour. The three most common values over the whole list take a hue each and the
-rest a neutral, so a filter never repaints what it keeps; the coloured row's
-chips carry the dots, as the legend. The chart keeps every file and draws those
-outside the list faint. The tab fits the Map pane, so only the list scrolls.
+The chart's controls sit on the chart. Above the plot are the four measures as
+one button group and, at the right, a **colour box**, which a tap steps through
+Kind, Folder and one colour. The y axis's title carries an info button whose
+panel says what the measure counts and what a focused edit is, and the x axis's
+title the prose-only toggle; the trail toggle sits by Play. The three most
+common values over the whole list take a hue each and the rest a neutral, so a
+filter never repaints what it keeps; the coloured row's chips carry the dots, as
+the legend. The chart keeps every file and draws those outside the list faint.
+The tab fits the Map pane, so only the list scrolls.
 
 `w` counts every token; `r` skips fenced code blocks and YAML frontmatter.
 Tables and indented code count in both, so a wide gap between the two means
@@ -73,7 +75,7 @@ shows; without it the label is the clone path. `--branch` defaults to `main`,
 which must exist as a local branch of the clone. `--min-edits N` drops files
 touched in fewer than N commits (default 1); on a repo carrying generated
 markdown, `--min-edits 2` cuts most of the data file. `--days`, `--ext` and
-`--containers` are listed by `--help`. The page's axis labels ("edits / month")
+`--containers` are listed by `--help`. The page's axis labels ("edits a month")
 assume the default 7-day sample.
 
 **Empty frames are trimmed.** The extractor drops leading and trailing samples
