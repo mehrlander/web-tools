@@ -10,38 +10,38 @@ Map's Docs → Growth tab and full page in
 
 Every file is a bubble: **x** is its length in words on a log scale, bubble area
 is lifetime edit count, and the play control sweeps the history one sample at a
-time. The page opens paused on the last sample and draws only files with at
-least 5 edits until the min edits slider (1 to 30) is lowered. **y** is one of
-four measures per sample:
+time. The page opens paused on the last sample and draws every file; its min
+edits slider (1 to 30) narrows that. **y** is one of four measures per sample:
 
 | Mode | y is |
 | --- | --- |
 | Effort | edits in the trailing four samples |
 | Net change | lines added minus lines deleted, from `git log --numstat` |
 | Settled | days since the last sample with an edit, in multiples of `--days` |
-| Care | focused edits to date, with a dashed line at 10 per thousand words |
+| Care | weighted edits to date |
 
-A **focused edit** is a commit touching at most `--focus` markdown files
-(default 5), so a sweep across many documents does not count as attention to
-each. Care mode leaves out files a commit hook writes (`--generated`, marked
-`gen` in the data file), since their edits are the hook's, and the slider then
-counts focused edits. Logs, tracker tasks and archives stay in.
+A **weighted edit** counts 1 divided by the number of Markdown files its commit
+changed: a commit to one file counts 1 for it, a commit to ten files counts 0.1
+for each. So a sweep across many documents is not read as attention to each,
+and no cutoff decides which commits count. The data file carries the weighted edits
+per sample (`a`) and in all (`weighted`). Care mode leaves out files a commit
+hook writes (`--generated`, marked `gen` in the data file), since their edits
+are the hook's. Logs, tracker tasks and archives stay in.
 
 The Growth tab puts a **ranked list** over the chart: the same files as of the
-last sample, one line a row. Its column heads sort it by focused edits, focused
-edits per thousand words (the default) or words, and a second click turns the
-order round; a phone keeps the first two. A path too long for its line loses its
-start, so the file's name stays in view. Tapping a name opens the file's panel:
-its counts, the date of its last focused edit, the file deck and its GitHub
-page. Picking a row rings its bubble and draws its trail, and picking a bubble
-scrolls the list to its row. The tab opens the chart on Care, where a row's rank
-and its bubble's height above the dashed line agree. The full page opens on
-Effort; `?y=care`, `net` or `age` opens it on another measure.
+last sample, one line a row. Its column heads sort it by edits, weighted edits,
+weighted edits per thousand words (the default) or words, and a second click
+turns the order round; a phone keeps weighted edits and the rate. A path too
+long for its line loses its start, so the file's name stays in view. Tapping a
+name opens the file's panel: its counts, the date it was last edited, the file
+deck and its GitHub page. Picking a row rings its bubble and draws its trail,
+and picking a bubble scrolls the list to its row. The tab opens the chart on
+Care. The full page opens on Effort; `?y=care`, `net` or `age` opens it on
+another measure.
 
-The tab has no minimum-edits slider: it lists and draws files with at least 5
-focused edits, or 5 edits on the other measures. Above the list, one row of
-count chips per facet narrows it, every value shown whatever the other row
-picks:
+The tab sets no minimum: it lists and draws every file the history edited.
+Above the list, one row of count chips per facet narrows it, every value shown
+whatever the other row picks:
 
 - **Kind**, which `kind()` in the kit reads from the path alone: agent
   instructions, tracker task, thread, blog post, log entry, archive, skill,
@@ -53,7 +53,7 @@ picks:
 The chart's controls sit on the chart. Above the plot are the four measures as
 one button group and, at the right, a **colour box**, which a tap steps through
 Kind, Folder and one colour. The y axis's title carries an info button whose
-panel says what the measure counts and what a focused edit is, and the x axis's
+panel says what the measure counts and what a weighted edit is, and the x axis's
 title the prose-only toggle; the trail toggle sits by Play. The three most
 common values over the whole list take a hue each and the rest a neutral, so a
 filter never repaints what it keeps; the coloured row's chips carry the dots, as

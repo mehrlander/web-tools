@@ -100,8 +100,8 @@
         </div>
         <!-- data-slot: the Map's Growth unit's Threshold dial (web-tools
              data/ui-units/codebook.md, "Slots"); nothing at runtime reads it. -->
-        <label class="flex items-center gap-1.5" data-slot="frame:dial">
-          <span class="opacity-60" x-text="yMode==='care' ? 'min focused' : 'min edits'"></span>
+        <label class="flex items-center gap-1.5" data-slot="frame:dial" x-show="yMode !== 'care'">
+          <span class="opacity-60">min edits</span>
           <input type="range" class="range range-xs w-24" min="1" max="30"
                  x-model.number="minEdits" @input="draw()">
           <span class="font-mono w-5" x-text="minEdits"></span>
@@ -165,7 +165,7 @@ function growth() {
   return {
     HUE: dark ? DocGrowth.DARK : DocGrowth.LIGHT,
     data: null, err: '', t: 0, playing: false, raf: 0,
-    yMode: 'churn', unit: 'w', minEdits: 5, trails: true,
+    yMode: 'churn', unit: 'w', minEdits: 1, trails: true,
     picked: null, hovered: null, tipX: 0, tipY: 0, view: 'chart', bounds: null,
     visible: 0, groups: [], hasCare: false, _pts: [],
 
@@ -202,7 +202,7 @@ function growth() {
     get tipMeta() {
       const f = this.hovered; if (!f) return '';
       const k = Math.round(this.t);
-      return `${(f[this.unit][k] ?? 0).toLocaleString()} words · ${f.edits} edits${Array.isArray(f.f) ? ` (${f.focused} focused)` : ''} · ${this.data.groups[f.g]}`;
+      return `${(f[this.unit][k] ?? 0).toLocaleString()} words · ${f.edits} edits${Array.isArray(f.a) ? ` (${f.weighted.toFixed(1)} weighted)` : ''} · ${this.data.groups[f.g]}`;
     },
     get tableRows() {
       return this.shown().map(f => {

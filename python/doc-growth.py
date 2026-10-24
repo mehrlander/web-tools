@@ -6,9 +6,11 @@ words at each sample, and folds in per-file commit churn from `git log
 --numstat`. Output feeds pages/doc-growth.html.
 
 History follows renames, so a moved file keeps its edits under its current path.
-A focused edit is a commit touching at most --focus matching files: a sweep across
-many documents is not attention to any one of them. Files a commit hook writes
-(--generated) are marked `gen`, since their edits are the hook's, not a reader's.
+Each edit is also WEIGHTED by 1 / the matching files its commit changed: a commit
+to one file counts 1 for it, a sweep across ten counts 0.1 for each, so a sweep is
+not read as attention to every document it touched, and no cutoff decides which
+commits count. Files a commit hook writes (--generated) are marked `gen`, since
+their edits are the hook's, not a reader's.
 
     python3 python/doc-growth.py . -o data/doc-growth/web-tools.json --name mehrlander/web-tools
 
@@ -89,9 +91,6 @@ def main():
     ap.add_argument('--name', default=None, help='owner/repo label for the page')
     ap.add_argument('--containers', default='projects,packages,apps',
                     help='dirs that group by two segments, not one')
-    ap.add_argument('--focus', type=int, default=5,
-                    help='a commit touching at most this many matching files '
-                         'is a focused edit of each of them')
     ap.add_argument('--generated', action='append', default=None,
                     help='regex for a file a commit hook writes (repeatable); '
                          'defaults to the hub\'s and home\'s hook outputs')
@@ -112,7 +111,7 @@ def main():
     # The log runs newest first, so a rename is met before the older commits
     # that used the old path: `alias` maps each earlier path to the file's
     # current one, and every row is filed under that.
-    touched = defaultdict(list)          # current path -> [(ts, added, deleted, focused)]
+    touched = defaultdict(list)          # current path -> [(ts, added, deleted, weight)]
     alias = {}
     commits, rows = [], None
     for line in git(repo, 'log', '--numstat', '-M', '--format=C|%ct',
@@ -130,9 +129,8 @@ def main():
                 alias[old] = cur
             rows.append((cur, int(add) if add != '-' else 0, int(dele) if dele != '-' else 0))
     for ts, rows in commits:
-        focused = len(rows) <= a.focus
         for cur, add, dele in rows:
-            touched[cur].append((ts, add, dele, focused))
+            touched[cur].append((ts, add, dele, 1 / len(rows)))
 
     # --- weekly trees ---------------------------------------------------------
     frames, trees = [], []
@@ -192,7 +190,7 @@ def main():
     gi = {g: i for i, g in enumerate(groups)}
     files = []
     for p in paths:
-        w, pr, ed, fo, net = [], [], [], [], []
+        w, pr, ed, wt, net = [], [], [], [], []
         for k, snap in enumerate(trees):
             sha = snap.get(p)
             w.append(sizes[sha][0] if sha else None)
@@ -201,23 +199,23 @@ def main():
             hi = first + k * step
             ev = [e for e in touched.get(p, []) if lo < e[0] <= hi]
             ed.append(len(ev))
-            fo.append(sum(1 for e in ev if e[3]))
+            wt.append(round(sum(e[3] for e in ev), 3))
             net.append(sum(e[1] - e[2] for e in ev))
         live = [i for i, v in enumerate(w) if v is not None]
         row = {'p': p, 'g': gi[group_of(p, containers)],
-               'w': w, 'r': pr, 'e': ed, 'f': fo, 'n': net,
+               'w': w, 'r': pr, 'e': ed, 'a': wt, 'n': net,
                'born': live[0] if live else 0,
                'edits': len(touched.get(p, [])),
-               'focused': sum(1 for e in touched.get(p, []) if e[3])}
-        lf = max((e[0] for e in touched.get(p, []) if e[3]), default=0)
-        if lf:
-            row['lf'] = datetime.fromtimestamp(lf, timezone.utc).strftime('%Y-%m-%d')
+               'weighted': round(sum(e[3] for e in touched.get(p, [])), 3)}
+        le = max((e[0] for e in touched.get(p, [])), default=0)
+        if le:
+            row['le'] = datetime.fromtimestamp(le, timezone.utc).strftime('%Y-%m-%d')
         if any(g.search(p) for g in generated):
             row['gen'] = 1
         files.append(row)
 
     out = {'repo': a.name or repo, 'branch': a.branch, 'ext': a.ext,
-           'days': a.days, 'focus': a.focus, 'generated': time.strftime('%Y-%m-%d'),
+           'days': a.days, 'generated': time.strftime('%Y-%m-%d'),
            'frames': frames, 'groups': groups, 'files': files}
     with open(a.out, 'w') as f:
         json.dump(out, f, separators=(',', ':'))
