@@ -1,0 +1,116 @@
+{
+  "written": "2026-10-24, before any model saw the units",
+  "by": "the session that designed the pilot (e223eaa7), from reading the code; not independent of it",
+  "rule": "A member does the group's job itself. A related unit touches the job (delegates to it, consumes its result, holds it inside a string) and is neither a hit nor a miss.",
+  "groups": [
+    {
+      "id": "number-from-text",
+      "job": "turn a text value such as \"(1,234.50)\" or \"$5\" into a number, reading parentheses as negative",
+      "members": [
+        "lib/alpineComponents/transform-workbench.js:1407",
+        "lib/kits/tabular-explorer.js:49"
+      ],
+      "related": [
+        "lib/kits/xlsx.js:1808",
+        "lib/alpineComponents/transform-workbench.js:1538"
+      ],
+      "evidence": "pvNum and parseNum strip the same decoration and read parentheses the same way; they differ on validation (\"0x1F\" is NaN to one and 31 to the other). pvFnSrc writes a third copy into the source of a saved recipe, as a string, so the parser cannot see it as a function."
+    },
+    {
+      "id": "column-profile",
+      "job": "describe each column of a table of rows: its type, how often it is filled, its distinct values",
+      "members": [
+        "lib/alpineComponents/transform-workbench.js:1354",
+        "lib/alpineComponents/transform-workbench.js:1360",
+        "lib/kits/tabular-explorer.js:76",
+        "lib/kits/tabular-explorer.js:88",
+        "lib/kits/xlsx.js:1793",
+        "lib/kits/xlsx.js:1819"
+      ],
+      "related": [
+        "lib/kits/xlsx-extract.js:381",
+        "lib/kits/xlsx-extract.js:383",
+        "lib/kits/xlsx.js:1808",
+        "lib/kits/json-explorer.js:91"
+      ],
+      "evidence": "Three engines profile columns: the workbench's Profile view, the explorer's DataProfile.analyze, and xlsx.js profileColumns. xlsx-extract's profileRows delegates to profileColumns. json-explorer's analyze counts JSON node types, a neighbouring job."
+    },
+    {
+      "id": "group-and-aggregate",
+      "job": "group rows by the values of chosen columns and total a measure per group (a pivot)",
+      "members": [
+        "lib/alpineComponents/transform-workbench.js:1617",
+        "lib/alpineComponents/transform-workbench.js:1620",
+        "lib/kits/tabular-explorer.js:854",
+        "pages/pivot-table.html:448",
+        "pages/pivot-table.html:496"
+      ],
+      "related": [
+        "lib/alpineComponents/transform-workbench.js:1538",
+        "lib/alpineComponents/transform-workbench.js:1694",
+        "lib/kits/tabular-explorer.js:815",
+        "pages/pivot-table.html:470",
+        "pages/pivot-table.html:485",
+        "lib/kits/report-layout.js"
+      ],
+      "evidence": "pvTree, renderPivotTable and renderPivot each build the groups and accumulate the measure themselves. They disagree on a measure that will not parse: pvTree skips the row and reports the count, renderPivotTable adds it as zero. report-layout.js draws a partition the workbench computed, so it is related as a whole file."
+    },
+    {
+      "id": "dom-builder",
+      "job": "create a DOM element from a tag, an attribute object and children",
+      "members": [
+        "lib/kits/tabular-explorer.js:30",
+        "lib/kits/row-menu.js:47",
+        "lib/kits/json-explorer.js:25",
+        "lib/kits/swipe-deck.js:148"
+      ],
+      "related": [],
+      "evidence": "Four h() helpers; jscpd found three of them as clones."
+    },
+    {
+      "id": "csv-line",
+      "job": "split one CSV line into fields, honouring quotes and doubled quotes",
+      "members": [
+        "lib/kits/csv.js:14",
+        "node/build/registries-load.mjs:23"
+      ],
+      "related": [],
+      "evidence": "Identical bodies under two names."
+    },
+    {
+      "id": "csv-records",
+      "job": "turn CSV text into records keyed by the header row",
+      "members": [
+        "lib/kits/csv.js:32",
+        "node/build/registries-load.mjs:41"
+      ],
+      "related": [],
+      "evidence": "Identical bodies under two names."
+    },
+    {
+      "id": "slide-scroll",
+      "job": "scroll a horizontal snap strip so slide i is in view, clamping i to the slides there are",
+      "members": [
+        "lib/kits/swipe-deck.js:377",
+        "lib/alpineComponents/file-browser.js:185",
+        "lib/alpineComponents/here-view.js:740",
+        "lib/alpineComponents/user-call-form.js:1518"
+      ],
+      "related": [
+        "lib/alpineComponents/here-view.js:717",
+        "lib/alpineComponents/user-call-form.js:1152"
+      ],
+      "evidence": "swipe-deck's go is the kit's; the three components hand-build the same move beside it, which the UI inventory's hand_snap signature flags."
+    },
+    {
+      "id": "slide-from-scroll",
+      "job": "work out which slide of a snap strip is showing from its scroll position",
+      "members": [
+        "lib/alpineComponents/here-view.js:694",
+        "lib/alpineComponents/user-call-form.js:1498"
+      ],
+      "related": [],
+      "evidence": "here-view divides scrollLeft by the strip width; user-call-form takes the panel nearest the strip's left edge."
+    }
+  ]
+}

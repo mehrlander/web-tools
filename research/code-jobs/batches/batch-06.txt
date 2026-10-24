@@ -1,0 +1,1620 @@
+=== UNIT lib/kits/json-explorer.js:457 | call(…) > mount > row ===
+(key, val, path, depth) => {
+        const pk = pathToProp(path);
+        const coll = isColl(val);
+        const n = coll ? countOf(val) : 0;
+        const open = coll && n > 0 && isOpen(path);
+        const size = coll || typeof val === 'string' ? bytesOf(val) : 0;
+        const el = h('div', {
+          'data-path': pk,
+          class: 'flex min-w-0 items-start gap-2 py-0.5 pr-1 '
+            + (searchMatches.has(pk) ? 'bg-primary/10 ' : '')
+            + (n ? 'cursor-pointer hover:bg-base-200/70 ' : ''),
+          style: `padding-left:${0.5 + depth * INDENT}rem`,
+        },
+          n ? h('i', { class: 'ph ph-caret-right mt-1 shrink-0 text-xs text-base-content/45 transition-transform' + (open ? ' rotate-90' : '') })
+            : h('span', { class: 'w-3 shrink-0' }),
+          key === null ? null : h('span', { class: 'shrink-0 text-base-content/55' }, String(key)),
+          valueOf(val, typeof key === 'number'));
+        // The column to compare down, at the row's right edge. Below a kilobyte
+        // it is noise, and a number or a boolean has no size worth stating. A
+        // row with neither a size nor an arrow reserves nothing, so a short
+        // value is not squeezed by an empty column on a phone; a row with a
+        // size and no arrow keeps the arrow's slot, so the sizes line up.
+        if (size >= 1024 || n) {
+          el.append(h('span', { class: 'w-16 shrink-0 text-right font-sans text-xs leading-5 tabular-nums text-base-content/45' },
+            size >= 1024 ? fmtBytes(size) : ''));
+        }
+        // The way into a collection, on every device: the hover-revealed
+        // controls this replaced were unreachable on a phone.
+        if (n || size >= 1024) el.append(n ? h('button', {
+          type: 'button',
+          class: 'btn btn-ghost btn-xs btn-square -my-0.5 shrink-0 text-base-content/35 hover:text-base-content',
+          'data-title-tip': `Open ${key === null ? 'this' : key} on its own`,
+          'aria-label': `Open ${key === null ? 'this' : key} on its own`,
+          onClick: (e) => { e.stopPropagation(); focusChunk(path); },
+        }, h('i', { class: 'ph ph-arrow-right text-sm' })) : h('span', { class: 'w-6 shrink-0' }));
+        if (n) {
+          el.setAttribute('role', 'button');
+          el.setAttribute('tabindex', '0');
+          el.setAttribute('aria-expanded', open ? 'true' : 'false');
+          const toggle = () => {
+            if (openKeys.has(pk)) openKeys.delete(pk); else openKeys.add(pk);
+            render();
+          };
+          el.addEventListener('click', toggle);
+          el.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+          });
+        }
+        return el;
+      }
+=== UNIT lib/kits/json-explorer.js:511 | call(…) > mount > addChildren ===
+(into, val, path, depth) => {
+        const all = entriesOf(val);
+        const pk = pathToProp(path);
+        const limit = searchQuery ? all.length : (shownCount.get(pk) || PAGE);
+        for (const [k, v] of all.slice(0, limit)) {
+          if (budget >= ROW_CAP) return;
+          const p = [...path, k];
+          const ck = pathToProp(p);
+          if (searchQuery && !searchMatches.has(ck) && !searchAncestors.has(ck)) continue;
+          budget++;
+          into.append(row(k, v, p, depth));
+          if (isColl(v) && countOf(v) && isOpen(p)) addChildren(into, v, p, depth + 1);
+        }
+        if (all.length > limit) {
+          into.append(h('button', {
+            type: 'button',
+            class: 'btn btn-ghost btn-xs my-0.5 font-sans font-normal text-base-content/60',
+            style: `margin-left:${0.5 + depth * INDENT + 1.25}rem`,
+            onClick: () => { shownCount.set(pk, limit + PAGE); render(); },
+          }, `Show ${Math.min(PAGE, all.length - limit)} more of ${all.length.toLocaleString()}`));
+        }
+      }
+=== UNIT lib/kits/json-explorer.js:533 | call(…) > mount > renderTree ===
+() => {
+        const data = getChunkData(focusedPath);
+        if (data === undefined) { body.append(quiet(`Nothing at ${pathToProp(focusedPath)}`)); return; }
+        const list = h('div', { class: 'min-w-0 py-1 font-mono text-[13px] leading-5 select-text' });
+        budget = 0;
+        if (isColl(data)) addChildren(list, data, focusedPath, 0);
+        else list.append(row(null, data, focusedPath, 0));
+        if (!list.childNodes.length) list.append(quiet(searchQuery ? 'No matches' : describe(data)));
+        if (budget >= ROW_CAP) list.append(quiet(`The first ${ROW_CAP.toLocaleString()} rows`));
+        body.append(list);
+      }
+=== UNIT lib/kits/json-explorer.js:547 | call(…) > mount > renderSchema ===
+() => {
+        const p = getProfile();
+        const wrap = h('div', { class: 'flex flex-col gap-4 px-2 py-2 font-sans text-sm select-text' });
+
+        // One compact line, not a row of stat tiles (skills/html-style rule 1).
+        wrap.append(h('div', { 'data-schema-summary': '', class: 'px-1 font-mono text-xs text-base-content/60' },
+          [fmtBytes(p.byteSize),
+           `${p.nodeCount.toLocaleString()} nodes`,
+           `depth ${p.maxDepth}`,
+           `${p.collections.length} ${p.collections.length === 1 ? 'collection' : 'collections'}`,
+          ].filter(Boolean).join(' · ')));
+
+        if (p.rootEntries.length) {
+          const tbody = h('tbody', {});
+          for (const e of p.rootEntries) {
+            tbody.append(h('tr', {
+              class: e.isCollection ? 'cursor-pointer hover:bg-base-200/60' : '',
+              onClick: e.isCollection ? () => { focusChunk([e.key]); setView('tree'); } : null,
+            },
+              h('td', { class: 'font-mono' }, e.key),
+              h('td', { class: 'font-mono text-base-content/60' }, e.type),
+              h('td', { class: 'text-right tabular-nums text-base-content/70' }, e.count != null ? e.count.toLocaleString() : ''),
+              h('td', { class: 'text-right tabular-nums text-base-content/70' }, fmtBytes(bytesOf(e.value)))));
+          }
+          wrap.append(h('div', { class: 'flex flex-col gap-1' },
+            label('Fields'),
+            h('table', { class: 'table table-sm' },
+              h('thead', {}, h('tr', { class: 'text-base-content/55' },
+                h('th', {}, 'Field'), h('th', {}, 'Type'),
+                h('th', { class: 'text-right' }, 'Items'), h('th', { class: 'text-right' }, 'Size'))),
+              tbody)));
+        }
+
+        const recordArrays = p.collections.filter(c => c.isRecordArray);
+        for (const coll of recordArrays) {
+          const cbody = h('tbody', {});
+          for (const col of coll.columns) {
+            const pct = Math.round(col.fillRate * 100);
+            cbody.append(h('tr', {},
+              h('td', { class: 'font-mono' }, col.name),
+              h('td', { class: 'font-mono text-base-content/60' }, col.type),
+              h('td', { class: 'w-32' },
+                h('div', { class: 'flex items-center gap-2' },
+                  h('div', { class: 'h-1.5 flex-1 overflow-hidden rounded-full bg-base-300' },
+                    h('div', { class: 'h-full bg-base-content/40', style: `width:${pct}%` })),
+                  h('span', { class: 'w-9 text-right text-xs tabular-nums text-base-content/60' }, `${pct}%`))),
+              h('td', { class: 'max-w-xs truncate font-mono text-base-content/60' }, col.samples.join(', '))));
+          }
+          wrap.append(h('div', { class: 'flex flex-col gap-1' },
+            h('div', { class: 'flex items-center gap-2 px-1' },
+              h('span', { class: 'font-mono text-sm font-medium' }, coll.key),
+              h('span', { class: 'text-xs text-base-content/55' },
+                `${plural(coll.length, 'record')} · ${plural(coll.columns.length, 'field')}`),
+              h('span', { class: 'grow' }),
+              iconBtn('ph-table', `Open ${coll.key} as a table`, () => { focusChunk([coll.key]); setView('table'); }),
+              iconBtn('ph-tree-structure', `Open ${coll.key} in the tree`, () => { focusChunk([coll.key]); setView('tree'); })),
+            h('table', { class: 'table table-sm' },
+              h('thead', {}, h('tr', { class: 'text-base-content/55' },
+                h('th', {}, 'Field'), h('th', {}, 'Type'), h('th', {}, 'Filled'), h('th', {}, 'Samples'))),
+              cbody)));
+        }
+        body.append(wrap);
+      }
+=== UNIT lib/kits/json-explorer.js:612 | call(…) > mount > renderTable ===
+() => {
+        const data = getChunkData(focusedPath);
+        if (!Array.isArray(data) || !data.length || !isColl(data[0])) {
+          body.append(quiet('Not a list of records'));
+          return;
+        }
+        const colSet = new Set();
+        for (const r of data) if (isColl(r)) for (const k in r) colSet.add(k);
+        const cols = [...colSet];
+        const shown = searchQuery
+          ? data.filter(r => isColl(r) && cols.some(c => String(r[c] ?? '').toLowerCase().includes(searchQuery)))
+          : data;
+        const tbody = h('tbody', {});
+        if (!shown.length) {
+          tbody.append(h('tr', {}, h('td', { colspan: cols.length + 1, class: 'py-6 text-center text-base-content/50' }, 'No matches')));
+        }
+        shown.forEach(/* nested: forEach(…), lines 628-639 */);
+        body.append(h('div', { class: 'min-w-0 px-1 py-1 font-sans text-sm' },
+          h('table', { class: 'table table-sm table-pin-rows table-pin-cols' },
+            h('thead', {}, h('tr', { class: 'bg-base-100 text-base-content/55' },
+              h('th', { class: 'w-10' }, '#'),
+              ...cols.map(c => h('th', { class: 'font-mono font-medium' }, c)))),
+            tbody)));
+      }
+=== UNIT lib/kits/json-explorer.js:628 | call(…) > mount > renderTable > forEach(…) ===
+(r, i) => {
+          tbody.append(h('tr', { class: 'hover:bg-base-200/40' },
+            h('td', { class: 'text-right tabular-nums text-base-content/40' }, String(i + 1)),
+            ...cols.map(/* nested: map(…), lines 631-638 */)));
+        }
+=== UNIT lib/kits/json-explorer.js:631 | call(…) > mount > renderTable > forEach(…) > map(…) ===
+c => {
+              const v = (r || {})[c];
+              const text = v === undefined ? '' : isColl(v) ? JSON.stringify(v) : String(v);
+              return h('td', {
+                class: 'max-w-xs truncate font-mono ' + (v === null || isColl(v) ? 'text-base-content/50' : ''),
+                'data-title-tip': text, 'data-title-tip-bare': '1',
+              }, text);
+            }
+=== UNIT lib/kits/json-explorer.js:649 | call(…) > mount > renderRaw ===
+() => {
+        body.append(h('pre', {
+          class: 'px-3 py-2 font-mono text-xs leading-5 select-text',
+          text: JSON.stringify(getChunkData(focusedPath), null, 2),
+        }));
+      }
+=== UNIT lib/kits/json-explorer.js:658 | call(…) > mount > syncChrome ===
+() => {
+        const records = isChunkRecordArray();
+        if (currentView === 'table' && !records) currentView = 'tree';
+        for (const [v] of VIEWS) {
+          const b = viewBtn[v];
+          const on = v === currentView;
+          b.classList.toggle('hidden', v === 'table' && !records);
+          b.classList.toggle('bg-base-200', on);
+          b.classList.toggle('text-base-content', on);
+          b.classList.toggle('text-base-content/55', !on);
+          b.setAttribute('aria-selected', on ? 'true' : 'false');
+        }
+        const filters = currentView === 'tree' || currentView === 'table';
+        searchBox.classList.toggle('hidden', !filters);
+        searchCount.textContent = searchQuery && currentView === 'tree' ? searchMatches.size.toLocaleString() : '';
+        collapseBtn.classList.toggle('hidden', !(currentView === 'tree' && openKeys.size));
+        cardsBtn.classList.toggle('hidden', !records);
+        if (records) {
+          const n = getChunkData(focusedPath).length;
+          cardsBtn.setAttribute('data-title-tip', `Browse ${plural(n, 'record')} as cards`);
+          cardsBtn.setAttribute('aria-label', `Browse ${plural(n, 'record')} as cards`);
+        }
+        const what = focusedPath.length ? String(focusedPath[focusedPath.length - 1]) : name;
+        copyBtn.setAttribute('data-title-tip', `Copy ${what} as JSON`);
+        copyBtn.setAttribute('aria-label', `Copy ${what} as JSON`);
+
+        crumbs.replaceChildren();
+        show(crumbs, focusedPath.length > 0);
+        if (!focusedPath.length) return;
+        crumbs.append(h('button', {
+          type: 'button',
+          class: 'btn btn-ghost btn-xs btn-square shrink-0 text-base-content/60',
+          'data-title-tip': 'Up one level', 'aria-label': 'Up one level',
+          onClick: () => focusChunk(focusedPath.slice(0, -1)),
+        }, h('i', { class: 'ph ph-arrow-left text-sm' })));
+        const trail = h('div', { class: 'flex min-w-0 items-center gap-1 overflow-x-auto whitespace-nowrap [scrollbar-width:none]' });
+        const crumb = /* nested: crumb, lines 694-698 */;
+        trail.append(crumb(name, [], false));
+        focusedPath.forEach((seg, i) => {
+          trail.append(h('span', { class: 'text-base-content/30' }, '›'),
+            crumb(String(seg), focusedPath.slice(0, i + 1), i === focusedPath.length - 1));
+        });
+        const here = getChunkData(focusedPath);
+        const size = here === undefined ? 0 : bytesOf(here);
+        crumbs.append(trail, h('span', { class: 'ml-auto shrink-0 pl-2 font-sans text-base-content/50' },
+          [describe(here), size >= 1024 ? fmtBytes(size) : ''].filter(Boolean).join(' · ')));
+      }
+=== UNIT lib/kits/json-explorer.js:694 | call(…) > mount > syncChrome > crumb ===
+(text, path, last) => h('button', {
+          type: 'button', 'data-crumb': '',
+          class: last ? 'text-base-content' : 'text-base-content/55 hover:text-base-content',
+          onClick: () => focusChunk(path),
+        }, text)
+=== UNIT lib/kits/json-explorer.js:710 | call(…) > mount > render ===
+() => {
+        syncChrome();
+        body.replaceChildren();
+        if (currentView === 'tree') renderTree();
+        else if (currentView === 'schema') renderSchema();
+        else if (currentView === 'table') renderTable();
+        else if (currentView === 'raw') renderRaw();
+      }
+=== UNIT lib/kits/json-explorer.js:720 | call(…) > mount > setView ===
+(v) => {
+        currentView = v;
+        render();
+        body.scrollTop = 0;
+      }
+=== UNIT lib/kits/json-explorer.js:725 | call(…) > mount > focusChunk ===
+(path) => {
+        focusedPath = Array.isArray(path) ? path : [];
+        openKeys.clear();
+        shownCount.clear();
+        // The filter is relative to the opened field, so it is run again there.
+        if (searchQuery) updateSearch(searchQuery); else render();
+        body.scrollTop = 0;
+      }
+=== UNIT pages/pivot-table.html:382 | toggleNode ===
+function toggleNode(nodeKey) {
+      if (collapsedNodes.has(nodeKey)) {
+        collapsedNodes.delete(nodeKey);
+      } else {
+        collapsedNodes.add(nodeKey);
+      }
+      renderPivot();
+    }
+=== UNIT pages/pivot-table.html:392 | setTab ===
+function setTab(tabId) {
+      ['pivot', 'raw', 'docs'].forEach(/* nested: forEach(…), lines 393-403 */);
+    }
+=== UNIT pages/pivot-table.html:393 | setTab > forEach(…) ===
+t => {
+        const viewEl = document.getElementById('view' + t.charAt(0).toUpperCase() + t.slice(1));
+        const btnEl = document.getElementById('btnTab' + t.charAt(0).toUpperCase() + t.slice(1));
+        if (t === tabId) {
+          viewEl.classList.remove('hidden');
+          btnEl.className = 'btn btn-sm join-item btn-primary';
+        } else {
+          viewEl.classList.add('hidden');
+          btnEl.className = 'btn btn-sm join-item btn-ghost';
+        }
+      }
+=== UNIT pages/pivot-table.html:409 | formatAccounting ===
+function formatAccounting(val, isFTE = false) {
+      if (val === null || val === undefined || isNaN(val)) return '-';
+      if (val === 0) return '-';
+      if (isFTE) return val.toFixed(1);
+      const absVal = Math.round(Math.abs(val)).toLocaleString('en-US');
+      if (val < 0) return `($${absVal})`;
+      return `$${absVal}`;
+    }
+=== UNIT pages/pivot-table.html:421 | populateRawTable ===
+function populateRawTable() {
+      const tbody = document.querySelector('#rawTableElement tbody');
+      tbody.innerHTML = '';
+      RAW_RECORDS.forEach(/* nested: forEach(…), lines 424-442 */);
+    }
+=== UNIT pages/pivot-table.html:424 | populateRawTable > forEach(…) ===
+r => {
+        const tr = document.createElement('tr');
+        const badgeColor = r.Variance > 0 ? 'badge-error' : (r.Variance < 0 ? 'badge-success' : 'badge-ghost');
+        tr.innerHTML = `
+          <td class="font-mono opacity-60">${r.id}</td>
+          <td><strong>${r.Division}</strong></td>
+          <td>${r.Program}</td>
+          <td><span class="badge badge-xs badge-outline">${r.Fund}</span></td>
+          <td>${r.Object}</td>
+          <td class="font-mono">${r.FiscalYear}</td>
+          <td class="font-mono">${r.Quarter}</td>
+          <td class="text-right font-mono">${r.FTE.toFixed(1)}</td>
+          <td class="text-right font-mono">${formatAccounting(r.Budget)}</td>
+          <td class="text-right font-mono">${formatAccounting(r.Actual)}</td>
+          <td class="text-right font-mono font-semibold ${r.Variance > 0 ? 'text-error' : (r.Variance < 0 ? 'text-success' : '')}">${formatAccounting(r.Variance)}</td>
+          <td><span class="badge badge-xs ${badgeColor}">${r.Status}</span></td>
+        `;
+        tbody.appendChild(tr);
+      }
+=== UNIT pages/pivot-table.html:448 | renderPivot ===
+function renderPivot() {
+      const row1Field = document.getElementById('selRow1').value;
+      const row2Field = document.getElementById('selRow2').value;
+      const colField = document.getElementById('selCol').value;
+      const measureField = document.getElementById('selMeasure').value;
+      const aggFunc = document.getElementById('selAgg').value;
+
+      const showSubtotals = document.getElementById('chkSubtotals').checked;
+      const showGrandTotals = document.getElementById('chkGrandTotals').checked;
+      const useHeatmap = document.getElementById('chkHeatmap').checked;
+      const useDataBars = document.getElementById('chkDataBars').checked;
+
+      const hasHierarchy = row2Field !== 'None' && row2Field !== row1Field;
+      const isFTE = measureField === 'FTE';
+
+      // Column dimension values
+      const colKeys = [...new Set(RAW_RECORDS.map(d => d[colField]))].sort();
+
+      // Row hierarchy structure: matrix[r1][r2][col] = array of values
+      const matrix = {};
+      const row1Keys = [...new Set(RAW_RECORDS.map(d => d[row1Field]))].sort();
+
+      row1Keys.forEach(/* nested: forEach(…), lines 470-482 */);
+
+      // Distribute records into matrix
+      RAW_RECORDS.forEach(/* nested: forEach(…), lines 485-493 */);
+
+      // Aggregation Helper
+      /* nested: computeAgg, lines 496-504 */
+
+      // Collect cell values for min/max scaling
+      const allComputedValues = [];
+      row1Keys.forEach(/* nested: forEach(…), lines 508-515 */);
+      const minVal = allComputedValues.length ? Math.min(...allComputedValues) : 0;
+      const maxVal = allComputedValues.length ? Math.max(...allComputedValues) : 1;
+      const maxAbsVal = Math.max(Math.abs(minVal), Math.abs(maxVal)) || 1;
+
+      // Build Pivot Table DOM
+      const table = document.getElementById('pivotTableElement');
+      table.innerHTML = '';
+
+      // Thead
+      const thead = document.createElement('thead');
+      let h1 = `<tr>
+        <th rowspan="2" class="align-bottom text-left">${row1Field}</th>`;
+      if (hasHierarchy) {
+        h1 += `<th rowspan="2" class="align-bottom text-left">${row2Field}</th>`;
+      }
+      h1 += `<th colspan="${colKeys.length}" class="text-center font-bold border-b border-base-300">${colField}</th>`;
+      if (showGrandTotals) {
+        h1 += `<th rowspan="2" class="pivot-num align-bottom font-bold">Total (${aggFunc})</th>`;
+      }
+      h1 += `</tr>`;
+
+      let h2 = `<tr>`;
+      colKeys.forEach(c => {
+        h2 += `<th class="pivot-num font-semibold">${c}</th>`;
+      });
+      h2 += `</tr>`;
+
+      thead.innerHTML = h1 + h2;
+      table.appendChild(thead);
+
+      // Tbody
+      const tbody = document.createElement('tbody');
+      const colGrandValues = {};
+      colKeys.forEach(c => colGrandValues[c] = []);
+      let totalComputedCells = 0;
+      let totalRowValuesForGrand = [];
+
+      row1Keys.forEach(/* nested: forEach(…), lines 553-662 */);
+
+      // Grand Total Row
+      if (showGrandTotals) {
+        const grandTr = document.createElement('tr');
+        grandTr.className = 'grandtotal-row';
+        let grandHtml = `<td ${hasHierarchy ? 'colspan="2"' : ''}>Grand Total</td>`;
+
+        let allValuesEverywhere = [];
+        colKeys.forEach(/* nested: forEach(…), lines 671-675 */);
+        const overallTotal = computeAgg(allValuesEverywhere);
+        grandHtml += `<td class="pivot-num font-bold">${formatAccounting(overallTotal, isFTE)}</td>`;
+
+        grandTr.innerHTML = grandHtml;
+        tbody.appendChild(grandTr);
+
+        // Update stats
+        document.getElementById('statGrandTotal').textContent = formatAccounting(overallTotal, isFTE);
+      }
+
+      table.appendChild(tbody);
+
+      // Header summary stats
+      document.getElementById('statSourceRecords').textContent = RAW_RECORDS.length;
+      document.getElementById('statComputedCells').textContent = totalComputedCells;
+      document.getElementById('statActiveAgg').textContent = `${aggFunc} (${measureField})`;
+    }
+=== UNIT pages/pivot-table.html:470 | renderPivot > forEach(…) ===
+r1 => {
+        matrix[r1] = {};
+        if (hasHierarchy) {
+          const subKeys = [...new Set(RAW_RECORDS.filter(d => d[row1Field] === r1).map(d => d[row2Field]))].sort();
+          subKeys.forEach(r2 => {
+            matrix[r1][r2] = {};
+            colKeys.forEach(c => matrix[r1][r2][c] = []);
+          });
+        } else {
+          matrix[r1]['_all_'] = {};
+          colKeys.forEach(c => matrix[r1]['_all_'][c] = []);
+        }
+      }
+=== UNIT pages/pivot-table.html:485 | renderPivot > forEach(…) ===
+d => {
+        const r1 = d[row1Field];
+        const r2 = hasHierarchy ? d[row2Field] : '_all_';
+        const c = d[colField];
+        const val = d[measureField] || 0;
+        if (matrix[r1] && matrix[r1][r2] && matrix[r1][r2][c]) {
+          matrix[r1][r2][c].push(val);
+        }
+      }
+=== UNIT pages/pivot-table.html:496 | renderPivot > computeAgg ===
+function computeAgg(vals) {
+        if (!vals || vals.length === 0) return 0;
+        if (aggFunc === 'SUM') return vals.reduce((a, b) => a + b, 0);
+        if (aggFunc === 'AVG') return vals.reduce((a, b) => a + b, 0) / vals.length;
+        if (aggFunc === 'COUNT') return vals.length;
+        if (aggFunc === 'MAX') return Math.max(...vals);
+        if (aggFunc === 'MIN') return Math.min(...vals);
+        return 0;
+      }
+=== UNIT pages/pivot-table.html:508 | renderPivot > forEach(…) ===
+r1 => {
+        Object.keys(matrix[r1]).forEach(/* nested: forEach(…), lines 509-514 */);
+      }
+=== UNIT pages/pivot-table.html:509 | renderPivot > forEach(…) > forEach(…) ===
+r2 => {
+          colKeys.forEach(c => {
+            const v = computeAgg(matrix[r1][r2][c]);
+            if (v !== 0) allComputedValues.push(v);
+          });
+        }
+=== UNIT pages/pivot-table.html:553 | renderPivot > forEach(…) ===
+r1 => {
+        const subKeys = Object.keys(matrix[r1]);
+        const isCollapsed = collapsedNodes.has(r1);
+
+        // Pre-calculate subtotal values for r1
+        const r1SubValues = {};
+        colKeys.forEach(/* nested: forEach(…), lines 559-564 */);
+
+        const r1SubtotalAggs = {};
+        colKeys.forEach(c => {
+          r1SubtotalAggs[c] = computeAgg(r1SubValues[c]);
+        });
+        const r1RowSubtotal = computeAgg(colKeys.flatMap(c => r1SubValues[c]));
+
+        // If collapsed: show only parent row with rolled up subtotal
+        if (isCollapsed) {
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-base-200/60 cursor-pointer';
+          let rowHtml = `<td ${hasHierarchy ? 'colspan="2"' : ''} class="font-bold" onclick="toggleNode('${r1}')">
+            <span class="tree-toggle">+</span>${r1}
+          </td>`;
+
+          colKeys.forEach(c => {
+            const v = r1SubtotalAggs[c];
+            rowHtml += `<td class="pivot-num font-semibold">${formatAccounting(v, isFTE)}</td>`;
+          });
+          if (showGrandTotals) {
+            rowHtml += `<td class="pivot-num font-bold bg-base-200/50">${formatAccounting(r1RowSubtotal, isFTE)}</td>`;
+          }
+          tr.innerHTML = rowHtml;
+          tbody.appendChild(tr);
+          return;
+        }
+
+        // Expanded: render child rows
+        subKeys.forEach(/* nested: forEach(…), lines 593-645 */);
+
+        // Subtotal row for this primary category
+        if (hasHierarchy && showSubtotals) {
+          const subTr = document.createElement('tr');
+          subTr.className = 'subtotal-row';
+          let subHtml = `<td class="pl-4 font-bold">Total ${r1}</td>`;
+
+          colKeys.forEach(c => {
+            subHtml += `<td class="pivot-num font-semibold">${formatAccounting(r1SubtotalAggs[c], isFTE)}</td>`;
+          });
+          if (showGrandTotals) {
+            subHtml += `<td class="pivot-num font-bold">${formatAccounting(r1RowSubtotal, isFTE)}</td>`;
+          }
+          subTr.innerHTML = subHtml;
+          tbody.appendChild(subTr);
+        }
+      }
+=== UNIT pages/pivot-table.html:559 | renderPivot > forEach(…) > forEach(…) ===
+c => {
+          let accum = [];
+          subKeys.forEach(r2 => accum.push(...matrix[r1][r2][c]));
+          r1SubValues[c] = accum;
+          colGrandValues[c].push(...accum);
+        }
+=== UNIT pages/pivot-table.html:593 | renderPivot > forEach(…) > forEach(…) ===
+(r2, idx) => {
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-base-200/40';
+          let rowHtml = '';
+
+          // Parent cell with rowspan
+          if (idx === 0) {
+            const spanCount = subKeys.length + (showSubtotals && hasHierarchy ? 1 : 0);
+            rowHtml += `<td rowspan="${spanCount}" class="align-top font-bold bg-base-100 border-r border-base-300">
+              <span class="tree-toggle" onclick="toggleNode('${r1}')">-</span>${r1}
+            </td>`;
+          }
+
+          if (hasHierarchy) {
+            rowHtml += `<td class="pl-4 opacity-90">${r2}</td>`;
+          }
+
+          let childRowAccum = [];
+          colKeys.forEach(/* nested: forEach(…), lines 611-636 */);
+
+          if (showGrandTotals) {
+            const rowTot = computeAgg(childRowAccum);
+            rowHtml += `<td class="pivot-num font-semibold bg-base-200/30">${formatAccounting(rowTot, isFTE)}</td>`;
+          }
+
+          tr.innerHTML = rowHtml;
+          tbody.appendChild(tr);
+        }
+=== UNIT pages/pivot-table.html:611 | renderPivot > forEach(…) > forEach(…) > forEach(…) ===
+c => {
+            const rawVals = matrix[r1][r2][c];
+            const agg = computeAgg(rawVals);
+            totalComputedCells++;
+            childRowAccum.push(...rawVals);
+
+            let cellStyle = '';
+            let contentHtml = formatAccounting(agg, isFTE);
+
+            if (useHeatmap && agg !== 0) {
+              const ratio = (agg - minVal) / (maxVal - minVal || 1);
+              const hue = Math.round((1 - ratio) * 120); // 120=Green, 0=Red
+              cellStyle = `background-color: hsla(${hue}, 80%, 70%, 0.28);`;
+            } else if (useDataBars && agg !== 0) {
+              const barWidth = Math.min(100, Math.round((Math.abs(agg) / maxAbsVal) * 100));
+              const isPos = agg >= 0;
+              contentHtml = `
+                <div class="data-bar-wrapper">
+                  <div class="data-bar-fill ${isPos ? 'bar-pos' : 'bar-neg'}" style="${isPos ? 'left:50%' : 'right:50%'}; width:${barWidth / 2}%;"></div>
+                  <span class="relative z-10 w-full text-right">${formatAccounting(agg, isFTE)}</span>
+                </div>
+              `;
+            }
+
+            rowHtml += `<td class="pivot-num" style="${cellStyle}">${contentHtml}</td>`;
+          }
+=== UNIT pages/pivot-table.html:671 | renderPivot > forEach(…) ===
+c => {
+          const colAgg = computeAgg(colGrandValues[c]);
+          allValuesEverywhere.push(...colGrandValues[c]);
+          grandHtml += `<td class="pivot-num font-bold">${formatAccounting(colAgg, isFTE)}</td>`;
+        }
+=== UNIT pages/pivot-table.html:337 | (top level) ===
+
+    // -------------------------------------------------------------
+    // Sample State Budget & Pension Allocation Dataset
+    // -------------------------------------------------------------
+    const RAW_RECORDS = [
+      { id: 1, Division: 'Retirement Services', Program: 'Member Portals', Fund: 'Fund 600', Object: 'Salaries (A)', FiscalYear: 'FY2027', Quarter: 'Q1', FTE: 3.5, Budget: 420000, Actual: 415000 },
+      { id: 2, Division: 'Retirement Services', Program: 'Member Portals', Fund: 'Fund 600', Object: 'Contracts (C)', FiscalYear: 'FY2027', Quarter: 'Q1', FTE: 0.0, Budget: 1100000, Actual: 1145000 },
+      { id: 3, Division: 'Retirement Services', Program: 'Member Portals', Fund: 'Fund 600', Object: 'Salaries (A)', FiscalYear: 'FY2028', Quarter: 'Q1', FTE: 3.8, Budget: 450000, Actual: 462000 },
+      { id: 4, Division: 'Retirement Services', Program: 'Member Portals', Fund: 'Fund 600', Object: 'Contracts (C)', FiscalYear: 'FY2028', Quarter: 'Q1', FTE: 0.0, Budget: 1250000, Actual: 1230000 },
+
+      { id: 5, Division: 'Retirement Services', Program: 'Calculations & PABS', Fund: 'Fund 600', Object: 'Salaries (A)', FiscalYear: 'FY2027', Quarter: 'Q1', FTE: 5.0, Budget: 580000, Actual: 575000 },
+      { id: 6, Division: 'Retirement Services', Program: 'Calculations & PABS', Fund: 'Fund 600', Object: 'Goods & Svc (E)', FiscalYear: 'FY2027', Quarter: 'Q1', FTE: 0.0, Budget: 85000, Actual: 92000 },
+      { id: 7, Division: 'Retirement Services', Program: 'Calculations & PABS', Fund: 'Fund 600', Object: 'Salaries (A)', FiscalYear: 'FY2028', Quarter: 'Q1', FTE: 5.2, Budget: 610000, Actual: 605000 },
+      { id: 8, Division: 'Retirement Services', Program: 'Calculations & PABS', Fund: 'Fund 600', Object: 'Goods & Svc (E)', FiscalYear: 'FY2028', Quarter: 'Q1', FTE: 0.0, Budget: 90000, Actual: 88000 },
+
+      { id: 9, Division: 'Information Technology', Program: 'PAM Modernization', Fund: 'Fund 001', Object: 'Contracts (C)', FiscalYear: 'FY2027', Quarter: 'Q1', FTE: 14.0, Budget: 3400000, Actual: 3380000 },
+      { id: 10, Division: 'Information Technology', Program: 'PAM Modernization', Fund: 'Fund 600', Object: 'Equipment (G)', FiscalYear: 'FY2027', Quarter: 'Q1', FTE: 0.0, Budget: 620000, Actual: 645000 },
+      { id: 11, Division: 'Information Technology', Program: 'PAM Modernization', Fund: 'Fund 001', Object: 'Contracts (C)', FiscalYear: 'FY2028', Quarter: 'Q1', FTE: 16.0, Budget: 3850000, Actual: 3910000 },
+      { id: 12, Division: 'Information Technology', Program: 'PAM Modernization', Fund: 'Fund 600', Object: 'Equipment (G)', FiscalYear: 'FY2028', Quarter: 'Q1', FTE: 0.0, Budget: 450000, Actual: 430000 },
+
+      { id: 13, Division: 'Information Technology', Program: 'Infrastructure & Sec', Fund: 'Fund 001', Object: 'Salaries (A)', FiscalYear: 'FY2027', Quarter: 'Q1', FTE: 8.0, Budget: 1100000, Actual: 1090000 },
+      { id: 14, Division: 'Information Technology', Program: 'Infrastructure & Sec', Fund: 'Fund 001', Object: 'Goods & Svc (E)', FiscalYear: 'FY2027', Quarter: 'Q1', FTE: 0.0, Budget: 340000, Actual: 355000 },
+      { id: 15, Division: 'Information Technology', Program: 'Infrastructure & Sec', Fund: 'Fund 001', Object: 'Salaries (A)', FiscalYear: 'FY2028', Quarter: 'Q1', FTE: 8.5, Budget: 1180000, Actual: 1175000 },
+      { id: 16, Division: 'Information Technology', Program: 'Infrastructure & Sec', Fund: 'Fund 001', Object: 'Goods & Svc (E)', FiscalYear: 'FY2028', Quarter: 'Q1', FTE: 0.0, Budget: 360000, Actual: 370000 },
+
+      { id: 17, Division: 'Operations & Finance', Program: 'Financial Services', Fund: 'Fund 001', Object: 'Salaries (A)', FiscalYear: 'FY2027', Quarter: 'Q1', FTE: 6.0, Budget: 680000, Actual: 672000 },
+      { id: 18, Division: 'Operations & Finance', Program: 'Financial Services', Fund: 'Fund 001', Object: 'Goods & Svc (E)', FiscalYear: 'FY2027', Quarter: 'Q1', FTE: 0.0, Budget: 120000, Actual: 118000 },
+      { id: 19, Division: 'Operations & Finance', Program: 'Financial Services', Fund: 'Fund 001', Object: 'Salaries (A)', FiscalYear: 'FY2028', Quarter: 'Q1', FTE: 6.0, Budget: 710000, Actual: 724000 },
+      { id: 20, Division: 'Operations & Finance', Program: 'Financial Services', Fund: 'Fund 001', Object: 'Goods & Svc (E)', FiscalYear: 'FY2028', Quarter: 'Q1', FTE: 0.0, Budget: 130000, Actual: 135000 },
+
+      { id: 21, Division: 'Operations & Finance', Program: 'Agency Admin', Fund: 'Fund 001', Object: 'Salaries (A)', FiscalYear: 'FY2027', Quarter: 'Q1', FTE: 4.0, Budget: 490000, Actual: 485000 },
+      { id: 22, Division: 'Operations & Finance', Program: 'Agency Admin', Fund: 'Fund 001', Object: 'Goods & Svc (E)', FiscalYear: 'FY2027', Quarter: 'Q1', FTE: 0.0, Budget: 210000, Actual: 228000 },
+      { id: 23, Division: 'Operations & Finance', Program: 'Agency Admin', Fund: 'Fund 001', Object: 'Salaries (A)', FiscalYear: 'FY2028', Quarter: 'Q1', FTE: 4.0, Budget: 515000, Actual: 520000 },
+      { id: 24, Division: 'Operations & Finance', Program: 'Agency Admin', Fund: 'Fund 001', Object: 'Goods & Svc (E)', FiscalYear: 'FY2028', Quarter: 'Q1', FTE: 0.0, Budget: 220000, Actual: 215000 }
+    ];
+
+    // Compute derived variance
+    RAW_RECORDS.forEach(r => {
+      r.Variance = r.Actual - r.Budget;
+      r.Status = r.Variance > 0 ? 'Over' : (r.Variance < 0 ? 'Under' : 'Target');
+    });
+
+    // Track collapsed hierarchy state
+    const collapsedNodes = new Set();
+
+    /* nested: toggleNode, lines 382-389 */
+
+    // Tab Navigation
+    /* nested: setTab, lines 392-404 */
+
+    // -------------------------------------------------------------
+    // Formatters
+    // -------------------------------------------------------------
+    /* nested: formatAccounting, lines 409-416 */
+
+    // -------------------------------------------------------------
+    // Populate Raw Data Table
+    // -------------------------------------------------------------
+    /* nested: populateRawTable, lines 421-443 */
+
+    // -------------------------------------------------------------
+    // Core Dynamic Pivot Rendering
+    // -------------------------------------------------------------
+    /* nested: renderPivot, lines 448-692 */
+
+    // Initialize on load
+    populateRawTable();
+    renderPivot();
+  
+=== UNIT node/build/registries-load.mjs:23 | parseCsvLine ===
+function parseCsvLine(line) {
+  const out = [];
+  let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQ) {
+      if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+      else if (ch === '"') inQ = false;
+      else cur += ch;
+    } else if (ch === '"') inQ = true;
+    else if (ch === ',') { out.push(cur); cur = ''; }
+    else cur += ch;
+  }
+  out.push(cur);
+  return out;
+}
+=== UNIT node/build/registries-load.mjs:41 | parseCsv ===
+function parseCsv(text) {
+  const lines = String(text || '').split(/\r?\n/).filter(l => l.trim());
+  if (!lines.length) return [];
+  const head = parseCsvLine(lines[0]).map(h => h.trim());
+  return lines.slice(1).map(line => {
+    const f = parseCsvLine(line);
+    return Object.fromEntries(head.map((h, i) => [h, (f[i] ?? '').trim()]));
+  });
+}
+=== UNIT node/build/registries-load.mjs:57 | loadRegistries ===
+function loadRegistries(root = repoRoot) {
+  const read = (f) => parseCsv(readFileSync(path.join(root, 'docs', f), 'utf8'));
+  const registries = read('registries.csv').map(/* nested: map(…), lines 59-66 */);
+  const properties = read('properties.csv').map(p => ({
+    ...p,
+    values: p.values ? list(p.values) : null,
+  }));
+  return { registries, properties };
+}
+=== UNIT node/build/registries-load.mjs:59 | loadRegistries > map(…) ===
+r => ({
+    ...r,
+    // `file` is `path`. Kept as its own key because a consumer asking "which
+    // file is this?" should not have to know whether the syntax ever grew
+    // anything after the path.
+    file: r.path,
+    renders_in: list(r.renders_in),
+  })
+=== UNIT node/build/registries-load.mjs:84 | writeCsv ===
+function writeCsv(rows, cols) {
+  const cell = (v) => {
+    const s = Array.isArray(v) ? joinList(v) : (v ?? '');
+    return /[",\n]/.test(s) ? '"' + String(s).replace(/"/g, '""') + '"' : String(s);
+  };
+  return [cols.join(','), ...rows.map(r => cols.map(c => cell(r[c])).join(','))].join('\n') + '\n';
+}
+=== UNIT node/build/registries-load.mjs:1 | (top level) ===
+// The registry pair, read from CSV.
+//
+// docs/registries.csv is one row per registry; docs/properties.csv is one row
+// per column of one registry. They were a single docs/properties.json until
+// 2026-08-16, whose two tables plus a 544-word prose note lived in one file.
+// CSV is the format because it cannot hold two tables: that is what makes "a
+// registry is a file" true by construction rather than by convention, and it is
+// what retired `carrier`, `rows` and `format` in one move.
+//
+// `path` replaces all three, and it is now a plain file path. It briefly also
+// took a `#fragment` naming the key that held the rows, which every JSON
+// registry needed and thirteen of twenty-one carried; that was `rows`' old job
+// under a new name. It went when the last JSON registry became a CSV on
+// 2026-08-18, because a CSV's file IS its table. `file` survives as an alias of
+// `path` so consumers written against the split still read.
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { repoRoot } from '../repo-root.mjs';   // not the test bootstrap: that one needs jsdom
+
+// Comma-separated, double-quote quoting with "" escapes, one record per line.
+// The registries' prose is single-line by construction, which is what lets the
+// parse stay this small.
+export /* nested: parseCsvLine, lines 23-38 */
+
+// Header-driven, so a column reorder cannot silently shift meanings.
+export /* nested: parseCsv, lines 41-49 */
+
+// A blank cell means NOT ASSERTED. Where a property has to tell "checked, and
+// the answer is none" from "not checked", its value domain carries an explicit
+// token (`gate` uses `none`), so no column here rests on empty-string versus
+// null. That rule is why these splits are safe.
+const list = (s) => (s ? splitList(s).map(x => x.trim()).filter(Boolean) : []);
+
+export /* nested: loadRegistries, lines 57-72 */
+
+// Serialize back, quoting only what needs it. Column order is passed in rather
+// than taken from the rows, so a restamp cannot reorder the file.
+// A list rides in one cell, semicolon separated. Values can contain semicolons
+// (an assertion name did, and split it in half), so the delimiter is escaped on
+// the way out and honoured on the way back. Backslash escapes itself.
+export const joinList = (xs) =>
+  xs.map(x => String(x).replace(/\\/g, '\\\\').replace(/;/g, '\\;')).join(';');
+export const splitList = (s) =>
+  String(s).split(/(?<!\\);/).map(x => x.replace(/\\;/g, ';').replace(/\\\\/g, '\\'));
+
+export /* nested: writeCsv, lines 84-90 */
+
+// The column order registries-reach writes the file back in. It is a SCHEMA,
+// not a formatting preference: a column missing from this list is dropped on
+// the next restamp, silently, because the writer emits exactly these. That is
+// how the 2026-08-18 kind/membership split was reverted by a commit hook an
+// hour after it landed and a green suite: the test ran before the hook, the
+// hook rewrote the file from a stale list, and nothing re-ran. Change this list
+// in the same commit as any column change to docs/registries.csv.
+export const REGISTRY_COLS = ['id','path','key','identity','membership','inherits','target','scope',
+                              'span','fields','gate','area','title','gloss','renders_in'];
+export const PROPERTY_COLS = ['registry','property','mode','deriver','required','form',
+                              'exclusive','values','gloss'];
+
+=== UNIT lib/kits/swipe-deck.js:147 | call(…) ===
+() => {
+  const h = /* nested: h, lines 148-157 */;
+
+  let styled = false;
+  const ensureStyle = /* nested: ensureStyle, lines 160-192 */;
+
+  // ── THE KEYS OF A STRIP ─────────────────────────────────────────────────
+  //
+  // A deck opened with open() answers Left and Right itself (onKey, inside
+  // open()). A strip embedded in a page answered nothing unless its caller
+  // wired a handler, and five had, each to the same rule: the branch page's
+  // file strip, the file browser, the waiting view, the user-call form, and
+  // budget-drs's corpusSwiper in home. This is that rule, once:
+  //
+  //   Left and Right only, with no modifier, and never while focus is in a
+  //   field (an input, a textarea, a select, anything contentEditable).
+  //
+  //   The strip takes them while the pointer is over its HOST or focus is
+  //   inside it. The host is what the reader sees as the strip, usually the
+  //   card around the track with its head row, so the arrows answer over the
+  //   card's name as well as over its body.
+  //
+  //   The innermost host wins. A strip inside another strip's card (budget-drs
+  //   shows an item page as a card in a list's strip, and the page has strips
+  //   of its own) takes the key while the pointer is over it, and the strip
+  //   around it takes the key everywhere else on the card.
+  //
+  //   A strip under a deck is out of reach; one inside the deck on top takes
+  //   the key while the pointer is over it, and anywhere else in the deck the
+  //   arrows are the deck's. That is why the listener is on window in the
+  //   CAPTURE phase and stops the event when it acts: the deck's onKey is a
+  //   bubble-phase listener on window, so this one runs first whatever order
+  //   the two were registered in, and the deck does not step too.
+  //
+  // core({ keys: host }) registers its own track. keys(host, step, count) is
+  // the same rule for a track built some other way: `step(d)` moves by d and
+  // `count()` says how many there are, under two meaning the key is not taken.
+  // One registration per host, so registering again replaces it, which is what
+  // a caller rebuilding its track into the same card wants. A host that has
+  // left the document is forgotten on the next key; off() forgets it now.
+  const KEYED = new Map();
+  let keyedListening = false;
+  const typingIn = t => !!t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName || ''));
+  const onScreen = el => {
+    const r = el.getBoundingClientRect();
+    return r.width > 0 && r.right > 0 && r.left < (window.innerWidth || Infinity);
+  };
+  /* nested: onKeyedKey, lines 235-253 */
+  /* nested: keys, lines 254-260 */
+
+  // The core: a horizontal snap track, one slide per item, each slide scrolling
+  // inside itself when its content is long. Returns the track plus an
+  // imperative handle, so different chrome (an inline nav, the takeover's
+  // footer pager) can drive one track.
+  /* nested: core, lines 266-422 */
+
+  // Every open deck, oldest first. The last entry is the one the reader is
+  // looking at, and the only one that answers a key or a Back. See the
+  // stacking note inside open().
+  const STACK = [];
+  // WHETHER A DECK IS OPEN IS THE KIT'S FACT, and it is a different fact from
+  // `data-deck-pane`, which the host owns and which records a standing reader
+  // PREFERENCE. The preference is right to persist (the next file should open
+  // docked too); the reflow has to end with the deck. Keying a dock's reflow on
+  // the preference alone leaves a padding-right the width of a deck that is no
+  // longer there, on every view and across reloads.
+  const syncDeckOpen = /* nested: syncDeckOpen, lines 434-438 */;
+
+  // The fullscreen takeover: a framed panel over the page, header / track /
+  // footer pager. Dots while they stay countable, a progress bar past that.
+  /* nested: open, lines 442-1474 */
+
+  // ── THE DOOR ────────────────────────────────────────────────────────────
+  //
+  // One glyph, estate-wide, for "open this collection in the deck". What it
+  // means has nothing to do with files: it means THIS LIST HAS A READER, so a
+  // reader who learns the glyph once does not re-learn it per surface. It lives
+  // here rather than in a kit of its own because the kit that owns the room
+  // owns the door: every consumer already loads this file, so there is exactly
+  // one place the classes and the wording can drift from.
+  //
+  // A surface is free to add a gesture of its own on top (a row tap, a "read
+  // from here" on a card). What the entry guarantees is a VISIBLE way in, since
+  // a gesture nobody is told about is a feature only its author can find.
+  //
+  //   swipeDeck.entry({ count, noun, onOpen })  -> <button>
+  //
+  //   count    how many things are in the collection; omitted or 0 renders the
+  //            wording without a number, for a caller that has not fetched yet
+  //   noun     singular, 'file' / 'record' / 'chat'. Pluralized here.
+  //   onOpen   the click handler
+  //   tone     'primary' (default) or 'ghost', for a surface where the deck is
+  //            not the main thing on offer
+  //   size     'sm' (default, carrying the phone floor below), 'tight' (the
+  //            same button without that floor) or 'md', to sit in a row of
+  //            full-size icon buttons rather than in a strip of its own
+  //   icon     override, for the rare collection with a glyph of its own
+  //
+  // TONE IS THE HOST'S JUDGMENT, not the kit's: primary where the deck is what
+  // most readers came to do, ghost where it is one lens among several. Same
+  // glyph, same wording, same promise, only the emphasis moving, which is what
+  // keeps this a parameter rather than two buttons that drift. Primary colours
+  // the GLYPH and not a ground behind it, and ghost earns its colour on hover
+  // rather than at rest.
+  //
+  // The three pieces hang off the function too, since a template-driven host
+  // has to build its own element and should still not restate the class list or
+  // the wording: `entry.icon`, `entry.cls(tone, size)`, `entry.title(count, noun)`.
+  const ENTRY_ICON = 'ph-cards-three';
+  // `size` names the button's own size AND, at 'sm', the 44px phone floor the
+  // estate keeps on an icon control. The floor is the DEFAULT and 'tight' is
+  // the opt-out, because taking the bump out of the shared class to tighten one
+  // surface silently dropped every other door on every other surface to 32px on
+  // a phone, one of them 12px short of the three siblings on its own row. The
+  // surface that wants the smaller target is the one that declares it.
+  const entryCls = (tone = 'primary', size = 'sm') =>
+    'btn btn-square '
+    + (size === 'md' ? '' : size === 'tight' ? 'btn-sm ' : 'btn-sm max-sm:h-11 max-sm:w-11 ')
+    + (tone === 'ghost' ? 'btn-ghost hover:text-primary' : 'btn-ghost text-primary');
+  const entryTitle = /* nested: entryTitle, lines 1523-1527 */;
+  const entry = /* nested: entry, lines 1528-1537 */;
+  entry.icon = ENTRY_ICON;
+  entry.cls = entryCls;
+  entry.title = entryTitle;
+
+  // One level down from `parent`. See the drilling note at the top.
+  function drill(parent, o = {}) {
+    const crumb = [parent && parent.title, o.subtitle].filter(Boolean).join(' · ');
+    return open({ ...o, back: true, subtitle: crumb });
+  }
+
+  window.swipeDeck = { core, open, drill, entry, keys, h, stack: STACK,
+                       top: () => STACK[STACK.length - 1] || null };
+}
+=== UNIT lib/kits/swipe-deck.js:148 | call(…) > h ===
+(tag, attrs = {}, ...kids) => {
+    const el = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (v === '' && k !== 'class') continue;
+      if (k === 'html') el.innerHTML = v;
+      else el.setAttribute(k, v);
+    }
+    for (const k of kids.flat()) if (k) el.append(k);
+    return el;
+  }
+=== UNIT lib/kits/swipe-deck.js:160 | call(…) > ensureStyle ===
+() => {
+    if (styled) return; styled = true;
+    const s = document.createElement('style');
+    // A SLIDE'S SCROLLBAR TAKES ITS WIDTH OUT OF ONE SIDE, which is invisible
+    // until something in the slide runs to its edges. kits/md-diff.js does: a
+    // changed block bleeds past the text so its tinted ring is visible, and
+    // with a classic scrollbar the left ring sat 4px from the viewport and the
+    // right ring 4px plus the bar. Reported 2026-09-18 from a desktop browser.
+    //
+    // `stable both-edges` reserves the space on both sides so the slide's
+    // content stays centred, and the 640px floor is there because `stable`
+    // reserves it whether or not the scrollbar would have taken it: measured
+    // unconditional, it cost 20px of width at every size, so a phone whose
+    // scrollbar overlays and takes nothing would have paid 10 a side for a bar
+    // that does not exist. There is no media query for "this browser draws
+    // classic scrollbars", so the width stands in for it.
+    //
+    // AND ONLY ON A SLIDE THAT SCROLLS (2026-09-18). `stable` reserves the
+    // gutter on any slide whose overflow is not visible, and a filled slide is
+    // `overflow-hidden`: it never draws a scrollbar, yet it paid the same 10px
+    // a side, so a sheet opened in home's submittal reader sat inset from the
+    // pane on both edges with nothing to explain the gap. The scrolling slide
+    // is the one with `overflow-y-auto`, which is the class the rule keys on.
+    //
+    // A stylesheet rather than a class, for the reason `scroll-snap-stop` is an
+    // inline style below: a class arriving in the DOM from a JS string exists
+    // only if the browser build happened to generate a rule for it, and a media
+    // query cannot be an inline style at all.
+    s.textContent = '.sd-track::-webkit-scrollbar{display:none}'
+      + '.sd-slide{scrollbar-width:thin}'
+      + '@media (min-width:640px){.sd-slide.overflow-y-auto{scrollbar-gutter:stable both-edges}}';
+    document.head.append(s);
+  }
+=== UNIT lib/kits/swipe-deck.js:235 | call(…) > onKeyedKey ===
+function onKeyedKey(e) {
+    const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+    if (!d || e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
+    if (typingIn(e.target)) return;
+    const top = STACK[STACK.length - 1];
+    let hit = null;
+    for (const [host, k] of KEYED) {
+      if (!host.isConnected) { KEYED.delete(host); continue; }
+      if (k.count() < 2 || !onScreen(host)) continue;
+      if (top && !top.el.contains(host)) continue;
+      if (!host.matches(':hover') && !host.contains(document.activeElement)) continue;
+      if (!hit || hit.host.contains(host)) hit = { host, step: k.step };
+    }
+    if (!hit) return;
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+    hit.step(d);
+  }
+=== UNIT lib/kits/swipe-deck.js:254 | call(…) > keys ===
+function keys(host, step, count) {
+    if (!host || typeof step !== 'function') return () => {};
+    const entry = { step, count: typeof count === 'function' ? count : () => Number(count) || 0 };
+    KEYED.set(host, entry);
+    if (!keyedListening) { keyedListening = true; window.addEventListener('keydown', onKeyedKey, true); }
+    return () => { if (KEYED.get(host) === entry) KEYED.delete(host); };
+  }
+=== UNIT lib/kits/swipe-deck.js:266 | call(…) > core ===
+function core(count, render, o = {}) {
+    ensureStyle();
+    // `min-w-0` is what holds the deck to the viewport. The track is a GRID
+    // item inside open()'s panel (and often a flex item inline), and both
+    // default to `min-width: auto`, which is a floor at the content's
+    // max-content size, not at zero. So a wide <pre> in any slide pushes the
+    // track past its cell, and every slide inherits that width through
+    // `w-full`. Constraining the track is what makes `w-full` on a slide
+    // resolve to the visible width rather than to the content's.
+    const track = h('div', {
+      class: 'sd-track flex h-full w-full min-w-0 min-h-0 snap-x snap-mandatory overflow-x-auto scroll-smooth overscroll-x-contain',
+      style: 'scrollbar-width:none',
+    });
+    const slides = [];
+    const built = new Array(count).fill(false);
+    // A slide is exactly one track width, always. `w-full shrink-0` rather
+    // than `min-w-full`, and `min-w-0` on the inner, because both halves of
+    // that are load-bearing in a flex track:
+    //
+    // A flex item defaults to `min-width: auto`, so `min-w-full` sets a floor
+    // and no ceiling: one wide child (a <pre> of command output, a long table)
+    // makes that slide wider than the track. It looks like a styling slip and
+    // is not one. `go()` and `active()` compute in units of
+    // `track.clientWidth`, so the moment any slide is wider than that, every
+    // index past it is wrong: the pager scrolls to an offset that lands
+    // mid-card, and the counter reports a slide the reader is not looking at.
+    //
+    // `min-w-0` on the inner is what lets a wide child scroll inside its own
+    // `overflow-auto` box instead of pushing the slide open. The width classes
+    // are applied unconditionally and `innerClass` replaces only the default
+    // `mx-auto max-w-2xl`, since being one track wide is a property of being a
+    // slide and not something a caller should have to remember.
+    //
+    // `slideScroll: false` hands the vertical axis to the slide's CONTENT
+    // instead. A slide normally scrolls as one piece, which is right for a
+    // transcript or a file; a slide that is itself an app with a pinned head
+    // and a scrolling pane has to own that axis, and a scroller inside a
+    // scroller would give the reader two places to drag. The slide then also
+    // drops its padding, since a full-bleed child supplies its own.
+    const scrolls = o.slideScroll !== false;
+    for (let i = 0; i < count; i++) {
+      const inner = h('div', {
+        class: (scrolls ? 'w-full min-w-0 ' : 'h-full w-full min-w-0 ')
+          + (o.innerClass || 'mx-auto max-w-2xl'),
+      });
+      slides.push(inner);
+      const section = h('section', {
+        class: 'sd-slide h-full w-full shrink-0 snap-center '
+          + (scrolls ? 'overflow-y-auto ' + (o.slidePad || 'px-4 py-5 sm:px-8 sm:py-8') + ' '
+                     : 'overflow-hidden ')
+          + (o.slideClass || ''),
+      }, inner);
+      // ONE STOP PER GESTURE, for a deck whose middle slide is the point.
+      // `snap-mandatory` says where a scroll may COME TO REST, not how far one
+      // flick may carry: momentum crosses as many snap points as it has speed
+      // for. On a three-stop track that means a normal flick skips the middle
+      // reading, which is the one a reader is usually going to, and lands on the
+      // far side. `scroll-snap-stop: always` makes each point a wall.
+      //
+      // An option rather than the default, because the cost is real the other
+      // way: a deck of forty file cards is flicked THROUGH, and stopping at
+      // every one would make that crawl. A deck of three readings is stepped.
+      //
+      // An inline style rather than Tailwind's `snap-always`, for the reason
+      // md-doc's containment is inline: a class arriving in the DOM from a JS
+      // string exists only if the browser build happened to generate a rule for
+      // it, and when it has not there is no error anywhere.
+      if (o.snapStop) section.style.scrollSnapStop = 'always';
+      track.append(section);
+    }
+    const build = /* nested: build, lines 336-340 */;
+    // …and let go of the ones the reader has left.
+    //
+    // Building lazily is only half the job. `built[i]` never cleared means a
+    // deck retains every slide ever visited, which is free when a slide is
+    // inert DOM and is not free at all when it is a live app: a deck of mounted
+    // views then grows monotonically and gets slower the longer you read, which
+    // is the worst shape a reader can meet.
+    //
+    // Emptying the slide is enough for a component framework to tear its tree
+    // down, since Alpine destroys on removal; `release(i, slide)` is the hook
+    // for a caller holding anything of its own, such as the keyed global a
+    // mount travelled through.
+    const KEEP = Number.isFinite(o.keep) ? o.keep : 2;
+    const drop = /* nested: drop, lines 354-359 */;
+    const prune = a => { for (let i = 0; i < count; i++) if (Math.abs(i - a) > KEEP) drop(i); };
+    const width = () => track.clientWidth || 1;
+    const active = () => Math.round(track.scrollLeft / width());
+    // `behavior` lets a caller say how a programmatic move should feel.
+    // Smooth is right for a deck a thumb drags, where the animation matches
+    // the motion the reader started. It is wrong for one driven by a click or
+    // a key on a wide screen: Chrome scales a smooth scroll's duration with
+    // the DISTANCE, so the same change of slide takes proportionally longer
+    // the wider the track, and a caller with no gesture behind it is left
+    // waiting on an animation nobody asked for. `open()` already reached for
+    // 'instant' on its start jump for the same reason.
+    // `aim` is where a go() is headed while its scroll is still in flight, so a
+    // key pressed again before the track arrives (or held, and repeating)
+    // counts from there rather than from wherever the animation has got to.
+    // It is forgotten once the track goes quiet, so a swipe by hand afterwards
+    // is counted from where the hand left it.
+    let aim = null, quiet = 0;
+    const go = /* nested: go, lines 377-381 */;
+    // AND THE PROPERTY WAS NEVER THE PROBLEM, which took a side test to find
+    // out. A guard sat here from 2026-09-17 to 2026-09-18: remember where a
+    // gesture started, and when the scroll settled more than one slide away,
+    // step back to one. It never worked on the device it was written for, and
+    // pages/probe-snap.html said why. Five tracks of identical content, one
+    // variable each, flicked by hand on iOS: the only one that snapped
+    // correctly was the one whose slides were all the SAME HEIGHT. Dropping the
+    // guard changed nothing. Deferring the caller's height write until the
+    // scroll went quiet changed nothing. Writing it once before the drag
+    // changed nothing.
+    //
+    // So the failure is not overshoot to be corrected, it is a scroller whose
+    // box the caller keeps resizing, and the fix belongs to the caller: give
+    // every slide one height. `snapStop` is the property alone again, honoured
+    // where an engine honours it and free where it does not. A guard that
+    // fires `go()` into a snap already in flight is two animations on one
+    // scrollLeft, which is a way to make things worse, and it was buying
+    // nothing.
+
+    const listeners = [];
+    let raf = 0;
+    track.addEventListener('scroll', /* nested: addEventListener(scroll), lines 403-414 */);
+    requestAnimationFrame(() => {
+      const start = Math.max(0, Math.min(count - 1, o.start || 0));
+      build(start - 1); build(start); build(start + 1);
+    });
+    if (o.keys) keys(o.keys === true ? track : o.keys, d => go((aim ?? active()) + d), () => count);
+    return { track, go, active, count, onSlide: cb => listeners.push(cb), build, drop,
+             get builtCount(){ return built.filter(Boolean).length; } };
+  }
+=== UNIT lib/kits/swipe-deck.js:336 | call(…) > core > build ===
+i => {
+      if (i < 0 || i >= count || built[i]) return;
+      built[i] = true;
+      render(i, slides[i]);
+    }
+=== UNIT lib/kits/swipe-deck.js:354 | call(…) > core > drop ===
+i => {
+      if (i < 0 || i >= count || !built[i]) return;
+      try { if (o.release) o.release(i, slides[i]); } catch {}
+      slides[i].replaceChildren();
+      built[i] = false;
+    }
+=== UNIT lib/kits/swipe-deck.js:377 | call(…) > core > go ===
+(i, b) => {
+      const to = Math.max(0, Math.min(count - 1, i));
+      aim = to === active() ? null : to;
+      track.scrollTo({ left: to * width(), behavior: b || o.behavior || 'smooth' });
+    }
+=== UNIT lib/kits/swipe-deck.js:403 | call(…) > core > addEventListener(scroll) ===
+() => {
+      clearTimeout(quiet);
+      quiet = setTimeout(() => { aim = null; }, 160);
+      if (raf) return;
+      raf = requestAnimationFrame(/* nested: requestAnimationFrame(…), lines 407-413 */);
+    }
+=== UNIT lib/kits/swipe-deck.js:407 | call(…) > core > addEventListener(scroll) > requestAnimationFrame(…) ===
+() => {
+        raf = 0;
+        const a = active();
+        build(a - 1); build(a); build(a + 1);
+        prune(a);
+        listeners.forEach(cb => cb(a));
+      }
+=== UNIT lib/kits/swipe-deck.js:434 | call(…) > syncDeckOpen ===
+() => {
+    const root = document.documentElement;
+    if (STACK.length) root.dataset.deckOpen = '';
+    else delete root.dataset.deckOpen;
+  }
+=== UNIT lib/kits/swipe-deck.js:442#1 | call(…) > open (part 1 of 5) ===
+function open(o = {}) {
+    const total = o.count || 0;
+    // Without `keys`: the deck's own onKey answers the arrows.
+    const deck = core(total, o.render, { ...o, keys: null });
+    let handle;                       // this deck's own entry in STACK
+
+    // ── THE PANE, AND WHY THE LOCK IS CONDITIONAL ON IT ───────────────────
+    // `data-deck-pane` on :root takes three values, and the HOST owns it:
+    //
+    //   full   the deck takes the window                (a phone, always)
+    //   inset  it takes the app's content pane          (lg+, beside a sidebar)
+    //   dock   it takes PART of that pane, and the list it was opened from
+    //          keeps the rest
+    //
+    // The first two cover everything the reader could otherwise use, so the
+    // deck locks page scroll under them. `dock` is the one that must not: the
+    // host is deliberately keeping a column of itself on screen, and a locked
+    // page there leaves a list you can see, point at, and not move. That is why
+    // a docked state could not just be a third width.
+    //
+    // THE HOOK IS THE CLAIM, the rule `__deckNavigate` already runs on: a host
+    // that can dock says so by installing `window.__deckPane`, and only then
+    // does the toggle render. A page with no hook gets the deck it had before
+    // this existed.
+    //
+    // What travels on it is an INTENT, 'dock' or 'pane', never an attribute
+    // value: which value expresses "beside the list", with this host's sidebar
+    // at this width, is the host's to decide. The kit reads the attribute back
+    // to see where it landed, so a host free to refuse (too narrow, no list on
+    // this view) reports that by simply not changing it.
+    const prevOverflow = document.documentElement.style.overflow;
+    const paneOf = () => document.documentElement.dataset.deckPane || 'full';
+    // CAN it dock, right now. Dockability is rarely a property of the HOST: it
+    // is a property of the width, or of whether this view has a list to sit
+    // beside. Answered once at boot, a narrow viewport gets a pane toggle whose
+    // intent the host then refuses, and an inert control reads as broken rather
+    // than absent. So `when` is read on every sync; a hook without one is
+    // unconditional, which is what the contract meant before `when` existed.
+    //
+    // Deliberately NOT a probe call like `__deckPane('query')`: a capability
+    // question that runs the intent sink is a question with side effects, and
+    // the one host implementing this contract would have answered it by
+    // actually changing the pane.
+    const dockAllowed = /* nested: dockAllowed, lines 485-492 */;
+    const canDock = dockAllowed;
+    const applyLock = () => {
+      document.documentElement.style.overflow = paneOf() === 'dock' ? prevOverflow : 'hidden';
+    };
+
+    // THE OVERLAY IS DELIBERATELY TRANSPARENT. It carries no background at all:
+    // the panel is the takeover, and the ground around it is left showing the
+    // page the reader came from. A scrim was considered and refused, since
+    // black at 40% is a colour that appears nowhere else in the palette and is
+    // what makes a dialog read as pasted over an app rather than part of it.
+    //
+    // It got here by accident and is kept on purpose. A comma-joined
+    // "gradient, colour" inside one `bg-[…]` compiles to nothing, silently,
+    // since Tailwind resolves such a value to `background-color` OR
+    // `background-image` and it is neither (the same drop as
+    // `divide-base-200`, the mechanics reference, Key Conventions 7). Painting
+    // the intended base-200 was then tried and rejected, and this is written
+    // out rather than left as a dead class so nothing "fixes" it back.
+    //
+    // Still a hit target with no paint: the element takes the click that
+    // dismisses (below), which is what the desktop margin is for.
+    // THE FRAME IS THE HOST'S TO NARROW. `--deck-left` defaults to 0, so a page
+    // with nothing to say gets the whole viewport. An app with persistent
+    // chrome beside its content sets it to that chrome's width and the takeover
+    // occupies the CONTENT PANE rather than the window; `--deck-top` is the
+    // same on the other axis, for a header row above the content.
+    //
+    // WHO SETS THEM, since a named implementation is easier to follow than an
+    // abstraction. The app (app/index.html) MEASURES both, off the real
+    // <header> and <aside>, because the header is conditional on shellMode and
+    // the sidebar's width is an lg:/xl: pair (a hidden element measures 0, the
+    // right answer for free). The budget-drs app (mehrlander/home,
+    // app/view/app.html) STATES its sidebar as 18rem, matching a w-72 that is
+    // not responsive, and MEASURES its navbar into `--drs-navh`. The split
+    // between stating and measuring follows which of
+    // the two can actually change. Both map them in at lg and up only, so a
+    // phone keeps the full-window takeover.
+    //
+    // `--deck-bottom` is the fourth of these and the last to arrive (2026-09-08,
+    // for kits/annotate.js docking a reader on a page that has no host at all).
+    // Chrome BELOW the content is rarer than a header or a sidebar, but it is
+    // the same fact: something is floating there that the reader is meant to
+    // keep using, and a takeover reaching the bottom edge puts itself on top of
+    // it. The fab launcher is the case (alpineComponents/fab.js, fixed at the
+    // bottom-right and painting above everything on purpose), and it landed on
+    // the far end's own destination row.
+    //
+    // These resolve against the nearest VIEWPORT, so a page embedded in an
+    // iframe describes its own chrome and needs no awareness of whatever frames
+    // it: the app hosts the budget-drs app that way and neither side needs a
+    // branch for it.
+    //
+    // Variables rather than options because they are responsive and
+    // conditional, and the host already knows both; a number passed at open()
+    // would freeze whatever the window happened to be that moment.
+    // `sd-overlay` is a HOOK, not a style: the frame is expressed in Tailwind
+    // classes that changed the day the takeover moved into the view pane, and
+    // anything selecting on those was selecting on a layout decision.
+    const overlay = h('div', { class: 'sd-overlay fixed right-0 bottom-[var(--deck-bottom,0px)] top-[var(--deck-top,0px)] left-[var(--deck-left,0px)] z-[70] overflow-hidden' });
+    // `grid-cols-[minmax(0,1fr)]` is the one that finally holds the width, and
+    // it is the third link in a chain where fixing only the first two changes
+    // nothing measurable. A grid's implicit column is `auto`, which sizes to
+    // its content's max-content width, and `min-w-0` on the ITEM cannot shrink
+    // a column that is already that wide. `minmax(0,1fr)` is the canonical
+    // spelling of "one column, never wider than the grid".
+    //
+    // The three together are the whole fix: the column may not exceed the
+    // panel, the track may not exceed the column, and a slide is exactly one
+    // track wide. Any one alone leaves the deck cut off on a phone.
+    //
+    // IT FILLS THE FRAME, at every width. A centred rounded card with a margin
+    // reads as a dialog pasted over the app, and over the app it floated
+    // across the sidebar, putting chrome you were still meant to be able to use
+    // under a card you had to dismiss.
+    //
+    // The cost, stated because it is silent: the overlay's margin used to be
+    // the click-outside-to-dismiss target and a filled frame leaves none, so ✕,
+    // Escape and Back carry dismissal everywhere, as they always had to on a
+    // phone. A left border, only when the frame is actually inset, keeps the
+    // panel from bleeding into the chrome beside it.
+    // FOUR ROWS, and the second is usually empty. Each child NAMES ITS ROW
+    // (`row-start-*`) rather than being auto-placed, and that is not tidiness.
+    // The subheader carries `empty:hidden`, which is `display: none`, and a
+    // `display: none` child is not a grid item at all: auto-placement then
+    // slides every later child up a row, putting the track in row 2 (`auto`,
+    // sized to its content) and the footer in row 3 (`1fr`, the rest).
+    //
+    // That looks correct almost always, because an auto row clamps to the space
+    // available and a slide's content is normally taller than the panel. The
+    // tell appears only when a slide's content contributes NO intrinsic height,
+    // which an absolutely positioned child does: the track collapses and the
+    // footer takes the panel. The track needs the definite row.
+    const panel = h('div', { class: 'relative grid h-full w-full grid-cols-[minmax(0,1fr)] grid-rows-[auto_auto_1fr_auto] overflow-hidden bg-base-100 border-base-300 [border-left-width:var(--deck-border,0px)]' });
+
+    // ✕ at the root, ‹ one level down. The glyph is the only promise the
+    // header makes about where dismissing lands you, so it has to be true.
+    const closeBtn = h('button', {
+      class: 'btn btn-ghost btn-sm btn-circle shrink-0',
+      'aria-label': o.back ? 'Back' : 'Close',
+      'data-title-tip': o.back ? 'Back' : 'Close',
+    }, h('i', { class: o.back ? 'ph ph-caret-left text-xl' : 'ph ph-x text-lg' }));
+    const curEl = h('span', {}, '1');
+    // POSITION IS ALREADY IN THE FOOTER, as dots or as a bar, so on a phone
+    // this pill is the second place it is said and the title is the one thing
+    // that cannot be said anywhere else. It costs width on a row that also
+    // holds a close button, the contents mark, a dock toggle and the caller's
+=== UNIT lib/kits/swipe-deck.js:442#2 | call(…) > open (part 2 of 5) ===
+    // actions, and with it in place a filename truncates while a duplicate
+    // count sits beside it. Kept from `sm` up, where the row has the width and
+    // a glance at the top beats a glance at the bottom.
+    // AND IT GOES ENTIRELY ON A DECK OF ONE, with the pager, for the same
+    // reason: "1 / 1" is a position within a set of one, which is not a
+    // position. See the note by the footer.
+    const pill = h('div', { class: (total > 1 ? 'hidden sm:block' : 'hidden')
+      + ' shrink-0 rounded-full border border-base-300 bg-base-200 px-3 py-1 font-mono text-xs tabular-nums text-base-content/60' },
+      curEl, h('span', { class: 'mx-0.5 opacity-40' }, '/'), h('span', {}, String(total)));
+    // Always built, hidden when there is nothing to point at: a deck whose
+    // slides are different subjects (branches across repos) gets a different
+    // exit per slide, and creating the button lazily would mean rebuilding the
+    // header rather than retargeting it.
+    const linkIcon = h('i', { class: 'ph ph-arrow-square-out text-base' });
+    const linkBtn = h('a', {
+      class: 'btn btn-ghost btn-sm btn-circle shrink-0', target: '_blank', rel: 'noopener',
+    }, linkIcon);
+    const setLink = /* nested: setLink, lines 616-631 */;
+    setLink(o.link);
+    const actionBtn = /* nested: actionBtn, lines 633-640 */;
+    // An entry is either a spec this kit draws, or an ELEMENT the caller has
+    // already built. The element form exists because a slide's component can
+    // own chrome the deck cannot describe as {icon, title, onClick}: the file
+    // viewer's mode and open-elsewhere menus are its own, and a host framing it
+    // wants them in this header rather than in a second one below. Elements
+    // pass through untouched, so what a caller hands over is what appears.
+    const buildActions = (list) =>
+      (list || []).filter(a => a instanceof Element || (a && typeof a.onClick === 'function'))
+                  .map(a => a instanceof Element ? a : actionBtn(a));
+    // A CONTAINER SO THE SET CAN BE RETARGETED, not just built. Actions spread
+    // into the header once at open are right for a deck whose slides are the
+    // same kind of thing and wrong for one whose slides are not: a staged set
+    // holds a CSV beside a note, and only one of them has anything to offer.
+    // `display: contents` keeps the buttons flex children of the header, so
+    // retargeting changes what is offered without moving the row.
+    const actionWrap = h('span', { class: 'contents' }, ...buildActions(o.actions));
+    // The dock toggle. Left of the caller's own actions because it operates the
+    // DECK rather than the file in it, which is the same reason ✕ sits at the
+    // far end: chrome that is always about the frame stays put, and chrome that
+    // changes with the slide clusters by the pill. Its icon names what tapping
+    // does, not the state it is in, so the row never has to be read twice.
+    const paneIcon = h('i', { class: 'ph ph-square-split-horizontal text-base' });
+    const paneBtn = h('button', { class: 'btn btn-ghost btn-sm btn-circle shrink-0' }, paneIcon);
+    const syncPane = /* nested: syncPane, lines 664-672 */;
+    paneBtn.addEventListener('click', /* nested: addEventListener(click), lines 673-678 */);
+    syncPane();
+    // …and re-ask when the answer can have changed. Read at open and on the
+    // deck's own toggle and nowhere else, a deck opened on a phone and then
+    // rotated into a dockable width keeps the answer it was born with for the
+    // rest of its life. `when` as a media query gets the precise signal; a
+    // predicate gets resize, which is the only general one available. Both are
+    // torn down with the deck by cleanup().
+    //
+    // dockWatch, not paneWatch: the two answer different questions and the deck
+    // needs both. paneWatch (below) is a MutationObserver on `data-deck-pane`
+    // and fires when the pane's VALUE changes. This fires when the WIDTH
+    // changes, which is when the host's answer to whether it can dock at all
+    // can change, and no attribute write announces that.
+    const dockWatch = [];
+    {
+      const w = window.__deckPane && window.__deckPane.when;
+      if (typeof w === 'string') {
+        try {
+          const mq = matchMedia(w);
+          const onMq = () => { syncPane(); applyLock(); };
+          mq.addEventListener('change', onMq);
+          dockWatch.push(() => mq.removeEventListener('change', onMq));
+        } catch { /* an unparseable query: the deck still works, it just cannot re-ask */ }
+      } else if (typeof w === 'function') {
+        const onResize = () => { syncPane(); applyLock(); };
+        addEventListener('resize', onResize);
+        dockWatch.push(() => removeEventListener('resize', onResize));
+      }
+    }
+    const subEl = h('p', { class: 'truncate text-xs text-base-content/50' }, o.subtitle || '');
+    // ── THE TITLE, AND A SLOT BESIDE IT ──────────────────────────────────
+    //
+    // The name is split from its h1 so a mark can sit next to the NAME rather
+    // than next to the header. A control in the right-hand cluster reads as
+    // belonging to the cluster, whatever its order there; the estate's rule
+    // for a github mark is that it rides the identity it opens, which on this
+    // header is the title.
+    //
+    // INSIDE the h1, not around it. Half the estate reads this header as
+    // `h1 + p`, so the subtitle has to stay the title's adjacent sibling; a
+    // wrapper breaks every test and scenario that reads it, and silently, in
+    // the sense that they find no crumb rather than a wrong one. setTitle
+    // writes the SPAN, so a mark in the slot survives a swipe, and `title`
+    // reads the span for the same reason.
+    const titleText = h('span', { class: 'truncate min-w-0' }, o.title || '');
+    const titleSlot = h('span', { class: 'shrink-0 empty:hidden leading-none' });
+    const titleEl = h('h1', { class: 'flex items-center gap-1.5 min-w-0 text-sm font-semibold sm:text-base' },
+      titleText, titleSlot);
+    const iconEl = h('i', {});
+    // THE MARK IS A BUTTON WHEN THERE IS A LIST BEHIND IT, and a plain plaque
+    // otherwise. The kit cannot build that list on its own: it holds a count
+    // and a render callback and has never seen the caller's array, which is the
+    // whole reason one deck can page documents, diffs, mounted apps and PDF
+    // pages through one door. So the contents arrive as a callback too, and
+    // `index` is `render`'s cheap twin: render is lazy because a slide costs a
+    // fetch or a mount, while a label is metadata the caller already holds, so
+    // the list can be complete while the deck stays three slides deep.
+    //
+    // Scraping the built slides cannot work: only the active slide and its
+    // neighbours exist, and a slide holding a canvas or a mounted component has
+    // no heading to scrape in the first place.
+    const indexOf = typeof o.index === 'function' ? o.index : null;
+    const MARK = 'grid size-9 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary';
+    const mark = indexOf
+      ? h('button', { class: MARK + ' transition-colors hover:bg-primary/20',
+                      'aria-haspopup': 'true' }, iconEl)
+      : h('div', { class: MARK }, iconEl);
+    // `sd-header` is a HOOK, not a style, the same bargain `sd-overlay` makes:
+    // a caller hanging its own chrome under the header needs to measure it, and
+    // walking firstElementChild twice would be selecting on a layout decision
+    // this file is free to change.
+    // THE RIGHT-HAND CHROME IS ONE CLUSTER: tight inside the group, the
+    // header's own gap outside it. Spread at the header's gap the buttons read
+    // as loose objects rather than as a set, and the row lists six things
+    // instead of saying title | controls | count.
+    // `relative z-10` so the header, and a menu hung from it, paint over the
+    // track: backdrop-blur makes the header a stacking layer with no z-index,
+    // and any positioned element inside a slide (a daisyUI active tab, a
+    // sticky row) then painted over the open menu. The index sheet is z-20.
+    const header = h('div', { class: 'sd-header row-start-1 relative z-10 flex items-center gap-3 border-b border-base-300 bg-base-100/90 px-4 py-3 backdrop-blur sm:px-6' },
+      closeBtn, mark,
+      h('div', { class: 'min-w-0 flex-1' }, titleEl, subEl),
+      h('div', { class: 'flex shrink-0 items-center gap-1' }, paneBtn, actionWrap, linkBtn, pill));
+
+    // ── A MENU UNDER A HEADER ACTION ─────────────────────────────────────
+    //
+    // The kit's, not the caller's, because placing it is the one part only the
+    // kit can answer: the popover hangs from the action cluster, inside the
+    // header's own stacking context and above the track. A caller that built
+    // its own would be guessing at both.
+    //
+    // Rows are { label, icon, href | onClick, active }. An href opens in a new
+    // tab and closes the menu; an onClick closes it first, so a row that
+    // rebuilds the header is not removing the element it is running inside.
+    // The outside click is captured rather than bubbled and armed a tick late,
+    // or the same tap that opened the menu closes it again.
+    const menu = /* nested: menu, lines 775-869 */;
+    // Actions are handed the CORE deck, so that is where this has to live for
+    // an onClick to reach it.
+    deck.menu = menu;
+
+    const circle = /* nested: circle, lines 874-879 */;
+    const prevB = circle('ph-arrow-left', () => deck.go(deck.active() - 1));
+    const nextB = circle('ph-arrow-right', () => deck.go(deck.active() + 1));
+    const center = h('div', { class: 'flex items-center justify-center gap-2' });
+=== UNIT lib/kits/swipe-deck.js:442#3 | call(…) > open (part 3 of 5) ===
+    const useDots = total <= 25;
+    const dots = [];
+    let barFill = null;
+    if (useDots) {
+      // THE PAGER AS A PICTURE OF THE SHAPE, not only of the length. Where the
+      // labeler puts slides in groups, the dots cluster by group: a run of five
+      // says one section owns five pages. It costs one labeler call per slide,
+      // which the contract already allows (a label is metadata the caller
+      // holds, unlike a slide), and `useDots` bounds it at 25.
+      //
+      // A GAP RATHER THAN A COLOUR: the current dot is already the primary
+      // colour, and a tint per group would need a palette the kit has no
+      // business choosing. Space says a boundary in any theme.
+      const groups = [];
+      for (let i = 0; i < total && indexOf; i++) {
+        let g;
+        try { const l = indexOf(i); g = l && typeof l === 'object' ? l.group : undefined; } catch { g = undefined; }
+        groups.push(g);
+      }
+      for (let i = 0; i < total; i++) {
+        const d = h('button', { class: 'h-1.5 rounded-full transition-all duration-200', 'aria-label': `Go to ${i + 1}` });
+        if (i && groups[i] !== undefined && groups[i] !== groups[i - 1]) d.style.marginLeft = '0.75rem';
+        d.addEventListener('click', () => deck.go(i));
+        dots.push(d); center.append(d);
+      }
+    } else {
+      barFill = h('div', { class: 'h-1.5 rounded-full bg-primary transition-all duration-200', style: 'width:0%' });
+      center.append(h('div', { class: 'h-1.5 w-40 max-w-full overflow-hidden rounded-full bg-base-content/10' }, barFill));
+    }
+    const footer = h('div', { class: 'row-start-4 grid grid-cols-[2.75rem_1fr_2.75rem] items-center gap-4 border-t border-base-300 bg-base-100 px-4 py-3 sm:px-6' },
+      prevB, center, nextB);
+    // A DECK OF ONE HAS NOTHING TO PAGE. Both arrows are invisible at every
+    // index, and the position is a single dot reporting 1 of 1, so the row is
+    // 45px saying that there is a set here when there is not. It matters
+    // because this container is used for one thing as well as for many: a
+    // reader framing a single document or a single embedded app is a deck of
+    // one, and it should not advertise siblings it does not have.
+    //
+    // Hidden rather than omitted, and the grid is why it is safe: every child
+    // NAMES its row, so a `display:none` footer collapses row 4 and moves
+    // nothing above it. Omitting the element instead would leave `immersive`
+    // and the sync below reaching for a node that is not there.
+    if (total <= 1) footer.classList.add('hidden');
+
+    // ── THE SUBHEADER ───────────────────────────────────────────────────────
+    //
+    // A row under the header that the CALLER fills, and about which this kit
+    // holds no opinion beyond where it sits. It exists because chrome built
+    // outside the deck is left behind on the page the deck was opened from, the
+    // moment the deck becomes a takeover.
+    //
+    // IT IS A SLOT, NOT A COMPONENT, and that is the whole design. A tab strip,
+    // a filter row and a legend have nothing in common except their position,
+    // so the kit supplies the position: one grid row, a bottom border to sit it
+    // against the track, and `sd-subheader` as the name to measure. Anything
+    // more would be the kit choosing what belongs there, which is the caller's
+    // half and the half that differs every time.
+    //
+    // WHAT IT IS NOT FOR IS FILTERING THE DECK. `count` is fixed when a deck
+    // opens, so a control here that changed the set would leave the pager, the
+    // dots and the contents list describing a deck that no longer exists. A
+    // filter belongs upstream, where record-deck's fromGrid already puts it: it
+    // reads the grid's ACTIVE rows, so the deck receives a set someone else
+    // narrowed. Put a control here that changes what a slide SHOWS, not how
+    // many there are.
+    const subWrap = h('div', { class: 'sd-subheader row-start-2 empty:hidden flex shrink-0 flex-wrap items-center gap-1 border-b border-base-300 bg-base-100 px-4 py-1.5 sm:px-6' });
+    // A function gets the core handle, the way an action does, since chrome
+    // that acts on "this card" needs to know which card that is.
+    const fillSub = (v) => {
+      const el = typeof v === 'function' ? v(deck) : v;
+      if (el) subWrap.replaceChildren(el); else subWrap.replaceChildren();
+    };
+    fillSub(o.subheader);
+
+    // The track's row is set HERE rather than in `core`, because a track is
+    // also mounted inline by callers with no grid around it, where a
+    // `row-start` would be a class about a context it is not in.
+    deck.track.classList.add('row-start-3');
+    panel.append(header, subWrap, deck.track, footer);
+    overlay.append(panel);
+
+    // ── IMMERSIVE: the chrome gets out of the way while you read ────────────
+    //
+    // Opt-in (`immersive: true`): a transcript is read in bursts with the
+    // header as a constant anchor, while a document wants the surface.
+    //
+    // NOT dropping the chrome, which is the distinction that matters. Both
+    // bands come back on the first upward scroll, on a tap, and on every move
+    // to another document. What goes away is their claim on the screen while
+    // the reader is going downward, which is the one time nothing in them is
+    // being asked for, and on a phone that claim is a large fraction of it.
+    //
+    // A CAPTURE LISTENER, because `scroll` does not bubble. The panel cannot
+    // hear a descendant scroller any other way, and it must not have to know
+    // which descendant: a slide's scroller is whatever that slide mounted, and
+    // the pdf column, a long file and a workbook pane are three different
+    // elements. Capture reaches all of them without the deck learning any of
+    // their names.
+    //
+    // The track itself is excluded by hand. It is the one scroller here that
+    // moves sideways, and paging between documents is not reading.
+    if (o.immersive) {
+      const hidden0 = new WeakMap();
+      let hidden = false;
+      // The deck's own two bands, plus anything a SLIDE has marked as chrome.
+      //
+      // `data-sd-chrome` is the hook, and it exists because the deck's bands
+      // are not the only ones: a slide mounts a component with a header of its
+      // own (the file viewer names the file and offers its buttons), and a
+      // deck that stepped aside while that stayed put would leave one band
+      // behind and call it full screen. Queried at toggle time rather than
+      // cached, since slides mount and are released as the reader moves.
+      // Inert outside an immersive deck, so a component can mark its chrome
+      // unconditionally and let the host decide.
+      const chromeNow = () => [header, footer, ...panel.querySelectorAll('[data-sd-chrome]')];
+      const setHidden = /* nested: setHidden, lines 998-1007 */;
+      // A WORKING SURFACE IS NOT A DOCUMENT. A slide that is an editor (the
+      // Stage's image editor) is tapped to place and select and scrolls its
+      // own lists; neither is the reader asking for the screen, and the bands
+      // hold what acts on the work. Such a slide marks itself `data-sd-surface`.
+      //
+      // A SLIDE CAN OWN ITS TAPS AND STILL BE READ. A formatted sheet selects
+      // a cell on a tap, so the tap is not a request for the screen, but it is
+      // also scrolled down like a document, where giving the bands' height
+      // back is the point of this block. `data-sd-taps` exempts the tap and
+      // leaves the scroll alone, which `data-sd-surface` would not.
+      const SURFACE = '[data-sd-surface]';
+      const OWN_TAPS = '[data-sd-surface],[data-sd-taps]';
+      const onScroll = /* nested: onScroll, lines 1020-1042 */;
+      panel.addEventListener('scroll', onScroll, true);
+      // A TAP TOGGLES THE CHROME, and for a slide too short to scroll it is the
+      // only way in: a one-page PDF fitted to a phone pane has nothing to
+      // scroll, so there is nothing to trigger on.
+      //
+      // `click`, NOT `pointerdown`, and this is the difference between working
+      // on a phone and not. Every swipe begins with a pointerdown, so on a
+      // touch screen the chrome would flicker on every gesture. A gesture that
+      // scrolls produces no click, so a click is a tap and nothing else. (A
+      // mouse wheel fires no pointerdown either, which is why the wrong one
+      // reads as fine on a desktop.)
+      //
+      // A CONTROL IS NOT THE DOCUMENT. Toggling on any tap would fire on the
+      // pdf pager's own arrows and its page-jump list, which sit over the page
+      // rather than in either band, so reaching for "next page" would take the
+      // chrome away. The two bands are excluded for the same reason.
+      const CONTROL = 'a,button,summary,details,input,select,textarea,label,[role="button"]';
+      panel.addEventListener('click', /* nested: addEventListener(click), lines 1060-1066 */, true);
+      // A new document is a new arrival, so it gets its title back. The
+      // baselines are NOT cleared with it: they are keyed per scroller, a new
+      // slide brings its own, and a slide the reader returns to should be

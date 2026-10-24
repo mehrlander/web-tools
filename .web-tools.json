@@ -94,6 +94,11 @@
       "path": "research/DOC_CRAFT_STUDY.md",
       "label": "Documentation problems and drafting proposals",
       "kind": "probe"
+    },
+    {
+      "path": "research/code-jobs/README.md",
+      "label": "Finding one job done in several places",
+      "kind": "probe"
     }
   ],
   "programs": [

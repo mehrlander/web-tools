@@ -16,6 +16,7 @@ account links to its own materials. The shared placement rule is in
 ## Probes
 
 - [Documentation problems and drafting proposals](DOC_CRAFT_STUDY.md), with the original specimens.
+- [Code jobs](code-jobs/README.md): whether a model reader finds functions that do one job in several files.
 
 The Excel research is in `projects/office/research/` in `mehrlander/home`.
 
