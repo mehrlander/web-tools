@@ -5,7 +5,7 @@
   "groups": [
     {
       "id": "number-from-text",
-      "job": "turn a text value such as \"(1,234.50)\" or \"$5\" into a number, reading parentheses as negative",
+      "gloss": "turn a text value such as \"(1,234.50)\" or \"$5\" into a number, reading parentheses as negative",
       "members": [
         "lib/alpineComponents/transform-workbench.js:1407",
         "lib/kits/tabular-explorer.js:49"
@@ -18,7 +18,7 @@
     },
     {
       "id": "column-profile",
-      "job": "describe each column of a table of rows: its type, how often it is filled, its distinct values",
+      "gloss": "describe each column of a table of rows: its type, how often it is filled, its distinct values",
       "members": [
         "lib/alpineComponents/transform-workbench.js:1354",
         "lib/alpineComponents/transform-workbench.js:1360",
@@ -37,7 +37,7 @@
     },
     {
       "id": "group-and-aggregate",
-      "job": "group rows by the values of chosen columns and total a measure per group (a pivot)",
+      "gloss": "group rows by the values of chosen columns and total a measure per group (a pivot)",
       "members": [
         "lib/alpineComponents/transform-workbench.js:1617",
         "lib/alpineComponents/transform-workbench.js:1620",
@@ -57,7 +57,7 @@
     },
     {
       "id": "dom-builder",
-      "job": "create a DOM element from a tag, an attribute object and children",
+      "gloss": "create a DOM element from a tag, an attribute object and children",
       "members": [
         "lib/kits/tabular-explorer.js:30",
         "lib/kits/row-menu.js:47",
@@ -69,7 +69,7 @@
     },
     {
       "id": "csv-line",
-      "job": "split one CSV line into fields, honouring quotes and doubled quotes",
+      "gloss": "split one CSV line into fields, honouring quotes and doubled quotes",
       "members": [
         "lib/kits/csv.js:14",
         "node/build/registries-load.mjs:23"
@@ -79,7 +79,7 @@
     },
     {
       "id": "csv-records",
-      "job": "turn CSV text into records keyed by the header row",
+      "gloss": "turn CSV text into records keyed by the header row",
       "members": [
         "lib/kits/csv.js:32",
         "node/build/registries-load.mjs:41"
@@ -89,7 +89,7 @@
     },
     {
       "id": "slide-scroll",
-      "job": "scroll a horizontal snap strip so slide i is in view, clamping i to the slides there are",
+      "gloss": "scroll a horizontal snap strip so slide i is in view, clamping i to the slides there are",
       "members": [
         "lib/kits/swipe-deck.js:377",
         "lib/alpineComponents/file-browser.js:185",
@@ -104,7 +104,7 @@
     },
     {
       "id": "slide-from-scroll",
-      "job": "work out which slide of a snap strip is showing from its scroll position",
+      "gloss": "work out which slide of a snap strip is showing from its scroll position",
       "members": [
         "lib/alpineComponents/here-view.js:694",
         "lib/alpineComponents/user-call-form.js:1498"

@@ -26,6 +26,11 @@ function rather than an exchange.
   descriptions did, and one both. Run both.
 - **Embeddings did worse than TF-IDF** on both inputs, with the model the
   Themes tab's Similar wording uses.
+- **A Haiku codebook groups widely and loosely.** Drafted from the step 1
+  phrases, it ran to 207 tags for 544 units, and Haiku then tagged every unit
+  from it. Every key member shares a tag with a partner in another file, and 6
+  of the judge's 7 same-job pairs share one; so do 12 of the 27 pairs judged
+  different. A shared tag is a reason to look, not a finding.
 
 The findings worth acting on, each read back against the code:
 
@@ -80,10 +85,45 @@ The findings worth acting on, each read back against the code:
 | code, embedded | 2 | 3 | 15 |
 | Haiku, embedded | 1 | 15 | 4 |
 
+**Step 2**, the codebook route: one Haiku agent drafted a job list from every
+unit's step 1 phrases ([`prompt-codebook.md`](prompt-codebook.md), into
+`runs/haiku/codebook.jsonl`), and three tagged the units from it, reading
+the descriptions rather than the code ([`prompt-tags.md`](prompt-tags.md), into
+`runs/haiku/tags-*.jsonl`), about 0.8 million agent tokens in all, 17
+minutes of it the job list. [`tags.py`](tags.py) scores them:
+
+| Measure | Result |
+| --- | --- |
+| Tags drafted, and used | 207, all used; 77 span more than one file, 33 hold one unit |
+| Tags a unit | 1.6 on average; 2 units proposed a new tag |
+| Widest tags | status-message (22 units, 6 files), scroll-to-target (22, 4), select-item-in-list (20, 5) |
+| Key members sharing a tag with a partner in another file | 27 of 27 |
+| Judged pairs sharing a tag | same 6 of 7, related 13 of 25, different 12 of 27 |
+
 Reproduce the scores with `python3 research/code-jobs/score.py`; the embedded
 rows need `--embed` from a venv with model2vec, as `python/doc-overlap.py`
 describes. `pool.py score research/code-jobs/review/judge-sonnet-*.jsonl`
 recounts the verdicts.
+
+## Beside the other two reader passes
+
+The estate runs the same shape of work twice already: web-tools-private's
+session topics (Gemini summarizes each exchange, then names topics from the
+summaries) and this repo's UI inventory (`data/ui-units/`, readers code each
+page against a codebook). This probe is the third.
+
+| Step | Session topics | UI inventory | Code jobs |
+| --- | --- | --- | --- |
+| Unit | an exchange | a view, tab or page | a function |
+| Counted by script | the turn's tool calls and pushes | kit calls, hand-built signatures | the unit's identifiers |
+| Reader step | a summary per exchange | codes from a fixed list | jobs and a summary per function |
+| Grouping step | topics from the summaries | codes settled at a merge | similarity of descriptions; a drafted job list |
+| Agreement check | two blind readers and a reviewer, scored | none | a key and one blind judge, scored |
+
+What carried over from session topics held: summarize first and group from
+the summaries, and score against something fixed before the run. What this
+probe adds is that the script-counted signal is a method in its own right at
+the right unit size, and finds pairs the reader misses.
 
 ## Limits
 
