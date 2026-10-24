@@ -1,4 +1,4 @@
-key,facet,part,label,icon,tone,when,means,tap,status
+key,facet,part,label,icon,tone,when,gloss,note,status
 tint-default,version,tint,Default branch,,primary,"the view is rendered at the repository's default branch, which a toss at main also is",this is the version everyone sees,opens the FAB sidebar,live
 tint-off-branch,version,tint,Off the default branch,,warning,"a toss, or a ?use= pin the page honored, renders the view at another branch or at a commit","this is not the version everyone sees; the sidebar's ref bar turns warning too, and offers the way back to the default branch",opens the FAB sidebar,live
 glyph-sidebar,subject,glyph,Sidebar mark,ph-sidebar-simple,tint,"nothing below applies: no text is selected, and the view is at the default branch",nothing to report about the view; the FAB is a way into its sidebar,opens the FAB sidebar,live

@@ -355,6 +355,6 @@ fab-signals,label,recorded,,value,column,yes,,value,the signal's name as a reade
 fab-signals,icon,recorded,,none,column,yes,,value,"the glyph or badge mark: a Phosphor class, or the path of a drawn SVG; blank on a tint, which has no mark of its own"
 fab-signals,tone,recorded,,value,column,yes,primary;warning;error;info;success;tint,label,"the colour the signal is drawn in, or tint for a glyph that takes whichever colour the FAB currently wears"
 fab-signals,when,recorded,,value,column,yes,,value,"the condition that shows it, and what it outranks where two signals compete for one part"
-fab-signals,means,recorded,,value,column,yes,,value,what the reader should take from it
-fab-signals,tap,recorded,,value,column,yes,,value,what tapping the FAB (or the badge itself) does while the signal shows
+fab-signals,gloss,recorded,,value,column,yes,,value,"what the signal means, for a reader who has not met it"
+fab-signals,note,recorded,,value,column,yes,,value,"what tapping the FAB, or the badge itself, does while the signal shows"
 fab-signals,status,recorded,,value,column,yes,live;proposed,label,"whether fab.js draws the signal today, which the gate checks, or it is agreed in principle and awaits a build"
