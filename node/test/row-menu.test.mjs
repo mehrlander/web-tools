@@ -129,14 +129,14 @@ test('the deck item appears only when record-deck is loaded, and starts on the t
   const off = RM.attach(t, { deck: { title: 'Items' } });
 
   t.tap(1);
-  assert.deepEqual(labels(), ['Copy this record', 'Copy 3 rows'],
+  assert.deepEqual(labels(), ['Copy this record'],
     'the deck item showed with no record-deck loaded');
   RM.close();
 
   const seen = [];
   window.recordDeck = { fromGrid: (table, o) => { seen.push({ table, o }); } };
   t.tap(1);
-  assert.deepEqual(labels(), ['Read from here', 'Copy this record', 'Copy 3 rows']);
+  assert.deepEqual(labels(), ['Read from here', 'Copy this record']);
   clickItem('Read from here');
   assert.equal(seen.length, 1);
   assert.equal(seen[0].table, t);
@@ -145,23 +145,37 @@ test('the deck item appears only when record-deck is loaded, and starts on the t
   off();
 });
 
-test('the row count in the label is what the copy actually gives you', () => {
+test('the row menu is about the row: no table copy, and the row is tinted while it is up', () => {
   reset();
-  const one = stubTable({ rows: [ROWS[0]] });
-  const off1 = RM.attach(one);
-  one.tap(0);
-  assert.deepEqual(labels(), ['Copy this record'],
-    'a one-row table offered a table copy that says nothing the row copy does not');
-  off1();
+  const t = stubTable({ rows: ROWS.slice(0, 2) });
+  const cell = doc.createElement('div');
+  cell.className = 'tabulator-cell';
+  t.rowEl(0).append(cell);
+  const off = RM.attach(t, { noun: 'row' });
+  t.tap(0);
+  assert.deepEqual(labels(), ['Copy this row'],
+    'a menu opened on one row offered to copy the table, which the row cannot show');
+  assert.ok(cell.classList.contains('bg-primary/15'), 'nothing shows which row "this row" is');
+  RM.close();
+  assert.ok(!cell.classList.contains('bg-primary/15'), 'the tint outlived the menu');
+  off();
+});
 
+test('the table copy counts what the filters show, and copies that', async () => {
+  reset();
   // A filtered grid answers getRows('active') with what is left, and the label
   // has to follow it: 322 over 74 visible rows would describe the file.
   const few = stubTable({ rows: ROWS.slice(0, 2) });
-  const off2 = RM.attach(few, { noun: 'row' });
-  few.tap(0);
-  assert.deepEqual(labels(), ['Copy this row', 'Copy 2 rows']);
+  const it = RM.copyTableItem(few);
+  assert.equal(it.label, 'Copy 2 rows');
   assert.ok(few.calls.includes('getRows:active'), 'the count came from somewhere other than the active rows');
-  off2();
+  assert.equal(RM.copyTableItem(stubTable({ rows: [ROWS[0]] })).label, 'Copy 1 row');
+  assert.equal(RM.copyTableItem(stubTable({ rows: [] })), null, 'an empty grid offered a copy of nothing');
+
+  const wrote = [];
+  window.io = { copy: (text) => { wrote.push(text); return Promise.resolve(true); } };
+  assert.equal(await RM.copyTableItem(stubTable()).run(), 'Copied');
+  assert.deepEqual(wrote[0].split('\n'), ['Item\tAmount', 'a-1\t10', 'b-2\t', 'c-3\ttwo lines here']);
 });
 
 test('copy delegates to io.copy and reports what it got back', async () => {
@@ -178,13 +192,6 @@ test('copy delegates to io.copy and reports what it got back', async () => {
     'the row copy is not the visible columns as TSV');
   assert.match(btn.textContent, /Copied/, 'a finished copy said nothing');
 
-  wrote.length = 0;
-  RM.close();
-  t.tap(0);
-  clickItem('Copy 3 rows');
-  await new Promise(r => setTimeout(r, 0));
-  assert.equal(wrote.length, 1);
-  assert.deepEqual(wrote[0].split('\n'), ['Item\tAmount', 'a-1\t10', 'b-2\t', 'c-3\ttwo lines here']);
 
   // A refused write says so rather than claiming success.
   window.io = { copy: () => Promise.resolve(false) };
@@ -250,7 +257,8 @@ test('the kit touches only the three Tabulator calls it declares', () => {
   clickItem('Read from here');
   off();
   const used = new Set(t.calls.map(c => c.split(':')[0]));
-  assert.deepEqual([...used].sort(), ['getColumns', 'getRows', 'on'],
+  const declared = new Set(['getColumns', 'getRows', 'on']);
+  assert.deepEqual([...used].filter(c => !declared.has(c)), [],
     'the kit reached for a Tabulator method its header does not declare');
 });
 
@@ -274,7 +282,7 @@ test('on: context opens on a right-click or a held finger, and a tap stays a tap
   t.tap(0);
   assert.equal(menu(), null, 'a plain tap raised the context menu');
   const e = t.fire('rowContext', 0);
-  assert.deepEqual(labels(), ['Copy this row', 'Copy 3 rows']);
+  assert.deepEqual(labels(), ['Copy this row']);
   assert.ok(e.defaultPrevented, "the browser's own menu would open over this one");
   RM.close();
 
