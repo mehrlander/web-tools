@@ -40,6 +40,10 @@ A project's or a program's own icon is an SVG drawn to the rules of the budget-d
 
 File: [`web-tools-icon-3d.png`](web-tools-icon-3d.png). A 180 × 180 candidate with a lighter graphite tile, the blue mark reduced to roughly two-thirds of the canvas, and shallow extrusion. The [iPhone size check](../../pages/scratch/web-tools-icon-preview.html) compares the production-size raster with the active tile at 60, 40, and 29 CSS pixels. This is a design candidate, not the shipped Home Screen icon.
 
+### Alternatives
+
+The options considered for a drawn mark sit beside it in `alternatives/`, named `<mark>.<option>.svg` and drawn to the same rules, each with a `<desc>` saying what it depicts. The Map's Icons tab badges a mark that has them and shows them in its tip. Drawn 2026-10-24: three for Map › Reach ([`map/alternatives/`](map/alternatives/): ripples, orbit, arrows) and three for Map › Harness (corners, plug, cog). Choosing one swaps it with the mark, which then moves into `alternatives/` in its place.
+
 ### Per-page emoji marks
 
 Eleven pages carry their own emoji favicon, written inline as a `data:image/svg+xml` URI holding a single `<text>` glyph: 🌿 branch, 📊 data-view, 🔖 links, 🧪 console-playground, 💎 shorter, 🔍 review and pdf-inspect, ✍️ word-select, 🐈‍⬛ compression-helper, 🥏 toss-render. A page that declares none inherits the hex nut from `gh-boot.js`, so the estate needs no per-page icon file and no registry.

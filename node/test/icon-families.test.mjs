@@ -12,6 +12,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { repoRoot } from './bootstrap.mjs';
 import { parseCsv, parseCsvLine } from '../build/registries-load.mjs';
@@ -70,5 +71,26 @@ test('an SVG a CSV family names exists', () => {
       const v = r[f.icon_column];
       if (v?.endsWith('.svg')) assert.ok(existsSync(at(v)), `${f.family}: ${v} exists`);
     }
+  }
+});
+
+// A drawn mark's alternatives (docs/favicons/README.md, Alternatives): each
+// file in an alternatives/ folder is <mark>.<option>.svg beside a mark that
+// exists, and keeps the drawn-mark rules a file can be read for: the shared
+// box, a <desc> saying what it depicts, no strokes, and the mark's own paint.
+// The 2.5-unit gap is a design check, measured when the mark is drawn.
+test('every alternative names its mark and keeps the drawn-mark rules', () => {
+  const files = execFileSync('git', ['-C', repoRoot, 'ls-files', '*/alternatives/*.svg'], { encoding: 'utf8' }).split('\n').filter(Boolean);
+  for (const f of files) {
+    const dir = path.dirname(path.dirname(f)), name = path.basename(f);
+    const m = name.match(/^([^.]+)\.([^.]+)\.svg$/);
+    assert.ok(m, `${f}: named <mark>.<option>.svg`);
+    const mark = path.join(dir, m[1] + '.svg');
+    assert.ok(existsSync(at(mark)), `${f}: its mark ${mark} exists`);
+    const svg = readFileSync(at(f), 'utf8'), own = readFileSync(at(mark), 'utf8');
+    assert.match(svg, /viewBox="1\.5 1\.75 29 29"/, `${f}: the drawn-mark box`);
+    assert.match(svg, /<desc>[^<]+<\/desc>/, `${f}: a <desc> says what it depicts`);
+    assert.doesNotMatch(svg, /\bstroke(-width)?=/, `${f}: solid fills, no strokes`);
+    assert.equal(/currentColor/.test(svg), /currentColor/.test(own), `${f}: painted as its mark is`);
   }
 });
