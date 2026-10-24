@@ -45,8 +45,7 @@ subject, such as `snags`, a project folder, or a pull request.
 (Prod, below).
 
 Tend deletes no branch and proposes no deletion. `findings.py` sits beside
-this file; [`docs/views/tending.md`](../../docs/views/tending.md) states the
-record.
+this file; `lib/kits/findings.js` states the record.
 
 1. **Reassess.** `findings.py check` names the findings whose witnesses
    changed. Reread each and reply with `findings.py update`: revise it, confirm
@@ -137,8 +136,7 @@ Branches does.
 
 ## Snags
 
-Snags are the Lists view's Snag list (`lists/snag.json` in the registry, shape
-in `docs/views/lists.md`). How many dates an item's `seen` holds orders the
+Snags are the Lists view's Snag list (`lists/snag.json` in the registry). How many dates an item's `seen` holds orders the
 reading and triggers nothing.
 
 - **Act:** log a trap this pass hits, as an item or as a date on the item that

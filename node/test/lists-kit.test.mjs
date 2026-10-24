@@ -67,11 +67,11 @@ test('mutate can change the header, and the header comes back described', async 
   assert.equal(L.describe('lists/words.json', res.header).title, 'Useful words');
 });
 
-test('discover finds titled files only, leaves out the built-ins under either name, and sorts by title', async () => {
+test('discover finds titled files only, leaves out the built-ins, and sorts by title', async () => {
   const reg = registry({
     'lists/to-do.json': json({ title: 'To-do', items: [] }),
     'lists/jot.json': json({ items: [] }),
-    'lists/pins.json': json({ title: 'Pin', items: [] }),
+    'lists/pin.json': json({ title: 'Pin', items: [] }),
     'lists/autocorrect.json': json({ note: 'find and replace', items: [{ from: 'a', to: 'b' }] }),
     'lists/useful-words.json': json({ title: 'Useful words and phrases', icon: 'book-open-text', items: [{ id: 'l1', text: 'appurtenance' }] }),
     'lists/aphorisms.json': json({ title: 'Aphorisms', icon: 'quotes', items: [] }),
@@ -96,7 +96,6 @@ test('a created list keeps only the capabilities the pane can render for it', ()
   assert.equal(d.builtIn, false);
   assert.deepEqual(L.describe('lists/to-do.json', {}).capabilities, ['done', 'due']);
   assert.equal(L.describe('lists/to-do.json', {}).title, 'To-do');
-  assert.equal(L.describe('lists/todo.json', {}).builtIn, true, 'the old name is the same list');
   for (const c of L.OPEN) assert.ok(c in L.CAPABILITIES, c);
   for (const b of L.BUILT_IN) for (const c of b.capabilities) assert.ok(c in L.CAPABILITIES, b.path + ' ' + c);
 });
@@ -116,7 +115,6 @@ test('create names the file from the title, refuses a taken path, and refuses a 
   assert.deepEqual(reg.S.saves[0].value, { title: 'Useful words & phrases', icon: 'book-open-text', capabilities: ['done'], items: [] });
   await assert.rejects(L.create(reg, { title: 'Aphorisms' }), /already stored/);
   await assert.rejects(L.create(reg, { title: 'To-do' }), /built-in/);
-  await assert.rejects(L.create(reg, { title: 'Todo' }), /built-in/, 'an old name is still taken');
   await assert.rejects(L.create(reg, { title: '   ' }), /needs a title/);
   await assert.rejects(L.create(reg, { title: '!!!' }), /letter or a digit/);
 });
@@ -156,30 +154,6 @@ test('the built-in paths are the ones the Lists pane writes, each named for its 
   const pane = Object.fromEntries([...src.matchAll(/const (TODO|JOT|PIN|SNAG)_PATH = '([^']+)'/g)].map(m => [m[1], m[2]]));
   assert.deepEqual(L.BUILT_IN.map(b => b.path), [pane.TODO, pane.JOT, pane.PIN, pane.SNAG]);
   for (const b of L.BUILT_IN) assert.equal(b.path, L.pathFor(b.title), b.title);
-});
-
-test('a built-in list still in its old file is read there, and the first write moves it', async () => {
-  const reg = registry({ 'lists/jots.json': json({ owner: 'me', items: [{ id: 'j0', text: 'kept' }] }) });
-  const before = await L.read(reg, 'lists/jot.json');
-  assert.equal(before.from, 'lists/jots.json');
-  assert.deepEqual(before.items.map(i => i.id), ['j0']);
-
-  await L.append(reg, 'lists/jot.json', { id: 'j1', text: 'new' }, 'msg');
-  assert.deepEqual(JSON.parse(reg.S.files['lists/jot.json']), { owner: 'me', items: [{ id: 'j0', text: 'kept' }, { id: 'j1', text: 'new' }] });
-  assert.deepEqual(reg.S.dels.map(d => d.path), ['lists/jots.json'], 'the old file is gone once the new one is written');
-  assert.equal((await L.read(reg, 'lists/jot.json')).from, 'lists/jot.json');
-
-  // A created list is never read from somewhere else.
-  const plain = registry({ 'lists/jots.json': json({ items: [{ id: 'j0', text: 'x' }] }) });
-  assert.equal((await L.read(plain, 'lists/words.json')).items.length, 0);
-});
-
-test('a failed delete of the old file does not fail the write that landed', async () => {
-  const reg = registry({ 'lists/pins.json': json({ items: [] }) });
-  reg.del = async () => { throw Object.assign(new Error('409'), { status: 409 }); };
-  const res = await L.append(reg, 'lists/pin.json', { id: 'p1', target: 'o/r:a.md' }, 'msg');
-  assert.equal(res.items.length, 1);
-  assert.ok('lists/pin.json' in reg.S.files);
 });
 
 // A registry that answers like GitHub: every save returns the new blob sha,

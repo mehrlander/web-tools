@@ -6,7 +6,7 @@ record from the private store's `sessions/` folder, drawn by
 It has two carriers:
 
 - **In the app:** the Sessions view opens it over the list, addressed by
-  `&session=<short id>` ([views/sessions.md](../views/sessions.md)).
+  `&session=<short id>`.
 - **Standalone:** [`pages/session.html`](../../pages/session.html), addressed
   `#id=<short>`, `#gh=owner/repo[@ref]:path`, or `#gz=<base64url>` for a reader
   with no token. The store is private, so `#id=` and `#gh=` need the viewer's

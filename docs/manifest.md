@@ -253,9 +253,7 @@ in `order` on the membership, not in a second flag.
 ## Config cache (`state/configs.json`)
 
 Map Tests uses this cache to discover repositories' current execution
-declarations and dated check readings. The declaring repository owns both;
-their placement and the distinction between a workflow and its results are
-explained in [the Map's Tests account](views/map.md#tests-what-checks-protect-and-how-they-run).
+declarations and dated check readings. The declaring repository owns both.
 
 With a token, the app keeps a **derived** cache of the account's repo configs
 in the registry repo, built by `lib/kits/repo-config-cache.js`. `refreshConfigCache`
@@ -414,8 +412,7 @@ stage link with no token ([stage.md](stage.md#content-the-gz-param)).
 
 ## Proposals
 
-The write-side counterpart to errands, the Proposals view, is documented in
-[views/proposals.md](views/proposals.md).
+A proposal is the write-side counterpart to an errand: a session that cannot reach a repo writes `proposals/pending/<id>.json` in the registry, and the Proposals view commits it to the target on the reader's two-tap confirm. The record's fields, kinds and deliveries are stated in the header of [`lib/kits/repo-proposals.js`](../lib/kits/repo-proposals.js), whose `validate` refuses a record that breaks them.
 
 ## The repo menu
 
