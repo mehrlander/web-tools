@@ -51,6 +51,7 @@ const routesModesCsv = readFileSync(path.join(repoRoot, 'docs', 'routes-modes.cs
 const routesRoutesCsv = readFileSync(path.join(repoRoot, 'docs', 'routes-routes.csv'), 'utf8');
 const routesKindsCsv = readFileSync(path.join(repoRoot, 'docs', 'routes-kinds.csv'), 'utf8');
 const mechanismsCsv = readFileSync(path.join(repoRoot, 'docs', 'showing-mechanisms.csv'), 'utf8');
+const fabSignalsCsv = readFileSync(path.join(repoRoot, 'docs', 'fab-signals.csv'), 'utf8');
 const docsCsv = readFileSync(path.join(repoRoot, 'docs', 'docs.csv'), 'utf8');
 const aimsJson = readFileSync(path.join(repoRoot, 'docs', 'aims.json'), 'utf8');
 const aimsGoalsCsv = readFileSync(path.join(repoRoot, 'docs', 'aims-goals.csv'), 'utf8');
@@ -97,6 +98,8 @@ window.GH = class {
     if (p === 'docs/routes-routes.csv') return { text: routesRoutesCsv };
     if (p === 'docs/routes-kinds.csv') return { text: routesKindsCsv };
     if (p === 'docs/showing-mechanisms.csv') return { text: mechanismsCsv };
+    if (p === 'docs/fab-signals.csv') return { text: fabSignalsCsv };
+    if (p === 'docs/favicons/fab/frisbee.svg') return { text: '<svg fill="currentColor"></svg>' };
     if (p === 'docs/docs.csv') return { text: docsCsv };
     if (p === 'docs/aims.json') return { text: aimsJson };
     if (p === 'docs/aims-goals.csv') return { text: aimsGoalsCsv };
@@ -439,6 +442,26 @@ test('Showing loads on demand, not at mount', async () => {
 // whose cells are mostly blank: `aim` is carried by one kind of eleven and `kit`
 // by three. Every x-show in the template tests the string, so this checks that
 // the sparse rows survive the parse rather than that the tab has content.
+// What the FAB says: the receiving end of the mechanisms, grouped by the facet
+// each signal answers, in the order docs/vocabularies.csv gives the facets.
+// fab-signals.test.mjs holds the rows to fab.js; this checks the tab is handed
+// them, grouped, with a drawn mark read and a badge drawn on a plain FAB.
+test('Showing carries what the FAB says, grouped by facet', async () => {
+  await data.loadPropsReg();
+  const groups = data.fabGroups;
+  assert.deepEqual(Array.from(groups, g => g.k), ['version', 'viewer', 'subject', 'action']);
+  assert.equal(groups[0].n, 'Version', 'a facet is labelled from the vocabulary');
+  assert.equal(groups.flatMap(g => g.rows).length, data.routes.fab.length, 'every signal lands in a group');
+  const drawn = data.routes.fab.find(r => r.icon.endsWith('.svg'));
+  await new Promise(r => setTimeout(r, 0));
+  assert.ok(data.fabGlyph(drawn).mask.startsWith('data:image/svg+xml'), 'a drawn mark is read and painted as a mask');
+  const key = data.routes.fab.find(r => r.key === 'badge-no-token');
+  assert.equal(data.fabGlyph(key).ph, 'ph-sidebar-simple opacity-40', 'a badge sits on a FAB showing nothing else');
+  assert.match(data.fabBadge(key), /bg-error/);
+  const off = data.routes.fab.find(r => r.key === 'tint-off-branch');
+  assert.match(data.fabTone(off).disc, /bg-warning/, 'a tint is drawn in its own colour');
+});
+
 test('Showing carries the kinds, and the sparse cells survive the parse', () => {
   const kinds = data.routes.kinds;
   assert.ok(kinds.length > 8, 'the kinds table did not load');
