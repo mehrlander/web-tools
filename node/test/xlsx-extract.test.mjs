@@ -180,11 +180,11 @@ test('kit surface', () => {
   assert.equal(XlsxExtract.SELECTED_KIND, 'workbook-extract/2');
 });
 
-test('the kinds are two flat lists, not a tree: nine per sheet and four per workbook', () => {
+test('the kinds are two flat lists, not a tree: ten per sheet and four per workbook', () => {
   const scopes = XlsxExtract.KINDS.reduce((m, k) => ({ ...m, [k.scope]: (m[k.scope] || 0) + 1 }), {});
-  assert.deepEqual(scopes, { sheet: 9, workbook: 4 });
+  assert.deepEqual(scopes, { sheet: 10, workbook: 4 });
   assert.deepEqual(XlsxExtract.KINDS.map(k => k.id), [
-    'values', 'cells', 'formulas', 'styles', 'merges', 'comments', 'validations',
+    'values', 'raw', 'cells', 'formulas', 'styles', 'merges', 'comments', 'validations',
     'conditional', 'columns', 'pivots', 'records', 'sources', 'queries',
   ]);
 });
@@ -237,6 +237,17 @@ test('v2 selects kinds independently per sheet and never adds related objects im
   assert.ok(env.left.objects.some(id => id.startsWith('records:')));
   assert.ok(env.left.sheetKinds.find(s => s.name === 'Ledger').kinds.includes('values'));
   assert.ok(DataPayload.isEnvelope(env));
+});
+
+// The raw reading, added 2026-10-23: Values reads a cell as the sheet draws
+// it, and a reader computing on the extract would have to parse that back.
+test('raw values carry a number as a number, where values carry it as text', () => {
+  const env = XlsxExtract.extractSelected(read(), { sheets: [{ name: 'Ledger', kinds: ['values', 'raw'] }] }, { now: NOW });
+  const [values, raw] = ['values', 'raw'].map(k => rowsOf(env.items.find(i => i.kind === k)));
+  assert.equal(typeof values.find(r => r.Row === 2).B, 'string');
+  assert.deepEqual(raw.find(r => r.Row === 2), { Row: 2, A: '600', B: 17 }, 'and a shared string of digits stays text');
+  assert.deepEqual(raw.map(r => r.Row), [1, 2, 3, 4]);
+  assert.equal(XlsxExtract.survey(read()).sheets[0].counts.raw, raw.length, 'the count is the rows the reading carries');
 });
 
 test('v2 can include one pivot, cached rows, or a connection without selecting any sheet', () => {
@@ -336,7 +347,7 @@ test('what was left behind is stated, not only what was taken', () => {
   const env = take({ sheets: ['Ledger'], kinds: ['values'] });
   assert.deepEqual(env.picked, { sheets: ['Ledger'], kinds: ['values'] });
   assert.deepEqual(env.left.sheets, ['Notes']);
-  assert.equal(env.left.kinds.length, 12);
+  assert.equal(env.left.kinds.length, 13);
   assert.ok(env.left.kinds.includes('queries'));
 });
 

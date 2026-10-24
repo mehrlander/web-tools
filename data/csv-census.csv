@@ -55,7 +55,7 @@ docs/routes-routes.csv,6,7,2377,"[""key"",""repo"",""ref"",""path"",""renders"",
 docs/run-methods.csv,7,5,2341,"[""method"",""venues"",""output_return"",""rules"",""gloss""]"
 docs/showing-mechanisms.csv,10,11,6923,"[""key"",""glyph"",""label"",""form"",""subject"",""version"",""viewer"",""reaches"",""misses"",""use"",""trap""]"
 docs/subjects.csv,9,8,2726,"[""key"",""label"",""needs"",""carrier"",""doc"",""detect"",""icon"",""gloss""]"
-docs/tests.csv,446,8,474575,"[""path"",""kind"",""protects"",""test_count"",""method"",""runner"",""boot_smoke"",""test_names""]"
+docs/tests.csv,446,8,474643,"[""path"",""kind"",""protects"",""test_count"",""method"",""runner"",""boot_smoke"",""test_names""]"
 docs/text-fields.csv,13,5,4120,"[""field"",""audience"",""gloss"",""use_when"",""instead_of""]"
 docs/themes.csv,59,7,21394,"[""a"",""b"",""w"",""rule"",""quoted"",""shingle"",""scanned""]"
 docs/tools.csv,5,2,190,"[""path"",""icon""]"

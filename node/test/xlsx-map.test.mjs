@@ -59,7 +59,10 @@ const LEDGER = sheet([
   row(4, [str('A4', 'D-3'), num('B4', 600), num('C4', 30)]),
 ]);
 
-const PLAN = sheet([row(2, [str('A2', 'Plan'), num('B2', 5)])]);
+// Plan hides its row 3 and its column C, both inside the used width, and a
+// column range past it that must not count.
+const PLAN = `<?xml version="1.0"?><worksheet xmlns="ws"><cols><col min="3" max="3" hidden="1"/><col min="5" max="16384" hidden="1"/></cols><sheetData>${
+  [row(2, [str('A2', 'Plan'), num('B2', 5), num('C2', 1)]), `<row r="3" hidden="1">${str('A3', 'Old')}</row>`].join('')}</sheetData></worksheet>`;
 const LOOKUPS = sheet([
   row(1, [str('A1', 'High')]), row(2, [str('A2', 'Low'), num('B2', 0.07)]), row(3, [str('A3', 'None')]),
 ]);
@@ -188,4 +191,5 @@ test('a sheet of headings over rows is a table; a sheet of labels is a form', ()
   assert.deepEqual(g.Summary.pivots, ['ByFund']);
   assert.equal(g.Summary.validations, 1);
   assert.deepEqual(g.Lookups.named, ['TaxRate']);
+  assert.deepEqual([g['Q1 / Plan'].hiddenRows, g['Q1 / Plan'].hiddenCols], [[3], ['C']], 'hidden rows by number, columns by letter, within the used width');
 });

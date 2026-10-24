@@ -479,8 +479,8 @@ try {
      JSON.stringify(e0.cells.filter(c => c.disabled)));
   ok('the list draws every sheet with its own include box',
      e0.sheets.map(s => s.name).join() === 'Budget,Notes', JSON.stringify(e0.sheets));
-  ok('and the picked sheet\'s detail draws its nine readings, and only its',
-     e0.cells.length === 9 && e0.cells.every(c => c.sheet === e0.selected),
+  ok('and the picked sheet\'s detail draws its ten readings, and only its',
+     e0.cells.length === 10 && e0.cells.every(c => c.sheet === e0.selected),
      JSON.stringify({ selected: e0.selected, cells: e0.cells.map(c => [c.sheet, c.kind]) }));
   ok('the three modeled objects are individual choices',
      e0.objects.length === 3 &&

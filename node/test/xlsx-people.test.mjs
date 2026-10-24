@@ -136,6 +136,8 @@ test('carried() follows the pick: values carry a column, styles do not, comments
   const pick = (sheets) => ({ sheets: new Map(Object.entries(sheets).map(([k, v]) => [k, new Set(v)])), objects: new Set() });
   assert.deepEqual(XlsxPeople.carried(f, pick({ Staff: ['values'] })).map(x => x.id).sort(),
     ['column:Staff:B', 'column:Staff:D']);
+  assert.deepEqual(XlsxPeople.carried(f, pick({ Staff: ['raw'] })).map(x => x.id).sort(),
+    ['column:Staff:B', 'column:Staff:D'], 'raw values carry the same cells');
   assert.deepEqual(XlsxPeople.carried(f, pick({ Staff: ['styles'] })), []);
   assert.deepEqual(XlsxPeople.carried(f, pick({ Staff: ['comments'] })).map(x => x.id), ['author:Staff']);
   assert.deepEqual(XlsxPeople.carried(f, pick({ Totals: ['values', 'cells'] })), []);

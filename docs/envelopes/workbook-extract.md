@@ -17,7 +17,7 @@ The original cross-product API and its
 ## Sheet-centered selection (v2)
 
 `XlsxExtract.catalog(result)` returns sheets in workbook order, with counts
-for their nine supported readings, and separately lists each modeled object.
+for their ten supported readings, and separately lists each modeled object.
 The UI shows a pivot table under the sheet where it sits and a pivot cache
 under its source sheet when that sheet is in the workbook. This is an
 association for navigation, not an inclusion rule: selecting a sheet does not
@@ -61,13 +61,14 @@ sheets" and "every pivot in the file" are the same gesture at different points
 of one matrix, so both axes are flat lists rather than a tree of sheets each
 carrying kinds.
 
-Thirteen kinds. The first nine are read per sheet and appear once per picked
+Fourteen kinds. The first ten are read per sheet and appear once per picked
 sheet that has any; the last four are read once per workbook, appear once
 however many sheets are picked, and carry a null `sheet`.
 
 | id | scope | one row per | reads |
 | --- | --- | --- | --- |
 | `values` | sheet | sheet row | `sheetRows`, so a date is a date rather than a serial |
+| `raw` | sheet | sheet row with a value | the same rows as typed data: a number is a number, a date an ISO date, a tick a boolean (`sheetTables`'s rows) |
 | `cells` | sheet | one object per sheet | every cell as `{Address, Formula, Value}`, plus `Dimension` and `MergedCells`: the serialized-workbook shape, below |
 | `formulas` | sheet | computed cell | the stored formula text, and the value beside it |
 | `styles` | sheet | styled cell | `cellStyle`, flattened to what the cell draws |
