@@ -11,7 +11,7 @@ and what the suite checks. What each field means is not here. It is in
 [`registries.csv`](registries.csv), one row per registry;
 [`properties.csv`](properties.csv), one row per non-key column; and
 [`vocabularies.csv`](vocabularies.csv), one row per value of each closed
-domain. All three render in the app's **Map view, Registries tab**. The gate is
+domain. All three render in the app's **Map view, Data tab**. The gate is
 [`properties-registry.test.mjs`](../node/test/properties-registry.test.mjs).
 
 Settled 2026-08-08; the origin instrument is budget-drs's `properties.csv` in
@@ -234,7 +234,7 @@ each have a registry row, and every non-key column in both has a declaration.
 
 ## Reader-facing fields
 
-`title` and `gloss` identify a registry in the Map view. `key_primitive` groups the tab: registries keyed by a locator, then those keyed by a name. A topical grouping was tried first and did not hold. `renders_in` is derived by [`registries-reach.mjs`](../node/build/registries-reach.mjs) from the files under `lib/`, `pages/` and `app/` that name the registry's path. That directory list is literal (`APP_DIRS`); when the app moves, move it. An empty `renders_in` says no app surface reads the registry, which is a question rather than a verdict, since a GitHub-rendered projection is a legitimate consumer.
+`title` and `gloss` identify a registry in the Map view. `key_primitive` groups the Data tab's Registries list: registries keyed by a locator, then those keyed by a name. A topical grouping was tried first and did not hold. `renders_in` is derived by [`registries-reach.mjs`](../node/build/registries-reach.mjs) from the files under `lib/`, `pages/` and `app/` that name the registry's path. That directory list is literal (`APP_DIRS`); when the app moves, move it. An empty `renders_in` says no app surface reads the registry, which is a question rather than a verdict, since a GitHub-rendered projection is a legitimate consumer.
 
 ## Limits of the model
 

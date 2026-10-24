@@ -2,7 +2,7 @@
 
 One property, `column_primitive`, saying which of four roles a column plays in its row. It is the coarse question that sits above [`LINKAGE.md`](https://github.com/mehrlander/home/blob/main/projects/budget-drs/data/design/LINKAGE.md)'s `column_domain`.
 
-`docs/properties.csv` declares it on every row, and `docs/registries.csv` declares it for each registry's key as `key_primitive`. The Map's Primitives view lists every declared column by primitive.
+`docs/properties.csv` declares it on every row, and `docs/registries.csv` declares it for each registry's key as `key_primitive`. The Map's Data tab draws every column of every table in its primitive's mark.
 
 ## The four
 

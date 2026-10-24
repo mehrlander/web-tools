@@ -1,6 +1,12 @@
 # CSV census
 
-An estate repository opts into the CSVs view, on the Map's Data tab, by declaring `"data": {"census": "data/csv-census.csv"}` in `.web-tools.json` and committing the generated inventory at that repository-relative path. Each repository owns its inventory. The hub reads declarations through the config cache and fetches one inventory per declaration; source CSVs are fetched when opened in Files. The hub follows the preview's `?use=` ref; other repositories are read at `main`. Without a token, only the public hub inventory is read.
+An estate repository opts into Map's Data tab by declaring
+`"data": {"census": "data/csv-census.csv"}` in `.web-tools.json` and committing
+the generated inventory at that repository-relative path. Each repository
+owns its inventory. The hub reads declarations through the config cache and
+fetches one inventory per declaration; source CSVs are fetched when opened
+in Files. The hub follows the preview's `?use=` ref; other repositories are
+read at `main`. Without a token, only the public hub inventory is read.
 
 Use the standalone `python/csv-census.py` from Web Tools, either copied into
 the repository or invoked with `--root <checkout>`. Stage source CSV changes

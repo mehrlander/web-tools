@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="Column primitive: id">
+  <title>Column primitive: id</title>
+  <desc>A circle, a square and a triangle: no two rows share a value.</desc>
+  <g fill="currentColor">
+    <circle cx="8.5" cy="9.5" r="5.5"/>
+    <rect x="17" y="3.5" width="12" height="12" rx="1"/>
+    <path d="M16 18.5 L23 29.5 L9 29.5 Z"/>
+  </g>
+</svg>

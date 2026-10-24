@@ -48,11 +48,11 @@ const SUBVIEWS = [...subviewsBlock.matchAll(optionPattern)]
 // unit: each group's key, then its options in strip order.
 const SUBVIEW_GROUPS = [...subviewsBlock.matchAll(/(\w+):\s*\[([\s\S]*?)\]/g)]
   .map(m => ({ parent: m[1], options: [...m[2].matchAll(optionPattern)].map(o => [o[1], o[2]]) }));
-// Addresses a subview draws inside itself (Automation's trigger views), each
-// with the subview that hosts it.
+// Addresses a subview draws inside itself (Automation's trigger views, and
+// Tables' Registries narrowing), each with the subview that hosts it.
 const withinBlock = src.match(/WITHIN:\s*\[([\s\S]*?)\r?\n\s*\],/)?.[1] || '';
-const WITHIN = [...withinBlock.matchAll(/\{ k: '([a-z]+)', n: '([^']+)', i: '(ph-[a-z-]+)', host: '([a-z]+)' \}/g)]
-  .map(m => ({ k: m[1], n: m[2], i: m[3], host: m[4] }));
+const WITHIN = [...withinBlock.matchAll(/\{ k: '([a-z]+)', n: '([^']+)', i: (?:'(ph-[a-z-]+)'|([A-Z_]+_GLYPH)), host: '([a-z]+)' \}/g)]
+  .map(m => ({ k: m[1], n: m[2], i: m[3] || m[4], host: m[5] }));
 const parentBlock = src.match(/SUBVIEW_PARENT:\s*\{([^}]+)\}/)?.[1] || '';
 const SUBVIEW_PARENT = Object.fromEntries(
   [...parentBlock.matchAll(/(?:^|,)\s*([a-z]+): '([a-z]+)'(?=\s*(?:,|$))/g)]
@@ -80,12 +80,12 @@ const GROUPS = [
   ['Harness', [['harness', 'Automation'], ['programs', 'Programs'], ['set', 'Set'], ['tests', 'Tests'], ['skills', 'Skills'], ['agents', 'Agents'], ['peeves', 'Peeves'], ['context', 'Context'], ['lifetimes', 'Lifetimes'], ['surfacing', 'Surfacing']]],
   ['Browser', [['dimensions', 'Dimensions'], ['patterns', 'Gallery'], ['views', 'Views'], ['kits', 'Kits'], ['showing', 'Showing']]],
   ['Docs', [['docs', 'Inventory'], ['growth', 'Growth'], ['policy', 'Policy'], ['themes', 'Themes']]],
-  ['Data', [['primitives', 'Primitives'], ['data', 'CSVs'], ['registries', 'Registries']]],
+  ['Data', [['data', 'Tables']]],
   ['Watch', [['watch', 'Triggers'], ['public', 'Public'], ['names', 'Names']]],
 ];
 
 test('an address drawn inside a subview is routable and names a host on the strip', () => {
-  assert.deepEqual(WITHIN.map(w => w.k), ['events', 'scheduled']);
+  assert.deepEqual(WITHIN.map(w => w.k), ['events', 'scheduled', 'registries']);
   for (const w of WITHIN) {
     assert.ok(MAP_ROUTES.includes(w.k), `${w.k} is a shell route`);
     assert.ok(SUBVIEWS.some(v => v.k === w.host), `${w.k} is hosted by ${w.host}, a subview on the strip`);
@@ -108,8 +108,8 @@ test('every tab in the strip is one entry in the array that generates it', () =>
   // 7 to 6 on 2026-10-13: two doors. Purpose joined Overview, and Projects
   // joined Routes, Distribution, Outposts and Data under Reach.
   // 6 to 7 on 2026-10-19: Watch, by the owner's decision in session 1fd50ebd.
-  // 7 to 8 on 2026-10-23: Data, holding Primitives with Reach's CSVs and
-  // Docs' Registries, on the owner's go-ahead in session 5d9aea14.
+  // 7 to 8 on 2026-10-23: Data, holding Reach's CSVs and Docs' Registries
+  // as one Tables view, on the owner's go-ahead in session 5d9aea14.
   assert.equal(TABS.length, 8, 'eight top-level tabs, Overview first and Reach second');
   assert.deepEqual(TABS.map(t => t.n), GROUPS.map(([n]) => n), 'the tabs, by label, in strip order');
   assert.deepEqual(SUBVIEW_GROUPS.map(g => [TABS.find(t => t.k === g.parent)?.n, g.options]), GROUPS,
@@ -241,7 +241,9 @@ test('Docs Inventory carries its own scoped finder', () => {
 test('every tab key the view dispatches on has an entry', () => {
   // x-show="mapTab==='k'" is how each section decides to render, so the set of
   // keys in the markup is the set of tabs that exist, whatever the array claims.
-  const shown = new Set([...src.matchAll(/x-show="mapTab==='([a-z]+)'"/g)].map(m => m[1]));
+  // A section drawing two addresses names both: mapTab==='a' || mapTab==='b'.
+  const shown = new Set([...src.matchAll(/<section x-show="((?:mapTab==='[a-z]+'(?: \|\| )?)+)"/g)]
+    .flatMap(m => [...m[1].matchAll(/mapTab==='([a-z]+)'/g)].map(k => k[1])));
   const declared = new Set([...TABS.map(t => t.k), ...Object.keys(SUBVIEW_PARENT)]);
   for (const [child, parent] of Object.entries(SUBVIEW_PARENT))
     assert.ok(TABS.some(t => t.k === parent), `${child} names missing top-level parent ${parent}`);

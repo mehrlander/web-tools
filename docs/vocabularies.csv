@@ -13,10 +13,10 @@ harness,layer,node,,Node files at the folder root,
 harness,layer,node/build,,"generators: snapshot a page or the lib into an offline artifact, or restamp a committed registry",
 harness,layer,node/render,,"exercise a page headlessly: the jsdom logic render, the Chromium pixel render, and their shared CDN resolver",
 harness,layer,node/render/scenarios,,interaction drivers for npm run shot --script: each steers one page into one state before the pixels are taken,
-properties,column_primitive,id,,"identifies its row, so other rows and files address it by this value; unique within the registry",ph-fingerprint
-properties,column_primitive,label,,"drawn from a set and shared across rows, and the sharing is what makes it a class",ph-tag
-properties,column_primitive,locator,,"resolves to a target outside the row: a path, a URL, or a key into another registry",ph-link-simple
-properties,column_primitive,value,,"none of the other three: the content itself, with nothing mechanical to check",ph-cube
+properties,column_primitive,id,,"identifies its row, so other rows and files address it by this value; unique within the registry",docs/favicons/primitives/id.svg
+properties,column_primitive,label,,"drawn from a set and shared across rows, and the sharing is what makes it a class",docs/favicons/primitives/label.svg
+properties,column_primitive,locator,,"resolves to a target outside the row: a path, a URL, or a key into another registry",docs/favicons/primitives/locator.svg
+properties,column_primitive,value,,"none of the other three: the content itself, with nothing mechanical to check",docs/favicons/primitives/value.svg
 properties,exclusive,no,,one row may hold several values from the domain,
 properties,exclusive,yes,,one row holds at most one value from the domain,
 properties,form,column,,reserves a slot on every row,
@@ -26,8 +26,8 @@ properties,mode,recorded,,"authored judgment, irreplaceable, never machine-edite
 properties,required,counted,,"a blank is legal and surfaced as a ledger figure, the count-rather-than-ban posture the computed sets run for authored judgment",
 properties,required,none,,"optional, or filled by practice with no gate behind it",
 properties,required,value,,"an assertion is present for every target: true of every computed field by construction, and of a recorded field a gate checks",
-registries,key_primitive,locator,Locator keys,a path in this repository; the suite checks that each one exists,ph-link-simple
-registries,key_primitive,id,Id keys,"a name the registry assigns or records, unique within it",ph-fingerprint
+registries,key_primitive,locator,Locator keys,a path in this repository; the suite checks that each one exists,
+registries,key_primitive,id,Id keys,"a name the registry assigns or records, unique within it",
 registries,fields,governed,,"every non-key column must be a declared property, so an undeclared field appearing in a computed set is caught as the early symptom of an unaccounted classification",
 registries,fields,ungoverned,,"the columns are exempt from their property definitions. A smell and never a resting state: five registries were marked this way with a written reason and all five reasons were wrong, so the count is asserted at zero and adding one has to change a test",
 registries,membership,computed,,"the rule is executable (a folder, an extension, the router's own table), so the row set can be derived and compared to what is there. Only this side can carry a coverage gate, because only it has something independent to check against",
