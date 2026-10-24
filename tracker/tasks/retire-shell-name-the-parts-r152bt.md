@@ -72,7 +72,7 @@ its exemptions from what survives step 2, not before.
 - `app/index.html`: `?shell=` / `shellMode` live here; split into `?header=` and `?sidebar=`
 - `docs/showing.md`: three senses of `shell` in one nesting section
 - `docs/APP.md`: the application's name, which step 2 uses
-- `docs/views/lists.md`: the snag `live-term-wider-referent`, its origin (in `docs/SNAGS.md` until 2026-10-20)
+- Snag `live-term-wider-referent`, in web-tools-private `lists/snag.json`, its origin (in `docs/SNAGS.md` until 2026-10-20)
 - `skills/html-style/SKILL.md`: definitional chrome rules 5 and 7
 - `lib/alpineComponents/fab.js`: leave alone; enumerated `chrome` is the counterexample
 - `node/test/fab-text.test.mjs`, `docs/text-tools.md`: fab chrome extent already pinned

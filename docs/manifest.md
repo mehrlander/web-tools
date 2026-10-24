@@ -78,8 +78,7 @@ registry's own manifest, as an array of `owner/repo` strings, and it is the
 single exception to the no-registry-list rule: it decides nothing about a repo,
 and a hidden repo keeps `estate: true` and every field it declared. Its effect
 is in its [manifest-fields.csv](manifest-fields.csv) row (opening a hidden repo
-by address still works), and
-[views/repos.md](views/repos.md) separates it from `conventions: 'optout'`.
+by address still works).
 
 **`landing` and `pages` are not mutually exclusive.** A repo setting both gets
 the custom page as its front door and the catalog as a standalone Pages view;
@@ -192,9 +191,7 @@ the membership, not in a second flag or a central list.
 ## Config cache (`state/configs.json`)
 
 Map Tests uses this cache to discover repositories' current execution
-declarations and dated check readings. The declaring repository owns both;
-their placement and the distinction between a workflow and its results are
-explained in [the Map's Tests account](views/map.md#tests-what-checks-protect-and-how-they-run).
+declarations and dated check readings. The declaring repository owns both.
 
 With a token, the app keeps a **derived** cache of the account's repo configs
 in the registry repo, built by `lib/kits/repo-config-cache.js`. `refreshConfigCache`
@@ -336,8 +333,7 @@ with no token ([stage.md](stage.md#content-the-gz-param)).
 
 ## Proposals
 
-The write-side counterpart to errands, the Proposals view, is documented in
-[views/proposals.md](views/proposals.md).
+A proposal is the write-side counterpart to an errand: a session that cannot reach a repo writes `proposals/pending/<id>.json` in the registry, and the Proposals view commits it to the target on the reader's two-tap confirm. The record's fields, kinds and deliveries are stated in the header of [`lib/kits/repo-proposals.js`](../lib/kits/repo-proposals.js), whose `validate` refuses a record that breaks them.
 
 ## Editing the manifest from the shell
 

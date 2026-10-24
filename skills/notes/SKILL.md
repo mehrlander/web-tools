@@ -34,7 +34,7 @@ recommendation, empty to withdraw. An author's latest vote counts, as in the
 Text collection's reviews.
 
 `finding` marks a tending conclusion
-([`docs/views/tending.md`](https://github.com/mehrlander/web-tools/blob/main/docs/views/tending.md)). Change one with
+([`lib/kits/findings.js`](https://github.com/mehrlander/web-tools/blob/main/lib/kits/findings.js)). Change one with
 `findings.py update` (beside the tend skill); a plain reply is a comment and changes
 nothing.
 
