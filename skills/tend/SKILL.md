@@ -84,21 +84,9 @@ Act unasked only on a mechanical test. Read GitHub through the GitHub MCP, not
 
 The kinds are provisional; add one to `KINDS` in `findings.py` when none fits.
 
-A finding is a note carrying a `finding` object: its `kind`, its `subjects`
-(locators for everything it concerns, a session's record file included; the
-note's `about` is the first), `why` it matters, the `next` step, `evidence`
-(short verifiable facts) and `witnesses` (pinned references the conclusion
-rests on, inside the subjects or not). A decision the owner must make is a user
-call among the subjects; a finding never asks.
+A finding is a note carrying a `finding` object: its `kind`, its `subjects` (locators for everything it concerns, a session's record file included; the note's `about` is the first), `why` it matters, the `next` step, `evidence` (short verifiable facts) and `witnesses` (pinned references the conclusion rests on, inside the subjects or not). A decision the owner must make goes in a user call, named among the subjects, and the call asks it.
 
-A finding is open while it carries a `next`, unless the owner resolves it. Only
-a reply carrying `finding` changes it, replacing the fields it carries: a pass
-records progress with `did`, settles it (`status: "settled"`) once no `next`
-remains, or reopens it (`status: "open"`). The owner's Handled
-(`status: "resolved"`) acknowledges each changed witness as it stands, so only a
-later change brings the finding back. A reply without `finding` is a comment and
-changes nothing. When a witness counts as changed is stated in
-`lib/kits/findings.js`.
+A finding is open while it carries a `next`, unless the owner resolves it. Only a reply carrying `finding` changes it, replacing the fields it carries: a pass records progress with `did`, settles it (`status: "settled"`) once no `next` remains, or reopens it (`status: "open"`). The owner's Handled (`status: "resolved"`) acknowledges each changed witness as it stands, so only a later change brings the finding back. A reply without `finding` is a comment, and the finding stands as it was. When a witness counts as changed is stated in `lib/kits/findings.js`.
 
 ## Branches
 

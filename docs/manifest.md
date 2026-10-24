@@ -414,18 +414,12 @@ stage link with no token ([stage.md](stage.md#content-the-gz-param)).
 
 ## Proposals
 
-A proposal is the write-side counterpart to an errand. A session that cannot
-reach a repo drops a proposed edit into the registry as
-`proposals/pending/<id>.json`; the Proposals view (`?view=proposals`) shows it
-and commits it to the target with the reader's token on a two-tap confirm.
-Nothing is ever applied automatically. The reasons behind each rule below are
-in the header of [`lib/kits/repo-proposals.js`](../lib/kits/repo-proposals.js),
-whose `validate` refuses a record that breaks one.
+A proposal is the write-side counterpart to an errand. A session that cannot reach a repo drops a proposed edit into the registry as `proposals/pending/<id>.json`; the Proposals view (`?view=proposals`) shows it and commits it to the target with the reader's token on a two-tap confirm, and only that confirm applies one. The reasons behind each rule below are in the header of [`lib/kits/repo-proposals.js`](../lib/kits/repo-proposals.js), whose `validate` refuses a record that breaks one.
 
 | Field | Holds |
 | --- | --- |
 | `id`, `repo`, `why` | Required. `why` is read cold by the person deciding whether to write to the repo, so it opens with what applying does. |
-| `kind` | Three of the four kinds write a file: `put-file` replaces `path` with `content` in full; `set-json-field` sets one top-level `field` to `value`; `unset-json-field` removes one top-level `field`. `delete-issue` deletes `issue` (a number) through GraphQL and takes no `path`, `deliver` or `expectSha`. |
+| `kind` | Three of the four kinds write a file: `put-file` replaces `path` with `content` in full; `set-json-field` sets one top-level `field` to `value`; `unset-json-field` removes one top-level `field`. `delete-issue` deletes `issue` (a number) through GraphQL and refuses a `path`, `deliver` or `expectSha`. |
 | `path` | The target file, for the three file kinds. |
 | `ref` | A branch that already exists; omitted, the repo's default branch. |
 | `deliver` | `commit` (the default) commits onto the target ref; `branch` cuts `proposal/<id>` off it and commits there; `pr` does the same, plus a draft pull request built from the record. The record may suggest one; the reviewer chooses. |
@@ -434,17 +428,9 @@ whose `validate` refuses a record that breaks one.
 | `summary`, `caution` | One line naming what the proposal does to which repo, and the judgment call a reviewer must not miss. |
 | `by`, `session`, `authored` | Provenance, copied into the applied record. |
 
-For the two JSON kinds, `field` is a literal top-level key, not a path: `"a.b"`
-names a key called `a.b`, and a file whose top level is an array is refused.
-Key order is kept and a new key lands last. A removal that finds nothing to
-remove is done, not failed, and never creates a file.
+For the two JSON kinds, `field` is a literal top-level key, not a path: `"a.b"` names a key called `a.b`, and a file whose top level is an array is refused. Key order is kept and a new key lands last. A removal that finds nothing to remove is done, not failed, and so is one whose target file is missing.
 
-Only a success retires a proposal, by writing `proposals/applied/<id>.json` with
-`commit` and `commitUrl`. A failed apply is kept as
-`proposals/attempts/<id>-<timestamp>.json`, and the proposal stays pending. A
-change the target already carries is retired without a write. A record is an
-instruction, not a patch: no diff is stored, the review computes the change
-against the target as it stands, and the landed commit is the durable diff.
+Only a success retires a proposal, by writing `proposals/applied/<id>.json` with `commit` and `commitUrl`. A failed apply is kept as `proposals/attempts/<id>-<timestamp>.json`, and the proposal stays pending. A change the target already carries is retired without a write. A record is an instruction, not a patch: the review computes the change against the target as it stands, and the landed commit is the durable diff.
 
 ## The repo menu
 
