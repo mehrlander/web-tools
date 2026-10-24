@@ -105,6 +105,27 @@ rows need `--embed` from a venv with model2vec, as `python/doc-overlap.py`
 describes. `pool.py score research/code-jobs/review/judge-sonnet-*.jsonl`
 recounts the verdicts.
 
+## Across all of lib/, with no model
+
+[`scan-lib.py`](scan-lib.py) runs the code-text method over every `lib/` file:
+5,386 units in 171 files, each unit's three nearest partners in other files,
+in seconds. Of those pairs, 34 score 0.99 or more (37 files), 76 score 0.9 or
+more (56 files), and 31 of the 76 have eight or more lines on both sides. The
+top of the list is copies the key never held:
+
+- `loadZip` in `io.js`, `xlsx.js`, `xlsx-write.js` and `docx.js`;
+- a byte-size formatter in `stage.js`, `json-explorer.js` and `drop-zone.js`;
+- `mention.js` and `path-picker.js` sharing `buildTree`, `sort`, `matches` and
+  `ensureDir`;
+- `stripScroll` in `waiting.js` as well as `here-view.js`, so the swiper family
+  reaches past the three components sampled here;
+- `hash` in two caches, `h` in `record-deck.js` and `row-menu.js`, `el` in
+  `md-history.js` and `md-variants.js`.
+
+Those come from the list's names and scores; no judge read them and neither
+did this session, pair by pair. At this scale the measure looks like a standing
+view in the Themes tab's shape, with function pairs in place of passages.
+
 ## Beside the other two reader passes
 
 The estate runs the same shape of work twice already: web-tools-private's
