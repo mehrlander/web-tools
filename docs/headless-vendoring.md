@@ -7,52 +7,44 @@ CDNs: the "my headless browser won't load my libraries" wall. You don't need the
 rest of web-tools to use this; it is indexed for on-demand distribution in
 [`portable.csv`](portable.csv).*
 
-> **Render to see, not just to show.** The point of this setup is a feedback
-> loop: render, *look at the image yourself*, and let what you see drive the next
-> edit, the way you'd glance at a browser while building. It isn't only a way to
-> produce a PNG to hand off. And while iterating, drop the in-progress shots into
-> the chat too: seeing the tries (this layout vs. that, before vs. after) is
-> especially welcome, not noise.
+> **Render to see, not just to show.** Render, *look at the image yourself*, and
+> let what you see drive the next edit. While iterating, drop the in-progress
+> shots into the chat too: the tries (this layout vs. that, before vs. after) are
+> welcome, not noise.
 
 ## The problem in one paragraph
 
 Cloud coding sandboxes (Claude Code on the web and similar) route outbound
-traffic through an allowlist proxy. `registry.npmjs.org` and `github.com` are
-typically reachable, but the **JS CDNs pages load at runtime are not**:
-`cdn.jsdelivr.net`, `unpkg.com`, `esm.sh`, `cdnjs.cloudflare.com` all return a
-denial. So a page whose `<head>` pulls Tailwind/daisyUI/Alpine off jsDelivr
+traffic through a proxy, and a headless browser there may not reach the **JS
+CDNs pages load at runtime** (`cdn.jsdelivr.net`, `unpkg.com`, `esm.sh`,
+`cdnjs.cloudflare.com`), even where `registry.npmjs.org` is reachable. In Claude
+Code on the web the shell reaches the CDNs, and the headless browser's egress
+is unreliable: through Playwright's `proxy:` option it reaches jsDelivr, but one
+to three requests per page load fail
+([capabilities.md](environment/capabilities.md#network-access-two-gates-and-a-browser-with-unreliable-egress)
+has the measurements); an allowlist proxy can also deny the CDNs outright. Either
+way, a page whose `<head>` pulls Tailwind/daisyUI/Alpine off jsDelivr
 **cannot boot as-is** headless: those `<script>`/`<link>` requests fail and you
 get an unstyled, inert page. The fix is two moves: **vendor** the libraries, then
 **intercept** the page's CDN requests and answer them from the vendored copies.
 
 ## Two concepts, kept separate
 
-These are routinely conflated. They are not the same thing, and the distinction
-is the whole point.
-
 - **Vendoring** = obtain the *real* library locally instead of from its remote
   home. `npm i -D tailwindcss` drops the genuine library bytes into
-  `node_modules`. There is no mock, no fake, no simulated substitute: the
-  browser runs the authentic library. That is *why* the resulting screenshot is
-  trustworthy. The block is **per-host, not per-package**: jsDelivr and unpkg
-  serve the same npm-published files `registry.npmjs.org` does, so anything the
-  page loads from a CDN can be fetched from npm instead.
-
+  `node_modules`; the browser runs the authentic library, which is why the
+  screenshot is trustworthy. The block is **per-host, not per-package**:
+  jsDelivr and unpkg serve the same npm-published files `registry.npmjs.org`
+  does, so anything the page loads from a CDN can be fetched from npm instead.
 - **Interception** = reroute the page's network requests to the vendored copy.
-  The page still says `<script src="https://cdn.jsdelivr.net/...">`. A request
-  router catches that blocked request and serves the matching file out of
-  `node_modules`. Only the *delivery path* is swapped; the bytes on the wire are
-  identical.
+  The page still says `<script src="https://cdn.jsdelivr.net/...">`; a request
+  router catches that request and serves the matching file out of
+  `node_modules`. Only the *delivery path* is swapped.
 
-> **Vendoring captures the real dependency; interception reroutes the request to
-> it. The library is real; only its source is swapped.**
+Emulating a service's behavior (faking jsDelivr's server-side value-adds, or
+impersonating a data API) is out of scope; see "Edge cases" at the end.
 
-A third concept sometimes rides along but is **out of scope** here: *emulating a
-service's behavior* (faking jsDelivr's server-side value-adds, or impersonating a
-data API). You only need that if you depend on those behaviors; see "Edge cases"
-at the end. The core recipe is just vendor + intercept.
-
-## Step 1 — Vendor
+## Step 1: Vendor
 
 Install, as dev dependencies, every library your pages load off a CDN:
 
@@ -65,7 +57,7 @@ That is sufficient. The files now exist under `node_modules/<pkg>/...`; the only
 remaining question is *which* file inside each package the CDN URL maps to, which
 the interceptor handles next.
 
-## Step 2 — Intercept
+## Step 2: Intercept
 
 Playwright's `page.route()` lets you answer matched requests yourself. The
 mapping from a CDN URL to a local file is mechanical:
@@ -97,12 +89,9 @@ interception strategy, including text/DOM-rewrite harnesses (e.g. jsdom) where a
 single URL standing for many packages is awkward. Combine only saves request
 *count* in production, which is moot when every request is served locally.
 
-The interceptor below still handles `/combine/` so a page you didn't write
-renders without changes. Note *how*: the package list lives in the URL path
-(`/combine/a,b,c`), and the interceptor never reaches jsDelivr (it's blocked), so
-it splits *that URL* on commas, reads each package from `node_modules`, and
-concatenates them to reproduce the bundle jsDelivr would have returned. It parses
-a structured URL, not a downloaded response body. Still, new pages should use
+The interceptor below still handles `/combine/`, so a page you didn't write
+renders without changes: it splits the URL's package list on commas, reads each
+package from `node_modules`, and concatenates them. New pages should still use
 plain tags. (Alpine is always its own deferred tag regardless, since it must init
 after the DOM; loading it from unpkg is a fine convention.)
 
@@ -236,7 +225,7 @@ console.log('wrote', outArg);
 ## Worked example
 
 A self-contained page exercising all four libraries. Note each library is its
-own tag (no `/combine/`, see below) and Alpine loads from unpkg. Save as
+own tag (no `/combine/`, see above) and Alpine loads from unpkg. Save as
 `page.html`:
 
 ```html
@@ -288,12 +277,9 @@ loaded), drive it before the shot, e.g. insert
 ## Showing the result in chat
 
 A web coding session surfaces an image to the user through a **dedicated
-file-send mechanism**, not markdown. In Claude Code on the web that's the
-`SendUserFile` tool; the screenshot script just writes a `.png` to disk and you
-hand that path to the tool. A markdown image link to a local path
-(`![x](/tmp/out.png)`) does **not** render in the chat UI: it shows as inert
-text or a broken thumbnail. So: write the PNG, then send the file. Don't embed it
-with markdown.
+file-send mechanism**, not markdown: in Claude Code on the web, write the `.png`
+and hand its path to the `SendUserFile` tool. A markdown image link to a local
+path (`![x](/tmp/out.png)`) does **not** render in the chat UI.
 
 ## Designing for the frame
 
@@ -323,16 +309,8 @@ above (viewport `1280x832`, `deviceScaleFactor: 2`).
 
 ## A richer example: theme switching + tokens from source
 
-[`docs/examples/theme-explorer.html`](examples/theme-explorer.html) is a second
-example that stresses more of the harness. It's a daisyUI **theme picker**:
-clicking a theme (or a row of the matrix) sets `data-theme` on `<html>` to
-recolor the whole page live, and each option in the dropdown previews in its own
-theme's colors (each list item carries its own `data-theme`). The body is a
-Tabulator grid of every built-in theme against its design tokens, parsed at
-runtime out of daisyUI's own `themes.css`, nothing hardcoded: each cell is a pill
-in its fill color with "Aa" in its content color (so the swatch previews the
-contrast it exists to provide), under grouped Surfaces / Brand / Status /
-Geometry headers, with little shape previews for the radius and border tokens. It
+[`docs/examples/theme-explorer.html`](examples/theme-explorer.html), a daisyUI
+**theme picker** over a Tabulator grid of every built-in theme's design tokens,
 demonstrates three things the minimal example doesn't:
 
 - **A runtime `fetch` of a vendored file.** The page `fetch`es
@@ -347,9 +325,8 @@ demonstrates three things the minimal example doesn't:
   styled to follow the active theme via `var(--color-base-*)`, so recoloring the
   page recolors the table too.
 
-It's a full-screen layout (`h-screen`, the grid fills the remaining flex slot),
-so screenshot the viewport, not `fullPage`. Each library is a separate tag (no
-`/combine/`), the recommended style.
+It's a full-screen layout (`h-screen`), so screenshot the viewport, not
+`fullPage`.
 
 ## Gotchas
 
@@ -363,7 +340,7 @@ so screenshot the viewport, not `fullPage`. Each library is a separate tag (no
   rather than a `<script>`), import `alpinejs/dist/module.esm.js`, never bare
   `alpinejs`: the package has no `exports` map, CJS interop double-wraps the
   default export, and the symptom is `Alpine.start is not a function`. For a
-  classic `<script>` (as above) use `dist/cdn.min.js` — that's what `CDN_DEFAULT`
+  classic `<script>` (as above) use `dist/cdn.min.js`, which is what `CDN_DEFAULT`
   encodes.
 - **The browser binary may be pre-installed.** Many sandboxes bake Chromium in
   and set `PLAYWRIGHT_BROWSERS_PATH`, so `chromium.launch()` finds it with no
@@ -377,9 +354,10 @@ so screenshot the viewport, not `fullPage`. Each library is a separate tag (no
 ## Edge cases (the parts this recipe deliberately omits)
 
 - **`esm.sh` / `cdnjs` modules** aren't plain npm files; `esm.sh` does
-  server-side CJS→ESM bundling that a raw tarball doesn't reproduce. The mirror
-  serves an installed ESM package (CodeMirror 6 included); a CJS-only or
-  uninstalled one answers empty, and `cdnjs` is not mirrored.
+  server-side CJS→ESM bundling that a raw tarball doesn't reproduce. web-tools'
+  own interceptor, `node/render/cdn.mjs`, serves an installed ESM package
+  (CodeMirror 6 included); a CJS-only or uninstalled one answers empty, and
+  `cdnjs` is not served.
 - **`/+esm` imports.** A jsDelivr `...@x/+esm` URL wants the package's ESM entry,
   not the browser-global default. If your pages use these, resolve such specs to
   `package.json` `exports["."].import` (or `module`). CJS-only packages still

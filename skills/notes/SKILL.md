@@ -34,8 +34,8 @@ recommendation, empty to withdraw. An author's latest vote counts, as in the
 Text collection's reviews.
 
 `finding` marks a tending conclusion
-([`docs/views/tending.md`](../../docs/views/tending.md)). Change one with
-`skills/tend/findings.py update`; a plain reply is a comment and changes
+([`docs/views/tending.md`](https://github.com/mehrlander/web-tools/blob/main/docs/views/tending.md)). Change one with
+`findings.py update` (beside the tend skill); a plain reply is a comment and changes
 nothing.
 
 | Subject | `about` |
@@ -50,7 +50,7 @@ nothing.
 
 A note is one kind of reference among several in the estate. The kinds of
 locator, and how a reference is tested for broken or changed, are in
-[`docs/locators.md`](../../docs/locators.md).
+[`docs/locators.md`](https://github.com/mehrlander/web-tools/blob/main/docs/locators.md).
 
 ## Process
 
@@ -67,10 +67,6 @@ carries an assistant prefix (`claude/`, `codex/`, `gemini/`, `grok/`); pass
 declares as `"notes"` on main, searched in the project root, its children and its
 siblings; `--store` overrides. Writes go to the store's `main` by git plumbing,
 so the checkout's own branch does not matter.
-
-In the browser, `lib/kits/notes.js` reads and appends the same file. The Lists
-view and the branch page show notes, and the annotation kit saves annotations
-as notes.
 
 ## Key insights
 

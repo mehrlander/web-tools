@@ -14,8 +14,8 @@ description: >-
   "assess the tracker", "refine the tracker", "groom the tracker", "clean up
   the backlog", "audit the tasks", or "prune stale tasks", or when a follow-up
   needs to survive across sessions. Owns the tracker's operations and filing
-  rules; the default skill owns PR bodies, surfacing links, and the merge
-  guide, so route those there.
+  rules; the default skill loads the conventions for PR bodies and surfacing
+  links, so route those there.
 ---
 
 # tasks
@@ -25,7 +25,7 @@ source of truth, `tracker/board.md` a generated rollup. **This skill owns every
 rule about operating a tracker**, including when a task should exist.
 [`docs/TRACKER.md`](https://raw.githubusercontent.com/mehrlander/web-tools/main/docs/TRACKER.md)
 is the contract behind it (file schema, id scheme, board shape, parser
-guarantees) and states no behavioral rules; fetch it for the schema in full.
+guarantees); fetch it for the schema in full.
 Substitute the current repo into URL templates.
 
 ## The filing rules
@@ -34,8 +34,7 @@ The failure a tracker actually has is not too few tasks.
 
 **1. The bar.** File only work a later session would otherwise have to rebuild
 context to rediscover. Never work this session could do now, and never a
-finding already durable in a report, a chron entry, or a PR body. This is the
-conventions' Keep focus rule at the filing step.
+finding already durable in a report, a chron entry, or a PR body.
 
 **2. The gate.** Creating a task needs the user's assent: propose in your reply,
 one line each, batched at the end of a pass, and file the ones they name. The
@@ -133,8 +132,7 @@ keys render on open rows:
 - `awaiting: <free text>`: what a person has yet to decide. Cleared by hand,
   and valid on a `backlog` row, since a task can be startable in part.
 - `depends-on: <id>[, <id>...]`: the tasks this one waits on. Absence means no
-  dependency; never write a value meaning "none". (Replaced `track:` on
-  2026-08-23; migrate an old file's `depends-on:<id>` value and drop the rest.)
+  dependency; never write a value meaning "none".
 
 Any other scalar (`priority: high`, `owner: marcus`) is an open tag: kept,
 shown, not acted on.
@@ -142,11 +140,17 @@ shown, not acted on.
 ## File a runnable task
 
 A task whose method is already a skill carries `action: <skill-name>` and is
-written thin, since the reasoning lives in the skill; add `venue: <channel>`
-when the session must happen somewhere particular. If the procedure is not a
-skill yet, writing the skill is part of filing the task. Work needing no
-session belongs in a hook, a test, or CI, not here. Prefer a parameter that
-derives ("every month in X with no file in Y") over a literal list.
+written thin, since the reasoning lives in the skill; the claiming session
+discusses scope and results, not method. Add `venue: <channel>` when the session
+must happen somewhere particular, and give the body one line naming the
+constraint that parked it: a task parked for token cost can move back when
+tokens are cheap, one parked because its data stays on the machine never can.
+If the procedure is not a skill yet, writing the skill is part of filing the
+task. Work needing no session belongs in a hook, a test, or CI, not here.
+Prefer a parameter that derives ("every month in X with no file in Y") over a
+literal list, and a batch whose progress the repo itself shows, so a run that
+stops halfway is legible without trusting the log; such a batch is the one
+honest `XL`.
 
 ```markdown
 ---
@@ -221,14 +225,11 @@ agreed. A condition is checkable in the repo afterwards and an assent is not.
 
 **What a refinement pass adds, and what it leaves alone.** The highest-value
 output is a `## Related` block: paths, sibling task ids, premise PRs, one line
-and one clause of why each matters, per `docs/TRACKER.md`. Pointing costs a
-session little and saves the next one a search, which is why it beats more
-prose. Against that, do not disturb what is already true. Never reflow a
+and one clause of why each matters, per `docs/TRACKER.md`. Against that, do
+not disturb what is already true. Never reflow a
 paragraph you are not changing, never rewrite a dated log entry to restamp a
 fact (add a new entry that corrects it), and write one log line for the pass
-rather than one per edit. A diff full of rewrapping hides the three changes that
-matter among thirty that do not, and a reviewer who cannot see what moved has
-been given work rather than relieved of it.
+rather than one per edit, so a reviewer can see what moved.
 
 A refinement close is `status: done`, `closed: <date>`, the open tag
 `resolution: superseded | stale | duplicate | dropped`, and the cause in a log
@@ -260,13 +261,20 @@ commit hook regenerates it, the explicit call is belt-and-suspenders.
 ## Another repo's tracker
 
 The same recipe against that repo's clone. A statement now false (a moved path,
-a dependency closed elsewhere) is corrected unattended; a new task there takes
-the filing gate, since it spends that repo's backlog. Name the origin in the
-commit message and in a dated log line. If the repo is not in session scope,
-leave the correction in your reply rather than filing a task at home to
-remember it.
+a dependency closed elsewhere) is corrected unattended and reported in your
+reply; a new task there takes the filing gate, since it spends that repo's
+backlog. Name the origin in the commit message and in a dated log line. If the
+repo is not in session scope, leave the correction in your reply rather than
+filing a task at home to remember it.
+
+A task naming material in another repository writes its `owner/repo` prefix,
+even where a reader could infer it, since a bare path reads as in-repo. A
+session that moves material across a repo boundary repoints every tracker that
+names it, grepping the old path and repo name across every tracker in scope,
+before calling the move done.
 
 ## Boundary with web-tools
 
-This skill owns the tracker. The `default` skill owns PR bodies, `[new]`,
-`[main]` and `[diff]` links, and the 🎫 marker's display form.
+This skill owns the tracker, the 🎫 rows of its board caption included. The
+`default` skill loads the conversation rules (`docs/CONVERSATION.md`), which own
+PR bodies and the `[new]`, `[main]` and `[diff]` links.

@@ -270,9 +270,13 @@ PORTABLE_REF = re.compile(r'/portable:([a-z][\w-]*)')
 SKILL_DIR = r'skills/([a-z][\w-]*)(?=/|[)\s#`]|$)'
 LOCAL_SKILL_PATH = re.compile(r'(?<!\.claude/)(?<![\w.-])' + SKILL_DIR)
 INLINE_CODE = re.compile(r'`[^`\n]*`')
-# The one folder under skills/ that is not a skill: the plugin's hooks, named as
-# such in web-tools skills/README.md. A reference to it is a path, not a skill.
-NOT_A_SKILL = {"hooks"}
+# Any URL. Inside a web-tools URL a skills/<name>/ path is read by the URL pass;
+# inside any other URL (anthropics/skills/tree/<sha>/skills/xlsx) it is a path in
+# someone else's repo, not a web-tools skill.
+ANY_URL = re.compile(r'https?://[^\s)`"\'<>]+')
+# The folders under skills/ that are not skills: the plugin's hooks and its agent
+# definitions. A reference to either is a path, not a skill.
+NOT_A_SKILL = {"hooks", "agents"}
 
 
 def find_manifest(root):
@@ -319,12 +323,13 @@ def skill_refs(text, owner, in_web_tools):
     if in_web_tools:
         spans = code_spans(text)
         for m in LOCAL_SKILL_PATH.finditer(text):
-            if any(a <= m.start() < b for a, b in spans) and not url_at(text, m.start(), url):
+            if any(a <= m.start() < b for a, b in spans) and not url_at(text, m.start(), ANY_URL):
                 yield m.start(), m.group(0), m.group(1)
 
 
 def url_at(text, offset, url):
-    """True when offset sits inside a web-tools URL, already read by the URL pass."""
+    """True when offset sits inside a URL: a web-tools one the URL pass already
+    read, or another repo's, which names no web-tools skill."""
     line_start = text.rfind("\n", 0, offset) + 1
     line_end = text.find("\n", offset)
     line = text[line_start:line_end if line_end != -1 else None]

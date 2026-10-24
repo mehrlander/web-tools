@@ -1,6 +1,6 @@
 ---
 name: content-registry
-description: Operate a repo's epistemic content registry (data/design/content.csv): classify what each artifact is (supplied, mechanical, human-, model-, or hybrid-authored) and which corpora it belongs to, scaffold draft rows, verify locators, and extract corpora. Use when the user asks to classify repo content, set up or check a content registry, decide what a corpus should include or exclude, distinguish supplied source material from authored analysis, or mentions content.csv, creation_mode, or analysis_use.
+description: "Operate a repo's epistemic content registry (data/design/content.csv): classify what each artifact is (supplied, mechanical, human-, model-, or hybrid-authored) and which corpora it belongs to, scaffold draft rows, verify locators, and extract corpora. Use when the user asks to classify repo content, set up or check a content registry, decide what a corpus should include or exclude, distinguish supplied source material from authored analysis, or mentions content.csv, creation_mode, or analysis_use."
 ---
 
 # Content registry
@@ -41,16 +41,18 @@ python3 "$CLAUDE_PLUGIN_ROOT/content-registry/registry.py" corpus <root> concept
    handful of subtree rows plus targeted file rows over an inventory.
 3. **Fragments only for genuinely mixed files** that cannot be
    restructured: `#heading=<slug>` (Markdown), `#column=<name>` (CSV),
-   `#html-id=<id>` (HTML). Measured caveat: a Markdown heading region
+   `#html-id=<id>` (HTML). Caveat: a Markdown heading region
    includes its subsections, so a preamble above quoted material cannot
    be isolated by heading; restructure instead.
 4. **Verification is advisory.** Run `verify` after edits and at renames;
    report findings, do not block on them.
-5. **Consumers.** the private estate's `local-models/instruments/concept-lab/termlab.py` and
+5. **Consumers.** `mehrlander/home`'s `projects/text/instruments/concept-lab/termlab.py` and
    `semsearch.py` read the registry when present: `exclude` drops a
    file, `analysis_use` decides whether content counts as the repo's
    authored voice, undeclared content falls back to heuristics.
 
-The staged design (deferred provenance relations, generated inventory,
-comparison layer) follows the Epistemic Content and Provenance Registry
-ADR; build later layers only when their operational need appears.
+Build the registry's later layers (provenance relations, a generated
+inventory, a comparison layer) only when their operational need appears.
+`mehrlander/home`'s `projects/text/instruments/concept-lab/findings.md`,
+entry "2026-08-02, the epistemic content registry (ADR initial stage)",
+summarizes them.
