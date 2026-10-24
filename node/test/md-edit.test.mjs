@@ -288,6 +288,9 @@ test('no Edit row without the opt-in, at a commit, or with no token', () => {
   window.ghAuth = { resolve: () => 'tok' };
   assert.doesNotMatch(rowsFor({ addr: ADDR }), /Edit section/);
   assert.doesNotMatch(rowsFor({ addr: { ...ADDR, ref: 'a'.repeat(40) }, edit: { full: FULL } }), /Edit section/);
+  assert.doesNotMatch(rowsFor({ addr: { ...ADDR, ref: '56ef136c92d3' }, edit: { full: FULL } }), /Edit section/,
+    'a short sha, the form a minted link pins, is a commit too');
+  assert.match(rowsFor({ addr: { ...ADDR, ref: 'claude/md-section-edit' }, edit: { full: FULL } }), /Edit section/);
   window.ghAuth = { resolve: () => '' };
   assert.doesNotMatch(rowsFor({ addr: ADDR, edit: { full: FULL } }), /Edit section/);
 });
