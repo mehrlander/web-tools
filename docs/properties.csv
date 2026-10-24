@@ -99,7 +99,7 @@ routes-kinds,aim,recorded,,none,column,yes,,value,the annotate aim this kind add
 routes-kinds,aim_label,recorded,,none,column,yes,,value,"what that aim is called in the annotator, carried here so the kit holds no strings of its own"
 routes-kinds,aim_hint,recorded,,none,column,yes,,value,the one line under that aim in the menu
 routes-kinds,aim_icon,recorded,,none,column,yes,,value,"the phosphor glyph that marks that aim, carried here for the same reason the label is: both surfaces that draw the aim hardcoded one, so a kind got its own name and markdown's icon"
-showing-mechanisms,glyph,recorded,,value,column,yes,,label,the marker the caption uses
+showing-mechanisms,glyph,recorded,,value,column,yes,diamond;disc;box;x,label,the marker the caption uses
 showing-mechanisms,label,recorded,,value,column,yes,,value,the mechanism name a reader sees
 showing-mechanisms,form,recorded,,none,column,yes,,value,the address shape; absent where the mechanism is not a URL
 showing-mechanisms,subject,recorded,,value,column,yes,,value,"the subject types it can show, semicolon-separated keys into docs/subjects.csv"

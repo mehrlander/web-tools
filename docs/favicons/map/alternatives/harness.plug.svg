@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="Map Harness: plug">
+  <title>Map Harness: plug</title>
+  <desc>A plug: what connects the model to the tools around it.</desc>
+  <g fill="currentColor">
+    <path d="M10.5 11 H21.5 A2.5 2.5 0 0 1 24 13.5 V17.5 A3.5 3.5 0 0 1 20.5 21 H18.75 V24.5 H17.5 V30.25 H14.5 V24.5 H13.25 V21 H11.5 A3.5 3.5 0 0 1 8 17.5 V13.5 A2.5 2.5 0 0 1 10.5 11 Z"/>
+    <path d="M10.75 3 H13.75 V8.5 H10.75 Z"/>
+    <path d="M18.25 3 H21.25 V8.5 H18.25 Z"/>
+  </g>
+</svg>
