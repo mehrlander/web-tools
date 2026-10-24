@@ -137,3 +137,19 @@ peeves,detector,measure,Measure,"web-tools' page-measures pass, on a rendered pa
 icon-families,group,drawn,Drawn marks,"an SVG drawn for the estate, each file its own picture"
 icon-families,group,phosphor,Phosphor glyphs,"a glyph from the Phosphor icon font, named by its ph- class"
 icon-families,group,emoji,Emoji,"an emoji, written as text where the icon appears"
+fab-signals,facet,version,Version,"which version of the subject is on screen, and whether it is current"
+fab-signals,facet,viewer,Viewer,what this browser holds that reads depend on
+fab-signals,facet,subject,Subject,"what the FAB sidebar describes: the page, or what is open over it"
+fab-signals,facet,action,Action,something the FAB offers to do with what is on screen
+fab-signals,part,tint,Tint,"the FAB's colour, background and border together"
+fab-signals,part,glyph,Glyph,"the mark at the FAB's centre, one at a time"
+fab-signals,part,top-right,Top-right badge,a badge on the FAB's top-right corner
+fab-signals,part,bottom-right,Bottom-right badge,"a badge on the FAB's bottom-right corner, which takes a tap of its own"
+fab-signals,tone,primary,Primary,"the app's own colour, the FAB at rest"
+fab-signals,tone,warning,Warning,"the view differs from what everyone sees, and the reader may not know"
+fab-signals,tone,error,Error,something the reader needs is missing
+fab-signals,tone,info,Info,newer work the reader may want to see
+fab-signals,tone,success,Success,a check ran and the view is current
+fab-signals,tone,tint,Inherited,the glyph takes the FAB's current colour
+fab-signals,status,live,Live,"fab.js draws it today, and the gate checks the row against that code"
+fab-signals,status,proposed,Proposed,"described here and not yet in fab.js; the gate checks only that its mark exists"

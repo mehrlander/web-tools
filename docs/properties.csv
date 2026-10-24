@@ -349,3 +349,12 @@ icon-families,source,recorded,,value,column,yes,,locator,"the file or folder tha
 icon-families,icon_column,recorded,,none,column,yes,,value,"for a CSV source, the column holding each member's icon; blank otherwise"
 icon-families,name_column,recorded,,none,column,yes,,value,"for a CSV source, the column naming each member; blank otherwise"
 icon-families,doc,recorded,,value,column,yes,,locator,"the passage that discusses the family's icons: a Markdown file's section by its heading's anchor, a CSV's row by its key after #, or a whole file"
+fab-signals,facet,recorded,,value,column,yes,version;viewer;subject;action,label,"which of the Showing tab's three axes (version, viewer, subject) the signal reports on, or action for an offer to act on what is on screen"
+fab-signals,part,recorded,,value,column,yes,tint;glyph;top-right;bottom-right,label,"where on the FAB the signal shows: its colour, the glyph at its centre, or a badge in one of two corners"
+fab-signals,label,recorded,,value,column,yes,,value,the signal's name as a reader sees it
+fab-signals,icon,recorded,,none,column,yes,,value,"the glyph or badge mark: a Phosphor class, or the path of a drawn SVG; blank on a tint, which has no mark of its own"
+fab-signals,tone,recorded,,value,column,yes,primary;warning;error;info;success;tint,label,"the colour the signal is drawn in, or tint for a glyph that takes the FAB's current colour"
+fab-signals,when,recorded,,value,column,yes,,value,"the condition that shows it, and what it outranks where two signals compete for one part"
+fab-signals,gloss,recorded,,value,column,yes,,value,"what the signal means, for a reader who has not met it"
+fab-signals,note,recorded,,none,column,yes,,value,"what a tap on the FAB, or on the badge itself, does while the signal shows, where that differs from opening the FAB sidebar; blank where it does not"
+fab-signals,status,recorded,,value,column,yes,live;proposed,label,"whether fab.js draws the signal today, which the gate checks, or the row describes a signal not yet built"
