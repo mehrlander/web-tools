@@ -301,19 +301,19 @@
     const r = roleOf(field);
     const top = c.topValues.slice(0, 6), most = Math.max(1, ...top.map(t => t.count));
     const unique = c.distinctCount === c.filled;
+    // The header says it all in one line: the name, what it holds, how many
+    // distinct values (the figure that decides whether a field can group),
+    // and its role. Fill and blank counts were a row of tiles nobody read.
     card.innerHTML = `<div class="flex items-baseline gap-2 px-3 pt-2.5 pb-2 border-b border-base-200">
         <span class="font-mono font-semibold truncate ${SCAN.isNum[field] ? 'text-secondary' : ''}">${esc(field)}</span>
-        <span class="text-xs text-base-content/60">${esc(c.type)}${SCAN.isNum[field] && SCAN.dec[field] ? ', ' + SCAN.dec[field] + ' decimals' : ''}</span>
-        <span class="ml-auto text-xs text-base-content/60">${r ? ROLE[r] : 'not placed'}</span></div>
-      <dl class="grid grid-cols-3 gap-px bg-base-200 text-center">
-        ${[['distinct', c.distinctCount.toLocaleString() + (c.distinctCapped ? '+' : '')], ['filled', Math.round(c.fillRate * 100) + '%'], ['blank', c.nulls.toLocaleString()]]
-          .map(([k, v]) => `<div class="bg-base-100 py-1.5"><dd class="font-mono tabular-nums">${v}</dd><dt class="text-xs text-base-content/50">${k}</dt></div>`).join('')}</dl>
+        <span class="text-xs text-base-content/60 whitespace-nowrap">${esc(c.type)} · ${c.distinctCount.toLocaleString()}${c.distinctCapped ? '+' : ''} distinct</span>
+        <span class="ml-auto text-xs text-base-content/60 whitespace-nowrap">${r ? ROLE[r] : 'not placed'}</span></div>
       ${c.numStats ? `<div class="px-3 py-2 border-b border-base-200 font-mono text-xs tabular-nums flex justify-between gap-2">
         <span><span class="text-base-content/50">min</span> ${n(c.numStats.min)}</span><span><span class="text-base-content/50">median</span> ${n(c.numStats.median)}</span><span><span class="text-base-content/50">max</span> ${n(c.numStats.max)}</span></div>` : ''}
       ${top.length && !unique ? `<ul class="px-3 py-2 flex flex-col gap-1">${top.map(t => `<li class="grid grid-cols-[minmax(0,1fr)_auto] gap-2 items-center">
           <span class="relative truncate px-1 rounded-sm"><span class="absolute inset-y-0 left-0 bg-primary/10 rounded-sm" style="width:${Math.round(t.count / most * 100)}%"></span><span class="relative">${esc(t.value)}</span></span>
-          <span class="font-mono text-xs tabular-nums text-base-content/60">${t.count}</span></li>`).join('')}</ul>` : `<p class="px-3 py-2 text-xs text-base-content/60">${unique ? 'every value appears once' : ''}</p>`}
-      ${st.filters.includes(field) ? '' : `<div class="px-3 pb-2.5"><button type="button" class="btn btn-xs rounded-full btn-ghost border border-base-300 font-normal" data-card-filter="${esc(field)}"><i class="ph ph-funnel"></i>Filter by it</button></div>`}`;
+          <span class="font-mono text-xs tabular-nums text-base-content/60">${t.count}</span></li>`).join('')}</ul>` : ''}
+      ${st.filters.includes(field) ? '' : `<div class="px-3 py-2.5"><button type="button" class="btn btn-xs rounded-full btn-ghost border border-base-300 font-normal" data-card-filter="${esc(field)}"><i class="ph ph-funnel"></i>Filter by it</button></div>`}`;
     const a = anchor.getBoundingClientRect();
     card.classList.remove('hidden');
     const w = card.offsetWidth, h = card.offsetHeight;
