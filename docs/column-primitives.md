@@ -1,14 +1,8 @@
 # Column primitives
 
-One property, `column_primitive`, saying what kind of thing a column holds. It is
-the coarse question that sits above [`LINKAGE.md`](https://github.com/mehrlander/home/blob/main/projects/budget-drs/data/design/LINKAGE.md)'s
-`column_domain`.
+One property, `column_primitive`, saying which of four roles a column plays in its row. It is the coarse question that sits above [`LINKAGE.md`](https://github.com/mehrlander/home/blob/main/projects/budget-drs/data/design/LINKAGE.md)'s `column_domain`.
 
-**Populated here on 2026-09-10.** `docs/properties.csv` declares it on all 178
-rows, measured against each property's real column rather than read off its
-gloss: **value 86, label 63, locator 27, id 2.** Two more property tables remain,
-both in budget-drs: `data/design/properties.csv` (49 rows) and `lineage/columns.csv`
-(1,171).
+`docs/properties.csv` declares it on every row, and `docs/registries.csv` declares it for each registry's key as `key_primitive`. The Map's Data tab draws every column of every table in its primitive's mark.
 
 ## The four
 

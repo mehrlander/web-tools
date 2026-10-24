@@ -20,7 +20,11 @@ Files: [`repos/`](repos/). Drawn 2026-10-22: one mark per estate repository exce
 
 ### Map marks
 
-Files: [`map/`](map/). Drawn 2026-10-22: one mark for each of the Map's seven tab groups, each a miniature of the view it opens, and one for each outpost but Work PowerShell, which wears the wps project's mark. The Map draws them on its tab strip, its Overview headings, and its outposts in Reach and in Outposts.
+Files: [`map/`](map/). Drawn 2026-10-22: one mark for each of the Map's tab groups, each a miniature of the view it opens, and one for each outpost but Work PowerShell, which wears the wps project's mark. The Map draws them on its tab strip, its Overview headings, and its outposts in Reach and in Outposts.
+
+### Primitive marks
+
+Files: [`primitives/`](primitives/). Drawn 2026-10-24: one mark for each column primitive in [column-primitives.md](../column-primitives.md#the-four), named for its value. `docs/vocabularies.csv` names each file in the `icon` column of that primitive's row, and the Map's Data tab draws it on every column chip, in one colour per primitive.
 
 ## Drawn marks
 

@@ -96,7 +96,7 @@ for (const m of subBlock.matchAll(/(\w+):\s*\[([\s\S]*?)\]/g)) for (const o of o
 // An address a subview draws inside itself (map()'s WITHIN) is named under
 // that subview: "Map: Harness › Automation › Scheduled".
 const mapWithin = new Map([...(mapSrc.match(/\n\s*WITHIN:\s*\[([\s\S]*?)\n\s*\],/)?.[1] || '')
-  .matchAll(/\{ k: '([a-z]+)', n: '([^']+)', i: '[^']+', host: '([a-z]+)' \}/g)].map(m => [m[1], { n: m[2], host: m[3] }]));
+  .matchAll(/\{ k: '([a-z]+)', n: '([^']+)', i: (?:'[^']+'|[A-Z_]+), host: '([a-z]+)' \}/g)].map(m => [m[1], { n: m[2], host: m[3] }]));
 const mapLabel = (k) => {
   const within = mapWithin.get(k);
   if (within) return mapLabel(within.host) + ' › ' + within.n;

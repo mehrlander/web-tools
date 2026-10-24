@@ -66,6 +66,7 @@ const propsVocabCsv = readFileSync(path.join(repoRoot, 'docs', 'vocabularies.csv
 const skillsCsv = readFileSync(path.join(repoRoot, 'skills', 'manifest.csv'), 'utf8');
 const textFieldsCsv = readFileSync(path.join(repoRoot, 'docs', 'text-fields.csv'), 'utf8');
 const testsCsv = readFileSync(path.join(repoRoot, 'docs', 'tests.csv'), 'utf8');
+const testsAuthoredCsv = readFileSync(path.join(repoRoot, 'docs', 'tests-authored.csv'), 'utf8');
 const kitsCsv = readFileSync(path.join(repoRoot, 'docs', 'kits.csv'), 'utf8');
 const ctxCsv = readFileSync(path.join(repoRoot, 'docs', 'context-sources.csv'), 'utf8');
 const ctxTopicsCsv = readFileSync(path.join(repoRoot, 'docs', 'context-topics.csv'), 'utf8');
@@ -111,6 +112,7 @@ window.GH = class {
     if (p === 'skills/manifest.csv') return { text: skillsCsv };
     if (p === 'docs/text-fields.csv') return { text: textFieldsCsv };
     if (p === 'docs/tests.csv') return { text: testsCsv };
+    if (p === 'docs/tests-authored.csv') return { text: testsAuthoredCsv };
     if (p === 'docs/kits.csv') return { text: kitsCsv };
     if (p === 'docs/context-sources.csv') return { text: ctxCsv };
     if (p === 'docs/context-topics.csv') return { text: ctxTopicsCsv };
@@ -151,7 +153,7 @@ test('every Map address says what it is through about, and leads with its contro
       data.mapTab = view.k;
       assert.equal(data.about.title, view.n, view.k + ': the About title is the tab');
       assert.ok(Array.isArray(data.about.sources), view.k);
-      const section = [...el.querySelectorAll('section')].find(e => e.getAttribute('x-show') === `mapTab==='${view.k}'`);
+      const section = [...el.querySelectorAll('section')].find(e => (e.getAttribute('x-show') || '').split(' || ').includes(`mapTab==='${view.k}'`));
       const toolbar = section.querySelector(':scope > [data-slot="frame:toolbar"]');
       if (toolbar) assert.equal(section.firstElementChild, toolbar, view.k + ': controls first');
     }
@@ -994,8 +996,8 @@ test('a tab tap renders, loads, and hands the tab to the shell', async () => {
   await tick(2);
   assert.equal(d2.mapTab, 'docs');
   assert.equal(d2.displayTab, 'docs');
-  assert.equal(JSON.stringify(d2.subviews.map(s => s.k)), JSON.stringify(['docs', 'growth', 'policy', 'themes', 'registries']),
-    'Docs exposes Inventory first, then Purpose, Growth, Policy, Themes, and Registries');
+  assert.equal(JSON.stringify(d2.subviews.map(s => s.k)), JSON.stringify(['docs', 'growth', 'policy', 'themes']),
+    'Docs exposes Inventory first, then Growth, Policy and Themes; Registries moved to Data on 2026-10-23');
   assert.deepEqual([...taps], ['docs'], 'the shell is told, so the URL gets stamped');
   assert.ok(d2.docsReg, 'the tab fetched its own manifest');
 
@@ -1840,17 +1842,17 @@ test('the Skills search matches the trigger text, not only the slug', async () =
   assert.ok(hits.every(s => s.text.toLowerCase().includes('spreadsheet')));
 });
 
-test('every field the Registries markup reads exists on a registry row', async () => {
+test('every field the Data tab reads off a registry exists on a registry row', async () => {
   await data.loadPropsReg();
   const row = data.registryRows[0];
   assert.ok(row, 'a row to check the markup against');
 
   const src = readFileSync(path.join(repoRoot, 'lib', 'alpineComponents', 'map.js'), 'utf8');
-  const start = src.indexOf(`x-show="mapTab==='registries'"`);
-  assert.ok(start > 0, 'the Registries section is findable in the template');
+  const start = src.indexOf('data-map-tables>');
+  assert.ok(start > 0, 'the Data section is findable in the template');
   const section = src.slice(start, src.indexOf('</section>', start));
 
-  const read = [...new Set([...section.matchAll(/\br\.([A-Za-z_$][\w$]*)/g)].map(m => m[1]))];
+  const read = [...new Set([...section.matchAll(/\breg\.([A-Za-z_$][\w$]*)/g)].map(m => m[1]))];
   assert.ok(read.length > 5, 'the section reads several fields off the row');
   const missing = read.filter(f => !(f in row));
   assert.equal(missing.join(', '), '', 'markup reads fields the row does not carry: ' + missing.join(', '));

@@ -13,3 +13,4 @@ ui-units,phosphor,UI unit codes,data/ui-units/codes.csv,icon,name,data/ui-units/
 closing-states,emoji,Closing states,lib/kits/closing-state.js,,,docs/CONVERSATION.md#every-reply
 conversation,emoji,Conversation rules,docs/conversation.csv,glyph,lead,docs/CONVERSATION.md
 showing,emoji,Showing mechanisms,docs/showing-mechanisms.csv,glyph,label,docs/CONVERSATION.md#a-reply-that-changed-files
+vocabulary-values,drawn,Vocabulary values,docs/vocabularies.csv,icon,value,docs/favicons/README.md#primitive-marks

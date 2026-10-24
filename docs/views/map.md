@@ -17,7 +17,7 @@ address names, which answers "which tab shows this file". The rows come from
 the `TABS` and `SUBVIEWS` arrays and the sentences from the CSV, so Contents
 holds no list of its own. The second door, **Reach**, holds what the hub covers
 beyond itself. It lands on Routes, the diagram of every repository and outpost
-the hub reaches, then offers Projects, Distribution, Outposts and Data. Until
+the hub reaches, then offers Projects, Distribution and Outposts. Until
 2026-10-12 the Map itself opened on that diagram, and each tab headed its own
 screen with its sentence.
 
