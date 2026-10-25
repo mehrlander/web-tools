@@ -109,7 +109,7 @@ node/render/scenarios/audit-undo.mjs,"drive undo and redo over the audit render'
 node/render/scenarios/audit-verdict.mjs,,node/render/scenarios,26,driver,,no,no,no
 node/render/scenarios/branch-address.mjs,,node/render/scenarios,83,driver,,no,no,yes
 node/render/scenarios/branch-brief-errors.mjs,"the branch page's failure states, driven through the real load() path",node/render/scenarios,59,driver,,no,no,no
-node/render/scenarios/branch-deck.mjs,,node/render/scenarios,131,driver,,no,yes,no
+node/render/scenarios/branch-deck.mjs,,node/render/scenarios,131,driver,,no,no,no
 node/render/scenarios/branch-file-card.mjs,a branch row's file pair opened as a card over the seeded Activity view,node/render/scenarios,140,driver,,no,no,no
 node/render/scenarios/branch-guide.mjs,the branch page showing a branch with its guide PR body rendered in place,node/render/scenarios,88,driver,,no,no,yes
 node/render/scenarios/branch-page-cold.mjs,"the branch view mounted as a PAGE, with no host lending it facts or a verdict",node/render/scenarios,111,driver,,no,no,no
