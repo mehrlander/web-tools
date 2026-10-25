@@ -3,7 +3,9 @@
 // Writes <out-dir>/<name>.desktop.png (1440x900 first screen), .phone.png
 // (390x844 first screen), .full.png (desktop full page, capped), and
 // <out-dir>/measures.json.
-const { chromium } = require('playwright');
+// The global Playwright matches the browser installed at /opt/pw-browsers; a
+// checkout's own pinned copy may not, so prefer the global one when present.
+const { chromium } = (() => { try { return require('/opt/node-tools/node_modules/playwright'); } catch { return require('playwright'); } })();
 const fs = require('fs'), path = require('path');
 const [pagesDir, outDir] = process.argv.slice(2);
 fs.mkdirSync(outDir, { recursive: true });
@@ -16,7 +18,8 @@ const measure = () => {
   while (w.nextNode()) { const n = w.currentNode; if (n.textContent.trim() && n.parentElement && vis(n.parentElement)) textNodes.push(n); }
   const words = ns => ns.reduce((a, n) => a + n.textContent.trim().split(/\s+/).length, 0);
   const foldNodes = textNodes.filter(n => inFold(n.parentElement));
-  const controls = [...document.querySelectorAll('button, a[href], summary, [role=tab], input, select, [@click], [x-on\\:click]')].filter(vis);
+  const clickable = el => [...el.attributes].some(a => a.name === '@click' || a.name.startsWith('@click.') || a.name.startsWith('x-on:click'));
+  const controls = [...document.querySelectorAll('body *')].filter(el => el.matches('button, a[href], summary, [role=tab], input, select') || clickable(el)).filter(vis);
   return {
     words_visible: words(textNodes),
     words_first_screen: words(foldNodes),
