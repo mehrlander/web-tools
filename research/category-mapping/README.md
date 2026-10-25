@@ -398,7 +398,7 @@ docket as its base and puts that field above it. It opens in
 
 The selection became [`pages/cat-map.html`](../../pages/cat-map.html), which
 draws a `catmap/1` file (the format is in the skill): the map's answer on the
-first tab, in large type with a button that reads its summary aloud; each run's
+first tab, laid out as a poster; each run's
 outcome; a field of two characteristics chosen by pills, each sense a region of the cells it allows; a
 docket of each sense's required values with the things it names checked
 against them, a red row naming what it breaks; and, for a file with several
