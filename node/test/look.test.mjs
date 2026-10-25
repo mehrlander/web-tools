@@ -1053,3 +1053,46 @@ test('a look step rings, pings on landing and on the way back, and the dock wear
   await wait(520);
   assert.equal(pings.length, 2, 'and again when the arrow brings it back');
 });
+
+test('a target at the end of its pane gets room to clear the dock, taken back when the walkthrough stops', async () => {
+  // The Map's Overview > Icons opened its last family under the dock, its pane
+  // already scrolled to the end (2026-10-23). jsdom has no layout, so the pane,
+  // the target and the dock are given the geometry that run measured.
+  const rect = (top, height) => ({ top, bottom: top + height, height, left: 20, right: 220, width: 200 });
+  const w = realm('<div id="pane" style="overflow-y:auto;padding-bottom:8px"><p>above</p><p data-at="last">last</p></div>',
+    '', undefined, { before(w) {
+      const at = { last: rect(650, 24), pane: rect(57, 700) };
+      w.Element.prototype.getBoundingClientRect = function () {
+        if (this.getAttribute('data-look') === 'dock') return rect(630, 150);
+        return at[this.id] || at[this.getAttribute('data-at')] || rect(0, 0);
+      };
+      const pane = w.document.getElementById('pane');
+      for (const [k, v] of Object.entries({ scrollHeight: 2000, clientHeight: 700, scrollTop: 1300 }))
+        Object.defineProperty(pane, k, { configurable: true, get: () => v });
+    } });
+  await loaded(w);
+  const pane = w.document.getElementById('pane');
+  w.Look.start([{ at: 'last', say: 'the last family' }]);
+  await wait(30);
+  const padded = parseFloat(pane.style.paddingBottom);
+  assert.ok(padded > 8 + (674 - 630), `the pane gained room past the dock's top (padding ${pane.style.paddingBottom})`);
+  w.Look.stop();
+  assert.equal(pane.style.paddingBottom, '8px', 'the pane has its own padding back');
+});
+
+test('a target already clear of the dock gets no room', async () => {
+  const rect = (top, height) => ({ top, bottom: top + height, height, left: 20, right: 220, width: 200 });
+  const w = realm('<div id="pane" style="overflow-y:auto"><p data-at="mid">mid</p></div>', '', undefined, { before(w) {
+    w.Element.prototype.getBoundingClientRect = function () {
+      if (this.getAttribute('data-look') === 'dock') return rect(630, 150);
+      return this.id === 'pane' ? rect(57, 700) : rect(300, 24);
+    };
+    const pane = w.document.getElementById('pane');
+    for (const [k, v] of Object.entries({ scrollHeight: 2000, clientHeight: 700, scrollTop: 0 }))
+      Object.defineProperty(pane, k, { configurable: true, get: () => v });
+  } });
+  await loaded(w);
+  w.Look.start([{ at: 'mid', say: 'in the middle' }]);
+  await wait(30);
+  assert.equal(w.document.getElementById('pane').style.paddingBottom, '');
+});

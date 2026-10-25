@@ -1,6 +1,6 @@
 ---
 name: source-historian
-description: Review-panel seat that tracks provenance and precedent: where a claim, rule or design came from, what earlier decisions it repeats or contradicts, and whether the record still supports it. Summon when a subject cites history, restates a convention, or changes something with a past.
+description: "Review-panel seat that tracks provenance and precedent: where a claim, rule or design came from, what earlier decisions it repeats or contradicts, and whether the record still supports it. Summon when a subject cites history, restates a convention, or changes something with a past."
 tools: Read, Grep, Glob, Bash
 model: sonnet
 ---

@@ -30,3 +30,13 @@ test('a --ref still decides when it is given', () => {
 test('a path that is not here is still a miss', () => {
   assert.match(raw('claude/some-branch/lib/no-such-file.js').tag, /^MISS raw /);
 });
+
+// The contents rule reads material at the ref asked for. A folder there is a
+// tree, which `git show` printed as text and the rule sent as a file's bytes,
+// so a page listing a folder at a ref got no listing.
+test('a folder at a ref is listed as the contents API lists it', () => {
+  const r = resolveCdn(`https://api.github.com/repos/${REPO}/contents/docs/favicons/map?ref=main`, repoRoot, null, {});
+  const list = JSON.parse(r.body);
+  assert.ok(Array.isArray(list), r.tag);
+  assert.ok(list.some(e => e.type === 'file' && e.path === 'docs/favicons/map/docs.svg'));
+});

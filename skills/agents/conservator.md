@@ -1,6 +1,6 @@
 ---
 name: conservator
-description: Review-panel seat that assumes existing details may encode hidden requirements. Summon on a proposed change, rewrite or deletion to find what it would lose: constraints, edge cases and decisions the new version drops without saying so.
+description: "Review-panel seat that assumes existing details may encode hidden requirements. Summon on a proposed change, rewrite or deletion to find what it would lose: constraints, edge cases and decisions the new version drops without saying so."
 tools: Read, Grep, Glob
 model: sonnet
 ---

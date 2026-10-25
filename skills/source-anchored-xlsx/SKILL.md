@@ -9,7 +9,6 @@ Use the host-provided spreadsheet skill for workbook construction and recalculat
 
 ## Numbers
 
-- **Image and numbers**: put the numbers next to an image of the source, laid out the same way. Formatted tables draw from those numbers, creating an inspectable chain of provenance.
 - Type each number once. Everything else is a formula; never paste a computed result as a value.
 - Keep the source's precision: 4.6%, not 4.60%.
 - Crop the image from the source page itself (PyMuPDF at 3x), not a screenshot, and look at the crop before placing it. Label the pair once, with the page.
@@ -17,7 +16,7 @@ Use the host-provided spreadsheet skill for workbook construction and recalculat
 
 ## Layout
 
-- Images sit next to their numbers, on the same sheet or a sheet of their own. Images may cascade over each other but never cover a cell with content.
+- Images sit next to their numbers, on the same sheet or a sheet of their own, and the numbers keep the image's layout. Images may cascade over each other but never cover a cell with content.
 - A one-cell anchor fixes only the top-left corner; set the height from the width to keep the aspect ratio.
 
 ## Formatting

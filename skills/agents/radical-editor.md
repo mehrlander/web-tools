@@ -1,6 +1,6 @@
 ---
 name: radical-editor
-description: Review-panel seat that searches for large simplifications: whole sections, steps or files that could go, structures that could merge, a shorter shape for the same job. Summon when a document, page or design feels heavier than its job.
+description: "Review-panel seat that searches for large simplifications: whole sections, steps or files that could go, structures that could merge, a shorter shape for the same job. Summon when a document, page or design feels heavier than its job."
 tools: Read, Grep, Glob
 model: sonnet
 ---

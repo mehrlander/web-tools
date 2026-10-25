@@ -44,7 +44,7 @@ scanners reach files outside `lib app pages`.
 
 ## Related
 
-- `docs/views/lists.md`: third recurrence of the snag `house-style-not-consulted` (in `docs/SNAGS.md` until 2026-10-20)
+- Snag `house-style-not-consulted`, in web-tools-private `lists/snag.json`, third recurrence (in `docs/SNAGS.md` until 2026-10-20)
 - `python/dead-opacity.py`: scanner whose default roots need widening (or branch-diff mode)
 - `python/stranded-titles.py`: sibling scanner with the same root limit
 - `skills/hooks/reading-column.py`: rule 3 mechanical gate already shipped
