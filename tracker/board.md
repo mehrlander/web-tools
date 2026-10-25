@@ -8,7 +8,6 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Gate house-style rule 1 (stat cards) and widen scanner roots](tasks/enforce-house-style-ryz0z5.md) · S
 - 🎫 [Persist FAB captures, the write path to state/captures/](tasks/fab-capture-button-f6q38m.md) · S
 - 🎫 [Explore a fuller file history in the Branch view](tasks/file-history-in-branch-view-hxtdep.md) · ? (awaiting: owner to choose a direction; open-ended by request, bolder ideas welcome)
-- 🎫 [Read a document's growth against its readership, on the Docs tab](tasks/growth-vs-reads-quadrant-ng3c97.md) · M
 - 🎫 [Build our own JSON tree for display, keep vanilla-jsoneditor for editing](tasks/own-json-tree-retire-vje-i0lcj2.md) · M
 - 🎫 [Audit the app's views for viewport breakpoints inside the content pane](tasks/pane-width-not-window-width-wnabwo.md) · S
 - 🎫 [Pinch-zoom and pan for pdf-inspect's page view](tasks/pdf-inspect-pinch-zoom-5wz3kt.md) · M
@@ -64,6 +63,7 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Generalize the gallery to a per-repo pages catalog](tasks/generalize-gallery-pages-catalog-m3b8pa.md) (`claude/web-tools-app-views-m3pkyo`)
 - 🎫 [Finish GitHub jump-over coverage across show-repo views](tasks/github-jumpover-coverage-7bkgmk.md) (`claude/github-icon-placement-3d06i7`)
 - 🎫 [Check GraphQL query shape offline against GitHub's published schema](tasks/graphql-schema-contract-check-cpuvb5.md) (`claude/web-tools-tracker-review-bw48ga`)
+- 🎫 [Read a document's growth against its readership, on the Docs tab](tasks/growth-vs-reads-quadrant-ng3c97.md) (`claude/doc-care`)
 - 🎫 [History-safe shim for toss-render address-mode renders](tasks/history-safe-toss-render-shim-hkih5m.md)
 - 🎫 [Integrate the stage with the surfacer's .surface format](tasks/integrate-stage-surfacer-format-3bvg2v.md)
 - 🎫 [Connect the laptop as an unattended venue for repo work](tasks/laptop-self-hosted-runner-6a0n5f.md)
