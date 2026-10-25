@@ -94,6 +94,11 @@
       "path": "research/DOC_CRAFT_STUDY.md",
       "label": "Documentation problems and drafting proposals",
       "kind": "probe"
+    },
+    {
+      "path": "research/2026-10-25-fan-out-review.md",
+      "label": "Fan-out review of the Web Tools app, 2026-10-25",
+      "kind": "probe"
     }
   ],
   "programs": [
