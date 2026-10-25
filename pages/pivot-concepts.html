@@ -194,7 +194,7 @@
       class="inline-flex items-stretch h-7 max-w-full shrink-0 rounded-full border overflow-hidden font-mono text-[13px] leading-none touch-none select-none [-webkit-touch-callout:none]
         ${placed ? 'bg-primary/10 border-primary/40' : 'bg-base-100 border-base-300'} ${num ? 'text-secondary' : 'text-base-content'}
         ${sel ? 'ring-2 ring-[var(--color-primary)] ring-offset-1 ring-offset-base-100' : ''} ${cls}">
-      ${agg}<span class="inline-flex items-center gap-1 ${isValue ? 'pl-1.5' : 'pl-2.5'} pr-1.5 min-w-0">${roleIcon && placed ? `<i class="ph ${ICON[role]} text-xs opacity-70"></i>` : ''}<span class="truncate" data-title-tip="${esc(facts(field).join(' · '))}" data-title-tip-lead="${esc(field)}" data-title-tip-pills="${esc(facts(field).join('|'))}" data-title-tip-bare>${esc(label ?? field)}</span></span>${kept}<span data-info class="${seg} px-1.5 text-base-content/50" aria-label="About ${esc(field)}"><i class="ph ph-caret-down text-[10px]"></i></span></button>`;
+      ${agg}<span class="inline-flex items-center gap-1 ${isValue ? 'pl-1.5' : 'pl-2.5'} pr-1.5 min-w-0">${roleIcon && placed ? `<i class="ph ${ICON[role]} text-xs opacity-70"></i>` : ''}<span class="truncate" ${tipAttrs(field)} data-title-tip-bare>${esc(label ?? field)}</span></span>${kept}<span data-info class="${seg} px-1.5 text-base-content/50" aria-label="About ${esc(field)}"><i class="ph ph-caret-down text-[10px]"></i></span></button>`;
   }
   const empty = (zone, text) => `<span class="text-xs text-base-content/40 italic px-1" data-empty="${zone}">${text}</span>`;
 
@@ -320,8 +320,6 @@
   // explorer's Columns view and the workbench's Profile show. No buttons of
   // its own: a field becomes a filter the way it takes any role, by drag or by
   // tap and drop onto the strip.
-  // explorer's Columns view and the workbench's Profile show: its type, how
-  // full it is, its distincts, a number's range, the commonest values.
   const PROFILE = Object.fromEntries(S.profile(ROWS).columns.map(c => [c.name, c]));
   function openCard(anchor, field) {
     const c = PROFILE[field], card = $('card');
@@ -355,14 +353,24 @@
   document.addEventListener('pointerdown', (e) => { if (!e.target.closest('#card, [data-info]')) closeCard(); }, true);
   document.addEventListener('scroll', closeCard, true);
 
-  // A PILL'S FACTS are the house title-tip (kits/title-tip.js): its name as
-  // the lead, then what it holds, its distinct count and its role as a row of
-  // pills. A mouse gets it on hover; a tap opens it, and since the same tap
+  // A PILL'S FACTS are the house title-tip (kits/title-tip.js). Not its name,
+  // which the pill already shows, nor its role, which its place shows: the
+  // lead is its type as an icon pill, then what it holds as a row of pills,
+  // its distinct count and a number's range or a text field's commonest
+  // value. A mouse gets it on hover; a tap opens it, and since the same tap
   // picks the pill up and redraws the builder, it is opened again on the
   // redrawn pill. It sits over the page, so nothing moves to make room.
+  const TYPE = { number: 'ph-bold ph-hash', text: 'ph-bold ph-text-aa' };
   function facts(f) {
-    const r = roleOf(f);
-    return [SCAN.isNum[f] ? 'number' + (SCAN.dec[f] ? ' · ' + SCAN.dec[f] + ' dp' : '') : 'text', VALUES[f].length.toLocaleString() + ' distinct', r ? ROLE[r] : 'not placed'];
+    const c = PROFILE[f], type = SCAN.isNum[f] ? 'number' : 'text';
+    const held = type === 'number' && c.numStats
+      ? [compactFmt.format(c.numStats.min) + ' to ' + compactFmt.format(c.numStats.max)]
+      : c.topValues.slice(0, 1).map(t => 'most ' + (t.value.length > 18 ? t.value.slice(0, 17) + '…' : t.value));
+    return { type, icon: TYPE[type], pills: [VALUES[f].length.toLocaleString() + ' distinct', ...held] };
+  }
+  function tipAttrs(f) {
+    const x = facts(f);
+    return `data-title-tip="${esc(x.type + ': ' + x.pills.join(', '))}" data-title-tip-lead="${x.type}" data-title-tip-lead-icon="${x.icon}" data-title-tip-pills="${esc(x.pills.join('|'))}"`;
   }
   function placeTip() {
     if (!window.TitleTip) return;
