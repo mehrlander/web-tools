@@ -33,7 +33,7 @@
     </template>
   </div>
   <div x-show="tab === 'sequence'" class="px-4 pb-2 flex items-center gap-1 overflow-x-auto whitespace-nowrap">
-    <span class="text-xs text-base-content/60 w-12 shrink-0">From</span>
+    <span class="text-xs text-base-content/60 w-12 shrink-0">Show</span>
     <template x-for="s in spans" :key="s.id">
       <button type="button" class="btn btn-sm rounded-full shrink-0" :class="span === s.id ? 'btn-neutral' : 'btn-ghost'" @click="span = s.id" x-text="s.name"></button>
     </template>
@@ -432,7 +432,7 @@ const COMPARE = {
       { k: 'Registration', A: 'N709PS', H: 'Unregistered (UNREG)' },
       { k: 'Operator', A: ['PSA Airlines, a wholly owned subsidiary of American Airlines, based in Dayton, Ohio', 'All-jet fleet: 61 CRJ700 and 80 CRJ900'], H: ['US Army 12th Aviation Battalion, Bravo Company, at Davison Army Airfield, Fort Belvoir, Virginia', 'Mission: priority air transport (PAT) and continuity of government operations'] },
       { k: 'Operating rules', A: ['14 CFR Part 121, scheduled domestic passenger flight', 'Certificate: 14 CFR 119, flag carrier (121)'], H: ['Armed Forces', 'Operating certificate: none'] },
-      { k: 'Traffic equipment', A: ['ADS-B out and TCAS, standard FAA requirements for Part 121'], H: ['Transponder capable of transmitting ADS-B out, confirmed by maintenance records and the wreckage', 'No autopilot'] },
+      { k: 'Traffic equipment', A: ['ADS-B out and TCAS, standard FAA requirements for Part 121'], H: ['Transponder capable of transmitting ADS-B out', 'Transponder confirmed by maintenance records and by the wreckage', 'No autopilot'] },
       { k: 'Lights on before the collision, from video', A: ['Navigation lights: left and right wing', 'Anticollision strobes: left wing, right wing, tail', 'Landing lights: nose, right wing, left wing', 'Beacons: upper and lower', 'None used LED technology'], H: ['Anticollision strobes: lower fuselage, aft pylon', 'Position lights: left, right, tail pylon'] },
     ]},
     { group: 'Flight', rows: [
@@ -598,7 +598,7 @@ function page() {
       H: ['Military crew: autopsies and toxicology testing by the Armed Forces Medical Examiner'],
     },
     recovery: [
-      ['Survey', 'Army Corps of Engineers and the US Navy Supervisor of Salvage and Diving (SUPSALV), with sonar and divers wearing helmet cameras'],
+      ['Survey', 'Army Corps of Engineers and the US Navy Supervisor of Salvage and Diving Operations (SUPSALV), with sonar and divers wearing helmet cameras'],
       ['Recovery', 'SUPSALV responsible for recovering the aircraft; NTSB supervised'],
       ['Destination', 'A secured hangar at DCA'],
     ],
