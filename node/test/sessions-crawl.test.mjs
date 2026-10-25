@@ -30,7 +30,10 @@ const shellSrc = read('app', 'index.html');
 const runnerSrc = read('node', 'sessions-crawl.mjs');
 const workflowSrc = read('.github', 'workflows', 'activity-cache.yml');
 
-const win = {};
+// gh-api.js's codec, which the app and the runner both have booted: the reply
+// prints are base64'd through it.
+const { default: GH } = await import(path.join(repoRoot, 'lib/gh-api.js'));
+const win = { GH };
 for (const f of ['lib/kits/csv.js', 'lib/kits/closing-state.js', 'lib/kits/repo-sessions-cache.js',
                  'lib/kits/session-index.js', 'lib/kits/crawl-runs.js', 'lib/kits/sessions-crawl.js'])
   new Function('window', read(f))(win);
@@ -188,6 +191,42 @@ test('a cache that loses rows refills from the records past the cap', async () =
   assert.equal(refill.doc.rows.length, S.ROW_CAP - 10, 'every record left in the store has a row');
 });
 
+// The phone's reply prints cover the menu's recent sessions and nothing else,
+// and a session's record is read for them only when it moved or when the file
+// does not hold it yet: once, never on every pass.
+test('the reply prints follow the menu\'s recent sessions, and read a record only once', async () => {
+  const said = (n) => ({ replies: [{ text: Array.from({ length: 40 }, (_, i) => 'w' + n + 'x' + i).join(' ') }] });
+  const s = store(Array.from({ length: 20 }, (_, i) => record(i, said(i))));
+  const first = await s.pass();
+  const prints = () => s.files[X.PRINTS.PATH].doc;
+  const recent = () => s.files[S.MENU_PATH].doc.recent.map(e => e[0]);
+  assert.ok(first.writes.includes(X.PRINTS.PATH));
+  assert.deepEqual(prints().docs, recent(), 'the same sessions as the menu, in its order');
+  assert.equal(recent().length, 16);
+  assert.deepEqual([...X.readPrints(prints())[hex8(19)]].sort(), [...X.printsOf(said(19))].sort());
+
+  const still = await s.pass();
+  assert.equal(still.reads, 0);
+  assert.deepEqual(still.writes, []);
+
+  // The file's first build on a store that has not moved: each recent record
+  // is read once to fill it, and the pass after reads nothing.
+  delete s.files[X.PRINTS.PATH];
+  const fill = await s.pass();
+  assert.equal(fill.reads, 16);
+  assert.deepEqual(fill.writes, [X.PRINTS.PATH]);
+  assert.equal((await s.pass()).reads, 0);
+
+  // A new session leads, read once with its record; the oldest of the sixteen
+  // falls out of both files together.
+  s.put(record(20, said(20)));
+  const next = await s.pass();
+  assert.equal(next.reads, 1);
+  assert.deepEqual(prints().docs, recent());
+  assert.equal(prints().docs[0], hex8(20));
+  assert.ok(!prints().docs.includes(hex8(4)));
+});
+
 test('a titles read that fails returns null, so the fold carries the titles it has', async () => {
   const gh = { req: async () => { throw new Error('404'); } };
   assert.equal(await C.readTitles(gh, S, () => {}), null);
@@ -216,6 +255,7 @@ test('the runner supports --git and --out for local git reads and disk writes', 
     assert.match(res1, /Wrote: state\/sessions\.json/);
     assert.ok(existsSync(path.join(out1, 'state', 'sessions.json')));
     assert.ok(existsSync(path.join(out1, 'state', 'session-menu.json')));
+    assert.ok(existsSync(path.join(out1, 'state', 'reply-prints.json')));
     const cacheDoc = JSON.parse(readFileSync(path.join(out1, 'state', 'sessions.json'), 'utf8'));
     assert.equal(cacheDoc.rows.length, 1);
     assert.equal(cacheDoc.rows[0].id, '00000001');
@@ -224,6 +264,7 @@ test('the runner supports --git and --out for local git reads and disk writes', 
     mkdirSync(path.join(repo, 'state'), { recursive: true });
     writeFileSync(path.join(repo, 'state', 'sessions.json'), readFileSync(path.join(out1, 'state', 'sessions.json')));
     writeFileSync(path.join(repo, 'state', 'session-menu.json'), readFileSync(path.join(out1, 'state', 'session-menu.json')));
+    writeFileSync(path.join(repo, 'state', 'reply-prints.json'), readFileSync(path.join(out1, 'state', 'reply-prints.json')));
     git('add', '.');
     git('commit', '-m', 'Update sessions cache');
     git('update-ref', 'refs/remotes/origin/main', 'refs/heads/main');

@@ -1259,8 +1259,6 @@ def as_tab(d, asked=True):
     if asked:
         d.setdefault("why", []).append("--top asked for the tab: the toss carries ?top, so the page's title, "
                                        "icon, history and reload are the tab's, and Back walks its views.")
-    warn.append("?top on an iPhone is unmeasured (docs/showing-mechanisms.csv, toss-gh): if it misbehaves "
-                "there, drop ?top, and the framed link shows the page but not what it does to the tab.")
     return d
 
 

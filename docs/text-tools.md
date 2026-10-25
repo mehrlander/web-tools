@@ -21,10 +21,9 @@ reports three things:
 - **Registered files:** the files the text names, with what their registry says
   about each.
 
-**Files are matched by path, not by term.** The tab was requested to connect
-the terms a page uses to registered data. No committed file is keyed by those
-terms, and the estate does not commit one, because `vocab.py` rebuilds it in
-seconds. Five registries are keyed by path (`docs.csv`, `tests.csv`,
+**Files are matched by path, not by term.** No committed file is keyed by the
+terms a page uses, and the estate does not commit one, because `vocab.py`
+rebuilds it in seconds. Five registries are keyed by path (`docs.csv`, `tests.csv`,
 `harness.csv`, `portable.csv`, and `pages.csv`), so the tab searches the text
 for every path they list. A second report lists paths the text names that no
 registry holds.
@@ -63,9 +62,8 @@ stands, the changes marked, and the variant, with its author and kind of edit
 underneath. A variant that has been proposed for this file, meaning a proposal
 names the same repo and path, is marked and links the proposal's basis.
 [`kits/md-variants.js`](../lib/kits/md-variants.js) builds the mode on
-[`kits/md-diff.js`](../lib/kits/md-diff.js). Exact matching is the limit: on
-2026-09-18, 71 of 2,272 half-length variants no longer matched, because their
-paragraphs had been edited since.
+[`kits/md-diff.js`](../lib/kits/md-diff.js). Exact matching is the limit: a
+variant whose paragraph has been edited since no longer matches.
 
 ## The History mode
 

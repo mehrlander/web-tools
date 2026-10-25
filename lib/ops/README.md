@@ -5,13 +5,11 @@ one serialisable argument and returning one serialisable result, reaching
 neither `window` nor `document`. It attaches to nothing in a page; its caller
 evaluates the file and calls what comes back.
 
-That is the whole admission rule, and it is what separates an op from a kit.
-A kit registers a `window` namespace and is loaded into a page that then uses
-it. An op is fetched as text by whoever wants it, wherever they are: a page in
-this app, a Node test, or a phone that has no page at all and runs the text
-inside a `data:` URL it never displays (shortcut-tools' `Run-Op`, over the
-`Get-FromJs` route that library documents as its one door to JavaScript).
-Same code, two runners.
+That is the whole admission rule, and it is what separates an op from a kit,
+which registers a `window` namespace in a page. An op is fetched as text by
+whoever wants it: a page in this app, a Node test, or a phone that has no page
+at all and runs the text inside a `data:` URL it never displays
+(shortcut-tools' `Run-Op`).
 
 Held by [`node/test/code-layers.test.mjs`](../../node/test/code-layers.test.mjs)
 off [`python/code-shape.py`](../../python/code-shape.py), which reports an op
@@ -42,13 +40,11 @@ as attaching to `expression`. The rule and its place among the other layers:
 
 | File | Input | Result |
 | --- | --- | --- |
-| `session-menu.js` | `{ input: <clipboard text>, token }` | `{ caption, rows, urls, menu, branch, id, state }` |
+| `session-menu.js` | `{ input: <clipboard's first line, or b64:<the whole clipboard>>, token }` | `{ caption, rows, urls, menu, branch, id, state }` |
 
-`session-menu.js` is the whole Claude menu the phone draws after a double back
-tap, header and rows together, so `Choose-Claude` in shortcut-tools is a shell
-that draws `menu` and looks the chosen row up in `urls`. A change to the menu's
-wording, order or verbs is therefore a commit here and costs no install, which
-is the point: that repo ranks the device as the expensive resource.
+`session-menu.js` is the whole Claude menu the phone draws (its header has the
+fields), so a change to the menu's wording, order or verbs is a commit here and
+costs no install on the device.
 
 Two rules the result has to keep, both learned from the phone rather than
 inferred, and both held by `node/test/ops.test.mjs`:
@@ -56,15 +52,24 @@ inferred, and both held by `node/test/ops.test.mjs`:
 - **The caption never pads.** iOS draws the prompt in a proportional font, so
   leading spaces move a line by an amount no character count predicts.
 - **A `menu` row either opens an `https` page or is a bare shortcut name.** The
-  shell runs a row it cannot find in `urls` as a name, which is measured;
+  phone's shell (`Choose-Claude` in shortcut-tools) runs a row it cannot find
+  in `urls` as a name, which is measured;
   opening a `shortcuts://` link from inside a running shortcut is not, and
   appears in none of the fifteen library dumps.
 
 It reads `state/session-menu.json` in web-tools-private, a **purpose-built**
-46 KB index written by the same crawl that writes `state/sessions.json`
-(`lib/kits/repo-sessions-cache.js`, "The phone's copy"). Not the 1.16 MB cache
-itself, which carries every tool call of every session to answer a question that
-needs three fields.
+index written by the same crawl that writes `state/sessions.json`
+(`lib/kits/repo-sessions-cache.js`, "The phone's copy"), not the full cache.
+
+A clipboard holding prose rather than a branch or a session link is read as a
+**copied reply**: the session it names in a 💬 caption, or else the session whose
+fingerprints in `state/reply-prints.json` account for most of it. The same crawl
+writes that file for the menu's 16 recent sessions (`lib/kits/session-index.js`,
+"The phone's reply prints", which also states the method and what it was measured
+to find), and it is about 200 KB gzipped, so the op reads it only for prose.
+`Run-Op` passes an op one line, so `Choose-Claude` sends the whole clipboard as
+`b64:` and its base64. A raw first line still works: on the sample it found the
+session for 99.5% of whole copied replies, against 99.9% of all copies whole.
 
 **A merge is the whole publish.** The address a caller off the app uses is
 GitHub's contents API, `https://api.github.com/repos/mehrlander/web-tools/contents/lib/ops/<name>.js?ref=main`,

@@ -7,7 +7,8 @@ a caption per document with its 🥏 link, and the corrections one line each.
 
 The edits are the working tree against --base, by default the commit where the
 branch left origin's main, so the review shows what the merge would bring; the
-opening links the commit, or the compare when there are several. Every hunk
+opening links the commit, or the compare when there are several, and the same
+changeset as pages/review.html draws it, side by side. Every hunk
 must appear in the briefing, as an edit or a correction: a change left out of
 the review would reach the merge unseen, so the script refuses rather than
 skipping it.
@@ -34,6 +35,7 @@ import sys
 from pathlib import PurePosixPath
 
 TOSS = "https://mehrlander.github.io/web-tools/pages/toss-render.html"
+REVIEW = "https://mehrlander.github.io/web-tools/pages/review.html"
 KINDS = ("Fix", "Alignment", "Addition", "Wording")
 FIELDS = (("describes", "Describes"), ("reviewed", "Reviewed"),
           ("alternatives", "Alternative placements"))
@@ -102,15 +104,18 @@ def commit_link(base, repo):
     """The commit the review shows, or the compare across several; none while the
     edits are uncommitted or HEAD is on no remote. Commits main already holds are
     left out: a merge of main brings them in, and a conflict resolved in that merge
-    is the branch's own change, so the merge commit itself stays in."""
+    is the branch's own change, so the merge commit itself stays in. Beside it, the
+    changeset in pages/review.html, by full SHAs: GitHub's compare API answers 404
+    to abbreviated ones, so a short link would open on an error."""
     ref = main_ref()
     commits = git("rev-list", f"{base}..HEAD", *([f"^{ref}"] if ref else [])).split()
     if not commits or not pushed():
         return None
+    b, h = git("rev-parse", base).strip(), git("rev-parse", "HEAD").strip()
+    diff = f"[Changeset diff]({REVIEW}#gh={repo}@{h}&base={b})"
     if len(commits) == 1:
-        return f"Commit [{commits[0][:7]}](https://github.com/{repo}/commit/{commits[0]})"
-    b, h = git("rev-parse", "--short=7", base).strip(), git("rev-parse", "--short=7", "HEAD").strip()
-    return f"Commits [{b}…{h}](https://github.com/{repo}/compare/{b}...{h})"
+        return f"Commit [{commits[0][:7]}](https://github.com/{repo}/commit/{commits[0]}) · {diff}"
+    return f"Commits [{b[:7]}…{h[:7]}](https://github.com/{repo}/compare/{b[:7]}...{h[:7]}) · {diff}"
 
 
 def correction_line(h):

@@ -23,7 +23,9 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { repoRoot } from './bootstrap.mjs';
 
-const window = {};
+// The reply prints go through gh-api.js's base64 codec, as every caller has it.
+const { default: GH } = await import(path.join(repoRoot, 'lib/gh-api.js'));
+const window = { GH };
 new Function('window', readFileSync(path.join(repoRoot, 'lib/kits/session-index.js'), 'utf8'))(window);
 const X = window.SessionIndex;
 const set = (s) => [...s].sort();
@@ -181,4 +183,59 @@ test('docText is the prose and nothing else', () => {
   assert.match(t, /the ask/); assert.match(t, /a prompt/); assert.match(t, /a reply/);
   assert.doesNotMatch(t, /tool result/, 'a result is what the world returned, not what was said');
   assert.equal(X.docText(null), '');
+});
+
+// ── The phone's reply prints ─────────────────────────────────────────────────
+//
+// The file has one reader, lib/ops/session-menu.js, which node/test/ops.test.mjs
+// runs against a file built here. What is held here is the file itself: it
+// reads back as what was put in, it is the same bytes for the same input, and
+// a crawl can trust it to say which sessions it already holds.
+
+const reply = (text) => ({ text });
+const prose = (seed, n) => Array.from({ length: n }, (_, i) => 'w' + ((seed * 7919 + i * 104729) % 100003)).join(' ');
+
+test('reply prints read back as the prints that were built, by session', () => {
+  const byId = {
+    aaaaaaaa: X.printsOf({ replies: [reply(prose(1, 60)), reply(prose(2, 40))] }),
+    bbbbbbbb: X.printsOf({ replies: [reply(prose(3, 80))] }),
+  };
+  const doc = X.buildPrints(['bbbbbbbb', 'aaaaaaaa'], byId);
+  assert.deepEqual(doc.docs, ['bbbbbbbb', 'aaaaaaaa'], 'newest first, in the order given');
+  assert.deepEqual([doc.v, doc.k, doc.w, doc.bits], [X.PRINTS.V, X.PRINTS.K, X.PRINTS.W, X.PRINTS.BITS]);
+  const back = X.readPrints(doc);
+  for (const id of Object.keys(byId)) assert.deepEqual(set(back[id]), set(byId[id]), id);
+  assert.equal(JSON.stringify(X.buildPrints(['bbbbbbbb', 'aaaaaaaa'], byId)), JSON.stringify(doc),
+    'byte-deterministic, or every crawl would commit an unchanged file');
+  assert.equal(X.printsChanged(doc, X.buildPrints(['bbbbbbbb', 'aaaaaaaa'], byId)), false);
+});
+
+test('a session with no prints keeps its place, so a crawl does not re-read it', () => {
+  const doc = X.buildPrints(['aaaaaaaa', 'bbbbbbbb'], { aaaaaaaa: new Set(), bbbbbbbb: X.printsOf({ replies: [reply(prose(4, 30))] }) });
+  assert.deepEqual(doc.docs, ['aaaaaaaa', 'bbbbbbbb']);
+  assert.deepEqual(Object.keys(X.readPrints(doc)).sort(), ['aaaaaaaa', 'bbbbbbbb']);
+  assert.deepEqual(X.buildPrints(['cccccccc'], {}).docs, [], 'an id with no entry at all is left out');
+});
+
+test('a file built with other parameters reads as empty, so it is rebuilt rather than mixed', () => {
+  const doc = X.buildPrints(['aaaaaaaa'], { aaaaaaaa: X.printsOf({ replies: [reply(prose(5, 30))] }) });
+  assert.deepEqual(X.readPrints({ ...doc, k: X.PRINTS.K + 1 }), {});
+  assert.deepEqual(X.readPrints(null), {});
+});
+
+test('a short reply keeps every run, and a long one keeps its first and last', () => {
+  const runs = (t) => X.printRuns(X.printWords(t)).map(X.cutPrint);
+  const short = prose(6, X.PRINTS.SHORT + X.PRINTS.K - 1);   // exactly SHORT runs
+  assert.deepEqual(set(X.printsOf({ replies: [reply(short)] })), set(new Set(runs(short))));
+  const long = prose(7, 200), all = runs(long), kept = X.printsOf({ replies: [reply(long)] });
+  assert.ok(kept.has(all[0]) && kept.has(all[all.length - 1]));
+  assert.ok(kept.size < all.length, 'a long reply is winnowed, not kept whole');
+  // Any K + W - 1 words of it share a print with what was kept.
+  for (let i = 0; i + X.PRINTS.W <= all.length; i++)
+    assert.ok(all.slice(i, i + X.PRINTS.W).some(h => kept.has(h)), `window at ${i}`);
+});
+
+test('reply words ignore Markdown, punctuation, case and a link\'s address', () => {
+  assert.deepEqual(X.printWords('**Bold**, `code` and a [link](https://x.y/z?q=1).'),
+    ['bold', 'code', 'and', 'a', 'link']);
 });

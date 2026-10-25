@@ -1,0 +1,54 @@
+<Window x:Class="WebTools.Desktop.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:wv="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+        Title="Web Tools Desktop" Width="1440" Height="940" MinWidth="860" MinHeight="620"
+        Background="#F6F7F3" FontFamily="Segoe UI" Foreground="{StaticResource Ink}"
+        Loaded="WindowLoaded" Closing="WindowClosing" Icon="Assets/WebTools.ico">
+  <Grid>
+    <Grid.RowDefinitions><RowDefinition Height="64" /><RowDefinition Height="32" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+    <Border Background="#F6F7F3" BorderBrush="#DCE2DC" BorderThickness="0,0,0,1">
+      <Grid Margin="22,0,16,0">
+        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+          <Image Source="Assets/WebTools.png" Width="32" Height="32" Margin="0,0,12,0" AutomationProperties.Name="Web Tools" />
+          <TextBlock Text="Web Tools" FontWeight="SemiBold" FontSize="17" VerticalAlignment="Center" />
+          <TextBlock Text="DESKTOP" Foreground="#7D8981" FontSize="10" Margin="10,3,0,0" VerticalAlignment="Center" />
+        </StackPanel>
+        <Border Grid.Column="1" Background="#E8EDE7" CornerRadius="8" Padding="4" VerticalAlignment="Center">
+          <StackPanel Orientation="Horizontal">
+            <Button x:Name="WebTab" Content="Web Tools" Click="ShowWeb" MinWidth="110" Background="White" />
+            <Button x:Name="LaptopTab" Content="Now" Click="ShowLaptop" MinWidth="110" />
+          </StackPanel>
+        </Border>
+        <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+          <Button x:Name="BrowserButton" Click="OpenBrowser" ToolTip="Open Web Tools in browser" AutomationProperties.Name="Open Web Tools in browser" Padding="10,9" Margin="0,0,4,0">
+            <Viewbox Width="17" Height="17"><Path Data="M 9,3 L 3,3 3,17 17,17 17,11 M 10,1 L 19,1 19,10 M 19,1 L 9,11" Stroke="#52675A" StrokeThickness="1.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round" /></Viewbox>
+          </Button>
+          <Button x:Name="SettingsButton" Click="OpenSettings" ToolTip="Settings" AutomationProperties.Name="Settings" Padding="10,9">
+            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE713;" FontSize="18" Foreground="#52675A" />
+          </Button>
+        </StackPanel>
+      </Grid>
+    </Border>
+    <Border Grid.Row="1" Background="#EDF2ED" BorderBrush="#DCE2DC" BorderThickness="0,0,0,1">
+      <Grid Margin="18,0,14,0">
+        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+        <Button x:Name="ActivityButton" Click="ShowLaptop" Padding="5,5" HorizontalAlignment="Left" ToolTip="See current activity">
+          <StackPanel Orientation="Horizontal"><Ellipse x:Name="ActivityDot" Fill="#73977D" Width="7" Height="7" Margin="0,0,9,0" /><TextBlock x:Name="ActivityText" Text="Reading current activity…" FontSize="12" /></StackPanel>
+        </Button>
+        <TextBlock x:Name="SyncText" Grid.Column="1" Text="Starting…" FontSize="11" Foreground="#758178" VerticalAlignment="Center" Margin="12,0" />
+      </Grid>
+    </Border>
+    <ProgressBar x:Name="LoadingProgress" Grid.Row="1" Height="2" VerticalAlignment="Bottom" IsIndeterminate="True" Visibility="Collapsed" Foreground="#73977D" Background="Transparent" BorderThickness="0" />
+    <Grid Grid.Row="2">
+      <wv:WebView2 x:Name="WebView" DefaultBackgroundColor="White" />
+      <wv:WebView2 x:Name="LaptopView" Visibility="Hidden" DefaultBackgroundColor="#F6F7F3" />
+      <Border x:Name="ErrorPanel" Visibility="Collapsed" Background="#F6F7F3" Padding="40">
+        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="560">
+          <TextBlock Text="Web Tools could not open" FontSize="26" FontWeight="SemiBold" Margin="0,0,0,12" />
+          <TextBlock x:Name="ErrorText" TextWrapping="Wrap" Margin="0,0,0,18" />
+          <Button Content="Try again" Click="RetryWeb" HorizontalAlignment="Left" Background="#E8EDE7" />
+        </StackPanel>
+      </Border>
+    </Grid>
+  </Grid>
+</Window>

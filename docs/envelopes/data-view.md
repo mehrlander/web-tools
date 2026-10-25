@@ -1,6 +1,6 @@
 # Data view: the payload contract
 
-⭐ [pages/data-view.html](https://mehrlander.github.io/web-tools/pages/data-view.html) renders **data**, where toss-render's other modes render a page: a CSV, a JSON array, a markdown file, a text log. It is the renderer behind the `#data=` toss route, and it is thin on purpose. The presentation is the shared multi-mode viewer ([`lib/alpineComponents/viewer.js`](../../lib/alpineComponents/viewer.js)), so the mode strip, Tabulator table, JSON tree, markdown preview, syntax highlighting, and GitHub/Raw/CDN links all come from the component every other page uses.
+🔷 [pages/data-view.html](https://mehrlander.github.io/web-tools/pages/data-view.html) renders **data**, where toss-render's other modes render a page: a CSV, a JSON array, a markdown file, a text log. It is the renderer behind the `#data=` toss route, and it is thin on purpose. The presentation is the shared multi-mode viewer ([`lib/alpineComponents/viewer.js`](../../lib/alpineComponents/viewer.js)), so the mode strip, Tabulator table, JSON tree, markdown preview, syntax highlighting, and GitHub/Raw/CDN links all come from the component every other page uses.
 
 ## Delivery
 
@@ -72,11 +72,11 @@ A payload is read by [`lib/kits/data-payload.js`](../../lib/kits/data-payload.js
 
 An object is an envelope when it declares `kind: "data-view/1"`, **or** its `items` entries each carry at least one of `content`, `src`, or `name`. Everything else is bare data.
 
-The second half of that rule is what keeps a legitimate payload safe. `{"items": [1, 2, 3], "total": 6}` is data, not an envelope, and so is any config file whose top-level key happens to be `items` while its entries carry none of `content`, `src`, or `name`. The estate used to have one, `docs/tools.json`, and it was the example this paragraph named until that registry became a CSV on 2026-08-18; the rule outlives the illustration, because the shape is ordinary and will recur. When a payload really is ambiguous, `kind` settles it.
+The second half of that rule is what keeps a legitimate payload safe. `{"items": [1, 2, 3], "total": 6}` is data, not an envelope, and so is any config file whose top-level key happens to be `items` while its entries carry none of `content`, `src`, or `name`. When a payload really is ambiguous, `kind` settles it.
 
 ## Views
 
-`view` is a module id from the viewer's registry, currently `raw`, `code`, `preview`, `table`, `tree`, `codepen`. It is a preference, not a demand: the viewer honors it only when that mode is actually available for the file, and otherwise falls back to raw. Nothing validates the id on the way in, so the vocabulary here tracks the viewer's with nothing to keep in sync.
+`view` is a module id from the viewer's registry in [`lib/alpineComponents/viewer.js`](../../lib/alpineComponents/viewer.js), such as `raw`, `code`, `preview`, `table` or `tree`. It is a preference, not a demand: the viewer honors it only when that mode is actually available for the file, and otherwise falls back to raw. Nothing validates the id on the way in, so the vocabulary here tracks the viewer's with nothing to keep in sync.
 
 Omit it and the page picks by content, not just extension:
 

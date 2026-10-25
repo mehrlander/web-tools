@@ -24,7 +24,7 @@ one was handed over, and nothing mints a new one
 |  | What runs | Reaches | Misses |
 | --- | --- | --- | --- |
 | **🥏 toss** | the page file at the ref, inside a frame | the page's inline code and its library | what the page does to the top-level document, and the FAB, which is the renderer's at main |
-| **🥏 toss with `?top`** | the page as the tab's own document | the same, plus the tab and the page's own FAB at its ref | not available with `?w=` or a `#gz=` payload, which keep the frame; unmeasured on an iPhone |
+| **🥏 toss with `?top`** | the page as the tab's own document | the same, plus the tab and the page's own FAB at its ref | not available with `?w=` or a `#gz=` payload, which keep the frame |
 
 `npm run showing` adds `?top` when a page's diff touches the tab, when the FAB's own
 code changed, or when a look link's steps name other pages, and `--top` asks for it
@@ -52,9 +52,8 @@ a trailing `#frag` arrives as a real `location.hash`.
 
 The inner shell never becomes the top-level document, so its changes to
 `document.title`, the favicon, `history.replaceState` or top-level navigation run
-without visible effect. This was found with a favicon change in PR #315. At depth
-2 the icon is dimmed twice, and the tab's icon and label describe different
-levels; both are correct.
+without visible effect. At depth 2 the icon is dimmed twice, and the tab's icon
+and label describe different levels; both are correct.
 
 In a nested preview, the FAB (the floating action button every lib page carries)
 lists actions from both the framed page and the shell, and the shell's rows carry
@@ -100,10 +99,9 @@ the address and says when `?use=` was ignored. Inside a toss it checks the frame
 page against the ref the shell resolved, and marks any layer that booted a
 different one.
 
-The failures recorded in this file share one shape: the link renders something
-plausible but wrong, and reports no error. The mechanism table cannot catch that,
-so two checks remain in use: CLAUDE.md's honesty rule ("where no link reaches a
-change, say so") and a headless screenshot.
+A wrong link renders something plausible and reports no error, which the
+mechanism table cannot catch, so two checks remain: CLAUDE.md's honesty rule
+("where no link reaches a change, say so") and a headless screenshot.
 
 ## Viewer context
 

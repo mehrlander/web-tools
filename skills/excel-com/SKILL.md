@@ -1,6 +1,6 @@
 ---
 name: excel-com
-description: Drive a live Excel from Windows PowerShell over COM: build a formatted sheet, read the active workbook, walk tables and pivots. Use when writing PowerShell that touches Excel, when a script must reach the running application rather than a file on disk, or when Excel COM throws something that points at the wrong line (a Double-to-String cast on Value2, a FormatException out of a Range call). Carries the traps that cost a round trip each, the ExcelService inventory so existing functions are not rebuilt, and the route gate that asks whether a live Excel is needed at all. Not for writing .xlsx without Excel (xlsx), Power Query M (power-query), or Office Scripts (office-scripts-shape-ui).
+description: "Drive a live Excel from Windows PowerShell over COM: build a formatted sheet, read the active workbook, walk tables and pivots. Use when writing PowerShell that touches Excel, when a script must reach the running application rather than a file on disk, or when Excel COM throws something that points at the wrong line (a Double-to-String cast on Value2, a FormatException out of a Range call). Carries the traps that cost a round trip each, the ExcelService inventory so existing functions are not rebuilt, and the route gate that asks whether a live Excel is needed at all. Not for writing .xlsx without Excel (xlsx), Power Query M (power-query), or Office Scripts (office-scripts-shape-ui)."
 ---
 
 # Excel over COM, from PowerShell
@@ -30,8 +30,9 @@ workbook's contents is almost never that.
 
 ## 2. Do not rebuild `ExcelService`
 
-`mehrlander/home` at `projects/wps/app/Modules/ExcelService/`. Two files, two
-routes, one module. Check here before writing a function.
+`mehrlander/home` at `projects/wps/app/Modules/ExcelService/`. Two routes, in
+the two files below; `ExcelService.psm1` loads both, with `ExcelSnag.ps1` and
+`Reports.ps1`. Check here before writing a function.
 
 **`ExcelCom.ps1`, the live application:**
 
@@ -61,8 +62,8 @@ If the job is on the right of section 1's table, the answer is often already in
 
 ## 3. Traps
 
-Each of these throws somewhere other than where the fault is. Measured entries
-were hit in this estate and are recorded with their fix; the rest are general.
+Each of these throws somewhere other than where the fault is. `measured` marks
+one hit in this estate.
 
 | Symptom | Cause | Fix | |
 | --- | --- | --- | --- |
@@ -142,11 +143,8 @@ that fails loudly:
 ```
 
 Reads `0.00` or it does not. `SUMPRODUCT` avoids needing Ctrl+Shift+Enter, so it
-survives an older Excel. Point the user at that cell by address in the reply.
-
-This is `favoring-the-mechanical` applied to a workbook: a check that re-derives
-the answer beats a claim that the answer is right. The honest limit is the same
-one: it proves internal consistency, not that the inputs are correct.
+survives an older Excel. Point the user at that cell by address in the reply. It
+proves internal consistency, not that the inputs are correct.
 
 ## 7. You cannot run this here
 
@@ -166,13 +164,9 @@ section. Check the last section exists before believing a screenshot.
 
 ## Extending
 
-Open items:
-
 - `Set-Cells`, `Set-Bar`, and `Set-Band` are duplicated across the two scripts in
-  `projects/wps/working/`. They want to be a module under `app/Modules/`, at
-  which point section 4 shortens to naming it.
-- Section 5 rests on two examples by one author in one session. Promote it to a
-  convention or drop it once a third sheet exists.
-- `ImportExcel` and `EPPlus` sit in the same route as COM in `office` but need
-  no running Excel, which makes them behave like section 1's right-hand column.
-  Out of scope here until someone uses them.
+  `projects/wps/working/`. Once they are a module under `app/Modules/`, section 4
+  shortens to naming it.
+- Section 5 is promoted to a convention or dropped once a third sheet exists.
+- `ImportExcel` and `EPPlus` need no running Excel, so they belong with section
+  1's right-hand column; out of scope until someone uses them.

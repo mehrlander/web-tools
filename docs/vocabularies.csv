@@ -134,3 +134,26 @@ peeves,detector,reader,Reader,a reviewer's judgment; the peeves-critic's job
 peeves,detector,lint,Lint,a script that lists or fails on it
 peeves,detector,hook,Hook,refused or flagged at edit or commit time
 peeves,detector,measure,Measure,"web-tools' page-measures pass, on a rendered page"
+icon-families,group,drawn,Drawn marks,"an SVG drawn for the estate, each file its own picture"
+icon-families,group,phosphor,Phosphor glyphs,"a glyph from the Phosphor icon font, named by its ph- class"
+icon-families,group,emoji,Emoji,"an emoji, written as text where the icon appears"
+showing-mechanisms,glyph,diamond,Deployed page,"the page as the default branch deploys it, which anyone can open"
+showing-mechanisms,glyph,disc,Toss,"a render through pages/toss-render.html, of any ref and any repository the reader's token reaches"
+showing-mechanisms,glyph,box,Claude artifact,"a page published to claude.ai, private to the publisher until shared"
+showing-mechanisms,glyph,x,No marker,"a link handed over without a marker, or no link at all"
+fab-signals,facet,version,Version,"which version of the subject is on screen, and whether it is current"
+fab-signals,facet,viewer,Viewer,what this browser holds that reads depend on
+fab-signals,facet,subject,Subject,"what the FAB sidebar describes: the page, or what is open over it"
+fab-signals,facet,action,Action,something the FAB offers to do with what is on screen
+fab-signals,part,tint,Tint,"the FAB's colour, background and border together"
+fab-signals,part,glyph,Glyph,"the mark at the FAB's centre, one at a time"
+fab-signals,part,top-right,Top-right badge,a badge on the FAB's top-right corner
+fab-signals,part,bottom-right,Bottom-right badge,"a badge on the FAB's bottom-right corner, which takes a tap of its own"
+fab-signals,tone,primary,Primary,"the app's own colour, the FAB at rest"
+fab-signals,tone,warning,Warning,"the view differs from what everyone sees, and the reader may not know"
+fab-signals,tone,error,Error,something the reader needs is missing
+fab-signals,tone,info,Info,newer work the reader may want to see
+fab-signals,tone,success,Success,a check ran and the view is current
+fab-signals,tone,tint,Inherited,the glyph takes the FAB's current colour
+fab-signals,status,live,Live,"fab.js draws it today, and the gate checks the row against that code"
+fab-signals,status,proposed,Proposed,"described here and not yet in fab.js; the gate checks only that its mark exists"

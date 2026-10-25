@@ -29,7 +29,7 @@
 // to its assertions; enriching it would make those assertions read against a
 // workbook whose size was chosen for a screenshot. This one is sized to SHOW
 // the thing: 800 ledger rows, so the picker's smallest cap (500) visibly bites
-// and the cells read "500 of 802"; every one of the twelve kinds present on at
+// and the cells read "500 of 802"; every one of the thirteen kinds present on at
 // least one sheet; a form-shaped sheet whose values are almost nothing while
 // its merges and styles are not; and a hidden sheet, so the matrix carries
 // real zeros rather than only numbers.

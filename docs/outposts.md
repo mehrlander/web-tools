@@ -30,10 +30,9 @@ Upkeep stays within the outpost protocol.
 **Who supplies the observation decides whether the record keeps up.** Where the
 outpost reports itself (the environment's receipt, the account's synced copy,
 the phone's daily manifest), observations arrive with nobody acting. Where the
-owner supplies them, they wait for someone to remember: on 2026-10-02 the
-PowerShell ledger, home's `projects/wps/data/observations.csv`, held no rows
-against eleven files awaiting adoption. When adding an outpost, look first for
-a way to make it report itself.
+owner supplies them, they wait for someone to remember, as home's PowerShell
+ledger (`projects/wps/data/observations.csv`) does. When adding an outpost, look
+first for a way to make it report itself.
 
 **What the outpost holds decides how far it can drift.** The environment
 settings hold one line that fetches the setup script from main, so the only

@@ -31,7 +31,7 @@
 // registry. So the ledger became a prohibition. `fields` survives only so that
 // adding an ungoverned registry has to change this test, which is a deliberate
 // act; the record says such a reason is more likely an unchecked assumption
-// than a fact. docs/registries.md carries the five and what each got wrong.
+// than a fact.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

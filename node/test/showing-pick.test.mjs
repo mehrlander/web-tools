@@ -132,7 +132,6 @@ test('a shell change acting on the tab is tossed with ?top, since a frame never 
   assert.equal(d.top, true);
   assert.match(d.links[0].url, /toss-render\.html\?top#gh=mehrlander\/web-tools@0{12}:pages\/branch\.html$/);
   assert.match(d.why.join(' '), /document\.title/);
-  assert.ok(d.warnings.some(w => /iPhone is unmeasured/.test(w)), 'where ?top is unmeasured is said with the link');
   const back = withDiff('pages/branch.html', "+++ b/pages/branch.html\n+ history.pushState(null, '', next);\n");
   assert.equal(back.top, true, 'history is the tab too');
   // The control: the same file, a change that touches nothing top-level.

@@ -17,7 +17,7 @@ Open with:
 
 > **Quick Read:** *[Document Title]*
 
-One topic sentence follows. It frames and characterizes the document: not just what it covers, but what kind of thing it is and what it is trying to do. (Is it a framework paper? An empirical study? A position argument? A vendor pitch dressed as research?) This sentence is the hardest one to write and the most important.
+One topic sentence follows. It frames and characterizes the document: not just what it covers, but what kind of thing it is and what it is trying to do. (Is it a framework paper? An empirical study? A position argument? A vendor pitch dressed as research?) It is the most important sentence in the distillation.
 
 ---
 
@@ -42,7 +42,7 @@ Tags stack. Example:
 
 Three labeled sections, each on its own line:
 
-**Insights:** Numbered list. One sentence each. Each insight has an italic inline header: a short label that names what kind of insight it is before the sentence lands. The best insights answer the document's central question, but let's be honest.  Sometimes it wasn't the right question. A helpful redirect or compelling aside can earn its place.
+**Insights:** Numbered list. One sentence each. Each insight has an italic inline header: a short label that names what kind of insight it is before the sentence lands. The best insights answer the document's central question; where that was the wrong question, a redirect or a compelling aside can earn its place.
 
 Example format:
 > 1. *Threshold effect:* The gains concentrate sharply above a context window of 32k tokens, below which the method underperforms vanilla retrieval.
@@ -82,11 +82,11 @@ Sections that carry weight get room. Gloss weak sections so we at least know wha
 
 These apply throughout as a governing disposition.
 
-**No em dashes.** Use periods. Use colons where structure is needed. Em dashes are a crutch.
+**No em dashes.** Use periods, and colons where structure is needed.
 
 **Support claims rather than layering on new ones.** After a claim, provide evidence or elaboration, not another claim.  Justify the thought, build a case.  Slow down when something matters. Let one claim stand on its legs before the next one arrives.
 
-**Introduce before you use.** A term or concept must be named and briefly defined before it appears in a sentence that depends on it. This is the cardinal rule. The reader should never have to hold an undefined term in working memory while parsing the sentence that uses it. Introduce, then proceed.
+**Introduce before you use.** This is the cardinal rule: name and briefly define a term or concept before it appears in a sentence that depends on it ([`QUALIFIED-WRITING.md`](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md), rule 1).
 
 **Sentences are short and discrete.** Each sentence completes a thought. Not every sentence must be terse, some claims need a clause, but the default is short. A string of short sentences often produces more clarity than one long one, and more rhythm.
 

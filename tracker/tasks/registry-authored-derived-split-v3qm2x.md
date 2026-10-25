@@ -1,8 +1,10 @@
 ---
 id: registry-authored-derived-split-v3qm2x
 title: Separate authored from derived data across the registries
-status: backlog
+status: done
+session: claude/hopeful-lamport-1cbnuy
 opened: 2026-08-18
+closed: 2026-10-23
 size: M
 ---
 # Separate authored from derived data across the registries
@@ -174,3 +176,4 @@ table inside 145 KB of machine output.
   `harness.invocation`, the two that release Map's item 5. Recommended shape
   written above; size L to M.
 - 2026-10-07: Decided. The owner took the recommended shape (user call 2708d02c-web-tools-answers): fix `pages.note` first as an XS, split `tests` only, a named exception each for `registries`, `harness` and `docs`, then Layer 3 for `docs.reach` and `harness.invocation`.
+- 2026-10-23: Done on claude/hopeful-lamport-1cbnuy (web-tools #1087), in the shape decided 2026-10-07. `pages.note` is declared `recorded`, its gloss naming the NOTES literal it is written in. The tests registry split: `docs/tests-authored.csv` holds `kind` and `protects`, `docs/tests.csv` is wholly derived, and tests-index adds and drops authored rows without changing a value. properties-registry.test.mjs holds every registry file to one mode, with five named exceptions and their reasons: `registries`, `harness`, `docs`, `pages`, and `doc-overlap-gold`, whose labels belong on the rows they label and which the 2026-09-17 survey did not count. `docs.reach`'s words and meanings moved from map.js to docs/vocabularies.csv, and map.js keeps only the tones. `harness.invocation`'s `none found` has no vocabulary row: invocation is an open grammar (`npm:<script>`, `hook:<event>`) with no closed domain to hold one, and the value is derived by tools-index.
