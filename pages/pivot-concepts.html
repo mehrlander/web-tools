@@ -18,6 +18,7 @@
 <script src="../lib/vanilla-bundle.js"></script>
 <script src="../lib/kits/table-stats.js"></script>
 <script src="../lib/kits/row-menu.js"></script>
+<script src="../lib/kits/title-tip.js"></script>
 </head>
 <body class="bg-base-100 text-base-content">
 <div class="h-dvh grid grid-rows-[auto_auto_auto_minmax(0,1fr)] grid-cols-[minmax(0,1fr)]">
@@ -48,8 +49,6 @@
 <!-- The pill under a finger or a mouse while it is dragged. -->
 <div id="ghost" class="hidden fixed z-[80] pointer-events-none -translate-x-1/2 -translate-y-1/2"></div>
 <!-- Where the dragged pill will land. -->
-<!-- The picked-up pill's facts, over the page and out of its flow. -->
-<div id="tip" class="hidden fixed z-[76] pointer-events-none"></div>
 <div id="caret" class="hidden fixed z-[79] pointer-events-none w-0.5 rounded-full bg-primary"></div>
 <!-- A field's card, from the caret on its pill. -->
 <div id="card" class="hidden fixed z-[75] w-72 max-w-[calc(100vw-2rem)] rounded-box border border-base-300 bg-base-100 shadow-xl text-sm" role="dialog"></div>
@@ -195,7 +194,7 @@
       class="inline-flex items-stretch h-7 max-w-full shrink-0 rounded-full border overflow-hidden font-mono text-[13px] leading-none touch-none select-none [-webkit-touch-callout:none]
         ${placed ? 'bg-primary/10 border-primary/40' : 'bg-base-100 border-base-300'} ${num ? 'text-secondary' : 'text-base-content'}
         ${sel ? 'ring-2 ring-[var(--color-primary)] ring-offset-1 ring-offset-base-100' : ''} ${cls}">
-      ${agg}<span class="inline-flex items-center gap-1 ${isValue ? 'pl-1.5' : 'pl-2.5'} pr-1.5 min-w-0">${roleIcon && placed ? `<i class="ph ${ICON[role]} text-xs opacity-70"></i>` : ''}<span class="truncate">${esc(label ?? field)}</span></span>${kept}<span data-info class="${seg} px-1.5 text-base-content/50" aria-label="About ${esc(field)}"><i class="ph ph-caret-down text-[10px]"></i></span></button>`;
+      ${agg}<span class="inline-flex items-center gap-1 ${isValue ? 'pl-1.5' : 'pl-2.5'} pr-1.5 min-w-0">${roleIcon && placed ? `<i class="ph ${ICON[role]} text-xs opacity-70"></i>` : ''}<span class="truncate" data-title-tip="${esc(facts(field).join(' · '))}" data-title-tip-lead="${esc(field)}" data-title-tip-pills="${esc(facts(field).join('|'))}" data-title-tip-bare>${esc(label ?? field)}</span></span>${kept}<span data-info class="${seg} px-1.5 text-base-content/50" aria-label="About ${esc(field)}"><i class="ph ph-caret-down text-[10px]"></i></span></button>`;
   }
   const empty = (zone, text) => `<span class="text-xs text-base-content/40 italic px-1" data-empty="${zone}">${text}</span>`;
 
@@ -356,28 +355,20 @@
   document.addEventListener('pointerdown', (e) => { if (!e.target.closest('#card, [data-info]')) closeCard(); }, true);
   document.addEventListener('scroll', closeCard, true);
 
-  // THE PICKED-UP PILL'S FACTS float above it, one dark line: its name, then
-  // what it holds, its distinct count and its role, each a segment of its own.
-  // Nothing in the page moves to make room, and the tip takes no taps, so a
-  // drop target under it still takes the tap that places the pill.
-  function placeTip() {
-    const tip = $('tip');
-    const p = st.sel && document.querySelector(`[data-pill][data-field="${CSS.escape(st.sel.field)}"][data-from="${st.sel.from}"]`);
-    if (!p) return tip.classList.add('hidden');
-    const f = st.sel.field, r = roleOf(f);
-    const seg = (v) => `<span class="px-2 border-l border-neutral-content/20">${v}</span>`;
-    tip.innerHTML = `<div class="relative flex items-center rounded-md bg-neutral text-neutral-content text-xs font-mono whitespace-nowrap py-1 shadow-lg">
-      <span class="px-2 font-semibold">${esc(f)}</span>${seg(SCAN.isNum[f] ? 'number' + (SCAN.dec[f] ? ' · ' + SCAN.dec[f] + 'dp' : '') : 'text')}${seg(VALUES[f].length.toLocaleString() + ' distinct')}${seg(r ? ROLE[r] : 'not placed')}
-      <span data-tip-arrow class="absolute -bottom-1 size-2 rotate-45 bg-neutral"></span></div>`;
-    tip.classList.remove('hidden');
-    const a = p.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
-    const left = Math.max(8, Math.min(a.left, innerWidth - w - 8));
-    tip.style.left = left + 'px';
-    tip.style.top = Math.max(4, a.top - h - 7) + 'px';
-    tip.querySelector('[data-tip-arrow]').style.left = Math.max(8, Math.min(a.left - left + 14, w - 16)) + 'px';
+  // A PILL'S FACTS are the house title-tip (kits/title-tip.js): its name as
+  // the lead, then what it holds, its distinct count and its role as a row of
+  // pills. A mouse gets it on hover; a tap opens it, and since the same tap
+  // picks the pill up and redraws the builder, it is opened again on the
+  // redrawn pill. It sits over the page, so nothing moves to make room.
+  function facts(f) {
+    const r = roleOf(f);
+    return [SCAN.isNum[f] ? 'number' + (SCAN.dec[f] ? ' · ' + SCAN.dec[f] + ' dp' : '') : 'text', VALUES[f].length.toLocaleString() + ' distinct', r ? ROLE[r] : 'not placed'];
   }
-  document.addEventListener('scroll', () => placeTip(), true);
-  addEventListener('resize', () => placeTip());
+  function placeTip() {
+    if (!window.TitleTip) return;
+    const p = st.sel && document.querySelector(`[data-pill][data-field="${CSS.escape(st.sel.field)}"][data-from="${st.sel.from}"] [data-title-tip]`);
+    p ? window.TitleTip.open(p) : window.TitleTip.close();
+  }
 
 
   // ── drawing ─────────────────────────────────────────────────────────────────
