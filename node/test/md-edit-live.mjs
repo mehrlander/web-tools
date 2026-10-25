@@ -1,15 +1,22 @@
 #!/usr/bin/env node
 // Editing a markdown section in the viewer, end to end in a browser.
 //
-//   node node/test/md-edit-live.mjs [--shots <dir>] [--width 390]
+//   node node/test/md-edit-live.mjs [--editor tabs|studio] [--shots <dir>] [--width 390]
 //
 // node/test/md-edit.test.mjs proves what gets written; this proves the path a
-// reader takes to write it: the heading menu offers Edit, the section becomes
-// its source in place, Review shows the change and the checks, Save sends one
-// strict PUT carrying the sha that was read, the pane re-renders from the saved
-// text, and the receipt follows the commit's checks and the repair commit. Then
-// the two refusals: a section someone else changed in the meantime (nothing is
-// written), and a generated file (Edit says why and offers no editor).
+// reader takes to write it: the heading's pencil opens an editor, Publish shows
+// the checks and the message, Save sends one strict PUT carrying the sha that
+// was read, the pane re-renders from the saved text, and the receipt follows
+// the commit's checks and the repair commit. Then the two refusals: a section
+// someone else changed in the meantime (nothing is written), and a generated
+// file (the pencil says why and offers no editor).
+//
+// ANY EDITOR VARIANT, through the attributes every variant carries (see
+// "Variants" in lib/kits/md-edit.js): [data-md-edit-source] is the text box,
+// [data-md-edit-publish] opens the commit sheet, [data-md-edit-tab] marks a
+// view a shot should visit. `--editor` puts `?editor=` on the address, which
+// also shows the switch between variants; the check uses it to prove the text
+// goes across.
 //
 // GitHub is an in-memory file behind intercepted routes; everything else is the
 // working tree, served the way node/test/viewer-find.mjs serves it. Not part of
@@ -27,6 +34,7 @@ const REPO = 'mehrlander/web-tools';
 const arg = (k, d) => { const i = process.argv.indexOf(k); return i >= 0 ? process.argv[i + 1] : d; };
 const SHOTS = arg('--shots', null);
 const WIDTH = +arg('--width', 390);
+const EDITOR = arg('--editor', '');
 if (SHOTS) mkdirSync(SHOTS, { recursive: true });
 
 const failures = [];
@@ -140,7 +148,7 @@ const shot = async (name) => {
   console.log(`  shot   ${path.join(SHOTS, name + '.png')}`);
 };
 const open = async (file) => {
-  await page.goto(`${origin}/pages/data-view.html?src=${encodeURIComponent(`${REPO}@main:${file}`)}`,
+  await page.goto(`${origin}/pages/data-view.html?src=${encodeURIComponent(`${REPO}@main:${file}`)}${EDITOR ? '&editor=' + EDITOR : ''}`,
                   { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('[data-md-act="copy"]', { timeout: 20000 });
 };
@@ -169,31 +177,47 @@ try {
     localStorage.setItem('ghToken', 'test-token');
     window.dispatchEvent(new CustomEvent('web-tools:token-changed'));
   });
-  await page.waitForSelector('[data-md-edit] textarea', { timeout: 10000 });
+  await page.waitForSelector('[data-md-edit-source]', { timeout: 15000 });
   ok('a saved token carries straight on into the editor', true);
-  const ta = page.locator('[data-md-edit] textarea');
-  ok('the section becomes its source in place', (await ta.inputValue()) === '## Second\n\nThe second section says another.');
-  ok('the rest of the document stays rendered',
-     await page.locator('[data-md-section]', { hasText: 'First' }).isVisible());
+  const variant = await page.evaluate(() => document.querySelector('[data-md-edit-variant]')?.dataset.mdEditVariant || 'basic');
+  console.log('  variant ' + variant);
+  if (EDITOR) ok('the requested editor mounted', variant === EDITOR, variant);
+  const ta = page.locator('[data-md-edit-source]');
+  ok('the section becomes its source', (await ta.inputValue()) === '## Second\n\nThe second section says another.');
+  ok('the rest of the document stays rendered underneath',
+     (await page.locator('[data-md-section]', { hasText: 'First' }).count()) === 1);
   ok('the rendered Second heading is hidden while editing',
      !(await page.locator('h2[data-md-section]', { hasText: 'Second' }).isVisible()));
 
   await ta.fill('## Second\n\nThe second section says something better.\n\nA new line — with a dash.\n\nSee [the app](../APP.md) and [nothing](../NOPE.md).');
-  ok('the editor carries no stray text', !/null|undefined/.test(await page.locator('[data-md-edit]').innerText()));
+  await page.waitForTimeout(400);
+  const chrome = await page.evaluate(() => [...document.querySelectorAll('[data-md-edit], [data-md-edit-variant]')]
+    .map(n => n.innerText).join('\n'));
+  ok('the editor carries no stray text', !/\bnull\b|\bundefined\b|\[object /.test(chrome), chrome.slice(0, 200));
   await shot('2-editor');
-  await page.locator('[data-md-edit] button', { hasText: 'Review' }).click();
+  // Each view a variant marks gets a shot, so a tabbed editor's Preview and
+  // Changes are seen, not only its Write.
+  const tabs = await page.$$eval('[data-md-edit-tab]', (ns) => ns.map(n => n.dataset.mdEditTab));
+  for (const t of tabs) {
+    await page.locator(`[data-md-edit-tab="${t}"]`).first().click();
+    await page.waitForTimeout(900);
+    await shot('2-tab-' + t);
+  }
+  if (tabs.length) await page.locator(`[data-md-edit-tab="${tabs[0]}"]`).first().click();
+
+  await page.locator('[data-md-edit-publish]').first().click();
   await page.waitForSelector('dialog[data-md-edit-sheet][open]', { timeout: 10000 });
   await page.waitForFunction(() => !document.querySelector('dialog[data-md-edit-sheet] .loading'), null, { timeout: 10000 }).catch(() => {});
   const sheetText = await page.locator('dialog[data-md-edit-sheet]').innerText();
-  ok('the sheet shows the added line in the diff', /something better/.test(sheetText));
+  ok('the sheet counts the change', /\+3/.test(sheetText) && /−1/.test(sheetText), sheetText);
   ok('the sheet flags the em dash by file line', /Em dash on line 16/.test(sheetText), sheetText);
   ok('the sheet flags the link that points nowhere', /Nothing at \.\.\/NOPE\.md/.test(sheetText), sheetText);
-  ok('the commit message is prefilled', (await page.locator('dialog[data-md-edit-sheet] input').inputValue())
+  ok('the commit message is prefilled', (await page.locator('[data-md-edit-message]').inputValue())
      === 'Edit ' + DOC + ' § Second');
   await page.waitForTimeout(400);   // daisyUI's modal fades in; a shot before then is see-through
   await shot('3-sheet');
 
-  await page.locator('dialog[data-md-edit-sheet] button', { hasText: 'Save' }).click();
+  await page.locator('[data-md-edit-commit]').click();
   await page.waitForSelector('[data-md-edit-receipt]', { timeout: 15000 });
   ok('one PUT was sent', puts.length === 1, String(puts.length));
   ok('the PUT named the sha that was read', puts[0]?.sha === 'a'.repeat(40), puts[0]?.sha);
@@ -204,7 +228,7 @@ try {
   await page.waitForTimeout(600);
   ok('the pane re-rendered from the saved text',
      await page.locator('.prose', { hasText: 'something better' }).first().isVisible());
-  ok('the editor is gone', (await page.locator('[data-md-edit]').count()) === 0);
+  ok('the editor is gone', (await page.locator('[data-md-edit], [data-md-edit-source], [data-md-edit-variant]').count()) === 0);
   const early = await page.locator('[data-md-edit-receipt]').innerText();
   ok('before the repair, the receipt says what it may refresh',
      /Repair on main may refresh [^\n]*docs\/docs\.csv/.test(early) || /Repair f{7}/.test(early), early);
@@ -219,20 +243,28 @@ try {
 
   // ── 2. someone else changed the same section ──────────────────────────────
   await pencil('First');
-  await page.waitForSelector('[data-md-edit] textarea');
-  await page.locator('[data-md-edit] textarea').fill('## First\n\nMy version of the first section.');
+  await page.waitForSelector('[data-md-edit-source]');
+  await page.locator('[data-md-edit-source]').fill('## First\n\nMy version of the first section.');
+  if (EDITOR && await page.locator('[data-md-edit-switch]').count()) {
+    const other = EDITOR === 'tabs' ? 'studio' : 'tabs';
+    await page.locator(`[data-md-edit-switch-to="${other}"]`).first().click();
+    await page.waitForSelector('[data-md-edit-source]', { timeout: 15000 });
+    await page.waitForTimeout(300);
+    ok('switching editors carries the text across',
+       (await page.locator('[data-md-edit-source]').inputValue()) === '## First\n\nMy version of the first section.');
+  }
   files[DOC] = { text: files[DOC].text.replace('The first section says one thing.', 'Their version.'), sha: '9'.repeat(40) };
   const before = puts.length;
-  await page.locator('[data-md-edit] button', { hasText: 'Review' }).click();
+  await page.locator('[data-md-edit-publish]').first().click();
   await page.waitForSelector('dialog[data-md-edit-sheet][open]');
-  await page.locator('dialog[data-md-edit-sheet] button', { hasText: 'Save' }).click();
+  await page.locator('[data-md-edit-commit]').click();
   await page.waitForSelector('dialog[data-md-edit-sheet] .border-warning\\/40', { timeout: 10000 }).catch(() => {});
   const conflict = await page.locator('dialog[data-md-edit-sheet]').innerText();
   ok('a conflicting save writes nothing', puts.length === before, `${before} -> ${puts.length}`);
   ok('the conflict is shown with the draft kept', /changed on main since you opened it/.test(conflict)
      && /Copy my section/.test(conflict), conflict);
   await shot('5-conflict');
-  await page.locator('dialog[data-md-edit-sheet] button', { hasText: 'Back' }).click();
+  await page.locator('[data-md-edit-back]').click();
 
   // ── 3. a generated file ───────────────────────────────────────────────────
   await open(GEN);
@@ -241,7 +273,7 @@ try {
   await page.waitForFunction(() => /Generated file/.test(document.querySelector('[data-md-edit]')?.textContent || ''), null, { timeout: 10000 }).catch(() => {});
   const gen = await page.locator('[data-md-edit]').innerText();
   ok('a generated file is refused, with its own reason', /Generated file\. GENERATED from x\.csv/.test(gen), gen);
-  ok('and no editor is offered', (await page.locator('[data-md-edit] textarea').count()) === 0);
+  ok('and no editor is offered', (await page.locator('[data-md-edit-source]').count()) === 0);
   await shot('6-generated');
 
   ok('no page errors were thrown', thrown.length === 0, thrown.join(' | '));
