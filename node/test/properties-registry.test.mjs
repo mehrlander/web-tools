@@ -183,8 +183,11 @@ test('every value in a closed domain is in that domain', () => {
             `${r.file}: ${d.property} is blank on a row but declared required:value`);
           continue;
         }
-        assert.ok(allowed.has(v),
-          `${r.file}: ${d.property}="${v}" is outside its declared domain ` +
+        // exclusive: no is "one row may hold several values from the domain",
+        // so such a cell is checked value by value.
+        const vals = d.exclusive === 'no' ? String(v).split(';').map(x => x.trim()).filter(Boolean) : [v];
+        for (const one of vals) assert.ok(allowed.has(one),
+          `${r.file}: ${d.property}="${one}" is outside its declared domain ` +
           `[${d.values.join(', ')}]. Widen the declaration or fix the row.`);
       }
     }

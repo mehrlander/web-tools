@@ -442,16 +442,18 @@ test('Showing loads on demand, not at mount', async () => {
 // whose cells are mostly blank: `aim` is carried by one kind of eleven and `kit`
 // by three. Every x-show in the template tests the string, so this checks that
 // the sparse rows survive the parse rather than that the tab has content.
-// What the FAB says: the receiving end of the mechanisms, grouped by the facet
-// each signal answers, in the order docs/vocabularies.csv gives the facets.
-// fab-signals.test.mjs holds the rows to fab.js; this checks the tab is handed
-// them, grouped, with a drawn mark read and a badge drawn on a plain FAB.
-test('Showing carries what the FAB says, grouped by facet', async () => {
+// The links: one row per marked mechanism and a fallback line for the unmarked,
+// each row's three marks read from its opens column and labelled by the
+// vocabulary. Then the FAB's tiles, one per signal: a drawn mark read and
+// painted as a mask, a badge drawn on a plain FAB, a tint in its own colour.
+test('Showing lays out the links by their marks, and the FAB by its signals', async () => {
   await data.loadPropsReg();
-  const groups = data.fabGroups;
-  assert.deepEqual(Array.from(groups, g => g.k), ['version', 'viewer', 'subject', 'action']);
-  assert.equal(groups[0].n, 'Version', 'a facet is labelled from the vocabulary');
-  assert.equal(groups.flatMap(g => g.rows).length, data.routes.fab.length, 'every signal lands in a group');
+  const all = data.routes.showing.mechanisms;
+  assert.equal(data.showLinks.length + data.showFallbacks.length, all.length, 'every mechanism is a row or a fallback');
+  assert.ok(data.showFallbacks.length && Array.from(data.showFallbacks).every(m => m.glyph === 'x'), 'the fallbacks are the unmarked');
+  assert.deepEqual(Array.from(data.showOpens, o => o.label), ['Branch work', 'Private repos', 'No token'], 'the marks are labelled from the vocabulary');
+  const hosted = all.find(m => m.key === 'hosted');
+  assert.ok(!data.opensHas(hosted, 'branch') && data.opensHas(hosted, 'tokenless'), 'a cell lists the marks a row has');
   const drawn = data.routes.fab.find(r => r.icon.endsWith('.svg'));
   await new Promise(r => setTimeout(r, 0));
   assert.ok(data.fabGlyph(drawn).mask.startsWith('data:image/svg+xml'), 'a drawn mark is read and painted as a mask');

@@ -63,3 +63,13 @@ test('a glyph or badge names a mark that exists, and a tint names none', () => {
     else assert.ok(phosphor.includes(`.${r.icon}:before`), `${r.key}: ${r.icon} is a Phosphor glyph`);
   }
 });
+
+// The Showing tab prints each signal as a tile: a label and a meaning under it.
+// What the tile cannot hold is in when and note, which open on a tap.
+test('a signal\'s tile fits: a label of two words and a meaning of five', () => {
+  const words = v => String(v || '').split(/\s+/).filter(Boolean).length;
+  for (const r of rows) {
+    assert.ok(words(r.label) <= 2, `${r.key}: label "${r.label}" runs past two words`);
+    assert.ok(words(r.gloss) <= 5, `${r.key}: gloss "${r.gloss}" runs past five words`);
+  }
+});
