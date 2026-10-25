@@ -7,6 +7,10 @@ two halves: **normalize** the content into an entity model, then **project**
 that model onto the page in layers. Write each half's output down before
 building, and render the page from it.
 
+This text carries five revisions the 2026-10-25 test called for, listed in the
+[account](README.md#what-the-test-changed-in-the-method); the text the test
+agents received is [method-as-tested.md](experiment/conditions/method-as-tested.md).
+
 ## Half one: normalize
 
 Each form removes one defect, in the manner of database normal forms.
@@ -17,14 +21,21 @@ Each form removes one defect, in the manner of database normal forms.
 facts, each a single assertion: an owner, a property or relation, a value, and
 the source sentence. Where several facts share a shape (four laptops, each with
 a price, a weight and a battery life; a list of endorsers), declare a collection
-whose columns are the shared fields. Defect removed: lists buried in prose, and
-sentences that carry several facts at once.
+whose columns are the shared fields. Where the text calls one thing by several
+names ("the fund", "the trust account", "the reserve"), settle on one name and
+record the others, so that no thing is split in two. Defect removed: lists
+buried in prose, sentences that carry several facts at once, and one thing
+counted twice.
 
 **Form 2: each fact on its owner.** Attach every fact to the one thing it is
 about. A fact about a pairing belongs to the pairing: a player's statistics for
 one season belong to the player-season. A fact about one member of the pairing
-belongs to that member: the player's birthplace belongs to the player. Defect
-removed: facts stranded on whatever they happened to be mentioned beside.
+belongs to that member: the player's birthplace belongs to the player. A claim
+belongs to whoever makes it: "the coach says the team will improve" is a fact
+about the coach, whose value is the claim, and the page shows it with the
+coach's name attached, never as the team's own fact. Defect removed: facts
+stranded on whatever they happened to be mentioned beside, and claims
+promoted to facts.
 
 **Form 3: references, not copies.** When a fact reaches the subject only
 through another thing (a bill, its sponsor, the sponsor's committee seats), the
@@ -33,10 +44,11 @@ removed: a subject's view crowded with its neighbors' details, and the same
 detail repeated across views.
 
 **Earned views.** Not every noun is an entity. A thing earns a view of its own
-only when it has facts of its own beyond what names it, or relations to more
-than one other thing. Otherwise it stays a value: an item in a list, a cell in a
-row. Splitting past this point, a tap for every noun, is the opposite failure:
-it charges the reader a step and returns nothing.
+only when its own facts are more than its label can carry (a name and one or two
+qualifiers), or when the reader reaches it from two or more places on the page.
+Otherwise it stays a value: an item in a list, a cell in a row, a label with a
+qualifier. Splitting past this point, a tap for every noun, is the opposite
+failure: it charges the reader a step and returns nothing.
 
 **Relation kinds.** Give each relation one kind:
 
@@ -73,7 +85,10 @@ about the reader, so state it.
 The page shows the root as a view and each neighbor as a label or a row. One
 interaction raises a neighbor to its own view (a panel, a dialog, a strip card,
 a route), and that view follows the same rule in turn. A fact's distance from
-the root in the model sets its default depth on the page.
+the root in the model sets its default depth on the page. When the root is a
+collection, its members appear as rows with their distinguishing fields
+showing; a row reduced to a count ("4 candidates") behind a toggle hides the
+comparison the page exists for.
 
 A label is the one sanctioned copy. Copying a neighbor's attribute into its
 label is right when the attribute identifies the neighbor or bears on the
@@ -102,7 +117,8 @@ background.
 2. **Nothing lost.** List the source facts that no path on the page reaches.
    Dropping a fact is a decision; state it.
 3. **Scent.** Every control names what it reveals. A control labeled "More" or
-   "Details" fails.
+   "Details" fails, and so does a label a newcomer cannot place: a surname alone,
+   or a party letter with no name.
 4. **Depth.** The answer to the governing question is on the first screen, and
    every fact is within two interactions of it, sources excepted.
 5. **No empty slots.** A level, section or control with nothing distinct in it
