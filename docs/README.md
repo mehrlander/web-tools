@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `node/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 16 are named by CLAUDE.md,
-20 by a skill, 42 by a page or component. The remaining 34 are
+20 by a skill, 42 by a page or component. The remaining 36 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -32,7 +32,9 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`code-layers.md`](code-layers.md) — the code layers and the admission rule that sorts a new file into one of them
 - [`column-primitives.md`](column-primitives.md) *(orphan)* — the column primitives: what kind of thing a column holds (id, label, locator, value), the role axis and its crossing with position
 - [`delivery.json`](delivery.json) *(measured)* — historical snapshots of the retired injection routes and an unshipped proposal; current content routes are in Map / Harness / Context
+- [`diataxis.md`](diataxis.md) *(orphan)* — Diátaxis, the standard documentation framework: its two dimensions, four kinds, and what it asks of a writer
 - [`doc-growth.md`](doc-growth.md) *(orphan)* — the doc-growth chart: what it plots, how to generate its data file for a repo, and what makes the chart misleading
+- [`doc-kinds.md`](doc-kinds.md) *(orphan)* — the kinds of documentation the estate writes (guidance, app description, specification, API reference, finding) and how much detail each holds
 - [`docs.csv`](docs.csv) — the documentation registry: what each file under docs/ is, on four axes
 - [`estate-span.md`](estate-span.md) *(measured)* — what the hub knows about the rest of the estate: the outbound/inbound asymmetry, the three shapes a governed area takes, and the 2026-08-20 measurement behind the span column
 - [`harness.csv`](harness.csv) — the harness registry: every script under node/, python/ and the platform folders (.githooks/, .github/workflows/, .claude/, skills/hooks/), its role, and how it is invoked
