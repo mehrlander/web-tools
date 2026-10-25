@@ -48,6 +48,8 @@
 <!-- The pill under a finger or a mouse while it is dragged. -->
 <div id="ghost" class="hidden fixed z-[80] pointer-events-none -translate-x-1/2 -translate-y-1/2"></div>
 <!-- Where the dragged pill will land. -->
+<!-- The picked-up pill's facts, over the page and out of its flow. -->
+<div id="tip" class="hidden fixed z-[76] pointer-events-none"></div>
 <div id="caret" class="hidden fixed z-[79] pointer-events-none w-0.5 rounded-full bg-primary"></div>
 <!-- A field's card, from the caret on its pill. -->
 <div id="card" class="hidden fixed z-[75] w-72 max-w-[calc(100vw-2rem)] rounded-box border border-base-300 bg-base-100 shadow-xl text-sm" role="dialog"></div>
@@ -354,13 +356,29 @@
   document.addEventListener('pointerdown', (e) => { if (!e.target.closest('#card, [data-info]')) closeCard(); }, true);
   document.addEventListener('scroll', closeCard, true);
 
-  // What the selected pill's field holds, as the engine reads it.
-  function info(f) {
-    const blanks = ROWS.filter(r => r[f] == null || r[f] === '').length;
-    const kind = SCAN.isNum[f] ? 'number' + (SCAN.dec[f] ? ', ' + SCAN.dec[f] + ' decimals' : '') : 'text';
-    const r = roleOf(f);
-    return `<span class="font-semibold ${SCAN.isNum[f] ? 'text-secondary' : 'text-base-content'}">${esc(f)}</span> · ${kind} · ${VALUES[f].length.toLocaleString()} distinct${blanks ? ' · ' + blanks + ' blank' : ''} · ${r ? ROLE[r] : 'not placed'}`;
+  // THE PICKED-UP PILL'S FACTS float above it, one dark line: its name, then
+  // what it holds, its distinct count and its role, each a segment of its own.
+  // Nothing in the page moves to make room, and the tip takes no taps, so a
+  // drop target under it still takes the tap that places the pill.
+  function placeTip() {
+    const tip = $('tip');
+    const p = st.sel && document.querySelector(`[data-pill][data-field="${CSS.escape(st.sel.field)}"][data-from="${st.sel.from}"]`);
+    if (!p) return tip.classList.add('hidden');
+    const f = st.sel.field, r = roleOf(f);
+    const seg = (v) => `<span class="px-2 border-l border-neutral-content/20">${v}</span>`;
+    tip.innerHTML = `<div class="relative flex items-center rounded-md bg-neutral text-neutral-content text-xs font-mono whitespace-nowrap py-1 shadow-lg">
+      <span class="px-2 font-semibold">${esc(f)}</span>${seg(SCAN.isNum[f] ? 'number' + (SCAN.dec[f] ? ' · ' + SCAN.dec[f] + 'dp' : '') : 'text')}${seg(VALUES[f].length.toLocaleString() + ' distinct')}${seg(r ? ROLE[r] : 'not placed')}
+      <span data-tip-arrow class="absolute -bottom-1 size-2 rotate-45 bg-neutral"></span></div>`;
+    tip.classList.remove('hidden');
+    const a = p.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
+    const left = Math.max(8, Math.min(a.left, innerWidth - w - 8));
+    tip.style.left = left + 'px';
+    tip.style.top = Math.max(4, a.top - h - 7) + 'px';
+    tip.querySelector('[data-tip-arrow]').style.left = Math.max(8, Math.min(a.left - left + 14, w - 16)) + 'px';
   }
+  document.addEventListener('scroll', () => placeTip(), true);
+  addEventListener('resize', () => placeTip());
+
 
   // ── drawing ─────────────────────────────────────────────────────────────────
   const $ = (id) => document.getElementById(id);
@@ -375,7 +393,7 @@
       chip(st.heat, 'data-toggle="heat"', '<i class="ph ph-paint-bucket"></i>Tint'),
       chip(false, 'data-swap', '<i class="ph ph-arrows-left-right"></i>Swap'),
     ].join('');
-    $('builder').innerHTML = BUILDERS[st.concept].html() + (st.sel ? `<div class="pt-2 text-xs font-mono text-base-content/70 truncate">${info(st.sel.field)}</div>` : '');
+    $('builder').innerHTML = BUILDERS[st.concept].html();
     $('filters').innerHTML = `<div class="flex flex-wrap items-center gap-1.5 min-h-9">
       <span class="text-xs text-base-content/60 flex items-center gap-1 pr-1"><i class="ph ph-funnel"></i>Filter</span>
       ${st.filters.map(f => pill(f, 'filters', {})).join('')}
@@ -397,6 +415,7 @@
       const own = zone === st.sel.from || (zone === 'tray' && st.sel.from === 'tray') || (zone === 'filters' && st.filters.includes(st.sel.field));
       if (!own) z.classList.add(...LIT);
     }
+    placeTip();
   }
 
   // ── menus ───────────────────────────────────────────────────────────────────
