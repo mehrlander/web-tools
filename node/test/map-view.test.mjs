@@ -452,7 +452,7 @@ test('Showing lays out the links by their marks, and the FAB by its signals', as
   await data.loadPropsReg();
   const all = data.routes.showing.mechanisms;
   assert.equal(data.showMechs.length, all.length, 'every mechanism is a row');
-  assert.deepEqual(Array.from(data.showOpens, o => o.label), ['Branch work', 'Private repos', 'Any reader'], 'the marks are labelled from the vocabulary');
+  assert.deepEqual(Array.from(data.showOpens, o => o.label), ['Branches', 'Private', 'Any reader'], 'the marks are labelled from the vocabulary');
   const hosted = all.find(m => m.key === 'hosted');
   assert.ok(!data.opensHas(hosted, 'branch') && data.opensHas(hosted, 'tokenless'), 'a cell lists the marks a row has');
   // The legend is the live signals, a row per part of the FAB.
