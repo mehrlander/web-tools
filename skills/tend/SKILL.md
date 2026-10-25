@@ -30,6 +30,14 @@ disable-model-invocation: true
    registry). Create no other
    record to hold a finding; where no notes store is reachable, it goes in the
    reply.
+5. **Say where the work departs from the ask.** Before recommending that work
+   be merged, closed or settled, set what it delivered and recommends against
+   the owner's words that started it: the `opening_ask` and later `prompts` of
+   its session record (`/portable:sessions`, matched by `agent_session`).
+   Where they part (an ask dropped or turned into other work, a recommendation
+   against the ask, a later instruction never taken up, a limit of this skill
+   that narrows the ask), quote the ask and say what the work did instead and
+   why, beside the recommendation. A justified departure is still named.
 
 ## Process
 
@@ -124,8 +132,9 @@ check each against `main`. Read open pull requests too, testing each head as
 Branches does.
 
 - **Find:** an open pull request `main` has overtaken, one holding work `main`
-  lacks, one whose 🛵 or ✴️ ask `main` has since answered, one nobody is moving, and
-  a live thread.
+  lacks, one whose 🛵 or ✴️ ask `main` has since answered, one nobody is moving,
+  one whose work departs from its session's ask (principle 5), and a live
+  thread.
 - **Owner only:** design direction; closing or merging any pull request. Do
   not edit merged bodies.
 
@@ -201,5 +210,5 @@ principles above:
 
 End the session's own reply with a recap for a reader coming back cold: what
 waits on the owner, one question per decision, each linked to where the owner
-answers it; then what the session is for, what it did, where things stand, and
-where to pick up.
+answers it; then what the session is for, what it did and where that departs
+from what the owner asked, where things stand, and where to pick up.
