@@ -1,8 +1,8 @@
 # Forms
 
-A **form** is the standard way to show one type of object (a branch, a
-session) or to ask for one kind of answer (a decision, a label), so that a
-reader recognizes the form before reading the content. Before building a page, find the
+A **form** is the standard way to show one type of object or to ask for one
+kind of answer, so that a reader recognizes the form before reading the
+content. Before building a page, find the
 job it does here and reuse a form that serves it. A page that fits no form
 proposes one.
 
