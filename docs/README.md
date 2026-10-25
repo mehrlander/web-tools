@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `node/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 16 are named by CLAUDE.md,
-21 by a skill, 43 by a page or component. The remaining 35 are
+20 by a skill, 44 by a page or component. The remaining 33 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -144,8 +144,6 @@ marked *(orphan)* below: nothing points at them except this index.
 ## docs/forms/
 
 - [`README.md`](forms/README.md) *(orphan)* — what a form is, the five jobs a page does for the reader, and the answer each respond form asks for
-- [`branch.md`](forms/branch.md) *(orphan)* — the branch form: the landed and stranded math behind a branch, and where the branch takeover is documented
-- [`session.md`](forms/session.md) *(orphan)* — the session form: one session read as a conversation in the deck, and its page
 
 ## docs/github/
 

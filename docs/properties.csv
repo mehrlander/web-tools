@@ -192,7 +192,6 @@ assistant-branches,declared,recorded,,none,column,yes,,value,the date the row wa
 subjects,label,recorded,,value,column,yes,,value,the type's display name, which is what the FAB captions
 subjects,needs,recorded,,value,column,yes,,value,"what has to exist for this type to reach a screen, in the showing frame's words: renders itself, needs a renderer, needs a viewer, needs an envelope, needs a browser, needs a form"
 subjects,carrier,recorded,,value,column,yes,,locator,"the page or mode that draws a subject of this type, which the FAB's layer strip names as the row above it"
-subjects,doc,recorded,,none,column,yes,,locator,the document for the form that draws this type; blank for a type with no form
 subjects,detect,recorded,,value,column,yes,,value,"the rule that recognizes this type from an address, as the FAB's readLayers applies it; routes-kinds refines page, file, data and fileset one level down"
 subjects,icon,recorded,,value,column,yes,,value,the phosphor glyph the FAB's layer row wears for this type; owner of fab.js's SUBJECT_ICON literal
 subjects,gloss,recorded,,value,column,yes,,value,what an object of this type is
