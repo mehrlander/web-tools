@@ -7,7 +7,7 @@ that reader already has open. The estate is several things at once. The
 web-tools repository is an app, a workshop of tools built from a library of
 kits, and a set of conventions the `portable` plugin carries into every
 session; the other repositories add data, research and their histories. Each
-has its own kind of documentation.
+of these has its own kind of documentation.
 
 | Kind | It says | Reader | Where it lives | How much |
 | --- | --- | --- | --- | --- |
@@ -17,8 +17,8 @@ has its own kind of documentation.
 | **API reference** | each export's arguments, result and contract | a session calling it | a kit's header comment, a script's `--help` | every export, in full |
 | **Finding** | what a system does, as measured on a date | a session about to rely on it | [environment/](environment/), the `measured` rows of [docs.csv](docs.csv) | the result, its date, and the method that repeats it |
 
-By count, most of what the estate writes is guidance, nearly every skill
-included, and app description. A record (a dated decision, plan or log) and an
+Counted by document, most of the estate's documentation is guidance, which
+includes nearly every skill, or app description. A record (a dated decision, plan or log) and an
 account (research a repository declares) keep whatever detail their moment or
 their argument needed. Nothing keeps them current, so the rules below do not
 govern them.
@@ -58,7 +58,7 @@ In the [WSL Sync README](../pages/wsl-sync/README.md), the refresh commands are
 guidance given in full, since a reader runs them as written; the table of which
 parser builds each store is API reference far from its declaration.
 
-## Against Diátaxis
+## Compared with Diátaxis
 
 [Diátaxis](diataxis.md) is the standard framework. It sorts documentation by
 the reader's need into tutorials, how-to guides, reference and explanation, for

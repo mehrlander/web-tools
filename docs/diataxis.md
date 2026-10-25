@@ -2,7 +2,7 @@
 
 A summary of [Diátaxis](https://diataxis.fr/), Daniele Procida's framework for
 technical documentation, as its site stated it on 2026-10-25. How the estate's
-own kinds sit against it is in [doc-kinds.md](doc-kinds.md).
+own kinds compare with it is in [doc-kinds.md](doc-kinds.md).
 
 Diátaxis holds that documentation serves four distinct needs, so it takes four
 forms, and that most documentation problems come from blurring them. It grew
