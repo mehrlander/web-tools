@@ -47,8 +47,8 @@ lib/kits/linked-swiper.js,linkedSwiper,"a list with a detail: the list beside, o
 lib/kits/lists.js,Lists,"the registry's lists/ folder, read and written as one kind of file.",252,no,no,4,yes
 lib/kits/look.js,Look,"look markers: a link that lands on a place in a page, says why, and can ring the control to tap.",1600,no,yes,4,yes
 lib/kits/md-diff.js,mdDiff,a markdown change read as the DOCUMENT rather than as its source.,1491,no,yes,18,yes
-lib/kits/md-doc.js,mdDoc,a markdown document rendered as something you can read and take pieces OUT of.,1074,no,no,16,yes
-lib/kits/md-edit.js,mdEdit,"edit one section of a markdown file where it is rendered, and save it back to the repository it came from.",794,no,no,3,yes
+lib/kits/md-doc.js,mdDoc,a markdown document rendered as something you can read and take pieces OUT of.,973,no,no,16,yes
+lib/kits/md-edit.js,mdEdit,"edit one section of a markdown file where it is rendered, and save it back to the repository it came from.",809,no,no,3,yes
 lib/kits/md-history.js,mdHistory,"a markdown document read WITH the history of its passages: what each one used to say, the commit that changed it, and the variants the Text collection holds…",275,no,no,2,yes
 lib/kits/md-surface.js,MdSurface,"a markdown buffer shown RENDERED, and still aimed at by character offset, so a text surface can edit its source while the reader looks at the document.",1254,no,no,6,yes
 lib/kits/md-unwrap.js,mdUnwrap,join hard-wrapped markdown lines into one line per paragraph.,142,no,no,1,yes

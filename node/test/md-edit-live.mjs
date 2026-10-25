@@ -79,7 +79,6 @@ const origin = `http://127.0.0.1:${server.address().port}`;
 
 const browser = await chromium.launch({ args: ['--no-sandbox', '--ignore-certificate-errors'] });
 const page = await browser.newPage({ viewport: { width: WIDTH, height: 844 }, hasTouch: WIDTH < 600 });
-await page.addInitScript(() => { try { localStorage.setItem('ghToken', 'test-token'); } catch {} });
 
 const json = (route, body, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
 await page.route('**/*', async (route) => {
@@ -143,27 +142,35 @@ const shot = async (name) => {
 const open = async (file) => {
   await page.goto(`${origin}/pages/data-view.html?src=${encodeURIComponent(`${REPO}@main:${file}`)}`,
                   { waitUntil: 'domcontentloaded' });
-  await page.waitForSelector('.md-sec-menu', { timeout: 20000 });
+  await page.waitForSelector('[data-md-act="copy"]', { timeout: 20000 });
 };
-// The menu for the section headed `title`, opened.
-const menu = async (title) => {
+// The controls on the heading titled `title`, and its pencil, tapped.
+const controls = (title) => page.locator('[data-md-section]', { hasText: title }).first()
+  .locator('[data-md-act]').evaluateAll(bs => bs.map(b => b.dataset.mdAct).join(','));
+const pencil = async (title) => {
   const h = page.locator('[data-md-section]', { hasText: title }).first();
   await h.scrollIntoViewIfNeeded();
-  await h.locator('.md-sec-menu').click();
-  await page.waitForTimeout(250);
+  await h.locator('[data-md-act="edit"]').click();
 };
-const rowLabels = () => page.evaluate(() =>
-  [...document.querySelectorAll('body > .fixed button')].map(b => b.textContent.trim()));
 
 try {
   // ── 1. the edit, start to finish ──────────────────────────────────────────
+  // The browser starts with no token: the pencil still shows, and asks for one.
   await open(DOC);
-  await menu('Second');
-  ok('the heading menu offers Edit section', (await rowLabels()).some(t => t.startsWith('Edit section')),
-     JSON.stringify(await rowLabels()));
-  await shot('1-menu');
-  await page.locator('body > .fixed button', { hasText: 'Edit section' }).click();
+  ok('the heading carries a copy and a pencil, nothing to open', (await controls('Second')) === 'edit,copy',
+     await controls('Second'));
+  await shot('1-heading');
+  await pencil('Second');
+  await page.waitForSelector('[data-md-edit]', { timeout: 10000 });
+  const asked = await page.locator('[data-md-edit]').innerText();
+  ok('with no token, the pencil asks for one', /No GitHub token in this browser/.test(asked) && /Add token/.test(asked), asked);
+  await shot('1b-token');
+  await page.evaluate(() => {
+    localStorage.setItem('ghToken', 'test-token');
+    window.dispatchEvent(new CustomEvent('web-tools:token-changed'));
+  });
   await page.waitForSelector('[data-md-edit] textarea', { timeout: 10000 });
+  ok('a saved token carries straight on into the editor', true);
   const ta = page.locator('[data-md-edit] textarea');
   ok('the section becomes its source in place', (await ta.inputValue()) === '## Second\n\nThe second section says another.');
   ok('the rest of the document stays rendered',
@@ -211,8 +218,7 @@ try {
   await page.locator('[data-md-edit-receipt] button[aria-label="Close"]').click();
 
   // ── 2. someone else changed the same section ──────────────────────────────
-  await menu('First');
-  await page.locator('body > .fixed button', { hasText: 'Edit section' }).click();
+  await pencil('First');
   await page.waitForSelector('[data-md-edit] textarea');
   await page.locator('[data-md-edit] textarea').fill('## First\n\nMy version of the first section.');
   files[DOC] = { text: files[DOC].text.replace('The first section says one thing.', 'Their version.'), sha: '9'.repeat(40) };
@@ -230,8 +236,7 @@ try {
 
   // ── 3. a generated file ───────────────────────────────────────────────────
   await open(GEN);
-  await menu('Rows');
-  await page.locator('body > .fixed button', { hasText: 'Edit section' }).click();
+  await pencil('Rows');
   await page.waitForSelector('[data-md-edit]');
   await page.waitForFunction(() => /Generated file/.test(document.querySelector('[data-md-edit]')?.textContent || ''), null, { timeout: 10000 }).catch(() => {});
   const gen = await page.locator('[data-md-edit]').innerText();

@@ -269,30 +269,25 @@ test('each top-level heading gets a copy control, and it is not part of the text
     // kits/annotate.js rejects any subtree carrying this attribute when it
     // walks the document's text to anchor a quote. Without it, a selection
     // dragged across a heading carries an invisible glyph into the quote and
-    // the anchor cannot re-find itself.
-    assert.equal(btn.hasAttribute('data-annotate-ui'), true);
+    // the anchor cannot re-find itself. The controls' wrapper carries it, so
+    // every control inside is covered.
+    assert.ok(btn.closest('[data-annotate-ui]'), 'the control sits under data-annotate-ui');
   }
 });
 
-// The control opens a MENU: a heading has room for one mark, and the reader's
-// question at a heading is "what can I do with this part".
-const openMenu = (host, i) => {
-  const heads = [...host.querySelectorAll('[data-md-section]')];
-  heads[i].querySelector('button').click();
-  const menus = [...window.document.body.querySelectorAll('div')]
-    .filter(n => n.className.includes('z-[80]'));
-  return menus[menus.length - 1];
-};
-const rowLabels = (menu) => [...menu.querySelectorAll('button')]
-  .map(b => b.querySelector('span span').textContent);
+// The controls are glyphs by the heading, not a menu (2026-10-25): copy always,
+// edit where the host opted in, note where the annotator is loaded.
+const acts = (host, i) => [...host.querySelectorAll('[data-md-section]')[i]
+  .querySelectorAll('[data-md-act]')].map(b => b.dataset.mdAct);
+const act = (host, i, name) => host.querySelectorAll('[data-md-section]')[i]
+  .querySelector(`[data-md-act="${name}"]`);
 
-test('the control copies its own section, with the address', async () => {
+test('the copy control copies its own section, with the address', async () => {
   const host = window.document.createElement('div');
   const copied = [];
   window.io = { copy: async (t) => { copied.push(t); } };
   mdDoc.render(host, DOC, { addr: ADDR });
-  const menu = openMenu(host, 1);
-  menu.querySelectorAll('button')[0].click();
+  act(host, 1, 'copy').click();
   await new Promise(r => setTimeout(r, 0));
   assert.equal(copied.length, 1);
   assert.match(copied[0], /^From mehrlander\/web-tools@main:docs\/APP\.md lines /);
@@ -300,50 +295,42 @@ test('the control copies its own section, with the address', async () => {
   delete window.io;
 });
 
-test('copy for revision leads with an ask the answer has to fit', async () => {
-  // A revision that arrives as advice about the section is not a revision, so
-  // the ask names the shape of the answer as well as the job.
+test('each control is a labelled button a finger can hit, with no title attribute', () => {
+  // A title draws only on mouse hover, outside the page, so a phone never sees
+  // it (html-style rule 11); the label rides aria-label and a title-tip.
   const host = window.document.createElement('div');
-  const copied = [];
-  window.io = { copy: async (t) => { copied.push(t); } };
   mdDoc.render(host, DOC, { addr: ADDR });
-  const menu = openMenu(host, 1);
-  menu.querySelectorAll('button')[1].click();
-  await new Promise(r => setTimeout(r, 0));
-  assert.equal(copied[0].startsWith(mdDoc.REVISE), true);
-  assert.match(copied[0], /\n\nFrom mehrlander\/web-tools@main:docs\/APP\.md lines /);
-  assert.match(copied[0], /\n## First\n/);
-  delete window.io;
+  const b = act(host, 1, 'copy');
+  assert.equal(b.getAttribute('aria-label'), 'Copy this section');
+  assert.equal(b.getAttribute('data-title-tip'), 'Copy this section');
+  assert.equal(b.hasAttribute('title'), false);
+  assert.match(b.className, /\bsize-8\b/);
+  assert.match(b.className, /pointer-coarse:size-10/);
+  assert.doesNotMatch(b.className, /opacity-25/, 'muted, not faint');
 });
 
-test('the note row appears wherever the annotator is loaded, running or not', () => {
+test('the note control appears wherever the annotator is loaded, running or not', () => {
   // A control that opens nothing is worse than an absent one, so an absent kit
-  // is still no row: the reader has no way to tell which kind they are looking
-  // at. PRESENCE is where that line falls, not `enabled`.
+  // is still no control. PRESENCE is where that line falls, not `enabled`.
   const host = window.document.createElement('div');
   mdDoc.render(host, DOC, { addr: ADDR });
-  assert.deepEqual(rowLabels(openMenu(host, 1)), ['Copy section', 'Copy for revision']);
+  assert.deepEqual(acts(host, 1), ['copy']);
 
   window.Annotate = { enabled: true, noteSection: () => true };
   const host2 = window.document.createElement('div');
   mdDoc.render(host2, DOC, { addr: ADDR });
-  assert.deepEqual(rowLabels(openMenu(host2, 1)),
-    ['Copy section', 'Copy for revision', 'Note this section']);
+  assert.deepEqual(acts(host2, 1), ['copy', 'note']);
 
-  // Loaded and idle is the case this row is BEST placed to serve, and it was
-  // the case the gate excluded until 2026-09-06: the reader is looking at the
-  // heading they want a note on, and the only way to start one was the
-  // launcher menu somewhere else on the page.
+  // Loaded and idle is the case this control is BEST placed to serve: the
+  // reader is looking at the heading they want a note on.
   window.Annotate = { enabled: false, noteSection: () => true };
   const host3 = window.document.createElement('div');
   mdDoc.render(host3, DOC, { addr: ADDR });
-  assert.deepEqual(rowLabels(openMenu(host3, 1)),
-    ['Copy section', 'Copy for revision', 'Note this section'],
-    'loaded but idle still offers the row: the click turns it on');
+  assert.deepEqual(acts(host3, 1), ['copy', 'note'], 'loaded but idle still offers it: the click turns it on');
   delete window.Annotate;
 });
 
-test('the note row turns the annotator on before it asks for a note', () => {
+test('the note control turns the annotator on before it asks for a note', () => {
   // noteSection returns false with no card mounted, so an idle annotator would
   // have flashed a warning and done nothing. enable() comes first, aimed at the
   // heading's OWN document, since a render inside a frame is annotated where it
@@ -358,50 +345,15 @@ test('the note row turns the annotator on before it asks for a note', () => {
   const host = window.document.createElement('div');
   window.document.body.append(host);
   mdDoc.render(host, DOC, { addr: ADDR });
-  const menu = openMenu(host, 1);
-  [...menu.querySelectorAll('button')]
-    .find(b => b.textContent.includes('Note this section')).click();
+  act(host, 1, 'note').click();
   assert.deepEqual(calls, [['enable', true], ['noteSection', true]]);
 
   // Already running: no second enable, since the card is up and aimed.
   calls.length = 0;
-  const menu2 = openMenu(host, 1);
-  [...menu2.querySelectorAll('button')]
-    .find(b => b.textContent.includes('Note this section')).click();
+  act(host, 1, 'note').click();
   assert.deepEqual(calls, [['noteSection', true]], 'a running annotator is not re-enabled');
   host.remove();
   delete window.Annotate;
-});
-
-test('the menu survives a scroll that was already in flight when it opened', () => {
-  // A scrollIntoView, or a phone still settling from a flick, delivers its
-  // scroll event AFTER the tap that opened the menu. Closing on any scroll lost
-  // that race: the menu opened and vanished in the same frame. It follows the
-  // heading instead, and closes only when the heading leaves the viewport.
-  const host = window.document.createElement('div');
-  window.document.body.append(host);
-  mdDoc.render(host, DOC, { addr: ADDR });
-  const menu = openMenu(host, 1);
-  assert.ok(menu, 'the menu opened');
-  window.dispatchEvent(new window.Event('scroll'));
-  assert.equal(window.document.body.contains(menu), true, 'still open after a scroll');
-  host.remove();
-});
-
-test('a tap outside closes it, and so does Escape', () => {
-  const host = window.document.createElement('div');
-  window.document.body.append(host);
-  mdDoc.render(host, DOC, { addr: ADDR });
-
-  const m1 = openMenu(host, 1);
-  window.document.dispatchEvent(new window.Event('pointerdown', { bubbles: true }));
-  assert.equal(window.document.body.contains(m1), false);
-
-  const m2 = openMenu(host, 1);
-  const esc = new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true });
-  window.document.dispatchEvent(esc);
-  assert.equal(window.document.body.contains(m2), false);
-  host.remove();
 });
 
 // ── Declare ─────────────────────────────────────────────────────────────────

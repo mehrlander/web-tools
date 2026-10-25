@@ -264,33 +264,30 @@ test('the review copy fences each side longer than any fence inside it', () => {
   assert.match(text, /````markdown\n## Second\n\n```js/);
 });
 
-// ── md-doc's Edit row ───────────────────────────────────────────────────────
+// ── md-doc's pencil ─────────────────────────────────────────────────────────
 
-function rowsFor(o) {
+const actsFor = (o) => {
   const host = window.document.createElement('div');
-  window.document.body.append(host);
   mdDoc.render(host, BODY, o);
-  host.querySelector('.md-sec-menu').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
-  const labels = [...window.document.body.querySelectorAll('.fixed button')].map(b => b.textContent);
-  window.document.body.querySelectorAll('.fixed').forEach(m => m.remove());
-  host.remove();
-  return labels.join(' | ');
-}
+  return [...host.querySelector('[data-md-section]').querySelectorAll('[data-md-act]')].map(b => b.dataset.mdAct);
+};
 
 const ADDR = { repo: 'o/r', ref: 'main', path: 'docs/x.md' };
 
-test('the Edit row appears where the host opted in at a branch with a token', () => {
-  window.ghAuth = { resolve: () => 'tok' };
-  assert.match(rowsFor({ addr: ADDR, edit: { full: FULL } }), /Edit section/);
+test('the pencil appears where the host opted in at a branch', () => {
+  assert.deepEqual(actsFor({ addr: ADDR, edit: { full: FULL } }), ['edit', 'copy']);
+  assert.deepEqual(actsFor({ addr: { ...ADDR, ref: 'claude/md-section-edit' }, edit: { full: FULL } }), ['edit', 'copy']);
 });
 
-test('no Edit row without the opt-in, at a commit, or with no token', () => {
-  window.ghAuth = { resolve: () => 'tok' };
-  assert.doesNotMatch(rowsFor({ addr: ADDR }), /Edit section/);
-  assert.doesNotMatch(rowsFor({ addr: { ...ADDR, ref: 'a'.repeat(40) }, edit: { full: FULL } }), /Edit section/);
-  assert.doesNotMatch(rowsFor({ addr: { ...ADDR, ref: '56ef136c92d3' }, edit: { full: FULL } }), /Edit section/,
+test('no pencil without the opt-in, or at a commit, full or short', () => {
+  assert.deepEqual(actsFor({ addr: ADDR }), ['copy']);
+  assert.deepEqual(actsFor({ addr: { ...ADDR, ref: 'a'.repeat(40) }, edit: { full: FULL } }), ['copy']);
+  assert.deepEqual(actsFor({ addr: { ...ADDR, ref: '56ef136c92d3' }, edit: { full: FULL } }), ['copy'],
     'a short sha, the form a minted link pins, is a commit too');
-  assert.match(rowsFor({ addr: { ...ADDR, ref: 'claude/md-section-edit' }, edit: { full: FULL } }), /Edit section/);
+});
+
+test('no token still shows the pencil: the editor asks for one', () => {
   window.ghAuth = { resolve: () => '' };
-  assert.doesNotMatch(rowsFor({ addr: ADDR, edit: { full: FULL } }), /Edit section/);
+  assert.deepEqual(actsFor({ addr: ADDR, edit: { full: FULL } }), ['edit', 'copy']);
+  window.ghAuth = { resolve: () => 'tok' };
 });
