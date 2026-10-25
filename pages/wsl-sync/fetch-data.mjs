@@ -7,9 +7,9 @@
 //
 // Parsing is NOT reimplemented: lib/kits/wsl-core.js is dependency-free, so
 // this script executes it exactly as the browser's gh.load does (a
-// `new Function('gh', src)` body) and injects the same-version npm packages
-// (fast-xml-parser@4.5.1, flat@6) through `makeParsers` — this script and
-// the pages run the identical transform/classify code.
+// `new Function('gh', src)` body) and injects the npm builds of
+// fast-xml-parser and flat through `makeParsers`, so this script and the
+// pages run the identical transform/classify code.
 //
 // Usage (from repo root, after npm install):
 //   npm run wsl-fetch                  incremental: refetch lists, fill missing

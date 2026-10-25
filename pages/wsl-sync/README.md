@@ -59,7 +59,7 @@ monthly with `full=true` to keep the open biennium fresh; the schedule is the
 network access to `wslwebservices.leg.wa.gov`:
 
 ```sh
-npm install            # once; pulls fast-xml-parser + flat (same versions the pages use)
+npm install            # once; pulls fast-xml-parser + flat
 npm run wsl-fetch                          # incremental: refetch lists, fill missing per-bill data
 npm run wsl-fetch -- --full                # refetch everything (use for an open biennium)
 npm run wsl-fetch -- --limit 50            # cap per-bill fetches (smoke test)
@@ -83,13 +83,11 @@ top-level lists are re-fetched every run regardless.
 
 `data/<biennium>/meta.json` records when the snapshot was fetched and its counts.
 
-## Dependency pin: fast-xml-parser 4.5.1
+## Dependency: fast-xml-parser stays on 4.x
 
-The browser imports `fast-xml-parser@4.5.1` and `flat@6` from the CDN in
-`lib/kits/wsl.js`. `fetch-data.mjs` uses the npm devDependencies
-`fast-xml-parser@^4.5.1` and `flat@^6.0.0`, and `package-lock.json` is not
-committed, so Node resolves the newest 4.x and 6.x: the two runtimes share a
-major version of each, not necessarily the same release. `npm audit` flags fast-xml-parser <5.7.0
+The browser imports fast-xml-parser and flat from the CDN in `lib/kits/wsl.js`;
+`fetch-data.mjs` takes them from the npm devDependencies in `package.json`.
+`npm audit` flags fast-xml-parser <5.7.0
 ([GHSA-gh4j-gqv2-49f6](https://github.com/advisories/GHSA-gh4j-gqv2-49f6)),
 but the advisory is against `XMLBuilder` (XML *writing*), which this code
 never uses; it uses only `XMLParser`. The v5 major bump is deliberately deferred;
