@@ -23,7 +23,7 @@ Evidence carries one of three labels:
 | Another repository's data | The page's own parameter (`?data=`), else the selection | main, and some reads pinned there on purpose (loader.md) |
 | A view framed by the web-tools app | The view's own ref and `lib`, else the app's displayed version (web-tools views); the selection travels whole | The view's own default |
 
-The renderer hands the Web Tools choice to the page by three channels, one meaning each (loader.md has the table): `use` answers the effective ref, `lib` and `window.__lib` carry only an explicit selection, and `window.__ref` names the page's own repo ref. `lib/entry.js` reads `?ref=` on its import, then `window.__lib`, then `use`, then main.
+The renderer hands the Web Tools choice to the page by channels with one meaning each (loader.md has the table): `use` answers the effective ref, `lib` and `window.__lib` carry only an explicit selection, and `window.__ref` names the page's own repo ref. `lib/entry.js` reads `?ref=` on its import, then `window.__lib`, then the selection's web-tools entry, then `use`, then main.
 
 The FAB checks the result. Its layer strip marks any layer whose loader booted a Web Tools version other than the one the rule gives it. Its "ignored" banner makes the same check inside a toss, where until 2026-09-28 it was switched off.
 

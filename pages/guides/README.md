@@ -30,10 +30,8 @@ live**. A live re-read would silently restate the argument against a tree that
 had already changed, which is the one failure a decision document cannot afford,
 and it also keeps the page rendering identically through either toss form.
 
-**On the name.** The other live sense of "guide" here is the **guide PR** and its
-body: a pull request, not a page. Say "guide PR" when that is what is meant and
-the two stay apart. `MERGE-GUIDE.md` and `BRANCH-GUIDE.md` were two further
-senses and both are retired, so the word is less crowded than it looks.
+**On the name.** The other sense of "guide" here is the **guide PR**, a pull
+request rather than a page; say "guide PR" when that is what is meant.
 
 | Page | What it covers |
 |---|---|

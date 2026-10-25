@@ -7,9 +7,9 @@ description: "Run a fan-out reduction panel over a document: one cheap reader pe
 
 The model that wrote a document defends its material as useful context, and so
 does the model that just trimmed it. Cheap readers with no stake propose the
-cuts; a stronger judge catches what a per-section pass cannot see. Measured
-run: home `chron/2026/09/2026-09-08-reduction-panel-on-a-doc-i-just-trimmed.md`
-(1,484 words to 968 on a doc trimmed an hour earlier; 21 of 32 cuts stood).
+cuts; a stronger judge catches what a per-section pass cannot see. A measured
+run is recorded in home
+`chron/2026/09/2026-09-08-reduction-panel-on-a-doc-i-just-trimmed.md`.
 
 ## Protocol
 
@@ -32,11 +32,8 @@ run: home `chron/2026/09/2026-09-08-reduction-panel-on-a-doc-i-just-trimmed.md`
 Deliver the reduced document plus the restore report: every cut, kept or
 restored, with the named behavior.
 
-The panel replaces the grind, not the author's read of the result: the one
-defect all three models missed in the measured run was found by a human
-reading a single heading.
+The panel replaces the grind, not the author's read of the result.
 
 For a document that instructs an agent, gate the reduction on a naive executor
 run against a real task, not on the judge's opinion: behavior, not review,
-decides what was lost. Measured 2026-09-09 on a four-rung ablation of a skill:
-review approved a cut whose executor lost verdict discipline two rungs later.
+decides what was lost.

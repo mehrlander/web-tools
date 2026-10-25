@@ -18,8 +18,8 @@ API at view time, or serve multiple routes.
 Mark artifact links **📦**, beside 🔷 (canonical hosted view) and 🥏 (toss
 render). The chooser is viewer context, not just where the code lives. The
 Claude app's in-app browser keeps its own storage, so the `ghToken` a 🥏
-`#gh=` toss needs is not guaranteed there: historically absent, though it can be
-entered, after which `#gh=` works in the app too. An artifact needs no token
+`#gh=` toss needs is not guaranteed there; once entered, `#gh=` works in the
+app too. An artifact needs no token
 (the app is already signed in to claude.ai), so it is the reliable choice when
 you can't count on a token being present.
 
@@ -32,7 +32,7 @@ you can't count on a token being present.
 | Branch or private page; owner in the Claude app with a token entered there | 🥏 `#gh=` works too; 📦 still the zero-setup choice |
 | Branch or private page; any other reader | 🥏 `#gz=` (artifacts do not travel on Pro/Max) |
 
-Interactive form of this matrix, itself the publish trial:
+Interactive form of this matrix:
 <https://claude.ai/code/artifact/f5ee6c4f-5474-4a77-9c3b-8a61b8d87e7c>
 (source: [examples/which-link.html](examples/which-link.html); bake and
 republish per Publishing below).
@@ -55,9 +55,7 @@ The house CDN stack survives the CSP once baked. The steps:
    the editable source, per the `bake-page` skill (`skills/bake-page/` in the
    canonical repo).
 2. **Bake self-contained:**
-   `node skills/bake-page/scripts/bake.js in.html out.html`. The trial page
-   baked to 83 KB, far under the 16 MiB cap; a headless `file://` load made
-   zero external requests and Alpine interactions worked.
+   `node skills/bake-page/scripts/bake.js in.html out.html`.
 3. **Strip to a fragment.** The Artifact tool wraps the file in its own
    doctype/head/body skeleton, so publish page content, not a document: keep
    `<title>` and the `<style>` and `<script>` blocks, drop
@@ -131,7 +129,7 @@ Available on Pro, Max, Team, and Enterprise plans, only in sessions signed in
 to claude.ai (not API-key sessions). Publishing a new artifact prompts for
 permission once; republishing does not prompt again.
 
-One failure mode observed in practice: with a stale claude.ai session, an
+One failure mode: with a stale claude.ai session, an
 artifact you own renders as "Page not found" (claude.ai does not distinguish
 missing from unauthorized). Refresh the sign-in before suspecting the link;
 the "Sign in" button on the error page is the tell when it appears, but a

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="Frisbee">
+  <title>Frisbee</title>
+  <desc>A flying disc seen from above and to one side, tilted as it flies: its top ringed the way the 🥏 emoji is, and the lip showing beneath it. Drawn after that emoji, which marks a toss link in chat, for the FAB to paint in its text colour: solid, no strokes, and every gap at least 2.5 units.</desc>
+  <g fill="currentColor" transform="rotate(-18 16 16.25)">
+    <path fill-rule="evenodd" d="M2.5 14.5A13.5 8 0 1 0 29.5 14.5A13.5 8 0 1 0 2.5 14.5Z M6 14.1A10 5.4 0 1 0 26 14.1A10 5.4 0 1 0 6 14.1Z M8.5 14.1A7.5 2.9 0 1 0 23.5 14.1A7.5 2.9 0 1 0 8.5 14.1Z"/>
+    <path d="M2.5 14.5A13.5 10.5 0 0 0 29.5 14.5A13.5 12.6 0 0 1 2.5 14.5Z"/>
+  </g>
+</svg>

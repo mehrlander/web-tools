@@ -1,7 +1,6 @@
 // Static resolver for a page's gh.load chain.
 //
-// gh.load(path) fetches lib/<path> (loadBase is 'lib/'), strips export/export
-// default, and runs it. A file can pull more own-code with its own gh.load(...)
+// gh.load(path) fetches lib/<path> (loadBase is 'lib/') and runs it as-is. A file can pull more own-code with its own gh.load(...)
 // or fab.js's _selfLoad(...). This walks that graph from a page entry and
 // returns the *set* of own-repo files the page can reach — every lib/* the
 // runtime loader would request.
