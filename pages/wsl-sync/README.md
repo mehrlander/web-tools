@@ -85,10 +85,11 @@ top-level lists are re-fetched every run regardless.
 
 ## Dependency pin: fast-xml-parser 4.5.1
 
-The XML libraries are pinned to the same versions in both runtimes —
-`fast-xml-parser@4.5.1` + `flat@6` as CDN imports in `wsl.js` and as npm
-devDependencies for `fetch-data.mjs` — so browser and Node run the identical
-transform/classify code. `npm audit` flags fast-xml-parser <5.7.0
+The browser imports `fast-xml-parser@4.5.1` and `flat@6` from the CDN in
+`lib/kits/wsl.js`. `fetch-data.mjs` uses the npm devDependencies
+`fast-xml-parser@^4.5.1` and `flat@^6.0.0`, and `package-lock.json` is not
+committed, so Node resolves the newest 4.x and 6.x: the two runtimes share a
+major version of each, not necessarily the same release. `npm audit` flags fast-xml-parser <5.7.0
 ([GHSA-gh4j-gqv2-49f6](https://github.com/advisories/GHSA-gh4j-gqv2-49f6)),
 but the advisory is against `XMLBuilder` (XML *writing*), which this code
 never uses; it uses only `XMLParser`. The v5 major bump is deliberately deferred;

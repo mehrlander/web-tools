@@ -27,7 +27,7 @@ lib/kits/dictate.js,Dictate,"voice input as a plain text buffer: start the engin
 lib/kits/doc-growth.js,DocGrowth,"a repository's markdown over time, as one bubble chart and one ranking, drawn from the payload python/doc-growth.py writes and the session counts…",282,no,no,2,yes
 lib/kits/doc-index.js,DocIndex,"every estate repo's Markdown, with word counts, kept in the private registry so the Map's Docs tab can read the constellation's documentation in one fetch.",140,no,no,2,yes
 lib/kits/dock-split.js,dockSplit,the drag handle between two panes.,263,no,yes,10,yes
-lib/kits/docx.js,docxKit,"WordprocessingML (.docx) preparation: what a Word file has to have done to it before a browser renderer draws it faithfully, and what it knows about itself…",506,no,no,1,yes
+lib/kits/docx.js,docxKit,"WordprocessingML (.docx) preparation: what a Word file has to have done to it before a browser renderer draws it faithfully, and what it knows about itself…",512,no,no,1,yes
 lib/kits/dom-shot.js,DomShot,render a live DOM node to a PNG in the browser.,218,no,no,1,yes
 lib/kits/errands.js,Errands,one record for everything a session needs a person's browser to do.,463,no,no,7,yes
 lib/kits/estate-search.js,EstateSearch,"The estate's search calls, in one place, with one cache.",557,no,no,8,yes
@@ -60,7 +60,7 @@ lib/kits/page-storage.js,PageStorage,"What a visited page keeps in its browser s
 lib/kits/panel-tip.js,PanelTip,the PANEL-TIP of the house popup rule: the ✕ and the ways out.,306,no,yes,8,yes
 lib/kits/pdf.js,pdf,"browser PDF extraction: text, geometry, and table structure.",2302,no,no,6,yes
 lib/kits/peek.js,Peek,"what is under the pointer, and what contains it.",780,no,yes,11,yes
-lib/kits/persistence.js,persistence,idb-keyval-backed key/value persistence.,369,no,yes,8,yes
+lib/kits/persistence.js,persistence,idb-keyval-backed key/value persistence.,372,no,yes,8,yes
 lib/kits/portable-align.js,PortableAlign,Pure assessment of a repo's alignment with the web-tools coordination surface: which of the environmental hooks that spread the portable set (the…,71,no,no,2,yes
 lib/kits/powershell-editor.js,PowerShellEditor,"The PowerShell workspace's editor, on CodeMirror 6.",267,no,no,1,yes
 lib/kits/powershell-language.js,PowerShellLanguage,"Browser-only, heuristic PowerShell and XAML inspection for the code workspace.",455,no,no,3,yes
