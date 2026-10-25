@@ -6,6 +6,7 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Align the Map view's names, addresses, and warning vocabulary](tasks/align-map-view-cleanup-40afu8.md) · L
 - 🎫 [Reach the take-away menu from the app's Pages gallery](tasks/brief-from-the-pages-gallery-7d4031.md) · S
 - 🎫 [Gate house-style rule 1 (stat cards) and widen scanner roots](tasks/enforce-house-style-ryz0z5.md) · S
+- 🎫 [Decide a shared component for expanding rows, and move the hand-built modals onto sheet-modal](tasks/expanding-rows-and-modals-kits-1r7is4.md) · M
 - 🎫 [Persist FAB captures, the write path to state/captures/](tasks/fab-capture-button-f6q38m.md) · S
 - 🎫 [Explore a fuller file history in the Branch view](tasks/file-history-in-branch-view-hxtdep.md) · ? (awaiting: owner to choose a direction; open-ended by request, bolder ideas welcome)
 - 🎫 [Build our own JSON tree for display, keep vanilla-jsoneditor for editing](tasks/own-json-tree-retire-vje-i0lcj2.md) · M
