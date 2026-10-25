@@ -11,8 +11,8 @@ observations and is corrected by re-probing; everything else is living and
 must stay correct.
 
 **Reach** (derived by `node/build/docs-reach.mjs`, gated against the registry):
-2 arrive in every session's context, 17 are named by CLAUDE.md,
-22 by a skill, 41 by a page or component. The remaining 46 are
+2 arrive in every session's context, 16 are named by CLAUDE.md,
+20 by a skill, 42 by a page or component. The remaining 34 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -22,7 +22,6 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`MARKETPLACE.md`](MARKETPLACE.md) — the plugin marketplace: how the set is published and subscribed to
 - [`QUALIFIED-WRITING.md`](QUALIFIED-WRITING.md) — the prose rules: qualify noun phrases, introduce before you refer, no em dashes
 - [`README.md`](README.md) — the docs folder's front door: the generated index of this registry
-- [`CONVERSATION.md`](CONVERSATION.md) — the conversation rules: the chat-handoff mechanics every reply uses
 - [`TRACKER.md`](TRACKER.md) — the opt-in cross-session project tracker: schema, ids, board
 - [`aims-initiatives.csv`](aims-initiatives.csv) — the five strategic initiatives the estate is pursuing
 - [`aims-goals.csv`](aims-goals.csv) — the five goals the estate's material is held to
@@ -58,7 +57,6 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`showing-mechanisms.csv`](showing-mechanisms.csv) — which link reaches which kind of change, and what each one silently misses
 - [`showing.md`](showing.md) — the frame behind the Showing tab: what ?use= and a 🥏 toss each reach, what resists preview, and how subjects and kinds are typed
 - [`stage.md`](stage.md) — the stage: bench and Saved, intake, the walkable preview and diff, Out, save-as-surface, and the #stage= link grammar
-- [`conversation.csv`](conversation.csv) — the gated index of the conversation rules CONVERSATION.md defines
 - [`tests.csv`](tests.csv) — the test registry: every check, its kind, and what breaks if it is deleted
 - [`text-content.md`](text-content.md) *(measured, orphan)* — the estate's authored text: whether the data files holding it are organized, and how much never reached one
 - [`text-fields.csv`](text-fields.csv) — the names a prose-bearing CSV column or JSON key may take
@@ -74,7 +72,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`run-methods.csv`](run-methods.csv) *(orphan)* — how a person runs an errand's script: the venues each method allows and how its output returns
 - [`csv-census.md`](csv-census.md) — the per-repository tracked-CSV inventory: adoption, index measurements and Map reading
 - [`locators.md`](locators.md) — locators: the kinds, the container-and-part canonical form, inbound lookup, and how a reference is tested (broken or changed, follow or pin, the hash cascade, verdicts, cost tiers)
-- [`fab.md`](fab.md) — the FAB: the floating launcher, the drawer's five tabs, its menus, and the one-per-viewport rule
+- [`fab.md`](fab.md) — the FAB: what it signals, its sidebar's six tabs, its menus, and the one-per-viewport rule
 - [`map-tabs.csv`](map-tabs.csv) — the Map view's per-address descriptions and the longer account of each tab
 - [`context-sources.csv`](context-sources.csv) — the context registry: everything that enters a session, where it is defined, how it arrives, and who can change it
 - [`context-topics.csv`](context-topics.csv) — the topics two or more context sources speak to, each with a verdict on whether the overlap is by design
@@ -95,8 +93,11 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`css-baseline.csv`](css-baseline.csv) *(measured)* — the CSS baseline: the most unexempt hand-written CSS declarations each file may carry, a ratchet on the house rule against vanilla CSS
 - [`hook-events.csv`](hook-events.csv) — every event Claude Code accepts a hook on, with the summary its /hooks menu gives
 - [`source-bundles.md`](source-bundles.md) *(orphan)* — the shared source-bundle convention: what a bundle is, its README frontmatter, the two tables and how a repository declares them
+- [`CONVERSATION.md`](CONVERSATION.md) — the conversation rules: the chat-handoff mechanics every reply uses
+- [`conversation.csv`](conversation.csv) — the gated index of the conversation rules CONVERSATION.md defines
 - [`intents.csv`](intents.csv) — what you might want done, each as a path through the Set diagram from what starts it to where it lands
 - [`icon-families.csv`](icon-families.csv) — the icon families: each set of icons the estate has settled on, the file that declares its members, and the passage that discusses them
+- [`fab-signals.csv`](fab-signals.csv) — what the FAB says: each tint, glyph and badge it shows, when it shows, what it means and what a tap does
 
 ## docs/envelopes/
 
@@ -141,8 +142,6 @@ marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/forms/
 
-- [`branch.md`](forms/branch.md) *(orphan)* — the branch form: the landed and stranded math behind a branch, and where the branch takeover is documented
-- [`session.md`](forms/session.md) *(orphan)* — the session form: one session read as a conversation in the deck, and its page
 - [`README.md`](forms/README.md) *(orphan)* — what a form is, the five jobs a page does for the reader, and the answer each respond form asks for
 
 ## docs/github/
@@ -153,19 +152,3 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`mcp-server-routing.md`](github/mcp-server-routing.md) *(record, orphan)* — two GitHub MCP servers at once: the 2026-07-15 observation, superseded
 - [`mcp.md`](github/mcp.md) *(measured, orphan)* — what the MCP layer does to a call and to the text it carries: which server answers, the 150-character write threshold, the HTML-stripping readback
 - [`post-merge-branch-mutation.md`](github/post-merge-branch-mutation.md) *(orphan)* — why a merged branch stops being a live workspace: merged means closed
-
-## docs/views/
-
-- [`branches.md`](views/branches.md) *(orphan)* — the Branches view: every estate branch by scope and repo, its row, and the activity crawl behind it
-- [`chats.md`](views/chats.md) *(orphan)* — the Chats view: the chat archive read one month at a time, with its staleness banner
-- [`map.md`](views/map.md) — the Map view: its tabs over the coordination layer
-- [`project.md`](views/project.md) *(orphan)* — the Project view: a workspace's tabs, and the PowerShell outpost view in its Outpost tab: what it lists, its one write, and the rules its file handling keeps
-- [`search.md`](views/search.md) *(orphan)* — the Search view and the Files view: names, contents and sessions search, scopes, and reading a hit in place
-- [`sessions.md`](views/sessions.md) *(orphan)* — the Sessions view and the sessions cache: recorded sessions, their counts, and file attention
-- [`state.md`](views/state.md) *(orphan)* — the State view: every derived cache with its ages, Refresh, progress, calls and history
-- [`tools.md`](views/tools.md) *(orphan)* — the Tools view: the curated utility-page gallery from tools.csv
-- [`writes.md`](views/writes.md) *(orphan)* — the Writes view: the estate's commit stream by kind, and what the app's own commit subjects mean
-- [`proposals.md`](views/proposals.md) *(orphan)* — the Proposals view: cross-repo edits a session could not make, waiting in proposals/pending for a two-tap confirm
-- [`tending.md`](views/tending.md) — the Tending view: the finding record, how a finding changes, and how its witnesses are checked
-- [`repos.md`](views/repos.md) *(orphan)* — the Repos view: estate membership, cards, hidden and unfiled repos, token gating and the repo dialog
-- [`lists.md`](views/lists.md) — the Lists view: Pins, To-do, Jot, Ping and Note, and the files behind them

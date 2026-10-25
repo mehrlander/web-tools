@@ -9,10 +9,7 @@ export default async (page) => {
   await page.evaluate(() => localStorage.setItem('ghToken', 'local-preview'));
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(2500);
-  // Tap the pill rather than appending &view=chats to the query: the shot is
-  // driven with ?view=activity already set, and URLSearchParams.get returns the
-  // FIRST occurrence, so a second view param is silently ignored. Clicking also
-  // exercises the control the reader actually uses.
+  // Tap the pill, which exercises the control the reader actually uses.
   await page.getByRole('tab', { name: 'Chats' }).click();
   // The pane loads its kit, then frontier.json, then the newest month's two
   // shards. Wait for a row rather than a fixed delay, so a slow read fails

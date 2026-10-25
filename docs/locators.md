@@ -17,7 +17,7 @@ relation. The shapes in use today are all references in this sense:
 | Record | Source | Target | Relation |
 | --- | --- | --- | --- |
 | A note (`web-tools-private/notes/notes.jsonl`, [notes skill](../skills/notes/SKILL.md)) | the note | its `about` locator, plus an optional quote anchor | comments on |
-| A finding (a note carrying `finding`, [tending.md](views/tending.md)) | the finding | each subject, followed; each witness, pinned | concludes about; rests on |
+| A finding (a note carrying `finding`, [findings.js](../lib/kits/findings.js)) | the finding | each subject, followed; each witness, pinned | concludes about; rests on |
 | A standoff ([annotation.md](annotation.md)) | the standoff file | a document, by character spans and the document's `sha256` | annotates |
 | A text proposal (`home/projects/text/proposals.jsonl`) | one passage id | another passage id | proposes a rewrite of |
 | An errand's `for` field, also read as `task` ([manifest.md](manifest.md#errands-errandsrequests--errandsresults)) | the errand | a tracker task | serves |
@@ -152,7 +152,7 @@ copy of the patterns, held to the same answers by
 the content registry; spans pinned by a document hash in standoffs; quote
 anchors on notes; content-addressed passages; notes addressed to any locator,
 with `note.py show <about>` as the inbound lookup for notes; witnesses pinned
-on findings, checked by the [Tending view](views/tending.md) and `findings.py check`; and the broken
+on findings, checked by [`findings.js`](../lib/kits/findings.js) in the Tending view and `findings.py check`; and the broken
 test with its verdicts in `dead-links.py`. `python/annotate/anchors.py` tests quotes on
 notes and spans in standoffs; the pre-commit hook runs it on what a commit
 changes.
