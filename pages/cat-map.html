@@ -8,32 +8,16 @@
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
 
 <!--
-  cat-map.html — draws a category map (catmap/1), the output of the cat-map
-  skill: a set of category words that blur, what each implies, and how the
-  things they are applied to fall. The format is in skills/cat-map/SKILL.md.
-
-  A run opens with its outcome, then two views of it. The field plots two
-  characteristics at a time, each sense a region of the cells its required
-  values allow, each instance a chip in its cell; a sense that constrains
-  neither axis is listed beside it, which is how "different axes" shows. The
-  docket lists each sense's charge (the values it requires) across every
-  characteristic, with the instances called by it checked against the charge,
-  then the instances no sense is applied to.
-
-  The page opens on the map's answer, a first tab shared by every run, laid out
-  as a poster: the question, the grid of the two characteristics that decide
-  the word with the map's own things in each cell, the words that add to it,
-  the names it changes, and the calls left open. Every placement on it is held
-  to the coding by skills/cat-map/answer-check.py. Below the poster, how the
-  answer was reached. A
-  file with several runs, such as blind readers' maps of one question, also
-  gets a Compare view.
+  cat-map.html — draws one answer to "what kind of thing is it?" as a poster:
+  the question, a grid of the two characteristics that decide the word with
+  the estate's own files in each cell, the words that add to it, the names it
+  changes, and the calls left open. The answers and how they were reached are
+  in research/category-mapping/README.md.
 
   Address: #src=<path on this host>, #gh=owner/repo[@ref]:path or
-  #gz=<gzipped JSON>; with none, the registry test in
-  research/category-mapping/registry-map.json. poster=1 shows the poster alone,
-  for rendering to an image:
-    npm run shot -- pages/cat-map.html --hash 'src=../<map>.json&poster=1' \
+  #gz=<gzipped JSON>; with none, research/category-mapping/collections.json.
+  poster=1 drops the header and the reasons, for rendering to an image:
+    npm run shot -- pages/cat-map.html --hash 'src=../<answer>.json&poster=1' \
       --width 720 --scale 2 --full --out poster.png
 -->
 <script>
@@ -52,61 +36,22 @@ if (/(^|[#&])poster=1(&|$)/.test(location.hash)) document.documentElement.setAtt
   } else {
     await import('../dist/web-tools.js');
   }
-  try {
-    await gh.load('kits/gz-payload.js');
-    await gh.load('kits/title-tip.js');
-  } finally { window.__depsDone(); }
+  try { await gh.load('kits/gz-payload.js'); } finally { window.__depsDone(); }
 </script>
 <script>
 document.addEventListener('alpine:init', () => {
-  const NA = 'n/a';
   const param = k => new URLSearchParams(location.hash.slice(1)).get(k) || new URLSearchParams(location.search).get(k);
   const tokenNow = () => window.TOKEN || window.ghAuth?.resolve() || '';
-  const KIND = { list: 'a list', region: 'a region', value: 'a value', outside: 'outside the space', fuzzy: 'fuzzy edge', axis: 'one axis' };
+  const DIR = '../research/category-mapping/';
+  // The committed answers, one pill each.
+  const ANSWERS = [['Collections', DIR + 'collections.json'], ['Timing', DIR + 'timing.json']];
 
   Alpine.data('catMap', () => ({
-    D: null, err: '', r: 0, view: 'answer', x: '', y: '', open: '', from: '', more: false, long: false, poster: param('poster') === '1',
+    A: null, err: '', src: '', answers: ANSWERS, poster: param('poster') === '1',
 
     async init() {
       await window.__depsReady;
-      try { this.D = await this.read(); } catch (e) { this.err = e.message; return; }
-      const k = Number(param('run')), run = param('run') !== null && Number.isInteger(k) && k >= 0 && k < this.D.runs.length;
-      this.r = run ? k : 0;
-      // The page opens on the answer, unless the address names a run or the comparison.
-      this.view = param('view') === 'compare' && this.D.runs.length > 1 ? 'compare' : run ? 'map' : 'answer';
-      this.axes();
-    },
-    get A() { return this.D.answer || {}; },
-    get multi() { return this.D.runs.length > 1; },
-    // The run whose coding places the answer's examples (skills/cat-map/answer-check.py holds it to that coding).
-    get basis() { return this.D.runs[this.A.basis || 0]; },
-    nameOf(id) { return (this.basis.instances.find(i => i.id === id) || {}).name || id; },
-    names(ids) { const n = (ids || []).map(id => this.nameOf(id)); return n.length > 1 ? n.slice(0, -1).join(', ') + ' and ' + n.at(-1) : n[0] || ''; },
-    // An example the answer renames carries its current, wrong name.
-    ex(ids) {
-      return (ids || []).map(id => {
-        const fix = (this.A.renames || []).find(n => (n.things || []).includes(id));
-        return esc(this.nameOf(id)) + (fix ? `, <span class="text-error">called “${esc(fix.from)}”</span>` : '');
-      }).join(' · ');
-    },
-    // A row not every run states says which do.
-    partial(runs) {
-      if (!this.multi || !runs || runs.length === this.D.runs.length) return '';
-      return 'stated by ' + runs.map(k => this.D.runs[k].short || k + 1).join(', ').replace(/, ([^,]*)$/, ' and $1');
-    },
-    count(rows, noun) {
-      const n = (rows || []).length, w = ['No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'][n] || String(n);
-      return `${w} ${noun}${n === 1 ? '' : 's'}`;
-    },
-    // The readers side by side, counted from their runs.
-    get tally() {
-      const answered = r => (r.findings || []).filter(f => f.rationale).length;
-      return [
-        ['Senses', r => r.categories.length],
-        ['Questions', r => r.characteristics.length],
-        ['Things', r => r.instances.length],
-        ['Flags answered', r => `${answered(r)}/${(r.findings || []).length}`],
-      ];
+      try { this.A = await this.read(); } catch (e) { this.err = e.message; }
     },
     async read() {
       const gz = param('gz'), spec = param('gh');
@@ -117,442 +62,106 @@ document.addEventListener('alpine:init', () => {
         try { return JSON.parse((await new GH({ token: tokenNow(), repo: a.repo, ...(a.ref ? { ref: a.ref } : {}) }).get(a.path)).text); }
         catch (e) { throw new Error(`Could not read ${spec}${tokenNow() ? '' : ' without a stored GitHub token'}: ${e.message}`); }
       }
-      // #src= is a path beside this page on the same host, such as a map committed to web-tools.
-      const src = param('src') || '../research/category-mapping/registry-map.json';
-      if (/^[a-z]+:|^\/\//i.test(src)) throw new Error('#src= takes a path on this host, not an address: ' + src);
-      const res = await fetch(src);
-      if (!res.ok) throw new Error(`No map at ${src}. Address one with #src=path, #gh=owner/repo@ref:path or #gz=…`);
+      // #src= is a path beside this page on the same host, such as an answer committed to web-tools.
+      this.src = param('src') || ANSWERS[0][1];
+      if (/^[a-z]+:|^\/\//i.test(this.src)) throw new Error('#src= takes a path on this host, not an address: ' + this.src);
+      const res = await fetch(this.src);
+      if (!res.ok) throw new Error(`No answer at ${this.src}. Address one with #src=path, #gh=owner/repo@ref:path or #gz=…`);
       return res.json();
     },
-
-    get R() { return this.D.runs[this.r]; },
-    get chars() { return this.R.characteristics; },
-    get cats() { return this.R.categories; },
-    get insts() { return this.R.instances; },
-    pick(i) { this.r = i; this.open = ''; this.more = false; this.axes(); },
-    // Whether the clamped outcome hides any text at the current width.
-    fit() { this.$nextTick(() => { const e = this.$refs.outcome; this.long = this.more || !!e && e.scrollHeight > e.clientHeight + 1; }); },
-    axes() {
-      const f = this.R.field || {}, ids = this.plottable().map(c => c.id);
-      this.x = ids.includes(f.x) ? f.x : ids[0] || '';
-      this.y = ids.includes(f.y) && f.y !== this.x ? f.y : ids.find(i => i !== this.x) || '';
+    show(src) { location.hash = 'src=' + src; location.reload(); },
+    names(things) { const n = things || []; return n.length > 1 ? n.slice(0, -1).join(', ') + ' and ' + n.at(-1) : n[0] || ''; },
+    // An example the answer renames carries its current, wrong name.
+    ex(list) {
+      return (list || []).map(e => {
+        const fix = (this.A.renames || []).find(n => (n.things || []).includes(e));
+        return esc(e) + (fix ? `, <span class="text-error">called “${esc(fix.from)}”</span>` : '');
+      }).join(' · ');
     },
-    char(id) { return this.chars.find(c => c.id === id) || { id, values: [] }; },
-    short(c) { return c.short || c.id.replace(/_/g, ' '); },
-    // Characteristics worth plotting: two or more values in use.
-    plottable() { return this.chars.filter(c => this.used(c.id).length > 1); },
-    used(id) {
-      const c = this.char(id), seen = new Set(this.insts.map(i => this.val(i, id)).filter(v => v !== NA));
-      return [...(c.values || []).filter(v => seen.has(v)), ...[...seen].filter(v => !(c.values || []).includes(v))];
+    count(rows, noun) {
+      const n = (rows || []).length, w = ['No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'][n] || String(n);
+      return `${w} ${noun}${n === 1 ? '' : 's'}`;
     },
-    val(i, id) { return (i.values || {})[id] ?? NA; },
-    // evidence is a list of {char, evidence}; an older file keys it by characteristic.
-    ev(i, id) { const e = i.evidence; return Array.isArray(e) ? (e.find(x => x.char === id) || {}).evidence || '' : (e || {})[id] || ''; },
-    find(kind, id) { return (this.R.findings || []).find(f => f.kind === kind && f.chars && f.chars[0] === id); },
-    struck(id) { return !!this.find('constant', id); },
-    fixedBy(id) { const f = this.find('fixed', id); return f ? f.chars[1] : ''; },
-
-    // A sense admits an instance when every value it requires is the instance's; a required list is any of its values.
-    ok(want, v) { return Array.isArray(want) ? want.includes(v) : want === v; },
-    shown(want) { return Array.isArray(want) ? want.join(' or ') : want; },
-    admits(c, i) { return Object.entries(c.requires || {}).every(([k, v]) => this.ok(v, this.val(i, k))); },
-    breaks(c, i) { return Object.entries(c.requires || {}).filter(([k, v]) => !this.ok(v, this.val(i, k))).map(([k]) => k); },
-    calledBy(i) { return (i.called || []).map(id => this.cats.find(c => c.id === id)).filter(Boolean); },
-    off(i) { return this.calledBy(i).some(c => !this.admits(c, i)); },
-    called(c) { return this.insts.filter(i => (i.called || []).includes(c.id)); },
-    get uncalled() { return this.insts.filter(i => !(i.called || []).length); },
-    fits(i) { return this.cats.filter(c => this.admits(c, i)); },
-    get offCount() { return this.insts.filter(i => this.off(i)).length; },
-
-    // The field: a sense claims a cell when it constrains one of the two axes and allows the cell on both.
-    onAxes(c) { const q = c.requires || {}; return this.x in q || this.y in q; },
-    claims(c, xv, yv) { const q = c.requires || {}; return this.onAxes(c) && (!(this.x in q) || this.ok(q[this.x], xv)) && (!(this.y in q) || this.ok(q[this.y], yv)); },
-    cellCats(xv, yv) { return this.cats.filter(c => this.claims(c, xv, yv)).sort((a, b) => Object.keys(a.requires || {}).length - Object.keys(b.requires || {}).length); },
-    cellInsts(xv, yv) { return this.insts.filter(i => this.val(i, this.x) === xv && this.val(i, this.y) === yv); },
-    get offField() { return this.insts.filter(i => this.val(i, this.x) === NA || this.val(i, this.y) === NA); },
-    get otherAxes() { return this.cats.filter(c => !this.onAxes(c)); },
-    label(c) { return c.sense ? `${c.word} (${c.sense})` : c.word; },
-    tag(c) { return c.tag || c.id; },
-    kind(k) { return KIND[k] || k || ''; },
-    toggle(id, from) {
-      const same = this.open === id && this.from === from;
-      this.open = same ? '' : id; this.from = same ? '' : from;
-      if (!same && from === 'field') this.$nextTick(() => document.getElementById('field-card')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }));
-    },
-    inst(id) { return this.insts.find(i => i.id === id); },
-    get docket() {
-      return [
-        ...this.cats.flatMap(c => [{ t: 'cat', c, k: 'c/' + c.id }, ...this.called(c).map(i => ({ t: 'inst', c, i, k: c.id + '/' + i.id }))]),
-        ...(this.uncalled.length ? [{ t: 'none', k: 'none' }, ...this.uncalled.map(i => ({ t: 'free', i, k: 'u/' + i.id }))] : []),
-      ];
-    },
-    // The evidence card, shared by the field and the docket.
-    card(i) {
-      if (!i) return '';
-      const calls = this.calledBy(i).map(c => `<div><span class="text-base-content/60">called </span><span class="font-semibold">${esc(this.label(c))}</span>`
-        + (this.admits(c, i) ? '<span class="text-base-content/60"> · fits its charge</span>' : `<span class="text-error"> · breaks it on ${esc(this.breaks(c, i).map(k => this.short(this.char(k))).join(', '))}</span>`) + '</div>').join('');
-      const rows = this.chars.map(h => `<dt class="text-base-content/60">${esc(this.short(h))}</dt><dd><span class="font-medium">${esc(this.val(i, h.id))}</span>`
-        + (this.ev(i, h.id) ? `<span class="text-base-content/60"> · ${esc(this.ev(i, h.id))}</span>` : '') + '</dd>').join('');
-      return `<div class="grid gap-2 rounded-box border border-primary/40 bg-base-100 p-3 text-sm whitespace-normal">
-        <div class="flex items-baseline gap-2 flex-wrap"><span class="font-mono font-semibold">${esc(i.id)}</span><span class="text-base-content/60 [overflow-wrap:anywhere]">${esc(i.where || '')}</span></div>
-        ${calls ? `<div>${calls}</div>` : ''}
-        <dl class="grid grid-cols-[max-content_minmax(0,1fr)] gap-x-3 gap-y-1">${rows}</dl></div>`;
-    },
-    get rest() {
-      return this.R.findings || [];
-    },
-
-    // Compare: the words under test, and each run's senses of each.
-    get words() { return [...new Set(this.D.runs.flatMap(r => r.categories.map(c => c.word)))]; },
-    senses(run, w) { return run.categories.filter(c => c.word === w); },
   }));
 });
 </script>
 </head>
-<body class="min-h-dvh bg-base-100 text-base-content" data-title-tip-look="plain">
+<body class="min-h-dvh bg-base-100 text-base-content">
 <div x-data="catMap()" class="min-h-dvh">
+  <header x-show="!poster && src" class="sticky top-0 z-20 bg-base-100 border-b border-base-300 px-4 py-2 flex items-center gap-2 overflow-x-auto whitespace-nowrap">
+    <template x-for="[label, path] in answers" :key="path">
+      <button class="btn btn-xs rounded-full" :class="src === path ? 'btn-neutral' : 'btn-ghost border-base-300'" @click="show(path)" x-text="label"></button>
+    </template>
+  </header>
   <template x-if="err"><p class="p-4 text-error" x-text="err"></p></template>
-  <template x-if="!D && !err"><p class="p-4 text-base-content/60">Loading…</p></template>
-  <template x-if="D">
-  <div>
-    <header x-show="!poster" class="sticky top-0 z-20 bg-base-100 border-b border-base-300">
-      <div class="px-4 pt-3 pb-2 flex items-baseline gap-3 flex-wrap">
-        <h1 class="text-lg font-semibold text-balance" x-text="D.title"></h1>
-        <span class="text-xs text-base-content/60 font-mono" x-text="view === 'map' ? `${cats.length} senses · ${chars.length} characteristics · ${insts.length} things · ${offCount} off their word` : `${D.runs.length} run${D.runs.length > 1 ? 's' : ''} · ${words.length} words`"></span>
+  <template x-if="!A && !err"><p class="p-4 text-base-content/60">Loading…</p></template>
+  <template x-if="A">
+    <article class="px-6 sm:px-10 py-8 sm:py-10 grid gap-8 sm:gap-9">
+      <div class="grid gap-3">
+        <h1 class="text-3xl sm:text-[44px] leading-tight font-bold text-balance" x-text="A.title"></h1>
+        <p class="text-lg sm:text-[22px] leading-7 sm:leading-8 text-base-content/70 text-balance" x-text="A.lede"></p>
       </div>
-      <div class="px-4 pb-2 flex items-center gap-2 overflow-x-auto whitespace-nowrap">
-        <button class="btn btn-xs rounded-full" :class="view === 'answer' ? 'btn-neutral' : 'btn-ghost border-base-300'" @click="view = 'answer'">Answer</button>
-        <template x-for="(run, k) in D.runs" :key="k">
-          <button class="btn btn-xs rounded-full" :class="view === 'map' && r === k ? 'btn-neutral' : 'btn-ghost border-base-300'" @click="view = 'map'; pick(k)" x-text="D.runs.length > 1 ? run.by : 'Map'"></button>
-        </template>
-        <button x-show="D.runs.length > 1" class="btn btn-xs rounded-full" :class="view === 'compare' ? 'btn-neutral' : 'btn-ghost border-base-300'" @click="view = 'compare'">Compare</button>
-      </div>
-    </header>
 
-    <!-- The answer, the front page: a poster, then how the answer was reached. With poster=1 in the
-         address the poster stands alone, the form npm run shot renders to an image. -->
-    <article x-show="view === 'answer'" class="grid">
-      <section class="px-6 sm:px-10 py-8 sm:py-10 grid gap-8 sm:gap-9">
-        <div class="grid gap-3">
-          <h2 class="text-3xl sm:text-[44px] leading-tight font-bold text-balance" x-text="A.title"></h2>
-          <p class="text-lg sm:text-[22px] leading-7 sm:leading-8 text-base-content/70 text-balance" x-text="A.lede"></p>
-        </div>
-
-        <template x-if="A.grid">
-          <div class="grid gap-2 [grid-template-columns:minmax(0,5.5rem)_var(--cols)] sm:[grid-template-columns:7.5rem_var(--cols)]" :style="`--cols: repeat(${A.grid.across.values.length}, minmax(0, 1fr))`">
-            <div></div>
-            <template x-for="v in A.grid.across.values" :key="v.label">
-              <div class="px-2 sm:px-3 pb-1 text-base sm:text-lg font-semibold text-balance" x-text="v.label"></div>
-            </template>
-            <template x-for="(row, i) in A.grid.cells" :key="i">
-              <div class="contents">
-                <div class="pr-1 sm:pr-2 pt-3 sm:pt-4 text-base sm:text-lg font-semibold text-right text-balance" x-text="A.grid.down.values[i].label"></div>
-                <template x-for="(c, j) in row" :key="j">
-                  <div class="rounded-2xl p-3 sm:p-4 grid content-start gap-1.5" :class="c.word ? 'bg-primary/10' : c.impossible ? 'bg-[repeating-linear-gradient(45deg,transparent_0_6px,rgba(0,0,0,0.05)_6px_12px)]' : 'border-2 border-dashed border-base-300'">
-                    <div class="leading-none" :class="c.word ? 'text-2xl sm:text-[32px] font-bold text-primary' : 'text-xl sm:text-[26px] italic text-base-content/50'" x-text="c.word || (c.impossible ? 'impossible' : 'no word yet')"></div>
-                    <div class="text-base sm:text-lg leading-6 text-pretty" x-text="c.means"></div>
-                    <div class="font-mono text-xs sm:text-[15px] text-base-content/60 leading-5 sm:leading-6" x-html="ex(c.examples)"></div>
-                  </div>
-                </template>
-              </div>
-            </template>
-            <p x-show="A.grid.note" class="[grid-column:2/-1] pt-1 text-sm sm:text-base text-base-content/60 text-pretty" x-text="A.grid.note"></p>
-          </div>
-        </template>
-
-        <div x-show="(A.add || []).length" class="grid gap-3">
-          <h3 class="text-xl sm:text-[26px] font-bold">Then add any that apply</h3>
-          <div class="grid sm:grid-cols-2 gap-3">
-            <template x-for="w in A.add || []" :key="w.word">
-              <div class="rounded-2xl border border-base-300 p-4 grid content-start gap-1">
-                <div class="flex items-center gap-2 text-xl sm:text-[24px] font-bold"><i class="ph text-primary" :class="'ph-' + (w.icon || 'plus')"></i><span x-text="w.word"></span></div>
-                <div class="text-base sm:text-lg leading-6 text-pretty" x-text="w.means"></div>
-                <div class="font-mono text-xs sm:text-[15px] text-base-content/60 leading-5 sm:leading-6" x-html="ex(w.examples)"></div>
-                <div x-show="partial(w.runs)" class="text-xs sm:text-sm text-base-content/50" x-text="partial(w.runs)"></div>
-              </div>
-            </template>
-          </div>
-        </div>
-
-        <div x-show="(A.renames || []).length" class="grid gap-3">
-          <h3 class="text-xl sm:text-[26px] font-bold" x-text="count(A.renames, 'name') + ' to fix'"></h3>
-          <div class="grid gap-4">
-            <template x-for="(n, k) in A.renames || []" :key="k">
-              <div class="grid gap-0.5 text-base sm:text-lg leading-6">
-                <div class="text-pretty"><span x-text="names(n.things) + ', now called '"></span><span class="text-error line-through" x-text="n.from"></span></div>
-                <div class="flex items-baseline gap-2"><i class="ph ph-arrow-right text-base-content/40"></i><span class="font-semibold" x-text="n.becomes"></span></div>
-                <div x-show="!poster" class="text-base-content/60 text-pretty" x-text="n.why"></div>
-                <div x-show="partial(n.runs)" class="text-xs sm:text-sm text-base-content/50" x-text="partial(n.runs)"></div>
-              </div>
-            </template>
-          </div>
-        </div>
-
-        <div x-show="(A.open || []).length" class="grid gap-3">
-          <h3 class="text-xl sm:text-[26px] font-bold" x-text="count(A.open, 'call') + ' for you'"></h3>
-          <ol class="grid gap-2 list-decimal pl-7 text-base sm:text-lg leading-7">
-            <template x-for="(o, k) in A.open || []" :key="k">
-              <li class="text-pretty"><span class="font-semibold" x-text="o.question"></span><span x-show="o.recommend" x-text="' Recommended: ' + o.recommend + '.'"></span> <span x-show="!poster" class="text-base-content/60" x-text="o.why"></span></li>
-            </template>
-          </ol>
-        </div>
-
-        <p x-show="A.by" class="pt-4 border-t border-base-300 text-xs sm:text-[15px] leading-6 text-base-content/50 text-pretty" x-text="A.by"></p>
-      </section>
-
-      <section x-show="!poster && ((D.steps || []).length || multi)" class="px-4 pt-2 pb-8 grid gap-3 min-w-0 text-lg">
-        <h2 class="font-semibold">How the answer was reached</h2>
-        <div x-show="(D.steps || []).length" class="overflow-x-auto rounded-box border border-base-300">
-          <table class="table text-lg [&_:is(th,td)]:align-top max-sm:[&_:is(th,td)]:px-2">
-            <tbody>
-              <template x-for="(s, k) in D.steps || []" :key="k">
-                <tr><th class="whitespace-nowrap" x-text="s.step"></th><td><div class="text-pretty" x-text="s.gloss"></div><div class="text-base-content/60 text-pretty" x-text="s.example"></div></td></tr>
-              </template>
-            </tbody>
-          </table>
-        </div>
-        <div x-show="multi" class="overflow-x-auto rounded-box border border-base-300">
-          <table class="table text-lg max-sm:[&_:is(th,td)]:px-2">
-            <thead class="text-base-content/60">
-              <tr><th></th><template x-for="(run, k) in D.runs" :key="k"><th class="font-normal"><span class="sm:hidden" x-text="run.short || k + 1"></span><span class="hidden sm:inline" x-text="run.by"></span></th></template></tr>
-            </thead>
-            <tbody>
-              <template x-for="([label, f], k) in tally" :key="k">
-                <tr><th class="font-normal whitespace-normal" x-text="label"></th><template x-for="(run, j) in D.runs" :key="j"><td class="tabular-nums whitespace-nowrap" x-text="f(run)"></td></template></tr>
-              </template>
-            </tbody>
-          </table>
-        </div>
-      </section>
-    </article>
-
-    <!-- One run -->
-    <main x-show="view === 'map'" class="px-4 py-4 grid gap-6">
-      <section class="grid gap-2" x-effect="view; R.outcome; fit()" @resize.window.debounce="fit()">
-        <h2 class="text-sm font-semibold">Outcome</h2>
-        <div class="grid justify-items-start gap-1">
-          <p x-ref="outcome" class="text-sm text-pretty" :class="more ? '' : 'line-clamp-3'" x-text="R.outcome?.summary"></p>
-          <button x-show="long" class="btn btn-ghost btn-xs px-1" @click="more = !more" x-text="more ? 'Less' : 'All of it'"></button>
-        </div>
-        <div class="flex flex-wrap gap-1">
-          <template x-for="c in cats" :key="c.id">
-            <span class="rounded-full border border-base-300 px-2 py-0.5 text-sm leading-snug"><span class="font-medium" x-text="tag(c)"></span><span class="text-base-content/60" x-text="' · ' + kind(c.kind)"></span></span>
+      <template x-if="A.grid">
+        <!-- On a phone each row's label sits above its cells, so the cells keep the full width. -->
+        <div class="grid gap-2 [grid-template-columns:var(--cols)] sm:[grid-template-columns:7.5rem_var(--cols)]" :style="`--cols: repeat(${A.grid.across.values.length}, minmax(0, 1fr))`">
+          <div class="hidden sm:block"></div>
+          <template x-for="v in A.grid.across.values" :key="v.label">
+            <div class="px-2 sm:px-3 pb-1 text-base sm:text-lg font-semibold text-balance" x-text="v.label"></div>
           </template>
-        </div>
-        <details x-show="R.method" class="text-xs text-base-content/60">
-          <summary class="cursor-pointer">How this run was made</summary>
-          <p class="mt-1 text-sm text-pretty" x-text="R.method"></p>
-        </details>
-      </section>
-
-      <!-- The field -->
-      <section class="grid gap-2 min-w-0">
-        <h2 class="text-sm font-semibold">Field</h2>
-        <div class="flex items-center gap-2 overflow-x-auto whitespace-nowrap">
-          <span class="text-xs text-base-content/60 w-12 shrink-0">Across</span>
-          <template x-for="c in plottable()" :key="'x' + c.id">
-            <button class="btn btn-xs rounded-full" :class="x === c.id ? 'btn-neutral' : 'btn-ghost border-base-300'" :disabled="y === c.id" @click="x = c.id" x-text="short(c)"></button>
-          </template>
-        </div>
-        <div class="flex items-center gap-2 overflow-x-auto whitespace-nowrap">
-          <span class="text-xs text-base-content/60 w-12 shrink-0">Down</span>
-          <template x-for="c in plottable()" :key="'y' + c.id">
-            <button class="btn btn-xs rounded-full" :class="y === c.id ? 'btn-neutral' : 'btn-ghost border-base-300'" :disabled="x === c.id" @click="y = c.id" x-text="short(c)"></button>
-          </template>
-        </div>
-        <div class="overflow-x-auto">
-          <div class="grid gap-1 w-full" :style="`grid-template-columns: 4.5rem repeat(${used(x).length}, minmax(7.5rem, 1fr))`">
-            <div></div>
-            <template x-for="xv in used(x)" :key="'h' + xv">
-              <div class="text-sm font-medium px-2 py-1" x-text="xv"></div>
-            </template>
-            <template x-for="yv in used(y)" :key="'r' + yv">
-              <div class="contents">
-                <div class="text-sm font-medium px-1 py-2 text-right text-balance" x-text="yv"></div>
-                <template x-for="xv in used(x)" :key="yv + '|' + xv">
-                  <div class="rounded-box border p-1.5 grid content-start gap-1"
-                       :class="cellCats(xv, yv).length ? 'border-base-content/30' : 'border-dashed border-base-300 bg-[repeating-linear-gradient(45deg,transparent_0_6px,rgba(0,0,0,0.05)_6px_12px)]'">
-                    <div class="grid">
-                      <template x-for="c in cellCats(xv, yv)" :key="c.id">
-                        <span class="text-sm font-semibold" x-text="tag(c)"></span>
-                      </template>
-                      <span x-show="!cellCats(xv, yv).length" class="text-sm text-base-content/60">no word</span>
-                    </div>
-                    <div class="flex flex-wrap gap-1">
-                      <template x-for="i in cellInsts(xv, yv)" :key="i.id">
-                        <button class="rounded-full border px-1.5 py-0.5 text-sm font-mono leading-snug text-left [overflow-wrap:anywhere]" :class="[off(i) ? 'border-error text-error' : 'border-base-300 bg-base-200', open === i.id && from === 'field' ? 'ring-2 ring-primary' : '']" @click="toggle(i.id, 'field')" x-text="i.id"></button>
-                      </template>
-                    </div>
-                  </div>
-                </template>
-              </div>
-            </template>
-          </div>
-        </div>
-        <div x-show="offField.length || otherAxes.length" class="grid gap-1">
-          <div x-show="otherAxes.length" class="grid gap-0.5">
-            <span class="text-xs text-base-content/60">Not on these axes</span>
-            <template x-for="c in otherAxes" :key="'o' + c.id">
-              <div class="text-sm"><span class="font-semibold" x-text="tag(c)"></span><span class="text-base-content/60" x-text="' · ' + Object.entries(c.requires || {}).map(([k, v]) => short(char(k)) + ': ' + shown(v)).join(', ')"></span></div>
-            </template>
-          </div>
-          <div x-show="offField.length" class="flex flex-wrap items-center gap-1">
-            <span class="text-xs text-base-content/60">Off the field (n/a)</span>
-            <template x-for="i in offField" :key="'n' + i.id">
-              <button class="rounded-full border border-base-300 bg-base-200 px-2 py-0.5 text-sm font-mono leading-snug" :class="open === i.id && from === 'field' ? 'ring-2 ring-primary' : ''" @click="toggle(i.id, 'field')" x-text="i.id"></button>
-            </template>
-          </div>
-        </div>
-        <div id="field-card" class="scroll-mt-28" x-show="open && from === 'field'" x-html="open && from === 'field' ? card(inst(open)) : ''"></div>
-      </section>
-
-      <!-- The docket -->
-      <section class="grid gap-2 min-w-0">
-        <h2 class="text-sm font-semibold">Docket</h2>
-        <div class="overflow-x-auto rounded-box border border-base-300">
-          <table class="table text-sm [&_:is(th,td)]:px-2 [&_:is(th,td)]:py-1.5">
-            <thead>
-              <tr>
-                <th class="sticky left-0 bg-base-100 z-10"></th>
-                <template x-for="c in chars" :key="'th' + c.id">
-                  <th class="align-bottom font-medium whitespace-nowrap" :class="struck(c.id) ? 'line-through text-base-content/40' : fixedBy(c.id) ? 'text-base-content/40' : ''">
-                    <span :data-title-tip="c.label + (struck(c.id) ? ' · separates nothing' : fixedBy(c.id) ? ' · fixed once ' + short(char(fixedBy(c.id))) + ' is known' : '')" x-text="short(c)"></span>
-                  </th>
-                </template>
-              </tr>
-            </thead>
-            <template x-for="g in docket" :key="g.k">
-              <tbody>
-                <template x-if="g.t === 'cat'">
-                  <tr class="bg-base-200">
-                    <th class="sticky left-0 bg-base-200 z-10 align-top min-w-32 sm:min-w-48 max-w-44 sm:max-w-72 font-normal whitespace-normal">
-                      <div class="font-semibold" x-text="tag(g.c)"></div>
-                      <div class="text-xs text-base-content/60" x-text="kind(g.c.kind)"></div>
-                    </th>
-                    <template x-for="h in chars" :key="g.k + h.id">
-                      <td class="align-top whitespace-nowrap" :class="(g.c.requires || {})[h.id] ? 'font-semibold' : 'text-base-content/40'" x-text="shown((g.c.requires || {})[h.id]) || 'open'"></td>
-                    </template>
-                  </tr>
-                </template>
-                <template x-if="g.t === 'cat' && (g.c.sense || g.c.verdict)">
-                  <tr class="bg-base-200"><td :colspan="chars.length + 1" class="pt-0"><div class="sticky left-2 w-[min(60rem,calc(100vw-3rem))] text-pretty whitespace-normal"><span class="text-base-content/60" x-text="g.c.sense ? g.c.sense.replace(/\.$/, '') + '. ' : ''"></span><span x-text="g.c.verdict || ''"></span></div></td></tr>
-                </template>
-                <template x-if="g.t === 'inst'">
-                  <tr class="cursor-pointer hover:bg-base-200" :class="open === g.i.id && from === 'docket' ? 'bg-primary/10' : ''" @click="toggle(g.i.id, 'docket')">
-                    <th class="sticky left-0 z-10 font-mono font-normal whitespace-nowrap" :class="open === g.i.id && from === 'docket' ? 'bg-primary/10' : 'bg-base-100'">
-                      <span :class="admits(g.c, g.i) ? '' : 'text-error'" x-text="g.i.id"></span>
-                      <span x-show="!admits(g.c, g.i)" class="block text-xs font-sans text-error whitespace-normal" x-text="'breaks ' + breaks(g.c, g.i).map(k => short(char(k))).join(', ')"></span>
-                    </th>
-                    <template x-for="h in chars" :key="g.k + h.id">
-                      <td class="whitespace-nowrap" :class="!(h.id in (g.c.requires || {})) ? 'text-base-content/60' : ok(g.c.requires[h.id], val(g.i, h.id)) ? 'text-base-content/40' : 'text-error font-semibold'"
-                          x-text="!(h.id in (g.c.requires || {})) ? val(g.i, h.id) : ok(g.c.requires[h.id], val(g.i, h.id)) ? '✓' : val(g.i, h.id)"></td>
-                    </template>
-                  </tr>
-                </template>
-                <template x-if="g.t === 'none'">
-                  <tr class="bg-base-200">
-                    <th class="sticky left-0 bg-base-200 z-10 font-semibold">Called by no word</th>
-                    <td :colspan="chars.length"></td>
-                  </tr>
-                </template>
-                <template x-if="g.t === 'free'">
-                  <tr class="cursor-pointer hover:bg-base-200" :class="open === g.i.id && from === 'docket' ? 'bg-primary/10' : ''" @click="toggle(g.i.id, 'docket')">
-                    <th class="sticky left-0 z-10 font-mono font-normal whitespace-nowrap" :class="open === g.i.id && from === 'docket' ? 'bg-primary/10' : 'bg-base-100'">
-                      <span x-text="g.i.id"></span>
-                      <span class="block text-xs font-sans text-base-content/60 whitespace-normal" x-text="fits(g.i).length ? 'fits ' + fits(g.i).map(tag).join(', ') : 'fits no word'"></span>
-                    </th>
-                    <template x-for="h in chars" :key="g.k + h.id">
-                      <td class="whitespace-nowrap text-base-content/60" x-text="val(g.i, h.id)"></td>
-                    </template>
-                  </tr>
-                </template>
-                <template x-if="g.i && open === g.i.id && from === 'docket' && (g.t === 'free' || g.t === 'inst')">
-                  <tr><td :colspan="chars.length + 1" class="p-2"><div class="sticky left-2 w-[min(40rem,calc(100vw-3rem))]" x-html="card(g.i)"></div></td></tr>
-                </template>
-              </tbody>
-            </template>
-          </table>
-        </div>
-      </section>
-
-      <!-- Every finding the checks wrote, including the ones the docket header marks -->
-      <section x-show="rest.length" class="grid gap-2 scroll-mt-28">
-        <h2 class="text-sm font-semibold">Checks</h2>
-        <ul class="grid gap-2">
-          <template x-for="(f, k) in rest" :key="'f' + k">
-            <li class="text-sm text-pretty"><div x-text="f.text"></div><div x-show="f.rationale" class="text-base-content/60" x-text="f.rationale"></div></li>
-          </template>
-        </ul>
-      </section>
-    </main>
-
-    <!-- Runs side by side -->
-    <main x-show="view === 'compare'" class="px-4 py-4 grid gap-6">
-      <section x-show="(D.agreement || []).length" class="grid gap-2 min-w-0">
-        <h2 class="text-sm font-semibold">Where the runs agree</h2>
-        <div class="overflow-x-auto rounded-box border border-base-300">
-          <table class="table text-sm [&_:is(th,td)]:px-2 [&_:is(th,td)]:py-1.5">
-            <thead><tr>
-              <th class="min-w-48 sm:min-w-64"></th>
-              <template x-for="(run, k) in D.runs" :key="'ah' + k"><th class="font-medium text-center whitespace-nowrap"><span class="sm:hidden" x-text="run.short || run.by"></span><span class="hidden sm:inline" x-text="run.by"></span></th></template>
-            </tr></thead>
-            <tbody>
-              <template x-for="(a, n) in D.agreement" :key="'a' + n">
-                <tr>
-                  <td class="text-pretty" x-text="a.finding"></td>
-                  <template x-for="(run, k) in D.runs" :key="'a' + n + '/' + k">
-                    <td class="text-center" :class="a.runs.includes(k) ? '' : 'text-base-content/30'" x-text="a.runs.includes(k) ? '●' : '·'"></td>
-                  </template>
-                </tr>
+          <template x-for="(row, i) in A.grid.cells" :key="i">
+            <div class="contents">
+              <div class="[grid-column:1/-1] sm:[grid-column:auto] pt-3 sm:pt-4 sm:pr-2 text-base sm:text-lg font-semibold sm:text-right text-balance" x-text="A.grid.down.values[i].label"></div>
+              <template x-for="(c, j) in row" :key="j">
+                <div class="rounded-2xl p-3 sm:p-4 grid content-start gap-1.5" :class="c.word ? 'bg-primary/10' : c.impossible ? 'bg-[repeating-linear-gradient(45deg,transparent_0_6px,rgba(0,0,0,0.05)_6px_12px)]' : 'border-2 border-dashed border-base-300'">
+                  <div class="leading-none" :class="c.word ? 'text-2xl sm:text-[32px] font-bold text-primary' : 'text-xl sm:text-[26px] italic text-base-content/50'" x-text="c.word || (c.impossible ? 'impossible' : 'no word yet')"></div>
+                  <div class="text-base sm:text-lg leading-6 text-pretty" x-text="c.means"></div>
+                  <div class="font-mono text-sm sm:text-base leading-5 sm:leading-6 [overflow-wrap:anywhere]" x-html="ex(c.examples)"></div>
+                </div>
               </template>
-            </tbody>
-          </table>
+            </div>
+          </template>
+          <p x-show="A.grid.note" class="[grid-column:1/-1] sm:[grid-column:2/-1] pt-1 text-base text-base-content/70 text-pretty" x-text="A.grid.note"></p>
         </div>
-        <p x-show="D.agreement_by" class="text-xs text-base-content/60 text-pretty" x-text="D.agreement_by"></p>
-      </section>
-      <section class="grid gap-2 min-w-0">
-        <h2 class="text-sm font-semibold">Verdicts</h2>
-        <div class="overflow-x-auto rounded-box border border-base-300">
-          <table class="table text-sm [&_:is(th,td)]:px-2 [&_:is(th,td)]:py-1.5">
-            <thead><tr>
-              <th class="sticky left-0 bg-base-100 z-10">Word</th>
-              <template x-for="(run, k) in D.runs" :key="'ch' + k"><th class="font-medium min-w-56" x-text="run.by"></th></template>
-            </tr></thead>
-            <tbody>
-              <template x-for="w in words" :key="'w' + w">
-                <tr>
-                  <th class="sticky left-0 bg-base-100 z-10 font-semibold align-top" x-text="w"></th>
-                  <template x-for="(run, k) in D.runs" :key="w + k">
-                    <td class="align-top">
-                      <template x-for="c in senses(run, w)" :key="w + k + c.id">
-                        <div class="mb-1 text-sm"><span class="font-medium" x-text="kind(c.kind)"></span><span class="text-base-content/60" x-text="c.sense ? ' · ' + c.sense : ''"></span></div>
-                      </template>
-                      <span x-show="!senses(run, w).length" class="text-base-content/40">not mapped</span>
-                    </td>
-                  </template>
-                </tr>
-              </template>
-            </tbody>
-          </table>
-        </div>
-      </section>
-      <section class="grid gap-2 min-w-0">
-        <h2 class="text-sm font-semibold">Characteristics</h2>
-        <div class="grid gap-3" :style="`grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr))`">
-          <template x-for="(run, k) in D.runs" :key="'cc' + k">
-            <div class="rounded-box border border-base-300 p-3 grid content-start gap-1">
-              <div class="text-sm font-semibold" x-text="run.by"></div>
-              <div class="text-xs text-base-content/60 font-mono" x-text="`${run.characteristics.length} characteristics · ${run.instances.length} things · ${(run.findings || []).filter(f => f.kind === 'constant').length} separate nothing`"></div>
-              <template x-for="c in run.characteristics" :key="k + c.id">
-                <div class="text-sm" :class="(run.findings || []).some(f => f.kind === 'constant' && f.chars[0] === c.id) ? 'line-through text-base-content/40' : ''" x-text="c.label"></div>
-              </template>
-              <div class="text-sm text-pretty mt-2" x-text="run.outcome?.summary"></div>
+      </template>
+
+      <div x-show="(A.add || []).length" class="grid gap-3">
+        <h2 class="text-xl sm:text-[26px] font-bold">Then add any that apply</h2>
+        <div class="grid sm:grid-cols-2 gap-3">
+          <template x-for="w in A.add || []" :key="w.word">
+            <div class="rounded-2xl border border-base-300 p-4 grid content-start gap-1">
+              <div class="flex items-center gap-2 text-xl sm:text-[24px] font-bold"><i class="ph text-primary" :class="'ph-' + (w.icon || 'plus')"></i><span x-text="w.word"></span></div>
+              <div class="text-base sm:text-lg leading-6 text-pretty" x-text="w.means"></div>
+              <div class="font-mono text-sm sm:text-base leading-5 sm:leading-6 [overflow-wrap:anywhere]" x-html="ex(w.examples)"></div>
             </div>
           </template>
         </div>
-      </section>
-    </main>
-  </div>
+      </div>
+
+      <div x-show="(A.renames || []).length" class="grid gap-3">
+        <h2 class="text-xl sm:text-[26px] font-bold" x-text="count(A.renames, 'name') + ' to fix'"></h2>
+        <div class="grid gap-4">
+          <template x-for="(n, k) in A.renames || []" :key="k">
+            <div class="grid gap-0.5 text-base sm:text-lg leading-6">
+              <div class="text-pretty"><span x-text="names(n.things) + ', now called '"></span><span class="text-error line-through" x-text="n.from"></span></div>
+              <div class="flex items-baseline gap-2"><i class="ph ph-arrow-right text-base-content/40"></i><span class="font-semibold" x-text="n.becomes"></span></div>
+              <div x-show="!poster" class="text-base-content/60 text-pretty" x-text="n.why"></div>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <div x-show="(A.open || []).length" class="grid gap-3">
+        <h2 class="text-xl sm:text-[26px] font-bold" x-text="count(A.open, 'call') + ' for you'"></h2>
+        <ol class="grid gap-2 list-decimal pl-7 text-base sm:text-lg leading-7">
+          <template x-for="(o, k) in A.open || []" :key="k">
+            <li class="text-pretty"><span class="font-semibold" x-text="o.question"></span><span x-show="o.recommend" x-text="' Recommended: ' + o.recommend + '.'"></span> <span x-show="!poster" class="text-base-content/60" x-text="o.why"></span></li>
+          </template>
+        </ol>
+      </div>
+
+      <p x-show="A.by" class="pt-4 border-t border-base-300 text-sm sm:text-base leading-6 text-base-content/60 text-pretty" x-text="A.by"></p>
+    </article>
   </template>
 </div>
 </body>

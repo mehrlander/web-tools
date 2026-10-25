@@ -45,7 +45,7 @@ const NOTES = {
   'review.html':               'A branch changeset or file, reviewed: CM6 diffs vs a base, links, patch dumps — the 🔍 target.',
   'shorter.html':              'Adjudicate a shorter draft against your text: word-diff, accept-by-default edits, per-span rewrite with an optional in-browser LLM.',
   'repo-atlas.html':           'Zoomable treemap map of any GitHub repo — files as tiles, sized by bytes or count.',
-  'cat-map.html':              "A category map from the cat-map skill: what each sense of a set of blurred words implies, a field of two characteristics, and a docket checking the things each word names; several readers' runs side by side.",
+  'cat-map.html':              "What kind of thing is it? A poster per question: the two characteristics that decide the word, the estate's own files in each box, the words that add to it, the names to fix and the calls left open.",
   'news/news.html':            "Read-only view of home's news ledger, grouped and filterable by topic and date; backfilled items held distinct.",
   'links.html':                "home's bookmarks board: a pinned rail, areas of links, and an area's markdown dossier, all editable in place.",
   'toss-render.html':          'Render tossed HTML payloads or allowlisted repo paths (the 🥏 target); with no address, paste anything and see it shown the way it deserves.',

@@ -21,9 +21,9 @@ The Excel research is in `projects/office/research/` in `mehrlander/home`.
 
 ## Exploration
 
-- [Category mapping](category-mapping/README.md): published skills and
-  classification methods for finding the characteristics that separate a set
-  of things, tested on the estate's word "registry".
+- [Category mapping](category-mapping/README.md): which word fits a
+  collection (registry, stream, cache, tracker…) and which fits work by when
+  it acts (scheduled, standing, one-off…), each answered as a poster.
 
 Other repositories can declare their own accounts without copying their
 contents here.

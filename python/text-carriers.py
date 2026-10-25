@@ -134,19 +134,17 @@ def json_fields(path):
         return
     acc = defaultdict(lambda: [0, 0])
 
-    # A map under a value-named key (`values`) is data keyed by data, such as a
-    # category map's values by characteristic: its keys are not field names.
-    def walk(node, keypath, data=False):
+    def walk(node, keypath):
         if isinstance(node, str):
-            if not data and is_prose(node):
+            if is_prose(node):
                 acc[keypath or "(root)"][0] += 1
                 acc[keypath or "(root)"][1] += len(WORD.findall(node))
         elif isinstance(node, dict):
             for k, v in node.items():
-                walk(v, f"{keypath}.{k}" if keypath else k, data or (isinstance(v, dict) and bool(VALUE_FIELD.match(k))))
+                walk(v, f"{keypath}.{k}" if keypath else k)
         elif isinstance(node, list):
             for v in node:
-                walk(v, f"{keypath}[]", data)
+                walk(v, f"{keypath}[]")
 
     walk(data, "")
     for k, (cells, words) in acc.items():
