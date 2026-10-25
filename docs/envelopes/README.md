@@ -1,8 +1,8 @@
 # Content envelopes
 
-An **envelope** is a JSON document that carries a curated, annotated set of items for a reader to open, rendered by a web-tools page rather than by a bespoke viewer. Files, chats, and diffs stay where they live; the envelope layers selection, arrangement, and commentary over them, travels as one unit, and renders through a shared page. This folder is the family's home: the format contracts, the JSON Schemas that validate them, and this note on how the members relate.
+An **envelope** is a JSON document that carries a curated, annotated set of items for a reader to open, rendered by a web-tools page rather than by a bespoke viewer. Files, chats, and diffs stay where they live; the envelope layers selection, arrangement, and commentary over them, travels as one unit, and renders through a shared page. This folder is the family's home: the format contracts, the JSON Schemas that describe them, and this note on how the members relate.
 
-The `schemas/` here are the validation source of truth; the `.md` files carry concepts, conventions, and worked examples.
+The `schemas/` here are written contracts that nothing yet validates against (see [`surface.md`](surface.md)); the `.md` files carry concepts, conventions, and worked examples.
 
 ## The members
 
@@ -10,7 +10,7 @@ The members run from the most general to the most specific; [Membership](#member
 
 | Member | Contract | Renders through | Produced by | Carries |
 | --- | --- | --- | --- | --- |
-| **Surface** | [`surface.md`](surface.md) + [`schemas/surface-v2.schema.json`](schemas/surface-v2.schema.json) | [`pages/branch.html`](../../pages/branch.html), for a `branch-review/1` surface | none live; the Surfacer desktop app wrote v1 | a curated, annotated set of cross-repo items for any reason |
+| **Surface** | [`surface.md`](surface.md) + [`schemas/surface-v2.schema.json`](schemas/surface-v2.schema.json) | [`pages/branch.html`](../../pages/branch.html) and [`pages/walkthrough.html`](../../pages/walkthrough.html), for a `branch-review/1` surface | by hand, or a run's own builder (home `projects/text/runs/2026-10-22-doc-survey/build-walkthrough.py`); the Surfacer desktop app wrote v1 | a curated, annotated set of cross-repo items for any reason |
 | **Chat-results** | [`chat-results.md`](chat-results.md) | [`pages/chat-results.html`](../../pages/chat-results.html) | the `chat-histories` search skill | what a search over the chat archives found |
 | **Stage** | [`docs/stage.md`](../stage.md), `StageLink` | the Web Tools app | `StageLink.mint`, or by hand | a fileset in transit, plus authored review prompts and a mode |
 | **Data view** | [`data-view.md`](data-view.md) | [`pages/data-view.html`](../../pages/data-view.html) | by hand; a bare file needs none | data itself: a CSV, a JSON array, a log, or several of them with a view each |
@@ -33,34 +33,33 @@ The members run from the most general to the most specific; [Membership](#member
 one member that adds a schema to a parent that has none. Its items are data-view
 items, so it renders in `pages/data-view.html` unchanged; what it adds is
 provenance, the one thing data-view deliberately does not carry. The reasoning,
-run through the same three tests as the chat-results decision below and reaching
-the opposite answer, is in
+the same three tests as the chat-results decision below reaching the opposite
+answer, is in
 [`workbook-extract.md`](workbook-extract.md#why-this-is-a-profile-over-data-view-rather-than-a-sibling).
-It also recorded something about the parent worth knowing here: data-view's
-discriminator is structural rather than a `kind` check, so a superset kind is
-already admitted, which is what made a profile possible with no change to
-[`lib/kits/data-payload.js`](../../lib/kits/data-payload.js).
+A profile over data-view needs no change to
+[`lib/kits/data-payload.js`](../../lib/kits/data-payload.js), whose discriminator
+is structural rather than a `kind` check, so a superset kind is already admitted.
 
 ## Membership
 
 A format is a member when three things hold: a producer (a skill or a script) writes its files, a shared web-tools page renders them, and they travel by the family's transport, an `owner/repo[@ref]:path` address read as `src` or the whole file carried as `#gz=`. Its contract lives here, with a schema under `schemas/` where one exists, even when the producer lives in another repo. Its renderer lives under `pages/`, with a toss route in [`docs/routes-routes.csv`](../routes-routes.csv) when it travels by link. The contract names the producer and the renderer; the producer names the contract and the link it hands over.
 
-The family is indexed by format, not by page, because a page can be replaced while its format stays (Dictate's review modes took over part of Approve's job) and one page can render two formats. Decided 2026-10-15 ([PR #953](https://github.com/mehrlander/web-tools/pull/953)).
+The family is indexed by format, not by page, because a page can be replaced while its format stays and one page can render two formats.
 
 Not members: utility pages ([`docs/tools.csv`](../tools.csv)), subject pages ([`docs/subjects.csv`](../subjects.csv)), app views ([`docs/app-routes.csv`](../app-routes.csv)), and renderers bundled with their producer, such as the show-diff skill's template. Four formats with renderer pages are not yet listed: `approval/1`, `inquiry/1`, `user-call/1` and the idea board.
 
 ## The decision: chat-results stays a sibling
 
-The stage converged onto the surface schema; the open question was whether chat-results should follow, as a `chat-results/1` profile over the surface core, or remain a peer schema that shares only delivery mechanics. Decided 2026-08-02: **sibling.** The family is one core schema with profiles for file-shaped curation, plus chat-results as a peer, and the shared layer is the transport conventions (the `owner/repo[@ref]:path` address, the `#gz=`/`?src=` split, live-code rendering) and the ref triple.
+Chat-results is not a `chat-results/1` profile over the surface core but a peer schema that shares only delivery mechanics. Decided 2026-08-02: **sibling.** The family is one core schema with profiles for file-shaped curation, plus chat-results as a peer, and the shared layer is the transport conventions (the `owner/repo[@ref]:path` address, the `#gz=`/`?src=` split, live-code rendering) and the ref triple.
 
 Three reasons, in order of weight:
 
 1. **The shapes differ structurally, not cosmetically.** A chat result carries message arrays (`excerpts[]`, `transcript[]`, each `{role, md, ts?}`), which the surface item has no slot for: `content` and `snippet` are strings. And chat-results facets are many-to-many (`members[]`, one result in several groupings) where the surface `facet` is a single section key per item. A profile can constrain the core; it cannot restructure it, so `chat-results/1` would push the entire payload into open `metadata` and buy one validator in name only.
 2. **The convergence that matters already happened.** A result's `source {repo, path, ref}` is the same ref triple as the surface's `target.source` and the stage item; that is what lets one envelope's items point where another's do. Nothing further is gained by unifying the wrapper around it.
-3. **No concrete need is asking.** The case for a profile was a mixed surface holding both files and chats under one item grammar. If that arrives, the existing posture covers it ("each reader reads every kind, authors the kinds it knows"): a surface can hold a `type: chat` item whose `target.source` addresses the chat file, or the estate view can render a chat-results envelope as generic cards, with no change to either schema. Remodeling `pages/chat-results.html` and the committed `results/*.json` envelopes in chat-histories for tidiness alone would be work nothing is asking for.
+3. **No concrete need is asking.** A mixed surface holding files and chats is covered by the existing posture ("each reader reads every kind, authors the kinds it knows"): a surface can hold a `type: chat` item whose `target.source` addresses the chat file, with no change to either schema.
 
-The decision is reversible at the same price later, and the trigger for revisiting is named: a real mixed-envelope need that the `type: chat` posture cannot carry.
+Revisit when a real mixed-envelope need arrives that the `type: chat` posture cannot carry.
 
 ## Provenance
 
-The surface format originated in the Surfacer desktop app (the private `home` repo, `projects/surfacer/`), which keeps its planning there and defers the format contract to `surface.md` here. The chat-results envelope is authored by the `chat-histories` search skill and stored as `results/*.json` in that repo, which likewise treats this folder as the contract home. Both readers are documented per member; their v1→v2 migration targets live at the end of `surface.md`.
+The repos that produce these formats outside web-tools (home's Surfacer app, `projects/surfacer/`; the `chat-histories` search skill, whose envelopes are that repo's `results/*.json`) defer the contract to this folder.

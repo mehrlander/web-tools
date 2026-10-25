@@ -5,9 +5,7 @@ description: "Helps construct a high-ambition prompt that hands over a standard 
 
 # Inspire Excellence
 
-We put the vibe in vibe-generation. Draw from the two forms and the phrase bank.
-
-The genre of copy-pasta is nearby: vivid text that drops in with a poker face. But the goal here is practical. We want to prime a model with aesthetic ideals for an inspired result.
+We put the vibe in vibe-generation. Draw from the two forms and the phrase bank to prime a model with aesthetic ideals.
 
 ## Short form
 
@@ -88,7 +86,7 @@ Each axis points a direction. Foreign and literary phrases tagged.
 - murder your darlings (Quiller-Couch)
 - sprezzatura: the art that hides effort (Castiglione)
 
-Outward phrases push at the audience or the record. Integrity phrases pull inward, the work answering to itself. Pair the two when ambition needs ballast.
+Outward phrases push at the audience or the record. Integrity phrases pull inward, the work answering to itself.
 
 ## Greenfield versus retrofit
 

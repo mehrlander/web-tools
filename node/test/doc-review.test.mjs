@@ -68,10 +68,13 @@ test('edits committed on a pushed branch review against main and link the commit
   git('update-ref', 'refs/remotes/origin/main', 'HEAD');
   git('checkout', '-qb', 'work'); git('commit', '-qam', 'proposal');
   git('update-ref', 'refs/remotes/origin/work', 'HEAD');
-  const sha = git('rev-parse', 'HEAD');
+  const sha = git('rev-parse', 'HEAD'), base = git('rev-parse', 'origin/main');
   const r = run(work, ['-'], JSON.stringify(BRIEF));
   assert.equal(r.status, 0, r.stderr);
-  assert.ok(r.stdout.includes(`Two edits to the guide.\n\nCommit [${sha.slice(0, 7)}](https://github.com/acme/notes/commit/${sha})\n`), r.stdout);
+  // The changeset rides beside the commit, by full SHAs, since the compare API
+  // behind pages/review.html answers 404 to abbreviated ones.
+  assert.ok(r.stdout.includes(`Two edits to the guide.\n\nCommit [${sha.slice(0, 7)}](https://github.com/acme/notes/commit/${sha})` +
+    ` · [Changeset diff](https://mehrlander.github.io/web-tools/pages/review.html#gh=acme/notes@${sha}&base=${base})\n`), r.stdout);
   assert.ok(r.stdout.includes(`#data=acme/notes@${sha.slice(0, 12)}:docs/guide.md`));
   assert.ok(r.stdout.includes('+The browser draws a title only on hover.'));
 });

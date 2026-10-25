@@ -5,21 +5,19 @@ description: "Mint a link that opens GitHub's new-file form on the session's wor
 
 # Drop link
 
-## What this replaces
+## The link
 
-The old flow was: create a placeholder file on the branch, commit it, hand over
-an edit link, let the user overwrite it, then clean up. The whole thing
-collapses into one URL, because GitHub's new-file form takes the branch in the
-path and the filename in the query:
+GitHub's new-file form takes the branch in the path and the filename in the
+query:
 
 ```
 https://github.com/<owner>/<repo>/new/<branch>?filename=<path>
 ```
 
-No placeholder commit, no cleanup. The user opens the link (it works on a
-phone), pastes, and commits; the content lands on the branch as a normal
-commit, and it never enters the agent's context. The filename stays editable
-in the form, so the prefill is a default, not a decision.
+No placeholder commit is needed. The user opens the link (it works on a phone),
+pastes, and commits; the content lands on the branch as a normal commit, and it
+never enters the agent's context. The filename stays editable in the form, so
+the prefill is a default, not a decision.
 
 ## Steps
 
@@ -53,5 +51,4 @@ in the form, so the prefill is a default, not a decision.
   menu has **Drop a file here**, minting this URL with the inbox-stamped
   default name. Offer that route to a user already in the app.
 - The link requires the user to be signed into GitHub in the browser that
-  opens it; on a phone that is usually true. There is no token machinery
-  involved: it is GitHub's own editor.
+  opens it; it is GitHub's own editor, with no token involved.

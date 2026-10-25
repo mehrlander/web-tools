@@ -187,7 +187,7 @@ fi
 
 # --- leg tests-registry: node/test/ -> the test registry's derived fields ----
 # Must precede leg docs-reach, not follow it. This writes docs/tests.csv, and
-# docs/tests.csv is a row in docs/docs.json, so a restamp here invalidates any
+# docs/tests.csv is a row in docs/docs.csv, so a restamp here invalidates any
 # word count 3a had already taken. Running it after 3a leaves the suite failing
 # on exactly one row, which is how the ordering was found.
 if changed node/test package.json node/build/tests-index.mjs; then
@@ -244,14 +244,14 @@ fi
 # --- leg docs-reach: skills/pages/lib -> the registry's derived fields --------
 # `reach` and `words` are the derived fields inside an otherwise authored file:
 # pointing a skill or a page at a doc changes the first, and editing any doc's
-# length changes the second, and both edits are nowhere near docs/docs.json.
+# length changes the second, and both edits are nowhere near docs/docs.csv.
 # Restamp before leg docs-readme so the README projects the new value in the same commit.
 # docs-registry.test.mjs is the backstop where the hook does not run.
 if changed skills lib pages docs node/build/docs-reach.mjs; then
   if npm run docs-reach --silent >/dev/null 2>&1; then
     stage docs/docs.csv
   else
-    echo "build hook: 'npm run docs-reach' failed — docs/docs.json reach may be stale" >&2
+    echo "build hook: 'npm run docs-reach' failed — docs/docs.csv reach may be stale" >&2
   fi
 fi
 
@@ -292,7 +292,7 @@ if changed '*.md' python/duplicated-claims.py; then
   fi
 fi
 
-# --- leg docs-readme: docs/docs.json -> docs/README.md ------------------------
+# --- leg docs-readme: docs/docs.csv -> docs/README.md -------------------------
 # The docs index is a projection of the documentation registry; regenerate it
 # whenever the registry (or the generator) has pending changes.
 if changed docs/docs.csv node/build/docs-readme.mjs; then
@@ -311,11 +311,11 @@ if changed docs/docs.csv node/build/docs-readme.mjs; then
   if npm run docs-reach --silent >/dev/null 2>&1; then
     stage docs/docs.csv
   else
-    echo "build hook: 'npm run docs-reach' re-stamp failed — docs/docs.json words may be stale" >&2
+    echo "build hook: 'npm run docs-reach' re-stamp failed — docs/docs.csv words may be stale" >&2
   fi
 fi
 
-# --- leg tracker-board: tracker/tasks/ -> tracker/board.md + board.json -------
+# --- leg tracker-board: tracker/tasks/ -> tracker/board.md + board.csv --------
 if changed tracker/tasks/; then
   if npm run tracker-board --silent >/dev/null 2>&1; then
     stage tracker/board.md tracker/board.csv tracker/board-tags.csv
