@@ -304,8 +304,8 @@ test('each control is a labelled button a finger can hit, with no title attribut
   assert.equal(b.getAttribute('aria-label'), 'Copy this section');
   assert.equal(b.getAttribute('data-title-tip'), 'Copy this section');
   assert.equal(b.hasAttribute('title'), false);
-  assert.match(b.className, /\bsize-8\b/);
-  assert.match(b.className, /pointer-coarse:size-10/);
+  assert.match(b.className, /\bsize-7\b/);
+  assert.match(b.className, /pointer-coarse:size-8/);
   assert.doesNotMatch(b.className, /opacity-25/, 'muted, not faint');
 });
 
