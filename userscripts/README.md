@@ -9,9 +9,7 @@ is a way back, which is what the `Log-Repo` shortcut supplies.
 **Install:** open the raw `.user.js` file in Safari and take the Install sheet.
 Then, on a page the script matches, open the extension menu once and allow
 Userscripts on every site: an iOS extension is silent on a site until it is
-allowed there, and Safari only asks when the menu is opened. That cost one
-detour on 2026-09-05, with the script installed and matched and nothing on
-screen.
+allowed there, and Safari only asks when the menu is opened.
 
 **Edit, without reinstalling.** The stub is pinned to a **branch** and includes an
 auto-updating loader. When installed once with GM storage permissions (`@grant GM.getValue`,
@@ -33,22 +31,19 @@ git commit && git push
 ```
 
 The next time a webpage loads, the background loader detects the new build in `builds.json`,
-downloads the new body into GM storage, and runs it on the subsequent page load or reload—with
-zero manual extension sheets required.
+downloads the new body into GM storage, and runs it on the subsequent page load or reload, with
+no manual extension sheet.
 
 **The bookmarklet cannot follow it there**, so the two routes read different
 hosts on purpose. Raw serves `text/plain` with `nosniff`, which a browser
 refuses to execute from a script tag; GitHub Pages serves it as JavaScript,
 with a ten-minute cache and no purge step, but only as main has it. The test
-holds the two to the same path, which is what decides which body runs. (The
-bookmarklet read jsDelivr until 2026-09-26, which cached a branch for about
-twelve hours and rate-limited purges.)
+holds the two to the same path, which is what decides which body runs.
 
 **A branch pin costs the one thing a commit pin gave free**, knowing which copy
-ran, and any cache between a push and the phone widens the gap: under
-jsDelivr, a reload after a push could land on either body for a while
-(measured 2026-09-06, six of eight reads on the old one). So the drawer header answers the freshness question three ways, each
-weaker than the next but each available where the others are not:
+ran, and any cache between a push and the phone widens the gap. So the drawer
+header answers the freshness question three ways, each weaker than the next but
+each available where the others are not:
 
 | Shown | Answers |
 | --- | --- |
@@ -66,79 +61,32 @@ body and the stamp to the file it was computed from, and holds the stub and its
 bookmarklet twin to one address. A body must define `window.wt<Lib>` and do nothing on load;
 the stub calls it, so one body serves both routes.
 
-**Which route reaches a page.** Measured against `script-src 'self'`: the
-bookmarklet is refused, because it is a script tag the page injects; the
-userscript mounts, because the extension evaluates the body itself. That is the
-reason the off-site FAB exists as a userscript and the reason its styles are a
-constructed stylesheet rather than a `<style>` element, which `style-src` would
-refuse the same way.
+**Which route reaches a page** is in
+[`bookmarklets/README.md`](../bookmarklets/README.md#which-route-reaches-a-page):
+under `script-src 'self'` only the userscript mounts. That is why the off-site
+FAB is a userscript, and why its styles are a constructed stylesheet rather
+than a `<style>` element, which `style-src` would refuse.
 
 - [`launcher.user.js`](launcher.user.js): **the off-site FAB**, the app's own
   button and drawer carried onto pages that have none, from
   [`lib/launcher.js`](lib/launcher.js). Renaming that file stops updates to every
-  installed stub, which fetches it by path. Same square,
-  same mark, same drag, and a menu in the fab's row shape: capture the page to
-  the repo, open the app, hide it.
+  installed stub, which fetches it by path. It yields to a page that already
+  has a fab; the launcher's header says how it decides.
 
-  **It yields.** On a page that already has a fab it must not mount, or every
-  web-tools page grows a second button beside the real one. Five tells stand
-  it down: a mounted `[aria-label="Web-tools panel"]`, `window.gh`,
-  `window.__fabHosted`, `data-no-fab`, and an observer that removes it if the
-  real FAB boots after `document-end`.
+  The drawer is a swipe deck over the page's own content. Its slides are
+  `ALL_SLIDES` in [`lib/launcher.js`](lib/launcher.js) (Markdown, Selection,
+  Sandbox, Text, Links, HTML, JSON, Image, Details; Selection and Sandbox show
+  only when they hold something), and that file is the reference for each
+  slide's actions. The head menu's **Auto-collect on scroll** keeps blocks a
+  virtual-scroll feed removes as you pass them, so scrolling accumulates rather
+  than replaces.
 
-  **The drawer is not the fab's**, and cannot be: Render reads the GitHub API
-  through a token held on the web-tools origin, which a foreign origin does not
-  have and must not be given, and Inspect lists what `gh.load()` fetched, which
-  on a foreign page is nothing. What a foreign page does hold is its own
-  content, presented through a **vanilla swipe deck** with a collapsible header metadata disclosure.
-
-  - **Header Metadata Disclosure (`[ ℹ Page Info ▾ ]`):** Title, address, meta description, and the user's current selection sit in an expandable header dropdown, freeing the entire drawer body for content.
-  - **Paste & Hold (`[ Paste ]`):** Holds clipboard or page-copied content inside the drawer like a local Stage item (`Held Paste`), rendering Markdown, extracting links, and routing `[ Copy ]`, `[ Stage ]`, and `[ Store ]` through the held content. Supports iOS Safari clipboard access via `navigator.clipboard.readText()` with offscreen `<textarea inputmode="none">` `execCommand('paste')` fallback, automatic interception of host-page `copy` events (1-tap `Hold in Drawer` / `Read Aloud` banner), `+ Paste` accumulation, and an inline paste composer.
-  - **Read Aloud (`[ Read ]` / speaker icon):** Built-in `speechSynthesis` reader ported from `lib/kits/read-aloud.js` with iOS-safe cancel-and-remember pause/resume, active block highlighting, tap-paragraph-to-seek in the Markdown preview, and a customizer drawer for speed (`0.85×`–`2×`), voice selection, code block handling (`Skip` / `Announce` / `Read`), tables, blockquotes, and path shortening.
-  - **Fullscreen Deck (`[ ⤢ ]`):** Toggle the drawer into full-bleed view directly from the header or the hold menu for reading on small screens or deep reading on desktop.
-
-  | Slide | Holds | Actions |
-  | --- | --- | --- |
-  | **Markdown** | Composed brief with metadata, selection, and readable prose (or Held Paste) | `[ Copy ]`, `[ Stage ]`, `[ Read ]` |
-  | **Text** | Extracted page prose, live feed accumulation, or Held Paste text | `[ + Merge ]`, `[ Paste ]` |
-  | **Links** | Deduplicated off-page link checklist (or links extracted from Held Paste) | `[ All ]`, `[ None ]`, checkbox toggle |
-  | **HTML** | Clean outerHTML snapshot of the full page DOM | `[ Copy ]`, `[ Stage ]` |
-  | **JSON** | Structured envelope of page metadata, links, and prose | `[ Copy ]`, `[ Stage ]` |
-  | **Jina** | Live markdown from Jina AI Reader (`r.jina.ai`) | `Open in Jina ↗`, `[ Copy ]`, `[ Stage ]` |
-
-  **Universal Footer:** A single `[ Copy ]` button and dynamic `[ Stage ]` handoff link automatically track whichever slide is active, accompanied by 6 tap-target pager dots (`● ○ ○ ○ ○ ○`) and a live character / KB counter.
-
-  The header carries a **refresh**, because a read is a moment and a news front
-  page is not. **Collect** answers the harder version: a virtual-scroll feed
-  removes rows as you pass them, so a read taken at the end sees the last screen
-  and calls it the page. While Collect is on, every change to the document is a
-  chance to keep blocks and links not kept yet, so scrolling accumulates.
-  Measured against a list that never holds more than five rows: 45 items and 45
-  links survived 40 passing through. Turning it off stops the watcher and keeps
-  the tape; links accumulate whether or not it is on, so a refresh can never
-  drop one you had ticked.
-
-  **It measures the visible area, not the page.** iOS resolves `position: fixed`
-  against the layout viewport, which on a page carrying an unclamped table, a
-  wide ad slot or a pinch-zoom is wider than the screen; `vw` measures the same
-  wrong thing, so a right-anchored panel hangs off the side and `max-width`
-  does not save it. Everything is positioned inside one root sized from
-  `visualViewport` and re-measured on its resize and scroll. Chromium already
-  anchors fixed to the visual viewport, so this is not reproducible headless and
-  was reasoned from a phone.
-
-  **Two routes out, matched to size.** Send hands the capture to `Log-Repo` and
-  it lands in the repo, but it rides inside a `shortcuts://` URL whose true
-  ceiling nobody has measured (14,190 characters is known to work, and the
-  failure past it would be a truncated payload arriving complete-looking). So
-  Send is capped well under that and says `Copy only` when it stands down; Copy
-  takes anything, the clipboard having no such limit. The cap is on the
-  delivery, never on the selection.
+  **Two routes out, matched to size.** Send hands the capture to `Log-Repo`
+  inside a `shortcuts://` URL, capped well under the 14,190 characters known to
+  work and saying `Copy only` when it stands down; Copy takes anything. The cap
+  is on the delivery, never on the selection.
 
 ## What the probe settled (2026-09-05)
-
-`probe-require` was a two-route bar that ran once and is retired; its record is
-[PR #601](https://github.com/mehrlander/web-tools/pull/601).
 
 - The iOS build **does** fetch a remote `@require` (Userscripts 1.8.6, iOS 18.7),
   which is what makes the stub-and-body split above work at all.

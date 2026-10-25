@@ -2,39 +2,15 @@
 daisyUI 5 is a CSS library for Tailwind CSS 4
 daisyUI 5 provides class names for common UI components
 
-- [daisyUI 5 docs](http://daisyui.com)
-- [Guide: How to use this file in LLMs and code editors](https://daisyui.com/docs/editor/)
-- [daisyUI 5 release notes](https://daisyui.com/docs/v5/)
-- [daisyUI 4 to 5 upgrade guide](https://daisyui.com/docs/upgrade/)
-
-## daisyUI 5 install notes
-[install guide](https://daisyui.com/docs/install/)
-1. daisyUI 5 requires Tailwind CSS 4
-2. `tailwind.config.js` file is deprecated in Tailwind CSS v4. do not use `tailwind.config.js`. Tailwind CSS v4 only needs `@import "tailwindcss";` in the CSS file if it's a node dependency.
-3. daisyUI 5 can be installed using `npm i -D daisyui@latest` and then adding `@plugin "daisyui";` to the CSS file
-4. daisyUI is suggested to be installed as a dependency but if you really want to use it from CDN, you can use Tailwind CSS and daisyUI CDN files:
-```html
-<link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
-<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-```
-5. A CSS file with Tailwind CSS and daisyUI looks like this (if it's a node dependency)
-```css
-@import "tailwindcss";
-@plugin "daisyui";
-```
+An excerpt of upstream's [llms.txt](https://daisyui.com/llms.txt), which lists every component. House style ([`SKILL.md`](../SKILL.md), [`mechanics.md`](mechanics.md)) overrides it where they differ, and the excerpt leaves out `stats` and `tooltip`, which house style forbids. Loading from the CDN is in mechanics.md, "CDN Patterns".
 
 ## daisyUI 5 usage rules
 1. We can give styles to a HTML element by adding daisyUI class names to it. By adding a component class name, part class names (if there's any available for that component), and modifier class names (if there's any available for that component)
-2. Components can be customized using Tailwind CSS utility classes if the customization is not possible using the existing daisyUI classes. For example `btn px-10` sets a custom horizontal padding to a `btn`
-3. If customization of daisyUI styles using Tailwind CSS utility classes didn't work because of CSS specificity issues, you can use the `!` at the end of the Tailwind CSS utility class to override the existing styles. For example `btn bg-red-500!` sets a custom background color to a `btn` forcefully. This is a last resort solution and should be used sparingly
-4. If a specific component or something similar to it doesn't exist in daisyUI, you can create your own component using Tailwind CSS utility
-5. when using Tailwind CSS `flex` and `grid` for layout, it should be responsive using Tailwind CSS responsive utility prefixes.
-6. Only allowed class names are existing daisyUI class names or Tailwind CSS utility classes.
-7. Ideally, you won't need to write any custom CSS. Using daisyUI class names or Tailwind CSS utility classes is preferred.
-8. suggested - if you need placeholder images, use https://picsum.photos/200/300 with the size you want
-9. suggested - when designing , don't add a custom font unless it's necessary
-10. don't add `bg-base-100 text-base-content` to body unless it's necessary
-11. For design decisions, use Refactoring UI book best practices
+2. If a specific component or something similar to it doesn't exist in daisyUI, you can create your own component using Tailwind CSS utility
+3. Only allowed class names are existing daisyUI class names or Tailwind CSS utility classes.
+4. suggested - if you need placeholder images, use https://picsum.photos/200/300 with the size you want
+5. suggested - when designing , don't add a custom font unless it's necessary
+6. don't add `bg-base-100 text-base-content` to body unless it's necessary
 
 daisyUI 5 class names are one of the following categories. These type names are only for reference and are not used in the actual code
 - `component`: the required component class
@@ -48,43 +24,6 @@ daisyUI 5 class names are one of the following categories. These type names are 
 - `modifier`: modifies the component or part in a specific way
 - `variant`: prefixes for utility classes that conditionally apply styles. syntax is `variant:utility-class`
 
-## Config
-daisyUI 5 config docs: https://daisyui.com/docs/config/
-daisyUI without config:
-```css
-@plugin "daisyui";
-```
-daisyUI config with `light` theme only:
-```css
-@plugin "daisyui" {
-  themes: light --default;
-}
-```
-daisyUI with all the default configs:
-```css
-@plugin "daisyui" {
-  themes: light --default, dark --prefersdark;
-  root: ":root";
-  include: ;
-  exclude: ;
-  prefix: ;
-  logs: true;
-}
-```
-An example config:
-In below config, all the built-in themes are enabled while bumblebee is the default theme and synthwave is the prefersdark theme (default dark mode)
-All the other themes are enabled and can be used by adding `data-theme="THEME_NAME"` to the `<html>` element
-root scrollbar gutter is excluded. `daisy-` prefix is used for all daisyUI classes and console.log is disabled
-```css
-@plugin "daisyui" {
-  themes: light, dark, cupcake, bumblebee --default, emerald, corporate, synthwave --prefersdark, retro, cyberpunk, valentine, halloween, garden, forest, aqua, lofi, pastel, fantasy, wireframe, black, luxury, dracula, cmyk, autumn, business, acid, lemonade, night, coffee, winter, dim, nord, sunset, caramellatte, abyss, silk;
-  root: ":root";
-  include: ;
-  exclude: rootscrollgutter, checkbox;
-  prefix: daisy-;
-  logs: false;
-}
-```
 ## daisyUI 5 colors
 
 ### daisyUI color names
@@ -111,68 +50,14 @@ root scrollbar gutter is excluded. `daisy-` prefix is used for all daisyUI class
 
 ### daisyUI color rules
 1. daisyUI adds semantic color names to Tailwind CSS colors
-2. daisyUI color names can be used in utility classes, like other Tailwind CSS color names. for example, `bg-primary` will use the primary color for the background
-3. daisyUI color names include variables as value so they can change based the theme
-4. There's no need to use `dark:` for daisyUI color names
-5. Ideally only daisyUI color names should be used for colors so the colors can change automatically based on the theme
-6. If a Tailwind CSS color name (like `red-500`) is used, it will be same red color on all themes
-7. If a daisyUI color name (like `primary`) is used, it will change color based on the theme
-8. Using Tailwind CSS color names for text colors should be avoided because Tailwind CSS color `text-gray-800` on `bg-base-100` would be unreadable on a dark theme - because on dark theme, `bg-base-100` is a dark color
-9. `*-content` colors should have a good contrast compared to their associated colors
-10. suggestion - when designing a page use `base-*` colors for majority of the page. use `primary` color for important elements
-
-### daisyUI custom theme with custom colors
-A CSS file with Tailwind CSS, daisyUI and a custom daisyUI theme looks like this:
-```css
-@import "tailwindcss";
-@plugin "daisyui";
-@plugin "daisyui/theme" {
-  name: "mytheme";
-  default: true; /* set as default */
-  prefersdark: false; /* set as default dark mode (prefers-color-scheme:dark) */
-  color-scheme: light; /* color of browser-provided UI */
-
-  --color-base-100: oklch(98% 0.02 240);
-  --color-base-200: oklch(95% 0.03 240);
-  --color-base-300: oklch(92% 0.04 240);
-  --color-base-content: oklch(20% 0.05 240);
-  --color-primary: oklch(55% 0.3 240);
-  --color-primary-content: oklch(98% 0.01 240);
-  --color-secondary: oklch(70% 0.25 200);
-  --color-secondary-content: oklch(98% 0.01 200);
-  --color-accent: oklch(65% 0.25 160);
-  --color-accent-content: oklch(98% 0.01 160);
-  --color-neutral: oklch(50% 0.05 240);
-  --color-neutral-content: oklch(98% 0.01 240);
-  --color-info: oklch(70% 0.2 220);
-  --color-info-content: oklch(98% 0.01 220);
-  --color-success: oklch(65% 0.25 140);
-  --color-success-content: oklch(98% 0.01 140);
-  --color-warning: oklch(80% 0.25 80);
-  --color-warning-content: oklch(20% 0.05 80);
-  --color-error: oklch(65% 0.3 30);
-  --color-error-content: oklch(98% 0.01 30);
-
-  --radius-selector: 1rem; /* border radius of selectors (checkbox, toggle, badge) */
-  --radius-field: 0.25rem; /* border radius of fields (button, input, select, tab) */
-  --radius-box: 0.5rem; /* border radius of boxes (card, modal, alert) */
-  /* preferred values for --radius-* : 0rem, 0.25rem, 0.5rem, 1rem, 2rem */
-
-  --size-selector: 0.25rem; /* base size of selectors (checkbox, toggle, badge). Value must be 0.25rem unless we intentionally want bigger selectors. In so it can be 0.28125 or 0.3125. If we intentionally want smaller selectors, it can be 0.21875 or 0.1875 */
-  --size-field: 0.25rem; /* base size of fields (button, input, select, tab). Value must be 0.25rem unless we intentionally want bigger fields. In so it can be 0.28125 or 0.3125. If we intentionally want smaller fields, it can be 0.21875 or 0.1875 */
-
-  --border: 1px; /* border size. Value must be 1px unless we intentionally want thicker borders. In so it can be 1.5px or 2px. If we intentionally want thinner borders, it can be 0.5px */
-
-  --depth: 1; /* only 0 or 1 – Adds a shadow and subtle 3D depth effect to components */
-  --noise: 0; /* only 0 or 1 - Adds a subtle noise (grain) effect to components */
-}
-```
-#### Rules
-- All CSS variables above are required
-- Colors can be OKLCH or hex or other formats
-- If you're generating a custom theme, do not include the comments from the example above. Just provide the code.
-
-People can use https://daisyui.com/theme-generator/ visual tool to create their own theme.
+2. daisyUI color names include variables as value so they can change based the theme
+3. There's no need to use `dark:` for daisyUI color names
+4. Ideally only daisyUI color names should be used for colors so the colors can change automatically based on the theme
+5. If a Tailwind CSS color name (like `red-500`) is used, it will be same red color on all themes
+6. If a daisyUI color name (like `primary`) is used, it will change color based on the theme
+7. Using Tailwind CSS color names for text colors should be avoided because Tailwind CSS color `text-gray-800` on `bg-base-100` would be unreadable on a dark theme - because on dark theme, `bg-base-100` is a dark color
+8. `*-content` colors should have a good contrast compared to their associated colors
+9. suggestion - when designing a page use `base-*` colors for majority of the page. use `primary` color for important elements
 
 ## daisyUI 5 components
 
@@ -686,27 +571,6 @@ Select is used to pick a value from a list of options
 #### Rules
 - {MODIFIER} is optional and can have one of each style/color/size class names
 
-### stats
-Stat is used to show numbers and data in a block
-
-[stat docs](https://daisyui.com/components/stat/)
-
-#### Class names
-- Component: `stats`
-- Part: `stat`, `stat-title`, `stat-value`, `stat-desc`, `stat-figure`, `stat-actions`
-- Direction: `stats-horizontal`, `stats-vertical`
-
-#### Syntax
-```html
-<div class="stats {MODIFIER}">
-  <div class="stat">{CONTENT}</div>
-</div>
-```
-
-#### Rules
-- {MODIFIER} is optional and can have one of the direction class names
-- Content includes `stat-title`, `stat-value`, `stat-desc` inside a `stat`
-
 ### steps
 Steps can be used to show a list of steps in a process
 
@@ -853,30 +717,3 @@ Toggle is a checkbox that is styled to look like a switch button
 
 #### Rules
 - {MODIFIER} is optional and can have one of each color/size class names
-
-### tooltip
-Tooltip can be used to show a message when hovering over an element
-
-[tooltip docs](https://daisyui.com/components/tooltip/)
-
-#### Class Names:
-- Component: `tooltip`
-- Placement: `tooltip-top`, `tooltip-bottom`, `tooltip-left`, `tooltip-right`
-- Color: `tooltip-primary`, `tooltip-secondary`, `tooltip-accent`, `tooltip-info`, `tooltip-success`, `tooltip-warning`, `tooltip-error`
-- Modifier: `tooltip-open`
-
-#### Syntax
-```html
-<div class="tooltip {MODIFIER}" data-tip="tooltip text">
-  <button>Hover me</button>
-</div>
-```
-
-#### Rules
-- {MODIFIER} is optional and can have one of each placement/color class names
-- Use `data-tip` attribute to set the tooltip text
-- **House style overrides this component: do not use it.** (Added here, not
-  upstream.) It is CSS `:hover` only, so on a touch screen the first tap sticks
-  it open and only a tap somewhere else clears it, and nothing inside it can be
-  tapped. Use a title-tip (`data-title-tip`, `lib/kits/title-tip.js`), or a panel-tip
-  (`lib/kits/panel-tip.js`) where the content must be tapped: `SKILL.md` rule 11.

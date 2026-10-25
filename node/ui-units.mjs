@@ -112,8 +112,8 @@ const title = (k) => k.charAt(0).toUpperCase() + k.slice(1);
 // from the shell.
 const OWN_TABS = { project: ['outpost'] };
 // A route that draws no screen of its own declares the tab address a bare
-// visit settles on (`lands`): the Map opens on a tab, ?view=routes forwards to
-// the Map's Views tab, and ?view=project opens on its Overview. It is counted
+// visit settles on (`lands`): the Map opens on a tab, and ?view=project opens on
+// its Overview. It is counted
 // as a second address of that tab's unit, not as a unit, so one screen is
 // never coded twice.
 const landed = [];

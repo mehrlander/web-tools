@@ -28,7 +28,7 @@ Run the commands from a web-tools checkout, with `S` set to this skill's folder 
    python3 python/annotate/audit-payload.py payload $RUN/<name>.md $RUN > $RUN/payload.json
    ```
 6. **Check provenance.** For each DROP, and each note that cuts a phrase, run `python3 $S/scripts/run.py provenance <sessions-store> "<phrase>"`, where the store is the checkout the `sessions` skill attaches, and read its top hits.
-7. **Hand it over.** `python3 $S/scripts/run.py link $RUN/payload.json` prints the link. Hand it over as `⭐ [Document audit: <document>](<url>)`, followed by the fifth reader's findings, the peeves-critic's, and any provenance match.
+7. **Hand it over.** `python3 $S/scripts/run.py link $RUN/payload.json` prints the link. Hand it over as `🔷 [Document audit: <document>](<url>)`, followed by the fifth reader's findings, the peeves-critic's, and any provenance match.
 8. **Apply the review.** The owner's verdicts return as the patch the page's patch dialog copies or downloads, or in chat. `python3 python/annotate/ops.py $RUN/standoff.json <patch.json> $RUN/<name>.md --write` applies a patch. `python3 python/annotate/materialize.py $RUN/standoff.json $RUN/<name>.md --out <draft.md>` then removes the DROP units and lists each kept unit's note as the brief for the rewrite.
 
 ## The reader brief
@@ -45,10 +45,10 @@ Give each half-reader this, with the paths filled in.
 ## Key insights
 
 - **A flag is a proposal.** The readers' labels, notes and DROP verdicts propose; the owner's verdicts in the page decide. The document stays unchanged until the owner has walked the audit.
-- **A label needs both readers.** The merge rule keeps the Review list to the units worth the owner's time: 17 of 158 in the first run.
-- **The shortest fix.** In the first run, readers asked for a plain register wrote replacements that lengthened most sentences they touched. The brief asks for the shortest wording and prefers a cut.
-- **Provenance before a cut.** A phrase a reader would cut may be the owner's own, reworded by a session. In the first run an exact-phrase search missed the owner's own analogy, which the document had reworded; `run.py provenance` matches the phrase's rarer words by stem and ranks the owner's prompt first.
-- **The peeves check predicts the owner.** Over the first run's document, the `peeves-critic` agent predicted the objections that a read of 530 of the owner's recorded prompts found. Use the prompt history for provenance, not for prediction.
+- **A label needs both readers**, which keeps the Review list to the units worth the owner's time.
+- **The shortest fix.** Readers asked for a plain register lengthen most sentences they touch, which is why the brief asks for the shortest wording and prefers a cut.
+- **Provenance before a cut.** A phrase a reader would cut may be the owner's own, reworded by a session, so an exact-phrase search misses it; `run.py provenance` matches the phrase's rarer words by stem.
+- **The peeves check predicts the owner.** The `peeves-critic` agent predicted the objections a read of the owner's recorded prompts found. Use the prompt history for provenance, not for prediction.
 - **Findings across units go beside the link.** A unit's label cannot say that two units name one thing differently. The fifth reader's list holds those, each item naming its uids so the owner can find them in the page.
 
 ## Bundled

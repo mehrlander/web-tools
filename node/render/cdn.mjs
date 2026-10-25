@@ -90,6 +90,22 @@ export const typeFor = p => TYPES[path.extname(p).toLowerCase()] || 'application
 const siblingAllowed = (name) => process.env.SHOT_SIBLINGS == null
   || process.env.SHOT_SIBLINGS.split(',').includes(name);
 
+// A ref is read where it is newest. A session works on its own branch and never
+// moves the checkout's local `main`, which can sit days behind `origin/main`, so
+// a read at `main` takes origin's copy whenever origin's contains the local one.
+const newestRef = new Map();
+function refAt(root, ref) {
+  const key = root + '\0' + ref;
+  if (!newestRef.has(key)) {
+    const ok = (args) => spawnSync('git', ['-C', root, ...args]).status === 0;
+    const remote = 'origin/' + ref;
+    const useRemote = ok(['rev-parse', '--verify', '-q', remote + '^{commit}'])
+      && (!ok(['rev-parse', '--verify', '-q', ref + '^{commit}']) || ok(['merge-base', '--is-ancestor', ref, remote]));
+    newestRef.set(key, useRemote ? remote : ref);
+  }
+  return newestRef.get(key);
+}
+
 // A checkout of another repo in this estate, beside this one. Returns the file
 // path when the sibling exists, is a git checkout, and holds the file; null
 // otherwise, so every caller falls through to its own rule. It never leaves the
@@ -627,9 +643,23 @@ export function resolveCdn(rawUrl, repoRoot, ref, headers = {}) {
   const CODE = /^(lib|dist)\//;
   const gitShow = (root, ref, rel) => {
     if (!ref || CODE.test(rel)) return null;
-    const r = spawnSync('git', ['-C', root, 'show', `${ref}:${rel}`],
+    const r = spawnSync('git', ['-C', root, 'cat-file', 'blob', `${refAt(root, ref)}:${rel}`],
                         { maxBuffer: 64 * 1024 * 1024 });
     return r.status === 0 ? r.stdout : null;
+  };
+  // A folder at a ref is that ref's tree, listed as the contents API lists
+  // one. `git show` printed a tree as text, which went out as a file's bytes,
+  // so a page listing a folder at a ref read nothing (2026-10-23, the Map's
+  // Icons tab).
+  const gitTree = (root, ref, rel) => {
+    if (!ref || CODE.test(rel)) return null;
+    const r = spawnSync('git', ['-C', root, 'ls-tree', `${refAt(root, ref)}:${rel}`], { encoding: 'utf8' });
+    if (r.status !== 0) return null;
+    return r.stdout.split('\n').filter(Boolean).map(line => {
+      const [meta, name] = line.split('\t'), [, type, sha] = meta.split(' ');
+      return { name, path: rel ? `${rel}/${name}` : name, type: type === 'tree' ? 'dir' : 'file',
+               sha, size: 0, html_url: '', download_url: '' };
+    });
   };
 
   // --- Own code: GitHub contents API (every load after gh-api.js) ---
@@ -647,6 +677,11 @@ export function resolveCdn(rawUrl, repoRoot, ref, headers = {}) {
           encoding: 'base64', sha: blobSha(atRef), size: atRef.length, html_url: '',
         }),
       };
+    }
+    const treeAtRef = gitTree(repoRoot, u.searchParams.get('ref'), rel);
+    if (treeAtRef) {
+      return { kind: 'fulfill', contentType: 'application/json; charset=utf-8',
+               tag: `api dir ${rel} @${u.searchParams.get('ref')}`, body: JSON.stringify(treeAtRef) };
     }
     if (existsSync(fp)) {
       // A directory path returns the contents-API array, not file bytes — and

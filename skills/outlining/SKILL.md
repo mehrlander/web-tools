@@ -5,10 +5,6 @@ description: "Use when asked to outline a document, lay out its structure, or pu
 
 # Outlining
 
-## Premise
-
-Outlining is a powerful distilling tool, as used in law-school exam prep.
-
 ## Goal and outputs
 
 Produce an outline of a document to match the intended use. The work runs in two phases: phase one surveys the document and settles the entry criteria, the grain and dimension; phase two produces the outline. Three artifacts result.
@@ -39,9 +35,3 @@ Outlining can target informational content of different kinds and at different r
 2. **Produce the outline and crosswalk (phase two).** Emit entries at the chosen grain, each carrying the source span it came from; the spans are the crosswalk. Material matching no entry criteria is left out. One pass suits a short source; a long one may fan out, split on the seams the profile found, run separately and merged, across parallel agents or a script loop. The strategy is open, since step three validates either.
 3. **Check coverage.** From source and outline, emit the regions that match the criteria but reach no entry: the accidental drops. This check, not the manner of production, is what makes coverage trustworthy.
 4. **Check validity.** Emit the discards the intent wanted. Any means the criteria were too narrow: back to phase one.
-
-## Extending
-
-The claim-grain cell is the most worked out, with its own rules for what counts as one claim and for holding grain consistent across a long document. Those can live here as the deep treatment of one cell, the coarser cells left as named options for now.
-
-A spread of outlines can be crossed with the entries: each entry scored for fit against each outline, a heat map whose cold cells are the outliers.

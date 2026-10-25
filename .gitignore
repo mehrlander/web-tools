@@ -23,3 +23,6 @@ tools/concept-lab/data/concreteness.tsv
 
 # Debug screenshot dropped by node/test/playground-pass.mjs (SHOT_PATH overrides)
 playground-census.png
+# Local browser verification includes private activity snapshots.
+/.playwright-cli/
+/output/playwright/

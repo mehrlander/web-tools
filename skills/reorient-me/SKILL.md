@@ -5,10 +5,6 @@ description: "Summarize where a long conversation has gotten to, formatted for r
 
 # Reorient Me
 
-## Premise
-
-Previously, on this chat.
-
 ## Goal and output
 
 On request, one re-entry summary. The spine is fixed: a short narrative pass, then a table. An optional third beat may follow. Everything else bends to the conversation's shape.
@@ -58,5 +54,4 @@ Not every stretch is a table. Read each for hidden structure (sequence, recurren
 
 ## Key insights
 
-- The order is the point. Narrative first re-enters by the familiar door; lead with the table instead and you drop the reader into a schema before they have remembered the story. Let the narrative run and you overload the moment you meant to relieve.
-- The index, the bold label, the italic linkage each carry a different load: the rail to count down, the outline to skim, the motion that shows one row feeding the next.
+- Keep the order. Leading with the table drops the reader into a schema before they have remembered the story, and a narrative that runs long overloads the moment it meant to relieve.

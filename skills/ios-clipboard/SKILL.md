@@ -70,12 +70,7 @@ ClipboardJS's success event hands you `clearSelection()`. Only call it when you 
 
 ## Don't bother trying
 
-- Bypassing the paste pill. Not possible. iOS gates clipboard reads behind a user gesture plus visible confirmation in every path.
 - `navigator.clipboard.readText()` instead of the textarea. Works on https with the same pill, but undefined on data URLs. The textarea covers both with identical UX.
 - Document-level paste listener as the trigger. Listener fires when paste lands on a focused editable, but you still need that focused editable. The textarea is the trigger.
 - Long-tap paste on plain divs. iOS only offers Paste in editable contexts (textarea, input, contenteditable).
 - Auto-focus on load to skip a tap. Doesn't reliably trigger the pill, and creates other UX problems.
-
-## Why default to the textarea on https
-
-Both paths work on https with the same pill. Use the textarea anyway, so the same code covers data URL contexts where `readText()` is undefined. One path, two contexts.

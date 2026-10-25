@@ -8,10 +8,9 @@ mechanics) lives in the private `home` repo at
 `2026-06-27-constellation-mechanics.md` companion. This file is the public,
 reusable statement; that one is the instance.
 
-The Web Tools app's **Map** view is the operational face of this doctrine: its
-Distribution tab renders the crosswalk of what travels, and each repo's card
-sets the repo's own scope statement beside a live read of how far it carries the
-set. The theory here is what the per-repo scope stories apply.
+The Web Tools app's **Map** view applies it: its Distribution tab renders the
+crosswalk of what travels, and each repo's card sets the repo's own scope
+statement beside a live read of how far it carries the set.
 
 ## The constraint that selects everything: the ephemeral fresh clone
 
@@ -33,9 +32,13 @@ many-revision input a session usually does not need, with skip-smudge).
 "Regenerable" is safe only when the builder is committed and deterministic and
 the inputs are durably sourced; otherwise it is data loss with extra steps.
 
-Commit discipline operates in two modes:
-* **GitHub flow (Branch & PR):** Used for code, features, refactors, and documentation. Edits are isolated on a branch, verified, reviewed, and merged via pull request.
-* **Real-time (Direct to `main`):** Used for shared state that concurrent sessions and tools rely on as live truth: task trackers, personal capture lists, session telemetry, and crawl caches. Because an ephemeral container cannot read an unmerged feature branch in a sibling session, these commit directly to `main` and push to GitHub as you go so all sessions stay synchronized in real time.
+Commits follow two modes: GitHub flow, a branch and a pull request, for code,
+features, refactors and documentation; and Real-time, committed direct to `main`
+and pushed as you go, for shared state that concurrent sessions and tools rely on
+as live truth (task trackers, capture lists, session telemetry, crawl caches),
+because an ephemeral container cannot read a sibling session's unmerged branch.
+[`direct-to-main.csv`](direct-to-main.csv) lists each writer that commits to
+`main` this way and the paths it owns.
 
 ## Principle 2: visibility is the (almost) only thing that forces a repo boundary
 
@@ -56,12 +59,10 @@ every consumer (public or private) can fetch it with no credentials. So a public
 hub holds the conventions and orchestration patterns; every repo is a consumer
 via a committed, fail-soft pull; private repos hold private content, never
 private rules. The consequence: there is never a need for private-to-private
-convention sync. The hub's public-ness is load-bearing, not incidental, because
-it is what gives the fresh-clone fetch its no-auth property.
+convention sync.
 
-Two guards make this robust rather than merely elegant. Anything critical must
-live in the consumer's own committed contract (its `CLAUDE.md`), always present,
-since the pull is fail-soft; the hub carries the shared, evolving, elaborative
+Two guards apply. Anything critical must live in the consumer's own committed
+contract (its `CLAUDE.md`), always present, since the pull is fail-soft; the hub carries the shared, evolving, elaborative
 layer. And a hub that is fetched and then invoked is a supply-chain surface: the
 hub must be owned and trusted, and pinning is the lever if that trust ever needs
 hardening.
@@ -70,10 +71,12 @@ hardening.
 
 "How do we start a new repo from the same base" and "how do we keep repos
 current as conventions evolve" are the same question, answered by one mechanism.
-Drop the committed bootstrap seed into a new repo and it pulls the current
-conventions on its first session. There is no separate initialize step to drift
-from the update step. The only thing ever copied is that seed, the minimal thing
-that lets everything else be pulled; a repo cannot pull the mechanism by which it
+Commit the marketplace subscription block
+([MARKETPLACE.md](MARKETPLACE.md#how-to-subscribe)) into a new repo's
+`.claude/settings.json` and it pulls the current conventions on its first
+session. There is no separate initialize step to drift from the update step. The
+only thing ever copied is that block, the minimal thing that lets everything else
+be pulled; a repo cannot pull the mechanism by which it
 pulls.
 
 ## Principle 5: the repo owns its own story
@@ -84,10 +87,7 @@ appears or disappears. Housing it centrally invites writing it comparatively, as
 differentiation, which rots the moment the roster changes. So each repo declares
 its own scope in its `.web-tools.json` `scope` field (see
 [`manifest.md`](manifest.md)); the cross-repo picture is a view that stacks those
-statements, never an authored central list. This is the same shape as estate
-membership (a repo opts in on its own config; there is no registry roster of
-members) and as the surface split (a repo owns the surface that tells its own
-story; the registry keeps only the curated, cross-repo ones).
+statements, never an authored central list.
 
 ## Projects and research
 

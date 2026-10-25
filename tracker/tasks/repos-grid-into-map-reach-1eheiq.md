@@ -50,7 +50,7 @@ What the move involves, measured at `8293c466`:
 - `docs/app-routes.csv`: the `repos` row's `stop`
 - `docs/map-tabs.csv`: a row for the new address
 - `docs/APP.md`: the header sentence and "Select a repo in Repos"
-- `docs/views/repos.md`, `docs/views/map.md`: where the grid lives
+- `lib/alpineComponents/estate.js`, `lib/alpineComponents/map.js`: where the grid lives
 - `data/ui-units/`: the Map units' recoding waits on this move, since it changes the same units
 - `tracker/tasks/stranded-titles-panel-or-drop-o6hqom.md`, `tracker/tasks/registry-authored-derived-split-v3qm2x.md`: open tasks that also touch `estate.js`
 - PR #945: the two-door regroup this completes

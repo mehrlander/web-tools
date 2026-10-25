@@ -1,0 +1,16 @@
+family,group,label,source,icon_column,name_column,doc
+repositories,drawn,Repositories,docs/favicons/repos/,,,docs/favicons/README.md#repository-marks
+map,drawn,Map,docs/favicons/map/,,,docs/favicons/README.md#map-marks
+projects,drawn,Projects,.web-tools.json,,,docs/manifest-fields.csv#projects[].icon
+programs,drawn,Programs,.web-tools.json,,,docs/manifest-fields.csv#programs[].icon
+agents,drawn,Agents,docs/agents.csv,icon,id,docs/favicons/README.md#drawn-marks
+assistants,drawn,Assistants,lib/kits/assistant-mark.js,,,lib/kits/assistant-mark.js
+map-addresses,phosphor,Map addresses,lib/alpineComponents/map.js,,,lib/alpineComponents/map.js
+repository-glyphs,phosphor,Repository glyphs,.web-tools.json,,,docs/manifest-fields.csv#icon
+subjects,phosphor,Subjects,docs/subjects.csv,icon,label,docs/showing.md#subjects-and-kinds
+annotation-aims,phosphor,Annotation aims,docs/routes-kinds.csv,aim_icon,aim_label,docs/routes-kinds.csv
+tools,phosphor,Tools,docs/tools.csv,icon,path,docs/tools.csv
+ui-units,phosphor,UI unit codes,data/ui-units/codes.csv,icon,name,data/ui-units/codebook.md
+closing-states,emoji,Closing states,lib/kits/closing-state.js,,,docs/CONVERSATION.md#every-reply
+conversation,emoji,Conversation rules,docs/conversation.csv,glyph,lead,docs/CONVERSATION.md
+showing,emoji,Showing mechanisms,docs/showing-mechanisms.csv,glyph,label,docs/CONVERSATION.md#a-reply-that-changed-files

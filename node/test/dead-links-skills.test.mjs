@@ -14,7 +14,7 @@
 //   not read  the same names in a file that is not an instruction file (a
 //             dated record names a retired skill as history); the scanned
 //             repo's own .claude/skills/<name>/; skills/<name>/ in bare prose;
-//             skills/hooks/, the one folder under skills/ that is not a skill
+//             skills/hooks/ or skills/agents/, the folders under skills/ that are not skills
 //
 // Each case runs a COPY of the script from inside a scratch layout, because
 // the manifest resolves from the script's own checkout before a sibling, and

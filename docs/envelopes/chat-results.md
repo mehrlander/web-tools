@@ -1,6 +1,6 @@
 # Chat search results: the envelope contract
 
-⭐ [pages/chat-results.html](https://mehrlander.github.io/web-tools/pages/chat-results.html) renders a **results envelope**: a JSON document describing what a search over the chat archives found. The division of labor is deliberate: the model (a search skill running over `mehrlander/chat-histories`) is the search engine and emits the envelope; the page is only the presentation layer. The page renders whatever fields exist and skips whatever doesn't, so the same page shows one full chat, a flat list, or a categorized constellation with narrative.
+🔷 [pages/chat-results.html](https://mehrlander.github.io/web-tools/pages/chat-results.html) renders a **results envelope**: a JSON document describing what a search over the chat archives found. The division of labor is deliberate: the model (a search skill running over `mehrlander/chat-histories`) is the search engine and emits the envelope; the page is only the presentation layer. The page renders whatever fields exist and skips whatever doesn't, so the same page shows one full chat, a flat list, or a categorized constellation with narrative.
 
 ## Delivery
 
@@ -73,8 +73,8 @@ Messages are `{ role, md, ts?, label? }`. Roles normalize loosely (`human`→use
 
 1. Prosecute the search however the question demands; normalization of provider quirks happens here, not in the page.
 2. Build the envelope: pointers plus excerpts for big result sets, inline transcripts for small ones. Facet by whatever axes the search actually surfaced (topic, era, where the match was found); facets are optional and per-search.
-3. Deliver: small → `#gz=` link on `pages/chat-results.html`; large → commit the JSON to `chat-histories` (e.g. `results/<slug>.json`) and link `pages/chat-results.html?src=mehrlander/chat-histories:results/<slug>.json`.
+3. Deliver by the table above: small as a `#gz=` link, large committed to `chat-histories` as `results/<slug>.json` and linked through the `#chat-results=` toss.
 
 ## Rendering notes
 
-The chats are regular provider output; they don't know this viewer exists, and nothing in a transcript can or should invoke its features. The renderer discovers fenced blocks itself and offers a view only where an arbitrary block stands on its own: Render for html/svg (sandboxed iframe; markup fragments render meaningfully out of context), Table for json arrays (Tabulator), Preview for md, plus a CM6 editor behind the Edit pencil on any block. A js block gets static code only — chat JavaScript is usually a piece of some larger thing, so executing it standalone would just produce reference errors. Nothing executes without a click. The sandbox documents come from [`lib/kits/proof.js`](../../lib/kits/proof.js), the same machinery behind the vanilla-demo pages (whose curated, self-contained snippets are where a Run affordance does make sense).
+The chats are regular provider output; they don't know this viewer exists, and nothing in a transcript can or should invoke its features. The renderer discovers fenced blocks itself and offers a view only where an arbitrary block stands on its own: Render for html/svg (sandboxed iframe; markup fragments render meaningfully out of context), Table for json arrays (Tabulator), Preview for md, plus a CM6 editor behind the Edit pencil on any block. A js block gets static code only: chat JavaScript is usually a piece of some larger thing, so executing it standalone would just produce reference errors. Nothing executes without a click. The sandbox documents come from [`lib/kits/proof.js`](../../lib/kits/proof.js), the same machinery behind the vanilla-demo pages (whose curated, self-contained snippets are where a Run affordance does make sense).

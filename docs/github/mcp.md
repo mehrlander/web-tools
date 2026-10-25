@@ -110,13 +110,12 @@ It's a readback fault, not a write fault: the same content written through
 `create_or_update_file` and read back with `git show`, no MCP in the read,
 round-trips byte for byte.
 
-**Why the guide region is delimited by a link label.** A PR body's *guide
+**So the guide region is delimited by a link label.** A PR body's *guide
 region* is the part a sync rewrites, bracketed by two markers; the summary line
-above it and the session footer below it sit outside. `<!-- guide -->` used to
-be those markers, and reading them back through this path returned nothing, so
-a sync either appended a second region or overwrote the summary and footer.
-`[//]: # (guide)` survives the round trip and renders as nothing on GitHub,
-being a link-reference definition rather than content, so it is what gets
-written now; recognition still accepts the old form, since every body written
-before 2026-07-28 carries it. The label must start a line, between blank lines;
-inside a list item or blockquote it can render literally.
+above it and the session footer below it sit outside. An HTML-comment marker
+reads back as nothing, so a sync would append a second region or overwrite the
+summary and footer. `[//]: # (guide)` survives the round trip and renders as
+nothing on GitHub, being a link-reference definition rather than content, so it
+is what gets written; recognition still accepts `<!-- guide -->`, which bodies
+written before 2026-07-28 carry. The label must start a line, between blank
+lines; inside a list item or blockquote it can render literally.
