@@ -1,0 +1,12 @@
+You are building one web page for a design experiment. Work alone and finish in this session.
+
+Source text: /home/user/web-tools/research/minimal-progressive-structure/experiment/sources/dca.txt. Read it in full.
+Write the page to: /home/user/web-tools/research/minimal-progressive-structure/experiment/pages/dca-house-mps.html
+
+Build a single-file HTML page that presents the content of the source text to a general reader. Use only the source's facts and invent nothing. Stack: Tailwind CSS and daisyUI loaded from a CDN, and Alpine.js if the page needs interaction; no React. Keep all data inline in the file and load nothing from this repository. You may render the page headless to check it: Playwright is installed (`require('playwright')`, and `chromium.launch()` needs no options). Save any screenshots under /tmp/claude-0/-home-user/42672179-ad7e-564f-a9e9-fc8bd49163d9/scratchpad/shots/dca-house-mps, not beside the page.
+
+Write every file with Bash (a heredoc or a short script), not with the Write or Edit tools. Do not read any files other than those named in this prompt, and do not invoke skills.
+
+Follow the method in /home/user/web-tools/research/minimal-progressive-structure/method.md for the page's structure, and read it before you plan the page. Write the method's outputs (governing question and root, entity model, projection table, checks) to /home/user/web-tools/research/minimal-progressive-structure/experiment/pages/dca-house-mps.model.md before you build the page. Follow the house style in /home/user/web-tools/skills/html-style/SKILL.md for the page's appearance, and read it before you lay out the page; you may also read /home/user/web-tools/skills/html-style/references/mechanics.md for stack details. Where the style points to a kit in this repository, build that pattern by hand inside the page rather than loading the kit.
+
+When done, reply with the output path or paths and two sentences describing the layout you chose.

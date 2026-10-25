@@ -16,6 +16,7 @@ account links to its own materials. The shared placement rule is in
 ## Probes
 
 - [Documentation problems and drafting proposals](DOC_CRAFT_STUDY.md), with the original specimens.
+- [Minimal progressive structure](minimal-progressive-structure/README.md): a theory of how text becomes a layered page, its prior art, and a blind test of the method on page-building agents.
 
 The Excel research is in `projects/office/research/` in `mehrlander/home`.
 
