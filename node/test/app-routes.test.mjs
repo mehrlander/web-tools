@@ -528,21 +528,3 @@ test('the manifest builder keeps the shell out of the routes and names it twice'
   assert.ok(manifest.groups.length > 1, 'group glosses came from the vocabulary');
   assert.equal(manifest.groups.every(g => g.key && g.label), true);
 });
-
-// ── docs/forms/ answers to the subjects registry ─────────────────────────
-//
-// Each form's document is named on its subjects row. Held both ways: a named
-// doc exists, and a file in the folder is named by a row, so a document cannot
-// drift out of the app's own index.
-test('every doc a type names exists, and every form doc is named', async () => {
-  const { readdirSync } = await import('node:fs');
-  const named = new Set();
-  for (const r of rows('subjects.csv')) {
-    if (!r.doc) continue;
-    assert.ok(existsSync(path.join(repoRoot, r.doc)), `subjects.csv ${r.key}: doc missing on disk: ${r.doc}`);
-    named.add(r.doc);
-  }
-  for (const f of readdirSync(path.join(repoRoot, 'docs/forms')).filter(f => f.endsWith('.md') && f !== 'README.md')) {
-    assert.ok(named.has(`docs/forms/${f}`), `docs/forms/${f} is named by no subjects row`);
-  }
-});

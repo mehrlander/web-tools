@@ -1,7 +1,8 @@
 # Forms
 
-A **form** is the standard way one kind of thing is shown, so that a reader
-knows the kind before reading the content. Before building a page, find the
+A **form** is the standard way to show one type of object (a branch, a
+session) or to ask for one kind of answer (a decision, a label), so that a
+reader recognizes the form before reading the content. Before building a page, find the
 job it does here and reuse a form that serves it. A page that fits no form
 proposes one.
 
@@ -13,7 +14,7 @@ that does two jobs carries both tags, and neither is primary.
 | Job | The reader | Forms |
 | --- | --- | --- |
 | respond | judges something work raised | one per answer, below |
-| follow | keeps track of something ongoing | the [branch](branch.md); the [session](session.md); an inbox |
+| follow | keeps track of something ongoing | the [branch](../../pages/branch.html); the [session](../../pages/session.html); an inbox |
 | read | takes in a document or a result | none named yet |
 | explore | finds their way through a repo, a dataset or a collection | none named yet |
 | make | works on something they bring or own | none named yet |
