@@ -99,7 +99,7 @@ routes-kinds,aim,recorded,,none,column,yes,,value,the annotate aim this kind add
 routes-kinds,aim_label,recorded,,none,column,yes,,value,"what that aim is called in the annotator, carried here so the kit holds no strings of its own"
 routes-kinds,aim_hint,recorded,,none,column,yes,,value,the one line under that aim in the menu
 routes-kinds,aim_icon,recorded,,none,column,yes,,value,"the phosphor glyph that marks that aim, carried here for the same reason the label is: both surfaces that draw the aim hardcoded one, so a kind got its own name and markdown's icon"
-showing-mechanisms,glyph,recorded,,value,column,yes,,label,the marker the caption uses
+showing-mechanisms,glyph,recorded,,value,column,yes,diamond;disc;box;x,label,the marker the caption uses
 showing-mechanisms,label,recorded,,value,column,yes,,value,the mechanism name a reader sees
 showing-mechanisms,form,recorded,,none,column,yes,,value,the address shape; absent where the mechanism is not a URL
 showing-mechanisms,subject,recorded,,value,column,yes,,value,"the subject types it can show, semicolon-separated keys into docs/subjects.csv"
@@ -134,10 +134,8 @@ app-routes,group,recorded,,value,column,yes,repo;estate;shell,label,"the subject
 app-routes,what,recorded,,value,column,yes,,value,"what the destination is for, one line"
 app-routes,files,recorded,,counted,column,no,,locator,"the files that render it, shell excluded. Blank is a finding, not a gap: three routes render from components defined inline in the shell and so have no code of their own, which the Routes pane counts rather than hides"
 app-routes,note,recorded,,none,column,yes,,value,"why a row has no files, or what qualifies the row"
-app-routes,doc,recorded,,none,column,yes,,locator,"the document for this view; blank where the row's what and note say enough, and a shared reference (stage.md, manifest.md) where one already owns the view"
-app-routes,alias,recorded,,none,column,yes,,locator,a retired key that still resolves
 app-routes,tabs,recorded,,none,column,no,,label,the sub-tabs addressable within it
-app-routes,lands,recorded,,none,column,yes,,value,"the tab address a bare visit settles on, for a route that draws no screen of its own: the Map opens on a tab, ?view=routes forwards to the Map's Views tab, and ?view=project opens on its Overview"
+app-routes,lands,recorded,,none,column,yes,,value,"the tab address a bare visit settles on, for a route that draws no screen of its own: the Map opens on a tab, and ?view=project opens on its Overview"
 app-routes,stop,recorded,,counted,column,yes,,value,"the nav destination it is reached as. Several routes collapse onto one stop (Activity and Lists each gather more than one ?view= key), so this is the level the router flattens away; the gate holds every estate route's value to estateNav; blank on the shell row, which draws every route and is addressable as none of them"
 app-routes,reads,recorded,,counted,column,no,,value,"the derived state sources this view consumes, semicolon-separated. The value domain is state-view.js's own source list rather than an enumeration here, so the two cannot part; the gate holds every entry to it and to a file on this row that actually reads it. Blank on 16 of 21, which is the reading the field exists to make: most destinations draw nothing the estate keeps derived"
 registries,path,recorded,,value,column,yes,,locator,"the file the registry lives in; one table per file, so a path is a plain file path with nothing after it"
@@ -269,15 +267,15 @@ doc-overlap-gold,cosine,computed,python/doc-overlap-gold.py,value,column,yes,,va
 doc-overlap-gold,literal,computed,python/doc-overlap-gold.py,value,column,yes,yes;no,label,whether the two files share 3+ shingles in docs/themes.csv
 doc-overlap-gold,short,computed,python/doc-overlap-gold.py,value,column,yes,yes;no,label,whether the shorter passage is under 20 words
 doc-overlap-gold,a_path,computed,python/doc-overlap-gold.py,value,column,yes,,locator,the first passage's file
-doc-overlap-gold,a_start,computed,python/doc-overlap-gold.py,value,column,yes,,locator,"its start, in UTF-16 code units"
-doc-overlap-gold,a_end,computed,python/doc-overlap-gold.py,value,column,yes,,locator,"its end, in UTF-16 code units"
-doc-overlap-gold,a_line,computed,python/doc-overlap-gold.py,value,column,yes,,locator,the line it starts on
-doc-overlap-gold,a_hash,computed,python/doc-overlap-gold.py,value,column,yes,,label,first 12 hex digits of sha256 over its text when labelled
+doc-overlap-gold,a_start,computed,python/doc-overlap-gold.py,value,column,yes,,locator,"its start in the file at the commit the gold set's README names, in UTF-16 code units"
+doc-overlap-gold,a_end,computed,python/doc-overlap-gold.py,value,column,yes,,locator,"its end in the file at that commit, in UTF-16 code units"
+doc-overlap-gold,a_line,computed,python/doc-overlap-gold.py,value,column,yes,,locator,the line it starts on at that commit
+doc-overlap-gold,a_hash,computed,python/doc-overlap-gold.py,value,column,yes,,label,"first 12 hex digits of the sha256 of its text, which begin its id in passages.jsonl"
 doc-overlap-gold,b_path,computed,python/doc-overlap-gold.py,value,column,yes,,locator,the second passage's file
-doc-overlap-gold,b_start,computed,python/doc-overlap-gold.py,value,column,yes,,locator,"its start, in UTF-16 code units"
-doc-overlap-gold,b_end,computed,python/doc-overlap-gold.py,value,column,yes,,locator,"its end, in UTF-16 code units"
-doc-overlap-gold,b_line,computed,python/doc-overlap-gold.py,value,column,yes,,locator,the line it starts on
-doc-overlap-gold,b_hash,computed,python/doc-overlap-gold.py,value,column,yes,,label,first 12 hex digits of sha256 over its text when labelled
+doc-overlap-gold,b_start,computed,python/doc-overlap-gold.py,value,column,yes,,locator,"its start in the file at the commit the gold set's README names, in UTF-16 code units"
+doc-overlap-gold,b_end,computed,python/doc-overlap-gold.py,value,column,yes,,locator,"its end in the file at that commit, in UTF-16 code units"
+doc-overlap-gold,b_line,computed,python/doc-overlap-gold.py,value,column,yes,,locator,the line it starts on at that commit
+doc-overlap-gold,b_hash,computed,python/doc-overlap-gold.py,value,column,yes,,label,"first 12 hex digits of the sha256 of its text, which begin its id in passages.jsonl"
 doc-overlap-gold,reader_relation,recorded,,value,column,yes,same;summary;related;conflict;unrelated;fragment,label,"the reader agent's relation, blind to the cosine"
 doc-overlap-gold,reader_confidence,recorded,,value,column,yes,high;medium;low,label,the reader agent's confidence
 doc-overlap-gold,rationale,recorded,,value,column,yes,,value,the reader agent's one-clause reason
@@ -343,3 +341,18 @@ peeves,owner,recorded,,counted,column,yes,,value,"the document or check that alr
 peeves,detector,recorded,,value,column,yes,reader;lint;hook;measure,label,"what catches a trip: a reader's judgment, a script, a hook at edit or commit time, or the page measures"
 peeves,sessions,recorded,,value,column,yes,,value,"roughly how many recorded sessions show the owner making the correction, summed across the readers that mined them; an order of magnitude, not a count to compare closely"
 css-baseline,declarations,computed,python/css-blocks.py,value,column,yes,,value,the most unexempt hand-written declarations the file may carry; --write lowers it to the measurement and never raises it
+icon-families,group,recorded,,value,column,yes,drawn;phosphor;emoji,label,"how the family's icons are made: an SVG drawn for the estate, a Phosphor glyph named by its class, or an emoji"
+icon-families,label,recorded,,value,column,yes,,value,the family name a reader sees
+icon-families,source,recorded,,value,column,yes,,locator,"the file or folder that declares the family's members: a CSV, a folder of SVG files, one SVG, the .web-tools.json that declares them, or the code holding a literal table"
+icon-families,icon_column,recorded,,none,column,yes,,value,"for a CSV source, the column holding each member's icon; blank otherwise"
+icon-families,name_column,recorded,,none,column,yes,,value,"for a CSV source, the column naming each member; blank otherwise"
+icon-families,doc,recorded,,value,column,yes,,locator,"the passage that discusses the family's icons: a Markdown file's section by its heading's anchor, a CSV's row by its key after #, or a whole file"
+fab-signals,facet,recorded,,value,column,yes,version;viewer;subject;action,label,"which of the Showing tab's three axes (version, viewer, subject) the signal reports on, or action for an offer to act on what is on screen"
+fab-signals,part,recorded,,value,column,yes,tint;glyph;top-right;bottom-right,label,"where on the FAB the signal shows: its colour, the glyph at its centre, or a badge in one of two corners"
+fab-signals,label,recorded,,value,column,yes,,value,the signal's name as a reader sees it
+fab-signals,icon,recorded,,none,column,yes,,value,"the glyph or badge mark: a Phosphor class, or the path of a drawn SVG; blank on a tint, which has no mark of its own"
+fab-signals,tone,recorded,,value,column,yes,primary;warning;error;info;success;tint,label,"the colour the signal is drawn in, or tint for a glyph that takes the FAB's current colour"
+fab-signals,when,recorded,,value,column,yes,,value,"the condition that shows it, and what it outranks where two signals compete for one part"
+fab-signals,gloss,recorded,,value,column,yes,,value,"what the signal means, for a reader who has not met it"
+fab-signals,note,recorded,,none,column,yes,,value,"what a tap on the FAB, or on the badge itself, does while the signal shows, where that differs from opening the FAB sidebar; blank where it does not"
+fab-signals,status,recorded,,value,column,yes,live;proposed,label,"whether fab.js draws the signal today, which the gate checks, or the row describes a signal not yet built"

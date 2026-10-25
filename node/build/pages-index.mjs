@@ -172,7 +172,7 @@ function buildMarkdown() {
     '',
     '# pages/',
     '',
-    `⭐ **[Open the live index →](${PAGES_URL}/)** — a screenshot card per page, each with a live-preview and source toggle.`,
+    `🔷 **[Open the live index →](${PAGES_URL}/)** — a screenshot card per page, each with a live-preview and source toggle.`,
     '',
     `Catalog of the pages under \`pages/\`, plus the kit demos from \`lib/kits/demos/\``,
     `and the skill demos at \`skills/<name>/demo.html\`.`,

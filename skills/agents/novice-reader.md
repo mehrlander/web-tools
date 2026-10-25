@@ -1,6 +1,6 @@
 ---
 name: novice-reader
-description: Review-panel seat that reads without insider context: a capable reader new to this repository and this conversation. Summon to find where a document, page or reply loses a reader: undefined terms, references to things never introduced, steps that assume knowledge.
+description: "Review-panel seat that reads without insider context: a capable reader new to this repository and this conversation. Summon to find where a document, page or reply loses a reader: undefined terms, references to things never introduced, steps that assume knowledge."
 tools: Read, Grep, Glob
 model: haiku
 ---

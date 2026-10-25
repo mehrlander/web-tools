@@ -23,7 +23,7 @@ A list of captures for the addresses in question, then the captures read: each p
 
 ## Key insights
 
-- **Reach.** In a refused sandbox, Bash gets `000` from the proxy and WebFetch names `web.archive.org` as refused, whatever the model; a subagent does not get around it. `archive.org` answers, but its availability API (`archive.org/wayback/available`) reports no snapshots for addresses the index holds, so an empty answer there is not evidence. The environment record is web-tools [`docs/environment/capabilities.md`](../../docs/environment/capabilities.md).
+- **Reach.** In a refused sandbox, Bash gets `000` from the proxy and WebFetch names `web.archive.org` as refused, whatever the model; a subagent does not get around it. `archive.org` answers, but its availability API (`archive.org/wayback/available`) reports no snapshots for addresses the index holds, so an empty answer there is not evidence. The environment record is web-tools [`docs/environment/capabilities.md`](https://github.com/mehrlander/web-tools/blob/main/docs/environment/capabilities.md).
 - **The laptop.** Reach it by errand (web-tools-private `errands/README.md`). Start long work detached so it commits its own batches; the commits are the result. Tell the agent to leave nothing watching the process, or a wrapper relaunches it when it exits.
 - **The laptop's Python** is Inkscape's 3.11 and its console writes cp1252: call `sys.stdout.reconfigure(encoding="utf-8", errors="replace")` and open files with `encoding="utf-8"`. Its `curl` is Windows' `curl.exe`, which needs no certificate bundle.
 - **A GitHub runner** reaches it too. home's `.github/workflows/wayback-fetch.yml` writes to a folder that moved to budget-wa's `sources/wayback-url-corpora/`, so repoint it before dispatching.
