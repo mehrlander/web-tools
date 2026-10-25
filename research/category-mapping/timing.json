@@ -4,52 +4,80 @@
   "grid": {
     "across": {
       "values": [
-        { "label": "The clock sets it off" },
-        { "label": "Something happens, or someone asks" }
+        {
+          "label": "The clock sets it off"
+        },
+        {
+          "label": "Something happens, or someone asks"
+        }
       ]
     },
     "down": {
       "values": [
-        { "label": "Acts once" },
-        { "label": "Recurs, as written down" },
-        { "label": "Recurs, decided each time" }
+        {
+          "label": "Acts once"
+        },
+        {
+          "label": "Recurs, as written down"
+        },
+        {
+          "label": "Recurs, decided each time"
+        }
       ]
     },
     "cells": [
       [
         {
           "word": "",
-          "means": "goes off once, at a time set in advance",
-          "examples": ["a reminder someone asked for", "PR check-in"]
+          "gloss": "goes off once, at a time set in advance",
+          "examples": [
+            "a reminder someone asked for",
+            "PR check-in"
+          ]
         },
         {
           "word": "one-off",
-          "means": "done once, for one occasion",
-          "examples": ["a dated probe", "a tracker task", "a one-off plugin install"]
+          "gloss": "done once, for one occasion",
+          "examples": [
+            "a dated probe",
+            "a tracker task",
+            "a one-off plugin install"
+          ]
         }
       ],
       [
         {
           "word": "scheduled",
-          "means": "the clock sets off each run",
-          "examples": ["morning brief", "text-occurrences refresh", "wsl-fetch.yml"]
+          "gloss": "the clock sets off each run",
+          "examples": [
+            "morning brief",
+            "text-occurrences refresh",
+            "wsl-fetch.yml"
+          ]
         },
         {
           "word": "standing",
-          "means": "kept in force: acts at each occasion until withdrawn",
-          "examples": ["never schedule a check-in", "plugin subscription", "test.yml"]
+          "gloss": "kept in force: acts at each occasion until withdrawn",
+          "examples": [
+            "never schedule a check-in",
+            "plugin subscription",
+            "test.yml"
+          ]
         }
       ],
       [
         {
           "word": "",
-          "means": "a clock repeats only from something written down",
+          "gloss": "a clock repeats only from something written down",
           "impossible": true
         },
         {
           "word": "ad hoc",
-          "means": "it comes again and again, and is decided each time",
-          "examples": ["a recurring fork", "the ad-hoc entity scripts"]
+          "gloss": "it comes again and again, and is decided each time",
+          "examples": [
+            "a recurring fork",
+            "the ad-hoc entity scripts"
+          ]
         }
       ]
     ]
@@ -58,61 +86,88 @@
     {
       "word": "on request",
       "icon": "hand-pointing",
-      "means": "someone asks for each run of a kept procedure",
-      "examples": ["/drain", "pension Standing loop", "wayback-fetch.yml"]
+      "gloss": "someone asks for each run of a kept procedure",
+      "examples": [
+        "/drain",
+        "pension Standing loop",
+        "wayback-fetch.yml"
+      ]
     },
     {
       "word": "gated",
       "icon": "funnel",
-      "means": "it runs each time, but acts only when a check finds a reason",
-      "examples": ["news-fetch", "submittal deadline note", "statute watch"]
+      "gloss": "it runs each time, but acts only when a check finds a reason",
+      "examples": [
+        "news-fetch",
+        "submittal deadline note",
+        "statute watch"
+      ]
     },
     {
       "word": "polled",
       "icon": "arrows-clockwise",
-      "means": "a timed check finds its occasion, so it acts at the next check",
-      "examples": ["a Gemini errand", "Codex request 001", "session topic summaries"]
+      "gloss": "a timed check finds its occasion, so it acts at the next check",
+      "examples": [
+        "a Gemini errand",
+        "Codex request 001",
+        "session topic summaries"
+      ]
     },
     {
       "word": "routine",
       "icon": "calendar-check",
-      "means": "someone runs it to a calendar, from written steps",
-      "examples": ["Monthly report", "Quarterly Strategy Review"]
+      "gloss": "someone runs it to a calendar, from written steps",
+      "examples": [
+        "Monthly report",
+        "Quarterly Strategy Review"
+      ]
     }
   ],
   "renames": [
     {
-      "things": ["news-fetch"],
+      "things": [
+        "news-fetch"
+      ],
       "from": "scheduled",
       "becomes": "standing",
       "why": "No clock sets it off: it runs when a session starts, if two days have passed. The registry's README says a blank schedule means no schedule."
     },
     {
-      "things": ["config crawl"],
+      "things": [
+        "config crawl"
+      ],
       "from": "periodic",
       "becomes": "standing",
       "why": "It runs when a view that reads it opens, and reads only repos that moved. app/index.html says its old interval was never a schedule."
     },
     {
-      "things": ["scheduled-tasks.yml"],
+      "things": [
+        "scheduled-tasks.yml"
+      ],
       "from": "triggered",
       "becomes": "scheduled",
       "why": "docs/properties.csv files GitHub's schedule among the events, so the harness counts an hourly cron as event-fired."
     },
     {
-      "things": ["morning brief"],
+      "things": [
+        "morning brief"
+      ],
       "from": "routine",
       "becomes": "scheduled",
       "why": "web-tools calls a Claude scheduled task a Routine in writers.csv, venues.md, vocabularies.csv and inbound.md; the registry calls it a scheduled task, and budget-drs uses routine for work someone runs to a calendar."
     },
     {
-      "things": ["PR check-in"],
+      "things": [
+        "PR check-in"
+      ],
       "from": "scheduled",
       "becomes": "a word for the box at top left (call 2)",
       "why": "The send-later guard calls it a scheduled self check-in, but it goes off once; scheduled here means a clock that sets off each run."
     },
     {
-      "things": ["spike-report prompt"],
+      "things": [
+        "spike-report prompt"
+      ],
       "from": "ad hoc",
       "becomes": "on request",
       "why": "home's 2026-03-17 entry calls it ad hoc because it is used when a question comes up, but it follows the same written steps each time; ad hoc here means decided each time."

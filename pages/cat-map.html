@@ -115,7 +115,7 @@ document.addEventListener('alpine:init', () => {
               <template x-for="(c, j) in row" :key="j">
                 <div class="rounded-2xl p-3 sm:p-4 grid content-start gap-1.5" :class="c.word ? 'bg-primary/10' : c.impossible ? 'bg-[repeating-linear-gradient(45deg,transparent_0_6px,rgba(0,0,0,0.05)_6px_12px)]' : 'border-2 border-dashed border-base-300'">
                   <div class="leading-none" :class="c.word ? 'text-2xl sm:text-[32px] font-bold text-primary' : 'text-xl sm:text-[26px] italic text-base-content/50'" x-text="c.word || (c.impossible ? 'impossible' : 'no word yet')"></div>
-                  <div class="text-base sm:text-lg leading-6 text-pretty" x-text="c.means"></div>
+                  <div class="text-base sm:text-lg leading-6 text-pretty" x-text="c.gloss"></div>
                   <div class="font-mono text-sm sm:text-base leading-5 sm:leading-6 [overflow-wrap:anywhere]" x-html="ex(c.examples)"></div>
                 </div>
               </template>
@@ -131,7 +131,7 @@ document.addEventListener('alpine:init', () => {
           <template x-for="w in A.add || []" :key="w.word">
             <div class="rounded-2xl border border-base-300 p-4 grid content-start gap-1">
               <div class="flex items-center gap-2 text-xl sm:text-[24px] font-bold"><i class="ph text-primary" :class="'ph-' + (w.icon || 'plus')"></i><span x-text="w.word"></span></div>
-              <div class="text-base sm:text-lg leading-6 text-pretty" x-text="w.means"></div>
+              <div class="text-base sm:text-lg leading-6 text-pretty" x-text="w.gloss"></div>
               <div class="font-mono text-sm sm:text-base leading-5 sm:leading-6 [overflow-wrap:anywhere]" x-html="ex(w.examples)"></div>
             </div>
           </template>
