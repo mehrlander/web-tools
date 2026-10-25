@@ -105,11 +105,11 @@ showing-mechanisms,form,recorded,,none,column,yes,,value,the address shape; abse
 showing-mechanisms,subject,recorded,,value,column,yes,,value,"the subject types it can show, semicolon-separated keys into docs/subjects.csv"
 showing-mechanisms,version,recorded,,value,column,yes,,label,which version of the subject it reaches
 showing-mechanisms,viewer,recorded,,value,column,yes,,label,who can open it
-showing-mechanisms,opens,recorded,,none,column,no,branch;private;tokenless,label,"which of the three things that decide a link it can show: unmerged branch work, a private repository, a reader with no GitHub token"
-showing-mechanisms,reaches,recorded,,none,column,yes,,value,"what it does show, in eight words or fewer"
-showing-mechanisms,misses,recorded,,value,column,yes,,value,"what it does NOT show, in eight words or fewer"
-showing-mechanisms,trap,recorded,,none,column,yes,,value,"the failure mode, where one has bitten, in eight words or fewer"
-showing-mechanisms,use,recorded,,value,column,yes,,value,"when to pick it, in eight words or fewer"
+showing-mechanisms,opens,recorded,,none,column,no,branch;private;tokenless,label,"which reading conditions it handles, as keys of its vocabulary"
+showing-mechanisms,reaches,recorded,,none,column,yes,,value,what it does show
+showing-mechanisms,misses,recorded,,value,column,yes,,value,what it does not show
+showing-mechanisms,trap,recorded,,none,column,yes,,value,"the failure mode, where one has occurred"
+showing-mechanisms,use,recorded,,value,column,yes,,value,when to pick it
 showing-mechanisms,narrative,recorded,,none,column,yes,,value,"the full account behind the short cells: how to address it, the conditions it holds under, and what was measured"
 routes-paste,path,recorded,,none,column,yes,,locator,"the file that implements the behavior; absent on the form-field row, which names a browser behavior rather than one of ours"
 routes-paste,recognizes,recorded,,value,column,yes,,value,what the surface reads out of the clipboard and acts on
@@ -355,6 +355,6 @@ fab-signals,label,recorded,,value,column,yes,,value,the signal's name as a reade
 fab-signals,icon,recorded,,none,column,yes,,value,"the glyph or badge mark: a Phosphor class, or the path of a drawn SVG; blank on a tint, which has no mark of its own"
 fab-signals,tone,recorded,,value,column,yes,primary;warning;error;info;success;tint,label,"the colour the signal is drawn in, or tint for a glyph that takes the FAB's current colour"
 fab-signals,when,recorded,,value,column,yes,,value,"the condition that shows it, and what it outranks where two signals compete for one part"
-fab-signals,gloss,recorded,,value,column,yes,,value,"what the signal means, in five words or fewer, for a reader who has not met it"
+fab-signals,gloss,recorded,,value,column,yes,,value,"what the signal means, for a reader who has not met it"
 fab-signals,note,recorded,,none,column,yes,,value,"what a tap on the FAB, or on the badge itself, does while the signal shows, where that differs from opening the FAB sidebar; blank where it does not"
 fab-signals,status,recorded,,value,column,yes,live;proposed,label,"whether fab.js draws the signal today, which the gate checks, or the row describes a signal not yet built"

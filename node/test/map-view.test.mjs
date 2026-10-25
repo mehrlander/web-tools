@@ -51,6 +51,7 @@ const routesModesCsv = readFileSync(path.join(repoRoot, 'docs', 'routes-modes.cs
 const routesRoutesCsv = readFileSync(path.join(repoRoot, 'docs', 'routes-routes.csv'), 'utf8');
 const routesKindsCsv = readFileSync(path.join(repoRoot, 'docs', 'routes-kinds.csv'), 'utf8');
 const mechanismsCsv = readFileSync(path.join(repoRoot, 'docs', 'showing-mechanisms.csv'), 'utf8');
+const routesPasteCsv = readFileSync(path.join(repoRoot, 'docs', 'routes-paste.csv'), 'utf8');
 const fabSignalsCsv = readFileSync(path.join(repoRoot, 'docs', 'fab-signals.csv'), 'utf8');
 const docsCsv = readFileSync(path.join(repoRoot, 'docs', 'docs.csv'), 'utf8');
 const aimsJson = readFileSync(path.join(repoRoot, 'docs', 'aims.json'), 'utf8');
@@ -98,6 +99,7 @@ window.GH = class {
     if (p === 'docs/routes-routes.csv') return { text: routesRoutesCsv };
     if (p === 'docs/routes-kinds.csv') return { text: routesKindsCsv };
     if (p === 'docs/showing-mechanisms.csv') return { text: mechanismsCsv };
+    if (p === 'docs/routes-paste.csv') return { text: routesPasteCsv };
     if (p === 'docs/fab-signals.csv') return { text: fabSignalsCsv };
     if (p === 'docs/favicons/fab/frisbee.svg') return { text: '<svg fill="currentColor"></svg>' };
     if (p === 'docs/docs.csv') return { text: docsCsv };
@@ -449,11 +451,15 @@ test('Showing loads on demand, not at mount', async () => {
 test('Showing lays out the links by their marks, and the FAB by its signals', async () => {
   await data.loadPropsReg();
   const all = data.routes.showing.mechanisms;
-  assert.equal(data.showLinks.length + data.showFallbacks.length, all.length, 'every mechanism is a row or a fallback');
-  assert.ok(data.showFallbacks.length && Array.from(data.showFallbacks).every(m => m.glyph === 'x'), 'the fallbacks are the unmarked');
-  assert.deepEqual(Array.from(data.showOpens, o => o.label), ['Branch work', 'Private repos', 'No token'], 'the marks are labelled from the vocabulary');
+  assert.equal(data.showMechs.length, all.length, 'every mechanism is a row');
+  assert.deepEqual(Array.from(data.showOpens, o => o.label), ['Branch work', 'Private repos', 'Any reader'], 'the marks are labelled from the vocabulary');
   const hosted = all.find(m => m.key === 'hosted');
   assert.ok(!data.opensHas(hosted, 'branch') && data.opensHas(hosted, 'tokenless'), 'a cell lists the marks a row has');
+  // The legend is the live signals, a row per part of the FAB.
+  assert.deepEqual(Array.from(data.fabParts, g => g.n), ['Colour', 'Glyph', 'Badge']);
+  const shown = data.fabParts.flatMap(g => Array.from(g.rows));
+  assert.ok(shown.length && shown.every(r => r.status === 'live'), 'a proposed signal stays off the legend');
+  assert.equal(shown.length, data.routes.fab.filter(r => r.status === 'live').length, 'every live signal is a tile');
   const drawn = data.routes.fab.find(r => r.icon.endsWith('.svg'));
   await new Promise(r => setTimeout(r, 0));
   assert.ok(data.fabGlyph(drawn).mask.startsWith('data:image/svg+xml'), 'a drawn mark is read and painted as a mask');
@@ -462,6 +468,22 @@ test('Showing lays out the links by their marks, and the FAB by its signals', as
   assert.match(data.fabBadge(key), /bg-error/);
   const off = data.routes.fab.find(r => r.key === 'tint-off-branch');
   assert.match(data.fabTone(off).disc, /bg-warning/, 'a tint is drawn in its own colour');
+});
+
+test('a Showing row\'s tip holds what the row cannot, and names the row as its source', () => {
+  const toss = data.mechTip(data.showMechs.find(m => m.key === 'toss-gh'));
+  assert.match(toss.code, /toss-render\.html/, 'a link\'s address is the tip\'s to copy');
+  assert.ok(toss.lines.some(l => /iPhone/.test(l.text)), 'the trap and the full account are in the tip');
+  assert.match(toss.links[0].passage, /^```csv\nkey,glyph,label/, 'the source is the row under its header');
+  assert.match(toss.links[0].passage, /\ntoss-gh,/);
+  const fab = data.fabTip(data.routes.fab.find(r => r.key === 'badge-no-token'));
+  assert.match(fab.lines[0].text, /^Shows when /);
+  assert.match(fab.lines[1].text, /^A tap /);
+  const md = data.kindTip(data.routes.kinds.find(k => k.kind === 'markdown'));
+  assert.ok(md.lines.some(l => /^Shown by Data route$/.test(l.text)), 'a kind names the links that show it by their labels');
+  assert.ok(md.links.some(l => /md-doc\.js$/.test(l.href)), 'a kind\'s kit is a link');
+  const paste = data.pasteTip(data.routes.paste.find(p => !p.path));
+  assert.ok(paste.links.length >= 1 && paste.links.every(l => l.href), 'a row with no file links its source alone');
 });
 
 test('Showing carries the kinds, and the sparse cells survive the parse', () => {
