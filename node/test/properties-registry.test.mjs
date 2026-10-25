@@ -31,7 +31,7 @@
 // registry. So the ledger became a prohibition. `fields` survives only so that
 // adding an ungoverned registry has to change this test, which is a deliberate
 // act; the record says such a reason is more likely an unchecked assumption
-// than a fact. docs/registries.md carries the five and what each got wrong.
+// than a fact.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -349,7 +349,8 @@ test('a registry file is all recorded or all computed, or a named exception', ()
 // terms. The list is exact, so a further deletion fails here and says which
 // measurement still names the file; rerunning the pass empties it.
 const PINNED_BROKEN = {
-  'doc-overlap-docs': ['docs/SURFACING.md', 'docs/surfacing-course.md'],
+  'doc-overlap-docs': ['branches', 'chats', 'lists', 'map', 'project', 'proposals', 'repos', 'search', 'sessions',
+    'state', 'tending', 'tools', 'writes'].map(v => `docs/views/${v}.md`),
 };
 // A key may also name a file git ignores, which exists only once something has
 // made it: content.csv classifies the lockfile npm writes on install, present in

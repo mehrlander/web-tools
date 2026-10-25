@@ -99,7 +99,7 @@ the rule types decidable from a cell alone.
 
 `cells` is the one kind that is not a table and is never cut. It is the shape
 home's PowerShell exporter (`Get-WsDetail`) writes and the fund view's reader
-(`app/fund-balance/workbook-fill.js`) consumes, one object per sheet:
+(home's `projects/budget-drs/app/fund-balance/workbook-fill.js`) consumes, one object per sheet:
 `{ SheetName, Dimension, MergedCells: ['A1:B1', …], Cells: [{ Address, Formula,
 Value }, …] }`. `Value` is the cached value as a string, raw rather than
 formatted, because a reader parses `35624913.378` and cannot parse
@@ -126,7 +126,7 @@ A `ref` that is a commit SHA is the only form that still resolves to these bytes
 later.
 
 **What was left behind.** In v1, `picked` and `left` are complements over the
-workbook's sheets and the twelve kinds. In v2, they record each selected
+workbook's sheets and the thirteen kinds. In v2, they record each selected
 sheet's readings, the omitted readings on that sheet, and individually chosen
 or omitted objects. Without `left`, a reader cannot tell a partial selection
 from the whole file.
@@ -217,54 +217,34 @@ kept back either way.
 `never` is the backstop for the mirror-image failure, which is real: unhide a
 private sheet to work on it, forget, and drop the workbook, and `omit` alone
 takes it. A sheet named there is **reported rather than dropped**. It stays in
-the pick, the roster and its row draw it in the error colour, and the Stage
+the pick, the `in`/`out` roster under the band and the sheet's checklist row
+draw it in the error colour, and the Stage
 button goes dark and names it instead of handing anything over. Dropping it
 quietly would be the worse fix, since the reader would see a clean pick and
 learn nothing in exactly the case the usual signal lapsed. `omit` decides what
 is taken; `never` decides what may not be, and both have to lapse for a private
 sheet to reach a repo.
 
-## Seeing what you are taking
+## Staging an extract
 
-Three surfaces answer it, in widening detail, and none is prose.
+The picker's preview pane shows the serialized envelope, the same string Save
+writes, the link carries, and Stage puts on the stage, so what is read is what
+travels. **Stage for `<repo>`** puts the envelope on the stage as a text file
+under the reception's name, takes the dropped workbook off the stage (a Send
+carries every staged item, and the bytes are what the reception exists to keep
+back), aims the stage at `repo:dest`, and switches to it; Send is still the
+reader's own tap. Declarations are collected across the estate the way
+`pages[].appView` is, so the workbook can be dropped while browsing any repo.
+Nothing about any one workbook lives in the kit, the viewer, or the stage.
 
-**The roster**, two lines under the band: `in` and `out`, every sheet by name,
-in workbook order, with `(hidden)` and `(never)` where they apply. It is the
-glance, and it exists because the checklist below it spreads the same fact over
-one section per sheet, which on an eleven-sheet workbook is a scroll rather than
-an answer.
-
-**The checklist**, one section per sheet. The row's box means the sheet is in
-the extract; the readings beneath say which readings of it. Until 2026-09-14
-the box compared selected readings against available ones, so a reception
-picking one reading drew a half-filled box on every sheet it took: eleven rows
-reading "partly" and none reading "in".
-
-**The serialized JSON**, in the preview pane, defaulting to the whole envelope:
-`source`, `taken`, `picked.sheets` naming each sheet and its readings, `left`
-naming what was not taken, and the items themselves through the selector. It is
-the same string Save writes, the link carries, and Stage puts on the stage, so
-what is read is what travels. After Stage the staged file opens in the reader,
-which is the same bytes a second time before Send. **Stage for `<repo>`** puts the envelope on the stage as a
-text file under the reception's name, takes the dropped workbook off the stage
-(a Send carries every staged item, and the bytes are what the reception exists
-to keep back), aims the stage at `repo:dest`, and switches to it; Send is still
-the reader's own tap. Declarations are collected
-across the estate the way `pages[].appView` is, so the workbook can be dropped
-while browsing any repo. Nothing about any one workbook lives in this kit, the
-viewer, or the stage.
-
-Three facts about the shape. Matching, where a reception matches at all, is by
-sheet set rather than file name, because a workbook is renamed more often than
-its tabs are; declarations are tried in order, so a specific one listed before
-a general one wins. The pick is the opening state, not a lock:
-every tick still works and what is ticked at Stage is what travels. And the
-workbook's bytes never leave the browser: the drop stages them in memory, the
-Stage action removes that item as it adds the extract, so what a Send carries
-is the extract alone, which is what lets a workbook holding sheets that stay
-private be dropped at all. The omitted
-sheets' cached values still ride along wherever a taken sheet's formula reads
-them, and `left.sheets` says which sheets were declared away.
+Matching, where a reception matches at all, is by sheet set rather than file
+name, because a workbook is renamed more often than its tabs are; declarations
+are tried in order, so a specific one listed before a general one wins. The
+pick is the opening state, not a lock: what is ticked at Stage is what travels.
+The workbook's bytes never leave the browser, so a workbook holding sheets that
+stay private can be dropped. The omitted sheets' cached values still ride along
+wherever a taken sheet's formula reads them, and `left.sheets` says which
+sheets were declared away.
 
 `{date}` in `dest` or `file` is the UTC day and `{time}` the UTC hour and
 minute as `HHMM`; `{stem}` is the workbook's name without its extension,
@@ -281,97 +261,40 @@ rather than a link.
 [`docs/examples/allotment-ledger.xlsx`](../examples/allotment-ledger.xlsx) is a
 sample workbook built by
 [`node/build/sample-workbook.mjs`](../../node/build/sample-workbook.mjs)
-(`npm run sample-workbook`), committed but derived: the generator is the source
-and `--check` holds the file to it, the way `dist/` is held to `lib/`. It exists
-because `pages/data-view.html` opens on an empty intake, so a link handed over
-for review shows a form until the reader supplies an `.xlsx` of their own.
-
-`npm run sample-workbook -- --link --at <sha> --use <sha>` prints the address
-that opens it. The workbook opens in the sheet render; the **mode menu** is the
-icon at the right of the file line, which wears the current mode's own icon and
-drops down a list. Pick **Structure** there, and **Extract** is the last tab in
-its strip.
-
-The command exists because the address has two traps and both fail quietly.
-
-**It is `?src=`, not `#data=`.** They are not alternatives. `#data=` is
-[toss-render](../../pages/toss-render.html)'s key, which that shell resolves
-onto this page's `?src=` and hands over; data-view itself reads `#gz=` or
-`?src=` and nothing else. So `data-view.html#data=…` matches no source and the
-page falls through to its built-in demo envelope: a working page showing the
-wrong file, with no error anywhere.
-
-**And the link has a length limit.** Pass a commit SHA rather than a branch
-name. The command abbreviates it to seven characters on both parameters and
-refuses to print a link over 149, which is where the GitHub MCP write path
-defangs a markdown link into an inert code span
-([`python/mcp-link-safe.py`](../../python/mcp-link-safe.py) holds that
-limit); the page plus a branch name plus a full SHA runs to 207. Both routes
-take an abbreviated ref, confirmed rather than assumed: the contents API behind
-`?src=`, and raw.githubusercontent behind `?use=` (rechecked 2026-09-26, when
-`?use=` moved there from jsDelivr).
-
-Each trap cost a handover in this format's own pull request, which is why the
-rule is in the command rather than in this paragraph.
-
-It is sized to show rather than to assert: 800 ledger rows, so the picker's
-smallest cap visibly bites and a cell reads `500 of 802`; all twelve kinds
-present on at least one sheet; a form-shaped `Summary` whose values are almost
-nothing while its merges and styles are not; and a hidden `Archive`, so the
-matrix carries real zeros. The minimal fixture in
+(`npm run sample-workbook`, held to the generator by `--check`), sized so every
+kind and the picker's cap show. `npm run sample-workbook -- --link --at <sha>
+--use <sha>` prints the address that opens it; use the command rather than
+writing the link, since it holds the two traps its `--link` code names
+(`?src=`, not `#data=`, and the link-length limit). In the page, pick **Structure** from the
+mode menu at the right of the file line; **Extract** is the last tab in its
+strip. The minimal fixture in
 [`node/test/viewer-xlsx.mjs`](../../node/test/viewer-xlsx.mjs) stays separate
-and stays minimal, since its assertions should not read against a workbook whose
-size was chosen for a screenshot.
+from this sample.
 
 ## Why this is a profile over data-view rather than a sibling
 
-The [README](README.md#the-decision-chat-results-stays-a-sibling) works this
-question through once already, for chat-results, and reached the opposite
-answer. The three tests are the same ones; what they say here is different,
-which is the point of having tests rather than a taste.
+The three tests of the [chat-results decision](README.md#the-decision-chat-results-stays-a-sibling)
+give the opposite answer here:
 
-1. **Do the shapes differ structurally?** No. Every kind here serialises to a
-   table of rows or to a block of source text, and a data-view item carries
-   exactly those: `content` is a string, `view` picks the mode, `note` is a
-   line. Nothing in an extract needs a slot data-view lacks. Chat-results failed
-   this test on message arrays and many-to-many facets, neither of which has an
-   analogue here.
+1. **The shapes do not differ structurally.** Every kind serialises to a table
+   of rows or a block of source text, which a data-view item carries (`content`
+   a string, `view` the mode, `note` a line).
+2. **The convergence has happened.** `DataPayload.isEnvelope` admits an object
+   whose `items` entries carry `content`, `src` or `name`, whatever its `kind`,
+   so an extract renders in `pages/data-view.html` with no change to
+   [`lib/kits/data-payload.js`](../../lib/kits/data-payload.js).
+3. **A concrete need is asking:** provenance, which data-view deliberately does
+   not carry. An extract that cannot say which file, which ref, and what it left
+   out is a table with no way back to what it is a reading of.
 
-2. **Has the convergence already happened?** More than the family knew.
-   data-view's discriminator is **structural**: `DataPayload.isEnvelope`
-   accepts an object whose `items` entries carry `content`, `src` or `name`,
-   whatever its `kind`. So a superset kind is admitted today, and an extract
-   renders in `pages/data-view.html` with no change to
-   [`lib/kits/data-payload.js`](../../lib/kits/data-payload.js) and no new page.
-   That discriminator was written to keep a legitimate payload from being
-   mistaken for an envelope; it turns out to double as the family's extension
-   point.
+So: a profile, not a sibling. The reader is data-view's, unchanged. The schema
+constrains what data-view leaves open rather than restructuring it, and it
+exists for the provenance block: an unvalidated `items` array is fine because
+the reader falls back on what it does not understand, while a `ref` that is
+sometimes a SHA, sometimes a branch and sometimes absent is worse than no
+provenance at all.
 
-3. **Is a concrete need asking?** Yes, and it is the one thing data-view
-   deliberately does not carry: provenance. data-view's own contract says it
-   holds "no roles, no context, no versioned profile", and that is right for the
-   plain case. An extract is not the plain case. It is a selection from a
-   specific file at a specific ref, and an extract that cannot say which file,
-   which ref, and what it left out is a table with no way back to what it is a
-   reading of.
-
-So: a profile, not a member of its own, and not a sibling. The reader is
-data-view's, unchanged. The schema here constrains what data-view leaves open
-rather than restructuring it, which is what a profile is.
-
-**One asymmetry worth naming rather than smoothing over.** data-view has no
-schema beside it, on purpose: it is deliberately light and its doc says so. This
-format has one. The reason is the provenance block. An unvalidated `items` array
-of strings is fine, because the reader falls back on anything it does not
-understand; an unvalidated provenance block drifts, and a `ref` that is
-sometimes a SHA and sometimes a branch and sometimes absent is worse than no
-provenance at all. The schema exists for the part of the format that makes a
-claim about the world.
-
-**When to revisit.** The trigger is the same shape as chat-results': a real need
-this posture cannot carry. Two would qualify. A second producer of workbook-shaped
-extracts (a `.csv` bundle, a Word table set) whose items are not data-view items
-would make the kind axis a thing to model rather than a list to enumerate. And a
-reader that wants to re-run an extract rather than read it would need the
-picker's own state, not just its outcome, which is a larger claim than `picked`
-makes.
+**When to revisit:** a second producer of workbook-shaped extracts (a `.csv`
+bundle, a Word table set) whose items are not data-view items, or a reader that
+wants to re-run an extract rather than read it, which needs the picker's own
+state rather than `picked`.

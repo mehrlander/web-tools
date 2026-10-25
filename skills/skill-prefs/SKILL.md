@@ -15,21 +15,13 @@ For personal-use skills, we want finer control.
 
 In Claude Code a skill can declare its mode in frontmatter (disable-model-invocation for summoned-only, user-invocable to hide it from the menu); here, skill-creator adopts a simpler skill concept, and that posture is largely the premise.
 
-## The goal and output
-
-The goal is to help yield a more effective and maintainable skill file that the user can upload.
-
-## The process
-
-This skill is a reference for drafting any skill.
-
 ## Key insights
 
-- **Structure.** A set of default sections is given below, and demonstrated in this skill itself (the dog-food principle):
+- **Structure.** The default sections are below; omit one that would state nothing, as this skill omits Goal and output, Process, and Extending:
   - *Premise:* the situation the skill answers, a constraint or an opportunity. State the forces either way, so the skill's later choices read as consequences, and lead with what the skill enables rather than what the model lacks. The reader should come away understanding the situation, not the fix.
   - *Goal and output:* shape or behavior. If the skill produces artifacts with a fixed shape, name it; if it shapes behavior, say so, and invent no schema.
-  - *Process:* how the work plays out. The skill may offer reference material only, to read and consider. If so, that's the process. However, it may include some sequenced process or interaction with the user that we would lay out here. A step exists only if it yields a named, inspectable artifact. A step that lives inside one generation is a disposition: it shapes output and cannot be verified or relied on as a stage. Only an output-to-output chain honestly claims to be a pipeline.
-  - *Key insights:* the heart of a skill. Look up! For skill-prefs, the centrality of key insights is a key insight. Don't over-explain.
+  - *Process:* how the work plays out, when the skill has a sequenced process or an interaction with the user; a skill that offers reference material only has none. A step exists only if it yields a named, inspectable artifact. A step that lives inside one generation is a disposition: it shapes output and cannot be verified or relied on as a stage. Only an output-to-output chain honestly claims to be a pipeline.
+  - *Key insights:* the heart of a skill. Don't over-explain.
   - *Extending:* a growth path, when there is one. For example, a skill may address certain libraries and could address others. It's good to highlight parts that we intend to expand.
 
 - **Kinds.** Five families give the library its spine: **support**, the largest (language, library, writing, and prompt support, plus kits, a kit being support scoped to one seam within a domain); **text processing**, output-to-output document pipelines; **surfacing**, self-contained display artifacts; **workflow documentation**, processes executed outside the session; and **agentic primitives**, governing meta-skills, this one included. Name the family a new skill joins. Support is the one-word premise for most.
@@ -41,5 +33,3 @@ This skill is a reference for drafting any skill.
 - **Packaging.** Prefer a single SKILL.md to a zip bundle: easier to see, edit, and swap. Add companion files only when the skill needs them, as html-style does. Edits here are a scratch copy and never reach the user's library on their own. While drafting, present the file as markdown after any change, for review and without asking each round whether it is done. When the user says it is done, present it as a .skill for them to import. A companion file is named in a Bundled section, the file and when to read it: an unnamed companion is invisible to the session and unprotected in a repack. The unit of update is the folder; repack whole, never a lone SKILL.md over a bundle.
 
 - **Frontmatter.** Keep the YAML valid. A colon in the description can break parsing, since YAML reads it as a key; avoid colons there, or wrap the whole value in double quotes. Confirm it parses before handing over a .skill.
-
-This document has no Bundled or Extending section, by its own rule: nothing travels with it and there is no growth path to document. The omission is the spec in practice.

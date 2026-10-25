@@ -2,10 +2,9 @@
 
 *(verified 2026-09-29)*
 
-How to exercise a page or component in the Claude Code web sandbox. This file
-states current truth only; superseded methods and discovery stories live in git
-history. Supersede in place, don't append. Builds on the browser and network
-facts in [capabilities.md](capabilities.md).
+How to exercise a page or component in the Claude Code web sandbox. Supersede
+in place, don't append. Builds on the browser and network facts in
+[capabilities.md](capabilities.md).
 
 Reach for the lightest tool that proves the thing:
 
@@ -66,10 +65,9 @@ the fragment differs: nothing re-fetches, no boot code re-runs, and the page
 keeps the state it already had. So every assertion afterwards reads the
 *previous* case and passes or fails for the wrong reason, silently, since the
 navigation itself succeeded. Follow the goto with `page.reload()` when the point
-is what the page does *on load* at that fragment. Measured 2026-08-06 while
-covering data-view's `#item=` addressing, where three of eight assertions passed
-against stale state before the reload was added
-([`node/render/scenarios/data-view-item.mjs`](../../node/render/scenarios/data-view-item.mjs)).
+is what the page does *on load* at that fragment, as
+[`node/render/scenarios/data-view-item.mjs`](../../node/render/scenarios/data-view-item.mjs)
+does.
 
 ### What renders: three page categories
 
@@ -96,23 +94,15 @@ npm run shot -- pages/repo-atlas.html --query "repo=mehrlander/web-tools"
 - **The typography plugin resolves through an alias.** No version of
   `@tailwindcss/typography` since 0.5.0 publishes `dist/typography.min.css`, and
   jsDelivr answers the versionless URL with 0.5.0's copy. So a browser loads
-  0.5.0 while `node_modules` holds the current plugin. From 2026-08-01 until the
-  alias landed, every shot of a prose surface rendered **unstyled prose**. Now
-  package.json installs 0.5.0 a second time as `typography-dist`, and
-  `PKG_ALIAS` in `node/render/cdn.mjs` maps the CDN path onto it. `npm run
-  setup` installs it, so nothing is vendored by hand. The log line for a page
-  loading it should read `combine N/N` with no `MISS`. The trip is the snag
-  `headless-shot-prose-flat`.
-
-  This one was worth writing down for how it failed rather than for the gap
-  itself. `readSpec` falls back to a package's declared entry when the request's
-  basename matches the package name, which is what makes `npm/marked/marked.min.js`
-  resolve. `@tailwindcss/typography` matches that shape too, so a request for
-  its **CSS** resolved to `src/index.js` and the page was handed a Node module
-  as its stylesheet: the log said `combine 3/3`, no error appeared anywhere, and
-  the screenshot disagreed with every real browser. The fallback now requires the
-  entry to be the same kind of file that was asked for, so this reads `MISS` and
-  the log can be believed.
+  0.5.0 while `node_modules` holds the current plugin, and without the alias
+  every shot of a prose surface renders **unstyled prose**. package.json
+  installs 0.5.0 a second time as `typography-dist`, and `PKG_ALIAS` in
+  `node/render/cdn.mjs` maps the CDN path onto it; `npm run setup` installs it.
+  The log line for a page loading it should read `combine N/N` with no `MISS`
+  (snag `headless-shot-prose-flat`). `readSpec` falls back to a package's
+  declared entry only when that entry is the same kind of file the request
+  asked for, so a mismatch reads `MISS` rather than serving a Node module as a
+  stylesheet.
 - If you're tempted to skip shot and open the live URL instead: GitHub
   **Pages serves `main`**. `?use=<ref>` swaps which ref a page's *loaded
   code* comes from, not the HTML shell, so a brand-new page has no live Pages
@@ -171,13 +161,11 @@ renders identically to `0`.
 
 **Then look at it, magnified.** The measurement needs a target, and choosing the
 wrong target is the failure the numbers cannot catch. Redraw the clip 6x to 10x
-with `imageSmoothingEnabled = false` and write it out with `writeFileSync`. On
-2026-08-10 this reversed a decision twice over: a 14px mark beside mono text was
-genuinely 2px under the baseline and wanted `-1px`, while the same arithmetic
-said the row's 18px leading icon was 4px low, and at 6x the "corrected" version
-was visibly floating above the cap line. A wide, low-profile glyph is centred in
-its own em box and reads against the x-height, not against cap-to-baseline. The
-numbers say how far; only the picture says from what.
+with `imageSmoothingEnabled = false` and write it out with `writeFileSync`. A
+wide, low-profile glyph is centred in its own em box and reads against the
+x-height, not against cap-to-baseline, so arithmetic that lowers a mark onto the
+baseline can leave it floating above the cap line. The numbers say how far;
+only the picture says from what.
 
 ## npm run preview: boot logic under jsdom
 
@@ -202,9 +190,8 @@ renders its empty state. Internals: the header comment of
 
 ## npm test: unit suites
 
-`npm test` runs one `*.test.mjs` per kit / component on `node --test` (90+
-tests, offline via npm-vendored libs). The suite caught a real bug on its
-first run: a `versionchange` deadlock in `kits/persistence.js`.
+`npm test` runs one `*.test.mjs` per kit / component on `node --test`, offline
+via npm-vendored libs.
 
 [`node/test/bootstrap.mjs`](../../node/test/bootstrap.mjs) does the heavy
 lifting: `makeWindow()` applies the jsdom globals and polyfills below and
@@ -227,26 +214,19 @@ Component-test lessons that generalize:
   with a couple of awaited timer ticks before asserting.
 - **A green logic test proves state, not visibility.** A component can mount,
   hold correct state, and dispatch the right events while its panel renders at
-  zero size. The case that taught this: `x-collapse` on an element with no
-  companion `x-show` sets `el.hidden = true` (the plugin keys on `_x_isShown`,
-  which only `x-show` sets), so a browse panel mounted via `x-if` never showed,
-  though its picker was fully wired. Logic tests driving the data passed; only a
-  render (`npm run shot`) caught the blank panel. Pair `x-collapse` with an
-  `x-show`, or, when you only need presence toggling and not the height
-  animation, mount with a plain `x-if` and no `x-collapse`.
+  zero size; only a render (`npm run shot`) shows it. One known cause:
+  `x-collapse` on an element with no companion `x-show` sets `el.hidden = true`
+  (the plugin keys on `_x_isShown`, which only `x-show` sets). Pair
+  `x-collapse` with an `x-show`, or, when you only need presence toggling and
+  not the height animation, mount with a plain `x-if` and no `x-collapse`.
 - **Stub a data file with its bytes, never with an object.** A test that hands a
   reader `JSON.stringify(fixture)` supplies the shape the reader already
-  expects, so it cannot notice when the real file stops having that shape. Four
-  readers broke this way in one session (2026-08-18) when eleven registries
-  went from JSON to CSV: the FAB's Match lane, the page gallery, the Tools
-  view, and the harness registry's strip all kept parsing JSON against a CSV file,
-  and all four of their tests stayed green because each stub was still handing
-  over JSON. Read the fixture the way the reader will: give it CSV text, or a
-  string built by the same writer the generator uses, and let the reader's own
-  parse run. The cousin failure is the snag `stub-hides-the-wiring`, where
-  stubbing the product of a lazy load hides the
-  load; the family is a stub that supplies exactly what the thing under test
-  exists to obtain.
+  expects, so it cannot notice when the real file stops having that shape (four
+  readers stayed green while parsing JSON against registries that had become
+  CSV). Give the reader the file's text, or a string built by the same writer
+  the generator uses, and let its own parse run. The cousin is the snag
+  `stub-hides-the-wiring`: a stub that supplies exactly what the thing under
+  test exists to obtain.
 - **Reactive values fail `deepStrictEqual`.** `Alpine.$data(el)` and anything
   read through it are `@vue/reactivity` proxies; a strict structural compare
   rejects the proxy prototype ("same structure but not reference-equal"). Strip
@@ -312,9 +292,8 @@ const settle = async () => { await Alpine.nextTick(); await new Promise(r => set
 `bootstrap.mjs` already installs `global.requestAnimationFrame`, so nothing is
 missing; the callback simply has not run yet. Both directions land within a
 frame in real Chromium, so a failure here is the harness reporting on itself
-rather than a defect in the page. Found while testing the Lists view's in-place
-editing (`node/test/estate-list-edit.test.mjs`), and confirmed in Chromium
-before the tests were changed.
+rather than a defect in the page (`node/test/estate-list-edit.test.mjs` uses
+the settle above).
 
 ## Fallback: driving Chromium directly
 
@@ -353,14 +332,9 @@ just as page content.
 `@tailwindcss/browser@4` emits a utility's rule **the moment the class appears in
 the DOM**, including when Alpine toggles it onto an element that was already
 there. It watches the document and regenerates. A toggle-only utility therefore
-works, and needs no workaround.
-
-This corrects an earlier entry here that said the opposite. The observation
-behind it was real and is easy to repeat: open a page, inspect the stylesheets,
-and `.animate-spin` and `.rotate-180` genuinely have no rule while `.truncate`
-does. The wrong part was the inference. Nothing has toggled yet, so the rule has
-not been generated yet; it appears when the class does. Measured on
-the Web Tools app, before and after toggling `animate-spin rotate-180` onto a live
+works, and needs no workaround: a rule absent from the stylesheets before the
+class appears is not yet generated, not missing. Measured on the Web Tools app,
+before and after toggling `animate-spin rotate-180` onto a live
 element:
 
 | | `.truncate` | `.animate-spin` | `@keyframes spin` | `.rotate-180` |
@@ -369,9 +343,8 @@ element:
 | after the toggle | present | present | present | present |
 
 with `getComputedStyle(el).animationName === 'spin'` and `rotate === '180deg'`
-after. Driving the real Repos-view Refresh button (`estate.js`, flipping
-`configRefreshing`) spins it. Verified against both the vendored
-`@tailwindcss/browser@4.3.3` and the bytes jsDelivr serves the deployed page.
+after, against both the vendored `@tailwindcss/browser@4.3.3` and the bytes
+jsDelivr serves the deployed page.
 
 **The baked path does not change this.** A page built by the `bake-page` skill
 has its CSS compiled ahead of time with no runtime observer, but that compiler
@@ -379,8 +352,6 @@ scans **source as text**, so a literal in `:class="open && 'rotate-180'"` is
 found and kept. What breaks under baking is a class *assembled* from fragments
 (`'ph-' + name`), which no text scan can see. That, not toggling, is the hazard
 worth designing around, and it is the same hazard in both builds.
-
-Two carried-over notes that remain correct on their own terms:
 
 - **Two static glyphs swapped with `x-show`** (`ph-caret-down` / `ph-caret-up`,
   as `crumb-bar.js`, `repo-menu.js`, and `path-picker.js` do) is a fine way to
@@ -393,7 +364,7 @@ Two carried-over notes that remain correct on their own terms:
   worse than it looks: cross-origin sheets (daisyUI, Phosphor) throw on
   `cssRules` and silently contribute nothing, and Tailwind nests its output in
   `@layer`, so a naive `startsWith('.truncate')` scan reports absent for rules
-  that are plainly there. That combination is how the original entry got written.
+  that are plainly there.
 
 `isVisible` is separately misleading for a bottom sheet, which parks itself
 off-screen with a transform rather than hiding, so it reads as visible when
