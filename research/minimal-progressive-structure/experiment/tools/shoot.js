@@ -48,7 +48,7 @@ const measure = () => {
       await page.screenshot({ path: path.join(outDir, `${name}.${vp}.png`) });
       if (vp === 'desktop') {
         const h = await page.evaluate(() => document.documentElement.scrollHeight);
-        await page.screenshot({ path: path.join(outDir, `${name}.full.png`), fullPage: h <= 9000, clip: h > 9000 ? { x: 0, y: 0, width: 1440, height: 9000 } : undefined });
+        await page.screenshot({ path: path.join(outDir, `${name}.full.png`), fullPage: true, clip: h > 9000 ? { x: 0, y: 0, width: 1440, height: 9000 } : undefined });
       }
       out[name][vp] = { ...(await page.evaluate(measure)), errors };
       await page.close();

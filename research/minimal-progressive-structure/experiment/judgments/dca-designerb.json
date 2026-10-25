@@ -1,0 +1,63 @@
+{
+ "ranking": [
+  "P2",
+  "R9",
+  "Z2",
+  "R5"
+ ],
+ "pages": {
+  "P2": {
+   "score": 8,
+   "criteria": {
+    "first_screen": 5,
+    "findability": 4,
+    "fit": 5,
+    "economy": 4,
+    "fidelity": 5
+   },
+   "strengths": "The best first screen for someone who knows nothing. It opens with a plain headline, a one-paragraph summary that says everyone aboard both aircraft died, and a When/Where/Conditions/Report strip. Two color-coded aircraft cards (airplane in blue, helicopter in orange) then establish who was who, and those colors carry into the lanes below. The three-lane timeline (Flight 5342 / Air traffic control / PAT25) is split into phases: departure, converging along the river, the last two minutes, emergency response. It shows gaps between events, 'N s before impact' chips and a 'From: Helicopter CVR' source on each event, so the convergence story reads itself. The collision is a side-by-side comparison table that says 'Not given in the report' rather than inventing a helicopter value. Reference material sits in drawers rather than on the main page: crew, recorders and wreckage for each aircraft, the routes, TCAS, the tower, the airport, close calls, ADS-B, recovery and the investigation. Short teasers ('Runway 33 ... took about 4% of arrivals') make each drawer findable, and contextual links appear at the right event (TCAS at 20:47:40, the route at 20:33:41). Fidelity is scrupulous. It flags where the data table differs from the narrative (Bombardier vs MHI, the helicopter's 2 crew + 1 passenger, MVFR) and says the report describes only two of the three runways.",
+   "weaknesses": "It has no altitude chart, so the central quantitative story is left to text: the helicopter above the 200 ft msl route limit while the airplane descended toward it. The route's 200 ft limit is not stated at the 20:45:30 Memorial Bridge event and needs a drawer click. There is no table of contents or sticky navigation for the lower sections, and the lane tints leave large empty colored columns on desktop. The drawers have small text glitches ('ADS-B, ADS-B out', 'TCAS, TCAS'). The 'From:' provenance lines add some visual noise.",
+   "regions": "Hero summary and When/Where strip; the two aircraft cards and their 'Crew, recorders and wreckage' drawers; the three-lane timeline with collapsible phase headers and lane header buttons; the 20:47:40 TCAS and 20:33:41 route links; the collision comparison table; the 'airspace, systems and record' cards and their drawers (route, TCAS, tower, airport, close calls, ADS-B, recovery, investigation); the NOTAM toggle; weather block; phone view at 390px."
+  },
+  "R9": {
+   "score": 7,
+   "criteria": {
+    "first_screen": 5,
+    "findability": 5,
+    "fit": 4,
+    "economy": 3,
+    "fidelity": 5
+   },
+   "strengths": "A strong editorial first screen. The headline ('An airliner and an Army helicopter collide over the Potomac') is plain English, with a two-paragraph lede, an explicit note that the preliminary report states no cause, and a fact strip (67 killed, 8:47:59 p.m., where, conditions). A sticky side nav with 14 named sections (a top scroller on phone) makes any fact easy to reach, and the lane filter (All / Flight 5342 / Tower & airport / PAT25) works. Its Altitude and distance chart is the most honest visual in the set. It separates recorded radio altitudes, automated callouts, crew-spoken altitudes and the 200 ft msl route limit. It says the dotted line only joins reported points and that msl and radio altitude are different references. The route section shows PAT25's times as orange chips along a vertical route diagram, and the radio section diagrams who could hear whom. The 'Report data' table reproduces the form fields and states where they differ from the narrative. The 12-hour p.m. times suit a general reader.",
+   "weaknesses": "Very long: about 14,800px on desktop and about 24,000px on phone, with the timeline alone over 5,000px. It repeats itself. The emergency response appears in both the timeline and 'Rescue and recovery'. The collision values appear in the timeline, the 'How far apart' cards and Report data, and the weather in the fact strip and Report data. Big-number stat cards (KILLED 67, 944,179 / 15,214 / 85) feel generic. Runway shares and runway dimensions sit under 'Earlier close calls', an odd home. The scroll-spy highlight lags a section behind. Airplane and helicopter wreckage detail is folded into two disclosures, which is fine but easy to miss.",
+   "regions": "Header, hero lede, the 'does not state a cause' note and the four-cell fact strip; sticky side nav (and phone top nav); 'The two flights' cards; 'The final minutes' three-lane timeline with phase headers, before-impact chips, missed-word markers and the lane filter buttons; the Altitude and distance chart with legend and caveat; 'How far apart' cards; radio frequency diagram; helicopter route diagram; TCAS block; Wreckage distances and the 'Airplane examination' / 'Helicopter examination' disclosures; close-calls numbers and runway bars; Actions since; Report data table; phone view."
+  },
+  "Z2": {
+   "score": 6,
+   "criteria": {
+    "first_screen": 3,
+    "findability": 4,
+    "fit": 4,
+    "economy": 4,
+    "fidelity": 4
+   },
+   "strengths": "Compact and well layered. A one-line header carries the date, time and '67 fatal: 64 airplane, 3 helicopter', and one clear lead sentence explains the collision. The three-lane timeline has a sticky lane header, gap markers ('+90 min') and T-minus counts. The missed words are highlighted in yellow ('circling', 'pass behind the'), a clearer encoding than strikethrough. Inline underlined terms ('runway 33', 'helicopter route', 'DCA tower', 'TCAS') open well-built modal panels: the airport and runway table, the full route, tower staffing and frequencies, TCAS behavior with sources cited. The 200 ft limit is stated inline at Memorial Bridge. The Aircraft tab is an excellent side-by-side reference with a crew table and collapsible wreckage components, and it notes data-table discrepancies ('data table: 2 crew, 1 passenger', 'MVFR').",
+   "weaknesses": "The timeline starts at the 18:39 departure, so the first screen and the next few screens are spent on early, low-stakes events. The collision is about 3,000px down, and the gaps in the empty middle lane leave a lot of whitespace. The header metadata line is dense. Some placement is odd. Runway use on the 'Encounters at DCA' tab is only a link to a dialog, wreckage positions in Response are a link back to Aircraft, and safety actions live under Investigation. Times like '18:39:00' and '20:32:00' add seconds the report does not give (false precision). There is no altitude visual, and 'T-32 s' notation is a little technical for a general reader.",
+   "regions": "Header metadata line; tab bar (Timeline, Aircraft, Encounters at DCA, Response, Investigation); sticky lane header; lead paragraph and basis note; timeline events, gap markers, T-minus labels and yellow missed-word highlights; inline term dialogs (runway 33, helicopter route, DCA tower, Route 1 to Route 4, TCAS); weather line; Aircraft tab comparison and crew table with wreckage disclosures; Encounters tab; Response tab; Investigation tab; phone view."
+  },
+  "R5": {
+   "score": 6,
+   "criteria": {
+    "first_screen": 2,
+    "findability": 4,
+    "fit": 4,
+    "economy": 4,
+    "fidelity": 4
+   },
+   "strengths": "A precise analyst's instrument. The default 'Last 5 minutes' sequence goes straight to the crux in three lanes with countdown-to-impact times. Beside it sits an altitude chart showing the airplane's descent onto the helicopter's level, with reference lines for the 200 ft msl route limit and the TCAS 400/900 ft agl thresholds. Whole flight / Last 5 minutes / Last minute rescale both views. The tabs hold some of the best reference tables in the set. The Aircraft tab is a two-column comparison with flight-hour bars. The Route tab merges the chart's waypoints and altitude limits with PAT25's passage times. Tower & runways has a who-heard-whom matrix and runway-share bars annotated with flight 5342's runways. Before & after and Investigation are equally tight. Content is complete and almost entirely verbatim-faithful.",
+   "weaknesses": "Weak for a general reader in the first ten seconds. There is no plain-language sentence saying an airliner and an Army helicopter collided. The reader gets a title, a monospaced metadata line, three rows of controls (8 tabs, a cryptic 'Mark' toggle, 'Show') and then '20:43:06 First contact with DCA tower'. CRJ700 and UH-60L are never glossed as jet and helicopter up front. The missed radio words are struck through ('circling', 'pass behind the'), which reads as if the controller retracted them. The chart joins crew-spoken helicopter altitudes to the recorded 278 ft with a solid line. In 'Last minute' it draws a flat PAT25 track where the report has no data. It mixes msl and agl on one axis without the caveat R9 gives. The controls take a large share of the phone screen.",
+   "regions": "Header and metadata line; tab bar; Mark and Show toggles (tested Whole flight, Last minute, Mark PAT25); Sequence lanes with countdown column and strikethrough missed-word notes; altitude chart, legend and reference-line checkboxes; Aircraft tab comparison and hour bars; Wreckage tab; Route tab table; Tower & runways matrix and runway bars; Before & after; Response; Investigation; phone view."
+  }
+ },
+ "summary": "P2 separated itself by layering. A newcomer gets the whole event and who was who on the first screen, a phased three-lane timeline that shows the convergence with sources on every event, and all reference detail one click away in drawers. The main page stays short, and its fidelity notes are careful. R9 matched it on the first screen, on navigation and on honesty, and has the best altitude chart, but it runs to roughly 15,000px with repeated material. Z2 and R5 are accurate and well built underneath: Z2 opens on departures hours before the collision, and R5 opens on dense controls with no plain explanation, so a general reader has to work harder at the start."
+}

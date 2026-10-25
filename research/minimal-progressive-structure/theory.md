@@ -52,6 +52,16 @@ web.** Its sections mirror the source's paragraphs or topics ("Background",
 traversal and adds boxes. Nothing on it is organized by what the facts are
 about.
 
+The test sharpened this diagnosis. Unguided builders did not mirror the
+paragraphs; they reached for a genre. All three bare WA Cares pages used the
+news explainer's stock sections (the question on the ballot, what would
+change, for and against, how we got here), which already encode some
+relation kinds: a before-and-after comparison, a two-sided comparison, a
+sequence. What the genre lacks is a root other than the article itself, so
+each fact appears wherever a stock section mentions it, and facts repeat. The
+generic page formats a genre rooted on the text, not a model rooted on the
+reader's subject.
+
 ## Normalization: structural forms
 
 Database normalization (Codd, 1970 and 1971) removes redundancy by putting each
@@ -161,6 +171,27 @@ Written before any page in the experiment was judged.
    that Myers, Hudson and Pausch (2000) found unpredictable and low in ceiling.
 
 The account's experiment tests predictions 1 and 2.
+
+## What the test showed
+
+The [account](README.md#findings) has the figures. Four results bear on the
+theory itself.
+
+- **The root is the method's main lever.** Builders converged with or without
+  the method, at about the same rate; the method changed the root they
+  converged on, from the article to the thing the article is about. Where the
+  unguided builders already rooted on things (races by district, the NTSB
+  report by aircraft), the method added little.
+- **The earned view is the weakest rule.** Replicates following the method
+  agreed on the root and diverged on which neighbors earn a view. The revised
+  rule ties the threshold to the label: a thing earns a view when its own
+  facts are more than its label can carry.
+- **Minimality cuts both ways.** One method page hid a collection's rows behind
+  counts, which satisfies the depth check and defeats the comparison. A
+  collection root shows its rows.
+- **Normalization protects fidelity.** Attaching a claim to its speaker is Form
+  2 applied to speech, and the method pages kept attribution where unguided
+  pages promoted a campaign's claim to fact.
 
 ## Where it sits
 
