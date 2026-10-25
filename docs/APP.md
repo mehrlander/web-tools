@@ -110,7 +110,7 @@ Use `x-blob` with an `owner/repo[@ref]:path` address for exact files. It derives
 
 | Subject | Reference |
 | --- | --- |
-| Views and forms | [app-routes.csv](app-routes.csv), [subjects.csv](subjects.csv), [forms/README.md](forms/README.md) |
+| Views and forms | [app-routes.csv](app-routes.csv), [forms/README.md](forms/README.md) |
 | Stage and `#stage=` links | [stage.md](stage.md) |
 | Repo configuration, the config cache and errands | [manifest.md](manifest.md), [manifest-fields.csv](manifest-fields.csv) |
 | Proposals | [manifest.md](manifest.md#proposals) |

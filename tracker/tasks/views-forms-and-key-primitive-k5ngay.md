@@ -130,9 +130,8 @@ tables, which name the role a link addresses and keep the word.
 
 ## Done when
 
-APP.md is the app's reference, every view is a row of app-routes.csv, and
-every object type is a row of subjects.csv; the FAB captions a deck slide by
-its type with a deck row above it;
+APP.md is the app's reference and every view is a row of app-routes.csv;
+the FAB captions a deck slide by its type with a deck row above it;
 `registries.csv` carries `key_primitive` in place of `area`, tested against
 `identity`, with the five loose registries settled; `subjects.csv` carries
 `store`.
@@ -145,4 +144,4 @@ its type with a deck row above it;
 - 2026-10-06: Dropped depends-on typed-subject-registry-xys5g4, done 2026-09-22 (#756). Parts 2 to 4 remain open. Tending pass.
 - 2026-10-23: part 3 done on claude/hopeful-lamport-1cbnuy (web-tools #1087). `key_primitive` replaced `area`: a key is a locator if and only if its identity is `path` or `path:<prefix>`, and properties-registry.test.mjs checks that every such key names something in the tree. One departure from the text above: `assistant-branches` stays an id, since nothing can check that a merged branch still exists. Of the five loose registries, `aims-reading` took a `path` identity and became a locator; `tracker-tasks`, `assistant-branches`, `themes` and `sources` are ids. The Registries tab, now under the Map's Data tab, groups by it. Parts 2 and 4 remain.
 - 2026-10-24: part 1's view half reversed on the owner's call, on claude/views-registry: `docs/views/` and the app-routes `doc` column retired; `docs/forms/` stays. Parts 2 and 4 remain.
-- 2026-10-25: the form half reversed the same way, on claude/forms-and-wording: `docs/forms/branch.md`, `docs/forms/session.md` and the subjects `doc` column retired; `docs/forms/README.md` stays as the list of forms by job. Parts 2 and 4 remain.
+- 2026-10-25: the form half reversed too, on claude/forms-and-wording: `docs/forms/branch.md`, `session.md` and the subjects `doc` column retired; `docs/forms/README.md` stays. Parts 2 and 4 remain.

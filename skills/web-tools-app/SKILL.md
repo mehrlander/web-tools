@@ -52,8 +52,7 @@ curl -fsSL https://raw.githubusercontent.com/mehrlander/web-tools/main/docs/stag
 ```
 
 `APP.md` covers what every view shares; `docs/app-routes.csv` has a row per
-view, and `docs/subjects.csv` a row per object type with the page that draws
-that type.
+view.
 
 `raw.githubusercontent.com` is on the Claude Code web sandbox allowlist, and the
 repo is public, so this needs no auth. In `mehrlander/web-tools` itself the files
