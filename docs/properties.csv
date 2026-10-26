@@ -298,6 +298,8 @@ policies,origin_session,recorded,,none,column,yes,,locator,the session record in
 policies,user_prompt_quote,recorded,,none,column,yes,,value,the owner's words in that session establishing the rule
 policies,enforcement,recorded,,none,column,yes,,locator,"the test, hook, script or npm command that holds the rule, where the document names one that exists"
 policies,status,recorded,,value,column,yes,lead;sourced;checked,label,"lead: a quote on the row is unverified; sourced: quoted is found in canonical_doc; checked: confirmed by a second reading"
+policies,kind,recorded,,value,column,yes,rule;procedure;app-description;specification;api-reference;finding,label,"what the statement is: a rule or a procedure for how a session acts, or a description of what a thing is or does, as an app description, specification, API reference or finding"
+policies,house,recorded,,none,column,yes,,locator,"the shortcut of the docs/house-policies.md entry the statement lines up with, as h:<shortcut>; blank where it lines up with no endorsed entry"
 outposts,title,recorded,,value,column,yes,,value,display name
 outposts,gloss,recorded,,value,column,yes,,value,"where the material sits, and what about that place keeps commits out"
 outposts,declared,recorded,,value,column,yes,,locator,the committed file saying what the outpost should hold

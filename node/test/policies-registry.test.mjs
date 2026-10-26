@@ -26,6 +26,10 @@ const norm = (t) => t.replace(/[*`]/g, '').replace(/\s+/g, ' ').trim();
 const LEVELS = new Set(['principle', 'policy', 'standard']);
 const INTENTS = new Set(['user-mandate', 'dialogue-ratified', 'model-extrapolated', 'organic-precedent', 'unknown']);
 const STATUSES = new Set(['lead', 'sourced', 'checked']);
+const KINDS = new Set(['rule', 'procedure', 'app-description', 'specification', 'api-reference', 'finding']);
+// The endorsed policies: every shortcut docs/house-policies.md gives an entry.
+const shortcuts = new Set([...readFileSync(path.join(repoRoot, 'docs', 'house-policies.md'), 'utf8')
+  .matchAll(/`\/(h:[\w-]+)`/g)].map(m => m[1]));
 
 test('every topic has an area, a title and a gloss, under a unique id', () => {
   assert.ok(topics.length > 0);
@@ -74,6 +78,16 @@ test('sourced means the passage was found, and a session quote stays a lead', ()
     // a row carrying one cannot claim more than lead until someone reads it.
     if (p.user_prompt_quote) assert.equal(p.status, 'lead', `${p.policy_id}: an unread session quote`);
     if (p.user_prompt_quote) assert.ok(p.origin_session, `${p.policy_id}: a quote with no session`);
+  }
+});
+
+test('a statement has a kind, and a house link names an endorsed entry', () => {
+  assert.ok(shortcuts.size > 0, 'no shortcuts read from docs/house-policies.md');
+  for (const p of policies) {
+    assert.ok(KINDS.has(p.kind), `${p.policy_id}: kind ${p.kind}`);
+    if (!p.house) continue;
+    assert.ok(shortcuts.has(p.house), `${p.policy_id}: ${p.house} is not a shortcut in docs/house-policies.md`);
+    assert.ok(p.kind === 'rule' || p.kind === 'procedure', `${p.policy_id}: a ${p.kind} cannot detail a policy`);
   }
 });
 
