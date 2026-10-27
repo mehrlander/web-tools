@@ -13,12 +13,12 @@ disable-model-invocation: true
 
 ## Principles
 
-1. **Prepare the calls.** Tending advances toward moments of commitment, where
-   paths diverge and it is time to choose. It is time to choose once work
-   reasonably helpful to all paths, or to the decision itself, is exhausted.
-2. **Keep the options in view.** Significant decisions deserve preparation and
+1. **Highlight options.** Significant decisions deserve preparation and
    attention, so that the owner can continue to recognize options for
    addressing problems.
+2. **Prepare the calls.** Tending advances toward moments of commitment, where
+   paths diverge and it is time to choose. It is time to choose once work
+   reasonably helpful to all paths, or to the decision itself, is exhausted.
 3. **Clarification is reliably valuable.** Proving whether work has landed,
    connecting orphaned work to its origin, and testing relevant assumptions
    reduce what the owner must carry.
