@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `node/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 16 are named by CLAUDE.md,
-20 by a skill, 44 by a page or component. The remaining 33 are
+20 by a skill, 42 by a page or component. The remaining 33 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -79,8 +79,6 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`context-topics.csv`](context-topics.csv) — the topics two or more context sources speak to, each with a verdict on whether the overlap is by design
 - [`context.md`](context.md) *(orphan)* — where a context-registry row goes, how topics and tally join it, and what the gate checks
 - [`showing-consolidation.md`](showing-consolidation.md) *(record, orphan)* — the 2026-09-27 to 09-29 plan and evidence log for selecting versions in a toss: scenarios, the frame-versus-top-mode comparison, the harness evidence, and the experiment ids (E1 to E12) that tests and code comments cite
-- [`policies.csv`](policies.csv) — the rules the documentation settles, one sentence each, with the passage each rests on
-- [`policy-topics.csv`](policy-topics.csv) — the topics and areas the policy catalog is grouped by
 - [`outposts.md`](outposts.md) — outposts: places outside git that hold estate material, and the four parts every one is held by (declared, observed, check, upkeep)
 - [`outposts.csv`](outposts.csv) — the outposts registry: each place outside git that holds estate material, with its declaration, observation, check, record, outpost protocol and upkeep
 - [`account-skills.csv`](account-skills.csv) — what the claude.ai account should hold: each skill on or off, and the plugin folder its copy should match

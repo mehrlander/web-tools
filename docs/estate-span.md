@@ -3,8 +3,8 @@
 The registries answer questions about this repository. A handful reach past it,
 and the `span` column says which ([registries.csv](registries.csv), domain in
 [vocabularies.csv](vocabularies.csv), gated by
-`node/test/properties-registry.test.mjs`); the Map view's Data tab, narrowed
-to Registries, carries both counts.
+`node/test/properties-registry.test.mjs`); with Registries on, the Map view's
+Data tab counts them in the app drawer's About tab.
 
 This document is the reasoning the column cannot hold, and the measurement that
 prompted it.

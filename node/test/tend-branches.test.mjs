@@ -34,9 +34,14 @@ test('each branch lands in the class the skill table names', () => {
   const store = repo('store', { '.web-tools.json': '{"notes":"notes"}\n', 'notes/.keep': '',
     'state/activity.json': JSON.stringify({ repos: { 'acme/ev': { openPRs: [{ number: 3, head: 'claude/open' }] } } }),
     'state/sessions.json': '{"rows":[]}' });
-  const ev = repo('ev', { 'a.md': 'one\n' });
+  const ev = repo('ev', { 'a.md': 'one\n', 'shared.md': 'shared\n',
+    'x/README.md': 'x\n', 'y/README.md': 'y\n', 'z/README.md': 'z\n' });
   git(ev, 'branch', 'claude/ancestor'); git(ev, 'push', '-q', 'origin', 'claude/ancestor');
   branch(ev, 'claude/novel', { 'b.md': 'only here\n' });
+  // A new folder whose README shares a name too common on main to mean a move,
+  // and a new file whose bytes main already holds at another path.
+  branch(ev, 'claude/new-folder', { 'w/README.md': 'a new probe\n' });
+  branch(ev, 'claude/copied', { 'elsewhere/copy.md': 'shared\n' });
   branch(ev, 'claude/open', { 'o.md': 'under review\n' });
   branch(ev, 'claude/picked', { 'c.md': 'picked\n' });
   branch(ev, 'claude/echoed', { 'a.md': 'one\nx\n' });
@@ -49,8 +54,10 @@ test('each branch lands in the class the skill table names', () => {
     { encoding: 'utf8', env: { ...env, FINDINGS_CHECKOUTS: JSON.stringify({ 'acme/ev': ev }) }, cwd: store }));
   const cls = Object.fromEntries(out.map(r => [r.branch, r.class]));
   assert.deepEqual(cls, { 'claude/ancestor': 'ancestor', 'claude/novel': 'novel', 'claude/open': 'open',
-    'claude/picked': 'content-settled', 'claude/echoed': 'residue-free' });
+    'claude/picked': 'content-settled', 'claude/echoed': 'residue-free',
+    'claude/new-folder': 'novel', 'claude/copied': 'content-settled' });
   const novel = out.find(r => r.branch === 'claude/novel');
   assert.equal(novel.residue, 1);
   assert.deepEqual(novel.paths, ['b.md']);
+  assert.deepEqual(out.find(r => r.branch === 'claude/new-folder').paths, ['w/README.md']);
 });

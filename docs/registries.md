@@ -11,7 +11,7 @@ and what the suite checks. What each field means is not here. It is in
 [`registries.csv`](registries.csv), one row per registry;
 [`properties.csv`](properties.csv), one row per non-key column; and
 [`vocabularies.csv`](vocabularies.csv), one row per value of each closed
-domain. All three render in the app's **Map view, Data tab**. The gate is
+domain. The app's **Map view, Data tab** shows a registry's row in its table's panel-tip and a column's definition in the column's. The gate is
 [`properties-registry.test.mjs`](../node/test/properties-registry.test.mjs).
 
 ## A worked example
@@ -181,7 +181,7 @@ A blank cell means *not asserted*, never an empty string or a checked result of
 none. Where that distinction matters, use a token: `gate: none` means checked,
 and nothing holds the registry. Read the token, not the cell's truthiness.
 
-Keep `recorded` and `computed` properties in separate files, so a generator does not overwrite values a person writes: `tests-index` writes `docs/tests.csv` whole and only adds or removes rows in `docs/tests-authored.csv`. The exceptions are named, with reasons, in [`properties-registry.test.mjs`](../node/test/properties-registry.test.mjs).
+Keep `recorded` and `computed` properties in separate files, so a generator does not overwrite values a person writes: `tests-index` writes `docs/tests.csv` whole, and in `docs/tests-authored.csv` only adds a row for a new test, with `kind` set to `behavior` and `protects` blank, or removes a deleted test's row. The exceptions are named, with reasons, in [`properties-registry.test.mjs`](../node/test/properties-registry.test.mjs).
 
 Store `recorded` values always; authored judgment cannot be recomputed. Store
 `computed` values only where a browser, a gate or a reviewable diff needs a
@@ -228,7 +228,7 @@ each have a registry row, and every non-key column in both has a declaration.
 
 ## Reader-facing fields
 
-`title` and `gloss` identify a registry in the Map view. `key_primitive` groups the Data tab's Registries list: registries keyed by a locator, then those keyed by a name. `renders_in` is derived by [`registries-reach.mjs`](../node/build/registries-reach.mjs) from the files under `lib/`, `pages/` and `app/` that name the registry's path. That directory list is literal (`APP_DIRS`); when the app moves, move it. An empty `renders_in` says no app surface reads the registry, which is a question rather than a verdict, since a GitHub-rendered projection is a legitimate consumer.
+`title` and `gloss` identify a registry in the Map view. `key_primitive` groups the Data tab's Registries list: registries keyed by a locator, then those keyed by an id. `renders_in` is derived by [`registries-reach.mjs`](../node/build/registries-reach.mjs) from the files under `lib/`, `pages/` and `app/` that name the registry's path. That directory list is literal (`APP_DIRS`); when the app moves, move it. An empty `renders_in` says no app surface reads the registry, which is a question rather than a verdict, since a GitHub-rendered projection is a legitimate consumer.
 
 ## Limits of the model
 

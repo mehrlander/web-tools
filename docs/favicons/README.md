@@ -24,7 +24,7 @@ Files: [`map/`](map/). Drawn 2026-10-22: one mark for each of the Map's tab grou
 
 ### Primitive marks
 
-Files: [`primitives/`](primitives/). Drawn 2026-10-24: one mark for each column primitive in [column-primitives.md](../column-primitives.md#the-four), named for its value. `docs/vocabularies.csv` names each file in the `icon` column of that primitive's row, and the Map's Data tab draws it on every column chip, in one colour per primitive.
+Files: [`primitives/`](primitives/). Drawn 2026-10-24: one mark for each column primitive in [column-primitives.md](../column-primitives.md#the-four), named for its value. `docs/vocabularies.csv` names each file in the `icon` column of that primitive's row, and the Map's Data tab draws it, in the primitive's colour, on each column declared with that primitive.
 
 ## Drawn marks
 
