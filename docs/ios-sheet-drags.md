@@ -1,8 +1,7 @@
 # Dragging inside an iOS sheet dismisses the sheet
 
 Measured on an actual iPhone, 2026-08-12, against a probe page carrying one cell
-per technique. The negative results are the value here: the fix everyone reaches
-for is necessary and, on its own, does not work.
+per technique.
 
 ## Context
 
@@ -102,9 +101,8 @@ Alpine sets `passive` only for an explicit `.passive` modifier.
 ```
 
 H works by never letting the scroller sit exactly at 0, so a downward drag
-always has somewhere to go. It is a real technique and worth knowing, and it
-leaves a permanent pixel of offset under content that should sit flush, so
-prefer G.
+always has somewhere to go, but it leaves a permanent pixel of offset under
+content that should sit flush, so prefer G.
 
 ## Related trap: pointer capture
 
@@ -151,8 +149,7 @@ Path 2 is
 `overscroll-behavior: contain` on the composer's two scrolling boxes, its
 editor, and the fab drawer's panes.
 
-**A surface that must SCROLL cannot use variant D at all,** which is the case
-`pages/dictate.html` hit with its long-press-and-drag selection. `touch-action`
+**A surface that must SCROLL cannot use variant D at all.** `touch-action`
 is latched at touchstart, so it cannot be turned off once a gesture is under
 way; cancelling touchstart would kill the pane's ordinary scrolling; and at
 touchstart nothing yet knows the touch will become a long press. What is left is
@@ -165,25 +162,20 @@ decides a touch is a scroll fires `pointercancel` and stops sending
 sheet, it ends.
 
 **And variant E needs a flag the gesture has already set, which a drag with no
-opening act cannot supply.** The same page tried, for two days, to hold a plain
-drag-to-select on the same pane: a drag that opened sideways was a selection,
-one that opened downward was a scroll, and the hold fired on the first move
-that had gone far enough sideways to say which. It worked. What it could not do
-is be discoverable, since nothing on screen can state a rule about direction,
-and a refused drag is indistinguishable from a dead surface. The general form
-is worth keeping: on a scrolling pane, a custom drag needs a **discrete opening
-act** the reader performs on purpose, a long press or a grabbed handle, both
-because that is what variant E can gate on and because that is what tells the
-reader the surface has two behaviours at all. Retired 2026-08-25.
+opening act cannot supply.** On a scrolling pane, a custom drag needs a
+**discrete opening act** the reader performs on purpose, a long press or a
+grabbed handle, both because that is what variant E can gate on and because that
+is what tells the reader the surface has two behaviours at all. A rule about
+drag direction (sideways selects, downward scrolls) can hold the sheet, but
+nothing on screen can state it, and a refused drag is indistinguishable from a
+dead surface. `pages/dictate.html`'s comments record the case.
 
-**A handle that is REBUILT cannot be held from an ancestor,** which the dictate
-page hit and is worth knowing before reaching for one listener on a container. A
-touch keeps the element it started on as its target even after that element
-leaves the document, and a detached target has no path to an ancestor's
-listener, so a delegated hold goes quiet on the first repaint of a drag. That is
-the one moment it is for. Two answers, by whether the element is enumerable:
-the pins are two nodes, so the page re-attaches to each on every paint; the
-text spans are many and rebuilt every frame, so the listener goes on the ONE
-node the touch started on, captured at pointerdown, and rides it into
-detachment. Both are what "attach to the element, and be explicit" above costs
-when the element is not stable.
+**A handle that is REBUILT cannot be held from an ancestor.** A touch keeps the
+element it started on as its target even after that element leaves the
+document, and a detached target has no path to an ancestor's listener, so a
+delegated hold goes quiet on the first repaint of a drag. Two answers, by
+whether the element is enumerable: a few nodes (dictate's two pins) are
+re-attached to on every paint; many nodes rebuilt every frame (its text spans)
+get the listener on the ONE node the touch started on, captured at pointerdown,
+which rides it into detachment. Both are what "attach to the element, and be
+explicit" above costs when the element is not stable.

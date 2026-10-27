@@ -38,6 +38,5 @@ chaining into other work: Stop fires when the session idles, not once per
 message, so a turn the harness auto-continues writes no record. The first
 record appears on the store's `main` within seconds of the next idle.
 
-What this does not do: install anything, edit settings, or touch the store's
-contents. The recorder ships in the plugin already; the only thing a spawned
-session lacks is the checkout, and that is all this supplies.
+Do not install anything, edit settings, or touch the store's contents: the
+recorder ships in the plugin, and the checkout is all a session lacks.

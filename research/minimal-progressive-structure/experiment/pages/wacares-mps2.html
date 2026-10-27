@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SJR 8201 and WA Cares</title>
+<link href="https://cdn.jsdelivr.net/npm/daisyui@5.0.43/daisyui.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.1.11/dist/index.global.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.9/dist/cdn.min.js"></script>
+<style>
+  [x-cloak] { display: none !important; }
+  summary { list-style: none; }
+  summary::-webkit-details-marker { display: none; }
+  details > summary .chev { display: inline-block; transition: transform .15s ease; }
+  details[open] > summary .chev { transform: rotate(90deg); }
+</style>
+</head>
+<body class="bg-base-200 text-base-content antialiased">
+
+<div x-data="page()" @click="onClick($event)" class="mx-auto max-w-4xl px-4 py-6 sm:py-10">
+
+  <!-- Root view: SJR 8201 -->
+  <header class="mb-6">
+    <p class="text-sm font-semibold uppercase tracking-wide text-primary" x-text="root.kicker"></p>
+    <h1 class="mt-2 text-3xl font-bold leading-tight tracking-tight sm:text-4xl" x-text="root.title"></h1>
+    <p class="mt-2 text-base-content/70" x-text="root.formal"></p>
+    <p class="mt-1 text-sm text-base-content/60">From <span x-text="article.author"></span>'s report in the <span x-text="article.outlet"></span>, <span x-text="article.date"></span></p>
+  </header>
+
+  <!-- 1. The answer -->
+  <section class="rounded-box border border-base-300 bg-base-100 p-5 sm:p-7">
+    <p class="text-lg leading-relaxed sm:text-xl" x-html="segs(root.answer)"></p>
+
+    <h2 class="mt-7 text-lg font-bold" x-text="root.change.heading"></h2>
+    <div class="mt-3 grid grid-cols-2 gap-x-3 sm:grid-cols-[11rem_1fr_1fr] sm:gap-x-5">
+      <div class="hidden sm:block"></div>
+      <template x-for="c in root.change.columns" :key="c">
+        <div class="rounded-t-box bg-base-200 px-3 py-2 text-sm font-bold" x-text="c"></div>
+      </template>
+      <template x-for="(row, i) in root.change.rows" :key="i">
+        <div class="contents">
+          <div class="col-span-2 pt-4 text-xs font-semibold uppercase tracking-wide text-base-content/60 sm:col-span-1 sm:border-t sm:border-base-300 sm:pt-3 sm:text-sm sm:normal-case sm:tracking-normal sm:text-base-content/80" x-text="row.field"></div>
+          <div class="border-t border-base-300 px-3 pt-2 pb-1 text-sm leading-relaxed sm:pt-3 sm:text-base" x-html="segs(row.today)"></div>
+          <div class="border-t border-base-300 px-3 pt-2 pb-1 text-sm leading-relaxed sm:pt-3 sm:text-base" x-html="segs(row.approved)"></div>
+        </div>
+      </template>
+    </div>
+
+    <h2 class="mt-7 text-lg font-bold" x-text="root.earnings.heading"></h2>
+    <ul class="mt-2 space-y-2 leading-relaxed">
+      <template x-for="(it, i) in root.earnings.items" :key="i">
+        <li class="flex gap-2"><span class="mt-2.5 size-1.5 shrink-0 rounded-full bg-base-content/50"></span><span x-html="segs(it)"></span></li>
+      </template>
+    </ul>
+
+    <details class="mt-6 text-sm">
+      <summary class="cursor-pointer text-base-content/70 hover:text-base-content"><span class="chev">&#9656;</span> <span x-text="'Article passages behind this section (' + root.answerSources.length + ')'"></span></summary>
+      <div class="mt-2 space-y-2">
+        <template x-for="id in root.answerSources" :key="id">
+          <blockquote class="border-l-2 border-base-300 pl-3 text-base-content/80" x-text="article.paragraphs[id]"></blockquote>
+        </template>
+      </div>
+    </details>
+  </section>
+
+  <!-- 2. The two sides (comparison) -->
+  <section class="mt-6 rounded-box border border-base-300 bg-base-100 p-5 sm:p-7">
+    <h2 class="text-xl font-bold" x-text="root.sides.heading"></h2>
+    <p class="mt-1 text-base-content/70" x-text="root.sides.intro"></p>
+
+    <div class="mt-4 grid grid-cols-2 gap-x-3 sm:grid-cols-[11rem_1fr_1fr] sm:gap-x-5">
+      <div class="hidden sm:block"></div>
+      <template x-for="c in root.sides.columns" :key="c.key">
+        <div class="rounded-t-box bg-base-200 px-3 py-2 text-sm font-bold" x-text="c.name"></div>
+      </template>
+      <template x-for="(row, i) in root.sides.rows" :key="i">
+        <div class="contents">
+          <div class="col-span-2 pt-4 text-xs font-semibold uppercase tracking-wide text-base-content/60 sm:col-span-1 sm:border-t sm:border-base-300 sm:pt-3 sm:text-sm sm:normal-case sm:tracking-normal sm:text-base-content/80" x-text="row.field"></div>
+          <template x-for="c in root.sides.columns" :key="c.key">
+            <div class="min-w-0 border-t border-base-300 px-3 pt-2 pb-2 text-sm leading-relaxed sm:pt-3 sm:text-base">
+              <template x-if="row[c.key].text"><p x-html="segs(row[c.key].text)"></p></template>
+              <template x-if="row[c.key].list">
+                <ul class="space-y-1.5">
+                  <template x-for="(it, j) in row[c.key].list" :key="j">
+                    <li class="flex gap-2"><span class="mt-2 size-1.5 shrink-0 rounded-full bg-base-content/50"></span><span x-html="segs(it)"></span></li>
+                  </template>
+                </ul>
+              </template>
+              <template x-if="row[c.key].evidence">
+                <details class="mt-2">
+                  <summary class="cursor-pointer text-sm font-medium text-primary"><span class="chev">&#9656;</span> <span x-text="row[c.key].evidence.label"></span></summary>
+                  <template x-for="id in row[c.key].evidence.src" :key="id">
+                    <blockquote class="mt-2 border-l-2 border-primary/40 pl-3 text-sm italic text-base-content/80" x-text="article.paragraphs[id]"></blockquote>
+                  </template>
+                </details>
+              </template>
+            </div>
+          </template>
+        </div>
+      </template>
+    </div>
+
+    <details class="mt-6 text-sm">
+      <summary class="cursor-pointer text-base-content/70 hover:text-base-content"><span class="chev">&#9656;</span> <span x-text="'Article passages on the sides, backers and money (' + root.sides.sources.length + ')'"></span></summary>
+      <div class="mt-2 space-y-2">
+        <template x-for="id in root.sides.sources" :key="id">
+          <blockquote class="border-l-2 border-base-300 pl-3 text-base-content/80" x-text="article.paragraphs[id]"></blockquote>
+        </template>
+      </div>
+    </details>
+  </section>
+
+  <!-- 3. Road to the ballot (sequence) -->
+  <section class="mt-6 rounded-box border border-base-300 bg-base-100 p-5 sm:p-7">
+    <h2 class="text-xl font-bold" x-text="root.road.heading"></h2>
+    <ol class="relative mt-4 ms-2 border-s-2 border-base-300">
+      <template x-for="(it, i) in root.road.items" :key="i">
+        <li class="relative ms-5 pb-5 last:pb-0">
+          <span class="absolute -start-[1.72rem] top-1 size-3.5 rounded-full border-2 border-base-100" :class="it.now ? 'bg-primary' : 'bg-base-content/40'"></span>
+          <p class="text-sm font-bold" :class="it.now ? 'text-primary' : ''" x-text="it.when"></p>
+          <p class="mt-0.5 leading-relaxed" x-html="segs(it.text)"></p>
+        </li>
+      </template>
+    </ol>
+    <details class="mt-6 text-sm">
+      <summary class="cursor-pointer text-base-content/70 hover:text-base-content"><span class="chev">&#9656;</span> <span x-text="'Article passages behind this section (' + root.road.sources.length + ')'"></span></summary>
+      <div class="mt-2 space-y-2">
+        <template x-for="id in root.road.sources" :key="id">
+          <blockquote class="border-l-2 border-base-300 pl-3 text-base-content/80" x-text="article.paragraphs[id]"></blockquote>
+        </template>
+      </div>
+    </details>
+  </section>
+
+  <!-- 4. Background: references as labels -->
+  <section class="mt-6">
+    <h2 class="px-1 text-xl font-bold" x-text="root.refsHeading"></h2>
+    <div class="mt-3 grid gap-3 sm:grid-cols-2">
+      <template x-for="id in root.refs" :key="id">
+        <button type="button" class="group rounded-box border border-base-300 bg-base-100 p-5 text-left transition hover:border-primary hover:shadow-sm focus-visible:outline-2 focus-visible:outline-primary" :data-ref="id">
+          <span class="block text-lg font-bold" x-text="entities[id].name"></span>
+          <span class="mt-1 block text-sm leading-relaxed text-base-content/70" x-text="entities[id].labelQual"></span>
+          <span class="mt-3 block text-sm font-semibold text-primary group-hover:underline" x-text="entities[id].cta + ' →'"></span>
+        </button>
+      </template>
+    </div>
+  </section>
+
+  <!-- 5. Where to read more -->
+  <section class="mt-6 rounded-box border border-base-300 bg-base-100 p-5 sm:p-7">
+    <h2 class="text-lg font-bold" x-text="root.readMore.heading"></h2>
+    <p class="mt-1 leading-relaxed" x-text="root.readMore.text"></p>
+  </section>
+
+  <footer class="mt-8 px-1 text-sm leading-relaxed text-base-content/60">
+    <p>Source: <span x-text="article.author"></span>, &ldquo;<a class="link" :href="article.url" x-text="article.title"></a>,&rdquo; <span x-text="article.outlet"></span>, <span x-text="article.date"></span>. <span x-text="article.license"></span>. Dates such as &ldquo;Tuesday&rdquo; and &ldquo;January&rdquo; are as the article gives them.</p>
+  </footer>
+
+  <!-- Raised view: one dialog, filled from the entity model -->
+  <dialog x-ref="dlg" class="modal modal-bottom sm:modal-middle" @close="stack = []">
+    <div class="modal-box max-w-2xl p-5 sm:p-7">
+      <template x-if="view">
+        <div>
+          <template x-if="stack.length > 1">
+            <button type="button" class="btn btn-ghost btn-sm -ms-2 mb-2" @click.stop="back()" x-text="'← Back to ' + entities[stack[stack.length - 2]].name"></button>
+          </template>
+          <h3 class="text-2xl font-bold" x-text="view.name"></h3>
+          <p class="mt-1 text-base-content/70" x-text="view.sub"></p>
+
+          <dl class="mt-5 space-y-4">
+            <template x-for="(f, i) in view.fields" :key="i">
+              <div class="sm:grid sm:grid-cols-[9rem_1fr] sm:gap-4">
+                <dt class="text-xs font-semibold uppercase tracking-wide text-base-content/60 sm:pt-0.5" x-text="f.label"></dt>
+                <dd class="mt-0.5 leading-relaxed sm:mt-0" x-html="segs(f.text)"></dd>
+              </div>
+            </template>
+          </dl>
+
+          <template x-if="view.timeline">
+            <div class="mt-6">
+              <h4 class="text-xs font-semibold uppercase tracking-wide text-base-content/60">Timeline</h4>
+              <ol class="relative mt-3 ms-2 border-s-2 border-base-300">
+                <template x-for="(it, i) in view.timeline" :key="i">
+                  <li class="relative ms-5 pb-4 last:pb-0">
+                    <span class="absolute -start-[1.72rem] top-1 size-3.5 rounded-full border-2 border-base-100" :class="it.now ? 'bg-primary' : 'bg-base-content/40'"></span>
+                    <p class="text-sm font-bold" :class="it.now ? 'text-primary' : ''" x-text="it.when"></p>
+                    <p class="mt-0.5 leading-relaxed" x-html="segs(it.text)"></p>
+                  </li>
+                </template>
+              </ol>
+            </div>
+          </template>
+
+          <details class="mt-6 text-sm">
+            <summary class="cursor-pointer text-base-content/70 hover:text-base-content"><span class="chev">&#9656;</span> <span x-text="'Article passages behind this view (' + view.sources.length + ')'"></span></summary>
+            <div class="mt-2 space-y-2">
+              <template x-for="id in view.sources" :key="id">
+                <blockquote class="border-l-2 border-base-300 pl-3 text-base-content/80" x-text="article.paragraphs[id]"></blockquote>
+              </template>
+            </div>
+          </details>
+        </div>
+      </template>
+      <div class="modal-action mt-6">
+        <form method="dialog"><button class="btn">Close</button></form>
+      </div>
+    </div>
+    <form method="dialog" class="modal-backdrop"><button>Close</button></form>
+  </dialog>
+</div>
+
+<script>
+// The page's data is the entity model (see wacares-mps2.model.md).
+// Text segments: a string, {ref, text} for a label that raises an entity's view,
+// or {val, q} for a value named with its qualifier.
+const MODEL = {
+  article: {
+    title: "Voters to decide if WA Cares tax dollars can be invested in stock market",
+    author: "Jerry Cornfield",
+    outlet: "Washington State Standard",
+    date: "October 31, 2025",
+    url: "https://washingtonstatestandard.com/2025/10/31/voters-to-decide-if-wa-cares-tax-dollars-can-be-invested-in-stock-market/",
+    license: "Licensed CC BY-NC-ND 4.0",
+    paragraphs: {
+      L8:  "A proposed constitutional amendment would let assets be managed like the state’s pension funds. A similar attempt failed in 2020.",
+      L10: "The first item on every Washington voter’s ballot is a proposal to add a few lines to the state constitution that would change how billions of taxpayer dollars are managed.",
+      L12: "Senate Joint Resolution 8201 seeks to let the state make stock market investments with payroll taxes collected for its long-term care program, known as WA Cares. Any earnings would have to be used solely for the program’s beneficiaries.",
+      L14: "If approved Tuesday, the Washington State Investment Board would be legally able to handle the program’s assets in a similar manner as it does pension and retirement funds.",
+      L16: "This will allow for the tax dollars to be invested in a “safe and risk averse way” while producing greater returns for the program, said Heather Weiner of the Approve 8201 campaign in a recent debate at the University of Washington.",
+      L18: "She said that since 1992, annual returns for Washington’s pension funds have averaged 8.9%, which is several percentage points higher than investments in government bonds. In the long run that would translate to a lot more dollars for the program.",
+      L20: "“This doesn’t mean day trading, taking big risks on a stock market,” she said. “This means smart long-term [investing] so that in 50 years when people in this audience today will need long term care, that fund will be there for you.”",
+      L22: "State Sen. Bob Hasegawa, D-Tukwila, opposes the measure.",
+      L24: "“Our fiduciary responsibility is to the people,” he told the debate audience. “No one is going to know when the economy or stock market crashes. So, this vote is about whether we keep prudent fiscal management policies of our tax dollars and retain those constitutional protections.”",
+      L26: "The Legislature voted earlier this year to put the constitutional amendment on the ballot. It passed by margins of 86-9 in the House and 42-7 in the Senate and will become law if more than 50% of voters approve it on Tuesday.",
+      L28: "WA Cares, created by a 2019 law, is funded with a 0.58% tax on the paychecks of most workers in Washington. Beginning in July 2026, those who qualify can begin accessing the benefit, a lifetime amount of $36,500 — a sum that is set to rise in future years to account for inflation. A pilot program will start in January in a handful of counties.",
+      L30: "Collections of the payroll tax began in mid-2023 and more than $2.5 billion was banked in the Long Term Services and Supports Trust Account as of summer.",
+      L32: "The state constitution generally bars investing public money in the stock of private companies. That means state and local governments are limited to fixed-income securities like government bonds, treasury bills and certificates of deposit that are less risky but typically deliver lower rates of return. The WA Cares account is now subject to this limitation.",
+      L34: "If the constitutional amendment is approved, the long-term service account would be added to the list of funds exempt from that prohibition alongside the state’s pension and retirement funds. The state investment board could then decide if it wants to invest in private equity funds and buy stock of private companies, or not.",
+      L36: "In 2020, voters defeated a similar measure. It passed in only three Washington counties — King, Jefferson and Whatcom.",
+      L38: "Weiner said this year’s proposal, unlike the one in 2020, mandates money made from investments must go into the WA Cares Fund. The intent is to prevent lawmakers from tapping those dollars for other budget needs.",
+      L40: "Democratic Gov. Bob Ferguson and Senate Minority Leader John Braun, R-Centralia, back the ballot measure. So too do the Washington State Nurses Association, Washington State Council of Fire Fighters, AARP, and Washington Health Care Association.",
+      L42: "Service Employees International Union 775 is underwriting the campaign. The union, which represents 55,000 long-term care workers in Washington, Montana and Alaska, had reported raising and spending $2.5 million as of Friday. That is five times more than it spent in a losing effort in 2020.",
+      L44: "Hasegawa said there is no funded opposition campaign, just like the last ballot fight. He and three Republican state lawmakers penned the voters’ pamphlet statement opposing the measure.",
+      L46: "Statements from both sides, along with an explanation of the measure prepared by the attorney general’s office, can be found on the secretary of state website."
+    }
+  },
+
+  // Root: the measure. Governing question: what would a yes vote change, and who is for and against it?
+  root: {
+    kicker: "First item on every Washington ballot · decided Tuesday",
+    title: "SJR 8201: investing WA Cares money in the stock market",
+    formal: "Senate Joint Resolution 8201, a proposed amendment to the state constitution",
+    answer: [
+      "A yes vote adds a few lines to the state constitution so the state can make stock market investments with the payroll taxes collected for ",
+      { ref: "wacares", text: "WA Cares" },
+      ", its long-term care program. It would change how billions of taxpayer dollars are managed."
+    ],
+    answerSources: ["L8", "L10", "L12", "L14", "L32", "L34", "L38"],
+    change: {
+      heading: "What changes for the WA Cares money",
+      columns: ["Today", "If approved"],
+      rows: [
+        {
+          field: "Under the constitution",
+          today: ["Subject to ", { ref: "limit", text: "the constitution’s bar on investing public money in private companies’ stock" }, "."],
+          approved: ["Added to the funds exempt from that bar, alongside the state’s pension and retirement funds."]
+        },
+        {
+          field: "How it can be invested",
+          today: ["Fixed-income securities, such as government bonds."],
+          approved: ["The Washington State Investment Board could handle it as it does pension and retirement funds, and decide whether to invest in private equity funds and buy private companies’ stock, or not."]
+        }
+      ]
+    },
+    earnings: {
+      heading: "Where investment earnings would go",
+      items: [
+        ["Any earnings would have to be used solely for the program’s beneficiaries."],
+        ["Heather Weiner of the Approve 8201 campaign says that, unlike the 2020 measure, this one mandates that money made from investments go into the WA Cares Fund. The intent is to keep lawmakers from tapping those dollars for other budget needs."]
+      ]
+    },
+    sides: {
+      heading: "Who is for it, and who is against it",
+      intro: "Both cases below were made at a recent debate at the University of Washington.",
+      columns: [ { key: "yes", name: "For it" }, { key: "no", name: "Against it" } ],
+      rows: [
+        {
+          field: "Who makes the case",
+          yes: { text: ["Heather Weiner, Approve 8201 campaign"] },
+          no:  { text: ["State Sen. Bob Hasegawa, D-Tukwila"] }
+        },
+        {
+          field: "The argument",
+          yes: {
+            list: [
+              ["The tax dollars would be invested in a “safe and risk averse way” while producing greater returns."],
+              ["Since 1992, Washington’s pension funds have averaged 8.9% a year, several percentage points more than government bonds. In the long run that means a lot more dollars for the program."]
+            ],
+            evidence: { label: "Weiner’s words at the debate", src: ["L20"] }
+          },
+          no: {
+            list: [
+              ["The state’s fiduciary responsibility is to the people."],
+              ["No one can know when the economy or stock market will crash."],
+              ["The vote is about keeping prudent fiscal management of tax dollars and the constitution’s protections."]
+            ],
+            evidence: { label: "Hasegawa’s words at the debate", src: ["L24"] }
+          }
+        },
+        {
+          field: "Who backs it",
+          yes: {
+            list: [
+              ["Gov. Bob Ferguson, a Democrat"],
+              ["Senate Minority Leader John Braun, R-Centralia"],
+              ["Washington State Nurses Association"],
+              ["Washington State Council of Fire Fighters"],
+              ["AARP"],
+              ["Washington Health Care Association"]
+            ]
+          },
+          no: { text: ["Hasegawa and three Republican state lawmakers, who wrote the voters’ pamphlet statement opposing it."] }
+        },
+        {
+          field: "Money behind it",
+          yes: { text: [
+            { val: "SEIU 775", q: "a union of 55,000 long-term care workers in Washington, Montana and Alaska" },
+            " is underwriting the campaign. It reported raising and spending $2.5 million as of Friday, five times what it spent in its losing 2020 effort."
+          ] },
+          no: { text: ["No funded opposition campaign, Hasegawa says, just as in the last ballot fight."] }
+        }
+      ],
+      sources: ["L16", "L18", "L22", "L40", "L42", "L44"]
+    },
+    road: {
+      heading: "How it reached your ballot",
+      items: [
+        { when: "2020", text: ["Voters defeated a similar measure. It passed in only three counties: King, Jefferson and Whatcom."] },
+        { when: "Earlier in 2025", text: ["The Legislature voted to put the amendment on the ballot, 86-9 in the House and 42-7 in the Senate."] },
+        { when: "Tuesday", now: true, text: ["It is the first item on every voter’s ballot, and becomes law if more than 50% of voters approve."] }
+      ],
+      sources: ["L10", "L26", "L36"]
+    },
+    refsHeading: "The program and the rule it touches",
+    refs: ["wacares", "limit"],
+    readMore: {
+      heading: "Where to read both sides’ statements",
+      text: "Statements from both sides, along with an explanation of the measure prepared by the attorney general’s office, are on the secretary of state website."
+    }
+  },
+
+  // Neighbors that earned a view of their own.
+  entities: {
+    wacares: {
+      name: "WA Cares",
+      sub: "Washington’s long-term care program",
+      labelQual: "The state’s long-term care program, with more than $2.5 billion banked from a 0.58% payroll tax",
+      cta: "See its funding, benefit and timeline",
+      fields: [
+        { label: "Paid for by", text: ["A 0.58% tax on the paychecks of most workers in Washington."] },
+        { label: "Benefit", text: ["A lifetime amount of $36,500 for those who qualify, set to rise in future years to account for inflation."] }
+      ],
+      timeline: [
+        { when: "2019", text: ["Created by a state law."] },
+        { when: "Mid-2023", text: ["Collections of the payroll tax begin."] },
+        { when: "As of summer", text: ["More than $2.5 billion is banked in the Long Term Services and Supports Trust Account."] },
+        { when: "Tuesday", now: true, text: ["Voters decide on SJR 8201."] },
+        { when: "January", text: ["A pilot program starts in a handful of counties."] },
+        { when: "July 2026", text: ["Those who qualify can begin accessing the benefit."] }
+      ],
+      sources: ["L28", "L30"]
+    },
+    limit: {
+      name: "The constitutional limit",
+      sub: "The state constitution’s bar on investing public money in private companies’ stock",
+      labelQual: "Keeps public money out of private companies’ stock; the state’s pension and retirement funds are exempt",
+      cta: "See what it bars and who is exempt",
+      fields: [
+        { label: "What it bars", text: ["Investing public money in the stock of private companies, as a general rule."] },
+        { label: "What that leaves", text: ["Fixed-income securities, such as government bonds, treasury bills and certificates of deposit. They are less risky but typically deliver lower rates of return."] },
+        { label: "Who it covers", text: ["State and local governments, including the account that holds ", { ref: "wacares", text: "WA Cares" }, " payroll taxes."] },
+        { label: "Exempt today", text: ["The state’s pension and retirement funds."] }
+      ],
+      sources: ["L32", "L34"]
+    }
+  }
+};
+
+function esc(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function page() {
+  return {
+    article: MODEL.article,
+    root: MODEL.root,
+    entities: MODEL.entities,
+    stack: [],
+    get view() { return this.stack.length ? this.entities[this.stack[this.stack.length - 1]] : null; },
+    segs(arr) {
+      return (Array.isArray(arr) ? arr : [arr]).map(s => {
+        if (typeof s === "string") return esc(s);
+        if (s.ref) return '<a href="#' + esc(s.ref) + '" role="button" class="link link-primary font-semibold" data-ref="' + esc(s.ref) + '">' + esc(s.text) + '</a>';
+        if (s.val) return '<strong>' + esc(s.val) + '</strong>, ' + esc(s.q) + ',';
+        return "";
+      }).join("");
+    },
+    open(id) {
+      if (!this.entities[id]) return;
+      if (this.stack[this.stack.length - 1] !== id) this.stack.push(id);
+      const d = this.$refs.dlg;
+      if (!d.open) d.showModal();
+      this.$nextTick(() => { const b = d.querySelector('.modal-box'); if (b) b.scrollTop = 0; });
+    },
+    back() { this.stack.pop(); },
+    onClick(e) {
+      const t = e.target.closest("[data-ref]");
+      if (t) { e.preventDefault(); this.open(t.dataset.ref); }
+    }
+  };
+}
+</script>
+</body>
+</html>

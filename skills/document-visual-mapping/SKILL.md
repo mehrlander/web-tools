@@ -5,7 +5,7 @@ description: "Map a reference document (PDF manual, rulebook, instruction packet
 
 # Document visual mapping
 
-Content mapping (`atomic-decomposition`, doc-craft's annotated view) asks what a document
+Content mapping (`atomic-decomposition`) asks what a document
 requires. This asks where on the page that requirement sits. Run it second, over
 the units a content pass kept. Skip the content pass and the register highlights
 whatever looks prominent; skip the register and the reader hunts fifty
@@ -72,5 +72,5 @@ front of a user. Record when each row was last checked against the system.
 ## Worked example
 
 `mehrlander/home`, `projects/budget-drs/submittal/abs-guide.csv`: 37 rows over
-five tracks against two OFM PDFs, gated by `tools/build-submittal.py` and
+five tracks against two OFM PDFs, gated by `projects/budget-drs/submittal/tools/build-submittal.py` and
 rendered as the Budget DRS app's ABS tab.

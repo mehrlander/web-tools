@@ -102,7 +102,7 @@ const { ActivityCrawl: C, BranchStatus: B, RepoActivityCache: A, RepoConfigCache
 const t0 = Date.now();
 const reg = new GH({ token: writeToken, repo: REGISTRY, ref: 'main' });
 // A run's writes say so, since its token commits as the owner and its subjects
-// are the app's own: the Writes view's subject contract (docs/views/writes.md).
+// are the app's own: the subject contract in lib/kits/write-kinds.js.
 const VIA = process.env.GITHUB_ACTIONS === 'true' ? ' via Actions' : '';
 
 // Estate membership and each repo's own .web-tools.json, from the config cache
