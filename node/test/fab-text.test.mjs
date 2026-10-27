@@ -327,7 +327,7 @@ const REG = {
     'path,subject,status\n' +
     'docs/loader.md,the loader contract,living\n' +
     'CLAUDE.md,the repo instructions,living\n',
-  'docs/tests.csv':
+  'docs/tests-authored.csv':
     'path,protects,kind\n' +
     'node/test/fab-text.test.mjs,the fifth tab,behavior\n',
   'docs/harness.csv': 'path,role,layer\n',

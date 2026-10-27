@@ -19,7 +19,7 @@ const REG = {
     'docs/text-tools.md,"the FAB\'s text surface, and what the measurements rule out",living',
     'CLAUDE.md,"the repo instructions, injected into every session",living',
   ].join('\n') + '\n',
-  'docs/tests.csv': [
+  'docs/tests-authored.csv': [
     'path,protects,kind',
     "node/test/fab-text.test.mjs,The drawer's fifth tab reports only what it can stand behind.,behavior",
   ].join('\n') + '\n',

@@ -2,22 +2,23 @@
 
 A **surface** is a JSON file: a curated, annotated set of items presented for a reason at a moment. Files stay where they live (a repo, a URL, a local disk); the surface layers selection, arrangement, and commentary over them, and is archivable as a unit when its moment passes. The format originated in the Surfacer desktop app (the home repo, `projects/surfacer/`); this document is the written contract between every implementation.
 
-**A surface is not a saved stage.** It was addressed that way in the app until 2026-08-27: the Stage carried a Saved pane listing `.surface` files, and the bench could promote its working set into one. Both went, along with the kit's `fromStage`/`toStage` bridges. The format's profiles were never stage-shaped, and the one page reading a surface today, [`pages/branch.html`](../../pages/branch.html) through [`lib/kits/branch-brief.js`](../../lib/kits/branch-brief.js), reads `branch-review/1`.
+**A surface is not a saved stage**, and nothing in the app writes one. Pages
+read surfaces by profile: [`pages/branch.html`](../../pages/branch.html),
+through [`lib/kits/branch-brief.js`](../../lib/kits/branch-brief.js), and
+[`pages/walkthrough.html`](../../pages/walkthrough.html) read `branch-review/1`; [`pages/inquiry.html`](../../pages/inquiry.html) reads
+`inquiry/1`; [`pages/approve.html`](../../pages/approve.html) reads
+`approval/1` ([`approval.md`](approval.md)).
 
-**Authoritative artifacts:** the JSON Schemas beside this doc are the validation
-source of truth by intent rather than in practice; this document carries the
-concepts, conventions, and worked examples. Checked 2026-09-23: no code in
-`lib/`, `pages/` or the skills loads these schemas, so a producer that drifts
-gets no signal. They are a written contract two readers can agree on, which is
-worth having; they are not a gate. The docs registry's reach pass is what made
-the gap visible: they are the only files in `docs/` declared authoritative that
-nothing reads.
+**The JSON Schemas beside this doc** are a written contract two readers can
+agree on, not a gate: no code in `lib/`, `pages/` or the skills loads them, so
+a producer that drifts gets no signal. This document carries the concepts,
+conventions, and worked examples.
 
 - [`schemas/surface-v2.schema.json`](schemas/surface-v2.schema.json): the core schema.
 - [`schemas/profiles/branch-review-v1.schema.json`](schemas/profiles/branch-review-v1.schema.json): the first profile.
-- [`schemas/profiles/inquiry-v1.schema.json`](schemas/profiles/inquiry-v1.schema.json) and [`schemas/profiles/stage-v1.schema.json`](schemas/profiles/stage-v1.schema.json): the other two.
+- [`schemas/profiles/inquiry-v1.schema.json`](schemas/profiles/inquiry-v1.schema.json), [`schemas/profiles/approval-v1.schema.json`](schemas/profiles/approval-v1.schema.json) and [`schemas/profiles/stage-v1.schema.json`](schemas/profiles/stage-v1.schema.json): the others.
 
-**Status (2026-08-27):** this contract defines **v2**, and a v2 reader exists. [`lib/kits/surface.js`](../../lib/kits/surface.js) dual-reads v1 and v2, normalizing to v2 in memory, and answers where each item lives. It has no producer in the app: nothing in the app writes a surface any more, and every `.surface` file that exists is v1. The Surfacer C# app still reads v1 and its migration target stands at the end of this file. **v1 files are never rewritten in place:** reading normalizes for display only, so a v1 file stays v1 until someone deliberately saves it as v2.
+This contract defines **v2**. [`lib/kits/surface.js`](../../lib/kits/surface.js) dual-reads v1 and v2, normalizing to v2 in memory, and answers where each item lives. Every `.surface` file that exists is v1, and the Surfacer C# app still reads v1. **v1 files are never rewritten in place:** reading normalizes for display only, so a v1 file stays v1 until someone deliberately saves it as v2.
 
 ## Shape
 
@@ -40,147 +41,6 @@ surface (.surface, JSON)
 ```
 
 `*` marks required. Objects are open (additional properties allowed) unless the schema closes them (`schema`/`profile` identity, `line_ranges` entries, `related` entries).
-
-## Diagram
-
-```mermaid
-classDiagram
-direction TB
-
-class Surface {
-  <<closed>>
-  +Manifest manifest*
-  +object context
-  +Item[] items*
-}
-
-class Manifest {
-  <<open>>
-  +string name*
-  +string description
-  +string subtitle
-  +string author
-  +date-time created_at*
-  +string category
-  +SchemaIdentity schema*
-  +ProfileIdentity profile
-}
-
-class SchemaIdentity {
-  <<closed>>
-  +string name* = surface
-  +integer version* = 2
-}
-
-class Context {
-  <<open>>
-  +any properties
-}
-
-class ProfileIdentity {
-  <<closed>>
-  +string name*
-  +integer version*
-}
-
-class Item {
-  <<open>>
-  +string id*
-  +string title*
-  +string type*
-  +string format
-  +string_or_string[] role
-  +Target target
-  +Change change
-  +View view
-  +string snippet
-  +string content
-  +object_or_string summary
-  +string commentary
-  +string facet
-  +date-time added_at
-  +object metadata
-  +Relation[] related
-}
-
-class Target {
-  <<open>>
-  +Source source*
-  +LineRange[] line_ranges
-}
-
-class Source {
-  <<open>>
-  +string repository
-  +string ref
-  +string revision
-  +string base_revision
-  +string head_revision
-  +string path
-  +string uri
-}
-
-class LineRange {
-  <<closed>>
-  +integer start*
-  +integer end*
-  +string label
-}
-
-class Change {
-  <<open>>
-  +ChangeStatus status
-  +string previous_path
-  +string patch
-}
-
-class ChangeStatus {
-  <<enumeration>>
-  added
-  modified
-  deleted
-  renamed
-  copied
-  unchanged
-}
-
-class View {
-  <<open>>
-  +ViewMode mode*
-  +string reason
-}
-
-class ViewMode {
-  <<enumeration>>
-  full
-  diff
-  excerpt
-  summary
-  metadata
-  omit
-}
-
-class Relation {
-  <<closed>>
-  +string item*
-  +string relation*
-}
-
-Surface "1" *-- "1" Manifest : manifest
-Surface "1" o-- "0..1" Context : context
-Surface "1" *-- "0..*" Item : items
-Manifest "1" *-- "1" SchemaIdentity : schema
-Manifest "1" o-- "0..1" ProfileIdentity : profile
-Item "1" o-- "0..1" Target : target
-Target "1" *-- "1" Source : source
-Target "1" o-- "0..*" LineRange : line_ranges
-Item "1" o-- "0..1" Change : change
-Change --> ChangeStatus : status
-Item "1" o-- "0..1" View : view
-View --> ViewMode : mode
-Item "1" o-- "0..*" Relation : related
-Relation ..> Item : names by ID
-```
 
 ## The annotation fields, disambiguated
 
@@ -227,6 +87,8 @@ Serializes a review package: a base/head compare plus a role-annotated selection
 
 The profile requires `context.repository`, `context.base`, and `context.head` (each endpoint a `{ref, revision}`; pin the revision, refs move), plus `role` and `view` on every item; items with `role: "changed"` must carry `change.status`. Documented roles: `intent`, `changed`, `context`, `omitted`.
 
+What `pages/branch.html` shows from one (delivered as `?src=` or `#gz=`; the projection is `fromSurface` in [`lib/kits/branch-brief.js`](../../lib/kits/branch-brief.js)): the `intent` items' `commentary` (else `summary` or `title`), falling back to `manifest.description`; `context.notes` and `context.open`; the `omitted` items' titles; and each `changed` item's `commentary` beside its `target.source.path`. It does not read `context.intent`, and it matches a `role` given as a string, not as an array. The compare itself comes from GitHub, not from the surface.
+
 Worked example:
 
 ```json
@@ -255,6 +117,7 @@ Worked example:
       "role": "intent",
       "view": { "mode": "full" },
       "format": "markdown",
+      "commentary": "Move the stage to the estate context without changing the deposit flow.",
       "content": "Look particularly for accidental semantic changes in the deposit flow."
     },
     {
@@ -303,61 +166,22 @@ Worked example:
 
 ### `stage/1`
 
-**No producer since 2026-08-27**, when the app's Stage stopped writing one. The profile stands because it is a defined shape and [`pages/inquiry.html`](../../pages/inquiry.html) defines its own `reply_to` by contrast with the `destination` below.
-
-Serializes a **staged fileset**: a working set of files gathered for an operation, saved so it survives the session. The insight it encodes is the inverse of branch-review's. There, a surface is the manifest layer over a diff that is the real record; here, the set itself is the record, and the operations that motivated it (bundle, send, download) are the tool's business and stay out.
-
-The profile requires exactly one thing: **every item carries a `target`**. A stage is a set of things, not a piece of writing about them, and that single constraint is what the profile is for. `context` may carry a `destination` (`owner/repo[:dir]`, where the set is proposed to go) and `prompts` (authored review asks, `{label, ask}`). Documented relation: `compares-to`, naming the other side of a diff pair.
-
-The line that decides what may enter: **a field belongs if it is still true a year later with no tool running.** A proposed destination passes, since it is a claim about the set. A transfer in flight does not. Nor does the Diff lens's per-side ref override, which describes a moment of looking rather than the set, and so stays a lens control.
-
-Three things are worth naming because they are absent on purpose:
-
-- **No `intent` field.** branch-review has one, meaning "why the *change* exists," a fact about its subject. A stage's equivalent question is "why this set exists," which `manifest.description` already answers. A second field beside it would be two names for one thing.
-- **No surface-level view mode.** The stage link's `&mode=diff` says "open on the Diff tab," which is transport, not content. What the surface records instead is `view.mode: "diff"` on the two compared items plus a `compares-to` relation between them, which says *which two*, something the flag never could.
-- **No name required from the author.** `manifest.name` is generated from the contents (first file, plus a count), because a saved stage is a clipboard entry rather than a document. Renaming is one field in the editor for the ones that grow into documents.
-
-Worked example:
-
-```json
-{
-  "manifest": {
-    "name": "stage.js +1",
-    "description": "The two files behind the stage/surface collapse.",
-    "created_at": "2026-08-03T17:20:00Z",
-    "category": "stage",
-    "schema": { "name": "surface", "version": 2 },
-    "profile": { "name": "stage", "version": 1 }
-  },
-  "context": {
-    "destination": "mehrlander/home:docs",
-    "prompts": [
-      { "label": "Fresh-eyes clarity", "ask": "Read this as someone new to the topic. Where does it lose you?" }
-    ]
-  },
-  "items": [
-    {
-      "id": "mehrlander/web-tools:lib/alpineComponents/stage.js",
-      "title": "lib/alpineComponents/stage.js",
-      "type": "file",
-      "target": { "source": { "repository": "mehrlander/web-tools", "path": "lib/alpineComponents/stage.js" } },
-      "view": { "mode": "diff" },
-      "related": [ { "item": "mehrlander/web-tools:lib/kits/surface.js", "relation": "compares-to" } ]
-    },
-    {
-      "id": "mehrlander/web-tools:lib/kits/surface.js",
-      "title": "lib/kits/surface.js",
-      "type": "file",
-      "target": { "source": { "repository": "mehrlander/web-tools", "path": "lib/kits/surface.js" } },
-      "view": { "mode": "diff" }
-    }
-  ]
-}
-```
+**No producer since 2026-08-27.** The profile stands as a defined shape, and
+[`pages/inquiry.html`](../../pages/inquiry.html) defines its `reply_to` by
+contrast with this profile's `destination`. It serializes a **staged fileset**:
+the set itself is the record. It requires one thing, a `target` on every item;
+`context` may carry a `destination` (`owner/repo[:dir]`, where the set is
+proposed to go) and `prompts` (`{label, ask}`), and the documented relation is
+`compares-to`, naming the other side of a diff pair. A field belongs if it is
+still true a year later with no tool running. There is no `intent` field, since
+`manifest.description` says why the set exists; a diff pair is `view.mode:
+"diff"` on both items plus the `compares-to` relation, not a surface-level
+mode; and `manifest.name` may be generated from the contents (first file, plus
+a count).
 
 ## v1 → v2 migration
 
-v1 is the shape the Surfacer app shipped with (`schema_version: 1` in the manifest; see the examples in home `projects/surfacer/app/surfaces.example/`). The move to v2 is a semantic split, not a field-for-field rename: v1's `kind` mixed genre with transport (`github_blob` says both "a file" and "lives on GitHub"), and v2 separates them into `type` (genre) and `target.source` (location).
+v1 is the shape the Surfacer app shipped with (`schema_version: 1` in the manifest; examples in home `projects/surfacer/app/surfaces.example/`). v1's `kind` mixed genre with transport (`github_blob` says both "a file" and "lives on GitHub"); v2 separates them into `type` (genre) and `target.source` (location). `lib/kits/surface.js` carries this table as code.
 
 | v1 | v2 |
 |---|---|
@@ -372,10 +196,6 @@ v1 is the shape the Surfacer app shipped with (`schema_version: 1` in the manife
 | `commentary`, `facet`, `added_at`, `snippet`, `related` | retained as-is (`related` entries become `{item, relation}`) |
 | (no equivalent) | `role`, `view`, `change`, `context`, `profile` |
 
-### Reader migration targets (documented now, changed later)
-
-Deliberately out of scope for the pass that lands this contract; change the implementations only after the contract has been reviewed.
+### Reader migration targets
 
 - **Surfacer C# app + `surfacer.html`** (home `projects/surfacer/app/`): reads v1. Target: dispatch on `manifest.schema`; keep reading v1 files indefinitely (personal surfaces are not migrated in place), author new surfaces as v2.
-- **`lib/alpineComponents/estate.js`** (the app's Saved pane): **retired 2026-08-27.** It had migrated on 2026-08-03, reading every surface through `lib/kits/surface.js` and seeding v2 in its editor. The pane, the editor and the bench's Save-as-surface all went together, so the app is no longer a reader or a writer of this format.
-- **`pages/branch.html`** (through `lib/kits/branch-brief.js`): reads `branch-review/1`, and is the only reader in this repo.

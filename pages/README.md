@@ -3,7 +3,7 @@
 
 # pages/
 
-⭐ **[Open the live index →](https://mehrlander.github.io/web-tools/pages/)** — a screenshot card per page, each with a live-preview and source toggle.
+🔷 **[Open the live index →](https://mehrlander.github.io/web-tools/pages/)** — a screenshot card per page, each with a live-preview and source toggle.
 
 Catalog of the pages under `pages/`, plus the kit demos from `lib/kits/demos/`
 and the skill demos at `skills/<name>/demo.html`.
@@ -54,6 +54,7 @@ the link-dense text twin of the visual index above.
 | `toss-render` | Toss Render | [view](https://mehrlander.github.io/web-tools/pages/toss-render.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/toss-render.html) |
 | `transform` | Transform | [view](https://mehrlander.github.io/web-tools/pages/transform.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/transform.html) |
 | `user-call` | User call | [view](https://mehrlander.github.io/web-tools/pages/user-call.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/user-call.html) |
+| `walkthrough` | Walkthrough | [view](https://mehrlander.github.io/web-tools/pages/walkthrough.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/walkthrough.html) |
 | `word-select` | Word Select | [view](https://mehrlander.github.io/web-tools/pages/word-select.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/word-select.html) |
 | `xlsx-picker` | Sheet Picker | [view](https://mehrlander.github.io/web-tools/pages/xlsx-picker.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/xlsx-picker.html) |
 

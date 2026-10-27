@@ -33,7 +33,6 @@ web-tools:view/chats,list,list,no kit draws this code,,,,"unchecked: declared, b
 web-tools:view/config,tool,tool,,,,tool is not a code with parts,no promise checked for this code,,,,9a538b571eff
 web-tools:view/files,linked-swiper,linked-swiper,,,,linked-swiper is not a code with parts,no promise checked for this code,,,,9a538b571eff
 web-tools:view/here/page,linked-swiper,linked-swiper,,,,linked-swiper is not a code with parts,no promise checked for this code,tabs,,,8c33271fdc5d
-web-tools:view/jots,list-stack,list-stack,,,,list-stack is not a code with parts,no promise checked for this code,,,,9a538b571eff
 web-tools:view/landing,document,document,,,,document is not a code with parts,no promise checked for this code,,,,9a538b571eff
 web-tools:view/lists,list-stack,list-stack,,,,list-stack is not a code with parts,no promise checked for this code,,,,9a538b571eff
 web-tools:view/pages,card-grid,card-grid,no kit draws this code,list 1; item 38; body 38; actions 38; title 38; links 38; summary 38,,,holds: 38 items shown,count-chips;search,,,9a538b571eff

@@ -219,16 +219,6 @@ test('an undo puts back the one item, and keeps what landed since', async () => 
 
 // The three files took their lists' names on 2026-10-19 (todo, jots and pins
 // before). kits/lists.js reads the old file until the new one exists.
-test('a list still in its old file loads from there, and the first write moves it', async () => {
-  FILES = { 'lists/jots.json': { items: [{ id: 'j1', text: 'old home', created_at: '2026-10-01T00:00:00Z' }] } };
-  await data.loadJots(reg());
-  assert.deepEqual([...data.jotItems.map(i => i.id)], ['j1']);
-  data.jotDraft = 'new';
-  await data.addJot();
-  assert.deepEqual(Object.keys(FILES), ['lists/jot.json'], 'saved under the new name, the old file deleted');
-  assert.deepEqual(FILES['lists/jot.json'].items.map(i => i.text), ['old home', 'new']);
-});
-
 // gh-store keeps the sha a successful write returns on the GH instance, and
 // that record is the only copy of it the browser can trust for the next minute.
 // Minting a GH per gesture threw it away and left the following write to

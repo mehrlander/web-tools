@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="Map Reach: arrows">
+  <title>Map Reach: arrows</title>
+  <desc>The hub's hexagon with an arrowhead pointing out from each side: the hub reaching outward.</desc>
+  <g fill="currentColor">
+    <path d="M21.5 16.25 L18.75 21.01 L13.25 21.01 L10.5 16.25 L13.25 11.49 L18.75 11.49 Z"/>
+    <path d="M25 12.75 L30 16.25 L25 19.75 Z"/>
+    <path d="M7 12.75 L2 16.25 L7 19.75 Z"/>
+    <path d="M12.5 7.25 L16 2.25 L19.5 7.25 Z"/>
+    <path d="M12.5 25.25 L16 30.25 L19.5 25.25 Z"/>
+  </g>
+</svg>

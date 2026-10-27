@@ -15,7 +15,8 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { repoRoot, makeWindow } from './bootstrap.mjs';
 
@@ -68,17 +69,11 @@ test('the eleven rays all start at the centre', () => {
 // itself, and dist/ which is the whole of lib/ frozen into one artifact by the
 // pre-build and so contains the kit verbatim by construction.
 function sourceFiles() {
-  const out = [];
-  const skip = new Set(['node_modules', '.git', 'dist', 'node']);
-  (function walk(dir) {
-    for (const name of readdirSync(dir)) {
-      if (skip.has(name)) continue;
-      const fp = path.join(dir, name);
-      if (statSync(fp).isDirectory()) walk(fp);
-      else if (/\.(js|html|mjs)$/.test(name)) out.push(fp);
-    }
-  })(repoRoot);
-  return out;
+  // Published desktop assets contain the canonical kit verbatim. Audit source,
+  // excluding ignored build output, as the contract above requires.
+  return execFileSync('git', ['ls-files', '-z', '--', '*.js', '*.html', '*.mjs'], {cwd:repoRoot,encoding:'utf8'})
+    .split('\0').filter(Boolean).filter(file => !/^(dist|node|node_modules)\//.test(file))
+    .map(file => path.join(repoRoot,file));
 }
 
 test('the logomark path exists in exactly one file', () => {

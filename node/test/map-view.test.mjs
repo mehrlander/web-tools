@@ -51,6 +51,7 @@ const routesModesCsv = readFileSync(path.join(repoRoot, 'docs', 'routes-modes.cs
 const routesRoutesCsv = readFileSync(path.join(repoRoot, 'docs', 'routes-routes.csv'), 'utf8');
 const routesKindsCsv = readFileSync(path.join(repoRoot, 'docs', 'routes-kinds.csv'), 'utf8');
 const mechanismsCsv = readFileSync(path.join(repoRoot, 'docs', 'showing-mechanisms.csv'), 'utf8');
+const fabSignalsCsv = readFileSync(path.join(repoRoot, 'docs', 'fab-signals.csv'), 'utf8');
 const docsCsv = readFileSync(path.join(repoRoot, 'docs', 'docs.csv'), 'utf8');
 const aimsJson = readFileSync(path.join(repoRoot, 'docs', 'aims.json'), 'utf8');
 const aimsGoalsCsv = readFileSync(path.join(repoRoot, 'docs', 'aims-goals.csv'), 'utf8');
@@ -66,6 +67,7 @@ const propsVocabCsv = readFileSync(path.join(repoRoot, 'docs', 'vocabularies.csv
 const skillsCsv = readFileSync(path.join(repoRoot, 'skills', 'manifest.csv'), 'utf8');
 const textFieldsCsv = readFileSync(path.join(repoRoot, 'docs', 'text-fields.csv'), 'utf8');
 const testsCsv = readFileSync(path.join(repoRoot, 'docs', 'tests.csv'), 'utf8');
+const testsAuthoredCsv = readFileSync(path.join(repoRoot, 'docs', 'tests-authored.csv'), 'utf8');
 const kitsCsv = readFileSync(path.join(repoRoot, 'docs', 'kits.csv'), 'utf8');
 const ctxCsv = readFileSync(path.join(repoRoot, 'docs', 'context-sources.csv'), 'utf8');
 const ctxTopicsCsv = readFileSync(path.join(repoRoot, 'docs', 'context-topics.csv'), 'utf8');
@@ -97,6 +99,8 @@ window.GH = class {
     if (p === 'docs/routes-routes.csv') return { text: routesRoutesCsv };
     if (p === 'docs/routes-kinds.csv') return { text: routesKindsCsv };
     if (p === 'docs/showing-mechanisms.csv') return { text: mechanismsCsv };
+    if (p === 'docs/fab-signals.csv') return { text: fabSignalsCsv };
+    if (p === 'docs/favicons/fab/frisbee.svg') return { text: '<svg fill="currentColor"></svg>' };
     if (p === 'docs/docs.csv') return { text: docsCsv };
     if (p === 'docs/aims.json') return { text: aimsJson };
     if (p === 'docs/aims-goals.csv') return { text: aimsGoalsCsv };
@@ -111,6 +115,7 @@ window.GH = class {
     if (p === 'skills/manifest.csv') return { text: skillsCsv };
     if (p === 'docs/text-fields.csv') return { text: textFieldsCsv };
     if (p === 'docs/tests.csv') return { text: testsCsv };
+    if (p === 'docs/tests-authored.csv') return { text: testsAuthoredCsv };
     if (p === 'docs/kits.csv') return { text: kitsCsv };
     if (p === 'docs/context-sources.csv') return { text: ctxCsv };
     if (p === 'docs/context-topics.csv') return { text: ctxTopicsCsv };
@@ -151,7 +156,7 @@ test('every Map address says what it is through about, and leads with its contro
       data.mapTab = view.k;
       assert.equal(data.about.title, view.n, view.k + ': the About title is the tab');
       assert.ok(Array.isArray(data.about.sources), view.k);
-      const section = [...el.querySelectorAll('section')].find(e => e.getAttribute('x-show') === `mapTab==='${view.k}'`);
+      const section = [...el.querySelectorAll('section')].find(e => (e.getAttribute('x-show') || '').split(' || ').includes(`mapTab==='${view.k}'`));
       const toolbar = section.querySelector(':scope > [data-slot="frame:toolbar"]');
       if (toolbar) assert.equal(section.firstElementChild, toolbar, view.k + ': controls first');
     }
@@ -439,6 +444,26 @@ test('Showing loads on demand, not at mount', async () => {
 // whose cells are mostly blank: `aim` is carried by one kind of eleven and `kit`
 // by three. Every x-show in the template tests the string, so this checks that
 // the sparse rows survive the parse rather than that the tab has content.
+// What the FAB says: the receiving end of the mechanisms, grouped by the facet
+// each signal answers, in the order docs/vocabularies.csv gives the facets.
+// fab-signals.test.mjs holds the rows to fab.js; this checks the tab is handed
+// them, grouped, with a drawn mark read and a badge drawn on a plain FAB.
+test('Showing carries what the FAB says, grouped by facet', async () => {
+  await data.loadPropsReg();
+  const groups = data.fabGroups;
+  assert.deepEqual(Array.from(groups, g => g.k), ['version', 'viewer', 'subject', 'action']);
+  assert.equal(groups[0].n, 'Version', 'a facet is labelled from the vocabulary');
+  assert.equal(groups.flatMap(g => g.rows).length, data.routes.fab.length, 'every signal lands in a group');
+  const drawn = data.routes.fab.find(r => r.icon.endsWith('.svg'));
+  await new Promise(r => setTimeout(r, 0));
+  assert.ok(data.fabGlyph(drawn).mask.startsWith('data:image/svg+xml'), 'a drawn mark is read and painted as a mask');
+  const key = data.routes.fab.find(r => r.key === 'badge-no-token');
+  assert.equal(data.fabGlyph(key).ph, 'ph-sidebar-simple opacity-40', 'a badge sits on a FAB showing nothing else');
+  assert.match(data.fabBadge(key), /bg-error/);
+  const off = data.routes.fab.find(r => r.key === 'tint-off-branch');
+  assert.match(data.fabTone(off).disc, /bg-warning/, 'a tint is drawn in its own colour');
+});
+
 test('Showing carries the kinds, and the sparse cells survive the parse', () => {
   const kinds = data.routes.kinds;
   assert.ok(kinds.length > 8, 'the kinds table did not load');
@@ -938,7 +963,7 @@ const { page, makeShell } = await import('./shell.mjs');
 // sentence in Sources and methods, so the reader arriving cold meets every
 // set here first: the rows are the strip's own arrays and the sentences the
 // CSV's own cells, so neither can be a second list that drifts.
-test('the Overview\'s Contents lists every address but itself under its tab with its sentence, and finds one by name or by file', async () => {
+test('the Overview\'s Contents lists every address under its tab with its sentence, itself pinned as here, and finds one by name or by file', async () => {
   window.__shell = undefined;
   const el3 = window.document.createElement('div');
   el3.setAttribute('x-data', 'map()');
@@ -949,10 +974,11 @@ test('the Overview\'s Contents lists every address but itself under its tab with
   assert.equal(d3.mapTab, 'overview', 'a bare Map lands on the Overview');
   // An address drawn inside a subview (WITHIN) is listed after its host.
   const want = Object.values(d3.SUBVIEWS).flat().flatMap(v => [v, ...d3.WITHIN.filter(w => w.host === v.k)])
-    .map(v => v.k).filter(k => k !== 'overview');
+    .map(v => v.k);
   assert.ok(want.includes('events') && want.includes('scheduled'));
   const rows = d3.overviewGroups.flatMap(g => g.rows);
-  assert.deepEqual([...rows.map(r => r.k)], [...want], 'every other address, in strip order');
+  assert.deepEqual([...rows.map(r => r.k)], [...want], 'every address, in strip order');
+  assert.deepEqual([...rows.filter(r => r.here).map(r => r.k)], ['overview'], 'Contents is pinned as where the reader stands');
   assert.deepEqual([...d3.overviewGroups.map(g => g.n)], [...d3.TABS.map(t => t.n)], 'every tab heads a group, Overview included for its Purpose');
   const ledes = Object.fromEntries(window.Csv.rows(mapTabsCsv).map(r => [r.tab, r.gloss]));
   for (const r of rows) assert.equal(r.gloss, ledes[r.k], r.k + ': the sentence is its CSV row');
@@ -993,8 +1019,8 @@ test('a tab tap renders, loads, and hands the tab to the shell', async () => {
   await tick(2);
   assert.equal(d2.mapTab, 'docs');
   assert.equal(d2.displayTab, 'docs');
-  assert.equal(JSON.stringify(d2.subviews.map(s => s.k)), JSON.stringify(['docs', 'growth', 'policy', 'themes', 'registries']),
-    'Docs exposes Inventory first, then Purpose, Growth, Policy, Themes, and Registries');
+  assert.equal(JSON.stringify(d2.subviews.map(s => s.k)), JSON.stringify(['docs', 'growth', 'policy', 'themes']),
+    'Docs exposes Inventory first, then Growth, Policy and Themes; Registries moved to Data on 2026-10-23');
   assert.deepEqual([...taps], ['docs'], 'the shell is told, so the URL gets stamped');
   assert.ok(d2.docsReg, 'the tab fetched its own manifest');
 
@@ -1627,7 +1653,14 @@ test('Context\'s address rides with Context alone, and comes back with it', asyn
 
 test('an address that does not open Context arms none of its keys', () => {
   const { shell } = makeShell({ search: '?view=map&tab=tests&ctxtopic=house-style' });
-  assert.deepEqual({ ...shell.mapCtx }, { ctxlens: '', ctxsort: '', ctxtopic: '', ctxsource: '', setintent: '' });
+  assert.deepEqual({ ...shell.mapCtx }, { ctxlens: '', ctxsort: '', ctxtopic: '', ctxsource: '', setintent: '', growthrepo: '' });
+});
+
+test("Growth's corpus rides with Growth alone", () => {
+  const { shell } = makeShell({ search: '?view=map&tab=growth&growthrepo=mehrlander/home' });
+  assert.equal(shell.mapCtx.growthrepo, 'mehrlander/home');
+  const other = makeShell({ search: '?view=map&tab=docs&growthrepo=mehrlander/home' }).shell;
+  assert.equal(other.mapCtx.growthrepo, '', 'an address that does not open Growth arms none of its keys');
 });
 
 test("Set's question rides with Set alone, and leaves Context's held address", async () => {
@@ -1839,17 +1872,36 @@ test('the Skills search matches the trigger text, not only the slug', async () =
   assert.ok(hits.every(s => s.text.toLowerCase().includes('spreadsheet')));
 });
 
-test('every field the Registries markup reads exists on a registry row', async () => {
+// Under All the Data tab leads with the folders whose tables a registry
+// declares, so its first screen shows marks and colours rather than the grey
+// of tables nothing declares (owner, 2026-10-24).
+test('the Data tab lists folders holding a declared column first', async () => {
+  await data.loadPropsReg();
+  const old = { mapTab: data.mapTab, dataCensus: data.dataCensus, dataScope: data.dataScope };
+  try {
+    const raw = readFileSync(path.join(repoRoot, 'data', 'csv-census.csv'), 'utf8');
+    const files = window.Csv.rows(raw).map(r => ({ repo: data.hub(), ref: 'main', path: r.path, rows: +r.rows,
+      columns: +r.columns, bytes: +r.bytes, headers: JSON.parse(r.headers) }));
+    Object.assign(data, { mapTab: 'data', dataScope: '',
+      dataCensus: [{ repo: data.hub(), ref: 'main', path: 'data/csv-census.csv', state: 'declared', files }] });
+    const declared = data.tableGroups.map(g => g.tables.some(t => t.cols.some(c => c.primitive)));
+    assert.ok(declared.includes(false), 'some folder holds only undeclared tables, or the order proves nothing');
+    assert.ok(declared[0], 'the first folder holds a declared column');
+    assert.equal(declared.lastIndexOf(true), declared.indexOf(false) - 1, 'no declared folder follows an undeclared one');
+  } finally { Object.assign(data, old); }
+});
+
+test('every field the Data tab reads off a registry exists on a registry row', async () => {
   await data.loadPropsReg();
   const row = data.registryRows[0];
   assert.ok(row, 'a row to check the markup against');
 
   const src = readFileSync(path.join(repoRoot, 'lib', 'alpineComponents', 'map.js'), 'utf8');
-  const start = src.indexOf(`x-show="mapTab==='registries'"`);
-  assert.ok(start > 0, 'the Registries section is findable in the template');
+  const start = src.indexOf('data-map-tables>');
+  assert.ok(start > 0, 'the Data section is findable in the template');
   const section = src.slice(start, src.indexOf('</section>', start));
 
-  const read = [...new Set([...section.matchAll(/\br\.([A-Za-z_$][\w$]*)/g)].map(m => m[1]))];
+  const read = [...new Set([...section.matchAll(/\breg\.([A-Za-z_$][\w$]*)/g)].map(m => m[1]))];
   assert.ok(read.length > 5, 'the section reads several fields off the row');
   const missing = read.filter(f => !(f in row));
   assert.equal(missing.join(', '), '', 'markup reads fields the row does not carry: ' + missing.join(', '));
@@ -2155,17 +2207,14 @@ test('a proposal basis is read into fields, and its tip counts from the collecti
 
 // Apply swaps one block in the file as main holds it and commits with the sha
 // it read; a paragraph that is not there exactly once is refused, never
-// overwritten, and a paragraph docs/policies.csv quotes is refused too.
+// overwritten.
 test('Apply commits the one block with the sha it read, and refuses what moved', async () => {
   const realGH = window.GH, realToken = window.TOKEN;
   const file = '# T\n\nKeep.\n\nThe old paragraph.\n';
   const puts = [];
   window.GH = class {
     constructor(o) { this.o = o; }
-    async get(p) {
-      if (p === 'docs/policies.csv') return { text: 'policy_id,canonical_doc,quoted\npol-x,docs/x.md,a quoted claim\n' };
-      return { text: file, sha: 'blob1' };
-    }
+    async get() { return { text: file, sha: 'blob1' }; }
     async req(p, o) { puts.push({ p, body: JSON.parse(o.body) }); return { commit: { sha: 'c0ffee1234' } }; }
   };
   window.GH.FRESH = { cache: 'no-store' };
@@ -2179,13 +2228,9 @@ test('Apply commits the one block with the sha it read, and refuses what moved',
     assert.equal(puts[0].body.branch, 'main');
     assert.equal(Buffer.from(puts[0].body.content, 'base64').toString('utf8'), '# T\n\nKeep.\n\nThe new paragraph.\n');
     await assert.rejects(data.commitBlockSwap('docs/x.md', 'Not in the file.', 'x', 'm'), /changed on main/);
-    data._policyRows = null;
-    assert.equal(await data.policyQuoteIn({ path: 'docs/x.md', oldMd: 'It makes a quoted claim here.', newMd: 'It says less.' }), 'pol-x');
-    assert.equal(await data.policyQuoteIn({ path: 'docs/x.md', oldMd: 'Plain text.', newMd: 'Plainer.' }), '');
   } finally {
     window.GH = realGH;
     if (realToken === undefined) delete window.TOKEN; else window.TOKEN = realToken;
-    data._policyRows = null;
   }
 });
 

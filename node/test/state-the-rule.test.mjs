@@ -751,7 +751,11 @@ const CORPUS = ['docs/CONVERSATION.md', 'docs/TRACKER.md',
                 // Added when docs/stage.md shrank from 7,366 words to 1,526 and
                 // took the corpus under the 1,000-unit floor below: a document
                 // with fences, tables and h3s, so the floor measures shapes.
-                'node/README.md'];
+                'node/README.md',
+                // Added when the 2026-10-22 documentation cleanup left the
+                // corpus at 1,001 units: the app's contract, with fences and
+                // tables, 168 units more.
+                'docs/manifest.md'];
 
 // PYTHON INDEXES BY CODE POINT AND JAVASCRIPT BY UTF-16 CODE UNIT, so one astral
 // character (every emoji in these documents) shifts every later offset by one.

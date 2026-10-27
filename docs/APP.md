@@ -1,6 +1,6 @@
 # The Web Tools app
 
-⭐ **Open it:** [Web Tools](https://mehrlander.github.io/web-tools/app/) (append `?repo=owner/repo` to open a repo)
+🔷 **Open it:** [Web Tools](https://mehrlander.github.io/web-tools/app/) (append `?repo=owner/repo` to open a repo)
 
 Web Tools is one place to find, understand, and continue work across the development estate: its repositories, branches, sessions, pages, and tools. GitHub holds the content and history. The page is `app/index.html`.
 
@@ -56,20 +56,20 @@ The app's `VIEWS` table is the router: each row names a key, how a link opens it
 | --- | --- | --- |
 | `full` | Shown | Open on wide screens; closed on phones |
 | `nav` | Shown | Closed; opened by the menu button |
-| `none` | Hidden | Closed; the launcher and FAB Render tab provide navigation |
+| `none` | Hidden | Closed; the FAB and its sidebar's Render tab provide navigation |
 
 App views default to `nav`; other views default to `full`. Omit the default from the URL. Unknown values use `full`. `shell-routing.test.mjs` holds these rules. App views take their tab title and iOS Home Screen title and icon from toss-render's `toss-subject-mark` event.
 
-**Ref switch** (`lib/alpineComponents/ref-switch.js`). Enter a branch, tag, or SHA to reload the app through toss-render at that ref (`#gh=…@<ref>:…`, which also pins its library), preserving the current deep link. It puts no `?use=` on the renderer's own query, since that pin kills Safari's web process on an iPhone whenever the renderer hosts a frame (the snag `shell-pin-kills-the-tab`); the drawer around a switched view is therefore main's, and the FAB's layer strip says so. Search's ref picker changes the browsed repo's ref. The FAB Render tab shows the app ref. A link's selection (`refs=owner/repo@ref[:path]`, [loader.md](loader.md#the-selection)) travels to every view the app frames; a hub view with no ref of its own is displayed at the app's version. The Files view's browsed ref is its own visible choice, which also targets its writes, so the selection does not move it.
+**Ref switch** (`lib/alpineComponents/ref-switch.js`). Enter a branch, tag, or SHA to reload the app through toss-render at that ref (`#gh=…@<ref>:…`, which also pins its library), preserving the current deep link. It puts no `?use=` on the renderer's own query, since that pin kills Safari's web process on an iPhone whenever the renderer hosts a frame (the snag `shell-pin-kills-the-tab`); the FAB and its sidebar around a switched view are therefore main's, and the sidebar's layer strip says so. Search's ref picker changes the browsed repo's ref. The FAB Render tab shows the app ref. A link's selection (`refs=owner/repo@ref[:path]`, [loader.md](loader.md#the-selection)) travels to every view the app frames; a hub view with no ref of its own is displayed at the app's version. The Files view's browsed ref is its own visible choice, which also targets its writes, so the selection does not move it.
 
 ## Page controls
 
 The floating action button (FAB) reads four optional fields from page components:
 
-- `about`: what the page in view is and reads, shown on the drawer's About tab and read on each paint: `{ title, lede, sources, notes, sections, links, narrative, record }`. The Map supplies it per address; a page without one shows its components' `description` lines.
-- `actions`: actions shown in the drawer.
+- `about`: what the page in view is and reads, shown on the FAB sidebar's About tab and read on each paint: `{ title, lede, sources, notes, sections, links, narrative, record }`. The Map supplies it per address; a page without one shows its components' `description` lines.
+- `actions`: actions shown in the FAB sidebar.
 - `toggles`: `[{ key, label, icon, on, title, set }]`, controls on the Render tab's width row, read on each paint.
-- `menu`: `[{ label, icon, run }]`, rows in the launcher's long-press menu, read when opened (`readPageMenu()`). No description field.
+- `menu`: `[{ label, icon, run }]`, rows in the FAB's long-press menu, read when opened (`readPageMenu()`). No description field.
 
 Read each element's own scope. `Alpine.$data(el)` merges scopes and makes nested components report the app's controls.
 
@@ -110,11 +110,10 @@ Use `x-blob` with an `owner/repo[@ref]:path` address for exact files. It derives
 
 | Subject | Reference |
 | --- | --- |
-| Views and forms | `doc` columns in [app-routes.csv](app-routes.csv) and [subjects.csv](subjects.csv) (under [views/](views/) and [forms/](forms/)) |
+| Views and forms | [app-routes.csv](app-routes.csv), [forms/README.md](forms/README.md) |
 | Stage and `#stage=` links | [stage.md](stage.md) |
 | Repo configuration, the config cache and errands | [manifest.md](manifest.md), [manifest-fields.csv](manifest-fields.csv) |
-| Proposals | [views/proposals.md](views/proposals.md) |
-| The branch takeover | [forms/branch.md](forms/branch.md) |
+| Proposals | [manifest.md](manifest.md#proposals) |
 | Choosing a presentation | [showing.md](showing.md), [showing-mechanisms.csv](showing-mechanisms.csv) |
 | Standalone changeset review | [review.html](../pages/review.html) |
 
