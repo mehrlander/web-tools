@@ -18,4 +18,4 @@ The session settles questions of fact and finishes requested work without asking
 
 **Covers:** every session.
 
-**Detail:** [tend](https://github.com/mehrlander/web-tools/blob/main/skills/tend/SKILL.md), principles 1 and 3.
+**Detail:** [tend](https://github.com/mehrlander/web-tools/blob/main/skills/tend/SKILL.md), principles 1 and 4.

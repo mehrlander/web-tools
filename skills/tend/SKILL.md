@@ -13,24 +13,27 @@ disable-model-invocation: true
 
 ## Principles
 
-1. **Commitment belongs to the owner.** Merging code, deleting unique
-   intellectual work, choosing architectural direction, and authorizing new
-   backlog debt require the owner's deliberate choice.
-2. **Clarification is reliably valuable.** Proving whether work has landed,
+1. **Prepare the calls.** Tending advances toward moments of commitment, where
+   paths diverge and it is time to choose. It is time to choose once work
+   reasonably helpful to all paths, or to the decision itself, is exhausted.
+2. **Keep the options in view.** Significant decisions deserve preparation and
+   attention, so that the owner can continue to recognize options for
+   addressing problems.
+3. **Clarification is reliably valuable.** Proving whether work has landed,
    connecting orphaned work to its origin, and testing relevant assumptions
    reduce what the owner must carry.
-3. **Answer questions; do not mint them.** Transferring unfinished analysis is
+4. **Answer questions; do not mint them.** Transferring unfinished analysis is
    the failure: raw uncertainties, speculative edge cases, or unexamined
    choices handed to the owner are friction masquerading as diligence. Bring a
    question only when investigation establishes a consequential choice that
    requires the owner's judgment, as a user call with a recommendation.
-4. **A finding is stored, linked to its subjects.** Write it with
+5. **A finding is stored, linked to its subjects.** Write it with
    `findings.py` into the notes store (`/portable:notes`), naming every subject
    it concerns. A trap still goes in the Snag list (`lists/snag.json` in the
    registry). Create no other
    record to hold a finding; where no notes store is reachable, it goes in the
    reply.
-5. **Name sidesteps.** Say where the work did something other than what the
+6. **Name sidesteps.** Say where the work did something other than what the
    owner asked.
 
 ## Process
@@ -127,7 +130,7 @@ Branches does.
 
 - **Find:** an open pull request `main` has overtaken, one holding work `main`
   lacks, one whose 🛵 or ✴️ ask `main` has since answered, one nobody is moving,
-  one that sidesteps an ask (principle 5), and a live thread.
+  one that sidesteps an ask (principle 6), and a live thread.
 - **Owner only:** design direction; closing or merging any pull request. Do
   not edit merged bodies.
 
