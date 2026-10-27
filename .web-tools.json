@@ -99,6 +99,11 @@
       "path": "research/minimal-progressive-structure/README.md",
       "label": "Minimal progressive structure: a theory of page structure, tested on agents",
       "kind": "probe"
+    },
+    {
+      "path": "research/2026-10-25-fan-out-review.md",
+      "label": "Fan-out review of the Web Tools app, 2026-10-25",
+      "kind": "probe"
     }
   ],
   "programs": [
