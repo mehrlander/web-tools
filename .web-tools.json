@@ -104,6 +104,11 @@
       "path": "research/2026-10-25-fan-out-review.md",
       "label": "Fan-out review of the Web Tools app, 2026-10-25",
       "kind": "probe"
+    },
+    {
+      "path": "research/code-jobs/README.md",
+      "label": "Finding one job done in several places",
+      "kind": "probe"
     }
   ],
   "programs": [

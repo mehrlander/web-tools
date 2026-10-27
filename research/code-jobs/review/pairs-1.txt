@@ -1,0 +1,1575 @@
+##### PAIR 1
+=== A: lib/kits/xlsx.js:2313 | call(…) > formulaText ===
+function formulaText(sheet, row, col) {
+    const f = row?.formulas?.[col];
+    if (typeof f === 'string') return '=' + f;
+    if (f !== true) return '';
+    const si = row?.shared?.[col];
+    return si != null ? `=[fill ${si}] ${sheet?.sharedFormulas?.[si] ?? ''}`.trimEnd() : '=';
+  }
+=== B: lib/kits/xlsx-extract.js:177 | call(…) > parts ===
+({ s, xl }) => {
+        const out = [];
+        let shared = 0;
+        for (const r of s.rows || []) {
+          for (const [idx, f] of Object.entries(r.formulas || {})) {
+            const col = Number(idx);
+            // A SHARED formula's followers store no text of their own. The
+            // kit reports those as `true` rather than as an empty string, so
+            // the distinction survives to here: an empty Formula cell means
+            // the file did not store one, and the note says how many.
+            if (f === true) shared++;
+            out.push({
+              Cell: at(col, r.row),
+              Row: r.row,
+              Column: kit().colLetter(col),
+              Formula: typeof f === 'string' ? f : '',
+              Value: rowCells(r)[idx] ?? null,
+            });
+          }
+        }
+        return [{
+          rows: out,
+          note: shared ? `${shared} of ${out.length} are shared-formula followers, which store no text of their own` : '',
+        }];
+      }
+##### PAIR 2
+=== A: lib/alpineComponents/transform-workbench.js:159 | call(…) > after ===
+(f) => {
+          requestAnimationFrame(/* nested: requestAnimationFrame(…), lines 160-196 */);
+        }
+=== B: lib/alpineComponents/here-view.js:699 | addEventListener(alpine:init) > data(hereView) > stripScroll ===
+() {
+        if (this._raf) return;
+        this._raf = requestAnimationFrame(/* nested: requestAnimationFrame(…), lines 701-713 */);
+      }
+##### PAIR 3
+=== A: lib/alpineComponents/transform-workbench.js:159 | call(…) > after ===
+(f) => {
+          requestAnimationFrame(/* nested: requestAnimationFrame(…), lines 160-196 */);
+        }
+=== B: lib/alpineComponents/here-view.js:732 | addEventListener(alpine:init) > data(hereView) > jump ===
+(tries = 6) {
+        requestAnimationFrame(/* nested: requestAnimationFrame(…), lines 733-738 */);
+      }
+##### PAIR 4
+=== A: lib/kits/json-explorer.js:23 | call(…) ===
+function () {
+  // ── DOM Helpers ──────────────────────────────────────────────────────────
+  const h = /* nested: h, lines 25-40 */;
+
+  // vanilla-bundle.js's window.esc, the one escape: it quotes as well, which
+  // the textContent trick this replaced did not.
+  const esc = (s) => window.esc(s);
+
+  // The clipboard write is kits/io.js's (node/test/clipboard-one-owner.test.mjs).
+  // Fetched at load time so the write runs inside the tap that asked for it;
+  // without io.js the modern API alone is the fallback.
+  const ghRef = typeof gh !== 'undefined' ? gh : (window.gh || null);
+  if (!window.io && ghRef) ghRef.load('kits/io.js').catch(() => {});
+  const copyText = async (text) => {
+    if (window.io && typeof window.io.copy === 'function') return window.io.copy(text);
+    try { await navigator.clipboard.writeText(text); return true; } catch { return false; }
+  };
+
+  const fmtBytes = /* nested: fmtBytes, lines 56-61 */;
+
+  const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
+
+  const formatIsoDate = /* nested: formatIsoDate, lines 65-87 */;
+
+  // ── JsonProfile: Schema & Structure Analyzer ─────────────────────────────
+  const JsonProfile = {
+    analyze/* nested: analyze, lines 91-174 */,
+  };
+
+  // ── JsonExplorer Component ───────────────────────────────────────────────
+  //
+  // A PROPERTY SHEET, not a syntax-coloured dump. Reworked 2026-10-22 on the
+  // owner's report from the session form's Raw tab: "it's all cluttered, and
+  // there's too much going on, and it raises the question of what we're really
+  // trying to show here." What a reader opens a record's raw form to learn is
+  // which fields it has, how much of the whole each one is, and what one of
+  // them holds. So a row is a key and its value, a collection says how many
+  // items it has, and its size sits in a right-hand column the eye can run
+  // down, which is the comparison a 5.7 MB record invites (where did the bytes
+  // go). Colour is spent once, on the filter's matches (house style rule 10).
+  //
+  // What went, and why each was clutter rather than capability:
+  //   - the syntax palette (green strings, blue numbers, amber booleans): it
+  //     coloured every value by type, which the value's own text already says;
+  //   - the chunk select, a second copy of the tree's own drill-in;
+  //   - Collapse / Depth 1 / Expand: "Expand" laid every node of a 5.7 MB record
+  //     into the page at once, and the other two were the default view and its
+  //     collapse; one icon now returns to the top level, shown when there is
+  //     something to collapse;
+  //   - the per-row copy-path and copy-value buttons, revealed on hover, which a
+  //     touch screen has none of. Copy acts on whatever the tree is opened to;
+  //   - the root row, which drew "nullnull" because Element.append writes a
+  //     null argument as the text "null", and said nothing the crumbs do not;
+  //   - the rebuilt toolbar: every keystroke in the filter re-rendered the
+  //     toolbar and replaced the input, so a second character never landed.
+  //     The chrome is built once and updated in place.
+  const JsonExplorer = {
+    mount/* nested: mount, lines 205-746 */,
+  };
+
+  window.JsonProfile = JsonProfile;
+  window.JsonExplorer = JsonExplorer;
+}
+=== B: lib/kits/swipe-deck.js:147 | call(…) ===
+() => {
+  const h = /* nested: h, lines 148-157 */;
+
+  let styled = false;
+  const ensureStyle = /* nested: ensureStyle, lines 160-192 */;
+
+  // ── THE KEYS OF A STRIP ─────────────────────────────────────────────────
+  //
+  // A deck opened with open() answers Left and Right itself (onKey, inside
+  // open()). A strip embedded in a page answered nothing unless its caller
+  // wired a handler, and five had, each to the same rule: the branch page's
+  // file strip, the file browser, the waiting view, the user-call form, and
+  // budget-drs's corpusSwiper in home. This is that rule, once:
+  //
+  //   Left and Right only, with no modifier, and never while focus is in a
+  //   field (an input, a textarea, a select, anything contentEditable).
+  //
+  //   The strip takes them while the pointer is over its HOST or focus is
+  //   inside it. The host is what the reader sees as the strip, usually the
+  //   card around the track with its head row, so the arrows answer over the
+  //   card's name as well as over its body.
+  //
+  //   The innermost host wins. A strip inside another strip's card (budget-drs
+  //   shows an item page as a card in a list's strip, and the page has strips
+  //   of its own) takes the key while the pointer is over it, and the strip
+  //   around it takes the key everywhere else on the card.
+  //
+  //   A strip under a deck is out of reach; one inside the deck on top takes
+  //   the key while the pointer is over it, and anywhere else in the deck the
+  //   arrows are the deck's. That is why the listener is on window in the
+  //   CAPTURE phase and stops the event when it acts: the deck's onKey is a
+  //   bubble-phase listener on window, so this one runs first whatever order
+  //   the two were registered in, and the deck does not step too.
+  //
+  // core({ keys: host }) registers its own track. keys(host, step, count) is
+  // the same rule for a track built some other way: `step(d)` moves by d and
+  // `count()` says how many there are, under two meaning the key is not taken.
+  // One registration per host, so registering again replaces it, which is what
+  // a caller rebuilding its track into the same card wants. A host that has
+  // left the document is forgotten on the next key; off() forgets it now.
+  const KEYED = new Map();
+  let keyedListening = false;
+  const typingIn = t => !!t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName || ''));
+  const onScreen = el => {
+    const r = el.getBoundingClientRect();
+    return r.width > 0 && r.right > 0 && r.left < (window.innerWidth || Infinity);
+  };
+  /* nested: onKeyedKey, lines 235-253 */
+  /* nested: keys, lines 254-260 */
+
+  // The core: a horizontal snap track, one slide per item, each slide scrolling
+  // inside itself when its content is long. Returns the track plus an
+  // imperative handle, so different chrome (an inline nav, the takeover's
+  // footer pager) can drive one track.
+  /* nested: core, lines 266-422 */
+
+  // Every open deck, oldest first. The last entry is the one the reader is
+  // looking at, and the only one that answers a key or a Back. See the
+  // stacking note inside open().
+  const STACK = [];
+  // WHETHER A DECK IS OPEN IS THE KIT'S FACT, and it is a different fact from
+  // `data-deck-pane`, which the host owns and which records a standing reader
+  // PREFERENCE. The preference is right to persist (the next file should open
+  // docked too); the reflow has to end with the deck. Keying a dock's reflow on
+  // the preference alone leaves a padding-right the width of a deck that is no
+  // longer there, on every view and across reloads.
+  const syncDeckOpen = /* nested: syncDeckOpen, lines 434-438 */;
+
+  // The fullscreen takeover: a framed panel over the page, header / track /
+  // footer pager. Dots while they stay countable, a progress bar past that.
+  /* nested: open, lines 442-1474 */
+
+  // ── THE DOOR ────────────────────────────────────────────────────────────
+  //
+  // One glyph, estate-wide, for "open this collection in the deck". What it
+  // means has nothing to do with files: it means THIS LIST HAS A READER, so a
+  // reader who learns the glyph once does not re-learn it per surface. It lives
+  // here rather than in a kit of its own because the kit that owns the room
+  // owns the door: every consumer already loads this file, so there is exactly
+  // one place the classes and the wording can drift from.
+  //
+  // A surface is free to add a gesture of its own on top (a row tap, a "read
+  // from here" on a card). What the entry guarantees is a VISIBLE way in, since
+  // a gesture nobody is told about is a feature only its author can find.
+  //
+  //   swipeDeck.entry({ count, noun, onOpen })  -> <button>
+  //
+  //   count    how many things are in the collection; omitted or 0 renders the
+  //            wording without a number, for a caller that has not fetched yet
+  //   noun     singular, 'file' / 'record' / 'chat'. Pluralized here.
+  //   onOpen   the click handler
+  //   tone     'primary' (default) or 'ghost', for a surface where the deck is
+  //            not the main thing on offer
+  //   size     'sm' (default, carrying the phone floor below), 'tight' (the
+  //            same button without that floor) or 'md', to sit in a row of
+  //            full-size icon buttons rather than in a strip of its own
+  //   icon     override, for the rare collection with a glyph of its own
+  //
+  // TONE IS THE HOST'S JUDGMENT, not the kit's: primary where the deck is what
+  // most readers came to do, ghost where it is one lens among several. Same
+  // glyph, same wording, same promise, only the emphasis moving, which is what
+  // keeps this a parameter rather than two buttons that drift. Primary colours
+  // the GLYPH and not a ground behind it, and ghost earns its colour on hover
+  // rather than at rest.
+  //
+  // The three pieces hang off the function too, since a template-driven host
+  // has to build its own element and should still not restate the class list or
+  // the wording: `entry.icon`, `entry.cls(tone, size)`, `entry.title(count, noun)`.
+  const ENTRY_ICON = 'ph-cards-three';
+  // `size` names the button's own size AND, at 'sm', the 44px phone floor the
+  // estate keeps on an icon control. The floor is the DEFAULT and 'tight' is
+  // the opt-out, because taking the bump out of the shared class to tighten one
+  // surface silently dropped every other door on every other surface to 32px on
+  // a phone, one of them 12px short of the three siblings on its own row. The
+  // surface that wants the smaller target is the one that declares it.
+  const entryCls = (tone = 'primary', size = 'sm') =>
+    'btn btn-square '
+    + (size === 'md' ? '' : size === 'tight' ? 'btn-sm ' : 'btn-sm max-sm:h-11 max-sm:w-11 ')
+    + (tone === 'ghost' ? 'btn-ghost hover:text-primary' : 'btn-ghost text-primary');
+  const entryTitle = /* nested: entryTitle, lines 1523-1527 */;
+  const entry = /* nested: entry, lines 1528-1537 */;
+  entry.icon = ENTRY_ICON;
+  entry.cls = entryCls;
+  entry.title = entryTitle;
+
+  // One level down from `parent`. See the drilling note at the top.
+  function drill(parent, o = {}) {
+    const crumb = [parent && parent.title, o.subtitle].filter(Boolean).join(' · ');
+    return open({ ...o, back: true, subtitle: crumb });
+  }
+
+  window.swipeDeck = { core, open, drill, entry, keys, h, stack: STACK,
+                       top: () => STACK[STACK.length - 1] || null };
+}
+##### PAIR 5
+=== A: lib/alpineComponents/transform-workbench.js:1609 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > pvSetMeasure ===
+(c) {
+          this.pvMeasure = c;
+          if (!c) this.pvAgg = "count";
+          else if (this.pvAgg === "count") this.pvAgg = "sum";
+          this.pvDraw();
+        }
+=== B: lib/kits/tabular-explorer.js:888 | call(…) > mount > renderPivotView > renderPivotTable > map(…) ===
+g => {
+            let val = g.sum;
+            if (pAgg === 'avg') val = g.count > 0 ? g.sum / g.count : 0;
+            else if (pAgg === 'count') val = g.count;
+            else if (pAgg === 'min') val = g.min;
+            else if (pAgg === 'max') val = g.max;
+            return { ...g, val };
+          }
+##### PAIR 6
+=== A: lib/alpineComponents/transform-workbench.js:159 | call(…) > after ===
+(f) => {
+          requestAnimationFrame(/* nested: requestAnimationFrame(…), lines 160-196 */);
+        }
+=== B: lib/kits/swipe-deck.js:403 | call(…) > core > addEventListener(scroll) ===
+() => {
+      clearTimeout(quiet);
+      quiet = setTimeout(() => { aim = null; }, 160);
+      if (raf) return;
+      raf = requestAnimationFrame(/* nested: requestAnimationFrame(…), lines 407-413 */);
+    }
+##### PAIR 7
+=== A: lib/kits/xlsx.js:1332 | call(…) > analyze > map(…) ===
+c => ({
+        ref: c.ref,
+        author: authors[c.authorId] || '',
+        // Excel writes the author's name as the first run followed by a colon
+        // and a newline. It is the same string the author field already
+        // carries, so a reader shown both sees it twice; dropped here rather
+        // than at the render, since every consumer would otherwise repeat it.
+        text: stripAuthorPrefix(c.text, authors[c.authorId] || ''),
+      })
+=== B: lib/kits/xlsx-extract.js:264 | call(…) > parts ===
+({ xl, name }) => [{
+        rows: notesFor(xl, name, 'comment').map(n => ({
+          Cell: n.cell, Author: n.author, Text: n.text,
+        })),
+      }]
+##### PAIR 8
+=== A: lib/kits/tabular-explorer.js:61 | call(…) > fmtNum ===
+(n, dec = 2) => {
+    if (n == null || isNaN(n)) return '';
+    const abs = Math.abs(n);
+    const str = abs.toLocaleString(undefined, {
+      minimumFractionDigits: Number.isInteger(abs) ? 0 : 2,
+      maximumFractionDigits: dec,
+    });
+    return n < 0 ? `(${str})` : str;
+  }
+=== B: lib/kits/xlsx.js:2367 | call(…) > shiftRefs > moveRow ===
+(abs, digits) => {
+      if (abs) return abs + digits;
+      const n = Number(digits) + dr;
+      return n < 1 || n > 1048576 ? null : String(n);
+    }
+##### PAIR 9
+=== A: lib/kits/xlsx.js:2313 | call(…) > formulaText ===
+function formulaText(sheet, row, col) {
+    const f = row?.formulas?.[col];
+    if (typeof f === 'string') return '=' + f;
+    if (f !== true) return '';
+    const si = row?.shared?.[col];
+    return si != null ? `=[fill ${si}] ${sheet?.sharedFormulas?.[si] ?? ''}`.trimEnd() : '=';
+  }
+=== B: lib/kits/xlsx-extract.js:91 | call(…) > serializeSheet ===
+(s, name) => {
+    const cells = [];
+    let r1 = Infinity, c1 = Infinity, r2 = 0, c2 = -1;
+    for (const r of s.rows || []) {
+      for (const [idx, v] of Object.entries(r.cells || {})) {
+        const col = Number(idx);
+        const f = r.formulas?.[idx];
+        const si = r.shared?.[idx];
+        let formula = '';
+        if (typeof f === 'string') formula = '=' + f;
+        else if (f === true) formula = si != null ? `=[fill ${si}] ${s.sharedFormulas?.[si] ?? ''}`.trimEnd() : '=';
+        cells.push({ Address: at(col, r.row), Formula: formula, Value: v == null ? '' : String(v) });
+        if (r.row < r1) r1 = r.row;
+        if (r.row > r2) r2 = r.row;
+        if (col < c1) c1 = col;
+        if (col > c2) c2 = col;
+      }
+    }
+    return {
+      SheetName: name,
+      Dimension: s.dimension || (cells.length ? `${at(c1, r1)}:${at(c2, r2)}` : ''),
+      MergedCells: (s.merges || []).map(m => `${at(m.c1, m.r1)}:${at(m.c2, m.r2)}`),
+      Cells: cells,
+    };
+  }
+##### PAIR 10
+=== A: lib/kits/xlsx.js:351 | call(…) > resolveChartData > readRange ===
+(ref, numeric) => {
+      const m = /^(?:'((?:[^']|'')+)'|([^'!]+))!\$?([A-Z]+)\$?(\d+)(?::\$?([A-Z]+)\$?(\d+))?$/i.exec(ref || '');
+      if (!m) return null;
+      const name = (m[1]?.replace(/''/g, "'") || m[2]).toLowerCase();
+      const sheet = Object.values(xl.sheets).find(s => s.name?.toLowerCase() === name);
+      if (!sheet) return null;
+      const c1 = colIndexFromRef(m[3].toUpperCase()), c2 = colIndexFromRef((m[5] || m[3]).toUpperCase());
+      const r1 = Number(m[4]), r2 = Number(m[6] || m[4]);
+      const count = (r2 - r1 + 1) * (c2 - c1 + 1);
+      if (c1 !== c2 && r1 !== r2 || count < 1 || count > CHART_POINT_LIMIT || r1 < 1 || c2 > 16383 || r2 > 1048576) return null;
+      const rows = new Map(sheet.rows.map(row => [row.row, row]));
+      const values = [];
+      for (let r = r1; r <= r2; r++) for (let c = c1; c <= c2; c++) {
+        const row = rows.get(r), raw = row?.cells[c];
+        if (row?.types[c] === 'e') chart.unsupported.push('Error values in chart data');
+        if (row?.formulas[c] && (raw == null || raw === '')) chart.unsupported.push('Chart formulas without saved results');
+        values.push(numeric ? chartNumber(raw) : (raw == null || raw === '' ? null : String(raw)));
+      }
+      return values;
+    }
+=== B: lib/kits/xlsx-extract.js:91 | call(…) > serializeSheet ===
+(s, name) => {
+    const cells = [];
+    let r1 = Infinity, c1 = Infinity, r2 = 0, c2 = -1;
+    for (const r of s.rows || []) {
+      for (const [idx, v] of Object.entries(r.cells || {})) {
+        const col = Number(idx);
+        const f = r.formulas?.[idx];
+        const si = r.shared?.[idx];
+        let formula = '';
+        if (typeof f === 'string') formula = '=' + f;
+        else if (f === true) formula = si != null ? `=[fill ${si}] ${s.sharedFormulas?.[si] ?? ''}`.trimEnd() : '=';
+        cells.push({ Address: at(col, r.row), Formula: formula, Value: v == null ? '' : String(v) });
+        if (r.row < r1) r1 = r.row;
+        if (r.row > r2) r2 = r.row;
+        if (col < c1) c1 = col;
+        if (col > c2) c2 = col;
+      }
+    }
+    return {
+      SheetName: name,
+      Dimension: s.dimension || (cells.length ? `${at(c1, r1)}:${at(c2, r2)}` : ''),
+      MergedCells: (s.merges || []).map(m => `${at(m.c1, m.r1)}:${at(m.c2, m.r2)}`),
+      Cells: cells,
+    };
+  }
+##### PAIR 11
+=== A: lib/kits/xlsx.js:1426 | call(…) > stripAuthorPrefix ===
+function stripAuthorPrefix(text, author) {
+    const t = String(text || '');
+    if (!author) return t.trim();
+    const head = author + ':';
+    if (!t.startsWith(head)) return t.trim();
+    return t.slice(head.length).replace(/^[\s\r\n]+/, '').trim();
+  }
+=== B: lib/kits/xlsx-extract.js:264 | call(…) > parts ===
+({ xl, name }) => [{
+        rows: notesFor(xl, name, 'comment').map(n => ({
+          Cell: n.cell, Author: n.author, Text: n.text,
+        })),
+      }]
+##### PAIR 12
+=== A: lib/kits/xlsx.js:1884 | call(…) > cellStyle ===
+function cellStyle(xl, styleIndex) {
+    if (styleIndex == null || styleIndex === '') return null;
+    const xf = xl.xfs?.[Number(styleIndex)];
+    if (!xf) return null;
+    const font = xl.fonts?.[xf.fontId] || null;
+    const border = xl.borders?.[xf.borderId] || null;
+    return {
+      bold: !!font?.bold, italic: !!font?.italic, underline: !!font?.underline,
+      strike: !!font?.strike,
+      size: font?.size ?? 11, color: font?.color || null, fontName: font?.name || null,
+      fill: xl.fills?.[xf.fillId] || null,
+      border: border && (border.top || border.right || border.bottom || border.left) ? border : null,
+      align: xf.align || null, valign: xf.valign || null,
+      wrap: !!xf.wrap, indent: xf.indent || 0,
+      format: cellFormat(xl, styleIndex),
+    };
+  }
+=== B: lib/kits/xlsx-extract.js:207 | call(…) > parts ===
+({ s, xl }) => {
+        const out = [];
+        for (const r of s.rows || []) {
+          for (const [idx, sx] of Object.entries(r.styles || {})) {
+            const st = kit().cellStyle(xl, sx);
+            if (!st) continue;
+            const col = Number(idx);
+            const b = st.border;
+            out.push({
+              Cell: at(col, r.row),
+              Row: r.row,
+              Column: kit().colLetter(col),
+              Font: st.fontName || '',
+              Size: st.size,
+              Bold: st.bold ? 'yes' : '',
+              Italic: st.italic ? 'yes' : '',
+              Underline: st.underline ? 'yes' : '',
+              Strike: st.strike ? 'yes' : '',
+              Color: st.color || '',
+              Fill: st.fill || '',
+              Align: st.align || '',
+              Valign: st.valign || '',
+              Wrap: st.wrap ? 'yes' : '',
+              Indent: st.indent || 0,
+              // A border is four edges and a table cell is one string: the
+              // sides that are drawn, named. The full record is one
+              // xlsxKit.cellStyle call away for anything that needs it.
+              Border: b ? ['top', 'right', 'bottom', 'left'].filter(k => b[k]).join(' ') : '',
+              Format: st.format?.code || '',
+              'Format kind': st.format?.kind || '',
+            });
+          }
+        }
+        return [{ rows: out }];
+      }
+##### PAIR 13
+=== A: lib/kits/tabular-explorer.js:76 | call(…) > analyze ===
+(rows, opts = {}) {
+      const N = rows.length;
+      // Declared fields preserve order and header-only columns; titles are
+      // source labels, while names remain unique record keys.
+      const titles = new Map((opts.columns || []).map(c => [c.field, String(c.title ?? c.field)]));
+      const colSet = new Set(titles.keys());
+      for (const r of rows) for (const k in r) colSet.add(k);
+      const colNames = [...colSet];
+
+      let totalFilledCells = 0;
+      const typeCounts = { numeric: 0, categorical: 0, text: 0, temporal: 0, empty: 0 };
+
+      const columns = colNames.map(/* nested: map(…), lines 88-236 */);
+
+      const cellCount = N * colNames.length;
+      const overallFillRate = cellCount > 0 ? totalFilledCells / cellCount : 0;
+
+      return {
+        rowCount: N,
+        colCount: colNames.length,
+        cellCount,
+        fillRate: overallFillRate,
+        typeCounts,
+        columns,
+      };
+    }
+=== B: pages/pivot-table.html:559 | renderPivot > forEach(…) > forEach(…) ===
+c => {
+          let accum = [];
+          subKeys.forEach(r2 => accum.push(...matrix[r1][r2][c]));
+          r1SubValues[c] = accum;
+          colGrandValues[c].push(...accum);
+        }
+##### PAIR 14
+=== A: lib/alpineComponents/file-browser.js:241 | registerFileBrowser > data(fileBrowser) > mountSlide ===
+(path, slide) {
+        if (!path || !slide) return;
+        const el = document.createElement('div');
+        el.className = 'flex flex-col h-full w-full min-w-0 overflow-hidden';
+        // A row to land on, from the address, applies to the file it was
+        // opened on and to no other slide in the folder.
+        const at = cfg.at && path === cfg.file ? cfg.at : null;
+        el.setAttribute('x-data', 'viewer({ bindStore: false, fill: true, identify: false, '
+          + 'defaultMode: (f) => window.ViewRegistry.READ_MODE(f)'
+          + (at ? ', modules: ' + JSON.stringify({ table: { at: { col: at.col, row: at.row } } }) : '')
+          + ' })');
+        el.dataset.fileViewer = path;
+        slide.append(el);
+        window.Alpine.initTree(el);
+        const repo = this.fbRepo, ref = this.fbRef || '';
+        (/* nested: call(…), lines 256-270 */)();
+      }
+=== B: lib/alpineComponents/here-view.js:127 | addEventListener(alpine:init) > data(hereView) > mountViewer ===
+(host) => {
+      const el = document.createElement('div');
+      el.className = 'flex flex-col h-full w-full min-w-0 overflow-hidden';
+      el.setAttribute('x-data', "viewer({ bindStore: false, fill: true, identify: false, "
+        + "defaultMode: (f) => window.ViewRegistry.READ_MODE(f) })");
+      host.replaceChildren(el);
+      window.Alpine.initTree(el);
+      return el;
+    }
+##### PAIR 15
+=== A: lib/alpineComponents/transform-workbench.js:1763 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > dl ===
+() {
+          const p = await this.exportPayload(this.curV);
+          const u = URL.createObjectURL(new Blob([p.text], { type: p.mime }));
+          Object.assign(document.createElement("a"), { href: u, download: "out." + p.ext }).click();
+          setTimeout(() => URL.revokeObjectURL(u), 100);
+        }
+=== B: lib/kits/json-explorer.js:348 | call(…) > mount > iconBtn(ph-download-simple) ===
+() => {
+        const blob = new Blob([JSON.stringify(rawData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = name;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+##### PAIR 16
+=== A: lib/alpineComponents/transform-workbench.js:123 | call(…) > after ===
+(f) => {
+          requestAnimationFrame(/* nested: requestAnimationFrame(…), lines 124-151 */);
+        }
+=== B: lib/alpineComponents/here-view.js:699 | addEventListener(alpine:init) > data(hereView) > stripScroll ===
+() {
+        if (this._raf) return;
+        this._raf = requestAnimationFrame(/* nested: requestAnimationFrame(…), lines 701-713 */);
+      }
+##### PAIR 17
+=== A: lib/kits/xlsx.js:2395 | call(…) > workbookNotes ===
+function workbookNotes(xl) {
+    const out = [];
+    const sheets = Object.entries(xl?.sheets || {})
+      .map(([key, s]) => ({ key, s }))
+      .sort((a, b) => (a.s.index ?? 1e9) - (b.s.index ?? 1e9) || a.key.localeCompare(b.key));
+    for (const { key, s } of sheets) {
+      const name = s.name || key;
+      for (const c of s.comments || []) {
+        out.push({ sheet: name, cell: c.ref, kind: 'comment',
+                   author: c.author || '', title: '', text: c.text || '', options: null });
+      }
+      // A validation covers a RANGE, and one row per cell of it would bury the
+      // list: the fee form's thirteen instructions cover ninety-seven cells.
+      // One row per rule, addressed at the range's first cell.
+      for (const v of s.validations || []) {
+        const options = v.type === 'list' && v.formula1 ? listOptions(v.formula1, s, xl) : null;
+        if (!v.prompt && !v.promptTitle && !options?.length) continue;
+        const first = v.ranges?.[0];
+        out.push({
+          sheet: name,
+          cell: first ? colLetter(first.c1) + first.r1 : '',
+          span: v.ranges?.length
+            ? v.ranges.map(r => r.r1 === r.r2 && r.c1 === r.c2
+                ? colLetter(r.c1) + r.r1
+                : `${colLetter(r.c1)}${r.r1}:${colLetter(r.c2)}${r.r2}`).join(' ')
+            : '',
+          kind: options?.length ? 'list' : 'instruction',
+          author: '', title: v.promptTitle || '', text: v.prompt || '', options: options || null,
+        });
+      }
+    }
+    return out;
+  }
+=== B: lib/kits/xlsx-extract.js:264 | call(…) > parts ===
+({ xl, name }) => [{
+        rows: notesFor(xl, name, 'comment').map(n => ({
+          Cell: n.cell, Author: n.author, Text: n.text,
+        })),
+      }]
+##### PAIR 18
+=== A: lib/alpineComponents/transform-workbench.js:123 | call(…) > after ===
+(f) => {
+          requestAnimationFrame(/* nested: requestAnimationFrame(…), lines 124-151 */);
+        }
+=== B: lib/alpineComponents/here-view.js:732 | addEventListener(alpine:init) > data(hereView) > jump ===
+(tries = 6) {
+        requestAnimationFrame(/* nested: requestAnimationFrame(…), lines 733-738 */);
+      }
+##### PAIR 19
+=== A: lib/kits/xlsx.js:1793 | call(…) > profileColumns ===
+function profileColumns(sheet, xl, opts) {
+    const cfg = opts || {};
+    const headerRow = cfg.headerRow === undefined ? 1 : cfg.headerRow;
+    const keep = cfg.distinct === undefined ? 12 : cfg.distinct;
+    const all = sheet.rows || [];
+    const header = headerRow == null ? null : all.find(r => r.row === headerRow);
+    const body = headerRow == null ? all : all.filter(r => r.row !== headerRow);
+    const scanned = cfg.maxRows ? body.slice(0, cfg.maxRows) : body;
+
+    // Every column any scanned row writes to, plus any the header names: a
+    // column whose values are all blank is still a column if it has a heading.
+    const cols = new Set();
+    for (const r of [...scanned, ...(header ? [header] : [])])
+      for (const k of Object.keys(r.cells || {})) cols.add(Number(k));
+
+    const cellKind = /* nested: cellKind, lines 1808-1817 */;
+
+    return [...cols].sort((a, b) => a - b).map(/* nested: map(…), lines 1819-1873 */);
+  }
+=== B: lib/kits/xlsx-extract.js:316 | call(…) > count ===
+(s) => {
+        const cols = new Set();
+        for (const r of s.rows || []) for (const k of Object.keys(r.cells || {})) cols.add(k);
+        return cols.size;
+      }
+##### PAIR 20
+=== A: lib/alpineComponents/transform-workbench.js:269 | call(…) > addEventListener(alpine:init) ===
+() => {
+    if (typeof Alpine === "undefined" || !Alpine.data) return;
+
+    // The output viewer, mounted by the workbench markup below. File, content,
+    // and data live on the root ELEMENT, outside Alpine's reactivity: viewHtml
+    // re-renders only when `mode` or the explicit `rev` counter moves, which is
+    // what lets a same-shape data change update the mounted table in place
+    // instead of repainting the pane.
+    Alpine.data("tfViewer", /* nested: data(tfViewer), lines 277-333 */);
+
+    // The workbench itself.
+    Alpine.data("transformWorkbench", /* nested: data(transformWorkbench), lines 336-1770 */);
+  }
+=== B: lib/alpineComponents/user-call-form.js:810 | call(…) > register ===
+function () {
+    Alpine.data('userCallForm', /* nested: data(userCallForm), lines 811-1532 */);
+  }
+##### PAIR 21
+=== A: lib/alpineComponents/file-browser.js:27 | registerFileBrowser ===
+function() {
+  Alpine.data('fileBrowser', /* nested: data(fileBrowser), lines 28-320 */);
+}
+=== B: lib/alpineComponents/here-view.js:39 | addEventListener(alpine:init) ===
+function () {
+  Alpine.data('hereView', /* nested: data(hereView), lines 40-950 */);
+}
+##### PAIR 22
+=== A: lib/kits/tabular-explorer.js:888 | call(…) > mount > renderPivotView > renderPivotTable > map(…) ===
+g => {
+            let val = g.sum;
+            if (pAgg === 'avg') val = g.count > 0 ? g.sum / g.count : 0;
+            else if (pAgg === 'count') val = g.count;
+            else if (pAgg === 'min') val = g.min;
+            else if (pAgg === 'max') val = g.max;
+            return { ...g, val };
+          }
+=== B: pages/pivot-table.html:496 | renderPivot > computeAgg ===
+function computeAgg(vals) {
+        if (!vals || vals.length === 0) return 0;
+        if (aggFunc === 'SUM') return vals.reduce((a, b) => a + b, 0);
+        if (aggFunc === 'AVG') return vals.reduce((a, b) => a + b, 0) / vals.length;
+        if (aggFunc === 'COUNT') return vals.length;
+        if (aggFunc === 'MAX') return Math.max(...vals);
+        if (aggFunc === 'MIN') return Math.min(...vals);
+        return 0;
+      }
+##### PAIR 23
+=== A: lib/kits/swipe-deck.js:147 | call(…) ===
+() => {
+  const h = /* nested: h, lines 148-157 */;
+
+  let styled = false;
+  const ensureStyle = /* nested: ensureStyle, lines 160-192 */;
+
+  // ── THE KEYS OF A STRIP ─────────────────────────────────────────────────
+  //
+  // A deck opened with open() answers Left and Right itself (onKey, inside
+  // open()). A strip embedded in a page answered nothing unless its caller
+  // wired a handler, and five had, each to the same rule: the branch page's
+  // file strip, the file browser, the waiting view, the user-call form, and
+  // budget-drs's corpusSwiper in home. This is that rule, once:
+  //
+  //   Left and Right only, with no modifier, and never while focus is in a
+  //   field (an input, a textarea, a select, anything contentEditable).
+  //
+  //   The strip takes them while the pointer is over its HOST or focus is
+  //   inside it. The host is what the reader sees as the strip, usually the
+  //   card around the track with its head row, so the arrows answer over the
+  //   card's name as well as over its body.
+  //
+  //   The innermost host wins. A strip inside another strip's card (budget-drs
+  //   shows an item page as a card in a list's strip, and the page has strips
+  //   of its own) takes the key while the pointer is over it, and the strip
+  //   around it takes the key everywhere else on the card.
+  //
+  //   A strip under a deck is out of reach; one inside the deck on top takes
+  //   the key while the pointer is over it, and anywhere else in the deck the
+  //   arrows are the deck's. That is why the listener is on window in the
+  //   CAPTURE phase and stops the event when it acts: the deck's onKey is a
+  //   bubble-phase listener on window, so this one runs first whatever order
+  //   the two were registered in, and the deck does not step too.
+  //
+  // core({ keys: host }) registers its own track. keys(host, step, count) is
+  // the same rule for a track built some other way: `step(d)` moves by d and
+  // `count()` says how many there are, under two meaning the key is not taken.
+  // One registration per host, so registering again replaces it, which is what
+  // a caller rebuilding its track into the same card wants. A host that has
+  // left the document is forgotten on the next key; off() forgets it now.
+  const KEYED = new Map();
+  let keyedListening = false;
+  const typingIn = t => !!t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName || ''));
+  const onScreen = el => {
+    const r = el.getBoundingClientRect();
+    return r.width > 0 && r.right > 0 && r.left < (window.innerWidth || Infinity);
+  };
+  /* nested: onKeyedKey, lines 235-253 */
+  /* nested: keys, lines 254-260 */
+
+  // The core: a horizontal snap track, one slide per item, each slide scrolling
+  // inside itself when its content is long. Returns the track plus an
+  // imperative handle, so different chrome (an inline nav, the takeover's
+  // footer pager) can drive one track.
+  /* nested: core, lines 266-422 */
+
+  // Every open deck, oldest first. The last entry is the one the reader is
+  // looking at, and the only one that answers a key or a Back. See the
+  // stacking note inside open().
+  const STACK = [];
+  // WHETHER A DECK IS OPEN IS THE KIT'S FACT, and it is a different fact from
+  // `data-deck-pane`, which the host owns and which records a standing reader
+  // PREFERENCE. The preference is right to persist (the next file should open
+  // docked too); the reflow has to end with the deck. Keying a dock's reflow on
+  // the preference alone leaves a padding-right the width of a deck that is no
+  // longer there, on every view and across reloads.
+  const syncDeckOpen = /* nested: syncDeckOpen, lines 434-438 */;
+
+  // The fullscreen takeover: a framed panel over the page, header / track /
+  // footer pager. Dots while they stay countable, a progress bar past that.
+  /* nested: open, lines 442-1474 */
+
+  // ── THE DOOR ────────────────────────────────────────────────────────────
+  //
+  // One glyph, estate-wide, for "open this collection in the deck". What it
+  // means has nothing to do with files: it means THIS LIST HAS A READER, so a
+  // reader who learns the glyph once does not re-learn it per surface. It lives
+  // here rather than in a kit of its own because the kit that owns the room
+  // owns the door: every consumer already loads this file, so there is exactly
+  // one place the classes and the wording can drift from.
+  //
+  // A surface is free to add a gesture of its own on top (a row tap, a "read
+  // from here" on a card). What the entry guarantees is a VISIBLE way in, since
+  // a gesture nobody is told about is a feature only its author can find.
+  //
+  //   swipeDeck.entry({ count, noun, onOpen })  -> <button>
+  //
+  //   count    how many things are in the collection; omitted or 0 renders the
+  //            wording without a number, for a caller that has not fetched yet
+  //   noun     singular, 'file' / 'record' / 'chat'. Pluralized here.
+  //   onOpen   the click handler
+  //   tone     'primary' (default) or 'ghost', for a surface where the deck is
+  //            not the main thing on offer
+  //   size     'sm' (default, carrying the phone floor below), 'tight' (the
+  //            same button without that floor) or 'md', to sit in a row of
+  //            full-size icon buttons rather than in a strip of its own
+  //   icon     override, for the rare collection with a glyph of its own
+  //
+  // TONE IS THE HOST'S JUDGMENT, not the kit's: primary where the deck is what
+  // most readers came to do, ghost where it is one lens among several. Same
+  // glyph, same wording, same promise, only the emphasis moving, which is what
+  // keeps this a parameter rather than two buttons that drift. Primary colours
+  // the GLYPH and not a ground behind it, and ghost earns its colour on hover
+  // rather than at rest.
+  //
+  // The three pieces hang off the function too, since a template-driven host
+  // has to build its own element and should still not restate the class list or
+  // the wording: `entry.icon`, `entry.cls(tone, size)`, `entry.title(count, noun)`.
+  const ENTRY_ICON = 'ph-cards-three';
+  // `size` names the button's own size AND, at 'sm', the 44px phone floor the
+  // estate keeps on an icon control. The floor is the DEFAULT and 'tight' is
+  // the opt-out, because taking the bump out of the shared class to tighten one
+  // surface silently dropped every other door on every other surface to 32px on
+  // a phone, one of them 12px short of the three siblings on its own row. The
+  // surface that wants the smaller target is the one that declares it.
+  const entryCls = (tone = 'primary', size = 'sm') =>
+    'btn btn-square '
+    + (size === 'md' ? '' : size === 'tight' ? 'btn-sm ' : 'btn-sm max-sm:h-11 max-sm:w-11 ')
+    + (tone === 'ghost' ? 'btn-ghost hover:text-primary' : 'btn-ghost text-primary');
+  const entryTitle = /* nested: entryTitle, lines 1523-1527 */;
+  const entry = /* nested: entry, lines 1528-1537 */;
+  entry.icon = ENTRY_ICON;
+  entry.cls = entryCls;
+  entry.title = entryTitle;
+
+  // One level down from `parent`. See the drilling note at the top.
+  function drill(parent, o = {}) {
+    const crumb = [parent && parent.title, o.subtitle].filter(Boolean).join(' · ');
+    return open({ ...o, back: true, subtitle: crumb });
+  }
+
+  window.swipeDeck = { core, open, drill, entry, keys, h, stack: STACK,
+                       top: () => STACK[STACK.length - 1] || null };
+}
+=== B: lib/alpineComponents/here-view.js:40#4 | addEventListener(alpine:init) > data(hereView) (part 4 of 4) ===
+      // Be on the selected card, without travelling to it. The strip may not
+      // have its width yet (it was hidden, or the list just arrived), so the
+      // landing waits a frame and tries a few more before giving up.
+      jump/* nested: jump, lines 732-739 */,
+      scrollTo/* nested: scrollTo, lines 740-749 */,
+      // Up and down in the list step the selection, the strip following.
+      key(d) {
+        this.go(this.at + d, true);
+        this.$nextTick(() => this.rowEl()?.focus({ preventScroll: true }));
+      },
+      rowEl() {
+        const id = this.cur?.id;
+        return id ? this.$refs.list?.querySelector('[data-id="' + CSS.escape(id) + '"]') : null;
+      },
+      // Keep the selected row in view INSIDE THE LIST, never by scrolling the
+      // page: a swipe through the cards walks the selection down rows the
+      // reader may have scrolled away from.
+      reveal/* nested: reveal, lines 762-770 */,
+
+      // ── The expander: the deck takeover over the same items ────────────────
+      // Opened on the card in view; a swipe in the deck moves the selection,
+      // and closing it lands the strip and the list where the swipe left off.
+      async expand/* nested: expand, lines 775-818 */,
+
+      reload() { return this.source === 'page' ? this.loadPage() : this.loadStorage(); },
+
+      async loadStorage/* nested: loadStorage, lines 822-876 */,
+
+      // ── What the courier's page stores ─────────────────────────────────────
+      get courierHost() { return window.__shell?.courierHost || ''; },
+      // One request to the page, answered as parsed JSON. kits/page-storage.js
+      // is what runs there, read through the Stage's link.
+      async askPage/* nested: askPage, lines 882-887 */,
+      async loadPage/* nested: loadPage, lines 888-921 */,
+      // A page value shows as a local one does (lsShown's rules, the token mask
+      // included); a page store shows its first records, the meta saying so
+      // when the store holds more.
+      async pageContent/* nested: pageContent, lines 925-948 */,
+    };
+  }
+##### PAIR 24
+=== A: lib/kits/json-explorer.js:628 | call(…) > mount > renderTable > forEach(…) ===
+(r, i) => {
+          tbody.append(h('tr', { class: 'hover:bg-base-200/40' },
+            h('td', { class: 'text-right tabular-nums text-base-content/40' }, String(i + 1)),
+            ...cols.map(/* nested: map(…), lines 631-638 */)));
+        }
+=== B: pages/pivot-table.html:593 | renderPivot > forEach(…) > forEach(…) ===
+(r2, idx) => {
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-base-200/40';
+          let rowHtml = '';
+
+          // Parent cell with rowspan
+          if (idx === 0) {
+            const spanCount = subKeys.length + (showSubtotals && hasHierarchy ? 1 : 0);
+            rowHtml += `<td rowspan="${spanCount}" class="align-top font-bold bg-base-100 border-r border-base-300">
+              <span class="tree-toggle" onclick="toggleNode('${r1}')">-</span>${r1}
+            </td>`;
+          }
+
+          if (hasHierarchy) {
+            rowHtml += `<td class="pl-4 opacity-90">${r2}</td>`;
+          }
+
+          let childRowAccum = [];
+          colKeys.forEach(/* nested: forEach(…), lines 611-636 */);
+
+          if (showGrandTotals) {
+            const rowTot = computeAgg(childRowAccum);
+            rowHtml += `<td class="pivot-num font-semibold bg-base-200/30">${formatAccounting(rowTot, isFTE)}</td>`;
+          }
+
+          tr.innerHTML = rowHtml;
+          tbody.appendChild(tr);
+        }
+##### PAIR 25
+=== A: lib/kits/json-explorer.js:23 | call(…) ===
+function () {
+  // ── DOM Helpers ──────────────────────────────────────────────────────────
+  const h = /* nested: h, lines 25-40 */;
+
+  // vanilla-bundle.js's window.esc, the one escape: it quotes as well, which
+  // the textContent trick this replaced did not.
+  const esc = (s) => window.esc(s);
+
+  // The clipboard write is kits/io.js's (node/test/clipboard-one-owner.test.mjs).
+  // Fetched at load time so the write runs inside the tap that asked for it;
+  // without io.js the modern API alone is the fallback.
+  const ghRef = typeof gh !== 'undefined' ? gh : (window.gh || null);
+  if (!window.io && ghRef) ghRef.load('kits/io.js').catch(() => {});
+  const copyText = async (text) => {
+    if (window.io && typeof window.io.copy === 'function') return window.io.copy(text);
+    try { await navigator.clipboard.writeText(text); return true; } catch { return false; }
+  };
+
+  const fmtBytes = /* nested: fmtBytes, lines 56-61 */;
+
+  const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
+
+  const formatIsoDate = /* nested: formatIsoDate, lines 65-87 */;
+
+  // ── JsonProfile: Schema & Structure Analyzer ─────────────────────────────
+  const JsonProfile = {
+    analyze/* nested: analyze, lines 91-174 */,
+  };
+
+  // ── JsonExplorer Component ───────────────────────────────────────────────
+  //
+  // A PROPERTY SHEET, not a syntax-coloured dump. Reworked 2026-10-22 on the
+  // owner's report from the session form's Raw tab: "it's all cluttered, and
+  // there's too much going on, and it raises the question of what we're really
+  // trying to show here." What a reader opens a record's raw form to learn is
+  // which fields it has, how much of the whole each one is, and what one of
+  // them holds. So a row is a key and its value, a collection says how many
+  // items it has, and its size sits in a right-hand column the eye can run
+  // down, which is the comparison a 5.7 MB record invites (where did the bytes
+  // go). Colour is spent once, on the filter's matches (house style rule 10).
+  //
+  // What went, and why each was clutter rather than capability:
+  //   - the syntax palette (green strings, blue numbers, amber booleans): it
+  //     coloured every value by type, which the value's own text already says;
+  //   - the chunk select, a second copy of the tree's own drill-in;
+  //   - Collapse / Depth 1 / Expand: "Expand" laid every node of a 5.7 MB record
+  //     into the page at once, and the other two were the default view and its
+  //     collapse; one icon now returns to the top level, shown when there is
+  //     something to collapse;
+  //   - the per-row copy-path and copy-value buttons, revealed on hover, which a
+  //     touch screen has none of. Copy acts on whatever the tree is opened to;
+  //   - the root row, which drew "nullnull" because Element.append writes a
+  //     null argument as the text "null", and said nothing the crumbs do not;
+  //   - the rebuilt toolbar: every keystroke in the filter re-rendered the
+  //     toolbar and replaced the input, so a second character never landed.
+  //     The chrome is built once and updated in place.
+  const JsonExplorer = {
+    mount/* nested: mount, lines 205-746 */,
+  };
+
+  window.JsonProfile = JsonProfile;
+  window.JsonExplorer = JsonExplorer;
+}
+=== B: lib/kits/swipe-deck.js:442#4 | call(…) > open (part 4 of 5) ===
+      // measured from where they left it rather than from the top.
+      deck.onSlide(() => setHidden(false));
+      // A slide built WHILE the chrome is away arrives with its own chrome
+      // showing, because it was not in the DOM when the toggle ran. The deck
+      // builds neighbours ahead of the reader, so this is the ordinary case
+      // and not an edge: swiping to the next document mid-read would otherwise
+      // flash a band that nothing asked for.
+      const dressSlides = new MutationObserver(() => {
+        if (!hidden) return;
+        for (const el of panel.querySelectorAll('[data-sd-chrome]:not(.hidden)')) el.classList.add('hidden');
+      });
+      dressSlides.observe(deck.track, { childList: true, subtree: true });
+      // `dockWatch` is the deck's release list rather than the dock's alone,
+      // despite its name: cleanup() drains it on close.
+      dockWatch.push(() => dressSlides.disconnect());
+    }
+
+    // ── THE CONTENTS ────────────────────────────────────────────────────────
+    //
+    // A list of every slide, over the track, opened from the mark. It earns its
+    // place where the footer stops helping: the pager draws dots only while
+    // they stay countable and a bare progress bar past that, which says where
+    // the reader is and nothing about what the rest of the deck holds.
+    //
+    // IT TAKES A HISTORY ENTRY, for the same reason the deck itself does: on a
+    // phone, Back is what a reader reaches for, and a panel that ignores it
+    // throws them out of the deck instead of out of the list. That is the whole
+    // cost of this feature, and it is paid in three places, all of them here:
+    // `onPop` closes the list before it closes the deck, `indexPop` swallows
+    // the pop that closing programmatically causes (otherwise the deck reads
+    // its own tidy-up as a Back press and shuts), and `dismiss` counts the open
+    // lists across the stack so one ✕ still unwinds to the right depth.
+    let indexOpen = false, indexPop = 0;
+    let restIcon = o.icon || 'ph-cards';
+    // The glyph names what tapping DOES, never the state it is in, which is the
+    // rule the pane toggle above already follows: on a row of chrome nothing
+    // should have to be read twice.
+    // ph-caret-up, and NOT ✕, though "close the list" is what it does: the
+    // header already carries a ✕ at its left end, and two of them on one row
+    // would ask the reader which one closes what. A caret puts a panel away.
+    const paintMark = /* nested: paintMark, lines 1110-1116 */;
+    paintMark();
+    // A DROPDOWN, not a second takeover. Filling everything under the header is
+    // what a list of 47 wants if you think of it as a screen; it is not one.
+    // The reader is mid-document and glancing at where else they could go, so
+    // covering the document to say so takes the thing they are keeping their
+    // place in. A panel hung under the mark says the same list, scrolls inside
+    // itself, and leaves the page it belongs to visible behind it, which is
+    // also what makes tapping away an obvious way out. Height is capped rather
+    // than fitted: 47 rows and 3 both want a panel that ends before the footer.
+    const sheet = h('div', { class: 'sd-index absolute z-20 w-80 max-w-[calc(100%-1rem)] '
+      + 'max-h-[min(60vh,26rem)] overflow-y-auto overscroll-contain scrollbar-thin '
+      + 'rounded-xl border border-base-300 bg-base-100 shadow-xl' });
+    // `section` is a heading for a run of rows: printed once, above the first
+    // row of each run, as a non-button line. A caller naming none gets the
+    // flat list it always had, so `.sd-index` children stay rows for it.
+    let rowEls = [];
+    const buildIndex = /* nested: buildIndex, lines 1133-1183 */;
+    // Tapping the page behind a dropdown closes it, which is the affordance a
+    // takeover did not have and did not need.
+    const awayFromIndex = (e) => {
+      if (!indexOpen || sheet.contains(e.target) || mark.contains(e.target)) return;
+      closeIndex();
+    };
+    const openIndex = /* nested: openIndex, lines 1190-1210 */;
+    const closeIndex = /* nested: closeIndex, lines 1211-1225 */;
+    if (indexOf) mark.addEventListener('click', () => indexOpen ? closeIndex() : openIndex());
+
+    // ── THE SEAM ────────────────────────────────────────────────────────────
+    // Docked, the deck's left edge is a boundary between two things the reader
+    // is using at once. The handle sits ON that edge, inside the overlay,
+    // straddling it; without it the width is one CSS clamp, a decent guess and
+    // never the reader's.
+    //
+    // TWO HOOKS, TWO CLAIMS, and the second is deliberately separate from the
+    // first. `window.__deckPane` says the host can dock at all; `__deckWidth`
+    // says it can also be TOLD how wide, a different capability a host may
+    // honestly have without the other (a fixed sidebar can dock a deck beside
+    // itself and have nowhere to put a variable width). A host with only the
+    // first, or a page that never loaded kits/dock-split.js, gets exactly the
+    // dock it had before this existed.
+    const canSize = () => typeof window.__deckWidth === 'function' && window.dockSplit;
+    let splitter = null;
+    // INLINE, not utility classes, and this is the one place in the kit where
+    // that is not a style preference. The seam is created after the page's
+    // Tailwind build has scanned the DOM, so its utilities may not have been
+    // compiled when it mounts, and an uncompiled handle has no height: it is
+    // hit-testable nowhere, and that reads as a drag that does nothing rather
+    // than as a missing stylesheet. Everything the kit's own injected CSS draws
+    // is fine; only the placement, which is the caller's half, has to be immune.
+    //
+    // A SIBLING OF THE OVERLAY, not its child. The overlay has to clip the
+    // horizontal slide track, while a handle on its left edge has to straddle
+    // that edge. Putting the seam inside overflow-hidden cut off the left half
+    // of the grip and forced the percentage badge off to the right as a
+    // workaround. Fixed against the same root variables, the seam follows the
+    // deck exactly without inheriting its clip, so both affordances can sit on
+    // the divider they describe.
+    const seam = h('div');
+    Object.assign(seam.style, {
+      position: 'fixed', left: 'var(--deck-left,0px)',
+      top: 'var(--deck-top,0px)', bottom: 'var(--deck-bottom,0px)',
+      width: '6px', transform: 'translateX(-50%)', zIndex: '75',
+    });
+    const syncSeam = /* nested: syncSeam, lines 1264-1288 */;
+    // THE PANE CAN CHANGE WITHOUT THE BUTTON, and the deck has to notice. The
+    // host re-derives the pane whenever its sidebar opens or closes, on a
+    // restore from storage, and on any width change, and every one of those is
+    // a `data-deck-pane` write the toggle never sees. Watching the attribute is
+    // also the honest reading of the hook's contract, which lets a host refuse
+    // a dock by simply not changing the value: a kit that trusts its own click
+    // cannot see that refusal. The lock rides along, since a pane that changed
+    // underneath leaves it describing the old one.
+    const paneWatch = new MutationObserver(() => { applyLock(); syncPane(); syncSeam(); });
+    paneWatch.observe(document.documentElement, { attributes: true, attributeFilter: ['data-deck-pane'] });
+
+    const sync = /* nested: sync, lines 1300-1308 */;
+    deck.onSlide(sync);
+    sync(0);
+
+    // ── Stacking ───────────────────────────────────────────────────────────
+    //
+    // A deck opened from inside a deck is how drilling works: it is a
+    // navigation stack rather than visible nesting, and the nesting lives in
+    // the return path.
+    //
+    // ONE module-level STACK, and only its top answers `popstate` and
+    // `keydown`. A deck that assumes it is the only one alive breaks that
+    // return path twice: every deck registering its own `popstate` means one
+    // history.back() fires all of them, so a single Back closes the whole
+    // stack; every deck registering its own `keydown` means one ArrowRight
+    // steps the child AND the parent underneath it, so popping back lands on a
+    // slide the reader never chose. Each deck keeps its own listeners (removing
+    // them on cleanup stays local) and both handlers return early unless this
+    // deck is on top.
+    //
+    // The overflow lock needs nothing: each deck saves the value it found and
+    // restores it, so a child saves `hidden` and restores `hidden` while the
+    // parent restores the original. (`prevOverflow` is taken at the top of
+    // open(), beside the pane contract that decides whether it is set at all.)
+    let closed = false;
+    const onTop = () => STACK[STACK.length - 1] === handle;
+    const cleanup = /* nested: cleanup, lines 1334-1356 */;
+    // Leaving a deck means leaving everything stacked ON it, which is what a
+    // navigation stack does: popping to a level discards the levels above.
+    // Ordinarily there is nothing above (the reader dismisses what they are
+    // looking at), and this is one history.back(). A caller that closes a
+    // parent while a child is open gets the child closed with it, and the
+    // history unwinds in one go() so no dead entries are left behind for a
+    // later Back to spend itself on.
+##### PAIR 26
+=== A: lib/kits/json-explorer.js:205#2 | call(…) > mount (part 2 of 2) ===
+      // ── JSON ───────────────────────────────────────────────────────────
+      const renderRaw = /* nested: renderRaw, lines 649-654 */;
+
+      // ── Chrome, updated in place ───────────────────────────────────────
+      const show = (el, on, display = 'flex') => { el.classList.toggle('hidden', !on); el.classList.toggle(display, on); };
+      const syncChrome = /* nested: syncChrome, lines 658-708 */;
+
+      const render = /* nested: render, lines 710-717 */;
+
+      // ── Public navigation ──────────────────────────────────────────────
+      const setView = /* nested: setView, lines 720-724 */;
+      const focusChunk = /* nested: focusChunk, lines 725-732 */;
+
+      render();
+
+      return {
+        get profile() { return getProfile(); },
+        setView,
+        focusChunk,
+        updateSearch,
+        destroy: () => {
+          clearTimeout(searchTimer);
+          root.remove();
+        },
+      };
+    }
+=== B: lib/kits/swipe-deck.js:147 | call(…) ===
+() => {
+  const h = /* nested: h, lines 148-157 */;
+
+  let styled = false;
+  const ensureStyle = /* nested: ensureStyle, lines 160-192 */;
+
+  // ── THE KEYS OF A STRIP ─────────────────────────────────────────────────
+  //
+  // A deck opened with open() answers Left and Right itself (onKey, inside
+  // open()). A strip embedded in a page answered nothing unless its caller
+  // wired a handler, and five had, each to the same rule: the branch page's
+  // file strip, the file browser, the waiting view, the user-call form, and
+  // budget-drs's corpusSwiper in home. This is that rule, once:
+  //
+  //   Left and Right only, with no modifier, and never while focus is in a
+  //   field (an input, a textarea, a select, anything contentEditable).
+  //
+  //   The strip takes them while the pointer is over its HOST or focus is
+  //   inside it. The host is what the reader sees as the strip, usually the
+  //   card around the track with its head row, so the arrows answer over the
+  //   card's name as well as over its body.
+  //
+  //   The innermost host wins. A strip inside another strip's card (budget-drs
+  //   shows an item page as a card in a list's strip, and the page has strips
+  //   of its own) takes the key while the pointer is over it, and the strip
+  //   around it takes the key everywhere else on the card.
+  //
+  //   A strip under a deck is out of reach; one inside the deck on top takes
+  //   the key while the pointer is over it, and anywhere else in the deck the
+  //   arrows are the deck's. That is why the listener is on window in the
+  //   CAPTURE phase and stops the event when it acts: the deck's onKey is a
+  //   bubble-phase listener on window, so this one runs first whatever order
+  //   the two were registered in, and the deck does not step too.
+  //
+  // core({ keys: host }) registers its own track. keys(host, step, count) is
+  // the same rule for a track built some other way: `step(d)` moves by d and
+  // `count()` says how many there are, under two meaning the key is not taken.
+  // One registration per host, so registering again replaces it, which is what
+  // a caller rebuilding its track into the same card wants. A host that has
+  // left the document is forgotten on the next key; off() forgets it now.
+  const KEYED = new Map();
+  let keyedListening = false;
+  const typingIn = t => !!t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName || ''));
+  const onScreen = el => {
+    const r = el.getBoundingClientRect();
+    return r.width > 0 && r.right > 0 && r.left < (window.innerWidth || Infinity);
+  };
+  /* nested: onKeyedKey, lines 235-253 */
+  /* nested: keys, lines 254-260 */
+
+  // The core: a horizontal snap track, one slide per item, each slide scrolling
+  // inside itself when its content is long. Returns the track plus an
+  // imperative handle, so different chrome (an inline nav, the takeover's
+  // footer pager) can drive one track.
+  /* nested: core, lines 266-422 */
+
+  // Every open deck, oldest first. The last entry is the one the reader is
+  // looking at, and the only one that answers a key or a Back. See the
+  // stacking note inside open().
+  const STACK = [];
+  // WHETHER A DECK IS OPEN IS THE KIT'S FACT, and it is a different fact from
+  // `data-deck-pane`, which the host owns and which records a standing reader
+  // PREFERENCE. The preference is right to persist (the next file should open
+  // docked too); the reflow has to end with the deck. Keying a dock's reflow on
+  // the preference alone leaves a padding-right the width of a deck that is no
+  // longer there, on every view and across reloads.
+  const syncDeckOpen = /* nested: syncDeckOpen, lines 434-438 */;
+
+  // The fullscreen takeover: a framed panel over the page, header / track /
+  // footer pager. Dots while they stay countable, a progress bar past that.
+  /* nested: open, lines 442-1474 */
+
+  // ── THE DOOR ────────────────────────────────────────────────────────────
+  //
+  // One glyph, estate-wide, for "open this collection in the deck". What it
+  // means has nothing to do with files: it means THIS LIST HAS A READER, so a
+  // reader who learns the glyph once does not re-learn it per surface. It lives
+  // here rather than in a kit of its own because the kit that owns the room
+  // owns the door: every consumer already loads this file, so there is exactly
+  // one place the classes and the wording can drift from.
+  //
+  // A surface is free to add a gesture of its own on top (a row tap, a "read
+  // from here" on a card). What the entry guarantees is a VISIBLE way in, since
+  // a gesture nobody is told about is a feature only its author can find.
+  //
+  //   swipeDeck.entry({ count, noun, onOpen })  -> <button>
+  //
+  //   count    how many things are in the collection; omitted or 0 renders the
+  //            wording without a number, for a caller that has not fetched yet
+  //   noun     singular, 'file' / 'record' / 'chat'. Pluralized here.
+  //   onOpen   the click handler
+  //   tone     'primary' (default) or 'ghost', for a surface where the deck is
+  //            not the main thing on offer
+  //   size     'sm' (default, carrying the phone floor below), 'tight' (the
+  //            same button without that floor) or 'md', to sit in a row of
+  //            full-size icon buttons rather than in a strip of its own
+  //   icon     override, for the rare collection with a glyph of its own
+  //
+  // TONE IS THE HOST'S JUDGMENT, not the kit's: primary where the deck is what
+  // most readers came to do, ghost where it is one lens among several. Same
+  // glyph, same wording, same promise, only the emphasis moving, which is what
+  // keeps this a parameter rather than two buttons that drift. Primary colours
+  // the GLYPH and not a ground behind it, and ghost earns its colour on hover
+  // rather than at rest.
+  //
+  // The three pieces hang off the function too, since a template-driven host
+  // has to build its own element and should still not restate the class list or
+  // the wording: `entry.icon`, `entry.cls(tone, size)`, `entry.title(count, noun)`.
+  const ENTRY_ICON = 'ph-cards-three';
+  // `size` names the button's own size AND, at 'sm', the 44px phone floor the
+  // estate keeps on an icon control. The floor is the DEFAULT and 'tight' is
+  // the opt-out, because taking the bump out of the shared class to tighten one
+  // surface silently dropped every other door on every other surface to 32px on
+  // a phone, one of them 12px short of the three siblings on its own row. The
+  // surface that wants the smaller target is the one that declares it.
+  const entryCls = (tone = 'primary', size = 'sm') =>
+    'btn btn-square '
+    + (size === 'md' ? '' : size === 'tight' ? 'btn-sm ' : 'btn-sm max-sm:h-11 max-sm:w-11 ')
+    + (tone === 'ghost' ? 'btn-ghost hover:text-primary' : 'btn-ghost text-primary');
+  const entryTitle = /* nested: entryTitle, lines 1523-1527 */;
+  const entry = /* nested: entry, lines 1528-1537 */;
+  entry.icon = ENTRY_ICON;
+  entry.cls = entryCls;
+  entry.title = entryTitle;
+
+  // One level down from `parent`. See the drilling note at the top.
+  function drill(parent, o = {}) {
+    const crumb = [parent && parent.title, o.subtitle].filter(Boolean).join(' · ');
+    return open({ ...o, back: true, subtitle: crumb });
+  }
+
+  window.swipeDeck = { core, open, drill, entry, keys, h, stack: STACK,
+                       top: () => STACK[STACK.length - 1] || null };
+}
+##### PAIR 27
+=== A: lib/alpineComponents/here-view.js:40#3 | addEventListener(alpine:init) > data(hereView) (part 3 of 4) ===
+            </section>
+
+            <section class="flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden rounded-box border border-base-300 bg-base-100">
+              <div class="flex items-center gap-1 shrink-0 min-h-12 pl-3 pr-1 py-1 border-b border-base-300 bg-base-200/60">
+                <div x-show="items.length > 1" class="flex items-center shrink-0 sm:-ml-2">
+                  <button type="button" class="btn btn-xs btn-ghost btn-square max-sm:hidden" @click="go(at - 1)"
+                          :disabled="at <= 0" aria-label="Previous"><i class="ph ph-caret-left"></i></button>
+                  <span class="font-mono text-xs opacity-60 tabular-nums px-1" x-text="(at + 1) + '/' + items.length"></span>
+                  <button type="button" class="btn btn-xs btn-ghost btn-square max-sm:hidden" @click="go(at + 1)"
+                          :disabled="at >= items.length - 1" aria-label="Next"><i class="ph ph-caret-right"></i></button>
+                </div>
+                <div class="grow min-w-0 pl-1">
+                  <div class="font-mono font-semibold truncate" x-text="cur ? cur.title : ''"></div>
+                  <div class="text-sm text-base-content/60 truncate" x-text="cur ? cur.meta : ''"></div>
+                </div>
+                <button type="button" class="btn btn-sm btn-ghost btn-square shrink-0" @click="expand()" :disabled="!items.length"
+                        aria-label="Swipe through these, full screen">
+                  <i class="ph ph-arrows-out-simple text-lg"></i></button>
+              </div>
+              <!-- data-no-swipe: a sideways drag here is the strip's, never the
+                   shell's view pager, even with one card and nothing to scroll. -->
+              <div x-ref="strip" x-show="items.length > 0" data-no-swipe @scroll.passive="stripScroll()"
+                   class="flex-1 min-h-0 flex snap-x snap-mandatory overflow-x-auto overflow-y-hidden overscroll-x-contain
+                          [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <template x-for="it in items" :key="it.id">
+                  <div data-slide :data-id="it.id" class="w-full shrink-0 snap-center min-h-0 flex flex-col overflow-hidden p-2"></div>
+                </template>
+              </div>
+            </section>
+          </div>
+        </div>`,
+
+      init/* nested: init, lines 398-426 */,
+
+      // ── Where the reader came from ─────────────────────────────────────────
+      get fail() { return window.__shell?.authFail || null; },
+      get next() { return window.__shell?.hereNext || ''; },
+      get backHref() { return /^[?#]/.test(this.next) ? location.pathname + this.next : '../' + this.next.replace(/^\.\.\//, ''); },
+
+      get failTitle/* nested: failTitle, lines 433-440 */,
+      // The request line as gh-api.js sent it, method and API path, cut after
+      // each slash, ? and & so the template can offer a line break there.
+      get failRequestParts/* nested: failRequestParts, lines 443-449 */,
+
+      // ── Identity: where this is, and the reader's name for it ──────────────
+      get contextLine/* nested: contextLine, lines 452-456 */,
+      get suggestion() { return BK() ? BK().kind(this.ctx) : ''; },
+
+      // ── The token: each getter is one field's value ────────────────────────
+      get kind() { return tokenKind(this.saved); },
+      get savedLine() {
+        const m = this.meta;
+        return m && m.savedAt ? fmtWhen(m.savedAt) : 'not recorded';
+      },
+      get acceptedLine() {
+        const m = this.meta;
+        return m && m.okAt ? fmtWhen(m.okAt) + (m.login ? ' as ' + m.login : '') : 'not recorded';
+      },
+      get scopesLine/* nested: scopesLine, lines 469-474 */,
+      get missingRepoScope() {
+        return this.check.state === 'ok' && !!this.saved && !/^github_pat_/.test(this.saved)
+          && Array.isArray(this.check.scopes) && !this.check.scopes.includes('repo');
+      },
+      get rateLine/* nested: rateLine, lines 479-483 */,
+      get statusValue/* nested: statusValue, lines 484-495 */,
+      get statusIcon/* nested: statusIcon, lines 496-501 */,
+      // What the note and the token say together. The note is set on purpose,
+      // so its presence or absence separates a token removed on its own from a
+      // storage that was cleared or is new. A classic token that /user accepts
+      // with no `repo` scope in x-oauth-scopes cannot read private repositories,
+      // which GitHub hides as 404.
+      get cause/* nested: cause, lines 507-514 */,
+
+      // One plain fetch, deliberately outside GH.prototype.req: gh-auth watches
+      // that path, and a check that failed into the failure handler would route
+      // this view to itself. /rate_limit costs nothing against the limit, which
+      // is why the no-token case asks it rather than /user.
+      async checkToken/* nested: checkToken, lines 520-552 */,
+
+      // Saving reloads, as repo.js and fab.js do: a token is an account
+      // boundary, and half a page painted without one is not worth reconciling.
+      // The reload stays on this view, where the new token is checked, and
+      // Back turns green once GitHub accepts it and no read has failed since.
+      // The tail left in sessionStorage is how the reloaded view knows a save
+      // just happened.
+      saveToken/* nested: saveToken, lines 560-571 */,
+      removeToken/* nested: removeToken, lines 572-576 */,
+
+      // ── The note ───────────────────────────────────────────────────────────
+      saveNote/* nested: saveNote, lines 579-589 */,
+
+      // ── What this origin stores ────────────────────────────────────────────
+      get lsSummary/* nested: lsSummary, lines 592-596 */,
+      get dbSummary/* nested: dbSummary, lines 597-603 */,
+      // The estimate covers quota-managed storage (IndexedDB, caches), not the
+      // HTTP cache, and Web Storage is counted separately by lsSummary.
+      // Persistent is the browser's promise not to clear storage on its own.
+      get storageLine() {
+        return [this.srcHost || this.host, this.quotaLine ? this.quotaLine + ' quota storage' : '',
+                this.persisted == null ? '' : (this.persisted ? 'persistent' : 'not persistent')].filter(Boolean).join(' · ');
+      },
+      get quotaLine() {
+        if (this.usage == null) return '';
+        return fmtBytes(this.usage) + (this.quota ? ' / ' + fmtBytes(this.quota) : '');
+      },
+
+      // ── Tabs and the item in view, both part of the address ────────────────
+      // Held on the shell (hereTab, hereItem) and stamped by its route row, so
+      // ?view=here&tab=stored&item=ls:visits names what is on screen. A tab is
+      // a history entry; the item is written in place, since a swipe through
+      // twenty cards is not twenty places to go Back to. An item id is
+      // `ls:<key>` or `idb:<database>/<store>`.
+      get tab() { return window.__shell?.hereTab || 'token'; },
+      setTab/* nested: setTab, lines 623-628 */,
+      get selId() { return window.__shell?.hereItem || ''; },
+      // What the detail shows: the item the address names when it still
+      // exists, else the first in the list. The default is never written to
+      // the address, so arriving does not add a history entry Back would land
+      // on only to be sent forward again.
+      get shownId() {
+        const ids = this.items.map(it => it.id);
+        return ids.includes(this.selId) ? this.selId : (ids[0] || '');
+      },
+      select/* nested: select, lines 638-645 */,
+      // The list's items in its own order, which is the strip's and the deck's.
+      get items/* nested: items, lines 647-656 */,
+      get at() { return Math.max(0, this.items.findIndex(it => it.id === this.shownId)); },
+      get cur() { return this.items[this.at] || null; },
+      plural(n, noun) { return n + ' ' + noun + (n === 1 ? '' : 's'); },
+      // What a card shows: a localStorage value as lsShown names it, a store
+      // as its records under a .json name, which READ_MODE lays out as a table
+      // when every record is a plain object and as a tree otherwise.
+      async itemContent/* nested: itemContent, lines 663-668 */,
+      async storeRows/* nested: storeRows, lines 669-677 */,
+
+      // ── The strip ──────────────────────────────────────────────────────────
+      // A card mounts its viewer when the strip comes within one card of it and
+      // then stays mounted, so swiping back is instant.
+      panels() { return [...(this.$refs.strip?.querySelectorAll('[data-slide]') || [])]; },
+      mountNear/* nested: mountNear, lines 683-692 */,
+      // The card nearest the strip's left edge, read off the scroll.
+      nearest/* nested: nearest, lines 694-698 */,
+      stripScroll/* nested: stripScroll, lines 699-714 */,
+      // Move to item i: the selection at once, the strip after it. `instant`
+      // for a pick in the list, where animating past twenty cards is noise.
+      go/* nested: go, lines 717-724 */,
+      pick(id) {
+        const i = this.items.findIndex(it => it.id === id);
+        if (i >= 0) this.go(i, true);
+      },
+=== B: lib/alpineComponents/user-call-form.js:69#4 | call(…) (part 4 of 4) ===
+               @pointerenter="hovered = true" @pointerleave="hovered = false" @pointerdown="hovered = true"
+               class="relative flex-1 min-h-0 flex flex-col rounded-xl border border-base-300 bg-base-100 overflow-hidden">
+            <div class="shrink-0 flex h-10 items-center gap-2 px-3 border-b border-base-300 bg-base-200/60 min-w-0">
+              <button type="button" data-mat-list-btn @click="listOpen = !listOpen"
+                      class="btn btn-sm btn-square btn-ghost shrink-0 -ml-1" :class="listOpen && 'bg-primary/10 text-primary'"
+                      :data-title-tip="listOpen ? 'Back to the file' : 'Contents'">
+                <i class="ph text-lg" :class="listOpen ? 'ph-caret-up' : mats[at]?.icon"></i></button>
+              <span class="truncate text-sm" x-text="mats[at]?.label"></span>
+              <!-- GitHub only as its own mark beside the name, never as the
+                   way to open a thing: the estate's rule for any file. -->
+              <a x-show="mats[at]?.gh" :href="mats[at]?.gh" target="_blank" rel="noopener"
+                 class="btn btn-ghost btn-xs btn-square shrink-0 opacity-50 hover:opacity-100" data-title-tip="On GitHub">
+                <i class="ph ph-github-logo text-base"></i></a>
+              <span class="grow"></span>
+              <div x-show="mats.length > 1" class="flex items-center shrink-0">
+                <button type="button" class="btn btn-xs btn-ghost btn-square max-sm:hidden" @click="go(at - 1)" :disabled="at <= 0">
+                  <i class="ph ph-caret-left"></i></button>
+                <span class="font-mono text-xs opacity-60 tabular-nums px-1" x-text="(at + 1) + '/' + mats.length"></span>
+                <button type="button" class="btn btn-xs btn-ghost btn-square max-sm:hidden" @click="go(at + 1)" :disabled="at >= mats.length - 1">
+                  <i class="ph ph-caret-right"></i></button>
+              </div>
+              <!-- Full screen is a deck over this one, not a new tab: back
+                   returns here, at the slide the reader left. -->
+              <button type="button" @click="expand()" :disabled="!mats[at]?.peek" :aria-hidden="mats[at]?.peek ? null : 'true'"
+                      class="btn btn-sm btn-square btn-ghost shrink-0" :class="!mats[at]?.peek && 'invisible'" :data-title-tip="deckDoor.title" :aria-label="deckDoor.title">
+                <i class="ph text-lg" :class="deckDoor.icon"></i></button>
+            </div>
+            <div x-show="listOpen" @click.outside="if (!$event.target.closest('[data-mat-list-btn]')) listOpen = false"
+                 class="absolute left-1 top-11 z-20 w-80 max-w-[calc(100%-0.5rem)] max-h-[calc(100%-3.25rem)] overflow-y-auto
+                        rounded-xl border border-base-300 bg-base-100 shadow-xl">
+              <template x-for="(m, i) in mats" :key="i">
+                <button type="button" @click="listOpen = false; go(i)"
+                        class="flex w-full items-center gap-2.5 border-b border-base-200 px-3 py-2 text-left"
+                        :class="i === at ? 'bg-primary/10' : 'hover:bg-base-200/60'">
+                  <span class="w-5 shrink-0 text-right font-mono text-xs tabular-nums" :class="i === at ? 'text-primary' : 'opacity-40'" x-text="i + 1"></span>
+                  <i class="ph shrink-0 opacity-50" :class="m.icon"></i>
+                  <span class="truncate text-sm" :class="i === at && 'font-semibold text-primary'" x-text="m.label"></span>
+                </button>
+              </template>
+            </div>
+            <div x-ref="strip" @scroll.passive="onStrip()"
+                 class="flex-1 min-h-0 flex snap-x snap-mandatory overflow-x-auto overflow-y-hidden overscroll-x-contain
+                        [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <template x-for="(m, i) in mats" :key="i">
+                <div data-slide class="relative w-full shrink-0 snap-center min-h-0">
+                  <template x-if="m.peek?.kind === 'html' && (Math.abs(i - at) <= 1 || seen[i])">
+                    <iframe :src="m.peek.url" x-init="seen[i] = true" class="absolute inset-0 w-full h-full border-0 bg-base-100"
+                            sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>
+                  </template>
+                  <template x-if="m.peek?.kind === 'md' || m.peek?.kind === 'text'">
+                    <div x-init="fill(m.peek)" class="absolute inset-0 overflow-y-auto overflow-x-hidden [overflow-wrap:anywhere] [&_pre]:whitespace-pre-wrap px-4 py-3 text-base leading-7
+                                [&_h1]:text-xl [&_h1]:font-semibold [&_h2]:text-lg [&_h2]:font-semibold [&_h2]:mt-4 [&_p]:my-2
+                                [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:link [&_code]:font-mono
+                                [&_code]:text-sm [&_table]:text-sm [&_pre]:font-mono [&_pre]:text-sm [&_pre]:leading-6
+                                [&_th]:text-left [&_th]:pr-3 [&_td]:pr-3 [&_td]:align-top [&_th:first-child]:whitespace-nowrap [&_td:first-child]:whitespace-nowrap"
+                         x-html="m.peek.html || ''"></div>
+                  </template>
+                  <!-- THE NOTES: the question a reader has at each mark and its
+                       answer, one row each. The pinned or pointed-at note is
+                       tinted, and its mentions light in the card above. -->
+                  <template x-if="m.kind === 'notes'">
+                    <div data-notes @click="noteClick($event)"
+                         class="absolute inset-0 overflow-y-auto overflow-x-hidden px-2 pt-2 pb-20 grid content-start gap-0.5 text-[15px] leading-snug
+                                [&_[data-lit]]:rounded-[3px] [&_[data-lit]]:bg-[color-mix(in_oklab,var(--color-primary)_14%,transparent)]">
+                      <template x-for="n in notes" :key="n.id">
+                        <div :data-note="n.id" role="button" tabindex="0" @keydown.enter.prevent="pinNote(n.id)" :aria-pressed="String(pin === n.id)"
+                             class="rounded-lg border px-3 py-2 cursor-pointer transition-colors"
+                             :class="act?.id === n.id ? 'border-[color-mix(in_srgb,var(--color-primary)_45%,var(--color-base-100))] bg-primary/10' : 'border-transparent hover:bg-base-200/60'">
+                          <span class="font-semibold" x-text="n.asks"></span>
+                          <span x-text="n.aside"></span>
+                          <a x-show="n.link" :href="entHref(n.link)" target="_blank" rel="noopener" class="ml-0.5 text-primary hover:opacity-70"
+                             :data-title-tip="entSource(n.link)" :aria-label="'Open ' + entSource(n.link)"><i class="ph ph-arrow-up-right align-[-0.1em]"></i></a>
+                        </div>
+                      </template>
+                    </div>
+                  </template>
+                  <!-- THE ADJUSTMENT: what to change, and whether the session
+                       goes ahead or comes back with a new call first. Typing
+                       picks Adjust; Send sends from here, as Take sends from
+                       the card. -->
+                  <template x-if="m.kind === 'adjust'">
+                    <div data-adjust class="absolute inset-0 overflow-y-auto overflow-x-hidden px-4 pt-3 pb-20 grid content-start gap-3">
+                      <p class="leading-snug"><span class="text-base-content/60">Adjusting the recommendation:</span> <span class="font-semibold" x-text="c.recommend"></span></p>
+                      <textarea x-model="note" @input="pick = 'Adjust'" @keydown.ctrl.enter="sendAdjust()" @keydown.meta.enter="sendAdjust()" rows="3"
+                                class="textarea textarea-bordered w-full text-base leading-snug" placeholder="What should change?"></textarea>
+                      <!-- Then: two halves of one control, and a line saying what
+                           the chosen half sets off. -->
+                      <div class="grid gap-1">
+                        <div role="radiogroup" aria-label="Then" class="grid grid-cols-2 gap-1.5">
+                          <template x-for="t in THEN" :key="t.k">
+                            <button type="button" role="radio" :aria-checked="String(then === t.k)" @click="then = t.k" :data-then="t.k"
+                                    class="btn btn-sm btn-ghost min-w-0 flex-nowrap gap-1.5 border"
+                                    :class="then === t.k ? 'border-[color-mix(in_srgb,var(--color-primary)_45%,var(--color-base-100))] bg-primary/10 text-primary hover:bg-primary/15' : 'border-base-300'">
+                              <i class="ph shrink-0" :class="t.icon"></i><span class="truncate" x-text="t.label"></span></button>
+                          </template>
+                        </div>
+                        <p class="text-sm leading-snug text-base-content/70" x-text="THEN.find((t) => t.k === then)?.hint"></p>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <label x-show="pr" class="flex items-center gap-1.5 whitespace-nowrap text-sm opacity-80" :data-title-tip="'Comments the answer on ' + (pr?.label || '') + ', which wakes a subscribed session'">
+                          <input type="checkbox" class="checkbox checkbox-xs" x-model="comment"><span x-text="'Post on #' + (pr?.n || '')"></span></label>
+                        <button type="button" data-adjust-send @click="sendAdjust()" :disabled="!!(!note.trim() || busy)"
+                                class="ml-auto btn btn-sm btn-ghost shrink-0 gap-1 border-[color-mix(in_srgb,var(--color-primary)_45%,var(--color-base-100))] bg-primary/10 text-primary hover:bg-primary/15"
+                                :data-title-tip="note.trim() ? 'Send the adjustment' : 'Say what should change first'">
+                          <span x-show="busy" class="loading loading-spinner loading-xs"></span>
+                          <i x-show="!busy" class="ph ph-paper-plane-tilt"></i><span>Send</span></button>
+                      </div>
+                    </div>
+                  </template>
+                  <template x-if="!m.peek && m.kind !== 'notes' && m.kind !== 'adjust'">
+                    <div class="absolute inset-0 flex items-center justify-center p-6">
+                      <a :href="m.href" target="_blank" rel="noopener" class="btn btn-soft">
+                        <i class="ph" :class="m.icon"></i><span x-text="'Open ' + m.label"></span></a>
+                    </div>
+                  </template>
+                </div>
+              </template>
+            </div>
+            <!-- BREAKING THE WALL: Pip or Pap on the slide showing, one line at
+                 a time; a tap on the bubble gives the next, the ✕ sends them off
+                 for the rest of the visit. -->
+            <!-- Clear of the bottom-right corner, where the app's floating button
+                 sits; the ✕ rides the bubble's own corner. -->
+            <div x-show="aside && !asidesOff" class="pointer-events-none absolute bottom-2 left-2 right-20 z-10 flex items-end gap-2" data-aside>
+              <span class="pointer-events-auto inline-flex drop-shadow-sm" x-html="sprite(aside?.who)" :aria-label="castName(aside?.who)"></span>
+              <div class="pointer-events-auto relative max-w-[28rem]">
+                <button type="button" @click="asideAt++" class="w-full rounded-2xl rounded-bl-sm border border-base-300 bg-base-100 py-1.5 pl-3 pr-6 text-left text-sm leading-snug shadow-md">
+                  <span class="font-semibold" x-text="castName(aside?.who) + ':'"></span> <span x-text="aside?.line"></span>
+                  <span x-show="asides.length > 1" class="ml-1 text-xs text-base-content/50" x-text="(asideAt % asides.length + 1) + '/' + asides.length"></span></button>
+                <button type="button" @click="asidesOff = true" class="absolute right-0.5 top-0.5 btn btn-ghost btn-xs btn-circle" aria-label="Send them off"><i class="ph ph-x"></i></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+    </div>`;
+
+  const register = /* nested: register, lines 810-1533 */;
+
+  window.UserCallForm = { linkOf, prFacts, postAnswer, prOf, fillPeek, openBranchDeck, branchUrl };
+  if (window.Alpine?.directive) register();
+  else document.addEventListener('alpine:init', register);
+}
