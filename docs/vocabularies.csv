@@ -1,159 +1,164 @@
-registry,property,value,label,gloss
-app-routes,group,estate,Estate,"Above any repo: the view's subject is the estate (docs/subjects.csv), the constellation read as one thing."
-app-routes,group,repo,Repo,"Reached with a repo open: the view's subject is one repository, or a workspace inside it for the project view."
-app-routes,group,shell,Shell,Addresses that are not a screen of their own.
-harness,layer,python,,Python scripts
-harness,layer,python/annotate,,"standalone scripts that segment, build, patch, project, and check a standoff annotation"
-harness,layer,node,,Node files at the folder root
-harness,layer,node/build,,"generators: snapshot a page or the lib into an offline artifact, or restamp a committed registry"
-harness,layer,node/render,,"exercise a page headlessly: the jsdom logic render, the Chromium pixel render, and their shared CDN resolver"
-harness,layer,node/render/scenarios,,interaction drivers for npm run shot --script: each steers one page into one state before the pixels are taken
-properties,column_primitive,id,,"identifies its row, so other rows and files address it by this value; unique within the registry"
-properties,column_primitive,label,,"drawn from a set and shared across rows, and the sharing is what makes it a class"
-properties,column_primitive,locator,,"resolves to a target outside the row: a path, a URL, or a key into another registry"
-properties,column_primitive,value,,"none of the other three: the content itself, with nothing mechanical to check"
-properties,exclusive,no,,one row may hold several values from the domain
-properties,exclusive,yes,,one row holds at most one value from the domain
-properties,form,column,,reserves a slot on every row
-properties,form,list,,records only where the assertion holds
-properties,mode,computed,,"stamped by a named deriver and held to a re-derivation by a registry gate, never hand-edited. Mode sits on the declaration rather than the property, since the same property can be recorded in one scope and computed in another"
-properties,mode,recorded,,"authored judgment, irreplaceable, never machine-edited"
-properties,required,counted,,"a blank is legal and surfaced as a ledger figure, the count-rather-than-ban posture the computed sets run for authored judgment"
-properties,required,none,,"optional, or filled by practice with no gate behind it"
-properties,required,value,,"an assertion is present for every target: true of every computed field by construction, and of a recorded field a gate checks"
-registries,area,files,Files,the target has a path in this tree
-registries,area,names,Names,"everything else: a name something declared, the registry being what declares it"
-registries,fields,governed,,"every non-key column must be a declared property, so an undeclared field appearing in a computed set is caught as the early symptom of an unaccounted classification"
-registries,fields,ungoverned,,"the columns are exempt from their property definitions. A smell and never a resting state: five registries were marked this way with a written reason and all five reasons were wrong, so the count is asserted at zero and adding one has to change a test"
-registries,membership,computed,,"the rule is executable (a folder, an extension, the router's own table), so the row set can be derived and compared to what is there. Only this side can carry a coverage gate, because only it has something independent to check against"
-registries,membership,curated,,"which targets belong is a judgment, so there is nothing to recompute; the strongest gate available is a promise-to-implementation one"
-registries,span,hub,Hub,"every target is inside this repository, so the checkout is a complete enumeration"
-registries,span,estate,Estate,"targets live in other repositories too, so this repo holds an aggregate and not the population; the CSV still lives here, which is what keeps it gateable"
-writers,kind,agent,Agent,"A model decided what the commit contains, in a session with a transcript."
-writers,kind,process,Process,"Code decided what the commit contains, with no model deciding."
-writers,kind,person,Person,You decided what the commit contains; the program only carries your edit.
-writers,machine,container,Cloud container,"The machine a Claude Code session on the web runs in, on a fresh clone."
-writers,machine,computer,Your computer,"Whatever machine you run Claude Code, Cowork or git on: the personal laptop or the work machine."
-writers,machine,personal-laptop,Home laptop,"The home laptop, as the signed-in user: the laptop daemon, Antigravity and the Codex app run here."
-writers,machine,actions-hosted,GitHub's machines,"GitHub-hosted runners: open network, no local files."
-writers,machine,browser,Your browser,"The Web Tools app with your token, or GitHub's own website."
-writers,machine,iphone,Your phone,"Shortcuts, writing through Log-Repo."
-writers,model,claude,Claude,Anthropic's model.
-writers,model,gemini,Gemini,Google's model.
-writers,model,gpt,GPT,"OpenAI's model, as Codex runs it."
-writers,starts,you,You,"A request: you start it, by hand or in conversation."
-writers,starts,event,An event,"Something happened: a push, a dispatch from another repository, a tab opening."
-writers,starts,time,Time,"A schedule: a Routine, a cron, a phone automation."
-writers,sets_on,local,A local copy,A working tree on one machine; nothing reaches GitHub until it is pushed.
-writers,sets_on,branch,A working branch,A branch on GitHub; a pull-request merge carries it to main.
-writers,sets_on,main,main,"The default branch, set directly."
-writers,mode,replace,Replace,"Sets a file's whole content, creating it or replacing what was there."
-writers,mode,append,Append,"Adds a record and replaces nothing: a line at the end of a file, or a new file per record."
-writers,mode,propose,Propose,Sets on a branch for review; nothing reaches main until a merge.
-writers,mode,merge,Merge,Commits a reviewed branch to main.
-tests,kind,behavior,,exercises the subject and asserts what it does; how it is reached is the method
-tests,kind,gate,,"holds a committed file to its source or to a rule, so a claim in the repo cannot quietly stop being true"
-skills,group,prose,Prose,"the writing itself is the subject: drafting, tightening, outlining, anchoring to sources, showing an edit"
-skills,group,documents,Documents,"a file format is the subject: docx, pdf, pptx, xlsx, and the query language that feeds them"
-skills,group,web,Web,"building something that renders in a browser: markup, components, icons, bundling"
-skills,group,device,Device,"the handset is the constraint, not an incidental viewport: Shortcuts, the iOS pasteboard, a sheet-presented drag"
-skills,group,windows,Windows,the Microsoft stack is the constraint: PowerShell and Office Scripts
-skills,group,session,Session,"the working session itself is the subject: memory, prompts, scheduling, and the skills mechanism"
-outposts,reports,owner,Owner,"the owner supplies each observation, so the record grows only when someone remembers to"
-outposts,reports,outpost,Outpost,"the outpost reports itself and a session or device reads it, with nobody acting"
-upstream-skills,status,watching,Watching,"noted, not yet read"
-upstream-skills,status,studied,Studied,"read, and discussed in notes addressed to it"
-upstream-skills,status,held,Held,"a pinned copy kept under outside/, which the plugin never ships"
-upstream-skills,status,vendored,Vendored,shipped in skills/ exactly as pinned
-upstream-skills,status,adapted,Adapted,shipped in skills/ after changes of our own
-upstream-skills,status,referenced,Referenced,"used by a skill here through a link pinned to its commit; the host supplies it and the plugin never ships it"
-upstream-skills,status,declined,Declined,"read and passed over, kept so it is not proposed again"
-context-sources,discretion,injected,Injected,Included automatically by the platform.
-context-sources,role,content,Content,Instruction text or other material that can be read; its presence here does not prove it entered a session.
-context-sources,role,automation,Automation,Executable machinery that delivers material or controls the environment.
-context-sources,role,configuration,Configuration,Settings and declarations that configure the available machinery.
-context-sources,discretion,instructed,Instructed,An instruction in context asks the assistant to act; acting on it is a separate step.
-context-sources,discretion,reactive,Reactive,Feedback or material arrives in response to an event.
-context-sources,discretion,pulled,Pulled,The user or assistant requests the material.
-context-sources,discretion,outside,Harness only,Configuration or execution outside model context; does not imply that its output can never enter context.
-context-sources,circle,account,claude.ai account,Set in the claude.ai account settings; it applies to every session the account starts.
-context-sources,circle,environment,Cloud environment,Set in the cloud environment or its setup script; it applies to every session in that environment.
-context-sources,circle,user,User scope,"A file in ~/.claude inside the container, written when the environment is built."
-context-sources,circle,plugin,Portable plugin,"Shipped in the portable plugin, which every session installs at user scope."
-context-sources,circle,repo,Checked-out repos,A file in a repository the session has checked out.
-context-sources,circle,session,The session,"Produced inside the session by the harness, such as tool results and messages."
-context-sources,arrives,instructions,Instructions,"Instruction text loaded into context, such as a CLAUDE.md file."
-context-sources,arrives,skill-listing,Skill listing,A skill's name and description in the list of available skills.
-context-sources,arrives,skill,Skill,"A skill's full text, loaded when it is invoked."
-context-sources,arrives,hook,Hook output,"Text a hook prints, which the harness adds to context."
-context-sources,arrives,settings,Settings,"A setting the harness applies; the model sees its effect, not its text."
-context-sources,arrives,install,Install,An installation step that puts other sources in place.
-context-sources,arrives,tool,Tool results,The result of a tool call.
-context-sources,arrives,message,Message,A message the harness adds between turns.
-context-sources,arrives,continuity,Carried forward,Earlier conversation carried into a resumed or compacted session.
-context-sources,arrives,none,Configures only,Nothing reaches the model; the source configures one that does.
-context-sources,when,build,Environment build,"Once, when the cloud environment is built, before any session."
-context-sources,when,start,Session start,When a session starts.
-context-sources,when,invoke,When invoked,Only when the assistant or the user invokes it.
-context-sources,when,turn,Every turn,With every turn of the conversation.
-context-sources,when,event,On an event,"When a particular event happens, such as a tool call or a pull request event."
-context-sources,reach,every,Every session,Every session.
-context-sources,reach,checkout,Repo checked out,Sessions with the repository checked out.
-context-sources,reach,root,Repo is the root,Only sessions whose root is the repository.
-context-sources,reach,invoke,When invoked,Sessions that invoke it.
-context-sources,reach,pr,PR open,Sessions with a pull request open.
-context-sources,read,yes,Directly,A session can read the source itself.
-context-sources,read,copy,Through a copy,A session can read only a committed copy of the source.
-context-sources,read,no,Not at all,A session cannot read the source.
-context-sources,change,pr,Pull request,Anyone can change it through a pull request.
-context-sources,change,owner,Owner only,"Only the owner can change it, in a settings page."
-context-sources,change,session,The session,The session itself can change it.
-context-sources,change,none,Nobody,Nobody can change it.
-context-sources,evidence,receipt,Delivery receipt,The delivering script reports what it delivered.
-context-sources,evidence,reconstructed,Reconstructed,A hook reconstructs what arrived from what it can see.
-context-sources,evidence,recorded,Session record,The session record captures it.
-context-sources,evidence,none,Nothing records it,Nothing records whether it arrived.
-hook-events,phase,session,Session,"The session itself: setup, start, instructions and settings loading, the working directory, compaction, model switches and the end."
-hook-events,phase,prompt,Prompt and reply,"A prompt arriving and the reply it gets, through to the turn ending."
-hook-events,phase,tool,Tool calls,"A tool call: its permission, the call, its result and any MCP input it asks for."
-hook-events,phase,agents,Agents and tasks,"Subagents, teammates, tasks and worktrees."
-agents,kind,definition,,"a Claude Code agent definition file: frontmatter plus a system prompt, loaded by the platform and invoked by name"
-agents,kind,inline,,"a role whose prompt lives inside a skill's text, spawned through the Agent tool when the skill runs; it has no name the platform knows"
-agents,team,critic,,"reviews against a written standard, a verdict per rule of that standard"
-agents,team,panel,,"one seat of the review panel, defined by how it searches; the review-panel skill convenes the seats blind and the closer weighs them"
-peeves,area,writing,Writing,"prose in documents, skills, instructions and drafts"
-peeves,area,naming,Naming,the words chosen for things
-peeves,area,chat-reply,Replies,replies in the conversation
-peeves,area,questions,Questions,when and how to ask the owner something
-peeves,area,reporting,Reporting,"what a reply hands over: links, screenshots, state"
-peeves,area,process,Process,how the work is run
-peeves,area,git-pr,Git and PRs,"branches, pull requests and merging"
-peeves,area,page-design,Pages,what a page or view looks like and how it behaves
-peeves,area,code,Code,code and data as written
-peeves,detector,reader,Reader,a reviewer's judgment; the peeves-critic's job
-peeves,detector,lint,Lint,a script that lists or fails on it
-peeves,detector,hook,Hook,refused or flagged at edit or commit time
-peeves,detector,measure,Measure,"web-tools' page-measures pass, on a rendered page"
-icon-families,group,drawn,Drawn marks,"an SVG drawn for the estate, each file its own picture"
-icon-families,group,phosphor,Phosphor glyphs,"a glyph from the Phosphor icon font, named by its ph- class"
-icon-families,group,emoji,Emoji,"an emoji, written as text where the icon appears"
-showing-mechanisms,glyph,diamond,Deployed page,"the page as the default branch deploys it, which anyone can open"
-showing-mechanisms,glyph,disc,Toss,"a render through pages/toss-render.html, of any ref and any repository the reader's token reaches"
-showing-mechanisms,glyph,box,Claude artifact,"a page published to claude.ai, private to the publisher until shared"
-showing-mechanisms,glyph,x,No marker,"a link handed over without a marker, or no link at all"
-fab-signals,facet,version,Version,"which version of the subject is on screen, and whether it is current"
-fab-signals,facet,viewer,Viewer,what this browser holds that reads depend on
-fab-signals,facet,subject,Subject,"what the FAB sidebar describes: the page, or what is open over it"
-fab-signals,facet,action,Action,something the FAB offers to do with what is on screen
-fab-signals,part,tint,Tint,"the FAB's colour, background and border together"
-fab-signals,part,glyph,Glyph,"the mark at the FAB's centre, one at a time"
-fab-signals,part,top-right,Top-right badge,a badge on the FAB's top-right corner
-fab-signals,part,bottom-right,Bottom-right badge,"a badge on the FAB's bottom-right corner, which takes a tap of its own"
-fab-signals,tone,primary,Primary,"the app's own colour, the FAB at rest"
-fab-signals,tone,warning,Warning,"the view differs from what everyone sees, and the reader may not know"
-fab-signals,tone,error,Error,something the reader needs is missing
-fab-signals,tone,info,Info,newer work the reader may want to see
-fab-signals,tone,success,Success,a check ran and the view is current
-fab-signals,tone,tint,Inherited,the glyph takes the FAB's current colour
-fab-signals,status,live,Live,"fab.js draws it today, and the gate checks the row against that code"
-fab-signals,status,proposed,Proposed,"described here and not yet in fab.js; the gate checks only that its mark exists"
+registry,property,value,label,gloss,icon
+app-routes,group,estate,Estate,"Above any repo: the view's subject is the estate (docs/subjects.csv), the constellation read as one thing.",
+app-routes,group,repo,Repo,"Reached with a repo open: the view's subject is one repository, or a workspace inside it for the project view.",
+app-routes,group,shell,Shell,Addresses that are not a screen of their own.,
+docs,reach,injected,injected,"loaded into every session: the portable plugin's start-up directive has each session invoke /portable:default, which reads docs/CONVERSATION.md and docs/QUALIFIED-WRITING.md",
+docs,reach,project,in context,"named by a document already in every session's context: the repository's CLAUDE.md or AGENTS.md, docs/CONVERSATION.md or docs/QUALIFIED-WRITING.md",
+docs,reach,skill,by a skill,"named by a skill, so invoking that skill pulls the document into context",
+docs,reach,app,by the app,"named in lib/, pages/ or app/ code, so a page loads it at runtime or opens it in the viewer; a mention in a comment does not count",
+docs,reach,orphan,orphan,listed only by the generated docs index,
+harness,layer,python,,Python scripts,
+harness,layer,python/annotate,,"standalone scripts that segment, build, patch, project, and check a standoff annotation",
+harness,layer,node,,Node files at the folder root,
+harness,layer,node/build,,"generators: snapshot a page or the lib into an offline artifact, or restamp a committed registry",
+harness,layer,node/render,,"exercise a page headlessly: the jsdom logic render, the Chromium pixel render, and their shared CDN resolver",
+harness,layer,node/render/scenarios,,interaction drivers for npm run shot --script: each steers one page into one state before the pixels are taken,
+properties,column_primitive,id,,"identifies its row, so other rows and files address it by this value; unique within the registry",docs/favicons/primitives/id.svg
+properties,column_primitive,label,,"drawn from a set and shared across rows, and the sharing is what makes it a class",docs/favicons/primitives/label.svg
+properties,column_primitive,locator,,"resolves to a target outside the row: a path, a URL, or a key into another registry",docs/favicons/primitives/locator.svg
+properties,column_primitive,value,,"none of the other three: the content itself, with nothing mechanical to check",docs/favicons/primitives/value.svg
+properties,exclusive,no,,one row may hold several values from the domain,
+properties,exclusive,yes,,one row holds at most one value from the domain,
+properties,form,column,,reserves a slot on every row,
+properties,form,list,,records only where the assertion holds,
+properties,mode,computed,,"stamped by a named deriver and held to a re-derivation by a registry gate, never hand-edited. Mode sits on the declaration rather than the property, since the same property can be recorded in one scope and computed in another",
+properties,mode,recorded,,"authored judgment, irreplaceable, never machine-edited",
+properties,required,counted,,"a blank is legal and surfaced as a ledger figure, the count-rather-than-ban posture the computed sets run for authored judgment",
+properties,required,none,,"optional, or filled by practice with no gate behind it",
+properties,required,value,,"an assertion is present for every target: true of every computed field by construction, and of a recorded field a gate checks",
+registries,key_primitive,locator,Locator keys,"a path in this repository; the suite checks that each one resolves, apart from exceptions it names",
+registries,key_primitive,id,Id keys,"an identifier the registry assigns or records, in one column or several together, unique within it",
+registries,fields,governed,,"every non-key column must be a declared property, so an undeclared field appearing in a computed set is caught as the early symptom of an unaccounted classification",
+registries,fields,ungoverned,,"the columns are exempt from their property definitions. A smell and never a resting state: five registries were marked this way with a written reason and all five reasons were wrong, so the count is asserted at zero and adding one has to change a test",
+registries,membership,computed,,"the rule is executable (a folder, an extension, the router's own table), so the row set can be derived and compared to what is there. Only this side can carry a coverage gate, because only it has something independent to check against",
+registries,membership,curated,,"which targets belong is a judgment, so there is nothing to recompute; the strongest gate available is a promise-to-implementation one",
+registries,span,hub,Hub,"every target is inside this repository, so the checkout is a complete enumeration",
+registries,span,estate,Estate,"targets live in other repositories too, so this repo holds an aggregate and not the population; the CSV still lives here, which is what keeps it gateable",
+writers,kind,agent,Agent,"A model decided what the commit contains, in a session with a transcript.",
+writers,kind,process,Process,"Code decided what the commit contains, with no model deciding.",
+writers,kind,person,Person,You decided what the commit contains; the program only carries your edit.,
+writers,machine,container,Cloud container,"The machine a Claude Code session on the web runs in, on a fresh clone.",
+writers,machine,computer,Your computer,"Whatever machine you run Claude Code, Cowork or git on: the personal laptop or the work machine.",
+writers,machine,personal-laptop,Home laptop,"The home laptop, as the signed-in user: the laptop daemon, Antigravity and the Codex app run here.",
+writers,machine,actions-hosted,GitHub's machines,"GitHub-hosted runners: open network, no local files.",
+writers,machine,browser,Your browser,"The Web Tools app with your token, or GitHub's own website.",
+writers,machine,iphone,Your phone,"Shortcuts, writing through Log-Repo.",
+writers,model,claude,Claude,Anthropic's model.,
+writers,model,gemini,Gemini,Google's model.,
+writers,model,gpt,GPT,"OpenAI's model, as Codex runs it.",
+writers,starts,you,You,"A request: you start it, by hand or in conversation.",
+writers,starts,event,An event,"Something happened: a push, a dispatch from another repository, a tab opening.",
+writers,starts,time,Time,"A schedule: a Routine, a cron, a phone automation.",
+writers,sets_on,local,A local copy,A working tree on one machine; nothing reaches GitHub until it is pushed.,
+writers,sets_on,branch,A working branch,A branch on GitHub; a pull-request merge carries it to main.,
+writers,sets_on,main,main,"The default branch, set directly.",
+writers,mode,replace,Replace,"Sets a file's whole content, creating it or replacing what was there.",
+writers,mode,append,Append,"Adds a record and replaces nothing: a line at the end of a file, or a new file per record.",
+writers,mode,propose,Propose,Sets on a branch for review; nothing reaches main until a merge.,
+writers,mode,merge,Merge,Commits a reviewed branch to main.,
+tests-authored,kind,behavior,,runs the code under test and checks its result,
+tests-authored,kind,gate,,checks that a committed file still matches its source or a rule,
+skills,group,prose,Prose,"the writing itself is the subject: drafting, tightening, outlining, anchoring to sources, showing an edit",
+skills,group,documents,Documents,"a file format is the subject: docx, pdf, pptx, xlsx, and the query language that feeds them",
+skills,group,web,Web,"building something that renders in a browser: markup, components, icons, bundling",
+skills,group,device,Device,"the handset is the constraint, not an incidental viewport: Shortcuts, the iOS pasteboard, a sheet-presented drag",
+skills,group,windows,Windows,the Microsoft stack is the constraint: PowerShell and Office Scripts,
+skills,group,session,Session,"the working session itself is the subject: memory, prompts, scheduling, and the skills mechanism",
+outposts,reports,owner,Owner,"the owner supplies each observation, so the record grows only when someone remembers to",
+outposts,reports,outpost,Outpost,"the outpost reports itself and a session or device reads it, with nobody acting",
+upstream-skills,status,watching,Watching,"noted, not yet read",
+upstream-skills,status,studied,Studied,"read, and discussed in notes addressed to it",
+upstream-skills,status,held,Held,"a pinned copy kept under outside/, which the plugin never ships",
+upstream-skills,status,vendored,Vendored,shipped in skills/ exactly as pinned,
+upstream-skills,status,adapted,Adapted,shipped in skills/ after changes of our own,
+upstream-skills,status,referenced,Referenced,"used by a skill here through a link pinned to its commit; the host supplies it and the plugin never ships it",
+upstream-skills,status,declined,Declined,"read and passed over, kept so it is not proposed again",
+context-sources,discretion,injected,Injected,Included automatically by the platform.,
+context-sources,role,content,Content,Instruction text or other material that can be read; its presence here does not prove it entered a session.,
+context-sources,role,automation,Automation,Executable machinery that delivers material or controls the environment.,
+context-sources,role,configuration,Configuration,Settings and declarations that configure the available machinery.,
+context-sources,discretion,instructed,Instructed,An instruction in context asks the assistant to act; acting on it is a separate step.,
+context-sources,discretion,reactive,Reactive,Feedback or material arrives in response to an event.,
+context-sources,discretion,pulled,Pulled,The user or assistant requests the material.,
+context-sources,discretion,outside,Harness only,Configuration or execution outside model context; does not imply that its output can never enter context.,
+context-sources,circle,account,claude.ai account,Set in the claude.ai account settings; it applies to every session the account starts.,
+context-sources,circle,environment,Cloud environment,Set in the cloud environment or its setup script; it applies to every session in that environment.,
+context-sources,circle,user,User scope,"A file in ~/.claude inside the container, written when the environment is built.",
+context-sources,circle,plugin,Portable plugin,"Shipped in the portable plugin, which every session installs at user scope.",
+context-sources,circle,repo,Checked-out repos,A file in a repository the session has checked out.,
+context-sources,circle,session,The session,"Produced inside the session by the harness, such as tool results and messages.",
+context-sources,arrives,instructions,Instructions,"Instruction text loaded into context, such as a CLAUDE.md file.",
+context-sources,arrives,skill-listing,Skill listing,A skill's name and description in the list of available skills.,
+context-sources,arrives,skill,Skill,"A skill's full text, loaded when it is invoked.",
+context-sources,arrives,hook,Hook output,"Text a hook prints, which the harness adds to context.",
+context-sources,arrives,settings,Settings,"A setting the harness applies; the model sees its effect, not its text.",
+context-sources,arrives,install,Install,An installation step that puts other sources in place.,
+context-sources,arrives,tool,Tool results,The result of a tool call.,
+context-sources,arrives,message,Message,A message the harness adds between turns.,
+context-sources,arrives,continuity,Carried forward,Earlier conversation carried into a resumed or compacted session.,
+context-sources,arrives,none,Configures only,Nothing reaches the model; the source configures one that does.,
+context-sources,when,build,Environment build,"Once, when the cloud environment is built, before any session.",
+context-sources,when,start,Session start,When a session starts.,
+context-sources,when,invoke,When invoked,Only when the assistant or the user invokes it.,
+context-sources,when,turn,Every turn,With every turn of the conversation.,
+context-sources,when,event,On an event,"When a particular event happens, such as a tool call or a pull request event.",
+context-sources,reach,every,Every session,Every session.,
+context-sources,reach,checkout,Repo checked out,Sessions with the repository checked out.,
+context-sources,reach,root,Repo is the root,Only sessions whose root is the repository.,
+context-sources,reach,invoke,When invoked,Sessions that invoke it.,
+context-sources,reach,pr,PR open,Sessions with a pull request open.,
+context-sources,read,yes,Directly,A session can read the source itself.,
+context-sources,read,copy,Through a copy,A session can read only a committed copy of the source.,
+context-sources,read,no,Not at all,A session cannot read the source.,
+context-sources,change,pr,Pull request,Anyone can change it through a pull request.,
+context-sources,change,owner,Owner only,"Only the owner can change it, in a settings page.",
+context-sources,change,session,The session,The session itself can change it.,
+context-sources,change,none,Nobody,Nobody can change it.,
+context-sources,evidence,receipt,Delivery receipt,The delivering script reports what it delivered.,
+context-sources,evidence,reconstructed,Reconstructed,A hook reconstructs what arrived from what it can see.,
+context-sources,evidence,recorded,Session record,The session record captures it.,
+context-sources,evidence,none,Nothing records it,Nothing records whether it arrived.,
+hook-events,phase,session,Session,"The session itself: setup, start, instructions and settings loading, the working directory, compaction, model switches and the end.",
+hook-events,phase,prompt,Prompt and reply,"A prompt arriving and the reply it gets, through to the turn ending.",
+hook-events,phase,tool,Tool calls,"A tool call: its permission, the call, its result and any MCP input it asks for.",
+hook-events,phase,agents,Agents and tasks,"Subagents, teammates, tasks and worktrees.",
+agents,kind,definition,,"a Claude Code agent definition file: frontmatter plus a system prompt, loaded by the platform and invoked by name",
+agents,kind,inline,,"a role whose prompt lives inside a skill's text, spawned through the Agent tool when the skill runs; it has no name the platform knows",
+agents,team,critic,,"reviews against a written standard, a verdict per rule of that standard",
+agents,team,panel,,"one seat of the review panel, defined by how it searches; the review-panel skill convenes the seats blind and the closer weighs them",
+peeves,area,writing,Writing,"prose in documents, skills, instructions and drafts",
+peeves,area,naming,Naming,the words chosen for things,
+peeves,area,chat-reply,Replies,replies in the conversation,
+peeves,area,questions,Questions,when and how to ask the owner something,
+peeves,area,reporting,Reporting,"what a reply hands over: links, screenshots, state",
+peeves,area,process,Process,how the work is run,
+peeves,area,git-pr,Git and PRs,"branches, pull requests and merging",
+peeves,area,page-design,Pages,what a page or view looks like and how it behaves,
+peeves,area,code,Code,code and data as written,
+peeves,detector,reader,Reader,a reviewer's judgment; the peeves-critic's job,
+peeves,detector,lint,Lint,a script that lists or fails on it,
+peeves,detector,hook,Hook,refused or flagged at edit or commit time,
+peeves,detector,measure,Measure,"web-tools' page-measures pass, on a rendered page",
+icon-families,group,drawn,Drawn marks,"an SVG drawn for the estate, each file its own picture",
+icon-families,group,phosphor,Phosphor glyphs,"a glyph from the Phosphor icon font, named by its ph- class",
+icon-families,group,emoji,Emoji,"an emoji, written as text where the icon appears",
+showing-mechanisms,glyph,diamond,Deployed page,"the page as the default branch deploys it, which anyone can open",
+showing-mechanisms,glyph,disc,Toss,"a render through pages/toss-render.html, of any ref and any repository the reader's token reaches",
+showing-mechanisms,glyph,box,Claude artifact,"a page published to claude.ai, private to the publisher until shared",
+showing-mechanisms,glyph,x,No marker,"a link handed over without a marker, or no link at all",
+fab-signals,facet,version,Version,"which version of the subject is on screen, and whether it is current",
+fab-signals,facet,viewer,Viewer,what this browser holds that reads depend on,
+fab-signals,facet,subject,Subject,"what the FAB sidebar describes: the page, or what is open over it",
+fab-signals,facet,action,Action,something the FAB offers to do with what is on screen,
+fab-signals,part,tint,Tint,"the FAB's colour, background and border together",
+fab-signals,part,glyph,Glyph,"the mark at the FAB's centre, one at a time",
+fab-signals,part,top-right,Top-right badge,a badge on the FAB's top-right corner,
+fab-signals,part,bottom-right,Bottom-right badge,"a badge on the FAB's bottom-right corner, which takes a tap of its own",
+fab-signals,tone,primary,Primary,"the app's own colour, the FAB at rest",
+fab-signals,tone,warning,Warning,"the view differs from what everyone sees, and the reader may not know",
+fab-signals,tone,error,Error,something the reader needs is missing,
+fab-signals,tone,info,Info,newer work the reader may want to see,
+fab-signals,tone,success,Success,a check ran and the view is current,
+fab-signals,tone,tint,Inherited,the glyph takes the FAB's current colour,
+fab-signals,status,live,Live,"fab.js draws it today, and the gate checks the row against that code",
+fab-signals,status,proposed,Proposed,"described here and not yet in fab.js; the gate checks only that its mark exists",
