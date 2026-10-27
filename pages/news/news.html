@@ -11,11 +11,11 @@
 <!--
   news.html: the news panel for home's news items, in two facets:
 
-    Items (view)    a read-only render of the item files (news/items/*.jsonl in
+    Items (view)    a read-only render of the JSONL files (news/items/*.jsonl in
                     mehrlander/home), grouped and
                     filterable by topic and date, with backfilled
                     reconstructions held visibly distinct from live capture per
-                    the item files' one honesty rule (news/README.md).
+                    the one honesty rule in news/README.md.
     Sources (control) the connector spec (news/sources.json) as a subscription
                     list: follow / unfollow (active: false) and param edits
                     commit back to the file through the token, so the selection
@@ -23,7 +23,7 @@
 
   Data contract (all in mehrlander/home, read/written through the viewer's token):
     news/sources.json        the connector spec (the subscription universe)
-    news/items/*.jsonl       one line per news item, in monthly files, append-only
+    news/items/*.jsonl       one line per news item, one file per month, append-only
     me/news-interests.md     the taste filter (view-layer only; not applied yet)
 
   Renderer lives here in web-tools; the data lives in home. A private repo, so
