@@ -2186,17 +2186,14 @@ test('a proposal basis is read into fields, and its tip counts from the collecti
 
 // Apply swaps one block in the file as main holds it and commits with the sha
 // it read; a paragraph that is not there exactly once is refused, never
-// overwritten, and a paragraph docs/policies.csv quotes is refused too.
+// overwritten.
 test('Apply commits the one block with the sha it read, and refuses what moved', async () => {
   const realGH = window.GH, realToken = window.TOKEN;
   const file = '# T\n\nKeep.\n\nThe old paragraph.\n';
   const puts = [];
   window.GH = class {
     constructor(o) { this.o = o; }
-    async get(p) {
-      if (p === 'docs/policies.csv') return { text: 'policy_id,canonical_doc,quoted\npol-x,docs/x.md,a quoted claim\n' };
-      return { text: file, sha: 'blob1' };
-    }
+    async get() { return { text: file, sha: 'blob1' }; }
     async req(p, o) { puts.push({ p, body: JSON.parse(o.body) }); return { commit: { sha: 'c0ffee1234' } }; }
   };
   window.GH.FRESH = { cache: 'no-store' };
@@ -2210,13 +2207,9 @@ test('Apply commits the one block with the sha it read, and refuses what moved',
     assert.equal(puts[0].body.branch, 'main');
     assert.equal(Buffer.from(puts[0].body.content, 'base64').toString('utf8'), '# T\n\nKeep.\n\nThe new paragraph.\n');
     await assert.rejects(data.commitBlockSwap('docs/x.md', 'Not in the file.', 'x', 'm'), /changed on main/);
-    data._policyRows = null;
-    assert.equal(await data.policyQuoteIn({ path: 'docs/x.md', oldMd: 'It makes a quoted claim here.', newMd: 'It says less.' }), 'pol-x');
-    assert.equal(await data.policyQuoteIn({ path: 'docs/x.md', oldMd: 'Plain text.', newMd: 'Plainer.' }), '');
   } finally {
     window.GH = realGH;
     if (realToken === undefined) delete window.TOKEN; else window.TOKEN = realToken;
-    data._policyRows = null;
   }
 });
 

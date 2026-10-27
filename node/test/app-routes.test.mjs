@@ -459,18 +459,17 @@ test('a route opens AT a ref, which is the whole reason to draw the join', () =>
 // web-tools #850, where the same idea was substring tests in the kit.
 test('a Map hit names the tab most of its files belong to, and the link lands there', () => {
   const tabFiles = R.tabFilesFrom(rows('map-tabs.csv'));
-  assert.deepEqual(tabFiles.policy, ['docs/policies.csv', 'docs/policy-topics.csv']);
+  assert.deepEqual(tabFiles.policy, ['docs/house-policies.md']);
   assert.ok(!Object.values(tabFiles).flat().some(p => p.endsWith('/')), 'a folder link claims nothing');
   const m = { ...manifest, routes: manifest.routes.map(r => r.key === 'map' ? { ...r, tabFiles } : r) };
   const map = (files) => R.routesTouched(m, files).on.find(r => r.key === 'map');
-  // A branch that adds a CSV also restamps the census, the Data tab's file.
-  const policy = map(['docs/policies.csv', 'docs/policy-topics.csv', 'data/csv-census.csv', 'lib/alpineComponents/map.js']);
+  const policy = map(['docs/house-policies.md', 'lib/alpineComponents/map.js']);
   assert.equal(policy.tab, 'policy');
   assert.equal(R.viewUrl(policy, 'abc123'),
     'https://mehrlander.github.io/web-tools/pages/toss-render.html#gh=mehrlander/web-tools@abc123:app/index.html?view=map&tab=policy');
-  assert.equal(map(['docs/policies.csv', 'data/csv-census.csv']).tab, undefined, 'a tie names no tab');
+  assert.equal(map(['docs/house-policies.md', 'data/csv-census.csv']).tab, undefined, 'a tie names no tab');
   assert.equal(map(['lib/alpineComponents/map.js']).tab, undefined, 'the component itself is every tab');
-  assert.equal(R.routesTouched(manifest, ['docs/policies.csv']).on.find(r => r.key === 'map').tab, undefined,
+  assert.equal(R.routesTouched(manifest, ['docs/house-policies.md']).on.find(r => r.key === 'map').tab, undefined,
     'no tabFiles, no tab: the estate rows, which do not read the registry, are unchanged');
 });
 
