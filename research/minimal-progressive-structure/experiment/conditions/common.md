@@ -1,0 +1,10 @@
+You are building one web page for a design experiment. Work alone and finish in this session.
+
+Source text: {src}. Read it in full.
+Write the page to: {out}
+
+Build a single-file HTML page that presents the content of the source text to a general reader. Use only the source's facts and invent nothing. Stack: Tailwind CSS and daisyUI loaded from a CDN, and Alpine.js if the page needs interaction; no React. Keep all data inline in the file and load nothing from this repository. You may render the page headless to check it: Playwright is installed (`require('playwright')`, and `chromium.launch()` needs no options). Save any screenshots under {scratch}, not beside the page.
+
+Write every file with Bash (a heredoc or a short script), not with the Write or Edit tools. Do not read any files other than those named in this prompt, and do not invoke skills.
+{condition}
+When done, reply with the output path or paths and two sentences describing the layout you chose.
