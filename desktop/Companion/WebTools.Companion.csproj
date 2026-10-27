@@ -9,6 +9,7 @@
   <ItemGroup>
     <ProjectReference Include="../Machine/WebTools.Desktop.Machine.csproj" />
     <Content Include="../phone/**" Link="phone/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../worker/*.py;../worker/*.txt" Link="worker/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../shared/now-shared.js" Link="phone/now-shared.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../../node_modules/@tailwindcss/browser/dist/index.global.js" Link="phone/vendor/tailwind.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../../lib/kits/assistant-mark.js" Link="phone/vendor/assistant-mark.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
