@@ -52,7 +52,8 @@
   supposed to be replaced. This page knows which names the device holds, so it
   emits Replace for those and Import for the rest; the CLI has no device read
   and correctly defaults to Import. One rule, two owners, split on what each can
-  actually see.
+  actually see. While the signing worker both receivers depend on is down
+  (SIGNER_DOWN below), every install goes through Library-Paste instead.
 
   AND A NAME OFF THE CATALOG GETS AN ANSWER. 77 chains here against 606 surveyed
   on the device means most names a link can carry are not chains, and the page
@@ -180,6 +181,12 @@ const CATALOG = `https://raw.githubusercontent.com/${CHAINS}/${REF}/catalog.json
 const PLIST   = n => `https://raw.githubusercontent.com/${CHAINS}/${REF}/plists/${n}.plist`;
 const BLOB    = f => window.RepoAddress.github.blob(CHAINS, REF, `workflows/${f}`);
 const LOGS    = 40;   // enough history for build freshness; older runs say nothing new
+// The 2 a.m. automation writes two rows a night, stamped 0200xx, and they had
+// filled 35 of the 40 slots by 2026-10-25, so installs and runs a day old fell
+// out of the window (snag branch-install-outlived-the-merge). They carry no
+// build of anything else, so the window skips them. A tap in that minute is
+// the one thing lost.
+const NIGHTLY = /-0200\d\d\.json$/;
 
 const el = id => document.getElementById(id);
 // main: device state is written there by the phone, not previewed.
@@ -223,9 +230,26 @@ const openLink = n =>
 // rule: a wrong character 404s instead of quietly delivering less than it claims.
 const IMPORT  = 'Library-Import';
 const REPLACE = 'Library-Replace';
-const installLink = (n, target) =>
+// THE SIGNER IS DOWN. Import and Replace both hand the plist to a remote signing
+// worker from the phone, and that worker has refused every plist since
+// 2026-09-24 (snag signing-worker-outage-reads-as-a-bad-plist), so both buttons
+// failed on every tap. Until a signer is back, installs go through
+// Library-Paste, which deletes any copy by that name, creates the shortcut,
+// opens it and leaves the actions on the clipboard; its third line is the build
+// it checks for "already installed". A paste cannot set a chain's file-level
+// settings, so a chain that declares them says so on its button. When signing
+// returns, make `up` the default; `?signer=up` previews it, and is how the
+// page's own check keeps the Import and Replace rule tested meanwhile.
+const SIGNER_DOWN = q.get('signer') !== 'up';
+const PASTE   = 'Library-Paste';
+const PACKED  = f => `https://raw.githubusercontent.com/${CHAINS}/${REF}/packed/${f}`;
+const installLink = (row, target) =>
   `shortcuts://run-shortcut?name=${encodeURIComponent(target)}&input=text&text=`
-  + encodeURIComponent(n + '\n' + PLIST(n));
+  + encodeURIComponent(target === PASTE
+    ? row.name + '\n' + PACKED(row.file) + (row.build ? '\n' + row.build : '')
+    : row.name + '\n' + PLIST(row.name));
+const PASTE_NOTE = 'A paste cannot set this chain\'s file-level settings; '
+  + 'set its toggles by hand (pack.py --install lists them).';
 
 // WHICH RECEIVER IS A FACT ABOUT THE DEVICE, NOT ABOUT THE CHAIN, which is why
 // this page decides it and tools/plist.py does not. Importing over a name the
@@ -243,13 +267,14 @@ const installLink = (n, target) =>
 // Import: unknown is not "already installed", and Import is the honest default
 // for a state nobody looked up.
 function installTarget(s) {
+  if (SIGNER_DOWN) return PASTE;
   const present = s === 'current' || s === 'stale' || s === 'on device';
   return (present && device && device.have.has(REPLACE)) ? REPLACE : IMPORT;
 }
 // The button says which of the two it is about to do, because "Reinstall"
 // described the intent and hid the mechanism, and the mechanism is the part
 // that leaves a duplicate when it is the wrong one.
-const installLabel = t => t === REPLACE ? 'Replace' : 'Install';
+const installLabel = t => t === PASTE ? 'Paste' : t === REPLACE ? 'Replace' : 'Install';
 
 // A missing file does not always arrive as a status: a CDN can answer 200 with
 // an empty body, and `await r.json()` then fails with a parser message naming
@@ -322,7 +347,7 @@ async function loadDevice() {
   // Library-Paste's build as Dump-Named's and called the fresh copy stale.
   try {
     const list = await priv.req('contents/shortcuts/log');
-    const newest = list.filter(f => f.name.endsWith('.json'))
+    const newest = list.filter(f => f.name.endsWith('.json') && !NIGHTLY.test(f.name))
                        .sort((a, b) => b.name.localeCompare(a.name)).slice(0, LOGS);
     const bodies = await Promise.all(newest.map(f =>
       priv.get(f.path || `shortcuts/log/${f.name}`).then(r => r.text).catch(() => '')));
@@ -452,7 +477,9 @@ function paint() {
     };
     if (row.name) {
       const t = installTarget(s);
-      bar.append(act('btn btn-xs', installLink(row.name, t), installLabel(t), 'ph-download-simple'));
+      const b = act('btn btn-xs', installLink(row, t), installLabel(t), 'ph-download-simple');
+      if (t === PASTE && row.settings) b.title = PASTE_NOTE;
+      bar.append(b);
       bar.append(act('btn btn-xs btn-ghost', runLink(row.name), 'Run', 'ph-play'));
     }
     bar.append(act('btn btn-xs btn-ghost', BLOB(row.file), 'Source', 'ph-file-code'));
@@ -583,7 +610,9 @@ function detail(row) {
   };
   if (row.name) {
     const t = installTarget(s);
-    bar.append(btn('btn-primary', installLink(row.name, t), installLabel(t), 'ph-download-simple'));
+    const b = btn('btn-primary', installLink(row, t), installLabel(t), 'ph-download-simple');
+    if (t === PASTE && row.settings) b.title = PASTE_NOTE;
+    bar.append(b);
     bar.append(btn('', runLink(row.name), 'Run', 'ph-play'));
   }
   bar.append(btn('btn-ghost', BLOB(row.file), 'Source', 'ph-file-code'));

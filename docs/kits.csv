@@ -113,8 +113,8 @@ lib/kits/vanilla-demo.js,demo,"the living-documentation demo format, distilled f
 lib/kits/visit-log.js,VisitLog,"turn an address into a storable visit, by allowlist.",309,no,no,2,yes
 lib/kits/wring.js,wring,"single-document template induction: give it one document with repeated structure (a log, an HTML page) and it returns the recurring templates (fixed…",1329,no,no,4,yes
 lib/kits/write-kinds.js,WriteKinds,"what wrote a commit, read off the commit itself.",129,no,no,2,yes
-lib/kits/wsl-core.js,wslCore,"dependency-free WSL core: the XML→record parsers (as a factory), pension classification, and the pure list/group helpers.",366,no,no,4,yes
-lib/kits/wsl.js,wsl,browser-facing WSL kit.,311,no,no,3,yes
+lib/kits/wsl-core.js,wslCore,"dependency-free WSL core: the XML→record parsers (as a factory), pension classification, and the pure list/group helpers.",380,no,no,4,yes
+lib/kits/wsl.js,wsl,browser-facing WSL kit.,312,no,no,3,yes
 lib/kits/xlsx-chart.js,xlsxChartKit,Browser SVG previews of supported Excel chart models.,456,no,no,1,yes
 lib/kits/xlsx-extract.js,XlsxExtract,PICK PART OF A WORKBOOK AND CARRY THE ANSWER AWAY.,731,no,no,2,yes
 lib/kits/xlsx-write.js,xlsxWriteKit,build a new workbook holding a chosen subset of another workbook's sheets.,1114,no,no,2,yes
