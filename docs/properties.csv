@@ -9,8 +9,8 @@ docs,reach,computed,node/build/docs-reach.mjs,value,column,yes,injected;project;
 docs,words,computed,node/build/docs-reach.mjs,value,column,yes,,value,"the document's size, and its share of the folder"
 docs,maintenance,recorded,,counted,column,yes,,value,who keeps the document true; a bare row is counted by the registry rather than hidden
 docs,formerly,recorded,,none,column,yes,,locator,"prior paths of the same document, semicolon-separated; a read of one is a read of this row, so a rename keeps its readership"
-tests,kind,recorded,,value,column,yes,behavior;gate,label,"what the check claims: that code does the right thing, or that a committed file is still true. The vocabulary is closed and the gate holds rows to it"
-tests,protects,recorded,,counted,column,yes,,value,the one thing that breaks if the test is deleted; blanks are counted
+tests-authored,kind,recorded,,value,column,yes,behavior;gate,label,whether the test checks code behavior or that a committed file still matches its source or a rule
+tests-authored,protects,recorded,,counted,column,yes,,value,what breaks if the test is deleted; blanks are counted
 tests,test_count,computed,node/build/tests-index.mjs,counted,column,yes,,value,"how many top-level test() calls the file writes, a static lower bound, not a count of the assert calls inside them. Blank, never zero, on the browser-driven checks that are not node:test files, because test() is not their unit; the blank is the honest reading and the count is the ledger figure"
 tests,test_names,computed,node/build/tests-index.mjs,counted,column,no,,value,"what each top-level test() call is named, in source order; the file's own account of its coverage, so protects need not restate it. A parameterized name is carried as its template text. Blank on the same browser-driven checks as its count, for the same reason: test() is not their unit"
 tests,method,computed,node/build/tests-index.mjs,value,column,yes,kit;alpine;spawn;read;pure,label,"how the check reaches its subject, strongest present wins"
@@ -56,7 +56,7 @@ pages,top,computed,node/build/pages-index.mjs,value,column,yes,,label,"the top-l
 pages,group,computed,node/build/pages-index.mjs,counted,column,yes,,locator,"the page's own directory, as the gallery labels it; blank for a root page. Was a nesting level until 2026-08-18, when flattening it onto the row is what let the catalog become a CSV"
 pages,label,computed,node/build/pages-index.mjs,value,column,yes,,value,the short name the catalog card and the picker show
 pages,title,computed,node/build/pages-index.mjs,value,column,yes,,value,"the page's own <title>, read from the file"
-pages,note,computed,node/build/pages-index.mjs,counted,column,yes,,value,"the one-line blurb. Authored in the NOTES map inside the deriver, not here, and blank on more pages than not: the honest measure of how much of the gallery is unexplained, countable from this file rather than stated in it"
+pages,note,recorded,,counted,column,yes,,value,"the one-line blurb, written in the NOTES map of node/build/pages-index.mjs and copied here on each run; edit it there"
 pages,thumb,computed,node/build/pages-index.mjs,value,column,yes,,locator,"the committed screenshot path; refreshed once per session, never by the commit hook"
 pages,code,computed,node/build/pages-index.mjs,value,column,yes,,locator,the GitHub blob URL for the page source
 tracker-tasks,title,computed,skills/tasks/build-board.py,value,column,yes,,value,"the task's short imperative, read from its frontmatter"
@@ -148,7 +148,7 @@ registries,scope,recorded,,value,column,yes,,value,the population the registry c
 registries,span,recorded,,value,column,yes,hub;estate,label,"whether this checkout bounds the population, or a complete enumeration needs another repo; the typed sibling of scope, which says the same thing in prose and so cannot be grouped or counted"
 registries,fields,recorded,,value,column,yes,governed;ungoverned,label,whether every non-key column of this registry must be a declared property
 registries,gate,recorded,,value,column,yes,,locator,the test that fails when the registry and the repo disagree; none when nothing holds it
-registries,area,recorded,,value,column,yes,files;names,label,the reader grouping in the Registries tab
+registries,key_primitive,recorded,,value,column,yes,id;locator,label,the column primitive of the registry's key
 registries,title,recorded,,value,column,yes,,value,display name
 registries,gloss,recorded,,value,column,yes,,value,one line on what the registry is for
 registries,renders_in,computed,node/build/registries-reach.mjs,counted,column,no,,label,"the lib/, pages/ and app/ files naming the path in code; empty marks a registry no app surface reads"
@@ -158,11 +158,12 @@ properties,required,recorded,,value,column,yes,value;counted;none,label,"what th
 properties,form,recorded,,value,column,yes,column;list,label,column reserves a slot on every row; list records only where the assertion holds
 properties,exclusive,recorded,,value,column,yes,yes;no,label,whether one row may hold more than one value from the domain
 properties,values,recorded,,none,column,yes,,value,"the value domain, semicolon separated, where it is closed; blank means open"
-properties,column_primitive,recorded,,value,column,no,id;label;locator;value,label,"what kind of thing the column holds: an id identifies its row, a label draws from a declared set, a locator resolves to a target outside the row, and a value is the content itself. docs/column-primitives.md owns the four tests. exclusive is no because a column can pass two of them, as a unique path that also resolves does."
+properties,column_primitive,recorded,,value,column,no,id;label;locator;value,label,"the role the column plays in its row: an id identifies its row, a label draws from a declared set, a locator resolves to a target outside the row, and a value is the content itself. docs/column-primitives.md owns the four tests. exclusive is no because a column can pass two of them, as a unique path that also resolves does."
 properties,gloss,recorded,,value,column,yes,,value,one line on what the property means
 manifest-fields,required,recorded,,none,column,yes,yes;no,label,"whether a member of an array or object key must be present; blank on a top-level key, whose requiredness was never recorded"
 vocabularies,gloss,recorded,,value,column,yes,,value,"what this one value means, in the terms a reader picking among them needs"
 vocabularies,label,recorded,,counted,column,yes,,label,"the display name for this value, where it differs from the value itself"
+vocabularies,icon,recorded,,none,column,yes,,value,the Phosphor icon the app shows beside this value
 tracker-tags,tag,computed,skills/tasks/build-board.py,value,column,yes,,label,"the frontmatter key. Deliberately undeclared as a domain: the layer is open by design, so a closed set here would be the promotion TRACKER.md says to make in the generator instead"
 tracker-tags,value,computed,skills/tasks/build-board.py,value,column,yes,,label,the scalar the task file gave that key
 aims-goals,key,recorded,,none,column,yes,,id,"stable identifier, one word"
@@ -172,7 +173,7 @@ aims-initiatives,key,recorded,,none,column,yes,,id,"stable identifier, hyphenate
 aims-initiatives,name,recorded,,none,column,yes,,value,the initiative as a title
 aims-initiatives,gloss,recorded,,none,column,yes,,value,the initiative in one sentence
 aims-reading,repo,recorded,,none,column,yes,,value,owner/repo when the document lives outside the hub; blank means the hub
-aims-reading,path,recorded,,none,column,yes,,id,path within its repo
+aims-reading,path,recorded,,none,column,yes,,locator,path within its repo
 aims-reading,private,recorded,,none,column,yes,true,label,set when the link resolves only for the owner
 aims-reading,gloss,recorded,,none,column,yes,,value,why this document is on the list
 themes,a,computed,python/duplicated-claims.py,none,column,yes,,locator,"first file of the pair, sorted"
@@ -191,7 +192,6 @@ assistant-branches,declared,recorded,,none,column,yes,,value,the date the row wa
 subjects,label,recorded,,value,column,yes,,value,the type's display name, which is what the FAB captions
 subjects,needs,recorded,,value,column,yes,,value,"what has to exist for this type to reach a screen, in the showing frame's words: renders itself, needs a renderer, needs a viewer, needs an envelope, needs a browser, needs a form"
 subjects,carrier,recorded,,value,column,yes,,locator,"the page or mode that draws a subject of this type, which the FAB's layer strip names as the row above it"
-subjects,doc,recorded,,none,column,yes,,locator,the document for the form that draws this type; blank for a type with no form
 subjects,detect,recorded,,value,column,yes,,value,"the rule that recognizes this type from an address, as the FAB's readLayers applies it; routes-kinds refines page, file, data and fileset one level down"
 subjects,icon,recorded,,value,column,yes,,value,the phosphor glyph the FAB's layer row wears for this type; owner of fab.js's SUBJECT_ICON literal
 subjects,gloss,recorded,,value,column,yes,,value,what an object of this type is
@@ -285,20 +285,6 @@ doc-overlap-gold,note,recorded,,value,column,yes,,value,"the skeptic agent's rea
 doc-overlap-gold,relation,recorded,,value,column,yes,same;summary;related;conflict;unrelated;fragment,label,the final relation: the skeptic's
 doc-overlap-gold,reading,recorded,,value,column,yes,yes;no,label,whether seeing one passage beside the other helps a reader
 doc-overlap-gold,consolidate,recorded,,value,column,yes,yes;no,label,whether one passage could be replaced by a link to the other
-policy-topics,domain,recorded,,value,column,yes,prose;surfacing;architecture;work;app;ui,label,"the area a topic belongs to, the first level of the tree"
-policy-topics,title,recorded,,value,column,yes,,value,the topic's name as the rail shows it
-policy-topics,gloss,recorded,,value,column,yes,,value,what the rules under the topic govern
-policies,topic_id,recorded,,value,column,yes,,label,the topic in docs/policy-topics.csv the rule sits under
-policies,level,recorded,,value,column,yes,principle;policy;standard,label,"the rule's depth: a principle other rules serve, a decision, or a standard's checkable form"
-policies,statement,recorded,,value,column,yes,,value,"the rule in one sentence, standing alone"
-policies,canonical_doc,recorded,,none,column,yes,,locator,the file that states the rule; blank where no web-tools document was found stating it
-policies,quoted,recorded,,none,column,yes,,value,a verbatim passage of canonical_doc that states the rule; the suite finds it in that file
-policies,since,recorded,,none,column,yes,,value,"the date the cited document gives for the rule's adoption, where it gives one"
-policies,intent_class,recorded,,value,column,yes,user-mandate;dialogue-ratified;model-extrapolated;organic-precedent;unknown,label,"who set the rule: the owner by instruction, the owner and a model in dialogue, a model alone, settled practice, or unknown"
-policies,origin_session,recorded,,none,column,yes,,locator,the session record in web-tools-private where the rule was set
-policies,user_prompt_quote,recorded,,none,column,yes,,value,the owner's words in that session establishing the rule
-policies,enforcement,recorded,,none,column,yes,,locator,"the test, hook, script or npm command that holds the rule, where the document names one that exists"
-policies,status,recorded,,value,column,yes,lead;sourced;checked,label,"lead: a quote on the row is unverified; sourced: quoted is found in canonical_doc; checked: confirmed by a second reading"
 outposts,title,recorded,,value,column,yes,,value,display name
 outposts,gloss,recorded,,value,column,yes,,value,"where the material sits, and what about that place keeps commits out"
 outposts,declared,recorded,,value,column,yes,,locator,the committed file saying what the outpost should hold
