@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="Column primitive: label">
+  <title>Column primitive: label</title>
+  <desc>A tag with a hole: a value many rows share.</desc>
+  <g fill="currentColor">
+    <path fill-rule="evenodd" d="M3 16.25 L11 6 L29 6 L29 26.5 L11 26.5 Z M11.5 13.75 a2.5 2.5 0 1 0 0.001 0 Z"/>
+  </g>
+</svg>
