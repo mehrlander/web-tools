@@ -457,7 +457,7 @@ test('Showing is one list of every record, grouped by file, and the FAB tab is i
   assert.deepEqual(Array.from(data.showGroups, g => g.key), ['links', 'grammar', 'modes', 'routes', 'paste', 'kinds']);
   assert.equal(data.showGroups[0].rows.length, all.length, 'every mechanism is a row');
   assert.equal(new Set(data.showRows.map(r => r.id)).size, data.showRows.length, 'a row id names one record');
-  assert.deepEqual(Array.from(data.showOpens, o => o.label), ['Branches', 'Private', 'Any reader'], 'the marks are labelled from the vocabulary');
+  assert.deepEqual(Array.from(data.showOpens, o => o.label), ['Unmerged work', 'No token needed'], 'the marks are labelled from the vocabulary');
   const hosted = all.find(m => m.key === 'hosted');
   assert.ok(!data.opensHas(hosted, 'branch') && data.opensHas(hosted, 'tokenless'), 'a cell lists the marks a row has');
   // The FAB tab: the live signals by part, then the ones not built yet.
@@ -476,16 +476,17 @@ test('Showing is one list of every record, grouped by file, and the FAB tab is i
 });
 
 test('a row\'s card holds what the row cannot, and links the row\'s own line', () => {
-  const toss = data.showCard('link:toss-gh');
+  const toss = data.showCard('link:toss');
   assert.match(toss, /toss-render\.html/, 'a link\'s address is on its card');
   assert.match(toss, /data-show-copy=/, 'with a control to copy it');
-  assert.match(toss, /iPhone/, 'the trap and the full account are on the card');
-  const src = data.showSrc('docs/showing-mechanisms.csv', 'toss-gh');
+  assert.match(toss, /iPhone/, 'the full account is on the card');
+  assert.match(toss, /A document or data file[\s\S]*The renderer itself/, 'the cases a toss handles are listed by their vocabulary labels');
+  const src = data.showSrc('docs/showing-mechanisms.csv', 'toss');
   assert.match(src.passage, /^```csv\nkey,glyph,label/, 'the source is the row under its header');
-  assert.match(src.passage, /\ntoss-gh,/);
-  assert.match(data.fabCard('badge-no-token'), /Shows when[\s\S]*A tap/);
+  assert.match(src.passage, /\ntoss,/);
+  assert.match(data.fabCard('badge-no-token'), /Appears when[\s\S]*Tapping it/);
   const md = data.showCard('kind:markdown');
-  assert.match(md, /Data route/, 'a kind names the links that show it by their labels');
+  assert.match(md, /Links that show it[\s\S]*Toss/, 'a kind names the links that show it by their labels');
   assert.match(md, /md-doc\.js/, 'and links its kit');
   const field = data.routes.paste.find(p => !p.path);
   assert.ok(data.showCard('paste:' + field.surface).includes('routes-paste.csv'), 'a row with no file links its source alone');

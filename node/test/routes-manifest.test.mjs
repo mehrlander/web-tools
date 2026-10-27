@@ -174,12 +174,12 @@ test('every showing mechanism declares its three axes and its boundary', () => {
   assert.equal(new Set(keys).size, keys.length, 'duplicate mechanism key');
 });
 
-// The Showing tab prints these four cells as one scan line per mechanism, and
-// the line stays a line only while each cell does: the detail a session needs
-// belongs in narrative, which the tab does not print.
+// The Showing tab's card prints these three cells as short lines over the
+// narrative, and they stay short only while a test holds them: the detail a
+// session needs belongs in narrative.
 test('a mechanism\'s scan cells fit in eight words each', () => {
   for (const m of manifest.showing.mechanisms)
-    for (const k of ['use', 'reaches', 'misses', 'trap']) {
+    for (const k of ['use', 'reaches', 'misses']) {
       const n = String(m[k] || '').split(/\s+/).filter(Boolean).length;
       assert.ok(n <= 8, `${m.key}.${k} runs to ${n} words; keep the scan cell to eight and put the rest in narrative`);
     }
