@@ -1,0 +1,1048 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Potomac Midair Collision</title>
+<meta name="description" content="The NTSB preliminary report on the January 29, 2025 collision of PSA Airlines flight 5342 and Army helicopter PAT25 near Reagan National Airport, presented for a general reader.">
+<script>
+  (function () {
+    try {
+      var m = window.matchMedia('(prefers-color-scheme: dark)');
+      var set = function () { document.documentElement.setAttribute('data-theme', m.matches ? 'dark' : 'light'); };
+      set();
+      if (m.addEventListener) m.addEventListener('change', set);
+    } catch (e) { document.documentElement.setAttribute('data-theme', 'light'); }
+  })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/daisyui@5.0.43/daisyui.css" rel="stylesheet" type="text/css">
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.1.11/dist/index.global.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.9/dist/cdn.min.js"></script>
+<style>
+  :root {
+    --plane: #1d4ed8;
+    --heli: #c2410c;
+    --tower: #57534e;
+    --alert: #b91c1c;
+    --rail: #d6d3d1;
+    --card: #ffffff;
+    --muted: #57534e;
+    --paper: #fafaf9;
+    --ink: #1c1917;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --plane: #7ea6ff;
+      --heli: #fb923c;
+      --tower: #a8a29e;
+      --alert: #f87171;
+      --rail: #3a3836;
+      --card: #1f1e1d;
+      --muted: #a8a29e;
+      --paper: #141312;
+      --ink: #ece9e6;
+    }
+  }
+  :root[data-theme="dark"] {
+    --plane: #7ea6ff;
+    --heli: #fb923c;
+    --tower: #a8a29e;
+    --alert: #f87171;
+    --rail: #3a3836;
+    --card: #1f1e1d;
+    --muted: #a8a29e;
+    --paper: #141312;
+    --ink: #ece9e6;
+  }
+  html[data-theme="light"] {
+    --color-base-100: #fafaf9;
+    --color-base-200: #f3f2f0;
+    --color-base-300: #e5e3df;
+    --color-base-content: #1c1917;
+    --color-primary: #1f2937;
+    --color-primary-content: #fafaf9;
+    --color-neutral: #292524;
+    --color-neutral-content: #fafaf9;
+  }
+  html[data-theme="dark"] {
+    --color-base-100: #141312;
+    --color-base-200: #1c1b1a;
+    --color-base-300: #2a2826;
+    --color-base-content: #ece9e6;
+    --color-primary: #e7e5e4;
+    --color-primary-content: #141312;
+    --color-neutral: #2a2826;
+    --color-neutral-content: #ece9e6;
+  }
+  html { scroll-behavior: smooth; }
+  body { background: var(--paper); color: var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+  h1, h2, h3, .serif { font-family: "Source Serif 4", Georgia, "Times New Roman", serif; }
+  section[id] { scroll-margin-top: 4.5rem; }
+  .tnum { font-variant-numeric: tabular-nums; }
+  .muted { color: var(--muted); }
+  .prose-p p + p { margin-top: .85rem; }
+  a.src { text-decoration: underline; text-underline-offset: 3px; }
+
+  .sec-title { font-size: 1.65rem; line-height: 1.2; font-weight: 600; letter-spacing: -0.01em; }
+  .sec-kicker { font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; }
+
+  .lane-plane { --lane: var(--plane); }
+  .lane-heli  { --lane: var(--heli); }
+  .lane-tower { --lane: var(--tower); }
+  .lane-both  { --lane: var(--alert); }
+  .lane-plane-text { color: var(--plane); }
+  .lane-heli-text  { color: var(--heli); }
+  .lane-tower-text { color: var(--tower); }
+  .lane-tag { display: block; font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--lane, var(--muted)); margin-bottom: .2rem; }
+  .dot { display: inline-block; width: .7rem; height: .7rem; border-radius: 999px; background: var(--lane); vertical-align: middle; }
+
+  /* aircraft cards */
+  .ac-card { background: var(--card); border: 1px solid var(--rail); border-top: 4px solid var(--lane); border-radius: .75rem; padding: 1.25rem; }
+  .ac-card dt { font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; font-weight: 600; color: var(--muted); margin-top: .9rem; }
+  .ac-card dd { margin-top: .15rem; }
+  .facts { list-style: disc; padding-left: 1.1rem; }
+  .facts li + li { margin-top: .25rem; }
+
+  /* timeline */
+  .tl { list-style: none; margin: 0; padding: 0; }
+  .tl-group { margin: 1.75rem 0 .5rem; }
+  .tl-group:first-child { margin-top: .5rem; }
+  .tl-group h3 { font-size: 1.2rem; font-weight: 600; }
+  .tl-group p { color: var(--muted); font-size: .92rem; }
+  .tl-row { display: grid; grid-template-columns: 4.6rem minmax(0, 1fr); column-gap: .75rem; padding: .3rem 0; }
+  .tl-time { display: flex; flex-direction: column; align-items: flex-end; gap: .2rem; padding-top: .65rem; font-size: .92rem; font-weight: 600; text-align: right; }
+  .tl-time .about { font-size: .7rem; font-weight: 500; color: var(--muted); line-height: 1; }
+  .countdown { font-size: .68rem; font-weight: 700; line-height: 1.15; color: var(--alert); border: 1px solid var(--alert); border-radius: .4rem; padding: .1rem .35rem; text-align: right; }
+  @media (min-width: 640px) { .countdown { white-space: nowrap; border-radius: 999px; } }
+  .tl-card { background: var(--card); border: 1px solid var(--rail); border-left: 4px solid var(--lane); border-radius: .5rem; padding: .65rem .85rem; font-size: .95rem; line-height: 1.5; }
+  .tl-card.lane-both { background: color-mix(in oklab, var(--alert) 7%, var(--card)); border-color: color-mix(in oklab, var(--alert) 35%, var(--rail)); border-left-color: var(--alert); padding: 1rem 1.1rem; }
+  .ctx-note { margin-top: .45rem; font-size: .85rem; color: var(--muted); }
+  mark.missed { background: color-mix(in oklab, var(--heli) 16%, transparent); color: inherit; border-bottom: 2px dotted var(--heli); padding: 0 .15em; border-radius: 2px; }
+  .missed-note { margin-top: .5rem; font-size: .85rem; color: color-mix(in oklab, var(--heli) 70%, var(--ink)); }
+  .lane-head { display: none; }
+  .fbtn { border-color: var(--rail); }
+  .fbtn[aria-pressed="true"] { background: var(--lane, var(--ink)); border-color: var(--lane, var(--ink)); color: var(--paper); }
+  @media (min-width: 1024px) {
+    .tl-row {
+      grid-template-columns: 6rem repeat(3, minmax(0, 1fr));
+      column-gap: 1rem;
+      background-image: linear-gradient(var(--rail), var(--rail)), linear-gradient(var(--rail), var(--rail)), linear-gradient(var(--rail), var(--rail));
+      background-size: 2px 100%;
+      background-repeat: no-repeat;
+      background-position: calc(7rem + (100% - 10rem) / 6) 0, calc(8rem + (100% - 10rem) / 2) 0, calc(9rem + 5 * (100% - 10rem) / 6) 0;
+    }
+    .tl-card.lane-plane { grid-column: 2; }
+    .tl-card.lane-tower { grid-column: 3; }
+    .tl-card.lane-heli  { grid-column: 4; }
+    .tl-card.lane-both  { grid-column: 2 / span 3; }
+    .tl-group { padding-left: 7rem; }
+    .tl-card .mob-tag { display: none; }
+    .lane-head { display: grid; grid-template-columns: 6rem repeat(3, minmax(0, 1fr)); column-gap: 1rem; position: sticky; top: 0; z-index: 5; background: var(--paper); padding: .6rem 0; border-bottom: 1px solid var(--rail); }
+    .lane-head div { font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--lane); display: flex; align-items: center; gap: .4rem; }
+  }
+
+  /* chart */
+  .alt-chart { width: 100%; height: auto; display: block; }
+  .alt-chart .grid { stroke: var(--rail); stroke-width: 1; }
+  .alt-chart .axis { stroke: var(--muted); stroke-width: 1; }
+  .alt-chart .tick { fill: var(--muted); font-size: var(--fs); }
+  .alt-chart .lbl { font-size: var(--fs); font-weight: 600; }
+  .alt-chart .route { stroke: var(--heli); stroke-width: 1.5; stroke-dasharray: 6 4; opacity: .8; }
+  .alt-chart .route-end { stroke: var(--heli); stroke-width: 1.5; opacity: .8; }
+  .alt-chart .route-lbl { fill: var(--heli); font-weight: 500; }
+  .alt-chart .hit { stroke: var(--alert); stroke-width: 1.5; }
+  .alt-chart .hit-lbl { fill: var(--alert); }
+  .alt-chart .plane-path { fill: none; stroke: var(--plane); stroke-width: 1.5; stroke-dasharray: 2 4; opacity: .7; }
+  .alt-chart .plane-pt { fill: var(--plane); }
+  .alt-chart .plane-call { fill: var(--paper); stroke: var(--plane); stroke-width: 2; }
+  .alt-chart .plane-lbl { fill: var(--plane); }
+  .alt-chart .heli-said { fill: var(--paper); stroke: var(--heli); stroke-width: 2; }
+  .alt-chart .heli-pt { fill: var(--heli); }
+  .alt-chart .heli-steady { stroke: var(--heli); stroke-width: 4; stroke-linecap: round; }
+  .alt-chart .heli-lbl { fill: var(--heli); }
+  .legend { display: flex; flex-wrap: wrap; gap: .4rem 1.1rem; font-size: .85rem; }
+  .legend span { display: inline-flex; align-items: center; gap: .4rem; }
+  .sw { display: inline-block; width: .8rem; height: .8rem; border-radius: 999px; }
+
+  /* radio diagram */
+  .radio-map { display: grid; gap: .5rem; align-items: stretch; }
+  .radio-map .node { background: var(--card); border: 1px solid var(--rail); border-top: 4px solid var(--lane); border-radius: .6rem; padding: .8rem 1rem; }
+  .radio-map .node b { display: block; font-size: 1rem; }
+  .radio-map .wire { display: flex; align-items: center; justify-content: center; gap: .5rem; font-size: .85rem; font-weight: 600; color: var(--lane); padding: .25rem 0; }
+  .radio-map .wire::before, .radio-map .wire::after { content: ""; flex: 1; max-width: 3rem; height: 2px; background: var(--lane); }
+  @media (min-width: 768px) {
+    .radio-map { grid-template-columns: 1fr 7rem 1.15fr 7rem 1fr; }
+    .radio-map .wire { flex-direction: column; gap: .25rem; }
+    .radio-map .wire::before, .radio-map .wire::after { width: 100%; max-width: none; flex: 0 0 2px; }
+  }
+
+  /* route */
+  .route-list { list-style: none; padding: 0; position: relative; }
+  .route-list li { position: relative; padding: 0 0 1.25rem 2rem; }
+  .route-list li::before { content: ""; position: absolute; left: .55rem; top: .35rem; bottom: -.35rem; width: 2px; background: var(--rail); }
+  .route-list li:last-child::before { display: none; }
+  .route-list li::after { content: ""; position: absolute; left: .2rem; top: .3rem; width: .8rem; height: .8rem; border-radius: 999px; background: var(--paper); border: 2px solid var(--muted); }
+  .route-list li.req::after { background: var(--ink); border-color: var(--ink); }
+  .route-list .stop { font-weight: 700; }
+  .route-list .limit { display: inline-block; margin-top: .3rem; font-size: .8rem; font-weight: 700; border: 1px solid var(--ink); border-radius: .35rem; padding: .05rem .4rem; }
+  .pat { display: inline-block; margin-top: .3rem; margin-right: .3rem; font-size: .8rem; font-weight: 600; color: var(--heli); background: color-mix(in oklab, var(--heli) 10%, transparent); border-radius: .35rem; padding: .05rem .45rem; }
+
+  /* tcas ladder */
+  .ladder { border-left: 2px solid var(--rail); margin-left: .4rem; }
+  .ladder > div { position: relative; padding: 0 0 1rem 1.25rem; }
+  .ladder > div::before { content: ""; position: absolute; left: -.45rem; top: .3rem; width: .8rem; height: 2px; background: var(--muted); }
+  .ladder .alt { font-weight: 700; }
+
+  /* bars */
+  .bar-row { display: grid; grid-template-columns: minmax(7.5rem, 13rem) minmax(0, 1fr) 5.2rem; gap: .75rem; align-items: center; padding: .3rem 0; font-size: .92rem; }
+  .bars-short .bar-row { grid-template-columns: 5.5rem minmax(0, 1fr) 5.2rem; }
+  .bar-track { height: .9rem; background: color-mix(in oklab, var(--rail) 45%, transparent); border-radius: .25rem; overflow: hidden; }
+  .bar { height: 100%; border-radius: .25rem; }
+  .bar-plane { background: var(--plane); }
+  .bar-heli { background: var(--heli); }
+  .bar-neutral { background: var(--tower); }
+  .bar-accent { background: var(--ink); }
+  .bar-val { text-align: right; font-weight: 600; }
+  @media (max-width: 480px) {
+    .bar-row, .bars-short .bar-row { grid-template-columns: minmax(0, 1fr) 5.5rem; }
+    .bar-row .bar-track { grid-column: 1 / -1; grid-row: 2; }
+  }
+
+  .big-num { font-family: "Source Serif 4", Georgia, serif; font-size: 2.1rem; font-weight: 700; line-height: 1.1; }
+
+  /* nav */
+  .toc a { display: block; padding: .28rem .6rem; border-left: 2px solid transparent; color: var(--muted); font-size: .9rem; }
+  .toc a:hover { color: var(--ink); }
+  .toc a.active { color: var(--ink); border-left-color: var(--ink); font-weight: 600; }
+  .mnav a { display: inline-block; padding: .35rem .7rem; font-size: .85rem; border-radius: 999px; color: var(--muted); }
+  .mnav a.active { background: var(--ink); color: var(--paper); }
+
+  details.more { background: var(--card); border: 1px solid var(--rail); border-radius: .6rem; }
+  details.more > summary { cursor: pointer; padding: .8rem 1rem; font-weight: 600; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+  details.more > summary::-webkit-details-marker { display: none; }
+  details.more > summary::after { content: "+"; font-size: 1.2rem; color: var(--muted); }
+  details.more[open] > summary::after { content: "−"; }
+  details.more > div { padding: 0 1rem 1rem; }
+
+  .chip { display: inline-block; font-size: .82rem; border: 1px solid var(--rail); background: var(--card); border-radius: 999px; padding: .15rem .6rem; margin: 0 .3rem .4rem 0; }
+  table.kv th { font-weight: 600; color: var(--muted); white-space: nowrap; vertical-align: top; }
+  table.kv td, table.kv th { border-color: var(--rail) !important; }
+  [x-cloak] { display: none !important; }
+</style>
+</head>
+<body class="min-h-screen antialiased">
+
+<header class="border-b" style="border-color: var(--rail)">
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-2 text-sm">
+    <span class="font-semibold">NTSB preliminary report <span class="muted font-normal">· DCA25MA108</span></span>
+    <a class="src muted" href="https://www.ntsb.gov/investigations/Documents/DCA25MA108%20Prelim.pdf" rel="noopener">Source report (PDF)</a>
+  </div>
+</header>
+
+<!-- mobile section nav -->
+<nav class="mnav lg:hidden sticky top-0 z-20 border-b overflow-x-auto whitespace-nowrap px-2 py-2" style="background: var(--paper); border-color: var(--rail)" aria-label="Sections">
+  <a href="#overview">Overview</a><a href="#flights">The flights</a><a href="#timeline">Final minutes</a><a href="#altitude">Altitude</a><a href="#radio">Radio</a><a href="#route">Route</a><a href="#tcas">Warnings</a><a href="#recorders">Recorders</a><a href="#wreckage">Wreckage</a><a href="#response">Rescue</a><a href="#history">Close calls</a><a href="#actions">Actions</a><a href="#investigation">Investigation</a><a href="#data">Report data</a>
+</nav>
+
+<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:grid lg:grid-cols-[10.5rem_minmax(0,1fr)] lg:gap-8">
+
+  <aside class="hidden lg:block">
+    <nav class="toc sticky top-6 pt-10" aria-label="Sections">
+      <a href="#overview">Overview</a>
+      <a href="#flights">The two flights</a>
+      <a href="#timeline">The final minutes</a>
+      <a href="#altitude">Altitude and distance</a>
+      <a href="#radio">Radio and the tower</a>
+      <a href="#route">The helicopter route</a>
+      <a href="#tcas">Collision warnings</a>
+      <a href="#recorders">Flight recorders</a>
+      <a href="#wreckage">Wreckage</a>
+      <a href="#response">Rescue and recovery</a>
+      <a href="#history">Earlier close calls</a>
+      <a href="#actions">Actions since</a>
+      <a href="#investigation">The investigation</a>
+      <a href="#data">Report data</a>
+    </nav>
+  </aside>
+
+  <main class="min-w-0 pb-24">
+
+    <!-- OVERVIEW -->
+    <section id="overview" class="pt-8 sm:pt-12">
+      <p class="sec-kicker">Midair collision · January 29, 2025</p>
+      <h1 class="mt-2 text-3xl sm:text-5xl font-bold leading-tight tracking-tight">An airliner and an Army helicopter collide over the Potomac</h1>
+      <div class="prose-p mt-5 text-lg leading-relaxed max-w-3xl">
+        <p>At about 8:48 p.m. Eastern time, PSA Airlines flight 5342, a CRJ700 regional jet arriving from Wichita, Kansas, and a US Army Sikorsky UH-60L helicopter flying as <b>PAT25</b> collided about half a mile southeast of Ronald Reagan Washington National Airport (DCA). Both aircraft fell into the Potomac River.</p>
+        <p>All 64 people aboard the airplane and all 3 crew members aboard the helicopter were killed. Both aircraft were destroyed.</p>
+      </div>
+      <p class="mt-4 text-sm muted max-w-3xl">This page sets out the facts in the National Transportation Safety Board’s preliminary report. The report does not state a cause, and the NTSB’s investigation is ongoing. Times are Eastern Standard Time.</p>
+
+      <dl class="mt-8 grid grid-cols-2 md:grid-cols-4 gap-px rounded-xl overflow-hidden border" style="border-color: var(--rail); background: var(--rail)">
+        <div class="p-4" style="background: var(--card)"><dt class="text-xs uppercase tracking-wider muted font-semibold">Killed</dt><dd class="mt-1"><span class="big-num">67</span><span class="block text-sm muted">64 on the airplane, 3 on the helicopter</span></dd></div>
+        <div class="p-4" style="background: var(--card)"><dt class="text-xs uppercase tracking-wider muted font-semibold">Collision</dt><dd class="mt-1"><span class="big-num tnum">8:47:59</span><span class="block text-sm muted">p.m., about</span></dd></div>
+        <div class="p-4" style="background: var(--card)"><dt class="text-xs uppercase tracking-wider muted font-semibold">Where</dt><dd class="mt-1 text-sm leading-snug">Over the Potomac, on final approach to runway 33, about 0.5 mi southeast of DCA</dd></div>
+        <div class="p-4" style="background: var(--card)"><dt class="text-xs uppercase tracking-wider muted font-semibold">Conditions</dt><dd class="mt-1 text-sm leading-snug">Night, visual conditions. Clear sky, 10 miles visibility, wind from 300° at 14 knots gusting 23</dd></div>
+      </dl>
+    </section>
+
+    <!-- FLIGHTS -->
+    <section id="flights" class="pt-16">
+      <p class="sec-kicker">Who was flying</p>
+      <h2 class="sec-title mt-1">The two flights</h2>
+      <div class="mt-6 grid gap-5 md:grid-cols-2">
+        <article class="ac-card lane-plane">
+          <p class="lane-tag">Airplane</p>
+          <h3 class="text-2xl font-semibold">Flight 5342</h3>
+          <dl>
+            <dt>Aircraft</dt><dd>MHI RJ Aviation (formerly Bombardier) CL-600-2C10, known as the CRJ700. Registration N709PS.</dd>
+            <dt>Operator</dt><dd>PSA Airlines, a wholly owned subsidiary of American Airlines based in Dayton, Ohio. Its all-jet fleet includes 61 CRJ700 and 80 CRJ900 airplanes.</dd>
+            <dt>Flight</dt><dd>Scheduled domestic passenger flight under 14 CFR Part 121, from Wichita Dwight D. Eisenhower National Airport (ICT) to DCA, on an instrument flight rules flight plan.</dd>
+            <dt>Aboard</dt><dd>2 pilots, 2 flight attendants and 60 passengers.</dd>
+            <dt>Crew</dt>
+            <dd>
+              <ul class="facts">
+                <li><b>Captain</b>, pilot flying for the whole flight: about 3,950 flight hours, about 3,024 of them in this make and model. First-class medical certificate issued January 10, 2025.</li>
+                <li><b>First officer</b>, pilot monitoring: about 2,469 hours, about 966 in this make and model. First-class medical certificate issued October 31, 2024.</li>
+                <li>Both held airline transport pilot certificates with CL-65 type ratings (covering the CRJ-200, -700 and -900).</li>
+              </ul>
+            </dd>
+            <dt>Equipment</dt><dd>ADS-B out and TCAS, as required for Part 121 operations.</dd>
+          </dl>
+        </article>
+        <article class="ac-card lane-heli">
+          <p class="lane-tag">Helicopter</p>
+          <h3 class="text-2xl font-semibold">PAT25</h3>
+          <dl>
+            <dt>Aircraft</dt><dd>Sikorsky UH-60L, unregistered (military).</dd>
+            <dt>Operator</dt><dd>US Army 12th Aviation Battalion, Bravo Company, at Davison Army Airfield, Fort Belvoir, Virginia. The company is responsible for priority air transport (PAT) and continuity of government operations.</dd>
+            <dt>Flight</dt><dd>The pilot’s annual standardization evaluation using night vision goggles. Departed Davison on a visual flight rules flight plan and requested Helicopter Route 1 to Route 4 back to Davison.</dd>
+            <dt>Aboard</dt><dd>3 crew: an instructor pilot, a pilot and a crew chief.</dd>
+            <dt>Crew</dt>
+            <dd>
+              <ul class="facts">
+                <li><b>Instructor pilot</b>, Chief Warrant Officer 2: about 968 flight hours, about 300 in this make and model.</li>
+                <li><b>Pilot</b>, Captain: about 450 hours, about 326 in this make and model.</li>
+                <li><b>Crew chief</b>, Staff Sergeant: about 1,149 hours, all in UH-60 helicopters.</li>
+                <li>According to the Army, both pilots were current and qualified in the helicopter.</li>
+              </ul>
+            </dd>
+            <dt>Equipment</dt><dd>A transponder capable of transmitting ADS-B out. No autopilot.</dd>
+          </dl>
+        </article>
+      </div>
+    </section>
+
+    <!-- TIMELINE -->
+    <section id="timeline" class="pt-16" x-data="{ f: 'all', gw: {&quot;dep&quot;: [&quot;heli&quot;, &quot;plane&quot;, &quot;tower&quot;], &quot;conv&quot;: [&quot;heli&quot;, &quot;plane&quot;, &quot;tower&quot;], &quot;last&quot;: [&quot;heli&quot;, &quot;plane&quot;, &quot;tower&quot;], &quot;hit&quot;: [&quot;both&quot;], &quot;resp&quot;: [&quot;tower&quot;]}, on(w) { return this.f === 'all' || w === 'both' || this.f === w; }, groupOn(g) { return this.f === 'all' || this.gw[g].includes(this.f) || this.gw[g].includes('both'); } }">
+      <p class="sec-kicker">From the recorders and air traffic control</p>
+      <h2 class="sec-title mt-1">The final minutes</h2>
+      <p class="mt-3 max-w-3xl">Drawn from both aircraft’s flight data and cockpit voice recorders, ATC radar and radio recordings. Two radio calls to the helicopter were only partly captured on its own voice recorder; the words it may have missed are <mark class="missed">marked like this</mark>.</p>
+
+      <div class="mt-5 flex flex-wrap gap-2" role="group" aria-label="Show events for">
+        <button type="button" class="btn btn-sm fbtn" :aria-pressed="(f === 'all').toString()" aria-pressed="true" @click="f = 'all'">All</button>
+        <button type="button" class="btn btn-sm fbtn lane-plane" :aria-pressed="(f === 'plane').toString()" aria-pressed="false" @click="f = 'plane'"><span class="dot"></span>Flight 5342</button>
+        <button type="button" class="btn btn-sm fbtn lane-tower" :aria-pressed="(f === 'tower').toString()" aria-pressed="false" @click="f = 'tower'"><span class="dot"></span>Tower &amp; airport</button>
+        <button type="button" class="btn btn-sm fbtn lane-heli" :aria-pressed="(f === 'heli').toString()" aria-pressed="false" @click="f = 'heli'"><span class="dot"></span>PAT25</button>
+      </div>
+
+      <div class="mt-6">
+        <div class="lane-head" aria-hidden="true">
+          <div style="color: var(--muted)">p.m.</div>
+          <div class="lane-plane"><span class="dot"></span>Flight 5342</div>
+          <div class="lane-tower"><span class="dot"></span>Tower &amp; airport</div>
+          <div class="lane-heli"><span class="dot"></span>PAT25</div>
+        </div>
+        <ol class="tl">
+<li class="tl-group" x-show="groupOn('dep')"><h3>Departure and approach</h3><p>6:39 to 8:43 p.m. Both aircraft leave their origins and head for the Washington area.</p></li>
+<li class="tl-row" x-show="on('plane')">
+  <div class="tl-time"><span class="tnum">6:39</span></div>
+  <div class="tl-card lane-plane"><span class="lane-tag mob-tag">Flight 5342</span><p>Flight 5342 departs Wichita (ICT) on an instrument flight rules flight plan.</p></div>
+</li>
+<li class="tl-row" x-show="on('heli')">
+  <div class="tl-time"><span class="tnum">6:45</span></div>
+  <div class="tl-card lane-heli"><span class="lane-tag mob-tag">PAT25</span><p>PAT25 departs Davison Army Airfield on a visual flight rules flight plan, with the instructor pilot in the right seat and the pilot in the left.</p></div>
+</li>
+<li class="tl-row" x-show="on('plane')">
+  <div class="tl-time"><span class="about">about</span><span class="tnum">8:15</span></div>
+  <div class="tl-card lane-plane"><span class="lane-tag mob-tag">Flight 5342</span><p>Flight 5342 starts its initial descent.</p></div>
+</li>
+<li class="tl-row" x-show="on('heli')">
+  <div class="tl-time"><span class="about">about</span><span class="tnum">8:30</span></div>
+  <div class="tl-card lane-heli"><span class="lane-tag mob-tag">PAT25</span><p>After maneuvering near Laytonsville, Maryland, PAT25 begins travelling generally southbound. The instructor pilot is flying; the pilot is monitoring and on the radio.</p></div>
+</li>
+<li class="tl-row" x-show="on('heli')">
+  <div class="tl-time"><span class="tnum">8:32</span></div>
+  <div class="tl-card lane-heli"><span class="lane-tag mob-tag">PAT25</span><p>PAT25 checks in with the DCA tower controller, who issues an altimeter setting of 29.89 inches of mercury. The crew reads it back correctly, then changes control: the pilot flies and the instructor pilot monitors and works the radio for the rest of the flight.</p></div>
+</li>
+<li class="tl-row" x-show="on('heli')">
+  <div class="tl-time"><span class="tnum">8:33:41</span></div>
+  <div class="tl-card lane-heli"><span class="lane-tag mob-tag">PAT25</span><p>PAT25 requests Helicopter Route 1 to Route 4 to Davison. The tower approves.</p></div>
+</li>
+<li class="tl-row" x-show="on('heli')">
+  <div class="tl-time"><span class="tnum">8:38:39</span></div>
+  <div class="tl-card lane-heli"><span class="lane-tag mob-tag">PAT25</span><p>PAT25 reaches the DC Beltway at the Potomac near Carderock, Maryland, turns briefly west, then back east, and descends as it picks up Route 1 southeast toward downtown Washington.</p></div>
+</li>
+<li class="tl-row" x-show="on('plane')">
+  <div class="tl-time"><span class="tnum">8:39:10</span></div>
+  <div class="tl-card lane-plane"><span class="lane-tag mob-tag">Flight 5342</span><p>Potomac Approach clears flight 5342, inbound from the south, for the Mount Vernon Visual Runway 1 approach.</p></div>
+</li>
+<li class="tl-row" x-show="on('plane')">
+  <div class="tl-time"><span class="tnum">8:40:46</span></div>
+  <div class="tl-card lane-plane"><span class="lane-tag mob-tag">Flight 5342</span><p>Flight 5342 rolls out of a left turn onto the runway 1 localizer at about 4,000 ft pressure altitude and 170 knots, gear up, flaps at 20°.</p></div>
+</li>
+<li class="tl-row" x-show="on('tower')">
+  <div class="tl-time"><span class="tnum">8:43:06</span></div>
+  <div class="tl-card lane-tower"><span class="lane-tag mob-tag">Tower &amp; airport</span><p>On flight 5342’s first call, about 10.5 nautical miles out, the tower asks whether the crew can switch to runway 33. The crew agrees, is cleared to land on runway 33, and reads the clearance back.</p></div>
+</li>
+<li class="tl-group" x-show="groupOn('conv')"><h3>Converging</h3><p>8:43 to 8:47 p.m. The airplane switches to runway 33; the helicopter follows Route 1 down the Potomac.</p></li>
+<li class="tl-row" x-show="on('heli')">
+  <div class="tl-time"><span class="tnum">8:43:48</span></div>
+  <div class="tl-card lane-heli"><span class="lane-tag mob-tag">PAT25</span><p>About 1.1 nm west of Key Bridge, the pilot says they are at 300 ft. The instructor pilot says 400 ft. Neither remarks on the difference.</p></div>
+</li>
+<li class="tl-row" x-show="on('heli')">
+  <div class="tl-time"><span class="tnum">8:44:27</span></div>
+  <div class="tl-card lane-heli"><span class="lane-tag mob-tag">PAT25</span><p>Approaching Key Bridge, the instructor pilot says they are at 300 ft, descending to 200 ft.</p></div>
+</li>
+<li class="tl-row" x-show="on('plane')">
+  <div class="tl-time"><span class="tnum">8:44:41–45</span></div>
+  <div class="tl-card lane-plane"><span class="lane-tag mob-tag">Flight 5342</span><p>Between 8:44:41 and 8:44:45 the crew selects flaps 30°, then 45°.</p></div>
+</li>
+<li class="tl-row" x-show="on('plane')">
+  <div class="tl-time"><span class="tnum">8:44:49</span></div>
+  <div class="tl-card lane-plane"><span class="lane-tag mob-tag">Flight 5342</span><p>Landing gear down and locked. The airplane is fully configured for landing about 6.2 nm south of the airport.</p></div>
+</li>
+<li class="tl-row" x-show="on('heli')">
+  <div class="tl-time"><span class="tnum">8:45:14</span></div>
+  <div class="tl-card lane-heli"><span class="lane-tag mob-tag">PAT25</span><p>PAT25 reports its position over Memorial Bridge to the controller.</p></div>
+</li>
+<li class="tl-row" x-show="on('plane')">
+  <div class="tl-time"><span class="tnum">8:45:27</span></div>
+  <div class="tl-card lane-plane"><span class="lane-tag mob-tag">Flight 5342</span><p>Autopilot off. About 5 nm south of the airport, flight 5342 begins a shallow right turn off the runway 1 localizer at a radio altitude of about 1,700 ft and 134 knots.</p></div>
+</li>
+<li class="tl-row" x-show="on('heli')">
+  <div class="tl-time"><span class="tnum">8:45:30</span></div>
+  <div class="tl-card lane-heli"><span class="lane-tag mob-tag">PAT25</span><p>PAT25 passes over Memorial Bridge. The instructor pilot tells the pilot they are at 300 ft and need to descend; the pilot says they will descend to 200 ft.</p><p class="ctx-note">After Memorial Bridge the maximum altitude on Route 1 is 200 ft above mean sea level.</p></div>
+</li>
+<li class="tl-row" x-show="on('heli')">
+  <div class="tl-time"><span class="tnum">8:45:58</span></div>
+  <div class="tl-card lane-heli"><span class="lane-tag mob-tag">PAT25</span><p>PAT25 crosses the Tidal Basin and follows the Washington Channel, consistent with Route 1.</p></div>
+</li>
+<li class="tl-row" x-show="on('tower')">
+  <div class="tl-time"><span class="tnum">8:46:02</span></div>
+  <div class="tl-card lane-tower"><span class="lane-tag mob-tag">Tower &amp; airport</span><p>The tower tells PAT25 that traffic just south of the Wilson Bridge is a CRJ at 1,200 ft, <mark class="missed">circling</mark> to runway 33. The call is also heard on flight 5342’s cockpit voice recorder.</p><p class="missed-note"><span aria-hidden="true">◌</span> The word “circling” is on the ATC recording and the airplane’s voice recorder, but not on the helicopter’s. The PAT25 crew may not have received it.</p></div>
+</li>
+<li class="tl-row" x-show="on('heli')">
+  <div class="tl-time"><span class="tnum">8:46:08</span></div>
+  <div class="tl-card lane-heli"><span class="lane-tag mob-tag">PAT25</span><p>PAT25 reports the traffic in sight and requests visual separation. The controller approves. The aircraft are about 6.5 nm apart.</p></div>
+</li>
+<li class="tl-row" x-show="on('plane')">
+  <div class="tl-time"><span class="tnum">8:46:29</span></div>
+  <div class="tl-card lane-plane"><span class="lane-tag mob-tag">Flight 5342</span><p>Automated callout in the cockpit: 1,000 ft.</p></div>
+</li>
+<li class="tl-row" x-show="on('tower')">
+  <div class="tl-time"><span class="tnum">8:46:48</span></div>
+  <div class="tl-card lane-tower"><span class="lane-tag mob-tag">Tower &amp; airport</span><p>The tower clears other jet traffic on runway 1 for immediate departure, no delay.</p></div>
+</li>
+<li class="tl-group" x-show="groupOn('last')"><h3>The last 32 seconds</h3><p>8:47:27 to 8:47:58 p.m. The report counts down to impact from here.</p></li>
+<li class="tl-row" x-show="on('heli')">
+  <div class="tl-time"><span class="tnum">8:47:27</span><span class="countdown">32 s before impact</span></div>
+  <div class="tl-card lane-heli"><span class="lane-tag mob-tag">PAT25</span><p>PAT25 passes the southern tip of Hains Point.</p></div>
+</li>
+<li class="tl-row" x-show="on('plane')">
+  <div class="tl-time"><span class="about">about</span><span class="tnum">8:47:28</span></div>
+  <div class="tl-card lane-plane"><span class="lane-tag mob-tag">Flight 5342</span><p>About one second later, flight 5342 begins a left roll to turn onto final for runway 33, at a radio altitude of 516 ft and 133 knots.</p></div>
+</li>
+<li class="tl-row" x-show="on('plane')">
+  <div class="tl-time"><span class="tnum">8:47:29</span></div>
+  <div class="tl-card lane-plane"><span class="lane-tag mob-tag">Flight 5342</span><p>Automated callout: 500 ft.</p></div>
+</li>
+<li class="tl-row" x-show="on('tower')">
+  <div class="tl-time"><span class="tnum">8:47:39</span><span class="countdown">20 s before impact</span></div>
+  <div class="tl-card lane-tower"><span class="lane-tag mob-tag">Tower &amp; airport</span><p>The tower asks PAT25 whether the CRJ is in sight. The call is heard on both aircraft’s voice recorders, with a conflict alert audible in the background.</p></div>
+</li>
+<li class="tl-row" x-show="on('plane')">
+  <div class="tl-time"><span class="tnum">8:47:40</span></div>
+  <div class="tl-card lane-plane"><span class="lane-tag mob-tag">Flight 5342</span><p>Flight 5342’s collision avoidance system (TCAS) announces “Traffic, Traffic.” The aircraft are about 0.95 nm apart.</p></div>
+</li>
+<li class="tl-row" x-show="on('tower')">
+  <div class="tl-time"><span class="tnum">8:47:42</span><span class="countdown">17 s before impact</span></div>
+  <div class="tl-card lane-tower"><span class="lane-tag mob-tag">Tower &amp; airport</span><p>The tower directs PAT25 to <mark class="missed">pass behind the</mark> CRJ. The call is heard on both voice recorders.</p><p class="missed-note"><span aria-hidden="true">◌</span> A 0.8-second microphone key from PAT25 stepped on this call. The helicopter crew may not have received “pass behind the.”</p></div>
+</li>
+<li class="tl-row" x-show="on('heli')">
+  <div class="tl-time"><span class="tnum">8:47:44</span></div>
+  <div class="tl-card lane-heli"><span class="lane-tag mob-tag">PAT25</span><p>PAT25 says the traffic is in sight and requests visual separation; the tower approves. The instructor pilot then tells the pilot they believe ATC is asking the helicopter to move left, toward the east bank of the Potomac.</p></div>
+</li>
+<li class="tl-row" x-show="on('plane')">
+  <div class="tl-time"><span class="tnum">8:47:52</span><span class="countdown">7 s before impact</span></div>
+  <div class="tl-card lane-plane"><span class="lane-tag mob-tag">Flight 5342</span><p>Flight 5342 rolls out on final for runway 33 at a radio altitude of 344 ft and 143 knots.</p></div>
+</li>
+<li class="tl-row" x-show="on('plane')">
+  <div class="tl-time"><span class="tnum">8:47:58</span><span class="countdown">1 s before impact</span></div>
+  <div class="tl-card lane-plane"><span class="lane-tag mob-tag">Flight 5342</span><p>Flight 5342 begins to pitch up. The elevators are deflected near their maximum nose-up travel.</p></div>
+</li>
+<li class="tl-row" x-show="on('tower')">
+  <div class="tl-time"><span class="tnum">8:47:58</span></div>
+  <div class="tl-card lane-tower"><span class="lane-tag mob-tag">Tower &amp; airport</span><p>The controller issues a landing clearance to another airplane. During the transmission, other tower controllers can be heard reacting as they see the collision.</p></div>
+</li>
+<li class="tl-group" x-show="groupOn('hit')"><h3>Collision</h3><p>About 8:47:59 p.m.</p></li>
+<li class="tl-row" x-show="on('both')">
+  <div class="tl-time"><span class="about">about</span><span class="tnum">8:47:59</span></div>
+  <div class="tl-card lane-both"><span class="lane-tag mob-tag">Both aircraft</span><p class="font-semibold text-lg">The aircraft collide over the Potomac River, with flight 5342 on final approach for runway 33.</p>
+<div class="mt-3 grid gap-4 sm:grid-cols-2">
+  <div>
+    <p class="lane-tag lane-plane">Flight 5342</p>
+    <ul class="facts">
+      <li>Last recorded radio altitude 313 ft, 2 seconds before the collision</li>
+      <li>At the collision: pitch 9° nose up, roll 11° left wing down</li>
+      <li>Descending at 448 ft per minute</li>
+    </ul>
+  </div>
+  <div>
+    <p class="lane-tag lane-heli">PAT25</p>
+    <ul class="facts">
+      <li>Radio altitude 278 ft, steady for the previous 5 seconds</li>
+      <li>Pitch about 0.5° nose up, left roll 1.6°</li>
+    </ul>
+  </div>
+</div>
+<p class="mt-4">Video shows the airplane’s outboard left wing separating immediately. The airplane rolled about 450° and hit the water about 45° nose-low, rolled about 90° to the left.</p>
+</div>
+</li>
+<li class="tl-group" x-show="groupOn('resp')"><h3>Emergency response</h3><p>8:48 to 8:59 p.m.</p></li>
+<li class="tl-row" x-show="on('tower')">
+  <div class="tl-time"><span class="about">about</span><span class="tnum">8:48</span></div>
+  <div class="tl-card lane-tower"><span class="lane-tag mob-tag">Tower &amp; airport</span><p>The tower activates the alert phone, notifying the airport’s Aircraft Rescue and Firefighting (ARFF) service.</p></div>
+</li>
+<li class="tl-row" x-show="on('tower')">
+  <div class="tl-time"><span class="tnum">8:50</span></div>
+  <div class="tl-card lane-tower"><span class="lane-tag mob-tag">Tower &amp; airport</span><p>The tower confirms the accident is in the water at the approach end of runway 33. Runway 15/33 is closed.</p></div>
+</li>
+<li class="tl-row" x-show="on('tower')">
+  <div class="tl-time"><span class="tnum">8:53</span></div>
+  <div class="tl-card lane-tower"><span class="lane-tag mob-tag">Tower &amp; airport</span><p>ARFF rescue boats launch.</p></div>
+</li>
+<li class="tl-row" x-show="on('tower')">
+  <div class="tl-time"><span class="tnum">8:59</span></div>
+  <div class="tl-card lane-tower"><span class="lane-tag mob-tag">Tower &amp; airport</span><p>The first victim is located in the water.</p></div>
+</li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ALTITUDE -->
+    <section id="altitude" class="pt-16">
+      <p class="sec-kicker">Converging</p>
+      <h2 class="sec-title mt-1">Altitude and distance</h2>
+      <p class="mt-3 max-w-3xl">The altitudes the report gives for the last few minutes, placed on one clock. The airplane’s values are radio altitudes from its flight data recorder. The helicopter’s recorded pressure altitude was declared invalid (see <a class="src" href="#recorders">Flight recorders</a>), so most of its points are what its crew said aloud; only the value at the collision is a recorded radio altitude.</p>
+
+      <div class="mt-6 rounded-xl border p-3 sm:p-5" style="background: var(--card); border-color: var(--rail)">
+        <div class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_15rem] xl:items-center">
+        <div class="max-w-[780px]">
+<div class="hidden sm:block"><svg viewBox="0 0 660 350" role="img" aria-labelledby="altw-t altw-d" class="alt-chart" style="--fs:13px">
+<title id="altw-t">Altitudes reported for both aircraft, 8:43:36 to 8:48 p.m.</title>
+<desc id="altw-d">Flight 5342 descends from a radio altitude of about 1,700 ft at 8:45:27 to 313 ft two seconds before the collision. The helicopter crew spoke of altitudes between 300 and 400 ft; its recorded radio altitude at the collision was 278 ft. The Route 1 limit after Memorial Bridge is 200 ft above mean sea level.</desc>
+<line x1="58" x2="616" y1="316.0" y2="316.0" class="grid"/>
+<text x="52" y="320.0" class="tick" text-anchor="end">0</text>
+<line x1="58" x2="616" y1="235.4" y2="235.4" class="grid"/>
+<text x="52" y="239.4" class="tick" text-anchor="end">500</text>
+<line x1="58" x2="616" y1="154.9" y2="154.9" class="grid"/>
+<text x="52" y="158.9" class="tick" text-anchor="end">1,000</text>
+<line x1="58" x2="616" y1="74.3" y2="74.3" class="grid"/>
+<text x="52" y="78.3" class="tick" text-anchor="end">1,500</text>
+<text x="52" y="18" class="tick" text-anchor="end">ft</text>
+<line x1="108.0" x2="108.0" y1="316" y2="321" class="axis"/>
+<text x="108.0" y="335" class="tick" text-anchor="middle">8:44</text>
+<line x1="232.9" x2="232.9" y1="316" y2="321" class="axis"/>
+<text x="232.9" y="335" class="tick" text-anchor="middle">8:45</text>
+<line x1="357.8" x2="357.8" y1="316" y2="321" class="axis"/>
+<text x="357.8" y="335" class="tick" text-anchor="middle">8:46</text>
+<line x1="482.7" x2="482.7" y1="316" y2="321" class="axis"/>
+<text x="482.7" y="335" class="tick" text-anchor="middle">8:47</text>
+<line x1="607.7" x2="607.7" y1="316" y2="321" class="axis"/>
+<text x="607.7" y="335" class="tick" text-anchor="middle">8:48</text>
+<line x1="58" x2="616" y1="316" y2="316" class="axis"/>
+<line x1="295.4" x2="616" y1="283.8" y2="283.8" class="route"/>
+<line x1="295.4" x2="295.4" y1="277.8" y2="289.8" class="route-end"/>
+<text x="300.4" y="300.8" class="lbl route-lbl">Route 1 limit after Memorial Bridge: 200 ft msl</text>
+<line x1="605.6" x2="605.6" y1="18" y2="316" class="hit"/>
+<text x="600.6" y="26" class="lbl hit-lbl" text-anchor="end">Collision 8:47:59</text>
+<polyline class="plane-path" points="289.1,42.1 418.2,154.9 541.0,232.9 543.1,235.4 591.0,260.6 601.4,265.6"/>
+<circle cx="289.1" cy="42.1" r="4.5" class="plane-pt"/>
+<text x="280.1" y="47.1" class="lbl plane-lbl" text-anchor="end">1,700 ft</text>
+<circle cx="541.0" cy="232.9" r="4.5" class="plane-pt"/>
+<text x="547.0" y="224.9" class="lbl plane-lbl" text-anchor="start">516</text>
+<circle cx="591.0" cy="260.6" r="4.5" class="plane-pt"/>
+<text x="583.0" y="251.6" class="lbl plane-lbl" text-anchor="end">344</text>
+<circle cx="601.4" cy="265.6" r="4.5" class="plane-pt"/>
+<text x="591.4" y="282.6" class="lbl plane-lbl" text-anchor="end">313</text>
+<rect x="414.2" y="150.9" width="8" height="8" transform="rotate(45 418.2 154.9)" class="plane-call"/>
+<text x="427.2" y="159.9" class="lbl plane-lbl" text-anchor="start">1,000-ft callout</text>
+<rect x="539.1" y="231.4" width="8" height="8" transform="rotate(45 543.1 235.4)" class="plane-call"/>
+<text x="529.1" y="261.4" class="lbl plane-lbl" text-anchor="end">500-ft callout</text>
+<circle cx="83.0" cy="251.6" r="4.5" class="heli-said"/>
+<text x="91.0" y="244.6" class="lbl heli-lbl" text-anchor="start">400 (instructor)</text>
+<circle cx="83.0" cy="267.7" r="4.5" class="heli-said"/>
+<text x="91.0" y="284.7" class="lbl heli-lbl" text-anchor="start">300 (pilot)</text>
+<circle cx="164.2" cy="267.7" r="4.5" class="heli-said"/>
+<text x="164.2" y="258.7" class="lbl heli-lbl" text-anchor="middle">300</text>
+<circle cx="295.4" cy="267.7" r="4.5" class="heli-said"/>
+<text x="295.4" y="258.7" class="lbl heli-lbl" text-anchor="middle">300</text>
+<line x1="595.2" x2="605.6" y1="271.2" y2="271.2" class="heli-steady"/>
+<circle cx="605.6" cy="271.2" r="4.5" class="heli-pt"/>
+<text x="613.6" y="276.2" class="lbl heli-lbl">278</text>
+</svg></div><div class="sm:hidden"><svg viewBox="0 0 350 330" role="img" aria-labelledby="altn-t altn-d" class="alt-chart" style="--fs:12px">
+<title id="altn-t">Altitudes reported for both aircraft, 8:43:36 to 8:48 p.m.</title>
+<desc id="altn-d">Flight 5342 descends from a radio altitude of about 1,700 ft at 8:45:27 to 313 ft two seconds before the collision. The helicopter crew spoke of altitudes between 300 and 400 ft; its recorded radio altitude at the collision was 278 ft. The Route 1 limit after Memorial Bridge is 200 ft above mean sea level.</desc>
+<line x1="42" x2="314" y1="296.0" y2="296.0" class="grid"/>
+<text x="36" y="300.0" class="tick" text-anchor="end">0</text>
+<line x1="42" x2="314" y1="221.0" y2="221.0" class="grid"/>
+<text x="36" y="225.0" class="tick" text-anchor="end">500</text>
+<line x1="42" x2="314" y1="146.0" y2="146.0" class="grid"/>
+<text x="36" y="150.0" class="tick" text-anchor="end">1,000</text>
+<line x1="42" x2="314" y1="71.0" y2="71.0" class="grid"/>
+<text x="36" y="75.0" class="tick" text-anchor="end">1,500</text>
+<text x="36" y="18" class="tick" text-anchor="end">ft</text>
+<line x1="66.4" x2="66.4" y1="296" y2="301" class="axis"/>
+<text x="66.4" y="315" class="tick" text-anchor="middle">8:44</text>
+<line x1="127.3" x2="127.3" y1="296" y2="301" class="axis"/>
+<text x="127.3" y="315" class="tick" text-anchor="middle">8:45</text>
+<line x1="188.1" x2="188.1" y1="296" y2="301" class="axis"/>
+<text x="188.1" y="315" class="tick" text-anchor="middle">8:46</text>
+<line x1="249.0" x2="249.0" y1="296" y2="301" class="axis"/>
+<text x="249.0" y="315" class="tick" text-anchor="middle">8:47</text>
+<line x1="309.9" x2="309.9" y1="296" y2="301" class="axis"/>
+<text x="309.9" y="315" class="tick" text-anchor="middle">8:48</text>
+<line x1="42" x2="314" y1="296" y2="296" class="axis"/>
+<line x1="157.7" x2="314" y1="266.0" y2="266.0" class="route"/>
+<line x1="157.7" x2="157.7" y1="260.0" y2="272.0" class="route-end"/>
+<text x="162.7" y="283.0" class="lbl route-lbl">Route 1 limit, 200 ft msl</text>
+<line x1="308.9" x2="308.9" y1="18" y2="296" class="hit"/>
+<text x="303.9" y="26" class="lbl hit-lbl" text-anchor="end">Collision 8:47:59</text>
+<polyline class="plane-path" points="154.7,41.0 217.6,146.0 277.5,218.6 278.5,221.0 301.8,244.4 306.9,249.1"/>
+<circle cx="154.7" cy="41.0" r="4.5" class="plane-pt"/>
+<text x="145.7" y="46.0" class="lbl plane-lbl" text-anchor="end">1,700 ft</text>
+<circle cx="277.5" cy="218.6" r="4.5" class="plane-pt"/>
+<text x="283.5" y="210.6" class="lbl plane-lbl" text-anchor="start">516</text>
+<circle cx="301.8" cy="244.4" r="4.5" class="plane-pt"/>
+<text x="293.8" y="235.4" class="lbl plane-lbl" text-anchor="end">344</text>
+<circle cx="306.9" cy="249.1" r="4.5" class="plane-pt"/>
+<text x="296.9" y="266.1" class="lbl plane-lbl" text-anchor="end">313</text>
+<rect x="213.6" y="142.0" width="8" height="8" transform="rotate(45 217.6 146.0)" class="plane-call"/>
+<text x="226.6" y="151.0" class="lbl plane-lbl" text-anchor="start">1,000-ft callout</text>
+<rect x="274.5" y="217.0" width="8" height="8" transform="rotate(45 278.5 221.0)" class="plane-call"/>
+<text x="264.5" y="247.0" class="lbl plane-lbl" text-anchor="end">500-ft callout</text>
+<circle cx="54.2" cy="236.0" r="4.5" class="heli-said"/>
+<text x="62.2" y="229.0" class="lbl heli-lbl" text-anchor="start">400 (instructor)</text>
+<circle cx="54.2" cy="251.0" r="4.5" class="heli-said"/>
+<text x="62.2" y="268.0" class="lbl heli-lbl" text-anchor="start">300 (pilot)</text>
+<circle cx="93.8" cy="251.0" r="4.5" class="heli-said"/>
+<text x="93.8" y="242.0" class="lbl heli-lbl" text-anchor="middle">300</text>
+<circle cx="157.7" cy="251.0" r="4.5" class="heli-said"/>
+<text x="157.7" y="242.0" class="lbl heli-lbl" text-anchor="middle">300</text>
+<line x1="303.9" x2="308.9" y1="254.3" y2="254.3" class="heli-steady"/>
+<circle cx="308.9" cy="254.3" r="4.5" class="heli-pt"/>
+<text x="316.9" y="259.3" class="lbl heli-lbl">278</text>
+</svg></div>
+        </div>
+        <div>
+        <div class="legend xl:flex-col">
+          <span><span class="sw" style="background: var(--plane)"></span>Flight 5342 radio altitude (recorder)</span>
+          <span><span class="sw" style="background: var(--paper); border: 2px solid var(--plane); border-radius: 2px; transform: rotate(45deg); width: .65rem; height: .65rem"></span>Automated altitude callout</span>
+          <span><span class="sw" style="background: var(--paper); border: 2px solid var(--heli)"></span>Altitude spoken by the PAT25 crew</span>
+          <span><span class="sw" style="background: var(--heli)"></span>PAT25 radio altitude (recorder)</span>
+          <span><span style="display:inline-block;width:1.1rem;border-top:2px dashed var(--heli)"></span>Route 1 limit after Memorial Bridge (msl)</span>
+        </div>
+        <p class="mt-3 text-sm muted">The dotted line only joins the airplane’s reported points; the report does not give its path between them. The route limit is stated in feet above mean sea level, a different reference from radio altitude, so the values are shown together for orientation rather than as an exact comparison.</p>
+        </div>
+        </div>
+      </div>
+
+      <h3 class="mt-8 text-lg font-semibold">How far apart</h3>
+      <ol class="mt-3 grid gap-3 sm:grid-cols-3">
+        <li class="rounded-lg border p-4" style="background: var(--card); border-color: var(--rail)"><span class="tnum font-semibold">8:46:08</span><span class="block big-num mt-1">6.5 nm</span><span class="block text-sm muted">when PAT25 reported the CRJ in sight and asked for visual separation</span></li>
+        <li class="rounded-lg border p-4" style="background: var(--card); border-color: var(--rail)"><span class="tnum font-semibold">8:47:40</span><span class="block big-num mt-1">0.95 nm</span><span class="block text-sm muted">when the airplane’s TCAS announced “Traffic, Traffic”</span></li>
+        <li class="rounded-lg border p-4" style="background: color-mix(in oklab, var(--alert) 7%, var(--card)); border-color: var(--rail)"><span class="tnum font-semibold">8:47:59</span><span class="block big-num mt-1" style="color: var(--alert)">Collision</span><span class="block text-sm muted">airplane descending at 448 ft per minute; helicopter steady at 278 ft radio altitude</span></li>
+      </ol>
+    </section>
+
+    <!-- RADIO -->
+    <section id="radio" class="pt-16">
+      <p class="sec-kicker">Air traffic control</p>
+      <h2 class="sec-title mt-1">Radio and the tower</h2>
+      <p class="mt-3 max-w-3xl">The two crews talked to the same controller on different frequencies, both in the very high frequency range. Neither crew could hear what the other said to the controller, but each could hear what the controller said to the other.</p>
+
+      <div class="radio-map mt-6">
+        <div class="node lane-plane"><b>Flight 5342</b><span class="text-sm muted">on the published control tower frequency</span></div>
+        <div class="wire lane-plane"><span class="tnum">119.1 MHz</span></div>
+        <div class="node lane-tower"><b>DCA tower controller</b><span class="text-sm muted">helicopter control and local control positions combined since 3:40 p.m.</span></div>
+        <div class="wire lane-heli"><span class="tnum">134.35 MHz</span></div>
+        <div class="node lane-heli"><b>PAT25</b><span class="text-sm muted">on the published helicopter frequency</span></div>
+      </div>
+      <div class="mt-3 grid gap-3 sm:grid-cols-2 text-sm">
+        <p class="rounded-lg border p-3" style="border-color: var(--rail)"><b>Heard by both crews:</b> the controller’s transmissions to either aircraft.</p>
+        <p class="rounded-lg border p-3" style="border-color: var(--rail)"><b>Not heard by the other crew:</b> each crew’s own transmissions to the controller.</p>
+      </div>
+
+      <div class="prose-p mt-6 max-w-3xl">
+        <p>The tower cab faces east across the Potomac. At the time of the accident the tower was running a “North Operation”: aircraft landing and departing on runway 1, with intermittent arrivals and departures on runway 33.</p>
+        <p>Five controllers were working five open positions: assistant local control, ground control, clearance delivery, local control, and operations supervisor. Helicopter control had been combined with local control at 3:40 p.m. that day, and flight data with clearance delivery.</p>
+      </div>
+    </section>
+
+    <!-- ROUTE -->
+    <section id="route" class="pt-16">
+      <p class="sec-kicker">Baltimore-Washington Helicopter Route Chart</p>
+      <h2 class="sec-title mt-1">The helicopter route</h2>
+      <p class="mt-3 max-w-3xl">FAA helicopter route charts show routes for getting helicopters into, out of and around busy airspace, usually with altitude limits and extra ground landmarks for navigating by sight. PAT25 asked for Route 1 to Route 4. Its times along the way are shown in orange.</p>
+
+      <div class="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1fr)_16rem]">
+        <ol class="route-list">
+          <li><span class="stop">Cabin John, Maryland</span><br>Route 1 begins and follows the western shore of the Potomac southeast toward Washington.
+            <br><span class="pat">8:38:39 reaches the Beltway near Carderock and picks up Route 1</span></li>
+          <li><span class="stop">Key Bridge</span><br>After crossing, the route follows the eastern shore, with the Kennedy Center and Lincoln Memorial to the east and Roosevelt Island to the west.
+            <br><span class="pat">8:43:48 about 1.1 nm west</span><span class="pat">8:44:27 approaching</span></li>
+          <li class="req"><span class="stop">Memorial Bridge</span> <span class="text-sm muted">compulsory reporting point</span>
+            <br><span class="limit">Max 200 ft msl after this point</span>
+            <br><span class="pat">8:45:14 reports position</span><span class="pat">8:45:30 passes over</span></li>
+          <li><span class="stop">Washington Monument, West Potomac Park, Tidal Basin</span><br>Route 1 passes south of the monument and crosses the park and the Tidal Basin.
+            <br><span class="pat">8:45:58 crosses the Tidal Basin</span></li>
+          <li><span class="stop">Washington Channel</span><br>Follows the channel along East Potomac Park.</li>
+          <li><span class="stop">Hains Point</span> <span class="text-sm muted">non-compulsory reporting point</span><br>The southern tip of East Potomac Park, where the Potomac and Anacostia meet. Route 4 joins Route 1 here.
+            <br><span class="pat">8:47:27 passes the southern tip</span></li>
+          <li><span class="stop">Route 4, south along the eastern shore</span><br>DCA lies to the west.</li>
+          <li><span class="stop">Woodrow Wilson Bridge</span><br>South of the bridge the Route 4 limit rises.
+            <br><span class="limit">Max 300 ft msl south of the bridge</span></li>
+        </ol>
+        <aside class="rounded-xl border p-4 h-max text-sm" style="background: var(--card); border-color: var(--rail)">
+          <p class="font-semibold">No defined width</p>
+          <p class="mt-1 muted">According to FAA aeronautical information specialists, helicopter routes have no defined lateral boundaries. They are drawn as lines along surface features so crews can read them; any altitude or lateral distance restrictions are typically in the chart specifications or in warning boxes on the chart.</p>
+          <p class="font-semibold mt-4">msl</p>
+          <p class="mt-1 muted">Feet above mean sea level.</p>
+        </aside>
+      </div>
+    </section>
+
+    <!-- TCAS -->
+    <section id="tcas" class="pt-16">
+      <p class="sec-kicker">Equipment</p>
+      <h2 class="sec-title mt-1">Collision warnings: TCAS and ADS-B</h2>
+      <div class="mt-5 grid gap-8 lg:grid-cols-2">
+        <div class="prose-p">
+          <p><b>TCAS</b> (traffic alert and collision avoidance system) is a family of airborne devices that work independently of ground-based air traffic control. The FAA requires TCAS II on commercial aircraft, including regional airliners with more than 30 seats or a maximum takeoff weight over 33,000 lbs.</p>
+          <p>TCAS II gives two kinds of alert, shown on the instrument panel and spoken aloud when its computer predicts a conflict. A <b>traffic advisory</b> is a warning; on the CRJ it is announced as “TRAFFIC - TRAFFIC.” A <b>resolution advisory</b> recommends an escape maneuver in the vertical dimension, to increase or keep the vertical separation between aircraft, with calls such as “CLIMB, CLIMB,” “DESCEND, DESCEND” or “LEVEL OFF, LEVEL OFF.”</p>
+          <p><b>ADS-B</b>, according to the FAA, uses GPS signals to work out an aircraft’s precise position and broadcasts it, with other data, to other aircraft and ATC facilities. The airplane had ADS-B out; the helicopter’s transponder was capable of it.</p>
+        </div>
+        <div>
+          <h3 class="font-semibold">What TCAS does on the way down</h3>
+          <div class="ladder mt-3">
+            <div><span class="alt">Below 900 ft</span> above ground on descent<br><span class="muted">Resolution advisories are inhibited. A traffic advisory comes when the other aircraft is about 20 seconds from closest approach, or 0.3 nm away, whichever happens first.</span></div>
+            <div><span class="alt">Below 400 ft</span> above ground on arrival<br><span class="muted">The spoken part of the traffic advisory is inhibited.</span></div>
+          </div>
+          <p class="mt-2 rounded-lg border p-3 text-sm" style="border-color: var(--rail)"><b>In this accident:</b> at 8:47:40, with the aircraft about 0.95 nm apart, flight 5342’s TCAS announced “Traffic, Traffic.”</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- RECORDERS -->
+    <section id="recorders" class="pt-16">
+      <p class="sec-kicker">Evidence</p>
+      <h2 class="sec-title mt-1">Flight recorders</h2>
+      <div class="mt-6 grid gap-5 md:grid-cols-2">
+        <article class="ac-card lane-plane">
+          <p class="lane-tag">Flight 5342</p>
+          <p>A separate flight data recorder (FDR) and cockpit voice recorder (CVR), both L3-Harris FA2100 solid-state units. An FBI dive team recovered them; data from both downloaded successfully.</p>
+          <ul class="facts mt-3">
+            <li>CVR: about 2 hours 4 minutes of good to excellent audio, starting mid-flight because it holds 2 hours.</li>
+            <li>FDR: the whole flight, about 400 parameters.</li>
+          </ul>
+        </article>
+        <article class="ac-card lane-heli">
+          <p class="lane-tag">PAT25</p>
+          <p>One combined voice and data recorder: a Penny &amp; Giles Multi-Purpose Flight Recorder inside a Goodrich Integrated Vehicle Health Management Unit. The Metropolitan Police Department of the District of Columbia recovered it.</p>
+          <ul class="facts mt-3">
+            <li>Voice: about 2 hours of excellent audio.</li>
+            <li>Data: the whole flight, about 70 parameters. By design it records no date, time or GPS position.</li>
+            <li>A parameter documented as “barometric altitude” was actually pressure altitude. Its values were inconsistent with other data and it was declared invalid. Further work will determine whether the problem was limited to the recorder or may have affected other helicopter systems that use pressure altitude.</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <!-- WRECKAGE -->
+    <section id="wreckage" class="pt-16">
+      <p class="sec-kicker">Recovery and examination</p>
+      <h2 class="sec-title mt-1">Wreckage</h2>
+      <p class="mt-3 max-w-3xl">Both aircraft came down in the Potomac in water 1 to 8 ft deep, depending on the tide. The Army Corps of Engineers and the US Navy Supervisor of Salvage and Diving Operations (SUPSALV) surveyed the site with sonar and divers wearing helmet cameras. SUPSALV recovered the aircraft under NTSB supervision, and the wreckage went to a secured hangar at DCA.</p>
+
+      <div class="mt-6 rounded-xl border p-4 sm:p-5" style="background: var(--card); border-color: var(--rail)">
+        <h3 class="font-semibold">Distance southeast of the approach end of runway 33</h3>
+        <div class="mt-3">
+<div class="bar-row"><div class="bar-label">Airplane, main wreckage</div>
+<div class="bar-track"><div class="bar bar-plane" style="width:58.63%"></div></div><div class="bar-val tnum">2,345 ft</div></div>
+<div class="bar-row"><div class="bar-label">Airplane, outboard left wing</div>
+<div class="bar-track"><div class="bar bar-plane" style="width:69.75%"></div></div><div class="bar-val tnum">2,790 ft</div></div>
+<div class="bar-row"><div class="bar-label">Helicopter</div>
+<div class="bar-track"><div class="bar bar-heli" style="width:93.25%"></div></div><div class="bar-val tnum">3,730 ft</div></div>
+        </div>
+      </div>
+
+      <div class="mt-6 rounded-xl border p-4 sm:p-5" style="border-color: var(--rail)">
+        <h3 class="font-semibold">What videos showed about the lights</h3>
+        <p class="mt-2 text-sm">Videos from several sources captured the collision. A preliminary review found these lights illuminated before the collision:</p>
+        <div class="mt-3 grid gap-4 sm:grid-cols-2 text-sm">
+          <div><p class="lane-tag lane-plane-text">Airplane</p><p>Left- and right-wing navigation lights; left-wing, right-wing and tail anticollision (strobe) lights; nose, right-wing and left-wing landing lights; upper and lower beacon lights. None used LED technology.</p></div>
+          <div><p class="lane-tag lane-heli-text">Helicopter</p><p>Lower fuselage and aft pylon anticollision (strobe) lights; left, right and tail pylon position lights.</p></div>
+        </div>
+      </div>
+
+      <div class="mt-6 grid gap-3">
+        <details class="more">
+          <summary><span><span class="dot lane-plane"></span>&nbsp; Airplane examination</span></summary>
+          <div class="prose-p text-[0.95rem]">
+            <p>Extensive water impact damage to most of the structure. The fuselage was recovered in 13 major sections covering its full length, from the radome in the nose to the tail cone.</p>
+            <p><b>Lower right aft fuselage fairing:</b> a puncture about 10 by 8 inches, and a slash about 29 inches long and 2 inches wide through the fairing, internal structure and lavatory access door. An approximately 2-ft section of one of the helicopter’s tail rotor blades was embedded in the slash.</p>
+            <p><b>Tail:</b> the vertical stabilizer and rudder stayed attached; the horizontal stabilizer and elevators separated from its top.</p>
+            <p><b>Right wing:</b> largely intact and attached to part of the center fuselage, slats and flaps fully extended, landing gear attached and extended.</p>
+            <p><b>Left wing:</b> the inboard section was significantly fragmented; the outboard section from wing station 178 to the tip separated and was found in the debris field. The inboard end of the left center slat had a linear slash about 52 inches long, with the skin behind it gouged and abraded aftward; the forward spar was cut along the same diagonal line and the structure inside was deformed aft and inboard, with some black paint transfer. Two other inboard left slat sections showed denting and black paint transfer. The left main gear’s outboard tire had a diagonal slash through all its layers.</p>
+            <p><b>Fibrous material</b> was found in several sections, including the left wing and vertical stabilizer; samples went to the NTSB Materials Laboratory.</p>
+            <p><b>Engines:</b> neither nacelle showed evidence of fire or uncontainment. The left engine separated from its pylon, core mostly intact, with all fan blades bent aft and their leading edges dented, gouged and missing material. The right engine was mostly intact on its pylon; its fan blades were full length and bent opposite the direction of rotation, except one fractured about midspan. Blades 10, 12, 14, 16, 19 and 22 had localized deformation near their tips, and part of the fan case rub strip was rubbed away from the 8 to 11 o’clock positions.</p>
+            <p><b>Kept for further examination:</b> the TCAS transmitter receiver, communication management unit, transponder, air data computers and exterior light bulbs.</p>
+          </div>
+        </details>
+        <details class="more">
+          <summary><span><span class="dot lane-heli"></span>&nbsp; Helicopter examination</span></summary>
+          <div class="prose-p text-[0.95rem]">
+            <p>The helicopter came to rest inverted, its tail structure separated from the fuselage around the tail transition section. The main fuselage had fractured into multiple pieces, held together during recovery mainly by cabling, hoses and remnant structure. Both internal crash-resistant fuel tanks were in place; the right one was partially detached.</p>
+            <p><b>Tail:</b> the tail boom was intact with wrinkled skin; the vertical fin was mostly intact except its upper end, fractured and bent to the right; the stabilator showed forward impact deformation. The tail rotor hub plates stayed on the gearbox output shaft. One of four tail rotor blades was mostly intact; remnants of the other three remained in the hub.</p>
+            <p><b>Main rotor:</b> the main gearbox stayed attached to the roof beams, which had separated from the fuselage. The hub stayed on the rotor shaft. All four main rotor blades were fractured near the hub.</p>
+            <p><b>Cockpit:</b> heavily fragmented. The left seat barometric altimeter’s setting window read between 29.88 and 29.89 inches of mercury; the right seat altimeter was set to 29.87. Both barometric altimeters, both radar altimeters and their antennas, and the electronic standby instrument system were kept for examination.</p>
+            <p><b>Pitot-static system:</b> highly fragmented. Fittings checked were tight, except one pitot outlet line fitting found near the cockpit nose wreckage; that line and the two recovered probes were kept for examination.</p>
+            <p><b>Engines:</b> neither showed evidence of external fire or uncontainment. The aft portion of the left engine was recovered intact, and dive teams recovered further pieces, including the accessory gearbox and parts of the compressor; the helicopter drive shaft was fractured in front of the engine’s output drive assembly. The right engine appeared intact, and turning its output shaft by hand turned the power turbine smoothly.</p>
+            <p><b>Also kept:</b> the transponder and its remote control unit (maintenance records and the wreckage confirm the helicopter had a transponder), and two iPad minis found apart from the main wreckage.</p>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <!-- RESPONSE -->
+    <section id="response" class="pt-16">
+      <p class="sec-kicker">After the collision</p>
+      <h2 class="sec-title mt-1">Rescue and recovery</h2>
+      <div class="mt-5 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <div>
+          <ol class="route-list">
+            <li class="req"><span class="stop tnum">About 8:48</span><br>The tower activates the alert phone, notifying the Metropolitan Washington Airports Authority’s Aircraft Rescue and Firefighting (ARFF) service.</li>
+            <li><span class="stop tnum">8:50</span><br>The tower confirms the accident is in the water at the approach end of runway 33. Runway 15/33 is closed.</li>
+            <li><span class="stop tnum">8:53</span><br>ARFF rescue boats launch.</li>
+            <li><span class="stop tnum">8:59</span><br>The first victim is located in the water.</li>
+          </ol>
+        </div>
+        <div class="text-[0.95rem]">
+          <h3 class="font-semibold">Who recovered the victims’ remains</h3>
+          <div class="mt-3">
+            <span class="chip">FBI Evidence Response Team</span><span class="chip">DC Fire &amp; EMS Department</span><span class="chip">Metropolitan Police Department</span><span class="chip">Maryland State Police</span><span class="chip">Baltimore City and County Police and Fire</span><span class="chip">Randive, Inc., under contract to US Navy SUPSALV</span><span class="chip">Prince George’s County Police</span><span class="chip">Maryland Natural Resources</span><span class="chip">Maryland State Fire Marshal</span><span class="chip">Anne Arundel County Fire Department</span><span class="chip">Maryland Transportation Authority Police Marine Division (surface support)</span>
+          </div>
+          <h3 class="font-semibold mt-5">Medical examination</h3>
+          <p class="mt-2">The District of Columbia Office of the Chief Medical Examiner conducted autopsies of the civilian crew, with toxicology samples sent to the FAA’s Civil Aerospace Medical Institute, as is standard practice. The DC medical examiner examined the passengers. The Armed Forces Medical Examiner conducted autopsies and toxicology testing of the military crew.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- HISTORY -->
+    <section id="history" class="pt-16">
+      <p class="sec-kicker">Before January 29</p>
+      <h2 class="sec-title mt-1">Earlier close calls at DCA</h2>
+      <p class="mt-3 max-w-3xl">DCA, operated by the Metropolitan Washington Airports Authority, is the 24th busiest airport in the United States. Because of noise regulations, flight patterns follow the Potomac or Anacostia rivers.</p>
+
+      <div class="mt-6 rounded-xl border p-4 sm:p-6" style="background: var(--card); border-color: var(--rail)">
+        <p class="text-sm muted">Commercial (instrument flight rules) operations at DCA, October 2021 to December 2024</p>
+        <dl class="mt-3 grid gap-5 sm:grid-cols-3">
+          <div><dt class="sr-only">Operations</dt><dd><span class="big-num tnum">944,179</span><span class="block text-sm mt-1">departures and arrivals</span></dd></div>
+          <div><dt class="sr-only">Close encounters</dt><dd><span class="big-num tnum">15,214</span><span class="block text-sm mt-1">airplane–helicopter encounters less than 1 nm apart horizontally and less than 400 ft vertically</span></dd></div>
+          <div><dt class="sr-only">Very close encounters</dt><dd><span class="big-num tnum" style="color: var(--alert)">85</span><span class="block text-sm mt-1">less than 1,500 ft apart horizontally and less than 200 ft vertically</span></dd></div>
+        </dl>
+      </div>
+
+      <div class="mt-6 grid gap-6 lg:grid-cols-2">
+        <div class="prose-p">
+          <h3 class="font-semibold">Voluntary reports and FAA data, 2011 to 2024</h3>
+          <p>The vast majority of reported encounters between helicopters and commercial aircraft near DCA happened on approach to landing. Initial analysis found at least one TCAS resolution advisory a month triggered by a nearby helicopter. In over half of those, the helicopter may have been above the route altitude restriction. Two-thirds of the events happened at night.</p>
+        </div>
+        <div>
+          <h3 class="font-semibold">Share of DCA arrivals by runway, 2018 to 2024</h3>
+          <div class="mt-3 bars-short">
+<div class="bar-row"><div class="bar-label">Runway 1</div>
+<div class="bar-track"><div class="bar bar-neutral" style="width:57.00%"></div></div><div class="bar-val tnum">about 57%</div></div>
+<div class="bar-row"><div class="bar-label">Runway 19</div>
+<div class="bar-track"><div class="bar bar-neutral" style="width:38.00%"></div></div><div class="bar-val tnum">about 38%</div></div>
+<div class="bar-row"><div class="bar-label">Runway 33</div>
+<div class="bar-track"><div class="bar bar-accent" style="width:4.00%"></div></div><div class="bar-val tnum">about 4%</div></div>
+<div class="bar-row"><div class="bar-label">Runway 15</div>
+<div class="bar-track"><div class="bar bar-neutral" style="width:0.80%"></div></div><div class="bar-val tnum">under 1%</div></div>
+          </div>
+          <p class="mt-2 text-sm muted">Runway 15 handled about 5% of departures. Flight 5342 had been switched to runway 33.</p>
+        </div>
+      </div>
+
+      <div class="mt-6 rounded-xl border p-4 text-sm" style="border-color: var(--rail)">
+        <p class="font-semibold">The runways</p>
+        <p class="mt-1">DCA has three operational runways. Runway 1/19, the most used, is 7,169 ft long and 150 ft wide. Runway 15/33, the second most used, is 5,204 ft long and 150 ft wide. Runway 33 has a four-light precision approach path indicator (PAPI) giving a 3° visual approach path to the touchdown zone; it was working at the time of the accident.</p>
+      </div>
+    </section>
+
+    <!-- ACTIONS -->
+    <section id="actions" class="pt-16">
+      <p class="sec-kicker">Since the accident</p>
+      <h2 class="sec-title mt-1">Actions since</h2>
+      <ol class="route-list mt-5">
+        <li class="req"><span class="stop">January 31, 2025</span><br>The FAA issued a Notice to Airmen (NOTAM) prohibiting helicopters from operating over the Potomac near DCA from the surface up to and including 17,999 ft msl. Exceptions: lifesaving medical, active law enforcement, air defense, and presidential transport missions. When such a mission is flown, civilian aircraft are not allowed in the area.</li>
+        <li><span class="stop">February 19, 2025</span><br>The most recent version, NOTAM 5/4379, updated the dimensions of the temporary flight restriction. It is in effect through March 31, 2025, at 23:59 UTC.</li>
+        <li class="req"><span class="stop">March 11, 2025</span><br>The NTSB issued two urgent safety recommendations to the FAA about the helicopter routes near DCA.</li>
+      </ol>
+    </section>
+
+    <!-- INVESTIGATION -->
+    <section id="investigation" class="pt-16">
+      <p class="sec-kicker">Class 1 investigation</p>
+      <h2 class="sec-title mt-1">The investigation</h2>
+      <div class="prose-p mt-3 max-w-3xl">
+        <p>The NTSB went to the accident site and supervised water recovery. All NTSB Board members visited, with Member Inman acting as the Member on-scene. The Investigator in Charge is David Banning.</p>
+      </div>
+      <h3 class="mt-6 font-semibold">Parties to the investigation</h3>
+      <div class="mt-2">
+        <span class="chip">PSA Airlines</span><span class="chip">GE Aerospace</span><span class="chip">Sikorsky</span><span class="chip">Federal Aviation Administration</span><span class="chip">US Army</span><span class="chip">National Air Traffic Controllers Association</span><span class="chip">Air Line Pilots Association</span><span class="chip">Association of Flight Attendants</span><span class="chip">International Association of Machinists and Aerospace Workers</span><span class="chip">Collins Aerospace</span><span class="chip">Metropolitan Washington Airports Authority</span>
+      </div>
+      <p class="mt-2 text-sm muted">The Transportation Safety Board of Canada provided an accredited representative, with Transport Canada and MHI RJ Aviation as technical advisors.</p>
+      <h3 class="mt-6 font-semibold">Investigative groups, each led by an NTSB chair</h3>
+      <ul class="mt-2 grid gap-x-8 gap-y-1 sm:grid-cols-2 list-disc pl-5">
+        <li>Air Carrier Operations and Human Performance</li>
+        <li>Helicopter Operations and Human Performance</li>
+        <li>Air Traffic Control and Human Performance</li>
+        <li>Airplane Structures</li>
+        <li>Airplane Systems</li>
+        <li>Powerplants</li>
+        <li>Helicopter Airworthiness</li>
+        <li>Aircraft Performance</li>
+        <li>Survival Factors</li>
+        <li>Flight Recorders: airplane FDR, airplane CVR, helicopter FDR, helicopter CVR</li>
+      </ul>
+      <details class="more mt-5">
+        <summary>Additional participating persons</summary>
+        <div class="overflow-x-auto">
+          <table class="table table-sm kv">
+            <tbody>
+              <tr><th>Patrick Lusch</th><td>FAA AVP-110</td></tr>
+              <tr><th>Darren Hall</th><td>PSA Airlines</td></tr>
+              <tr><th>Sam Farmiga</th><td>GE Aerospace</td></tr>
+              <tr><th>Javier Casanova</th><td>Sikorsky</td></tr>
+              <tr><th>Col Matthew Parker</th><td>US Army</td></tr>
+              <tr><th>Seth Myers</th><td>National Air Traffic Controllers Association (NATCA)</td></tr>
+              <tr><th>Daniel Mullin</th><td>Air Line Pilots Association (ALPA)</td></tr>
+              <tr><th>Robin Coombs</th><td>Association of Flight Attendants</td></tr>
+              <tr><th>Robert Brown</th><td>International Association of Machinists and Aerospace Workers (IAM)</td></tr>
+              <tr><th>Chris Paulino</th><td>Metropolitan Washington Airports Authority (MWAA)</td></tr>
+              <tr><th>Ewan Tasker</th><td>Transportation Safety Board of Canada</td></tr>
+              <tr><th>David Fisher</th><td>Mitsubishi Heavy Industries</td></tr>
+              <tr><th>Ian Sturgeon</th><td>Transport Canada</td></tr>
+              <tr><th>Shelley Ford</th><td>Collins Aerospace</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+    </section>
+
+    <!-- DATA -->
+    <section id="data" class="pt-16">
+      <p class="sec-kicker">As listed on the report form</p>
+      <h2 class="sec-title mt-1">Report data</h2>
+      <p class="mt-3 max-w-3xl text-sm muted">The report’s summary fields, reproduced as given. A1 is the airplane and A2 the helicopter. Where the form differs from the narrative (for example, it lists the helicopter’s three dead as 2 crew and 1 passenger, and its flight plan as MVFR), both are shown as the report gives them.</p>
+      <div class="mt-5 grid gap-5 lg:grid-cols-2">
+        <div class="overflow-x-auto rounded-xl border" style="background: var(--card); border-color: var(--rail)">
+          <table class="table table-sm kv">
+            <thead><tr><th></th><th class="lane-plane-text">A1 airplane</th><th class="lane-heli-text">A2 helicopter</th></tr></thead>
+            <tbody>
+              <tr><th>Make</th><td>Bombardier Inc</td><td>Sikorsky</td></tr>
+              <tr><th>Model</th><td>CL-600-2C10</td><td>UH60 L</td></tr>
+              <tr><th>Registration</th><td>N709PS</td><td>UNREG</td></tr>
+              <tr><th>Category</th><td>Airplane</td><td>Helicopter</td></tr>
+              <tr><th>Operator</th><td>PSA Airlines</td><td>Army Department of Defense</td></tr>
+              <tr><th>Certificate</th><td>Flag carrier (121)</td><td>None</td></tr>
+              <tr><th>Conducted under</th><td>Part 121: Air carrier, scheduled</td><td>Armed Forces</td></tr>
+              <tr><th>Flight plan</th><td>IFR</td><td>MVFR</td></tr>
+              <tr><th>Departure</th><td>Wichita, KS (ICT)</td><td>Fort Belvoir, VA (DAA)</td></tr>
+              <tr><th>Destination</th><td>Washington, DC (DCA)</td><td>Fort Belvoir, VA (DAA)</td></tr>
+              <tr><th>Crew injuries</th><td>4 fatal</td><td>2 fatal</td></tr>
+              <tr><th>Passenger injuries</th><td>60 fatal</td><td>1 fatal</td></tr>
+              <tr><th>Total injuries</th><td>64 fatal</td><td>3 fatal</td></tr>
+              <tr><th>Damage</th><td>Destroyed</td><td>Destroyed</td></tr>
+              <tr><th>Fire / explosion</th><td>Unknown / unknown</td><td>Unknown / unknown</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="grid gap-5 h-max">
+          <div class="overflow-x-auto rounded-xl border" style="background: var(--card); border-color: var(--rail)">
+            <table class="table table-sm kv">
+              <thead><tr><th colspan="2">Weather, observed at KDCA (14 ft msl), 8:52 p.m.</th></tr></thead>
+              <tbody>
+                <tr><th>Conditions</th><td>VMC (visual), night</td></tr>
+                <tr><th>Distance from site</th><td>0 nautical miles</td></tr>
+                <tr><th>Temperature / dew point</th><td>10°C / −7°C</td></tr>
+                <tr><th>Clouds / ceiling</th><td>Clear / none</td></tr>
+                <tr><th>Wind</th><td>300° at 14 knots, gusts 23 knots</td></tr>
+                <tr><th>Visibility</th><td>10 miles</td></tr>
+                <tr><th>Altimeter</th><td>29.9 inches Hg</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="overflow-x-auto rounded-xl border" style="background: var(--card); border-color: var(--rail)">
+            <table class="table table-sm kv">
+              <thead><tr><th colspan="2">Administrative</th></tr></thead>
+              <tbody>
+                <tr><th>Accident number</th><td>DCA25MA108</td></tr>
+                <tr><th>Date and time</th><td>January 29, 2025, 20:48 local</td></tr>
+                <tr><th>Location</th><td>Washington, DC</td></tr>
+                <tr><th>Latitude, longitude</th><td class="tnum">38.845339, −77.024187</td></tr>
+                <tr><th>Investigator in charge</th><td>David Banning</td></tr>
+                <tr><th>Investigation class</th><td>Class 1</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="mt-20 pt-6 border-t text-sm muted" style="border-color: var(--rail)">
+      <p>Source: National Transportation Safety Board, <a class="src" href="https://www.ntsb.gov/investigations/Documents/DCA25MA108%20Prelim.pdf" rel="noopener">Aviation Investigation Preliminary Report DCA25MA108</a>. US federal government work, public domain. The report’s figures are not reproduced here.</p>
+    </footer>
+  </main>
+</div>
+
+<script>
+  (function () {
+    var links = Array.prototype.slice.call(document.querySelectorAll('.toc a, .mnav a'));
+    var ids = Array.from(new Set(links.map(function (a) { return a.getAttribute('href').slice(1); })));
+    var secs = ids.map(function (id) { return document.getElementById(id); }).filter(Boolean);
+    if (!('IntersectionObserver' in window)) return;
+    var current = null;
+    var setActive = function (id) {
+      if (id === current) return;
+      current = id;
+      links.forEach(function (a) { a.classList.toggle('active', a.getAttribute('href') === '#' + id); });
+      var m = document.querySelector('.mnav a.active');
+      if (m && m.parentElement.scrollWidth > m.parentElement.clientWidth) {
+        var p = m.parentElement;
+        p.scrollTo({ left: m.offsetLeft - p.clientWidth / 2 + m.clientWidth / 2, behavior: 'smooth' });
+      }
+    };
+    var io = new IntersectionObserver(function (entries) {
+      var vis = secs.filter(function (s) { var r = s.getBoundingClientRect(); return r.top < window.innerHeight * 0.35; });
+      if (vis.length) setActive(vis[vis.length - 1].id);
+    }, { rootMargin: '0px 0px -60% 0px', threshold: [0, 1] });
+    secs.forEach(function (s) { io.observe(s); });
+  })();
+</script>
+</body>
+</html>

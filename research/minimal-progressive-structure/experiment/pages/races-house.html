@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WA legislative races 2026</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script defer src="https://unpkg.com/alpinejs"></script>
+<script>
+const KIND_LABEL = { open: 'Open seat', dvd: 'Democrat vs. Democrat', flip: 'Might flip' };
+const KINDS = [['all', 'All'], ['open', 'Open seat'], ['dvd', 'Democrat vs. Democrat'], ['flip', 'Might flip']];
+const MARKS = [['inc', 'Incumbents', ''], ['D', 'Democrats', 'D'], ['R', 'Republicans', 'R'], ['N', 'No party', 'N']];
+const PARTY = { D: 'Democrat', R: 'Republican', N: 'No party affiliation', '?': 'Party not stated' };
+
+const DISTRICT = {
+  '3rd': { area: 'Spokane', lean: 'Reliably Democratic' },
+  '5th': { area: 'Includes parts of Issaquah, Black Diamond, Covington and Snoqualmie', lean: 'Republicans have eyed it for gains in recent years; Democrats hold all three legislative seats' },
+  '11th': { area: 'Tukwila, Renton and parts of Kent' },
+  '26th': { area: 'Parts of Pierce and Kitsap counties', lean: 'One of the few legislative districts still considered a battleground' },
+  '29th': { lean: 'Votes reliably Democratic' },
+  '32nd': { area: 'North King County and south Snohomish County', lean: 'Deep blue' },
+  '42nd': { area: 'Whatcom County' }
+};
+
+const RACES = [
+  { id: 'd3-house', d: '3rd', ch: 'House', seat: 'Ormsby', kinds: ['open'],
+    facts: [['Seat', 'Rep. Timm Ormsby, the chief budget writer in the state House, is retiring'], ['Last race', 'Ormsby won in 2024 unopposed']],
+    cands: [
+      { n: 'Luc Jasmin III', p: 'D', notes: ['Has done regional outreach in eastern Washington for Govs. Bob Ferguson and Jay Inslee', 'Created a statewide organization advocating for early learning centers', 'Chaired Spokane’s police oversight office'], backers: ['Rep. Natasha Hill, D-Spokane, Ormsby’s seatmate', 'Former Senate Majority Leader Andy Billig'] },
+      { n: 'Pam Kohlmeier', p: 'D', role: 'Physician', notes: ['Focus on expanding access to healthcare, specifically behavioral health and addiction services'] },
+      { n: 'Donovan Arnold DeLeon', p: 'D' },
+      { n: 'Natalie Poulson', p: 'R', notes: ['Ran against Ormsby in 2022'] }
+    ] },
+  { id: 'd5-house', d: '5th', ch: 'House', seat: 'Hall', kinds: ['dvd', 'flip'],
+    facts: [['Seat', 'Held by Rep. Zach Hall, D-Issaquah, appointed last June'], ['History', 'Hall replaced now-Sen. Victoria Hunt, who moved to the Senate after Sen. Bill Ramos died unexpectedly at the end of the 2025 session'], ['Ballot', 'Appointed after last year’s candidate filing deadline, Hall did not have to run in 2025']],
+    cands: [
+      { n: 'Zach Hall', p: 'D', inc: true, notes: ['Served six years on the Issaquah City Council', 'Chaired the Eastside Fire and Rescue Board of Directors', 'Voted this year for the new income tax on millionaire earners'] },
+      { n: 'Michelle Bennett', p: 'R', role: 'Mercer Island police chief', notes: ['Long career in law enforcement, in roles across western Washington dating back to 1990', 'Highlights opposition to an income tax as one of her top priorities'] },
+      { n: 'Aimee Warmerdam', p: 'D', role: 'Progressive challenger', notes: ['Backs universal health care, a $26 minimum wage, a 32-hour standard workweek and a new payroll tax on large companies'] },
+      { n: 'Topher Leritz', p: 'N', notes: ['Filed Friday'] }
+    ] },
+  { id: 'd11-house', d: '11th', ch: 'House', seat: 'Hackney', kinds: ['dvd'],
+    facts: [['Seat', 'Held by Rep. David Hackney, D-Renton, first elected in 2020']],
+    cands: [
+      { n: 'David Hackney', p: 'D', inc: true, role: 'Attorney', notes: ['Vice chair of the Consumer Protection and Business Committee', 'Sits on the Environment and Energy, Transportation, and Legislative Ethics Committees'] },
+      { n: 'Ashley Fedan', p: 'D', role: 'Nurse and Navy veteran', notes: ['Started a business as a certified registered nurse anesthetist', 'Precinct committee officer in the 11th District', 'Previously chair of the 28th District Democrats'] },
+      { n: 'Christian Rombough', p: 'R' }
+    ] },
+  { id: 'd26-senate', d: '26th', ch: 'Senate', seat: 'Krishnadasan', kinds: ['flip'],
+    facts: [['Seat', 'Held by Sen. Deb Krishnadasan, D-Gig Harbor, appointed after Emily Randall was elected to Congress'], ['Last race', 'In 2025 Krishnadasan won a hotly contested race against Rep. Michelle Valdez, R-Gig Harbor'], ['Ballot', 'Back on the ballot because her special-election win secured a partial term']],
+    cands: [
+      { n: 'Deb Krishnadasan', p: 'D', inc: true },
+      { n: 'Gary Parker', p: '?', role: 'Restaurant owner and philanthropist' }
+    ] },
+  { id: 'd26-house-valdez', d: '26th', ch: 'House', seat: 'Valdez', kinds: ['open', 'flip'],
+    facts: [['Seat', 'Rep. Michelle Valdez, R-Gig Harbor, formerly Caldier, is not seeking reelection after six terms']],
+    cands: [
+      { n: 'Renee Hernandez Greenfield', p: 'D', role: 'Speech and language trainer working with children and families', notes: ['Has worked as a child protective services investigator for the Suquamish Tribe'], backers: ['Emily Randall', 'Kitsap County Democrats'] },
+      { n: 'Tedd Wetherbee', p: 'D', role: 'Entrepreneur', notes: ['Highlights his experience in international development'], backers: ['Pierce County Executive Ryan Mello', 'Tacoma Mayor Anders Ibsen'] },
+      { n: 'Katy Cornell', p: 'R', role: 'Pastor', notes: ['Co-leads a nonprofit focused on clean water, healthcare and other development projects in West Africa'] },
+      { n: 'Randy Phillips', p: 'N', notes: ['Lists an address in Gig Harbor'] }
+    ] },
+  { id: 'd26-house-richards', d: '26th', ch: 'House', seat: 'Richards', kinds: ['dvd', 'flip'],
+    facts: [['Seat', 'Held by Rep. Adison Richards, D-Gig Harbor']],
+    cands: [
+      { n: 'Adison Richards', p: 'D', inc: true, role: 'Attorney', notes: ['Has worked on housing law issues', 'One of the handful of Democrats who voted against the income tax on millionaire earners this year'] },
+      { n: 'Natalie Bornfleth', p: 'D', role: 'Air Force veteran and public school teacher', notes: ['Involved in union leadership'] },
+      { n: 'David Olson', p: 'R', role: 'Vice president of the Peninsula School District', notes: ['Ran unsuccessfully for state superintendent of public instruction in 2024'] }
+    ] },
+  { id: 'd29-senate', d: '29th', ch: 'Senate', seat: 'Conway', kinds: ['open'],
+    facts: [['Seat', 'Longtime Sen. Steve Conway is retiring']],
+    cands: [
+      { n: 'Sharlett Mena', p: 'D', role: 'State representative, D-Tacoma' }
+    ] },
+  { id: 'd29-house-mena', d: '29th', ch: 'House', seat: 'Mena', kinds: ['open'],
+    facts: [['Seat', 'Rep. Sharlett Mena, D-Tacoma, is running for the Senate'], ['Last race', 'Mena ran for this seat unopposed']],
+    cands: [
+      { n: 'Patrick Stickney', p: 'D', role: 'Senior policy and legislative affairs advisor at the state’s Office of Equity' },
+      { n: 'Joe Bushnell', p: 'D', role: 'Deputy mayor of Tacoma' },
+      { n: 'Erin Chapman-Smith', p: 'D', role: 'Executive director of ROOTS Young Adult Shelter in Seattle' },
+      { n: 'Natasha Laitila', p: 'D', notes: ['Has worked as a legislative assistant for Rep. Jamila Taylor and Sen. Bob Hasegawa', 'Took part in efforts to unionize legislative staff'] },
+      { n: 'Darek Blum', p: 'R' },
+      { n: 'Sheri Hayes', p: 'R' }
+    ] },
+  { id: 'd29-house-morgan', d: '29th', ch: 'House', seat: 'Morgan', kinds: ['dvd'],
+    facts: [['Seat', 'Held by Rep. Melanie Morgan, D-Spanaway']],
+    cands: [
+      { n: 'Melanie Morgan', p: 'D', inc: true, role: 'Army veteran', notes: ['Former school board director', 'Has worked in various housing-related roles', 'Vice chair of the Agriculture and Natural Resources Committee'] },
+      { n: 'Krista Perez', p: 'D', notes: ['Involved in a number of business and nonprofit ventures', 'Author of a book on how marginalized groups can implement transformative and healing practices in their communities'] },
+      { n: 'Brett Johnson', p: 'R', notes: ['Lost to Morgan in 2022; running again'] }
+    ] },
+  { id: 'd32-senate', d: '32nd', ch: 'Senate', seat: 'Salomon', kinds: ['dvd'],
+    facts: [['Seat', 'Held by Sen. Jesse Salomon, a Democrat']],
+    cands: [
+      { n: 'Jesse Salomon', p: 'D', inc: true },
+      { n: 'Cindy Ryu', p: 'D', role: 'State representative, D-Shoreline', notes: ['Challenging fellow Democrat Salomon for his Senate seat'] },
+      { n: 'Ira McBee', p: 'R' }
+    ] },
+  { id: 'd32-house-ryu', d: '32nd', ch: 'House', seat: 'Ryu', kinds: ['open'],
+    facts: [['Seat', 'Rep. Cindy Ryu, D-Shoreline, is running for the Senate']],
+    cands: [
+      { n: 'Jenna Nand', p: 'D', role: 'Edmonds City Councilmember' },
+      { n: 'Will Chen', p: 'D', role: 'Edmonds City Councilmember' },
+      { n: 'Keith Scully', p: 'D', role: 'Shoreline City Councilmember' },
+      { n: 'Danica Noble', p: 'D', role: 'Consumer protection attorney', notes: ['Leads the early fundraising race'] },
+      { n: 'Chris Bloomquist', p: 'D', role: 'Runs an environmental- and technology-focused recruiting firm' },
+      { n: 'Lisa Rezac', p: 'R', notes: ['Lost to Ryu in 2024; running again'] }
+    ] },
+  { id: 'd32-house-davis', d: '32nd', ch: 'House', seat: 'Davis', kinds: ['dvd'],
+    facts: [['Seat', 'Held by Rep. Lauren Davis, D-Seattle']],
+    cands: [
+      { n: 'Lauren Davis', p: 'D', inc: true },
+      { n: 'Imraan Siddiqi', p: 'D', role: 'Executive director of the Washington chapter of the Council on American-Islamic Relations' }
+    ] },
+  { id: 'd42-senate', d: '42nd', ch: 'Senate', seat: 'Shewmake', kinds: ['open', 'flip'],
+    facts: [['Seat', 'Vacated by Sen. Sharon Shewmake, D-Bellingham; one of the few open Senate seats'], ['History', 'Republicans held this seat as recently as 2021']],
+    cands: [
+      { n: 'Michael Shepard', p: 'D', role: 'Bellingham port commissioner', backers: ['Sen. Sharon Shewmake', 'Senate Majority Leader Jamie Pedersen'] },
+      { n: 'Erika Creydt', p: 'R', role: 'Psychologist', notes: ['Hopes to turn the district red'] },
+      { n: 'Eamonn Collins', p: 'D', role: 'Teacher and former U.S. Senate adviser', notes: ['Leads a community land trust'] },
+      { n: 'Ryan Bowman', p: 'N', pl: 'No party preference listed' }
+    ] }
+];
+RACES.forEach(r => Object.assign(r, DISTRICT[r.d] || {}));
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+document.addEventListener('alpine:init', () => {
+  Alpine.data('racePage', () => ({
+    items: RACES, kinds: KINDS, marks: MARKS, kindLabel: KIND_LABEL,
+    kind: 'all', mark: 'inc', sel: 0, deck: false,
+    lock: false, target: 0, pushed: false, timer: 0, tx: 0, ty: 0,
+
+    get list() { return this.kind === 'all' ? this.items : this.items.filter(r => r.kinds.includes(this.kind)); },
+    get cur() { return this.list[this.sel]; },
+    count(k) { return k === 'all' ? this.items.length : this.items.filter(r => r.kinds.includes(k)).length; },
+    heading(r) { return r ? r.d + ' District · ' + r.ch : ''; },
+    tags(r) { return r.kinds.map(k => KIND_LABEL[k]).join(' · '); },
+    isMarked(c) { return this.mark === 'inc' ? !!c.inc : c.p === this.mark; },
+    chip(c) {
+      return 'inline-grid place-items-center w-5 h-5 rounded text-xs font-mono leading-none border ' +
+        (this.isMarked(c) ? 'bg-primary text-primary-content border-primary' : 'border-base-content/30 text-base-content/70');
+    },
+
+    card(r, inDeck) {
+      if (!r) return '';
+      const lab = 'text-xs uppercase tracking-wide text-base-content/60';
+      const facts = r.facts.slice();
+      if (r.area) facts.push(['Area', r.area]);
+      if (r.lean) facts.push(['Lean', r.lean]);
+      const head = inDeck
+        ? `<div class="${lab}">${esc(this.tags(r))}</div>`
+        : `<div><h2 class="font-semibold text-balance">${esc(this.heading(r))}</h2><div class="${lab} mt-1">${esc(this.tags(r))}</div></div>`;
+      const dl = `<dl class="grid grid-cols-[auto_minmax(0,1fr)] items-baseline gap-x-4 gap-y-1">` +
+        facts.map(([k, v]) => `<dt class="${lab}">${esc(k)}</dt><dd class="text-pretty">${esc(v)}</dd>`).join('') + `</dl>`;
+      const cands = r.cands.map(c => this.cand(c, lab)).join('');
+      return `<div class="@container flex flex-col gap-4">${head}${dl}<div class="grid gap-3 @xl:grid-cols-2 @4xl:grid-cols-3 items-start">${cands}</div></div>`;
+    },
+    cand(c, lab) {
+      const party = c.pl || PARTY[c.p];
+      const label = c.inc ? party + ' · Incumbent' : party;
+      const role = c.role ? `<div class="text-pretty">${esc(c.role)}</div>` : '';
+      const notes = c.notes && c.notes.length
+        ? `<ul class="list-disc pl-5 flex flex-col gap-1">${c.notes.map(n => `<li class="text-pretty">${esc(n)}</li>`).join('')}</ul>` : '';
+      const backers = c.backers && c.backers.length
+        ? `<div class="${lab} mt-1">Backed by</div><ul class="list-disc pl-5 flex flex-col gap-1">${c.backers.map(b => `<li class="text-pretty">${esc(b)}</li>`).join('')}</ul>` : '';
+      const edge = this.isMarked(c) ? 'border-primary' : 'border-base-300';
+      return `<div class="flex flex-col gap-1 rounded-box border ${edge} p-3">` +
+        `<div class="flex items-center gap-2"><span class="${this.chip(c)} shrink-0">${esc(c.p)}</span><span class="font-semibold text-balance">${esc(c.n)}</span></div>` +
+        `<div class="${lab}">${esc(label)}</div>${role}${notes}${backers}</div>`;
+    },
+
+    setKind(k) {
+      if (k === this.kind) return;
+      this.kind = k; this.sel = 0;
+      this.$nextTick(() => { this.lock = false; this.$refs.strip.scrollLeft = 0; this.$refs.list.scrollTop = 0; });
+    },
+    go(i, focus) {
+      if (i < 0 || i >= this.list.length) return;
+      this.sel = i;
+      this.goStrip(i, !this.deck);
+      this.rowIntoView(focus);
+      if (this.deck) this.$nextTick(() => { this.$refs.deckBody.scrollTop = 0; });
+    },
+    step(d, focus) { this.go(this.sel + d, focus); },
+    goStrip(i, smooth) {
+      const s = this.$refs.strip, w = s.clientWidth;
+      if (!w || Math.abs(s.scrollLeft - i * w) < 2) return;
+      this.lock = true; this.target = i;
+      s.scrollTo({ left: i * w, behavior: smooth ? 'smooth' : 'auto' });
+      clearTimeout(this.timer);
+      this.timer = setTimeout(() => { this.lock = false; }, 800);
+    },
+    onStrip() {
+      const s = this.$refs.strip, w = s.clientWidth;
+      if (!w) return;
+      if (this.lock) { if (Math.abs(s.scrollLeft - this.target * w) < 2) this.lock = false; return; }
+      const i = Math.round(s.scrollLeft / w);
+      if (i !== this.sel && i >= 0 && i < this.list.length) { this.sel = i; this.rowIntoView(false); }
+    },
+    resnap() { this.goStrip(this.sel, false); },
+    rowIntoView(focus) {
+      this.$nextTick(() => {
+        const box = this.$refs.list, el = box.querySelector('[data-row="' + this.sel + '"]');
+        if (!el) return;
+        const top = this.$refs.colhdr.offsetHeight;
+        if (el.offsetTop - top < box.scrollTop) box.scrollTop = el.offsetTop - top;
+        else if (el.offsetTop + el.offsetHeight > box.scrollTop + box.clientHeight) box.scrollTop = el.offsetTop + el.offsetHeight - box.clientHeight;
+        if (focus) el.focus({ preventScroll: true });
+      });
+    },
+
+    openDeck() {
+      if (!this.cur) return;
+      this.deck = true;
+      try { history.pushState({ raceDeck: 1 }, ''); this.pushed = true; } catch (e) { this.pushed = false; }
+      this.$nextTick(() => { this.$refs.deckBody.scrollTop = 0; this.$refs.deckClose.focus(); });
+    },
+    closeDeck() {
+      if (!this.deck) return;
+      if (this.pushed) {
+        this.pushed = false;
+        history.back();
+        setTimeout(() => { if (this.deck) this.hideDeck(); }, 300);
+      } else this.hideDeck();
+    },
+    onPop() { if (this.deck) { this.pushed = false; this.hideDeck(); } },
+    hideDeck() { this.deck = false; this.$nextTick(() => { this.goStrip(this.sel, false); this.rowIntoView(true); }); },
+    touchStart(e) { const t = e.changedTouches[0]; this.tx = t.clientX; this.ty = t.clientY; },
+    touchEnd(e) {
+      const t = e.changedTouches[0], dx = t.clientX - this.tx, dy = t.clientY - this.ty;
+      if (Math.abs(dx) > 50 && Math.abs(dx) > 1.5 * Math.abs(dy)) this.step(dx < 0 ? 1 : -1);
+    },
+    key(e) {
+      if (this.$refs.info.open || e.altKey || e.ctrlKey || e.metaKey) return;
+      const inList = this.$refs.list.contains(document.activeElement);
+      if (e.key === 'ArrowRight') { e.preventDefault(); this.step(1, inList); }
+      else if (e.key === 'ArrowLeft') { e.preventDefault(); this.step(-1, inList); }
+      else if (e.key === 'Escape' && this.deck) { e.preventDefault(); this.closeDeck(); }
+    }
+  }));
+});
+</script>
+</head>
+<body class="bg-base-100 text-base-content">
+<div x-data="racePage" class="relative h-dvh grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] overflow-hidden"
+     @keydown.window="key($event)" @popstate.window="onPop()" @resize.window="resnap()">
+
+  <header class="border-b border-base-300">
+    <div class="flex items-start gap-3 px-4 pt-3">
+      <div class="min-w-0 flex-1">
+        <h1 class="font-semibold text-balance">2026 Washington legislative races to watch</h1>
+        <p class="text-xs font-mono text-base-content/70 flex flex-wrap gap-x-3">
+          <span>House 59–39 D</span><span>Senate 30–19 D</span><span>Primary Aug 4</span><span>General Nov 3</span>
+        </p>
+      </div>
+      <button type="button" class="btn btn-sm btn-ghost btn-circle shrink-0" aria-label="About this election" @click="$refs.info.showModal()">
+        <i class="ph ph-info text-xl"></i>
+      </button>
+    </div>
+    <div class="flex items-center gap-2 px-4 pt-2">
+      <span class="text-xs uppercase tracking-wide text-base-content/60 w-12 shrink-0">Race</span>
+      <div class="flex gap-1 overflow-x-auto whitespace-nowrap min-w-0 pb-1">
+        <template x-for="k in kinds" :key="k[0]">
+          <button type="button" class="btn btn-xs rounded-full gap-1" :class="kind === k[0] ? 'btn-neutral' : 'btn-ghost bg-base-200'"
+                  :aria-pressed="kind === k[0] ? 'true' : 'false'" @click="setKind(k[0])">
+            <span x-text="k[1]"></span><span class="font-mono opacity-60" x-text="count(k[0])"></span>
+          </button>
+        </template>
+      </div>
+    </div>
+    <div class="flex items-center gap-2 px-4 pt-1 pb-2">
+      <span class="text-xs uppercase tracking-wide text-base-content/60 w-12 shrink-0">Mark</span>
+      <div class="flex gap-1 overflow-x-auto whitespace-nowrap min-w-0 pb-1">
+        <template x-for="m in marks" :key="m[0]">
+          <button type="button" class="btn btn-xs rounded-full gap-1" :class="mark === m[0] ? 'btn-primary' : 'btn-ghost bg-base-200'"
+                  :aria-pressed="mark === m[0] ? 'true' : 'false'" @click="mark = m[0]">
+            <span class="font-mono" x-show="m[2]" x-text="m[2]"></span><span x-text="m[1]"></span>
+          </button>
+        </template>
+      </div>
+    </div>
+  </header>
+
+  <main class="min-h-0 grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] lg:grid-rows-1 lg:grid-cols-[minmax(0,28rem)_minmax(0,1fr)]">
+    <section x-ref="list" class="relative min-h-0 overflow-y-auto max-h-[40dvh] lg:max-h-none border-b lg:border-b-0 lg:border-r border-base-300"
+             @keydown.up.prevent="step(-1, true)" @keydown.down.prevent="step(1, true)"
+             @keydown.home.prevent="go(0, true)" @keydown.end.prevent="go(list.length - 1, true)">
+      <div x-ref="colhdr" class="sticky top-0 z-10 bg-base-100 grid grid-cols-[4rem_minmax(0,1fr)_auto] gap-3 px-4 py-1 text-xs uppercase tracking-wide text-base-content/60 border-b border-base-300">
+        <span>District</span><span>Seat</span><span>Field</span>
+      </div>
+      <div role="listbox" aria-label="Races">
+        <template x-for="(r, i) in list" :key="r.id">
+          <button type="button" role="option" :data-row="i" :aria-selected="i === sel ? 'true' : 'false'" :tabindex="i === sel ? 0 : -1"
+                  class="w-full grid grid-cols-[4rem_minmax(0,1fr)_auto] gap-3 items-start px-4 py-2 text-left focus-visible:outline-2 focus-visible:-outline-offset-2"
+                  :class="[i === sel ? 'bg-base-200 shadow-[inset_3px_0_0_var(--color-base-content)]' : 'hover:bg-base-200', i ? 'border-t border-base-300' : '']"
+                  @click="go(i)">
+            <span class="flex flex-col">
+              <span x-text="r.d"></span>
+              <span class="text-xs uppercase tracking-wide text-base-content/60" x-text="r.ch"></span>
+            </span>
+            <span class="flex flex-col min-w-0">
+              <span class="truncate" :class="i === sel ? 'font-semibold' : ''" x-text="r.seat"></span>
+              <span class="text-xs text-base-content/60" x-text="tags(r)"></span>
+            </span>
+            <span class="flex flex-wrap gap-0.5 max-w-[5.5rem] lg:max-w-[8.5rem] pt-0.5">
+              <template x-for="(c, j) in r.cands" :key="j">
+                <span :class="chip(c)" x-text="c.p"></span>
+              </template>
+            </span>
+          </button>
+        </template>
+      </div>
+    </section>
+
+    <section class="min-h-0 min-w-0 grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)]">
+      <div class="flex items-center gap-2 px-4 py-2 border-b border-base-300">
+        <button type="button" class="flex-1 min-w-0 flex items-center gap-2 text-left" aria-label="Open race full screen" @click="openDeck()">
+          <i class="ph ph-arrows-out-simple shrink-0"></i>
+          <span class="min-w-0 truncate font-semibold" x-text="cur ? cur.d + ' · ' + cur.ch + ' · ' + cur.seat : ''"></span>
+        </button>
+        <span class="text-xs font-mono text-base-content/60" x-text="(sel + 1) + ' / ' + list.length"></span>
+        <button type="button" class="btn btn-sm btn-ghost btn-square" aria-label="Previous race" :disabled="sel === 0" @click="step(-1)"><i class="ph ph-caret-left"></i></button>
+        <button type="button" class="btn btn-sm btn-ghost btn-square" aria-label="Next race" :disabled="sel >= list.length - 1" @click="step(1)"><i class="ph ph-caret-right"></i></button>
+      </div>
+      <div x-ref="strip" tabindex="0" aria-label="Race details"
+           class="min-w-0 min-h-0 flex overflow-x-auto overflow-y-hidden snap-x snap-mandatory overscroll-x-contain focus-visible:outline-none"
+           @scroll="onStrip()">
+        <template x-for="(r, i) in list" :key="r.id">
+          <article class="w-full shrink-0 snap-start snap-always h-full overflow-y-auto p-4" x-html="card(r, false)"></article>
+        </template>
+      </div>
+    </section>
+  </main>
+
+  <div x-show="deck" style="display:none" role="dialog" aria-modal="true" :aria-label="heading(cur)"
+       class="absolute inset-0 z-40 grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto] bg-base-100">
+    <header class="flex items-center gap-3 px-4 py-3 border-b border-base-300">
+      <span class="flex-1 min-w-0 truncate font-semibold text-xl" x-text="heading(cur)"></span>
+      <span class="text-xs font-mono text-base-content/60" x-text="(sel + 1) + ' / ' + list.length"></span>
+      <button type="button" x-ref="deckClose" class="btn btn-sm btn-ghost btn-circle" aria-label="Close" @click="closeDeck()"><i class="ph ph-x text-lg"></i></button>
+    </header>
+    <div x-ref="deckBody" class="min-h-0 overflow-y-auto px-4 py-5 lg:px-8 text-xl leading-8"
+         @touchstart.passive="touchStart($event)" @touchend="touchEnd($event)">
+      <div x-html="card(cur, true)"></div>
+    </div>
+    <footer class="flex items-center gap-3 px-4 py-3 border-t border-base-300">
+      <button type="button" class="btn btn-sm btn-ghost btn-square" aria-label="Previous race" :disabled="sel === 0" @click="step(-1)"><i class="ph ph-caret-left text-lg"></i></button>
+      <div class="flex-1 flex justify-center flex-wrap gap-1.5">
+        <template x-for="(r, i) in list" :key="r.id">
+          <button type="button" class="w-2.5 h-2.5 rounded-full" :class="i === sel ? 'bg-base-content' : 'bg-base-content/30'"
+                  :aria-label="heading(r) + ' · ' + r.seat" @click="go(i)"></button>
+        </template>
+      </div>
+      <button type="button" class="btn btn-sm btn-ghost btn-square" aria-label="Next race" :disabled="sel >= list.length - 1" @click="step(1)"><i class="ph ph-caret-right text-lg"></i></button>
+    </footer>
+  </div>
+
+  <dialog x-ref="info" class="modal">
+    <div class="modal-box">
+      <form method="dialog"><button class="btn btn-sm btn-ghost btn-circle absolute right-3 top-3" aria-label="Close"><i class="ph ph-x text-lg"></i></button></form>
+      <h2 class="font-semibold text-balance pr-10 mb-4">2026 Washington legislative elections</h2>
+      <dl class="grid grid-cols-[auto_minmax(0,1fr)] items-baseline gap-x-4 gap-y-2">
+        <dt class="text-xs uppercase tracking-wide text-base-content/60">On the ballot</dt>
+        <dd class="text-pretty">All 98 House seats · 24 of 49 Senate seats</dd>
+        <dt class="text-xs uppercase tracking-wide text-base-content/60">Majorities</dt>
+        <dd class="text-pretty">House 59–39 Democrats · Senate 30–19 Democrats</dd>
+        <dt class="text-xs uppercase tracking-wide text-base-content/60">Filing</dt>
+        <dd class="text-pretty">Closed at the 5 p.m. Friday deadline</dd>
+        <dt class="text-xs uppercase tracking-wide text-base-content/60">Primary</dt>
+        <dd class="text-pretty">Aug. 4 · top two advance to the general election</dd>
+        <dt class="text-xs uppercase tracking-wide text-base-content/60">Election Day</dt>
+        <dd class="text-pretty">Nov. 3</dd>
+        <dt class="text-xs uppercase tracking-wide text-base-content/60">Statewide</dt>
+        <dd class="text-pretty">Over 1,000 candidates for 600-plus federal, state and local offices</dd>
+        <dt class="text-xs uppercase tracking-wide text-base-content/60">In play</dt>
+        <dd>
+          <ul class="list-disc pl-5 flex flex-col gap-1">
+            <li class="text-pretty">Progressives trying to unseat more moderate Democrats</li>
+            <li class="text-pretty">Democrats trying to win Republican-held seats to increase their majorities</li>
+            <li class="text-pretty">Republicans trying to claw back any seats they can</li>
+          </ul>
+        </dd>
+        <dt class="text-xs uppercase tracking-wide text-base-content/60">Turnover</dt>
+        <dd class="text-pretty">A slew of retirements; many new faces arrive in Olympia next January</dd>
+        <dt class="text-xs uppercase tracking-wide text-base-content/60">Source</dt>
+        <dd class="text-pretty">
+          <a class="link" target="_blank" rel="noopener" href="https://washingtonstatestandard.com/2026/05/08/a-dozen-legislative-races-to-watch-as-washingtons-election-season-revs-up/">Washington State Standard, May 8, 2026 ↗</a>
+          · first of two installments · CC BY-NC-ND 4.0
+        </dd>
+      </dl>
+    </div>
+    <form method="dialog" class="modal-backdrop"><button>close</button></form>
+  </dialog>
+</div>
+</body>
+</html>

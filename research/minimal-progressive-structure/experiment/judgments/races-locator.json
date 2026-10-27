@@ -1,0 +1,232 @@
+{
+ "pages": {
+  "P2": {
+   "answers": {
+    "r1": {
+     "loc": "first-screen",
+     "path": "lede under the title",
+     "scent": null
+    },
+    "r2": {
+     "loc": "scroll",
+     "path": "bottom section 'The 2026 election', list 'What each side is after'",
+     "scent": null
+    },
+    "r3": {
+     "loc": "1-step",
+     "path": "expand card 'Zach Hall's seat' (5th District), Michelle Bennett row",
+     "scent": false
+    },
+    "r4": {
+     "loc": "1-step",
+     "path": "expand card 'Michelle Valdez's seat' (26th District), 'The seat' notes",
+     "scent": true
+    },
+    "r5": {
+     "loc": "1-step",
+     "path": "expand card 'Sharlett Mena's seat' (one of two 29th District House cards), Joe Bushnell row",
+     "scent": true
+    },
+    "r6": {
+     "loc": "1-step",
+     "path": "expand card 'Cindy Ryu's seat' (32nd District), Danica Noble row",
+     "scent": true
+    },
+    "r7": {
+     "loc": "1-step",
+     "path": "expand card 'Timm Ormsby's seat' (3rd District), Luc Jasmin III 'Supported by' line",
+     "scent": true
+    },
+    "r8": {
+     "loc": "1-step",
+     "path": "expand card 'Sharon Shewmake's seat' (42nd District), Michael Shepard 'Backed by' line",
+     "scent": true
+    },
+    "r9": {
+     "loc": "1-step",
+     "path": "Hall's 'appointed last June' is on the collapsed 5th District card; expand 'David Hackney's seat' for 'first elected in 2020'",
+     "scent": true
+    },
+    "r10": {
+     "loc": "scroll",
+     "path": "party-count badges on the collapsed open-seat House cards: Ormsby 3 D, Valdez 2 D, Mena 4 D, Ryu 5 D",
+     "scent": null
+    }
+   },
+   "invented": [],
+   "words_before_first_gist": 18,
+   "notes": "Collapsed seat cards hold almost every lookup behind one expand; the card labels name the seat holder, not the candidates, so a name-only question (Bennett) has no scent. 18 words (eyebrow, title, byline) precede the lede; 'Might flip' tags are an inference from the district descriptions, and the page says so in the filter note."
+  },
+  "R5": {
+   "answers": {
+    "r1": {
+     "loc": "first-screen",
+     "path": "title '2026 Washington legislative races to watch' plus Race chips Open seat / Democrat vs. Democrat / Might flip; no lede sentence on the page",
+     "scent": null
+    },
+    "r2": {
+     "loc": "1-step",
+     "path": "icon-only info button (aria-label 'About this election'), 'In play' list in the dialog",
+     "scent": false
+    },
+    "r3": {
+     "loc": "1-step",
+     "path": "select list row '5th House Hall', Michelle Bennett card",
+     "scent": false
+    },
+    "r4": {
+     "loc": "1-step",
+     "path": "select list row '26th House Valdez', Seat fact",
+     "scent": true
+    },
+    "r5": {
+     "loc": "1-step",
+     "path": "select list row '29th House Mena' (one of two 29th House rows), Joe Bushnell card",
+     "scent": true
+    },
+    "r6": {
+     "loc": "1-step",
+     "path": "select list row '32nd House Ryu', Danica Noble card",
+     "scent": true
+    },
+    "r7": {
+     "loc": "first-screen",
+     "path": "default-selected race 3rd House Ormsby, Luc Jasmin III card 'Backed by'",
+     "scent": null
+    },
+    "r8": {
+     "loc": "1-step",
+     "path": "select list row '42nd Senate Shewmake', Michael Shepard card 'Backed by'",
+     "scent": true
+    },
+    "r9": {
+     "loc": "2-steps",
+     "path": "select row 'Hall' (appointed last June), then row 'Hackney' (first elected in 2020)",
+     "scent": true
+    },
+    "r10": {
+     "loc": "first-screen",
+     "path": "D/R chips in the list's Field column on the four 'Open seat' House rows: Ryu shows five D",
+     "scent": null
+    }
+   },
+   "invented": [],
+   "words_before_first_gist": 19,
+   "notes": "A list-and-detail layout that fits one screen: the default race and the D/R field chips answer two questions at once, and every other lookup is one row click away. The gist rests on the title and filter chips alone (19 words precede the chip row), and the side-by-side aims sit behind an unlabeled info icon."
+  },
+  "R9": {
+   "answers": {
+    "r1": {
+     "loc": "first-screen",
+     "path": "lede under the headline",
+     "scent": null
+    },
+    "r2": {
+     "loc": "first-screen",
+     "path": "'What's at stake' paragraph",
+     "scent": null
+    },
+    "r3": {
+     "loc": "scroll",
+     "path": "5th District card, Michelle Bennett entry",
+     "scent": null
+    },
+    "r4": {
+     "loc": "scroll",
+     "path": "26th District, 'Open House seat: Rep. Michelle Valdez' summary",
+     "scent": null
+    },
+    "r5": {
+     "loc": "scroll",
+     "path": "29th District, Mena open-seat card, Joe Bushnell entry",
+     "scent": null
+    },
+    "r6": {
+     "loc": "scroll",
+     "path": "32nd District, Ryu open-seat card, Danica Noble entry",
+     "scent": null
+    },
+    "r7": {
+     "loc": "scroll",
+     "path": "3rd District card, Luc Jasmin III note",
+     "scent": null
+    },
+    "r8": {
+     "loc": "scroll",
+     "path": "42nd District card, Michael Shepard note 'Supported by Shewmake'",
+     "scent": null
+    },
+    "r9": {
+     "loc": "scroll",
+     "path": "5th District summary (appointed last June) and 11th District summary (first elected in 2020)",
+     "scent": null
+    },
+    "r10": {
+     "loc": "scroll",
+     "path": "open-seat card summaries: three, two, four and five Democrats; Ryu's seat 'draws six candidates', five Democrats",
+     "scent": null
+    }
+   },
+   "invented": [],
+   "words_before_first_gist": 15,
+   "notes": "One long scrolling document with no hidden content, so both gist answers land on the first screen and every lookup is a scroll away (Shepard's entry sits about 8,400px down). It folds the 29th District Senate race into Mena's House card and so counts 'Twelve contests', one fewer than the seats the article covers; 15 words precede the lede."
+  },
+  "Z2": {
+   "answers": {
+    "r1": {
+     "loc": "first-screen",
+     "path": "title 'Legislative races to watch' plus Mark chips Might flip / Open seat / Own-party challenge; the article's own gist sentence is in the '2026 cycle & source' dialog",
+     "scent": null
+    },
+    "r2": {
+     "loc": "1-step",
+     "path": "button '2026 cycle & source', 'Aims' in the dialog",
+     "scent": true
+    },
+    "r3": {
+     "loc": "1-step",
+     "path": "select list row 'Zach Hall (D) · incumbent' (5th District), Michelle Bennett background",
+     "scent": false
+    },
+    "r4": {
+     "loc": "1-step",
+     "path": "select list row 'Michelle Valdez (R) · not seeking reelection', 'Leaving' facts",
+     "scent": true
+    },
+    "r5": {
+     "loc": "1-step",
+     "path": "scroll list, select row 'Sharlett Mena (D) · running for the Senate' (one of two 29th District House rows), Joe Bushnell",
+     "scent": true
+    },
+    "r6": {
+     "loc": "1-step",
+     "path": "scroll list, select row 'Cindy Ryu (D) · running for the Senate' (32nd District House), Danica Noble background",
+     "scent": true
+    },
+    "r7": {
+     "loc": "first-screen",
+     "path": "default-selected race Ormsby's seat, Luc Jasmin III 'Backed by' column",
+     "scent": null
+    },
+    "r8": {
+     "loc": "1-step",
+     "path": "scroll list, select row 'Sharon Shewmake (D) · vacated the seat', Michael Shepard 'Backed by' column",
+     "scent": true
+    },
+    "r9": {
+     "loc": "2-steps",
+     "path": "select row 'Zach Hall' (appointed last June), then row 'David Hackney' (first elected in 2020)",
+     "scent": true
+    },
+    "r10": {
+     "loc": "scroll",
+     "path": "scroll the race list; party mix on the open-seat House rows: Ormsby 3 D, Valdez 2 D, Mena 4 D, Ryu 5 D",
+     "scent": null
+    }
+   },
+   "invented": [],
+   "words_before_first_gist": 22,
+   "notes": "A list-and-detail layout like R5, but the list carries district context and a written party mix, so the open-seat comparison needs only a scroll of the list, while the gist and the side-by-side aims sit in a well-labeled cycle dialog. 22 words precede the chip row that carries the gist; it repeats the article's 29-20 Senate figure for the 42nd District without flagging the 30-19 elsewhere."
+  }
+ }
+}
