@@ -22,19 +22,11 @@ disable-model-invocation: true
 3. **Clarification is reliably valuable.** Proving whether work has landed,
    connecting orphaned work to its origin, and testing relevant assumptions
    reduce what the owner must carry.
-4. **Answer questions; do not mint them.** Transferring unfinished analysis is
-   the failure: raw uncertainties, speculative edge cases, or unexamined
-   choices handed to the owner are friction masquerading as diligence. Bring a
-   question only when investigation establishes a consequential choice that
-   requires the owner's judgment, as a user call with a recommendation.
-5. **A finding is stored, linked to its subjects.** Write it with
-   `findings.py` into the notes store (`/portable:notes`), naming every subject
-   it concerns. A trap still goes in the Snag list (`lists/snag.json` in the
-   registry). Create no other
-   record to hold a finding; where no notes store is reachable, it goes in the
-   reply.
-6. **Name sidesteps.** Say where the work did something other than what the
-   owner asked.
+4. **Resolve loose ends.** Tending aims to simplify, not expand, what remains
+   to wrap up a session.
+5. **Keep findings in one place.** A conclusion is a finding in the notes store
+   (`/portable:notes`), linked to what it concerns, where the next pass can
+   check it again.
 
 ## Process
 
@@ -68,7 +60,8 @@ record.
 5. **Act** on each subject's *Act* tier. Record a step done on the finding it
    advanced (`findings.py update`, `did`, and the step that remains); it
    settles only once no next step remains.
-6. **Reply** with what the pass did and the user calls it filed.
+6. **Reply** with what the pass did, the user calls it filed, and its
+   sidesteps: where the work did something other than what the owner asked.
 
 Act unasked only on a mechanical test. Read GitHub through the GitHub MCP, not
 `gh` or `curl`.
@@ -130,7 +123,7 @@ Branches does.
 
 - **Find:** an open pull request `main` has overtaken, one holding work `main`
   lacks, one whose 🛵 or ✴️ ask `main` has since answered, one nobody is moving,
-  one that sidesteps an ask (principle 6), and a live thread.
+  one that sidesteps an ask, and a live thread.
 - **Owner only:** design direction; closing or merging any pull request. Do
   not edit merged bodies.
 
