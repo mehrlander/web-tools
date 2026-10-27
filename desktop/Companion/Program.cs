@@ -76,5 +76,7 @@ var assets = new Dictionary<string, (string File, string Type)> {
 };
 foreach (var (route, asset) in assets) app.MapGet(route, () => Results.File(Path.Combine(AppContext.BaseDirectory, "phone", asset.File), asset.Type));
 var sampling = Task.Run(() => collector.Run(app.Lifetime.ApplicationStopping));
+var summaries = Task.Run(() => LocalSummaryRunner.Run(app.Lifetime.ApplicationStopping));
 await app.RunAsync();
 await sampling;
+await summaries;

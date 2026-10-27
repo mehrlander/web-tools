@@ -21,7 +21,10 @@ public record Place(string Id, string Name, string Detail);
 public record RecentFile(string Id, string Name, DateTimeOffset ModifiedAt, long Bytes);
 public record LocalSession(string Id, string Provider, string Title, string State,
     DateTimeOffset UpdatedAt, string Workspace, string Detail = "", string Location = "Laptop",
-    SessionCheckpoint? Checkpoint = null, SessionTurn? Turn = null);
+    SessionCheckpoint? Checkpoint = null, SessionTurn? Turn = null, LocalWork? Work = null);
+public record WorkSegment(string Id, string Headline, string Summary, DateTimeOffset At,
+    DateTimeOffset GeneratedAt, List<string> Evidence);
+public record LocalWork(DateTimeOffset Through, int Agents, List<WorkSegment> Segments, List<string>? Members = null);
 public record SessionTurn(string Prompt, string Response, DateTimeOffset StartedAt, DateTimeOffset UpdatedAt, string LastTool);
 public record WorkLink(string Label, string Url);
 public record CheckpointTurn(int Turn, string Headline, string Summary, int Files, int Pushes, int Agents);
