@@ -4,7 +4,7 @@ The FAB is the draggable floating button every page and app view carries, and a 
 
 ## What the FAB says
 
-The FAB doubles as an indicator. Its colour, the glyph at its centre and two corner badges say which version of the view is on screen and whether a newer one exists, whether this browser holds a GitHub token, and whether selected text can become a note. Each signal is a row of [`fab-signals.csv`](fab-signals.csv): when it shows, what it means and what a tap does. The Map view's Showing tab renders the live rows as its FAB legend, and [`fab-signals.test.mjs`](../node/test/fab-signals.test.mjs) checks the live ones against the FAB's markup, so a glyph added to `fab.js` fails the suite until its row exists.
+The FAB doubles as an indicator. Its colour, the glyph at its centre and two corner badges say which version of the view is on screen and whether a newer one exists, whether this browser holds a GitHub token, and whether selected text can become a note. Each signal is a row of [`fab-signals.csv`](fab-signals.csv): when it shows, what it means and what a tap does. The Map view's FAB tab renders every row, and [`fab-signals.test.mjs`](../node/test/fab-signals.test.mjs) checks the live ones against the FAB's markup, so a glyph added to `fab.js` fails the suite until its row exists.
 
 The check for newer commits runs when the view changes and when the tab comes back into view, never on a timer, and only where a token is saved, since the anonymous rate limit is shared by the whole browser.
 

@@ -1,7 +1,6 @@
 // docs/fab-signals.csv: what the FAB says about the view in front of the
-// reader, one row per tint, glyph and badge. The Map's Showing tab renders the
-// live rows as its FAB legend, and docs/fab.md points there rather than
-// restating it.
+// reader, one row per tint, glyph and badge. The Map's FAB tab renders every
+// row, and docs/fab.md points there rather than restating it.
 //
 // A live row is held to the FAB's own markup in lib/alpineComponents/fab.js,
 // in both directions: its glyph, its colour and its corner must be what the
@@ -64,8 +63,8 @@ test('a glyph or badge names a mark that exists, and a tint names none', () => {
   }
 });
 
-// The Showing tab prints each live signal as a tile named by its label; the
-// meaning, when and note open in the tile's tip, under the label.
+// The FAB tab lists each signal by its label; the meaning, when and note are
+// on the signal's card.
 test('a signal\'s tile fits: a label of two words and a meaning of five', () => {
   const words = v => String(v || '').split(/\s+/).filter(Boolean).length;
   for (const r of rows) {

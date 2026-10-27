@@ -335,7 +335,7 @@ icon-families,source,recorded,,value,column,yes,,locator,"the file or folder tha
 icon-families,icon_column,recorded,,none,column,yes,,value,"for a CSV source, the column holding each member's icon; blank otherwise"
 icon-families,name_column,recorded,,none,column,yes,,value,"for a CSV source, the column naming each member; blank otherwise"
 icon-families,doc,recorded,,value,column,yes,,locator,"the passage that discusses the family's icons: a Markdown file's section by its heading's anchor, a CSV's row by its key after #, or a whole file"
-fab-signals,facet,recorded,,value,column,yes,version;viewer;subject;action,label,"which of the Showing tab's three axes (version, viewer, subject) the signal reports on, or action for an offer to act on what is on screen"
+fab-signals,facet,recorded,,value,column,yes,version;viewer;subject;action,label,"which of the three showing axes in docs/routes.json (version, viewer, subject) the signal reports on, or action for an offer to act on what is on screen"
 fab-signals,part,recorded,,value,column,yes,tint;glyph;top-right;bottom-right,label,"where on the FAB the signal shows: its colour, the glyph at its centre, or a badge in one of two corners"
 fab-signals,label,recorded,,value,column,yes,,value,the signal's name as a reader sees it
 fab-signals,icon,recorded,,none,column,yes,,value,"the glyph or badge mark: a Phosphor class, or the path of a drawn SVG; blank on a tint, which has no mark of its own"

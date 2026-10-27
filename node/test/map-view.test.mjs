@@ -451,21 +451,23 @@ test('Showing loads on demand, not at mount', async () => {
 // each row's three marks read from its opens column and labelled by the
 // vocabulary. Then the FAB's tiles, one per signal: a drawn mark read and
 // painted as a mask, a badge drawn on a plain FAB, a tint in its own colour.
-test('Showing lays out the links by their marks, and the FAB by its signals', async () => {
+test('Showing is one list of every record, grouped by file, and the FAB tab is its signals by part', async () => {
   await data.loadPropsReg();
   const all = data.routes.showing.mechanisms;
-  assert.equal(data.showMechs.length, all.length, 'every mechanism is a row');
+  assert.deepEqual(Array.from(data.showGroups, g => g.key), ['links', 'grammar', 'modes', 'routes', 'paste', 'kinds']);
+  assert.equal(data.showGroups[0].rows.length, all.length, 'every mechanism is a row');
+  assert.equal(new Set(data.showRows.map(r => r.id)).size, data.showRows.length, 'a row id names one record');
   assert.deepEqual(Array.from(data.showOpens, o => o.label), ['Branches', 'Private', 'Any reader'], 'the marks are labelled from the vocabulary');
   const hosted = all.find(m => m.key === 'hosted');
   assert.ok(!data.opensHas(hosted, 'branch') && data.opensHas(hosted, 'tokenless'), 'a cell lists the marks a row has');
-  // The legend is the live signals, a row per part of the FAB.
-  assert.deepEqual(Array.from(data.fabParts, g => g.n), ['Colour', 'Glyph', 'Badge']);
-  const shown = data.fabParts.flatMap(g => Array.from(g.rows));
-  assert.ok(shown.length && shown.every(r => r.status === 'live'), 'a proposed signal stays off the legend');
-  assert.equal(shown.length, data.routes.fab.filter(r => r.status === 'live').length, 'every live signal is a tile');
+  // The FAB tab: the live signals by part, then the ones not built yet.
+  assert.deepEqual(Array.from(data.fabGroups, g => g.label), ['Colour', 'Glyph', 'Badge', 'Planned']);
+  assert.ok(data.fabGroups.at(-1).rows.every(r => r.s.status !== 'live'), 'only unbuilt signals are planned');
+  assert.equal(data.fabRows.length, data.routes.fab.length, 'every signal is a row');
   const drawn = data.routes.fab.find(r => r.icon.endsWith('.svg'));
   await new Promise(r => setTimeout(r, 0));
   assert.ok(data.fabGlyph(drawn).mask.startsWith('data:image/svg+xml'), 'a drawn mark is read and painted as a mask');
+  assert.match(data.fabPictureHtml(drawn), /--mark:url\(/, 'and the row draws it');
   const key = data.routes.fab.find(r => r.key === 'badge-no-token');
   assert.equal(data.fabGlyph(key).ph, 'ph-sidebar-simple opacity-40', 'a badge sits on a FAB showing nothing else');
   assert.match(data.fabBadge(key), /bg-error/);
@@ -473,20 +475,21 @@ test('Showing lays out the links by their marks, and the FAB by its signals', as
   assert.match(data.fabTone(off).disc, /bg-warning/, 'a tint is drawn in its own colour');
 });
 
-test('a Showing row\'s tip holds what the row cannot, and names the row as its source', () => {
-  const toss = data.mechTip(data.showMechs.find(m => m.key === 'toss-gh'));
-  assert.match(toss.code, /toss-render\.html/, 'a link\'s address is the tip\'s to copy');
-  assert.ok(toss.lines.some(l => /iPhone/.test(l.text)), 'the trap and the full account are in the tip');
-  assert.match(toss.links[0].passage, /^```csv\nkey,glyph,label/, 'the source is the row under its header');
-  assert.match(toss.links[0].passage, /\ntoss-gh,/);
-  const fab = data.fabTip(data.routes.fab.find(r => r.key === 'badge-no-token'));
-  assert.match(fab.lines[0].text, /^Shows when /);
-  assert.match(fab.lines[1].text, /^A tap /);
-  const md = data.kindTip(data.routes.kinds.find(k => k.kind === 'markdown'));
-  assert.ok(md.lines.some(l => /^Shown by Data route$/.test(l.text)), 'a kind names the links that show it by their labels');
-  assert.ok(md.links.some(l => /md-doc\.js$/.test(l.href)), 'a kind\'s kit is a link');
-  const paste = data.pasteTip(data.routes.paste.find(p => !p.path));
-  assert.ok(paste.links.length >= 1 && paste.links.every(l => l.href), 'a row with no file links its source alone');
+test('a row\'s card holds what the row cannot, and links the row\'s own line', () => {
+  const toss = data.showCard('link:toss-gh');
+  assert.match(toss, /toss-render\.html/, 'a link\'s address is on its card');
+  assert.match(toss, /data-show-copy=/, 'with a control to copy it');
+  assert.match(toss, /iPhone/, 'the trap and the full account are on the card');
+  const src = data.showSrc('docs/showing-mechanisms.csv', 'toss-gh');
+  assert.match(src.passage, /^```csv\nkey,glyph,label/, 'the source is the row under its header');
+  assert.match(src.passage, /\ntoss-gh,/);
+  assert.match(data.fabCard('badge-no-token'), /Shows when[\s\S]*A tap/);
+  const md = data.showCard('kind:markdown');
+  assert.match(md, /Data route/, 'a kind names the links that show it by their labels');
+  assert.match(md, /md-doc\.js/, 'and links its kit');
+  const field = data.routes.paste.find(p => !p.path);
+  assert.ok(data.showCard('paste:' + field.surface).includes('routes-paste.csv'), 'a row with no file links its source alone');
+  for (const r of data.showRows) assert.ok(data.showCard(r.id), r.id + ' has a card');
 });
 
 test('Showing carries the kinds, and the sparse cells survive the parse', () => {
