@@ -24,9 +24,6 @@ disable-model-invocation: true
    reduce what the owner must carry.
 4. **Resolve loose ends.** Tending aims to simplify, not expand, what remains
    to wrap up a session.
-5. **Keep findings in one place.** A conclusion is a finding in the notes store
-   (`/portable:notes`), linked to what it concerns, where the next pass can
-   check it again.
 
 ## Process
 
