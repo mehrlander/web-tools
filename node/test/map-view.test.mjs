@@ -113,6 +113,7 @@ window.GH = class {
     if (p === 'docs/properties.csv') return { text: propsDeclCsv };
     if (p === 'docs/vocabularies.csv') return { text: propsVocabCsv };
     if (p === 'skills/manifest.csv') return { text: skillsCsv };
+    if (p === 'skills/peeves/peeves.csv') return { text: readFileSync(path.join(repoRoot, p), 'utf8') };
     if (p === 'docs/text-fields.csv') return { text: textFieldsCsv };
     if (p === 'docs/tests.csv') return { text: testsCsv };
     if (p === 'docs/tests-authored.csv') return { text: testsAuthoredCsv };
@@ -2232,6 +2233,35 @@ test('Apply commits the one block with the sha it read, and refuses what moved',
     window.GH = realGH;
     if (realToken === undefined) delete window.TOKEN; else window.TOKEN = realToken;
   }
+});
+
+test('Peeves searches the real list and preserves repository identity in its references', async () => {
+  await data.loadPeeves();
+  const before = data.peeveQ;
+  try {
+    data.peeveQ = 'accordions';
+    assert.deepEqual(Array.from(data.peeveRows, p => p.id), ['P52']);
+    assert.equal(data.peeveGroups[0].key, 'page-design');
+    data.peeveQ = 'no such peeve';
+    assert.equal(data.peeveRows.length, 0);
+    const source = data.peeveReference(data.peevesReg.find(p => p.id === 'P02'));
+    assert.equal(source.repo, 'mehrlander/home');
+    assert.equal(source.path, 'CLAUDE.md');
+    assert.equal(source.href, 'https://github.com/mehrlander/home/blob/main/CLAUDE.md');
+    const hub = data.peeveReference(data.peevesReg.find(p => p.id === 'P42'));
+    assert.equal(hub.repo, 'mehrlander/web-tools');
+    assert.equal(hub.path, 'skills/html-style/SKILL.md');
+    assert.equal(data.peeveReference(data.peevesReg.find(p => p.id === 'P52')), null);
+  } finally { data.peeveQ = before; }
+});
+
+test('A peeve detail labels references without claiming resolution and escapes source text', () => {
+  const p = data.peevesReg.find(p => p.id === 'P42');
+  const html = data.peeveCard({ ...p, peeve: '<img src=x onerror=alert(1)>' });
+  assert.match(html, /References/);
+  assert.match(html, /data-peeve-ref="skills\/html-style\/SKILL.md"/);
+  assert.match(html, /&lt;img/);
+  assert.doesNotMatch(html, /<img|written in|aria-expanded|unaddressed/);
 });
 
 test('a rejected or applied proposal leaves the row count and the paragraph', () => {
