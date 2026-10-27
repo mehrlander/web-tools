@@ -192,7 +192,7 @@ fi
 # on exactly one row, which is how the ordering was found.
 if changed node/test package.json node/build/tests-index.mjs; then
   if npm run tests-index --silent >/dev/null 2>&1; then
-    stage docs/tests.csv
+    stage docs/tests.csv docs/tests-authored.csv
   else
     echo "build hook: 'npm run tests-index' failed — docs/tests.csv may be stale" >&2
   fi
