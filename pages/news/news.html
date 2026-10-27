@@ -3,27 +3,27 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>news · the outer log</title>
+<title>news</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>📰</text></svg>">
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5,npm/@tailwindcss/typography/dist/typography.min.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
 
 <!--
-  news.html — the news panel, home's outer log, in two facets:
+  news.html: the news panel for home's news items, in two facets:
 
-    Ledger (view)   a read-only render of the record (news/ledger/*.jsonl in
-                    mehrlander/home): one view of the primary log, grouped and
+    Items (view)    a read-only render of the item files (news/items/*.jsonl in
+                    mehrlander/home), grouped and
                     filterable by topic and date, with backfilled
                     reconstructions held visibly distinct from live capture per
-                    the ledger's one honesty rule (news/README.md).
+                    the item files' one honesty rule (news/README.md).
     Sources (control) the connector spec (news/sources.json) as a subscription
                     list: follow / unfollow (active: false) and param edits
                     commit back to the file through the token, so the selection
-                    history stays a dated act in home's log.
+                    history stays a dated act in home's git history.
 
   Data contract (all in mehrlander/home, read/written through the viewer's token):
     news/sources.json        the connector spec (the subscription universe)
-    news/ledger/*.jsonl      the record: monthly item shards, append-only
+    news/items/*.jsonl       one line per news item, in monthly files, append-only
     me/news-interests.md     the taste filter (view-layer only; not applied yet)
 
   Renderer lives here in web-tools; the data lives in home. A private repo, so
@@ -59,7 +59,7 @@
       error: '',
 
       // ── facet ────────────────────────────────────────────────────────────
-      facet: 'ledger',          // ledger | sources
+      facet: 'items',           // items | sources
 
       // ── control-facet state ──────────────────────────────────────────────
       draft: [],                // working copy of sources; edits mutate this
@@ -88,7 +88,7 @@
           const home = this.home = new window.GH({ token: window.TOKEN || '', repo: this.REPO, ref: this.DATA_REF });
           const [src, dir] = await Promise.all([
             home.get('news/sources.json'),
-            home.req(`contents/news/ledger?ref=${this.DATA_REF}`)
+            home.req(`contents/news/items?ref=${this.DATA_REF}`)
           ]);
           const spec = JSON.parse(src.text);
           this.sources = spec.sources || [];
@@ -286,8 +286,8 @@
     <div class="flex items-center gap-3 flex-wrap">
       <span class="text-xl">📰</span>
       <div class="min-w-0">
-        <h1 class="font-semibold leading-tight">news <span class="opacity-40 font-normal text-sm">· the outer log</span></h1>
-        <p class="text-xs opacity-60 leading-tight" x-show="!loading && facet==='ledger'">
+        <h1 class="font-semibold leading-tight">news</h1>
+        <p class="text-xs opacity-60 leading-tight" x-show="!loading && facet==='items'">
           <span x-text="items.length"></span> items ·
           <span x-text="sources.length"></span> sources ·
           <span x-text="dateRange"></span>
@@ -302,8 +302,8 @@
 
       <!-- Facet switch: the two facets of the panel. -->
       <div class="join" x-show="!loading && !error" data-slot="frame:tabs">
-        <button class="join-item btn btn-sm gap-1" :class="facet==='ledger' && 'btn-active btn-primary'" @click="facet='ledger'">
-          <i class="ph ph-newspaper"></i><span class="hidden sm:inline">Ledger</span>
+        <button class="join-item btn btn-sm gap-1" :class="facet==='items' && 'btn-active btn-primary'" @click="facet='items'">
+          <i class="ph ph-newspaper"></i><span class="hidden sm:inline">Items</span>
         </button>
         <button class="join-item btn btn-sm gap-1" :class="facet==='sources' && 'btn-active btn-primary'" @click="facet='sources'">
           <i class="ph ph-broadcast"></i><span class="hidden sm:inline">Sources</span>
@@ -317,8 +317,8 @@
       </a>
     </div>
 
-    <!-- Ledger controls -->
-    <div x-show="!loading && !error && facet==='ledger'" class="mt-3 flex flex-col gap-2">
+    <!-- Items controls -->
+    <div x-show="!loading && !error && facet==='items'" class="mt-3 flex flex-col gap-2">
       <div class="flex items-center gap-2 flex-wrap">
         <label class="input input-bordered input-sm flex items-center gap-2 grow max-w-sm" data-slot="frame:search">
           <i class="ph ph-magnifying-glass opacity-50"></i>
@@ -371,30 +371,30 @@
 
   <!-- Loading -->
   <div x-show="loading" class="flex items-center gap-3 justify-center py-20 opacity-60">
-    <span class="loading loading-spinner"></span> Reading the ledger…
+    <span class="loading loading-spinner"></span> Reading the news items…
   </div>
 
   <!-- Error -->
   <div x-show="error" x-cloak class="alert alert-error max-w-xl mx-auto mt-10">
     <i class="ph ph-warning"></i>
     <div>
-      <div class="font-semibold">Could not read the ledger</div>
+      <div class="font-semibold">Could not read the news items</div>
       <div class="text-sm opacity-80" x-text="error"></div>
       <div class="text-xs opacity-70 mt-1">A private read: set a GitHub token when prompted, then reload.</div>
     </div>
   </div>
 
   <!-- Empty after filter -->
-  <div x-show="!loading && !error && facet==='ledger' && filtered.length === 0" x-cloak class="text-center py-20 opacity-50">
+  <div x-show="!loading && !error && facet==='items' && filtered.length === 0" x-cloak class="text-center py-20 opacity-50">
     <i class="ph ph-funnel text-3xl"></i>
     <p class="mt-2 text-sm">No items match these filters.</p>
   </div>
 
-  <!-- Ledger groups -->
+  <!-- Item groups -->
   <!-- data-pattern and data-part declare this a List and name its parts
        (data/ui-units/codebook.md, "Declaring a pattern in markup"); nothing at
-       runtime reads them. Only the Ledger facet, which paints first, declares. -->
-  <div x-show="!loading && !error && facet==='ledger' && filtered.length" x-cloak class="flex flex-col gap-6"
+       runtime reads them. Only the Items facet, which paints first, declares. -->
+  <div x-show="!loading && !error && facet==='items' && filtered.length" x-cloak class="flex flex-col gap-6"
        data-pattern="list" data-part="list">
     <template x-for="g in groups" :key="g.key">
       <section>
