@@ -360,7 +360,7 @@ def locked_run(args):
 
 def update(task, previous, batch, answer):
     items = list(previous.get('segments') or [])
-    keep = bool(items and (answer['continues'] or previous.get('turn') == task['turn']))
+    keep = bool(items and answer['continues'])
     identity = items[0]['id'] if keep else digest([task['key'], batch[0]['id'], task['turn']])
     referenced = [e for e in batch if e['id'] in answer['evidenceIds']]
     successful = [e for e in referenced if e['result'] == 'succeeded']

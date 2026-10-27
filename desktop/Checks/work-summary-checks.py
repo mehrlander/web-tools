@@ -70,6 +70,8 @@ class WorkChecks(unittest.TestCase):
         self.assertFalse(any('installations' in s for s in second['segments'][0]['evidence']))
         third=work.update({**task,'turn':'three'},second,[task['events'][-1]],{**answer,'continues':False,'evidenceIds':['e2']})
         self.assertEqual(len(third['segments']),2)
+        same_turn_new_goal=work.update(task,second,[task['events'][-1]],{**answer,'continues':False,'evidenceIds':['e2']})
+        self.assertEqual(len(same_turn_new_goal['segments']),2)
 
     def test_pending_call_result_updates_the_same_evidence_identity(self):
         pending=work.event('e1',work.stamp(),'run checks')
