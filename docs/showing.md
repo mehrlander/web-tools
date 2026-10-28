@@ -7,11 +7,11 @@ what a reply hands over; showing is what makes it openable.
 deployed page's own URL, content carried in the link, and others) is a row in
 [`showing-mechanisms.csv`](showing-mechanisms.csv), with the address to write,
 what it reaches and misses, and when to use it. The `showing` block of
-[`routes.json`](routes.json) holds the picker rules and two of the three axes that
+[`routes.json`](routes.json) holds two of the three axes that
 classify the rows, version and viewer; the third, subject, is
-[`subjects.csv`](subjects.csv). The app's **Map view, Showing tab** renders all
-three files, and `npm run showing` ([`python/showing.py`](../python/showing.py))
-executes the picker.
+[`subjects.csv`](subjects.csv). The app's **Map view, Showing tab** renders
+those rows, and `npm run showing` ([`python/showing.py`](../python/showing.py))
+picks the link for a branch's changes.
 
 ## The toss, framed or as the tab
 
@@ -36,7 +36,7 @@ documents how a toss hands a page its versions.
 A 🥏 link on any route can carry a look marker in the rendered page's own
 fragment, which makes it a look link: `--intro` greets the reader, and `--at`
 scrolls to one element, tints it and says why, or walks through several.
-`npm run showing` puts the fragment on whichever route the picker chose. The
+`npm run showing` puts the fragment on whichever route it chose. The
 grammar is in the header of [`lib/kits/look.js`](../lib/kits/look.js);
 [`skills/look-markers/SKILL.md`](../skills/look-markers/SKILL.md) says how to
 make one and which pages it reaches.

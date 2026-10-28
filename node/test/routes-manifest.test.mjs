@@ -153,7 +153,7 @@ test('the fab knows every delivery mode, so it never reads one as a route key', 
 //
 // This block exists because 1,589 words of CLAUDE.md, 63% of the file, failed
 // to stop the session that was reading them from handing over the wrong link.
-// The rule moved into data the app renders (the app's Map view, Transport
+// The rule moved into data the app renders (the app's Map view, Showing
 // tab), and the doc points there instead of restating it. What the tests below
 // hold is the part that would rot silently: a row missing the field that says
 // what it CANNOT show is worse than no row, since the whole point of the table
@@ -231,16 +231,6 @@ test('the FAB glyph literal and the repo-view list are the registries, verbatim'
   const listed = [...views[1].matchAll(/'([^']+)'/g)].map(m => m[1]).sort();
   const repoGroup = parseCsv(read('app-routes.csv')).filter(r => r.group === 'repo').map(r => r.key).sort();
   assert.deepEqual(listed, repoGroup, 'fab.js REPO_VIEWS and app-routes.csv group=repo have drifted; the CSV is the owner');
-});
-
-test('the picker only routes to mechanisms that exist', () => {
-  const keys = new Set(manifest.showing.mechanisms.map(m => m.key));
-  for (const r of manifest.showing.picker.rules) {
-    assert.ok(r.when && r.then, 'a picker rule is missing a half');
-    // A rule may name alternatives ("toss-gz or artifact"); each must resolve.
-    for (const k of r.then.split(/\s+or\s+/))
-      assert.ok(keys.has(k), `picker routes to unknown mechanism: ${k}`);
-  }
 });
 
 // The two CLAUDE.md assertions that used to sit here moved to

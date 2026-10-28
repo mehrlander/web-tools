@@ -1,8 +1,7 @@
 // screenshot.mjs interaction scenario: the Map view's first two tabs, both
 // halves populated. (Formerly portable-view.mjs, for the view's old name; the
 // component became map() in the rename, which left this scenario waiting on an
-// x-data that no longer existed.) The third tab has its own scenario,
-// map-showing.mjs, since it loads a different manifest.
+// x-data that no longer existed.)
 //
 //   node node/render/screenshot.mjs app/index.html \
 //     --script node/render/scenarios/map-set-adoption.mjs \
