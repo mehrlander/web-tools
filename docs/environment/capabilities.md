@@ -233,21 +233,27 @@ browser with a token.
 
 ## Browsers / headless rendering: available
 
-*(verified 2026-05-30)*
+*(verified 2026-10-28)*
 
 A real Chromium is **pre-installed and works**, no download needed, despite the
 download CDNs being blocked. The image bakes the binary in precisely so the
 blocked download doesn't matter.
 
-- Binary: `/opt/pw-browsers/chromium-1194/chrome-linux/chrome`. **Chromium
-  141.0.7390.37**, build **1194**.
+- Binary: `/opt/pw-browsers/chromium-1243/chrome-linux64/chrome`, also reached
+  through the symlink `/opt/pw-browsers/chromium`. **Chrome for Testing
+  153.0.8010.12**, build **1243**, with its headless shell beside it in
+  `chromium_headless_shell-1243/`.
 - **`PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers` is set in the env.** This is the
   canonical pointer: Playwright auto-discovers the binary through it, so a plain
   `chromium.launch()` finds it with no `executablePath` and no download.
-- Playwright clients are version-pinned to a Chromium build. Build 1194 matches
-  **`playwright@1.56.x`**; other client versions error with "executable doesn't
-  exist". `npx playwright install chromium` is unnecessary here (and its CDN is
-  blocked anyway).
+- Playwright clients are version-pinned to a Chromium build. Build 1243 matches
+  **`playwright@1.63.x`**, which the image also installs globally under
+  `/opt/node-tools`; other client versions error with "Executable doesn't
+  exist". The repo pins the same version in `package.json`, and the pin has to
+  move when the image does: the image carried build 1194 (Chromium 141,
+  `playwright@1.56.x`) as of 2026-05-30, and on 2026-10-28 `npm run shot`
+  under that old pin failed at launch. `npx playwright install
+  chromium` is unnecessary here (and its CDN is blocked anyway).
 - No `PUPPETEER_*` var is set, so puppeteer needs `PUPPETEER_EXECUTABLE_PATH`
   (or an explicit `executablePath`) pointed at the binary above. Playwright is
   the frictionless driver.
@@ -255,7 +261,7 @@ blocked download doesn't matter.
 Smoke-test the binary directly (no npm needed):
 
 ```bash
-B="$PLAYWRIGHT_BROWSERS_PATH/chromium-1194/chrome-linux/chrome"
+B="$PLAYWRIGHT_BROWSERS_PATH/chromium"
 "$B" --version
 "$B" --headless --no-sandbox --disable-gpu \
   --dump-dom 'data:text/html,<h1>ok</h1>' 2>/dev/null | grep -o '<h1>ok</h1>'

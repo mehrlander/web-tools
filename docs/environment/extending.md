@@ -48,9 +48,9 @@ always exit zero, so a setup problem never stops a session from opening.
 
 The packages are repository `devDependencies` in `package.json`, not supplied
 by the environment. `jsdom`, `alpinejs`, `fake-indexeddb` and `idb-keyval`
-support browser-logic tests under Node; `playwright` is pinned to `1.56.0` to
-match the Chromium build the web environment supplies
-([capabilities.md](capabilities.md)); most of the rest are local copies of the
+support browser-logic tests under Node; `playwright` is pinned to `1.63.0` to
+match the Chromium build the web environment supplies, and moves when the image
+does ([capabilities.md](capabilities.md)); most of the rest are local copies of the
 libraries pages load at runtime, which the render tools serve in place of CDN
 requests ([testing.md](testing.md)). Installation needs package-registry
 access, which Claude Code's default
