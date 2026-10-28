@@ -103,12 +103,12 @@ showing-mechanisms,glyph,recorded,,value,column,yes,diamond;disc;box;x,label,the
 showing-mechanisms,label,recorded,,value,column,yes,,value,the mechanism name a reader sees
 showing-mechanisms,form,recorded,,none,column,yes,,value,the address shape; absent where the mechanism is not a URL
 showing-mechanisms,subject,recorded,,value,column,yes,,value,"the subject types it can show, semicolon-separated keys into docs/subjects.csv"
-showing-mechanisms,version,recorded,,value,column,yes,,label,which version of the subject it reaches
-showing-mechanisms,viewer,recorded,,value,column,yes,,label,who can open it
+showing-mechanisms,opens,recorded,,none,column,no,branch;tokenless,label,"what it can show and who can open it, as keys of its vocabulary"
+showing-mechanisms,handles,recorded,,none,column,no,page;data;app;merge;renderer,label,"what a toss can show, as keys of its vocabulary"
 showing-mechanisms,reaches,recorded,,none,column,yes,,value,what it does show
-showing-mechanisms,misses,recorded,,value,column,yes,,value,"what it does NOT show, which is the field the picker turns on"
-showing-mechanisms,trap,recorded,,none,column,yes,,value,"the failure mode, where one has bitten; carried on 1 of 7"
+showing-mechanisms,misses,recorded,,value,column,yes,,value,what it does not show
 showing-mechanisms,use,recorded,,value,column,yes,,value,when to pick it
+showing-mechanisms,narrative,recorded,,none,column,yes,,value,"the full account behind the short cells: how to address it, the conditions it holds under, and what was measured"
 routes-paste,path,recorded,,none,column,yes,,locator,"the file that implements the behavior; absent on the form-field row, which names a browser behavior rather than one of ours"
 routes-paste,recognizes,recorded,,value,column,yes,,value,what the surface reads out of the clipboard and acts on
 routes-paste,becomes,recorded,,value,column,yes,,value,what a recognized paste turns into there
@@ -320,12 +320,14 @@ agents,preloads,recorded,,none,column,no,,value,"the skills a definition preload
 agents,memory,recorded,,none,column,yes,user;project;local,label,"a definition's persistent memory scope, a COPY of its `memory` frontmatter: project keeps the memory folder in the repository, where it is reviewed and committed like any file; blank where the agent keeps none"
 agents,role,recorded,,value,column,yes,,value,"what the agent does, in one or two sentences a reader can act on"
 peeves,name,recorded,,value,column,yes,,value,"the peeve in a few words, the label a row shows before its statement is opened"
-peeves,area,recorded,,value,column,yes,writing;naming;chat-reply;questions;reporting;process;git-pr;page-design;code,label,"the kind of work the peeve is about, the axis the list is read by"
+peeves,area,recorded,,value,column,yes,writing;naming;chat-reply;questions;reporting;process;git-pr;page-design;code,label,the kind of work the peeve is about
 peeves,peeve,recorded,,value,column,yes,,value,"the behavior, stated so a reviewer can check a piece of work against it"
 peeves,look_for,recorded,,value,column,yes,,value,"what tripping the peeve looks like in the work: the words, classes or moves a reviewer would find"
 peeves,owner,recorded,,counted,column,yes,,value,"the document or check that already states the rule, when one does; that owner's wording governs and the row only points at it"
 peeves,detector,recorded,,value,column,yes,reader;lint;hook;measure,label,"what catches a trip: a reader's judgment, a script, a hook at edit or commit time, or the page measures"
 peeves,sessions,recorded,,value,column,yes,,value,"roughly how many recorded sessions show the owner making the correction, summed across the readers that mined them; an order of magnitude, not a count to compare closely"
+peeves,status,recorded,,value,column,yes,active;guidance;retired,label,active peeves appear in one list; guidance is contextual and retired entries preserve historical IDs; merged rows inherit their target status
+peeves,merged_into,recorded,,counted,column,yes,,locator,"the retained peeve ID that receives examples, references and evidence from this row; a merged row stays available by its original ID"
 css-baseline,declarations,computed,python/css-blocks.py,value,column,yes,,value,the most unexempt hand-written declarations the file may carry; --write lowers it to the measurement and never raises it
 icon-families,group,recorded,,value,column,yes,drawn;phosphor;emoji,label,"how the family's icons are made: an SVG drawn for the estate, a Phosphor glyph named by its class, or an emoji"
 icon-families,label,recorded,,value,column,yes,,value,the family name a reader sees
@@ -333,7 +335,7 @@ icon-families,source,recorded,,value,column,yes,,locator,"the file or folder tha
 icon-families,icon_column,recorded,,none,column,yes,,value,"for a CSV source, the column holding each member's icon; blank otherwise"
 icon-families,name_column,recorded,,none,column,yes,,value,"for a CSV source, the column naming each member; blank otherwise"
 icon-families,doc,recorded,,value,column,yes,,locator,"the passage that discusses the family's icons: a Markdown file's section by its heading's anchor, a CSV's row by its key after #, or a whole file"
-fab-signals,facet,recorded,,value,column,yes,version;viewer;subject;action,label,"which of the Showing tab's three axes (version, viewer, subject) the signal reports on, or action for an offer to act on what is on screen"
+fab-signals,facet,recorded,,value,column,yes,version;viewer;subject;action,label,"which question the signal answers: which version is shown (version), who is viewing (viewer) or what is shown (subject); or action, for an offer to act on what is on screen"
 fab-signals,part,recorded,,value,column,yes,tint;glyph;top-right;bottom-right,label,"where on the FAB the signal shows: its colour, the glyph at its centre, or a badge in one of two corners"
 fab-signals,label,recorded,,value,column,yes,,value,the signal's name as a reader sees it
 fab-signals,icon,recorded,,none,column,yes,,value,"the glyph or badge mark: a Phosphor class, or the path of a drawn SVG; blank on a tint, which has no mark of its own"

@@ -51,6 +51,7 @@ const routesModesCsv = readFileSync(path.join(repoRoot, 'docs', 'routes-modes.cs
 const routesRoutesCsv = readFileSync(path.join(repoRoot, 'docs', 'routes-routes.csv'), 'utf8');
 const routesKindsCsv = readFileSync(path.join(repoRoot, 'docs', 'routes-kinds.csv'), 'utf8');
 const mechanismsCsv = readFileSync(path.join(repoRoot, 'docs', 'showing-mechanisms.csv'), 'utf8');
+const routesPasteCsv = readFileSync(path.join(repoRoot, 'docs', 'routes-paste.csv'), 'utf8');
 const fabSignalsCsv = readFileSync(path.join(repoRoot, 'docs', 'fab-signals.csv'), 'utf8');
 const docsCsv = readFileSync(path.join(repoRoot, 'docs', 'docs.csv'), 'utf8');
 const aimsJson = readFileSync(path.join(repoRoot, 'docs', 'aims.json'), 'utf8');
@@ -99,6 +100,7 @@ window.GH = class {
     if (p === 'docs/routes-routes.csv') return { text: routesRoutesCsv };
     if (p === 'docs/routes-kinds.csv') return { text: routesKindsCsv };
     if (p === 'docs/showing-mechanisms.csv') return { text: mechanismsCsv };
+    if (p === 'docs/routes-paste.csv') return { text: routesPasteCsv };
     if (p === 'docs/fab-signals.csv') return { text: fabSignalsCsv };
     if (p === 'docs/favicons/fab/frisbee.svg') return { text: '<svg fill="currentColor"></svg>' };
     if (p === 'docs/docs.csv') return { text: docsCsv };
@@ -113,6 +115,7 @@ window.GH = class {
     if (p === 'docs/properties.csv') return { text: propsDeclCsv };
     if (p === 'docs/vocabularies.csv') return { text: propsVocabCsv };
     if (p === 'skills/manifest.csv') return { text: skillsCsv };
+    if (p === 'skills/peeves/peeves.csv') return { text: readFileSync(path.join(repoRoot, p), 'utf8') };
     if (p === 'docs/text-fields.csv') return { text: textFieldsCsv };
     if (p === 'docs/tests.csv') return { text: testsCsv };
     if (p === 'docs/tests-authored.csv') return { text: testsAuthoredCsv };
@@ -161,6 +164,24 @@ test('every Map address says what it is through about, and leads with its contro
       if (toolbar) assert.equal(section.firstElementChild, toolbar, view.k + ': controls first');
     }
   } finally { data.mapTab = old; }
+});
+
+test('Peeves declares stable page and selected-item note subjects, including merged IDs', () => {
+  const old = { mapTab: data.mapTab, peevesReg: data.peevesReg, peeveSel: data.peeveSel };
+  try {
+    data.mapTab = 'peeves';
+    data.peevesReg = [
+      { id: 'P33', name: 'Reinventing the wheel', status: 'active', merged_into: '' },
+      { id: 'P45', name: 'Reuse components', status: 'active', merged_into: 'P33' },
+    ];
+    data.peeveSel = 'P33';
+    assert.equal(data.about.subject.about, 'mehrlander/web-tools:docs/map-tabs.csv#peeves');
+    assert.equal(data.about.selection.label, 'P33 · Reinventing the wheel');
+    assert.equal(data.about.selection.about, 'mehrlander/web-tools:skills/peeves/peeves.csv#P33');
+    assert.ok(data.about.selection.aliases.includes('mehrlander/web-tools:skills/peeves/peeves.csv#P45'));
+    data.mapTab = 'skills';
+    assert.equal(data.about.selection, null, 'a hidden list cannot supply the selected subject');
+  } finally { Object.assign(data, old); }
 });
 
 test('source provenance follows the selected collection and preserves an external census ref', () => {
@@ -444,24 +465,50 @@ test('Showing loads on demand, not at mount', async () => {
 // whose cells are mostly blank: `aim` is carried by one kind of eleven and `kit`
 // by three. Every x-show in the template tests the string, so this checks that
 // the sparse rows survive the parse rather than that the tab has content.
-// What the FAB says: the receiving end of the mechanisms, grouped by the facet
-// each signal answers, in the order docs/vocabularies.csv gives the facets.
-// fab-signals.test.mjs holds the rows to fab.js; this checks the tab is handed
-// them, grouped, with a drawn mark read and a badge drawn on a plain FAB.
-test('Showing carries what the FAB says, grouped by facet', async () => {
+// The links: one row per marked mechanism and a fallback line for the unmarked,
+// each row's three marks read from its opens column and labelled by the
+// vocabulary. Then the FAB's tiles, one per signal: a drawn mark read and
+// painted as a mask, a badge drawn on a plain FAB, a tint in its own colour.
+test('Showing is one list of every record, grouped by file, and the FAB tab is its signals by part', async () => {
   await data.loadPropsReg();
-  const groups = data.fabGroups;
-  assert.deepEqual(Array.from(groups, g => g.k), ['version', 'viewer', 'subject', 'action']);
-  assert.equal(groups[0].n, 'Version', 'a facet is labelled from the vocabulary');
-  assert.equal(groups.flatMap(g => g.rows).length, data.routes.fab.length, 'every signal lands in a group');
+  const all = data.routes.showing.mechanisms;
+  assert.deepEqual(Array.from(data.showGroups, g => g.key), ['links', 'grammar', 'modes', 'routes', 'paste', 'kinds']);
+  assert.equal(data.showGroups[0].rows.length, all.length, 'every mechanism is a row');
+  assert.equal(new Set(data.showRows.map(r => r.id)).size, data.showRows.length, 'a row id names one record');
+  assert.deepEqual(Array.from(data.showOpens, o => o.label), ['Unmerged work', 'No token needed'], 'the marks are labelled from the vocabulary');
+  const hosted = all.find(m => m.key === 'hosted');
+  assert.ok(!data.opensHas(hosted, 'branch') && data.opensHas(hosted, 'tokenless'), 'a cell lists the marks a row has');
+  // The FAB tab: the live signals by part, then the ones not built yet.
+  assert.deepEqual(Array.from(data.fabGroups, g => g.label), ['Colour', 'Glyph', 'Badge', 'Planned']);
+  assert.ok(data.fabGroups.at(-1).rows.every(r => r.s.status !== 'live'), 'only unbuilt signals are planned');
+  assert.equal(data.fabRows.length, data.routes.fab.length, 'every signal is a row');
   const drawn = data.routes.fab.find(r => r.icon.endsWith('.svg'));
   await new Promise(r => setTimeout(r, 0));
   assert.ok(data.fabGlyph(drawn).mask.startsWith('data:image/svg+xml'), 'a drawn mark is read and painted as a mask');
+  assert.match(data.fabPictureHtml(drawn), /--mark:url\(/, 'and the row draws it');
   const key = data.routes.fab.find(r => r.key === 'badge-no-token');
   assert.equal(data.fabGlyph(key).ph, 'ph-sidebar-simple opacity-40', 'a badge sits on a FAB showing nothing else');
   assert.match(data.fabBadge(key), /bg-error/);
   const off = data.routes.fab.find(r => r.key === 'tint-off-branch');
   assert.match(data.fabTone(off).disc, /bg-warning/, 'a tint is drawn in its own colour');
+});
+
+test('a row\'s card holds what the row cannot, and links the row\'s own line', () => {
+  const toss = data.showCard('link:toss');
+  assert.match(toss, /toss-render\.html/, 'a link\'s address is on its card');
+  assert.match(toss, /data-show-copy=/, 'with a control to copy it');
+  assert.match(toss, /iPhone/, 'the full account is on the card');
+  assert.match(toss, /A document or data file[\s\S]*The renderer itself/, 'the cases a toss handles are listed by their vocabulary labels');
+  const src = data.showSrc('docs/showing-mechanisms.csv', 'toss');
+  assert.match(src.passage, /^```csv\nkey,glyph,label/, 'the source is the row under its header');
+  assert.match(src.passage, /\ntoss,/);
+  assert.match(data.fabCard('badge-no-token'), /Appears when[\s\S]*Tapping it/);
+  const md = data.showCard('kind:markdown');
+  assert.match(md, /Links that show it[\s\S]*Toss/, 'a kind names the links that show it by their labels');
+  assert.match(md, /md-doc\.js/, 'and links its kit');
+  const field = data.routes.paste.find(p => !p.path);
+  assert.ok(data.showCard('paste:' + field.surface).includes('routes-paste.csv'), 'a row with no file links its source alone');
+  for (const r of data.showRows) assert.ok(data.showCard(r.id), r.id + ' has a card');
 });
 
 test('Showing carries the kinds, and the sparse cells survive the parse', () => {
@@ -2232,6 +2279,87 @@ test('Apply commits the one block with the sha it read, and refuses what moved',
     window.GH = realGH;
     if (realToken === undefined) delete window.TOKEN; else window.TOKEN = realToken;
   }
+});
+
+test('Peeves searches the real list and preserves repository identity in its references', async () => {
+  await data.loadPeeves();
+  const before = data.peeveQ;
+  try {
+    data.peeveQ = 'accordions';
+    assert.deepEqual(Array.from(data.peeveRows, p => p.id), ['P52']);
+    data.peeveQ = 'no such peeve';
+    assert.equal(data.peeveRows.length, 0);
+    const source = data.peeveReference(data.peevesReg.find(p => p.id === 'P02'));
+    assert.equal(source.repo, 'mehrlander/home');
+    assert.equal(source.path, 'CLAUDE.md');
+    assert.equal(source.href, 'https://github.com/mehrlander/home/blob/main/CLAUDE.md');
+    const hub = data.peeveReference(data.peevesReg.find(p => p.id === 'P42'));
+    assert.equal(hub.repo, 'mehrlander/web-tools');
+    assert.equal(hub.path, 'skills/html-style/SKILL.md');
+    assert.equal(data.peeveReference(data.peevesReg.find(p => p.id === 'P52')), null);
+  } finally { data.peeveQ = before; }
+});
+
+test('A peeve detail labels references without claiming resolution and escapes source text', () => {
+  const p = data.peevesReg.find(p => p.id === 'P42');
+  const html = data.peeveCard({ ...p, peeve: '<img src=x onerror=alert(1)>' });
+  assert.match(html, /References/);
+  assert.match(html, /data-peeve-ref="skills\/html-style\/SKILL.md"/);
+  assert.match(html, /&lt;img/);
+  assert.doesNotMatch(html, /<img|written in|aria-expanded|unaddressed/);
+});
+
+test('Peeves presents the reviewed list and resolves merged IDs through their retained entry', () => {
+  const before = data.peeveQ;
+  try {
+    data.peeveQ = '';
+    assert.equal(data.peeveRows.length, 28);
+    const names = Array.from(data.peeveRows, p => p.name);
+    assert.deepEqual(names, [...names].sort((a, b) => a.localeCompare(b)), 'all active entries share one alphabetical list');
+    assert.equal(data.peeveRows.find(p => p.id === 'P10').name, 'Term loading');
+    assert.equal(data.peeveRows.find(p => p.id === 'P23').name, 'Missing links');
+    assert.equal(data.peeveRows.find(p => p.id === 'P22').name, 'Raw options');
+    assert.equal(data.peeveRows.find(p => p.id === 'P16').name, 'Subtle veering');
+    assert.equal(data.peeveRows.find(p => p.id === 'P36').name, 'Micromanaged handoffs');
+    assert.match(data.peeveRows.find(p => p.id === 'P16').peeve, /discover the departure later/);
+    data.peeveQ = 'P45';
+    assert.deepEqual(Array.from(data.peeveRows, p => [p.id, p.name]), [['P33', 'Reinventing the wheel']]);
+    const html = data.peeveCard(data.peeveRows[0]);
+    assert.match(html, /skills\/html-style\/SKILL.md/);
+    assert.match(html, /Combined entries/);
+    assert.match(html, /a one-off control where a kit exists/);
+    const spacing = data.peeveCard(data.peevesReg.find(p => p.id === 'P44'));
+    assert.equal((spacing.match(/data-peeve-ref="skills\/html-style\/SKILL.md"/g) || []).length, 1);
+    assert.doesNotMatch(spacing, /the reading-column hook refuses/);
+    data.peeveQ = 'page-design';
+    assert.ok(data.peeveRows.some(p => p.id === 'P33'), 'an absorbed area finds its retained entry');
+    data.peeveQ = 'P11';
+    assert.deepEqual(Array.from(data.peeveRows, p => p.id), ['P10']);
+    data.peeveQ = 'P03';
+    assert.deepEqual(Array.from(data.peeveRows, p => p.id), ['P10'], 'the old jargon ID still finds Term loading');
+    for (const id of ['P09', 'P15', 'P17', 'P19', 'P20', 'P27', 'P40', 'P59', 'P61']) {
+      data.peeveQ = id;
+      assert.equal(data.peeveRows.length, 0, id + ': retired entries do not reappear through search');
+    }
+    data.peeveQ = 'P46';
+    assert.equal(data.peeveRows.length, 0, 'guidance remains outside the short list');
+    data.peeveQ = 'Shallow defense';
+    assert.match(data.peeveRows[0].peeve, /justification and still be bad/);
+  } finally { data.peeveQ = before; }
+});
+
+test('a consolidation combines private quotes from original IDs once and escapes their text', () => {
+  const previous = data.peeveQuotes;
+  const quote = { quote: '<script>source correction</script>', session: '2026-10-27-deadbeef', short: 'deadbeef' };
+  try {
+    data.peeveQuotes = { P23: [quote], P24: [quote, { ...quote, quote: 'A second correction.' }] };
+    const html = data.peeveCard(data.peevesReg.find(p => p.id === 'P23'));
+    assert.equal((html.match(/source correction/g) || []).length, 1);
+    assert.match(html, /data-peeve-source="P24"/);
+    assert.match(html, /A second correction/);
+    assert.match(html, /&lt;script&gt;/);
+    assert.doesNotMatch(html, /<script>/);
+  } finally { data.peeveQuotes = previous; }
 });
 
 test('a rejected or applied proposal leaves the row count and the paragraph', () => {
