@@ -34,20 +34,21 @@ test('every peeve has its own short name, the label the Map view lists it by', (
   }
 });
 
-test('consolidations preserve cited IDs and point directly to a retained entry in the same tier', () => {
+test('consolidations preserve cited IDs and point directly to an entry with the same status', () => {
   const byId = new Map(rows.map(r => [r.id, r]));
   for (const r of rows) {
-    assert.ok(['core', 'secondary', 'guidance'].includes(r.tier), `${r.id}: unknown tier`);
+    assert.ok(['active', 'guidance', 'retired'].includes(r.status), `${r.id}: unknown status`);
     if (!r.merged_into) continue;
     const target = byId.get(r.merged_into);
     assert.ok(target && target.id !== r.id, `${r.id}: missing or self-referencing target`);
-    assert.ok(!target.merged_into && target.tier !== 'guidance', `${r.id}: target must be a retained peeve`);
-    assert.equal(r.tier, target.tier, `${r.id}: tier differs from retained entry`);
+    assert.ok(!target.merged_into && target.status !== 'guidance', `${r.id}: target must be an active or retired entry`);
+    assert.equal(r.status, target.status, `${r.id}: status differs from its target`);
   }
-  const retained = rows.filter(r => !r.merged_into && r.tier !== 'guidance');
-  assert.equal(retained.filter(r => r.tier === 'core').length, 24);
-  assert.equal(retained.filter(r => r.tier === 'secondary').length, 9);
-  assert.equal(rows.filter(r => r.tier === 'guidance').length, 7);
+  const active = rows.filter(r => !r.merged_into && r.status === 'active');
+  assert.equal(active.length, 28);
+  assert.equal(rows.filter(r => r.status === 'guidance').length, 7);
+  assert.deepEqual(rows.filter(r => r.status === 'retired' && !r.merged_into).map(r => r.id), ['P09', 'P15', 'P19', 'P20']);
+  assert.equal(byId.get('P03').merged_into, 'P10', 'the jargon note follows the Term loading consolidation');
 });
 
 test('a peeve a script or hook catches names the document or check that does', () => {

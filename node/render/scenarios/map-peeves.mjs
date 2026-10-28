@@ -14,9 +14,14 @@ export default async function (page) {
   step('mounted');
   assert.equal(await section.locator('[role="tablist"], [aria-expanded]').count(), 0);
   const count = await list.locator('[role="option"]').count();
-  assert.equal(count, 33);
-  assert.equal(await list.getByRole('group', { name: 'Core', exact: true }).locator('[role="option"]').count(), 24);
-  assert.equal(await list.getByRole('group', { name: 'Secondary', exact: true }).locator('[role="option"]').count(), 9);
+  assert.equal(count, 28);
+  assert.equal(await list.getByRole('group').count(), 0, 'one list without priority groups');
+  const names = await list.locator('[data-part="title"]').allTextContents();
+  assert.deepEqual(names, [...names].sort((a, b) => a.localeCompare(b)));
+  for (const name of ['Term loading', 'Missing links', 'Raw options', 'Subtle veering', 'Micromanaged handoffs'])
+    assert.ok(names.includes(name), name);
+  for (const id of ['P03', 'P09', 'P15', 'P19', 'P20'])
+    assert.equal(await list.locator('[data-row="' + id + '"]').count(), 0);
   const geometry = async () => root.evaluate(el => {
     const list = el.querySelector('[data-peeve-list]'), card = el.querySelector('[data-peeve-card]');
     return { height: el.clientHeight, list: list.clientHeight, detail: card.clientHeight,
@@ -36,10 +41,12 @@ export default async function (page) {
   assert.ok(await card.locator('[data-peeve-detail="P44"] a[data-peeve-ref]').count());
   step('selection and reference');
 
+  await list.locator('[data-row="P10"] [data-part="title"]').click();
+  await waitSelection('P10');
   const ids = await list.locator('[data-row]').evaluateAll(rows => rows.map(r => r.dataset.row));
   await page.keyboard.press('ArrowDown');
-  await waitSelection(ids[ids.indexOf('P44') + 1]);
-  const next = ids.indexOf('P44') + 2;
+  await waitSelection(ids[ids.indexOf('P10') + 1]);
+  const next = ids.indexOf('P10') + 2;
   await card.locator('.sd-track').evaluate((el, next) => el.scrollTo({ left: el.clientWidth * next, behavior: 'instant' }), next);
   await waitSelection(ids[next]);
   step('keyboard and swipe');
@@ -117,7 +124,7 @@ export default async function (page) {
   });
   await state(() => window.__shell.goMap('peeves'));
   await root.waitFor({ state: 'visible' });
-  await list.locator('[data-row="P44"] [data-part="title"]').click();
-  await waitSelection('P44');
+  await list.locator('[data-row="P10"] [data-part="title"]').click();
+  await waitSelection('P10');
   console.log('peeves layout:', JSON.stringify({ phone, short, wide, policy }));
 }
