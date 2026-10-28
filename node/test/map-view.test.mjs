@@ -2304,6 +2304,9 @@ test('Peeves presents the reviewed list and resolves merged IDs through their re
     assert.match(html, /skills\/html-style\/SKILL.md/);
     assert.match(html, /Combined entries/);
     assert.match(html, /a one-off control where a kit exists/);
+    const spacing = data.peeveCard(data.peevesReg.find(p => p.id === 'P44'));
+    assert.equal((spacing.match(/data-peeve-ref="skills\/html-style\/SKILL.md"/g) || []).length, 1);
+    assert.doesNotMatch(spacing, /the reading-column hook refuses/);
     data.peeveQ = 'page-design';
     assert.ok(data.peeveRows.some(p => p.id === 'P33'), 'an absorbed area finds its retained entry');
     data.peeveQ = 'P11';
