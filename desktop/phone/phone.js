@@ -85,14 +85,13 @@
 
   function render() {
     if (!data) { connection(); return; }
+    // Rebuilding open panels can temporarily shorten the document and clamp its scroll position.
+    const viewport = {left:window.scrollX,top:window.scrollY};
     rememberPanelScroll();
     const focus = el('content').contains(document.activeElement) ? document.activeElement : null;
     const focusAction = focus && ['inspect','pick','facet'].find(key => focus.dataset[key]);
     const focusKey = focusAction && focus.dataset[focusAction];
     const focusOwner = focus?.dataset.for;
-    const visibleTop = el('overview').querySelector('header')?.getBoundingClientRect().bottom || 0;
-    const anchor = selected() ? null : [...document.querySelectorAll('#content [data-item]')].find(n => n.getBoundingClientRect().bottom > visibleTop);
-    const anchorKey = anchor?.dataset.item, anchorTop = anchor?.getBoundingClientRect().top;
     el('machine').textContent = data.machineName;
     const waiting = data.items.filter(i => i.state === 'queued');
     el('queue-count').textContent = data.sources.queueAvailable ? waiting.length : '?';
@@ -128,12 +127,9 @@
     }
     html('source-times', `Errands synced ${escape(stamp(data.sources.recordsSyncedAt))}<br>Cloud records captured ${escape(stamp(data.sources.cloudCapturedAt))}`);
     renderPanels(); detail(); connection();
-    if (anchorKey) {
-      const next = [...document.querySelectorAll('#content [data-item]')].find(n => n.dataset.item === anchorKey);
-      if (next) { const delta = next.getBoundingClientRect().top - anchorTop; if (Math.abs(delta) > 1) window.scrollTo(0,window.scrollY + delta); }
-    }
     if (focusAction && !focus.isConnected) [...el('content').querySelectorAll('button')].find(n => n.dataset[focusAction] === focusKey && n.dataset.for === focusOwner)?.focus({preventScroll:true});
     document.querySelectorAll('time[data-at]').forEach(node => { node.textContent = age(node.dataset.at); });
+    if (window.scrollX !== viewport.left || window.scrollY !== viewport.top) window.scrollTo(viewport.left,viewport.top);
   }
 
   const findItem = key => data?.items.find(i => i.key === key) || data?.changes?.filter(c => c.key === key).map(recordedChange)[0];
