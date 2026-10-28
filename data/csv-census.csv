@@ -41,7 +41,7 @@ docs/hook-legs.csv,20,8,3216,"[""order"",""leg"",""gloss"",""watches"",""runs"",
 docs/icon-families.csv,16,7,1510,"[""family"",""group"",""label"",""source"",""icon_column"",""name_column"",""doc""]"
 docs/intents.csv,11,6,1871,"[""intent"",""label"",""path"",""caveat"",""caveat_at"",""doc""]"
 docs/kits.csv,126,8,17008,"[""path"",""namespace"",""gloss"",""lines"",""boot"",""demo"",""users"",""tested""]"
-docs/manifest-fields.csv,123,6,26744,"[""key"",""type"",""consumer"",""status"",""required"",""summary""]"
+docs/manifest-fields.csv,123,6,26741,"[""key"",""type"",""consumer"",""status"",""required"",""summary""]"
 docs/map-tabs.csv,36,4,23934,"[""tab"",""gloss"",""refs"",""narrative""]"
 docs/outposts.csv,4,12,2199,"[""id"",""title"",""gloss"",""declared"",""observed"",""reports"",""cadence"",""check"",""record"",""outpost_protocol"",""upkeep"",""doc""]"
 docs/portable.csv,107,6,9704,"[""kind"",""command"",""path"",""title"",""role"",""use""]"

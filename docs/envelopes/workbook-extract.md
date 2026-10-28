@@ -2,11 +2,11 @@
 
 Part of an `.xlsx` workbook, picked and carried as **data**. Nothing is written
 back to the workbook and nothing is reconstructed from the extract. The
-picker, the Overview in the viewer's Structure mode, is sheet-centered:
-ticking a sheet takes its values, or the readings a receiving repo declares
-(Receptions, below), and each of its other readings is a separate tick. Pivot
-tables, cached pivot records, connections, and Power Query sections are
-individual choices.
+picker, in the Overview of the viewer's Structure mode, is sheet-centered:
+ticking a sheet takes its `values` reading, or the readings a receiving repo
+declares ([Receptions](#receptions-a-receiving-repos-standing-pick), below);
+every other reading is a separate tick. Pivot tables, cached pivot records,
+connections, and Power Query sections are individual choices.
 
 Written by [`lib/kits/xlsx-extract.js`](../../lib/kits/xlsx-extract.js), read by
 [`pages/data-view.html`](../../pages/data-view.html) with no change to that page,
@@ -18,12 +18,12 @@ The original cross-product API and its
 ## Sheet-centered selection (v2)
 
 `XlsxExtract.catalog(result)` returns sheets in workbook order, with counts
-for their ten supported readings, and separately lists each modeled object.
-The Overview lists each object after the sheets and names its associated
-sheet: the sheet a pivot table sits on, or a pivot cache's source sheet when
-that sheet is in the workbook. This is an
-association for navigation, not an inclusion rule: selecting a sheet does not
-select any related object. A cache may contain rows from a different sheet.
+for each supported reading, and separately lists each modeled object. The
+Overview lists each object after the sheets and names its associated sheet
+where known: the sheet a pivot table sits on, or a pivot cache's source sheet
+when that sheet is in the workbook. That association is for navigation, not an
+inclusion rule: selecting a sheet does not select any related object. A cache
+may contain rows from a different sheet.
 
 `XlsxExtract.extractSelected(result, pick, opts)` accepts:
 
@@ -70,7 +70,7 @@ however many sheets are picked, and carry a null `sheet`.
 | id | scope | one row per | reads |
 | --- | --- | --- | --- |
 | `values` | sheet | sheet row | `sheetRows`, so a date is a date rather than a serial |
-| `raw` | sheet | sheet row with a value | `sheetTables`' rows, unformatted: a number stays a number, a date or time becomes ISO text, TRUE or FALSE a boolean, where `values` gives each cell's displayed text |
+| `raw` | sheet | sheet row with a value | `sheetTables`' rows as typed data: a number stays a number, a date or time becomes ISO text, TRUE or FALSE a boolean, where `values` gives each cell's displayed text |
 | `cells` | sheet | one object per sheet | every cell as `{Address, Formula, Value}`, plus `Dimension` and `MergedCells`: the serialized-workbook shape, below |
 | `formulas` | sheet | computed cell | the stored formula text, and the value beside it |
 | `styles` | sheet | styled cell | `cellStyle`, flattened to what the cell draws |
@@ -104,8 +104,8 @@ the rule types decidable from a cell alone.
 home's PowerShell exporter (`Get-WsDetail`) writes and the fund view's reader
 (home's `projects/budget-drs/app/fund-balance/workbook-fill.js`) consumes, one object per sheet:
 `{ SheetName, Dimension, MergedCells: ['A1:B1', …], Cells: [{ Address, Formula,
-Value }, …] }`. `Value` is the cached value as a string, raw rather than
-formatted, because a reader parses `35624913.378` and cannot parse
+Value }, …] }`. `Value` is the cached value as an unformatted string,
+because a reader parses `35624913.378` and cannot parse
 `35,624,913`. `Formula` is `''` for an entered cell and `=<text>` where the file
 stored text. A shared formula's follower stores none, and here the reading does
 what `formulas` above declines to: it writes `=[fill N] <master text>`, the
@@ -129,7 +129,7 @@ A `ref` that is a commit SHA is the only form that still resolves to these bytes
 later.
 
 **What was left behind.** In v1, `picked` and `left` are complements over the
-workbook's sheets and the fourteen kinds. In v2, they record each selected
+workbook's sheets and the kinds. In v2, they record each selected
 sheet's readings, the omitted readings on that sheet, and individually chosen
 or omitted objects. Without `left`, a reader cannot tell a partial selection
 from the whole file.
@@ -230,7 +230,7 @@ sheet to reach a repo.
 
 ## Staging an extract
 
-The picker's preview pane shows the serialized envelope, the same string Save
+The Overview's JSON preview shows the serialized envelope, the same string Save
 writes, the link carries, and Stage puts on the stage, so what is read is what
 travels. **Stage for `<repo>`** puts the envelope on the stage as a text file
 under the reception's name, takes the dropped workbook off the stage (a Send
@@ -269,8 +269,8 @@ kind and the picker's cap show. `npm run sample-workbook -- --link --at <sha>
 --use <sha>` prints the address that opens it; use the command rather than
 writing the link, since it holds the two traps its `--link` code names
 (`?src=`, not `#data=`, and the link-length limit). In the page, pick **Structure** from the
-mode menu at the right of the file line; it opens on **Overview**, the
-picker. The minimal fixture in
+mode menu at the right of the file line; Structure opens on **Overview**,
+which holds the picker. The minimal fixture in
 [`node/test/viewer-xlsx.mjs`](../../node/test/viewer-xlsx.mjs) stays separate
 from this sample.
 
