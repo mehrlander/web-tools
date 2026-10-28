@@ -18,9 +18,6 @@ const HOME = 'lib/kits/traffic.js';
 
 const ALLOWED = new Map([
   [HOME, 'where the rule lives'],
-  // The session page's Raw link reads "Raw12K": the size sits flush against
-  // its label, unspaced, where fmtBytes's "12 KB" would change the label.
-  ['lib/alpineComponents/session-brief.js', 'an unspaced size inside a link label'],
 ]);
 
 const DIVIDES = /\/\s*\(?\s*(?:1024|1048576)\b/;
