@@ -158,12 +158,12 @@ test('the fab knows every delivery mode, so it never reads one as a route key', 
 // hold is the part that would rot silently: a row missing the field that says
 // what it CANNOT show is worse than no row, since the whole point of the table
 // is the boundaries rather than the recipes.
-test('every showing mechanism declares its three axes and its boundary', () => {
+test('every showing mechanism names its subject, its use and what it misses', () => {
   const s = manifest.showing;
   assert.ok(s, 'docs/routes.json has no showing block');
   assert.ok(s.mechanisms.length >= 5, 'suspiciously few mechanisms');
   for (const m of s.mechanisms) {
-    for (const k of ['key', 'label', 'subject', 'version', 'viewer', 'use'])
+    for (const k of ['key', 'label', 'subject', 'use'])
       assert.ok(m[k], `mechanism ${m.key || '?'} is missing ${k}`);
     // `misses` is required and `reaches` is not: the one mechanism that reaches
     // nothing (a shell change aimed at the top-level document) is a real row,
@@ -183,14 +183,6 @@ test('a mechanism\'s scan cells fit in eight words each', () => {
       const n = String(m[k] || '').split(/\s+/).filter(Boolean).length;
       assert.ok(n <= 8, `${m.key}.${k} runs to ${n} words; keep the scan cell to eight and put the rest in narrative`);
     }
-});
-
-test('the axes are the three the mechanisms are indexed by', () => {
-  assert.deepEqual(Object.keys(manifest.showing.axes), ['subject', 'version', 'viewer']);
-  // The subject axis is a registry rather than a list, since two tables key
-  // into it; the other two stay inline, nothing keys on them.
-  assert.equal(manifest.showing.axes.subject, 'docs/subjects.csv');
-  assert.ok(existsSync(path.join(repoRoot, manifest.showing.axes.subject)));
 });
 
 // ── Subjects: the axis itself, typed ────────────────────────────────────────
