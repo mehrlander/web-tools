@@ -174,6 +174,17 @@ test('every showing mechanism declares its three axes and its boundary', () => {
   assert.equal(new Set(keys).size, keys.length, 'duplicate mechanism key');
 });
 
+// The Showing tab's card prints these three cells as short lines over the
+// narrative, and they stay short only while a test holds them: the detail a
+// session needs belongs in narrative.
+test('a mechanism\'s scan cells fit in eight words each', () => {
+  for (const m of manifest.showing.mechanisms)
+    for (const k of ['use', 'reaches', 'misses']) {
+      const n = String(m[k] || '').split(/\s+/).filter(Boolean).length;
+      assert.ok(n <= 8, `${m.key}.${k} runs to ${n} words; keep the scan cell to eight and put the rest in narrative`);
+    }
+});
+
 test('the axes are the three the mechanisms are indexed by', () => {
   assert.deepEqual(Object.keys(manifest.showing.axes), ['subject', 'version', 'viewer']);
   // The subject axis is a registry rather than a list, since two tables key
