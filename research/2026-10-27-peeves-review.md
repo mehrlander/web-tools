@@ -1,6 +1,6 @@
 # Peeve names and consolidation proposal
 
-The owner's peeves should name memorable annoyances. The proposed list has 24 core entries and nine secondary entries, reduced from the earlier proposal's 37 entries. Eight existing entries become examples or working guidance. The proposal covers all 66 existing peeves and incorporates the owner's review on 27 October 2026. The active [peeve list](../skills/peeves/peeves.csv) remains unchanged pending review.
+The owner's peeves should name memorable annoyances. The proposed list has 24 core entries and nine secondary entries, reduced from the earlier proposal's 37 entries. Eight existing entries become examples or working guidance. The proposal covers all 66 existing peeves and incorporates the owner's review on 27 October 2026. The branch's [peeve list](../skills/peeves/peeves.csv) and Map preview apply the proposed names and groupings for review.
 
 ## Core list
 
@@ -91,4 +91,4 @@ Several active descriptions need narrowing when the names are implemented. P42's
 
 A document reference identifies where a preference is written. Whether the preference has been addressed in a particular feature requires evidence about that feature. A blank reference therefore leaves the documentation question open; an existing reference establishes where to read the rule. The Peeves detail panel can show those references without treating their presence as a resolution status.
 
-After review, the implementation should retain stable peeve IDs, map absorbed entries to their retained homes, and preserve the private evidence connections. The descriptions and examples should keep the recognizable complaints within each consolidation. The private quotes stay in the private repository. The canonical CSV, evidence mapping and Map behavior can then change together in a subsequent approved implementation.
+The branch retains all 66 stable peeve IDs. Each absorbed row names its retained entry through `merged_into`, and `tier` places retained entries in the core or secondary group. Seven guidance rows remain outside the short list. The Map combines source examples, document references and private quotes under the retained entry, and searching an absorbed ID finds that entry. The private quotes stay in the private repository. Merging the branch would apply the reviewed list to the live app and skill.

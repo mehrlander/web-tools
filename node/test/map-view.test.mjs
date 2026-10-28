@@ -2269,7 +2269,7 @@ test('Peeves searches the real list and preserves repository identity in its ref
   try {
     data.peeveQ = 'accordions';
     assert.deepEqual(Array.from(data.peeveRows, p => p.id), ['P52']);
-    assert.equal(data.peeveGroups[0].key, 'page-design');
+    assert.equal(data.peeveGroups[0].key, 'core');
     data.peeveQ = 'no such peeve';
     assert.equal(data.peeveRows.length, 0);
     const source = data.peeveReference(data.peevesReg.find(p => p.id === 'P02'));
@@ -2290,6 +2290,43 @@ test('A peeve detail labels references without claiming resolution and escapes s
   assert.match(html, /data-peeve-ref="skills\/html-style\/SKILL.md"/);
   assert.match(html, /&lt;img/);
   assert.doesNotMatch(html, /<img|written in|aria-expanded|unaddressed/);
+});
+
+test('Peeves presents the reviewed list and resolves merged IDs through their retained entry', () => {
+  const before = data.peeveQ;
+  try {
+    data.peeveQ = '';
+    assert.equal(data.peeveRows.length, 33);
+    assert.deepEqual(Array.from(data.peeveGroups, g => [g.key, g.rows.length]), [['core', 24], ['secondary', 9]]);
+    data.peeveQ = 'P45';
+    assert.deepEqual(Array.from(data.peeveRows, p => [p.id, p.name]), [['P33', 'Reinventing the wheel']]);
+    const html = data.peeveCard(data.peeveRows[0]);
+    assert.match(html, /skills\/html-style\/SKILL.md/);
+    assert.match(html, /Combined entries/);
+    assert.match(html, /a one-off control where a kit exists/);
+    data.peeveQ = 'page-design';
+    assert.ok(data.peeveRows.some(p => p.id === 'P33'), 'an absorbed area finds its retained entry');
+    data.peeveQ = 'P11';
+    assert.deepEqual(Array.from(data.peeveRows, p => p.id), ['P10']);
+    data.peeveQ = 'P46';
+    assert.equal(data.peeveRows.length, 0, 'guidance remains outside the short list');
+    data.peeveQ = 'Shallow defense';
+    assert.match(data.peeveRows[0].peeve, /justification and still be bad/);
+  } finally { data.peeveQ = before; }
+});
+
+test('a consolidation combines private quotes from original IDs once and escapes their text', () => {
+  const previous = data.peeveQuotes;
+  const quote = { quote: '<script>source correction</script>', session: '2026-10-27-deadbeef', short: 'deadbeef' };
+  try {
+    data.peeveQuotes = { P23: [quote], P24: [quote, { ...quote, quote: 'A second correction.' }] };
+    const html = data.peeveCard(data.peevesReg.find(p => p.id === 'P23'));
+    assert.equal((html.match(/source correction/g) || []).length, 1);
+    assert.match(html, /data-peeve-source="P24"/);
+    assert.match(html, /A second correction/);
+    assert.match(html, /&lt;script&gt;/);
+    assert.doesNotMatch(html, /<script>/);
+  } finally { data.peeveQuotes = previous; }
 });
 
 test('a rejected or applied proposal leaves the row count and the paragraph', () => {

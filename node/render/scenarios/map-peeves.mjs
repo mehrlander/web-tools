@@ -14,7 +14,9 @@ export default async function (page) {
   step('mounted');
   assert.equal(await section.locator('[role="tablist"], [aria-expanded]').count(), 0);
   const count = await list.locator('[role="option"]').count();
-  assert.ok(count >= 65);
+  assert.equal(count, 33);
+  assert.equal(await list.getByRole('group', { name: 'Core', exact: true }).locator('[role="option"]').count(), 24);
+  assert.equal(await list.getByRole('group', { name: 'Secondary', exact: true }).locator('[role="option"]').count(), 9);
   const geometry = async () => root.evaluate(el => {
     const list = el.querySelector('[data-peeve-list]'), card = el.querySelector('[data-peeve-card]');
     return { height: el.clientHeight, list: list.clientHeight, detail: card.clientHeight,
@@ -27,17 +29,17 @@ export default async function (page) {
 
   await list.locator('[data-row="P44"] [data-part="title"]').click();
   await waitSelection('P44');
-  assert.match(await card.locator('[data-ls="head"]').innerText(), /Compact and open/);
+  assert.match(await card.locator('[data-ls="head"]').innerText(), /Wasted space/);
   await list.locator('[data-row="P44"] [data-part="title"]').click();
   assert.equal(await selected(), 'P44');
   assert.equal((await geometry()).list, phone.list, 'selection leaves the list height unchanged');
   assert.ok(await card.locator('[data-peeve-detail="P44"] a[data-peeve-ref]').count());
   step('selection and reference');
 
-  await page.keyboard.press('ArrowDown');
-  await waitSelection('P49');
   const ids = await list.locator('[data-row]').evaluateAll(rows => rows.map(r => r.dataset.row));
-  const next = ids.indexOf('P49') + 1;
+  await page.keyboard.press('ArrowDown');
+  await waitSelection(ids[ids.indexOf('P44') + 1]);
+  const next = ids.indexOf('P44') + 2;
   await card.locator('.sd-track').evaluate((el, next) => el.scrollTo({ left: el.clientWidth * next, behavior: 'instant' }), next);
   await waitSelection(ids[next]);
   step('keyboard and swipe');
@@ -48,7 +50,7 @@ export default async function (page) {
   await waitSelection('P52');
   step('search selected P52');
   assert.equal(await list.locator('[role="option"]').count(), 1);
-  assert.match(await card.innerText(), /flat visible lists rather than accordions/);
+  assert.match(await card.innerText(), /Accordions and nesting/);
   await search.fill('no such peeve');
   await root.waitFor({ state: 'hidden' });
   assert.ok(await section.getByText('No peeve matches.', { exact: true }).isVisible());
