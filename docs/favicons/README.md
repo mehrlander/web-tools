@@ -18,6 +18,8 @@ This is the library-wide mark. `lib/gh-boot.js` inlines a copy and injects it as
 
 Files: [`repos/`](repos/). Drawn 2026-10-22: one mark per estate repository except web-tools, whose mark is the hex nut. The app draws each wherever it lists repositories (the sidebar, the repo menu, Map › Reach and Map › Projects), reading the file named for the repository from the hub at its selected ref, main outside a preview (`repoMarkSrc` in [`app/index.html`](../../app/index.html)).
 
+A repository can also declare its mark in its own manifest, as `mark` (a path, or `owner/repo:path` for one of these files) beside its `icon` glyph, and colour either with `tone` ([`manifest-fields.csv`](../manifest-fields.csv)). [`lib/kits/repo-mark.js`](../../lib/kits/repo-mark.js) draws the result in the session page's scope pill and checkouts panel, the estate's rows, cards and Sessions table, the sidebar and the repo switchers. The sidebar and the repo switcher take a declared `mark` first, then the file named here, then the glyph; the other surfaces read only what the manifest declares, so there a repository with no `mark` draws its glyph.
+
 ### Map marks
 
 Files: [`map/`](map/). Drawn 2026-10-22: one mark for each of the Map's tab groups, each a miniature of the view it opens, and one for each outpost but Work PowerShell, which wears the wps project's mark. The Map draws them on its tab strip, its Overview headings, and its outposts in Reach and in Outposts.
