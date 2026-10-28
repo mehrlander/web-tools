@@ -34,6 +34,22 @@ test('every peeve has its own short name, the label the Map view lists it by', (
   }
 });
 
+test('consolidations preserve cited IDs and point directly to a retained entry in the same tier', () => {
+  const byId = new Map(rows.map(r => [r.id, r]));
+  for (const r of rows) {
+    assert.ok(['core', 'secondary', 'guidance'].includes(r.tier), `${r.id}: unknown tier`);
+    if (!r.merged_into) continue;
+    const target = byId.get(r.merged_into);
+    assert.ok(target && target.id !== r.id, `${r.id}: missing or self-referencing target`);
+    assert.ok(!target.merged_into && target.tier !== 'guidance', `${r.id}: target must be a retained peeve`);
+    assert.equal(r.tier, target.tier, `${r.id}: tier differs from retained entry`);
+  }
+  const retained = rows.filter(r => !r.merged_into && r.tier !== 'guidance');
+  assert.equal(retained.filter(r => r.tier === 'core').length, 24);
+  assert.equal(retained.filter(r => r.tier === 'secondary').length, 9);
+  assert.equal(rows.filter(r => r.tier === 'guidance').length, 7);
+});
+
 test('a peeve a script or hook catches names the document or check that does', () => {
   for (const r of rows.filter(r => r.detector !== 'reader'))
     assert.ok(r.owner, `${r.id}: detector ${r.detector} with no owner naming it`);

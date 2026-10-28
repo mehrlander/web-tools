@@ -1,29 +1,6 @@
 (() => {
   'use strict';
   const escape = text => String(text ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  class ReviewStore {
-    constructor(machine) {
-      this.key = `web-tools-now-reviewed:${machine}`;
-      this.load();
-    }
-    load() {
-      let value;
-      try { value = JSON.parse(localStorage.getItem(this.key)); } catch { }
-      this.since = Number.isFinite(value?.since) && value.since <= Date.now() ? value.since : Date.now() - 86400000;
-      this.seen = value?.seen && typeof value.seen === 'object' && !Array.isArray(value.seen) ? value.seen : {};
-      this.save();
-    }
-    save() { try { localStorage.setItem(this.key, JSON.stringify({since:this.since,seen:this.seen})); } catch { } }
-    pending(changes = []) {
-      return (Array.isArray(changes) ? changes : []).filter(c => c.key && c.id && Date.parse(c.at) >= this.since && this.seen[c.key] !== c.id);
-    }
-    mark(changes) {
-      this.load();
-      for (const change of changes) this.seen[change.key] = change.id;
-      this.seen = Object.fromEntries(Object.entries(this.seen).slice(-300));
-      this.save();
-    }
-  }
   const safeLink = value => {
     try {
       const url = new URL(value);
@@ -45,5 +22,5 @@
     if (!value) return '';
     return density(`<section class="mt-6 border-t border-stone-200 pt-4"><h3 class="text-sm font-semibold text-stone-600">Latest turn</h3><p class="mt-1 text-xs text-stone-500">First observed ${escape(stamp(value.startedAt))}</p>${value.lastTool ? `<p class="mt-2 text-sm text-stone-500">Last tool: ${escape(value.lastTool)}</p>` : ''}${value.prompt ? `<h4 class="mt-4 text-xs font-medium text-stone-500">Prompt preview</h4><p class="mt-1 whitespace-pre-wrap break-words text-base leading-7">${escape(value.prompt)}</p>` : ''}${value.response ? `<h4 class="mt-4 text-xs font-medium text-stone-500">Response preview</h4><p class="mt-1 whitespace-pre-wrap break-words text-base leading-7">${escape(value.response)}</p>` : ''}</section>`, compact);
   }
-  window.NowView = {ReviewStore,safeLink,checkpoint,turn};
+  window.NowView = {safeLink,checkpoint,turn};
 })();
