@@ -14,6 +14,7 @@ forms.
 
 | File | Holds |
 |---|---|
+| [review.html](review.html#walkthrough=wacares&test=wacares) | the sixteen examples, each with Prompt and Result tabs and its original referenced inputs |
 | [theory.md](theory.md) | the theory: a page as a rooted projection of an entity graph, the structural forms, the projection ladder, and what the theory predicts |
 | [method.md](method.md) | the procedure, as handed to the test agents |
 | [experiment/](experiment/) | sources, prompts, pages, judgments and the scripts that produced them |
