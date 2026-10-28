@@ -16,11 +16,17 @@ account links to its own materials. The shared placement rule is in
 ## Probes
 
 - [Documentation problems and drafting proposals](DOC_CRAFT_STUDY.md), with the original specimens.
+- [Minimal progressive structure](minimal-progressive-structure/README.md): a theory of how text becomes a layered page, its prior art, and a blind test of the method on page-building agents.
+- [Fan-out review of the Web Tools app, 2026-10-25](2026-10-25-fan-out-review.md): ranked follow-ups from seven lenses, and which kinds of reading found them.
+- [Code jobs](code-jobs/README.md): whether a model reader finds functions that do one job in several files.
 
 The Excel research is in `projects/office/research/` in `mehrlander/home`.
 
 ## Exploration
 
-No outward-looking account is declared in this repository yet. Other
-repositories can declare their own accounts without copying their contents
-here.
+- [Category mapping](category-mapping/README.md): which word fits a
+  collection (registry, stream, cache, tracker…) and which fits work by when
+  it acts (scheduled, standing, one-off…), each answered as a poster.
+
+Other repositories can declare their own accounts without copying their
+contents here.

@@ -28,11 +28,10 @@ inventory instead.
 
 ## Where bookmarklets fit
 
-Bookmarklets were once the repo's general-purpose tool. The Web Tools app now
-carries general utility work, sessions fetch most public pages themselves, and
-the iPhone runs the off-site FAB as a userscript. What remains for a bookmarklet is
-acting on a page from a browser that cannot run extensions, the work laptop
-first among them.
+A bookmarklet is for acting on a page from a browser that cannot run
+extensions, the work laptop first among them. General utility work is the Web
+Tools app's, sessions fetch most public pages themselves, and the iPhone runs
+the off-site FAB as a userscript.
 
 **On a desktop, the general bookmarklet opens the app.**
 [`courier-stage.js`](courier-stage.js) opens the Web Tools app in a popup at its
@@ -53,31 +52,27 @@ in-page alternative on a desktop.
 
 **Site-specific code lives by host.** Code that knows one site's URLs and DOM
 goes in [`../sites/<hostname>/`](../sites/README.md), as a bookmarklet, a console
-snippet, or a courier script the Stage sends to the page. The courier's
-per-origin errands carry the old data shelf's idea, scripts chosen by the domain
-they run on, with the scripts versioned in git rather than kept in one
-browser's IndexedDB.
+snippet, or a courier script the Stage sends to the page, so scripts are chosen
+by the domain they run on and versioned in git.
 
-**A strict page refuses a loaded script.** A page whose `script-src` names only
-its own hosts refuses the `<script src>` that `launcher.js` injects
-([`../userscripts/README.md`](../userscripts/README.md) has the first
-measurement). In headless Chrome on 2026-10-13, github.com and en.wikipedia.org
-refused it, while example.com, app.leg.wa.gov and lawfilesext.leg.wa.gov set no
-policy and accepted it. A blank popup opened from the page, the route
-[`popup-launcher.js`](popup-launcher.js) takes, inherits the page's policy, so on
-github.com the script it writes into that popup is refused as well. A popup at
-a Web Tools address, the courier's route, kept its link with the page on
-github.com, en.wikipedia.org and app.leg.wa.gov, messages passing both ways.
+## Which route reaches a page
 
-A page that sends `Cross-Origin-Opener-Policy: same-origin` cuts that link: the
-popup opens but can neither read the page nor message it. The Cloudflare check
-page wsldocs.sos.wa.gov serves to an unverified client sends that header; the
-real page behind it sends none (observed 2026-10-14), so there it is the check,
-not the site, that would cut the link. The errand `test-2026-09-26-bookmarklet-routes` in
-`mehrlander/web-tools-private` asks a computer-use session on the home laptop to
-try these routes on the sites in use.
+- **A loaded script** (`launcher.js` injecting a `<script src>`) is refused by a
+  page whose `script-src` names only its own hosts. A blank popup opened from
+  the page, [`popup-launcher.js`](popup-launcher.js)'s route, inherits the
+  page's policy and is refused the same way.
+- **A userscript** mounts under `script-src 'self'`, because the extension
+  evaluates the body itself ([`../userscripts/README.md`](../userscripts/README.md)).
+- **A popup at a Web Tools address**, the courier's route, runs under Web Tools'
+  rules, so it opens on strict pages and keeps its link with the page by
+  `postMessage`. A page that sends `Cross-Origin-Opener-Policy: same-origin`
+  cuts that link: the popup opens but can neither read the page nor message it.
+  A courier script also needs a page whose policy allows `eval`
+  ([`../courier/README.md`](../courier/README.md#where-it-does-not-work)).
 
-**Synchronization is deferred.** A loader bookmarklet has nothing to keep in
-sync while its URL stays fixed. Only self-contained bookmarklets can drift from
-this folder, and the planned source for what a browser holds is Chrome's
-bookmarks export. Nothing reads that export yet.
+Measured in headless Chrome on 2026-10-13: github.com and en.wikipedia.org
+refused the loaded script, while example.com, app.leg.wa.gov and
+lawfilesext.leg.wa.gov set no policy and accepted it; the Web Tools popup kept
+its link on github.com, en.wikipedia.org and app.leg.wa.gov. A Cloudflare
+interstitial can send the COOP header where the page behind it does not
+([`../sites/wsldocs.sos.wa.gov/README.md`](../sites/wsldocs.sos.wa.gov/README.md)).

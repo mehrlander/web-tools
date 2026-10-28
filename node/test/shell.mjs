@@ -9,7 +9,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { repoRoot } from './bootstrap.mjs';
+import { repoRoot, withTraffic } from './bootstrap.mjs';
 
 export const page = readFileSync(path.join(repoRoot, 'app/index.html'), 'utf8');
 
@@ -57,6 +57,8 @@ export function makeShell({ browserStore, search = '', win = {} } = {}) {
   // The assistant prefixes a pasted bare branch is recognized by, from the
   // boot list too (kits/assistant-mark.js).
   new Function('window', readFileSync(path.join(repoRoot, 'lib/kits/assistant-mark.js'), 'utf8'))(win);
+  // And the byte-count rule every size on screen goes through (kits/traffic.js).
+  withTraffic(win);
   new Function('window', 'document', 'Alpine', 'location', 'history', '__exports',
     shellScript(page) + '\n;__exports.app = app;__exports.gallery = gallery;')(
     win, doc, alpine, loc, hist, exports);

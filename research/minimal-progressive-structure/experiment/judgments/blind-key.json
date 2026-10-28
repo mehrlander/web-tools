@@ -1,0 +1,18 @@
+{
+ "dca/P2": "dca-mps",
+ "dca/R5": "dca-house",
+ "dca/R9": "dca-bare",
+ "dca/Z2": "dca-house-mps",
+ "races/P2": "races-mps",
+ "races/R5": "races-house",
+ "races/R9": "races-bare",
+ "races/Z2": "races-house-mps",
+ "wacares/K7": "wacares-mps1",
+ "wacares/M8": "wacares-bare1",
+ "wacares/R4": "wacares-mps3",
+ "wacares/R8": "wacares-mps2",
+ "wacares/T2": "wacares-house-mps",
+ "wacares/V3": "wacares-house",
+ "wacares/X3": "wacares-bare2",
+ "wacares/X7": "wacares-bare3"
+}

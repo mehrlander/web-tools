@@ -18,7 +18,8 @@ public sealed class SessionReader(string profile)
         var notices = new List<string>();
         ReadCodex(now, sessions, notices);
         ReadGemini("antigravity", "Gemini", now, sessions, notices);
-        ReadGemini("antigravity-worker", "Gemini worker", now, sessions, notices);
+        // Headless inference conversations belong to the dedicated worker and
+        // errand cards, rather than appearing as fresh user work each time.
         ReadClaude(now, sessions, notices);
         return new(sessions.Where(s => s.UpdatedAt <= now.AddMinutes(1) && now - s.UpdatedAt < TimeSpan.FromDays(1))
             .OrderByDescending(s => s.State == "working").ThenByDescending(s => s.UpdatedAt).Take(24).ToList(), notices);
@@ -43,11 +44,21 @@ public sealed class SessionReader(string profile)
             if (database is null) return;
             using var connection = Open(database);
             using var command = connection.CreateCommand();
-            command.CommandText = "SELECT id,rollout_path,COALESCE(NULLIF(name,''),NULLIF(title,''),'Codex session'),cwd "
-                + "FROM threads WHERE archived=0 AND source NOT LIKE '%subagent%' ORDER BY updated_at_ms DESC LIMIT 16";
+            command.CommandText = "SELECT id,rollout_path,COALESCE(NULLIF(name,''),NULLIF(title,''),'Codex session'),cwd,source "
+                + "FROM threads WHERE archived=0 ORDER BY updated_at_ms DESC LIMIT 64";
             using var rows = command.ExecuteReader();
+            var found = new Dictionary<string, (LocalSession Session, string Parent)>();
             while (rows.Read()) {
                 var id = rows.GetString(0);
+                var origin = rows.IsDBNull(4) ? "" : rows.GetString(4);
+                var parent = "";
+                if (origin.Contains("subagent", StringComparison.OrdinalIgnoreCase)) {
+                    try {
+                        using var source = JsonDocument.Parse(origin);
+                        parent = Activity.Text(Activity.Child(Activity.Child(source.RootElement, "subagent"), "thread_spawn"), "parent_thread_id");
+                    } catch (JsonException) { }
+                    if (parent.Length == 0) continue; // Internal approval agents are not delegated user work.
+                }
                 var path = rows.GetString(1);
                 if (path.StartsWith(@"\\?\", StringComparison.Ordinal)) path = path[4..];
                 // A metadata row must not redirect the reader to arbitrary files.
@@ -58,9 +69,10 @@ public sealed class SessionReader(string profile)
                     cursor.Read(path);
                     if (cursor.UpdatedAt.Year < 2000) continue;
                     var state = cursor.State == "working" && now - cursor.UpdatedAt > Fresh ? "quiet" : cursor.State;
-                    items.Add(new(id, "Codex", rows.GetString(2), state, cursor.UpdatedAt, rows.IsDBNull(3) ? "" : rows.GetString(3), cursor.Detail));
+                    found[id] = (new(id, "Codex", rows.GetString(2), state, cursor.UpdatedAt, rows.IsDBNull(3) ? "" : rows.GetString(3), cursor.Detail), parent);
                 } catch (IOException) { notices.Add("A Codex session is temporarily unavailable."); }
             }
+            AddGrouped(found, items, now);
         } catch (Exception ex) when (ex is SqliteException or IOException or UnauthorizedAccessException) {
             notices.Add("Codex session metadata is unavailable.");
         }
@@ -73,10 +85,16 @@ public sealed class SessionReader(string profile)
         if (!File.Exists(path)) return;
         try {
             using var connection = Open(path);
+            using var schema = connection.CreateCommand();
+            schema.CommandText = "PRAGMA table_info(conversation_summaries)";
+            var hasParent = false;
+            using (var fields = schema.ExecuteReader()) while (fields.Read()) hasParent |= fields.GetString(1) == "parent_conversation_id";
             using var command = connection.CreateCommand();
             command.CommandText = "SELECT conversation_id,title,status,not_fully_idle,killed,last_modified_time "
-                + "FROM conversation_summaries ORDER BY last_modified_time DESC LIMIT 16";
+                + (hasParent ? ",parent_conversation_id " : ",'' ")
+                + "FROM conversation_summaries ORDER BY last_modified_time DESC LIMIT 128";
             using var rows = command.ExecuteReader();
+            var found = new Dictionary<string, (LocalSession Session, string Parent)>();
             while (rows.Read()) {
                 if (!DateTimeOffset.TryParse(rows.IsDBNull(5) ? "" : rows.GetString(5), CultureInfo.InvariantCulture,
                     DateTimeStyles.AssumeUniversal, out var updated) || updated.Year < 2000) continue;
@@ -85,10 +103,33 @@ public sealed class SessionReader(string profile)
                 var killed = !rows.IsDBNull(4) && rows.GetInt64(4) != 0;
                 var state = killed ? "interrupted" : reportedRunning || busy ? now - updated <= Fresh ? "working" : "quiet" : "idle";
                 var detail = state switch { "working" => "Conversation running", "quiet" => "No recent event", "interrupted" => "Conversation interrupted", _ => "Conversation idle" };
-                items.Add(new(rows.GetString(0), provider, rows.IsDBNull(1) ? provider + " session" : rows.GetString(1), state, updated, "", detail));
+                var title = rows.IsDBNull(1) ? "" : rows.GetString(1);
+                found[rows.GetString(0)] = (new(rows.GetString(0), provider, string.IsNullOrWhiteSpace(title) ? provider + " work" : title,
+                    state, updated, "", detail), rows.IsDBNull(6) ? "" : rows.GetString(6));
             }
+            AddGrouped(found, items, now);
         } catch (Exception ex) when (ex is SqliteException or IOException or UnauthorizedAccessException) {
             notices.Add(provider + " session metadata is unavailable.");
+        }
+    }
+
+    private static void AddGrouped(Dictionary<string, (LocalSession Session, string Parent)> found, List<LocalSession> items, DateTimeOffset now)
+    {
+        string Root(string id) {
+            var seen = new HashSet<string> { id };
+            while (found.TryGetValue(id, out var entry) && found.ContainsKey(entry.Parent) && seen.Add(entry.Parent)) id = entry.Parent;
+            return id;
+        }
+        foreach (var group in found.Values.GroupBy(r => Root(r.Session.Id))) {
+            var parent = found[group.Key].Session;
+            var members = group.Select(r => r.Session).Where(r => r.UpdatedAt <= now.AddMinutes(1) && now - r.UpdatedAt < TimeSpan.FromDays(1)).ToList();
+            if (members.Count == 0) continue;
+            var at = members.Max(r => r.UpdatedAt);
+            var state = members.Any(r => r.State == "working") ? "working" : members.Any(r => r.State == "quiet") ? "quiet" : members.Any(r => r.State == "interrupted") ? "interrupted" : members.First().State;
+            var count = members.Count(r => r.Id != parent.Id);
+            items.Add(parent with { State = state, UpdatedAt = at,
+                Detail = count > 0 ? "Delegated work: " + count + (count == 1 ? " agent" : " agents") : parent.Detail,
+                Work = count > 0 ? new(at, count, [], members.Where(r => r.Id != parent.Id).Select(r => r.Id).ToList()) : null });
         }
     }
 

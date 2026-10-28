@@ -1,0 +1,1698 @@
+=== UNIT lib/alpineComponents/transform-workbench.js:62 | call(…) ===
+() => {
+
+  // ---- the output viewer: raw text, Tabulator table, JSON tree ----
+  const TF_VIEW_REGISTRY = {
+    _loaded: new Set(),
+    loadAsset/* nested: loadAsset, lines 67-78 */,
+    // window.esc (vanilla-bundle.js), which quotes as well; new Option() did not.
+    esc: (s) => window.esc(s),
+    modules: [
+      {
+        id: "raw", label: "Raw", icon: "ph-text-t",
+        test: () => true,
+        render: (f) => '<pre class="m-0 p-4 h-full overflow-auto text-xs leading-5 font-mono whitespace-pre-wrap text-base-content">' + TF_VIEW_REGISTRY.esc(f.content) + "</pre>",
+      },
+      {
+        id: "table", label: "Table", icon: "ph-table",
+        test: (f) => f.ext === "json" && f.content.trim().startsWith("["),
+        render: /* nested: render, lines 90-96 */,
+        // The grid is a window, not the dataset: Tabulator builds an internal
+        // model per row it is handed, so past the cap that model alone can
+        // exhaust memory. Copy and download carry all rows regardless.
+        _cap: 20000,
+        _windowed/* nested: _windowed, lines 101-108 */,
+        // In-place refresh for a same-column data change (a scope or tab
+        // switch over the same shape): keep the instance, swap the rows,
+        // preserve filters and scroll. Returns false to request a rebuild.
+        update: /* nested: update, lines 112-122 */,
+        after: /* nested: after, lines 123-152 */,
+      },
+      {
+        // Tree mode mounts vanilla-jsoneditor (lazy-imported) in editable tree mode.
+        id: "tree", label: "Tree", icon: "ph-tree-view",
+        test: (f) => f.ext === "json",
+        render: () => '<div class="tf-jse-mount h-full w-full bg-base-100"></div>',
+        after: /* nested: after, lines 159-197 */,
+      },
+    ],
+    getModes(file) { return this.modules.filter(m => m.test(file)); },
+    async prepare/* nested: prepare, lines 201-205 */,
+  };
+
+  // ---- the worker body: dependency-ordered execution of the transform tabs.
+  // Written as a real function and stringified for the Blob, so its regexes
+  // keep their backslashes and the file carries no closing-script-tag sequence.
+  // Dependency-free by design: it returns rows only, and every derived form
+  // (columnar obj, CSV, JSON text, gzip) is produced lazily on the main side,
+  // so a run moves each output across the boundary once instead of four times.
+  /* nested: tfWorker, lines 214-265 */
+  const TF_WORKER_SRC = "(" + tfWorker.toString() + ")()";
+
+  // ---- the components ----
+  document.addEventListener("alpine:init", /* nested: addEventListener(alpine:init), lines 269-1771 */);
+
+  // ---- the markup (a string; hosts drop it into the DOM before Alpine walks,
+  // or Alpine.initTree it after). dataExpr rides verbatim inside the x-data
+  // attribute, so single quotes only.
+  /* nested: panelHTML, lines 1776-2323 */
+
+  window.TransformWorkbench = { panelHTML, version: 1, _clip: null };
+}
+=== UNIT lib/alpineComponents/transform-workbench.js:67 | call(…) > loadAsset ===
+(url) {
+      if (this._loaded.has(url)) return Promise.resolve();
+      return new Promise(/* nested: anonymous@69, lines 69-77 */);
+    }
+=== UNIT lib/alpineComponents/transform-workbench.js:69 | call(…) > loadAsset > anonymous@69 ===
+(resolve, reject) => {
+        const isCSS = url.includes(".css");
+        const elx = document.createElement(isCSS ? "link" : "script");
+        if (isCSS) Object.assign(elx, { rel: "stylesheet", href: url });
+        else Object.assign(elx, { src: url, async: true });
+        elx.onload = () => { this._loaded.add(url); resolve(); };
+        elx.onerror = () => reject(new Error("Load failed: " + url));
+        document.head.appendChild(elx);
+      }
+=== UNIT lib/alpineComponents/transform-workbench.js:90 | call(…) > render ===
+() => '<div class="flex flex-col h-full w-full">'
+          + '<div class="flex items-center gap-4 px-3 py-1.5 border-b border-base-300 bg-base-200/50 text-xs shrink-0">'
+          + '<label class="flex items-center gap-1.5 cursor-pointer">'
+          + '<input type="checkbox" id="tf-tab-header-filters" class="checkbox checkbox-xs" checked>'
+          + "<span>Header filters</span></label>"
+          + '<span id="tf-tab-note" class="text-[10px] opacity-60"></span></div>'
+          + '<div id="tf-tab-target" class="flex-1 min-h-0"></div></div>'
+=== UNIT lib/alpineComponents/transform-workbench.js:101 | call(…) > _windowed ===
+(ref) {
+          const CAP = TF_VIEW_REGISTRY.modules.find(m => m.id === "table")._cap;
+          const note = document.getElementById("tf-tab-note");
+          if (note) note.textContent = ref.length > CAP
+            ? "showing the first " + CAP.toLocaleString() + " of " + ref.length.toLocaleString() + " rows (filters see the shown window; copy and download carry all)"
+            : "";
+          return ref.length > CAP ? ref.slice(0, CAP) : ref;
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:112 | call(…) > update ===
+() => {
+          const self = TF_VIEW_REGISTRY.modules.find(m => m.id === "table");
+          const target = document.getElementById("tf-tab-target");
+          const ref = document.getElementById("tf-workbench")?.__viewerData;
+          if (!target || !target.__tbl || !Array.isArray(ref)) return false;
+          const data = self._windowed(ref);
+          const sig = JSON.stringify(Object.keys(data[0] || {}));
+          if (sig !== target.__cols) return false;
+          target.__tbl.replaceData(data);
+          return true;
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:123 | call(…) > after ===
+(f) => {
+          requestAnimationFrame(/* nested: requestAnimationFrame(…), lines 124-151 */);
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:124 | call(…) > after > requestAnimationFrame(…) ===
+() => {
+            const self = TF_VIEW_REGISTRY.modules.find(m => m.id === "table");
+            const target = document.getElementById("tf-tab-target");
+            if (!target || typeof Tabulator === "undefined") return;
+            try {
+              const h = target.clientHeight || 500;
+              const ref = document.getElementById("tf-workbench")?.__viewerData;
+              const data = self._windowed(Array.isArray(ref) ? ref : JSON.parse(f.content));
+              const tbl = new Tabulator(target, {
+                data,
+                autoColumns: true,
+                autoColumnsDefinitions: (defs) => defs.map(d => ({ ...d, headerFilter: "input" })),
+                layout: "fitData",
+                height: h + "px",
+              });
+              target.__tbl = tbl;
+              target.__cols = JSON.stringify(Object.keys(data[0] || {}));
+              const hf = document.getElementById("tf-tab-header-filters");
+              if (hf) hf.addEventListener("change", /* nested: addEventListener(change), lines 142-147 */);
+            } catch (e) {
+              target.innerHTML = '<div class="p-4 text-error font-mono text-xs">Invalid JSON array for the table view</div>';
+            }
+          }
+=== UNIT lib/alpineComponents/transform-workbench.js:142 | call(…) > after > requestAnimationFrame(…) > addEventListener(change) ===
+() => {
+                target.querySelectorAll(".tabulator-header-filter").forEach(elx => {
+                  elx.style.display = hf.checked ? "" : "none";
+                });
+                tbl.redraw(true);
+              }
+=== UNIT lib/alpineComponents/transform-workbench.js:159 | call(…) > after ===
+(f) => {
+          requestAnimationFrame(/* nested: requestAnimationFrame(…), lines 160-196 */);
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:160 | call(…) > after > requestAnimationFrame(…) ===
+async () => {
+            const target = document.querySelector(".tf-jse-mount");
+            if (!target) return;
+            try {
+              TF_VIEW_REGISTRY._jseMod ??= await import("https://cdn.jsdelivr.net/npm/vanilla-jsoneditor/standalone.js");
+            } catch (e) {
+              target.innerHTML = '<pre class="p-4 text-error font-mono text-xs">Failed to load JSON editor: ' + TF_VIEW_REGISTRY.esc(e?.message || e) + "</pre>";
+              return;
+            }
+            let parsed;
+            const ref = document.getElementById("tf-workbench")?.__viewerData;
+            if (ref != null) {
+              // A CLONE, THOUGH THE PANEL IS READ-ONLY. The clone was here
+              // because the editor could write; it stays because read-only is
+              // the widget's promise and not this file's, and the rows behind
+              // it are the workbench's live output. Cheap insurance against a
+              // library change, at a cost this path already paid.
+              try { parsed = structuredClone(ref); } catch (e) { parsed = ref; }
+            } else {
+              try { parsed = JSON.parse(f.content); }
+              catch (e) {
+                target.innerHTML = '<pre class="p-4 text-error font-mono text-xs">Invalid JSON: ' + TF_VIEW_REGISTRY.esc(e.message) + "</pre>";
+                return;
+              }
+            }
+            // READ-ONLY, because nothing reads this panel back. It was mounted
+            // editable and there is no onChange and no use of the handle below,
+            // so every edit made here was accepted and then discarded on the
+            // next mode switch: the widget changed and the rows did not. A
+            // panel that takes input it throws away is worse than one that
+            // takes none, so until there is a write path it declines the input
+            // (2026-09-14). Making the edits land, as a new batch, is the
+            // other way to settle this and is a larger piece of work.
+            target.__jse = TF_VIEW_REGISTRY._jseMod.createJSONEditor({
+              target, props: { content: { json: parsed }, mode: "tree", readOnly: true },
+            });
+          }
+=== UNIT lib/alpineComponents/transform-workbench.js:201 | call(…) > prepare ===
+(id) {
+      const mod = this.modules.find(m => m.id === id);
+      if (mod?.assets) await Promise.all(mod.assets.map(a => this.loadAsset(a)));
+      return mod;
+    }
+=== UNIT lib/alpineComponents/transform-workbench.js:214 | call(…) > tfWorker ===
+function tfWorker() {
+    const refsOf = s => [...new Set([...s.matchAll(/\$([A-Za-z_]\w*)/g)].map(m => m[1]))];
+
+    self.onmessage = /* nested: onmessage, lines 217-264 */;
+  }
+=== UNIT lib/alpineComponents/transform-workbench.js:217 | call(…) > tfWorker > onmessage ===
+e => {
+      // The worker is where the bulk transiently lives: it receives the raw
+      // batches once, stacks (and tags) them itself, streams each finished
+      // tab back as its own message, and is terminated after the run, so
+      // everything it held is reclaimed at once. It clones an input only
+      // while another consumer still needs the pristine copy, and pools a
+      // named output only while a later task actually references it.
+      const { batches, tagCol, tasks, seed, seedAlias } = e.data;
+      const stack = [];
+      for (const b of batches) for (const r of b.rows) stack.push(tagCol ? { ...r, [tagCol]: b.name } : r);
+
+      const refCount = {};
+      for (const t of tasks) for (const n of refsOf(t.fnSrc)) refCount[n] = (refCount[n] || 0) + 1;
+      const alias = new Set(seedAlias || []);       // names whose output IS the stack (skipped identity tabs)
+      const pool = {};
+      for (const n of Object.keys(seed || {})) if (refCount[n]) pool[n] = seed[n];
+      for (const n of alias) if (refCount[n]) pool[n] = stack;
+      const stackPooled = [...alias].some(n => refCount[n]);
+
+      let inputReaders = tasks.length;
+      let pending = tasks.slice(), moving = true;
+      while (pending.length && moving) {
+        moving = false;
+        pending = pending.filter(/* nested: filter(…), lines 240-260 */);
+      }
+      pending.forEach(t => self.postMessage({ result: { i: t.i, err: "Unresolved $ref: " + refsOf(t.fnSrc).filter(n => !(n in pool)).join(", ") } }));
+      self.postMessage({ done: true });
+    }
+=== UNIT lib/alpineComponents/transform-workbench.js:240 | call(…) > tfWorker > onmessage > filter(…) ===
+t => {
+          const deps = refsOf(t.fnSrc);
+          if (!deps.every(n => n in pool)) return true;   // deps not ready, wait a pass
+          try {
+            self.postMessage({ progress: { i: t.i, name: t.name || "fn" } });
+            inputReaders--;
+            const input = (inputReaders > 0 || stackPooled) ? structuredClone(stack) : stack;
+            const args = deps.map(/* nested: map(…), lines 247-252 */);
+            const fn = new Function("rows", ...deps.map(n => "$" + n), "return (" + t.fnSrc + ")(rows)");
+            const rows = fn(input, ...args);
+            self.postMessage({ result: { i: t.i, rows, err: null } });
+            if (t.name && refCount[t.name]) pool[t.name] = rows;
+          } catch (err) { self.postMessage({ result: { i: t.i, err: err.message } }); }
+          moving = true;
+          return false;   // resolved, drop it
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:247 | call(…) > tfWorker > onmessage > filter(…) > map(…) ===
+n => {
+              const more = --refCount[n] > 0;
+              const v = (more || alias.has(n)) ? structuredClone(pool[n]) : pool[n];
+              if (!more && !alias.has(n)) delete pool[n];
+              return v;
+            }
+=== UNIT lib/alpineComponents/transform-workbench.js:269 | call(…) > addEventListener(alpine:init) ===
+() => {
+    if (typeof Alpine === "undefined" || !Alpine.data) return;
+
+    // The output viewer, mounted by the workbench markup below. File, content,
+    // and data live on the root ELEMENT, outside Alpine's reactivity: viewHtml
+    // re-renders only when `mode` or the explicit `rev` counter moves, which is
+    // what lets a same-shape data change update the mounted table in place
+    // instead of repainting the pane.
+    Alpine.data("tfViewer", /* nested: data(tfViewer), lines 277-333 */);
+
+    // The workbench itself.
+    Alpine.data("transformWorkbench", /* nested: data(transformWorkbench), lines 336-1770 */);
+  }
+=== UNIT lib/alpineComponents/transform-workbench.js:277 | call(…) > addEventListener(alpine:init) > data(tfViewer) ===
+function (opts) {
+      opts = opts || {};
+      return {
+        template: '<div x-show="viewLoading" class="flex justify-center py-20">'
+          + '<span class="loading loading-spinner loading-lg text-primary"></span></div>'
+          + '<div x-show="!viewLoading" class="h-full"><div class="h-full" x-html="viewHtml"></div></div>',
+
+        mode: "", viewLoading: false, rev: 0,
+        defaultMode: opts.defaultMode || "raw",
+
+        init/* nested: init, lines 287-291 */,
+        get file() { return this.$root.__viewerFile || ""; },
+        get ext() { return this.file ? this.file.split(".").pop().toLowerCase() : ""; },
+        get fileContext() { return { name: this.file, ext: this.ext, content: this.$root.__viewerContent || "" }; },
+        get availableModes() { return TF_VIEW_REGISTRY.getModes(this.fileContext); },
+        get viewHtml/* nested: viewHtml, lines 296-301 */,
+        // `data` (optional) is the actual structured value the content string
+        // previews: Table and Tree use it directly, so large datasets never
+        // round-trip through a full serialization. When the viewer is already
+        // showing a table and the new data has the same columns, the module's
+        // update hook swaps rows in place: no spinner, no repaint, filters and
+        // scroll preserved.
+        async show/* nested: show, lines 308-321 */,
+        async switchMode/* nested: switchMode, lines 322-331 */,
+      };
+    }
+=== UNIT lib/alpineComponents/transform-workbench.js:287 | call(…) > addEventListener(alpine:init) > data(tfViewer) > init ===
+() {
+          this.$root.__viewer = this;
+          this.$el.innerHTML = this.template;
+          this.$nextTick(() => { if (this.$el.isConnected) Alpine.initTree(this.$el); });
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:296 | call(…) > addEventListener(alpine:init) > data(tfViewer) > viewHtml ===
+() {
+          this.rev;   // the explicit re-render dependency
+          if (!this.file) return "";
+          const mod = TF_VIEW_REGISTRY.modules.find(m => m.id === this.mode) || TF_VIEW_REGISTRY.modules[0];
+          return mod.render(this.fileContext);
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:308 | call(…) > addEventListener(alpine:init) > data(tfViewer) > show ===
+(file, content, data, targetMode) {
+          const root = this.$root;
+          root.__viewerFile = file;
+          root.__viewerContent = content ?? "";
+          root.__viewerData = data ?? null;
+          const modes = this.availableModes;
+          const target = (targetMode && modes.some(m => m.id === targetMode)) ? targetMode
+            : (modes.find(m => m.id === this.defaultMode) || modes.find(m => m.id === "raw") || modes[0]).id;
+          if (target === "table" && this.mode === "table" && Array.isArray(data)) {
+            const mod = TF_VIEW_REGISTRY.modules.find(m => m.id === "table");
+            if (mod.update && mod.update(this.fileContext)) return;
+          }
+          await this.switchMode(target);
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:322 | call(…) > addEventListener(alpine:init) > data(tfViewer) > switchMode ===
+(id) {
+          this.viewLoading = true;
+          const mod = await TF_VIEW_REGISTRY.prepare(id);
+          this.mode = id;
+          this.rev++;
+          this.$nextTick(() => {
+            if (mod.after) mod.after(this.fileContext);
+            this.viewLoading = false;
+          });
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:336#1 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) (part 1 of 3) ===
+function (opts) {
+      opts = opts || {};
+      const storageKey = opts.storageKey || "transform-workbench";
+      const sizeOf = s => (s?.length / 1024).toFixed(1) + "k";
+      const colFromRows = r => r.length ? Object.fromEntries(Object.keys(r[0]).map(k => [k, r.map(x => x[k] ?? null)])) : {};
+      const rowsFromCol = c => {
+        const ks = Object.keys(c), len = ks[0] ? c[ks[0]].length : 0;
+        return Array.from({ length: len }, (_, i) => Object.fromEntries(ks.map(k => [k, c[k][i]])));
+      };
+
+      return {
+        raw: [], active: 0, editing: -1, ran: false,
+        bundle: "", bundleSz: "", bundleObj: {},
+        // Per-key bundle selection (bndSel[key] true/false); a key not present
+        // takes its default: src keys off, everything else on.
+        bndSel: {}, srcGz: {},
+        // The dimension pane's working state (the left column's bottom pane).
+        wizOpen: false, wizSrc: "", wizCands: [], wizCols: [], wizColN: {}, wizScanned: 0,
+        // Custom menu entries live as DEFINITIONS (key set + carried columns);
+        // every rescan recomputes their closure and weaves them back into the
+        // tree, so a refresh or a scan-window change never drops them.
+        wizCustom: [],
+        wizCap: "50k", wizSel: "", wizPick: {}, wizFact: true, wizSplit: 55, wizDrag: false,
+        previewOn: "",   // banner label while a dim preview takes over the output side
+        previewMode: "report", previewData: null,
+        loaded: "",
+        // The input side is one or more named batches (datasets). combine on:
+        // Run computes each fn against the whole stack (tagCol, when named,
+        // adds each batch's name to its rows so dumps stay distinguishable);
+        // combine off: Run computes each fn once per batch. Either way every
+        // output lives in tab.outs keyed by SCOPE ("__all" for the combined
+        // stack, else a batch name), and the inspection scope picker can open
+        // any scope of any tab: one not computed by the last Run computes on
+        // demand. The Combine switch therefore decides what Run targets and
+        // what the bundle exports, never what may be looked at.
+        datasets: [], combine: true, tagCol: "", scope: "__all", editingDs: -1, addOpen: false,
+        curV: "csv", split: 50, drag: false, hot: false, collapsed: false,
+        // Pivot state. pvCols/pvNum/pvN are the scan; pvDims is ORDERED (the
+        // click order is the nesting order), pvMeasure names one numeric column,
+        // pvAgg picks the aggregate, pvSrc is the cheap identity that says when
+        // the rows underneath changed and the scan has to run again.
+        pvCols: [], pvIsNum: {}, pvN: {}, pvDec: {}, pvDims: [], pvColDims: [], pvMeasure: "", pvAgg: "sum", pvDrag: "",
+        pvSrc: "", pvOut: null,
+        // The Layout view's derived state: the model built off pvOut.res and the
+        // markup drawn from it. Derived, never edited, so nothing here persists.
+        rpHtml: "", rpModel: null,
+        // Which reading of the same partition to print. Source is the default
+        // because this view draws a REPORT: an analyst's block order carries a
+        // convention a magnitude sort destroys, "Other" last being the usual
+        // one. The Pivot view beside it keeps reading by size, which is what it
+        // is for, so the two panes answer different questions on purpose.
+        rpOrder: "source",
+        running: false, progress: "", progressBase: "",
+        bndSplit: 60, bndDrag: false,
+        wrapF: true, copF: false, copR: false, copB: false, copL: false,
+        bndOpen: false,
+        profileData: {},
+        recipes: [],
+        // The two inspection views; the bundle is not one of them (it is the
+        // export artifact, operated from its own panel beside copy/download).
+        views: [
+          { k: "csv", l: "Data" },
+          { k: "profile", l: "Profile" },
+          { k: "pivot", l: "Pivot" },
+          // The same partition Pivot computes, drawn as a printed report. Named
+          // Layout rather than Report because this pane already spends the word
+          // "report" on the dim-preview's assessment rows, three lines apart in
+          // the markup below.
+          { k: "layout", l: "Layout" },
+        ],
+        tabs: [],
+
+        init/* nested: init, lines 408-416 */,
+
+        // ---- the host entry point: rows from a picker, a fetch, anywhere ----
+        // meta: { label, seed: [recipe names], collapse, append }. Loading is a
+        // viewing gesture, so the editor collapses by default and identity
+        // auto-runs; a paste is the intake gesture and keeps it open. append
+        // adds the rows as a new batch instead of replacing the loaded data.
+        async loadRows/* nested: loadRows, lines 423-436 */,
+
+        // ---- tabs ----
+        blankTab(name = "", fnSrc = "rows => rows") {
+          return { name, fnSrc, fnGz: "", err: null, ok: false, rows: [], dirty: false, fixed: false, outs: {} };
+        },
+        // The universal identity tab: the stable, always-present default. Reads
+        // the host's universal-scope recipe; falls back to `rows => rows`.
+        // Marked `fixed`, so remove() and clear() keep it.
+        identityTab() {
+          const id = this.recipes.find(r => r.scope === "universal");
+          return Object.assign(this.blankTab(id ? id.name : "identity", id ? id.fnSrc : "rows => rows"), { fixed: true });
+        },
+        addableRecipes() { return this.recipes.filter(r => r.scope !== "universal" && !this.tabs.some(t => t.name === r.name)); },
+        addRecipe/* nested: addRecipe, lines 450-460 */,
+        add/* nested: add, lines 461-467 */,
+        remove/* nested: remove, lines 468-476 */,
+        setActive/* nested: setActive, lines 477-482 */,
+        startEdit(i) { this.editing = i; },
+        finishEdit/* nested: finishEdit, lines 484-490 */,
+
+        // ---- the dimension pane ----
+        // Mechanical star-schema help, sitting under the editor the way the
+        // bundle pane sits under the viewer. It describes the ACTIVE fn (rows,
+        // columns, which $refs it reads, who reads it), scans that fn's output
+        // for functional dependencies (key -> attribute), folds into each
+        // candidate every column its key can express (Program Index absorbing
+        // Program), and generates ordinary editable dim/fact tabs from a
+        // finding or from hand-picked column pills. The scan re-runs on Run
+        // and on tab switch, never per keystroke. The generated dim fn
+        // re-checks the dependency on every run and reports conflicts, so
+        // dirty reference data surfaces instead of silently keeping the first
+        // spelling.
+        toggleWizard() {
+          this.wizOpen = !this.wizOpen;
+          if (this.wizOpen) this.scanDims();
+        },
+        wizSrcTab() { return this.tabs.find(t => (t.name || "identity") === this.wizSrc) || this.tabs[0]; },
+        // What the active fn is, in one line: shape plus both directions of
+        // its $ref relationships.
+        wizInfo/* nested: wizInfo, lines 511-521 */,
+        cyclePick(c) { this.wizPick[c] = ((this.wizPick[c] || 0) + 1) % 3; this.wizSel = ""; },
+        clearPick() { this.wizPick = {}; this.wizSel = ""; },
+        // A menu entry's key may be one column or several; its display label.
+        kLabel(c) { return (Array.isArray(c.key) ? c.key : [c.key]).join(" + "); },
+        candKeys(c) { return Array.isArray(c.key) ? c.key : [c.key]; },
+        // Selecting a menu entry paints its columns onto the sidebar pills:
+        // key blue, carried columns dark. The pills stay editable from there.
+        selectCand/* nested: selectCand, lines 529-536 */,
+        wizCapRows() { return this.wizCap === "all" ? Infinity : 50000; },
+        // The current pick's key set; with no key designated, all picked
+        // columns act as the (compound) key.
+        pickKeys() {
+          const keys = this.wizCols.filter(c => this.wizPick[c] === 2);
+          return keys.length ? keys : this.wizCols.filter(c => this.wizPick[c] === 1);
+        },
+        // Promote the current pick to a menu entry: store its definition,
+        // rescan (which computes what the key set delineates and weaves the
+        // entry into the tree), then paint the result back so the sidebar
+        // shows what came along. A single key the scan already lists is the
+        // same entry, so it is selected rather than duplicated.
+        addToMenu/* nested: addToMenu, lines 549-561 */,
+        removeCustom/* nested: removeCustom, lines 562-566 */,
+        // Columns an entry COULD delineate but does not: lower (or equal)
+        // cardinality, not already carried. The convenient add-and-test list.
+        wizSuggest(c) {
+          return this.wizCols.filter(x => !c.cols.includes(x) && (this.wizColN[x] || 0) > 1 && this.wizColN[x] <= c.nKeys);
+        },
+        // Preview the pick as a full takeover of the output side, in two
+        // views the banner switches between. The REPORT gives, per tested
+        // column, the number of keys that split (0 when cleanly delineated)
+=== UNIT lib/alpineComponents/transform-workbench.js:336#2 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) (part 2 of 3) ===
+        // and the worst key with its values. The DIM TABLE is the resulting
+        // dimension itself, made key-unique the most straightforward way: a
+        // key whose attributes split gets an index suffix per extra combo
+        // (K, K·2, ...), each such row flagged in a filterable conflict
+        // column and sorted to the top, so the problem rows are the visible
+        // instrument rather than a silent first-seen pick. Runs over the
+        // FULL rows; no tab is created; any normal sync reclaims the viewer.
+        previewPick/* nested: previewPick, lines 582-638 */,
+        sendPreview/* nested: sendPreview, lines 639-645 */,
+        wizRefsLine/* nested: wizRefsLine, lines 646-652 */,
+        scanDims/* nested: scanDims, lines 653-740 */,
+        dimName/* nested: dimName, lines 741-746 */,
+        // A dim's key may be one column, several (compound), or none (a plain
+        // distinct table); stored as an array on the tab's dim meta.
+        dimKeysOf(d) { return Array.isArray(d.key) ? d.key : d.key ? [d.key] : []; },
+        // Generated code references the source tab by $ref where its name is a
+        // valid token; otherwise it falls back to the input stack.
+        wizRef() { return /^[A-Za-z_]\w*$/.test(this.wizSrc) ? "$" + this.wizSrc : "rows"; },
+        genDimSrc/* nested: genDimSrc, lines 753-774 */,
+        // The pane stays put and the source tab stays active: added tabs
+        // appear in the strip marked dirty, waiting for the next Run.
+        addDim/* nested: addDim, lines 777-787 */,
+        addManualDim/* nested: addManualDim, lines 788-794 */,
+        // The fact companion: one generated tab dropping every column a dim
+        // expresses, keys kept. Regenerated whole on each addDim; it carries a
+        // gen marker so a hand-made tab named fact is never overwritten.
+        updateFactTab/* nested: updateFactTab, lines 798-809 */,
+
+        // ---- the standalone function cache (opts.persist) ----
+        // Only names and sources ride localStorage; data never does.
+        saveTabs/* nested: saveTabs, lines 813-818 */,
+        restoreTabs/* nested: restoreTabs, lines 819-832 */,
+
+        // ---- compression / source ----
+        async zip/* nested: zip, lines 835-840 */,
+        async unzip/* nested: unzip, lines 841-845 */,
+        async ensureSrcGz/* nested: ensureSrcGz, lines 846-851 */,
+        // Bundle membership is chosen key by key in the pane's checklist; the
+        // defaults (outputs in, source batches out) match the old fixed shape.
+        selOf(k) { return this.bndSel[k] ?? !k.startsWith("src"); },
+        srcKeyOf(name) {
+          const soloAuto = this.datasets.length === 1 && /^d\d*$/.test(this.datasets[0].name);
+          return soloAuto ? "src" : "src_" + name;
+        },
+        async toggleBndKey/* nested: toggleBndKey, lines 859-864 */,
+
+        // ---- paste + drop + load ----
+        handlePaste(e) { return this.processText(e.clipboardData.getData("text").trim()); },
+        async handleDrop/* nested: handleDrop, lines 868-872 */,
+        async processText/* nested: processText, lines 873-938 */,
+        load/* nested: load, lines 939-953 */,
+        // ---- batches (datasets) ---------------------------------------------
+        // A batch name doubles as the tag value and the bundle key, so it stays
+        // in [A-Za-z0-9_] and unique.
+        dsSafe(n) { return String(n || "").replace(/[^A-Za-z0-9_]+/g, "_").replace(/^_+|_+$/g, ""); },
+        dsUnique/* nested: dsUnique, lines 958-962 */,
+        isCombined() { return this.combine; },
+        // The combined input as row references only: no tagging and no row
+        // copies here, so the page holds one resident copy of the data. The
+        // tag column (when named) is applied inside the worker, and in
+        // rawFor() for the identity tabs that never visit it (the tag wins
+        // over an incoming column of the same name; distinguishing dumps is
+        // its whole point).
+        stacked() {
+          return this.datasets.filter(d => !d.ref).flatMap(d => (typeof Alpine !== "undefined" && Alpine.raw) ? Alpine.raw(d.rows) : d.rows);
+        },
+        // The batches that are rows to transform; a reference batch is a $ref.
+        inputSets() { return this.datasets.filter(d => !d.ref); },
+        // Rows leave here bound for a worker postMessage, and a structured
+        // clone throws on Alpine's reactive proxies, so unwrap at the source:
+        // the raw stored array holds the plain row objects.
+        rawFor(d) {
+          const rows = (typeof Alpine !== "undefined" && Alpine.raw) ? Alpine.raw(d.rows) : d.rows;
+          return this.tagCol ? rows.map(r => ({ ...r, [this.tagCol]: d.name })) : rows;
+        },
+        // ---- inspection scopes ----------------------------------------------
+        // A scope names what Data and Profile speak about for the active tab:
+        // "__all" is the combined stack, anything else a single batch. Options
+        // come from the datasets, or (for an output-only bundle rehydrated
+        // without source) from the keys the outputs themselves carry.
+        scopeLabel(k) { return k === "__all" ? "Combined" : k; },
+        scopeOptions/* nested: scopeOptions, lines 988-992 */,
+        scopeActive() {
+          const opts = this.scopeOptions();
+          return opts.includes(this.scope) ? this.scope : (opts[0] || "__all");
+        },
+        // Change the inspection scope. A scope the last Run did not target
+        // computes on demand (all tabs at once, so tab switching stays
+        // instant), then mirrors into the display fields.
+        async setScope/* nested: setScope, lines 1000-1011 */,
+        // Mirror the active scope's out onto each tab's display fields.
+        mirrorScope/* nested: mirrorScope, lines 1013-1020 */,
+        // Replace everything with one batch (a first paste, a host loadRows).
+        ingest(rows, name) {
+          this.datasets = [];
+          this.addDataset(rows, name);
+        },
+        // Append a batch (a later paste, + data, loadRows with append).
+        addDataset/* nested: addDataset, lines 1027-1032 */,
+        // Flip a batch between input rows and a reference ($name): a pasted
+        // lookup table becomes a $ref without leaving the workbench.
+        toggleRef/* nested: toggleRef, lines 1035-1040 */,
+        removeDataset(i) {
+          this.datasets.splice(i, 1);
+          this.refreshInput();
+        },
+        startDsEdit(i) { this.editingDs = i; },
+        finishDsEdit/* nested: finishDsEdit, lines 1046-1055 */,
+        modeChanged() { this.refreshInput(); if (this.raw.length) this.run(); },
+        // Any change to the input side: restack, reset every tab to unrun, show
+        // the input in the viewer, tell the host.
+        refreshInput/* nested: refreshInput, lines 1059-1067 */,
+        // In separate mode the views show one batch's output per tab; mirror the
+        // picked batch's out onto the tab's display fields.
+
+        // ---- run (async worker) ----
+        runWorker/* nested: runWorker, lines 1072-1083 */,
+        // A literal identity tab never visits the worker: its output IS the
+        // input, so it displays by reference (tagged copies only when a tag
+        // column asks for them) instead of round-tripping the whole dataset.
+        isIdentityFn(s) { return /^rows\s*=>\s*rows;?$/.test(String(s || "").trim()); },
+        async run/* nested: run, lines 1088-1093 */,
+        async runInner/* nested: runInner, lines 1094-1135 */,
+        // Compute one scope's outputs for the given tab indexes: identity tabs
+        // resolve by reference (tagged copies only under a tag column), the
+        // rest go through a throwaway worker whose input is the scope's
+        // batches. Used by Run for its targets and by the scope picker for
+        // on-demand scopes.
+        async computeScope/* nested: computeScope, lines 1141-1171 */,
+        invalidateBundle() { Object.assign(this, { bundle: "", bundleSz: "", bundleObj: {} }); },
+        // Materialize the export side on demand: per-batch src gzips, each
+        // ran tab's fn and data gzips, then the bundle string.
+        async ensureBundle/* nested: ensureBundle, lines 1175-1203 */,
+        // Every key the bundle COULD carry, in emit order. rebuildBundle and
+        // the pane's checklist read the same plan, so they cannot disagree.
+        // One auto-named batch keeps the legacy bare `src` key (srcKeyOf);
+        // anything more writes src_<batch>, so boundaries survive round-trip.
+        bundleKeyPlan/* nested: bundleKeyPlan, lines 1208-1221 */,
+        planGz(p) { return p.ds ? this.srcGz[p.ds] : p.fn ? p.t.fnGz : ((p.t.outs || {})[p.sk] || {}).jGz; },
+        rebuildBundle/* nested: rebuildBundle, lines 1223-1239 */,
+
+        // ---- views ----
+        // The export payload is produced on demand (a click), never held in
+        // state or a DOM attribute, and it follows the format on screen: the
+        // Table mode copies and downloads CSV, the Raw and Editor modes JSON,
+        // the Bundle view its manifest. Always the active tab's OUTPUT rows;
+        // for the identity tab that is, by definition, the (tagged) input.
+        async exportPayload/* nested: exportPayload, lines 1247-1261 */,
+        async writeClip(text) {
+          try { await navigator.clipboard.writeText(text); }
+=== UNIT lib/alpineComponents/transform-workbench.js:336#3 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) (part 3 of 3) ===
+          catch (e) { window.copy.legacy(text); }
+        },
+        async copyResult() {
+          await this.writeClip((await this.exportPayload(this.curV)).text);
+          this.flash("r");
+        },
+        async copyBundle() {
+          await this.writeClip((await this.exportPayload("bundle")).text);
+          this.copB = true; setTimeout(() => this.copB = false, 1000);
+        },
+        async dlBundle/* nested: dlBundle, lines 1274-1279 */,
+        // The bundle panel's checklist: every possible key with its selection
+        // state and built size (blank until its gzip exists). meta rides
+        // whenever it is produced and is not electable.
+        bundleRows/* nested: bundleRows, lines 1283-1290 */,
+        // The bundle pane (the bottom of the output column): expanding builds.
+        toggleBundlePane() {
+          this.bndOpen = !this.bndOpen;
+          if (this.bndOpen) this.ensureBundle();
+        },
+        // The pane's own preview: the actual bundle JSON, capped as a preview;
+        // Copy and Download carry it all.
+        bundlePreview/* nested: bundlePreview, lines 1298-1305 */,
+        sz/* nested: sz, lines 1306-1318 */,
+
+        // Decoupled viewer dispatch (the tfViewer mounted in the markup below).
+        // Rows travel by reference (the viewer's Table and Tree modes use them
+        // directly); the string payload is only what the Raw mode shows, so it
+        // is a capped preview, never a serialization of the whole dataset.
+        sendToViewer(filename, payloadStr, targetMode = "table", data = null) {
+          const v = document.getElementById("tf-workbench");
+          if (v && v.__viewer) v.__viewer.show(filename, payloadStr, data, targetMode);
+        },
+        previewJson/* nested: previewJson, lines 1328-1334 */,
+        switchTo(k) { this.curV = k; this.syncSurfaces(); },
+        syncSurfaces/* nested: syncSurfaces, lines 1336-1353 */,
+        profile/* nested: profile, lines 1354-1381 */,
+
+        // ---- Pivot: group by N columns, aggregate one measure ---------------
+        //
+        // The two hard halves of a pivot over an arbitrary extract were already
+        // in this file, built from opposite ends and never joined. The dimension
+        // wizard (wizScan, above) discovers which columns determine which, and
+        // profile() types every column and counts its distincts. What was
+        // missing was the middle: group, aggregate, nest. That is this, and it
+        // is short because neither end had to be invented.
+        //
+        // What it emits is a {label, note, value, children} tree, the shape the
+        // estate's report format already flattens (web-tools docs/CONVERSATION.md
+        // calls a link to it 📊). So a consumer can draw the same result as an
+        // indented table, a treemap or a till receipt, and this code holds no
+        // opinion about any of them. The flat rows below are for THIS pane's
+        // viewer and its CSV download, and they are a different shape on
+        // purpose: one column per dimension level, which is what a table wants
+        // and what an indented single-label column cannot give.
+        //
+        // Sorting is by the aggregate, descending, at every level.
+
+        // A measure column is decided by COERCION, not by typeof. A CSV parse
+        // hands back "1,234.50" and "$0.00" as strings, so a type check rules
+        // out every measure in a spreadsheet export. Parentheses are accounting
+        // negatives; $ , % and spaces are decoration.
+        pvNum/* nested: pvNum, lines 1407-1417 */,
+        // A sum of floats is 3522919.4400000046, and that tail is arithmetic
+        // rather than data. The measure's own precision is the honest place to
+        // round to: if every input carried two decimals, so does their sum.
+        // An average gets two more, since a mean genuinely lands between them.
+        pvRound(v, dec) {
+          const f = Math.pow(10, dec);
+          return Math.round(v * f) / f;
+        },
+        pvSig() {
+          const t = this.tabs[this.active];
+          return this.active + "|" + (t?.name || "") + "|" + (t?.rows?.length || 0);
+        },
+        pvScan/* nested: pvScan, lines 1430-1483 */,
+        // Drag targets. pvDropAt(i) places the dragged chip at index i of the
+        // dims (a pool chip is added there, a chosen chip is moved there);
+        // pvDropOut removes a chosen chip dropped back on the pool.
+        // pvDropCol(i) is the same gesture onto the Columns container: the
+        // chip leaves the rows if it was there. Two column dimensions at most,
+        // since every key becomes a column.
+        pvDropAt/* nested: pvDropAt, lines 1490-1501 */,
+        pvDropCol/* nested: pvDropCol, lines 1502-1513 */,
+        pvDropOut/* nested: pvDropOut, lines 1514-1520 */,
+        pvRemoveCol(c) {
+          this.pvColDims = this.pvColDims.filter(x => x !== c);
+          this.pvDraw();
+        },
+        // The pivot as a function of the rows: the same partition as pvTree and
+        // pvFlat, written out self-contained so it can be a recipe tab, chain
+        // through $refs, or be committed as a module with no dependency on
+        // this component. pvFnCfg is the short form the strip shows.
+        pvFnCfg/* nested: pvFnCfg, lines 1529-1533 */,
+        pvFnLine() {
+          const c = this.pvFnCfg();
+          return "rows => pivot(rows, " + JSON.stringify({ rows: c.rows, cols: c.cols, measure: c.measure, agg: c.agg }) + ")";
+        },
+        pvFnSrc/* nested: pvFnSrc, lines 1538-1580 */,
+        // Hand a draft to the host: the pivot as a recipe, or the active tab.
+        savePivotRecipe/* nested: savePivotRecipe, lines 1582-1594 */,
+        saveTabRecipe/* nested: saveTabRecipe, lines 1595-1600 */,
+        canSaveRecipe() { return typeof opts.onSaveRecipe === "function"; },
+        pvToggleDim/* nested: pvToggleDim, lines 1602-1608 */,
+        pvSetMeasure/* nested: pvSetMeasure, lines 1609-1614 */,
+        // The tree. One pass nests and accumulates; every node keeps its row
+        // count so avg is a division at the end rather than a second walk.
+        pvTree/* nested: pvTree, lines 1617-1690 */,
+        // The same result as table rows: one column per dimension level, filled
+        // down to the node's own depth and blank below it, so a reader sorting
+        // or downloading gets a pivot rather than an indent.
+        pvFlat/* nested: pvFlat, lines 1694-1711 */,
+        // ---- Layout: the partition, printed -----------------------------
+        //
+        // This view adds no configuration of its own. The dimension chips above
+        // are the whole control surface, and this is a second reading of what
+        // pvTree already built, which is what pvDraw's own note invites: it
+        // computes the partition, the host decides how to draw it.
+        rpReady() { return typeof window.ReportLayout !== "undefined"; },
+        rpSync/* nested: rpSync, lines 1719-1730 */,
+        rpTsv() { return this.rpModel ? window.ReportLayout.tsv(this.rpModel) : ""; },
+        pvDraw/* nested: pvDraw, lines 1732-1749 */,
+
+        // ---- misc ----
+        clear/* nested: clear, lines 1752-1758 */,
+        flash(side) {
+          const p = side === "f" ? "copF" : side === "l" ? "copL" : "copR";
+          this[p] = true; setTimeout(() => this[p] = false, 1000);
+        },
+        async dl/* nested: dl, lines 1763-1768 */,
+      };
+    }
+=== UNIT lib/alpineComponents/transform-workbench.js:408 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > init ===
+() {
+          if (typeof ClipboardJS !== "undefined" && !window.TransformWorkbench._clip)
+            window.TransformWorkbench._clip = new ClipboardJS(".tf-copy-btn");
+          this.recipes = (opts.recipes || []).filter(r => r && r.fnSrc);
+          this.tabs = [this.identityTab()];
+          this.active = 0;
+          if (opts.persist) this.restoreTabs();
+          this.$root.__workbench = this;
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:423 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > loadRows ===
+(rows, meta) {
+          meta = meta || {};
+          if (meta.ref) this.addDataset(rows, meta.label, { ref: true });
+          else if (meta.append && this.datasets.length) this.addDataset(rows, meta.label);
+          else this.ingest(rows, meta.label);
+          this.loaded = meta.label || "";
+          for (const nm of (meta.seed || [])) {
+            if (this.tabs.some(t => t.name === nm)) continue;
+            const r = this.recipes.find(x => x.name === nm);
+            if (r) this.tabs.push(this.blankTab(r.name, r.fnSrc));
+          }
+          this.collapsed = meta.collapse !== false;
+          if (this.raw.length) await this.run();
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:450 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > addRecipe ===
+(name) {
+          if (!name) return;
+          const existing = this.tabs.findIndex(t => t.name === name);
+          if (existing >= 0) { this.active = existing; return; }
+          const r = this.recipes.find(x => x.name === name);
+          if (!r) return;
+          this.tabs.push(this.blankTab(r.name, r.fnSrc));
+          this.active = this.tabs.length - 1;
+          this.saveTabs();
+          if (this.ran) this.$nextTick(() => this.syncSurfaces());
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:461 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > add ===
+() {
+          let n = this.tabs.length + 1;
+          while (this.tabs.some(t => t.name === "fn" + n)) n++;
+          this.tabs.push(this.blankTab("fn" + n));
+          this.active = this.tabs.length - 1;
+          this.saveTabs();
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:468 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > remove ===
+(i) {
+          if (this.tabs.length < 2 || this.tabs[i].fixed) return;   // the last tab always stays
+          this.tabs.splice(i, 1);
+          if (i < this.active) this.active--;
+          else if (this.active >= this.tabs.length) this.active = this.tabs.length - 1;
+          this.saveTabs();
+          this.invalidateBundle();
+          if (this.ran) this.$nextTick(() => this.syncSurfaces());
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:477 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > setActive ===
+(i) {
+          if (this.editing !== -1 || i === this.active) return;
+          this.active = i;
+          if (this.wizOpen) this.scanDims();
+          if (this.ran) this.$nextTick(() => this.syncSurfaces());
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:484 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > finishEdit ===
+() {
+          if (this.editing === -1) return;
+          this.editing = -1;
+          this.saveTabs();
+          this.invalidateBundle();
+          if (this.ran) this.$nextTick(() => this.syncSurfaces());
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:511 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > wizInfo ===
+() {
+          const t = this.tabs[this.active] || {};
+          const refs = s => [...new Set([...String(s || "").matchAll(/\$([A-Za-z_]\w*)/g)].map(m => m[1]))];
+          return {
+            name: t.name || "identity",
+            reads: refs(t.fnSrc),
+            readBy: this.tabs.filter(x => x !== t && t.name && refs(x.fnSrc).includes(t.name)).map(x => x.name),
+            rows: (t.rows || []).length,
+            cols: t.rows?.length ? Object.keys(t.rows[0]).length : 0,
+          };
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:529 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > selectCand ===
+(c) {
+          const keys = this.candKeys(c);
+          this.wizSel = this.kLabel(c);
+          const pick = {};
+          for (const k of keys) pick[k] = 2;
+          for (const col of c.cols.filter(x => !keys.includes(x))) pick[col] = 1;
+          this.wizPick = pick;
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:549 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > addToMenu ===
+() {
+          const keys = this.pickKeys();
+          if (!keys.length) return;
+          const attrs = this.wizCols.filter(c => this.wizPick[c] === 1 && !keys.includes(c));
+          const label = keys.join(" + ");
+          if (!this.wizCands.some(c => !c.custom && this.kLabel(c) === label)) {
+            this.wizCustom = this.wizCustom.filter(d => d.keys.join(" + ") !== label);
+            this.wizCustom.push({ keys, attrs });
+          }
+          this.scanDims();
+          const entry = this.wizCands.find(c => this.kLabel(c) === label);
+          if (entry) this.selectCand(entry);
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:562 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > removeCustom ===
+(c) {
+          const label = this.kLabel(c);
+          this.wizCustom = this.wizCustom.filter(d => d.keys.join(" + ") !== label);
+          this.scanDims();
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:582 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > previewPick ===
+() {
+          const keys = this.pickKeys();
+          if (!keys.length) return;
+          const picked = this.wizCols.filter(c => this.wizPick[c] === 1 && !keys.includes(c));
+          const bound = keys.length === 1 ? (this.wizColN[keys[0]] || Infinity) : Infinity;
+          const attrs = picked.length ? picked
+            : this.wizCols.filter(c => !keys.includes(c) && (this.wizColN[c] || 0) > 1 && this.wizColN[c] <= bound);
+          if (!attrs.length) return;
+          const all = Alpine.raw(this.wizSrcTab()?.rows || []);
+          const CMB = 12;   // combos kept per key; past this the count says "12+"
+          const seen = new Map();   // key -> { keyVals, combos: Map(json -> attr obj), colSets: {col -> Set} }
+          for (const r of all) {
+            const k = keys.length === 1 ? r[keys[0]] : JSON.stringify(keys.map(c => r[c]));
+            let e = seen.get(k);
+            if (!e) { e = { keyVals: keys.map(c => r[c]), combos: new Map(), colSets: {} }; seen.set(k, e); }
+            const combo = Object.fromEntries(attrs.map(c => [c, r[c]]));
+            const cj = JSON.stringify(combo);
+            if (!e.combos.has(cj) && e.combos.size < CMB) e.combos.set(cj, combo);
+            for (const c of attrs) {
+              const s = e.colSets[c] ??= new Set();
+              if (s.size <= 5) s.add(r[c]);
+            }
+          }
+          const nKeys = seen.size;
+          const report = attrs.map(/* nested: map(…), lines 606-619 */).sort((a, b) => b["Split keys"] - a["Split keys"]);
+          const dim = [];
+          const entries = [...seen.values()].sort((a, b) => (b.combos.size > 1 ? 1 : 0) - (a.combos.size > 1 ? 1 : 0));
+          for (const e of entries) {
+            const combos = [...e.combos.values()], n = combos.length;
+            combos.forEach(/* nested: forEach(…), lines 624-630 */);
+          }
+          const splitKeys = entries.filter(e => e.combos.size > 1).length;
+          this.previewData = {
+            report, dim,
+            label: keys.join(" + ") + " · " + nKeys.toLocaleString() + " keys · " + attrs.length + " column" + (attrs.length > 1 ? "s" : "") + " · " + (splitKeys ? splitKeys.toLocaleString() + " keys split" : "clean"),
+          };
+          this.sendPreview();
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:606 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > previewPick > map(…) ===
+c => {
+            let varying = 0, worstK = null, worstN = 1;
+            for (const [k, e] of seen) {
+              const n = e.colSets[c].size;
+              if (n > 1) { varying++; if (n > worstN) { worstN = n; worstK = k; } }
+            }
+            return {
+              Column: c,
+              Distinct: this.wizColN[c] ?? "",
+              "Split keys": varying,
+              "Of keys": nKeys,
+              "Worst key": worstK == null ? "" : String(worstK) + " → " + [...seen.get(worstK).colSets[c]].slice(0, 4).join(" | ") + (worstN > 4 ? " …" : ""),
+            };
+          }
+=== UNIT lib/alpineComponents/transform-workbench.js:624 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > previewPick > forEach(…) ===
+(combo, i) => {
+              const row = {};
+              keys.forEach((c, ki) => row[c] = ki === 0 && i > 0 ? String(e.keyVals[ki]) + "·" + (i + 1) : e.keyVals[ki]);
+              Object.assign(row, combo);
+              row["⚠"] = n > 1 ? (i + 1) + "/" + (n >= CMB ? CMB + "+" : n) : "";
+              dim.push(row);
+            }
+=== UNIT lib/alpineComponents/transform-workbench.js:639 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > sendPreview ===
+() {
+          const p = this.previewData;
+          if (!p) return;
+          const rows = this.previewMode === "report" ? p.report : p.dim;
+          this.sendToViewer(this.previewMode === "report" ? "dim-assess.json" : "dim-preview.json", this.previewJson(rows), "table", rows);
+          this.previewOn = p.label;
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:646 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > wizRefsLine ===
+() {
+          const i = this.wizInfo();
+          return [
+            i.reads.length ? "reads " + i.reads.map(n => "$" + n).join(", ") : "",
+            i.readBy.length ? "read by " + i.readBy.join(", ") : "",
+          ].filter(Boolean).join(" · ");
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:653 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > scanDims ===
+() {
+          const CAP = this.wizCapRows();   // the header's "check N rows" parameter
+          this.wizSrc = (this.tabs[this.active] || this.tabs[0]).name || "identity";
+          const all = Alpine.raw(this.wizSrcTab()?.rows || []);
+          const rows = all.length > CAP ? all.slice(0, CAP) : all;
+          Object.assign(this, { wizScanned: rows.length, wizCands: [], wizCols: [], wizColN: {}, wizSel: "", wizPick: {} });
+          if (!rows.length) return;
+          const cols = [...new Set(rows.slice(0, 500).flatMap(r => Object.keys(r)))];
+          this.wizCols = cols;
+          const distinct = {};
+          for (const c of cols) { const s = new Set(); for (const r of rows) s.add(r[c]); distinct[c] = s.size; }
+          this.wizColN = distinct;
+          // Key candidates: not constant, not row-unique. For each, one pass
+          // finds every column it determines; a column is dropped from the
+          // live set at its first violation, and K -> C requires
+          // distinct(C) <= distinct(K), so most pairs exit within a few rows.
+          const dets = {};
+          for (const key of cols) {
+            if (distinct[key] < 2 || distinct[key] >= rows.length) continue;
+            const first = new Map(), live = new Set(cols.filter(c => c !== key && distinct[c] > 1 && distinct[c] <= distinct[key]));
+            for (const r of rows) {
+              if (!live.size) break;
+              const f = first.get(r[key]);
+              if (!f) { first.set(r[key], r); continue; }
+              for (const c of live) if (f[c] !== r[c]) live.delete(c);
+            }
+            if (live.size) dets[key] = live;
+          }
+          // Entities: every found single-column candidate plus each stored
+          // custom key set (closure recomputed here, so rescans refresh them
+          // rather than drop them), woven into one rollup tree by the same
+          // delineation relation: a entity absorbs another whose key columns
+          // it can all express. The most detailed entity is the parent and
+          // each coarser one nests under it; a mutual (1:1) pair keeps the
+          // wider or earlier one on top, and the seen set stops the cycle a
+          // mutual pair would otherwise recurse into.
+          // No early exit here: nKeys must count every key in the window even
+          // after the last live column has violated, or a custom entry shows
+          // an undercounted cardinality (measured: 67 shown for a 108-distinct
+          // key).
+          const closure = /* nested: closure, lines 693-702 */;
+          const ents = Object.keys(dets).map(key => ({
+            keys: [key], keySet: new Set([key]), det: dets[key], nKeys: distinct[key],
+            cols: [key, ...cols.filter(c => dets[key].has(c))], order: cols.indexOf(key), custom: false,
+          }));
+          for (const d of this.wizCustom) {
+            if (!d.keys.every(c => cols.includes(c))) continue;             // built on another tab's columns
+            if (d.keys.length === 1 && dets[d.keys[0]]) continue;           // the scan already lists it
+            const { det, nKeys } = closure(d.keys);
+            ents.push({ keys: d.keys, keySet: new Set(d.keys), det, nKeys,
+              cols: [...d.keys, ...cols.filter(c => det.has(c) || d.attrs.includes(c))],
+              order: cols.length + this.wizCustom.indexOf(d), custom: true });
+          }
+          const absorbs = (a, b) => b.keys.every(k => a.keySet.has(k) || a.det.has(k));
+          const absorbed = new Set();
+          for (const a of ents) for (const b of ents) {
+            if (a === b || !absorbs(a, b)) continue;
+            if (absorbs(b, a)) {
+              if (b.det.size > a.det.size) continue;
+              if (b.det.size === a.det.size && b.order < a.order) continue;
+            }
+            absorbed.add(b);
+          }
+          const childrenOf = a => {
+            const list = ents.filter(b => b !== a && absorbs(a, b));
+            return list.filter(b => !list.some(c => c !== b && absorbs(c, b) && !absorbs(b, c)));
+          };
+          const flatten = /* nested: flatten, lines 729-735 */;
+          const seen = new Set();
+          this.wizCands = ents.filter(e => !absorbed.has(e))
+            .sort((x, y) => y.det.size - x.det.size)
+            .flatMap(e => flatten(e, 0, [], seen));
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:693 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > scanDims > closure ===
+keys => {
+            const first = new Map(), live = new Set(cols.filter(c => !keys.includes(c) && distinct[c] > 1));
+            for (const r of rows) {
+              const k = keys.length === 1 ? r[keys[0]] : JSON.stringify(keys.map(c => r[c]));
+              const f = first.get(k);
+              if (!f) { first.set(k, r); continue; }
+              for (const c of live) if (f[c] !== r[c]) live.delete(c);
+            }
+            return { det: live, nKeys: first.size };
+          }
+=== UNIT lib/alpineComponents/transform-workbench.js:729 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > scanDims > flatten ===
+(e, depth, out, seen) => {
+            if (seen.has(e)) return out;
+            seen.add(e);
+            out.push({ key: e.keys.length === 1 ? e.keys[0] : e.keys, cols: e.cols, nKeys: e.nKeys, depth, custom: e.custom });
+            for (const c of childrenOf(e).sort((x, y) => y.det.size - x.det.size)) flatten(c, depth + 1, out, seen);
+            return out;
+          }
+=== UNIT lib/alpineComponents/transform-workbench.js:741 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > dimName ===
+(seed) {
+          const base = "dim_" + String(seed).toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 30);
+          let n = base, i = 2;
+          while (this.tabs.some(t => t.name === n)) n = base + "_" + i++;
+          return n;
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:753 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > genDimSrc ===
+(name, keys, attrs) {
+          const q = JSON.stringify;
+          const all = [...keys, ...attrs];
+          const pick = "{ " + all.map(c => q(c) + ": r[" + q(c) + "]").join(", ") + " }";
+          const keyExpr = keys.length === 1 ? "r[" + q(keys[0]) + "]"
+            : "JSON.stringify([" + (keys.length ? keys : all).map(c => "r[" + q(c) + "]").join(", ") + "])";
+          const checks = keys.length ? attrs.map(c => "seen[" + q(c) + "] !== r[" + q(c) + "]").join(" || ") : "";
+          return [
+            "rows => {",
+            "  const m = new Map();",
+            checks ? "  let conflicts = 0;" : null,
+            "  for (const r of " + this.wizRef() + ") {",
+            "    const k = " + keyExpr + ";",
+            checks ? "    const seen = m.get(k);" : null,
+            checks ? "    if (!seen) m.set(k, " + pick + ");" : "    if (!m.has(k)) m.set(k, " + pick + ");",
+            checks ? "    else if (" + checks + ") conflicts++;" : null,
+            "  }",
+            checks ? "  if (conflicts) console.warn(" + q(name) + " + \": \" + conflicts + \" rows disagree with their key's first-seen attributes\");" : null,
+            "  return [...m.values()];",
+            "}",
+          ].filter(Boolean).join("\n");
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:777 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > addDim ===
+(cand) {
+          if (!this.wizSrc) this.wizSrc = (this.tabs[this.active] || this.tabs[0]).name || "identity";
+          const keys = Array.isArray(cand.key) ? cand.key : cand.key ? [cand.key] : [];
+          const attrs = cand.cols.filter(c => !keys.includes(c));
+          const name = this.dimName((keys.length ? keys : attrs).join("_"));
+          this.tabs.push(Object.assign(this.blankTab(name, this.genDimSrc(name, keys, attrs)),
+            { dirty: true, dim: { key: keys, cols: [...keys, ...attrs], src: this.wizSrc } }));
+          if (this.wizFact) this.updateFactTab();
+          this.saveTabs();
+          this.invalidateBundle();
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:788 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > addManualDim ===
+() {
+          const keys = this.wizCols.filter(c => this.wizPick[c] === 2);
+          const attrs = this.wizCols.filter(c => this.wizPick[c] === 1);
+          if (!keys.length && !attrs.length) return;
+          this.addDim({ key: keys, cols: [...keys, ...attrs] });
+          this.wizPick = {};
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:798 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > updateFactTab ===
+() {
+          const drop = [...new Set(this.tabs.flatMap(t => t.dim ? t.dim.cols.filter(c => !this.dimKeysOf(t.dim).includes(c)) : []))];
+          const q = JSON.stringify;
+          const src = drop.length
+            ? "rows => " + this.wizRef() + ".map(({ " + drop.map((c, i) => q(c) + ": _" + i).join(", ") + ", ...rest }) => rest)"
+            : "rows => " + this.wizRef();
+          const existing = this.tabs.find(t => t.gen === "fact");
+          if (existing) { existing.fnSrc = src; existing.dirty = true; return; }
+          let name = "fact", i = 2;
+          while (this.tabs.some(t => t.name === name)) name = "fact_" + i++;
+          this.tabs.push(Object.assign(this.blankTab(name, src), { dirty: true, gen: "fact" }));
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:813 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > saveTabs ===
+() {
+          if (!opts.persist) return;
+          try {
+            localStorage.setItem(storageKey, JSON.stringify({ tabs: this.tabs.map(t => ({ name: t.name, fnSrc: t.fnSrc, fixed: !!t.fixed, dim: t.dim, gen: t.gen })) }));
+          } catch (e) {}
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:819 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > restoreTabs ===
+() {
+          try {
+            if (opts.formerKey && localStorage.getItem(storageKey) === null) {
+              const was = localStorage.getItem(opts.formerKey);
+              if (was !== null) localStorage.setItem(storageKey, was);
+            }
+            if (opts.formerKey) localStorage.removeItem(opts.formerKey);
+            const s = JSON.parse(localStorage.getItem(storageKey) || "null");
+            if (s?.tabs?.length) {
+              this.tabs = s.tabs.map(t => Object.assign(this.blankTab(t.name, t.fnSrc), { fixed: !!t.fixed, dim: t.dim, gen: t.gen }));
+              this.active = 0;
+            }
+          } catch (e) {}
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:835 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > zip ===
+(s) {
+          const cs = new CompressionStream("gzip"), w = cs.writable.getWriter();
+          w.write(new TextEncoder().encode(s)); w.close();
+          const b = await new Response(cs.readable).blob();
+          return new Promise(r => Object.assign(new FileReader(), { onload: e => r(e.target.result.split(",")[1]) }).readAsDataURL(b));
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:841 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > unzip ===
+(b) {
+          const ds = new DecompressionStream("gzip"), w = ds.writable.getWriter();
+          w.write(window.GH.decodeBytes(b)); w.close();
+          return new Response(ds.readable).text();
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:846 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > ensureSrcGz ===
+() {
+          for (const d of this.datasets) {
+            if (!this.selOf(this.srcKeyOf(d.name)) || !d.rows.length || this.srcGz[d.name]) continue;
+            this.srcGz[d.name] = await this.zip(JSON.stringify(colFromRows(Alpine.raw(d.rows))));
+          }
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:859 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > toggleBndKey ===
+(k) {
+          this.bndSel[k] = !this.selOf(k);
+          if (!this.ran) return;
+          this.bundle = "";   // recompose; the gzips stay cached
+          await this.ensureBundle();
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:868 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > handleDrop ===
+(e) {
+          this.hot = false;
+          const f = e.dataTransfer.files[0];
+          if (f) return this.processText((await f.text()).trim());
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:873 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > processText ===
+(t) {
+          if (!t) return;
+          try {
+            if (t.startsWith("{")) {
+              const o = JSON.parse(t);
+              const fnKeys = Object.keys(o).filter(k => (k === "fn" || k.startsWith("fn_")) && typeof o[k] === "string");
+
+              if (fnKeys.length) {
+                const meta = o.meta && typeof o.meta === "object" ? o.meta : null;
+                const fnNames = fnKeys.map(fk => fk === "fn" ? "" : fk.slice(3));
+                const newTabs = (await Promise.all(fnKeys.map(/* nested: map(…), lines 883-902 */))).filter(Boolean);
+
+                if (newTabs.length) {
+                  this.tabs = newTabs;
+                  this.active = 0;
+                  // Batches ride src (legacy single) / src_<batch> keys; a
+                  // bundle without them rehydrates output-only, as before.
+                  this.datasets = []; this.srcGz = {};
+                  if (typeof o.src === "string") {
+                    this.datasets.push({ name: "d1", rows: rowsFromCol(JSON.parse(await this.unzip(o.src))) });
+                    this.srcGz.d1 = o.src;
+                  }
+                  for (const k of Object.keys(o)) {
+                    if (!k.startsWith("src_") || typeof o[k] !== "string") continue;
+                    this.datasets.push({ name: k.slice(4), rows: rowsFromCol(JSON.parse(await this.unzip(o[k]))) });
+                    this.srcGz[k.slice(4)] = o[k];
+                  }
+                  this.bndSel = {};
+                  for (const k of Object.keys(o)) if (k === "src" || k.startsWith("src_")) this.bndSel[k] = true;
+                  if (meta && meta.dims) for (const t of this.tabs) if (meta.dims[t.name]) t.dim = meta.dims[t.name];
+                  this.combine = meta ? !!meta.combine : true;
+                  this.tagCol = (meta && meta.tagCol) || "";
+                  this.raw = this.stacked();
+                  this.scope = this.combine ? "__all" : (this.datasets[0]?.name || this.scopeOptions()[0] || "__all");
+                  Object.assign(this, { bundle: t, bundleSz: sizeOf(t), bundleObj: o, ran: true, profileData: {} });
+                  this.mirrorScope();
+                  if (typeof opts.onIngest === "function") try { opts.onIngest(this.raw); } catch (e) {}
+                  this.saveTabs();
+                  return this.$nextTick(() => this.syncSurfaces());
+                }
+              }
+            }
+            const cleanT = t.replace(/\s/g, "");
+            if (/^[A-Za-z0-9+/=]+$/.test(cleanT)) return this.load(await this.unzip(cleanT));
+          } catch (e) {}
+          this.load(t);
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:883 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > processText > map(…) ===
+async (fk, fi) => {
+                  const name = fnNames[fi];
+                  const fnSrc = await this.unzip(o[fk]);
+                  const tab = { ...this.blankTab(name, fnSrc), fnGz: o[fk] };
+                  const dk = name ? "data_" + name : "data";
+                  if (typeof o[dk] === "string") {
+                    tab.outs.__all = { rows: rowsFromCol(JSON.parse(await this.unzip(o[dk]))), jGz: o[dk] };
+                    return tab;
+                  }
+                  // Separate-mode outputs: data_<fn>__<batch>. Another fn's
+                  // single key can look like this shape, so exact fn names win.
+                  const pre = "data_" + (name || "fn") + "__";
+                  const dsKeys = Object.keys(o).filter(k => k.startsWith(pre) && typeof o[k] === "string" && !fnNames.includes(k.slice(5)));
+                  if (!dsKeys.length) return null;
+                  for (const key of dsKeys) {
+                    const rows = rowsFromCol(JSON.parse(await this.unzip(o[key])));
+                    tab.outs[key.slice(pre.length)] = { rows, jGz: o[key] };
+                  }
+                  return tab;
+                }
+=== UNIT lib/alpineComponents/transform-workbench.js:939 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > load ===
+(t) {
+          let d;
+          try { d = JSON.parse(t); } catch (e) { d = Papa.parse(t, { header: true, skipEmptyLines: true }).data; }
+          if (d && !Array.isArray(d)) d = rowsFromCol(d);
+          this.loaded = "";
+          // A first paste starts the data and auto-runs. A later one is the
+          // next dump of the same shape: it appends as a new batch but does
+          // NOT re-run, so dumping five batches costs five appends and one
+          // Run, not five full pipelines. The output pane's "Run to see
+          // output" state marks the results as stale until then.
+          if (this.datasets.length) { this.addDataset(d || []); return; }
+          this.ingest(d || []);
+          // A first paste is the intake gesture: show it at once, editor open.
+          if (this.raw.length) { this.collapsed = false; this.run(); }
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:958 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > dsUnique ===
+(base) {
+          let n = base || "d" + (this.datasets.length + 1), i = 2;
+          while (this.datasets.some(d => d.name === n)) n = (base || "d") + "_" + i++;
+          return n;
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:988 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > scopeOptions ===
+() {
+          if (this.inputSets().length) return ["__all", ...this.inputSets().map(d => d.name)];
+          const t = this.tabs.find(x => x.outs && Object.keys(x.outs).length);
+          return t ? Object.keys(t.outs) : [];
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:1000 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > setScope ===
+(k) {
+          this.scope = k;
+          const idxs = this.tabs.flatMap((t, i) => (t.outs || {})[k] ? [] : [i]);
+          if (idxs.length && this.raw.length && !this.running) {
+            this.running = true;
+            try { await this.computeScope(k, idxs); } finally { this.running = false; this.progress = ""; }
+          }
+          if (!this.ran && this.tabs.some(t => (t.outs || {})[k])) this.ran = true;
+          this.mirrorScope();
+          if (this.wizOpen) this.scanDims();   // scope changed the rows under the pane
+          this.$nextTick(() => this.syncSurfaces());
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:1013 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > mirrorScope ===
+() {
+          const sk = this.scopeActive();
+          for (const t of this.tabs) {
+            const o = (t.outs || {})[sk];
+            if (o && !o.err) Object.assign(t, { rows: o.rows, ok: true, err: null });
+            else Object.assign(t, { rows: [], ok: false, err: (o && o.err) || null });
+          }
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:1027 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > addDataset ===
+(rows, name, opts = {}) {
+          const clean = (rows || []).filter(r => Object.values(r).some(v => v !== ""));
+          this.datasets.push({ name: this.dsUnique(this.dsSafe(name)), rows: clean, ref: !!opts.ref });
+          this.addOpen = false;
+          this.refreshInput();
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:1035 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > toggleRef ===
+(i) {
+          const d = this.datasets[i]; if (!d) return;
+          d.ref = !d.ref;
+          if (d.ref && this.scope === d.name) this.scope = "__all";
+          this.refreshInput();
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:1046 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > finishDsEdit ===
+() {
+          if (this.editingDs === -1) return;
+          const d = this.datasets[this.editingDs];
+          const keep = d.name; d.name = "";
+          d.name = this.dsUnique(this.dsSafe(keep));
+          this.editingDs = -1;
+          // The name is a tag value and a bundle key, so outputs are stale.
+          this.refreshInput();
+          if (this.raw.length) this.run();
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:1059 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > refreshInput ===
+() {
+          this.raw = this.stacked();
+          this.scope = this.isCombined() ? "__all" : (this.datasets[0]?.name || "__all");
+          this.tabs.forEach(tab => Object.assign(tab, this.blankTab(tab.name, tab.fnSrc), { dirty: true, fixed: tab.fixed }));
+          Object.assign(this, { ran: false, srcGz: {}, bundle: "", bundleSz: "", bundleObj: {}, profileData: {} });
+          if (typeof opts.onIngest === "function") try { opts.onIngest(this.raw); } catch (e) {}
+          const rows = (typeof Alpine !== "undefined" && Alpine.raw) ? Alpine.raw(this.raw) : this.raw;
+          this.sendToViewer("raw_input.json", this.previewJson(rows), "table", rows);
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:1072 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > runWorker ===
+(payload, onResult, onProgress) {
+          return new Promise(/* nested: anonymous@1073, lines 1073-1082 */);
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:1073 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > runWorker > anonymous@1073 ===
+(resolve) => {
+            const workerUrl = URL.createObjectURL(new Blob([TF_WORKER_SRC], { type: "application/javascript" }));
+            const worker = new Worker(workerUrl);
+            worker.onmessage = /* nested: onmessage, lines 1076-1080 */;
+            worker.postMessage(payload);
+          }
+=== UNIT lib/alpineComponents/transform-workbench.js:1076 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > runWorker > anonymous@1073 > onmessage ===
+(e) => {
+              if (e.data && e.data.progress) { if (onProgress) onProgress(e.data.progress); return; }
+              if (e.data && e.data.result) return onResult(e.data.result);
+              if (e.data && e.data.done) { worker.terminate(); URL.revokeObjectURL(workerUrl); resolve(); }
+            }
+=== UNIT lib/alpineComponents/transform-workbench.js:1088 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > run ===
+() {
+          if (!this.raw.length || this.running) return;
+          this.running = true;
+          try { await this.runInner(); }
+          finally { this.running = false; this.progress = ""; }
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:1094 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > runInner ===
+() {
+          const refsOf = s => [...new Set([...s.matchAll(/\$([A-Za-z_]\w*)/g)].map(m => m[1]))];
+          // Run targets the mode's scopes: the combined stack, or every batch.
+          const targets = this.isCombined() ? ["__all"] : this.datasets.map(d => d.name);
+          const needs = (t) => t.dirty || targets.some(sk => !(t.outs || {})[sk]);
+
+          let changed = true;
+          while (changed) {
+            changed = false;
+            for (const t of this.tabs) {
+              if (needs(t)) continue;
+              if (refsOf(t.fnSrc).some(n => {
+                const dep = this.tabs.find(x => x.name === n);
+                return dep && needs(dep);
+              })) { t.dirty = true; changed = true; }
+            }
+          }
+
+          const idxs = this.tabs.flatMap((t, i) => needs(t) ? [i] : []);
+          if (idxs.length) {
+            // A changed fn invalidates every scope it was ever computed for,
+            // lazy ones included.
+            for (const i of idxs) Object.assign(this.tabs[i], { outs: {}, fnGz: "", err: null });
+            let ti = 0;
+            for (const sk of targets) {
+              this.progressBase = targets.length > 1 ? "batch " + sk + " (" + (++ti) + "/" + targets.length + ")" : "";
+              await this.computeScope(sk, idxs);
+            }
+            for (const i of idxs) this.tabs[i].dirty = false;
+            this.progressBase = "";
+            // The bundle (fn/data gzips, src capture) is stale now; it
+            // rebuilds lazily from its pane, a copy, or a download, and
+            // eagerly only while the pane is open watching it.
+            this.invalidateBundle();
+            if (this.bndOpen) this.ensureBundle();
+          }
+          this.scope = this.isCombined() ? "__all" : (targets[0] || "__all");
+          this.mirrorScope();
+          this.ran = true;
+          if (this.wizOpen) this.scanDims();   // fresh outputs, fresh candidates
+          this.$nextTick(() => this.syncSurfaces());
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:1141 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > computeScope ===
+(sk, idxs) {
+          const tasks = [], skipped = [];
+          for (const i of idxs) {
+            const t = this.tabs[i];
+            if (this.isIdentityFn(t.fnSrc)) skipped.push(i);
+            else tasks.push({ i, name: t.name, fnSrc: t.fnSrc });
+          }
+          const inIdx = new Set(idxs);
+          const d = sk === "__all" ? null : this.datasets.find(x => x.name === sk);
+          for (const i of skipped) {
+            const t = this.tabs[i];
+            t.outs[sk] = { rows: d ? this.rawFor(d) : (this.tagCol ? this.inputSets().flatMap(x => this.rawFor(x)) : this.raw) };
+          }
+          if (!tasks.length) return;
+          const base = this.progressBase || (sk === "__all" ? "" : "batch " + sk);
+          let done = 0;
+          this.progress = (base ? base + ": " : "") + "0/" + tasks.length + " fns";
+          const seed = {};
+          this.tabs.forEach((t, i) => {
+            const o = !inIdx.has(i) && t.name && (t.outs || {})[sk];
+            if (o && o.rows && o.rows.length) seed[t.name] = Alpine.raw(o.rows);
+          });
+          // A reference batch is offered to the fns as $name, never stacked.
+          for (const x of this.datasets) if (x.ref && !(x.name in seed)) seed[x.name] = Alpine.raw(x.rows);
+          const seedAlias = skipped.map(i => this.tabs[i].name).filter(Boolean);
+          const batches = (d ? [d] : this.inputSets()).map(x => ({ name: x.name, rows: Alpine.raw(x.rows) }));
+          await this.runWorker({ batches, tagCol: this.tagCol, tasks, seed, seedAlias }, (res) => {
+            this.tabs[res.i].outs[sk] = res.err ? { err: res.err } : { rows: res.rows };
+            this.progress = (base ? base + ": " : "") + (++done) + "/" + tasks.length + " fns";
+          }, (p) => { this.progress = (base ? base + ": " : "") + p.name + " (" + (done + 1) + "/" + tasks.length + ")"; });
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:1175 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > ensureBundle ===
+() {
+          if (this.bundle || !this.ran) return;
+          await this.ensureSrcGz();
+          // The bundle carries the mode's target scopes only ("__all" combined,
+          // else the batches); scopes computed for inspection alone stay out.
+          const targets = this.isCombined() ? ["__all"] : this.datasets.map(d => d.name);
+          // A target scope the user never Ran (they inspected a batch chip
+          // and came straight here) computes now; without this the bundle
+          // would emit only meta.
+          const missing = targets.map(sk => [sk, this.tabs.flatMap((t, i) => (t.outs || {})[sk] ? [] : [i])])
+            .filter(([, idxs]) => idxs.length);
+          if (missing.length && this.raw.length && !this.running) {
+            this.running = true;
+            try { for (const [sk, idxs] of missing) await this.computeScope(sk, idxs); }
+            finally { this.running = false; this.progress = ""; }
+          }
+          // The columnar form exists only here, transiently, one output at a
+          // time: stringify, gzip, release.
+          for (const t of this.tabs) {
+            const outs = t.outs || {};
+            if (!targets.some(sk => outs[sk] && outs[sk].rows)) continue;
+            if (!t.fnGz) t.fnGz = await this.zip(t.fnSrc);
+            for (const sk of targets) {
+              const o = outs[sk];
+              if (o && o.rows && !o.jGz) o.jGz = await this.zip(JSON.stringify(colFromRows(Alpine.raw(o.rows))));
+            }
+          }
+          this.rebuildBundle();
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:1208 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > bundleKeyPlan ===
+() {
+          const plan = this.datasets.map(d => ({ k: this.srcKeyOf(d.name), ds: d.name }));
+          const used = new Set();
+          for (const t of this.tabs) {
+            const base = t.name.trim();
+            let k = base, i = 2;
+            while (used.has(k)) k = (base || "fn") + "_" + i++;
+            used.add(k);
+            plan.push({ k: k ? "fn_" + k : "fn", t, fn: true });
+            if (this.isCombined()) plan.push({ k: k ? "data_" + k : "data", t, sk: "__all" });
+            else for (const d of this.datasets) plan.push({ k: "data_" + (k || "fn") + "__" + d.name, t, sk: d.name });
+          }
+          return plan;
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:1223 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > rebuildBundle ===
+() {
+          const obj = {};
+          for (const p of this.bundleKeyPlan()) {
+            const gz = this.planGz(p);
+            if (gz && this.selOf(p.k)) obj[p.k] = gz;
+          }
+          // meta is the one non-gz key: plain JSON, additive, ignored by older
+          // parsers, and what makes combine/tagCol/batch names/dims round-trip.
+          const dims = {};
+          this.tabs.forEach(t => { if (t.dim) dims[t.name.trim() || "fn"] = t.dim; });
+          if (this.datasets.length > 1 || this.tagCol || !this.isCombined() || Object.keys(dims).length) {
+            obj.meta = { v: 2, combine: this.isCombined(), tagCol: this.tagCol, datasets: this.datasets.map(d => d.name) };
+            if (Object.keys(dims).length) obj.meta.dims = dims;
+          }
+          const b = JSON.stringify(obj, null, 2);
+          Object.assign(this, { bundle: b, bundleSz: sizeOf(b), bundleObj: obj });
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:1247 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > exportPayload ===
+(k) {
+          if (k === "bundle") {
+            await this.ensureBundle();
+            return { text: this.bundle, ext: "json", mime: "application/json" };
+          }
+          const rows = k === "pivot"
+            ? (this.pvOut?.rows || [])
+            : k === "profile"
+            ? (this.profileData?.rows || [])
+            : Alpine.raw(this.tabs[this.active]?.rows || []);
+          const mode = document.getElementById("tf-workbench")?.__viewer?.mode;
+          if (mode === "raw" || mode === "tree")
+            return { text: JSON.stringify(rows, null, 2), ext: "json", mime: "application/json" };
+          return { text: Papa.unparse(rows), ext: "csv", mime: "text/csv" };
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:1274 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > dlBundle ===
+() {
+          const p = await this.exportPayload("bundle");
+          const u = URL.createObjectURL(new Blob([p.text], { type: p.mime }));
+          Object.assign(document.createElement("a"), { href: u, download: "bundle.json" }).click();
+          setTimeout(() => URL.revokeObjectURL(u), 100);
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:1283 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > bundleRows ===
+() {
+          const rows = this.bundleKeyPlan().map(p => {
+            const gz = this.planGz(p);
+            return { k: p.k, sel: this.selOf(p.k), sz: gz ? sizeOf(gz) : "" };
+          });
+          if (this.bundleObj.meta) rows.push({ k: "meta", sel: true, fixed: true, sz: "meta" });
+          return rows;
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:1298 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > bundlePreview ===
+() {
+          if (!this.ran) return "Run first; the bundle packs each fn's source with its output, gzipped.";
+          if (!this.bundle) return "building…";
+          const CAP = 4000;
+          return this.bundle.length > CAP
+            ? this.bundle.slice(0, CAP) + "\n\n… " + (this.bundle.length - CAP).toLocaleString() + " more characters (Copy and Download carry the whole bundle)"
+            : this.bundle;
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:1306 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > sz ===
+(k) {
+          if (k === "pivot") {
+            const n = this.pvOut?.rows?.length || 0;
+            return n ? n + " row" + (n === 1 ? "" : "s") : "";
+          }
+          if (k === "profile") {
+            const rows = this.tabs[this.active]?.rows;
+            const n = rows?.length ? Object.keys(rows[0]).length : 0;
+            return n ? n + " col" : "";
+          }
+          const n = this.tabs[this.active]?.rows?.length || 0;
+          return n ? (n >= 1000 ? (n / 1000).toFixed(1) + "k rows" : n + " rows") : "";
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:1328 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > previewJson ===
+(rows) {
+          const CAP = 500;
+          const s = JSON.stringify(rows.slice(0, CAP), null, 2);
+          return rows.length > CAP
+            ? s + "\n\n… " + (rows.length - CAP).toLocaleString() + " more rows (the Raw preview is capped; Table, copy, and download carry them all)"
+            : s;
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:1336 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > syncSurfaces ===
+() {
+          this.previewOn = ""; this.previewData = null;   // any normal sync reclaims the viewer
+          if (this.curV === "csv") {
+            const rows = Alpine.raw(this.tabs[this.active]?.rows || []);
+            const name = (this.tabs[this.active]?.name || ("step_" + (this.active + 1))) + ".json";
+            this.sendToViewer(name, this.previewJson(rows), "table", rows);
+          } else if (this.curV === "profile") {
+            const prows = this.profile(Alpine.raw(this.tabs[this.active]?.rows || []));
+            this.profileData = { rows: prows, cols: prows.length };
+            this.sendToViewer("profile.json", JSON.stringify(prows, null, 2), "table", prows);
+          } else if (this.curV === "pivot" || this.curV === "layout") {
+            // Rescan only when the rows underneath actually changed; a dimension
+            // toggle calls pvDraw() directly and must not re-derive the defaults
+            // out from under the reader's choice.
+            if (this.pvSrc !== this.pvSig()) this.pvScan();
+            this.pvDraw();
+          }
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:1354 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > profile ===
+(rows) {
+          if (!rows?.length) return [];
+          const colSet = new Set();
+          for (const r of rows) for (const k in r) colSet.add(k);
+          const typeOf = v => v == null ? "null" : Array.isArray(v) ? "array" : typeof v;
+          const CAP = 1000;   // distincts collected per column; past it, report "1000+"
+          return [...colSet].map(/* nested: map(…), lines 1360-1380 */);
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:1360 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > profile > map(…) ===
+col => {
+            const types = new Set(), seen = new Set();
+            let nulls = 0, capped = false;
+            for (const r of rows) {
+              const v = r[col];
+              if (v == null) { nulls++; continue; }
+              types.add(typeOf(v));
+              if (!capped) {
+                seen.add(typeof v === "object" ? JSON.stringify(v) : v);
+                if (seen.size > CAP) capped = true;
+              }
+            }
+            const distinct = [...seen].sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true }));
+            return {
+              Column: col,
+              Type: types.size === 0 ? "null" : [...types].join("|"),
+              Nulls: nulls,
+              Distinct: capped ? CAP + "+" : distinct.length,
+              Values: distinct.slice(0, 10).join(", ") + (capped ? ", …" : (distinct.length > 10 ? ", +" + (distinct.length - 10) : "")),
+            };
+          }
+=== UNIT lib/alpineComponents/transform-workbench.js:1407 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > pvNum ===
+(v) {
+          if (typeof v === "number") return Number.isFinite(v) ? v : NaN;
+          if (typeof v !== "string") return NaN;
+          const t = v.trim();
+          if (!t) return NaN;
+          const neg = /^\(.*\)$/.test(t);
+          const body = t.replace(/^\(|\)$/g, "").replace(/[$,%\s]/g, "");
+          if (!/^[-+]?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?$/.test(body)) return NaN;
+          const n = parseFloat(body);
+          return Number.isFinite(n) ? (neg ? -n : n) : NaN;
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:1430 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > pvScan ===
+() {
+          const rows = Alpine.raw(this.tabs[this.active]?.rows || []);
+          const cols = [...new Set(rows.slice(0, 500).flatMap(r => Object.keys(r)))];
+          const N = {}, num = {}, D = {};
+          for (const c of cols) {
+            const seen = new Set();
+            let filled = 0, numeric = 0, capped = false, dec = 0;
+            for (const r of rows) {
+              const v = r[c];
+              if (v == null || v === "") continue;
+              filled++;
+              if (!capped) { seen.add(v); if (seen.size > 1000) capped = true; }
+              const n = this.pvNum(v);
+              if (Number.isFinite(n)) {
+                numeric++;
+                if (dec < 6) {
+                  const t = String(v).split(".")[1];
+                  if (t) dec = Math.max(dec, Math.min(6, t.replace(/[^0-9]/g, "").length));
+                }
+              }
+            }
+            N[c] = capped ? 1001 : seen.size;
+            D[c] = dec;
+            // A majority, not a supermajority. This flag only decides what the
+            // measure dropdown OFFERS, so being permissive costs a spare entry
+            // in a list while being strict costs a real measure: a column of
+            // money with an "n/a" or a "suppressed" scattered through it is
+            // exactly what a spreadsheet export looks like. Codes survive the
+            // bar anyway, because a "600-1" or an "A" never coerces at all.
+            num[c] = filled > 0 && numeric / filled > 0.5;
+          }
+          Object.assign(this, { pvCols: cols, pvN: N, pvIsNum: num, pvDec: D, pvSrc: this.pvSig() });
+          this.pvDims = this.pvDims.filter(c => cols.includes(c));
+          this.pvColDims = this.pvColDims.filter(c => cols.includes(c));
+          if (this.pvMeasure && !num[this.pvMeasure]) this.pvMeasure = "";
+          // A first look wants the coarsest dimension on the rows.
+          if (!this.pvDims.length) {
+            const d = cols.filter(c => !num[c] && N[c] > 1 && N[c] < rows.length)
+              .sort((a, b) => N[a] - N[b])[0];
+            if (d) this.pvDims = [d];
+          }
+          // The measure default is a NAME heuristic and nothing better: a
+          // numeric id and a numeric amount are indistinguishable by shape, and
+          // defaulting to the id makes the pane look broken. An amount-like
+          // name wins; an id-like name is refused; anything else falls through
+          // to counting rows, which is never wrong.
+          if (!this.pvMeasure) {
+            const AMT = /(amount|amt|total|sum|value|cost|spend|price|paid|qty|dollars|expend|budget|fte|hours|balance)/i;
+            const ID = /(^|[_\s-])(id|key|code|no|num|year|fy|month|day|seq|rank|zip|phone)($|[_\s-])/i;
+            const m = cols.filter(c => num[c] && !ID.test(c));
+            this.pvMeasure = m.filter(c => AMT.test(c))[0] || "";
+          }
+          if (!this.pvMeasure) this.pvAgg = "count";
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:1490 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > pvDropAt ===
+(i) {
+          const c = this.pvDrag; this.pvDrag = "";
+          if (!c) return;
+          const dims = this.pvDims.filter(x => x !== c);
+          if (dims.length >= 4) return;
+          const j = Math.min(Math.max(i, 0), dims.length);
+          dims.splice(j, 0, c);
+          const cols = this.pvColDims.filter(x => x !== c);
+          if (dims.join("\u0001") === this.pvDims.join("\u0001") && cols.length === this.pvColDims.length) return;
+          this.pvDims = dims; this.pvColDims = cols;
+          this.pvDraw();
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:1502 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > pvDropCol ===
+(i) {
+          const c = this.pvDrag; this.pvDrag = "";
+          if (!c) return;
+          const cols = this.pvColDims.filter(x => x !== c);
+          if (cols.length >= 2) return;
+          const j = Math.min(Math.max(i, 0), cols.length);
+          cols.splice(j, 0, c);
+          const dims = this.pvDims.filter(x => x !== c);
+          if (cols.join("\u0001") === this.pvColDims.join("\u0001") && dims.length === this.pvDims.length) return;
+          this.pvDims = dims; this.pvColDims = cols;
+          this.pvDraw();
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:1514 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > pvDropOut ===
+() {
+          const c = this.pvDrag; this.pvDrag = "";
+          if (!c || !(this.pvDims.includes(c) || this.pvColDims.includes(c))) return;
+          this.pvDims = this.pvDims.filter(x => x !== c);
+          this.pvColDims = this.pvColDims.filter(x => x !== c);
+          this.pvDraw();
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:1529 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > pvFnCfg ===
+() {
+          const mk = this.pvMeasure, agg = mk ? this.pvAgg : "count";
+          const dec = agg === "count" ? 0 : Math.min(6, (this.pvDec[mk] || 0) + (agg === "avg" ? 2 : 0));
+          return { rows: [...this.pvDims], cols: [...this.pvColDims], measure: mk || null, agg, dec };
+        }

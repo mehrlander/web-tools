@@ -13,7 +13,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { repoRoot } from './bootstrap.mjs';
+import { repoRoot, withTraffic } from './bootstrap.mjs';
 
 const src = readFileSync(path.join(repoRoot, 'lib/gh-transfer.js'), 'utf8');
 
@@ -55,7 +55,7 @@ function makeGH({ refFails = 0, contents = {}, blobs = {}, defaultBranch = 'main
     if (p === 'pulls') return { number: 7, html_url: 'https://example/pull/7' };
     throw new Error('unstubbed request: ' + opts.method + ' ' + p);
   };
-  const window = { GH };
+  const window = withTraffic({ GH });
   new Function('window', src)(window);
   return { GH, gh: new GH({ repo: 'me/dest' }), reqs };
 }

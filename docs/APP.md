@@ -36,7 +36,6 @@ When GitHub rejects the token, the app opens **This browser** (`?view=here`), wh
 - `?view=<key>` opens a view. The keys, their labels, nav stops, groups, files and docs are rows of [app-routes.csv](app-routes.csv).
 - Second keys: `&tab=` (Project's pills, Map's tabs), `&item=` (State), `&detail=` (Branches), the `&sq=` family (Search), `&file=`, `&path=`, `&window=`. A view leaves its default second key out of the URL.
 - `&shell=full|nav|none` sets how much chrome surrounds the view (below).
-- Retired keys still resolve: `activity` to Sessions, `portable` to Map, `surfaces` to Stage, `landing` to the plain `?repo=` form.
 
 The app's `VIEWS` table is the router: each row names a key, how a link opens it, and what it stamps back. `routeFromUrl` dispatches through it and `deepLinkParams` stamps through it. **Adding a row is the whole of adding an addressable view**, plus its `app-routes.csv` row. [`shell-routing.test.mjs`](../node/test/shell-routing.test.mjs) forbids comparing a view name inside the routing functions and re-parses every row's own stamp; [`app-routes.test.mjs`](../node/test/app-routes.test.mjs) holds `VIEWS` and `app-routes.csv` to each other both ways. The default repo's `repo` key is dropped from addresses as redundant, except on its landing, which would otherwise have no address.
 
@@ -56,20 +55,20 @@ The app's `VIEWS` table is the router: each row names a key, how a link opens it
 | --- | --- | --- |
 | `full` | Shown | Open on wide screens; closed on phones |
 | `nav` | Shown | Closed; opened by the menu button |
-| `none` | Hidden | Closed; the launcher and FAB Render tab provide navigation |
+| `none` | Hidden | Closed; the FAB and its sidebar's Render tab provide navigation |
 
 App views default to `nav`; other views default to `full`. Omit the default from the URL. Unknown values use `full`. `shell-routing.test.mjs` holds these rules. App views take their tab title and iOS Home Screen title and icon from toss-render's `toss-subject-mark` event.
 
-**Ref switch** (`lib/alpineComponents/ref-switch.js`). Enter a branch, tag, or SHA to reload the app through toss-render at that ref (`#gh=…@<ref>:…`, which also pins its library), preserving the current deep link. It puts no `?use=` on the renderer's own query, since that pin kills Safari's web process on an iPhone whenever the renderer hosts a frame (the snag `shell-pin-kills-the-tab`); the drawer around a switched view is therefore main's, and the FAB's layer strip says so. Search's ref picker changes the browsed repo's ref. The FAB Render tab shows the app ref. A link's selection (`refs=owner/repo@ref[:path]`, [loader.md](loader.md#the-selection)) travels to every view the app frames; a hub view with no ref of its own is displayed at the app's version. The Files view's browsed ref is its own visible choice, which also targets its writes, so the selection does not move it.
+**Ref switch** (`lib/alpineComponents/ref-switch.js`). Enter a branch, tag, or SHA to reload the app through toss-render at that ref (`#gh=…@<ref>:…`, which also pins its library), preserving the current deep link. It puts no `?use=` on the renderer's own query, since that pin kills Safari's web process on an iPhone whenever the renderer hosts a frame (the snag `shell-pin-kills-the-tab`); the FAB and its sidebar around a switched view are therefore main's, and the sidebar's layer strip says so. Search's ref picker changes the browsed repo's ref. The FAB Render tab shows the app ref. A link's selection (`refs=owner/repo@ref[:path]`, [loader.md](loader.md#the-selection)) travels to every view the app frames; a hub view with no ref of its own is displayed at the app's version. The Files view's browsed ref is its own visible choice, which also targets its writes, so the selection does not move it.
 
 ## Page controls
 
 The floating action button (FAB) reads four optional fields from page components:
 
-- `about`: what the page in view is and reads, shown on the drawer's About tab and read on each paint: `{ title, lede, sources, notes, sections, links, narrative, record }`. The Map supplies it per address; a page without one shows its components' `description` lines.
-- `actions`: actions shown in the drawer.
+- `about`: what the page in view is and reads, shown on the FAB sidebar's About tab and read on each paint: `{ title, lede, sources, notes, sections, links, record, subject, selection }`. The Map supplies it per address; a page without one shows its components' `description` lines. Optional `subject` and `selection` identify the page and selected item for notes: `{ about, label, aliases? }`, with stable note locators in `about` and any consolidated addresses in `aliases`. Without `subject`, notes address the displayed file.
+- `actions`: actions shown in the FAB sidebar.
 - `toggles`: `[{ key, label, icon, on, title, set }]`, controls on the Render tab's width row, read on each paint.
-- `menu`: `[{ label, icon, run }]`, rows in the launcher's long-press menu, read when opened (`readPageMenu()`). No description field.
+- `menu`: `[{ label, icon, run }]`, rows in the FAB's long-press menu, read when opened (`readPageMenu()`). No description field.
 
 Read each element's own scope. `Alpine.$data(el)` merges scopes and makes nested components report the app's controls.
 
@@ -110,11 +109,10 @@ Use `x-blob` with an `owner/repo[@ref]:path` address for exact files. It derives
 
 | Subject | Reference |
 | --- | --- |
-| Views and forms | `doc` columns in [app-routes.csv](app-routes.csv) and [subjects.csv](subjects.csv) (under [views/](views/) and [forms/](forms/)) |
+| Views and forms | [app-routes.csv](app-routes.csv), [forms/README.md](forms/README.md) |
 | Stage and `#stage=` links | [stage.md](stage.md) |
 | Repo configuration, the config cache and errands | [manifest.md](manifest.md), [manifest-fields.csv](manifest-fields.csv) |
-| Proposals | [views/proposals.md](views/proposals.md) |
-| The branch takeover | [forms/branch.md](forms/branch.md) |
+| Proposals | [manifest.md](manifest.md#proposals) |
 | Choosing a presentation | [showing.md](showing.md), [showing-mechanisms.csv](showing-mechanisms.csv) |
 | Standalone changeset review | [review.html](../pages/review.html) |
 

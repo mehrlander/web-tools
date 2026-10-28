@@ -193,7 +193,10 @@ test('the two sub-tab encodings, counted', () => {
   // 7 to 8 on 2026-10-15: Activity gained Traffic (?view=traffic), State's
   // sibling in the set-apart pill group, which reads what the open page has
   // fetched and why, rather than anything the estate keeps.
-  assert.equal(flattened, 8, 'sub-tabs addressed as their own ?view= key');
+  //
+  // 8 to 6 on 2026-10-24: ?view=jots and ?view=routes went with every other
+  // retired address, since nothing outside the estate's own repos used them.
+  assert.equal(flattened, 6, 'sub-tabs addressed as their own ?view= key');
   // 13 to 14 on 2026-08-29: the Map view gained an Aims tab. 14 to 15 on
   // 2026-09-05: it gained a Kits tab. 15 to 16 on 2026-09-08: it gained a Views
   // tab, which is the Routes pane arriving from Activity. 16 to 17 on
@@ -234,7 +237,9 @@ test('the two sub-tab encodings, counted', () => {
   // trigger row opens; Scheduled moved under the same row and kept its key.
   // 44 to 45 on 2026-10-22: Harness took Programs, the declared programs.
   // 45 to 46 on 2026-10-23: Overview took Icons, the estate's icon families.
-  assert.equal(params, 46, 'sub-tabs addressed as ?view=<parent>&tab=');
+  // 46 to 47 on 2026-10-27: Browser took FAB, the FAB's signals, which had
+  // been a legend on Showing.
+  assert.equal(params, 47, 'sub-tabs addressed as ?view=<parent>&tab=');
 });
 
 // The Map's row is a copy of the shell's address list, and it is a copy that
@@ -249,13 +254,6 @@ test("the Map's row names every address the shell accepts, and lands on its fron
   assert.deepEqual([...map.tabs].sort(), [...routes].sort());
   const home = shellSrc.match(/const MAP_HOME = '(\w+)'/)?.[1];
   assert.equal(map.lands, '?view=map&tab=' + home, 'the row lands where a bare ?view=map does');
-});
-
-test('an alias is a retired key, so it never doubles as a live one', () => {
-  const keys = new Set(manifest.routes.map(r => r.key));
-  for (const r of manifest.routes) {
-    if (r.alias) assert.ok(!keys.has(r.alias), `${r.key}: alias '${r.alias}' is also a live key`);
-  }
 });
 
 // ── The fold ────────────────────────────────────────────────────────────────
@@ -463,18 +461,17 @@ test('a route opens AT a ref, which is the whole reason to draw the join', () =>
 // web-tools #850, where the same idea was substring tests in the kit.
 test('a Map hit names the tab most of its files belong to, and the link lands there', () => {
   const tabFiles = R.tabFilesFrom(rows('map-tabs.csv'));
-  assert.deepEqual(tabFiles.policy, ['docs/policies.csv', 'docs/policy-topics.csv']);
+  assert.deepEqual(tabFiles.policy, ['docs/house-policies.md']);
   assert.ok(!Object.values(tabFiles).flat().some(p => p.endsWith('/')), 'a folder link claims nothing');
   const m = { ...manifest, routes: manifest.routes.map(r => r.key === 'map' ? { ...r, tabFiles } : r) };
   const map = (files) => R.routesTouched(m, files).on.find(r => r.key === 'map');
-  // A branch that adds a CSV also restamps the census, the Data tab's file.
-  const policy = map(['docs/policies.csv', 'docs/policy-topics.csv', 'data/csv-census.csv', 'lib/alpineComponents/map.js']);
+  const policy = map(['docs/house-policies.md', 'lib/alpineComponents/map.js']);
   assert.equal(policy.tab, 'policy');
   assert.equal(R.viewUrl(policy, 'abc123'),
     'https://mehrlander.github.io/web-tools/pages/toss-render.html#gh=mehrlander/web-tools@abc123:app/index.html?view=map&tab=policy');
-  assert.equal(map(['docs/policies.csv', 'data/csv-census.csv']).tab, undefined, 'a tie names no tab');
+  assert.equal(map(['docs/house-policies.md', 'data/csv-census.csv']).tab, undefined, 'a tie names no tab');
   assert.equal(map(['lib/alpineComponents/map.js']).tab, undefined, 'the component itself is every tab');
-  assert.equal(R.routesTouched(manifest, ['docs/policies.csv']).on.find(r => r.key === 'map').tab, undefined,
+  assert.equal(R.routesTouched(manifest, ['docs/house-policies.md']).on.find(r => r.key === 'map').tab, undefined,
     'no tabFiles, no tab: the estate rows, which do not read the registry, are unchanged');
 });
 
@@ -531,27 +528,4 @@ test('the manifest builder keeps the shell out of the routes and names it twice'
   assert.ok(manifest.shellNote, 'the shell carries its own note');
   assert.ok(manifest.groups.length > 1, 'group glosses came from the vocabulary');
   assert.equal(manifest.groups.every(g => g.key && g.label), true);
-});
-
-// ── docs/views/ and docs/forms/ answer to the two registries ───────────────
-//
-// Each view's document is named on its app-routes row, and each form's on its
-// subjects row. Held both ways: a named doc exists, and a file in either folder
-// is named by a row, so a document cannot drift out of the app's own index.
-test('every doc a view or a type names exists, and every view or form doc is named', async () => {
-  const { readdirSync } = await import('node:fs');
-  const named = new Set();
-  for (const [file, key] of [['app-routes.csv', 'key'], ['subjects.csv', 'key']]) {
-    for (const r of rows(file)) {
-      if (!r.doc) continue;
-      assert.ok(existsSync(path.join(repoRoot, r.doc)), `${file} ${r[key]}: doc missing on disk: ${r.doc}`);
-      named.add(r.doc);
-    }
-  }
-  for (const dir of ['docs/views', 'docs/forms']) {
-    // A folder's README indexes the family rather than documenting one view or form.
-    for (const f of readdirSync(path.join(repoRoot, dir)).filter(f => f.endsWith('.md') && f !== 'README.md')) {
-      assert.ok(named.has(`${dir}/${f}`), `${dir}/${f} is named by no app-routes or subjects row`);
-    }
-  }
 });

@@ -40,69 +40,47 @@ carrying the timestamp of the day that snapshot was built: `settings.json` and
 `plugins/`, including `plugins/installed_plugins.json` and the plugin cache
 below it. There is no `~/.claude/CLAUDE.md`.
 
-`projects/` was listed as written fresh at boot too, and it is not. Measured
-2026-07-30: a session's own material persists across a restart of its VM,
-mtimes intact, which matters far more now that the session record captures
-subagent transcripts from that directory.
+`projects/` is not written fresh at boot: a session's own material, subagent
+transcripts included, persists across a restart of its VM with mtimes intact.
 
 So **account skills sync every container and account plugins do not.** A plugin is
-pinned at the commit it held when the snapshot was built. Nothing surfaces that
-from inside a session: the plugin is present, enabled, and stale. In the measured
-case the pin was two days behind and lacked a `Stop` hook the newer version
-shipped, so a fix that had merged was running nowhere. The same lifetime governs a
-hook installed by hand into `~/.claude/settings.json`. It covers exactly the
-session that wrote it, because a session's filesystem changes never enter the
-snapshot.
+pinned at the commit it held when the snapshot was built, and nothing surfaces
+that from inside a session: the plugin is present, enabled, and stale, so a fix
+merged since runs nowhere. The same lifetime governs a hook installed by hand
+into `~/.claude/settings.json`: it covers exactly the session that wrote it,
+because a session's filesystem changes never enter the snapshot.
 
 
 ### A session's own files outlive its VM
 
 *(measured 2026-09-08)*
 
-Three lifetimes are in play here and collapsing them is what produced the
-paragraph corrected above.
+**A VM restart keeps the disk.** A session 50 hours old whose `/proc/uptime`
+read 26 minutes still held its `~/.claude/projects/<id>/subagents/` files with
+their original mtimes, and its `/tmp` scratchpad. The machine restarts; the
+filesystem it restarts onto is the one the session had.
 
-**A VM restart keeps the disk.** Measured from inside a session 50 hours old
-whose `/proc/uptime` read 26 minutes: `~/.claude/projects/<id>/subagents/` still
-held 248 files, 46 MB, dated two days earlier with their original mtimes, and
-`/tmp` still held that session's scratchpad from the same day. The machine
-restarts; the filesystem it restarts onto is the one the session had.
-
-**A session idle for days keeps them too.** Two sessions were woken on purpose
-to test it, one idle about 35 hours and one about 50. Both still had every
-per-agent transcript: 156 agents recovered in one and 112 in the other, with
-`agents_unaccounted: 0` on both, the shortfall against their dispatch counts
-being refusals at the concurrency cap rather than losses. Together that recovered
-268 agent runs that had been written off as gone.
+**A session idle for days keeps them too.** Sessions woken after about 35, 50
+and 62 hours still had every per-agent transcript.
 
 **The environment snapshot is a third thing entirely** and never carried session
-material. It holds what the setup script installed, which is why a plugin can be
-days stale while the account's skills are current, and it is the subject of the
-section above.
+material: it holds what the setup script installed (the section above).
 
-**The reclaim boundary, bracketed rather than pinned.** A third probe, on a
-session woken after **25 days**, came back with `vm uptime: 2 min` and a session
-directory holding only `ccr-tip.json` and `tool-results/`: no `subagents/` at
-all. That is the
+**The reclaim boundary sits somewhere between three days and three weeks.** A
+session woken after 25 days came back with a fresh VM and no `subagents/` at
+all, the
 [documented](https://code.claude.com/docs/en/claude-code-on-the-web#environment-expired)
-behaviour, an expired environment reclaimed and a fresh one provisioned. A
-fourth, at 62 hours, still had every agent transcript. So the boundary sits
-**somewhere between three days and three weeks**, and narrowing it further is
-not worth the wakes: the operating rule does not change with the number. Do not
-tell a reader their fan-out is unrecoverable without asking the session, which
-costs one wake and one `ls`.
+reclaim. The operating rule does not change with the number: do not tell a
+reader their fan-out is unrecoverable without asking the session, which costs
+one wake and one `ls`.
 
 **A woken session may return only part of its own transcript, and that is the
-sharper hazard.** The 25-day probe came back with 14.5 MB and 13 prompts against
-the 29.1 MB and 76 prompts its published record held, reporting a start two days
-later than the session's own. So a resume restores *some* conversation history,
-not necessarily all of it, and anything derived from the transcript is derived
-from whatever came back. In the session store that nearly overwrote a
-1,010-call record carrying 124 dispatches with a 189-call record carrying none;
-the guards are `record_path()` and `merge_captured()` in
-`web-tools-private sessions/tools/record.py`, and the measurement is in that
-store's README. Anything else that rebuilds state from a transcript inherits
-the same exposure.
+sharper hazard.** The 25-day probe came back with 13 of 76 prompts and a start
+two days later than the session's own. So a resume restores *some*
+conversation history, not necessarily all of it, and anything rebuilt from the
+transcript inherits that exposure; the session store's guards are
+`record_path()` and `merge_captured()` in `web-tools-private
+sessions/tools/record.py`.
 
 Two commands freshen a running container:
 
@@ -111,14 +89,12 @@ claude plugin marketplace update <marketplace>
 claude plugin update <plugin>@<marketplace>
 ```
 
-The CLI answers "Restart to apply changes," and the [plugin documentation](https://code.claude.com/docs/en/discover-plugins) offers `/reload-plugins` as the in-session equivalent. Neither was needed here. Skills from the updated cache appeared in the session's own skill listing within the turn, and the plugin's `Stop` hook fired 43 minutes later with nothing restarted and no reload typed. [Settings-file hooks are documented as reloading live](https://code.claude.com/docs/en/settings); on CLI 2.1.220 plugin hooks did too. Treat `/reload-plugins` as the fallback for an update that does not take.
+The CLI answers "Restart to apply changes," and the [plugin documentation](https://code.claude.com/docs/en/discover-plugins) offers `/reload-plugins` as the in-session equivalent; treat it as the fallback for an update that does not take.
 
-**Putting that update in the setup script does not solve it,** which is the part
-worth stating plainly, because it is the obvious fix and it fails quietly. The
-setup script runs when the snapshot is built, not when a session starts, so its
-`claude plugin update` pins the version current on build day and every later
-session restores that result (measured 2026-07-30 from file dates in a booted
-container).
+**Putting that update in the setup script does not solve it.** The setup script
+runs when the snapshot is built, not when a session starts, so its `claude
+plugin update` pins the version current on build day and every later session
+restores that result *(measured 2026-07-30)*.
 
 What runs every session is a `SessionStart` hook. The setup script installs the
 plugin once; the plugin's refresher, `skills/hooks/refresh-plugin.sh`, moves it
@@ -127,25 +103,18 @@ because reopening an expired session provisions a fresh environment and fires
 `resume`.
 
 **The documentation and the measurement disagree about what a mid-session update
-reaches, and the disagreement is the whole risk in that design.** The hooks
-reference says plugins are loaded once at startup, and gives `SessionStart`'s
-`reloadSkills` the explicit carve-out that it reloads user and project skills
-while plugin-provided skills are not reloaded. If that holds strictly, a refresher
-that runs at session start pulls a version that only takes effect at the next
-boot, which in a one-session-per-container environment means never. Measured twice
-on 2026-07-30, CLI 2.1.220, it did not hold: after `claude plugin update` ran
-mid-session, a skill present only in the newer version appeared in the session's
-own skill listing on the following turn, and the newer version's `Stop` hook fired
-43 minutes later, with no restart and no `/reload-plugins`. Something picks up a
-changed plugin cache; the documented sentence is about `reloadSkills`, not about
-every path.
-
-Treat that as measured on one version and not as a guarantee. The decisive test is
-cheap and belongs to whoever depends on it: change something visible on the
-plugin's `main`, start a fresh session, and check whether it is present or arrives
-one session late. Until then a refresher should say what it did, since
-`SessionStart` stdout is added to the session's context, which turns a silent
-one-session lag into a line someone can read.
+reaches.** The hooks reference says plugins load once at startup and that
+`SessionStart`'s `reloadSkills` does not reload plugin-provided skills; if that
+held strictly, a refresher would take effect only at the next boot, which in a
+one-session-per-container environment means never. Measured twice on
+2026-07-30, CLI 2.1.220, it did not hold: after `claude plugin update` ran
+mid-session, a skill only the newer version had appeared on the following turn,
+and the newer version's `Stop` hook fired later, with no restart and no
+`/reload-plugins`. Treat that as measured on one version, not as a guarantee:
+to check, change something visible on the plugin's `main`, start a fresh
+session, and see whether it is present or arrives one session late. A
+refresher should say what it did, since `SessionStart` stdout reaches the
+session's context.
 
 Editing the setup script at all invalidates the snapshot, so the next session
 rebuilds rather than waiting out the roughly seven-day expiry. That makes the
@@ -155,11 +124,9 @@ The pin reaches the repository checkout as well, by the same route. `node_module
 is gitignored, so it cannot arrive with the fresh clone; the setup script installs
 it and the snapshot preserves it. A dependency added to `package.json` after the
 snapshot was built is therefore missing in a session that has the commit adding
-it. Measured 2026-07-30: `graphql@^17.0.2` landed on main that morning, the
-container's `node_modules/` was dated 2026-07-28, and `npm test` failed one test on
-`ERR_MODULE_NOT_FOUND` while the same suite passed in CI, which installs fresh.
-When a suite fails locally on a missing package, check the dates before believing
-the failure.
+it, and `npm test` fails on `ERR_MODULE_NOT_FOUND` while CI, which installs
+fresh, passes *(measured 2026-07-30)*. When a suite fails locally on a missing package, check the dates
+before believing the failure.
 
 ### What the account's setup script must do
 
@@ -173,10 +140,8 @@ claude plugin list | grep -q portable || echo 'If `claude plugin list` lacks por
 ```
 
 The first line retries the fetch and runs the script only if the download
-succeeded. The `curl … | bash` line it replaced on 2026-10-07 reported success
-when the fetch failed: that day two seven-repo sessions logged a setup step of
-157 ms that the environment manager called successful, and both ran with no
-plugin. A resumed container skips the setup step, so nothing retried it. The
+succeeded; a bare `curl … | bash` reports success when the fetch fails, and a
+resumed container skips the setup step, so nothing would retry it. The
 second line writes `~/.claude/CLAUDE.md` only when the plugin is still missing,
 and the session reads that note at its first turn. It is the one channel from
 the build to the session that does not depend on the plugin.
@@ -223,16 +188,9 @@ CLI config, and no MCP tool that enumerates them. The session's own
 transcript not copied out before the container is reclaimed is gone, and the copy
 has to be made by the session that produced it.
 
-**Most of it is tool output.** Measured on one working session:
-
-| Form | Size | Share |
-| --- | --- | --- |
-| Raw JSONL | 691 KB | 100% |
-| Conversation only, tool results dropped | 24 KB | 3% |
-
-The other 97% is file reads, command output, and search results: bulky, largely
-reconstructable from the repo, and the reason a transcript's size is out of
-proportion to what it says.
+**Most of it is tool output.** On one working session, dropping tool results
+took the raw JSONL from 691 KB to 24 KB (3%); the rest is file reads, command
+output and search results, largely reconstructable from the repo.
 
 **It is as sensitive as the most sensitive thing the session read.** Tool results
 are recorded verbatim, so a transcript inherits whatever secrets, private file
@@ -256,7 +214,7 @@ something.
 - Git objects removed from the remote remained present in that running environment.
 - Concurrent sessions could not see each other's uncommitted files.
 
-*Shallow-clone consequence added 2026-07-30.* The shallow checkout is worth separating from the observation, because its effect is silent. `git log` in a shallow clone returns a truncated history with no error and no marker: a file's apparent first commit is the graft boundary rather than its creation, and `git log -S` finds nothing earlier. Two sessions have read that truncation as evidence of a rewritten history, an inference the fourth observation above makes easy to reach for and the second disproves. The two are unrelated. A rewrite replaces commits; a shallow clone omits them. Run `git rev-parse --is-shallow-repository` before drawing any conclusion from `git log`, and `git fetch --unshallow` when the answer is `true` and the question needs real history.
+**A shallow clone truncates history silently.** `git log` returns a truncated history with no error and no marker: a file's apparent first commit is the graft boundary rather than its creation, and `git log -S` finds nothing earlier. Do not read that truncation as a rewritten history: a rewrite replaces commits; a shallow clone omits them. Run `git rev-parse --is-shallow-repository` before drawing any conclusion from `git log`, and `git fetch --unshallow` when the answer is `true` and the question needs real history.
 
 Anthropic documents the [GitHub proxy](https://code.claude.com/docs/en/claude-code-on-the-web#github-proxy) as the authentication boundary for Git and GitHub API operations. Credentials remain outside the VM. The proxy supports cloning, fetching, pushing, and pull-request operations while restricting pushes to the current working branch and limiting operations to repositories attached to the session.
 
@@ -305,4 +263,4 @@ Documented behavior and observed behavior are separate evidence.
 
 The stale local `main` established that the observed checkout contained older repository state. It did not establish that state from one session had persisted into another.
 
-A result that matches the documented design is weak evidence about the mechanism, since it cannot separate understanding from recitation. The stale local `main` was useful precisely because it should not have been present: it forced a check against the filesystem rather than the documented story, and caught a phrase that had smuggled in persistence the evidence did not support. Prefer an anomaly over a tidy match.
+A result that matches the documented design is weak evidence about the mechanism, since it cannot separate understanding from recitation. Prefer an anomaly over a tidy match: the stale local `main` was useful precisely because it should not have been present.

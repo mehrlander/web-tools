@@ -45,7 +45,7 @@ const { window } = makeWindow({
 
 for (const f of ['lib/kits/csv.js', 'lib/kits/branch-status.js', 'lib/kits/branch-brief.js',
                  'lib/kits/content-registry.js', 'lib/kits/route-activity.js',
-                 'lib/kits/guide-render.js']) {
+                 'lib/kits/guide-render.js', 'lib/kits/swipe-deck.js']) {
   new window.Function('window', readFileSync(path.join(repoRoot, f), 'utf8'))(window);
 }
 
@@ -224,7 +224,15 @@ test('lent pages populate pageChips while brief is pending', async () => {
   assert.equal(d.pageChips[0].path, 'pages/branch.html');
 });
 
-test('desktop arrow keys step through the swiper when the pointer is over it', async () => {
+// The arrows are swipeDeck.keys's, registered on the files section. jsdom has
+// no pointer and lays nothing out, so the section is given a size and armed by
+// focus, the other half of the kit's condition (swipe-deck-keys.test.mjs).
+const armed = (el) => {
+  const sec = el.querySelector('[data-swipe-section]');
+  sec.getBoundingClientRect = () => ({ left: 0, right: 800, top: 0, bottom: 400, width: 800, height: 400 });
+  return sec;
+};
+test('desktop arrow keys step through the swiper while focus is in it', async () => {
   const el = window.document.createElement('div');
   el.setAttribute('x-data', `branchBrief({ repo: '${HUB}', branch: 'feat/arrows', base: 'main',
                                            facts: { ahead: 2, behind: 0 }, sha: '${TIP}' })`);
@@ -245,11 +253,13 @@ test('desktop arrow keys step through the swiper when the pointer is over it', a
   assert.equal(d.at, 0, 'starts at the first file');
   const key = (k) => {
     const e = new window.KeyboardEvent('keydown', { key: k, cancelable: true, bubbles: true });
-    window.dispatchEvent(e);
+    (window.document.activeElement || window.document.body).dispatchEvent(e);
     return e;
   };
 
-  d.swipeHovered = true;
+  const sec = armed(el);
+  sec.tabIndex = -1;
+  sec.focus();
   const right = key('ArrowRight');
   assert.equal(d.at, 1, 'ArrowRight steps to the next file');
   assert.equal(right.defaultPrevented, true, 'and prevents default');
@@ -263,7 +273,7 @@ test('desktop arrow keys step through the swiper when the pointer is over it', a
   el.remove();
 });
 
-test('arrow keys leave the page alone when the pointer is elsewhere', async () => {
+test('arrow keys leave the page alone when neither the pointer nor focus is in the swiper', async () => {
   const el = window.document.createElement('div');
   el.setAttribute('x-data', `branchBrief({ repo: '${HUB}', branch: 'feat/arrows-top', base: 'main' })`);
   window.document.body.append(el);
@@ -276,9 +286,10 @@ test('arrow keys leave the page alone when the pointer is elsewhere', async () =
     files: [{ path: 'src/app.js', status: 'modified' }, { path: 'src/b.js', status: 'modified' }],
   };
   await tick(4);
-  d.swipeHovered = false;
+  armed(el);
+  window.document.body.focus();
   const e = new window.KeyboardEvent('keydown', { key: 'ArrowRight', cancelable: true, bubbles: true });
-  window.dispatchEvent(e);
+  window.document.body.dispatchEvent(e);
   assert.equal(d.at, 0, 'the swiper does not move');
   assert.equal(e.defaultPrevented, false, 'and the key is not taken, so the guide can scroll');
   el.remove();

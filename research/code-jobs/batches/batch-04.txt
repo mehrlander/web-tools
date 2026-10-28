@@ -1,0 +1,1663 @@
+=== UNIT lib/kits/xlsx.js:569#3 | call(…) > analyze > recordConnections (part 3 of 5) ===
+      // slightly offset. Only the Choice is read.
+      if (/^xl\/drawings\/drawing\d+\.xml$/.test(fn)) {
+        touch(fn, 'drawing', ALL_SHEETS);
+        const kind = tag(node);
+        if (kind === 'twoCellAnchor' || kind === 'oneCellAnchor') {
+          let inFallback = false;
+          for (let p = node.parentNode; p && p.nodeType === 1; p = p.parentNode) {
+            if (tag(p) === 'Fallback') { inFallback = true; break; }
+          }
+          if (!inFallback) {
+            const corner = /* nested: corner, lines 879-886 */;
+            const ext = kidNamed(node, 'ext');
+            // The blip's r:embed or chart's r:id points at the media or chart part through
+            // the DRAWING's own rels, not the sheet's.
+            const blip = [...node.getElementsByTagName('*')].find(e => tag(e) === 'blip');
+            const embed = blip && (blip.getAttribute('r:embed') ||
+              blip.getAttributeNS?.('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'embed'));
+            const chartEl = [...node.getElementsByTagName('*')].find(e => tag(e) === 'chart');
+            const chartRid = chartEl && (chartEl.getAttribute('r:id') ||
+              chartEl.getAttributeNS?.('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'id') ||
+              chartEl.getAttribute('id'));
+            const nv = [...node.getElementsByTagName('*')].find(e => tag(e) === 'cNvPr');
+            const name = nv?.getAttribute('name') || nv?.getAttribute('descr') || '';
+            const baseAnchor = {
+              from: corner('from'), to: corner('to'),
+              ext: ext ? { cx: Number(ext.getAttribute('cx') || 0), cy: Number(ext.getAttribute('cy') || 0) } : null,
+              name,
+            };
+            if (embed) {
+              (xl.drawings[fn] ??= []).push({
+                kind: 'image',
+                ...baseAnchor,
+                embed,
+              });
+            } else if (chartRid) {
+              (xl.drawings[fn] ??= []).push({
+                kind: 'chart',
+                ...baseAnchor,
+                chartRid,
+              });
+            }
+          }
+        }
+      }
+
+      if (fn.includes('theme')) {
+        touch(fn, 'theme', ALL_SHEETS);
+        // The palette a `theme="N"` colour indexes, in <clrScheme> order, with
+        // one correction: the scheme writes dk1, lt1, dk2, lt2 and Excel's
+        // indices are lt1, dk1, lt2, dk2, so the first two pairs swap. Getting
+        // that backwards turns a white title on a dark band into black on
+        // white, which reads as plausible and is wrong.
+        if (tag(node) === 'clrScheme') {
+          xl.theme = [...node.children].map(/* nested: map(…), lines 929-935 */);
+          const t = xl.theme;
+          if (t.length >= 4) xl.theme = [t[1], t[0], t[3], t[2], ...t.slice(4)];
+        }
+      }
+
+      // A COMMENT IS A NOTE SOMEBODY LEFT ON A CELL, and in these workbooks it
+      // is where OFM's own staff wrote the hint that does not fit on the form.
+      // The kit counted them and read no text until 2026-09-04.
+      //
+      // Two things make the part hard to place. Its number is its own, not the
+      // sheet's: comments1.xml can belong to sheet5. And the text is a run
+      // sequence, whose first run is conventionally the author's name with a
+      // colon, which Excel adds and a reader does not want repeated beside the
+      // author field. The join is done in finalize; here the parts are read.
+      if (/comments\d*\.xml$/.test(fn) && !/threaded/i.test(fn)) {
+        const n = fn.match(/comments(\d+)/)?.[1];
+        touch(fn, 'comments', n ? [`sheet${n}`] : ALL_SHEETS);
+        if (node.nodeName === 'author') {
+          (xl.commentAuthors[fn] ??= []).push(node.textContent || '');
+        }
+        if (node.nodeName === 'comment') {
+          const ref = node.getAttribute('ref');
+          if (ref) {
+            (xl.comments[`sheet${n || '1'}`] ??= []).push(ref);
+            (xl.commentParts[fn] ??= []).push({
+              ref,
+              authorId: Number(node.getAttribute('authorId') || 0) || 0,
+              text: richText(kidNamed(node, 'text')),
+            });
+          }
+        }
+      }
+
+      // EVERY EXTERNAL SOURCE THE WORKBOOK DECLARES, in one part. `type` is a
+      // numeric code and CONNECTION_KIND names it; the kit classifies the code
+      // rather than interpreting the provider string, the same line cellFormat
+      // draws around a number format. The detail is whichever child element the
+      // kind puts it in, which is why one field cannot be read off `connection`
+      // alone.
+      if (fn.endsWith('connections.xml')) {
+        touch(fn, 'connections', ALL_SHEETS);
+        if (node.nodeName === 'connection') {
+          const db = kidNamed(node, 'dbPr'), web = kidNamed(node, 'webPr'), txt = kidNamed(node, 'textPr');
+          const command = db?.getAttribute('command') || '';
+          const connStr = db?.getAttribute('connection') || '';
+          xl.connections.push({
+            id: node.getAttribute('id') || '',
+            name: unescapeXlsx(node.getAttribute('name') || ''),
+            type: node.getAttribute('type') || '',
+            kind: CONNECTION_KIND[node.getAttribute('type')] || 'Unknown',
+            description: unescapeXlsx(node.getAttribute('description') || ''),
+            // A Power Query connection is an OLE DB connection whose provider
+            // is Microsoft's Mashup engine, so the M it runs is NOT here: it is
+            // in the DataMashup blob readMashup() opens. Flagged so a reader
+            // following a query lands there instead of on this string.
+            powerQuery: /Microsoft\.Mashup/i.test(connStr),
+            detail: unescapeXlsx(
+              web?.getAttribute('url') || txt?.getAttribute('sourceFile') || command || connStr),
+          });
+        }
+      }
+
+      // A PIVOT CACHE IS THE DATA; A PIVOT TABLE IS ONE VIEW OF IT. They live in
+      // separate parts and several tables may share one cache, so the two are
+      // collected apart and joined in finalize through the workbook's own
+      // cacheId map rather than by part number, which nothing guarantees.
+      if (/pivotCacheDefinition\d*\.xml$/.test(fn)) {
+        touch(fn, 'pivot-cache', ALL_SHEETS);
+        const cache = (xl.pivotCaches[fn] ??= {
+          recordCount: null, source: null, fields: [], sharedItems: [], recordsPart: null,
+        });
+        if (node.nodeName === 'pivotCacheDefinition') {
+          const n = Number(node.getAttribute('recordCount'));
+          cache.recordCount = isFinite(n) ? n : null;
+        }
+        // The range the cache was built from, named by DISPLAY sheet name
+        // (the one thing in an .xlsx that addresses a sheet the way a reader
+        // does) or, for a cache over a table, by that table's name.
+        if (node.nodeName === 'worksheetSource') {
+          cache.source = {
+            sheet: unescapeXlsx(node.getAttribute('sheet') || ''),
+            ref: node.getAttribute('ref') || '',
+            name: unescapeXlsx(node.getAttribute('name') || ''),
+          };
+        }
+        if (node.nodeName === 'cacheField' && path.endsWith('cacheFields.cacheField')) {
+          cache.fields.push(unescapeXlsx(node.getAttribute('name') || ''));
+          // Parallel to `fields` by index, the shape the row record already
+          // uses for styles and types. A field with no <sharedItems> keeps an
+          // empty list, which is what a records part's <x> would then index
+          // into and miss, honestly.
+          cache.sharedItems.push([]);
+        }
+        // EXACTLY the shared-items path. A cacheField may also carry a
+        // <fieldGroup><groupItems> of the same element names, and folding those
+        // in would shift every <x> index in the records by however many groups
+=== UNIT lib/kits/xlsx.js:569#4 | call(…) > analyze > recordConnections (part 4 of 5) ===
+        // the author made.
+        if (path.endsWith(`cacheFields.cacheField.sharedItems.${node.nodeName}`)) {
+          const value = cacheValue(node);
+          if (value !== undefined) cache.sharedItems[cache.sharedItems.length - 1]?.push(value);
+        }
+      }
+
+      // THE ROWS BEHIND A PIVOT. Stored as read and resolved in finalize: an
+      // <x> cell is an index into the cache definition's shared items and the
+      // definition may not have been walked yet, which is the same reason
+      // shared strings resolve there.
+      if (/pivotCacheRecords\d*\.xml$/.test(fn)) {
+        touch(fn, 'pivot-records', ALL_SHEETS);
+        const rec = (xl.pivotRecords[fn] ??= { rows: [], total: 0, truncated: false });
+        if (node.nodeName === 'r' && path.endsWith('pivotCacheRecords.r')) {
+          rec.total++;
+          if (rec.rows.length >= MAX_PIVOT_RECORDS) { rec.truncated = true; return; }
+          rec.rows.push([...node.children].map(/* nested: map(…), lines 1049-1053 */));
+        }
+      }
+
+      if (/tables?\/table\d*\.xml$/i.test(fn)) {
+        touch(fn, 'table', ALL_SHEETS);
+        const tbl = (xl.tables[fn] ??= {
+          id: '', name: '', displayName: '', ref: '', sheet: null,
+          headerRowCount: 1, totalsRowCount: 0,
+          styleInfo: null, autoFilter: null, columns: [],
+        });
+        if (node.nodeName === 'table') {
+          tbl.id = node.getAttribute('id') || '';
+          tbl.name = unescapeXlsx(node.getAttribute('name') || '');
+          tbl.displayName = unescapeXlsx(node.getAttribute('displayName') || tbl.name);
+          tbl.ref = node.getAttribute('ref') || '';
+          const hrc = node.getAttribute('headerRowCount');
+          tbl.headerRowCount = hrc != null ? Number(hrc) : 1;
+          const trc = node.getAttribute('totalsRowCount');
+          tbl.totalsRowCount = trc != null ? Number(trc) : 0;
+        }
+        if (node.nodeName === 'autoFilter') {
+          tbl.autoFilter = node.getAttribute('ref') || '';
+        }
+        if (node.nodeName === 'tableColumn') {
+          tbl.columns.push({
+            id: node.getAttribute('id') || '',
+            name: unescapeXlsx(node.getAttribute('name') || ''),
+          });
+        }
+        if (node.nodeName === 'tableStyleInfo') {
+          tbl.styleInfo = {
+            name: node.getAttribute('name') || '',
+            showFirstColumn: node.getAttribute('showFirstColumn') === '1',
+            showLastColumn: node.getAttribute('showLastColumn') === '1',
+            showRowStripes: node.getAttribute('showRowStripes') !== '0',
+            showColumnStripes: node.getAttribute('showColumnStripes') === '1',
+          };
+        }
+      }
+
+      if (/pivotTable\d*\.xml$/.test(fn)) {
+        touch(fn, 'pivot-table', ALL_SHEETS);   // narrowed to its own sheet in finalize
+        const pt = (xl.pivotTables[fn] ??= {
+          name: '', cacheId: '', ref: '', sheet: null, cachePart: null,
+          rowFields: 0, colFields: 0, pageFields: 0, dataFields: [],
+          firstHeaderRow: 1, firstDataRow: 1, firstDataCol: 1, styleInfo: null, rowGrandTotals: true,
+        });
+        if (node.nodeName === 'pivotTableDefinition') {
+          pt.name = unescapeXlsx(node.getAttribute('name') || '');
+          pt.cacheId = node.getAttribute('cacheId') || '';
+          pt.rowGrandTotals = node.getAttribute('rowGrandTotals') !== '0';
+        }
+        if (node.nodeName === 'location') {
+          pt.ref = node.getAttribute('ref') || '';
+          const fhr = node.getAttribute('firstHeaderRow');
+          if (fhr != null) pt.firstHeaderRow = Number(fhr);
+          const fdr = node.getAttribute('firstDataRow');
+          if (fdr != null) pt.firstDataRow = Number(fdr);
+          const fdc = node.getAttribute('firstDataCol');
+          if (fdc != null) pt.firstDataCol = Number(fdc);
+        }
+        if (node.nodeName === 'pivotTableStyleInfo') {
+          pt.styleInfo = {
+            name: node.getAttribute('name') || '',
+            showRowHeaders: node.getAttribute('showRowHeaders') === '1',
+            showColHeaders: node.getAttribute('showColHeaders') === '1',
+            showRowStripes: node.getAttribute('showRowStripes') === '1',
+            showColStripes: node.getAttribute('showColStripes') === '1',
+            showLastColumn: node.getAttribute('showLastColumn') === '1',
+          };
+        }
+        if (node.nodeName === 'rowFields') pt.rowFields = kidsNamed(node, 'field').length;
+        if (node.nodeName === 'colFields') pt.colFields = kidsNamed(node, 'field').length;
+        if (node.nodeName === 'pageFields') pt.pageFields = kidsNamed(node, 'pageField').length;
+        // The measures, which are the only fields with a name a reader wrote.
+        if (node.nodeName === 'dataField' && path.endsWith('dataFields.dataField'))
+          pt.dataFields.push(unescapeXlsx(node.getAttribute('name') || ''));
+      }
+
+      // The workbook's cacheId -> relationship map, the only statement of which
+      // cache part a pivot table's `cacheId` means.
+      if (fn.endsWith('workbook.xml') && path.endsWith('pivotCaches.pivotCache')) {
+        const id = node.getAttribute('cacheId');
+        const rid = node.getAttribute('r:id') || node.getAttribute('id') || '';
+        if (id && rid) xl.pivotCacheRefs[id] = rid;
+      }
+
+      if (fn.includes('calcChain.xml')) {
+        touch(fn, 'calc-chain', ALL_SHEETS);
+        if (node.nodeName === 'c') {
+          const r = node.getAttribute('r');
+          if (r) xl.calcChain.push({ cell: r, sheetIndex: node.getAttribute('i') || '0' });
+        }
+      }
+
+      if (fn.includes('app.xml') || fn.includes('core.xml'))
+        touch(fn, fn.includes('app.xml') ? 'app-properties' : 'core-properties', ALL_SHEETS);
+
+      // The <sheets> element is the ONLY place a sheet's display name and its
+      // workbook order live. Everything else in an .xlsx addresses a sheet by
+      // part file (sheetN.xml) or by workbook index, and the two are unrelated
+      // once a workbook has been reordered or a sheet deleted. Collected here
+      // and joined to the part files in finalize(), once the rels are known.
+      // The 1904 epoch is a workbook-wide switch, off by default, and getting it
+      // wrong shifts every date by four years and a day rather than failing.
+      if (fn.endsWith('workbook.xml') && path.endsWith('workbookPr')) {
+        const d = node.getAttribute('date1904');
+        if (d === '1' || d === 'true') xl.date1904 = true;
+      }
+
+      if (fn.endsWith('workbook.xml') && path.endsWith('sheets.sheet')) {
+        xl.workbookSheets.push({
+          name: node.getAttribute('name') || '',
+          sheetId: node.getAttribute('sheetId') || '',
+          // r:id is namespaced; getAttribute wants the qualified name as
+          // written, and DOMParser keeps the prefix on a non-namespace-aware
+          // read. Fall back to the local name for a document that omits it.
+          rid: node.getAttribute('r:id') || node.getAttribute('id') || '',
+          // Omitted means visible. `veryHidden` is kept distinct from `hidden`
+          // rather than folded in: only the second can be unhidden from
+          // Excel's own menu, so a reader auditing a workbook wants the two
+          // apart.
+          state: node.getAttribute('state') || 'visible',
+        });
+      }
+
+      if (fn.endsWith('workbook.xml') && path.includes('definedNames.definedName')) {
+        const name = node.getAttribute('name');
+        if (name) xl.definedNames.push({
+          name, sheetId: node.getAttribute('localSheetId') || 'global', reference: node.textContent,
+        });
+      }
+=== UNIT lib/kits/xlsx.js:569#5 | call(…) > analyze > recordConnections (part 5 of 5) ===
+
+      if (fn.includes('.rels') && node.nodeName === 'Relationship') {
+        const target = node.getAttribute('Target'), type = node.getAttribute('Type');
+        if (target && type) {
+          const owner = fn.replace('/_rels/', '/').replace('.rels', '');
+          // `id` rides along because the workbook's <sheet r:id> points at a
+          // part through this map and nothing else resolves it.
+          (xl.relationships[owner] ??= []).push({ id: node.getAttribute('Id') || '', target, type: type.split('/').pop() });
+        }
+      }
+    }
+=== UNIT lib/kits/xlsx.js:879 | call(…) > analyze > recordConnections > corner ===
+(which) => {
+              const c = kidNamed(node, which);
+              if (!c) return null;
+              return { col: Number(kidNamed(c, 'col')?.textContent || 0) || 0,
+                       colOff: Number(kidNamed(c, 'colOff')?.textContent || 0) || 0,
+                       row: Number(kidNamed(c, 'row')?.textContent || 0) || 0,
+                       rowOff: Number(kidNamed(c, 'rowOff')?.textContent || 0) || 0 };
+            }
+=== UNIT lib/kits/xlsx.js:929 | call(…) > analyze > recordConnections > map(…) ===
+entry => {
+            const c = entry.firstElementChild;
+            if (!c) return null;
+            return tag(c) === 'sysClr'
+              ? hexOf(c.getAttribute('lastClr'))
+              : hexOf(c.getAttribute('val'));
+          }
+=== UNIT lib/kits/xlsx.js:1049 | call(…) > analyze > recordConnections > map(…) ===
+c => {
+            if (tag(c) === 'x') return { x: Number(c.getAttribute('v') || 0) };
+            const value = cacheValue(c);
+            return value === undefined ? null : { v: value };
+          }
+=== UNIT lib/kits/xlsx.js:1225 | call(…) > analyze > forEach(…) ===
+(ws, index) => {
+      // The rels target is relative to xl/, and may be written absolute.
+      const target = relsById[ws.rid] || `worksheets/sheet${ws.sheetId}.xml`;
+      const key = sheetOf(target.replace(/^\//, ''));
+      const sheet = key && xl.sheets[key];
+      if (sheet) Object.assign(sheet, { name: ws.name, sheetId: ws.sheetId, index });
+    }
+=== UNIT lib/kits/xlsx.js:1249 | call(…) > analyze > map(…) ===
+([row, { cols, ht, hidden }]) => ({
+          row,
+          height: ht,
+          hidden,
+          cells: Object.fromEntries([...cols.entries()].map(([idx, { shared, raw }]) =>
+            [idx, shared ? (xl.strings[Number(raw)] ?? '') : raw])),
+          // Parallel to `cells` rather than folded into it, so the existing
+          // shape is untouched and a consumer that does not care about formats
+          // pays nothing. Only cells carrying an `s` appear.
+          styles: Object.fromEntries([...cols.entries()]
+            .filter(([, c]) => c.style != null).map(([idx, c]) => [idx, c.style])),
+          // Likewise for the `t` attribute, which is what separates a number
+          // from a string of digits and therefore decides how a cell aligns.
+          types: Object.fromEntries([...cols.entries()]
+            .filter(([, c]) => c.type != null).map(([idx, c]) => [idx, c.type])),
+          // The formula text where the file stored one, `true` where the cell
+          // is computed and it did not. Only computed cells appear.
+          formulas: Object.fromEntries([...cols.entries()]
+            .filter(([, c]) => c.formula).map(([idx, c]) => [idx, c.formula])),
+          // The shared-formula index of each cell that has one, master and
+          // follower alike; the master's text is sheet.sharedFormulas[si].
+          shared: Object.fromEntries([...cols.entries()]
+            .filter(([, c]) => c.sharedId != null).map(([idx, c]) => [idx, c.sharedId])),
+        })
+=== UNIT lib/kits/xlsx.js:1287 | call(…) > analyze > map(…) ===
+d => ({
+      font: d.font ? { ...d.font, color: paint(d.font.color) } : null,
+      fill: paint(d.fill),
+      border: paintBorder(d.border),
+    })
+=== UNIT lib/kits/xlsx.js:1308 | call(…) > analyze > map(…) ===
+a => {
+        if (a.kind === 'chart' || a.chartRid) {
+          const chartPart = relsMap[a.chartRid];
+          return { ...a, kind: 'chart', chartPart, chart: xl.charts[chartPart] || { title: '', series: [], unsupported: ['Chart data could not be read'] } };
+        }
+        const mediaPart = relsMap[a.embed];
+        return { ...a, kind: 'image', part: mediaPart || null };
+      }
+=== UNIT lib/kits/xlsx.js:1332 | call(…) > analyze > map(…) ===
+c => ({
+        ref: c.ref,
+        author: authors[c.authorId] || '',
+        // Excel writes the author's name as the first run followed by a colon
+        // and a newline. It is the same string the author field already
+        // carries, so a reader shown both sees it twice; dropped here rather
+        // than at the render, since every consumer would otherwise repeat it.
+        text: stripAuthorPrefix(c.text, authors[c.authorId] || ''),
+      })
+=== UNIT lib/kits/xlsx.js:1395 | call(…) > analyze > map(…) ===
+row =>
+        row.map(/* nested: map(…), lines 1396-1401 */)
+=== UNIT lib/kits/xlsx.js:1396 | call(…) > analyze > map(…) > map(…) ===
+(cell, i) => {
+          if (!cell) return null;
+          if (!('x' in cell)) return cell.v;
+          const list = items[i];
+          return list && cell.x < list.length ? list[cell.x] : null;
+        }
+=== UNIT lib/kits/xlsx.js:1426 | call(…) > stripAuthorPrefix ===
+function stripAuthorPrefix(text, author) {
+    const t = String(text || '');
+    if (!author) return t.trim();
+    const head = author + ':';
+    if (!t.startsWith(head)) return t.trim();
+    return t.slice(head.length).replace(/^[\s\r\n]+/, '').trim();
+  }
+=== UNIT lib/kits/xlsx.js:1436 | call(…) > normalizePath ===
+function normalizePath(from, target) {
+    const t = String(target || '');
+    if (t.startsWith('/')) return t.slice(1);
+    const base = from.endsWith('/') ? from : from.slice(0, from.lastIndexOf('/') + 1);
+    const out = [];
+    for (const seg of (base + t).split('/')) {
+      if (seg === '' || seg === '.') continue;
+      if (seg === '..') out.pop();
+      else out.push(seg);
+    }
+    return out.join('/');
+  }
+=== UNIT lib/kits/xlsx.js:1464 | call(…) > applyTint ===
+function applyTint(hex, tint) {
+    if (!hex || !tint) return hex;
+    const n = parseInt(hex.slice(1), 16);
+    const ch = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+    const shift = (c) => tint < 0 ? Math.round(c * (1 + tint)) : Math.round(c + (255 - c) * tint);
+    return '#' + ch.map(c => shift(c).toString(16).padStart(2, '0')).join('');
+  }
+=== UNIT lib/kits/xlsx.js:1475 | call(…) > resolveColor ===
+function resolveColor(spec, theme) {
+    if (!spec) return null;
+    if (spec.rgb) return hexOf(spec.rgb);
+    if (spec.indexed != null) return INDEXED_COLORS[spec.indexed] || null;
+    if (spec.theme != null) return applyTint((theme || [])[spec.theme] || null, spec.tint);
+    return null;
+  }
+=== UNIT lib/kits/xlsx.js:1521 | call(…) > formatKind ===
+function formatKind(code, numFmtId) {
+    if (code == null) return 'general';
+    if (code === 'General' || code === '') return 'general';
+    if (code === '@') return 'text';
+    const id = Number(numFmtId);
+    // An elapsed-time code is a duration, not a clock reading, and printing it
+    // as a time of day would be wrong rather than merely ugly.
+    if (/\[[hms]+\]/i.test(code)) return 'duration';
+    const bare = code.replace(/"[^"]*"/g, '').replace(/\[[^\]]*\]/g, '').replace(/\\./g, '');
+    const section = bare.split(';')[0];
+    const hasDate = /[yd]/i.test(section);
+    // `m` is month or minute depending on neighbours, so it is never the sole
+    // evidence for a date; `s` and `h` are unambiguous.
+    const hasTime = /[hs]/i.test(section);
+    if (hasDate && hasTime) return 'datetime';
+    if (hasDate) return 'date';
+    if (hasTime) return 'time';
+    if (section.includes('%')) return 'percent';
+    if (BUILTIN_CURRENCY.has(id) || /[$€£¥]/.test(section)) return 'currency';
+    return 'number';
+  }
+=== UNIT lib/kits/xlsx.js:1545 | call(…) > cellFormat ===
+function cellFormat(xl, styleIndex) {
+    if (styleIndex == null) return null;
+    const numFmtId = xl.cellXfs[Number(styleIndex)];
+    if (numFmtId == null) return null;
+    const code = xl.numFmts[numFmtId] ?? BUILTIN_NUMFMT[Number(numFmtId)] ?? null;
+    return { numFmtId, code, kind: formatKind(code, numFmtId) };
+  }
+=== UNIT lib/kits/xlsx.js:1561 | call(…) > serialToDate ===
+function serialToDate(serial, date1904) {
+    const n = Number(serial);
+    if (!isFinite(n)) return null;
+    const shifted = date1904 ? n + 1462 : n;
+    const ms = (shifted - 25569) * 86400000;
+    return new Date(ms + (!date1904 && n < 60 ? 86400000 : 0));
+  }
+=== UNIT lib/kits/xlsx.js:1586 | call(…) > pickSection ===
+function pickSection(code, n) {
+    const parts = String(code).split(';');
+    if (n < 0 && parts.length > 1) return { code: parts[1], signed: false };
+    if (n === 0 && parts.length > 2) return { code: parts[2], signed: false };
+    return { code: parts[0], signed: n < 0 };
+  }
+=== UNIT lib/kits/xlsx.js:1600 | call(…) > applyNumberCode ===
+function applyNumberCode(section, value) {
+    let code = section
+      .replace(/\[[^\]]*\]/g, '')      // [Red], [$-409], conditions
+      .replace(/_./g, '')              // width padding
+      .replace(/\*./g, '');            // repeat fill
+    const literals = [];
+    code = code.replace(/"([^"]*)"/g, (_, text) => { literals.push(text); return LIT; })
+               .replace(/\\(.)/g, (_, ch) => { literals.push(ch); return LIT; });
+
+    let n = value;
+    if (code.includes('%')) n = n * 100;
+    // Each trailing comma before the decimal point scales down by a thousand.
+    const scale = /([,]+)(?=(\.|$|[^0#?,]))/.exec(code.replace(/[^0#?,.]/g, ''));
+    const numeric = code.match(/[0#?][0#?,]*(\.[0#?]*)?|\.[0#?]+/);
+    if (!numeric) return { text: code.split(LIT).map((p, i) => (i ? literals[i - 1] : '') + p).join(''), plain: false };
+    const mask = numeric[0];
+    const [intMask, decMask = ''] = mask.split('.');
+    const grouped = intMask.includes(',');
+    const decimals = decMask.replace(/[^0#?]/g, '').length;
+    const minInt = (intMask.replace(/,/g, '').match(/0/g) || []).length;
+    if (scale && scale[1] && !grouped) n = n / Math.pow(1000, scale[1].length);
+
+    let body = Math.abs(n).toLocaleString('en-US', {
+      minimumFractionDigits: decimals, maximumFractionDigits: decimals,
+      minimumIntegerDigits: Math.max(minInt, 1), useGrouping: grouped,
+    });
+    // `#` before the point means "no digit here if there is nothing to show",
+    // which is what makes `#.##` print `.5` rather than `0.5`.
+    if (minInt === 0 && Math.abs(n) < 1 && body.startsWith('0')) body = body.slice(1);
+    const out = code.replace(mask, body);
+    return { text: out.split(LIT).map((p, i) => (i ? literals[i - 1] : '') + p).join('').trim(), plain: false };
+  }
+=== UNIT lib/kits/xlsx.js:1644 | call(…) > applyDateCode ===
+function applyDateCode(section, date) {
+    const code = section.replace(/\[[^\]]*\]/g, '');
+    const ampm = /AM\/PM|A\/P/i.test(code);
+    let h = date.getUTCHours();
+    const meridiem = h < 12 ? 'AM' : 'PM';
+    if (ampm) h = (h % 12) || 12;
+
+    const token = /AM\/PM|A\/P|yyyy|yy|mmmmm|mmmm|mmm|mm|m|dddd|ddd|dd|d|hh|h|ss|s|"[^"]*"|\\.|./gi;
+    const parts = [...code.matchAll(token)].map(([t]) => ({ t, low: t.toLowerCase() }));
+    const isLetter = (p) => /^(yy|yyyy|m{1,5}|d{1,4}|hh?|ss?)$/.test(p.low);
+    const neighbour = /* nested: neighbour, lines 1654-1659 */;
+
+    let out = '';
+    parts.forEach(/* nested: forEach(…), lines 1662-1689 */);
+    return out.trim();
+  }
+=== UNIT lib/kits/xlsx.js:1654 | call(…) > applyDateCode > neighbour ===
+(i, step) => {
+      for (let j = i + step; j >= 0 && j < parts.length; j += step) {
+        if (isLetter(parts[j])) return parts[j].low;
+      }
+      return '';
+    }
+=== UNIT lib/kits/xlsx.js:1662 | call(…) > applyDateCode > forEach(…) ===
+(p, i) => {
+      const { t, low } = p;
+      if (t.startsWith('"')) { out += t.slice(1, -1); return; }
+      if (t.startsWith('\\')) { out += t.slice(1); return; }
+      if (low === 'am/pm') { out += meridiem; return; }
+      if (low === 'a/p') { out += meridiem[0]; return; }
+      if (low === 'yyyy') { out += date.getUTCFullYear(); return; }
+      if (low === 'yy') { out += pad(date.getUTCFullYear() % 100); return; }
+      if (low === 'dddd') { out += DAYS[date.getUTCDay()]; return; }
+      if (low === 'ddd') { out += DAYS[date.getUTCDay()].slice(0, 3); return; }
+      if (low === 'dd') { out += pad(date.getUTCDate()); return; }
+      if (low === 'd') { out += date.getUTCDate(); return; }
+      if (low === 'hh') { out += pad(h); return; }
+      if (low === 'h') { out += h; return; }
+      if (low === 'ss') { out += pad(date.getUTCSeconds()); return; }
+      if (low === 's') { out += date.getUTCSeconds(); return; }
+      if (low === 'mmmmm') { out += MONTHS[date.getUTCMonth()][0]; return; }
+      if (low === 'mmmm') { out += MONTHS[date.getUTCMonth()]; return; }
+      if (low === 'mmm') { out += MONTHS[date.getUTCMonth()].slice(0, 3); return; }
+      if (low === 'mm' || low === 'm') {
+        const before = neighbour(i, -1), after = neighbour(i, 1);
+        const minutes = before === 'h' || before === 'hh' || after === 's' || after === 'ss';
+        const v = minutes ? date.getUTCMinutes() : date.getUTCMonth() + 1;
+        out += low === 'mm' ? pad(v) : v;
+        return;
+      }
+      out += t;
+    }
+=== UNIT lib/kits/xlsx.js:1709 | call(…) > formatValue ===
+function formatValue(raw, format, date1904) {
+    const kind = format?.kind;
+    if (raw === '' || raw == null) return '';
+    if (!kind || kind === 'general' || kind === 'text') return String(raw);
+    const n = Number(raw);
+    if (!isFinite(n)) return String(raw);
+
+    if (kind === 'duration') {
+      const total = Math.round(Math.abs(n) * 86400);
+      const sign = n < 0 ? '-' : '';
+      return `${sign}${Math.floor(total / 3600)}:${pad(Math.floor(total / 60) % 60)}:${pad(total % 60)}`;
+    }
+
+    const code = format?.code;
+    if (kind === 'date' || kind === 'time' || kind === 'datetime') {
+      const d = serialToDate(n, date1904);
+      if (!d || isNaN(d)) return String(raw);
+      if (code) {
+        const drawn = applyDateCode(pickSection(code, n).code, d, date1904);
+        if (drawn) return drawn;
+      }
+      // No code to follow, so ISO, which is unambiguous where a guess is not.
+      const date = `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
+      const time = `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}`;
+      return kind === 'date' ? date : kind === 'time' ? time : `${date} ${time}`;
+    }
+
+    if (!code) return String(raw);
+    const section = pickSection(code, n);
+    const drawn = applyNumberCode(section.code, n);
+    if (!drawn.text) return String(raw);
+    return (section.signed && !drawn.text.startsWith('-') ? '-' : '') + drawn.text;
+  }
+=== UNIT lib/kits/xlsx.js:1751 | call(…) > sheetRows ===
+function sheetRows(sheet, xl) {
+    return (sheet.rows || []).map(/* nested: map(…), lines 1752-1760 */);
+  }
+=== UNIT lib/kits/xlsx.js:1752 | call(…) > sheetRows > map(…) ===
+({ row, cells, styles }) => {
+      const obj = { Row: row };
+      for (const [idx, v] of Object.entries(cells)) {
+        obj[colLetter(Number(idx))] = xl
+          ? formatValue(v, cellFormat(xl, styles?.[idx]), xl.date1904)
+          : v;
+      }
+      return obj;
+    }
+=== UNIT lib/kits/xlsx.js:1793 | call(…) > profileColumns ===
+function profileColumns(sheet, xl, opts) {
+    const cfg = opts || {};
+    const headerRow = cfg.headerRow === undefined ? 1 : cfg.headerRow;
+    const keep = cfg.distinct === undefined ? 12 : cfg.distinct;
+    const all = sheet.rows || [];
+    const header = headerRow == null ? null : all.find(r => r.row === headerRow);
+    const body = headerRow == null ? all : all.filter(r => r.row !== headerRow);
+    const scanned = cfg.maxRows ? body.slice(0, cfg.maxRows) : body;
+
+    // Every column any scanned row writes to, plus any the header names: a
+    // column whose values are all blank is still a column if it has a heading.
+    const cols = new Set();
+    for (const r of [...scanned, ...(header ? [header] : [])])
+      for (const k of Object.keys(r.cells || {})) cols.add(Number(k));
+
+    const cellKind = /* nested: cellKind, lines 1808-1817 */;
+
+    return [...cols].sort((a, b) => a - b).map(/* nested: map(…), lines 1819-1873 */);
+  }
+=== UNIT lib/kits/xlsx.js:1808 | call(…) > profileColumns > cellKind ===
+(raw, t, style) => {
+      if (t === 's' || t === 'inlineStr' || t === 'str') return 'text';
+      if (t === 'b') return 'boolean';
+      if (t === 'e') return 'error';
+      const kind = cellFormat(xl, style)?.kind;
+      if (kind === 'date' || kind === 'datetime' || kind === 'time') return 'date';
+      // An unstyled cell with no `t` is a number in OOXML, but a hand-built
+      // part and a text-typed column both reach here, so the value decides.
+      return isFinite(Number(raw)) && String(raw).trim() !== '' ? 'number' : 'text';
+    }
+=== UNIT lib/kits/xlsx.js:1819 | call(…) > profileColumns > map(…) ===
+idx => {
+      const counts = new Map();          // value -> times seen
+      const kinds = new Map();           // kind -> times seen
+      let filled = 0, computed = 0, min = null, max = null;
+      for (const r of scanned) {
+        const raw = r.cells?.[idx];
+        if (raw === undefined || raw === null || String(raw).trim() === '') continue;
+        filled++;
+        if (r.formulas?.[idx]) computed++;
+        const value = String(raw);
+        counts.set(value, (counts.get(value) || 0) + 1);
+        const kind = cellKind(raw, r.types?.[idx], r.styles?.[idx]);
+        kinds.set(kind, (kinds.get(kind) || 0) + 1);
+        const n = Number(raw);
+        if (kind === 'number' && isFinite(n)) {
+          min = min === null ? n : Math.min(min, n);
+          max = max === null ? n : Math.max(max, n);
+        }
+      }
+      const ranked = [...kinds.entries()].sort((a, b) => b[1] - a[1]);
+      const top = ranked[0];
+      const kind = !top ? 'empty' : top[1] * 2 > filled ? top[0] : 'mixed';
+      // The ROLE a column plays, which is a different question from what type
+      // its cells are: an id column and a code column are both text. The
+      // ladder and its names are Get-ColumnRole's from wps's ExcelCom.ps1, so
+      // the two routes report a column the same way and a reader moving
+      // between them is not learning a second vocabulary.
+      const role =
+        !filled ? 'Empty'
+        : counts.size === 1 ? 'Constant'
+        : counts.size === filled && filled === scanned.length ? 'Key'
+        : kind === 'number' ? 'Measure'
+        : kind === 'text' && counts.size <= (cfg.categorical === undefined ? 25 : cfg.categorical) ? 'Categorical'
+        : 'Plain';
+      return {
+        col: idx,
+        letter: colLetter(idx),
+        header: header ? String(header.cells?.[idx] ?? '') : '',
+        rows: scanned.length,
+        filled,
+        blank: scanned.length - filled,
+        // A column every one of whose values was computed is a derived column,
+        // and that is a different thing from data somebody entered.
+        computed,
+        distinct: counts.size,
+        kind,
+        role,
+        kinds: Object.fromEntries(ranked),
+        min, max,
+        // Most common first, so a coded column shows its codes and a free-text
+        // column shows that its values barely repeat.
+        top: [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+          .slice(0, keep).map(([value, count]) => ({ value, count })),
+      };
+    }
+=== UNIT lib/kits/xlsx.js:1884 | call(…) > cellStyle ===
+function cellStyle(xl, styleIndex) {
+    if (styleIndex == null || styleIndex === '') return null;
+    const xf = xl.xfs?.[Number(styleIndex)];
+    if (!xf) return null;
+    const font = xl.fonts?.[xf.fontId] || null;
+    const border = xl.borders?.[xf.borderId] || null;
+    return {
+      bold: !!font?.bold, italic: !!font?.italic, underline: !!font?.underline,
+      strike: !!font?.strike,
+      size: font?.size ?? 11, color: font?.color || null, fontName: font?.name || null,
+      fill: xl.fills?.[xf.fillId] || null,
+      border: border && (border.top || border.right || border.bottom || border.left) ? border : null,
+      align: xf.align || null, valign: xf.valign || null,
+      wrap: !!xf.wrap, indent: xf.indent || 0,
+      format: cellFormat(xl, styleIndex),
+    };
+  }
+=== UNIT lib/kits/xlsx.js:1914 | call(…) > asNumber ===
+(formula) => {
+    const t = String(formula ?? '').trim().replace(/^=/, '');
+    // A quoted string, a reference or a call is not a constant this can use.
+    if (!/^-?\d*\.?\d+(e[-+]?\d+)?$/i.test(t)) return null;
+    return Number(t);
+  }
+=== UNIT lib/kits/xlsx.js:1920 | call(…) > asText ===
+(formula) => {
+    const t = String(formula ?? '').trim().replace(/^=/, '');
+    const m = /^"(.*)"$/s.exec(t);
+    return m ? m[1] : null;
+  }
+=== UNIT lib/kits/xlsx.js:1934 | call(…) > cfApplies ===
+function cfApplies(rule, cell) {
+    const text = String(cell?.text ?? '');
+    // `raw` carries the stored value only where the DRAWN one differs from it,
+    // so a plain number has none and its own text is the stored value. Reading
+    // `raw` alone made every unformatted cell look non-numeric, and a numeric
+    // rule then declined to decide on exactly the cells it was written for.
+    const raw = cell?.raw ?? text;
+    switch (rule.type) {
+      case 'containsBlanks': return text === '';
+      case 'notContainsBlanks': return text !== '';
+      case 'containsText': return !!rule.text && text.includes(rule.text);
+      case 'notContainsText': return !rule.text || !text.includes(rule.text);
+      case 'beginsWith': return !!rule.text && text.startsWith(rule.text);
+      case 'endsWith': return !!rule.text && text.endsWith(rule.text);
+      case 'cellIs': {
+        const value = Number(raw);
+        const numeric = raw !== '' && isFinite(value);
+        if (rule.operator === 'between' || rule.operator === 'notBetween') {
+          const lo = asNumber(rule.formulas[0]), hi = asNumber(rule.formulas[1]);
+          if (lo == null || hi == null || !numeric) return null;
+          const within = value >= Math.min(lo, hi) && value <= Math.max(lo, hi);
+          return rule.operator === 'between' ? within : !within;
+        }
+        const compare = CF_COMPARE[rule.operator];
+        if (!compare) return null;
+        const n = asNumber(rule.formulas[0]);
+        if (n != null) return numeric ? compare(value, n) : null;
+        const s = asText(rule.formulas[0]);
+        return s != null ? compare(text, s) : null;
+      }
+      default: return null;   // expression, colorScale, dataBar, iconSet, top10…
+    }
+  }
+=== UNIT lib/kits/xlsx.js:1972 | call(…) > dxfStyle ===
+function dxfStyle(xl, dxfId) {
+    const d = xl?.dxfs?.[Number(dxfId)];
+    if (!d) return null;
+    const out = {};
+    if (d.font) {
+      if (d.font.bold) out.bold = true;
+      if (d.font.italic) out.italic = true;
+      if (d.font.underline) out.underline = true;
+      if (d.font.strike) out.strike = true;
+      if (d.font.color) out.color = d.font.color;
+    }
+    if (d.fill) out.fill = d.fill;
+    if (d.border && (d.border.top || d.border.right || d.border.bottom || d.border.left)) {
+      out.border = d.border;
+    }
+    return Object.keys(out).length ? out : null;
+  }
+=== UNIT lib/kits/xlsx.js:2001 | call(…) > markLinks ===
+function markLinks(out, sheet) {
+    const links = (sheet?.hyperlinks || []).filter(h => h.href || h.location).reverse();
+    if (!links.length) return;
+    for (const row of out) for (const c of row.cells) {
+      const h = links.find(h => h.ranges.some(r =>
+        row.row >= r.r1 && row.row <= r.r2 && c.col >= r.c1 && c.col <= r.c2));
+      if (h) c.link = { href: h.href, location: h.location, tooltip: h.tooltip };
+    }
+  }
+=== UNIT lib/kits/xlsx.js:2011 | call(…) > sheetLayout ===
+function sheetLayout(sheet, xl, opts) {
+    const maxCells = opts?.maxCells ?? 30000;
+    const maxRows = opts?.maxRows ?? 2000;
+    const rows = sheet?.rows || [];
+    const merges = sheet?.merges || [];
+
+    // The drawn range covers the ANCHORS too, not only the cells. A picture or
+    // chart on an otherwise empty sheet is the whole content of that sheet, and
+    // stopping at the last row that holds a value drops it.
+    const anchored = [...(sheet?.drawings || []), ...(sheet?.images || [])];
+    const lastRow = Math.max(0, ...rows.map(r => r.row),
+      ...anchored.map(a => (a.to?.row ?? a.from.row) + 1));
+    const lastCol = Math.max(-1,
+      ...rows.flatMap(r => Object.keys(r.cells).map(Number)),
+      ...merges.map(m => m.c2),
+      ...anchored.map(a => a.to?.col ?? a.from.col));
+    if (lastRow < 1 || lastCol < 0) {
+      return { cols: [], rows: [], maxCol: -1, freeze: null, truncated: null,
+               images: [], drawings: [], cfSkipped: 0, empty: true };
+    }
+
+    // Merge anchors carry the span; every other cell the merge covers is
+    // skipped, since a covered cell in an .xlsx still exists and still carries
+    // a style, and emitting it would push the row one column right per merge.
+    const anchors = new Map();
+    const covered = new Set();
+    for (const m of merges) {
+      anchors.set(`${m.r1}:${m.c1}`, { cols: m.c2 - m.c1 + 1, rows: m.r2 - m.r1 + 1 });
+      for (let r = m.r1; r <= m.r2; r++) {
+        for (let c = m.c1; c <= m.c2; c++) if (r !== m.r1 || c !== m.c1) covered.add(`${r}:${c}`);
+      }
+    }
+
+    const colWidth = /* nested: colWidth, lines 2044-2048 */;
+    const cols = Array.from({ length: lastCol + 1 }, (_, i) => ({ index: i, width: colWidth(i) }));
+
+    const byRow = new Map(rows.map(r => [r.row, r]));
+    const out = [];
+    let cells = 0, truncated = null;
+    for (let n = 1; n <= lastRow; n++) {
+      if (out.length >= maxRows || cells >= maxCells) {
+        truncated = { fromRow: n, lastRow, reason: out.length >= maxRows ? 'rows' : 'cells' };
+        break;
+      }
+      const row = byRow.get(n);
+      // A row the file never wrote is still a row on screen, and skipping it
+      // would slide every row number below it out of line with the gutter.
+      if (row?.hidden) continue;
+      const emitted = [];
+      for (let c = 0; c <= lastCol; c++) {
+        if (covered.has(`${n}:${c}`)) continue;
+        const raw = row?.cells?.[c];
+        const styleIndex = row?.styles?.[c] ?? null;
+        const type = row?.types?.[c] ?? null;
+        const format = cellFormat(xl, styleIndex);
+        const text = raw == null ? '' : formatValue(raw, format, xl?.date1904);
+        // Excel's General alignment: numbers right, everything else left. A
+        // cell explicitly formatted as text is a string however it is stored,
+        // which is what the `t="@"` codes on account numbers and fund codes
+        // are for.
+        const stringy = type === 's' || type === 'str' || type === 'inlineStr' ||
+                        type === 'b' || type === 'e';
+        const numeric = !stringy && format?.kind !== 'text' &&
+                        raw !== '' && raw != null && isFinite(Number(raw));
+        const span = anchors.get(`${n}:${c}`);
+        emitted.push({
+          col: c, text, numeric, style: styleIndex,
+          // The stored value, where the drawn one is a rounded or reformatted
+          // version of it. Handed to the reader as a tooltip rather than
+          // dropped, because a format can hide a decimal a budget turns on.
+          raw: text !== String(raw ?? '') ? String(raw ?? '') : null,
+          colSpan: span?.cols ?? 1, rowSpan: span?.rows ?? 1,
+        });
+        cells++;
+      }
+      markSpill(emitted, xl);
+      out.push({
+        row: n,
+        height: heightToPx(row?.height ?? sheet.defaultRowHeight ?? 15),
+        cells: emitted,
+      });
+    }
+
+    const cfSkipped = markConditional(out, sheet);
+    markNotes(out, sheet, xl);
+    markLinks(out, sheet);
+    markTablesAndPivots(out, sheet, xl);
+    const drawings = placeDrawings(sheet, xl, out, cols);
+    const images = drawings.filter(d => d.kind === 'image');
+
+    return { cols, rows: out, maxCol: lastCol, freeze: sheet.freeze || null,
+             truncated, images, drawings, cfSkipped, empty: false };
+  }
+=== UNIT lib/kits/xlsx.js:2044 | call(…) > sheetLayout > colWidth ===
+(i) => {
+      const spec = (sheet.cols || []).find(c => i + 1 >= c.min && i + 1 <= c.max);
+      if (spec?.hidden) return 0;
+      return widthToPx(spec?.width ?? sheet.defaultColWidth ?? DEFAULT_COL_WIDTH);
+    }
+=== UNIT lib/kits/xlsx.js:2120 | call(…) > markConditional ===
+function markConditional(rows, sheet) {
+    const formats = (sheet.conditionalFormats || []).slice()
+      .sort((a, b) => a.priority - b.priority);
+    if (!formats.length) return 0;
+    const undecided = new Set();
+    for (const row of rows) {
+      for (const cell of row.cells) {
+        cell.cf = null;
+        for (const rule of formats) {
+          if (!inRange(rule.ranges, row.row, cell.col)) continue;
+          const fires = cfApplies(rule, cell);
+          if (fires === null) { undecided.add(rule); continue; }
+          if (!fires) continue;
+          if (rule.dxfId != null) { cell.cf = rule.dxfId; break; }
+          if (rule.stopIfTrue) break;
+        }
+      }
+    }
+    return undecided.size;
+  }
+=== UNIT lib/kits/xlsx.js:2150 | call(…) > markNotes ===
+function markNotes(rows, sheet, xl) {
+    const rules = sheet.validations || [];
+    const comments = new Map((sheet.comments || []).map(c => [c.ref, c]));
+    if (!rules.length && !comments.size) return;
+    const lists = new Map();   // formula -> resolved options, resolved once
+    for (const row of rows) {
+      for (const cell of row.cells) {
+        const hit = rules.find(v => inRange(v.ranges, row.row, cell.col));
+        const comment = comments.get(colLetter(cell.col) + row.row) || null;
+        let options = null;
+        if (hit?.type === 'list' && hit.formula1) {
+          if (!lists.has(hit.formula1)) lists.set(hit.formula1, listOptions(hit.formula1, sheet, xl));
+          options = lists.get(hit.formula1);
+        }
+        const title = hit?.promptTitle || '';
+        const prompt = hit?.prompt || '';
+        if (!comment && !title && !prompt && !options?.length) continue;
+        cell.note = {
+          kind: comment ? 'comment' : options?.length ? 'list' : 'instruction',
+          title, prompt, options: options || null,
+          comment: comment ? { author: comment.author, text: comment.text } : null,
+        };
+      }
+    }
+  }
+=== UNIT lib/kits/xlsx.js:2180 | call(…) > listOptions ===
+function listOptions(formula, sheet, xl) {
+    const f = String(formula).trim().replace(/^=/, '');
+    const inline = /^"(.*)"$/s.exec(f);
+    if (inline) return inline[1].split(',').map(s => s.trim()).filter(Boolean);
+
+    const m = /^(?:'([^']+)'|([A-Za-z0-9_À-￿.]+))?!?\$?([A-Z]+)\$?(\d+)(?::\$?([A-Z]+)\$?(\d+))?$/.exec(f);
+    if (!m) return null;
+    const sheetName = m[1] || m[2] || null;
+    let target = sheet;
+    if (sheetName) {
+      target = Object.values(xl?.sheets || {}).find(s => s.name === sheetName);
+      if (!target) return null;
+    }
+    const c1 = colIndexFromRef(m[3]), r1 = Number(m[4]);
+    const c2 = m[5] ? colIndexFromRef(m[5]) : c1, r2 = m[6] ? Number(m[6]) : r1;
+    const out = [];
+    for (const row of target.rows || []) {
+      if (row.row < Math.min(r1, r2) || row.row > Math.max(r1, r2)) continue;
+      for (let c = Math.min(c1, c2); c <= Math.max(c1, c2); c++) {
+        const v = row.cells?.[c];
+        if (v !== undefined && v !== '') out.push(String(v));
+      }
+    }
+    return out.length ? out : null;
+  }
+=== UNIT lib/kits/xlsx.js:2210 | call(…) > markTablesAndPivots ===
+function markTablesAndPivots(rows, sheet, xl) {
+    if (!xl) return;
+
+    // 1. Tables (ListObjects / QueryTables)
+    const tables = (sheet.tables || []).map(p => xl.tables?.[p]).filter(Boolean);
+    for (const tbl of tables) {
+      const rng = parseRange(tbl.ref);
+      if (!rng) continue;
+      const hrc = tbl.headerRowCount != null ? tbl.headerRowCount : 1;
+      const trc = tbl.totalsRowCount != null ? tbl.totalsRowCount : 0;
+      const dataStart = rng.r1 + hrc;
+      const dataEnd = rng.r2 - trc;
+      const showStripes = tbl.styleInfo ? tbl.styleInfo.showRowStripes : true;
+
+      for (const r of rows) {
+        if (r.row < rng.r1 || r.row > rng.r2) continue;
+        const isHeader = r.row < dataStart;
+        const isTotal = trc > 0 && r.row > dataEnd;
+        const isData = !isHeader && !isTotal;
+        const isStripe = isData && showStripes && ((r.row - dataStart) % 2 === 1);
+
+        for (const cell of r.cells) {
+          if (cell.col < rng.c1 || cell.col > rng.c2) continue;
+          if (isHeader) {
+            cell.tableRole = 'tbl-hdr';
+            // Excel draws the dropdown only where the table keeps its filter.
+            if (tbl.autoFilter) cell.hasFilter = true;
+          } else if (isTotal) {
+            cell.tableRole = 'tbl-total';
+          } else if (isStripe) {
+            cell.tableRole = 'tbl-stripe';
+          } else {
+            cell.tableRole = 'tbl-data';
+          }
+        }
+      }
+    }
+
+    // 2. Pivot Tables
+    const pivots = (sheet.pivotTables || []).map(p => xl.pivotTables?.[p]).filter(Boolean);
+    for (const pt of pivots) {
+      const rng = parseRange(pt.ref);
+      if (!rng) continue;
+      const fdr = pt.firstDataRow != null ? pt.firstDataRow : 1;
+      const dataStartRow = rng.r1 + fdr;
+      const fdc = pt.firstDataCol != null ? pt.firstDataCol : 1;
+      const dataStartCol = rng.c1 + fdc;
+
+      for (const r of rows) {
+        if (r.row < rng.r1 || r.row > rng.r2) continue;
+        const isHeaderRow = r.row < dataStartRow;
+        const isGrandTotal = pt.rowGrandTotals && r.row === rng.r2;
+
+        let isSubtotal = false;
+        if (!isHeaderRow && !isGrandTotal) {
+          for (const c of r.cells) {
+            if (c.col >= rng.c1 && c.col < dataStartCol) {
+              const txt = (c.text || '').trim();
+              if (txt && /total$/i.test(txt) && !/grand total$/i.test(txt)) {
+                isSubtotal = true;
+                break;
+              }
+            }
+          }
+        }
+
+        for (const cell of r.cells) {
+          if (cell.col < rng.c1 || cell.col > rng.c2) continue;
+          if (isHeaderRow) {
+            cell.pvtRole = 'pvt-hdr';
+            // The dropdown sits on the field buttons only: the row-label
+            // headers just above the data, and the column-label header on the
+            // top row. Item captions such as FY2028 carry none.
+            if (cell.text && ((r.row === dataStartRow - 1 && cell.col < dataStartCol) ||
+                (pt.colFields > 0 && r.row === rng.r1 && cell.col === dataStartCol))) cell.hasFilter = true;
+          } else if (isGrandTotal) {
+            cell.pvtRole = 'pvt-grandtotal';
+          } else if (isSubtotal) {
+            cell.pvtRole = 'pvt-subtotal';
+          } else if (cell.col < dataStartCol) {
+            cell.pvtRole = 'pvt-row-hdr';
+            // A collapse box means an item has children, so only a pivot with
+            // more than one row field draws one.
+            if (pt.rowFields > 1 && cell.text && !cell.text.includes('Total') && cell.col === rng.c1) {
+              cell.hasHierarchyToggle = true;
+            }
+          } else {
+            cell.pvtRole = 'pvt-data';
+          }
+        }
+      }
+    }
+  }
+=== UNIT lib/kits/xlsx.js:2313 | call(…) > formulaText ===
+function formulaText(sheet, row, col) {
+    const f = row?.formulas?.[col];
+    if (typeof f === 'string') return '=' + f;
+    if (f !== true) return '';
+    const si = row?.shared?.[col];
+    return si != null ? `=[fill ${si}] ${sheet?.sharedFormulas?.[si] ?? ''}`.trimEnd() : '=';
+  }
+=== UNIT lib/kits/xlsx.js:2332 | call(…) > formulaFor ===
+function formulaFor(sheet, row, col) {
+    const f = row?.formulas?.[col];
+    if (typeof f === 'string') return '=' + f;
+    if (f !== true) return '';
+    const si = row?.shared?.[col];
+    const text = si != null ? sheet?.sharedFormulas?.[si] : null;
+    if (text == null) return null;
+    if (!masters.has(sheet)) {
+      const m = {};
+      for (const r of sheet.rows || []) {
+        for (const [c, ff] of Object.entries(r.formulas || {})) {
+          const id = r.shared?.[c];
+          if (typeof ff === 'string' && id != null && !m[id]) m[id] = { r: r.row, c: Number(c) };
+        }
+      }
+      masters.set(sheet, m);
+    }
+    const at = masters.get(sheet)[si];
+    if (!at) return null;
+    return '=' + shiftRefs(text, row.row - at.r, Number(col) - at.c);
+  }
+=== UNIT lib/kits/xlsx.js:2360 | call(…) > shiftRefs ===
+function shiftRefs(text, dr, dc) {
+    if (!dr && !dc) return text;
+    const moveCol = /* nested: moveCol, lines 2362-2366 */;
+    const moveRow = /* nested: moveRow, lines 2367-2371 */;
+    const REF = /(?<![A-Za-z0-9_.])(?:(\$?)([A-Z]{1,3})(\$?)(\d+)(?![A-Za-z0-9_(!])|(\$?)([A-Z]{1,3}):(\$?)([A-Z]{1,3})(?![A-Za-z0-9_(])|(\$?)(\d+):(\$?)(\d+)(?![A-Za-z0-9_.(]))/g;
+    return text.split(/("(?:[^"]|"")*")/).map(/* nested: map(…), lines 2373-2385 */).join('');
+  }
+=== UNIT lib/kits/xlsx.js:2362 | call(…) > shiftRefs > moveCol ===
+(abs, letters) => {
+      if (abs) return abs + letters;
+      const n = colNum(letters) + dc;
+      return n < 0 || n > 16383 ? null : colLetter(n);
+    }
+=== UNIT lib/kits/xlsx.js:2367 | call(…) > shiftRefs > moveRow ===
+(abs, digits) => {
+      if (abs) return abs + digits;
+      const n = Number(digits) + dr;
+      return n < 1 || n > 1048576 ? null : String(n);
+    }
+=== UNIT lib/kits/xlsx.js:2373 | call(…) > shiftRefs > map(…) ===
+(part, i) => i % 2 ? part : part.replace(REF,
+      /* nested: replace(…), lines 2374-2385 */)
+=== UNIT lib/kits/xlsx.js:2374 | call(…) > shiftRefs > map(…) > replace(…) ===
+(m, ca, cl, ra, rd, c1a, c1, c2a, c2, r1a, r1, r2a, r2) => {
+        if (cl) {
+          const c = moveCol(ca, cl), r = moveRow(ra, rd);
+          return c == null || r == null ? '#REF!' : c + r;
+        }
+        if (c1) {
+          const a = moveCol(c1a, c1), b = moveCol(c2a, c2);
+          return a == null || b == null ? '#REF!' : `${a}:${b}`;
+        }
+        const a = moveRow(r1a, r1), b = moveRow(r2a, r2);
+        return a == null || b == null ? '#REF!' : `${a}:${b}`;
+      }
+=== UNIT lib/kits/xlsx.js:2395 | call(…) > workbookNotes ===
+function workbookNotes(xl) {
+    const out = [];
+    const sheets = Object.entries(xl?.sheets || {})
+      .map(([key, s]) => ({ key, s }))
+      .sort((a, b) => (a.s.index ?? 1e9) - (b.s.index ?? 1e9) || a.key.localeCompare(b.key));
+    for (const { key, s } of sheets) {
+      const name = s.name || key;
+      for (const c of s.comments || []) {
+        out.push({ sheet: name, cell: c.ref, kind: 'comment',
+                   author: c.author || '', title: '', text: c.text || '', options: null });
+      }
+      // A validation covers a RANGE, and one row per cell of it would bury the
+      // list: the fee form's thirteen instructions cover ninety-seven cells.
+      // One row per rule, addressed at the range's first cell.
+      for (const v of s.validations || []) {
+        const options = v.type === 'list' && v.formula1 ? listOptions(v.formula1, s, xl) : null;
+        if (!v.prompt && !v.promptTitle && !options?.length) continue;
+        const first = v.ranges?.[0];
+        out.push({
+          sheet: name,
+          cell: first ? colLetter(first.c1) + first.r1 : '',
+          span: v.ranges?.length
+            ? v.ranges.map(r => r.r1 === r.r2 && r.c1 === r.c2
+                ? colLetter(r.c1) + r.r1
+                : `${colLetter(r.c1)}${r.r1}:${colLetter(r.c2)}${r.r2}`).join(' ')
+            : '',
+          kind: options?.length ? 'list' : 'instruction',
+          author: '', title: v.promptTitle || '', text: v.prompt || '', options: options || null,
+        });
+      }
+    }
+    return out;
+  }
+=== UNIT lib/kits/xlsx.js:2436 | call(…) > placeDrawings ===
+function placeDrawings(sheet, xl, rows, cols) {
+    const drawings = sheet.drawings || sheet.images || [];
+    if (!drawings.length) return [];
+    const drawn = new Set(rows.map(r => r.row));
+    const width = (c) => cols[c]?.width || 0;
+    const span = (from, to) => { let n = 0; for (let c = from; c < to; c++) n += width(c); return n; };
+    const heightBetween = (r1, r2) => rows
+      .filter(r => r.row >= r1 && r.row < r2)
+      .reduce((a, r) => a + r.height, 0);
+
+    const out = [];
+    for (const d of drawings) {
+      const isChart = d.kind === 'chart';
+      const src = isChart ? null : xl?.media?.[d.part];
+      if (!isChart && !src) continue;
+      if (!drawn.has(d.from.row + 1)) continue;   // from.row is 0-based
+      let row = d.from.row + 1, col = d.from.col;
+      let dx = emuToPx(d.from.colOff), dy = emuToPx(d.from.rowOff);
+
+      const cover = (sheet.merges || []).find(m =>
+        row >= m.r1 && row <= m.r2 && col >= m.c1 && col <= m.c2);
+      if (cover) {
+        dx += span(cover.c1, col);
+        dy += heightBetween(cover.r1, row);
+        row = cover.r1; col = cover.c1;
+      }
+
+      let w, h;
+      if (d.to) {
+        w = span(d.from.col, d.to.col) - emuToPx(d.from.colOff) + emuToPx(d.to.colOff);
+        h = heightBetween(d.from.row + 1, d.to.row + 1) - emuToPx(d.from.rowOff) + emuToPx(d.to.rowOff);
+      } else if (d.ext) {
+        w = emuToPx(d.ext.cx); h = emuToPx(d.ext.cy);
+      }
+      if (!(w > 0) || !(h > 0)) continue;
+      out.push({
+        kind: isChart ? 'chart' : 'image',
+        row, col, dx, dy, width: w, height: h,
+        src,
+        chart: d.chart || null,
+        name: d.name || '',
+      });
+    }
+    return out;
+  }
+=== UNIT lib/kits/xlsx.js:2501 | call(…) > markSpill ===
+function markSpill(cells, xl) {
+    const at = new Map(cells.map((c, i) => [c.col, i]));
+    const blank = /* nested: blank, lines 2503-2508 */;
+    for (const c of cells) {
+      c.spillLeft = 0;
+      c.spillRight = 0;
+      if (!c.text || c.numeric || c.colSpan > 1 || c.rowSpan > 1) continue;
+      const st = cellStyle(xl, c.style);
+      if (st?.wrap) continue;
+      const align = st?.align || 'left';
+      const right = align === 'left' || align === 'general' || align === 'fill' ||
+                    align === 'center' || align === 'centerContinuous' || align === 'justify';
+      const left = align === 'right' || align === 'center' || align === 'centerContinuous';
+      if (right) while (blank(c.col + c.spillRight + 1)) c.spillRight++;
+      if (left) while (c.col - c.spillLeft - 1 >= 0 && blank(c.col - c.spillLeft - 1)) c.spillLeft++;
+    }
+  }
+=== UNIT lib/kits/xlsx.js:2503 | call(…) > markSpill > blank ===
+(col) => {
+      const i = at.get(col);
+      if (i == null) return false;             // covered by a merge
+      const c = cells[i];
+      return c.text === '' && c.colSpan === 1 && c.rowSpan === 1;
+    }
+=== UNIT lib/kits/xlsx.js:2526 | call(…) > pathsView ===
+function pathsView({ el, connectedPaths }) {
+    return Object.entries(el).map(/* nested: map(…), lines 2527-2542 */);
+  }
+=== UNIT lib/kits/xlsx.js:2527 | call(…) > pathsView > map(…) ===
+([path, data]) => {
+      const [file, xmlPath] = path.split('::');
+      const features = [
+        ...Object.entries(data.attr).map(([a, vs]) => `${a} (${vs.size})`),
+        ...(data.text.size ? [`#text (${data.text.size})`] : []),
+      ];
+      const connected = connectedPaths.has(path);
+      return {
+        File: file,
+        Path: xmlPath,
+        Features: features.join(', '),
+        Count: data.count,
+        Connected: connected ? 'Yes' : 'No',
+        'Connection Type': connected ? file.split('/').pop().replace('.xml', '').replace('.rels', '') : '',
+      };
+    }
+=== UNIT lib/kits/xlsx.js:2545 | call(…) > connectionsView ===
+function connectionsView({ xl }) {
+    return Object.keys(xl.sheets).sort().map(/* nested: map(…), lines 2546-2583 */);
+  }
+=== UNIT lib/kits/xlsx.js:2546 | call(…) > connectionsView > map(…) ===
+name => {
+      const s = xl.sheets[name];
+      // Both `localSheetId` and calc-chain's `i` are ZERO-based workbook-order
+      // indices, so they answer to s.index and to nothing derived from the part
+      // filename. This used to compare localSheetId against the one-based file
+      // number, which could not match, and to match a global name's reference
+      // against the string "sheet1!" rather than the sheet's display name, so
+      // Named Ranges read 0 for every workbook. Fixed 2026-08-15 with the
+      // workbook <sheets> join.
+      const idx = s.index == null ? null : String(s.index);
+      const namedRanges = idx == null ? 0 : xl.definedNames.filter(d =>
+        d.sheetId === idx ||
+        (d.sheetId === 'global' && s.name && d.reference?.includes(`${s.name}!`))).length;
+      const calcChainCells = idx == null ? 0 : xl.calcChain.filter(c => c.sheetIndex === idx).length;
+      return {
+        Sheet: name,
+        // The name a reader would recognize, kept beside the part key rather
+        // than replacing it: the part key is what every other view addresses.
+        Name: s.name ?? '',
+        Order: s.index == null ? '' : s.index + 1,
+        Cells: s.cellCount,
+        Strings: s.usedStrings.size,
+        'String Ids': [...s.usedStrings].join(', '),
+        Styles: s.usedStyles.size,
+        Formulas: s.formulas,
+        'Merged Cells': s.mergedCells,
+        Comments: xl.comments[name]?.length || 0,
+        'Named Ranges': namedRanges,
+        'Calc Chain': calcChainCells,
+        // WHAT IS HERE BUT NOT ON SCREEN. A hidden sheet, row or column is
+        // still data, and a reader auditing a workbook is usually looking for
+        // exactly this; a value grid cannot show it by construction.
+        Visibility: s.visibility ?? '',
+        'Hidden Rows': (s.rows || []).filter(r => r.hidden).length,
+        'Hidden Cols': hiddenColumnCount(s),
+        Pivots: (s.pivotTables || []).length,
+      };
+    }
+=== UNIT lib/kits/xlsx.js:2594 | call(…) > pivotRecords ===
+function pivotRecords(xl, cachePart, opts) {
+    const cache = xl.pivotCaches?.[cachePart];
+    if (!cache?.recordsPart) return null;
+    const held = xl.pivotRecords[cache.recordsPart];
+    if (!held) return null;
+    const limit = opts?.limit;
+    const rows = (limit ? held.rows.slice(0, limit) : held.rows).map(row =>
+      Object.fromEntries(cache.fields.map((name, i) => [name || colLetter(i), row[i] ?? null])));
+    return {
+      rows,
+      fields: cache.fields,
+      // `total` is what the part actually contained and `declared` is what the
+      // definition claims. The two disagreeing is a fact about the file worth
+      // seeing rather than one to reconcile away.
+      total: held.total,
+      declared: cache.recordCount,
+      truncated: held.truncated || (limit != null && held.rows.length > limit),
+    };
+  }
+=== UNIT lib/kits/xlsx.js:2618 | call(…) > usedWidth ===
+function usedWidth(sheet) {
+    let max = -1;
+    for (const r of sheet.rows || [])
+      for (const k of Object.keys(r.cells || {})) max = Math.max(max, Number(k));
+    return max;
+  }
+=== UNIT lib/kits/xlsx.js:2625 | call(…) > hiddenColumnCount ===
+function hiddenColumnCount(sheet) {
+    const last = usedWidth(sheet);
+    if (last < 0) return 0;
+    let n = 0;
+    for (const c of sheet.cols || []) {
+      if (!c.hidden) continue;
+      // <col min/max> is 1-based and inclusive; `last` is a zero-based index.
+      const from = Math.max(1, c.min), to = Math.min(c.max, last + 1);
+      if (to >= from) n += to - from + 1;
+    }
+    return n;
+  }
+=== UNIT lib/kits/xlsx.js:2642 | call(…) > sourcesView ===
+function sourcesView({ xl }) {
+    return xl.connections.map(/* nested: map(…), lines 2643-2651 */);
+  }
+=== UNIT lib/kits/xlsx.js:2643 | call(…) > sourcesView > map(…) ===
+c => ({
+      Id: c.id,
+      Name: c.name,
+      Kind: c.kind,
+      Type: c.type,
+      'Power Query': c.powerQuery ? 'yes' : '',
+      Detail: c.detail,
+      Description: c.description,
+    })
+=== UNIT lib/kits/xlsx.js:2657 | call(…) > pivotsView ===
+function pivotsView({ xl }) {
+    return Object.entries(xl.pivotTables).map(/* nested: map(…), lines 2658-2674 */);
+  }
+=== UNIT lib/kits/xlsx.js:2658 | call(…) > pivotsView > map(…) ===
+([part, pt]) => {
+      const cache = pt.cachePart ? xl.pivotCaches[pt.cachePart] : null;
+      const sheet = pt.sheet ? xl.sheets[pt.sheet] : null;
+      return {
+        Pivot: pt.name,
+        Sheet: sheet?.name || pt.sheet || '',
+        Range: pt.ref,
+        Rows: pt.rowFields,
+        Cols: pt.colFields,
+        Filters: pt.pageFields,
+        Measures: pt.dataFields.join(', '),
+        Source: cache?.source ? `${cache.source.sheet || cache.source.name}!${cache.source.ref}` : '',
+        Records: cache?.recordCount ?? '',
+        'Cache Fields': cache ? cache.fields.length : '',
+        Part: part,
+      };
+    }
+=== UNIT lib/kits/xlsx.js:2677 | call(…) > unconnectedView ===
+function unconnectedView({ el, connectedPaths }) {
+    const category = (file, path) =>
+      path?.match(/(?:^|\.)(extLst|ext)(?:\.|$)/)?.[1] ||
+      (file.match(/(?:^|\/)xl\/([^/]+)/)?.[1] || file.split('/')[0] || file).replace(/\.\w+$/, '');
+    return Object.entries(el)
+      .filter(([p]) => !connectedPaths.has(p))
+      .map(/* nested: map(…), lines 2683-2693 */)
+      .sort((a, b) => a.Category.localeCompare(b.Category) || b.Count - a.Count);
+  }
+=== UNIT lib/kits/xlsx.js:2683 | call(…) > unconnectedView > map(…) ===
+([p, v]) => {
+        const [file, path] = p.split('::');
+        return {
+          Category: category(file, path),
+          File: file,
+          Path: path,
+          Count: v.count,
+          Attributes: Object.keys(v.attr).length,
+          'Has Text': v.text.size ? 'Yes' : 'No',
+        };
+      }
+=== UNIT lib/kits/xlsx.js:2697 | call(…) > filesView ===
+function filesView({ el, connectedPaths, conns }) {
+    const byFile = {};
+    for (const [key, data] of Object.entries(el)) {
+      const fn = key.split('::')[0];
+      const f = (byFile[fn] ??= { pathCount: 0, connected: 0, attrs: new Set(), hasText: false });
+      f.pathCount++;
+      if (connectedPaths.has(key)) f.connected++;
+      for (const a of Object.keys(data.attr)) f.attrs.add(a);
+      if (data.text.size) f.hasText = true;
+    }
+    return Object.entries(byFile).map(/* nested: map(…), lines 2707-2731 */).sort((a, b) => a.Category.localeCompare(b.Category) || a.File.localeCompare(b.File));
+  }
+=== UNIT lib/kits/xlsx.js:2707 | call(…) > filesView > map(…) ===
+([fn, stats]) => {
+      const info = conns[fn] || { sheets: new Set(), types: new Set() };
+      const sheets = [...info.sheets].sort();
+      const lower = fn.toLowerCase(); // case-insensitive: real part names are
+                                      // mixed-case (sharedStrings.xml, calcChain.xml)
+      const category =
+        /sheet\d+\.xml$/.test(fn) ? 'Sheet Data' :
+        fn === '[Content_Types].xml' ? 'Content Types' :
+        /(app\.xml|core\.xml)/.test(fn) ? 'Properties' :
+        ['Theme', 'Styles', 'Shared Strings', 'Workbook', 'Comments', 'Calc Chain']
+          .find(k => lower.includes(k.replace(' ', '').toLowerCase())) ||
+        (fn.includes('.rels') ? 'Relationships' : 'Other');
+      return {
+        File: fn,
+        Category: category,
+        Paths: stats.pathCount,
+        Connected: stats.connected,
+        'Sheets Touched': sheets.join(', '),
+        Sheets: sheets.length,
+        'Conn Types': [...info.types].join(', ') || 'None',
+        'Attr Count': stats.attrs.size,
+        Attrs: [...stats.attrs].filter(a => !a.startsWith('@xmlns')).map(a => a.replace(/^@/, '')).join(', '),
+        'Has Text': stats.hasText ? 'Yes' : 'No',
+      };
+    }
+=== UNIT lib/kits/xlsx.js:2761 | call(…) > mashupPayload ===
+function mashupPayload(xmlString) {
+    const m = MASHUP_RE.exec(String(xmlString || ''));
+    if (!m) return null;
+    const b64 = m[1].replace(/\s+/g, '');
+    if (!b64) return null;
+    let bytes;
+    try { bytes = window.GH.decodeBytes(b64); } catch { return null; }
+    if (bytes.length < 8) return null;
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    const version = view.getUint32(0, true);
+    const declared = view.getUint32(4, true);
+    // Trust the declared length only when it fits; a truncated or padded blob
+    // falls back to "everything after the header", which is what the original
+    // assumed unconditionally.
+    const end = declared > 0 && 8 + declared <= bytes.length ? 8 + declared : bytes.length;
+    return { version, declaredLength: declared, zip: bytes.subarray(8, end) };
+  }
+=== UNIT lib/kits/xlsx.js:2781 | call(…) > readMashup ===
+async function readMashup(xmlString) {
+    const payload = mashupPayload(xmlString);
+    if (!payload) return null;
+    const ZipLib = await loadZip();
+    let zip;
+    try { zip = await ZipLib.loadAsync(payload.zip); } catch { return null; }
+    const sections = await Promise.all(
+      Object.entries(zip.files)
+        .filter(([path, f]) => !f.dir && /\.m$/i.test(path))
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(async ([path, f]) => ({ path, m: await f.async('string') }))
+    );
+    return { version: payload.version, sections };
+  }
+=== UNIT lib/kits/xlsx.js:2796 | call(…) > readZip ===
+async function readZip(input) {
+    const ZipLib = await loadZip();
+    const zip = await ZipLib.loadAsync(input);
+    const parts = await Promise.all(
+      Object.entries(zip.files)
+        .filter(([path, f]) => !f.dir && /\.(xml|rels)$/.test(path))
+        .map(async ([path, f]) => [path, await f.async('string')])
+    );
+    const result = analyze(parts);
+
+    // MEDIA, attached here for the same reason the mashup is: analyze() takes
+    // XML strings by contract, and a PNG is neither XML nor a string. Each
+    // image becomes a data: URI, since the page drawing it has no zip to fetch
+    // from. Only the raster formats a browser draws; an EMF or WMF logo is
+    // skipped rather than handed over as a broken <img>.
+    const MEDIA_MIME = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg',
+                         gif: 'image/gif', bmp: 'image/bmp', webp: 'image/webp', svg: 'image/svg+xml' };
+    await Promise.all(Object.entries(zip.files)
+      .filter(([path, f]) => !f.dir && path.startsWith('xl/media/'))
+      .map(/* nested: map(…), lines 2815-2820 */));
+
+    // analyze() is synchronous by contract, and inflating the mashup is not,
+    // so the queries are attached here rather than inside it. Any customXml
+    // part can carry it; item1.xml is convention, not rule.
+    for (const [path, xml] of parts) {
+      if (!/customXml\//i.test(path) || !MASHUP_RE.test(xml)) continue;
+      const mashup = await readMashup(xml);
+      if (mashup) { result.xl.powerQuery = { part: path, ...mashup }; break; }
+    }
+    return result;
+  }
+=== UNIT lib/kits/xlsx.js:2815 | call(…) > readZip > map(…) ===
+async ([path, f]) => {
+        const ext = (path.split('.').pop() || '').toLowerCase();
+        const mime = MEDIA_MIME[ext];
+        if (!mime) return;
+        result.xl.media[path] = `data:${mime};base64,${await f.async('base64')}`;
+      }
+=== UNIT lib/kits/xlsx-extract.js:48#1 | call(…) (part 1 of 2) ===
+() => {
+  const KIND = 'workbook-extract/1';
+  const SELECTED_KIND = 'workbook-extract/2';
+
+  // Read at call time rather than at load: this kit is registered before a
+  // page's gh.load chain finishes, so binding the namespace here would capture
+  // an undefined. The throw names the missing load, since the alternative is a
+  // TypeError three frames down that reads as a bug in this file.
+  const kit = () => {
+    if (!window.xlsxKit) throw new Error('kits/xlsx-extract.js requires window.xlsxKit (load kits/xlsx.js first)');
+    return window.xlsxKit;
+  };
+
+  // A1 address from a zero-based column index and a 1-based row.
+  const at = (col, row) => kit().colLetter(col) + row;
+
+  // A sheet's rows keyed by the column letter, which is what sheetRows returns
+  // and what every tabular kind below either is or joins to.
+  const sheetsOf = (xl) => Object.entries(xl?.sheets || {})
+    .map(([key, s]) => ({ key, s, name: s.name || key }))
+    .sort((a, b) => (a.s.index ?? 1e9) - (b.s.index ?? 1e9) || a.key.localeCompare(b.key));
+
+  // ---- the kinds ----------------------------------------------------------
+  //
+  // One entry per kind. `count` is the cheap answer for a picker's matrix and
+  // `parts` is the expensive one that actually builds rows; the two MUST agree,
+  // since a matrix cell showing 400 beside an item holding 12 is a lie about
+  // the file rather than about the cut. Where a cheap count could not be made
+  // exact the kind counts the same way it produces (`columns` scans the row
+  // keys, which is the set profileColumns itself enumerates).
+  //
+  // `parts` returns a LIST, because three kinds legitimately produce more than
+  // one item: a workbook has one records table per pivot cache and one M
+  // section per query part, and folding those together would lose which cache
+  // or which section a row came from.
+
+  // One sheet in the serialized-workbook shape:
+  //   { SheetName, Dimension, MergedCells: ['A1:B1', …],
+  //     Cells: [{ Address, Formula, Value }, …] }
+  // Formula is '' for an entered cell, '=<text>' where the file stored text,
+  // and '=[fill N] <master text>' for a shared-formula follower, whose own
+  // text the file never stored. Value is the cached value as a string, which
+  // is how the PowerShell exporter writes it too.
+  const serializeSheet = /* nested: serializeSheet, lines 91-115 */;
+
+  // A number a cell holds, for the formula table's Value column: the raw value
+  // as stored, since a formula's result under a date format is a different
+  // question from the formula itself.
+  const rowCells = (r) => r?.cells || {};
+
+  const notesFor = (xl, name, want) => kit().workbookNotes(xl)
+    .filter(n => n.sheet === name && (want === 'comment' ? n.kind === 'comment' : n.kind !== 'comment'));
+
+  // A dxf index turned into the few words a reader needs: what the rule paints.
+  // The full record is available through xlsxKit.dxfStyle; a table cell wants a
+  // label, and an empty one is honest where the rule names no format at all.
+  const dxfLabel = /* nested: dxfLabel, lines 128-142 */;
+
+  const KINDS = [
+    {
+      id: 'values', label: 'Values', scope: 'sheet', view: 'table',
+      gloss: 'every row, read through its number format',
+      count: (s) => (s.rows || []).length,
+      parts: ({ s, xl }) => [{ rows: kit().sheetRows(s, xl) }],
+    },
+    {
+      // THE SERIALIZED-WORKBOOK SHAPE, one object per sheet: every cell as
+      // its address, its formula and its cached value, plus the sheet's
+      // declared range and merges. It is the shape home's PowerShell
+      // exporter (Get-WsDetail) writes and the fund view's reader consumes,
+      // so an extract taken here lands where that export already lands. Raw
+      // values on purpose: a number formatted "33,912,780" is a string the
+      // reader cannot parse, and the cached value is what the file holds.
+      // Never cut, since a partial sheet in this shape reads as a whole one.
+      id: 'cells', label: 'Cells', scope: 'sheet', view: 'code',
+      gloss: 'every cell as address, formula and cached value, in the serialized-workbook shape',
+      count: (s) => (s.rows || []).reduce((n, r) => n + Object.keys(r.cells || {}).length, 0),
+      parts: /* nested: parts, lines 163-171 */,
+    },
+    {
+      id: 'formulas', label: 'Formulas', scope: 'sheet', view: 'table',
+      gloss: 'one row per computed cell, with the stored formula text',
+      count: (s) => (s.rows || []).reduce((n, r) => n + Object.keys(r.formulas || {}).length, 0),
+      parts: /* nested: parts, lines 177-201 */,
+    },
+    {
+      id: 'styles', label: 'Styles', scope: 'sheet', view: 'table',
+      gloss: 'one row per cell carrying a style, flattened to what it draws',
+      count: (s) => (s.rows || []).reduce((n, r) => n + Object.keys(r.styles || {}).length, 0),
+      parts: /* nested: parts, lines 207-241 */,
+    },
+    {
+      id: 'merges', label: 'Merges', scope: 'sheet', view: 'table',
+      gloss: 'one row per merged range, with the anchor cell it draws from',
+      count: (s) => (s.merges || []).length,
+      parts: /* nested: parts, lines 247-258 */,
+    },
+    {
+      id: 'comments', label: 'Comments', scope: 'sheet', view: 'table',
+      gloss: 'the notes people left on cells',
+      count: (s, xl, name) => notesFor(xl, name, 'comment').length,
+      parts: /* nested: parts, lines 264-268 */,
+    },
+    {
+      id: 'validations', label: 'Validations', scope: 'sheet', view: 'table',
+      gloss: "a form's own field instructions and choice lists, one row per rule",
+      count: (s, xl, name) => notesFor(xl, name, 'validation').length,
+      parts: /* nested: parts, lines 274-286 */,
+    },
+    {
+      id: 'conditional', label: 'Conditional', scope: 'sheet', view: 'table',
+      gloss: 'the rules that repaint a cell, as written, not as evaluated',
+      count: (s) => (s.conditionalFormats || []).length,
+      parts: /* nested: parts, lines 292-311 */,
+    },
+    {
+      id: 'columns', label: 'Column profiles', scope: 'sheet', view: 'table',
+      gloss: 'what each column holds: role, kind, fill, distincts',
+      count: /* nested: count, lines 316-320 */,
+      parts: ({ s, xl, headerRow }) => [{
+        rows: profileRows(s, xl, headerRow),
+      }],
+    },
+    {
+      id: 'pivots', label: 'Pivots', scope: 'workbook', view: 'table',
+      gloss: 'one row per pivot table, joined to the cache it reads',
+      count: (result) => Object.keys(result.xl.pivotTables || {}).length,
+      parts: ({ result }) => [{ rows: kit().views.pivots(result) }],
+    },
+    {
+      id: 'records', label: 'Pivot records', scope: 'workbook', view: 'table',
+      gloss: 'the rows behind a pivot, one table per cache',
+      count: (result) => caches(result.xl)
+        .reduce((n, part) => n + (kit().pivotRecords(result.xl, part)?.total || 0), 0),
+      parts: /* nested: parts, lines 336-351 */,
+    },
+    {
+      id: 'sources', label: 'Sources', scope: 'workbook', view: 'table',
+      gloss: 'one row per external connection the workbook reaches',
+      count: (result) => (result.xl.connections || []).length,
+      parts: ({ result }) => [{ rows: kit().views.sources(result) }],
+    },
+    {
+      id: 'queries', label: 'Power Query', scope: 'workbook', view: 'code',
+      gloss: 'the M source, as source rather than as a table cell',
+      count: (result) => (result.xl.powerQuery?.sections || []).length,
+      parts: /* nested: parts, lines 363-367 */,
+    },
+  ];
+

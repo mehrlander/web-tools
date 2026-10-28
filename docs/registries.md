@@ -11,13 +11,8 @@ and what the suite checks. What each field means is not here. It is in
 [`registries.csv`](registries.csv), one row per registry;
 [`properties.csv`](properties.csv), one row per non-key column; and
 [`vocabularies.csv`](vocabularies.csv), one row per value of each closed
-domain. All three render in the app's **Map view, Registries tab**. The gate is
+domain. The app's **Map view, Data tab** shows a registry's row in its table's panel-tip and a column's definition in the column's. The gate is
 [`properties-registry.test.mjs`](../node/test/properties-registry.test.mjs).
-
-Settled 2026-08-08; the origin instrument is budget-drs's `properties.csv` in
-`mehrlander/home`. The dated account of how the model was reached and what its
-audits found was cut from this file on 2026-09-20 and stays in git history
-([last full copy](https://github.com/mehrlander/web-tools/blob/be2e302b8187/docs/registries.md)).
 
 ## A worked example
 
@@ -103,9 +98,8 @@ A registry has no type. `membership` says how targets enter: `computed`, the
 row set can be derived; `curated`, inclusion is authored. `inherits` names the
 registry whose descriptions are joined rather than copied. `span` says where the
 population lives: `hub`, this checkout bounds it; `estate`, the CSV aggregates
-rows about other repositories. One `kind` column with the values `census`,
-`catalog` and `crosswalk` held these from 2026-08-09 to 2026-08-18 and answered
-two questions at once. Do not reintroduce one.
+rows about other repositories. A single `kind` column (`census`, `catalog`,
+`crosswalk`) once answered these questions at once. Do not reintroduce one.
 
 The same separation holds for a property. `mode` is `recorded` (authored) or
 `computed` (derived by the script named in `deriver`). `required` is `value`
@@ -168,12 +162,7 @@ twice. What a stream must keep (ids, times, corrections) is the next document.
 2. Choose a stable key. Declare `identity` only if the key can be compared with
    other registries' keys.
 3. One table, one CSV file. Two registries never share a file.
-4. Add the row to `registries.csv`: `path`, `key`, `identity`, `membership`,
-   `inherits`, `target`, `scope`, `span`, `fields`, `gate`, `area`, `title`,
-   `gloss`. `fields` is `governed`; the suite asserts that no registry is
-   `ungoverned`, so declaring one means changing the test and stating why.
-   `gate` is a test path, or the token `none`. `area` is `files` where the
-   target has a path in this repository and `names` otherwise.
+4. Add the row to `registries.csv`: `path`, `key`, `identity`, `membership`, `inherits`, `target`, `scope`, `span`, `fields`, `gate`, `key_primitive`, `title`, `gloss`. `fields` is `governed`; the suite asserts that no registry is `ungoverned`, so declaring one means changing the test and stating why. `gate` is a test path, or the token `none`. `key_primitive` is `locator` where `identity` is `path` or `path:<prefix>`, and `id` otherwise.
 5. Add one row to `properties.csv` per non-key column: `mode`, `deriver` (for
    `computed`), `required`, `form`, `exclusive`, `values`, `column_primitive`,
    `gloss`.
@@ -191,6 +180,8 @@ the writer uses that list.
 A blank cell means *not asserted*, never an empty string or a checked result of
 none. Where that distinction matters, use a token: `gate: none` means checked,
 and nothing holds the registry. Read the token, not the cell's truthiness.
+
+Keep `recorded` and `computed` properties in separate files, so a generator does not overwrite values a person writes: `tests-index` writes `docs/tests.csv` whole, and in `docs/tests-authored.csv` only adds a row for a new test, with `kind` set to `behavior` and `protects` blank, or removes a deleted test's row. The exceptions are named, with reasons, in [`properties-registry.test.mjs`](../node/test/properties-registry.test.mjs).
 
 Store `recorded` values always; authored judgment cannot be recomputed. Store
 `computed` values only where a browser, a gate or a reviewable diff needs a
@@ -216,7 +207,9 @@ by its test names:
 - every `required: value` property is present on every row
 - a declared id is its registry key, and a declared label draws from a set or repeats
 - modes are coherent: computed names a real deriver, recorded names none
-- every registry declares its area, and leads with a title and a gloss
+- a registry file is all recorded or all computed, or a named exception
+- every registry declares its key primitive, and leads with a title and a gloss
+- a locator key resolves into the tree, and only a path identity makes one
 - `renders_in` matches its derivation on every registry
 - no target answers to two registries for the same property
 - the ownership gate still fires when two registries do claim one pair (a
@@ -235,15 +228,7 @@ each have a registry row, and every non-key column in both has a declaration.
 
 ## Reader-facing fields
 
-`title` and `gloss` identify a registry in the Map view. `area` groups the tab
-by one question: does the target have a path in this repository (`files`) or
-not (`names`). A topical grouping was tried first and did not hold. `renders_in`
-is derived by [`registries-reach.mjs`](../node/build/registries-reach.mjs)
-from the files under `lib/`, `pages/` and `app/` that name the registry's path.
-That directory list is literal (`APP_DIRS`); when the app moves, move it. An
-empty `renders_in` says no app surface reads the registry, which is a question
-rather than a verdict, since a GitHub-rendered projection is a legitimate
-consumer.
+`title` and `gloss` identify a registry in the Map view. `key_primitive` groups the Data tab's Registries list: registries keyed by a locator, then those keyed by an id. `renders_in` is derived by [`registries-reach.mjs`](../node/build/registries-reach.mjs) from the files under `lib/`, `pages/` and `app/` that name the registry's path. That directory list is literal (`APP_DIRS`); when the app moves, move it. An empty `renders_in` says no app surface reads the registry, which is a question rather than a verdict, since a GitHub-rendered projection is a legitimate consumer.
 
 ## Limits of the model
 
@@ -267,31 +252,12 @@ per target and property, anywhere.
 
 `span` separates the two populations this table can hold: `hub`, bounded by
 this checkout, and `estate`, an aggregate of rows other repositories author
-about themselves. A third arrangement does not fit: a governed artifact each
-repository carries, with no aggregate here. `.paths.json` had that shape until
-the hub retired it on 2026-09-21, and was not a row, because a registry's file
-must exist here and be CSV. [`estate-span.md`](estate-span.md) records the
-three arrangements.
+about themselves. A third arrangement, a governed artifact each repository
+carries with no aggregate here, is not a row, because a registry's file must
+exist here and be CSV. [`estate-span.md`](estate-span.md) records the three
+arrangements.
 
-### The same model in budget-drs
-
-budget-drs stores one property per file (54 of 54), so it declares properties
-directly and factors out no registry object. The hub's registries hold several
-properties each, so it does. Fan-out decides the form; neither is canonical.
-budget-drs's `columns.csv` describes the columns of every table, since most of
-its tables are not registries. Field for field:
-
-| hub `properties.csv` | budget-drs `columns.csv` | difference |
-| --- | --- | --- |
-| `registry`, `property` | `table`, `column` | the key |
-| `mode`: recorded, computed | `role`: source, authored, carried, computed | `recorded` is `authored`; `source` and `carried` have no hub value, since the hub says borrowing at registry grain, as `inherits` |
-| `deriver` | `op`, `sources` | the hub names the script; budget-drs records the operation and its inputs |
-| `values` | `domain`, resolved in `domains.csv` | an inline set against a keyed universe |
-| `gloss` | `transform`, `note` | one sentence either side |
-| `required`, `form`, `exclusive` | `additivity` | the enrichment each side needed |
-
-No consumer reads both, so the names stay as they are. budget-drs's
-`definition_owner`, the document that defines each property's domain, was tried
-here and dropped: hub domains are defined in the registry itself or in
-`vocabularies.csv`, so the field would be blank by construction, and where a
-domain is defined elsewhere the property's gloss names the owner.
+budget-drs names the same fields differently (its `columns.csv`); no consumer
+reads both, so neither side renames. Do not add budget-drs's `definition_owner`:
+a hub domain is defined in its registry or in `vocabularies.csv`, and where one
+is defined elsewhere the property's gloss names the owner.

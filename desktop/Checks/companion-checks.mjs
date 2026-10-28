@@ -48,6 +48,7 @@ try {
   check(foreignHost === 403,'An unexpected host cannot bypass the local boundary.');
   check((await request('/companion-access.json',owner)).status === 404 && (await request('/api/v1/results/missing',owner)).status === 404,'Settings and arbitrary result paths are unavailable.');
   check((await request('/vendor/assistant-mark.js',owner)).ok && (await request('/',owner)).ok,'The phone assets are served from the same private origin.');
+  check((await request('/vendor/marked.js',owner)).ok && (await request('/vendor/purify.js',owner)).ok && (await request('/reading.js',owner)).ok,'The formatted detail renderer and its existing Markdown dependencies are served from the private origin.');
   await new Promise(resolve => setTimeout(resolve,2300));
   const later = await (await request('/api/v1/now',owner)).json();
   check(new Date(later.observedAt) > new Date(phone.observedAt),'Collection continues between requests with no desktop process.');

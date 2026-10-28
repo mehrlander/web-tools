@@ -16,12 +16,14 @@
 // global expansion plus a kind filter, is the interaction worth showing.
 export default async function (page) {
   const reg = await page.evaluate(() => fetch('../../docs/tests.csv').then(r => r.text()));
-  const ok = await page.evaluate((regText) => {
+  const authored = await page.evaluate(() => fetch('../../docs/tests-authored.csv').then(r => r.text()));
+  const ok = await page.evaluate(([regText, authoredText]) => {
     if (!window.Alpine || !window.__shell || !window.GH) return 'no shell';
 
     const origGet = window.GH.prototype.get;
     window.GH.prototype.get = async function (name) {
       if (name === 'docs/tests.csv') return { text: regText };
+      if (name === 'docs/tests-authored.csv') return { text: authoredText };
       if (name === '.claude/settings.json' || name === 'CLAUDE.md' || name === '.web-tools.json'
           || name === 'docs/portable.csv' || name === 'state/configs.json' || name === 'state/activity.json'
           || name === 'lists/to-do.json' || name === 'lists/jot.json')
@@ -31,7 +33,7 @@ export default async function (page) {
 
     window.__shell.goMap();
     return true;
-  }, reg);
+  }, [reg, authored]);
   if (ok !== true) throw new Error('map-tests scenario: ' + ok);
 
   const host = () => [...document.querySelectorAll('[x-data]')]
