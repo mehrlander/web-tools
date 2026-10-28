@@ -14,7 +14,7 @@ Qualify noun phrases to increase clarity, strengthen claims, highlight questions
    *Not:* The log keeps two properties. *But:* /incidents.csv has two columns.
 3. **Extend from what has been established.** Develop the current point, or clearly name the earlier point you are resuming.
    *Not:* The solution is to increase funding. *But:* Since the $2M budget gap cannot be closed by contract renegotiation, we turn to increased funding.
-4. **Qualify noun phrases.** Attach the words that say which one, whose, or how many of what. Avoid a bare *this* or *it*. A bare quantifier is another common case.
+4. **Qualify noun phrases.** Attach the words that say which one, whose, or how many of what. Avoid a bare *this* or *it*, and *thing* in place of a specific noun. A bare quantifier is another common case.
    *Not:* Both are good. *But:* Both restructuring proposals are good.
 5. **Qualify rather than explain.** A qualifier costs a word or two but earns gratitude and saves time. It is about identification, not elaboration, and careful use can make explanation unnecessary.
    *Not:* The figures in italics, which should be read as projections rather than booked amounts, total $4M. *But:* The projected figures total $4M.

@@ -1,0 +1,544 @@
+lib/alpineComponents/transform-workbench.js:62	register the output view modes; turn the worker function into source text; register the workbench components at startup; expose the panel markup on a global
+lib/alpineComponents/transform-workbench.js:67	load a script or stylesheet once; skip assets already loaded
+lib/alpineComponents/transform-workbench.js:69	insert a stylesheet or script tag; mark an address loaded when it finishes
+lib/alpineComponents/transform-workbench.js:90	draw a header filter toggle above the table; reserve a note line and a table area
+lib/alpineComponents/transform-workbench.js:101	cap the rows shown in the table; write a note when rows are cut
+lib/alpineComponents/transform-workbench.js:112	refresh table rows in place; decline when the columns have changed
+lib/alpineComponents/transform-workbench.js:123	defer building the table to the next frame
+lib/alpineComponents/transform-workbench.js:124	build a table grid from the rows; show an error line for bad input; keep the table's column signature for updates
+lib/alpineComponents/transform-workbench.js:142	show or hide header filter inputs; redraw the grid after a toggle
+lib/alpineComponents/transform-workbench.js:159	defer mounting the tree editor to the next frame
+lib/alpineComponents/transform-workbench.js:160	load the tree editor on first use; show a read-only tree of the data; show an error line when loading fails
+lib/alpineComponents/transform-workbench.js:201	find a view mode by its id; load the assets a mode needs first
+lib/alpineComponents/transform-workbench.js:214	install the background message handler; collect dollar-prefixed names from source text
+lib/alpineComponents/transform-workbench.js:217	stack input batches into one list; run chained transform tabs in dependency order; post each tab result as it finishes; report references that never resolve
+lib/alpineComponents/transform-workbench.js:240	hold a task until its inputs are ready; run one transform task; post its rows or its error back
+lib/alpineComponents/transform-workbench.js:247	hand over a referenced tab's output; release an output after its last reader
+lib/alpineComponents/transform-workbench.js:269	register the output viewer component; register the workbench component
+lib/alpineComponents/transform-workbench.js:277	hold the output viewer's state; redraw the view when its mode changes; show one file in a chosen view
+lib/alpineComponents/transform-workbench.js:287	attach the viewer to its root element; draw the viewer's template in place
+lib/alpineComponents/transform-workbench.js:296	render the current file in the chosen view; fall back to the first view
+lib/alpineComponents/transform-workbench.js:308	store a new file and its data; choose the view to show it in; refresh the table in place when possible
+lib/alpineComponents/transform-workbench.js:322	switch the viewer to another view; show a spinner until the view is ready; run the view's after step
+lib/alpineComponents/transform-workbench.js:336#1	build the workbench's starting state; convert row lists to column form; convert column form back to rows
+lib/alpineComponents/transform-workbench.js:336#2	define the dimension pane's scan and tab generators; manage input batches and their references; run tabs through the background worker; load pasted or dropped text as rows; save and restore tabs locally; compress and decompress text
+lib/alpineComponents/transform-workbench.js:336#3	copy the result or the bundle to the clipboard; toggle the bundle pane open; send rows to the output viewer; switch the visible output view; round a value to set decimal places
+lib/alpineComponents/transform-workbench.js:408	set up the clipboard helper once; keep only usable recipes; start with the identity tab; restore saved tabs when persistence is on
+lib/alpineComponents/transform-workbench.js:423	take host rows as input; add recipe tabs the host asks for; collapse the editor by default; run the tabs after loading
+lib/alpineComponents/transform-workbench.js:450	add a recipe as a new tab; focus the tab already using the name
+lib/alpineComponents/transform-workbench.js:461	add a blank tab; name it with the next free number
+lib/alpineComponents/transform-workbench.js:468	remove a tab by position; keep the last tab and fixed tabs
+lib/alpineComponents/transform-workbench.js:477	switch the active tab; refresh the dimension pane when open; refresh the views after a run
+lib/alpineComponents/transform-workbench.js:484	end an in-place tab edit; save and refresh after an edit
+lib/alpineComponents/transform-workbench.js:511	describe the active tab's references; count the active tab's rows and columns
+lib/alpineComponents/transform-workbench.js:529	select a key candidate's columns in the pick; mark key columns and attribute columns
+lib/alpineComponents/transform-workbench.js:549	save the picked columns as a custom key; rescan and select the new entry
+lib/alpineComponents/transform-workbench.js:562	remove a custom key entry; rescan the candidates
+lib/alpineComponents/transform-workbench.js:582	group rows by the picked key; count keys that split on each column; build a report and a dimension preview; send the preview to the viewer
+lib/alpineComponents/transform-workbench.js:606	count keys that split on one column; name the worst key for a column
+lib/alpineComponents/transform-workbench.js:624	add one dimension row per combination; flag rows that come from a split key
+lib/alpineComponents/transform-workbench.js:639	send the active preview to the viewer; set the preview banner label
+lib/alpineComponents/transform-workbench.js:646	describe the active tab's references in one line
+lib/alpineComponents/transform-workbench.js:653	count distinct values per column; find the columns each key determines; nest key candidates by what they express; flatten candidates into a display list
+lib/alpineComponents/transform-workbench.js:693	find the columns a key set determines; count distinct key combinations
+lib/alpineComponents/transform-workbench.js:729	flatten a candidate tree into rows; record each candidate's depth
+lib/alpineComponents/transform-workbench.js:741	make a unique tab name from a seed
+lib/alpineComponents/transform-workbench.js:753	generate source text for a dimension tab; count rows that disagree on their attributes; warn about disagreeing rows when run
+lib/alpineComponents/transform-workbench.js:777	add a dimension tab from a candidate; refresh the fact tab alongside it
+lib/alpineComponents/transform-workbench.js:788	add a dimension tab from picked columns
+lib/alpineComponents/transform-workbench.js:798	build the fact tab that drops dimension attributes; reuse the generated fact tab if present
+lib/alpineComponents/transform-workbench.js:813	save tab names and sources to local storage; skip saving when persistence is off
+lib/alpineComponents/transform-workbench.js:819	restore saved tabs from local storage; move a value from an older storage key
+lib/alpineComponents/transform-workbench.js:835	gzip a text string to base64
+lib/alpineComponents/transform-workbench.js:841	gunzip base64 text back to a string
+lib/alpineComponents/transform-workbench.js:846	compress selected input batches for export; skip batches already compressed
+lib/alpineComponents/transform-workbench.js:859	flip a bundle key's selection; rebuild the bundle after a change
+lib/alpineComponents/transform-workbench.js:868	clear the drop highlight; load a dropped file as text
+lib/alpineComponents/transform-workbench.js:873	restore a workbench from bundle text; decode a compressed paste; load plain text as rows
+lib/alpineComponents/transform-workbench.js:883	rebuild one tab from a bundle entry; restore its output from the bundle data
+lib/alpineComponents/transform-workbench.js:939	parse text as JSON or CSV; turn column data into rows; add pasted rows as a batch or start one
+lib/alpineComponents/transform-workbench.js:958	make a batch name unique
+lib/alpineComponents/transform-workbench.js:988	list the scopes that can be inspected
+lib/alpineComponents/transform-workbench.js:1000	switch the inspected scope; compute missing outputs for that scope; refresh the dimension pane and views
+lib/alpineComponents/transform-workbench.js:1013	copy the active scope's output onto each tab
+lib/alpineComponents/transform-workbench.js:1027	drop empty rows from pasted data; add rows as a new input batch
+lib/alpineComponents/transform-workbench.js:1035	switch a batch between input and reference
+lib/alpineComponents/transform-workbench.js:1046	finish renaming a batch; run again after a rename
+lib/alpineComponents/transform-workbench.js:1059	rebuild the combined input from batches; mark every tab as waiting for a run; show the input in the viewer
+lib/alpineComponents/transform-workbench.js:1072	run a payload in a background worker; pass progress and results to callbacks
+lib/alpineComponents/transform-workbench.js:1073	start a worker from its source text; send the payload to the worker
+lib/alpineComponents/transform-workbench.js:1076	forward progress messages; forward result messages; end the worker when it finishes
+lib/alpineComponents/transform-workbench.js:1088	run the transform tabs; skip when nothing is loaded or a run is active
+lib/alpineComponents/transform-workbench.js:1094	mark stale tabs and every tab that reads them; compute stale tabs for each target scope; rebuild the bundle and refresh the views
+lib/alpineComponents/transform-workbench.js:1141	compute tabs for one scope; pass identity tabs through without the worker; run other tabs in one worker job
+lib/alpineComponents/transform-workbench.js:1175	compress missing input and output parts; compute any target scope never run; compose the bundle text
+lib/alpineComponents/transform-workbench.js:1208	list every possible bundle key in order
+lib/alpineComponents/transform-workbench.js:1223	gather selected compressed parts into the bundle; add a metadata entry for non-default layouts; store the bundle text and its size
+lib/alpineComponents/transform-workbench.js:1247	choose a download or copy payload; pick the format from the view on screen; return the bundle text for the bundle view
+lib/alpineComponents/transform-workbench.js:1274	download the bundle as a JSON file
+lib/alpineComponents/transform-workbench.js:1283	list each bundle key with its selection and size
+lib/alpineComponents/transform-workbench.js:1298	show a capped preview of the bundle; say when a run or a build is still needed
+lib/alpineComponents/transform-workbench.js:1306	describe the size of the active view
+lib/alpineComponents/transform-workbench.js:1328	render rows as capped JSON text
+lib/alpineComponents/transform-workbench.js:1336	clear any preview; send the active view's content to the viewer; rescan the pivot only when rows changed
+lib/alpineComponents/transform-workbench.js:1354	profile each column of the rows
+lib/alpineComponents/transform-workbench.js:1360	summarize one column's values; list value types and sample values
+lib/alpineComponents/transform-workbench.js:1407	read a cell value as a number; accept currency marks and accounting negatives
+lib/alpineComponents/transform-workbench.js:1430	scan the active tab's columns; count distinct values and decimal places; flag columns that are mostly numeric; pick default dimension and measure
+lib/alpineComponents/transform-workbench.js:1490	place a dragged dimension among the row dimensions
+lib/alpineComponents/transform-workbench.js:1502	place a dragged dimension among the column dimensions
+lib/alpineComponents/transform-workbench.js:1514	remove a dragged dimension from the pivot
+lib/alpineComponents/transform-workbench.js:1529	describe the pivot's settings; fall back to counting rows without a measure
+lib/alpineComponents/transform-workbench.js:1538	build standalone source text for a pivot; embed current pivot settings as literal config
+lib/alpineComponents/transform-workbench.js:1582	save the pivot as a host recipe; name the recipe from its grouping columns
+lib/alpineComponents/transform-workbench.js:1595	save the active tab as a host recipe; list the columns a tab outputs
+lib/alpineComponents/transform-workbench.js:1602	toggle a group-by dimension on or off; cap group-by dimensions at four
+lib/alpineComponents/transform-workbench.js:1609	set the pivot measure column; reset aggregate to count without a measure
+lib/alpineComponents/transform-workbench.js:1617	roll rows into a nested tree of totals; tally values across column keys; skip rows whose measure does not parse; flag whether parent totals add up
+lib/alpineComponents/transform-workbench.js:1620	add one value into a running total; count the rows that reach a total
+lib/alpineComponents/transform-workbench.js:1631	add one value into a column cell
+lib/alpineComponents/transform-workbench.js:1662	turn a total into a display record; round a total to display precision; sort children largest first
+lib/alpineComponents/transform-workbench.js:1694	flatten the pivot tree into table rows; put column keys before the total
+lib/alpineComponents/transform-workbench.js:1698	add a row for each tree node; fill group-by cells from the path
+lib/alpineComponents/transform-workbench.js:1719	build the report layout from the pivot; render the report when layout is shown
+lib/alpineComponents/transform-workbench.js:1732	recompute the pivot for the active tab; send the flattened pivot to the viewer; refresh the report layout
+lib/alpineComponents/transform-workbench.js:1752	reset the workbench to empty; save cleared tabs and notify the host
+lib/alpineComponents/transform-workbench.js:1763	download the current export as a file
+lib/alpineComponents/transform-workbench.js:1776#1	draw batch chips that choose the data scope; offer run and clear beside the chips; draw the paste or drop target
+lib/alpineComponents/transform-workbench.js:1776#2	draw the transform tab strip and editor; draw the dimension finder for picking keys
+lib/alpineComponents/transform-workbench.js:1776#3	draw output view and export buttons; draw pivot grouping and measure controls
+lib/alpineComponents/transform-workbench.js:1776#4	draw report layout with copy and order; draw bundle pane with key checklist
+lib/kits/tabular-explorer.js:28	expose the explorer and profiler as globals
+lib/kits/tabular-explorer.js:30	create an element with attributes and children
+lib/kits/tabular-explorer.js:49	parse a financial number string; read parenthesized values as negative
+lib/kits/tabular-explorer.js:61	format a number with thousands separators; show negatives in parentheses
+lib/kits/tabular-explorer.js:76	profile every column of a table; report the share of filled cells
+lib/kits/tabular-explorer.js:88	classify a column by its values; summarize a numeric column's distribution; list the most frequent values
+lib/kits/tabular-explorer.js:254	build an interactive table explorer in a container; return handles to the table and profile
+lib/kits/tabular-explorer.js:314	switch the explorer to a named view
+lib/kits/tabular-explorer.js:371	hide or show fully blank columns
+lib/kits/tabular-explorer.js:386	filter the grid to one column value
+lib/kits/tabular-explorer.js:394	rebuild the header action buttons; offer browse, export and workbench actions
+lib/kits/tabular-explorer.js:403	open the rows as a card browser
+lib/kits/tabular-explorer.js:450	download the rows as a CSV file
+lib/kits/tabular-explorer.js:494	build the column profile view; offer a name search on wide files; show a list and detail pane for columns
+lib/kits/tabular-explorer.js:523	build a row of single-choice pills
+lib/kits/tabular-explorer.js:524	build one pill with an optional count
+lib/kits/tabular-explorer.js:532	style one pill as active or idle
+lib/kits/tabular-explorer.js:573	filter and sort the column list; keep the selected column valid; show the inspector for the selected column
+lib/kits/tabular-explorer.js:629	draw one frequent value as a chip
+lib/kits/tabular-explorer.js:683	fill the detail pane for one column; show completeness and summary figures; draw a histogram for numeric columns; list frequent values that filter the grid
+lib/kits/tabular-explorer.js:740	draw one histogram bar with a tooltip
+lib/kits/tabular-explorer.js:815	build the pivot controls; set up the pivot table area
+lib/kits/tabular-explorer.js:821	build a labelled dropdown that redraws the pivot
+lib/kits/tabular-explorer.js:854	draw a pivot table from the rows; group rows by one or two fields; aggregate a measure for each group; sort groups by aggregate, largest first; show a grand total under the table
+lib/kits/tabular-explorer.js:888	compute the aggregate value of a group
+lib/kits/tabular-explorer.js:958	tear down the table component; remove the view from the page
+lib/kits/xlsx.js:57#1	define cell reference helpers for a spreadsheet reader; define colour and theme resolving helpers; define chart parsing and drawing helpers; define readers for font, fill and border styles; map connection type codes to their names
+lib/kits/xlsx.js:57#2	strip an author name from a comment; resolve a relative package path; define the legacy colour palette; resolve a colour spec to hex; define the built-in number format codes; turn a spreadsheet date serial into a date; format a cell value as its format reads
+lib/kits/xlsx.js:57#3	convert column widths and row heights to pixels; read a sheet's cells as row objects; profile what each column holds; resolve a cell's visible style; decide whether a conditional rule applies; build the drawn layout of a sheet
+lib/kits/xlsx.js:57#4	shift relative references in a formula; list every note in a workbook; place pictures and charts over cells; work out how far cell text spills; build the workbook's table views; read Power Query code from a workbook; count connected package parts
+lib/kits/xlsx.js:57#5	publish the reader functions on the page; group the table views under one name
+lib/kits/xlsx.js:59	load the zip library on demand
+lib/kits/xlsx.js:66	convert a column number to letters
+lib/kits/xlsx.js:73	read the column number from a cell address
+lib/kits/xlsx.js:84	turn a cell range into bounds
+lib/kits/xlsx.js:96	convert an ARGB colour code to hex
+lib/kits/xlsx.js:119	split a list of cell references into ranges
+lib/kits/xlsx.js:143	read the attributes of a colour element
+lib/kits/xlsx.js:161	join the text runs of a rich string
+lib/kits/xlsx.js:170	read a number from a chart value
+lib/kits/xlsx.js:176	read the text of a chart title
+lib/kits/xlsx.js:185	read the colour of a drawing fill
+lib/kits/xlsx.js:198	convert an RGB colour to HSL
+lib/kits/xlsx.js:206	convert hue, saturation and lightness to RGB
+lib/kits/xlsx.js:215	resolve a drawing colour to hex; apply shade, tint and luminance changes
+lib/kits/xlsx.js:232	give each chart series its colours; set the chart's automatic colour list
+lib/kits/xlsx.js:242	turn a chart part into a chart model; note unsupported chart features
+lib/kits/xlsx.js:262	read the settings of one chart axis
+lib/kits/xlsx.js:277	read cached values of a chart series
+lib/kits/xlsx.js:302	read the settings of one chart series
+lib/kits/xlsx.js:350	fill chart series from their sheet ranges
+lib/kits/xlsx.js:351	read a worksheet range as values
+lib/kits/xlsx.js:387	read a font's style from its element
+lib/kits/xlsx.js:391	check whether a style flag is switched on
+lib/kits/xlsx.js:414	read the colour of a cell fill
+lib/kits/xlsx.js:424	read the four edges of a cell border
+lib/kits/xlsx.js:425	read one edge of a border
+lib/kits/xlsx.js:444	read one value from a pivot cache
+lib/kits/xlsx.js:472#1	read every part of a workbook package; collect the parts that are connected; join sheets to their names and positions; resolve shared string cell values; resolve chart data and colours; place each sheet's pictures and charts
+lib/kits/xlsx.js:472#2	attach comments to each sheet; set each sheet's visibility; join pivot tables to sheets and caches; join tables to their sheets; link each pivot cache to its records; resolve hyperlink targets from relationships; return the workbook reading result
+lib/kits/xlsx.js:526	mark a package part as connected; record which sheets a part belongs to
+lib/kits/xlsx.js:539	parse one package part as XML; walk a part's element tree; build a chart model from a chart part
+lib/kits/xlsx.js:554	count each element by file and path; collect attribute values and text per element; pass each element to the connection recorder
+lib/kits/xlsx.js:569#1	note how a package part is connected; create a worksheet record on first sight; read each row's cells and formulas; read column widths and default sizes; read conditional formatting rules; start reading data validation entries
+lib/kits/xlsx.js:569#2	finish reading data validation formulas; note the sheet's drawing and comments links; read hyperlinks and the frozen pane position; count cells, styles and formulas per sheet; read merged cell ranges; read shared strings in position order; read number formats, cell formats and styles
+lib/kits/xlsx.js:569#3	collect pictures and charts placed on a sheet; read the colour palette from a theme part; collect cell comments with their authors; list the external connections a workbook declares; read a pivot cache's source and field names
+lib/kits/xlsx.js:569#4	collect a pivot cache field's shared values; read the rows behind a pivot cache; read table definitions and their columns; read a pivot table's layout and measure names; map pivot cache ids to their parts; read the calculation chain's cell list; note whether dates use the 1904 system; read sheet names and their order; read the workbook's defined names
+lib/kits/xlsx.js:569#5	record each relationship a package part declares
+lib/kits/xlsx.js:879	read one corner of a drawing anchor
+lib/kits/xlsx.js:929	read a theme colour entry as hex
+lib/kits/xlsx.js:1049	keep a pivot cache cell as index or value
+lib/kits/xlsx.js:1225	give a sheet part its name and order
+lib/kits/xlsx.js:1249	turn parsed rows into display row records
+lib/kits/xlsx.js:1287	resolve colours in a cell format
+lib/kits/xlsx.js:1308	attach chart or picture data to a drawing
+lib/kits/xlsx.js:1332	shape one cell comment for output
+lib/kits/xlsx.js:1395	resolve each row of a pivot cache
+lib/kits/xlsx.js:1396	resolve a pivot cache cell to its value
+lib/kits/xlsx.js:1426	remove an author prefix from comment text
+lib/kits/xlsx.js:1436	resolve a relative path inside a package
+lib/kits/xlsx.js:1464	shift a hex colour by a tint
+lib/kits/xlsx.js:1475	resolve a colour from a colour spec
+lib/kits/xlsx.js:1521	classify a number format code by kind
+lib/kits/xlsx.js:1545	look up a cell's number format
+lib/kits/xlsx.js:1561	convert a spreadsheet serial day to a date
+lib/kits/xlsx.js:1586	pick the format section for a number's sign
+lib/kits/xlsx.js:1600	draw a number through a format code
+lib/kits/xlsx.js:1644	draw a date through a format code
+lib/kits/xlsx.js:1654	find the nearest date token in one direction
+lib/kits/xlsx.js:1662	draw one date token
+lib/kits/xlsx.js:1709	format a cell value for display
+lib/kits/xlsx.js:1751	turn a sheet into display rows
+lib/kits/xlsx.js:1752	build one display row object
+lib/kits/xlsx.js:1793	profile each column of a sheet
+lib/kits/xlsx.js:1808	classify a cell's value type
+lib/kits/xlsx.js:1819	profile the values in one column; classify a column's role from its values
+lib/kits/xlsx.js:1884	describe a cell's formatting
+lib/kits/xlsx.js:1914	read a constant number from a formula
+lib/kits/xlsx.js:1920	read a constant string from a formula
+lib/kits/xlsx.js:1934	test whether a rule applies to a cell
+lib/kits/xlsx.js:1972	describe what a conditional format paints
+lib/kits/xlsx.js:2001	mark cells that carry hyperlinks
+lib/kits/xlsx.js:2011	lay out a sheet's cells for display
+lib/kits/xlsx.js:2044	find a column's display width in pixels
+lib/kits/xlsx.js:2120	apply conditional formats to cells; report rules that could not be decided
+lib/kits/xlsx.js:2150	attach notes and choice lists to cells
+lib/kits/xlsx.js:2180	resolve the options of a choice list
+lib/kits/xlsx.js:2210	mark table and pivot cells by their role
+lib/kits/xlsx.js:2313	give a cell's formula text
+lib/kits/xlsx.js:2332	rebuild a shared formula for a cell
+lib/kits/xlsx.js:2360	move cell references in formula text
+lib/kits/xlsx.js:2362	shift one column letter by an offset
+lib/kits/xlsx.js:2367	shift one row number by an offset
+lib/kits/xlsx.js:2373	rewrite references outside quoted text
+lib/kits/xlsx.js:2374	move one matched reference
+lib/kits/xlsx.js:2395	list every note in a workbook
+lib/kits/xlsx.js:2436	place pictures and charts on the sheet grid
+lib/kits/xlsx.js:2501	mark text that spills into empty cells
+lib/kits/xlsx.js:2503	test whether a cell can take spilled text
+lib/kits/xlsx.js:2526	list XML paths with their connection state
+lib/kits/xlsx.js:2527	describe one XML path as a row
+lib/kits/xlsx.js:2545	build a summary table of sheets
+lib/kits/xlsx.js:2546	summarise one sheet as a row
+lib/kits/xlsx.js:2594	read the rows behind a pivot cache
+lib/kits/xlsx.js:2618	find the last used column index
+lib/kits/xlsx.js:2625	count hidden columns up to the last used column
+lib/kits/xlsx.js:2642	build a table of external connections
+lib/kits/xlsx.js:2643	describe one connection as a row
+lib/kits/xlsx.js:2657	build a table of pivot tables
+lib/kits/xlsx.js:2658	describe one pivot table as a row
+lib/kits/xlsx.js:2677	list XML paths no connection reaches
+lib/kits/xlsx.js:2683	describe one unconnected path as a row
+lib/kits/xlsx.js:2697	build a table of workbook parts
+lib/kits/xlsx.js:2707	describe one workbook part as a row; name the category of a workbook part
+lib/kits/xlsx.js:2761	unpack the package inside a query blob
+lib/kits/xlsx.js:2781	read the scripts of a query blob
+lib/kits/xlsx.js:2796	parse a workbook package from a zip file; attach pictures and query scripts to the result
+lib/kits/xlsx.js:2815	attach one picture as a data URI
+lib/kits/xlsx-extract.js:48#1	define the list of extract kinds; give a cell address from its position; order a workbook's sheets by position
+lib/kits/xlsx-extract.js:48#2	index the extract kinds by their id; list the pivot caches that hold rows; turn a sheet name into a file stem; give an extract its title; build an item's note from its cut; publish the extract functions on the page
+lib/kits/xlsx-extract.js:91	flatten a spreadsheet sheet into a cell list; record a sheet's merged ranges and used area
+lib/kits/xlsx-extract.js:128	describe a conditional format style as text; flag a style id the file lacks
+lib/kits/xlsx-extract.js:163	export a sheet's cells as indented json; count the filled formula cells
+lib/kits/xlsx-extract.js:177	list every formula cell with its value; count shared formula followers
+lib/kits/xlsx-extract.js:207	list the visible formatting of each cell; skip cells with no resolvable style
+lib/kits/xlsx-extract.js:247	list a sheet's merged cell ranges
+lib/kits/xlsx-extract.js:248	describe one merged range as a row
+lib/kits/xlsx-extract.js:264	list a sheet's cell comments
+lib/kits/xlsx-extract.js:274	list a sheet's data validation rules
+lib/kits/xlsx-extract.js:275	describe one validation rule as a row
+lib/kits/xlsx-extract.js:292	list a sheet's conditional format rules; sort the rules by priority
+lib/kits/xlsx-extract.js:295	describe one conditional format rule as a row
+lib/kits/xlsx-extract.js:316	count the populated columns of a sheet
+lib/kits/xlsx-extract.js:336	read the rows of one pivot cache; name a cache by its source range; note a mismatch in record counts
+lib/kits/xlsx-extract.js:363	export one data query's source as text
+lib/kits/xlsx-extract.js:381	profile each column of a sheet
+lib/kits/xlsx-extract.js:383	summarize one column's contents as a row
+lib/kits/xlsx-extract.js:405	report each sheet's content counts; count workbook-wide content kinds; list the available content kinds
+lib/kits/xlsx-extract.js:407	count each kind on one sheet
+lib/kits/xlsx-extract.js:429	make a name unique within a set
+lib/kits/xlsx-extract.js:454	build the extract from the selection; cap each table at a row limit; record what was picked and what was left
+lib/kits/xlsx-extract.js:470	add one item from an extract part; cut rows to the row limit
+lib/kits/xlsx-extract.js:548	list a workbook's sheets and objects; add the sheet survey to the object list
+lib/kits/xlsx-extract.js:554	add one pivot table to the object list
+lib/kits/xlsx-extract.js:560	add a pivot cache with rows
+lib/kits/xlsx-extract.js:585	build an extract from per-sheet selections; add chosen workbook objects to the extract; record what was picked and left
+lib/kits/xlsx-extract.js:595	add an item under a unique name
+lib/kits/xlsx-extract.js:643	list kinds a sheet holds but left out
+lib/kits/xlsx-extract.js:684	apply declared standing selections to a workbook; skip selections whose sheets are absent; list sheets that must not land
+lib/kits/xlsx-extract.js:718	fill in a destination and file name
+lib/kits/report-layout.js:36	publish the report layout functions on the page
+lib/kits/report-layout.js:51	list a field's values in display order
+lib/kits/report-layout.js:63	build a report model from rows; add subtotal and total rows
+lib/kits/report-layout.js:80	sum a measure per column across rows
+lib/kits/report-layout.js:136	format a number for a report cell
+lib/kits/report-layout.js:143	add a column to its band run
+lib/kits/report-layout.js:175	convert a partition tree into a report model; add subtotal rows under each top group; order siblings by source position
+lib/kits/report-layout.js:186	split a column key into band and within
+lib/kits/report-layout.js:203	order a tree node's children
+lib/kits/report-layout.js:229	draw a report model as an html table; blank repeated labels down the row columns
+lib/kits/report-layout.js:253	draw one report row as a table row
+lib/kits/report-layout.js:256	show a label only when it changes
+lib/kits/report-layout.js:282	write a report as tab-separated text
+lib/kits/csv.js:13	publish the csv helpers on the page
+lib/kits/csv.js:14	split one csv line into fields
+lib/kits/csv.js:32	read csv text into keyed records
+lib/kits/row-menu.js:35	publish the row menu functions on the page; fetch the clipboard helper ahead of time
+lib/kits/row-menu.js:47	build a dom element from parts
+lib/kits/row-menu.js:77	list a table's visible data columns
+lib/kits/row-menu.js:95	close the open row menu
+lib/kits/row-menu.js:110	place a floating panel inside the window
+lib/kits/row-menu.js:129	show a floating menu of actions; dismiss the menu on outside tap or scroll
+lib/kits/row-menu.js:148	run a menu action when it is chosen
+lib/kits/row-menu.js:151	show an action result, then close the menu
+lib/kits/row-menu.js:199	attach a row menu to a table
+lib/kits/row-menu.js:202	open a menu for a tapped row; copy the tapped row as tab-separated text; copy every visible row when several
+lib/kits/json-explorer.js:23	publish the json viewer on the page
+lib/kits/json-explorer.js:25	build a dom element from parts
+lib/kits/json-explorer.js:56	format a byte count for display
+lib/kits/json-explorer.js:65	describe a timestamp as time from now
+lib/kits/json-explorer.js:91	profile the shape of a json value; infer columns of record lists
+lib/kits/json-explorer.js:96	count nodes and value types recursively
+lib/kits/json-explorer.js:153	summarize one inferred column
+lib/kits/json-explorer.js:205#1	build the viewer frame in a container; parse text input into data
+lib/kits/json-explorer.js:205#2	draw the viewer's current view; expose view, focus and search controls
+lib/kits/json-explorer.js:238	measure a value's size in bytes
+lib/kits/json-explorer.js:249	read the value at a path
+lib/kits/json-explorer.js:257	turn a path into a readable key
+lib/kits/json-explorer.js:271	describe a collection by its size
+lib/kits/json-explorer.js:284	build an icon-only button with a tooltip
+lib/kits/json-explorer.js:309	wait for typing to pause before filtering
+lib/kits/json-explorer.js:326	collapse the tree to its top level
+lib/kits/json-explorer.js:331	open the current rows as cards; load the card reader when first needed
+lib/kits/json-explorer.js:339	flash a confirmation on a button
+lib/kits/json-explorer.js:348	download all loaded data as json
+lib/kits/json-explorer.js:377	filter the tree by a search term
+lib/kits/json-explorer.js:383	mark matching entries under a path
+lib/kits/json-explorer.js:405	display a text value in a row; link a web address; clamp long text until tapped
+lib/kits/json-explorer.js:434	summarize a record in one line
+lib/kits/json-explorer.js:436	pick the first usable field value
+lib/kits/json-explorer.js:445	display a value in a tree row
+lib/kits/json-explorer.js:457	build one row of a nested JSON view; show the size of a large value; open a collection on its own; expand or collapse a collection from its row
+lib/kits/json-explorer.js:511	append the visible rows of a collection; recurse into collections that are open; stop once the row budget is spent; add a button for more entries
+lib/kits/json-explorer.js:533	show the focused data as a tree; say when the focused path is empty; say when a search finds nothing; note when the row cap cuts the list
+lib/kits/json-explorer.js:547	summarize the shape of a data set; list the top level fields with their types; show how full each record field is; offer buttons to open a collection
+lib/kits/json-explorer.js:612	show a list of records as a table; use every record key as a column; keep rows matching the search text; say when data is not a record list
+lib/kits/json-explorer.js:628	add a numbered row for a record; number each row from one
+lib/kits/json-explorer.js:631	turn one field into a table cell; show a nested value as JSON text; keep full text for a truncated cell
+lib/kits/json-explorer.js:649	show the focused data as formatted JSON
+lib/kits/json-explorer.js:658	sync view tabs with the current data; show or hide the search box; refresh labels on the copy and cards buttons; rebuild the breadcrumb trail for the focus
+lib/kits/json-explorer.js:694	make a breadcrumb button for a path; dim crumbs that are not current
+lib/kits/json-explorer.js:710	redraw the body for the current view; refresh the controls before redrawing
+lib/kits/json-explorer.js:720	switch to another view; scroll the view back to the top
+lib/kits/json-explorer.js:725	move focus to a path in the data; clear open rows and paging for new focus; scroll the view back to the top
+pages/pivot-table.html:382	collapse or expand a pivot row group; redraw the pivot after the change
+pages/pivot-table.html:392	show one tab and hide the others; highlight the chosen tab button
+pages/pivot-table.html:393	show or hide one tab panel; style one tab button as active or not
+pages/pivot-table.html:409	format a number as accounting text; show missing or zero as a dash; show a full-time equivalent to one decimal
+pages/pivot-table.html:421	fill the raw records table; clear old rows before refilling
+pages/pivot-table.html:424	build one table row for a budget record; color variance and status by its sign
+pages/pivot-table.html:448	redraw the pivot table from current settings; group records into row and column cells; add subtotal and grand total rows; update the summary counters
+pages/pivot-table.html:470	set up empty cells for a row group; add a slot for each sub row
+pages/pivot-table.html:485	place a record's value into its cell; skip records with no matching cell
+pages/pivot-table.html:496	aggregate values by the chosen function; return zero for no values
+pages/pivot-table.html:508	visit each sub row under a group
+pages/pivot-table.html:509	add non-zero cell totals to the scale list
+pages/pivot-table.html:553	compute subtotals for one row group; draw a collapsed group as one row; draw the rows of an open group; add a subtotal row for the group
+pages/pivot-table.html:559	gather one column's values across sub rows; add them to the column grand total
+pages/pivot-table.html:593	build one detail row of the pivot; span the group label over its rows; add a row total cell
+pages/pivot-table.html:611	compute and format one pivot cell; shade a cell on a green to red scale; draw a value bar inside a cell; add the cell's values to the row total
+pages/pivot-table.html:671	total one column for the grand total row; pool column values for the overall total
+pages/pivot-table.html:337	hold the sample budget records; derive variance and status for each record; draw the first raw table and pivot
+node/build/registries-load.mjs:23	split one CSV line into fields; keep commas inside quoted fields
+node/build/registries-load.mjs:41	parse CSV text into objects by header; skip blank lines in the text; trim cells and fill missing ones
+node/build/registries-load.mjs:57	read the two registry CSV tables; split list cells into arrays; keep blank value lists as null
+node/build/registries-load.mjs:59	add a file key to a registry row; split render targets into a list
+node/build/registries-load.mjs:84	write rows as CSV text in column order; join list values with semicolons; quote only cells that need it
+node/build/registries-load.mjs:1	read and write the registry CSV tables; join and split semicolon lists; fix the column order of both tables
+lib/kits/swipe-deck.js:147	set up the carousel kit; route arrow keys to embedded carousels; publish the carousel API on the window
+lib/kits/swipe-deck.js:148	create an element with attributes and children
+lib/kits/swipe-deck.js:160	add the carousel scrollbar styles once; reserve scrollbar space on wide screens
+lib/kits/swipe-deck.js:235	step the innermost carousel on arrow keys; ignore keys typed into fields; forget carousels that left the page
+lib/kits/swipe-deck.js:254	register a carousel for arrow keys; return a function that unregisters it
+lib/kits/swipe-deck.js:266	build a swipeable track of lazy slides; move the track to a given slide; release slides far from the reader; report which slide is showing
+lib/kits/swipe-deck.js:336	render one slide the first time
+lib/kits/swipe-deck.js:354	empty a slide the reader has left; run the release hook first
+lib/kits/swipe-deck.js:377	scroll the track to a slide; clamp the slide index to range
+lib/kits/swipe-deck.js:403	track when a swipe has settled; schedule one update per animation frame
+lib/kits/swipe-deck.js:407	render slides around the current one; release slides beyond the keep distance; notify listeners of the current slide
+lib/kits/swipe-deck.js:434	mark the page while an overlay is open
+lib/kits/swipe-deck.js:442#1	build the track for a fullscreen overlay; decide whether the page can dock; lock page scrolling unless docked; build the overlay and panel frame; build the close or back button
+lib/kits/swipe-deck.js:442#2	build the overlay header bar; add action buttons from specs or elements; keep the dock toggle in step with the host; add a menu under the header actions; build the previous and next buttons
+lib/kits/swipe-deck.js:442#3	draw the pager as dots or a bar; hide the footer for a single slide; fill the optional subheader; assemble the overlay panel; hide the chrome while reading downward
+lib/kits/swipe-deck.js:442#4	show header and footer on slide change; hide header and footer on new slides; open a table of contents from the header; attach a resize handle for a docked pane; keep the resize handle synced to the pane
+lib/kits/swipe-deck.js:442#5	close on the close button or background tap; push a history entry so Back closes it; animate a nested viewer in from the right; jump to the starting slide after layout; return a handle for controlling the viewer
+lib/kits/swipe-deck.js:485	check whether the host allows docking; apply the host's own docking condition
+lib/kits/swipe-deck.js:616	point the header link at an address; set the link's icon or logo; hide the header link without an address
+lib/kits/swipe-deck.js:633	build a round icon button for a header action; run the action when the button is pressed
+lib/kits/swipe-deck.js:664	show the dock toggle only when allowed; show whether the pane is docked
+lib/kits/swipe-deck.js:673	toggle between docked and filling the pane; refresh the toggle, lock and resize handle
+lib/kits/swipe-deck.js:775	open a dropdown menu under a header button; replace any header menu already open; keep the menu inside the window; close the menu on a click elsewhere
+lib/kits/swipe-deck.js:786	build a small text button for a menu option; close the menu when an option is chosen
+lib/kits/swipe-deck.js:841	place a menu just under the header; keep a menu inside the window edge
+lib/kits/swipe-deck.js:862	close a menu on a click outside it; stop listening after the first outside click
+lib/kits/swipe-deck.js:874	build a round outlined icon button; run a handler when the button is pressed
+lib/kits/swipe-deck.js:998	show or hide the header and footer; skip the change when nothing differs
+lib/kits/swipe-deck.js:1020	hide header and footer while reading down; show header and footer when scrolling up
+lib/kits/swipe-deck.js:1060	toggle header and footer on a body tap; ignore taps on controls and the bars
+lib/kits/swipe-deck.js:1110	show whether the contents list is open; label the contents mark for its state
+lib/kits/swipe-deck.js:1133	list one row per slide in the contents; label each row from a caller function; mark the row for the current slide; add headings where sections begin; go to a slide when its row is tapped
+lib/kits/swipe-deck.js:1190	open the table of contents under its mark; scroll the current row into the middle; add a history entry for Back; listen for outside taps from the next frame
+lib/kits/swipe-deck.js:1211	close the table of contents; step back once in history; flag that history pop as its own
+lib/kits/swipe-deck.js:1264	attach a drag handle when the pane is docked; remove the drag handle when docking ends; refresh the handle's measurements
+lib/kits/swipe-deck.js:1300	show the current slide number; hide arrows at the first and last slides; highlight the current pager dot or bar; tell the caller the slide changed
+lib/kits/swipe-deck.js:1334	close the slide viewer once; take the viewer off the stack; restore the page's scroll setting; release every slide and the splitter; animate out, then remove the viewer; run the release and close callbacks
+lib/kits/swipe-deck.js:1364	close this viewer and any opened above it; step back history past every layer
+lib/kits/swipe-deck.js:1380	let Back close the top layer; ignore history pops it caused itself
+lib/kits/swipe-deck.js:1386	close the top layer on Escape; step slides with the arrow keys; ignore arrow keys while the list is open
+lib/kits/swipe-deck.js:1424	slide the viewer in from the right; clear the transition styles afterward
+lib/kits/swipe-deck.js:1523	build a read-one-at-a-time label; pluralize a noun for a count
+lib/kits/swipe-deck.js:1528	build a one-at-a-time reading button; attach the open handler to the button
+lib/alpineComponents/file-browser.js:27	register the file browser component by name; make it available to page markup
+lib/alpineComponents/file-browser.js:28	show a folder tree above a file strip; keep the selected file in step; open the folder's files in a full-screen view
+lib/alpineComponents/file-browser.js:94	write the browser's markup into its root; rebuild the strip when the folder changes; keep the selection and strip in step; step files with the arrow keys
+lib/alpineComponents/file-browser.js:97	wire up the folder picker after render; select the file given at start
+lib/alpineComponents/file-browser.js:111	set the selection from the strip position; load slides near the current one; highlight the matching row in the tree
+lib/alpineComponents/file-browser.js:117	step files up and down from the tree; step files left and right over the strip; ignore keys typed into form fields
+lib/alpineComponents/file-browser.js:146	list the files in the shown folder; write each path from the repository root
+lib/alpineComponents/file-browser.js:157	rebuild the strip with one slot per file; reset which slots are filled; clear the tree cursor in an empty folder
+lib/alpineComponents/file-browser.js:162	build an empty full-width slot for a file; tag the slot with its position
+lib/alpineComponents/file-browser.js:176	move the strip to the selected file; select the first file in a folder
+lib/alpineComponents/file-browser.js:185	move to a file in the strip; clamp the index to the folder's files; scroll the strip to that file
+lib/alpineComponents/file-browser.js:198	find the slot nearest the strip edge; update the position from scrolling
+lib/alpineComponents/file-browser.js:209	load the viewers for nearby slides; load each slide only once
+lib/alpineComponents/file-browser.js:220	mark the selected file in the tree; move the tree cursor to that file
+lib/alpineComponents/file-browser.js:241	put a file viewer into a slot; open the row the address names
+lib/alpineComponents/file-browser.js:256	fetch a file's text from the repository; show the text in the slot's viewer; show a load error in the slot
+lib/alpineComponents/file-browser.js:276	open the folder's files in a full-screen view; load the slide viewer when missing; open above any slide viewer already open; show a warning if it fails
+lib/alpineComponents/file-browser.js:295	update the viewer header for the new file; select the file the viewer moved to
+lib/alpineComponents/file-browser.js:310	build the header text for a file; link the header to the file on GitHub
+lib/alpineComponents/here-view.js:39	register the this-browser view by name; make it available to page markup
+lib/alpineComponents/here-view.js:40#1	read storage without ever throwing; name the owner of each stored key; format byte counts and dates for display; set up the view's starting state
+lib/alpineComponents/here-view.js:40#2	show the token status and its details; take a token from the reader; list stored keys and databases to pick
+lib/alpineComponents/here-view.js:40#3	show the selected stored item beside the list; step through items with buttons; open the stored items in a full-screen view
+lib/alpineComponents/here-view.js:40#4	move the selection by key, button or swipe; scroll the strip to the selected item; load this browser's storage; ask the opening page for its storage
+lib/alpineComponents/here-view.js:51	name the format of a GitHub token; tell a token's format from its prefix
+lib/alpineComponents/here-view.js:109	show a stored value for reading; mask a token to its last four characters; pretty-print a stored JSON object
+lib/alpineComponents/here-view.js:127	put a fresh file viewer into a container; start it in its default read mode
+lib/alpineComponents/here-view.js:398	write the view's markup into its root; read the saved browser note; check the saved token with GitHub; watch the selection, tab, and page
+lib/alpineComponents/here-view.js:405	initialize the markup's bindings; load storage for the current tab
+lib/alpineComponents/here-view.js:419	load the storage of a newly opened tab; move the strip to the selected item
+lib/alpineComponents/here-view.js:433	name a failed GitHub request in one line; pick the headline by status and quota
+lib/alpineComponents/here-view.js:443	split a failed request line for display; break the line only after separators
+lib/alpineComponents/here-view.js:452	describe this browser and device in one line; say how the page is being run
+lib/alpineComponents/here-view.js:469	describe the token's permission scopes; say when scopes are not reported
+lib/alpineComponents/here-view.js:479	show the remaining hourly request count; format counts with digit grouping
+lib/alpineComponents/here-view.js:484	turn the token check state into a status line; show the check's failure message
+lib/alpineComponents/here-view.js:496	pick an icon for the token check state; flag a token that lacks repo scope
+lib/alpineComponents/here-view.js:507	explain the likely cause of a token problem; note whether a reader's note is kept
+lib/alpineComponents/here-view.js:520	check the saved token with GitHub; record quota and scopes from the reply; record the account that accepted a token
+lib/alpineComponents/here-view.js:560	check a typed token's shape; save a valid token; reload the page after saving
+lib/alpineComponents/here-view.js:572	confirm before removing the saved token; clear the token and reload the page
+lib/alpineComponents/here-view.js:579	save a short browser note; remove the note when left blank; show a brief saved confirmation
+lib/alpineComponents/here-view.js:592	summarize the stored local keys; total the bytes of stored keys
+lib/alpineComponents/here-view.js:597	summarize the stored databases; report a database list still loading
+lib/alpineComponents/here-view.js:623	switch the view to a tab; update the address to show the tab
+lib/alpineComponents/here-view.js:638	select an item by its id; rewrite the page address for the selection
+lib/alpineComponents/here-view.js:647	list local storage keys and database stores
+lib/alpineComponents/here-view.js:650	describe an object store as a list item
+lib/alpineComponents/here-view.js:663	give an item's file name and text
+lib/alpineComponents/here-view.js:669	read the rows of a database store
+lib/alpineComponents/here-view.js:683	load nearby items into their panels
+lib/alpineComponents/here-view.js:694	find the card nearest the strip's left edge
+lib/alpineComponents/here-view.js:699	limit the scroll check to one per frame
+lib/alpineComponents/here-view.js:701	follow the scroll to the card in view; load the viewers near the card
+lib/alpineComponents/here-view.js:717	move the view to an item by index
+lib/alpineComponents/here-view.js:732	scroll to the item in view once laid out
+lib/alpineComponents/here-view.js:733	scroll to the item in view once laid out
+lib/alpineComponents/here-view.js:740	scroll the strip to a card
+lib/alpineComponents/here-view.js:762	scroll the list to show the selected row
+lib/alpineComponents/here-view.js:763	scroll the list to show the selected row
+lib/alpineComponents/here-view.js:775	open the items as a full-screen deck
+lib/alpineComponents/here-view.js:783	fill a deck slide with an item's content
+lib/alpineComponents/here-view.js:799	clean up after the deck closes
+lib/alpineComponents/here-view.js:803	select the deck's item once the address settles
+lib/alpineComponents/here-view.js:812	track the item the deck is showing
+lib/alpineComponents/here-view.js:822	switch the view to this browser's storage; list local storage keys with their sizes; list database stores with record counts
+lib/alpineComponents/here-view.js:882	ask the linked page a storage question
+lib/alpineComponents/here-view.js:888	switch the view to a linked page's storage; ask the page for its storage inventory; explain a page's refusal in plain words
+lib/alpineComponents/here-view.js:925	give a page item's file name and text; show a stored token's last four characters; return a page store's rows as JSON
+lib/alpineComponents/user-call-form.js:69#1	define the call card's color and icon tables; split a pull request reference into parts; open the call card's markup
+lib/alpineComponents/user-call-form.js:69#2	lay out the call card's question and views; show the merge status and warning lines
+lib/alpineComponents/user-call-form.js:69#3	lay out the answer and note controls; show each shipped change with its proof
+lib/alpineComponents/user-call-form.js:69#4	lay out the swipeable materials section; export the card's helpers and register the component
+lib/alpineComponents/user-call-form.js:100	get or create a file's preview record
+lib/alpineComponents/user-call-form.js:107	fetch a file and render it as HTML
+lib/alpineComponents/user-call-form.js:121	turn a typed link into a display target
+lib/alpineComponents/user-call-form.js:189	read a pull request's state and checks
+lib/alpineComponents/user-call-form.js:212	append an answer line to a repo file; comment the answer on a pull request
+lib/alpineComponents/user-call-form.js:245	open a set of branches as a deck
+lib/alpineComponents/user-call-form.js:262	fill a branch slide with its brief
+lib/alpineComponents/user-call-form.js:275	update the deck header for the branch shown
+lib/alpineComponents/user-call-form.js:810	register the call form component
+lib/alpineComponents/user-call-form.js:811#1	hold the call form's state and derived values; load the glossary, views and decision tree; mark glossary terms so a click pins a note
+lib/alpineComponents/user-call-form.js:811#2	handle clicks, tabs and proofs in the card; send an answer and keep its history; move the materials strip
+lib/alpineComponents/user-call-form.js:832	list a call's materials with shipped proofs
+lib/alpineComponents/user-call-form.js:846	order the materials into swipe slides
+lib/alpineComponents/user-call-form.js:859	choose the full-screen button's look
+lib/alpineComponents/user-call-form.js:875	pick an answer and show its slide
+lib/alpineComponents/user-call-form.js:891	style an answer button by its state
+lib/alpineComponents/user-call-form.js:899	load the glossary once
+lib/alpineComponents/user-call-form.js:900	read the glossary's terms and step kinds
+lib/alpineComponents/user-call-form.js:920	load the question views once
+lib/alpineComponents/user-call-form.js:921	read the call's alternative views
+lib/alpineComponents/user-call-form.js:928	list the tabs for the question
+lib/alpineComponents/user-call-form.js:945	pick the commentary for the slide showing
+lib/alpineComponents/user-call-form.js:951	build a jump button for a material
+lib/alpineComponents/user-call-form.js:969	render the decision tree with its links
+lib/alpineComponents/user-call-form.js:988	turn a decision tree into markup
+lib/alpineComponents/user-call-form.js:1002	render a decision's lines and child decisions
+lib/alpineComponents/user-call-form.js:1012	render one decision as a pill
+lib/alpineComponents/user-call-form.js:1029	mark glossary terms in a line of text
+lib/alpineComponents/user-call-form.js:1044	make marked terms focusable with a visible bullet
+lib/alpineComponents/user-call-form.js:1067	show the note for a term
+lib/alpineComponents/user-call-form.js:1072	list the glossary terms the card mentions
+lib/alpineComponents/user-call-form.js:1087	scroll a note into view on its slide
+lib/alpineComponents/user-call-form.js:1098	bring the notes slide to the pinned note
+lib/alpineComponents/user-call-form.js:1111	pin a note from a click
+lib/alpineComponents/user-call-form.js:1131	act on a click in the call card
+lib/alpineComponents/user-call-form.js:1141	step to the next or previous note
+lib/alpineComponents/user-call-form.js:1152	switch the question to a view tab
+lib/alpineComponents/user-call-form.js:1162	go to a material by its key
+lib/alpineComponents/user-call-form.js:1183	show a change's proof in the materials
+lib/alpineComponents/user-call-form.js:1197	report what blocks the merge
+lib/alpineComponents/user-call-form.js:1207	set up the call card when it mounts; route arrow keys and stray focus for the card
+lib/alpineComponents/user-call-form.js:1223	step through notes with the arrow keys
+lib/alpineComponents/user-call-form.js:1252	return focus from a stray material frame
+lib/alpineComponents/user-call-form.js:1265	attach arrow keys to the materials section
+lib/alpineComponents/user-call-form.js:1271	remove the card's global listeners
+lib/alpineComponents/user-call-form.js:1276	load the call and its supporting files; report a call that cannot be opened
+lib/alpineComponents/user-call-form.js:1303	hand a card header to its host; pick the header title and icon by kind; add a pull request chip to the header; attach an answer button for merge and documentation
+lib/alpineComponents/user-call-form.js:1331	list the answer choices for a question; put the recommended answer first; offer a message-only choice for merges
+lib/alpineComponents/user-call-form.js:1341	build the answer button once; wire the button's click handler; paint the button to its current state
+lib/alpineComponents/user-call-form.js:1346	stop the click from reaching parent elements; open the review page for documentation questions; ignore clicks on a settled or busy question; toggle the choice list beside the button
+lib/alpineComponents/user-call-form.js:1358	paint the answer button to its state; show a spinner while the answer is sending; set the button's tooltip and label
+lib/alpineComponents/user-call-form.js:1371	close the choice list; focus the message box for a message choice; send the chosen answer right away
+lib/alpineComponents/user-call-form.js:1384	load the swipe deck component if missing; open the question's materials as a deck; start the deck at the current material; nest the deck under any deck already open
+lib/alpineComponents/user-call-form.js:1396	fill one slide with a material's content; show notes as bold questions with asides; embed an HTML material in a sandboxed frame; load a material's stored markup when missing
+lib/alpineComponents/user-call-form.js:1430	toggle the pull request panel open or shut; load the panel component on first open; place the panel under its chip
+lib/alpineComponents/user-call-form.js:1458	build the link to the review page; return an empty link for other questions
+lib/alpineComponents/user-call-form.js:1463	fetch the saved answers from the repository; parse the answers file one line at a time; skip lines that are not valid JSON
+lib/alpineComponents/user-call-form.js:1473	post the chosen answer to the repository; require a note for an adjust answer; add the posted answer to the local list; reset the form after a successful send; report a failed send to the form
+lib/alpineComponents/user-call-form.js:1498	find the panel nearest the row's left edge; hold the index during a programmatic move; set the current index from the scroll position
+lib/alpineComponents/user-call-form.js:1518	clamp an index into the valid range; scroll the panel row smoothly to a panel; finish the move on arrival or timeout

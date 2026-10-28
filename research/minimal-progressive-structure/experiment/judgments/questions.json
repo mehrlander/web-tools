@@ -1,0 +1,218 @@
+{
+  "wacares": [
+    {
+      "id": "w1",
+      "kind": "gist",
+      "q": "What does the ballot measure ask Washington voters to approve?",
+      "answer": "A constitutional amendment (Senate Joint Resolution 8201) letting the state invest the payroll taxes collected for WA Cares, its long-term care program, in the stock market, with any earnings used only for the program's beneficiaries.",
+      "source": "Senate Joint Resolution 8201 seeks to let the state make stock market investments with payroll taxes collected for its long-term care program, known as WA Cares. Any earnings would have to be used solely for the program’s beneficiaries."
+    },
+    {
+      "id": "w2",
+      "kind": "gist",
+      "q": "If the measure passes, what changes about how the WA Cares money can be invested?",
+      "answer": "The WA Cares account would join the pension and retirement funds as exempt from the constitutional ban on investing public money in private company stock, so the State Investment Board could choose to buy stocks and private equity instead of being limited to bonds and similar fixed-income securities.",
+      "source": "The state constitution generally bars investing public money in the stock of private companies. That means state and local governments are limited to fixed-income securities like government bonds, treasury bills and certificates of deposit that are less risky but typically deliver lower rates of return. The WA Cares account is now subject to this limitation. If the constitutional amendment is approved, the long-term service account would be added to the list of funds exempt from that prohibition alongside the state’s pension and retirement funds. The state investment board could then decide if it wants to invest in private equity funds and buy stock of private companies, or not."
+    },
+    {
+      "id": "w3",
+      "kind": "lookup",
+      "q": "How much is taken out of workers' paychecks to fund WA Cares?",
+      "answer": "0.58% of pay, for most workers in Washington.",
+      "source": "WA Cares, created by a 2019 law, is funded with a 0.58% tax on the paychecks of most workers in Washington."
+    },
+    {
+      "id": "w4",
+      "kind": "lookup",
+      "q": "How much can a person receive from WA Cares over their lifetime?",
+      "answer": "$36,500, an amount set to rise with inflation in future years.",
+      "source": "Beginning in July 2026, those who qualify can begin accessing the benefit, a lifetime amount of $36,500 — a sum that is set to rise in future years to account for inflation."
+    },
+    {
+      "id": "w5",
+      "kind": "lookup",
+      "q": "How much money had built up in the WA Cares trust account by this summer?",
+      "answer": "More than $2.5 billion, in the Long Term Services and Supports Trust Account.",
+      "source": "Collections of the payroll tax began in mid-2023 and more than $2.5 billion was banked in the Long Term Services and Supports Trust Account as of summer."
+    },
+    {
+      "id": "w6",
+      "kind": "lookup",
+      "q": "Which counties voted for the 2020 version of this measure?",
+      "answer": "Only three: King, Jefferson and Whatcom.",
+      "source": "In 2020, voters defeated a similar measure. It passed in only three Washington counties — King, Jefferson and Whatcom."
+    },
+    {
+      "id": "w7",
+      "kind": "relation",
+      "q": "Which group is paying for the campaign to pass the measure?",
+      "answer": "Service Employees International Union 775 (SEIU 775), a union of long-term care workers.",
+      "source": "Service Employees International Union 775 is underwriting the campaign."
+    },
+    {
+      "id": "w8",
+      "kind": "relation",
+      "q": "Which top Republican in the state Senate supports the measure?",
+      "answer": "Senate Minority Leader John Braun, R-Centralia.",
+      "source": "Democratic Gov. Bob Ferguson and Senate Minority Leader John Braun, R-Centralia, back the ballot measure."
+    },
+    {
+      "id": "w9",
+      "kind": "comparison",
+      "q": "How does the union's spending on this year's campaign compare with what it spent on the 2020 campaign?",
+      "answer": "About five times as much: it had raised and spent $2.5 million as of Friday.",
+      "source": "The union, which represents 55,000 long-term care workers in Washington, Montana and Alaska, had reported raising and spending $2.5 million as of Friday. That is five times more than it spent in a losing effort in 2020."
+    },
+    {
+      "id": "w10",
+      "kind": "comparison",
+      "q": "How have the state's pension fund returns compared with returns on government bonds?",
+      "answer": "According to supporter Heather Weiner, pension funds have averaged 8.9% a year since 1992, several percentage points higher than government bonds.",
+      "source": "She said that since 1992, annual returns for Washington’s pension funds have averaged 8.9%, which is several percentage points higher than investments in government bonds."
+    }
+  ],
+  "races": [
+    {
+      "id": "r1",
+      "kind": "gist",
+      "q": "What is this article about?",
+      "answer": "An early look, after candidate filing closed, at notable 2026 Washington legislative races: districts that might flip and places where progressives are challenging other Democrats from the left.",
+      "source": "With candidate filing closed, here’s an early look at some of the districts that might flip and where progressives are challenging other Democrats from the left."
+    },
+    {
+      "id": "r2",
+      "kind": "gist",
+      "q": "What is each side trying to achieve in this year's legislative elections?",
+      "answer": "Progressives want to unseat more moderate Democrats, other Democrats want to take Republican seats to grow their majorities, and Republicans want to win back whatever seats they can.",
+      "source": "Progressives are trying to unseat more moderate Democrats. Other Democrats are trying to wrest positions from Republican hands to increase their majorities. And Republicans are trying to claw back any seats that they can."
+    },
+    {
+      "id": "r3",
+      "kind": "lookup",
+      "q": "What is Michelle Bennett's current job?",
+      "answer": "Police chief of Mercer Island.",
+      "source": "Bennett is currently Mercer Island’s police chief and has worked in various law enforcement roles in western Washington dating back to 1990."
+    },
+    {
+      "id": "r4",
+      "kind": "lookup",
+      "q": "What was Rep. Michelle Valdez's last name before?",
+      "answer": "Caldier.",
+      "source": "Meanwhile, Valdez, whose last name was previously Caldier, isn’t seeking reelection in the House after six terms."
+    },
+    {
+      "id": "r5",
+      "kind": "lookup",
+      "q": "What job does Joe Bushnell, a 29th District House candidate, hold?",
+      "answer": "Deputy mayor of Tacoma.",
+      "source": "The Democrats include: Patrick Stickney, a senior policy and legislative affairs advisor at the state’s Office of Equity; Joe Bushnell, who’s deputy mayor of Tacoma; Erin Chapman-Smith, the executive director of ROOTS Young Adult Shelter in Seattle; and Natasha Laitila, who has worked as a legislative assistant for Rep. Jamila Taylor and Sen. Bob Hasegawa and took part in in efforts to unionize legislative staff."
+    },
+    {
+      "id": "r6",
+      "kind": "lookup",
+      "q": "Who is ahead in early fundraising for Cindy Ryu's House seat?",
+      "answer": "Danica Noble, a consumer protection attorney.",
+      "source": "They are Edmonds City Councilmembers Jenna Nand and Will Chen, Shoreline City Councilmember Keith Scully, consumer protection attorney Danica Noble and Chris Bloomquist, who runs an environmental- and technology-focused recruiting firm. Noble leads the early fundraising race."
+    },
+    {
+      "id": "r7",
+      "kind": "relation",
+      "q": "Who is backing Luc Jasmin III in the 3rd District race?",
+      "answer": "Rep. Natasha Hill, D-Spokane (Ormsby's seatmate), and former Senate Majority Leader Andy Billig.",
+      "source": "Luc Jasmin III, who has done regional outreach in eastern Washington for Govs. Bob Ferguson and Jay Inslee, has the support of Ormsby’s seatmate, Rep. Natasha Hill, D-Spokane, and former Senate Majority Leader Andy Billig."
+    },
+    {
+      "id": "r8",
+      "kind": "relation",
+      "q": "Who does outgoing Sen. Sharon Shewmake want to take her 42nd District seat?",
+      "answer": "Michael Shepard, a Bellingham port commissioner.",
+      "source": "Shewmake is supporting Bellingham port commissioner Michael Shepard to replace her."
+    },
+    {
+      "id": "r9",
+      "kind": "comparison",
+      "q": "Who has been in the state House longer, David Hackney or Zach Hall?",
+      "answer": "David Hackney, who was first elected in 2020; Zach Hall was appointed only last June.",
+      "source": "Rep. David Hackney, D-Renton, was first elected to represent the 11th District in 2020. State Rep. Zach Hall, D-Issaquah, was appointed to a 5th District House seat last June."
+    },
+    {
+      "id": "r10",
+      "kind": "comparison",
+      "q": "Of the open House seats the article covers, which one drew the most Democratic candidates?",
+      "answer": "Cindy Ryu's 32nd District seat, with five Democrats (against four in the 29th, three in the 3rd and two in the 26th).",
+      "source": "Three Democrats are running to replace him. Into that void have stepped four contenders — two Democrats, a Republican and a candidate without a party affiliation. That opens up a spot in the House that has attracted four Democratic hopefuls and two Republicans. Five Democrats and one Republican have filed for Ryu’s seat."
+    }
+  ],
+  "dca": [
+    {
+      "id": "d1",
+      "kind": "gist",
+      "q": "What happened near Reagan National Airport on January 29, 2025?",
+      "answer": "At about 8:48 p.m., a US Army Sikorsky UH-60L helicopter (callsign PAT25) and PSA Airlines flight 5342, a CRJ700 regional jet, collided in midair about half a mile southeast of the airport and crashed into the Potomac River.",
+      "source": "On January 29, 2025, about 2048 eastern standard time (EST), a Sikorsky UH-60L, operated by the US Army under the callsign PAT25, and an MHI (Mitsubishi Heavy Industries) RJ Aviation (formerly Bombardier) CL-600-2C10 (CRJ700), N709PS, operated by PSA Airlines as flight 5342, collided in flight approximately 0.5 miles southeast of Ronald Reagan Washington National Airport (DCA), Arlington, Virginia, and impacted the Potomac River in southwest Washington, District of Columbia."
+    },
+    {
+      "id": "d2",
+      "kind": "gist",
+      "q": "Did anyone survive the crash?",
+      "answer": "No. All 64 people on the airplane (2 pilots, 2 flight attendants and 60 passengers) and all 3 crew members on the helicopter were killed.",
+      "source": "The 2 pilots, 2 flight attendants, and 60 passengers aboard the airplane and all 3 crew members aboard the helicopter were fatally injured."
+    },
+    {
+      "id": "d3",
+      "kind": "lookup",
+      "q": "Before the crash, how often were airliners near the airport getting collision-avoidance alerts because of helicopters?",
+      "answer": "At least one TCAS resolution advisory a month, based on reports and FAA data from 2011 through 2024.",
+      "source": "Review of information gathered from voluntary safety reporting programs along with FAA data regarding encounters between helicopters and commercial aircraft near DCA from 2011 through 2024 indicated that a vast majority of the reported events occurred on approach to landing. Initial analysis found that at least one TCAS resolution advisory (RA) was triggered per month due to proximity to a helicopter."
+    },
+    {
+      "id": "d4",
+      "kind": "lookup",
+      "q": "What is the highest a helicopter is allowed to fly on Route 1 after it passes Memorial Bridge?",
+      "answer": "200 feet above mean sea level.",
+      "source": "After Memorial Bridge, the maximum allowable altitude on Route 1 is 200 ft above mean sea level (msl)."
+    },
+    {
+      "id": "d5",
+      "kind": "lookup",
+      "q": "When did the FAA bar helicopters from flying over the Potomac near the airport?",
+      "answer": "January 31, 2025, through a Notice to Airmen (NOTAM), with exceptions for lifesaving medical, active law enforcement, air defense and presidential transport missions.",
+      "source": "On January 31, 2025, the FAA issued a Notice to Airmen (NOTAM) prohibiting helicopter traffic from operating over the Potomac River near DCA from the surface up to and including 17,999 ft msl with exceptions for lifesaving medical, active law enforcement, air defense, or presidential transport missions."
+    },
+    {
+      "id": "d6",
+      "kind": "lookup",
+      "q": "What was the visibility at the airport around the time of the crash?",
+      "answer": "10 miles.",
+      "source": "Visibility: 10 miles"
+    },
+    {
+      "id": "d7",
+      "kind": "relation",
+      "q": "Which airline owns PSA Airlines, the operator of flight 5342?",
+      "answer": "American Airlines; PSA is a wholly owned subsidiary.",
+      "source": "PSA Airlines is a wholly owned subsidiary of American Airlines based in Dayton, Ohio, and holds a 14 CFR 119 operating certificate for operations under 14 CFR Part 121."
+    },
+    {
+      "id": "d8",
+      "kind": "relation",
+      "q": "Why might the helicopter crew have missed the tower's instruction to pass behind the jet?",
+      "answer": "The words \"pass behind the\" were blocked (stepped on) by a 0.8-second microphone key from the helicopter crew itself.",
+      "source": "At 2047:42, or 17 seconds before impact, a radio transmission from the tower was audible on both CVRs directing PAT25 to pass behind the CRJ. CVR data from the helicopter indicated that the portion of the transmission that stated “pass behind the” may not have been received by the PAT25 crew, as the transmission was stepped on by a 0.8-second mic key from PAT25."
+    },
+    {
+      "id": "d9",
+      "kind": "comparison",
+      "q": "Of the three soldiers aboard the helicopter, who had the most flight experience?",
+      "answer": "The crew chief, a Staff Sergeant, with about 1,149 total flight hours (the instructor pilot had about 968 and the pilot about 450).",
+      "source": "The IP held the rank of Chief Warrant Officer 2 and had accumulated about 968 total hours of flight experience, of which about 300 hours were in the accident helicopter make and model. The pilot held the rank of Captain and had accumulated about 450 total hours of flight experience, of which about 326 hours were in the accident helicopter make and model. The crew chief held the rank of Staff Sargeant and had accumulated about 1,149 total flight hours, all of which was in UH-60 helicopters."
+    },
+    {
+      "id": "d10",
+      "kind": "comparison",
+      "q": "From 2018 to 2024, how did the share of landings on runway 33, where the jet was headed, compare with runway 1?",
+      "answer": "Runway 33 took only about 4% of arrivals, against about 57% for runway 1.",
+      "source": "The data indicated that, between 2018 and 2024, runway 1 accounted for about 57% of arrivals, runway 19 accounted for about 38% of arrivals, runway 33 accounted for about 4% of arrivals, and runway 15 accounted for less than 1 percent of arrivals at DCA."
+    }
+  ]
+}

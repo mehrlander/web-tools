@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SJR 8201 · WA Cares</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<script>
+// The model is the page's data: see wacares-house-mps.model.md.
+// Cells are lists of blocks: p (text), q (quotation), ul (list of values).
+window.MODEL = {
+  measure: {
+    name: "Senate Joint Resolution 8201",
+    meta: ["Proposed constitutional amendment", "First item on every Washington ballot", "Voters decide Tuesday", "Reported Oct 31, 2025"],
+    does: "Adds a few lines to the state constitution so the state can invest WA Cares payroll taxes in the stock market, managed like the state’s pension funds.",
+    src: [
+      "A proposed constitutional amendment would let assets be managed like the state’s pension funds.",
+      "The first item on every Washington voter’s ballot is a proposal to add a few lines to the state constitution that would change how billions of taxpayer dollars are managed.",
+      "Senate Joint Resolution 8201 seeks to let the state make stock market investments with payroll taxes collected for its long-term care program, known as WA Cares."
+    ],
+    path: [
+      { id: "p2020", when: "2020", text: "Voters defeated a similar measure. It passed in only three counties: King, Jefferson and Whatcom.",
+        src: ["In 2020, voters defeated a similar measure. It passed in only three Washington counties — King, Jefferson and Whatcom."] },
+      { id: "p2025", when: "2025", text: "The Legislature voted to put this amendment on the ballot: 86–9 in the House, 42–7 in the Senate.",
+        src: ["The Legislature voted earlier this year to put the constitutional amendment on the ballot. It passed by margins of 86-9 in the House and 42-7 in the Senate …"] },
+      { id: "pvote", when: "Tuesday", text: "It becomes law if more than 50% of voters approve.",
+        src: ["… and will become law if more than 50% of voters approve it on Tuesday."] }
+    ]
+  },
+  groups: [
+    {
+      id: "effect", label: "What a vote decides",
+      sides: {
+        no:  { label: "If No",  sub: "WA Cares stays under today’s limit", tag: "If No" },
+        yes: { label: "If Yes", sub: "The constitution is amended", tag: "If Yes" }
+      },
+      rows: [
+        { id: "invest", label: "What the money can be invested in",
+          no:  [{ t: "p", v: "Fixed-income securities only, as for state and local governments generally: government bonds, treasury bills and certificates of deposit. Less risky, but typically lower returns." }],
+          yes: [{ t: "p", v: "The Washington State Investment Board could handle the program’s assets as it does pension and retirement funds, and decide whether to invest in private equity funds and buy stock of private companies, or not." }],
+          src: {
+            no:  ["That means state and local governments are limited to fixed-income securities like government bonds, treasury bills and certificates of deposit that are less risky but typically deliver lower rates of return."],
+            yes: ["If approved Tuesday, the Washington State Investment Board would be legally able to handle the program’s assets in a similar manner as it does pension and retirement funds.",
+                  "The state investment board could then decide if it wants to invest in private equity funds and buy stock of private companies, or not."]
+          } },
+        { id: "ban", label: "The constitution’s ban on buying private companies’ stock",
+          no:  [{ t: "p", v: "The ban generally covers public money, and the WA Cares account is subject to it. The state’s pension and retirement funds are exempt." }],
+          yes: [{ t: "p", v: "The Long Term Services and Supports Trust Account joins the pension and retirement funds on the list of funds exempt from the ban." }],
+          src: {
+            no:  ["The state constitution generally bars investing public money in the stock of private companies.",
+                  "The WA Cares account is now subject to this limitation."],
+            yes: ["If the constitutional amendment is approved, the long-term service account would be added to the list of funds exempt from that prohibition alongside the state’s pension and retirement funds."]
+          } },
+        { id: "earn", label: "Investment earnings",
+          no:  null,
+          yes: [{ t: "p", v: "Must be used solely for the program’s beneficiaries." },
+                { t: "p", v: "Unlike the 2020 measure, it requires that money to go into the WA Cares Fund, says the Yes campaign’s Heather Weiner; the intent is to keep lawmakers from tapping it for other budget needs." }],
+          src: {
+            yes: ["Any earnings would have to be used solely for the program’s beneficiaries.",
+                  "Weiner said this year’s proposal, unlike the one in 2020, mandates money made from investments must go into the WA Cares Fund. The intent is to prevent lawmakers from tapping those dollars for other budget needs."]
+          } }
+      ]
+    },
+    {
+      id: "case", label: "Who argues each side",
+      sides: {
+        no:  { label: "Against", sub: "Vote No",  tag: "Against · vote No" },
+        yes: { label: "For",     sub: "Vote Yes", tag: "For · vote Yes" }
+      },
+      rows: [
+        { id: "voice", label: "Voice at a recent University of Washington debate",
+          no:  [{ t: "p", v: "State Sen. Bob Hasegawa, D-Tukwila" }],
+          yes: [{ t: "p", v: "Heather Weiner, Approve 8201 campaign" }],
+          src: {
+            no:  ["State Sen. Bob Hasegawa, D-Tukwila, opposes the measure."],
+            yes: ["This will allow for the tax dollars to be invested in a “safe and risk averse way” while producing greater returns for the program, said Heather Weiner of the Approve 8201 campaign in a recent debate at the University of Washington."]
+          } },
+        { id: "argue", label: "Their case",
+          no:  [{ t: "q", v: "Our fiduciary responsibility is to the people. No one is going to know when the economy or stock market crashes. So, this vote is about whether we keep prudent fiscal management policies of our tax dollars and retain those constitutional protections." }],
+          yes: [{ t: "p", v: "The tax dollars would be invested in a “safe and risk averse way” while producing greater returns for the program." },
+                { t: "p", v: "Washington’s pension funds have averaged 8.9% a year since 1992, several percentage points above government bonds: in the long run, a lot more dollars for the program." },
+                { t: "q", v: "This doesn’t mean day trading, taking big risks on a stock market. This means smart long-term [investing] so that in 50 years when people in this audience today will need long term care, that fund will be there for you." }],
+          src: {
+            no:  ["“Our fiduciary responsibility is to the people,” he told the debate audience. “No one is going to know when the economy or stock market crashes. So, this vote is about whether we keep prudent fiscal management policies of our tax dollars and retain those constitutional protections.”"],
+            yes: ["She said that since 1992, annual returns for Washington’s pension funds have averaged 8.9%, which is several percentage points higher than investments in government bonds. In the long run that would translate to a lot more dollars for the program.",
+                  "“This doesn’t mean day trading, taking big risks on a stock market,” she said. “This means smart long-term [investing] so that in 50 years when people in this audience today will need long term care, that fund will be there for you.”"]
+          } },
+        { id: "backers", label: "Backers",
+          no:  [{ t: "p", v: "Hasegawa and three Republican state lawmakers, who wrote the voters’ pamphlet statement opposing the measure" }],
+          yes: [{ t: "ul", v: ["Gov. Bob Ferguson, Democrat", "Senate Minority Leader John Braun, R-Centralia", "Washington State Nurses Association", "Washington State Council of Fire Fighters", "AARP", "Washington Health Care Association"] }],
+          src: {
+            no:  ["He and three Republican state lawmakers penned the voters’ pamphlet statement opposing the measure."],
+            yes: ["Democratic Gov. Bob Ferguson and Senate Minority Leader John Braun, R-Centralia, back the ballot measure. So too do the Washington State Nurses Association, Washington State Council of Fire Fighters, AARP, and Washington Health Care Association."]
+          } },
+        { id: "money", label: "Campaign money",
+          no:  [{ t: "p", v: "No funded opposition campaign, as in the 2020 ballot fight, says Hasegawa." }],
+          yes: [{ t: "p", v: "Underwritten by SEIU 775, which represents 55,000 long-term care workers in Washington, Montana and Alaska: $2.5 million raised and spent as of Friday, five times its spending in the losing 2020 effort." }],
+          src: {
+            no:  ["Hasegawa said there is no funded opposition campaign, just like the last ballot fight."],
+            yes: ["Service Employees International Union 775 is underwriting the campaign. The union, which represents 55,000 long-term care workers in Washington, Montana and Alaska, had reported raising and spending $2.5 million as of Friday. That is five times more than it spent in a losing effort in 2020."]
+          } }
+      ]
+    }
+  ],
+  program: {
+    name: "WA Cares",
+    kind: "The state’s long-term care program",
+    qualifiers: ["the state’s long-term care program", "0.58% payroll tax", "$2.5B+ banked as of summer", "benefits from July 2026"],
+    axis: [2019, 2027],
+    events: [
+      { id: "e2019", when: "2019", pos: 2019.5, text: "Created by a state law.",
+        src: ["WA Cares, created by a 2019 law, is funded with a 0.58% tax on the paychecks of most workers in Washington."] },
+      { id: "e2023", when: "Mid-2023", pos: 2023.5, text: "Collections begin for the 0.58% tax on the paychecks of most workers in Washington.",
+        src: ["WA Cares, created by a 2019 law, is funded with a 0.58% tax on the paychecks of most workers in Washington.",
+              "Collections of the payroll tax began in mid-2023 …"] },
+      { id: "e2025", when: "Summer 2025", pos: 2025.6, text: "More than $2.5 billion banked in the Long Term Services and Supports Trust Account.",
+        src: ["… more than $2.5 billion was banked in the Long Term Services and Supports Trust Account as of summer."] },
+      { id: "evote", when: "Tuesday", pos: 2025.84, root: true, text: "Voters decide SJR 8201" },
+      { id: "epilot", when: "January", pos: 2026.0, text: "A pilot program starts in a handful of counties.",
+        src: ["A pilot program will start in January in a handful of counties."] },
+      { id: "ebenefit", when: "July 2026", pos: 2026.5, text: "Those who qualify can begin accessing the benefit: a lifetime amount of $36,500, set to rise in future years to account for inflation.",
+        src: ["Beginning in July 2026, those who qualify can begin accessing the benefit, a lifetime amount of $36,500 — a sum that is set to rise in future years to account for inflation."] }
+    ]
+  },
+  source: {
+    author: "Jerry Cornfield",
+    title: "Voters to decide if WA Cares tax dollars can be invested in stock market",
+    outlet: "Washington State Standard",
+    date: "October 31, 2025",
+    url: "https://washingtonstatestandard.com/2025/10/31/voters-to-decide-if-wa-cares-tax-dollars-can-be-invested-in-stock-market/",
+    license: "CC BY-NC-ND 4.0",
+    elsewhere: "Statements from both sides, and the attorney general’s explanation of the measure: secretary of state website"
+  }
+};
+
+document.addEventListener('alpine:init', () => {
+  Alpine.data('page', () => ({
+    m: window.MODEL,
+    open: {},
+    pushed: false,
+    toggle(id) { this.open[id] = !this.open[id]; },
+    pct(y) {
+      const [a, b] = this.m.program.axis;
+      return ((y - a) / (b - a) * 100).toFixed(2);
+    },
+    years() {
+      const [a, b] = this.m.program.axis, out = [];
+      for (let y = a; y <= b; y++) out.push(y);
+      return out;
+    },
+    openProgram() {
+      const d = this.$refs.prog;
+      if (d.open) return;
+      d.showModal();
+      try { history.pushState({ view: 'wacares' }, ''); this.pushed = true; } catch (e) {}
+    },
+    closeProgram() { this.$refs.prog.close(); },
+    onClose() {
+      if (this.pushed) { this.pushed = false; try { history.back(); } catch (e) {} }
+    },
+    init() {
+      window.addEventListener('popstate', () => {
+        const d = this.$refs.prog;
+        if (d && d.open) { this.pushed = false; d.close(); }
+      });
+    }
+  }));
+});
+</script>
+<script defer src="https://unpkg.com/alpinejs"></script>
+</head>
+<body class="min-h-dvh bg-base-100 text-base-content">
+<div x-data="page" class="text-xl leading-8">
+
+  <header class="px-4 md:px-8 pt-6 pb-6 border-b border-base-300">
+    <p class="text-xs uppercase tracking-wider font-semibold text-base-content/60 leading-5" x-text="m.measure.meta.join(' · ')"></p>
+    <h1 class="mt-2 text-3xl md:text-4xl font-bold leading-tight text-balance" x-text="m.measure.name"></h1>
+    <p class="mt-3 text-balance" x-text="m.measure.does"></p>
+    <button type="button" class="btn btn-ghost btn-xs mt-2 -ml-2" @click="toggle('head')" :aria-expanded="open.head ? 'true' : 'false'" x-text="open.head ? 'Hide article text' : 'Article text'"></button>
+    <div x-show="open.head" class="mt-2 border-l-2 border-base-300 pl-4 flex flex-col gap-2 text-base-content/70">
+      <template x-for="(s, k) in m.measure.src" :key="k"><p class="text-pretty" x-text="s"></p></template>
+    </div>
+
+    <button type="button" @click="openProgram()"
+      class="mt-5 w-full text-left rounded-box border border-base-300 hover:bg-base-200 px-4 py-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+      <span class="font-semibold text-primary" x-text="m.program.name"></span>
+      <span class="text-pretty min-w-0" x-text="m.program.qualifiers.join(' · ')"></span>
+      <span class="ml-auto text-xs uppercase tracking-wider font-semibold text-primary">Funding, benefit and timeline ›</span>
+    </button>
+  </header>
+
+  <main class="px-4 md:px-8 pb-6">
+    <template x-for="g in m.groups" :key="g.id">
+      <section class="mt-6">
+        <div class="md:sticky md:top-0 md:z-10 bg-base-100 grid grid-cols-1 md:grid-cols-[minmax(0,14rem)_minmax(0,1fr)_minmax(0,1fr)] gap-x-8 py-3 border-b-2 border-base-300">
+          <h2 class="text-xs uppercase tracking-wider font-semibold text-base-content/60 self-end leading-5" x-text="g.label"></h2>
+          <template x-for="s in ['no', 'yes']" :key="s">
+            <div class="hidden md:block leading-6">
+              <div class="text-sm font-semibold" x-text="g.sides[s].label"></div>
+              <div class="text-sm text-base-content/60" x-text="g.sides[s].sub"></div>
+            </div>
+          </template>
+        </div>
+
+        <template x-for="(row, i) in g.rows" :key="row.id">
+          <div class="grid grid-cols-1 md:grid-cols-[minmax(0,14rem)_minmax(0,1fr)_minmax(0,1fr)] gap-x-8 gap-y-4 py-6" :class="{ 'border-t border-base-300': i }">
+            <div class="flex flex-wrap md:flex-col items-center md:items-start justify-between md:justify-start gap-2">
+              <h3 class="text-xs uppercase tracking-wider font-semibold text-base-content/60 leading-5 text-balance" x-text="row.label"></h3>
+              <button type="button" class="btn btn-ghost btn-xs md:-ml-2" @click="toggle(row.id)" :aria-expanded="open[row.id] ? 'true' : 'false'" x-text="open[row.id] ? 'Hide article text' : 'Article text'"></button>
+            </div>
+            <template x-for="s in ['no', 'yes']" :key="s">
+              <div class="min-w-0" :class="row[s] ? '' : 'hidden md:block'">
+                <template x-if="row[s]">
+                  <div class="flex flex-col gap-3">
+                    <span class="md:hidden text-xs uppercase tracking-wider font-semibold text-base-content/60 leading-5" x-text="g.sides[s].tag"></span>
+                    <template x-for="(b, k) in row[s]" :key="k">
+                      <div>
+                        <template x-if="b.t === 'p'"><p class="text-pretty" x-text="b.v"></p></template>
+                        <template x-if="b.t === 'q'"><blockquote class="text-pretty border-l-4 border-base-300 pl-4" x-text="'“' + b.v + '”'"></blockquote></template>
+                        <template x-if="b.t === 'ul'">
+                          <ul class="flex flex-col gap-1"><template x-for="it in b.v" :key="it"><li class="text-pretty" x-text="it"></li></template></ul>
+                        </template>
+                      </div>
+                    </template>
+                    <div x-show="open[row.id]" class="border-l-2 border-base-300 pl-4 flex flex-col gap-2 text-base-content/70">
+                      <span class="text-xs uppercase tracking-wider font-semibold leading-5">From the article</span>
+                      <template x-for="(q, k) in (row.src[s] || [])" :key="k"><p class="text-pretty" x-text="q"></p></template>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </template>
+          </div>
+        </template>
+      </section>
+    </template>
+
+    <section class="mt-6 border-t-2 border-base-300 grid grid-cols-1 md:grid-cols-[minmax(0,14rem)_minmax(0,1fr)] gap-x-8 gap-y-4 py-6">
+      <div class="flex flex-wrap md:flex-col items-center md:items-start justify-between md:justify-start gap-2">
+        <h2 class="text-xs uppercase tracking-wider font-semibold text-base-content/60 leading-5">Road to the ballot</h2>
+        <button type="button" class="btn btn-ghost btn-xs md:-ml-2" @click="toggle('path')" :aria-expanded="open.path ? 'true' : 'false'" x-text="open.path ? 'Hide article text' : 'Article text'"></button>
+      </div>
+      <ol class="grid grid-cols-1 sm:grid-cols-3 gap-x-8 gap-y-6">
+        <template x-for="st in m.measure.path" :key="st.id">
+          <li class="min-w-0 flex flex-col gap-2 border-t-2 border-base-content pt-3">
+            <span class="text-xs font-mono font-semibold uppercase text-base-content/60 leading-5" x-text="st.when"></span>
+            <p class="text-pretty" x-text="st.text"></p>
+            <div x-show="open.path" class="border-l-2 border-base-300 pl-4 flex flex-col gap-2 text-base-content/70">
+              <template x-for="(q, k) in st.src" :key="k"><p class="text-pretty" x-text="q"></p></template>
+            </div>
+          </li>
+        </template>
+      </ol>
+    </section>
+  </main>
+
+  <footer class="px-4 md:px-8 py-6 border-t border-base-300 text-sm leading-6 text-base-content/70 flex flex-col gap-1">
+    <p>Source: <a class="link link-primary" :href="m.source.url" target="_blank" rel="noopener"
+      x-text="m.source.author + ', “' + m.source.title + ',” ' + m.source.outlet + ', ' + m.source.date + ' ↗'"></a>
+      <span x-text="'· ' + m.source.license"></span></p>
+    <p x-text="m.source.elsewhere"></p>
+  </footer>
+
+  <dialog x-ref="prog" class="modal modal-bottom sm:modal-middle" @close="onClose()" aria-labelledby="prog-title">
+    <div class="modal-box w-full sm:w-11/12 max-w-5xl p-0 text-xl leading-8">
+      <div class="sticky top-0 z-10 bg-base-100 flex items-start justify-between gap-4 px-5 pt-5 pb-3 border-b border-base-300">
+        <div>
+          <h2 id="prog-title" class="text-2xl font-bold leading-tight" x-text="m.program.name"></h2>
+          <p class="text-xs uppercase tracking-wider font-semibold text-base-content/60 leading-5 mt-1" x-text="m.program.kind"></p>
+        </div>
+        <form method="dialog" class="shrink-0"><button class="btn btn-ghost btn-sm whitespace-nowrap">✕ Close</button></form>
+      </div>
+      <div class="px-5 pb-5">
+        <div class="relative h-14 mt-4 mx-5" aria-hidden="true">
+          <div class="absolute inset-x-0 top-3 h-px bg-base-content/30"></div>
+          <template x-for="y in years()" :key="y">
+            <div class="absolute top-3 w-0" :style="'left:' + pct(y) + '%'">
+              <div class="h-2 w-px bg-base-content/30"></div>
+              <div class="mt-1 -translate-x-1/2 w-10 text-center text-xs font-mono text-base-content/60 leading-5" x-text="y"></div>
+            </div>
+          </template>
+          <template x-for="e in m.program.events" :key="e.id">
+            <span class="absolute top-3 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-base-100" :class="e.root ? 'bg-primary' : 'bg-base-content'" :style="'left:' + pct(e.pos) + '%'"></span>
+          </template>
+        </div>
+        <ol class="flex flex-col">
+          <template x-for="(e, i) in m.program.events" :key="e.id">
+            <li class="grid grid-cols-1 sm:grid-cols-[minmax(0,8rem)_minmax(0,1fr)] gap-x-4 gap-y-1 py-4" :class="{ 'border-t border-base-300': i }">
+              <div class="self-start flex items-center gap-2 text-xs font-mono font-semibold uppercase text-base-content/60 leading-5 sm:pt-1.5">
+                <span class="size-3 rounded-full shrink-0" :class="e.root ? 'bg-primary' : 'bg-base-content'"></span>
+                <span x-text="e.when"></span>
+              </div>
+              <div class="min-w-0 flex flex-col gap-2">
+                <p class="text-pretty" x-text="e.text"></p>
+                <template x-if="e.root">
+                  <button type="button" class="btn btn-ghost btn-xs self-start -ml-2 text-primary" @click="closeProgram()">Back to SJR 8201</button>
+                </template>
+                <template x-if="e.src">
+                  <div class="flex flex-col gap-2">
+                    <button type="button" class="btn btn-ghost btn-xs self-start -ml-2" @click="toggle(e.id)" :aria-expanded="open[e.id] ? 'true' : 'false'" x-text="open[e.id] ? 'Hide article text' : 'Article text'"></button>
+                    <div x-show="open[e.id]" class="border-l-2 border-base-300 pl-4 flex flex-col gap-2 text-base-content/70">
+                      <template x-for="(q, k) in e.src" :key="k"><p class="text-pretty" x-text="q"></p></template>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </li>
+          </template>
+        </ol>
+      </div>
+    </div>
+    <form method="dialog" class="modal-backdrop"><button>Close</button></form>
+  </dialog>
+
+</div>
+</body>
+</html>

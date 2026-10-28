@@ -226,6 +226,12 @@ ok('what it calls is shown', d.chips.includes('Beta') && d.chips.includes('Show-
 // one keeps the index, so the button on a chain that is already there has to
 // name Library-Replace. Asserting the label alone would pass on a button that
 // says Replace and sends an Import.
+//
+// `signer=up` keeps that rule under test while the page's default, with the
+// signing worker down, sends every install through Library-Paste; the paste
+// block near the end checks the default.
+await open('?name=Alpha&signer=up');
+d.buttons = await page.evaluate(() => [...document.querySelectorAll('#detail .btn')].map(b => b.textContent));
 ok('a chain already on the device is replaced, not imported over',
    d.buttons.some(b => b.includes('Replace')), d.buttons.join(','));
 const aHref = await page.locator('#detail a.btn-primary').getAttribute('href');
@@ -248,6 +254,8 @@ const b = await page.evaluate(() => ({
 }));
 ok('a chain is told who calls it', b.labels.includes('Called by') && b.chips.includes('Alpha'),
    b.labels.join(',') + ' / ' + b.chips.join(','));
+await open('?name=Beta&signer=up');
+b.buttons = await page.evaluate(() => [...document.querySelectorAll('#detail .btn')].map(b => b.textContent));
 ok('a chain the device lacks offers a plain install',
    b.buttons.some(t => t.includes('Install')) && !b.buttons.some(t => t.includes('Replace')),
    b.buttons.join(','));
@@ -350,7 +358,7 @@ ok('and a missing name is not called absent when nothing looked',
    /device has not been read/.test(await bare.locator('#detail').textContent()));
 // Nor may it guess at the receiver: Import is the honest default for a state
 // nobody looked up, since Replace would delete on the strength of an assumption.
-await bare.goto(`${origin}/pages/shortcuts.html?name=Alpha`, { waitUntil: 'networkidle' });
+await bare.goto(`${origin}/pages/shortcuts.html?name=Alpha&signer=up`, { waitUntil: 'networkidle' });
 await bare.waitForFunction(() => document.getElementById('status').textContent !== 'loading',
                            { timeout: 8000 });
 ok('an unread device installs rather than replaces',
@@ -365,12 +373,31 @@ const older = await browser.newContext({ viewport: { width: 430, height: 932 } }
 await older.addInitScript(() => { try { localStorage.setItem('ghToken', 'stub'); } catch {} });
 const oldPage = await older.newPage();
 await oldPage.route('**/*', route => handler(route));
-await oldPage.goto(`${origin}/pages/shortcuts.html?name=Alpha`, { waitUntil: 'networkidle' });
+await oldPage.goto(`${origin}/pages/shortcuts.html?name=Alpha&signer=up`, { waitUntil: 'networkidle' });
 await oldPage.waitForFunction(() => document.getElementById('status').textContent !== 'loading',
                               { timeout: 8000 });
 const oldHref = await oldPage.locator('#detail a.btn-primary').getAttribute('href');
 ok('a device without Library-Replace falls back to Import',
    oldHref.includes('name=Library-Import'), oldHref);
+
+// ── the signing worker is down: every install is a paste ───────────────────
+// The default since 2026-10-27. Import and Replace both sign on the phone
+// through a worker that has refused every plist since 2026-09-24, so the page
+// offers Library-Paste, which deletes by name itself, with the packed address
+// and the build it checks for "already installed".
+MANIFEST = WITH_REPLACE;
+await oldPage.goto(`${origin}/pages/shortcuts.html?name=Alpha`, { waitUntil: 'networkidle' });
+await oldPage.waitForFunction(() => document.getElementById('status').textContent !== 'loading',
+                              { timeout: 8000 });
+const pasteBtn = oldPage.locator('#detail a.btn-primary');
+const pasteHref = await pasteBtn.getAttribute('href');
+ok('with the signer down, an install is a paste', (await pasteBtn.textContent()).includes('Paste'));
+ok('and its link names Library-Paste', pasteHref.includes('name=Library-Paste'), pasteHref);
+ok('carrying the name, the packed address and the build',
+   decodeURIComponent(pasteHref).endsWith('text=Alpha\nhttps://raw.githubusercontent.com/mehrlander/shortcut-tools/main/packed/alpha.json\naaa111'),
+   decodeURIComponent(pasteHref));
+ok('a chain with file-level settings says a paste cannot set them',
+   /cannot set/.test(await pasteBtn.getAttribute('title') || ''));
 
 await browser.close();
 server.close();

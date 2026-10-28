@@ -1,0 +1,182 @@
+{"id": "lib/kits/xlsx.js:1249", "tags": ["display-rows"]}
+{"id": "lib/kits/xlsx.js:1287", "tags": ["colour-resolve"]}
+{"id": "lib/kits/xlsx.js:1308", "tags": ["attach-drawing-content"]}
+{"id": "lib/kits/xlsx.js:1332", "tags": ["cell-notes"]}
+{"id": "lib/kits/xlsx.js:1395", "tags": ["pivot-cache-read"]}
+{"id": "lib/kits/xlsx.js:1396", "tags": ["pivot-cache-read"]}
+{"id": "lib/kits/xlsx.js:1426", "tags": ["cell-notes"]}
+{"id": "lib/kits/xlsx.js:1436", "tags": ["resolve-package-path"]}
+{"id": "lib/kits/xlsx.js:1464", "tags": ["colour-convert"]}
+{"id": "lib/kits/xlsx.js:1475", "tags": ["colour-resolve"]}
+{"id": "lib/kits/xlsx.js:1521", "tags": ["classify-kind"]}
+{"id": "lib/kits/xlsx.js:1545", "tags": ["resolve-cell-style", "classify-kind"]}
+{"id": "lib/kits/xlsx.js:1561", "tags": ["excel-date-serial"]}
+{"id": "lib/kits/xlsx.js:1586", "tags": ["number-format-render"]}
+{"id": "lib/kits/xlsx.js:1600", "tags": ["number-format-render"]}
+{"id": "lib/kits/xlsx.js:1644", "tags": ["date-format-render"]}
+{"id": "lib/kits/xlsx.js:1654", "tags": ["date-format-render"]}
+{"id": "lib/kits/xlsx.js:1662", "tags": ["date-format-render"]}
+{"id": "lib/kits/xlsx.js:1709", "tags": ["number-format-render", "format-date-display"]}
+{"id": "lib/kits/xlsx.js:1751", "tags": ["display-rows"]}
+{"id": "lib/kits/xlsx.js:1752", "tags": ["display-rows"]}
+{"id": "lib/kits/xlsx.js:1793", "tags": ["profile-columns"]}
+{"id": "lib/kits/xlsx.js:1808", "tags": ["classify-kind"]}
+{"id": "lib/kits/xlsx.js:1819", "tags": ["summarize-column", "classify-column"]}
+{"id": "lib/kits/xlsx.js:1884", "tags": ["resolve-cell-style"]}
+{"id": "lib/kits/xlsx.js:1914", "tags": ["formula-constant-read"]}
+{"id": "lib/kits/xlsx.js:1920", "tags": ["formula-constant-read"]}
+{"id": "lib/kits/xlsx.js:1934", "tags": ["conditional-format-eval"]}
+{"id": "lib/kits/xlsx.js:1972", "tags": ["describe-style-text"]}
+{"id": "lib/kits/xlsx.js:2001", "tags": ["mark-cells-by-feature"]}
+{"id": "lib/kits/xlsx.js:2011", "tags": ["sheet-layout"]}
+{"id": "lib/kits/xlsx.js:2044", "tags": ["sheet-geometry"]}
+{"id": "lib/kits/xlsx.js:2120", "tags": ["conditional-format-eval"]}
+{"id": "lib/kits/xlsx.js:2150", "tags": ["cell-notes", "choice-list-options"]}
+{"id": "lib/kits/xlsx.js:2180", "tags": ["choice-list-options"]}
+{"id": "lib/kits/xlsx.js:2210", "tags": ["mark-cells-by-feature"]}
+{"id": "lib/kits/xlsx.js:2313", "tags": ["formula-text-give"]}
+{"id": "lib/kits/xlsx.js:2332", "tags": ["formula-text-give", "shift-formula-refs"]}
+{"id": "lib/kits/xlsx.js:2360", "tags": ["shift-formula-refs"]}
+{"id": "lib/kits/xlsx.js:2362", "tags": ["shift-formula-refs"]}
+{"id": "lib/kits/xlsx.js:2367", "tags": ["shift-formula-refs"]}
+{"id": "lib/kits/xlsx.js:2373", "tags": ["shift-formula-refs"]}
+{"id": "lib/kits/xlsx.js:2374", "tags": ["shift-formula-refs"]}
+{"id": "lib/kits/xlsx.js:2395", "tags": ["cell-notes", "list-sheet-features"]}
+{"id": "lib/kits/xlsx.js:2436", "tags": ["place-drawings-on-grid"]}
+{"id": "lib/kits/xlsx.js:2501", "tags": ["text-spill"]}
+{"id": "lib/kits/xlsx.js:2503", "tags": ["text-spill"]}
+{"id": "lib/kits/xlsx.js:2526", "tags": ["part-inventory"]}
+{"id": "lib/kits/xlsx.js:2527", "tags": ["item-to-row"]}
+{"id": "lib/kits/xlsx.js:2545", "tags": ["summary-table"]}
+{"id": "lib/kits/xlsx.js:2546", "tags": ["item-to-row"]}
+{"id": "lib/kits/xlsx.js:2594", "tags": ["pivot-cache-read"]}
+{"id": "lib/kits/xlsx.js:2618", "tags": ["used-extent"]}
+{"id": "lib/kits/xlsx.js:2625", "tags": ["used-extent"]}
+{"id": "lib/kits/xlsx.js:2642", "tags": ["external-connections", "summary-table"]}
+{"id": "lib/kits/xlsx.js:2643", "tags": ["item-to-row"]}
+{"id": "lib/kits/xlsx.js:2657", "tags": ["summary-table"]}
+{"id": "lib/kits/xlsx.js:2658", "tags": ["item-to-row"]}
+{"id": "lib/kits/xlsx.js:2677", "tags": ["part-inventory", "track-part-connections"]}
+{"id": "lib/kits/xlsx.js:2683", "tags": ["item-to-row"]}
+{"id": "lib/kits/xlsx.js:2697", "tags": ["part-inventory", "summary-table"]}
+{"id": "lib/kits/xlsx.js:2707", "tags": ["item-to-row", "classify-kind"]}
+{"id": "lib/kits/xlsx.js:2761", "tags": ["query-script-read"]}
+{"id": "lib/kits/xlsx.js:2781", "tags": ["query-script-read"]}
+{"id": "lib/kits/xlsx.js:2796", "tags": ["read-workbook-package"]}
+{"id": "lib/kits/xlsx.js:2815", "tags": ["picture-data-uri"]}
+{"id": "lib/kits/xlsx-extract.js:48#1", "tags": ["extract-kinds", "cell-address-convert", "order-items"]}
+{"id": "lib/kits/xlsx-extract.js:48#2", "tags": ["extract-kinds", "extract-selection-list", "file-name-make", "publish-page-api"]}
+{"id": "lib/kits/xlsx-extract.js:91", "tags": ["flatten-sheet-cells"]}
+{"id": "lib/kits/xlsx-extract.js:128", "tags": ["describe-style-text"]}
+{"id": "lib/kits/xlsx-extract.js:163", "tags": ["pretty-print-json"]}
+{"id": "lib/kits/xlsx-extract.js:177", "tags": ["list-formula-cells"]}
+{"id": "lib/kits/xlsx-extract.js:207", "tags": ["resolve-cell-style", "list-sheet-features"]}
+{"id": "lib/kits/xlsx-extract.js:247", "tags": ["list-sheet-features"]}
+{"id": "lib/kits/xlsx-extract.js:248", "tags": ["item-to-row"]}
+{"id": "lib/kits/xlsx-extract.js:264", "tags": ["cell-notes", "list-sheet-features"]}
+{"id": "lib/kits/xlsx-extract.js:274", "tags": ["list-sheet-features"]}
+{"id": "lib/kits/xlsx-extract.js:275", "tags": ["item-to-row"]}
+{"id": "lib/kits/xlsx-extract.js:292", "tags": ["list-sheet-features", "order-items"]}
+{"id": "lib/kits/xlsx-extract.js:295", "tags": ["item-to-row"]}
+{"id": "lib/kits/xlsx-extract.js:316", "tags": ["used-extent"]}
+{"id": "lib/kits/xlsx-extract.js:336", "tags": ["pivot-cache-read"]}
+{"id": "lib/kits/xlsx-extract.js:363", "tags": ["query-script-read"]}
+{"id": "lib/kits/xlsx-extract.js:381", "tags": ["profile-columns"]}
+{"id": "lib/kits/xlsx-extract.js:383", "tags": ["summarize-column", "item-to-row"]}
+{"id": "lib/kits/xlsx-extract.js:405", "tags": ["content-count"]}
+{"id": "lib/kits/xlsx-extract.js:407", "tags": ["content-count"]}
+{"id": "lib/kits/xlsx-extract.js:429", "tags": ["unique-name"]}
+{"id": "lib/kits/xlsx-extract.js:454", "tags": ["extract-build"]}
+{"id": "lib/kits/xlsx-extract.js:470", "tags": ["extract-build", "row-cap", "unique-name"]}
+{"id": "lib/kits/xlsx-extract.js:548", "tags": ["extract-selection-list"]}
+{"id": "lib/kits/xlsx-extract.js:554", "tags": ["extract-selection-list"]}
+{"id": "lib/kits/xlsx-extract.js:560", "tags": ["extract-selection-list"]}
+{"id": "lib/kits/xlsx-extract.js:585", "tags": ["extract-build"]}
+{"id": "lib/kits/xlsx-extract.js:595", "tags": ["unique-name"]}
+{"id": "lib/kits/xlsx-extract.js:643", "tags": ["extract-kinds"]}
+{"id": "lib/kits/xlsx-extract.js:684", "tags": ["extract-build"]}
+{"id": "lib/kits/xlsx-extract.js:718", "tags": ["file-name-make"]}
+{"id": "lib/kits/report-layout.js:36", "tags": ["publish-page-api"]}
+{"id": "lib/kits/report-layout.js:51", "tags": ["order-items"]}
+{"id": "lib/kits/report-layout.js:63", "tags": ["report-model-build"]}
+{"id": "lib/kits/report-layout.js:80", "tags": ["aggregate-total"]}
+{"id": "lib/kits/report-layout.js:136", "tags": ["format-number"]}
+{"id": "lib/kits/report-layout.js:143", "tags": ["report-model-build"]}
+{"id": "lib/kits/report-layout.js:175", "tags": ["report-model-build", "order-items", "flatten-tree-rows"]}
+{"id": "lib/kits/report-layout.js:186", "tags": ["report-model-build"]}
+{"id": "lib/kits/report-layout.js:203", "tags": ["order-items"]}
+{"id": "lib/kits/report-layout.js:229", "tags": ["report-html-draw", "suppress-repeated-label"]}
+{"id": "lib/kits/report-layout.js:253", "tags": ["report-html-draw"]}
+{"id": "lib/kits/report-layout.js:256", "tags": ["suppress-repeated-label"]}
+{"id": "lib/kits/report-layout.js:282", "tags": ["delimited-text-write"]}
+{"id": "lib/kits/csv.js:13", "tags": ["publish-page-api"]}
+{"id": "lib/kits/csv.js:14", "tags": ["csv-parse"]}
+{"id": "lib/kits/csv.js:32", "tags": ["csv-parse"]}
+{"id": "lib/kits/row-menu.js:35", "tags": ["copy-to-clipboard", "publish-page-api"]}
+{"id": "lib/kits/row-menu.js:47", "tags": ["dom-element-build"]}
+{"id": "lib/kits/row-menu.js:77", "tags": ["visible-columns"]}
+{"id": "lib/kits/row-menu.js:95", "tags": ["dismiss-on-outside"]}
+{"id": "lib/kits/row-menu.js:110", "tags": ["place-floating-panel"]}
+{"id": "lib/kits/row-menu.js:129", "tags": ["action-menu", "place-floating-panel", "dismiss-on-outside"]}
+{"id": "lib/kits/row-menu.js:148", "tags": ["action-menu"]}
+{"id": "lib/kits/row-menu.js:151", "tags": ["action-menu", "confirmation-flash"]}
+{"id": "lib/kits/row-menu.js:199", "tags": ["attach-row-action"]}
+{"id": "lib/kits/row-menu.js:202", "tags": ["action-menu", "attach-row-action", "copy-to-clipboard", "delimited-text-write"]}
+{"id": "lib/kits/json-explorer.js:23", "tags": ["copy-to-clipboard", "publish-page-api"]}
+{"id": "lib/kits/json-explorer.js:25", "tags": ["dom-element-build"]}
+{"id": "lib/kits/json-explorer.js:56", "tags": ["byte-size"]}
+{"id": "lib/kits/json-explorer.js:65", "tags": ["format-relative-time"]}
+{"id": "lib/kits/json-explorer.js:91", "tags": ["json-shape-profile"]}
+{"id": "lib/kits/json-explorer.js:96", "tags": ["json-shape-profile"]}
+{"id": "lib/kits/json-explorer.js:153", "tags": ["json-shape-profile", "summarize-column"]}
+{"id": "lib/kits/json-explorer.js:205#1", "tags": ["mount-component"]}
+{"id": "lib/kits/json-explorer.js:205#2", "tags": ["return-control-handle", "render-current-view"]}
+{"id": "lib/kits/json-explorer.js:238", "tags": ["byte-size"]}
+{"id": "lib/kits/json-explorer.js:249", "tags": ["json-path-read"]}
+{"id": "lib/kits/json-explorer.js:257", "tags": ["json-path-read"]}
+{"id": "lib/kits/json-explorer.js:271", "tags": ["pluralize-count-label"]}
+{"id": "lib/kits/json-explorer.js:284", "tags": ["action-button"]}
+{"id": "lib/kits/json-explorer.js:309", "tags": ["debounce-input"]}
+{"id": "lib/kits/json-explorer.js:326", "tags": ["tree-rows"]}
+{"id": "lib/kits/json-explorer.js:331", "tags": ["load-asset-once"]}
+{"id": "lib/kits/json-explorer.js:339", "tags": ["confirmation-flash"]}
+{"id": "lib/kits/json-explorer.js:348", "tags": ["download-file", "pretty-print-json"]}
+{"id": "lib/kits/json-explorer.js:377", "tags": ["search-filter"]}
+{"id": "lib/kits/json-explorer.js:383", "tags": ["search-filter"]}
+{"id": "lib/kits/json-explorer.js:405", "tags": ["clamp-long-text", "format-relative-time"]}
+{"id": "lib/kits/json-explorer.js:434", "tags": ["record-label"]}
+{"id": "lib/kits/json-explorer.js:436", "tags": ["record-label"]}
+{"id": "lib/kits/json-explorer.js:445", "tags": ["tree-rows"]}
+{"id": "lib/kits/json-explorer.js:457", "tags": ["tree-rows"]}
+{"id": "lib/kits/json-explorer.js:511", "tags": ["tree-rows", "row-cap"]}
+{"id": "lib/kits/json-explorer.js:533", "tags": ["tree-rows", "status-message"]}
+{"id": "lib/kits/json-explorer.js:547", "tags": ["json-shape-profile", "status-line"]}
+{"id": "lib/kits/json-explorer.js:612", "tags": ["build-table", "search-filter", "status-message"]}
+{"id": "lib/kits/json-explorer.js:628", "tags": ["build-table"]}
+{"id": "lib/kits/json-explorer.js:631", "tags": ["cell-display-text"]}
+{"id": "lib/kits/json-explorer.js:649", "tags": ["pretty-print-json"]}
+{"id": "lib/kits/json-explorer.js:658", "tags": ["state-styling", "show-hide-element", "breadcrumb-trail"]}
+{"id": "lib/kits/json-explorer.js:694", "tags": ["breadcrumb-trail"]}
+{"id": "lib/kits/json-explorer.js:710", "tags": ["render-current-view"]}
+{"id": "lib/kits/json-explorer.js:720", "tags": ["switch-view"]}
+{"id": "lib/kits/json-explorer.js:725", "tags": ["focus-path"]}
+{"id": "pages/pivot-table.html:382", "tags": ["tree-rows"]}
+{"id": "pages/pivot-table.html:392", "tags": ["switch-view", "show-hide-element", "state-styling"]}
+{"id": "pages/pivot-table.html:393", "tags": ["switch-view", "show-hide-element", "state-styling"]}
+{"id": "pages/pivot-table.html:409", "tags": ["format-number"]}
+{"id": "pages/pivot-table.html:421", "tags": ["update-grid-in-place"]}
+{"id": "pages/pivot-table.html:424", "tags": ["state-styling", "format-number"]}
+{"id": "pages/pivot-table.html:448", "tags": ["pivot-tree-build", "aggregate-total"]}
+{"id": "pages/pivot-table.html:470", "tags": ["pivot-tree-build"]}
+{"id": "pages/pivot-table.html:485", "tags": ["pivot-tree-build"]}
+{"id": "pages/pivot-table.html:496", "tags": ["aggregate-total"]}
+{"id": "pages/pivot-table.html:508", "tags": ["heat-scale-cell"]}
+{"id": "pages/pivot-table.html:509", "tags": ["heat-scale-cell", "aggregate-total"]}
+{"id": "pages/pivot-table.html:553", "tags": ["tree-rows", "aggregate-total"]}
+{"id": "pages/pivot-table.html:559", "tags": ["aggregate-total"]}
+{"id": "pages/pivot-table.html:593", "tags": ["tree-rows"]}
+{"id": "pages/pivot-table.html:611", "tags": ["heat-scale-cell", "format-number", "aggregate-total"]}
+{"id": "pages/pivot-table.html:671", "tags": ["aggregate-total"]}
+{"id": "pages/pivot-table.html:337", "tags": ["sample-data-hold", "derive-record-fields"]}
+{"id": "node/build/registries-load.mjs:23", "tags": ["csv-parse"]}
+{"id": "node/build/registries-load.mjs:41", "tags": ["csv-parse"]}

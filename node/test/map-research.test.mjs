@@ -181,11 +181,23 @@ test('failed source reads remain retryable, and a slow earlier request cannot ov
   assert.equal(data.researchAccounts[0].label, 'Excel findings');
 });
 
+// The Icons tab reads the declarations for its Projects and Programs families
+// without being one of the tabs above, so a refresh must re-read what was asked
+// for rather than what the open tab needs.
+test('a config refresh re-reads declarations asked for from any tab', async () => {
+  data.setTab('harness');
+  await data.loadWorkDeclarations(true);
+  window.document.dispatchEvent(new window.Event('web-tools:configs-refreshed'));
+  await settled();
+  assert.equal(data.workLoading, false);
+  assert.ok(data.workSources?.some(s => s.repo === home), 'the private repository is read again');
+});
+
 test('signing out removes private research even while another tab is open', async () => {
   data.setTab('harness');
   window.TOKEN = ''; window.__shell._authState = 'public';
-  await tick(3);
-  assert.equal(data.workSources, null);
+  await settled();
+  assert.deepEqual([...data.workSources.map(s => s.repo)], [hub]);
   data.setTab('research'); await settled();
   assert.deepEqual([...data.workSources.map(s => s.repo)], [hub]);
   assert.deepEqual(problems, []);

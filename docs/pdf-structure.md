@@ -5,8 +5,7 @@ contains, the two independent ways to read a table out of one, the tolerances
 that decide whether either works, and the failure modes that are specific to
 government and legislative documents.
 
-Written to be read once before using the kit and reached for again when a table
-comes out wrong. The kit's own header covers the API; this covers the reasoning.
+The kit's own header covers the API; this covers the reasoning.
 
 ## The problem, stated honestly
 
@@ -15,11 +14,6 @@ glyph at this point" and "stroke a line from here to there." It does not say
 "this is a table," "this is a column heading," or "these two numbers belong to
 the same row." Every structure you get back is inferred, and every inference can
 be wrong.
-
-That is not a defect in any particular tool. It is the format. A PDF was
-designed so a document looks the same everywhere, and it succeeds at that by
-discarding exactly the information a reader reconstructs effortlessly and a
-program cannot.
 
 Two consequences follow, and the kit is shaped by both:
 
@@ -172,14 +166,8 @@ than most inputs in every way except three.
   faithful and captures the white rule; filtering is a lattice-layer decision,
   which is the right place for it, because a reader might want to know the rule
   is there.
-
-  There is a bug worth remembering here, because nothing about it announces
-  itself. pdf.js hands colour operands over as a `Uint8ClampedArray`, and
-  mapping one in place returns another typed array that coerces each hex string
-  back to a number. Every colour therefore becomes `#000`, white included, and
-  the filter silently does nothing. Caught only by running a real PDF with a
-  known white rule through the whole pipeline; pinned now by a test in both
-  suites.
+  The colour read has a silent trap (typed-array colour operands), commented at
+  `toHex` in `pdf.js` and pinned by a test in both suites.
 
 - **Dotted leaders.** `Appropriations..........$1,000,000` is often not a dashed
   line but thousands of discrete one-point segments. A single budget page can
@@ -222,24 +210,16 @@ answers.
 ### Does the reported box sit where the ink is?
 
 No, and the gap is systematic. `getTextContent` reports a **typographical
-container**, which includes side bearings, not an ink extent.
-
-Measured by `npm run test:pdf`, which renders a page at 3x and scans for real
-ink, at 12pt across five standard fonts:
-
-| | leading gap | trailing gap |
-| --- | --- | --- |
-| Helvetica | 0.67 to 1.0 pt | 0.4 to 0.65 pt |
-| Helvetica-Bold | 0.67 pt | 0.4 to 0.68 pt |
-| Times-Roman | 0.33 pt | 0.01 to 0.34 pt |
-| Times-Italic | 0 to 0.67 pt | **-1.01 pt** |
-| Courier | 0.67 to 1.0 pt | 0 to 0.87 pt |
+container**, which includes side bearings, not an ink extent. `npm run test:pdf`
+measures it per font across five standard fonts, by rendering a page at 3x and
+scanning for real ink, and prints the gaps.
 
 Two things to take from it. The container starts **before** the ink, always, by
 up to a point at 12pt, which is why a shrink-wrapped box looks loose on the left
 and why a naive left-edge column rule fires slightly early. And the trailing side
-is **not symmetric**: an italic W leans past its own advance width, so ink exits
-the box on the right. Any overlay that clips to the reported box will cut it off.
+is **not symmetric**: an italic W leans past its own advance width (about a
+point in Times-Italic), so ink exits the box on the right. Any overlay that
+clips to the reported box will cut it off.
 
 The invariant worth relying on is only the first one: ink never starts before the
 box. Build containment rules on the leading edge and treat the trailing edge as
@@ -248,28 +228,18 @@ still exercises the overhang, so the asymmetry cannot quietly stop being tested.
 
 ### Do the per-character positions land on the characters?
 
-Only if you measure them. The boundary after `iiiii` in `iiiiiWWWWW` at 12pt,
-against the font's own metrics:
-
-| font | true | measured | evenly divided | measured error | even error |
-| --- | --- | --- | --- | --- | --- |
-| Helvetica | 13.32 | 13.33 | 34.98 | **0.01** | 21.66 |
-| Helvetica-Bold | 16.68 | 13.97 | 36.66 | **-2.71** | 19.98 |
-| Times-Roman | 16.68 | 16.67 | 36.66 | **-0.01** | 19.98 |
-| Times-Italic | 16.68 | 15.16 | 33.33 | **-1.52** | 16.65 |
-| Courier | 36.00 | 36.00 | 36.00 | **0** | 0 |
-
-Even division is not approximately right, it is wrong by more than half the run:
-about 20pt out on a 36pt string. Canvas measurement is essentially exact when the
-browser's substitute font is metrically close (Helvetica, Times-Roman), and off
-by 1.5 to 2.7pt when it is not (bold, italic). Courier is the control: a
-monospaced font has genuinely uniform advances, both strategies agree, and the
-measured path must not make it worse.
+Only if you measure them. The same run measures the boundary after `iiiii` in
+`iiiiiWWWWW` at 12pt against the font's own metrics. Even division is not
+approximately right, it is wrong by more than half the run: about 20pt out on a
+36pt string. Canvas measurement is essentially exact when the browser's
+substitute font is metrically close (Helvetica, Times-Roman), and off by 1.5 to
+2.7pt when it is not (bold, italic). Courier is the control: a monospaced font
+has genuinely uniform advances, both strategies agree, and the measured path
+must not make it worse.
 
 So per-character geometry is good enough for decoration matching and column
 assignment, and not good enough for exact character-level hit testing in an
-unusual font. That is the same conclusion the March 2026 research reached from
-the other direction, now with numbers.
+unusual font.
 
 ### Projecting to the screen
 
@@ -287,11 +257,10 @@ v.select(dragRect, boxes, { mode: 'contain' });
 v.unbox(dragRect);                          // back to PDF space, for the pure layers
 ```
 
-This exists in the kit because every previous overlay rewrote it inline, and the
-2026-05 splitter did it by dividing mouse pixels by the scale. That ignores the
-transform's translation, so the splitters drifted away from the text they were
-supposed to divide, in a way that looked like a rendering problem. Going through
-the actual inverse is exact, and `unbox` closes the loop: a rectangle the user
+Do not convert by dividing pixels by the scale: that ignores the transform's
+translation, and the overlay drifts off the text in a way that looks like a
+rendering problem. Going through the actual inverse is exact, and `unbox` closes
+the loop: a rectangle the user
 dragged comes back as a PDF-space region the `stream` and `lattice` functions
 accept unchanged.
 
@@ -299,8 +268,7 @@ accept unchanged.
 
 pdf.js emits blank items: empty strings and lone spaces, each with a real
 position. The kit keeps them. A zero-width item between two runs is often the
-only mark a column break leaves behind, and an earlier generation of this code
-used exactly that to insert separators. Filter them at the consumer
+only mark a column break leaves behind. Filter them at the consumer
 (`items.filter(i => i.str.trim())`) rather than at the source.
 
 ## What the kit does not do
@@ -317,7 +285,7 @@ Stated plainly, because the honest limit is more useful than the feature list.
   total. The authoritative source is the font's own widths via `charsToGlyphs`,
   which lives on the worker side and is not reachable from the main thread.
   Measured error is under 0.02pt where the substitute is metrically close and up
-  to 2.7pt where it is not, which is the table above.
+  to 2.7pt where it is not, as measured above.
 - **No reading order for multi-column prose.** `rows` groups by baseline, which
   merges two side-by-side columns of body text into one line.
 - **No semantic labelling.** Nothing here decides that a cell is an agency name
@@ -335,50 +303,32 @@ output vocabulary, and settling that vocabulary is open work on both sides.
 ## Library versions
 
 Pinned: **pdf.js 3.4.120** and **pdf-lib 1.17.1**. pdf-lib is current (upstream
-has not released since); pdf.js is three majors behind, and whether to move is a
-question that recurs and usually gets answered from a changelog. It is answered
-here by running: `node node/test/pdf-version-probe.mjs` puts the same fixture
-and the same analysis through each version with only the library swapped.
+has not released since); pdf.js is three majors behind. Whether to move is
+answered by running, not from a changelog: `node node/test/pdf-version-probe.mjs`
+puts the same fixture and the same analysis through each version with only the
+library swapped. Its run of 2026-07-25 on Chromium 141 found:
 
-Measured 2026-07-25 on Chromium 141:
+- **v4 (4.10.38) does not break this kit's code.** Every stage produces
+  byte-identical output, and `await page.getOperatorList()` still returns
+  `fnArray`/`argsArray`. The only real change is packaging: 4.x onward ships
+  **ESM only**, so `pdf.min.js` no longer exists and a classic `<script src>`
+  cannot load it. That is a loader question, not an extraction question.
+- **v5 (5.4.149) is where the API breaks**, in the one place this kit reaches
+  deepest: `constructPath`'s operand shape changed, so the path walk throws
+  `pathOps is not iterable`. Vector rules are what the lattice runs on, so this
+  is a rewrite of `extractPaths`, not a shim.
+- **v6 (6.1.200) needs a newer browser.** It calls
+  `Map.prototype.getOrInsertComputed`, which Chromium 141 does not implement,
+  so pinning to it would exclude anyone a browser generation behind.
 
-| version | module | opens | paths | white rule | grid |
-| --- | --- | --- | --- | --- | --- |
-| 3.4.120 | classic | yes | 4h/5v | seen | exact |
-| 4.10.38 | ESM | yes | 4h/5v | seen | exact |
-| 5.4.149 | ESM | no | | | `pathOps is not iterable` |
-| 6.1.200 | ESM | no | | | `Map.prototype.getOrInsertComputed` missing |
-
-Three things follow, and the first contradicts what was expected.
-
-**v4 does not break this kit's code at all.** The 2026-03 research concluded that
-streaming `getOperatorList` was the highest-impact break at v4 and that
-`await page.getOperatorList()` would stop returning `fnArray`/`argsArray`. It
-still does. Every stage produces byte-identical output on 4.10.38. The only real
-v4 change is packaging: 4.x onward ships **ESM only**, so `pdf.min.js` no longer
-exists and a classic `<script src>` cannot load it. That is a loader question,
-not an extraction question.
-
-**v5 is where the API actually breaks**, in the one place this kit reaches
-deepest: `constructPath`'s operand shape changed, so the path walk throws
-`pathOps is not iterable`. Vector rules are exactly what the lattice runs on, so
-this is not a shim, it is a rewrite of `extractPaths`.
-
-**v6 needs a newer browser than this sandbox has.** It calls
-`Map.prototype.getOrInsertComputed`, a proposal Chromium 141 does not implement.
-Pinning to it would exclude anyone a browser generation behind.
-
-**The decision: stay on 3.4.120.** It is what every session from 2026-02 to
-2026-05 used, so the whole corpus of prior work is calibrated against it, and
-moving to v4 buys nothing measurable while costing the classic-script load path.
+**The decision: stay on 3.4.120.** The corpus of prior work is calibrated
+against it, and moving to v4 buys nothing measurable while costing the
+classic-script load path.
 
 **The escape hatch works, and is supported.** If a page already has pdf.js on
-`window.pdfjsLib`, the kit uses it and does not load its own. So a page wanting
-v4 imports it, sets `GlobalWorkerOptions.workerSrc`, and loads the kit after.
-The probe drives exactly that path. One bug had to be fixed for it: the kit was
-overwriting `workerSrc` with its own pinned URL even when pdf.js was already
-present, which mixes two builds and surfaces as "Setting up fake worker failed",
-a message that names neither cause.
+`window.pdfjsLib`, the kit uses it, does not load its own, and leaves the
+page's `GlobalWorkerOptions.workerSrc` alone. So a page wanting v4 imports it,
+sets `workerSrc`, and loads the kit after. The probe drives exactly that path.
 
 ## The page axis
 
@@ -390,8 +340,7 @@ content and usually has to come off before anything downstream is right.
 pages; anything appearing at the same place on enough of them is a candidate.
 Each result carries `ratio`, the pages it appears on, and `varies`.
 
-`varies` is the part that matters, and it took looking at a real multi-page
-document to see why. **In a tabular document, body rows recur positionally too.**
+`varies` is the part that matters. **In a tabular document, body rows recur positionally too.**
 Eighteen data rows at fixed heights on twelve pages produce fifty-five recurring
 positions, none of which are furniture. Position alone is not a footer detector.
 What separates them is whether the *text* repeats: a running head says the same
@@ -431,22 +380,16 @@ third axis, orbitable, with the trim planes cutting through the whole stack and
 anything outside them shown in red before it is cut. The projection is
 deliberately parallel rather than perspective, because the question the view
 answers is whether an element recurs at the same position, and perspective
-would put two such elements at different screen points. Foreshortening would
-look better and read worse. The first attempt filled each sheet at 0.72 alpha
-and twelve of them stacked into an opaque slab, which showed one page and hid
-the other eleven.
+would put two such elements at different screen points.
 
 Every coordinate on that page goes through `pdf.view`, and nothing on it
 converts by hand. That is the point: if the overlay lines up, the projection is
 right. The page is an assertion that a number cannot make.
 
-It has already earned its place twice. Drawing the rules revealed that
-"extracted" and "walked" are different sets and the overlay was showing only
-one, which is the entire white-rule story rendered invisible. And putting the
-two table readings side by side over the *same region* showed `stream` finding
-five columns where `lattice` found three, which turned out to be the blank items
-above voting on alignment. Both were live in a kit whose numeric tests were all
-green.
+Use it when numeric tests pass and a table still reads wrong: drawing the rules
+shows that "extracted" and "walked" are different sets, and the two table
+readings side by side over the *same region* show a disagreement (blank items
+voting on alignment, for one) that no numeric test reports.
 
 ## Testing
 
@@ -456,7 +399,7 @@ green.
   the analysis is what those tests are about.
 - `npm run test:pdf` runs two browser passes, both against PDFs built with
   pdf-lib at coordinates the test chooses. This is the only way to have an answer
-  key, and it is where the typed-array colour bug surfaced. Needs a browser, so
+  key. Needs a browser, so
   neither is part of `npm test`.
   - `node/test/pdf-kit-browser.mjs` opens a ruled table with a white rule and a
     dotted leader in it, and checks the kit returns what went in. A second

@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SJR 8201 · WA Cares investment</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<script>
+const DATA = {
+  source: {
+    by: 'Jerry Cornfield · Washington State Standard · Oct 31, 2025 · CC BY-NC-ND 4.0',
+    url: 'https://washingtonstatestandard.com/2025/10/31/voters-to-decide-if-wa-cares-tax-dollars-can-be-invested-in-stock-market/'
+  },
+  tabs: [
+    {
+      id: 'change', label: 'What changes', cols: ['Today', 'If approved'],
+      rows: [
+        { label: 'The account',
+          span: 'WA Cares, the state’s long-term care program, is funded by a 0.58% tax on the paychecks of most workers. Collections began in mid-2023, and more than $2.5 billion was banked in the Long Term Services and Supports Trust Account as of summer.' },
+        { label: 'Constitution', cells: [
+          { text: 'Generally bars investing public money in the stock of private companies. The WA Cares account is subject to that limit.' },
+          { text: 'The WA Cares account joins the state’s pension and retirement funds on the list of funds exempt from that prohibition.' } ] },
+        { label: 'Investments', cells: [
+          { text: 'Fixed-income securities such as government bonds, treasury bills and certificates of deposit.' },
+          { text: 'The Washington State Investment Board could handle the assets as it does pension and retirement funds, and decide whether to invest in private equity funds and buy stock of private companies, or not.' } ] },
+        { label: 'Returns', cells: [
+          { text: 'Less risky, but typically lower rates of return.' },
+          { text: 'Washington’s pension funds have averaged 8.9% a year since 1992, several percentage points higher than government bonds, says the Approve 8201 campaign.' } ] },
+        { label: 'Earnings', cells: [
+          null,
+          { text: 'Used solely for the program’s beneficiaries, and must go into the WA Cares Fund.' } ] }
+      ]
+    },
+    {
+      id: 'sides', label: 'For & against', cols: ['Oppose', 'Approve'],
+      rows: [
+        { label: 'Speaker', cells: [
+          { text: 'State Sen. Bob Hasegawa, D-Tukwila' },
+          { text: 'Heather Weiner, Approve 8201 campaign' } ] },
+        { label: 'At the UW debate', cells: [
+          { quote: [
+            '“Our fiduciary responsibility is to the people.”',
+            '“No one is going to know when the economy or stock market crashes. So, this vote is about whether we keep prudent fiscal management policies of our tax dollars and retain those constitutional protections.”' ] },
+          { text: 'The tax dollars would be invested in a “safe and risk averse way” while producing greater returns.',
+            quote: [
+            '“This doesn’t mean day trading, taking big risks on a stock market.”',
+            '“This means smart long-term [investing] so that in 50 years when people in this audience today will need long term care, that fund will be there for you.”' ] } ] },
+        { label: 'Backers', cells: [
+          { text: 'Hasegawa and three Republican state lawmakers wrote the voters’ pamphlet statement opposing the measure.' },
+          { list: [
+            'Gov. Bob Ferguson, Democrat',
+            'Senate Minority Leader John Braun, R-Centralia',
+            'Washington State Nurses Association',
+            'Washington State Council of Fire Fighters',
+            'AARP',
+            'Washington Health Care Association' ] } ] },
+        { label: 'Campaign money', cells: [
+          { text: 'No funded opposition campaign, says Hasegawa.' },
+          { text: 'SEIU 775, which represents 55,000 long-term care workers in Washington, Montana and Alaska, is underwriting the campaign: $2.5 million raised and spent as of Friday.' } ] },
+        { label: 'Legislature', votes: [
+          { chamber: 'House', no: 9, yes: 86 },
+          { chamber: 'Senate', no: 7, yes: 42 } ] },
+        { label: 'Voters’ pamphlet',
+          span: 'Statements from both sides, with an explanation of the measure prepared by the attorney general’s office, are on the secretary of state website.' }
+      ]
+    },
+    {
+      id: 'then', label: '2020 vs 2025', cols: ['2020', '2025'],
+      rows: [
+        { label: 'Result', cells: [
+          { text: 'Voters defeated a similar measure. It passed in only three counties: King, Jefferson and Whatcom.' },
+          { text: 'Voters decide Tuesday. It becomes law if more than 50% approve.' } ] },
+        { label: 'Earnings', cells: [
+          { text: 'No mandate that investment earnings go into the WA Cares Fund, says Weiner.' },
+          { text: 'Investment earnings must go into the WA Cares Fund, to keep lawmakers from tapping them for other budget needs.' } ] },
+        { label: 'SEIU 775 spending', cells: [
+          { bar: 20, text: 'One fifth of the 2025 sum, in a losing effort.' },
+          { bar: 100, text: '$2.5 million raised and spent as of Friday.' } ] },
+        { label: 'Opposition',
+          span: 'No funded opposition campaign in either fight, says Hasegawa.' }
+      ]
+    },
+    {
+      id: 'timeline', label: 'Timeline',
+      events: [
+        { when: '2019', text: 'A state law creates WA Cares, the long-term care program.' },
+        { when: '2020', text: 'Voters defeat a similar investment measure. It passes only in King, Jefferson and Whatcom counties.' },
+        { when: 'Mid-2023', text: 'Collection of the 0.58% payroll tax begins.' },
+        { when: '2025', mark: true, text: 'The Legislature puts SJR 8201 on the ballot: 86–9 in the House, 42–7 in the Senate.' },
+        { divider: 'Story date · Oct 31, 2025' },
+        { when: 'Tuesday', mark: true, text: 'Voters decide SJR 8201, the first item on every Washington ballot. It needs more than 50%.' },
+        { when: 'January', text: 'A pilot program starts in a handful of counties.' },
+        { when: 'July 2026', text: 'People who qualify can begin accessing the benefit: $36,500 over a lifetime, set to rise in future years with inflation.' }
+      ]
+    }
+  ]
+};
+
+document.addEventListener('alpine:init', () => {
+  Alpine.data('page', () => ({
+    source: DATA.source,
+    tabs: DATA.tabs,
+    current: 'change',
+    init() {
+      const h = new URLSearchParams(location.hash.slice(1)).get('tab');
+      if (this.tabs.some(t => t.id === h)) this.current = h;
+      window.addEventListener('keydown', e => {
+        if (e.altKey || e.ctrlKey || e.metaKey) return;
+        if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+        if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+        const k = this.tabs.findIndex(t => t.id === this.current) + (e.key === 'ArrowRight' ? 1 : -1);
+        if (k < 0 || k >= this.tabs.length) return;
+        e.preventDefault();
+        this.go(this.tabs[k].id, true);
+      });
+    },
+    go(id, focus) {
+      this.current = id;
+      history.replaceState(null, '', '#tab=' + id);
+      const top = this.$refs.panels.offsetTop - this.$refs.bar.offsetHeight;
+      if (window.scrollY > top) window.scrollTo({ top });
+      if (focus) this.$nextTick(() => document.getElementById('tab-' + id)?.focus({ preventScroll: true }));
+    },
+    cellsOf(row) { return (row.cells || []).map((cell, j) => ({ cell, j })).filter(o => o.cell); },
+    voteShare(v) { return (100 * v.no / (v.no + v.yes)).toFixed(1) + '%'; }
+  }));
+});
+</script>
+<script defer src="https://unpkg.com/alpinejs"></script>
+</head>
+<body class="min-h-dvh bg-base-100 text-base-content" x-data="page">
+
+  <header class="px-4 md:px-8 pt-6 pb-4 flex flex-col gap-2">
+    <div class="text-xs uppercase tracking-wider text-base-content/60">Senate Joint Resolution 8201 · Ballot item 1</div>
+    <h1 class="text-3xl md:text-4xl font-bold leading-tight text-balance">Investing WA Cares tax dollars in the stock market</h1>
+    <div class="text-sm text-base-content/80 tabular-nums">Over $2.5 billion banked · House 86–9 · Senate 42–7 · Passes above 50%</div>
+    <a class="text-xs text-base-content/60 link link-hover w-fit" :href="source.url" target="_blank" rel="noopener" x-text="source.by + ' ↗'"></a>
+  </header>
+
+  <nav x-ref="bar" class="sticky top-0 z-20 h-12 bg-base-100 border-b border-base-300 px-4 md:px-8 flex items-end overflow-x-auto">
+    <div role="tablist" class="tabs tabs-border flex-nowrap whitespace-nowrap">
+      <template x-for="tab in tabs" :key="tab.id">
+        <button type="button" role="tab" class="tab" :id="'tab-' + tab.id"
+          :class="current === tab.id ? 'tab-active' : ''"
+          :aria-selected="current === tab.id"
+          :tabindex="current === tab.id ? 0 : -1"
+          @click="go(tab.id)" x-text="tab.label"></button>
+      </template>
+    </div>
+  </nav>
+
+  <main x-ref="panels" class="@container px-4 md:px-8 pb-16 text-xl leading-8">
+    <template x-for="tab in tabs" :key="tab.id">
+      <section x-show="current === tab.id" role="tabpanel">
+
+        <template x-if="tab.rows">
+          <div>
+            <div class="hidden @3xl:grid @3xl:grid-cols-[11rem_minmax(0,1fr)_minmax(0,1fr)] gap-x-8 sticky top-12 z-10 bg-base-100 pt-4 pb-3 border-b border-base-300 text-sm font-semibold uppercase tracking-wider">
+              <div></div>
+              <div class="border-l-4 border-base-300 pl-4 text-base-content/60" x-text="tab.cols[0]"></div>
+              <div class="border-l-4 border-primary pl-4 text-primary" x-text="tab.cols[1]"></div>
+            </div>
+
+            <template x-for="(row, i) in tab.rows" :key="row.label">
+              <div class="grid grid-cols-1 @3xl:grid-cols-[11rem_minmax(0,1fr)_minmax(0,1fr)] gap-x-8 gap-y-3 py-6"
+                   :class="i ? 'border-t border-base-300' : ''">
+                <div class="text-xs uppercase tracking-wider leading-5 text-base-content/60 @3xl:pt-1.5" x-text="row.label"></div>
+
+                <template x-for="c in cellsOf(row)" :key="c.j">
+                  <div class="min-w-0 border-l-4 pl-4 flex flex-col gap-3"
+                       :class="c.j ? 'border-primary @3xl:col-start-3' : 'border-base-300 @3xl:col-start-2'">
+                    <div class="@3xl:hidden text-xs uppercase tracking-wider leading-5" :class="c.j ? 'text-primary' : 'text-base-content/60'" x-text="tab.cols[c.j]"></div>
+                    <template x-if="c.cell.bar">
+                      <div class="h-3 rounded-full mt-2" :class="c.j ? 'bg-primary' : 'bg-base-content/30'" :style="{ width: c.cell.bar + '%' }"></div>
+                    </template>
+                    <template x-if="c.cell.text"><p class="text-pretty" x-text="c.cell.text"></p></template>
+                    <template x-for="q in (c.cell.quote || [])"><p class="text-pretty" x-text="q"></p></template>
+                    <template x-if="c.cell.list">
+                      <ul class="flex flex-col gap-1">
+                        <template x-for="item in c.cell.list"><li class="text-pretty" x-text="item"></li></template>
+                      </ul>
+                    </template>
+                  </div>
+                </template>
+
+                <template x-if="row.span">
+                  <p class="min-w-0 @3xl:col-start-2 @3xl:col-span-2 text-pretty" x-text="row.span"></p>
+                </template>
+
+                <template x-if="row.votes">
+                  <div class="min-w-0 @3xl:col-start-2 @3xl:col-span-2 flex flex-col gap-5">
+                    <template x-for="v in row.votes" :key="v.chamber">
+                      <div class="flex flex-col gap-1">
+                        <div class="text-xs uppercase tracking-wider leading-5 text-base-content/60" x-text="v.chamber"></div>
+                        <div class="flex h-3 rounded-full overflow-hidden gap-0.5">
+                          <div class="bg-base-content/30" :style="{ width: voteShare(v) }"></div>
+                          <div class="bg-primary flex-1"></div>
+                        </div>
+                        <div class="flex justify-between tabular-nums">
+                          <span class="text-base-content/70" x-text="v.no + ' no'"></span>
+                          <span class="text-primary" x-text="v.yes + ' yes'"></span>
+                        </div>
+                      </div>
+                    </template>
+                  </div>
+                </template>
+              </div>
+            </template>
+          </div>
+        </template>
+
+        <template x-if="tab.events">
+          <div class="pt-2">
+            <template x-for="(ev, i) in tab.events" :key="i">
+              <div>
+                <template x-if="ev.divider">
+                  <div class="mt-2 pt-3 pb-1 border-t-2 border-base-content/40 text-xs uppercase tracking-wider leading-5 text-base-content/60" x-text="ev.divider"></div>
+                </template>
+                <template x-if="!ev.divider">
+                  <div class="grid grid-cols-1 @md:grid-cols-[9rem_minmax(0,1fr)] gap-x-6 gap-y-1 py-5"
+                       :class="i && !tab.events[i - 1].divider ? 'border-t border-base-300' : ''">
+                    <div class="text-sm font-semibold uppercase tracking-wider leading-5 @md:pt-1.5 tabular-nums" :class="ev.mark ? 'text-primary' : 'text-base-content/60'" x-text="ev.when"></div>
+                    <p class="min-w-0 border-l-4 pl-4 text-pretty" :class="ev.mark ? 'border-primary' : 'border-base-300'" x-text="ev.text"></p>
+                  </div>
+                </template>
+              </div>
+            </template>
+          </div>
+        </template>
+
+      </section>
+    </template>
+  </main>
+</body>
+</html>

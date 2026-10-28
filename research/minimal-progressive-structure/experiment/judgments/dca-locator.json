@@ -1,0 +1,81 @@
+{
+  "method": "Locations judged at 1440x900 on initial load, verified in headless Chromium (Playwright): answer strings checked for visibility and page position at load, then each click path replayed and the answer confirmed visible. A scroll to reach a control is not counted as a step. words_before_first_gist counts visible words in reading order before the first text that answers d1 (a headline stating the midair collision counts); words_before_first_gist_sentence counts to the first full sentence naming both aircraft and the collision. On R9 the left section index sits beside the content and is not counted (41 and 56 words if it is, in DOM order).",
+  "pages": {
+    "P2": {
+      "answers": {
+        "d1": {"loc": "first-screen", "path": "headline and lead paragraph", "scent": null},
+        "d2": {"loc": "first-screen", "path": "lead paragraph ('Everyone aboard both aircraft was killed') and the aircraft cards ('64 people, all killed', '3 crew, all killed')", "scent": null},
+        "d3": {"loc": "1-step", "path": "scroll to 'The airspace, the systems and the record', card 'Close calls at DCA' opens a panel listing at least one TCAS RA a month", "scent": true},
+        "d4": {"loc": "scroll", "path": "'The airspace, the systems and the record', text under the 'Helicopter Routes 1 and 4' card", "scent": null},
+        "d5": {"loc": "scroll", "path": "'After the collision', Safety actions: 'January 31, 2025 · FAA' NOTAM (exceptions behind a 'Show NOTAM terms' toggle)", "scent": null},
+        "d6": {"loc": "scroll", "path": "'Weather and position' section, Visibility", "scent": null},
+        "d7": {"loc": "1-step", "path": "button 'Crew, recorders and wreckage of flight 5342' opens a panel; Operator row reads 'a wholly owned subsidiary of American Airlines'", "scent": false},
+        "d8": {"loc": "scroll", "path": "timeline phase 'The last two minutes', 20:47:42 event note (phases open by default)", "scent": null},
+        "d9": {"loc": "1-step", "path": "button 'Crew, recorder and wreckage of PAT25' opens a panel with the crew table", "scent": true},
+        "d10": {"loc": "1-step", "path": "runway 33's 4% is on the DCA card text by scroll; the card 'Ronald Reagan Washington National Airport (DCA)' opens the Runways table with runway 1's 57%", "scent": true}
+      },
+      "invented": [
+        "After the collision card says 'divers from 11 agencies and contractors recovered the victims'. The source gives no count, and its list of 11 entries includes a surface-support unit (MDTA Police Marine Division) and a combined 'Baltimore City and County Police and Fire' entry, so the number is the page's own and not exact (minor)."
+      ],
+      "words_before_first_gist": 5,
+      "words_before_first_gist_sentence": 14,
+      "notes": "A long page with slide-over panels. The gist and deaths are in the lead, and the timeline phases are open by default. Crew hours, PSA's owner, runway 1's share and the record of earlier encounters are each one panel away. The button for the flight 5342 panel names crew, recorders and wreckage, not the operator (a lane chip labeled 'Flight 5342 PSA Airlines CRJ700' opens the same panel)."
+    },
+    "R5": {
+      "answers": {
+        "d1": {"loc": "first-screen", "path": "headline 'Midair collision near Ronald Reagan Washington National Airport', with the date line naming Flight 5342 and PAT25 (Army operator, PSA and the river are not on the first screen)", "scent": null},
+        "d2": {"loc": "1-step", "path": "the first screen shows only '67 fatal: 64 on Flight 5342, 3 on PAT25'; tab Aircraft, Crew group rows 'Aboard' and 'Fatal, report form' show that this was everyone aboard", "scent": false},
+        "d3": {"loc": "1-step", "path": "tab 'Before & after', row 'TCAS resolution advisories'", "scent": true},
+        "d4": {"loc": "first-screen", "path": "altitude chart legend checkbox '200 ft msl: Route 1 maximum after Memorial Bridge' (also on the Route tab)", "scent": null},
+        "d5": {"loc": "1-step", "path": "tab 'Before & after', After · safety actions, January 31, 2025", "scent": true},
+        "d6": {"loc": "1-step", "path": "tab 'Tower & runways', Conditions section, Visibility", "scent": false},
+        "d7": {"loc": "1-step", "path": "tab Aircraft, Operator row", "scent": true},
+        "d8": {"loc": "scroll", "path": "default Sequence tab (Last 5 minutes), row 20:47:42, ATC cell note", "scent": null},
+        "d9": {"loc": "1-step", "path": "tab Aircraft, Crew group, flight-hours bars", "scent": false},
+        "d10": {"loc": "1-step", "path": "tab 'Tower & runways', Runways share of arrivals bars", "scent": true}
+      },
+      "invented": [],
+      "words_before_first_gist": 0,
+      "words_before_first_gist_sentence": null,
+      "notes": "Tabbed, with the default Sequence tab showing the last 5 minutes beside an altitude chart. Most lookups sit behind one tab, and weather is filed under 'Tower & runways'. The header gives 67 fatal but never says that was everyone aboard, and no sentence states the gist. The altitude chart joins reported points with unbroken lines, with no caveat that the source gives no path between them."
+    },
+    "R9": {
+      "answers": {
+        "d1": {"loc": "first-screen", "path": "headline and overview paragraph", "scent": null},
+        "d2": {"loc": "first-screen", "path": "overview: 'All 64 people aboard the airplane and all 3 crew members aboard the helicopter were killed'", "scent": null},
+        "d3": {"loc": "scroll", "path": "section 'Earlier close calls at DCA', paragraph under 'Voluntary reports and FAA data, 2011 to 2024'", "scent": null},
+        "d4": {"loc": "scroll", "path": "timeline 8:45:30 note; also the altitude chart and the route list under Memorial Bridge", "scent": null},
+        "d5": {"loc": "scroll", "path": "section 'Actions since', January 31, 2025", "scent": null},
+        "d6": {"loc": "first-screen", "path": "overview Conditions box: '10 miles visibility'", "scent": null},
+        "d7": {"loc": "scroll", "path": "section 'The two flights', Flight 5342 card, Operator", "scent": null},
+        "d8": {"loc": "scroll", "path": "timeline 8:47:42 card, note under the marked words", "scent": null},
+        "d9": {"loc": "scroll", "path": "section 'The two flights', PAT25 card, Crew list", "scent": null},
+        "d10": {"loc": "scroll", "path": "section 'Earlier close calls at DCA', 'Share of DCA arrivals by runway' bars", "scent": null}
+      },
+      "invented": [],
+      "words_before_first_gist": 7,
+      "words_before_first_gist_sentence": 22,
+      "notes": "One long page with a section index, and no answer needs an interaction. The first screen states the gist, the deaths and the visibility. Its altitude chart says that the line between points is not a reported path."
+    },
+    "Z2": {
+      "answers": {
+        "d1": {"loc": "first-screen", "path": "headline and the lede paragraph at the top of the Timeline tab", "scent": null},
+        "d2": {"loc": "1-step", "path": "the first screen shows only '67 fatal: 64 airplane, 3 helicopter'; tab Aircraft, 'Aboard' group shows aboard and fatal counts match", "scent": false},
+        "d3": {"loc": "1-step", "path": "tab 'Encounters at DCA', 'Reported encounters near DCA, 2011 to 2024'", "scent": true},
+        "d4": {"loc": "scroll", "path": "timeline row 20:45:30, link text 'Route 1: 200 ft msl maximum from here'", "scent": null},
+        "d5": {"loc": "1-step", "path": "tab Investigation, 'Safety actions', Jan 31, 2025", "scent": false},
+        "d6": {"loc": "scroll", "path": "bottom of the Timeline tab, Weather row after the collision", "scent": null},
+        "d7": {"loc": "2-steps", "path": "tab Aircraft, then the 'PSA Airlines' link in the Operator row opens a dialog: 'Parent: Wholly owned subsidiary of American Airlines'", "scent": true},
+        "d8": {"loc": "scroll", "path": "timeline row 20:47:42 (T-17 s)", "scent": null},
+        "d9": {"loc": "1-step", "path": "tab Aircraft, Crew table, Total hours", "scent": false},
+        "d10": {"loc": "1-step", "path": "the 'runway 33' link in the lede opens the DCA dialog with the runway table (or 2 steps: tab 'Encounters at DCA', then 'DCA runways and their share of arrivals and departures')", "scent": true}
+      },
+      "invented": [
+        "Aircraft tab, Recorders, 'Limits' row gives 'None reported' for flight 5342. The source does report that the airplane's CVR started mid-flight because of its 2-hour capacity, and the page's own Voice row says so (minor)."
+      ],
+      "words_before_first_gist": 0,
+      "words_before_first_gist_sentence": 51,
+      "notes": "Tabs plus modal dialogs. The lede gives the gist, and the timeline carries the Route 1 limit, the stepped-on call and the weather. PSA's owner takes two steps, safety actions are filed under 'Investigation', and the first screen gives a fatality count but not that everyone aboard died."
+    }
+  }
+}

@@ -17,18 +17,8 @@ description: >-
 
 The web sandbox fails in a small number of enumerable ways. Each one presents as
 a larger and more alarming problem than it is, and each has a one-line test that
-separates the two. The cost is not the failure, it is the wrong diagnosis: a
-routing quirk read as a permission wall, a shallow clone read as a rewritten
-history. Both have been misread twice.
-
-## Goal and output
-
-Behavior, not an artifact. Reach the right diagnosis in one command instead of
-reasoning from a plausible wrong one.
-
-## Process
-
-Reference. Match the symptom, run the test, apply the rule.
+separates the two. Match the symptom, run the test, apply the rule, rather than
+reasoning from a plausible wrong diagnosis.
 
 ## Key insights
 
@@ -45,17 +35,13 @@ under a UUID that names nothing; resolve it from `mcp-logs-<id>/` under
 `~/.cache/claude-cli-nodejs/<root>/`, which records each call under the server's
 real name. A capability existing only on a connector has no fallback.
 
-Two tells this trap wears after an environment restart, measured 2026-08-02.
-The resume notice may announce the built-in names as *no longer available* and
-list UUID-named replacements; ask ToolSearch for the built-in name anyway, since
-it still resolves. And the error text itself ("requires approval") is the
-misdiagnosis: it survived two sessions being read as a permission wall the user
-had not cleared. The `portable` plugin now delivers this diagnosis by machinery:
-a `PostToolUseFailure` hook (`hooks/mcp-fail-hint.sh`) matches `-32003` on any
-`mcp__*` tool and injects the reissue rule at the moment of failure, so the fix
-no longer depends on recalling this file. (The failure payload carries
-`tool_name` and `error`; `PostToolUse` does not fire on a failed call at all,
-which is itself worth knowing before probing one.)
+After an environment restart, the resume notice may announce the built-in
+names as *no longer available* and list UUID-named replacements; ask ToolSearch
+for the built-in name anyway, since it still resolves. The error text
+("requires approval") is not a permission wall the user has to clear. The
+`portable` plugin's `PostToolUseFailure` hook (`hooks/mcp-fail-hint.sh`)
+injects this rule when `-32003` hits an `mcp__*` tool; `PostToolUse` does not
+fire on a failed call at all.
 
 **A short `git log`.** The checkout is shallow. `git log` truncates with no
 error and no marker, so a file's apparent first commit is the graft boundary
@@ -69,11 +55,8 @@ The same shallow clone presents a second way, naming an object rather than a
 depth: a check that pins a baseline commit fails with *the pinned commit `<sha>`
 is not in this checkout*, which reads as a deleted or corrupted object. `git
 cat-file -e <sha>` confirms only that it is absent; the shallow test above gives
-the reason. Measured 2026-09-04 on `mehrlander/home`, whose session clone
-carried 175 of 4,351 commits, so the register-catalog step of
-`tools/verify-artifacts.sh` could not reach the commit it pins. No
-pinned-baseline check passes in a web session until the clone is deepened, and
-`--unshallow` on that repo took under a minute.
+the reason. No pinned-baseline check passes in a web session until the clone is
+deepened; `--unshallow` on `mehrlander/home` took under a minute.
 
 **`HTTP 413` on push.** The proxy is refusing the request body, not a client
 buffer, so `http.postBuffer` changes nothing. A push carries only the objects the
@@ -92,16 +75,13 @@ answers `Proxy error: repository not authorized` (502). Different failure, same
 appearance.
 
 **No create-PR button on an added repo.** A repository attached mid-session
-with `add_repo` has full git access through the proxy but no web-interface
-branch or pull-request controls, so the platform's PR button never appears for
-it. This is a missing affordance, not a failure: commit to a branch (a PR needs
-a source branch distinct from its target, so never straight to the default),
-push, and hand the owner the compare URL,
-`https://github.com/<owner>/<repo>/compare/<default-branch>...<branch>`, whose
-page carries the Create pull request control and stamps the owner's identity on
-the result. The MCP write path can open it instead, but authored by the
-integration identity, so that route follows an explicit request. Fuller
-account: `docs/github/github-surfacing.md`.
+with `add_repo` has no web-interface pull-request controls. This is a missing
+affordance, not a failure: commit to a branch other than the default, push, and
+hand the owner the compare URL,
+`https://github.com/<owner>/<repo>/compare/<default-branch>...<branch>`. The
+MCP write path opens the PR under the integration identity, so it follows an
+explicit request
+([`docs/github/github-surfacing.md`](https://github.com/mehrlander/web-tools/blob/main/docs/github/github-surfacing.md#surfacing-an-added-repositorys-work)).
 
 **A hook that never fired.** `.claude/settings.json` is read only when the
 session's project root is the repository. In a multi-repo session the root sits
@@ -114,8 +94,7 @@ wherever it is invoked.
 
 ## Extending
 
-The traps above are the measured ones. When a new sandbox failure costs a session
-real time, add it here in the same shape: the symptom as it presents, the test
-that separates it from what it resembles, and the rule. The evidence and dated
-measurements stay in the `docs/environment/` and `docs/github/` records in
-`mehrlander/web-tools`; this file carries only what a session acts on.
+When a new sandbox failure costs a session real time, add it here in the same
+shape: the symptom as it presents, the test that separates it from what it
+resembles, and the rule. Evidence and dated measurements go in the
+`docs/environment/` and `docs/github/` records in `mehrlander/web-tools`.
