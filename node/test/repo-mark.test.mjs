@@ -1,4 +1,4 @@
-// kits/repo-mark.js — a repository's mark, from its manifest, drawn one way.
+// kits/repo-mark.js: a repository's mark, from its manifest, drawn one way.
 //
 // The kit exists so the scope pill, the checkouts panel, the Sessions rows and
 // the sidebar cannot draw one repository two ways; those consumers are tested
