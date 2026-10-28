@@ -36,7 +36,7 @@ documents how a toss hands a page its versions.
 A 🥏 link on any route can carry a look marker in the rendered page's own
 fragment, which makes it a look link: `--intro` greets the reader, and `--at`
 scrolls to one element, tints it and says why, or walks through several.
-`npm run showing` puts the fragment on whichever route the picker chose. The
+`npm run showing` puts the fragment on whichever route it chose. The
 grammar is in the header of [`lib/kits/look.js`](../lib/kits/look.js);
 [`skills/look-markers/SKILL.md`](../skills/look-markers/SKILL.md) says how to
 make one and which pages it reaches.

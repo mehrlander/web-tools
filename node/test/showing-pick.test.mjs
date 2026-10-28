@@ -10,8 +10,8 @@
 // shell". It is in lib, and a toss at the branch reaches it. That reading is now a fixture
 // rather than a thing a session has to recall correctly under pressure.
 //
-// No document restates the picker's rules: the fixtures below are its
-// specification.
+// The fixtures below specify the picker file set by file set;
+// docs/showing-mechanisms.csv states it only a row at a time.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';

@@ -153,7 +153,7 @@ test('the fab knows every delivery mode, so it never reads one as a route key', 
 //
 // This block exists because 1,589 words of CLAUDE.md, 63% of the file, failed
 // to stop the session that was reading them from handing over the wrong link.
-// The rule moved into data the app renders (the app's Map view, Transport
+// The rule moved into data the app renders (the app's Map view, Showing
 // tab), and the doc points there instead of restating it. What the tests below
 // hold is the part that would rot silently: a row missing the field that says
 // what it CANNOT show is worse than no row, since the whole point of the table

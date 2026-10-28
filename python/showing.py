@@ -8,9 +8,9 @@
     python3 python/showing.py --path docs/x.md     # any file, changed or not
     python3 python/showing.py --width 390          # render at a phone's width
 
-The rules this executes are not new. They are the use, reaches and misses
-columns of docs/showing-mechanisms.csv, which the app's Map view renders for a
-person who chooses to go and read them.
+The rules this executes are not new. docs/showing-mechanisms.csv states them
+a row at a time, in its use, reaches and misses columns, and the app's Map view
+renders that table for a person who chooses to go and read it.
 
 That is the gap this closes, and it is worth stating plainly because it is not
 the gap it looks like. The knowledge was complete; what was missing was anything
