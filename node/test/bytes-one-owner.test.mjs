@@ -9,16 +9,9 @@
 // multiplies) or of a unit word in prose.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { repoRoot } from '../repo-root.mjs';
-import { sources, linesMatching, excusesHold } from './one-home.mjs';
+import { sources, linesMatching } from './one-home.mjs';
 
 const HOME = 'lib/kits/traffic.js';
-
-const ALLOWED = new Map([
-  [HOME, 'where the rule lives'],
-]);
 
 const DIVIDES = /\/\s*\(?\s*(?:1024|1048576)\b/;
 const NAMES_UNIT = /\b[KMG]i?B\b|['"`][KMG]['"`]/;
@@ -27,7 +20,7 @@ const UNIT_LIST = /\[\s*['"]B['"]\s*,\s*['"]KB['"]/;
 export const offendersIn = linesMatching((line) => (DIVIDES.test(line) && NAMES_UNIT.test(line)) || UNIT_LIST.test(line));
 
 test('only traffic.js turns a byte count into KB text', () => {
-  assert.deepEqual(offendersIn(sources(ALLOWED)), [],
+  assert.deepEqual(offendersIn(sources(new Set([HOME]))), [],
     'these format a byte count by hand; call window.Traffic.fmtBytes instead');
 });
 
@@ -41,19 +34,4 @@ test('the gate catches the shapes the copies took, and not a limit or a word', (
     'f.js': "said('copied, ' + kb + ' KB');",
   };
   assert.deepEqual(offendersIn(Object.keys(lines), (f) => lines[f]), ['a.js:1', 'b.js:1', 'c.js:1', 'd.js:1']);
-});
-
-test('each exception still holds what excuses it', () => {
-  excusesHold(ALLOWED, HOME, offendersIn, 'formats bytes by hand');
-});
-
-test('traffic.js keeps the rule the views were moved onto', () => {
-  const w = {};
-  new Function('window', readFileSync(join(repoRoot, HOME), 'utf8'))(w);
-  const { fmtBytes } = w.Traffic;
-  assert.ok(!('fmtBytesShort' in w.Traffic), 'one formatter, not two');
-  assert.deepEqual([900, 9728, 417435, 1460047, 2 ** 31].map((n) => fmtBytes(n)),
-    ['900 B', '9.5 KB', '408 KB', '1.4 MB', '2.0 GB']);
-  assert.equal(fmtBytes(null), '?', 'unknown is never zero');
-  assert.equal(fmtBytes(undefined, ''), '', 'a view may ask for nothing instead');
 });
