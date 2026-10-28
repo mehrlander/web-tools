@@ -103,8 +103,6 @@ showing-mechanisms,glyph,recorded,,value,column,yes,diamond;disc;box;x,label,the
 showing-mechanisms,label,recorded,,value,column,yes,,value,the mechanism name a reader sees
 showing-mechanisms,form,recorded,,none,column,yes,,value,the address shape; absent where the mechanism is not a URL
 showing-mechanisms,subject,recorded,,value,column,yes,,value,"the subject types it can show, semicolon-separated keys into docs/subjects.csv"
-showing-mechanisms,version,recorded,,value,column,yes,,value,which version of the subject it reaches
-showing-mechanisms,viewer,recorded,,value,column,yes,,label,who can open it
 showing-mechanisms,opens,recorded,,none,column,no,branch;tokenless,label,"what it can show and who can open it, as keys of its vocabulary"
 showing-mechanisms,handles,recorded,,none,column,no,page;data;app;merge;renderer,label,"what a toss can show, as keys of its vocabulary"
 showing-mechanisms,reaches,recorded,,none,column,yes,,value,what it does show
@@ -337,7 +335,7 @@ icon-families,source,recorded,,value,column,yes,,locator,"the file or folder tha
 icon-families,icon_column,recorded,,none,column,yes,,value,"for a CSV source, the column holding each member's icon; blank otherwise"
 icon-families,name_column,recorded,,none,column,yes,,value,"for a CSV source, the column naming each member; blank otherwise"
 icon-families,doc,recorded,,value,column,yes,,locator,"the passage that discusses the family's icons: a Markdown file's section by its heading's anchor, a CSV's row by its key after #, or a whole file"
-fab-signals,facet,recorded,,value,column,yes,version;viewer;subject;action,label,"which showing axis the signal reports on (version, viewer or subject), or action for an offer to act on what is on screen"
+fab-signals,facet,recorded,,value,column,yes,version;viewer;subject;action,label,"which question the signal answers: which version is shown (version), who is viewing (viewer) or what is shown (subject); or action, for an offer to act on what is on screen"
 fab-signals,part,recorded,,value,column,yes,tint;glyph;top-right;bottom-right,label,"where on the FAB the signal shows: its colour, the glyph at its centre, or a badge in one of two corners"
 fab-signals,label,recorded,,value,column,yes,,value,the signal's name as a reader sees it
 fab-signals,icon,recorded,,none,column,yes,,value,"the glyph or badge mark: a Phosphor class, or the path of a drawn SVG; blank on a tint, which has no mark of its own"
