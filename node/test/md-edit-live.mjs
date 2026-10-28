@@ -87,6 +87,14 @@ const origin = `http://127.0.0.1:${server.address().port}`;
 
 const browser = await chromium.launch({ args: ['--no-sandbox', '--ignore-certificate-errors'] });
 const page = await browser.newPage({ viewport: { width: WIDTH, height: 844 }, hasTouch: WIDTH < 600 });
+// A phone-width run passes for iOS where the editor asks (CSS.supports on
+// -webkit-touch-callout, as daisyUI does), so the zoom cap is exercised.
+const IOS = WIDTH < 600;
+if (IOS) await page.addInitScript(() => {
+  const was = CSS.supports.bind(CSS);
+  CSS.supports = (...a) => /-webkit-touch-callout/.test(a.join(' ')) || was(...a);
+});
+const viewport = () => page.evaluate(() => document.querySelector('meta[name="viewport"]')?.getAttribute('content') || '');
 
 const json = (route, body, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
 await page.route('**/*', async (route) => {
@@ -188,6 +196,15 @@ try {
      (await page.locator('[data-md-section]', { hasText: 'First' }).count()) === 1);
   ok('the rendered Second heading is hidden while editing',
      !(await page.locator('h2[data-md-section]', { hasText: 'Second' }).isVisible()));
+  const vpOpen = await viewport();
+  if (IOS) ok('on iOS the viewport stops Safari zooming into the box', /maximum-scale=1/.test(vpOpen), vpOpen);
+  else ok('off iOS the viewport is left alone', !/maximum-scale/.test(vpOpen), vpOpen);
+  ok('a double tap on the editor does not zoom', await ta.evaluate((n) => {
+    for (let e = n; e; e = e.parentElement) if (getComputedStyle(e).touchAction === 'manipulation') return true;
+    return false;
+  }));
+  ok('the editor carries no formatting buttons',
+     (await page.locator('[data-md-edit-variant] button[aria-label="Bold"], [data-md-edit-variant] .ph-text-b').count()) === 0);
 
   await ta.fill('## Second\n\nThe second section says something better.\n\nA new line — with a dash.\n\nSee [the app](../APP.md) and [nothing](../NOPE.md).');
   await page.waitForTimeout(400);
@@ -229,6 +246,7 @@ try {
   ok('the pane re-rendered from the saved text',
      await page.locator('.prose', { hasText: 'something better' }).first().isVisible());
   ok('the editor is gone', (await page.locator('[data-md-edit], [data-md-edit-source], [data-md-edit-variant]').count()) === 0);
+  ok('and the viewport is as it was', !/maximum-scale/.test(await viewport()), await viewport());
   const early = await page.locator('[data-md-edit-receipt]').innerText();
   ok('before the repair, the receipt says what it may refresh',
      /Repair on main may refresh [^\n]*docs\/docs\.csv/.test(early) || /Repair f{7}/.test(early), early);
@@ -252,6 +270,7 @@ try {
     await page.waitForTimeout(300);
     ok('switching editors carries the text across',
        (await page.locator('[data-md-edit-source]').inputValue()) === '## First\n\nMy version of the first section.');
+    if (IOS) ok('the switched-to editor keeps the zoom cap', /maximum-scale=1/.test(await viewport()), await viewport());
   }
   files[DOC] = { text: files[DOC].text.replace('The first section says one thing.', 'Their version.'), sha: '9'.repeat(40) };
   const before = puts.length;
