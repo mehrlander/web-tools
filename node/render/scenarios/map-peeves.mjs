@@ -41,10 +41,12 @@ export default async function (page) {
   assert.ok(await card.locator('[data-peeve-detail="P44"] a[data-peeve-ref]').count());
   step('selection and reference');
 
+  await list.locator('[data-row="P10"] [data-part="title"]').click();
+  await waitSelection('P10');
   const ids = await list.locator('[data-row]').evaluateAll(rows => rows.map(r => r.dataset.row));
   await page.keyboard.press('ArrowDown');
-  await waitSelection(ids[ids.indexOf('P44') + 1]);
-  const next = ids.indexOf('P44') + 2;
+  await waitSelection(ids[ids.indexOf('P10') + 1]);
+  const next = ids.indexOf('P10') + 2;
   await card.locator('.sd-track').evaluate((el, next) => el.scrollTo({ left: el.clientWidth * next, behavior: 'instant' }), next);
   await waitSelection(ids[next]);
   step('keyboard and swipe');
