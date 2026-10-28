@@ -51,39 +51,39 @@
       "rules": [
         {
           "when": "the repo's manifest names an app that frames its pages, and the change is under a declared view or the app's own folder",
-          "then": "toss-app"
+          "then": "toss"
         },
         {
           "when": "the page file itself changed",
-          "then": "toss-gh"
+          "then": "toss"
         },
         {
           "when": "the page file itself changed and the diff touches the tab (its title, icon, history or navigation), which a frame never is: the toss carries ?top",
-          "then": "toss-gh"
+          "then": "toss"
         },
         {
           "when": "only lib/ or dist/ changed",
-          "then": "toss-gh"
+          "then": "toss"
         },
         {
           "when": "only lib/ or dist/ changed, and the change is the FAB's own code (lib/alpineComponents/fab.js), which a frame shows at main: the toss carries ?top",
-          "then": "toss-gh"
+          "then": "toss"
         },
         {
           "when": "only lib/ changed, and the only pages reaching it load it by a relative script tag",
-          "then": "toss-gh"
+          "then": "toss"
         },
         {
           "when": "the subject is pages/toss-render.html",
-          "then": "toss-nested"
+          "then": "toss"
         },
         {
           "when": "a document or data file changed (Markdown, CSV, JSON, YAML, text), alone or beside a page",
-          "then": "toss-data"
+          "then": "toss"
         },
         {
           "when": "the reader has no token",
-          "then": "toss-gz or artifact"
+          "then": "packed or artifact"
         }
       ]
     }
