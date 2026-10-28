@@ -27,9 +27,9 @@
 //   9. a pivot names the range its cache was built from, and the records tab
 //      draws the rows behind it with their shared-item indices resolved
 //
-// And four for the Extract tab, which selects the readings to share:
+// And four for the Overview, which selects the readings to share:
 //
-//  10. a sheet selects its available readings, and each can be unticked
+//  10. a ticked sheet takes its values, and each other reading is its own tick
 //  11. related pivots and caches are independent choices, not side effects
 //  12. the figure line stays compact and the actions reflect a usable export
 //  13. the preview, saved file, and link carry the same v2 envelope
@@ -163,7 +163,7 @@ const SHEET2 = `<?xml version="1.0"?>
   <row r="2"><c r="A2" t="s"><v>2</v></c><c r="B2" s="1"><v>45000</v></c></row>
 </sheetData></worksheet>`;
 
-// A comment on Budget, so the Extract matrix has a second lit kind beside
+// A comment on Budget, so the Overview has a second lit reading beside
 // Values and the screenshot shows a real pick rather than one cell.
 const COMMENTS = `<?xml version="1.0"?>
 <comments xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
@@ -222,7 +222,7 @@ await mkdir(path.join(root, 'node', '.preview'), { recursive: true });
 
 const browser = await chromium.launch({ args: ['--no-sandbox', '--ignore-certificate-errors'] });
 const page = await browser.newPage({ viewport: { width: 1100, height: 800 } });
-// The Extract tab hands its payload over as a link on the clipboard, and
+// The Overview hands its payload over as a link on the clipboard, and
 // reading it back is how the last claim below checks what actually leaves.
 // Without the grant the read throws and that claim degrades to a skip, which
 // is the quiet kind of coverage gap this file exists to avoid.
@@ -284,7 +284,7 @@ const structure = () => page.evaluate(() => {
   };
 });
 
-// The Extract tab, read the same way: what is drawn, not what is behind it.
+// The Overview, read the same way: what is drawn, not what is behind it.
 const extract = () => page.evaluate(() => {
   const box = document.querySelector('[data-xs="ex"]');
   const on = (el) => el.classList.contains('text-primary');
