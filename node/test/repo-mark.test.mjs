@@ -49,8 +49,11 @@ window.GH = class {
     return { text: t };
   }
 };
-// vanilla-bundle first, as gh-boot orders it: html() escapes through window.esc.
-new window.Function(readFileSync(path.join(repoRoot, 'lib/vanilla-bundle.js'), 'utf8'))();
+// vanilla-bundle and repo-address first, as gh-boot orders them: html()
+// escapes through window.esc, and a qualified mark path is RepoAddress's to parse.
+for (const k of ['lib/vanilla-bundle.js', 'lib/kits/repo-address.js']) {
+  new window.Function(readFileSync(path.join(repoRoot, k), 'utf8'))();
+}
 new window.Function(src)();
 const M = window.RepoMark;
 const classes = (html) => (html.match(/class="([^"]*)"/) || [])[1].split(/\s+/);
