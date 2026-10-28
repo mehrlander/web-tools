@@ -1,0 +1,165 @@
+{
+  "title": "What kind of collection is it?",
+  "lede": "Two questions name it. Four more words add to the name.",
+  "grid": {
+    "across": {
+      "values": [
+        {
+          "label": "Each entry is a thing"
+        },
+        {
+          "label": "Each entry is an event"
+        }
+      ]
+    },
+    "down": {
+      "values": [
+        {
+          "label": "An entry changes after it is written"
+        },
+        {
+          "label": "An entry never changes"
+        }
+      ]
+    },
+    "cells": [
+      [
+        {
+          "word": "registry",
+          "gloss": "kept current, one entry per thing",
+          "examples": [
+            "pages/pages.csv",
+            "docs/docs.csv",
+            "scheduled-tasks.csv"
+          ]
+        },
+        {
+          "word": "",
+          "gloss": "an event's record, rewritten until the event ends",
+          "examples": [
+            "sessions/",
+            "window.__traffic"
+          ]
+        }
+      ],
+      [
+        {
+          "word": "",
+          "gloss": "a thing's record, never edited once written",
+          "examples": [
+            "errands/",
+            "proposals/"
+          ]
+        },
+        {
+          "word": "stream",
+          "gloss": "one entry per happening, added over time, never edited; also called a log or a ledger",
+          "examples": [
+            "news/ledger",
+            "a task's progress log",
+            "data/checks-reading/"
+          ]
+        }
+      ]
+    ],
+    "note": "A snapshot is one stream entry: a registry as it stood at one time (docs/registries.md). For a collection rebuilt from other files, ask what each entry records, not how the file is rebuilt."
+  },
+  "add": [
+    {
+      "word": "cache",
+      "icon": "arrows-clockwise",
+      "gloss": "rebuilt from other files, with nothing checking it against them",
+      "examples": [
+        "state/activity.json",
+        "state/constellation-atlas.json",
+        "state/entities.json"
+      ]
+    },
+    {
+      "word": "tracker",
+      "icon": "check-square",
+      "gloss": "each entry carries a status, such as open or done",
+      "examples": [
+        "tracker/tasks/",
+        "tracker/board.csv"
+      ]
+    },
+    {
+      "word": "inbox",
+      "icon": "tray",
+      "gloss": "entries leave once filed elsewhere",
+      "examples": [
+        "chron/dump/",
+        "shortcuts/incoming/",
+        "lists/jot.json"
+      ]
+    },
+    {
+      "word": "list",
+      "icon": "list-checks",
+      "gloss": "members chosen by hand",
+      "examples": [
+        "lists/to-do.json",
+        "lists/snag.json"
+      ]
+    }
+  ],
+  "renames": [
+    {
+      "things": [
+        "state/constellation-atlas.json",
+        "the occurrence index"
+      ],
+      "from": "snapshot",
+      "becomes": "cache",
+      "why": "Both are rebuilt in place from other files and may lag them; a snapshot is a dated reading kept as written."
+    },
+    {
+      "things": [
+        "sessions/"
+      ],
+      "from": "stream",
+      "becomes": "session records",
+      "why": "A session record is rewritten while the session runs, so it is not a stream."
+    },
+    {
+      "things": [
+        "window.__traffic"
+      ],
+      "from": "ledger",
+      "becomes": "the page's request record",
+      "why": "lib/gh-boot.js adds each request with status 0 and fills it in when the request settles, so its entries change after they are written."
+    },
+    {
+      "things": [
+        "web-tools-private"
+      ],
+      "from": "registry",
+      "becomes": "the private repository",
+      "why": "It holds several collections and is not one."
+    }
+  ],
+  "open": [
+    {
+      "question": "Collections of material, whose entries are text kept to be used rather than records of a thing or an event (lists/jot.json, chron/dump/, shortcuts/incoming/, home's chron/ log), fit neither column. Leave them off the grid?",
+      "recommend": "yes",
+      "why": "Say so where the grid is stated. A third column would add two more empty boxes, and inbox already names the material collections that drain. Home's chron/ log is the one that stays and is edited in place, so calling it a log puts it nowhere on the grid."
+    },
+    {
+      "question": "What should the empty box at top right, an event's record that changes while the event is live, be called?",
+      "recommend": "no word yet",
+      "why": "Call each one by what it holds, and stop calling these streams or ledgers. No reader proposed a word, and the two members, session records and the request record in window.__traffic, are already named by what they hold."
+    },
+    {
+      "question": "Request files that close when a result file is added beside them (errands, proposals) sit in the empty box at lower left. Call them a request queue?",
+      "recommend": "yes",
+      "why": "It is a standard term and collides with nothing in the estate's vocabulary. One reader proposed it, another found the same gap, and all three poster readers sent errands to this call."
+    },
+    {
+      "question": "Should a collection that drops its oldest entries past a cap, such as window.__traffic or state/sessions.json, get its own word, window?",
+      "recommend": "no",
+      "why": "A cap says how long entries are kept, so state it where the collection is described. Each capped collection already sits in a box by its entries; the cap changes how long they stay, not what they are."
+    }
+  ],
+  "by": "Placed by one reader's hand coding of 33 collections across web-tools, home and web-tools-private. Four readers, working blind to one another, named the same two questions and the same four add-on words. Where the coding and docs/registries.md disagreed, the poster follows docs/registries.md."
+}
