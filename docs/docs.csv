@@ -1,5 +1,5 @@
 path,subject,status,reach,words,maintenance,formerly
-docs/APP.md,"the Web Tools app: mission, durable goals, and the name split",living,project,1594,"authored; revised on deliberate reframing, not per feature",
+docs/APP.md,"the Web Tools app: mission, durable goals, and the name split",living,project,1574,"authored; revised on deliberate reframing, not per feature",
 docs/CONSTELLATION.md,the portable kernel of the what-goes-where doctrine,living,skill,1500,"authored; the argument is the content, so no data file applies",
 docs/MARKETPLACE.md,the plugin marketplace: how the set is published and subscribed to,living,project,705,authored; deliberately does not enumerate the roster (it points at the catalog instead),
 docs/QUALIFIED-WRITING.md,"the prose rules: qualify noun phrases, introduce before you refer, no em dashes",living,injected,303,"authored, edited in place; split out of CLAUDE.md 2026-09-11, and from 2026-09-12 delivered only by the portable plugin (the invoke-default hook adds an instruction to invoke /portable:default, which loads it) rather than by an @-import; vendored copy byte-gated (derived-artifacts.test.mjs)",CLAUDE.md#qualified-writing

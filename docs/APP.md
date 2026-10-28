@@ -36,7 +36,6 @@ When GitHub rejects the token, the app opens **This browser** (`?view=here`), wh
 - `?view=<key>` opens a view. The keys, their labels, nav stops, groups, files and docs are rows of [app-routes.csv](app-routes.csv).
 - Second keys: `&tab=` (Project's pills, Map's tabs), `&item=` (State), `&detail=` (Branches), the `&sq=` family (Search), `&file=`, `&path=`, `&window=`. A view leaves its default second key out of the URL.
 - `&shell=full|nav|none` sets how much chrome surrounds the view (below).
-- Retired keys still resolve: `activity` to Sessions, `portable` to Map, `surfaces` to Stage, `landing` to the plain `?repo=` form.
 
 The app's `VIEWS` table is the router: each row names a key, how a link opens it, and what it stamps back. `routeFromUrl` dispatches through it and `deepLinkParams` stamps through it. **Adding a row is the whole of adding an addressable view**, plus its `app-routes.csv` row. [`shell-routing.test.mjs`](../node/test/shell-routing.test.mjs) forbids comparing a view name inside the routing functions and re-parses every row's own stamp; [`app-routes.test.mjs`](../node/test/app-routes.test.mjs) holds `VIEWS` and `app-routes.csv` to each other both ways. The default repo's `repo` key is dropped from addresses as redundant, except on its landing, which would otherwise have no address.
 
