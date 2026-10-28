@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="budget-wa: columns">
+  <title>budget-wa: columns</title>
+  <desc>Four bars of a column chart, rising, on the detached base bar of the public-record stores: the budget's figures, biennium by biennium.</desc>
+  <g fill="currentColor">
+    <rect x="2.25" y="15.5" width="5" height="6.4"/>
+    <rect x="9.75" y="11.5" width="5" height="10.4"/>
+    <rect x="17.25" y="8" width="5" height="13.9"/>
+    <rect x="24.75" y="3" width="5" height="18.9"/>
+    <rect x="2" y="24.4" width="28" height="4.6"/>
+  </g>
+</svg>
