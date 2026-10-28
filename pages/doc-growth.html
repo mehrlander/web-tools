@@ -276,7 +276,7 @@ async function readRepoJson(src) {
 // failure is null, and every file sits at zero up the chart.
 async function loadReads(q) {
   if (!savedToken()) return null;
-  return readRepoJson(q.get('reads') || 'mehrlander/web-tools-private@main:state/doc-reads.json').catch(() => null);
+  return readRepoJson(q.get('reads') || 'mehrlander/web-tools-private@background:state/doc-reads.json').catch(() => null);
 }
 </script>
 

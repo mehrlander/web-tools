@@ -30,12 +30,17 @@ renames, so a read of `docs/SURFACING.md` counts for `docs/CONVERSATION.md`. A
 relative path counts when the command's own `cd` or `git -C` places it, or when
 exactly one repo has ever held that path; otherwise it is not attributed.
 
-Each list holds one day per session, as days after `from`, the first record's
-day: the day the session first opened the file, or the session's day for
-context. The output is private by construction, since it is derived from the
-records, so it belongs in the store, never in a public repo.
+Per repository and file, `opened` and `context` each hold one day per session,
+as days after `from`, the first record's day: the day the session first opened
+the file, or the session's day for context. `via` counts the opening sessions by
+route and `basis` the context sessions by how the record knows (`receipt` or
+`reconstructed`). Paths are POSIX throughout, since the records are, whatever
+platform runs this. The output is private by construction, since it is derived
+from the records, so it belongs in the store, never in a public repo; the
+laptop daemon refreshes it there daily (web-tools-private
+sessions/tools/doc_reads.py).
 """
-import argparse, json, os, re, shlex, subprocess, sys, threading, time
+import argparse, json, posixpath, re, shlex, subprocess, sys, threading, time
 from collections import defaultdict
 from datetime import date
 
@@ -107,7 +112,7 @@ class Repo:
 
     def canon(self, rel):
         """The file's current path, or None for a path this repo never held."""
-        rel = os.path.normpath(rel).lstrip('/') if rel else ''
+        rel = posixpath.normpath(rel).lstrip('/') if rel else ''
         if rel not in self.ever:
             return None
         rel = self.alias.get(rel, rel)
@@ -127,7 +132,7 @@ def resolve(repos, token, base):
     if token.startswith('~/'):
         token = '/root/' + token[2:]
     if not token.startswith('/') and '://' not in token and base:
-        token = os.path.normpath(os.path.join(base, token))
+        token = posixpath.normpath(posixpath.join(base, token))
     for r in repos:
         p = r.locate(token)
         if p:
@@ -157,7 +162,7 @@ def shell_reads(repos, cmd):
             continue
         if words[0] in ('cd', 'pushd') and len(words) > 1:
             d = words[1].strip('\'"')
-            base = d if d.startswith('/') else os.path.normpath(os.path.join(base or '', d)) if base else None
+            base = d if d.startswith('/') else posixpath.normpath(posixpath.join(base, d)) if base else None
             continue
         here = base
         if words[0] == 'git':
@@ -262,13 +267,16 @@ def opened(repos, rec):
 
 
 def in_context(repos, rec):
-    """The repo files in context before the session's first turn."""
-    out = set()
+    """{(repo, path): basis} for the repo files in context before the session's
+    first turn. The basis says how the record knows: `receipt` when the hook
+    that injected the file stated what it supplied, `reconstructed` when a
+    walk of the filesystem stands in for a loader nothing observes."""
+    out = {}
     for e in rec.get('startup_context') or []:
         short, _, rel = str(e.get('path', '') if isinstance(e, dict) else e).partition('/')
         r = next((r for r in repos if r.short == short), None)
         if r and r.canon(rel):
-            out.add((r, r.canon(rel)))
+            out.setdefault((r, r.canon(rel)), (e.get('basis') if isinstance(e, dict) else None) or 'reconstructed')
     return out
 
 
@@ -317,8 +325,8 @@ def main():
         days.append(day)
         for key, hit in opened(repos, rec).items():
             opens[key].setdefault(sid, hit)
-        for key in in_context(repos, rec):
-            ctx[key].setdefault(sid, day)
+        for key, basis in in_context(repos, rec).items():
+            ctx[key].setdefault(sid, (day, basis))
 
     first = min(days)
     off = lambda d: (date.fromisoformat(d) - date.fromisoformat(first)).days
@@ -326,12 +334,16 @@ def main():
     for key in sorted(set(opens) | set(ctx), key=lambda k: (k[0].full, k[1])):
         r, p = key
         row = {'opened': sorted(off(d) for _, d in opens[key].values()),
-               'context': sorted(off(d) for d in ctx[key].values())}
-        via = defaultdict(int)
+               'context': sorted(off(d) for d, _ in ctx[key].values())}
+        via, basis = defaultdict(int), defaultdict(int)
         for how, _ in opens[key].values():
             via[how] += 1
+        for _, b in ctx[key].values():
+            basis[b] += 1
         if via:
             row['via'] = dict(sorted(via.items()))
+        if basis:
+            row['basis'] = dict(sorted(basis.items()))
         out[r.full][p] = row
     doc = {'generated': time.strftime('%Y-%m-%d'), 'from': first, 'to': max(days),
            'sessions': n, 'repos': out}

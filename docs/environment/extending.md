@@ -105,9 +105,10 @@ environment settings to rebuild.
   the plugin root, which is the marketplace entry's `source`. **The marketplace
   entry declares nothing, and must not**: a `hooks` key there in file-path or
   array form refuses the whole plugin, and the suite pins the key's absence.
-- Give the hook its own entry in `hooks.json`. The harness caps output per
-  hook entry, not across the event, so a line folded into another hook's
-  output is the first thing truncated on a heavy session
+- Give the hook its own command in `hooks.json`, rather than folding its
+  output into another hook's script. The harness caps each hook command's
+  output, not the event's, so a line folded into another hook's output is the
+  first thing truncated on a heavy session
   ([capabilities.md](capabilities.md#sessionstart-hooks-a-per-hook-size-ceiling-and-where-the-cut-lands)
   has the measurement).
 - **The delivered copy is not executable.** The plugin is installed by copy
