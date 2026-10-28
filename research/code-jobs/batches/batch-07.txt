@@ -1,0 +1,1697 @@
+=== UNIT lib/kits/swipe-deck.js:442#4 | call(…) > open (part 4 of 5) ===
+      // measured from where they left it rather than from the top.
+      deck.onSlide(() => setHidden(false));
+      // A slide built WHILE the chrome is away arrives with its own chrome
+      // showing, because it was not in the DOM when the toggle ran. The deck
+      // builds neighbours ahead of the reader, so this is the ordinary case
+      // and not an edge: swiping to the next document mid-read would otherwise
+      // flash a band that nothing asked for.
+      const dressSlides = new MutationObserver(() => {
+        if (!hidden) return;
+        for (const el of panel.querySelectorAll('[data-sd-chrome]:not(.hidden)')) el.classList.add('hidden');
+      });
+      dressSlides.observe(deck.track, { childList: true, subtree: true });
+      // `dockWatch` is the deck's release list rather than the dock's alone,
+      // despite its name: cleanup() drains it on close.
+      dockWatch.push(() => dressSlides.disconnect());
+    }
+
+    // ── THE CONTENTS ────────────────────────────────────────────────────────
+    //
+    // A list of every slide, over the track, opened from the mark. It earns its
+    // place where the footer stops helping: the pager draws dots only while
+    // they stay countable and a bare progress bar past that, which says where
+    // the reader is and nothing about what the rest of the deck holds.
+    //
+    // IT TAKES A HISTORY ENTRY, for the same reason the deck itself does: on a
+    // phone, Back is what a reader reaches for, and a panel that ignores it
+    // throws them out of the deck instead of out of the list. That is the whole
+    // cost of this feature, and it is paid in three places, all of them here:
+    // `onPop` closes the list before it closes the deck, `indexPop` swallows
+    // the pop that closing programmatically causes (otherwise the deck reads
+    // its own tidy-up as a Back press and shuts), and `dismiss` counts the open
+    // lists across the stack so one ✕ still unwinds to the right depth.
+    let indexOpen = false, indexPop = 0;
+    let restIcon = o.icon || 'ph-cards';
+    // The glyph names what tapping DOES, never the state it is in, which is the
+    // rule the pane toggle above already follows: on a row of chrome nothing
+    // should have to be read twice.
+    // ph-caret-up, and NOT ✕, though "close the list" is what it does: the
+    // header already carries a ✕ at its left end, and two of them on one row
+    // would ask the reader which one closes what. A caret puts a panel away.
+    const paintMark = /* nested: paintMark, lines 1110-1116 */;
+    paintMark();
+    // A DROPDOWN, not a second takeover. Filling everything under the header is
+    // what a list of 47 wants if you think of it as a screen; it is not one.
+    // The reader is mid-document and glancing at where else they could go, so
+    // covering the document to say so takes the thing they are keeping their
+    // place in. A panel hung under the mark says the same list, scrolls inside
+    // itself, and leaves the page it belongs to visible behind it, which is
+    // also what makes tapping away an obvious way out. Height is capped rather
+    // than fitted: 47 rows and 3 both want a panel that ends before the footer.
+    const sheet = h('div', { class: 'sd-index absolute z-20 w-80 max-w-[calc(100%-1rem)] '
+      + 'max-h-[min(60vh,26rem)] overflow-y-auto overscroll-contain scrollbar-thin '
+      + 'rounded-xl border border-base-300 bg-base-100 shadow-xl' });
+    // `section` is a heading for a run of rows: printed once, above the first
+    // row of each run, as a non-button line. A caller naming none gets the
+    // flat list it always had, so `.sd-index` children stay rows for it.
+    let rowEls = [];
+    const buildIndex = /* nested: buildIndex, lines 1133-1183 */;
+    // Tapping the page behind a dropdown closes it, which is the affordance a
+    // takeover did not have and did not need.
+    const awayFromIndex = (e) => {
+      if (!indexOpen || sheet.contains(e.target) || mark.contains(e.target)) return;
+      closeIndex();
+    };
+    const openIndex = /* nested: openIndex, lines 1190-1210 */;
+    const closeIndex = /* nested: closeIndex, lines 1211-1225 */;
+    if (indexOf) mark.addEventListener('click', () => indexOpen ? closeIndex() : openIndex());
+
+    // ── THE SEAM ────────────────────────────────────────────────────────────
+    // Docked, the deck's left edge is a boundary between two things the reader
+    // is using at once. The handle sits ON that edge, inside the overlay,
+    // straddling it; without it the width is one CSS clamp, a decent guess and
+    // never the reader's.
+    //
+    // TWO HOOKS, TWO CLAIMS, and the second is deliberately separate from the
+    // first. `window.__deckPane` says the host can dock at all; `__deckWidth`
+    // says it can also be TOLD how wide, a different capability a host may
+    // honestly have without the other (a fixed sidebar can dock a deck beside
+    // itself and have nowhere to put a variable width). A host with only the
+    // first, or a page that never loaded kits/dock-split.js, gets exactly the
+    // dock it had before this existed.
+    const canSize = () => typeof window.__deckWidth === 'function' && window.dockSplit;
+    let splitter = null;
+    // INLINE, not utility classes, and this is the one place in the kit where
+    // that is not a style preference. The seam is created after the page's
+    // Tailwind build has scanned the DOM, so its utilities may not have been
+    // compiled when it mounts, and an uncompiled handle has no height: it is
+    // hit-testable nowhere, and that reads as a drag that does nothing rather
+    // than as a missing stylesheet. Everything the kit's own injected CSS draws
+    // is fine; only the placement, which is the caller's half, has to be immune.
+    //
+    // A SIBLING OF THE OVERLAY, not its child. The overlay has to clip the
+    // horizontal slide track, while a handle on its left edge has to straddle
+    // that edge. Putting the seam inside overflow-hidden cut off the left half
+    // of the grip and forced the percentage badge off to the right as a
+    // workaround. Fixed against the same root variables, the seam follows the
+    // deck exactly without inheriting its clip, so both affordances can sit on
+    // the divider they describe.
+    const seam = h('div');
+    Object.assign(seam.style, {
+      position: 'fixed', left: 'var(--deck-left,0px)',
+      top: 'var(--deck-top,0px)', bottom: 'var(--deck-bottom,0px)',
+      width: '6px', transform: 'translateX(-50%)', zIndex: '75',
+    });
+    const syncSeam = /* nested: syncSeam, lines 1264-1288 */;
+    // THE PANE CAN CHANGE WITHOUT THE BUTTON, and the deck has to notice. The
+    // host re-derives the pane whenever its sidebar opens or closes, on a
+    // restore from storage, and on any width change, and every one of those is
+    // a `data-deck-pane` write the toggle never sees. Watching the attribute is
+    // also the honest reading of the hook's contract, which lets a host refuse
+    // a dock by simply not changing the value: a kit that trusts its own click
+    // cannot see that refusal. The lock rides along, since a pane that changed
+    // underneath leaves it describing the old one.
+    const paneWatch = new MutationObserver(() => { applyLock(); syncPane(); syncSeam(); });
+    paneWatch.observe(document.documentElement, { attributes: true, attributeFilter: ['data-deck-pane'] });
+
+    const sync = /* nested: sync, lines 1300-1308 */;
+    deck.onSlide(sync);
+    sync(0);
+
+    // ── Stacking ───────────────────────────────────────────────────────────
+    //
+    // A deck opened from inside a deck is how drilling works: it is a
+    // navigation stack rather than visible nesting, and the nesting lives in
+    // the return path.
+    //
+    // ONE module-level STACK, and only its top answers `popstate` and
+    // `keydown`. A deck that assumes it is the only one alive breaks that
+    // return path twice: every deck registering its own `popstate` means one
+    // history.back() fires all of them, so a single Back closes the whole
+    // stack; every deck registering its own `keydown` means one ArrowRight
+    // steps the child AND the parent underneath it, so popping back lands on a
+    // slide the reader never chose. Each deck keeps its own listeners (removing
+    // them on cleanup stays local) and both handlers return early unless this
+    // deck is on top.
+    //
+    // The overflow lock needs nothing: each deck saves the value it found and
+    // restores it, so a child saves `hidden` and restores `hidden` while the
+    // parent restores the original. (`prevOverflow` is taken at the top of
+    // open(), beside the pane contract that decides whether it is set at all.)
+    let closed = false;
+    const onTop = () => STACK[STACK.length - 1] === handle;
+    const cleanup = /* nested: cleanup, lines 1334-1356 */;
+    // Leaving a deck means leaving everything stacked ON it, which is what a
+    // navigation stack does: popping to a level discards the levels above.
+    // Ordinarily there is nothing above (the reader dismisses what they are
+    // looking at), and this is one history.back(). A caller that closes a
+    // parent while a child is open gets the child closed with it, and the
+    // history unwinds in one go() so no dead entries are left behind for a
+    // later Back to spend itself on.
+=== UNIT lib/kits/swipe-deck.js:442#5 | call(…) > open (part 5 of 5) ===
+    const dismiss = /* nested: dismiss, lines 1364-1377 */;
+    // One Back pops one deck. Without the guard a parent would tear itself down
+    // on the same event that closed its child.
+    const onPop = /* nested: onPop, lines 1380-1385 */;
+    const onKey = /* nested: onKey, lines 1386-1395 */;
+    closeBtn.addEventListener('click', dismiss);
+    // THE GROUND BESIDE THE PANEL IS A DISMISS TARGET, which is what the
+    // desktop margin is otherwise for: on a phone the panel is full-bleed, so
+    // there is no ground to hit and this never fires. `e.target === overlay`
+    // rather than a `closest` check, so a click that began inside the panel and
+    // ended outside it (a drag past the edge, a text selection released on the
+    // ground) does not close a deck the reader is working in.
+    overlay.addEventListener('click', (e) => { if (e.target === overlay && onTop()) dismiss(); });
+    addEventListener('popstate', onPop);
+    addEventListener('keydown', onKey);
+    // `replace: true` reuses the entry the deck it is replacing left behind,
+    // instead of adding one. A caller that swaps a deck for another at the SAME
+    // level (the app opening a second branch while one is open) drops the
+    // first with `drop()`, which touches no history, and this keeps Back
+    // costing one press rather than one per swap.
+    history[o.replace ? 'replaceState' : 'pushState']({ __sdDeck: 1 }, '', location.href);
+    applyLock();
+    document.body.append(overlay);
+    // A drilled deck SLIDES IN from the right; a root deck just appears.
+    //
+    // This is polish that stops being polish once two levels look alike. When
+    // the parent and the child wear the same chrome, a child that pops with no
+    // motion reads as "the content changed" rather than "I moved down a
+    // level", and the reader loses the one cue that tells them Back will now
+    // do something. The direction is the platform's convention and it is the
+    // same direction the back chevron points.
+    if (o.back) {
+      overlay.style.transform = 'translateX(100%)';
+      requestAnimationFrame(/* nested: requestAnimationFrame(…), lines 1424-1428 */);
+    }
+    // start: jump AFTER first layout, and instantly. At append time the track
+    // has no width yet, so an immediate go() computes slide 0; and the track's
+    // scroll-smooth would otherwise animate across every slide in between.
+    if (o.start) requestAnimationFrame(() => {
+      const t = deck.track;
+      t.scrollTo({ left: Math.max(0, Math.min(total - 1, o.start)) * (t.clientWidth || 1), behavior: 'instant' });
+    });
+    handle = {
+      el: overlay, close: dismiss, deck,
+      get title(){ return titleText.textContent; },
+      setSubtitle: t => { subEl.textContent = t; },
+      setTitle: t => { titleText.textContent = t; },
+      // A mark that belongs to the NAME rather than to the header's controls.
+      // One element or nothing; `empty:hidden` collapses the slot when a deck
+      // has none, so a header that never sets one is unchanged.
+      setTitleMark: el => { if (el) titleSlot.replaceChildren(el); else titleSlot.replaceChildren(); },
+      setIcon: c => { restIcon = c || 'ph-cards'; paintMark(); },
+      // Whether this deck is holding a history entry beyond its own, which is
+      // what lets dismiss() unwind a stack it did not build.
+      get extraEntries(){ return indexOpen ? 1 : 0; },
+      // The header's other setters name one element each; this one names the
+      // whole set, since what is on offer can change in kind and not only in
+      // wording as the reader moves between slides.
+      setActions: list => { actionWrap.replaceChildren(...buildActions(list)); },
+      menu,
+      // Same argument as setActions, one row down, and here it is not an
+      // optimisation but the point: a deck paging mixed content has chrome that
+      // belongs to the SLIDE rather than to the deck, so a workbook's sheet
+      // tabs have to arrive on slide 4 and leave again on slide 5. Pass null
+      // to empty the row, which `empty:hidden` then collapses.
+      setSubheader: fillSub,
+      setLink,
+      get depth(){ return STACK.indexOf(handle); },
+      get onTop(){ return onTop(); },
+      // Tear down without touching history. Used by dismiss() to take the
+      // decks above this one; a caller should use close().
+      drop: cleanup,
+    };
+    STACK.push(handle);
+    syncDeckOpen();
+    // After the mount, so the seam is measured against a laid-out overlay and a
+    // deck that opens already docked gets its handle without a toggle first.
+    syncSeam();
+    return handle;
+  }
+=== UNIT lib/kits/swipe-deck.js:485 | call(…) > open > dockAllowed ===
+() => {
+      const fn = window.__deckPane;
+      if (typeof fn !== 'function') return false;
+      const w = fn.when;
+      if (typeof w === 'function') { try { return !!w(); } catch { return false; } }
+      if (typeof w === 'string') { try { return matchMedia(w).matches; } catch { return true; } }
+      return true;
+    }
+=== UNIT lib/kits/swipe-deck.js:616 | call(…) > open > setLink ===
+(l) => {
+      if (l && l.href) {
+        linkBtn.href = l.href;
+        linkBtn.dataset.titleTip = l.title || 'Open';
+        linkBtn.setAttribute('aria-label', l.title || 'Open');
+        // Markup wins over a glyph, and the deck keeps neither: a retarget
+        // swaps the whole button face, so a slide offering a Phosphor icon
+        // after one offering a logomark leaves nothing of the logomark behind.
+        if (l.svg) linkBtn.innerHTML = l.svg;
+        else {
+          linkIcon.className = `ph ${l.icon || 'ph-arrow-square-out'} text-base`;
+          linkBtn.replaceChildren(linkIcon);
+        }
+        linkBtn.style.display = '';
+      } else linkBtn.style.display = 'none';
+    }
+=== UNIT lib/kits/swipe-deck.js:633 | call(…) > open > actionBtn ===
+(a) => {
+      const b = h('button', {
+        class: 'btn btn-ghost btn-sm btn-circle shrink-0',
+        'data-title-tip': a.title || '', 'aria-label': a.title || 'Action',
+      }, h('i', { class: `ph ${a.icon || 'ph-dots-three'} text-base` }));
+      b.addEventListener('click', () => a.onClick(deck, b));
+      return b;
+    }
+=== UNIT lib/kits/swipe-deck.js:664 | call(…) > open > syncPane ===
+() => {
+      if (!canDock()) { paneBtn.style.display = 'none'; return; }
+      const docked = paneOf() === 'dock';
+      paneBtn.style.display = '';
+      paneBtn.dataset.titleTip = docked ? 'Fill the pane' : 'Dock beside the list';
+      paneBtn.setAttribute('aria-label', paneBtn.dataset.titleTip);
+      paneBtn.setAttribute('aria-pressed', String(docked));
+      paneIcon.className = 'ph ' + (docked ? 'ph-arrows-out-simple' : 'ph-square-split-horizontal') + ' text-base';
+    }
+=== UNIT lib/kits/swipe-deck.js:673 | call(…) > open > addEventListener(click) ===
+() => {
+      window.__deckPane?.(paneOf() === 'dock' ? 'pane' : 'dock');
+      syncPane();
+      applyLock();
+      syncSeam();
+    }
+=== UNIT lib/kits/swipe-deck.js:775 | call(…) > open > menu ===
+(btn, rows, o2 = {}) => {
+      document.querySelectorAll('.sd-hdr-menu').forEach(m => m.remove());
+      if (!rows || !rows.length) return;
+      // The width is the caller's: a menu of view modes wants less than one of
+      // file destinations, and neither is the kit's business beyond placing it.
+      // Which SIDE it opens from is the kit's, and is measured below.
+      const box = h('ul', { class: 'sd-hdr-menu menu absolute z-[80] '
+                                 + (o2.width || 'w-52')
+                                 + ' rounded-box border border-base-300 bg-base-200 p-2 shadow-xl' });
+      for (const r of rows) {
+        if (r.options && r.options.length) {
+          const opts = r.options.map(/* nested: map(…), lines 786-790 */);
+          box.append(h('li', {}, h('div', { class: 'flex items-center gap-2' },
+            h('i', { class: 'ph ' + (r.icon || 'ph-dot') }), h('span', {}, r.label || ''),
+            h('span', { class: 'ml-auto flex gap-0.5' }, ...opts))));
+          continue;
+        }
+        const a = h(r.href ? 'a' : 'button', { class: r.active ? 'menu-active active' : '' },
+          h('i', { class: 'ph ' + (r.icon || 'ph-dot') }), h('span', {}, r.label || ''));
+        if (r.href) { a.href = r.href; a.target = '_blank'; a.rel = 'noopener'; }
+        a.addEventListener('click', () => { box.remove(); if (r.onClick) r.onClick(); });
+        box.append(h('li', {}, a));
+      }
+      // A header ACTION sits in a `display: contents` wrapper (actionWrap), which
+      // has no box: measured, it reads as the viewport's left edge, and the
+      // menu opened there rather than under its button (seen 2026-09-24 on the
+      // PowerShell file deck at desktop width). Hang it from the row that
+      // wrapper's children lay out in, offset to the button's own left edge.
+      let host = btn.parentElement, dx = 0;
+      if (host && getComputedStyle(host).display === 'contents' && host.parentElement) {
+        host = host.parentElement;
+        dx = btn.getBoundingClientRect().left - host.getBoundingClientRect().left;
+      }
+      if (host && getComputedStyle(host).position === 'static') host.style.position = 'relative';
+      (host || btn).append(box);
+      // ── WHERE IT OPENS, MEASURED ─────────────────────────────────────────
+      //
+      // A hardcoded right-0 is correct for an anchor in the header's right-hand
+      // cluster and wrong for one anywhere else: a mark beside the title opens
+      // its menu leftward across the whole header, away from the thing it
+      // belongs to. The caller cannot declare the side either, since the anchor
+      // moves with the title's length and the room depends on the viewport and
+      // on whether the deck is docked.
+      //
+      // SO IT SLIDES RATHER THAN FLIPS. Opening from the anchor's own left edge
+      // is the intent; where that runs off the right, shift back by exactly the
+      // overflow, which keeps the menu under its mark instead of throwing it to
+      // the far side. Flipping is no better than a hardcoded side: at phone
+      // widths a menu is usually WIDER than the room beside its mark (measured:
+      // a 224px menu on a mark at x=180 has 202px), so it flips every time and
+      // still opens well to the LEFT of its mark.
+      //
+      // Appended before measuring because the width is a class, not a number
+      // this can compute.
+      //
+      // AND MEASURED AGAIN ON THE NEXT FRAME. A page on the Tailwind browser
+      // build writes a class's CSS only after the class first appears in the
+      // DOM, so the first menu a session opens can be measured before `absolute`
+      // and its width exist. Measured 2026-09-24 on the budget-drs request
+      // viewer at 1320px: the first open read an overflow of about 8px against
+      // a real 82px and hung 74px off the right edge; the second open, with the
+      // CSS in place, was correct. The second read settles on the real box.
+      const place = /* nested: place, lines 841-859 */;
+      place();
+      requestAnimationFrame(place);
+      setTimeout(/* nested: setTimeout(…), lines 862-868 */, 0);
+    }
+=== UNIT lib/kits/swipe-deck.js:786 | call(…) > open > menu > map(…) ===
+o => {
+            const b = h('button', { class: 'btn btn-ghost btn-xs', 'data-title-tip': o.title || '' }, o.label || '');
+            b.addEventListener('click', (e) => { e.stopPropagation(); box.remove(); if (o.onClick) o.onClick(); });
+            return b;
+          }
+=== UNIT lib/kits/swipe-deck.js:841 | call(…) > open > menu > place ===
+() => {
+        if (!box.isConnected) return;
+        const anchor = (host || btn).getBoundingClientRect();
+        // BELOW THE HEADER, not below the anchor. top-full hangs the box off
+        // whatever it is nested in, which for a mark inside the h1 is the title
+        // TEXT: the menu then started mid-header and covered the crumb under it.
+        // The header is the thing a header menu belongs under, and only the kit
+        // knows where that ends.
+        box.style.top = (header.getBoundingClientRect().bottom + 4 - anchor.top) + 'px';
+        box.style.left = dx + 'px';
+        const r = box.getBoundingClientRect();
+        const over = r.right - (window.innerWidth - 8);
+        if (over > 0) {
+          // Never past the viewport's left edge: a menu wider than the room
+          // beside its anchor is pinned rather than hung off the side, since
+          // half a menu on screen is worse than one that is not aligned.
+          box.style.left = Math.max(8 - anchor.left, dx - over) + 'px';
+        }
+      }
+=== UNIT lib/kits/swipe-deck.js:862 | call(…) > open > menu > setTimeout(…) ===
+() => {
+        const away = (e) => {
+          if (box.contains(e.target) || btn.contains(e.target)) return;
+          box.remove(); document.removeEventListener('click', away, true);
+        };
+        document.addEventListener('click', away, true);
+      }
+=== UNIT lib/kits/swipe-deck.js:874 | call(…) > open > circle ===
+(icon, onClick) => {
+      const b = h('button', { class: 'btn btn-circle btn-sm border-base-300 bg-base-100 shadow-none', 'aria-label': icon },
+        h('i', { class: `ph ${icon} text-base` }));
+      b.addEventListener('click', onClick);
+      return b;
+    }
+=== UNIT lib/kits/swipe-deck.js:998 | call(…) > open > setHidden ===
+(v) => {
+        if (v === hidden) return;
+        hidden = v;
+        // `hidden` rather than a transform, and it is safe only because every
+        // panel child names its grid row: a `display: none` child stops being
+        // a grid item, which used to slide the survivors up a row and put the
+        // track in an `auto` row sized to its content. With `row-start-*` on
+        // each, a hidden row simply empties and the 1fr track grows into it.
+        for (const el of chromeNow()) el.classList.toggle('hidden', v);
+      }
+=== UNIT lib/kits/swipe-deck.js:1020 | call(…) > open > onScroll ===
+(e) => {
+        const el = e.target;
+        if (!(el instanceof Element) || el === deck.track || !panel.contains(el)) return;
+        if (el.closest(SURFACE)) return;
+        // Vertical scrollers only. A horizontal one is a deck, a carousel or a
+        // wide table, and none of those is someone reading down a page.
+        if (el.scrollHeight <= el.clientHeight + 4) return;
+        const y = el.scrollTop;
+        // A scroller with no baseline yet is at the top, because that is where
+        // every one of them starts. Seeding `y` instead spends the first
+        // scroll event of a freshly arrived document establishing a baseline
+        // and deciding nothing, so the first flick down does nothing at all
+        // and only the second works. Seeding 0 makes that first event a real
+        // measurement.
+        const was = hidden0.get(el) ?? 0;
+        hidden0.set(el, y);
+        // The top of a document always shows the chrome: that is where you
+        // arrive, and where the title is the thing you want.
+        if (y < 4) return setHidden(false);
+        const d = y - was;
+        if (Math.abs(d) < 8) return;
+        setHidden(d > 0);
+      }
+=== UNIT lib/kits/swipe-deck.js:1060 | call(…) > open > addEventListener(click) ===
+(e) => {
+        const t = e.target;
+        if (!(t instanceof Element)) return;
+        if (header.contains(t) || footer.contains(t)) return;
+        if (t.closest(CONTROL) || t.closest(OWN_TAPS)) return;
+        setHidden(!hidden);
+      }
+=== UNIT lib/kits/swipe-deck.js:1110 | call(…) > open > paintMark ===
+() => {
+      iconEl.className = 'ph ' + (indexOpen ? 'ph-caret-up' : restIcon) + ' text-xl';
+      if (!indexOf) return;
+      mark.dataset.titleTip = indexOpen ? 'Back to the slide' : 'Contents';
+      mark.setAttribute('aria-label', mark.dataset.titleTip);
+      mark.setAttribute('aria-expanded', String(indexOpen));
+    }
+=== UNIT lib/kits/swipe-deck.js:1133 | call(…) > open > buildIndex ===
+() => {
+      const cur = deck.active();
+      const rows = [];
+      rowEls = [];
+      let lastSection;
+      for (let i = 0; i < total; i++) {
+        let label;
+        // One row failing is not the list failing, the same posture the track
+        // takes on a slide that will not render.
+        try { label = indexOf(i); } catch { label = null; }
+        if (typeof label === 'string') label = { title: label };
+        label = label || {};
+        const here = i === cur;
+        // THE ROW PRINTS ITS INDEX ONCE. With a label the number sits in the
+        // gutter and the label is the row; with nothing to say the number IS
+        // the row. The middle reading, a gutter number beside a title falling
+        // back to the same number, gives a row reading "4  4", which looks like
+        // a bug rather than like a page nobody has named.
+        //
+        // Naming nothing is a legitimate ask: a list of bare numbers is still
+        // the difference between reaching page 11 in ten swipes and reaching it
+        // in one tap, so a caller with no labels can offer the jump without
+        // inventing captions.
+        const bare = !label.title && !label.subtitle && !label.icon;
+        const row = h('button', {
+          class: 'flex w-full items-start gap-2.5 border-b border-base-200 px-3 py-2.5 text-left transition-colors last:border-b-0 '
+            + (here ? 'bg-primary/10' : 'hover:bg-base-200/60'),
+          'aria-current': here ? 'true' : '',
+        },
+          bare ? null : h('span', { class: 'mt-0.5 w-6 shrink-0 text-right font-mono text-xs tabular-nums '
+              + (here ? 'text-primary' : 'text-base-content/40') }, String(i + 1)),
+          label.icon ? h('i', { class: `ph ${label.icon} mt-0.5 shrink-0 text-base text-base-content/40` }) : null,
+          h('div', { class: 'min-w-0 flex-1' },
+            h('div', { class: 'truncate text-sm ' + (here ? 'font-semibold text-primary' : '')
+                + (bare ? ' font-mono tabular-nums' : '') },
+              label.title || String(i + 1)),
+            label.subtitle
+              ? h('div', { class: 'mt-0.5 line-clamp-2 text-xs leading-snug text-base-content/50' }, label.subtitle)
+              : null));
+        row.addEventListener('click', () => { closeIndex(); deck.go(i); });
+        if (label.section && label.section !== lastSection) {
+          rows.push(h('div', { class: 'sd-index-section sticky top-0 z-10 bg-base-200/90 px-3 py-1 text-xs font-medium '
+            + 'text-base-content/60 border-b border-base-200' }, label.section));
+        }
+        lastSection = label.section;
+        rows.push(row);
+        rowEls.push(row);
+      }
+      sheet.replaceChildren(...rows);
+      return cur;
+    }
+=== UNIT lib/kits/swipe-deck.js:1190 | call(…) > open > openIndex ===
+() => {
+      if (indexOpen || !indexOf) return;
+      indexOpen = true;
+      const cur = buildIndex();
+      panel.append(sheet);
+      // Hung off the mark, measured on every open: the header is one line at
+      // every width today, but a number written down here would be a second
+      // copy of a padding class nobody would think to look at, and the mark
+      // moves with the ✕ beside it.
+      const box = overlay.getBoundingClientRect();
+      const r = mark.getBoundingClientRect();
+      sheet.style.top = (r.bottom - box.top + 6) + 'px';
+      sheet.style.left = Math.max(8, r.left - box.left) + 'px';
+      // Open ON the reader, not at the top. In a long set the row they are
+      // standing on is the one row they are certain to want.
+      try { rowEls[cur]?.scrollIntoView({ block: 'center' }); } catch {}
+      paintMark();
+      history.pushState({ __sdIndex: 1 }, '', location.href);
+      // Next frame, so the tap that opened this does not close it again.
+      requestAnimationFrame(() => document.addEventListener('pointerdown', awayFromIndex, true));
+    }
+=== UNIT lib/kits/swipe-deck.js:1211 | call(…) > open > closeIndex ===
+(pop = true) => {
+      if (!indexOpen) return;
+      indexOpen = false;
+      document.removeEventListener('pointerdown', awayFromIndex, true);
+      sheet.remove();
+      paintMark();
+      if (!pop) return;
+      indexPop++;
+      const mine = indexPop;
+      history.back();
+      // And stop waiting if no popstate comes. The alternative is a flag that
+      // stays armed forever and swallows the reader's NEXT Back, which would
+      // read as a dead button on the one control a phone always has.
+      setTimeout(() => { if (indexPop === mine) indexPop = 0; }, 500);
+    }
+=== UNIT lib/kits/swipe-deck.js:1264 | call(…) > open > syncSeam ===
+() => {
+      const want = paneOf() === 'dock' && canSize();
+      if (want && !splitter) {
+        document.body.appendChild(seam);
+        splitter = window.dockSplit.attach(seam, {
+          axis: 'col', from: 'end',
+          label: 'Resize the docked pane',
+          // The percentage is of the WINDOW, not of the overlay: the overlay is
+          // the pane being sized, so measuring against it would make every drag
+          // a fraction of a number the drag is changing.
+          bounds: () => ({ right: window.innerWidth, left: 0, width: window.innerWidth,
+                           top: 0, bottom: window.innerHeight, height: window.innerHeight }),
+          value: () => window.__deckWidth(),
+          onChange: pct => window.__deckWidth(pct),
+          onCommit: pct => window.__deckWidth(pct, true),
+        });
+        // The attach reads the width before the pane's own styles have settled
+        // (the host sets --deck-side on a tick of its own), so the first value
+        // can be a measurement of the undocked frame. One frame later it is the
+        // real one, and the handle stops opening on a number it never held.
+        requestAnimationFrame(() => splitter && splitter.refresh());
+      } else if (!want && splitter) {
+        splitter.destroy(); splitter = null; seam.remove();
+      } else if (splitter) splitter.refresh();
+    }
+=== UNIT lib/kits/swipe-deck.js:1300 | call(…) > open > sync ===
+cur => {
+      curEl.textContent = cur + 1;
+      prevB.classList.toggle('invisible', cur <= 0);
+      nextB.classList.toggle('invisible', cur >= total - 1);
+      if (useDots) dots.forEach((d, i) => d.className = 'h-1.5 rounded-full transition-all duration-200 '
+        + (i === cur ? 'w-7 bg-primary' : 'w-1.5 bg-base-content/20 hover:bg-base-content/30'));
+      else barFill.style.width = ((cur + 1) / total * 100) + '%';
+      if (o.onSlide) o.onSlide(cur);
+    }
+=== UNIT lib/kits/swipe-deck.js:1334 | call(…) > open > cleanup ===
+() => {
+      if (closed) return; closed = true;
+      closeIndex(false);      // the entry is spent by whoever is unwinding us
+      const at = STACK.indexOf(handle);
+      if (at >= 0) STACK.splice(at, 1);
+      syncDeckOpen();
+      removeEventListener('keydown', onKey);
+      removeEventListener('popstate', onPop);
+      document.documentElement.style.overflow = prevOverflow;
+      paneWatch.disconnect();
+      if (splitter) { splitter.destroy(); splitter = null; }
+      for (let i = 0; i < total; i++) deck.drop(i);   // let every slide go, not just the far ones
+      // Leaving retraces the way in, so the parent is revealed rather than
+      // suddenly present. The node is detached on the far side of the
+      // animation, or at once when there was no animation to retrace.
+      if (o.back && overlay.isConnected) {
+        overlay.style.transition = 'transform .2s cubic-bezier(.32,.72,0,1)';
+        overlay.style.transform = 'translateX(100%)';
+        setTimeout(() => overlay.remove(), 240);
+      } else overlay.remove();
+      dockWatch.splice(0).forEach(off => { try { off(); } catch {} });
+      if (o.onClose) o.onClose();
+    }
+=== UNIT lib/kits/swipe-deck.js:1364 | call(…) > open > dismiss ===
+() => {
+      if (closed) return;
+      const at = STACK.indexOf(handle);
+      if (at < 0) return;
+      const above = STACK.length - 1 - at;
+      // Every open contents list on the way down owns an entry too, and one
+      // history.go has to clear the lot: counted BEFORE the drops below, since
+      // dropping a deck closes its list and would zero the number first.
+      let extra = 0;
+      for (let i = STACK.length - 1; i >= at; i--) extra += STACK[i].extraEntries || 0;
+      for (let i = STACK.length - 1; i > at; i--) STACK[i].drop();
+      if (indexOpen) closeIndex(false);
+      history.go(-(above + extra + 1));               // → popstate → cleanup
+    }
+=== UNIT lib/kits/swipe-deck.js:1380 | call(…) > open > onPop ===
+() => {
+      if (!onTop()) return;
+      if (indexPop) { indexPop = 0; return; }       // our own close, already handled
+      if (indexOpen) { closeIndex(false); return; } // Back leaves the list, not the deck
+      cleanup();
+    }
+=== UNIT lib/kits/swipe-deck.js:1386 | call(…) > open > onKey ===
+e => {
+      if (e.defaultPrevented || !onTop()) return;
+      // The list is in front, so it takes the key. The arrows are deliberately
+      // swallowed rather than passed through: stepping a track the reader
+      // cannot see would move them somewhere the list is not showing.
+      if (indexOpen) { if (e.key === 'Escape') closeIndex(); return; }
+      if (e.key === 'Escape') dismiss();
+      else if (e.key === 'ArrowRight') deck.go(deck.active() + 1);
+      else if (e.key === 'ArrowLeft') deck.go(deck.active() - 1);
+    }
+=== UNIT lib/kits/swipe-deck.js:1424 | call(…) > open > requestAnimationFrame(…) ===
+() => {
+        overlay.style.transition = 'transform .22s cubic-bezier(.32,.72,0,1)';
+        overlay.style.transform = 'translateX(0)';
+        setTimeout(() => { overlay.style.transition = ''; overlay.style.transform = ''; }, 280);
+      }
+=== UNIT lib/kits/swipe-deck.js:1523 | call(…) > entryTitle ===
+(count, noun = 'item') => {
+    const plural = noun.endsWith('s') ? noun : noun + 's';
+    return count ? `Read ${count.toLocaleString()} ${count === 1 ? noun : plural} one at a time`
+                 : `Read ${plural} one at a time`;
+  }
+=== UNIT lib/kits/swipe-deck.js:1528 | call(…) > entry ===
+(o = {}) => {
+    const b = h('button', {
+      type: 'button', class: entryCls(o.tone, o.size),
+      'data-title-tip': entryTitle(o.count, o.noun),
+      'aria-label': entryTitle(o.count, o.noun),
+    }, h('i', { class: `ph ${o.icon || ENTRY_ICON} text-lg`
+                 + (o.size === 'md' ? '' : ' max-sm:text-xl') }));
+    if (o.onOpen) b.addEventListener('click', o.onOpen);
+    return b;
+  }
+=== UNIT lib/alpineComponents/file-browser.js:27 | registerFileBrowser ===
+function() {
+  Alpine.data('fileBrowser', /* nested: data(fileBrowser), lines 28-320 */);
+}
+=== UNIT lib/alpineComponents/file-browser.js:28 | registerFileBrowser > data(fileBrowser) ===
+function(opts) {
+    const cfg = opts || {};
+    // The component's root, captured at init. `this.$el` inside a method is the
+    // element whose handler called it: from the tree's @path-pick that is the
+    // tree column, which does not contain the swiper.
+    let root = null, stripFiles = [], mounted = new Set(), keyHandler = null;
+    const short = p => String(p || '').split('/').pop();
+    const dirOf = p => { const s = String(p || ''); const j = s.lastIndexOf('/'); return j < 0 ? '' : s.slice(0, j); };
+    return {
+      // Prefixed, not bare: an x-data expression resolves a bare name against
+      // every registered component first, and `repo` is one (repo.js), so
+      // `base: { repo: repo }` handed the picker a function. fab.js hit the same.
+      fbRepo: cfg.repo || '', fbRef: cfg.ref || '', fbDir: cfg.dir || '', fbStart: cfg.start || '',
+      sel: '',                    // the selected file, a repo path; '' until one is picked
+      at: -1,                     // its index in the folder's files; -1 when it is not in this folder
+      picker: null,               // the inline pathPicker's instance: the folder the swiper reads
+      hovered: false,             // the swiper takes the arrow keys while the pointer is in it
+      treeHovered: false,         // and the tree takes Up and Down while the pointer is in it
+      deckOpening: false,
+      _deck: null, _deckFiles: null,
+
+      template: `
+        <div class="h-full min-h-0 flex flex-col gap-2" data-file-browser>
+          <!-- The tree: the top part, scrolling on its own. -->
+          <div class="min-h-0" :class="folderFiles.length ? 'basis-2/5 shrink-0' : 'flex-1'" @path-pick="pick($event.detail.path)"
+               x-ref="tree" @pointerenter="treeHovered = true" @pointerleave="treeHovered = false">
+            <div class="h-full" x-data="pathPicker({ inline: true, trigger: false, base: { repo: fbRepo, ref: fbRef, dir: fbDir }, start: fbStart })"></div>
+          </div>
+
+          <!-- The swiper: one header row, then the strip. Hidden for a folder
+               with no files of its own, which has nothing to read. -->
+          <div class="relative flex-1 min-h-0 flex flex-col rounded-box border border-base-300 bg-base-100 overflow-hidden"
+               :class="!folderFiles.length && 'hidden'"
+               @pointerenter="hovered = true" @pointerleave="hovered = false" @pointerdown="hovered = true">
+            <div class="flex items-center gap-1 shrink-0 pl-2 pr-0.5 py-0.5 bg-base-200 border-b border-base-300">
+              <div x-show="at >= 0" class="min-w-0 flex items-baseline font-mono text-sm" data-slide-name>
+                <span x-show="sel.includes('/')" class="opacity-40 truncate shrink-[9999]" x-text="dirOf(sel) + '/'"></span>
+                <span class="min-w-0 truncate" x-text="short(sel)"></span>
+              </div>
+              <a x-show="at >= 0" :href="ghUrl(sel)" target="_blank" rel="noopener" :aria-label="sel + ' on GitHub'"
+                 class="shrink-0 p-1 text-base-content/40 hover:text-primary transition-colors">
+                <i class="ph ph-github-logo text-lg leading-none"></i></a>
+              <div class="grow"></div>
+              <div x-show="at >= 0 && folderFiles.length > 1" class="flex items-center shrink-0">
+                <button type="button" class="btn btn-xs btn-ghost btn-square max-sm:hidden" @click="go(at - 1)" :disabled="at <= 0"
+                        aria-label="Previous file"><i class="ph ph-caret-left"></i></button>
+                <span class="font-mono text-xs opacity-60 tabular-nums px-1" data-pager-label x-text="(at + 1) + '/' + folderFiles.length"></span>
+                <button type="button" class="btn btn-xs btn-ghost btn-square max-sm:hidden" @click="go(at + 1)" :disabled="at >= folderFiles.length - 1"
+                        aria-label="Next file"><i class="ph ph-caret-right"></i></button>
+              </div>
+              <!-- The deck door over the same files, full screen. Classes and
+                   wording are swipeDeck.entry()'s at the tight size, held by
+                   node/test/deck-entry-parity.test.mjs. -->
+              <button x-show="folderFiles.length" data-deck-door @click="openDeck()" :disabled="deckOpening"
+                      class="btn btn-square btn-sm btn-ghost text-primary"
+                      :data-title-tip="'Read ' + plural(folderFiles.length, 'file') + ' one at a time'">
+                <span x-show="deckOpening" class="loading loading-spinner loading-xs"></span>
+                <i x-show="!deckOpening" class="ph ph-cards-three text-lg max-sm:text-xl"></i></button>
+            </div>
+            <div data-strip @scroll.passive="stripScroll()"
+                 class="flex-1 min-h-0 flex snap-x snap-mandatory overflow-x-auto overflow-y-hidden overscroll-x-contain
+                        [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                 :class="at < 0 && 'invisible'"></div>
+          </div>
+        </div>`,
+
+      init/* nested: init, lines 94-139 */,
+      destroy() { if (keyHandler) window.removeEventListener('keydown', keyHandler, true); },
+
+      short, dirOf,
+      plural(n, noun) { return n + ' ' + noun + (n === 1 ? '' : 's'); },
+      ghUrl(path) { return path ? window.RepoAddress.github.blob(this.fbRepo, this.fbRef || 'HEAD', path) : ''; },
+      // The files directly in the folder the tree is showing, as repo paths.
+      get folderFiles/* nested: folderFiles, lines 146-151 */,
+      pick(path) { if (path) this.sel = path; },
+
+      // ── The strip ────────────────────────────────────────────────────────
+      strip() { return root?.querySelector('[data-strip]') || null; },
+      slides() { const s = this.strip(); return s ? [...s.children] : []; },
+      buildStrip/* nested: buildStrip, lines 157-172 */,
+      // Put the strip on the selection, or mark it absent from this folder.
+      // A folder entered without a selection in it opens on its first file,
+      // so the lower half is never an empty box beside a list of files.
+      place/* nested: place, lines 176-181 */,
+      // Set `at` here as well as on the scroll it starts: a scroll already at
+      // its target fires no scroll event. `jump` skips the smooth scroll, for a
+      // pick from the tree, where animating past twenty slides is noise.
+      go/* nested: go, lines 185-196 */,
+      // The slide nearest the strip's left edge, the branch detail's reading.
+      stripScroll/* nested: stripScroll, lines 198-208 */,
+      mountNear/* nested: mountNear, lines 209-215 */,
+      // The picker lights two rows the same way: `picked`, the file shown, and
+      // `active`, its keyboard and hover cursor. A tap leaves `active` on the
+      // tapped row, so a swipe that moved only `picked` left two rows lit.
+      // Both follow the position.
+      markInTree/* nested: markInTree, lines 220-226 */,
+      // The tree's row for the selection, kept in view as the swiper moves.
+      revealInTree() {
+        if (this.at < 0) return;
+        this.$nextTick(() => this.treeRow()?.scrollIntoView?.({ block: 'nearest' }));
+      },
+      // The tree's row for the selection: the picker's active row, which
+      // markInTree sets to it. Found by the row's title until 2026-10-22,
+      // which the rows had lost to data-title-tip, so the tree had stopped
+      // following the swiper.
+      treeRow() {
+        const p = this.picker;
+        return p && this.at >= 0 ? root?.querySelector('[role=option][data-index="' + p.active + '"]') : null;
+      },
+      // One slide: the shared viewer and one contents read, the deck's render.
+      mountSlide/* nested: mountSlide, lines 241-271 */,
+
+      // ── The full deck over the same files ───────────────────────────────
+      // Opens on the selection when it is in this folder, else the first file,
+      // and a swipe there moves this view's position.
+      async openDeck/* nested: openDeck, lines 276-309 */,
+      _deckChrome/* nested: _deckChrome, lines 310-318 */,
+    };
+  }
+=== UNIT lib/alpineComponents/file-browser.js:94 | registerFileBrowser > data(fileBrowser) > init ===
+() {
+        root = this.$el;
+        this.$el.innerHTML = this.template;
+        this.$nextTick(/* nested: $nextTick(…), lines 97-102 */);
+        // The strip follows the folder on screen; the position follows the
+        // selection within it. One watcher each, since every way they move
+        // (a tap, a descent, a swipe, the deck) passes through these two.
+        // Keyed on the folder as well as its files: a folder with none never
+        // changes the list, and still needs the picker's cursor cleared.
+        this.$watch(() => (this.picker?.scope || []).map(n => n.name).join('/') + '\n' + this.folderFiles.join('\n'),
+          () => this.buildStrip());
+        this.$watch('sel', () => this.place(true));
+        this.$watch('at', /* nested: $watch(at), lines 111-116 */);
+        keyHandler = /* nested: keyHandler, lines 117-137 */;
+        window.addEventListener('keydown', keyHandler, true);
+      }
+=== UNIT lib/alpineComponents/file-browser.js:97 | registerFileBrowser > data(fileBrowser) > init > $nextTick(…) ===
+() => {
+          if (!this.$el.isConnected) return;
+          Alpine.initTree(this.$el);
+          this.picker = root.querySelector('[x-data^="pathPicker"]')?.__pathPicker || null;
+          if (cfg.file) this.sel = cfg.file;
+        }
+=== UNIT lib/alpineComponents/file-browser.js:111 | registerFileBrowser > data(fileBrowser) > init > $watch(at) ===
+() => {
+          if (this.at >= 0 && stripFiles[this.at] && stripFiles[this.at] !== this.sel) this.sel = stripFiles[this.at];
+          this.mountNear();
+          this.markInTree();
+          this.revealInTree();
+        }
+=== UNIT lib/alpineComponents/file-browser.js:117 | registerFileBrowser > data(fileBrowser) > init > keyHandler ===
+(e) => {
+          if (this.at < 0 || !root?.isConnected) return;
+          if (e.target && /^(INPUT|TEXTAREA|SELECT)$/i.test(e.target.tagName)) return;
+          // Up and Down in the tree step the files as a swipe does, as in every
+          // list over a strip (kits/linked-swiper.js), while the tree has the
+          // pointer or the focus; folders are passed over, as the strip does.
+          if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+            const tree = this.$refs.tree;
+            const held = tree && tree.contains(document.activeElement);
+            if (!tree || !(this.treeHovered || held)) return;
+            e.preventDefault();
+            this.go(this.at + (e.key === 'ArrowDown' ? 1 : -1), true);
+            // Focus walks with the selection, once the tree has marked it.
+            if (held) setTimeout(() => this.treeRow()?.focus({ preventScroll: true }), 0);
+            return;
+          }
+          if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+          if (!this.hovered) return;
+          e.preventDefault();
+          this.go(this.at + (e.key === 'ArrowRight' ? 1 : -1));
+        }
+=== UNIT lib/alpineComponents/file-browser.js:146 | registerFileBrowser > data(fileBrowser) > folderFiles ===
+() {
+        const p = this.picker;
+        if (!p || !p.scope.length || p.scope[0].kind !== 'repo') return [];
+        const dir = p.scope.slice(1).map(n => n.name).join('/');
+        return p.children().filter(n => !n.children && n.kind === 'file').map(n => (dir ? dir + '/' : '') + n.name);
+      }
+=== UNIT lib/alpineComponents/file-browser.js:157 | registerFileBrowser > data(fileBrowser) > buildStrip ===
+() {
+        const s = this.strip();
+        if (!s) return;
+        stripFiles = this.folderFiles.slice();
+        mounted = new Set();
+        s.replaceChildren(...stripFiles.map(/* nested: map(…), lines 162-167 */));
+        this.place(true);
+        // A folder with no files has no selection, yet the picker starts its
+        // cursor on the top row, lit like one. Clear it; a hover still sets it.
+        if (!stripFiles.length && this.picker) this.picker.active = -1;
+      }
+=== UNIT lib/alpineComponents/file-browser.js:162 | registerFileBrowser > data(fileBrowser) > buildStrip > map(…) ===
+(path, i) => {
+          const slide = document.createElement('div');
+          slide.className = 'w-full shrink-0 snap-center flex flex-col min-h-0 min-w-0 overflow-hidden';
+          slide.dataset.slide = String(i);
+          return slide;
+        }
+=== UNIT lib/alpineComponents/file-browser.js:176 | registerFileBrowser > data(fileBrowser) > place ===
+(jump = false) {
+        const i = stripFiles.indexOf(this.sel);
+        if (i >= 0) return this.go(i, jump);
+        this.at = -1;
+        if (stripFiles.length) this.sel = stripFiles[0];
+      }
+=== UNIT lib/alpineComponents/file-browser.js:185 | registerFileBrowser > data(fileBrowser) > go ===
+(i, jump = false) {
+        const n = stripFiles.length;
+        if (!n) return;
+        i = Math.max(0, Math.min(n - 1, i));
+        this.at = i;
+        const s = this.strip(), k = this.slides()[i];
+        if (!s || !k) return;
+        this.$nextTick(() => {
+          const x = k.getBoundingClientRect().left - s.getBoundingClientRect().left + s.scrollLeft;
+          if (s.scrollTo) s.scrollTo({ left: x, behavior: jump ? 'instant' : 'smooth' }); else s.scrollLeft = x;
+        });
+      }
+=== UNIT lib/alpineComponents/file-browser.js:198 | registerFileBrowser > data(fileBrowser) > stripScroll ===
+() {
+        const s = this.strip();
+        if (!s || this.at < 0) return;
+        const x0 = s.getBoundingClientRect().left;
+        let best = 0, near = Infinity;
+        this.slides().forEach((k, i) => {
+          const d = Math.abs(k.getBoundingClientRect().left - x0);
+          if (d < near) { near = d; best = i; }
+        });
+        if (this.at !== best) this.at = best;
+      }
+=== UNIT lib/alpineComponents/file-browser.js:209 | registerFileBrowser > data(fileBrowser) > mountNear ===
+() {
+        if (this.at < 0) return;
+        const slides = this.slides();
+        for (let i = Math.max(0, this.at - 1); i <= Math.min(slides.length - 1, this.at + 1); i++) {
+          if (!mounted.has(i)) { mounted.add(i); this.mountSlide(stripFiles[i], slides[i]); }
+        }
+      }
+=== UNIT lib/alpineComponents/file-browser.js:220 | registerFileBrowser > data(fileBrowser) > markInTree ===
+() {
+        const p = this.picker;
+        if (!p) return;
+        p.picked = this.at >= 0 ? this.sel : '';
+        const i = this.at >= 0 ? p.matches().findIndex(n => p.pathOf(n) === this.sel) : -1;
+        if (i >= 0) p.active = i;
+      }
+=== UNIT lib/alpineComponents/file-browser.js:241 | registerFileBrowser > data(fileBrowser) > mountSlide ===
+(path, slide) {
+        if (!path || !slide) return;
+        const el = document.createElement('div');
+        el.className = 'flex flex-col h-full w-full min-w-0 overflow-hidden';
+        // A row to land on, from the address, applies to the file it was
+        // opened on and to no other slide in the folder.
+        const at = cfg.at && path === cfg.file ? cfg.at : null;
+        el.setAttribute('x-data', 'viewer({ bindStore: false, fill: true, identify: false, '
+          + 'defaultMode: (f) => window.ViewRegistry.READ_MODE(f)'
+          + (at ? ', modules: ' + JSON.stringify({ table: { at: { col: at.col, row: at.row } } }) : '')
+          + ' })');
+        el.dataset.fileViewer = path;
+        slide.append(el);
+        window.Alpine.initTree(el);
+        const repo = this.fbRepo, ref = this.fbRef || '';
+        (/* nested: call(…), lines 256-270 */)();
+      }
+=== UNIT lib/alpineComponents/file-browser.js:256 | registerFileBrowser > data(fileBrowser) > mountSlide > call(…) ===
+async () => {
+          try {
+            const gh = new window.GH({ token: window.TOKEN, repo });
+            gh.ref = ref;
+            const res = await gh.get(path);
+            if (el.isConnected) await el.__viewer?.show(path, res.text, { repo, ref });
+          } catch (e) {
+            if (!el.isConnected) return;
+            el.remove();
+            const note = document.createElement('p');
+            note.className = 'text-base text-base-content/60 text-center py-16';
+            note.textContent = 'Could not load it: ' + (e?.message || e);
+            slide.append(note);
+          }
+        }
+=== UNIT lib/alpineComponents/file-browser.js:276 | registerFileBrowser > data(fileBrowser) > openDeck ===
+() {
+        if (this.deckOpening || this._deck) return;
+        const files = this.folderFiles;
+        if (!files.length) return;
+        const at = Math.max(0, files.indexOf(this.sel));
+        this.deckOpening = true;
+        try {
+          if (!window.swipeDeck && window.gh?.load) await window.gh.load('kits/swipe-deck.js');
+          if (!window.swipeDeck) throw new Error('the swipe deck kit did not load');
+          this._deckFiles = files;
+          const parent = window.swipeDeck.top?.() || null;
+          const opts = {
+            count: files.length, start: at, ...this._deckChrome(at),
+            index: (i) => ({ title: short(files[i]), subtitle: '', icon: 'ph-file' }),
+            render: (i, slide) => this.mountSlide(files[i], slide),
+            release: (i, slide) => { slide.replaceChildren(); },
+            slideScroll: false, innerClass: 'h-full w-full min-w-0', immersive: true,
+            // The kit reports slides while it is still being built and repeats
+            // the current one on each render; only a built deck moves us.
+            onSlide: /* nested: onSlide, lines 295-301 */,
+            onClose: () => { this._deck = null; this._deckFiles = null; },
+          };
+          this._deck = parent ? window.swipeDeck.drill(parent, opts) : window.swipeDeck.open(opts);
+          if (files[at] !== this.sel) this.sel = files[at];
+        } catch (e) {
+          window.Alpine.store('toast')?.('warning', 'Could not open the deck: ' + (e?.message || e), 'alert-error', 5000);
+        } finally { this.deckOpening = false; }
+      }
+=== UNIT lib/alpineComponents/file-browser.js:295 | registerFileBrowser > data(fileBrowser) > openDeck > onSlide ===
+(i) => {
+              const h = this._deck, path = files[i];
+              if (!h || !path) return;
+              const c = this._deckChrome(i);
+              h.setTitle(c.title); h.setSubtitle(c.subtitle); h.setIcon(c.icon); h.setLink(c.link);
+              if (path !== this.sel) this.sel = path;
+            }
+=== UNIT lib/alpineComponents/file-browser.js:310 | registerFileBrowser > data(fileBrowser) > _deckChrome ===
+(i) {
+        const path = this._deckFiles?.[i] || '';
+        return {
+          title: short(path),
+          subtitle: [this.fbRepo.split('/').pop() + (this.fbRef ? '@' + this.fbRef : ''), dirOf(path)].filter(Boolean).join(' · '),
+          icon: 'ph-file',
+          link: path ? { href: this.ghUrl(path), icon: 'ph-github-logo', title: 'Open ' + path + ' on GitHub' } : null,
+        };
+      }
+=== UNIT lib/alpineComponents/here-view.js:39 | addEventListener(alpine:init) ===
+function () {
+  Alpine.data('hereView', /* nested: data(hereView), lines 40-950 */);
+}
+=== UNIT lib/alpineComponents/here-view.js:40#1 | addEventListener(alpine:init) > data(hereView) (part 1 of 4) ===
+function () {
+
+    const NOTE_KEY = window.BrowserKind ? window.BrowserKind.NOTE_KEY : 'wt:browserNote';
+    const SAVED_KEY = 'wt:tokenJustSaved';
+    const read = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+
+    // The kind of browser, and the reader's name for it, are lib/kits/
+    // browser-kind.js's, which the Traffic pane and the traffic log read too.
+    const BK = () => window.BrowserKind;
+    const detectContext = () => BK() ? BK().detect() : { browser: '', os: '', standalone: false, touch: false };
+
+    /* nested: tokenKind, lines 51-58 */
+
+    // Who writes each key, where the code says so. A key matching nothing is
+    // shown without a label rather than called unknown: some keys are built at
+    // runtime, and a missing label is not a claim that nothing writes it.
+    const LS_OWNERS = [
+      [/^ghToken$/, 'GitHub token', 'lib/gh-auth.js'],
+      [/^wt:tokenMeta$/, 'Token record: saved, last accepted', 'lib/gh-auth.js'],
+      [/^wt:browserNote$/, 'Browser note', 'this view'],
+      [/^visits$/, 'Recent visits', 'the app shell'],
+      [/^wt:(config|activity|sessions)/, 'When the app last checked a cache', 'the app shell'],
+      [/^wt:dictate-handoff$/, 'Dictation handed between pages', 'the dictate-handoff kit'],
+      [/^wt:stage-handoff$/, 'A paste handed to the Stage', 'the stage-handoff kit'],
+      [/^(fab:|__fabDrawer$)/, 'Launcher state', 'lib/alpineComponents/fab.js'],
+      [/^deckDock/, 'Deck docking', 'the app shell'],
+      [/^stageAsidePct$/, 'Stage layout', 'lib/alpineComponents/stage.js'],
+      [/^reviewDiffView$/, 'Review layout', 'lib/alpineComponents/file-review.js'],
+      [/^pageReport:/, 'Page report', 'the page-report kit'],
+      [/^traffic:quarters$/, "Calls by quarter hour, the last day in this browser", 'lib/kits/traffic-log.js'],
+      [/^traffic:hours$/, "Calls by hour, the last 30 days in this browser", 'lib/kits/traffic-log.js'],
+      [/^trafficLog:seen$/, 'Traffic findings filed lately', 'lib/kits/traffic-log.js'],
+      [/^trafficLog:off$/, 'Traffic log switched off', 'lib/kits/traffic-log.js'],
+      [/^(diffTool\.v2|diff_url[AB])$/, 'Diff tool', 'pages/diff-tool.html'],
+    ];
+    const lsOwner = (k) => {
+      const hit = LS_OWNERS.find(([re]) => re.test(k));
+      return hit ? { label: hit[1], src: hit[2] } : null;
+    };
+
+    // The databases web-tools code opens, by the persistence path's first
+    // segment, plus the two legacy shelves the data shelf's importer reads.
+    const IDB_OWNERS = {
+      dataShelf: { label: 'Data shelf records', src: 'popups/data-shelf.html' },
+      pdfInspect: { label: 'Saved views of the PDF inspector', src: 'pages/pdf-inspect.html' },
+      'demo-persistence': { label: 'Persistence demo', src: 'lib/kits/demos/persistence.html' },
+      DataJarDB: { label: 'DataJar, the older bookmarklet', legacy: true },
+      DataShelfDB: { label: 'DataShelf version 1', legacy: true },
+    };
+
+    const fmtBytes = (n) => n == null ? '' : n < 1024 ? n + ' B'
+      : n < 1024 * 1024 ? (n / 1024).toFixed(n < 10240 ? 1 : 0) + ' KB'
+      : n < 1024 ** 3 ? (n / 1024 ** 2).toFixed(1) + ' MB' : (n / 1024 ** 3).toFixed(1) + ' GB';
+    const fmtWhen = (ms) => {
+      try { return new Date(ms).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }); }
+      catch (e) { return new Date(ms).toISOString(); }
+    };
+
+    // What a localStorage value shows as in the deck: pretty JSON under a
+    // .json name, so the viewer's own kind rule (ViewRegistry.READ_MODE) gives
+    // it a tree or a table, and anything else as text. The saved token, and any
+    // value shaped like a token, shows only its last four characters.
+    const lsShown = /* nested: lsShown, lines 109-120 */;
+    // Which cards hold a viewer, and each store's records once read, held
+    // outside Alpine's reactive state: neither has any business in a proxy.
+    const mounted = new Set();
+    let storeCache = new Map();
+    // One viewer in one host, handed one item, as the Stage reader mounts its
+    // own (stage.js, _rRender). A card and a deck slide both come through here.
+    const mountViewer = /* nested: mountViewer, lines 127-135 */;
+    const entriesToRows = (entries, outOfLine) => entries.map(({ key, value }) => {
+      const rec = value && typeof value === 'object' && Object.getPrototypeOf(value) === Object.prototype ? value : { value };
+      return outOfLine ? { key, ...rec } : rec;
+    });
+    const lsSub = (r) => [r.owner && r.owner.label, r.owner && r.owner.src, r.size].filter(Boolean).join(' · ');
+
+    return {
+      description: 'This browser: the GitHub token and why a read failed, a note naming the browser, what this origin stores in localStorage and IndexedDB, and, from the courier, what the page it was opened from stores',
+
+      host: location.host || location.origin,
+      ctx: detectContext(),
+
+      saved: '',
+      meta: null,
+      check: { state: 'idle', login: '', scopes: null, rateRem: null, rateLimit: null, error: '' },
+      tokenDraft: '',
+      tokenMsg: '',
+      justSaved: false,
+
+      note: '',
+      noteDraft: '',
+      noteMsg: '',
+
+      lsRows: [],
+      lsErr: '',
+      usage: null,
+      quota: null,
+      persisted: null,
+      dbs: [],
+      dbState: 'idle',   // idle | loading | ok | unlisted | error
+      dbErr: '',
+      // Whose storage the list holds: this origin's ('here') or the courier
+      // page's ('page'). The two tabs share the list, the strip and the deck,
+      // and switching tabs reloads them from the other source.
+      source: '',
+      srcHost: '',
+      pageErr: '',
+
+      template: `
+        <div class="@container h-full flex flex-col gap-3">
+          <div class="flex flex-wrap items-center gap-x-4 gap-y-2 shrink-0">
+            <h1 class="text-lg font-semibold flex items-center gap-2">
+              <i class="ph ph-browser text-primary"></i>This browser
+            </h1>
+            <div class="flex items-center gap-0.5 rounded-lg bg-base-200/60 p-0.5 w-fit" role="tablist" data-slot="frame:tabs">
+              <button role="tab" @click="setTab('token')" :aria-selected="tab === 'token'"
+                      class="flex items-center gap-1.5 px-1.5 sm:px-2 md:px-3 py-1.5 rounded-md text-base font-medium transition-colors"
+                      :class="tab === 'token' ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'">
+                <i class="ph ph-key text-lg hidden md:inline-block"></i>Token</button>
+              <button role="tab" @click="setTab('stored')" :aria-selected="tab === 'stored'"
+                      class="flex items-center gap-1.5 px-1.5 sm:px-2 md:px-3 py-1.5 rounded-md text-base font-medium transition-colors"
+                      :class="tab === 'stored' ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'">
+                <i class="ph ph-database text-lg hidden md:inline-block"></i>Stored here<span x-show="source === 'here' && items.length" class="hidden sm:inline font-mono text-sm opacity-60" x-text="items.length"></span></button>
+              <button role="tab" x-show="courierHost" x-cloak @click="setTab('page')" :aria-selected="tab === 'page'"
+                      class="px-2 md:px-3 py-1 rounded-md flex items-center gap-1.5 transition-colors"
+                      :class="tab === 'page' ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'"
+                      :data-title-tip="'What ' + courierHost + ' stores in this browser, read through the courier'">
+                <i class="ph ph-globe-simple text-lg hidden md:inline-block"></i>Page<span class="hidden sm:inline font-mono text-sm opacity-60 max-w-[12rem] truncate" x-text="courierHost"></span></button>
+            </div>
+          </div>
+
+          <div x-show="tab === 'token'" class="flex-1 min-h-0 overflow-y-auto overscroll-contain">
+            <div class="max-w-5xl flex flex-col gap-3 pb-4">
+              <div class="text-sm text-base-content/60" x-text="contextLine"></div>
+              <div class="flex flex-wrap items-center gap-2">
+                <label class="input input-bordered input-sm flex items-center gap-2 flex-1 min-w-56">
+                  <span class="text-base-content/60">Note</span>
+                  <input type="text" x-model="noteDraft" @keyup.enter="saveNote()" maxlength="120"
+                         :placeholder="suggestion" class="grow">
+                </label>
+                <button class="btn btn-sm" @click="saveNote()" :disabled="noteDraft.trim() === note">Save</button>
+                <span class="text-sm text-success" x-show="noteMsg" x-text="noteMsg"></span>
+              </div>
+              <template x-if="fail">
+                <div role="alert" class="alert alert-warning items-start text-base">
+                  <i class="ph ph-warning-circle text-xl shrink-0"></i>
+                  <div class="flex flex-col gap-0.5 min-w-0">
+                    <div class="font-semibold text-balance" x-text="failTitle"></div>
+                    <div x-show="fail.detail" class="text-sm"><span class="opacity-70">GitHub said:</span> <span x-text="fail.detail"></span></div>
+                  </div>
+=== UNIT lib/alpineComponents/here-view.js:40#2 | addEventListener(alpine:init) > data(hereView) (part 2 of 4) ===
+                </div>
+              </template>
+              <a x-show="next" :href="backHref" class="btn btn-sm self-start max-w-full"
+                 :class="justSaved && check.state === 'ok' && !missingRepoScope && !fail ? 'btn-success' : 'btn-ghost'">
+                <i class="ph ph-arrow-left"></i><span class="truncate">Back to <span class="font-mono" x-text="next"></span></span>
+              </a>
+              <dl class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1">
+                <dt class="text-sm text-base-content/60 pt-0.5">Status</dt>
+                <dd class="flex items-center gap-1.5"><i class="ph" :class="statusIcon"></i><span x-text="statusValue"></span></dd>
+                <template x-if="cause">
+                  <div class="contents">
+                    <dt class="text-sm text-base-content/60 pt-0.5">Likely cause</dt>
+                    <dd x-text="cause"></dd>
+                  </div>
+                </template>
+                <template x-if="saved">
+                  <div class="contents">
+                    <dt class="text-sm text-base-content/60 pt-0.5">Token</dt>
+                    <dd><span class="font-mono" x-text="'…' + saved.slice(-4)"></span> · <span x-text="kind"></span></dd>
+                    <dt class="text-sm text-base-content/60 pt-0.5">Saved</dt>
+                    <dd x-text="savedLine"></dd>
+                    <dt class="text-sm text-base-content/60 pt-0.5">Last accepted</dt>
+                    <dd x-text="acceptedLine"></dd>
+                  </div>
+                </template>
+                <template x-if="scopesLine">
+                  <div class="contents">
+                    <dt class="text-sm text-base-content/60 pt-0.5">Scopes</dt>
+                    <dd x-text="scopesLine"></dd>
+                  </div>
+                </template>
+                <template x-if="check.rateLimit != null">
+                  <div class="contents">
+                    <dt class="text-sm text-base-content/60 pt-0.5">Requests left</dt>
+                    <dd class="tabular-nums" x-text="rateLine"></dd>
+                  </div>
+                </template>
+                <!-- The failed request runs the full width under its label: a
+                     path in the value column wrapped from the middle of the
+                     pane. It breaks only after a slash, ? or &. -->
+                <template x-if="failRequestParts.length">
+                  <div class="contents">
+                    <dt class="col-span-2 text-sm text-base-content/60 pt-2">Failed request</dt>
+                    <dd class="col-span-2"><code class="block rounded-md bg-base-200 px-3 py-2 font-mono text-sm break-words"><template x-for="(s, i) in failRequestParts" :key="i"><span><span x-text="s"></span><wbr></span></template></code></dd>
+                  </div>
+                </template>
+              </dl>
+              <div class="flex flex-wrap gap-2">
+                <input type="password" x-model="tokenDraft" @keyup.enter="saveToken()"
+                       :placeholder="saved ? 'New token' : 'GitHub token'"
+                       autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
+                       class="input input-bordered input-sm flex-1 min-w-56 font-mono">
+                <button class="btn btn-sm btn-primary" @click="saveToken()" :disabled="!tokenDraft.trim()">Save</button>
+              </div>
+              <div class="text-sm text-warning" x-show="tokenMsg" x-text="tokenMsg"></div>
+              <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+                <a href="https://github.com/settings/tokens/new?scopes=repo&description=web-tools"
+                   target="_blank" rel="noopener" class="link link-primary flex items-center gap-1">
+                  <i class="ph ph-arrow-square-out"></i>Get a token</a>
+                <button x-show="saved" class="link link-hover text-base-content/60" @click="removeToken()">Remove token</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- STORED HERE: A LIST OVER A STRIP OF ITS CARDS, the Waiting view's
+               arrangement (waiting.js) and before it the Budget DRS Funding
+               tabs' (home, app/view/views/corpora.js, corpusSwiper). Two
+               containers split the pane's height and the page does not scroll:
+               the list up to 40% of it, the strip the rest. A swipe moves the
+               list's selection, kept in view inside the list; a pick moves the
+               strip. The expander opens the deck over the same items at the
+               card in view, and closing it lands where the swipe left off. At
+               @3xl the two sit side by side. -->
+          <div x-show="tab === 'stored' || tab === 'page'" class="flex-1 min-h-0 flex flex-col gap-3 @3xl:flex-row @3xl:gap-4" data-pattern="linked-swiper">
+            <section class="shrink-0 min-h-0 max-h-[40%] flex flex-col overflow-hidden rounded-box border border-base-300 bg-base-100
+                            @3xl:max-h-none @3xl:w-[22rem]">
+              <div class="flex items-center gap-2 shrink-0 pl-3 pr-1 py-1 border-b border-base-300 bg-base-200/60">
+                <span class="grow min-w-0 truncate text-sm text-base-content/60" x-text="storageLine"></span>
+                <button type="button" class="btn btn-ghost btn-xs btn-square text-base-content/50 shrink-0" @click="reload()"
+                        :disabled="dbState === 'loading'" aria-label="Refresh"><i class="ph ph-arrows-clockwise text-base"></i></button>
+              </div>
+              <div x-show="source === 'page' && pageErr" class="shrink-0 text-sm text-warning px-3 py-2 break-words" x-text="pageErr"></div>
+              <!-- A page that did not answer listed nothing, so the sections
+                   would claim "none" for storage nobody read. -->
+              <div x-ref="list" x-show="!(source === 'page' && pageErr)" class="min-h-0 overflow-y-auto overscroll-contain p-1"
+                   @keydown.down.prevent="key(1)" @keydown.up.prevent="key(-1)">
+                <div class="flex items-center gap-2 px-2 pt-1">
+                  <h3 class="font-semibold">localStorage</h3>
+                  <span class="text-sm text-base-content/60" x-text="lsSummary"></span>
+                </div>
+                <div class="text-sm text-warning px-2" x-show="lsErr" x-text="lsErr"></div>
+                <ul class="divide-y divide-[var(--color-base-200)]">
+                  <template x-for="r in lsRows" :key="r.key">
+                    <li>
+                      <button type="button" @click="pick('ls:' + r.key)" :data-id="'ls:' + r.key"
+                              :aria-current="shownId === 'ls:' + r.key ? 'true' : null"
+                              class="w-full text-left py-1.5 px-2 rounded flex items-start justify-between gap-3"
+                              :class="shownId === 'ls:' + r.key ? 'bg-primary/10' : 'hover:bg-base-200'">
+                        <div class="min-w-0">
+                          <div class="font-mono break-all" x-text="r.key"></div>
+                          <div class="text-sm text-base-content/60" x-show="r.owner"
+                               x-text="r.owner ? r.owner.label + ' · ' + r.owner.src : ''"></div>
+                        </div>
+                        <span class="shrink-0 text-sm tabular-nums text-base-content/60" x-text="r.size"></span>
+                      </button>
+                    </li>
+                  </template>
+                </ul>
+
+                <div class="flex items-center gap-2 px-2 pt-3">
+                  <h3 class="font-semibold">IndexedDB</h3>
+                  <span class="text-sm text-base-content/60" x-text="dbSummary"></span>
+                </div>
+                <div class="text-sm text-warning px-2" x-show="dbState === 'error'" x-text="dbErr"></div>
+                <template x-for="d in dbs" :key="d.name">
+                  <div class="flex flex-col py-1.5 border-t border-[var(--color-base-200)] first:border-t-0">
+                    <div class="flex items-start justify-between gap-3 px-2">
+                      <span class="font-mono break-all" x-text="d.name"></span>
+                      <span class="shrink-0 text-sm tabular-nums text-base-content/60"
+                            x-text="d.records + (d.records === 1 ? ' record' : ' records')"></span>
+                    </div>
+                    <div class="text-sm text-base-content/60 px-2" x-show="d.owner"
+                         x-text="d.owner ? d.owner.label + (d.owner.src ? ' · ' + d.owner.src : '') : ''"></div>
+                    <div class="text-sm text-warning px-2" x-show="d.error" x-text="d.error"></div>
+                    <a x-show="d.owner && d.owner.legacy" href="../popups/data-shelf.html" target="_blank" rel="noopener"
+                       class="text-sm link link-primary w-fit flex items-center gap-1 px-2">
+                      <i class="ph ph-tray-arrow-down"></i>Import to the data shelf</a>
+                    <ul>
+                      <template x-for="s in d.stores" :key="s.name">
+                        <li>
+                          <button type="button" @click="pick('idb:' + d.name + '/' + s.name)" :data-id="'idb:' + d.name + '/' + s.name"
+                                  :aria-current="shownId === 'idb:' + d.name + '/' + s.name ? 'true' : null"
+                                  class="w-full text-left py-1 pl-6 pr-2 rounded flex items-center justify-between gap-3"
+                                  :class="shownId === 'idb:' + d.name + '/' + s.name ? 'bg-primary/10' : 'hover:bg-base-200'">
+                            <span class="font-mono break-all" x-text="s.name"></span>
+                            <span class="shrink-0 text-sm tabular-nums text-base-content/60" x-text="s.count"></span>
+                          </button>
+                        </li>
+                      </template>
+                    </ul>
+                  </div>
+                </template>
+
+                <div x-show="source === 'here'" class="flex flex-wrap gap-x-4 gap-y-1 text-sm px-2 py-2">
+                  <a href="../popups/idb-nav.html" target="_blank" rel="noopener" class="link link-primary flex items-center gap-1">
+                    <i class="ph ph-arrow-square-out"></i>IndexedDB explorer</a>
+                  <a href="../popups/data-shelf.html" target="_blank" rel="noopener" class="link link-primary flex items-center gap-1">
+                    <i class="ph ph-arrow-square-out"></i>Data shelf</a>
+                </div>
+              </div>
+=== UNIT lib/alpineComponents/here-view.js:40#3 | addEventListener(alpine:init) > data(hereView) (part 3 of 4) ===
+            </section>
+
+            <section class="flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden rounded-box border border-base-300 bg-base-100">
+              <div class="flex items-center gap-1 shrink-0 min-h-12 pl-3 pr-1 py-1 border-b border-base-300 bg-base-200/60">
+                <div x-show="items.length > 1" class="flex items-center shrink-0 sm:-ml-2">
+                  <button type="button" class="btn btn-xs btn-ghost btn-square max-sm:hidden" @click="go(at - 1)"
+                          :disabled="at <= 0" aria-label="Previous"><i class="ph ph-caret-left"></i></button>
+                  <span class="font-mono text-xs opacity-60 tabular-nums px-1" x-text="(at + 1) + '/' + items.length"></span>
+                  <button type="button" class="btn btn-xs btn-ghost btn-square max-sm:hidden" @click="go(at + 1)"
+                          :disabled="at >= items.length - 1" aria-label="Next"><i class="ph ph-caret-right"></i></button>
+                </div>
+                <div class="grow min-w-0 pl-1">
+                  <div class="font-mono font-semibold truncate" x-text="cur ? cur.title : ''"></div>
+                  <div class="text-sm text-base-content/60 truncate" x-text="cur ? cur.meta : ''"></div>
+                </div>
+                <button type="button" class="btn btn-sm btn-ghost btn-square shrink-0" @click="expand()" :disabled="!items.length"
+                        aria-label="Swipe through these, full screen">
+                  <i class="ph ph-arrows-out-simple text-lg"></i></button>
+              </div>
+              <!-- data-no-swipe: a sideways drag here is the strip's, never the
+                   shell's view pager, even with one card and nothing to scroll. -->
+              <div x-ref="strip" x-show="items.length > 0" data-no-swipe @scroll.passive="stripScroll()"
+                   class="flex-1 min-h-0 flex snap-x snap-mandatory overflow-x-auto overflow-y-hidden overscroll-x-contain
+                          [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <template x-for="it in items" :key="it.id">
+                  <div data-slide :data-id="it.id" class="w-full shrink-0 snap-center min-h-0 flex flex-col overflow-hidden p-2"></div>
+                </template>
+              </div>
+            </section>
+          </div>
+        </div>`,
+
+      init/* nested: init, lines 398-426 */,
+
+      // ── Where the reader came from ─────────────────────────────────────────
+      get fail() { return window.__shell?.authFail || null; },
+      get next() { return window.__shell?.hereNext || ''; },
+      get backHref() { return /^[?#]/.test(this.next) ? location.pathname + this.next : '../' + this.next.replace(/^\.\.\//, ''); },
+
+      get failTitle/* nested: failTitle, lines 433-440 */,
+      // The request line as gh-api.js sent it, method and API path, cut after
+      // each slash, ? and & so the template can offer a line break there.
+      get failRequestParts/* nested: failRequestParts, lines 443-449 */,
+
+      // ── Identity: where this is, and the reader's name for it ──────────────
+      get contextLine/* nested: contextLine, lines 452-456 */,
+      get suggestion() { return BK() ? BK().kind(this.ctx) : ''; },
+
+      // ── The token: each getter is one field's value ────────────────────────
+      get kind() { return tokenKind(this.saved); },
+      get savedLine() {
+        const m = this.meta;
+        return m && m.savedAt ? fmtWhen(m.savedAt) : 'not recorded';
+      },
+      get acceptedLine() {
+        const m = this.meta;
+        return m && m.okAt ? fmtWhen(m.okAt) + (m.login ? ' as ' + m.login : '') : 'not recorded';
+      },
+      get scopesLine/* nested: scopesLine, lines 469-474 */,
+      get missingRepoScope() {
+        return this.check.state === 'ok' && !!this.saved && !/^github_pat_/.test(this.saved)
+          && Array.isArray(this.check.scopes) && !this.check.scopes.includes('repo');
+      },
+      get rateLine/* nested: rateLine, lines 479-483 */,
+      get statusValue/* nested: statusValue, lines 484-495 */,
+      get statusIcon/* nested: statusIcon, lines 496-501 */,
+      // What the note and the token say together. The note is set on purpose,
+      // so its presence or absence separates a token removed on its own from a
+      // storage that was cleared or is new. A classic token that /user accepts
+      // with no `repo` scope in x-oauth-scopes cannot read private repositories,
+      // which GitHub hides as 404.
+      get cause/* nested: cause, lines 507-514 */,
+
+      // One plain fetch, deliberately outside GH.prototype.req: gh-auth watches
+      // that path, and a check that failed into the failure handler would route
+      // this view to itself. /rate_limit costs nothing against the limit, which
+      // is why the no-token case asks it rather than /user.
+      async checkToken/* nested: checkToken, lines 520-552 */,
+
+      // Saving reloads, as repo.js and fab.js do: a token is an account
+      // boundary, and half a page painted without one is not worth reconciling.
+      // The reload stays on this view, where the new token is checked, and
+      // Back turns green once GitHub accepts it and no read has failed since.
+      // The tail left in sessionStorage is how the reloaded view knows a save
+      // just happened.
+      saveToken/* nested: saveToken, lines 560-571 */,
+      removeToken/* nested: removeToken, lines 572-576 */,
+
+      // ── The note ───────────────────────────────────────────────────────────
+      saveNote/* nested: saveNote, lines 579-589 */,
+
+      // ── What this origin stores ────────────────────────────────────────────
+      get lsSummary/* nested: lsSummary, lines 592-596 */,
+      get dbSummary/* nested: dbSummary, lines 597-603 */,
+      // The estimate covers quota-managed storage (IndexedDB, caches), not the
+      // HTTP cache, and Web Storage is counted separately by lsSummary.
+      // Persistent is the browser's promise not to clear storage on its own.
+      get storageLine() {
+        return [this.srcHost || this.host, this.quotaLine ? this.quotaLine + ' quota storage' : '',
+                this.persisted == null ? '' : (this.persisted ? 'persistent' : 'not persistent')].filter(Boolean).join(' · ');
+      },
+      get quotaLine() {
+        if (this.usage == null) return '';
+        return fmtBytes(this.usage) + (this.quota ? ' / ' + fmtBytes(this.quota) : '');
+      },
+
+      // ── Tabs and the item in view, both part of the address ────────────────
+      // Held on the shell (hereTab, hereItem) and stamped by its route row, so
+      // ?view=here&tab=stored&item=ls:visits names what is on screen. A tab is
+      // a history entry; the item is written in place, since a swipe through
+      // twenty cards is not twenty places to go Back to. An item id is
+      // `ls:<key>` or `idb:<database>/<store>`.
+      get tab() { return window.__shell?.hereTab || 'token'; },
+      setTab/* nested: setTab, lines 623-628 */,
+      get selId() { return window.__shell?.hereItem || ''; },
+      // What the detail shows: the item the address names when it still
+      // exists, else the first in the list. The default is never written to
+      // the address, so arriving does not add a history entry Back would land
+      // on only to be sent forward again.
+      get shownId() {
+        const ids = this.items.map(it => it.id);
+        return ids.includes(this.selId) ? this.selId : (ids[0] || '');
+      },
+      select/* nested: select, lines 638-645 */,
+      // The list's items in its own order, which is the strip's and the deck's.
+      get items/* nested: items, lines 647-656 */,
+      get at() { return Math.max(0, this.items.findIndex(it => it.id === this.shownId)); },
+      get cur() { return this.items[this.at] || null; },
+      plural(n, noun) { return n + ' ' + noun + (n === 1 ? '' : 's'); },
+      // What a card shows: a localStorage value as lsShown names it, a store
+      // as its records under a .json name, which READ_MODE lays out as a table
+      // when every record is a plain object and as a tree otherwise.
+      async itemContent/* nested: itemContent, lines 663-668 */,
+      async storeRows/* nested: storeRows, lines 669-677 */,
+
+      // ── The strip ──────────────────────────────────────────────────────────
+      // A card mounts its viewer when the strip comes within one card of it and
+      // then stays mounted, so swiping back is instant.
+      panels() { return [...(this.$refs.strip?.querySelectorAll('[data-slide]') || [])]; },
+      mountNear/* nested: mountNear, lines 683-692 */,
+      // The card nearest the strip's left edge, read off the scroll.
+      nearest/* nested: nearest, lines 694-698 */,
+      stripScroll/* nested: stripScroll, lines 699-714 */,
+      // Move to item i: the selection at once, the strip after it. `instant`
+      // for a pick in the list, where animating past twenty cards is noise.
+      go/* nested: go, lines 717-724 */,
+      pick(id) {
+        const i = this.items.findIndex(it => it.id === id);
+        if (i >= 0) this.go(i, true);
+      },
+=== UNIT lib/alpineComponents/here-view.js:40#4 | addEventListener(alpine:init) > data(hereView) (part 4 of 4) ===
+      // Be on the selected card, without travelling to it. The strip may not
+      // have its width yet (it was hidden, or the list just arrived), so the
+      // landing waits a frame and tries a few more before giving up.
+      jump/* nested: jump, lines 732-739 */,
+      scrollTo/* nested: scrollTo, lines 740-749 */,
+      // Up and down in the list step the selection, the strip following.
+      key(d) {
+        this.go(this.at + d, true);
+        this.$nextTick(() => this.rowEl()?.focus({ preventScroll: true }));
+      },
+      rowEl() {
+        const id = this.cur?.id;
+        return id ? this.$refs.list?.querySelector('[data-id="' + CSS.escape(id) + '"]') : null;
+      },
+      // Keep the selected row in view INSIDE THE LIST, never by scrolling the
+      // page: a swipe through the cards walks the selection down rows the
+      // reader may have scrolled away from.
+      reveal/* nested: reveal, lines 762-770 */,
+
+      // ── The expander: the deck takeover over the same items ────────────────
+      // Opened on the card in view; a swipe in the deck moves the selection,
+      // and closing it lands the strip and the list where the swipe left off.
+      async expand/* nested: expand, lines 775-818 */,
+
+      reload() { return this.source === 'page' ? this.loadPage() : this.loadStorage(); },
+
+      async loadStorage/* nested: loadStorage, lines 822-876 */,
+
+      // ── What the courier's page stores ─────────────────────────────────────
+      get courierHost() { return window.__shell?.courierHost || ''; },
+      // One request to the page, answered as parsed JSON. kits/page-storage.js
+      // is what runs there, read through the Stage's link.
+      async askPage/* nested: askPage, lines 882-887 */,
+      async loadPage/* nested: loadPage, lines 888-921 */,
+      // A page value shows as a local one does (lsShown's rules, the token mask
+      // included); a page store shows its first records, the meta saying so
+      // when the store holds more.
+      async pageContent/* nested: pageContent, lines 925-948 */,
+    };
+  }
+=== UNIT lib/alpineComponents/here-view.js:51 | addEventListener(alpine:init) > data(hereView) > tokenKind ===
+function tokenKind(t) {
+      if (/^github_pat_/.test(t)) return 'fine-grained token';
+      if (/^ghp_/.test(t)) return 'classic token';
+      if (/^gho_/.test(t)) return 'OAuth token';
+      if (/^gh[usr]_/.test(t)) return 'GitHub App token';
+      if (/^[a-f0-9]{40}$/.test(t)) return 'classic token, older format';
+      return 'unrecognized format';
+    }
+=== UNIT lib/alpineComponents/here-view.js:109 | addEventListener(alpine:init) > data(hereView) > lsShown ===
+(key) => {
+      let v = '';
+      try { v = localStorage.getItem(key) ?? ''; } catch (e) {}
+      if (key === 'ghToken' || window.ghAuth?.looksLikeToken?.(v.trim())) {
+        return { name: key + '.txt', content: '…' + v.trim().slice(-4) };
+      }
+      try {
+        const parsed = JSON.parse(v);
+        if (parsed !== null && typeof parsed === 'object') return { name: key + '.json', content: JSON.stringify(parsed, null, 2) };
+      } catch (e) {}
+      return { name: key + '.txt', content: v };
+    }
+=== UNIT lib/alpineComponents/here-view.js:127 | addEventListener(alpine:init) > data(hereView) > mountViewer ===
+(host) => {
+      const el = document.createElement('div');
+      el.className = 'flex flex-col h-full w-full min-w-0 overflow-hidden';
+      el.setAttribute('x-data', "viewer({ bindStore: false, fill: true, identify: false, "
+        + "defaultMode: (f) => window.ViewRegistry.READ_MODE(f) })");
+      host.replaceChildren(el);
+      window.Alpine.initTree(el);
+      return el;
+    }
+=== UNIT lib/alpineComponents/here-view.js:398 | addEventListener(alpine:init) > data(hereView) > init ===
+() {
+        this.$el.innerHTML = this.template;
+        // Storage is read AFTER the template is initialised, not beside it:
+        // Alpine builds a component's $refs the first time they are read and
+        // keeps that answer, so a read before initTree registers the template's
+        // x-refs caches an empty set, and the strip and the list are never
+        // found again.
+        this.$nextTick(/* nested: $nextTick(…), lines 405-409 */);
+        this.note = read(NOTE_KEY) || '';
+        this.noteDraft = this.note;
+        let mark = null;
+        try { mark = sessionStorage.getItem(SAVED_KEY); sessionStorage.removeItem(SAVED_KEY); } catch (e) {}
+        this.justSaved = !!mark && mark === (window.ghAuth?.resolve?.() || '').slice(-4);
+        this.checkToken();
+        // An item the address moves to (Back, a link) is shown by moving the
+        // strip; a swipe moves the address the other way, in place.
+        this.$watch(() => window.__shell?.hereItem, () => this.$nextTick(() => { this.jump(); this.reveal(); }));
+        this.$watch(() => window.__shell?.hereTab, /* nested: $watch(…), lines 419-423 */);
+        // A page that speaks after this view mounted on its tab is read then.
+        this.$watch(() => window.__shell?.courierHost, (h) => { if (h && this.tab === 'page') this.loadPage(); });
+      }
+=== UNIT lib/alpineComponents/here-view.js:405 | addEventListener(alpine:init) > data(hereView) > init > $nextTick(…) ===
+() => {
+          if (!this.$el.isConnected) return;
+          Alpine.initTree(this.$el);
+          this.tab === 'page' ? this.loadPage() : this.loadStorage();
+        }
+=== UNIT lib/alpineComponents/here-view.js:419 | addEventListener(alpine:init) > data(hereView) > init > $watch(…) ===
+(t) => {
+          if (t === 'page' && this.source !== 'page') return this.loadPage();
+          if (t === 'stored' && this.source !== 'here') return this.loadStorage();
+          if (t === 'stored' || t === 'page') this.$nextTick(() => { this.jump(); this.reveal(); });
+        }
+=== UNIT lib/alpineComponents/here-view.js:433 | addEventListener(alpine:init) > data(hereView) > failTitle ===
+() {
+        const f = this.fail;
+        if (!f) return '';
+        if (f.status === 401) return f.hadToken ? 'Saved token rejected (401)' : 'Request refused (401)';
+        if (f.status === 403 && f.rateRemaining === 0) return f.hadToken ? 'Hourly limit reached (403)' : 'Anonymous hourly limit reached (403)';
+        if (f.status === 403) return 'Request refused (403)';
+        return 'Request refused';
+      }
+=== UNIT lib/alpineComponents/here-view.js:443 | addEventListener(alpine:init) > data(hereView) > failRequestParts ===
+() {
+        const f = this.fail;
+        if (!f || !f.path) return [];
+        const p = f.path.replace(/^https:\/\/api\.github\.com/, '');
+        const full = /^(https?:|\/)/.test(p) ? p : (f.repo ? '/repos/' + f.repo + '/' : '') + p;
+        return ((f.method || 'GET') + ' ' + full).split(/(?<=[/?&])/);
+      }
+=== UNIT lib/alpineComponents/here-view.js:452 | addEventListener(alpine:init) > data(hereView) > contextLine ===
+() {
+        const c = this.ctx;
+        return [this.host, c.browser, c.os, c.standalone ? 'home-screen app' : 'browser tab',
+                c.touch ? 'touch' : 'mouse and keyboard'].filter(Boolean).join(' · ');
+      }
+=== UNIT lib/alpineComponents/here-view.js:469 | addEventListener(alpine:init) > data(hereView) > scopesLine ===
+() {
+        const s = this.check.scopes;
+        if (!this.saved || this.check.state !== 'ok') return '';
+        if (/^github_pat_/.test(this.saved)) return 'not reported for fine-grained tokens';
+        return s && s.length ? s.join(', ') : 'none';
+      }
+=== UNIT lib/alpineComponents/here-view.js:479 | addEventListener(alpine:init) > data(hereView) > rateLine ===
+() {
+        const c = this.check;
+        if (c.rateLimit == null) return '';
+        return (c.rateRem ?? '?').toLocaleString() + ' / ' + c.rateLimit.toLocaleString() + ' per hour';
+      }
+=== UNIT lib/alpineComponents/here-view.js:484 | addEventListener(alpine:init) > data(hereView) > statusValue ===
+() {
+        const c = this.check;
+        switch (c.state) {
+          case 'checking': return 'checking…';
+          case 'ok': return 'accepted' + (c.login ? ' as ' + c.login : '');
+          case 'rejected': return 'rejected (401)';
+          case 'limited': return 'hourly limit reached';
+          case 'none': return 'none saved';
+          case 'error': return 'check failed: ' + c.error;
+          default: return '';
+        }
+      }
+=== UNIT lib/alpineComponents/here-view.js:496 | addEventListener(alpine:init) > data(hereView) > statusIcon ===
+() {
+        if (this.missingRepoScope) return 'ph-warning text-warning';
+        return { ok: 'ph-shield-check text-success', rejected: 'ph-warning text-warning', limited: 'ph-hourglass text-warning',
+                 none: 'ph-globe text-base-content/50', error: 'ph-wifi-slash text-warning' }[this.check.state]
+          || 'ph-circle-notch animate-spin text-base-content/50';
+      }
+=== UNIT lib/alpineComponents/here-view.js:507 | addEventListener(alpine:init) > data(hereView) > cause ===
+() {
+        const s = this.check.state;
+        if (s === 'idle' || s === 'checking') return '';
+        if (!this.saved) return this.note ? 'token removed · note kept' : 'storage new or cleared · no note';
+        if (s === 'rejected') return this.note ? 'expired or revoked · note kept' : 'expired or revoked';
+        if (this.missingRepoScope) return 'no repo scope · private repos will answer 404';
+        return '';
+      }
+=== UNIT lib/alpineComponents/here-view.js:520 | addEventListener(alpine:init) > data(hereView) > checkToken ===
+() {
+        this.saved = window.ghAuth?.resolve?.() || '';
+        this.meta = window.ghAuth?.meta?.() || null;
+        this.check = { state: 'checking', login: '', scopes: null, rateRem: null, rateLimit: null, error: '' };
+        const c = { ...this.check };
+        try {
+          const headers = { Accept: 'application/vnd.github+json' };
+          if (this.saved) headers.Authorization = 'Bearer ' + this.saved.trim();
+          const res = await fetch('https://api.github.com/' + (this.saved ? 'user' : 'rate_limit'), { headers, cache: 'no-store' });
+          const num = (h) => { const v = res.headers.get(h); return v == null || v === '' ? null : Number(v); };
+          c.rateRem = num('x-ratelimit-remaining');
+          c.rateLimit = num('x-ratelimit-limit');
+          const scopes = res.headers.get('x-oauth-scopes');
+          c.scopes = scopes == null ? null : scopes.split(',').map(s => s.trim()).filter(Boolean);
+          if (res.status === 401) c.state = 'rejected';
+          else if (res.status === 403 && c.rateRem === 0) c.state = 'limited';
+          else if (!res.ok) { c.state = 'error'; c.error = 'GitHub answered ' + res.status; }
+          else if (this.saved) {
+            c.login = (await res.json())?.login || '';
+            c.state = 'ok';
+            window.ghAuth?.noteAccepted?.(c.login, headers.Authorization);
+            this.meta = window.ghAuth?.meta?.() || null;
+          } else {
+            const core = (await res.json())?.resources?.core;
+            if (core) { c.rateRem = core.remaining; c.rateLimit = core.limit; }
+            c.state = 'none';
+          }
+        } catch (e) {
+          c.state = 'error';
+          c.error = (e && e.message) || String(e);
+        }
+        this.check = c;
+      }
+=== UNIT lib/alpineComponents/here-view.js:560 | addEventListener(alpine:init) > data(hereView) > saveToken ===
+() {
+        const t = this.tokenDraft.trim();
+        if (!t) { this.tokenMsg = 'empty'; return; }
+        if (!window.ghAuth?.looksLikeToken?.(t)) {
+          this.tokenMsg = 'Not a token shape: ' + t.length + ' characters; expected ghp_, github_pat_ or 40 hex';
+          return;
+        }
+        window.ghAuth.save(t);
+        try { sessionStorage.setItem(SAVED_KEY, t.slice(-4)); } catch (e) {}
+        this.tokenDraft = '';
+        location.reload();
+      }
+=== UNIT lib/alpineComponents/here-view.js:572 | addEventListener(alpine:init) > data(hereView) > removeToken ===
+() {
+        if (!confirm('Remove the saved GitHub token from this browser?')) return;
+        window.ghAuth.clear();
+        location.reload();
+      }
+=== UNIT lib/alpineComponents/here-view.js:579 | addEventListener(alpine:init) > data(hereView) > saveNote ===
+() {
+        const v = this.noteDraft.trim();
+        try {
+          if (v) localStorage.setItem(NOTE_KEY, v); else localStorage.removeItem(NOTE_KEY);
+        } catch (e) { this.noteMsg = 'not saved: ' + ((e && e.message) || e); return; }
+        this.note = v;
+        this.noteDraft = v;
+        this.noteMsg = v ? 'saved' : 'removed';
+        setTimeout(() => { this.noteMsg = ''; }, 2000);
+        this.loadStorage();
+      }
+=== UNIT lib/alpineComponents/here-view.js:592 | addEventListener(alpine:init) > data(hereView) > lsSummary ===
+() {
+        if (!this.lsRows.length) return this.lsErr ? '' : 'none';
+        const bytes = this.lsRows.reduce((n, r) => n + r.bytes, 0);
+        return this.lsRows.length + (this.lsRows.length === 1 ? ' key' : ' keys') + ' · ' + fmtBytes(bytes);
+      }
+=== UNIT lib/alpineComponents/here-view.js:597 | addEventListener(alpine:init) > data(hereView) > dbSummary ===
+() {
+        if (this.dbState === 'loading') return 'reading…';
+        if (this.dbState === 'unlisted') return 'not listed by this browser';
+        if (this.dbState !== 'ok') return '';
+        if (!this.dbs.length) return 'none';
+        return this.dbs.length + (this.dbs.length === 1 ? ' database' : ' databases');
+      }
+=== UNIT lib/alpineComponents/here-view.js:623 | addEventListener(alpine:init) > data(hereView) > setTab ===
+(t) {
+        const sh = window.__shell;
+        if (!sh || sh.hereTab === t) return;
+        sh.hereTab = t;
+        sh.syncUrl();
+      }

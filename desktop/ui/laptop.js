@@ -1,7 +1,6 @@
 (() => {
   'use strict';
-  let snapshot, filter = 'changes', assistant = 'all', search = '', selected = '', lastFeed = '', lastAssistants = '', review;
-  let unseen = [];
+  let snapshot, filter = 'all', assistant = 'all', search = '', selected = '', lastFeed = '', lastAssistants = '';
   let entries = [], visible = [];
   const bridge = window.chrome?.webview;
   const el = id => document.getElementById(id);
@@ -95,9 +94,7 @@
 
   function renderFeed() {
     if (!snapshot) return;
-    const pending = new Map(unseen.map(c => [c.key,c]));
     visible = entries.filter(item => {
-      if (filter === 'changes' && !pending.has(item.key)) return false;
       if (assistant !== 'all' && keyFor(item.provider) !== assistant) return false;
       if (filter === 'open' && !open(item)) return false;
       if (filter === 'queued' && item.state !== 'queued') return false;
@@ -106,15 +103,14 @@
       return !search || `${item.title} ${item.detail} ${item.checkpoint?.summary || ''} ${item.provider} ${item.id}`.toLowerCase().includes(search);
     }).slice(0,40);
     if (!visible.some(e => e.key === selected)) selected = visible[0]?.key || '';
-    el('seen').disabled = !visible.some(c => unseen.some(u => u.key === c.key));
     document.querySelectorAll('.filters button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.filter === filter)));
-    const signature = JSON.stringify([visible,selected,visible.map(item => pending.get(item.key)?.id)]);
+    const signature = JSON.stringify([visible,selected]);
     if (signature !== lastFeed) {
       lastFeed = signature;
-      html('errands', visible.length ? visible.map(item => `<article class="activity-row border-b border-stone-100 px-4 py-3 ${item.key === selected ? 'bg-emerald-50/50' : ''}"><div class="flex items-start justify-between gap-4"><button class="activity-title ${item.kind === 'errand' ? 'errand-title' : ''} text-left text-base leading-6 hover:text-emerald-800" data-pick="${escape(item.key)}" aria-pressed="${item.key === selected}">${escape(item.title)}</button><span class="shrink-0 text-xs text-stone-500">${time(item.at)}</span></div><div class="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-stone-500">${badge(item.state)}<span>${escape(item.provider)}</span><span>${escape(item.location)}</span>${pending.has(item.key) ? '<span class="text-emerald-800">New change</span>' : ''}${item.hasLocalOutput ? '<span>Local output</span>' : ''}${item.kind !== 'errand' && (item.checkpoint?.headline || item.detail) ? `<span class="min-w-0 truncate">${escape(item.checkpoint?.headline || item.detail)}</span>` : ''}</div></article>`).join('') : `<p class="p-5 text-base text-stone-500">${search ? 'No matching activity' : filter === 'changes' ? 'You’re caught up. New changes will appear here.' : filter === 'queued' ? 'No errands in the queue' : filter === 'open' ? 'No work in progress' : filter === 'new' ? 'No activity needs your attention' : filter === 'done' ? 'No recent completions' : 'No recent activity'}</p>`);
+      html('errands', visible.length ? visible.map(item => `<article class="activity-row border-b border-stone-100 px-4 py-3 ${item.key === selected ? 'bg-emerald-50/50' : ''}"><div class="flex items-start justify-between gap-4"><button class="activity-title ${item.kind === 'errand' ? 'errand-title' : ''} text-left text-base leading-6 hover:text-emerald-800" data-pick="${escape(item.key)}" aria-pressed="${item.key === selected}">${escape(item.title)}</button><span class="shrink-0 text-xs text-stone-500">${time(item.at)}</span></div><div class="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-stone-500">${badge(item.state)}<span>${escape(item.provider)}</span><span>${escape(item.location)}</span>${item.hasLocalOutput ? '<span>Local output</span>' : ''}${item.kind !== 'errand' && (item.checkpoint?.headline || item.detail) ? `<span class="min-w-0 truncate">${escape(item.checkpoint?.headline || item.detail)}</span>` : ''}</div></article>`).join('') : `<p class="p-5 text-base text-stone-500">${search ? 'No matching activity' : filter === 'queued' ? 'No errands in the queue' : filter === 'open' ? 'No work in progress' : filter === 'new' ? 'No activity needs your attention' : filter === 'done' ? 'No recent completions' : 'No recent activity'}</p>`);
     }
     renderDetail();
-    el('record-note').textContent = `${visible.length} shown · ${filter === 'changes' ? 'Changes remembered in this browser' : 'Past 24 hours and open errands'}${assistant !== 'all' ? ` · ${assistant}` : ''}`;
+    el('record-note').textContent = `${visible.length} shown · Recent activity and open errands${assistant !== 'all' ? ` · ${assistant}` : ''}`;
   }
 
   function renderQueue() {
@@ -136,8 +132,6 @@
 
   function render(data) {
     snapshot = data;
-    if (!review || review.key !== `web-tools-now-reviewed:${data.machineName}`) review = new window.NowView.ReviewStore(data.machineName);
-    unseen = review.pending(data.changes);
     entries = collect(data);
     el('machine').textContent = data.machineName;
     const working = entries.filter(e => e.kind === 'session' && e.state === 'working').length;
@@ -145,7 +139,6 @@
     el('running').textContent = entries.filter(open).length;
     el('queued').textContent = data.activity.errands.filter(j => j.state === 'queued').length;
     el('new-count').textContent = entries.filter(needs).length;
-    el('changes-count').textContent = unseen.length;
     const notices = [data.activity.notice,...(data.sessions?.notices || [])].filter(Boolean);
     if (data.daemon.state === 'absent' && data.activity.errands.some(j => j.state === 'queued')) notices.push('Gemini errands are waiting. The worker was not detected.');
     html('notice', notices.length ? `<div class="rounded border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">${notices.map(escape).join('<br>')}</div>` : '');
@@ -165,9 +158,6 @@
     selected = key; renderAssistants(); renderFeed();
   }
   document.addEventListener('click', event => {
-    if (event.target.closest('[data-review]')) {
-      review.mark(unseen.filter(c => visible.some(i => i.key === c.key))); render(snapshot); return;
-    }
     const choice = event.target.closest('[data-assistant]');
     if (choice) { assistant = assistant === choice.dataset.assistant ? 'all' : choice.dataset.assistant; renderAssistants(); renderFeed(); return; }
     const queue = event.target.closest('[data-queue-pick]');
@@ -183,7 +173,6 @@
   });
   el('search').addEventListener('input', event => { search = event.target.value.toLowerCase().trim(); renderFeed(); });
   bridge?.addEventListener('message', event => { if (event.data?.type === 'snapshot') render(event.data.data); });
-  window.addEventListener('storage', event => { if (review && event.key === review.key) { review.load(); render(snapshot); } });
   window.setInterval(updateTimes,1000);
   send('ready');
 })();

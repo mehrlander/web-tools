@@ -1,0 +1,418 @@
+{
+ "dca-bare": {
+  "desktop": {
+   "controls_visible": 24,
+   "details_elements": 3,
+   "dialogs": 0,
+   "errors": [],
+   "h_overflow": false,
+   "scroll_height": 14833,
+   "stat_classes": 0,
+   "tables": 4,
+   "words_first_screen": 216,
+   "words_visible": 4466
+  },
+  "phone": {
+   "controls_visible": 24,
+   "details_elements": 3,
+   "dialogs": 0,
+   "errors": [],
+   "h_overflow": false,
+   "scroll_height": 24059,
+   "stat_classes": 0,
+   "tables": 4,
+   "words_first_screen": 135,
+   "words_visible": 4511
+  }
+ },
+ "dca-house": {
+  "desktop": {
+   "controls_visible": 43,
+   "details_elements": 0,
+   "dialogs": 0,
+   "errors": [],
+   "h_overflow": false,
+   "scroll_height": 3792,
+   "stat_classes": 0,
+   "tables": 0,
+   "words_first_screen": 258,
+   "words_visible": 674
+  },
+  "phone": {
+   "controls_visible": 43,
+   "details_elements": 0,
+   "dialogs": 0,
+   "errors": [],
+   "h_overflow": false,
+   "scroll_height": 4753,
+   "stat_classes": 0,
+   "tables": 0,
+   "words_first_screen": 155,
+   "words_visible": 703
+  }
+ },
+ "dca-house-mps": {
+  "desktop": {
+   "controls_visible": 19,
+   "details_elements": 15,
+   "dialogs": 1,
+   "errors": [],
+   "h_overflow": false,
+   "scroll_height": 4232,
+   "stat_classes": 0,
+   "tables": 4,
+   "words_first_screen": 261,
+   "words_visible": 984
+  },
+  "phone": {
+   "controls_visible": 19,
+   "details_elements": 15,
+   "dialogs": 1,
+   "errors": [],
+   "h_overflow": false,
+   "scroll_height": 6186,
+   "stat_classes": 0,
+   "tables": 4,
+   "words_first_screen": 163,
+   "words_visible": 996
+  }
+ },
+ "dca-mps": {
+  "desktop": {
+   "controls_visible": 21,
+   "details_elements": 0,
+   "dialogs": 0,
+   "errors": [],
+   "h_overflow": false,
+   "scroll_height": 7147,
+   "stat_classes": 0,
+   "tables": 0,
+   "words_first_screen": 193,
+   "words_visible": 1657
+  },
+  "phone": {
+   "controls_visible": 21,
+   "details_elements": 0,
+   "dialogs": 0,
+   "errors": [],
+   "h_overflow": false,
+   "scroll_height": 10640,
+   "stat_classes": 0,
+   "tables": 0,
+   "words_first_screen": 109,
+   "words_visible": 1710
+  }
+ },
+ "races-bare": {
+  "desktop": {
+   "controls_visible": 16,
+   "details_elements": 0,
+   "dialogs": 0,
+   "errors": [],
+   "h_overflow": false,
+   "scroll_height": 8928,
+   "stat_classes": 0,
+   "tables": 0,
+   "words_first_screen": 222,
+   "words_visible": 1729
+  },
+  "phone": {
+   "controls_visible": 16,
+   "details_elements": 0,
+   "dialogs": 0,
+   "errors": [],
+   "h_overflow": false,
+   "scroll_height": 11981,
+   "stat_classes": 0,
+   "tables": 0,
+   "words_first_screen": 139,
+   "words_visible": 1729
+  }
+ },
+ "races-house": {
+  "desktop": {
+   "controls_visible": 25,
+   "details_elements": 0,
+   "dialogs": 1,
+   "errors": [],
+   "h_overflow": false,
+   "scroll_height": 900,
+   "stat_classes": 0,
+   "tables": 0,
+   "words_first_screen": 289,
+   "words_visible": 1354
+  },
+  "phone": {
+   "controls_visible": 25,
+   "details_elements": 0,
+   "dialogs": 1,
+   "errors": [],
+   "h_overflow": false,
+   "scroll_height": 844,
+   "stat_classes": 0,
+   "tables": 0,
+   "words_first_screen": 194,
+   "words_visible": 1354
+  }
+ },
+ "races-house-mps": {
+  "desktop": {
+   "controls_visible": 36,
+   "details_elements": 14,
+   "dialogs": 1,
+   "errors": [],
+   "h_overflow": false,
+   "scroll_height": 900,
+   "stat_classes": 0,
+   "tables": 0,
+   "words_first_screen": 329,
+   "words_visible": 3342
+  },
+  "phone": {
+   "controls_visible": 36,
+   "details_elements": 14,
+   "dialogs": 1,
+   "errors": [],
+   "h_overflow": false,
+   "scroll_height": 844,
+   "stat_classes": 0,
+   "tables": 0,
+   "words_first_screen": 223,
+   "words_visible": 3313
+  }
+ },
+ "races-mps": {
+  "desktop": {
+   "controls_visible": 19,
+   "details_elements": 14,
+   "dialogs": 0,
+   "errors": [],
+   "h_overflow": false,
+   "scroll_height": 2812,
+   "stat_classes": 0,
+   "tables": 1,
+   "words_first_screen": 189,
+   "words_visible": 769
+  },
+  "phone": {
+   "controls_visible": 19,
+   "details_elements": 14,
+   "dialogs": 0,
+   "errors": [],
+   "h_overflow": false,
+   "scroll_height": 3872,
+   "stat_classes": 0,
+   "tables": 1,
+   "words_first_screen": 145,
+   "words_visible": 769
+  }
+ },
+ "wacares-bare1": {
+  "desktop": {
+   "controls_visible": 2,
+   "details_elements": 0,
+   "dialogs": 0,
+   "errors": [],
+   "h_overflow": false,
+   "scroll_height": 3609,
+   "stat_classes": 0,
+   "tables": 0,
+   "words_first_screen": 268,
+   "words_visible": 980
+  },
+  "phone": {
+   "controls_visible": 2,
+   "details_elements": 0,
+   "dialogs": 0,
+   "errors": [],
+   "h_overflow": false,
+   "scroll_height": 5977,
+   "stat_classes": 0,
+   "tables": 0,
+   "words_first_screen": 144,
+   "words_visible": 980
+  }
+ },
+ "wacares-bare2": {
+  "desktop": {
+   "controls_visible": 7,
+   "details_elements": 0,
+   "dialogs": 0,
+   "errors": [],
+   "h_overflow": false,
+   "scroll_height": 4830,
+   "stat_classes": 0,
+   "tables": 0,
+   "words_first_screen": 201,
+   "words_visible": 1035
+  },
+  "phone": {
+   "controls_visible": 7,
+   "details_elements": 0,
+   "dialogs": 0,
+   "errors": [],
+   "h_overflow": false,
+   "scroll_height": 7765,
+   "stat_classes": 0,
+   "tables": 0,
+   "words_first_screen": 120,
+   "words_visible": 1035
+  }
+ },
+ "wacares-bare3": {
+  "desktop": {
+   "controls_visible": 3,
+   "details_elements": 1,
+   "dialogs": 0,
+   "errors": [],
+   "h_overflow": false,
+   "scroll_height": 3668,
+   "stat_classes": 0,
+   "tables": 1,
+   "words_first_screen": 205,
+   "words_visible": 1563
+  },
+  "phone": {
+   "controls_visible": 3,
+   "details_elements": 1,
+   "dialogs": 0,
+   "errors": [],
+   "h_overflow": false,
+   "scroll_height": 5452,
+   "stat_classes": 0,
+   "tables": 1,
+   "words_first_screen": 131,
+   "words_visible": 1563
+  }
+ },
+ "wacares-house": {
+  "desktop": {
+   "controls_visible": 5,
+   "details_elements": 0,
+   "dialogs": 0,
+   "errors": [],
+   "h_overflow": false,
+   "scroll_height": 1046,
+   "stat_classes": 0,
+   "tables": 0,
+   "words_first_screen": 235,
+   "words_visible": 235
+  },
+  "phone": {
+   "controls_visible": 5,
+   "details_elements": 0,
+   "dialogs": 0,
+   "errors": [],
+   "h_overflow": false,
+   "scroll_height": 2129,
+   "stat_classes": 0,
+   "tables": 0,
+   "words_first_screen": 121,
+   "words_visible": 243
+  }
+ },
+ "wacares-house-mps": {
+  "desktop": {
+   "controls_visible": 11,
+   "details_elements": 0,
+   "dialogs": 1,
+   "errors": [],
+   "h_overflow": false,
+   "scroll_height": 2372,
+   "stat_classes": 0,
+   "tables": 0,
+   "words_first_screen": 266,
+   "words_visible": 615
+  },
+  "phone": {
+   "controls_visible": 11,
+   "details_elements": 0,
+   "dialogs": 1,
+   "errors": [],
+   "h_overflow": false,
+   "scroll_height": 5306,
+   "stat_classes": 0,
+   "tables": 0,
+   "words_first_screen": 118,
+   "words_visible": 637
+  }
+ },
+ "wacares-mps1": {
+  "desktop": {
+   "controls_visible": 8,
+   "details_elements": 4,
+   "dialogs": 1,
+   "errors": [],
+   "h_overflow": false,
+   "scroll_height": 2370,
+   "stat_classes": 0,
+   "tables": 0,
+   "words_first_screen": 270,
+   "words_visible": 748
+  },
+  "phone": {
+   "controls_visible": 8,
+   "details_elements": 4,
+   "dialogs": 1,
+   "errors": [],
+   "h_overflow": false,
+   "scroll_height": 3565,
+   "stat_classes": 0,
+   "tables": 0,
+   "words_first_screen": 117,
+   "words_visible": 748
+  }
+ },
+ "wacares-mps2": {
+  "desktop": {
+   "controls_visible": 11,
+   "details_elements": 5,
+   "dialogs": 1,
+   "errors": [],
+   "h_overflow": false,
+   "scroll_height": 2955,
+   "stat_classes": 0,
+   "tables": 0,
+   "words_first_screen": 228,
+   "words_visible": 1322
+  },
+  "phone": {
+   "controls_visible": 11,
+   "details_elements": 5,
+   "dialogs": 1,
+   "errors": [],
+   "h_overflow": false,
+   "scroll_height": 4704,
+   "stat_classes": 0,
+   "tables": 0,
+   "words_first_screen": 133,
+   "words_visible": 1322
+  }
+ },
+ "wacares-mps3": {
+  "desktop": {
+   "controls_visible": 8,
+   "details_elements": 10,
+   "dialogs": 1,
+   "errors": [],
+   "h_overflow": false,
+   "scroll_height": 2013,
+   "stat_classes": 0,
+   "tables": 0,
+   "words_first_screen": 376,
+   "words_visible": 1103
+  },
+  "phone": {
+   "controls_visible": 8,
+   "details_elements": 10,
+   "dialogs": 1,
+   "errors": [],
+   "h_overflow": false,
+   "scroll_height": 2573,
+   "stat_classes": 0,
+   "tables": 0,
+   "words_first_screen": 270,
+   "words_visible": 1103
+  }
+ }
+}

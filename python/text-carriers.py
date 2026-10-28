@@ -57,6 +57,11 @@ from collections import Counter, defaultdict
 
 WORD = re.compile(r"[A-Za-z][A-Za-z'’\-]+")
 SKIP_DIRS = {".git", "node_modules", "dist", ".venv", "__pycache__", ".preview", "thumbs"}
+# research/ keeps what an inquiry tried or gathered with its original bytes
+# (docs/CONSTELLATION.md, "Projects and research"): a judge's or an
+# instrument's output there is a capture, and renaming its fields to fit the
+# vocabulary would rewrite it. The Docs inventory excludes research likewise.
+SKIP_PREFIX = ("research/",)
 MIN_WORDS = 6
 # A value is prose only if it reads like language. Codes, paths, ids, and
 # delimited lists all clear a word count and none of them is a sentence.
@@ -343,7 +348,7 @@ def main(argv):
     minc = int(values.get("--min", 3))
 
     exts = (".csv", ".json", ".md") if "--markdown" in opts else (".csv", ".json")
-    files = tracked(root, exts)
+    files = [f for f in tracked(root, exts) if not f.startswith(SKIP_PREFIX)]
     if prefixes:
         files = [f for f in files if any(f.startswith(p.rstrip("/")) for p in prefixes)]
     corpus = naming_corpus(root)

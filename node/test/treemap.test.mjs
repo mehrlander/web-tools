@@ -154,5 +154,5 @@ test('fmtBytes', () => {
   assert.equal(treemap.fmtBytes(1023), '1023 B');
   assert.equal(treemap.fmtBytes(1024), '1.0 KB');
   assert.equal(treemap.fmtBytes(6672908), '6.4 MB');
-  assert.equal(treemap.fmtBytes(2 ** 31), '2.00 GB');
+  assert.equal(treemap.fmtBytes(2 ** 31), '2.0 GB');   // Traffic.fmtBytes' rule since 2026-10-24
 });

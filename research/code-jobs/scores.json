@@ -1,0 +1,217 @@
+{
+ "units": 544,
+ "methods": {
+  "code": {
+   "recall@1": 0.7,
+   "recall@5": 0.81,
+   "recall@10": 1.0,
+   "mrr": 0.76,
+   "members_scored": 27,
+   "units_described": 544,
+   "by_group": {
+    "number-from-text": [
+     1,
+     1
+    ],
+    "column-profile": [
+     10,
+     3,
+     1,
+     1,
+     8,
+     1
+    ],
+    "group-and-aggregate": [
+     3,
+     8,
+     1,
+     1,
+     5
+    ],
+    "dom-builder": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "csv-line": [
+     1,
+     1
+    ],
+    "csv-records": [
+     1,
+     1
+    ],
+    "slide-scroll": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "slide-from-scroll": [
+     9,
+     7
+    ]
+   }
+  },
+  "haiku": {
+   "recall@1": 0.74,
+   "recall@5": 1.0,
+   "recall@10": 1.0,
+   "mrr": 0.83,
+   "members_scored": 27,
+   "units_described": 544,
+   "by_group": {
+    "number-from-text": [
+     1,
+     1
+    ],
+    "column-profile": [
+     3,
+     4,
+     1,
+     1,
+     1,
+     1
+    ],
+    "group-and-aggregate": [
+     4,
+     3,
+     1,
+     1,
+     2
+    ],
+    "dom-builder": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "csv-line": [
+     1,
+     1
+    ],
+    "csv-records": [
+     1,
+     1
+    ],
+    "slide-scroll": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "slide-from-scroll": [
+     3,
+     2
+    ]
+   }
+  },
+  "code+emb": {
+   "recall@1": 0.52,
+   "recall@5": 0.74,
+   "recall@10": 0.81,
+   "mrr": 0.61,
+   "members_scored": 27,
+   "units_described": 544,
+   "by_group": {
+    "number-from-text": [
+     1,
+     1
+    ],
+    "column-profile": [
+     4,
+     1,
+     2,
+     7,
+     5,
+     5
+    ],
+    "group-and-aggregate": [
+     28,
+     19,
+     5,
+     13,
+     9
+    ],
+    "dom-builder": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "csv-line": [
+     1,
+     1
+    ],
+    "csv-records": [
+     1,
+     1
+    ],
+    "slide-scroll": [
+     2,
+     1,
+     1,
+     1
+    ],
+    "slide-from-scroll": [
+     15,
+     244
+    ]
+   }
+  },
+  "haiku+emb": {
+   "recall@1": 0.67,
+   "recall@5": 0.85,
+   "recall@10": 0.93,
+   "mrr": 0.75,
+   "members_scored": 27,
+   "units_described": 544,
+   "by_group": {
+    "number-from-text": [
+     1,
+     1
+    ],
+    "column-profile": [
+     1,
+     1,
+     1,
+     2,
+     1,
+     1
+    ],
+    "group-and-aggregate": [
+     6,
+     2,
+     1,
+     1,
+     4
+    ],
+    "dom-builder": [
+     1,
+     1,
+     1,
+     1
+    ],
+    "csv-line": [
+     1,
+     1
+    ],
+    "csv-records": [
+     1,
+     1
+    ],
+    "slide-scroll": [
+     4,
+     1,
+     2,
+     18
+    ],
+    "slide-from-scroll": [
+     8,
+     53
+    ]
+   }
+  }
+ }
+}

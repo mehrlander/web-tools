@@ -128,6 +128,7 @@ try {
 }
 SessionChecks.Run(Check);
 PhoneChecks.Run(Check);
+LocalWorkChecks.Run(Check);
 CheckpointChecks.Run(Check);
 CloudTurnChecks.Run(Check);
 Console.WriteLine($"{passed} checks passed.");

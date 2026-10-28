@@ -1,0 +1,575 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Washington Races to Watch</title>
+<link href="https://cdn.jsdelivr.net/npm/daisyui@5.0.43/daisyui.css" rel="stylesheet" type="text/css">
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.1.11/dist/index.global.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.9/dist/cdn.min.js"></script>
+<style>
+  [x-cloak]{display:none!important}
+  .pty{display:inline-flex;align-items:center;justify-content:center;min-width:1.6rem;height:1.4rem;padding:0 .35rem;border-radius:.3rem;font-size:.75rem;font-weight:700;line-height:1;white-space:nowrap}
+  .pty-D{background:#1d4ed8;color:#fff}
+  .pty-R{background:#b91c1c;color:#fff}
+  .pty-none{background:var(--color-base-300);color:var(--color-base-content)}
+  .pty-unstated{border:1px dashed currentColor;color:var(--color-base-content)}
+  .chamber-Senate{background:var(--color-neutral);color:var(--color-neutral-content)}
+  .chamber-House{background:var(--color-base-200);color:var(--color-base-content);border:1px solid var(--color-base-300)}
+  html{scroll-padding-top:1rem}
+  .field > li + li{border-top:1px solid var(--color-base-300)}
+  .tag{display:inline-flex;align-items:center;border-radius:999px;padding:.1rem .55rem;font-size:.75rem;font-weight:500}
+  .tag-open{background:#ccfbf1;color:#134e4a}
+  .tag-vsdem{background:#e0e7ff;color:#312e81}
+  .tag-flip{background:#fef3c7;color:#78350f}
+  @media (prefers-color-scheme: dark){
+    .tag-open{background:#134e4a;color:#ccfbf1}
+    .tag-vsdem{background:#312e81;color:#e0e7ff}
+    .tag-flip{background:#78350f;color:#fef3c7}
+  }
+</style>
+</head>
+<body class="bg-base-100 text-base-content">
+<div x-data="page()" x-cloak class="max-w-4xl mx-auto px-4 py-6 sm:py-10">
+
+  <!-- Root: answer first -->
+  <header>
+    <p class="text-xs uppercase tracking-wider text-base-content/60">Washington Legislature · 2026 elections</p>
+    <h1 class="text-2xl sm:text-3xl font-bold mt-1">Legislative races to watch</h1>
+    <p class="text-sm text-base-content/70 mt-1">
+      <span x-text="D.source.outlet"></span>, <span x-text="D.source.date"></span> · first of two installments
+    </p>
+    <p class="mt-3 max-w-2xl" x-text="D.election.lede"></p>
+
+    <table class="mt-3 text-sm w-full max-w-md">
+      <thead class="text-left text-base-content/60">
+        <tr><th class="font-normal pr-4"></th><th class="font-normal pr-4">Seats up this year</th><th class="font-normal">Democrats hold</th></tr>
+      </thead>
+      <tbody>
+        <template x-for="c in D.election.chambers" :key="c.name">
+          <tr class="border-t border-base-300">
+            <th class="text-left pr-4 py-1" x-text="c.name"></th>
+            <td class="pr-4 py-1" x-text="c.up"></td>
+            <td class="py-1" x-text="c.split"></td>
+          </tr>
+        </template>
+      </tbody>
+    </table>
+  </header>
+
+  <nav class="mt-6 flex flex-wrap gap-2" aria-label="Filter races by kind of contest">
+    <template x-for="t in tags" :key="t.k">
+      <button type="button" class="btn btn-sm rounded-full"
+        :class="filter===t.k ? 'btn-neutral' : 'btn-outline'"
+        :aria-pressed="filter===t.k" @click="filter=t.k">
+        <span x-text="t.label"></span><span class="opacity-70" x-text="count(t.k)"></span>
+      </button>
+    </template>
+  </nav>
+  <p class="text-xs text-base-content/60 mt-2" x-show="filter!=='all'" x-text="tagByKey(filter).why"></p>
+
+  <main>
+    <template x-for="d in D.districts" :key="d.id">
+      <section x-show="racesOf(d).length" class="mt-7">
+        <header class="border-b-2 border-base-content/80 pb-1">
+          <div class="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+            <h2 class="text-lg font-bold" x-text="d.n + ' District'"></h2>
+            <span class="text-sm text-base-content/70" x-show="d.area" x-text="d.area"></span>
+          </div>
+          <p class="text-sm" x-show="d.lean || d.note">
+            <span class="font-medium" x-show="d.lean" x-text="d.lean"></span><span x-show="d.lean && d.note">. </span><span x-show="d.note" x-text="d.note"></span>
+          </p>
+        </header>
+
+        <template x-for="r in racesOf(d)" :key="r.id">
+          <article :id="'race-' + r.id" class="mt-2 rounded-box border border-base-300 bg-base-100 overflow-hidden">
+            <!-- Race row -->
+            <button type="button" class="w-full text-left p-3 grid gap-x-3 gap-y-2 grid-cols-[4.5rem_1fr] sm:grid-cols-[4.5rem_1fr_auto] items-start hover:bg-base-200/60"
+              @click="toggle(r.id)" :aria-expanded="!!open[r.id]" :aria-controls="'view-' + r.id">
+              <span class="rounded px-2 py-1 text-xs font-semibold text-center" :class="'chamber-' + r.chamber" x-text="r.chamber"></span>
+              <span class="min-w-0">
+                <span class="block font-semibold" x-text="r.seat"></span>
+                <span class="block text-sm text-base-content/80" x-text="r.status"></span>
+                <span class="flex flex-wrap gap-1 mt-1.5">
+                  <template x-for="k in r.tags" :key="k">
+                    <span class="tag" :class="tagByKey(k).cls" x-text="tagByKey(k).label"></span>
+                  </template>
+                </span>
+              </span>
+              <span class="col-start-2 sm:col-start-3 flex flex-wrap items-center gap-1 sm:justify-end sm:max-w-[14rem]">
+                <template x-for="pc in partyCounts(r)" :key="pc.p">
+                  <span class="pty" :class="'pty-' + pc.p" :title="partyName(pc.p)" x-text="pc.n + ' ' + partyShort(pc.p)"></span>
+                </template>
+                <span class="text-sm font-medium ml-1 whitespace-nowrap underline decoration-dotted underline-offset-4">
+                  <span x-text="r.field.length + (r.field.length === 1 ? ' candidate' : ' candidates')"></span>
+                  <span aria-hidden="true" x-text="open[r.id] ? '▴' : '▾'"></span>
+                </span>
+              </span>
+            </button>
+
+            <!-- Race view -->
+            <div :id="'view-' + r.id" x-show="open[r.id]" class="border-t border-base-300 px-3 pb-3 bg-base-200/30">
+              <template x-if="r.situation && r.situation.length">
+                <div class="pt-3">
+                  <h3 class="text-xs uppercase tracking-wider text-base-content/60">The seat</h3>
+                  <ul class="mt-1 space-y-1 text-sm">
+                    <template x-for="(s, si) in r.situation" :key="si">
+                      <li>
+                        <span x-show="s.t" x-text="s.t"></span>
+                        <template x-if="s.ref">
+                          <button type="button" class="link link-primary text-sm ml-0.5" @click="go(s.ref.race)" x-text="s.ref.text + ' →'"></button>
+                        </template>
+                      </li>
+                    </template>
+                  </ul>
+                </div>
+              </template>
+
+              <div class="pt-3">
+                <h3 class="text-xs uppercase tracking-wider text-base-content/60">The field</h3>
+                <ul class="mt-1 field">
+                  <template x-for="(c, ci) in r.field" :key="ci">
+                    <li class="py-2">
+                      <div class="grid grid-cols-[3.75rem_1fr] gap-x-2 items-start">
+                        <span class="pty mt-0.5 justify-self-start" :class="'pty-' + c.p" x-text="partyShort(c.p)" :title="partyName(c.p)"></span>
+                        <div class="min-w-0">
+                          <div class="flex flex-wrap items-baseline gap-x-2">
+                            <span class="font-semibold" x-text="c.n"></span>
+                            <span class="text-xs text-base-content/70" x-show="c.home" x-text="c.p + '-' + c.home"></span>
+                            <span class="badge badge-xs badge-ghost" x-show="c.inc">incumbent</span>
+                          </div>
+                          <p class="text-sm" x-show="c.role" x-text="c.role"></p>
+                          <p class="text-sm text-base-content/80" x-show="c.backers">
+                            <span class="text-base-content/60" x-text="(c.backersLead || 'Backed by') + ': '"></span><span x-text="c.backers && c.backers.join('; ')"></span>
+                          </p>
+                          <template x-if="c.ref">
+                            <button type="button" class="link link-primary text-sm" @click="go(c.ref.race)" x-text="c.ref.text + ' →'"></button>
+                          </template>
+                          <template x-if="c.more">
+                            <div>
+                              <button type="button" class="btn btn-xs btn-ghost px-1 mt-1 font-normal underline decoration-dotted underline-offset-4"
+                                @click="cand[r.id + ':' + ci] = !cand[r.id + ':' + ci]" :aria-expanded="!!cand[r.id + ':' + ci]">
+                                <span x-text="c.more.map(m => m.h).join(' · ')"></span>
+                                <span aria-hidden="true" x-text="cand[r.id + ':' + ci] ? '▴' : '▾'"></span>
+                              </button>
+                              <div x-show="cand[r.id + ':' + ci]" class="mt-1 pl-3 border-l-2 border-base-300 space-y-2">
+                                <template x-for="m in c.more" :key="m.h">
+                                  <div>
+                                    <h4 class="text-xs font-semibold text-base-content/70" x-show="c.more.length > 1" x-text="m.h"></h4>
+                                    <ul class="text-sm" :class="m.items.length > 1 ? 'list-disc pl-5' : ''">
+                                      <template x-for="it in m.items" :key="it"><li x-text="it"></li></template>
+                                    </ul>
+                                    <p class="text-xs text-warning-content bg-warning/20 rounded px-2 py-1 mt-1" x-show="m.note" x-text="m.note"></p>
+                                  </div>
+                                </template>
+                              </div>
+                            </div>
+                          </template>
+                        </div>
+                      </div>
+                    </li>
+                  </template>
+                </ul>
+                <p class="text-sm text-base-content/70 italic" x-show="r.fieldNote" x-text="r.fieldNote"></p>
+              </div>
+
+              <details class="mt-2 text-sm">
+                <summary class="cursor-pointer text-base-content/70" x-text="'Source sentences (' + r.src.length + ')'"></summary>
+                <div class="mt-2 space-y-2">
+                  <template x-for="(q, qi) in r.src" :key="qi">
+                    <blockquote class="border-l-2 border-base-300 pl-3 text-base-content/80" x-text="q"></blockquote>
+                  </template>
+                </div>
+              </details>
+            </div>
+          </article>
+        </template>
+      </section>
+    </template>
+  </main>
+
+  <!-- Background -->
+  <section class="mt-12 border-t-2 border-base-content/80 pt-4">
+    <h2 class="text-lg font-bold">The 2026 election</h2>
+
+    <h3 class="text-xs uppercase tracking-wider text-base-content/60 mt-4">Calendar</h3>
+    <ol class="mt-2 grid gap-3 sm:grid-cols-4">
+      <template x-for="(s, i) in D.election.timeline" :key="i">
+        <li class="relative pl-4 border-l-2 sm:border-l-0 sm:border-t-2 sm:pl-0 sm:pt-2 border-base-content/40">
+          <span class="block font-semibold text-sm" x-text="s.when"></span>
+          <span class="block text-sm" x-text="s.what"></span>
+        </li>
+      </template>
+    </ol>
+
+    <h3 class="text-xs uppercase tracking-wider text-base-content/60 mt-6">What each side is after</h3>
+    <ul class="mt-1 list-disc pl-5 text-sm space-y-0.5">
+      <template x-for="e in D.election.efforts" :key="e"><li x-text="e"></li></template>
+    </ul>
+
+    <h3 class="text-xs uppercase tracking-wider text-base-content/60 mt-6">Statewide</h3>
+    <p class="text-sm mt-1" x-text="D.election.scale"></p>
+
+    <details class="mt-4 text-sm">
+      <summary class="cursor-pointer text-base-content/70" x-text="'Source sentences (' + D.election.src.length + ')'"></summary>
+      <div class="mt-2 space-y-2">
+        <template x-for="(q, qi) in D.election.src" :key="qi">
+          <blockquote class="border-l-2 border-base-300 pl-3 text-base-content/80" x-text="q"></blockquote>
+        </template>
+      </div>
+    </details>
+  </section>
+
+  <footer class="mt-10 pt-4 border-t border-base-300 text-xs text-base-content/60 space-y-1">
+    <p>Source: <a class="link" :href="D.source.url" x-text="D.source.title"></a>, <span x-text="D.source.outlet"></span>, <span x-text="D.source.date"></span>. <span x-text="D.source.license"></span>.</p>
+    <p>This page rearranges the article's facts by seat. Quotations under "Source sentences" are verbatim.</p>
+  </footer>
+</div>
+
+<script>
+const DATA = {
+  source: {
+    title: "Legislative races to watch as Washington’s election season revs up",
+    outlet: "Washington State Standard",
+    date: "May 8, 2026",
+    url: "https://washingtonstatestandard.com/2026/05/08/a-dozen-legislative-races-to-watch-as-washingtons-election-season-revs-up/",
+    license: "CC BY-NC-ND 4.0"
+  },
+  election: {
+    lede: "With candidate filing closed, an early look at districts that might flip and at where progressives are challenging other Democrats from the left.",
+    chambers: [
+      { name: "House", up: "All 98 seats", split: "59–39" },
+      { name: "Senate", up: "24 of 49 seats", split: "30–19" }
+    ],
+    timeline: [
+      { when: "Friday, 5 p.m.", what: "Candidate filing deadline. Filing is now closed." },
+      { when: "Aug. 4", what: "Primary. The top two candidates advance to the general election." },
+      { when: "Nov. 3", what: "Election Day." },
+      { when: "Next January", what: "Many new faces arrive in Olympia, after a slew of retirements." }
+    ],
+    efforts: [
+      "Progressives are trying to unseat more moderate Democrats.",
+      "Other Democrats are trying to wrest positions from Republican hands to increase their majorities.",
+      "Republicans are trying to claw back any seats that they can."
+    ],
+    scale: "Over 1,000 candidates are running for 600-plus federal, state and local offices across Washington.",
+    src: [
+      "With candidate filing closed, here’s an early look at some of the districts that might flip and where progressives are challenging other Democrats from the left.",
+      "This is the first of two installments providing an initial look at this year’s legislative races.",
+      "With Friday’s 5 p.m. candidate filing deadline, the field is coming into focus for the 2026 Washington state primaries.",
+      "This year’s midterms are significant for state government, as all 98 seats in the state House and 24 of 49 state Senate seats are up for grabs. Progressives are trying to unseat more moderate Democrats. Other Democrats are trying to wrest positions from Republican hands to increase their majorities. And Republicans are trying to claw back any seats that they can.",
+      "Meanwhile, many new faces will arrive in Olympia next January with a slew of retirements.",
+      "Democrats currently hold a 59-39 majority in the state House and 30-19 in the Senate.",
+      "Across the state, over 1,000 candidates are running for 600-plus federal, state and local offices.",
+      "This year’s primary is Aug. 4, with the top two candidates advancing to the general election. Election Day is Nov. 3."
+    ]
+  },
+  districts: [
+    { id: "d3", n: "3rd", area: "Spokane", lean: "Reliably Democratic" },
+    { id: "d5", n: "5th", area: "Parts of Issaquah, Black Diamond, Covington and Snoqualmie", lean: "Republicans have eyed it in recent years as territory where they might make gains", note: "Democrats currently hold all three of its legislative seats." },
+    { id: "d11", n: "11th", area: "Tukwila, Renton and parts of Kent" },
+    { id: "d26", n: "26th", area: "Parts of Pierce and Kitsap counties", lean: "One of the few legislative districts in the state still considered a battleground" },
+    { id: "d29", n: "29th", lean: "Votes reliably Democratic" },
+    { id: "d32", n: "32nd", area: "North King County and south Snohomish County", lean: "Deep blue" },
+    { id: "d42", n: "42nd", area: "Whatcom County" }
+  ],
+  races: [
+    {
+      id: "d3-house", d: "d3", chamber: "House", seat: "Timm Ormsby’s seat",
+      status: "Open: Rep. Timm Ormsby is retiring", tags: ["open"],
+      situation: [
+        { t: "Ormsby is the chief budget writer in the state House." },
+        { t: "He won in 2024 unopposed." }
+      ],
+      field: [
+        { n: "Luc Jasmin III", p: "D", role: "Has done regional outreach in eastern Washington for Govs. Bob Ferguson and Jay Inslee",
+          backersLead: "Supported by", backers: ["Rep. Natasha Hill, D-Spokane, Ormsby’s seatmate", "former Senate Majority Leader Andy Billig"],
+          more: [{ h: "Civic work", items: ["Created a statewide organization advocating for early learning centers.", "Chaired Spokane’s police oversight office."] }] },
+        { n: "Pam Kohlmeier", p: "D", role: "Physician focused on expanding access to healthcare, specifically behavioral health and addiction services" },
+        { n: "Donovan Arnold DeLeon", p: "D" },
+        { n: "Natalie Poulson", p: "R", role: "Ran against Ormsby in 2022" }
+      ],
+      src: [
+        "The retirement of Rep. Timm Ormsby, the chief budget writer in the state House, opens up a vacancy to represent Spokane in Olympia. The district is reliably Democratic. Ormsby won in 2024 unopposed.",
+        "Three Democrats are running to replace him. Luc Jasmin III, who has done regional outreach in eastern Washington for Govs. Bob Ferguson and Jay Inslee, has the support of Ormsby’s seatmate, Rep. Natasha Hill, D-Spokane, and former Senate Majority Leader Andy Billig. Jasmin created a statewide organization advocating for early learning centers and chaired Spokane’s police oversight office.",
+        "Physician Pam Kohlmeier brings a focus on expanding access to healthcare, specifically behavioral health and addiction services.",
+        "Donovan Arnold DeLeon also filed to run as a Democrat.",
+        "Natalie Poulson is the Republican candidate. She ran against Ormsby in 2022."
+      ]
+    },
+    {
+      id: "d5-house", d: "d5", chamber: "House", seat: "Zach Hall’s seat",
+      status: "Rep. Zach Hall, appointed last June, is running", tags: ["vsdem", "flip"],
+      situation: [
+        { t: "Hall replaced now-Sen. Victoria Hunt, who moved to the Senate after Sen. Bill Ramos died unexpectedly at the end of the 2025 session." },
+        { t: "Because Hall was appointed after last year’s candidate filing deadline, he didn’t have to run in 2025." }
+      ],
+      field: [
+        { n: "Rep. Zach Hall", home: "Issaquah", p: "D", inc: true, role: "Served six years on the Issaquah City Council and chaired the Eastside Fire and Rescue Board of Directors",
+          more: [{ h: "Income tax vote", items: ["Voted this year for the new income tax on millionaire earners."] }] },
+        { n: "Michelle Bennett", p: "R", role: "Mercer Island’s police chief",
+          more: [
+            { h: "Law enforcement career", items: ["A long career in law enforcement, in various roles in western Washington dating back to 1990."] },
+            { h: "Priorities", items: ["Highlighting opposition to an income tax as one of her top priorities."] }
+          ] },
+        { n: "Aimee Warmerdam", p: "D", role: "Progressive challenger",
+          more: [{ h: "Platform", items: ["Universal health care", "A $26 minimum wage", "Reducing the standard workweek to 32 hours", "A new payroll tax on large companies"] }] },
+        { n: "Topher Leritz", p: "none", role: "No party affiliation; filed Friday" }
+      ],
+      src: [
+        "State Rep. Zach Hall, D-Issaquah, was appointed to a 5th District House seat last June. The district, which includes parts of Issaquah, Black Diamond, Covington, and part of Snoqualmie, is one that Republicans have eyed as territory where they might make gains in recent years, but Democrats currently hold all three legislative seats there.",
+        "Hall replaced now-Sen. Victoria Hunt, who moved to represent the district in the Senate after Sen. Bill Ramos died unexpectedly at the end of the 2025 session. Because Hall was appointed after last year’s candidate filing deadline, he didn’t have to run in 2025. He served six years on the Issaquah City Council and also chaired the Eastside Fire and Rescue Board of Directors.",
+        "He faces competition from Michelle Bennett, a Republican with a long career in law enforcement. Bennett is currently Mercer Island’s police chief and has worked in various law enforcement roles in western Washington dating back to 1990. Bennett is highlighting opposition to an income tax as one of her top priorities. (Hall voted this year for the new income tax on millionaire earners.)",
+        "There’s also a progressive challenger in the race. Aimee Warmerdam, a Democrat, backs policies such as universal health care, a $26 minimum wage, reducing the standard workweek to 32 hours and imposing a new payroll tax on large companies.",
+        "A fourth candidate, Topher Leritz, who does not have any party affiliation, also filed Friday to run for the seat."
+      ]
+    },
+    {
+      id: "d11-house", d: "d11", chamber: "House", seat: "David Hackney’s seat",
+      status: "Rep. David Hackney is running", tags: ["vsdem"],
+      situation: [
+        { t: "Hackney was first elected to represent the 11th District in 2020. This year he has drawn a challenger from within his own party." }
+      ],
+      field: [
+        { n: "Rep. David Hackney", home: "Renton", p: "D", inc: true, role: "Attorney",
+          more: [{ h: "Committees", items: ["Vice chair, Consumer Protection and Business Committee", "Member, Environment and Energy, Transportation, and Legislative Ethics Committees"] }] },
+        { n: "Ashley Fedan", p: "D", role: "Nurse and Navy veteran who started a business as a certified registered nurse anesthetist",
+          more: [{ h: "Party roles", items: ["Active in the Democratic Party’s grassroots", "Precinct committee officer in the 11th District", "Previously chair of the 28th District Democrats"] }] },
+        { n: "Christian Rombough", p: "R" }
+      ],
+      src: [
+        "Rep. David Hackney, D-Renton, was first elected to represent the 11th District in 2020. This year, he’s drawn a challenger from within his own party.",
+        "Democrat Ashley Fedan is a nurse and Navy veteran who started a business as a certified registered nurse anesthetist. She’s also active in the Democratic Party’s grassroots, serving as a precinct committee officer in the 11th District and previously as chair of the 28th District Democrats. The 11th covers Tukwila, Renton and parts of Kent.",
+        "Hackney, an attorney, is vice chair of the Consumer Protection and Business Committee and sits on the Environment and Energy, Transportation, and Legislative Ethics Committees.",
+        "A Republican, Christian Rombough, has also filed to run for Hackney’s seat."
+      ]
+    },
+    {
+      id: "d26-senate", d: "d26", chamber: "Senate", seat: "Deb Krishnadasan’s seat",
+      status: "Sen. Deb Krishnadasan is running", tags: ["flip"],
+      situation: [
+        { t: "Krishnadasan was appointed to the seat after it was vacated when Emily Randall was elected to Congress." },
+        { t: "In 2025 the 26th was the site of a hotly contested race between Krishnadasan and state Rep. Michelle Valdez, R-Gig Harbor. Krishnadasan won.", ref: { race: "d26-house-valdez", text: "Valdez’s House seat" } },
+        { t: "She is on the ballot again because she secured a partial term in a special election." }
+      ],
+      field: [
+        { n: "Sen. Deb Krishnadasan", home: "Gig Harbor", p: "D", inc: true },
+        { n: "Gary Parker", p: "unstated", role: "Restaurant owner and philanthropist" }
+      ],
+      src: [
+        "It’s one of the few legislative districts in the state still considered a battleground and it’s seeing some action this year. In 2025, the 26th, which spans parts of Pierce and Kitsap counties, was the site of a hotly contested race between Sen. Deb Krishnadasan, D-Gig Harbor, and state Rep. Michelle Valdez, R-Gig Harbor.",
+        "Krishnadasan won and is on the ballot again because she secured a partial term in a special election. She was appointed to the seat after it was vacated when Emily Randall was elected to Congress. Gary Parker, a restaurant owner and philanthropist, is running against Krishnadasan."
+      ]
+    },
+    {
+      id: "d26-house-valdez", d: "d26", chamber: "House", seat: "Michelle Valdez’s seat",
+      status: "Open: Rep. Michelle Valdez is not seeking reelection", tags: ["open", "flip"],
+      situation: [
+        { t: "Valdez, R-Gig Harbor, whose last name was previously Caldier, is leaving after six terms in the House." },
+        { t: "She ran against Krishnadasan in 2025.", ref: { race: "d26-senate", text: "26th District Senate race" } }
+      ],
+      field: [
+        { n: "Renee Hernandez Greenfield", p: "D", role: "Speech and language trainer working with children and families",
+          backersLead: "Endorsed by", backers: ["Emily Randall", "Kitsap County Democrats"],
+          more: [{ h: "Earlier work", items: ["Worked as a child protective services investigator for the Suquamish Tribe."] }] },
+        { n: "Tedd Wetherbee", p: "D", role: "Entrepreneur who highlights his experience in international development",
+          backersLead: "Local officials behind him include", backers: ["Pierce County Executive Ryan Mello", "Tacoma Mayor Anders Ibsen"] },
+        { n: "Katy Cornell", p: "R", role: "Pastor who co-leads a nonprofit focused on projects involving clean water, healthcare and other development issues in West Africa" },
+        { n: "Randy Phillips", p: "none", role: "No party affiliation; lists an address in Gig Harbor" }
+      ],
+      src: [
+        "Meanwhile, Valdez, whose last name was previously Caldier, isn’t seeking reelection in the House after six terms. Into that void have stepped four contenders — two Democrats, a Republican and a candidate without a party affiliation.",
+        "One Democrat is Renee Hernandez Greenfield, who is a speech and language trainer working with children and families. She’s also worked as a child protective services investigator for the Suquamish Tribe. Randall and the Kitsap County Democrats have endorsed Greenfield.",
+        "The other Democrat is Tedd Wetherbee, an entrepreneur who highlights his experience in international development. Local officials like Pierce County Executive Ryan Mello and Tacoma Mayor Anders Ibsen have lined up behind him.",
+        "The Republican is Katy Cornell, a pastor who co-leads a nonprofit that has focused on projects involving clean water, healthcare and other development issues in West Africa.",
+        "Another candidate, Randy Phillips, who lists an address in Gig Harbor, is also running, but without a party affiliation."
+      ]
+    },
+    {
+      id: "d26-house-richards", d: "d26", chamber: "House", seat: "Adison Richards’ seat",
+      status: "Rep. Adison Richards is running", tags: ["vsdem", "flip"],
+      situation: [],
+      field: [
+        { n: "Rep. Adison Richards", home: "Gig Harbor", p: "D", inc: true, role: "Attorney who has worked on housing law issues",
+          more: [{ h: "Income tax vote", items: ["One of the handful of Democrats who voted against the income tax on millionaire earners this year."] }] },
+        { n: "Natalie Bornfleth", p: "D", role: "Air Force veteran, now a public school teacher involved in union leadership" },
+        { n: "David Olson", p: "R", role: "Vice president of the Peninsula School District",
+          more: [{ h: "2024 statewide run", items: ["Ran unsuccessfully to be state superintendent of public instruction in 2024."] }] }
+      ],
+      src: [
+        "Rep. Adison Richards, D-Gig Harbor, an attorney who has worked on housing law issues and one of the handful of Democrats who voted against the income tax on millionaire earners this year, is facing primary competition from a fellow Democrat. Natalie Bornfleth is an Air Force veteran who is now a public school teacher involved in union leadership.",
+        "Also in the mix for Richards’ seat: Republican David Olson, vice president of the Peninsula School District, who ran unsuccessfully to be state superintendent of public instruction in 2024."
+      ]
+    },
+    {
+      id: "d29-senate", d: "d29", chamber: "Senate", seat: "Steve Conway’s seat",
+      status: "Open: longtime Sen. Steve Conway is retiring", tags: ["open"],
+      situation: [],
+      field: [
+        { n: "Rep. Sharlett Mena", home: "Tacoma", p: "D", ref: { race: "d29-house-mena", text: "Her House seat is open" } }
+      ],
+      fieldNote: "The article names no other candidates for this seat.",
+      src: [
+        "Rep. Sharlett Mena, D-Tacoma, is running to replace longtime Sen. Steve Conway, who is retiring."
+      ]
+    },
+    {
+      id: "d29-house-mena", d: "d29", chamber: "House", seat: "Sharlett Mena’s seat",
+      status: "Open: Rep. Sharlett Mena is running for the Senate", tags: ["open"],
+      situation: [
+        { t: "Mena ran for this seat last time unopposed." },
+        { ref: { race: "d29-senate", text: "Mena’s Senate race" } }
+      ],
+      field: [
+        { n: "Patrick Stickney", p: "D", role: "Senior policy and legislative affairs advisor at the state’s Office of Equity" },
+        { n: "Joe Bushnell", p: "D", role: "Deputy mayor of Tacoma" },
+        { n: "Erin Chapman-Smith", p: "D", role: "Executive director of ROOTS Young Adult Shelter in Seattle" },
+        { n: "Natasha Laitila", p: "D", role: "Has worked as a legislative assistant for Rep. Jamila Taylor and Sen. Bob Hasegawa",
+          more: [{ h: "Staff union effort", items: ["Took part in efforts to unionize legislative staff."] }] },
+        { n: "Darek Blum", p: "R" },
+        { n: "Sheri Hayes", p: "R" }
+      ],
+      src: [
+        "That opens up a spot in the House that has attracted four Democratic hopefuls and two Republicans.",
+        "The Democrats include: Patrick Stickney, a senior policy and legislative affairs advisor at the state’s Office of Equity; Joe Bushnell, who’s deputy mayor of Tacoma; Erin Chapman-Smith, the executive director of ROOTS Young Adult Shelter in Seattle; and Natasha Laitila, who has worked as a legislative assistant for Rep. Jamila Taylor and Sen. Bob Hasegawa and took part in in efforts to unionize legislative staff.",
+        "Darek Blum and Sheri Hayes are the Republicans in the race.",
+        "The district votes reliably Democratic and Mena ran for the House seat last time unopposed."
+      ]
+    },
+    {
+      id: "d29-house-morgan", d: "d29", chamber: "House", seat: "Melanie Morgan’s seat",
+      status: "Rep. Melanie Morgan is seeking reelection", tags: ["vsdem"],
+      situation: [],
+      field: [
+        { n: "Rep. Melanie Morgan", home: "Spanaway", p: "D", inc: true, role: "Army veteran and former school board director",
+          more: [
+            { h: "Housing work", items: ["Has worked in various housing-related roles."] },
+            { h: "Committee", items: ["Vice chair of the Agriculture and Natural Resources Committee."] }
+          ] },
+        { n: "Krista Perez", p: "D", role: "Involved in a number of business and nonprofit ventures",
+          more: [{ h: "Book", items: ["Author of a book on how marginalized groups can implement transformative and healing practices in their communities."] }] },
+        { n: "Brett Johnson", p: "R", role: "Lost to Morgan in 2022; running again" }
+      ],
+      src: [
+        "Meanwhile, Rep. Melanie Morgan, D-Spanaway, faces a Democratic challenger as she seeks reelection. Krista Perez has been involved in a number of business and nonprofit ventures and is an author of a book on how marginalized groups can implement transformative and healing practices in their communities.",
+        "Morgan, is an Army veteran, former school board director and has worked in various housing-related roles. She serves as vice chair of the Agriculture and Natural Resources Committee.",
+        "Brett Johnson, a Republican who lost to Morgan in 2022, is running again."
+      ]
+    },
+    {
+      id: "d32-senate", d: "d32", chamber: "Senate", seat: "Jesse Salomon’s seat",
+      status: "Sen. Jesse Salomon is running", tags: ["vsdem"],
+      situation: [
+        { t: "State Rep. Cindy Ryu, D-Shoreline, has chosen to challenge Salomon, a fellow Democrat, for the seat." }
+      ],
+      field: [
+        { n: "Sen. Jesse Salomon", p: "D", inc: true },
+        { n: "Rep. Cindy Ryu", home: "Shoreline", p: "D", ref: { race: "d32-house-ryu", text: "Her House seat is open" } },
+        { n: "Ira McBee", p: "R" }
+      ],
+      src: [
+        "A crowded race of Democrats has formed in this deep blue district representing north King County and south Snohomish County, with state Rep. Cindy Ryu, D-Shoreline, choosing to challenge fellow Democrat Jesse Salomon for his Senate seat.",
+        "Ryu and Salomon are joined by Republican Ira McBee in the Senate race."
+      ]
+    },
+    {
+      id: "d32-house-ryu", d: "d32", chamber: "House", seat: "Cindy Ryu’s seat",
+      status: "Open: Rep. Cindy Ryu is running for the Senate", tags: ["open"],
+      situation: [
+        { ref: { race: "d32-senate", text: "Ryu’s Senate race" } }
+      ],
+      field: [
+        { n: "Jenna Nand", p: "D", role: "Edmonds City Councilmember" },
+        { n: "Will Chen", p: "D", role: "Edmonds City Councilmember" },
+        { n: "Keith Scully", p: "D", role: "Shoreline City Councilmember" },
+        { n: "Danica Noble", p: "D", role: "Consumer protection attorney; leads the early fundraising race" },
+        { n: "Chris Bloomquist", p: "D", role: "Runs an environmental- and technology-focused recruiting firm" },
+        { n: "Lisa Rezac", p: "R", role: "Lost to Ryu in 2024; running again" }
+      ],
+      src: [
+        "A crowded race of Democrats has formed in this deep blue district representing north King County and south Snohomish County, with state Rep. Cindy Ryu, D-Shoreline, choosing to challenge fellow Democrat Jesse Salomon for his Senate seat.",
+        "Five Democrats and one Republican have filed for Ryu’s seat. They are Edmonds City Councilmembers Jenna Nand and Will Chen, Shoreline City Councilmember Keith Scully, consumer protection attorney Danica Noble and Chris Bloomquist, who runs an environmental- and technology-focused recruiting firm. Noble leads the early fundraising race. Republican Lisa Rezac, who lost to Ryu in 2024, is running again."
+      ]
+    },
+    {
+      id: "d32-house-davis", d: "d32", chamber: "House", seat: "Lauren Davis’s seat",
+      status: "Rep. Lauren Davis is running", tags: ["vsdem"],
+      situation: [],
+      field: [
+        { n: "Rep. Lauren Davis", home: "Seattle", p: "D", inc: true },
+        { n: "Imraan Siddiqi", p: "D", role: "Executive director of the Washington chapter of the Council on American-Islamic Relations" }
+      ],
+      fieldNote: "They are the only two candidates running.",
+      src: [
+        "Rep. Lauren Davis, D-Seattle, also faces a Democrat-on-Democrat clash, against Imraan Siddiqi, the executive director of the Washington chapter of the Council on American-Islamic Relations. They’re the only two candidates running."
+      ]
+    },
+    {
+      id: "d42-senate", d: "d42", chamber: "Senate", seat: "Sharon Shewmake’s seat",
+      status: "Open: Sen. Sharon Shewmake, D-Bellingham, vacated it", tags: ["open", "flip"],
+      situation: [
+        { t: "One of the few open Senate seats this year." },
+        { t: "A rare opportunity for Republicans, who held this seat as recently as 2021." }
+      ],
+      field: [
+        { n: "Michael Shepard", p: "D", role: "Bellingham port commissioner",
+          backersLead: "Backed by", backers: ["Sen. Sharon Shewmake", "Senate Majority Leader Jamie Pedersen"] },
+        { n: "Erika Creydt", p: "R", role: "Psychologist who hopes to turn the district red",
+          more: [{ h: "Senate math", items: ["The article says a win would cut into the Democrats’ 29-20 majority in the Senate."],
+                   note: "The article’s opening gives the current Senate split as 30-19." }] },
+        { n: "Eamonn Collins", p: "D", role: "Teacher and former U.S. Senate adviser who leads a community land trust" },
+        { n: "Ryan Bowman", p: "none", role: "Filed without listing a party preference" }
+      ],
+      src: [
+        "This Whatcom County district features one of the few open Senate seats, and a rare opportunity for Republicans, as they held this seat as recently as 2021. Four candidates are seeking the position vacated by Sen. Sharon Shewmake, D-Bellingham.",
+        "Shewmake is supporting Bellingham port commissioner Michael Shepard to replace her. He also has Senate Majority Leader Jamie Pedersen’s backing. Republican Erika Creydt, a psychologist, hopes to turn the district red, cutting into the Democrats’ 29-20 majority in the Senate.",
+        "Eamonn Collins, a teacher and former U.S. Senate adviser who leads a community land trust, is also running as a Democrat. Ryan Bowman filed to run without listing a party preference."
+      ]
+    }
+  ]
+};
+
+const TAGS = [
+  { k: "all", label: "All races", cls: "", why: "" },
+  { k: "open", label: "Open seat", cls: "tag-open", why: "The current holder is not running for this seat." },
+  { k: "vsdem", label: "Incumbent vs. fellow Democrat", cls: "tag-vsdem", why: "A Democratic incumbent faces a challenger from their own party." },
+  { k: "flip", label: "Might flip", cls: "tag-flip", why: "Seats in the 5th (Republicans have eyed it) and 26th (a battleground) districts, and the 42nd’s Senate seat (a rare opportunity for Republicans)." }
+];
+
+const PARTY = {
+  D: { short: "D", name: "Democrat" },
+  R: { short: "R", name: "Republican" },
+  none: { short: "No party", name: "No party affiliation" },
+  unstated: { short: "Party not stated", name: "Party not stated in the article" }
+};
+
+function page() {
+  return {
+    D: DATA,
+    tags: TAGS,
+    filter: "all",
+    open: Object.fromEntries(DATA.races.map(r => [r.id, false])),
+    cand: {},
+    tagByKey(k) { return TAGS.find(t => t.k === k) || TAGS[0]; },
+    count(k) { return k === "all" ? DATA.races.length : DATA.races.filter(r => r.tags.includes(k)).length; },
+    visible(r) { return this.filter === "all" || r.tags.includes(this.filter); },
+    racesOf(d) { return DATA.races.filter(r => r.d === d.id && this.visible(r)); },
+    toggle(id) { this.open[id] = !this.open[id]; },
+    go(id) {
+      const r = DATA.races.find(x => x.id === id);
+      if (!this.visible(r)) this.filter = "all";
+      this.open[id] = true;
+      this.$nextTick(() => { const el = document.getElementById("race-" + id); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); });
+    },
+    partyShort(p) { return PARTY[p].short; },
+    partyName(p) { return PARTY[p].name; },
+    partyCounts(r) {
+      return ["D", "R", "none", "unstated"]
+        .map(p => ({ p, n: r.field.filter(c => c.p === p).length }))
+        .filter(x => x.n > 0);
+    }
+  };
+}
+</script>
+</body>
+</html>

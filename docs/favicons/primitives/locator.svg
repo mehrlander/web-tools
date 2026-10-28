@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="Column primitive: locator">
+  <title>Column primitive: locator</title>
+  <desc>A map pin: the value resolves to a place outside the row.</desc>
+  <g fill="currentColor">
+    <path fill-rule="evenodd" d="M16 3 a10 10 0 0 1 10 10 c0 7 -10 16.5 -10 16.5 c0 0 -10 -9.5 -10 -16.5 a10 10 0 0 1 10 -10 Z M16 9 a4 4 0 1 0 0.001 0 Z"/>
+  </g>
+</svg>

@@ -485,7 +485,7 @@ export function resolveCdn(rawUrl, repoRoot, ref, headers = {}) {
   // checkout IS the working tree for the repo that owns the file.
   {
     const m = /^\/([^/]+)\/([^/]+)\/(.+)$/.exec(u.pathname);
-    if (host === 'raw.githubusercontent.com' && m) {
+    if (host === 'raw.githubusercontent.com' && m && `${m[1]}/${m[2]}` !== REPO) {
       // <owner>/<repo>/<ref>/<path>, and a branch name carries slashes, so the
       // ref cannot be found by counting segments. Try each split and take the
       // first that names a file in the sibling.
