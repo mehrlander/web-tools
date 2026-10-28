@@ -155,6 +155,7 @@ node/render/scenarios/fab-console-cost.mjs,,node/render/scenarios,70,driver,,no,
 node/render/scenarios/fab-dom-shot.mjs,the FAB's View/Page/Region DOM screenshot controls and preview output,node/render/scenarios,93,driver,,no,no,no
 node/render/scenarios/fab-export.mjs,the FAB's Export controls,node/render/scenarios,31,driver,,no,yes,no
 node/render/scenarios/fab-guide.mjs,the fab's Render tab seeded token-free so the guide pane renders,node/render/scenarios,144,driver,,no,no,no
+node/render/scenarios/fab-item-notes.mjs,Checks item and page note targeting with fixture writes plus failed saves and phone keyboard geometry.,node/render/scenarios,92,driver,,no,no,no
 node/render/scenarios/fab-menu.mjs,"The launcher's long-press menu on the app: its three built-in rows, one line each, and the app answering as a stage host so its paste stays in place.",node/render/scenarios,39,driver,,no,no,no
 node/render/scenarios/fab-paste-offapp.mjs,"The paste row's other ending, on a page that is not the app: no stage host, both small kits warmed by the press, and the 233K stage component not pulled.",node/render/scenarios,36,driver,,no,no,no
 node/render/scenarios/fab-reports-anywhere.mjs,,node/render/scenarios,63,driver,,no,no,no

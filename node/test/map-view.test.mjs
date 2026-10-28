@@ -166,6 +166,24 @@ test('every Map address says what it is through about, and leads with its contro
   } finally { data.mapTab = old; }
 });
 
+test('Peeves declares stable page and selected-item note subjects, including merged IDs', () => {
+  const old = { mapTab: data.mapTab, peevesReg: data.peevesReg, peeveSel: data.peeveSel };
+  try {
+    data.mapTab = 'peeves';
+    data.peevesReg = [
+      { id: 'P33', name: 'Reinventing the wheel', tier: 'core', merged_into: '' },
+      { id: 'P45', name: 'Reuse components', tier: 'core', merged_into: 'P33' },
+    ];
+    data.peeveSel = 'P33';
+    assert.equal(data.about.subject.about, 'mehrlander/web-tools:docs/map-tabs.csv#peeves');
+    assert.equal(data.about.selection.label, 'P33 · Reinventing the wheel');
+    assert.equal(data.about.selection.about, 'mehrlander/web-tools:skills/peeves/peeves.csv#P33');
+    assert.ok(data.about.selection.aliases.includes('mehrlander/web-tools:skills/peeves/peeves.csv#P45'));
+    data.mapTab = 'skills';
+    assert.equal(data.about.selection, null, 'a hidden list cannot supply the selected subject');
+  } finally { Object.assign(data, old); }
+});
+
 test('source provenance follows the selected collection and preserves an external census ref', () => {
   const old = { mapTab: data.mapTab, skillSet: data.skillSet, agentSet: data.agentSet,
     docRepo: data.docRepo, dataScope: data.dataScope, dataCensus: data.dataCensus };
