@@ -158,7 +158,7 @@ the link-dense text twin of the visual index above.
 
 | Page | Title | Links |
 |---|---|---|
-| `news` | news · the outer log | [view](https://mehrlander.github.io/web-tools/pages/news/news.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/news/news.html) |
+| `news` | news | [view](https://mehrlander.github.io/web-tools/pages/news/news.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/news/news.html) |
 
 ## pages/scratch/
 

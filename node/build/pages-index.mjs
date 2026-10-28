@@ -46,7 +46,7 @@ const NOTES = {
   'shorter.html':              'Adjudicate a shorter draft against your text: word-diff, accept-by-default edits, per-span rewrite with an optional in-browser LLM.',
   'repo-atlas.html':           'Zoomable treemap map of any GitHub repo — files as tiles, sized by bytes or count.',
   'cat-map.html':              "What kind of thing is it? A poster per question: the two characteristics that decide the word, the estate's own files in each box, the words that add to it, the names to fix and the calls left open.",
-  'news/news.html':            "Read-only view of home's news ledger, grouped and filterable by topic and date; backfilled items held distinct.",
+  'news/news.html':            "Read-only view of home's news items, grouped and filterable by topic and date; backfilled items held distinct.",
   'links.html':                "home's bookmarks board: a pinned rail, areas of links, and an area's markdown dossier, all editable in place.",
   'toss-render.html':          'Render tossed HTML payloads or allowlisted repo paths (the 🥏 target); with no address, paste anything and see it shown the way it deserves.',
   'dictate.html':              'The blank page you talk at: a full-viewport voice buffer with the mark pad under your thumb, and Copy, Send, Jot or Drop at the end of it. With ?file=, it opens a repo file instead and saves it back.',
