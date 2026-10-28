@@ -14,7 +14,7 @@ forms.
 
 | File | Holds |
 |---|---|
-| [object-map-review.html](object-map-review.html#walkthrough=object-maps) | four JSON object-map trials, with structural diagrams, examples, exact requests and the saved draft and revision |
+| [object-map-review.html](object-map-review.html#map=1) | four JSON object maps in a swipe deck, with shared tabs, structural diagrams, examples, exact requests and the saved draft and revision |
 | [review.html](review.html#walkthrough=wacares&test=wacares) | the sixteen examples, each with Prompt and Result tabs and its original referenced inputs |
 | [theory.md](theory.md) | the theory: a page as a rooted projection of an entity graph, the structural forms, the projection ladder, and what the theory predicts |
 | [method.md](method.md) | the procedure, as handed to the test agents |
