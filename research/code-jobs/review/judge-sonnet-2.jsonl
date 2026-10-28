@@ -1,0 +1,27 @@
+{"pair": 28, "verdict": "related", "why": "A is the file-browser component (folder tree plus a swipeable strip of file viewers); B is the template and getters of the storage-inspector view, which has a similar pager and strip but shows stored items."}
+{"pair": 29, "verdict": "related", "why": "A marks each cell with the conditional-format rule that fires on it; B lists the conditional-format rules as written without evaluating them."}
+{"pair": 30, "verdict": "related", "why": "A builds a ghost square icon button with a tooltip for a toolbar; B builds a bordered circle icon button without a tooltip for deck navigation; both make icon buttons but with different looks and contracts."}
+{"pair": 31, "verdict": "related", "why": "A profiles each column of a sheet; B calls A and reshapes its output into rows for the extract view."}
+{"pair": 32, "verdict": "different", "why": "A removes a tab from the workbench tab list and fixes the active index; B sets the active tab on the shell and syncs the URL."}
+{"pair": 33, "verdict": "different", "why": "A resolves a relative package path against a base path in an xlsx archive; B turns a JSON path array into a display property string."}
+{"pair": 34, "verdict": "related", "why": "A builds a multi-dimension pivot tree with aggregates and a column crosstab; B sums a measure by band-and-within column key for the report layout; both aggregate rows by dimension at different scales."}
+{"pair": 35, "verdict": "related", "why": "A describes each pivot table (fields, range, cache source) for the pivots view; B reads each pivot cache's cached records with a truncation note; both are about pivots but give different facts."}
+{"pair": 36, "verdict": "different", "why": "A is the tail of the JSON explorer's mount (chrome sync, render, public handle); B is the swipe deck's contents list, dock seam and stacking code."}
+{"pair": 37, "verdict": "different", "why": "A resolves a data-validation list formula into its option values; B serializes a whole sheet's cells, merges and dimension for export."}
+{"pair": 38, "verdict": "same", "why": "Both build a ghost icon button with a tooltip, an aria-label and a click handler; they differ in square versus circle and in what the handler receives."}
+{"pair": 39, "verdict": "related", "why": "A opens a record deck from a Tabulator grid, loading the kit if needed; B opens a record deck from a JSON chunk's rows with the same lazy kit load; same pattern but different data source and call."}
+{"pair": 40, "verdict": "same", "why": "Both lazily mount a viewer into the current slide and its neighbours in a strip, remembering which are mounted; only the viewer mounting call and the key differ."}
+{"pair": 41, "verdict": "related", "why": "A computes the formula text for one cell, expanding shared formulas by shifting references; B dumps every cell with its formula (shared ones as a fill marker) and value for export."}
+{"pair": 42, "verdict": "related", "why": "A downloads the workbench's bundle export as a JSON file; B downloads the explorer's raw data as a JSON file; same blob-and-anchor mechanism but different content and source."}
+{"pair": 43, "verdict": "different", "why": "A is the swipe deck's contents list, dock seam and stacking code; B is the storage-inspector view's jump, key, expand and page-storage methods."}
+{"pair": 44, "verdict": "related", "why": "A maps each pivot table to a descriptive row for the pivots view; B registers each pivot cache's records as a catalog object; both are pivot listings with different purposes."}
+{"pair": 45, "verdict": "related", "why": "A builds the report layout model (opening, items, subtotals, total) from rows; B renders collapsible pivot rows with subtotals into table DOM; one builds the data and the other displays grouped data."}
+{"pair": 46, "verdict": "same", "why": "Both are strip scroll handlers that coalesce scroll events through requestAnimationFrame to update the current slide; A adds a quiet timer to clear the aim."}
+{"pair": 47, "verdict": "different", "why": "A shows or hides the Tabulator header filter row on a checkbox change; B sets a header filter value for a column and switches to the data view."}
+{"pair": 48, "verdict": "same", "why": "Both find the slide nearest the strip's left edge on scroll and set the current index; B adds a guard for an in-flight programmatic scroll."}
+{"pair": 49, "verdict": "related", "why": "A resolves one cell's formula text including shared-formula followers; B lists every formula cell with its text, value and a count of shared followers."}
+{"pair": 50, "verdict": "same", "why": "Both read the strip's nearest slide on scroll, hold while a programmatic go() is in flight, then update the current position; A also selects the item and mounts neighbours."}
+{"pair": 51, "verdict": "same", "why": "Both are onSlide callbacks that update the open deck's title and subtitle from the current slide's data; B also sets the icon and link."}
+{"pair": 52, "verdict": "different", "why": "A is the tail of the JSON explorer's mount (chrome sync, render, public handle); B is the storage-inspector's jump, key, expand and page-storage methods."}
+{"pair": 53, "verdict": "different", "why": "A is the whole JSON explorer kit (helpers, profile analyzer, explorer mount); B is part of the storage-inspector view's methods."}
+{"pair": 54, "verdict": "different", "why": "A is the row-menu kit that attaches a floating copy and deck menu to a grid; B is the JSON explorer kit; they share only the clipboard-loader preamble."}

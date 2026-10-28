@@ -18,8 +18,8 @@ stays visible above either tab.
   cloud session updates from Web Tools' existing captured-session cache.
 - An activity feed with assistant, state and text filters, plus a selected result
   or a short history of observed local session events.
-- Since you last looked: one latest meaningful change per piece of work, with
-  review memory saved separately in each desktop or phone browser.
+- Recent activity: one latest meaningful change per piece of work, without
+  read receipts or a step to acknowledge the activity.
 - Published Claude checkpoints with topic titles, recent exchange summaries,
   measured activity and links to the resulting pull requests.
 - The Gemini worker's last reported task and report time, alongside its queue.
@@ -145,7 +145,7 @@ up to 256 signal files from the last two UTC dates and expires signals after a d
 These signals synchronize with errands every five seconds. An unfinished turn
 with no report for three minutes becomes quiet; a response or failure ends its
 working state. Published topic checkpoints keep their separate provenance and time.
-Tool heartbeats do not create new unseen-work badges.
+Tool heartbeats update live activity without creating a new change record.
 
 Remove `Web Tools Companion.lnk` from the current user's Startup folder to disable
 sign-in startup. Stop `WebTools.Companion` to stop collection. Disable the private
@@ -158,8 +158,8 @@ at one immutable Git revision through `ls-tree` and `cat-file --batch`. Fetch
 updates `origin/background` and, for cloud records, `origin/main`; the checkout, index, local edits, and checked-out
 branch are untouched.
 The latest eighty request filenames and every unresolved request are available;
-the list shows forty matching entries at once. Browser review memory identifies
-which changes have been seen.
+the list shows forty matching entries at once. Recent activity remains visible
+as the feed updates, without an acknowledgement step.
 
 The worker's record contract lives in the private repo's
 [`errands/README.md`](https://github.com/mehrlander/web-tools-private/blob/main/errands/README.md).
@@ -192,9 +192,9 @@ available; missing summaries leave the recorded session available.
 `activity-changes.json` retains the latest meaningful change per item for seven
 days, up to 150 items. Starting or finishing a local turn, publishing a cloud
 checkpoint, and errand transitions create changes. Local commentary alone does
-not. The browser initially shows changes from the preceding day and remembers
-the changes explicitly marked seen; newer changes to reviewed work reappear.
-Reviewing changes writes browser storage only and leaves the worker untouched.
+not. The phone's Now view shows three recent changes outside In progress and
+Needs you; the Recent tab shows the retained history. Desktop opens on Recent.
+The views do not track whether activity has been seen.
 
 The worker view reads the last 64 KiB of `poller.log`, accepting known timestamped
 batch, publication, errand, scheduled-job and error events. The view shows a short

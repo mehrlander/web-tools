@@ -53,7 +53,7 @@ static class CloudTurnChecks
             var original = changes.Observe([working], [], now).Single();
             var next = working with { UpdatedAt = now, Detail = "Using Write", Turn = working.Turn! with { UpdatedAt = now, LastTool = "Write" } };
             check(changes.Observe([next], [], now).Single().Id == original.Id,
-                "Tool heartbeats do not create new unseen-work badges.");
+                "Tool heartbeats update live activity without creating a new change record.");
             next = next with { Turn = next.Turn! with { StartedAt = now.AddSeconds(1), UpdatedAt = now.AddSeconds(1) } };
             check(changes.Observe([next], [], now.AddSeconds(1)).Single().Id != original.Id,
                 "A new cloud prompt creates a new change even when the previous turn was also working.");

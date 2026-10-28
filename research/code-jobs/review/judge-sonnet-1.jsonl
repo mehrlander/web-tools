@@ -1,0 +1,27 @@
+{"pair": 1, "verdict": "related", "why": "A renders one cell's formula as display text (including shared-fill notation), while B builds a per-cell formula table that reports shared followers as empty text plus a count note."}
+{"pair": 2, "verdict": "different", "why": "A is a requestAnimationFrame wrapper that runs a callback after a frame in the transform workbench, while B is a rAF-throttled scroll handler for the here-view strip."}
+{"pair": 3, "verdict": "different", "why": "A defers work by one animation frame in the workbench, while B retries landing the strip on the selected card across several frames."}
+{"pair": 4, "verdict": "different", "why": "A defines the JSON explorer/profile kit and B defines the swipe-deck kit; they share only helper vocabulary."}
+{"pair": 5, "verdict": "related", "why": "A sets the pivot measure and aggregation choice then redraws, while B computes the displayed aggregate value from group statistics, so both serve pivot aggregation at different steps."}
+{"pair": 6, "verdict": "different", "why": "A defers work by one animation frame in the workbench, while B is a scroll listener that debounces aim reset and throttles slide sync in the swipe deck."}
+{"pair": 7, "verdict": "related", "why": "A shapes raw comment records for the workbook analysis (stripping the author prefix), while B formats the already-shaped notes into Cell/Author/Text table rows for extraction."}
+{"pair": 8, "verdict": "different", "why": "A formats a number with accounting-style parentheses for negatives, while B shifts a row number in a formula reference when moving cells."}
+{"pair": 9, "verdict": "related", "why": "A is the standalone formula-to-text helper and B's serializeSheet inlines the same formula logic inside a larger sheet serializer that also computes dimensions and merges."}
+{"pair": 10, "verdict": "different", "why": "A parses a sheet range reference and reads chart data values from it, while B serializes a whole sheet's cells, dimension and merges."}
+{"pair": 11, "verdict": "related", "why": "A strips the leading 'Author:' prefix from comment text, a step upstream of B, which lays out already-extracted comments as table rows."}
+{"pair": 12, "verdict": "related", "why": "A resolves a style index into a style record, and B uses that record to build a flat per-cell style table for extraction."}
+{"pair": 13, "verdict": "different", "why": "A profiles a table's columns (types, fill rates), while B accumulates pivot sub-group values into row and column totals."}
+{"pair": 14, "verdict": "related", "why": "Both create a viewer x-data container and initialize Alpine on it, but A also mounts into a slide with a landing row and loads the file, while B only replaces a host's children and returns the element."}
+{"pair": 15, "verdict": "same", "why": "Both turn text content into a Blob, create an object URL, click a temporary download anchor and revoke the URL, differing only in the content and filename."}
+{"pair": 16, "verdict": "different", "why": "A defers work by one animation frame in the workbench, while B is a rAF-throttled strip scroll handler in the here view."}
+{"pair": 17, "verdict": "related", "why": "A collects all comments and validation prompts per workbook sheet into note records, and B lists just the comment notes as table rows, so B reads what A builds."}
+{"pair": 18, "verdict": "different", "why": "A defers work by one animation frame in the workbench, while B retries landing the strip on the selected card."}
+{"pair": 19, "verdict": "related", "why": "A profiles each column of a sheet (kinds, distinct values), while B only counts distinct column indexes in a sheet, so both enumerate columns for different outputs."}
+{"pair": 20, "verdict": "different", "why": "A registers the transform workbench and its viewer as Alpine components, while B registers the unrelated userCallForm component."}
+{"pair": 21, "verdict": "different", "why": "A registers the fileBrowser Alpine component and B registers the hereView component; they are separate components with only the registration pattern in common."}
+{"pair": 22, "verdict": "related", "why": "Both pick an aggregate (sum/avg/count/min/max) for a pivot group, but A reads precomputed group statistics while B reduces an array of raw values."}
+{"pair": 23, "verdict": "different", "why": "A is the whole swipe-deck kit and B is the tail of the hereView component's methods and getters."}
+{"pair": 24, "verdict": "different", "why": "A appends a numbered data row to a JSON table view, while B renders a pivot table row with rowspan parent cells and totals."}
+{"pair": 25, "verdict": "different", "why": "A is the JSON explorer kit and B is a fragment of the swipe-deck's open() covering the contents list, seam and stacking."}
+{"pair": 26, "verdict": "different", "why": "A is the tail of the JSON explorer mount (render, public handle) and B is the whole swipe-deck kit."}
+{"pair": 27, "verdict": "different", "why": "A is the here view's template tail with token, storage and strip getters, while B is the user-call form's strip template with notes and adjust panels."}

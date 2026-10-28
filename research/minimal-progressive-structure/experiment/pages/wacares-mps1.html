@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SJR 8201 and WA Cares</title>
+<script>
+(function () {
+  var m = window.matchMedia('(prefers-color-scheme: dark)');
+  function set() { document.documentElement.setAttribute('data-theme', m.matches ? 'dark' : 'light'); }
+  set();
+  if (m.addEventListener) m.addEventListener('change', set);
+})();
+</script>
+<link href="https://cdn.jsdelivr.net/npm/daisyui@5.0.43/daisyui.css" rel="stylesheet" type="text/css">
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.1.11/dist/index.global.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.9/dist/cdn.min.js"></script>
+<style>
+  [data-theme=light] { --color-primary: oklch(44% 0.11 245); --color-primary-content: oklch(98% 0.01 245); }
+  [data-theme=dark]  { --color-primary: oklch(76% 0.10 235); --color-primary-content: oklch(22% 0.03 245); }
+  [x-cloak] { display: none !important; }
+  .serif { font-family: ui-serif, Georgia, Cambria, "Times New Roman", serif; }
+  .lbl {
+    display: inline-flex; flex-wrap: wrap; align-items: baseline; column-gap: .35rem; row-gap: .1rem;
+    text-align: left; padding: .45rem .7rem; border-radius: .6rem; line-height: 1.35;
+    border: 1px solid var(--color-base-300); background: var(--color-base-100); cursor: pointer;
+    transition: border-color .15s, background-color .15s;
+  }
+  .lbl:hover, .lbl:focus-visible { border-color: var(--color-primary); background: color-mix(in oklch, var(--color-primary) 7%, var(--color-base-100)); outline: none; }
+  .lbl-name { font-weight: 650; color: var(--color-primary); }
+  .lbl-q { font-size: .875rem; color: color-mix(in oklch, var(--color-base-content) 70%, transparent); }
+  .lbl-go { color: var(--color-primary); font-weight: 650; }
+  details.ev > summary { list-style: none; cursor: pointer; display: inline-block; }
+  details.ev > summary::-webkit-details-marker { display: none; }
+  details.ev > summary::before { content: "\25B8"; display: inline-block; margin-right: .3rem; transition: transform .15s; }
+  details.ev[open] > summary::before { transform: rotate(90deg); }
+</style>
+</head>
+<body class="bg-base-200 text-base-content min-h-screen"
+      x-data="page()"
+      @click="const b = $event.target.closest('[data-open]'); if (b) open(b.dataset.open)">
+
+<main class="max-w-3xl mx-auto px-4 py-6 sm:py-10 space-y-5" x-cloak>
+
+  <!-- Root: the answer, then what identifies the measure -->
+  <header class="space-y-4">
+    <p class="text-sm font-semibold tracking-wide text-primary" x-text="M.root.kicker"></p>
+    <h1 class="serif text-[1.75rem] leading-tight sm:text-4xl font-bold" x-text="M.root.headline"></h1>
+    <p class="text-lg leading-relaxed" x-text="M.root.lead"></p>
+    <div x-html="label(M.root.programLabel)"></div>
+    <dl class="grid grid-cols-1 sm:grid-cols-3 gap-px rounded-box overflow-hidden border border-base-300 bg-base-300">
+      <template x-for="f in M.root.identity" :key="f.k">
+        <div class="bg-base-100 px-4 py-3">
+          <dt class="text-xs font-semibold uppercase tracking-wide text-base-content/60" x-text="f.k"></dt>
+          <dd class="mt-1 font-medium leading-snug" x-text="f.v"></dd>
+        </div>
+      </template>
+    </dl>
+  </header>
+
+  <!-- Comparison: today against if approved (parts of the root) -->
+  <section class="card bg-base-100 border border-base-300">
+    <div class="card-body p-4 sm:p-6 gap-4">
+      <h2 class="serif text-xl sm:text-2xl font-bold">What a yes vote changes</h2>
+      <div>
+        <div class="grid grid-cols-2 gap-x-3 sm:gap-x-6 pb-2">
+          <template x-for="(c, i) in M.root.change.cols" :key="c">
+            <div><span class="badge font-semibold" :class="i ? 'badge-primary' : 'badge-outline'" x-text="c"></span></div>
+          </template>
+        </div>
+        <template x-for="r in M.root.change.rows" :key="r.field">
+          <div class="grid grid-cols-2 gap-x-3 sm:gap-x-6 border-t border-base-300 py-3">
+            <div class="col-span-2 text-xs font-semibold uppercase tracking-wide text-base-content/60 mb-1.5" x-text="r.field"></div>
+            <p class="leading-snug text-[0.95rem]" x-text="r.today"></p>
+            <p class="leading-snug text-[0.95rem]" x-text="r.approved"></p>
+          </div>
+        </template>
+      </div>
+      <div class="rounded-box bg-base-200 px-4 py-3">
+        <h3 class="font-semibold" x-text="M.root.earnings.heading"></h3>
+        <p class="mt-1 leading-snug text-[0.95rem]" x-text="M.root.earnings.text"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Comparison: the two sides, each field on the same row -->
+  <section class="card bg-base-100 border border-base-300">
+    <div class="card-body p-4 sm:p-6 gap-3">
+      <h2 class="serif text-xl sm:text-2xl font-bold">What each side says</h2>
+      <div>
+        <div class="grid grid-cols-2 gap-x-3 sm:gap-x-6 pb-2 sticky top-0 z-10 bg-base-100 pt-1">
+          <template x-for="s in M.root.sides" :key="s.id">
+            <div>
+              <span class="badge badge-outline font-semibold" x-text="s.stance"></span>
+              <div class="mt-1 text-sm font-semibold leading-tight" x-text="s.group"></div>
+            </div>
+          </template>
+        </div>
+
+        <div class="grid grid-cols-2 gap-x-3 sm:gap-x-6 border-t border-base-300 py-3">
+          <div class="col-span-2 text-xs font-semibold uppercase tracking-wide text-base-content/60 mb-1.5" x-text="M.root.sideRows.speaker"></div>
+          <template x-for="s in M.root.sides" :key="s.id">
+            <p class="leading-snug text-[0.95rem]"><span class="font-medium" x-text="s.speaker.n"></span><span class="text-base-content/70" x-text="', ' + s.speaker.q"></span></p>
+          </template>
+        </div>
+
+        <div class="grid grid-cols-2 gap-x-3 sm:gap-x-6 border-t border-base-300 py-3">
+          <div class="col-span-2 text-xs font-semibold uppercase tracking-wide text-base-content/60 mb-1.5" x-text="M.root.sideRows.case"></div>
+          <template x-for="s in M.root.sides" :key="s.id">
+            <div>
+              <ul class="space-y-2.5">
+                <template x-for="c in s.claims" :key="c.text">
+                  <li class="leading-snug text-[0.95rem]">
+                    <span x-text="c.text"></span>
+                    <template x-if="c.ev">
+                      <details class="ev mt-1">
+                        <summary class="text-sm font-medium text-primary" x-text="c.ev.label"></summary>
+                        <blockquote class="mt-1.5 border-l-2 border-base-300 pl-3 text-sm text-base-content/80 leading-snug" x-text="c.ev.text"></blockquote>
+                      </details>
+                    </template>
+                  </li>
+                </template>
+              </ul>
+              <template x-if="s.ev">
+                <details class="ev mt-2">
+                  <summary class="text-sm font-medium text-primary" x-text="s.ev.label"></summary>
+                  <blockquote class="mt-1.5 border-l-2 border-base-300 pl-3 text-sm text-base-content/80 leading-snug" x-text="s.ev.text"></blockquote>
+                </details>
+              </template>
+            </div>
+          </template>
+        </div>
+
+        <div class="grid grid-cols-2 gap-x-3 sm:gap-x-6 border-t border-base-300 py-3">
+          <div class="col-span-2 text-xs font-semibold uppercase tracking-wide text-base-content/60 mb-1.5" x-text="M.root.sideRows.backers"></div>
+          <template x-for="s in M.root.sides" :key="s.id">
+            <div>
+              <ul class="space-y-1">
+                <template x-for="b in s.backers" :key="b.n">
+                  <li class="leading-snug text-[0.95rem]"><span x-text="b.n"></span><template x-if="b.q"><span class="text-base-content/70" x-text="', ' + b.q"></span></template></li>
+                </template>
+              </ul>
+              <p class="mt-1.5 text-sm text-base-content/70 leading-snug" x-show="s.backersNote" x-text="s.backersNote"></p>
+            </div>
+          </template>
+        </div>
+
+        <div class="grid grid-cols-2 gap-x-3 sm:gap-x-6 border-t border-base-300 pt-3">
+          <div class="col-span-2 text-xs font-semibold uppercase tracking-wide text-base-content/60 mb-1.5" x-text="M.root.sideRows.money"></div>
+          <template x-for="s in M.root.sides" :key="s.id">
+            <div class="leading-snug text-[0.95rem]">
+              <template x-if="s.money.ref"><div x-html="label(s.money)"></div></template>
+              <template x-if="s.money.text"><p x-text="s.money.text"></p></template>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Background: the earlier attempt, where to read more, the source -->
+  <section class="card bg-base-100 border border-base-300">
+    <div class="card-body p-4 sm:p-6 gap-4">
+      <h2 class="serif text-xl sm:text-2xl font-bold">Background</h2>
+      <div>
+        <div class="text-xs font-semibold uppercase tracking-wide text-base-content/60 mb-1.5">Tried before</div>
+        <div x-html="label(M.root.background.earlier)"></div>
+      </div>
+      <div>
+        <div class="text-xs font-semibold uppercase tracking-wide text-base-content/60 mb-1.5">Official statements</div>
+        <p class="leading-snug text-[0.95rem]" x-text="M.root.background.statements"></p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="px-1 pb-6 text-sm text-base-content/70 leading-snug space-y-1">
+    <p>Source: <a class="link" :href="M.source.url" x-text="M.source.title"></a>, by <span x-text="M.source.author"></span>, <span x-text="M.source.outlet"></span>, <span x-text="M.source.date"></span> (<span x-text="M.source.license"></span>).</p>
+    <p x-text="M.source.dateNote"></p>
+  </footer>
+</main>
+
+<!-- One dialog raises a neighbor to its view; labels inside it open the next view -->
+<dialog x-ref="dlg" class="modal modal-bottom sm:modal-middle" @close="stack = []">
+  <div class="modal-box max-w-xl p-5 sm:p-6">
+    <template x-if="cur">
+      <div class="space-y-4">
+        <div class="flex items-start gap-3">
+          <div class="flex-1 min-w-0">
+            <button type="button" class="text-sm font-medium text-primary mb-1" x-show="prev" @click="back()" x-text="prev ? '← Back to ' + prev.name : ''"></button>
+            <p class="text-xs font-semibold uppercase tracking-wide text-base-content/60" x-text="cur.kind"></p>
+            <h2 class="serif text-2xl font-bold leading-tight" x-text="cur.title"></h2>
+            <p class="mt-0.5 text-base-content/80" x-text="cur.sub"></p>
+          </div>
+          <form method="dialog"><button class="btn btn-sm btn-ghost">Close</button></form>
+        </div>
+
+        <dl class="border-t border-base-300">
+          <template x-for="f in cur.facts" :key="f.k">
+            <div class="py-2.5 border-b border-base-300 sm:grid sm:grid-cols-[9rem_1fr] sm:gap-4">
+              <dt class="text-xs font-semibold uppercase tracking-wide text-base-content/60 sm:pt-0.5" x-text="f.k"></dt>
+              <dd class="mt-0.5 sm:mt-0 leading-snug">
+                <span x-show="f.v" x-text="f.v"></span>
+                <template x-if="f.ref"><div :class="f.v ? 'mt-1.5' : ''" x-html="label(f)"></div></template>
+              </dd>
+            </div>
+          </template>
+        </dl>
+
+        <template x-if="cur.part">
+          <div class="rounded-box bg-base-200 px-4 py-3">
+            <div class="text-xs font-semibold uppercase tracking-wide text-base-content/60" x-text="cur.part.heading"></div>
+            <div class="mt-1 font-semibold leading-snug" x-text="cur.part.name"></div>
+            <div class="leading-snug" x-text="cur.part.v"></div>
+          </div>
+        </template>
+
+        <template x-if="cur.timeline">
+          <div>
+            <div class="text-xs font-semibold uppercase tracking-wide text-base-content/60 mb-2" x-text="cur.timeline.heading"></div>
+            <div class="relative h-14 mx-2" aria-hidden="true">
+              <div class="absolute left-0 right-0 top-6 h-px bg-base-300"></div>
+              <template x-for="y in years()" :key="y">
+                <div class="absolute top-4" :style="'left:' + pos(y)">
+                  <div class="h-4 w-px bg-base-300"></div>
+                  <div class="text-[10px] text-base-content/60 -translate-x-1/2 mt-1" x-text="(y === years()[0] || y % 2 === 1) ? y : ''"></div>
+                </div>
+              </template>
+              <template x-for="(e, i) in cur.timeline.events" :key="e.date">
+                <div class="absolute h-3 w-3 -translate-x-1/2 rounded-full"
+                     :class="e.marker ? 'border-2 border-base-content/60 bg-base-100' : 'bg-primary'"
+                     :style="'left:' + pos(e.t) + ';top:' + (e.lane ? '0.85rem' : '1.1rem')"></div>
+              </template>
+            </div>
+            <ol class="mt-2 space-y-1.5">
+              <template x-for="e in cur.timeline.events" :key="e.date">
+                <li class="grid grid-cols-[0.75rem_6.75rem_1fr] items-baseline gap-x-2 leading-snug" :class="e.marker ? 'text-base-content/70' : ''">
+                  <span class="inline-block h-2.5 w-2.5 rounded-full" :class="e.marker ? 'border-2 border-base-content/60' : 'bg-primary'"></span>
+                  <span class="font-semibold text-sm" x-text="e.date"></span>
+                  <span x-text="e.text"></span>
+                </li>
+              </template>
+            </ol>
+          </div>
+        </template>
+      </div>
+    </template>
+  </div>
+  <form method="dialog" class="modal-backdrop"><button>Close</button></form>
+</dialog>
+
+<script>
+/* The entity model, as the page's data. Each fact has one home; labels are the only copies. */
+const MODEL = {
+  source: {
+    title: "Voters to decide if WA Cares tax dollars can be invested in stock market",
+    author: "Jerry Cornfield",
+    outlet: "Washington State Standard",
+    date: "Oct 31, 2025",
+    url: "https://washingtonstatestandard.com/2025/10/31/voters-to-decide-if-wa-cares-tax-dollars-can-be-invested-in-stock-market/",
+    license: "CC BY-NC-ND 4.0",
+    dateNote: "Relative dates in the article (“this year,” “summer,” “January,” “Friday,” “Tuesday”) are as of its publication on Oct 31, 2025."
+  },
+
+  /* Root: the measure. Its own facts, then its two comparisons, then references. */
+  root: {
+    id: "sjr8201",
+    kicker: "Washington ballot measure · Senate Joint Resolution 8201",
+    headline: "SJR 8201 would let the state invest WA Cares payroll taxes in the stock market",
+    lead: "It is a proposed amendment that would add a few lines to the state constitution, changing how billions of taxpayer dollars are managed: the payroll taxes collected for WA Cares, the state's long-term care program.",
+    programLabel: { ref: "wacares", quals: ["0.58% payroll tax", "more than $2.5 billion banked"] },
+    identity: [
+      { k: "On the ballot", v: "First item on every Washington voter's ballot" },
+      { k: "To pass", v: "More than 50% of voters must approve it on Tuesday" },
+      { k: "Legislature's vote to send it", v: "House 86-9, Senate 42-7, earlier this year" }
+    ],
+
+    /* Rule states: parts of the measure, compared on shared fields */
+    change: {
+      cols: ["Today", "If approved"],
+      rows: [
+        {
+          field: "Under the state constitution",
+          today: "The constitution generally bars investing public money in the stock of private companies, and the WA Cares account is subject to that limit.",
+          approved: "The account joins the state's pension and retirement funds on the list of funds exempt from that bar."
+        },
+        {
+          field: "What the money can be invested in",
+          today: "Fixed-income securities such as government bonds, treasury bills and certificates of deposit: less risky, but typically lower returns.",
+          approved: "The Washington State Investment Board could handle the assets as it does pension and retirement funds, and decide whether to invest in private equity funds and buy stock of private companies, or not."
+        }
+      ]
+    },
+    earnings: {
+      heading: "Earnings would stay with WA Cares",
+      text: "Any earnings would have to be used solely for the program's beneficiaries. Heather Weiner of the Approve 8201 campaign said the measure requires money made from investments to go into the WA Cares Fund; the intent is to keep lawmakers from tapping those dollars for other budget needs."
+    },
+
+    /* Sides: compared on shared fields. A side's row holds all its facts, so it gets no separate view. */
+    sideRows: {
+      speaker: "Speaking at a recent University of Washington debate",
+      case: "Their case",
+      backers: "Backers",
+      money: "Money behind it"
+    },
+    sides: [
+      {
+        id: "yes", stance: "For", group: "Approve 8201 campaign",
+        speaker: { n: "Heather Weiner", q: "Approve 8201 campaign" },
+        claims: [
+          {
+            text: "The money would be invested in a “safe and risk averse way” while producing greater returns for the program.",
+            ev: { label: "Article passage", text: "This will allow for the tax dollars to be invested in a “safe and risk averse way” while producing greater returns for the program, said Heather Weiner of the Approve 8201 campaign in a recent debate at the University of Washington." }
+          },
+          {
+            text: "Since 1992, Washington's pension funds have averaged 8.9% annual returns, several percentage points above government bonds; in the long run, that means a lot more dollars for the program.",
+            ev: { label: "Article passage", text: "She said that since 1992, annual returns for Washington's pension funds have averaged 8.9%, which is several percentage points higher than investments in government bonds. In the long run that would translate to a lot more dollars for the program." }
+          },
+          {
+            text: "It means smart long-term investing, not day trading or big risks, so the fund is there in 50 years when today's audience needs long-term care.",
+            ev: { label: "Weiner's words", text: "“This doesn't mean day trading, taking big risks on a stock market,” she said. “This means smart long-term [investing] so that in 50 years when people in this audience today will need long term care, that fund will be there for you.”" }
+          }
+        ],
+        backers: [
+          { n: "Gov. Bob Ferguson", q: "Democrat" },
+          { n: "John Braun", q: "Senate Minority Leader, R-Centralia" },
+          { n: "Washington State Nurses Association" },
+          { n: "Washington State Council of Fire Fighters" },
+          { n: "AARP" },
+          { n: "Washington Health Care Association" }
+        ],
+        money: { ref: "seiu775", quals: ["underwriting the campaign", "$2.5M raised and spent"] }
+      },
+      {
+        id: "no", stance: "Against", group: "Opponents",
+        speaker: { n: "Sen. Bob Hasegawa", q: "D-Tukwila" },
+        claims: [
+          { text: "Fiduciary responsibility is “to the people.”" },
+          { text: "No one can know when the economy or the stock market will crash." },
+          { text: "The vote is about keeping prudent fiscal management of tax dollars and retaining the constitution's protections." }
+        ],
+        ev: { label: "Hasegawa's words", text: "“Our fiduciary responsibility is to the people,” he told the debate audience. “No one is going to know when the economy or stock market crashes. So, this vote is about whether we keep prudent fiscal management policies of our tax dollars and retain those constitutional protections.”" },
+        backers: [
+          { n: "Sen. Bob Hasegawa", q: "D-Tukwila" },
+          { n: "Three Republican state lawmakers" }
+        ],
+        backersNote: "Together they wrote the voters' pamphlet statement opposing the measure.",
+        money: { text: "None: there is no funded opposition campaign, Hasegawa said." }
+      }
+    ],
+
+    background: {
+      earlier: { ref: "m2020", quals: ["defeated; passed in only 3 counties"] },
+      statements: "Statements from both sides, along with an explanation of the measure prepared by the attorney general's office, are on the secretary of state website."
+    }
+  },
+
+  /* Neighbors that earned a view. Reached from a label; each follows the same rule. */
+  views: {
+    wacares: {
+      name: "WA Cares", kind: "Program", title: "WA Cares",
+      sub: "The state's long-term care program",
+      facts: [
+        { k: "Paid for by", v: "A 0.58% tax on the paychecks of most workers in Washington" },
+        { k: "Benefit", v: "A lifetime amount of $36,500, set to rise in future years to account for inflation" }
+      ],
+      part: {
+        heading: "Where the tax money is kept",
+        name: "Long Term Services and Supports Trust Account",
+        v: "More than $2.5 billion banked as of summer 2025"
+      },
+      timeline: {
+        heading: "Milestones",
+        from: 2019, to: 2027,
+        events: [
+          { t: 2019.5, date: "2019", text: "Created by a state law" },
+          { t: 2023.5, date: "Mid-2023", text: "Payroll tax collections begin" },
+          { t: 2025.83, date: "Oct 31, 2025", text: "The article this page draws on is published", marker: true, lane: 1 },
+          { t: 2026.0, date: "January 2026", text: "Pilot program starts in a handful of counties" },
+          { t: 2026.5, date: "July 2026", text: "Those who qualify can begin using the benefit", lane: 1 }
+        ]
+      }
+    },
+    m2020: {
+      name: "2020 attempt", kind: "Earlier measure", title: "The 2020 attempt",
+      sub: "A similar measure, which voters defeated",
+      facts: [
+        { k: "Where it passed", v: "Only three counties: King, Jefferson and Whatcom" },
+        { k: "How it differed", v: "Unlike SJR 8201, it did not require money made from investments to go into the WA Cares Fund, according to Heather Weiner of the Approve 8201 campaign." },
+        { k: "Opposition money", v: "None: there was no funded opposition campaign then either, Sen. Bob Hasegawa said." },
+        { k: "Money for the yes side", v: "", ref: "seiu775", quals: ["spent in the losing effort"] }
+      ]
+    },
+    seiu775: {
+      name: "SEIU 775", kind: "Union", title: "SEIU 775",
+      sub: "Service Employees International Union 775",
+      facts: [
+        { k: "Represents", v: "55,000 long-term care workers in Washington, Montana and Alaska" },
+        { k: "This campaign", v: "Underwriting the Approve 8201 campaign" },
+        { k: "Raised and spent", v: "$2.5 million as of Friday, as reported by the union" },
+        { k: "Against 2020", v: "Five times what it spent in its losing effort in 2020", ref: "m2020", quals: ["defeated; passed in only 3 counties"] }
+      ]
+    }
+  }
+};
+
+function page() {
+  return {
+    M: MODEL,
+    stack: [],
+    get cur() { return this.stack.length ? this.M.views[this.stack[this.stack.length - 1]] : null; },
+    get prev() { return this.stack.length > 1 ? this.M.views[this.stack[this.stack.length - 2]] : null; },
+    open(id) {
+      const d = this.$refs.dlg;
+      if (d.open) {
+        const i = this.stack.indexOf(id);
+        if (i >= 0) this.stack = this.stack.slice(0, i + 1); else this.stack.push(id);
+      } else {
+        this.stack = [id];
+        d.showModal();
+      }
+      this.$nextTick(() => { const b = d.querySelector('.modal-box'); if (b) b.scrollTop = 0; });
+    },
+    back() { this.stack.pop(); },
+    label(l) {
+      const v = this.M.views[l.ref];
+      const q = (l.quals || []).map(s => '<span class="lbl-q">· ' + s + '</span>').join('');
+      return '<button type="button" class="lbl" data-open="' + l.ref + '"><span class="lbl-name">' + v.name +
+        '</span>' + q + '<span class="lbl-go" aria-hidden="true">→</span></button>';
+    },
+    years() { const t = this.cur.timeline, out = []; for (let y = t.from; y <= t.to; y++) out.push(y); return out; },
+    pos(t) { const tl = this.cur.timeline; return ((t - tl.from) / (tl.to - tl.from) * 100) + '%'; }
+  };
+}
+</script>
+</body>
+</html>

@@ -8,8 +8,9 @@ shallow clone, whose missing history would turn settled branches into novel
 ones.
 
   ancestor          main contains the tip.
-  content-settled   every path the branch changed holds main's bytes, or bytes
-                    main held since the merge base, or moved or was retired.
+  content-settled   every path the branch changed holds main's bytes (at that
+                    path or another), or bytes main held since the merge base,
+                    or moved or was retired.
   residue-free      paths differ, but every line the branch added is in main's
                     copy, so nothing is unique.
   open              heads an open pull request (from the crawl's cache); read
@@ -25,6 +26,7 @@ Usage:
 """
 
 import argparse
+import collections
 import json
 import os
 import re
@@ -42,7 +44,13 @@ def git(co, *a):
     return r.stdout if r.returncode == 0 else ""
 
 
-def classify(co, ref, main_files, basenames):
+# A basename this common on main names no particular file: matching README.md
+# proposes every README in the tree as the one that moved, so a whole new folder
+# read as settled. stranded-triage.py's COMMON_BASENAME, measured there.
+COMMON_BASENAME = 3
+
+
+def classify(co, ref, main_files, main_blobs, basenames):
     mb = git(co, "merge-base", ref, "origin/main").strip()
     if not mb:
         return "novel", {"why": "no merge base"}
@@ -60,7 +68,9 @@ def classify(co, ref, main_files, basenames):
             raw = git(co, "log", "--raw", "--no-abbrev", "--format=", f"{mb}..origin/main", "--", path)
             if any(blob in l.split()[2:4] for l in raw.splitlines() if l.startswith(":")):
                 continue                    # main held these bytes since, then moved on
-        elif os.path.basename(path) in basenames:
+        elif blob in main_blobs:
+            continue                        # landed: main holds these bytes at another path
+        elif 0 < basenames[os.path.basename(path)] < COMMON_BASENAME:
             continue                        # moved: a lead, not a proof (stranded-triage.py)
         elif git(co, "log", "origin/main", "--diff-filter=D", "--format=%H", "-1", "--", path).strip():
             continue                        # retired on main
@@ -94,8 +104,10 @@ def main(argv):
         if git(co, "rev-parse", "--is-shallow-repository").strip() == "true":
             raise SystemExit(f"branches.py: {co} is a shallow clone; run git fetch --unshallow origin there first")
         heads = {p.get("head") for p in (act.get(repo, {}).get("openPRs") or [])}
-        main_files = set(git(co, "ls-tree", "-r", "--name-only", "origin/main").split("\n")) - {""}
-        basenames = {os.path.basename(p) for p in main_files}
+        tree = [l.split("\t", 1) for l in git(co, "ls-tree", "-r", "origin/main").splitlines()]
+        main_files = {p for _, p in tree}
+        main_blobs = {meta.split()[2] for meta, _ in tree}
+        basenames = collections.Counter(os.path.basename(p) for p in main_files)
         for line in git(co, "for-each-ref", "--format=%(refname:short) %(objectname) %(committerdate:short)",
                         "refs/remotes/origin").splitlines():
             ref, sha, day = line.split(" ")
@@ -108,7 +120,7 @@ def main(argv):
             elif branch in heads:
                 row["class"] = "open"
             else:
-                row["class"], extra = classify(co, ref, main_files, basenames)
+                row["class"], extra = classify(co, ref, main_files, main_blobs, basenames)
                 row.update(extra)
                 if row["class"] == "novel":
                     row["session"] = git(co, "log", "-1", "--format=%(trailers:key=Claude-Session,valueonly)", ref).strip()

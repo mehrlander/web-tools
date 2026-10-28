@@ -16,43 +16,23 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { repoRoot } from '../repo-root.mjs';   // not the test bootstrap: that one needs jsdom
+import { loadKit } from './kit-shim.mjs';
 
-// Comma-separated, double-quote quoting with "" escapes, one record per line.
-// The registries' prose is single-line by construction, which is what lets the
-// parse stay this small.
-export function parseCsvLine(line) {
-  const out = [];
-  let cur = '', inQ = false;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (inQ) {
-      if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; }
-      else if (ch === '"') inQ = false;
-      else cur += ch;
-    } else if (ch === '"') inQ = true;
-    else if (ch === ',') { out.push(cur); cur = ''; }
-    else cur += ch;
-  }
-  out.push(cur);
-  return out;
-}
-
+// The parse is lib/kits/csv.js's, the one the Map's Registries tab runs, read
+// through the kit shim so the commit hook and the browser cannot disagree about
+// a registry. This file carried its own copy, byte for byte, until 2026-10-24.
+// Comma-separated, double-quote quoting with "" escapes, one record per line:
+// the registries' prose is single-line by construction.
+const { Csv } = loadKit(repoRoot, 'lib/kits/csv.js');
+export const parseCsvLine = Csv.parseLine;
 // Header-driven, so a column reorder cannot silently shift meanings.
-export function parseCsv(text) {
-  const lines = String(text || '').split(/\r?\n/).filter(l => l.trim());
-  if (!lines.length) return [];
-  const head = parseCsvLine(lines[0]).map(h => h.trim());
-  return lines.slice(1).map(line => {
-    const f = parseCsvLine(line);
-    return Object.fromEntries(head.map((h, i) => [h, (f[i] ?? '').trim()]));
-  });
-}
+export const parseCsv = Csv.rows;
 
 // A blank cell means NOT ASSERTED. Where a property has to tell "checked, and
 // the answer is none" from "not checked", its value domain carries an explicit
 // token (`gate` uses `none`), so no column here rests on empty-string versus
 // null. That rule is why these splits are safe.
-const list = (s) => (s ? splitList(s).map(x => x.trim()).filter(Boolean) : []);
+const list = Csv.list;
 
 export function loadRegistries(root = repoRoot) {
   const read = (f) => parseCsv(readFileSync(path.join(root, 'docs', f), 'utf8'));
@@ -75,11 +55,9 @@ export function loadRegistries(root = repoRoot) {
 // than taken from the rows, so a restamp cannot reorder the file.
 // A list rides in one cell, semicolon separated. Values can contain semicolons
 // (an assertion name did, and split it in half), so the delimiter is escaped on
-// the way out and honoured on the way back. Backslash escapes itself.
-export const joinList = (xs) =>
-  xs.map(x => String(x).replace(/\\/g, '\\\\').replace(/;/g, '\\;')).join(';');
-export const splitList = (s) =>
-  String(s).split(/(?<!\\);/).map(x => x.replace(/\\;/g, ';').replace(/\\\\/g, '\\'));
+// the way out and honoured on the way back. Backslash escapes itself. Csv's too.
+export const joinList = Csv.join;
+export const splitList = Csv.split;
 
 export function writeCsv(rows, cols) {
   const cell = (v) => {
@@ -97,6 +75,6 @@ export function writeCsv(rows, cols) {
 // hook rewrote the file from a stale list, and nothing re-ran. Change this list
 // in the same commit as any column change to docs/registries.csv.
 export const REGISTRY_COLS = ['id','path','key','identity','membership','inherits','target','scope',
-                              'span','fields','gate','area','title','gloss','renders_in'];
+                              'span','fields','gate','key_primitive','title','gloss','renders_in'];
 export const PROPERTY_COLS = ['registry','property','mode','deriver','required','form',
                               'exclusive','values','gloss'];

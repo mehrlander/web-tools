@@ -271,7 +271,7 @@ hook's `# --- leg` headers, derived into [`docs/hook-legs.csv`](../docs/hook-leg
 | `lib/`, `app/index.html` | `npm run build:app` | `dist/app.js` |
 | `console/` | `npm run build:console` | `console/suite.js` |
 | `pages/**/*.html` | `npm run pages-index` | `pages/README.md`, `pages/index.html`, `pages/pages.csv` |
-| `node/test/` | `npm run tests-index` | derived fields in `docs/tests.csv` |
+| `node/test/` | `npm run tests-index` | `docs/tests.csv`, and rows added or dropped in `docs/tests-authored.csv` |
 | `node/`, `python/`, any markdown | `npm run tools-index` | derived fields in `docs/harness.csv`, and `docs/hook-legs.csv` |
 | `lib/kits/`, or a file that loads a kit | `npm run kits-index` | `docs/kits.csv` |
 | `lib/`, `pages/` | `npm run registries-reach` | `renders_in` in `docs/registries.csv` |
@@ -283,10 +283,7 @@ hook's `# --- leg` headers, derived into [`docs/hook-legs.csv`](../docs/hook-leg
 | `tracker/tasks/` | `npm run tracker-board` | `tracker/board.md`, `tracker/board.csv`, `tracker/board-tags.csv` |
 | any tracked CSV | `python3 python/csv-census.py` | `data/csv-census.csv` |
 
-Most of these files are generated whole. Four are not. `docs/docs.csv`,
-`docs/harness.csv`, `docs/tests.csv` and `docs/registries.csv` are hand-edited
-except for the fields a generator stamps. Edit a row freely and leave those
-fields alone.
+Most of these files are generated whole. Four are not. `docs/docs.csv`, `docs/harness.csv`, `docs/registries.csv` and `docs/tests-authored.csv` are hand-edited except for the fields or rows a generator writes. Edit a row freely and leave those fields alone.
 
 `docs-readme` and `docs-reach` are a cycle. `docs/README.md` is generated from
 the registry and is also a row in it, so the hook runs `docs-reach` a second

@@ -116,7 +116,7 @@ test('scope and header search use inventory rows, with no source fetch', () => {
   const before = asked.length;
   data.dataScope = home;
   data.dataQ = 'value';
-  assert.deepEqual([...data.dataMatches.map(f => f.path)], [' leading.csv']);
+  assert.deepEqual([...data.tableShown.map(t => t.path)], [' leading.csv']);
   assert.equal(asked.length, before);
   data.dataScope = ''; data.dataQ = '';
 });
@@ -154,7 +154,7 @@ test('the Refresh control discovers declarations added to the config cache', asy
   delete manifests['mehrlander/drive-relative'];
   manifests['mehrlander/new'] = { estate: true, data: { census: censusPath } };
   contents['mehrlander/new'] = census();
-  const refresh = [...el.querySelectorAll('button')].find(b => b.getAttribute('@click') === 'loadDataCensus(true)');
+  const refresh = [...el.querySelectorAll('button')].find(b => b.getAttribute('@click')?.startsWith('loadDataCensus(true)'));
   assert.ok(refresh);
   const before = asked.length;
   refresh.click();

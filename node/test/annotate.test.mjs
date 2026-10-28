@@ -155,8 +155,9 @@ test('saveNotes writes each annotation with words as a note about the file, a qu
   A.add({ type: 'text', quote: { exact: 'the words', prefix: 'before ', suffix: ' after' }, display: 'the words', label: '' }, 'about these words');
   A.add({ type: 'page' }, '');
   A.add({ type: 'page' }, 'about the page');
+  A.add({ type: 'page' }, 'already saved through About').noteId = 'npersisted';
   const saved = await A.saveNotes();
-  assert.equal(saved.length, 2, 'the annotation with no words is not a note');
+  assert.equal(saved.length, 2, 'blank annotations and notes already saved through About are omitted');
   const lines = file.text.trim().split('\n').map(l => JSON.parse(l));
   assert.equal(lines.length, 2);
   assert.ok(lines.every(n => n.about === 'o/r:docs/sample.md' && n.author === 'me'));
