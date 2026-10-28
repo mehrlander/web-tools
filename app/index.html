@@ -6881,12 +6881,7 @@ function app(){ return {
     const named = this.visitLabel(v) === this.routeLabel(v.view);
     return named ? ((v.repo || '').split('/')[1] || '') : this.routeLabel(v.view);
   },
-  visitBytes(n){
-    if (!n) return 'not stored';
-    return n < 1024 ? n + ' B'
-      : n < 1024 * 1024 ? Math.round(n / 1024) + ' KB'
-      : (n / (1024 * 1024)).toFixed(1) + ' MB';
-  },
+  visitBytes(n){ return n ? window.Traffic.fmtBytes(n, 'not stored') : 'not stored'; },
   // A payload row and an unrecognized row have nowhere to go, by construction.
   visitOpenable(v){ return !!v && v.kind !== 'payload' && v.kind !== 'unrecognized'; },
 

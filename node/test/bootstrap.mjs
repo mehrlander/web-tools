@@ -128,13 +128,24 @@ export function loadKit(name, { window: w = {}, imports = KIT_IMPORTS, console: 
   };
   // The address grammar is standing equipment for kits as it is for
   // components (STANDING, below): gh-boot loads it before any page chain. So
-  // is gh-api.js's base64, on whatever window.GH the test has, or a bare one.
+  // is gh-api.js's base64, on whatever window.GH the test has, or a bare one,
+  // and the byte-count rule, window.Traffic.fmtBytes.
   if (!w.RepoAddress && file !== ADDRESS_KIT) new Function('window', readFileSync(ADDRESS_KIT, 'utf8'))(w);
+  if (file !== TRAFFIC_KIT) withTraffic(w);
   withBase64(w.GH ??= {});
   w.__kitReturn = new Function('window', 'console', src)(w, cons);
   return w;
 }
 const ADDRESS_KIT = path.join(repoRoot, 'lib', 'kits', 'repo-address.js');
+const TRAFFIC_KIT = path.join(repoRoot, 'lib', 'kits', 'traffic.js');
+
+// The byte-count rule a view or kit reads at call time (window.Traffic.fmtBytes),
+// installed the way gh-boot does it, before any page chain. makeWindow and
+// loadKit call it; a test that builds its own bare window calls it on that.
+export function withTraffic(w) {
+  if (!w.Traffic) new Function('window', readFileSync(TRAFFIC_KIT, 'utf8'))(w);
+  return w;
+}
 
 // jsdom window prepared for the real Alpine runtime. Returns:
 //   window   — the jsdom window (runScripts: 'dangerously')
@@ -227,6 +238,7 @@ export function makeWindow({ html = '<!doctype html><html><body></body></html>',
     }
   }
 
+  withTraffic(window);
   return { dom, window, setMedia, problems };
 }
 
@@ -271,8 +283,9 @@ export function captureAlpineErrors(Alpine) {
 // real dependency goes missing (see the `stub-hides-the-wiring` snag). The
 // address grammar is another: components read window.RepoAddress at call
 // time, since lib/kits/repo-address.js owns the owner/repo[@ref]:path grammar,
-// and the assistant prefixes a branch label drops are window.AssistantMark's.
-const STANDING = ['lib/kits/repo-address.js', 'lib/kits/claude-mark.js', 'lib/kits/assistant-mark.js'];
+// the assistant prefixes a branch label drops are window.AssistantMark's, and
+// every byte count a view shows is window.Traffic.fmtBytes'.
+const STANDING = ['lib/kits/repo-address.js', 'lib/kits/claude-mark.js', 'lib/kits/assistant-mark.js', 'lib/kits/traffic.js'];
 
 // Import the real Alpine, register it on the window, run each component file
 // in the window realm (they hook 'alpine:init'), start Alpine, and let the
