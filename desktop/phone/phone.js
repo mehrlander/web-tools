@@ -17,8 +17,7 @@
   const observedTime = at => `<time data-at="${escape(at)}" datetime="${escape(at)}" title="${escape(stamp(at))}">${escape(stamp(at))}</time>`;
   const stamp = at => at ? new Date(at).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) : 'Not yet';
   const safeUrl = value => { try { const url = new URL(value); return url.origin === 'https://mehrlander.github.io' && url.pathname.startsWith('/web-tools/') ? url.href : ''; } catch { return ''; } };
-  let data, tab = 'now', assistant = '', timer, etag = '', failures = 0, pending = false, connected = false, accessDenied = false, savedScroll = 0, review;
-  let unseen = [];
+  let data, tab = 'now', assistant = '', timer, etag = '', failures = 0, pending = false, connected = false, accessDenied = false, savedScroll = 0;
   const expanded = new Set();
   const selectedDetails = new Map();
   const panelScrolls = new Map();
@@ -60,7 +59,7 @@
   const fullIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="size-4" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5M3 3l6 6m12-6-6 6M3 21l6-6m12 6-6-6"/></svg>';
   function row(item, position, inline = true) {
     const key = escape(item.key), summary = replyPreview(statusText(item));
-    return `<article data-item="${key}" ${item.changeId ? `data-change="${escape(item.changeId)}"` : ''} class="min-w-0 border-b border-stone-100 bg-white"><div class="relative"><button ${inline ? `data-inspect="${key}" aria-expanded="false" aria-controls="inline-${encodeURIComponent(item.key)}"` : `data-pick="${key}"`} class="block min-h-11 w-full px-3 py-2 text-left active:bg-stone-50"><span class="flex items-start gap-2">${position ? `<span class="w-5 shrink-0 pt-1 text-sm text-amber-700">${position}.</span>` : `<span class="pt-0.5 ${colours[keyFor(item.provider)]}">${mark(item.provider)}</span>`}<span class="min-w-0 flex-1"><span class="flex items-start gap-1 ${inline ? 'pr-9' : ''}"><span class="line-clamp-2 min-w-0 flex-1 text-pretty text-[14px] font-medium leading-5">${escape(itemTitle(item))}</span><span data-caret class="shrink-0 pt-0.5 text-stone-400">${inline ? caret : fullIcon}</span></span><span class="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px] text-stone-500">${badge(item.state)}<span>${escape(item.provider)}</span>${locationMark(item.location)}${item.work?.agents ? `<span>${item.work.agents} agents</span>` : ''}${observedTime(item.at)}</span>${summary ? `<span data-summary class="mt-1 line-clamp-2 text-pretty text-[13px] leading-[19px] text-stone-600">${escape(summary.slice(0,180))}</span>` : ''}</span></span></button>${inline ? `<button data-pick="${key}" aria-label="Open full view: ${escape(item.title)}" title="Full view" class="absolute right-1 top-1 flex size-11 items-center justify-center rounded text-emerald-900 active:bg-stone-100">${fullIcon}</button>` : ''}</div>${inline ? `<div id="inline-${encodeURIComponent(item.key)}" data-inline="${key}" hidden></div>` : ''}</article>`;
+    return `<article data-item="${key}" class="min-w-0 border-b border-stone-100 bg-white"><div class="relative"><button ${inline ? `data-inspect="${key}" aria-expanded="false" aria-controls="inline-${encodeURIComponent(item.key)}"` : `data-pick="${key}"`} class="block min-h-11 w-full px-3 py-2 text-left active:bg-stone-50"><span class="flex items-start gap-2">${position ? `<span class="w-5 shrink-0 pt-1 text-sm text-amber-700">${position}.</span>` : `<span class="pt-0.5 ${colours[keyFor(item.provider)]}">${mark(item.provider)}</span>`}<span class="min-w-0 flex-1"><span class="flex items-start gap-1 ${inline ? 'pr-9' : ''}"><span class="line-clamp-2 min-w-0 flex-1 text-pretty text-[14px] font-medium leading-5">${escape(itemTitle(item))}</span><span data-caret class="shrink-0 pt-0.5 text-stone-400">${inline ? caret : fullIcon}</span></span><span class="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px] text-stone-500">${badge(item.state)}<span>${escape(item.provider)}</span>${locationMark(item.location)}${item.work?.agents ? `<span>${item.work.agents} agents</span>` : ''}${observedTime(item.at)}</span>${summary ? `<span data-summary class="mt-1 line-clamp-2 text-pretty text-[13px] leading-[19px] text-stone-600">${escape(summary.slice(0,180))}</span>` : ''}</span></span></button>${inline ? `<button data-pick="${key}" aria-label="Open full view: ${escape(item.title)}" title="Full view" class="absolute right-1 top-1 flex size-11 items-center justify-center rounded text-emerald-900 active:bg-stone-100">${fullIcon}</button>` : ''}</div>${inline ? `<div id="inline-${encodeURIComponent(item.key)}" data-inline="${key}" hidden></div>` : ''}</article>`;
   }
 
   function group(title, items, empty = '', numbered = false, inline = true) {
@@ -69,14 +68,14 @@
 
   function changeItems() {
     const delegated = new Set(data.items.flatMap(i => (i.work?.members || []).map(id => `session:${i.provider}:${id}`)));
-    return unseen.filter(c => !delegated.has(c.key) && (!assistant || keyFor(c.provider) === assistant)).map(c => {
+    return (data.changes || []).filter(c => !delegated.has(c.key) && (!assistant || keyFor(c.provider) === assistant)).map(c => {
       const item = data.items.find(i => i.key === c.key);
-      return {...(item || recordedChange(c)),changeId:c.id};
+      return item || recordedChange(c);
     });
   }
-  function changesSection(limit, exclude = new Set(), title = 'Since you last looked') {
+  function changesSection(limit, exclude = new Set(), title = 'Recent activity') {
     const items = changeItems().filter(i => !exclude.has(i.key));
-    return `<section aria-label="${title}"><div class="flex items-center justify-between gap-2 px-3 pt-1 pb-0"><h2 class="text-xs font-semibold text-stone-600">${title} <span class="font-normal">${items.length || ''}</span></h2>${items.length ? '<button data-review class="min-h-11 text-sm text-emerald-900">Mark shown seen</button>' : ''}</div>${items.length ? items.slice(0,limit).map(i => row(i)).join('') : '<p class="px-3 py-2 text-[13px] text-stone-500">You’re caught up.</p>'}${items.length > limit ? '<button data-tab="recent" class="min-h-11 px-4 text-sm text-emerald-900">All recent →</button>' : ''}</section>`;
+    return `<section aria-label="${title}"><h2 class="px-3 pt-2 pb-1 text-xs font-semibold text-stone-600">${title} <span class="font-normal">${items.length || ''}</span></h2>${items.length ? items.slice(0,limit).map(i => row(i)).join('') : '<p class="px-3 py-2 text-[13px] text-stone-500">No recent activity.</p>'}${items.length > limit ? '<button data-tab="recent" class="min-h-11 px-4 text-sm text-emerald-900">All recent →</button>' : ''}</section>`;
   }
   function workerReport(recentOnly = false) {
     const report = data.sources.workerActivity;
@@ -95,8 +94,6 @@
     const visibleTop = el('overview').querySelector('header')?.getBoundingClientRect().bottom || 0;
     const anchor = selected() ? null : [...document.querySelectorAll('#content [data-item]')].find(n => n.getBoundingClientRect().bottom > visibleTop);
     const anchorKey = anchor?.dataset.item, anchorTop = anchor?.getBoundingClientRect().top;
-    if (!review || review.key !== `web-tools-now-reviewed:${data.machineName}`) review = new window.NowView.ReviewStore(data.machineName);
-    unseen = review.pending(data.changes);
     el('machine').textContent = data.machineName;
     const waiting = data.items.filter(i => i.state === 'queued');
     el('queue-count').textContent = data.sources.queueAvailable ? waiting.length : '?';
@@ -305,10 +302,6 @@
       renderPanels();
       return;
     }
-    if (button.hasAttribute('data-review')) {
-      const shown = new Set([...document.querySelectorAll('[data-change]')].map(n => n.dataset.change));
-      review.mark(unseen.filter(c => shown.has(c.id))); render(); return;
-    }
     if (button.dataset.tab) { tab = button.dataset.tab; render(); window.scrollTo(0,0); }
     if (button.dataset.assistant) { assistant = assistant === button.dataset.assistant ? '' : button.dataset.assistant; render(); }
     if (button.dataset.pick) { rememberPanelScroll(); savedScroll = window.scrollY; history.pushState({nowDetail:true},'', '#item=' + encodeURIComponent(button.dataset.pick)); detail(); connection(); window.scrollTo(0,0); }
@@ -329,7 +322,6 @@
   });
   window.addEventListener('popstate', () => { detail(); if (!selected()) renderPanels(); connection(); window.scrollTo(0,savedScroll); });
   document.addEventListener('visibilitychange', () => { clearTimeout(timer); if (!document.hidden) poll(); });
-  window.addEventListener('storage', event => { if (review && event.key === review.key) { review.load(); render(); } });
   window.addEventListener('online', poll);
   window.addEventListener('offline', () => { connected = false; connection(); });
   try { const cached = JSON.parse(localStorage.getItem('web-tools-now-snapshot')); if (cached?.schemaVersion === 1 && Array.isArray(cached.items)) data = cached; } catch { }
