@@ -1,31 +1,31 @@
 ---
 name: sessions
 description: >-
-  Put this session on the record. Attach and clone the session-record store
+  Log this session. Attach and clone the session archive
   (the checkout whose .web-tools.json declares `sessions`) beside the project
   root when nothing has, so the portable plugin's Stop hook can find it. Use
   when the session-start directive says to, when the user asks whether this
-  session is being recorded, says "get on the bus", "record this session",
+  session is being recorded or logged, says "get on the bus", "record this session",
   or "web-tools-private is not checked out", or when invoked explicitly as
   /portable:sessions.
 ---
 
-# Put this session on the record
+# Log this session
 
-**Stop if a store is already checked out.** A checkout that declares
+**Stop if the session archive is already checked out.** A checkout that declares
 `"sessions": "<dir>"` in its `.web-tools.json` and carries
-`<dir>/tools/on-stop.sh` is the store, and the Stop hook finds it on its own.
+`<dir>/tools/on-stop.sh` is the archive, and the Stop hook finds it on its own.
 Look at the project root, its children, and its siblings, which is exactly the
 search the hook runs. If one is there, say so in one line and do nothing else.
 
-**Find the store's name.** Read it from `SESSIONS_STORE_REPO`, else from the
+**Find the archive's repo.** Read it from `SESSIONS_STORE_REPO`, else from the
 first `.web-tools.json` in that search that declares
 `"sessionsStore": "<owner>/<repo>"`, else use `mehrlander/web-tools-private`.
 
 **Attach, then clone beside the other checkouts.** An unattached private repo
 is unreachable from a shell here, so attach it first with the session's
-repository tool (`add_repo`, with push access, since the recorder pushes one
-commit per record). Then clone it, shallow, into the directory that holds the
+repository tool (`add_repo`, with push access, since session logging pushes one
+commit per session file). Then clone it, shallow, into the directory that holds the
 other checkouts: `<parent of the project root>/<repo>` when the root is itself a
 checkout, or `<project root>/<repo>` when the root sits above them. Either
 puts it where the hook looks. Register the clone with the session afterwards
@@ -33,10 +33,10 @@ puts it where the hook looks. Register the clone with the session afterwards
 
 **Confirm, in one line, then end the turn.** Check that the clone's manifest
 declares `sessions` and that `tools/on-stop.sh` exists under it, and say the
-session will be recorded from the next Stop. Then end the turn rather than
+session will be logged from the next Stop. Then end the turn rather than
 chaining into other work: Stop fires when the session idles, not once per
-message, so a turn the harness auto-continues writes no record. The first
-record appears on the store's `main` within seconds of the next idle.
+message, so a turn the harness auto-continues writes no session file. The first
+session file appears on the archive's `main` within seconds of the next idle.
 
-Do not install anything, edit settings, or touch the store's contents: the
-recorder ships in the plugin, and the checkout is all a session lacks.
+Do not install anything, edit settings, or touch the archive's contents: session
+logging ships in the plugin, and the checkout is all a session lacks.

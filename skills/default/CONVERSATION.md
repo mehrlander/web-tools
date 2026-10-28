@@ -29,7 +29,7 @@ substituting the current repo in URL templates.
 
 * **Surfacing caption.** Use:
   `💬 [session](…/pages/session.html#id=<short>) · <N> files · [this turn](…/commit/<sha>)`
-  `<short>` is the first eight characters of `$CLAUDE_CODE_SESSION_ID`. A reply that changed no files carries the link alone. Calculate `<N>` with `git diff origin/main...HEAD --name-only | wc -l`. Omit `this turn` on a single-commit branch. With no sessions store checked out, there is no record, so link the 🌿 branch in place of 💬. Mention files in prose only when something non-obvious must be said about them.
+  `<short>` is the first eight characters of `$CLAUDE_CODE_SESSION_ID`. A reply that changed no files carries the link alone. Calculate `<N>` with `git diff origin/main...HEAD --name-only | wc -l`. Omit `this turn` on a single-commit branch. With no session archive checked out, there is no session file, so link the 🌿 branch in place of 💬. Mention files in prose only when something non-obvious must be said about them.
 
 ## A reply that changed files
 
