@@ -134,14 +134,6 @@
 
   const findItem = key => data?.items.find(i => i.key === key) || data?.changes?.filter(c => c.key === key).map(recordedChange)[0];
   const markdown = text => window.NowReading?.markdown(text) || `<p class="whitespace-pre-wrap">${escape(text)}</p>`;
-  const detailIcons = {
-    summary:'<path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5Z"/>',
-    reply:'<path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8Z"/><path d="M8 9h8M8 13h5"/>',
-    prompt:'<circle cx="9" cy="7" r="3"/><path d="M3 21v-2a6 6 0 0 1 12 0v2m2-10 4 3-4 3m-4-3h8"/>',
-    activity:'<path d="M3 12h4l3-8 4 16 3-8h4"/>'
-  };
-  const detailIcon = (id,cls = 'size-4 shrink-0') => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="${cls}" aria-hidden="true">${detailIcons[id]}</svg>`;
-  const detailTones = {summary:'border-violet-600 text-violet-900',reply:'border-emerald-600 text-emerald-900',prompt:'border-sky-600 text-sky-900',activity:'border-amber-600 text-amber-900'};
   function observedEvents(item, inline) {
     const seen = new Set();
     return data.events.filter(e => {
@@ -153,8 +145,7 @@
   }
   function workBody(item, inline) {
     const work = item.work;
-    if (!work) return '';
-    if (!work.segments?.length) return work.agents ? `<p class="text-xs text-stone-500">${work.agents} delegated agents · Work summary pending</p>` : '';
+    if (!work?.segments?.length) return '';
     return `<section aria-label="Work updates"><ol class="divide-y divide-stone-100">${work.segments.slice(0,inline ? 3 : 6).map((part,n) => `<li class="py-1.5">${!inline || n ? `<h3 class="text-xs font-semibold text-stone-800">${escape(part.headline)}</h3>` : ''}${markdown(part.summary)}<div class="mt-1 text-[10px] leading-4 text-stone-500"><span title="Evidence through ${escape(stamp(work.through))}">Summarized ${observedTime(part.generatedAt)}</span>${part.evidence?.length ? ` · ${part.evidence.map(escape).join(' · ')}` : ''}</div></li>`).join('')}</ol></section>`;
   }
   function checkpointBody(cp, inline) {
@@ -165,7 +156,7 @@
   }
   function detailParts(item, inline) {
     const parts = [], reply = replies.get(item.id), events = observedEvents(item,inline);
-    if (item.work && (item.work.agents || latestWork(item))) parts.push({id:'summary',label:'Summary',title:'Work updates',body:workBody(item,inline)});
+    if (latestWork(item)) parts.push({id:'summary',label:'Summary',title:'Work updates',body:workBody(item,inline)});
     if (item.turn?.response?.trim()) parts.push({id:'reply',label:'Reply',title:'Latest reply',body:markdown(item.turn.response)});
     else if (item.kind === 'errand' && ['reply','complete','failed'].includes(item.state)) parts.push({id:'reply',label:'Reply',title:'Errand result',body:`<div data-reply="${escape(item.key)}">${reply === undefined ? '<p class="text-stone-500">Reading result…</p>' : markdown(reply)}</div>`});
     if (item.checkpoint && !parts.some(p => p.id === 'summary')) parts.push({id:'summary',label:'Summary',title:'Published summary',body:checkpointBody(item.checkpoint,inline)});
@@ -175,7 +166,9 @@
     }
     const detail = usefulDetail(item);
     const meaningful = detail && !/^(Conversation (running|idle|interrupted)|No recent event|Delegated work: \d+ agents?)$/.test(detail);
-    if (events.length || item.turn || meaningful) parts.push({id:'activity',label:'Activity',title:'Observed activity',body:`${item.turn ? `<dl class="mb-2 text-[10px] text-stone-500"><div class="flex flex-wrap gap-x-1"><dt>Turn started</dt><dd>${escape(stamp(item.turn.startedAt))}</dd></div>${item.turn.lastTool ? `<div class="mt-1 flex items-center gap-1"><dt>Last tool</dt><dd class="rounded bg-amber-50 px-1.5 py-0.5 font-medium text-amber-900">${escape(item.turn.lastTool)}</dd></div>` : ''}</dl>` : ''}${meaningful && !events.some(e => e.detail === detail) && !(item.turn?.lastTool && /^Using /.test(detail)) ? markdown(detail) : ''}${events.length ? `<ol class="divide-y divide-stone-100">${events.map(e => `<li class="flex items-start gap-2 py-1.5"><span class="w-12 shrink-0 pt-0.5 text-[10px] text-stone-500">${observedTime(e.at)}</span><div class="min-w-0 flex-1">${markdown(e.detail || labels[e.state] || e.state)}</div></li>`).join('')}</ol>` : ''}`});
+    const agents = item.work?.agents || 0;
+    const observation = agents ? `<div aria-label="Current observation" class="mb-2 flex flex-wrap items-center gap-1.5 text-[10px] text-stone-500">${badge(item.state)}<span>${agents} delegated ${agents === 1 ? 'agent' : 'agents'}</span><span>Observed ${observedTime(item.at)}</span></div>` : '';
+    if (events.length || item.turn || meaningful || agents) parts.push({id:'activity',label:'Activity',title:'Observed activity',body:`${observation}${item.turn ? `<dl class="mb-2 text-[10px] text-stone-500"><div class="flex flex-wrap gap-x-1"><dt>Turn started</dt><dd>${escape(stamp(item.turn.startedAt))}</dd></div>${item.turn.lastTool ? `<div class="mt-1 flex items-center gap-1"><dt>Last tool</dt><dd class="rounded bg-amber-50 px-1.5 py-0.5 font-medium text-amber-900">${escape(item.turn.lastTool)}</dd></div>` : ''}</dl>` : ''}${meaningful && !events.some(e => e.detail === detail) && !(item.turn?.lastTool && /^Using /.test(detail)) ? markdown(detail) : ''}${events.length ? `<ol class="divide-y divide-stone-100">${events.map(e => `<li class="flex items-start gap-2 py-1.5"><span class="w-12 shrink-0 pt-0.5 text-[10px] text-stone-500">${observedTime(e.at)}</span><div class="min-w-0 flex-1">${markdown(e.detail || labels[e.state] || e.state)}</div></li>`).join('')}</ol>` : agents && !meaningful && !item.turn?.lastTool ? '<p class="text-xs text-stone-500">No detailed action reports captured for this group.</p>' : ''}`});
     return parts;
   }
   function inlineBody(item) {
@@ -185,12 +178,12 @@
     selectedDetails.set(key,choice);
     const part = parts.find(p => p.id === choice);
     const tabId = p => id + '-' + p.id;
-    const controls = parts.map(p => `<button id="${tabId(p)}" role="tab" data-facet="${p.id}" data-for="${escape(key)}" aria-label="${p.title}" title="${p.title}" aria-selected="${p.id === choice}" tabindex="${p.id === choice ? 0 : -1}" aria-controls="${id}" class="inline-flex h-7 min-w-0 flex-1 items-center justify-center gap-1 border-b-2 px-1 text-[11px] font-medium whitespace-nowrap ${p.id === choice ? detailTones[p.id] : 'border-transparent text-stone-500 active:bg-stone-50'}">${detailIcon(p.id,'hidden size-3.5 shrink-0 min-[360px]:block')}<span>${p.label}</span></button>`).join('');
-    return `<div class="pl-10 pr-3 pb-2">${controls ? `<div role="tablist" aria-label="Detail sections" class="mb-1 flex items-center gap-0.5 border-b border-stone-100">${controls}</div>` : '<p class="py-2 text-xs text-stone-500">No additional detail captured.</p>'}<div id="${id}" role="tabpanel" ${part ? `aria-labelledby="${tabId(part)}"` : 'aria-label="Detail" hidden'}><div data-panel-scroll="${escape(key + ':' + choice)}" class="max-h-[40dvh] min-w-0 overflow-y-auto overscroll-contain pt-1 pb-1 text-[13px] leading-5 text-stone-700 [overflow-wrap:anywhere]">${part?.body || ''}</div></div></div>`;
+    const controls = parts.map(p => `<button id="${tabId(p)}" role="tab" data-facet="${p.id}" data-for="${escape(key)}" aria-label="${p.title}" title="${p.title}" aria-selected="${p.id === choice}" tabindex="${p.id === choice ? 0 : -1}" aria-controls="${id}" class="inline-flex h-6 min-w-0 flex-1 items-center justify-center rounded-full px-2 text-[11px] font-medium whitespace-nowrap ${p.id === choice ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-600 active:bg-white/60'}"><span>${p.label}</span></button>`).join('');
+    return `<div class="pl-10 pr-3 pb-2">${controls ? `<div role="tablist" aria-label="Detail sections" class="mb-1 flex items-center gap-0.5 rounded-full bg-stone-200/80 p-0.5">${controls}</div>` : '<p class="py-2 text-xs text-stone-500">No additional detail captured.</p>'}<div id="${id}" role="tabpanel" ${part ? `aria-labelledby="${tabId(part)}"` : 'aria-label="Detail" hidden'}><div data-panel-scroll="${escape(key + ':' + choice)}" class="max-h-[40dvh] min-w-0 overflow-y-auto overscroll-contain pt-1 pb-1 text-[13px] leading-5 text-stone-700 [overflow-wrap:anywhere]">${part?.body || ''}</div></div></div>`;
   }
   function itemBody(item) {
     const url = safeUrl(item.url);
-    return `<div class="mt-4 space-y-5 text-[13px] leading-5 text-stone-700 [overflow-wrap:anywhere]">${detailParts(item,false).map(p => `<section aria-label="${p.title}"><h3 class="mb-2 flex items-center gap-1.5 text-xs font-semibold text-stone-500">${detailIcon(p.id)}${p.title}</h3>${p.body}</section>`).join('')}</div>${url ? `<a class="mt-3 inline-flex min-h-11 items-center gap-1 text-sm text-emerald-800 underline underline-offset-2" href="${escape(url)}">Open in Web Tools ↗</a>` : ''}`;
+    return `<div class="mt-4 space-y-5 text-[13px] leading-5 text-stone-700 [overflow-wrap:anywhere]">${detailParts(item,false).map(p => `<section aria-label="${p.title}"><h3 class="mb-2 text-xs font-semibold text-stone-500">${p.title}</h3>${p.body}</section>`).join('')}</div>${url ? `<a class="mt-3 inline-flex min-h-11 items-center gap-1 text-sm text-emerald-800 underline underline-offset-2" href="${escape(url)}">Open in Web Tools ↗</a>` : ''}`;
   }
 
   function rememberPanelScroll() {
