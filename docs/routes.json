@@ -51,35 +51,48 @@
       "rules": [
         {
           "when": "the repo's manifest names an app that frames its pages, and the change is under a declared view or the app's own folder",
-          "then": "toss"
+          "then": "toss",
+          "case": "app"
         },
         {
           "when": "the page file itself changed",
-          "then": "toss"
+          "then": "toss",
+          "case": "page"
         },
         {
           "when": "the page file itself changed and the diff touches the tab (its title, icon, history or navigation), which a frame never is: the toss carries ?top",
-          "then": "toss"
+          "then": "toss",
+          "case": "page"
         },
         {
           "when": "only lib/ or dist/ changed",
-          "then": "toss"
+          "then": "toss",
+          "case": "page"
         },
         {
           "when": "only lib/ or dist/ changed, and the change is the FAB's own code (lib/alpineComponents/fab.js), which a frame shows at main: the toss carries ?top",
-          "then": "toss"
+          "then": "toss",
+          "case": "page"
         },
         {
           "when": "only lib/ changed, and the only pages reaching it load it by a relative script tag",
-          "then": "toss"
+          "then": "toss",
+          "case": "page"
+        },
+        {
+          "when": "a web-tools branch lags main, and main changed none of the files the branch changed: the toss shows the branch as it would merge",
+          "then": "toss",
+          "case": "merge"
         },
         {
           "when": "the subject is pages/toss-render.html",
-          "then": "toss"
+          "then": "toss",
+          "case": "renderer"
         },
         {
           "when": "a document or data file changed (Markdown, CSV, JSON, YAML, text), alone or beside a page",
-          "then": "toss"
+          "then": "toss",
+          "case": "data"
         },
         {
           "when": "the reader has no token",

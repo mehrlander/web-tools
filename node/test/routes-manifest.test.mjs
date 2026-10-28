@@ -233,13 +233,16 @@ test('the FAB glyph literal and the repo-view list are the registries, verbatim'
   assert.deepEqual(listed, repoGroup, 'fab.js REPO_VIEWS and app-routes.csv group=repo have drifted; the CSV is the owner');
 });
 
-test('the picker only routes to mechanisms that exist', () => {
-  const keys = new Set(manifest.showing.mechanisms.map(m => m.key));
+test('the picker only routes to mechanisms that exist, and to cases they handle', () => {
+  const byKey = new Map(manifest.showing.mechanisms.map(m => [m.key, m]));
   for (const r of manifest.showing.picker.rules) {
     assert.ok(r.when && r.then, 'a picker rule is missing a half');
-    // A rule may name alternatives ("toss-gz or artifact"); each must resolve.
+    // A rule may name alternatives ("packed or artifact"); each must resolve.
     for (const k of r.then.split(/\s+or\s+/))
-      assert.ok(keys.has(k), `picker routes to unknown mechanism: ${k}`);
+      assert.ok(byKey.has(k), `picker routes to unknown mechanism: ${k}`);
+    // A rule for one mechanism may name its case, a key of that row's handles.
+    if (r.case) assert.ok(String(byKey.get(r.then)?.handles || '').split(';').includes(r.case),
+      `picker rule "${r.when}" names case ${r.case}, which ${r.then} does not handle`);
   }
 });
 

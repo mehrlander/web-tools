@@ -10,8 +10,8 @@
 
 The rules this executes are not new. They are `showing.picker` in
 docs/routes.json, whose own note says the mechanism "is derivable rather than
-remembered: it follows from which files a branch changed", and the reaches /
-misses / trap columns of docs/showing-mechanisms.csv. Both have rendered in the
+remembered: it follows from which files a branch changed", and the reaches and
+misses columns of docs/showing-mechanisms.csv. Both have rendered in the
 app's Map view since 2026-08-19, addressed to a person who chooses to go and
 read them.
 
@@ -95,7 +95,7 @@ WIDE = 3
 # condemn a change elsewhere in it.
 #
 # A hit puts the toss in ?top, where the page IS the tab (as_tab below). Until
-# 2026-10-17 a hit printed "no link reaches this", while the toss-gh row of
+# 2026-10-17 a hit printed "no link reaches this", while the toss row of
 # docs/showing-mechanisms.csv already said ?top makes the page's title, icon,
 # history and reload the tab's: the script and the registry disagreed, and the
 # script is the one a session consults. Found when Back in a framed preview of
@@ -571,7 +571,7 @@ def pick(paths, base, ref, use_git=True, diff=None, at="", query="", overlay=Non
                       and p != "pages/toss-render.html" and not p.startswith("pages/thumbs/")), "pages/index.html")
         why.append("pages/toss-render.html changed, so the deployed renderer cannot show it: address the branch's own renderer and hand it a page as a trailing fragment, here "
                    + inner + "; any page can take its place after the second #gh=.")
-        return decision("toss-nested", [("pages/toss-render.html", None)], sha, slug, hosted, why, warn, facts, at, query, inner=inner)
+        return decision("renderer", [("pages/toss-render.html", None)], sha, slug, hosted, why, warn, facts, at, query, inner=inner)
 
     # A page's own file. ?use= cannot reach it: Pages serves the page FILE from
     # the default branch, so the old shell would wrap the new lib, silently.
@@ -596,11 +596,11 @@ def pick(paths, base, ref, use_git=True, diff=None, at="", query="", overlay=Non
                 warn.append(overlay_refusal(plan))
             else:
                 why.append(overlay_why(plan, len(entries) + len(b["shell"])) + " The page is the branch's; everything else it reads is main's unless the branch changed it.")
-                d = decision("overlay", subjects, sha, slug, hosted, why, warn, facts, at, query,
+                d = decision("merge", subjects, sha, slug, hosted, why, warn, facts, at, query,
                              entries=[f"{slug}@{plan['base_sha']}"] + entries, page_ref=sha)
         elif plan["known"] and plan["behind"]:
             warn.append(f"the branch is {plan['behind']} commit(s) behind main, so this shows it as it stands, without main's later changes.")
-        d = d or decision("toss-gh", subjects, sha, slug, hosted, why, warn, facts, at, query)
+        d = d or decision("page", subjects, sha, slug, hosted, why, warn, facts, at, query)
         return as_tab(d, asked=False) if hits else d
 
     # Lib, which is the case that gets called wrong.
@@ -631,7 +631,7 @@ def pick(paths, base, ref, use_git=True, diff=None, at="", query="", overlay=Non
                             + ", ".join(keys[:6]) + ("…" if len(keys) > 6 else "")
                             + "), so it dates none of them on its own: open the one you changed.")
         # The renderer loads the FAB like a page, but a toss cannot render the
-        # renderer (toss-nested), and any other page shows its FAB under ?top.
+        # renderer (the renderer case), and any other page shows its FAB under ?top.
         direct.discard("pages/toss-render.html")
         for page in sorted(direct):
             if page != "app/index.html" or not keys:
@@ -647,7 +647,7 @@ def pick(paths, base, ref, use_git=True, diff=None, at="", query="", overlay=Non
             plan = overlay_plan(base, sha, paths, use_git, lag, removed, behind)
             if plan["known"] and plan["behind"]:
                 warn.append(f"the branch is {plan['behind']} commit(s) behind main, so this shows it as it stands, without main's later changes.")
-            return decision("toss-gh", [(p, None) for p in by_tag], sha, slug, hosted, why, warn, facts, at, query)
+            return decision("page", [(p, None) for p in by_tag], sha, slug, hosted, why, warn, facts, at, query)
         if not subjects and carried:
             subjects = [(p, None, "pre-build") for p in carried]
             carried = []
@@ -657,7 +657,7 @@ def pick(paths, base, ref, use_git=True, diff=None, at="", query="", overlay=Non
         ready = overlay_ready(base, use_git, overlay) and not level
         if ready and len(entries) <= OVERLAY_CAP and plan["ok"]:
             why.append("only lib/ or dist/ changed, so the page is main's. " + overlay_why(plan, len(entries)))
-            d = decision("overlay", [(p, v) for p, v, _ in subjects], sha, slug, hosted, why, warn, facts, at, query,
+            d = decision("merge", [(p, v) for p, v, _ in subjects], sha, slug, hosted, why, warn, facts, at, query,
                          entries=[f"{slug}@{plan['base_sha']}"] + entries, page_ref=plan["base_sha"])
         else:
             if ready and len(entries) <= OVERLAY_CAP:
@@ -669,7 +669,7 @@ def pick(paths, base, ref, use_git=True, diff=None, at="", query="", overlay=Non
                 why.append("only lib/ or dist/ changed, and a page's own file is untouched, so the page tossed at the branch boots the branch's library.")
             if len(entries) > OVERLAY_CAP and not level:
                 warn.append(f"{len(entries)} changed files is past the overlay's {OVERLAY_CAP}, so this links the branch as it stands instead.")
-            d = decision("toss-gh", [(p, v) for p, v, _ in subjects], sha, slug, hosted, why, warn, facts, at, query)
+            d = decision("page", [(p, v) for p, v, _ in subjects], sha, slug, hosted, why, warn, facts, at, query)
         for l, s3 in zip(d["links"], subjects):
             l["via"] = s3[2]
         if carried:
@@ -748,7 +748,7 @@ def pick_framed(paths, fr, base, sha, slug, hosted, warn, use_git, at="", query=
         why.append("nothing that renders changed.")
         return decision("none-needed", [], sha, slug, hosted, why, warn,
                         {"branch": "", "pushed": True}, at, query)
-    return decision("toss-app", subjects, sha, slug, hosted, why, warn,
+    return decision("app", subjects, sha, slug, hosted, why, warn,
                         {"branch": "", "pushed": True}, at, query)
 
 
@@ -872,15 +872,15 @@ def walk_at(at, slug, pin):
     return re.sub(r"(^|&)steps=[^&]*", lambda m: m.group(1) + "steps=" + look_link().encode(steps), at, count=1)
 
 
-def address(mech, page, sha, slug, view=None, at="", query="", entries=None, page_ref="", inner=""):
+def address(case, page, sha, slug, view=None, at="", query="", entries=None, page_ref="", inner=""):
     sha, page_ref = short(sha), short(page_ref)
     # The subject's ref: the commit, with its branch ahead of it once main's
     # renderer reads that (pin_ready). Not the refs= entries, whose grammar
     # takes a plain ref.
     pin = f"{PIN_BRANCH}@{sha}" if PIN_BRANCH else sha
-    if mech in ("toss-gh", "toss-app", "overlay", "toss-data") and crosses(at):
+    if case in ("page", "app", "merge", "data") and crosses(at):
         at = walk_at(at, slug, pin)
-        if mech == "toss-data":
+        if case == "data":
             # The data route has no top mode that keeps a document's fragment,
             # so the walkthrough starts on the data viewer's own address.
             return (f"https://mehrlander.github.io/web-tools/pages/data-view.html"
@@ -889,7 +889,7 @@ def address(mech, page, sha, slug, view=None, at="", query="", entries=None, pag
     base = renderer_base(slug)
     pretty = page[:-len("index.html")] if page.endswith("/index.html") else page
     frag = "#" + at.lstrip("#") if at else ""
-    if mech in ("toss-gh", "toss-app", "overlay", "toss-data"):
+    if case in ("page", "app", "merge", "data"):
         # The separator is written `%23` and the fragment's own `&` as `%26`;
         # the toss's one decode brings both back. A second raw `#` is not a
         # legal URL character, and the Claude app on an iPhone re-encodes a link
@@ -899,7 +899,7 @@ def address(mech, page, sha, slug, view=None, at="", query="", entries=None, pag
         # gate (lib/gh-boot.js lookOnDemand) reads the whole fragment, so a
         # page key after a raw `&` would surface as the shell's.
         frag = ("%23" + frag[1:].replace("%", "%25").replace("&", "%26")) if frag else ""
-    if mech == "toss-gh":
+    if case == "page":
         # NO ?use= ON THE SHELL, and this is not a tidiness call: that link
         # crashes Safari's web process on an iPhone, every time, which is what
         # made every render link handed over on 2026-09-07/08 unusable.
@@ -926,21 +926,21 @@ def address(mech, page, sha, slug, view=None, at="", query="", entries=None, pag
         # unpinned survives even with the subject pinned to the branch. Only
         # the intersection fails.
         # A route key opens the app on that view, joined with --query as on
-        # toss-app below.
+        # the app case below.
         q = join_query([("view", view)], query)
         return f"{base}pages/toss-render.html#gh={slug}@{pin}:{page}{q}{frag}"
-    if mech == "toss-app":
+    if case == "app":
         # The renderer is web-tools' own, on main, so no ?use= pins it; the
         # ref belongs to the framed repo and rides in the #gh= address, where
         # the app's embeds inherit it (home CLAUDE.md, "Render path").
         # A --query JOINS the view rather than opening a second '?' span, the
-        # same way it joins the view on toss-gh above: the framed page reads one query, so
+        # same way it joins the view on a page above: the framed page reads one query, so
         # `?view=sessions?lens=table` reaches it as a view named
         # `sessions?lens=table` and routes nowhere.
         q = join_query([("view", view)], query)
         return (f"https://mehrlander.github.io/web-tools/pages/toss-render.html"
                 f"#gh={slug}@{pin}:{page}{q}{frag}")
-    if mech == "overlay":
+    if case == "merge":
         # The renderer is main's; the selection rides on ITS query as refs=, and
         # the page is addressed at the branch only when the page itself changed.
         sel = "&".join("refs=" + e for e in (entries or []))
@@ -948,10 +948,10 @@ def address(mech, page, sha, slug, view=None, at="", query="", entries=None, pag
         vq = join_query([("view", view)], query)
         return (f"https://mehrlander.github.io/web-tools/pages/toss-render.html" + (f"?{sel}" if sel else "")
                 + f"#gh={slug}{at_ref}:{page}{vq}{frag}")
-    if mech == "toss-nested":
+    if case == "renderer":
         return (f"{base}pages/toss-render.html#gh={slug}@{pin}:pages/toss-render.html"
                 f"#gh={slug}@{pin}:{inner or 'pages/index.html'}")
-    if mech == "toss-data":
+    if case == "data":
         # The renderer's data route, on web-tools main whatever repo holds the
         # file: data-view.html reads the file at the ref in the address and
         # picks a mode by its content. A trailing #frag reaches the viewer page,
@@ -1022,11 +1022,11 @@ def with_documents(d, paths, at="", query=""):
                     + ", ".join(rest[:4]) + ("…" if len(rest) > 4 else "")
                     + "): pass --path <path> to link one.")
     if d["mechanism"] == "none-needed":
-        return decision("toss-data", [(p, None) for p in shown], d["sha"], d["repo"], hosted_ok(),
+        return decision("data", [(p, None) for p in shown], d["sha"], d["repo"], hosted_ok(),
                         ["only documents or data changed, and the toss shows them through its data route "
                          "(#data=): Markdown as a preview, CSV and JSON as a table."],
                         warn, {"branch": d["branch"], "pushed": d["pushed"]}, at, query)
-    d["documents"] = [{"page": p, "url": address("toss-data", p, d["sha"], d["repo"])} for p in shown]
+    d["documents"] = [{"page": p, "url": address("data", p, d["sha"], d["repo"])} for p in shown]
     d["why"].append("Each changed document listed after the page links opens through the data route (#data=).")
     if any(len(l["url"]) >= MCP_URL_CAP for l in d["documents"]):
         warn.append(f"a document link runs {MCP_URL_CAP}+ characters: fine in chat, literal text in an "
@@ -1050,8 +1050,10 @@ def routes_on_hash(page):
         return False
 
 
-GLYPH = {"toss-gh": "🥏", "toss-nested": "🥏", "toss-app": "🥏", "overlay": "🥏",
-         "toss-data": "🥏"}
+GLYPH = {"toss": "🥏"}
+# What a toss can show: the keys of the toss row's `handles` in
+# docs/showing-mechanisms.csv, which showing-pick.test.mjs holds to that row.
+CASES = ("page", "app", "renderer", "data", "merge")
 
 
 # LOOK LINKS (lib/kits/look.js): a page that loads the kit, or boots the
@@ -1129,10 +1131,10 @@ def look_cmd():
         return "python3 " + str(f)
 
 
-def decision(mech, subjects, sha, slug, hosted, why, warn, facts, at="", query="", entries=None, page_ref="", inner=""):
+def decision(case, subjects, sha, slug, hosted, why, warn, facts, at="", query="", entries=None, page_ref="", inner=""):
     # A nested toss carries its address in the inner #gh=, so the renderer's
     # own hash routing is spoken for.
-    if not at and mech != "toss-nested":
+    if not at and case != "renderer":
         needs = [p for p, _ in subjects if routes_on_hash(p)]
         if needs:
             warn.append("these route on their own location.hash, so a link with no address opens "
@@ -1141,11 +1143,14 @@ def decision(mech, subjects, sha, slug, hosted, why, warn, facts, at="", query="
                         + "): pass --at '<fragment>' to put an address on the link, e.g. "
                         "--at 'gh=owner/repo&pr=12' or --at 'id=2bf8fcae'. A page that routes "
                         "on a ?query instead takes --query 'view=sessions'.")
-    links = [{"page": p, "view": v, "url": address(mech, p, sha, slug, v, at, query, entries, page_ref, inner)} for p, v in subjects]
+    links = [{"page": p, "view": v, "url": address(case, p, sha, slug, v, at, query, entries, page_ref, inner)} for p, v in subjects]
     look = look_hints(subjects, at, warn)
-    d = {"mechanism": mech, "sha": sha, "branch": facts["branch"], "pushed": facts["pushed"],
+    # A link names its row of docs/showing-mechanisms.csv and, for a toss, its
+    # case, a key of that row's `handles`; the other outcomes name themselves.
+    toss = case in CASES
+    d = {"mechanism": "toss" if toss else case, "case": case if toss else None, "sha": sha, "branch": facts["branch"], "pushed": facts["pushed"],
          "repo": slug, "links": links, "why": why, "warnings": warn, "look": look}
-    if crosses(at) and mech in ("toss-gh", "toss-app", "overlay"):
+    if crosses(at) and case in ("page", "app", "merge"):
         why.append("the walkthrough's steps name pages, which a framed toss cannot tell apart, so the toss "
                    "carries ?top and each step's page is its address at this ref.")
         d = as_tab(d, asked=False)
@@ -1185,7 +1190,7 @@ def lines(d):
         g = GLYPH[d["mechanism"]]
         for l in d["links"]:
             via = f"  ({l['via']})" if l.get("via") and l["via"] != "declared route" else ""
-            label = l["page"] + (f" ?view={l['view']}" if d["mechanism"] == "toss-app" and l.get("view") else "")
+            label = l["page"] + (f" ?view={l['view']}" if d.get("case") == "app" and l.get("view") else "")
             out.append(f"{g} [{label}]({l['url']}){via}")
         for l in d.get("documents", []):
             out.append(f"🥏 [{l['page']}]({l['url']})")
@@ -1225,7 +1230,7 @@ def host_refs(d, refs, query):
         head, sep, frag = l["url"].partition("#")
         if not head.endswith("pages/toss-render.html") and "pages/toss-render.html?" not in head:
             warn.append(f"--refs rides only on a toss link, and {l['page']} is linked by "
-                        f"{d.get('mechanism')}, which has no renderer to carry it.")
+                        f"the toss's {d.get('case')} case, which has no renderer to carry it.")
             continue
         l["url"] = head + ("&" if "?" in head else "?") + sel + sep + frag
     return d
@@ -1244,12 +1249,12 @@ def host_refs(d, refs, query):
 # change that does not touch it, such as Back across the app's views.
 def as_tab(d, asked=True):
     warn = d.setdefault("warnings", [])
-    mech = d.get("mechanism")
-    if asked and mech == "toss-nested":
+    case = d.get("case")
+    if asked and case == "renderer":
         warn.append("--top cannot apply: a nested renderer is never the tab, and toss-render cannot "
                     "render itself at the top (docs/showing.md).")
         return d
-    if mech not in ("toss-gh", "overlay", "toss-app"):
+    if case not in ("page", "merge", "app"):
         return d
     for l in d["links"]:
         head, sep, frag = l["url"].partition("#")
@@ -1283,12 +1288,12 @@ def named(paths, ref, at="", query=""):
             warn.append(f"{p} is neither a page nor a file the data route reads, so no link names it.")
     why = [f"--path names the file, so the link is to it at {short(sha)}, changed or not."]
     if pages:
-        d = decision("toss-gh", [(p, None) for p in pages], sha, slug, True, why, warn, facts, at, query)
+        d = decision("page", [(p, None) for p in pages], sha, slug, True, why, warn, facts, at, query)
         if docs:
-            d["documents"] = [{"page": p, "url": address("toss-data", p, sha, slug)} for p in docs]
+            d["documents"] = [{"page": p, "url": address("data", p, sha, slug)} for p in docs]
         return d
     if docs:
-        return decision("toss-data", [(p, None) for p in docs], sha, slug, True, why, warn, facts, at, query)
+        return decision("data", [(p, None) for p in docs], sha, slug, True, why, warn, facts, at, query)
     return decision("none-needed", [], sha, slug, True, ["no named file is a page or a document."], warn, facts)
 
 
