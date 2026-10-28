@@ -121,4 +121,4 @@ lib/kits/wsl.js,wsl,browser-facing WSL kit.,312,no,no,3,yes
 lib/kits/xlsx-chart.js,xlsxChartKit,Browser SVG previews of supported Excel chart models.,456,no,no,1,yes
 lib/kits/xlsx-extract.js,XlsxExtract,PICK PART OF A WORKBOOK AND CARRY THE ANSWER AWAY.,731,no,no,2,yes
 lib/kits/xlsx-write.js,xlsxWriteKit,build a new workbook holding a chosen subset of another workbook's sheets.,1115,no,no,2,yes
-lib/kits/xlsx.js,xlsxKit,"OOXML (.xlsx) structural inspector: unzip, walk every XML/rels part, and surface the internal cross-references (shared strings, styles, sheet rels, comments,…",2866,no,yes,8,yes
+lib/kits/xlsx.js,xlsxKit,"OOXML (.xlsx) structural inspector: unzip, walk every XML/rels part, and surface the internal cross-references (shared strings, styles, sheet rels, comments,…",2873,no,yes,8,yes
