@@ -158,7 +158,7 @@ test('the fab knows every delivery mode, so it never reads one as a route key', 
 // hold is the part that would rot silently: a row missing the field that says
 // what it CANNOT show is worse than no row, since the whole point of the table
 // is the boundaries rather than the recipes.
-test('every showing mechanism declares its subject and its boundary', () => {
+test('every showing mechanism names its subject, its use and what it misses', () => {
   const s = manifest.showing;
   assert.ok(s, 'docs/routes.json has no showing block');
   assert.ok(s.mechanisms.length >= 5, 'suspiciously few mechanisms');

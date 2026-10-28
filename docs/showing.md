@@ -6,10 +6,9 @@ what a reply hands over; showing is what makes it openable.
 **The reference is the app, not this file.** Each way of showing (a 🥏 toss, the
 deployed page's own URL, content carried in the link, and others) is a row in
 [`showing-mechanisms.csv`](showing-mechanisms.csv), with the address to write,
-what it reaches and misses, and when to use it. The `showing` block of
-[`routes.json`](routes.json) holds the tab's framing note, and each row names
-its subjects from [`subjects.csv`](subjects.csv). The app's **Map view, Showing tab** renders
-those rows, and `npm run showing` ([`python/showing.py`](../python/showing.py))
+what it reaches and misses, and when to use it. The app's **Map view, Showing
+tab** renders those rows, with the `showing` block of [`routes.json`](routes.json)
+as its About text, and `npm run showing` ([`python/showing.py`](../python/showing.py))
 picks the link for a branch's changes.
 
 ## The toss, framed or as the tab
