@@ -10,9 +10,8 @@
 // shell". It is in lib, and a toss at the branch reaches it. That reading is now a fixture
 // rather than a thing a session has to recall correctly under pressure.
 //
-// The four rules come from docs/routes.json's `showing.picker`, so a rule
-// changing there and not here should fail: the fixtures below ARE the picker's
-// behaviour, and a mechanism table nothing executes is what this replaced.
+// No document restates the picker's rules: the fixtures below are its
+// specification.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
