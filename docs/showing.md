@@ -6,7 +6,7 @@ what a reply hands over; showing is what makes it openable.
 **The reference is the app, not this file.** Each way of showing (a 🥏 toss, the
 deployed page's own URL, content carried in the link, and others) is a row in
 [`showing-mechanisms.csv`](showing-mechanisms.csv), with the address to write,
-what it reaches and misses, its trap, and when to use it. The `showing` block of
+what it reaches and misses, and when to use it. The `showing` block of
 [`routes.json`](routes.json) holds the picker rules and two of the three axes that
 classify the rows, version and viewer; the third, subject, is
 [`subjects.csv`](subjects.csv). The app's **Map view, Showing tab** renders all
