@@ -142,11 +142,9 @@ repository and file, `opened` and `context`, each a list of one day per session
 counted as days after `from`, the first record's day; `via`, the opening
 sessions by route; and `basis`, the context sessions by how the record knows
 (`receipt` or `reconstructed`). It is derived from the records, so it stays in
-web-tools-private, on its `background` branch, never in a public repository.
-The laptop daemon rebuilds it there daily: the `doc-reads` row of that repo's
-`data/design/scheduled-tasks.csv` runs `sessions/tools/doc_reads.py`, which
-fetches the laptop's clones of the repositories the Docs tab indexes, less
-chat-histories, and runs this command over them.
+web-tools-private, never in a public repository. The laptop daemon rebuilds it
+daily on that repository's `background` branch; the `doc-reads` row of its
+`data/design/scheduled-tasks.csv` schedules the run.
 
 ## Opening a data file
 
@@ -168,9 +166,10 @@ web-tools-private's `background` branch; `?growthrepo=` picks the repo. The web-
 needs no token; every other repo's, and the session counts, need the viewer's
 token. In Map → Docs → Inventory, the web-tools data file adds a sparkline and a
 net word change to each of the hub's document rows that the file holds at two
-or more samples; the rows render without them when the file is missing. Its
-readership column reads the same session counts, so both tabs count a read
-alike.
+or more samples; the rows render without them when the file is missing. Inventory's
+readership column reads the same session counts where they hold the
+repository, and the sessions cache otherwise, so for those repositories both
+tabs count a read alike.
 
 ## Refreshing
 
