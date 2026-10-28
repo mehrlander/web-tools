@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="budget-wa: capitol">
   <title>budget-wa: capitol</title>
   <desc>A domed capitol over a colonnade, standing on the detached base bar of the public-record stores: the state's budget, where it is enacted.</desc>
-  <g fill="currentColor">
+  <g fill="#059669">
     <path fill-rule="evenodd" d="M11.5 7.75 A4.5 4.5 0 0 1 20.5 7.75 V11.25 H28.5 V13.75 H27 V21.9 H5 V13.75 H3.5 V11.25 H11.5 Z M9.25 15.75 V19.4 H11.75 V15.75 Z M14.75 15.75 V19.4 H17.25 V15.75 Z M20.25 15.75 V19.4 H22.75 V15.75 Z"/>
     <rect x="2" y="24.4" width="28" height="4.6"/>
   </g>

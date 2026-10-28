@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="budget-wa: pie">
   <title>budget-wa: pie</title>
   <desc>A pie with one quarter drawn out from it, on the detached base bar of the public-record stores: the budget, divided among its uses.</desc>
-  <g fill="currentColor">
+  <g fill="#059669">
     <path d="M14.75 13.4 V4.9 A8.5 8.5 0 1 0 23.25 13.4 Z"/>
     <path d="M17.25 10.9 V2.4 A8.5 8.5 0 0 1 25.75 10.9 Z"/>
     <rect x="2" y="24.4" width="28" height="4.6"/>

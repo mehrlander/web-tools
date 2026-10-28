@@ -34,7 +34,7 @@ A project's or a program's own icon is an SVG drawn to the rules of the budget-d
 
 - `viewBox="1.5 1.75 29 29"`, solid fills, no strokes.
 - Every gap at least 2.5 units, about 1.4 CSS px at 16.
-- A project's or a program's mark takes a colour no other project or program uses; an agent's icon is coloured too, and may repeat a project's colour. A repository's mark may carry the colours of a symbol the repository is known by, as web-tools' blue hex nut and shortcut-tools' Shortcuts layers do, and a page draws it as an `<img>`. Every other mark is filled with `currentColor`, which an `<img>` draws black, so a page paints it as a CSS mask in its text colour.
+- A project's or a program's mark takes a colour no other project or program uses; an agent's icon is coloured too, and may repeat a project's colour. A repository's mark takes a colour no other repository's mark uses, and shortcut-tools' keeps the Shortcuts icon's pink and violet; a page draws it as an `<img>`. Every other mark is filled with `currentColor`, which an `<img>` draws black, so a page paints it as a CSS mask in its text colour.
 - The hub's repositories share a hexagon, and the public-record stores stand on the detached base bar (`<rect x="2" y="24.4" width="28" height="4.6"/>`).
 - A `<desc>` says what the mark depicts.
 - The options considered for a mark sit beside it in `alternatives/` as `<mark>.<option>.svg`. Choosing one swaps it with the mark, which moves into `alternatives/`.
