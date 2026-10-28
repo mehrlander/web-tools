@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SJR 8201 and WA Cares</title>
+<script>
+  // daisyUI's CDN build switches theme by data-theme only, so follow the reader's setting.
+  (function () {
+    var mq = window.matchMedia("(prefers-color-scheme: dark)");
+    function apply() { document.documentElement.setAttribute("data-theme", mq.matches ? "dark" : "light"); }
+    apply();
+    if (mq.addEventListener) mq.addEventListener("change", apply);
+  })();
+</script>
+<link href="https://cdn.jsdelivr.net/npm/daisyui@5/daisyui.css" rel="stylesheet" type="text/css">
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<script>
+/* The page's data: the entity model from wacares-mps3.model.md.
+   src values are article paragraph indexes (0 = the dek). */
+const MODEL = {
+  article: {
+    headline: "Voters to decide if WA Cares tax dollars can be invested in stock market",
+    author: "Jerry Cornfield",
+    outlet: "Washington State Standard",
+    date: "October 31, 2025",
+    url: "https://washingtonstatestandard.com/2025/10/31/voters-to-decide-if-wa-cares-tax-dollars-can-be-invested-in-stock-market/",
+    license: "CC BY-NC-ND 4.0",
+    p: [
+      "A proposed constitutional amendment would let assets be managed like the state’s pension funds. A similar attempt failed in 2020.",
+      "The first item on every Washington voter’s ballot is a proposal to add a few lines to the state constitution that would change how billions of taxpayer dollars are managed.",
+      "Senate Joint Resolution 8201 seeks to let the state make stock market investments with payroll taxes collected for its long-term care program, known as WA Cares. Any earnings would have to be used solely for the program’s beneficiaries.",
+      "If approved Tuesday, the Washington State Investment Board would be legally able to handle the program’s assets in a similar manner as it does pension and retirement funds.",
+      "This will allow for the tax dollars to be invested in a “safe and risk averse way” while producing greater returns for the program, said Heather Weiner of the Approve 8201 campaign in a recent debate at the University of Washington.",
+      "She said that since 1992, annual returns for Washington’s pension funds have averaged 8.9%, which is several percentage points higher than investments in government bonds. In the long run that would translate to a lot more dollars for the program.",
+      "“This doesn’t mean day trading, taking big risks on a stock market,” she said. “This means smart long-term [investing] so that in 50 years when people in this audience today will need long term care, that fund will be there for you.”",
+      "State Sen. Bob Hasegawa, D-Tukwila, opposes the measure.",
+      "“Our fiduciary responsibility is to the people,” he told the debate audience. “No one is going to know when the economy or stock market crashes. So, this vote is about whether we keep prudent fiscal management policies of our tax dollars and retain those constitutional protections.”",
+      "The Legislature voted earlier this year to put the constitutional amendment on the ballot. It passed by margins of 86-9 in the House and 42-7 in the Senate and will become law if more than 50% of voters approve it on Tuesday.",
+      "WA Cares, created by a 2019 law, is funded with a 0.58% tax on the paychecks of most workers in Washington. Beginning in July 2026, those who qualify can begin accessing the benefit, a lifetime amount of $36,500 — a sum that is set to rise in future years to account for inflation. A pilot program will start in January in a handful of counties.",
+      "Collections of the payroll tax began in mid-2023 and more than $2.5 billion was banked in the Long Term Services and Supports Trust Account as of summer.",
+      "The state constitution generally bars investing public money in the stock of private companies. That means state and local governments are limited to fixed-income securities like government bonds, treasury bills and certificates of deposit that are less risky but typically deliver lower rates of return. The WA Cares account is now subject to this limitation.",
+      "If the constitutional amendment is approved, the long-term service account would be added to the list of funds exempt from that prohibition alongside the state’s pension and retirement funds. The state investment board could then decide if it wants to invest in private equity funds and buy stock of private companies, or not.",
+      "In 2020, voters defeated a similar measure. It passed in only three Washington counties — King, Jefferson and Whatcom.",
+      "Weiner said this year’s proposal, unlike the one in 2020, mandates money made from investments must go into the WA Cares Fund. The intent is to prevent lawmakers from tapping those dollars for other budget needs.",
+      "Democratic Gov. Bob Ferguson and Senate Minority Leader John Braun, R-Centralia, back the ballot measure. So too do the Washington State Nurses Association, Washington State Council of Fire Fighters, AARP, and Washington Health Care Association.",
+      "Service Employees International Union 775 is underwriting the campaign. The union, which represents 55,000 long-term care workers in Washington, Montana and Alaska, had reported raising and spending $2.5 million as of Friday. That is five times more than it spent in a losing effort in 2020.",
+      "Hasegawa said there is no funded opposition campaign, just like the last ballot fight. He and three Republican state lawmakers penned the voters’ pamphlet statement opposing the measure.",
+      "Statements from both sides, along with an explanation of the measure prepared by the attorney general’s office, can be found on the secretary of state website."
+]
+  },
+
+  // Root: the measure
+  measure: {
+    label: "SJR 8201",
+    name: "Senate Joint Resolution 8201",
+    question: "What am I deciding when I vote on SJR 8201?",
+    answer: { text: "A yes vote would let the state invest the payroll taxes collected for WA Cares in the stock market, changing how billions of taxpayer dollars are managed.", src: [1, 2] },
+    earnings: { text: "Any earnings would have to be used solely for the program's beneficiaries.", src: [2] },
+    ballot: [
+      { field: "What it is", text: "A proposal to add a few lines to the state constitution", src: [0, 1] },
+      { field: "Where", text: "The first item on every Washington voter's ballot", src: [1] },
+      { field: "When", text: "Tuesday. The report is dated Friday, October 31, 2025.", src: [3, 9] },
+      { field: "To pass", text: "More than 50% of voters must approve it", src: [9] },
+      { field: "How it got here", text: "The Legislature voted earlier this year to put it on the ballot.", votes: [ { chamber: "House", yes: 86, no: 9 }, { chamber: "Senate", yes: 42, no: 7 } ], src: [9] }
+    ],
+    prior: { field: "Earlier attempt", text: "In 2020, voters defeated a similar measure. It passed in only three counties: King, Jefferson and Whatcom.", src: [0, 14] },
+    official: { field: "Official voter materials", text: "Statements from both sides, along with an explanation of the measure prepared by the attorney general's office, are on the secretary of state website.", src: [19] }
+  },
+
+  // Comparison: the rules for the money, today and if approved
+  regimes: {
+    fields: [ { key: "status", label: "In the constitution" }, { key: "holdings", label: "What the money can be invested in" } ],
+    members: [
+      { id: "today", label: "Today",
+        status: { text: "The state constitution generally bars investing public money in the stock of private companies. The WA Cares account is now subject to this limitation.", src: [12] },
+        holdings: { text: "Fixed-income securities, such as government bonds, treasury bills and certificates of deposit: less risky, but typically lower returns.", src: [12] } },
+      { id: "approved", label: "If approved",
+        status: { text: "The long-term service account joins the list of funds exempt from that prohibition, alongside the state's pension and retirement funds.", src: [13] },
+        holdings: { text: "The Washington State Investment Board could handle the program's assets as it does pension and retirement funds, and could decide whether to invest in private equity funds and buy stock of private companies, or not.", src: [3, 13] } }
+    ]
+  },
+
+  // Reference: the program whose money is at stake
+  wacares: {
+    label: "WA Cares",
+    qualifier: "The state's long-term care program",
+    labelFact: "More than $2.5 billion banked as of summer",
+    fields: [
+      { field: "Paid for by", text: "A 0.58% tax on the paychecks of most workers in Washington", src: [10] },
+      { field: "Benefit", text: "A lifetime amount of $36,500, set to rise in future years to account for inflation", src: [10] }
+    ],
+    timeline: [
+      { when: "2019", text: "A state law creates WA Cares.", src: [10] },
+      { when: "Mid-2023", text: "Collection of the payroll tax begins.", src: [11] },
+      { when: "As of summer", text: "More than $2.5 billion is banked in the Long Term Services and Supports Trust Account.", src: [11] },
+      { when: "Oct. 31, 2025", text: "Date of the report", marker: true },
+      { when: "January", text: "A pilot program starts in a handful of counties.", src: [10] },
+      { when: "July 2026", text: "Those who qualify can begin accessing the benefit.", src: [10] }
+    ]
+  },
+
+  // Comparison: the two sides
+  sides: {
+    rowFields: [ { key: "voice", label: "Making the case at a recent University of Washington debate" }, { key: "gist", label: "In short" }, { key: "money", label: "Campaign money" } ],
+    members: [
+      { id: "for", label: "For", sub: "Approve 8201, a yes vote", tone: "primary",
+        voice: { text: "Heather Weiner, of the Approve 8201 campaign", src: [4] },
+        gist: { text: "Safe, long-term investing would earn the program more." },
+        money: { text: "SEIU 775 is underwriting the campaign. As of Friday it had raised and spent $2.5 million, five times what it spent in a losing effort in 2020. The union represents 55,000 long-term care workers in Washington, Montana and Alaska.", src: [17] },
+        claims: [
+          { text: "The tax dollars would be invested in a “safe and risk averse way” while producing greater returns for the program.", ev: { label: "Her words", src: [4, 6] } },
+          { text: "Since 1992, annual returns for Washington's pension funds have averaged 8.9%, several percentage points higher than government bonds. In the long run that would mean a lot more dollars for the program.", ev: { label: "As the article reports it", src: [5] } },
+          { text: "Unlike the 2020 measure, this year's requires that money made from investments go into the WA Cares Fund. The intent is to keep lawmakers from tapping those dollars for other budget needs.", ev: { label: "As the article reports it", src: [15] } }
+        ],
+        allies: { list: [
+          { name: "Bob Ferguson", role: "Democratic governor" },
+          { name: "John Braun", role: "Senate Minority Leader, R-Centralia" },
+          { name: "Washington State Nurses Association" },
+          { name: "Washington State Council of Fire Fighters" },
+          { name: "AARP" },
+          { name: "Washington Health Care Association" }
+        ], src: [16] } },
+      { id: "against", label: "Against", sub: "A no vote", tone: "secondary",
+        voice: { text: "State Sen. Bob Hasegawa, D-Tukwila", src: [7, 8] },
+        gist: { text: "No one can know when the market will crash; keep the constitution's protections." },
+        money: { text: "There is no funded opposition campaign, just like the last ballot fight in 2020, Hasegawa says.", src: [18] },
+        claims: [
+          { text: "The state's fiduciary responsibility is to the people, and no one can know when the economy or the stock market will crash. The vote is about keeping prudent fiscal management of tax dollars and retaining the constitution's protections.", ev: { label: "His words", src: [8] } }
+        ],
+        allies: { text: "Hasegawa and three Republican state lawmakers wrote the voters' pamphlet statement opposing the measure.", src: [18] } }
+    ]
+  }
+};
+
+// Sources per view, collected from the facts that view holds.
+function collect(...items) {
+  const s = new Set();
+  items.flat().forEach(it => (it && it.src || []).forEach(i => s.add(i)));
+  return [...s].sort((a, b) => a - b);
+}
+const M = MODEL;
+const SOURCES = {
+  answer: collect(M.measure.answer, M.measure.earnings),
+  change: collect(...M.regimes.members.flatMap(r => M.regimes.fields.map(f => r[f.key]))),
+  ballot: collect(M.measure.ballot),
+  sides: collect(...M.sides.members.flatMap(s => [s.voice, s.money, s.allies])),
+  background: collect(M.measure.prior, M.measure.official),
+  wacares: collect({ src: [2] }, M.wacares.fields, M.wacares.timeline)
+};
+
+function page() {
+  return {
+    m: MODEL, S: SOURCES, full: false,
+    para(i) { return MODEL.article.p[i]; },
+    openWaCares() { this.$refs.wac.showModal(); }
+  };
+}
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.9/dist/cdn.min.js"></script>
+<style>
+  [x-cloak] { display: none !important; }
+  details > summary { list-style: none; }
+  details > summary::-webkit-details-marker { display: none; }
+  details > summary::before { content: "▸"; display: inline-block; width: 1em; transition: transform .15s; }
+  details[open] > summary::before { transform: rotate(90deg); }
+</style>
+</head>
+<body class="bg-base-100 text-base-content">
+<main x-data="page()" class="max-w-2xl mx-auto px-4 pt-6 pb-16">
+
+  <!-- Root view: the measure -->
+  <header>
+    <p class="text-sm opacity-70" x-text="'Washington ballot measure · ' + m.measure.name"></p>
+    <h1 class="text-2xl sm:text-3xl font-bold leading-tight mt-1">Investing WA Cares money in the stock market</h1>
+  </header>
+
+  <!-- 1. Answer -->
+  <section class="mt-4" aria-label="What a yes vote does">
+    <p class="text-lg leading-snug" x-text="m.measure.answer.text"></p>
+    <p class="mt-2" x-text="m.measure.earnings.text"></p>
+
+    <!-- Reference: WA Cares as a label, opens its view -->
+    <div class="mt-4 rounded-box border border-base-300 bg-base-200 p-3">
+      <p class="text-xs uppercase tracking-wide opacity-60">Whose money</p>
+      <p class="font-semibold"><span x-text="m.wacares.label"></span><span class="font-normal opacity-80" x-text="', ' + m.wacares.qualifier.toLowerCase()"></span></p>
+      <p class="text-sm" x-text="m.wacares.labelFact"></p>
+      <button type="button" class="btn btn-sm btn-outline mt-2 h-auto min-h-8 py-1 text-left" @click="openWaCares()">WA Cares: the 0.58% tax, the $36,500 benefit and key dates</button>
+    </div>
+    <details class="mt-3 text-xs">
+      <summary class="cursor-pointer opacity-70" x-text="'Article passages behind this section (' + S.answer.length + ')'"></summary>
+      <template x-for="p in S.answer" :key="p"><p class="mt-2 pl-3 border-l-2 border-base-300 opacity-80" x-text="para(p)"></p></template>
+    </details>
+  </section>
+
+  <!-- 2. Comparison: today vs if approved -->
+  <section class="mt-8" aria-labelledby="h-change">
+    <h2 id="h-change" class="text-lg font-semibold">What changes</h2>
+    <div class="mt-3 grid grid-cols-2 gap-x-3 sm:gap-x-6">
+      <template x-for="r in m.regimes.members" :key="r.id">
+        <div class="pb-1 border-b-2" :class="r.id === 'today' ? 'border-base-content/30' : 'border-accent'">
+          <span class="font-semibold" x-text="r.label"></span>
+        </div>
+      </template>
+      <template x-for="f in m.regimes.fields" :key="f.key">
+        <div class="col-span-2 grid grid-cols-2 gap-x-3 sm:gap-x-6 mt-3">
+          <p class="col-span-2 text-xs uppercase tracking-wide opacity-60 mb-1" x-text="f.label"></p>
+          <template x-for="r in m.regimes.members" :key="r.id">
+            <p class="text-sm" x-text="r[f.key].text"></p>
+          </template>
+        </div>
+      </template>
+    </div>
+    <details class="mt-4 text-xs">
+      <summary class="cursor-pointer opacity-70" x-text="'Article passages behind this section (' + S.change.length + ')'"></summary>
+      <template x-for="p in S.change" :key="p"><p class="mt-2 pl-3 border-l-2 border-base-300 opacity-80" x-text="para(p)"></p></template>
+    </details>
+  </section>
+
+  <!-- 3. Identify: on the ballot -->
+  <section class="mt-8" aria-labelledby="h-ballot">
+    <h2 id="h-ballot" class="text-lg font-semibold">On your ballot</h2>
+    <dl class="mt-2">
+      <template x-for="b in m.measure.ballot" :key="b.field">
+        <div class="py-2 border-b border-base-300 last:border-b-0 grid grid-cols-[7.5rem_1fr] gap-3">
+          <dt class="text-sm opacity-70" x-text="b.field"></dt>
+          <dd class="text-sm">
+            <span x-text="b.text"></span>
+            <template x-if="b.votes">
+              <span class="mt-1 flex flex-wrap gap-2">
+                <template x-for="v in b.votes" :key="v.chamber">
+                  <span class="badge badge-ghost" x-text="v.chamber + ' ' + v.yes + '–' + v.no"></span>
+                </template>
+              </span>
+            </template>
+          </dd>
+        </div>
+      </template>
+    </dl>
+    <details class="mt-3 text-xs">
+      <summary class="cursor-pointer opacity-70" x-text="'Article passages behind this section (' + S.ballot.length + ')'"></summary>
+      <template x-for="p in S.ballot" :key="p"><p class="mt-2 pl-3 border-l-2 border-base-300 opacity-80" x-text="para(p)"></p></template>
+    </details>
+  </section>
+
+  <!-- 4. Compare: the two sides -->
+  <section class="mt-8" aria-labelledby="h-sides">
+    <h2 id="h-sides" class="text-lg font-semibold">The two sides</h2>
+    <div class="mt-3 grid grid-cols-2 gap-x-3 sm:gap-x-6">
+      <template x-for="s in m.sides.members" :key="s.id">
+        <div class="pb-1 border-b-2" :class="s.tone === 'primary' ? 'border-primary' : 'border-secondary'">
+          <span class="font-semibold" x-text="s.label"></span>
+          <span class="block text-xs opacity-70" x-text="s.sub"></span>
+        </div>
+      </template>
+
+      <!-- Row level -->
+      <template x-for="f in m.sides.rowFields" :key="f.key">
+        <div class="col-span-2 grid grid-cols-2 gap-x-3 sm:gap-x-6 mt-3">
+          <p class="col-span-2 text-xs uppercase tracking-wide opacity-60 mb-1" x-text="f.label"></p>
+          <template x-for="s in m.sides.members" :key="s.id">
+            <p class="text-sm" :class="f.key === 'gist' ? 'font-medium' : ''" x-text="s[f.key].text"></p>
+          </template>
+        </div>
+      </template>
+
+      <div class="col-span-2 mt-4">
+        <button type="button" class="btn btn-sm btn-outline h-auto min-h-8 py-1 text-left" @click="full = !full" :aria-expanded="full.toString()"
+          x-text="full ? 'Hide the full arguments, backers and quotes' : 'Both sides in full: arguments, backers and quotes'"></button>
+      </div>
+
+      <!-- View level, both sides at once so each field stays aligned -->
+      <div class="col-span-2 grid grid-cols-2 gap-x-3 sm:gap-x-6 mt-3" x-show="full" x-cloak>
+        <p class="col-span-2 text-xs uppercase tracking-wide opacity-60 mb-1">The argument</p>
+        <template x-for="s in m.sides.members" :key="s.id">
+          <ul class="space-y-3">
+            <template x-for="(c, i) in s.claims" :key="i">
+              <li class="text-sm">
+                <p x-text="c.text"></p>
+                <details class="mt-1 text-xs">
+                  <summary class="cursor-pointer opacity-70" x-text="c.ev.label"></summary>
+                  <template x-for="p in c.ev.src" :key="p"><p class="mt-1 pl-3 border-l-2 border-base-300 opacity-80" x-text="para(p)"></p></template>
+                </details>
+              </li>
+            </template>
+          </ul>
+        </template>
+
+        <p class="col-span-2 text-xs uppercase tracking-wide opacity-60 mt-4 mb-1">Also on this side</p>
+        <template x-for="s in m.sides.members" :key="s.id">
+          <div class="text-sm">
+            <template x-if="s.allies.list">
+              <ul class="space-y-1">
+                <template x-for="a in s.allies.list" :key="a.name">
+                  <li><span x-text="a.name"></span><template x-if="a.role"><span class="block text-xs opacity-70" x-text="a.role"></span></template></li>
+                </template>
+              </ul>
+            </template>
+            <template x-if="!s.allies.list"><p x-text="s.allies.text"></p></template>
+          </div>
+        </template>
+      </div>
+    </div>
+    <details class="mt-4 text-xs">
+      <summary class="cursor-pointer opacity-70" x-text="'Article passages behind this section (' + S.sides.length + ')'"></summary>
+      <template x-for="p in S.sides" :key="p"><p class="mt-2 pl-3 border-l-2 border-base-300 opacity-80" x-text="para(p)"></p></template>
+    </details>
+  </section>
+
+  <!-- 5. Background -->
+  <section class="mt-8" aria-labelledby="h-bg">
+    <h2 id="h-bg" class="text-lg font-semibold">Background</h2>
+    <dl class="mt-2">
+      <template x-for="b in [m.measure.prior, m.measure.official]" :key="b.field">
+        <div class="py-2 border-b border-base-300 last:border-b-0 grid grid-cols-[7.5rem_1fr] gap-3">
+          <dt class="text-sm opacity-70" x-text="b.field"></dt>
+          <dd class="text-sm" x-text="b.text"></dd>
+        </div>
+      </template>
+    </dl>
+    <details class="mt-3 text-xs">
+      <summary class="cursor-pointer opacity-70" x-text="'Article passages behind this section (' + S.background.length + ')'"></summary>
+      <template x-for="p in S.background" :key="p"><p class="mt-2 pl-3 border-l-2 border-base-300 opacity-80" x-text="para(p)"></p></template>
+    </details>
+  </section>
+
+  <footer class="mt-10 pt-4 border-t border-base-300 text-xs opacity-80">
+    <p>Source: <span x-text="m.article.author"></span>, “<a class="link" :href="m.article.url" x-text="m.article.headline"></a>,” <span x-text="m.article.outlet + ', ' + m.article.date"></span>. License: <span x-text="m.article.license"></span>. Every fact here comes from that article; passages under each section are quoted from it verbatim.</p>
+  </footer>
+
+  <!-- WA Cares view -->
+  <dialog x-ref="wac" class="modal modal-bottom sm:modal-middle" aria-labelledby="h-wac">
+    <div class="modal-box">
+      <form method="dialog"><button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" aria-label="Close WA Cares">✕</button></form>
+      <p class="text-xs uppercase tracking-wide opacity-60">Program</p>
+      <h3 id="h-wac" class="text-xl font-bold" x-text="m.wacares.label"></h3>
+      <p class="text-sm opacity-80" x-text="m.wacares.qualifier"></p>
+
+      <dl class="mt-3">
+        <template x-for="f in m.wacares.fields" :key="f.field">
+          <div class="py-2 border-b border-base-300 last:border-b-0 grid grid-cols-[6.5rem_1fr] gap-3">
+            <dt class="text-sm opacity-70" x-text="f.field"></dt>
+            <dd class="text-sm" x-text="f.text"></dd>
+          </div>
+        </template>
+      </dl>
+
+      <h4 class="mt-4 text-xs uppercase tracking-wide opacity-60">Timeline</h4>
+      <ol class="mt-2 ml-1 border-l-2 border-base-300">
+        <template x-for="t in m.wacares.timeline" :key="t.when">
+          <li class="relative pl-4 pb-3">
+            <span class="absolute -left-[5px] top-1.5 w-2 h-2 rounded-full" :class="t.marker ? 'bg-base-300' : 'bg-accent'"></span>
+            <p class="text-xs font-semibold" :class="t.marker ? 'opacity-50' : 'opacity-80'" x-text="t.when"></p>
+            <p class="text-sm" :class="t.marker ? 'opacity-50 italic' : ''" x-text="t.text"></p>
+          </li>
+        </template>
+      </ol>
+
+      <details class="mt-2 text-xs">
+        <summary class="cursor-pointer opacity-70" x-text="'Article passages behind this view (' + S.wacares.length + ')'"></summary>
+        <template x-for="p in S.wacares" :key="p"><p class="mt-2 pl-3 border-l-2 border-base-300 opacity-80" x-text="para(p)"></p></template>
+      </details>
+      <div class="modal-action"><form method="dialog"><button class="btn btn-sm">Back to SJR 8201</button></form></div>
+    </div>
+    <form method="dialog" class="modal-backdrop"><button aria-label="Close">close</button></form>
+  </dialog>
+</main>
+</body>
+</html>

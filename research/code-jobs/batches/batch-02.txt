@@ -1,0 +1,1676 @@
+=== UNIT lib/alpineComponents/transform-workbench.js:1538 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > pvFnSrc ===
+() {
+          const cfg = JSON.stringify(this.pvFnCfg());
+          return [
+            "rows => {",
+            "  const cfg = " + cfg,
+            "  const num = v => { if (typeof v === 'number') return v; if (typeof v !== 'string' || !v.trim()) return NaN;",
+            "    const t = v.trim(), neg = /^\\(.*\\)$/.test(t); const n = parseFloat(t.replace(/^\\(|\\)$/g, '').replace(/[$,%\\s]/g, '')); return neg ? -n : n }",
+            "  const key = (r, d) => { const x = r[d]; return x == null || x === '' ? '(blank)' : String(x) }",
+            "  const round = v => { const f = Math.pow(10, cfg.dec); return Math.round(v * f) / f }",
+            "  const mk = () => ({ value: 0, n: 0, kids: new Map(), cells: new Map() })",
+            "  const bump = (o, v) => { o.n++; if (cfg.agg === 'min') o.value = o.n === 1 ? v : Math.min(o.value, v)",
+            "    else if (cfg.agg === 'max') o.value = o.n === 1 ? v : Math.max(o.value, v); else o.value += v }",
+            "  const root = mk(), colKeys = new Set()",
+            "  for (const r of rows) {",
+            "    const v = cfg.agg === 'count' ? 1 : num(r[cfg.measure])",
+            "    if (!Number.isFinite(v)) continue",
+            "    const ck = cfg.cols.map(d => key(r, d)).join(' \u00b7 ')",
+            "    if (cfg.cols.length) colKeys.add(ck)",
+            "    let node = root",
+            "    for (const d of [null, ...cfg.rows]) {",
+            "      if (d !== null) { const k = key(r, d); node = node.kids.get(k) || node.kids.set(k, Object.assign(mk(), { label: k })).get(k) }",
+            "      bump(node, v)",
+            "      if (cfg.cols.length) { const c = node.cells.get(ck) || node.cells.set(ck, { value: 0, n: 0 }).get(ck); bump(c, v) }",
+            "    }",
+            "  }",
+            "  const fin = o => round(cfg.agg === 'avg' ? (o.n ? o.value / o.n : 0) : o.value)",
+            "  const keys = [...colKeys].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))",
+            "  const mcol = cfg.agg === 'count' ? 'count' : cfg.agg + '(' + cfg.measure + ')'",
+            "  const out = []",
+            "  const walk = (node, path) => {",
+            "    const row = { level: path.length }",
+            "    cfg.rows.forEach((d, i) => { row[d] = i < path.length ? path[i] : '' })",
+            "    row.rows = node.n",
+            "    for (const k of keys) row[k] = node.cells.has(k) ? fin(node.cells.get(k)) : ''",
+            "    row[keys.length ? 'total' : mcol] = fin(node)",
+            "    out.push(row)",
+            "    for (const kid of [...node.kids.values()].sort((a, b) => fin(b) - fin(a))) walk(kid, [...path, kid.label])",
+            "  }",
+            "  walk(root, [])",
+            "  return out",
+            "}",
+          ].join("\n");
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:1582 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > savePivotRecipe ===
+() {
+          if (typeof opts.onSaveRecipe !== "function") return;
+          const c = this.pvFnCfg();
+          const what = (c.agg === "count" ? "count of rows" : c.agg + " of " + c.measure);
+          opts.onSaveRecipe({
+            kind: "pivot",
+            name: "pivot_" + [...c.rows, ...c.cols].map(d => d.replace(/\W+/g, "_").toLowerCase()).join("_"),
+            fnSrc: this.pvFnSrc(),
+            columns: [...c.rows, ...c.cols, ...(c.measure ? [c.measure] : [])],
+            effect: "Groups rows by " + (c.rows.join(", ") || "nothing") + (c.cols.length ? ", spreads " + c.cols.join(" and ") + " across as columns" : "") + ", and takes the " + what + " at every level.",
+            input: "Any table with the columns " + [...c.rows, ...c.cols, ...(c.measure ? [c.measure] : [])].join(", ") + ".",
+          });
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:1595 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > saveTabRecipe ===
+() {
+          if (typeof opts.onSaveRecipe !== "function") return;
+          const t = this.tabs[this.active]; if (!t) return;
+          const cols = t.rows && t.rows.length ? Object.keys(t.rows[0]) : [];
+          opts.onSaveRecipe({ kind: "tab", name: t.name || "recipe", fnSrc: t.fnSrc, columns: [], outputColumns: cols, effect: "", input: "" });
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:1602 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > pvToggleDim ===
+(c) {
+          const i = this.pvDims.indexOf(c);
+          if (this.pvColDims.includes(c)) return this.pvRemoveCol(c);
+          if (i >= 0) this.pvDims.splice(i, 1);
+          else if (this.pvDims.length < 4) this.pvDims.push(c);   // past four, nothing reads
+          this.pvDraw();
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:1609 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > pvSetMeasure ===
+(c) {
+          this.pvMeasure = c;
+          if (!c) this.pvAgg = "count";
+          else if (this.pvAgg === "count") this.pvAgg = "sum";
+          this.pvDraw();
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:1617 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > pvTree ===
+(rows) {
+          const dims = this.pvDims, agg = this.pvAgg, mk = this.pvMeasure, cdims = this.pvColDims;
+          const root = { label: "Total", value: 0, n: 0, kids: new Map(), cells: new Map() };
+          const bump = /* nested: bump, lines 1620-1625 */;
+          // The column axis: each node also accumulates one cell per column
+          // key (the column dimensions' values joined), so a crosstab is the
+          // same tree read sideways. colKeys collects every key seen.
+          const colKeys = new Set();
+          const cellKey = r => cdims.map(d => { const x = r[d]; return x == null || x === "" ? "(blank)" : String(x); }).join(" · ");
+          const bumpCell = /* nested: bumpCell, lines 1631-1635 */;
+          let skipped = 0;
+          for (const r of rows) {
+            const v = agg === "count" ? 1 : this.pvNum(r[mk]);
+            // A row whose measure will not parse is SKIPPED, never counted as a
+            // zero: a zero would move a sum and an average alike and look like
+            // data. The count of them is reported instead.
+            if (!Number.isFinite(v)) { skipped++; continue; }
+            const ck = cdims.length ? cellKey(r) : "";
+            if (cdims.length) colKeys.add(ck);
+            bump(root, v);
+            if (cdims.length) bumpCell(root, ck, v);
+            let node = root;
+            for (const d of dims) {
+              const raw = r[d];
+              const k = raw == null || raw === "" ? "(blank)" : String(raw);
+              let kid = node.kids.get(k);
+              if (!kid) { kid = { label: k, value: 0, n: 0, kids: new Map(), cells: new Map() }; node.kids.set(k, kid); }
+              bump(kid, v);
+              if (cdims.length) bumpCell(kid, ck, v);
+              node = kid;
+            }
+          }
+          const keys = [...colKeys].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+          const dec = agg === "count" ? 0
+            : Math.min(6, (this.pvDec[mk] || 0) + (agg === "avg" ? 2 : 0));
+          const finCell = c => this.pvRound(agg === "avg" ? (c.n ? c.value / c.n : 0) : c.value, dec);
+          const fin = /* nested: fin, lines 1662-1680 */;
+          const tree = fin(root);
+          return {
+            tree, skipped, colKeys: keys,
+            // Sum and count make a real partition, so a parent equals the sum of
+            // its children and a consumer may check it. avg, min and max do not,
+            // and saying so is the difference between a subtotal and a number
+            // that merely sits above other numbers.
+            partition: agg === "sum" || agg === "count",
+          };
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:1620 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > pvTree > bump ===
+(node, v) => {
+            node.n++;
+            if (agg === "min") node.value = node.n === 1 ? v : Math.min(node.value, v);
+            else if (agg === "max") node.value = node.n === 1 ? v : Math.max(node.value, v);
+            else node.value += v;
+          }
+=== UNIT lib/alpineComponents/transform-workbench.js:1631 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > pvTree > bumpCell ===
+(node, ck, v) => {
+            let cell = node.cells.get(ck);
+            if (!cell) { cell = { value: 0, n: 0 }; node.cells.set(ck, cell); }
+            bump(cell, v);
+          }
+=== UNIT lib/alpineComponents/transform-workbench.js:1662 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > pvTree > fin ===
+(node, seq = 0) => ({
+            label: node.label,
+            note: node.n.toLocaleString() + " row" + (node.n === 1 ? "" : "s"),
+            value: this.pvRound(agg === "avg" ? (node.n ? node.value / node.n : 0) : node.value, dec),
+            n: node.n,
+            // Where this label sat among its siblings BEFORE the sort below,
+            // which is the order the rows first introduced it. This pane reads
+            // by magnitude and always has; carrying the index costs nothing and
+            // is the only way another reader of the same tree can recover the
+            // order the source was written in. kits/report-layout.js is that
+            // reader: a printed report usually wants the analyst's order, not
+            // the largest block first.
+            seq,
+            // cells: colKey -> value, only the keys this node saw; a missing key
+            // is an empty cell, never a zero, for the same reason a row whose
+            // measure will not parse is skipped rather than counted as zero.
+            cells: Object.fromEntries([...node.cells].map(([k, c]) => [k, finCell(c)])),
+            children: [...node.kids.values()].map((k, i) => fin(k, i)).sort((a, b) => b.value - a.value),
+          })
+=== UNIT lib/alpineComponents/transform-workbench.js:1694 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > pvFlat ===
+(res) {
+          const dims = this.pvDims, keys = res.colKeys || [];
+          const mcol = this.pvAgg === "count" ? "count" : this.pvAgg + "(" + this.pvMeasure + ")";
+          const out = [];
+          const walk = /* nested: walk, lines 1698-1708 */;
+          walk(res.tree, []);
+          return out;
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:1698 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > pvFlat > walk ===
+(node, path) => {
+            const row = { level: path.length };
+            dims.forEach((d, i) => { row[d] = i < path.length ? path[i] : ""; });
+            row.rows = node.n;
+            // With a column axis the cells come first and the total last, so
+            // the row reads across the way a crosstab does.
+            for (const k of keys) row[k] = k in node.cells ? node.cells[k] : "";
+            row[keys.length ? "total" : mcol] = node.value;
+            out.push(row);
+            for (const k of node.children) walk(k, [...path, k.label]);
+          }
+=== UNIT lib/alpineComponents/transform-workbench.js:1719 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > rpSync ===
+() {
+          if (this.curV !== "layout" || !this.rpReady() || !this.pvOut?.res) { this.rpHtml = ""; this.rpModel = null; return; }
+          this.rpModel = window.ReportLayout.fromPartition(this.pvOut.res, {
+            levels: [...this.pvDims],
+            // Two column dimensions make a band over a period, which is the
+            // shape a version-by-year compare wants. One makes a flat header.
+            band: this.pvColDims.length === 2,
+            measureLabel: this.pvAgg === "count" ? "count" : this.pvAgg + "(" + this.pvMeasure + ")",
+            order: this.rpOrder,
+          });
+          this.rpHtml = window.ReportLayout.render(this.rpModel, {});
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:1732 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > pvDraw ===
+() {
+          const rows = Alpine.raw(this.tabs[this.active]?.rows || []);
+          if (!rows.length) { this.pvOut = null; this.rpSync(); return this.sendToViewer("pivot.json", "[]", "table", []); }
+          const res = this.pvTree(rows);
+          const flat = this.pvFlat(res);
+          this.pvOut = { rows: flat, res };
+          // The pane reads ONE shape in every mode, which is the flat rows, and
+          // copy and download follow the viewer's mode exactly as Data and
+          // Profile do. Showing the tree in Raw while the table showed rows was
+          // the first cut and it was a trap: what you copy would not have been
+          // what you were looking at. The tree stays reachable where its actual
+          // consumer is, on the component (`__workbench.pvOut.res.tree`), which
+          // is the whole integration point: this computes the partition, the
+          // host decides whether to draw it as an indented table, a treemap or
+          // a till receipt.
+          this.sendToViewer("pivot.json", this.previewJson(flat), "table", flat);
+          this.rpSync();
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:1752 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > clear ===
+() {
+          Object.assign(this, { raw: [], datasets: [], scope: "__all", editingDs: -1, addOpen: false, bndOpen: false, combine: true, tagCol: "", ran: false, bundle: "", bundleSz: "", bundleObj: {}, bndSel: {}, srcGz: {}, wizOpen: false, wizCands: [], wizCols: [], wizColN: {}, wizScanned: 0, wizCustom: [], wizSel: "", wizPick: {}, previewOn: "", tabs: [this.identityTab()], active: 0, profileData: {}, loaded: "",
+            pvCols: [], pvIsNum: {}, pvN: {}, pvDec: {}, pvDims: [], pvColDims: [], pvMeasure: "", pvAgg: "sum", pvSrc: "", pvOut: null, rpHtml: "", rpModel: null, rpOrder: "source" });
+          this.saveTabs();
+          if (typeof opts.onIngest === "function") try { opts.onIngest([]); } catch (e) {}
+          this.sendToViewer("blank.json", "[]");
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:1763 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > dl ===
+() {
+          const p = await this.exportPayload(this.curV);
+          const u = URL.createObjectURL(new Blob([p.text], { type: p.mime }));
+          Object.assign(document.createElement("a"), { href: u, download: "out." + p.ext }).click();
+          setTimeout(() => URL.revokeObjectURL(u), 100);
+        }
+=== UNIT lib/alpineComponents/transform-workbench.js:1776#1 | call(…) > panelHTML (part 1 of 4) ===
+function panelHTML(dataExpr) {
+    return `
+  <style>
+    /* Below lg the workbench stacks (editor over viewer) and the split-width
+       inline style must not apply; heights are explicit because a mobile
+       host may give the panel no height to fill. */
+    @media (max-width: 1023.5px) {
+      .tf-root .tf-editor-col { width: 100% !important; }
+      .tf-root .tf-editor-card { height: auto !important; }
+      .tf-root textarea { min-height: 9rem; }
+    }
+  </style>
+  <div class="tf-root flex flex-col lg:h-full min-h-0 gap-2 select-none" x-data="transformWorkbench(${dataExpr || ""})"
+       @mousemove.window="if(drag){const r=$el.getBoundingClientRect(); split=Math.min(80,Math.max(20,(($event.clientX-r.left)/r.width)*100))} if(bndDrag){const r=$refs.rightcol.getBoundingClientRect(); bndSplit=Math.min(85,Math.max(20,(($event.clientY-r.top)/r.height)*100))} if(wizDrag){const r=$refs.leftcol.getBoundingClientRect(); wizSplit=Math.min(85,Math.max(20,(($event.clientY-r.top)/r.height)*100))}"
+       @mouseup.window="drag=false; bndDrag=false; wizDrag=false">
+
+    <div class="flex flex-wrap items-center px-1 shrink-0 gap-x-3 gap-y-1.5">
+      <span x-show="raw.length" class="text-[10px] text-success font-medium whitespace-nowrap flex items-center gap-1">
+        <i class="ph-bold ph-check-circle"></i><span x-text="\`\${raw.length.toLocaleString()} rows\`"></span>
+      </span>
+      <!-- The batch chips double as the scope selector: click selects what
+           Data and Profile speak about (computed on demand if the last Run
+           did not target it), double-click renames in place (the name is the
+           tag value and the bundle key). The Combined chip leads when there
+           is more than one batch. + data opens the paste target. -->
+      <button x-show="datasets.length > 1" @click="setScope('__all')"
+              class="btn btn-xs h-6 min-h-0 px-2 normal-case font-mono shrink-0 border transition-none"
+              :class="scopeActive() === '__all' ? 'btn-neutral border-neutral' : 'btn-ghost bg-base-100 border-base-300'">
+        Combined <span class="opacity-40 text-[9px]" x-text="raw.length.toLocaleString()"></span>
+      </button>
+      <template x-for="(d, i) in datasets" :key="i">
+        <!-- The join wrapper carries the border but no radius of its own, so it
+             takes the btn radius explicitly and overflow-hidden clips both
+             segments to it; the remove segment follows the selection color, so
+             a selected chip is one solid unit rather than a dark half against
+             a white x inside a square outline. -->
+        <div class="join border shrink-0 overflow-hidden rounded-[var(--radius-field)]" :class="(datasets.length === 1 || scopeActive() === d.name) ? 'border-neutral' : 'border-base-300'">
+          <button class="join-item btn btn-xs h-6 min-h-0 px-2 normal-case border-none font-mono transition-none"
+                  :class="(datasets.length === 1 || scopeActive() === d.name) ? 'btn-neutral' : 'btn-ghost bg-base-100'"
+                  @click="if (!d.ref) setScope(datasets.length === 1 ? '__all' : d.name)"
+                  @dblclick.prevent="startDsEdit(i)"
+                  :title="d.ref ? 'A reference batch: a fn reads it as $' + d.name + '; double-click to rename' : 'Click to inspect this batch; double-click to rename (the name is the tag value and the bundle key)'">
+            <template x-if="editingDs === i">
+              <input x-model="d.name" x-init="$nextTick(() => { $el.focus(); $el.select(); })"
+                     @blur="finishDsEdit()" @keydown.enter.prevent="finishDsEdit()"
+                     @keydown.escape.prevent="finishDsEdit()" @click.stop
+                     class="w-16 bg-transparent border-none outline-none focus:ring-0 p-0 font-mono text-[11px] text-inherit">
+            </template>
+            <template x-if="editingDs !== i">
+              <span><span x-show="d.ref" class="opacity-60">$</span><span x-text="d.name"></span> <span class="opacity-40 text-[9px]" x-text="d.rows.length.toLocaleString()"></span></span>
+            </template>
+          </button>
+          <button @click.stop="toggleRef(i)" :aria-label="d.ref ? 'Use ' + d.name + ' as input rows' : 'Use ' + d.name + ' as a $ref'"
+                  :title="d.ref ? 'Reference: fns read it as $' + d.name + '. Tap to make it input rows.' : 'Input rows. Tap to make it a reference a fn reads as $' + d.name + '.'"
+                  class="join-item btn btn-xs h-6 min-h-0 px-1.5 border-none font-mono transition-none border-l border-base-300!"
+                  :class="d.ref ? 'btn-secondary btn-soft' : 'btn-ghost bg-base-100 opacity-40 hover:opacity-100'">$</button>
+          <button x-show="datasets.length > 1" @click.stop="removeDataset(i)"
+                  :aria-label="'Remove the ' + d.name + ' dataset'"
+                  class="join-item btn btn-xs h-6 min-h-0 px-1 border-none transition-none hover:text-error"
+                  :class="(datasets.length === 1 || scopeActive() === d.name) ? 'btn-neutral' : 'btn-ghost bg-base-100'">
+            <i class="ph ph-x text-[10px]"></i>
+          </button>
+        </div>
+      </template>
+      <!-- An output-only bundle (rehydrated without source) has no batch
+           chips; its scopes come from the outputs themselves. -->
+      <template x-for="k in (datasets.length ? [] : scopeOptions())" :key="k">
+        <button @click="setScope(k)"
+                class="btn btn-xs h-6 min-h-0 px-2 normal-case font-mono shrink-0 border transition-none"
+                :class="scopeActive() === k ? 'btn-neutral border-neutral' : 'btn-ghost bg-base-100 border-base-300'"
+                x-text="scopeLabel(k)"></button>
+      </template>
+      <button x-show="datasets.length" @click="addOpen = !addOpen"
+              class="btn btn-xs btn-ghost h-6 min-h-0 px-1.5 opacity-50 hover:opacity-100" :class="addOpen && 'text-primary opacity-100'"
+              title="Paste or drop another batch of the same shape">
+        <i class="ph-bold ph-plus"></i> data
+      </button>
+      <label x-show="datasets.length > 1 || !combine" class="flex items-center gap-1 cursor-pointer text-[10px] opacity-60 hover:opacity-100 select-none whitespace-nowrap"
+             title="On: batches append into one input. Off: each fn runs once per batch, one output per batch.">
+        <input type="checkbox" class="checkbox checkbox-xs" x-model="combine" @change="modeChanged()">
+        <span>Combine</span>
+      </label>
+      <input x-show="datasets.length > 1 || tagCol" x-model="tagCol" @change="modeChanged()" placeholder="tag col"
+             title="Adds this column to every input row, holding the batch's name"
+             class="input input-xs input-bordered w-20 font-mono h-6" spellcheck="false">
+      <div class="flex gap-2 items-center shrink-0 ml-auto">
+        <!-- Live run progress, fed by the worker per function (and per batch
+             in separate mode). -->
+        <span x-show="running" class="text-[10px] opacity-60 font-mono truncate max-w-[16rem]" x-text="progress"></span>
+        <button class="btn btn-xs btn-ghost px-1.5" @click="collapsed = !collapsed"
+                :title="collapsed ? 'Show the transform editor' : 'Hide the transform editor'"
+                  :aria-label="collapsed ? 'Show the transform editor' : 'Hide the transform editor'">
+          <i class="ph-bold" :class="collapsed ? 'ph-sidebar' : 'ph-sidebar-simple'"></i>
+        </button>
+        <button class="btn btn-xs btn-primary px-3" :disabled="!!(!raw.length || running)" @click="run()">
+          <span x-show="!running"><i class="ph-bold ph-play"></i></span>
+          <span x-show="running" class="loading loading-spinner loading-xs"></span> Run
+        </button>
+        <button class="btn btn-xs btn-ghost" @click="clear()">Clear</button>
+      </div>
+    </div>
+
+    <!-- The paste/drop target: a drop zone only while empty. Once a table is
+         loaded it collapses and the row count moves up beside the controls,
+         so it stops taking a full row it does not need. -->
+    <div class="card bg-base-100 border border-base-300 shrink-0" x-show="!datasets.length || addOpen">
+      <div class="p-1">
+        <div class="border border-dashed rounded-md py-3 text-center cursor-pointer hover:bg-base-200 transition-colors"
+             :class="hot ? 'border-primary bg-primary/10' : ran && !datasets.length ? 'border-warning/40 bg-warning/10' : 'border-base-300'"
+             @paste.prevent="handlePaste($event)"
+             @dragenter.prevent="hot = true" @dragover.prevent
+             @dragleave.prevent="hot = false" @drop.prevent="handleDrop($event)"
+             tabindex="0">
+          <div x-show="!ran || datasets.length" class="text-base-content/40 text-xs flex items-center justify-center gap-2 pointer-events-none">
+            <i class="ph-bold text-lg" :class="hot ? 'ph-file-arrow-down text-primary' : 'ph-clipboard-text'"></i>
+            <span x-text="hot ? 'Drop to load' : (datasets.length ? 'Paste or drop the next batch (same shape; appends as a new dataset)' : 'Paste or drop TSV, CSV, JSON, or a bundle')"></span>
+          </div>
+          <div x-show="ran && !datasets.length" class="flex items-center justify-center gap-2 text-warning text-xs font-bold pointer-events-none">
+            <i class="ph-bold ph-info"></i>
+            <span>Bundle rehydrated without source. Paste raw data here to enable Run.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lg:flex-1 flex flex-col lg:flex-row gap-2 lg:gap-0 min-h-0" :class="(drag || bndDrag || wizDrag) && 'pointer-events-none'">
+      <!-- The fn column: the editor on top, the dimension pane below it,
+           mirroring the output column's viewer-over-bundle split. -->
+      <div x-show="!collapsed" class="tf-editor-col flex flex-col min-h-0 gap-2 lg:pr-0" :style="\`width: \${split}%\`" x-ref="leftcol">
+      <div class="tf-editor-card card bg-base-100 border border-base-300 flex flex-col overflow-hidden"
+           :class="!wizOpen && 'lg:flex-1'" :style="wizOpen ? 'height:' + wizSplit + '%' : ''">
+        <div class="p-2 flex flex-col h-full">
+          <div class="flex justify-between items-center mb-2 shrink-0 gap-1.5">
+            <div class="flex gap-1.5 items-center flex-1 min-w-0 p-1 overflow-x-auto [&::-webkit-scrollbar]:hidden">
+              <template x-for="(t, i) in tabs" :key="i">
+                <div class="join border border-base-300 shrink-0 overflow-hidden rounded-[var(--radius-field)]">
+                  <button @click="setActive(i)" @dblclick.prevent="startEdit(i)"
+                          class="join-item btn btn-xs h-7 min-h-0 px-3 normal-case border-none transition-none"
+                          :class="active === i ? 'btn-neutral' : 'btn-ghost bg-base-100'">
+                    <div class="relative inline-flex items-center justify-center min-w-[2.5rem]">
+                      <span class="invisible whitespace-pre font-medium" x-text="t.name || ' '"></span>
+                      <template x-if="editing === i">
+                        <input x-model="t.name" x-init="$nextTick(() => { $el.focus(); $el.select(); })"
+                               @blur="finishEdit()" @keydown.enter.prevent="finishEdit()"
+                               @keydown.escape.prevent="finishEdit()" @click.stop
+                               class="absolute inset-0 w-full h-full bg-transparent border-none outline-none focus:ring-0 text-center text-inherit font-medium p-0">
+                      </template>
+                      <template x-if="editing !== i">
+                        <span class="absolute inset-0 flex items-center justify-center" x-text="t.name || '·'" :class="!t.name && 'opacity-50'"></span>
+                      </template>
+=== UNIT lib/alpineComponents/transform-workbench.js:1776#2 | call(…) > panelHTML (part 2 of 4) ===
+                    </div>
+                    <i x-show="t.err" class="ph-bold ph-warning-circle text-error text-[10px] ml-1"></i>
+                    <span x-show="t.dirty && t.ok && !t.err" class="text-warning text-[10px] ml-1 font-bold">*</span>
+                  </button>
+                  <button x-show="tabs.length > 1" @click.stop="remove(i)"
+                          :aria-label="'Close the ' + (t.name || 'transform') + ' tab'"
+                          class="join-item btn btn-xs h-7 min-h-0 px-1.5 btn-ghost border-none bg-base-100 hover:text-error border-l border-base-300!">
+                    <i class="ph ph-x text-[10px]"></i>
+                  </button>
+                </div>
+              </template>
+              <button @click="add()" class="btn btn-xs btn-ghost opacity-40 px-2 shrink-0 hover:opacity-100" title="Add a blank transform tab" aria-label="Add a blank transform tab"><i class="ph-bold ph-plus"></i></button>
+              <select x-show="addableRecipes().length" @change="addRecipe($event.target.value); $event.target.value = ''"
+                      title="Add a committed recipe from the registry"
+                      class="select select-xs select-bordered h-7 min-h-0 shrink-0 max-w-[9rem] text-[11px] opacity-60 hover:opacity-100">
+                <option value="">+ recipe</option>
+                <template x-for="r in addableRecipes()" :key="r.name">
+                  <option :value="r.name" x-text="r.label || r.name"></option>
+                </template>
+              </select>
+            </div>
+            <div class="flex gap-1 shrink-0">
+              <button class="btn btn-xs h-7 min-h-0 px-1.5 btn-ghost transition-colors" @click="wrapF = !wrapF" :class="wrapF ? 'text-primary' : 'opacity-30'"
+                      :aria-label="wrapF ? 'Stop wrapping long lines' : 'Wrap long lines'"><i class="ph-bold ph-arrow-u-down-left"></i></button>
+              <button class="btn btn-xs h-7 min-h-0 px-1.5 btn-ghost transition-colors tf-copy-btn" :data-clipboard-text="tabs[active]?.fnSrc || ''" @click="flash('f')" aria-label="Copy the transform source" :class="copF ? 'text-success' : 'opacity-30'"><i class="ph-bold" :class="copF ? 'ph-check':'ph-copy'"></i></button>
+              <button x-show="canSaveRecipe() && !tabs[active]?.fixed" class="btn btn-xs h-7 min-h-0 px-1.5 btn-ghost opacity-30 hover:opacity-100" @click="saveTabRecipe()" title="Save this tab as a recipe" aria-label="Save this tab as a recipe"><i class="ph-bold ph-floppy-disk"></i></button>
+            </div>
+          </div>
+          <textarea class="textarea textarea-bordered font-mono text-[11px] w-full flex-1 leading-tight resize-none focus:outline-none p-2 border-base-200"
+                    :class="wrapF ? 'whitespace-pre-wrap break-all' : 'whitespace-pre overflow-auto'"
+                    x-model="tabs[active].fnSrc" @input="tabs[active].dirty = true"
+                    spellcheck="false" :wrap="wrapF ? 'soft' : 'off'"></textarea>
+          <div x-show="tabs[active]?.err" class="text-error text-[10px] font-mono mt-1" x-text="tabs[active]?.err"></div>
+        </div>
+      </div>
+
+      <div x-show="wizOpen" class="hidden lg:block h-1.5 -my-1 hover:bg-primary/20 cursor-row-resize transition-colors shrink-0" @mousedown="wizDrag = true"></div>
+
+      <!-- The dimension pane: describes the active fn and offers dims from
+           its output, mirroring the bundle pane opposite. Expanding scans. -->
+      <div class="card bg-base-100 border border-base-300 flex flex-col overflow-hidden" :class="wizOpen ? 'flex-1 min-h-0' : 'shrink-0'">
+        <div class="flex items-center gap-2 px-2 py-1 shrink-0" :class="wizOpen && 'border-b border-base-300'">
+          <button class="btn btn-xs btn-ghost px-1 gap-1.5 normal-case" @click="toggleWizard()">
+            <i class="ph-bold text-[10px]" :class="wizOpen ? 'ph-caret-down' : 'ph-caret-right'"></i>
+            <i class="ph-bold ph-magic-wand opacity-60"></i><span class="font-medium">Dimensions</span>
+          </button>
+          <!-- The live shape of the active tab's output; recomputed on render,
+               so it cannot go stale the way a scan stamp could. -->
+          <span x-show="wizOpen && wizInfo().rows" class="font-mono text-[10px] opacity-50"
+                x-text="wizInfo().name + ' · ' + wizInfo().rows.toLocaleString() + ' × ' + wizInfo().cols + ' cols'"></span>
+          <div x-show="wizOpen" class="flex items-center gap-2 ml-auto">
+            <label class="flex items-center gap-1.5 cursor-pointer text-[10px] opacity-60 hover:opacity-100 select-none" title="Keep one generated fact tab that drops every column a dim expresses, keys kept">
+              <input type="checkbox" class="checkbox checkbox-xs" x-model="wizFact"> <span>maintain fact tab</span>
+            </label>
+            <!-- The scan window is a parameter, not a footnote: the control
+                 says what the check covers and changes it in one gesture. -->
+            <select class="select select-xs select-bordered h-6 min-h-0 text-[10px] opacity-70" x-model="wizCap" @change="scanDims()">
+              <option value="50k">check 50k rows</option>
+              <option value="all">check all rows</option>
+            </select>
+            <button class="btn btn-xs btn-ghost px-1.5 opacity-50 hover:opacity-100" @click="scanDims()" title="Rescan the active tab's output" aria-label="Rescan the active tab's output"><i class="ph-bold ph-arrows-clockwise"></i></button>
+          </div>
+        </div>
+        <div x-show="wizOpen" class="flex-1 min-h-0 flex max-h-[18rem] lg:max-h-none">
+          <!-- The column sidebar: the whole table at a glance (name + distinct
+               count) and the selection surface in one. Tap once to include a
+               column (dark), twice to make it a key (blue); several keys form
+               a compound key, none makes a plain distinct table. Selecting a
+               candidate paints its columns here. -->
+          <div class="w-44 shrink-0 border-r border-base-200 flex flex-col min-h-0">
+            <div class="flex-1 overflow-y-auto p-1 flex flex-col gap-0.5">
+              <template x-for="c in wizCols" :key="c">
+                <button class="btn btn-xs h-5 min-h-0 px-1.5 normal-case font-mono justify-start gap-1 border transition-none w-full flex-nowrap shrink-0"
+                        :class="(wizPick[c] || 0) === 2 ? 'btn-primary border-primary' : (wizPick[c] || 0) === 1 ? 'btn-neutral border-neutral' : 'btn-ghost bg-base-100 border-base-300'"
+                        @click="cyclePick(c)" title="Tap: include · tap again: key" aria-label="Tap: include · tap again: key">
+                  <i x-show="(wizPick[c] || 0) === 2" class="ph-bold ph-key text-[9px] shrink-0"></i>
+                  <span class="truncate" x-text="c"></span>
+                  <span class="ml-auto opacity-40 text-[9px] shrink-0" x-text="wizColN[c] < wizScanned ? wizColN[c].toLocaleString() : ''"></span>
+                </button>
+              </template>
+            </div>
+            <!-- Acting on the pick: pinned below the list, never scrolled
+                 away. Preview shows it in the viewer, + dim adds the tab,
+                 + menu lists it with its computed closure, clear starts over. -->
+            <div x-show="wizCols.length" class="grid grid-cols-2 gap-1 p-1 border-t border-base-200 shrink-0">
+              <button class="btn btn-xs btn-outline h-6 min-h-0 normal-case" :disabled="!Object.values(wizPick).some(v => v)" @click="addManualDim()">+ dim</button>
+              <button class="btn btn-xs btn-outline h-6 min-h-0 normal-case" :disabled="!Object.values(wizPick).some(v => v)" @click="addToMenu()" title="Compute what this key set delineates and list it in the menu">+ menu</button>
+              <button class="btn btn-xs btn-ghost h-6 min-h-0 normal-case gap-1" :disabled="!Object.values(wizPick).some(v => v)" @click="previewPick()" title="Show the table this pick would produce, in the viewer, without adding a tab"><i class="ph-bold ph-eye"></i> preview</button>
+              <button class="btn btn-xs btn-ghost h-6 min-h-0 normal-case gap-1" :disabled="!Object.values(wizPick).some(v => v)" @click="clearPick()"><i class="ph-bold ph-x"></i> clear</button>
+            </div>
+          </div>
+          <div class="flex-1 overflow-y-auto p-2 text-[11px]">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="font-medium opacity-70">Menu</span>
+              <span x-show="wizRefsLine()" class="font-mono text-[10px] opacity-50" x-text="wizRefsLine()"></span>
+            </div>
+            <!-- The rollup tree: a child is a coarser level its parent's key
+                 already delineates; a starred row is a promoted pick. Tap a
+                 row to paint it onto the sidebar. -->
+            <template x-for="c in wizCands" :key="(c.custom ? '*' : '') + kLabel(c)">
+              <div class="border-b border-base-200 last:border-0" :style="'margin-left:' + (c.depth * 1.25) + 'rem'">
+                <div class="flex items-center gap-2 py-1 pl-1 cursor-pointer hover:bg-base-200/40 rounded"
+                     :class="wizSel === kLabel(c) && 'bg-base-200/60'"
+                     @click="selectCand(c)">
+                  <i x-show="c.depth" class="ph ph-arrow-elbow-down-right opacity-30 text-[10px] shrink-0"></i>
+                  <i x-show="c.custom" class="ph-fill ph-star opacity-40 text-[10px] shrink-0"></i>
+                  <span class="font-mono font-medium shrink-0" x-text="kLabel(c)"></span>
+                  <span class="opacity-40 shrink-0 text-[10px]" x-text="'(' + c.nKeys.toLocaleString() + ')'"></span>
+                  <span class="opacity-50 font-mono text-[10px] truncate" x-text="c.cols.filter(x => !candKeys(c).includes(x)).join(', ')"></span>
+                  <button class="btn btn-xs btn-outline h-5 min-h-0 px-1.5 shrink-0 normal-case font-mono ml-auto"
+                          @click.stop="addDim(c)">+ dim</button>
+                  <button x-show="c.custom" class="btn btn-xs btn-ghost h-5 min-h-0 px-1 shrink-0 hover:text-error"
+                          @click.stop="removeCustom(c)" title="Remove this entry from the menu" aria-label="Remove this entry from the menu"><i class="ph ph-x text-[10px]"></i></button>
+                </div>
+                <!-- The selected entry offers what it COULD delineate (lower
+                     cardinality, not carried): tap to fold a column into the
+                     pick, then preview to see where the multiplicities sit. -->
+                <div x-show="wizSel === kLabel(c) && wizSuggest(c).length" class="flex flex-wrap items-center gap-1 pl-6 pb-1 text-[10px]">
+                  <span class="opacity-40">could also test:</span>
+                  <template x-for="s in wizSuggest(c)" :key="s">
+                    <button class="btn btn-xs h-5 min-h-0 px-1.5 normal-case font-mono border transition-none"
+                            :class="wizPick[s] ? 'btn-neutral border-neutral' : 'btn-ghost bg-base-100 border-base-300'"
+                            @click.stop="wizPick[s] = wizPick[s] ? 0 : 1"
+                            :title="'distinct: ' + (wizColN[s] || 0).toLocaleString()">
+                      <span x-text="s"></span>
+                    </button>
+                  </template>
+                </div>
+              </div>
+            </template>
+            <div x-show="wizScanned && !wizCands.length" class="opacity-40 italic">no functional dependencies in this tab's output</div>
+            <div x-show="!wizScanned" class="opacity-40 italic">no output to scan yet: paste data and Run</div>
+          </div>
+        </div>
+      </div>
+      </div>
+
+      <div x-show="!collapsed" class="hidden lg:block w-1.5 hover:bg-primary/20 cursor-col-resize self-stretch transition-colors" @mousedown="drag = true"></div>
+
+      <!-- The output column: the viewer on top, the bundle pane below it
+           (collapsible, drag-splittable). -->
+      <div class="flex-1 flex flex-col min-h-0 gap-2" x-ref="rightcol">
+      <div class="card bg-base-100 border border-base-300 flex flex-col overflow-hidden"
+           :class="!bndOpen && 'lg:flex-1'" :style="bndOpen ? 'height:' + bndSplit + '%' : ''">
+        <div class="p-2 flex flex-col h-full">
+          <div x-show="!ran" class="flex-1 min-h-[8rem] lg:min-h-0 flex items-center justify-center text-base-content/20 italic text-xs">Run to see output</div>
+          <div x-show="ran" class="flex flex-col h-full">
+            <div x-show="!previewOn" class="flex flex-wrap items-center gap-y-1.5 mb-2 shrink-0">
+              <div class="flex gap-1.5 items-center">
+                <template x-for="v in views" :key="v.k">
+=== UNIT lib/alpineComponents/transform-workbench.js:1776#3 | call(…) > panelHTML (part 3 of 4) ===
+                  <button class="btn btn-xs h-7 min-h-0 px-3 normal-case border border-base-300 transition-none flex gap-3"
+                          :class="curV === v.k ? 'btn-neutral' : 'btn-ghost bg-base-100'" @click="switchTo(v.k)">
+                    <span class="font-medium" x-text="v.l"></span>
+                    <span class="text-[9px] opacity-40 font-mono tracking-tighter" x-text="sz(v.k)"></span>
+                  </button>
+                </template>
+                <!-- The scope readout: which batch (or Combined) the batch
+                     chips up top have selected; the chips are the control. -->
+                <span x-show="scopeOptions().length > 1" class="text-[10px] opacity-40 font-mono self-center ml-1"
+                      x-text="scopeLabel(scopeActive())"></span>
+              </div>
+              <div class="flex items-center gap-2 ml-auto">
+                <!-- The three output modes, icon-only. The labels went on
+                     2026-09-14 because this strip shares one row with the
+                     Data/Profile/Pivot tabs, the batch readout and the two
+                     export buttons, and it was the widest thing on the row
+                     that was not naming anything the row did not already
+                     imply. Each carries a note in place of the label, which
+                     is the house rule for a popup (kits/title-tip.js); the icons
+                     are the same three, at the same sizes, so the control is
+                     recognisable at a glance by anyone who knew it wide.
+                     data-title-tip-bare drops the kit's dotted underline, which a
+                     button should not be wearing.
+                    
+                     A note here NAMES the destination and does not describe
+                     it: at two or three words it reads in the time a pointer
+                     rests, and nothing in the strip needs a sentence. The
+                     middle one says "JSON tree" rather than anything about
+                     editing, because vanilla-jsoneditor is mounted editable
+                     over a structuredClone and nothing reads the clone back:
+                     typing into it changes the widget and not the rows, so a
+                     note promising an editor would be promising a write path
+                     that does not exist. Renaming it is the honest half of
+                     that; whether the panel should be read-only, or should
+                     write back, is a separate question. -->
+                <div class="join border border-base-300 overflow-hidden rounded-[var(--radius-field)]">
+                  <button class="btn btn-xs join-item px-2 bg-base-100 hover:bg-base-200" aria-label="Data grid" data-title-tip-bare data-title-tip-look="plain"
+                          data-title-tip="Data grid" @click="document.getElementById('tf-workbench').__viewer.switchMode('table')"><i class="ph ph-table text-sm"></i></button>
+                  <button class="btn btn-xs join-item px-2 bg-base-100 hover:bg-base-200" aria-label="JSON tree" data-title-tip-bare data-title-tip-look="plain"
+                          data-title-tip="JSON tree" @click="document.getElementById('tf-workbench').__viewer.switchMode('tree')"><i class="ph ph-tree-view text-sm"></i></button>
+                  <button class="btn btn-xs join-item px-2 bg-base-100 hover:bg-base-200" aria-label="Raw JSON" data-title-tip-bare data-title-tip-look="plain"
+                          data-title-tip="Raw JSON" @click="document.getElementById('tf-workbench').__viewer.switchMode('raw')"><i class="ph ph-text-t text-sm"></i></button>
+                </div>
+                <div class="flex gap-1">
+                  <!-- The export text is produced at click time, never bound
+                       into the attribute: with large batches that binding held
+                       the whole dataset in the DOM. -->
+                  <button class="btn btn-xs h-7 min-h-0 px-1.5 btn-ghost transition-colors" @click="copyResult()" :class="copR ? 'text-success' : 'opacity-30'" aria-label="Copy the result"><i class="ph-bold" :class="copR ? 'ph-check':'ph-copy'"></i></button>
+                  <button class="btn btn-xs h-7 min-h-0 px-1.5 btn-ghost opacity-30 hover:opacity-100" @click="dl()" aria-label="Download the result"><i class="ph-bold ph-download"></i></button>
+                </div>
+              </div>
+            </div>
+            <!-- The pivot controls, a second header row under the view
+                 buttons. Group-by chips carry their nesting position as a
+                 number, because the order is the whole of what distinguishes
+                 one pivot from another and a set of on/off chips cannot say
+                 it. A numeric column is offered as a measure; every column is
+                 offered as a dimension, since grouping by a number is a normal
+                 thing to want. -->
+            <div x-show="(curV === 'pivot' || curV === 'layout') && !previewOn && tabs[active]?.rows?.length" class="flex flex-col gap-1.5 mb-2 shrink-0 text-[11px]">
+              <!-- Two containers. "Group by" holds the chosen dimensions in
+                   nesting order; the pool holds the rest. A chip drags within
+                   the first to reorder, from the pool into it to add, and out
+                   of it back to the pool to remove; a tap still toggles, so a
+                   phone gets the same reach without dragging. Native HTML
+                   drag-and-drop, no dependency. -->
+              <div class="flex flex-wrap items-center gap-1 min-h-7 rounded-[var(--radius-field)] border border-dashed px-1 py-0.5"
+                   :class="pvDrag && !pvDims.includes(pvDrag) ? 'border-primary/60 bg-primary/10' : 'border-base-300'"
+                   data-pv="rows" @dragover.prevent @drop.prevent="pvDropAt(pvDims.length)">
+                <span class="opacity-50 mr-1 shrink-0">Group by</span>
+                <template x-for="c in pvDims" :key="'pvd-' + c">
+                  <button class="btn btn-xs h-6 min-h-0 px-2 font-normal normal-case gap-1 border border-base-300 transition-none btn-primary btn-soft cursor-grab"
+                          :class="pvDrag === c && 'opacity-40'"
+                          draggable="true" @dragstart="pvDrag = c" @dragend="pvDrag = ''"
+                          @dragover.prevent @drop.prevent.stop="pvDropAt(pvDims.indexOf(c))"
+                          :title="(pvN[c] > 1000 ? '1000+' : pvN[c]) + ' distinct · drag to reorder, tap to remove'"
+                          @click="pvToggleDim(c)">
+                    <span class="font-mono opacity-60" x-text="pvDims.indexOf(c) + 1"></span>
+                    <span x-text="c"></span>
+                  </button>
+                </template>
+                <span x-show="!pvDims.length" class="opacity-40 italic">drag or tap a column below</span>
+              </div>
+              <!-- The column axis. A chip here spreads its values across the
+                   table as columns (a crosstab), two deep at most; the total
+                   column stays last. Drag in from the pool or from Group by;
+                   tap or drag out to remove. -->
+              <div class="flex flex-wrap items-center gap-1 min-h-7 rounded-[var(--radius-field)] border border-dashed px-1 py-0.5"
+                   :class="pvDrag && !pvColDims.includes(pvDrag) ? 'border-primary/60 bg-primary/10' : 'border-base-300'"
+                   data-pv="cols" @dragover.prevent @drop.prevent="pvDropCol(pvColDims.length)">
+                <span class="opacity-50 mr-1 shrink-0">Columns</span>
+                <template x-for="c in pvColDims" :key="'pvc-' + c">
+                  <button class="btn btn-xs h-6 min-h-0 px-2 font-normal normal-case gap-1 border border-base-300 transition-none btn-secondary btn-soft cursor-grab"
+                          :class="pvDrag === c && 'opacity-40'"
+                          draggable="true" @dragstart="pvDrag = c" @dragend="pvDrag = ''"
+                          @dragover.prevent @drop.prevent.stop="pvDropCol(pvColDims.indexOf(c))"
+                          :title="(pvN[c] > 1000 ? '1000+' : pvN[c]) + ' distinct · drag to reorder, tap to remove'"
+                          @click="pvRemoveCol(c)">
+                    <span x-text="c"></span>
+                  </button>
+                </template>
+                <span x-show="!pvColDims.length" class="opacity-40 italic">drag a column here to spread it across</span>
+              </div>
+              <div class="flex flex-wrap items-center gap-1 px-1"
+                   :class="pvDrag && (pvDims.includes(pvDrag) || pvColDims.includes(pvDrag)) ? 'rounded-[var(--radius-field)] border border-dashed border-error/50 bg-error/10' : ''"
+                   @dragover.prevent @drop.prevent="pvDropOut()">
+                <template x-for="c in pvCols.filter(x => !pvDims.includes(x) && !pvColDims.includes(x))" :key="'pvp-' + c">
+                  <button class="btn btn-xs h-6 min-h-0 px-2 font-normal normal-case gap-1 border border-base-300 transition-none btn-ghost bg-base-100 cursor-grab"
+                          :class="pvDrag === c && 'opacity-40'"
+                          draggable="true" @dragstart="pvDrag = c" @dragend="pvDrag = ''"
+                          :disabled="pvDims.length >= 4"
+                          :title="(pvN[c] > 1000 ? '1000+' : pvN[c]) + ' distinct · drag or tap to group by it'"
+                          @click="pvToggleDim(c)">
+                    <span x-text="c"></span>
+                  </button>
+                </template>
+              </div>
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="opacity-50 shrink-0">Measure</span>
+                <select class="select select-xs h-6 min-h-0 border-base-300 font-normal" x-model="pvMeasure" @change="pvSetMeasure(pvMeasure)">
+                  <option value="">count of rows</option>
+                  <template x-for="c in pvCols.filter(x => pvIsNum[x])" :key="'pvm-' + c">
+                    <option :value="c" x-text="c"></option>
+                  </template>
+                </select>
+                <div x-show="pvMeasure" class="join border border-base-300 overflow-hidden rounded-[var(--radius-field)]">
+                  <template x-for="a in ['sum', 'avg', 'min', 'max']" :key="'pva-' + a">
+                    <button class="join-item btn btn-xs h-6 min-h-0 px-2 normal-case border-none transition-none font-normal"
+                            :class="pvAgg === a ? 'btn-neutral' : 'btn-ghost bg-base-100'"
+                            @click="pvAgg = a; pvDraw()" x-text="a"></button>
+                  </template>
+                </div>
+                <!-- Two honesty readouts, both of which stay quiet when there is
+                     nothing to say. A non-additive aggregate means a parent is
+                     NOT the sum of its children, and a reader looking at an
+                     indented column will assume it is unless told. -->
+                <span x-show="pvOut && !pvOut.res.partition" class="opacity-50 italic">subtotals are not sums</span>
+                <span x-show="pvOut?.res?.skipped" class="opacity-50 italic">
+                  <span x-text="pvOut?.res?.skipped?.toLocaleString()"></span> row(s) skipped: the measure would not parse
+                </span>
+                <button class="btn btn-xs h-6 min-h-0 px-2 btn-ghost font-normal normal-case ml-auto opacity-50 hover:opacity-100"
+                        @click="pvDims = []; pvColDims = []; pvMeasure = ''; pvAgg = 'sum'; pvSrc = ''; syncSurfaces()"
+                        title="Re-scan the columns and take the defaults again">reset</button>
+              </div>
+              <!-- The pivot as a function: what the chips above mean, written
+                   out. Copy takes the self-contained source (pvFnSrc), which
+                   runs as a tab anywhere; Save hands it to the host as a recipe. -->
+              <div class="flex items-center gap-1.5 font-mono text-[10px] opacity-70 min-w-0">
+                <span class="truncate" x-text="pvFnLine()"></span>
+                <button class="btn btn-xs h-5 min-h-0 px-1 btn-ghost tf-copy-btn shrink-0" :data-clipboard-text="pvFnSrc()" @click="flash('f')" title="Copy the pivot as a self-contained rows => rows function" aria-label="Copy the pivot as a function"><i class="ph-bold" :class="copF ? 'ph-check' : 'ph-copy'"></i></button>
+=== UNIT lib/alpineComponents/transform-workbench.js:1776#4 | call(…) > panelHTML (part 4 of 4) ===
+                <button x-show="canSaveRecipe()" class="btn btn-xs h-5 min-h-0 px-1.5 btn-ghost shrink-0 font-sans normal-case font-normal" @click="savePivotRecipe()" title="Save this pivot as a recipe"><i class="ph-bold ph-floppy-disk"></i> Save as recipe</button>
+              </div>
+            </div>
+            <!-- While a dim preview holds the output side, its banner IS the
+                 header: the normal Data/Profile controls hide, the report and
+                 dim-table views switch here, and closing (or any tab, view,
+                 or scope change) reclaims the pane. -->
+            <div x-show="previewOn" class="flex items-center gap-2 px-2 py-1 mb-2 rounded bg-primary/10 text-[11px] shrink-0">
+              <i class="ph-bold ph-eye"></i><span class="font-medium whitespace-nowrap">dim preview:</span>
+              <span class="font-mono text-[10px] opacity-70 truncate" x-text="previewOn"></span>
+              <div class="join border border-base-300 overflow-hidden rounded-[var(--radius-field)] ml-1 shrink-0">
+                <button class="join-item btn btn-xs h-6 min-h-0 px-2.5 normal-case border-none transition-none"
+                        :class="previewMode === 'report' ? 'btn-neutral' : 'btn-ghost bg-base-100'"
+                        @click="previewMode = 'report'; sendPreview()">report</button>
+                <button class="join-item btn btn-xs h-6 min-h-0 px-2.5 normal-case border-none transition-none"
+                        :class="previewMode === 'table' ? 'btn-neutral' : 'btn-ghost bg-base-100'"
+                        @click="previewMode = 'table'; sendPreview()">dim table</button>
+              </div>
+              <button class="btn btn-xs btn-ghost h-6 min-h-0 px-1 ml-auto shrink-0" @click="syncSurfaces()" title="Back to the tab's output" aria-label="Back to the tab's output"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="flex-1 min-h-[22rem] lg:min-h-0 border border-base-200 rounded overflow-hidden bg-base-100 relative">
+              <div x-show="curV === 'csv' && !tabs[active]?.rows?.length && !previewOn" class="absolute inset-0 flex items-center justify-center text-base-content/30 italic text-xs z-10 bg-base-100" x-text="tabs[active]?.err ? 'Error in this tab' : 'This tab not yet run'"></div>
+              <div x-show="curV === 'profile' && !tabs[active]?.rows?.length && !previewOn" class="absolute inset-0 flex items-center justify-center text-base-content/30 italic text-xs z-10 bg-base-100" x-text="tabs[active]?.err ? 'Error in this tab' : 'This tab not yet run'"></div>
+              <div x-show="curV === 'pivot' && !tabs[active]?.rows?.length && !previewOn" class="absolute inset-0 flex items-center justify-center text-base-content/30 italic text-xs z-10 bg-base-100" x-text="tabs[active]?.err ? 'Error in this tab' : 'This tab not yet run'"></div>
+              <div x-show="curV === 'layout' && !tabs[active]?.rows?.length && !previewOn" class="absolute inset-0 flex items-center justify-center text-base-content/30 italic text-xs z-10 bg-base-100" x-text="tabs[active]?.err ? 'Error in this tab' : 'This tab not yet run'"></div>
+              <div id="tf-workbench" class="absolute inset-0 overflow-auto" x-data="tfViewer({ defaultMode: 'raw' })"></div>
+              <!-- Stacked OVER the viewer rather than swapping with it: the three
+                   older views keep their element mounted, so nothing here can
+                   change how Tabulator measures itself. -->
+              <div x-show="curV === 'layout'" class="absolute inset-0 overflow-auto bg-base-100 p-2">
+                <div x-show="!rpReady()" class="text-xs text-base-content/60">Needs kits/report-layout.js, which this page does not load.</div>
+                <div x-show="rpReady()" class="space-y-2">
+                  <div class="flex items-center gap-2 text-[11px]">
+                    <button class="btn btn-xs h-5 min-h-0 px-1.5 btn-ghost tf-copy-btn shrink-0 font-sans normal-case font-normal" :data-clipboard-text="rpTsv()" @click="flash('l')" aria-label="Copy the report as tab-separated values"><i class="ph-bold" :class="copL ? 'ph-check' : 'ph-copy'"></i> TSV</button>
+                    <div class="join border border-base-300 overflow-hidden rounded-[var(--radius-field)] shrink-0">
+                      <button class="join-item btn btn-xs h-5 min-h-0 px-2 normal-case border-none transition-none font-sans font-normal"
+                              :class="rpOrder === 'source' ? 'btn-neutral' : 'btn-ghost bg-base-100'"
+                              @click="rpOrder = 'source'; rpSync()">as written</button>
+                      <button class="join-item btn btn-xs h-5 min-h-0 px-2 normal-case border-none transition-none font-sans font-normal"
+                              :class="rpOrder === 'value' ? 'btn-neutral' : 'btn-ghost bg-base-100'"
+                              @click="rpOrder = 'value'; rpSync()">by size</button>
+                    </div>
+                    <span x-show="rpModel && !rpModel.partition" class="text-base-content/60" x-text="'subtotals withheld · ' + pvAgg + ' does not partition'"></span>
+                  </div>
+                  <div x-html="rpHtml"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div x-show="bndOpen" class="hidden lg:block h-1.5 -my-1 hover:bg-primary/20 cursor-row-resize transition-colors shrink-0" @mousedown="bndDrag = true"></div>
+
+      <!-- The bundle pane: the export artifact with its own header, a level
+           apart from the inspection views above. Expanding builds it. -->
+      <div class="card bg-base-100 border border-base-300 flex flex-col overflow-hidden" :class="bndOpen ? 'flex-1 min-h-0' : 'shrink-0'">
+        <div class="flex items-center gap-2 px-2 py-1 shrink-0" :class="bndOpen && 'border-b border-base-300'">
+          <button class="btn btn-xs btn-ghost px-1 gap-1.5 normal-case" @click="toggleBundlePane()">
+            <i class="ph-bold text-[10px]" :class="bndOpen ? 'ph-caret-down' : 'ph-caret-right'"></i>
+            <i class="ph-bold ph-package opacity-60"></i><span class="font-medium">Bundle</span>
+          </button>
+          <span class="font-mono text-[10px] opacity-50" x-text="bundle ? bundleSz : (ran ? 'not built' : '')"></span>
+          <div class="flex gap-1 ml-auto">
+            <button class="btn btn-xs btn-ghost gap-1" @click="copyBundle()" :class="copB && 'text-success'">
+              <i class="ph-bold" :class="copB ? 'ph-check' : 'ph-copy'"></i> Copy
+            </button>
+            <button class="btn btn-xs btn-ghost gap-1" @click="dlBundle()"><i class="ph-bold ph-download"></i> Download</button>
+          </div>
+        </div>
+        <div x-show="bndOpen" class="flex-1 min-h-0 flex max-h-[16rem] lg:max-h-none">
+          <!-- The checklist: membership is chosen key by key; an unchecked row
+               stays listed (grayed) so it is one tap to bring back.
+
+               :disabled TAKES !! for the same reason the FAB's layer strip
+               does. bundleRows() stamps a fixed flag on the meta row alone, so
+               on every real key row the expression was undefined, which Alpine's
+               x-bind turns into '' for any dotted expression, and '' is not a
+               value bind() treats as absent: the attribute went on and the
+               whole checklist was unclickable. -->
+          <div class="w-56 shrink-0 border-r border-base-200 overflow-y-auto">
+            <template x-for="r in bundleRows()" :key="r.k">
+              <label class="flex items-center gap-1.5 px-2 py-0.5 font-mono text-[10px] border-b border-base-200 last:border-0 cursor-pointer hover:bg-base-200/50"
+                     :class="!r.sel && 'opacity-40'">
+                <input type="checkbox" class="checkbox checkbox-xs" :checked="!!r.sel" :disabled="!!r.fixed" @change="toggleBndKey(r.k)">
+                <span class="truncate flex-1" x-text="r.k"></span>
+                <span class="opacity-50 shrink-0" x-text="r.sz"></span>
+              </label>
+            </template>
+            <div x-show="!bundleRows().length" class="p-2 text-[10px] opacity-40 italic">no entries yet</div>
+          </div>
+          <pre class="flex-1 overflow-auto p-2 m-0 text-[10px] leading-4 font-mono whitespace-pre-wrap break-all select-text" x-text="bundlePreview()"></pre>
+        </div>
+      </div>
+      </div>
+    </div>
+  </div>`;
+  }
+=== UNIT lib/kits/tabular-explorer.js:28 | call(…) ===
+() => {
+  // ---- DOM Helper -----------------------------------------------------------
+  const h = /* nested: h, lines 30-42 */;
+
+  // vanilla-bundle.js's window.esc, the one escape: it quotes as well, which
+  // the textContent trick this replaced did not.
+  const esc = (s) => window.esc(s);
+
+  // Financial & number parser: handles negatives like (23.00), currency symbols, commas
+  const parseNum = /* nested: parseNum, lines 49-59 */;
+
+  const fmtNum = /* nested: fmtNum, lines 61-69 */;
+
+  const fmtPct = (p) => `${Math.round(p * 100)}%`;
+
+  // ---- DataProfile: ML/Data-Science EDA Profiling Engine --------------------
+  const DataProfile = {
+    parseNum,
+    analyze/* nested: analyze, lines 76-249 */,
+  };
+
+  // ---- TabularExplorer Component -------------------------------------------
+  const TabularExplorer = {
+    mount/* nested: mount, lines 254-966 */,
+  };
+
+  window.DataProfile = DataProfile;
+  window.TabularExplorer = TabularExplorer;
+}
+=== UNIT lib/kits/tabular-explorer.js:30 | call(…) > h ===
+(tag, attrs = {}, ...kids) => {
+    const el = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (v == null || v === false) continue;
+      if (k === 'text') el.textContent = v;
+      else if (k === 'html') el.innerHTML = v;
+      else if (k.startsWith('on') && typeof v === 'function') {
+        el.addEventListener(k.slice(2).toLowerCase(), v);
+      } else el.setAttribute(k, v);
+    }
+    for (const k of kids.flat()) if (k != null && k !== false) el.append(k);
+    return el;
+  }
+=== UNIT lib/kits/tabular-explorer.js:49 | call(…) > parseNum ===
+(v) => {
+    if (typeof v === 'number') return Number.isFinite(v) ? v : null;
+    if (typeof v !== 'string') return null;
+    const t = v.trim();
+    if (!t) return null;
+    const neg = /^\(.*\)$/.test(t);
+    const body = t.replace(/^\(|\)$/g, '').replace(/[$,%\s]/g, '');
+    if (!body || isNaN(Number(body))) return null;
+    const n = Number(body);
+    return neg ? -n : n;
+  }
+=== UNIT lib/kits/tabular-explorer.js:61 | call(…) > fmtNum ===
+(n, dec = 2) => {
+    if (n == null || isNaN(n)) return '';
+    const abs = Math.abs(n);
+    const str = abs.toLocaleString(undefined, {
+      minimumFractionDigits: Number.isInteger(abs) ? 0 : 2,
+      maximumFractionDigits: dec,
+    });
+    return n < 0 ? `(${str})` : str;
+  }
+=== UNIT lib/kits/tabular-explorer.js:76 | call(…) > analyze ===
+(rows, opts = {}) {
+      const N = rows.length;
+      // Declared fields preserve order and header-only columns; titles are
+      // source labels, while names remain unique record keys.
+      const titles = new Map((opts.columns || []).map(c => [c.field, String(c.title ?? c.field)]));
+      const colSet = new Set(titles.keys());
+      for (const r of rows) for (const k in r) colSet.add(k);
+      const colNames = [...colSet];
+
+      let totalFilledCells = 0;
+      const typeCounts = { numeric: 0, categorical: 0, text: 0, temporal: 0, empty: 0 };
+
+      const columns = colNames.map(/* nested: map(…), lines 88-236 */);
+
+      const cellCount = N * colNames.length;
+      const overallFillRate = cellCount > 0 ? totalFilledCells / cellCount : 0;
+
+      return {
+        rowCount: N,
+        colCount: colNames.length,
+        cellCount,
+        fillRate: overallFillRate,
+        typeCounts,
+        columns,
+      };
+    }
+=== UNIT lib/kits/tabular-explorer.js:88 | call(…) > analyze > map(…) ===
+(name, colIdx) => {
+        let nulls = 0;
+        let numParsed = 0;
+        let numSum = 0;
+        let numMin = Infinity;
+        let numMax = -Infinity;
+        let numZeros = 0;
+        let numNegs = 0;
+        const numVals = [];
+
+        let temporalMatches = 0;
+        let textLenSum = 0;
+        const valCounts = new Map();
+
+        for (let i = 0; i < N; i++) {
+          const val = rows[i][name];
+          if (val == null || val === '' || (typeof val === 'string' && val.trim() === '')) {
+            nulls++;
+            continue;
+          }
+
+          totalFilledCells++;
+          const strVal = String(val).trim();
+          textLenSum += strVal.length;
+
+          // Frequency tracking (capped to avoid memory blowup on huge unique columns)
+          if (valCounts.size < 2000) {
+            valCounts.set(strVal, (valCounts.get(strVal) || 0) + 1);
+          }
+
+          // Number check
+          const num = parseNum(val);
+          if (num !== null) {
+            numParsed++;
+            numSum += num;
+            if (num < numMin) numMin = num;
+            if (num > numMax) numMax = num;
+            if (num === 0) numZeros++;
+            if (num < 0) numNegs++;
+            numVals.push(num);
+          }
+
+          // Temporal check: YYYY or YYYY-MM or YYYY-MM-DD
+          if (/^\d{4}(-\d{2}(-\d{2})?)?$/.test(strVal)) {
+            temporalMatches++;
+          }
+        }
+
+        const filled = N - nulls;
+        const fillRate = N > 0 ? filled / N : 0;
+        const distinctCount = valCounts.size;
+
+        // Classify column type
+        let type = 'categorical';
+        let icon = 'ph-tag';
+        let color = 'text-primary';
+
+        if (filled === 0) {
+          type = 'empty';
+          icon = 'ph-prohibit';
+          color = 'text-base-content/30';
+          typeCounts.empty++;
+        } else if (numParsed === filled && filled > 0 && !(temporalMatches === filled && numMin >= 1900 && numMax <= 2100)) {
+          type = 'numeric';
+          icon = 'ph-hash';
+          color = 'text-success';
+          typeCounts.numeric++;
+        } else if (temporalMatches >= filled * 0.9 && filled > 0) {
+          type = 'temporal';
+          icon = 'ph-calendar';
+          color = 'text-secondary';
+          typeCounts.temporal++;
+        } else if (textLenSum / filled > 60 || (distinctCount > 50 && distinctCount >= filled * 0.85)) {
+          type = 'text';
+          icon = 'ph-article';
+          color = 'text-accent';
+          typeCounts.text++;
+        } else {
+          type = 'categorical';
+          icon = 'ph-tag';
+          color = 'text-primary';
+          typeCounts.categorical++;
+        }
+
+        // Numeric distribution stats & 10-bin histogram
+        let numStats = null;
+        if (type === 'numeric' && numVals.length) {
+          numVals.sort((a, b) => a - b);
+          const p25 = numVals[Math.floor(numVals.length * 0.25)];
+          const median = numVals[Math.floor(numVals.length * 0.5)];
+          const p75 = numVals[Math.floor(numVals.length * 0.75)];
+          const mean = numSum / numVals.length;
+
+          // Histogram with 10 bins
+          const bins = [];
+          const binCount = 10;
+          const range = numMax - numMin;
+          const step = range > 0 ? range / binCount : 1;
+          for (let b = 0; b < binCount; b++) {
+            bins.push({
+              from: numMin + b * step,
+              to: numMin + (b + 1) * step,
+              count: 0,
+            });
+          }
+          for (const v of numVals) {
+            let idx = range > 0 ? Math.floor((v - numMin) / step) : 0;
+            if (idx >= binCount) idx = binCount - 1;
+            bins[idx].count++;
+          }
+          const maxBin = Math.max(1, ...bins.map(b => b.count));
+          for (const b of bins) b.pct = b.count / maxBin;
+
+          numStats = {
+            min: numMin, max: numMax, sum: numSum, mean, median, p25, p75,
+            zeros: numZeros, negatives: numNegs, bins,
+          };
+        }
+
+        // Categorical top frequencies
+        const topValues = [];
+        if (valCounts.size > 0 && type !== 'empty') {
+          const sorted = [...valCounts.entries()].sort((a, b) => b[1] - a[1]);
+          for (let i = 0; i < Math.min(6, sorted.length); i++) {
+            const [val, cnt] = sorted[i];
+            topValues.push({
+              value: val,
+              count: cnt,
+              pct: cnt / filled,
+            });
+          }
+        }
+
+        return {
+          index: colIdx,
+          name,
+          title: titles.get(name) ?? name,
+          type,
+          icon,
+          color,
+          nulls,
+          filled,
+          fillRate,
+          distinctCount,
+          numStats,
+          topValues,
+          avgLen: filled > 0 ? Math.round(textLenSum / filled) : 0,
+        };
+      }
+=== UNIT lib/kits/tabular-explorer.js:254 | call(…) > mount ===
+(container, { rows = [], columns = null, name = 'data.csv', opts = {} } = {}) {
+      const profile = DataProfile.analyze(rows, { ...opts, columns });
+      const columnTitle = field => profile.columns.find(c => c.name === field)?.title ?? field;
+      let activeView = 'data'; // 'data' | 'columns' | 'pivot'
+      let hideEmptyCols = false;
+      let colSearch = '';
+      let colSort = 'index'; // 'index' | 'name' | 'missing' | 'cardinality'
+      let colTypeFilter = 'all';
+      let selectedColName = profile.columns[0]?.name || null;
+
+      // Root shell
+      const root = h('div', { class: 'tabular-explorer flex flex-col h-full w-full min-w-0 overflow-hidden bg-base-100 text-base-content' });
+      container.replaceChildren(root);
+
+      // Header Bar: Segmented Tabs on the left, Actions on the right
+      const header = h('div', { class: 'shrink-0 flex items-center justify-between gap-2 px-3 py-1.5 border-b border-base-300 bg-base-200/60 select-none' });
+      const navGroup = h('div', { role: 'tablist', class: 'tabs tabs-box tabs-xs' });
+      const actionGroup = h('div', { class: 'flex items-center gap-1' });
+      header.append(navGroup, actionGroup);
+      root.append(header);
+
+      // Main content view stages
+      const stage = h('div', { class: 'flex-1 min-h-0 relative overflow-hidden' });
+      root.append(stage);
+
+      const dataStage = h('div', { class: 'absolute inset-0 flex flex-col' });
+      const columnsStage = h('div', { class: 'absolute inset-0 flex flex-col overflow-hidden hidden' });
+      const pivotStage = h('div', { class: 'absolute inset-0 flex flex-col overflow-hidden hidden' });
+      stage.append(dataStage, columnsStage, pivotStage);
+
+      // Segmented Tabs
+      const tabData = h('button', {
+        role: 'tab',
+        type: 'button',
+        class: 'tab tab-active gap-1.5 font-medium',
+        onClick: () => setView('data'),
+      }, h('i', { class: 'ph ph-table text-xs' }),
+         h('span', { text: 'Data' }),
+         h('span', { class: 'opacity-60 font-mono text-[10px]', text: `(${profile.rowCount.toLocaleString()})` }));
+
+      const tabCols = h('button', {
+        role: 'tab',
+        type: 'button',
+        class: 'tab gap-1.5 font-medium',
+        onClick: () => setView('columns'),
+      }, h('i', { class: 'ph ph-columns text-xs' }),
+         h('span', { text: 'Columns' }),
+         h('span', { class: 'opacity-60 font-mono text-[10px]', text: `(${profile.colCount})` }));
+
+      const tabPivot = h('button', {
+        role: 'tab',
+        type: 'button',
+        class: 'tab gap-1.5 font-medium',
+        onClick: () => setView('pivot'),
+      }, h('i', { class: 'ph ph-square-split-horizontal text-xs' }),
+         h('span', { text: 'Pivot' }));
+
+      navGroup.append(tabData, tabCols, tabPivot);
+
+      // View Switcher (aliases 'profile' -> 'columns' for compatibility)
+      /* nested: setView, lines 314-332 */
+
+      // ---- DATA VIEW (Tabulator) --------------------------------------------
+      const tableTarget = h('div', { class: 'h-full w-full' });
+      dataStage.append(tableTarget);
+
+      let tabulatorInstance = null;
+      let headerFiltersVisible = true;
+      const emptyColNames = profile.columns.filter(c => c.type === 'empty').map(c => c.name);
+
+      if (typeof Tabulator !== 'undefined') {
+        try {
+          tabulatorInstance = new Tabulator(tableTarget, {
+            data: rows,
+            ...(columns ? {
+              columns: columns.map(c => ({
+                ...c, title: esc(c.title ?? c.field),
+                headerFilter: 'input', headerFilterPlaceholder: 'Filter...',
+              })),
+              nestedFieldSeparator: false,
+            } : {
+              autoColumns: true,
+              autoColumnsDefinitions: (defs) => defs.map(d => ({
+                ...d, headerFilter: 'input', headerFilterPlaceholder: 'Filter...',
+              })),
+            }),
+            ...(opts.filter?.col && opts.filter?.find ? {
+              initialHeaderFilter: [{ field: String(opts.filter.col), value: String(opts.filter.find) }],
+            } : {}),
+            layout: 'fitData',
+            height: '100%',
+          });
+          tableTarget.__tabulator = tabulatorInstance;
+          tableTarget.tabulator = tabulatorInstance;
+        } catch (e) {
+          tableTarget.innerHTML = `<div class="p-4 text-error font-mono text-xs">Error building table: ${esc(e.message)}</div>`;
+        }
+      }
+
+      /* nested: toggleEmptyCols, lines 371-384 */
+
+      /* nested: filterByColumnValue, lines 386-391 */
+
+      // ---- HEADER ACTIONS ---------------------------------------------------
+      /* nested: renderHeaderActions, lines 394-491 */
+
+      // ---- COLUMNS VIEW (Master-Detail Schema Matrix) ------------------------
+      /* nested: renderColumnsView, lines 494-804 */
+
+      // Backward compatibility: alias renderProfileView to renderColumnsView
+      const renderProfileView = renderColumnsView;
+
+      // ---- PIVOT VIEW (Multi-Dimension Aggregator) ---------------------------
+      let pDim1 = profile.columns.find(c => c.type === 'categorical')?.name || profile.columns[0]?.name || '';
+      let pDim2 = '';
+      let pMeasure = profile.columns.find(c => c.type === 'numeric')?.name || '';
+      let pAgg = 'sum'; // 'sum' | 'avg' | 'count' | 'min' | 'max'
+
+      /* nested: renderPivotView, lines 815-947 */
+
+      // Initial render
+      renderHeaderActions();
+
+      return {
+        table: tabulatorInstance,
+        profile,
+        setView,
+        filterByColumnValue,
+        toggleEmptyCols,
+        destroy: /* nested: destroy, lines 958-964 */,
+      };
+    }
+=== UNIT lib/kits/tabular-explorer.js:314 | call(…) > mount > setView ===
+function setView(view) {
+        if (view === 'profile') view = 'columns';
+        activeView = view;
+
+        tabData.classList.toggle('tab-active', view === 'data');
+        tabCols.classList.toggle('tab-active', view === 'columns');
+        tabPivot.classList.toggle('tab-active', view === 'pivot');
+
+        dataStage.classList.toggle('hidden', view !== 'data');
+        columnsStage.classList.toggle('hidden', view !== 'columns');
+        pivotStage.classList.toggle('hidden', view !== 'pivot');
+
+        renderHeaderActions();
+        if (view === 'columns') renderColumnsView();
+        else if (view === 'pivot') renderPivotView();
+        else if (view === 'data' && tabulatorInstance) {
+          requestAnimationFrame(() => tabulatorInstance.redraw(true));
+        }
+      }
+=== UNIT lib/kits/tabular-explorer.js:371 | call(…) > mount > toggleEmptyCols ===
+function toggleEmptyCols() {
+        hideEmptyCols = !hideEmptyCols;
+        if (tabulatorInstance) {
+          for (const colName of emptyColNames) {
+            const col = tabulatorInstance.getColumn(colName);
+            if (col) {
+              if (hideEmptyCols) col.hide();
+              else col.show();
+            }
+          }
+          tabulatorInstance.redraw(true);
+        }
+        renderHeaderActions();
+      }
+=== UNIT lib/kits/tabular-explorer.js:386 | call(…) > mount > filterByColumnValue ===
+function filterByColumnValue(colName, value) {
+        if (!tabulatorInstance) return;
+        setView('data');
+        tabulatorInstance.clearFilter(true);
+        tabulatorInstance.setHeaderFilterValue(colName, value);
+      }
+=== UNIT lib/kits/tabular-explorer.js:394 | call(…) > mount > renderHeaderActions ===
+function renderHeaderActions() {
+        actionGroup.replaceChildren();
+
+        // 1. Icon-only Card button for browsing records as cards
+        const btnRecords = h('button', {
+          type: 'button',
+          class: 'btn btn-xs btn-ghost btn-square text-base-content/80 hover:text-base-content',
+          'data-title-tip': `Browse ${profile.rowCount.toLocaleString()} rows as cards`,
+          'aria-label': `Browse ${profile.rowCount.toLocaleString()} rows as cards`,
+          onClick: /* nested: onClick, lines 403-412 */,
+        }, h('i', { class: 'ph ph-cards-three text-sm' }));
+        actionGroup.append(btnRecords);
+
+        // 2. Three-dot dropdown menu for secondary options
+        const menuDetails = h('details', { class: 'dropdown dropdown-end', 'data-auto-close': '' });
+        const menuSummary = h('summary', {
+          class: 'btn btn-xs btn-ghost btn-square text-base-content/80 hover:text-base-content list-none cursor-pointer',
+          'data-title-tip': 'Options',
+          'aria-label': 'Options',
+        }, h('i', { class: 'ph ph-dots-three-vertical text-sm' }));
+
+        const menuList = h('ul', { class: 'dropdown-content z-30 menu p-1.5 shadow-lg bg-base-200 rounded-box w-52 text-xs border border-base-300 mt-1' });
+
+        // Toggle empty columns (if empty columns exist)
+        if (emptyColNames.length > 0) {
+          const itemEmpty = h('li', {},
+            h('a', {
+              class: 'flex items-center justify-between',
+              onClick: (e) => {
+                menuDetails.removeAttribute('open');
+                toggleEmptyCols();
+              },
+            },
+              h('span', { class: 'flex items-center gap-2' },
+                h('i', { class: `ph ${hideEmptyCols ? 'ph-eye' : 'ph-eye-slash'}` }),
+                h('span', { text: hideEmptyCols ? 'Show empty columns' : 'Hide empty columns' })
+              ),
+              h('span', { class: 'badge badge-xs font-mono opacity-70', text: String(emptyColNames.length) })
+            )
+          );
+          menuList.append(itemEmpty);
+        }
+
+        // Download CSV
+        const itemDownload = h('li', {},
+          h('a', {
+            class: 'flex items-center gap-2',
+            onClick: /* nested: onClick, lines 450-464 */,
+          },
+            h('i', { class: 'ph ph-download-simple' }),
+            h('span', { text: 'Download CSV' })
+          )
+        );
+        menuList.append(itemDownload);
+
+        // Workbench handoff
+        if (opts.onWorkbench) {
+          const itemWb = h('li', {},
+            h('a', {
+              class: 'flex items-center gap-2',
+              onClick: (e) => {
+                menuDetails.removeAttribute('open');
+                opts.onWorkbench(rows, name);
+              },
+            },
+              h('i', { class: 'ph ph-wrench' }),
+              h('span', { text: 'Open in Workbench' })
+            )
+          );
+          menuList.append(itemWb);
+        }
+
+        menuDetails.append(menuSummary, menuList);
+        actionGroup.append(menuDetails);
+      }
+=== UNIT lib/kits/tabular-explorer.js:403 | call(…) > mount > renderHeaderActions > onClick ===
+async () => {
+            if (window.recordDeck && tabulatorInstance) {
+              window.recordDeck.fromGrid(tabulatorInstance, { title: name });
+            } else if (window.swipeDeck?.entry) {
+              try {
+                if (!window.recordDeck) await ViewRegistry?.loadLib?.('kits/record-deck.js');
+                window.recordDeck?.fromGrid(tabulatorInstance, { title: name });
+              } catch (e) { console.warn(e); }
+            }
+          }
+=== UNIT lib/kits/tabular-explorer.js:450 | call(…) > mount > renderHeaderActions > onClick ===
+(e) => {
+              menuDetails.removeAttribute('open');
+              const fields = profile.columns.map(c => c.title);
+              const values = rows.map(r => profile.columns.map(c => r[c.name] ?? ''));
+              const csv = typeof Papa !== 'undefined'
+                ? Papa.unparse({ fields, data: values })
+                : [fields, ...values].map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+              const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = name;
+              a.click();
+              URL.revokeObjectURL(url);
+            }
+=== UNIT lib/kits/tabular-explorer.js:494 | call(…) > mount > renderColumnsView ===
+function renderColumnsView() {
+        columnsStage.replaceChildren();
+
+        // 1. Header: the file's figures on one line, then one row of pills per
+        // control. A row never wraps; it scrolls sideways when its pills overflow.
+        const topBar = h('div', { class: 'shrink-0 flex flex-col gap-1.5 px-3 py-2 border-b border-base-300 bg-base-100 text-xs' });
+
+        const infoLine = h('div', { class: 'flex items-center gap-3' },
+          h('div', { class: 'flex-1 min-w-0 font-mono text-base-content/70 truncate' },
+            h('span', { class: 'font-semibold text-base-content', text: `${profile.rowCount.toLocaleString()} rows` }),
+            h('span', { class: 'opacity-40 mx-1.5', text: '·' }),
+            h('span', { text: `${profile.colCount} columns` }),
+            profile.typeCounts.empty ? h('span', { class: 'text-warning/80 ml-1', text: `(${profile.typeCounts.empty} empty)` }) : null,
+            h('span', { class: 'opacity-40 mx-1.5', text: '·' }),
+            h('span', { text: `${fmtPct(profile.fillRate)} filled` })
+          )
+        );
+        // A name search earns its place only on a wide file
+        if (profile.colCount > 20) {
+          infoLine.append(h('input', {
+            type: 'search',
+            placeholder: 'Column name',
+            value: colSearch,
+            class: 'input input-xs input-bordered w-28 sm:w-40 shrink-0 font-mono text-xs',
+            onInput: (e) => { colSearch = e.target.value.toLowerCase(); updateSplitView(); },
+          }));
+        }
+        topBar.append(infoLine);
+
+        /* nested: pillRow, lines 523-543 */
+
+        // Type: the types this file has, and only when it has more than one
+        const TYPES = [['categorical', 'Categorical'], ['text', 'Text'], ['numeric', 'Numeric'], ['temporal', 'Date/Year'], ['empty', 'Empty']]
+          .filter(([k]) => profile.typeCounts[k]);
+        if (TYPES.length > 1) {
+          topBar.append(pillRow('Type',
+            [{ value: 'all', text: 'All', count: profile.colCount },
+             ...TYPES.map(([k, text]) => ({ value: k, text, count: profile.typeCounts[k] }))],
+            colTypeFilter, v => { colTypeFilter = v; }));
+        }
+
+        // Order: each pill sorts by the column it names; Filled puts the emptiest first
+        topBar.append(pillRow('Order',
+          [{ value: 'index', text: 'Original' }, { value: 'name', text: 'Name' },
+           { value: 'missing', text: 'Filled' }, { value: 'cardinality', text: 'Distinct' }],
+          colSort, v => { colSort = v; }));
+
+        columnsStage.append(topBar);
+
+        // 2. Master-Detail Split Pane Container
+        const split = h('div', { class: 'flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden' });
+        columnsStage.append(split);
+
+        // Left Pane: Column Schema Table
+        const listPane = h('div', { class: 'flex-1 min-h-0 overflow-y-auto bg-base-100 border-b md:border-b-0 md:border-r border-base-300' });
+        // Right Pane: Active Column Inspector
+        const detailPane = h('div', { class: 'w-full md:w-80 lg:w-96 shrink-0 min-h-0 overflow-y-auto bg-base-200/40 p-3.5' });
+        split.append(listPane, detailPane);
+
+        /* nested: updateSplitView, lines 573-680 */
+
+        // Right Inspector Panel
+        /* nested: renderInspector, lines 683-801 */
+
+        updateSplitView();
+      }
+=== UNIT lib/kits/tabular-explorer.js:523 | call(…) > mount > renderColumnsView > pillRow ===
+function pillRow(label, options, current, pick) {
+          const pills = options.map(/* nested: map(…), lines 524-531 */);
+          const paint = /* nested: paint, lines 532-537 */;
+          paint(current);
+          return h('div', { class: 'flex items-center gap-1.5 overflow-x-auto' },
+            h('span', { class: 'shrink-0 w-12 text-base-content/50', text: label }),
+            ...pills
+          );
+        }
+=== UNIT lib/kits/tabular-explorer.js:524 | call(…) > mount > renderColumnsView > pillRow > map(…) ===
+o => h('button', {
+            type: 'button',
+            class: 'btn btn-xs rounded-full shrink-0 gap-1 font-mono font-normal text-xs',
+            onClick: () => { pick(o.value); paint(o.value); updateSplitView(); },
+          },
+            h('span', { text: o.text }),
+            o.count == null ? null : h('span', { class: 'opacity-60', text: String(o.count) })
+          )
+=== UNIT lib/kits/tabular-explorer.js:532 | call(…) > mount > renderColumnsView > pillRow > paint ===
+(value) => pills.forEach(/* nested: forEach(…), lines 532-537 */)
+=== UNIT lib/kits/tabular-explorer.js:532 | call(…) > mount > renderColumnsView > pillRow > paint > forEach(…) ===
+(b, i) => {
+            const on = options[i].value === value;
+            b.classList.toggle('btn-primary', on);
+            b.classList.toggle('btn-ghost', !on);
+            b.classList.toggle('bg-base-200', !on);
+          }
+=== UNIT lib/kits/tabular-explorer.js:573 | call(…) > mount > renderColumnsView > updateSplitView ===
+function updateSplitView() {
+          listPane.replaceChildren();
+
+          let cols = profile.columns.slice();
+          if (colTypeFilter !== 'all') cols = cols.filter(c => c.type === colTypeFilter);
+          if (colSearch) cols = cols.filter(c => c.title.toLowerCase().includes(colSearch));
+
+          if (colSort === 'name') cols.sort((a, b) => a.title.localeCompare(b.title));
+          else if (colSort === 'missing') cols.sort((a, b) => a.fillRate - b.fillRate || a.index - b.index);
+          else if (colSort === 'cardinality') cols.sort((a, b) => b.distinctCount - a.distinctCount || a.index - b.index);
+          else cols.sort((a, b) => a.index - b.index);
+
+          if (!cols.some(c => c.name === selectedColName)) {
+            selectedColName = cols[0]?.name || null;
+          }
+
+          if (!cols.length) {
+            listPane.append(h('div', { class: 'p-8 text-center text-xs text-base-content/40 italic' }, 'No columns match this filter.'));
+            detailPane.replaceChildren(h('div', { class: 'p-6 text-center text-xs text-base-content/40 italic' }, 'No column selected.'));
+            return;
+          }
+
+          // Dense Schema Table
+          // Fixed layout: Summary takes what the other columns leave, so a long
+          // value cannot widen the table past the pane.
+          const tbl = h('table', { class: 'table table-xs table-pin-rows table-fixed w-full font-sans' });
+          const thead = h('thead', {},
+            h('tr', { class: 'bg-base-200 text-xs' },
+              h('th', { class: 'hidden sm:table-cell w-8 text-base-content/40 font-mono text-[10px]' }, '#'),
+              h('th', { class: 'w-28 sm:w-40' }, 'Column'),
+              h('th', { class: 'hidden sm:table-cell w-32' }, 'Type'),
+              h('th', { class: 'w-[4.5rem] sm:w-32' }, 'Filled'),
+              h('th', { class: 'w-[4.5rem] sm:w-20 text-right' }, 'Distinct'),
+              h('th', {}, 'Summary')
+            )
+          );
+          tbl.append(thead);
+
+          const tbody = h('tbody', {});
+          for (const col of cols) {
+            const isSelected = col.name === selectedColName;
+
+            // Summary cell preview
+            let summaryNode;
+            if (col.type === 'empty') {
+              summaryNode = h('span', { class: 'opacity-40 italic text-xs' }, '100% blank');
+            } else if (col.type === 'numeric' && col.numStats) {
+              summaryNode = h('span', { class: 'block truncate font-mono text-xs text-base-content/70' },
+                `${fmtNum(col.numStats.min)} · Med ${fmtNum(col.numStats.median)} · ${fmtNum(col.numStats.max)} (Sum: ${fmtNum(col.numStats.sum)})`
+              );
+            } else if (col.topValues.length) {
+              // One line of chips: a chip that does not fit wraps to a second line,
+              // which the row's height hides, and the inspector lists every value
+              // whole. A column of unique values counts 1 for each, so its counts
+              // are left off.
+              const unique = col.distinctCount === col.filled;
+              const chips = col.topValues.slice(0, 3).map(/* nested: map(…), lines 629-633 */
+              );
+              summaryNode = h('div', { class: 'flex flex-wrap gap-1 max-h-[1.125rem] overflow-hidden text-xs' }, ...chips);
+            } else {
+              summaryNode = h('span', { class: 'font-mono text-xs text-base-content/50' }, `${col.filled} values`);
+            }
+
+            const tr = h('tr', {
+              class: `cursor-pointer transition-colors ${isSelected ? 'bg-primary/15 font-semibold text-primary' : 'hover:bg-base-200/50'}`,
+              onClick: () => {
+                selectedColName = col.name;
+                updateSplitView();
+              },
+            },
+              h('td', { class: 'hidden sm:table-cell font-mono text-[10px] opacity-50', text: String(col.index + 1) }),
+              h('td', { class: 'font-mono text-xs font-semibold' },
+                // Below sm the Type column is hidden and its icon rides here instead
+                h('div', { class: 'flex items-center gap-1 min-w-0' },
+                  h('i', { class: `ph ${col.icon} sm:hidden shrink-0 ${col.color}` }),
+                  h('span', { class: 'truncate', 'data-title-tip-bare': '1', 'data-title-tip': col.title, text: col.title })
+                )
+              ),
+              h('td', { class: 'hidden sm:table-cell' },
+                h('span', { class: `badge badge-xs font-mono text-[10px] uppercase gap-1 ${col.color}` },
+                  h('i', { class: `ph ${col.icon} text-[10px]` }),
+                  h('span', { text: col.type })
+                )
+              ),
+              h('td', {},
+                h('div', { class: 'flex items-center gap-1.5 font-mono text-xs' },
+                  h('div', { class: 'hidden sm:flex w-12 h-1.5 bg-base-300 rounded-full overflow-hidden shrink-0' },
+                    h('div', { class: `h-full ${col.fillRate === 1 ? 'bg-success' : 'bg-primary'}`, style: `width: ${col.fillRate * 100}%` })
+                  ),
+                  h('span', { text: fmtPct(col.fillRate) }),
+                  col.nulls > 0 ? h('span', { class: 'text-warning/80', text: `(${col.nulls})` }) : null
+                )
+              ),
+              h('td', { class: 'text-right font-mono text-xs text-base-content/70', text: col.distinctCount.toLocaleString() }),
+              h('td', { class: 'align-middle' }, summaryNode)
+            );
+            tbody.append(tr);
+          }
+
+          tbl.append(tbody);
+          listPane.append(tbl);
+
+          renderInspector(cols.find(c => c.name === selectedColName) || cols[0]);
+        }
+=== UNIT lib/kits/tabular-explorer.js:629 | call(…) > mount > renderColumnsView > updateSplitView > map(…) ===
+tv =>
+                h('span', { class: 'inline-flex min-w-0 max-w-full sm:max-w-[16rem] rounded border border-base-300 bg-base-200 px-1.5 font-mono' },
+                  h('span', { class: 'truncate', text: tv.value }),
+                  unique ? null : h('span', { class: 'shrink-0 text-base-content/50', text: `: ${tv.count}` })
+                )
+=== UNIT lib/kits/tabular-explorer.js:683 | call(…) > mount > renderColumnsView > renderInspector ===
+function renderInspector(col) {
+          detailPane.replaceChildren();
+          if (!col) return;
+
+          const panel = h('div', { class: 'flex flex-col gap-3 font-sans' });
+
+          // Header
+          const hd = h('div', { class: 'flex items-start justify-between gap-2 pb-2 border-b border-base-300' },
+            h('div', { class: 'min-w-0 flex-1' },
+              h('div', { class: 'text-[10px] font-mono text-base-content/40', text: `Column #${col.index + 1}` }),
+              h('h3', { class: 'font-mono text-sm font-bold truncate text-base-content', 'data-title-tip-bare': '1', 'data-title-tip': col.title, text: col.title })
+            ),
+            h('span', { class: `badge badge-sm font-mono text-[10px] uppercase gap-1 shrink-0 ${col.color}` },
+              h('i', { class: `ph ${col.icon}` }),
+              h('span', { text: col.type })
+            )
+          );
+          panel.append(hd);
+
+          // Completeness / Quality summary
+          const qBox = h('div', { class: 'p-2 rounded bg-base-100 border border-base-300 text-xs font-mono flex flex-col gap-1' },
+            h('div', { class: 'flex justify-between text-[11px] text-base-content/70' },
+              h('span', { text: `${col.filled.toLocaleString()} filled (${fmtPct(col.fillRate)})` }),
+              h('span', { class: col.nulls > 0 ? 'text-warning' : 'text-success', text: col.nulls > 0 ? `${col.nulls.toLocaleString()} null` : '0 null' })
+            ),
+            h('div', { class: 'w-full h-1.5 bg-base-300 rounded-full overflow-hidden flex' },
+              h('div', { class: `h-full ${col.fillRate === 1 ? 'bg-success' : 'bg-primary'}`, style: `width: ${col.fillRate * 100}%` })
+            )
+          );
+          panel.append(qBox);
+
+          // Numeric Deep Dive
+          if (col.type === 'numeric' && col.numStats) {
+            const st = col.numStats;
+
+            // 5-number summary matrix
+            const numGrid = h('div', { class: 'grid grid-cols-2 gap-1.5 text-xs font-mono p-2 rounded bg-base-100 border border-base-300' },
+              h('div', {}, h('span', { class: 'text-base-content/50 block text-[10px]' }, 'Minimum'), h('span', { class: 'font-semibold', text: fmtNum(st.min) })),
+              h('div', {}, h('span', { class: 'text-base-content/50 block text-[10px]' }, 'Maximum'), h('span', { class: 'font-semibold', text: fmtNum(st.max) })),
+              h('div', {}, h('span', { class: 'text-base-content/50 block text-[10px]' }, 'Median'), h('span', { class: 'font-semibold', text: fmtNum(st.median) })),
+              h('div', {}, h('span', { class: 'text-base-content/50 block text-[10px]' }, 'Mean'), h('span', { class: 'font-semibold', text: fmtNum(st.mean) })),
+              h('div', {}, h('span', { class: 'text-base-content/50 block text-[10px]' }, 'Total Sum'), h('span', { class: 'font-semibold text-primary', text: fmtNum(st.sum) })),
+              h('div', {}, h('span', { class: 'text-base-content/50 block text-[10px]' }, 'Zeros / Negatives'), h('span', { text: `${st.zeros} / ${st.negatives}` }))
+            );
+            panel.append(numGrid);
+
+            // Distribution Histogram
+            const histHeader = h('div', { class: 'text-[11px] font-mono text-base-content/70 mt-1' }, 'Distribution (10 bins):');
+            panel.append(histHeader);
+
+            const histWrap = h('div', { class: 'p-2 rounded bg-base-100 border border-base-300' });
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('viewBox', '0 0 200 48');
+            svg.setAttribute('class', 'w-full h-12 block');
+
+            const binW = 18;
+            const gap = 2;
+            st.bins.forEach(/* nested: forEach(…), lines 740-755 */);
+            histWrap.append(svg);
+
+            const histFoot = h('div', { class: 'flex justify-between text-[10px] font-mono text-base-content/50 mt-1' },
+              h('span', { text: fmtNum(st.min) }),
+              h('span', { text: fmtNum(st.max) })
+            );
+            histWrap.append(histFoot);
+            panel.append(histWrap);
+          }
+
+          // Categorical & Temporal Frequency Table
+          if (col.topValues && col.topValues.length && col.type !== 'empty') {
+            const freqTitle = h('div', { class: 'flex items-center justify-between text-[11px] font-mono text-base-content/70 mt-1' },
+              h('span', { text: `Values (${col.distinctCount.toLocaleString()} distinct):` }),
+              h('span', { class: 'text-[10px] opacity-60', text: 'Tap to filter' })
+            );
+            panel.append(freqTitle);
+
+            const valList = h('div', { class: 'rounded border border-base-300 bg-base-100 max-h-60 overflow-y-auto' });
+            for (const tv of col.topValues) {
+              const row = h('div', {
+                class: 'px-2.5 py-1.5 flex items-start justify-between gap-2 text-xs hover:bg-base-200/60 cursor-pointer transition-colors border-b border-base-200 last:border-b-0',
+                'data-title-tip-bare': '1', 'data-title-tip': `Filter Data view by ${col.title} = "${tv.value}"`,
+                onClick: () => filterByColumnValue(col.name, tv.value),
+              },
+                h('span', { class: 'font-mono text-xs min-w-0 break-words line-clamp-2 text-base-content', text: tv.value }),
+                h('div', { class: 'flex items-center gap-1.5 shrink-0 font-mono text-[11px] text-base-content/60' },
+                  h('span', { text: tv.count.toLocaleString() }),
+                  h('span', { class: 'opacity-50 text-[10px]', text: `(${fmtPct(tv.pct)})` }),
+                  h('i', { class: 'ph ph-funnel-simple text-xs opacity-50 hover:opacity-100 hover:text-primary' })
+                )
+              );
+              valList.append(row);
+            }
+            panel.append(valList);
+          }
+
+          if (col.type === 'empty') {
+            const empMsg = h('div', { class: 'p-4 rounded border border-base-300 bg-base-100 text-xs text-base-content/60 italic text-center' },
+              `All ${profile.rowCount.toLocaleString()} rows are empty or blank in this column.`
+            );
+            panel.append(empMsg);
+          }
+
+          detailPane.append(panel);
+        }
+=== UNIT lib/kits/tabular-explorer.js:740 | call(…) > mount > renderColumnsView > renderInspector > forEach(…) ===
+(b, i) => {
+              const hVal = Math.max(2, Math.round(b.pct * 40));
+              const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+              rect.setAttribute('x', String(i * (binW + gap)));
+              rect.setAttribute('y', String(44 - hVal));
+              rect.setAttribute('width', String(binW));
+              rect.setAttribute('height', String(hVal));
+              rect.setAttribute('rx', '1');
+              rect.setAttribute('fill', 'currentColor');
+              rect.setAttribute('class', b.count > 0 ? 'text-primary opacity-70 hover:opacity-100 transition-opacity cursor-pointer' : 'text-base-300 opacity-40');
+
+              const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+              title.textContent = `${fmtNum(b.from)} to ${fmtNum(b.to)}: ${b.count} rows`;
+              rect.append(title);
+              svg.append(rect);
+            }
+=== UNIT lib/kits/tabular-explorer.js:815 | call(…) > mount > renderPivotView ===
+function renderPivotView() {
+        pivotStage.replaceChildren();
+
+        // Pivot Configuration Bar
+        const cfgBar = h('div', { class: 'shrink-0 p-3 border-b border-base-300 bg-base-200/40 flex flex-wrap items-center gap-3 text-xs' });
+
+        const selectOf = /* nested: selectOf, lines 821-830 */;
+
+        const colOpts = profile.columns.filter(c => c.type !== 'empty').map(c => ({ k: c.name, l: c.title }));
+        const numColOpts = profile.columns.filter(c => c.type === 'numeric').map(c => ({ k: c.name, l: c.title }));
+        if (!numColOpts.length) numColOpts.push({ k: '', l: '(No numeric columns)' });
+
+        const dim1Select = selectOf('Row Group 1:', pDim1, colOpts, (v) => { pDim1 = v; });
+        const dim2Select = selectOf('Row Group 2:', pDim2, [{ k: '', l: '(None)' }, ...colOpts], (v) => { pDim2 = v; });
+        const measureSelect = selectOf('Measure:', pMeasure, numColOpts, (v) => { pMeasure = v; });
+        const aggSelect = selectOf('Aggregate:', pAgg, [
+          { k: 'sum', l: 'Sum' },
+          { k: 'avg', l: 'Average' },
+          { k: 'count', l: 'Count' },
+          { k: 'min', l: 'Minimum' },
+          { k: 'max', l: 'Maximum' },
+        ], (v) => { pAgg = v; });
+
+        cfgBar.append(dim1Select, dim2Select, measureSelect, aggSelect);
+        pivotStage.append(cfgBar);
+
+        // Table Container
+        const tblWrap = h('div', { class: 'flex-1 min-h-0 overflow-auto p-4' });
+        pivotStage.append(tblWrap);
+
+        /* nested: renderPivotTable, lines 854-944 */
+
+        renderPivotTable();
+      }
+=== UNIT lib/kits/tabular-explorer.js:821 | call(…) > mount > renderPivotView > selectOf ===
+(label, currVal, options, onChange) => {
+          const wrap = h('div', { class: 'flex items-center gap-1.5' },
+            h('span', { class: 'font-semibold text-base-content/70', text: label }),
+            h('select', {
+              class: 'select select-xs select-bordered font-mono max-w-[14rem]',
+              onChange: (e) => { onChange(e.target.value); renderPivotTable(); },
+            }, ...options.map(opt => h('option', { value: opt.k, selected: opt.k === currVal, text: opt.l })))
+          );
+          return wrap;
+        }

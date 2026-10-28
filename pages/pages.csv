@@ -4,6 +4,7 @@ main,,approve,Approve,approve.html,thumbs/approve.png,https://github.com/mehrlan
 main,,audit-render,Audit render,audit-render.html,thumbs/audit-render.png,https://github.com/mehrlander/web-tools/blob/main/pages/audit-render.html,
 main,,bench,Bench,bench.html,thumbs/bench.png,https://github.com/mehrlander/web-tools/blob/main/pages/bench.html,
 main,,branch,Branch,branch.html,thumbs/branch.png,https://github.com/mehrlander/web-tools/blob/main/pages/branch.html,
+main,,cat-map,Category map,cat-map.html,thumbs/cat-map.png,https://github.com/mehrlander/web-tools/blob/main/pages/cat-map.html,"What kind of thing is it? A poster per question: the two characteristics that decide the word, the estate's own files in each box, the words that add to it, the names to fix and the calls left open."
 main,,chat-results,Chat Search Results,chat-results.html,thumbs/chat-results.png,https://github.com/mehrlander/web-tools/blob/main/pages/chat-results.html,
 main,,citations,Citations,citations.html,thumbs/citations.png,https://github.com/mehrlander/web-tools/blob/main/pages/citations.html,
 main,,compression-helper,Compression Helper (v5),compression-helper.html,thumbs/compression-helper.png,https://github.com/mehrlander/web-tools/blob/main/pages/compression-helper.html,Compression bookmarklet packer.
@@ -97,7 +98,7 @@ kit-demos,lib/kits/demos/,source-peek,source-peek — the hover card behind an e
 kit-demos,lib/kits/demos/,swipe-deck,swipe-deck — the house swipe format,../lib/kits/demos/swipe-deck.html,thumbs/kit-demos/swipe-deck.png,https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/swipe-deck.html,
 kit-demos,lib/kits/demos/,title-tip,title-tip — the small tooltip,../lib/kits/demos/title-tip.html,thumbs/kit-demos/title-tip.png,https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/title-tip.html,
 kit-demos,lib/kits/demos/,xlsx,xlsx — living demo,../lib/kits/demos/xlsx.html,thumbs/kit-demos/xlsx.png,https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/xlsx.html,
-news,pages/news/,news,news · the outer log,news/news.html,thumbs/news/news.png,https://github.com/mehrlander/web-tools/blob/main/pages/news/news.html,"Read-only view of home's news ledger, grouped and filterable by topic and date; backfilled items held distinct."
+news,pages/news/,news,news,news/news.html,thumbs/news/news.png,https://github.com/mehrlander/web-tools/blob/main/pages/news/news.html,"Read-only view of home's news items, grouped and filterable by topic and date; backfilled items held distinct."
 scratch,pages/scratch/,base64-render-engine,Base64 Render Engine,scratch/base64-render-engine.html,thumbs/scratch/base64-render-engine.png,https://github.com/mehrlander/web-tools/blob/main/pages/scratch/base64-render-engine.html,
 scratch,pages/scratch/,define-test,x-define — isolated test,scratch/define-test.html,thumbs/scratch/define-test.png,https://github.com/mehrlander/web-tools/blob/main/pages/scratch/define-test.html,
 scratch,pages/scratch/,demo-spacex,SpaceX Viewer Demo,scratch/demo-spacex.html,thumbs/scratch/demo-spacex.png,https://github.com/mehrlander/web-tools/blob/main/pages/scratch/demo-spacex.html,

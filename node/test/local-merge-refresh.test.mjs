@@ -24,6 +24,10 @@ const SETUP = path.join(repoRoot, 'node', 'checkout-setup.mjs');
 const PRE_MERGE = readFileSync(path.join(repoRoot, '.githooks', 'pre-merge-commit'), 'utf8');
 const CSV_DRIVER = readFileSync(path.join(repoRoot, 'node', 'derived-csv-merge.mjs'), 'utf8');
 const CSV_LOADER = readFileSync(path.join(repoRoot, 'node', 'build', 'registries-load.mjs'), 'utf8');
+// The loader reads its parse from lib/kits/csv.js through the kit shim, so the
+// fixture carries both, as the repo does.
+const KIT_SHIM = readFileSync(path.join(repoRoot, 'node', 'build', 'kit-shim.mjs'), 'utf8');
+const CSV_KIT = readFileSync(path.join(repoRoot, 'lib', 'kits', 'csv.js'), 'utf8');
 
 function run(command, args, cwd) {
   return spawnSync(command, args, { cwd, encoding: 'utf8', windowsHide: true });
@@ -63,6 +67,8 @@ test('ordinary commits and automatic merges refresh computed CSV cells without l
     write(root, 'docs/docs.csv', 'path,subject,total\nsource/base.txt,Base authored,1\n');
     write(root, 'node/derived-csv-merge.mjs', CSV_DRIVER, true);
     write(root, 'node/build/registries-load.mjs', CSV_LOADER);
+    write(root, 'node/build/kit-shim.mjs', KIT_SHIM);
+    write(root, 'lib/kits/csv.js', CSV_KIT);
     write(root, 'node/repo-root.mjs', `
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';

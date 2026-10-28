@@ -37,7 +37,7 @@ const { window } = makeWindow({
            x-data="branchBrief({ repo: '${REPO}', branch: 'feat/x', base: 'main' })"></div></body></html>`,
 });
 
-for (const f of ['lib/kits/repo-address.js', 'lib/kits/csv.js', 'lib/kits/branch-status.js', 'lib/kits/branch-brief.js', 'lib/kits/content-registry.js']) {
+for (const f of ['lib/kits/repo-address.js', 'lib/kits/csv.js', 'lib/kits/branch-status.js', 'lib/kits/branch-brief.js', 'lib/kits/content-registry.js', 'lib/kits/swipe-deck.js']) {
   new window.Function('window', readFileSync(path.join(repoRoot, f), 'utf8'))(window);
 }
 
@@ -336,11 +336,13 @@ test('the strip reads its position and is driven to one', () => withReviewable(a
   data.go(99);
   assert.equal(data.at, 4, 'a drive past the end stops at the last slide');
 
+  // The strip reads once a frame (swipeDeck.strip), so each swipe waits one.
+  const frame = () => new Promise(r => window.requestAnimationFrame(() => setTimeout(r, 0)));
   strip.scrollLeft = W + GAP + 40;
-  data.stripScroll();
+  data.stripScroll(); await frame();
   assert.equal(data.at, 1, 'a partly-swiped strip still has a position');
-  strip.scrollLeft = 2 * (W + GAP) - 30;
-  data.stripScroll();
+  strip.scrollLeft = 2 * (W + GAP) + 140;   // scrollLeft / width would say 3
+  data.stripScroll(); await frame();
   assert.equal(data.at, 2, 'and it is the nearest slide, not a division');
 }));
 

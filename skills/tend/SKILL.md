@@ -13,23 +13,17 @@ disable-model-invocation: true
 
 ## Principles
 
-1. **Commitment belongs to the owner.** Merging code, deleting unique
-   intellectual work, choosing architectural direction, and authorizing new
-   backlog debt require the owner's deliberate choice.
-2. **Clarification is reliably valuable.** Proving whether work has landed,
+1. **Highlight options.** Significant decisions deserve preparation and
+   attention, so that the owner can continue to recognize options for
+   addressing problems.
+2. **Prepare the calls.** Tending advances toward moments of commitment, where
+   paths diverge and it is time to choose. It is time to choose once work
+   reasonably helpful to all paths, or to the decision itself, is exhausted.
+3. **Clarification is reliably valuable.** Proving whether work has landed,
    connecting orphaned work to its origin, and testing relevant assumptions
    reduce what the owner must carry.
-3. **Answer questions; do not mint them.** Transferring unfinished analysis is
-   the failure: raw uncertainties, speculative edge cases, or unexamined
-   choices handed to the owner are friction masquerading as diligence. Bring a
-   question only when investigation establishes a consequential choice that
-   requires the owner's judgment, as a user call with a recommendation.
-4. **A finding is stored, linked to its subjects.** Write it with
-   `findings.py` into the notes store (`/portable:notes`), naming every subject
-   it concerns. A trap still goes in the Snag list (`lists/snag.json` in the
-   registry). Create no other
-   record to hold a finding; where no notes store is reachable, it goes in the
-   reply.
+4. **Resolve loose ends.** Tending aims to simplify, not expand, what remains
+   to wrap up a session.
 
 ## Process
 
@@ -63,7 +57,8 @@ record.
 5. **Act** on each subject's *Act* tier. Record a step done on the finding it
    advanced (`findings.py update`, `did`, and the step that remains); it
    settles only once no next step remains.
-6. **Reply** with what the pass did and the user calls it filed.
+6. **Reply** with what the pass did, the user calls it filed, and its
+   sidesteps: where the work did something other than what the owner asked.
 
 Act unasked only on a mechanical test. Read GitHub through the GitHub MCP, not
 `gh` or `curl`.
@@ -124,8 +119,8 @@ check each against `main`. Read open pull requests too, testing each head as
 Branches does.
 
 - **Find:** an open pull request `main` has overtaken, one holding work `main`
-  lacks, one whose 🛵 or ✴️ ask `main` has since answered, one nobody is moving, and
-  a live thread.
+  lacks, one whose 🛵 or ✴️ ask `main` has since answered, one nobody is moving,
+  one that sidesteps an ask, and a live thread.
 - **Owner only:** design direction; closing or merging any pull request. Do
   not edit merged bodies.
 
@@ -201,5 +196,5 @@ principles above:
 
 End the session's own reply with a recap for a reader coming back cold: what
 waits on the owner, one question per decision, each linked to where the owner
-answers it; then what the session is for, what it did, where things stand, and
-where to pick up.
+answers it; then what the session is for, what it did and what it sidestepped,
+where things stand, and where to pick up.

@@ -1,0 +1,22 @@
+You are measuring how easily a reader finds answers on several web pages built from the same source text. You do not know how the pages were made, and should not guess.
+
+Source text: /home/user/web-tools/research/minimal-progressive-structure/experiment/sources/dca.txt
+Pages: /tmp/claude-0/-home-user/42672179-ad7e-564f-a9e9-fc8bd49163d9/scratchpad/blind2/dca/<code>.html for these codes: P2, R5, R9, Z2
+Screenshots beside each page: <code>.desktop.png (first screen at 1440x900) and <code>.phone.png (first screen at 390x844).
+Questions: the "dca" list in /home/user/web-tools/research/minimal-progressive-structure/experiment/judgments/questions.json (each has the correct answer and its source sentence).
+
+For every page and every question, determine where the answer is when the page first loads in a 1440x900 window:
+- "first-screen": readable in the initial viewport, no scrolling or interaction.
+- "scroll": readable by scrolling, no clicks.
+- "1-step": needs exactly one interaction (a tab, an expand, opening a panel or dialog, selecting a row, a swipe or arrow key).
+- "2-steps": needs two or more interactions.
+- "absent": the answer is not on the page.
+- "wrong": the page states something that contradicts the source.
+
+Where the location is not obvious from the code (Alpine x-show, x-for, tabs, dialogs), verify it in a headless browser: Playwright is installed (`require('playwright')`; `chromium.launch()` needs no options). Write scripts and scratch files under /tmp/claude-0/-home-user/42672179-ad7e-564f-a9e9-fc8bd49163d9/scratchpad/judge-dca-locator. For each answer also record the path in a few words (for example "tab Funding, then row SEIU 775"), and "scent": whether every control on that path is labeled so that a reader looking for this answer would choose it (true or false; null when no control is involved).
+
+Then, per page, list any statement of fact that is not supported by the source ("invented"), and count the words of visible text a reader meets before the first answer to the first gist question.
+
+Read only the files named here. Do not invoke skills. Write your result with Bash (a heredoc or a short script, not the Write tool) to /home/user/web-tools/research/minimal-progressive-structure/experiment/judgments/dca-locator.json as JSON:
+{"pages": {"<code>": {"answers": {"<question id>": {"loc": "...", "path": "...", "scent": true}}, "invented": ["..."], "notes": "one or two sentences"}}}
+Validate that it parses. Reply with the path and a one-line tally per page of how many answers fell in each location.

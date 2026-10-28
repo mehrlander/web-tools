@@ -1,0 +1,1665 @@
+##### PAIR 28
+=== A: lib/alpineComponents/file-browser.js:28 | registerFileBrowser > data(fileBrowser) ===
+function(opts) {
+    const cfg = opts || {};
+    // The component's root, captured at init. `this.$el` inside a method is the
+    // element whose handler called it: from the tree's @path-pick that is the
+    // tree column, which does not contain the swiper.
+    let root = null, stripFiles = [], mounted = new Set(), keyHandler = null;
+    const short = p => String(p || '').split('/').pop();
+    const dirOf = p => { const s = String(p || ''); const j = s.lastIndexOf('/'); return j < 0 ? '' : s.slice(0, j); };
+    return {
+      // Prefixed, not bare: an x-data expression resolves a bare name against
+      // every registered component first, and `repo` is one (repo.js), so
+      // `base: { repo: repo }` handed the picker a function. fab.js hit the same.
+      fbRepo: cfg.repo || '', fbRef: cfg.ref || '', fbDir: cfg.dir || '', fbStart: cfg.start || '',
+      sel: '',                    // the selected file, a repo path; '' until one is picked
+      at: -1,                     // its index in the folder's files; -1 when it is not in this folder
+      picker: null,               // the inline pathPicker's instance: the folder the swiper reads
+      hovered: false,             // the swiper takes the arrow keys while the pointer is in it
+      treeHovered: false,         // and the tree takes Up and Down while the pointer is in it
+      deckOpening: false,
+      _deck: null, _deckFiles: null,
+
+      template: `
+        <div class="h-full min-h-0 flex flex-col gap-2" data-file-browser>
+          <!-- The tree: the top part, scrolling on its own. -->
+          <div class="min-h-0" :class="folderFiles.length ? 'basis-2/5 shrink-0' : 'flex-1'" @path-pick="pick($event.detail.path)"
+               x-ref="tree" @pointerenter="treeHovered = true" @pointerleave="treeHovered = false">
+            <div class="h-full" x-data="pathPicker({ inline: true, trigger: false, base: { repo: fbRepo, ref: fbRef, dir: fbDir }, start: fbStart })"></div>
+          </div>
+
+          <!-- The swiper: one header row, then the strip. Hidden for a folder
+               with no files of its own, which has nothing to read. -->
+          <div class="relative flex-1 min-h-0 flex flex-col rounded-box border border-base-300 bg-base-100 overflow-hidden"
+               :class="!folderFiles.length && 'hidden'"
+               @pointerenter="hovered = true" @pointerleave="hovered = false" @pointerdown="hovered = true">
+            <div class="flex items-center gap-1 shrink-0 pl-2 pr-0.5 py-0.5 bg-base-200 border-b border-base-300">
+              <div x-show="at >= 0" class="min-w-0 flex items-baseline font-mono text-sm" data-slide-name>
+                <span x-show="sel.includes('/')" class="opacity-40 truncate shrink-[9999]" x-text="dirOf(sel) + '/'"></span>
+                <span class="min-w-0 truncate" x-text="short(sel)"></span>
+              </div>
+              <a x-show="at >= 0" :href="ghUrl(sel)" target="_blank" rel="noopener" :aria-label="sel + ' on GitHub'"
+                 class="shrink-0 p-1 text-base-content/40 hover:text-primary transition-colors">
+                <i class="ph ph-github-logo text-lg leading-none"></i></a>
+              <div class="grow"></div>
+              <div x-show="at >= 0 && folderFiles.length > 1" class="flex items-center shrink-0">
+                <button type="button" class="btn btn-xs btn-ghost btn-square max-sm:hidden" @click="go(at - 1)" :disabled="at <= 0"
+                        aria-label="Previous file"><i class="ph ph-caret-left"></i></button>
+                <span class="font-mono text-xs opacity-60 tabular-nums px-1" data-pager-label x-text="(at + 1) + '/' + folderFiles.length"></span>
+                <button type="button" class="btn btn-xs btn-ghost btn-square max-sm:hidden" @click="go(at + 1)" :disabled="at >= folderFiles.length - 1"
+                        aria-label="Next file"><i class="ph ph-caret-right"></i></button>
+              </div>
+              <!-- The deck door over the same files, full screen. Classes and
+                   wording are swipeDeck.entry()'s at the tight size, held by
+                   node/test/deck-entry-parity.test.mjs. -->
+              <button x-show="folderFiles.length" data-deck-door @click="openDeck()" :disabled="deckOpening"
+                      class="btn btn-square btn-sm btn-ghost text-primary"
+                      :data-title-tip="'Read ' + plural(folderFiles.length, 'file') + ' one at a time'">
+                <span x-show="deckOpening" class="loading loading-spinner loading-xs"></span>
+                <i x-show="!deckOpening" class="ph ph-cards-three text-lg max-sm:text-xl"></i></button>
+            </div>
+            <div data-strip @scroll.passive="stripScroll()"
+                 class="flex-1 min-h-0 flex snap-x snap-mandatory overflow-x-auto overflow-y-hidden overscroll-x-contain
+                        [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                 :class="at < 0 && 'invisible'"></div>
+          </div>
+        </div>`,
+
+      init/* nested: init, lines 94-139 */,
+      destroy() { if (keyHandler) window.removeEventListener('keydown', keyHandler, true); },
+
+      short, dirOf,
+      plural(n, noun) { return n + ' ' + noun + (n === 1 ? '' : 's'); },
+      ghUrl(path) { return path ? window.RepoAddress.github.blob(this.fbRepo, this.fbRef || 'HEAD', path) : ''; },
+      // The files directly in the folder the tree is showing, as repo paths.
+      get folderFiles/* nested: folderFiles, lines 146-151 */,
+      pick(path) { if (path) this.sel = path; },
+
+      // ── The strip ────────────────────────────────────────────────────────
+      strip() { return root?.querySelector('[data-strip]') || null; },
+      slides() { const s = this.strip(); return s ? [...s.children] : []; },
+      buildStrip/* nested: buildStrip, lines 157-172 */,
+      // Put the strip on the selection, or mark it absent from this folder.
+      // A folder entered without a selection in it opens on its first file,
+      // so the lower half is never an empty box beside a list of files.
+      place/* nested: place, lines 176-181 */,
+      // Set `at` here as well as on the scroll it starts: a scroll already at
+      // its target fires no scroll event. `jump` skips the smooth scroll, for a
+      // pick from the tree, where animating past twenty slides is noise.
+      go/* nested: go, lines 185-196 */,
+      // The slide nearest the strip's left edge, the branch detail's reading.
+      stripScroll/* nested: stripScroll, lines 198-208 */,
+      mountNear/* nested: mountNear, lines 209-215 */,
+      // The picker lights two rows the same way: `picked`, the file shown, and
+      // `active`, its keyboard and hover cursor. A tap leaves `active` on the
+      // tapped row, so a swipe that moved only `picked` left two rows lit.
+      // Both follow the position.
+      markInTree/* nested: markInTree, lines 220-226 */,
+      // The tree's row for the selection, kept in view as the swiper moves.
+      revealInTree() {
+        if (this.at < 0) return;
+        this.$nextTick(() => this.treeRow()?.scrollIntoView?.({ block: 'nearest' }));
+      },
+      // The tree's row for the selection: the picker's active row, which
+      // markInTree sets to it. Found by the row's title until 2026-10-22,
+      // which the rows had lost to data-title-tip, so the tree had stopped
+      // following the swiper.
+      treeRow() {
+        const p = this.picker;
+        return p && this.at >= 0 ? root?.querySelector('[role=option][data-index="' + p.active + '"]') : null;
+      },
+      // One slide: the shared viewer and one contents read, the deck's render.
+      mountSlide/* nested: mountSlide, lines 241-271 */,
+
+      // ── The full deck over the same files ───────────────────────────────
+      // Opens on the selection when it is in this folder, else the first file,
+      // and a swipe there moves this view's position.
+      async openDeck/* nested: openDeck, lines 276-309 */,
+      _deckChrome/* nested: _deckChrome, lines 310-318 */,
+    };
+  }
+=== B: lib/alpineComponents/here-view.js:40#3 | addEventListener(alpine:init) > data(hereView) (part 3 of 4) ===
+            </section>
+
+            <section class="flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden rounded-box border border-base-300 bg-base-100">
+              <div class="flex items-center gap-1 shrink-0 min-h-12 pl-3 pr-1 py-1 border-b border-base-300 bg-base-200/60">
+                <div x-show="items.length > 1" class="flex items-center shrink-0 sm:-ml-2">
+                  <button type="button" class="btn btn-xs btn-ghost btn-square max-sm:hidden" @click="go(at - 1)"
+                          :disabled="at <= 0" aria-label="Previous"><i class="ph ph-caret-left"></i></button>
+                  <span class="font-mono text-xs opacity-60 tabular-nums px-1" x-text="(at + 1) + '/' + items.length"></span>
+                  <button type="button" class="btn btn-xs btn-ghost btn-square max-sm:hidden" @click="go(at + 1)"
+                          :disabled="at >= items.length - 1" aria-label="Next"><i class="ph ph-caret-right"></i></button>
+                </div>
+                <div class="grow min-w-0 pl-1">
+                  <div class="font-mono font-semibold truncate" x-text="cur ? cur.title : ''"></div>
+                  <div class="text-sm text-base-content/60 truncate" x-text="cur ? cur.meta : ''"></div>
+                </div>
+                <button type="button" class="btn btn-sm btn-ghost btn-square shrink-0" @click="expand()" :disabled="!items.length"
+                        aria-label="Swipe through these, full screen">
+                  <i class="ph ph-arrows-out-simple text-lg"></i></button>
+              </div>
+              <!-- data-no-swipe: a sideways drag here is the strip's, never the
+                   shell's view pager, even with one card and nothing to scroll. -->
+              <div x-ref="strip" x-show="items.length > 0" data-no-swipe @scroll.passive="stripScroll()"
+                   class="flex-1 min-h-0 flex snap-x snap-mandatory overflow-x-auto overflow-y-hidden overscroll-x-contain
+                          [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <template x-for="it in items" :key="it.id">
+                  <div data-slide :data-id="it.id" class="w-full shrink-0 snap-center min-h-0 flex flex-col overflow-hidden p-2"></div>
+                </template>
+              </div>
+            </section>
+          </div>
+        </div>`,
+
+      init/* nested: init, lines 398-426 */,
+
+      // ── Where the reader came from ─────────────────────────────────────────
+      get fail() { return window.__shell?.authFail || null; },
+      get next() { return window.__shell?.hereNext || ''; },
+      get backHref() { return /^[?#]/.test(this.next) ? location.pathname + this.next : '../' + this.next.replace(/^\.\.\//, ''); },
+
+      get failTitle/* nested: failTitle, lines 433-440 */,
+      // The request line as gh-api.js sent it, method and API path, cut after
+      // each slash, ? and & so the template can offer a line break there.
+      get failRequestParts/* nested: failRequestParts, lines 443-449 */,
+
+      // ── Identity: where this is, and the reader's name for it ──────────────
+      get contextLine/* nested: contextLine, lines 452-456 */,
+      get suggestion() { return BK() ? BK().kind(this.ctx) : ''; },
+
+      // ── The token: each getter is one field's value ────────────────────────
+      get kind() { return tokenKind(this.saved); },
+      get savedLine() {
+        const m = this.meta;
+        return m && m.savedAt ? fmtWhen(m.savedAt) : 'not recorded';
+      },
+      get acceptedLine() {
+        const m = this.meta;
+        return m && m.okAt ? fmtWhen(m.okAt) + (m.login ? ' as ' + m.login : '') : 'not recorded';
+      },
+      get scopesLine/* nested: scopesLine, lines 469-474 */,
+      get missingRepoScope() {
+        return this.check.state === 'ok' && !!this.saved && !/^github_pat_/.test(this.saved)
+          && Array.isArray(this.check.scopes) && !this.check.scopes.includes('repo');
+      },
+      get rateLine/* nested: rateLine, lines 479-483 */,
+      get statusValue/* nested: statusValue, lines 484-495 */,
+      get statusIcon/* nested: statusIcon, lines 496-501 */,
+      // What the note and the token say together. The note is set on purpose,
+      // so its presence or absence separates a token removed on its own from a
+      // storage that was cleared or is new. A classic token that /user accepts
+      // with no `repo` scope in x-oauth-scopes cannot read private repositories,
+      // which GitHub hides as 404.
+      get cause/* nested: cause, lines 507-514 */,
+
+      // One plain fetch, deliberately outside GH.prototype.req: gh-auth watches
+      // that path, and a check that failed into the failure handler would route
+      // this view to itself. /rate_limit costs nothing against the limit, which
+      // is why the no-token case asks it rather than /user.
+      async checkToken/* nested: checkToken, lines 520-552 */,
+
+      // Saving reloads, as repo.js and fab.js do: a token is an account
+      // boundary, and half a page painted without one is not worth reconciling.
+      // The reload stays on this view, where the new token is checked, and
+      // Back turns green once GitHub accepts it and no read has failed since.
+      // The tail left in sessionStorage is how the reloaded view knows a save
+      // just happened.
+      saveToken/* nested: saveToken, lines 560-571 */,
+      removeToken/* nested: removeToken, lines 572-576 */,
+
+      // ── The note ───────────────────────────────────────────────────────────
+      saveNote/* nested: saveNote, lines 579-589 */,
+
+      // ── What this origin stores ────────────────────────────────────────────
+      get lsSummary/* nested: lsSummary, lines 592-596 */,
+      get dbSummary/* nested: dbSummary, lines 597-603 */,
+      // The estimate covers quota-managed storage (IndexedDB, caches), not the
+      // HTTP cache, and Web Storage is counted separately by lsSummary.
+      // Persistent is the browser's promise not to clear storage on its own.
+      get storageLine() {
+        return [this.srcHost || this.host, this.quotaLine ? this.quotaLine + ' quota storage' : '',
+                this.persisted == null ? '' : (this.persisted ? 'persistent' : 'not persistent')].filter(Boolean).join(' · ');
+      },
+      get quotaLine() {
+        if (this.usage == null) return '';
+        return fmtBytes(this.usage) + (this.quota ? ' / ' + fmtBytes(this.quota) : '');
+      },
+
+      // ── Tabs and the item in view, both part of the address ────────────────
+      // Held on the shell (hereTab, hereItem) and stamped by its route row, so
+      // ?view=here&tab=stored&item=ls:visits names what is on screen. A tab is
+      // a history entry; the item is written in place, since a swipe through
+      // twenty cards is not twenty places to go Back to. An item id is
+      // `ls:<key>` or `idb:<database>/<store>`.
+      get tab() { return window.__shell?.hereTab || 'token'; },
+      setTab/* nested: setTab, lines 623-628 */,
+      get selId() { return window.__shell?.hereItem || ''; },
+      // What the detail shows: the item the address names when it still
+      // exists, else the first in the list. The default is never written to
+      // the address, so arriving does not add a history entry Back would land
+      // on only to be sent forward again.
+      get shownId() {
+        const ids = this.items.map(it => it.id);
+        return ids.includes(this.selId) ? this.selId : (ids[0] || '');
+      },
+      select/* nested: select, lines 638-645 */,
+      // The list's items in its own order, which is the strip's and the deck's.
+      get items/* nested: items, lines 647-656 */,
+      get at() { return Math.max(0, this.items.findIndex(it => it.id === this.shownId)); },
+      get cur() { return this.items[this.at] || null; },
+      plural(n, noun) { return n + ' ' + noun + (n === 1 ? '' : 's'); },
+      // What a card shows: a localStorage value as lsShown names it, a store
+      // as its records under a .json name, which READ_MODE lays out as a table
+      // when every record is a plain object and as a tree otherwise.
+      async itemContent/* nested: itemContent, lines 663-668 */,
+      async storeRows/* nested: storeRows, lines 669-677 */,
+
+      // ── The strip ──────────────────────────────────────────────────────────
+      // A card mounts its viewer when the strip comes within one card of it and
+      // then stays mounted, so swiping back is instant.
+      panels() { return [...(this.$refs.strip?.querySelectorAll('[data-slide]') || [])]; },
+      mountNear/* nested: mountNear, lines 683-692 */,
+      // The card nearest the strip's left edge, read off the scroll.
+      nearest/* nested: nearest, lines 694-698 */,
+      stripScroll/* nested: stripScroll, lines 699-714 */,
+      // Move to item i: the selection at once, the strip after it. `instant`
+      // for a pick in the list, where animating past twenty cards is noise.
+      go/* nested: go, lines 717-724 */,
+      pick(id) {
+        const i = this.items.findIndex(it => it.id === id);
+        if (i >= 0) this.go(i, true);
+      },
+##### PAIR 29
+=== A: lib/kits/xlsx.js:2120 | call(…) > markConditional ===
+function markConditional(rows, sheet) {
+    const formats = (sheet.conditionalFormats || []).slice()
+      .sort((a, b) => a.priority - b.priority);
+    if (!formats.length) return 0;
+    const undecided = new Set();
+    for (const row of rows) {
+      for (const cell of row.cells) {
+        cell.cf = null;
+        for (const rule of formats) {
+          if (!inRange(rule.ranges, row.row, cell.col)) continue;
+          const fires = cfApplies(rule, cell);
+          if (fires === null) { undecided.add(rule); continue; }
+          if (!fires) continue;
+          if (rule.dxfId != null) { cell.cf = rule.dxfId; break; }
+          if (rule.stopIfTrue) break;
+        }
+      }
+    }
+    return undecided.size;
+  }
+=== B: lib/kits/xlsx-extract.js:292 | call(…) > parts ===
+({ s, xl }) => [{
+        rows: (s.conditionalFormats || []).slice()
+          .sort((a, b) => a.priority - b.priority)
+          .map(/* nested: map(…), lines 295-305 */),
+        // WHAT THIS KIND IS NOT. These are the rules as the file states them.
+        // Which cells Excel would actually paint is a second question, and the
+        // kit answers it only for the rule types decidable from a cell alone
+        // (xlsxKit.cfApplies); an expression rule needs a formula engine.
+        note: 'the rules as written; whether each fires is not evaluated here',
+      }]
+##### PAIR 30
+=== A: lib/kits/json-explorer.js:284 | call(…) > mount > iconBtn ===
+(icon, tip, onClick) => h('button', {
+        type: 'button',
+        class: 'btn btn-ghost btn-sm btn-square text-base-content/60 hover:text-base-content',
+        'data-title-tip': tip, 'aria-label': tip, onClick,
+      }, h('i', { class: `ph ${icon} text-base` }))
+=== B: lib/kits/swipe-deck.js:874 | call(…) > open > circle ===
+(icon, onClick) => {
+      const b = h('button', { class: 'btn btn-circle btn-sm border-base-300 bg-base-100 shadow-none', 'aria-label': icon },
+        h('i', { class: `ph ${icon} text-base` }));
+      b.addEventListener('click', onClick);
+      return b;
+    }
+##### PAIR 31
+=== A: lib/kits/xlsx.js:1793 | call(…) > profileColumns ===
+function profileColumns(sheet, xl, opts) {
+    const cfg = opts || {};
+    const headerRow = cfg.headerRow === undefined ? 1 : cfg.headerRow;
+    const keep = cfg.distinct === undefined ? 12 : cfg.distinct;
+    const all = sheet.rows || [];
+    const header = headerRow == null ? null : all.find(r => r.row === headerRow);
+    const body = headerRow == null ? all : all.filter(r => r.row !== headerRow);
+    const scanned = cfg.maxRows ? body.slice(0, cfg.maxRows) : body;
+
+    // Every column any scanned row writes to, plus any the header names: a
+    // column whose values are all blank is still a column if it has a heading.
+    const cols = new Set();
+    for (const r of [...scanned, ...(header ? [header] : [])])
+      for (const k of Object.keys(r.cells || {})) cols.add(Number(k));
+
+    const cellKind = /* nested: cellKind, lines 1808-1817 */;
+
+    return [...cols].sort((a, b) => a - b).map(/* nested: map(…), lines 1819-1873 */);
+  }
+=== B: lib/kits/xlsx-extract.js:381 | call(…) > profileRows ===
+function profileRows(sheet, xl, headerRow) {
+    const hr = headerRow === undefined ? 1 : headerRow;
+    return kit().profileColumns(sheet, xl, { headerRow: hr || null }).map(/* nested: map(…), lines 383-395 */);
+  }
+##### PAIR 32
+=== A: lib/alpineComponents/transform-workbench.js:468 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > remove ===
+(i) {
+          if (this.tabs.length < 2 || this.tabs[i].fixed) return;   // the last tab always stays
+          this.tabs.splice(i, 1);
+          if (i < this.active) this.active--;
+          else if (this.active >= this.tabs.length) this.active = this.tabs.length - 1;
+          this.saveTabs();
+          this.invalidateBundle();
+          if (this.ran) this.$nextTick(() => this.syncSurfaces());
+        }
+=== B: lib/alpineComponents/here-view.js:623 | addEventListener(alpine:init) > data(hereView) > setTab ===
+(t) {
+        const sh = window.__shell;
+        if (!sh || sh.hereTab === t) return;
+        sh.hereTab = t;
+        sh.syncUrl();
+      }
+
+##### PAIR 33
+=== A: lib/kits/xlsx.js:1436 | call(…) > normalizePath ===
+function normalizePath(from, target) {
+    const t = String(target || '');
+    if (t.startsWith('/')) return t.slice(1);
+    const base = from.endsWith('/') ? from : from.slice(0, from.lastIndexOf('/') + 1);
+    const out = [];
+    for (const seg of (base + t).split('/')) {
+      if (seg === '' || seg === '.') continue;
+      if (seg === '..') out.pop();
+      else out.push(seg);
+    }
+    return out.join('/');
+  }
+=== B: lib/kits/json-explorer.js:257 | call(…) > mount > pathToProp ===
+(path) => {
+        if (!path.length) return 'root';
+        return path.map((seg, i) => {
+          if (typeof seg === 'number' || /^\d+$/.test(seg)) return `[${seg}]`;
+          return i === 0 ? seg : `.${seg}`;
+        }).join('');
+      }
+##### PAIR 34
+=== A: lib/alpineComponents/transform-workbench.js:1617 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > pvTree ===
+(rows) {
+          const dims = this.pvDims, agg = this.pvAgg, mk = this.pvMeasure, cdims = this.pvColDims;
+          const root = { label: "Total", value: 0, n: 0, kids: new Map(), cells: new Map() };
+          const bump = /* nested: bump, lines 1620-1625 */;
+          // The column axis: each node also accumulates one cell per column
+          // key (the column dimensions' values joined), so a crosstab is the
+          // same tree read sideways. colKeys collects every key seen.
+          const colKeys = new Set();
+          const cellKey = r => cdims.map(d => { const x = r[d]; return x == null || x === "" ? "(blank)" : String(x); }).join(" · ");
+          const bumpCell = /* nested: bumpCell, lines 1631-1635 */;
+          let skipped = 0;
+          for (const r of rows) {
+            const v = agg === "count" ? 1 : this.pvNum(r[mk]);
+            // A row whose measure will not parse is SKIPPED, never counted as a
+            // zero: a zero would move a sum and an average alike and look like
+            // data. The count of them is reported instead.
+            if (!Number.isFinite(v)) { skipped++; continue; }
+            const ck = cdims.length ? cellKey(r) : "";
+            if (cdims.length) colKeys.add(ck);
+            bump(root, v);
+            if (cdims.length) bumpCell(root, ck, v);
+            let node = root;
+            for (const d of dims) {
+              const raw = r[d];
+              const k = raw == null || raw === "" ? "(blank)" : String(raw);
+              let kid = node.kids.get(k);
+              if (!kid) { kid = { label: k, value: 0, n: 0, kids: new Map(), cells: new Map() }; node.kids.set(k, kid); }
+              bump(kid, v);
+              if (cdims.length) bumpCell(kid, ck, v);
+              node = kid;
+            }
+          }
+          const keys = [...colKeys].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+          const dec = agg === "count" ? 0
+            : Math.min(6, (this.pvDec[mk] || 0) + (agg === "avg" ? 2 : 0));
+          const finCell = c => this.pvRound(agg === "avg" ? (c.n ? c.value / c.n : 0) : c.value, dec);
+          const fin = /* nested: fin, lines 1662-1680 */;
+          const tree = fin(root);
+          return {
+            tree, skipped, colKeys: keys,
+            // Sum and count make a real partition, so a parent equals the sum of
+            // its children and a consumer may check it. avg, min and max do not,
+            // and saying so is the difference between a subtotal and a number
+            // that merely sits above other numbers.
+            partition: agg === "sum" || agg === "count",
+          };
+        }
+=== B: lib/kits/report-layout.js:80 | call(…) > build > fold ===
+src => {
+      const out = {};
+      for (const r of src) {
+        const v = num(r[measure]);
+        if (v == null) continue;
+        const k = s(r[cs.band]) + SEP + s(r[cs.within]);
+        out[k] = (out[k] || 0) + v;
+      }
+      return out;
+    }
+##### PAIR 35
+=== A: lib/kits/xlsx.js:2658 | call(…) > pivotsView > map(…) ===
+([part, pt]) => {
+      const cache = pt.cachePart ? xl.pivotCaches[pt.cachePart] : null;
+      const sheet = pt.sheet ? xl.sheets[pt.sheet] : null;
+      return {
+        Pivot: pt.name,
+        Sheet: sheet?.name || pt.sheet || '',
+        Range: pt.ref,
+        Rows: pt.rowFields,
+        Cols: pt.colFields,
+        Filters: pt.pageFields,
+        Measures: pt.dataFields.join(', '),
+        Source: cache?.source ? `${cache.source.sheet || cache.source.name}!${cache.source.ref}` : '',
+        Records: cache?.recordCount ?? '',
+        'Cache Fields': cache ? cache.fields.length : '',
+        Part: part,
+      };
+    }
+=== B: lib/kits/xlsx-extract.js:336 | call(…) > parts > map(…) ===
+part => {
+        const got = kit().pivotRecords(result.xl, part, { limit: maxRows });
+        const src = result.xl.pivotCaches[part]?.source;
+        return {
+          // A cache has no name of its own, so it is named by the range it was
+          // built from. The part filename says nothing a reader knows.
+          label: src ? `${src.sheet || src.name}!${src.ref}` : part.split('/').pop(),
+          rows: got.rows,
+          total: got.total,
+          truncated: got.truncated,
+          // What the part held against what the definition claims. The two
+          // disagreeing is a fact about the file, not one to reconcile away.
+          note: got.declared != null && got.declared !== got.total
+            ? `the definition claims ${got.declared} records; the part holds ${got.total}` : '',
+        };
+      }
+##### PAIR 36
+=== A: lib/kits/json-explorer.js:205#2 | call(…) > mount (part 2 of 2) ===
+      // ── JSON ───────────────────────────────────────────────────────────
+      const renderRaw = /* nested: renderRaw, lines 649-654 */;
+
+      // ── Chrome, updated in place ───────────────────────────────────────
+      const show = (el, on, display = 'flex') => { el.classList.toggle('hidden', !on); el.classList.toggle(display, on); };
+      const syncChrome = /* nested: syncChrome, lines 658-708 */;
+
+      const render = /* nested: render, lines 710-717 */;
+
+      // ── Public navigation ──────────────────────────────────────────────
+      const setView = /* nested: setView, lines 720-724 */;
+      const focusChunk = /* nested: focusChunk, lines 725-732 */;
+
+      render();
+
+      return {
+        get profile() { return getProfile(); },
+        setView,
+        focusChunk,
+        updateSearch,
+        destroy: () => {
+          clearTimeout(searchTimer);
+          root.remove();
+        },
+      };
+    }
+=== B: lib/kits/swipe-deck.js:442#4 | call(…) > open (part 4 of 5) ===
+      // measured from where they left it rather than from the top.
+      deck.onSlide(() => setHidden(false));
+      // A slide built WHILE the chrome is away arrives with its own chrome
+      // showing, because it was not in the DOM when the toggle ran. The deck
+      // builds neighbours ahead of the reader, so this is the ordinary case
+      // and not an edge: swiping to the next document mid-read would otherwise
+      // flash a band that nothing asked for.
+      const dressSlides = new MutationObserver(() => {
+        if (!hidden) return;
+        for (const el of panel.querySelectorAll('[data-sd-chrome]:not(.hidden)')) el.classList.add('hidden');
+      });
+      dressSlides.observe(deck.track, { childList: true, subtree: true });
+      // `dockWatch` is the deck's release list rather than the dock's alone,
+      // despite its name: cleanup() drains it on close.
+      dockWatch.push(() => dressSlides.disconnect());
+    }
+
+    // ── THE CONTENTS ────────────────────────────────────────────────────────
+    //
+    // A list of every slide, over the track, opened from the mark. It earns its
+    // place where the footer stops helping: the pager draws dots only while
+    // they stay countable and a bare progress bar past that, which says where
+    // the reader is and nothing about what the rest of the deck holds.
+    //
+    // IT TAKES A HISTORY ENTRY, for the same reason the deck itself does: on a
+    // phone, Back is what a reader reaches for, and a panel that ignores it
+    // throws them out of the deck instead of out of the list. That is the whole
+    // cost of this feature, and it is paid in three places, all of them here:
+    // `onPop` closes the list before it closes the deck, `indexPop` swallows
+    // the pop that closing programmatically causes (otherwise the deck reads
+    // its own tidy-up as a Back press and shuts), and `dismiss` counts the open
+    // lists across the stack so one ✕ still unwinds to the right depth.
+    let indexOpen = false, indexPop = 0;
+    let restIcon = o.icon || 'ph-cards';
+    // The glyph names what tapping DOES, never the state it is in, which is the
+    // rule the pane toggle above already follows: on a row of chrome nothing
+    // should have to be read twice.
+    // ph-caret-up, and NOT ✕, though "close the list" is what it does: the
+    // header already carries a ✕ at its left end, and two of them on one row
+    // would ask the reader which one closes what. A caret puts a panel away.
+    const paintMark = /* nested: paintMark, lines 1110-1116 */;
+    paintMark();
+    // A DROPDOWN, not a second takeover. Filling everything under the header is
+    // what a list of 47 wants if you think of it as a screen; it is not one.
+    // The reader is mid-document and glancing at where else they could go, so
+    // covering the document to say so takes the thing they are keeping their
+    // place in. A panel hung under the mark says the same list, scrolls inside
+    // itself, and leaves the page it belongs to visible behind it, which is
+    // also what makes tapping away an obvious way out. Height is capped rather
+    // than fitted: 47 rows and 3 both want a panel that ends before the footer.
+    const sheet = h('div', { class: 'sd-index absolute z-20 w-80 max-w-[calc(100%-1rem)] '
+      + 'max-h-[min(60vh,26rem)] overflow-y-auto overscroll-contain scrollbar-thin '
+      + 'rounded-xl border border-base-300 bg-base-100 shadow-xl' });
+    // `section` is a heading for a run of rows: printed once, above the first
+    // row of each run, as a non-button line. A caller naming none gets the
+    // flat list it always had, so `.sd-index` children stay rows for it.
+    let rowEls = [];
+    const buildIndex = /* nested: buildIndex, lines 1133-1183 */;
+    // Tapping the page behind a dropdown closes it, which is the affordance a
+    // takeover did not have and did not need.
+    const awayFromIndex = (e) => {
+      if (!indexOpen || sheet.contains(e.target) || mark.contains(e.target)) return;
+      closeIndex();
+    };
+    const openIndex = /* nested: openIndex, lines 1190-1210 */;
+    const closeIndex = /* nested: closeIndex, lines 1211-1225 */;
+    if (indexOf) mark.addEventListener('click', () => indexOpen ? closeIndex() : openIndex());
+
+    // ── THE SEAM ────────────────────────────────────────────────────────────
+    // Docked, the deck's left edge is a boundary between two things the reader
+    // is using at once. The handle sits ON that edge, inside the overlay,
+    // straddling it; without it the width is one CSS clamp, a decent guess and
+    // never the reader's.
+    //
+    // TWO HOOKS, TWO CLAIMS, and the second is deliberately separate from the
+    // first. `window.__deckPane` says the host can dock at all; `__deckWidth`
+    // says it can also be TOLD how wide, a different capability a host may
+    // honestly have without the other (a fixed sidebar can dock a deck beside
+    // itself and have nowhere to put a variable width). A host with only the
+    // first, or a page that never loaded kits/dock-split.js, gets exactly the
+    // dock it had before this existed.
+    const canSize = () => typeof window.__deckWidth === 'function' && window.dockSplit;
+    let splitter = null;
+    // INLINE, not utility classes, and this is the one place in the kit where
+    // that is not a style preference. The seam is created after the page's
+    // Tailwind build has scanned the DOM, so its utilities may not have been
+    // compiled when it mounts, and an uncompiled handle has no height: it is
+    // hit-testable nowhere, and that reads as a drag that does nothing rather
+    // than as a missing stylesheet. Everything the kit's own injected CSS draws
+    // is fine; only the placement, which is the caller's half, has to be immune.
+    //
+    // A SIBLING OF THE OVERLAY, not its child. The overlay has to clip the
+    // horizontal slide track, while a handle on its left edge has to straddle
+    // that edge. Putting the seam inside overflow-hidden cut off the left half
+    // of the grip and forced the percentage badge off to the right as a
+    // workaround. Fixed against the same root variables, the seam follows the
+    // deck exactly without inheriting its clip, so both affordances can sit on
+    // the divider they describe.
+    const seam = h('div');
+    Object.assign(seam.style, {
+      position: 'fixed', left: 'var(--deck-left,0px)',
+      top: 'var(--deck-top,0px)', bottom: 'var(--deck-bottom,0px)',
+      width: '6px', transform: 'translateX(-50%)', zIndex: '75',
+    });
+    const syncSeam = /* nested: syncSeam, lines 1264-1288 */;
+    // THE PANE CAN CHANGE WITHOUT THE BUTTON, and the deck has to notice. The
+    // host re-derives the pane whenever its sidebar opens or closes, on a
+    // restore from storage, and on any width change, and every one of those is
+    // a `data-deck-pane` write the toggle never sees. Watching the attribute is
+    // also the honest reading of the hook's contract, which lets a host refuse
+    // a dock by simply not changing the value: a kit that trusts its own click
+    // cannot see that refusal. The lock rides along, since a pane that changed
+    // underneath leaves it describing the old one.
+    const paneWatch = new MutationObserver(() => { applyLock(); syncPane(); syncSeam(); });
+    paneWatch.observe(document.documentElement, { attributes: true, attributeFilter: ['data-deck-pane'] });
+
+    const sync = /* nested: sync, lines 1300-1308 */;
+    deck.onSlide(sync);
+    sync(0);
+
+    // ── Stacking ───────────────────────────────────────────────────────────
+    //
+    // A deck opened from inside a deck is how drilling works: it is a
+    // navigation stack rather than visible nesting, and the nesting lives in
+    // the return path.
+    //
+    // ONE module-level STACK, and only its top answers `popstate` and
+    // `keydown`. A deck that assumes it is the only one alive breaks that
+    // return path twice: every deck registering its own `popstate` means one
+    // history.back() fires all of them, so a single Back closes the whole
+    // stack; every deck registering its own `keydown` means one ArrowRight
+    // steps the child AND the parent underneath it, so popping back lands on a
+    // slide the reader never chose. Each deck keeps its own listeners (removing
+    // them on cleanup stays local) and both handlers return early unless this
+    // deck is on top.
+    //
+    // The overflow lock needs nothing: each deck saves the value it found and
+    // restores it, so a child saves `hidden` and restores `hidden` while the
+    // parent restores the original. (`prevOverflow` is taken at the top of
+    // open(), beside the pane contract that decides whether it is set at all.)
+    let closed = false;
+    const onTop = () => STACK[STACK.length - 1] === handle;
+    const cleanup = /* nested: cleanup, lines 1334-1356 */;
+    // Leaving a deck means leaving everything stacked ON it, which is what a
+    // navigation stack does: popping to a level discards the levels above.
+    // Ordinarily there is nothing above (the reader dismisses what they are
+    // looking at), and this is one history.back(). A caller that closes a
+    // parent while a child is open gets the child closed with it, and the
+    // history unwinds in one go() so no dead entries are left behind for a
+    // later Back to spend itself on.
+##### PAIR 37
+=== A: lib/kits/xlsx.js:2180 | call(…) > listOptions ===
+function listOptions(formula, sheet, xl) {
+    const f = String(formula).trim().replace(/^=/, '');
+    const inline = /^"(.*)"$/s.exec(f);
+    if (inline) return inline[1].split(',').map(s => s.trim()).filter(Boolean);
+
+    const m = /^(?:'([^']+)'|([A-Za-z0-9_À-￿.]+))?!?\$?([A-Z]+)\$?(\d+)(?::\$?([A-Z]+)\$?(\d+))?$/.exec(f);
+    if (!m) return null;
+    const sheetName = m[1] || m[2] || null;
+    let target = sheet;
+    if (sheetName) {
+      target = Object.values(xl?.sheets || {}).find(s => s.name === sheetName);
+      if (!target) return null;
+    }
+    const c1 = colIndexFromRef(m[3]), r1 = Number(m[4]);
+    const c2 = m[5] ? colIndexFromRef(m[5]) : c1, r2 = m[6] ? Number(m[6]) : r1;
+    const out = [];
+    for (const row of target.rows || []) {
+      if (row.row < Math.min(r1, r2) || row.row > Math.max(r1, r2)) continue;
+      for (let c = Math.min(c1, c2); c <= Math.max(c1, c2); c++) {
+        const v = row.cells?.[c];
+        if (v !== undefined && v !== '') out.push(String(v));
+      }
+    }
+    return out.length ? out : null;
+  }
+=== B: lib/kits/xlsx-extract.js:91 | call(…) > serializeSheet ===
+(s, name) => {
+    const cells = [];
+    let r1 = Infinity, c1 = Infinity, r2 = 0, c2 = -1;
+    for (const r of s.rows || []) {
+      for (const [idx, v] of Object.entries(r.cells || {})) {
+        const col = Number(idx);
+        const f = r.formulas?.[idx];
+        const si = r.shared?.[idx];
+        let formula = '';
+        if (typeof f === 'string') formula = '=' + f;
+        else if (f === true) formula = si != null ? `=[fill ${si}] ${s.sharedFormulas?.[si] ?? ''}`.trimEnd() : '=';
+        cells.push({ Address: at(col, r.row), Formula: formula, Value: v == null ? '' : String(v) });
+        if (r.row < r1) r1 = r.row;
+        if (r.row > r2) r2 = r.row;
+        if (col < c1) c1 = col;
+        if (col > c2) c2 = col;
+      }
+    }
+    return {
+      SheetName: name,
+      Dimension: s.dimension || (cells.length ? `${at(c1, r1)}:${at(c2, r2)}` : ''),
+      MergedCells: (s.merges || []).map(m => `${at(m.c1, m.r1)}:${at(m.c2, m.r2)}`),
+      Cells: cells,
+    };
+  }
+##### PAIR 38
+=== A: lib/kits/json-explorer.js:284 | call(…) > mount > iconBtn ===
+(icon, tip, onClick) => h('button', {
+        type: 'button',
+        class: 'btn btn-ghost btn-sm btn-square text-base-content/60 hover:text-base-content',
+        'data-title-tip': tip, 'aria-label': tip, onClick,
+      }, h('i', { class: `ph ${icon} text-base` }))
+=== B: lib/kits/swipe-deck.js:633 | call(…) > open > actionBtn ===
+(a) => {
+      const b = h('button', {
+        class: 'btn btn-ghost btn-sm btn-circle shrink-0',
+        'data-title-tip': a.title || '', 'aria-label': a.title || 'Action',
+      }, h('i', { class: `ph ${a.icon || 'ph-dots-three'} text-base` }));
+      b.addEventListener('click', () => a.onClick(deck, b));
+      return b;
+    }
+##### PAIR 39
+=== A: lib/kits/tabular-explorer.js:403 | call(…) > mount > renderHeaderActions > onClick ===
+async () => {
+            if (window.recordDeck && tabulatorInstance) {
+              window.recordDeck.fromGrid(tabulatorInstance, { title: name });
+            } else if (window.swipeDeck?.entry) {
+              try {
+                if (!window.recordDeck) await ViewRegistry?.loadLib?.('kits/record-deck.js');
+                window.recordDeck?.fromGrid(tabulatorInstance, { title: name });
+              } catch (e) { console.warn(e); }
+            }
+          }
+=== B: lib/kits/json-explorer.js:331 | call(…) > mount > iconBtn(ph-cards-three) ===
+async () => {
+        const rows = getChunkData(focusedPath);
+        const title = name + (focusedPath.length ? ` › ${focusedPath.join(' › ')}` : '');
+        try {
+          if (!window.recordDeck && window.gh?.load) await window.gh.load('kits/record-deck.js');
+          window.recordDeck?.open?.({ rows, title });
+        } catch (e) { console.warn(e); }
+      }
+##### PAIR 40
+=== A: lib/alpineComponents/file-browser.js:209 | registerFileBrowser > data(fileBrowser) > mountNear ===
+() {
+        if (this.at < 0) return;
+        const slides = this.slides();
+        for (let i = Math.max(0, this.at - 1); i <= Math.min(slides.length - 1, this.at + 1); i++) {
+          if (!mounted.has(i)) { mounted.add(i); this.mountSlide(stripFiles[i], slides[i]); }
+        }
+      }
+=== B: lib/alpineComponents/here-view.js:683 | addEventListener(alpine:init) > data(hereView) > mountNear ===
+() {
+        const panels = this.panels(), items = this.items;
+        for (const i of [this.at, this.at + 1, this.at - 1]) {
+          const it = items[i], host = panels[i];
+          if (!it || !host || mounted.has(it.id)) continue;
+          mounted.add(it.id);
+          const el = mountViewer(host);
+          this.itemContent(it).then(({ name, content }) => el.__viewer?.show(name, content, { local: true }));
+        }
+      }
+##### PAIR 41
+=== A: lib/kits/xlsx.js:2332 | call(…) > formulaFor ===
+function formulaFor(sheet, row, col) {
+    const f = row?.formulas?.[col];
+    if (typeof f === 'string') return '=' + f;
+    if (f !== true) return '';
+    const si = row?.shared?.[col];
+    const text = si != null ? sheet?.sharedFormulas?.[si] : null;
+    if (text == null) return null;
+    if (!masters.has(sheet)) {
+      const m = {};
+      for (const r of sheet.rows || []) {
+        for (const [c, ff] of Object.entries(r.formulas || {})) {
+          const id = r.shared?.[c];
+          if (typeof ff === 'string' && id != null && !m[id]) m[id] = { r: r.row, c: Number(c) };
+        }
+      }
+      masters.set(sheet, m);
+    }
+    const at = masters.get(sheet)[si];
+    if (!at) return null;
+    return '=' + shiftRefs(text, row.row - at.r, Number(col) - at.c);
+  }
+=== B: lib/kits/xlsx-extract.js:91 | call(…) > serializeSheet ===
+(s, name) => {
+    const cells = [];
+    let r1 = Infinity, c1 = Infinity, r2 = 0, c2 = -1;
+    for (const r of s.rows || []) {
+      for (const [idx, v] of Object.entries(r.cells || {})) {
+        const col = Number(idx);
+        const f = r.formulas?.[idx];
+        const si = r.shared?.[idx];
+        let formula = '';
+        if (typeof f === 'string') formula = '=' + f;
+        else if (f === true) formula = si != null ? `=[fill ${si}] ${s.sharedFormulas?.[si] ?? ''}`.trimEnd() : '=';
+        cells.push({ Address: at(col, r.row), Formula: formula, Value: v == null ? '' : String(v) });
+        if (r.row < r1) r1 = r.row;
+        if (r.row > r2) r2 = r.row;
+        if (col < c1) c1 = col;
+        if (col > c2) c2 = col;
+      }
+    }
+    return {
+      SheetName: name,
+      Dimension: s.dimension || (cells.length ? `${at(c1, r1)}:${at(c2, r2)}` : ''),
+      MergedCells: (s.merges || []).map(m => `${at(m.c1, m.r1)}:${at(m.c2, m.r2)}`),
+      Cells: cells,
+    };
+  }
+##### PAIR 42
+=== A: lib/alpineComponents/transform-workbench.js:1274 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > dlBundle ===
+() {
+          const p = await this.exportPayload("bundle");
+          const u = URL.createObjectURL(new Blob([p.text], { type: p.mime }));
+          Object.assign(document.createElement("a"), { href: u, download: "bundle.json" }).click();
+          setTimeout(() => URL.revokeObjectURL(u), 100);
+        }
+=== B: lib/kits/json-explorer.js:348 | call(…) > mount > iconBtn(ph-download-simple) ===
+() => {
+        const blob = new Blob([JSON.stringify(rawData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = name;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+##### PAIR 43
+=== A: lib/kits/swipe-deck.js:442#4 | call(…) > open (part 4 of 5) ===
+      // measured from where they left it rather than from the top.
+      deck.onSlide(() => setHidden(false));
+      // A slide built WHILE the chrome is away arrives with its own chrome
+      // showing, because it was not in the DOM when the toggle ran. The deck
+      // builds neighbours ahead of the reader, so this is the ordinary case
+      // and not an edge: swiping to the next document mid-read would otherwise
+      // flash a band that nothing asked for.
+      const dressSlides = new MutationObserver(() => {
+        if (!hidden) return;
+        for (const el of panel.querySelectorAll('[data-sd-chrome]:not(.hidden)')) el.classList.add('hidden');
+      });
+      dressSlides.observe(deck.track, { childList: true, subtree: true });
+      // `dockWatch` is the deck's release list rather than the dock's alone,
+      // despite its name: cleanup() drains it on close.
+      dockWatch.push(() => dressSlides.disconnect());
+    }
+
+    // ── THE CONTENTS ────────────────────────────────────────────────────────
+    //
+    // A list of every slide, over the track, opened from the mark. It earns its
+    // place where the footer stops helping: the pager draws dots only while
+    // they stay countable and a bare progress bar past that, which says where
+    // the reader is and nothing about what the rest of the deck holds.
+    //
+    // IT TAKES A HISTORY ENTRY, for the same reason the deck itself does: on a
+    // phone, Back is what a reader reaches for, and a panel that ignores it
+    // throws them out of the deck instead of out of the list. That is the whole
+    // cost of this feature, and it is paid in three places, all of them here:
+    // `onPop` closes the list before it closes the deck, `indexPop` swallows
+    // the pop that closing programmatically causes (otherwise the deck reads
+    // its own tidy-up as a Back press and shuts), and `dismiss` counts the open
+    // lists across the stack so one ✕ still unwinds to the right depth.
+    let indexOpen = false, indexPop = 0;
+    let restIcon = o.icon || 'ph-cards';
+    // The glyph names what tapping DOES, never the state it is in, which is the
+    // rule the pane toggle above already follows: on a row of chrome nothing
+    // should have to be read twice.
+    // ph-caret-up, and NOT ✕, though "close the list" is what it does: the
+    // header already carries a ✕ at its left end, and two of them on one row
+    // would ask the reader which one closes what. A caret puts a panel away.
+    const paintMark = /* nested: paintMark, lines 1110-1116 */;
+    paintMark();
+    // A DROPDOWN, not a second takeover. Filling everything under the header is
+    // what a list of 47 wants if you think of it as a screen; it is not one.
+    // The reader is mid-document and glancing at where else they could go, so
+    // covering the document to say so takes the thing they are keeping their
+    // place in. A panel hung under the mark says the same list, scrolls inside
+    // itself, and leaves the page it belongs to visible behind it, which is
+    // also what makes tapping away an obvious way out. Height is capped rather
+    // than fitted: 47 rows and 3 both want a panel that ends before the footer.
+    const sheet = h('div', { class: 'sd-index absolute z-20 w-80 max-w-[calc(100%-1rem)] '
+      + 'max-h-[min(60vh,26rem)] overflow-y-auto overscroll-contain scrollbar-thin '
+      + 'rounded-xl border border-base-300 bg-base-100 shadow-xl' });
+    // `section` is a heading for a run of rows: printed once, above the first
+    // row of each run, as a non-button line. A caller naming none gets the
+    // flat list it always had, so `.sd-index` children stay rows for it.
+    let rowEls = [];
+    const buildIndex = /* nested: buildIndex, lines 1133-1183 */;
+    // Tapping the page behind a dropdown closes it, which is the affordance a
+    // takeover did not have and did not need.
+    const awayFromIndex = (e) => {
+      if (!indexOpen || sheet.contains(e.target) || mark.contains(e.target)) return;
+      closeIndex();
+    };
+    const openIndex = /* nested: openIndex, lines 1190-1210 */;
+    const closeIndex = /* nested: closeIndex, lines 1211-1225 */;
+    if (indexOf) mark.addEventListener('click', () => indexOpen ? closeIndex() : openIndex());
+
+    // ── THE SEAM ────────────────────────────────────────────────────────────
+    // Docked, the deck's left edge is a boundary between two things the reader
+    // is using at once. The handle sits ON that edge, inside the overlay,
+    // straddling it; without it the width is one CSS clamp, a decent guess and
+    // never the reader's.
+    //
+    // TWO HOOKS, TWO CLAIMS, and the second is deliberately separate from the
+    // first. `window.__deckPane` says the host can dock at all; `__deckWidth`
+    // says it can also be TOLD how wide, a different capability a host may
+    // honestly have without the other (a fixed sidebar can dock a deck beside
+    // itself and have nowhere to put a variable width). A host with only the
+    // first, or a page that never loaded kits/dock-split.js, gets exactly the
+    // dock it had before this existed.
+    const canSize = () => typeof window.__deckWidth === 'function' && window.dockSplit;
+    let splitter = null;
+    // INLINE, not utility classes, and this is the one place in the kit where
+    // that is not a style preference. The seam is created after the page's
+    // Tailwind build has scanned the DOM, so its utilities may not have been
+    // compiled when it mounts, and an uncompiled handle has no height: it is
+    // hit-testable nowhere, and that reads as a drag that does nothing rather
+    // than as a missing stylesheet. Everything the kit's own injected CSS draws
+    // is fine; only the placement, which is the caller's half, has to be immune.
+    //
+    // A SIBLING OF THE OVERLAY, not its child. The overlay has to clip the
+    // horizontal slide track, while a handle on its left edge has to straddle
+    // that edge. Putting the seam inside overflow-hidden cut off the left half
+    // of the grip and forced the percentage badge off to the right as a
+    // workaround. Fixed against the same root variables, the seam follows the
+    // deck exactly without inheriting its clip, so both affordances can sit on
+    // the divider they describe.
+    const seam = h('div');
+    Object.assign(seam.style, {
+      position: 'fixed', left: 'var(--deck-left,0px)',
+      top: 'var(--deck-top,0px)', bottom: 'var(--deck-bottom,0px)',
+      width: '6px', transform: 'translateX(-50%)', zIndex: '75',
+    });
+    const syncSeam = /* nested: syncSeam, lines 1264-1288 */;
+    // THE PANE CAN CHANGE WITHOUT THE BUTTON, and the deck has to notice. The
+    // host re-derives the pane whenever its sidebar opens or closes, on a
+    // restore from storage, and on any width change, and every one of those is
+    // a `data-deck-pane` write the toggle never sees. Watching the attribute is
+    // also the honest reading of the hook's contract, which lets a host refuse
+    // a dock by simply not changing the value: a kit that trusts its own click
+    // cannot see that refusal. The lock rides along, since a pane that changed
+    // underneath leaves it describing the old one.
+    const paneWatch = new MutationObserver(() => { applyLock(); syncPane(); syncSeam(); });
+    paneWatch.observe(document.documentElement, { attributes: true, attributeFilter: ['data-deck-pane'] });
+
+    const sync = /* nested: sync, lines 1300-1308 */;
+    deck.onSlide(sync);
+    sync(0);
+
+    // ── Stacking ───────────────────────────────────────────────────────────
+    //
+    // A deck opened from inside a deck is how drilling works: it is a
+    // navigation stack rather than visible nesting, and the nesting lives in
+    // the return path.
+    //
+    // ONE module-level STACK, and only its top answers `popstate` and
+    // `keydown`. A deck that assumes it is the only one alive breaks that
+    // return path twice: every deck registering its own `popstate` means one
+    // history.back() fires all of them, so a single Back closes the whole
+    // stack; every deck registering its own `keydown` means one ArrowRight
+    // steps the child AND the parent underneath it, so popping back lands on a
+    // slide the reader never chose. Each deck keeps its own listeners (removing
+    // them on cleanup stays local) and both handlers return early unless this
+    // deck is on top.
+    //
+    // The overflow lock needs nothing: each deck saves the value it found and
+    // restores it, so a child saves `hidden` and restores `hidden` while the
+    // parent restores the original. (`prevOverflow` is taken at the top of
+    // open(), beside the pane contract that decides whether it is set at all.)
+    let closed = false;
+    const onTop = () => STACK[STACK.length - 1] === handle;
+    const cleanup = /* nested: cleanup, lines 1334-1356 */;
+    // Leaving a deck means leaving everything stacked ON it, which is what a
+    // navigation stack does: popping to a level discards the levels above.
+    // Ordinarily there is nothing above (the reader dismisses what they are
+    // looking at), and this is one history.back(). A caller that closes a
+    // parent while a child is open gets the child closed with it, and the
+    // history unwinds in one go() so no dead entries are left behind for a
+    // later Back to spend itself on.
+=== B: lib/alpineComponents/here-view.js:40#4 | addEventListener(alpine:init) > data(hereView) (part 4 of 4) ===
+      // Be on the selected card, without travelling to it. The strip may not
+      // have its width yet (it was hidden, or the list just arrived), so the
+      // landing waits a frame and tries a few more before giving up.
+      jump/* nested: jump, lines 732-739 */,
+      scrollTo/* nested: scrollTo, lines 740-749 */,
+      // Up and down in the list step the selection, the strip following.
+      key(d) {
+        this.go(this.at + d, true);
+        this.$nextTick(() => this.rowEl()?.focus({ preventScroll: true }));
+      },
+      rowEl() {
+        const id = this.cur?.id;
+        return id ? this.$refs.list?.querySelector('[data-id="' + CSS.escape(id) + '"]') : null;
+      },
+      // Keep the selected row in view INSIDE THE LIST, never by scrolling the
+      // page: a swipe through the cards walks the selection down rows the
+      // reader may have scrolled away from.
+      reveal/* nested: reveal, lines 762-770 */,
+
+      // ── The expander: the deck takeover over the same items ────────────────
+      // Opened on the card in view; a swipe in the deck moves the selection,
+      // and closing it lands the strip and the list where the swipe left off.
+      async expand/* nested: expand, lines 775-818 */,
+
+      reload() { return this.source === 'page' ? this.loadPage() : this.loadStorage(); },
+
+      async loadStorage/* nested: loadStorage, lines 822-876 */,
+
+      // ── What the courier's page stores ─────────────────────────────────────
+      get courierHost() { return window.__shell?.courierHost || ''; },
+      // One request to the page, answered as parsed JSON. kits/page-storage.js
+      // is what runs there, read through the Stage's link.
+      async askPage/* nested: askPage, lines 882-887 */,
+      async loadPage/* nested: loadPage, lines 888-921 */,
+      // A page value shows as a local one does (lsShown's rules, the token mask
+      // included); a page store shows its first records, the meta saying so
+      // when the store holds more.
+      async pageContent/* nested: pageContent, lines 925-948 */,
+    };
+  }
+##### PAIR 44
+=== A: lib/kits/xlsx.js:2658 | call(…) > pivotsView > map(…) ===
+([part, pt]) => {
+      const cache = pt.cachePart ? xl.pivotCaches[pt.cachePart] : null;
+      const sheet = pt.sheet ? xl.sheets[pt.sheet] : null;
+      return {
+        Pivot: pt.name,
+        Sheet: sheet?.name || pt.sheet || '',
+        Range: pt.ref,
+        Rows: pt.rowFields,
+        Cols: pt.colFields,
+        Filters: pt.pageFields,
+        Measures: pt.dataFields.join(', '),
+        Source: cache?.source ? `${cache.source.sheet || cache.source.name}!${cache.source.ref}` : '',
+        Records: cache?.recordCount ?? '',
+        'Cache Fields': cache ? cache.fields.length : '',
+        Part: part,
+      };
+    }
+=== B: lib/kits/xlsx-extract.js:560 | call(…) > catalog > forEach(…) ===
+(part, index) => {
+      const cache = xl.pivotCaches[part];
+      const source = cache?.source;
+      const sheet = source?.sheet || null;
+      const got = kit().pivotRecords(xl, part);
+      if (!got?.total) return;
+      objects.push({ id: `records:${part}`, kind: 'records',
+        label: source ? `${source.sheet || source.name}!${source.ref}` : part.split('/').pop(),
+        sheet: names.has(sheet) ? sheet : null, count: got?.total || 0,
+        index, detail: 'Cached rows' });
+    }
+##### PAIR 45
+=== A: lib/kits/report-layout.js:63 | call(…) > build ===
+function build(spec, rows) {
+    const cs = spec.columns;
+    const measure = spec.measure || 'value';
+    const bands = axis(rows, cs.band, cs.bands);
+    const withins = axis(rows, cs.within, cs.withins);
+    const gap = cs.gap !== false;
+
+    const columns = [];
+    bands.forEach((b, bi) => withins.forEach((w, wi) => {
+      columns.push({ key: b + SEP + w, band: b, within: w, gapBefore: gap && bi > 0 && wi === 0 });
+    }));
+
+    const levels = spec.rows.levels;
+    const isOpening = r => (spec.opening
+      ? Object.entries(spec.opening.where).every(([k, v]) => s(r[k]) === v)
+      : false);
+
+    const fold = /* nested: fold, lines 80-89 */;
+
+    const opening = rows.filter(isOpening);
+    const body = rows.filter(r => !isOpening(r));
+
+    // One leaf per distinct level tuple, in first appearance order, then the
+    // leaves gathered under the subtotal level in the order that level first
+    // appeared. An authored rows file that lists an item's versions together
+    // therefore prints in the order it was written.
+    const at = spec.subtotal ? spec.subtotal.at : null;
+    const leaves = new Map();
+    for (const r of body) {
+      const k = levels.map(l => s(r[l])).join(SEP);
+      if (!leaves.has(k)) leaves.set(k, { labels: levels.map(l => s(r[l])), group: at ? s(r[at]) : '', src: [] });
+      leaves.get(k).src.push(r);
+    }
+    const groups = [];
+    for (const leaf of leaves.values()) {
+      let g = groups.find(x => x.name === leaf.group);
+      if (!g) groups.push((g = { name: leaf.group, leaves: [] }));
+      g.leaves.push(leaf);
+    }
+
+    const out = [];
+    const openValues = opening.length ? fold(opening) : null;
+    if (openValues) out.push({ kind: 'opening', labels: [spec.opening.label], values: openValues });
+
+    const subtotals = [];
+    for (const g of groups) {
+      for (const leaf of g.leaves) out.push({ kind: 'item', labels: leaf.labels, values: fold(leaf.src) });
+      if (at) {
+        const v = fold(g.leaves.flatMap(l => l.src));
+        subtotals.push(v);
+        out.push({ kind: 'subtotal', labels: [spec.subtotal.label.replace('{' + at + '}', g.name)], values: v });
+      }
+    }
+
+    if (spec.total) {
+      const v = {};
+      for (const m of [openValues || {}, ...subtotals])
+        for (const [k, n] of Object.entries(m)) v[k] = (v[k] || 0) + n;
+      out.push({ kind: 'total', labels: [spec.total.label], values: v });
+    }
+
+    return { title: spec.title || '', columns, levels, rows: out };
+  }
+=== B: pages/pivot-table.html:553 | renderPivot > forEach(…) ===
+r1 => {
+        const subKeys = Object.keys(matrix[r1]);
+        const isCollapsed = collapsedNodes.has(r1);
+
+        // Pre-calculate subtotal values for r1
+        const r1SubValues = {};
+        colKeys.forEach(/* nested: forEach(…), lines 559-564 */);
+
+        const r1SubtotalAggs = {};
+        colKeys.forEach(c => {
+          r1SubtotalAggs[c] = computeAgg(r1SubValues[c]);
+        });
+        const r1RowSubtotal = computeAgg(colKeys.flatMap(c => r1SubValues[c]));
+
+        // If collapsed: show only parent row with rolled up subtotal
+        if (isCollapsed) {
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-base-200/60 cursor-pointer';
+          let rowHtml = `<td ${hasHierarchy ? 'colspan="2"' : ''} class="font-bold" onclick="toggleNode('${r1}')">
+            <span class="tree-toggle">+</span>${r1}
+          </td>`;
+
+          colKeys.forEach(c => {
+            const v = r1SubtotalAggs[c];
+            rowHtml += `<td class="pivot-num font-semibold">${formatAccounting(v, isFTE)}</td>`;
+          });
+          if (showGrandTotals) {
+            rowHtml += `<td class="pivot-num font-bold bg-base-200/50">${formatAccounting(r1RowSubtotal, isFTE)}</td>`;
+          }
+          tr.innerHTML = rowHtml;
+          tbody.appendChild(tr);
+          return;
+        }
+
+        // Expanded: render child rows
+        subKeys.forEach(/* nested: forEach(…), lines 593-645 */);
+
+        // Subtotal row for this primary category
+        if (hasHierarchy && showSubtotals) {
+          const subTr = document.createElement('tr');
+          subTr.className = 'subtotal-row';
+          let subHtml = `<td class="pl-4 font-bold">Total ${r1}</td>`;
+
+          colKeys.forEach(c => {
+            subHtml += `<td class="pivot-num font-semibold">${formatAccounting(r1SubtotalAggs[c], isFTE)}</td>`;
+          });
+          if (showGrandTotals) {
+            subHtml += `<td class="pivot-num font-bold">${formatAccounting(r1RowSubtotal, isFTE)}</td>`;
+          }
+          subTr.innerHTML = subHtml;
+          tbody.appendChild(subTr);
+        }
+      }
+##### PAIR 46
+=== A: lib/kits/swipe-deck.js:403 | call(…) > core > addEventListener(scroll) ===
+() => {
+      clearTimeout(quiet);
+      quiet = setTimeout(() => { aim = null; }, 160);
+      if (raf) return;
+      raf = requestAnimationFrame(/* nested: requestAnimationFrame(…), lines 407-413 */);
+    }
+=== B: lib/alpineComponents/here-view.js:699 | addEventListener(alpine:init) > data(hereView) > stripScroll ===
+() {
+        if (this._raf) return;
+        this._raf = requestAnimationFrame(/* nested: requestAnimationFrame(…), lines 701-713 */);
+      }
+##### PAIR 47
+=== A: lib/alpineComponents/transform-workbench.js:142 | call(…) > after > requestAnimationFrame(…) > addEventListener(change) ===
+() => {
+                target.querySelectorAll(".tabulator-header-filter").forEach(elx => {
+                  elx.style.display = hf.checked ? "" : "none";
+                });
+                tbl.redraw(true);
+              }
+=== B: lib/kits/tabular-explorer.js:386 | call(…) > mount > filterByColumnValue ===
+function filterByColumnValue(colName, value) {
+        if (!tabulatorInstance) return;
+        setView('data');
+        tabulatorInstance.clearFilter(true);
+        tabulatorInstance.setHeaderFilterValue(colName, value);
+      }
+##### PAIR 48
+=== A: lib/alpineComponents/file-browser.js:198 | registerFileBrowser > data(fileBrowser) > stripScroll ===
+() {
+        const s = this.strip();
+        if (!s || this.at < 0) return;
+        const x0 = s.getBoundingClientRect().left;
+        let best = 0, near = Infinity;
+        this.slides().forEach((k, i) => {
+          const d = Math.abs(k.getBoundingClientRect().left - x0);
+          if (d < near) { near = d; best = i; }
+        });
+        if (this.at !== best) this.at = best;
+      }
+=== B: lib/alpineComponents/user-call-form.js:1498 | call(…) > register > data(userCallForm) > onStrip ===
+() {
+          const el = this.$refs.strip;
+          if (!el) return;
+          const x0 = el.getBoundingClientRect().left;
+          let best = 0, near = Infinity;
+          this.panels().forEach((k, i) => {
+            const d = Math.abs(k.getBoundingClientRect().left - x0);
+            if (d < near) { near = d; best = i; }
+          });
+          // A programmatic go() is in flight: the scroll it started passes
+          // the old slide first, and reading that back would flip the name to
+          // the old file and then to the new one. Hold until it arrives.
+          if (this._aim >= 0) {
+            if (best !== this._aim) return;
+            this._aim = -1; clearTimeout(this._aimT);
+            this.arrived();
+          }
+          if (this.at !== best) this.at = best;
+        }
+##### PAIR 49
+=== A: lib/kits/xlsx.js:2332 | call(…) > formulaFor ===
+function formulaFor(sheet, row, col) {
+    const f = row?.formulas?.[col];
+    if (typeof f === 'string') return '=' + f;
+    if (f !== true) return '';
+    const si = row?.shared?.[col];
+    const text = si != null ? sheet?.sharedFormulas?.[si] : null;
+    if (text == null) return null;
+    if (!masters.has(sheet)) {
+      const m = {};
+      for (const r of sheet.rows || []) {
+        for (const [c, ff] of Object.entries(r.formulas || {})) {
+          const id = r.shared?.[c];
+          if (typeof ff === 'string' && id != null && !m[id]) m[id] = { r: r.row, c: Number(c) };
+        }
+      }
+      masters.set(sheet, m);
+    }
+    const at = masters.get(sheet)[si];
+    if (!at) return null;
+    return '=' + shiftRefs(text, row.row - at.r, Number(col) - at.c);
+  }
+=== B: lib/kits/xlsx-extract.js:177 | call(…) > parts ===
+({ s, xl }) => {
+        const out = [];
+        let shared = 0;
+        for (const r of s.rows || []) {
+          for (const [idx, f] of Object.entries(r.formulas || {})) {
+            const col = Number(idx);
+            // A SHARED formula's followers store no text of their own. The
+            // kit reports those as `true` rather than as an empty string, so
+            // the distinction survives to here: an empty Formula cell means
+            // the file did not store one, and the note says how many.
+            if (f === true) shared++;
+            out.push({
+              Cell: at(col, r.row),
+              Row: r.row,
+              Column: kit().colLetter(col),
+              Formula: typeof f === 'string' ? f : '',
+              Value: rowCells(r)[idx] ?? null,
+            });
+          }
+        }
+        return [{
+          rows: out,
+          note: shared ? `${shared} of ${out.length} are shared-formula followers, which store no text of their own` : '',
+        }];
+      }
+##### PAIR 50
+=== A: lib/alpineComponents/here-view.js:701 | addEventListener(alpine:init) > data(hereView) > stripScroll > requestAnimationFrame(…) ===
+() => {
+          this._raf = 0;
+          const best = this.nearest();
+          if (best < 0 || !this.items[best]) return;
+          // A go() is in flight: its scroll passes the cards between, and
+          // reading those back would walk the selection through each of them.
+          if (this._aim >= 0) {
+            if (best !== this._aim) return;
+            this._aim = -1; clearTimeout(this._aimT);
+          }
+          if (best !== this.at) { this.select(this.items[best].id); this.reveal(); }
+          this.mountNear();
+        }
+=== B: lib/alpineComponents/user-call-form.js:1498 | call(…) > register > data(userCallForm) > onStrip ===
+() {
+          const el = this.$refs.strip;
+          if (!el) return;
+          const x0 = el.getBoundingClientRect().left;
+          let best = 0, near = Infinity;
+          this.panels().forEach((k, i) => {
+            const d = Math.abs(k.getBoundingClientRect().left - x0);
+            if (d < near) { near = d; best = i; }
+          });
+          // A programmatic go() is in flight: the scroll it started passes
+          // the old slide first, and reading that back would flip the name to
+          // the old file and then to the new one. Hold until it arrives.
+          if (this._aim >= 0) {
+            if (best !== this._aim) return;
+            this._aim = -1; clearTimeout(this._aimT);
+            this.arrived();
+          }
+          if (this.at !== best) this.at = best;
+        }
+##### PAIR 51
+=== A: lib/alpineComponents/here-view.js:812 | addEventListener(alpine:init) > data(hereView) > expand > onSlide(…) ===
+(n) => {
+          if (!items[n]) return;
+          this._deckItem = items[n].id;
+          this._deck?.setTitle?.(items[n].title);
+          this._deck?.setSubtitle?.(items[n].meta);
+        }
+=== B: lib/alpineComponents/user-call-form.js:275 | call(…) > openBranchDeck > onSlide ===
+(i) => {
+        const b = list[i];
+        if (!h) return;
+        h.setTitle?.(b.repoShort); h.setSubtitle?.(b.branch); h.setIcon?.(b.icon);
+        h.setLink?.({ href: b.url, title: 'Open the branch page' });
+      }
+##### PAIR 52
+=== A: lib/kits/json-explorer.js:205#2 | call(…) > mount (part 2 of 2) ===
+      // ── JSON ───────────────────────────────────────────────────────────
+      const renderRaw = /* nested: renderRaw, lines 649-654 */;
+
+      // ── Chrome, updated in place ───────────────────────────────────────
+      const show = (el, on, display = 'flex') => { el.classList.toggle('hidden', !on); el.classList.toggle(display, on); };
+      const syncChrome = /* nested: syncChrome, lines 658-708 */;
+
+      const render = /* nested: render, lines 710-717 */;
+
+      // ── Public navigation ──────────────────────────────────────────────
+      const setView = /* nested: setView, lines 720-724 */;
+      const focusChunk = /* nested: focusChunk, lines 725-732 */;
+
+      render();
+
+      return {
+        get profile() { return getProfile(); },
+        setView,
+        focusChunk,
+        updateSearch,
+        destroy: () => {
+          clearTimeout(searchTimer);
+          root.remove();
+        },
+      };
+    }
+=== B: lib/alpineComponents/here-view.js:40#4 | addEventListener(alpine:init) > data(hereView) (part 4 of 4) ===
+      // Be on the selected card, without travelling to it. The strip may not
+      // have its width yet (it was hidden, or the list just arrived), so the
+      // landing waits a frame and tries a few more before giving up.
+      jump/* nested: jump, lines 732-739 */,
+      scrollTo/* nested: scrollTo, lines 740-749 */,
+      // Up and down in the list step the selection, the strip following.
+      key(d) {
+        this.go(this.at + d, true);
+        this.$nextTick(() => this.rowEl()?.focus({ preventScroll: true }));
+      },
+      rowEl() {
+        const id = this.cur?.id;
+        return id ? this.$refs.list?.querySelector('[data-id="' + CSS.escape(id) + '"]') : null;
+      },
+      // Keep the selected row in view INSIDE THE LIST, never by scrolling the
+      // page: a swipe through the cards walks the selection down rows the
+      // reader may have scrolled away from.
+      reveal/* nested: reveal, lines 762-770 */,
+
+      // ── The expander: the deck takeover over the same items ────────────────
+      // Opened on the card in view; a swipe in the deck moves the selection,
+      // and closing it lands the strip and the list where the swipe left off.
+      async expand/* nested: expand, lines 775-818 */,
+
+      reload() { return this.source === 'page' ? this.loadPage() : this.loadStorage(); },
+
+      async loadStorage/* nested: loadStorage, lines 822-876 */,
+
+      // ── What the courier's page stores ─────────────────────────────────────
+      get courierHost() { return window.__shell?.courierHost || ''; },
+      // One request to the page, answered as parsed JSON. kits/page-storage.js
+      // is what runs there, read through the Stage's link.
+      async askPage/* nested: askPage, lines 882-887 */,
+      async loadPage/* nested: loadPage, lines 888-921 */,
+      // A page value shows as a local one does (lsShown's rules, the token mask
+      // included); a page store shows its first records, the meta saying so
+      // when the store holds more.
+      async pageContent/* nested: pageContent, lines 925-948 */,
+    };
+  }
+##### PAIR 53
+=== A: lib/kits/json-explorer.js:23 | call(…) ===
+function () {
+  // ── DOM Helpers ──────────────────────────────────────────────────────────
+  const h = /* nested: h, lines 25-40 */;
+
+  // vanilla-bundle.js's window.esc, the one escape: it quotes as well, which
+  // the textContent trick this replaced did not.
+  const esc = (s) => window.esc(s);
+
+  // The clipboard write is kits/io.js's (node/test/clipboard-one-owner.test.mjs).
+  // Fetched at load time so the write runs inside the tap that asked for it;
+  // without io.js the modern API alone is the fallback.
+  const ghRef = typeof gh !== 'undefined' ? gh : (window.gh || null);
+  if (!window.io && ghRef) ghRef.load('kits/io.js').catch(() => {});
+  const copyText = async (text) => {
+    if (window.io && typeof window.io.copy === 'function') return window.io.copy(text);
+    try { await navigator.clipboard.writeText(text); return true; } catch { return false; }
+  };
+
+  const fmtBytes = /* nested: fmtBytes, lines 56-61 */;
+
+  const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
+
+  const formatIsoDate = /* nested: formatIsoDate, lines 65-87 */;
+
+  // ── JsonProfile: Schema & Structure Analyzer ─────────────────────────────
+  const JsonProfile = {
+    analyze/* nested: analyze, lines 91-174 */,
+  };
+
+  // ── JsonExplorer Component ───────────────────────────────────────────────
+  //
+  // A PROPERTY SHEET, not a syntax-coloured dump. Reworked 2026-10-22 on the
+  // owner's report from the session form's Raw tab: "it's all cluttered, and
+  // there's too much going on, and it raises the question of what we're really
+  // trying to show here." What a reader opens a record's raw form to learn is
+  // which fields it has, how much of the whole each one is, and what one of
+  // them holds. So a row is a key and its value, a collection says how many
+  // items it has, and its size sits in a right-hand column the eye can run
+  // down, which is the comparison a 5.7 MB record invites (where did the bytes
+  // go). Colour is spent once, on the filter's matches (house style rule 10).
+  //
+  // What went, and why each was clutter rather than capability:
+  //   - the syntax palette (green strings, blue numbers, amber booleans): it
+  //     coloured every value by type, which the value's own text already says;
+  //   - the chunk select, a second copy of the tree's own drill-in;
+  //   - Collapse / Depth 1 / Expand: "Expand" laid every node of a 5.7 MB record
+  //     into the page at once, and the other two were the default view and its
+  //     collapse; one icon now returns to the top level, shown when there is
+  //     something to collapse;
+  //   - the per-row copy-path and copy-value buttons, revealed on hover, which a
+  //     touch screen has none of. Copy acts on whatever the tree is opened to;
+  //   - the root row, which drew "nullnull" because Element.append writes a
+  //     null argument as the text "null", and said nothing the crumbs do not;
+  //   - the rebuilt toolbar: every keystroke in the filter re-rendered the
+  //     toolbar and replaced the input, so a second character never landed.
+  //     The chrome is built once and updated in place.
+  const JsonExplorer = {
+    mount/* nested: mount, lines 205-746 */,
+  };
+
+  window.JsonProfile = JsonProfile;
+  window.JsonExplorer = JsonExplorer;
+}
+=== B: lib/alpineComponents/here-view.js:40#4 | addEventListener(alpine:init) > data(hereView) (part 4 of 4) ===
+      // Be on the selected card, without travelling to it. The strip may not
+      // have its width yet (it was hidden, or the list just arrived), so the
+      // landing waits a frame and tries a few more before giving up.
+      jump/* nested: jump, lines 732-739 */,
+      scrollTo/* nested: scrollTo, lines 740-749 */,
+      // Up and down in the list step the selection, the strip following.
+      key(d) {
+        this.go(this.at + d, true);
+        this.$nextTick(() => this.rowEl()?.focus({ preventScroll: true }));
+      },
+      rowEl() {
+        const id = this.cur?.id;
+        return id ? this.$refs.list?.querySelector('[data-id="' + CSS.escape(id) + '"]') : null;
+      },
+      // Keep the selected row in view INSIDE THE LIST, never by scrolling the
+      // page: a swipe through the cards walks the selection down rows the
+      // reader may have scrolled away from.
+      reveal/* nested: reveal, lines 762-770 */,
+
+      // ── The expander: the deck takeover over the same items ────────────────
+      // Opened on the card in view; a swipe in the deck moves the selection,
+      // and closing it lands the strip and the list where the swipe left off.
+      async expand/* nested: expand, lines 775-818 */,
+
+      reload() { return this.source === 'page' ? this.loadPage() : this.loadStorage(); },
+
+      async loadStorage/* nested: loadStorage, lines 822-876 */,
+
+      // ── What the courier's page stores ─────────────────────────────────────
+      get courierHost() { return window.__shell?.courierHost || ''; },
+      // One request to the page, answered as parsed JSON. kits/page-storage.js
+      // is what runs there, read through the Stage's link.
+      async askPage/* nested: askPage, lines 882-887 */,
+      async loadPage/* nested: loadPage, lines 888-921 */,
+      // A page value shows as a local one does (lsShown's rules, the token mask
+      // included); a page store shows its first records, the meta saying so
+      // when the store holds more.
+      async pageContent/* nested: pageContent, lines 925-948 */,
+    };
+  }
+##### PAIR 54
+=== A: lib/kits/row-menu.js:35 | call(…) ===
+() => {
+  // io.js FETCHED AT LOAD TIME, never inside the click. A clipboard write has to
+  // run in the user gesture that asked for it, and an await before the write
+  // spends the activation Safari counts. Same idiom, and the same reason, as
+  // md-doc.js and the other three delegates the clipboard gate names.
+  const ghRef = typeof gh !== 'undefined' ? gh : (window.gh || null);
+  if (!window.io && ghRef) ghRef.load('kits/io.js').catch(() => {});
+  const copyText = async (text) => {
+    if (window.io && typeof window.io.copy === 'function') return window.io.copy(text);
+    try { await navigator.clipboard.writeText(text); return true; } catch { return false; }
+  };
+
+  const h = /* nested: h, lines 47-56 */;
+
+  // A CELL AS ONE FIELD OF ONE LINE. Tabs and newlines inside a value would
+  // otherwise become column and row breaks in the paste, so a single cell
+  // holding a paragraph turns into rows of garbage in the sheet it lands in.
+  // Collapsed rather than quoted, because TSV has no quoting anyone agrees on.
+  const cell = (v) => v == null ? '' : String(v).replace(/[\t\r\n]+/g, ' ');
+
+  // TSV, HEADERS INCLUDED, for one row and for the whole list alike. It is the
+  // one format that survives a paste into a spreadsheet, a chat and an editor
+  // without a decision at either end. A single row keeps its header line for
+  // the same reason: pasted alone, a row of bare values says nothing about
+  // which column each one came from.
+  const tsv = (columns, rows) => [
+    columns.map(c => cell(c.title || c.field)),
+    ...rows.map(r => columns.map(c => cell(r[c.field]))),
+  ].map(r => r.join('\t')).join('\n');
+
+  // The visible, field-bearing columns, in the order the grid shows them. Same
+  // filter record-deck's fromGrid applies, so the copy and the card agree about
+  // what the row consists of.
+  const columnsOf = /* nested: columnsOf, lines 77-83 */;
+  const activeRows = (table) => {
+    try { return table.getRows('active').map(r => r.getData()); } catch { return []; }
+  };
+
+  // ── the menu ──────────────────────────────────────────────────────────────
+  //
+  // One at a time, held in a module-level handle rather than a stack: a second
+  // menu opening while the first is up is a mis-tap, not a drill-down, and two
+  // floating panels at once on a phone is the failure this is meant to avoid.
+  let live = null;
+
+  /* nested: close, lines 95-105 */
+
+  // Placed after it is in the document, because its size is not known until it
+  // has been laid out and the clamp needs the size. Hidden for that one frame
+  // so the reader never sees it at the origin first.
+  /* nested: place, lines 110-120 */
+
+  // items: [{ label, icon, run, keep }]. `run` may return a string, which
+  // replaces the label for a beat before the menu closes: that is how a copy
+  // reports, since a clipboard write has no other visible effect and a toast
+  // would be a second floating thing to dismiss. `keep` holds the menu open.
+  // `square`: Excel's own look, for a host that is drawing a sheet (the
+  // formula-bar copy menu): square corners, a hairline frame, tighter rows.
+  // The phone hit target stays, since a mis-tap there costs an action.
+  /* nested: open, lines 129-179 */
+
+  // ── attaching to a Tabulator table ────────────────────────────────────────
+  //
+  // opts:
+  //   deck      options handed to recordDeck.fromGrid ({ title, describe, … }),
+  //             or false to leave the item out. The item is omitted anyway when
+  //             record-deck is not loaded, so a host that never wants the deck
+  //             can simply not load the kit.
+  //   copy      false to leave both copy items out. Default on.
+  //   items     [{ label, icon, run(ctx) }] appended, ctx = { row, data, table }
+  //   skip      (event) => boolean, extra suppression on top of the link rule
+  //   noun      what one row is, for the deck item's wording. Default 'record'.
+  //
+  // THE LINK RULE. A row whose cell holds a link, a button or a field is a row
+  // where the tap already meant something, so the menu stays out of the way.
+  // Checked on the tap's own target rather than declared per column, since the
+  // host that renders a link into a cell is rarely the host wiring this up.
+  const INTERACTIVE = 'a,button,input,select,textarea,label,[contenteditable],[data-no-row-menu]';
+
+  /* nested: attach, lines 199-245 */
+
+  window.rowMenu = { attach, open, close, tsv, columnsOf };
+}
+=== B: lib/kits/json-explorer.js:23 | call(…) ===
+function () {
+  // ── DOM Helpers ──────────────────────────────────────────────────────────
+  const h = /* nested: h, lines 25-40 */;
+
+  // vanilla-bundle.js's window.esc, the one escape: it quotes as well, which
+  // the textContent trick this replaced did not.
+  const esc = (s) => window.esc(s);
+
+  // The clipboard write is kits/io.js's (node/test/clipboard-one-owner.test.mjs).
+  // Fetched at load time so the write runs inside the tap that asked for it;
+  // without io.js the modern API alone is the fallback.
+  const ghRef = typeof gh !== 'undefined' ? gh : (window.gh || null);
+  if (!window.io && ghRef) ghRef.load('kits/io.js').catch(() => {});
+  const copyText = async (text) => {
+    if (window.io && typeof window.io.copy === 'function') return window.io.copy(text);
+    try { await navigator.clipboard.writeText(text); return true; } catch { return false; }
+  };
+
+  const fmtBytes = /* nested: fmtBytes, lines 56-61 */;
+
+  const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
+
+  const formatIsoDate = /* nested: formatIsoDate, lines 65-87 */;
+
+  // ── JsonProfile: Schema & Structure Analyzer ─────────────────────────────
+  const JsonProfile = {
+    analyze/* nested: analyze, lines 91-174 */,
+  };
+
+  // ── JsonExplorer Component ───────────────────────────────────────────────
+  //
+  // A PROPERTY SHEET, not a syntax-coloured dump. Reworked 2026-10-22 on the
+  // owner's report from the session form's Raw tab: "it's all cluttered, and
+  // there's too much going on, and it raises the question of what we're really
+  // trying to show here." What a reader opens a record's raw form to learn is
+  // which fields it has, how much of the whole each one is, and what one of
+  // them holds. So a row is a key and its value, a collection says how many
+  // items it has, and its size sits in a right-hand column the eye can run
+  // down, which is the comparison a 5.7 MB record invites (where did the bytes
+  // go). Colour is spent once, on the filter's matches (house style rule 10).
+  //
+  // What went, and why each was clutter rather than capability:
+  //   - the syntax palette (green strings, blue numbers, amber booleans): it
+  //     coloured every value by type, which the value's own text already says;
+  //   - the chunk select, a second copy of the tree's own drill-in;
+  //   - Collapse / Depth 1 / Expand: "Expand" laid every node of a 5.7 MB record
+  //     into the page at once, and the other two were the default view and its
+  //     collapse; one icon now returns to the top level, shown when there is
+  //     something to collapse;
+  //   - the per-row copy-path and copy-value buttons, revealed on hover, which a
+  //     touch screen has none of. Copy acts on whatever the tree is opened to;
+  //   - the root row, which drew "nullnull" because Element.append writes a
+  //     null argument as the text "null", and said nothing the crumbs do not;
+  //   - the rebuilt toolbar: every keystroke in the filter re-rendered the
+  //     toolbar and replaced the input, so a second character never landed.
+  //     The chrome is built once and updated in place.
+  const JsonExplorer = {
+    mount/* nested: mount, lines 205-746 */,
+  };
+
+  window.JsonProfile = JsonProfile;
+  window.JsonExplorer = JsonExplorer;
+}

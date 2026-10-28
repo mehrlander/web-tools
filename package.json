@@ -86,6 +86,7 @@
     "test:viewer-image": "node node/test/viewer-image.mjs",
     "test:viewer-pdf": "node node/test/viewer-pdf.mjs",
     "test:viewer-find": "node node/test/viewer-find.mjs",
+    "test:md-edit-live": "node node/test/md-edit-live.mjs",
     "test:viewer-many": "node node/test/viewer-many.mjs",
     "test:card-pdf": "node node/test/card-pdf.mjs",
     "test:pdf-flow": "node node/test/pdf-flow.mjs",

@@ -28,5 +28,10 @@ jobs:
         run: node desktop/Checks/ui-checks.mjs
       - name: Check phone interactions
         run: node desktop/Checks/phone-ui-checks.mjs
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check local work evidence and summaries
+        run: python desktop/Checks/work-summary-checks.py
       - name: Check companion access and API
         run: node desktop/Checks/companion-checks.mjs

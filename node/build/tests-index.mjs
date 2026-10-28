@@ -1,4 +1,5 @@
-// The derived half of docs/tests.csv, the test registry.
+// docs/tests.csv, the test registry, whose every column is derived here; the
+// two a person writes about a test sit beside it in docs/tests-authored.csv.
 //
 // The suite reports a pass count and nothing else, and a pass count is the
 // weakest thing it knows. "1,098 pass" says nothing about what is being
@@ -50,7 +51,7 @@
 //               per assertion, so the count is an aggregate and a consumer that
 //               wants one can take the length.
 //
-// Authored in the registry, because no derivation can supply it: `kind` (what
+// Authored in docs/tests-authored.csv, because no derivation can supply it: `kind` (what
 // genre of check this is) and `protects` (the one thing that breaks if it is
 // deleted). `protects` is held to the same standard as the documents registry's
 // `maintenance`: a row that cannot say what it protects is a test nobody has
@@ -65,6 +66,14 @@
 // characters restating what the file already said better. One sentence here,
 // the list derived beside it.
 //
+// The two files split on 2026-10-23 (task registry-authored-derived-split-v3qm2x).
+// Until then this generator rewrote one file holding both halves, so a session
+// that ran it and then wrote `protects` was hand-editing machine output, which
+// is what happened on 2026-09-17. Now the generator writes tests.csv whole and
+// touches the authored file only to keep its rows in step with the files: a
+// new test gets a row with kind `behavior` and a blank `protects`, a deleted
+// one loses its row, and no value a person wrote is ever changed.
+//
 // Run `npm run tests-index` to restamp after adding or changing a test.
 
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
@@ -72,7 +81,8 @@ import path from 'node:path';
 import { parseCsv, writeCsv, splitList } from './registries-load.mjs';
 
 // Fixed here so a restamp cannot reorder the file.
-const TEST_COLS = ['path', 'kind', 'protects', 'test_count', 'method', 'runner', 'boot_smoke', 'test_names'];
+const TEST_COLS = ['path', 'test_count', 'method', 'runner', 'boot_smoke', 'test_names'];
+const AUTHORED_COLS = ['path', 'kind', 'protects'];
 import { fileURLToPath } from 'node:url';
 import { repoRoot } from '../repo-root.mjs';
 
@@ -93,7 +103,7 @@ const TEST_DIR = 'node/test';
 // a check the suite never runs is exactly the kind of thing that goes quietly
 // stale. The CommonJS preload only normalizes host command spellings before
 // those inventoried tests load.
-const NOT_A_TEST = new Set(['bootstrap.mjs', 'shell.mjs', 'runtime-command.cjs']);
+export const NOT_A_TEST = new Set(['bootstrap.mjs', 'shell.mjs', 'one-home.mjs', 'runtime-command.cjs']);
 
 // A boot smoke assertion proves one thing: the component mounted and logged
 // nothing. Two things changed here on 2026-08-10, and both are about level.
@@ -180,10 +190,13 @@ export function deriveTests(repoRoot) {
   return out;
 }
 
-// ── CLI: restamp docs/tests.csv ────────────────────────────────────────────
+// ── CLI: restamp docs/tests.csv, and keep the authored rows in step ─────────
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
   const file = path.join(repoRoot, 'docs', 'tests.csv');
+  const authoredFile = path.join(repoRoot, 'docs', 'tests-authored.csv');
+  const authored = parseCsv(readFileSync(authoredFile, 'utf8'));
+  const purpose = new Map(authored.map(a => [a.path, a]));
   const registry = { tests: parseCsv(readFileSync(file, 'utf8')).map(t => ({
     ...t,
     // A blank means NOT ASSERTED, so it reads back as null rather than 0: a browser
@@ -206,11 +219,14 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
   const added = [];
   for (const [p] of derived) {
     if (!byPath.has(p)) {
-      // Scaffold rather than fail: a new test file gets a row saying plainly
-      // that nobody has said what it protects yet.
-      const row = { path: p, kind: 'behavior', protects: '' };
+      const row = { path: p };
       registry.tests.push(row);
       byPath.set(p, row);
+    }
+    // Scaffold rather than fail: a new test file gets an authored row saying
+    // plainly that nobody has said what it protects yet.
+    if (!purpose.has(p)) {
+      purpose.set(p, { path: p, kind: 'behavior', protects: '' });
       added.push(p);
     }
   }
@@ -221,7 +237,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
     const d = derived.get(t.path);
     // test_names goes last: it is the longest field by far, and a row
     // whose scannable fields sit above it stays readable in the diff.
-    const ordered = { path: t.path, kind: t.kind, protects: t.protects,
+    const ordered = { path: t.path,
                       test_count: d.test_count, method: d.method,
                       runner: d.runner, boot_smoke: d.boot_smoke,
                       test_names: d.test_names };
@@ -230,6 +246,10 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
   }
   registry.tests.sort((a, b) => a.path.localeCompare(b.path));
   writeFileSync(file, writeCsv(registry.tests, TEST_COLS));
+  const purposes = [...purpose.values()].filter(a => derived.has(a.path))
+    .sort((a, b) => a.path.localeCompare(b.path));
+  writeFileSync(authoredFile, writeCsv(purposes, AUTHORED_COLS));
+  for (const t of registry.tests) Object.assign(t, { kind: purpose.get(t.path).kind, protects: purpose.get(t.path).protects });
 
   const total = registry.tests.reduce((s, t) => s + t.test_count, 0);
   const smoke = registry.tests.reduce((s, t) => s + (t.boot_smoke?.length || 0), 0);

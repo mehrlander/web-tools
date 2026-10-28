@@ -387,10 +387,11 @@ function loadRoutes(routes) {
     Date, JSON, Math, RegExp, Error, Array, String, Object, isFinite, sent, atob,
     XMLHttpRequest: function () {
       this.open = (method, url, async) => { this.url = url; sent.push({ method, url, async }); };
-      this.setRequestHeader = (k, v) => sent.push([k, v]);
+      this.setRequestHeader = (k, v) => { (this.h = this.h || {})[k] = v; sent.push([k, v]); };
       this.send = () => {
         const hit = Object.entries(routes).find(([k]) => this.url.includes(k));
-        this.status = hit ? hit[1].status || 200 : 404;
+        // `authStatus` answers a request carrying a token, `status` any other.
+        this.status = hit ? (this.h && this.h.Authorization && hit[1].authStatus) || hit[1].status || 200 : 404;
         this.responseText = JSON.stringify(hit ? hit[1].body : {});
       };
     },
@@ -434,7 +435,7 @@ test('session-menu: a whole copied reply leads with its session\'s page, landing
   const h = header(r.caption);
   assert.equal(h.rule, '🌿 reply recognized');
   assert.match(h.line, /^topic-3 · \d+h · (\d+) of \1 words$/, h.line);
-  assert.deepEqual(r.menu.map(plainText), ['🌿 Session brief', '🌿 Open on claude.ai', '🕘 All sessions', 'Show-Loop', 'Out']);
+  assert.deepEqual(r.menu.map(plainText), ['🌿 Session brief', '🌿 Open on claude.ai', '🕘 All sessions', 'Speak-Text', 'Show-Loop', 'Out']);
   assert.match(r.urls[r.menu[0]], new RegExp('^' + PAGE.replace(/[.?]/g, '\\$&') + 'a0000003&find=[^&]+$'));
   assert.equal(r.urls[r.menu[1]], 'https://claude.ai/code/session_01a0000003');
 });
@@ -481,14 +482,66 @@ test('session-menu: a copy no recent session wrote says so, with the index age, 
   const h = header(r.caption);
   assert.equal(h.rule, '📋 reply not in recent sessions');
   assert.match(h.line, /^“Nothing in this sentence.*” · index \d+m old$/);
-  assert.deepEqual(r.menu.map(plainText), ['⌨️ Claude Code', '💬 Claude chat', '🕘 All sessions', 'Show-Loop', 'Out']);
+  assert.deepEqual(r.menu.map(plainText), ['⌨️ Claude Code', '💬 Claude chat', '🕘 All sessions', 'Speak-Text', 'Show-Loop', 'Out']);
 });
 
 test('session-menu: an unreadable prints file is named in the header, and the menu still draws', () => {
   const r = reply(b64(SAID.a0000003[2]), { 'session-menu.json': { body: MENU } });
   assert.equal(r.state, 'reply-error');
   assert.deepEqual(header(r.caption), { rule: '⚠️ reply prints unreadable', line: 'HTTP 404 reading state/reply-prints.json' });
-  assert.equal(r.menu.length, 5);
+  assert.equal(r.menu.length, 6);
+});
+
+test('session-menu: prose gets a Speak-Text row, run by name on the clipboard; a branch does not', () => {
+  // Choose-Claude runs a row missing from `urls` by name with the clipboard as
+  // input, so this row reads the copied text aloud with no install.
+  const r = reply(b64('Nothing in this sentence was ever written by any of the sessions on file today.'));
+  assert.equal(r.urls['Speak-Text'], undefined, 'a shortcut name, not a page');
+  assert.deepEqual(r.menu.slice(-3), ['Speak-Text', 'Show-Loop', 'Out']);
+  for (const input of ['claude/x-aa11bb', 'https://claude.ai/code/session_01abcdefghijklmnopqrstuv', 'some prose', '']) {
+    assert.ok(!reply(input).menu.includes('Speak-Text'), input || '(empty)');
+  }
+});
+
+test('session-menu: a copied run link is a row under the session rows, never ahead of them', () => {
+  // Run-BackTap used to offer the link before this menu ran, so a copied reply
+  // that handed over an install link never reached its session (2026-10-28).
+  const FWD = 'https://mehrlander.github.io/web-tools/pages/shortcut-run.html#';
+  const link = 'shortcuts://run-shortcut?name=Library-Paste&input=text&text=Choose-Claude%0Ahttps%3A%2F%2Fexample.org%2Fp.json%0A1251536';
+  const other = 'shortcuts://run-shortcut?name=Dump-Named&input=text&text=Speak-Text';
+  // A Markdown copy: the forwarder link in parentheses, an earlier link first.
+  const text = SAID.a0000003[2] + '\n\n[📲 Dump-Named](' + FWD + other + ') and then\n[📲 Library-Paste](' + FWD + link + ')';
+  const r = reply(b64(text));
+  assert.equal(r.id, 'a0000003', 'the session is still found');
+  const row = '▶️ Library-Paste · Choose-Claude';
+  assert.equal(r.urls[row], FWD + link, 'the last link, with the Markdown parenthesis left off');
+  assert.ok(r.menu.indexOf(row) > r.menu.indexOf('🌿 Open on claude.ai'), 'session rows lead');
+  assert.equal(r.menu[r.menu.indexOf(row) + 1].endsWith('All sessions'), true);
+  // A bare link is offered too, and the index is not needed for it.
+  const bare = reply(link);
+  assert.ok(bare.menu.includes(row), bare.menu.join(' | '));
+  const down = reply(link, { 'session-menu.json': { status: 503 } });
+  assert.ok(down.menu.includes(row), 'an unreachable index keeps the row');
+  // No link, no row.
+  assert.ok(!reply('claude/x-aa11bb').menu.some(m => m.startsWith('▶️')));
+});
+
+test('session-menu: a refused token is named in the header and its check leads the menu', () => {
+  // GitHub answering plainly and refusing the same request with the token is a
+  // dead token, which is how the 2026-09-11 and 2026-10-14 outages began.
+  const r = reply('claude/x-aa11bb', { 'session-menu.json': { status: 401 }, 'zen': { status: 200, authStatus: 401 } });
+  assert.equal(r.state, 'error');
+  const h = header(r.caption);
+  assert.equal(h.rule, '⚠️ token refused');
+  assert.match(r.caption, /ERROR/, 'Claude-Session still finds the word');
+  assert.equal(r.menu[0], '🎟️ Check token');
+  assert.match(r.urls[r.menu[0]], /^https:\/\/mehrlander\.github\.io\/web-tools\/pages\/shortcut-run\.html#shortcuts:\/\/run-shortcut\?name=Check-/);
+  assert.deepEqual(r.menu.slice(1).map(plainText),
+    ['🌿 Look it up', '⌨️ Claude Code', '🕘 All sessions', 'Show-Loop', 'Out']);
+  // A network that refuses everything is not a token fault: the old reading stands.
+  const down = reply('claude/x-aa11bb', { 'session-menu.json': { status: 401 }, 'zen': { status: 503 } });
+  assert.equal(header(down.caption).rule, '⚠️ sessions unreachable');
+  assert.ok(!down.menu.includes('🎟️ Check token'));
 });
 
 test('session-menu: boilerplate every session writes goes to a session that wrote it', () => {
