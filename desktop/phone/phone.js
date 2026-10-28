@@ -20,6 +20,7 @@
   let data, tab = 'now', assistant = '', timer, etag = '', failures = 0, pending = false, connected = false, accessDenied = false, savedScroll = 0, review;
   let unseen = [];
   const expanded = new Set();
+  const selectedDetails = new Map();
   const panelScrolls = new Map();
   const replies = new Map();
   const filtered = () => (data?.items || []).filter(i => !assistant || keyFor(i.provider) === assistant);
@@ -37,13 +38,29 @@
   }
 
   const latestWork = item => item.work?.segments?.[0];
-  const statusText = item => latestWork(item) ? `${Date.parse(item.at) - Date.parse(item.work.through) > 180000 ? 'Last summary: ' : ''}${latestWork(item).summary}` : item.turn ? item.detail : item.checkpoint?.headline || item.detail;
+  const usefulDetail = item => item.detail === 'Response recorded' ? '' : item.detail;
+  const replyPreview = text => String(text || '').replace(/\[([^\]]+)\]\([^\s)]+\)/g,'$1').replace(/(^|\n)\s{0,3}#{1,6}\s+/g,'$1').replace(/[*`]/g,'').replace(/\s+/g,' ').trim();
+  function statusText(item) {
+    const work = latestWork(item);
+    if (work) return `${Date.parse(item.at) - Date.parse(item.work.through) > 180000 ? 'Last summary: ' : ''}${work.summary}`;
+    if (item.turn && item.state === 'idle') {
+      const reply = replyPreview(item.turn.response);
+      return reply ? `Reply: ${reply}` : item.checkpoint?.headline ? `Last summary: ${item.checkpoint.headline}` : '';
+    }
+    return item.turn && ['working','quiet','interrupted'].includes(item.state) ? usefulDetail(item) : item.checkpoint?.headline || usefulDetail(item);
+  }
   const itemTitle = item => latestWork(item)?.headline || item.title;
+  function locationMark(location) {
+    if (!['Laptop','Cloud'].includes(location)) return escape(location);
+    const label = location === 'Cloud' ? 'Cloud' : 'On this laptop';
+    const path = location === 'Cloud' ? '<path d="M6.5 19a4.5 4.5 0 0 1-.8-8.93A6.5 6.5 0 0 1 18.5 9a5 5 0 0 1-.5 10Z"/>' : '<rect x="4" y="3" width="16" height="13" rx="1.5"/><path d="m4 16-2 4h20l-2-4M9 20h6"/>';
+    return `<svg data-location="${location}" role="img" aria-label="${label}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" class="inline-block size-3.5 shrink-0 ${location === 'Cloud' ? 'text-sky-700' : 'text-stone-500'}"><title>${label}</title>${path}</svg>`;
+  }
   const caret = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="size-5" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
   const fullIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="size-4" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5M3 3l6 6m12-6-6 6M3 21l6-6m12 6-6-6"/></svg>';
   function row(item, position, inline = true) {
-    const key = escape(item.key), summary = statusText(item);
-    return `<article data-item="${key}" ${item.changeId ? `data-change="${escape(item.changeId)}"` : ''} class="min-w-0 border-b border-stone-100 bg-white"><div class="relative"><button ${inline ? `data-inspect="${key}" aria-expanded="false" aria-controls="inline-${encodeURIComponent(item.key)}"` : `data-pick="${key}"`} class="block min-h-11 w-full px-3 py-2 text-left active:bg-stone-50"><span class="flex items-start gap-2">${position ? `<span class="w-5 shrink-0 pt-1 text-sm text-amber-700">${position}.</span>` : `<span class="pt-0.5 ${colours[keyFor(item.provider)]}">${mark(item.provider)}</span>`}<span class="min-w-0 flex-1"><span class="flex items-start gap-1 ${inline ? 'pr-9' : ''}"><span class="line-clamp-2 min-w-0 flex-1 text-pretty text-[14px] font-medium leading-5">${escape(itemTitle(item))}</span><span data-caret class="shrink-0 pt-0.5 text-stone-400">${inline ? caret : fullIcon}</span></span><span class="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px] text-stone-500">${badge(item.state)}<span>${escape(item.provider)} · ${escape(item.location)}</span>${item.work?.agents ? `<span>${item.work.agents} agents</span>` : ''}${observedTime(item.at)}</span>${summary ? `<span data-summary class="mt-1 line-clamp-2 text-pretty text-[13px] leading-[19px] text-stone-600">${escape(summary.slice(0,180))}</span>` : ''}</span></span></button>${inline ? `<button data-pick="${key}" aria-label="Open full view: ${escape(item.title)}" title="Full view" class="absolute right-1 top-1 flex size-11 items-center justify-center rounded text-emerald-900 active:bg-stone-100">${fullIcon}</button>` : ''}</div>${inline ? `<div id="inline-${encodeURIComponent(item.key)}" data-inline="${key}" hidden></div>` : ''}</article>`;
+    const key = escape(item.key), summary = replyPreview(statusText(item));
+    return `<article data-item="${key}" ${item.changeId ? `data-change="${escape(item.changeId)}"` : ''} class="min-w-0 border-b border-stone-100 bg-white"><div class="relative"><button ${inline ? `data-inspect="${key}" aria-expanded="false" aria-controls="inline-${encodeURIComponent(item.key)}"` : `data-pick="${key}"`} class="block min-h-11 w-full px-3 py-2 text-left active:bg-stone-50"><span class="flex items-start gap-2">${position ? `<span class="w-5 shrink-0 pt-1 text-sm text-amber-700">${position}.</span>` : `<span class="pt-0.5 ${colours[keyFor(item.provider)]}">${mark(item.provider)}</span>`}<span class="min-w-0 flex-1"><span class="flex items-start gap-1 ${inline ? 'pr-9' : ''}"><span class="line-clamp-2 min-w-0 flex-1 text-pretty text-[14px] font-medium leading-5">${escape(itemTitle(item))}</span><span data-caret class="shrink-0 pt-0.5 text-stone-400">${inline ? caret : fullIcon}</span></span><span class="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px] text-stone-500">${badge(item.state)}<span>${escape(item.provider)}</span>${locationMark(item.location)}${item.work?.agents ? `<span>${item.work.agents} agents</span>` : ''}${observedTime(item.at)}</span>${summary ? `<span data-summary class="mt-1 line-clamp-2 text-pretty text-[13px] leading-[19px] text-stone-600">${escape(summary.slice(0,180))}</span>` : ''}</span></span></button>${inline ? `<button data-pick="${key}" aria-label="Open full view: ${escape(item.title)}" title="Full view" class="absolute right-1 top-1 flex size-11 items-center justify-center rounded text-emerald-900 active:bg-stone-100">${fullIcon}</button>` : ''}</div>${inline ? `<div id="inline-${encodeURIComponent(item.key)}" data-inline="${key}" hidden></div>` : ''}</article>`;
   }
 
   function group(title, items, empty = '', numbered = false, inline = true) {
@@ -72,8 +89,9 @@
     if (!data) { connection(); return; }
     rememberPanelScroll();
     const focus = el('content').contains(document.activeElement) ? document.activeElement : null;
-    const focusAction = focus && ['inspect','pick'].find(key => focus.dataset[key]);
+    const focusAction = focus && ['inspect','pick','facet'].find(key => focus.dataset[key]);
     const focusKey = focusAction && focus.dataset[focusAction];
+    const focusOwner = focus?.dataset.for;
     const visibleTop = el('overview').querySelector('header')?.getBoundingClientRect().bottom || 0;
     const anchor = selected() ? null : [...document.querySelectorAll('#content [data-item]')].find(n => n.getBoundingClientRect().bottom > visibleTop);
     const anchorKey = anchor?.dataset.item, anchorTop = anchor?.getBoundingClientRect().top;
@@ -118,28 +136,65 @@
       const next = [...document.querySelectorAll('#content [data-item]')].find(n => n.dataset.item === anchorKey);
       if (next) { const delta = next.getBoundingClientRect().top - anchorTop; if (Math.abs(delta) > 1) window.scrollTo(0,window.scrollY + delta); }
     }
-    if (focusAction && !focus.isConnected) [...el('content').querySelectorAll('button')].find(n => n.dataset[focusAction] === focusKey)?.focus({preventScroll:true});
+    if (focusAction && !focus.isConnected) [...el('content').querySelectorAll('button')].find(n => n.dataset[focusAction] === focusKey && n.dataset.for === focusOwner)?.focus({preventScroll:true});
     document.querySelectorAll('time[data-at]').forEach(node => { node.textContent = age(node.dataset.at); });
   }
 
   const findItem = key => data?.items.find(i => i.key === key) || data?.changes?.filter(c => c.key === key).map(recordedChange)[0];
-  function itemBody(item, inline = false) {
-    const url = safeUrl(item.url), reply = replies.get(item.id);
+  const markdown = text => window.NowReading?.markdown(text) || `<p class="whitespace-pre-wrap">${escape(text)}</p>`;
+  const detailIcons = {
+    summary:'<path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5Z"/>',
+    reply:'<path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8Z"/><path d="M8 9h8M8 13h5"/>',
+    prompt:'<circle cx="9" cy="7" r="3"/><path d="M3 21v-2a6 6 0 0 1 12 0v2m2-10 4 3-4 3m-4-3h8"/>',
+    activity:'<path d="M3 12h4l3-8 4 16 3-8h4"/>'
+  };
+  const detailIcon = id => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="size-4 shrink-0" aria-hidden="true">${detailIcons[id]}</svg>`;
+  const detailTones = {summary:'bg-violet-50 text-violet-900',reply:'bg-emerald-50 text-emerald-900',prompt:'bg-sky-50 text-sky-900',activity:'bg-amber-50 text-amber-900'};
+  function observedEvents(item, inline) {
     const seen = new Set();
-    const events = data.events.filter(e => {
+    return data.events.filter(e => {
       if (e.sessionId !== item.id || e.provider !== item.provider) return false;
       const text = e.detail || labels[e.state] || e.state;
-      if (inline && (/^(Conversation (running|idle|interrupted)|No recent event|Working with \d+ agents?|Delegated work: \d+ agents?)$/.test(text) || seen.has(text))) return false;
+      if (inline && (/^(Response recorded|Conversation (running|idle|interrupted)|No recent event|Working with \d+ agents?|Delegated work: \d+ agents?)$/.test(text) || seen.has(text))) return false;
       seen.add(text); return true;
     }).slice(0,inline ? 3 : 10);
-    return `${workBody(item,inline)}${item.detail && !latestWork(item) && (!inline || item.detail !== statusText(item)) ? `<p class="mt-5 whitespace-pre-wrap break-words text-pretty text-[13px] leading-5">${escape(item.detail)}</p>` : ''}${window.NowView.turn(item.turn,{stamp,compact:true})}${window.NowView.checkpoint(item.checkpoint,{stamp,compact:true,link:l => `<a class="inline-flex min-h-11 items-center rounded border border-stone-200 px-3 text-sm text-emerald-900" href="${escape(window.NowView.safeLink(l.url))}" rel="noreferrer">${escape(l.label)} ↗</a>`})}${url ? `<a class="mt-5 inline-flex min-h-11 items-center rounded border border-stone-200 px-3 text-base text-emerald-900" href="${escape(url)}">Open in Web Tools ↗</a>` : ''}${item.kind === 'errand' && ['reply','complete','failed'].includes(item.state) ? `<div data-reply="${escape(item.key)}" class="mt-6 whitespace-pre-wrap break-words text-[13px] leading-5">${reply === undefined ? 'Reading result…' : escape(reply)}</div>` : ''}${events.length && (!inline || !latestWork(item)) ? `<h3 class="mt-3 text-xs font-semibold text-stone-500">Observed activity</h3><ol class="mt-1 divide-y divide-stone-200">${events.map(e => `<li class="flex items-start gap-2 py-1.5"><span class="w-12 shrink-0 pt-0.5 text-[10px] text-stone-500" title="${escape(stamp(e.at))}">${observedTime(e.at)}</span><p class="min-w-0 text-[13px] leading-5">${escape(e.detail || labels[e.state])}</p></li>`).join('')}</ol>` : ''}`;
   }
-
   function workBody(item, inline) {
     const work = item.work;
     if (!work) return '';
     if (!work.segments?.length) return work.agents ? `<p class="text-xs text-stone-500">${work.agents} delegated agents · Work summary pending</p>` : '';
-    return `<section aria-label="Work updates"><ol class="divide-y divide-stone-200">${work.segments.slice(0,inline ? 3 : 6).map((part,n) => `<li class="py-1.5">${!inline || n ? `<h3 class="text-xs font-semibold">${escape(part.headline)}</h3>` : ''}<p class="mt-0.5 text-[13px] leading-5">${escape(part.summary)}</p><div class="mt-1 text-[10px] leading-4 text-stone-500"><span title="Evidence through ${escape(stamp(work.through))}">Summarized ${observedTime(part.generatedAt)}</span>${part.evidence?.length ? ` · ${part.evidence.map(escape).join(' · ')}` : ''}</div></li>`).join('')}</ol></section>`;
+    return `<section aria-label="Work updates"><ol class="divide-y divide-stone-100">${work.segments.slice(0,inline ? 3 : 6).map((part,n) => `<li class="py-1.5">${!inline || n ? `<h3 class="text-xs font-semibold text-stone-800">${escape(part.headline)}</h3>` : ''}${markdown(part.summary)}<div class="mt-1 text-[10px] leading-4 text-stone-500"><span title="Evidence through ${escape(stamp(work.through))}">Summarized ${observedTime(part.generatedAt)}</span>${part.evidence?.length ? ` · ${part.evidence.map(escape).join(' · ')}` : ''}</div></li>`).join('')}</ol></section>`;
+  }
+  function checkpointBody(cp, inline) {
+    const latest = cp.turns?.[0];
+    const facts = latest ? [[latest.files,'files edited'],[latest.pushes,'branches pushed'],[latest.agents,'agent tasks']].filter(([n]) => n > 0).map(([n,label]) => `<span class="rounded bg-violet-50 px-1.5 py-0.5 text-[10px] text-violet-900">${n} ${label}</span>`).join('') : '';
+    const links = (cp.links || []).filter(l => window.NowView.safeLink(l.url)).map(l => `<a class="inline-flex min-h-11 items-center gap-1 text-xs text-emerald-800 underline underline-offset-2" href="${escape(window.NowView.safeLink(l.url))}" target="_blank" rel="noopener noreferrer">${escape(l.label)} ↗</a>`).join('');
+    return `${markdown(cp.summary || cp.headline)}${facts ? `<div class="my-2 flex flex-wrap gap-1">${facts}</div>` : ''}<p class="mt-2 text-[10px] text-stone-500" title="${escape(stamp(cp.analyzedAt || cp.at))}">Summary as of ${observedTime(cp.at)}</p>${links ? `<div class="flex flex-wrap gap-x-3">${links}</div>` : ''}${!inline && cp.turns?.length ? `<ol class="mt-3 space-y-3">${cp.turns.slice(0,3).map(t => `<li><h4 class="text-xs font-medium">${escape(t.headline)}</h4>${markdown(t.summary)}</li>`).join('')}</ol>` : ''}`;
+  }
+  function detailParts(item, inline) {
+    const parts = [], reply = replies.get(item.id), events = observedEvents(item,inline);
+    if (item.work && (item.work.agents || latestWork(item))) parts.push({id:'summary',label:'Summary',title:'Work updates',body:workBody(item,inline)});
+    if (item.turn?.response?.trim()) parts.push({id:'reply',label:'Reply',title:'Latest reply',body:markdown(item.turn.response)});
+    else if (item.kind === 'errand' && ['reply','complete','failed'].includes(item.state)) parts.push({id:'reply',label:'Reply',title:'Errand result',body:`<div data-reply="${escape(item.key)}">${reply === undefined ? '<p class="text-stone-500">Reading result…</p>' : markdown(reply)}</div>`});
+    if (item.checkpoint && !parts.some(p => p.id === 'summary')) parts.push({id:'summary',label:'Summary',title:'Published summary',body:checkpointBody(item.checkpoint,inline)});
+    if (item.turn?.prompt?.trim()) parts.push({id:'prompt',label:'Prompt',title:'Prompt',body:markdown(item.turn.prompt)});
+    const detail = usefulDetail(item);
+    const meaningful = detail && !/^(Conversation (running|idle|interrupted)|No recent event|Delegated work: \d+ agents?)$/.test(detail);
+    if (events.length || item.turn || meaningful) parts.push({id:'activity',label:'Activity',title:'Observed activity',body:`${item.turn ? `<dl class="mb-2 text-[10px] text-stone-500"><div class="flex flex-wrap gap-x-1"><dt>Turn started</dt><dd>${escape(stamp(item.turn.startedAt))}</dd></div>${item.turn.lastTool ? `<div class="mt-1 flex items-center gap-1"><dt>Last tool</dt><dd class="rounded bg-amber-50 px-1.5 py-0.5 font-medium text-amber-900">${escape(item.turn.lastTool)}</dd></div>` : ''}</dl>` : ''}${meaningful && !events.some(e => e.detail === detail) && !(item.turn?.lastTool && /^Using /.test(detail)) ? markdown(detail) : ''}${events.length ? `<ol class="divide-y divide-stone-100">${events.map(e => `<li class="flex items-start gap-2 py-1.5"><span class="w-12 shrink-0 pt-0.5 text-[10px] text-stone-500">${observedTime(e.at)}</span><div class="min-w-0 flex-1">${markdown(e.detail || labels[e.state] || e.state)}</div></li>`).join('')}</ol>` : ''}`});
+    return parts;
+  }
+  function inlineBody(item) {
+    const parts = detailParts(item,true), key = item.key, id = 'detail-' + encodeURIComponent(key);
+    let choice = selectedDetails.get(key);
+    if (!selectedDetails.has(key) || choice && !parts.some(p => p.id === choice)) choice = parts[0]?.id || '';
+    selectedDetails.set(key,choice);
+    const part = parts.find(p => p.id === choice);
+    const controls = parts.map(p => `<button data-facet="${p.id}" data-for="${escape(key)}" aria-label="${p.title}" title="${p.title}" aria-expanded="${p.id === choice}" aria-controls="${id}" class="inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-md px-2 text-[11px] ${p.id === choice ? detailTones[p.id] : 'text-stone-500 active:bg-stone-100'}">${detailIcon(p.id)}${p.id === choice ? `<span>${p.label}</span>` : ''}</button>`).join('');
+    return `<div class="pl-10 pr-3 pb-2">${controls ? `<div role="group" aria-label="Detail sections" class="flex items-center gap-0.5">${controls}</div>` : '<p class="py-2 text-xs text-stone-500">No additional detail captured.</p>'}<div id="${id}" role="region" aria-label="${escape(part?.title || 'Detail')}" ${part ? '' : 'hidden'}><div data-panel-scroll="${escape(key + ':' + choice)}" class="max-h-[40dvh] min-w-0 overflow-y-auto overscroll-contain pt-1 pb-1 text-[13px] leading-5 text-stone-700 [overflow-wrap:anywhere]">${part?.body || ''}</div></div></div>`;
+  }
+  function itemBody(item) {
+    const url = safeUrl(item.url);
+    return `<div class="mt-4 space-y-5 text-[13px] leading-5 text-stone-700 [overflow-wrap:anywhere]">${detailParts(item,false).map(p => `<section aria-label="${p.title}"><h3 class="mb-2 flex items-center gap-1.5 text-xs font-semibold text-stone-500">${detailIcon(p.id)}${p.title}</h3>${p.body}</section>`).join('')}</div>${url ? `<a class="mt-3 inline-flex min-h-11 items-center gap-1 text-sm text-emerald-800 underline underline-offset-2" href="${escape(url)}">Open in Web Tools ↗</a>` : ''}`;
   }
 
   function rememberPanelScroll() {
@@ -155,11 +210,13 @@
       if (!open) { trigger?.querySelector('[data-summary]')?.classList.remove('hidden'); return; }
       const item = findItem(key);
       if (!item) return;
-      trigger?.querySelector('[data-summary]')?.classList.toggle('hidden', open && !!latestWork(item));
-      const value = `<div class="border-t border-stone-100 bg-stone-50 px-3 py-2"><div data-panel-scroll="${escape(key)}" class="max-h-[60dvh] overflow-y-auto overscroll-contain [&>:first-child]:mt-0 [&>:first-child]:border-0 [&>:first-child]:pt-0">${itemBody(item,true)}</div></div>`;
+      const focusedFacet = panel.contains(document.activeElement) ? document.activeElement.dataset.facet : '';
+      const value = inlineBody(item);
+      trigger?.querySelector('[data-summary]')?.classList.toggle('hidden', !!selectedDetails.get(key));
       if (rendered.get(panel) !== value) { panel.innerHTML = value; rendered.set(panel,value); }
       const scroller = panel.querySelector('[data-panel-scroll]');
-      if (panelScrolls.has(key)) scroller.scrollTop = panelScrolls.get(key);
+      if (scroller && panelScrolls.has(scroller.dataset.panelScroll)) scroller.scrollTop = panelScrolls.get(scroller.dataset.panelScroll);
+      if (focusedFacet) [...panel.querySelectorAll('[data-facet]')].find(n => n.dataset.facet === focusedFacet)?.focus({preventScroll:true});
       if (item.kind === 'errand' && ['reply','complete','failed'].includes(item.state) && !replies.has(item.id)) loadReply(item);
     });
     document.querySelectorAll('time[data-at]').forEach(node => { node.textContent = age(node.dataset.at); });
@@ -174,7 +231,7 @@
       html('detail','<header class="sticky top-0 border-b border-stone-200 bg-white p-3"><button data-back class="min-h-11 px-2 text-base">← Now</button></header><div id="detail-connection"></div><p class="p-4 text-base">Activity is no longer in the current snapshot.</p>');
       return;
     }
-    const value = `<header class="sticky top-0 z-10 flex items-center justify-between border-b border-stone-200 bg-white/95 px-3 py-2 backdrop-blur"><button data-back class="min-h-11 px-2 text-base text-stone-700">← Now</button><span class="text-xs text-stone-500">${escape(item.location)}</span></header><div id="detail-connection"></div><article class="px-4 pt-5 pb-10"><div class="flex items-center gap-2 ${colours[keyFor(item.provider)]}">${mark(item.provider)}<span class="text-sm">${escape(item.provider)}</span></div><h2 class="mt-3 break-words text-balance text-xl font-semibold leading-7">${escape(item.title)}</h2><div class="mt-3 flex flex-wrap items-center gap-3">${badge(item.state)}<span class="text-xs text-stone-500">${escape(stamp(item.at))}</span></div>${itemBody(item)}</article>`;
+    const value = `<header class="sticky top-0 z-10 flex items-center justify-between border-b border-stone-200 bg-white/95 px-3 py-2 backdrop-blur"><button data-back class="min-h-11 px-2 text-base text-stone-700">← Now</button>${locationMark(item.location)}</header><div id="detail-connection"></div><article class="px-4 pt-5 pb-10"><div class="flex items-center gap-2 ${colours[keyFor(item.provider)]}">${mark(item.provider)}<span class="text-sm">${escape(item.provider)}</span></div><h2 class="mt-3 break-words text-balance text-xl font-semibold leading-7">${escape(item.title)}</h2><div class="mt-3 flex flex-wrap items-center gap-3">${badge(item.state)}<span class="text-xs text-stone-500">${escape(stamp(item.at))}</span></div>${itemBody(item)}</article>`;
     html('detail', value);
     if (item.kind === 'errand' && ['reply','complete','failed'].includes(item.state) && !replies.has(item.id)) loadReply(item);
   }
@@ -229,6 +286,13 @@
 
   document.addEventListener('click', event => {
     const button = event.target.closest('button'); if (!button) return;
+    if (button.dataset.facet) {
+      rememberPanelScroll();
+      const key = button.dataset.for, facet = button.dataset.facet;
+      selectedDetails.set(key,selectedDetails.get(key) === facet ? '' : facet);
+      renderPanels();
+      return;
+    }
     if (button.dataset.inspect) {
       rememberPanelScroll();
       const key = button.dataset.inspect;
@@ -247,6 +311,14 @@
       if (history.state?.nowDetail) history.back();
       else { history.replaceState(null,'',location.pathname); detail(); window.scrollTo(0,savedScroll); }
     }
+  });
+  document.addEventListener('keydown', event => {
+    const panel = event.target.closest('[data-inline]');
+    if (event.key !== 'Escape' || !panel || !selectedDetails.get(panel.dataset.inline)) return;
+    const key = panel.dataset.inline, facet = selectedDetails.get(key);
+    rememberPanelScroll(); selectedDetails.set(key,''); renderPanels();
+    [...panel.querySelectorAll('[data-facet]')].find(n => n.dataset.facet === facet)?.focus({preventScroll:true});
+    event.preventDefault();
   });
   window.addEventListener('popstate', () => { detail(); if (!selected()) renderPanels(); connection(); window.scrollTo(0,savedScroll); });
   document.addEventListener('visibilitychange', () => { clearTimeout(timer); if (!document.hidden) poll(); });

@@ -51,6 +51,7 @@ const routesModesCsv = readFileSync(path.join(repoRoot, 'docs', 'routes-modes.cs
 const routesRoutesCsv = readFileSync(path.join(repoRoot, 'docs', 'routes-routes.csv'), 'utf8');
 const routesKindsCsv = readFileSync(path.join(repoRoot, 'docs', 'routes-kinds.csv'), 'utf8');
 const mechanismsCsv = readFileSync(path.join(repoRoot, 'docs', 'showing-mechanisms.csv'), 'utf8');
+const routesPasteCsv = readFileSync(path.join(repoRoot, 'docs', 'routes-paste.csv'), 'utf8');
 const fabSignalsCsv = readFileSync(path.join(repoRoot, 'docs', 'fab-signals.csv'), 'utf8');
 const docsCsv = readFileSync(path.join(repoRoot, 'docs', 'docs.csv'), 'utf8');
 const aimsJson = readFileSync(path.join(repoRoot, 'docs', 'aims.json'), 'utf8');
@@ -99,6 +100,7 @@ window.GH = class {
     if (p === 'docs/routes-routes.csv') return { text: routesRoutesCsv };
     if (p === 'docs/routes-kinds.csv') return { text: routesKindsCsv };
     if (p === 'docs/showing-mechanisms.csv') return { text: mechanismsCsv };
+    if (p === 'docs/routes-paste.csv') return { text: routesPasteCsv };
     if (p === 'docs/fab-signals.csv') return { text: fabSignalsCsv };
     if (p === 'docs/favicons/fab/frisbee.svg') return { text: '<svg fill="currentColor"></svg>' };
     if (p === 'docs/docs.csv') return { text: docsCsv };
@@ -445,24 +447,50 @@ test('Showing loads on demand, not at mount', async () => {
 // whose cells are mostly blank: `aim` is carried by one kind of eleven and `kit`
 // by three. Every x-show in the template tests the string, so this checks that
 // the sparse rows survive the parse rather than that the tab has content.
-// What the FAB says: the receiving end of the mechanisms, grouped by the facet
-// each signal answers, in the order docs/vocabularies.csv gives the facets.
-// fab-signals.test.mjs holds the rows to fab.js; this checks the tab is handed
-// them, grouped, with a drawn mark read and a badge drawn on a plain FAB.
-test('Showing carries what the FAB says, grouped by facet', async () => {
+// The links: one row per marked mechanism and a fallback line for the unmarked,
+// each row's three marks read from its opens column and labelled by the
+// vocabulary. Then the FAB's tiles, one per signal: a drawn mark read and
+// painted as a mask, a badge drawn on a plain FAB, a tint in its own colour.
+test('Showing is one list of every record, grouped by file, and the FAB tab is its signals by part', async () => {
   await data.loadPropsReg();
-  const groups = data.fabGroups;
-  assert.deepEqual(Array.from(groups, g => g.k), ['version', 'viewer', 'subject', 'action']);
-  assert.equal(groups[0].n, 'Version', 'a facet is labelled from the vocabulary');
-  assert.equal(groups.flatMap(g => g.rows).length, data.routes.fab.length, 'every signal lands in a group');
+  const all = data.routes.showing.mechanisms;
+  assert.deepEqual(Array.from(data.showGroups, g => g.key), ['links', 'grammar', 'modes', 'routes', 'paste', 'kinds']);
+  assert.equal(data.showGroups[0].rows.length, all.length, 'every mechanism is a row');
+  assert.equal(new Set(data.showRows.map(r => r.id)).size, data.showRows.length, 'a row id names one record');
+  assert.deepEqual(Array.from(data.showOpens, o => o.label), ['Unmerged work', 'No token needed'], 'the marks are labelled from the vocabulary');
+  const hosted = all.find(m => m.key === 'hosted');
+  assert.ok(!data.opensHas(hosted, 'branch') && data.opensHas(hosted, 'tokenless'), 'a cell lists the marks a row has');
+  // The FAB tab: the live signals by part, then the ones not built yet.
+  assert.deepEqual(Array.from(data.fabGroups, g => g.label), ['Colour', 'Glyph', 'Badge', 'Planned']);
+  assert.ok(data.fabGroups.at(-1).rows.every(r => r.s.status !== 'live'), 'only unbuilt signals are planned');
+  assert.equal(data.fabRows.length, data.routes.fab.length, 'every signal is a row');
   const drawn = data.routes.fab.find(r => r.icon.endsWith('.svg'));
   await new Promise(r => setTimeout(r, 0));
   assert.ok(data.fabGlyph(drawn).mask.startsWith('data:image/svg+xml'), 'a drawn mark is read and painted as a mask');
+  assert.match(data.fabPictureHtml(drawn), /--mark:url\(/, 'and the row draws it');
   const key = data.routes.fab.find(r => r.key === 'badge-no-token');
   assert.equal(data.fabGlyph(key).ph, 'ph-sidebar-simple opacity-40', 'a badge sits on a FAB showing nothing else');
   assert.match(data.fabBadge(key), /bg-error/);
   const off = data.routes.fab.find(r => r.key === 'tint-off-branch');
   assert.match(data.fabTone(off).disc, /bg-warning/, 'a tint is drawn in its own colour');
+});
+
+test('a row\'s card holds what the row cannot, and links the row\'s own line', () => {
+  const toss = data.showCard('link:toss');
+  assert.match(toss, /toss-render\.html/, 'a link\'s address is on its card');
+  assert.match(toss, /data-show-copy=/, 'with a control to copy it');
+  assert.match(toss, /iPhone/, 'the full account is on the card');
+  assert.match(toss, /A document or data file[\s\S]*The renderer itself/, 'the cases a toss handles are listed by their vocabulary labels');
+  const src = data.showSrc('docs/showing-mechanisms.csv', 'toss');
+  assert.match(src.passage, /^```csv\nkey,glyph,label/, 'the source is the row under its header');
+  assert.match(src.passage, /\ntoss,/);
+  assert.match(data.fabCard('badge-no-token'), /Appears when[\s\S]*Tapping it/);
+  const md = data.showCard('kind:markdown');
+  assert.match(md, /Links that show it[\s\S]*Toss/, 'a kind names the links that show it by their labels');
+  assert.match(md, /md-doc\.js/, 'and links its kit');
+  const field = data.routes.paste.find(p => !p.path);
+  assert.ok(data.showCard('paste:' + field.surface).includes('routes-paste.csv'), 'a row with no file links its source alone');
+  for (const r of data.showRows) assert.ok(data.showCard(r.id), r.id + ' has a card');
 });
 
 test('Showing carries the kinds, and the sparse cells survive the parse', () => {

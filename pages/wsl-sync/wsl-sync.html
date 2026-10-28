@@ -320,7 +320,7 @@ const buildPasteSnippet = (mode, ctx) => {
     const out = { history: {}, actions: {} };
     for (let i = 0; i < historyNums.length; i++) {
         const n = historyNums[i];
-        const r = await fetch('/LegislationService.asmx/GetLegislativeStatusChangesByBillNumber?biennium=${BIENNIUM}&billNumber=' + n + '&beginDate=1/1/2025&endDate=12/31/2026');
+        const r = await fetch('/LegislationService.asmx/GetLegislativeStatusChangesByBillNumber?biennium=${BIENNIUM}&billNumber=' + n + '&beginDate=1/1/${BIENNIUM.slice(0, 4)}&endDate=12/31/${+BIENNIUM.slice(0, 4) + 1}');
         out.history[n] = await r.text();
         if ((i + 1) % 10 === 0 || i === historyNums.length - 1) console.log('history', \`\${i + 1}/\${historyNums.length}\`);
     }
