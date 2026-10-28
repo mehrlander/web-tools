@@ -17,11 +17,11 @@ maintained documentation falls into five kinds.
 | **API reference** | each export's arguments, result and contract | a session calling it | a kit's header comment, a script's `--help` | every export, in full |
 | **Finding** | what a system does, as measured on a date | a session about to rely on it | [environment/](environment/), the `measured` rows of [docs.csv](docs.csv) | the result and its date, with the method inline when it is short and otherwise a link to the research behind it |
 
-A record (a dated decision,
-plan or log) and research (a question with what was tried and found, kept
-outside `docs/` as [CONSTELLATION.md](CONSTELLATION.md#projects-and-research)
-places it) keep whatever detail their moment or their inquiry needed. Nothing
-keeps them current, so the rules below do not govern them.
+A record (a dated decision, plan or log) and research (a question with what was
+tried and found, kept outside `docs/` as
+[CONSTELLATION.md](CONSTELLATION.md#projects-and-research) places it) keep
+whatever detail their moment or their inquiry needed. Nothing keeps them
+current, so the rules below do not govern them.
 
 ## How much a document says
 
