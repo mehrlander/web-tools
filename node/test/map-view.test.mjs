@@ -171,8 +171,8 @@ test('Peeves declares stable page and selected-item note subjects, including mer
   try {
     data.mapTab = 'peeves';
     data.peevesReg = [
-      { id: 'P33', name: 'Reinventing the wheel', tier: 'core', merged_into: '' },
-      { id: 'P45', name: 'Reuse components', tier: 'core', merged_into: 'P33' },
+      { id: 'P33', name: 'Reinventing the wheel', status: 'active', merged_into: '' },
+      { id: 'P45', name: 'Reuse components', status: 'active', merged_into: 'P33' },
     ];
     data.peeveSel = 'P33';
     assert.equal(data.about.subject.about, 'mehrlander/web-tools:docs/map-tabs.csv#peeves');
@@ -2287,7 +2287,6 @@ test('Peeves searches the real list and preserves repository identity in its ref
   try {
     data.peeveQ = 'accordions';
     assert.deepEqual(Array.from(data.peeveRows, p => p.id), ['P52']);
-    assert.equal(data.peeveGroups[0].key, 'core');
     data.peeveQ = 'no such peeve';
     assert.equal(data.peeveRows.length, 0);
     const source = data.peeveReference(data.peevesReg.find(p => p.id === 'P02'));
@@ -2314,8 +2313,15 @@ test('Peeves presents the reviewed list and resolves merged IDs through their re
   const before = data.peeveQ;
   try {
     data.peeveQ = '';
-    assert.equal(data.peeveRows.length, 33);
-    assert.deepEqual(Array.from(data.peeveGroups, g => [g.key, g.rows.length]), [['core', 24], ['secondary', 9]]);
+    assert.equal(data.peeveRows.length, 28);
+    const names = Array.from(data.peeveRows, p => p.name);
+    assert.deepEqual(names, [...names].sort((a, b) => a.localeCompare(b)), 'all active entries share one alphabetical list');
+    assert.equal(data.peeveRows.find(p => p.id === 'P10').name, 'Term loading');
+    assert.equal(data.peeveRows.find(p => p.id === 'P23').name, 'Missing links');
+    assert.equal(data.peeveRows.find(p => p.id === 'P22').name, 'Raw options');
+    assert.equal(data.peeveRows.find(p => p.id === 'P16').name, 'Subtle veering');
+    assert.equal(data.peeveRows.find(p => p.id === 'P36').name, 'Micromanaged handoffs');
+    assert.match(data.peeveRows.find(p => p.id === 'P16').peeve, /discover the departure later/);
     data.peeveQ = 'P45';
     assert.deepEqual(Array.from(data.peeveRows, p => [p.id, p.name]), [['P33', 'Reinventing the wheel']]);
     const html = data.peeveCard(data.peeveRows[0]);
@@ -2329,6 +2335,12 @@ test('Peeves presents the reviewed list and resolves merged IDs through their re
     assert.ok(data.peeveRows.some(p => p.id === 'P33'), 'an absorbed area finds its retained entry');
     data.peeveQ = 'P11';
     assert.deepEqual(Array.from(data.peeveRows, p => p.id), ['P10']);
+    data.peeveQ = 'P03';
+    assert.deepEqual(Array.from(data.peeveRows, p => p.id), ['P10'], 'the old jargon ID still finds Term loading');
+    for (const id of ['P09', 'P15', 'P17', 'P19', 'P20', 'P27', 'P40', 'P59', 'P61']) {
+      data.peeveQ = id;
+      assert.equal(data.peeveRows.length, 0, id + ': retired entries do not reappear through search');
+    }
     data.peeveQ = 'P46';
     assert.equal(data.peeveRows.length, 0, 'guidance remains outside the short list');
     data.peeveQ = 'Shallow defense';

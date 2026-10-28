@@ -4,7 +4,9 @@ export default async function (page) {
   page.setDefaultTimeout(20000);
   const about = id => 'mehrlander/web-tools:skills/peeves/peeves.csv#' + id;
   let stored = [{ id: 'npreview1', at: '2026-10-28T01:00:00Z', author: 'mehrlander',
-    about: about('P18'), text: 'A valid justification can still leave the choice wrong.' }];
+    about: about('P18'), text: 'A valid justification can still leave the choice wrong.' },
+    { id: 'npreview2', at: '2026-10-28T01:01:00Z', author: 'mehrlander',
+      about: about('P03'), text: 'A note on the original jargon entry.' }];
   let fail = false, writes = 0;
   // Exercise the real browser writer against a local fixture, never the private repo.
   await page.route('**/repos/mehrlander/web-tools-private/contents/notes/notes.jsonl*', async route => {
@@ -88,4 +90,11 @@ export default async function (page) {
     return bottom;
   });
   assert.ok(keyboard <= 420, 'the save control stays above a simulated phone keyboard: ' + keyboard);
+  await page.locator('[data-peeve-list] [data-row="P10"]').evaluate(el => el.click());
+  await page.waitForFunction(() => document.querySelector('[data-fab-note-subject]')?.textContent === 'P10 · Term loading');
+  await panel.getByText('A note on the original jargon entry.', { exact: true }).waitFor();
+  assert.equal(await input.inputValue(), '', 'the merged entry has a separate draft');
+  await page.locator('[data-peeve-list] [data-row="P18"]').evaluate(el => el.click());
+  await page.waitForFunction(() => document.querySelector('[data-fab-note-subject]')?.textContent === 'P18 · Shallow defense');
+  assert.match(await input.inputValue(), /^Consider examples/, 'the earlier item draft returns');
 }

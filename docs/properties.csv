@@ -328,7 +328,7 @@ peeves,look_for,recorded,,value,column,yes,,value,"what tripping the peeve looks
 peeves,owner,recorded,,counted,column,yes,,value,"the document or check that already states the rule, when one does; that owner's wording governs and the row only points at it"
 peeves,detector,recorded,,value,column,yes,reader;lint;hook;measure,label,"what catches a trip: a reader's judgment, a script, a hook at edit or commit time, or the page measures"
 peeves,sessions,recorded,,value,column,yes,,value,"roughly how many recorded sessions show the owner making the correction, summed across the readers that mined them; an order of magnitude, not a count to compare closely"
-peeves,tier,recorded,,value,column,yes,core;secondary;guidance,label,placement in the reviewed peeve list; merged rows inherit their retained entry tier and guidance stays outside the short list
+peeves,status,recorded,,value,column,yes,active;guidance;retired,label,active peeves appear in one list; guidance is contextual and retired entries preserve historical IDs; merged rows inherit their target status
 peeves,merged_into,recorded,,counted,column,yes,,locator,"the retained peeve ID that receives examples, references and evidence from this row; a merged row stays available by its original ID"
 css-baseline,declarations,computed,python/css-blocks.py,value,column,yes,,value,the most unexempt hand-written declarations the file may carry; --write lowers it to the measurement and never raises it
 icon-families,group,recorded,,value,column,yes,drawn;phosphor;emoji,label,"how the family's icons are made: an SVG drawn for the estate, a Phosphor glyph named by its class, or an emoji"
