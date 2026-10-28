@@ -30,21 +30,6 @@
     ]
   },
   "showing": {
-    "note": "Getting a subject in front of a viewer. Three independent variables decide the mechanism, and conflating them is what made this hard to state: WHAT the subject is, WHICH version of it, and WHO is opening the link. `preview` is not a topic, it is one value of `version`. The subject axis is a registry, docs/subjects.csv, since two tables key on it; version and viewer stay here, nothing keys on them.",
-    "axes": {
-      "subject": "docs/subjects.csv",
-      "version": [
-        "deployed default branch",
-        "a branch",
-        "a private repo",
-        "carried in the link",
-        "a frozen snapshot"
-      ],
-      "viewer": [
-        "holds a GitHub token",
-        "signed into Claude",
-        "carries nothing"
-      ]
-    }
+    "note": "Getting a subject in front of a viewer. Three things decide the link: WHAT the subject is, WHICH version of it, and WHO is opening the link. A link's subjects are keys of docs/subjects.csv, and its opens column answers the other two."
   }
 }

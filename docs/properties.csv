@@ -103,8 +103,6 @@ showing-mechanisms,glyph,recorded,,value,column,yes,diamond;disc;box;x,label,the
 showing-mechanisms,label,recorded,,value,column,yes,,value,the mechanism name a reader sees
 showing-mechanisms,form,recorded,,none,column,yes,,value,the address shape; absent where the mechanism is not a URL
 showing-mechanisms,subject,recorded,,value,column,yes,,value,"the subject types it can show, semicolon-separated keys into docs/subjects.csv"
-showing-mechanisms,version,recorded,,value,column,yes,,value,which version of the subject it reaches
-showing-mechanisms,viewer,recorded,,value,column,yes,,label,who can open it
 showing-mechanisms,opens,recorded,,none,column,no,branch;tokenless,label,"what it can show and who can open it, as keys of its vocabulary"
 showing-mechanisms,handles,recorded,,none,column,no,page;data;app;merge;renderer,label,"what a toss can show, as keys of its vocabulary"
 showing-mechanisms,reaches,recorded,,none,column,yes,,value,what it does show
