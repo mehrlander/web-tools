@@ -17,8 +17,7 @@
   const observedTime = at => `<time data-at="${escape(at)}" datetime="${escape(at)}" title="${escape(stamp(at))}">${escape(stamp(at))}</time>`;
   const stamp = at => at ? new Date(at).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) : 'Not yet';
   const safeUrl = value => { try { const url = new URL(value); return url.origin === 'https://mehrlander.github.io' && url.pathname.startsWith('/web-tools/') ? url.href : ''; } catch { return ''; } };
-  let data, tab = 'now', assistant = '', timer, etag = '', failures = 0, pending = false, connected = false, accessDenied = false, savedScroll = 0, review;
-  let unseen = [];
+  let data, tab = 'now', assistant = '', timer, etag = '', failures = 0, pending = false, connected = false, accessDenied = false, savedScroll = 0;
   const expanded = new Set();
   const selectedDetails = new Map();
   const panelScrolls = new Map();
@@ -39,7 +38,7 @@
 
   const latestWork = item => item.work?.segments?.[0];
   const usefulDetail = item => item.detail === 'Response recorded' ? '' : item.detail;
-  const replyPreview = text => String(text || '').replace(/\[([^\]]+)\]\([^\s)]+\)/g,'$1').replace(/(^|\n)\s{0,3}#{1,6}\s+/g,'$1').replace(/[*`]/g,'').replace(/\s+/g,' ').trim();
+  const replyPreview = text => String(window.NowReading?.notification(text)?.summary || text || '').replace(/\[([^\]]+)\]\([^\s)]+\)/g,'$1').replace(/(^|\n)\s{0,3}#{1,6}\s+/g,'$1').replace(/[*`]/g,'').replace(/\s+/g,' ').trim();
   function statusText(item) {
     const work = latestWork(item);
     if (work) return `${Date.parse(item.at) - Date.parse(item.work.through) > 180000 ? 'Last summary: ' : ''}${work.summary}`;
@@ -60,7 +59,7 @@
   const fullIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="size-4" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5M3 3l6 6m12-6-6 6M3 21l6-6m12 6-6-6"/></svg>';
   function row(item, position, inline = true) {
     const key = escape(item.key), summary = replyPreview(statusText(item));
-    return `<article data-item="${key}" ${item.changeId ? `data-change="${escape(item.changeId)}"` : ''} class="min-w-0 border-b border-stone-100 bg-white"><div class="relative"><button ${inline ? `data-inspect="${key}" aria-expanded="false" aria-controls="inline-${encodeURIComponent(item.key)}"` : `data-pick="${key}"`} class="block min-h-11 w-full px-3 py-2 text-left active:bg-stone-50"><span class="flex items-start gap-2">${position ? `<span class="w-5 shrink-0 pt-1 text-sm text-amber-700">${position}.</span>` : `<span class="pt-0.5 ${colours[keyFor(item.provider)]}">${mark(item.provider)}</span>`}<span class="min-w-0 flex-1"><span class="flex items-start gap-1 ${inline ? 'pr-9' : ''}"><span class="line-clamp-2 min-w-0 flex-1 text-pretty text-[14px] font-medium leading-5">${escape(itemTitle(item))}</span><span data-caret class="shrink-0 pt-0.5 text-stone-400">${inline ? caret : fullIcon}</span></span><span class="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px] text-stone-500">${badge(item.state)}<span>${escape(item.provider)}</span>${locationMark(item.location)}${item.work?.agents ? `<span>${item.work.agents} agents</span>` : ''}${observedTime(item.at)}</span>${summary ? `<span data-summary class="mt-1 line-clamp-2 text-pretty text-[13px] leading-[19px] text-stone-600">${escape(summary.slice(0,180))}</span>` : ''}</span></span></button>${inline ? `<button data-pick="${key}" aria-label="Open full view: ${escape(item.title)}" title="Full view" class="absolute right-1 top-1 flex size-11 items-center justify-center rounded text-emerald-900 active:bg-stone-100">${fullIcon}</button>` : ''}</div>${inline ? `<div id="inline-${encodeURIComponent(item.key)}" data-inline="${key}" hidden></div>` : ''}</article>`;
+    return `<article data-item="${key}" class="min-w-0 border-b border-stone-100 bg-white"><div class="relative"><button ${inline ? `data-inspect="${key}" aria-expanded="false" aria-controls="inline-${encodeURIComponent(item.key)}"` : `data-pick="${key}"`} class="block min-h-11 w-full px-3 py-2 text-left active:bg-stone-50"><span class="flex items-start gap-2">${position ? `<span class="w-5 shrink-0 pt-1 text-sm text-amber-700">${position}.</span>` : `<span class="pt-0.5 ${colours[keyFor(item.provider)]}">${mark(item.provider)}</span>`}<span class="min-w-0 flex-1"><span class="flex items-start gap-1 ${inline ? 'pr-9' : ''}"><span class="line-clamp-2 min-w-0 flex-1 text-pretty text-[14px] font-medium leading-5">${escape(itemTitle(item))}</span><span data-caret class="shrink-0 pt-0.5 text-stone-400">${inline ? caret : fullIcon}</span></span><span class="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px] text-stone-500">${badge(item.state)}<span>${escape(item.provider)}</span>${locationMark(item.location)}${item.work?.agents ? `<span>${item.work.agents} agents</span>` : ''}${observedTime(item.at)}</span>${summary ? `<span data-summary class="mt-1 line-clamp-2 text-pretty text-[13px] leading-[19px] text-stone-600">${escape(summary.slice(0,180))}</span>` : ''}</span></span></button>${inline ? `<button data-pick="${key}" aria-label="Open full view: ${escape(item.title)}" title="Full view" class="absolute right-1 top-1 flex size-11 items-center justify-center rounded text-emerald-900 active:bg-stone-100">${fullIcon}</button>` : ''}</div>${inline ? `<div id="inline-${encodeURIComponent(item.key)}" data-inline="${key}" hidden></div>` : ''}</article>`;
   }
 
   function group(title, items, empty = '', numbered = false, inline = true) {
@@ -69,14 +68,14 @@
 
   function changeItems() {
     const delegated = new Set(data.items.flatMap(i => (i.work?.members || []).map(id => `session:${i.provider}:${id}`)));
-    return unseen.filter(c => !delegated.has(c.key) && (!assistant || keyFor(c.provider) === assistant)).map(c => {
+    return (data.changes || []).filter(c => !delegated.has(c.key) && (!assistant || keyFor(c.provider) === assistant)).map(c => {
       const item = data.items.find(i => i.key === c.key);
-      return {...(item || recordedChange(c)),changeId:c.id};
+      return item || recordedChange(c);
     });
   }
-  function changesSection(limit, exclude = new Set(), title = 'Since you last looked') {
+  function changesSection(limit, exclude = new Set(), title = 'Recent activity') {
     const items = changeItems().filter(i => !exclude.has(i.key));
-    return `<section aria-label="${title}"><div class="flex items-center justify-between gap-2 px-3 pt-1 pb-0"><h2 class="text-xs font-semibold text-stone-600">${title} <span class="font-normal">${items.length || ''}</span></h2>${items.length ? '<button data-review class="min-h-11 text-sm text-emerald-900">Mark shown seen</button>' : ''}</div>${items.length ? items.slice(0,limit).map(i => row(i)).join('') : '<p class="px-3 py-2 text-[13px] text-stone-500">You’re caught up.</p>'}${items.length > limit ? '<button data-tab="recent" class="min-h-11 px-4 text-sm text-emerald-900">All recent →</button>' : ''}</section>`;
+    return `<section aria-label="${title}"><h2 class="px-3 pt-2 pb-1 text-xs font-semibold text-stone-600">${title} <span class="font-normal">${items.length || ''}</span></h2>${items.length ? items.slice(0,limit).map(i => row(i)).join('') : '<p class="px-3 py-2 text-[13px] text-stone-500">No recent activity.</p>'}${items.length > limit ? '<button data-tab="recent" class="min-h-11 px-4 text-sm text-emerald-900">All recent →</button>' : ''}</section>`;
   }
   function workerReport(recentOnly = false) {
     const report = data.sources.workerActivity;
@@ -95,8 +94,6 @@
     const visibleTop = el('overview').querySelector('header')?.getBoundingClientRect().bottom || 0;
     const anchor = selected() ? null : [...document.querySelectorAll('#content [data-item]')].find(n => n.getBoundingClientRect().bottom > visibleTop);
     const anchorKey = anchor?.dataset.item, anchorTop = anchor?.getBoundingClientRect().top;
-    if (!review || review.key !== `web-tools-now-reviewed:${data.machineName}`) review = new window.NowView.ReviewStore(data.machineName);
-    unseen = review.pending(data.changes);
     el('machine').textContent = data.machineName;
     const waiting = data.items.filter(i => i.state === 'queued');
     el('queue-count').textContent = data.sources.queueAvailable ? waiting.length : '?';
@@ -148,8 +145,8 @@
     prompt:'<circle cx="9" cy="7" r="3"/><path d="M3 21v-2a6 6 0 0 1 12 0v2m2-10 4 3-4 3m-4-3h8"/>',
     activity:'<path d="M3 12h4l3-8 4 16 3-8h4"/>'
   };
-  const detailIcon = id => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="size-4 shrink-0" aria-hidden="true">${detailIcons[id]}</svg>`;
-  const detailTones = {summary:'bg-violet-50 text-violet-900',reply:'bg-emerald-50 text-emerald-900',prompt:'bg-sky-50 text-sky-900',activity:'bg-amber-50 text-amber-900'};
+  const detailIcon = (id,cls = 'size-4 shrink-0') => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="${cls}" aria-hidden="true">${detailIcons[id]}</svg>`;
+  const detailTones = {summary:'border-violet-600 text-violet-900',reply:'border-emerald-600 text-emerald-900',prompt:'border-sky-600 text-sky-900',activity:'border-amber-600 text-amber-900'};
   function observedEvents(item, inline) {
     const seen = new Set();
     return data.events.filter(e => {
@@ -177,7 +174,10 @@
     if (item.turn?.response?.trim()) parts.push({id:'reply',label:'Reply',title:'Latest reply',body:markdown(item.turn.response)});
     else if (item.kind === 'errand' && ['reply','complete','failed'].includes(item.state)) parts.push({id:'reply',label:'Reply',title:'Errand result',body:`<div data-reply="${escape(item.key)}">${reply === undefined ? '<p class="text-stone-500">Reading result…</p>' : markdown(reply)}</div>`});
     if (item.checkpoint && !parts.some(p => p.id === 'summary')) parts.push({id:'summary',label:'Summary',title:'Published summary',body:checkpointBody(item.checkpoint,inline)});
-    if (item.turn?.prompt?.trim()) parts.push({id:'prompt',label:'Prompt',title:'Prompt',body:markdown(item.turn.prompt)});
+    if (item.turn?.prompt?.trim()) {
+      const notice = window.NowReading?.notification(item.turn.prompt);
+      parts.push({id:'prompt',label:notice ? 'Update' : 'Prompt',title:notice ? 'Background update' : 'Prompt',body:markdown(item.turn.prompt)});
+    }
     const detail = usefulDetail(item);
     const meaningful = detail && !/^(Conversation (running|idle|interrupted)|No recent event|Delegated work: \d+ agents?)$/.test(detail);
     if (events.length || item.turn || meaningful) parts.push({id:'activity',label:'Activity',title:'Observed activity',body:`${item.turn ? `<dl class="mb-2 text-[10px] text-stone-500"><div class="flex flex-wrap gap-x-1"><dt>Turn started</dt><dd>${escape(stamp(item.turn.startedAt))}</dd></div>${item.turn.lastTool ? `<div class="mt-1 flex items-center gap-1"><dt>Last tool</dt><dd class="rounded bg-amber-50 px-1.5 py-0.5 font-medium text-amber-900">${escape(item.turn.lastTool)}</dd></div>` : ''}</dl>` : ''}${meaningful && !events.some(e => e.detail === detail) && !(item.turn?.lastTool && /^Using /.test(detail)) ? markdown(detail) : ''}${events.length ? `<ol class="divide-y divide-stone-100">${events.map(e => `<li class="flex items-start gap-2 py-1.5"><span class="w-12 shrink-0 pt-0.5 text-[10px] text-stone-500">${observedTime(e.at)}</span><div class="min-w-0 flex-1">${markdown(e.detail || labels[e.state] || e.state)}</div></li>`).join('')}</ol>` : ''}`});
@@ -186,11 +186,12 @@
   function inlineBody(item) {
     const parts = detailParts(item,true), key = item.key, id = 'detail-' + encodeURIComponent(key);
     let choice = selectedDetails.get(key);
-    if (!selectedDetails.has(key) || choice && !parts.some(p => p.id === choice)) choice = parts[0]?.id || '';
+    if (!parts.some(p => p.id === choice)) choice = parts[0]?.id || '';
     selectedDetails.set(key,choice);
     const part = parts.find(p => p.id === choice);
-    const controls = parts.map(p => `<button data-facet="${p.id}" data-for="${escape(key)}" aria-label="${p.title}" title="${p.title}" aria-expanded="${p.id === choice}" aria-controls="${id}" class="inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-md px-2 text-[11px] ${p.id === choice ? detailTones[p.id] : 'text-stone-500 active:bg-stone-100'}">${detailIcon(p.id)}${p.id === choice ? `<span>${p.label}</span>` : ''}</button>`).join('');
-    return `<div class="pl-10 pr-3 pb-2">${controls ? `<div role="group" aria-label="Detail sections" class="flex items-center gap-0.5">${controls}</div>` : '<p class="py-2 text-xs text-stone-500">No additional detail captured.</p>'}<div id="${id}" role="region" aria-label="${escape(part?.title || 'Detail')}" ${part ? '' : 'hidden'}><div data-panel-scroll="${escape(key + ':' + choice)}" class="max-h-[40dvh] min-w-0 overflow-y-auto overscroll-contain pt-1 pb-1 text-[13px] leading-5 text-stone-700 [overflow-wrap:anywhere]">${part?.body || ''}</div></div></div>`;
+    const tabId = p => id + '-' + p.id;
+    const controls = parts.map(p => `<button id="${tabId(p)}" role="tab" data-facet="${p.id}" data-for="${escape(key)}" aria-label="${p.title}" title="${p.title}" aria-selected="${p.id === choice}" tabindex="${p.id === choice ? 0 : -1}" aria-controls="${id}" class="inline-flex h-7 min-w-0 flex-1 items-center justify-center gap-1 border-b-2 px-1 text-[11px] font-medium whitespace-nowrap ${p.id === choice ? detailTones[p.id] : 'border-transparent text-stone-500 active:bg-stone-50'}">${detailIcon(p.id,'hidden size-3.5 shrink-0 min-[360px]:block')}<span>${p.label}</span></button>`).join('');
+    return `<div class="pl-10 pr-3 pb-2">${controls ? `<div role="tablist" aria-label="Detail sections" class="mb-1 flex items-center gap-0.5 border-b border-stone-100">${controls}</div>` : '<p class="py-2 text-xs text-stone-500">No additional detail captured.</p>'}<div id="${id}" role="tabpanel" ${part ? `aria-labelledby="${tabId(part)}"` : 'aria-label="Detail" hidden'}><div data-panel-scroll="${escape(key + ':' + choice)}" class="max-h-[40dvh] min-w-0 overflow-y-auto overscroll-contain pt-1 pb-1 text-[13px] leading-5 text-stone-700 [overflow-wrap:anywhere]">${part?.body || ''}</div></div></div>`;
   }
   function itemBody(item) {
     const url = safeUrl(item.url);
@@ -287,9 +288,10 @@
   document.addEventListener('click', event => {
     const button = event.target.closest('button'); if (!button) return;
     if (button.dataset.facet) {
-      rememberPanelScroll();
       const key = button.dataset.for, facet = button.dataset.facet;
-      selectedDetails.set(key,selectedDetails.get(key) === facet ? '' : facet);
+      if (selectedDetails.get(key) === facet) return;
+      rememberPanelScroll();
+      selectedDetails.set(key,facet);
       renderPanels();
       return;
     }
@@ -300,10 +302,6 @@
       renderPanels();
       return;
     }
-    if (button.hasAttribute('data-review')) {
-      const shown = new Set([...document.querySelectorAll('[data-change]')].map(n => n.dataset.change));
-      review.mark(unseen.filter(c => shown.has(c.id))); render(); return;
-    }
     if (button.dataset.tab) { tab = button.dataset.tab; render(); window.scrollTo(0,0); }
     if (button.dataset.assistant) { assistant = assistant === button.dataset.assistant ? '' : button.dataset.assistant; render(); }
     if (button.dataset.pick) { rememberPanelScroll(); savedScroll = window.scrollY; history.pushState({nowDetail:true},'', '#item=' + encodeURIComponent(button.dataset.pick)); detail(); connection(); window.scrollTo(0,0); }
@@ -313,16 +311,17 @@
     }
   });
   document.addEventListener('keydown', event => {
-    const panel = event.target.closest('[data-inline]');
-    if (event.key !== 'Escape' || !panel || !selectedDetails.get(panel.dataset.inline)) return;
-    const key = panel.dataset.inline, facet = selectedDetails.get(key);
-    rememberPanelScroll(); selectedDetails.set(key,''); renderPanels();
+    const button = event.target.closest('[data-facet]');
+    if (!button || !['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) return;
+    const panel = button.closest('[data-inline]'), tabs = [...panel.querySelectorAll('[data-facet]')];
+    const index = tabs.indexOf(button), next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+    const facet = tabs[next].dataset.facet;
+    tabs[next].click();
     [...panel.querySelectorAll('[data-facet]')].find(n => n.dataset.facet === facet)?.focus({preventScroll:true});
     event.preventDefault();
   });
   window.addEventListener('popstate', () => { detail(); if (!selected()) renderPanels(); connection(); window.scrollTo(0,savedScroll); });
   document.addEventListener('visibilitychange', () => { clearTimeout(timer); if (!document.hidden) poll(); });
-  window.addEventListener('storage', event => { if (review && event.key === review.key) { review.load(); render(); } });
   window.addEventListener('online', poll);
   window.addEventListener('offline', () => { connected = false; connection(); });
   try { const cached = JSON.parse(localStorage.getItem('web-tools-now-snapshot')); if (cached?.schemaVersion === 1 && Array.isArray(cached.items)) data = cached; } catch { }

@@ -20,10 +20,30 @@
     th:'border-b border-stone-300 px-2 py-1 font-medium', td:'border-b border-stone-200 px-2 py-1 align-top',
     a:'text-emerald-800 underline decoration-emerald-300 underline-offset-2'
   };
+  function notification(value) {
+    const source = String(value ?? '').slice(0,20000);
+    const start = /^\s*<task-notification\b[^>]*>/i.exec(source);
+    if (!start) return null;
+    const body = source.slice(start[0].length).split(/<\/task-notification\s*>/i)[0];
+    const field = name => {
+      const match = new RegExp(`<${name}\\b[^>]*>([\\s\\S]*?)(?:<\\/${name}\\s*>|$)`,'i').exec(body);
+      if (!match) return '';
+      const decoder = document.createElement('textarea');
+      decoder.innerHTML = match[1].replace(/<[^>]*>/g,'');
+      return decoder.value.trim();
+    };
+    const states = {completed:'Completed',complete:'Completed',done:'Completed',failed:'Failed',error:'Failed',running:'Running',in_progress:'Running',cancelled:'Stopped',canceled:'Stopped'};
+    const rawStatus = field('status').toLowerCase();
+    const status = Object.hasOwn(states,rawStatus) ? states[rawStatus] : 'Update';
+    return {summary:field('summary') || field('message') || 'Background task update',status};
+  }
   function markdown(value) {
-    const text = String(value ?? '').slice(0,20000);
-    if (!parser || !window.DOMPurify) return `<p class="whitespace-pre-wrap">${escape(text)}</p>`;
-    if (cache.has(text)) return cache.get(text);
+    const source = String(value ?? '').slice(0,20000);
+    if (cache.has(source)) return cache.get(source);
+    const notice = notification(source), text = notice?.summary || source;
+    const tone = notice?.status === 'Completed' ? 'bg-emerald-50 text-emerald-800' : notice?.status === 'Failed' ? 'bg-rose-50 text-rose-800' : 'bg-stone-100 text-stone-600';
+    const prefix = notice ? `<p data-notification class="mb-1 text-[10px] text-stone-500">Background task <span class="ml-1 rounded px-1.5 py-0.5 ${tone}">${notice.status}</span></p>` : '';
+    if (!parser || !window.DOMPurify) return prefix + `<p class="whitespace-pre-wrap">${escape(text)}</p>`;
     const host = document.createElement('div');
     host.append(window.DOMPurify.sanitize(parser.parse(text),{RETURN_DOM_FRAGMENT:true,
       ALLOWED_TAGS:['p','br','strong','em','del','a','code','pre','blockquote','ul','ol','li','h1','h2','h3','h4','h5','h6','table','thead','tbody','tr','td','th','hr','span'],
@@ -40,10 +60,10 @@
       const wrap = document.createElement('div'); wrap.className = 'my-2 max-w-full overflow-x-auto';
       table.replaceWith(wrap); wrap.append(table);
     });
-    const result = host.innerHTML;
-    cache.set(text,result);
+    const result = prefix + host.innerHTML;
+    cache.set(source,result);
     if (cache.size > 40) cache.delete(cache.keys().next().value);
     return result;
   }
-  window.NowReading = {markdown};
+  window.NowReading = {markdown,notification};
 })();
