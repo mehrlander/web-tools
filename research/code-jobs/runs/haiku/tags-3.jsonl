@@ -1,0 +1,180 @@
+{"id": "node/build/registries-load.mjs:57", "tags": ["registry-table-io", "list-cell-codec"]}
+{"id": "node/build/registries-load.mjs:59", "tags": ["list-cell-codec"]}
+{"id": "node/build/registries-load.mjs:84", "tags": ["delimited-text-write", "list-cell-codec"]}
+{"id": "node/build/registries-load.mjs:1", "tags": ["registry-table-io", "list-cell-codec", "delimited-text-write", "csv-parse"]}
+{"id": "lib/kits/swipe-deck.js:147", "tags": ["publish-page-api"]}
+{"id": "lib/kits/swipe-deck.js:148", "tags": ["dom-element-build"]}
+{"id": "lib/kits/swipe-deck.js:160", "tags": ["inject-style-once"]}
+{"id": "lib/kits/swipe-deck.js:235", "tags": ["arrow-key-step"]}
+{"id": "lib/kits/swipe-deck.js:254", "tags": ["register-component", "return-control-handle"]}
+{"id": "lib/kits/swipe-deck.js:266", "tags": ["lazy-slide-track", "lazy-slide-fill", "slide-index-change"]}
+{"id": "lib/kits/swipe-deck.js:336", "tags": ["lazy-slide-fill"]}
+{"id": "lib/kits/swipe-deck.js:354", "tags": ["lazy-slide-fill"]}
+{"id": "lib/kits/swipe-deck.js:377", "tags": ["scroll-to-target", "clamp-index"]}
+{"id": "lib/kits/swipe-deck.js:403", "tags": ["schedule-next-frame", "debounce-input"]}
+{"id": "lib/kits/swipe-deck.js:407", "tags": ["lazy-slide-fill", "slide-index-change"]}
+{"id": "lib/kits/swipe-deck.js:434", "tags": ["state-styling"]}
+{"id": "lib/kits/swipe-deck.js:442#1", "tags": ["open-fullscreen-deck", "lazy-slide-track", "dock-pane-mode", "page-scroll-lock", "build-viewer-frame", "action-button"]}
+{"id": "lib/kits/swipe-deck.js:442#2", "tags": ["viewer-header-bar", "action-button", "dock-pane-mode"]}
+{"id": "lib/kits/swipe-deck.js:442#3", "tags": ["slide-pager", "chrome-auto-hide", "show-hide-element"]}
+{"id": "lib/kits/swipe-deck.js:442#4", "tags": ["show-hide-element", "drag-resize-handle"]}
+{"id": "lib/kits/swipe-deck.js:442#5", "tags": ["history-back-close", "return-control-handle", "animate-panel", "scroll-to-target"]}
+{"id": "lib/kits/swipe-deck.js:485", "tags": ["dock-pane-mode"]}
+{"id": "lib/kits/swipe-deck.js:616", "tags": ["viewer-header-bar"]}
+{"id": "lib/kits/swipe-deck.js:633", "tags": ["action-button"]}
+{"id": "lib/kits/swipe-deck.js:664", "tags": ["dock-pane-mode", "state-styling", "show-hide-element"]}
+{"id": "lib/kits/swipe-deck.js:673", "tags": ["dock-pane-mode"]}
+{"id": "lib/kits/swipe-deck.js:775", "tags": ["action-menu", "place-floating-panel", "dismiss-on-outside"]}
+{"id": "lib/kits/swipe-deck.js:786", "tags": ["action-button"]}
+{"id": "lib/kits/swipe-deck.js:841", "tags": ["place-floating-panel"]}
+{"id": "lib/kits/swipe-deck.js:862", "tags": ["dismiss-on-outside"]}
+{"id": "lib/kits/swipe-deck.js:874", "tags": ["action-button"]}
+{"id": "lib/kits/swipe-deck.js:998", "tags": ["show-hide-element"]}
+{"id": "lib/kits/swipe-deck.js:1020", "tags": ["chrome-auto-hide"]}
+{"id": "lib/kits/swipe-deck.js:1060", "tags": ["chrome-auto-hide"]}
+{"id": "lib/kits/swipe-deck.js:1110", "tags": ["state-styling"]}
+{"id": "lib/kits/swipe-deck.js:1133", "tags": ["table-of-contents"]}
+{"id": "lib/kits/swipe-deck.js:1190", "tags": ["table-of-contents", "history-back-close", "dismiss-on-outside", "scroll-to-target", "place-floating-panel"]}
+{"id": "lib/kits/swipe-deck.js:1211", "tags": ["history-back-close", "dismiss-on-outside"]}
+{"id": "lib/kits/swipe-deck.js:1264", "tags": ["drag-resize-handle"]}
+{"id": "lib/kits/swipe-deck.js:1300", "tags": ["slide-pager", "slide-index-change", "show-hide-element"]}
+{"id": "lib/kits/swipe-deck.js:1334", "tags": ["close-fullscreen-deck", "page-scroll-lock", "teardown-component", "animate-panel"]}
+{"id": "lib/kits/swipe-deck.js:1364", "tags": ["close-fullscreen-deck", "history-back-close"]}
+{"id": "lib/kits/swipe-deck.js:1380", "tags": ["history-back-close"]}
+{"id": "lib/kits/swipe-deck.js:1386", "tags": ["arrow-key-step"]}
+{"id": "lib/kits/swipe-deck.js:1424", "tags": ["animate-panel"]}
+{"id": "lib/kits/swipe-deck.js:1523", "tags": ["pluralize-count-label", "format-number"]}
+{"id": "lib/kits/swipe-deck.js:1528", "tags": ["action-button"]}
+{"id": "lib/alpineComponents/file-browser.js:27", "tags": ["register-component"]}
+{"id": "lib/alpineComponents/file-browser.js:28", "tags": ["select-item-in-list"]}
+{"id": "lib/alpineComponents/file-browser.js:94", "tags": ["arrow-key-step", "state-watch"]}
+{"id": "lib/alpineComponents/file-browser.js:97", "tags": ["select-item-in-list"]}
+{"id": "lib/alpineComponents/file-browser.js:111", "tags": ["select-item-in-list", "lazy-slide-fill"]}
+{"id": "lib/alpineComponents/file-browser.js:117", "tags": ["arrow-key-step"]}
+{"id": "lib/alpineComponents/file-browser.js:146", "tags": ["folder-file-list"]}
+{"id": "lib/alpineComponents/file-browser.js:157", "tags": ["lazy-slide-track", "select-item-in-list"]}
+{"id": "lib/alpineComponents/file-browser.js:162", "tags": ["dom-element-build"]}
+{"id": "lib/alpineComponents/file-browser.js:176", "tags": ["scroll-to-target", "select-item-in-list"]}
+{"id": "lib/alpineComponents/file-browser.js:185", "tags": ["clamp-index", "scroll-to-target"]}
+{"id": "lib/alpineComponents/file-browser.js:198", "tags": ["scroll-position-index"]}
+{"id": "lib/alpineComponents/file-browser.js:209", "tags": ["lazy-slide-fill"]}
+{"id": "lib/alpineComponents/file-browser.js:220", "tags": ["select-item-in-list"]}
+{"id": "lib/alpineComponents/file-browser.js:241", "tags": ["file-viewer", "address-state"]}
+{"id": "lib/alpineComponents/file-browser.js:256", "tags": ["fetch-repo-file", "status-message"]}
+{"id": "lib/alpineComponents/file-browser.js:276", "tags": ["open-fullscreen-deck", "load-asset-once", "select-item-in-list"]}
+{"id": "lib/alpineComponents/file-browser.js:295", "tags": ["viewer-header-bar", "select-item-in-list"]}
+{"id": "lib/alpineComponents/file-browser.js:310", "tags": ["viewer-header-bar", "link-build"]}
+{"id": "lib/alpineComponents/here-view.js:39", "tags": ["register-component"]}
+{"id": "lib/alpineComponents/here-view.js:40#1", "tags": ["storage-read-safe", "byte-size", "format-date-display", "draw-panel-section"]}
+{"id": "lib/alpineComponents/here-view.js:40#2", "tags": ["draw-panel-section", "status-message", "storage-inventory"]}
+{"id": "lib/alpineComponents/here-view.js:40#3", "tags": ["viewer-header-bar", "lazy-slide-track", "action-button"]}
+{"id": "lib/alpineComponents/here-view.js:40#4", "tags": ["select-item-in-list", "arrow-key-step"]}
+{"id": "lib/alpineComponents/here-view.js:51", "tags": ["token-format"]}
+{"id": "lib/alpineComponents/here-view.js:109", "tags": ["mask-secret", "pretty-print-json", "storage-item-text"]}
+{"id": "lib/alpineComponents/here-view.js:127", "tags": ["file-viewer"]}
+{"id": "lib/alpineComponents/here-view.js:398", "tags": ["mount-component", "state-watch", "token-check"]}
+{"id": "lib/alpineComponents/here-view.js:405", "tags": ["mount-component"]}
+{"id": "lib/alpineComponents/here-view.js:419", "tags": ["scroll-to-target"]}
+{"id": "lib/alpineComponents/here-view.js:433", "tags": ["explain-failure"]}
+{"id": "lib/alpineComponents/here-view.js:443", "tags": ["wrap-text-line"]}
+{"id": "lib/alpineComponents/here-view.js:452", "tags": ["status-line"]}
+{"id": "lib/alpineComponents/here-view.js:469", "tags": ["status-message"]}
+{"id": "lib/alpineComponents/here-view.js:479", "tags": ["format-number"]}
+{"id": "lib/alpineComponents/here-view.js:484", "tags": ["status-line"]}
+{"id": "lib/alpineComponents/here-view.js:496", "tags": ["state-styling"]}
+{"id": "lib/alpineComponents/here-view.js:507", "tags": ["explain-failure"]}
+{"id": "lib/alpineComponents/here-view.js:520", "tags": ["token-check"]}
+{"id": "lib/alpineComponents/here-view.js:560", "tags": ["token-format", "token-save-clear"]}
+{"id": "lib/alpineComponents/here-view.js:572", "tags": ["confirm-destructive-action", "token-save-clear"]}
+{"id": "lib/alpineComponents/here-view.js:579", "tags": ["save-local-state", "confirmation-flash", "status-message"]}
+{"id": "lib/alpineComponents/here-view.js:592", "tags": ["storage-inventory", "status-line"]}
+{"id": "lib/alpineComponents/here-view.js:597", "tags": ["status-line", "status-message"]}
+{"id": "lib/alpineComponents/here-view.js:623", "tags": ["switch-view", "address-state"]}
+{"id": "lib/alpineComponents/here-view.js:638", "tags": ["select-item-in-list", "address-state"]}
+{"id": "lib/alpineComponents/here-view.js:647", "tags": ["storage-inventory"]}
+{"id": "lib/alpineComponents/here-view.js:650", "tags": ["item-to-row", "status-message"]}
+{"id": "lib/alpineComponents/here-view.js:663", "tags": ["storage-item-text", "pretty-print-json"]}
+{"id": "lib/alpineComponents/here-view.js:669", "tags": ["db-store-read", "load-data-once"]}
+{"id": "lib/alpineComponents/here-view.js:683", "tags": ["lazy-slide-fill"]}
+{"id": "lib/alpineComponents/here-view.js:694", "tags": ["scroll-position-index"]}
+{"id": "lib/alpineComponents/here-view.js:699", "tags": ["schedule-next-frame"]}
+{"id": "lib/alpineComponents/here-view.js:701", "tags": ["select-item-in-list", "scroll-position-index", "lazy-slide-fill"]}
+{"id": "lib/alpineComponents/here-view.js:717", "tags": ["clamp-index", "select-item-in-list", "scroll-to-target"]}
+{"id": "lib/alpineComponents/here-view.js:732", "tags": ["schedule-next-frame", "scroll-to-target"]}
+{"id": "lib/alpineComponents/here-view.js:733", "tags": ["schedule-next-frame", "scroll-to-target"]}
+{"id": "lib/alpineComponents/here-view.js:740", "tags": ["scroll-to-target", "lazy-slide-fill"]}
+{"id": "lib/alpineComponents/here-view.js:762", "tags": ["scroll-to-target"]}
+{"id": "lib/alpineComponents/here-view.js:763", "tags": ["scroll-to-target"]}
+{"id": "lib/alpineComponents/here-view.js:775", "tags": ["open-fullscreen-deck", "load-asset-once"]}
+{"id": "lib/alpineComponents/here-view.js:783", "tags": ["lazy-slide-fill", "file-viewer"]}
+{"id": "lib/alpineComponents/here-view.js:799", "tags": ["teardown-component"]}
+{"id": "lib/alpineComponents/here-view.js:803", "tags": ["select-item-in-list", "scroll-to-target"]}
+{"id": "lib/alpineComponents/here-view.js:812", "tags": ["slide-index-change", "select-item-in-list"]}
+{"id": "lib/alpineComponents/here-view.js:822", "tags": ["storage-inventory", "switch-view", "byte-size", "status-message"]}
+{"id": "lib/alpineComponents/here-view.js:882", "tags": ["ask-linked-page"]}
+{"id": "lib/alpineComponents/here-view.js:888", "tags": ["switch-view", "ask-linked-page", "explain-failure"]}
+{"id": "lib/alpineComponents/here-view.js:925", "tags": ["storage-item-text", "mask-secret", "pretty-print-json", "status-message"]}
+{"id": "lib/alpineComponents/user-call-form.js:69#1", "tags": ["draw-panel-section", "link-target-resolve", "define-helpers"]}
+{"id": "lib/alpineComponents/user-call-form.js:69#2", "tags": ["draw-panel-section", "status-message"]}
+{"id": "lib/alpineComponents/user-call-form.js:69#3", "tags": ["draw-panel-section"]}
+{"id": "lib/alpineComponents/user-call-form.js:69#4", "tags": ["draw-panel-section", "publish-page-api", "register-component", "lazy-slide-track"]}
+{"id": "lib/alpineComponents/user-call-form.js:100", "tags": ["preview-cache"]}
+{"id": "lib/alpineComponents/user-call-form.js:107", "tags": ["render-file-html", "fetch-repo-file"]}
+{"id": "lib/alpineComponents/user-call-form.js:121", "tags": ["link-target-resolve"]}
+{"id": "lib/alpineComponents/user-call-form.js:189", "tags": ["pr-state-read"]}
+{"id": "lib/alpineComponents/user-call-form.js:212", "tags": ["post-answer"]}
+{"id": "lib/alpineComponents/user-call-form.js:245", "tags": ["open-fullscreen-deck", "load-asset-once"]}
+{"id": "lib/alpineComponents/user-call-form.js:262", "tags": ["mount-component", "lazy-slide-fill"]}
+{"id": "lib/alpineComponents/user-call-form.js:275", "tags": ["viewer-header-bar"]}
+{"id": "lib/alpineComponents/user-call-form.js:810", "tags": ["register-component"]}
+{"id": "lib/alpineComponents/user-call-form.js:811#1", "tags": ["build-initial-state", "glossary-term-mark", "load-data-once"]}
+{"id": "lib/alpineComponents/user-call-form.js:811#2", "tags": ["click-dispatch"]}
+{"id": "lib/alpineComponents/user-call-form.js:832", "tags": ["materials-list"]}
+{"id": "lib/alpineComponents/user-call-form.js:846", "tags": ["order-items"]}
+{"id": "lib/alpineComponents/user-call-form.js:859", "tags": ["state-styling"]}
+{"id": "lib/alpineComponents/user-call-form.js:875", "tags": ["select-item-in-list", "scroll-to-target"]}
+{"id": "lib/alpineComponents/user-call-form.js:891", "tags": ["state-styling"]}
+{"id": "lib/alpineComponents/user-call-form.js:899", "tags": ["load-data-once"]}
+{"id": "lib/alpineComponents/user-call-form.js:900", "tags": ["fetch-repo-file"]}
+{"id": "lib/alpineComponents/user-call-form.js:920", "tags": ["load-data-once"]}
+{"id": "lib/alpineComponents/user-call-form.js:921", "tags": ["fetch-repo-file"]}
+{"id": "lib/alpineComponents/user-call-form.js:928", "tags": ["new:list-question-tabs"]}
+{"id": "lib/alpineComponents/user-call-form.js:945", "tags": ["new:pick-slide-commentary"]}
+{"id": "lib/alpineComponents/user-call-form.js:951", "tags": ["action-button"]}
+{"id": "lib/alpineComponents/user-call-form.js:969", "tags": ["decision-tree-render", "fetch-repo-file"]}
+{"id": "lib/alpineComponents/user-call-form.js:988", "tags": ["decision-tree-render"]}
+{"id": "lib/alpineComponents/user-call-form.js:1002", "tags": ["decision-tree-render"]}
+{"id": "lib/alpineComponents/user-call-form.js:1012", "tags": ["decision-tree-render"]}
+{"id": "lib/alpineComponents/user-call-form.js:1029", "tags": ["glossary-term-mark"]}
+{"id": "lib/alpineComponents/user-call-form.js:1044", "tags": ["glossary-term-mark"]}
+{"id": "lib/alpineComponents/user-call-form.js:1067", "tags": ["glossary-term-mark", "scroll-to-target"]}
+{"id": "lib/alpineComponents/user-call-form.js:1072", "tags": ["search-filter"]}
+{"id": "lib/alpineComponents/user-call-form.js:1087", "tags": ["scroll-to-target"]}
+{"id": "lib/alpineComponents/user-call-form.js:1098", "tags": ["scroll-to-target"]}
+{"id": "lib/alpineComponents/user-call-form.js:1111", "tags": ["glossary-term-mark", "select-item-in-list"]}
+{"id": "lib/alpineComponents/user-call-form.js:1131", "tags": ["click-dispatch", "glossary-term-mark"]}
+{"id": "lib/alpineComponents/user-call-form.js:1141", "tags": ["select-item-in-list", "scroll-to-target"]}
+{"id": "lib/alpineComponents/user-call-form.js:1152", "tags": ["switch-view", "scroll-to-target"]}
+{"id": "lib/alpineComponents/user-call-form.js:1162", "tags": ["scroll-to-target"]}
+{"id": "lib/alpineComponents/user-call-form.js:1183", "tags": ["scroll-to-target"]}
+{"id": "lib/alpineComponents/user-call-form.js:1197", "tags": ["status-message"]}
+{"id": "lib/alpineComponents/user-call-form.js:1207", "tags": ["mount-component", "state-watch", "arrow-key-step", "focus-return"]}
+{"id": "lib/alpineComponents/user-call-form.js:1223", "tags": ["arrow-key-step"]}
+{"id": "lib/alpineComponents/user-call-form.js:1252", "tags": ["focus-return"]}
+{"id": "lib/alpineComponents/user-call-form.js:1265", "tags": ["arrow-key-step"]}
+{"id": "lib/alpineComponents/user-call-form.js:1271", "tags": ["teardown-component"]}
+{"id": "lib/alpineComponents/user-call-form.js:1276", "tags": ["load-asset-once", "fetch-repo-file", "status-message"]}
+{"id": "lib/alpineComponents/user-call-form.js:1303", "tags": ["viewer-header-bar", "action-button"]}
+{"id": "lib/alpineComponents/user-call-form.js:1331", "tags": ["answer-choices"]}
+{"id": "lib/alpineComponents/user-call-form.js:1341", "tags": ["action-button", "state-styling"]}
+{"id": "lib/alpineComponents/user-call-form.js:1346", "tags": ["click-dispatch", "show-hide-element"]}
+{"id": "lib/alpineComponents/user-call-form.js:1358", "tags": ["state-styling", "busy-indicator"]}
+{"id": "lib/alpineComponents/user-call-form.js:1371", "tags": ["action-menu"]}
+{"id": "lib/alpineComponents/user-call-form.js:1384", "tags": ["open-fullscreen-deck", "load-asset-once"]}
+{"id": "lib/alpineComponents/user-call-form.js:1396", "tags": ["lazy-slide-fill", "embed-sandboxed-html"]}
+{"id": "lib/alpineComponents/user-call-form.js:1430", "tags": ["show-hide-element", "load-asset-once", "dismiss-on-outside", "place-floating-panel"]}
+{"id": "lib/alpineComponents/user-call-form.js:1458", "tags": ["link-build"]}
+{"id": "lib/alpineComponents/user-call-form.js:1463", "tags": ["jsonl-parse", "fetch-repo-file"]}
+{"id": "lib/alpineComponents/user-call-form.js:1473", "tags": ["post-answer", "status-message"]}
+{"id": "lib/alpineComponents/user-call-form.js:1498", "tags": ["scroll-position-index"]}
+{"id": "lib/alpineComponents/user-call-form.js:1518", "tags": ["clamp-index", "scroll-to-target"]}

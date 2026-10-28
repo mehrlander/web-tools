@@ -1154,9 +1154,8 @@
         const entry = this.answerEntry();
         // RECORD ONLY, the default (owner, 2026-10-04). A commit from here goes
         // through the contents API, so the target repo's commit hook never
-        // runs: in web-tools that left docs/docs.csv's word counts stale and,
-        // for an edit to a quoted sentence, docs/policies.csv's quote missing,
-        // and either failed the suite on every later PR. So the answer is
+        // runs: in web-tools that left docs/docs.csv's word counts stale, which
+        // failed the suite on every later PR. So the answer is
         // recorded with the confirmed edits as a patch, and a session applies
         // it where the hook runs (user-call.py patch <id> | git apply). The
         // two commit exits stay for a repo with nothing derived.

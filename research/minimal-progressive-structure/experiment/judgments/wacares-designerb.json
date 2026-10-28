@@ -1,0 +1,62 @@
+{
+  "ranking": ["K7", "R8", "T2", "R4", "X3", "V3", "X7", "M8"],
+  "pages": {
+    "K7": {
+      "score": 9,
+      "criteria": {"first_screen": 5, "findability": 4, "fit": 5, "economy": 4, "fidelity": 5},
+      "strengths": "The headline itself says what the measure does (SJR 8201 would let the state invest WA Cares payroll taxes in the stock market), and the lead explains the amendment in plain words. A three-cell strip gives ballot position, the pass threshold and the Legislature vote, and the Today / If approved table starts above the fold. The For / Against section uses parallel rows (speaker, case, backers, money) that line the two sides up fact for fact. Entities from the article (WA Cares, SEIU 775, the 2020 attempt) open as dialogs whose chips preview the key qualifier, and the dialogs link to each other with a working Back path. Attribution is careful throughout: the earnings mandate is credited to Weiner, both in the main box and in the 2020 dialog.",
+      "weaknesses": "The $36,500 benefit and the July 2026 start appear only inside the WA Cares dialog, and its chip does not hint at either, so a reader hunting for the benefit has to guess. The 2020 county result and SEIU's five-times comparison also sit one or two dialogs down. At 390px the two-column sides table is cramped, and the small 'Article passage' disclosures add some noise.",
+      "regions": "Headline and lead; WA Cares chip and identity strip; 'What a yes vote changes' table and 'Earnings would stay with WA Cares' box; 'What each side says' rows with evidence disclosures expanded; WA Cares dialog (facts, trust account, milestone axis); SEIU 775 dialog leading into the nested 2020 attempt dialog and its Back button; phone first screen and sides table."
+    },
+    "R8": {
+      "score": 8,
+      "criteria": {"first_screen": 5, "findability": 4, "fit": 4, "economy": 4, "fidelity": 5},
+      "strengths": "The first screen opens with a large one-sentence answer ('A yes vote adds a few lines to the state constitution so the state can...'), followed straight away by the Today / If approved table. Its constitutional-limit term is an inline link to a dialog explaining what the bar covers and who is exempt. A labeled row grid (who makes the case, argument, who backs it, money behind it) handles the sides cleanly. 'How it reached your ballot' puts the 2020 defeat, the Legislature vote and Tuesday in one short timeline on the main page. Attribution is exact, and the nested dialog navigation (limit to WA Cares, with Back) works.",
+      "weaknesses": "The benefit amount and the July 2026 date sit behind the WA Cares dialog. 'The program and the rule it touches' cards mostly repeat what the change table and its inline link already give. Three 'Article passages behind this section' disclosures add chrome. On a phone the two-column sides table becomes narrow bulleted columns that are tiring to read.",
+      "regions": "Kicker, title and answer sentence; 'What changes for the WA Cares money' table with the inline limit link; 'Where investment earnings would go'; 'Who is for it, and who is against it' grid with the words-at-the-debate disclosures; road-to-ballot timeline; entity cards; constitutional-limit dialog and nested WA Cares dialog; phone sides grid."
+    },
+    "T2": {
+      "score": 7,
+      "criteria": {"first_screen": 4, "findability": 4, "fit": 5, "economy": 3, "fidelity": 5},
+      "strengths": "If No / If Yes is the most decision-shaped frame of any page, and the second group keeps the same two columns for Against / For, so a voter reads every row as the consequence of a vote. The WA Cares bar in the header carries the 0.58% tax, the $2.5B balance and 'benefits from July 2026' before any click. Its dialog has a proportional timeline that marks the vote among the program milestones. Attribution is careful (the earnings mandate 'says the Yes campaign's Heather Weiner'), and an empty If No earnings cell honestly shows there is nothing on that side.",
+      "weaknesses": "The H1 is the opaque formal name 'Senate Joint Resolution 8201'; the explanation is left to the subline. A tiny 'Article text' button repeats in every row's label column (a dozen or more), which clutters the scan path. Body type is set very large with no page max-width, so the page runs to about 5,300px on a phone, where every row stacks into IF NO / IF YES blocks. The $36,500 amount is only in the dialog, and the road to the ballot is pushed to the bottom.",
+      "regions": "Meta line, H1 and description; WA Cares summary button and its timeline dialog with the 'Back to SJR 8201' control; 'What a vote decides' and 'Who argues each side' row grids with the Article text toggles opened; 'Road to the ballot' strip; phone stacking of If No / If Yes cells."
+    },
+    "R4": {
+      "score": 7,
+      "criteria": {"first_screen": 4, "findability": 3, "fit": 4, "economy": 4, "fidelity": 5},
+      "strengths": "Plain, compact and correctly ordered: the yes-vote sentence and the earnings rule come first, then a 'Whose money' box, the Today / If approved table, and an 'On your ballot' definition list (what, where, when, to pass, how it got here, with vote badges). The 'In short' row gives a fair one-line gist of each side. In collapsed state the page is short, and every claim can be traced to verbatim article passages.",
+      "weaknesses": "The backers and the actual arguments are hidden behind a 'Both sides in full' toggle, so 'who supports this?' takes a click the reader may not think to make. The benefit and dates are behind the WA Cares dialog. Six 'Article passages behind this section' disclosures in small grey type become a repeated motif with little payoff for a general reader. Much of the text is small (text-sm) in a narrow column, so the page reads as a form more than a story.",
+      "regions": "Title, answer and earnings lines; 'Whose money' box and WA Cares dialog; 'What changes' grid; 'On your ballot' list; 'The two sides' grid before and after the full-arguments toggle; Background list; provenance disclosures; phone first screen."
+    },
+    "X3": {
+      "score": 6,
+      "criteria": {"first_screen": 4, "findability": 4, "fit": 3, "economy": 2, "fidelity": 5},
+      "strengths": "It is complete and careful: the earnings mandate is attributed to Weiner, a note explains that 'Tuesday' and 'this year' are relative to publication, and every fact from the article is present. The jump-link chips under the header give quick access to six sections. 'About WA Cares' is a clean labeled list where the benefit amount and start date are easy to find, and the Legislature vote bars are clear.",
+      "weaknesses": "It is a generic news-explainer template (original headline and dek, nav chips, Today / If approved cards, side-by-side person cards, timeline, learn-more) rather than a structure drawn from this content. At about 1,000 words and 7,700px on a phone, it is the longest page. It repeats itself: the earnings rule appears twice, Hasegawa's bullet summary restates the quote printed right below it, and the tax, balance and vote figures each recur in two or three sections.",
+      "regions": "Header with headline, dek, date note and section chips; 'The question on the ballot' definition list; 'What would change' cards; 'For and against' cards with bullets, quotes, backers and money; Legislature vote bars; 'About WA Cares' list; 'How we got here' timeline; full-page desktop and phone screenshots."
+    },
+    "V3": {
+      "score": 6,
+      "criteria": {"first_screen": 3, "findability": 4, "fit": 4, "economy": 5, "fidelity": 3},
+      "strengths": "It is the leanest page. Four well-named tabs ('What changes', 'For & against', '2020 vs 2025', 'Timeline') sit in a sticky bar, each panel is a tight labeled-row comparison, and the substance of the change table is visible on the first screen. The '2020 vs 2025' tab is a content-specific idea that the article really supports, with a simple bar showing SEIU's fivefold spending increase, and the Legislature vote bars are readable.",
+      "weaknesses": "The header's stat strip ('Over $2.5 billion banked · House 86–9 · Senate 42–7 · Passes above 50%') means nothing to a newcomer, and the header never says that this is a constitutional amendment on the ballot. Tabs hide most of a short article: the $36,500 benefit is findable only under Timeline. On fidelity, the 2025 earnings mandate appears as unattributed fact in two places, though the article reports it as Weiner's claim. The page also puts the campaign's 8.9% pension-return figure in the 'If approved' Returns cell of a factual comparison table, which reads as a projected outcome despite the 'says the Approve 8201 campaign' tag. Putting the Legislature vote inside 'For & against' is a stretch.",
+      "regions": "Header and stat strip; sticky tab bar; 'What changes' panel (account, constitution, investments, returns, earnings rows); 'For & against' panel with quotes, backers, money and vote bars; '2020 vs 2025' panel with spending bars; 'Timeline' panel with story-date divider; phone tab overflow."
+    },
+    "X7": {
+      "score": 5,
+      "criteria": {"first_screen": 4, "findability": 3, "fit": 3, "economy": 3, "fidelity": 4},
+      "strengths": "The reading order is clean, from the original headline and dek to a 'question on the ballot' list, Today / If approved cards, side cards that lead with each speaker's own quote, a 'WA Cares at a glance' table and a timeline. The quotes are given whole rather than paraphrased twice. The full original article is available, collapsed, at the end.",
+      "weaknesses": "It follows a generic explainer template with no navigation, so finding one fact means scrolling. The 'Where earnings go' row states the WA Cares Fund mandate as plain fact, though the article attributes it to Weiner, who is credited only later. The earnings rule appears twice, Hasegawa is listed both as speaker and as an opponent, and the appended full article doubles the content for anyone who opens it.",
+      "regions": "Badges, headline, dek; 'The question on the ballot' list; 'What would change' cards; 'The two sides' cards with backers and campaign money; 'WA Cares at a glance' table; 'How it got here' timeline; 'Read more' with the original-article collapse; phone first screen."
+    },
+    "M8": {
+      "score": 5,
+      "criteria": {"first_screen": 4, "findability": 4, "fit": 3, "economy": 2, "fidelity": 4},
+      "strengths": "The first screen explains the decision well with 'What voters are deciding'. 'The numbers in the story' is a fast lookup for every figure (0.58%, $2.5B, $36,500, 8.9% credited to Weiner, the votes, SEIU's $2.5M), and the in-order timeline is clear.",
+      "weaknesses": "This page has the most repetition of the eight. SEIU's money and membership appear in full twice, 'no funded opposition' twice, and the earnings mandate twice. 'Who is behind each side' largely re-runs 'The two sides', and the balance, tax and vote figures recur across three sections. The 'If approved' card states the WA Cares Fund mandate as unattributed fact. Numbered badges 1-2-3 suggest a sequence that does not exist. The template (headline badges, cards, stat list, timeline) is generic, and the page runs to about 6,000px on a phone.",
+      "regions": "Badges, headline and dek; 'What voters are deciding' card; 'What would change' cards; 'The numbers in the story' list; 'The two sides' cards; 'WA Cares and this measure, in order' timeline; 'Who is behind each side'; official-statements alert; full-page desktop screenshot."
+    }
+  },
+  "summary": "K7 and R8 open with a sentence that says what a yes vote does, follow it at once with a Today / If approved comparison and parallel For / Against rows, and move secondary entities (WA Cares, SEIU, the 2020 attempt, the constitutional limit) into linked dialogs, so the main page stays short without losing anything. K7 also puts ballot position, threshold and the Legislature vote in one strip. The lower half either repeats the same facts across a generic article template (M8, X7, X3) or trims hard at some cost to accuracy and context (V3's unattributed mandate and campaign return figure placed in the If approved column). T2's If No / If Yes framing fits the content best but is weighed down by toggles and oversized type."
+}

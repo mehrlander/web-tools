@@ -1,7 +1,6 @@
 // docs/fab-signals.csv: what the FAB says about the view in front of the
-// reader, one row per tint, glyph and badge. The Map's Showing tab renders it
-// under "What the FAB says", and docs/fab.md points there rather than
-// restating it.
+// reader, one row per tint, glyph and badge. The Map's FAB tab renders every
+// row, and docs/fab.md points there rather than restating it.
 //
 // A live row is held to the FAB's own markup in lib/alpineComponents/fab.js,
 // in both directions: its glyph, its colour and its corner must be what the
@@ -61,5 +60,15 @@ test('a glyph or badge names a mark that exists, and a tint names none', () => {
     if (r.part === 'tint') { assert.equal(r.icon, '', `${r.key}: a tint has no mark`); continue; }
     if (r.icon.endsWith('.svg')) assert.ok(existsSync(path.join(repoRoot, r.icon)), `${r.key}: ${r.icon} exists`);
     else assert.ok(phosphor.includes(`.${r.icon}:before`), `${r.key}: ${r.icon} is a Phosphor glyph`);
+  }
+});
+
+// The FAB tab lists each signal by its label; the meaning, when and note are
+// on the signal's card.
+test('a signal\'s tile fits: a label of two words and a meaning of five', () => {
+  const words = v => String(v || '').split(/\s+/).filter(Boolean).length;
+  for (const r of rows) {
+    assert.ok(words(r.label) <= 2, `${r.key}: label "${r.label}" runs past two words`);
+    assert.ok(words(r.gloss) <= 5, `${r.key}: gloss "${r.gloss}" runs past five words`);
   }
 });

@@ -1,0 +1,982 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Potomac Midair Collision</title>
+<meta name="description" content="The January 29, 2025 midair collision of PSA Airlines flight 5342 and Army helicopter PAT25 near Reagan National Airport, as set out in the NTSB preliminary report DCA25MA108.">
+<script>
+  // daisyUI's CDN build ships its dark theme under [data-theme=dark] only; follow the reader's system setting.
+  (function () {
+    try {
+      var m = window.matchMedia('(prefers-color-scheme: dark)');
+      var apply = function () { document.documentElement.setAttribute('data-theme', m.matches ? 'dark' : 'light'); };
+      apply();
+      if (m.addEventListener) m.addEventListener('change', apply);
+    } catch (e) {}
+  })();
+</script>
+<link href="https://cdn.jsdelivr.net/npm/daisyui@5.0.43/daisyui.css" rel="stylesheet" type="text/css">
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.1.11/dist/index.global.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.9/dist/cdn.min.js"></script>
+<style>
+  [x-cloak] { display: none !important; }
+  body { overflow-x: clip; }
+  body { background: var(--color-base-100); color: var(--color-base-content); }
+  .tnum { font-variant-numeric: tabular-nums; }
+  .rules > * + * { border-top: 1px solid var(--color-base-300); }
+  .rules-box { border: 1px solid var(--color-base-300); border-radius: var(--radius-box); }
+  .sticky-bar { background: color-mix(in oklab, var(--color-base-100) 94%, transparent); }
+  .hover-tint:hover { background: var(--color-base-200); }
+  .card-link:hover { border-color: color-mix(in oklab, var(--color-base-content) 40%, transparent); background: var(--color-base-200); }
+  .tint-atc { background: color-mix(in oklab, var(--color-base-content) 4%, transparent); }
+  .collision-box { border: 2px solid color-mix(in srgb, var(--color-error) 55%, var(--color-base-100)); background: color-mix(in srgb, var(--color-error) 6%, var(--color-base-100)); }
+  .response-card { border-left: 4px solid color-mix(in srgb, var(--color-error) 45%, var(--color-base-100)); background: var(--color-base-200); }
+  .tag-pat { border-color: color-mix(in srgb, #f97316 45%, var(--color-base-100)); background: color-mix(in srgb, #f97316 12%, var(--color-base-100)); }
+</style>
+</head>
+<body class="bg-base-100 text-base-content antialiased">
+
+<!-- Classes that only appear through Alpine bindings, listed so the Tailwind browser build emits them at load. -->
+<div class="hidden border-sky-600 dark:border-sky-400 bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border-orange-500 dark:border-orange-400 bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 border-base-content/30 bg-base-200 md:col-start-2 md:col-start-3 md:col-start-4 md:col-span-3 col-start-2 rotate-90 bg-sky-600 bg-orange-500 bg-base-content/40 dark:bg-sky-400 dark:bg-orange-400 border-t-sky-600 border-t-orange-500 dark:border-t-sky-400 dark:border-t-orange-400"></div>
+
+<div x-data="page" x-cloak class="mx-auto max-w-6xl px-4 pb-16" @keydown.escape.window="close()">
+
+  <!-- ===== Answer ===== -->
+  <header class="pt-8 sm:pt-12">
+    <p class="text-sm text-base-content/70">NTSB preliminary report · Accident <span x-text="M.accident.number"></span></p>
+    <h1 class="mt-2 max-w-4xl font-serif text-3xl font-semibold leading-tight sm:text-5xl">Midair collision over the Potomac at Reagan National Airport</h1>
+    <p class="mt-4 max-w-3xl text-lg leading-relaxed sm:text-xl" x-text="M.accident.lead"></p>
+    <dl class="mt-6 grid max-w-5xl grid-cols-1 gap-x-8 gap-y-3 border-y border-base-300 py-4 sm:grid-cols-2 lg:grid-cols-4">
+      <template x-for="f in M.accident.facts" :key="f[0]">
+        <div>
+          <dt class="text-xs font-semibold uppercase tracking-wide text-base-content/60" x-text="f[0]"></dt>
+          <dd class="mt-0.5" x-text="f[1]"></dd>
+        </div>
+      </template>
+    </dl>
+  </header>
+
+  <!-- ===== The two flights (rows) ===== -->
+  <section class="mt-8" aria-labelledby="h-flights">
+    <h2 id="h-flights" class="sr-only">The two aircraft</h2>
+    <div class="grid gap-4 md:grid-cols-2">
+      <template x-for="fl in M.flights" :key="fl.id">
+        <article class="rounded-box border border-base-300 border-t-4 bg-base-100 p-5" :class="lane(fl.lane).top">
+          <p class="text-xs font-semibold uppercase tracking-wide" :class="lane(fl.lane).text" x-text="fl.kicker"></p>
+          <h3 class="mt-1 text-2xl font-semibold" x-text="fl.title"></h3>
+          <p class="text-base-content/80" x-text="fl.line"></p>
+          <dl class="mt-3 space-y-1.5 text-sm">
+            <template x-for="r in fl.rows" :key="r[0]">
+              <div class="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-3">
+                <dt class="text-base-content/60" x-text="r[0]"></dt>
+                <dd x-text="r[1]"></dd>
+              </div>
+            </template>
+          </dl>
+          <button type="button" class="btn btn-sm mt-4" @click="openRoot(fl.id, $event)">
+            <span x-text="fl.open"></span><span aria-hidden="true">→</span>
+          </button>
+        </article>
+      </template>
+    </div>
+  </section>
+
+  <!-- ===== Sequence ===== -->
+  <section class="mt-12" aria-labelledby="h-seq">
+    <h2 id="h-seq" class="font-serif text-2xl font-semibold sm:text-3xl">How the two flights converged</h2>
+    <p class="mt-2 max-w-3xl text-base-content/80" x-text="M.sequenceNote"></p>
+
+    <!-- lane headers -->
+    <div class="sticky-bar sticky top-0 z-10 mt-4 border-b border-base-300 py-2 backdrop-blur">
+      <div class="flex flex-wrap gap-2 md:grid md:grid-cols-[5.5rem_repeat(3,minmax(0,1fr))] md:gap-x-3">
+        <div class="hidden text-right text-xs text-base-content/60 md:block md:self-center">EST</div>
+        <template x-for="ln in M.laneOrder" :key="ln">
+          <button type="button" class="flex items-center gap-2 rounded-field border-l-4 px-2 py-1 text-left text-sm" :class="lane(ln).card" @click="openRoot(lane(ln).ref, $event)">
+            <span class="font-semibold" x-text="lane(ln).name"></span>
+            <span class="hidden text-base-content/70 sm:inline" x-text="lane(ln).q"></span>
+          </button>
+        </template>
+      </div>
+    </div>
+
+    <template x-for="ph in M.phases" :key="ph.id">
+      <div class="mt-6">
+        <h3>
+          <button type="button" class="flex w-full flex-wrap items-baseline gap-x-3 text-left" @click="phaseOpen[ph.id] = !phaseOpen[ph.id]" :aria-expanded="phaseOpen[ph.id] ? 'true' : 'false'">
+            <span class="inline-block transition-transform" :class="phaseOpen[ph.id] ? 'rotate-90' : ''" aria-hidden="true">▸</span>
+            <span class="text-lg font-semibold" x-text="ph.title"></span>
+            <span class="text-sm text-base-content/60 tnum" x-text="ph.span + ' · ' + ph.events.length + ' events'"></span>
+          </button>
+        </h3>
+        <div x-show="phaseOpen[ph.id]" class="relative mt-3">
+          <div x-show="ph.lanes" class="pointer-events-none absolute inset-0 hidden md:grid md:grid-cols-[5.5rem_repeat(3,minmax(0,1fr))] md:gap-x-3" aria-hidden="true">
+            <div></div><div class="rounded-box bg-sky-500/5"></div><div class="rounded-box tint-atc"></div><div class="rounded-box bg-orange-500/5"></div>
+          </div>
+          <ol class="relative grid grid-cols-[4.25rem_minmax(0,1fr)] gap-x-3 gap-y-2 md:grid-cols-[5.5rem_repeat(3,minmax(0,1fr))]">
+            <template x-for="ev in ph.events" :key="ev.id">
+              <li class="contents">
+                <div class="col-start-1 pt-2 text-right font-mono text-xs leading-tight tnum sm:text-sm">
+                  <div x-show="ev.gap" class="mb-0.5 text-[0.7rem] text-base-content/50" x-text="ev.gap"></div>
+                  <div x-text="ev.t"></div>
+                </div>
+                <div class="min-w-0 rounded-box px-3 py-2" :class="cardClass(ev, ph)">
+                  <div x-show="ph.lanes" class="text-xs font-semibold md:hidden" :class="ev.lane ? lane(ev.lane).text : ''" x-text="ev.lane ? lane(ev.lane).name : ''"></div>
+                  <p class="leading-snug" x-text="ev.text"></p>
+                  <div x-show="ev.tminus || ev.chips" class="mt-1.5 flex flex-wrap gap-1">
+                    <span x-show="ev.tminus" class="badge badge-sm badge-outline badge-error tnum" x-text="ev.tminus + ' s before impact'"></span>
+                    <template x-for="c in (ev.chips || [])" :key="c">
+                      <span class="badge badge-sm badge-ghost tnum" x-text="c"></span>
+                    </template>
+                  </div>
+                  <p x-show="ev.note" class="mt-1.5 text-sm italic text-base-content/80" x-text="ev.note"></p>
+                  <p x-show="ev.src" class="mt-1 text-xs text-base-content/60" x-text="ev.src ? 'From: ' + ev.src.join(', ') : ''"></p>
+                  <button x-show="ev.ref" type="button" class="link link-hover mt-1 text-sm font-medium" @click="openRoot(ev.ref, $event)" x-text="ev.ref ? E(ev.ref).label + ': ' + ev.refq : ''"></button>
+                </div>
+              </li>
+            </template>
+          </ol>
+        </div>
+
+        <!-- collision moment, after the last-two-minutes phase -->
+        <template x-if="ph.id === 'final'">
+          <div class="collision-box mt-4 rounded-box p-4 sm:p-5" aria-labelledby="h-collision">
+            <div class="flex flex-wrap items-baseline gap-x-3">
+              <span class="font-mono text-sm tnum" x-text="M.collision.t"></span>
+              <h3 id="h-collision" class="text-lg font-semibold" x-text="M.collision.text"></h3>
+            </div>
+            <div class="mt-4 grid grid-cols-2 gap-x-4 gap-y-0 text-sm md:grid-cols-[11rem_minmax(0,1fr)_minmax(0,1fr)]">
+              <div class="hidden md:block"></div>
+              <div class="pb-2 font-semibold text-sky-700 dark:text-sky-300">Flight 5342</div>
+              <div class="pb-2 font-semibold text-orange-700 dark:text-orange-300">PAT25</div>
+              <template x-for="r in M.collision.rows" :key="r.k">
+                <div class="contents">
+                  <div class="col-span-2 border-t border-base-300 pt-2 font-medium md:col-span-1 md:pb-2">
+                    <span x-text="r.k"></span>
+                    <span x-show="r.src" class="block text-xs font-normal text-base-content/60" x-text="r.src ? 'From: ' + r.src : ''"></span>
+                  </div>
+                  <div class="pb-2 pt-1 md:border-t md:border-base-300 md:pt-2">
+                    <span x-show="r.a" x-text="r.a"></span>
+                    <span x-show="!r.a"><span class="text-base-content/40" aria-hidden="true">—</span><span class="sr-only">Not given in the report</span></span>
+                  </div>
+                  <div class="pb-2 pt-1 md:border-t md:border-base-300 md:pt-2">
+                    <span x-show="r.h" x-text="r.h"></span>
+                    <span x-show="!r.h"><span class="text-base-content/40" aria-hidden="true">—</span><span class="sr-only">Not given in the report</span></span>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+        </template>
+      </div>
+    </template>
+  </section>
+
+  <!-- ===== Context (references) ===== -->
+  <section class="mt-12" aria-labelledby="h-context">
+    <h2 id="h-context" class="font-serif text-2xl font-semibold sm:text-3xl">The airspace, the systems and the record</h2>
+    <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <template x-for="c in M.context" :key="c.ref">
+        <button type="button" class="card-link rounded-box border border-base-300 p-4 text-left" @click="openRoot(c.ref, $event)">
+          <span class="block font-semibold"><span x-text="E(c.ref).label"></span> <span aria-hidden="true">→</span></span>
+          <span class="mt-1 block text-sm text-base-content/70" x-text="c.q"></span>
+        </button>
+      </template>
+    </div>
+  </section>
+
+  <!-- ===== After ===== -->
+  <section class="mt-12" aria-labelledby="h-after">
+    <h2 id="h-after" class="font-serif text-2xl font-semibold sm:text-3xl">After the collision</h2>
+    <div class="mt-4 grid gap-3 sm:grid-cols-2">
+      <template x-for="c in M.after" :key="c.ref">
+        <button type="button" class="card-link rounded-box border border-base-300 p-4 text-left" @click="openRoot(c.ref, $event)">
+          <span class="block font-semibold"><span x-text="E(c.ref).label"></span> <span aria-hidden="true">→</span></span>
+          <span class="mt-1 block text-sm text-base-content/70" x-text="c.q"></span>
+        </button>
+      </template>
+    </div>
+    <h3 class="mt-8 text-lg font-semibold">Safety actions</h3>
+    <ol class="mt-3 space-y-4 border-l-2 border-base-300 pl-4">
+      <template x-for="(s, i) in M.safety" :key="s.date">
+        <li>
+          <p class="font-mono text-sm tnum text-base-content/70" x-text="s.date + ' · ' + s.who"></p>
+          <p class="mt-0.5" x-text="s.text"></p>
+          <template x-if="s.terms">
+            <div class="mt-1">
+              <button type="button" class="link link-hover text-sm font-medium" @click="notamOpen = !notamOpen" :aria-expanded="notamOpen ? 'true' : 'false'">
+                <span x-text="(notamOpen ? 'Hide ' : 'Show ') + s.termsLabel"></span>
+              </button>
+              <ul x-show="notamOpen" class="mt-2 list-disc space-y-1 pl-5 text-sm">
+                <template x-for="t in s.terms" :key="t"><li x-text="t"></li></template>
+              </ul>
+            </div>
+          </template>
+        </li>
+      </template>
+    </ol>
+  </section>
+
+  <!-- ===== Background ===== -->
+  <section class="mt-12" aria-labelledby="h-wx">
+    <h2 id="h-wx" class="font-serif text-2xl font-semibold sm:text-3xl">Weather and position</h2>
+    <dl class="mt-4 grid max-w-4xl grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
+      <template x-for="f in M.weather" :key="f[0]">
+        <div>
+          <dt class="text-xs font-semibold uppercase tracking-wide text-base-content/60" x-text="f[0]"></dt>
+          <dd class="mt-0.5 tnum" x-text="f[1]"></dd>
+        </div>
+      </template>
+    </dl>
+  </section>
+
+  <footer class="mt-14 border-t border-base-300 pt-4 text-sm text-base-content/70">
+    <p>Source: National Transportation Safety Board, <a class="link" href="https://www.ntsb.gov/investigations/Documents/DCA25MA108%20Prelim.pdf">Aviation Investigation Preliminary Report DCA25MA108</a>. US federal government work, public domain. The report's figures are not reproduced here; the lane colors follow its Figure 1, which drew flight 5342 in blue and PAT25 in orange.</p>
+  </footer>
+
+  <!-- ===== Panel: a neighbor's view ===== -->
+  <div x-show="stack.length" class="fixed inset-0 z-40" x-transition.opacity>
+    <div class="absolute inset-0 bg-black/40" @click="close()" aria-hidden="true"></div>
+    <aside class="absolute inset-y-0 right-0 flex w-full flex-col bg-base-100 shadow-2xl sm:w-[36rem]" role="dialog" aria-modal="true" :aria-label="cur ? cur.label : ''">
+      <div class="flex items-center justify-between gap-2 border-b border-base-300 px-4 py-2">
+        <button x-show="prev" type="button" class="btn btn-ghost btn-sm min-w-0 justify-start" @click="back()">
+          <span aria-hidden="true">←</span><span class="truncate" x-text="prev ? 'Back to ' + prev.label : ''"></span>
+        </button>
+        <span x-show="!prev"></span>
+        <button type="button" class="btn btn-ghost btn-sm" @click="close()">Close</button>
+      </div>
+      <div class="flex-1 overflow-y-auto px-4 pb-10 sm:px-6" x-ref="panelBody">
+        <template x-if="cur">
+          <div>
+            <p class="mt-5 text-xs font-semibold uppercase tracking-wide text-base-content/60" x-text="cur.kind"></p>
+            <h2 class="mt-1 font-serif text-2xl font-semibold leading-tight outline-none" tabindex="-1" x-ref="panelTitle" x-text="cur.label"></h2>
+            <p x-show="cur.sub" class="text-base-content/70" x-text="cur.sub"></p>
+
+            <template x-for="(sec, si) in cur.sections" :key="cur.id + '-' + si">
+              <section class="mt-7">
+                <h3 class="text-sm font-semibold uppercase tracking-wide text-base-content/60" x-text="sec.title"></h3>
+
+                <!-- fields -->
+                <template x-if="sec.kind === 'fields'">
+                  <dl class="rules mt-2">
+                    <template x-for="(it, ii) in sec.items" :key="ii">
+                      <div class="grid grid-cols-1 gap-x-4 py-2 sm:grid-cols-[9.5rem_minmax(0,1fr)]">
+                        <dt class="text-sm text-base-content/60">
+                          <template x-if="it.kref"><button type="button" class="link link-hover text-left font-medium text-base-content" @click="open(it.kref)" x-text="E(it.kref).label"></button></template>
+                          <template x-if="!it.kref"><span x-text="it.k"></span></template>
+                        </dt>
+                        <dd class="min-w-0">
+                          <template x-if="it.ref"><span><button type="button" class="link link-hover text-left font-medium" @click="open(it.ref)" x-text="E(it.ref).label"></button><span x-show="it.q" class="text-base-content/70" x-text="it.q ? ', ' + it.q : ''"></span></span></template>
+                          <span x-show="it.v" x-text="it.v"></span>
+                        </dd>
+                      </div>
+                    </template>
+                  </dl>
+                </template>
+
+                <!-- list -->
+                <template x-if="sec.kind === 'list'">
+                  <ul class="mt-2 list-disc space-y-1.5 pl-5">
+                    <template x-for="(t, ti) in sec.items" :key="ti"><li x-text="t"></li></template>
+                  </ul>
+                </template>
+
+                <!-- table -->
+                <template x-if="sec.kind === 'table'">
+                  <div class="mt-2">
+                    <div class="hidden overflow-x-auto" :class="sec.cols.length > 4 ? '' : 'sm:block'">
+                      <table class="table table-sm">
+                        <thead><tr><template x-for="c in sec.cols" :key="c"><th x-text="c"></th></template></tr></thead>
+                        <tbody>
+                          <template x-for="(row, ri) in sec.rows" :key="ri">
+                            <tr><template x-for="(cell, ci) in row" :key="ci"><td :class="ci === 0 ? 'font-medium' : ''" x-text="cell"></td></template></tr>
+                          </template>
+                        </tbody>
+                      </table>
+                    </div>
+                    <div class="space-y-2" :class="sec.cols.length > 4 ? '' : 'sm:hidden'">
+                      <template x-for="(row, ri) in sec.rows" :key="ri">
+                        <div class="rounded-box border border-base-300 p-3 text-sm">
+                          <p class="font-semibold" x-text="row[0]"></p>
+                          <dl class="mt-1 space-y-0.5">
+                            <template x-for="(cell, ci) in row.slice(1)" :key="ci">
+                              <div class="grid grid-cols-[8.5rem_minmax(0,1fr)] gap-x-2"><dt class="text-base-content/60" x-text="sec.cols[ci + 1]"></dt><dd x-text="cell"></dd></div>
+                            </template>
+                          </dl>
+                        </div>
+                      </template>
+                    </div>
+                    <p x-show="sec.note" class="mt-2 text-sm text-base-content/70" x-text="sec.note"></p>
+                  </div>
+                </template>
+
+                <!-- steps: an ordered path -->
+                <template x-if="sec.kind === 'steps'">
+                  <ol class="mt-3 border-l-2 border-base-300">
+                    <template x-for="(st, sti) in sec.items" :key="sti">
+                      <li class="relative pb-3 pl-5">
+                        <span class="absolute -left-[0.4rem] top-1.5 h-3 w-3 rounded-full border-2 border-base-100 bg-base-content/40" aria-hidden="true"></span>
+                        <p class="font-medium" x-text="st.name"></p>
+                        <p x-show="st.note" class="text-sm text-base-content/80" x-text="st.note"></p>
+                        <span x-show="st.tag" class="badge badge-sm tag-pat mt-1 tnum" x-text="st.tag"></span>
+                      </li>
+                    </template>
+                  </ol>
+                </template>
+
+                <!-- outline: parts that expand in place -->
+                <template x-if="sec.kind === 'outline'">
+                  <div class="mt-2">
+                    <p x-show="sec.intro" class="mb-3" x-text="sec.intro"></p>
+                    <div class="rules rules-box">
+                      <template x-for="(pt, pi) in sec.parts" :key="pi">
+                        <div>
+                          <button type="button" class="hover-tint flex w-full items-baseline gap-2 px-3 py-2.5 text-left" @click="togglePart(cur.id + si + '-' + pi)" :aria-expanded="openParts[cur.id + si + '-' + pi] ? 'true' : 'false'">
+                            <span class="inline-block transition-transform" :class="openParts[cur.id + si + '-' + pi] ? 'rotate-90' : ''" aria-hidden="true">▸</span>
+                            <span class="flex-1 font-medium" x-text="pt.name"></span>
+                            <span class="text-xs text-base-content/60 tnum" x-text="pt.items.length + (pt.items.length === 1 ? ' finding' : ' findings')"></span>
+                          </button>
+                          <ul x-show="openParts[cur.id + si + '-' + pi]" class="list-disc space-y-1 pb-3 pl-10 pr-3 text-sm">
+                            <template x-for="(t, ti) in pt.items" :key="ti"><li x-text="t"></li></template>
+                          </ul>
+                        </div>
+                      </template>
+                    </div>
+                  </div>
+                </template>
+
+                <!-- refs: labels of related things -->
+                <template x-if="sec.kind === 'refs'">
+                  <ul class="mt-2 space-y-1.5">
+                    <template x-for="(r, ri) in sec.items" :key="ri">
+                      <li><button type="button" class="link link-hover text-left font-medium" @click="open(r.ref)" x-text="E(r.ref).label"></button><span x-show="r.q" class="text-base-content/70" x-text="r.q ? ', ' + r.q : ''"></span></li>
+                    </template>
+                  </ul>
+                </template>
+              </section>
+            </template>
+
+            <p x-show="cur.sources" class="mt-8 border-t border-base-300 pt-3 text-xs text-base-content/60" x-text="cur.sources ? 'From the report: ' + cur.sources.join('; ') : ''"></p>
+          </div>
+        </template>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script>
+const MODEL = {
+  question: "What happened when an Army helicopter and a passenger jet collided near Reagan National Airport, and what has the NTSB established so far?",
+  root: "accident",
+
+  accident: {
+    number: "DCA25MA108",
+    lead: "On January 29, 2025, a US Army Sikorsky UH-60L helicopter flying as PAT25 and PSA Airlines flight 5342, a CRJ700 regional jet on final approach, collided in flight near Ronald Reagan Washington National Airport and came down in the Potomac River. Everyone aboard both aircraft was killed, and both aircraft were destroyed.",
+    facts: [
+      ["When", "About 20:48 eastern standard time"],
+      ["Where", "About 0.5 mile southeast of the airport (DCA, Arlington, Virginia), over the Potomac in southwest Washington, DC"],
+      ["Conditions", "Night, visual meteorological conditions"],
+      ["Report", "Preliminary; the NTSB investigation is ongoing"]
+    ]
+  },
+
+  laneOrder: ["a", "t", "h"],
+  lanes: {
+    a: { name: "Flight 5342", q: "PSA Airlines CRJ700", ref: "flight5342",
+         card: "border-sky-600 dark:border-sky-400 bg-sky-50 dark:bg-sky-950/40", text: "text-sky-700 dark:text-sky-300",
+         top: "border-t-sky-600 dark:border-t-sky-400", col: "md:col-start-2" },
+    t: { name: "Air traffic control", q: "DCA tower", ref: "tower",
+         card: "border-base-content/30 bg-base-200", text: "text-base-content/70",
+         top: "", col: "md:col-start-3" },
+    h: { name: "PAT25", q: "US Army UH-60L", ref: "pat25",
+         card: "border-orange-500 dark:border-orange-400 bg-orange-50 dark:bg-orange-950/40", text: "text-orange-700 dark:text-orange-300",
+         top: "border-t-orange-500 dark:border-t-orange-400", col: "md:col-start-4" }
+  },
+
+  flights: [
+    { id: "flight5342", lane: "a", kicker: "Airplane", title: "Flight 5342",
+      line: "PSA Airlines · CRJ700 regional jet · N709PS",
+      rows: [["Route", "Wichita (ICT) to Reagan National (DCA)"],
+             ["Flight", "Scheduled passenger flight, instrument flight rules"],
+             ["Aboard", "64 people, all killed"]],
+      open: "Crew, recorders and wreckage of flight 5342" },
+    { id: "pat25", lane: "h", kicker: "Helicopter", title: "PAT25",
+      line: "US Army · Sikorsky UH-60L · unregistered",
+      rows: [["Route", "From Davison Army Airfield, Fort Belvoir, Virginia, and back, via Helicopter Routes 1 and 4"],
+             ["Flight", "The pilot's annual evaluation with night vision goggles, visual flight rules"],
+             ["Aboard", "3 crew, all killed"]],
+      open: "Crew, recorder and wreckage of PAT25" }
+  ],
+
+  sequenceNote: "Times are eastern standard time. The NTSB drew this preliminary sequence from both aircraft's flight data and cockpit voice recorders and from ATC radar data and communications. Each event sits in the lane of the party acting; the small figure above a time is the gap since the previous event.",
+
+  phases: [
+    { id: "depart", title: "Departure and en route", span: "18:39 to 20:33", lanes: true, events: [
+      { id: "e1", t: "18:39", lane: "a", text: "Departs Wichita (ICT)." },
+      { id: "e2", t: "18:45", lane: "h", text: "Departs Davison Army Airfield." },
+      { id: "e3", t: "about 20:15", lane: "a", text: "Begins its initial descent." },
+      { id: "e4", t: "about 20:30", lane: "h", text: "Heads generally southbound after maneuvering near Laytonsville, Maryland. The instructor pilot is flying; the pilot is monitoring and talking on the radio.", src: ["Helicopter CVR"] },
+      { id: "e5", t: "20:32", lane: "h", text: "Checks in with the DCA tower controller for the first time." },
+      { id: "e6", t: "20:32", lane: "t", text: "The controller gives PAT25 the altimeter setting, 29.89 inches of mercury; the crew reads it back correctly." },
+      { id: "e7", t: "after 20:32", lane: "h", text: "Change of control: the pilot becomes the pilot flying, and the instructor pilot monitors and handles the radio for the rest of the flight." },
+      { id: "e8", t: "20:33:41", lane: "h", text: "Requests Helicopter Route 1 to Route 4 to Davison Army Airfield; the tower approves.", ref: "routes", refq: "the route and its altitude limits" }
+    ]},
+    { id: "approach", title: "Converging along the river", span: "20:38 to 20:45", lanes: true, events: [
+      { id: "e9", t: "20:38:39", lane: "h", text: "Reaches the Potomac at the DC Beltway near Carderock, Maryland. After turning briefly west, it turns back east and descends as it picks up Route 1 southeast toward downtown Washington." },
+      { id: "e10", t: "20:39:10", lane: "t", text: "Potomac Approach clears flight 5342, inbound from the south, for the Mount Vernon Visual Runway 1 approach." },
+      { id: "e11", t: "20:40:46", lane: "a", text: "Rolls out of a left turn established on the runway 1 localizer, landing gear up and flaps at 20°.", chips: ["about 4,000 ft pressure altitude", "170 kts"] },
+      { id: "e12", t: "20:43:06", lane: "t", text: "On flight 5342's first call, the tower asks whether it can switch to runway 33. The crew agrees, is cleared to land on runway 33, and reads the clearance back.", chips: ["5342 about 10.5 nm from DCA"] },
+      { id: "e13", t: "20:43:48", lane: "h", text: "About 1.1 nm west of Key Bridge, the pilot says they are at 300 ft and the instructor pilot says 400 ft. Neither comments on the difference.", src: ["Helicopter CVR"] },
+      { id: "e14", t: "20:44:27", lane: "h", text: "Approaching Key Bridge, the instructor pilot says they are at 300 ft, descending to 200 ft.", src: ["Helicopter CVR"] },
+      { id: "e15", t: "20:44:41", lane: "a", text: "Between 20:44:41 and 20:44:45 the crew selects 30° of flaps, then 45°.", src: ["Airplane FDR"] },
+      { id: "e16", t: "20:44:49", lane: "a", text: "Landing gear down and locked; fully configured for landing about 6.2 nm south of the airport.", src: ["Airplane FDR"] },
+      { id: "e17", t: "20:45:14", lane: "h", text: "Reports its position over Memorial Bridge to the controller." },
+      { id: "e18", t: "20:45:27", lane: "a", text: "Autopilot disconnected; begins a shallow right turn off the runway 1 localizer, about 5 nm south of the airport.", chips: ["about 1,700 ft radio altitude", "134 kts"], src: ["Airplane FDR"] },
+      { id: "e19", t: "20:45:30", lane: "h", text: "Passes over Memorial Bridge. The instructor pilot says they are at 300 ft and need to descend; the pilot says they will descend to 200 ft.", src: ["Helicopter CVR"] },
+      { id: "e20", t: "20:45:58", lane: "h", text: "Crosses the Tidal Basin and follows the Washington Channel, consistent with Route 1." }
+    ]},
+    { id: "final", title: "The last two minutes", span: "20:46 to 20:47:58", lanes: true, events: [
+      { id: "e21", t: "20:46:02", lane: "t", text: "The tower first advises PAT25 of flight 5342: traffic just south of the Wilson Bridge is a CRJ at 1,200 ft, circling to runway 33. The call is audible on flight 5342's cockpit voice recorder.", note: "The word “circling” is heard on the ATC recording and the airplane CVR but not on the helicopter CVR, so it may not have been received by the PAT25 crew.", src: ["ATC recording", "Airplane CVR", "Helicopter CVR"] },
+      { id: "e22", t: "20:46:08", lane: "h", text: "Reports the traffic in sight and requests to maintain visual separation; the controller approves.", chips: ["aircraft about 6.5 nm apart"] },
+      { id: "e23", t: "20:46:29", lane: "a", text: "Automated callout: 1,000 ft.", src: ["Airplane CVR"] },
+      { id: "e24", t: "20:46:48", lane: "t", text: "The tower clears other jet traffic on runway 1 for immediate departure, with no delay." },
+      { id: "e25", t: "20:47:27", lane: "h", tminus: 32, text: "Passes the southern tip of Hains Point." },
+      { id: "e26", t: "about 20:47:28", lane: "a", text: "About one second later, begins a left roll to turn onto final for runway 33.", chips: ["516 ft radio altitude", "133 kts"] },
+      { id: "e27", t: "20:47:29", lane: "a", text: "Automated callout: 500 ft.", src: ["Airplane CVR"] },
+      { id: "e28", t: "20:47:39", lane: "t", tminus: 20, text: "The tower asks PAT25 whether the CRJ is in sight. A conflict alert is audible in the background of the transmission.", src: ["Airplane CVR", "Helicopter CVR"] },
+      { id: "e29", t: "20:47:40", lane: "a", text: "TCAS traffic advisory: “Traffic, Traffic.”", chips: ["aircraft about 0.95 nm apart"], ref: "tcas", refq: "how its alerts work near the ground" },
+      { id: "e30", t: "20:47:42", lane: "t", tminus: 17, text: "The tower directs PAT25 to pass behind the CRJ.", note: "“Pass behind the” may not have been received: that part of the call was stepped on by a 0.8-second mic key from PAT25.", src: ["Airplane CVR", "Helicopter CVR"] },
+      { id: "e31", t: "20:47:44", lane: "h", text: "Reports the traffic in sight and requests visual separation; the tower approves. The instructor pilot then tells the pilot they believe ATC is asking the helicopter to move left, toward the east bank of the Potomac.", src: ["Helicopter CVR"] },
+      { id: "e32", t: "20:47:52", lane: "a", tminus: 7, text: "Rolls out on final approach for runway 33.", chips: ["344 ft radio altitude", "143 kts"] },
+      { id: "e33", t: "20:47:58", lane: "a", tminus: 1, text: "Begins to increase pitch; the elevators are deflected near their maximum nose-up travel.", src: ["Airplane FDR"] },
+      { id: "e34", t: "20:47:58", lane: "t", text: "The controller issues a landing clearance to another airplane. During the call, other tower controllers can be heard reacting as they watch the collision." }
+    ]},
+    { id: "response", title: "Emergency response", span: "20:48 to 20:59", lanes: false, events: [
+      { id: "e35", t: "about 20:48", text: "The tower activates the alert phone, notifying the airport's Aircraft Rescue and Firefighting (ARFF) service, run by the Metropolitan Washington Airports Authority." },
+      { id: "e36", t: "20:50", text: "The tower confirms the accident is in the water at the approach end of runway 33; runway 15/33 is closed." },
+      { id: "e37", t: "20:53", text: "ARFF rescue boats launch." },
+      { id: "e38", t: "20:59", text: "The first victim is located in the water." }
+    ]}
+  ],
+
+  collision: {
+    t: "about 20:47:59",
+    text: "Collision over the Potomac River, with flight 5342 on final approach for runway 33",
+    rows: [
+      { k: "Radio altitude", a: "313 ft, the last value recorded, 2 seconds before the collision", h: "278 ft, steady for the previous 5 seconds", src: "flight data recorders" },
+      { k: "Pitch", a: "9° nose up", h: "About 0.5° nose up", src: "flight data recorders" },
+      { k: "Roll", a: "11° left wing down", h: "1.6° left", src: "flight data recorders" },
+      { k: "Vertical speed", a: "Descending at 448 ft per minute", h: null, src: "flight data recorder" },
+      { k: "Lights on before the collision", a: "Left- and right-wing navigation lights; left-wing, right-wing and tail anticollision (strobe) lights; nose, right-wing and left-wing landing lights; upper and lower beacon lights. None of the airplane's lights used LED technology.", h: "Lower fuselage and aft pylon anticollision (strobe) lights; left, right and tail pylon position lights", src: "video recordings" },
+      { k: "Immediately after", a: "The outboard left wing separated; the airplane rolled about 450° and hit the water in an approximately 45° nose-low attitude with a left roll of about 90°.", h: null, src: "video recordings" }
+    ]
+  },
+
+  context: [
+    { ref: "tower", q: "Helicopter and local control were combined, and the two aircraft were on different frequencies" },
+    { ref: "routes", q: "Past Memorial Bridge, Route 1 is limited to 200 ft above mean sea level; the routes have no defined lateral boundaries" },
+    { ref: "tcas", q: "On descent below 900 ft above ground, resolution advisories are inhibited" },
+    { ref: "dca", q: "Runway 33, the one flight 5342 switched to, took about 4% of arrivals in 2018 to 2024" },
+    { ref: "encounters", q: "15,214 close airplane-helicopter occurrences from October 2021 to December 2024" },
+    { ref: "adsb", q: "The position broadcast both aircraft could send, and the source of flight 5342's track" }
+  ],
+
+  after: [
+    { ref: "recovery", q: "Both wrecks lay in 1 to 8 ft of water; divers from 11 agencies and contractors recovered the victims" },
+    { ref: "investigation", q: "Class 1 investigation led by David Banning, with 14 participating organizations" }
+  ],
+
+  safety: [
+    { date: "January 31, 2025", who: "FAA",
+      text: "A Notice to Airmen (NOTAM) prohibits helicopter traffic over the Potomac River near DCA.",
+      termsLabel: "NOTAM terms: altitudes, exceptions, expiry",
+      terms: [
+        "Covers the surface up to and including 17,999 ft above mean sea level.",
+        "Exceptions: lifesaving medical, active law enforcement, air defense, and presidential transport missions. If such missions are required, civilian aircraft are not allowed in the area.",
+        "The most recent version, NOTAM 5/4379, was issued on February 19, 2025, with updated dimensions for the temporary flight restriction.",
+        "In effect through March 31, 2025, at 23:59 UTC."
+      ] },
+    { date: "March 11, 2025", who: "NTSB",
+      text: "Two urgent safety recommendations to the FAA concerning the helicopter routes near DCA." }
+  ],
+
+  weather: [
+    ["Observation", "KDCA, 14 ft above mean sea level, 0 nautical miles from the accident site, at 20:52 local"],
+    ["Sky", "Clear; no ceiling"],
+    ["Visibility", "10 miles"],
+    ["Wind", "From 300° at 14 knots, gusting to 23 knots"],
+    ["Temperature / dew point", "10°C / −7°C"],
+    ["Altimeter", "29.9 inches of mercury"],
+    ["Accident position", "38.845339, −77.024187"]
+  ],
+
+  entities: {
+    flight5342: {
+      id: "flight5342", kind: "Airplane", label: "Flight 5342", sub: "PSA Airlines CRJ700, N709PS",
+      sections: [
+        { kind: "fields", title: "The flight", items: [
+          { k: "Aircraft", v: "MHI (Mitsubishi Heavy Industries) RJ Aviation, formerly Bombardier, CL-600-2C10 (CRJ700). The report's data table lists the make as Bombardier Inc." },
+          { k: "Registration", v: "N709PS" },
+          { k: "Operator", ref: "psa", q: "a wholly owned subsidiary of American Airlines" },
+          { k: "Certificate", v: "Flag carrier (14 CFR Part 121)" },
+          { k: "Flown under", v: "14 CFR Part 121, as a scheduled domestic passenger flight" },
+          { k: "Flight plan", v: "Instrument flight rules" },
+          { k: "From", v: "Wichita Dwight D. Eisenhower National Airport (ICT), Wichita, Kansas" },
+          { k: "To", ref: "dca", q: "" },
+          { k: "Radio", ref: "tower", q: "on the published tower frequency, 119.1 MHz" }
+        ]},
+        { kind: "table", title: "Flight crew", cols: ["Role", "Certificate", "Total hours", "In this make and model", "Medical certificate", "Duty"], rows: [
+          ["Captain", "Airline transport pilot, CL-65 type rating", "about 3,950", "about 3,024", "First class, issued January 10, 2025", "Pilot flying for the entire flight"],
+          ["First officer", "Airline transport pilot, CL-65 type rating", "about 2,469", "about 966", "First class, issued October 31, 2024", "Pilot monitoring for the entire flight"]
+        ], note: "The CL-65 type rating covers the CRJ-200, CRJ-700 and CRJ-900." },
+        { kind: "fields", title: "Everyone aboard", items: [
+          { k: "Aboard", v: "2 pilots, 2 flight attendants and 60 passengers" },
+          { k: "Data table", v: "Crew injuries: 4 fatal. Passenger injuries: 60 fatal." },
+          { k: "Examinations", v: "The District of Columbia Office of the Chief Medical Examiner conducted autopsies of the civilian crew, and toxicology samples went to the FAA's Forensic Sciences Laboratory at the Civil Aerospace Medical Institute (CAMI), as is standard practice. The DC medical examiner examined the civilian passengers." }
+        ]},
+        { kind: "fields", title: "Collision-avoidance equipment", items: [
+          { k: "Position broadcast", ref: "adsb", q: "ADS-B out, standard for Part 121 operations" },
+          { k: "Traffic alerting", ref: "tcas", q: "TCAS, standard for Part 121 operations" }
+        ]},
+        { kind: "list", title: "Flight recorders", items: [
+          "Flight data recorder (FDR) and cockpit voice recorder (CVR): L3-Harris Communications FA2100 solid-state memory digital recorders.",
+          "Recovered by a Federal Bureau of Investigation (FBI) dive team and taken straight to engineers at the NTSB Vehicle Recorder Laboratory; data from both downloaded successfully.",
+          "CVR: about 2 hours 4 minutes of good to excellent quality audio, starting mid-flight because the recorder holds 2 hours.",
+          "FDR: the entire accident flight, about 400 parameters."
+        ]},
+        { kind: "outline", title: "Wreckage examination",
+          intro: "Extensive water impact damage to most of the structure. The airplane broke into several pieces centered about 2,345 ft southeast of the approach end of runway 33; the outboard left wing lay apart from them, about 2,790 ft southeast. Fire and explosion are listed as unknown.",
+          parts: [
+            { name: "Fuselage: puncture, slash and embedded tail rotor blade", items: [
+              "Recovered in 13 major sections spanning the whole airplane, from the radome in the nose to the aft fuselage and tail cone.",
+              "Two areas of damage on the lower right side of the aft fuselage wing-to-body fairing.",
+              "A puncture in the right side of the fairing, about 10 by 8 inches.",
+              "A slash about 29 inches long and 2 inches wide through the lower surface of the fairing, the internal structure and the lavatory access door.",
+              "An approximately 2-ft section of one of the helicopter's tail rotor blades was embedded in the slash."
+            ]},
+            { name: "Tail", items: [
+              "The vertical stabilizer and rudder stayed attached to the aft fuselage and tail cone.",
+              "The horizontal stabilizer and its elevators separated from the top of the vertical stabilizer."
+            ]},
+            { name: "Right wing and gear", items: [
+              "Largely intact, still attached to a portion of the right center fuselage.",
+              "Right slats and flaps in the fully extended position.",
+              "Right landing gear attached and extended."
+            ]},
+            { name: "Left wing: slash marks and black paint transfer", items: [
+              "The inboard left wing, from the centerline to wing station (WS) 178, was significantly fragmented.",
+              "The upper portion of the left main landing gear stayed attached to the wing; the lower portion separated. The outboard tire had a diagonal slash through all its layers.",
+              "The outboard left wing, from WS 178 to the tip, separated and was recovered in the debris field.",
+              "The inboard end of the left center slat had a linear slash mark about 52 inches long; the slat skin aft of the slash's leading edge was gouged and abraded linearly aftward.",
+              "The left wing forward spar behind the slat was cut along the same diagonal line, and the interior wing structure was damaged and deformed aft and inboard, with some black paint transfer.",
+              "Two other sections of the inboard left slat showed impact denting and black paint transfer."
+            ]},
+            { name: "Fibrous material", items: [
+              "Pieces of fibrous material were found in several sections of the airplane, including the left wing and the vertical stabilizer; samples went to the NTSB Materials Laboratory for documentation and identification."
+            ]},
+            { name: "Engines", items: [
+              "Left (No. 1) engine: separated from its pylon with the core mostly intact; both fan core cowls separated; no evidence of fire or uncontainment; all fan blades bent aft, with dents, gouges and missing material on their leading edges.",
+              "Right (No. 2) engine: mostly intact with its pylon attached; no evidence of fire or uncontainment; fan blades full length and bent opposite the direction of rotation, except one fractured and separated about midspan.",
+              "On the right engine, blades 10, 12, 14, 16, 19 and 22 had localized deformation near their tips, and the fan case rub strip was rubbed away from the 8 to 11 o'clock positions."
+            ]},
+            { name: "Kept for further examination", items: [
+              "TCAS transmitter receiver", "Communication management unit", "Transponder", "Air data computers", "Exterior light bulbs"
+            ]}
+          ]}
+      ],
+      sources: ["Crew Experience", "Recorders", "Operator and Aircraft Information", "Airport Information and Emergency Response", "Recovery Operations and Aircraft Examinations (Airplane)", "data tables A1"]
+    },
+
+    pat25: {
+      id: "pat25", kind: "Helicopter", label: "PAT25", sub: "US Army Sikorsky UH-60L, unregistered",
+      sections: [
+        { kind: "fields", title: "The flight", items: [
+          { k: "Aircraft", v: "Sikorsky UH-60L" },
+          { k: "Registration", v: "None (listed as UNREG)" },
+          { k: "Operator", ref: "army", q: "US Army" },
+          { k: "Certificate", v: "None" },
+          { k: "Flown under", v: "Armed Forces operations" },
+          { k: "Flight plan", v: "Visual flight rules, filed with Davison Army Airfield base operations (the data table lists it as MVFR)" },
+          { k: "From and to", v: "Davison Army Airfield (DAA), Fort Belvoir, Virginia, departing from and bound for it" },
+          { k: "Purpose", v: "The pilot's annual standardization evaluation, flown with night vision goggles (NVGs)" },
+          { k: "Route", ref: "routes", q: "Route 1 to Route 4, then to Davison" },
+          { k: "Radio", ref: "tower", q: "on the published helicopter frequency, 134.35 MHz" }
+        ]},
+        { kind: "table", title: "Crew", cols: ["Role", "Rank", "Total hours", "In this make and model", "Seat"], rows: [
+          ["Instructor pilot", "Chief Warrant Officer 2", "about 968", "about 300", "Right"],
+          ["Pilot", "Captain", "about 450", "about 326", "Left"],
+          ["Crew chief", "Staff Sergeant", "about 1,149", "all of it, in UH-60 helicopters", "Not stated"]
+        ], note: "According to the US Army, both pilots were current and qualified in the helicopter. Who was flying changed after the first tower contact; the timeline shows when." },
+        { kind: "fields", title: "Everyone aboard", items: [
+          { k: "Data table", v: "Crew injuries: 2 fatal. Passenger injuries: 1 fatal. (The narrative describes all three aboard as crew members.)" },
+          { k: "Examinations", v: "The Armed Forces Medical Examiner conducted autopsies and toxicology testing of the military crew." }
+        ]},
+        { kind: "fields", title: "Equipment", items: [
+          { k: "Position broadcast", ref: "adsb", q: "transponder capable of transmitting ADS-B out" },
+          { k: "Transponder", v: "Its presence was shown by the maintenance records and confirmed in the wreckage." },
+          { k: "Autopilot", v: "Not equipped" }
+        ]},
+        { kind: "list", title: "Flight recorder", items: [
+          "A Goodrich Integrated Vehicle Health Management Unit (IVHMU) incorporating a Penny & Giles Multi-Purpose Flight Recorder (MPFR), a combined cockpit voice and flight data recorder.",
+          "Recovered by the Metropolitan Police Department of the District of Columbia and taken to the NTSB Vehicle Recorder Laboratory.",
+          "Cockpit voice recording: about 2 hours of excellent quality audio.",
+          "Flight data: the entire accident flight, about 70 parameters. By design it does not record date, time or GPS position.",
+          "A parameter listed in the documentation as “barometric altitude” was actually a recording of pressure altitude. Its values were inconsistent with other available data, and the parameter was declared invalid.",
+          "Further work will determine whether the invalid pressure altitude was limited to the MPFR, and whether it may have affected other helicopter systems that use pressure altitude as a data source."
+        ]},
+        { kind: "outline", title: "Wreckage examination",
+          intro: "The helicopter came to rest inverted about 3,730 ft southeast of the approach end of runway 33, with most of its major structure. Fire and explosion are listed as unknown.",
+          parts: [
+            { name: "Fuselage and fuel tanks", items: [
+              "The tail structure separated from the fuselage around the tail transition section.",
+              "The main fuselage fractured into multiple pieces, held together during recovery mainly by cabling, hoses and remnant structure.",
+              "Both internal crash-resistant fuel tanks were in their normal location: the right one partially detached, the left one still attached to the airframe."
+            ]},
+            { name: "Tail", items: [
+              "Tail boom intact, its damage limited to wrinkled skin.",
+              "Vertical fin mostly intact except its upper end, fractured and deformed to the right.",
+              "Stabilator intact, with impact deformation in the forward direction about its middle and aft end."
+            ]},
+            { name: "Rotors and main gearbox", items: [
+              "The main gearbox stayed attached to the structural roof beams, which had separated from the main fuselage; its housing was whole and the main rotor shaft and hub remained installed.",
+              "All four main rotor blades fractured near the hub.",
+              "The tail rotor hub's inboard and outboard retention plates were recovered as an assembly, still installed on the tail rotor gearbox output shaft.",
+              "One of the four tail rotor blades remained mostly intact, with damage to its tip and trailing edge; remnants of the other three stayed in the retention plate assembly."
+            ]},
+            { name: "Cockpit and altimeters", items: [
+              "The cockpit area was heavily fragmented.",
+              "The left-seat pilot's barometric altimeter and horizontal situation indicator were found separate from the cockpit; the left altimeter's Kollsman window read between 29.88 and 29.89 inches of mercury.",
+              "Part of the right-seat pilot's instrument cluster was found separated from the cockpit but still connected by hoses and cables; the right altimeter's Kollsman window was set to 29.87 inches of mercury.",
+              "The electronic standby instrument system (ESIS) was partially separated and still attached by wiring; its glass cover was fractured but the screen was not cracked."
+            ]},
+            { name: "Pitot-static system: one loose fitting", items: [
+              "Highly fragmented, with fractured pieces in the cockpit area of the main wreckage.",
+              "One whole and one partial pitot-static probe were recovered, both separated from the fuselage.",
+              "The pitot and static lines from the left and right probes were traced along the airframe and were fractured in several places; the fittings at their unions were checked and confirmed tight.",
+              "Fittings on the fractured pieces were tight except one, on a pitot outlet line found near the cockpit nose wreckage."
+            ]},
+            { name: "Engines and drive shaft", items: [
+              "Left (No. 1) engine: the aft portion, from the diffuser and midframe assembly to the tail cone, was recovered intact with no evidence of external fire or uncontainment.",
+              "Divers also recovered its accessory gearbox, one compressor case half, the compressor stage 2 bladed disk, the power takeoff shaft bevel gear, two pieces of the main frame, and the swirl frame.",
+              "Its output drive assembly separated from the engine but stayed attached to part of the torque tube, and held the fractured end of the power turbine drive shaft; the helicopter drive shaft fractured in front of the output drive assembly.",
+              "Right (No. 2) engine: appeared intact with no evidence of external fire or uncontainment; turning the output drive shaft by hand turned the power turbine smoothly and continuously."
+            ]},
+            { name: "Kept for further examination", items: [
+              "Both barometric altimeters", "Both radar altimeters and their antennae", "The electronic standby instrument system",
+              "The loose pitot outlet line and the two pitot-static probes", "The transponder and its remote control unit",
+              "Two iPad minis, recovered apart from the main wreckage"
+            ]}
+          ]}
+      ],
+      sources: ["Crew Experience", "Recorders", "Operator and Aircraft Information", "Airport Information and Emergency Response", "Recovery Operations and Aircraft Examinations (Helicopter)", "data tables A2"]
+    },
+
+    psa: {
+      id: "psa", kind: "Operator", label: "PSA Airlines", sub: "Operator of flight 5342",
+      sections: [
+        { kind: "fields", title: "The airline", items: [
+          { k: "Ownership", v: "A wholly owned subsidiary of American Airlines" },
+          { k: "Based in", v: "Dayton, Ohio" },
+          { k: "Certificate", v: "A 14 CFR 119 operating certificate for operations under 14 CFR Part 121" },
+          { k: "Fleet", v: "All jets, all MHI regional aircraft, including 61 CRJ700 and 80 CRJ900 airplanes" }
+        ]},
+        { kind: "refs", title: "Operated", items: [ { ref: "flight5342", q: "the accident airplane" } ] }
+      ],
+      sources: ["Operator and Aircraft Information"]
+    },
+
+    army: {
+      id: "army", kind: "Operator", label: "Bravo Company, 12th Aviation Battalion", sub: "US Army; operator of PAT25",
+      sections: [
+        { kind: "fields", title: "The unit", items: [
+          { k: "Base", v: "Davison Army Airfield, Fort Belvoir, Virginia" },
+          { k: "Mission", v: "Priority air transport (PAT) and continuity of government operations" },
+          { k: "Data table", v: "Operator listed as Army, Department of Defense" }
+        ]},
+        { kind: "refs", title: "Operated", items: [ { ref: "pat25", q: "the accident helicopter" } ] }
+      ],
+      sources: ["Operator and Aircraft Information", "data tables A2"]
+    },
+
+    tower: {
+      id: "tower", kind: "Air traffic control", label: "DCA control tower", sub: "Ronald Reagan Washington National Airport",
+      sections: [
+        { kind: "fields", title: "How the tower was set up that night", items: [
+          { k: "Cab", v: "Faces east, looking across the Potomac River" },
+          { k: "Operation", v: "A “North Operation”: aircraft landing and departing runway 1, with intermittent arrivals and departures on runway 33" },
+          { k: "Staffing", v: "Five controllers working five open positions: assistant local control, ground control, clearance delivery, local control, and operations supervisor" },
+          { k: "Combined positions", v: "Helicopter control and local control were combined at 15:40 that day; flight data and clearance delivery were also combined" }
+        ]},
+        { kind: "fields", title: "Frequencies", items: [
+          { kref: "flight5342", v: "119.1 MHz, the published control tower frequency" },
+          { kref: "pat25", v: "134.35 MHz, the published helicopter frequency" }
+        ]},
+        { kind: "list", title: "Who could hear whom", items: [
+          "Both frequencies are in the very high frequency (VHF) range.",
+          "Because the aircraft were on different frequencies, neither crew could hear the other's transmissions to the controller.",
+          "The controller's transmissions to each aircraft would be audible to both crews."
+        ]},
+        { kind: "refs", title: "Part of", items: [ { ref: "dca", q: "" } ] }
+      ],
+      sources: ["Air Traffic Control"]
+    },
+
+    dca: {
+      id: "dca", kind: "Airport", label: "Ronald Reagan Washington National Airport (DCA)", sub: "Arlington, Virginia",
+      sections: [
+        { kind: "fields", title: "The airport", items: [
+          { k: "Operated by", v: "Metropolitan Washington Airports Authority (MWAA)" },
+          { k: "Traffic", v: "The 24th busiest airport in the United States" },
+          { k: "Flight paths", v: "Because of noise regulations, aircraft flight patterns follow the Potomac or Anacostia rivers" },
+          { k: "Runways", v: "Three operational runways; the report describes two" }
+        ]},
+        { kind: "table", title: "Runways", cols: ["Runway", "Size", "Use", "Share, 2018 to 2024"], rows: [
+          ["1/19", "7,169 ft long, 150 ft wide", "Most commonly used for arrivals and departures", "Arrivals: runway 1 about 57%, runway 19 about 38%"],
+          ["15/33", "5,204 ft long, 150 ft wide", "Second most commonly used", "Arrivals: runway 33 about 4%, runway 15 under 1%. Departures: runway 15 about 5%"]
+        ]},
+        { kind: "list", title: "Runway 33 approach lights", items: [
+          "A four-light precision approach path indicator (PAPI) gives a 3° visual approach path to the touchdown zone.",
+          "It was operational at the time of the accident."
+        ]},
+        { kind: "refs", title: "Includes", items: [ { ref: "tower", q: "" } ] }
+      ],
+      sources: ["Airport Information and Emergency Response", "Near Midair Collision Events at DCA"]
+    },
+
+    routes: {
+      id: "routes", kind: "Airspace", label: "Helicopter Routes 1 and 4", sub: "Baltimore-Washington Helicopter Route Chart",
+      sections: [
+        { kind: "steps", title: "Route 1, southeast along the Potomac", items: [
+          { name: "Cabin John, Maryland", note: "Start of the route, which follows the western shore of the Potomac southeast toward Washington." },
+          { name: "Key Bridge", note: "After crossing, the route follows the eastern shore, with the Kennedy Center and Lincoln Memorial to the east and Roosevelt Island to the west.", tag: "PAT25 about 1.1 nm west at 20:43:48" },
+          { name: "Memorial Bridge", note: "A compulsory reporting point. After it, the maximum allowable altitude on Route 1 is 200 ft above mean sea level.", tag: "PAT25 passed at 20:45:30" },
+          { name: "Washington Monument, West Potomac Park and the Tidal Basin", note: "The route passes south of the monument and crosses the park and the Tidal Basin.", tag: "PAT25 crossed the Tidal Basin at 20:45:58" },
+          { name: "Washington Channel", note: "Followed along East Potomac Park." },
+          { name: "Hains Point", note: "The southernmost tip of East Potomac Park, where the Potomac and Anacostia rivers meet. A non-compulsory reporting point, and where Route 4 intercepts Route 1.", tag: "PAT25 passed its southern tip at 20:47:27" }
+        ]},
+        { kind: "steps", title: "Route 4, south past the airport", items: [
+          { name: "Hains Point", note: "Joins Route 1." },
+          { name: "The Potomac's eastern shore", note: "The route continues south along it, with DCA to the west." },
+          { name: "Woodrow Wilson Bridge", note: "South of the bridge, the maximum allowable altitude rises from 200 ft to 300 ft above mean sea level." }
+        ]},
+        { kind: "list", title: "What a helicopter route chart is", items: [
+          "Per FAA Order 7210.3EE, a graphic portrayal of discrete or common helicopter routes or operating zones, designed to ease helicopter access into, out of, and within high-density traffic areas.",
+          "Charts generally include altitude or flight ceiling information, to help with traffic avoidance and adherence to minimum safe altitudes, and expanded, sometimes unique, ground reference symbols for visual navigation.",
+          "The Baltimore-Washington Helicopter Route Chart holds the routes for the Washington, DC area."
+        ]},
+        { kind: "list", title: "Boundaries", items: [
+          "According to FAA aeronautical information specialists after the accident, helicopter routes have no defined lateral boundaries; they are drawn as linear paths along surface features, in a way legible to flight crews.",
+          "Any altitude and lateral distance restrictions are typically documented in the chart specifications or in warning boxes on the chart."
+        ]},
+        { kind: "refs", title: "Flown that night by", items: [ { ref: "pat25", q: "Route 1 to Route 4, then to Davison" } ] }
+      ],
+      sources: ["Helicopter Routes", "History of Flight (PAT25 passage times)"]
+    },
+
+    tcas: {
+      id: "tcas", kind: "Cockpit system", label: "TCAS", sub: "Traffic alert and collision avoidance system",
+      sections: [
+        { kind: "list", title: "What it is", items: [
+          "Per the FAA publication “Introduction to TCAS II Version 7.1,” a family of airborne devices that work independently of the ground-based ATC system and give collision avoidance protection to a broad range of aircraft types.",
+          "All TCAS systems give some degree of collision threat alerting and a traffic display.",
+          "The FAA mandates TCAS II in the United States for commercial aircraft, including regional airline aircraft with more than 30 seats or a maximum takeoff weight above 33,000 lb."
+        ]},
+        { kind: "fields", title: "Two kinds of alert", items: [
+          { k: "Traffic advisory (TA)", v: "Announced by voice as “TRAFFIC - TRAFFIC.”" },
+          { k: "Resolution advisory (RA)", v: "A recommended escape maneuver in the vertical dimension, to increase or keep the existing vertical separation. Voice instructions include “CLIMB, CLIMB,” “DESCEND, DESCEND” and “LEVEL OFF, LEVEL OFF.”" }
+        ]},
+        { kind: "steps", title: "Close to the ground, on descent", items: [
+          { name: "Below 900 ft above ground level", note: "Resolution advisories are inhibited. A traffic advisory is issued when the intruding aircraft is about 20 seconds from the closest point of approach, or 0.3 nm away, whichever comes first." },
+          { name: "Below 400 ft above ground level, on arrival", note: "The aural announcement that goes with a traffic advisory is inhibited." }
+        ]},
+        { kind: "list", title: "On the CRJ (MHI RJ Flight Crew Operating Manual)", items: [
+          "The transceiver sends interrogations and receives replies from other aircraft's transponders.",
+          "The signals are processed into the range, azimuth and altitude of nearby aircraft.",
+          "TCAS gives a visual display on the instrument panel and aural warnings when the computer predicts a conflict."
+        ]},
+        { kind: "refs", title: "Related", items: [
+          { ref: "flight5342", q: "equipped with TCAS" },
+          { ref: "encounters", q: "at least one helicopter-triggered RA a month near DCA" }
+        ]}
+      ],
+      sources: ["Operator and Aircraft Information"]
+    },
+
+    adsb: {
+      id: "adsb", kind: "Surveillance system", label: "ADS-B", sub: "Automatic dependent surveillance-broadcast",
+      sections: [
+        { kind: "list", title: "What it is (FAA)", items: [
+          "Uses GPS satellite signals to give air traffic controllers and pilots accurate information that helps keep aircraft safely separated in the sky and on runways.",
+          "Aircraft transceivers receive GPS signals and use them to find the aircraft's precise position, which is combined with other data and broadcast to other aircraft and ATC facilities."
+        ]},
+        { kind: "refs", title: "On the two aircraft", items: [
+          { ref: "flight5342", q: "equipped with ADS-B out" },
+          { ref: "pat25", q: "transponder capable of transmitting ADS-B out" }
+        ]},
+        { kind: "list", title: "In this report", items: [
+          "The NTSB's preliminary flight track for flight 5342 comes from ADS-B data; the track for PAT25 comes from radar data."
+        ]}
+      ],
+      sources: ["Operator and Aircraft Information", "opening summary (Figure 1 description)"]
+    },
+
+    encounters: {
+      id: "encounters", kind: "Safety record", label: "Close calls at DCA", sub: "Encounters between helicopters and commercial aircraft",
+      sections: [
+        { kind: "list", title: "2011 through 2024", items: [
+          "Drawn from voluntary safety reporting programs and FAA data.",
+          "The vast majority of reported events occurred on approach to landing.",
+          "At least one TCAS resolution advisory a month was triggered by proximity to a helicopter.",
+          "In over half of those, the helicopter may have been above the route altitude restriction.",
+          "Two-thirds of the events occurred at night."
+        ]},
+        { kind: "fields", title: "October 2021 through December 2024", items: [
+          { k: "Commercial operations", v: "944,179 instrument flight rules departures and arrivals" },
+          { k: "Within 1 nm and 400 ft", v: "15,214 occurrences between commercial airplanes and helicopters with less than 1 nm lateral and less than 400 ft vertical separation" },
+          { k: "Within 1,500 ft and 200 ft", v: "85 recorded events with less than 1,500 ft lateral and less than 200 ft vertical separation" }
+        ]},
+        { kind: "refs", title: "Related", items: [
+          { ref: "dca", q: "runway use over 2018 to 2024" },
+          { ref: "tcas", q: "what a resolution advisory is" }
+        ]}
+      ],
+      sources: ["Near Midair Collision Events at DCA"]
+    },
+
+    recovery: {
+      id: "recovery", kind: "Response", label: "Recovery operations", sub: "Potomac River, southeast of runway 33",
+      sections: [
+        { kind: "list", title: "The site", items: [
+          "The wreckage of both aircraft lay in the Potomac at depths between 1 and 8 ft, depending on the tide.",
+          "The Army Corps of Engineers and the US Navy Supervisor of Salvage and Diving (SUPSALV) surveyed the site with sonar and divers wearing helmet cameras.",
+          "SUPSALV was assigned the aircraft recovery, which the NTSB supervised.",
+          "The wreckage was recovered to a secured hangar at DCA."
+        ]},
+        { kind: "refs", title: "Where each wreck lay", items: [
+          { ref: "flight5342", q: "centered about 2,345 ft southeast of the approach end of runway 33" },
+          { ref: "pat25", q: "about 3,730 ft southeast of the approach end of runway 33" }
+        ]},
+        { kind: "list", title: "Divers who recovered the victims", items: [
+          "FBI Evidence Response Team",
+          "DC Fire & EMS Department",
+          "Metropolitan Police Department",
+          "Maryland State Police",
+          "Baltimore City and County Police and Fire",
+          "Randive, Inc., under contract to US Navy SUPSALV",
+          "Prince George's County Police divers",
+          "Maryland Natural Resources divers",
+          "Maryland State Fire Marshal divers",
+          "Anne Arundel County Fire Department divers",
+          "Maryland Transportation Authority Police Marine Division (surface support)"
+        ]}
+      ],
+      sources: ["Airport Information and Emergency Response", "Recovery Operations and Aircraft Examinations"]
+    },
+
+    investigation: {
+      id: "investigation", kind: "Investigation", label: "NTSB investigation", sub: "Accident DCA25MA108",
+      sections: [
+        { kind: "fields", title: "The investigation", items: [
+          { k: "Class", v: "Class 1" },
+          { k: "Investigator in charge", v: "David Banning" },
+          { k: "On scene", v: "The NTSB traveled to the accident site and supervised water recovery operations. All NTSB Board members visited the accident location, with Member Inman acting as the Member on-scene." },
+          { k: "Video", v: "The NTSB obtained video recordings from several sources showing the collision and the aircraft's descent to the water." }
+        ]},
+        { kind: "table", title: "Participating organizations", cols: ["Organization", "Role", "Representative"], rows: [
+          ["PSA Airlines", "Party", "Darren Hall"],
+          ["GE Aerospace", "Party", "Sam Farmiga"],
+          ["Sikorsky", "Party", "Javier Casanova"],
+          ["Federal Aviation Administration (FAA)", "Party", "Patrick Lusch, FAA AVP-110"],
+          ["US Army", "Party", "Col. Matthew Parker"],
+          ["National Air Traffic Controllers Association (NATCA)", "Party", "Seth Myers"],
+          ["Air Line Pilots Association (ALPA)", "Party", "Daniel Mullin"],
+          ["Association of Flight Attendants", "Party", "Robin Coombs"],
+          ["International Association of Machinists and Aerospace Workers (IAM)", "Party", "Robert Brown"],
+          ["Collins Aerospace", "Party", "Shelley Ford"],
+          ["Metropolitan Washington Airports Authority (MWAA)", "Party", "Chris Paulino"],
+          ["Transportation Safety Board of Canada", "Accredited representative", "Ewan Tasker"],
+          ["Transport Canada", "Technical advisor to the TSB", "Ian Sturgeon"],
+          ["MHI RJ Aviation (listed as Mitsubishi Heavy Industries)", "Technical advisor to the TSB", "David Fisher"]
+        ]},
+        { kind: "list", title: "Investigative groups, each led by an NTSB group chair", items: [
+          "Air Carrier Operations and Human Performance",
+          "Airplane Structures",
+          "Airplane Systems",
+          "Powerplants",
+          "Helicopter Operations and Human Performance",
+          "Air Traffic Control and Human Performance",
+          "Helicopter Airworthiness",
+          "Aircraft Performance",
+          "Survival Factors",
+          "Flight Recorders, with subgroups for the airplane FDR, airplane CVR, helicopter FDR and helicopter CVR"
+        ]}
+      ],
+      sources: ["opening summary", "Administrative Information"]
+    }
+  }
+};
+
+(function computeGaps() {
+  const secs = t => { const m = /^(\d\d):(\d\d):(\d\d)$/.exec(t); return m ? (+m[1]) * 3600 + (+m[2]) * 60 + (+m[3]) : null; };
+  let prev = null;
+  MODEL.phases.forEach(p => {
+    if (!p.lanes) { prev = null; return; }
+    p.events.forEach(e => {
+      const s = secs(e.t);
+      if (s !== null && prev !== null && s > prev) {
+        const d = s - prev;
+        e.gap = d < 60 ? `+${d} s` : `+${Math.floor(d / 60)} min${d % 60 ? ' ' + (d % 60) + ' s' : ''}`;
+      }
+      prev = s;
+    });
+  });
+})();
+
+document.addEventListener('alpine:init', () => {
+  Alpine.data('page', () => ({
+    M: MODEL,
+    stack: [],
+    trigger: null,
+    openParts: {},
+    phaseOpen: Object.fromEntries(MODEL.phases.map(p => [p.id, true])),
+    notamOpen: false,
+    get cur() { return this.stack.length ? this.M.entities[this.stack[this.stack.length - 1]] : null; },
+    get prev() { return this.stack.length > 1 ? this.M.entities[this.stack[this.stack.length - 2]] : null; },
+    E(id) { return this.M.entities[id]; },
+    lane(l) { return this.M.lanes[l]; },
+    cardClass(ev, ph) {
+      if (!ph.lanes) return 'col-start-2 md:col-span-3 response-card';
+      const l = this.lane(ev.lane);
+      return 'col-start-2 border-l-4 ' + l.col + ' ' + l.card;
+    },
+    openRoot(id, evt) {
+      this.trigger = evt && evt.currentTarget ? evt.currentTarget : null;
+      this.stack = [id];
+      this.afterOpen();
+    },
+    open(id) {
+      const at = this.stack.indexOf(id);
+      if (at >= 0) this.stack = this.stack.slice(0, at + 1); else this.stack.push(id);
+      this.afterOpen();
+    },
+    back() { this.stack.pop(); this.afterOpen(); },
+    close() {
+      if (!this.stack.length) return;
+      this.stack = [];
+      document.documentElement.style.overflow = '';
+      const t = this.trigger; this.trigger = null;
+      if (t) this.$nextTick(() => t.focus());
+    },
+    afterOpen() {
+      document.documentElement.style.overflow = 'hidden';
+      this.$nextTick(() => {
+        if (this.$refs.panelBody) this.$refs.panelBody.scrollTop = 0;
+        if (this.$refs.panelTitle) this.$refs.panelTitle.focus();
+      });
+    },
+    togglePart(k) { this.openParts[k] = !this.openParts[k]; }
+  }));
+});
+</script>
+</body>
+</html>

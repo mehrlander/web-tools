@@ -36,7 +36,6 @@ When GitHub rejects the token, the app opens **This browser** (`?view=here`), wh
 - `?view=<key>` opens a view. The keys, their labels, nav stops, groups, files and docs are rows of [app-routes.csv](app-routes.csv).
 - Second keys: `&tab=` (Project's pills, Map's tabs), `&item=` (State), `&detail=` (Branches), the `&sq=` family (Search), `&file=`, `&path=`, `&window=`. A view leaves its default second key out of the URL.
 - `&shell=full|nav|none` sets how much chrome surrounds the view (below).
-- Retired keys still resolve: `activity` to Sessions, `portable` to Map, `surfaces` to Stage, `landing` to the plain `?repo=` form.
 
 The app's `VIEWS` table is the router: each row names a key, how a link opens it, and what it stamps back. `routeFromUrl` dispatches through it and `deepLinkParams` stamps through it. **Adding a row is the whole of adding an addressable view**, plus its `app-routes.csv` row. [`shell-routing.test.mjs`](../node/test/shell-routing.test.mjs) forbids comparing a view name inside the routing functions and re-parses every row's own stamp; [`app-routes.test.mjs`](../node/test/app-routes.test.mjs) holds `VIEWS` and `app-routes.csv` to each other both ways. The default repo's `repo` key is dropped from addresses as redundant, except on its landing, which would otherwise have no address.
 
@@ -66,7 +65,7 @@ App views default to `nav`; other views default to `full`. Omit the default from
 
 The floating action button (FAB) reads four optional fields from page components:
 
-- `about`: what the page in view is and reads, shown on the FAB sidebar's About tab and read on each paint: `{ title, lede, sources, notes, sections, links, narrative, record }`. The Map supplies it per address; a page without one shows its components' `description` lines.
+- `about`: what the page in view is and reads, shown on the FAB sidebar's About tab and read on each paint: `{ title, lede, sources, notes, sections, links, record, subject, selection }`. The Map supplies it per address; a page without one shows its components' `description` lines. Optional `subject` and `selection` identify the page and selected item for notes: `{ about, label, aliases? }`, with stable note locators in `about` and any consolidated addresses in `aliases`. Without `subject`, notes address the displayed file.
 - `actions`: actions shown in the FAB sidebar.
 - `toggles`: `[{ key, label, icon, on, title, set }]`, controls on the Render tab's width row, read on each paint.
 - `menu`: `[{ label, icon, run }]`, rows in the FAB's long-press menu, read when opened (`readPageMenu()`). No description field.

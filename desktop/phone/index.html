@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="[overflow-anchor:none]">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -12,25 +12,28 @@
   <script src="/vendor/tailwind.js"></script>
   <script src="/vendor/claude-mark.js"></script>
   <script src="/vendor/assistant-mark.js"></script>
+  <script src="/vendor/marked.js" defer></script>
+  <script src="/vendor/purify.js" defer></script>
   <script src="/now-shared.js" defer></script>
+  <script src="/reading.js" defer></script>
   <script src="/phone.js" defer></script>
 </head>
 <body class="min-h-dvh bg-stone-100 font-sans text-stone-900 antialiased">
   <main id="overview" class="min-h-dvh">
     <header class="sticky top-0 z-10 border-b border-stone-200 bg-stone-100/95 backdrop-blur">
-      <div class="flex items-center justify-between gap-3 px-4 pt-4 pb-3">
-        <div class="flex min-w-0 items-center gap-3"><img src="/icon.svg" class="size-8" alt=""><div class="min-w-0"><h1 class="text-xl font-semibold">Now</h1><p id="machine" class="truncate text-xs text-stone-500">Your laptop</p></div></div>
+      <div class="flex items-center justify-between gap-2 px-3 py-1">
+        <div class="flex min-w-0 items-center gap-2"><img src="/icon.svg" class="size-6" alt=""><div class="min-w-0"><h1 class="text-lg font-semibold">Now</h1><p id="machine" class="truncate text-[10px] text-stone-500">Your laptop</p></div></div>
+        <div id="connection" role="status" class="ml-auto text-[10px] text-stone-500">Connecting…</div>
         <a href="https://mehrlander.github.io/web-tools/app/" aria-label="Open Web Tools" class="flex size-11 items-center justify-center rounded-full border border-stone-200 bg-white text-stone-600"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="size-5" aria-hidden="true"><path d="M14 4h6v6M20 4 10 14M10 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5"/></svg></a>
       </div>
-      <div id="connection" role="status" class="px-4 pb-3 text-xs text-stone-500">Connecting to your laptop…</div>
       <nav id="assistants" aria-label="Filter by assistant" class="grid grid-cols-3 border-t border-stone-200"></nav>
-      <nav id="tabs" aria-label="Activity views" class="flex gap-1 overflow-x-auto border-t border-stone-200 px-3 py-2">
-        <button data-tab="now" aria-pressed="true" class="min-h-11 shrink-0 rounded-full px-4 text-sm font-medium">Now</button>
-        <button data-tab="queue" aria-label="Gemini queue" aria-pressed="false" class="min-h-11 shrink-0 rounded-full px-4 text-sm font-medium">Gemini queue <span id="queue-count"></span></button>
-        <button data-tab="recent" aria-pressed="false" class="min-h-11 shrink-0 rounded-full px-4 text-sm font-medium">Recent</button>
+      <nav id="tabs" aria-label="Activity views" class="flex gap-1 overflow-x-auto border-t border-stone-200 px-2 py-0.5">
+        <button data-tab="now" aria-pressed="true" class="min-h-11 shrink-0 rounded-full px-3 text-[13px] font-medium">Now</button>
+        <button data-tab="queue" aria-label="Gemini queue" aria-pressed="false" class="min-h-11 shrink-0 rounded-full px-3 text-[13px] font-medium">Gemini queue <span id="queue-count"></span></button>
+        <button data-tab="recent" aria-pressed="false" class="min-h-11 shrink-0 rounded-full px-3 text-[13px] font-medium">Recent</button>
       </nav>
     </header>
-    <div id="notice" class="empty:hidden border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"></div>
+    <div id="notice" class="empty:hidden border-b border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900"></div>
     <div id="content" class="pb-8"><p class="p-4 text-base text-stone-500">Reading current activity…</p></div>
     <footer id="source-times" class="px-4 pb-8 text-xs leading-5 text-stone-500"></footer>
   </main>

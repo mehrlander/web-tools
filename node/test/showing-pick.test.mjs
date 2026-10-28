@@ -10,17 +10,17 @@
 // shell". It is in lib, and a toss at the branch reaches it. That reading is now a fixture
 // rather than a thing a session has to recall correctly under pressure.
 //
-// The four rules come from docs/routes.json's `showing.picker`, so a rule
-// changing there and not here should fail: the fixtures below ARE the picker's
-// behaviour, and a mechanism table nothing executes is what this replaced.
+// The fixtures below specify the picker file set by file set;
+// docs/showing-mechanisms.csv states it only a row at a time.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { writeFileSync, mkdtempSync } from 'node:fs';
+import { writeFileSync, mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { repoRoot } from './bootstrap.mjs';
+import { parseCsv } from '../build/registries-load.mjs';
 
 const SCRIPT = path.join(repoRoot, 'python/showing.py');
 const ZERO = '0'.repeat(40);
@@ -46,7 +46,7 @@ function withDiff(files, text) {
 
 test('a lib change resolves to a toss of the page that draws it, which is the call the repo got wrong by hand', () => {
   const d = run('lib/alpineComponents/estate.js,dist/web-tools.js');
-  assert.equal(d.mechanism, 'toss-gh');
+  assert.equal(d.case, 'page');
   const app = d.links.find(l => l.page === 'app/index.html');
   assert.ok(app, 'the app is the subject, since app-routes.csv declares the file as its code');
   // The toss supersedes ?use= as the preview link (docs/showing-consolidation.md):
@@ -91,7 +91,7 @@ test('a shared reader is offered to each page and requires an explicit app view'
 
 test('a page file resolves to the toss at the branch', () => {
   const d = run('pages/session.html');
-  assert.equal(d.mechanism, 'toss-gh');
+  assert.equal(d.case, 'page');
   const [l] = d.links;
   // AND NO ?use= ON THE SHELL. It was there on the reasoning that the renderer
   // should match the ref the page is fetched at, which the @ref in the fragment
@@ -110,7 +110,7 @@ test('a page file resolves to the toss at the branch', () => {
 
 test('the renderer previews by nesting rather than by rendering itself', () => {
   const d = run('pages/toss-render.html');
-  assert.equal(d.mechanism, 'toss-nested');
+  assert.equal(d.case, 'renderer');
   assert.equal((d.links[0].url.match(/#gh=/g) || []).length, 2);
   // A real page in the nest: a space or an angle bracket in the destination is
   // not markdown, and the pasted line showed as raw text (2026-10-21).
@@ -126,9 +126,9 @@ test('a shell change acting on the tab is tossed with ?top, since a frame never 
   // The favicon case (PR #315): a framed shell sets it on its own document,
   // correctly and invisibly, because the tab belongs to whatever is on top.
   // Until 2026-10-17 this case printed "no link reaches this", while the
-  // toss-gh row of showing-mechanisms.csv said ?top makes the page the tab.
+  // toss row of showing-mechanisms.csv said ?top makes the page the tab.
   const d = withDiff('pages/branch.html', '+++ b/pages/branch.html\n+ document.title = subject;\n');
-  assert.equal(d.mechanism, 'toss-gh');
+  assert.equal(d.case, 'page');
   assert.equal(d.top, true);
   assert.match(d.links[0].url, /toss-render\.html\?top#gh=mehrlander\/web-tools@0{12}:pages\/branch\.html$/);
   assert.match(d.why.join(' '), /document\.title/);
@@ -136,7 +136,7 @@ test('a shell change acting on the tab is tossed with ?top, since a frame never 
   assert.equal(back.top, true, 'history is the tab too');
   // The control: the same file, a change that touches nothing top-level.
   const ok = withDiff('pages/branch.html', '+++ b/pages/branch.html\n+ const x = 1;\n');
-  assert.equal(ok.mechanism, 'toss-gh');
+  assert.equal(ok.case, 'page');
   assert.equal(ok.top, undefined);
   assert.doesNotMatch(ok.links[0].url, /\?top/);
 });
@@ -152,12 +152,12 @@ test('--top opens any toss as the tab, and says so where it has nothing to add',
   assert.match(refs.links[0].url, /toss-render\.html\?top&refs=mehrlander\/home@claude\/x#gh=/,
     'a selection rides after the flag');
   const lag = run('pages/diff-tool.html,lib/kits/branch-status.js', ['--overlay', 'yes', '--behind', '2', '--top']);
-  assert.equal(lag.mechanism, 'overlay');
+  assert.equal(lag.case, 'merge');
   assert.match(lag.links[0].url, new RegExp(`toss-render\\.html\\?top&refs=mehrlander/web-tools@${B12}&`));
   const app = runIn(framedRepo(), 'projects/budget-drs/submittal/submittal.html', ['--top']);
   assert.match(app.links[0].url, /toss-render\.html\?top#gh=mehrlander\/home@/);
   const lib = run('lib/alpineComponents/estate.js,dist/web-tools.js', ['--top']);
-  assert.equal(lib.mechanism, 'toss-gh');
+  assert.equal(lib.case, 'page');
   assert.equal(lib.top, true, 'a lib change is a toss too, so --top applies to it');
   const nested = run('pages/toss-render.html', ['--top']);
   assert.ok(nested.warnings.some(w => /nested renderer is never the tab/.test(w)));
@@ -170,7 +170,7 @@ test('--top opens any toss as the tab, and says so where it has nothing to add',
 // sessions handed over GitHub blob links for every doc they changed.
 test('a doc change is a data-route toss; a tool change alone is still no link', () => {
   const d = run('docs/showing.md,tools/test/x.test.mjs');
-  assert.equal(d.mechanism, 'toss-data');
+  assert.equal(d.case, 'data');
   assert.deepEqual(d.links.map(l => l.page), ['docs/showing.md']);
   assert.match(d.links[0].url,
     new RegExp(`^https://mehrlander\\.github\\.io/web-tools/pages/toss-render\\.html#data=mehrlander/web-tools@${Z12}:docs/showing\\.md$`));
@@ -181,7 +181,7 @@ test('a doc change is a data-route toss; a tool change alone is still no link', 
 
 test('documents ride after the page links, and generated files are not documents', () => {
   const d = run('pages/branch.html,docs/showing.md,docs/README.md,tracker/board.md', ['--at', 'gh=o/r&pr=1']);
-  assert.equal(d.mechanism, 'toss-gh');
+  assert.equal(d.case, 'page');
   assert.deepEqual(d.documents.map(l => l.page), ['docs/showing.md'],
     'docs/README.md is regenerated by the hook and a tracker board by the board generator');
   assert.doesNotMatch(d.documents[0].url, /pr=1/, '--at addresses the page, not the documents');
@@ -190,7 +190,7 @@ test('documents ride after the page links, and generated files are not documents
 
 test('the data route takes a look link like a page does, and spells a space', () => {
   const d = run('docs/a b.md', ['--at', 'show=text:Intro&say=Start here']);
-  assert.equal(d.mechanism, 'toss-data');
+  assert.equal(d.case, 'data');
   assert.match(d.links[0].url, /#data=mehrlander\/web-tools@0{12}:docs\/a%20b\.md%23show=text:Intro%26say=Start here$/);
 });
 
@@ -260,7 +260,7 @@ test('any HTML outside archive/ is a page file, a kit demo or a dated prototype 
   // handed links to two pages it never touched.
   for (const file of ['lib/kits/demos/md-diff.html', 'dump/2026-08-28-question-lane.html']) {
     const d = run(file);
-    assert.equal(d.mechanism, 'toss-gh', file);
+    assert.equal(d.case, 'page', file);
     assert.deepEqual(d.links.map(l => l.page), [file]);
   }
   assert.equal(run('archive/alp/repo/index.html').mechanism, 'none-needed');
@@ -268,7 +268,7 @@ test('any HTML outside archive/ is a page file, a kit demo or a dated prototype 
 
 test('a kit change reaches its demo, which gh.loads the kit like any page', () => {
   const d = run('lib/kits/md-diff.js,dist/web-tools.js');
-  assert.equal(d.mechanism, 'toss-gh');
+  assert.equal(d.case, 'page');
   assert.ok(d.links.some(l => l.page === 'lib/kits/demos/md-diff.html'));
 });
 
@@ -276,7 +276,7 @@ test('a lib file only a relative script tag loads is tossed on that page', () =>
   // page-skips-the-loader-ignores-use: transform.html loads its workbench with
   // a bare <script src>, so ?use= showed main's code with no error.
   const d = run('lib/alpineComponents/transform-workbench.js,dist/web-tools.js');
-  assert.equal(d.mechanism, 'toss-gh');
+  assert.equal(d.case, 'page');
   assert.deepEqual(d.links.map(l => l.page), ['pages/transform.html']);
 });
 
@@ -290,7 +290,7 @@ test('lib without a rebuilt pre-build warns, since the page loads dist at the li
 
 test('a change to the FAB is tossed with ?top, since a frame shows the renderer\'s FAB', () => {
   const d = run('lib/alpineComponents/fab.js,dist/web-tools.js');
-  assert.equal(d.mechanism, 'toss-gh');
+  assert.equal(d.case, 'page');
   assert.equal(d.top, true);
   assert.ok(d.links.length > 0 && d.links.every(l => /toss-render\.html\?top#gh=/.test(l.url)));
   assert.ok(!d.links.some(l => l.page === 'pages/toss-render.html'), 'the renderer is never its own subject');
@@ -302,7 +302,7 @@ test('a change to the FAB is tossed with ?top, since a frame shows the renderer\
 test('--path links any named file at the real commit, a page by toss and a document by the data route', () => {
   const d = JSON.parse(execFileSync('python3', [SCRIPT, '--path', 'pages/branch.html', '--path', 'docs/APP.md', '--json'],
     { cwd: repoRoot, encoding: 'utf8' }));
-  assert.equal(d.mechanism, 'toss-gh');
+  assert.equal(d.case, 'page');
   assert.match(d.sha, /^[0-9a-f]{40}$/);
   assert.notEqual(d.sha, ZERO);
   // The branch rides ahead of the commit wherever one is checked out and main's
@@ -368,7 +368,7 @@ const IDENT = {
 // before anyone worked out why.
 test('a page that routes on its own hash is warned about, and --at answers it', () => {
   const bare = run('pages/branch.html');
-  assert.equal(bare.mechanism, 'toss-gh');
+  assert.equal(bare.case, 'page');
   assert.ok(bare.warnings.some(w => /location\.hash/.test(w) && /--at/.test(w)),
     'the warning names the risk and the flag: ' + JSON.stringify(bare.warnings));
   assert.ok(!bare.links[0].url.includes('#gh=mehrlander/web-tools&pr='),
@@ -443,7 +443,7 @@ function runIn(root, files, extra = []) {
 
 test('a framed page resolves to the app carrying its view, never to the page on its own', () => {
   const d = runIn(framedRepo(), 'projects/budget-drs/submittal/submittal.html,projects/budget-drs/submittal/data.js');
-  assert.equal(d.mechanism, 'toss-app');
+  assert.equal(d.case, 'app');
   assert.equal(d.links.length, 1, 'two files under one view are one link');
   const [l] = d.links;
   assert.equal(l.page, 'projects/budget-drs/app/view/app.html');
@@ -458,7 +458,7 @@ test('a framed page resolves to the app carrying its view, never to the page on 
 
 test("a change under the app's own folder is the app, bare, since the path does not name a view", () => {
   const d = runIn(framedRepo(), 'projects/budget-drs/app/spend/data.js');
-  assert.equal(d.mechanism, 'toss-app');
+  assert.equal(d.case, 'app');
   assert.equal(d.links[0].view, null);
   assert.match(d.links[0].url, /app\.html$/);
 });
@@ -470,7 +470,7 @@ test('a view beats the bare app when a branch touches both', () => {
 
 test('an HTML file the manifest does not frame is tossed on its own and said to be undeclared', () => {
   const d = runIn(framedRepo(), 'created/thing.html,chron/2026/09/x.md');
-  assert.equal(d.mechanism, 'toss-app');
+  assert.equal(d.case, 'app');
   assert.equal(d.links[0].page, 'created/thing.html');
   assert.match(d.links[0].url, /#gh=mehrlander\/home@0{12}:created\/thing\.html$/);
   assert.ok(d.warnings.some(w => /not declared under showing\.views/.test(w)));
@@ -478,12 +478,12 @@ test('an HTML file the manifest does not frame is tossed on its own and said to 
 
 test('a framed repo links its documents through the data route, and only those the app does not', () => {
   const d = runIn(framedRepo(), 'chron/2026/09/x.md,tools/x.py');
-  assert.equal(d.mechanism, 'toss-data');
+  assert.equal(d.case, 'data');
   assert.match(d.links[0].url, /toss-render\.html#data=mehrlander\/home@0{12}:chron\/2026\/09\/x\.md$/);
   // A document under a declared view is the view's to show, so it is not
   // listed a second time beside the app.
   const v = runIn(framedRepo(), 'projects/budget-drs/submittal/memo.md');
-  assert.equal(v.mechanism, 'toss-app');
+  assert.equal(v.case, 'app');
   assert.equal(v.documents, undefined);
   assert.equal(runIn(framedRepo(), 'tools/x.py').mechanism, 'none-needed');
 });
@@ -492,14 +492,14 @@ test('a framed repo links its documents through the data route, and only those t
 // `--query` exists because the app routes on ?view=, which `--at` cannot
 // express; the comment above address() says as much, and names the 2026-09-08
 // link that got hand-built for want of it. pick_framed took neither argument
-// and passed neither on, so on toss-app, the only mechanism a framed repo ever
+// and passed neither on, so in the app case, the only one a framed repo ever
 // reaches, both were silently dropped: the script printed a bare ?view= link
 // and said nothing, which is worse than refusing, since the address looks
 // right. Found 2026-09-09 while trying to put &track= on a render line.
 test('--query joins the view on a framed link rather than being dropped', () => {
   const d = runIn(framedRepo(), 'projects/budget-drs/submittal/submittal.html',
                   ['--query', 'tab=abs&track=submittal']);
-  assert.equal(d.mechanism, 'toss-app');
+  assert.equal(d.case, 'app');
   assert.match(d.links[0].url, /\?view=submittal&tab=abs&track=submittal$/,
     'the query joins with & because the framed page reads one query span');
 });
@@ -510,7 +510,7 @@ test('--query joins the view on a framed link rather than being dropped', () => 
 test('a view named in --query replaces the inferred one rather than doubling it', () => {
   const d = runIn(framedRepo(), 'projects/budget-drs/submittal/submittal.html',
                   ['--query', 'view=benefits&tab=abs']);
-  assert.equal(d.mechanism, 'toss-app');
+  assert.equal(d.case, 'app');
   assert.match(d.links[0].url, /\?view=benefits&tab=abs$/, 'one view, the one asked for');
 });
 
@@ -520,7 +520,7 @@ test('a view named in --query replaces the inferred one rather than doubling it'
 test('--refs puts the selection on the renderer, and refs= in --query is flagged', () => {
   const d = runIn(framedRepo(), 'projects/budget-drs/submittal/submittal.html',
                   ['--refs', 'mehrlander/home@claude/x', '--refs', 'mehrlander/web-tools@y']);
-  assert.equal(d.mechanism, 'toss-app');
+  assert.equal(d.case, 'app');
   assert.match(d.links[0].url,
     /pages\/toss-render\.html\?refs=mehrlander\/home@claude\/x&refs=mehrlander\/web-tools@y#gh=/);
   const q = runIn(framedRepo(), 'projects/budget-drs/submittal/submittal.html',
@@ -531,7 +531,7 @@ test('--refs puts the selection on the renderer, and refs= in --query is flagged
 test('--at puts a fragment on a framed link', () => {
   const d = runIn(framedRepo(), 'projects/budget-drs/submittal/submittal.html',
                   ['--at', 'note=abc']);
-  assert.equal(d.mechanism, 'toss-app');
+  assert.equal(d.case, 'app');
   assert.match(d.links[0].url, /%23note=abc$/);
 });
 
@@ -544,7 +544,7 @@ test('--at puts a fragment on a framed link', () => {
 const B12 = 'b'.repeat(12);
 test('a lib change on a branch behind main, touching nothing main touched, is an overlay pinned to main', () => {
   const d = run('lib/alpineComponents/estate.js,dist/web-tools.js', ['--overlay', 'yes', '--behind', '9', '--main-changed', 'lib/kits/other.js']);
-  assert.equal(d.mechanism, 'overlay');
+  assert.equal(d.case, 'merge');
   assert.equal(d.links.find(l => l.page === 'app/index.html').url,
     'https://mehrlander.github.io/web-tools/pages/toss-render.html'
     + `?refs=mehrlander/web-tools@${B12}&refs=mehrlander/web-tools@${Z12}:lib/alpineComponents/estate.js`
@@ -555,20 +555,20 @@ test('a lib change on a branch behind main, touching nothing main touched, is an
 
 test('main having changed an overlaid file refuses the overlay and says neither link is the merge', () => {
   const d = run('lib/alpineComponents/estate.js,dist/web-tools.js', ['--overlay', 'yes', '--behind', '9', '--main-changed', 'lib/alpineComponents/estate.js']);
-  assert.equal(d.mechanism, 'toss-gh');
+  assert.equal(d.case, 'page');
   assert.ok(d.warnings.some(w => /main has changed 1 of this branch's files.*Neither link shows the merge/.test(w)));
   assert.ok(d.why.some(w => /as it stands: 9 commit\(s\) behind main/.test(w)), 'the fallback does not claim to be the real thing');
 });
 
 test('a deleted or renamed file refuses the overlay', () => {
   const d = run('pages/diff-tool.html,lib/kits/branch-status.js', ['--overlay', 'yes', '--behind', '2', '--removed', 'lib/kits/old.js']);
-  assert.equal(d.mechanism, 'toss-gh');
+  assert.equal(d.case, 'page');
   assert.ok(d.warnings.some(w => /deletes or renames lib\/kits\/old\.js/.test(w)));
 });
 
 test('on a lagging branch a changed page is addressed at the branch, with pinned main under it and its other files over it', () => {
   const d = run('pages/diff-tool.html,lib/kits/branch-status.js', ['--overlay', 'yes', '--behind', '2']);
-  assert.equal(d.mechanism, 'overlay');
+  assert.equal(d.case, 'merge');
   assert.equal(d.links[0].url, 'https://mehrlander.github.io/web-tools/pages/toss-render.html'
     + `?refs=mehrlander/web-tools@${B12}&refs=mehrlander/web-tools@${Z12}:lib/kits/branch-status.js`
     + `#gh=mehrlander/web-tools@${Z12}:pages/diff-tool.html`);
@@ -577,20 +577,20 @@ test('on a lagging branch a changed page is addressed at the branch, with pinned
 
 test('while main cannot read path entries, a lib change is the toss at the branch', () => {
   const d = run('lib/alpineComponents/estate.js,dist/web-tools.js', ['--overlay', 'no']);
-  assert.equal(d.mechanism, 'toss-gh');
+  assert.equal(d.case, 'page');
 });
 
 test('past the cap the overlay steps aside and says so', () => {
   const many = Array.from({ length: 21 }, (_, i) => `lib/kits/k${i}.js`).join(',');
   const d = run(many, ['--overlay', 'yes', '--behind', '2']);
-  assert.equal(d.mechanism, 'toss-gh');
+  assert.equal(d.case, 'page');
   assert.ok(d.warnings.some(w => /past the overlay's 20/.test(w)));
 });
 
 test('a generated catalog both sides changed is read at main, named, and does not refuse the overlay', () => {
   const d = run('lib/alpineComponents/estate.js,docs/tests.csv,dist/web-tools.js',
     ['--overlay', 'yes', '--behind', '3', '--main-changed', 'docs/tests.csv']);
-  assert.equal(d.mechanism, 'overlay');
+  assert.equal(d.case, 'merge');
   assert.ok(!d.links[0].url.includes('docs/tests.csv'), 'a regenerated file is not overlaid');
   assert.ok(d.why.some(w => /generated file\(s\).*docs\/tests\.csv.*read at main/.test(w)));
 });
@@ -601,7 +601,7 @@ test('a generated catalog both sides changed is read at main, named, and does no
 // handed over links several hundred characters long (2026-10-02).
 test('level with main, a changed page is the plain toss at the branch, not an overlay', () => {
   const d = run('pages/diff-tool.html,lib/kits/branch-status.js,dist/web-tools.js', ['--overlay', 'yes']);
-  assert.equal(d.mechanism, 'toss-gh');
+  assert.equal(d.case, 'page');
   assert.equal(d.links[0].url, `https://mehrlander.github.io/web-tools/pages/toss-render.html#gh=mehrlander/web-tools@${Z12}:pages/diff-tool.html`);
   assert.ok(d.why.some(w => /level with main.*fast-forward/.test(w)));
   assert.ok(!d.warnings.some(w => /overlay/.test(w)), 'nothing to refuse when no overlay is wanted');
@@ -610,13 +610,13 @@ test('level with main, a changed page is the plain toss at the branch, not an ov
 test('level with main, a rebuilt lib change is the toss at the branch, and the cap does not apply', () => {
   const many = Array.from({ length: 21 }, (_, i) => `lib/kits/k${i}.js`).concat('dist/web-tools.js').join(',');
   const d = run(many, ['--overlay', 'yes']);
-  assert.equal(d.mechanism, 'toss-gh');
+  assert.equal(d.case, 'page');
   assert.ok(!d.warnings.some(w => /past the overlay/.test(w)));
 });
 
 test('level with main, a lib change with no rebuilt bundle keeps the overlay, which steps around the stale build', () => {
   const d = run('lib/alpineComponents/estate.js', ['--overlay', 'yes']);
-  assert.equal(d.mechanism, 'overlay');
+  assert.equal(d.case, 'merge');
   assert.ok(d.why.some(w => /current with main, so for those files this is the branch itself/.test(w)));
 });
 
@@ -625,7 +625,7 @@ test('a kit demo is a page file under lib/, so the link is the demo\'s own toss'
   // file from the default branch, so a new demo had no ?use= link that showed
   // it, and the classifier used to offer the pre-build's pages instead.
   const d = run('lib/kits/look.js,lib/kits/demos/look.html,dist/web-tools.js');
-  assert.equal(d.mechanism, 'toss-gh');
+  assert.equal(d.case, 'page');
   assert.deepEqual(d.links.map(l => l.page), ['lib/kits/demos/look.html']);
 });
 
@@ -665,4 +665,21 @@ test('once main reads it, a link names the branch beside its commit', () => {
   assert.equal(o.links[0].url, 'https://mehrlander.github.io/web-tools/pages/toss-render.html'
     + `?refs=mehrlander/web-tools@${B12}&refs=mehrlander/web-tools@${Z12}:lib/kits/branch-status.js`
     + `#gh=mehrlander/web-tools@claude/x@${Z12}:pages/diff-tool.html`);
+});
+
+// The script names its link by the table's row and the toss's case, so the two
+// vocabularies cannot drift: every case it can emit is a key of the toss row's
+// `handles` in docs/showing-mechanisms.csv, and every glyph it prints is a row.
+test('the cases the script emits are the toss row\'s, and its glyphs name rows', () => {
+  const src = readFileSync(SCRIPT, 'utf8');
+  const cases = [...(src.match(/^CASES = \(([^)]*)\)/m)?.[1] || '').matchAll(/"([\w-]+)"/g)].map(m => m[1]);
+  const glyphs = [...(src.match(/^GLYPH = \{([^}]*)\}/m)?.[1] || '').matchAll(/"([\w-]+)":/g)].map(m => m[1]);
+  const rows = parseCsv(readFileSync(path.join(repoRoot, 'docs/showing-mechanisms.csv'), 'utf8'));
+  const toss = rows.find(r => r.key === 'toss');
+  assert.ok(toss, 'the table has a toss row');
+  assert.deepEqual([...cases].sort(), toss.handles.split(';').sort(), 'CASES is the toss row\'s handles');
+  for (const g of glyphs) assert.ok(rows.some(r => r.key === g), `GLYPH names ${g}, which is no row of the table`);
+  const d = run('pages/branch.html');
+  assert.equal(d.mechanism, 'toss');
+  assert.ok(cases.includes(d.case));
 });

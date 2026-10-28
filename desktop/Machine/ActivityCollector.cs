@@ -45,7 +45,7 @@ public sealed class ActivityCollector
                         applications = LaptopSignals.Applications();
                         processesChecked = now;
                     }
-                    var current = sessions.Read(now);
+                    var current = LocalWorkReader.Join(sessions.Read(now), Path.Combine(UserSettings.DataDirectory, "work", "summaries.json"), now);
                     var events = journal.Observe(current.Items, now);
                     var cloud = active.Cloud;
                     var updates = changes.Observe(current.Items.Concat(cloud.Items), activity.Errands, now);

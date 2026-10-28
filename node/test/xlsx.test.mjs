@@ -644,6 +644,24 @@ test('sheetLayout: merges become spans and cover the cells beneath them', () => 
   assert.equal(row1.height, Math.round(40 * 4 / 3), 'points to pixels');
 });
 
+// The used range was found by spreading every row number and every cell's
+// column into one Math.max call, and a call takes only so many arguments: a
+// sheet past roughly 120,000 cells threw RangeError before drawing anything
+// (DOH's FNCal, 84,360 formulas on one sheet, and DES's 1.4 million-cell
+// time-tracking table, both in budget-wa's agency-workbooks study).
+test('sheetLayout: a sheet with more cells than a call takes arguments still lays out', () => {
+  const rows = [];
+  for (let r = 1; r <= 300; r++) {
+    const cells = {};
+    for (let c = 0; c < 1000; c++) cells[c] = r * c;
+    rows.push({ row: r, cells });
+  }
+  const out = xlsxKit.sheetLayout({ rows, merges: [], cols: [] }, {});
+  assert.equal(out.maxCol, 999);
+  assert.deepEqual(out.truncated, { fromRow: 31, lastRow: 300, reason: 'cells' },
+    'the 30,000-cell cap stops the drawing, and the used range still reaches row 300');
+});
+
 test('sheetLayout: a hidden row is dropped and a missing row still holds its place', () => {
   const xl = formXl();
   const out = xlsxKit.sheetLayout(xl.sheets.sheet1, xl);

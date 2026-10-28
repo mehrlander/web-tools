@@ -29,10 +29,10 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { JSDOM } from 'jsdom';
-import { repoRoot } from './bootstrap.mjs';
+import { repoRoot, withTraffic } from './bootstrap.mjs';
 
 const src = readFileSync(path.join(repoRoot, 'lib/kits/session-render.js'), 'utf8');
-const window = {};
+const window = withTraffic({});
 const document = { createElement: () => ({ style: {}, append() {}, setAttribute() {} }) };
 new Function('window', 'document', src)(window, document);
 const { turns, groups, blocks, outline, find, describe } = window.sessionRender;
@@ -411,7 +411,7 @@ test('a card before the first ask is exchange 0 rather than joining the ask afte
 // is what lets a pure-function harness assert the wiring: the options object
 // swipe-deck receives is the whole contract between them.
 const load = (rel, w, doc) =>
-  new Function('window', 'document', readFileSync(path.join(repoRoot, rel), 'utf8'))(w, doc);
+  new Function('window', 'document', readFileSync(path.join(repoRoot, rel), 'utf8'))(withTraffic(w), doc);
 
 const deckOpts = async (record) => {
   const w = {};

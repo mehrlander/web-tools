@@ -1,0 +1,182 @@
+{"id": "lib/alpineComponents/transform-workbench.js:62", "tags": ["register-component", "publish-page-api"]}
+{"id": "lib/alpineComponents/transform-workbench.js:67", "tags": ["load-asset-once"]}
+{"id": "lib/alpineComponents/transform-workbench.js:69", "tags": ["load-asset-once"]}
+{"id": "lib/alpineComponents/transform-workbench.js:90", "tags": ["draw-panel-section"]}
+{"id": "lib/alpineComponents/transform-workbench.js:101", "tags": ["row-cap", "status-message"]}
+{"id": "lib/alpineComponents/transform-workbench.js:112", "tags": ["update-grid-in-place"]}
+{"id": "lib/alpineComponents/transform-workbench.js:123", "tags": ["schedule-next-frame"]}
+{"id": "lib/alpineComponents/transform-workbench.js:124", "tags": ["build-table", "status-message"]}
+{"id": "lib/alpineComponents/transform-workbench.js:142", "tags": ["show-hide-element"]}
+{"id": "lib/alpineComponents/transform-workbench.js:159", "tags": ["schedule-next-frame"]}
+{"id": "lib/alpineComponents/transform-workbench.js:160", "tags": ["load-asset-once", "mount-component", "status-message"]}
+{"id": "lib/alpineComponents/transform-workbench.js:201", "tags": ["register-component", "load-asset-once"]}
+{"id": "lib/alpineComponents/transform-workbench.js:214", "tags": ["scan-tab-references"]}
+{"id": "lib/alpineComponents/transform-workbench.js:217", "tags": ["combine-batches", "run-transform-chain", "resolve-tab-reference"]}
+{"id": "lib/alpineComponents/transform-workbench.js:240", "tags": ["run-transform-chain"]}
+{"id": "lib/alpineComponents/transform-workbench.js:247", "tags": ["resolve-tab-reference"]}
+{"id": "lib/alpineComponents/transform-workbench.js:269", "tags": ["register-component"]}
+{"id": "lib/alpineComponents/transform-workbench.js:277", "tags": ["file-viewer", "return-control-handle"]}
+{"id": "lib/alpineComponents/transform-workbench.js:287", "tags": ["mount-component"]}
+{"id": "lib/alpineComponents/transform-workbench.js:296", "tags": ["render-current-view"]}
+{"id": "lib/alpineComponents/transform-workbench.js:308", "tags": ["file-viewer", "switch-view", "update-grid-in-place"]}
+{"id": "lib/alpineComponents/transform-workbench.js:322", "tags": ["switch-view", "busy-indicator", "load-asset-once"]}
+{"id": "lib/alpineComponents/transform-workbench.js:336#1", "tags": ["build-initial-state", "row-column-convert", "define-helpers"]}
+{"id": "lib/alpineComponents/transform-workbench.js:336#2", "tags": ["define-helpers"]}
+{"id": "lib/alpineComponents/transform-workbench.js:336#3", "tags": ["copy-to-clipboard", "confirmation-flash", "show-hide-element", "send-to-viewer", "switch-view", "define-helpers"]}
+{"id": "lib/alpineComponents/transform-workbench.js:408", "tags": ["mount-component", "copy-to-clipboard", "build-initial-state", "restore-local-state"]}
+{"id": "lib/alpineComponents/transform-workbench.js:423", "tags": ["host-handoff", "input-batch-manage", "add-tab", "show-hide-element"]}
+{"id": "lib/alpineComponents/transform-workbench.js:450", "tags": ["add-tab", "switch-view", "save-local-state"]}
+{"id": "lib/alpineComponents/transform-workbench.js:461", "tags": ["add-tab", "unique-name", "switch-view", "save-local-state"]}
+{"id": "lib/alpineComponents/transform-workbench.js:468", "tags": ["remove-tab", "clamp-index", "save-local-state"]}
+{"id": "lib/alpineComponents/transform-workbench.js:477", "tags": ["switch-view"]}
+{"id": "lib/alpineComponents/transform-workbench.js:484", "tags": ["commit-rename", "save-local-state"]}
+{"id": "lib/alpineComponents/transform-workbench.js:511", "tags": ["status-line", "scan-tab-references"]}
+{"id": "lib/alpineComponents/transform-workbench.js:529", "tags": ["select-item-in-list", "key-candidate-scan"]}
+{"id": "lib/alpineComponents/transform-workbench.js:549", "tags": ["custom-key-manage", "select-item-in-list"]}
+{"id": "lib/alpineComponents/transform-workbench.js:562", "tags": ["custom-key-manage"]}
+{"id": "lib/alpineComponents/transform-workbench.js:582", "tags": ["group-rows-by-key", "key-split-check", "send-to-viewer"]}
+{"id": "lib/alpineComponents/transform-workbench.js:606", "tags": ["key-split-check"]}
+{"id": "lib/alpineComponents/transform-workbench.js:624", "tags": ["dimension-table-build"]}
+{"id": "lib/alpineComponents/transform-workbench.js:639", "tags": ["send-to-viewer"]}
+{"id": "lib/alpineComponents/transform-workbench.js:646", "tags": ["status-line", "scan-tab-references"]}
+{"id": "lib/alpineComponents/transform-workbench.js:653", "tags": ["key-candidate-scan", "candidate-tree-build", "flatten-tree-rows"]}
+{"id": "lib/alpineComponents/transform-workbench.js:693", "tags": ["key-split-check"]}
+{"id": "lib/alpineComponents/transform-workbench.js:729", "tags": ["flatten-tree-rows"]}
+{"id": "lib/alpineComponents/transform-workbench.js:741", "tags": ["unique-name"]}
+{"id": "lib/alpineComponents/transform-workbench.js:753", "tags": ["generate-source-text", "key-split-check"]}
+{"id": "lib/alpineComponents/transform-workbench.js:777", "tags": ["dimension-table-build", "add-tab", "save-local-state"]}
+{"id": "lib/alpineComponents/transform-workbench.js:788", "tags": ["dimension-table-build"]}
+{"id": "lib/alpineComponents/transform-workbench.js:798", "tags": ["fact-table-build", "generate-source-text", "unique-name", "add-tab"]}
+{"id": "lib/alpineComponents/transform-workbench.js:813", "tags": ["save-local-state"]}
+{"id": "lib/alpineComponents/transform-workbench.js:819", "tags": ["restore-local-state"]}
+{"id": "lib/alpineComponents/transform-workbench.js:835", "tags": ["gzip-text-codec"]}
+{"id": "lib/alpineComponents/transform-workbench.js:841", "tags": ["gzip-text-codec"]}
+{"id": "lib/alpineComponents/transform-workbench.js:846", "tags": ["gzip-text-codec", "row-column-convert"]}
+{"id": "lib/alpineComponents/transform-workbench.js:859", "tags": ["bundle-selection", "compose-bundle"]}
+{"id": "lib/alpineComponents/transform-workbench.js:868", "tags": ["state-styling"]}
+{"id": "lib/alpineComponents/transform-workbench.js:873", "tags": ["bundle-restore", "gzip-text-codec"]}
+{"id": "lib/alpineComponents/transform-workbench.js:883", "tags": ["bundle-restore"]}
+{"id": "lib/alpineComponents/transform-workbench.js:939", "tags": ["parse-text-data", "csv-parse", "row-column-convert", "input-batch-manage"]}
+{"id": "lib/alpineComponents/transform-workbench.js:958", "tags": ["unique-name"]}
+{"id": "lib/alpineComponents/transform-workbench.js:988", "tags": ["scope-select"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1000", "tags": ["scope-select", "scope-output-to-tabs"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1013", "tags": ["scope-output-to-tabs"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1027", "tags": ["input-batch-manage", "unique-name", "show-hide-element"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1035", "tags": ["input-batch-manage"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1046", "tags": ["commit-rename", "unique-name"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1059", "tags": ["invalidate-dependents", "combine-batches", "notify-host", "send-to-viewer"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1072", "tags": ["run-in-worker"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1073", "tags": ["run-in-worker"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1076", "tags": ["run-in-worker"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1088", "tags": ["run-transform-chain", "busy-indicator"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1094", "tags": ["invalidate-dependents"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1141", "tags": ["run-transform-chain", "run-in-worker"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1175", "tags": ["compose-bundle", "gzip-text-codec"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1208", "tags": ["bundle-selection"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1223", "tags": ["compose-bundle"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1247", "tags": ["export-payload"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1274", "tags": ["download-file"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1283", "tags": ["bundle-selection"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1298", "tags": ["status-message", "row-cap"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1306", "tags": ["status-line"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1328", "tags": ["pretty-print-json", "row-cap"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1336", "tags": ["send-to-viewer"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1354", "tags": ["profile-columns", "summarize-column"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1360", "tags": ["summarize-column"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1407", "tags": ["parse-number-text"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1430", "tags": ["classify-column", "profile-columns"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1490", "tags": ["drag-reorder", "pivot-settings-set"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1502", "tags": ["drag-reorder", "pivot-settings-set"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1514", "tags": ["drag-reorder", "pivot-settings-set"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1529", "tags": ["status-line"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1538", "tags": ["generate-source-text"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1582", "tags": ["host-recipe-save", "notify-host"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1595", "tags": ["host-recipe-save", "notify-host"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1602", "tags": ["pivot-settings-set"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1609", "tags": ["pivot-settings-set"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1617", "tags": ["pivot-tree-build", "aggregate-total"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1620", "tags": ["aggregate-total"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1631", "tags": ["aggregate-total"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1662", "tags": ["order-items"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1694", "tags": ["flatten-tree-rows"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1698", "tags": ["flatten-tree-rows"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1719", "tags": ["report-model-build", "report-html-draw"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1732", "tags": ["pivot-tree-build", "flatten-tree-rows", "send-to-viewer"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1752", "tags": ["build-initial-state", "save-local-state", "notify-host", "send-to-viewer"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1763", "tags": ["download-file", "export-payload"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1776#1", "tags": ["draw-panel-section", "choice-pill", "action-button"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1776#2", "tags": ["draw-panel-section", "action-button"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1776#3", "tags": ["draw-panel-section", "action-button", "choice-pill"]}
+{"id": "lib/alpineComponents/transform-workbench.js:1776#4", "tags": ["draw-panel-section", "action-button", "status-message"]}
+{"id": "lib/kits/tabular-explorer.js:28", "tags": ["publish-page-api", "define-helpers"]}
+{"id": "lib/kits/tabular-explorer.js:30", "tags": ["dom-element-build"]}
+{"id": "lib/kits/tabular-explorer.js:49", "tags": ["parse-number-text"]}
+{"id": "lib/kits/tabular-explorer.js:61", "tags": ["format-number"]}
+{"id": "lib/kits/tabular-explorer.js:76", "tags": ["profile-columns"]}
+{"id": "lib/kits/tabular-explorer.js:88", "tags": ["classify-column", "summarize-column"]}
+{"id": "lib/kits/tabular-explorer.js:254", "tags": ["mount-component", "return-control-handle", "build-table"]}
+{"id": "lib/kits/tabular-explorer.js:314", "tags": ["switch-view"]}
+{"id": "lib/kits/tabular-explorer.js:371", "tags": ["hide-blank-columns"]}
+{"id": "lib/kits/tabular-explorer.js:386", "tags": ["search-filter", "switch-view"]}
+{"id": "lib/kits/tabular-explorer.js:394", "tags": ["action-menu", "action-button"]}
+{"id": "lib/kits/tabular-explorer.js:403", "tags": ["load-asset-once"]}
+{"id": "lib/kits/tabular-explorer.js:450", "tags": ["delimited-text-write", "download-file"]}
+{"id": "lib/kits/tabular-explorer.js:494", "tags": ["draw-panel-section", "status-line"]}
+{"id": "lib/kits/tabular-explorer.js:523", "tags": ["choice-pill"]}
+{"id": "lib/kits/tabular-explorer.js:524", "tags": ["choice-pill", "action-button"]}
+{"id": "lib/kits/tabular-explorer.js:532", "tags": ["choice-pill", "state-styling"]}
+{"id": "lib/kits/tabular-explorer.js:573", "tags": ["search-filter", "order-items", "select-item-in-list", "status-message"]}
+{"id": "lib/kits/tabular-explorer.js:629", "tags": ["choice-pill"]}
+{"id": "lib/kits/tabular-explorer.js:683", "tags": ["draw-panel-section", "status-message"]}
+{"id": "lib/kits/tabular-explorer.js:740", "tags": ["draw-chart-mark"]}
+{"id": "lib/kits/tabular-explorer.js:815", "tags": ["draw-panel-section", "labelled-select"]}
+{"id": "lib/kits/tabular-explorer.js:821", "tags": ["labelled-select"]}
+{"id": "lib/kits/tabular-explorer.js:854", "tags": ["pivot-tree-build", "aggregate-total", "order-items", "heat-scale-cell", "status-message"]}
+{"id": "lib/kits/tabular-explorer.js:888", "tags": ["aggregate-total"]}
+{"id": "lib/kits/tabular-explorer.js:958", "tags": ["teardown-component"]}
+{"id": "lib/kits/xlsx.js:57#1", "tags": ["define-helpers"]}
+{"id": "lib/kits/xlsx.js:57#2", "tags": ["define-helpers", "colour-resolve", "resolve-package-path", "excel-date-serial", "number-format-render", "date-format-render"]}
+{"id": "lib/kits/xlsx.js:57#3", "tags": ["define-helpers", "sheet-geometry", "read-sheet-cells", "classify-column", "resolve-cell-style", "conditional-format-eval", "sheet-layout"]}
+{"id": "lib/kits/xlsx.js:57#4", "tags": ["define-helpers", "shift-formula-refs", "cell-notes", "place-drawings-on-grid", "text-spill", "query-script-read"]}
+{"id": "lib/kits/xlsx.js:57#5", "tags": ["publish-page-api"]}
+{"id": "lib/kits/xlsx.js:59", "tags": ["load-asset-once"]}
+{"id": "lib/kits/xlsx.js:66", "tags": ["cell-address-convert"]}
+{"id": "lib/kits/xlsx.js:73", "tags": ["cell-address-convert"]}
+{"id": "lib/kits/xlsx.js:84", "tags": ["cell-address-convert"]}
+{"id": "lib/kits/xlsx.js:96", "tags": ["colour-convert"]}
+{"id": "lib/kits/xlsx.js:119", "tags": ["cell-address-convert"]}
+{"id": "lib/kits/xlsx.js:143", "tags": ["read-style-element"]}
+{"id": "lib/kits/xlsx.js:161", "tags": ["join-text-runs"]}
+{"id": "lib/kits/xlsx.js:170", "tags": ["parse-number-text"]}
+{"id": "lib/kits/xlsx.js:176", "tags": ["join-text-runs"]}
+{"id": "lib/kits/xlsx.js:185", "tags": ["read-style-element"]}
+{"id": "lib/kits/xlsx.js:198", "tags": ["colour-convert"]}
+{"id": "lib/kits/xlsx.js:206", "tags": ["colour-convert"]}
+{"id": "lib/kits/xlsx.js:215", "tags": ["colour-resolve", "colour-convert"]}
+{"id": "lib/kits/xlsx.js:232", "tags": ["colour-resolve"]}
+{"id": "lib/kits/xlsx.js:242", "tags": ["read-chart-model"]}
+{"id": "lib/kits/xlsx.js:262", "tags": ["read-chart-model"]}
+{"id": "lib/kits/xlsx.js:277", "tags": ["read-chart-model"]}
+{"id": "lib/kits/xlsx.js:302", "tags": ["read-chart-model"]}
+{"id": "lib/kits/xlsx.js:350", "tags": ["read-chart-model"]}
+{"id": "lib/kits/xlsx.js:351", "tags": ["read-sheet-cells", "cell-address-convert"]}
+{"id": "lib/kits/xlsx.js:387", "tags": ["read-style-element"]}
+{"id": "lib/kits/xlsx.js:391", "tags": ["read-style-element"]}
+{"id": "lib/kits/xlsx.js:414", "tags": ["read-style-element"]}
+{"id": "lib/kits/xlsx.js:424", "tags": ["read-style-element"]}
+{"id": "lib/kits/xlsx.js:425", "tags": ["read-style-element"]}
+{"id": "lib/kits/xlsx.js:444", "tags": ["pivot-cache-read"]}
+{"id": "lib/kits/xlsx.js:472#1", "tags": ["read-workbook-package", "track-part-connections", "join-related-parts", "place-drawings-on-grid"]}
+{"id": "lib/kits/xlsx.js:472#2", "tags": ["read-workbook-package", "join-related-parts", "cell-notes"]}
+{"id": "lib/kits/xlsx.js:526", "tags": ["track-part-connections"]}
+{"id": "lib/kits/xlsx.js:539", "tags": ["parse-package-part", "read-chart-model"]}
+{"id": "lib/kits/xlsx.js:554", "tags": ["parse-package-part"]}
+{"id": "lib/kits/xlsx.js:569#1", "tags": ["track-part-connections", "read-sheet-cells", "read-sheet-rules", "formula-text-give"]}
+{"id": "lib/kits/xlsx.js:569#2", "tags": ["read-sheet-rules", "read-style-element"]}
+{"id": "lib/kits/xlsx.js:569#3", "tags": ["attach-drawing-content", "cell-notes", "external-connections", "pivot-cache-read"]}
+{"id": "lib/kits/xlsx.js:569#4", "tags": ["pivot-cache-read", "read-table-defs", "excel-date-serial", "join-related-parts"]}
+{"id": "lib/kits/xlsx.js:569#5", "tags": ["track-part-connections"]}
+{"id": "lib/kits/xlsx.js:879", "tags": ["read-drawing-anchor"]}
+{"id": "lib/kits/xlsx.js:929", "tags": ["colour-resolve"]}
+{"id": "lib/kits/xlsx.js:1049", "tags": ["pivot-cache-read"]}
+{"id": "lib/kits/xlsx.js:1225", "tags": ["join-related-parts"]}
