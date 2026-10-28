@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="home">
   <title>home</title>
-  <desc>A house with a gable roof and a door cut out of it: the private base and slow-memory layer. Drawn on the budget-drs app icon's box and rules in one colour, orange-600 (#ea580c): solid, no strokes, and every gap at least 2.5 units, which is about 1.4 CSS pixels at 16.</desc>
-  <g fill="#ea580c">
+  <desc>A house with a gable roof and a door cut out of it: the private base and slow-memory layer. Drawn on the budget-drs app icon's box and rules in one colour, amber-500 (#f59e0b): solid, no strokes, and every gap at least 2.5 units, which is about 1.4 CSS pixels at 16.</desc>
+  <g fill="#f59e0b">
     <path d="M16 3 L30 14.5 H26.5 V29 H18.5 V20.5 H13.5 V29 H5.5 V14.5 H2 Z"/>
   </g>
 </svg>

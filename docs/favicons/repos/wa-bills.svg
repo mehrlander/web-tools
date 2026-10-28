@@ -1,11 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="wa-bills">
   <title>wa-bills</title>
-  <desc>Two bill texts, the nearer cut clear of the one behind it, lines of text cut out: Washington legislation as a corpus. It stands on the detached base bar that marks the public-record stores. Drawn on the budget-drs app icon's box and rules in one colour, rose-600 (#e11d48): solid, no strokes, and every gap at least 2.5 units, which is about 1.4 CSS pixels at 16.</desc>
+  <desc>Two bill texts, the nearer cut clear of the one behind it, lines of text cut out: Washington legislation as a corpus. It stands on the detached base bar that marks the public-record stores. Drawn on the budget-drs app icon's box and rules in one colour, cyan-700 (#0e7490): solid, no strokes, and every gap at least 2.5 units, which is about 1.4 CSS pixels at 16.</desc>
   <mask id="clear" maskUnits="userSpaceOnUse" x="0" y="0" width="32" height="32">
     <rect width="32" height="32" fill="#fff"/>
     <rect x="2.5" y="5.5" width="22" height="19" fill="#000"/>
   </mask>
-  <g fill="#e11d48">
+  <g fill="#0e7490">
     <rect mask="url(#clear)" x="11" y="2.5" width="18" height="17"/>
     <path fill-rule="evenodd" d="M5 8 H22 V21.9 H5 Z M8.5 11.5 V14 H18.5 V11.5 Z M8.5 16.5 V19 H15.5 V16.5 Z"/>
     <rect x="2" y="24.4" width="28" height="4.6"/>
