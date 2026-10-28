@@ -19,7 +19,7 @@ Map each section to where it is already covered, move what is unique (the guide-
 - `skills/hooks/pr-subscribe-hint.sh`: delivers the course when a PR opens; its delivery has to go with it.
 - `skills/default/SKILL.md`, `node/build/vendor-docs.mjs`: the default skill loaded a vendored copy of the course, which the commit hook built.
 - `docs/CONVERSATION.md`: its Branch anchor bullet cites the course for commit trailers.
-- `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `docs/house-policies.md`, `docs/policies.csv`: name the course or rules quoted from it.
+- `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `docs/house-policies.md`: name the course or rules quoted from it.
 - mehrlander/home `CLAUDE.md`: cites the course twice (working style, surfacing section).
 - `node/test/assistant-mark.test.mjs`, `node/test/state-the-rule.test.mjs`, `node/test/mcp-link-safe.test.mjs`: read the course.
 - `programs/surfacing/README.md`: the course is a governed file of the program once web-tools #1055 merges.

@@ -1,0 +1,112 @@
+{
+ "title": "The section editor",
+ "subject": "What opens when a heading's pencil is tapped, from the first keystroke to the commit",
+ "made": "2026-10-25",
+ "brief": {
+  "result": "From a phone, the owner changes a section of a Markdown file and knows, before it lands, exactly what changes and where it goes.",
+  "musts": [
+   "Room to write with the phone keyboard up",
+   "The change visible before it is saved",
+   "Where the save lands, and its commit message",
+   "The house checks, such as em dashes and broken links",
+   "Nothing lost: the draft survives, and a conflict writes nothing"
+  ]
+ },
+ "ideas": [
+  {
+   "n": 1,
+   "title": "Wikipedia source editor",
+   "kind": "borrowed form",
+   "encounter": "The section opens in place with three tabs, Write, Preview and Changes, a slim formatting bar, and Publish changes.",
+   "helps": "One surface for the whole job, in the shape Wikipedia editors already know.",
+   "sketch": "<div class=\"@container\"><div class=\"@max-[10rem]:w-[23rem] @max-[10rem]:[zoom:0.3]\"><div class=\"mx-auto w-full max-w-[23rem] rounded-[1.25rem] border border-base-300 bg-base-100 shadow-sm overflow-hidden text-[13px] leading-5 text-base-content \"><div class=\"px-4 pt-3 pb-2 text-[11px] text-base-content/50 font-mono\">stage.md · main</div><div class=\"mx-3 mb-3 rounded-box border border-base-300 overflow-hidden\"><div class=\"flex items-center gap-0.5 border-b border-base-300 bg-base-200/60 px-1.5 py-1\"><div class=\"tabs tabs-xs tabs-box bg-transparent p-0 shadow-none\"><a class=\"tab tab-active\">Write</a><a class=\"tab\">Preview</a><a class=\"tab\">Changes</a></div><span class=\"grow\"></span><span class=\"btn btn-ghost btn-xs btn-square\"><i class=\"ph ph-text-b \"></i></span><span class=\"btn btn-ghost btn-xs btn-square\"><i class=\"ph ph-text-italic \"></i></span><span class=\"btn btn-ghost btn-xs btn-square\"><i class=\"ph ph-link-simple \"></i></span><span class=\"btn btn-ghost btn-xs btn-square\"><i class=\"ph ph-list-bullets \"></i></span></div><pre class=\"m-0 p-3 font-mono text-[12.5px] leading-6 whitespace-pre-wrap bg-base-100\"><span class=\"text-base-content/35\">## </span>Intake\n\nA paste reads every format on the clipboard; each one is a flavor. It stages a file if the clipboard holds one, else the plain text.</pre><div class=\"flex items-center gap-2 border-t border-base-300 px-3 py-2\"><span class=\"text-xs text-base-content/50\">1 line changed</span><span class=\"grow\"></span><span class=\"btn btn-ghost btn-xs\">Cancel</span><span class=\"btn btn-primary btn-xs\">Publish changes…</span></div></div></div></div></div>"
+  },
+  {
+   "n": 2,
+   "title": "Full-screen sheet",
+   "kind": "information structure",
+   "encounter": "The pencil opens the section full screen: close, the section's name and Review in a bar, the text filling the rest.",
+   "helps": "Writing on a phone, where the keyboard takes half the screen and nothing else should compete.",
+   "sketch": "<div class=\"@container\"><div class=\"@max-[10rem]:w-[23rem] @max-[10rem]:[zoom:0.3]\"><div class=\"mx-auto w-full max-w-[23rem] rounded-[1.25rem] border border-base-300 bg-base-100 shadow-sm overflow-hidden text-[13px] leading-5 text-base-content flex flex-col h-[24rem]\"><div class=\"flex items-center gap-2 border-b border-base-300 px-2 h-12\"><span class=\"btn btn-ghost btn-sm btn-square\"><i class=\"ph ph-x text-lg\"></i></span><div class=\"grow min-w-0 text-center\"><div class=\"font-semibold leading-tight\">Intake</div><div class=\"text-[11px] text-base-content/50 leading-tight font-mono\">stage.md · main</div></div><span class=\"btn btn-primary btn-sm\">Review</span></div><div class=\"grow p-4 font-mono text-[13px] leading-6 whitespace-pre-wrap\"><span class=\"text-base-content/35\">## </span>Intake\n\nA paste reads every format on the clipboard; each one is a flavor. It stages a file if the clipboard holds one, else the plain text.<span class=\"inline-block w-px h-4 bg-primary align-middle\"></span></div><div class=\"border-t border-base-300 px-4 py-2 text-[11px] text-base-content/50 flex justify-between\"><span>1 line changed</span><span>Draft kept</span></div></div></div></div>"
+  },
+  {
+   "n": 3,
+   "title": "Source over live preview",
+   "kind": "explanatory mechanism",
+   "encounter": "The Markdown on top and the rendered section below, redrawn as you type; side by side on a wide screen.",
+   "helps": "How the text will read, without switching tabs.",
+   "sketch": "<div class=\"@container\"><div class=\"@max-[10rem]:w-[23rem] @max-[10rem]:[zoom:0.3]\"><div class=\"mx-auto w-full max-w-[23rem] rounded-[1.25rem] border border-base-300 bg-base-100 shadow-sm overflow-hidden text-[13px] leading-5 text-base-content \"><div class=\"flex items-center gap-2 px-3 py-1.5 text-[11px] text-base-content/50 bg-base-200/60 border-b border-base-300\"><i class=\"ph ph-code \"></i>Source</div><pre class=\"m-0 p-3 font-mono text-[12.5px] leading-6 whitespace-pre-wrap bg-base-100\"><span class=\"text-base-content/35\">## </span>Intake\n\nA paste reads every format on the clipboard; each one is a flavor. It stages a file if the clipboard holds one, else the plain text.</pre><div class=\"flex items-center gap-2 px-3 py-1.5 text-[11px] text-base-content/50 bg-base-200/60 border-y border-base-300\"><i class=\"ph ph-eye \"></i>Preview</div><div class=\"p-3\"><div class=\"font-bold text-[15px] mb-1\">Intake</div><p class=\"leading-6\">A paste reads every format on the clipboard; each one is a flavor. It stages a file if the clipboard holds one, else the plain text.</p></div><div class=\"flex justify-end gap-2 border-t border-base-300 px-3 py-2\"><span class=\"btn btn-ghost btn-xs\">Cancel</span><span class=\"btn btn-primary btn-xs\">Review</span></div></div></div></div>"
+  },
+  {
+   "n": 4,
+   "title": "Tracked changes",
+   "kind": "explanatory mechanism",
+   "encounter": "The rendered section stays on screen and shows your edits as struck and inserted text while the source sits in a drawer.",
+   "helps": "What the edit does to the prose, read as prose rather than as a diff of Markdown lines.",
+   "sketch": "<div class=\"@container\"><div class=\"@max-[10rem]:w-[23rem] @max-[10rem]:[zoom:0.3]\"><div class=\"mx-auto w-full max-w-[23rem] rounded-[1.25rem] border border-base-300 bg-base-100 shadow-sm overflow-hidden text-[13px] leading-5 text-base-content \"><div class=\"p-4\"><div class=\"flex items-center gap-2\"><span class=\"text-[17px] font-bold\">Intake</span><span class=\"badge badge-sm badge-soft badge-warning\">2 changes</span></div><p class=\"mt-2 leading-6\">A paste reads every format on the clipboard<del class=\"bg-error/15 text-error line-through decoration-error/50\">, each called a flavor</del><ins class=\"bg-success/20 no-underline rounded-sm\">; each one is a flavor</ins>. It stages a file if the clipboard holds one, else the plain text.</p><p class=\"mt-2 leading-6\"><ins class=\"bg-success/20 no-underline rounded-sm\">Every flavor appears as a pill on the flavor bar.</ins></p></div><div class=\"flex items-center gap-2 border-t border-base-300 px-3 py-2 bg-base-200/40\"><span class=\"btn btn-ghost btn-xs\"><i class=\"ph ph-code \"></i>Source</span><span class=\"grow\"></span><span class=\"btn btn-ghost btn-xs\">Discard</span><span class=\"btn btn-primary btn-xs\">Publish…</span></div></div></div></div>"
+  },
+  {
+   "n": 5,
+   "title": "Paragraph blocks",
+   "kind": "information structure",
+   "encounter": "The section splits into paragraphs, lists and tables; tap one to edit just it, drag a grip to reorder.",
+   "helps": "Small, precise edits on a phone, and moving a paragraph without cutting and pasting.",
+   "sketch": "<div class=\"@container\"><div class=\"@max-[10rem]:w-[23rem] @max-[10rem]:[zoom:0.3]\"><div class=\"mx-auto w-full max-w-[23rem] rounded-[1.25rem] border border-base-300 bg-base-100 shadow-sm overflow-hidden text-[13px] leading-5 text-base-content \"><div class=\"p-3 space-y-1.5\"><div class=\"flex items-start gap-2 px-1 py-1\"><i class=\"ph ph-dots-six-vertical text-base-content/30 mt-1 shrink-0\"></i><div class=\"font-bold text-[15px]\">Intake</div></div><div class=\"flex items-start gap-2 rounded-field border border-primary/40 bg-primary/5 p-2\"><i class=\"ph ph-dots-six-vertical text-base-content/30 mt-1 shrink-0\"></i><div class=\"grow\"><div class=\"font-mono text-[12.5px] leading-6 whitespace-pre-wrap\">A paste reads every format on the clipboard; each one is a flavor.</div><div class=\"mt-1 flex justify-end\"><span class=\"btn btn-ghost btn-xs\">Done</span></div></div></div><div class=\"flex items-start gap-2 px-1 py-1\"><i class=\"ph ph-dots-six-vertical text-base-content/30 mt-1 shrink-0\"></i><p class=\"leading-6\">It stages a file if the clipboard holds one, else the plain text.</p></div><div class=\"flex items-start gap-2 px-1 py-1\"><i class=\"ph ph-dots-six-vertical text-base-content/30 mt-1 shrink-0\"></i><p class=\"leading-6\">Each pill carries a menu of what can be done with its flavor.</p></div><div class=\"pl-7\"><span class=\"btn btn-ghost btn-xs text-base-content/60\"><i class=\"ph ph-plus \"></i>Paragraph</span></div></div></div></div></div>"
+  },
+  {
+   "n": 6,
+   "title": "Commit dialog",
+   "kind": "borrowed form",
+   "encounter": "GitHub's web editor: Edit and Preview, then Commit changes opens a sheet with the message, a description, and where it lands.",
+   "helps": "That a save is a commit, and which branch takes it.",
+   "sketch": "<div class=\"@container\"><div class=\"@max-[10rem]:w-[23rem] @max-[10rem]:[zoom:0.3]\"><div class=\"mx-auto w-full max-w-[23rem] rounded-[1.25rem] border border-base-300 bg-base-100 shadow-sm overflow-hidden text-[13px] leading-5 text-base-content relative h-[25rem]\"><div class=\"p-3 opacity-35\"><div class=\"tabs tabs-xs tabs-box bg-transparent p-0 shadow-none\"><a class=\"tab tab-active\">Edit</a><a class=\"tab\">Preview</a></div><pre class=\"m-0 p-3 font-mono text-[12.5px] leading-6 whitespace-pre-wrap bg-base-100\"><span class=\"text-base-content/35\">## </span>Intake\n\nA paste reads every format on the clipboard; each one is a flavor. It stages a file if the clipboard holds one, else the plain text.</pre></div><div class=\"absolute inset-x-0 bottom-0 rounded-t-[1.25rem] border-t border-base-300 bg-base-100 p-4 shadow-2xl\"><div class=\"font-semibold mb-2\">Commit changes</div><div class=\"text-[11px] text-base-content/60 mb-1\">Commit message</div><input class=\"input input-sm w-full\" value=\"Edit stage.md § Intake\"><textarea class=\"textarea textarea-sm w-full mt-2\" rows=\"2\" placeholder=\"Extended description\"></textarea><div class=\"mt-2 space-y-1.5\"><label class=\"flex items-center gap-2\"><input type=\"radio\" class=\"radio radio-xs\" checked> Commit to <code class=\"font-mono\">main</code></label><label class=\"flex items-center gap-2\"><input type=\"radio\" class=\"radio radio-xs\"> New branch and draft pull request</label></div><div class=\"mt-3 flex justify-end gap-2\"><span class=\"btn btn-ghost btn-sm\">Cancel</span><span class=\"btn btn-primary btn-sm\">Commit changes</span></div></div></div></div></div>"
+  },
+  {
+   "n": 7,
+   "title": "Keyboard bar and margin checks",
+   "kind": "explanatory mechanism",
+   "encounter": "A bar rides above the phone keyboard with Markdown actions and Review; a check that fails marks its line in the margin as you type.",
+   "helps": "Phone ergonomics, and a house-rule slip caught where it happens rather than at the end.",
+   "sketch": "<div class=\"@container\"><div class=\"@max-[10rem]:w-[23rem] @max-[10rem]:[zoom:0.3]\"><div class=\"mx-auto w-full max-w-[23rem] rounded-[1.25rem] border border-base-300 bg-base-100 shadow-sm overflow-hidden text-[13px] leading-5 text-base-content flex flex-col h-[25rem]\"><div class=\"grow p-3 pl-4 font-mono text-[13px] leading-6 whitespace-pre-wrap\"><span class=\"text-base-content/35\">## </span>Intake\n\n<div class=\"relative\"><span class=\"absolute -left-4 inset-y-0 w-1 bg-warning rounded-r\"></span>A paste reads every format on the clipboard<span class=\"bg-warning/25 rounded-sm\"> — </span>each one a flavor. It stages a file if the clipboard holds one, else the plain text.</div></div><div class=\"flex items-center gap-0.5 px-2 py-1.5 border-t border-base-300 bg-base-200\"><span class=\"badge badge-sm badge-soft badge-warning gap-1 mr-1\"><i class=\"ph ph-warning \"></i>1</span><span class=\"btn btn-ghost btn-xs btn-square\"><i class=\"ph ph-text-h \"></i></span><span class=\"btn btn-ghost btn-xs btn-square\"><i class=\"ph ph-text-b \"></i></span><span class=\"btn btn-ghost btn-xs btn-square\"><i class=\"ph ph-link-simple \"></i></span><span class=\"btn btn-ghost btn-xs btn-square\"><i class=\"ph ph-list-bullets \"></i></span><span class=\"btn btn-ghost btn-xs btn-square\"><i class=\"ph ph-arrow-u-up-left \"></i></span><span class=\"grow\"></span><span class=\"btn btn-primary btn-xs\">Review</span></div><div class=\"h-28 bg-base-300/70 grid place-items-center text-[11px] text-base-content/40\">keyboard</div></div></div></div>"
+  },
+  {
+   "n": 8,
+   "title": "Ask to revise",
+   "kind": "explanatory mechanism",
+   "encounter": "Say what to change; the answer comes back as proposed changes to accept or reject one by one, with the hand editor still a tap away.",
+   "helps": "The revise-with-a-model loop, kept inside the editor instead of the clipboard.",
+   "sketch": "<div class=\"@container\"><div class=\"@max-[10rem]:w-[23rem] @max-[10rem]:[zoom:0.3]\"><div class=\"mx-auto w-full max-w-[23rem] rounded-[1.25rem] border border-base-300 bg-base-100 shadow-sm overflow-hidden text-[13px] leading-5 text-base-content \"><div class=\"p-3\"><div class=\"flex items-center gap-2\"><i class=\"ph ph-sparkle text-primary text-lg\"></i><input class=\"input input-sm grow\" value=\"Tighten it, keep every fact\"><span class=\"btn btn-primary btn-sm\">Ask</span></div><div class=\"mt-3 rounded-box border border-base-300 overflow-hidden\"><div class=\"px-3 py-1.5 bg-base-200/60 flex items-center text-[11px] text-base-content/60\">Proposed<span class=\"grow\"></span>Accept all</div><div class=\"px-3 py-2 font-mono text-[12.5px] bg-error/10 line-through text-base-content/60\">each called a flavor. It stages a file</div><div class=\"px-3 py-2 font-mono text-[12.5px] bg-success/15\">each a flavor, and it stages a file</div><div class=\"flex justify-end gap-1 px-2 py-1.5 border-t border-base-300\"><span class=\"btn btn-ghost btn-xs\"><i class=\"ph ph-x \"></i>Reject</span><span class=\"btn btn-ghost btn-xs text-success\"><i class=\"ph ph-check \"></i>Accept</span></div></div><div class=\"mt-3 flex justify-end gap-2\"><span class=\"btn btn-ghost btn-xs\">Edit by hand</span><span class=\"btn btn-primary btn-xs\">Review</span></div></div></div></div></div>"
+  }
+ ],
+ "selection": {
+  "pick": [
+   1
+  ],
+  "grafts": [
+   [
+    2,
+    "full screen on a phone, in place on a wide screen"
+   ],
+   [
+    7,
+    "the bar above the keyboard, and checks marked in the margin"
+   ],
+   [
+    4,
+    "the Changes tab drawn as tracked changes over the rendered prose"
+   ],
+   [
+    6,
+    "Publish opens the commit sheet: message, description, where it lands"
+   ]
+  ],
+  "rationale": "Wikipedia's source editor is the model you named, and its three tabs keep the whole job on one surface. On a phone the keyboard takes half the screen, so the editor opens full screen there with the formatting bar riding the keyboard; on a wide screen it stays in place. Changes reads as tracked changes over the rendered prose, which kits/md-diff.js already draws, and Publish opens a commit sheet, since a save here is a commit.",
+  "assumptions": [
+   "Should a wide screen also open full screen, rather than in place?",
+   "Is a formatting bar worth its row for a writer who types Markdown fluently?",
+   "Should checks mark lines while typing, or wait for Publish?",
+   "Is the ask-to-revise loop (8) wanted now, or after the editor settles?",
+   "Is reordering paragraphs by drag (5) worth a second mode later?"
+  ]
+ }
+}

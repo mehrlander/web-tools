@@ -1,0 +1,11 @@
+key,facet,part,label,icon,tone,when,gloss,note,status
+tint-default,version,tint,Default branch,,primary,"the view is rendered at the repository's default branch, which a toss at main also is",The live version,,live
+tint-off-branch,version,tint,Off-branch,,warning,the view is rendered at another branch or at a commit,Not the live version,,live
+glyph-sidebar,subject,glyph,At rest,ph-sidebar-simple,tint,"no text is selected, and the view is at the default branch",Nothing to flag,,live
+glyph-highlighter,action,glyph,Text selected,ph-highlighter,tint,"text is selected anywhere on the page, or in the page a toss frames; outranks every other glyph, and a ring surrounds the FAB",Ready to note it,"opens the FAB sidebar on its Note tab, with the passage quoted",live
+glyph-frisbee,version,glyph,Off-branch,ph-disc,warning,"the view is off the default branch, and no text is selected",Not the live version,,live
+badge-no-token,viewer,top-right,No token,ph-key,error,"this browser holds no GitHub token; an iOS home-screen app keeps a token store of its own, apart from Safari",Private reads will fail,"a hold on the FAB opens its menu, whose Get token and Paste token rows fetch and save one",live
+badge-newer,version,bottom-right,Newer commits,ph-arrow-clockwise,info,"the view's address names a commit, a token is saved, and the branch the link names (else the branch of an open pull request holding the commit) is ahead; the count is how many commits",Behind the branch's latest,redraws the view at the branch's latest commit,live
+glyph-takeover,subject,glyph,Takeover,ph-slideshow,tint,"a takeover is open over the view, and no text is selected; outranks the frisbee, so the tint alone says off-branch while a takeover is open",A takeover is open,"opens the FAB sidebar, aimed at the takeover",proposed
+badge-latest,version,bottom-right,Latest,ph-check,success,"the view's address names a commit, a token is saved, and the check found the branch still at that commit; shown only after a check ran",Newest on its branch,opens the FAB sidebar on its ref bar,proposed
+glyph-frisbee-drawn,version,glyph,"Frisbee, drawn",docs/favicons/fab/frisbee.svg,warning,"as the frisbee, which it would replace",Redrawn after the emoji,,proposed

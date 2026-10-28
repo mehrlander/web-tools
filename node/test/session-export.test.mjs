@@ -23,10 +23,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { repoRoot } from './bootstrap.mjs';
+import { repoRoot, withTraffic } from './bootstrap.mjs';
 
 const load = (rel, window, document) =>
-  new Function('window', 'document', readFileSync(path.join(repoRoot, rel), 'utf8'))(window, document);
+  new Function('window', 'document', readFileSync(path.join(repoRoot, rel), 'utf8'))(withTraffic(window), document);
 
 const window = {};
 const document = { createElement: () => ({ style: {}, append() {}, setAttribute() {} }) };

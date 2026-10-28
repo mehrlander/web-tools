@@ -2,8 +2,7 @@
 
 Measured on an actual iPhone, 2026-08-25, against
 [`pages/scratch/haptics-probe.html`](../pages/scratch/haptics-probe.html), one
-cell per technique. The result is negative, which is why it is written down: the
-reachable haptic is real and it cannot be aimed.
+cell per technique. The reachable haptic is real and it cannot be aimed.
 
 ## Context
 
@@ -59,5 +58,4 @@ for a deliberate hand-off, useless for feedback.
 Re-measure rather than reason. WebKit could add the Vibration API, or extend
 haptics to another control, in any release, and no emulator reproduces a Taptic
 Engine. The probe page is kept for that: it depends on no external JavaScript
-and reports whether its own script ran, both of which it learned the hard way on
-its first run.
+and reports whether its own script ran.

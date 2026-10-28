@@ -77,7 +77,7 @@ running the pass".
 
 - `CLAUDE.md`: conventions home after PR #634; held the commentary rule until 183d2401 (2026-09-08) removed it
 - `docs/text-content.md`: census findings and pilot lessons for the residual pass
-- `docs/views/lists.md`: the snags `header-essay-outlives-its-code` and `rewriter-marks-its-own-work` (in `docs/SNAGS.md` until 2026-10-20)
+- Snags `header-essay-outlives-its-code` and `rewriter-marks-its-own-work`, in web-tools-private `lists/snag.json` (in `docs/SNAGS.md` until 2026-10-20)
 - `python/embedded-prose.py`: `--dated` worklist for the accuracy-only shape
 - `lib/alpineComponents/estate.js`: fold-in residual; PR #403 question lives here
 - `lib/kits/swipe-deck.js`, `lib/alpineComponents/stage.js`: pilot files still named in the body

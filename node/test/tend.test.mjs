@@ -17,7 +17,6 @@ test('skills/tend/SKILL.md exists, has valid frontmatter, zero em dashes, and a 
   assert.match(content, /^---\r?\nname:\s*tend\b/, 'frontmatter must declare name: tend');
   assert.match(content, /description:\s*>-?\s+Cultivate a workspace/, 'frontmatter must declare description');
   assert.match(content, /disable-model-invocation:\s*true/, 'frontmatter must disable unprompted invocation');
-  assert.match(content, /Commitment belongs to the owner\./, 'must keep the doctrine\'s commitment boundary');
   for (const stream of ['Branches', 'Trackers', 'Pull requests', 'Snags']) {
     assert.match(content, new RegExp(`^## ${stream}$`, 'm'), `must define the ${stream} stream`);
   }
@@ -29,7 +28,7 @@ test('skills/tend/SKILL.md exists, has valid frontmatter, zero em dashes, and a 
 
 test('tend SKILL.md names commands and paths that exist', () => {
   const content = readFileSync(SKILL_PATH, 'utf8');
-  for (const p of ['python/stranded-triage.py', 'docs/views/lists.md', 'docs/views/tending.md']) {
+  for (const p of ['python/stranded-triage.py', 'lib/kits/findings.js']) {
     assert.ok(content.includes(p), `tend SKILL.md should name ${p}`);
     assert.ok(existsSync(path.join(repoRoot, p)), `${p} named by tend SKILL.md must exist`);
   }

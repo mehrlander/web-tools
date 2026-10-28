@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="Map Reach: ripples">
+  <title>Map Reach: ripples</title>
+  <desc>The hub's hexagon in a corner with three ripples spreading out from it: how far the hub reaches.</desc>
+  <g fill="currentColor">
+    <path d="M11.5 24.75 L9.25 28.65 L4.75 28.65 L2.5 24.75 L4.75 20.85 L9.25 20.85 Z"/>
+    <path d="M7 14 A10.75 10.75 0 0 1 17.75 24.75 L15 24.75 A8 8 0 0 0 7 16.75 Z"/>
+    <path d="M7 8.75 A16 16 0 0 1 23 24.75 L20.25 24.75 A13.25 13.25 0 0 0 7 11.5 Z"/>
+    <path d="M7 3.5 A21.25 21.25 0 0 1 28.25 24.75 L25.5 24.75 A18.5 18.5 0 0 0 7 6.25 Z"/>
+  </g>
+</svg>

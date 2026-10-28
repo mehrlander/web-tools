@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="Map Harness: corners">
+  <title>Map Harness: corners</title>
+  <desc>A spark, the model, framed by four corner brackets: the scaffolding on every side of it.</desc>
+  <g fill="currentColor">
+    <path d="M2.5 3 H10.5 V6 H5.5 V11 H2.5 Z"/>
+    <path d="M29.5 3 H21.5 V6 H26.5 V11 H29.5 Z"/>
+    <path d="M2.5 29.5 H10.5 V26.5 H5.5 V21.5 H2.5 Z"/>
+    <path d="M29.5 29.5 H21.5 V26.5 H26.5 V21.5 H29.5 Z"/>
+    <path d="M16 8.75 L17.63 14.62 L23.5 16.25 L17.63 17.88 L16 23.75 L14.37 17.88 L8.5 16.25 L14.37 14.62 Z"/>
+  </g>
+</svg>

@@ -8,21 +8,19 @@ the parallel OFM index on this host spans 2000 to 2017.
 
 **The host's one governing fact: it is behind a Cloudflare interstitial.** Any
 client that does not run the interstitial's JavaScript gets a 403 page titled
-"Just a moment...": a Claude Code web session's `curl` and WebFetch, host-wide,
-the sandbox's headless Chromium (measured 2026-10-13), and a command-line fetch
-from the home laptop through the Gemini daemon (errand
-`daemon-2026-10-14-ping-a2701b`). The block follows the client, not the network.
-A browser navigating normally passes it without noticing, and so did one driven
-by an agent: the daemon reached the real page by running the laptop's Microsoft
-Edge, headed, with a temporary profile, over its remote-debugging connection
-(`daemon-2026-10-14-ping-b1808b`). Everything here therefore runs **on the page**
-in a real browser, yours or the laptop's, and nothing here should be written as
+"Just a moment...": a Claude Code web session's `curl` and WebFetch, the
+sandbox's headless Chromium, and a command-line fetch from the home laptop
+(measured 2026-10-13 and 2026-10-14). The block follows the client, not the
+network: a browser navigating normally passes it, including one an agent drives
+headed on the laptop (Microsoft Edge with a temporary profile, over its
+remote-debugging connection). Everything here therefore runs **on the page** in
+a real browser, yours or the laptop's, and nothing here should be written as
 though a session could fetch this host.
 
 The interstitial sends `Cross-Origin-Opener-Policy: same-origin`; the real page
-behind it sends none (observed in that Edge run). So once the check has passed,
-the courier's popup at a Web Tools address keeps its link with the page
-([`bookmarklets/README.md`](../../bookmarklets/README.md#where-bookmarklets-fit)).
+behind it sends none (observed 2026-10-14). So once the check has passed, the
+courier's popup at a Web Tools address keeps its link with the page
+([which route reaches a page](../../bookmarklets/README.md#which-route-reaches-a-page)).
 
 The documents the index links to are on `digitalarchives.wa.gov`, which a
 session fetches directly. The index uses two link shapes for them,
@@ -39,12 +37,9 @@ web-tools-private `courier/results/wsl-drs-cafr-index.md`.
 
 ### Why that script is terse, and what its columns are for
 
-An errand script is read in the courier's confirm panel before it runs, so the
-reasoning goes here and the file stays short enough to take in at a glance. The
-panel also drops a script's leading comment banner, which is why one worth
-reading is a pointer rather than an essay.
-
-Three decisions are in the code without saying so:
+An errand script is read on the errand card before it runs and carries no
+comments (the courier's rule), so the reasoning goes here. Three decisions are
+in the code without saying so:
 
 | In the script | Why |
 | --- | --- |
