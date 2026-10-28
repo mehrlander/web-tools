@@ -503,6 +503,29 @@ test('session-menu: prose gets a Speak-Text row, run by name on the clipboard; a
   }
 });
 
+test('session-menu: a copied run link is a row under the session rows, never ahead of them', () => {
+  // Run-BackTap used to offer the link before this menu ran, so a copied reply
+  // that handed over an install link never reached its session (2026-10-28).
+  const FWD = 'https://mehrlander.github.io/web-tools/pages/shortcut-run.html#';
+  const link = 'shortcuts://run-shortcut?name=Library-Paste&input=text&text=Choose-Claude%0Ahttps%3A%2F%2Fexample.org%2Fp.json%0A1251536';
+  const other = 'shortcuts://run-shortcut?name=Dump-Named&input=text&text=Speak-Text';
+  // A Markdown copy: the forwarder link in parentheses, an earlier link first.
+  const text = SAID.a0000003[2] + '\n\n[📲 Dump-Named](' + FWD + other + ') and then\n[📲 Library-Paste](' + FWD + link + ')';
+  const r = reply(b64(text));
+  assert.equal(r.id, 'a0000003', 'the session is still found');
+  const row = '▶️ Library-Paste · Choose-Claude';
+  assert.equal(r.urls[row], FWD + link, 'the last link, with the Markdown parenthesis left off');
+  assert.ok(r.menu.indexOf(row) > r.menu.indexOf('🌿 Open on claude.ai'), 'session rows lead');
+  assert.equal(r.menu[r.menu.indexOf(row) + 1].endsWith('All sessions'), true);
+  // A bare link is offered too, and the index is not needed for it.
+  const bare = reply(link);
+  assert.ok(bare.menu.includes(row), bare.menu.join(' | '));
+  const down = reply(link, { 'session-menu.json': { status: 503 } });
+  assert.ok(down.menu.includes(row), 'an unreachable index keeps the row');
+  // No link, no row.
+  assert.ok(!reply('claude/x-aa11bb').menu.some(m => m.startsWith('▶️')));
+});
+
 test('session-menu: a refused token is named in the header and its check leads the menu', () => {
   // GitHub answering plainly and refusing the same request with the token is a
   // dead token, which is how the 2026-09-11 and 2026-10-14 outages began.
