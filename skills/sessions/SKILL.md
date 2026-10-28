@@ -24,8 +24,8 @@ first `.web-tools.json` in that search that declares
 
 **Attach, then clone beside the other checkouts.** An unattached private repo
 is unreachable from a shell here, so attach it first with the session's
-repository tool (`add_repo`, with push access, since session logging pushes one
-commit per session file). Then clone it, shallow, into the directory that holds the
+repository tool (`add_repo`, with push access, since session logging pushes to it).
+Then clone it, shallow, into the directory that holds the
 other checkouts: `<parent of the project root>/<repo>` when the root is itself a
 checkout, or `<project root>/<repo>` when the root sits above them. Either
 puts it where the hook looks. Register the clone with the session afterwards
