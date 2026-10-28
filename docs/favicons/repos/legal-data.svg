@@ -7,5 +7,6 @@
     <rect x="3.5" y="7" width="25" height="2.6"/>
     <path d="M6.5 8 L2 17.5 L11 17.5 Z"/>
     <path d="M25.5 8 L21 17.5 L30 17.5 Z"/>
+    <rect x="2" y="24.4" width="28" height="4.6"/>
   </g>
 </svg>
