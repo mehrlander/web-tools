@@ -8,7 +8,7 @@ const {window} = dom, doc = window.document;
 const now = new Date().toISOString(), earlier = seconds => new Date(Date.now()-seconds*1000).toISOString();
 const item = (key,state,provider = 'Gemini') => ({key,id:key,kind:'errand',provider,location:'Laptop',title:key,state,detail:'',at:now,createdAt:now,needsAttention:false,isNew:false,url:null});
 let snapshot = {schemaVersion:1,machineName:'Fixture laptop',observedAt:now,scanMilliseconds:8,sources:{queueAvailable:true,recordsConnected:true,recordsSyncedAt:now,workerState:'detected',cloudCapturedAt:now,notices:[]},items:[
-  {...item('local','working','Codex'),kind:'session',title:'Working <img src=x onerror=alert(1)>',detail:'Checking the queue'},
+  {...item('local','working','Codex'),kind:'session',title:'Working <img src=x onerror=alert(1)>',detail:'**Checking** the queue'},
   {...item('second','queued'),createdAt:earlier(20)}, {...item('first','queued'),createdAt:earlier(90)},
   item('accepted','claimed'), {...item('cloud','recorded','Claude'),kind:'cloud',location:'Cloud',detail:'Recorded: choice needed',needsAttention:true,url:'https://mehrlander.github.io/web-tools/app/?view=sessions&session=cloud'},
   {...item('result','complete'),title:'A complete result',url:'javascript:alert(1)'}
@@ -40,6 +40,7 @@ check(doc.querySelectorAll('#assistants svg').length === 3,'The phone view shows
 check(doc.querySelector('#connection').textContent.includes('Laptop live'),'A fresh observation has steady local live status.');
 check(doc.querySelector('#content').textContent.includes('Needs you') && doc.querySelector('#content').textContent.includes('Recorded: choice needed'),'Cloud attention remains a recorded state.');
 check(!doc.querySelector('#content img'),'Untrusted session titles render as text.');
+check(doc.querySelector('[data-inspect=local] [data-summary]').textContent === 'Checking the queue','Collapsed previews flatten Markdown rather than exposing formatting markers.');
 check(doc.querySelector('[data-item=local] svg[data-location=Laptop]')?.getAttribute('aria-label') === 'On this laptop' && doc.querySelector('[data-item=cloud] svg[data-location=Cloud]')?.getAttribute('aria-label') === 'Cloud','Local and cloud cards have distinct SVG location marks with accessible names.');
 const initialRow = doc.querySelector('#content [data-inspect]'), clock = window.Date.now;
 check(!!initialRow.closest('[data-item]').querySelector('[data-pick]') && !initialRow.querySelector('[data-pick]'),'Each collapsed activity card has a separate Full view button without nesting buttons.');
