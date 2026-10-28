@@ -85,8 +85,11 @@ from collections import Counter
 EXTS = ('.html', '.js', '.mjs', '.css')
 # Supplied material (a captured page under data/source/, a research source
 # cache) carries its author's CSS, not ours; node/test holds probe fixtures.
+# research/ keeps what an inquiry tried or gathered with its original bytes
+# (docs/CONSTELLATION.md, "Projects and research"), so a specimen page there
+# carries the CSS of whoever built it, not ours.
 SKIP_DIRS = {'node_modules', '.git', 'dist', 'archive', 'vendor', 'source', 'sources', 'source-cache'}
-SKIP_PREFIX = ('node/test/',)
+SKIP_PREFIX = ('node/test/', 'research/')
 
 KINDS = ('third-party', 'svg', 'no-utility', 'theme', 'standalone', 'kit')
 EXEMPT = re.compile(r'^\s*exempt(-all)?\(([^)]*)\)\s*:?\s*(.*)$', re.S | re.I)

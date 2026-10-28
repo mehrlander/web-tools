@@ -1,0 +1,486 @@
+{
+ "meta": {
+  "judge": "wacares-locator",
+  "viewport": "1440x900",
+  "method": "Rendered each page in headless Chromium (Playwright); located each answer's text by bounding box and computed visibility, then clicked the controls on each 1-step path to confirm the answer appears.",
+  "word_count_rule": "words_before_gist counts visible words (tokens with a letter or digit) in reading order before the first text conveying the w1 answer, a headline counting when it names investing WA Cares money in the stock market; words_before_gist_statement counts up to the first declarative sentence stating it."
+ },
+ "pages": {
+  "K7": {
+   "answers": {
+    "w1": {
+     "loc": "first-screen",
+     "path": "headline and lead",
+     "scent": null
+    },
+    "w2": {
+     "loc": "first-screen",
+     "path": "'What a yes vote changes' table, Today vs If approved",
+     "scent": null
+    },
+    "w3": {
+     "loc": "first-screen",
+     "path": "WA Cares button qualifier '0.58% payroll tax' under the lead",
+     "scent": null
+    },
+    "w4": {
+     "loc": "1-step",
+     "path": "WA Cares button, then Benefit row in its dialog",
+     "scent": true
+    },
+    "w5": {
+     "loc": "first-screen",
+     "path": "WA Cares button qualifier 'more than $2.5 billion banked'",
+     "scent": null
+    },
+    "w6": {
+     "loc": "1-step",
+     "path": "Background 'Tried before', then '2020 attempt' button dialog, 'Where it passed'",
+     "scent": true
+    },
+    "w7": {
+     "loc": "scroll",
+     "path": "'What each side says', 'Money behind it' row: SEIU 775 underwriting the campaign",
+     "scent": null
+    },
+    "w8": {
+     "loc": "scroll",
+     "path": "'What each side says', Backers row",
+     "scent": null
+    },
+    "w9": {
+     "loc": "1-step",
+     "path": "'Money behind it' SEIU 775 button, then 'Against 2020' row in dialog",
+     "scent": true
+    },
+    "w10": {
+     "loc": "scroll",
+     "path": "'What each side says', Their case, For column",
+     "scent": null
+    }
+   },
+   "invented": [],
+   "words_before_gist": 7,
+   "words_before_gist_statement": 7,
+   "gist_anchor": "headline 'SJR 8201 would let the state invest WA Cares payroll taxes in the stock market'",
+   "notes": "Gist and change table fill the first screen; the payroll rate and trust balance surface as qualifiers on the WA Cares button. The benefit, the 2020 counties and the five-times comparison live only in dialogs behind clearly labeled inline buttons."
+  },
+  "M8": {
+   "answers": {
+    "w1": {
+     "loc": "first-screen",
+     "path": "headline and 'What voters are deciding' card",
+     "scent": null
+    },
+    "w2": {
+     "loc": "first-screen",
+     "path": "'What would change' Today / If approved cards (stock line sits at the fold)",
+     "scent": null
+    },
+    "w3": {
+     "loc": "scroll",
+     "path": "'The numbers in the story', 0.58% row",
+     "scent": null
+    },
+    "w4": {
+     "loc": "scroll",
+     "path": "'The numbers in the story', $36,500 row",
+     "scent": null
+    },
+    "w5": {
+     "loc": "scroll",
+     "path": "'The numbers in the story', $2.5 billion+ row",
+     "scent": null
+    },
+    "w6": {
+     "loc": "scroll",
+     "path": "timeline 'WA Cares and this measure, in order', 2020",
+     "scent": null
+    },
+    "w7": {
+     "loc": "scroll",
+     "path": "'The numbers in the story', $2.5 million row (SEIU 775 underwriting)",
+     "scent": null
+    },
+    "w8": {
+     "loc": "scroll",
+     "path": "'Who is behind each side', Backing the measure",
+     "scent": null
+    },
+    "w9": {
+     "loc": "scroll",
+     "path": "'The numbers in the story', $2.5 million row",
+     "scent": null
+    },
+    "w10": {
+     "loc": "scroll",
+     "path": "'The numbers in the story', 8.9% row",
+     "scent": null
+    }
+   },
+   "invented": [],
+   "words_before_gist": 13,
+   "words_before_gist_statement": 13,
+   "gist_anchor": "headline 'Voters to decide if WA Cares tax dollars can be invested in stock market'",
+   "notes": "Static page with no controls: both gist answers are on the first screen and every lookup is a scroll away, most of them gathered in one numbers list. The WA Cares Fund earnings mandate is shown as unattributed fact under 'If approved'; the source gives it as Weiner's claim."
+  },
+  "R4": {
+   "answers": {
+    "w1": {
+     "loc": "first-screen",
+     "path": "headline and opening sentence 'A yes vote would let the state...'",
+     "scent": null
+    },
+    "w2": {
+     "loc": "first-screen",
+     "path": "'What changes' Today / If approved grid",
+     "scent": null
+    },
+    "w3": {
+     "loc": "first-screen",
+     "path": "WA Cares button label 'the 0.58% tax' in 'Whose money' box (paycheck detail in its dialog)",
+     "scent": null
+    },
+    "w4": {
+     "loc": "first-screen",
+     "path": "WA Cares button label 'the $36,500 benefit' (lifetime and inflation detail only in its dialog)",
+     "scent": null
+    },
+    "w5": {
+     "loc": "first-screen",
+     "path": "'Whose money' box: 'More than $2.5 billion banked as of summer'",
+     "scent": null
+    },
+    "w6": {
+     "loc": "scroll",
+     "path": "Background, 'Earlier attempt' row",
+     "scent": null
+    },
+    "w7": {
+     "loc": "scroll",
+     "path": "'The two sides', 'Campaign money' row",
+     "scent": null
+    },
+    "w8": {
+     "loc": "1-step",
+     "path": "button 'Both sides in full: arguments, backers and quotes', then 'Also on this side'",
+     "scent": true
+    },
+    "w9": {
+     "loc": "scroll",
+     "path": "'The two sides', 'Campaign money' row",
+     "scent": null
+    },
+    "w10": {
+     "loc": "1-step",
+     "path": "button 'Both sides in full: arguments, backers and quotes', then The argument, For column",
+     "scent": true
+    }
+   },
+   "invented": [
+    "'The report is dated Friday, October 31, 2025': the weekday is not in the source (correct by calendar)"
+   ],
+   "words_before_gist": 7,
+   "words_before_gist_statement": 15,
+   "gist_anchor": "noun-phrase headline 'Investing WA Cares money in the stock market'; first full statement is the opening sentence",
+   "notes": "Densest first screen of the set: gist, change table, and the WA Cares figures, two of which are only readable as the WA Cares button's label. Backers and the 8.9% returns argument are hidden behind the 'Both sides in full' toggle."
+  },
+  "R8": {
+   "answers": {
+    "w1": {
+     "loc": "first-screen",
+     "path": "title and opening answer sentence",
+     "scent": null
+    },
+    "w2": {
+     "loc": "first-screen",
+     "path": "'What changes for the WA Cares money' grid",
+     "scent": null
+    },
+    "w3": {
+     "loc": "scroll",
+     "path": "WA Cares card under 'The program and the rule it touches' ('0.58% payroll tax')",
+     "scent": null
+    },
+    "w4": {
+     "loc": "1-step",
+     "path": "inline 'WA Cares' link in the opening sentence (or card 'See its funding, benefit and timeline'), Benefit row in dialog",
+     "scent": true
+    },
+    "w5": {
+     "loc": "scroll",
+     "path": "WA Cares card ('more than $2.5 billion banked')",
+     "scent": null
+    },
+    "w6": {
+     "loc": "scroll",
+     "path": "'How it reached your ballot', 2020",
+     "scent": null
+    },
+    "w7": {
+     "loc": "scroll",
+     "path": "'Who is for it...', 'Money behind it' row",
+     "scent": null
+    },
+    "w8": {
+     "loc": "scroll",
+     "path": "'Who is for it...', 'Who backs it' row",
+     "scent": null
+    },
+    "w9": {
+     "loc": "scroll",
+     "path": "'Who is for it...', 'Money behind it' row",
+     "scent": null
+    },
+    "w10": {
+     "loc": "scroll",
+     "path": "'Who is for it...', 'The argument' row, For it",
+     "scent": null
+    }
+   },
+   "invented": [],
+   "words_before_gist": 8,
+   "words_before_gist_statement": 41,
+   "gist_anchor": "noun-phrase title 'SJR 8201: investing WA Cares money in the stock market'; first full statement is the boxed answer sentence",
+   "notes": "Gist and change grid are on the first screen; the WA Cares figures sit far down in a reference card (about 2,600px) though the same facts are one click away via the inline WA Cares link. Only the lifetime benefit requires opening the dialog."
+  },
+  "T2": {
+   "answers": {
+    "w1": {
+     "loc": "first-screen",
+     "path": "'Adds a few lines to the state constitution...' under the heading",
+     "scent": null
+    },
+    "w2": {
+     "loc": "first-screen",
+     "path": "'What a vote decides', If No / If Yes rows",
+     "scent": null
+    },
+    "w3": {
+     "loc": "first-screen",
+     "path": "WA Cares button qualifiers '0.58% payroll tax'",
+     "scent": null
+    },
+    "w4": {
+     "loc": "1-step",
+     "path": "WA Cares button 'Funding, benefit and timeline', then July 2026 event in dialog",
+     "scent": true
+    },
+    "w5": {
+     "loc": "first-screen",
+     "path": "WA Cares button qualifiers '$2.5B+ banked as of summer'",
+     "scent": null
+    },
+    "w6": {
+     "loc": "scroll",
+     "path": "'Road to the ballot', 2020",
+     "scent": null
+    },
+    "w7": {
+     "loc": "scroll",
+     "path": "'Who argues each side', 'Campaign money' row",
+     "scent": null
+    },
+    "w8": {
+     "loc": "scroll",
+     "path": "'Who argues each side', Backers row",
+     "scent": null
+    },
+    "w9": {
+     "loc": "scroll",
+     "path": "'Who argues each side', 'Campaign money' row",
+     "scent": null
+    },
+    "w10": {
+     "loc": "scroll",
+     "path": "'Who argues each side', 'Their case' row, For",
+     "scent": null
+    }
+   },
+   "invented": [],
+   "words_before_gist": 20,
+   "words_before_gist_statement": 20,
+   "gist_anchor": "sentence 'Adds a few lines to the state constitution so the state can invest WA Cares payroll taxes in the stock market'",
+   "notes": "Heading is the resolution's name, so a 16-word meta line plus the name precede the gist sentence. The benefit amount is the one answer that needs the WA Cares dialog, whose button names 'benefit'."
+  },
+  "V3": {
+   "answers": {
+    "w1": {
+     "loc": "first-screen",
+     "path": "kicker and headline 'Investing WA Cares tax dollars in the stock market', with the What changes tab below",
+     "scent": null
+    },
+    "w2": {
+     "loc": "first-screen",
+     "path": "default tab 'What changes', Constitution and Investments rows",
+     "scent": null
+    },
+    "w3": {
+     "loc": "first-screen",
+     "path": "'What changes' tab, The account row",
+     "scent": null
+    },
+    "w4": {
+     "loc": "1-step",
+     "path": "tab 'Timeline', July 2026 entry",
+     "scent": false
+    },
+    "w5": {
+     "loc": "first-screen",
+     "path": "summary line under the headline, and The account row",
+     "scent": null
+    },
+    "w6": {
+     "loc": "1-step",
+     "path": "tab '2020 vs 2025', Result row",
+     "scent": true
+    },
+    "w7": {
+     "loc": "1-step",
+     "path": "tab 'For & against', 'Campaign money' row",
+     "scent": true
+    },
+    "w8": {
+     "loc": "1-step",
+     "path": "tab 'For & against', Backers row",
+     "scent": true
+    },
+    "w9": {
+     "loc": "1-step",
+     "path": "tab '2020 vs 2025', 'SEIU 775 spending' row",
+     "scent": true
+    },
+    "w10": {
+     "loc": "first-screen",
+     "path": "'What changes' tab, Returns row",
+     "scent": null
+    }
+   },
+   "invented": [],
+   "words_before_gist": 7,
+   "words_before_gist_statement": 114,
+   "gist_anchor": "noun-phrase headline 'Investing WA Cares tax dollars in the stock market'; no sentence states the gist outside the change table",
+   "notes": "Tabbed page: the default tab answers the gist, rate, balance and returns questions at once, but the lifetime benefit is only in the Timeline tab, which a reader seeking an amount would not pick. The WA Cares Fund mandate is stated as fact in 'What changes' and the 2025 column, though the source attributes it to Weiner."
+  },
+  "X3": {
+   "answers": {
+    "w1": {
+     "loc": "first-screen",
+     "path": "headline, then 'What it does' row of 'The question on the ballot'",
+     "scent": null
+    },
+    "w2": {
+     "loc": "scroll",
+     "path": "'What would change' section (first screen shows only 'Who would invest')",
+     "scent": null
+    },
+    "w3": {
+     "loc": "scroll",
+     "path": "'About WA Cares', Paid for by",
+     "scent": null
+    },
+    "w4": {
+     "loc": "scroll",
+     "path": "'About WA Cares', The benefit",
+     "scent": null
+    },
+    "w5": {
+     "loc": "scroll",
+     "path": "'About WA Cares', Money saved so far",
+     "scent": null
+    },
+    "w6": {
+     "loc": "scroll",
+     "path": "'How we got here', 2020",
+     "scent": null
+    },
+    "w7": {
+     "loc": "scroll",
+     "path": "'For and against', For card, Campaign money",
+     "scent": null
+    },
+    "w8": {
+     "loc": "scroll",
+     "path": "'For and against', For card, Backed by",
+     "scent": null
+    },
+    "w9": {
+     "loc": "scroll",
+     "path": "'For and against', For card, Campaign money",
+     "scent": null
+    },
+    "w10": {
+     "loc": "scroll",
+     "path": "'For and against', For card, second bullet",
+     "scent": null
+    }
+   },
+   "invented": [
+    "'published Friday, October 31, 2025': the weekday is not in the source (correct by calendar)"
+   ],
+   "words_before_gist": 7,
+   "words_before_gist_statement": 7,
+   "gist_anchor": "headline 'Voters to decide if WA Cares tax dollars can be invested in stock market'",
+   "notes": "Long static page (about 4,800px) with a section jump bar; only the gist is on the first screen and the WA Cares figures sit around 3,400 to 3,600px. Nothing is hidden behind controls."
+  },
+  "X7": {
+   "answers": {
+    "w1": {
+     "loc": "first-screen",
+     "path": "headline, then 'What it does' row of 'The question on the ballot'",
+     "scent": null
+    },
+    "w2": {
+     "loc": "scroll",
+     "path": "'What would change' Today / If approved cards (first screen shows only 'Who would invest')",
+     "scent": null
+    },
+    "w3": {
+     "loc": "scroll",
+     "path": "'WA Cares at a glance', Funded by",
+     "scent": null
+    },
+    "w4": {
+     "loc": "scroll",
+     "path": "'WA Cares at a glance', Benefit",
+     "scent": null
+    },
+    "w5": {
+     "loc": "scroll",
+     "path": "'WA Cares at a glance', Money banked",
+     "scent": null
+    },
+    "w6": {
+     "loc": "scroll",
+     "path": "'How it got here', 2020",
+     "scent": null
+    },
+    "w7": {
+     "loc": "scroll",
+     "path": "'The two sides', For card, Campaign money",
+     "scent": null
+    },
+    "w8": {
+     "loc": "scroll",
+     "path": "'The two sides', For card, Backers",
+     "scent": null
+    },
+    "w9": {
+     "loc": "scroll",
+     "path": "'The two sides', For card, Campaign money",
+     "scent": null
+    },
+    "w10": {
+     "loc": "scroll",
+     "path": "'The two sides', For card, second bullet",
+     "scent": null
+    }
+   },
+   "invented": [],
+   "words_before_gist": 7,
+   "words_before_gist_statement": 7,
+   "gist_anchor": "headline 'Voters to decide if WA Cares tax dollars can be invested in stock market'",
+   "notes": "Static page with the full article in a closed details at the end; only the gist is on the first screen and the change cards start right at the fold. 'Where earnings go' states the WA Cares Fund mandate as fact, which the source attributes to Weiner."
+  }
+ }
+}

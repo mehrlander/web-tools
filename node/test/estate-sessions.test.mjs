@@ -3,10 +3,7 @@
 //
 // Two things are worth pinning here beyond the plain derivations. First, the
 // scope and repo filters both LAPSE rather than stranding the pane on an empty
-// list, which is the failure the Open view already learned. Second, the
-// Lists merge has to keep both old ?view keys resolving: ?view=jots is a link
-// the user may have saved, and a merge that quietly sends it to Repos loses it
-// with nothing to say so.
+// list, which is the failure the Open view already learned.
 //
 // Driven over a fake GH and a stubbed shell; no network, no pixels.
 

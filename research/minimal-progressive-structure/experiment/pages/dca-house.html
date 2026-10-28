@@ -1,0 +1,807 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DCA Midair Collision</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script defer src="https://unpkg.com/alpinejs"></script>
+</head>
+<body class="min-h-dvh bg-base-100 text-base-content text-base leading-7" x-data="page()" :style="{'--hdr': hdr + 'px'}" @keydown.window="key($event)" @hashchange.window="fromHash()">
+
+<header class="bg-base-100">
+  <div class="px-4 pt-3 flex flex-wrap items-baseline gap-x-3">
+    <h1 class="font-semibold text-balance">Midair collision near Ronald Reagan Washington National Airport</h1>
+    <span class="font-mono text-xs text-base-content/60">DCA25MA108</span>
+  </div>
+  <div class="px-4 pb-2 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-xs">
+    <span class="font-mono">January 29, 2025 · about 20:47:59 EST · 67 fatal: 64 on Flight 5342, 3 on PAT25</span>
+    <a class="link link-hover inline-flex items-center gap-1 text-base-content/70" href="https://www.ntsb.gov/investigations/Documents/DCA25MA108%20Prelim.pdf" target="_blank" rel="noopener">NTSB preliminary report <i class="ph ph-arrow-square-out"></i></a>
+  </div>
+</header>
+<div x-ref="hdr" class="sticky top-0 z-30 bg-base-100 border-b border-base-300 pt-1">
+  <nav x-ref="nav" class="px-4 pb-2 flex gap-1 overflow-x-auto whitespace-nowrap">
+    <template x-for="t in tabs" :key="t.id">
+      <button type="button" :data-tab="t.id" class="btn btn-sm rounded-full shrink-0" :class="tab === t.id ? 'btn-neutral' : 'btn-ghost'" @click="go(t.id)" x-text="t.name"></button>
+    </template>
+  </nav>
+  <div x-show="markTabs.includes(tab)" class="px-4 pb-2 flex items-center gap-1 overflow-x-auto whitespace-nowrap">
+    <span class="text-xs text-base-content/60 w-12 shrink-0">Mark</span>
+    <template x-for="a in craft" :key="a.id">
+      <button type="button" class="btn btn-sm rounded-full shrink-0" :class="mark === a.id ? 'btn-primary' : 'btn-ghost'" @click="mark = a.id" x-text="a.name + ' · ' + a.type"></button>
+    </template>
+  </div>
+  <div x-show="tab === 'sequence'" class="px-4 pb-2 flex items-center gap-1 overflow-x-auto whitespace-nowrap">
+    <span class="text-xs text-base-content/60 w-12 shrink-0">Show</span>
+    <template x-for="s in spans" :key="s.id">
+      <button type="button" class="btn btn-sm rounded-full shrink-0" :class="span === s.id ? 'btn-neutral' : 'btn-ghost'" @click="span = s.id" x-text="s.name"></button>
+    </template>
+  </div>
+</div>
+
+<main class="px-4 pt-4 pb-16">
+
+<!-- ============ SEQUENCE ============ -->
+<section x-show="tab === 'sequence'" x-ref="seq" class="@container">
+  <div class="grid gap-x-8 gap-y-6 items-start @6xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+
+    <div class="min-w-0 @6xl:order-2 @6xl:sticky @6xl:top-[calc(var(--hdr)_+_1rem)]">
+      <div class="flex items-baseline justify-between gap-2 text-xs text-base-content/60">
+        <span>Altitude, ft</span>
+        <span class="font-mono" x-text="span === 'min' ? '20:46:55 to 20:48:05 EST' : '20:43 to 20:48 EST'"></span>
+      </div>
+      <div x-ref="chart" class="w-full" @click="chartClick($event)" x-html="chartSvg()"></div>
+      <div class="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-base-content/70">
+        <template x-for="a in craft" :key="a.id">
+          <span class="inline-flex items-center gap-1.5"><span class="inline-block w-5 h-0.5" :class="mark === a.id ? 'bg-primary' : 'bg-base-content/50'"></span><span x-text="a.name"></span></span>
+        </template>
+        <span>● recorded: radio altitude or automated callout</span>
+        <span>○ spoken: crew or controller</span>
+        <span>× collision</span>
+      </div>
+      <div class="mt-2 grid gap-1 text-xs text-base-content/70">
+        <template x-for="r in refDefs" :key="r.id">
+          <label class="flex items-start gap-2 cursor-pointer"><input type="checkbox" class="checkbox checkbox-xs mt-0.5" x-model="refs[r.id]"><span x-text="r.label"></span></label>
+        </template>
+      </div>
+      <template x-if="!!selRow">
+        <div class="@6xl:hidden mt-3 pt-3 border-t border-base-300">
+          <div class="text-xs font-mono text-base-content/60" x-text="selRow.label + (selRow.to ? ' · ' + selRow.to + ' to impact' : '')"></div>
+          <div x-show="!!selRow.span" class="font-semibold text-pretty" x-text="selRow.span"></div>
+          <template x-for="c in selRow.cells" :key="c.lane">
+            <div class="mt-1 text-pretty"><span class="text-xs font-mono mr-2" :class="c.lane === mark ? 'text-primary' : 'text-base-content/60'" x-text="laneName(c.lane)"></span><template x-for="(p, i) in c.parts" :key="i"><span :class="p.miss ? 'line-through decoration-2 text-base-content/50' : ''" x-text="p.t"></span></template><div x-show="!!c.note" class="mt-1 text-xs leading-5 text-base-content/70" x-text="c.note"></div></div>
+          </template>
+        </div>
+      </template>
+    </div>
+
+    <div class="min-w-0 @6xl:order-1">
+      <div class="hidden @3xl:grid grid-cols-[5.5rem_minmax(0,1fr)] gap-x-4 py-2 text-xs text-base-content/60 sticky top-[var(--hdr)] z-10 bg-base-100 border-b border-base-300">
+        <div class="font-mono">EST · to impact</div>
+        <div class="grid grid-cols-3 gap-x-4">
+          <template x-for="l in lanes" :key="l.id">
+            <div class="font-mono" :class="l.id === mark ? 'text-primary' : ''" x-text="l.head"></div>
+          </template>
+        </div>
+      </div>
+      <template x-for="r in visibleRows" :key="r.id">
+        <div :id="'row-' + r.id" @click="pick(r.id)" class="grid grid-cols-[4.75rem_minmax(0,1fr)] @3xl:grid-cols-[5.5rem_minmax(0,1fr)] gap-x-4 py-3 border-t border-base-200 cursor-pointer scroll-mt-[calc(var(--hdr)_+_3rem)]" :class="sel === r.id ? 'bg-base-200' : ''">
+          <div class="text-xs font-mono leading-5 pl-1">
+            <div x-text="r.label"></div>
+            <div x-show="!!r.to" class="text-base-content/60" x-text="r.to"></div>
+            <div x-show="!!r.apart" class="mt-1 text-base-content/60" x-text="r.apart"></div>
+          </div>
+          <div class="grid gap-2 @3xl:grid-cols-3 @3xl:gap-x-4">
+            <template x-if="!!r.span">
+              <div class="@3xl:col-span-3 font-semibold text-balance" x-text="r.span"></div>
+            </template>
+            <template x-for="c in r.cells" :key="c.lane">
+              <div class="min-w-0 border-l-2 pl-3 text-pretty" :class="[c.col, c.lane === mark ? 'border-primary' : 'border-base-300']">
+                <div class="@3xl:hidden text-xs font-mono leading-5" :class="c.lane === mark ? 'text-primary' : 'text-base-content/60'" x-text="laneName(c.lane)"></div>
+                <div><template x-for="(p, i) in c.parts" :key="i"><span :class="p.miss ? 'line-through decoration-2 text-base-content/50' : ''" x-text="p.t"></span></template></div>
+                <div x-show="!!c.note" class="mt-1 text-xs leading-5 text-base-content/70" x-text="c.note"></div>
+              </div>
+            </template>
+          </div>
+        </div>
+      </template>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============ AIRCRAFT / WRECKAGE (side by side) ============ -->
+<section x-show="tab === 'aircraft' || tab === 'wreckage'" class="@container">
+  <div class="grid grid-cols-2 @3xl:grid-cols-[13rem_minmax(0,1fr)_minmax(0,1fr)] gap-x-6 py-2 sticky top-[var(--hdr)] z-10 bg-base-100 border-b border-base-300">
+    <div class="hidden @3xl:block"></div>
+    <template x-for="a in craft" :key="a.id">
+      <div class="text-xs font-mono" :class="mark === a.id ? 'text-primary' : 'text-base-content/60'" x-text="a.name + ' · ' + a.type"></div>
+    </template>
+  </div>
+  <template x-for="g in (compare[tab] || [])" :key="g.group">
+    <div>
+      <div class="pt-6 pb-2 text-xs uppercase tracking-wide text-base-content/60" x-text="g.group"></div>
+      <template x-for="row in g.rows" :key="row.k">
+        <div class="grid grid-cols-2 @3xl:grid-cols-[13rem_minmax(0,1fr)_minmax(0,1fr)] gap-x-6 gap-y-1 py-3 border-t border-base-200">
+          <div class="col-span-2 @3xl:col-span-1 text-xs leading-6 text-base-content/60 text-balance" x-text="row.k"></div>
+          <template x-if="!!row.both">
+            <div class="col-span-2 text-pretty" x-text="row.both"></div>
+          </template>
+          <template x-for="a in (row.both ? [] : craft)" :key="a.id">
+            <div class="min-w-0 border-l-2 pl-3" :class="mark === a.id ? 'border-primary' : 'border-base-300'">
+              <template x-if="row.kind !== 'bars'">
+                <div>
+                  <template x-for="(l, i) in lines(row[a.id])" :key="i">
+                    <div class="text-pretty" :class="i ? 'mt-1.5' : ''" x-text="l"></div>
+                  </template>
+                  <div x-show="!lines(row[a.id]).length" class="text-xs leading-6 text-base-content/40">—</div>
+                </div>
+              </template>
+              <template x-if="row.kind === 'bars'">
+                <div class="grid gap-2">
+                  <template x-for="b in (row[a.id] || [])" :key="b.l">
+                    <div>
+                      <div class="flex flex-wrap justify-between gap-x-2"><span x-text="b.l"></span><span class="text-xs font-mono self-center text-base-content/60" x-text="b.lab"></span></div>
+                      <div class="h-2 mt-1 rounded-full bg-base-200">
+                        <div class="h-2 rounded-full relative" :class="b.v2 == null ? (mark === a.id ? 'bg-primary' : 'bg-base-content/60') : 'bg-base-content/20'" :style="{ width: (100 * b.v / row.max) + '%' }">
+                          <div x-show="b.v2 != null" class="absolute inset-y-0 left-0 rounded-full" :class="mark === a.id ? 'bg-primary' : 'bg-base-content/60'" :style="{ width: (100 * (b.v2 || 0) / b.v) + '%' }"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </template>
+                </div>
+              </template>
+            </div>
+          </template>
+        </div>
+      </template>
+    </div>
+  </template>
+</section>
+
+<!-- ============ ROUTE ============ -->
+<section x-show="tab === 'route'" class="@container">
+  <div class="text-xs uppercase tracking-wide text-base-content/60 pb-2">Helicopter Route 1 to Route 4, Baltimore-Washington Helicopter Route Chart</div>
+  <div class="hidden @3xl:grid grid-cols-[minmax(0,14rem)_minmax(0,1fr)_10rem_minmax(0,1.3fr)] gap-x-6 py-2 text-xs text-base-content/60 border-b border-base-300">
+    <div>Point, in PAT25’s direction</div><div>On the chart</div><div>Maximum altitude</div><div :class="mark === 'H' ? 'text-primary' : ''">PAT25</div>
+  </div>
+  <template x-for="(p, i) in route" :key="i">
+    <div class="grid grid-cols-1 @3xl:grid-cols-[minmax(0,14rem)_minmax(0,1fr)_10rem_minmax(0,1.3fr)] gap-x-6 gap-y-1 py-3 border-t border-base-200">
+      <div class="font-semibold text-balance" x-text="p.pt"></div>
+      <div class="text-pretty" :class="p.note ? '' : 'hidden @3xl:block'" x-text="p.note"></div>
+      <div :class="p.max ? '' : 'hidden @3xl:block'"><span class="@3xl:hidden text-xs text-base-content/60 mr-2">Maximum</span><span x-text="p.max"></span></div>
+      <div class="border-l-2 pl-3" :class="[mark === 'H' ? 'border-primary' : 'border-base-300', p.pat.length ? '' : 'hidden @3xl:block']">
+        <template x-for="(e, j) in p.pat" :key="j">
+          <div class="text-pretty" :class="j ? 'mt-1.5' : ''"><span class="text-xs font-mono mr-2" :class="mark === 'H' ? 'text-primary' : 'text-base-content/60'" x-text="e.t"></span><span x-text="e.s"></span></div>
+        </template>
+      </div>
+    </div>
+  </template>
+  <div class="grid gap-x-6 @3xl:grid-cols-[minmax(0,14rem)_minmax(0,1fr)] border-t border-base-300">
+    <template x-for="(r, i) in routeFacts" :key="i">
+      <div class="contents">
+        <div class="pt-3 text-xs leading-6 text-base-content/60" x-text="r[0]"></div>
+        <div class="pb-3 @3xl:pt-3 text-pretty" x-text="r[1]"></div>
+      </div>
+    </template>
+  </div>
+</section>
+
+<!-- ============ TOWER & RUNWAYS ============ -->
+<section x-show="tab === 'airport'" class="@container">
+  <div class="grid gap-x-10 gap-y-10 @5xl:grid-cols-2">
+
+    <div class="@container min-w-0">
+      <div class="text-xs uppercase tracking-wide text-base-content/60 pb-2">Who heard whom</div>
+      <div class="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] gap-x-4 py-2 text-xs text-base-content/60 border-b border-base-300">
+        <div>Transmitting</div>
+        <div :class="mark === 'A' ? 'text-primary' : ''">Flight 5342 crew hears</div>
+        <div :class="mark === 'H' ? 'text-primary' : ''">PAT25 crew hears</div>
+      </div>
+      <template x-for="h in hears" :key="h.who">
+        <div class="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] gap-x-4 py-2 border-t border-base-200">
+          <div><div x-text="h.who"></div><div class="text-xs font-mono text-base-content/60" x-text="h.freq"></div></div>
+          <div x-text="h.A"></div>
+          <div x-text="h.H"></div>
+        </div>
+      </template>
+      <template x-for="(r, i) in hearFacts" :key="i">
+        <div class="grid @md:grid-cols-[9rem_minmax(0,1fr)] gap-x-4 py-2 border-t border-base-200">
+          <div class="text-xs leading-6 text-base-content/60" x-text="r[0]"></div><div class="text-pretty" x-text="r[1]"></div>
+        </div>
+      </template>
+
+      <div class="mt-10 text-xs uppercase tracking-wide text-base-content/60 pb-2">DCA tower</div>
+      <template x-for="(r, i) in tower" :key="i">
+        <div class="grid @md:grid-cols-[9rem_minmax(0,1fr)] gap-x-4 py-2 border-t border-base-200">
+          <div class="text-xs leading-6 text-base-content/60" x-text="r[0]"></div><div class="text-pretty" x-text="r[1]"></div>
+        </div>
+      </template>
+
+      <div class="mt-10 text-xs uppercase tracking-wide text-base-content/60 pb-2">Conditions</div>
+      <template x-for="(r, i) in weather" :key="i">
+        <div class="grid @md:grid-cols-[9rem_minmax(0,1fr)] gap-x-4 py-2 border-t border-base-200">
+          <div class="text-xs leading-6 text-base-content/60" x-text="r[0]"></div><div class="text-pretty" x-text="r[1]"></div>
+        </div>
+      </template>
+    </div>
+
+    <div class="@container min-w-0">
+      <div class="text-xs uppercase tracking-wide text-base-content/60 pb-2">Runways · share of DCA arrivals, 2018 to 2024</div>
+      <template x-for="r in runways" :key="r.rw">
+        <div class="grid grid-cols-[3rem_minmax(0,1fr)] gap-x-4 py-3 border-t border-base-200">
+          <div class="font-semibold" x-text="r.rw"></div>
+          <div class="min-w-0">
+            <div class="flex items-center gap-3">
+              <div class="flex-1 h-2 rounded-full bg-base-200"><div class="h-2 rounded-full" :class="r.tag && r.tag.k === mark ? 'bg-primary' : 'bg-base-content/50'" :style="{ width: Math.max(r.arr, 0.6) + '%' }"></div></div>
+              <span class="text-xs font-mono w-24 shrink-0 text-base-content/70" x-text="r.arrLab"></span>
+            </div>
+            <div class="mt-1 text-xs font-mono text-base-content/60" x-text="r.size"></div>
+            <template x-for="(n, j) in r.notes" :key="j"><div class="mt-1 text-pretty" x-text="n"></div></template>
+            <div x-show="!!r.tag" class="mt-1 border-l-2 pl-3 text-pretty" :class="r.tag && r.tag.k === mark ? 'border-primary' : 'border-base-300'" x-text="r.tag ? r.tag.s : ''"></div>
+          </div>
+        </div>
+      </template>
+      <template x-for="(r, i) in airport" :key="i">
+        <div class="grid @md:grid-cols-[9rem_minmax(0,1fr)] gap-x-4 py-2 border-t border-base-200">
+          <div class="text-xs leading-6 text-base-content/60" x-text="r[0]"></div><div class="text-pretty" x-text="r[1]"></div>
+        </div>
+      </template>
+
+      <div class="mt-10 text-xs uppercase tracking-wide text-base-content/60 pb-2">TCAS II and ADS-B</div>
+      <template x-for="(r, i) in tcas" :key="i">
+        <div class="grid @md:grid-cols-[9rem_minmax(0,1fr)] gap-x-4 py-2 border-t border-base-200">
+          <div class="text-xs leading-6" :class="r[2] && r[2] === mark ? 'text-primary' : 'text-base-content/60'" x-text="r[0]"></div><div class="text-pretty" x-text="r[1]"></div>
+        </div>
+      </template>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============ BEFORE & AFTER ============ -->
+<section x-show="tab === 'history'" class="@container">
+  <div class="grid gap-x-10 gap-y-10 @4xl:grid-cols-2">
+    <div class="@container min-w-0">
+      <div class="text-xs uppercase tracking-wide text-base-content/60 pb-2">Before · helicopter and commercial aircraft encounters near DCA, 2011 to 2024</div>
+      <template x-for="(r, i) in before" :key="i">
+        <div class="grid @md:grid-cols-[10rem_minmax(0,1fr)] gap-x-4 py-2 border-t border-base-200">
+          <div class="text-xs leading-6 text-base-content/60" x-text="r[0]"></div><div class="text-pretty" x-text="r[1]"></div>
+        </div>
+      </template>
+      <div class="mt-10 text-xs uppercase tracking-wide text-base-content/60 pb-2">Commercial IFR operations at DCA, October 2021 to December 2024</div>
+      <div class="hidden @lg:grid grid-cols-[minmax(0,1fr)_5rem_5rem_6rem] gap-x-3 py-2 text-xs text-base-content/60 border-b border-base-300">
+        <div></div><div>Lateral</div><div>Vertical</div><div class="text-right">Count</div>
+      </div>
+      <template x-for="r in counts" :key="r.what">
+        <div class="grid grid-cols-[minmax(0,1fr)_6rem] @lg:grid-cols-[minmax(0,1fr)_5rem_5rem_6rem] gap-x-3 py-2 border-t border-base-200">
+          <div class="text-pretty" x-text="r.what"></div>
+          <div class="hidden @lg:block font-mono text-xs leading-7" x-text="r.lat"></div>
+          <div class="hidden @lg:block font-mono text-xs leading-7" x-text="r.vert"></div>
+          <div class="text-right tabular-nums" x-text="r.n"></div>
+          <div x-show="!!r.lat" class="@lg:hidden col-span-2 font-mono text-xs text-base-content/60" x-text="'lateral ' + r.lat + ' · vertical ' + r.vert"></div>
+        </div>
+      </template>
+    </div>
+    <div class="@container min-w-0">
+      <div class="text-xs uppercase tracking-wide text-base-content/60 pb-2">After · safety actions</div>
+      <template x-for="(r, i) in after" :key="i">
+        <div class="grid @md:grid-cols-[10rem_minmax(0,1fr)] gap-x-4 py-2 border-t border-base-200">
+          <div class="text-xs leading-6 font-mono text-base-content/60" x-text="r[0]"></div><div class="text-pretty" x-text="r[1]"></div>
+        </div>
+      </template>
+    </div>
+  </div>
+</section>
+
+<!-- ============ RESPONSE ============ -->
+<section x-show="tab === 'response'" class="@container">
+  <div class="grid gap-x-10 gap-y-10 @5xl:grid-cols-2">
+    <div class="@container min-w-0">
+      <div class="text-xs uppercase tracking-wide text-base-content/60 pb-2">Emergency response, EST</div>
+      <template x-for="(r, i) in response" :key="i">
+        <div class="grid grid-cols-[4.75rem_minmax(0,1fr)] gap-x-4 py-2 border-t border-base-200">
+          <div class="text-xs leading-7 font-mono text-base-content/60" x-text="r[0]"></div><div class="text-pretty" x-text="r[1]"></div>
+        </div>
+      </template>
+
+      <div class="mt-10 text-xs uppercase tracking-wide text-base-content/60 pb-2">Medical examination</div>
+      <div class="grid grid-cols-2 gap-x-6">
+        <template x-for="a in craft" :key="a.id">
+          <div class="min-w-0 border-l-2 pl-3" :class="mark === a.id ? 'border-primary' : 'border-base-300'">
+            <div class="text-xs font-mono" :class="mark === a.id ? 'text-primary' : 'text-base-content/60'" x-text="a.name"></div>
+            <template x-for="(l, i) in medical[a.id]" :key="i"><div class="mt-1.5 text-pretty" x-text="l"></div></template>
+          </div>
+        </template>
+      </div>
+    </div>
+    <div class="@container min-w-0">
+      <div class="text-xs uppercase tracking-wide text-base-content/60 pb-2">Wreckage recovery</div>
+      <template x-for="(r, i) in recovery" :key="i">
+        <div class="grid @md:grid-cols-[9rem_minmax(0,1fr)] gap-x-4 py-2 border-t border-base-200">
+          <div class="text-xs leading-6 text-base-content/60" x-text="r[0]"></div><div class="text-pretty" x-text="r[1]"></div>
+        </div>
+      </template>
+      <div class="mt-10 text-xs uppercase tracking-wide text-base-content/60 pb-2">Divers recovering human remains</div>
+      <template x-for="(d, i) in divers" :key="i">
+        <div class="py-1.5 border-t border-base-200 text-pretty" x-text="d"></div>
+      </template>
+    </div>
+  </div>
+</section>
+
+<!-- ============ INVESTIGATION ============ -->
+<section x-show="tab === 'investigation'" class="@container">
+  <div class="grid gap-x-10 gap-y-10 @5xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+    <div class="@container min-w-0">
+      <div class="text-xs uppercase tracking-wide text-base-content/60 pb-2">NTSB</div>
+      <template x-for="(r, i) in ntsb" :key="i">
+        <div class="grid @md:grid-cols-[9rem_minmax(0,1fr)] gap-x-4 py-2 border-t border-base-200">
+          <div class="text-xs leading-6 text-base-content/60" x-text="r[0]"></div><div class="text-pretty" x-text="r[1]"></div>
+        </div>
+      </template>
+      <div class="mt-10 text-xs uppercase tracking-wide text-base-content/60 pb-2">Investigative groups, each led by an NTSB chair</div>
+      <template x-for="(g, i) in groups" :key="i">
+        <div class="py-1.5 border-t border-base-200 text-pretty" x-text="g"></div>
+      </template>
+    </div>
+    <div class="@container min-w-0">
+      <div class="text-xs uppercase tracking-wide text-base-content/60 pb-2">Parties and participants</div>
+      <div class="hidden @xl:grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)] gap-x-4 py-2 text-xs text-base-content/60 border-b border-base-300">
+        <div>Organization</div><div>Role</div><div>Participant</div>
+      </div>
+      <template x-for="p in parties" :key="p.org">
+        <div class="grid @xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)] gap-x-4 py-2 border-t border-base-200">
+          <div class="text-pretty" x-text="p.org"></div>
+          <div class="text-xs leading-7 text-base-content/60" x-text="p.role"></div>
+          <div class="text-pretty" x-text="p.who"></div>
+        </div>
+      </template>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<script>
+const S = t => { const [h, m, s = 0] = t.split(':').map(Number); return h * 3600 + m * 60 + s; };
+const IMPACT = S('20:47:59');
+
+/* Sequence: A = Flight 5342, T = air traffic control, H = PAT25 */
+const ROWS = [
+  { label: '18:39', A: 'Departed Wichita (ICT) for DCA on an instrument flight rules (IFR) flight plan.' },
+  { label: '18:45', H: 'Departed Davison Army Airfield (DAA), Fort Belvoir, on a visual flight rules (VFR) flight plan filed with DAA base operations. Instructor pilot (IP) in the right seat, pilot in the left.' },
+  { label: 'about 20:15', A: 'Started its initial descent.' },
+  { label: 'about 20:30', H: 'Began travelling generally southbound after maneuvering near Laytonsville, Maryland. IP flying; pilot monitoring and on the radio.' },
+  { label: '20:32', H: 'First check-in with the DCA tower controller; read back the altimeter setting correctly.', T: 'Issued PAT25 the altimeter setting, 29.89 inches of mercury.' },
+  { label: 'after 20:32', H: 'Change of control: the pilot became pilot flying; the IP became pilot monitoring and worked the radio for the rest of the flight.' },
+  { label: '20:33:41', sec: '20:33:41', H: 'Requested Helicopter Route 1 to Route 4 to DAA.', T: 'Tower approved the route.' },
+  { label: '20:38:39', sec: '20:38:39', H: 'Reached the DC Beltway at the Potomac near Carderock, Maryland. After briefly turning west, turned back east and began descending onto Route 1, southeast along the river toward downtown.' },
+  { label: '20:39:10', sec: '20:39:10', T: 'Potomac Approach cleared Flight 5342, inbound from the south, for the Mount Vernon Visual Runway 1 approach.' },
+  { label: '20:40:46', sec: '20:40:46', A: 'Rolled out of a left turn onto the runway 1 localizer: about 4,000 ft pressure altitude, 170 kts, gear up, flaps 20°.' },
+  { label: '20:43:06', sec: '20:43:06', A: 'First contact with DCA tower, about 10.5 nm out. Agreed to switch to runway 33 and read back the landing clearance.', T: 'Asked whether Flight 5342 could take runway 33, then cleared it to land on runway 33.' },
+  { label: '20:43:48', sec: '20:43:48', H: 'About 1.1 nm west of Key Bridge. The pilot said they were at 300 ft; the IP said 400 ft. Neither remarked on the difference.' },
+  { label: '20:44:27', sec: '20:44:27', H: 'Approaching Key Bridge, the IP said they were at 300 ft, descending to 200 ft.' },
+  { label: '20:44:41', sec: '20:44:41', A: 'Flaps 30°, then 45° by 20:44:45.' },
+  { label: '20:44:49', sec: '20:44:49', A: 'Landing gear down and locked. Fully configured for landing about 6.2 nm south of the airport.' },
+  { label: '20:45:14', sec: '20:45:14', H: 'Reported its position over Memorial Bridge to the controller.' },
+  { label: '20:45:27', sec: '20:45:27', A: 'Autopilot disconnected. Began a shallow right turn off the runway 1 localizer at about 1,700 ft radio altitude and 134 kts, about 5 nm south of the airport.' },
+  { label: '20:45:30', sec: '20:45:30', H: 'Passed over Memorial Bridge. The IP said they were at 300 ft and needed to descend; the pilot said they would descend to 200 ft.' },
+  { label: '20:45:58', sec: '20:45:58', H: 'Crossed the Tidal Basin and followed the Washington Channel, consistent with Route 1.' },
+  { label: '20:46:02', sec: '20:46:02', T: { text: 'Told PAT25 that traffic just south of the Wilson Bridge was a CRJ at 1,200 ft, circling to runway 33. Heard on Flight 5342’s CVR.', miss: 'circling', note: '“Circling” is on the ATC recording and on Flight 5342’s CVR, not on PAT25’s CVR.' } },
+  { label: '20:46:08', sec: '20:46:08', apart: '6.5 nm apart', H: 'Reported the traffic in sight and requested visual separation.', T: 'Approved visual separation.' },
+  { label: '20:46:29', sec: '20:46:29', A: '1,000-ft automated callout.' },
+  { label: '20:46:48', sec: '20:46:48', T: 'Cleared other jet traffic on runway 1 for immediate departure, no delay.' },
+  { label: '20:47:27', sec: '20:47:27', H: 'Passed the southern tip of Hains Point.' },
+  { label: 'about 20:47:28', sec: '20:47:28', A: 'Began a left roll to turn onto final for runway 33: 516 ft radio altitude, 133 kts.' },
+  { label: '20:47:29', sec: '20:47:29', A: '500-ft automated callout.' },
+  { label: '20:47:39', sec: '20:47:39', T: 'Asked PAT25 whether the CRJ was in sight, with a conflict alert audible in the background. Heard on both CVRs.' },
+  { label: '20:47:40', sec: '20:47:40', apart: '0.95 nm apart', A: 'TCAS traffic advisory: “Traffic, Traffic.”' },
+  { label: '20:47:42', sec: '20:47:42', T: { text: 'Directed PAT25 to pass behind the CRJ. Heard on both CVRs.', miss: 'pass behind the', note: 'May not have reached PAT25: stepped on by a 0.8-second mic key from PAT25.' } },
+  { label: '20:47:44', sec: '20:47:44', H: 'Reported traffic in sight and requested visual separation. The IP then told the pilot they believed ATC wanted the helicopter to move left, toward the east bank of the Potomac.', T: 'Approved visual separation.' },
+  { label: '20:47:52', sec: '20:47:52', A: 'Rolled out on final for runway 33: 344 ft radio altitude, 143 kts.' },
+  { label: 'about 20:47:57', sec: '20:47:57', A: 'Last recorded radio altitude, 313 ft, 2 seconds before the collision.' },
+  { label: '20:47:58', sec: '20:47:58', A: 'Pitch began to increase; elevators near their maximum nose-up travel.', T: 'Issued a landing clearance to another airplane; other tower controllers reacted audibly as they saw the collision.' },
+  { label: 'about 20:47:59', sec: '20:47:59', noTo: true, span: 'Collision over the Potomac River, Flight 5342 on final approach for runway 33', A: 'Pitch 9° nose up, roll 11° left wing down, descending 448 ft per minute.', H: 'Radio altitude 278 ft, steady for the previous 5 seconds. Pitch about 0.5° nose up, roll 1.6° left.' },
+  { label: 'after', A: 'Outboard left wing separated. The airplane rolled about 450° and hit the water about 45° nose-low, rolled about 90° left (video).' },
+];
+
+/* Altitude points; ref = the sequence row a point belongs to */
+const PTS = [
+  { k: 'A', at: '20:45:27', v: 1700, rec: 1, lab: '1,700 ft' },
+  { k: 'A', at: '20:46:02', v: 1200, rec: 0, lab: '1,200 ft, per tower' },
+  { k: 'A', at: '20:46:29', v: 1000, rec: 1, lab: '1,000-ft callout' },
+  { k: 'A', at: '20:47:28', v: 516, rec: 1, lab: '516 ft' },
+  { k: 'A', at: '20:47:29', v: 500, rec: 1, lab: '500-ft callout', dy: -8 },
+  { k: 'A', at: '20:47:52', v: 344, rec: 1, lab: '344 ft' },
+  { k: 'A', at: '20:47:57', v: 313, rec: 1, lab: '313 ft', dy: -8 },
+  { k: 'H', at: '20:43:48', v: 300, rec: 0, lab: 'pilot: 300 ft', dy: 18 },
+  { k: 'H', at: '20:43:48', v: 400, rec: 0, lab: 'IP: 400 ft', dy: -6, noLine: 1 },
+  { k: 'H', at: '20:44:27', v: 300, rec: 0, lab: 'IP: 300 ft', dy: 18 },
+  { k: 'H', at: '20:45:30', v: 300, rec: 0, lab: 'IP: 300 ft', dy: 18 },
+  { k: 'H', at: '20:47:54', v: 278, rec: 1, ref: '20:47:59' },
+  { k: 'H', at: '20:47:59', v: 278, rec: 1, lab: '278 ft', dy: 20 },
+];
+const SEPS = [ { at: '20:46:08', lab: '6.5' }, { at: '20:47:40', lab: '0.95' } ];
+
+const COMPARE = {
+  aircraft: [
+    { group: 'Aircraft', rows: [
+      { k: 'Make and model', A: 'MHI RJ Aviation (formerly Bombardier) CL-600-2C10, a CRJ700', H: 'Sikorsky UH-60L' },
+      { k: 'Registration', A: 'N709PS', H: 'Unregistered (UNREG)' },
+      { k: 'Operator', A: ['PSA Airlines, a wholly owned subsidiary of American Airlines, based in Dayton, Ohio', 'All-jet fleet: 61 CRJ700 and 80 CRJ900'], H: ['US Army 12th Aviation Battalion, Bravo Company, at Davison Army Airfield, Fort Belvoir, Virginia', 'Mission: priority air transport (PAT) and continuity of government operations'] },
+      { k: 'Operating rules', A: ['14 CFR Part 121, scheduled domestic passenger flight', 'Certificate: 14 CFR 119, flag carrier (121)'], H: ['Armed Forces', 'Operating certificate: none'] },
+      { k: 'Traffic equipment', A: ['ADS-B out and TCAS, standard FAA requirements for Part 121'], H: ['Transponder capable of transmitting ADS-B out', 'Transponder confirmed by maintenance records and by the wreckage', 'No autopilot'] },
+      { k: 'Lights on before the collision, from video', A: ['Navigation lights: left and right wing', 'Anticollision strobes: left wing, right wing, tail', 'Landing lights: nose, right wing, left wing', 'Beacons: upper and lower', 'None used LED technology'], H: ['Anticollision strobes: lower fuselage, aft pylon', 'Position lights: left, right, tail pylon'] },
+    ]},
+    { group: 'Flight', rows: [
+      { k: 'From, to', A: 'Wichita Dwight D. Eisenhower National Airport (ICT), Kansas, to DCA', H: 'Davison Army Airfield (DAA), Fort Belvoir, Virginia, and back to DAA' },
+      { k: 'Purpose', A: 'Scheduled domestic passenger flight', H: 'The pilot’s annual standardization evaluation, using night vision goggles (NVGs)' },
+      { k: 'Flight plan', A: 'Instrument flight rules (IFR); departed 18:39', H: ['Visual flight rules (VFR), filed with DAA base operations; departed 18:45', 'Report form: MVFR'] },
+      { k: 'Cleared for', A: ['Mount Vernon Visual Runway 1 approach, 20:39:10', 'Runway 33 instead; cleared to land, 20:43:06'], H: ['Helicopter Route 1 to Route 4 to DAA, 20:33:41', 'Visual separation from the CRJ, 20:46:08 and 20:47:44'] },
+      { k: 'Radio', A: 'DCA tower on 119.1 MHz, the published control tower frequency', H: 'DCA tower on 134.35 MHz, the published helicopter frequency' },
+    ]},
+    { group: 'Crew', rows: [
+      { k: 'Aboard', A: '2 pilots, 2 flight attendants, 60 passengers', H: 'Instructor pilot (IP), pilot, crew chief' },
+      { k: 'Fatal, report form', A: 'Crew 4 · passengers 60 · total 64', H: 'Crew 2 · passengers 1 · total 3' },
+      { k: 'Pilots', A: ['Both: airline transport pilot certificates with CL-65 type ratings (CRJ-200, CRJ-700, CRJ-900)', 'Captain: FAA first-class medical, January 10, 2025', 'First officer (FO): FAA first-class medical, October 31, 2024'], H: ['Both current and qualified in the helicopter, according to the US Army', 'IP: Chief Warrant Officer 2', 'Pilot: Captain', 'Crew chief: Staff Sergeant'] },
+      { k: 'Flight hours, total; solid part in this make and model', kind: 'bars', max: 3950,
+        A: [ { l: 'Captain', v: 3950, v2: 3024, lab: '3,950 · 3,024' }, { l: 'First officer', v: 2469, v2: 966, lab: '2,469 · 966' } ],
+        H: [ { l: 'IP', v: 968, v2: 300, lab: '968 · 300' }, { l: 'Pilot', v: 450, v2: 326, lab: '450 · 326' }, { l: 'Crew chief', v: 1149, v2: 1149, lab: '1,149 · all UH-60' } ] },
+      { k: 'At the controls', A: 'Captain flying, FO monitoring, for the whole flight', H: ['Seats: IP right, pilot left', 'Until after the 20:32 check-in: IP flying, pilot monitoring and on the radio', 'From then on: pilot flying, IP monitoring and on the radio'] },
+    ]},
+    { group: 'Recorders', rows: [
+      { k: 'Units', A: ['Separate flight data recorder (FDR) and cockpit voice recorder (CVR): L3-Harris Communications FA2100, solid-state', 'Recovered by an FBI dive team; downloaded successfully at the NTSB Vehicle Recorder Laboratory'], H: ['One combined unit: Penny & Giles Multi-Purpose Flight Recorder (MPFR), part of a Goodrich Integrated Vehicle Health Management Unit (IVHMU)', 'Recovered by the DC Metropolitan Police Department; taken to the NTSB Vehicle Recorder Laboratory'] },
+      { k: 'Voice', A: 'About 2 h 4 min, good to excellent quality; starts mid-flight, given its 2-hour capacity', H: 'About 2 h, excellent quality' },
+      { k: 'Flight data', A: 'The whole flight, about 400 parameters', H: ['The whole flight, about 70 parameters', 'No date, time or GPS position, by design', 'The parameter documented as “barometric altitude” was pressure altitude, inconsistent with other data, and declared invalid', 'Open: whether the invalid pressure altitude was limited to the recorder or affected other helicopter systems that use it'] },
+    ]},
+    { group: 'At the collision', rows: [
+      { k: 'Radio altitude', A: '313 ft, the last recorded value, 2 seconds before', H: '278 ft, steady for the previous 5 seconds' },
+      { k: 'Attitude', A: 'Pitch 9° nose up, roll 11° left wing down', H: 'Pitch about 0.5° nose up, roll 1.6° left' },
+      { k: 'Vertical speed', A: 'Descending 448 ft per minute' },
+      { k: 'Final second', A: 'Pitch increasing from 20:47:58, elevators near maximum nose-up travel' },
+    ]},
+  ],
+  wreckage: [
+    { group: 'Where', rows: [
+      { k: 'Site', both: 'Potomac River, about 0.5 miles southeast of DCA · 38.845339, −77.024187 · water 1 to 8 ft deep, depending on the tide' },
+      { k: 'Distance southeast of the runway 33 approach end, ft', kind: 'bars', max: 3730,
+        A: [ { l: 'Main wreckage, in several pieces', v: 2345, lab: '2,345' }, { l: 'Outboard left wing', v: 2790, lab: '2,790' } ],
+        H: [ { l: 'Main wreckage, most major structure', v: 3730, lab: '3,730' } ] },
+    ]},
+    { group: 'Structure', rows: [
+      { k: 'Overall', A: ['Destroyed', 'Extensive water impact damage to most of the structure', 'Fuselage recovered in 13 major sections spanning its whole length, nose radome to tail cone'], H: ['Destroyed', 'Came to rest inverted; tail structure separated around the tail transition section', 'Main fuselage fractured into multiple pieces, held together by cabling, hoses and remnant structure', 'Both internal crash-resistant fuel tanks in place: right partly detached, left attached'] },
+      { k: 'Slashes and impact marks', A: ['Lower right aft wing-to-body fairing: a puncture about 10 by 8 in, and a slash about 29 by 2 in through the fairing, internal structure and lavatory access door', 'About 2 ft of one of the helicopter’s tail rotor blades embedded in that slash', 'Left center slat: a linear slash about 52 in long, skin gouged and abraded aft; the forward spar behind it cut along the same diagonal; black paint transfer inside the wing', 'Two inboard left slat sections: denting and black paint transfer', 'Fibrous material in several sections, including the left wing and vertical stabilizer; samples to the NTSB Materials Laboratory'] },
+      { k: 'Tail', A: ['Vertical stabilizer and rudder attached to the aft fuselage and tail cone', 'Horizontal stabilizer and elevators separated from the top of the vertical stabilizer'], H: ['Tail boom intact, skin wrinkled', 'Vertical fin mostly intact; upper end fractured and bent right', 'Stabilator intact, with forward impact deformation at its middle and aft end'] },
+      { k: 'Wings, rotors, gear', A: ['Right wing largely intact, attached to part of the right center fuselage; slats and flaps fully extended; right gear attached and extended', 'Inboard left wing, centerline to wing station 178, significantly fragmented', 'Outboard left wing, wing station 178 to the tip, separated and found in the debris field', 'Left main gear: upper part attached, lower part separated; outboard tire slashed diagonally through all layers'], H: ['Main gearbox attached to the roof beams, which separated from the fuselage; housing whole; main rotor shaft and hub in place', 'All four main rotor blades fractured near the hub', 'Tail rotor hub retention plates still on the tail rotor gearbox output shaft', 'One of four tail rotor blades mostly intact, tip and trailing edge damaged; remnants of the other three in the retention plates'] },
+    ]},
+    { group: 'Engines', rows: [
+      { k: 'Left, No. 1', A: ['Separated from its pylon; core mostly intact; both fan core cowls separated', 'No evidence of fire or uncontainment', 'All fan blades bent aft; leading edges dented, gouged, missing material'], H: ['Aft section, diffuser and midframe to tail cone, intact; no evidence of external fire or uncontainment', 'Divers recovered the accessory gearbox, a compressor case half, the stage 2 compressor bladed disk, the power takeoff shaft bevel gear, two main frame pieces and the swirl frame', 'Output drive assembly separated, still on part of the torque tube, holding the fractured end of the power turbine drive shaft', 'Helicopter drive shaft fractured in front of the output drive assembly'] },
+      { k: 'Right, No. 2', A: ['Mostly intact, pylon attached; no evidence of fire or uncontainment', 'Fan blades full length, bent opposite to rotation; one fractured about midspan', 'Blades 10, 12, 14, 16, 19 and 22 deformed near their tips', 'Fan case rub strip rubbed away from 8 to 11 o’clock'], H: ['Appeared intact; no evidence of external fire or uncontainment', 'Turning the output drive shaft by hand turned the power turbine smoothly and continuously'] },
+    ]},
+    { group: 'Cockpit and examination', rows: [
+      { k: 'Cockpit and instruments', H: ['Cockpit heavily fragmented', 'Left altimeter and horizontal situation indicator found apart from the cockpit; left Kollsman window 29.88 to 29.89 inHg', 'Right instrument cluster partly separated, still connected by hoses and cables; right Kollsman window 29.87 inHg', 'For comparison: tower setting issued at 20:32, 29.89 inHg; KDCA observation at 20:52, 29.9 inHg', 'Standby instrument system (ESIS): glass cover fractured, screen not cracked', 'Pitot-static system highly fragmented; one whole and one partial probe recovered; line fittings tight except one pitot outlet line fitting near the cockpit nose wreckage'] },
+      { k: 'Retained for examination', A: ['TCAS transmitter receiver', 'Communication management unit', 'Transponder', 'Air data computers', 'Exterior light bulbs'], H: ['Both barometric altimeters', 'Both radar altimeters and their antennae', 'ESIS', 'The pitot outlet line and the two pitot-static probes', 'Transponder and its remote control unit', 'Two iPad minis, found apart from the main wreckage'] },
+    ]},
+  ],
+};
+
+const ROUTE = [
+  { pt: 'Cabin John, Maryland', note: 'Route 1 begins; follows the western shore of the Potomac southeast toward Washington', max: '', pat: [] },
+  { pt: 'Carderock, Maryland: DC Beltway at the Potomac', note: '', max: '', pat: [ { t: '20:38:39', s: 'Reached it; after a brief turn west, turned back east and descended onto Route 1' } ] },
+  { pt: 'Key Bridge', note: 'Past the bridge the route follows the eastern shore: Kennedy Center and Lincoln Memorial to the east, Roosevelt Island to the west', max: '', pat: [ { t: '20:43:48', s: 'About 1.1 nm west; pilot said 300 ft, IP said 400 ft' }, { t: '20:44:27', s: 'Approaching; IP said 300 ft, descending to 200 ft' } ] },
+  { pt: 'Memorial Bridge', note: 'Compulsory reporting point', max: '200 ft msl after the bridge', pat: [ { t: '20:45:14', s: 'Reported position over the bridge' }, { t: '20:45:30', s: 'Passed over; IP said 300 ft and they needed to descend; pilot said they would descend to 200 ft' } ] },
+  { pt: 'South of the Washington Monument, West Potomac Park, Tidal Basin', note: '', max: '200 ft msl', pat: [ { t: '20:45:58', s: 'Crossed the Tidal Basin' } ] },
+  { pt: 'Washington Channel, along East Potomac Park', note: '', max: '200 ft msl', pat: [ { t: '20:45:58', s: 'Followed the channel, consistent with Route 1' } ] },
+  { pt: 'Hains Point', note: 'Southernmost tip of East Potomac Park, where the Potomac and Anacostia meet. Non-compulsory reporting point, where Route 4 intercepts Route 1', max: '200 ft msl', pat: [ { t: '20:47:27', s: 'Passed the southern tip, 32 seconds before impact' } ] },
+  { pt: 'Route 4, eastern shore of the Potomac', note: 'Runs south with DCA to the west', max: '200 ft msl', pat: [] },
+  { pt: 'Woodrow Wilson Bridge', note: '', max: '300 ft msl south of the bridge', pat: [] },
+];
+
+function page() {
+  return {
+    tab: 'sequence', mark: 'A', span: 'five',
+    markTabs: ['sequence', 'aircraft', 'wreckage', 'route', 'airport', 'response'], sel: null, cw: 640, hdr: 0,
+    refs: { r200: true, r400: true, r900: true },
+    tabs: [
+      { id: 'sequence', name: 'Sequence' }, { id: 'aircraft', name: 'Aircraft' }, { id: 'wreckage', name: 'Wreckage' },
+      { id: 'route', name: 'Route' }, { id: 'airport', name: 'Tower & runways' }, { id: 'history', name: 'Before & after' }, { id: 'response', name: 'Response' },
+      { id: 'investigation', name: 'Investigation' },
+    ],
+    craft: [ { id: 'A', name: 'Flight 5342', type: 'CRJ700' }, { id: 'H', name: 'PAT25', type: 'UH-60L' } ],
+    lanes: [ { id: 'A', head: 'Flight 5342 · CRJ700' }, { id: 'T', head: 'Air traffic control' }, { id: 'H', head: 'PAT25 · UH-60L' } ],
+    spans: [ { id: 'all', name: 'Whole flight' }, { id: 'five', name: 'Last 5 minutes' }, { id: 'min', name: 'Last minute' } ],
+    refDefs: [
+      { id: 'r200', label: '200 ft msl: Route 1 maximum after Memorial Bridge' },
+      { id: 'r400', label: '400 ft agl: TCAS traffic-advisory voice inhibited below, on arrival' },
+      { id: 'r900', label: '900 ft agl: TCAS resolution advisories inhibited below, on descent' },
+    ],
+    rows: [], points: [], seps: [],
+    compare: COMPARE,
+    route: ROUTE,
+    routeFacts: [
+      ['Lateral limits', 'None defined. Routes are drawn as linear paths along surface features, legible to flight crews; altitude and lateral restrictions sit in the chart specifications or warning boxes (FAA aeronautical information specialists, after the accident)'],
+      ['Route charts', 'Per FAA Order 7210.3EE: graphic portrayals of helicopter routes or operating zones for access into, out of and within high-density traffic areas, generally with altitude or flight ceiling information'],
+    ],
+    hears: [
+      { who: 'Flight 5342', freq: '119.1 MHz', A: '·', H: 'No' },
+      { who: 'DCA tower controller', freq: 'both frequencies', A: 'Yes', H: 'Yes' },
+      { who: 'PAT25', freq: '134.35 MHz', A: 'No', H: '·' },
+    ],
+    hearFacts: [
+      ['Band', 'Both frequencies very high frequency (VHF)'],
+      ['On the CVRs', 'Tower call to PAT25 at 20:46:02 heard on Flight 5342’s CVR; tower calls to PAT25 at 20:47:39 and 20:47:42 heard on both'],
+    ],
+    tower: [
+      ['Cab', 'Faces east, across the Potomac'],
+      ['Operation', '“North Operation”: landing and departing runway 1, with intermittent arrivals and departures on runway 33'],
+      ['Staffing', 'Five controllers in five open positions: assistant local control, ground control, clearance delivery, local control, operations supervisor'],
+      ['Combined', 'Helicopter control with local control, since 15:40 that day; flight data with clearance delivery'],
+    ],
+    weather: [
+      ['Conditions', 'Night, visual meteorological conditions (VMC)'],
+      ['Observation', 'KDCA, elevation 14 ft msl, 20:52, 0 nm from the site'],
+      ['Sky', 'Clear, no ceiling'],
+      ['Visibility', '10 miles'],
+      ['Wind', '300° at 14 kts, gusting 23 kts'],
+      ['Temperature, dew point', '10°C, −7°C'],
+      ['Altimeter', '29.9 inHg'],
+    ],
+    runways: [
+      { rw: '1', arr: 57, arrLab: 'about 57%', size: '7,169 × 150 ft, runway 1/19', notes: ['Most commonly used runway', 'North Operation: arrivals and departures'], tag: { k: 'A', s: 'Flight 5342: first cleared for the Mount Vernon Visual Runway 1 approach' } },
+      { rw: '19', arr: 38, arrLab: 'about 38%', size: 'Opposite end of runway 1/19', notes: [] },
+      { rw: '33', arr: 4, arrLab: 'about 4%', size: '5,204 × 150 ft, runway 15/33', notes: ['Four-light precision approach path indicator (PAPI), 3° path to the touchdown zone; operational', 'North Operation: intermittent arrivals and departures', 'Closed after the tower confirmed the crash site at 20:50'], tag: { k: 'A', s: 'Flight 5342: switched to runway 33 and cleared to land; the collision came on final' } },
+      { rw: '15', arr: 0, arrLab: 'less than 1%', size: 'Opposite end of runway 15/33', notes: ['About 5% of DCA departures'] },
+    ],
+    airport: [
+      ['Airport', 'Arlington, Virginia; operated by the Metropolitan Washington Airports Authority (MWAA); 24th busiest in the United States; three operational runways'],
+      ['Flight paths', 'Follow the Potomac or Anacostia rivers, because of noise regulations'],
+    ],
+    tcas: [
+      ['Required', 'In the US by the FAA for commercial aircraft, including regional airline aircraft with more than 30 seats or a maximum takeoff weight over 33,000 lb'],
+      ['How it works', 'Independent of ground-based ATC: interrogates other aircraft’s transponders for range, azimuth and altitude; shows a traffic display and sounds voice warnings'],
+      ['Traffic advisory (TA)', 'Voice: “TRAFFIC - TRAFFIC”'],
+      ['Resolution advisory (RA)', 'A recommended vertical escape maneuver; voice such as “CLIMB, CLIMB,” “DESCEND, DESCEND,” “LEVEL OFF, LEVEL OFF”'],
+      ['Below 900 ft agl, descending', 'RAs inhibited. A TA comes when the intruder is about 20 seconds from closest approach, or 0.3 nm, whichever is first'],
+      ['Below 400 ft agl, arriving', 'TA voice inhibited'],
+      ['Flight 5342', 'TA “Traffic, Traffic” at 20:47:40, with the aircraft about 0.95 nm apart', 'A'],
+      ['ADS-B', 'Aircraft broadcast their GPS-derived position to other aircraft and ATC. Flight 5342: ADS-B out. PAT25: transponder capable of ADS-B out'],
+    ],
+    before: [
+      ['Source', 'Voluntary safety reports and FAA data on encounters between helicopters and commercial aircraft near DCA'],
+      ['Phase of flight', 'A vast majority on approach to landing'],
+      ['TCAS resolution advisories', 'At least one a month triggered by a nearby helicopter'],
+      ['Helicopter altitude', 'In over half of those, the helicopter may have been above the route altitude restriction'],
+      ['Time of day', 'Two-thirds at night'],
+    ],
+    counts: [
+      { what: 'Commercial operations, IFR departures and arrivals', lat: '', vert: '', n: '944,179' },
+      { what: 'Airplane and helicopter occurrences', lat: '< 1 nm', vert: '< 400 ft', n: '15,214' },
+      { what: 'Recorded events', lat: '< 1,500 ft', vert: '< 200 ft', n: '85' },
+    ],
+    after: [
+      ['January 31, 2025', 'FAA Notice to Airmen (NOTAM) prohibits helicopter traffic over the Potomac near DCA from the surface up to and including 17,999 ft msl. Exceptions: lifesaving medical, active law enforcement, air defense, presidential transport; when those fly, civilian aircraft are kept out of the area'],
+      ['February 19, 2025', 'Latest version, NOTAM 5/4379, updates the dimensions of the temporary flight restriction'],
+      ['March 11, 2025', 'NTSB issues two urgent safety recommendations to the FAA on the helicopter routes near DCA'],
+      ['March 31, 2025', 'NOTAM in effect through 23:59 UTC'],
+      ['Status', 'NTSB investigation ongoing'],
+    ],
+    response: [
+      ['about 20:48', 'Tower activates the alert phone; MWAA Aircraft Rescue and Firefighting (ARFF) notified'],
+      ['20:50', 'Tower confirms the site: in the water at the approach end of runway 33. Runway 15/33 then closed'],
+      ['20:53', 'ARFF rescue boats launch'],
+      ['20:59', 'First victim located in the water'],
+    ],
+    medical: {
+      A: ['Crew: autopsies by the District of Columbia Office of the Chief Medical Examiner; toxicology samples to the FAA Forensic Sciences Laboratory, Civil Aerospace Medical Institute (CAMI), as is standard practice', 'Passengers: examined by the DC medical examiner'],
+      H: ['Military crew: autopsies and toxicology testing by the Armed Forces Medical Examiner'],
+    },
+    recovery: [
+      ['Survey', 'Army Corps of Engineers and the US Navy Supervisor of Salvage and Diving Operations (SUPSALV), with sonar and divers wearing helmet cameras'],
+      ['Recovery', 'SUPSALV responsible for recovering the aircraft; NTSB supervised'],
+      ['Destination', 'A secured hangar at DCA'],
+    ],
+    divers: [
+      'FBI Evidence Response Team', 'DC Fire & EMS Department', 'Metropolitan Police Department', 'Maryland State Police',
+      'Baltimore City and County Police and Fire', 'Randive, Inc., under contract to US Navy SUPSALV', 'Prince George’s County Police divers',
+      'Maryland Natural Resources divers', 'Maryland State Fire Marshal divers', 'Anne Arundel County Fire Department divers',
+      'Maryland Transportation Authority Police Marine Division, surface support',
+    ],
+    ntsb: [
+      ['Investigator in charge', 'David Banning'],
+      ['Class', 'Class 1'],
+      ['On scene', 'NTSB traveled to the site and supervised water recovery. All Board members visited; Member Inman was the Member on-scene'],
+      ['Report', 'Preliminary; the investigation is ongoing'],
+    ],
+    groups: [
+      'Air Carrier Operations and Human Performance', 'Airplane Structures', 'Airplane Systems', 'Powerplants',
+      'Helicopter Operations and Human Performance', 'Air Traffic Control and Human Performance', 'Helicopter Airworthiness',
+      'Aircraft Performance', 'Survival Factors', 'Flight Recorders: airplane FDR, airplane CVR, helicopter FDR, helicopter CVR',
+    ],
+    parties: [
+      { org: 'Federal Aviation Administration (FAA)', role: 'Party', who: 'Patrick Lusch, AVP-110' },
+      { org: 'PSA Airlines', role: 'Party', who: 'Darren Hall' },
+      { org: 'GE Aerospace', role: 'Party', who: 'Sam Farmiga' },
+      { org: 'Sikorsky', role: 'Party', who: 'Javier Casanova' },
+      { org: 'US Army', role: 'Party', who: 'Col Matthew Parker' },
+      { org: 'National Air Traffic Controllers Association (NATCA)', role: 'Party', who: 'Seth Myers' },
+      { org: 'Air Line Pilots Association (ALPA)', role: 'Party', who: 'Daniel Mullin' },
+      { org: 'Association of Flight Attendants', role: 'Party', who: 'Robin Coombs' },
+      { org: 'International Association of Machinists and Aerospace Workers (IAM)', role: 'Party', who: 'Robert Brown' },
+      { org: 'Collins Aerospace', role: 'Party', who: 'Shelley Ford' },
+      { org: 'Metropolitan Washington Airports Authority (MWAA)', role: 'Party', who: 'Chris Paulino' },
+      { org: 'Transportation Safety Board of Canada', role: 'Accredited representative', who: 'Ewan Tasker' },
+      { org: 'Transport Canada', role: 'Technical advisor to TSB Canada', who: 'Ian Sturgeon' },
+      { org: 'MHI RJ Aviation (listed as Mitsubishi Heavy Industries)', role: 'Technical advisor to TSB Canada', who: 'David Fisher' },
+    ],
+
+    init() {
+      const col = { A: '@3xl:col-start-1', T: '@3xl:col-start-2', H: '@3xl:col-start-3' };
+      this.rows = ROWS.map((r, i) => {
+        const secN = r.sec ? S(r.sec) : null;
+        const d = secN != null && !r.noTo ? IMPACT - secN : null;
+        const to = d ? '−' + (d >= 3600 ? Math.floor(d / 3600) + ':' + String(Math.floor(d % 3600 / 60)).padStart(2, '0') : Math.floor(d / 60)) + ':' + String(d % 60).padStart(2, '0') : '';
+        const cells = ['A', 'T', 'H'].filter(k => r[k]).map(k => {
+          const c = typeof r[k] === 'string' ? { text: r[k] } : r[k];
+          let parts = [{ t: c.text }];
+          if (c.miss) { const j = c.text.indexOf(c.miss); parts = [{ t: c.text.slice(0, j) }, { t: c.miss, miss: true }, { t: c.text.slice(j + c.miss.length) }]; }
+          return { lane: k, col: col[k], parts, note: c.note || '', plain: c.text + (c.note ? ' ' + c.note : '') };
+        });
+        return { id: 'r' + i, label: r.label, sec: r.sec || null, secN, to, apart: r.apart || '', span: r.span || '', cells, after: r.label === 'after' };
+      });
+      const bySec = Object.fromEntries(this.rows.filter(r => r.sec).map(r => [r.sec, r.id]));
+      this.points = PTS.map(p => ({ ...p, sec: S(p.at), row: bySec[p.ref || p.at] }));
+      this.seps = SEPS.map(s => ({ ...s, sec: S(s.at), row: bySec[s.at] }));
+
+      this.fromHash();
+
+      const ro = new ResizeObserver(() => {
+        this.hdr = this.$refs.hdr.offsetHeight;
+        const w = this.$refs.chart.clientWidth;
+        if (w > 0) this.cw = w;
+      });
+      ro.observe(this.$refs.hdr);
+      ro.observe(this.$refs.chart);
+      this.hdr = this.$refs.hdr.offsetHeight;
+    },
+
+    fromHash() {
+      const h = (location.hash || '').slice(1);
+      if (this.tabs.some(t => t.id === h) && h !== this.tab) { this.tab = h; window.scrollTo({ top: 0 }); }
+      this.showTab();
+    },
+
+    showTab() {
+      this.$nextTick(() => {
+        const nav = this.$refs.nav, b = nav && nav.querySelector('[data-tab="' + this.tab + '"]');
+        if (b) nav.scrollLeft = Math.max(0, b.offsetLeft - (nav.clientWidth - b.offsetWidth) / 2);
+      });
+    },
+
+    go(id) {
+      this.tab = id;
+      try { history.replaceState(null, '', '#' + id); } catch (e) {}
+      window.scrollTo({ top: 0 });
+      this.showTab();
+    },
+
+    get visibleRows() {
+      if (this.span === 'all') return this.rows;
+      const from = S(this.span === 'min' ? '20:46:59' : '20:43:00');
+      return this.rows.filter(r => r.after || (r.secN != null && r.secN >= from));
+    },
+    get selRow() { return this.rows.find(r => r.id === this.sel) || null; },
+    laneName(k) { return { A: 'Flight 5342', T: 'ATC', H: 'PAT25' }[k]; },
+    lines(v) { return v == null ? [] : (Array.isArray(v) ? v : [v]); },
+
+    pick(id, fromChart) {
+      this.sel = (this.sel === id && !fromChart) ? null : id;
+      if (fromChart && this.sel && this.$refs.seq.clientWidth >= 1152) {
+        this.$nextTick(() => { const el = document.getElementById('row-' + this.sel); if (el) el.scrollIntoView({ block: 'nearest' }); });
+      }
+    },
+    chartClick(e) {
+      const el = e.target.closest('[data-row]');
+      if (el && el.dataset.row) this.pick(el.dataset.row, true);
+    },
+
+    key(e) {
+      const tag = (e.target.tagName || '').toLowerCase();
+      if (['input', 'textarea', 'select'].includes(tag) || e.metaKey || e.ctrlKey || e.altKey) return;
+      const ids = this.tabs.map(t => t.id), i = ids.indexOf(this.tab);
+      if (e.key === 'ArrowRight' && i < ids.length - 1) { e.preventDefault(); this.go(ids[i + 1]); }
+      else if (e.key === 'ArrowLeft' && i > 0) { e.preventDefault(); this.go(ids[i - 1]); }
+      else if (this.tab === 'sequence' && this.sel && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+        e.preventDefault();
+        const v = this.visibleRows; let j = v.findIndex(r => r.id === this.sel);
+        j = Math.max(0, Math.min(v.length - 1, j + (e.key === 'ArrowDown' ? 1 : -1)));
+        this.sel = v[j].id;
+        this.$nextTick(() => { const el = document.getElementById('row-' + this.sel); if (el) el.scrollIntoView({ block: 'nearest' }); });
+      }
+      else if (e.key === 'Escape') { this.sel = null; }
+    },
+
+    chartSvg() {
+      const W = Math.max(280, Math.round(this.cw || 640));
+      const H = W < 560 ? 260 : Math.min(380, Math.round(W * 0.56));
+      const m = { l: 44, r: 62, t: 28, b: 28 };
+      const zoom = this.span === 'min';
+      const t0 = S(zoom ? '20:46:55' : '20:43:00'), t1 = S(zoom ? '20:48:05' : '20:48:10');
+      const ymax = zoom ? 600 : 1800, ystep = zoom ? 100 : 300;
+      const X = t => m.l + (t - t0) / (t1 - t0) * (W - m.l - m.r);
+      const Y = v => m.t + (1 - v / ymax) * (H - m.t - m.b);
+      const f = n => n.toFixed(1);
+      const inD = t => t >= t0 && t <= t1;
+      const fmtN = n => n.toLocaleString('en-US');
+      let o = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" class="block text-xs select-none" role="img" aria-label="Altitude of Flight 5342 and PAT25 before the collision">`;
+      o += `<defs><clipPath id="plotclip"><rect x="${m.l}" y="${m.t}" width="${W - m.l - m.r}" height="${H - m.t - m.b}"/></clipPath></defs>`;
+      for (let v = 0; v <= ymax; v += ystep) {
+        o += `<line x1="${m.l}" x2="${W - m.r}" y1="${f(Y(v))}" y2="${f(Y(v))}" stroke="currentColor" class="text-base-content/10"/>`;
+        o += `<text x="${m.l - 6}" y="${f(Y(v) + 4)}" text-anchor="end" fill="currentColor" class="text-base-content/60 font-mono">${fmtN(v)}</text>`;
+      }
+      const xs = zoom ? 10 : 60;
+      for (let t = Math.ceil(t0 / xs) * xs; t <= t1; t += xs) {
+        const hh = Math.floor(t / 3600), mm = String(Math.floor(t % 3600 / 60)).padStart(2, '0'), ss = t % 60;
+        const lab = (!zoom || ss === 0) ? `${hh}:${mm}` : `:${String(ss).padStart(2, '0')}`;
+        o += `<line x1="${f(X(t))}" x2="${f(X(t))}" y1="${H - m.b}" y2="${H - m.b + 4}" stroke="currentColor" class="text-base-content/30"/>`;
+        o += `<text x="${f(X(t))}" y="${H - m.b + 17}" text-anchor="middle" fill="currentColor" class="text-base-content/60 font-mono">${lab}</text>`;
+      }
+      const refs = [ { id: 'r200', v: 200, from: S('20:45:30'), lab: '200 msl' }, { id: 'r400', v: 400, lab: '400 agl' }, { id: 'r900', v: 900, lab: '900 agl' } ];
+      for (const r of refs) {
+        if (!this.refs[r.id] || r.v > ymax) continue;
+        const x1 = Math.max(m.l, X(r.from || t0));
+        o += `<line x1="${f(x1)}" x2="${W - m.r}" y1="${f(Y(r.v))}" y2="${f(Y(r.v))}" stroke="currentColor" stroke-dasharray="5 4" class="text-base-content/50"/>`;
+        o += `<text x="${W - m.r + 6}" y="${f(Y(r.v) + 4)}" fill="currentColor" class="text-base-content/70 font-mono">${r.lab}</text>`;
+      }
+      o += `<text x="${m.l}" y="${m.t - 12}" fill="currentColor" class="text-base-content/60">nm apart</text>`;
+      for (const s of this.seps) {
+        if (!inD(s.sec)) continue;
+        const on = this.sel === s.row;
+        o += `<g data-row="${s.row}" class="cursor-pointer ${on ? 'text-base-content' : 'text-base-content/70'}"><line x1="${f(X(s.sec))}" x2="${f(X(s.sec))}" y1="${m.t - 6}" y2="${m.t}" stroke="currentColor"/>`;
+        o += `<text x="${f(X(s.sec))}" y="${m.t - 10}" text-anchor="middle" fill="currentColor" class="font-mono ${on ? 'font-semibold' : ''}">${s.lab}</text></g>`;
+      }
+      const sr = this.selRow;
+      if (sr && sr.secN != null && inD(sr.secN)) {
+        o += `<line x1="${f(X(sr.secN))}" x2="${f(X(sr.secN))}" y1="${m.t}" y2="${H - m.b}" stroke="currentColor" stroke-width="1.5" class="text-base-content/30"/>`;
+      }
+      const order = this.mark === 'A' ? ['H', 'A'] : ['A', 'H'];
+      const labels = [];
+      for (const k of order) {
+        const cls = this.mark === k ? 'text-primary' : 'text-base-content/50';
+        const ps = this.points.filter(p => p.k === k);
+        const ln = ps.filter(p => !p.noLine).sort((a, b) => a.sec - b.sec);
+        o += `<g class="${cls}" clip-path="url(#plotclip)"><path d="${ln.map((p, i) => (i ? 'L' : 'M') + f(X(p.sec)) + ' ' + f(Y(p.v))).join(' ')}" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></g>`;
+        for (const p of ps) {
+          if (!inD(p.sec)) continue;
+          const on = this.sel === p.row, r = on ? 6 : 4, x = f(X(p.sec)), y = f(Y(p.v));
+          o += `<g class="${cls} cursor-pointer" data-row="${p.row}"><circle cx="${x}" cy="${y}" r="13" fill="transparent"/>`;
+          o += p.rec ? `<circle cx="${x}" cy="${y}" r="${r}" fill="currentColor"/>` : `<circle cx="${x}" cy="${y}" r="${r}" stroke="currentColor" stroke-width="2" class="fill-[var(--color-base-100)]"/>`;
+          o += `</g>`;
+          if (on && p.lab) labels.push({ p, cls });
+        }
+        const first = ps.filter(p => inD(p.sec)).sort((a, b) => a.sec - b.sec || a.v - b.v)[0];
+        if (first) {
+          const name = k === 'A' ? 'Flight 5342' : 'PAT25';
+          o += k === 'A'
+            ? (zoom
+              ? `<text x="${f(X(first.sec) + 10)}" y="${f(Y(first.v) - 10)}" text-anchor="start" fill="currentColor" class="${cls} font-semibold">${name}</text>`
+              : `<text x="${f(X(first.sec) - 10)}" y="${f(Y(first.v) + 4)}" text-anchor="end" fill="currentColor" class="${cls} font-semibold">${name}</text>`)
+            : `<text x="${f(X(first.sec))}" y="${f(Y(first.v) + 34)}" text-anchor="middle" fill="currentColor" class="${cls} font-semibold">${name}</text>`;
+        }
+      }
+      const cx = X(IMPACT), cy = Y(278);
+      o += `<g data-row="${this.rows.find(r => r.sec === '20:47:59')?.id || ''}" class="cursor-pointer text-base-content"><path d="M${f(cx - 6)} ${f(cy - 6)} L${f(cx + 6)} ${f(cy + 6)} M${f(cx + 6)} ${f(cy - 6)} L${f(cx - 6)} ${f(cy + 6)}" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></g>`;
+      for (const { p, cls } of labels) {
+        const x = X(p.sec), y = Y(p.v) + (p.dy || 4);
+        const right = x > W - m.r - 110;
+        o += `<text x="${f(right ? x - 10 : x + 10)}" y="${f(y)}" text-anchor="${right ? 'end' : 'start'}" fill="currentColor" stroke-width="4" paint-order="stroke" stroke-linejoin="round" class="${cls} stroke-[var(--color-base-100)] font-semibold">${p.lab}</text>`;
+      }
+      o += `</svg>`;
+      return o;
+    },
+  };
+}
+</script>
+</body>
+</html>

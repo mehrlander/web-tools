@@ -5,8 +5,8 @@ name: Refresh derived files
 # moved. A write through GitHub's API, an MCP push, an edit on github.com or a
 # web merge never runs the hook, so it leaves derived files stale.
 #
-# It repairs only what a generator can recompute. A change that needs a person,
-# such as a rewritten sentence docs/policies.csv quotes, stays red in test.yml.
+# It repairs only what a generator can recompute. A change that needs a person
+# stays red in test.yml.
 #
 # The repair is pushed with GITHUB_TOKEN, and such a push starts no workflow
 # run. That is why this cannot loop, and why the last step dispatches test.yml

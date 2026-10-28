@@ -86,7 +86,7 @@ ENTRY = ".github/workflows/scheduled-tasks.yml"
 RUNS_KEPT = 30
 TICK = dt.timedelta(hours=1)     # the workflow's own period: hourly
 # A run's commits say so: its token commits as the owner, so the subject is the
-# Writes view's only signal (web-tools docs/views/writes.md).
+# Writes view's only signal (web-tools lib/kits/write-kinds.js, the subject contract).
 VIA = " via Actions" if os.environ.get("GITHUB_ACTIONS") == "true" else ""
 USER_AGENT = "mehrlander-web-tools scheduled-tasks (+https://github.com/mehrlander/web-tools)"
 def address(spec):

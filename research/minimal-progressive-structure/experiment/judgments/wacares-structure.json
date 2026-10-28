@@ -1,0 +1,1204 @@
+{
+ "things": [
+  {
+   "id": "sjr8201",
+   "name": "Senate Joint Resolution 8201 (proposed constitutional amendment)",
+   "kind": "measure"
+  },
+  {
+   "id": "wacares",
+   "name": "WA Cares (state long-term care program)",
+   "kind": "program"
+  },
+  {
+   "id": "ltss_account",
+   "name": "Long Term Services and Supports Trust Account (the long-term service account)",
+   "kind": "fund"
+  },
+  {
+   "id": "wacares_fund",
+   "name": "WA Cares Fund",
+   "kind": "fund"
+  },
+  {
+   "id": "pension_funds",
+   "name": "State pension and retirement funds",
+   "kind": "fund"
+  },
+  {
+   "id": "constitution_ban",
+   "name": "State constitution's bar on investing public money in private companies' stock",
+   "kind": "other"
+  },
+  {
+   "id": "wsib",
+   "name": "Washington State Investment Board",
+   "kind": "organization"
+  },
+  {
+   "id": "m2020",
+   "name": "2020 similar measure (defeated)",
+   "kind": "measure"
+  },
+  {
+   "id": "law2019",
+   "name": "2019 state law creating WA Cares",
+   "kind": "measure"
+  },
+  {
+   "id": "pilot",
+   "name": "WA Cares pilot program in a handful of counties",
+   "kind": "program"
+  },
+  {
+   "id": "vote_tuesday",
+   "name": "Tuesday vote on SJR 8201",
+   "kind": "election"
+  },
+  {
+   "id": "legislature",
+   "name": "Washington Legislature (House 86-9, Senate 42-7 vote)",
+   "kind": "organization"
+  },
+  {
+   "id": "uw_debate",
+   "name": "Debate at the University of Washington",
+   "kind": "event"
+  },
+  {
+   "id": "weiner",
+   "name": "Heather Weiner",
+   "kind": "person"
+  },
+  {
+   "id": "yes_side",
+   "name": "Yes side: Approve 8201 campaign and backers",
+   "kind": "organization"
+  },
+  {
+   "id": "hasegawa",
+   "name": "Sen. Bob Hasegawa, D-Tukwila",
+   "kind": "person"
+  },
+  {
+   "id": "no_side",
+   "name": "No side: opponents of SJR 8201",
+   "kind": "other"
+  },
+  {
+   "id": "ferguson",
+   "name": "Gov. Bob Ferguson",
+   "kind": "person"
+  },
+  {
+   "id": "braun",
+   "name": "Senate Minority Leader John Braun",
+   "kind": "person"
+  },
+  {
+   "id": "wsna",
+   "name": "Washington State Nurses Association",
+   "kind": "organization"
+  },
+  {
+   "id": "wscff",
+   "name": "Washington State Council of Fire Fighters",
+   "kind": "organization"
+  },
+  {
+   "id": "aarp",
+   "name": "AARP",
+   "kind": "organization"
+  },
+  {
+   "id": "whca",
+   "name": "Washington Health Care Association",
+   "kind": "organization"
+  },
+  {
+   "id": "seiu775",
+   "name": "Service Employees International Union 775 (SEIU 775)",
+   "kind": "organization"
+  },
+  {
+   "id": "gop_lawmakers",
+   "name": "Three Republican state lawmakers",
+   "kind": "other"
+  },
+  {
+   "id": "voters_pamphlet",
+   "name": "Voters' pamphlet statements and attorney general's explanation (secretary of state website)",
+   "kind": "other"
+  },
+  {
+   "id": "ag_office",
+   "name": "Attorney general's office",
+   "kind": "organization"
+  },
+  {
+   "id": "sos",
+   "name": "Secretary of state",
+   "kind": "organization"
+  },
+  {
+   "id": "king",
+   "name": "King County",
+   "kind": "place"
+  },
+  {
+   "id": "jefferson",
+   "name": "Jefferson County",
+   "kind": "place"
+  },
+  {
+   "id": "whatcom",
+   "name": "Whatcom County",
+   "kind": "place"
+  },
+  {
+   "id": "montana",
+   "name": "Montana",
+   "kind": "place"
+  },
+  {
+   "id": "alaska",
+   "name": "Alaska",
+   "kind": "place"
+  },
+  {
+   "id": "washington",
+   "name": "Washington (state)",
+   "kind": "place"
+  },
+  {
+   "id": "cornfield",
+   "name": "Jerry Cornfield (reporter)",
+   "kind": "person"
+  },
+  {
+   "id": "wss",
+   "name": "Washington State Standard",
+   "kind": "organization"
+  }
+ ],
+ "pages": {
+  "K7": {
+   "treatment": {
+    "sjr8201": "view",
+    "wacares": "view",
+    "ltss_account": "row",
+    "wacares_fund": "label",
+    "pension_funds": "label",
+    "constitution_ban": "row",
+    "wsib": "label",
+    "m2020": "view",
+    "law2019": "row",
+    "pilot": "row",
+    "vote_tuesday": "label",
+    "legislature": "row",
+    "uw_debate": "row",
+    "weiner": "label",
+    "yes_side": "row",
+    "hasegawa": "label",
+    "no_side": "row",
+    "ferguson": "label",
+    "braun": "label",
+    "wsna": "label",
+    "wscff": "label",
+    "aarp": "label",
+    "whca": "label",
+    "seiu775": "view",
+    "gop_lawmakers": "label",
+    "voters_pamphlet": "row",
+    "ag_office": "label",
+    "sos": "label",
+    "king": "label",
+    "jefferson": "label",
+    "whatcom": "label",
+    "montana": "label",
+    "alaska": "label",
+    "washington": "label",
+    "cornfield": "label",
+    "wss": "label"
+   },
+   "root": "SJR 8201, the measure to let WA Cares payroll taxes be invested in stocks",
+   "first_screen": [
+    "Kicker: Washington ballot measure · Senate Joint Resolution 8201",
+    "Headline: SJR 8201 would let the state invest WA Cares payroll taxes in the stock market",
+    "Lead: a few lines added to the state constitution, billions of taxpayer dollars, WA Cares the long-term care program",
+    "WA Cares label button (0.58% payroll tax · more than $2.5 billion banked →)",
+    "Identity strip: On the ballot (first item), To pass (>50% on Tuesday), Legislature's vote (House 86-9, Senate 42-7)",
+    "'What a yes vote changes' Today / If approved grid: constitution row, what the money can be invested in row",
+    "Top edge of 'Earnings would stay with WA Cares' box"
+   ],
+   "sections": [
+    "Header (kicker, headline, lead, WA Cares label, identity strip)",
+    "What a yes vote changes",
+    "What each side says",
+    "Background",
+    "Footer (source, date note)"
+   ],
+   "collections": [
+    {
+     "items": "Measure identity facts",
+     "fields": [
+      "On the ballot",
+      "To pass",
+      "Legislature's vote to send it"
+     ]
+    },
+    {
+     "items": "Today vs If approved rows",
+     "fields": [
+      "Field (Under the state constitution / What the money can be invested in)",
+      "Today",
+      "If approved"
+     ]
+    },
+    {
+     "items": "Sides as columns (For: Approve 8201 campaign / Against: Opponents)",
+     "fields": [
+      "Stance",
+      "Group",
+      "Speaker at UW debate",
+      "Their case",
+      "Backers",
+      "Money behind it"
+     ]
+    },
+    {
+     "items": "Claims per side",
+     "fields": [
+      "Claim",
+      "Article passage or quote (expandable)"
+     ]
+    },
+    {
+     "items": "Backers per side",
+     "fields": [
+      "Name",
+      "Qualifier"
+     ]
+    },
+    {
+     "items": "WA Cares dialog facts",
+     "fields": [
+      "Paid for by",
+      "Benefit",
+      "Where the tax money is kept (LTSS Trust Account, $2.5B)"
+     ]
+    },
+    {
+     "items": "WA Cares milestones (dialog)",
+     "fields": [
+      "Date",
+      "Event",
+      "Position on 2019-2027 axis"
+     ]
+    },
+    {
+     "items": "SEIU 775 dialog facts",
+     "fields": [
+      "Represents",
+      "This campaign",
+      "Raised and spent",
+      "Against 2020"
+     ]
+    },
+    {
+     "items": "2020 attempt dialog facts",
+     "fields": [
+      "Where it passed",
+      "How it differed",
+      "Opposition money",
+      "Money for the yes side"
+     ]
+    }
+   ],
+   "mechanisms": [
+    "Label buttons opening entity dialogs (WA Cares, SEIU 775, 2020 attempt)",
+    "Modal dialog with a stack and Back button for links between entities (SEIU 775 -> 2020 attempt)",
+    "Collapsible details for evidence passages under claims",
+    "Sticky side-header row in the sides grid",
+    "Horizontal dot timeline plus dated list inside the WA Cares dialog",
+    "Two-column comparison grids"
+   ]
+  },
+  "M8": {
+   "treatment": {
+    "sjr8201": "view",
+    "wacares": "row",
+    "ltss_account": "row",
+    "wacares_fund": "label",
+    "pension_funds": "row",
+    "constitution_ban": "label",
+    "wsib": "label",
+    "m2020": "row",
+    "law2019": "row",
+    "pilot": "row",
+    "vote_tuesday": "row",
+    "legislature": "row",
+    "uw_debate": "label",
+    "weiner": "view",
+    "yes_side": "view",
+    "hasegawa": "view",
+    "no_side": "view",
+    "ferguson": "label",
+    "braun": "label",
+    "wsna": "label",
+    "wscff": "label",
+    "aarp": "label",
+    "whca": "label",
+    "seiu775": "view",
+    "gop_lawmakers": "label",
+    "voters_pamphlet": "view",
+    "ag_office": "label",
+    "sos": "label",
+    "king": "label",
+    "jefferson": "label",
+    "whatcom": "label",
+    "montana": "label",
+    "alaska": "label",
+    "washington": "label",
+    "cornfield": "label",
+    "wss": "label"
+   },
+   "root": "The news story: voters deciding whether WA Cares tax dollars can go into the stock market (SJR 8201)",
+   "first_screen": [
+    "Badges: Senate Joint Resolution 8201; Proposed constitutional amendment; First item on every Washington ballot",
+    "Headline (the article's): Voters to decide if WA Cares tax dollars can be invested in stock market",
+    "Deck: managed like the state's pension funds; similar attempt failed in 2020",
+    "Byline: Jerry Cornfield, Washington State Standard, October 31, 2025",
+    "'What voters are deciding' card: summary plus 3 numbered points (WSIB could manage assets; earnings solely for beneficiaries; law if >50% approve Tuesday)",
+    "Heading 'What would change' and top of Today / If approved cards"
+   ],
+   "sections": [
+    "Header",
+    "What voters are deciding",
+    "What would change",
+    "The numbers in the story",
+    "The two sides",
+    "WA Cares and this measure, in order",
+    "Who is behind each side",
+    "Read the official statements",
+    "Footer (source, license)"
+   ],
+   "collections": [
+    {
+     "items": "Numbered points of what the measure does",
+     "fields": [
+      "Number",
+      "Statement"
+     ]
+    },
+    {
+     "items": "Today / If approved cards",
+     "fields": [
+      "Regime label",
+      "Heading",
+      "Explanation"
+     ]
+    },
+    {
+     "items": "Key numbers (0.58%, $2.5 billion+, $36,500, 8.9%, 86-9 · 42-7, $2.5 million)",
+     "fields": [
+      "Figure",
+      "Explanation"
+     ]
+    },
+    {
+     "items": "Side cards (For: Heather Weiner / Against: Bob Hasegawa)",
+     "fields": [
+      "Stance",
+      "Speaker",
+      "Affiliation",
+      "Paraphrased argument",
+      "Quote",
+      "Further point"
+     ]
+    },
+    {
+     "items": "Timeline events (2019 to July 2026)",
+     "fields": [
+      "Date",
+      "Event"
+     ]
+    },
+    {
+     "items": "Backers of the measure",
+     "fields": [
+      "Name",
+      "Qualifier"
+     ]
+    },
+    {
+     "items": "Opponents",
+     "fields": [
+      "Name",
+      "Qualifier or description"
+     ]
+    }
+   ],
+   "mechanisms": [
+    "None interactive (single scrolling page)",
+    "Two-column card comparisons",
+    "Vertical timeline",
+    "Figure-and-description list",
+    "Blockquotes"
+   ]
+  },
+  "R4": {
+   "treatment": {
+    "sjr8201": "view",
+    "wacares": "view",
+    "ltss_account": "row",
+    "wacares_fund": "label",
+    "pension_funds": "label",
+    "constitution_ban": "row",
+    "wsib": "label",
+    "m2020": "row",
+    "law2019": "row",
+    "pilot": "row",
+    "vote_tuesday": "label",
+    "legislature": "row",
+    "uw_debate": "row",
+    "weiner": "label",
+    "yes_side": "row",
+    "hasegawa": "label",
+    "no_side": "row",
+    "ferguson": "label",
+    "braun": "label",
+    "wsna": "label",
+    "wscff": "label",
+    "aarp": "label",
+    "whca": "label",
+    "seiu775": "row",
+    "gop_lawmakers": "label",
+    "voters_pamphlet": "row",
+    "ag_office": "label",
+    "sos": "label",
+    "king": "label",
+    "jefferson": "label",
+    "whatcom": "label",
+    "montana": "label",
+    "alaska": "label",
+    "washington": "label",
+    "cornfield": "label",
+    "wss": "label"
+   },
+   "root": "SJR 8201: investing WA Cares money in the stock market",
+   "first_screen": [
+    "Kicker: Washington ballot measure · Senate Joint Resolution 8201",
+    "Headline: Investing WA Cares money in the stock market",
+    "Answer: a yes vote lets the state invest WA Cares payroll taxes in the stock market; billions of taxpayer dollars",
+    "Earnings used solely for the program's beneficiaries",
+    "'Whose money' box: WA Cares, the state's long-term care program; more than $2.5 billion banked; button 'WA Cares: the 0.58% tax, the $36,500 benefit and key dates'",
+    "Collapsed 'Article passages behind this section (2)'",
+    "'What changes' Today / If approved grid (In the constitution; What the money can be invested in)",
+    "Collapsed passages (3); heading 'On your ballot'"
+   ],
+   "sections": [
+    "Header",
+    "What a yes vote does (answer, Whose money box)",
+    "What changes",
+    "On your ballot",
+    "The two sides",
+    "Background",
+    "Footer (source)"
+   ],
+   "collections": [
+    {
+     "items": "Today vs If approved rows",
+     "fields": [
+      "Field (In the constitution / What the money can be invested in)",
+      "Today",
+      "If approved"
+     ]
+    },
+    {
+     "items": "Ballot facts",
+     "fields": [
+      "What it is",
+      "Where",
+      "When",
+      "To pass",
+      "How it got here (House/Senate vote badges)"
+     ]
+    },
+    {
+     "items": "Sides as columns (For / Against)",
+     "fields": [
+      "Label",
+      "Vote sub-label",
+      "Making the case at UW debate",
+      "In short",
+      "Campaign money",
+      "The argument (hidden)",
+      "Also on this side (hidden)"
+     ]
+    },
+    {
+     "items": "Claims per side (hidden until toggle)",
+     "fields": [
+      "Claim",
+      "Evidence passages (expandable)"
+     ]
+    },
+    {
+     "items": "Allies on the For side (hidden until toggle)",
+     "fields": [
+      "Name",
+      "Role"
+     ]
+    },
+    {
+     "items": "Background facts",
+     "fields": [
+      "Earlier attempt",
+      "Official voter materials"
+     ]
+    },
+    {
+     "items": "WA Cares dialog facts",
+     "fields": [
+      "Paid for by",
+      "Benefit"
+     ]
+    },
+    {
+     "items": "WA Cares timeline (dialog)",
+     "fields": [
+      "When",
+      "Event"
+     ]
+    },
+    {
+     "items": "Article passages per section",
+     "fields": [
+      "Verbatim paragraph"
+     ]
+    }
+   ],
+   "mechanisms": [
+    "Button opening a WA Cares modal dialog",
+    "Show/hide toggle for full arguments, backers and quotes",
+    "Collapsible details for article passages per section, per claim and in the dialog",
+    "Two-column comparison grids",
+    "Vertical timeline in the dialog",
+    "Vote badges"
+   ]
+  },
+  "R8": {
+   "treatment": {
+    "sjr8201": "view",
+    "wacares": "view",
+    "ltss_account": "row",
+    "wacares_fund": "label",
+    "pension_funds": "label",
+    "constitution_ban": "view",
+    "wsib": "label",
+    "m2020": "row",
+    "law2019": "row",
+    "pilot": "row",
+    "vote_tuesday": "row",
+    "legislature": "row",
+    "uw_debate": "label",
+    "weiner": "label",
+    "yes_side": "row",
+    "hasegawa": "label",
+    "no_side": "row",
+    "ferguson": "label",
+    "braun": "label",
+    "wsna": "label",
+    "wscff": "label",
+    "aarp": "label",
+    "whca": "label",
+    "seiu775": "row",
+    "gop_lawmakers": "label",
+    "voters_pamphlet": "view",
+    "ag_office": "label",
+    "sos": "label",
+    "king": "label",
+    "jefferson": "label",
+    "whatcom": "label",
+    "montana": "label",
+    "alaska": "label",
+    "washington": "label",
+    "cornfield": "label",
+    "wss": "label"
+   },
+   "root": "SJR 8201: investing WA Cares money in the stock market",
+   "first_screen": [
+    "Kicker: First item on every Washington ballot · decided Tuesday",
+    "Headline: SJR 8201: investing WA Cares money in the stock market",
+    "Formal name: Senate Joint Resolution 8201, a proposed amendment to the state constitution",
+    "Byline: Jerry Cornfield's report, Washington State Standard, October 31, 2025",
+    "Answer paragraph with a linked 'WA Cares'",
+    "'What changes for the WA Cares money' table (Under the constitution, with link to the constitution's bar; How it can be invested)",
+    "'Where investment earnings would go' bullets (start)"
+   ],
+   "sections": [
+    "Header",
+    "Answer card (What changes for the WA Cares money; Where investment earnings would go)",
+    "Who is for it, and who is against it",
+    "How it reached your ballot",
+    "The program and the rule it touches",
+    "Where to read both sides' statements",
+    "Footer (source)"
+   ],
+   "collections": [
+    {
+     "items": "Change rows",
+     "fields": [
+      "Field (Under the constitution / How it can be invested)",
+      "Today",
+      "If approved"
+     ]
+    },
+    {
+     "items": "Earnings bullets",
+     "fields": [
+      "Statement"
+     ]
+    },
+    {
+     "items": "Sides table rows",
+     "fields": [
+      "Field (Who makes the case / The argument / Who backs it / Money behind it)",
+      "For it",
+      "Against it"
+     ]
+    },
+    {
+     "items": "Argument points per side",
+     "fields": [
+      "Point",
+      "Debate words (expandable)"
+     ]
+    },
+    {
+     "items": "Backers (For side)",
+     "fields": [
+      "Name with title or party"
+     ]
+    },
+    {
+     "items": "Road to the ballot",
+     "fields": [
+      "When",
+      "Event"
+     ]
+    },
+    {
+     "items": "Reference cards (WA Cares, The constitutional limit)",
+     "fields": [
+      "Name",
+      "Qualifier",
+      "Call to action"
+     ]
+    },
+    {
+     "items": "WA Cares dialog",
+     "fields": [
+      "Paid for by",
+      "Benefit",
+      "Timeline (When, Event)"
+     ]
+    },
+    {
+     "items": "Constitutional limit dialog",
+     "fields": [
+      "What it bars",
+      "What that leaves",
+      "Who it covers",
+      "Exempt today"
+     ]
+    }
+   ],
+   "mechanisms": [
+    "Inline entity links and reference cards opening modal dialogs",
+    "Dialog stack with Back button (constitutional limit -> WA Cares)",
+    "Collapsible details for article passages per section and per dialog",
+    "Collapsible debate quotes in the sides table",
+    "Vertical timelines on the page and in the dialog",
+    "Comparison tables"
+   ]
+  },
+  "T2": {
+   "treatment": {
+    "sjr8201": "view",
+    "wacares": "view",
+    "ltss_account": "row",
+    "wacares_fund": "label",
+    "pension_funds": "label",
+    "constitution_ban": "row",
+    "wsib": "label",
+    "m2020": "row",
+    "law2019": "row",
+    "pilot": "row",
+    "vote_tuesday": "row",
+    "legislature": "row",
+    "uw_debate": "row",
+    "weiner": "label",
+    "yes_side": "row",
+    "hasegawa": "label",
+    "no_side": "row",
+    "ferguson": "label",
+    "braun": "label",
+    "wsna": "label",
+    "wscff": "label",
+    "aarp": "label",
+    "whca": "label",
+    "seiu775": "row",
+    "gop_lawmakers": "label",
+    "voters_pamphlet": "label",
+    "ag_office": "label",
+    "sos": "label",
+    "king": "label",
+    "jefferson": "label",
+    "whatcom": "label",
+    "montana": "label",
+    "alaska": "label",
+    "washington": "label",
+    "cornfield": "label",
+    "wss": "label"
+   },
+   "root": "Senate Joint Resolution 8201",
+   "first_screen": [
+    "Meta line: Proposed constitutional amendment · First item on every Washington ballot · Voters decide Tuesday · Reported Oct 31, 2025",
+    "Title: Senate Joint Resolution 8201",
+    "Summary: adds lines to the constitution so WA Cares payroll taxes can be invested in stocks, managed like pension funds",
+    "'Article text' toggle",
+    "WA Cares button: the state's long-term care program · 0.58% payroll tax · $2.5B+ banked as of summer · benefits from July 2026 · Funding, benefit and timeline ›",
+    "'What a vote decides' grid with If No / If Yes headers",
+    "Rows: What the money can be invested in; The constitution's ban on buying private companies' stock; start of Investment earnings"
+   ],
+   "sections": [
+    "Header (measure name, summary, WA Cares button)",
+    "What a vote decides",
+    "Who argues each side",
+    "Road to the ballot",
+    "Footer (source, where official statements are)"
+   ],
+   "collections": [
+    {
+     "items": "What a vote decides rows (investments, constitution's ban, earnings)",
+     "fields": [
+      "Row label",
+      "If No",
+      "If Yes",
+      "Article text (toggle)"
+     ]
+    },
+    {
+     "items": "Who argues each side rows (voice, their case, backers, campaign money)",
+     "fields": [
+      "Row label",
+      "Against",
+      "For",
+      "Article text (toggle)"
+     ]
+    },
+    {
+     "items": "Backers (For side)",
+     "fields": [
+      "Name with title or party"
+     ]
+    },
+    {
+     "items": "Road to the ballot steps (2020, 2025, Tuesday)",
+     "fields": [
+      "When",
+      "Event",
+      "Article text"
+     ]
+    },
+    {
+     "items": "WA Cares timeline (dialog)",
+     "fields": [
+      "When",
+      "Event",
+      "Article text (toggle)",
+      "Position on 2019-2027 axis"
+     ]
+    }
+   ],
+   "mechanisms": [
+    "Button opening a WA Cares modal dialog, tied to browser history so Back closes it",
+    "Per-row 'Article text' show/hide toggles",
+    "Sticky column headers in comparison grids",
+    "Horizontal axis timeline plus dated list in the dialog",
+    "'Back to SJR 8201' button inside the dialog"
+   ]
+  },
+  "V3": {
+   "treatment": {
+    "sjr8201": "view",
+    "wacares": "row",
+    "ltss_account": "row",
+    "wacares_fund": "label",
+    "pension_funds": "label",
+    "constitution_ban": "row",
+    "wsib": "label",
+    "m2020": "view",
+    "law2019": "row",
+    "pilot": "row",
+    "vote_tuesday": "row",
+    "legislature": "row",
+    "uw_debate": "row",
+    "weiner": "label",
+    "yes_side": "row",
+    "hasegawa": "label",
+    "no_side": "row",
+    "ferguson": "label",
+    "braun": "label",
+    "wsna": "label",
+    "wscff": "label",
+    "aarp": "label",
+    "whca": "label",
+    "seiu775": "row",
+    "gop_lawmakers": "label",
+    "voters_pamphlet": "row",
+    "ag_office": "label",
+    "sos": "label",
+    "king": "label",
+    "jefferson": "label",
+    "whatcom": "label",
+    "montana": "label",
+    "alaska": "label",
+    "washington": "label",
+    "cornfield": "label",
+    "wss": "label"
+   },
+   "root": "Investing WA Cares tax dollars in the stock market (SJR 8201)",
+   "first_screen": [
+    "Kicker: Senate Joint Resolution 8201 · Ballot item 1",
+    "Headline: Investing WA Cares tax dollars in the stock market",
+    "Stat line: Over $2.5 billion banked · House 86-9 · Senate 42-7 · Passes above 50%",
+    "Source link: Jerry Cornfield · Washington State Standard · Oct 31, 2025 · CC BY-NC-ND 4.0",
+    "Tab bar: What changes (active), For & against, 2020 vs 2025, Timeline",
+    "What changes tab: Today / If approved headers; rows The account, Constitution, Investments, Returns"
+   ],
+   "sections": [
+    "Header",
+    "What changes (tab)",
+    "For & against (tab)",
+    "2020 vs 2025 (tab)",
+    "Timeline (tab)"
+   ],
+   "collections": [
+    {
+     "items": "What changes rows (The account, Constitution, Investments, Returns, Earnings)",
+     "fields": [
+      "Row label",
+      "Today",
+      "If approved"
+     ]
+    },
+    {
+     "items": "For & against rows (Speaker, At the UW debate, Backers, Campaign money, Legislature, Voters' pamphlet)",
+     "fields": [
+      "Row label",
+      "Oppose",
+      "Approve"
+     ]
+    },
+    {
+     "items": "Backers (Approve side)",
+     "fields": [
+      "Name with title or party"
+     ]
+    },
+    {
+     "items": "Legislature votes",
+     "fields": [
+      "Chamber",
+      "No",
+      "Yes",
+      "Bar"
+     ]
+    },
+    {
+     "items": "2020 vs 2025 rows (Result, Earnings, SEIU 775 spending, Opposition)",
+     "fields": [
+      "Row label",
+      "2020",
+      "2025",
+      "Spending bar"
+     ]
+    },
+    {
+     "items": "Timeline events (2019 to July 2026, story-date divider)",
+     "fields": [
+      "When",
+      "Event"
+     ]
+    }
+   ],
+   "mechanisms": [
+    "Tabs (URL hash #tab=, arrow-key navigation)",
+    "Sticky tab bar and sticky column headers",
+    "Comparison grids",
+    "Bar charts for legislative votes and SEIU 775 spending",
+    "Vertical timeline list with a story-date divider"
+   ]
+  },
+  "X3": {
+   "treatment": {
+    "sjr8201": "view",
+    "wacares": "view",
+    "ltss_account": "row",
+    "wacares_fund": "label",
+    "pension_funds": "label",
+    "constitution_ban": "label",
+    "wsib": "row",
+    "m2020": "row",
+    "law2019": "row",
+    "pilot": "row",
+    "vote_tuesday": "row",
+    "legislature": "view",
+    "uw_debate": "label",
+    "weiner": "view",
+    "yes_side": "view",
+    "hasegawa": "view",
+    "no_side": "view",
+    "ferguson": "label",
+    "braun": "label",
+    "wsna": "label",
+    "wscff": "label",
+    "aarp": "label",
+    "whca": "label",
+    "seiu775": "row",
+    "gop_lawmakers": "label",
+    "voters_pamphlet": "view",
+    "ag_office": "label",
+    "sos": "label",
+    "king": "label",
+    "jefferson": "label",
+    "whatcom": "label",
+    "montana": "label",
+    "alaska": "label",
+    "washington": "label",
+    "cornfield": "label",
+    "wss": "label"
+   },
+   "root": "The news story: voters to decide whether WA Cares tax dollars can be invested in stocks (SJR 8201)",
+   "first_screen": [
+    "Kicker: Washington ballot measure · Senate Joint Resolution 8201",
+    "Headline: Voters to decide if WA Cares tax dollars can be invested in stock market",
+    "Deck: managed like the state's pension funds; similar attempt failed in 2020",
+    "Byline note: Jerry Cornfield, Washington State Standard, Oct 31, 2025; relative dates note",
+    "Section jump buttons: The question, What would change, For and against, About WA Cares, How we got here, Learn more",
+    "'The question on the ballot' intro and facts: What it does, Who would invest, Where earnings go, What it takes to pass"
+   ],
+   "sections": [
+    "Header with section navigation",
+    "The question on the ballot",
+    "What would change",
+    "For and against",
+    "About WA Cares",
+    "How we got here",
+    "Learn more",
+    "Footer (source)"
+   ],
+   "collections": [
+    {
+     "items": "Ballot question facts",
+     "fields": [
+      "What it does",
+      "Who would invest",
+      "Where earnings go",
+      "What it takes to pass"
+     ]
+    },
+    {
+     "items": "Today / If approved cards",
+     "fields": [
+      "Badge",
+      "Heading",
+      "Bullets"
+     ]
+    },
+    {
+     "items": "Side cards (For: Heather Weiner / Against: Bob Hasegawa)",
+     "fields": [
+      "Stance badge",
+      "Speaker",
+      "Affiliation",
+      "Argument bullets",
+      "Quote",
+      "Backed by or Voters' pamphlet",
+      "Campaign money"
+     ]
+    },
+    {
+     "items": "Backers (For card)",
+     "fields": [
+      "Name with title or party"
+     ]
+    },
+    {
+     "items": "Legislature vote bars",
+     "fields": [
+      "Chamber",
+      "Yes",
+      "No"
+     ]
+    },
+    {
+     "items": "About WA Cares facts",
+     "fields": [
+      "Created by",
+      "Paid for by",
+      "Money saved so far",
+      "The benefit",
+      "When it starts"
+     ]
+    },
+    {
+     "items": "Timeline events (2019 to July 2026)",
+     "fields": [
+      "When",
+      "Event"
+     ]
+    }
+   ],
+   "mechanisms": [
+    "In-page anchor navigation buttons (smooth scroll)",
+    "Two-column cards",
+    "Vote bar charts",
+    "Vertical timeline",
+    "Definition lists"
+   ]
+  },
+  "X7": {
+   "treatment": {
+    "sjr8201": "view",
+    "wacares": "view",
+    "ltss_account": "row",
+    "wacares_fund": "label",
+    "pension_funds": "label",
+    "constitution_ban": "label",
+    "wsib": "row",
+    "m2020": "row",
+    "law2019": "row",
+    "pilot": "row",
+    "vote_tuesday": "row",
+    "legislature": "row",
+    "uw_debate": "label",
+    "weiner": "label",
+    "yes_side": "view",
+    "hasegawa": "label",
+    "no_side": "view",
+    "ferguson": "label",
+    "braun": "label",
+    "wsna": "label",
+    "wscff": "label",
+    "aarp": "label",
+    "whca": "label",
+    "seiu775": "row",
+    "gop_lawmakers": "label",
+    "voters_pamphlet": "view",
+    "ag_office": "label",
+    "sos": "label",
+    "king": "label",
+    "jefferson": "label",
+    "whatcom": "label",
+    "montana": "label",
+    "alaska": "label",
+    "washington": "label",
+    "cornfield": "label",
+    "wss": "label"
+   },
+   "root": "The news story: voters to decide whether WA Cares tax dollars can be invested in stocks (SJR 8201)",
+   "first_screen": [
+    "Badges: Washington ballot measure; Senate Joint Resolution 8201",
+    "Headline: Voters to decide if WA Cares tax dollars can be invested in stock market",
+    "Deck: managed like the state's pension funds; similar attempt failed in 2020",
+    "Byline: Jerry Cornfield, Washington State Standard, October 31, 2025",
+    "'The question on the ballot' intro and facts: What it does, Who would invest, Where earnings go, To pass",
+    "Heading 'What would change' and top of Today / If approved cards"
+   ],
+   "sections": [
+    "Header",
+    "The question on the ballot",
+    "What would change",
+    "The two sides",
+    "WA Cares at a glance",
+    "How it got here",
+    "Read more (with the original article collapsed)",
+    "Footer (source, license)"
+   ],
+   "collections": [
+    {
+     "items": "Ballot question facts",
+     "fields": [
+      "What it does",
+      "Who would invest",
+      "Where earnings go",
+      "To pass"
+     ]
+    },
+    {
+     "items": "Today / If approved cards",
+     "fields": [
+      "Heading",
+      "Bullets"
+     ]
+    },
+    {
+     "items": "Side cards (For / Against)",
+     "fields": [
+      "Stance badge",
+      "Speaker and setting",
+      "Quote",
+      "Argument bullets (For only)",
+      "Backers or Opponents",
+      "Campaign money"
+     ]
+    },
+    {
+     "items": "Backers (For card)",
+     "fields": [
+      "Name with title or party"
+     ]
+    },
+    {
+     "items": "Opponents (Against card)",
+     "fields": [
+      "Name with qualifier or description"
+     ]
+    },
+    {
+     "items": "WA Cares at a glance table",
+     "fields": [
+      "Created",
+      "Funded by",
+      "Money banked",
+      "Benefit",
+      "Access"
+     ]
+    },
+    {
+     "items": "Timeline events (2019 to July 2026)",
+     "fields": [
+      "When",
+      "Event"
+     ]
+    },
+    {
+     "items": "Original article paragraphs (collapsed)",
+     "fields": [
+      "Paragraph"
+     ]
+    }
+   ],
+   "mechanisms": [
+    "Collapsible details holding the full original article",
+    "Two-column cards",
+    "Vertical timeline",
+    "Key-value table"
+   ]
+  }
+ }
+}

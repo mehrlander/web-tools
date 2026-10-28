@@ -91,6 +91,19 @@ static class SessionChecks
                 "A polling reader sees a session finish without reopening its metadata source.");
             check(reader.Read(now.AddDays(2)).Items.Count == 0, "Local activity older than a day leaves the current activity list.");
             check(before.SequenceEqual(File.ReadAllBytes(codexDb)), "Session polling leaves the source database unchanged.");
+            Database(geminiDb, "ALTER TABLE conversation_summaries ADD COLUMN parent_conversation_id TEXT;"
+                + "UPDATE conversation_summaries SET status='CASCADE_RUN_STATUS_IDLE',not_fully_idle=0 WHERE conversation_id='gemini';"
+                + "INSERT INTO conversation_summaries VALUES('child','','CASCADE_RUN_STATUS_RUNNING',1,0,$now,'gemini');",
+                c => c.Parameters.AddWithValue("$now", now.ToString("O")));
+            var grouped = reader.Read(now).Items.Where(s => s.Provider == "Gemini").ToList();
+            check(grouped.Count == 1 && grouped[0] is { Id: "gemini", Title: "Current Gemini", State: "working", Work.Agents: 1 },
+                "Gemini child execution belongs to the named parent and keeps the parent active while a child works.");
+            var childLog = Path.Combine(logs, "child.jsonl");
+            File.WriteAllText(childLog, Event("task_started", "child-turn", 6) + "\n");
+            Database(codexDb, "INSERT INTO threads VALUES('child',$path,'Delegated checks','','',0,$source,4);",
+                c => { c.Parameters.AddWithValue("$path", childLog); c.Parameters.AddWithValue("$source", "{\"subagent\":{\"thread_spawn\":{\"parent_thread_id\":\"local\"}}}"); });
+            check(reader.Read(now.AddSeconds(7)).Items.Where(s => s.Provider == "Codex").Single() is { Id: "local", State: "working", Work.Agents: 1 },
+                "Codex delegated work keeps the same parent grouping as Gemini while internal guardians remain excluded.");
             Database(geminiDb, "DROP TABLE conversation_summaries;");
             var changedSchema = reader.Read(now.AddSeconds(6));
             check(changedSchema.Notices.Count == 1 && changedSchema.Items.Count == 1,

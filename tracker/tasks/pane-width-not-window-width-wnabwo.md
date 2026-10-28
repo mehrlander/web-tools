@@ -38,7 +38,7 @@ mechanism, not just the first.
 ## Related
 
 - `skills/html-style/references/mechanics.md`: rule 10 already states container sizing
-- `docs/views/lists.md`: the snag `viewport-rule-blind-to-a-docked-pane`, its filing note (in `docs/SNAGS.md` until 2026-10-20)
+- Snag `viewport-rule-blind-to-a-docked-pane`, in web-tools-private `lists/snag.json`, its filing note (in `docs/SNAGS.md` until 2026-10-20)
 - `lib/alpineComponents/viewer.js`: Files corridor fix (`!max-w-none`) lived here
 - PR #480: Docs conversion that filed the sweep
 - PR #574: Files conversion without citing this task
