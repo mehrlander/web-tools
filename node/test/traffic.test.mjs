@@ -36,6 +36,12 @@ test('fmtBytes keeps the shape of the figures that matter', () => {
   // (1.4 MB); it printed two until it became every view's rule on 2026-10-24.
   assert.equal(T.fmtBytes(1460047), '1.4 MB');
   assert.equal(T.fmtBytes(2 ** 31), '2.0 GB');
+  // The unit follows the figure as rounded, so a count just under a boundary
+  // reads as the larger unit would: not 10.0 KB, and not 1024 KB.
+  assert.equal(T.fmtBytes(10235), '10 KB');
+  assert.equal(T.fmtBytes(10178), '9.9 KB');
+  assert.equal(T.fmtBytes(1048300), '1.0 MB');
+  assert.equal(T.fmtBytesShort(1048300), '1.0 MB');
   // Unknown is never rendered as zero, at any level of the stack.
   assert.equal(T.fmtBytes(null), '?');
   assert.equal(T.fmtBytes(undefined), '?');
