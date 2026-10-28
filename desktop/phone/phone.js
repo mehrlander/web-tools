@@ -39,7 +39,7 @@
 
   const latestWork = item => item.work?.segments?.[0];
   const usefulDetail = item => item.detail === 'Response recorded' ? '' : item.detail;
-  const replyPreview = text => String(text || '').replace(/\[([^\]]+)\]\([^\s)]+\)/g,'$1').replace(/(^|\n)\s{0,3}#{1,6}\s+/g,'$1').replace(/[*`]/g,'').replace(/\s+/g,' ').trim();
+  const replyPreview = text => String(window.NowReading?.notification(text)?.summary || text || '').replace(/\[([^\]]+)\]\([^\s)]+\)/g,'$1').replace(/(^|\n)\s{0,3}#{1,6}\s+/g,'$1').replace(/[*`]/g,'').replace(/\s+/g,' ').trim();
   function statusText(item) {
     const work = latestWork(item);
     if (work) return `${Date.parse(item.at) - Date.parse(item.work.through) > 180000 ? 'Last summary: ' : ''}${work.summary}`;
@@ -148,8 +148,8 @@
     prompt:'<circle cx="9" cy="7" r="3"/><path d="M3 21v-2a6 6 0 0 1 12 0v2m2-10 4 3-4 3m-4-3h8"/>',
     activity:'<path d="M3 12h4l3-8 4 16 3-8h4"/>'
   };
-  const detailIcon = id => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="size-4 shrink-0" aria-hidden="true">${detailIcons[id]}</svg>`;
-  const detailTones = {summary:'bg-violet-50 text-violet-900',reply:'bg-emerald-50 text-emerald-900',prompt:'bg-sky-50 text-sky-900',activity:'bg-amber-50 text-amber-900'};
+  const detailIcon = (id,cls = 'size-4 shrink-0') => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="${cls}" aria-hidden="true">${detailIcons[id]}</svg>`;
+  const detailTones = {summary:'border-violet-600 text-violet-900',reply:'border-emerald-600 text-emerald-900',prompt:'border-sky-600 text-sky-900',activity:'border-amber-600 text-amber-900'};
   function observedEvents(item, inline) {
     const seen = new Set();
     return data.events.filter(e => {
@@ -177,7 +177,10 @@
     if (item.turn?.response?.trim()) parts.push({id:'reply',label:'Reply',title:'Latest reply',body:markdown(item.turn.response)});
     else if (item.kind === 'errand' && ['reply','complete','failed'].includes(item.state)) parts.push({id:'reply',label:'Reply',title:'Errand result',body:`<div data-reply="${escape(item.key)}">${reply === undefined ? '<p class="text-stone-500">Reading result…</p>' : markdown(reply)}</div>`});
     if (item.checkpoint && !parts.some(p => p.id === 'summary')) parts.push({id:'summary',label:'Summary',title:'Published summary',body:checkpointBody(item.checkpoint,inline)});
-    if (item.turn?.prompt?.trim()) parts.push({id:'prompt',label:'Prompt',title:'Prompt',body:markdown(item.turn.prompt)});
+    if (item.turn?.prompt?.trim()) {
+      const notice = window.NowReading?.notification(item.turn.prompt);
+      parts.push({id:'prompt',label:notice ? 'Update' : 'Prompt',title:notice ? 'Background update' : 'Prompt',body:markdown(item.turn.prompt)});
+    }
     const detail = usefulDetail(item);
     const meaningful = detail && !/^(Conversation (running|idle|interrupted)|No recent event|Delegated work: \d+ agents?)$/.test(detail);
     if (events.length || item.turn || meaningful) parts.push({id:'activity',label:'Activity',title:'Observed activity',body:`${item.turn ? `<dl class="mb-2 text-[10px] text-stone-500"><div class="flex flex-wrap gap-x-1"><dt>Turn started</dt><dd>${escape(stamp(item.turn.startedAt))}</dd></div>${item.turn.lastTool ? `<div class="mt-1 flex items-center gap-1"><dt>Last tool</dt><dd class="rounded bg-amber-50 px-1.5 py-0.5 font-medium text-amber-900">${escape(item.turn.lastTool)}</dd></div>` : ''}</dl>` : ''}${meaningful && !events.some(e => e.detail === detail) && !(item.turn?.lastTool && /^Using /.test(detail)) ? markdown(detail) : ''}${events.length ? `<ol class="divide-y divide-stone-100">${events.map(e => `<li class="flex items-start gap-2 py-1.5"><span class="w-12 shrink-0 pt-0.5 text-[10px] text-stone-500">${observedTime(e.at)}</span><div class="min-w-0 flex-1">${markdown(e.detail || labels[e.state] || e.state)}</div></li>`).join('')}</ol>` : ''}`});
@@ -186,11 +189,12 @@
   function inlineBody(item) {
     const parts = detailParts(item,true), key = item.key, id = 'detail-' + encodeURIComponent(key);
     let choice = selectedDetails.get(key);
-    if (!selectedDetails.has(key) || choice && !parts.some(p => p.id === choice)) choice = parts[0]?.id || '';
+    if (!parts.some(p => p.id === choice)) choice = parts[0]?.id || '';
     selectedDetails.set(key,choice);
     const part = parts.find(p => p.id === choice);
-    const controls = parts.map(p => `<button data-facet="${p.id}" data-for="${escape(key)}" aria-label="${p.title}" title="${p.title}" aria-expanded="${p.id === choice}" aria-controls="${id}" class="inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-md px-2 text-[11px] ${p.id === choice ? detailTones[p.id] : 'text-stone-500 active:bg-stone-100'}">${detailIcon(p.id)}${p.id === choice ? `<span>${p.label}</span>` : ''}</button>`).join('');
-    return `<div class="pl-10 pr-3 pb-2">${controls ? `<div role="group" aria-label="Detail sections" class="flex items-center gap-0.5">${controls}</div>` : '<p class="py-2 text-xs text-stone-500">No additional detail captured.</p>'}<div id="${id}" role="region" aria-label="${escape(part?.title || 'Detail')}" ${part ? '' : 'hidden'}><div data-panel-scroll="${escape(key + ':' + choice)}" class="max-h-[40dvh] min-w-0 overflow-y-auto overscroll-contain pt-1 pb-1 text-[13px] leading-5 text-stone-700 [overflow-wrap:anywhere]">${part?.body || ''}</div></div></div>`;
+    const tabId = p => id + '-' + p.id;
+    const controls = parts.map(p => `<button id="${tabId(p)}" role="tab" data-facet="${p.id}" data-for="${escape(key)}" aria-label="${p.title}" title="${p.title}" aria-selected="${p.id === choice}" tabindex="${p.id === choice ? 0 : -1}" aria-controls="${id}" class="inline-flex h-7 min-w-0 flex-1 items-center justify-center gap-1 border-b-2 px-1 text-[11px] font-medium whitespace-nowrap ${p.id === choice ? detailTones[p.id] : 'border-transparent text-stone-500 active:bg-stone-50'}">${detailIcon(p.id,'hidden size-3.5 shrink-0 min-[360px]:block')}<span>${p.label}</span></button>`).join('');
+    return `<div class="pl-10 pr-3 pb-2">${controls ? `<div role="tablist" aria-label="Detail sections" class="mb-1 flex items-center gap-0.5 border-b border-stone-100">${controls}</div>` : '<p class="py-2 text-xs text-stone-500">No additional detail captured.</p>'}<div id="${id}" role="tabpanel" ${part ? `aria-labelledby="${tabId(part)}"` : 'aria-label="Detail" hidden'}><div data-panel-scroll="${escape(key + ':' + choice)}" class="max-h-[40dvh] min-w-0 overflow-y-auto overscroll-contain pt-1 pb-1 text-[13px] leading-5 text-stone-700 [overflow-wrap:anywhere]">${part?.body || ''}</div></div></div>`;
   }
   function itemBody(item) {
     const url = safeUrl(item.url);
@@ -287,9 +291,10 @@
   document.addEventListener('click', event => {
     const button = event.target.closest('button'); if (!button) return;
     if (button.dataset.facet) {
-      rememberPanelScroll();
       const key = button.dataset.for, facet = button.dataset.facet;
-      selectedDetails.set(key,selectedDetails.get(key) === facet ? '' : facet);
+      if (selectedDetails.get(key) === facet) return;
+      rememberPanelScroll();
+      selectedDetails.set(key,facet);
       renderPanels();
       return;
     }
@@ -313,10 +318,12 @@
     }
   });
   document.addEventListener('keydown', event => {
-    const panel = event.target.closest('[data-inline]');
-    if (event.key !== 'Escape' || !panel || !selectedDetails.get(panel.dataset.inline)) return;
-    const key = panel.dataset.inline, facet = selectedDetails.get(key);
-    rememberPanelScroll(); selectedDetails.set(key,''); renderPanels();
+    const button = event.target.closest('[data-facet]');
+    if (!button || !['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) return;
+    const panel = button.closest('[data-inline]'), tabs = [...panel.querySelectorAll('[data-facet]')];
+    const index = tabs.indexOf(button), next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+    const facet = tabs[next].dataset.facet;
+    tabs[next].click();
     [...panel.querySelectorAll('[data-facet]')].find(n => n.dataset.facet === facet)?.focus({preventScroll:true});
     event.preventDefault();
   });
