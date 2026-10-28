@@ -109,8 +109,8 @@ findings, and the material that lets someone inspect them. It lives outside
 can stand alone. Continuing work can gain a project without losing the original
 findings or requiring a new name for every method.
 
-The Map's Research view offers two entrances: **Probes** look into our tools,
-workflows, data, or assumptions; **Exploration** gathers information from
+The Map's Research view offers two entrances: **Probes** test our tools,
+workflows, data, or assumptions, often by building something and trying it; **Exploration** gathers information from
 outside sources. These describe the inquiry's main direction. A mixed inquiry
 can stay together. Words such as experiment, benchmark, instrument, and lab
 remain ordinary descriptions, not additional filing categories.

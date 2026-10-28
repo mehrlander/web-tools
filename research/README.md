@@ -3,8 +3,8 @@
 Questions we investigated, what we tried or gathered, and what we found.
 Research lives outside the maintained documentation in `docs/`.
 
-The Map offers **Probes**, looking into our tools, workflows, data, or
-assumptions, and **Exploration**, gathering information from outside sources.
+The Map offers **Probes**, testing our tools, workflows, data, or
+assumptions, often by building something and trying it, and **Exploration**, gathering information from outside sources.
 These are two ways to find research, not a vocabulary for every method. A
 benchmark or an experiment can be described in ordinary language. A mixed
 inquiry can stay together.

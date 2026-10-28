@@ -12,16 +12,17 @@ of these has its own kind of documentation.
 | Kind | It says | Reader | Where it lives | How much |
 | --- | --- | --- | --- | --- |
 | **Guidance** | how a session should act: a rule, a procedure, a decision not to act | an agent session | `CLAUDE.md`, a skill's `SKILL.md`, [CONVERSATION.md](CONVERSATION.md) | what a session would get wrong untold |
-| **App description** | what a view shows and reads, and what each control does | the owner, in the app or on GitHub; a session changing the view | [APP.md](APP.md), a view's document such as [fab.md](fab.md), a narrative in [map-tabs.csv](map-tabs.csv) | what the reader sees and can do, and the file each view reads |
+| **App description** | what a view shows and reads, what each control does, and why the view is built as it is | the owner, in the app or on GitHub; a session changing the view | [APP.md](APP.md), a view's document such as [fab.md](fab.md), a narrative in [map-tabs.csv](map-tabs.csv) | what the reader sees and can do, and the file each view reads; for the why, the decision and the alternatives weighed |
 | **Specification** | what an artifact must be to work | a session writing code or data to it | [loader.md](loader.md), [TRACKER.md](TRACKER.md), [envelopes/](envelopes/) | everything conformance requires, and no implementation choice |
 | **API reference** | each export's arguments, result and contract | a session calling it | a kit's header comment, a script's `--help` | every export, in full |
-| **Finding** | what a system does, as measured on a date | a session about to rely on it | [environment/](environment/), the `measured` rows of [docs.csv](docs.csv) | the result, its date, and the method that repeats it |
+| **Finding** | what a system does, as measured on a date | a session about to rely on it | [environment/](environment/), the `measured` rows of [docs.csv](docs.csv) | the result and its date, with the method inline when it is short and otherwise a link to the research behind it |
 
 Counted by document, most of the estate's documentation is guidance, which
-includes nearly every skill, or app description. A record (a dated decision, plan or log) and an
-account (research a repository declares) keep whatever detail their moment or
-their argument needed. Nothing keeps them current, so the rules below do not
-govern them.
+includes nearly every skill, or app description. A record (a dated decision,
+plan or log) and research (a question with what was tried and found, kept
+outside `docs/` as [CONSTELLATION.md](CONSTELLATION.md#projects-and-research)
+places it) keep whatever detail their moment or their inquiry needed. Nothing
+keeps them current, so the rules below do not govern them.
 
 ## How much a document says
 
@@ -60,12 +61,17 @@ parser builds each store is API reference far from its declaration.
 
 ## Compared with Diátaxis
 
-[Diátaxis](diataxis.md) is the standard framework. It sorts documentation by
-the reader's need into tutorials, how-to guides, reference and explanation, for
-a person learning or using a product. The estate's most frequent reader is an
-agent session, which starts without memory of earlier sessions and reads to
-act. So the estate writes no tutorials. Guidance is how-to guides with rules
-added; app description, specification and API reference are all reference; a
-finding sits nearest explanation, though it reports evidence rather than
-weighing views. Diátaxis's central claim applies unchanged: a passage that
-mixes two kinds serves neither reader well.
+[Diátaxis](https://diataxis.fr/) is the standard framework. It sorts
+documentation into tutorials, how-to guides, reference and explanation by two
+questions: does a passage inform action or knowledge, and does it serve a
+reader at study or at work. Sorted by those questions on 2026-10-28, most of
+the top-level documents in `docs/` serve a reader at work, as how-to guides or
+reference; a few explain a design, and none is a tutorial. Guidance divides
+into rules, which Diátaxis counts as reference, and procedures, which are
+how-to guides. App description, specification and API reference are
+reference, except where an app description gives a view's design reasons. A
+finding is reference that carries a date; one that argues from its evidence is
+explanation, and is likely research. The sort, and a survey of Diátaxis, are
+the library study in `projects/library/diataxis/` in `mehrlander/home`.
+Diátaxis's central claim applies unchanged: a passage that mixes two kinds
+serves neither reader well.
