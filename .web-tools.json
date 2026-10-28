@@ -91,6 +91,11 @@
   ],
   "research": [
     {
+      "path": "research/2026-10-27-peeves-review.md",
+      "label": "Peeve names and consolidation proposal",
+      "kind": "probe"
+    },
+    {
       "path": "research/DOC_CRAFT_STUDY.md",
       "label": "Documentation problems and drafting proposals",
       "kind": "probe"
