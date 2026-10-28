@@ -1,0 +1,405 @@
+##### PAIR 55
+=== A: lib/alpineComponents/transform-workbench.js:1776#4 | call(…) > panelHTML (part 4 of 4) ===
+                <button x-show="canSaveRecipe()" class="btn btn-xs h-5 min-h-0 px-1.5 btn-ghost shrink-0 font-sans normal-case font-normal" @click="savePivotRecipe()" title="Save this pivot as a recipe"><i class="ph-bold ph-floppy-disk"></i> Save as recipe</button>
+              </div>
+            </div>
+            <!-- While a dim preview holds the output side, its banner IS the
+                 header: the normal Data/Profile controls hide, the report and
+                 dim-table views switch here, and closing (or any tab, view,
+                 or scope change) reclaims the pane. -->
+            <div x-show="previewOn" class="flex items-center gap-2 px-2 py-1 mb-2 rounded bg-primary/10 text-[11px] shrink-0">
+              <i class="ph-bold ph-eye"></i><span class="font-medium whitespace-nowrap">dim preview:</span>
+              <span class="font-mono text-[10px] opacity-70 truncate" x-text="previewOn"></span>
+              <div class="join border border-base-300 overflow-hidden rounded-[var(--radius-field)] ml-1 shrink-0">
+                <button class="join-item btn btn-xs h-6 min-h-0 px-2.5 normal-case border-none transition-none"
+                        :class="previewMode === 'report' ? 'btn-neutral' : 'btn-ghost bg-base-100'"
+                        @click="previewMode = 'report'; sendPreview()">report</button>
+                <button class="join-item btn btn-xs h-6 min-h-0 px-2.5 normal-case border-none transition-none"
+                        :class="previewMode === 'table' ? 'btn-neutral' : 'btn-ghost bg-base-100'"
+                        @click="previewMode = 'table'; sendPreview()">dim table</button>
+              </div>
+              <button class="btn btn-xs btn-ghost h-6 min-h-0 px-1 ml-auto shrink-0" @click="syncSurfaces()" title="Back to the tab's output" aria-label="Back to the tab's output"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="flex-1 min-h-[22rem] lg:min-h-0 border border-base-200 rounded overflow-hidden bg-base-100 relative">
+              <div x-show="curV === 'csv' && !tabs[active]?.rows?.length && !previewOn" class="absolute inset-0 flex items-center justify-center text-base-content/30 italic text-xs z-10 bg-base-100" x-text="tabs[active]?.err ? 'Error in this tab' : 'This tab not yet run'"></div>
+              <div x-show="curV === 'profile' && !tabs[active]?.rows?.length && !previewOn" class="absolute inset-0 flex items-center justify-center text-base-content/30 italic text-xs z-10 bg-base-100" x-text="tabs[active]?.err ? 'Error in this tab' : 'This tab not yet run'"></div>
+              <div x-show="curV === 'pivot' && !tabs[active]?.rows?.length && !previewOn" class="absolute inset-0 flex items-center justify-center text-base-content/30 italic text-xs z-10 bg-base-100" x-text="tabs[active]?.err ? 'Error in this tab' : 'This tab not yet run'"></div>
+              <div x-show="curV === 'layout' && !tabs[active]?.rows?.length && !previewOn" class="absolute inset-0 flex items-center justify-center text-base-content/30 italic text-xs z-10 bg-base-100" x-text="tabs[active]?.err ? 'Error in this tab' : 'This tab not yet run'"></div>
+              <div id="tf-workbench" class="absolute inset-0 overflow-auto" x-data="tfViewer({ defaultMode: 'raw' })"></div>
+              <!-- Stacked OVER the viewer rather than swapping with it: the three
+                   older views keep their element mounted, so nothing here can
+                   change how Tabulator measures itself. -->
+              <div x-show="curV === 'layout'" class="absolute inset-0 overflow-auto bg-base-100 p-2">
+                <div x-show="!rpReady()" class="text-xs text-base-content/60">Needs kits/report-layout.js, which this page does not load.</div>
+                <div x-show="rpReady()" class="space-y-2">
+                  <div class="flex items-center gap-2 text-[11px]">
+                    <button class="btn btn-xs h-5 min-h-0 px-1.5 btn-ghost tf-copy-btn shrink-0 font-sans normal-case font-normal" :data-clipboard-text="rpTsv()" @click="flash('l')" aria-label="Copy the report as tab-separated values"><i class="ph-bold" :class="copL ? 'ph-check' : 'ph-copy'"></i> TSV</button>
+                    <div class="join border border-base-300 overflow-hidden rounded-[var(--radius-field)] shrink-0">
+                      <button class="join-item btn btn-xs h-5 min-h-0 px-2 normal-case border-none transition-none font-sans font-normal"
+                              :class="rpOrder === 'source' ? 'btn-neutral' : 'btn-ghost bg-base-100'"
+                              @click="rpOrder = 'source'; rpSync()">as written</button>
+                      <button class="join-item btn btn-xs h-5 min-h-0 px-2 normal-case border-none transition-none font-sans font-normal"
+                              :class="rpOrder === 'value' ? 'btn-neutral' : 'btn-ghost bg-base-100'"
+                              @click="rpOrder = 'value'; rpSync()">by size</button>
+                    </div>
+                    <span x-show="rpModel && !rpModel.partition" class="text-base-content/60" x-text="'subtotals withheld · ' + pvAgg + ' does not partition'"></span>
+                  </div>
+                  <div x-html="rpHtml"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div x-show="bndOpen" class="hidden lg:block h-1.5 -my-1 hover:bg-primary/20 cursor-row-resize transition-colors shrink-0" @mousedown="bndDrag = true"></div>
+
+      <!-- The bundle pane: the export artifact with its own header, a level
+           apart from the inspection views above. Expanding builds it. -->
+      <div class="card bg-base-100 border border-base-300 flex flex-col overflow-hidden" :class="bndOpen ? 'flex-1 min-h-0' : 'shrink-0'">
+        <div class="flex items-center gap-2 px-2 py-1 shrink-0" :class="bndOpen && 'border-b border-base-300'">
+          <button class="btn btn-xs btn-ghost px-1 gap-1.5 normal-case" @click="toggleBundlePane()">
+            <i class="ph-bold text-[10px]" :class="bndOpen ? 'ph-caret-down' : 'ph-caret-right'"></i>
+            <i class="ph-bold ph-package opacity-60"></i><span class="font-medium">Bundle</span>
+          </button>
+          <span class="font-mono text-[10px] opacity-50" x-text="bundle ? bundleSz : (ran ? 'not built' : '')"></span>
+          <div class="flex gap-1 ml-auto">
+            <button class="btn btn-xs btn-ghost gap-1" @click="copyBundle()" :class="copB && 'text-success'">
+              <i class="ph-bold" :class="copB ? 'ph-check' : 'ph-copy'"></i> Copy
+            </button>
+            <button class="btn btn-xs btn-ghost gap-1" @click="dlBundle()"><i class="ph-bold ph-download"></i> Download</button>
+          </div>
+        </div>
+        <div x-show="bndOpen" class="flex-1 min-h-0 flex max-h-[16rem] lg:max-h-none">
+          <!-- The checklist: membership is chosen key by key; an unchecked row
+               stays listed (grayed) so it is one tap to bring back.
+
+               :disabled TAKES !! for the same reason the FAB's layer strip
+               does. bundleRows() stamps a fixed flag on the meta row alone, so
+               on every real key row the expression was undefined, which Alpine's
+               x-bind turns into '' for any dotted expression, and '' is not a
+               value bind() treats as absent: the attribute went on and the
+               whole checklist was unclickable. -->
+          <div class="w-56 shrink-0 border-r border-base-200 overflow-y-auto">
+            <template x-for="r in bundleRows()" :key="r.k">
+              <label class="flex items-center gap-1.5 px-2 py-0.5 font-mono text-[10px] border-b border-base-200 last:border-0 cursor-pointer hover:bg-base-200/50"
+                     :class="!r.sel && 'opacity-40'">
+                <input type="checkbox" class="checkbox checkbox-xs" :checked="!!r.sel" :disabled="!!r.fixed" @change="toggleBndKey(r.k)">
+                <span class="truncate flex-1" x-text="r.k"></span>
+                <span class="opacity-50 shrink-0" x-text="r.sz"></span>
+              </label>
+            </template>
+            <div x-show="!bundleRows().length" class="p-2 text-[10px] opacity-40 italic">no entries yet</div>
+          </div>
+          <pre class="flex-1 overflow-auto p-2 m-0 text-[10px] leading-4 font-mono whitespace-pre-wrap break-all select-text" x-text="bundlePreview()"></pre>
+        </div>
+      </div>
+      </div>
+    </div>
+  </div>`;
+  }
+=== B: lib/alpineComponents/here-view.js:40#3 | addEventListener(alpine:init) > data(hereView) (part 3 of 4) ===
+            </section>
+
+            <section class="flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden rounded-box border border-base-300 bg-base-100">
+              <div class="flex items-center gap-1 shrink-0 min-h-12 pl-3 pr-1 py-1 border-b border-base-300 bg-base-200/60">
+                <div x-show="items.length > 1" class="flex items-center shrink-0 sm:-ml-2">
+                  <button type="button" class="btn btn-xs btn-ghost btn-square max-sm:hidden" @click="go(at - 1)"
+                          :disabled="at <= 0" aria-label="Previous"><i class="ph ph-caret-left"></i></button>
+                  <span class="font-mono text-xs opacity-60 tabular-nums px-1" x-text="(at + 1) + '/' + items.length"></span>
+                  <button type="button" class="btn btn-xs btn-ghost btn-square max-sm:hidden" @click="go(at + 1)"
+                          :disabled="at >= items.length - 1" aria-label="Next"><i class="ph ph-caret-right"></i></button>
+                </div>
+                <div class="grow min-w-0 pl-1">
+                  <div class="font-mono font-semibold truncate" x-text="cur ? cur.title : ''"></div>
+                  <div class="text-sm text-base-content/60 truncate" x-text="cur ? cur.meta : ''"></div>
+                </div>
+                <button type="button" class="btn btn-sm btn-ghost btn-square shrink-0" @click="expand()" :disabled="!items.length"
+                        aria-label="Swipe through these, full screen">
+                  <i class="ph ph-arrows-out-simple text-lg"></i></button>
+              </div>
+              <!-- data-no-swipe: a sideways drag here is the strip's, never the
+                   shell's view pager, even with one card and nothing to scroll. -->
+              <div x-ref="strip" x-show="items.length > 0" data-no-swipe @scroll.passive="stripScroll()"
+                   class="flex-1 min-h-0 flex snap-x snap-mandatory overflow-x-auto overflow-y-hidden overscroll-x-contain
+                          [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <template x-for="it in items" :key="it.id">
+                  <div data-slide :data-id="it.id" class="w-full shrink-0 snap-center min-h-0 flex flex-col overflow-hidden p-2"></div>
+                </template>
+              </div>
+            </section>
+          </div>
+        </div>`,
+
+      init/* nested: init, lines 398-426 */,
+
+      // ── Where the reader came from ─────────────────────────────────────────
+      get fail() { return window.__shell?.authFail || null; },
+      get next() { return window.__shell?.hereNext || ''; },
+      get backHref() { return /^[?#]/.test(this.next) ? location.pathname + this.next : '../' + this.next.replace(/^\.\.\//, ''); },
+
+      get failTitle/* nested: failTitle, lines 433-440 */,
+      // The request line as gh-api.js sent it, method and API path, cut after
+      // each slash, ? and & so the template can offer a line break there.
+      get failRequestParts/* nested: failRequestParts, lines 443-449 */,
+
+      // ── Identity: where this is, and the reader's name for it ──────────────
+      get contextLine/* nested: contextLine, lines 452-456 */,
+      get suggestion() { return BK() ? BK().kind(this.ctx) : ''; },
+
+      // ── The token: each getter is one field's value ────────────────────────
+      get kind() { return tokenKind(this.saved); },
+      get savedLine() {
+        const m = this.meta;
+        return m && m.savedAt ? fmtWhen(m.savedAt) : 'not recorded';
+      },
+      get acceptedLine() {
+        const m = this.meta;
+        return m && m.okAt ? fmtWhen(m.okAt) + (m.login ? ' as ' + m.login : '') : 'not recorded';
+      },
+      get scopesLine/* nested: scopesLine, lines 469-474 */,
+      get missingRepoScope() {
+        return this.check.state === 'ok' && !!this.saved && !/^github_pat_/.test(this.saved)
+          && Array.isArray(this.check.scopes) && !this.check.scopes.includes('repo');
+      },
+      get rateLine/* nested: rateLine, lines 479-483 */,
+      get statusValue/* nested: statusValue, lines 484-495 */,
+      get statusIcon/* nested: statusIcon, lines 496-501 */,
+      // What the note and the token say together. The note is set on purpose,
+      // so its presence or absence separates a token removed on its own from a
+      // storage that was cleared or is new. A classic token that /user accepts
+      // with no `repo` scope in x-oauth-scopes cannot read private repositories,
+      // which GitHub hides as 404.
+      get cause/* nested: cause, lines 507-514 */,
+
+      // One plain fetch, deliberately outside GH.prototype.req: gh-auth watches
+      // that path, and a check that failed into the failure handler would route
+      // this view to itself. /rate_limit costs nothing against the limit, which
+      // is why the no-token case asks it rather than /user.
+      async checkToken/* nested: checkToken, lines 520-552 */,
+
+      // Saving reloads, as repo.js and fab.js do: a token is an account
+      // boundary, and half a page painted without one is not worth reconciling.
+      // The reload stays on this view, where the new token is checked, and
+      // Back turns green once GitHub accepts it and no read has failed since.
+      // The tail left in sessionStorage is how the reloaded view knows a save
+      // just happened.
+      saveToken/* nested: saveToken, lines 560-571 */,
+      removeToken/* nested: removeToken, lines 572-576 */,
+
+      // ── The note ───────────────────────────────────────────────────────────
+      saveNote/* nested: saveNote, lines 579-589 */,
+
+      // ── What this origin stores ────────────────────────────────────────────
+      get lsSummary/* nested: lsSummary, lines 592-596 */,
+      get dbSummary/* nested: dbSummary, lines 597-603 */,
+      // The estimate covers quota-managed storage (IndexedDB, caches), not the
+      // HTTP cache, and Web Storage is counted separately by lsSummary.
+      // Persistent is the browser's promise not to clear storage on its own.
+      get storageLine() {
+        return [this.srcHost || this.host, this.quotaLine ? this.quotaLine + ' quota storage' : '',
+                this.persisted == null ? '' : (this.persisted ? 'persistent' : 'not persistent')].filter(Boolean).join(' · ');
+      },
+      get quotaLine() {
+        if (this.usage == null) return '';
+        return fmtBytes(this.usage) + (this.quota ? ' / ' + fmtBytes(this.quota) : '');
+      },
+
+      // ── Tabs and the item in view, both part of the address ────────────────
+      // Held on the shell (hereTab, hereItem) and stamped by its route row, so
+      // ?view=here&tab=stored&item=ls:visits names what is on screen. A tab is
+      // a history entry; the item is written in place, since a swipe through
+      // twenty cards is not twenty places to go Back to. An item id is
+      // `ls:<key>` or `idb:<database>/<store>`.
+      get tab() { return window.__shell?.hereTab || 'token'; },
+      setTab/* nested: setTab, lines 623-628 */,
+      get selId() { return window.__shell?.hereItem || ''; },
+      // What the detail shows: the item the address names when it still
+      // exists, else the first in the list. The default is never written to
+      // the address, so arriving does not add a history entry Back would land
+      // on only to be sent forward again.
+      get shownId() {
+        const ids = this.items.map(it => it.id);
+        return ids.includes(this.selId) ? this.selId : (ids[0] || '');
+      },
+      select/* nested: select, lines 638-645 */,
+      // The list's items in its own order, which is the strip's and the deck's.
+      get items/* nested: items, lines 647-656 */,
+      get at() { return Math.max(0, this.items.findIndex(it => it.id === this.shownId)); },
+      get cur() { return this.items[this.at] || null; },
+      plural(n, noun) { return n + ' ' + noun + (n === 1 ? '' : 's'); },
+      // What a card shows: a localStorage value as lsShown names it, a store
+      // as its records under a .json name, which READ_MODE lays out as a table
+      // when every record is a plain object and as a tree otherwise.
+      async itemContent/* nested: itemContent, lines 663-668 */,
+      async storeRows/* nested: storeRows, lines 669-677 */,
+
+      // ── The strip ──────────────────────────────────────────────────────────
+      // A card mounts its viewer when the strip comes within one card of it and
+      // then stays mounted, so swiping back is instant.
+      panels() { return [...(this.$refs.strip?.querySelectorAll('[data-slide]') || [])]; },
+      mountNear/* nested: mountNear, lines 683-692 */,
+      // The card nearest the strip's left edge, read off the scroll.
+      nearest/* nested: nearest, lines 694-698 */,
+      stripScroll/* nested: stripScroll, lines 699-714 */,
+      // Move to item i: the selection at once, the strip after it. `instant`
+      // for a pick in the list, where animating past twenty cards is noise.
+      go/* nested: go, lines 717-724 */,
+      pick(id) {
+        const i = this.items.findIndex(it => it.id === id);
+        if (i >= 0) this.go(i, true);
+      },
+##### PAIR 56
+=== A: lib/kits/xlsx.js:2594 | call(…) > pivotRecords ===
+function pivotRecords(xl, cachePart, opts) {
+    const cache = xl.pivotCaches?.[cachePart];
+    if (!cache?.recordsPart) return null;
+    const held = xl.pivotRecords[cache.recordsPart];
+    if (!held) return null;
+    const limit = opts?.limit;
+    const rows = (limit ? held.rows.slice(0, limit) : held.rows).map(row =>
+      Object.fromEntries(cache.fields.map((name, i) => [name || colLetter(i), row[i] ?? null])));
+    return {
+      rows,
+      fields: cache.fields,
+      // `total` is what the part actually contained and `declared` is what the
+      // definition claims. The two disagreeing is a fact about the file worth
+      // seeing rather than one to reconcile away.
+      total: held.total,
+      declared: cache.recordCount,
+      truncated: held.truncated || (limit != null && held.rows.length > limit),
+    };
+  }
+=== B: lib/kits/xlsx-extract.js:336 | call(…) > parts > map(…) ===
+part => {
+        const got = kit().pivotRecords(result.xl, part, { limit: maxRows });
+        const src = result.xl.pivotCaches[part]?.source;
+        return {
+          // A cache has no name of its own, so it is named by the range it was
+          // built from. The part filename says nothing a reader knows.
+          label: src ? `${src.sheet || src.name}!${src.ref}` : part.split('/').pop(),
+          rows: got.rows,
+          total: got.total,
+          truncated: got.truncated,
+          // What the part held against what the definition claims. The two
+          // disagreeing is a fact about the file, not one to reconcile away.
+          note: got.declared != null && got.declared !== got.total
+            ? `the definition claims ${got.declared} records; the part holds ${got.total}` : '',
+        };
+      }
+##### PAIR 57
+=== A: lib/alpineComponents/transform-workbench.js:123 | call(…) > after ===
+(f) => {
+          requestAnimationFrame(/* nested: requestAnimationFrame(…), lines 124-151 */);
+        }
+=== B: lib/kits/swipe-deck.js:403 | call(…) > core > addEventListener(scroll) ===
+() => {
+      clearTimeout(quiet);
+      quiet = setTimeout(() => { aim = null; }, 160);
+      if (raf) return;
+      raf = requestAnimationFrame(/* nested: requestAnimationFrame(…), lines 407-413 */);
+    }
+##### PAIR 58
+=== A: lib/alpineComponents/file-browser.js:198 | registerFileBrowser > data(fileBrowser) > stripScroll ===
+() {
+        const s = this.strip();
+        if (!s || this.at < 0) return;
+        const x0 = s.getBoundingClientRect().left;
+        let best = 0, near = Infinity;
+        this.slides().forEach((k, i) => {
+          const d = Math.abs(k.getBoundingClientRect().left - x0);
+          if (d < near) { near = d; best = i; }
+        });
+        if (this.at !== best) this.at = best;
+      }
+=== B: lib/alpineComponents/here-view.js:694 | addEventListener(alpine:init) > data(hereView) > nearest ===
+() {
+        const el = this.$refs.strip;
+        if (!el || !el.clientWidth) return -1;
+        return Math.round(el.scrollLeft / el.clientWidth);
+      }
+##### PAIR 59
+=== A: lib/alpineComponents/transform-workbench.js:1360 | call(…) > addEventListener(alpine:init) > data(transformWorkbench) > profile > map(…) ===
+col => {
+            const types = new Set(), seen = new Set();
+            let nulls = 0, capped = false;
+            for (const r of rows) {
+              const v = r[col];
+              if (v == null) { nulls++; continue; }
+              types.add(typeOf(v));
+              if (!capped) {
+                seen.add(typeof v === "object" ? JSON.stringify(v) : v);
+                if (seen.size > CAP) capped = true;
+              }
+            }
+            const distinct = [...seen].sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true }));
+            return {
+              Column: col,
+              Type: types.size === 0 ? "null" : [...types].join("|"),
+              Nulls: nulls,
+              Distinct: capped ? CAP + "+" : distinct.length,
+              Values: distinct.slice(0, 10).join(", ") + (capped ? ", …" : (distinct.length > 10 ? ", +" + (distinct.length - 10) : "")),
+            };
+          }
+=== B: lib/kits/json-explorer.js:91 | call(…) > analyze ===
+(data) {
+      let nodeCount = 0;
+      let maxDepth = 0;
+      const typeCounts = { object: 0, array: 0, string: 0, number: 0, boolean: 0, null: 0 };
+
+      const walk = /* nested: walk, lines 96-114 */;
+
+      walk(data, 0);
+
+      const jsonStr = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+      const byteSize = new Blob([jsonStr]).size;
+
+      // Top-level properties / collections breakdown
+      const rootEntries = [];
+      const collections = [];
+
+      if (data && typeof data === 'object' && !Array.isArray(data)) {
+        for (const [k, v] of Object.entries(data)) {
+          const isArr = Array.isArray(v);
+          const isObj = v && typeof v === 'object' && !isArr;
+          const count = isArr ? v.length : isObj ? Object.keys(v).length : null;
+          const type = isArr ? 'array' : isObj ? 'object' : v === null ? 'null' : typeof v;
+          const entry = { key: k, type, count, isCollection: isArr || isObj, value: v };
+          rootEntries.push(entry);
+
+          if (isArr && v.length > 0 && typeof v[0] === 'object' && v[0] !== null) {
+            // Infer table schema for record arrays
+            const colMap = new Map();
+            for (const item of v) {
+              if (!item || typeof item !== 'object') continue;
+              for (const [colName, colVal] of Object.entries(item)) {
+                if (!colMap.has(colName)) {
+                  colMap.set(colName, { name: colName, types: new Set(), nonNull: 0, samples: [] });
+                }
+                const c = colMap.get(colName);
+                if (colVal != null && colVal !== '') {
+                  c.nonNull++;
+                  c.types.add(Array.isArray(colVal) ? 'array' : typeof colVal);
+                  if (c.samples.length < 3 && !c.samples.includes(String(colVal))) {
+                    c.samples.push(String(colVal));
+                  }
+                }
+              }
+            }
+            const columns = [...colMap.values()].map(/* nested: map(…), lines 153-158 */);
+            collections.push({ key: k, length: v.length, columns, isRecordArray: true });
+          } else if (isArr || isObj) {
+            collections.push({ key: k, length: count, columns: [], isRecordArray: false });
+          }
+        }
+      }
+
+      return {
+        byteSize,
+        nodeCount,
+        maxDepth,
+        typeCounts,
+        rootEntries,
+        collections,
+      };
+    }

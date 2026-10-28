@@ -10,9 +10,7 @@ export default async (page) => {
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.waitForSelector('[x-data]', { timeout: 20000 }).catch(() => {});
   await page.waitForTimeout(4000);
-  // ?view=activity resolves to Sessions, which is deliberate (the nav stop and
-  // the pane it opens share a name), so the Branches pane is reached by its
-  // pill exactly as a reader reaches it.
+  // The Branches pane is reached by its pill, exactly as a reader reaches it.
   await page.getByRole('tab', { name: 'Branches' }).click().catch(() => {});
   await page.waitForTimeout(3000);
   await page.evaluate(() => {

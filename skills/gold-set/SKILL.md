@@ -18,10 +18,7 @@ review from a persona) and acquisition (`/scour`). Its failure modes are
 leakage of what the labeler must not see, a permitted answer taken more often
 than the seed standard allowed, and malformed output, and all three are fixed
 mechanically rather than by prompting. Worked example, with every script and
-prompt: budget-wa, `sources/enacted-operating-bills/processing/provisos/gold-set/`
-(2,447 provisos, 124 agents, 17 minutes). Environment numbers live in
-[`docs/environment/capabilities.md`](https://github.com/mehrlander/web-tools/blob/main/docs/environment/capabilities.md)
-and age on their own clock.
+prompt: budget-wa, `sources/enacted-operating-bills/processing/provisos/gold-set/`.
 
 ## Stage 0: join and sample, by script, committed
 
@@ -63,15 +60,15 @@ rides along, a mark per field of correct, incorrect or missing.
 
 **End the prompt with a validator the agent runs on its own output**, one
 script that reads the output against the input and prints OK or the defects,
-with the instruction to fix anything reported before returning. This made 124
-of 124 outputs conform; it is the Agent-tool equivalent of Workflow's schema
-option, and it is committed. Return value: one line of counts.
+with the instruction to fix anything reported before returning. It is the
+Agent-tool equivalent of Workflow's schema option; commit it. Return value: one
+line of counts.
 
-Expect the permitted answers to be taken. Readers offered `fragment` used it on
-a third of rows where the original hand sample, written without that option,
-had typed the same list items by their parent's intent. The permission is a
-decision about what the labels mean; make it before the run and say so in the
-README, because it will be the largest reader-versus-hand disagreement.
+Expect the permitted answers to be taken often: in the worked example readers
+used `fragment` on a third of rows the hand sample had typed by their parent's
+intent. The permission is a decision about what the labels mean; make it before
+the run and say so in the README, since it will be the largest
+reader-versus-hand disagreement.
 
 ## Stage 2: skeptic
 
@@ -144,14 +141,13 @@ editing the note.
 
 ## Running it: bookkeeping is the main loop's whole job
 
-Measure the venue before choosing it: Workflow's cap is min(16, CPUs minus 2)
-per run and a small box makes it two; the Agent tool's cap is twenty. In the
-Agent tool, pipeline by hand: a pump script that, on each completion, validates
+Measure the venue before choosing it: the Workflow tool's concurrency cap
+depends on the machine and the Agent tool's does not
+([`docs/environment/capabilities.md`](https://github.com/mehrlander/web-tools/blob/main/docs/environment/capabilities.md)
+has both). In the Agent tool, pipeline by hand: a pump script that, on each completion, validates
 the reader's file, prepares the skeptic's rows, renders its prompt and logs the
 ledger, so a notification costs one command and one launch. Count live agents
 with `ListAgents`, not from files on disk: an agent whose output is written and
 validated still holds its slot until it returns. Log any batch refused or lost
 and relaunch it; reconcile the roster against `ListAgents` before declaring
-the run complete. Readers cost about 105k tokens and two minutes for 40 rows,
-skeptics about 97k and 90 seconds, nearly all of it cache reads of the shared
-prompt.
+the run complete.

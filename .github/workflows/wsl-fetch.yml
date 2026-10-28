@@ -10,7 +10,8 @@ name: WSL fetch
 # starts it when the wsl-fetch row of web-tools-private's
 # data/design/scheduled-tasks.csv is due, with that row's `with` inputs:
 # full=true and a blank biennium, a --full refresh of fetch-data.mjs's default
-# biennium (2025-26, the open one, as of 2026-10).
+# biennium: the open one by the calendar (wsl-core's currentBiennium), so
+# 2025-26 through 2026 and 2027-28 from January 2027.
 # Per-bill data (rcws, history, actions) grows on an open biennium, so
 # incremental isn't enough. That workflow dispatches against main, so the snapshot
 # commit lands on main; the guard below makes a no-change run commit nothing.

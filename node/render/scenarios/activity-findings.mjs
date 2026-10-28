@@ -7,7 +7,7 @@
 //     --script node/render/scenarios/activity-findings.mjs
 //
 // Optional: ACTIVITY_SCOPE=<scope key> (default found), TENDING_STORE=<checkout>.
-// For Sessions or Repos, pass --query view=sessions or view=estate instead.
+// For Sessions or Repos, pass --query view=sessions or view=repos instead.
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 

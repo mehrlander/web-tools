@@ -169,7 +169,7 @@ export default async (page) => {
         // left without, which is the row whose tip the crawl never read and
         // which keeps the in-shell hop.
         ? { on: [{ key: 'a', label: 'Branches', hits: ['lib/alpineComponents/estate.js'],
-                   url: 'https://mehrlander.github.io/web-tools/app/?use=abc&view=activity' },
+                   url: 'https://mehrlander.github.io/web-tools/app/?use=abc&view=branches' },
                  { key: 'b', label: 'Guides', hits: ['lib/alpineComponents/estate.js'], url: '' }],
             near: [{ key: 'c', label: 'Map', hits: ['dist/web-tools.js'],
                      url: 'https://mehrlander.github.io/web-tools/app/?use=abc&view=map' }] }

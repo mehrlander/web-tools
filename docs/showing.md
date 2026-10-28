@@ -6,12 +6,10 @@ what a reply hands over; showing is what makes it openable.
 **The reference is the app, not this file.** Each way of showing (a 🥏 toss, the
 deployed page's own URL, content carried in the link, and others) is a row in
 [`showing-mechanisms.csv`](showing-mechanisms.csv), with the address to write,
-what it reaches and misses, its trap, and when to use it. The `showing` block of
-[`routes.json`](routes.json) holds the picker rules and two of the three axes that
-classify the rows, version and viewer; the third, subject, is
-[`subjects.csv`](subjects.csv). The app's **Map view, Showing tab** renders all
-three files, and `npm run showing` ([`python/showing.py`](../python/showing.py))
-executes the picker.
+what it reaches and misses, and when to use it. The app's **Map view, Showing
+tab** renders those rows, with the `showing` block of [`routes.json`](routes.json)
+as its About text, and `npm run showing` ([`python/showing.py`](../python/showing.py))
+picks the link for a branch's changes.
 
 ## The toss, framed or as the tab
 
@@ -36,7 +34,7 @@ documents how a toss hands a page its versions.
 A 🥏 link on any route can carry a look marker in the rendered page's own
 fragment, which makes it a look link: `--intro` greets the reader, and `--at`
 scrolls to one element, tints it and says why, or walks through several.
-`npm run showing` puts the fragment on whichever route the picker chose. The
+`npm run showing` puts the fragment on whichever route it chose. The
 grammar is in the header of [`lib/kits/look.js`](../lib/kits/look.js);
 [`skills/look-markers/SKILL.md`](../skills/look-markers/SKILL.md) says how to
 make one and which pages it reaches.
@@ -52,9 +50,8 @@ a trailing `#frag` arrives as a real `location.hash`.
 
 The inner shell never becomes the top-level document, so its changes to
 `document.title`, the favicon, `history.replaceState` or top-level navigation run
-without visible effect. This was found with a favicon change in PR #315. At depth
-2 the icon is dimmed twice, and the tab's icon and label describe different
-levels; both are correct.
+without visible effect. At depth 2 the icon is dimmed twice, and the tab's icon
+and label describe different levels; both are correct.
 
 In a nested preview, the FAB (the floating action button every lib page carries)
 lists actions from both the framed page and the shell, and the shell's rows carry
@@ -100,10 +97,9 @@ the address and says when `?use=` was ignored. Inside a toss it checks the frame
 page against the ref the shell resolved, and marks any layer that booted a
 different one.
 
-The failures recorded in this file share one shape: the link renders something
-plausible but wrong, and reports no error. The mechanism table cannot catch that,
-so two checks remain in use: CLAUDE.md's honesty rule ("where no link reaches a
-change, say so") and a headless screenshot.
+A wrong link renders something plausible and reports no error, which the
+mechanism table cannot catch, so two checks remain: CLAUDE.md's honesty rule
+("where no link reaches a change, say so") and a headless screenshot.
 
 ## Viewer context
 

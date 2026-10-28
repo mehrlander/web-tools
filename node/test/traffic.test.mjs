@@ -32,11 +32,23 @@ test('fmtBytes keeps the shape of the figures that matter', () => {
   assert.equal(T.fmtBytes(900), '900 B');
   assert.equal(T.fmtBytes(1024), '1.0 KB');
   assert.equal(T.fmtBytes(417435), '408 KB');
-  assert.equal(T.fmtBytes(1460047), '1.39 MB');
+  // One decimal from MB up, the reading this kit's own comment always named
+  // (1.4 MB); it printed two until it became every view's rule on 2026-10-24.
+  assert.equal(T.fmtBytes(1460047), '1.4 MB');
+  assert.equal(T.fmtBytes(2 ** 31), '2.0 GB');
+  // The unit follows the figure as rounded, so a count just under a boundary
+  // reads as the larger unit would: not 10.0 KB, and not 1024 KB.
+  assert.equal(T.fmtBytes(10235), '10 KB');
+  assert.equal(T.fmtBytes(10178), '9.9 KB');
+  assert.equal(T.fmtBytes(1048300), '1.0 MB');
   // Unknown is never rendered as zero, at any level of the stack.
   assert.equal(T.fmtBytes(null), '?');
   assert.equal(T.fmtBytes(undefined), '?');
-  assert.equal(T.fmtBytesShort(1460047), '1.4 MB');
+  assert.equal(T.fmtBytes(NaN), '?');
+  // A view that would rather show nothing says so; a number is untouched by it.
+  assert.equal(T.fmtBytes(null, ''), '');
+  assert.equal(T.fmtBytes(900, ''), '900 B');
+  assert.equal(T.fmtBytes(null, 'not stored'), 'not stored');
   assert.equal(T.fmtCount(14952), '15k');
   assert.equal(T.fmtCount(4952), '5k');
   assert.equal(T.fmtCount(120), '120');

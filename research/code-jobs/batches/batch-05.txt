@@ -1,0 +1,1699 @@
+=== UNIT lib/kits/xlsx-extract.js:48#2 | call(…) (part 2 of 2) ===
+  const BY_ID = Object.fromEntries(KINDS.map(k => [k.id, k]));
+
+  // The caches that actually carry rows. A workbook saved to refresh on open
+  // has a definition and nothing behind it, which is a different answer from
+  // "the pivot has no rows", so those are not offered rather than offered empty.
+  const caches = (xl) => Object.keys(xl.pivotCaches || {}).filter(p => kit().pivotRecords(xl, p));
+
+  // ONE RENDERING OF profileColumns, here rather than in the tab that draws it.
+  // The Structure mode's Columns tab reads this too: two spellings of the same
+  // table is how a column reads `Role` in one place and `role` in the other.
+  /* nested: profileRows, lines 381-396 */
+
+  // ---- the survey: what is on offer, and how much of it --------------------
+  //
+  // The picker's whole input. Every sheet against every sheet-scoped kind,
+  // plus the four workbook-scoped kinds once. A zero is REPORTED rather than
+  // omitted, for the reason the Structure mode keeps an empty tab in its strip:
+  // a cell that disappears when empty cannot say "this workbook has no pivots",
+  // it just looks like a workbook with fewer kinds.
+  /* nested: survey, lines 405-418 */
+
+  // ---- the extract --------------------------------------------------------
+
+  // A filename stem from a sheet name. A sheet may be called "Q1 / Q2" or
+  // "2024 Budget", and both have to survive into a name a link can address.
+  const stem = (s) => String(s || '').replace(/[^\w.-]+/g, '-').replace(/^-+|-+$/g, '') || 'sheet';
+
+  // Names are the envelope's addresses (#item=), so a collision is a link that
+  // opens the wrong item. Deduped by suffix rather than by throwing: two sheets
+  // may legitimately reduce to one stem.
+  const uniquely = /* nested: uniquely, lines 429-438 */;
+
+  // The one sentence an item's note carries, derived from the item's own
+  // record rather than written beside it: the cut first, because it is the
+  // thing a reader must not discover later, then whatever the kind had to say.
+  const noteFor = (rec, extra) => [
+    rec.truncated ? `${rec.rows} of ${rec.total} rows` : '',
+    extra || '',
+  ].filter(Boolean).join('; ');
+
+  // pick: { sheets: [name…], kinds: [id…], headerRow }
+  // opts: { source, maxRows, title, note, now }
+  //
+  // A pick naming no sheet takes every sheet; naming no kind takes nothing,
+  // since an empty selection is a real thing a picker can be in and guessing
+  // "all" there would hand over a whole workbook nobody asked for.
+  /* nested: extract, lines 454-536 */
+
+  const extractTitle = (source, kinds) => {
+    const what = source?.name || source?.path?.split('/').pop() || 'workbook';
+    return kinds.length ? `${what}: ${kinds.join(', ')}` : what;
+  };
+
+  // A sheet-centered catalogue. A pivot table belongs to the sheet where it
+  // is placed; a cache belongs beside its source sheet when that source is in
+  // this workbook. Neither relationship implies that checking a sheet checks
+  // the object. Cache rows can disclose data from another sheet, so objects
+  // always require their own explicit selection.
+  /* nested: catalog, lines 548-580 */
+
+  // v2 keeps the data-view item shape but records independent per-sheet kinds
+  // and individual workbook objects. The v1 cross-product API above remains
+  // available to existing callers; the Structure picker uses this contract.
+  /* nested: extractSelected, lines 585-652 */
+
+  // ---- receptions: a receiving repo's standing pick -----------------------
+  //
+  // A repo's .web-tools.json may declare `receptions`: for a workbook whose
+  // sheets match, which sheets to take, which to leave, which readings, and
+  // where the extract lands. The receiver declares it and the picker runs it,
+  // so nothing about any one workbook has to live in this kit or the page.
+  //
+  //   { id, label, match: { sheets: [name…] }, omit: [name… | 'hidden'],
+  //     never: [name…], readings: [kind…], cap, dest, file }
+  //
+  // A reception with no `match.sheets` applies to every workbook; one that
+  // names sheets applies only where all of them are present, by sheet set
+  // rather than by file name because a workbook is renamed more often than
+  // its tabs are. Declarations are tried in order, so a specific one listed
+  // before a general one wins. Every sheet not omitted is taken, with the
+  // readings it has any of. `omit` takes names and the token `hidden`, which
+  // leaves behind every sheet the workbook hides: a gesture already made in
+  // Excel, and one a rename does not undo. `cap` defaults to null (no row
+  // cut), since a landed extract is a file rather than a link. `dest` and
+  // `file` may carry `{date}`, `{stem}` and `{slug}`.
+  //
+  // `never` NAMES SHEETS THAT MUST NOT LAND, and it is returned rather than
+  // applied. Omitting them here would be the quiet fix: the reader would see a
+  // clean pick and learn nothing, and the case this exists for is precisely
+  // the one where the usual signal lapsed (a private sheet unhidden to work on
+  // it, then forgotten). So a named sheet that is selected BLOCKS the handover
+  // and says which, leaving the reader to re-hide it or untick it. `omit`
+  // decides what is taken; `never` decides what may not be.
+  const HIDDEN = 'hidden';
+  const isHidden = (s) => !!s.visibility && s.visibility !== 'visible';
+  /* nested: receptions, lines 684-709 */
+
+  // Where a reception's extract lands: `{date}` is the day (UTC) and `{time}`
+  // the hour and minute (HHMM), both from `now`, which a caller passes as the
+  // extract's own `taken` stamp so files sort in the order the sheets were
+  // read; `{stem}` the workbook's name without its extension reduced to
+  // filename characters, `{slug}` that stem lowercased, for a folder
+  // convention that wants it, and `{sheet}` the one picked sheet's name
+  // slugged, or `workbook` when the extract holds several.
+  /* nested: receptionTarget, lines 718-726 */
+
+  window.XlsxExtract = { KIND, SELECTED_KIND, KINDS, survey, catalog, extract, extractSelected, profileRows,
+                         receptions, receptionTarget };
+}
+=== UNIT lib/kits/xlsx-extract.js:91 | call(…) > serializeSheet ===
+(s, name) => {
+    const cells = [];
+    let r1 = Infinity, c1 = Infinity, r2 = 0, c2 = -1;
+    for (const r of s.rows || []) {
+      for (const [idx, v] of Object.entries(r.cells || {})) {
+        const col = Number(idx);
+        const f = r.formulas?.[idx];
+        const si = r.shared?.[idx];
+        let formula = '';
+        if (typeof f === 'string') formula = '=' + f;
+        else if (f === true) formula = si != null ? `=[fill ${si}] ${s.sharedFormulas?.[si] ?? ''}`.trimEnd() : '=';
+        cells.push({ Address: at(col, r.row), Formula: formula, Value: v == null ? '' : String(v) });
+        if (r.row < r1) r1 = r.row;
+        if (r.row > r2) r2 = r.row;
+        if (col < c1) c1 = col;
+        if (col > c2) c2 = col;
+      }
+    }
+    return {
+      SheetName: name,
+      Dimension: s.dimension || (cells.length ? `${at(c1, r1)}:${at(c2, r2)}` : ''),
+      MergedCells: (s.merges || []).map(m => `${at(m.c1, m.r1)}:${at(m.c2, m.r2)}`),
+      Cells: cells,
+    };
+  }
+=== UNIT lib/kits/xlsx-extract.js:128 | call(…) > dxfLabel ===
+(xl, id) => {
+    if (id == null) return '';
+    const d = kit().dxfStyle(xl, id);
+    // A rule that names a dxf the file does not carry, and a rule whose dxf
+    // sets nothing a renderer can draw, are different facts and read
+    // differently: the index alone says "there is a format here that this
+    // reading could not turn into anything".
+    if (!d) return `dxf ${id}`;
+    const bits = [];
+    if (d.fill) bits.push(`fill ${d.fill}`);
+    if (d.color) bits.push(`text ${d.color}`);
+    for (const k of ['bold', 'italic', 'underline', 'strike']) if (d[k]) bits.push(k);
+    if (d.border) bits.push('border');
+    return bits.join(', ');
+  }
+=== UNIT lib/kits/xlsx-extract.js:163 | call(…) > parts ===
+({ s, name }) => {
+        const sheet = serializeSheet(s, name);
+        const fills = sheet.Cells.filter(c => c.Formula.startsWith('=[fill ')).length;
+        return [{
+          label: 'cells', ext: 'json',
+          text: JSON.stringify(sheet, null, 1),
+          note: fills ? `${fills} filled formula${fills === 1 ? '' : 's'} carry the master's text under a [fill N] marker` : '',
+        }];
+      }
+=== UNIT lib/kits/xlsx-extract.js:177 | call(…) > parts ===
+({ s, xl }) => {
+        const out = [];
+        let shared = 0;
+        for (const r of s.rows || []) {
+          for (const [idx, f] of Object.entries(r.formulas || {})) {
+            const col = Number(idx);
+            // A SHARED formula's followers store no text of their own. The
+            // kit reports those as `true` rather than as an empty string, so
+            // the distinction survives to here: an empty Formula cell means
+            // the file did not store one, and the note says how many.
+            if (f === true) shared++;
+            out.push({
+              Cell: at(col, r.row),
+              Row: r.row,
+              Column: kit().colLetter(col),
+              Formula: typeof f === 'string' ? f : '',
+              Value: rowCells(r)[idx] ?? null,
+            });
+          }
+        }
+        return [{
+          rows: out,
+          note: shared ? `${shared} of ${out.length} are shared-formula followers, which store no text of their own` : '',
+        }];
+      }
+=== UNIT lib/kits/xlsx-extract.js:207 | call(…) > parts ===
+({ s, xl }) => {
+        const out = [];
+        for (const r of s.rows || []) {
+          for (const [idx, sx] of Object.entries(r.styles || {})) {
+            const st = kit().cellStyle(xl, sx);
+            if (!st) continue;
+            const col = Number(idx);
+            const b = st.border;
+            out.push({
+              Cell: at(col, r.row),
+              Row: r.row,
+              Column: kit().colLetter(col),
+              Font: st.fontName || '',
+              Size: st.size,
+              Bold: st.bold ? 'yes' : '',
+              Italic: st.italic ? 'yes' : '',
+              Underline: st.underline ? 'yes' : '',
+              Strike: st.strike ? 'yes' : '',
+              Color: st.color || '',
+              Fill: st.fill || '',
+              Align: st.align || '',
+              Valign: st.valign || '',
+              Wrap: st.wrap ? 'yes' : '',
+              Indent: st.indent || 0,
+              // A border is four edges and a table cell is one string: the
+              // sides that are drawn, named. The full record is one
+              // xlsxKit.cellStyle call away for anything that needs it.
+              Border: b ? ['top', 'right', 'bottom', 'left'].filter(k => b[k]).join(' ') : '',
+              Format: st.format?.code || '',
+              'Format kind': st.format?.kind || '',
+            });
+          }
+        }
+        return [{ rows: out }];
+      }
+=== UNIT lib/kits/xlsx-extract.js:247 | call(…) > parts ===
+({ s, xl }) => [{
+        rows: (s.merges || []).map(/* nested: map(…), lines 248-257 */),
+      }]
+=== UNIT lib/kits/xlsx-extract.js:248 | call(…) > parts > map(…) ===
+m => {
+          const anchor = (s.rows || []).find(r => r.row === m.r1);
+          return {
+            Range: `${at(m.c1, m.r1)}:${at(m.c2, m.r2)}`,
+            Anchor: at(m.c1, m.r1),
+            Rows: m.r2 - m.r1 + 1,
+            Columns: m.c2 - m.c1 + 1,
+            Value: anchor ? (rowCells(anchor)[m.c1] ?? null) : null,
+          };
+        }
+=== UNIT lib/kits/xlsx-extract.js:264 | call(…) > parts ===
+({ xl, name }) => [{
+        rows: notesFor(xl, name, 'comment').map(n => ({
+          Cell: n.cell, Author: n.author, Text: n.text,
+        })),
+      }]
+=== UNIT lib/kits/xlsx-extract.js:274 | call(…) > parts ===
+({ xl, name }) => [{
+        rows: notesFor(xl, name, 'validation').map(/* nested: map(…), lines 275-285 */),
+      }]
+=== UNIT lib/kits/xlsx-extract.js:275 | call(…) > parts > map(…) ===
+n => ({
+          Cell: n.cell,
+          Span: n.span || '',
+          Kind: n.kind,
+          Title: n.title,
+          Text: n.text,
+          // The options as the file lists them, joined: a choice list is the
+          // fact, and the reader wants to read it rather than expand a nested
+          // array in a tree.
+          Options: (n.options || []).join(' | '),
+        })
+=== UNIT lib/kits/xlsx-extract.js:292 | call(…) > parts ===
+({ s, xl }) => [{
+        rows: (s.conditionalFormats || []).slice()
+          .sort((a, b) => a.priority - b.priority)
+          .map(/* nested: map(…), lines 295-305 */),
+        // WHAT THIS KIND IS NOT. These are the rules as the file states them.
+        // Which cells Excel would actually paint is a second question, and the
+        // kit answers it only for the rule types decidable from a cell alone
+        // (xlsxKit.cfApplies); an expression rule needs a formula engine.
+        note: 'the rules as written; whether each fires is not evaluated here',
+      }]
+=== UNIT lib/kits/xlsx-extract.js:295 | call(…) > parts > map(…) ===
+r => ({
+            Range: (r.ranges || []).map(g => g.r1 === g.r2 && g.c1 === g.c2
+              ? at(g.c1, g.r1) : `${at(g.c1, g.r1)}:${at(g.c2, g.r2)}`).join(' '),
+            Type: r.type,
+            Operator: r.operator,
+            Priority: r.priority,
+            'Stop if true': r.stopIfTrue ? 'yes' : '',
+            Text: r.text,
+            Formulas: (r.formulas || []).join(' | '),
+            Format: dxfLabel(xl, r.dxfId),
+          })
+=== UNIT lib/kits/xlsx-extract.js:316 | call(…) > count ===
+(s) => {
+        const cols = new Set();
+        for (const r of s.rows || []) for (const k of Object.keys(r.cells || {})) cols.add(k);
+        return cols.size;
+      }
+=== UNIT lib/kits/xlsx-extract.js:336 | call(…) > parts ===
+({ result, maxRows }) => caches(result.xl).map(/* nested: map(…), lines 336-351 */)
+=== UNIT lib/kits/xlsx-extract.js:336 | call(…) > parts > map(…) ===
+part => {
+        const got = kit().pivotRecords(result.xl, part, { limit: maxRows });
+        const src = result.xl.pivotCaches[part]?.source;
+        return {
+          // A cache has no name of its own, so it is named by the range it was
+          // built from. The part filename says nothing a reader knows.
+          label: src ? `${src.sheet || src.name}!${src.ref}` : part.split('/').pop(),
+          rows: got.rows,
+          total: got.total,
+          truncated: got.truncated,
+          // What the part held against what the definition claims. The two
+          // disagreeing is a fact about the file, not one to reconcile away.
+          note: got.declared != null && got.declared !== got.total
+            ? `the definition claims ${got.declared} records; the part holds ${got.total}` : '',
+        };
+      }
+=== UNIT lib/kits/xlsx-extract.js:363 | call(…) > parts ===
+({ result }) => (result.xl.powerQuery?.sections || []).map(/* nested: map(…), lines 363-367 */)
+=== UNIT lib/kits/xlsx-extract.js:363 | call(…) > parts > map(…) ===
+q => ({
+        label: q.path.split('/').pop(),
+        text: q.m || '',
+        ext: 'm',
+      })
+=== UNIT lib/kits/xlsx-extract.js:381 | call(…) > profileRows ===
+function profileRows(sheet, xl, headerRow) {
+    const hr = headerRow === undefined ? 1 : headerRow;
+    return kit().profileColumns(sheet, xl, { headerRow: hr || null }).map(/* nested: map(…), lines 383-395 */);
+  }
+=== UNIT lib/kits/xlsx-extract.js:383 | call(…) > profileRows > map(…) ===
+c => ({
+      Column: c.letter,
+      Header: c.header,
+      Role: c.role,
+      Kind: c.kind,
+      Filled: c.filled,
+      Blank: c.blank,
+      Computed: c.computed,
+      Distinct: c.distinct,
+      Min: c.min ?? '',
+      Max: c.max ?? '',
+      'Most common': c.top.slice(0, 4).map(t => `${t.value} (${t.count})`).join(', '),
+    })
+=== UNIT lib/kits/xlsx-extract.js:405 | call(…) > survey ===
+function survey(result) {
+    const xl = result.xl;
+    const sheets = sheetsOf(xl).map(/* nested: map(…), lines 407-411 */);
+    return {
+      sheets,
+      workbook: Object.fromEntries(KINDS.filter(k => k.scope === 'workbook')
+        .map(k => [k.id, k.count(result)])),
+      kinds: KINDS.map(({ id, label, scope, view, gloss }) => ({ id, label, scope, view, gloss })),
+    };
+  }
+=== UNIT lib/kits/xlsx-extract.js:407 | call(…) > survey > map(…) ===
+({ key, s, name }) => ({
+      key, name, visibility: s.visibility ?? null,
+      counts: Object.fromEntries(KINDS.filter(k => k.scope === 'sheet')
+        .map(k => [k.id, k.count(s, xl, name)])),
+    })
+=== UNIT lib/kits/xlsx-extract.js:429 | call(…) > uniquely ===
+(taken, name) => {
+    if (!taken.has(name)) { taken.add(name); return name; }
+    const dot = name.lastIndexOf('.');
+    const base = dot > 0 ? name.slice(0, dot) : name;
+    const ext = dot > 0 ? name.slice(dot) : '';
+    for (let n = 2; ; n++) {
+      const tryName = `${base}-${n}${ext}`;
+      if (!taken.has(tryName)) { taken.add(tryName); return tryName; }
+    }
+  }
+=== UNIT lib/kits/xlsx-extract.js:454 | call(…) > extract ===
+function extract(result, pick, opts) {
+    const cfg = opts || {};
+    const want = pick || {};
+    const xl = result.xl;
+    const maxRows = cfg.maxRows === undefined ? 2000 : cfg.maxRows;
+    const headerRow = want.headerRow === undefined ? 1 : want.headerRow;
+
+    const all = sheetsOf(xl);
+    const names = all.map(s => s.name);
+    const pickedSheets = want.sheets == null ? names : names.filter(n => want.sheets.includes(n));
+    const wantKinds = want.kinds || [];
+    const pickedKinds = KINDS.filter(k => wantKinds.includes(k.id)).map(k => k.id);
+
+    const items = [];
+    const taken = new Set();
+
+    const push = /* nested: push, lines 470-499 */;
+
+    for (const name of pickedSheets) {
+      const entry = all.find(s => s.name === name);
+      if (!entry) continue;
+      for (const kindId of pickedKinds) {
+        const k = BY_ID[kindId];
+        if (k.scope !== 'sheet') continue;
+        // An empty kind produces NO ITEM rather than an empty one. The survey
+        // already said the cell was zero, and a file of `[]` in the envelope
+        // reads as a finding rather than as an absence.
+        if (!k.count(entry.s, xl, name)) continue;
+        for (const part of k.parts({ s: entry.s, xl, name, result, headerRow, maxRows })) push({ kindId, sheetName: name, part });
+      }
+    }
+    for (const kindId of pickedKinds) {
+      const k = BY_ID[kindId];
+      if (k.scope !== 'workbook' || !k.count(result)) continue;
+      for (const part of k.parts({ result, xl, headerRow, maxRows })) push({ kindId, sheetName: null, part });
+    }
+
+    const leftSheets = names.filter(n => !pickedSheets.includes(n));
+    const leftKinds = KINDS.map(k => k.id).filter(id => !pickedKinds.includes(id));
+
+    return {
+      kind: KIND,
+      title: cfg.title || extractTitle(cfg.source, pickedKinds),
+      note: cfg.note || '',
+      source: cfg.source || null,
+      taken: cfg.now || new Date().toISOString(),
+      // WHAT WAS PICKED AND WHAT WAS LEFT, both stated. The second is the half
+      // an envelope normally cannot express, and it is the difference between
+      // "this is the workbook" and "this is four kinds out of twelve".
+      picked: { sheets: pickedSheets, kinds: pickedKinds },
+      left: { sheets: leftSheets, kinds: leftKinds },
+      items,
+    };
+  }
+=== UNIT lib/kits/xlsx-extract.js:470 | call(…) > extract > push ===
+({ kindId, sheetName, part }) => {
+      const k = BY_ID[kindId];
+      const label = part.label ? `.${stem(part.label)}` : '';
+      if (part.text != null) {
+        // A label may already carry the extension (`Section1.m` is the part's
+        // own filename), and appending it again minted `workbook.Section1.m.m`.
+        const ext = part.ext || 'txt';
+        const named = `${stem(sheetName || 'workbook')}${label}`;
+        const name = uniquely(taken, named.endsWith(`.${ext}`) ? named : `${named}.${ext}`);
+        items.push({
+          name, view: k.view, note: noteFor({ truncated: false }, part.note),
+          content: part.text, kind: kindId, sheet: sheetName || null,
+          rows: null, total: null, truncated: false,
+        });
+        return;
+      }
+      const rows = part.rows || [];
+      const total = part.total == null ? rows.length : part.total;
+      const cut = maxRows != null && rows.length > maxRows;
+      const kept = cut ? rows.slice(0, maxRows) : rows;
+      const rec = {
+        rows: kept.length, total, truncated: !!(part.truncated || cut),
+      };
+      const name = uniquely(taken, `${stem(sheetName || 'workbook')}.${kindId}${label}.json`);
+      items.push({
+        name, view: k.view, note: noteFor(rec, part.note),
+        content: JSON.stringify(kept, null, 1),
+        kind: kindId, sheet: sheetName || null, ...rec,
+      });
+    }
+=== UNIT lib/kits/xlsx-extract.js:548 | call(…) > catalog ===
+function catalog(result) {
+    const { xl } = result;
+    const base = survey(result);
+    const names = new Set(base.sheets.map(s => s.name));
+    const objects = [];
+    const pivotRows = kit().views.pivots(result);
+    Object.entries(xl.pivotTables || {}).forEach(/* nested: forEach(…), lines 554-559 */);
+    caches(xl).forEach(/* nested: forEach(…), lines 560-570 */);
+    (xl.connections || []).forEach((c, index) => objects.push({
+      id: `source:${index}`, kind: 'sources', label: c.name || `Connection ${c.id || index + 1}`,
+      sheet: null, count: 1, index, detail: c.kind || '',
+    }));
+    (xl.powerQuery?.sections || []).forEach((q, index) => objects.push({
+      id: `query:${index}`, kind: 'queries', label: q.path.split('/').pop(),
+      sheet: null, count: 1, index, detail: 'M source',
+    }));
+    return { ...base, objects };
+  }
+=== UNIT lib/kits/xlsx-extract.js:554 | call(…) > catalog > forEach(…) ===
+([part, pt], index) => {
+      const sheet = xl.sheets[pt.sheet]?.name || null;
+      objects.push({ id: `pivot:${part}`, kind: 'pivots', label: pt.name || part.split('/').pop(),
+        sheet: names.has(sheet) ? sheet : null, count: 1, index,
+        detail: pivotRows[index]?.Source || '' });
+    }
+=== UNIT lib/kits/xlsx-extract.js:560 | call(…) > catalog > forEach(…) ===
+(part, index) => {
+      const cache = xl.pivotCaches[part];
+      const source = cache?.source;
+      const sheet = source?.sheet || null;
+      const got = kit().pivotRecords(xl, part);
+      if (!got?.total) return;
+      objects.push({ id: `records:${part}`, kind: 'records',
+        label: source ? `${source.sheet || source.name}!${source.ref}` : part.split('/').pop(),
+        sheet: names.has(sheet) ? sheet : null, count: got?.total || 0,
+        index, detail: 'Cached rows' });
+    }
+=== UNIT lib/kits/xlsx-extract.js:585 | call(…) > extractSelected ===
+function extractSelected(result, pick, opts) {
+    const want = pick || {};
+    const cfg = opts || {};
+    const cat = cfg.catalog || catalog(result);
+    const bySheet = new Map((want.sheets || []).map(s => [s.name, s.kinds || []]));
+    const wantedObjects = new Set(want.objects || []);
+    const pickedSheets = [];
+    const items = [];
+    const usedNames = new Set();
+    const now = cfg.now || new Date().toISOString();
+    const add = /* nested: add, lines 595-602 */;
+
+    for (const sh of cat.sheets) {
+      if (!bySheet.has(sh.name)) continue;
+      const kinds = KINDS.filter(k => k.scope === 'sheet' && sh.counts[k.id] > 0 &&
+        bySheet.get(sh.name).includes(k.id)).map(k => k.id);
+      pickedSheets.push({ name: sh.name, kinds });
+      for (const kind of kinds) {
+        const one = extract(result, { sheets: [sh.name], kinds: [kind], headerRow: want.headerRow }, cfg);
+        one.items.forEach(item => add(item));
+      }
+    }
+
+    const pickedObjects = cat.objects.filter(o => wantedObjects.has(o.id));
+    for (const kind of ['pivots', 'records', 'sources', 'queries']) {
+      const group = pickedObjects.filter(o => o.kind === kind);
+      if (!group.length) continue;
+      const all = extract(result, { sheets: [], kinds: [kind] }, cfg).items;
+      for (const object of group) {
+        if (kind === 'pivots' || kind === 'sources') {
+          const aggregate = all[0];
+          const row = aggregate && JSON.parse(aggregate.content)[object.index];
+          if (!row) continue;
+          add({ ...aggregate, name: `workbook.${kind}.${stem(object.label)}.json`,
+            content: JSON.stringify([row], null, 1), rows: 1, total: 1 }, object);
+        } else if (all[object.index]) {
+          add(all[object.index], object);
+        }
+      }
+    }
+
+    const selectedKinds = [...new Set([...pickedSheets.flatMap(s => s.kinds),
+      ...pickedObjects.map(o => o.kind)])];
+    return {
+      kind: SELECTED_KIND,
+      title: cfg.title || extractTitle(cfg.source, selectedKinds),
+      note: cfg.note || '', source: cfg.source || null, taken: now,
+      picked: { sheets: pickedSheets, objects: pickedObjects.map(({ id, kind, label, sheet }) =>
+        ({ id, kind, label, sheet })) },
+      left: {
+        sheets: cat.sheets.filter(s => !bySheet.has(s.name)).map(s => s.name),
+        sheetKinds: cat.sheets.filter(s => bySheet.has(s.name)).map(/* nested: map(…), lines 643-647 */).filter(s => s.kinds.length),
+        objects: cat.objects.filter(o => !wantedObjects.has(o.id)).map(o => o.id),
+      },
+      items,
+    };
+  }
+=== UNIT lib/kits/xlsx-extract.js:595 | call(…) > extractSelected > add ===
+(item, object) => {
+      const copy = { ...item, name: uniquely(usedNames, item.name) };
+      if (object) {
+        copy.object = object.id;
+        copy.sheet = object.sheet;
+      }
+      items.push(copy);
+    }
+=== UNIT lib/kits/xlsx-extract.js:643 | call(…) > extractSelected > map(…) ===
+s => ({
+          name: s.name,
+          kinds: KINDS.filter(k => k.scope === 'sheet' && s.counts[k.id] > 0 &&
+            !bySheet.get(s.name).includes(k.id)).map(k => k.id),
+        })
+=== UNIT lib/kits/xlsx-extract.js:684 | call(…) > receptions ===
+function receptions(cat, declared) {
+    const names = new Set((cat?.sheets || []).map(s => s.name));
+    const out = [];
+    for (const r of declared || []) {
+      const want = r?.match?.sheets || [];
+      if (want.length && !want.every(n => names.has(n))) continue;
+      const omitNames = new Set((r.omit || []).filter(n => n !== HIDDEN));
+      const omitHidden = (r.omit || []).includes(HIDDEN);
+      const left = (s) => omitNames.has(s.name) || (omitHidden && isHidden(s));
+      const readings = (r.readings || ['cells']).filter(id => BY_ID[id]?.scope === 'sheet');
+      const sheets = cat.sheets.filter(s => !left(s))
+        .map(s => ({ name: s.name, kinds: readings.filter(id => (s.counts?.[id] || 0) > 0) }))
+        .filter(s => s.kinds.length);
+      out.push({
+        reception: r,
+        pick: { sheets, objects: [] },
+        omitted: cat.sheets.filter(left).map(s => s.name),
+        // The declared names, not the ones currently in breach: a pick changes
+        // with every tick, so the caller tests against this as it repaints and
+        // there is one statement of the rule rather than two.
+        never: (r.never || []).filter(n => names.has(n)),
+        cap: r.cap === undefined ? null : r.cap,
+      });
+    }
+    return out;
+  }
+=== UNIT lib/kits/xlsx-extract.js:718 | call(…) > receptionTarget ===
+function receptionTarget(r, source, now, sheet) {
+    const when = now || new Date().toISOString();
+    const day = when.slice(0, 10), time = when.slice(11, 13) + when.slice(14, 16);
+    const stemName = stem(String(source?.name || 'workbook').replace(/\.[^.]+$/, ''));
+    const sheetName = sheet ? stem(String(sheet)).toLowerCase() : 'workbook';
+    const fill = (t) => String(t || '').replace(/\{date\}/g, day).replace(/\{time\}/g, time).replace(/\{stem\}/g, stemName)
+      .replace(/\{slug\}/g, stemName.toLowerCase()).replace(/\{sheet\}/g, sheetName);
+    return { dest: fill(r?.dest), file: fill(r?.file) || `${stemName}.extract.json` };
+  }
+=== UNIT lib/kits/report-layout.js:36 | call(…) ===
+() => {
+  // A separator no label carries, so a composite key cannot be forged by two
+  // labels that happen to abut.
+  const SEP = '\u0001';
+  const s = v => (v == null ? '' : String(v));
+  const num = v => {
+    const n = typeof v === 'number' ? v : parseFloat(v);
+    return Number.isFinite(n) ? n : null;
+  };
+  // Escaping is window.esc from vanilla-bundle.js, first in the boot chain,
+  // so this file holds no second answer to the same question.
+  const esc = v => window.esc(s(v));
+
+  // Declared order wins; otherwise first appearance, which keeps an authored
+  // rows file in charge of its own reading order.
+  const axis = /* nested: axis, lines 51-56 */;
+
+  // build(spec, rows) -> model
+  //   columns: [{ key, band, within, gapBefore }]
+  //   rows:    [{ kind, labels, values }]   kind: opening | item | subtotal | total
+  // The model is plain data and is the stage the renderer draws from, so the
+  // table can be checked, diffed or exported without going near markup.
+  /* nested: build, lines 63-134 */
+
+  const fmt = /* nested: fmt, lines 136-140 */;
+
+  // Consecutive columns sharing a band, for the header's colspans.
+  const bandRuns = /* nested: bandRuns, lines 143-148 */;
+
+  // The second way in: a PARTITION TREE rather than long rows.
+  //
+  // transform-workbench.js's Pivot view already nests and accumulates, and its
+  // pvDraw() says where the seam is: "this computes the partition, the host
+  // decides whether to draw it as an indented table, a treemap or a till
+  // receipt." A report is one more of those, so this adapts the tree it already
+  // publishes instead of asking the workbench to re-fold its rows.
+  //
+  // Two of that view's rules carry straight through and are the reason the fit
+  // is close rather than merely possible. A node records only the column keys
+  // it saw, so a missing cell is blank and never a zero, which is this format's
+  // own distinction arrived at independently. And `res.partition` is true only
+  // for sum and count: under avg, min or max a parent is NOT the sum of its
+  // children, so subtotal rows are withheld rather than printed as numbers that
+  // merely sit above other numbers.
+  //
+  // ORDER IS THE READER'S, NOT THE TREE'S. pvTree sorts each node's children by
+  // value descending, because reading by magnitude is what the Pivot view is
+  // for. A printed report usually wants the other one: the order the analyst
+  // wrote the rows in, where a residual block like "Other" sits last by
+  // convention rather than wherever its size puts it. Neither reading is a
+  // property of the partition, so the tree carries `seq`, each node's position
+  // among its siblings before that sort, and `order: 'source'` reads it back.
+  // The Pivot view is untouched by this: `seq` never reaches pvFlat, which
+  // builds its row objects field by field.
+  /* nested: fromPartition, lines 175-227 */
+
+  /* nested: render, lines 229-278 */
+
+  // The way back to a workbook. Raw numbers, not the formatted strings, so the
+  // paste lands as numbers rather than as text Excel has to be argued with.
+  /* nested: tsv, lines 282-299 */
+
+  window.ReportLayout = { build, fromPartition, render, tsv, fmt };
+}
+=== UNIT lib/kits/report-layout.js:51 | call(…) > axis ===
+(rows, field, declared) => {
+    if (declared && declared.length) return declared.slice();
+    const out = [];
+    for (const r of rows) { const v = s(r[field]); if (v && !out.includes(v)) out.push(v); }
+    return out;
+  }
+=== UNIT lib/kits/report-layout.js:63 | call(…) > build ===
+function build(spec, rows) {
+    const cs = spec.columns;
+    const measure = spec.measure || 'value';
+    const bands = axis(rows, cs.band, cs.bands);
+    const withins = axis(rows, cs.within, cs.withins);
+    const gap = cs.gap !== false;
+
+    const columns = [];
+    bands.forEach((b, bi) => withins.forEach((w, wi) => {
+      columns.push({ key: b + SEP + w, band: b, within: w, gapBefore: gap && bi > 0 && wi === 0 });
+    }));
+
+    const levels = spec.rows.levels;
+    const isOpening = r => (spec.opening
+      ? Object.entries(spec.opening.where).every(([k, v]) => s(r[k]) === v)
+      : false);
+
+    const fold = /* nested: fold, lines 80-89 */;
+
+    const opening = rows.filter(isOpening);
+    const body = rows.filter(r => !isOpening(r));
+
+    // One leaf per distinct level tuple, in first appearance order, then the
+    // leaves gathered under the subtotal level in the order that level first
+    // appeared. An authored rows file that lists an item's versions together
+    // therefore prints in the order it was written.
+    const at = spec.subtotal ? spec.subtotal.at : null;
+    const leaves = new Map();
+    for (const r of body) {
+      const k = levels.map(l => s(r[l])).join(SEP);
+      if (!leaves.has(k)) leaves.set(k, { labels: levels.map(l => s(r[l])), group: at ? s(r[at]) : '', src: [] });
+      leaves.get(k).src.push(r);
+    }
+    const groups = [];
+    for (const leaf of leaves.values()) {
+      let g = groups.find(x => x.name === leaf.group);
+      if (!g) groups.push((g = { name: leaf.group, leaves: [] }));
+      g.leaves.push(leaf);
+    }
+
+    const out = [];
+    const openValues = opening.length ? fold(opening) : null;
+    if (openValues) out.push({ kind: 'opening', labels: [spec.opening.label], values: openValues });
+
+    const subtotals = [];
+    for (const g of groups) {
+      for (const leaf of g.leaves) out.push({ kind: 'item', labels: leaf.labels, values: fold(leaf.src) });
+      if (at) {
+        const v = fold(g.leaves.flatMap(l => l.src));
+        subtotals.push(v);
+        out.push({ kind: 'subtotal', labels: [spec.subtotal.label.replace('{' + at + '}', g.name)], values: v });
+      }
+    }
+
+    if (spec.total) {
+      const v = {};
+      for (const m of [openValues || {}, ...subtotals])
+        for (const [k, n] of Object.entries(m)) v[k] = (v[k] || 0) + n;
+      out.push({ kind: 'total', labels: [spec.total.label], values: v });
+    }
+
+    return { title: spec.title || '', columns, levels, rows: out };
+  }
+=== UNIT lib/kits/report-layout.js:80 | call(…) > build > fold ===
+src => {
+      const out = {};
+      for (const r of src) {
+        const v = num(r[measure]);
+        if (v == null) continue;
+        const k = s(r[cs.band]) + SEP + s(r[cs.within]);
+        out[k] = (out[k] || 0) + v;
+      }
+      return out;
+    }
+=== UNIT lib/kits/report-layout.js:136 | call(…) > fmt ===
+(v, style) => {
+    if (v == null) return '';
+    if (style === 'plain') return String(v);
+    return Math.round(v).toLocaleString('en-US');
+  }
+=== UNIT lib/kits/report-layout.js:143 | call(…) > bandRuns ===
+columns => columns.reduce(/* nested: reduce(…), lines 143-148 */, [])
+=== UNIT lib/kits/report-layout.js:143 | call(…) > bandRuns > reduce(…) ===
+(runs, c) => {
+    const last = runs[runs.length - 1];
+    if (last && last.name === c.band) last.n++;
+    else runs.push({ name: c.band, n: 1, gapBefore: c.gapBefore });
+    return runs;
+  }
+=== UNIT lib/kits/report-layout.js:175 | call(…) > fromPartition ===
+function fromPartition(res, opts) {
+    const o = opts || {};
+    const levels = o.levels || [];
+    const sep = o.keySep || ' \u00b7 ';
+    const keys = res.colKeys || [];
+
+    let columns;
+    if (!keys.length) {
+      columns = [{ key: '', band: '', within: o.measureLabel || 'value', gapBefore: false }];
+    } else {
+      let last = null;
+      columns = keys.map(/* nested: map(…), lines 186-193 */);
+    }
+
+    // With no column axis the tree carries no cells, so the node's own value is
+    // the single column.
+    const cellsOf = node => (keys.length ? { ...node.cells } : { '': node.value });
+
+    // A node's children in the reading this report wants. 'source' needs seq,
+    // so a tree built before pvTree carried it falls back to the tree's own
+    // order rather than to an undefined sort.
+    const kids = /* nested: kids, lines 203-208 */;
+
+    const out = [];
+    const subtotal = o.subtotal !== false && res.partition && levels.length > 1;
+    const leaves = (node, path) => {
+      if (path.length >= levels.length) return out.push({ kind: 'item', labels: path, values: cellsOf(node) });
+      for (const kid of kids(node)) leaves(kid, [...path, kid.label]);
+    };
+    for (const top of kids(res.tree)) {
+      leaves(top, [top.label]);
+      if (subtotal) out.push({
+        kind: 'subtotal',
+        labels: [(o.subtotalLabel || '{group} Total').replace('{group}', top.label)],
+        values: cellsOf(top),
+      });
+    }
+    if (o.total !== false) out.push({ kind: 'total', labels: [o.totalLabel || 'Total'], values: cellsOf(res.tree) });
+
+    return { title: o.title || '', columns, levels, rows: out, partition: !!res.partition };
+  }
+=== UNIT lib/kits/report-layout.js:186 | call(…) > fromPartition > map(…) ===
+k => {
+        const i = o.band ? k.indexOf(sep) : -1;
+        const band = i < 0 ? '' : k.slice(0, i);
+        const within = i < 0 ? k : k.slice(i + sep.length);
+        const gapBefore = !!band && last !== null && band !== last;
+        last = band;
+        return { key: k, band, within, gapBefore };
+      }
+=== UNIT lib/kits/report-layout.js:203 | call(…) > fromPartition > kids ===
+node => {
+      const cs = node.children || [];
+      return o.order === 'source' && cs.every(c => typeof c.seq === 'number')
+        ? [...cs].sort((a, b) => a.seq - b.seq)
+        : cs;
+    }
+=== UNIT lib/kits/report-layout.js:229 | call(…) > render ===
+function render(model, spec) {
+    const style = ((spec && spec.format) || {}).style;
+    const L = model.levels.length;
+    const gapCell = tag => `<${tag} class="w-4 border-0 p-0"></${tag}>`;
+    const corner = `<th colspan="${L}" class="border-0 bg-base-100"></th>`;
+
+    // One column axis means one header row. The band row is drawn only where a
+    // band exists, so a pivot on a single column dimension does not get an
+    // empty dark stripe over it.
+    const banded = model.columns.some(c => c.band);
+    const head = [
+      banded ? '<tr>' + corner + bandRuns(model.columns).map(r =>
+        (r.gapBefore ? gapCell('th') : '')
+        + `<th colspan="${r.n}" class="bg-neutral text-center font-semibold text-neutral-content">${esc(r.name)}</th>`
+      ).join('') + '</tr>' : '',
+      '<tr>' + corner + model.columns.map(c =>
+        (c.gapBefore ? gapCell('th') : '')
+        + `<th class="text-right font-semibold">${esc(c.within)}</th>`
+      ).join('') + '</tr>',
+    ].join('');
+
+    // Repeat suppression down the label columns, which is what makes the row
+    // hierarchy read as a spreadsheet rather than as an indented tree.
+    const carried = new Array(L).fill(null);
+    const body = model.rows.map(/* nested: map(…), lines 253-273 */).join('');
+
+    return (model.title ? `<div class="mb-2 font-semibold text-balance">${esc(model.title)}</div>` : '')
+      + '<div class="overflow-x-auto"><table class="table table-sm w-max">'
+      + `<thead>${head}</thead><tbody>${body}</tbody></table></div>`;
+  }
+=== UNIT lib/kits/report-layout.js:253 | call(…) > render > map(…) ===
+row => {
+      let lead;
+      if (row.kind === 'item') {
+        lead = row.labels.map(/* nested: map(…), lines 256-260 */).join('');
+      } else {
+        carried.fill(null);
+        lead = `<td colspan="${L}" class="whitespace-nowrap font-semibold">${esc(row.labels[0])}</td>`;
+      }
+
+      const tint = row.kind === 'item' ? '' : ' bg-base-200 font-semibold';
+      const rule = row.kind === 'total' ? ' border-t-2 border-base-content/20' : '';
+      const values = model.columns.map(c =>
+        (c.gapBefore ? gapCell('td') : '')
+        + `<td class="text-right tabular-nums">${fmt(row.values[c.key], style)}</td>`
+      ).join('');
+      return `<tr class="${tint}${rule}">${lead}${values}</tr>`;
+    }
+=== UNIT lib/kits/report-layout.js:256 | call(…) > render > map(…) > map(…) ===
+(v, i) => {
+          const show = v && v !== carried[i];
+          if (v !== carried[i]) { carried[i] = v; carried.fill(null, i + 1); }
+          return `<td class="whitespace-nowrap">${show ? esc(v) : ''}</td>`;
+        }
+=== UNIT lib/kits/report-layout.js:282 | call(…) > tsv ===
+function tsv(model) {
+    const L = model.levels.length;
+    const pad = new Array(L).fill('');
+    const lines = [
+      [...pad, ...model.columns.map(c => c.band)].join('\t'),
+      [...pad, ...model.columns.map(c => c.within)].join('\t'),
+    ];
+    for (const row of model.rows) {
+      const lead = row.kind === 'item'
+        ? [...row.labels, ...new Array(Math.max(0, L - row.labels.length)).fill('')]
+        : [row.labels[0], ...new Array(Math.max(0, L - 1)).fill('')];
+      lines.push([...lead, ...model.columns.map(c => {
+        const v = row.values[c.key];
+        return v == null ? '' : String(v);
+      })].join('\t'));
+    }
+    return lines.join('\n');
+  }
+=== UNIT lib/kits/csv.js:13 | call(…) ===
+function () {
+  /* nested: parseLine, lines 14-29 */
+
+  // Header-driven, so a column reorder upstream cannot silently shift meanings.
+  /* nested: rows, lines 32-40 */
+
+  // A blank cell means NOT ASSERTED. Where a column has to tell that from
+  // "checked, and the answer is none", its value domain carries an explicit
+  // token; splitting a blank here yields [], never [''].
+  // Values can contain the delimiter (an assertion name did), so it is escaped
+  // on the way out and honoured on the way back. Backslash escapes itself.
+  const split = (s) => String(s).split(/(?<!\\);/)
+    .map(x => x.replace(/\\;/g, ';').replace(/\\\\/g, '\\'));
+  const join = (xs) => xs.map(x => String(x).replace(/\\/g, '\\\\').replace(/;/g, '\\;')).join(';');
+  const list = (s) => (s ? split(s).map(x => x.trim()).filter(Boolean) : []);
+
+  window.Csv = { parseLine, rows, list, split, join };
+}
+=== UNIT lib/kits/csv.js:14 | call(…) > parseLine ===
+function parseLine(line) {
+    const out = [];
+    let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (inQ) {
+        if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+        else if (ch === '"') inQ = false;
+        else cur += ch;
+      } else if (ch === '"') inQ = true;
+      else if (ch === ',') { out.push(cur); cur = ''; }
+      else cur += ch;
+    }
+    out.push(cur);
+    return out;
+  }
+=== UNIT lib/kits/csv.js:32 | call(…) > rows ===
+function rows(text) {
+    const lines = String(text || '').split(/\r?\n/).filter(l => l.trim());
+    if (!lines.length) return [];
+    const head = parseLine(lines[0]).map(h => h.trim());
+    return lines.slice(1).map(line => {
+      const f = parseLine(line);
+      return Object.fromEntries(head.map((h, i) => [h, (f[i] ?? '').trim()]));
+    });
+  }
+=== UNIT lib/kits/row-menu.js:35 | call(…) ===
+() => {
+  // io.js FETCHED AT LOAD TIME, never inside the click. A clipboard write has to
+  // run in the user gesture that asked for it, and an await before the write
+  // spends the activation Safari counts. Same idiom, and the same reason, as
+  // md-doc.js and the other three delegates the clipboard gate names.
+  const ghRef = typeof gh !== 'undefined' ? gh : (window.gh || null);
+  if (!window.io && ghRef) ghRef.load('kits/io.js').catch(() => {});
+  const copyText = async (text) => {
+    if (window.io && typeof window.io.copy === 'function') return window.io.copy(text);
+    try { await navigator.clipboard.writeText(text); return true; } catch { return false; }
+  };
+
+  const h = /* nested: h, lines 47-56 */;
+
+  // A CELL AS ONE FIELD OF ONE LINE. Tabs and newlines inside a value would
+  // otherwise become column and row breaks in the paste, so a single cell
+  // holding a paragraph turns into rows of garbage in the sheet it lands in.
+  // Collapsed rather than quoted, because TSV has no quoting anyone agrees on.
+  const cell = (v) => v == null ? '' : String(v).replace(/[\t\r\n]+/g, ' ');
+
+  // TSV, HEADERS INCLUDED, for one row and for the whole list alike. It is the
+  // one format that survives a paste into a spreadsheet, a chat and an editor
+  // without a decision at either end. A single row keeps its header line for
+  // the same reason: pasted alone, a row of bare values says nothing about
+  // which column each one came from.
+  const tsv = (columns, rows) => [
+    columns.map(c => cell(c.title || c.field)),
+    ...rows.map(r => columns.map(c => cell(r[c.field]))),
+  ].map(r => r.join('\t')).join('\n');
+
+  // The visible, field-bearing columns, in the order the grid shows them. Same
+  // filter record-deck's fromGrid applies, so the copy and the card agree about
+  // what the row consists of.
+  const columnsOf = /* nested: columnsOf, lines 77-83 */;
+  const activeRows = (table) => {
+    try { return table.getRows('active').map(r => r.getData()); } catch { return []; }
+  };
+
+  // ── the menu ──────────────────────────────────────────────────────────────
+  //
+  // One at a time, held in a module-level handle rather than a stack: a second
+  // menu opening while the first is up is a mis-tap, not a drill-down, and two
+  // floating panels at once on a phone is the failure this is meant to avoid.
+  let live = null;
+
+  /* nested: close, lines 95-105 */
+
+  // Placed after it is in the document, because its size is not known until it
+  // has been laid out and the clamp needs the size. Hidden for that one frame
+  // so the reader never sees it at the origin first.
+  /* nested: place, lines 110-120 */
+
+  // items: [{ label, icon, run, keep }]. `run` may return a string, which
+  // replaces the label for a beat before the menu closes: that is how a copy
+  // reports, since a clipboard write has no other visible effect and a toast
+  // would be a second floating thing to dismiss. `keep` holds the menu open.
+  // `square`: Excel's own look, for a host that is drawing a sheet (the
+  // formula-bar copy menu): square corners, a hairline frame, tighter rows.
+  // The phone hit target stays, since a mis-tap there costs an action.
+  /* nested: open, lines 129-179 */
+
+  // ── attaching to a Tabulator table ────────────────────────────────────────
+  //
+  // opts:
+  //   deck      options handed to recordDeck.fromGrid ({ title, describe, … }),
+  //             or false to leave the item out. The item is omitted anyway when
+  //             record-deck is not loaded, so a host that never wants the deck
+  //             can simply not load the kit.
+  //   copy      false to leave both copy items out. Default on.
+  //   items     [{ label, icon, run(ctx) }] appended, ctx = { row, data, table }
+  //   skip      (event) => boolean, extra suppression on top of the link rule
+  //   noun      what one row is, for the deck item's wording. Default 'record'.
+  //
+  // THE LINK RULE. A row whose cell holds a link, a button or a field is a row
+  // where the tap already meant something, so the menu stays out of the way.
+  // Checked on the tap's own target rather than declared per column, since the
+  // host that renders a link into a cell is rarely the host wiring this up.
+  const INTERACTIVE = 'a,button,input,select,textarea,label,[contenteditable],[data-no-row-menu]';
+
+  /* nested: attach, lines 199-245 */
+
+  window.rowMenu = { attach, open, close, tsv, columnsOf };
+}
+=== UNIT lib/kits/row-menu.js:47 | call(…) > h ===
+(tag, attrs = {}, ...kids) => {
+    const el = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (v == null || v === false) continue;
+      if (k === 'text') el.textContent = v;
+      else el.setAttribute(k, v);
+    }
+    for (const k of kids.flat()) if (k) el.append(k);
+    return el;
+  }
+=== UNIT lib/kits/row-menu.js:77 | call(…) > columnsOf ===
+(table) => {
+    try {
+      return table.getColumns()
+        .filter(c => c.getField && c.getField() && (!c.isVisible || c.isVisible()))
+        .map(c => ({ field: c.getField(), title: (c.getDefinition() || {}).title || c.getField() }));
+    } catch { return []; }
+  }
+=== UNIT lib/kits/row-menu.js:95 | call(…) > close ===
+function close() {
+    if (!live) return;
+    const { el, onDoc, onKey, onMove, mark } = live;
+    live = null;
+    document.removeEventListener('pointerdown', onDoc, true);
+    document.removeEventListener('keydown', onKey, true);
+    document.removeEventListener('scroll', onMove, true);
+    window.removeEventListener('resize', onMove);
+    if (mark) mark.classList.remove('row-menu-on');
+    el.remove();
+  }
+=== UNIT lib/kits/row-menu.js:110 | call(…) > place ===
+function place(el, x, y) {
+    el.style.visibility = 'hidden';
+    el.style.left = '0px';
+    el.style.top = '0px';
+    document.body.append(el);
+    const r = el.getBoundingClientRect();
+    const w = window.innerWidth, hgt = window.innerHeight;
+    el.style.left = Math.round(Math.min(Math.max(8, x), Math.max(8, w - r.width - 8))) + 'px';
+    el.style.top = Math.round(Math.min(Math.max(8, y), Math.max(8, hgt - r.height - 8))) + 'px';
+    el.style.visibility = '';
+  }
+=== UNIT lib/kits/row-menu.js:129 | call(…) > open ===
+function open({ x = 0, y = 0, items = [], mark = null, square = false } = {}) {
+    close();
+    if (!items.length) return () => {};
+    const el = h('div', {
+      class: square
+        ? 'menu menu-xs fixed z-[70] w-max min-w-36 max-w-[80vw] rounded-none border border-base-content/20 bg-base-100 p-0.5 shadow-md'
+        : 'menu menu-sm fixed z-[70] w-max min-w-40 max-w-[80vw] rounded-box border border-base-300 bg-base-100 p-1 shadow-xl',
+      role: 'menu',
+    });
+    for (const it of items) {
+      const label = h('span', { class: 'grow truncate', text: it.label });
+      const row = h('button', {
+        type: 'button', role: 'menuitem',
+        // max-sm:min-h-11 is the phone hit target, the same 44px swipe-deck's
+        // entry buys with max-sm:h-11: a menu is the one place a mis-tap costs
+        // an action rather than nothing.
+        class: (square ? 'rounded-none px-2 py-1 text-[13px]' : 'rounded px-2 py-1.5')
+             + ' flex w-full items-center gap-2 text-left max-sm:min-h-11 hover:bg-base-200',
+      }, it.icon ? h('i', { class: 'ph ' + it.icon + ' shrink-0 text-base opacity-70' }) : null, label);
+      row.addEventListener('click', /* nested: addEventListener(click), lines 148-161 */);
+      el.append(row);
+    }
+
+    // Dismissal, four ways, all outside the menu: a tap elsewhere, Escape, any
+    // scroll (the menu is fixed and the row under it is not, so a scrolled menu
+    // is pointing at the wrong row), and a resize.
+    const onDoc = (e) => { if (!el.contains(e.target)) close(); };
+    const onKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); close(); } };
+    const onMove = () => close();
+    place(el, x, y);
+    if (mark) mark.classList.add('row-menu-on');
+    live = { el, onDoc, onKey, onMove, mark };
+    document.addEventListener('pointerdown', onDoc, true);
+    document.addEventListener('keydown', onKey, true);
+    document.addEventListener('scroll', onMove, true);
+    window.addEventListener('resize', onMove);
+    return close;
+  }
+=== UNIT lib/kits/row-menu.js:148 | call(…) > open > addEventListener(click) ===
+() => {
+        let said;
+        try { said = it.run && it.run(); } catch (e) { said = 'Failed'; }
+        const settle = /* nested: settle, lines 151-157 */;
+        if (said && typeof said.then === 'function') said.then(settle, () => settle('Failed'));
+        else if (typeof said === 'string') settle(said);
+        else if (!it.keep) close();
+      }
+=== UNIT lib/kits/row-menu.js:151 | call(…) > open > addEventListener(click) > settle ===
+(t) => {
+          if (!t || live?.el !== el) return;
+          label.textContent = t;
+          // This menu's own close: one opened in the 700ms since, by a
+          // second right-click, is not the one that reported.
+          if (!it.keep) setTimeout(() => { if (live?.el === el) close(); }, 700);
+        }
+=== UNIT lib/kits/row-menu.js:199 | call(…) > attach ===
+function attach(table, opts = {}) {
+    if (!table || typeof table.on !== 'function') return () => {};
+    const noun = opts.noun || 'record';
+    const onRowClick = /* nested: onRowClick, lines 202-239 */;
+    table.on('rowClick', onRowClick);
+    return () => {
+      close();
+      try { table.off('rowClick', onRowClick); } catch { /* a table already destroyed */ }
+    };
+  }
+=== UNIT lib/kits/row-menu.js:202 | call(…) > attach > onRowClick ===
+(e, row) => {
+      if (e && e.target && e.target.closest && e.target.closest(INTERACTIVE)) return;
+      if (opts.skip && opts.skip(e)) return;
+      const data = (row && row.getData && row.getData()) || null;
+      if (!data) return;
+      const cols = columnsOf(table);
+      const items = [];
+
+      if (opts.deck !== false && window.recordDeck && typeof window.recordDeck.fromGrid === 'function') {
+        items.push({
+          icon: window.swipeDeck?.entry?.icon || 'ph-cards-three',
+          label: 'Read from here',
+          run: () => { window.recordDeck.fromGrid(table, { ...(opts.deck || {}), startRow: data }); },
+        });
+      }
+      if (opts.copy !== false && cols.length) {
+        const rows = activeRows(table);
+        items.push({
+          icon: 'ph-copy', label: 'Copy this ' + noun,
+          run: () => copyText(tsv(cols, [data])).then(ok => ok ? 'Copied' : 'Copy failed'),
+        });
+        // THE COUNT IS THE LABEL, and it is the count of what is on screen. A
+        // filtered grid copies what the filter left, so a label reading "Copy
+        // table" over 74 of 322 rows would be describing the file rather than
+        // the copy. Same promise swipe-deck's entry makes about its own count.
+        if (rows.length > 1) items.push({
+          icon: 'ph-table', label: 'Copy ' + rows.length.toLocaleString() + ' rows',
+          run: () => copyText(tsv(cols, rows)).then(ok => ok ? 'Copied' : 'Copy failed'),
+        });
+      }
+      for (const it of (opts.items || [])) {
+        items.push({ ...it, run: () => it.run && it.run({ row, data, table }) });
+      }
+      if (!items.length) return;
+
+      const el = row.getElement && row.getElement();
+      open({ x: e?.clientX || 0, y: e?.clientY || 0, items, mark: el });
+    }
+=== UNIT lib/kits/json-explorer.js:23 | call(…) ===
+function () {
+  // ── DOM Helpers ──────────────────────────────────────────────────────────
+  const h = /* nested: h, lines 25-40 */;
+
+  // vanilla-bundle.js's window.esc, the one escape: it quotes as well, which
+  // the textContent trick this replaced did not.
+  const esc = (s) => window.esc(s);
+
+  // The clipboard write is kits/io.js's (node/test/clipboard-one-owner.test.mjs).
+  // Fetched at load time so the write runs inside the tap that asked for it;
+  // without io.js the modern API alone is the fallback.
+  const ghRef = typeof gh !== 'undefined' ? gh : (window.gh || null);
+  if (!window.io && ghRef) ghRef.load('kits/io.js').catch(() => {});
+  const copyText = async (text) => {
+    if (window.io && typeof window.io.copy === 'function') return window.io.copy(text);
+    try { await navigator.clipboard.writeText(text); return true; } catch { return false; }
+  };
+
+  const fmtBytes = /* nested: fmtBytes, lines 56-61 */;
+
+  const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$/;
+
+  const formatIsoDate = /* nested: formatIsoDate, lines 65-87 */;
+
+  // ── JsonProfile: Schema & Structure Analyzer ─────────────────────────────
+  const JsonProfile = {
+    analyze/* nested: analyze, lines 91-174 */,
+  };
+
+  // ── JsonExplorer Component ───────────────────────────────────────────────
+  //
+  // A PROPERTY SHEET, not a syntax-coloured dump. Reworked 2026-10-22 on the
+  // owner's report from the session form's Raw tab: "it's all cluttered, and
+  // there's too much going on, and it raises the question of what we're really
+  // trying to show here." What a reader opens a record's raw form to learn is
+  // which fields it has, how much of the whole each one is, and what one of
+  // them holds. So a row is a key and its value, a collection says how many
+  // items it has, and its size sits in a right-hand column the eye can run
+  // down, which is the comparison a 5.7 MB record invites (where did the bytes
+  // go). Colour is spent once, on the filter's matches (house style rule 10).
+  //
+  // What went, and why each was clutter rather than capability:
+  //   - the syntax palette (green strings, blue numbers, amber booleans): it
+  //     coloured every value by type, which the value's own text already says;
+  //   - the chunk select, a second copy of the tree's own drill-in;
+  //   - Collapse / Depth 1 / Expand: "Expand" laid every node of a 5.7 MB record
+  //     into the page at once, and the other two were the default view and its
+  //     collapse; one icon now returns to the top level, shown when there is
+  //     something to collapse;
+  //   - the per-row copy-path and copy-value buttons, revealed on hover, which a
+  //     touch screen has none of. Copy acts on whatever the tree is opened to;
+  //   - the root row, which drew "nullnull" because Element.append writes a
+  //     null argument as the text "null", and said nothing the crumbs do not;
+  //   - the rebuilt toolbar: every keystroke in the filter re-rendered the
+  //     toolbar and replaced the input, so a second character never landed.
+  //     The chrome is built once and updated in place.
+  const JsonExplorer = {
+    mount/* nested: mount, lines 205-746 */,
+  };
+
+  window.JsonProfile = JsonProfile;
+  window.JsonExplorer = JsonExplorer;
+}
+=== UNIT lib/kits/json-explorer.js:25 | call(…) > h ===
+(tag, attrs = {}, ...kids) => {
+    const el = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (v == null || v === false) continue;
+      if (k === 'text') el.textContent = v;
+      else if (k === 'html') el.innerHTML = v;
+      else if (k === 'class') el.className = v;
+      else if (k.startsWith('on') && typeof v === 'function') {
+        el.addEventListener(k.slice(2).toLowerCase(), v);
+      } else el.setAttribute(k, v);
+    }
+    for (const k of kids.flat(Infinity)) {
+      if (k != null && k !== false) el.append(k);
+    }
+    return el;
+  }
+=== UNIT lib/kits/json-explorer.js:56 | call(…) > fmtBytes ===
+(n) => {
+    if (n == null || isNaN(n)) return '';
+    if (n < 1024) return n + ' B';
+    if (n < 1048576) return (n / 1024).toFixed(1) + ' KB';
+    return (n / 1048576).toFixed(1) + ' MB';
+  }
+=== UNIT lib/kits/json-explorer.js:65 | call(…) > formatIsoDate ===
+(str) => {
+    if (!ISO_DATE_RE.test(str)) return null;
+    const ms = Date.parse(str);
+    if (isNaN(ms)) return null;
+    const d = new Date(ms);
+    const now = Date.now();
+    const diff = now - ms;
+    let rel = '';
+    if (diff >= 0) {
+      const s = Math.floor(diff / 1000);
+      if (s < 60) rel = 'just now';
+      else if (s < 3600) rel = `${Math.floor(s / 60)}m ago`;
+      else if (s < 86400) rel = `${Math.floor(s / 3600)}h ago`;
+      else rel = `${Math.floor(s / 86400)}d ago`;
+    } else {
+      const s = Math.floor(-diff / 1000);
+      if (s < 60) rel = 'in a few seconds';
+      else if (s < 3600) rel = `in ${Math.floor(s / 60)}m`;
+      else rel = `in ${Math.floor(s / 3600)}h`;
+    }
+    const isoUtc = d.toISOString().replace('.000Z', 'Z').replace('T', ' ');
+    return { rel, full: isoUtc };
+  }
+=== UNIT lib/kits/json-explorer.js:91 | call(…) > analyze ===
+(data) {
+      let nodeCount = 0;
+      let maxDepth = 0;
+      const typeCounts = { object: 0, array: 0, string: 0, number: 0, boolean: 0, null: 0 };
+
+      const walk = /* nested: walk, lines 96-114 */;
+
+      walk(data, 0);
+
+      const jsonStr = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+      const byteSize = new Blob([jsonStr]).size;
+
+      // Top-level properties / collections breakdown
+      const rootEntries = [];
+      const collections = [];
+
+      if (data && typeof data === 'object' && !Array.isArray(data)) {
+        for (const [k, v] of Object.entries(data)) {
+          const isArr = Array.isArray(v);
+          const isObj = v && typeof v === 'object' && !isArr;
+          const count = isArr ? v.length : isObj ? Object.keys(v).length : null;
+          const type = isArr ? 'array' : isObj ? 'object' : v === null ? 'null' : typeof v;
+          const entry = { key: k, type, count, isCollection: isArr || isObj, value: v };
+          rootEntries.push(entry);
+
+          if (isArr && v.length > 0 && typeof v[0] === 'object' && v[0] !== null) {
+            // Infer table schema for record arrays
+            const colMap = new Map();
+            for (const item of v) {
+              if (!item || typeof item !== 'object') continue;
+              for (const [colName, colVal] of Object.entries(item)) {
+                if (!colMap.has(colName)) {
+                  colMap.set(colName, { name: colName, types: new Set(), nonNull: 0, samples: [] });
+                }
+                const c = colMap.get(colName);
+                if (colVal != null && colVal !== '') {
+                  c.nonNull++;
+                  c.types.add(Array.isArray(colVal) ? 'array' : typeof colVal);
+                  if (c.samples.length < 3 && !c.samples.includes(String(colVal))) {
+                    c.samples.push(String(colVal));
+                  }
+                }
+              }
+            }
+            const columns = [...colMap.values()].map(/* nested: map(…), lines 153-158 */);
+            collections.push({ key: k, length: v.length, columns, isRecordArray: true });
+          } else if (isArr || isObj) {
+            collections.push({ key: k, length: count, columns: [], isRecordArray: false });
+          }
+        }
+      }
+
+      return {
+        byteSize,
+        nodeCount,
+        maxDepth,
+        typeCounts,
+        rootEntries,
+        collections,
+      };
+    }
+=== UNIT lib/kits/json-explorer.js:96 | call(…) > analyze > walk ===
+(val, depth = 0) => {
+        nodeCount++;
+        if (depth > maxDepth) maxDepth = depth;
+        if (val === null) {
+          typeCounts.null++;
+        } else if (Array.isArray(val)) {
+          typeCounts.array++;
+          for (let i = 0; i < val.length; i++) walk(val[i], depth + 1);
+        } else if (typeof val === 'object') {
+          typeCounts.object++;
+          for (const k in val) walk(val[k], depth + 1);
+        } else if (typeof val === 'string') {
+          typeCounts.string++;
+        } else if (typeof val === 'number') {
+          typeCounts.number++;
+        } else if (typeof val === 'boolean') {
+          typeCounts.boolean++;
+        }
+      }
+=== UNIT lib/kits/json-explorer.js:153 | call(…) > analyze > map(…) ===
+c => ({
+              name: c.name,
+              type: [...c.types].join(' | ') || 'null',
+              fillRate: v.length ? c.nonNull / v.length : 0,
+              samples: c.samples,
+            })
+=== UNIT lib/kits/json-explorer.js:205#1 | call(…) > mount (part 1 of 2) ===
+(container, options = {}) {
+      let rawData = options.data;
+      if (typeof rawData === 'string') {
+        try { rawData = JSON.parse(rawData); } catch (e) { /* keep as string if unparseable */ }
+      }
+
+      const name = options.name || 'document.json';
+      const fill = options.fill !== false;
+
+      let currentView = options.mode || 'tree';
+      let focusedPath = Array.isArray(options.chunk) ? [...options.chunk] : [];
+      let searchQuery = '';
+      let searchTimer = 0;
+      // Closed unless opened: the top level of whatever the tree is opened to
+      // is always drawn, and everything below it waits for a tap.
+      const openKeys = new Set();
+      // How many children an open collection draws. A record's `calls` runs to
+      // hundreds of entries and `attachments` to more, so a long one draws a
+      // page at a time behind a "show more" row.
+      const shownCount = new Map();
+      const searchMatches = new Set();
+      const searchAncestors = new Set();
+      const PAGE = 200;
+      const ROW_CAP = 2000;
+
+      // Profiled on first use: the Schema view is the only reader, and a walk
+      // of a multi-megabyte record is not a cost to pay on opening the tree.
+      let profile = null;
+      const getProfile = () => profile || (profile = JsonProfile.analyze(rawData));
+
+      // Bytes as UTF-8, of the compact serialisation, memoised per collection.
+      const enc = typeof TextEncoder === 'function' ? new TextEncoder() : null;
+      const sizes = new WeakMap();
+      const bytesOf = /* nested: bytesOf, lines 238-245 */;
+      const plural = (n, word) => `${n.toLocaleString()} ${word}${n === 1 ? '' : 's'}`;
+
+      // ── Helpers: paths and the focused chunk ───────────────────────────
+      const getChunkData = /* nested: getChunkData, lines 249-256 */;
+      const pathToProp = /* nested: pathToProp, lines 257-263 */;
+      const isColl = (v) => v !== null && typeof v === 'object';
+      const entriesOf = (v) => (Array.isArray(v) ? v.map((x, i) => [i, x]) : Object.entries(v));
+      const countOf = (v) => (Array.isArray(v) ? v.length : Object.keys(v).length);
+      const isChunkRecordArray = () => {
+        const d = getChunkData(focusedPath);
+        return Array.isArray(d) && d.length > 0 && isColl(d[0]);
+      };
+      const describe = /* nested: describe, lines 271-276 */;
+
+      // ── The frame: toolbar, crumbs, body ───────────────────────────────
+      const root = h('div', {
+        class: 'json-explorer flex w-full min-w-0 flex-col bg-base-100 '
+          + (fill ? 'h-full min-h-0 grow overflow-hidden' : 'my-2'),
+      });
+
+      const iconBtn = /* nested: iconBtn, lines 284-288 */;
+
+      // The views, as plain text buttons rather than a second boxed tab strip:
+      // this sits directly under the session form's own tabs, and two boxed
+      // strips stacked read as one control with two rows.
+      const VIEWS = [['tree', 'Tree'], ['schema', 'Schema'], ['table', 'Table'], ['raw', 'JSON']];
+      const viewBtn = {};
+      const views = h('div', { role: 'tablist', class: 'order-1 flex shrink-0 items-center gap-0.5' });
+      for (const [v, label] of VIEWS) {
+        viewBtn[v] = h('button', {
+          type: 'button', role: 'tab', 'data-view': v,
+          class: 'btn btn-ghost btn-sm px-2.5 font-normal',
+          onClick: () => setView(v),
+        }, label);
+        views.append(viewBtn[v]);
+      }
+
+      const searchInput = h('input', {
+        type: 'search', placeholder: 'Filter', 'aria-label': 'Filter keys and values',
+        autocomplete: 'off', spellcheck: 'false',
+        class: 'input input-sm w-full pl-8 pr-16 font-mono text-sm',
+        onInput: /* nested: onInput, lines 309-313 */,
+      });
+      const searchCount = h('span', {
+        'data-match-count': '',
+        class: 'pointer-events-none absolute right-8 top-1/2 -translate-y-1/2 font-mono text-xs tabular-nums text-base-content/50',
+      });
+      // Its own row on a phone, inline from `sm` up: four views and four icons
+      // leave a filter box a few characters wide at 390px.
+      const searchBox = h('label', { class: 'relative order-3 min-w-0 basis-full sm:order-2 sm:basis-auto sm:flex-1' },
+        searchInput, searchCount,
+        // After the input, or the input's own background paints over it.
+        h('i', { class: 'ph ph-magnifying-glass pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-sm text-base-content/40' }));
+
+      const collapseBtn = iconBtn('ph-arrows-in-line-vertical', 'Collapse to the top level', /* nested: iconBtn(ph-arrows-in-line-vertical), lines 326-330 */);
+      const cardsBtn = iconBtn('ph-cards-three', 'Browse the records as cards', /* nested: iconBtn(ph-cards-three), lines 331-338 */);
+      const flash = /* nested: flash, lines 339-343 */;
+      const copyBtn = iconBtn('ph-copy', 'Copy as JSON', async () => {
+        await copyText(JSON.stringify(getChunkData(focusedPath), null, 2));
+        flash(copyBtn, 'ph-copy');
+      });
+      const downloadBtn = iconBtn('ph-download-simple', `Download ${name}`, /* nested: iconBtn(ph-download-simple), lines 348-356 */);
+      const tools = h('div', { class: 'order-2 ml-auto flex shrink-0 items-center sm:order-3 sm:ml-0' },
+        collapseBtn, cardsBtn, copyBtn, downloadBtn);
+
+      const toolbar = h('div', {
+        class: 'flex shrink-0 flex-wrap items-center gap-x-2 gap-y-1.5 border-b border-base-300 px-1 py-1.5 min-w-0',
+      }, views, searchBox, tools);
+      // Drawn only once the tree is opened into a field: at the top level the
+      // session form's own header already names the record.
+      const crumbs = h('div', {
+        'data-crumbs': '',
+        class: 'hidden shrink-0 items-center gap-1 border-b border-base-200 px-1 py-1 min-w-0 font-mono text-xs',
+      });
+      const body = h('div', { class: 'min-h-0 flex-1 overflow-auto' });
+
+      root.append(toolbar, crumbs, body);
+      container.replaceChildren(root);
+
+      // ── Search ─────────────────────────────────────────────────────────
+      // A filter, not a highlighter: rows that neither match nor lead to a
+      // match are left out, and the ancestors of a match open to show it.
+      const updateSearch = /* nested: updateSearch, lines 377-397 */;
+      const isOpen = (path) => {
+        const pk = pathToProp(path);
+        return openKeys.has(pk) || (!!searchQuery && searchAncestors.has(pk));
+      };
+
+      // ── Tree ───────────────────────────────────────────────────────────
+      const INDENT = 1.125;   // rem per level
+      const stringOf = /* nested: stringOf, lines 405-427 */;
+      // What names a record in a list of them. A row of `calls` reading "11
+      // fields" four hundred times says nothing; "Bash · git status" says which
+      // call it is. One field that names the kind of thing and one that says
+      // which, from the record's own keys, and the count where it has neither.
+      const NAMES = ['name', 'title', 'label', 'kind', 'type', 'role', 'tool'];
+      const DETAILS = ['path', 'arg', 'cmd', 'text', 'head', 'line', 'message', 'summary', 'id', 'at'];
+      const peekOf = /* nested: peekOf, lines 434-444 */;
+      const valueOf = /* nested: valueOf, lines 445-454 */;
+
+      let budget = 0;
+      const row = /* nested: row, lines 457-506 */;
+      const quiet = (text, depth = 0) => h('div', {
+        class: 'py-1 font-sans text-sm text-base-content/50',
+        style: `padding-left:${0.5 + depth * INDENT + 1.25}rem`,
+      }, text);
+      const addChildren = /* nested: addChildren, lines 511-532 */;
+      const renderTree = /* nested: renderTree, lines 533-543 */;
+
+      // ── Schema ─────────────────────────────────────────────────────────
+      const label = (text) => h('div', { class: 'px-1 text-xs font-medium text-base-content/55' }, text);
+      const renderSchema = /* nested: renderSchema, lines 547-609 */;
+
+      // ── Table ──────────────────────────────────────────────────────────
+      const renderTable = /* nested: renderTable, lines 612-646 */;
+
+=== UNIT lib/kits/json-explorer.js:205#2 | call(…) > mount (part 2 of 2) ===
+      // ── JSON ───────────────────────────────────────────────────────────
+      const renderRaw = /* nested: renderRaw, lines 649-654 */;
+
+      // ── Chrome, updated in place ───────────────────────────────────────
+      const show = (el, on, display = 'flex') => { el.classList.toggle('hidden', !on); el.classList.toggle(display, on); };
+      const syncChrome = /* nested: syncChrome, lines 658-708 */;
+
+      const render = /* nested: render, lines 710-717 */;
+
+      // ── Public navigation ──────────────────────────────────────────────
+      const setView = /* nested: setView, lines 720-724 */;
+      const focusChunk = /* nested: focusChunk, lines 725-732 */;
+
+      render();
+
+      return {
+        get profile() { return getProfile(); },
+        setView,
+        focusChunk,
+        updateSearch,
+        destroy: () => {
+          clearTimeout(searchTimer);
+          root.remove();
+        },
+      };
+    }
+=== UNIT lib/kits/json-explorer.js:238 | call(…) > mount > bytesOf ===
+(v) => {
+        const memo = v !== null && typeof v === 'object';
+        if (memo && sizes.has(v)) return sizes.get(v);
+        const s = JSON.stringify(v) ?? '';
+        const n = enc ? enc.encode(s).length : s.length;
+        if (memo) sizes.set(v, n);
+        return n;
+      }
+=== UNIT lib/kits/json-explorer.js:249 | call(…) > mount > getChunkData ===
+(path) => {
+        let cur = rawData;
+        for (const seg of path) {
+          if (cur == null) return undefined;
+          cur = cur[seg];
+        }
+        return cur;
+      }
+=== UNIT lib/kits/json-explorer.js:257 | call(…) > mount > pathToProp ===
+(path) => {
+        if (!path.length) return 'root';
+        return path.map((seg, i) => {
+          if (typeof seg === 'number' || /^\d+$/.test(seg)) return `[${seg}]`;
+          return i === 0 ? seg : `.${seg}`;
+        }).join('');
+      }
+=== UNIT lib/kits/json-explorer.js:271 | call(…) > mount > describe ===
+(v) => {
+        if (!isColl(v)) return '';
+        const n = countOf(v);
+        if (!n) return Array.isArray(v) ? 'no items' : 'no fields';
+        return plural(n, Array.isArray(v) ? 'item' : 'field');
+      }
+=== UNIT lib/kits/json-explorer.js:284 | call(…) > mount > iconBtn ===
+(icon, tip, onClick) => h('button', {
+        type: 'button',
+        class: 'btn btn-ghost btn-sm btn-square text-base-content/60 hover:text-base-content',
+        'data-title-tip': tip, 'aria-label': tip, onClick,
+      }, h('i', { class: `ph ${icon} text-base` }))
+=== UNIT lib/kits/json-explorer.js:309 | call(…) > mount > onInput ===
+(e) => {
+          clearTimeout(searchTimer);
+          const q = e.target.value;
+          searchTimer = setTimeout(() => updateSearch(q), 160);
+        }
+=== UNIT lib/kits/json-explorer.js:326 | call(…) > mount > iconBtn(ph-arrows-in-line-vertical) ===
+() => {
+        openKeys.clear();
+        shownCount.clear();
+        render();
+      }
+=== UNIT lib/kits/json-explorer.js:331 | call(…) > mount > iconBtn(ph-cards-three) ===
+async () => {
+        const rows = getChunkData(focusedPath);
+        const title = name + (focusedPath.length ? ` › ${focusedPath.join(' › ')}` : '');
+        try {
+          if (!window.recordDeck && window.gh?.load) await window.gh.load('kits/record-deck.js');
+          window.recordDeck?.open?.({ rows, title });
+        } catch (e) { console.warn(e); }
+      }
+=== UNIT lib/kits/json-explorer.js:339 | call(…) > mount > flash ===
+(btn, icon) => {
+        const i = btn.querySelector('i');
+        i.className = 'ph ph-check text-base text-success';
+        setTimeout(() => { i.className = `ph ${icon} text-base`; }, 1200);
+      }
+=== UNIT lib/kits/json-explorer.js:348 | call(…) > mount > iconBtn(ph-download-simple) ===
+() => {
+        const blob = new Blob([JSON.stringify(rawData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = name;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+=== UNIT lib/kits/json-explorer.js:377 | call(…) > mount > updateSearch ===
+(query) => {
+        searchQuery = (query || '').trim().toLowerCase();
+        searchMatches.clear();
+        searchAncestors.clear();
+        if (searchQuery) {
+          const base = focusedPath.length;
+          const scan = /* nested: scan, lines 383-392 */;
+          scan(getChunkData(focusedPath), focusedPath);
+        }
+        if (searchInput.value.trim().toLowerCase() !== searchQuery) searchInput.value = query || '';
+        render();
+      }
+=== UNIT lib/kits/json-explorer.js:383 | call(…) > mount > updateSearch > scan ===
+(val, path) => {
+            const key = path.length > base ? String(path[path.length - 1]) : '';
+            let hit = key.toLowerCase().includes(searchQuery);
+            if (!hit && !isColl(val) && val !== null) hit = String(val).toLowerCase().includes(searchQuery);
+            if (hit && path.length > base) {
+              searchMatches.add(pathToProp(path));
+              for (let i = base; i < path.length; i++) searchAncestors.add(pathToProp(path.slice(0, i)));
+            }
+            if (isColl(val)) for (const [k, v] of entriesOf(val)) scan(v, [...path, k]);
+          }
+=== UNIT lib/kits/json-explorer.js:405 | call(…) > mount > stringOf ===
+(s) => {
+        if (s === '') return h('span', { class: 'min-w-0 flex-1 text-base-content/35' }, 'empty');
+        if (/^https?:\/\/\S+$/i.test(s)) {
+          return h('a', {
+            href: s, target: '_blank', rel: 'noopener',
+            class: 'min-w-0 flex-1 [overflow-wrap:anywhere] underline decoration-dotted underline-offset-2 hover:decoration-solid',
+            onClick: (e) => e.stopPropagation(),
+          }, s);
+        }
+        const date = formatIsoDate(s);
+        if (date) {
+          return h('span', { class: 'min-w-0 flex-1' }, s,
+            h('span', { class: 'ml-2 font-sans text-xs text-base-content/45' }, date.rel));
+        }
+        // A long string shows three lines and opens on a tap; the ellipsis the
+        // clamp draws is the mark that there is more.
+        const long = s.length > 140 || s.includes('\n');
+        const el = h('span', {
+          class: 'min-w-0 flex-1 whitespace-pre-wrap [overflow-wrap:anywhere]' + (long ? ' line-clamp-3 cursor-pointer' : ''),
+        }, s);
+        if (long) el.addEventListener('click', (e) => { e.stopPropagation(); el.classList.toggle('line-clamp-3'); });
+        return el;
+      }
+=== UNIT lib/kits/json-explorer.js:434 | call(…) > mount > peekOf ===
+(obj) => {
+        if (Array.isArray(obj)) return '';
+        const pick = /* nested: pick, lines 436-442 */;
+        return [pick(NAMES), pick(DETAILS)].filter(Boolean).join(' · ');
+      }
+=== UNIT lib/kits/json-explorer.js:436 | call(…) > mount > peekOf > pick ===
+(keys) => {
+          for (const k of keys) {
+            const v = obj[k];
+            if ((typeof v === 'string' && v.trim()) || typeof v === 'number') return String(v).replace(/\s+/g, ' ').trim();
+          }
+          return '';
+        }
+=== UNIT lib/kits/json-explorer.js:445 | call(…) > mount > valueOf ===
+(val, inList) => {
+        if (val === null) return h('span', { class: 'min-w-0 flex-1 text-base-content/35' }, 'null');
+        if (typeof val === 'string') return stringOf(val);
+        const peek = inList && isColl(val) ? peekOf(val) : '';
+        if (peek) return h('span', { class: 'min-w-0 flex-1 truncate text-base-content/80' }, peek);
+        // Set as a label, not as a value: in the key's own grey and face it read
+        // as a second key ("repos 3 items").
+        if (isColl(val)) return h('span', { class: 'min-w-0 flex-1 font-sans text-xs leading-5 text-base-content/45' }, describe(val));
+        return h('span', { class: 'min-w-0 flex-1 tabular-nums' }, String(val));
+      }

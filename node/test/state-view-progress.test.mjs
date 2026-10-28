@@ -176,7 +176,7 @@ test('the calls tab groups by shape, commonest first, with its time', () => {
   assert.equal(g[0].ms, 240);
   // A row that disclosed no content-length is left out rather than counted as
   // zero, so the figure is a floor and never a false total.
-  assert.equal(data.callsBytes(), '3 KB');
+  assert.equal(data.callsBytes(), '3.0 KB');
   data.callsRun = null;
   assert.equal(data.callsBytes(), '');
 });

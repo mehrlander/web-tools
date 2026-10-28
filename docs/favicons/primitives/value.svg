@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="Column primitive: value">
+  <title>Column primitive: value</title>
+  <desc>A solid cube: the content itself.</desc>
+  <g fill="currentColor">
+    <path d="M16 3 L28 9.5 L16 16 L4 9.5 Z"/>
+    <path d="M4 12.5 L14.5 18.25 L14.5 30 L4 24.25 Z"/>
+    <path d="M17.5 18.25 L28 12.5 L28 24.25 L17.5 30 Z"/>
+  </g>
+</svg>

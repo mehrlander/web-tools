@@ -121,9 +121,8 @@ test('no pane is declared that the nav cannot reach', () => {
 // session's question, and the Sessions pane nests the Branches row itself
 // under the session that made it, so nothing is lost by arriving there.
 //
-// The compatibility half matters as much as the move: ?view=activity is a
-// live address, and every deep link into the Branches pane (a branch-detail
-// event, a repo's abandoned set, the branch-count badge) still goes there.
+// Every deep link into the Branches pane (a branch-detail event, a repo's
+// abandoned set, the branch-count badge) still goes there.
 test('the Activity nav and the signed-in front door both open Sessions', () => {
   const { shell } = makeShell();
   const activity = shell.estateNav.find(v => v.label === 'Activity');

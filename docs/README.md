@@ -6,13 +6,13 @@ Reference docs that don't belong at the repo root. This index is generated
 from [`docs.csv`](docs.csv), the documentation registry, which also renders
 live in [the Web Tools app's Map → Docs → Inventory](https://mehrlander.github.io/web-tools/app/?view=map&tab=docs).
 A **record** preserves a moment and is
-corrected by markers, never rewritten; a **measured** doc carries dated
+never rewritten: a later dated sentence corrects it; a **measured** doc carries dated
 observations and is corrected by re-probing; everything else is living and
 must stay correct.
 
 **Reach** (derived by `node/build/docs-reach.mjs`, gated against the registry):
-2 arrive in every session's context, 17 are named by CLAUDE.md,
-22 by a skill, 41 by a page or component. The remaining 47 are
+2 arrive in every session's context, 16 are named by CLAUDE.md,
+20 by a skill, 42 by a page or component. The remaining 34 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -30,7 +30,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`app-routes.csv`](app-routes.csv) — the app's own destinations: every address, what it is for, and which files draw it
 - [`artifacts.md`](artifacts.md) *(orphan)* — Claude Code artifacts and the link-choice matrix
 - [`code-layers.md`](code-layers.md) — the code layers and the admission rule that sorts a new file into one of them
-- [`column-primitives.md`](column-primitives.md) *(orphan)* — the column primitives: what kind of thing a column holds (id, label, locator, value), the role axis and its crossing with position
+- [`column-primitives.md`](column-primitives.md) — the column primitives: which of four roles a column plays in its row (id, label, locator, value), the role axis and its crossing with position
 - [`delivery.json`](delivery.json) *(measured)* — historical snapshots of the retired injection routes and an unshipped proposal; current content routes are in Map / Harness / Context
 - [`doc-growth.md`](doc-growth.md) *(orphan)* — the doc-growth chart: what it plots, how to generate its data file for a repo, and what makes the chart misleading
 - [`docs.csv`](docs.csv) — the documentation registry: what each file under docs/ is, on four axes
@@ -41,7 +41,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`ios-haptics.md`](ios-haptics.md) *(orphan)* — whether a web page can fire iPhone haptics on its own gesture: measured, and no
 - [`ios-sheet-drags.md`](ios-sheet-drags.md) — why a drag inside a sheet-presented in-app browser dismisses the sheet, and the two fixes, measured on device
 - [`kits.csv`](kits.csv) — the kits registry: every module on the kit shelf, its namespace, its own headline, and who loads it
-- [`loader.md`](loader.md) — the loader contract: the canonical head block, gh.load, timing rules, and the load-build duality
+- [`loader.md`](loader.md) — the loader contract: the canonical head block, gh.load, the toss channels and the selection, timing rules, and the load-build duality
 - [`manifest-fields.csv`](manifest-fields.csv) — the field registry for root .web-tools.json: every key's type, consumer, and effect
 - [`manifest.md`](manifest.md) — the .web-tools.json manifest: the file's contract and the registry machinery (config cache, errands, proposals, editing from the shell)
 - [`pdf-structure.md`](pdf-structure.md) *(orphan)* — recovering structure from a PDF in the browser: what the kit does and honestly does not
@@ -53,11 +53,11 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`routes-modes.csv`](routes-modes.csv) — the delivery modes toss-render accepts, and the trust posture each buys
 - [`routes-paste.csv`](routes-paste.csv) — what a paste becomes on each surface that reads the clipboard, and what each one declines to
 - [`routes-routes.csv`](routes-routes.csv) — the toss routes: which content type opens in which renderer page
-- [`routes.json`](routes.json) — what is left of the transport manifest once its three tables became CSVs: the address grammar, the parameter precedence, and the showing frame
+- [`routes.json`](routes.json) — what is left of the transport manifest once its three tables became CSVs: the address grammar, the parameter precedence, and the Showing tab's About text
 - [`showing-mechanisms.csv`](showing-mechanisms.csv) — which link reaches which kind of change, and what each one silently misses
 - [`showing.md`](showing.md) — the frame behind the Showing tab: what ?use= and a 🥏 toss each reach, what resists preview, and how subjects and kinds are typed
 - [`stage.md`](stage.md) — the stage: bench and Saved, intake, the walkable preview and diff, Out, save-as-surface, and the #stage= link grammar
-- [`tests.csv`](tests.csv) — the test registry: every check, its kind, and what breaks if it is deleted
+- [`tests.csv`](tests.csv) — the test registry: every check's test count, names, method and runner
 - [`text-content.md`](text-content.md) *(measured, orphan)* — the estate's authored text: whether the data files holding it are organized, and how much never reached one
 - [`text-fields.csv`](text-fields.csv) — the names a prose-bearing CSV column or JSON key may take
 - [`text-tools.md`](text-tools.md) *(orphan)* — the FAB's Text tab: why it exists, why the join is the path rather than a term, and an assessment of what it is not
@@ -72,14 +72,12 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`run-methods.csv`](run-methods.csv) *(orphan)* — how a person runs an errand's script: the venues each method allows and how its output returns
 - [`csv-census.md`](csv-census.md) — the per-repository tracked-CSV inventory: adoption, index measurements and Map reading
 - [`locators.md`](locators.md) — locators: the kinds, the container-and-part canonical form, inbound lookup, and how a reference is tested (broken or changed, follow or pin, the hash cascade, verdicts, cost tiers)
-- [`fab.md`](fab.md) — the FAB: the floating launcher, the drawer's four tabs, its menus, and the one-per-viewport rule
+- [`fab.md`](fab.md) — the FAB: what it signals, its sidebar's six tabs, its menus, and the one-per-viewport rule
 - [`map-tabs.csv`](map-tabs.csv) — the Map view's per-address descriptions and the longer account of each tab
 - [`context-sources.csv`](context-sources.csv) — the context registry: everything that enters a session, where it is defined, how it arrives, and who can change it
 - [`context-topics.csv`](context-topics.csv) — the topics two or more context sources speak to, each with a verdict on whether the overlap is by design
 - [`context.md`](context.md) *(orphan)* — where a context-registry row goes, how topics and tally join it, and what the gate checks
-- [`showing-consolidation.md`](showing-consolidation.md) *(orphan)* — the plan for selecting versions independently in a toss: what selects each layer today, which selections work, and the smallest extension
-- [`policies.csv`](policies.csv) — the rules the documentation settles, one sentence each, with the passage each rests on
-- [`policy-topics.csv`](policy-topics.csv) — the topics and areas the policy catalog is grouped by
+- [`showing-consolidation.md`](showing-consolidation.md) *(record, orphan)* — the 2026-09-27 to 09-29 plan and evidence log for selecting versions in a toss: scenarios, the frame-versus-top-mode comparison, the harness evidence, and the experiment ids (E1 to E12) that tests and code comments cite
 - [`outposts.md`](outposts.md) — outposts: places outside git that hold estate material, and the four parts every one is held by (declared, observed, check, upkeep)
 - [`outposts.csv`](outposts.csv) — the outposts registry: each place outside git that holds estate material, with its declaration, observation, check, record, outpost protocol and upkeep
 - [`account-skills.csv`](account-skills.csv) — what the claude.ai account should hold: each skill on or off, and the plugin folder its copy should match
@@ -97,6 +95,8 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`conversation.csv`](conversation.csv) — the gated index of the conversation rules CONVERSATION.md defines
 - [`intents.csv`](intents.csv) — what you might want done, each as a path through the Set diagram from what starts it to where it lands
 - [`icon-families.csv`](icon-families.csv) — the icon families: each set of icons the estate has settled on, the file that declares its members, and the passage that discusses them
+- [`fab-signals.csv`](fab-signals.csv) — what the FAB says: each tint, glyph and badge it shows, when it shows, what it means and what a tap does
+- [`tests-authored.csv`](tests-authored.csv) — whether each test checks behavior or is a gate, and what breaks if it is deleted
 
 ## docs/envelopes/
 
@@ -129,7 +129,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`README.md`](environment/README.md) *(orphan)* — the environment docs' front door, and their update discipline
 - [`capabilities.md`](environment/capabilities.md) *(measured)* — what the sandbox can run and reach
 - [`container.md`](environment/container.md) *(measured)* — what the box is and what persists across sessions
-- [`extending.md`](environment/extending.md) — the Claude Code component model and the hooks this repo runs
+- [`extending.md`](environment/extending.md) — the Claude Code component model, the hooks this repo and its plugin run, the settings they depend on, and the plugin's context cost
 - [`testing.md`](environment/testing.md) *(measured)* — how to test HTML and JS in the sandbox
 - [`antigravity-local.md`](environment/antigravity-local.md) *(measured, orphan)* — the Antigravity local host environment: daemon runtime, SQLite storage, and brain workspace
 - [`harness-comparison.md`](environment/harness-comparison.md) *(measured, orphan)* — structural comparison of the Claude Code cloud harness and Antigravity local harness
@@ -141,8 +141,6 @@ marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/forms/
 
-- [`branch.md`](forms/branch.md) *(orphan)* — the branch form: the landed and stranded math behind a branch, and where the branch takeover is documented
-- [`session.md`](forms/session.md) *(orphan)* — the session form: one session read as a conversation in the deck, and its page
 - [`README.md`](forms/README.md) *(orphan)* — what a form is, the five jobs a page does for the reader, and the answer each respond form asks for
 
 ## docs/github/
@@ -157,19 +155,3 @@ marked *(orphan)* below: nothing points at them except this index.
 ## docs/prototypes/
 
 - [`md-edit-ideas.json`](prototypes/md-edit-ideas.json) *(record, orphan)* — the idea board for the Markdown section editor: eight concepts drawn over the Intake section of docs/stage.md, and the selection the two built editors came from
-
-## docs/views/
-
-- [`branches.md`](views/branches.md) *(orphan)* — the Branches view: every estate branch by scope and repo, its row, and the activity crawl behind it
-- [`chats.md`](views/chats.md) *(orphan)* — the Chats view: the chat archive read one month at a time, with its staleness banner
-- [`map.md`](views/map.md) — the Map view: its tabs over the coordination layer
-- [`project.md`](views/project.md) *(orphan)* — the Project view: a workspace's tabs, and the PowerShell outpost view in its Outpost tab: what it lists, its one write, and the rules its file handling keeps
-- [`search.md`](views/search.md) *(orphan)* — the Search view and the Files view: names, contents and sessions search, scopes, and reading a hit in place
-- [`sessions.md`](views/sessions.md) *(orphan)* — the Sessions view and the sessions cache: recorded sessions, their counts, and file attention
-- [`state.md`](views/state.md) *(orphan)* — the State view: every derived cache with its ages, Refresh, progress, calls and history
-- [`tools.md`](views/tools.md) *(orphan)* — the Tools view: the curated utility-page gallery from tools.csv
-- [`writes.md`](views/writes.md) *(orphan)* — the Writes view: the estate's commit stream by kind, and what the app's own commit subjects mean
-- [`proposals.md`](views/proposals.md) *(orphan)* — the Proposals view: cross-repo edits a session could not make, waiting in proposals/pending for a two-tap confirm
-- [`tending.md`](views/tending.md) — the Tending view: the finding record, how a finding changes, and how its witnesses are checked
-- [`repos.md`](views/repos.md) *(orphan)* — the Repos view: estate membership, cards, hidden and unfiled repos, token gating and the repo dialog
-- [`lists.md`](views/lists.md) — the Lists view: Pins, To-do, Jot, Ping and Note, and the files behind them

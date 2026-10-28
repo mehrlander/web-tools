@@ -30,11 +30,18 @@ import { parseCsv, splitList } from '../build/registries-load.mjs';
 // imported below from tests-index.mjs, which already had the domain.
 const VOCAB = parseCsv(readFileSync(path.join(repoRoot, 'docs', 'vocabularies.csv'), 'utf8'));
 const glossOf = (v) => VOCAB.find(r =>
-  r.registry === 'tests' && r.property === 'kind' && r.value === v)?.gloss;
-import { deriveTests, KINDS, METHODS } from '../build/tests-index.mjs';
+  r.registry === 'tests-authored' && r.property === 'kind' && r.value === v)?.gloss;
+import { deriveTests, KINDS, METHODS, NOT_A_TEST } from '../build/tests-index.mjs';
 
+// The authored half, joined on path. A test with no authored row reads as
+// undefined kind, which the typing check below reports.
+const AUTHORED = parseCsv(readFileSync(path.join(repoRoot, 'docs', 'tests-authored.csv'), 'utf8'));
+const purposeOf = new Map(AUTHORED.map(a => [a.path, a]));
+const DERIVED_HEADER = readFileSync(path.join(repoRoot, 'docs', 'tests.csv'), 'utf8').split('\n')[0].trim().split(',');
 const registry = { tests: parseCsv(readFileSync(path.join(repoRoot, 'docs', 'tests.csv'), 'utf8')).map(t => ({
   ...t,
+  kind: purposeOf.get(t.path)?.kind,
+  protects: purposeOf.get(t.path)?.protects ?? '',
   // A blank means NOT ASSERTED, so it reads back as null rather than 0: a browser
   // check reports no assertion count because test() is not its unit, which is a
   // different claim from a suite that ran zero.
@@ -58,6 +65,18 @@ test('every test file has exactly one row, and every row exists', () => {
     assert.ok(rows.includes(p), 'a test file with no registry row: ' + p + '; run: npm run tests-index');
   for (const p of rows)
     assert.ok(derived.has(p), 'a registry row with no file: ' + p + '; run: npm run tests-index');
+});
+
+// The split of 2026-10-23: what a person writes about a test lives in
+// docs/tests-authored.csv, one row per test file, and docs/tests.csv carries
+// only what tests-index derives, so a restamp can never meet a hand edit.
+test('the authored half has one row per test file, and the derived half none of its columns', () => {
+  const paths = AUTHORED.map(a => a.path);
+  assert.equal(paths.length, new Set(paths).size, 'a path appears twice in docs/tests-authored.csv');
+  assert.deepEqual([...paths].sort(), registry.tests.map(t => t.path).sort(),
+    'docs/tests-authored.csv and docs/tests.csv list different files; run: npm run tests-index');
+  for (const c of ['kind', 'protects'])
+    assert.ok(!DERIVED_HEADER.includes(c), `docs/tests.csv carries the authored column ${c}`);
 });
 
 test('every row is typed, and the kind vocabulary is closed', () => {
@@ -223,9 +242,8 @@ test('every kind of check carries a gloss that says what the kind means', () => 
 // A sanity check on the corpus itself rather than on the registry: node/test/
 // should hold tests and the two known helpers, nothing else.
 test('node/test holds only tests and its declared helpers', () => {
-  const HELPERS = new Set(['bootstrap.mjs', 'shell.mjs']);
   const stray = readdirSync(path.join(repoRoot, 'node', 'test'))
-    .filter(n => n.endsWith('.mjs') && !HELPERS.has(n))
+    .filter(n => n.endsWith('.mjs') && !NOT_A_TEST.has(n))
     .filter(n => !registry.tests.some(t => t.path.endsWith('/' + n)));
   assert.deepEqual(stray, [], 'unregistered files in node/test/');
 });
