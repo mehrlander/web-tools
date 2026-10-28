@@ -103,7 +103,7 @@ const TEST_DIR = 'node/test';
 // a check the suite never runs is exactly the kind of thing that goes quietly
 // stale. The CommonJS preload only normalizes host command spellings before
 // those inventoried tests load.
-const NOT_A_TEST = new Set(['bootstrap.mjs', 'shell.mjs', 'runtime-command.cjs']);
+const NOT_A_TEST = new Set(['bootstrap.mjs', 'shell.mjs', 'one-home.mjs', 'runtime-command.cjs']);
 
 // A boot smoke assertion proves one thing: the component mounted and logged
 // nothing. Two things changed here on 2026-08-10, and both are about level.
