@@ -80,7 +80,7 @@
           "case": "page"
         },
         {
-          "when": "a web-tools branch lags main, and main changed none of the files the branch changed: the toss shows the branch as it would merge",
+          "when": "a web-tools branch is behind main, but main changed none of the branch's files and the branch deletes or renames none: the toss shows the branch as it would merge",
           "then": "toss",
           "case": "merge"
         },
