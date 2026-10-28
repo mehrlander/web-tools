@@ -1,9 +1,7 @@
-// ONE CSV PARSE. lib/kits/csv.js was written because a third copy of the
-// quote-aware line split appeared, and the second, node/build/registries-load.mjs,
-// stayed beside it byte for byte until 2026-10-24, when the code-jobs probe's
-// identifier scan ranked the two as one function. The loader now reads the kit
-// through node/build/kit-shim.mjs, so the commit hook and the Map's Registries
-// tab parse a registry with the same code.
+// ONE CSV PARSE. lib/kits/csv.js is the quote-aware line split, and the
+// registry loader (node/build/registries-load.mjs) reads it through
+// node/build/kit-shim.mjs, so the commit hook and the Map's Registries tab
+// parse a registry with the same code.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
