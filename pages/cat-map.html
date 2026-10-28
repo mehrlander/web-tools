@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Category map</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+
+<!--
+  cat-map.html — draws one answer to "what kind of thing is it?" as a poster:
+  the question, a grid of the two characteristics that decide the word with
+  the estate's own files in each cell, the words that add to it, the names it
+  changes, and the calls left open. The answers and how they were reached are
+  in research/category-mapping/README.md.
+
+  Address: #src=<path on this host>, #gh=owner/repo[@ref]:path or
+  #gz=<gzipped JSON>; with none, research/category-mapping/collections.json.
+  poster=1 drops the header and the reasons, for rendering to an image:
+    npm run shot -- pages/cat-map.html --hash 'src=../<answer>.json&poster=1' \
+      --width 720 --scale 2 --full --out poster.png
+-->
+<script>
+window.__depsReady = new Promise(r => { window.__depsDone = r; });
+// The poster alone is an image to share, so it skips the standing drawer button.
+if (/(^|[#&])poster=1(&|$)/.test(location.hash)) document.documentElement.setAttribute('data-no-fab', '');
+</script>
+<script type="module">
+  const q = new URLSearchParams(location.search);
+  const ref = q.get('use') || (q.getAll('refs').map(v => (String(v).match(/^mehrlander\/web-tools@([^:]+)$/) || [])[1]).find(Boolean));
+  if (ref) {
+    const src = await fetch(`https://raw.githubusercontent.com/mehrlander/web-tools/${ref}/dist/web-tools.js`, { cache: 'no-store' });
+    if (!src.ok) throw new Error(`?use=${ref}: could not fetch the bundle (HTTP ${src.status})`);
+    const url = URL.createObjectURL(new Blob([await src.text()], { type: 'text/javascript' }));
+    try { await import(url); } finally { URL.revokeObjectURL(url); }
+  } else {
+    await import('../dist/web-tools.js');
+  }
+  try { await gh.load('kits/gz-payload.js'); } finally { window.__depsDone(); }
+</script>
+<script>
+document.addEventListener('alpine:init', () => {
+  const param = k => new URLSearchParams(location.hash.slice(1)).get(k) || new URLSearchParams(location.search).get(k);
+  const tokenNow = () => window.TOKEN || window.ghAuth?.resolve() || '';
+  const DIR = '../research/category-mapping/';
+  // The committed answers, one pill each.
+  const ANSWERS = [['Collections', DIR + 'collections.json'], ['Timing', DIR + 'timing.json']];
+
+  Alpine.data('catMap', () => ({
+    A: null, err: '', src: '', answers: ANSWERS, poster: param('poster') === '1',
+
+    async init() {
+      await window.__depsReady;
+      try { this.A = await this.read(); } catch (e) { this.err = e.message; }
+    },
+    async read() {
+      const gz = param('gz'), spec = param('gh');
+      if (gz) return window.GzPayload.decodeJson(gz);
+      if (spec) {
+        const a = window.RepoAddress.parse(spec);
+        if (!a) throw new Error('#gh= reads owner/repo[@ref]:path, and this is not one: ' + spec);
+        try { return JSON.parse((await new GH({ token: tokenNow(), repo: a.repo, ...(a.ref ? { ref: a.ref } : {}) }).get(a.path)).text); }
+        catch (e) { throw new Error(`Could not read ${spec}${tokenNow() ? '' : ' without a stored GitHub token'}: ${e.message}`); }
+      }
+      // #src= is a path beside this page on the same host, such as an answer committed to web-tools.
+      this.src = param('src') || ANSWERS[0][1];
+      if (/^[a-z]+:|^\/\//i.test(this.src)) throw new Error('#src= takes a path on this host, not an address: ' + this.src);
+      const res = await fetch(this.src);
+      if (!res.ok) throw new Error(`No answer at ${this.src}. Address one with #src=path, #gh=owner/repo@ref:path or #gz=…`);
+      return res.json();
+    },
+    show(src) { location.hash = 'src=' + src; location.reload(); },
+    names(things) { const n = things || []; return n.length > 1 ? n.slice(0, -1).join(', ') + ' and ' + n.at(-1) : n[0] || ''; },
+    // An example the answer renames carries its current, wrong name.
+    ex(list) {
+      return (list || []).map(e => {
+        const fix = (this.A.renames || []).find(n => (n.things || []).includes(e));
+        return esc(e) + (fix ? `, <span class="text-error">called “${esc(fix.from)}”</span>` : '');
+      }).join(' · ');
+    },
+    count(rows, noun) {
+      const n = (rows || []).length, w = ['No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'][n] || String(n);
+      return `${w} ${noun}${n === 1 ? '' : 's'}`;
+    },
+  }));
+});
+</script>
+</head>
+<body class="min-h-dvh bg-base-100 text-base-content">
+<div x-data="catMap()" class="min-h-dvh">
+  <header x-show="!poster && src" class="sticky top-0 z-20 bg-base-100 border-b border-base-300 px-4 py-2 flex items-center gap-2 overflow-x-auto whitespace-nowrap">
+    <template x-for="[label, path] in answers" :key="path">
+      <button class="btn btn-xs rounded-full" :class="src === path ? 'btn-neutral' : 'btn-ghost border-base-300'" @click="show(path)" x-text="label"></button>
+    </template>
+  </header>
+  <template x-if="err"><p class="p-4 text-error" x-text="err"></p></template>
+  <template x-if="!A && !err"><p class="p-4 text-base-content/60">Loading…</p></template>
+  <template x-if="A">
+    <article class="px-6 sm:px-10 py-8 sm:py-10 grid gap-8 sm:gap-9">
+      <div class="grid gap-3">
+        <h1 class="text-3xl sm:text-[44px] leading-tight font-bold text-balance" x-text="A.title"></h1>
+        <p class="text-lg sm:text-[22px] leading-7 sm:leading-8 text-base-content/70 text-balance" x-text="A.lede"></p>
+      </div>
+
+      <template x-if="A.grid">
+        <!-- On a phone each row's label sits above its cells, so the cells keep the full width. -->
+        <div class="grid gap-2 [grid-template-columns:var(--cols)] sm:[grid-template-columns:7.5rem_var(--cols)]" :style="`--cols: repeat(${A.grid.across.values.length}, minmax(0, 1fr))`">
+          <div class="hidden sm:block"></div>
+          <template x-for="v in A.grid.across.values" :key="v.label">
+            <div class="px-2 sm:px-3 pb-1 text-base sm:text-lg font-semibold text-balance" x-text="v.label"></div>
+          </template>
+          <template x-for="(row, i) in A.grid.cells" :key="i">
+            <div class="contents">
+              <div class="[grid-column:1/-1] sm:[grid-column:auto] pt-3 sm:pt-4 sm:pr-2 text-base sm:text-lg font-semibold sm:text-right text-balance" x-text="A.grid.down.values[i].label"></div>
+              <template x-for="(c, j) in row" :key="j">
+                <div class="rounded-2xl p-3 sm:p-4 grid content-start gap-1.5" :class="c.word ? 'bg-primary/10' : c.impossible ? 'bg-[repeating-linear-gradient(45deg,transparent_0_6px,rgba(0,0,0,0.05)_6px_12px)]' : 'border-2 border-dashed border-base-300'">
+                  <div class="leading-none" :class="c.word ? 'text-2xl sm:text-[32px] font-bold text-primary' : 'text-xl sm:text-[26px] italic text-base-content/50'" x-text="c.word || (c.impossible ? 'impossible' : 'no word yet')"></div>
+                  <div class="text-base sm:text-lg leading-6 text-pretty" x-text="c.gloss"></div>
+                  <div class="font-mono text-sm sm:text-base leading-5 sm:leading-6 [overflow-wrap:anywhere]" x-html="ex(c.examples)"></div>
+                </div>
+              </template>
+            </div>
+          </template>
+          <p x-show="A.grid.note" class="[grid-column:1/-1] sm:[grid-column:2/-1] pt-1 text-base text-base-content/70 text-pretty" x-text="A.grid.note"></p>
+        </div>
+      </template>
+
+      <div x-show="(A.add || []).length" class="grid gap-3">
+        <h2 class="text-xl sm:text-[26px] font-bold">Then add any that apply</h2>
+        <div class="grid sm:grid-cols-2 gap-3">
+          <template x-for="w in A.add || []" :key="w.word">
+            <div class="rounded-2xl border border-base-300 p-4 grid content-start gap-1">
+              <div class="flex items-center gap-2 text-xl sm:text-[24px] font-bold"><i class="ph text-primary" :class="'ph-' + (w.icon || 'plus')"></i><span x-text="w.word"></span></div>
+              <div class="text-base sm:text-lg leading-6 text-pretty" x-text="w.gloss"></div>
+              <div class="font-mono text-sm sm:text-base leading-5 sm:leading-6 [overflow-wrap:anywhere]" x-html="ex(w.examples)"></div>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <div x-show="(A.renames || []).length" class="grid gap-3">
+        <h2 class="text-xl sm:text-[26px] font-bold" x-text="count(A.renames, 'name') + ' to fix'"></h2>
+        <div class="grid gap-4">
+          <template x-for="(n, k) in A.renames || []" :key="k">
+            <div class="grid gap-0.5 text-base sm:text-lg leading-6">
+              <div class="text-pretty"><span x-text="names(n.things) + ', now called '"></span><span class="text-error line-through" x-text="n.from"></span></div>
+              <div class="flex items-baseline gap-2"><i class="ph ph-arrow-right text-base-content/40"></i><span class="font-semibold" x-text="n.becomes"></span></div>
+              <div x-show="!poster" class="text-base-content/60 text-pretty" x-text="n.why"></div>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <div x-show="(A.open || []).length" class="grid gap-3">
+        <h2 class="text-xl sm:text-[26px] font-bold" x-text="count(A.open, 'call') + ' for you'"></h2>
+        <ol class="grid gap-2 list-decimal pl-7 text-base sm:text-lg leading-7">
+          <template x-for="(o, k) in A.open || []" :key="k">
+            <li class="text-pretty"><span class="font-semibold" x-text="o.question"></span><span x-show="o.recommend" x-text="' Recommended: ' + o.recommend + '.'"></span> <span x-show="!poster" class="text-base-content/60" x-text="o.why"></span></li>
+          </template>
+        </ol>
+      </div>
+
+      <p x-show="A.by" class="pt-4 border-t border-base-300 text-sm sm:text-base leading-6 text-base-content/60 text-pretty" x-text="A.by"></p>
+    </article>
+  </template>
+</div>
+</body>
+</html>

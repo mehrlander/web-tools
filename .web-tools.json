@@ -114,6 +114,11 @@
       "path": "research/code-jobs/README.md",
       "label": "Finding one job done in several places",
       "kind": "probe"
+    },
+    {
+      "path": "research/category-mapping/README.md",
+      "label": "Category mapping: which word fits a collection, and which fits work by when it acts",
+      "kind": "exploration"
     }
   ],
   "programs": [
