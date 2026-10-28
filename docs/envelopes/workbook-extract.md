@@ -1,9 +1,10 @@
 # Workbook extract: the payload contract
 
 Part of an `.xlsx` workbook, picked and carried as **data**. Nothing is written
-back to the workbook and nothing is reconstructed from the extract. The current
-Structure → Extract picker is sheet-centered: selecting a sheet includes its
-available readings, then each reading can be unticked independently. Pivot
+back to the workbook and nothing is reconstructed from the extract. The
+picker, the Overview in the viewer's Structure mode, is sheet-centered:
+ticking a sheet takes its values, or the readings a receiving repo declares
+(Receptions, below), and each of its other readings is a separate tick. Pivot
 tables, cached pivot records, connections, and Power Query sections are
 individual choices.
 
@@ -18,8 +19,9 @@ The original cross-product API and its
 
 `XlsxExtract.catalog(result)` returns sheets in workbook order, with counts
 for their ten supported readings, and separately lists each modeled object.
-The UI shows a pivot table under the sheet where it sits and a pivot cache
-under its source sheet when that sheet is in the workbook. This is an
+The Overview lists each object after the sheets and names its associated
+sheet: the sheet a pivot table sits on, or a pivot cache's source sheet when
+that sheet is in the workbook. This is an
 association for navigation, not an inclusion rule: selecting a sheet does not
 select any related object. A cache may contain rows from a different sheet.
 
@@ -68,7 +70,7 @@ however many sheets are picked, and carry a null `sheet`.
 | id | scope | one row per | reads |
 | --- | --- | --- | --- |
 | `values` | sheet | sheet row | `sheetRows`, so a date is a date rather than a serial |
-| `raw` | sheet | sheet row with a value | the same rows as typed data: a number is a number, a date an ISO date, a tick a boolean (`sheetTables`'s rows) |
+| `raw` | sheet | sheet row with a value | `sheetTables`' rows, unformatted: a number stays a number, a date or time becomes ISO text, TRUE or FALSE a boolean, where `values` gives each cell's displayed text |
 | `cells` | sheet | one object per sheet | every cell as `{Address, Formula, Value}`, plus `Dimension` and `MergedCells`: the serialized-workbook shape, below |
 | `formulas` | sheet | computed cell | the stored formula text, and the value beside it |
 | `styles` | sheet | styled cell | `cellStyle`, flattened to what the cell draws |
@@ -127,7 +129,7 @@ A `ref` that is a commit SHA is the only form that still resolves to these bytes
 later.
 
 **What was left behind.** In v1, `picked` and `left` are complements over the
-workbook's sheets and the thirteen kinds. In v2, they record each selected
+workbook's sheets and the fourteen kinds. In v2, they record each selected
 sheet's readings, the omitted readings on that sheet, and individually chosen
 or omitted objects. Without `left`, a reader cannot tell a partial selection
 from the whole file.
@@ -204,7 +206,7 @@ The receiver declares it and the picker runs it. A reception with no
 `match.sheets` applies to every workbook opened in the viewer's Structure
 mode; one that names sheets applies only where all of them are present.
 `XlsxExtract.receptions(catalog, declared)` returns the pick (every sheet not
-omitted, with the readings it has any of), the Extract tab opens with that
+omitted, with the readings it has any of), the Overview opens with that
 pick ticked and the reception's cap, and a band names the reception, its repo,
 and the destination, with no sentence beside them: the unticked sheets say
 what is left behind.
@@ -218,7 +220,7 @@ kept back either way.
 `never` is the backstop for the mirror-image failure, which is real: unhide a
 private sheet to work on it, forget, and drop the workbook, and `omit` alone
 takes it. A sheet named there is **reported rather than dropped**. It stays in
-the pick, the `in`/`out` roster under the band and the sheet's checklist row
+the pick, the `in`/`out` roster under the band and the sheet's Overview row
 draw it in the error colour, and the Stage
 button goes dark and names it instead of handing anything over. Dropping it
 quietly would be the worse fix, since the reader would see a clean pick and
@@ -267,8 +269,8 @@ kind and the picker's cap show. `npm run sample-workbook -- --link --at <sha>
 --use <sha>` prints the address that opens it; use the command rather than
 writing the link, since it holds the two traps its `--link` code names
 (`?src=`, not `#data=`, and the link-length limit). In the page, pick **Structure** from the
-mode menu at the right of the file line; **Extract** is the last tab in its
-strip. The minimal fixture in
+mode menu at the right of the file line; it opens on **Overview**, the
+picker. The minimal fixture in
 [`node/test/viewer-xlsx.mjs`](../../node/test/viewer-xlsx.mjs) stays separate
 from this sample.
 
