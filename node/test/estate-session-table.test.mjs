@@ -22,7 +22,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { makeWindow, startAlpine } from './bootstrap.mjs';
+import { makeWindow, startAlpine, tick } from './bootstrap.mjs';
 
 const REGISTRY = 'me/registry';
 
@@ -352,11 +352,17 @@ test('a repo is a glyph it declares, and the tap that names it is not a navigati
   assert.equal(data.repoIconCell(''), '<span class="text-base-content/30">–</span>');
 });
 
-test('a repo\'s tone colours its mark, and the table\'s state colour replaces it', () => {
+test('a repo\'s tone colours its mark, and the table\'s state colour replaces it', async () => {
   // The Table lens already spends a glyph's colour on what became of the work
   // (REPO_STATE_CLASS), so there the state wins and the tone does not show;
-  // everywhere else the tone is the repo's own.
+  // everywhere else the tone is the repo's own. The hub's drawn mark for the
+  // repo is asked for first; this hub has none, so the glyph draws once the
+  // read comes back, and the table's cell, which nothing redraws, draws the
+  // glyph rather than waiting.
   data.entries = [{ repo: 'me/shortcut-tools', icon: 'ph-lightning', tone: 'yellow' }];
+  assert.match(data.repoMarkHtml('shortcut-tools'), /^<span class="inline-block size-\[1em\]/, 'blank while the file is out');
+  assert.match(data.repoIconCell('shortcut-tools'), /ph-lightning/, 'a table cell draws the glyph meanwhile');
+  await tick(4);
   const row = data.repoMarkHtml('shortcut-tools');
   assert.match(row, /ph-duotone ph-lightning/);
   assert.match(row, /text-yellow-500/);

@@ -2457,8 +2457,8 @@ function catalogThumbPath(repo, path, query){
 // (projectIconSrc). Outside the shell's data because it is bookkeeping no view
 // draws, and a reactive copy would re-run every binding that consulted it.
 const PROJECT_ICONS_ASKED = new Set();
-// The same bookkeeping for the hub's drawn marks (hubMarkSrc), and for the SVG
-// a repository's manifest declares as its mark (repoMarkHtml).
+// The same bookkeeping for the hub's drawn marks (hubMarkSrc), and for the
+// mark files repoMarkHtml reads, by file.
 const HUB_MARKS_ASKED = new Set();
 const REPO_MARKS_ASKED = new Set();
 
@@ -4854,7 +4854,7 @@ function app(){ return {
   powershellOutpostItem: '', // the PowerShell outpost view's selected file (repo path), stamped as &item=
   projectIcons: {},         // repo@ref:file -> the project icon as a data URL ('' until read, or when the read failed)
   hubMarks: {},             // hub path -> a drawn mark as a data URL ('' until read, or when the hub has no such file)
-  repoMarks: {},            // owner/repo -> its declared SVG mark, read (RepoMark.load); absent until then
+  repoMarks: {},            // repo@ref:path of a mark file -> its read (RepoMark.load's svg: drawable, or null); absent until read
   projectAppRoute: '',      // the App tab's page query, a route into the app (?view=…), stamped as &item=
   projectPageThumbs: {},    // a route card's cached shot by thumb path, as a data URL ('' when the cache has none)
   projectHtml: '',
@@ -5021,24 +5021,24 @@ function app(){ return {
   },
   markStyle(src){ return src ? { '--mark': 'url("' + src + '")' } : {}; },
   // A repository's mark in the shell's own lists (the sidebar's Repos rows, the
-  // repo switcher), drawn by lib/kits/repo-mark.js, as the session brief and
-  // the estate draw theirs. In order: the SVG the manifest declares (`mark`),
-  // the hub's drawn mark for the repository (repoMarkSrc), the glyph. The tone
-  // colours whichever it is. `r` is an estateRepos row, `o` RepoMark.html's
-  // options.
+  // repo switchers), drawn by lib/kits/repo-mark.js, as the session brief and
+  // the estate draw theirs: the SVG the manifest declares, else the hub's drawn
+  // mark for the repository, else the glyph, in its tone. `r` is an
+  // estateRepos row, `o` RepoMark.html's options. The Map still draws the
+  // hub's file itself (repoMarkSrc).
   repoMarkHtml(r, o){
     const M = window.RepoMark;
     if (!M || !r) return '';
     const s = M.spec(r, r.repo);
-    if (s.mark) {
-      if (!REPO_MARKS_ASKED.has(r.repo)) {
-        REPO_MARKS_ASKED.add(r.repo);
-        queueMicrotask(() => M.load(s).then((l) => { this.repoMarks[r.repo] = l; }));
-      }
-      return M.html(this.repoMarks[r.repo] || s, o);
+    if (!s.mark) return M.html(s, o);
+    // Only the file's read is kept, by file, so a manifest change to a glyph
+    // or a tone shows without a reload.
+    const key = s.mark.repo + '@' + s.mark.ref + ':' + s.mark.path;
+    if (!REPO_MARKS_ASKED.has(key)) {
+      REPO_MARKS_ASKED.add(key);
+      queueMicrotask(() => M.load(s).then((l) => { this.repoMarks[key] = l.svg; }));
     }
-    const hub = this.repoMarkSrc(r.repo);
-    return M.html(hub ? { ...s, svg: { src: hub, ink: true } } : s, o);
+    return M.html(key in this.repoMarks ? { ...s, svg: this.repoMarks[key] } : s, o);
   },
   async loadProjectIcon(key, repo, ref, f){
     const s = Alpine.store('browser');

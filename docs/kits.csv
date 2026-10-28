@@ -78,7 +78,7 @@ lib/kits/repo-activity-cache.js,RepoActivityCache,Activity aggregate for the web
 lib/kits/repo-address.js,RepoAddress,"The `owner/repo[@ref]:path` address, in one place.",234,yes,no,26,yes
 lib/kits/repo-checks.js,RepoChecks,"Declared staleness checks for a repo, evaluated on sight.",319,no,no,3,yes
 lib/kits/repo-config-cache.js,RepoConfigCache,Config aggregate + history + alignment grade for the web-tools ecosystem.,120,no,no,3,yes
-lib/kits/repo-mark.js,RepoMark,"a repository's mark, resolved from its manifest and drawn one way wherever a repository is named.",181,yes,no,6,yes
+lib/kits/repo-mark.js,RepoMark,"a repository's mark, resolved from its manifest and drawn one way wherever a repository is named.",210,yes,no,6,yes
 lib/kits/repo-proposals.js,RepoProposals,Proposals: the write-side counterpart to the reads an errand asks for (lib/kits/errands.js).,652,no,no,2,yes
 lib/kits/repo-sessions-cache.js,RepoSessionsCache,Sessions aggregate for the web-tools ecosystem.,1958,no,no,5,yes
 lib/kits/report-layout.js,ReportLayout,"a report layout, meaning the declared shape of a printed table, kept apart from the rows it prints.",303,no,yes,3,yes

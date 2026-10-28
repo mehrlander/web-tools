@@ -16,9 +16,9 @@ This is the library-wide mark. `lib/gh-boot.js` inlines a copy and injects it as
 
 ### Repository marks
 
-Files: [`repos/`](repos/). Drawn 2026-10-22: one mark per estate repository except web-tools, whose mark is the hex nut. The app draws each wherever it lists repositories (the sidebar, the repo menu, Map › Reach and Map › Projects), reading the file named for the repository from the hub at its selected ref, main outside a preview (`repoMarkSrc` in [`app/index.html`](../../app/index.html)).
+Files: [`repos/`](repos/). Drawn 2026-10-22: one mark per estate repository except web-tools, whose mark is the hex nut. Each is its repository's default mark wherever the app or the session page names a repository, read from the hub at its selected ref, main outside a preview ([`lib/kits/repo-mark.js`](../../lib/kits/repo-mark.js); Map › Reach and Map › Projects read it through `repoMarkSrc` in [`app/index.html`](../../app/index.html)).
 
-A repository can also declare its mark in its own manifest, as `mark` (a path, or `owner/repo:path` for one of these files) beside its `icon` glyph, and colour either with `tone` ([`manifest-fields.csv`](../manifest-fields.csv)). [`lib/kits/repo-mark.js`](../../lib/kits/repo-mark.js) draws it. The sidebar and the repo switcher take a declared `mark` first, then the file named here, then the glyph; the session page and the estate's views read only the manifest, so there a repository with no `mark` draws its glyph.
+A repository's manifest can replace the file with its own `mark` and colour whichever draws with `tone` ([`manifest-fields.csv`](../manifest-fields.csv)). Where no file can be read, the manifest's `icon` glyph draws.
 
 ### Map marks
 

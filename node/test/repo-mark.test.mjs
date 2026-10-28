@@ -39,6 +39,9 @@ const files = {
   'me/hub:marks/b.svg': OWN,
   'me/c:.web-tools.json': JSON.stringify({ group: 'core' }),
   'me/d:bad.svg': '<html><script>alert(1)</script></html>',
+  // The hub's drawn marks, for repositories of the hub's owner.
+  'mehrlander/web-tools:docs/favicons/repos/shortcut-tools.svg': INK,
+  'mehrlander/web-tools:lib/favicon.svg': OWN,
 };
 window.GH = class {
   constructor(conf = {}) { this.repo = conf.repo; this.conf = conf; }
@@ -149,6 +152,29 @@ test('each file and each manifest is read once, at the page\'s selection', async
   assert.equal(await M.of('me/missing'), null);
   await M.load(M.spec({ mark: 'me/hub@dev:marks/b.svg' }, 'me/a'));
   assert.ok(reads.includes('me/hub:marks/b.svg@dev'), 'a ref the path names is the ref read');
+});
+
+test('the hub\'s drawn mark is a repository\'s default, and a manifest mark replaces it', async () => {
+  // The drawn set is the estate's own marks, so a manifest need not name one:
+  // a repository of the hub's owner wears the file named for it, the hub wears
+  // its favicon, and a repository of another owner shares no names with them.
+  const s = M.spec({ icon: 'ph-lightning', tone: 'yellow' }, 'mehrlander/shortcut-tools');
+  assert.deepEqual({ ...s.mark }, { repo: 'mehrlander/web-tools', ref: '', path: 'docs/favicons/repos/shortcut-tools.svg', drawn: true });
+  assert.equal(M.spec({}, 'mehrlander/web-tools').mark.path, 'lib/favicon.svg');
+  assert.equal(M.spec({ icon: 'ph-house' }, 'me/a').mark, null);
+  assert.equal(M.spec({ mark: 'own.svg' }, 'mehrlander/shortcut-tools').mark.path, 'own.svg', 'a declared mark wins');
+  const out = M.html(await M.load(s));
+  assert.match(out, /\[mask:/, 'the drawn file, in one ink');
+  assert.deepEqual(coloursIn(out), ['text-yellow-500'], 'in the tone');
+  // A manifest that cannot be read still gets the drawn mark, which is public;
+  // a repository with neither a glyph nor a drawn file is the caller's to count.
+  const unread = await M.of('mehrlander/shortcut-tools');
+  assert.ok(unread && unread.svg && unread.svg.ink, 'drawn though its manifest 404s');
+  assert.equal(await M.of('mehrlander/no-mark'), null);
+  const gone = await M.load(M.spec({ icon: 'ph-scales' }, 'mehrlander/no-mark'));
+  assert.match(M.html(gone), /ph ph-scales/, 'no drawn file: the glyph');
+  assert.match(M.html(M.spec({ icon: 'ph-scales' }, 'mehrlander/no-mark2'), { pending: 'glyph' }), /ph ph-scales/,
+    'and a caller nothing redraws gets the glyph while the file is out');
 });
 
 // ── The render sites ────────────────────────────────────────────────────────
