@@ -224,7 +224,7 @@
             <li>
               <button class="w-full text-left px-4 py-2 flex gap-3 items-baseline" :class="lit(u) ? 'bg-primary/10' : 'hover:bg-base-200'" @click="pickUnit(u.id)">
                 <span class="font-mono text-xs opacity-60 w-7 shrink-0" x-text="u.id"></span>
-                <span class="flex-1 min-w-0 text-pretty" :class="dropped(u) ? 'line-through opacity-50' : ''" x-text="u.text"></span>
+                <span class="flex-1 min-w-0 text-pretty break-words" :class="dropped(u) ? 'line-through opacity-50' : ''" x-text="u.text"></span>
                 <span class="font-mono text-xs opacity-60 shrink-0" x-text="chips(u)"></span>
               </button>
             </li>
@@ -281,10 +281,10 @@
                       <span x-text="'diff vs ' + prevLabel"></span>
                     </label>
                   </div>
-                  <div class="whitespace-pre-wrap leading-7" x-show="!diff"><template x-for="(s, i) in segs" :key="i"><span
+                  <div class="whitespace-pre-wrap break-words leading-7" x-show="!diff"><template x-for="(s, i) in segs" :key="i"><span
                     :class="s.i < 0 ? '' : (q === s.i ? 'bg-primary/20 rounded cursor-pointer' : 'hover:bg-base-200 rounded cursor-pointer')"
                     @click="s.i >= 0 && pickQuote(s.i)" x-text="s.t"></span></template></div>
-                  <div class="whitespace-pre-wrap leading-7" x-show="diff"><template x-for="(s, i) in dsegs" :key="i"><span
+                  <div class="whitespace-pre-wrap break-words leading-7" x-show="diff"><template x-for="(s, i) in dsegs" :key="i"><span
                     :class="s.k === 'add' ? 'bg-success/20' : s.k === 'del' ? 'bg-error/10 line-through opacity-60' : ''" x-text="s.t"></span></template></div>
                   <template x-if="quote">
                     <div class="flex flex-wrap items-center gap-1 text-xs">
@@ -331,9 +331,9 @@
                         <template x-if="(e.builds_on || []).length"><span class="opacity-60" x-text="'← ' + e.builds_on.join(' ')"></span></template>
                       </div>
                       <template x-if="e.tag === 'word'">
-                        <div class="text-pretty"><span class="line-through opacity-60" x-text="e.from"></span> <span x-text="e.to || '∅'"></span></div>
+                        <div class="text-pretty break-words"><span class="line-through opacity-60" x-text="e.from"></span> <span x-text="e.to || '∅'"></span></div>
                       </template>
-                      <template x-if="e.tag !== 'word'"><div class="text-pretty whitespace-pre-wrap" x-text="e.text"></div></template>
+                      <template x-if="e.tag !== 'word'"><div class="text-pretty whitespace-pre-wrap break-words" x-text="e.text"></div></template>
                       <template x-for="(v, j) in downs(e)" :key="j">
                         <div class="text-xs opacity-70"><span class="text-error font-mono" x-text="'−1 ' + v.role + ' R' + v.round"></span> <span x-text="v.why"></span></div>
                       </template>
@@ -361,7 +361,7 @@
                       <div class="opacity-60" x-text="'+' + ups(e) + ' −' + downs(e).length"></div>
                     </td>
                     <td class="align-top">
-                      <div class="text-pretty" :class="downs(e).length > ups(e) ? 'line-through opacity-60' : ''" x-text="e.text"></div>
+                      <div class="text-pretty break-words" :class="downs(e).length > ups(e) ? 'line-through opacity-60' : ''" x-text="e.text"></div>
                       <template x-if="coreNow(e)">
                         <div class="text-xs opacity-70" x-text="coreNow(e).quote ? '“' + coreNow(e).quote + '”' : coreNow(e).lost"></div>
                       </template>

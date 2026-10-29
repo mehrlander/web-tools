@@ -57,7 +57,7 @@ docs/subjects.csv,9,7,2672,"[""key"",""label"",""needs"",""carrier"",""detect"",
 docs/tests-authored.csv,452,3,108160,"[""path"",""kind"",""protects""]"
 docs/tests.csv,452,6,387100,"[""path"",""test_count"",""method"",""runner"",""boot_smoke"",""test_names""]"
 docs/text-fields.csv,13,5,4135,"[""field"",""audience"",""gloss"",""use_when"",""instead_of""]"
-docs/themes.csv,111,7,191494,"[""a"",""b"",""w"",""rule"",""quoted"",""shingle"",""scanned""]"
+docs/themes.csv,122,7,232190,"[""a"",""b"",""w"",""rule"",""quoted"",""shingle"",""scanned""]"
 docs/tools.csv,5,2,190,"[""path"",""icon""]"
 docs/upstream-skills.csv,8,11,2473,"[""id"",""author"",""upstream"",""status"",""pinned"",""digest"",""rationale"",""seen"",""ours"",""held"",""group""]"
 docs/vocabularies.csv,173,6,18470,"[""registry"",""property"",""value"",""label"",""gloss"",""icon""]"
