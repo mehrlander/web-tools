@@ -174,7 +174,9 @@ def gemini_read(repo):
 
 def claude_windows(data):
     result = []
-    for key, name, minutes in [('five_hour', 'All models', 300), ('seven_day', 'All models', 10080)]:
+    for key, name, minutes in [('five_hour', 'All models', 300), ('seven_day', 'All models', 10080),
+                               ('seven_day_sonnet', 'Sonnet', 10080), ('seven_day_opus', 'Opus', 10080),
+                               ('seven_day_fable', 'Fable', 10080), ('seven_day_cowork', 'Cowork', 10080)]:
         row = data.get('rate_limits', {}).get(key)
         if not isinstance(row, dict):
             continue
@@ -216,9 +218,11 @@ def collect(state, repo):
     old = {p['provider']: p for p in previous.get('providers', [])}
     providers = []
     claude_input = read_json(state / 'usage-inputs' / 'claude.json')
+    claude_status = read_json(state / 'usage-inputs' / 'claude-status.json')
     sources = [('codex', 'Codex account', codex_read, 'Codex account limits are unavailable.'),
                ('gemini', 'Antigravity worker status', lambda: gemini_read(repo), 'Gemini worker quota is unavailable.'),
-               ('claude', 'Claude Code statusline', lambda: claude_windows(claude_input), 'Claude usage is not connected yet.')]
+               ('claude', 'Claude account' if claude_input.get('source') == 'Claude account' or not claude_input and claude_status else 'Claude Code statusline',
+                lambda: claude_windows(claude_input), claude_status.get('notice') or 'Claude usage is not connected yet.')]
     for provider, source, read, unavailable in sources:
         entry = dict(provider=provider, source=source, observedAt=None, checkedAt=at, status='unavailable', notice=unavailable, windows=[])
         try:
@@ -231,6 +235,10 @@ def collect(state, repo):
             if windows:
                 entry.update(status='available', notice='', observedAt=observed,
                              windows=keep_history(windows, old.get(provider, {}).get('windows', []), observed))
+                if provider == 'claude' and entry['source'] == 'Claude account' and claude_status.get('status') != 'available':
+                    entry.update(status='stale', notice=unavailable)
+            elif provider == 'claude' and observed and claude_status.get('status') == 'available':
+                entry.update(status='available', observedAt=observed)
         except Exception:
             # Provider errors can contain credentials; return only fixed notices.
             pass
