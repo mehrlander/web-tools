@@ -99,9 +99,11 @@ test('the document is drawn whole, its edits staged, under a head naming the fil
 test('an edit md-diff draws as several changes marks each, under the one decision', async () => {
   const marks = () => [...root().querySelectorAll('[data-doc-mark][data-doc-edit="4"]')];
   assert.equal(marks().length, 2, 'a two-block edit is two containers');
+  assert.deepEqual(marks().map((m) => m.textContent), ['Edit 4', ''], 'named once, on its first container');
   act(4, 'Discard');
   await tick(2);
   assert.deepEqual(marks().map((m) => m.dataset.decision), ['discarded', 'discarded'], 'both containers show the decision');
+  assert.deepEqual(marks().map((m) => m.textContent), ['Edit 4 · discarded', 'discarded']);
   act(4, 'Discard');
   await tick(2);
 });
@@ -120,6 +122,7 @@ test('nothing records until every staged edit is decided, and a decision stays m
   assert.match(send().textContent, /2 to decide/);
   assert.equal(mark(1).dataset.decision, 'confirmed');
   assert.match(mark(1).textContent, /kept/);
+  assert.equal(mark(1).dataset.titleTip, 'clearer', 'the reason is a title-tip on the mark, not a line under the edit');
   act(1, 'Keep');
   await tick(2);
   assert.equal(mark(1).dataset.decision, 'open', 'a second tap lets it go');
