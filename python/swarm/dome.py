@@ -9,8 +9,8 @@
 
 A fighter's file is <run>/b<bout>-<fighter>.jsonl, and its brief is dome.md
 with one of its temperaments. A bout's edits land on the text the last bout
-left, the biggest change first (words taken out plus words put in); an edit
-whose words are no longer there exactly once is knocked out. Each landed edit
+left, the biggest swing first (the most words claimed, then the most saved);
+an edit whose words are no longer there exactly once is knocked out. Each landed edit
 is a step on the path, so the paragraph can be read edit by edit. The ledger is
 <run>/ledger.json (kind dome/1), read by pages/swarm.html.
 """
@@ -124,8 +124,9 @@ def smash(run, n, model=''):
         _, who = bout_of(f)
         for k, (_, o) in enumerate(lines_of(f), 1):
             edits.append({'id': f'b{n}.{who}.{k}', 'bout': n, 'by': who, 'from': o['from'], 'text': o['text']})
-    # Biggest swing first; a tie goes to the fighter named first.
-    order = sorted(edits, key=lambda e: (-(words(e['from']) + words(e['text'])), e['id']))
+    # Biggest swing first: the most words claimed, then the most words saved, so
+    # on one span a cut beats a rewrite; a tie goes to the fighter named first.
+    order = sorted(edits, key=lambda e: (-words(e['from']), words(e['text']), e['id']))
     for e in order:
         ms = list(loose(e['from']).finditer(text))
         if len(ms) != 1:

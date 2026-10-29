@@ -21,7 +21,250 @@
    "words": 114
   }
  ],
- "bouts": [],
- "edits": [],
- "path": []
+ "bouts": [
+  {
+   "n": 1,
+   "model": "haiku",
+   "fighters": [
+    "caveman",
+    "cutter",
+    "fixer",
+    "fuser",
+    "plain",
+    "premise",
+    "qualifier",
+    "reorder",
+    "restorer",
+    "slugger"
+   ],
+   "landed": 4,
+   "knocked": 19,
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request as a PR check, so the suite speaks even when no session runs it. Keep the suite browser-free: `node --test` globs `node/test/**/*.test.mjs`, so name every Playwright-driven check without `.test.`. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh each run; a green check does not vouch for a pinned tree.",
+   "words": 58
+  }
+ ],
+ "edits": [
+  {
+   "id": "b1.cutter.1",
+   "bout": 1,
+   "by": "cutter",
+   "from": "`page-measures.yml` also runs on pull requests that touch a page, but only reports: a finding never fails it, so a red run is a fault in the pass, not in a page.",
+   "text": "",
+   "landed": true
+  },
+  {
+   "id": "b1.reorder.2",
+   "bout": 1,
+   "by": "reorder",
+   "from": "`page-measures.yml` also runs on pull requests that touch a page, but only reports: a finding never fails it, so a red run is a fault in the pass, not in a page.",
+   "text": "A red `page-measures.yml` run is a fault in the pass, not in a page, since it only reports.",
+   "landed": false
+  },
+  {
+   "id": "b1.fuser.2",
+   "bout": 1,
+   "by": "fuser",
+   "from": "also runs on pull requests that touch a page, but only reports: a finding never fails it, so a red run is a fault in the pass, not in a page.",
+   "text": "also runs on pull requests that touch a page, but only reports, so a red run is a fault in the pass, not in a page.",
+   "landed": false
+  },
+  {
+   "id": "b1.slugger.1",
+   "bout": 1,
+   "by": "slugger",
+   "from": "The suite is browser-free by construction (`node --test` globs `node/test/**/*.test.mjs`, and every Playwright-driven check is named without `.test.`), so keep it that way or the runner grows a browser install.",
+   "text": "Keep the suite browser-free: `node --test` globs `node/test/**/*.test.mjs`, so name every Playwright-driven check without `.test.`.",
+   "landed": true
+  },
+  {
+   "id": "b1.caveman.1",
+   "bout": 1,
+   "by": "caveman",
+   "from": "The suite is browser-free by construction (`node --test` globs `node/test/**/*.test.mjs`, and every Playwright-driven check is named without `.test.`), so keep it that way or the runner grows a browser install.",
+   "text": "Keep suite browser-free: `node --test` globs `node/test/**/*.test.mjs`; Playwright checks avoid `.test.` names, else runner grows a browser install.",
+   "landed": false
+  },
+  {
+   "id": "b1.reorder.1",
+   "bout": 1,
+   "by": "reorder",
+   "from": "The suite is browser-free by construction (`node --test` globs `node/test/**/*.test.mjs`, and every Playwright-driven check is named without `.test.`), so keep it that way or the runner grows a browser install.",
+   "text": "Keep the suite browser-free: `node --test` globs `node/test/**/*.test.mjs`, so name every Playwright-driven check without `.test.`, or the runner grows a browser install.",
+   "landed": false
+  },
+  {
+   "id": "b1.fuser.3",
+   "bout": 1,
+   "by": "fuser",
+   "from": "The suite is browser-free by construction (`node --test` globs `node/test/**/*.test.mjs`, and every Playwright-driven check is named without `.test.`), so keep it that way or the runner grows a browser install.",
+   "text": "Keep the suite browser-free by construction (`node --test` globs `node/test/**/*.test.mjs`, and every Playwright-driven check is named without `.test.`), or the runner grows a browser install.",
+   "landed": false
+  },
+  {
+   "id": "b1.restorer.1",
+   "bout": 1,
+   "by": "restorer",
+   "from": "runs `npm test` on every pull request and reports it as a check on the PR, so the test speaks even when no session runs the suite.",
+   "text": "runs `npm test` on every pull request as a PR check, so the suite speaks even when no session runs it.",
+   "landed": true
+  },
+  {
+   "id": "b1.reorder.3",
+   "bout": 1,
+   "by": "reorder",
+   "from": "on every pull request and reports it as a check on the PR, so the test speaks even when no session runs the suite.",
+   "text": "on every pull request, as a check.",
+   "landed": false
+  },
+  {
+   "id": "b1.fuser.1",
+   "bout": 1,
+   "by": "fuser",
+   "from": "reports it as a check on the PR, so the test speaks even when no session runs the suite.",
+   "text": "reports it as a PR check, so it speaks even when no session runs the suite.",
+   "landed": false
+  },
+  {
+   "id": "b1.restorer.3",
+   "bout": 1,
+   "by": "restorer",
+   "from": "fresh on each run and a green check is not a claim about a pinned tree.",
+   "text": "fresh each run; a green check does not vouch for a pinned tree.",
+   "landed": true
+  },
+  {
+   "id": "b1.plain.2",
+   "bout": 1,
+   "by": "plain",
+   "from": "so a red run is a fault in the pass, not in a page",
+   "text": "so a red run points to the check, not the page",
+   "landed": false
+  },
+  {
+   "id": "b1.cutter.3",
+   "bout": 1,
+   "by": "cutter",
+   "from": ", so the test speaks even when no session runs the suite",
+   "text": "",
+   "landed": false
+  },
+  {
+   "id": "b1.fixer.2",
+   "bout": 1,
+   "by": "fixer",
+   "from": "a green check is not a claim about a pinned tree",
+   "text": "a green check says nothing about a pinned tree",
+   "landed": false
+  },
+  {
+   "id": "b1.premise.1",
+   "bout": 1,
+   "by": "premise",
+   "from": "so the test speaks even when no session runs the suite.",
+   "text": "so the test reports even when no session runs the suite, provided GitHub starts a run: a PR that conflicts with its base gets none.",
+   "landed": false
+  },
+  {
+   "id": "b1.plain.3",
+   "bout": 1,
+   "by": "plain",
+   "from": "is not a claim about a pinned tree",
+   "text": "does not show that a fixed set of versions passes",
+   "landed": false
+  },
+  {
+   "id": "b1.qualifier.1",
+   "bout": 1,
+   "by": "qualifier",
+   "from": "even when no session runs the suite",
+   "text": "even unattended",
+   "landed": false
+  },
+  {
+   "id": "b1.restorer.2",
+   "bout": 1,
+   "by": "restorer",
+   "from": ", and every Playwright-driven check is named",
+   "text": "; Playwright-driven checks are named",
+   "landed": false
+  },
+  {
+   "id": "b1.qualifier.3",
+   "bout": 1,
+   "by": "qualifier",
+   "from": "in the pass, not in a page",
+   "text": "in the page-measures pass, not in a page",
+   "landed": false
+  },
+  {
+   "id": "b1.cutter.2",
+   "bout": 1,
+   "by": "cutter",
+   "from": "`node --test` globs `node/test/**/*.test.mjs`, and every",
+   "text": "every",
+   "landed": false
+  },
+  {
+   "id": "b1.fixer.1",
+   "bout": 1,
+   "by": "fixer",
+   "from": "as a check on the PR",
+   "text": "as a PR check",
+   "landed": false
+  },
+  {
+   "id": "b1.plain.1",
+   "bout": 1,
+   "by": "plain",
+   "from": "so the test speaks even when",
+   "text": "so the check runs even when",
+   "landed": false
+  },
+  {
+   "id": "b1.qualifier.2",
+   "bout": 1,
+   "by": "qualifier",
+   "from": "or the runner grows",
+   "text": "or the CI runner grows",
+   "landed": false
+  }
+ ],
+ "path": [
+  {
+   "edit": "b1.cutter.1",
+   "bout": 1,
+   "blocks": [
+    "P1"
+   ],
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports it as a check on the PR, so the test speaks even when no session runs the suite. The suite is browser-free by construction (`node --test` globs `node/test/**/*.test.mjs`, and every Playwright-driven check is named without `.test.`), so keep it that way or the runner grows a browser install. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh on each run and a green check is not a claim about a pinned tree.",
+   "words": 82
+  },
+  {
+   "edit": "b1.slugger.1",
+   "bout": 1,
+   "blocks": [
+    "P1"
+   ],
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports it as a check on the PR, so the test speaks even when no session runs the suite. Keep the suite browser-free: `node --test` globs `node/test/**/*.test.mjs`, so name every Playwright-driven check without `.test.`. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh on each run and a green check is not a claim about a pinned tree.",
+   "words": 67
+  },
+  {
+   "edit": "b1.restorer.1",
+   "bout": 1,
+   "blocks": [
+    "P1"
+   ],
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request as a PR check, so the suite speaks even when no session runs it. Keep the suite browser-free: `node --test` globs `node/test/**/*.test.mjs`, so name every Playwright-driven check without `.test.`. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh on each run and a green check is not a claim about a pinned tree.",
+   "words": 61
+  },
+  {
+   "edit": "b1.restorer.3",
+   "bout": 1,
+   "blocks": [
+    "P1"
+   ],
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request as a PR check, so the suite speaks even when no session runs it. Keep the suite browser-free: `node --test` globs `node/test/**/*.test.mjs`, so name every Playwright-driven check without `.test.`. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh each run; a green check does not vouch for a pinned tree.",
+   "words": 58
+  }
+ ]
 }
