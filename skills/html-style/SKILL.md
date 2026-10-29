@@ -12,8 +12,9 @@ insight. Getting there is usually iterative: present the pieces, pare the
 representation down, layer it, and manage each disclosure tightly, until it
 builds a dense web of connected information.
 
-[The method](https://github.com/mehrlander/web-tools/blob/main/research/minimal-progressive-structure/method.md)
-turns these steps into a procedure aimed at a limit,
+These steps have a written procedure,
+[method.md](https://github.com/mehrlander/web-tools/blob/main/research/minimal-progressive-structure/method.md),
+aimed at a limit,
 [minimal progressive structure](https://github.com/mehrlander/web-tools/blob/main/research/minimal-progressive-structure/theory.md#the-definition):
 a page that delivers all of its content with no text describing its own
 organization.

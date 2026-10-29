@@ -8,14 +8,14 @@ what it predicts. The [account](README.md) holds the test.
 ## The definition
 
 **Minimal progressive structure:** the layout that delivers all of the content
-with no text spent describing its organization, because familiar conventions
-convey it.
+with no text spent describing how that content is organized, because familiar
+conventions show it.
 
 Shannon's source coding theorem (1948) sets a limit on how short a lossless
 encoding of a message can be, and practical codes approach that limit without
-reaching it. The definition is a limit of that kind: some relations have no
-convention a reader knows, so a practical page keeps some text describing its
-organization.
+reaching it. The definition is a limit of that kind: some kinds of information
+have no convention a reader knows, so a practical page keeps some text
+describing how its content is organized.
 
 ## The claim
 
