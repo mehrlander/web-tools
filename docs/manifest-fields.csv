@@ -117,7 +117,7 @@ receptions[].file,string,app,,no,"The staged file's name, same placeholders. Def
 research,array,app,,,Retained research accounts outside docs/; Map offers Probes and Exploration.
 research[].path,string,app,,yes,Repository-relative Markdown account; README.md represents the research package beside it.
 research[].label,string,app,,yes,The inquiry named in the Research view.
-research[].kind,string,app,,yes,probe looks into our work; exploration gathers outside information.
+research[].kind,string,app,,yes,probe tests our work; exploration gathers outside information.
 stores,array,app,,,"Collections of entries this repository holds, other than its CSV registries."
 stores[].path,string,app,,yes,"A repository-relative path, or a glob for a collection kept one file per entry."
 stores[].shape,string,app,,yes,registry or stream.
