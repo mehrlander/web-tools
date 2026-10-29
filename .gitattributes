@@ -30,3 +30,47 @@ docs/tests.csv merge=derived-csv
 docs/themes.csv merge=derived-csv
 tracker/board-tags.csv merge=derived-csv
 tracker/board.csv merge=derived-csv
+
+# An authored registry whose row order carries no meaning: the driver unions
+# the rows two branches each add. A registry whose order is read, such as
+# docs/aims-reading.csv, stays out, since the driver appends a new row at the end.
+docs/map-tabs.csv merge=derived-csv
+
+# Edit policy: how each file may change. Each value's meaning is a row of
+# docs/vocabularies.csv (registry gitattributes, property edit), and
+# skills/hooks/check-edit-policy.py holds a commit to it. Later lines win; a
+# folder is folder/**, and a negative pattern is not allowed.
+*                                     edit=in-place
+
+# Tracker tasks: in place until done, then written once.
+tracker/tasks/*.md                    edit=by-status
+
+# The documents docs/docs.csv marks `record`.
+docs/github/mcp-server-routing.md     edit=write-once
+docs/showing-consolidation.md         edit=write-once
+docs/prototypes/md-edit-ideas.json    edit=write-once
+
+# Rebuilt whole by a builder, never by hand: the commit hook's legs
+# (node/README.md, "The refresh model") and the page thumbnails.
+# linguist-generated folds a file in GitHub's diffs. An index a reviewer reads
+# in the diff, such as docs/README.md, stays unfolded. A file with authored
+# cells beside computed ones, such as docs/docs.csv, is in place.
+dist/web-tools.js                     edit=regenerated linguist-generated
+dist/app.js                           edit=regenerated linguist-generated
+dist/dictate.js                       edit=regenerated linguist-generated
+console/suite.js                      edit=regenerated linguist-generated
+pages/index.html                      edit=regenerated linguist-generated
+pages/README.md                       edit=regenerated
+pages/thumbs/**                       edit=regenerated
+docs/README.md                        edit=regenerated
+docs/tests.csv                        edit=regenerated linguist-generated
+docs/kits.csv                         edit=regenerated linguist-generated
+docs/hook-legs.csv                    edit=regenerated linguist-generated
+docs/themes.csv                       edit=regenerated linguist-generated
+data/csv-census.csv                   edit=regenerated linguist-generated
+tracker/board.md                      edit=regenerated
+tracker/board.csv                     edit=regenerated linguist-generated
+tracker/board-tags.csv                edit=regenerated linguist-generated
+skills/default/CONVERSATION.md        edit=regenerated linguist-generated
+skills/default/QUALIFIED-WRITING.md   edit=regenerated linguist-generated
+plugins/h/skills/**                   edit=regenerated linguist-generated

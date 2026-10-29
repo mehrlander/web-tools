@@ -119,6 +119,41 @@ desktop settings; those settings never enter API responses or tracked files.
   the phone's link to its full saved result in Web Tools.
 - `GET /api/v1/desktop`: full desktop snapshot for the authenticated local app.
 
+### Account usage
+
+The phone's Usage tab and the desktop's Usage panel show account allowances,
+percentage used, reset countdowns and exact reset dates. Known window lengths
+also get a time-elapsed tick. Readings are collected independently about once a
+minute, without blocking activity. Local history samples every five minutes,
+keeps eight days and sends at most sixty points per current window to the phone.
+A trend begins with observed readings, without reconstructing past consumption.
+Expired or stale readings remain labeled; passing a reset never supplies an
+assumed zero.
+
+Codex uses the signed-in CLI's documented `account/rateLimits/read` app-server
+method. The CLI manages its own authentication. Each reported bucket and period
+remains separate. Gemini uses the existing Antigravity worker's loopback
+`GetUserStatus` response. That local interface is version-dependent and may
+contain cached provider data; the displayed time is when the worker status was
+read. The collector never starts the worker or a conversation. Only Gemini model
+quotas enter the Gemini lane. Claude models served through Antigravity do not
+describe the user's separate Claude subscription. Identical Gemini model
+readings and histories are grouped visually. An unreported period stays unknown.
+
+Claude's documented Code statusline JSON can supply `rate_limits.five_hour` and
+`rate_limits.seven_day`. A local statusline integration can pipe that JSON to
+`python <installed-companion>/worker/usage.py --state <desktop-data> --capture claude`.
+The capture command saves only the two percentages, reset times and capture time,
+and prints nothing. An existing statusline should retain its normal output.
+The normal desktop data directory is `%LOCALAPPDATA%\WebToolsDesktop`. No statusline
+settings are changed automatically. Without a reporter, the Claude lane explicitly
+says it is not connected. Cloud session activity hooks alone do not supply account
+quotas. A cloud reporter transport remains separate work.
+
+Usage files remain beside the companion settings in `usage.json` and
+`usage-inputs/claude.json`. No credential, transcript, account identifier or raw
+provider error enters the usage projection. Missing fields never imply zero.
+
 The phone projection omits request notes, filesystem fields, downloads and native
 actions. Polling uses conditional GET every two seconds in the foreground, pauses
 when hidden, refreshes immediately on return, and backs off to fifteen seconds on
