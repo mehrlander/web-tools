@@ -94,6 +94,15 @@ its observation time when contact is lost. A responding server with an observati
 older than fifteen seconds also loses its Live status. Closing the phone browser
 stops polling and does not stop collection.
 
+Tapping a main-list item toggles its compact inline details. An external-link icon
+opens the item's existing Web Tools session detail, errand or result in a separate
+browser context, preserving Now's position and open panel. Items without a valid
+browser destination, including current local Codex and Gemini sessions, have no
+external icon. The companion does not invent links for local-only records. Older
+phone detail bookmarks and the worker's own report view remain supported. On iOS,
+a Home Screen web app may open an external link in a Safari browser sheet, where
+the system offers the control to continue in Safari.
+
 After installation, run `desktop/enable-phone.ps1` using the owner's Windows
 account. The script reads the existing Tailscale identity, restricts the companion
 to that identity, and configures private HTTPS through Tailscale Serve. Unmet HTTPS
