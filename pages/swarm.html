@@ -119,7 +119,8 @@
         },
         get prevLabel() { return this.k > 0 ? 'round ' + this.led.rounds[this.k - 1].n : 'the original'; },
         get dsegs() {
-          return Diff.diffWords(this.prevText, this.h ? this.h.text : '').map(p => ({ t: p.value, k: p.added ? 'add' : p.removed ? 'del' : '' }));
+          const md = (t) => t.replace(/^#+\s*/gm, '').replace(/\*\*|`/g, '');
+          return Diff.diffWords(md(this.prevText), md(this.h ? this.h.text : '')).map(p => ({ t: p.value, k: p.added ? 'add' : p.removed ? 'del' : '' }));
         },
 
         // Rounds: who read, what each added, what the result came to.
@@ -165,13 +166,19 @@
           for (let r = n; r >= 1; r--) { const e = this.led.entries.find(e => e.id === r + '.' + id); if (e) return e; }
           return null;
         },
-        deid(t, n) {
-          return (t || '').replace(/\b(?:\d+\.)?[ctdw]\d+\b(?:\/(?:\d+\.)?[ctdw]\d+\b)*/g, (m) => m.split('/').map(id => {
-            const e = this.byId(id, n);
-            if (!e) return id;
-            const w = this.plain(e.tag === 'word' ? e.from : e.text).split(/\s+/);
-            return '“' + w.slice(0, 6).join(' ') + (w.length > 6 ? '…' : '') + '”';
-          }).join(', '));
+        deid(t, n, mode) {
+          return (t || '').replace(/\b(?:\d+\.)?[ctdw]\d+\b(?:\/(?:\d+\.)?[ctdw]\d+\b)*/g, (m) => {
+            const es = m.split('/').map(id => this.byId(id, n));
+            if (es.some(e => !e)) return m;
+            if (mode === 'kind') {
+              const k = KINDS[es[0].tag], many = es.length > 1;
+              return many ? es.length + ' ' + k + 's' : k;
+            }
+            return es.map(e => {
+              const w = this.plain(e.tag === 'word' ? e.from : e.text).split(/\s+/);
+              return '“' + w.slice(0, 6).join(' ') + (w.length > 6 ? '…' : '') + '”';
+            }).join(', ');
+          });
         },
         esc(t) { return String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]); },
         inline(t) {
@@ -202,7 +209,7 @@
     <div class="min-w-0 flex-1">
       <div class="font-semibold text-balance" x-text="heading"></div>
       <template x-if="led">
-        <div class="text-xs flex flex-wrap gap-x-2 opacity-80">
+        <div class="text-xs flex flex-wrap gap-x-2 opacity-80 text-pretty">
           <a class="link link-hover font-mono" :href="led.source.url || '#'" target="_blank" rel="noopener" x-text="where"></a>
           <span class="opacity-50 hidden lg:inline" x-show="!!last">·</span>
           <span class="font-mono" x-show="!!last" x-text="last && (led.source.words + ' → ' + last.words + ' words (' + pct(last.words) + ') in ' + R + ' rounds of model readers · ' + last.core_carried + ' of ' + named(R - 1) + ' must-keep facts kept, ' + (named(R - 1) - last.core_total) + ' voted out as repeats')"></span>
@@ -239,13 +246,13 @@
     <template x-if="led && tab === 'compare'">
       <div class="h-full flex flex-col">
         <div class="join px-4 pt-2 lg:hidden">
-          <button class="join-item btn btn-xs btn-outline" :class="side === 'original' && 'btn-active'" @click="side = 'original'" x-text="'Original · ' + led.source.words + ' words'"></button>
-          <button class="join-item btn btn-xs btn-outline" :class="side === 'result' && 'btn-active'" @click="side = 'result'" x-text="'Round ' + n + ' result · ' + (h ? h.words : '…') + ' words'"></button>
+          <button class="join-item btn btn-xs" :class="side === 'original' ? 'btn-neutral' : 'btn-outline'" @click="side = 'original'" x-text="'Original · ' + led.source.words + ' words'"></button>
+          <button class="join-item btn btn-xs" :class="side === 'result' ? 'btn-neutral' : 'btn-outline'" @click="side = 'result'" x-text="'Round ' + n + ' result · ' + (h ? h.words : '…') + ' words'"></button>
         </div>
         <div class="flex-1 min-h-0 grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <section class="min-h-0 overflow-y-auto px-4 pb-24 lg:border-r border-base-300" :class="side === 'original' ? 'block' : 'hidden lg:block'">
             <div class="text-xs font-mono opacity-70 py-2 hidden lg:block" x-text="'Original · ' + led.source.words + ' words'"></div>
-            <div :class="mdClass" x-html="srcHtml"></div>
+            <div :class="mdClass" class="text-base! leading-7 [&_code]:text-[0.9em]! [&_code]:px-[0.15em]! [&_h1]:text-xl! [&_h2]:text-lg! [&_h3]:text-base! [&_h1]:text-balance [&_h2]:text-balance [&_h3]:text-balance [&_p]:text-pretty [&_li]:text-pretty" x-html="srcHtml"></div>
           </section>
           <section class="min-h-0 overflow-y-auto px-4 pb-24" :class="side === 'result' ? 'block' : 'hidden lg:block'">
             <div class="flex flex-wrap items-center gap-2 py-2 text-xs">
@@ -256,10 +263,10 @@
                 <span x-text="'changes from ' + prevLabel"></span>
               </label>
             </div>
-            <template x-if="h && !marks"><div :class="mdClass" x-html="resHtml[n]"></div></template>
+            <template x-if="h && !marks"><div :class="mdClass" class="text-base! leading-7 [&_code]:text-[0.9em]! [&_code]:px-[0.15em]! [&_h1]:text-xl! [&_h2]:text-lg! [&_h3]:text-base! [&_h1]:text-balance [&_h2]:text-balance [&_h3]:text-balance [&_p]:text-pretty [&_li]:text-pretty" x-html="resHtml[n]"></div></template>
             <template x-if="h && marks">
-              <div class="whitespace-pre-wrap break-words leading-7"><template x-for="(s, i) in dsegs" :key="i"><span
-                :class="s.k === 'add' ? 'bg-success/20' : s.k === 'del' ? 'bg-error/10 line-through opacity-60' : ''" x-text="s.t"></span></template></div>
+              <div class="whitespace-pre-wrap break-words leading-7 text-pretty"><template x-for="(s, i) in dsegs" :key="i"><span
+                :class="s.k === 'add' ? 'underline decoration-2 underline-offset-4 decoration-base-content/40' : s.k === 'del' ? 'line-through opacity-40' : ''" x-text="s.t"></span></template></div>
             </template>
           </section>
         </div>
@@ -269,7 +276,7 @@
     <!-- rounds -->
     <template x-if="led && tab === 'rounds'">
       <div class="p-4 pb-24">
-        <table class="table table-sm">
+        <table class="table text-base">
           <thead><tr><th class="font-mono">round</th><th>model readers, and what each added</th><th class="text-right">words</th><th class="text-right">must-keep facts kept</th></tr></thead>
           <tbody>
             <tr class="opacity-70">
@@ -290,7 +297,7 @@
                   <div class="text-pretty" x-show="!!row.h">
                     <span class="font-semibold">harvester</span>
                     <span class="opacity-70" x-text="ROLES.harvester"></span>:
-                    <span x-text="row.h && deid(row.h.note, row.n)"></span>
+                    <span x-text="row.h && deid(row.h.note, row.n, 'kind')"></span>
                   </div>
                 </td>
                 <td class="text-right font-mono whitespace-nowrap">
@@ -310,14 +317,21 @@
 
     <!-- notes: the ledger -->
     <template x-if="led && tab === 'notes'">
-      <div class="h-full grid grid-rows-[minmax(0,2fr)_minmax(0,3fr)] lg:grid-rows-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <div class="h-full grid grid-rows-[auto_minmax(0,1fr)]">
+      <div class="flex items-center gap-2 px-4 py-2 border-b border-base-300 overflow-x-auto">
+        <span class="text-xs opacity-70 shrink-0">show</span>
+        <template x-for="t in Object.keys(kinds)" :key="t">
+          <button class="btn btn-xs shrink-0" :class="kinds[t] ? 'btn-neutral' : 'btn-ghost opacity-60'" @click="kinds[t] = !kinds[t]" x-text="KINDS[t]"></button>
+        </template>
+      </div>
+      <div class="min-h-0 grid grid-rows-[minmax(0,2fr)_minmax(0,3fr)] lg:grid-rows-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <ol class="min-h-0 overflow-y-auto lg:pb-24 divide-y divide-base-200 border-b lg:border-b-0 lg:border-r border-base-300">
           <li>
-            <button class="w-full text-left px-4 py-2 text-sm" :class="sel === null ? 'bg-primary/10 font-semibold' : 'hover:bg-base-200'" @click="sel = null">Every sentence</button>
+            <button class="w-full text-left px-4 py-2" :class="sel === null ? 'bg-base-200 font-semibold' : 'hover:bg-base-200'" @click="sel = null">Every sentence</button>
           </li>
           <template x-for="u in led.units" :key="u.id">
             <li>
-              <button class="w-full text-left px-4 py-2 flex gap-3 items-baseline" :class="sel === u.id ? 'bg-primary/10' : 'hover:bg-base-200'" @click="sel = sel === u.id ? null : u.id">
+              <button class="w-full text-left px-4 py-2 flex gap-3 items-baseline" :class="sel === u.id ? 'bg-base-200' : 'hover:bg-base-200'" @click="sel = sel === u.id ? null : u.id">
                 <span class="font-mono text-xs opacity-60 w-7 shrink-0" x-text="u.id"></span>
                 <span class="flex-1 min-w-0 text-pretty break-words" :class="[dropped(u) ? 'line-through opacity-50' : '', /^h\d/.test(u.kind) ? 'font-semibold' : '']" x-text="plain(u.text)"></span>
                 <span class="font-mono text-xs opacity-60 shrink-0" x-text="count(u) + ' notes'"></span>
@@ -326,14 +340,9 @@
           </template>
         </ol>
         <div class="min-h-0 overflow-y-auto p-4 pb-24 flex flex-col gap-3">
-          <div class="flex items-center gap-1 overflow-x-auto">
-            <template x-for="t in Object.keys(kinds)" :key="t">
-              <button class="btn btn-xs shrink-0" :class="kinds[t] ? 'btn-neutral' : 'btn-ghost opacity-60'" @click="kinds[t] = !kinds[t]" x-text="KINDS[t]"></button>
-            </template>
-          </div>
           <template x-for="g in groups" :key="g.n + g.role">
             <div class="flex flex-col gap-2">
-              <div class="text-xs font-mono opacity-70 border-b border-base-200 pb-1" x-text="'round ' + g.n + ' · ' + g.role + ' · ' + g.items.length + ' notes'"></div>
+              <div class="text-xs font-mono opacity-70 border-b border-base-200 pb-1" x-text="'added in round ' + g.n + ' by ' + g.role + ' · ' + g.items.length + ' notes'"></div>
               <template x-for="e in g.items" :key="e.id">
                 <div class="pl-3 border-l-2" :class="e.round === n ? 'border-primary' : 'border-base-300'">
                   <div class="flex flex-wrap items-center gap-x-2 text-xs font-mono opacity-80">
@@ -348,7 +357,7 @@
                   </template>
                   <template x-if="e.tag !== 'word'"><div class="text-pretty whitespace-pre-wrap break-words" x-html="inline(e.text)"></div></template>
                   <template x-for="(v, j) in downs(e)" :key="j">
-                    <div class="text-xs opacity-70"><span class="text-error font-mono" x-text="'−1 from ' + v.role"></span> <span x-text="deid(v.why, v.round)"></span></div>
+                    <div class="opacity-70 text-pretty"><span class="text-error font-mono text-xs" x-text="'−1 from ' + v.role"></span> <span x-text="deid(v.why, v.round)"></span></div>
                   </template>
                 </div>
               </template>
@@ -356,12 +365,13 @@
           </template>
         </div>
       </div>
+      </div>
     </template>
 
     <!-- must keep -->
     <template x-if="led && tab === 'core'">
       <div class="p-4 pb-24">
-        <table class="table table-sm">
+        <table class="table text-base">
           <thead>
             <tr>
               <th>fact a reader must still get</th>
@@ -374,15 +384,15 @@
                 <td class="align-top">
                   <div class="text-pretty break-words" :class="downs(e).length > ups(e) ? 'line-through opacity-60' : ''" x-html="inline(e.text)"></div>
                   <template x-if="coreNow(e)">
-                    <div class="text-xs opacity-70 break-words" x-html="coreNow(e).quote ? 'kept as “' + inline(coreNow(e).quote) + '”' : 'given up: ' + esc(deid(coreNow(e).lost, n))"></div>
+                    <div class="opacity-70 break-words text-pretty" x-html="coreNow(e).quote ? 'kept as “' + inline(coreNow(e).quote) + '”' : 'given up: ' + esc(deid(coreNow(e).lost, n))"></div>
                   </template>
                   <template x-if="downs(e).length > ups(e)">
-                    <div class="text-xs opacity-70 break-words" x-text="'voted out as a repeat: ' + deid(downs(e)[0].why, downs(e)[0].round)"></div>
+                    <div class="opacity-70 break-words text-pretty" x-text="'voted out as a repeat: ' + deid(downs(e)[0].why, downs(e)[0].round)"></div>
                   </template>
                 </td>
                 <template x-for="r in led.rounds.slice(0, k + 1)" :key="r.n">
                   <td class="text-center align-top">
-                    <i class="ph" :class="{ 'ph-check text-success': coreAt(e, r) === 'ok', 'ph-x text-error': coreAt(e, r) === 'lost', 'ph-minus opacity-30': coreAt(e, r) === '' }"></i>
+                    <i class="ph-bold text-lg" :class="{ 'ph-check text-success': coreAt(e, r) === 'ok', 'ph-x text-error': coreAt(e, r) === 'lost', 'ph-minus opacity-30': coreAt(e, r) === '' }"></i>
                   </td>
                 </template>
               </tr>
@@ -394,10 +404,10 @@
   </main>
 
   <!-- footer: rounds -->
-  <footer class="flex items-center justify-center gap-3 px-4 py-2 border-t border-base-300" x-show="R > 1 && tab !== 'rounds'">
+  <footer class="flex items-center justify-center gap-3 px-4 py-2 border-t border-base-300" x-show="R > 1">
     <button class="btn btn-ghost btn-sm btn-square" @click="step(-1)" :disabled="k === 0" aria-label="Previous round"><i class="ph ph-caret-left text-lg"></i></button>
     <div class="flex items-center gap-2">
-      <span class="text-xs opacity-70" x-text="tab === 'compare' ? 'result of' : 'as of'"></span>
+      <span class="text-xs opacity-70" x-text="tab === 'compare' ? 'result of' : tab === 'rounds' ? 'selected' : 'as of'"></span>
       <template x-for="(r, i) in led ? led.rounds : []" :key="r.n">
         <button class="font-mono text-xs px-2 py-1 rounded" :class="i === k ? 'bg-primary text-primary-content' : 'opacity-60 hover:bg-base-200'" @click="k = i" x-text="'round ' + r.n"></button>
       </template>
