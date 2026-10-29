@@ -70,8 +70,8 @@
    "block": "P1",
    "by": "caveman",
    "aim": "red",
-   "find": "The pre-build & the build-on-commit hook",
-   "replace": "Pre-build & build-on-commit hook",
+   "from": "The pre-build & the build-on-commit hook",
+   "text": "Pre-build & build-on-commit hook",
    "why": "Heading articles dropped."
   },
   {
@@ -79,8 +79,8 @@
    "block": "P2",
    "by": "caveman",
    "aim": "red",
-   "find": "the whole `lib/` frozen into one self-booting offline artifact, so a page adopts the library with one import instead of a `gh.load` chain.",
-   "replace": "whole `lib/` frozen into one self-booting offline artifact; one import replaces a `gh.load` chain.",
+   "from": "the whole `lib/` frozen into one self-booting offline artifact, so a page adopts the library with one import instead of a `gh.load` chain.",
+   "text": "whole `lib/` frozen into one self-booting offline artifact; one import replaces a `gh.load` chain.",
    "why": "Purpose clause folded into a clipped fragment; same fact: one import replaces the chain."
   },
   {
@@ -88,8 +88,8 @@
    "block": "P2",
    "by": "caveman",
    "aim": "red",
-   "find": "`dist/app.js` is the app's own: only what `app/index.html` reaches.",
-   "replace": "`dist/app.js`: app's own, only what `app/index.html` reaches.",
+   "from": "`dist/app.js` is the app's own: only what `app/index.html` reaches.",
+   "text": "`dist/app.js`: app's own, only what `app/index.html` reaches.",
    "why": "Copula and article dropped; scope limit `only` kept."
   },
   {
@@ -97,8 +97,8 @@
    "block": "P2",
    "by": "caveman",
    "aim": "red",
-   "find": "Both are tracked.",
-   "replace": "Both tracked.",
+   "from": "Both are tracked.",
+   "text": "Both tracked.",
    "why": "Copula dropped."
   },
   {
@@ -106,8 +106,8 @@
    "block": "P3",
    "by": "caveman",
    "aim": "red",
-   "find": "The `gh.load` chain it replaces is the repo's default, not a legacy path.",
-   "replace": "`gh.load` chain: repo default, not legacy path.",
+   "from": "The `gh.load` chain it replaces is the repo's default, not a legacy path.",
+   "text": "`gh.load` chain: repo default, not legacy path.",
    "why": "Fragment; 'it replaces' is already in P2; `not` kept."
   },
   {
@@ -115,8 +115,8 @@
    "block": "P3",
    "by": "caveman",
    "aim": "red",
-   "find": "(docs/loader.md) is the only statement of the contract a file must honor to be loadable that way, plus the timing invariants the boot sequence depends on.",
-   "replace": "(docs/loader.md): only statement of the contract a file must honor to load that way, plus boot-sequence timing invariants.",
+   "from": "(docs/loader.md) is the only statement of the contract a file must honor to be loadable that way, plus the timing invariants the boot sequence depends on.",
+   "text": "(docs/loader.md): only statement of the contract a file must honor to load that way, plus boot-sequence timing invariants.",
    "why": "Copula and articles dropped; relative clause compressed to a modifier; `only` kept."
   },
   {
@@ -124,8 +124,8 @@
    "block": "P3",
    "by": "caveman",
    "aim": "red",
-   "find": "Read it before adding a file to `lib/` or changing how a page boots.",
-   "replace": "Read before adding a file to `lib/` or changing page boot.",
+   "from": "Read it before adding a file to `lib/` or changing how a page boots.",
+   "text": "Read before adding a file to `lib/` or changing page boot.",
    "why": "Object pronoun and 'how a ... boots' clause dropped."
   },
   {
@@ -133,8 +133,8 @@
    "block": "P3",
    "by": "caveman",
    "aim": "red",
-   "find": "Which folder the file belongs in is answered in [`docs/code-layers.md`](docs/code-layers.md) and measured by `npm run code-scan`.",
-   "replace": "Folder choice: [`docs/code-layers.md`](docs/code-layers.md), measured by `npm run code-scan`.",
+   "from": "Which folder the file belongs in is answered in [`docs/code-layers.md`](docs/code-layers.md) and measured by `npm run code-scan`.",
+   "text": "Folder choice: [`docs/code-layers.md`](docs/code-layers.md), measured by `npm run code-scan`.",
    "why": "Passive question sentence replaced by a label and a pointer; both paths and the command kept."
   },
   {
@@ -142,8 +142,8 @@
    "block": "P4",
    "by": "caveman",
    "aim": "red",
-   "find": "Every **deterministic** derived artifact is owned by one commit-time hook, [`.githooks/pre-commit`](.githooks/pre-commit).",
-   "replace": "One commit-time hook, [`.githooks/pre-commit`](.githooks/pre-commit), owns every **deterministic** derived artifact.",
+   "from": "Every **deterministic** derived artifact is owned by one commit-time hook, [`.githooks/pre-commit`](.githooks/pre-commit).",
+   "text": "One commit-time hook, [`.githooks/pre-commit`](.githooks/pre-commit), owns every **deterministic** derived artifact.",
    "why": "Passive turned active; same claim, fewer words."
   },
   {
@@ -151,8 +151,8 @@
    "block": "P4",
    "by": "caveman",
    "aim": "red",
-   "find": "it regenerates and stages, in the same commit, whatever the pending changes touch.",
-   "replace": "it regenerates and stages, same commit, whatever pending changes touch.",
+   "from": "it regenerates and stages, in the same commit, whatever the pending changes touch.",
+   "text": "it regenerates and stages, same commit, whatever pending changes touch.",
    "why": "Articles and preposition dropped."
   },
   {
@@ -160,8 +160,8 @@
    "block": "P4",
    "by": "caveman",
    "aim": "red",
-   "find": "(node/README.md#the-refresh-model) lists the legs, the order they run in, and why that order matters.",
-   "replace": "(node/README.md#the-refresh-model): legs, run order, why order matters.",
+   "from": "(node/README.md#the-refresh-model) lists the legs, the order they run in, and why that order matters.",
+   "text": "(node/README.md#the-refresh-model): legs, run order, why order matters.",
    "why": "List sentence reduced to a label and three items; the three things listed are all kept."
   },
   {
@@ -169,8 +169,8 @@
    "block": "P5",
    "by": "caveman",
    "aim": "red",
-   "find": "hand-edit a file the hook writes; edit the source and let the hook refresh it.",
-   "replace": "hand-edit hook-written files; edit source, let hook refresh.",
+   "from": "hand-edit a file the hook writes; edit the source and let the hook refresh it.",
+   "text": "hand-edit hook-written files; edit source, let hook refresh.",
    "why": "Relative clause to compound modifier; imperative pair clipped."
   },
   {
@@ -178,8 +178,8 @@
    "block": "P5",
    "by": "caveman",
    "aim": "red",
-   "find": "(`pages/thumbs/*.png`) are the exception",
-   "replace": "(`pages/thumbs/*.png`): exception",
+   "from": "(`pages/thumbs/*.png`) are the exception",
+   "text": "(`pages/thumbs/*.png`): exception",
    "why": "Copula and article dropped; the pointer to Per-session refresh stays."
   },
   {
@@ -187,8 +187,8 @@
    "block": "P6",
    "by": "caveman",
    "aim": "red",
-   "find": "when the session root sits above this repo.",
-   "replace": "if session root is above this repo.",
+   "from": "when the session root sits above this repo.",
+   "text": "if session root is above this repo.",
    "why": "Verb simplified, article dropped."
   },
   {
@@ -196,8 +196,8 @@
    "block": "P6",
    "by": "caveman",
    "aim": "red",
-   "find": "for hooks, the CSV merge driver, and dependencies;",
-   "replace": "for hooks, CSV merge driver, dependencies;",
+   "from": "for hooks, the CSV merge driver, and dependencies;",
+   "text": "for hooks, CSV merge driver, dependencies;",
    "why": "Article and conjunction dropped from the list."
   },
   {
@@ -205,8 +205,8 @@
    "block": "P6",
    "by": "caveman",
    "aim": "red",
-   "find": "delegate to that shared path.",
-   "replace": "delegate to it.",
+   "from": "delegate to that shared path.",
+   "text": "delegate to it.",
    "why": "'that shared path' is the setup path just named; pronoun serves."
   },
   {
@@ -214,8 +214,8 @@
    "block": "P7",
    "by": "caveman",
    "aim": "red",
-   "find": "artifacts, and API, MCP, or server-side writes cannot",
-   "replace": "artifacts; API, MCP, server-side writes cannot",
+   "from": "artifacts, and API, MCP, or server-side writes cannot",
+   "text": "artifacts; API, MCP, server-side writes cannot",
    "why": "Conjunctions dropped; `never` and `cannot` kept."
   },
   {
@@ -223,8 +223,8 @@
    "block": "P7",
    "by": "caveman",
    "aim": "red",
-   "find": "therefore checks every generator",
-   "replace": "checks every generator",
+   "from": "therefore checks every generator",
+   "text": "checks every generator",
    "why": "Connective dropped; the sentence order carries the cause."
   },
   {
@@ -232,8 +232,8 @@
    "block": "P7",
    "by": "caveman",
    "aim": "red",
-   "find": "then run any additional command the test names.",
-   "replace": "then any command the test names.",
+   "from": "then run any additional command the test names.",
+   "text": "then any command the test names.",
    "why": "Verb repeated from the previous clause and 'additional' dropped."
   },
   {
@@ -241,8 +241,8 @@
    "block": "P7",
    "by": "caveman",
    "aim": "red",
-   "find": "A local merge that restamps its combined index pauses for the gated",
-   "replace": "Local merge restamping its combined index pauses for gated",
+   "from": "A local merge that restamps its combined index pauses for the gated",
+   "text": "Local merge restamping its combined index pauses for gated",
    "why": "Relative clause to participle, articles dropped; the command is untouched."
   },
   {
@@ -250,8 +250,8 @@
    "block": "P8",
    "by": "caveman",
    "aim": "red",
-   "find": "and reports it as a check on the PR, so the test speaks even when no session runs the suite.",
-   "replace": "and reports a PR check, even when no session runs the suite.",
+   "from": "and reports it as a check on the PR, so the test speaks even when no session runs the suite.",
+   "text": "and reports a PR check, even when no session runs the suite.",
    "why": "Reason clause cut to the condition that matters; `no` kept."
   },
   {
@@ -259,8 +259,8 @@
    "block": "P8",
    "by": "caveman",
    "aim": "red",
-   "find": "that touch a page, but only reports:",
-   "replace": "touching a page but only reports:",
+   "from": "that touch a page, but only reports:",
+   "text": "touching a page but only reports:",
    "why": "Relative clause to participle; `only` kept."
   },
   {
@@ -268,8 +268,8 @@
    "block": "P8",
    "by": "caveman",
    "aim": "red",
-   "find": "a red run is a fault in the pass, not in a page.",
-   "replace": "a red run is a pass fault, not a page fault.",
+   "from": "a red run is a fault in the pass, not in a page.",
+   "text": "a red run is a pass fault, not a page fault.",
    "why": "Prepositional phrases to compound nouns; `not` kept."
   },
   {
@@ -277,8 +277,8 @@
    "block": "P8",
    "by": "caveman",
    "aim": "red",
-   "find": "The suite is browser-free by construction",
-   "replace": "Suite is browser-free by construction",
+   "from": "The suite is browser-free by construction",
+   "text": "Suite is browser-free by construction",
    "why": "Article dropped."
   },
   {
@@ -286,8 +286,8 @@
    "block": "P8",
    "by": "caveman",
    "aim": "red",
-   "find": "*.test.mjs`, and every",
-   "replace": "*.test.mjs`; every",
+   "from": "*.test.mjs`, and every",
+   "text": "*.test.mjs`; every",
    "why": "Conjunction dropped."
   },
   {
@@ -295,8 +295,8 @@
    "block": "P8",
    "by": "caveman",
    "aim": "red",
-   "find": "), so keep it that way or",
-   "replace": "); keep it so or",
+   "from": "), so keep it that way or",
+   "text": "); keep it so or",
    "why": "Connective dropped; 'that way' to 'so'."
   },
   {
@@ -304,8 +304,8 @@
    "block": "P8",
    "by": "caveman",
    "aim": "red",
-   "find": "is gitignored, so CI resolves dependency ranges fresh on each run and a green check is not a claim about a pinned tree.",
-   "replace": "is gitignored: CI resolves dependency ranges fresh each run; a green check is not a claim about a pinned tree.",
+   "from": "is gitignored, so CI resolves dependency ranges fresh on each run and a green check is not a claim about a pinned tree.",
+   "text": "is gitignored: CI resolves dependency ranges fresh each run; a green check is not a claim about a pinned tree.",
    "why": "Connectives and 'on' dropped; `not` kept."
   },
   {
@@ -313,8 +313,8 @@
    "block": "P2",
    "by": "pincher",
    "aim": "yellow",
-   "find": "so a page adopts the library with one import instead of a `gh.load` chain",
-   "replace": "so a page adopts it with one import, not a `gh.load` chain",
+   "from": "so a page adopts the library with one import instead of a `gh.load` chain",
+   "text": "so a page adopts it with one import, not a `gh.load` chain",
    "why": "Two ideas, the library and the chain it replaces, become one phrase; 'the library' shrinks to 'it', which leans on the sentence's own subject."
   },
   {
@@ -322,8 +322,8 @@
    "block": "P3",
    "by": "pincher",
    "aim": "yellow",
-   "find": "is the repo's default, not a legacy path",
-   "replace": "is the repo's default, not legacy",
+   "from": "is the repo's default, not a legacy path",
+   "text": "is the repo's default, not legacy",
    "why": "Drops 'a ... path'; the contrast with legacy survives, the noun is implied."
   },
   {
@@ -331,8 +331,8 @@
    "block": "P3",
    "by": "pincher",
    "aim": "yellow",
-   "find": "plus the timing invariants the boot sequence depends on",
-   "replace": "and the boot sequence's timing invariants",
+   "from": "plus the timing invariants the boot sequence depends on",
+   "text": "and the boot sequence's timing invariants",
    "why": "Folds the relative clause 'depend on' into a possessive; the reader no longer sees the dependency spelled out."
   },
   {
@@ -340,8 +340,8 @@
    "block": "P3",
    "by": "pincher",
    "aim": "yellow",
-   "find": "Which folder the file belongs in is answered in [`docs/code-layers.md`](docs/code-layers.md) and measured by `npm run code-scan`.",
-   "replace": "[`docs/code-layers.md`](docs/code-layers.md) says which folder a file belongs in; `npm run code-scan` measures it.",
+   "from": "Which folder the file belongs in is answered in [`docs/code-layers.md`](docs/code-layers.md) and measured by `npm run code-scan`.",
+   "text": "[`docs/code-layers.md`](docs/code-layers.md) says which folder a file belongs in; `npm run code-scan` measures it.",
    "why": "Passive 'is answered in ... and measured by' becomes two short active clauses joined by a semicolon, merging question and measure into one sentence with the link as subject."
   },
   {
@@ -349,8 +349,8 @@
    "block": "P4",
    "by": "pincher",
    "aim": "yellow",
-   "find": "Every **deterministic** derived artifact is owned by one commit-time hook, [`.githooks/pre-commit`](.githooks/pre-commit). Before a `git commit` it regenerates",
-   "replace": "One commit-time hook, [`.githooks/pre-commit`](.githooks/pre-commit), owns every **deterministic** derived artifact: before a `git commit` it regenerates",
+   "from": "Every **deterministic** derived artifact is owned by one commit-time hook, [`.githooks/pre-commit`](.githooks/pre-commit). Before a `git commit` it regenerates",
+   "text": "One commit-time hook, [`.githooks/pre-commit`](.githooks/pre-commit), owns every **deterministic** derived artifact: before a `git commit` it regenerates",
    "why": "Merges two sentences by flipping the passive into an active claim and a colon; the flow between 'owns' and 'how' is tighter but the two-beat pacing is lost."
   },
   {
@@ -358,8 +358,8 @@
    "block": "P4",
    "by": "pincher",
    "aim": "yellow",
-   "find": "stages, in the same commit, whatever",
-   "replace": "stages whatever",
+   "from": "stages, in the same commit, whatever",
+   "text": "stages whatever",
    "why": "Cuts 'in the same commit', a nuance: the reader loses the reminder that the regenerated files land with the source change."
   },
   {
@@ -367,8 +367,8 @@
    "block": "P4",
    "by": "pincher",
    "aim": "yellow",
-   "find": "the order they run in, and why that order matters",
-   "replace": "their order and why it matters",
+   "from": "the order they run in, and why that order matters",
+   "text": "their order and why it matters",
    "why": "Two uses of 'order' become a pronoun; same content, less emphasis on the ordering."
   },
   {
@@ -376,8 +376,8 @@
    "block": "P5",
    "by": "pincher",
    "aim": "yellow",
-   "find": "a file the hook writes; edit the source and let the hook refresh it",
-   "replace": "a hook-written file; edit the source instead",
+   "from": "a file the hook writes; edit the source and let the hook refresh it",
+   "text": "a hook-written file; edit the source instead",
    "why": "Cuts 'let the hook refresh it', which restates the preceding paragraph's regenerate-on-commit; a careful editor may want the positive instruction kept."
   },
   {
@@ -385,8 +385,8 @@
    "block": "P6",
    "by": "pincher",
    "aim": "yellow",
-   "find": "sits above this repo",
-   "replace": "is above this repo",
+   "from": "sits above this repo",
+   "text": "is above this repo",
    "why": "Plain verb for 'sits'; trades a touch of voice for one fewer word."
   },
   {
@@ -394,8 +394,8 @@
    "block": "P6",
    "by": "pincher",
    "aim": "yellow",
-   "find": "Claude's startup scripts delegate to that shared path. ",
-   "replace": "",
+   "from": "Claude's startup scripts delegate to that shared path. ",
+   "text": "",
    "why": "Cuts the aside that startup scripts reuse `npm run setup`; a reader acts the same, but loses why there is only one setup path."
   },
   {
@@ -403,8 +403,8 @@
    "block": "P7",
    "by": "pincher",
    "aim": "yellow",
-   "find": "therefore checks every generator",
-   "replace": "checks every generator",
+   "from": "therefore checks every generator",
+   "text": "checks every generator",
    "why": "Drops the connective that ties the test to the preceding limits on hooks; the reason is still implied by the sentence before."
   },
   {
@@ -412,8 +412,8 @@
    "block": "P7",
    "by": "pincher",
    "aim": "yellow",
-   "find": "run any additional command the test names",
-   "replace": "run any command the test names",
+   "from": "run any additional command the test names",
+   "text": "run any command the test names",
    "why": "'additional' is implied by 'then'; small nuance gone."
   },
   {
@@ -421,8 +421,8 @@
    "block": "P7",
    "by": "pincher",
    "aim": "yellow",
-   "find": "--continue` path",
-   "replace": "--continue`",
+   "from": "--continue` path",
+   "text": "--continue`",
    "why": "Drops the noun 'path' after the command; the command already names the route."
   },
   {
@@ -430,8 +430,8 @@
    "block": "P8",
    "by": "pincher",
    "aim": "yellow",
-   "find": "and reports it as a check on the PR",
-   "replace": "as a check",
+   "from": "and reports it as a check on the PR",
+   "text": "as a check",
    "why": "Merges 'runs on every pull request' and 'reports it as a check on the PR' into one clause; the check's appearance on the PR is left to the reader's knowledge of GitHub."
   },
   {
@@ -439,8 +439,8 @@
    "block": "P8",
    "by": "pincher",
    "aim": "yellow",
-   "find": "a fault in the pass, not in a page",
-   "replace": "the pass's fault, not a page's",
+   "from": "a fault in the pass, not in a page",
+   "text": "the pass's fault, not a page's",
    "why": "Possessives replace the repeated 'in the' frame; the same distinction in fewer words."
   },
   {
@@ -448,8 +448,8 @@
    "block": "P8",
    "by": "pincher",
    "aim": "yellow",
-   "find": "so keep it that way or the runner grows a browser install",
-   "replace": "so keep it that way",
+   "from": "so keep it that way or the runner grows a browser install",
+   "text": "so keep it that way",
    "why": "Cuts the stated consequence (the runner grows a browser install); a reader still keeps the suite browser-free but loses the reason."
   },
   {
@@ -457,8 +457,8 @@
    "block": "P8",
    "by": "pincher",
    "aim": "yellow",
-   "find": "fresh on each run and a green check is not a claim about a pinned tree",
-   "replace": "fresh each run, and a green check does not claim a pinned tree",
+   "from": "fresh on each run and a green check is not a claim about a pinned tree",
+   "text": "fresh each run, and a green check does not claim a pinned tree",
    "why": "'is not a claim about' becomes 'does not claim', and 'on each run' loses its preposition; 'not' is kept."
   },
   {
@@ -466,8 +466,8 @@
    "block": "P3",
    "by": "trimmer",
    "aim": "green",
-   "find": "the boot sequence depends on",
-   "replace": "boot depends on",
+   "from": "the boot sequence depends on",
+   "text": "boot depends on",
    "why": "sequence adds nothing after boot; same meaning"
   },
   {
@@ -475,8 +475,8 @@
    "block": "P4",
    "by": "trimmer",
    "aim": "green",
-   "find": "stages, in the same commit, whatever",
-   "replace": "stages whatever",
+   "from": "stages, in the same commit, whatever",
+   "text": "stages whatever",
    "why": "staging before the commit already puts it in that commit"
   },
   {
@@ -484,8 +484,8 @@
    "block": "P4",
    "by": "trimmer",
    "aim": "green",
-   "find": "the order they run in, and why that order matters",
-   "replace": "their order, and why it matters",
+   "from": "the order they run in, and why that order matters",
+   "text": "their order, and why it matters",
    "why": "drops the repeated noun and relative clause"
   },
   {
@@ -493,8 +493,8 @@
    "block": "P7",
    "by": "trimmer",
    "aim": "green",
-   "find": "therefore checks",
-   "replace": "checks",
+   "from": "therefore checks",
+   "text": "checks",
    "why": "connective restates the preceding sentence's logic"
   },
   {
@@ -502,8 +502,8 @@
    "block": "P7",
    "by": "trimmer",
    "aim": "green",
-   "find": "any additional command",
-   "replace": "any command",
+   "from": "any additional command",
+   "text": "any command",
    "why": "additional is implied by the preceding refresh command"
   },
   {
@@ -511,8 +511,8 @@
    "block": "P8",
    "by": "trimmer",
    "aim": "green",
-   "find": "as a check on the PR, so",
-   "replace": "as a check, so",
+   "from": "as a check on the PR, so",
+   "text": "as a check, so",
    "why": "on the PR repeats every pull request"
   },
   {
@@ -520,8 +520,8 @@
    "block": "P8",
    "by": "trimmer",
    "aim": "green",
-   "find": "`page-measures.yml` also runs",
-   "replace": "`page-measures.yml` runs",
+   "from": "`page-measures.yml` also runs",
+   "text": "`page-measures.yml` runs",
    "why": "also is filler beside the previous sentence"
   },
   {
@@ -529,8 +529,8 @@
    "block": "P8",
    "by": "trimmer",
    "aim": "green",
-   "find": "fresh on each run",
-   "replace": "fresh each run",
+   "from": "fresh on each run",
+   "text": "fresh each run",
    "why": "preposition not needed"
   }
  ],

@@ -53,9 +53,9 @@ def init(run, path, l0, l1, title=None):
     print(f'{run}/ledger.json: {len(blocks)} paragraphs, {words(chunk)} words')
 
 
-def loose(find):
-    """find as a pattern that tolerates any run of whitespace where it has one."""
-    return re.compile(r'\s+'.join(re.escape(p) for p in find.split()))
+def loose(words_from):
+    """An edit's from-words as a pattern that tolerates any run of whitespace."""
+    return re.compile(r'\s+'.join(re.escape(p) for p in words_from.split()))
 
 
 def apply(text, find, rep):
@@ -77,7 +77,7 @@ def context(run, role):
     if judge:
         L += ['## The edits to rate', '']
         for e in led['edits']:
-            L += [f"- {e['id']} in {e['block']} ({e['by']}): replace \"{e['find']}\" with \"{e['replace']}\". Why: {e['why']}"]
+            L += [f"- {e['id']} in {e['block']} ({e['by']}): replace \"{e['from']}\" with \"{e['text']}\". Why: {e['why']}"]
     ctx.write_text('\n'.join(L) + '\n', encoding='utf-8')
     print(ctx); print(out)
 
@@ -94,10 +94,10 @@ def check_edits(led, lines):
             errs.append(f'line {i}: not JSON ({ex})'); continue
         b = blocks.get(o.get('block'))
         if not b: errs.append(f"line {i}: unknown block {o.get('block')}"); continue
-        f, r = o.get('find', ''), o.get('replace')
-        if not f.strip() or r is None: errs.append(f'line {i}: needs find and replace'); continue
-        if f == r: errs.append(f'line {i}: replace equals find'); continue
-        if apply(b['text'], f, r) is None: errs.append(f"line {i}: find is not in {b['id']}: \"{f[:60]}\"")
+        f, r = o.get('from', ''), o.get('text')
+        if not f.strip() or r is None: errs.append(f'line {i}: needs from and text'); continue
+        if f == r: errs.append(f'line {i}: text equals from'); continue
+        if apply(b['text'], f, r) is None: errs.append(f"line {i}: from is not in {b['id']}: \"{f[:60]}\"")
         if not str(o.get('why', '')).strip(): errs.append(f'line {i}: why is empty')
     return errs
 
@@ -143,7 +143,7 @@ def merge(run, phase):
                 if line.strip():
                     o = json.loads(line)
                     led['edits'].append({'id': f"e{len(led['edits']) + 1}", 'block': o['block'], 'by': f.stem,
-                                         'aim': PROPOSERS[f.stem], 'find': o['find'], 'replace': o['replace'], 'why': o['why']})
+                                         'aim': PROPOSERS[f.stem], 'from': o['from'], 'text': o['text'], 'why': o['why']})
         print(f"{len(led['edits'])} edits from " + ', '.join(f.stem for f in files))
     else:
         files = sorted(run.glob('judge*.jsonl'))
@@ -186,12 +186,12 @@ def path(run):
     for b in led['blocks']:
         scored = []
         for e in (e for e in led['edits'] if e['block'] == b['id']):
-            rs, sp = by.get(e['id'], []), span(b['text'], e['find'])
+            rs, sp = by.get(e['id'], []), span(b['text'], e['from'])
             if not rs or not sp:
                 continue
             risk = max((r['risk'] for r in rs), key=TIERS.index)   # the warier judge decides the tier
             conf = round(sum(r['confidence'] for r in rs) / len(rs))
-            saved = words(e['find']) - words(e['replace'])
+            saved = words(e['from']) - words(e['text'])
             scored.append((TIERS.index(risk), -conf, -saved, e, risk, conf, sp))
         scored.sort(key=lambda t: t[:3])
         chosen, steps, aside = [], [], []          # chosen: (edit id, span, replacement)
@@ -201,7 +201,7 @@ def path(run):
             hit = [c for c in chosen if c[1][0] < sp[1] and sp[0] < c[1][1]]
             if hit and not all(tier_of[c[0]] < t for c in hit):
                 aside.append({'edit': e['id'], 'beside': [c[0] for c in hit]}); continue
-            trial = [c for c in chosen if c not in hit] + [(e['id'], sp, e['replace'])]
+            trial = [c for c in chosen if c not in hit] + [(e['id'], sp, e['text'])]
             text = compose(b['text'], trial)
             if hit and words(text) >= cur_words:
                 aside.append({'edit': e['id'], 'beside': [c[0] for c in hit]}); continue

@@ -261,9 +261,9 @@
               + '<span class="min-w-0 flex-1 truncate font-semibold">original</span>' + mono(b.words + ' words', 'opacity-70') + '</div>';
           }
           const { i, s } = this.stepAt(id), e = this.editOf(id), rs = this.ratingsOf(id);
-          const cut = !String(e.replace).trim();
+          const cut = !String(e.text).trim();
           const clip = t => { const w = this.md(t).split(/\s+/); return w.slice(0, 7).join(' ') + (w.length > 7 ? '…' : ''); };
-          const what = cut ? 'cut “' + clip(e.find) + '”' : '“' + clip(e.find) + '” → “' + clip(e.replace) + '”';
+          const what = cut ? 'cut “' + clip(e.from) + '”' : '“' + clip(e.from) + '” → “' + clip(e.text) + '”';
           const marks = (s.replaces ? '↺ ' : '') + (rs.some(r => r.brilliancy) ? '!! ' : '') + (rs.some(r => r.brutality) ? '✂' : '');
           return '<div role="option" tabindex="0" data-step="' + window.esc(id) + '" aria-selected="' + sel + '" class="' + base + '">'
             + '<span class="size-2.5 flex-none rounded-full ' + TIER[s.risk].dot + '"></span>' + mono(String(i), 'w-6 opacity-60')

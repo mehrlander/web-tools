@@ -115,8 +115,8 @@ The three tiers:
   to the bone; or the edit risks a reader acting differently.
 
 A proposer writes JSON Lines to the output path, one edit per line:
-`{"block":"P3","find":"exact words from P3","replace":"shorter words","why":"..."}`.
-`replace` may be empty for a cut. Each edit stands alone against the original
+`{"block":"P3","from":"exact words from P3","text":"shorter words","why":"..."}`.
+`text` may be empty for a cut. Each edit stands alone against the original
 paragraph, not against the proposer's other edits, so two may overlap. Before
 returning, run the check command and fix every line it reports.
 
