@@ -13,9 +13,10 @@ conventions show it.
 
 Shannon's source coding theorem (1948) sets a limit on how short a lossless
 encoding of a message can be, and practical codes approach that limit without
-reaching it. The definition is a limit of that kind: some kinds of information
-have no convention a reader knows, so a practical page keeps some text
-describing how its content is organized.
+reaching it. Minimal progressive structure is a limit of that kind. Some
+arrangements have no convention a reader knows: a chart that plots recorded
+altitudes beside altitudes a crew only spoke aloud needs a sentence saying so,
+as the judges of the NTSB pages noted. A practical page keeps that text.
 
 ## The claim
 

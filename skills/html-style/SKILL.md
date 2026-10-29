@@ -16,7 +16,7 @@ These steps have a written procedure,
 [method.md](https://github.com/mehrlander/web-tools/blob/main/research/minimal-progressive-structure/method.md),
 aimed at a limit,
 [minimal progressive structure](https://github.com/mehrlander/web-tools/blob/main/research/minimal-progressive-structure/theory.md#the-definition):
-a page that delivers all of its content with no text describing its own
+a layout that delivers all of its content with no text describing its own
 organization.
 
 ## "A page is for comparing"
