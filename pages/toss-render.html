@@ -574,13 +574,29 @@
                       gif: 'image/gif', jpg: 'image/jpeg', jpeg: 'image/jpeg',
                       webp: 'image/webp', avif: 'image/avif' };
 
+  // Build and verify a GitHub contents-API URL for a file inside owner/name.
+  // Rejects empty, dot, backslash, or pre-encoded segments and confirms the
+  // URL parser's normalized href stays under /repos/<owner>/<name>/contents/,
+  // so a crafted name or path cannot climb out of the repo the OWNERS check
+  // approved. Held by node/test/toss-address-guard.test.mjs.
+  function repoContentsUrl(owner, name, filePath, ref) {
+    if (!/^[\w.-]+$/.test(owner) || !/^[\w.-]+$/.test(name) || name === '.' || name === '..') return null;
+    const parts = String(filePath || '').split('/');
+    if (!parts.length || parts.some(p => !p || p === '.' || p === '..' || p.includes('\\') || p.includes('%'))) return null;
+    const prefix = 'https://api.github.com/repos/' + encodeURIComponent(owner) + '/' + encodeURIComponent(name) + '/contents/';
+    try {
+      const u = new URL(prefix + parts.map(encodeURIComponent).join('/') + (ref ? '?ref=' + encodeURIComponent(ref) : ''));
+      return u.href.startsWith(prefix) ? u.href : null;
+    } catch (e) { return null; }
+  }
+
   // A repo file as a data URI. Bytes, not text: an icon is usually binary, and
   // the raw media type serves it directly (the JSON-labeled reply is the
   // metadata form, whose base64 payload we unwrap).
   async function ghDataUri(owner, name, ref, filePath) {
-    const apiBase = 'https://api.github.com/repos/' + owner + '/' + name;
-    const res = await fetch(apiBase + '/contents/' + filePath +
-      (ref ? '?ref=' + encodeURIComponent(ref) : ''), { headers: ghHeaders(RAW_MEDIA) });
+    const url = repoContentsUrl(owner, name, filePath, ref);
+    if (!url) throw new Error('invalid repo path');
+    const res = await fetch(url, { headers: ghHeaders(RAW_MEDIA) });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     let bytes = new Uint8Array(await res.arrayBuffer());
     if (jsonLabeled(res)) {
@@ -1219,9 +1235,10 @@ document.addEventListener('click',function(e){
 
   // Fetch a single repo file's text via the contents API at <ref>.
   async function ghText(owner, name, ref, filePath) {
-    const apiBase = 'https://api.github.com/repos/' + owner + '/' + name;
-    const res = await fetch(apiBase + '/contents/' + filePath +
-      (ref ? '?ref=' + encodeURIComponent(ref) : ''), { headers: ghHeaders(RAW_MEDIA) });
+    const url = repoContentsUrl(owner, name, filePath, ref);
+    if (!url) throw new Error('invalid repo path');
+    const apiBase = 'https://api.github.com/repos/' + encodeURIComponent(owner) + '/' + encodeURIComponent(name);
+    const res = await fetch(url, { headers: ghHeaders(RAW_MEDIA) });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     return await readContents(res, apiBase);
   }
@@ -1448,11 +1465,12 @@ document.addEventListener('click',function(e){
         OWNERS.map(o => o + '/*').join(', ') + ' repos. For anything else, toss the file as a #gz= payload ' +
         '(sandboxed) with the 🥏 bookmarklet.');
     }
-    const apiBase = 'https://api.github.com/repos/' + owner + '/' + name;
+    const url = repoContentsUrl(owner, name, path, ref);
+    if (!url) return showEmpty('Invalid repository or file path in address: ' + addr);
+    const apiBase = 'https://api.github.com/repos/' + encodeURIComponent(owner) + '/' + encodeURIComponent(name);
     let res;
     try {
-      res = await fetch(apiBase + '/contents/' + path +
-        (ref ? '?ref=' + encodeURIComponent(ref) : ''), { headers: ghHeaders(RAW_MEDIA) });
+      res = await fetch(url, { headers: ghHeaders(RAW_MEDIA) });
     } catch (e) {
       return showEmpty('Network error fetching ' + addr + ': ' + (e.message || e));
     }
