@@ -15,10 +15,11 @@ import path from 'node:path';
 import { makeWindow, tick, repoRoot, captureAlpineErrors } from './bootstrap.mjs';
 
 const STORE = 'me/private';
-const DOC = 'One.\n\nTwo.\n\nThree.\n';
-const CALL = { id: 'c0ffee01-doc', session: 'c0ffee01', kind: 'documentation', question: 'Apply 3 edits to docs/x.md?',
+const DOC = 'One.\n\nTwo.\n\nThree.\n\nFour.\n';
+const CALL = { id: 'c0ffee01-doc', session: 'c0ffee01', kind: 'documentation', question: 'Apply 4 edits to docs/x.md?',
   brief: 'Tidy the doc.', file: 'me/widget@main:docs/x.md', recommend: 'Apply all three',
-  edits: [{ from: 'One.', to: 'First.', why: 'clearer' }, { from: 'Two.', to: 'Second.' }, { from: 'Gone.', to: 'Nothing.' }] };
+  edits: [{ from: 'One.', to: 'First.', why: 'clearer' }, { from: 'Two.', to: 'Second.' }, { from: 'Gone.', to: 'Nothing.' },
+          { from: 'Three.\n\nFour.', to: 'Third.\n\nFourth.' }] };
 const puts = [];
 class FakeGH {
   constructor(conf = {}) { this.repo = conf.repo || ''; }
@@ -79,7 +80,7 @@ Alpine.start();
 const root = () => window.document.getElementById('form');
 const data = () => Alpine.$data(root());
 const until = async (ok) => { for (let i = 0; i < 80 && !ok(); i++) await tick(2); return ok(); };
-await until(() => data().doc.ready && root().querySelectorAll('[data-md-diff-change]').length === 2);
+await until(() => data().doc.ready && root().querySelectorAll('[data-md-diff-change]').length === 4);
 const box = (n) => root().querySelector(`[data-doc-mark][data-doc-edit="${n}"]`)?.closest('[data-md-diff-change]');
 const act = (n, a) => box(n).querySelector(`[data-act="${a}"]`).click();
 const mark = (n) => root().querySelector(`[data-doc-mark][data-doc-edit="${n}"]`);
@@ -88,25 +89,35 @@ const send = () => root().querySelector('[data-doc-send]');
 test('mounting is quiet', () => assert.deepEqual(problems, []));
 
 test('the document is drawn whole, its edits staged, under a head naming the file', () => {
-  assert.deepEqual(drawn[0], { a: DOC, b: 'First.\n\nSecond.\n\nThree.\n' }, 'the file as it stands against the file with every edit in it');
+  assert.deepEqual(drawn[0], { a: DOC, b: 'First.\n\nSecond.\n\nThird.\n\nFourth.\n' }, 'the file as it stands against the file with every edit in it');
   assert.equal(box(1).dataset.pair, 'One.>First.');
   assert.match(root().querySelector('[data-doc-head]').textContent, /docs\/x\.md/);
-  assert.match(root().querySelector('[data-doc-head]').textContent, /3 edits · 0 of 2 decided/);
+  assert.match(root().querySelector('[data-doc-head]').textContent, /4 edits · 0 of 3 decided/);
   assert.equal(root().querySelector('[data-dictate-link]'), null, 'no way out to Dictate');
 });
 
+test('an edit md-diff draws as several changes marks each, under the one decision', async () => {
+  const marks = () => [...root().querySelectorAll('[data-doc-mark][data-doc-edit="4"]')];
+  assert.equal(marks().length, 2, 'a two-block edit is two containers');
+  act(4, 'Discard');
+  await tick(2);
+  assert.deepEqual(marks().map((m) => m.dataset.decision), ['discarded', 'discarded'], 'both containers show the decision');
+  act(4, 'Discard');
+  await tick(2);
+});
+
 test('an edit the file cannot place says why, under the document, with no container', () => {
-  assert.deepEqual(Array.from(data().doc.status), ['staged', 'staged', 'stale']);
+  assert.deepEqual(Array.from(data().doc.status), ['staged', 'staged', 'stale', 'staged']);
   assert.equal(mark(3), null);
   assert.match(root().querySelector('[data-doc-unplaced="3"]').textContent, /no longer holds/);
 });
 
 test('nothing records until every staged edit is decided, and a decision stays marked', async () => {
   assert.equal(send().disabled, true);
-  assert.match(send().textContent, /2 to decide/);
+  assert.match(send().textContent, /3 to decide/);
   act(1, 'Keep');
   await tick(2);
-  assert.match(send().textContent, /1 to decide/);
+  assert.match(send().textContent, /2 to decide/);
   assert.equal(mark(1).dataset.decision, 'confirmed');
   assert.match(mark(1).textContent, /kept/);
   act(1, 'Keep');
@@ -117,6 +128,7 @@ test('nothing records until every staged edit is decided, and a decision stays m
 test('the answer line is the one Dictate and the Docs tab write, with the kept edits as a patch', async () => {
   act(1, 'Keep');
   act(2, 'Discard');
+  act(4, 'Keep');
   act(2, 'Note');
   await tick(2);
   const note = root().querySelector('[data-doc-note="2"]');
@@ -128,13 +140,13 @@ test('the answer line is the one Dictate and the Docs tab write, with the kept e
   const put = puts[0], line = JSON.parse(Buffer.from(put.body.content, 'base64').toString('utf8').trim());
   assert.equal(put.repo, STORE);
   assert.equal(put.path, 'contents/user-calls/c0ffee01-doc.answers.jsonl');
-  assert.equal(line.answer, '1 confirmed, 1 discarded, 1 stale');
+  assert.equal(line.answer, '2 confirmed, 1 discarded, 1 stale');
   assert.deepEqual(line.decisions, [{ edit: 1, decision: 'confirmed' }, { edit: 2, decision: 'discarded', note: 'keep the number' },
-                                    { edit: 3, decision: 'stale' }]);
+                                    { edit: 3, decision: 'stale' }, { edit: 4, decision: 'confirmed' }]);
   assert.equal(line.call, STORE + ':user-calls/c0ffee01-doc.json');
   assert.equal(line.file, 'me/widget:docs/x.md');
   assert.equal(line.apply, 'session');
-  assert.equal(line.patch, 'PATCH docs/x.md ' + JSON.stringify('First.\n\nTwo.\n\nThree.\n'), 'only the kept edit is in the patch');
+  assert.equal(line.patch, 'PATCH docs/x.md ' + JSON.stringify('First.\n\nTwo.\n\nThird.\n\nFourth.\n'), 'only the kept edits are in the patch');
   await until(() => data().done);
   assert.equal(data().done, line.answer, 'the form reads as answered');
 });
