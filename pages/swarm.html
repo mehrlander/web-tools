@@ -312,7 +312,7 @@
             return '<div role="option" tabindex="0" data-step="' + window.esc(id) + '" aria-selected="' + sel + '" class="' + base + '">'
               + mono(String(i), 'w-6 opacity-60') + mono(e.by, 'w-16 truncate opacity-70')
               + '<span class="min-w-0 flex-1 truncate">' + window.esc(this.stepTitle(id)) + '</span>'
-              + (e.repair ? mono('↩', 'font-bold') : '') + mono(d >= 0 ? '−' + d : '+' + (-d), 'w-8 text-right') + '</div>';
+              + (e.repair ? mono('↩', 'font-bold') : '') + mono(d > 0 ? '−' + d : d < 0 ? '+' + (-d) : '±0', 'w-8 text-right') + '</div>';
           }
           const { i, s } = this.stepAt(id), marks = this.marksOf(id, s);
           return '<div role="option" tabindex="0" data-step="' + window.esc(id) + '" aria-selected="' + sel + '" class="' + base + '">'
@@ -358,7 +358,7 @@
             const { s, prev } = this.stepAt(id), e = this.editOf(id), d = this.wc(prev) - s.words;
             return '<div class="flex flex-col gap-3 pb-24">'
               + '<div class="font-mono text-xs opacity-80">' + window.esc('bout ' + s.bout + ' · ' + e.by + ' · '
-                + (d >= 0 ? '−' + d : '+' + (-d)) + ' this edit · ' + s.words + ' of ' + this.wc(this.original) + ' words') + '</div>'
+                + (d > 0 ? '−' + d : d < 0 ? '+' + (-d) : '±0') + ' this edit · ' + s.words + ' of ' + this.wc(this.original) + ' words') + '</div>'
               + (e.repair ? '<div class="text-pretty"><span class="font-bold">↩ complaint</span> <span class="opacity-70">' + window.esc(e.why) + '</span></div>' : '')
               + '<div class="' + box + 'border-base-300"><p>' + this.diffHtml(this.original, s.text) + '</p></div></div>';
           }
