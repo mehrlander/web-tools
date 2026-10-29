@@ -563,7 +563,7 @@
     <!-- reader tasks: each question against the original and each bout's text -->
     <template x-if="isDome && tab === 'tasks'">
       <div class="p-4 pb-24 flex flex-col gap-4">
-        <table class="table table-sm">
+        <table class="table text-base">
           <thead>
             <tr>
               <th>question</th>
@@ -579,7 +579,7 @@
                     <template x-if="cell(t.id, n)">
                       <button class="btn btn-xs btn-square" :class="tsel && tsel.t === t.id && tsel.n === n ? 'btn-neutral' : 'btn-ghost'" @click="tsel = { t: t.id, n }"
                         :aria-label="t.id + (n ? ' after bout ' + n : ' on the original')">
-                        <span :class="cell(t.id, n).status === 'pass' ? 'text-success' : 'text-error'" x-text="cell(t.id, n).status === 'pass' ? '✓' : '✗'"></span>
+                        <span class="text-lg font-bold" :class="cell(t.id, n).status === 'pass' ? 'text-success' : 'text-error'" x-text="cell(t.id, n).status === 'pass' ? '✓' : '✗'"></span>
                       </button>
                     </template>
                   </td>
