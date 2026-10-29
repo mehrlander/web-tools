@@ -63,8 +63,15 @@ public partial class MainWindow : Window
             await LaptopView.EnsureCoreWebView2Async(environment);
             var local = LaptopView.CoreWebView2;
             local.SetVirtualHostNameToFolderMapping("desktop.web-tools.local", Path.Combine(AppContext.BaseDirectory, "ui"), CoreWebView2HostResourceAccessKind.DenyCors);
-            local.NavigationStarting += (_, a) => { if (!NavigationPolicy.IsLocal(a.Uri)) a.Cancel = true; };
-            local.NewWindowRequested += (_, a) => a.Handled = true;
+            local.NavigationStarting += (_, a) => {
+                if (NavigationPolicy.IsLocal(a.Uri)) return;
+                a.Cancel = true;
+                if (NavigationPolicy.IsUsagePage(a.Uri)) OpenExternal(a.Uri);
+            };
+            local.NewWindowRequested += (_, a) => {
+                a.Handled = true;
+                if (NavigationPolicy.IsUsagePage(a.Uri)) OpenExternal(a.Uri);
+            };
             local.WebMessageReceived += LaptopMessage;
             local.NavigationCompleted += async (_, a) => {
                 laptopReady = a.IsSuccess;

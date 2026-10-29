@@ -91,6 +91,9 @@ public static class NavigationPolicy
     public const string AppUrl = "https://mehrlander.github.io/web-tools/app/";
     public const string LocalUrl = "https://desktop.web-tools.local/index.html";
 
+    public static bool IsUsagePage(string? address) => address is
+        "https://chatgpt.com/settings/usage" or "https://claude.ai/settings/usage" or "https://antigravity.google.com/";
+
     public static bool IsWebTools(string? address) => Uri.TryCreate(address, UriKind.Absolute, out var uri)
         && uri.Scheme == "https" && uri.IsDefaultPort && uri.UserInfo.Length == 0
         && uri.Host == "mehrlander.github.io" && uri.AbsolutePath.StartsWith("/web-tools/", StringComparison.Ordinal);

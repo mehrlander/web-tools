@@ -14,8 +14,15 @@ public sealed class UsageRunner
         Volatile.Write(ref latest, UsageReader.Read(Path.Combine(state, "usage.json")));
         // Isolated API fixtures never contact signed-in provider accounts.
         if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("WEBTOOLS_COMPANION_DATA")) || !File.Exists(script)) return;
+        using var http = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false }) {
+            Timeout = TimeSpan.FromSeconds(8), MaxResponseContentBufferSize = 1_048_576
+        };
+        var config = Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR")
+            ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".claude");
+        var claude = new ClaudeUsageClient(http, Path.Combine(config, ".credentials.json"), state);
         while (!stop.IsCancellationRequested) {
             try {
+                await claude.Capture(DateTimeOffset.UtcNow, stop);
                 var start = new ProcessStartInfo("python") { UseShellExecute = false, CreateNoWindow = true,
                     RedirectStandardOutput = true, RedirectStandardError = true };
                 foreach (var arg in new[] { script, "--state", state, "--repo", Path.Combine(UserSettings.Load().RepositoriesRoot, "web-tools-private") })
