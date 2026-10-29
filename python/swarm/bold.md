@@ -124,6 +124,7 @@ output path:
 - `brutality`: one line, for a drastic cut that the passage, on reflection,
   does not need.
 
-Award both honours where an edit earns them; the passage's best one or two of
-each are expected. Before returning, run the check command and fix every line
-it reports.
+Both are honours, not charges: award one only to an edit you would take, and
+leave both empty on an edit you rate red for what it loses. Award them where
+an edit earns them; the passage's best one or two of each are expected. Before
+returning, run the check command and fix every line it reports.

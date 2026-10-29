@@ -1158,13 +1158,7 @@
    "risk": "red",
    "confidence": 30,
    "clarity": "loses",
-   "note": "Cuts P2 to P8 to one paragraph: states 'keep the suite browser-free' without the rule a session acts on (name Playwright checks without .test.), replaces 'then run any additional command the test names' with 'run npm test', and drops setup never regenerating, npm run ready, the merge driver, the merge-continue command and the thumbnail scope. It also links node/README.md twice and the gh.load chain is no longer explained.",
-   "honours": [
-    {
-     "honour": "brutality",
-     "why": "Hands the whole mechanism to other documents while deleting the actionable rules from this one; a session writing a Playwright check or finishing a merge gets no instruction."
-    }
-   ]
+   "note": "Cuts P2 to P8 to one paragraph: states 'keep the suite browser-free' without the rule a session acts on (name Playwright checks without .test.), replaces 'then run any additional command the test names' with 'run npm test', and drops setup never regenerating, npm run ready, the merge driver, the merge-continue command and the thumbnail scope. It also links node/README.md twice and the gh.load chain is no longer explained."
   },
   {
    "edit": "e18",
@@ -1172,13 +1166,7 @@
    "risk": "red",
    "confidence": 20,
    "clarity": "loses",
-   "note": "At 168 words it drops the browser-free naming rule, what a red page-measures run means, the merge-continue command, the refresh-model and extending.md links, the lockfile, and the five-kit and code-layers pointers, and 'which is why test.yml runs' overstates the cause. A session could add a Playwright test named .test.mjs or chase a page defect that is a broken pass.",
-   "honours": [
-    {
-     "honour": "brutality",
-     "why": "Cuts 330 words, including rules the repo enforces only after the fact in CI; the passage needs those rules."
-    }
-   ]
+   "note": "At 168 words it drops the browser-free naming rule, what a red page-measures run means, the merge-continue command, the refresh-model and extending.md links, the lockfile, and the five-kit and code-layers pointers, and 'which is why test.yml runs' overstates the cause. A session could add a Playwright test named .test.mjs or chase a page defect that is a broken pass."
   },
   {
    "edit": "r1",
@@ -1542,13 +1530,7 @@
    "risk": "red",
    "confidence": 12,
    "clarity": "loses",
-   "note": "Violates introduce-before-refer; a reader acts differently without the gh.load default, the setup scope and the merge pause. Every rule it keeps lives in better form elsewhere in these edits.",
-   "honours": [
-    {
-     "honour": "brutality",
-     "why": "Seven paragraphs collapse into one that calls dist/web-tools.js 'the pre-build' and never says what that is or that gh.load is the default, and drops the merge-continue command, ready, thumbnails and the git-versus-Claude hook reason."
-    }
-   ]
+   "note": "Seven paragraphs collapse into one that calls dist/web-tools.js 'the pre-build' and never says what that is or that gh.load is the default, and drops the merge-continue command, ready, thumbnails and the git-versus-Claude hook reason. Violates introduce-before-refer; a reader acts differently without the gh.load default, the setup scope and the merge pause. Every rule it keeps lives in better form elsewhere in these edits."
   },
   {
    "edit": "e18",
@@ -1556,13 +1538,7 @@
    "risk": "red",
    "confidence": 18,
    "clarity": "loses",
-   "note": "Honest about its losses and keeps thumbnails, git-hook reason and the bypass-to-CI link, but the dropped rules are not owned by any short pointer it keeps.",
-   "honours": [
-    {
-     "honour": "brutality",
-     "why": "A third of the length loses the browser-free rule, the report-only reading of page-measures, the refresh-model link, the merge pause and the gh.load default, all rules a reader acts on."
-    }
-   ]
+   "note": "A third of the length loses the browser-free rule, the report-only reading of page-measures, the refresh-model link, the merge pause and the gh.load default, all rules a reader acts on. Honest about its losses and keeps thumbnails, git-hook reason and the bypass-to-CI link, but the dropped rules are not owned by any short pointer it keeps."
   }
  ],
  "path": [
