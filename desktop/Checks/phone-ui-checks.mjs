@@ -45,6 +45,10 @@ check(doc.querySelectorAll('[data-usage-provider]').length === 3 && !doc.querySe
 snapshot.usage = [{provider:'codex',source:'Codex account',status:'available',observedAt:now,windows:[{id:'codex:primary',label:'codex',usedPercent:28,resetsAt:new Date(Date.now()+3600000).toISOString(),durationMinutes:300,history:[]}]}];
 await poll();
 check(doc.querySelector('[role=progressbar]')?.getAttribute('aria-valuenow') === '28' && doc.querySelector('#content').textContent.includes('Resets in'),'Live usage readings reach the Usage tab with a reset countdown.');
+const usageClock = window.Date.now;
+window.Date.now = () => usageClock() + 660000; unavailable = true; await poll();
+check(doc.querySelector('#content').textContent.includes('last reading') && doc.querySelector('#connection').textContent.includes('Laptop unreachable'),'Usage freshness and reset clocks keep updating while the laptop is unreachable.');
+window.Date.now = usageClock; unavailable = false; await poll();
 click('[data-tab=now]');
 check(doc.querySelectorAll('#assistants svg').length === 3,'The phone view shows the three shared assistant marks.');
 check(doc.querySelector('#connection').textContent.includes('Laptop live'),'A fresh observation has steady local live status.');

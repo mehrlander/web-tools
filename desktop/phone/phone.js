@@ -267,7 +267,7 @@
         try { localStorage.setItem('web-tools-now-snapshot', JSON.stringify(data)); } catch { }
       }
       failures = 0; connected = true; render();
-    } catch { failures++; connected = false; connection(); }
+    } catch { failures++; connected = false; if (tab === 'usage') render(); else connection(); }
     finally {
       clearTimeout(timeout); pending = false;
       if (!document.hidden) timer = setTimeout(poll, Math.min(15000, 2000 * 2 ** Math.min(failures,3)));
