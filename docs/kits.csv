@@ -36,6 +36,7 @@ lib/kits/file-correspondence.js,FileCorrespondence,Associate submitted text with
 lib/kits/file-deck.js,fileDeck,"a changeset's files, read one at a time.",518,no,no,14,yes
 lib/kits/file-index.js,FileIndex,"the estate's file names, kept in the private registry so the sidebar finder can match a name in every repo on the first keystroke.",197,no,no,3,yes
 lib/kits/findings.js,Findings,"what a tending pass concluded, kept as notes that carry a `finding` object: {""id"":""n…"",""at"":""…"",""author"":""…"",""about"":""<first subject>"",""text"":""<title>"",…",251,no,no,4,yes
+lib/kits/git-attributes.js,GitAttributes,".gitattributes, resolved in the browser as git resolves it.",150,no,no,1,yes
 lib/kits/git-change.js,GitChange,"pure browser-capable Git bundle & packfile unpacker, delta patch resolver, and git-change/1 envelope validator.",643,no,no,1,yes
 lib/kits/github-links.js,GithubLinks,"the GitHub destinations for one repo, as menu rows.",97,no,no,4,yes
 lib/kits/guide-render.js,GuideRender,"a guide PR body, rendered as something you can walk.",448,no,no,18,yes

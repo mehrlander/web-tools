@@ -162,6 +162,7 @@ node/test/gh-boot-pageboot.test.mjs,behavior,"gh-boot awaits window.__pageBoot b
 node/test/gh-graphql-partial.test.mjs,behavior,"A partial GraphQL response is surfaced as partial rather than presented as complete, and a field error the caller declared normal is not surfaced at all."
 node/test/gh-store.test.mjs,behavior,"saveBytes writes byte-exact content, so a binary round-trip cannot be silently re-encoded."
 node/test/gh-transfer.test.mjs,behavior,"The cross-repo copy methods, which had no test at all: commitFiles landing a whole fileset as one commit through the Git Data API in the right order, and rebuilding rather than clobbering when the branch moves mid-upload."
+node/test/git-attributes-kit.test.mjs,behavior,
 node/test/git-change.test.mjs,behavior,"A git-change envelope corrupted or tampered in flight, a malformed thin packfile delta producing garbage or leaking path traversal, or an invalid expected tree SHA being applied to a repository without detection."
 node/test/gitattributes.test.mjs,gate,"A tracked file carrying an edit or merge value that docs/vocabularies.csv does not gloss, a document docs/docs.csv marks record that .gitattributes leaves editable, or a write-once file docs.csv does not mark record; and the edit-policy engine's own cases."
 node/test/github-links.test.mjs,behavior,The GitHub menu builds the right route list for a repo you are and are not browsing.
