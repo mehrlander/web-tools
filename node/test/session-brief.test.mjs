@@ -618,15 +618,10 @@ test('a fact carries its definition on data-title-tip, not in a title', () => {
   // comparison.
   const shownValues = new Set(text.map(f => String(f.v) + (f.unit ? ' ' + f.unit : '')));
   const extras = noted.filter(n => !shownValues.has(n.textContent.replace(/\s+/g, ' ').trim()));
-  // Ten more joined on 2026-10-16, when every title in the app became a
-  // title-tip: the labels on the icon-only controls, Contents, On GitHub,
-  // Previous view, Next view, Open the page in a new tab, Swipe through every
-  // view full screen, Open the cards and read them aloud, Read n cards one at a
-  // time, Open this session in Claude Code, and The stored record on GitHub.
-  // The eleventh joined on 2026-10-22: the notes mark, Notes on what you are
-  // looking at, copied out as JSON. It and Open the cards and read them aloud
-  // came off on 2026-10-29, the notes to the FAB's composer and reading aloud
-  // to the deck's own speaker, which leaves nine.
+  // The other nine are the labels on the icon-only controls: Contents, On
+  // GitHub, Previous view, Next view, Open the page in a new tab, Swipe through
+  // every view full screen, Read n cards one at a time, Open this session in
+  // Claude Code, and The stored record on GitHub.
   assert.equal(extras.length, 13,
     'the id, the running-ref marker, the pages mark, the Gemini summary and nine control labels off-strip: '
     + JSON.stringify(extras.map(n => n.textContent.trim() || n.getAttribute('data-title-tip'))));
@@ -777,36 +772,31 @@ test('one container: the views are a tab and the calls are the Calls tab\'s alon
 });
 
 test('the FAB is told what a note is about, in the notes store\'s locators', () => {
-  // docs/APP.md's `about`, read by fab.js. Without it the FAB filed every
-  // session's notes under pages/session.html. The page is the session's
-  // record; the item, on the Views tab, is the view in front of the reader.
-  // The view's own composer, which kept notes in this browser and copied them
-  // out as JSON, came off for this on 2026-10-29.
+  // docs/APP.md's `about`, read by fab.js: the page subject is the session's
+  // record, the selection is the view on screen in the Views tab, and both are
+  // labelled with the session's name.
   const d = lent();
-  const was = { pane: d.pane, views: d.work.views, vAt: d.vAt };
+  const was = { pane: d.pane, views: d.work.views, vAt: d.vAt, facts: d.facts, topics: d.topics };
+  const plain = (x) => JSON.parse(JSON.stringify(x));   // the view's objects are the jsdom realm's
   try {
     d.pane = 'outline';
-    const plain = (x) => JSON.parse(JSON.stringify(x));   // the view's objects are the jsdom realm's
-    const was2 = d.topics;
     d.topics = null;
     assert.equal(d.about.subject.about, STORE + ':' + PATH);
-    assert.equal(d.about.subject.label, 'a named session', 'named by the host\'s label where one was lent');
-    const lent = d.facts; d.facts = null;
+    assert.equal(d.about.subject.label, 'a named session', 'the host\'s label first');
+    d.facts = null;
     d.topics = { title: 'What Gemini called it' };
-    assert.equal(d.about.subject.label, 'What Gemini called it', 'else by the topics file');
-    assert.equal(d.about.title, 'What Gemini called it');
+    assert.equal(d.about.subject.label, 'What Gemini called it', 'then the topics file');
     d.topics = null;
-    assert.equal(d.about.subject.label, 'Session b8fae678', 'else by its id');
-    d.facts = lent; d.topics = was2;
-    assert.equal(d.about.selection, null, 'off the Views tab there is no item');
-    assert.equal(d.about.sources[0].path, PATH, 'and the record is what the view reads');
+    assert.equal(d.about.subject.label, d.head.title, 'then the opening ask');
+    assert.equal(d.about.title, d.about.subject.label, 'the About title and the note label agree');
+    assert.equal(d.about.selection, null, 'the selection is empty outside the Views tab');
+    assert.equal(d.about.sources[0].path, PATH, 'the record is the source');
     d.pane = 'views';
     d.work.views = [{ name: 'a.md', repoShort: 'web-tools', short: 'x', slug: 'me/web-tools', branch: 'claude/x', path: 'docs/a.md' }];
     d.vAt = 0;
     assert.deepEqual(plain(d.about.selection), { about: 'me/web-tools@claude/x:docs/a.md', label: 'a.md · web-tools' });
-    assert.ok(!('notes' in d) && !('listen' in d), 'the composer and the listen door are gone');
   } finally {
-    d.pane = was.pane; d.work.views = was.views; d.vAt = was.vAt;
+    Object.assign(d, was);
   }
 });
 

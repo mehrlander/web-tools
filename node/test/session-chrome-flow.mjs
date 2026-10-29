@@ -1,25 +1,18 @@
 #!/usr/bin/env node
-// pages/session.html keeps its chrome on screen while the document scrolls.
+// pages/session.html keeps its head and chrome on screen while its panes scroll.
 //
 //   node node/test/session-chrome-flow.mjs
 //
-// The page has had its scroll shape wrong twice. On 2026-09-02 it was an app
-// shell (`h-[100dvh] … overflow-hidden`) over a component that sized to its
-// content, so a record taller than the viewport was clipped with nothing to
-// scroll. The fix let the document scroll, and left the other half of the house
-// style's shape for an embeddable page unbuilt: `min-h-dvh` plus STICKY CHROME
-// (html-style rule 5). Nothing was sticky, so at 390x844 the tab row sat
-// 189px above the fold at the bottom of the scroll, and Raw laid 243 KB out as
-// a single 40,528px block. The outline now has a timeline rail, and the chrome
-// includes conversation search; both must survive a scroll to the final row.
+// session-brief is boxed: its shell is the viewport's height below the page's
+// address bar, and the pane under the tabs scrolls inside it, so the head and
+// the tab row stay put. The page has had its scroll shape wrong before: on
+// 2026-09-02 a record taller than the viewport was clipped with nothing to
+// scroll, and at 390x844 under document scroll Raw laid 243 KB out as a single
+// 40,528px block. What is asserted here is where a box LANDS after a pane is
+// scrolled to its end, which jsdom and a class-level read cannot see.
 //
-// Both failures are laid-out pixels over a real scroll, so neither jsdom nor a
-// class-level read can hold them: what is asserted here is where a box LANDS
-// after the page is scrolled, which is the only statement of the rule that
-// cannot pass while the page is broken.
-//
-// Phone width on purpose. At 1280 the head is short enough that the whole page
-// fits and every assertion below passes vacuously.
+// Phone width on purpose: the head is tallest there, and a pane squeezed to
+// nothing is the failure a phone shows first.
 //
 // Exits nonzero on any failure. Not part of `npm test` (needs a browser).
 
@@ -78,10 +71,8 @@ const origin = `http://127.0.0.1:${server.address().port}`;
 
 let browser, page;
 
-// Where a box sits against the viewport, plus every element that declares a
-// scroll region of its own. The second is what catches the other way this can
-// go wrong: pinning the chrome by nesting a scroller inside the document, which
-// on a phone takes the drag away from the page.
+// Where a box sits against the viewport, plus every element that scrolls. The
+// second is what says which region a drag moves.
 const geometry = () => page.evaluate(() => {
   const box = (el) => {
     if (!el) return null;
@@ -92,22 +83,32 @@ const geometry = () => page.evaluate(() => {
   const shell = document.querySelector('#mount > div');
   const chrome = shell?.querySelector('[x-ref="chrome"]');
   const rail = shell?.querySelector('[title^="the session, start to end."]')?.parentElement;
+  const scrolling = [...document.querySelectorAll('*')]
+    .filter(el => el.getBoundingClientRect().height > 0 && el.scrollHeight - el.clientHeight > 4 &&
+      /auto|scroll/.test(getComputedStyle(el).overflowY));
   return {
     view: { h: innerHeight, w: innerWidth },
     doc: { h: document.documentElement.scrollHeight, y: Math.round(scrollY),
       w: document.documentElement.scrollWidth },
+    title: box(shell?.querySelector('.font-medium.leading-snug')),
     chrome: box(chrome),
-    chromeH: Number.parseFloat(shell && getComputedStyle(shell).getPropertyValue('--chrome-h')),
     tabs: box(chrome?.querySelector('[role="tablist"]')),
     search: box(chrome?.querySelector('[role="search"]')),
     rail: box(rail),
     raw: box(shell?.querySelector('[x-ref="raw"] .json-explorer')),
-    scrollers: [...document.querySelectorAll('*')]
-      .filter(el => el.getBoundingClientRect().height > 0 && el.scrollHeight - el.clientHeight > 4 &&
-        /auto|scroll/.test(getComputedStyle(el).overflowY))
-      .map(el => (el.className || '').toString().slice(0, 40)),
+    scrollers: scrolling.map(el => ({ cls: (el.className || '').toString().slice(0, 40), ...box(el),
+      y: Math.round(el.scrollTop), max: el.scrollHeight - el.clientHeight })),
   };
 });
+// Scroll every scrolling region below the chrome to its end, as a reader would.
+const toEnd = () => page.evaluate(() => {
+  const chrome = document.querySelector('[x-ref="chrome"]').getBoundingClientRect();
+  for (const el of document.querySelectorAll('*')) {
+    if (el.scrollHeight - el.clientHeight > 4 && /auto|scroll/.test(getComputedStyle(el).overflowY)
+        && el.getBoundingClientRect().top >= chrome.bottom - 1) el.scrollTop = el.scrollHeight;
+  }
+});
+const below = (g) => g.scrollers.filter(s => s.top >= g.chrome.bottom - 1);
 
 try {
   browser = await chromium.launch({ args: ['--no-sandbox', '--ignore-certificate-errors'],
@@ -130,67 +131,66 @@ try {
   });
   await page.goto(`${origin}/pages/session.html#gz=${gz}`, { waitUntil: 'domcontentloaded' });
   await page.locator('[x-ref="outline"] [data-card="12"]').waitFor({ timeout: 30000 });
+  // The head finishes after the first card, from reads and kits that arrive
+  // later. Read nothing until the network is idle and the chrome has held its
+  // place.
+  await page.waitForLoadState('networkidle');
   await page.waitForFunction(() => {
-    const host = document.querySelector('#mount > div');
-    return parseFloat(getComputedStyle(host).getPropertyValue('--chrome-h')) > 0;
-  });
-  await page.waitForTimeout(500);
+    const t = Math.round(document.querySelector('[x-ref="chrome"]').getBoundingClientRect().top);
+    const still = window.__chromeTop === t;
+    window.__chromeTop = t;
+    return still;
+  }, null, { polling: 500, timeout: 10000 });
   const input = page.getByRole('searchbox', { name: 'Find in conversation', exact: true });
 
   const top = await geometry();
-  ok('the record is taller than the phone, so there is a scroll to test',
-     top.doc.h > top.view.h + 200, `doc ${top.doc.h} vs view ${top.view.h}`);
-  ok('the DOCUMENT is the scroller, with no nested region taking the drag',
-     top.scrollers.length === 0, `nested: ${top.scrollers.join(' | ')}`);
-  ok('the wrapped search row is included in the published chrome height',
-     top.search?.h > 0 && top.search.top >= top.tabs.bottom
-       && Math.abs(top.chromeH - top.chrome.h) <= 1,
-     JSON.stringify({ tabs: top.tabs, search: top.search, chrome: top.chrome, chromeH: top.chromeH }));
+  ok('the document does not scroll: the shell fits the viewport',
+     top.doc.h <= top.view.h + 1, `doc ${top.doc.h} vs view ${top.view.h}`);
   ok('the phone page has no horizontal overflow', top.doc.w <= top.view.w + 1,
      `${top.doc.w} vs ${top.view.w}`);
+  const turns = below(top);
+  ok('the turns scroll in one region below the chrome, with a scroll to test',
+     turns.length === 1 && turns[0].max > 200, JSON.stringify(top.scrollers));
+  ok('the turns keep a share of the screen', turns[0]?.h >= top.view.h * 0.25,
+     `${turns[0]?.h} of ${top.view.h}`);
 
-  await page.evaluate(() => scrollTo(0, 99999));
+  await toEnd();
   await page.waitForTimeout(400);
   const bottom = await geometry();
-  ok('scrolled to the end, the chrome remains at the top of the screen',
-     bottom.doc.y > 200 && bottom.chrome && Math.abs(bottom.chrome.top) <= 1,
-     `scroll ${bottom.doc.y}, chrome at ${bottom.chrome?.top}`);
-  ok('the search control remains inside the visible sticky chrome',
-     bottom.search?.h > 0 && bottom.search.top >= 0 && bottom.search.bottom <= bottom.chrome.bottom + 1,
-     JSON.stringify({ search: bottom.search, chrome: bottom.chrome }));
-  ok('the timeline rail pins directly below the measured chrome',
-     bottom.rail?.h > 0 && Math.abs(bottom.rail.top - bottom.chrome.bottom) <= 1,
-     `rail at ${bottom.rail?.top}, chrome ends at ${bottom.chrome?.bottom}`);
+  ok('scrolled to the end, the turns moved and the chrome did not',
+     below(bottom)[0]?.y > 200 && Math.abs(bottom.chrome.top - top.chrome.top) <= 1,
+     `turns at ${below(bottom)[0]?.y}, chrome ${top.chrome.top} then ${bottom.chrome.top}`);
+  ok('the head is still on screen', bottom.title?.h > 0 && bottom.title.top >= 0,
+     JSON.stringify(bottom.title));
+  ok('the timeline rail stays at the top of the pane',
+     bottom.rail?.h > 0 && Math.abs(bottom.rail.top - top.rail.top) <= 1,
+     `rail ${top.rail?.top} then ${bottom.rail?.top}`);
   await page.screenshot({ path: path.join(shots, 'session-chrome-outline.png') });
 
-  // Search from the bottom, keeping enough hits that the document still has
-  // a genuine scroll. A one-hit search could pass this without sticky chrome.
+  // Search, keeping enough hits that the results still have a real scroll.
   await input.fill('Reply');
   await page.waitForFunction(() => document.querySelectorAll('[data-session-match]').length === 12);
-  await page.evaluate(() => scrollTo(0, 99999));
+  await toEnd();
   await page.waitForTimeout(300);
   const searched = await geometry();
-  ok('search at the end keeps its controls visible while the document scrolls',
-     searched.doc.y > 200 && Math.abs(searched.chrome.top) <= 1
-       && searched.search.h > 0 && searched.search.bottom <= searched.view.h,
-     JSON.stringify({ y: searched.doc.y, chrome: searched.chrome, search: searched.search }));
-  ok('matching passages use document flow rather than a nested scroll region', searched.scrollers.length === 0,
-     searched.scrollers.join(' | '));
+  ok('search results scroll in their own pane and the controls stay put',
+     searched.doc.h <= searched.view.h + 1 && Math.abs(searched.chrome.top - top.chrome.top) <= 1
+       && searched.search.h > 0 && searched.search.bottom <= searched.view.h
+       && below(searched)[0]?.y > 0,
+     JSON.stringify({ chrome: searched.chrome, search: searched.search, scrollers: searched.scrollers }));
   await page.screenshot({ path: path.join(shots, 'session-chrome-search.png') });
   await page.getByRole('button', { name: 'Clear conversation search', exact: true }).click();
   await page.waitForFunction(() => !window.Alpine.$data(document.querySelector('#mount > div')).findQuery);
-  await page.evaluate(() => scrollTo(0, 99999));
   await page.waitForTimeout(300);
   const cleared = await geometry();
-  ok('clear restores the outline and its correctly offset timeline',
-     await page.locator('[x-ref="outline"]').isVisible()
-       && cleared.rail?.h > 0 && Math.abs(cleared.rail.top - cleared.chrome.bottom) <= 1,
-     JSON.stringify({ rail: cleared.rail, chrome: cleared.chrome }));
+  ok('clear restores the outline and its rail',
+     await page.locator('[x-ref="outline"]').isVisible() && cleared.rail?.h > 0,
+     JSON.stringify({ rail: cleared.rail }));
 
   await page.locator('[x-ref="chrome"]').getByRole('tab', { name: /^Raw/ }).click();
   await page.locator('[x-ref="raw"] .json-explorer').waitFor();
   await page.screenshot({ path: path.join(shots, 'session-chrome-raw-tree.png') });
-  await page.locator('[x-ref="raw"]').getByRole('tab', { name: /Raw$/ }).click({ timeout: 5000 })
+  await page.locator('[x-ref="raw"]').getByRole('tab', { name: /^JSON$/ }).click({ timeout: 5000 })
     .catch(async error => {
       console.log('Raw diagnostic:', await page.locator('[x-ref="raw"]').ariaSnapshot());
       console.log('Browser errors:', errors);
@@ -200,13 +200,9 @@ try {
   await page.waitForTimeout(400);
   const raw = await geometry();
   ok('Raw clamps the record instead of laying it out as one long page',
-     raw.doc.h < raw.view.h * 3, `doc ${raw.doc.h} (the regression: 40,528)`);
+     raw.doc.h <= raw.view.h + 1, `doc ${raw.doc.h} (the regression: 40,528)`);
   ok('Raw scrolls the code inside its own box, under the chrome',
-     raw.scrollers.length === 1, `scrollers: ${raw.scrollers.join(' | ') || 'none'}`);
-  ok('Raw updates the chrome measurement after hiding conversation search',
-     raw.search?.h === 0 && raw.chrome.h < cleared.chrome.h
-       && Math.abs(raw.chromeH - raw.chrome.h) <= 1,
-     JSON.stringify({ search: raw.search, chrome: raw.chrome, chromeH: raw.chromeH }));
+     below(raw).length === 1, JSON.stringify(raw.scrollers));
   await page.screenshot({ path: path.join(shots, 'session-chrome-raw.png') });
   ok('no uncaught browser errors', errors.length === 0, errors.join(' | '));
 } finally {

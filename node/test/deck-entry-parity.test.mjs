@@ -57,8 +57,7 @@ const DOORS = [
   { what: 'Branch detail', file: 'lib/alpineComponents/branch-brief.js',
     anchor: 'openFileDeck(0)', noun: 'file', count: "plural(deckFiles.length, 'file')",
     size: 'tight' },
-  // Tight since 2026-10-29, so its three doors fit beside the tabs on one
-  // phone line (the owner's ask, the branch detail's precedent).
+  // Tight, so its three buttons fit beside the tabs, as the branch detail's do.
   { what: 'Session brief', file: 'lib/alpineComponents/session-brief.js',
     anchor: 'openDeck()', noun: 'card', count: "plural(cards, 'card')", size: 'tight' },
   { what: 'Files search', file: 'lib/alpineComponents/search-view.js',
