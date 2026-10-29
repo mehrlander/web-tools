@@ -42,7 +42,26 @@ window.GH = FakeGH;
 window.TOKEN = 'tkn';
 window.gh = { load: async () => {} };
 window.AssistantMark = { shortBranch: (b) => String(b || '') };
-window.mdDiff = { inline: async (a, b) => { const d = window.document.createElement('div'); d.innerHTML = '<del></del><ins></ins>'; d.dataset.pair = a + '>' + b; return d; } };
+// md-diff's own suite holds its drawing; here it draws one container per
+// changed block, with the host's actions as buttons, as the real one does.
+const drawn = [];
+window.mdDiff = { render: async (host, a, b, opts) => {
+  drawn.push({ a, b });
+  const A = a.split('\n\n'), B = b.split('\n\n');
+  A.forEach((old, k) => {
+    if (old === B[k]) return;
+    const box = window.document.createElement('section');
+    box.dataset.mdDiffChange = String(k);
+    box.dataset.pair = old + '>' + B[k];
+    for (const act of opts.actions({ kind: 'changed', old, new: B[k] }, k) || []) {
+      const btn = window.document.createElement('button');
+      btn.textContent = act.label; btn.dataset.act = act.label;
+      btn.addEventListener('click', () => act.run());
+      box.append(btn);
+    }
+    host.append(box);
+  });
+} };
 window.Diff = {};
 window.MdSurface = { patch: (p, a, b) => 'PATCH ' + p + ' ' + JSON.stringify(b) };
 window.__form = { src: STORE + ':user-calls/c0ffee01-doc.json' };
@@ -60,42 +79,49 @@ Alpine.start();
 const root = () => window.document.getElementById('form');
 const data = () => Alpine.$data(root());
 const until = async (ok) => { for (let i = 0; i < 80 && !ok(); i++) await tick(2); return ok(); };
-await until(() => data().doc.ready && root().querySelectorAll('[data-doc-edit]').length === 3);
-const edit = (n) => root().querySelector(`[data-doc-edit="${n}"]`);
+await until(() => data().doc.ready && root().querySelectorAll('[data-md-diff-change]').length === 2);
+const box = (n) => root().querySelector(`[data-doc-mark][data-doc-edit="${n}"]`)?.closest('[data-md-diff-change]');
+const act = (n, a) => box(n).querySelector(`[data-act="${a}"]`).click();
+const mark = (n) => root().querySelector(`[data-doc-mark][data-doc-edit="${n}"]`);
 const send = () => root().querySelector('[data-doc-send]');
 
 test('mounting is quiet', () => assert.deepEqual(problems, []));
 
-test('every edit is drawn with its reason and its change, and none sends to Dictate', async () => {
-  await until(() => edit(1).querySelector('[data-pair]'));
-  assert.equal(edit(1).querySelector('[data-pair]').dataset.pair, 'One.>First.', 'the inline reading is of the edit itself');
-  assert.match(edit(1).textContent, /clearer/);
+test('the document is drawn whole, its edits staged, under a head naming the file', () => {
+  assert.deepEqual(drawn[0], { a: DOC, b: 'First.\n\nSecond.\n\nThree.\n' }, 'the file as it stands against the file with every edit in it');
+  assert.equal(box(1).dataset.pair, 'One.>First.');
+  assert.match(root().querySelector('[data-doc-head]').textContent, /docs\/x\.md/);
+  assert.match(root().querySelector('[data-doc-head]').textContent, /3 edits · 0 of 2 decided/);
   assert.equal(root().querySelector('[data-dictate-link]'), null, 'no way out to Dictate');
 });
 
-test('an edit the file cannot place says why and offers no decision', () => {
+test('an edit the file cannot place says why, under the document, with no container', () => {
   assert.deepEqual(Array.from(data().doc.status), ['staged', 'staged', 'stale']);
-  assert.match(edit(3).textContent, /no longer holds/);
-  assert.equal(edit(3).querySelector('[data-doc-keep]').closest('[x-show]').style.display, 'none');
+  assert.equal(mark(3), null);
+  assert.match(root().querySelector('[data-doc-unplaced="3"]').textContent, /no longer holds/);
 });
 
-test('nothing records until every staged edit is decided', async () => {
+test('nothing records until every staged edit is decided, and a decision stays marked', async () => {
   assert.equal(send().disabled, true);
   assert.match(send().textContent, /2 to decide/);
-  edit(1).querySelector('[data-doc-keep]').click();
+  act(1, 'Keep');
   await tick(2);
   assert.match(send().textContent, /1 to decide/);
-  assert.equal(edit(1).querySelector('[data-doc-keep]').getAttribute('aria-pressed'), 'true');
-  edit(1).querySelector('[data-doc-keep]').click();
+  assert.equal(mark(1).dataset.decision, 'confirmed');
+  assert.match(mark(1).textContent, /kept/);
+  act(1, 'Keep');
   await tick(2);
-  assert.equal(edit(1).querySelector('[data-doc-keep]').getAttribute('aria-pressed'), 'false', 'a second tap lets it go');
+  assert.equal(mark(1).dataset.decision, 'open', 'a second tap lets it go');
 });
 
 test('the answer line is the one Dictate and the Docs tab write, with the kept edits as a patch', async () => {
-  edit(1).querySelector('[data-doc-keep]').click();
-  edit(2).querySelector('[data-doc-discard]').click();
+  act(1, 'Keep');
+  act(2, 'Discard');
+  act(2, 'Note');
   await tick(2);
-  data().doc.notes[1] = 'keep the number';
+  const note = root().querySelector('[data-doc-note="2"]');
+  note.value = 'keep the number';
+  note.dispatchEvent(new window.Event('input'));
   assert.equal(send().disabled, false);
   send().click();
   await until(() => puts.length);
