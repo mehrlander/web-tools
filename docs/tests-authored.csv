@@ -283,6 +283,7 @@ node/test/repo-address-python.test.mjs,behavior,"python/repo_address.py and lib/
 node/test/repo-address.test.mjs,behavior,The owner/repo[@ref]:path address parses into its three parts.
 node/test/repo-checks.test.mjs,behavior,All six staleness check kinds pass inside their window and fail outside it.
 node/test/repo-config-cache.test.mjs,behavior,"The config hash is stable, order-preserving, and separates null from absent."
+node/test/repo-mark.test.mjs,behavior,"A repository's mark, drawn one way: a manifest with only an icon draws the glyph it drew, a glyph never carries two Phosphor weight classes or two colours, an SVG is read once and a bad one draws the glyph, and no render site draws a repository mark around the kit."
 node/test/repo-proposals.test.mjs,behavior,"The proposal channel: pending versus applied, the errands folder shape, diffing, and removal."
 node/test/repo-root-one-owner.test.mjs,behavior,"A script or test computing the repo root from its own depth again, which stays right only until the file moves, instead of importing node/repo-root.mjs."
 node/test/repo-sessions-cache.test.mjs,behavior,"The sessions aggregate, whose source is a captured and therefore unregenerable layer: a pass that did not re-read a record must not drop its row, a record with no agent id must summarize without one rather than with a wrong one, and rows order and cap by LAST ACTIVITY, not by start."

@@ -1,8 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="shortcut-tools">
   <title>shortcut-tools</title>
-  <desc>A hop: an arrow arcing over and landing, for a shortcut. Drawn in one ink on the budget-drs app icon's box and rules, for the page to paint in its text colour: solid, no strokes, and every gap at least 2.5 units, which is about 1.4 CSS pixels at 16.</desc>
-  <g fill="currentColor">
-    <path d="M3.5 26 V17.5 A11 11 0 0 1 25.5 17.5 H21.75 A7.25 7.25 0 0 0 7.25 17.5 V26 Z"/>
-    <path d="M19 17.49 L28.25 17.49 L23.62 26 Z"/>
+  <desc>Two wide rounded diamonds, the upper one cut clear of the lower, in the Shortcuts icon's colours as iOS draws it, pink over violet: the app's own stacked layers. Drawn on the budget-drs app icon's box and rules, each layer a gradient of its own: solid, no strokes, and every gap at least 2.5 units, which is about 1.4 CSS pixels at 16. It keeps its colours, so a tone does not apply.</desc>
+  <linearGradient id="top" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#f472b6"/><stop offset="1" stop-color="#d946ef"/>
+  </linearGradient>
+  <linearGradient id="bottom" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#a78bfa"/><stop offset="1" stop-color="#7c3aed"/>
+  </linearGradient>
+  <mask id="clear" maskUnits="userSpaceOnUse" x="0" y="0" width="32" height="32">
+    <rect width="32" height="32" fill="#fff"/>
+    <rect x="6.78" y="2.28" width="18.43" height="18.43" rx="5" transform="rotate(45 16 11.5)" fill="#000"/>
+  </mask>
+  <g transform="translate(16 0) scale(1.55 1) translate(-16 0)">
+    <rect fill="url(#top)" x="9.28" y="4.78" width="13.43" height="13.43" rx="2.5" transform="rotate(45 16 11.5)"/>
+    <g mask="url(#clear)"><rect fill="url(#bottom)" x="9.28" y="14.03" width="13.43" height="13.43" rx="2.5" transform="rotate(45 16 20.75)"/></g>
   </g>
 </svg>

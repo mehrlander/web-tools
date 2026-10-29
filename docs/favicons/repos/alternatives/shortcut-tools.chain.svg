@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="shortcut-tools: chain">
+  <title>shortcut-tools: chain</title>
+  <desc>Two action blocks, the upper one feeding the lower through an arrow: a chain of actions, as the repository builds them.</desc>
+  <g fill="currentColor">
+    <path d="M6.5 3 H25.5 A2.5 2.5 0 0 1 28 5.5 V9 A2.5 2.5 0 0 1 25.5 11.5 H17.5 V14 H21.5 L16 18.75 L10.5 14 H14.5 V11.5 H6.5 A2.5 2.5 0 0 1 4 9 V5.5 A2.5 2.5 0 0 1 6.5 3 Z"/>
+    <rect x="4" y="21.25" width="24" height="8.5" rx="2.5"/>
+  </g>
+</svg>

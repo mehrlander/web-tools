@@ -1,5 +1,6 @@
 {
   "icon": "ph-toolbox",
+  "tone": "blue",
   "estate": true,
   "group": "core",
   "order": 11,
