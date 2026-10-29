@@ -348,8 +348,8 @@ def scored(led, edits, by):
 def path(run):
     """The whole passage, step by step: the reader's repairs first, in the
     order they were written; then the edits, safest first (tier, then
-    confidence, then words saved). A yellow or red edit must leave the passage
-    shorter; a green one that no judge says loses clarity may add words. An
+    confidence, then words saved). An edit must leave the passage shorter,
+    except in a bold run a green one that no judge says loses clarity. An
     edit that overlaps steps already taken replaces them when it sits in a
     riskier tier than all of them and leaves the passage shorter; otherwise it
     waits as an alternative. A whole-passage rewrite is an alternative to the
@@ -383,9 +383,11 @@ def path(run):
             aside.append({'edit': e['id'], 'beside': [c[0] for c in hit]}); continue
         trial = [c for c in chosen if c not in hit] + [(e['id'], sp, e['text'])]
         text = compose(text0, trial)
-        # A green edit every judge calls clear is taken on its merits, longer or
-        # not; a yellow or red one costs the reader something, so it must buy words.
-        merit = risk in ('repair', 'green') and not any(r.get('clarity') == 'loses' for r in by[e['id']])
+        # In a bold run, a green edit every judge calls clear is taken on its merits,
+        # longer or not; a yellow or red one costs the reader something, so it must
+        # buy words. A plain run's proposers only shorten, so there every edit must.
+        merit = (led['kind'] != 'ladder/1' and risk in ('repair', 'green')
+                 and not any(r.get('clarity') == 'loses' for r in by[e['id']]))
         if words(text) >= now and not hit and not merit:
             aside.append({'edit': e['id'], 'beside': []}); continue
         if hit and words(text) >= now:
