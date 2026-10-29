@@ -15,10 +15,12 @@ Shannon's source coding theorem (1948) sets a limit on how short a lossless
 encoding of a message can be, and practical codes approach that limit without
 reaching it. Minimal progressive structure is a limit of that kind. Some
 arrangements have no convention a reader knows: a chart that plots recorded
-altitudes beside altitudes a crew only spoke aloud needs a sentence saying so,
-as both NTSB designer judges noted
-([A](experiment/judgments/dca-designera.json),
-[B](experiment/judgments/dca-designerb.json)). A practical page keeps that text.
+altitudes beside altitudes a crew only spoke aloud needs a sentence saying so.
+Both information-design judges of the pages built from the National
+Transportation Safety Board's accident report said as much
+([first judgment](experiment/judgments/dca-designera.json),
+[second judgment](experiment/judgments/dca-designerb.json)). A practical page
+keeps that text.
 
 ## The claim
 
