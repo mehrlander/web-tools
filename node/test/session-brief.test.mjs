@@ -624,11 +624,13 @@ test('a fact carries its definition on data-title-tip, not in a title', () => {
   // view full screen, Open the cards and read them aloud, Read n cards one at a
   // time, Open this session in Claude Code, and The stored record on GitHub.
   // The eleventh joined on 2026-10-22: the notes mark, Notes on what you are
-  // looking at, copied out as JSON.
-  assert.equal(extras.length, 15,
-    'the id, the running-ref marker, the pages mark, the Gemini summary and eleven control labels off-strip: '
+  // looking at, copied out as JSON. It and Open the cards and read them aloud
+  // came off on 2026-10-29, the notes to the FAB's composer and reading aloud
+  // to the deck's own speaker, which leaves nine.
+  assert.equal(extras.length, 13,
+    'the id, the running-ref marker, the pages mark, the Gemini summary and nine control labels off-strip: '
     + JSON.stringify(extras.map(n => n.textContent.trim() || n.getAttribute('data-title-tip'))));
-  assert.equal(noted.length, text.length + 15, 'every text fact and those fifteen, and nothing else');
+  assert.equal(noted.length, text.length + 13, 'every text fact and those thirteen, and nothing else');
   // MATCHED ON THE VALUE, not on the fact's name, because the name is no longer
   // drawn: the strip renders `2026-08-05` and `40 calls`, so a lookup keyed on
   // "day" or "calls" would find the definition of whichever fact happened to
@@ -774,40 +776,27 @@ test('one container: the views are a tab and the calls are the Calls tab\'s alon
   assert.match(src, /pane === 'views' && Math\.abs\(i - vAt\) <= 1/, 'whose frames wait for it to open');
 });
 
-test('a note names what it is about in the notes store\'s locators, and copies out as JSON', () => {
-  // The owner's idea (2026-10-22): note on any view or on the session, then
-  // carry the set into the session as JSON. `about` is the notes store's own
-  // locator (skills/notes), so each note says what it concerns and could be
-  // filed in the store unchanged.
+test('the FAB is told what a note is about, in the notes store\'s locators', () => {
+  // docs/APP.md's `about`, read by fab.js. Without it the FAB filed every
+  // session's notes under pages/session.html. The page is the session's
+  // record; the item, on the Views tab, is the view in front of the reader.
+  // The view's own composer, which kept notes in this browser and copied them
+  // out as JSON, came off for this on 2026-10-29.
   const d = lent();
-  const was = { pane: d.pane, views: d.work.views, vAt: d.vAt, notes: d.notes, about: d.noteAbout };
+  const was = { pane: d.pane, views: d.work.views, vAt: d.vAt };
   try {
-    d.notes = [];
-    d.noteText = 'on the session';
-    d.addNote();
+    d.pane = 'outline';
+    const plain = (x) => JSON.parse(JSON.stringify(x));   // the view's objects are the jsdom realm's
+    assert.deepEqual(plain(d.about.subject), { about: STORE + ':' + PATH, label: 'Session b8fae678' });
+    assert.equal(d.about.selection, null, 'off the Views tab there is no item');
+    assert.equal(d.about.sources[0].path, PATH, 'and the record is what the view reads');
     d.pane = 'views';
     d.work.views = [{ name: 'a.md', repoShort: 'web-tools', short: 'x', slug: 'me/web-tools', branch: 'claude/x', path: 'docs/a.md' }];
-    d.vAt = 0; d.noteAbout = 'auto';
-    assert.equal(d.noteTarget.key, 'view', 'in the Views tab a note is about the view in front of the reader');
-    d.noteText = 'on the view';
-    d.addNote();
-    assert.equal(d.noteText, '', 'the field clears for the next one');
-    const j = JSON.parse(d.notesJson());
-    assert.equal(j.kind, 'session-notes');
-    assert.equal(j.session, 'b8fae678');
-    assert.equal(j.record, STORE + ':' + PATH);
-    assert.equal(j.agent_session, record.agent_session, 'and names the session to paste it into');
-    assert.deepEqual(j.notes.map(n => [n.about, n.text]),
-      [[STORE + ':' + PATH, 'on the session'], ['me/web-tools@claude/x:docs/a.md', 'on the view']]);
-    assert.ok(j.notes.every(n => !Number.isNaN(Date.parse(n.at))), 'each dated');
-    d.removeNote(0);
-    assert.equal(d.notes.length, 1);
-    d.clearNotes();
-    assert.equal(d.notes.length, 1, 'the first tap on Clear only asks');
-    d.clearNotes();
-    assert.equal(d.notes.length, 0);
+    d.vAt = 0;
+    assert.deepEqual(plain(d.about.selection), { about: 'me/web-tools@claude/x:docs/a.md', label: 'a.md · web-tools' });
+    assert.ok(!('notes' in d) && !('listen' in d), 'the composer and the listen door are gone');
   } finally {
-    d.pane = was.pane; d.work.views = was.views; d.vAt = was.vAt; d.notes = was.notes; d.noteAbout = was.about;
+    d.pane = was.pane; d.work.views = was.views; d.vAt = was.vAt;
   }
 });
 
