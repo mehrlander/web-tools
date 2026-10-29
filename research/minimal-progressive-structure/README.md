@@ -14,6 +14,11 @@ forms.
 
 | File | Holds |
 |---|---|
+| [discovery.md](discovery.md) | the scope and structure discovery process, exact requests, two-source pilot findings and proposed next check |
+| [discovery-review.html](discovery-review.html#map=1&tab=scope) | election and aviation drafts and revisions in a swipe deck, with scope choices, examples, source material, exact requests and original JSON |
+| [discovery-pilot/run.json](discovery-pilot/run.json) | pilot provenance and links to preserved requests, source snapshots and four responses; preservation checks are alongside |
+| [object-map-review.html](object-map-review.html#map=1) | four JSON object maps in a swipe deck, with shared tabs, structural diagrams, examples, exact requests and the saved draft and revision |
+| [review.html](review.html#walkthrough=wacares&test=wacares) | the sixteen examples, each with Prompt and Result tabs and its original referenced inputs |
 | [theory.md](theory.md) | the theory: a page as a rooted projection of an entity graph, the structural forms, the projection ladder, and what the theory predicts |
 | [method.md](method.md) | the procedure, as handed to the test agents |
 | [experiment/](experiment/) | sources, prompts, pages, judgments and the scripts that produced them |

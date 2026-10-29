@@ -1,7 +1,10 @@
 import importlib.util
+import io
+import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch, Mock
 
 spec = importlib.util.spec_from_file_location('usage', Path(__file__).parents[1] / 'worker' / 'usage.py')
 usage = importlib.util.module_from_spec(spec)
@@ -40,6 +43,56 @@ class UsageChecks(unittest.TestCase):
         self.assertEqual(values[0]['usedPercent'], 23.5)
         self.assertEqual(values[0]['durationMinutes'], 300)
         self.assertNotIn('context_window', values[0])
+
+    def test_gemini_summary_names_short_and_weekly_windows(self):
+        short = dict(bucketId='gemini-5h', window='5h', remainingFraction=.84, resetTime='2027-01-15T08:00:00Z')
+        weekly = dict(bucketId='gemini-weekly', window='weekly', remainingFraction=.73, resetTime='2027-01-20T08:00:00Z')
+        other = dict(weekly, bucketId='3p-weekly')
+        values = usage.gemini_windows(dict(response=dict(groups=[dict(displayName='Gemini Models', buckets=[short,weekly,other])])))
+        self.assertEqual([w['id'] for w in values], ['gemini-5h','gemini-weekly'])
+        self.assertEqual([w['durationMinutes'] for w in values], [300,10080])
+        self.assertEqual([w['usedPercent'] for w in values], [16,27])
+        self.assertEqual(values[0]['models'], ['Gemini Models'])
+
+    def test_gemini_summary_missing_unknown_and_disabled(self):
+        row = dict(bucketId='gemini-custom', window='custom', remainingFraction=0, resetTime='2027-01-15T08:00:00Z')
+        buckets = [row, dict(row,bucketId='gemini-disabled',disabled=True), dict(row,bucketId='gemini-missing',remainingFraction=None)]
+        data = dict(response=dict(groups=[dict(buckets=buckets)]))
+        values = usage.gemini_windows(data)
+        self.assertEqual(len(values),1)
+        self.assertEqual(values[0]['usedPercent'],100)
+        self.assertIsNone(values[0]['durationMinutes'])
+
+    def test_gemini_summary_falls_back_to_legacy_worker(self):
+        with tempfile.TemporaryDirectory() as folder:
+            repo = Path(folder)
+            tool = repo / 'sessions' / 'tools' / 'gemini_followup.py'
+            tool.parent.mkdir(parents=True)
+            tool.write_text("WORKER_PORT = 12345\nWORKER_CSRF_TOKEN = 'fixture-token'\n", encoding='utf-8')
+            model = dict(modelId='gemini-test', label='Gemini test', quotaInfo=dict(remainingFraction=.5, resetTime='2027-01-15T08:00:00Z'))
+            data = dict(userStatus=dict(cascadeModelConfigData=dict(clientModelConfigs=[model])))
+            opener = Mock()
+            unsupported = usage.urllib.error.HTTPError('http://fixture',404,'unsupported',{},None)
+            opener.open.side_effect = [unsupported, io.BytesIO(json.dumps(data).encode())]
+            with patch.object(usage.urllib.request, 'build_opener', return_value=opener):
+                values = usage.gemini_read(repo)
+            self.assertEqual(values[0]['usedPercent'],50)
+            self.assertIsNone(values[0]['durationMinutes'])
+            self.assertTrue(opener.open.call_args_list[0].args[0].full_url.endswith('/RetrieveUserQuotaSummary'))
+            self.assertTrue(opener.open.call_args_list[1].args[0].full_url.endswith('/GetUserStatus'))
+
+    def test_gemini_transient_failure_keeps_named_readings_stale(self):
+        with tempfile.TemporaryDirectory() as folder:
+            repo = Path(folder)
+            tool = repo / 'sessions' / 'tools' / 'gemini_followup.py'
+            tool.parent.mkdir(parents=True)
+            tool.write_text("WORKER_PORT = 12345\nWORKER_CSRF_TOKEN = 'fixture-token'\n", encoding='utf-8')
+            opener = Mock()
+            opener.open.side_effect = usage.urllib.error.HTTPError('http://fixture',503,'unavailable',{},None)
+            with patch.object(usage.urllib.request, 'build_opener', return_value=opener):
+                with self.assertRaises(usage.urllib.error.HTTPError):
+                    usage.gemini_read(repo)
+            self.assertEqual(opener.open.call_count,1)
 
     def test_bad_percentages_never_become_zero(self):
         for value in [None, '20', True, -1, 101, float('nan'), float('inf')]:

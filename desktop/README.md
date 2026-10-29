@@ -94,6 +94,15 @@ its observation time when contact is lost. A responding server with an observati
 older than fifteen seconds also loses its Live status. Closing the phone browser
 stops polling and does not stop collection.
 
+Tapping a main-list item toggles its compact inline details. An external-link icon
+opens the item's existing Web Tools session detail, errand or result in a separate
+browser context, preserving Now's position and open panel. Items without a valid
+browser destination, including current local Codex and Gemini sessions, have no
+external icon. The companion does not invent links for local-only records. Older
+phone detail bookmarks and the worker's own report view remain supported. On iOS,
+a Home Screen web app may open an external link in a Safari browser sheet, where
+the system offers the control to continue in Safari.
+
 After installation, run `desktop/enable-phone.ps1` using the owner's Windows
 account. The script reads the existing Tailscale identity, restricts the companion
 to that identity, and configures private HTTPS through Tailscale Serve. Unmet HTTPS
@@ -121,6 +130,17 @@ desktop settings; those settings never enter API responses or tracked files.
 
 ### Account usage
 
+The front-page assistant strip also shows compact allowance bars with percentages
+used, labeled by each reported period (for example, 5h or Week). A small tick
+marks the even-use budget pace, with amber fill for usage above that pace. The
+weekly reset day and local time appear beneath the bars. Hover and Usage provide
+the exact reset, pace difference and stale-reading details. Pace compares used
+allowance with elapsed time; it is not a forecast and is hidden for stale, expired
+or unknown periods. Model quotas without a
+reported duration say Quota. Missing periods never gain a guessed bar; multiple
+model or bucket readings for one period use the account-wide limit when present,
+otherwise the most used reading. The full Usage view retains every limit.
+
 The phone's Usage tab and the desktop's Usage panel show account allowances,
 percentage used, reset countdowns and exact reset dates. Known window lengths
 also get a time-elapsed tick. Readings are collected independently about once a
@@ -133,7 +153,11 @@ assumed zero.
 Codex uses the signed-in CLI's documented `account/rateLimits/read` app-server
 method. The CLI manages its own authentication. Each reported bucket and period
 remains separate. Gemini uses the existing Antigravity worker's loopback
-`GetUserStatus` response. That local interface is version-dependent and may
+`RetrieveUserQuotaSummary` response, which identifies the shared `gemini-5h`
+and `gemini-weekly` buckets with explicit window names and reset times. Workers
+without the summary method fall back to per-model `GetUserStatus` quotas without
+inferring their duration. Temporary summary failures retain the named readings
+and their history as stale. That local interface is version-dependent and may
 contain cached provider data; the displayed time is when the worker status was
 read. The collector never starts the worker or a conversation. Only Gemini model
 quotas enter the Gemini lane. Claude models served through Antigravity do not

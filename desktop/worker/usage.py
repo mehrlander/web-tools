@@ -16,6 +16,7 @@ import shutil
 import subprocess
 import threading
 import time
+import urllib.error
 import urllib.request
 
 NO_WINDOW = getattr(subprocess, 'CREATE_NO_WINDOW', 0)
@@ -130,6 +131,22 @@ def codex_read():
 
 
 def gemini_windows(data):
+    # The native quota summary names the shared buckets and their actual periods.
+    buckets = []
+    for group in data.get('response', {}).get('groups', []):
+        for quota in group.get('buckets', []):
+            ident = str(quota.get('bucketId', ''))
+            # Third-party models through Google are not the user's Claude account.
+            if not ident.startswith('gemini-') or quota.get('disabled'):
+                continue
+            remaining = number(quota.get('remainingFraction'), 1)
+            minutes = {'weekly': 10080, '5h': 300}.get(quota.get('window'))
+            value = window(ident, 'Gemini', None if remaining is None else (1 - remaining) * 100,
+                           quota.get('resetTime'), minutes, [label(group.get('displayName'), 'Gemini Models')])
+            if value:
+                buckets.append(value)
+    if buckets:
+        return buckets
     configs = data.get('userStatus', {}).get('cascadeModelConfigData', {}).get('clientModelConfigs', [])
     result = []
     for model in configs:
@@ -163,13 +180,24 @@ def gemini_read(repo):
     csrf = values.get('WORKER_CSRF_TOKEN')
     if not isinstance(port, int) or not 1 <= port <= 65535 or not isinstance(csrf, str):
         raise RuntimeError('worker endpoint unavailable')
-    request = urllib.request.Request(
-        f'http://127.0.0.1:{port}/exa.language_server_pb.LanguageServerService/GetUserStatus',
-        data=b'{}', headers={'Content-Type': 'application/json', 'Connect-Protocol-Version': '1',
-                            'X-Codeium-Csrf-Token': csrf})
     # Ignore system HTTP proxies for this loopback-only interface.
-    with urllib.request.build_opener(urllib.request.ProxyHandler({})).open(request, timeout=5) as response:
-        return gemini_windows(json.loads(response.read(1048576)))
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    for method in ('RetrieveUserQuotaSummary', 'GetUserStatus'):
+        request = urllib.request.Request(
+            f'http://127.0.0.1:{port}/exa.language_server_pb.LanguageServerService/{method}',
+            data=b'{}', headers={'Content-Type': 'application/json', 'Connect-Protocol-Version': '1',
+                                'X-Codeium-Csrf-Token': csrf})
+        try:
+            with opener.open(request, timeout=5) as response:
+                windows = gemini_windows(json.loads(response.read(1048576)))
+            if windows:
+                return windows
+        except urllib.error.HTTPError as error:
+            # A transient quota-service failure must retain the prior named
+            # windows as stale, rather than replacing them with ambiguous models.
+            if method == 'GetUserStatus' or error.code not in (404,501):
+                raise
+    return []
 
 
 def claude_windows(data):
