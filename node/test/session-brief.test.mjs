@@ -620,8 +620,8 @@ test('a fact carries its definition on data-title-tip, not in a title', () => {
   const extras = noted.filter(n => !shownValues.has(n.textContent.replace(/\s+/g, ' ').trim()));
   // The other ten are the labels on the icon-only controls: Sessions in Web
   // Tools, Contents, On GitHub, Previous view, Next view, Open the page in a new
-  // tab, Swipe through every view full screen, Read n cards one at a time, Open
-  // this session in Claude Code, and The stored record on GitHub.
+  // tab, Swipe through every view full screen, Find in conversation, Read n
+  // cards one at a time, and Open this session in Claude Code.
   assert.equal(extras.length, 14,
     'the id, the running-ref marker, the pages mark, the Gemini summary and ten control labels off-strip: '
     + JSON.stringify(extras.map(n => n.textContent.trim() || n.getAttribute('data-title-tip'))));

@@ -167,7 +167,10 @@ try {
      `rail ${top.rail?.top} then ${bottom.rail?.top}`);
   await page.screenshot({ path: path.join(shots, 'session-chrome-outline.png') });
 
-  // Search, keeping enough hits that the results still have a real scroll.
+  // Search, keeping enough hits that the results still have a real scroll. The
+  // field is closed behind the search icon until it is asked for.
+  ok('the find field waits behind its icon', !(await input.isVisible()));
+  await page.getByRole('button', { name: 'Find in conversation', exact: true }).click();
   await input.fill('Reply');
   await page.waitForFunction(() => document.querySelectorAll('[data-session-match]').length === 12);
   await toEnd();
