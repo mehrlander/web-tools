@@ -16,7 +16,7 @@
   const age = at => { const seconds = Math.max(0, Math.round((Date.now() - new Date(at).getTime()) / 1000)); return seconds < 60 ? 'just now' : seconds < 3600 ? `${Math.floor(seconds / 60)}m ago` : seconds < 86400 ? `${Math.floor(seconds / 3600)}h ago` : new Date(at).toLocaleDateString(); };
   const observedTime = at => `<time data-at="${escape(at)}" datetime="${escape(at)}" title="${escape(stamp(at))}">${escape(stamp(at))}</time>`;
   const stamp = at => at ? new Date(at).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) : 'Not yet';
-  const safeUrl = value => { try { const url = new URL(value); return url.origin === 'https://mehrlander.github.io' && url.pathname.startsWith('/web-tools/') ? url.href : ''; } catch { return ''; } };
+  const safeUrl = value => { try { const url = new URL(value); return url.origin === 'https://mehrlander.github.io' && !url.username && !url.password && !url.port && url.pathname.startsWith('/web-tools/') ? url.href : ''; } catch { return ''; } };
   let data, tab = 'now', assistant = '', timer, etag = '', failures = 0, pending = false, connected = false, accessDenied = false, savedScroll = 0;
   const expanded = new Set();
   const selectedDetails = new Map();
@@ -56,9 +56,12 @@
     return `<svg data-location="${location}" role="img" aria-label="${label}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" class="inline-block size-3.5 shrink-0 ${location === 'Cloud' ? 'text-sky-700' : 'text-stone-500'}"><title>${label}</title>${path}</svg>`;
   }
   const fullIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="size-4" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5M3 3l6 6m12-6-6 6M3 21l6-6m12 6-6-6"/></svg>';
+  const externalIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="size-4" aria-hidden="true"><path d="M14 4h6v6M20 4 10 14M10 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5"/></svg>';
   function row(item, position, inline = true) {
-    const key = escape(item.key), summary = replyPreview(statusText(item));
-    return `<article data-item="${key}" class="min-w-0 border-b border-stone-100 bg-white"><div class="relative"><button ${inline ? `data-inspect="${key}" aria-expanded="false" aria-controls="inline-${encodeURIComponent(item.key)}"` : `data-pick="${key}"`} class="block min-h-11 w-full px-3 py-2 text-left active:bg-stone-50"><span class="flex items-start gap-2">${position ? `<span class="w-5 shrink-0 pt-1 text-sm text-amber-700">${position}.</span>` : `<span class="pt-0.5 ${colours[keyFor(item.provider)]}">${mark(item.provider)}</span>`}<span class="min-w-0 flex-1"><span class="flex items-start gap-1 ${inline ? 'pr-9' : ''}"><span class="line-clamp-2 min-w-0 flex-1 text-pretty text-[14px] font-medium leading-5">${escape(itemTitle(item))}</span>${inline ? '' : `<span class="shrink-0 pt-0.5 text-stone-400">${fullIcon}</span>`}</span><span class="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px] text-stone-500">${badge(item.state)}<span>${escape(item.provider)}</span>${locationMark(item.location)}${item.work?.agents ? `<span>${item.work.agents} agents</span>` : ''}${observedTime(item.at)}</span>${summary ? `<span data-summary class="mt-1 line-clamp-2 text-pretty text-[13px] leading-[19px] text-stone-600">${escape(summary.slice(0,180))}</span>` : ''}</span></span></button>${inline ? `<button data-pick="${key}" aria-label="Open full view: ${escape(item.title)}" title="Full view" class="absolute right-1 top-1 flex size-11 items-center justify-center rounded text-emerald-900 active:bg-stone-100">${fullIcon}</button>` : ''}</div>${inline ? `<div id="inline-${encodeURIComponent(item.key)}" data-inline="${key}" hidden></div>` : ''}</article>`;
+    const key = escape(item.key), summary = replyPreview(statusText(item)), url = safeUrl(item.url);
+    const destination = item.kind === 'errand' ? ['reply','complete','failed'].includes(item.state) ? 'result' : 'errand' : 'session';
+    const external = inline && url ? `<a data-external="${key}" href="${escape(url)}" target="_blank" rel="noopener noreferrer" aria-label="Open ${destination} in Web Tools: ${escape(item.title)}" title="Open ${destination} in Web Tools" class="absolute right-1 top-1 flex size-11 items-center justify-center rounded text-emerald-900 active:bg-stone-100">${externalIcon}</a>` : '';
+    return `<article data-item="${key}" class="min-w-0 border-b border-stone-100 bg-white"><div class="relative"><button ${inline ? `data-inspect="${key}" aria-expanded="false" aria-controls="inline-${encodeURIComponent(item.key)}"` : `data-pick="${key}"`} class="block min-h-11 w-full px-3 py-2 text-left active:bg-stone-50"><span class="flex items-start gap-2">${position ? `<span class="w-5 shrink-0 pt-1 text-sm text-amber-700">${position}.</span>` : `<span class="pt-0.5 ${colours[keyFor(item.provider)]}">${mark(item.provider)}</span>`}<span class="min-w-0 flex-1"><span class="flex items-start gap-1 ${external ? 'pr-9' : ''}"><span class="line-clamp-2 min-w-0 flex-1 text-pretty text-[14px] font-medium leading-5">${escape(itemTitle(item))}</span>${inline ? '' : `<span class="shrink-0 pt-0.5 text-stone-400">${fullIcon}</span>`}</span><span class="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px] text-stone-500">${badge(item.state)}<span>${escape(item.provider)}</span>${locationMark(item.location)}${item.work?.agents ? `<span>${item.work.agents} agents</span>` : ''}${observedTime(item.at)}</span>${summary ? `<span data-summary class="mt-1 line-clamp-2 text-pretty text-[13px] leading-[19px] text-stone-600">${escape(summary.slice(0,180))}</span>` : ''}</span></span></button>${external}</div>${inline ? `<div id="inline-${encodeURIComponent(item.key)}" data-inline="${key}" hidden></div>` : ''}</article>`;
   }
 
   function group(title, items, empty = '', numbered = false, inline = true) {
@@ -89,7 +92,7 @@
     const viewport = {left:window.scrollX,top:window.scrollY};
     rememberPanelScroll();
     const focus = el('content').contains(document.activeElement) ? document.activeElement : null;
-    const focusAction = focus && ['inspect','pick','facet'].find(key => focus.dataset[key]);
+    const focusAction = focus && ['inspect','pick','facet','external'].find(key => focus.dataset[key]);
     const focusKey = focusAction && focus.dataset[focusAction];
     const focusOwner = focus?.dataset.for;
     el('machine').textContent = data.machineName;
@@ -130,7 +133,7 @@
     }
     html('source-times', tab === 'usage' ? '' : `Errands synced ${escape(stamp(data.sources.recordsSyncedAt))}<br>Cloud records captured ${escape(stamp(data.sources.cloudCapturedAt))}`);
     renderPanels(); detail(); connection();
-    if (focusAction && !focus.isConnected) [...el('content').querySelectorAll('button')].find(n => n.dataset[focusAction] === focusKey && n.dataset.for === focusOwner)?.focus({preventScroll:true});
+    if (focusAction && !focus.isConnected) [...el('content').querySelectorAll('button,a')].find(n => n.dataset[focusAction] === focusKey && n.dataset.for === focusOwner)?.focus({preventScroll:true});
     document.querySelectorAll('time[data-at]').forEach(node => { node.textContent = age(node.dataset.at); });
     if (window.scrollX !== viewport.left || window.scrollY !== viewport.top) window.scrollTo(viewport.left,viewport.top);
   }
@@ -186,7 +189,7 @@
   }
   function itemBody(item) {
     const url = safeUrl(item.url);
-    return `<div class="mt-4 space-y-5 text-[13px] leading-5 text-stone-700 [overflow-wrap:anywhere]">${detailParts(item,false).map(p => `<section aria-label="${p.title}"><h3 class="mb-2 text-xs font-semibold text-stone-500">${p.title}</h3>${p.body}</section>`).join('')}</div>${url ? `<a class="mt-3 inline-flex min-h-11 items-center gap-1 text-sm text-emerald-800 underline underline-offset-2" href="${escape(url)}">Open in Web Tools ↗</a>` : ''}`;
+    return `<div class="mt-4 space-y-5 text-[13px] leading-5 text-stone-700 [overflow-wrap:anywhere]">${detailParts(item,false).map(p => `<section aria-label="${p.title}"><h3 class="mb-2 text-xs font-semibold text-stone-500">${p.title}</h3>${p.body}</section>`).join('')}</div>${url ? `<a class="mt-3 inline-flex min-h-11 items-center gap-1 text-sm text-emerald-800 underline underline-offset-2" href="${escape(url)}" target="_blank" rel="noopener noreferrer">Open in Web Tools ↗</a>` : ''}`;
   }
 
   function rememberPanelScroll() {
