@@ -101,7 +101,8 @@
       const queued = key === 'gemini' ? waiting.length : 0;
       const needs = items.filter(i => i.needsAttention).length;
       const state = working ? `${working} working` : needs ? `${needs} need you` : queued ? `${queued} waiting` : items.some(i => i.state === 'quiet') ? 'Quiet' : items.some(i => i.kind === 'cloud') ? 'Recorded' : items.length ? 'Recent' : 'No activity';
-      return `<button data-assistant="${key}" aria-pressed="${assistant === key}" class="min-h-11 min-w-0 border-b-2 px-1 py-1 ${assistant === key ? 'border-stone-700 bg-white' : 'border-transparent'}"><span class="flex items-center justify-center gap-1 text-xs font-medium ${colours[key]}">${mark(key)}${{codex:'Codex',gemini:'Gemini',claude:'Claude'}[key]}</span><span class="mt-0.5 block text-[10px] text-stone-500">${state}</span></button>`;
+      const usage = window.NowUsage?.compact(data.usage?.find(p => p.provider === key)) || '';
+      return `<button data-assistant="${key}" aria-pressed="${assistant === key}" class="min-h-11 min-w-0 border-b-2 px-2 py-1 ${assistant === key ? 'border-stone-700 bg-white' : 'border-transparent'}"><span class="flex items-center justify-center gap-1 text-xs font-medium ${colours[key]}">${mark(key)}${{codex:'Codex',gemini:'Gemini',claude:'Claude'}[key]}</span><span class="mt-0.5 block text-[10px] text-stone-500">${state}</span><span class="mx-auto mt-1 block min-h-6 max-w-28">${usage}</span></button>`;
     }).join(''));
     document.querySelectorAll('[data-tab]').forEach(button => {
       const current = button.dataset.tab === tab;
@@ -267,7 +268,7 @@
         try { localStorage.setItem('web-tools-now-snapshot', JSON.stringify(data)); } catch { }
       }
       failures = 0; connected = true; render();
-    } catch { failures++; connected = false; if (tab === 'usage') render(); else connection(); }
+    } catch { failures++; connected = false; render(); }
     finally {
       clearTimeout(timeout); pending = false;
       if (!document.hidden) timer = setTimeout(poll, Math.min(15000, 2000 * 2 ** Math.min(failures,3)));

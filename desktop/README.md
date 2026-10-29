@@ -121,6 +121,13 @@ desktop settings; those settings never enter API responses or tracked files.
 
 ### Account usage
 
+The front-page assistant strip also shows compact allowance bars with percentages
+used, labeled by each reported period (for example, 5h or Week). Reset times and
+stale-reading details are available on hover or in Usage. Model quotas without a
+reported duration say Quota. Missing periods never gain a guessed bar; multiple
+model or bucket readings for one period use the account-wide limit when present,
+otherwise the most used reading. The full Usage view retains every limit.
+
 The phone's Usage tab and the desktop's Usage panel show account allowances,
 percentage used, reset countdowns and exact reset dates. Known window lengths
 also get a time-elapsed tick. Readings are collected independently about once a
