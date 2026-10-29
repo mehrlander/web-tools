@@ -45,17 +45,20 @@
       builder: 'combines drafts and votes', harvester: 'assembles the round’s result',
     };
     const TIER = {
-      green: { dot: 'bg-success', badge: 'badge-success', border: 'border-success', fill: 'fill-success', btn: 'btn-success' },
-      yellow: { dot: 'bg-warning', badge: 'badge-warning', border: 'border-warning', fill: 'fill-warning', btn: 'btn-warning' },
-      red: { dot: 'bg-error', badge: 'badge-error', border: 'border-error', fill: 'fill-error', btn: 'btn-error' },
+      green: { dot: 'bg-green-500', pill: 'bg-green-100 text-green-800', border: 'border-green-500', on: 'bg-green-600 text-white border-green-600' },
+      yellow: { dot: 'bg-yellow-400', pill: 'bg-yellow-100 text-yellow-800', border: 'border-yellow-400', on: 'bg-yellow-400 text-yellow-950 border-yellow-400' },
+      red: { dot: 'bg-red-500', pill: 'bg-red-100 text-red-800', border: 'border-red-500', on: 'bg-red-600 text-white border-red-600' },
     };
+    // A diff reads as GitHub's does: removed words struck on red, added words on green.
+    const DEL = 'rounded-sm bg-red-100 text-red-800 line-through decoration-red-400 px-0.5';
+    const ADD = 'rounded-sm bg-green-100 text-green-900 px-0.5';
     const TIERS = ['green', 'yellow', 'red'];
     function swarmView() {
       return {
         led: null, k: 0, tab: 'compare', side: 'result', marks: false, tier: 'yellow', para: null, lsel: '0',
         sel: null, kinds: { core: true, tactic: true, draft: true, word: true },
         src: '', err: '', loading: false, mdClass: '', srcHtml: '', resHtml: {},
-        KINDS, ROLES, TIER, TIERS,
+        KINDS, ROLES, TIER, TIERS, ADD, DEL,
 
         async init() {
           this.src = UrlParams.get('src') || '';
@@ -121,23 +124,8 @@
           const s = this.led.source;
           return s.path + (s.lines ? ' · lines ' + s.lines[0] + '–' + s.lines[1] : '');
         },
-        pct(w) { return Math.round(100 * (w - this.led.source.words) / this.led.source.words) + '%'; },
         step(d) { if (this.R) this.k = Math.min(this.R - 1, Math.max(0, this.k + d)); },
         go(i, tab) { this.k = i; if (tab) this.tab = tab; },
-
-        // The header's comparison: the original's length, then each round's result.
-        get bars() {
-          if (!this.led) return '';
-          const lad = this.isLadder;
-          const v = [this.led.source.words, ...(lad ? TIERS.map(t => this.ladderWords(t)) : this.led.rounds.map(r => r.harvest ? r.harvest.words : 0))];
-          const max = Math.max(...v), w = 14, gap = 4, H = 28;
-          const rects = v.map((x, i) => {
-            const h = Math.max(2, Math.round(H * x / max));
-            const cls = i === 0 ? 'fill-base-content/30' : lad ? TIER[TIERS[i - 1]].fill : i === this.k + 1 ? 'fill-primary' : 'fill-base-content/60';
-            return `<rect class="${cls}" x="${i * (w + gap)}" y="${H - h}" width="${w}" height="${h}" rx="2"/>`;
-          }).join('');
-          return `<svg width="${v.length * (w + gap)}" height="${H}" viewBox="0 0 ${v.length * (w + gap)} ${H}">${rects}</svg>`;
-        },
 
         // Before / after: the result at the chosen round, or its changes
         // against the version before it.
@@ -218,18 +206,15 @@
 
         // The edit ladder: each paragraph's steps, safest first.
         stepsOf(bid) { const p = this.led.paths && this.led.paths[bid]; return p ? p.steps : []; },
-        editOf(id) { return this.led.edits.find(e => e.id === id); },
+        editOf(id) {
+          const e = this.led.edits.find(e => e.id === id);
+          return e && { ...e, from: e.from ?? e.find, text: e.text ?? e.replace };
+        },
         ratingsOf(id) { return this.led.ratings.filter(r => r.edit === id); },
         upToTier(bid, t) { return this.stepsOf(bid).filter(s => TIERS.indexOf(s.risk) <= TIERS.indexOf(t)); },
         blockAt(b, t) { const ok = this.upToTier(b.id, t); return ok.length ? ok[ok.length - 1].text : b.text; },
         ladderText(t) { return this.led.blocks.map(b => this.blockAt(b, t)).join('\n\n'); },
         ladderWords(t) { return this.led.blocks.reduce((n, b) => { const ok = this.upToTier(b.id, t); return n + (ok.length ? ok[ok.length - 1].words : b.words); }, 0); },
-        honours(kind) { return this.led.ratings.filter(r => r[kind]).map(r => r.edit).filter((v, i, a) => a.indexOf(v) === i).length; },
-        get ladderFigure() {
-          return this.led.source.words + ' words → ' + TIERS.map(t => t + ' ' + this.ladderWords(t)).join(' · ')
-            + ' · ' + this.led.edits.length + ' edits, !! ' + this.honours('brilliancy') + ', ✂ ' + this.honours('brutality');
-        },
-        endWords(bid) { const st = this.stepsOf(bid); return st.length ? st[st.length - 1].words : this.led.blocks.find(b => b.id === bid).words; },
         pickPara(bid) { this.para = bid; this.lsel = '0'; this.$nextTick(() => this.mountLadder()); },
         // Plain text for a diff: headings, bold pairs, code ticks and link syntax
         // go; a lone ** (a glob such as node/test/**/*.test.mjs) stays.
@@ -237,12 +222,37 @@
           return String(t || '').replace(/^#+\s*/gm, '').replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
             .replace(/\*\*([^*\n]+?)\*\*/g, '$1').replace(/`/g, '');
         },
+        // A word diff, grouped the way GitHub shows a change: each run of
+        // adjacent changes becomes the struck words, then the new words, with
+        // the spaces around them left unmarked.
+        diffRuns(a, b) {
+          const out = [], blk = [];
+          const push = (k, t) => { if (t) out.push({ k, t }); };
+          const flush = () => {
+            if (!blk.length) return;
+            const all = blk.map(p => p.value).join('');
+            const delRaw = blk.filter(p => !p.added).map(p => p.value).join('');
+            const addRaw = blk.filter(p => !p.removed).map(p => p.value).join('');
+            const del = delRaw.trim(), add = addRaw.trim();
+            const hasDel = blk.some(p => p.removed), hasAdd = blk.some(p => p.added);
+            const lead = /^\s/.test(all) || (hasDel && /^\s/.test(delRaw)) || (hasAdd && /^\s/.test(addRaw));
+            if (lead && !(out.length && /\s$/.test(out[out.length - 1].t))) push('', ' ');
+            if (hasDel) push('del', del);
+            if (hasDel && hasAdd) push('', ' ');
+            if (hasAdd) push('add', add);
+            if (/\s$/.test(all)) push('', ' ');
+            blk.length = 0;
+          };
+          for (const p of Diff.diffWords(this.md(a), this.md(b))) {
+            if (p.added || p.removed || (!p.value.trim() && blk.length)) blk.push(p);
+            else { flush(); push('', p.value); }
+          }
+          flush();
+          return out;
+        },
         diffHtml(a, b) {
-          return Diff.diffWords(this.md(a), this.md(b)).map(p => {
-            const v = window.esc(p.value);
-            return p.added ? '<span class="bg-base-200 rounded underline decoration-2 underline-offset-4 decoration-base-content/50">' + v + '</span>'
-              : p.removed ? '<span class="line-through opacity-40 mr-1">' + v + '</span>' : v;
-          }).join('');
+          return this.diffRuns(a, b).map(r => r.k === 'add' ? '<span data-chg class="' + ADD + '">' + window.esc(r.t) + '</span>'
+            : r.k === 'del' ? '<span data-chg class="' + DEL + '">' + window.esc(r.t) + '</span>' : window.esc(r.t)).join('');
         },
         stepIds() { return ['0', ...this.stepsOf(this.para).map(s => s.edit)]; },
         stepAt(id) {
@@ -252,39 +262,41 @@
         },
         rowHtml(id) {
           const sel = this.lsel === id;
-          const base = 'flex cursor-pointer items-center gap-2 border-b border-base-200 px-2.5 py-1.5 aria-selected:bg-base-300';
+          const base = 'flex cursor-pointer items-center gap-2 border-b border-base-200 px-2.5 py-1 aria-selected:bg-base-300';
           const mono = (t, w) => '<span class="flex-none font-mono text-xs ' + (w || '') + '">' + window.esc(t) + '</span>';
           if (id === '0') {
             const b = this.led.blocks.find(b => b.id === this.para);
             return '<div role="option" tabindex="0" data-step="0" aria-selected="' + sel + '" class="' + base + '">'
               + '<span class="size-2.5 flex-none rounded-full bg-base-content/20"></span>' + mono('0', 'w-6 opacity-60')
-              + '<span class="min-w-0 flex-1 truncate font-semibold">original</span>' + mono(b.words + ' words', 'opacity-70') + '</div>';
+              + '<span class="min-w-0 flex-1 truncate font-semibold">original</span></div>';
           }
           const { i, s } = this.stepAt(id), e = this.editOf(id), rs = this.ratingsOf(id);
-          const cut = !String(e.text).trim();
-          const clip = t => { const w = this.md(t).split(/\s+/); return w.slice(0, 7).join(' ') + (w.length > 7 ? '…' : ''); };
-          const what = cut ? 'cut “' + clip(e.from) + '”' : '“' + clip(e.from) + '” → “' + clip(e.text) + '”';
+          const what = this.stepTitle(id);
           const marks = (s.replaces ? '↺ ' : '') + (rs.some(r => r.brilliancy) ? '!! ' : '') + (rs.some(r => r.brutality) ? '✂' : '');
           return '<div role="option" tabindex="0" data-step="' + window.esc(id) + '" aria-selected="' + sel + '" class="' + base + '">'
             + '<span class="size-2.5 flex-none rounded-full ' + TIER[s.risk].dot + '"></span>' + mono(String(i), 'w-6 opacity-60')
             + '<span class="min-w-0 flex-1 truncate">' + window.esc(what) + '</span>'
-            + (marks ? mono(marks.trim(), 'font-bold') : '') + mono(s.confidence + '%', 'w-10 text-right')
-            + mono('−' + (this.stepAt(id).prev ? this.wc(this.stepAt(id).prev) - s.words : 0), 'w-10 text-right opacity-70') + '</div>';
+            + (marks ? mono(marks.trim(), 'font-bold') : '') + mono(s.confidence + '%', 'w-10 text-right') + '</div>';
         },
         wc(t) { return String(t).split(/\s+/).filter(Boolean).length; },
+        stepTitle(id) {
+          const e = this.editOf(id), clip = t => { const w = this.md(t).split(/\s+/); return w.slice(0, 5).join(' ') + (w.length > 5 ? '…' : ''); };
+          return String(e.text).trim() ? '“' + clip(e.from) + '” → “' + clip(e.text) + '”' : 'cut “' + clip(e.from) + '”';
+        },
         cardHtml(id) {
           const b = this.led.blocks.find(b => b.id === this.para);
           if (id === '0') {
-            return '<div class="p-3 flex flex-col gap-3"><div class="font-mono text-xs opacity-70">' + window.esc(b.id + ' as written · ' + b.words + ' words') + '</div>'
-              + '<div class="leading-7 text-pretty whitespace-pre-wrap break-words border-l-4 border-base-300 pl-3">' + window.esc(this.md(b.text)) + '</div></div>';
+            return '<div class="flex flex-col gap-3 pb-24">'
+              + '<div class="leading-8 text-pretty whitespace-pre-wrap break-words border-l-4 border-base-300 pl-3">' + window.esc(this.md(b.text)) + '</div></div>';
           }
           const { i, s, prev } = this.stepAt(id), e = this.editOf(id), rs = this.ratingsOf(id);
           const line = (cls, html) => '<div class="' + cls + '">' + html + '</div>';
           const honour = (kind, sign) => rs.filter(r => r[kind]).map(r => line('text-pretty', '<span class="font-bold">' + sign + ' ' + kind + '</span> <span class="opacity-70">' + window.esc(r.by + ': ' + r[kind]) + '</span>')).join('');
-          return '<div class="p-3 flex flex-col gap-3">'
-            + '<div class="flex flex-wrap items-center gap-2"><span class="badge ' + TIER[s.risk].badge + '">' + s.risk + '</span>'
-            + '<span class="font-mono text-xs">' + window.esc(s.confidence + '% confident · ' + s.words + ' words, −' + (this.wc(prev) - s.words)) + '</span></div>'
-            + line('leading-7 text-pretty whitespace-pre-wrap break-words border-l-4 pl-3 ' + TIER[s.risk].border, this.diffHtml(prev, s.text))
+          const saved = this.wc(prev) - s.words;
+          return '<div class="flex flex-col gap-3 pb-24">'
+            + '<div class="flex flex-wrap items-center gap-2"><span class="rounded-full px-2.5 py-0.5 text-sm font-semibold ' + TIER[s.risk].pill + '">' + s.risk + '</span>'
+            + '<span class="font-mono text-xs opacity-80">' + window.esc(s.confidence + '% confident · ' + (saved >= 0 ? '−' + saved : '+' + (-saved)) + (Math.abs(saved) === 1 ? ' word' : ' words')) + '</span></div>'
+            + line('leading-8 text-pretty whitespace-pre-wrap break-words border-l-4 pl-3 ' + TIER[s.risk].border, this.diffHtml(prev, s.text))
             + (s.replaces ? line('text-pretty', '<span class="font-bold">↺ replaces</span> <span class="opacity-70">' + window.esc(s.replaces.map(id => 'step ' + this.stepAt(id).i).join(', ') + ', which it overlaps') + '</span>') : '')
             + honour('brilliancy', '!!') + honour('brutality', '✂')
             + line('text-pretty', '<span class="font-mono text-xs opacity-70">' + window.esc(e.by + ', aiming ' + e.aim) + '</span> ' + window.esc(e.why))
@@ -299,9 +311,10 @@
           if (!this._ls) {
             this._ls = linkedSwiper.attach({
               root: this.$refs.lroot, list: this.$refs.llist, card: this.$refs.lcard, key: 'step',
-              ids: () => this.stepIds(), sel: () => this.lsel, noun: 'step', listMax: 'max-h-[38vh]',
-              name: id => id === '0' ? { code: this.para, title: 'original' } : { code: this.para + ' · step ' + this.stepAt(id).i + ' of ' + this.stepsOf(this.para).length, title: this.stepAt(id).s.risk },
+              ids: () => this.stepIds(), sel: () => this.lsel, noun: 'step', listMax: 'max-h-[22vh]',
+              name: id => id === '0' ? { code: this.para, title: 'as written' } : { code: this.para + ' · step ' + this.stepAt(id).i + ' of ' + this.stepsOf(this.para).length, title: this.stepTitle(id) },
               body: id => this.cardHtml(id),
+              drawn: el => { const c = el.querySelector('[data-chg]'); if (c) c.scrollIntoView({ block: 'center' }); },
               empty: '<div class="p-4 opacity-60">No edits.</div>',
               onPick: (id) => { this.lsel = id; },
             });
@@ -325,9 +338,7 @@
           }
           return { text: this.prevText, label: this.prevLabel };
         },
-        get rsegs() {
-          return Diff.diffWords(this.md(this.base.text), this.md(this.res ? this.res.text : '')).map(p => ({ t: p.value, k: p.added ? 'add' : p.removed ? 'del' : '' }));
-        },
+        get rsegs() { return this.diffRuns(this.base.text, this.res ? this.res.text : ''); },
 
         // Must keep: each fact against each round's result.
         get cores() { return this.led.entries.filter(e => e.tag === 'core' && e.round <= this.n); },
@@ -349,15 +360,9 @@
     <div class="min-w-0 flex-1">
       <div class="font-semibold text-balance" x-text="heading"></div>
       <template x-if="led">
-        <div class="text-xs flex flex-wrap gap-x-2 opacity-80 text-pretty">
-          <a class="link font-mono" :href="led.source.url || '#'" target="_blank" rel="noopener" x-text="where"></a>
-          <span class="opacity-50 hidden lg:inline" x-show="!!last || isLadder">·</span>
-          <span class="font-mono" x-show="isLadder" x-text="isLadder && ladderFigure"></span>
-          <span class="font-mono" x-show="!!last" x-text="last && (led.source.words + ' → ' + last.words + ' words (' + pct(last.words) + ') in ' + R + ' rounds of model readers · ' + last.core_carried + ' of ' + named(R - 1) + ' must-keep facts kept, ' + (named(R - 1) - last.core_total) + ' voted out as repeats')"></span>
-        </div>
+        <a class="link font-mono text-xs opacity-80" :href="led.source.url || '#'" target="_blank" rel="noopener" x-text="where"></a>
       </template>
     </div>
-    <div x-show="!!led" x-html="bars" class="shrink-0"></div>
     <button class="btn btn-ghost btn-sm btn-square" x-show="!!src" @click="fetch()" :disabled="!!loading" aria-label="Reload">
       <i class="ph ph-arrow-clockwise text-lg" :class="loading && 'animate-spin'"></i>
     </button>
@@ -388,10 +393,10 @@
       <div class="flex items-center gap-2 px-4 py-2 border-b border-base-300 overflow-x-auto">
         <span class="text-xs opacity-70 shrink-0">paragraph</span>
         <template x-for="b in (isLadder ? led.blocks : [])" :key="b.id">
-          <button class="btn btn-xs shrink-0 font-mono" :class="para === b.id ? 'btn-neutral' : 'btn-ghost'" @click="pickPara(b.id)" x-text="b.id + ' · ' + b.words + '→' + endWords(b.id)"></button>
+          <button class="btn btn-xs shrink-0 font-mono" :class="para === b.id ? 'btn-neutral' : 'btn-ghost'" @click="pickPara(b.id)" x-text="b.id"></button>
         </template>
       </div>
-      <div class="flex min-h-0 flex-col p-2.5 pb-24 overflow-y-auto">
+      <div class="flex min-h-0 flex-col p-2.5">
         <div x-ref="lroot">
           <div x-ref="llist" role="listbox" aria-label="Steps"></div>
           <div x-ref="lcard"></div>
@@ -403,12 +408,12 @@
     <template x-if="led && tab === 'compare'">
       <div class="h-full flex flex-col">
         <div class="join px-4 pt-2 lg:hidden">
-          <button class="join-item btn btn-xs" :class="side === 'original' ? 'btn-neutral' : 'btn-outline'" @click="side = 'original'" x-text="'Original · ' + led.source.words + ' words'"></button>
-          <button class="join-item btn btn-xs" :class="side === 'result' ? 'btn-neutral' : 'btn-outline'" @click="side = 'result'" x-text="res ? res.label + ' · ' + res.words + ' words' : 'Result'"></button>
+          <button class="join-item btn btn-xs" :class="side === 'original' ? 'btn-neutral' : 'btn-outline'" @click="side = 'original'" >Original</button>
+          <button class="join-item btn btn-xs" :class="side === 'result' ? 'btn-neutral' : 'btn-outline'" @click="side = 'result'" x-text="res ? res.label : 'Result'"></button>
         </div>
         <div class="flex-1 min-h-0 grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <section class="min-h-0 overflow-y-auto px-4 pb-24 lg:border-r border-base-300" :class="side === 'original' ? 'block' : 'hidden lg:block'">
-            <div class="text-xs font-mono opacity-70 py-2 hidden lg:block" x-text="'Original · ' + led.source.words + ' words'"></div>
+            <div class="text-xs font-mono opacity-70 py-2 hidden lg:block">Original</div>
             <div :class="mdClass" class="text-base! leading-7 [&_code]:text-[0.9em]! [&_code]:px-[0.15em]! [&_h1]:text-xl! [&_h2]:text-lg! [&_h3]:text-base! [&_h1]:text-balance [&_h2]:text-balance [&_h3]:text-balance [&_p]:text-pretty [&_li]:text-pretty" x-html="srcHtml"></div>
           </section>
           <section class="min-h-0 overflow-y-auto px-4 pb-24" :class="side === 'result' ? 'block' : 'hidden lg:block'">
@@ -416,12 +421,11 @@
               <template x-if="isLadder">
                 <div class="join">
                   <template x-for="t in TIERS" :key="t">
-                    <button class="join-item btn btn-xs" :class="tier === t ? TIER[t].btn : 'btn-outline'" @click="tier = t" x-text="'through ' + t"></button>
+                    <button class="join-item btn btn-xs" :class="tier === t ? TIER[t].on : 'btn-outline'" @click="tier = t" x-text="t"></button>
                   </template>
                 </div>
               </template>
-              <span class="font-mono opacity-70 hidden lg:inline" x-text="res ? res.label + ' · ' + res.words + ' words · ' + pct(res.words) : 'none yet'"></span>
-              <span class="font-mono opacity-70 lg:hidden" x-text="res ? pct(res.words) + ' from the original' : ''"></span>
+              <span class="font-mono opacity-70 hidden lg:inline" x-show="!isLadder" x-text="res ? res.label : 'none yet'"></span>
               <label class="label cursor-pointer gap-2 ml-auto" x-show="!!res">
                 <input type="checkbox" class="toggle toggle-xs" x-model="marks">
                 <span x-text="'changes from ' + base.label"></span>
@@ -430,7 +434,7 @@
             <template x-if="res && !marks"><div :class="mdClass" class="text-base! leading-7 [&_code]:text-[0.9em]! [&_code]:px-[0.15em]! [&_h1]:text-xl! [&_h2]:text-lg! [&_h3]:text-base! [&_h1]:text-balance [&_h2]:text-balance [&_h3]:text-balance [&_p]:text-pretty [&_li]:text-pretty" x-html="res.html"></div></template>
             <template x-if="res && marks">
               <div class="whitespace-pre-wrap break-words leading-7 text-pretty"><template x-for="(s, i) in rsegs" :key="i"><span
-                :class="s.k === 'add' ? 'bg-base-200 rounded underline decoration-2 underline-offset-4 decoration-base-content/50' : s.k === 'del' ? 'line-through opacity-40 mr-1' : ''" x-text="s.t"></span></template></div>
+                :class="s.k === 'add' ? ADD : s.k === 'del' ? DEL : ''" x-text="s.t"></span></template></div>
             </template>
           </section>
         </div>
