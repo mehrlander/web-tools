@@ -5,6 +5,15 @@ A working theory of how content that arrives as text becomes a page, written
 this file says why the method has the shape it has, where it comes from, and
 what it predicts. The [account](README.md) holds the test.
 
+## The definition
+
+**Minimal progressive structure:** the layout that delivers all of the content
+with no text spent describing its organization, because familiar conventions
+convey it.
+
+It is a limit in the way Shannon's are: a page approaches it without reaching
+it, and the distance that remains is the text a convention could have carried.
+
 ## The claim
 
 A page is a **rooted projection of an entity graph**. Building a page from
