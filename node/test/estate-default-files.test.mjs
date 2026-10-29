@@ -1,5 +1,5 @@
-// The Sessions row's mark for a session holding an older copy of the default
-// skill files than main's (estate.js sessionDefaultStale). The row carries the
+// The Sessions row's "!" for a session holding an older copy of the default
+// skill files than main's (estate.js sessionDefaultChanged, sessionDefaultStale). The row carries the
 // plugin commit of the session's last load (RepoSessionsCache.defaultAtOf); the
 // view compares skills/default/'s listing at that commit with main's by blob
 // sha. Driven through the real component against a stub GH whose contents
@@ -12,6 +12,7 @@ const LISTING = {
   main: { 'SKILL.md': 's1', 'CONVERSATION.md': 'c2', 'QUALIFIED-WRITING.md': 'q1' },
   aaaaaaaaaaa1: { 'SKILL.md': 's1', 'CONVERSATION.md': 'c1', 'QUALIFIED-WRITING.md': 'q1' },
   bbbbbbbbbbb2: { 'SKILL.md': 's1', 'CONVERSATION.md': 'c2', 'QUALIFIED-WRITING.md': 'q1' },
+  ddddddddddd4: { 'SKILL.md': 's0', 'CONVERSATION.md': 'c1', 'QUALIFIED-WRITING.md': 'q1' },
 };
 const reads = [];
 class StubGH {
@@ -51,7 +52,17 @@ test('a recent session whose copy differs from main is marked once the listings 
   assert.equal(data.sessionDefaultStale(row('aaaaaaaaaaa1')), false, 'nothing is claimed before the reads land');
   await settle(); await settle();
   assert.equal(data.sessionDefaultStale(row('aaaaaaaaaaa1')), true);
-  assert.match(data.sessionDefaultNote(row('aaaaaaaaaaa1')), /from aaaaaaa, and main has changed them since/);
+  assert.deepEqual([...data.sessionDefaultChanged(row('aaaaaaaaaaa1'))], ['CONVERSATION.md'], 'only the file that differs');
+  assert.equal(data.sessionDefaultNote(row('aaaaaaaaaaa1')),
+    'CONVERSATION.md has changed on main since this session loaded the default skill files at aaaaaaa. '
+    + 'Its next prompt tells it to load them again.', 'the tip names what is stale');
+});
+
+test('the tip names every file that differs', async () => {
+  data.sessionDefaultStale(row('ddddddddddd4'));
+  await settle(); await settle();
+  assert.deepEqual([...data.sessionDefaultChanged(row('ddddddddddd4'))], ['CONVERSATION.md', 'SKILL.md']);
+  assert.match(data.sessionDefaultNote(row('ddddddddddd4')), /^CONVERSATION\.md and SKILL\.md have changed on main since/);
 });
 
 test('a session holding main\'s copy is not marked', async () => {
