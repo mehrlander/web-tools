@@ -36,7 +36,7 @@ import http from 'node:http';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { chromium } from 'playwright';
+import { launch } from './chromium.mjs';
 import { resolveCdn, typeFor } from './cdn.mjs';
 import { measure, findings, signals } from './measure.mjs';
 import { repoRoot } from '../repo-root.mjs';
@@ -133,7 +133,7 @@ const tally = { fulfill: 0, empty: 0, continue: 0 };
 const consoleLines = [];
 const errorLines = [];
 
-const browser = await chromium.launch({ args: ['--no-sandbox', '--ignore-certificate-errors'] });
+const browser = await launch({ args: ['--no-sandbox', '--ignore-certificate-errors'] });
 // `--touch` emulates a FINGER, not a narrow window: hasTouch flips the
 // `pointer: coarse` / `hover: none` media queries, which a width alone never
 // does. Without it a coarse-pointer rule is invisible to this tool and a

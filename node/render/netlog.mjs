@@ -21,7 +21,7 @@
 import { readFile } from 'node:fs/promises';
 import http from 'node:http';
 import path from 'node:path';
-import { chromium } from 'playwright';
+import { launch } from './chromium.mjs';
 import { resolveCdn, typeFor } from './cdn.mjs';
 import { repoRoot } from '../repo-root.mjs';
 
@@ -53,7 +53,7 @@ const port = server.address().port;
 const origin = `http://127.0.0.1:${port}`;
 
 const token = o.notoken ? '' : (process.env.GITHUB_TOKEN || '');
-const browser = await chromium.launch({ args: ['--no-sandbox'] });
+const browser = await launch({ args: ['--no-sandbox'] });
 const proxy = process.env.HTTPS_PROXY || process.env.https_proxy;
 const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, ignoreHTTPSErrors: true, ...(proxy ? { proxy: { server: proxy, bypass: '127.0.0.1,localhost' } } : {}) });
 if (token) await ctx.addInitScript(t => { try { localStorage.setItem('ghToken', t); } catch {} }, token);
