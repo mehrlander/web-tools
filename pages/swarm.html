@@ -328,7 +328,7 @@
           const box = 'leading-8 text-pretty whitespace-pre-wrap break-words border-l-4 pl-3 flex flex-col gap-3 ';
           if (id === '0') {
             const shown = this.para ? this.led.blocks.filter(b => b.id === this.para) : this.led.blocks;
-            return '<div class="flex flex-col gap-3 pb-24"><div class="' + prose + 'border-base-300">'
+            return '<div class="flex flex-col gap-3 pb-24"><div class="' + box + 'border-base-300">'
               + shown.map(b => '<p>' + window.esc(this.md(b.text)) + '</p>').join('') + '</div></div>';
           }
           const { s, prev } = this.stepAt(id), e = this.editOf(id), rs = this.ratingsOf(id);
