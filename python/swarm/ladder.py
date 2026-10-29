@@ -162,7 +162,7 @@ def context(run, role):
     if bold and base in ('scout', 'builder', 'judge') and led.get('problems'):
         L += ['## What the reader found', ''] + [f"- {p['problem']} in {', '.join(p['blocks'])}: \"{p['quote']}\". {p['note']}" for p in led['problems']] + ['']
     if bold and base in ('builder', 'judge'):
-        L += ['## The scouts\' ideas', ''] + [f"- {i['id']} ({i['kind']}, {', '.join(i['blocks'])}, saves {i['saves']}): {i['idea']}" + (f" Draft: \"{i['rewrite']}\"" if i.get('rewrite') else '') + f" Why: {i['why']}" for i in led['ideas']] + ['']
+        L += ['## The scouts\' ideas', ''] + [f"- {i['id']} ({i['kind']}, {', '.join(i['blocks'])}, saves {i['saves']}): {i['idea']}" + (f" Draft: \"{i['text']}\"" if i.get('text') else '') + f" Why: {i['why']}" for i in led['ideas']] + ['']
     if base == 'judge':
         if bold:
             L += ['## The repairs to rate (applied to the original before the passage above)', '']
@@ -295,7 +295,9 @@ def merge(run, what):
         for f in files('scout-*.jsonl'):
             lens = f.stem.split('-', 1)[1]
             for n, (_, o) in enumerate(lines_of(f), 1):
-                led['ideas'].append({'id': f'{lens}.{n}', 'lens': lens, **{k: o.get(k, '') for k in ('idea', 'kind', 'blocks', 'rewrite', 'saves', 'why')}})
+                # A scout's draft is its `rewrite`; the ledger calls drafted words `text`, as in an edit.
+                led['ideas'].append({'id': f'{lens}.{n}', 'lens': lens, **{k: o.get(k, '') for k in ('idea', 'kind', 'blocks')},
+                                     'text': o.get('rewrite', ''), **{k: o.get(k, '') for k in ('saves', 'why')}})
     elif what == 'edits':
         led['edits'] = []
         for f in files('builder-*.jsonl'):
@@ -307,12 +309,23 @@ def merge(run, what):
                 if name.startswith('architect'):
                     e['whole'] = True
                 led['edits'].append(e)
+        # A scout's draft of the whole passage (or all of it below the heading)
+        # stands beside the architects', so the judges rate the boldest drafts too.
+        last = led['rblocks'][-1]['id']
+        for i in led.get('ideas', []):
+            if i.get('text') and i['blocks'][0] in ('P1', 'P2') and i['blocks'][-1] == last:
+                led['edits'].append({'id': f"e{len(led['edits']) + 1}", 'blocks': i['blocks'], 'by': f"scout-{i['lens']}",
+                                     'text': i['text'], 'why': i['why'], 'ideas': [i['id']], 'whole': True})
     elif what == 'ratings':
         led['ratings'] = []
         for f in files('judge-*.jsonl'):
             for _, o in lines_of(f):
-                led['ratings'].append({'edit': o['edit'], 'by': f.stem, 'risk': o['risk'], 'confidence': o['confidence'],
-                                       **{k: o[k] for k in ('clarity', 'brilliancy', 'brutality', 'note') if str(o.get(k, '')).strip()}})
+                r = {'edit': o['edit'], 'by': f.stem, 'risk': o['risk'], 'confidence': o['confidence'],
+                     **{k: o[k] for k in ('clarity', 'note') if str(o.get(k, '')).strip()}}
+                # A judge writes each honour under its own name; the ledger keeps the
+                # honour as a value and the judge's line as its `why`.
+                hs = [{'honour': k, 'why': o[k]} for k in ('brilliancy', 'brutality') if str(o.get(k, '')).strip()]
+                led['ratings'].append({**r, **({'honours': hs} if hs else {})})
     else:
         sys.exit(f'merge what? {what}')
     swarm.save(run, led)
@@ -335,10 +348,12 @@ def scored(led, edits, by):
 def path(run):
     """The whole passage, step by step: the reader's repairs first, in the
     order they were written; then the edits, safest first (tier, then
-    confidence, then words saved). An edit that overlaps steps already taken
-    replaces them when it sits in a riskier tier than all of them and leaves
-    the passage shorter; otherwise it waits as an alternative. A whole-passage
-    rewrite is an alternative to the path, not a step on it."""
+    confidence, then words saved). A yellow or red edit must leave the passage
+    shorter; a green one that no judge says loses clarity may add words. An
+    edit that overlaps steps already taken replaces them when it sits in a
+    riskier tier than all of them and leaves the passage shorter; otherwise it
+    waits as an alternative. A whole-passage rewrite is an alternative to the
+    path, not a step on it."""
     run, led = Path(run), swarm.load(run)
     for e in led['edits']:                       # a plain run's edits name one paragraph
         if 'block' in e:
@@ -368,7 +383,10 @@ def path(run):
             aside.append({'edit': e['id'], 'beside': [c[0] for c in hit]}); continue
         trial = [c for c in chosen if c not in hit] + [(e['id'], sp, e['text'])]
         text = compose(text0, trial)
-        if words(text) >= now and not hit and risk != 'repair':
+        # A green edit every judge calls clear is taken on its merits, longer or
+        # not; a yellow or red one costs the reader something, so it must buy words.
+        merit = risk in ('repair', 'green') and not any(r.get('clarity') == 'loses' for r in by[e['id']])
+        if words(text) >= now and not hit and not merit:
             aside.append({'edit': e['id'], 'beside': []}); continue
         if hit and words(text) >= now:
             aside.append({'edit': e['id'], 'beside': [c[0] for c in hit]}); continue

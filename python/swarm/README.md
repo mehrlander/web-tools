@@ -48,9 +48,11 @@ python3 python/swarm/ladder.py init python/swarm/runs/<slug> <file> <first-line>
    `merge … ratings`.
 3. `ladder.py path python/swarm/runs/<slug>` orders the passage's edits by
    tier (the warier judge decides it), then confidence, then words saved, and
-   adds them in turn. An edit that overlaps steps already taken replaces them
-   when it sits in a riskier tier than all of them and leaves the passage
-   shorter; otherwise it is set aside as an alternative.
+   adds them in turn. A yellow or red edit must leave the passage shorter; a
+   green one that no judge says loses clarity may add words. An edit that
+   overlaps steps already taken replaces them when it sits in a riskier tier
+   than all of them and leaves the passage shorter; otherwise it is set aside
+   as an alternative.
 
 A judge may also mark an edit **brilliancy** (two ideas joined into one
 phrase) or **brutality** (a drastic cut the paragraph turns out not to need).
@@ -69,7 +71,9 @@ briefs in [`bold.md`](bold.md) and the Qualified writing rules in every one:
 3. `context … builder-<name>` for each builder, in parallel; then
    `merge … edits`. An architect's edit rewrites the whole passage and stands
    beside the path as an alternative; an editor's edit may replace whole
-   paragraphs.
+   paragraphs. A scout's draft of the whole passage, or of all of it below the
+   heading, joins the architects' as an alternative, so the judges rate the
+   boldest drafts even when no builder took them up.
 4. `context … judge-<x>`, in parallel; then `merge … ratings` and `path`.
 
 The path starts with the repairs (blue), then runs green, yellow and red

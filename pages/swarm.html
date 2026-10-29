@@ -226,15 +226,18 @@
         get choices() {
           const out = TIERS.filter(t => t !== 'repair' || this.steps.some(s => s.risk === 'repair'))
             .map(t => ({ id: t, label: t === 'repair' ? 'repaired' : t, text: this.tierText(t), tier: t }));
-          for (const w of this.led.wholes || []) out.push({ id: w.edit, label: w.by.replace('architect-', '') + ' rewrite', text: w.text, tier: w.risk, whole: true });
+          for (const w of this.led.wholes || []) out.push({ id: w.edit, label: w.by.replace('architect-', '').replace('scout-', 'scout ') + ' rewrite', text: w.text, tier: w.risk, whole: true });
           return out;
         },
         get choice() { return this.choices.find(c => c.id === this.tier) || this.choices[0]; },
         pickPara(bid) { this.para = bid; this.lsel = '0'; this.$nextTick(() => this.mountLadder()); },
-        // Ideas: what the reader found, and each scout's ideas with the edits built on them.
+        // Ideas: what the reader found, and each scout's ideas with the edits
+        // built on them, narrowed to the picked paragraph.
+        mine(x) { return !this.para || x.blocks.includes(this.para); },
+        get found() { return (this.led.problems || []).filter(p => this.mine(p)); },
         get lenses() {
           const out = {};
-          for (const i of this.led.ideas || []) (out[i.lens] = out[i.lens] || []).push(i);
+          for (const i of (this.led.ideas || []).filter(i => this.mine(i))) (out[i.lens] = out[i.lens] || []).push(i);
           return Object.entries(out);
         },
         builtFrom(ideaId) { return this.led.edits.filter(e => (e.ideas || []).includes(ideaId)).map(e => e.id); },
@@ -286,9 +289,10 @@
           const i = this.steps.findIndex(s => s.edit === id);
           return { i: i + 1, s: this.steps[i], prev: i > 0 ? this.steps[i - 1].text : this.original };
         },
+        won(r, kind) { return (r.honours || []).find(h => h.honour === kind); },
         marksOf(id, s) {
           const rs = this.ratingsOf(id);
-          return [s.replaces ? '↺' : '', rs.some(r => r.brilliancy) ? '!!' : '', rs.some(r => r.brutality) ? '✂' : '', rs.some(r => r.clarity === 'loses') ? '?!' : ''].filter(Boolean).join(' ');
+          return [s.replaces ? '↺' : '', rs.some(r => this.won(r, 'brilliancy')) ? '!!' : '', rs.some(r => this.won(r, 'brutality')) ? '✂' : '', rs.some(r => r.clarity === 'loses') ? '?!' : ''].filter(Boolean).join(' ');
         },
         rowHtml(id) {
           const sel = this.lsel === id;
@@ -334,7 +338,7 @@
           const { s, prev } = this.stepAt(id), e = this.editOf(id), rs = this.ratingsOf(id);
           const line = (cls, html) => '<div class="' + cls + '">' + html + '</div>';
           const label = t => '<span class="font-mono text-xs opacity-70">' + window.esc(t) + '</span> ';
-          const honour = (kind, sign) => rs.filter(r => r[kind]).map(r => line('text-pretty', '<span class="font-bold">' + sign + ' ' + kind + '</span> <span class="opacity-70">' + window.esc(r.by + ': ' + r[kind]) + '</span>')).join('');
+          const honour = (kind, sign) => rs.filter(r => this.won(r, kind)).map(r => line('text-pretty', '<span class="font-bold">' + sign + ' ' + kind + '</span> <span class="opacity-70">' + window.esc(r.by + ': ' + this.won(r, kind).why) + '</span>')).join('');
           const saved = this.wc(prev) - s.words;
           const who = e.aim === 'repair' ? 'reader, ' + e.kind : e.aim ? e.by + ', aiming ' + e.aim : e.by + ((e.ideas || []).length ? ', from ' + e.ideas.join(', ') : '');
           return '<div class="flex flex-col gap-3 pb-24">'
@@ -414,12 +418,21 @@
     </button>
   </header>
 
-  <!-- tabs -->
-  <nav class="flex items-center gap-1 px-4 py-1 border-b border-base-300 overflow-x-auto" x-show="!!led">
-    <template x-for="[id, label] in tabs" :key="id">
-      <button class="btn btn-sm shrink-0" :class="tab === id ? 'btn-neutral' : 'btn-ghost'" @click="tab = id" x-text="label"></button>
-    </template>
-  </nav>
+  <!-- tabs, and the paragraph filter that Edits and Ideas share -->
+  <div class="min-w-0 border-b border-base-300" x-show="!!led">
+    <nav class="flex items-center gap-1 px-4 py-1 overflow-x-auto">
+      <template x-for="[id, label] in tabs" :key="id">
+        <button class="btn btn-sm shrink-0" :class="tab === id ? 'btn-neutral' : 'btn-ghost'" @click="tab = id" x-text="label"></button>
+      </template>
+    </nav>
+    <div class="flex items-center gap-2 px-4 py-2 border-t border-base-300 overflow-x-auto" x-show="isLadder && (tab === 'edits' || tab === 'ideas')">
+      <span class="text-xs opacity-70 shrink-0">paragraph</span>
+      <button class="btn btn-xs shrink-0" :class="para === null ? 'btn-neutral' : 'btn-ghost'" @click="pickPara(null)">all</button>
+      <template x-for="b in (isLadder ? led.blocks : [])" :key="b.id">
+        <button class="btn btn-xs shrink-0 font-mono" :class="para === b.id ? 'btn-neutral' : 'btn-ghost'" @click="pickPara(b.id)" x-text="b.id"></button>
+      </template>
+    </div>
+  </div>
 
   <main class="min-h-0 overflow-y-auto">
 
@@ -435,14 +448,7 @@
     </template>
 
     <!-- edits: one paragraph's steps, a list over a strip -->
-    <section class="h-full grid grid-rows-[auto_minmax(0,1fr)]" x-show="isLadder && tab === 'edits'">
-      <div class="flex items-center gap-2 px-4 py-2 border-b border-base-300 overflow-x-auto">
-        <span class="text-xs opacity-70 shrink-0">paragraph</span>
-        <button class="btn btn-xs shrink-0" :class="para === null ? 'btn-neutral' : 'btn-ghost'" @click="pickPara(null)">all</button>
-        <template x-for="b in (isLadder ? led.blocks : [])" :key="b.id">
-          <button class="btn btn-xs shrink-0 font-mono" :class="para === b.id ? 'btn-neutral' : 'btn-ghost'" @click="pickPara(b.id)" x-text="b.id"></button>
-        </template>
-      </div>
+    <section class="h-full grid grid-rows-[minmax(0,1fr)]" x-show="isLadder && tab === 'edits'">
       <div class="flex min-h-0 flex-col p-2.5">
         <div x-ref="lroot">
           <div x-ref="llist" role="listbox" aria-label="Steps"></div>
@@ -454,12 +460,12 @@
     <!-- ideas: what the reader found, and every scout's ideas by lens -->
     <template x-if="isBold && tab === 'ideas'">
       <div class="p-4 pb-24 flex flex-col gap-6">
-        <section class="flex flex-col gap-2" x-show="(led.problems || []).length">
+        <section class="flex flex-col gap-2" x-show="found.length">
           <div class="flex items-center gap-2">
             <span class="font-semibold">What the reader found</span>
             <button class="btn btn-xs btn-outline" x-show="!!led.reading" @click="openReading()">open the reading</button>
           </div>
-          <template x-for="(p, j) in led.problems || []" :key="j">
+          <template x-for="(p, j) in found" :key="j">
             <div class="text-pretty"><span class="font-mono text-xs opacity-70" x-text="p.problem + ' · ' + p.blocks.join('–')"></span> “<span x-text="md(p.quote)"></span>” <span class="opacity-70" x-text="p.note"></span></div>
           </template>
         </section>
