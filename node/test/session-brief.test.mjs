@@ -1028,6 +1028,19 @@ test('an old record whose turn count disagrees gets no notes, rather than notes 
   window.__topicsDoc = null;
 });
 
+test('an old record gets its notes when the file states when each turn was sent', async () => {
+  // The same disagreement as above, but each turn carries its own `at`, so
+  // pairing needs no count: the note goes to the row sent at that instant.
+  const later = '2026-08-05T14:00:00Z';
+  const doc = { ...TOPICS_DOC, turns: [{ ...TOPICS_DOC.turns[0], at: record.prompts[0].at },
+                                       { turn: 1, at: later, summary: 'A second turn.', headline: 'Second' }] };
+  const data = await mountTopics(doc, 'me/topics-c2');
+  assert.equal(data.record.schema, 4);
+  assert.deepEqual(Object.keys(data.turnNotes()), [record.prompts[0].at, later]);
+  assert.equal(data.turnNotes()[later].summary, 'A second turn.');
+  window.__topicsDoc = null;
+});
+
 test('the outline is built once, with the turn notes, when the topics file is prompt', async () => {
   // It was built bare at settle and again when the file landed: two builds of
   // every slide's outline, three slides at a time in the swiper, which on a
