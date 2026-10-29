@@ -89,6 +89,9 @@ const sessions = {
     { path: 'home/docs/elsewhere.md', sessions: 7, count: 7, last: '2026-08-04T20:00:00Z' },
   ],
 };
+// The read counts the Growth chart draws (python/doc-reads.py), served only
+// once a test sets them, so the cache-only cases above run as they did.
+let docReadsFile = null;
 const asked = [];
 window.TOKEN = 'ignored-in-test';
 window.GH = class {
@@ -127,6 +130,10 @@ window.GH = class {
     if (Object.hasOwn(automationFiles, p)) return { text: automationFiles[p] };
     if (p === 'data/checks-reading/explanations.csv') return { text: explainCsv };
     if (p === 'state/sessions.json') return { text: JSON.stringify(sessions) };
+    if (p === 'state/doc-reads.json') {
+      if (docReadsFile) return { text: JSON.stringify(docReadsFile) };
+      throw Object.assign(new Error('404'), { status: 404 });
+    }
     return { text: toCsv(manifest.items) };
   }
 };
@@ -164,6 +171,24 @@ test('every Map address says what it is through about, and leads with its contro
       if (toolbar) assert.equal(section.firstElementChild, toolbar, view.k + ': controls first');
     }
   } finally { data.mapTab = old; }
+});
+
+test('Peeves declares stable page and selected-item note subjects, including merged IDs', () => {
+  const old = { mapTab: data.mapTab, peevesReg: data.peevesReg, peeveSel: data.peeveSel };
+  try {
+    data.mapTab = 'peeves';
+    data.peevesReg = [
+      { id: 'P33', name: 'Reinventing the wheel', status: 'active', merged_into: '' },
+      { id: 'P45', name: 'Reuse components', status: 'active', merged_into: 'P33' },
+    ];
+    data.peeveSel = 'P33';
+    assert.equal(data.about.subject.about, 'mehrlander/web-tools:docs/map-tabs.csv#peeves');
+    assert.equal(data.about.selection.label, 'P33 · Reinventing the wheel');
+    assert.equal(data.about.selection.about, 'mehrlander/web-tools:skills/peeves/peeves.csv#P33');
+    assert.ok(data.about.selection.aliases.includes('mehrlander/web-tools:skills/peeves/peeves.csv#P45'));
+    data.mapTab = 'skills';
+    assert.equal(data.about.selection, null, 'a hidden list cannot supply the selected subject');
+  } finally { Object.assign(data, old); }
 });
 
 test('source provenance follows the selected collection and preserves an external census ref', () => {
@@ -931,6 +956,33 @@ test('an injected doc says what this column cannot see, not that the text arrive
   // Unmeasurable stays distinguishable from unread: injected carries a word,
   // a never-opened doc shows nothing at all (the tail hides on empty).
   assert.equal(data.docReadLabel({ path: 'docs/nobody-opens-this.md', reach: 'orphan' }), '');
+});
+
+// Since 2026-10-25 the column takes both facts from the read counts where they
+// hold the repo, so Inventory and Growth count reads alike; the cache answers
+// only for a repo the counts do not hold.
+test('readership reads the Growth read counts on background, the cache only where they lack the repo', async () => {
+  docReadsFile = {
+    from: '2026-07-29', sessions: 600,
+    repos: { 'mehrlander/web-tools': {
+      'docs/APP.md': { opened: [3, 40, 80], context: [], via: { shell: 2, tool: 1 } },
+      'docs/CONVENTIONS.md': { opened: [], context: [1, 2, 3, 4], basis: { reconstructed: 4 } },
+    } },
+  };
+  data.docReads = null; data.docReadsDoc = null; data._growthReads = null;
+  await data.loadDocReads();
+  assert.ok(asked.some(a => a.path === 'state/doc-reads.json' && a.ref === 'background'), 'read on the background branch');
+  assert.equal(data.docReadLabel({ path: 'docs/APP.md', reach: 'project' }), '3 reads', 'not the cache\'s 9');
+  assert.match(data.docReadHint({ path: 'docs/APP.md', reach: 'project' }), /3 of 600 recorded sessions \(2 by shell, 1 by file tool\), last 2026-10-17/);
+  const injected = { path: 'docs/CONVENTIONS.md', reach: 'injected' };
+  assert.equal(data.docReadLabel(injected), '4 in context', 'presence from the counts, never added to opening');
+  assert.match(data.docReadHint(injected), /4 of 600 recorded sessions, by reconstruction/);
+  assert.equal(data.docReadLabel({ path: 'docs/nobody-opens-this.md', reach: 'orphan' }), '',
+    'a file the counts hold no row for reads as unopened, not as the cache\'s answer');
+  data.docRepo = 'mehrlander/budget-wa';
+  assert.equal(data.docCounted({ path: 'docs/APP.md' }), null, 'a repo the counts lack falls back to the cache');
+  data.docRepo = '';
+  docReadsFile = null; data.docReadsDoc = null; data._growthReads = null;
 });
 
 test('an absent check renders as visibly absent, and only where one is owed', () => {
@@ -2269,7 +2321,6 @@ test('Peeves searches the real list and preserves repository identity in its ref
   try {
     data.peeveQ = 'accordions';
     assert.deepEqual(Array.from(data.peeveRows, p => p.id), ['P52']);
-    assert.equal(data.peeveGroups[0].key, 'core');
     data.peeveQ = 'no such peeve';
     assert.equal(data.peeveRows.length, 0);
     const source = data.peeveReference(data.peevesReg.find(p => p.id === 'P02'));
@@ -2296,8 +2347,15 @@ test('Peeves presents the reviewed list and resolves merged IDs through their re
   const before = data.peeveQ;
   try {
     data.peeveQ = '';
-    assert.equal(data.peeveRows.length, 33);
-    assert.deepEqual(Array.from(data.peeveGroups, g => [g.key, g.rows.length]), [['core', 24], ['secondary', 9]]);
+    assert.equal(data.peeveRows.length, 28);
+    const names = Array.from(data.peeveRows, p => p.name);
+    assert.deepEqual(names, [...names].sort((a, b) => a.localeCompare(b)), 'all active entries share one alphabetical list');
+    assert.equal(data.peeveRows.find(p => p.id === 'P10').name, 'Term loading');
+    assert.equal(data.peeveRows.find(p => p.id === 'P23').name, 'Missing links');
+    assert.equal(data.peeveRows.find(p => p.id === 'P22').name, 'Raw options');
+    assert.equal(data.peeveRows.find(p => p.id === 'P16').name, 'Subtle veering');
+    assert.equal(data.peeveRows.find(p => p.id === 'P36').name, 'Micromanaged handoffs');
+    assert.match(data.peeveRows.find(p => p.id === 'P16').peeve, /discover the departure later/);
     data.peeveQ = 'P45';
     assert.deepEqual(Array.from(data.peeveRows, p => [p.id, p.name]), [['P33', 'Reinventing the wheel']]);
     const html = data.peeveCard(data.peeveRows[0]);
@@ -2311,6 +2369,12 @@ test('Peeves presents the reviewed list and resolves merged IDs through their re
     assert.ok(data.peeveRows.some(p => p.id === 'P33'), 'an absorbed area finds its retained entry');
     data.peeveQ = 'P11';
     assert.deepEqual(Array.from(data.peeveRows, p => p.id), ['P10']);
+    data.peeveQ = 'P03';
+    assert.deepEqual(Array.from(data.peeveRows, p => p.id), ['P10'], 'the old jargon ID still finds Term loading');
+    for (const id of ['P09', 'P15', 'P17', 'P19', 'P20', 'P27', 'P40', 'P59', 'P61']) {
+      data.peeveQ = id;
+      assert.equal(data.peeveRows.length, 0, id + ': retired entries do not reappear through search');
+    }
     data.peeveQ = 'P46';
     assert.equal(data.peeveRows.length, 0, 'guidance remains outside the short list');
     data.peeveQ = 'Shallow defense';

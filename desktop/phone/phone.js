@@ -16,7 +16,7 @@
   const age = at => { const seconds = Math.max(0, Math.round((Date.now() - new Date(at).getTime()) / 1000)); return seconds < 60 ? 'just now' : seconds < 3600 ? `${Math.floor(seconds / 60)}m ago` : seconds < 86400 ? `${Math.floor(seconds / 3600)}h ago` : new Date(at).toLocaleDateString(); };
   const observedTime = at => `<time data-at="${escape(at)}" datetime="${escape(at)}" title="${escape(stamp(at))}">${escape(stamp(at))}</time>`;
   const stamp = at => at ? new Date(at).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) : 'Not yet';
-  const safeUrl = value => { try { const url = new URL(value); return url.origin === 'https://mehrlander.github.io' && url.pathname.startsWith('/web-tools/') ? url.href : ''; } catch { return ''; } };
+  const safeUrl = value => { try { const url = new URL(value); return url.origin === 'https://mehrlander.github.io' && !url.username && !url.password && !url.port && url.pathname.startsWith('/web-tools/') ? url.href : ''; } catch { return ''; } };
   let data, tab = 'now', assistant = '', timer, etag = '', failures = 0, pending = false, connected = false, accessDenied = false, savedScroll = 0;
   const expanded = new Set();
   const selectedDetails = new Map();
@@ -55,11 +55,13 @@
     const path = location === 'Cloud' ? '<path d="M6.5 19a4.5 4.5 0 0 1-.8-8.93A6.5 6.5 0 0 1 18.5 9a5 5 0 0 1-.5 10Z"/>' : '<rect x="4" y="3" width="16" height="13" rx="1.5"/><path d="m4 16-2 4h20l-2-4M9 20h6"/>';
     return `<svg data-location="${location}" role="img" aria-label="${label}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" class="inline-block size-3.5 shrink-0 ${location === 'Cloud' ? 'text-sky-700' : 'text-stone-500'}"><title>${label}</title>${path}</svg>`;
   }
-  const caret = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="size-5" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
   const fullIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="size-4" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5M3 3l6 6m12-6-6 6M3 21l6-6m12 6-6-6"/></svg>';
+  const externalIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="size-4" aria-hidden="true"><path d="M14 4h6v6M20 4 10 14M10 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5"/></svg>';
   function row(item, position, inline = true) {
-    const key = escape(item.key), summary = replyPreview(statusText(item));
-    return `<article data-item="${key}" class="min-w-0 border-b border-stone-100 bg-white"><div class="relative"><button ${inline ? `data-inspect="${key}" aria-expanded="false" aria-controls="inline-${encodeURIComponent(item.key)}"` : `data-pick="${key}"`} class="block min-h-11 w-full px-3 py-2 text-left active:bg-stone-50"><span class="flex items-start gap-2">${position ? `<span class="w-5 shrink-0 pt-1 text-sm text-amber-700">${position}.</span>` : `<span class="pt-0.5 ${colours[keyFor(item.provider)]}">${mark(item.provider)}</span>`}<span class="min-w-0 flex-1"><span class="flex items-start gap-1 ${inline ? 'pr-9' : ''}"><span class="line-clamp-2 min-w-0 flex-1 text-pretty text-[14px] font-medium leading-5">${escape(itemTitle(item))}</span><span data-caret class="shrink-0 pt-0.5 text-stone-400">${inline ? caret : fullIcon}</span></span><span class="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px] text-stone-500">${badge(item.state)}<span>${escape(item.provider)}</span>${locationMark(item.location)}${item.work?.agents ? `<span>${item.work.agents} agents</span>` : ''}${observedTime(item.at)}</span>${summary ? `<span data-summary class="mt-1 line-clamp-2 text-pretty text-[13px] leading-[19px] text-stone-600">${escape(summary.slice(0,180))}</span>` : ''}</span></span></button>${inline ? `<button data-pick="${key}" aria-label="Open full view: ${escape(item.title)}" title="Full view" class="absolute right-1 top-1 flex size-11 items-center justify-center rounded text-emerald-900 active:bg-stone-100">${fullIcon}</button>` : ''}</div>${inline ? `<div id="inline-${encodeURIComponent(item.key)}" data-inline="${key}" hidden></div>` : ''}</article>`;
+    const key = escape(item.key), summary = replyPreview(statusText(item)), url = safeUrl(item.url);
+    const destination = item.kind === 'errand' ? ['reply','complete','failed'].includes(item.state) ? 'result' : 'errand' : 'session';
+    const external = inline && url ? `<a data-external="${key}" href="${escape(url)}" target="_blank" rel="noopener noreferrer" aria-label="Open ${destination} in Web Tools: ${escape(item.title)}" title="Open ${destination} in Web Tools" class="absolute right-1 top-1 flex size-11 items-center justify-center rounded text-emerald-900 active:bg-stone-100">${externalIcon}</a>` : '';
+    return `<article data-item="${key}" class="min-w-0 border-b border-stone-100 bg-white"><div class="relative"><button ${inline ? `data-inspect="${key}" aria-expanded="false" aria-controls="inline-${encodeURIComponent(item.key)}"` : `data-pick="${key}"`} class="block min-h-11 w-full px-3 py-2 text-left active:bg-stone-50"><span class="flex items-start gap-2">${position ? `<span class="w-5 shrink-0 pt-1 text-sm text-amber-700">${position}.</span>` : `<span class="pt-0.5 ${colours[keyFor(item.provider)]}">${mark(item.provider)}</span>`}<span class="min-w-0 flex-1"><span class="flex items-start gap-1 ${external ? 'pr-9' : ''}"><span class="line-clamp-2 min-w-0 flex-1 text-pretty text-[14px] font-medium leading-5">${escape(itemTitle(item))}</span>${inline ? '' : `<span class="shrink-0 pt-0.5 text-stone-400">${fullIcon}</span>`}</span><span class="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px] text-stone-500">${badge(item.state)}<span>${escape(item.provider)}</span>${locationMark(item.location)}${item.work?.agents ? `<span>${item.work.agents} agents</span>` : ''}${observedTime(item.at)}</span>${summary ? `<span data-summary class="mt-1 line-clamp-2 text-pretty text-[13px] leading-[19px] text-stone-600">${escape(summary.slice(0,180))}</span>` : ''}</span></span></button>${external}</div>${inline ? `<div id="inline-${encodeURIComponent(item.key)}" data-inline="${key}" hidden></div>` : ''}</article>`;
   }
 
   function group(title, items, empty = '', numbered = false, inline = true) {
@@ -86,14 +88,13 @@
 
   function render() {
     if (!data) { connection(); return; }
+    // Rebuilding open panels can temporarily shorten the document and clamp its scroll position.
+    const viewport = {left:window.scrollX,top:window.scrollY};
     rememberPanelScroll();
     const focus = el('content').contains(document.activeElement) ? document.activeElement : null;
-    const focusAction = focus && ['inspect','pick','facet'].find(key => focus.dataset[key]);
+    const focusAction = focus && ['inspect','pick','facet','external'].find(key => focus.dataset[key]);
     const focusKey = focusAction && focus.dataset[focusAction];
     const focusOwner = focus?.dataset.for;
-    const visibleTop = el('overview').querySelector('header')?.getBoundingClientRect().bottom || 0;
-    const anchor = selected() ? null : [...document.querySelectorAll('#content [data-item]')].find(n => n.getBoundingClientRect().bottom > visibleTop);
-    const anchorKey = anchor?.dataset.item, anchorTop = anchor?.getBoundingClientRect().top;
     el('machine').textContent = data.machineName;
     const waiting = data.items.filter(i => i.state === 'queued');
     el('queue-count').textContent = data.sources.queueAvailable ? waiting.length : '?';
@@ -103,7 +104,8 @@
       const queued = key === 'gemini' ? waiting.length : 0;
       const needs = items.filter(i => i.needsAttention).length;
       const state = working ? `${working} working` : needs ? `${needs} need you` : queued ? `${queued} waiting` : items.some(i => i.state === 'quiet') ? 'Quiet' : items.some(i => i.kind === 'cloud') ? 'Recorded' : items.length ? 'Recent' : 'No activity';
-      return `<button data-assistant="${key}" aria-pressed="${assistant === key}" class="min-h-11 min-w-0 border-b-2 px-1 py-1 ${assistant === key ? 'border-stone-700 bg-white' : 'border-transparent'}"><span class="flex items-center justify-center gap-1 text-xs font-medium ${colours[key]}">${mark(key)}${{codex:'Codex',gemini:'Gemini',claude:'Claude'}[key]}</span><span class="mt-0.5 block text-[10px] text-stone-500">${state}</span></button>`;
+      const usage = window.NowUsage?.compact(data.usage?.find(p => p.provider === key)) || '';
+      return `<button data-assistant="${key}" aria-pressed="${assistant === key}" class="min-h-11 min-w-0 border-b-2 px-2 py-1 ${assistant === key ? 'border-stone-700 bg-white' : 'border-transparent'}"><span class="flex items-center justify-center gap-1 text-xs font-medium ${colours[key]}">${mark(key)}${{codex:'Codex',gemini:'Gemini',claude:'Claude'}[key]}</span><span class="mt-0.5 block text-[10px] text-stone-500">${state}</span><span class="mx-auto mt-1 block min-h-6 max-w-28">${usage}</span></button>`;
     }).join(''));
     document.querySelectorAll('[data-tab]').forEach(button => {
       const current = button.dataset.tab === tab;
@@ -114,7 +116,9 @@
     const notices = [...data.sources.notices];
     if (waiting.length && data.sources.workerState === 'absent') notices.unshift('Gemini errands are waiting. Worker not detected.');
     html('notice', notices.map(escape).join('<br>'));
-    if (tab === 'queue') {
+    if (tab === 'usage') {
+      html('content', window.NowUsage?.render(data.usage || [], {provider:assistant}) || 'Usage unavailable');
+    } else if (tab === 'queue') {
       const queued = items.filter(i => i.state === 'queued').sort((a,b) => new Date(a.createdAt) - new Date(b.createdAt));
       html('content', workerReport() + `<div class="flex items-center justify-between gap-2 px-4 pt-4 text-xs text-stone-500"><span>Gemini worker · ${data.sources.workerState === 'detected' ? 'Detected' : data.sources.workerState === 'absent' ? 'Not detected' : 'Status unavailable'}</span><span>${data.sources.recordsConnected ? '' : 'Saved queue'}</span></div>` + group('Waiting', queued, !data.sources.queueAvailable ? 'Queue unavailable' : assistant && assistant !== 'gemini' ? 'Gemini queue hidden by assistant filter' : 'Queue clear', true) + (items.some(i => ['claimed','reply'].includes(i.state)) ? group('Accepted by worker', items.filter(i => ['claimed','reply'].includes(i.state))) : ''));
     } else if (tab === 'recent') {
@@ -127,26 +131,15 @@
       const remaining = items.filter(i => !shown.has(i.key) && !changed.has(i.key));
       html('content', group('In progress', current, 'No current work observed') + workerReport(true) + changesSection(3, shown, 'Other recent') + (needs.length ? group('Needs you', needs) : '') + (remaining.some(finished) ? group('Recently finished', remaining.filter(finished).slice(0,4)) : '') + (!current.length && !needs.length && remaining.some(i => i.kind === 'cloud' && !finished(i)) ? group('Latest cloud records', remaining.filter(i => i.kind === 'cloud' && !finished(i)).slice(0,3)) : ''));
     }
-    html('source-times', `Errands synced ${escape(stamp(data.sources.recordsSyncedAt))}<br>Cloud records captured ${escape(stamp(data.sources.cloudCapturedAt))}`);
+    html('source-times', tab === 'usage' ? '' : `Errands synced ${escape(stamp(data.sources.recordsSyncedAt))}<br>Cloud records captured ${escape(stamp(data.sources.cloudCapturedAt))}`);
     renderPanels(); detail(); connection();
-    if (anchorKey) {
-      const next = [...document.querySelectorAll('#content [data-item]')].find(n => n.dataset.item === anchorKey);
-      if (next) { const delta = next.getBoundingClientRect().top - anchorTop; if (Math.abs(delta) > 1) window.scrollTo(0,window.scrollY + delta); }
-    }
-    if (focusAction && !focus.isConnected) [...el('content').querySelectorAll('button')].find(n => n.dataset[focusAction] === focusKey && n.dataset.for === focusOwner)?.focus({preventScroll:true});
+    if (focusAction && !focus.isConnected) [...el('content').querySelectorAll('button,a')].find(n => n.dataset[focusAction] === focusKey && n.dataset.for === focusOwner)?.focus({preventScroll:true});
     document.querySelectorAll('time[data-at]').forEach(node => { node.textContent = age(node.dataset.at); });
+    if (window.scrollX !== viewport.left || window.scrollY !== viewport.top) window.scrollTo(viewport.left,viewport.top);
   }
 
   const findItem = key => data?.items.find(i => i.key === key) || data?.changes?.filter(c => c.key === key).map(recordedChange)[0];
   const markdown = text => window.NowReading?.markdown(text) || `<p class="whitespace-pre-wrap">${escape(text)}</p>`;
-  const detailIcons = {
-    summary:'<path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5Z"/>',
-    reply:'<path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8Z"/><path d="M8 9h8M8 13h5"/>',
-    prompt:'<circle cx="9" cy="7" r="3"/><path d="M3 21v-2a6 6 0 0 1 12 0v2m2-10 4 3-4 3m-4-3h8"/>',
-    activity:'<path d="M3 12h4l3-8 4 16 3-8h4"/>'
-  };
-  const detailIcon = (id,cls = 'size-4 shrink-0') => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" class="${cls}" aria-hidden="true">${detailIcons[id]}</svg>`;
-  const detailTones = {summary:'border-violet-600 text-violet-900',reply:'border-emerald-600 text-emerald-900',prompt:'border-sky-600 text-sky-900',activity:'border-amber-600 text-amber-900'};
   function observedEvents(item, inline) {
     const seen = new Set();
     return data.events.filter(e => {
@@ -158,8 +151,7 @@
   }
   function workBody(item, inline) {
     const work = item.work;
-    if (!work) return '';
-    if (!work.segments?.length) return work.agents ? `<p class="text-xs text-stone-500">${work.agents} delegated agents · Work summary pending</p>` : '';
+    if (!work?.segments?.length) return '';
     return `<section aria-label="Work updates"><ol class="divide-y divide-stone-100">${work.segments.slice(0,inline ? 3 : 6).map((part,n) => `<li class="py-1.5">${!inline || n ? `<h3 class="text-xs font-semibold text-stone-800">${escape(part.headline)}</h3>` : ''}${markdown(part.summary)}<div class="mt-1 text-[10px] leading-4 text-stone-500"><span title="Evidence through ${escape(stamp(work.through))}">Summarized ${observedTime(part.generatedAt)}</span>${part.evidence?.length ? ` · ${part.evidence.map(escape).join(' · ')}` : ''}</div></li>`).join('')}</ol></section>`;
   }
   function checkpointBody(cp, inline) {
@@ -170,7 +162,7 @@
   }
   function detailParts(item, inline) {
     const parts = [], reply = replies.get(item.id), events = observedEvents(item,inline);
-    if (item.work && (item.work.agents || latestWork(item))) parts.push({id:'summary',label:'Summary',title:'Work updates',body:workBody(item,inline)});
+    if (latestWork(item)) parts.push({id:'summary',label:'Summary',title:'Work updates',body:workBody(item,inline)});
     if (item.turn?.response?.trim()) parts.push({id:'reply',label:'Reply',title:'Latest reply',body:markdown(item.turn.response)});
     else if (item.kind === 'errand' && ['reply','complete','failed'].includes(item.state)) parts.push({id:'reply',label:'Reply',title:'Errand result',body:`<div data-reply="${escape(item.key)}">${reply === undefined ? '<p class="text-stone-500">Reading result…</p>' : markdown(reply)}</div>`});
     if (item.checkpoint && !parts.some(p => p.id === 'summary')) parts.push({id:'summary',label:'Summary',title:'Published summary',body:checkpointBody(item.checkpoint,inline)});
@@ -180,7 +172,9 @@
     }
     const detail = usefulDetail(item);
     const meaningful = detail && !/^(Conversation (running|idle|interrupted)|No recent event|Delegated work: \d+ agents?)$/.test(detail);
-    if (events.length || item.turn || meaningful) parts.push({id:'activity',label:'Activity',title:'Observed activity',body:`${item.turn ? `<dl class="mb-2 text-[10px] text-stone-500"><div class="flex flex-wrap gap-x-1"><dt>Turn started</dt><dd>${escape(stamp(item.turn.startedAt))}</dd></div>${item.turn.lastTool ? `<div class="mt-1 flex items-center gap-1"><dt>Last tool</dt><dd class="rounded bg-amber-50 px-1.5 py-0.5 font-medium text-amber-900">${escape(item.turn.lastTool)}</dd></div>` : ''}</dl>` : ''}${meaningful && !events.some(e => e.detail === detail) && !(item.turn?.lastTool && /^Using /.test(detail)) ? markdown(detail) : ''}${events.length ? `<ol class="divide-y divide-stone-100">${events.map(e => `<li class="flex items-start gap-2 py-1.5"><span class="w-12 shrink-0 pt-0.5 text-[10px] text-stone-500">${observedTime(e.at)}</span><div class="min-w-0 flex-1">${markdown(e.detail || labels[e.state] || e.state)}</div></li>`).join('')}</ol>` : ''}`});
+    const agents = item.work?.agents || 0;
+    const observation = agents ? `<div aria-label="Current observation" class="mb-2 flex flex-wrap items-center gap-1.5 text-[10px] text-stone-500">${badge(item.state)}<span>${agents} delegated ${agents === 1 ? 'agent' : 'agents'}</span><span>Observed ${observedTime(item.at)}</span></div>` : '';
+    if (events.length || item.turn || meaningful || agents) parts.push({id:'activity',label:'Activity',title:'Observed activity',body:`${observation}${item.turn ? `<dl class="mb-2 text-[10px] text-stone-500"><div class="flex flex-wrap gap-x-1"><dt>Turn started</dt><dd>${escape(stamp(item.turn.startedAt))}</dd></div>${item.turn.lastTool ? `<div class="mt-1 flex items-center gap-1"><dt>Last tool</dt><dd class="rounded bg-amber-50 px-1.5 py-0.5 font-medium text-amber-900">${escape(item.turn.lastTool)}</dd></div>` : ''}</dl>` : ''}${meaningful && !events.some(e => e.detail === detail) && !(item.turn?.lastTool && /^Using /.test(detail)) ? markdown(detail) : ''}${events.length ? `<ol class="divide-y divide-stone-100">${events.map(e => `<li class="flex items-start gap-2 py-1.5"><span class="w-12 shrink-0 pt-0.5 text-[10px] text-stone-500">${observedTime(e.at)}</span><div class="min-w-0 flex-1">${markdown(e.detail || labels[e.state] || e.state)}</div></li>`).join('')}</ol>` : agents && !meaningful && !item.turn?.lastTool ? '<p class="text-xs text-stone-500">No detailed action reports captured for this group.</p>' : ''}`});
     return parts;
   }
   function inlineBody(item) {
@@ -190,12 +184,12 @@
     selectedDetails.set(key,choice);
     const part = parts.find(p => p.id === choice);
     const tabId = p => id + '-' + p.id;
-    const controls = parts.map(p => `<button id="${tabId(p)}" role="tab" data-facet="${p.id}" data-for="${escape(key)}" aria-label="${p.title}" title="${p.title}" aria-selected="${p.id === choice}" tabindex="${p.id === choice ? 0 : -1}" aria-controls="${id}" class="inline-flex h-7 min-w-0 flex-1 items-center justify-center gap-1 border-b-2 px-1 text-[11px] font-medium whitespace-nowrap ${p.id === choice ? detailTones[p.id] : 'border-transparent text-stone-500 active:bg-stone-50'}">${detailIcon(p.id,'hidden size-3.5 shrink-0 min-[360px]:block')}<span>${p.label}</span></button>`).join('');
-    return `<div class="pl-10 pr-3 pb-2">${controls ? `<div role="tablist" aria-label="Detail sections" class="mb-1 flex items-center gap-0.5 border-b border-stone-100">${controls}</div>` : '<p class="py-2 text-xs text-stone-500">No additional detail captured.</p>'}<div id="${id}" role="tabpanel" ${part ? `aria-labelledby="${tabId(part)}"` : 'aria-label="Detail" hidden'}><div data-panel-scroll="${escape(key + ':' + choice)}" class="max-h-[40dvh] min-w-0 overflow-y-auto overscroll-contain pt-1 pb-1 text-[13px] leading-5 text-stone-700 [overflow-wrap:anywhere]">${part?.body || ''}</div></div></div>`;
+    const controls = parts.map(p => `<button id="${tabId(p)}" role="tab" data-facet="${p.id}" data-for="${escape(key)}" aria-label="${p.title}" title="${p.title}" aria-selected="${p.id === choice}" tabindex="${p.id === choice ? 0 : -1}" aria-controls="${id}" class="inline-flex h-6 min-w-0 flex-1 items-center justify-center rounded-full px-2 text-[11px] font-medium whitespace-nowrap ${p.id === choice ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-600 active:bg-white/60'}"><span>${p.label}</span></button>`).join('');
+    return `<div class="pl-10 pr-3 pb-2">${controls ? `<div role="tablist" aria-label="Detail sections" class="mb-1 flex items-center gap-0.5 rounded-full bg-stone-200/80 p-0.5">${controls}</div>` : '<p class="py-2 text-xs text-stone-500">No additional detail captured.</p>'}<div id="${id}" role="tabpanel" ${part ? `aria-labelledby="${tabId(part)}"` : 'aria-label="Detail" hidden'}><div data-panel-scroll="${escape(key + ':' + choice)}" class="max-h-[40dvh] min-w-0 overflow-y-auto overscroll-contain pt-1 pb-1 text-[13px] leading-5 text-stone-700 [overflow-wrap:anywhere]">${part?.body || ''}</div></div></div>`;
   }
   function itemBody(item) {
     const url = safeUrl(item.url);
-    return `<div class="mt-4 space-y-5 text-[13px] leading-5 text-stone-700 [overflow-wrap:anywhere]">${detailParts(item,false).map(p => `<section aria-label="${p.title}"><h3 class="mb-2 flex items-center gap-1.5 text-xs font-semibold text-stone-500">${detailIcon(p.id)}${p.title}</h3>${p.body}</section>`).join('')}</div>${url ? `<a class="mt-3 inline-flex min-h-11 items-center gap-1 text-sm text-emerald-800 underline underline-offset-2" href="${escape(url)}">Open in Web Tools ↗</a>` : ''}`;
+    return `<div class="mt-4 space-y-5 text-[13px] leading-5 text-stone-700 [overflow-wrap:anywhere]">${detailParts(item,false).map(p => `<section aria-label="${p.title}"><h3 class="mb-2 text-xs font-semibold text-stone-500">${p.title}</h3>${p.body}</section>`).join('')}</div>${url ? `<a class="mt-3 inline-flex min-h-11 items-center gap-1 text-sm text-emerald-800 underline underline-offset-2" href="${escape(url)}" target="_blank" rel="noopener noreferrer">Open in Web Tools ↗</a>` : ''}`;
   }
 
   function rememberPanelScroll() {
@@ -207,7 +201,6 @@
       panel.hidden = !open;
       const trigger = panel.closest('[data-item]').querySelector('[data-inspect]');
       trigger?.setAttribute('aria-expanded', String(open));
-      trigger?.querySelector('[data-caret]')?.classList.toggle('rotate-180', open);
       if (!open) { trigger?.querySelector('[data-summary]')?.classList.remove('hidden'); return; }
       const item = findItem(key);
       if (!item) return;
@@ -278,7 +271,7 @@
         try { localStorage.setItem('web-tools-now-snapshot', JSON.stringify(data)); } catch { }
       }
       failures = 0; connected = true; render();
-    } catch { failures++; connected = false; connection(); }
+    } catch { failures++; connected = false; render(); }
     finally {
       clearTimeout(timeout); pending = false;
       if (!document.hidden) timer = setTimeout(poll, Math.min(15000, 2000 * 2 ** Math.min(failures,3)));

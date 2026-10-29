@@ -37,7 +37,7 @@ const { window } = makeWindow({
            x-data="branchBrief({ repo: '${REPO}', branch: 'feat/x', base: 'main' })"></div></body></html>`,
 });
 
-for (const f of ['lib/kits/repo-address.js', 'lib/kits/csv.js', 'lib/kits/branch-status.js', 'lib/kits/branch-brief.js', 'lib/kits/content-registry.js']) {
+for (const f of ['lib/kits/repo-address.js', 'lib/kits/csv.js', 'lib/kits/branch-status.js', 'lib/kits/branch-brief.js', 'lib/kits/content-registry.js', 'lib/kits/swipe-deck.js']) {
   new window.Function('window', readFileSync(path.join(repoRoot, f), 'utf8'))(window);
 }
 
@@ -336,11 +336,13 @@ test('the strip reads its position and is driven to one', () => withReviewable(a
   data.go(99);
   assert.equal(data.at, 4, 'a drive past the end stops at the last slide');
 
+  // The strip reads once a frame (swipeDeck.strip), so each swipe waits one.
+  const frame = () => new Promise(r => window.requestAnimationFrame(() => setTimeout(r, 0)));
   strip.scrollLeft = W + GAP + 40;
-  data.stripScroll();
+  data.stripScroll(); await frame();
   assert.equal(data.at, 1, 'a partly-swiped strip still has a position');
-  strip.scrollLeft = 2 * (W + GAP) - 30;
-  data.stripScroll();
+  strip.scrollLeft = 2 * (W + GAP) + 140;   // scrollLeft / width would say 3
+  data.stripScroll(); await frame();
   assert.equal(data.at, 2, 'and it is the nearest slide, not a division');
 }));
 
@@ -570,15 +572,15 @@ test('the head says which copy of the page is running, from the loader', () => {
 // same defect and fixed it on 2026-09-01; branch.html still had it three days
 // later, which is why this gate covers both pages rather than one.
 test('neither page hands the brief its own iframe test', () => {
-  for (const [file, mount] of [['pages/branch.html', /framed: false,/],
-                               ['pages/session.html', /framed: false,/]]) {
+  // branch.html keeps its own flag, which stands its masthead down in a frame;
+  // session.html shows its address bar only while no session is named.
+  for (const [file, mount, bar] of [['pages/branch.html', /framed: false,/, /x-show="!framed \|\| !target"/],
+                                    ['pages/session.html', /framed: false,/, /x-show="!target"/]]) {
     const src = readFileSync(path.join(repoRoot, file), 'utf8');
     assert.match(src, mount, `${file}: the brief is handed a literal`);
     assert.doesNotMatch(src, /framed: this\.framed/,
       `${file}: no address form still passes the page's iframe test through`);
-    // The page keeps its own flag, which still stands its masthead down.
-    assert.match(src, /x-show="!framed \|\| !target"/,
-      `${file}: the page's own flag still drives its own chrome`);
+    assert.match(src, bar, `${file}: the page's own chrome keeps its rule`);
   }
 });
 

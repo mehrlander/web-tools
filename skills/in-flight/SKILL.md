@@ -77,4 +77,4 @@ The report then ends in a collision verdict rather than a list. Only live branch
 
 ## Bundled
 
-- `in-flight.py`: the scan. Read it when changing what counts as live, or when adding a signal; the classification comments carry the measurements behind each rule.
+- `in-flight.py`: the scan. Read it when changing what counts as live, or when adding a signal; the classification comments give each rule's reason, and the measurement behind it where one was taken.

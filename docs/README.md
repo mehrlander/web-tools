@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `node/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 16 are named by CLAUDE.md,
-20 by a skill, 42 by a page or component. The remaining 33 are
+21 by a skill, 41 by a page or component. The remaining 34 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -53,7 +53,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`routes-modes.csv`](routes-modes.csv) — the delivery modes toss-render accepts, and the trust posture each buys
 - [`routes-paste.csv`](routes-paste.csv) — what a paste becomes on each surface that reads the clipboard, and what each one declines to
 - [`routes-routes.csv`](routes-routes.csv) — the toss routes: which content type opens in which renderer page
-- [`routes.json`](routes.json) — what is left of the transport manifest once its three tables became CSVs: the address grammar, the parameter precedence, and the showing frame
+- [`routes.json`](routes.json) — what is left of the transport manifest once its three tables became CSVs: the address grammar, the parameter precedence, and the Showing tab's About text
 - [`showing-mechanisms.csv`](showing-mechanisms.csv) — which link reaches which kind of change, and what each one silently misses
 - [`showing.md`](showing.md) — the frame behind the Showing tab: what ?use= and a 🥏 toss each reach, what resists preview, and how subjects and kinds are typed
 - [`stage.md`](stage.md) — the stage: bench and Saved, intake, the walkable preview and diff, Out, save-as-surface, and the #stage= link grammar
@@ -151,3 +151,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`mcp-server-routing.md`](github/mcp-server-routing.md) *(record, orphan)* — two GitHub MCP servers at once: the 2026-07-15 observation, superseded
 - [`mcp.md`](github/mcp.md) *(measured, orphan)* — what the MCP layer does to a call and to the text it carries: which server answers, the 150-character write threshold, the HTML-stripping readback
 - [`post-merge-branch-mutation.md`](github/post-merge-branch-mutation.md) *(orphan)* — why a merged branch stops being a live workspace: merged means closed
+
+## docs/prototypes/
+
+- [`md-edit-ideas.json`](prototypes/md-edit-ideas.json) *(record, orphan)* — the idea board for the Markdown section editor: eight concepts drawn over the Intake section of docs/stage.md, and the selection the two built editors came from

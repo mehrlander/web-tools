@@ -523,7 +523,7 @@ document.addEventListener('alpine:init', () => Alpine.data('shortcutLog', () => 
   },
   fullTime(e) { return e.when ? e.when.toLocaleString() : e.stem; },
   fileUrl(e) { return window.RepoAddress.github.blob(LOG, 'main', `${DIR}/${e.stem}.json`); },
-  size(t) { const n = (t || '').length; return n < 1024 ? n + ' B' : (n / 1024).toFixed(1) + ' KB'; },
+  size(t) { return window.Traffic.fmtBytes((t || '').length); },
   pretty(e) { return SE.pretty(e.payload || e.raw); },
   copy(t) { navigator.clipboard?.writeText(t); },
 

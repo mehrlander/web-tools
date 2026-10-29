@@ -33,5 +33,9 @@ jobs:
           python-version: '3.12'
       - name: Check local work evidence and summaries
         run: python desktop/Checks/work-summary-checks.py
+      - name: Check account allowance normalization and display
+        run: |
+          python desktop/Checks/usage-checks.py
+          node desktop/Checks/usage-ui-checks.mjs
       - name: Check companion access and API
         run: node desktop/Checks/companion-checks.mjs

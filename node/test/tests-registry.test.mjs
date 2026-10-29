@@ -31,7 +31,7 @@ import { parseCsv, splitList } from '../build/registries-load.mjs';
 const VOCAB = parseCsv(readFileSync(path.join(repoRoot, 'docs', 'vocabularies.csv'), 'utf8'));
 const glossOf = (v) => VOCAB.find(r =>
   r.registry === 'tests-authored' && r.property === 'kind' && r.value === v)?.gloss;
-import { deriveTests, KINDS, METHODS } from '../build/tests-index.mjs';
+import { deriveTests, KINDS, METHODS, NOT_A_TEST } from '../build/tests-index.mjs';
 
 // The authored half, joined on path. A test with no authored row reads as
 // undefined kind, which the typing check below reports.
@@ -242,9 +242,8 @@ test('every kind of check carries a gloss that says what the kind means', () => 
 // A sanity check on the corpus itself rather than on the registry: node/test/
 // should hold tests and the two known helpers, nothing else.
 test('node/test holds only tests and its declared helpers', () => {
-  const HELPERS = new Set(['bootstrap.mjs', 'shell.mjs']);
   const stray = readdirSync(path.join(repoRoot, 'node', 'test'))
-    .filter(n => n.endsWith('.mjs') && !HELPERS.has(n))
+    .filter(n => n.endsWith('.mjs') && !NOT_A_TEST.has(n))
     .filter(n => !registry.tests.some(t => t.path.endsWith('/' + n)));
   assert.deepEqual(stray, [], 'unregistered files in node/test/');
 });
