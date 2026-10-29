@@ -42,7 +42,7 @@ node/build/vendor-docs.mjs,"copies each traveling doc from docs/ into the defaul
 node/build/verify-build.mjs,prove a page's dist build renders byte-identical to its live gh.load chain,node/build,85,npm:verify-build,,no,yes,no
 node/check-branch-status.mjs,the stated agreement check for the branches view against home's unmerged-branches.sh,node,144,argv,,no,yes,yes
 node/checkout-setup.mjs,"configures checkout hooks and the CSV merge driver, installs browser-free development dependencies, and diagnoses readiness without regenerating tracked artifacts",node,421,npm:setup,.claude/hooks/session-githooks.sh;.claude/hooks/session-start.sh;README.md;node/README.md;node/test/,yes,yes,yes
-node/derived-csv-merge.mjs,"A git merge driver for the registry CSVs: reads docs/properties.csv for which columns a deriver owns, unions the rows on the declared key, and refuses to a normal conflict on anything else. Registered per clone by .claude/hooks/session-githooks.sh.",node,153,imported,node/checkout-setup.mjs;node/test/,yes,no,yes
+node/derived-csv-merge.mjs,"A git merge driver for the registry CSVs: reads docs/properties.csv for which columns a deriver owns, unions the rows on the declared key, and refuses to a normal conflict on anything else. Registered per clone by .claude/hooks/session-githooks.sh.",node,167,imported,node/checkout-setup.mjs;node/test/,yes,no,yes
 node/doc-index-seed.mjs,"seed the document index (state/docs.json in web-tools-private) from local checkouts, so the hourly crawl starts incremental instead of reading every Markdown file in the estate through the API",node,73,argv,,yes,no,no
 node/git-change.mjs,,node,292,argv,,yes,no,yes
 node/gold-set.mjs,,node,199,npm:gold-set,,yes,yes,no
