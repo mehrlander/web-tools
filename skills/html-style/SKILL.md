@@ -12,6 +12,14 @@ insight. Getting there is usually iterative: present the pieces, pare the
 representation down, layer it, and manage each disclosure tightly, until it
 builds a dense web of connected information.
 
+The limit of that work is the page's **minimal progressive structure**: the
+layout that delivers all of the content with no text spent describing its
+organization, because familiar conventions convey it.
+[The method](https://github.com/mehrlander/web-tools/blob/main/research/minimal-progressive-structure/method.md)
+approaches it: make the entity the reader asks about the page's subject, give
+each fact to the entity it describes, and show each related entity by name,
+one step from its own view.
+
 ## "A page is for comparing"
 
 Most often, insight comes from a comparison. Ask Tufte's question, "Compared to
@@ -36,7 +44,8 @@ comparison. Treat any `stats`, `stat-value`, or KPI-tile grid as a defect.
 
 **2. No explanatory prose.** GitHub doesn't explain and neither should we. Use
 structure, labels, and controls to show relationships: a range control starting
-at 2015 says the data starts in 2015.
+at 2015 says the data starts in 2015. A sentence that answers the reader's
+question is content, not explanation, and the page opens with it.
 
 **3. Don't narrow text to a reading column.** `max-w-prose`, `max-w-2xl`,
 `max-w-3xl`, `max-w-4xl`, `container mx-auto`, and a `prose` class without
