@@ -384,6 +384,22 @@ test('skillCallsOf accepts an argument stored as JSON text, and drops anything e
     'a malformed argument is dropped rather than guessed at');
 });
 
+test('defaultAt is the plugin commit of the last default skill load, and only that', () => {
+  const head = (sha, name = 'default') =>
+    `Base directory for this skill: /root/.claude/plugins/cache/web-tools/portable/${sha}/${name}`;
+  const r = record({ injected: [
+    { kind: 'skill', head: head('10a665538998') },
+    { kind: 'skill', head: head('8c8617174234', 'html-style') },
+    { kind: 'skill', head: head('8c8617174234') },
+    { kind: 'hook', head: head('ffffffffffff') },
+    { kind: 'skill', head: head('eeeeeeeeeeee', 'default-ish') },
+  ] });
+  assert.equal(S.defaultAtOf(r), '8c8617174234',
+    'the last load wins; another skill, a non-skill entry and a look-alike folder do not count');
+  assert.equal(S.summarize(r).defaultAt, '8c8617174234', 'the row carries it');
+  assert.equal(S.defaultAtOf(record({})), '', 'a record with no load carries none');
+});
+
 test('a plugin skill and its local twin fold onto one name', () => {
   const r = record({ calls: [
     { name: 'Skill', arg: { skill: 'portable:tasks' } },
