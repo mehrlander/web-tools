@@ -46,6 +46,29 @@
     const heading = period ? `${period}${row.label.toLowerCase() !== provider && row.label !== 'All models' ? ' · ' + row.label : ''}` : row.label;
     return `<div data-usage-window="${escape(row.id)}" class="py-2" title="${escape(title)}"><div class="flex items-baseline justify-between gap-2 text-xs"><span class="min-w-0 break-words font-medium">${escape(heading)}</span><span class="shrink-0 tabular-nums ${used >= 90 && !expired ? 'text-rose-700' : 'text-stone-600'}">${expired ? 'Awaiting reset reading' : `${percent(used)} used${stale ? ' · last reading' : ''}`}</span></div><div ${expired ? 'aria-hidden="true"' : `role="progressbar" aria-label="${escape(names[provider] + ' ' + heading + ' allowance used')}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${used}"`} class="relative mt-1.5 h-2 rounded-full bg-stone-200"><span class="absolute inset-y-0 left-0 rounded-full ${expired || stale ? 'bg-stone-400' : used >= 90 ? 'bg-rose-500' : fills[provider]}" style="width:${used}%"></span>${elapsed !== null && !expired ? `<span data-elapsed="${elapsed.toFixed(1)}" class="absolute -top-0.5 h-3 w-px bg-stone-800" style="left:calc(${elapsed}% - 1px)" aria-hidden="true"></span>` : ''}</div><div class="mt-1 flex flex-wrap justify-between gap-x-2 gap-y-0.5 text-[10px] text-stone-500"><span>${escape(countdown(row.resetsAt,now))} · ${escape(date(row.resetsAt))}</span><span>${elapsed === null ? 'Window length not reported' : `${Math.round(elapsed)}% of time elapsed`}</span></div>${!expired ? trend(row,now) : ''}</div>`;
   }
+  function compact(provider, options = {}) {
+    const now = options.now ?? Date.now(), key = provider?.provider;
+    const tip = options.tooltip ? 'data-title-tip' : 'title';
+    const rows = grouped(provider || {}), periods = new Map();
+    const observed = Date.parse(provider?.observedAt), age = now - observed;
+    const stale = provider?.status !== 'available' || !Number.isFinite(observed) || age > 600000 || age < -60000;
+    for (const row of rows) {
+      const period = duration(row.durationMinutes) || 'Quota';
+      const existing = periods.get(period);
+      // Prefer the account-wide allowance; otherwise expose the most used model/bucket.
+      const account = row.label === 'All models' || row.label.toLowerCase() === key;
+      const existingAccount = existing && (existing.label === 'All models' || existing.label.toLowerCase() === key);
+      if (!existing || account && !existingAccount || account === existingAccount && row.usedPercent > existing.usedPercent) periods.set(period,row);
+    }
+    const selected = [...periods].sort((a,b) => (a[1].durationMinutes || Infinity) - (b[1].durationMinutes || Infinity)).slice(0,2);
+    if (!selected.length) return `<span data-compact-usage class="block text-[9px] leading-3 text-stone-400" ${tip}="${escape(provider?.notice || 'No usage reading available. See Usage for connection details.')}">Usage unavailable</span>`;
+    return `<span data-compact-usage class="block space-y-0.5">${selected.map(([period,row]) => {
+      const expired = Date.parse(row.resetsAt) <= now;
+      const name = period === '7d' ? 'Week' : period;
+      const title = `${names[key] || 'Account'} · ${name} · ${row.label}: ${expired ? 'awaiting reset reading' : `${percent(row.usedPercent)} used${stale ? ' (last reading)' : ''}`}. ${countdown(row.resetsAt,now)} · ${date(row.resetsAt)}.${periods.size > 2 || rows.length > selected.length ? ' More limits in Usage.' : ''}`;
+      return `<span data-compact-window="${escape(row.id)}" ${tip}="${escape(title)}" class="flex items-center gap-1 text-[9px] leading-[11px] text-stone-500"><span class="w-6 shrink-0 text-left">${escape(name)}</span><span ${expired ? 'aria-hidden="true"' : `role="progressbar" aria-label="${escape(title)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${row.usedPercent}"`} class="relative h-1 min-w-0 flex-1 overflow-hidden rounded-full bg-stone-200"><span class="absolute inset-y-0 left-0 rounded-full ${stale || expired ? 'bg-stone-400' : row.usedPercent >= 90 ? 'bg-rose-500' : fills[key]}" style="width:${expired ? 0 : row.usedPercent}%"></span></span><span class="w-8 shrink-0 text-right tabular-nums ${stale && !expired ? 'text-amber-800' : ''}">${expired ? '—' : `${Math.round(row.usedPercent)}%${stale ? '*' : ''}`}</span></span>`;
+    }).join('')}</span>`;
+  }
   function render(providers = [], options = {}) {
     const now = options.now ?? Date.now();
     return `<section aria-label="Usage limits" class="divide-y divide-stone-200 bg-white">${Object.keys(names).filter(key => !options.provider || options.provider === key).map(key => {
@@ -59,5 +82,5 @@
       return `<section data-usage-provider="${key}" class="px-3 py-2"><div class="flex items-center justify-between gap-2"><div class="flex items-center gap-1"><h2 class="flex items-center gap-1.5 text-[13px] font-semibold ${colours[key]}">${mark}${names[key]}</h2><a data-usage-link="${key}" href="${pages[key]}" target="_blank" rel="noopener noreferrer" aria-label="${linkName}" title="${linkName}${key === 'gemini' ? ' · Model quotas are in Antigravity Settings' : ''}" class="flex size-7 items-center justify-center rounded text-stone-500 hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-emerald-700">${openIcon}</a></div><span class="text-[10px] ${stale && rows.length ? 'text-amber-800' : 'text-stone-500'}">${rows.length ? escape(stale ? 'Last reading · ' + updated.toLowerCase() : updated) : provider?.status === 'available' ? 'No limits reported' : 'Not connected'}</span></div>${rows.length ? rows.map(row => allowance(row,key,stale,now)).join('') + (stale && provider.notice ? `<p class="pb-1 text-[11px] text-amber-800">${escape(provider.notice)}</p>` : '') : `<p class="py-2 text-xs text-stone-500">${escape(provider?.notice || (key === 'claude' ? 'Claude usage is not connected yet.' : 'Waiting for an account reading.'))}</p>`}<p class="text-[10px] text-stone-400">${escape(provider?.source || (key === 'claude' ? 'Claude account' : key === 'gemini' ? 'Antigravity account' : 'Codex account'))}${rows.some(r => r.models?.length > 1) ? ' · Identical model readings grouped' : ''}</p></section>`;
     }).join('')}<p class="px-3 py-2 text-[10px] leading-4 text-stone-500">Bars show allowance used. The tick shows time elapsed where the window length is known. Trends begin when readings are collected; resets are never assumed to mean 0%.</p></section>`;
   }
-  window.NowUsage = {render};
+  window.NowUsage = {render,compact};
 })();
