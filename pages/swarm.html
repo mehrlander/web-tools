@@ -16,6 +16,9 @@
     await gh.load('kits/url-params.js');
     await gh.load('kits/repo-address.js');
     await gh.load('kits/guide-render.js');   // house markdown type for both sides
+    await gh.load('kits/swipe-deck.js');     // the strip under linked-swiper
+    await gh.load('kits/dock-split.js');
+    await gh.load('kits/linked-swiper.js');  // an edit ladder's steps, a list over a strip
     await gh.load('alpine-bundle.js');
   </script>
 
@@ -23,7 +26,10 @@
     Reduction swarm: one passage shortened by rounds of model readers who add
     notes to a shared ledger, with one assembled result per round. The ledger
     (kind swarm/1) is written by python/swarm/swarm.py; the readers' briefs are
-    python/swarm/roles.md.
+    python/swarm/roles.md. An edit ladder (kind ladder/1, python/swarm/ladder.py)
+    holds single edits per paragraph, judged and ordered from safest to boldest:
+    its Edits tab swipes through them, and Before / after reads the passage
+    through green, yellow or red.
 
     Input, first match wins: #gz=<base64url> (the gzipped ledger, from
     `swarm.py gz <run>`), then ?src=owner/repo[@ref]:path (via the contents
@@ -38,12 +44,18 @@
       drafter: 'drafts shorter wording', challenger: 'rewrites the whole passage shorter',
       builder: 'combines drafts and votes', harvester: 'assembles the round’s result',
     };
+    const TIER = {
+      green: { dot: 'bg-success', badge: 'badge-success', border: 'border-success', fill: 'fill-success', btn: 'btn-success' },
+      yellow: { dot: 'bg-warning', badge: 'badge-warning', border: 'border-warning', fill: 'fill-warning', btn: 'btn-warning' },
+      red: { dot: 'bg-error', badge: 'badge-error', border: 'border-error', fill: 'fill-error', btn: 'btn-error' },
+    };
+    const TIERS = ['green', 'yellow', 'red'];
     function swarmView() {
       return {
-        led: null, k: 0, tab: 'compare', side: 'result', marks: false,
+        led: null, k: 0, tab: 'compare', side: 'result', marks: false, tier: 'yellow', para: null, lsel: '0',
         sel: null, kinds: { core: true, tactic: true, draft: true, word: true },
         src: '', err: '', loading: false, mdClass: '', srcHtml: '', resHtml: {},
-        KINDS, ROLES,
+        KINDS, ROLES, TIER, TIERS,
 
         async init() {
           this.src = UrlParams.get('src') || '';
@@ -54,6 +66,7 @@
             if (gz) this.take(JSON.parse(await GzPayload.decode(gz)));
             else if (this.src) await this.fetch();
           } catch (e) { this.err = String(e?.message || e); }
+          this.$watch('tab', t => { if (t === 'edits') this.$nextTick(() => this.mountLadder()); });
           addEventListener('keydown', (e) => {
             if (e.target.closest('input')) return;
             if (e.key === 'ArrowLeft') this.step(-1);
@@ -73,11 +86,25 @@
         },
         take(led, follow = true) {
           this.led = led;
+          led.rounds = led.rounds || [];
           if (follow || this.k >= led.rounds.length) this.k = Math.max(0, led.rounds.length - 1);
           this.srcHtml = GuideRender.render(led.source.text).html;
           this.resHtml = {};
           for (const r of led.rounds) if (r.harvest) this.resHtml[r.n] = GuideRender.render(r.harvest.text).html;
+          if (this.isLadder) {
+            for (const t of TIERS) this.resHtml[t] = GuideRender.render(this.ladderText(t)).html;
+            const first = [...led.blocks].sort((x, y) => this.stepsOf(y.id).length - this.stepsOf(x.id).length)[0];
+            if (!this.para || !led.blocks.some(b => b.id === this.para)) this.para = first.id;
+            if (!this._opened || !this.tabs.some(([id]) => id === this.tab)) this.tab = 'edits';
+            this._opened = true;
+            this.$nextTick(() => this.mountLadder());
+          }
           document.title = this.heading + ' · Reduction swarm';
+        },
+        get isLadder() { return !!this.led && this.led.kind === 'ladder/1'; },
+        get tabs() {
+          return this.isLadder ? [['edits', 'Edits'], ['compare', 'Before / after']]
+            : [['compare', 'Before / after'], ['rounds', 'Rounds'], ['notes', 'Notes'], ['core', 'Must keep']];
         },
 
         get R() { return this.led ? this.led.rounds.length : 0; },
@@ -87,7 +114,7 @@
         get last() { const hs = this.led ? this.led.rounds.filter(r => r.harvest) : []; return hs.length ? hs[hs.length - 1].harvest : null; },
         get heading() {
           if (!this.led) return 'Reduction swarm';
-          const u = this.led.units[0];
+          const u = (this.led.units || [])[0];
           return this.led.source.heading || (u && /^h\d/.test(u.kind) ? u.text.replace(/^#+\s*/, '') : this.led.title);
         },
         get where() {
@@ -101,11 +128,12 @@
         // The header's comparison: the original's length, then each round's result.
         get bars() {
           if (!this.led) return '';
-          const v = [this.led.source.words, ...this.led.rounds.map(r => r.harvest ? r.harvest.words : 0)];
+          const lad = this.isLadder;
+          const v = [this.led.source.words, ...(lad ? TIERS.map(t => this.ladderWords(t)) : this.led.rounds.map(r => r.harvest ? r.harvest.words : 0))];
           const max = Math.max(...v), w = 14, gap = 4, H = 28;
           const rects = v.map((x, i) => {
             const h = Math.max(2, Math.round(H * x / max));
-            const cls = i === 0 ? 'fill-base-content/30' : i === this.k + 1 ? 'fill-primary' : 'fill-base-content/60';
+            const cls = i === 0 ? 'fill-base-content/30' : lad ? TIER[TIERS[i - 1]].fill : i === this.k + 1 ? 'fill-primary' : 'fill-base-content/60';
             return `<rect class="${cls}" x="${i * (w + gap)}" y="${H - h}" width="${w}" height="${h}" rx="2"/>`;
           }).join('');
           return `<svg width="${v.length * (w + gap)}" height="${H}" viewBox="0 0 ${v.length * (w + gap)} ${H}">${rects}</svg>`;
@@ -188,6 +216,119 @@
         plain(t) { return t.replace(/^#+\s*/, '').replace(/\*\*|`/g, ''); },
         anchorLabel(e) { return e.anchors[0] === 'ALL' ? 'whole passage' : e.anchors.join(' '); },
 
+        // The edit ladder: each paragraph's steps, safest first.
+        stepsOf(bid) { const p = this.led.paths && this.led.paths[bid]; return p ? p.steps : []; },
+        editOf(id) { return this.led.edits.find(e => e.id === id); },
+        ratingsOf(id) { return this.led.ratings.filter(r => r.edit === id); },
+        upToTier(bid, t) { return this.stepsOf(bid).filter(s => TIERS.indexOf(s.risk) <= TIERS.indexOf(t)); },
+        blockAt(b, t) { const ok = this.upToTier(b.id, t); return ok.length ? ok[ok.length - 1].text : b.text; },
+        ladderText(t) { return this.led.blocks.map(b => this.blockAt(b, t)).join('\n\n'); },
+        ladderWords(t) { return this.led.blocks.reduce((n, b) => { const ok = this.upToTier(b.id, t); return n + (ok.length ? ok[ok.length - 1].words : b.words); }, 0); },
+        honours(kind) { return this.led.ratings.filter(r => r[kind]).map(r => r.edit).filter((v, i, a) => a.indexOf(v) === i).length; },
+        get ladderFigure() {
+          return this.led.source.words + ' words → ' + TIERS.map(t => t + ' ' + this.ladderWords(t)).join(' · ')
+            + ' · ' + this.led.edits.length + ' edits, !! ' + this.honours('brilliancy') + ', ✂ ' + this.honours('brutality');
+        },
+        endWords(bid) { const st = this.stepsOf(bid); return st.length ? st[st.length - 1].words : this.led.blocks.find(b => b.id === bid).words; },
+        pickPara(bid) { this.para = bid; this.lsel = '0'; this.$nextTick(() => this.mountLadder()); },
+        // Plain text for a diff: headings, bold pairs, code ticks and link syntax
+        // go; a lone ** (a glob such as node/test/**/*.test.mjs) stays.
+        md(t) {
+          return String(t || '').replace(/^#+\s*/gm, '').replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+            .replace(/\*\*([^*\n]+?)\*\*/g, '$1').replace(/`/g, '');
+        },
+        diffHtml(a, b) {
+          return Diff.diffWords(this.md(a), this.md(b)).map(p => {
+            const v = window.esc(p.value);
+            return p.added ? '<span class="bg-base-200 rounded underline decoration-2 underline-offset-4 decoration-base-content/50">' + v + '</span>'
+              : p.removed ? '<span class="line-through opacity-40 mr-1">' + v + '</span>' : v;
+          }).join('');
+        },
+        stepIds() { return ['0', ...this.stepsOf(this.para).map(s => s.edit)]; },
+        stepAt(id) {
+          const st = this.stepsOf(this.para), i = st.findIndex(s => s.edit === id);
+          const b = this.led.blocks.find(b => b.id === this.para);
+          return { i: i + 1, s: st[i], prev: i > 0 ? st[i - 1].text : b.text, block: b };
+        },
+        rowHtml(id) {
+          const sel = this.lsel === id;
+          const base = 'flex cursor-pointer items-center gap-2 border-b border-base-200 px-2.5 py-1.5 aria-selected:bg-base-300';
+          const mono = (t, w) => '<span class="flex-none font-mono text-xs ' + (w || '') + '">' + window.esc(t) + '</span>';
+          if (id === '0') {
+            const b = this.led.blocks.find(b => b.id === this.para);
+            return '<div role="option" tabindex="0" data-step="0" aria-selected="' + sel + '" class="' + base + '">'
+              + '<span class="size-2.5 flex-none rounded-full bg-base-content/20"></span>' + mono('0', 'w-6 opacity-60')
+              + '<span class="min-w-0 flex-1 truncate font-semibold">original</span>' + mono(b.words + ' words', 'opacity-70') + '</div>';
+          }
+          const { i, s } = this.stepAt(id), e = this.editOf(id), rs = this.ratingsOf(id);
+          const cut = !String(e.replace).trim();
+          const clip = t => { const w = this.md(t).split(/\s+/); return w.slice(0, 7).join(' ') + (w.length > 7 ? '…' : ''); };
+          const what = cut ? 'cut “' + clip(e.find) + '”' : '“' + clip(e.find) + '” → “' + clip(e.replace) + '”';
+          const marks = (s.replaces ? '↺ ' : '') + (rs.some(r => r.brilliancy) ? '!! ' : '') + (rs.some(r => r.brutality) ? '✂' : '');
+          return '<div role="option" tabindex="0" data-step="' + window.esc(id) + '" aria-selected="' + sel + '" class="' + base + '">'
+            + '<span class="size-2.5 flex-none rounded-full ' + TIER[s.risk].dot + '"></span>' + mono(String(i), 'w-6 opacity-60')
+            + '<span class="min-w-0 flex-1 truncate">' + window.esc(what) + '</span>'
+            + (marks ? mono(marks.trim(), 'font-bold') : '') + mono(s.confidence + '%', 'w-10 text-right')
+            + mono('−' + (this.stepAt(id).prev ? this.wc(this.stepAt(id).prev) - s.words : 0), 'w-10 text-right opacity-70') + '</div>';
+        },
+        wc(t) { return String(t).split(/\s+/).filter(Boolean).length; },
+        cardHtml(id) {
+          const b = this.led.blocks.find(b => b.id === this.para);
+          if (id === '0') {
+            return '<div class="p-3 flex flex-col gap-3"><div class="font-mono text-xs opacity-70">' + window.esc(b.id + ' as written · ' + b.words + ' words') + '</div>'
+              + '<div class="leading-7 text-pretty whitespace-pre-wrap break-words border-l-4 border-base-300 pl-3">' + window.esc(this.md(b.text)) + '</div></div>';
+          }
+          const { i, s, prev } = this.stepAt(id), e = this.editOf(id), rs = this.ratingsOf(id);
+          const line = (cls, html) => '<div class="' + cls + '">' + html + '</div>';
+          const honour = (kind, sign) => rs.filter(r => r[kind]).map(r => line('text-pretty', '<span class="font-bold">' + sign + ' ' + kind + '</span> <span class="opacity-70">' + window.esc(r.by + ': ' + r[kind]) + '</span>')).join('');
+          return '<div class="p-3 flex flex-col gap-3">'
+            + '<div class="flex flex-wrap items-center gap-2"><span class="badge ' + TIER[s.risk].badge + '">' + s.risk + '</span>'
+            + '<span class="font-mono text-xs">' + window.esc(s.confidence + '% confident · ' + s.words + ' words, −' + (this.wc(prev) - s.words)) + '</span></div>'
+            + line('leading-7 text-pretty whitespace-pre-wrap break-words border-l-4 pl-3 ' + TIER[s.risk].border, this.diffHtml(prev, s.text))
+            + (s.replaces ? line('text-pretty', '<span class="font-bold">↺ replaces</span> <span class="opacity-70">' + window.esc(s.replaces.map(id => 'step ' + this.stepAt(id).i).join(', ') + ', which it overlaps') + '</span>') : '')
+            + honour('brilliancy', '!!') + honour('brutality', '✂')
+            + line('text-pretty', '<span class="font-mono text-xs opacity-70">' + window.esc(e.by + ', aiming ' + e.aim) + '</span> ' + window.esc(e.why))
+            + rs.map(r => line('text-pretty', '<span class="font-mono text-xs opacity-70">' + window.esc(r.by + ': ' + r.risk + ', ' + r.confidence + '%') + '</span> ' + window.esc(r.note || ''))).join('')
+            + '</div>';
+        },
+        mountLadder() {
+          if (!this.isLadder || !this.$refs.llist) return;
+          const ids = this.stepIds();
+          if (!ids.includes(this.lsel)) this.lsel = '0';
+          this.$refs.llist.innerHTML = ids.map(id => this.rowHtml(id)).join('');
+          if (!this._ls) {
+            this._ls = linkedSwiper.attach({
+              root: this.$refs.lroot, list: this.$refs.llist, card: this.$refs.lcard, key: 'step',
+              ids: () => this.stepIds(), sel: () => this.lsel, noun: 'step', listMax: 'max-h-[38vh]',
+              name: id => id === '0' ? { code: this.para, title: 'original' } : { code: this.para + ' · step ' + this.stepAt(id).i + ' of ' + this.stepsOf(this.para).length, title: this.stepAt(id).s.risk },
+              body: id => this.cardHtml(id),
+              empty: '<div class="p-4 opacity-60">No edits.</div>',
+              onPick: (id) => { this.lsel = id; },
+            });
+          } else {
+            this._ls.mount();
+          }
+          const keep = () => linkedSwiper.mark(this.$refs.llist, 'step', this.lsel);
+          this.$nextTick(() => requestAnimationFrame(() => requestAnimationFrame(keep)));
+        },
+
+        // Before / after, either kind: the result the controls name, and the
+        // version it is compared with.
+        get res() {
+          if (this.isLadder) return { text: this.ladderText(this.tier), words: this.ladderWords(this.tier), html: this.resHtml[this.tier], label: 'Through ' + this.tier };
+          return this.h ? { text: this.h.text, words: this.h.words, html: this.resHtml[this.n], label: 'Round ' + this.n + ' result' } : null;
+        },
+        get base() {
+          if (this.isLadder) {
+            const i = TIERS.indexOf(this.tier);
+            return i ? { text: this.ladderText(TIERS[i - 1]), label: TIERS[i - 1] } : { text: this.led.source.text, label: 'the original' };
+          }
+          return { text: this.prevText, label: this.prevLabel };
+        },
+        get rsegs() {
+          return Diff.diffWords(this.md(this.base.text), this.md(this.res ? this.res.text : '')).map(p => ({ t: p.value, k: p.added ? 'add' : p.removed ? 'del' : '' }));
+        },
+
         // Must keep: each fact against each round's result.
         get cores() { return this.led.entries.filter(e => e.tag === 'core' && e.round <= this.n); },
         coreAt(e, r) {
@@ -210,7 +351,8 @@
       <template x-if="led">
         <div class="text-xs flex flex-wrap gap-x-2 opacity-80 text-pretty">
           <a class="link font-mono" :href="led.source.url || '#'" target="_blank" rel="noopener" x-text="where"></a>
-          <span class="opacity-50 hidden lg:inline" x-show="!!last">·</span>
+          <span class="opacity-50 hidden lg:inline" x-show="!!last || isLadder">·</span>
+          <span class="font-mono" x-show="isLadder" x-text="isLadder && ladderFigure"></span>
           <span class="font-mono" x-show="!!last" x-text="last && (led.source.words + ' → ' + last.words + ' words (' + pct(last.words) + ') in ' + R + ' rounds of model readers · ' + last.core_carried + ' of ' + named(R - 1) + ' must-keep facts kept, ' + (named(R - 1) - last.core_total) + ' voted out as repeats')"></span>
         </div>
       </template>
@@ -223,7 +365,7 @@
 
   <!-- tabs -->
   <nav class="flex items-center gap-1 px-4 py-1 border-b border-base-300 overflow-x-auto" x-show="!!led">
-    <template x-for="[id, label] in [['compare', 'Before / after'], ['rounds', 'Rounds'], ['notes', 'Notes'], ['core', 'Must keep']]" :key="id">
+    <template x-for="[id, label] in tabs" :key="id">
       <button class="btn btn-sm shrink-0" :class="tab === id ? 'btn-neutral' : 'btn-ghost'" @click="tab = id" x-text="label"></button>
     </template>
   </nav>
@@ -241,12 +383,28 @@
       </div>
     </template>
 
+    <!-- edits: one paragraph's steps, a list over a strip -->
+    <section class="h-full grid grid-rows-[auto_minmax(0,1fr)]" x-show="isLadder && tab === 'edits'">
+      <div class="flex items-center gap-2 px-4 py-2 border-b border-base-300 overflow-x-auto">
+        <span class="text-xs opacity-70 shrink-0">paragraph</span>
+        <template x-for="b in (isLadder ? led.blocks : [])" :key="b.id">
+          <button class="btn btn-xs shrink-0 font-mono" :class="para === b.id ? 'btn-neutral' : 'btn-ghost'" @click="pickPara(b.id)" x-text="b.id + ' · ' + b.words + '→' + endWords(b.id)"></button>
+        </template>
+      </div>
+      <div class="flex min-h-0 flex-col p-2.5 pb-24 overflow-y-auto">
+        <div x-ref="lroot">
+          <div x-ref="llist" role="listbox" aria-label="Steps"></div>
+          <div x-ref="lcard"></div>
+        </div>
+      </div>
+    </section>
+
     <!-- before / after -->
     <template x-if="led && tab === 'compare'">
       <div class="h-full flex flex-col">
         <div class="join px-4 pt-2 lg:hidden">
           <button class="join-item btn btn-xs" :class="side === 'original' ? 'btn-neutral' : 'btn-outline'" @click="side = 'original'" x-text="'Original · ' + led.source.words + ' words'"></button>
-          <button class="join-item btn btn-xs" :class="side === 'result' ? 'btn-neutral' : 'btn-outline'" @click="side = 'result'" x-text="'Round ' + n + ' result · ' + (h ? h.words : '…') + ' words'"></button>
+          <button class="join-item btn btn-xs" :class="side === 'result' ? 'btn-neutral' : 'btn-outline'" @click="side = 'result'" x-text="res ? res.label + ' · ' + res.words + ' words' : 'Result'"></button>
         </div>
         <div class="flex-1 min-h-0 grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <section class="min-h-0 overflow-y-auto px-4 pb-24 lg:border-r border-base-300" :class="side === 'original' ? 'block' : 'hidden lg:block'">
@@ -255,16 +413,23 @@
           </section>
           <section class="min-h-0 overflow-y-auto px-4 pb-24" :class="side === 'result' ? 'block' : 'hidden lg:block'">
             <div class="flex flex-wrap items-center gap-2 py-2 text-xs">
-              <span class="font-mono opacity-70 hidden lg:inline" x-text="'Round ' + n + ' result · ' + (h ? h.words + ' words · ' + pct(h.words) : 'none yet')"></span>
-              <span class="font-mono opacity-70 lg:hidden" x-text="h ? pct(h.words) + ' from the original' : ''"></span>
-              <label class="label cursor-pointer gap-2 ml-auto" x-show="!!h">
+              <template x-if="isLadder">
+                <div class="join">
+                  <template x-for="t in TIERS" :key="t">
+                    <button class="join-item btn btn-xs" :class="tier === t ? TIER[t].btn : 'btn-outline'" @click="tier = t" x-text="'through ' + t"></button>
+                  </template>
+                </div>
+              </template>
+              <span class="font-mono opacity-70 hidden lg:inline" x-text="res ? res.label + ' · ' + res.words + ' words · ' + pct(res.words) : 'none yet'"></span>
+              <span class="font-mono opacity-70 lg:hidden" x-text="res ? pct(res.words) + ' from the original' : ''"></span>
+              <label class="label cursor-pointer gap-2 ml-auto" x-show="!!res">
                 <input type="checkbox" class="toggle toggle-xs" x-model="marks">
-                <span x-text="'changes from ' + prevLabel"></span>
+                <span x-text="'changes from ' + base.label"></span>
               </label>
             </div>
-            <template x-if="h && !marks"><div :class="mdClass" class="text-base! leading-7 [&_code]:text-[0.9em]! [&_code]:px-[0.15em]! [&_h1]:text-xl! [&_h2]:text-lg! [&_h3]:text-base! [&_h1]:text-balance [&_h2]:text-balance [&_h3]:text-balance [&_p]:text-pretty [&_li]:text-pretty" x-html="resHtml[n]"></div></template>
-            <template x-if="h && marks">
-              <div class="whitespace-pre-wrap break-words leading-7 text-pretty"><template x-for="(s, i) in dsegs" :key="i"><span
+            <template x-if="res && !marks"><div :class="mdClass" class="text-base! leading-7 [&_code]:text-[0.9em]! [&_code]:px-[0.15em]! [&_h1]:text-xl! [&_h2]:text-lg! [&_h3]:text-base! [&_h1]:text-balance [&_h2]:text-balance [&_h3]:text-balance [&_p]:text-pretty [&_li]:text-pretty" x-html="res.html"></div></template>
+            <template x-if="res && marks">
+              <div class="whitespace-pre-wrap break-words leading-7 text-pretty"><template x-for="(s, i) in rsegs" :key="i"><span
                 :class="s.k === 'add' ? 'bg-base-200 rounded underline decoration-2 underline-offset-4 decoration-base-content/50' : s.k === 'del' ? 'line-through opacity-40 mr-1' : ''" x-text="s.t"></span></template></div>
             </template>
           </section>

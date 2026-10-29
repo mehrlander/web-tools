@@ -29,3 +29,28 @@ page follows it:
 `?src=mehrlander/web-tools@<branch>:python/swarm/runs/<slug>/ledger.json`,
 with ↻ to re-read. `swarm.py status` prints the same rounds as text, and
 `swarm.py gz` the ledger as a `#gz=` payload for a run with no commit.
+
+## An edit ladder
+
+[`ladder.py`](ladder.py) runs the other shape: single edits per paragraph,
+each judged on its own, then ordered from safest to boldest so a reader can
+swipe from the original toward the shortest version and see where the risk
+begins. Green is low-hanging fruit, yellow is where a reader feels the pinch,
+red is full caveman.
+
+```bash
+python3 python/swarm/ladder.py init python/swarm/runs/<slug> <file> <first-line> <last-line>
+```
+
+1. `context … trimmer`, `pincher` and `caveman`, one Agent each, in parallel;
+   then `ladder.py merge python/swarm/runs/<slug> edits`.
+2. `context … judge-a` and `judge-b`, one Agent each, in parallel; then
+   `merge … ratings`.
+3. `ladder.py path python/swarm/runs/<slug>` orders each paragraph's edits by
+   tier (the warier judge decides it), then confidence, then words saved, and
+   adds them in turn. An edit that overlaps steps already taken replaces them
+   when it sits in a riskier tier than all of them and leaves the paragraph
+   shorter; otherwise it is set aside as an alternative.
+
+A judge may also mark an edit **brilliancy** (two ideas joined into one
+phrase) or **brutality** (a drastic cut the paragraph turns out not to need).

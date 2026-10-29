@@ -36,6 +36,7 @@ skills/gold-set/SKILL.md,skills/scour/SKILL.md,7,,docs environment capabilities 
 docs/house-policies.md,skills/report-distiller/SKILL.md,7,,qualified writing md https github com mehrlander web tools blob main docs qualified writing md rule,10,195
 docs/environment/capabilities.md,skills/scour/SKILL.md,7,true,the webfetch summarizer sometimes returns anthropic or anthropic's claude agent sdk as page content;webfetch returns a small model's answer rather than the page's markdown,10,195
 docs/envelopes/README.md,docs/envelopes/workbook-extract.md,7,true,no change to lib kits data payload js lib kits data payload js;why this is a profile over data view rather than a sibling,10,195
+python/swarm/README.md,python/swarm/roles.md,6,,each judged on its own then ordered from safest to boldest so a reader can,10,195
 skills/scour/PRIOR-ART.md,skills/scour/SKILL.md,5,,relevant cluster can sit behind a page that scores low on its own;leads harvested from a business association return more business associations,10,195
 skills/agents/house-style-critic.md,skills/screenshot-review/SKILL.md,5,,a style verdict on a broken render grades the failure as a design choice,10,195
 docs/envelopes/data-view.md,docs/environment/testing.md,5,,node render scenarios data view item mjs node render scenarios data view item mjs,10,195

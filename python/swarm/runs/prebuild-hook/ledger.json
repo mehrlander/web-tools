@@ -1,0 +1,1694 @@
+{
+ "kind": "ladder/1",
+ "title": "The pre-build & the build-on-commit hook",
+ "source": {
+  "path": "CLAUDE.md",
+  "lines": [
+   28,
+   43
+  ],
+  "ref": "e02dc8d4810632432c1af3ae18e6b43d555a42c1",
+  "repo": "mehrlander/web-tools",
+  "url": "https://github.com/mehrlander/web-tools/blob/e02dc8d4810632432c1af3ae18e6b43d555a42c1/CLAUDE.md#L28-L43",
+  "heading": "The pre-build & the build-on-commit hook",
+  "words": 409,
+  "text": "## The pre-build & the build-on-commit hook\n\n`dist/web-tools.js` is **the pre-build**: the whole `lib/` frozen into one self-booting offline artifact, so a page adopts the library with one import instead of a `gh.load` chain. `dist/app.js` is the app's own: only what `app/index.html` reaches. Both are tracked. See [`node/README.md`](node/README.md#the-pre-build).\n\nThe `gh.load` chain it replaces is the repo's default, not a legacy path. [`docs/loader.md`](docs/loader.md) is the only statement of the contract a file must honor to be loadable that way, plus the timing invariants the boot sequence depends on. Read it before adding a file to `lib/` or changing how a page boots. Which folder the file belongs in is answered in [`docs/code-layers.md`](docs/code-layers.md) and measured by `npm run code-scan`.\n\nEvery **deterministic** derived artifact is owned by one commit-time hook, [`.githooks/pre-commit`](.githooks/pre-commit). Before a `git commit` it regenerates and stages, in the same commit, whatever the pending changes touch. [`node/README.md`](node/README.md#the-refresh-model) lists the legs, the order they run in, and why that order matters.\n\nDon't hand-edit a file the hook writes; edit the source and let the hook refresh it. Thumbnails (`pages/thumbs/*.png`) are the exception (see \"Per-session refresh\" above).\n\n**Git owns the hook, not Claude:** a `PreToolUse` hook disappears when the session root sits above this repo. Run `npm run setup` once per checkout for hooks, the CSV merge driver, and dependencies; `npm run ready` checks without writing. Claude's startup scripts delegate to that shared path. `--no-verify` bypasses it. Details: [extending.md](docs/environment/extending.md).\n\n**Verification stays independent.** Setup never regenerates tracked artifacts, and API, MCP, or server-side writes cannot run local hooks. [`node/test/derived-artifacts.test.mjs`](node/test/derived-artifacts.test.mjs) therefore checks every generator under `npm test`. Repair hook-owned output with `npm run artifacts:refresh`, then run any additional command the test names. A local merge that restamps its combined index pauses for the gated `git -c core.editor=true merge --continue` path.\n\n[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports it as a check on the PR, so the test speaks even when no session runs the suite. `page-measures.yml` also runs on pull requests that touch a page, but only reports: a finding never fails it, so a red run is a fault in the pass, not in a page. The suite is browser-free by construction (`node --test` globs `node/test/**/*.test.mjs`, and every Playwright-driven check is named without `.test.`), so keep it that way or the runner grows a browser install. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh on each run and a green check is not a claim about a pinned tree.\n"
+ },
+ "blocks": [
+  {
+   "id": "P1",
+   "kind": "heading",
+   "text": "## The pre-build & the build-on-commit hook",
+   "words": 7
+  },
+  {
+   "id": "P2",
+   "kind": "para",
+   "text": "`dist/web-tools.js` is **the pre-build**: the whole `lib/` frozen into one self-booting offline artifact, so a page adopts the library with one import instead of a `gh.load` chain. `dist/app.js` is the app's own: only what `app/index.html` reaches. Both are tracked. See [`node/README.md`](node/README.md#the-pre-build).",
+   "words": 41
+  },
+  {
+   "id": "P3",
+   "kind": "para",
+   "text": "The `gh.load` chain it replaces is the repo's default, not a legacy path. [`docs/loader.md`](docs/loader.md) is the only statement of the contract a file must honor to be loadable that way, plus the timing invariants the boot sequence depends on. Read it before adding a file to `lib/` or changing how a page boots. Which folder the file belongs in is answered in [`docs/code-layers.md`](docs/code-layers.md) and measured by `npm run code-scan`.",
+   "words": 69
+  },
+  {
+   "id": "P4",
+   "kind": "para",
+   "text": "Every **deterministic** derived artifact is owned by one commit-time hook, [`.githooks/pre-commit`](.githooks/pre-commit). Before a `git commit` it regenerates and stages, in the same commit, whatever the pending changes touch. [`node/README.md`](node/README.md#the-refresh-model) lists the legs, the order they run in, and why that order matters.",
+   "words": 42
+  },
+  {
+   "id": "P5",
+   "kind": "para",
+   "text": "Don't hand-edit a file the hook writes; edit the source and let the hook refresh it. Thumbnails (`pages/thumbs/*.png`) are the exception (see \"Per-session refresh\" above).",
+   "words": 25
+  },
+  {
+   "id": "P6",
+   "kind": "para",
+   "text": "**Git owns the hook, not Claude:** a `PreToolUse` hook disappears when the session root sits above this repo. Run `npm run setup` once per checkout for hooks, the CSV merge driver, and dependencies; `npm run ready` checks without writing. Claude's startup scripts delegate to that shared path. `--no-verify` bypasses it. Details: [extending.md](docs/environment/extending.md).",
+   "words": 52
+  },
+  {
+   "id": "P7",
+   "kind": "para",
+   "text": "**Verification stays independent.** Setup never regenerates tracked artifacts, and API, MCP, or server-side writes cannot run local hooks. [`node/test/derived-artifacts.test.mjs`](node/test/derived-artifacts.test.mjs) therefore checks every generator under `npm test`. Repair hook-owned output with `npm run artifacts:refresh`, then run any additional command the test names. A local merge that restamps its combined index pauses for the gated `git -c core.editor=true merge --continue` path.",
+   "words": 59
+  },
+  {
+   "id": "P8",
+   "kind": "para",
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports it as a check on the PR, so the test speaks even when no session runs the suite. `page-measures.yml` also runs on pull requests that touch a page, but only reports: a finding never fails it, so a red run is a fault in the pass, not in a page. The suite is browser-free by construction (`node --test` globs `node/test/**/*.test.mjs`, and every Playwright-driven check is named without `.test.`), so keep it that way or the runner grows a browser install. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh on each run and a green check is not a claim about a pinned tree.",
+   "words": 114
+  }
+ ],
+ "edits": [
+  {
+   "id": "e1",
+   "block": "P1",
+   "by": "caveman",
+   "aim": "red",
+   "find": "The pre-build & the build-on-commit hook",
+   "replace": "Pre-build & build-on-commit hook",
+   "why": "Heading articles dropped."
+  },
+  {
+   "id": "e2",
+   "block": "P2",
+   "by": "caveman",
+   "aim": "red",
+   "find": "the whole `lib/` frozen into one self-booting offline artifact, so a page adopts the library with one import instead of a `gh.load` chain.",
+   "replace": "whole `lib/` frozen into one self-booting offline artifact; one import replaces a `gh.load` chain.",
+   "why": "Purpose clause folded into a clipped fragment; same fact: one import replaces the chain."
+  },
+  {
+   "id": "e3",
+   "block": "P2",
+   "by": "caveman",
+   "aim": "red",
+   "find": "`dist/app.js` is the app's own: only what `app/index.html` reaches.",
+   "replace": "`dist/app.js`: app's own, only what `app/index.html` reaches.",
+   "why": "Copula and article dropped; scope limit `only` kept."
+  },
+  {
+   "id": "e4",
+   "block": "P2",
+   "by": "caveman",
+   "aim": "red",
+   "find": "Both are tracked.",
+   "replace": "Both tracked.",
+   "why": "Copula dropped."
+  },
+  {
+   "id": "e5",
+   "block": "P3",
+   "by": "caveman",
+   "aim": "red",
+   "find": "The `gh.load` chain it replaces is the repo's default, not a legacy path.",
+   "replace": "`gh.load` chain: repo default, not legacy path.",
+   "why": "Fragment; 'it replaces' is already in P2; `not` kept."
+  },
+  {
+   "id": "e6",
+   "block": "P3",
+   "by": "caveman",
+   "aim": "red",
+   "find": "(docs/loader.md) is the only statement of the contract a file must honor to be loadable that way, plus the timing invariants the boot sequence depends on.",
+   "replace": "(docs/loader.md): only statement of the contract a file must honor to load that way, plus boot-sequence timing invariants.",
+   "why": "Copula and articles dropped; relative clause compressed to a modifier; `only` kept."
+  },
+  {
+   "id": "e7",
+   "block": "P3",
+   "by": "caveman",
+   "aim": "red",
+   "find": "Read it before adding a file to `lib/` or changing how a page boots.",
+   "replace": "Read before adding a file to `lib/` or changing page boot.",
+   "why": "Object pronoun and 'how a ... boots' clause dropped."
+  },
+  {
+   "id": "e8",
+   "block": "P3",
+   "by": "caveman",
+   "aim": "red",
+   "find": "Which folder the file belongs in is answered in [`docs/code-layers.md`](docs/code-layers.md) and measured by `npm run code-scan`.",
+   "replace": "Folder choice: [`docs/code-layers.md`](docs/code-layers.md), measured by `npm run code-scan`.",
+   "why": "Passive question sentence replaced by a label and a pointer; both paths and the command kept."
+  },
+  {
+   "id": "e9",
+   "block": "P4",
+   "by": "caveman",
+   "aim": "red",
+   "find": "Every **deterministic** derived artifact is owned by one commit-time hook, [`.githooks/pre-commit`](.githooks/pre-commit).",
+   "replace": "One commit-time hook, [`.githooks/pre-commit`](.githooks/pre-commit), owns every **deterministic** derived artifact.",
+   "why": "Passive turned active; same claim, fewer words."
+  },
+  {
+   "id": "e10",
+   "block": "P4",
+   "by": "caveman",
+   "aim": "red",
+   "find": "it regenerates and stages, in the same commit, whatever the pending changes touch.",
+   "replace": "it regenerates and stages, same commit, whatever pending changes touch.",
+   "why": "Articles and preposition dropped."
+  },
+  {
+   "id": "e11",
+   "block": "P4",
+   "by": "caveman",
+   "aim": "red",
+   "find": "(node/README.md#the-refresh-model) lists the legs, the order they run in, and why that order matters.",
+   "replace": "(node/README.md#the-refresh-model): legs, run order, why order matters.",
+   "why": "List sentence reduced to a label and three items; the three things listed are all kept."
+  },
+  {
+   "id": "e12",
+   "block": "P5",
+   "by": "caveman",
+   "aim": "red",
+   "find": "hand-edit a file the hook writes; edit the source and let the hook refresh it.",
+   "replace": "hand-edit hook-written files; edit source, let hook refresh.",
+   "why": "Relative clause to compound modifier; imperative pair clipped."
+  },
+  {
+   "id": "e13",
+   "block": "P5",
+   "by": "caveman",
+   "aim": "red",
+   "find": "(`pages/thumbs/*.png`) are the exception",
+   "replace": "(`pages/thumbs/*.png`): exception",
+   "why": "Copula and article dropped; the pointer to Per-session refresh stays."
+  },
+  {
+   "id": "e14",
+   "block": "P6",
+   "by": "caveman",
+   "aim": "red",
+   "find": "when the session root sits above this repo.",
+   "replace": "if session root is above this repo.",
+   "why": "Verb simplified, article dropped."
+  },
+  {
+   "id": "e15",
+   "block": "P6",
+   "by": "caveman",
+   "aim": "red",
+   "find": "for hooks, the CSV merge driver, and dependencies;",
+   "replace": "for hooks, CSV merge driver, dependencies;",
+   "why": "Article and conjunction dropped from the list."
+  },
+  {
+   "id": "e16",
+   "block": "P6",
+   "by": "caveman",
+   "aim": "red",
+   "find": "delegate to that shared path.",
+   "replace": "delegate to it.",
+   "why": "'that shared path' is the setup path just named; pronoun serves."
+  },
+  {
+   "id": "e17",
+   "block": "P7",
+   "by": "caveman",
+   "aim": "red",
+   "find": "artifacts, and API, MCP, or server-side writes cannot",
+   "replace": "artifacts; API, MCP, server-side writes cannot",
+   "why": "Conjunctions dropped; `never` and `cannot` kept."
+  },
+  {
+   "id": "e18",
+   "block": "P7",
+   "by": "caveman",
+   "aim": "red",
+   "find": "therefore checks every generator",
+   "replace": "checks every generator",
+   "why": "Connective dropped; the sentence order carries the cause."
+  },
+  {
+   "id": "e19",
+   "block": "P7",
+   "by": "caveman",
+   "aim": "red",
+   "find": "then run any additional command the test names.",
+   "replace": "then any command the test names.",
+   "why": "Verb repeated from the previous clause and 'additional' dropped."
+  },
+  {
+   "id": "e20",
+   "block": "P7",
+   "by": "caveman",
+   "aim": "red",
+   "find": "A local merge that restamps its combined index pauses for the gated",
+   "replace": "Local merge restamping its combined index pauses for gated",
+   "why": "Relative clause to participle, articles dropped; the command is untouched."
+  },
+  {
+   "id": "e21",
+   "block": "P8",
+   "by": "caveman",
+   "aim": "red",
+   "find": "and reports it as a check on the PR, so the test speaks even when no session runs the suite.",
+   "replace": "and reports a PR check, even when no session runs the suite.",
+   "why": "Reason clause cut to the condition that matters; `no` kept."
+  },
+  {
+   "id": "e22",
+   "block": "P8",
+   "by": "caveman",
+   "aim": "red",
+   "find": "that touch a page, but only reports:",
+   "replace": "touching a page but only reports:",
+   "why": "Relative clause to participle; `only` kept."
+  },
+  {
+   "id": "e23",
+   "block": "P8",
+   "by": "caveman",
+   "aim": "red",
+   "find": "a red run is a fault in the pass, not in a page.",
+   "replace": "a red run is a pass fault, not a page fault.",
+   "why": "Prepositional phrases to compound nouns; `not` kept."
+  },
+  {
+   "id": "e24",
+   "block": "P8",
+   "by": "caveman",
+   "aim": "red",
+   "find": "The suite is browser-free by construction",
+   "replace": "Suite is browser-free by construction",
+   "why": "Article dropped."
+  },
+  {
+   "id": "e25",
+   "block": "P8",
+   "by": "caveman",
+   "aim": "red",
+   "find": "*.test.mjs`, and every",
+   "replace": "*.test.mjs`; every",
+   "why": "Conjunction dropped."
+  },
+  {
+   "id": "e26",
+   "block": "P8",
+   "by": "caveman",
+   "aim": "red",
+   "find": "), so keep it that way or",
+   "replace": "); keep it so or",
+   "why": "Connective dropped; 'that way' to 'so'."
+  },
+  {
+   "id": "e27",
+   "block": "P8",
+   "by": "caveman",
+   "aim": "red",
+   "find": "is gitignored, so CI resolves dependency ranges fresh on each run and a green check is not a claim about a pinned tree.",
+   "replace": "is gitignored: CI resolves dependency ranges fresh each run; a green check is not a claim about a pinned tree.",
+   "why": "Connectives and 'on' dropped; `not` kept."
+  },
+  {
+   "id": "e28",
+   "block": "P2",
+   "by": "pincher",
+   "aim": "yellow",
+   "find": "so a page adopts the library with one import instead of a `gh.load` chain",
+   "replace": "so a page adopts it with one import, not a `gh.load` chain",
+   "why": "Two ideas, the library and the chain it replaces, become one phrase; 'the library' shrinks to 'it', which leans on the sentence's own subject."
+  },
+  {
+   "id": "e29",
+   "block": "P3",
+   "by": "pincher",
+   "aim": "yellow",
+   "find": "is the repo's default, not a legacy path",
+   "replace": "is the repo's default, not legacy",
+   "why": "Drops 'a ... path'; the contrast with legacy survives, the noun is implied."
+  },
+  {
+   "id": "e30",
+   "block": "P3",
+   "by": "pincher",
+   "aim": "yellow",
+   "find": "plus the timing invariants the boot sequence depends on",
+   "replace": "and the boot sequence's timing invariants",
+   "why": "Folds the relative clause 'depend on' into a possessive; the reader no longer sees the dependency spelled out."
+  },
+  {
+   "id": "e31",
+   "block": "P3",
+   "by": "pincher",
+   "aim": "yellow",
+   "find": "Which folder the file belongs in is answered in [`docs/code-layers.md`](docs/code-layers.md) and measured by `npm run code-scan`.",
+   "replace": "[`docs/code-layers.md`](docs/code-layers.md) says which folder a file belongs in; `npm run code-scan` measures it.",
+   "why": "Passive 'is answered in ... and measured by' becomes two short active clauses joined by a semicolon, merging question and measure into one sentence with the link as subject."
+  },
+  {
+   "id": "e32",
+   "block": "P4",
+   "by": "pincher",
+   "aim": "yellow",
+   "find": "Every **deterministic** derived artifact is owned by one commit-time hook, [`.githooks/pre-commit`](.githooks/pre-commit). Before a `git commit` it regenerates",
+   "replace": "One commit-time hook, [`.githooks/pre-commit`](.githooks/pre-commit), owns every **deterministic** derived artifact: before a `git commit` it regenerates",
+   "why": "Merges two sentences by flipping the passive into an active claim and a colon; the flow between 'owns' and 'how' is tighter but the two-beat pacing is lost."
+  },
+  {
+   "id": "e33",
+   "block": "P4",
+   "by": "pincher",
+   "aim": "yellow",
+   "find": "stages, in the same commit, whatever",
+   "replace": "stages whatever",
+   "why": "Cuts 'in the same commit', a nuance: the reader loses the reminder that the regenerated files land with the source change."
+  },
+  {
+   "id": "e34",
+   "block": "P4",
+   "by": "pincher",
+   "aim": "yellow",
+   "find": "the order they run in, and why that order matters",
+   "replace": "their order and why it matters",
+   "why": "Two uses of 'order' become a pronoun; same content, less emphasis on the ordering."
+  },
+  {
+   "id": "e35",
+   "block": "P5",
+   "by": "pincher",
+   "aim": "yellow",
+   "find": "a file the hook writes; edit the source and let the hook refresh it",
+   "replace": "a hook-written file; edit the source instead",
+   "why": "Cuts 'let the hook refresh it', which restates the preceding paragraph's regenerate-on-commit; a careful editor may want the positive instruction kept."
+  },
+  {
+   "id": "e36",
+   "block": "P6",
+   "by": "pincher",
+   "aim": "yellow",
+   "find": "sits above this repo",
+   "replace": "is above this repo",
+   "why": "Plain verb for 'sits'; trades a touch of voice for one fewer word."
+  },
+  {
+   "id": "e37",
+   "block": "P6",
+   "by": "pincher",
+   "aim": "yellow",
+   "find": "Claude's startup scripts delegate to that shared path. ",
+   "replace": "",
+   "why": "Cuts the aside that startup scripts reuse `npm run setup`; a reader acts the same, but loses why there is only one setup path."
+  },
+  {
+   "id": "e38",
+   "block": "P7",
+   "by": "pincher",
+   "aim": "yellow",
+   "find": "therefore checks every generator",
+   "replace": "checks every generator",
+   "why": "Drops the connective that ties the test to the preceding limits on hooks; the reason is still implied by the sentence before."
+  },
+  {
+   "id": "e39",
+   "block": "P7",
+   "by": "pincher",
+   "aim": "yellow",
+   "find": "run any additional command the test names",
+   "replace": "run any command the test names",
+   "why": "'additional' is implied by 'then'; small nuance gone."
+  },
+  {
+   "id": "e40",
+   "block": "P7",
+   "by": "pincher",
+   "aim": "yellow",
+   "find": "--continue` path",
+   "replace": "--continue`",
+   "why": "Drops the noun 'path' after the command; the command already names the route."
+  },
+  {
+   "id": "e41",
+   "block": "P8",
+   "by": "pincher",
+   "aim": "yellow",
+   "find": "and reports it as a check on the PR",
+   "replace": "as a check",
+   "why": "Merges 'runs on every pull request' and 'reports it as a check on the PR' into one clause; the check's appearance on the PR is left to the reader's knowledge of GitHub."
+  },
+  {
+   "id": "e42",
+   "block": "P8",
+   "by": "pincher",
+   "aim": "yellow",
+   "find": "a fault in the pass, not in a page",
+   "replace": "the pass's fault, not a page's",
+   "why": "Possessives replace the repeated 'in the' frame; the same distinction in fewer words."
+  },
+  {
+   "id": "e43",
+   "block": "P8",
+   "by": "pincher",
+   "aim": "yellow",
+   "find": "so keep it that way or the runner grows a browser install",
+   "replace": "so keep it that way",
+   "why": "Cuts the stated consequence (the runner grows a browser install); a reader still keeps the suite browser-free but loses the reason."
+  },
+  {
+   "id": "e44",
+   "block": "P8",
+   "by": "pincher",
+   "aim": "yellow",
+   "find": "fresh on each run and a green check is not a claim about a pinned tree",
+   "replace": "fresh each run, and a green check does not claim a pinned tree",
+   "why": "'is not a claim about' becomes 'does not claim', and 'on each run' loses its preposition; 'not' is kept."
+  },
+  {
+   "id": "e45",
+   "block": "P3",
+   "by": "trimmer",
+   "aim": "green",
+   "find": "the boot sequence depends on",
+   "replace": "boot depends on",
+   "why": "sequence adds nothing after boot; same meaning"
+  },
+  {
+   "id": "e46",
+   "block": "P4",
+   "by": "trimmer",
+   "aim": "green",
+   "find": "stages, in the same commit, whatever",
+   "replace": "stages whatever",
+   "why": "staging before the commit already puts it in that commit"
+  },
+  {
+   "id": "e47",
+   "block": "P4",
+   "by": "trimmer",
+   "aim": "green",
+   "find": "the order they run in, and why that order matters",
+   "replace": "their order, and why it matters",
+   "why": "drops the repeated noun and relative clause"
+  },
+  {
+   "id": "e48",
+   "block": "P7",
+   "by": "trimmer",
+   "aim": "green",
+   "find": "therefore checks",
+   "replace": "checks",
+   "why": "connective restates the preceding sentence's logic"
+  },
+  {
+   "id": "e49",
+   "block": "P7",
+   "by": "trimmer",
+   "aim": "green",
+   "find": "any additional command",
+   "replace": "any command",
+   "why": "additional is implied by the preceding refresh command"
+  },
+  {
+   "id": "e50",
+   "block": "P8",
+   "by": "trimmer",
+   "aim": "green",
+   "find": "as a check on the PR, so",
+   "replace": "as a check, so",
+   "why": "on the PR repeats every pull request"
+  },
+  {
+   "id": "e51",
+   "block": "P8",
+   "by": "trimmer",
+   "aim": "green",
+   "find": "`page-measures.yml` also runs",
+   "replace": "`page-measures.yml` runs",
+   "why": "also is filler beside the previous sentence"
+  },
+  {
+   "id": "e52",
+   "block": "P8",
+   "by": "trimmer",
+   "aim": "green",
+   "find": "fresh on each run",
+   "replace": "fresh each run",
+   "why": "preposition not needed"
+  }
+ ],
+ "ratings": [
+  {
+   "edit": "e1",
+   "by": "judge-a",
+   "risk": "green",
+   "confidence": 80,
+   "note": "Heading change alters its auto-generated anchor; fine unless something links to it."
+  },
+  {
+   "edit": "e2",
+   "by": "judge-a",
+   "risk": "yellow",
+   "confidence": 75,
+   "note": "Drops 'a page adopts the library'; one import replaces the chain survives."
+  },
+  {
+   "edit": "e3",
+   "by": "judge-a",
+   "risk": "red",
+   "confidence": 85,
+   "note": "Copula and article gone; label-style fragment, `only` kept."
+  },
+  {
+   "edit": "e4",
+   "by": "judge-a",
+   "risk": "yellow",
+   "confidence": 90,
+   "note": "Lone copula dropped."
+  },
+  {
+   "edit": "e5",
+   "by": "judge-a",
+   "risk": "red",
+   "confidence": 70,
+   "note": "Loses 'it replaces', the tie back to the pre-build; fragment style."
+  },
+  {
+   "edit": "e6",
+   "by": "judge-a",
+   "risk": "red",
+   "confidence": 75,
+   "note": "Loses 'depends on' and the copula; still readable, `only` kept."
+  },
+  {
+   "edit": "e7",
+   "by": "judge-a",
+   "risk": "yellow",
+   "confidence": 80,
+   "note": "Imperative 'Read before adding' is natural; 'page boot' slightly terser."
+  },
+  {
+   "edit": "e8",
+   "by": "judge-a",
+   "risk": "red",
+   "confidence": 80,
+   "note": "Question sentence becomes label plus pointer; paths and command kept."
+  },
+  {
+   "edit": "e9",
+   "by": "judge-a",
+   "risk": "green",
+   "confidence": 95,
+   "note": "Passive to active, same claim; overlaps e32 (same sentence)."
+  },
+  {
+   "edit": "e10",
+   "by": "judge-a",
+   "risk": "yellow",
+   "confidence": 85,
+   "note": "'same commit' as a bare fragment; articles gone."
+  },
+  {
+   "edit": "e11",
+   "by": "judge-a",
+   "risk": "red",
+   "confidence": 80,
+   "note": "Verb 'lists' dropped; three items kept as a label list."
+  },
+  {
+   "edit": "e12",
+   "by": "judge-a",
+   "risk": "red",
+   "confidence": 85,
+   "note": "Clipped imperatives; `Don't` preserved outside the edit."
+  },
+  {
+   "edit": "e13",
+   "by": "judge-a",
+   "risk": "red",
+   "confidence": 85,
+   "note": "Copula and article dropped; pointer to Per-session refresh kept."
+  },
+  {
+   "edit": "e14",
+   "by": "judge-a",
+   "risk": "yellow",
+   "confidence": 85,
+   "note": "'when' to 'if' is a faint shift; article dropped."
+  },
+  {
+   "edit": "e15",
+   "by": "judge-a",
+   "risk": "yellow",
+   "confidence": 90,
+   "note": "Article and final 'and' dropped from list."
+  },
+  {
+   "edit": "e16",
+   "by": "judge-a",
+   "risk": "yellow",
+   "confidence": 60,
+   "note": "'it' is ambiguous between `npm run setup` and `npm run ready`; 'shared path' named the referent."
+  },
+  {
+   "edit": "e17",
+   "by": "judge-a",
+   "risk": "yellow",
+   "confidence": 90,
+   "note": "', and' to ';' and 'or' dropped from the list; `never`/`cannot` intact."
+  },
+  {
+   "edit": "e18",
+   "by": "judge-a",
+   "risk": "yellow",
+   "confidence": 92,
+   "note": "'therefore' carries the causal link between sentences; sentence order still implies it."
+  },
+  {
+   "edit": "e19",
+   "by": "judge-a",
+   "risk": "yellow",
+   "confidence": 80,
+   "note": "Drops 'run' and 'additional'; elliptical 'then any command' still reads as an action."
+  },
+  {
+   "edit": "e20",
+   "by": "judge-a",
+   "risk": "red",
+   "confidence": 80,
+   "note": "Article, relative clause and 'the' gone; telegraphic."
+  },
+  {
+   "edit": "e21",
+   "by": "judge-a",
+   "risk": "yellow",
+   "confidence": 80,
+   "note": "Drops 'so the test speaks' rationale; the condition `no` is kept."
+  },
+  {
+   "edit": "e22",
+   "by": "judge-a",
+   "risk": "green",
+   "confidence": 92,
+   "note": "Participle for relative clause; `only` kept."
+  },
+  {
+   "edit": "e23",
+   "by": "judge-a",
+   "risk": "yellow",
+   "confidence": 75,
+   "note": "'pass fault' compound is ambiguous next to pass/fail."
+  },
+  {
+   "edit": "e24",
+   "by": "judge-a",
+   "risk": "yellow",
+   "confidence": 95,
+   "note": "Sentence-initial article dropped."
+  },
+  {
+   "edit": "e25",
+   "by": "judge-a",
+   "risk": "green",
+   "confidence": 95,
+   "note": "', and' to ';' between two independent clauses."
+  },
+  {
+   "edit": "e26",
+   "by": "judge-a",
+   "risk": "yellow",
+   "confidence": 90,
+   "note": "'so' connective dropped and 'keep it so' reads archaic."
+  },
+  {
+   "edit": "e27",
+   "by": "judge-a",
+   "risk": "yellow",
+   "confidence": 92,
+   "note": "Colon stands in for 'so'; `not` kept."
+  },
+  {
+   "edit": "e28",
+   "by": "judge-a",
+   "risk": "yellow",
+   "confidence": 82,
+   "note": "'adopts it' shifts referent from the library to the artifact; practically the same."
+  },
+  {
+   "edit": "e29",
+   "by": "judge-a",
+   "risk": "green",
+   "confidence": 92,
+   "note": "'not legacy' keeps the contrast."
+  },
+  {
+   "edit": "e30",
+   "by": "judge-a",
+   "risk": "yellow",
+   "confidence": 78,
+   "note": "'depends on' becomes a possessive, so the dependency is no longer spelled out."
+  },
+  {
+   "edit": "e31",
+   "by": "judge-a",
+   "risk": "green",
+   "confidence": 88,
+   "note": "Two active clauses; both paths and the command kept."
+  },
+  {
+   "edit": "e32",
+   "by": "judge-a",
+   "risk": "green",
+   "confidence": 93,
+   "brilliancy": "Folds the second sentence into the claim it elaborates, so 'owns' plus a colon replaces the passive and the restart.",
+   "note": "Overlaps e9 (same sentence); do not apply both."
+  },
+  {
+   "edit": "e33",
+   "by": "judge-a",
+   "risk": "green",
+   "confidence": 85,
+   "note": "Staging before the commit already places it in that commit; 'in the same commit' is restatement."
+  },
+  {
+   "edit": "e34",
+   "by": "judge-a",
+   "risk": "green",
+   "confidence": 90,
+   "note": "Pronoun for repeated noun; all three listed items remain."
+  },
+  {
+   "edit": "e35",
+   "by": "judge-a",
+   "risk": "yellow",
+   "confidence": 80,
+   "note": "Drops 'let the hook refresh it', the positive step; a reader might regenerate by hand."
+  },
+  {
+   "edit": "e36",
+   "by": "judge-a",
+   "risk": "green",
+   "confidence": 96,
+   "note": "Same word count; plain verb for 'sits'."
+  },
+  {
+   "edit": "e37",
+   "by": "judge-a",
+   "risk": "yellow",
+   "confidence": 60,
+   "note": "Whole sentence cut; it tells a session its startup already runs setup, which bears on whether to run it by hand."
+  },
+  {
+   "edit": "e38",
+   "by": "judge-a",
+   "risk": "yellow",
+   "confidence": 92,
+   "note": "Same as e18."
+  },
+  {
+   "edit": "e39",
+   "by": "judge-a",
+   "risk": "green",
+   "confidence": 93,
+   "note": "'additional' implied by 'then'."
+  },
+  {
+   "edit": "e40",
+   "by": "judge-a",
+   "risk": "green",
+   "confidence": 88,
+   "note": "'gated' still modifies the command."
+  },
+  {
+   "edit": "e41",
+   "by": "judge-a",
+   "risk": "yellow",
+   "confidence": 80,
+   "note": "Drops 'reports ... on the PR', which is what 'the test speaks' rests on."
+  },
+  {
+   "edit": "e42",
+   "by": "judge-a",
+   "risk": "yellow",
+   "confidence": 85,
+   "note": "'a fault in' becomes 'the pass's fault', a faint shift toward blame."
+  },
+  {
+   "edit": "e43",
+   "by": "judge-a",
+   "risk": "yellow",
+   "confidence": 75,
+   "note": "Cuts the consequence (runner grows a browser install); the instruction stays but the reason goes."
+  },
+  {
+   "edit": "e44",
+   "by": "judge-a",
+   "risk": "yellow",
+   "confidence": 80,
+   "note": "'does not claim a pinned tree' is slightly looser than 'not a claim about'; `not` kept."
+  },
+  {
+   "edit": "e45",
+   "by": "judge-a",
+   "risk": "green",
+   "confidence": 88,
+   "note": "'boot' stands for 'boot sequence'."
+  },
+  {
+   "edit": "e46",
+   "by": "judge-a",
+   "risk": "green",
+   "confidence": 85,
+   "note": "Same as e33."
+  },
+  {
+   "edit": "e47",
+   "by": "judge-a",
+   "risk": "green",
+   "confidence": 90,
+   "note": "Same as e34."
+  },
+  {
+   "edit": "e48",
+   "by": "judge-a",
+   "risk": "yellow",
+   "confidence": 92,
+   "note": "Same as e18."
+  },
+  {
+   "edit": "e49",
+   "by": "judge-a",
+   "risk": "green",
+   "confidence": 93,
+   "note": "Same as e39."
+  },
+  {
+   "edit": "e50",
+   "by": "judge-a",
+   "risk": "green",
+   "confidence": 93,
+   "note": "'on the PR' repeats 'every pull request'."
+  },
+  {
+   "edit": "e51",
+   "by": "judge-a",
+   "risk": "green",
+   "confidence": 92,
+   "note": "'also' is mild filler; both workflows still run on PRs."
+  },
+  {
+   "edit": "e52",
+   "by": "judge-a",
+   "risk": "green",
+   "confidence": 95,
+   "note": "Preposition not needed."
+  },
+  {
+   "edit": "e1",
+   "by": "judge-b",
+   "risk": "green",
+   "confidence": 88,
+   "note": "No other file links to the heading's anchor (grepped), so dropping the articles breaks nothing."
+  },
+  {
+   "edit": "e2",
+   "by": "judge-b",
+   "risk": "yellow",
+   "confidence": 78,
+   "note": "Same fact (one import replaces the chain); 'the whole' loses its article and the page-adopts-library framing goes."
+  },
+  {
+   "edit": "e3",
+   "by": "judge-b",
+   "risk": "red",
+   "confidence": 85,
+   "note": "Copula and article gone, label-plus-fragment; scope limit 'only' survives."
+  },
+  {
+   "edit": "e4",
+   "by": "judge-b",
+   "risk": "yellow",
+   "confidence": 95,
+   "note": "One copula; telegraphic only."
+  },
+  {
+   "edit": "e5",
+   "by": "judge-b",
+   "risk": "red",
+   "confidence": 68,
+   "note": "Drops 'it replaces', the tie back to the pre-build; sentence becomes a label."
+  },
+  {
+   "edit": "e6",
+   "by": "judge-b",
+   "risk": "red",
+   "confidence": 80,
+   "note": "Fragment; 'the boot sequence depends on' becomes a modifier, so the dependency direction is implied only."
+  },
+  {
+   "edit": "e7",
+   "by": "judge-b",
+   "risk": "red",
+   "confidence": 70,
+   "note": "Imperative loses its object ('Read' what) and 'how a page boots' becomes 'page boot'; antecedent is the previous sentence."
+  },
+  {
+   "edit": "e8",
+   "by": "judge-b",
+   "risk": "red",
+   "confidence": 68,
+   "note": "Label plus pointer; 'measured' now floats after a bare noun phrase."
+  },
+  {
+   "edit": "e9",
+   "by": "judge-b",
+   "risk": "green",
+   "confidence": 92,
+   "note": "Passive to active, same claim; 'it' in the next sentence still resolves to the hook."
+  },
+  {
+   "edit": "e10",
+   "by": "judge-b",
+   "risk": "red",
+   "confidence": 82,
+   "note": "Headline-style: 'stages, same commit, whatever pending changes touch' drops three function words; facts all kept."
+  },
+  {
+   "edit": "e11",
+   "by": "judge-b",
+   "risk": "red",
+   "confidence": 85,
+   "note": "Verb 'lists' gone; the three listed items all survive."
+  },
+  {
+   "edit": "e12",
+   "by": "judge-b",
+   "risk": "red",
+   "confidence": 85,
+   "note": "Clipped imperative pair; both instructions survive."
+  },
+  {
+   "edit": "e13",
+   "by": "judge-b",
+   "risk": "red",
+   "confidence": 88,
+   "note": "Copula and article dropped, label style; pointer to Per-session refresh kept."
+  },
+  {
+   "edit": "e14",
+   "by": "judge-b",
+   "risk": "yellow",
+   "confidence": 88,
+   "note": "'when' to 'if', 'sits' to 'is', article gone; saves one word."
+  },
+  {
+   "edit": "e15",
+   "by": "judge-b",
+   "risk": "yellow",
+   "confidence": 90,
+   "note": "List loses 'the' and 'and'; nothing else changes."
+  },
+  {
+   "edit": "e16",
+   "by": "judge-b",
+   "risk": "yellow",
+   "confidence": 60,
+   "note": "'it' has two nearer antecedents (`npm run setup` and `npm run ready`); 'that shared path' was unambiguous."
+  },
+  {
+   "edit": "e17",
+   "by": "judge-b",
+   "risk": "yellow",
+   "confidence": 88,
+   "note": "Drops 'and' and 'or' in the list; 'never' and 'cannot' survive."
+  },
+  {
+   "edit": "e18",
+   "by": "judge-b",
+   "risk": "yellow",
+   "confidence": 88,
+   "note": "'therefore' carries the reason linking the test to the preceding limits; the heading still implies it."
+  },
+  {
+   "edit": "e19",
+   "by": "judge-b",
+   "risk": "yellow",
+   "confidence": 78,
+   "note": "Verb 'run' and 'additional' both go; elliptical but parseable as 'repair with X, then with any command the test names'."
+  },
+  {
+   "edit": "e20",
+   "by": "judge-b",
+   "risk": "red",
+   "confidence": 82,
+   "note": "Headline-style start ('Local merge restamping ...'); command untouched."
+  },
+  {
+   "edit": "e21",
+   "by": "judge-b",
+   "risk": "yellow",
+   "confidence": 78,
+   "note": "Drops 'so the test speaks', the purpose; the condition 'no session runs the suite' stays."
+  },
+  {
+   "edit": "e22",
+   "by": "judge-b",
+   "risk": "green",
+   "confidence": 93,
+   "note": "Relative clause to participle; 'only' kept."
+  },
+  {
+   "edit": "e23",
+   "by": "judge-b",
+   "risk": "green",
+   "confidence": 85,
+   "note": "'pass fault' is a slightly cryptic compound but 'pass' has the same single use as before."
+  },
+  {
+   "edit": "e24",
+   "by": "judge-b",
+   "risk": "yellow",
+   "confidence": 92,
+   "note": "Single article at sentence start."
+  },
+  {
+   "edit": "e25",
+   "by": "judge-b",
+   "risk": "green",
+   "confidence": 90,
+   "note": "Conjunction to semicolon inside the parenthetical; glob untouched."
+  },
+  {
+   "edit": "e26",
+   "by": "judge-b",
+   "risk": "yellow",
+   "confidence": 85,
+   "note": "Drops the 'so' and turns 'that way' into archaic 'so'; no word saved of note."
+  },
+  {
+   "edit": "e27",
+   "by": "judge-b",
+   "risk": "yellow",
+   "confidence": 85,
+   "note": "Colon replaces 'so' and semicolon replaces 'and'; the causal link now rides on punctuation. 'not' kept."
+  },
+  {
+   "edit": "e28",
+   "by": "judge-b",
+   "risk": "green",
+   "confidence": 85,
+   "note": "'it' can read as the artifact or the library; both give the same instruction."
+  },
+  {
+   "edit": "e29",
+   "by": "judge-b",
+   "risk": "green",
+   "confidence": 90,
+   "note": "'not legacy' keeps the contrast; 'not' kept."
+  },
+  {
+   "edit": "e30",
+   "by": "judge-b",
+   "risk": "yellow",
+   "confidence": 78,
+   "note": "Possessive loses the 'depends on' direction (invariants of boot vs invariants boot relies on)."
+  },
+  {
+   "edit": "e31",
+   "by": "judge-b",
+   "risk": "green",
+   "confidence": 88,
+   "note": "Passive pair becomes two active clauses; 'the file' becomes 'a file', a negligible loss of reference to the file just discussed."
+  },
+  {
+   "edit": "e32",
+   "by": "judge-b",
+   "risk": "green",
+   "confidence": 88,
+   "note": "Joins the two sentences with a colon; ownership claim and command intact."
+  },
+  {
+   "edit": "e33",
+   "by": "judge-b",
+   "risk": "green",
+   "confidence": 85,
+   "note": "Staging before the commit already puts the files in that commit; same cut as e46."
+  },
+  {
+   "edit": "e34",
+   "by": "judge-b",
+   "risk": "green",
+   "confidence": 92,
+   "note": "'their order and why it matters' keeps both items; same as e47 minus the comma."
+  },
+  {
+   "edit": "e35",
+   "by": "judge-b",
+   "risk": "yellow",
+   "confidence": 62,
+   "note": "Drops the positive instruction (let the hook refresh the file); a reader might regenerate by hand instead of committing."
+  },
+  {
+   "edit": "e36",
+   "by": "judge-b",
+   "risk": "green",
+   "confidence": 95,
+   "note": "Saves no words, only a slightly flatter verb."
+  },
+  {
+   "edit": "e37",
+   "by": "judge-b",
+   "risk": "yellow",
+   "confidence": 58,
+   "note": "Removes a fact (startup scripts delegate to the setup path), not just a reason; the bold lead 'Git owns the hook, not Claude' covers part of it."
+  },
+  {
+   "edit": "e38",
+   "by": "judge-b",
+   "risk": "yellow",
+   "confidence": 88,
+   "note": "Same as e18: 'therefore' carries the reason."
+  },
+  {
+   "edit": "e39",
+   "by": "judge-b",
+   "risk": "green",
+   "confidence": 88,
+   "note": "'then' already says the command comes after the refresh."
+  },
+  {
+   "edit": "e40",
+   "by": "judge-b",
+   "risk": "green",
+   "confidence": 88,
+   "note": "Command untouched; 'the gated `...`' reads as the gated command."
+  },
+  {
+   "edit": "e41",
+   "by": "judge-b",
+   "risk": "green",
+   "confidence": 88,
+   "brilliancy": "folds 'runs on every pull request' and 'reports it as a check on the PR' into 'runs ... as a check'",
+   "note": "The check on the PR is implied by 'every pull request'."
+  },
+  {
+   "edit": "e42",
+   "by": "judge-b",
+   "risk": "green",
+   "confidence": 85,
+   "note": "'the pass's fault' leans slightly toward blame over defect; 'not' kept."
+  },
+  {
+   "edit": "e43",
+   "by": "judge-b",
+   "risk": "yellow",
+   "confidence": 68,
+   "note": "Cuts the consequence (runner grows a browser install); the rule stays, the reason that deters a violation goes."
+  },
+  {
+   "edit": "e44",
+   "by": "judge-b",
+   "risk": "yellow",
+   "confidence": 75,
+   "note": "'does not claim a pinned tree' reads as 'does not assert the tree is pinned', a small shift from 'not a claim about'; 'not' kept."
+  },
+  {
+   "edit": "e45",
+   "by": "judge-b",
+   "risk": "green",
+   "confidence": 88,
+   "note": "'boot' alone reads a little stiff after 'the timing invariants' but means the same."
+  },
+  {
+   "edit": "e46",
+   "by": "judge-b",
+   "risk": "green",
+   "confidence": 85,
+   "note": "Identical to e33."
+  },
+  {
+   "edit": "e47",
+   "by": "judge-b",
+   "risk": "green",
+   "confidence": 92,
+   "note": "Same as e34, with the comma kept."
+  },
+  {
+   "edit": "e48",
+   "by": "judge-b",
+   "risk": "yellow",
+   "confidence": 88,
+   "note": "Same as e18: 'therefore' carries the reason."
+  },
+  {
+   "edit": "e49",
+   "by": "judge-b",
+   "risk": "green",
+   "confidence": 88,
+   "note": "Same as e39."
+  },
+  {
+   "edit": "e50",
+   "by": "judge-b",
+   "risk": "green",
+   "confidence": 93,
+   "note": "'on the PR' repeats 'every pull request'."
+  },
+  {
+   "edit": "e51",
+   "by": "judge-b",
+   "risk": "green",
+   "confidence": 92,
+   "note": "'also' only signals addition to test.yml; no reader action depends on it."
+  },
+  {
+   "edit": "e52",
+   "by": "judge-b",
+   "risk": "green",
+   "confidence": 95,
+   "note": "Preposition only."
+  }
+ ],
+ "paths": {
+  "P1": {
+   "steps": [
+    {
+     "edit": "e1",
+     "risk": "green",
+     "confidence": 84,
+     "text": "## Pre-build & build-on-commit hook",
+     "words": 5
+    }
+   ],
+   "aside": []
+  },
+  "P2": {
+   "steps": [
+    {
+     "edit": "e4",
+     "risk": "yellow",
+     "confidence": 92,
+     "text": "`dist/web-tools.js` is **the pre-build**: the whole `lib/` frozen into one self-booting offline artifact, so a page adopts the library with one import instead of a `gh.load` chain. `dist/app.js` is the app's own: only what `app/index.html` reaches. Both tracked. See [`node/README.md`](node/README.md#the-pre-build).",
+     "words": 40
+    },
+    {
+     "edit": "e28",
+     "risk": "yellow",
+     "confidence": 84,
+     "text": "`dist/web-tools.js` is **the pre-build**: the whole `lib/` frozen into one self-booting offline artifact, so a page adopts it with one import, not a `gh.load` chain. `dist/app.js` is the app's own: only what `app/index.html` reaches. Both tracked. See [`node/README.md`](node/README.md#the-pre-build).",
+     "words": 38
+    },
+    {
+     "edit": "e3",
+     "risk": "red",
+     "confidence": 85,
+     "text": "`dist/web-tools.js` is **the pre-build**: the whole `lib/` frozen into one self-booting offline artifact, so a page adopts it with one import, not a `gh.load` chain. `dist/app.js`: app's own, only what `app/index.html` reaches. Both tracked. See [`node/README.md`](node/README.md#the-pre-build).",
+     "words": 36
+    }
+   ],
+   "aside": [
+    {
+     "edit": "e2",
+     "beside": [
+      "e28"
+     ]
+    }
+   ]
+  },
+  "P3": {
+   "steps": [
+    {
+     "edit": "e29",
+     "risk": "green",
+     "confidence": 91,
+     "text": "The `gh.load` chain it replaces is the repo's default, not legacy. [`docs/loader.md`](docs/loader.md) is the only statement of the contract a file must honor to be loadable that way, plus the timing invariants the boot sequence depends on. Read it before adding a file to `lib/` or changing how a page boots. Which folder the file belongs in is answered in [`docs/code-layers.md`](docs/code-layers.md) and measured by `npm run code-scan`.",
+     "words": 67
+    },
+    {
+     "edit": "e31",
+     "risk": "green",
+     "confidence": 88,
+     "text": "The `gh.load` chain it replaces is the repo's default, not legacy. [`docs/loader.md`](docs/loader.md) is the only statement of the contract a file must honor to be loadable that way, plus the timing invariants the boot sequence depends on. Read it before adding a file to `lib/` or changing how a page boots. [`docs/code-layers.md`](docs/code-layers.md) says which folder a file belongs in; `npm run code-scan` measures it.",
+     "words": 64
+    },
+    {
+     "edit": "e45",
+     "risk": "green",
+     "confidence": 88,
+     "text": "The `gh.load` chain it replaces is the repo's default, not legacy. [`docs/loader.md`](docs/loader.md) is the only statement of the contract a file must honor to be loadable that way, plus the timing invariants boot depends on. Read it before adding a file to `lib/` or changing how a page boots. [`docs/code-layers.md`](docs/code-layers.md) says which folder a file belongs in; `npm run code-scan` measures it.",
+     "words": 62
+    },
+    {
+     "edit": "e30",
+     "risk": "yellow",
+     "confidence": 78,
+     "text": "The `gh.load` chain it replaces is the repo's default, not legacy. [`docs/loader.md`](docs/loader.md) is the only statement of the contract a file must honor to be loadable that way, and the boot sequence's timing invariants. Read it before adding a file to `lib/` or changing how a page boots. [`docs/code-layers.md`](docs/code-layers.md) says which folder a file belongs in; `npm run code-scan` measures it.",
+     "words": 61,
+     "replaces": [
+      "e45"
+     ]
+    },
+    {
+     "edit": "e6",
+     "risk": "red",
+     "confidence": 78,
+     "text": "The `gh.load` chain it replaces is the repo's default, not legacy. [`docs/loader.md`](docs/loader.md): only statement of the contract a file must honor to load that way, plus boot-sequence timing invariants. Read it before adding a file to `lib/` or changing how a page boots. [`docs/code-layers.md`](docs/code-layers.md) says which folder a file belongs in; `npm run code-scan` measures it.",
+     "words": 56,
+     "replaces": [
+      "e30"
+     ]
+    },
+    {
+     "edit": "e7",
+     "risk": "red",
+     "confidence": 75,
+     "text": "The `gh.load` chain it replaces is the repo's default, not legacy. [`docs/loader.md`](docs/loader.md): only statement of the contract a file must honor to load that way, plus boot-sequence timing invariants. Read before adding a file to `lib/` or changing page boot. [`docs/code-layers.md`](docs/code-layers.md) says which folder a file belongs in; `npm run code-scan` measures it.",
+     "words": 53
+    },
+    {
+     "edit": "e8",
+     "risk": "red",
+     "confidence": 74,
+     "text": "The `gh.load` chain it replaces is the repo's default, not legacy. [`docs/loader.md`](docs/loader.md): only statement of the contract a file must honor to load that way, plus boot-sequence timing invariants. Read before adding a file to `lib/` or changing page boot. Folder choice: [`docs/code-layers.md`](docs/code-layers.md), measured by `npm run code-scan`.",
+     "words": 48,
+     "replaces": [
+      "e31"
+     ]
+    },
+    {
+     "edit": "e5",
+     "risk": "red",
+     "confidence": 69,
+     "text": "`gh.load` chain: repo default, not legacy path. [`docs/loader.md`](docs/loader.md): only statement of the contract a file must honor to load that way, plus boot-sequence timing invariants. Read before adding a file to `lib/` or changing page boot. Folder choice: [`docs/code-layers.md`](docs/code-layers.md), measured by `npm run code-scan`.",
+     "words": 44,
+     "replaces": [
+      "e29"
+     ]
+    }
+   ],
+   "aside": []
+  },
+  "P4": {
+   "steps": [
+    {
+     "edit": "e9",
+     "risk": "green",
+     "confidence": 94,
+     "text": "One commit-time hook, [`.githooks/pre-commit`](.githooks/pre-commit), owns every **deterministic** derived artifact. Before a `git commit` it regenerates and stages, in the same commit, whatever the pending changes touch. [`node/README.md`](node/README.md#the-refresh-model) lists the legs, the order they run in, and why that order matters.",
+     "words": 40
+    },
+    {
+     "edit": "e34",
+     "risk": "green",
+     "confidence": 91,
+     "text": "One commit-time hook, [`.githooks/pre-commit`](.githooks/pre-commit), owns every **deterministic** derived artifact. Before a `git commit` it regenerates and stages, in the same commit, whatever the pending changes touch. [`node/README.md`](node/README.md#the-refresh-model) lists the legs, their order and why it matters.",
+     "words": 36
+    },
+    {
+     "edit": "e33",
+     "risk": "green",
+     "confidence": 85,
+     "text": "One commit-time hook, [`.githooks/pre-commit`](.githooks/pre-commit), owns every **deterministic** derived artifact. Before a `git commit` it regenerates and stages whatever the pending changes touch. [`node/README.md`](node/README.md#the-refresh-model) lists the legs, their order and why it matters.",
+     "words": 32
+    },
+    {
+     "edit": "e11",
+     "risk": "red",
+     "confidence": 82,
+     "text": "One commit-time hook, [`.githooks/pre-commit`](.githooks/pre-commit), owns every **deterministic** derived artifact. Before a `git commit` it regenerates and stages whatever the pending changes touch. [`node/README.md`](node/README.md#the-refresh-model): legs, run order, why order matters.",
+     "words": 29,
+     "replaces": [
+      "e34"
+     ]
+    }
+   ],
+   "aside": [
+    {
+     "edit": "e47",
+     "beside": [
+      "e34"
+     ]
+    },
+    {
+     "edit": "e32",
+     "beside": [
+      "e9"
+     ]
+    },
+    {
+     "edit": "e46",
+     "beside": [
+      "e33"
+     ]
+    },
+    {
+     "edit": "e10",
+     "beside": [
+      "e33"
+     ]
+    }
+   ]
+  },
+  "P5": {
+   "steps": [
+    {
+     "edit": "e35",
+     "risk": "yellow",
+     "confidence": 71,
+     "text": "Don't hand-edit a hook-written file; edit the source instead. Thumbnails (`pages/thumbs/*.png`) are the exception (see \"Per-session refresh\" above).",
+     "words": 18
+    },
+    {
+     "edit": "e13",
+     "risk": "red",
+     "confidence": 86,
+     "text": "Don't hand-edit a hook-written file; edit the source instead. Thumbnails (`pages/thumbs/*.png`): exception (see \"Per-session refresh\" above).",
+     "words": 16
+    }
+   ],
+   "aside": [
+    {
+     "edit": "e12",
+     "beside": [
+      "e35"
+     ]
+    }
+   ]
+  },
+  "P6": {
+   "steps": [
+    {
+     "edit": "e36",
+     "risk": "green",
+     "confidence": 96,
+     "text": "**Git owns the hook, not Claude:** a `PreToolUse` hook disappears when the session root is above this repo. Run `npm run setup` once per checkout for hooks, the CSV merge driver, and dependencies; `npm run ready` checks without writing. Claude's startup scripts delegate to that shared path. `--no-verify` bypasses it. Details: [extending.md](docs/environment/extending.md).",
+     "words": 52
+    },
+    {
+     "edit": "e15",
+     "risk": "yellow",
+     "confidence": 90,
+     "text": "**Git owns the hook, not Claude:** a `PreToolUse` hook disappears when the session root is above this repo. Run `npm run setup` once per checkout for hooks, CSV merge driver, dependencies; `npm run ready` checks without writing. Claude's startup scripts delegate to that shared path. `--no-verify` bypasses it. Details: [extending.md](docs/environment/extending.md).",
+     "words": 50
+    },
+    {
+     "edit": "e14",
+     "risk": "yellow",
+     "confidence": 86,
+     "text": "**Git owns the hook, not Claude:** a `PreToolUse` hook disappears if session root is above this repo. Run `npm run setup` once per checkout for hooks, CSV merge driver, dependencies; `npm run ready` checks without writing. Claude's startup scripts delegate to that shared path. `--no-verify` bypasses it. Details: [extending.md](docs/environment/extending.md).",
+     "words": 49,
+     "replaces": [
+      "e36"
+     ]
+    },
+    {
+     "edit": "e16",
+     "risk": "yellow",
+     "confidence": 60,
+     "text": "**Git owns the hook, not Claude:** a `PreToolUse` hook disappears if session root is above this repo. Run `npm run setup` once per checkout for hooks, CSV merge driver, dependencies; `npm run ready` checks without writing. Claude's startup scripts delegate to it. `--no-verify` bypasses it. Details: [extending.md](docs/environment/extending.md).",
+     "words": 47
+    }
+   ],
+   "aside": [
+    {
+     "edit": "e37",
+     "beside": [
+      "e16"
+     ]
+    }
+   ]
+  },
+  "P7": {
+   "steps": [
+    {
+     "edit": "e39",
+     "risk": "green",
+     "confidence": 90,
+     "text": "**Verification stays independent.** Setup never regenerates tracked artifacts, and API, MCP, or server-side writes cannot run local hooks. [`node/test/derived-artifacts.test.mjs`](node/test/derived-artifacts.test.mjs) therefore checks every generator under `npm test`. Repair hook-owned output with `npm run artifacts:refresh`, then run any command the test names. A local merge that restamps its combined index pauses for the gated `git -c core.editor=true merge --continue` path.",
+     "words": 58
+    },
+    {
+     "edit": "e40",
+     "risk": "green",
+     "confidence": 88,
+     "text": "**Verification stays independent.** Setup never regenerates tracked artifacts, and API, MCP, or server-side writes cannot run local hooks. [`node/test/derived-artifacts.test.mjs`](node/test/derived-artifacts.test.mjs) therefore checks every generator under `npm test`. Repair hook-owned output with `npm run artifacts:refresh`, then run any command the test names. A local merge that restamps its combined index pauses for the gated `git -c core.editor=true merge --continue`.",
+     "words": 57
+    },
+    {
+     "edit": "e18",
+     "risk": "yellow",
+     "confidence": 90,
+     "text": "**Verification stays independent.** Setup never regenerates tracked artifacts, and API, MCP, or server-side writes cannot run local hooks. [`node/test/derived-artifacts.test.mjs`](node/test/derived-artifacts.test.mjs) checks every generator under `npm test`. Repair hook-owned output with `npm run artifacts:refresh`, then run any command the test names. A local merge that restamps its combined index pauses for the gated `git -c core.editor=true merge --continue`.",
+     "words": 56
+    },
+    {
+     "edit": "e17",
+     "risk": "yellow",
+     "confidence": 89,
+     "text": "**Verification stays independent.** Setup never regenerates tracked artifacts; API, MCP, server-side writes cannot run local hooks. [`node/test/derived-artifacts.test.mjs`](node/test/derived-artifacts.test.mjs) checks every generator under `npm test`. Repair hook-owned output with `npm run artifacts:refresh`, then run any command the test names. A local merge that restamps its combined index pauses for the gated `git -c core.editor=true merge --continue`.",
+     "words": 54
+    },
+    {
+     "edit": "e19",
+     "risk": "yellow",
+     "confidence": 79,
+     "text": "**Verification stays independent.** Setup never regenerates tracked artifacts; API, MCP, server-side writes cannot run local hooks. [`node/test/derived-artifacts.test.mjs`](node/test/derived-artifacts.test.mjs) checks every generator under `npm test`. Repair hook-owned output with `npm run artifacts:refresh`, then any command the test names. A local merge that restamps its combined index pauses for the gated `git -c core.editor=true merge --continue`.",
+     "words": 53,
+     "replaces": [
+      "e39"
+     ]
+    },
+    {
+     "edit": "e20",
+     "risk": "red",
+     "confidence": 81,
+     "text": "**Verification stays independent.** Setup never regenerates tracked artifacts; API, MCP, server-side writes cannot run local hooks. [`node/test/derived-artifacts.test.mjs`](node/test/derived-artifacts.test.mjs) checks every generator under `npm test`. Repair hook-owned output with `npm run artifacts:refresh`, then any command the test names. Local merge restamping its combined index pauses for gated `git -c core.editor=true merge --continue`.",
+     "words": 50
+    }
+   ],
+   "aside": [
+    {
+     "edit": "e49",
+     "beside": [
+      "e39"
+     ]
+    },
+    {
+     "edit": "e38",
+     "beside": [
+      "e18"
+     ]
+    },
+    {
+     "edit": "e48",
+     "beside": [
+      "e18"
+     ]
+    }
+   ]
+  },
+  "P8": {
+   "steps": [
+    {
+     "edit": "e52",
+     "risk": "green",
+     "confidence": 95,
+     "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports it as a check on the PR, so the test speaks even when no session runs the suite. `page-measures.yml` also runs on pull requests that touch a page, but only reports: a finding never fails it, so a red run is a fault in the pass, not in a page. The suite is browser-free by construction (`node --test` globs `node/test/**/*.test.mjs`, and every Playwright-driven check is named without `.test.`), so keep it that way or the runner grows a browser install. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh each run and a green check is not a claim about a pinned tree.",
+     "words": 113
+    },
+    {
+     "edit": "e50",
+     "risk": "green",
+     "confidence": 93,
+     "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports it as a check, so the test speaks even when no session runs the suite. `page-measures.yml` also runs on pull requests that touch a page, but only reports: a finding never fails it, so a red run is a fault in the pass, not in a page. The suite is browser-free by construction (`node --test` globs `node/test/**/*.test.mjs`, and every Playwright-driven check is named without `.test.`), so keep it that way or the runner grows a browser install. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh each run and a green check is not a claim about a pinned tree.",
+     "words": 110
+    },
+    {
+     "edit": "e22",
+     "risk": "green",
+     "confidence": 92,
+     "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports it as a check, so the test speaks even when no session runs the suite. `page-measures.yml` also runs on pull requests touching a page but only reports: a finding never fails it, so a red run is a fault in the pass, not in a page. The suite is browser-free by construction (`node --test` globs `node/test/**/*.test.mjs`, and every Playwright-driven check is named without `.test.`), so keep it that way or the runner grows a browser install. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh each run and a green check is not a claim about a pinned tree.",
+     "words": 109
+    },
+    {
+     "edit": "e25",
+     "risk": "green",
+     "confidence": 92,
+     "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports it as a check, so the test speaks even when no session runs the suite. `page-measures.yml` also runs on pull requests touching a page but only reports: a finding never fails it, so a red run is a fault in the pass, not in a page. The suite is browser-free by construction (`node --test` globs `node/test/**/*.test.mjs`; every Playwright-driven check is named without `.test.`), so keep it that way or the runner grows a browser install. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh each run and a green check is not a claim about a pinned tree.",
+     "words": 108
+    },
+    {
+     "edit": "e51",
+     "risk": "green",
+     "confidence": 92,
+     "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports it as a check, so the test speaks even when no session runs the suite. `page-measures.yml` runs on pull requests touching a page but only reports: a finding never fails it, so a red run is a fault in the pass, not in a page. The suite is browser-free by construction (`node --test` globs `node/test/**/*.test.mjs`; every Playwright-driven check is named without `.test.`), so keep it that way or the runner grows a browser install. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh each run and a green check is not a claim about a pinned tree.",
+     "words": 107
+    },
+    {
+     "edit": "e24",
+     "risk": "yellow",
+     "confidence": 94,
+     "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports it as a check, so the test speaks even when no session runs the suite. `page-measures.yml` runs on pull requests touching a page but only reports: a finding never fails it, so a red run is a fault in the pass, not in a page. Suite is browser-free by construction (`node --test` globs `node/test/**/*.test.mjs`; every Playwright-driven check is named without `.test.`), so keep it that way or the runner grows a browser install. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh each run and a green check is not a claim about a pinned tree.",
+     "words": 106
+    },
+    {
+     "edit": "e27",
+     "risk": "yellow",
+     "confidence": 88,
+     "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports it as a check, so the test speaks even when no session runs the suite. `page-measures.yml` runs on pull requests touching a page but only reports: a finding never fails it, so a red run is a fault in the pass, not in a page. Suite is browser-free by construction (`node --test` globs `node/test/**/*.test.mjs`; every Playwright-driven check is named without `.test.`), so keep it that way or the runner grows a browser install. `package-lock.json` is gitignored: CI resolves dependency ranges fresh each run; a green check is not a claim about a pinned tree.",
+     "words": 104,
+     "replaces": [
+      "e52"
+     ]
+    },
+    {
+     "edit": "e26",
+     "risk": "yellow",
+     "confidence": 88,
+     "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports it as a check, so the test speaks even when no session runs the suite. `page-measures.yml` runs on pull requests touching a page but only reports: a finding never fails it, so a red run is a fault in the pass, not in a page. Suite is browser-free by construction (`node --test` globs `node/test/**/*.test.mjs`; every Playwright-driven check is named without `.test.`); keep it so or the runner grows a browser install. `package-lock.json` is gitignored: CI resolves dependency ranges fresh each run; a green check is not a claim about a pinned tree.",
+     "words": 102
+    },
+    {
+     "edit": "e42",
+     "risk": "yellow",
+     "confidence": 85,
+     "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports it as a check, so the test speaks even when no session runs the suite. `page-measures.yml` runs on pull requests touching a page but only reports: a finding never fails it, so a red run is the pass's fault, not a page's. Suite is browser-free by construction (`node --test` globs `node/test/**/*.test.mjs`; every Playwright-driven check is named without `.test.`); keep it so or the runner grows a browser install. `package-lock.json` is gitignored: CI resolves dependency ranges fresh each run; a green check is not a claim about a pinned tree.",
+     "words": 99
+    },
+    {
+     "edit": "e41",
+     "risk": "yellow",
+     "confidence": 84,
+     "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request as a check, so the test speaks even when no session runs the suite. `page-measures.yml` runs on pull requests touching a page but only reports: a finding never fails it, so a red run is the pass's fault, not a page's. Suite is browser-free by construction (`node --test` globs `node/test/**/*.test.mjs`; every Playwright-driven check is named without `.test.`); keep it so or the runner grows a browser install. `package-lock.json` is gitignored: CI resolves dependency ranges fresh each run; a green check is not a claim about a pinned tree.",
+     "words": 96,
+     "replaces": [
+      "e50"
+     ]
+    }
+   ],
+   "aside": [
+    {
+     "edit": "e23",
+     "beside": [
+      "e42"
+     ]
+    },
+    {
+     "edit": "e21",
+     "beside": [
+      "e41"
+     ]
+    },
+    {
+     "edit": "e44",
+     "beside": [
+      "e27"
+     ]
+    },
+    {
+     "edit": "e43",
+     "beside": [
+      "e26"
+     ]
+    }
+   ]
+  }
+ }
+}
