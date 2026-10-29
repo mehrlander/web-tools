@@ -84,6 +84,12 @@ In a document that future sessions read to decide what to do, include content on
 
 **Detail:** [doc-craft](https://github.com/mehrlander/web-tools/blob/main/skills/doc-craft/SKILL.md), its opening and "General Principles"; web-tools [CLAUDE.md](https://github.com/mehrlander/web-tools/blob/main/CLAUDE.md) for the check before adding.
 
+### Code comments · `/h:comment`
+
+A code comment states, in the present tense, a contract or constraint that the code cannot show. Change history goes in the commit message: the date of a change, the bug or incident that prompted it, counts and timings measured when the comment was written, and what the code used to do.
+
+**Covers:** comments a session writes or edits, in any repo. PowerShell keeps its stricter rule of no comments ([windows-powershell](https://github.com/mehrlander/web-tools/blob/main/skills/windows-powershell/SKILL.md), "No comments").
+
 ## Pages
 
 ### Page house style · `/h:style`
