@@ -12,9 +12,9 @@ insight. Getting there is usually iterative: present the pieces, pare the
 representation down, layer it, and manage each disclosure tightly, until it
 builds a dense web of connected information.
 
-The limit of that work is
+The limit of paring and layering is
 [minimal progressive structure](https://github.com/mehrlander/web-tools/blob/main/research/minimal-progressive-structure/theory.md#the-definition):
-all of the content, and no text describing its organization.
+all the content and no text describing its organization.
 
 ## "A page is for comparing"
 
@@ -40,9 +40,9 @@ comparison. Treat any `stats`, `stat-value`, or KPI-tile grid as a defect.
 
 **2. No explanatory prose.** GitHub doesn't explain and neither should we. Use
 structure, labels, and controls to show relationships: a range control starting
-at 2015 says the data starts in 2015. Title the page with its topic sentence,
-not its topic: "SJR 8201 would let the state invest WA Cares funds in stocks",
-not "Investing WA Cares tax dollars".
+at 2015 says the data starts in 2015. Title the page with its topic sentence:
+"SJR 8201 would let the state invest WA Cares funds in stocks", not "Investing
+WA Cares tax dollars".
 
 **3. Don't narrow text to a reading column.** `max-w-prose`, `max-w-2xl`,
 `max-w-3xl`, `max-w-4xl`, `container mx-auto`, and a `prose` class without
