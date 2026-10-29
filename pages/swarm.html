@@ -210,7 +210,7 @@
       <div class="font-semibold text-balance" x-text="heading"></div>
       <template x-if="led">
         <div class="text-xs flex flex-wrap gap-x-2 opacity-80 text-pretty">
-          <a class="link link-hover font-mono" :href="led.source.url || '#'" target="_blank" rel="noopener" x-text="where"></a>
+          <a class="link font-mono" :href="led.source.url || '#'" target="_blank" rel="noopener" x-text="where"></a>
           <span class="opacity-50 hidden lg:inline" x-show="!!last">·</span>
           <span class="font-mono" x-show="!!last" x-text="last && (led.source.words + ' → ' + last.words + ' words (' + pct(last.words) + ') in ' + R + ' rounds of model readers · ' + last.core_carried + ' of ' + named(R - 1) + ' must-keep facts kept, ' + (named(R - 1) - last.core_total) + ' voted out as repeats')"></span>
         </div>
@@ -266,7 +266,7 @@
             <template x-if="h && !marks"><div :class="mdClass" class="text-base! leading-7 [&_code]:text-[0.9em]! [&_code]:px-[0.15em]! [&_h1]:text-xl! [&_h2]:text-lg! [&_h3]:text-base! [&_h1]:text-balance [&_h2]:text-balance [&_h3]:text-balance [&_p]:text-pretty [&_li]:text-pretty" x-html="resHtml[n]"></div></template>
             <template x-if="h && marks">
               <div class="whitespace-pre-wrap break-words leading-7 text-pretty"><template x-for="(s, i) in dsegs" :key="i"><span
-                :class="s.k === 'add' ? 'underline decoration-2 underline-offset-4 decoration-base-content/40' : s.k === 'del' ? 'line-through opacity-40' : ''" x-text="s.t"></span></template></div>
+                :class="s.k === 'add' ? 'bg-base-200 rounded underline decoration-2 underline-offset-4 decoration-base-content/50' : s.k === 'del' ? 'line-through opacity-40 mr-1' : ''" x-text="s.t"></span></template></div>
             </template>
           </section>
         </div>
@@ -357,7 +357,7 @@
                   </template>
                   <template x-if="e.tag !== 'word'"><div class="text-pretty whitespace-pre-wrap break-words" x-html="inline(e.text)"></div></template>
                   <template x-for="(v, j) in downs(e)" :key="j">
-                    <div class="opacity-70 text-pretty"><span class="text-error font-mono text-xs" x-text="'−1 from ' + v.role"></span> <span x-text="deid(v.why, v.round)"></span></div>
+                    <div class="opacity-70 text-pretty"><span class="text-error font-mono text-xs" x-text="'voted down by ' + v.role + ':'"></span> <span x-text="deid(v.why, v.round)"></span></div>
                   </template>
                 </div>
               </template>
