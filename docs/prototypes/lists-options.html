@@ -1,0 +1,579 @@
+<!doctype html>
+<html lang="en" data-theme="winter">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lists options</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script type="module">
+  // A lineup (skills/design-sprint, "Comparing working options"): two layouts
+  // of the app's Lists view, built 2026-10-29 to replace the stack of seven
+  // fixed-share sections with one list at a time. Each option is drawn in full
+  // over the reader's real lists, read from the registry with the token this
+  // browser holds, under a thin strip that switches between them; #v=a or #v=b
+  // addresses one and #tab= the open list. The look panel, folded to one row,
+  // carries a step per option, so a note can be left on either. Not app code:
+  // the Lists sections' markup (lib/alpineComponents/estate.js) is copied with
+  // its writes left out, so adding, checking off and editing do nothing here.
+  await import('https://mehrlander.github.io/web-tools/lib/entry.js');
+  for (const k of ['gh-auth.js', 'kits/lists.js', 'kits/notes.js', 'kits/errands.js', 'kits/title-tip.js', 'kits/land.js', 'kits/look.js']) await gh.load(k);
+  await gh.load('alpine-bundle.js');
+</script>
+<script>
+  // ── Data and state ───────────────────────────────────────────────────────
+  const REG = 'mehrlander/web-tools-private';
+  const OPTIONS = [
+    { v: 'a', mark: 'A', title: 'Pill row',
+      say: 'A · Pill row. Every list in one row of pills, each with its icon, name and count, and the add form beside them. The open list fills the pane.' },
+    { v: 'b', mark: 'B', title: 'List rail',
+      say: 'B · List rail. A column of every list beside the open one; on a phone the column folds into one row naming the open list, which opens a menu of the rest.' },
+  ];
+  // The built-in lists in tab order, keyed by their file names, as the app's
+  // &tab= would address them. Ping and Note are stores of their own.
+  const BUILT = [
+    { key: 'to-do', title: 'To-do', icon: 'list-checks', path: 'lists/to-do.json' },
+    { key: 'jot', title: 'Jot', icon: 'lightbulb', path: 'lists/jot.json' },
+    { key: 'pin', title: 'Pin', icon: 'push-pin', path: 'lists/pin.json' },
+    { key: 'snag', title: 'Snag', icon: 'warning-diamond', path: 'lists/snag.json' },
+    { key: 'ping', title: 'Ping', icon: 'sparkle', path: 'errands/' },
+    { key: 'note', title: 'Note', icon: 'chat-circle-text', path: 'notes/notes.jsonl' },
+  ];
+  const DUE = {
+    days(due) {
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(due || ''));
+      if (!m) return null;
+      const now = new Date(), then = new Date(+m[1], +m[2] - 1, +m[3]);
+      return Math.round((then - new Date(now.getFullYear(), now.getMonth(), now.getDate())) / 86400000);
+    },
+    state(due) { const n = DUE.days(due); return n === null ? '' : n < 0 ? 'late' : n === 0 ? 'today' : n <= 3 ? 'soon' : 'later'; },
+    label(due) {
+      const n = DUE.days(due);
+      if (n === null) return '';
+      if (n < 0) return -n + 'd late';
+      if (n === 0) return 'today';
+      if (n === 1) return 'tomorrow';
+      if (n <= 6) return n + 'd';
+      const [y, mo, d] = String(due).split('-').map(Number);
+      return new Date(y, mo - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    },
+  };
+  const hashGet = k => new URLSearchParams(location.hash.slice(1)).get(k);
+
+  window.listsLineup = () => ({
+    OPTIONS, REG,
+    v: (hashGet('v') || (hashGet('stop') === '2' ? 'b' : 'a')).toLowerCase() === 'b' ? 'b' : 'a',
+    tab: hashGet('tab') || 'to-do',
+    loading: true, authed: true,
+    todo: [], jot: [], pin: [], snag: [], created: [], notes: [], pings: [], daemon: null,
+    todoDraft: '', jotDraft: '', jotKind: '', pinDraft: '', pinTitle: '', snagDraft: '', pingDraft: '',
+    noteAbout: '', noteDraft: '', createdDraft: '', createdNote: '',
+    showDone: false, snagOpen: '', menu: false, optMenu: false,
+
+    async init() {
+      await this.load();
+      this.loading = false;
+      if (!this.lists.some(l => l.key === this.tab)) this.tab = 'to-do';
+      this.sync();
+      addEventListener('look:step', e => { const o = OPTIONS[e.detail?.i]; if (o && o.v !== this.v) { this.v = o.v; this.menu = false; this.sync(); } });
+      window.Look?.start(OPTIONS.map(o => ({ say: o.say, mark: o.mark })), { folded: true, from: this.v === 'b' ? 1 : 0 });
+    },
+    async load() {
+      const reg = new window.GH({ repo: REG });
+      const bg = new window.GH({ repo: REG, ref: window.Errands.BRANCH });
+      const read = p => window.Lists.read(reg, p).then(r => r.items).catch(() => null);
+      const [todo, jot, pin, snag] = await Promise.all(BUILT.slice(0, 4).map(b => read(b.path)));
+      this.authed = [todo, jot, pin, snag].some(x => x && x.length);
+      Object.assign(this, { todo: todo || [], jot: jot || [], pin: pin || [], snag: snag || [] });
+      [this.created, this.notes] = await Promise.all([
+        window.Lists.discover(reg).catch(() => []),
+        window.Notes.load(reg).catch(() => []),
+      ]);
+      await this.loadPings(bg);
+    },
+    // The newest few pings with their stage, as loadPings reads them, and the
+    // daemon's reading from its topics rollup.
+    async loadPings(bg) {
+      const E = window.Errands;
+      const names = dir => bg.ls(dir).then(fs => fs.filter(f => f.type === 'file').map(f => f.name)).catch(() => []);
+      const [requests, claims, results] = await Promise.all([E.DIR.req, 'errands/claims', E.DIR.res].map(names));
+      this.pings = (await Promise.all(E.pingNames(requests).slice(0, 8).map(async name => {
+        try {
+          const r = JSON.parse((await bg.get(E.DIR.req + '/' + name)).text);
+          const p = { id: name.slice(0, -5), prompt: String(r?.run?.args?.prompt ?? ''), createdAt: r.createdAt || '', stage: E.pingStage(name, claims, results), open: false };
+          if (p.stage !== 'answered') return p;
+          const res = JSON.parse((await bg.get(E.DIR.res + '/' + name)).text);
+          return { ...p, ok: res.ok !== false, at: res.closedAt || '', reply: String(res?.data?.reply ?? res.message ?? '') };
+        } catch { return null; }
+      }))).filter(Boolean);
+      try {
+        const roll = JSON.parse((await bg.get('state/session-topics.json')).text);
+        const lastTopicsAt = Object.values(roll?.sessions || {}).map(r => r.analyzed_at || '').filter(Boolean).sort().pop() || '';
+        this.daemon = E.daemonHealth({ lastTopicsAt, pings: this.pings });
+      } catch { this.daemon = E.daemonHealth({ pings: this.pings }); }
+    },
+
+    // ── The tabs ─────────────────────────────────────────────────────────────
+    get lists() {
+      const n = {
+        'to-do': this.todoOpen.length, jot: this.jot.length, pin: this.pin.length, snag: this.snag.length,
+        ping: 0, note: this.noteRows.length,
+      };
+      return [
+        ...BUILT.map(b => ({ ...b, count: n[b.key], dot: b.key === 'ping' ? this.daemonDot : '', hot: b.key === 'to-do' ? this.todoHot.length : 0 })),
+        ...this.created.map((l, i) => ({ key: l.path.slice(6, -5), title: l.title, icon: l.icon, path: l.path,
+                                         count: l.items.length, created: true, first: i === 0 })),
+      ];
+    },
+    get cur() { return this.lists.find(l => l.key === this.tab) || this.lists[0]; },
+    get createdList() { return this.created.find(l => l.path === this.cur.path) || null; },
+    pick(key) { this.tab = key; this.menu = false; this.sync(); },
+    choose(v) { const i = OPTIONS.findIndex(o => o.v === v); this.v = v; this.optMenu = false; this.menu = false; this.sync(); window.Look?.go?.(i); },
+    sync() {
+      try { history.replaceState(null, '', '#v=' + this.v + (this.tab !== 'to-do' ? '&tab=' + this.tab : '') + '&stop=' + (this.v === 'b' ? 2 : 1)); } catch {}
+    },
+    listUrl(path) { return 'https://github.com/' + REG + '/blob/main/' + path; },
+
+    // ── Each list's reading, as the app's getters have it ───────────────────
+    isHot(it) { const s = DUE.state(it.due); return !!it.urgent || s === 'late' || s === 'today'; },
+    dueLabel: DUE.label,
+    dueClass(due) { const s = DUE.state(due); return s === 'late' || s === 'today' ? 'badge-error' : s === 'soon' ? 'badge-warning' : 'badge-ghost'; },
+    get todoOpen() {
+      const key = it => { const n = DUE.days(it.due); return n === null ? Infinity : n; };
+      const band = it => this.isHot(it) ? 0 : (it.due ? 1 : 2);
+      return this.todo.filter(it => !it.done).map((it, i) => ({ it, i }))
+        .sort((a, b) => band(a.it) - band(b.it) || key(a.it) - key(b.it) || a.i - b.i).map(x => x.it);
+    },
+    get todoHot() { return this.todoOpen.filter(it => this.isHot(it)); },
+    get todoDone() { return this.todo.filter(it => it.done).sort((a, b) => (b.done_at || '').localeCompare(a.done_at || '')); },
+    get jotPile() { return [...this.jot].sort((a, b) => (b.created_at || '').localeCompare(a.created_at || '')); },
+    get jotKinds() {
+      const n = { snag: 0 };
+      for (const it of this.jot) if (it.kind) n[it.kind] = (n[it.kind] || 0) + 1;
+      return Object.keys(n).sort((a, b) => (n[b] - n[a]) || a.localeCompare(b));
+    },
+    get pinGroups() {
+      const groups = [], at = {};
+      for (const it of this.pin) {
+        const label = it.group || String(it.target || '').split(':')[0].split('@')[0].split('/').pop() || 'pins';
+        if (!(label in at)) { at[label] = groups.length; groups.push({ label, items: [] }); }
+        groups[at[label]].items.push(it);
+      }
+      return groups;
+    },
+    snagLast(it) { return (it.seen || []).at(-1) || (it.created_at || '').slice(0, 10); },
+    get snagRepos() { return [...new Set(this.snag.map(it => it.repo).filter(Boolean))].sort(); },
+    get snagRows() {
+      const words = this.snagDraft.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+      const hit = it => words.every(w => (it.id + ' ' + it.text + ' ' + (it.note || '')).toLowerCase().includes(w));
+      return this.snag.filter(it => !words.length || hit(it))
+        .sort((a, b) => this.snagLast(b).localeCompare(this.snagLast(a)) || (b.created_at || '').localeCompare(a.created_at || ''));
+    },
+    snagHtml(note) {
+      const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+      return String(note || '').split(/\n{2,}/).map(p => '<p class="mb-2 last:mb-0 whitespace-pre-line">'
+        + esc(p).replace(/`([^`]+)`/g, '<code class="font-mono text-sm">$1</code>').replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>') + '</p>').join('');
+    },
+    get noteRows() {
+      if (!window.Notes) return [];
+      const pre = this.noteAbout.trim();
+      const flat = (n, depth) => [{ ...n, depth }, ...n.replies.flatMap(r => flat(r, depth + 1))];
+      return window.Notes.threads(this.notes, a => a.startsWith(pre)).flatMap(t => flat(t, 0));
+    },
+    aboutLabel(about) {
+      const m = String(about).match(/^[\w.-]+\/[\w.-]+:lists\/([\w-]+)\.json#(.+)$/);
+      if (!m) return about;
+      const items = { 'to-do': this.todo, jot: this.jot, snag: this.snag, pin: this.pin }[m[1]]
+        || this.created.find(l => l.path === 'lists/' + m[1] + '.json')?.items || [];
+      const it = items.find(x => x.id === m[2]);
+      const t = it ? String(it.text || it.title || '') : m[2];
+      return m[1] + ': ' + (t.length > 50 ? t.slice(0, 50) + '…' : t);
+    },
+    get daemonDot() {
+      const h = this.daemon;
+      if (!h) return '';
+      return h.level === 'up' ? 'status-success' : h.level === 'checking' ? 'status-info'
+        : h.level === 'behind' ? (h.why === 'check' ? 'status-error' : 'status-warning') : 'bg-base-content/30';
+    },
+    get daemonText() {
+      const h = this.daemon;
+      if (!h) return '';
+      const ago = h.at ? this.ago(h.at) : '';
+      if (h.level === 'up') return ago === 'now' ? 'Daemon active just now' : 'Daemon active ' + ago + ' ago';
+      if (h.level === 'quiet') return 'Daemon quiet for ' + ago;
+      if (h.level === 'unknown') return 'Daemon not heard from yet';
+      if (h.why === 'ping') return 'Daemon behind: a Ping has waited ' + ago;
+      return 'Daemon behind: sessions waiting ' + ago;
+    },
+    ago(iso) { return (window.GH?.ago?.(iso) || '').replace(' ago', '').replace('just now', 'now'); },
+  });
+</script>
+</head>
+<body class="flex h-dvh flex-col bg-base-100 text-base-content" x-data="listsLineup()">
+
+  <!-- ── The lineup's strip: its mark opens the options, the pills switch ── -->
+  <div class="relative flex shrink-0 items-center gap-1.5 border-b border-warning/40 bg-warning/10 px-2 py-1.5 text-sm">
+    <button type="button" @click="optMenu = !optMenu" @click.outside="optMenu = false" aria-label="The options"
+            class="shrink-0 rounded-md p-1 text-warning-content/80 hover:bg-warning/30">
+      <!-- The lineup's mark, fanned prints: three photographs, the front one
+           showing a hill under the sun. Drawn to docs/favicons' rules. -->
+      <svg viewBox="1.5 1.75 29 29" class="size-5" fill="currentColor" aria-hidden="true">
+        <desc>Three photographs fanned behind one another, the front one showing a hill under the sun</desc>
+        <mask id="front-gap"><rect width="32" height="32" fill="#fff"/><rect x="8.5" y="6.5" width="15" height="18" rx="2.2" fill="#000"/></mask>
+        <g mask="url(#front-gap)" opacity=".55">
+          <rect x="11" y="9" width="10" height="13" rx="1.3" transform="rotate(-32 16 27)"/>
+          <rect x="11" y="9" width="10" height="13" rx="1.3" transform="rotate(32 16 27)"/>
+        </g>
+        <path fill-rule="evenodd" d="M12.3 9h7.4a1.3 1.3 0 0 1 1.3 1.3v10.4a1.3 1.3 0 0 1-1.3 1.3h-7.4a1.3 1.3 0 0 1-1.3-1.3V10.3A1.3 1.3 0 0 1 12.3 9Zm.2 1.5v10h7v-10Z"/>
+        <path d="M12.5 20.5V18l2.31-3.3 1.82 2.4 1.26-1.5 1.61 2.2v2.7Z"/>
+        <circle cx="17.4" cy="13.1" r=".98"/>
+      </svg>
+    </button>
+    <template x-for="o in OPTIONS" :key="o.v">
+      <button type="button" @click="choose(o.v)"
+              class="shrink-0 rounded-full border px-2.5 py-0.5 transition-colors"
+              :class="v === o.v ? 'border-warning bg-warning/40 font-semibold' : 'border-base-300 bg-base-100 text-base-content/70 hover:text-base-content'"
+              x-text="o.mark + ' · ' + o.title"></button>
+    </template>
+    <div x-show="optMenu" x-transition.opacity.duration.100ms
+         class="absolute left-2 top-full z-30 mt-1 w-[min(24rem,calc(100vw-1rem))] rounded-lg border border-base-300 bg-base-100 py-1 shadow-lg">
+      <template x-for="o in OPTIONS" :key="o.v">
+        <button type="button" @click="choose(o.v)" class="flex w-full items-start gap-2.5 px-3 py-2 text-left hover:bg-base-200"
+                :class="v === o.v && 'bg-warning/15'">
+          <span class="flex size-6 shrink-0 items-center justify-center rounded-full bg-warning text-sm font-bold text-warning-content" x-text="o.mark"></span>
+          <span class="text-base" x-text="o.say.slice(4)"></span>
+        </button>
+      </template>
+    </div>
+  </div>
+
+  <!-- ── The pane, with the app's estate padding (listsFill) ────────────── -->
+  <main class="flex min-h-0 flex-1 flex-col px-4 pt-4 pb-4 lg:px-6 lg:pt-6">
+    <p x-show="!loading && !authed" class="text-base text-base-content/60">Set a token (Repos, top right) to see your lists.</p>
+    <div x-show="loading" class="flex justify-center py-10"><span class="loading loading-dots loading-md opacity-30"></span></div>
+
+    <div x-show="!loading && authed" class="flex min-h-0 flex-1 flex-col"
+         :class="v === 'b' && 'lg:grid lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-x-6'">
+
+      <!-- ── B · the rail, at lg and up ───────────────────────────────── -->
+      <nav x-show="v === 'b'" aria-label="Lists" class="hidden min-h-0 flex-col gap-0.5 overflow-y-auto border-r border-base-300/60 pr-3 lg:flex">
+        <template x-for="l in lists" :key="l.key">
+          <div class="contents">
+            <div x-show="l.first" class="mt-4 mb-1 px-2.5 text-sm font-medium uppercase tracking-wide text-base-content/40">Your lists</div>
+            <button type="button" @click="pick(l.key)" :aria-current="tab === l.key" :data-title-tip="l.title"
+                    class="flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left text-base transition-colors"
+                    :class="tab === l.key ? 'bg-base-200 font-medium text-primary' : 'text-base-content/70 hover:bg-base-200 hover:text-base-content'">
+              <i class="ph text-lg" :class="'ph-' + l.icon + (l.key === 'ping' ? ' text-secondary' : '')"></i>
+              <span class="min-w-0 flex-1 truncate" x-text="l.title"></span>
+              <span x-show="l.hot" class="badge badge-error badge-sm gap-1 font-mono"><i class="ph-fill ph-warning text-xs"></i><span x-text="l.hot"></span></span>
+              <span x-show="l.dot" class="status status-md" :class="l.dot"></span>
+              <span x-show="l.count" class="font-mono text-sm text-base-content/40" x-text="l.count"></span>
+            </button>
+          </div>
+        </template>
+        <button type="button" class="mt-1 flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left text-base text-base-content/50 hover:bg-base-200 hover:text-base-content">
+          <i class="ph ph-plus text-lg"></i><span>New list</span></button>
+      </nav>
+
+      <section class="flex min-h-0 flex-1 flex-col">
+        <!-- ── A · every list as a pill, on a row of its own, so the add form
+             below keeps one place whichever list is open ─────────────────── -->
+        <div x-show="v === 'a'" class="mb-2.5">
+          <div class="flex w-fit flex-wrap items-center gap-0.5 rounded-lg bg-base-200/60 p-0.5" role="tablist">
+            <template x-for="l in lists" :key="l.key">
+              <div class="contents">
+                <span x-show="l.first" class="mx-1 h-5 w-px bg-base-300"></span>
+                <button role="tab" type="button" @click="pick(l.key)" :aria-selected="tab === l.key"
+                        :data-title-tip="l.title"
+                        class="flex items-center gap-1.5 rounded-md px-2 py-1 text-base font-medium transition-colors"
+                        :class="tab === l.key ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'">
+                  <i class="ph text-lg" :class="'ph-' + l.icon + (l.key === 'ping' && tab !== l.key ? ' text-secondary' : '')"></i>
+                  <span :class="tab !== l.key && 'max-sm:hidden'" x-text="l.title"></span>
+                  <span x-show="l.dot" class="status status-sm" :class="l.dot"></span>
+                  <span x-show="l.count" class="font-mono text-sm opacity-60" :class="l.hot && 'text-error opacity-100'" x-text="l.count"></span>
+                </button>
+              </div>
+            </template>
+            <button type="button" data-title-tip="Make a new list"
+                    class="flex items-center rounded-md px-2 py-1 text-base text-base-content/60 hover:text-base-content">
+              <i class="ph ph-plus text-lg"></i></button>
+          </div>
+        </div>
+
+        <!-- ── The open list's row: B's title, the list's own marks and its
+             add form, which wraps onto a line of its own when the row is
+             narrow, as every Lists heading does today. A has no title here,
+             so its form leads and the marks follow it. ──────────────────── -->
+        <div class="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1.5">
+
+          <!-- B · the open list's title; below lg, the menu of every list -->
+          <div x-show="v === 'b'" class="relative flex items-center gap-2">
+            <button type="button" @click="menu = !menu" @click.outside="menu = false"
+                    class="flex items-center gap-2 rounded-lg py-1 pr-1.5 text-base font-semibold lg:pointer-events-none">
+              <i class="ph text-lg" :class="'ph-' + cur.icon + (cur.key === 'ping' ? ' text-secondary' : ' text-base-content/50')"></i>
+              <span x-text="cur.title"></span>
+              <span x-show="cur.count" class="font-mono text-sm font-normal text-base-content/40" x-text="cur.count"></span>
+              <i class="ph text-base text-base-content/50 lg:hidden" :class="menu ? 'ph-caret-up' : 'ph-caret-down'"></i>
+            </button>
+            <div x-show="menu" x-transition.opacity.duration.100ms
+                 class="absolute left-0 top-full z-20 mt-1 flex w-72 max-w-[calc(100vw-2rem)] flex-col gap-0.5 rounded-lg border border-base-300 bg-base-100 p-1 shadow-lg lg:hidden">
+              <template x-for="l in lists" :key="l.key">
+                <div class="contents">
+                  <div x-show="l.first" class="mx-2.5 my-1 border-t border-base-300/60"></div>
+                  <button type="button" @click="pick(l.key)"
+                          class="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-base"
+                          :class="tab === l.key ? 'bg-base-200 font-medium text-primary' : 'text-base-content/80 hover:bg-base-200'">
+                    <i class="ph text-lg" :class="'ph-' + l.icon + (l.key === 'ping' ? ' text-secondary' : '')"></i>
+                    <span class="min-w-0 flex-1 truncate" x-text="l.title"></span>
+                    <span x-show="l.hot" class="badge badge-error badge-sm gap-1 font-mono"><i class="ph-fill ph-warning text-xs"></i><span x-text="l.hot"></span></span>
+                    <span x-show="l.dot" class="status status-md" :class="l.dot"></span>
+                    <span x-show="l.count" class="font-mono text-sm text-base-content/40" x-text="l.count"></span>
+                  </button>
+                </div>
+              </template>
+              <div class="mx-2.5 my-1 border-t border-base-300/60"></div>
+              <button type="button" class="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-base text-base-content/60 hover:bg-base-200">
+                <i class="ph ph-plus text-lg"></i><span>New list</span></button>
+            </div>
+          </div>
+
+          <!-- The open list's own marks: where it is stored, To-do's urgent
+               count, Ping's daemon. Last in A, where the form leads. -->
+          <div class="flex min-w-0 items-center gap-2" :class="v === 'a' && 'order-last'">
+            <a :href="listUrl(cur.path)" target="_blank" rel="noopener" :data-title-tip="cur.title + ' is stored at ' + cur.path + ' in ' + REG"
+               class="shrink-0 leading-none text-base-content/30 transition-colors hover:text-primary">
+              <i class="ph ph-github-logo text-base"></i></a>
+            <span x-show="tab === 'to-do' && todoHot.length" class="badge badge-error badge-sm gap-1 font-mono"
+                  :data-title-tip="todoHot.length + ' needing attention (flagged urgent, or due today or overdue)'">
+              <i class="ph-fill ph-warning text-xs"></i><span x-text="todoHot.length"></span></span>
+            <span x-show="tab === 'ping' && daemon" class="flex min-w-0 items-center gap-1.5 text-sm text-base-content/60">
+              <i class="ph ph-laptop shrink-0 text-base"></i>
+              <span class="status status-md shrink-0" :class="daemonDot"></span>
+              <span class="truncate" x-text="daemonText"></span>
+            </span>
+            <template x-if="createdList">
+              <button type="button" data-title-tip="Rename the list, change its icon, or turn check-off on or off"
+                      class="shrink-0 p-1 leading-none text-base-content/30 transition-colors hover:text-primary">
+                <i class="ph ph-sliders-horizontal text-base"></i></button>
+            </template>
+          </div>
+          <div x-show="v === 'b'" class="grow"></div>
+
+          <!-- One add form, the open list's -->
+          <form x-show="tab === 'to-do'" @submit.prevent class="flex min-w-[14rem] max-w-md flex-1 gap-2">
+            <input x-model="todoDraft" placeholder="Add a to-do…" autocomplete="off" class="input input-bordered input-sm min-w-0 flex-1">
+            <button type="submit" class="btn btn-primary btn-sm shrink-0 gap-1" :disabled="!todoDraft.trim()"><i class="ph ph-plus"></i></button>
+          </form>
+          <form x-show="tab === 'jot'" @submit.prevent class="flex min-w-[14rem] max-w-xl flex-1 flex-wrap items-center gap-x-2 gap-y-1">
+            <div class="flex flex-wrap items-center gap-1">
+              <span class="text-sm text-base-content/40">kind</span>
+              <template x-for="k in jotKinds" :key="k">
+                <button type="button" @click="jotKind = jotKind === k ? '' : k" class="badge badge-sm cursor-pointer font-mono"
+                        :class="jotKind === k ? 'badge-primary' : 'badge-ghost'" x-text="k"></button>
+              </template>
+              <button type="button" class="badge badge-sm badge-ghost cursor-pointer"><i class="ph ph-plus text-xs"></i></button>
+            </div>
+            <div class="flex min-w-[10rem] flex-1 gap-2">
+              <input x-model="jotDraft" placeholder="Jot an idea…" autocomplete="off" class="input input-bordered input-sm min-w-0 flex-1">
+              <button type="submit" class="btn btn-primary btn-sm shrink-0 gap-1" :disabled="!jotDraft.trim()"><i class="ph ph-plus"></i></button>
+            </div>
+          </form>
+          <form x-show="tab === 'pin'" @submit.prevent class="flex min-w-[20rem] max-w-md flex-1 gap-2">
+            <input x-model="pinDraft" placeholder="Pin a file: owner/repo:path" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off"
+                   class="input input-bordered input-sm min-w-[9rem] flex-1 font-mono">
+            <button type="button" class="btn btn-ghost btn-sm btn-square shrink-0 border border-base-300"><i class="ph ph-folder-simple"></i></button>
+            <input x-model="pinTitle" placeholder="title" autocomplete="off" class="input input-bordered input-sm w-24 min-w-0">
+            <button type="submit" class="btn btn-primary btn-sm shrink-0 gap-1" :disabled="!pinDraft.trim()"><i class="ph ph-plus"></i></button>
+          </form>
+          <form x-show="tab === 'snag'" @submit.prevent class="flex min-w-[14rem] max-w-xl flex-1 flex-wrap items-center gap-x-2 gap-y-1">
+            <select x-show="snagRepos.length > 1" class="select select-bordered select-sm w-auto max-w-[10rem] font-mono">
+              <option value="">default repo</option>
+              <template x-for="r in snagRepos" :key="r"><option :value="r" x-text="r.split('/').pop()"></option></template>
+            </select>
+            <div class="flex min-w-[10rem] flex-1 gap-2">
+              <input x-model="snagDraft" placeholder="What tripped you?" autocomplete="off" @keydown.escape.prevent="snagDraft = ''"
+                     class="input input-bordered input-sm min-w-0 flex-1">
+              <button type="submit" class="btn btn-primary btn-sm shrink-0 gap-1" :disabled="!snagDraft.trim()"><i class="ph ph-plus"></i></button>
+            </div>
+          </form>
+          <form x-show="tab === 'ping'" @submit.prevent class="flex min-w-[14rem] max-w-md flex-1 items-center gap-2">
+            <input x-model="pingDraft" placeholder="Ping Gemini…" autocomplete="off" class="input input-bordered input-sm min-w-0 flex-1 text-base">
+            <button type="submit" class="btn btn-secondary btn-sm shrink-0 gap-1" :disabled="!pingDraft.trim()"><i class="ph ph-paper-plane-tilt"></i></button>
+          </form>
+          <form x-show="tab === 'note'" @submit.prevent class="flex min-w-[14rem] max-w-xl flex-1 flex-wrap items-center gap-2">
+            <label class="input input-bordered input-sm min-w-[10rem] flex-1 font-mono">
+              <span class="text-base-content/40">about</span>
+              <input x-model="noteAbout" placeholder="owner/repo…" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off">
+              <button type="button" x-show="noteAbout" @click="noteAbout = ''"><i class="ph ph-x text-base-content/40"></i></button>
+            </label>
+            <div class="flex min-w-[10rem] flex-1 gap-2">
+              <input x-model="noteDraft" placeholder="Note…" autocomplete="off" class="input input-bordered input-sm min-w-0 flex-1">
+              <button type="submit" class="btn btn-primary btn-sm shrink-0 gap-1" :disabled="!noteDraft.trim()"><i class="ph ph-plus"></i></button>
+            </div>
+          </form>
+          <form x-show="createdList" @submit.prevent class="flex min-w-[14rem] max-w-xl flex-1 gap-2">
+            <input x-model="createdDraft" :placeholder="'Add to ' + cur.title + '…'" autocomplete="off" class="input input-bordered input-sm min-w-0 flex-1">
+            <input x-model="createdNote" placeholder="note" autocomplete="off" class="input input-bordered input-sm w-28 min-w-0">
+            <button type="submit" class="btn btn-primary btn-sm shrink-0 gap-1" :disabled="!createdDraft.trim()"><i class="ph ph-plus"></i></button>
+          </form>
+        </div>
+
+        <!-- ── The open list, scrolling inside itself ─────────────────────── -->
+        <div class="-mx-1 min-h-0 flex-1 overflow-y-auto px-1">
+
+          <!-- To-do -->
+          <div x-show="tab === 'to-do'" class="flex flex-col gap-1">
+            <template x-for="it in todoOpen" :key="it.id">
+              <div class="group flex items-center gap-2.5 rounded-lg border-l-4 px-2 py-1.5 transition-colors duration-75"
+                   :class="isHot(it) ? 'border-error bg-error/10 hover:bg-red-100' : 'border-transparent hover:bg-base-200'">
+                <label class="-mx-0.5 -my-2 flex shrink-0 cursor-pointer items-center rounded-md p-2"><input type="checkbox" class="checkbox checkbox-sm" disabled></label>
+                <span class="min-w-0 flex-1 text-base" :class="isHot(it) && 'font-medium'" x-text="it.text"></span>
+                <span class="relative -mx-0.5 -my-2 flex shrink-0 items-center rounded-md p-2">
+                  <span x-show="it.due" class="badge badge-sm whitespace-nowrap font-mono" :class="dueClass(it.due)" x-text="dueLabel(it.due)"></span>
+                  <i x-show="!it.due" class="ph ph-calendar-blank text-base-content/20"></i>
+                </span>
+                <span class="-mx-0.5 -my-2 shrink-0 rounded-md p-2" :class="it.urgent ? 'text-error' : 'text-base-content/20'"><i :class="it.urgent ? 'ph-fill ph-flag' : 'ph ph-flag'"></i></span>
+                <span class="-mx-0.5 -my-2 shrink-0 rounded-md p-2 text-base-content/30 opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100"><i class="ph ph-pencil-simple"></i></span>
+                <span class="-mx-0.5 -my-2 shrink-0 rounded-md p-2 text-base-content/30 opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100"><i class="ph ph-trash"></i></span>
+              </div>
+            </template>
+            <p x-show="!todoOpen.length && !todoDone.length" class="px-2 py-6 text-center text-base italic text-base-content/40">Nothing on the list. Add something above.</p>
+            <div x-show="todoDone.length" class="mt-3 border-t border-base-300/60 pt-2">
+              <button @click="showDone = !showDone" class="mb-1 flex items-center gap-1 px-2 text-base text-base-content/50 hover:text-base-content/80">
+                <i class="ph text-sm" :class="showDone ? 'ph-caret-down' : 'ph-caret-right'"></i><span x-text="todoDone.length + ' done'"></span></button>
+              <template x-if="showDone">
+                <div class="flex flex-col gap-1">
+                  <template x-for="it in todoDone" :key="it.id">
+                    <div class="flex items-center gap-2.5 rounded-lg border-l-4 border-transparent px-2 py-1.5 hover:bg-base-200">
+                      <label class="-mx-0.5 -my-2 flex shrink-0 items-center rounded-md p-2"><input type="checkbox" class="checkbox checkbox-sm" checked disabled></label>
+                      <span class="flex-1 text-base text-base-content/40 line-through" x-text="it.text"></span>
+                    </div>
+                  </template>
+                </div>
+              </template>
+            </div>
+          </div>
+
+          <!-- Jot -->
+          <div x-show="tab === 'jot'" class="flex flex-col gap-1">
+            <template x-for="it in jotPile" :key="it.id">
+              <div class="group flex items-start gap-2.5 rounded-lg px-2 py-1.5 transition-colors duration-75 hover:bg-base-200">
+                <i class="ph ph-lightbulb mt-1 shrink-0 text-base-content/30 group-hover:text-base-content/60"></i>
+                <span x-show="it.kind" class="badge badge-ghost badge-sm mt-0.5 shrink-0 font-mono" x-text="it.kind"></span>
+                <span class="flex-1 text-base" x-text="it.text"></span>
+                <span class="mt-0.5 shrink-0 text-sm text-base-content/30" x-text="ago(it.created_at)"></span>
+                <span class="-mx-0.5 -my-2 shrink-0 rounded-md p-2 text-base-content/30 opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100"><i class="ph ph-list-checks"></i></span>
+                <span class="-mx-0.5 -my-2 shrink-0 rounded-md p-2 text-base-content/30 opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100"><i class="ph ph-trash"></i></span>
+              </div>
+            </template>
+            <p x-show="!jotPile.length" class="px-2 py-6 text-center text-base italic text-base-content/40">Nothing in the pile. Jot an idea above.</p>
+          </div>
+
+          <!-- Pin -->
+          <div x-show="tab === 'pin'">
+            <template x-for="g in pinGroups" :key="g.label">
+              <div class="mb-1.5">
+                <div class="mb-0.5 px-2 text-sm font-medium uppercase tracking-wide text-base-content/40" x-text="g.label"></div>
+                <div class="grid grid-cols-[repeat(auto-fill,minmax(20rem,1fr))] gap-x-4 gap-y-0.5">
+                  <template x-for="it in g.items" :key="it.id">
+                    <div class="group flex min-w-0 items-start gap-2 rounded-lg px-2 py-1 transition-colors duration-75 hover:bg-base-200">
+                      <i class="ph ph-push-pin mt-0.5 shrink-0 text-base-content/30 group-hover:text-base-content/60"></i>
+                      <div class="min-w-0 flex-1">
+                        <span class="block w-full break-words text-left text-base line-clamp-2" :data-title-tip="it.target" x-text="it.title || it.target"></span>
+                        <p x-show="it.note" class="break-words text-sm text-base-content/40 line-clamp-2" x-text="it.note"></p>
+                      </div>
+                    </div>
+                  </template>
+                </div>
+              </div>
+            </template>
+            <p x-show="!pin.length" class="px-2 py-2 text-base italic text-base-content/40">Nothing pinned. Paste an address above to keep a file at hand.</p>
+          </div>
+
+          <!-- Snag -->
+          <div x-show="tab === 'snag'" class="flex flex-col gap-1">
+            <template x-for="it in snagRows" :key="it.id">
+              <div class="group rounded-lg px-2 py-1.5 transition-colors duration-75 hover:bg-base-200">
+                <div class="flex flex-wrap items-start gap-x-2.5 gap-y-0.5">
+                  <button type="button" @click="snagOpen = snagOpen === it.id ? '' : it.id" class="mt-1 shrink-0 text-base-content/30 hover:text-primary">
+                    <i class="ph" :class="snagOpen === it.id ? 'ph-caret-down' : 'ph-caret-right'"></i></button>
+                  <span @click="snagOpen = snagOpen === it.id ? '' : it.id" class="min-w-[12rem] flex-1 cursor-pointer text-base" x-text="it.text"></span>
+                  <div class="ml-auto flex shrink-0 items-start gap-2.5">
+                    <span x-show="(it.seen || []).length > 1" class="badge badge-warning badge-sm mt-0.5 shrink-0 font-mono" x-text="'×' + (it.seen || []).length"></span>
+                    <span x-show="it.repo && snagRepos.length > 1" class="badge badge-ghost badge-sm mt-0.5 shrink-0 font-mono" x-text="(it.repo || '').split('/').pop()"></span>
+                    <span class="mt-0.5 shrink-0 text-sm text-base-content/30" x-text="ago(snagLast(it))"></span>
+                  </div>
+                </div>
+                <template x-if="snagOpen === it.id">
+                  <div class="pt-1 pr-2 pb-1 pl-7 text-sm leading-relaxed text-base-content/80"><div x-show="it.note" x-html="snagHtml(it.note)"></div></div>
+                </template>
+              </div>
+            </template>
+            <p x-show="!snagRows.length" class="px-2 py-6 text-center text-base italic text-base-content/40">No snags yet. What tripped you goes above.</p>
+          </div>
+
+          <!-- Ping -->
+          <div x-show="tab === 'ping'">
+            <template x-for="p in pings" :key="p.id">
+              <div class="px-2 py-1.5">
+                <div class="flex items-start gap-2.5">
+                  <i class="ph ph-chat-circle-dots mt-1 shrink-0 text-base-content/30"></i>
+                  <span class="min-w-0 flex-1 whitespace-pre-wrap break-words text-base" x-text="p.prompt"></span>
+                  <span class="mt-0.5 shrink-0 text-sm text-base-content/30" x-text="ago(p.createdAt)"></span>
+                </div>
+                <div class="mt-1 pl-7">
+                  <div x-show="p.stage !== 'answered'" class="flex items-center gap-2 text-sm text-secondary">
+                    <i class="ph ph-sparkle animate-pulse"></i><span x-text="p.stage === 'thinking' ? 'Gemini is thinking' : 'Sent to Gemini'"></span></div>
+                  <div x-show="p.stage === 'answered'">
+                    <button type="button" @click="p.open = !p.open" class="flex items-center gap-1.5 text-sm text-secondary hover:underline">
+                      <i class="ph" :class="p.ok === false ? 'ph-warning-circle text-error' : 'ph-sparkle'"></i>
+                      <span x-text="p.ok === false ? 'Gemini could not answer' : 'Gemini answered'"></span>
+                      <span x-show="p.at" class="text-base-content/40" x-text="ago(p.at)"></span>
+                      <i class="ph text-xs" :class="p.open ? 'ph-caret-up' : 'ph-caret-down'"></i></button>
+                    <div x-show="p.open" class="mt-1 whitespace-pre-wrap break-words rounded-lg border border-secondary/30 bg-secondary/5 px-3 py-2 text-base" x-text="p.reply"></div>
+                  </div>
+                </div>
+              </div>
+            </template>
+            <p x-show="!pings.length" class="px-2 py-6 text-center text-base italic text-base-content/40">No pings yet. Ping Gemini above.</p>
+          </div>
+
+          <!-- Note -->
+          <div x-show="tab === 'note'" class="flex flex-col gap-1">
+            <template x-for="n in noteRows" :key="n.id">
+              <div class="group flex flex-col rounded-lg px-2 py-1.5 hover:bg-base-200"
+                   :class="n.depth ? 'rounded-l-none border-l-2 border-base-300' : ''" :style="'margin-left:' + Math.min(n.depth, 3) * 1.25 + 'rem'">
+                <div class="flex items-start gap-2.5">
+                  <span class="flex-1 whitespace-pre-wrap text-base" x-text="n.text"></span>
+                  <span class="mt-0.5 shrink-0 text-sm text-base-content/30" x-text="ago(n.at)"></span>
+                </div>
+                <div class="flex min-w-0 items-center gap-2 font-mono text-sm text-base-content/60">
+                  <button type="button" x-show="!n.depth" @click="noteAbout = n.about" class="min-w-0 truncate text-left hover:text-primary" x-text="aboutLabel(n.about)"></button>
+                  <span class="min-w-0 max-w-[40%] truncate text-base-content/35" x-text="n.author"></span>
+                </div>
+              </div>
+            </template>
+            <p x-show="!noteRows.length" class="px-2 py-6 text-center text-base italic text-base-content/40" x-text="noteAbout ? 'No notes about ' + noteAbout + '.' : 'No notes yet.'"></p>
+          </div>
+
+          <!-- A created list -->
+          <template x-if="createdList">
+            <div class="flex flex-col gap-1">
+              <template x-for="it in createdList.items" :key="it.id">
+                <div class="group flex items-start gap-2.5 rounded-lg px-2 py-1.5 transition-colors duration-75 hover:bg-base-200">
+                  <i class="ph mt-1 shrink-0 text-base-content/30 group-hover:text-base-content/60" :class="'ph-' + createdList.icon"></i>
+                  <div class="min-w-0 flex-1">
+                    <p class="break-words text-base" x-text="it.text"></p>
+                    <p x-show="it.note" class="break-words text-sm text-base-content/50" x-text="it.note"></p>
+                  </div>
+                </div>
+              </template>
+              <p x-show="!createdList.items.length" class="px-2 py-6 text-center text-base italic text-base-content/40">Nothing here yet. Add the first item above.</p>
+            </div>
+          </template>
+        </div>
+      </section>
+    </div>
+  </main>
+</body>
+</html>
