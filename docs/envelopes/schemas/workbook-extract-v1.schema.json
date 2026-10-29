@@ -60,10 +60,10 @@
     },
     "kindId": {
       "enum": [
-        "values", "cells", "formulas", "styles", "merges", "comments", "validations",
+        "values", "raw", "cells", "formulas", "styles", "merges", "comments", "validations",
         "conditional", "columns", "pivots", "records", "sources", "queries"
       ],
-      "description": "The kind axis. The first eight are read per sheet; the last four are read once per workbook and carry a null `sheet`."
+      "description": "The kind axis. The first ten are read per sheet; the last four are read once per workbook and carry a null `sheet`."
     },
     "item": {
       "type": "object",
