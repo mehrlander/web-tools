@@ -46,11 +46,32 @@ python3 python/swarm/ladder.py init python/swarm/runs/<slug> <file> <first-line>
    then `ladder.py merge python/swarm/runs/<slug> edits`.
 2. `context … judge-a` and `judge-b`, one Agent each, in parallel; then
    `merge … ratings`.
-3. `ladder.py path python/swarm/runs/<slug>` orders each paragraph's edits by
+3. `ladder.py path python/swarm/runs/<slug>` orders the passage's edits by
    tier (the warier judge decides it), then confidence, then words saved, and
    adds them in turn. An edit that overlaps steps already taken replaces them
-   when it sits in a riskier tier than all of them and leaves the paragraph
+   when it sits in a riskier tier than all of them and leaves the passage
    shorter; otherwise it is set aside as an alternative.
 
 A judge may also mark an edit **brilliancy** (two ideas joined into one
 phrase) or **brutality** (a drastic cut the paragraph turns out not to need).
+
+## A bold run
+
+`ladder.py init … --bold` starts a ladder that reads before it shortens, with
+briefs in [`bold.md`](bold.md) and the Qualified writing rules in every one:
+
+1. `context … reader`, one Agent: a passage reading (`reading.json`, the
+   `passage-reading` skill's format), the problems it finds (a term used before
+   it is introduced, one thing under several names, a missing connection, a
+   shaky premise) and repairs for them; then `merge … repairs`.
+2. `context … scout-<lens>` for each lens in `bold.md`, one Agent each, in
+   parallel; then `merge … ideas`.
+3. `context … builder-<name>` for each builder, in parallel; then
+   `merge … edits`. An architect's edit rewrites the whole passage and stands
+   beside the path as an alternative; an editor's edit may replace whole
+   paragraphs.
+4. `context … judge-<x>`, in parallel; then `merge … ratings` and `path`.
+
+The path starts with the repairs (blue), then runs green, yellow and red
+across the whole passage. The page's Ideas tab shows what the reader found and
+every scout's ideas, marked where an edit was built on them.
