@@ -25,9 +25,9 @@
   const REG = 'mehrlander/web-tools-private';
   const OPTIONS = [
     { v: 'a', mark: 'A', title: 'Pill row',
-      say: 'A · Pill row. Every list in one row of pills, each with its icon, name and count, and the add form beside them. The open list fills the pane.' },
+      say: 'A · Pill row: every list a tab above the open one, the add form under the tabs' },
     { v: 'b', mark: 'B', title: 'List rail',
-      say: 'B · List rail. A column of every list beside the open one; on a phone the column folds into one row naming the open list, which opens a menu of the rest.' },
+      say: 'B · List rail: every list in a column beside the open one, a menu on a phone' },
   ];
   // The built-in lists in tab order, keyed by their file names, as the app's
   // &tab= would address them. Ping and Note are stores of their own.
@@ -241,7 +241,7 @@
         <button type="button" @click="choose(o.v)" class="flex w-full items-start gap-2.5 px-3 py-2 text-left hover:bg-base-200"
                 :class="v === o.v && 'bg-warning/15'">
           <span class="flex size-6 shrink-0 items-center justify-center rounded-full bg-warning text-sm font-bold text-warning-content" x-text="o.mark"></span>
-          <span class="text-base" x-text="o.say.slice(4)"></span>
+          <span class="text-base text-pretty" x-text="o.say.slice(4)"></span>
         </button>
       </template>
     </div>
@@ -279,23 +279,23 @@
         <!-- ── A · every list as a pill, on a row of its own, so the add form
              below keeps one place whichever list is open ─────────────────── -->
         <div x-show="v === 'a'" class="mb-2.5">
-          <div class="flex w-fit flex-wrap items-center gap-0.5 rounded-lg bg-base-200/60 p-0.5" role="tablist">
+          <div class="flex w-fit max-w-full flex-wrap items-center gap-0.5 rounded-lg bg-base-200/60 p-0.5 max-sm:flex-nowrap max-sm:overflow-x-auto" role="tablist">
             <template x-for="l in lists" :key="l.key">
               <div class="contents">
-                <span x-show="l.first" class="mx-1 h-5 w-px bg-base-300"></span>
+                <span x-show="l.first" class="mx-1 h-5 w-px shrink-0 bg-base-300"></span>
                 <button role="tab" type="button" @click="pick(l.key)" :aria-selected="tab === l.key"
-                        :data-title-tip="l.title"
-                        class="flex items-center gap-1.5 rounded-md px-2 py-1 text-base font-medium transition-colors"
+                        x-effect="tab === l.key && $el.scrollIntoView({ block: 'nearest', inline: 'nearest' })"
+                        class="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1 text-base font-medium transition-colors"
                         :class="tab === l.key ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'">
-                  <i class="ph text-lg" :class="'ph-' + l.icon + (l.key === 'ping' && tab !== l.key ? ' text-secondary' : '')"></i>
-                  <span :class="tab !== l.key && 'max-sm:hidden'" x-text="l.title"></span>
+                  <i class="ph text-lg" :class="'ph-' + l.icon + (l.key === 'ping' ? ' text-secondary' : '')"></i>
+                  <span x-text="l.title"></span>
                   <span x-show="l.dot" class="status status-sm" :class="l.dot"></span>
                   <span x-show="l.count" class="font-mono text-sm opacity-60" :class="l.hot && 'text-error opacity-100'" x-text="l.count"></span>
                 </button>
               </div>
             </template>
             <button type="button" data-title-tip="Make a new list"
-                    class="flex items-center rounded-md px-2 py-1 text-base text-base-content/60 hover:text-base-content">
+                    class="flex shrink-0 items-center rounded-md px-2 py-1 text-base text-base-content/60 hover:text-base-content">
               <i class="ph ph-plus text-lg"></i></button>
           </div>
         </div>
@@ -419,7 +419,7 @@
         </div>
 
         <!-- ── The open list, scrolling inside itself ─────────────────────── -->
-        <div class="-mx-1 min-h-0 flex-1 overflow-y-auto px-1">
+        <div class="-mx-1 min-h-0 flex-1 overflow-y-auto px-1 pb-16">
 
           <!-- To-do -->
           <div x-show="tab === 'to-do'" class="flex flex-col gap-1">

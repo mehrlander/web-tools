@@ -2,7 +2,8 @@
 // load (titled files only, built-ins and the autocorrect table left out),
 // add, edit, delete with undo, check-off, creating a list and changing its
 // settings, and deleting only an empty one. Driven over a fake GH and a
-// stubbed shell; no network, no pixels.
+// stubbed shell; no network, no pixels. Which created list is on screen is the
+// Lists view's open tab, the shell's listsTab (estate-lists-tabs.test.mjs).
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -56,6 +57,8 @@ window.__shell = {
   _authState: 'auth',
   refreshConfigCache() {},
   refreshActivity() {},
+  listsTab: 'to-do',
+  goListsTab(tab) { this.listsTab = tab; },
 };
 
 const Alpine = await startAlpine(window, [
@@ -76,7 +79,8 @@ const plain = (v) => JSON.parse(JSON.stringify(v));
 
 function seed() {
   SAVES = []; DELS = [];
-  data.createdPick = '';
+  window.__shell.listsTab = 'aphorisms';
+  data.createdNew = false;
   FILES = {
     'lists/to-do.json': json({ items: [] }),
     'lists/jot.json': json({ items: [] }),
@@ -92,14 +96,17 @@ test('mounts with no startup warnings or errors', () => {
   assert.deepEqual(problems, []);
 });
 
-test('loadCreatedLists reads titled files only, sorted, and puts the first on screen', async () => {
+test('loadCreatedLists reads titled files only, sorted, and the open tab picks the one on screen', async () => {
   seed();
-  data.createdPick = '';
   await data.loadCreatedLists(reg());
   assert.deepEqual(plain(data.createdLists.map(l => l.path)), ['lists/aphorisms.json', 'lists/useful-words.json']);
   assert.equal(data.createdPick, 'lists/aphorisms.json');
   assert.equal(data.createdList.icon, 'quotes');
   assert.equal(data.createdErr, '');
+  window.__shell.listsTab = 'useful-words';
+  assert.equal(data.createdPick, 'lists/useful-words.json');
+  window.__shell.listsTab = 'to-do';
+  assert.equal(data.createdList, null, 'a built-in tab puts no created list on screen');
 });
 
 test('adding writes {id, text, note, created_at}, keeps the header, and clears the drafts', async () => {
@@ -141,7 +148,7 @@ test('a failed add puts both drafts back', async () => {
 test('an edit rewrites text and note, a cleared note goes, and an unchanged edit writes nothing', async () => {
   seed();
   await data.loadCreatedLists(reg());
-  data.pickCreated(data.createdLists[1]);
+  data.goList(data.listKey(data.createdLists[1].path));
   const list = data.createdList, it = list.items[0];
   data.startCreatedEdit(it);
   await data.commitCreatedEdit(list, it);
@@ -212,6 +219,7 @@ test('a rename moves the file to the new title\u2019s name, and a taken name is 
   assert.deepEqual(plain(file.items.map(i => i.id)), ['l2']);
   assert.equal(data.createdList.path, 'lists/sayings.json');
   assert.equal(data.createdPick, 'lists/sayings.json');
+  assert.equal(window.__shell.listsTab, 'sayings', 'the open tab follows the file');
   assert.match(SAVES.at(-1).message, /^Rename the list "Aphorisms" to "Sayings"/);
   assert.deepEqual(plain(data.createdLists.map(l => l.title)), ['Sayings', 'Useful words and phrases']);
 
@@ -241,6 +249,7 @@ test('creating a list writes a titled empty file and puts it on screen; a taken 
   await data.createList();
   assert.deepEqual(saved('lists/groceries.json'), { title: 'Groceries', icon: 'shopping-cart', items: [] });
   assert.equal(data.createdPick, 'lists/groceries.json');
+  assert.equal(window.__shell.listsTab, 'groceries', 'the new list opens as its own tab');
   assert.equal(data.createdNew, false);
 
   const before = SAVES.length;
@@ -258,10 +267,11 @@ test('only an empty list can be deleted', async () => {
   assert.equal(DELS.length, 0);
   FILES['lists/empty.json'] = json({ title: 'Empty', items: [] });
   await data.loadCreatedLists(reg());
-  data.pickCreated(data.createdLists.find(l => l.path === 'lists/empty.json'));
+  data.goList('empty');
   await data.deleteCreatedList();
   assert.deepEqual(DELS.map(d => d.path), ['lists/empty.json']);
   assert.ok(!data.createdLists.some(l => l.path === 'lists/empty.json'));
+  assert.equal(window.__shell.listsTab, 'aphorisms', 'the next created list opens in its place');
 });
 
 test('starting another edit commits an open created-list edit first', async () => {

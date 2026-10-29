@@ -2488,6 +2488,11 @@ const MAP_HOME = 'overview';
 const MAP_CTX_TAB = { ctxlens: 'context', ctxsort: 'context', ctxtopic: 'context', ctxsource: 'context', setintent: 'set',
                       growthrepo: 'growth' };
 const mapCtxOf = get => Object.fromEntries(Object.keys(MAP_CTX_TAB).map(k => [k, get(k) || '']));
+// The Lists view's tab keys: a built-in list's name (to-do, jot, pin, snag,
+// ping, note) or a created list's file name without .json, which is the
+// lists kit's slug. To-do is where a bare ?view=lists lands.
+const LISTS_HOME = 'to-do';
+const LISTS_TAB = /^[a-z0-9][a-z0-9-]{0,80}$/;
 
 // marked, loaded once on demand for the overview README render. kits/md-doc.js
 // rides with it, because every one of these renders lands in a fixed-width
@@ -2664,6 +2669,7 @@ function app(){ return {
   configSeen: false,      // mount the config-view component lazily, on first visit
   mapSeen: false,         // mount the map component lazily, on first visit
   mapTab: MAP_HOME,       // the Map view's open tab, held HERE and not in map() because the URL is the shell's to own (see goMap)
+  listsTab: LISTS_HOME,   // the Lists view's open list, held here for the same reason (see goLists)
   // Context's sub-address, held here for the same reason. Seeded only from an
   // address that opens Context, since the map row stamps it there alone and a
   // value armed from any other address would surface on the next visit.
@@ -6350,7 +6356,10 @@ function app(){ return {
         if (this.hereTab !== 'token') p.set('tab', this.hereTab);
         if (this.hereTab !== 'token' && this.hereItem) p.set('item', this.hereItem);
       } },
-    { key: 'lists', open(){ this.goLists(); } },
+    // The open list rides as &tab=, To-do staying out of the URL as Map's
+    // home tab does.
+    { key: 'lists', open(u){ this.goLists(u.tab); },
+      stamp(p){ if (this.listsTab && this.listsTab !== LISTS_HOME) p.set('tab', this.listsTab); } },
     { key: 'branches', open(){ this.goBranches(); },
       stamp(p){
         // The branch open in the takeover, when one is. Being inside the swiper
@@ -7056,8 +7065,8 @@ function app(){ return {
   // switching on this.view, sharing the one lazy mount); estateCtx is the
   // wider context test the sidebar switches on.
   get isEstate(){ return ['repos', 'stage', 'lists', 'branches', 'activity', 'sessions', 'writes', 'chats', 'state', 'traffic'].includes(this.view); },
-  // The Lists view is the one estate pane that FILLS rather than flows: its two
-  // halves scroll inside themselves, so the page must not scroll and the chain
+  // The Lists view is the one estate pane that FILLS rather than flows: the
+  // open list scrolls inside itself, so the page must not scroll and the chain
   // from the pane down to the component root has to carry a definite height.
   // Every other view keeps the ordinary overflow-y-auto column. Held here
   // rather than inside the component because the two ancestors that need the
@@ -7207,8 +7216,20 @@ function app(){ return {
   // boot and by its own Refresh, so a session that opened elsewhere and walked
   // over to Repos an hour later read whatever the boot had left.
   goRepos(){ this.estateSeen = true; this.view = 'repos'; this.ensureFresh(); this.syncUrl(); },
-  // Lists: Pin, To-do, Jot, Ping and Note in one pane, at ?view=lists.
-  goLists(){ this.estateSeen = true; this.view = 'lists'; this.syncUrl(); },
+  // Lists: every list one at a time behind a row of tabs, at ?view=lists, the
+  // open one at &tab=<key>. Optional for the reason goMap's is: the nav button
+  // keeps the open list, a route call's URL is authoritative. The key is not
+  // checked against the lists here, since created lists are only known once
+  // the registry is read; the estate falls back to To-do for one it lacks.
+  goLists(tab){
+    if (tab !== undefined) this.listsTab = LISTS_TAB.test(tab) ? tab : LISTS_HOME;
+    this.estateSeen = true; this.view = 'lists'; this.syncUrl();
+  },
+  // A tab tap from inside the estate, stamped so back and forward walk the lists.
+  goListsTab(tab){
+    if (!LISTS_TAB.test(tab) || tab === this.listsTab) return;
+    this.listsTab = tab; this.syncUrl();
+  },
   // The Map view: the coordination layer made inspectable (the Distribution
   // crosswalk plus per-repo scope and adoption).
   //
