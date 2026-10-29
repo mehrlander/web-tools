@@ -1,5 +1,8 @@
 key,type,consumer,status,required,summary
-icon,string,app,,,Phosphor icon class for the repo's estate card and header quick-link button. The repo owns it.
+icon,string,app,,,"The repo's glyph: a Phosphor class, drawn where no mark file can be read. Never a path, since consumers outside lib/kits/repo-mark.js draw it as a class. The repo owns it."
+mark,string,app,,no,"A drawn SVG in place of the hub's drawn mark for the repo (docs/favicons/repos/<name>.svg, the default): a repo-root-relative path, or owner/repo[@ref]:path for a file in another repo. Fills with currentColor to take the page's colour and `tone`; a file with its own fills keeps them. Until read, the slot is blank; unreadable, the glyph draws."
+tone,string,app,,no,"The mark's colour, a key of RepoMark.TONES in lib/kits/repo-mark.js (yellow, sky, rose, ...). A view whose colour is a state, such as the Sessions table's PR state, draws the state instead."
+weight,string,app,,no,"The glyph's Phosphor weight: regular, bold, fill or duotone. Defaults to duotone when `tone` is set, else regular."
 estate,boolean,app,,,true to appear on the all-repo estate. Membership is a repo property; there is no central registry of repos.
 group,string,app,,,"The estate section this card sits in, e.g. 'core', 'data'."
 note,string,app,,,The card's one-line description. Overrides the GitHub description.
