@@ -622,6 +622,335 @@
     "core_carried": 34,
     "core_total": 34
    }
+  },
+  {
+   "n": 2,
+   "readers": [
+    {
+     "role": "builder",
+     "entries": [
+      "2.d1",
+      "2.d2",
+      "2.d3",
+      "2.d4",
+      "2.d5",
+      "2.d6",
+      "2.d7",
+      "2.d8",
+      "2.d9",
+      "2.d10"
+     ],
+     "votes": 14
+    },
+    {
+     "role": "challenger",
+     "entries": [
+      "2.d11",
+      "2.t1",
+      "2.t2",
+      "2.t3"
+     ],
+     "votes": 0
+    }
+   ],
+   "harvest": {
+    "text": "## Subagents share the container\n\n**Only the context window is separate.** Subagents and the main loop share files, `HTTPS_PROXY`, checkouts, branch and HEAD, so the search budget and concurrency cap are shared too, and agents can write into the repo for the main loop to commit. `Agent` `isolation: \"worktree\"` or `\"remote\"` opts out.\n\n**Concurrency caps at 20 subagents**; larger dispatches partially fail with `Concurrent subagent limit reached` (raise via `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`).\n- **Silent drop:** a rostered item whose dispatch failed never reports. Reconcile the roster against what launched, via `ListAgents`.\n- **Output on disk is not agent done:** a slot frees only when the agent returns, so counting file arrivals overcounts and the next launch is refused. Count with `ListAgents`; relaunch after a refusal.\n- **Workflow's cap is min(16, CPUs minus 2) per run** (authoring reference). This container reported 4 CPUs (`nproc`, measured 2026-09-06): two at a time against the Agent tool's twenty. Check `nproc` before choosing a fan-out venue.\n\nFrom a 124-agent run (17 minutes at the cap; 91.3M tokens, 74.4M cache reads of the shared prompt, 300k output):\n- Only Workflow's `agent()` takes an effort parameter; for the Agent tool put \"low effort\" in the prompt.\n- A committed validator, named in the prompt and run by each agent on its own output, made 124 of 124 outputs parse and conform (equivalent to Workflow's `schema` option).\n- Cost is in the transcripts, not the notification: each line's `message.usage` sums to the agent's spend. Readers averaged 105k tokens and ~2 min, skeptics 97k and ~90 s.",
+    "words": 256,
+    "map": [
+     {
+      "quote": "## Subagents share the container",
+      "from": [
+       "S1"
+      ],
+      "uses": [
+       "1.t14"
+      ]
+     },
+     {
+      "quote": "**Only the context window is separate.**",
+      "from": [
+       "S3"
+      ],
+      "uses": [
+       "1.d21"
+      ]
+     },
+     {
+      "quote": "Subagents and the main loop share files, `HTTPS_PROXY`, checkouts, branch and HEAD, so the search budget and concurrency cap are shared too, and agents can write into the repo for the main loop to commit.",
+      "from": [
+       "S2",
+       "S3"
+      ],
+      "uses": [
+       "1.d21",
+       "2.d10"
+      ]
+     },
+     {
+      "quote": "`Agent` `isolation: \"worktree\"` or `\"remote\"` opts out.",
+      "from": [
+       "S4"
+      ],
+      "uses": [
+       "1.t5",
+       "2.d11"
+      ]
+     },
+     {
+      "quote": "**Concurrency caps at 20 subagents**; larger dispatches partially fail with `Concurrent subagent limit reached` (raise via `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`).",
+      "from": [
+       "S5"
+      ],
+      "uses": [
+       "2.d10"
+      ]
+     },
+     {
+      "quote": "**Silent drop:** a rostered item whose dispatch failed never reports.",
+      "from": [
+       "S6"
+      ],
+      "uses": [
+       "1.t6"
+      ]
+     },
+     {
+      "quote": "Reconcile the roster against what launched, via `ListAgents`.",
+      "from": [
+       "S7",
+       "S8"
+      ],
+      "uses": [
+       "1.t6",
+       "2.d10"
+      ]
+     },
+     {
+      "quote": "**Output on disk is not agent done:** a slot frees only when the agent returns, so counting file arrivals overcounts and the next launch is refused.",
+      "from": [
+       "S14"
+      ],
+      "uses": [
+       "2.d10"
+      ]
+     },
+     {
+      "quote": "Count with `ListAgents`; relaunch after a refusal.",
+      "from": [
+       "S15"
+      ],
+      "uses": [
+       "1.t8"
+      ]
+     },
+     {
+      "quote": "**Workflow's cap is min(16, CPUs minus 2) per run** (authoring reference).",
+      "from": [
+       "S9"
+      ],
+      "uses": [
+       "1.t9"
+      ]
+     },
+     {
+      "quote": "This container reported 4 CPUs (`nproc`, measured 2026-09-06): two at a time against the Agent tool's twenty.",
+      "from": [
+       "S9"
+      ],
+      "uses": [
+       "1.t9"
+      ]
+     },
+     {
+      "quote": "Check `nproc` before choosing a fan-out venue.",
+      "from": [
+       "S10"
+      ],
+      "uses": [
+       "1.t9"
+      ]
+     },
+     {
+      "quote": "From a 124-agent run (17 minutes at the cap; 91.3M tokens, 74.4M cache reads of the shared prompt, 300k output):",
+      "from": [
+       "S11",
+       "S19"
+      ],
+      "uses": [
+       "1.t10"
+      ]
+     },
+     {
+      "quote": "Only Workflow's `agent()` takes an effort parameter; for the Agent tool put \"low effort\" in the prompt.",
+      "from": [
+       "S12",
+       "S13"
+      ],
+      "uses": [
+       "1.t11",
+       "1.d9"
+      ]
+     },
+     {
+      "quote": "A committed validator, named in the prompt and run by each agent on its own output, made 124 of 124 outputs parse and conform (equivalent to Workflow's `schema` option).",
+      "from": [
+       "S16",
+       "S17"
+      ],
+      "uses": [
+       "1.t12"
+      ]
+     },
+     {
+      "quote": "Cost is in the transcripts, not the notification: each line's `message.usage` sums to the agent's spend.",
+      "from": [
+       "S18"
+      ],
+      "uses": [
+       "1.t13"
+      ]
+     },
+     {
+      "quote": "Readers averaged 105k tokens and ~2 min, skeptics 97k and ~90 s.",
+      "from": [
+       "S19"
+      ],
+      "uses": [
+       "1.t13"
+      ]
+     }
+    ],
+    "core": [
+     {
+      "id": "1.c1",
+      "quote": "Subagents and the main loop share files, `HTTPS_PROXY`, checkouts, branch and HEAD, so the search budget and concurrency cap are shared too, and agents can write into the repo for the main loop to commit."
+     },
+     {
+      "id": "1.c2",
+      "quote": "Subagents and the main loop share files, `HTTPS_PROXY`, checkouts, branch and HEAD, so the search budget and concurrency cap are shared too, and agents can write into the repo for the main loop to commit."
+     },
+     {
+      "id": "1.c3",
+      "quote": "Subagents and the main loop share files, `HTTPS_PROXY`, checkouts, branch and HEAD, so the search budget and concurrency cap are shared too, and agents can write into the repo for the main loop to commit."
+     },
+     {
+      "id": "1.c4",
+      "quote": "`Agent` `isolation: \"worktree\"` or `\"remote\"` opts out."
+     },
+     {
+      "id": "1.c5",
+      "quote": "**Concurrency caps at 20 subagents**; larger dispatches partially fail with `Concurrent subagent limit reached` (raise via `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`)."
+     },
+     {
+      "id": "1.c6",
+      "quote": "**Concurrency caps at 20 subagents**; larger dispatches partially fail with `Concurrent subagent limit reached` (raise via `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`)."
+     },
+     {
+      "id": "1.c7",
+      "quote": "**Silent drop:** a rostered item whose dispatch failed never reports."
+     },
+     {
+      "id": "1.c8",
+      "quote": "Reconcile the roster against what launched, via `ListAgents`."
+     },
+     {
+      "id": "1.c9",
+      "quote": "**Workflow's cap is min(16, CPUs minus 2) per run** (authoring reference)."
+     },
+     {
+      "id": "1.c11",
+      "quote": "Check `nproc` before choosing a fan-out venue."
+     },
+     {
+      "id": "1.c12",
+      "quote": "From a 124-agent run (17 minutes at the cap; 91.3M tokens, 74.4M cache reads of the shared prompt, 300k output):"
+     },
+     {
+      "id": "1.c13",
+      "quote": "Only Workflow's `agent()` takes an effort parameter; for the Agent tool put \"low effort\" in the prompt."
+     },
+     {
+      "id": "1.c14",
+      "quote": "**Output on disk is not agent done:** a slot frees only when the agent returns, so counting file arrivals overcounts and the next launch is refused."
+     },
+     {
+      "id": "1.c16",
+      "quote": "Count with `ListAgents`; relaunch after a refusal."
+     },
+     {
+      "id": "1.c17",
+      "quote": "A committed validator, named in the prompt and run by each agent on its own output, made 124 of 124 outputs parse and conform (equivalent to Workflow's `schema` option)."
+     },
+     {
+      "id": "1.c18",
+      "quote": "A committed validator, named in the prompt and run by each agent on its own output, made 124 of 124 outputs parse and conform (equivalent to Workflow's `schema` option)."
+     },
+     {
+      "id": "1.c19",
+      "quote": "Cost is in the transcripts, not the notification: each line's `message.usage` sums to the agent's spend."
+     },
+     {
+      "id": "1.c20",
+      "quote": "From a 124-agent run (17 minutes at the cap; 91.3M tokens, 74.4M cache reads of the shared prompt, 300k output):"
+     },
+     {
+      "id": "1.c21",
+      "quote": "Readers averaged 105k tokens and ~2 min, skeptics 97k and ~90 s."
+     },
+     {
+      "id": "1.c23",
+      "quote": "Subagents and the main loop share files, `HTTPS_PROXY`, checkouts, branch and HEAD, so the search budget and concurrency cap are shared too, and agents can write into the repo for the main loop to commit."
+     },
+     {
+      "id": "1.c24",
+      "quote": "`Agent` `isolation: \"worktree\"` or `\"remote\"` opts out."
+     },
+     {
+      "id": "1.c25",
+      "quote": "**Concurrency caps at 20 subagents**; larger dispatches partially fail with `Concurrent subagent limit reached` (raise via `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`)."
+     },
+     {
+      "id": "1.c26",
+      "quote": "**Silent drop:** a rostered item whose dispatch failed never reports."
+     },
+     {
+      "id": "1.c27",
+      "quote": "Reconcile the roster against what launched, via `ListAgents`."
+     },
+     {
+      "id": "1.c28",
+      "quote": "This container reported 4 CPUs (`nproc`, measured 2026-09-06): two at a time against the Agent tool's twenty."
+     },
+     {
+      "id": "1.c29",
+      "quote": "Check `nproc` before choosing a fan-out venue."
+     },
+     {
+      "id": "1.c30",
+      "quote": "Only Workflow's `agent()` takes an effort parameter; for the Agent tool put \"low effort\" in the prompt."
+     },
+     {
+      "id": "1.c31",
+      "quote": "Count with `ListAgents`; relaunch after a refusal."
+     },
+     {
+      "id": "1.c32",
+      "quote": "A committed validator, named in the prompt and run by each agent on its own output, made 124 of 124 outputs parse and conform (equivalent to Workflow's `schema` option)."
+     },
+     {
+      "id": "1.c33",
+      "quote": "Cost is in the transcripts, not the notification: each line's `message.usage` sums to the agent's spend."
+     },
+     {
+      "id": "1.c34",
+      "quote": "Readers averaged 105k tokens and ~2 min, skeptics 97k and ~90 s."
+     }
+    ],
+    "note": "302 to ~250 words: dropped hostname/boot/user, 'straight', 'before returning', 'by one or two', 'the cap's real cost', 'not what was dispatched'; kept 'authoring reference' (1.w10 -1); slot and silent-drop bullets stay separate.",
+    "dropped": [],
+    "core_carried": 31,
+    "core_total": 31
+   }
   }
  ],
  "entries": [
@@ -726,7 +1055,15 @@
    "anchors": [
     "S9"
    ],
-   "text": "This container reports 4 CPUs (`nproc`): Workflow would run two agents at a time."
+   "text": "This container reports 4 CPUs (`nproc`): Workflow would run two agents at a time.",
+   "votes": [
+    {
+     "round": 2,
+     "role": "builder",
+     "v": -1,
+     "why": "Restates the 4 CPUs and two-at-a-time figure already in 1.c28 and 1.c11."
+    }
+   ]
   },
   {
    "id": "1.c11",
@@ -778,7 +1115,15 @@
    "anchors": [
     "S14"
    ],
-   "text": "A ledger kept from file arrivals overcounts free slots by one or two."
+   "text": "A ledger kept from file arrivals overcounts free slots by one or two.",
+   "votes": [
+    {
+     "round": 2,
+     "role": "builder",
+     "v": -1,
+     "why": "A reader acts the same without 'by one or two': the action is count with ListAgents, not estimate the error."
+    }
+   ]
   },
   {
    "id": "1.c16",
@@ -1135,7 +1480,15 @@
     "S2",
     "S3"
    ],
-   "text": "Subagents share the main loop's machine; only the context window is separate."
+   "text": "Subagents share the main loop's machine; only the context window is separate.",
+   "votes": [
+    {
+     "round": 2,
+     "role": "builder",
+     "v": -1,
+     "why": "Duplicates 1.c1 and 1.c23 on shared machine, separate context window."
+    }
+   ]
   },
   {
    "id": "1.c23",
@@ -1282,7 +1635,14 @@
     "S2",
     "S4"
    ],
-   "text": "Fold S4 into S2 as a qualifier: '... same checkouts, branch and HEAD, unless `Agent` is given `isolation: \"worktree\"` or `\"remote\"`.' S4's 'by default everything is shared' repeats S2 and goes. Saves about 8 words and removes a one-sentence unit."
+   "text": "Fold S4 into S2 as a qualifier: '... same checkouts, branch and HEAD, unless `Agent` is given `isolation: \"worktree\"` or `\"remote\"`.' S4's 'by default everything is shared' repeats S2 and goes. Saves about 8 words and removes a one-sentence unit.",
+   "votes": [
+    {
+     "round": 2,
+     "role": "builder",
+     "v": 1
+    }
+   ]
   },
   {
    "id": "1.t6",
@@ -1294,7 +1654,14 @@
     "S7",
     "S8"
    ],
-   "text": "Merge three units into one: 'The cap's cost is a **silent drop**: a rostered item never dispatched, so it never reports. Reconcile the roster against `ListAgents`, not against what was dispatched.' Cuts 'not the visible rejection', 'that was in the roster', 'and therefore', 'actually launched' and the S8 sentence frame. Saves about 22 words."
+   "text": "Merge three units into one: 'The cap's cost is a **silent drop**: a rostered item never dispatched, so it never reports. Reconcile the roster against `ListAgents`, not against what was dispatched.' Cuts 'not the visible rejection', 'that was in the roster', 'and therefore', 'actually launched' and the S8 sentence frame. Saves about 22 words.",
+   "votes": [
+    {
+     "round": 2,
+     "role": "builder",
+     "v": 1
+    }
+   ]
   },
   {
    "id": "1.t7",
@@ -1333,7 +1700,14 @@
     "S9",
     "S10"
    ],
-   "text": "Merge: 'Workflow's cap is min(16, CPUs minus 2) per run *(measured 2026-09-06)*; this container reported 4 CPUs (`nproc`), so two at a time against the Agent tool's twenty. Read `nproc` before choosing a fan-out venue.' Drop 'per the authoring reference', 'is a different number, and it is a function of the machine' (the formula shows both), 'a Workflow would have run', and 'on this box the Agent tool wins by a factor of ten' (the 2-vs-20 comparison already says it). Saves about 25 words."
+   "text": "Merge: 'Workflow's cap is min(16, CPUs minus 2) per run *(measured 2026-09-06)*; this container reported 4 CPUs (`nproc`), so two at a time against the Agent tool's twenty. Read `nproc` before choosing a fan-out venue.' Drop 'per the authoring reference', 'is a different number, and it is a function of the machine' (the formula shows both), 'a Workflow would have run', and 'on this box the Agent tool wins by a factor of ten' (the 2-vs-20 comparison already says it). Saves about 25 words.",
+   "votes": [
+    {
+     "round": 2,
+     "role": "builder",
+     "v": 1
+    }
+   ]
   },
   {
    "id": "1.t10",
@@ -1344,7 +1718,14 @@
     "S11",
     "S19"
    ],
-   "text": "Move S19's run totals up into S11's lead-in and drop 'That run:': 'From a run of 124 agents (17 minutes at the cap; 91.3M tokens, 74.4M of them cache reads of the shared prompt, 300k output):'. The per-role averages then ride with the cost bullet (S18). Saves about 6 words and puts the whole run in one place."
+   "text": "Move S19's run totals up into S11's lead-in and drop 'That run:': 'From a run of 124 agents (17 minutes at the cap; 91.3M tokens, 74.4M of them cache reads of the shared prompt, 300k output):'. The per-role averages then ride with the cost bullet (S18). Saves about 6 words and puts the whole run in one place.",
+   "votes": [
+    {
+     "round": 2,
+     "role": "builder",
+     "v": 1
+    }
+   ]
   },
   {
    "id": "1.t11",
@@ -1355,7 +1736,14 @@
     "S12",
     "S13"
    ],
-   "text": "Merge two units into one bullet: 'The Agent tool has no effort parameter (only Workflow's `agent()` takes one), so a \"low effort\" instruction travels in the prompt.' Saves about 6 words and removes a stranded one-line unit."
+   "text": "Merge two units into one bullet: 'The Agent tool has no effort parameter (only Workflow's `agent()` takes one), so a \"low effort\" instruction travels in the prompt.' Saves about 6 words and removes a stranded one-line unit.",
+   "votes": [
+    {
+     "round": 2,
+     "role": "builder",
+     "v": 1
+    }
+   ]
   },
   {
    "id": "1.t12",
@@ -1366,7 +1754,14 @@
     "S16",
     "S17"
    ],
-   "text": "Merge: 'A committed validator, one script named in the prompt and run by the agent on its own output before returning, made 124 of 124 outputs parse and conform; it stands in for Workflow's `schema` option.' Cuts 'It is the Agent-tool equivalent' and 'and it is committed' as a separate sentence. Saves about 8 words."
+   "text": "Merge: 'A committed validator, one script named in the prompt and run by the agent on its own output before returning, made 124 of 124 outputs parse and conform; it stands in for Workflow's `schema` option.' Cuts 'It is the Agent-tool equivalent' and 'and it is committed' as a separate sentence. Saves about 8 words.",
+   "votes": [
+    {
+     "round": 2,
+     "role": "builder",
+     "v": 1
+    }
+   ]
   },
   {
    "id": "1.t13",
@@ -1377,7 +1772,14 @@
     "S18",
     "S19"
    ],
-   "text": "Merge the cost bullet: 'Cost lives in the transcripts, not the notification: each line's `message.usage` block sums to the agent's spend; readers averaged 105k tokens and about two minutes, skeptics 97k and about 90 seconds.' Pairs with the S11/S19 move, which carries the run totals. Saves about 5 words."
+   "text": "Merge the cost bullet: 'Cost lives in the transcripts, not the notification: each line's `message.usage` block sums to the agent's spend; readers averaged 105k tokens and about two minutes, skeptics 97k and about 90 seconds.' Pairs with the S11/S19 move, which carries the run totals. Saves about 5 words.",
+   "votes": [
+    {
+     "round": 2,
+     "role": "builder",
+     "v": 1
+    }
+   ]
   },
   {
    "id": "1.t14",
@@ -1407,7 +1809,15 @@
    "anchors": [
     "S19"
    ],
-   "text": "Bold option: reduce S19 to the totals alone (91.3M tokens, 74.4M cache reads, 300k output) and drop the per-role reader and skeptic averages as run-specific. Saves about 17 words; the reader loses the 105k/2 min and 97k/90 s planning figures."
+   "text": "Bold option: reduce S19 to the totals alone (91.3M tokens, 74.4M cache reads, 300k output) and drop the per-role reader and skeptic averages as run-specific. Saves about 17 words; the reader loses the 105k/2 min and 97k/90 s planning figures.",
+   "votes": [
+    {
+     "round": 2,
+     "role": "builder",
+     "v": -1,
+     "why": "Readers and skeptics averages (105k tokens/2 min, 97k/90 s) are the planning figures for sizing a fan-out; dropping them leaves totals only."
+    }
+   ]
   },
   {
    "id": "1.t17",
@@ -1427,7 +1837,15 @@
    "anchors": [
     "ALL"
    ],
-   "text": "Bolder: cut the passage's cause-and-effect narration everywhere and keep the imperative. Each bullet becomes rule plus its one number or name (cap 20; reconcile with `ListAgents`; Workflow min(16, CPUs minus 2); effort in prompt; validator; `message.usage`), with the because-clauses (S3's 'explains', S14's slot-overcount story, S9's 'would have run') shortened to a few words. Expected about 220 words, saving about 185, at the risk of the reader acting on a rule without knowing why."
+   "text": "Bolder: cut the passage's cause-and-effect narration everywhere and keep the imperative. Each bullet becomes rule plus its one number or name (cap 20; reconcile with `ListAgents`; Workflow min(16, CPUs minus 2); effort in prompt; validator; `message.usage`), with the because-clauses (S3's 'explains', S14's slot-overcount story, S9's 'would have run') shortened to a few words. Expected about 220 words, saving about 185, at the risk of the reader acting on a rule without knowing why.",
+   "votes": [
+    {
+     "round": 2,
+     "role": "builder",
+     "v": -1,
+     "why": "S14's slot-overcount story is what stops a reader trusting file arrivals; a bare 'count with ListAgents' gives no reason to distrust the ledger, and the reader may skip it."
+    }
+   ]
   },
   {
    "id": "1.d16",
@@ -1494,7 +1912,14 @@
    "anchors": [
     "ALL"
    ],
-   "text": "## Subagents share the container\n\n**Only the context window is separate.** A subagent and the main loop have the same hostname, boot, `HTTPS_PROXY`, user, checkouts, branch and HEAD, so each reads what the other writes, and the search budget and concurrency cap are shared. Agents can write straight into the repo for the main loop to commit. `Agent` with `isolation: \"worktree\"` or `\"remote\"` is the exception.\n\n**Concurrency caps at 20 subagents.** Larger dispatches partially fail with `Concurrent subagent limit reached`, raisable with `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`.\n- The real cost is a **silent drop**: a rostered item never dispatched, so it never reports. Reconcile the roster against `ListAgents`, not against what was dispatched.\n- **Output on disk is not agent done.** An agent holds its slot until it returns, so a ledger kept from file arrivals overcounts free slots by one or two and the next launch is refused. `ListAgents` is the count; relaunch after a refusal.\n- **Workflow's cap is min(16, CPUs minus 2) per run** *(measured 2026-09-06)*; this container reported 4 CPUs (`nproc`), so two agents at a time against the Agent tool's twenty. Read `nproc` before choosing the venue for a fan-out.\n\nFrom a run of 124 agents (17 minutes at the cap; 91.3M tokens, 74.4M of them cache reads of the shared prompt, 300k output):\n- The Agent tool has no effort parameter (only Workflow's `agent()` takes one), so a \"low effort\" instruction travels in the prompt.\n- A committed validator, one script named in the prompt and run by the agent on its own output before returning, made 124 of 124 outputs parse and conform; it stands in for Workflow's `schema` option.\n- Cost lives in the transcripts, not the notification: each line's `message.usage` block sums to the agent's spend. Readers averaged 105k tokens and about two minutes, skeptics 97k and about 90 seconds."
+   "text": "## Subagents share the container\n\n**Only the context window is separate.** A subagent and the main loop have the same hostname, boot, `HTTPS_PROXY`, user, checkouts, branch and HEAD, so each reads what the other writes, and the search budget and concurrency cap are shared. Agents can write straight into the repo for the main loop to commit. `Agent` with `isolation: \"worktree\"` or `\"remote\"` is the exception.\n\n**Concurrency caps at 20 subagents.** Larger dispatches partially fail with `Concurrent subagent limit reached`, raisable with `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`.\n- The real cost is a **silent drop**: a rostered item never dispatched, so it never reports. Reconcile the roster against `ListAgents`, not against what was dispatched.\n- **Output on disk is not agent done.** An agent holds its slot until it returns, so a ledger kept from file arrivals overcounts free slots by one or two and the next launch is refused. `ListAgents` is the count; relaunch after a refusal.\n- **Workflow's cap is min(16, CPUs minus 2) per run** *(measured 2026-09-06)*; this container reported 4 CPUs (`nproc`), so two agents at a time against the Agent tool's twenty. Read `nproc` before choosing the venue for a fan-out.\n\nFrom a run of 124 agents (17 minutes at the cap; 91.3M tokens, 74.4M of them cache reads of the shared prompt, 300k output):\n- The Agent tool has no effort parameter (only Workflow's `agent()` takes one), so a \"low effort\" instruction travels in the prompt.\n- A committed validator, one script named in the prompt and run by the agent on its own output before returning, made 124 of 124 outputs parse and conform; it stands in for Workflow's `schema` option.\n- Cost lives in the transcripts, not the notification: each line's `message.usage` block sums to the agent's spend. Readers averaged 105k tokens and about two minutes, skeptics 97k and about 90 seconds.",
+   "votes": [
+    {
+     "round": 2,
+     "role": "builder",
+     "v": 1
+    }
+   ]
   },
   {
    "id": "1.w8",
@@ -1527,7 +1952,15 @@
     "S9"
    ],
    "from": ", per the authoring reference",
-   "to": ""
+   "to": "",
+   "votes": [
+    {
+     "round": 2,
+     "role": "builder",
+     "v": -1,
+     "why": "Drops 'per the authoring reference', so the formula reads as measured; only the 4 CPUs were measured 2026-09-06."
+    }
+   ]
   },
   {
    "id": "1.w11",
@@ -1583,6 +2016,240 @@
    ],
    "from": "That run: ",
    "to": ""
+  },
+  {
+   "id": "2.d1",
+   "round": 2,
+   "role": "builder",
+   "tag": "draft",
+   "anchors": [
+    "S1",
+    "S2",
+    "S3",
+    "S4"
+   ],
+   "text": "## Subagents share the container\n\n**Only the context window is separate.** Subagents and the main loop share hostname, boot, `HTTPS_PROXY`, user, checkouts, branch and HEAD, so the search budget and concurrency cap are shared too, and agents can write straight into the repo for the main loop to commit. Exceptions: `Agent` with `isolation: \"worktree\"` or `\"remote\"`.",
+   "builds_on": [
+    "1.t2",
+    "1.t4",
+    "1.t5",
+    "1.t14",
+    "1.d21"
+   ]
+  },
+  {
+   "id": "2.d2",
+   "round": 2,
+   "role": "builder",
+   "tag": "draft",
+   "anchors": [
+    "S5",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "text": "**Concurrency caps at 20 subagents.** Larger dispatches partially fail with `Concurrent subagent limit reached`, raisable with `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`.\n- A **silent drop** is the real cost: a rostered item never dispatched never reports. Reconcile the roster against what launched (`ListAgents`), not what was dispatched.",
+   "builds_on": [
+    "1.t6",
+    "1.d4",
+    "1.d17"
+   ]
+  },
+  {
+   "id": "2.d3",
+   "round": 2,
+   "role": "builder",
+   "tag": "draft",
+   "anchors": [
+    "S9",
+    "S10"
+   ],
+   "text": "**Workflow's cap is min(16, CPUs minus 2) per run** (authoring reference); this container reported 4 CPUs (`nproc`, measured 2026-09-06), so two agents at a time against the Agent tool's twenty. Read `nproc` before choosing a fan-out venue.",
+   "builds_on": [
+    "1.t9",
+    "1.d18"
+   ]
+  },
+  {
+   "id": "2.d4",
+   "round": 2,
+   "role": "builder",
+   "tag": "draft",
+   "anchors": [
+    "S14",
+    "S15"
+   ],
+   "text": "- **Output on disk is not agent done.** An agent holds its slot until it returns, so counting file arrivals overcounts free slots and the next launch is refused. Count with `ListAgents`; after a refusal, relaunch.",
+   "builds_on": [
+    "1.t8",
+    "1.d11"
+   ]
+  },
+  {
+   "id": "2.d5",
+   "round": 2,
+   "role": "builder",
+   "tag": "draft",
+   "anchors": [
+    "S16",
+    "S17"
+   ],
+   "text": "- A committed validator script, named in the prompt and run by each agent on its own output before returning, made 124 of 124 outputs parse and conform; it stands in for Workflow's `schema` option.",
+   "builds_on": [
+    "1.t12",
+    "1.d20"
+   ]
+  },
+  {
+   "id": "2.d6",
+   "round": 2,
+   "role": "builder",
+   "tag": "draft",
+   "anchors": [
+    "S18",
+    "S19"
+   ],
+   "text": "- Cost lives in the transcripts, not the notification: each line's `message.usage` block sums to the agent's spend. Readers averaged 105k tokens and about two minutes, skeptics 97k and about 90 seconds.",
+   "builds_on": [
+    "1.t13",
+    "1.d15"
+   ]
+  },
+  {
+   "id": "2.d7",
+   "round": 2,
+   "role": "builder",
+   "tag": "draft",
+   "anchors": [
+    "S5",
+    "S6",
+    "S7",
+    "S8",
+    "S9",
+    "S10",
+    "S14",
+    "S15"
+   ],
+   "text": "**Concurrency caps at 20 subagents.** Larger dispatches partially fail with `Concurrent subagent limit reached`, raisable with `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`.\n- A **silent drop** is the real cost: a rostered item never dispatched never reports. Reconcile the roster against what launched (`ListAgents`), not what was dispatched.\n- **Output on disk is not agent done.** An agent holds its slot until it returns, so counting file arrivals overcounts free slots and the next launch is refused. Count with `ListAgents`; after a refusal, relaunch.\n- **Workflow's cap is min(16, CPUs minus 2) per run** (authoring reference); this container reported 4 CPUs (`nproc`, measured 2026-09-06), so two agents at a time against the Agent tool's twenty. Read `nproc` before choosing a fan-out venue.",
+   "builds_on": [
+    "1.t7",
+    "1.t6",
+    "1.t8",
+    "1.t9"
+   ]
+  },
+  {
+   "id": "2.d8",
+   "round": 2,
+   "role": "builder",
+   "tag": "draft",
+   "anchors": [
+    "S11",
+    "S12",
+    "S13",
+    "S16",
+    "S17",
+    "S18",
+    "S19"
+   ],
+   "text": "From a 124-agent run (17 minutes at the cap; 91.3M tokens, 74.4M cache reads of the shared prompt, 300k output):\n- The Agent tool has no effort parameter (only Workflow's `agent()` takes one); put \"low effort\" in the prompt.\n- A committed validator script, named in the prompt and run by each agent on its own output before returning, made 124 of 124 outputs parse and conform; it stands in for Workflow's `schema` option.\n- Cost lives in the transcripts, not the notification: each line's `message.usage` block sums to the agent's spend. Readers averaged 105k tokens and about two minutes, skeptics 97k and about 90 seconds.",
+   "builds_on": [
+    "1.t10",
+    "1.t11",
+    "1.t12",
+    "1.t13"
+   ]
+  },
+  {
+   "id": "2.d9",
+   "round": 2,
+   "role": "builder",
+   "tag": "draft",
+   "anchors": [
+    "ALL"
+   ],
+   "text": "## Subagents share the container\n\n**Only the context window is separate.** Subagents and the main loop share hostname, boot, `HTTPS_PROXY`, user, checkouts, branch and HEAD, so the search budget and concurrency cap are shared too, and agents can write straight into the repo for the main loop to commit. Exceptions: `Agent` with `isolation: \"worktree\"` or `\"remote\"`.\n\n**Concurrency caps at 20 subagents.** Larger dispatches partially fail with `Concurrent subagent limit reached`, raisable with `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`.\n- A **silent drop** is the real cost: a rostered item never dispatched never reports. Reconcile the roster against what launched (`ListAgents`), not what was dispatched.\n- **Output on disk is not agent done.** An agent holds its slot until it returns, so counting file arrivals overcounts free slots and the next launch is refused. Count with `ListAgents`; after a refusal, relaunch.\n- **Workflow's cap is min(16, CPUs minus 2) per run** (authoring reference); this container reported 4 CPUs (`nproc`, measured 2026-09-06), so two agents at a time against the Agent tool's twenty. Read `nproc` before choosing a fan-out venue.\n\nFrom a 124-agent run (17 minutes at the cap; 91.3M tokens, 74.4M cache reads of the shared prompt, 300k output):\n- The Agent tool has no effort parameter (only Workflow's `agent()` takes one); put \"low effort\" in the prompt.\n- A committed validator script, named in the prompt and run by each agent on its own output before returning, made 124 of 124 outputs parse and conform; it stands in for Workflow's `schema` option.\n- Cost lives in the transcripts, not the notification: each line's `message.usage` block sums to the agent's spend. Readers averaged 105k tokens and about two minutes, skeptics 97k and about 90 seconds.",
+   "builds_on": [
+    "1.d21",
+    "1.t17",
+    "1.t7",
+    "1.t10"
+   ]
+  },
+  {
+   "id": "2.d10",
+   "round": 2,
+   "role": "builder",
+   "tag": "draft",
+   "anchors": [
+    "ALL"
+   ],
+   "text": "## Subagents share the container\n\n**Only the context window is separate.** Subagents and the main loop share hostname, boot, `HTTPS_PROXY`, user, checkouts, branch and HEAD, so the search budget and concurrency cap are shared too, and agents can write straight into the repo for the main loop to commit. Exceptions: `Agent` with `isolation: \"worktree\"` or `\"remote\"`.\n\n**Concurrency caps at 20 subagents**; larger dispatches partially fail with `Concurrent subagent limit reached` (raise via `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`).\n- **Silent drop:** a rostered item never dispatched never reports. Reconcile the roster against what launched, via `ListAgents`.\n- **Output on disk is not agent done:** a slot frees only when the agent returns, so counting file arrivals overcounts and launches get refused. Count with `ListAgents`; relaunch.\n- **Workflow's cap** is min(16, CPUs minus 2) per run (authoring reference). This container reported 4 CPUs (`nproc`, measured 2026-09-06): two at a time against the Agent tool's twenty. Check `nproc` before choosing a venue.\n\nFrom a 124-agent run (17 minutes at the cap; 91.3M tokens, 74.4M cache reads of the shared prompt, 300k output):\n- The Agent tool has no effort parameter (only Workflow's `agent()` takes one): put \"low effort\" in the prompt.\n- A committed validator, named in the prompt and run by each agent on its own output before returning, made 124 of 124 outputs parse and conform (Workflow's `schema` equivalent).\n- Cost is in the transcripts, not the notification: each line's `message.usage` sums to the agent's spend. Readers averaged 105k tokens, ~2 minutes; skeptics 97k, ~90 seconds.",
+   "builds_on": [
+    "1.t18",
+    "1.t17",
+    "1.t4",
+    "1.t6",
+    "1.t9",
+    "1.t11",
+    "1.t12"
+   ]
+  },
+  {
+   "id": "2.d11",
+   "round": 2,
+   "role": "challenger",
+   "tag": "draft",
+   "anchors": [
+    "ALL"
+   ],
+   "text": "## Subagents share the container\n\n**Only the context window is separate.** Subagents and the main loop share hostname, boot, `HTTPS_PROXY`, user, checkouts, branch and HEAD, so each reads what the other writes (agents can write straight into the repo for the main loop to commit), and the search budget and concurrency cap are shared. `Agent` `isolation: \"worktree\"` or `\"remote\"` opts out.\n\n**Concurrency caps at 20 subagents.** Larger dispatches partly fail with `Concurrent subagent limit reached`; raise it with `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`.\n- **Silent drop:** a rostered item never dispatched never reports. Reconcile the roster against what launched, not what was dispatched; `ListAgents` settles it.\n- **Output on disk is not agent done.** The agent holds its slot until it returns, so counting file arrivals overcounts free slots by one or two. Count with `ListAgents`; a refused launch is cheap, so relaunch.\n- **Workflow's cap is min(16, CPUs minus 2) per run** *(measured 2026-09-06)*; this container reported 4 CPUs (`nproc`), so two agents at a time against the Agent tool's twenty. Read `nproc` before choosing a fan-out venue.\n\nFrom a 124-agent run (17 minutes at the cap; 91.3M tokens, 74.4M cache reads of the shared prompt, 300k output):\n- The Agent tool has no effort parameter (only Workflow's `agent()` has one); put \"low effort\" in the prompt.\n- A committed validator script, named in the prompt and run by each agent on its own output before returning, made 124 of 124 outputs parse and conform; it stands in for Workflow's `schema` option.\n- Cost is in the transcripts, not the notification: each line's `message.usage` sums to the agent's spend. Readers averaged 105k tokens and about two minutes, skeptics 97k and about 90 seconds.",
+   "builds_on": [
+    "1.d21",
+    "1.t4",
+    "1.t5",
+    "1.t6",
+    "1.t8",
+    "1.t9",
+    "1.t10",
+    "1.t11",
+    "1.t12",
+    "1.t13"
+   ]
+  },
+  {
+   "id": "2.t1",
+   "round": 2,
+   "role": "challenger",
+   "tag": "tactic",
+   "anchors": [
+    "S3",
+    "S4"
+   ],
+   "text": "Moved S3's repo-write point into a parenthesis after 'reads what the other writes' and shrank S4 to 'opts out'; saves about 12 words, but the paragraph loses its separate sentence for the write-and-commit workflow."
+  },
+  {
+   "id": "2.t2",
+   "round": 2,
+   "role": "challenger",
+   "tag": "tactic",
+   "anchors": [
+    "S14",
+    "S15"
+   ],
+   "text": "Tried dropping 'Output on disk is not agent done' as a bold lead-in and keeping only the slot-counting rule; abandoned because the lead-in is the phrase a reader searches for and it names the failure."
+  },
+  {
+   "id": "2.t3",
+   "round": 2,
+   "role": "challenger",
+   "tag": "tactic",
+   "anchors": [
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "text": "Tried folding silent drop into the slot-counting bullet so ListAgents is named once; abandoned, since the roster-reconciliation rule and the slot-count rule are separate acts and a merged bullet reads as one."
   }
  ]
 }
