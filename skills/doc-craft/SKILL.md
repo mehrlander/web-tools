@@ -14,6 +14,7 @@ Content should only be included where behavior depends on it. For a basic test: 
 ## General Principles
 
 - **Consider the context**: Read the entire file and adjacent files before changing a part, to ensure that any change is aligned and exactly where it should be.
+- **Open with the premise**: A document's first paragraph says what the document is for and who reads it, before any definition or mechanism. When an edit touches a document whose opening lacks a premise, say so in the review rather than widening the edit.
 - **Integrate explanations**:  Prefer editing an existing sentence, parameter entry, or bullet to adding a section.
 - **Earn each sentence**: If material can be removed and it is unlikely to affect future assistant behavior, it likely should be.
 - **State current reality**: Omit debugging narratives, discovery steps, and authoring commentary.
@@ -26,10 +27,13 @@ Content should only be included where behavior depends on it. For a basic test: 
 
 ## Review
 
-Check changes against the principles above, make any needed revisions, commit them on a branch, then present them in chat as a doc review:
+Check changes against the principles above, make any needed revisions, and commit them on a branch. Then run the `portable:peeves-critic` agent on each changed document and fix what it finds, until a run returns PASS; the review states how many runs that took.
+
+Edits in two or more places go to the owner as a documentation call, the change form in [docs/forms/README.md](https://github.com/mehrlander/web-tools/blob/main/docs/forms/README.md): one call per document, filed with [`user-call.py`](https://github.com/mehrlander/web-tools-private/blob/main/user-calls/user-call.py), whose call page shows the document with each edit to keep or discard. The chat message gives the call's link, which `user-call.py link <id>` prints, in place of the diffs.
+
+Edits in one passage are presented in chat as a doc review:
 
 - **Open with the work**: A `📝 Doc review: <topic>` heading, one or two sentences on the work behind the edits, and links to the commit and to its changeset diff.
-- **Walk the passages**: When the edits sit in two or more places, add a look link with a step on each edited passage (the look-markers skill). The diffs remain what the owner approves.
 - **Caption each document**: Its plain name, 🥏 render link, and one line on what it covers.
 - **Label each edit**: `Edit N · <kind> · <origin>`. Kind: Fix (the text is false), Alignment (two documents disagree), Addition (new content) or Wording (same claim, new words). Origin: this session's work or the existing text.
 - **Locate it, then show it**: Name the place by its content and say what changes, then show a fenced `diff` block with enough unchanged lines to locate it.
