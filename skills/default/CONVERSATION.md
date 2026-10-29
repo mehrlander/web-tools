@@ -58,6 +58,12 @@ substituting the current repo in URL templates.
 
   Use `🧭 [PR #N](…) (body synced)` only when this turn rewrote the guide; otherwise use `(body not synced)`. Do not carry the marker forward from an earlier reply.
 
+## Asks by name
+
+* **SPUR.** Summary of Proposal for Unfamiliar Reader: the session's current proposal, written for a reader who has not followed the session and knows none of the shorthand or coined terms the session uses.
+
+* **SUPES.** Summary of Unlanded Proposals for Existing Session: each proposal this session made that has not landed on the default branch, whether committed to a branch that has not merged or offered in a reply and never acted on, with where it stands and what landing it takes.
+
 ## Displaying content
 
 * **A rendered view 🥏.** `toss-render.html` renders a page or other content from GitHub. Each browser needs a GitHub token for private repos. `npm run showing` prints the 🥏 links for the branch's changed files, and with `--path <file>` a link for any file. The printed line goes in the reply unchanged, refreshed after each commit. `npm run showing -- --help` lists the options for a fragment (the rendered page's own address), a query and a width. When a reply asks the reader to look at or tap an element of a page, make the link a look link: `--intro "<what changed>"` greets the reader, and `--at "<fragment>"` lands on the place to see, with the fragment from `python/look-link.py` (`show` or `tap` for one place, `walkthrough` or `steps` for several; the `look-markers` skill). Leave `--width` off a link the reader opens: a fixed width renders the page at that width on every device, where the reader wants each device's own layout.

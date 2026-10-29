@@ -30,7 +30,7 @@ docs/assistant-branches.csv,7,5,1090,"[""branch"",""repo"",""assistant"",""basis
 docs/context-links.csv,5,4,657,"[""from"",""to"",""kind"",""gloss""]"
 docs/context-sources.csv,33,20,8837,"[""id"",""circle"",""item"",""repo"",""path"",""defined_in"",""link"",""arrives"",""when"",""reach"",""read"",""change"",""evidence"",""status"",""tally"",""topics"",""gloss"",""assistant"",""discretion"",""role""]"
 docs/context-topics.csv,12,4,2749,"[""topic"",""label"",""verdict"",""gloss""]"
-docs/conversation.csv,12,7,5785,"[""key"",""lead"",""title"",""glyph"",""use"",""form"",""boundary""]"
+docs/conversation.csv,14,7,6133,"[""key"",""lead"",""title"",""glyph"",""use"",""form"",""boundary""]"
 docs/css-baseline.csv,86,2,2664,"[""path"",""declarations""]"
 docs/direct-to-main.csv,17,6,3955,"[""process"",""target_repo"",""path_pattern"",""writer"",""sync_discipline"",""gloss""]"
 docs/docs.csv,114,7,28762,"[""path"",""subject"",""status"",""reach"",""words"",""maintenance"",""formerly""]"
