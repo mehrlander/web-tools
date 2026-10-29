@@ -21,7 +21,325 @@
    "words": 106
   }
  ],
- "bouts": [],
- "edits": [],
- "path": []
+ "bouts": [
+  {
+   "n": 1,
+   "model": "haiku",
+   "fighters": [
+    "caveman",
+    "cutter",
+    "fixer",
+    "fuser",
+    "peever",
+    "plain",
+    "premise",
+    "qualifier",
+    "reorder",
+    "restorer",
+    "slugger"
+   ],
+   "landed": 4,
+   "knocked": 25,
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request that can merge and reports it as a check on the PR, so the test result appears even when no session runs the suite. `page-measures.yml` also runs on pull requests that touch a page and only reports findings, so a failed run means the workflow is at fault. Keep suite browser-free (`node --test` globs `node/test/**/*.test.mjs`; Playwright checks named without `.test.`), or runner grows a browser install. `package-lock.json` is not committed, so CI installs the newest allowed dependency versions on every run, and a passing check covers only those versions.",
+   "words": 97
+  }
+ ],
+ "edits": [
+  {
+   "id": "b1.plain.1",
+   "bout": 1,
+   "by": "plain",
+   "from": "so the test speaks even when no session runs the suite. `page-measures.yml` also runs on pull requests that touch a page and gives advisory output only, so a red result is not expected or intended.",
+   "text": "so the test result appears even when no session runs the suite. `page-measures.yml` also runs on pull requests that touch a page and only reports findings, so a failed run means the workflow is at fault.",
+   "peeve": "P64",
+   "landed": true
+  },
+  {
+   "id": "b1.caveman.1",
+   "bout": 1,
+   "by": "caveman",
+   "from": "The suite is browser-free by construction (`node --test` globs `node/test/**/*.test.mjs`, and every Playwright-driven check is named without `.test.`), so keep it that way or the runner grows a browser install.",
+   "text": "Keep suite browser-free (`node --test` globs `node/test/**/*.test.mjs`; Playwright checks named without `.test.`), or runner grows a browser install.",
+   "landed": true
+  },
+  {
+   "id": "b1.reorder.1",
+   "bout": 1,
+   "by": "reorder",
+   "from": "The suite is browser-free by construction (`node --test` globs `node/test/**/*.test.mjs`, and every Playwright-driven check is named without `.test.`), so keep it that way or the runner grows a browser install.",
+   "text": "Keep the suite browser-free (`node --test` globs `node/test/**/*.test.mjs`, and every Playwright-driven check is named without `.test.`), or the runner grows a browser install.",
+   "landed": false
+  },
+  {
+   "id": "b1.slugger.1",
+   "bout": 1,
+   "by": "slugger",
+   "from": "The suite is browser-free by construction (`node --test` globs `node/test/**/*.test.mjs`, and every Playwright-driven check is named without `.test.`), so keep it that way or the runner grows a browser install.",
+   "text": "Keep the suite browser-free: `node --test` globs `node/test/**/*.test.mjs`, and Playwright-driven checks are named without `.test.`, or the CI runner grows a browser install.",
+   "landed": false
+  },
+  {
+   "id": "b1.plain.2",
+   "bout": 1,
+   "by": "plain",
+   "from": "The suite is browser-free by construction (`node --test` globs `node/test/**/*.test.mjs`, and every Playwright-driven check is named without `.test.`), so keep it that way or the runner grows a browser install.",
+   "text": "The suite is browser-free by design (`node --test` runs files matching `node/test/**/*.test.mjs`, and every browser check is named without `.test.`), so keep it that way or CI must install a browser.",
+   "landed": false
+  },
+  {
+   "id": "b1.plain.3",
+   "bout": 1,
+   "by": "plain",
+   "from": "`package-lock.json` is gitignored, so CI resolves dependency ranges fresh on each run and a green check is not a claim about a pinned tree.",
+   "text": "`package-lock.json` is not committed, so CI installs the newest allowed dependency versions on every run, and a passing check covers only those versions.",
+   "landed": true
+  },
+  {
+   "id": "b1.fuser.1",
+   "bout": 1,
+   "by": "fuser",
+   "from": "and reports it as a check on the PR, so the test speaks even when no session runs the suite.",
+   "text": "as a check, even when no session runs the suite.",
+   "landed": false
+  },
+  {
+   "id": "b1.fixer.1",
+   "bout": 1,
+   "by": "fixer",
+   "from": "reports it as a check on the PR, so the test speaks even when no session runs the suite",
+   "text": "reports it as a PR check, so the result appears even when no session runs the suite",
+   "peeve": "P04",
+   "landed": false
+  },
+  {
+   "id": "b1.reorder.3",
+   "bout": 1,
+   "by": "reorder",
+   "from": "fresh on each run and a green check is not a claim about a pinned tree",
+   "text": "fresh, and a green check says nothing about a pinned tree",
+   "landed": false
+  },
+  {
+   "id": "b1.fuser.2",
+   "bout": 1,
+   "by": "fuser",
+   "from": "page and gives advisory output only, so a red result is not expected or intended.",
+   "text": "page, advisory only, so a red result is informational.",
+   "peeve": "P64",
+   "landed": false
+  },
+  {
+   "id": "b1.fuser.3",
+   "bout": 1,
+   "by": "fuser",
+   "from": "on each run and a green check is not a claim about a pinned tree.",
+   "text": "each run; a green check claims nothing about a pinned tree.",
+   "landed": false
+  },
+  {
+   "id": "b1.caveman.2",
+   "bout": 1,
+   "by": "caveman",
+   "from": "and gives advisory output only, so a red result is not expected or intended.",
+   "text": "and is advisory only, so a red result is unintended.",
+   "peeve": "P64",
+   "landed": false
+  },
+  {
+   "id": "b1.reorder.2",
+   "bout": 1,
+   "by": "reorder",
+   "from": "gives advisory output only, so a red result is not expected or intended",
+   "text": "reports advisory output only",
+   "peeve": "P64",
+   "landed": false
+  },
+  {
+   "id": "b1.fixer.2",
+   "bout": 1,
+   "by": "fixer",
+   "from": "gives advisory output only, so a red result is not expected or intended",
+   "text": "gives advisory output, so a red result is a finding",
+   "peeve": "P64",
+   "landed": false
+  },
+  {
+   "id": "b1.cutter.1",
+   "bout": 1,
+   "by": "cutter",
+   "from": ", so the test speaks even when no session runs the suite",
+   "text": "",
+   "peeve": "P01",
+   "landed": false
+  },
+  {
+   "id": "b1.slugger.2",
+   "bout": 1,
+   "by": "slugger",
+   "from": ", so the test speaks even when no session runs the suite",
+   "text": "",
+   "peeve": "P04",
+   "landed": false
+  },
+  {
+   "id": "b1.restorer.1",
+   "bout": 1,
+   "by": "restorer",
+   "from": ", so the test speaks even when no session runs the suite.",
+   "text": ".",
+   "peeve": "P04",
+   "landed": false
+  },
+  {
+   "id": "b1.restorer.2",
+   "bout": 1,
+   "by": "restorer",
+   "from": "and a green check is not a claim about a pinned tree",
+   "text": "and a green check covers only the versions that run installed",
+   "peeve": "P64",
+   "landed": false
+  },
+  {
+   "id": "b1.qualifier.1",
+   "bout": 1,
+   "by": "qualifier",
+   "from": "so the test speaks even when no session runs the suite",
+   "text": "so the test reports even unattended",
+   "peeve": "P04",
+   "landed": false
+  },
+  {
+   "id": "b1.fixer.3",
+   "bout": 1,
+   "by": "fixer",
+   "from": "a green check is not a claim about a pinned tree",
+   "text": "a green check covers only that run's resolved ranges",
+   "peeve": "P64",
+   "landed": false
+  },
+  {
+   "id": "b1.cutter.2",
+   "bout": 1,
+   "by": "cutter",
+   "from": ", so a red result is not expected or intended",
+   "text": "",
+   "peeve": "P64",
+   "landed": false
+  },
+  {
+   "id": "b1.restorer.3",
+   "bout": 1,
+   "by": "restorer",
+   "from": ", so a red result is not expected or intended",
+   "text": "",
+   "peeve": "P64",
+   "landed": false
+  },
+  {
+   "id": "b1.slugger.3",
+   "bout": 1,
+   "by": "slugger",
+   "from": "so a red result is not expected or intended",
+   "text": "so a red result is unintended",
+   "peeve": "P64",
+   "landed": false
+  },
+  {
+   "id": "b1.premise.2",
+   "bout": 1,
+   "by": "premise",
+   "from": "so a red result is not expected or intended",
+   "text": "so a red run means the measuring step itself failed",
+   "landed": false
+  },
+  {
+   "id": "b1.peever.1",
+   "bout": 1,
+   "by": "peever",
+   "from": "so a red result is not expected or intended",
+   "text": "so a red result would be a fault in the workflow",
+   "peeve": "P64",
+   "landed": false
+  },
+  {
+   "id": "b1.cutter.3",
+   "bout": 1,
+   "by": "cutter",
+   "from": "way or the runner grows a browser install",
+   "text": "way",
+   "peeve": "P01",
+   "landed": false
+  },
+  {
+   "id": "b1.premise.1",
+   "bout": 1,
+   "by": "premise",
+   "from": "runs `npm test` on every pull request",
+   "text": "runs `npm test` on every pull request that can merge",
+   "landed": true
+  },
+  {
+   "id": "b1.qualifier.2",
+   "bout": 1,
+   "by": "qualifier",
+   "from": "or the runner grows",
+   "text": "or the CI runner grows",
+   "landed": false
+  },
+  {
+   "id": "b1.qualifier.3",
+   "bout": 1,
+   "by": "qualifier",
+   "from": "The suite is browser-free",
+   "text": "The `npm test` suite is browser-free",
+   "peeve": "P05",
+   "landed": false
+  }
+ ],
+ "path": [
+  {
+   "edit": "b1.plain.1",
+   "bout": 1,
+   "blocks": [
+    "P1"
+   ],
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports it as a check on the PR, so the test result appears even when no session runs the suite. `page-measures.yml` also runs on pull requests that touch a page and only reports findings, so a failed run means the workflow is at fault. The suite is browser-free by construction (`node --test` globs `node/test/**/*.test.mjs`, and every Playwright-driven check is named without `.test.`), so keep it that way or the runner grows a browser install. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh on each run and a green check is not a claim about a pinned tree.",
+   "words": 107
+  },
+  {
+   "edit": "b1.caveman.1",
+   "bout": 1,
+   "blocks": [
+    "P1"
+   ],
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports it as a check on the PR, so the test result appears even when no session runs the suite. `page-measures.yml` also runs on pull requests that touch a page and only reports findings, so a failed run means the workflow is at fault. Keep suite browser-free (`node --test` globs `node/test/**/*.test.mjs`; Playwright checks named without `.test.`), or runner grows a browser install. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh on each run and a green check is not a claim about a pinned tree.",
+   "words": 95
+  },
+  {
+   "edit": "b1.plain.3",
+   "bout": 1,
+   "blocks": [
+    "P1"
+   ],
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports it as a check on the PR, so the test result appears even when no session runs the suite. `page-measures.yml` also runs on pull requests that touch a page and only reports findings, so a failed run means the workflow is at fault. Keep suite browser-free (`node --test` globs `node/test/**/*.test.mjs`; Playwright checks named without `.test.`), or runner grows a browser install. `package-lock.json` is not committed, so CI installs the newest allowed dependency versions on every run, and a passing check covers only those versions.",
+   "words": 94
+  },
+  {
+   "edit": "b1.premise.1",
+   "bout": 1,
+   "blocks": [
+    "P1"
+   ],
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request that can merge and reports it as a check on the PR, so the test result appears even when no session runs the suite. `page-measures.yml` also runs on pull requests that touch a page and only reports findings, so a failed run means the workflow is at fault. Keep suite browser-free (`node --test` globs `node/test/**/*.test.mjs`; Playwright checks named without `.test.`), or runner grows a browser install. `package-lock.json` is not committed, so CI installs the newest allowed dependency versions on every run, and a passing check covers only those versions.",
+   "words": 97
+  }
+ ],
+ "peeves": {
+  "P01": "Documentation bloat",
+  "P04": "Dramatic prose",
+  "P05": "Vague writing",
+  "P07": "Em dashes",
+  "P63": "Forced line breaks",
+  "P64": "Percussive negation and contrast"
+ }
 }
