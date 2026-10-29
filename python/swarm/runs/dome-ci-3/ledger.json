@@ -84,6 +84,27 @@
    "knocked": 20,
    "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request, even without a session, and reports the suite's result as a check on the PR, even when no session runs the suite. `page-measures.yml` runs on pull requests that touch a page and only reports advisory output. Keep suite browser-free (`node --test` matches `node/test/**/*.test.mjs`; every Playwright-driven check is named without `.test.`), or the CI runner must install a browser. `package-lock.json` is gitignored: each CI run installs the newest versions within the dependency ranges, so a passing check covers only those versions.",
    "words": 88
+  },
+  {
+   "n": 4,
+   "model": "sonnet",
+   "fighters": [
+    "caveman",
+    "cutter",
+    "fixer",
+    "fuser",
+    "peever",
+    "plain",
+    "premise",
+    "qualifier",
+    "reorder",
+    "restorer",
+    "slugger"
+   ],
+   "landed": 4,
+   "knocked": 23,
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports the result as a check on the PR, even when no session runs the suite. `page-measures.yml` runs on pull requests that touch a `pages/**/*.html` file and reports advisory output only, so a red result is unexpected. Keep the suite browser-free (`node --test` matches `node/test/**/*.test.mjs`; every Playwright-driven check is named without `.test.`), or the CI runner must install a browser. `package-lock.json` is gitignored: each CI run installs the newest versions within the dependency ranges, so a passing check covers only those versions.",
+   "words": 91
   }
  ],
  "edits": [
@@ -848,6 +869,243 @@
    "from": "only reports findings",
    "text": "gives advisory output only",
    "landed": false
+  },
+  {
+   "id": "b4.plain.1",
+   "bout": 4,
+   "by": "plain",
+   "from": "and only reports advisory output",
+   "text": "and reports advisory output only, so a red result is unexpected",
+   "repair": true,
+   "why": "that a red page-measures.yml result is not expected or intended, so a reader cannot tell a fault from an ordinary finding",
+   "landed": true
+  },
+  {
+   "id": "b4.restorer.1",
+   "bout": 4,
+   "by": "restorer",
+   "from": "and only reports advisory output",
+   "text": "and only reports advisory output, so a red result is unexpected",
+   "repair": true,
+   "why": "that a red page-measures result is not expected or intended",
+   "landed": false
+  },
+  {
+   "id": "b4.caveman.1",
+   "bout": 4,
+   "by": "caveman",
+   "from": "only reports advisory output",
+   "text": "reports advisory output only, so a red result is unintended",
+   "repair": true,
+   "why": "that a red page-measures.yml result is not expected or intended, which tells the reader a red run is a fault in the workflow",
+   "landed": false
+  },
+  {
+   "id": "b4.fuser.1",
+   "bout": 4,
+   "by": "fuser",
+   "from": "only reports advisory output",
+   "text": "only reports advisory output, so a red result is unexpected",
+   "repair": true,
+   "why": "that a red page-measures run is not expected or intended, so a reader would not know it signals a fault in the pass rather than a page",
+   "landed": false
+  },
+  {
+   "id": "b4.slugger.1",
+   "bout": 4,
+   "by": "slugger",
+   "from": "only reports advisory output",
+   "text": "only reports advisory output, so a red result is unintended",
+   "repair": true,
+   "why": "that a red page-measures run is not expected or intended",
+   "landed": false
+  },
+  {
+   "id": "b4.premise.1",
+   "bout": 4,
+   "by": "premise",
+   "from": "only reports advisory output.",
+   "text": "reports advisory output and goes red only when the pass itself is broken.",
+   "repair": true,
+   "why": "what a red page-measures check means: the original said a red result is not expected or intended, and the paragraph now leaves a reader unsure whether a red run is a page finding or a fault in the workflow (page-measures.yml confirms findings never fail it)",
+   "landed": false
+  },
+  {
+   "id": "b4.reorder.1",
+   "bout": 4,
+   "by": "reorder",
+   "from": "Keep suite browser-free",
+   "text": "Keep the suite browser-free",
+   "repair": true,
+   "why": "the article; bare 'suite' left the reader to recover that it means the `npm test` suite",
+   "landed": true
+  },
+  {
+   "id": "b4.slugger.2",
+   "bout": 4,
+   "by": "slugger",
+   "from": "runs `npm test` on every pull request, even without a session, and reports the suite's result as a check on the PR, even when no session runs the suite.",
+   "text": "runs `npm test` on every pull request and reports the result as a check on the PR, even when no session runs the suite.",
+   "landed": true
+  },
+  {
+   "id": "b4.reorder.3",
+   "bout": 4,
+   "by": "reorder",
+   "from": "runs on pull requests that touch a page and only reports advisory output",
+   "text": "reports advisory output only, on pull requests that touch a page",
+   "landed": false
+  },
+  {
+   "id": "b4.caveman.2",
+   "bout": 4,
+   "by": "caveman",
+   "from": ", even without a session,",
+   "text": "",
+   "peeve": "P01",
+   "landed": false
+  },
+  {
+   "id": "b4.cutter.1",
+   "bout": 4,
+   "by": "cutter",
+   "from": ", even without a session,",
+   "text": "",
+   "peeve": "P01",
+   "landed": false
+  },
+  {
+   "id": "b4.fixer.1",
+   "bout": 4,
+   "by": "fixer",
+   "from": ", even without a session,",
+   "text": "",
+   "landed": false
+  },
+  {
+   "id": "b4.fuser.2",
+   "bout": 4,
+   "by": "fuser",
+   "from": ", even without a session,",
+   "text": "",
+   "landed": false
+  },
+  {
+   "id": "b4.peever.1",
+   "bout": 4,
+   "by": "peever",
+   "from": ", even without a session,",
+   "text": "",
+   "peeve": "P01",
+   "landed": false
+  },
+  {
+   "id": "b4.plain.2",
+   "bout": 4,
+   "by": "plain",
+   "from": ", even without a session,",
+   "text": "",
+   "landed": false
+  },
+  {
+   "id": "b4.premise.2",
+   "bout": 4,
+   "by": "premise",
+   "from": ", even without a session,",
+   "text": "",
+   "peeve": "P01",
+   "landed": false
+  },
+  {
+   "id": "b4.qualifier.1",
+   "bout": 4,
+   "by": "qualifier",
+   "from": ", even without a session,",
+   "text": "",
+   "peeve": "P01",
+   "landed": false
+  },
+  {
+   "id": "b4.reorder.2",
+   "bout": 4,
+   "by": "reorder",
+   "from": ", even without a session,",
+   "text": "",
+   "peeve": "P01",
+   "landed": false
+  },
+  {
+   "id": "b4.restorer.2",
+   "bout": 4,
+   "by": "restorer",
+   "from": ", even without a session,",
+   "text": "",
+   "peeve": "P01",
+   "landed": false
+  },
+  {
+   "id": "b4.caveman.3",
+   "bout": 4,
+   "by": "caveman",
+   "from": "Keep suite browser-free",
+   "text": "Keep the suite browser-free",
+   "landed": false
+  },
+  {
+   "id": "b4.fuser.3",
+   "bout": 4,
+   "by": "fuser",
+   "from": "Keep suite browser-free",
+   "text": "Keep the suite browser-free",
+   "landed": false
+  },
+  {
+   "id": "b4.plain.3",
+   "bout": 4,
+   "by": "plain",
+   "from": "Keep suite browser-free",
+   "text": "Keep the suite browser-free",
+   "landed": false
+  },
+  {
+   "id": "b4.qualifier.3",
+   "bout": 4,
+   "by": "qualifier",
+   "from": "touch a page",
+   "text": "touch a `pages/**/*.html` file",
+   "landed": true
+  },
+  {
+   "id": "b4.slugger.3",
+   "bout": 4,
+   "by": "slugger",
+   "from": "Keep suite browser-free",
+   "text": "Keep the suite browser-free",
+   "landed": false
+  },
+  {
+   "id": "b4.qualifier.2",
+   "bout": 4,
+   "by": "qualifier",
+   "from": "Keep suite browser-free",
+   "text": "Keep the `npm test` suite browser-free",
+   "landed": false
+  },
+  {
+   "id": "b4.fixer.2",
+   "bout": 4,
+   "by": "fixer",
+   "from": "Keep suite",
+   "text": "Keep the suite",
+   "landed": false
+  },
+  {
+   "id": "b4.restorer.3",
+   "bout": 4,
+   "by": "restorer",
+   "from": "Keep suite",
+   "text": "Keep the suite",
+   "landed": false
   }
  ],
  "path": [
@@ -1021,6 +1279,42 @@
    ],
    "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request, even without a session, and reports the suite's result as a check on the PR, even when no session runs the suite. `page-measures.yml` runs on pull requests that touch a page and only reports advisory output. Keep suite browser-free (`node --test` matches `node/test/**/*.test.mjs`; every Playwright-driven check is named without `.test.`), or the CI runner must install a browser. `package-lock.json` is gitignored: each CI run installs the newest versions within the dependency ranges, so a passing check covers only those versions.",
    "words": 88
+  },
+  {
+   "edit": "b4.plain.1",
+   "bout": 4,
+   "blocks": [
+    "P1"
+   ],
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request, even without a session, and reports the suite's result as a check on the PR, even when no session runs the suite. `page-measures.yml` runs on pull requests that touch a page and reports advisory output only, so a red result is unexpected. Keep suite browser-free (`node --test` matches `node/test/**/*.test.mjs`; every Playwright-driven check is named without `.test.`), or the CI runner must install a browser. `package-lock.json` is gitignored: each CI run installs the newest versions within the dependency ranges, so a passing check covers only those versions.",
+   "words": 94
+  },
+  {
+   "edit": "b4.reorder.1",
+   "bout": 4,
+   "blocks": [
+    "P1"
+   ],
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request, even without a session, and reports the suite's result as a check on the PR, even when no session runs the suite. `page-measures.yml` runs on pull requests that touch a page and reports advisory output only, so a red result is unexpected. Keep the suite browser-free (`node --test` matches `node/test/**/*.test.mjs`; every Playwright-driven check is named without `.test.`), or the CI runner must install a browser. `package-lock.json` is gitignored: each CI run installs the newest versions within the dependency ranges, so a passing check covers only those versions.",
+   "words": 95
+  },
+  {
+   "edit": "b4.slugger.2",
+   "bout": 4,
+   "blocks": [
+    "P1"
+   ],
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports the result as a check on the PR, even when no session runs the suite. `page-measures.yml` runs on pull requests that touch a page and reports advisory output only, so a red result is unexpected. Keep the suite browser-free (`node --test` matches `node/test/**/*.test.mjs`; every Playwright-driven check is named without `.test.`), or the CI runner must install a browser. `package-lock.json` is gitignored: each CI run installs the newest versions within the dependency ranges, so a passing check covers only those versions.",
+   "words": 90
+  },
+  {
+   "edit": "b4.qualifier.3",
+   "bout": 4,
+   "blocks": [
+    "P1"
+   ],
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports the result as a check on the PR, even when no session runs the suite. `page-measures.yml` runs on pull requests that touch a `pages/**/*.html` file and reports advisory output only, so a red result is unexpected. Keep the suite browser-free (`node --test` matches `node/test/**/*.test.mjs`; every Playwright-driven check is named without `.test.`), or the CI runner must install a browser. `package-lock.json` is gitignored: each CI run installs the newest versions within the dependency ranges, so a passing check covers only those versions.",
+   "words": 91
   }
  ],
  "peeves": {
