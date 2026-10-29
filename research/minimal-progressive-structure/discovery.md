@@ -216,3 +216,43 @@ exists only in commentary, ask the modeler to encode the relationship using
 the smallest useful structure. Preserve the same examples and allow replacing
 or removing a type. That check would test the model's operational value before
 generating a page from it.
+
+## First operational skill, 2026-10-29
+
+The [page-design-loop skill](../../skills/page-design-loop/SKILL.md) turns the
+discovery process into named actions for creating and revising structures,
+sketches and pages. The person and coordinating bot use the same action
+vocabulary. Each bot action names its target, consumed versions, reason,
+expected change, verification and effort allowance.
+
+The [action contracts and flow](../../skills/page-design-loop/references/actions.md)
+keep intermediate structures and sketches inspectable, allow selective
+expansion of branches, and return later page feedback to a new structure
+version. The [check procedures](../../skills/page-design-loop/references/checks.md)
+define evidence checks, reader tasks, rendering, visual requirements and
+compatibility between versions. Information models retain their own JSON
+schemas; only coordination metadata is standardized.
+
+A bundled read-only checker validates records and flags views that depend on
+superseded versions. Its regression cases exercise effort accounting, operation
+targets, revision ancestry, compatibility checks, park/resume history and honest
+handoffs. The checker does not dispatch models or establish the quality of a
+page.
+
+A fresh agent tried the skill against the saved October 31, 2025 WA Cares
+article. The run produced a model, populated sketch and page. A reader-task
+check found that the page did not identify WA Cares as a long-term care program;
+the agent revised the page to supply that source-supported description.
+
+A follow-up asked for a comparison of the 2020 attempt and 2025 proposal. The
+agent revised the model first, preserved the original worked cases, then revised
+the sketch and page. The checker flagged the older dependent views immediately
+after the model changed. The updated page consumed the revised chain. The
+comparison retained Weiner's attribution and the article's limits rather than
+inventing the earlier measure's legal details.
+
+The run establishes a working revision path with inspectable versions. The
+bounded handoff records a minor phone tab overflow and the person's assessment
+as unresolved. One source, shared creator/tester context and no review by the
+person cannot establish better page design. The trial files stay in the session's
+local scratch folder; the reusable skill and record checks are committed here.
