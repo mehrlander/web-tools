@@ -63,6 +63,27 @@
    "knocked": 22,
    "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports the suite's result as a check on the PR. `page-measures.yml` also runs on pull requests that touch a page and only reports findings, so a red result is not expected or intended. Keep suite browser-free (`node --test` matches `node/test/**/*.test.mjs`; every Playwright-driven check named without `.test.`), or the CI runner grows a browser install. No committed `package-lock.json`: each CI run installs the newest allowed dependency versions, so a passing check covers only those versions.",
    "words": 83
+  },
+  {
+   "n": 3,
+   "model": "haiku",
+   "fighters": [
+    "caveman",
+    "cutter",
+    "fixer",
+    "fuser",
+    "peever",
+    "plain",
+    "premise",
+    "qualifier",
+    "reorder",
+    "restorer",
+    "slugger"
+   ],
+   "landed": 8,
+   "knocked": 20,
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request, even without a session, and reports the suite's result as a check on the PR, even when no session runs the suite. `page-measures.yml` runs on pull requests that touch a page and only reports advisory output. Keep suite browser-free (`node --test` matches `node/test/**/*.test.mjs`; every Playwright-driven check is named without `.test.`), or the CI runner must install a browser. `package-lock.json` is gitignored: each CI run installs the newest versions within the dependency ranges, so a passing check covers only those versions.",
+   "words": 88
   }
  ],
  "edits": [
@@ -576,6 +597,257 @@
    "from": "globs",
    "text": "matches",
    "landed": true
+  },
+  {
+   "id": "b3.restorer.1",
+   "bout": 3,
+   "by": "restorer",
+   "from": "No committed `package-lock.json`: each CI run installs the newest allowed dependency versions",
+   "text": "`package-lock.json` is gitignored: each CI run installs the newest versions within the dependency ranges",
+   "repair": true,
+   "why": "that the lockfile is gitignored, not merely uncommitted, and what 'allowed' was allowed by: the dependency ranges",
+   "landed": true
+  },
+  {
+   "id": "b3.peever.1",
+   "bout": 3,
+   "by": "peever",
+   "from": "reports the suite's result as a check on the PR.",
+   "text": "reports the suite's result as a check on the PR, even when no session runs the suite.",
+   "repair": true,
+   "why": "that CI verifies the suite even when no session runs it",
+   "landed": true
+  },
+  {
+   "id": "b3.fuser.1",
+   "bout": 3,
+   "by": "fuser",
+   "from": "reports the suite's result as a check on the PR.",
+   "text": "reports the suite's result as a check on the PR, so the test speaks even when no session runs the suite.",
+   "repair": true,
+   "why": "the reason the check matters: the test speaks even when no session runs the suite",
+   "landed": false
+  },
+  {
+   "id": "b3.reorder.1",
+   "bout": 3,
+   "by": "reorder",
+   "from": "runs `npm test` on every pull request",
+   "text": "runs `npm test` on every pull request, even without a session,",
+   "repair": true,
+   "why": "that the check runs even when no session runs the suite",
+   "landed": true
+  },
+  {
+   "id": "b3.fixer.1",
+   "bout": 3,
+   "by": "fixer",
+   "from": "every Playwright-driven check named without `.test.`",
+   "text": "every Playwright-driven check is named without `.test.`",
+   "repair": true,
+   "why": "the verb of the Playwright clause, so the naming rule reads as a fragment after the semicolon",
+   "landed": true
+  },
+  {
+   "id": "b3.qualifier.1",
+   "bout": 3,
+   "by": "qualifier",
+   "from": "installs the newest allowed dependency versions",
+   "text": "installs the newest versions within `package.json` ranges",
+   "repair": true,
+   "why": "the source of the limit: the package.json dependency ranges, which the original said CI resolves fresh; 'allowed' names nothing",
+   "landed": false
+  },
+  {
+   "id": "b3.caveman.1",
+   "bout": 3,
+   "by": "caveman",
+   "from": "as a check on the PR.",
+   "text": "as a check on the PR, even when no session runs the suite.",
+   "repair": true,
+   "why": "that CI runs the suite with no session behind it",
+   "landed": false
+  },
+  {
+   "id": "b3.cutter.1",
+   "bout": 3,
+   "by": "cutter",
+   "from": "as a check on the PR.",
+   "text": "as a check on the PR, even when no session runs the suite.",
+   "repair": true,
+   "why": "that the check runs even when no session runs the suite",
+   "landed": false
+  },
+  {
+   "id": "b3.slugger.1",
+   "bout": 3,
+   "by": "slugger",
+   "from": "the newest allowed dependency versions",
+   "text": "the newest versions the dependency ranges allow",
+   "repair": true,
+   "why": "that the dependency ranges decide which versions are allowed, so 'allowed' has a referent",
+   "peeve": "P05",
+   "landed": false
+  },
+  {
+   "id": "b3.plain.1",
+   "bout": 3,
+   "by": "plain",
+   "from": "only reports findings",
+   "text": "only reports advisory output",
+   "repair": true,
+   "why": "that page-measures output is advisory and does not block the PR",
+   "landed": true
+  },
+  {
+   "id": "b3.premise.1",
+   "bout": 3,
+   "by": "premise",
+   "from": "No committed `package-lock.json`:",
+   "text": "The root `package-lock.json` is gitignored:",
+   "repair": true,
+   "why": "that the root lockfile is gitignored by rule; 'no committed package-lock.json' is false as written, since archive/astro-build-demo/package-lock.json is tracked",
+   "landed": false
+  },
+  {
+   "id": "b3.slugger.2",
+   "bout": 3,
+   "by": "slugger",
+   "from": "Keep suite browser-free (`node --test` matches `node/test/**/*.test.mjs`; every Playwright-driven check named without `.test.`), or the CI runner grows a browser install.",
+   "text": "Keep the suite browser-free: Playwright checks must stay out of `node --test`'s glob, `node/test/**/*.test.mjs`, or the CI runner grows a browser install.",
+   "landed": false
+  },
+  {
+   "id": "b3.reorder.2",
+   "bout": 3,
+   "by": "reorder",
+   "from": "also runs on pull requests that touch a page and only reports findings",
+   "text": "only reports findings on pull requests that touch a page",
+   "landed": false
+  },
+  {
+   "id": "b3.premise.2",
+   "bout": 3,
+   "by": "premise",
+   "from": "only reports findings, so a red result is not expected or intended.",
+   "text": "goes red only if the workflow itself fails.",
+   "peeve": "P64",
+   "landed": false
+  },
+  {
+   "id": "b3.caveman.2",
+   "bout": 3,
+   "by": "caveman",
+   "from": ", so a red result is not expected or intended",
+   "text": "",
+   "peeve": "P01",
+   "landed": true
+  },
+  {
+   "id": "b3.fuser.2",
+   "bout": 3,
+   "by": "fuser",
+   "from": "pull requests that touch a page and only reports findings",
+   "text": "page-touching pull requests, reporting findings only",
+   "landed": false
+  },
+  {
+   "id": "b3.fixer.2",
+   "bout": 3,
+   "by": "fixer",
+   "from": "reports the suite's result as a check on the PR",
+   "text": "reports the suite's result as a PR check",
+   "landed": false
+  },
+  {
+   "id": "b3.peever.2",
+   "bout": 3,
+   "by": "peever",
+   "from": "so a red result is not expected or intended.",
+   "text": "so a red result signals a fault in the workflow.",
+   "peeve": "P64",
+   "landed": false
+  },
+  {
+   "id": "b3.restorer.2",
+   "bout": 3,
+   "by": "restorer",
+   "from": "as a check on the PR",
+   "text": "as a PR check",
+   "landed": false
+  },
+  {
+   "id": "b3.caveman.3",
+   "bout": 3,
+   "by": "caveman",
+   "from": "installs the newest allowed dependency versions",
+   "text": "installs newest allowed dependency versions",
+   "landed": false
+  },
+  {
+   "id": "b3.plain.2",
+   "bout": 3,
+   "by": "plain",
+   "from": "the newest allowed dependency versions",
+   "text": "the newest versions package.json allows",
+   "landed": false
+  },
+  {
+   "id": "b3.cutter.2",
+   "bout": 3,
+   "by": "cutter",
+   "from": "not expected or intended",
+   "text": "unexpected",
+   "landed": false
+  },
+  {
+   "id": "b3.cutter.3",
+   "bout": 3,
+   "by": "cutter",
+   "from": "each CI run installs",
+   "text": "CI installs",
+   "landed": false
+  },
+  {
+   "id": "b3.plain.3",
+   "bout": 3,
+   "by": "plain",
+   "from": "grows a browser install",
+   "text": "must install a browser",
+   "landed": true
+  },
+  {
+   "id": "b3.restorer.3",
+   "bout": 3,
+   "by": "restorer",
+   "from": "`page-measures.yml` also runs",
+   "text": "`page-measures.yml` runs",
+   "landed": true
+  },
+  {
+   "id": "b3.peever.3",
+   "bout": 3,
+   "by": "peever",
+   "from": "No committed `package-lock.json`:",
+   "text": "`package-lock.json` is gitignored:",
+   "peeve": "P64",
+   "landed": false
+  },
+  {
+   "id": "b3.qualifier.2",
+   "bout": 3,
+   "by": "qualifier",
+   "from": "only reports findings",
+   "text": "only reports advisory findings",
+   "landed": false
+  },
+  {
+   "id": "b3.slugger.3",
+   "bout": 3,
+   "by": "slugger",
+   "from": "only reports findings",
+   "text": "gives advisory output only",
+   "landed": false
   }
  ],
  "path": [
@@ -677,6 +949,78 @@
    ],
    "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports the suite's result as a check on the PR. `page-measures.yml` also runs on pull requests that touch a page and only reports findings, so a red result is not expected or intended. Keep suite browser-free (`node --test` matches `node/test/**/*.test.mjs`; every Playwright-driven check named without `.test.`), or the CI runner grows a browser install. No committed `package-lock.json`: each CI run installs the newest allowed dependency versions, so a passing check covers only those versions.",
    "words": 83
+  },
+  {
+   "edit": "b3.restorer.1",
+   "bout": 3,
+   "blocks": [
+    "P1"
+   ],
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports the suite's result as a check on the PR. `page-measures.yml` also runs on pull requests that touch a page and only reports findings, so a red result is not expected or intended. Keep suite browser-free (`node --test` matches `node/test/**/*.test.mjs`; every Playwright-driven check named without `.test.`), or the CI runner grows a browser install. `package-lock.json` is gitignored: each CI run installs the newest versions within the dependency ranges, so a passing check covers only those versions.",
+   "words": 85
+  },
+  {
+   "edit": "b3.peever.1",
+   "bout": 3,
+   "blocks": [
+    "P1"
+   ],
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports the suite's result as a check on the PR, even when no session runs the suite. `page-measures.yml` also runs on pull requests that touch a page and only reports findings, so a red result is not expected or intended. Keep suite browser-free (`node --test` matches `node/test/**/*.test.mjs`; every Playwright-driven check named without `.test.`), or the CI runner grows a browser install. `package-lock.json` is gitignored: each CI run installs the newest versions within the dependency ranges, so a passing check covers only those versions.",
+   "words": 92
+  },
+  {
+   "edit": "b3.reorder.1",
+   "bout": 3,
+   "blocks": [
+    "P1"
+   ],
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request, even without a session, and reports the suite's result as a check on the PR, even when no session runs the suite. `page-measures.yml` also runs on pull requests that touch a page and only reports findings, so a red result is not expected or intended. Keep suite browser-free (`node --test` matches `node/test/**/*.test.mjs`; every Playwright-driven check named without `.test.`), or the CI runner grows a browser install. `package-lock.json` is gitignored: each CI run installs the newest versions within the dependency ranges, so a passing check covers only those versions.",
+   "words": 96
+  },
+  {
+   "edit": "b3.fixer.1",
+   "bout": 3,
+   "blocks": [
+    "P1"
+   ],
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request, even without a session, and reports the suite's result as a check on the PR, even when no session runs the suite. `page-measures.yml` also runs on pull requests that touch a page and only reports findings, so a red result is not expected or intended. Keep suite browser-free (`node --test` matches `node/test/**/*.test.mjs`; every Playwright-driven check is named without `.test.`), or the CI runner grows a browser install. `package-lock.json` is gitignored: each CI run installs the newest versions within the dependency ranges, so a passing check covers only those versions.",
+   "words": 97
+  },
+  {
+   "edit": "b3.plain.1",
+   "bout": 3,
+   "blocks": [
+    "P1"
+   ],
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request, even without a session, and reports the suite's result as a check on the PR, even when no session runs the suite. `page-measures.yml` also runs on pull requests that touch a page and only reports advisory output, so a red result is not expected or intended. Keep suite browser-free (`node --test` matches `node/test/**/*.test.mjs`; every Playwright-driven check is named without `.test.`), or the CI runner grows a browser install. `package-lock.json` is gitignored: each CI run installs the newest versions within the dependency ranges, so a passing check covers only those versions.",
+   "words": 98
+  },
+  {
+   "edit": "b3.caveman.2",
+   "bout": 3,
+   "blocks": [
+    "P1"
+   ],
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request, even without a session, and reports the suite's result as a check on the PR, even when no session runs the suite. `page-measures.yml` also runs on pull requests that touch a page and only reports advisory output. Keep suite browser-free (`node --test` matches `node/test/**/*.test.mjs`; every Playwright-driven check is named without `.test.`), or the CI runner grows a browser install. `package-lock.json` is gitignored: each CI run installs the newest versions within the dependency ranges, so a passing check covers only those versions.",
+   "words": 89
+  },
+  {
+   "edit": "b3.plain.3",
+   "bout": 3,
+   "blocks": [
+    "P1"
+   ],
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request, even without a session, and reports the suite's result as a check on the PR, even when no session runs the suite. `page-measures.yml` also runs on pull requests that touch a page and only reports advisory output. Keep suite browser-free (`node --test` matches `node/test/**/*.test.mjs`; every Playwright-driven check is named without `.test.`), or the CI runner must install a browser. `package-lock.json` is gitignored: each CI run installs the newest versions within the dependency ranges, so a passing check covers only those versions.",
+   "words": 89
+  },
+  {
+   "edit": "b3.restorer.3",
+   "bout": 3,
+   "blocks": [
+    "P1"
+   ],
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request, even without a session, and reports the suite's result as a check on the PR, even when no session runs the suite. `page-measures.yml` runs on pull requests that touch a page and only reports advisory output. Keep suite browser-free (`node --test` matches `node/test/**/*.test.mjs`; every Playwright-driven check is named without `.test.`), or the CI runner must install a browser. `package-lock.json` is gitignored: each CI run installs the newest versions within the dependency ranges, so a passing check covers only those versions.",
+   "words": 88
   }
  ],
  "peeves": {
