@@ -257,7 +257,11 @@ blocked download doesn't matter.
   `chromium_headless_shell-1194/chrome-linux/headless_shell` and
   `chromium-1194/chrome-linux/chrome`, each a symlink to the 1243 `chrome`,
   each folder holding an empty `INSTALLATION_COMPLETE`, with
-  `PLAYWRIGHT_BROWSERS_PATH` set to that folder for the one command.
+  `PLAYWRIGHT_BROWSERS_PATH` set to that folder for the one command. The
+  render tools in `node/render/` and `node/build/` need no such folder: they
+  launch through `node/render/chromium.mjs`, which retries on
+  `$PLAYWRIGHT_BROWSERS_PATH/chromium` when the pinned build is missing. The
+  folder serves a script that calls `chromium.launch()` itself.
 - No `PUPPETEER_*` var is set, so puppeteer needs `PUPPETEER_EXECUTABLE_PATH`
   (or an explicit `executablePath`) pointed at the binary above. Playwright is
   the frictionless driver.
@@ -265,7 +269,7 @@ blocked download doesn't matter.
 Smoke-test the binary directly (no npm needed):
 
 ```bash
-B="$PLAYWRIGHT_BROWSERS_PATH/chromium-1194/chrome-linux/chrome"
+B="$PLAYWRIGHT_BROWSERS_PATH/chromium"
 "$B" --version
 "$B" --headless --no-sandbox --disable-gpu \
   --dump-dom 'data:text/html,<h1>ok</h1>' 2>/dev/null | grep -o '<h1>ok</h1>'
