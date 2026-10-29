@@ -1,6 +1,5 @@
 unit,coded,declared,kit,parts,missing,stray,contract,slots,slots_missing,slots_stray,read_at
 web-tools:map/aims,fields,fields,,,,fields is not a code with parts,no promise checked for this code,tabs;subtabs;lede,,,9a538b571eff
-web-tools:map/themes,card-grid,card-grid,no kit draws this code,list 1; item 11; title 11; body 27; meta 27,,,holds: 11 items shown,tabs;lede;subtabs;dial,,,9a538b571eff
 web-tools:map/context,figure,figure,,,,figure is not a code with parts,no promise checked for this code,tabs;lede;subtabs;count-chips;filter-switch,,,9a538b571eff
 web-tools:map/data,list,list,no kit draws this code,list 1; group 16; meta 268; item 63; title 63; summary 63,,,holds: 63 items shown,tabs;lede;search;count-chips,,,9a538b571eff
 web-tools:map/dimensions,list,list,no kit draws this code,list 1; group 6; meta 124; links 6; summary 6; item 60; title 60,,,holds: 60 items shown,tabs;subtabs;lede;count-chips,,,9a538b571eff
@@ -17,6 +16,7 @@ web-tools:map/showing,card-grid,card-grid,no kit draws this code,list 1; item 9;
 web-tools:map/skills,card-grid,card-grid,no kit draws this code,list 1; group 8; meta 153; summary 140; item 133; title 133; links 22,,,holds: 133 items shown,tabs;lede;search;count-chips,,,9a538b571eff
 web-tools:map/surfacing,card-grid,card-grid,no kit draws this code,list 1; item 22; title 22; summary 22; body 29; meta 14,,,holds: 22 items shown,tabs;lede,,,9a538b571eff
 web-tools:map/tests,list,list,no kit draws this code,list 1; group 5; summary 391; item 386; meta 1245; title 386; actions 386,,,holds: 386 items shown,tabs;subtabs;lede;count-chips,,,9a538b571eff
+web-tools:map/themes,card-grid,card-grid,no kit draws this code,list 1; item 11; title 11; body 27; meta 27,,,holds: 11 items shown,tabs;lede;subtabs;dial,,,9a538b571eff
 web-tools:map/views,list,list,no kit draws this code,list 1; group 3; meta 66; item 24; title 24; summary 24; actions 24,,,holds: 24 items shown,tabs;subtabs;lede,,,9a538b571eff
 web-tools:pages/approve.html,deck-page,,,,,,,,,,9a538b571eff
 web-tools:pages/branch.html,header-swiper,header-swiper,,,,header-swiper is not a code with parts,no promise checked for this code,,,,9a538b571eff
@@ -34,7 +34,7 @@ web-tools:view/config,tool,tool,,,,tool is not a code with parts,no promise chec
 web-tools:view/files,linked-swiper,linked-swiper,,,,linked-swiper is not a code with parts,no promise checked for this code,,,,9a538b571eff
 web-tools:view/here/page,linked-swiper,linked-swiper,,,,linked-swiper is not a code with parts,no promise checked for this code,tabs,,,8c33271fdc5d
 web-tools:view/landing,document,document,,,,document is not a code with parts,no promise checked for this code,,,,9a538b571eff
-web-tools:view/lists,list-stack,list-stack,,,,list-stack is not a code with parts,no promise checked for this code,,,,9a538b571eff
+web-tools:view/lists,list,list,no kit draws this code,list 1; item 7,,,holds: 7 items shown,tabs,,,9d0aa82c30db
 web-tools:view/pages,card-grid,card-grid,no kit draws this code,list 1; item 38; body 38; actions 38; title 38; links 38; summary 38,,,holds: 38 items shown,count-chips;search,,,9a538b571eff
 web-tools:view/project/app,host,host,,,,host is not a code with parts,no promise checked for this code,tabs;subtabs (hidden),,,e6ddd80861f0
 web-tools:view/project/board,list,list,no kit draws this code,list 1; group 2; meta 46; item 19; title 19,,,holds: 19 items shown,tabs;subtabs (hidden),,,e6ddd80861f0
