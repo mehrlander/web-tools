@@ -325,7 +325,7 @@
           return paras.filter(p => p.some(r => r.k)).map(p => '<p>' + html(p) + '</p>').join('<p class="opacity-40 text-center">⋯</p>');
         },
         cardHtml(id) {
-          const prose = 'leading-8 text-pretty whitespace-pre-wrap break-words border-l-4 pl-3 flex flex-col gap-3 ';
+          const box = 'leading-8 text-pretty whitespace-pre-wrap break-words border-l-4 pl-3 flex flex-col gap-3 ';
           if (id === '0') {
             const shown = this.para ? this.led.blocks.filter(b => b.id === this.para) : this.led.blocks;
             return '<div class="flex flex-col gap-3 pb-24"><div class="' + prose + 'border-base-300">'
@@ -340,7 +340,7 @@
           return '<div class="flex flex-col gap-3 pb-24">'
             + '<div class="flex flex-wrap items-center gap-2"><span class="rounded-full px-2.5 py-0.5 text-sm font-semibold ' + TIER[s.risk].pill + '">' + s.risk + '</span>'
             + '<span class="font-mono text-xs opacity-80">' + window.esc(s.blocks.join('–') + ' · ' + s.confidence + '% confident · ' + (saved >= 0 ? '−' + saved : '+' + (-saved)) + (Math.abs(saved) === 1 ? ' word' : ' words')) + '</span></div>'
-            + line(prose + TIER[s.risk].border, this.changedHtml(prev, s.text))
+            + line(box + TIER[s.risk].border, this.changedHtml(prev, s.text))
             + (s.replaces ? line('text-pretty', '<span class="font-bold">↺ replaces</span> <span class="opacity-70">' + window.esc(s.replaces.map(x => 'step ' + this.stepAt(x).i).join(', ') + ', which it overlaps') + '</span>') : '')
             + honour('brilliancy', '!!') + honour('brutality', '✂')
             + line('text-pretty', label(who) + window.esc(e.why))
