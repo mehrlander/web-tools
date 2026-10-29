@@ -72,7 +72,7 @@ Keep the reader's main question in view.
 
 **Detail:** [QUALIFIED-WRITING.md](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md), rule 3.
 
-### What earns space · `/h:crit`, `/h:doe`
+### What earns space · `/h:critical`, `/h:doe`
 
 In a document that future sessions read to decide what to do, include content only where it changes what the reader does.
 

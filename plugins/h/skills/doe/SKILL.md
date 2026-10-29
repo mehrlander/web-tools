@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 <!-- Generated from docs/house-policies.md by node/build/policy-skills.mjs; do not hand-edit. -->
 
-# What earns space · `/h:crit`, `/h:doe`
+# What earns space · `/h:critical`, `/h:doe`
 
 In a document that future sessions read to decide what to do, include content only where it changes what the reader does.
 
