@@ -142,9 +142,9 @@ node/render/scenarios/entities-stub.mjs,"pages/entities.html against the committ
 node/render/scenarios/estate-card-demo.mjs,screenshot driver: render the estate's Repos grid with seeded entries,node/render/scenarios,72,driver,,no,no,no
 node/render/scenarios/estate-crawl-progress.mjs,"Branches or Sessions mid-crawl: the pane seeded, then the shell's progress slot written by hand",node/render/scenarios,61,driver,,no,no,no
 node/render/scenarios/estate-jots.mjs,the estate's Jots view with a populated pile,node/render/scenarios,89,driver,,no,no,no
-node/render/scenarios/estate-lists.mjs,"the whole Lists pane with created lists between Jot and Ping, plus switches for the new-list and settings forms",node/render/scenarios,81,driver,,no,no,no
+node/render/scenarios/estate-lists.mjs,"the whole Lists pane with created lists between Jot and Ping, plus switches for the new-list and settings forms",node/render/scenarios,82,driver,,no,no,no
 node/render/scenarios/estate-open.mjs,Activity's Open view seeded token-free so the list renders headlessly,node/render/scenarios,205,driver,node/render/scenarios/estate-crawl-progress.mjs,no,no,no
-node/render/scenarios/estate-pins.mjs,the Lists pane with the Pin block populated above To-do and Jot,node/render/scenarios,96,driver,,no,no,no
+node/render/scenarios/estate-pins.mjs,the Lists pane with the Pin block populated above To-do and Jot,node/render/scenarios,93,driver,,no,no,no
 node/render/scenarios/estate-rows.mjs,the grouped-grid Repos view with a nested companion card,node/render/scenarios,88,driver,,no,no,no
 node/render/scenarios/estate-sessions.mjs,"the Sessions and Lists panes on fixture data, token-free",node/render/scenarios,802,driver,node/render/scenarios/estate-crawl-progress.mjs,no,no,yes
 node/render/scenarios/estate-skills.mjs,,node/render/scenarios,106,driver,,no,no,no

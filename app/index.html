@@ -7225,10 +7225,15 @@ function app(){ return {
     if (tab !== undefined) this.listsTab = LISTS_TAB.test(tab) ? tab : LISTS_HOME;
     this.estateSeen = true; this.view = 'lists'; this.syncUrl();
   },
-  // A tab tap from inside the estate, stamped so back and forward walk the lists.
-  goListsTab(tab){
+  // A tab tap from inside the estate, stamped so back and forward walk the
+  // lists. A rename replaces the entry instead: the old key names a file that
+  // is gone, and Back to it would land on To-do.
+  goListsTab(tab, replace = false){
     if (!LISTS_TAB.test(tab) || tab === this.listsTab) return;
-    this.listsTab = tab; this.syncUrl();
+    this.listsTab = tab;
+    const restoring = this._restoring;
+    if (replace) this._restoring = true;
+    try { this.syncUrl(); } finally { this._restoring = restoring; }
   },
   // The Map view: the coordination layer made inspectable (the Distribution
   // crosswalk plus per-repo scope and adoption).
