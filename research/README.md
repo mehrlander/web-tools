@@ -24,6 +24,9 @@ The Excel research is in `projects/office/research/` in `mehrlander/home`.
 
 ## Exploration
 
-No outward-looking account is declared in this repository yet. Other
-repositories can declare their own accounts without copying their contents
-here.
+- [Category mapping](category-mapping/README.md): which word fits a
+  collection (registry, stream, cache, tracker…) and which fits work by when
+  it acts (scheduled, standing, one-off…), each answered as a poster.
+
+Other repositories can declare their own accounts without copying their
+contents here.

@@ -117,3 +117,24 @@ jobs:
         # a third the size and repeats every failure, with its error, in a
         # summary at the very bottom.
         run: npm test
+
+  edit-policy:
+    # A job of its own because it needs what the suite's checkout leaves out:
+    # history back to the merge base with main, which the default depth-one
+    # checkout does not reach. The full repository is about 590 MiB, so the
+    # history comes without file contents (filter blob:none), and git fetches
+    # only the few blobs the check reads: each changed file at the base, and the
+    # base's .gitattributes.
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          filter: blob:none
+
+      - name: Hold each changed file to its edit policy
+        # The same engine .githooks/commit-msg runs on each commit, here over
+        # every commit the branch adds, so a commit made with --no-verify or
+        # through the API is held too.
+        run: python3 skills/hooks/check-edit-policy.py --range

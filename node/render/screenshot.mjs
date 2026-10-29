@@ -4,8 +4,8 @@
 //
 //   node node/render/screenshot.mjs <page-path> [--build] [--ref <ref>]
 //       [--query <k=v&...>] [--hash <fragment>] [--out <png>] [--width N]
-//       [--height N] [--wait MS] [--full] [--touch] [--script <file>] [--eval <js>]
-//       [--measure]
+//       [--height N] [--wait MS] [--full] [--touch] [--scale N] [--script <file>]
+//       [--eval <js>] [--measure]
 //
 // --eval runs a JS expression in the page after --script and before the shot,
 // and prints its result as `eval: <json>`, as home's tools/screenshot.mjs does,
@@ -43,7 +43,7 @@ import { repoRoot } from '../repo-root.mjs';
 
 
 function parseArgs(argv) {
-  const o = { full: false, touch: false, build: false, measure: false, width: 1280, height: 800, wait: 2500, ref: null, query: null, hash: null, out: null, script: null, eval: null };
+  const o = { full: false, touch: false, build: false, measure: false, scale: 0, width: 1280, height: 800, wait: 2500, ref: null, query: null, hash: null, out: null, script: null, eval: null };
   const rest = [];
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -58,6 +58,7 @@ function parseArgs(argv) {
     else if (a === '--width') o.width = +argv[++i];
     else if (a === '--height') o.height = +argv[++i];
     else if (a === '--wait') o.wait = +argv[++i];
+    else if (a === '--scale') o.scale = +argv[++i];
     else if (a === '--script') o.script = argv[++i];
     else if (a === '--eval') o.eval = argv[++i];
     else rest.push(a);
@@ -142,6 +143,9 @@ const browser = await chromium.launch({ args: ['--no-sandbox', '--ignore-certifi
 const ctx = await browser.newContext({
   viewport: { width: opts.width, height: opts.height },
   ...(opts.touch ? { hasTouch: true, isMobile: true, deviceScaleFactor: 2 } : {}),
+  // `--scale` sets pixel density alone, for an image meant to be shared, such
+  // as a poster: --touch also doubles it, but brings phone emulation with it.
+  ...(opts.scale ? { deviceScaleFactor: opts.scale } : {}),
 });
 const page = await ctx.newPage();
 

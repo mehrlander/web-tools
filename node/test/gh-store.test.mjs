@@ -83,6 +83,15 @@ test('a 409 recovers by refetching the SHA and retrying', async () => {
   assert.equal(puts[1].body.sha, 'cursha', 'retry carries the refetched SHA');
 });
 
+test('a strict save hands a 409 back instead of writing over the newer version', async () => {
+  const { gh, puts, reads } = makeGH({ failPuts: 1 });
+  await assert.rejects(gh.save('docs/a.md', 'mine', 'm', { sha: 'readsha', strict: true }),
+    (e) => e.status === 409);
+  assert.equal(puts.length, 1, 'no second PUT');
+  assert.equal(puts[0].body.sha, 'readsha', 'the PUT named the sha the caller read');
+  assert.equal(reads.length, 0, 'no sha refetch, which is what the overwrite would have used');
+});
+
 test('the instance ref rides the PUT as branch; empty ref stays default', async () => {
   const { gh, puts } = makeGH();
   gh.ref = 'claude/feature-x';

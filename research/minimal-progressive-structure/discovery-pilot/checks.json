@@ -1,0 +1,135 @@
+{
+  "json_valid": true,
+  "sources_unchanged": true,
+  "source_snapshots": {
+    "election": "eb4722e8090bb8752efe638f592c94bdac2b23fc6a3241370e0de05e995e52ad",
+    "aviation": "7773de7bc5f431e995d362fb7707c8eb8ef1f09df9fc34284bc5ec620f6c38c8"
+  },
+  "pairs": [
+    {
+      "source": "election",
+      "agent_context": "/root/discovery_election",
+      "original_examples_retained_as_equal_json_values": true,
+      "challenge_case_added": true,
+      "draft_types": [
+        "District",
+        "Seat",
+        "Contest",
+        "Person and candidacy",
+        "Change or event"
+      ],
+      "revision_types": [
+        "District",
+        "Seat",
+        "Contest",
+        "Person and candidacy",
+        "Change or event",
+        "Incumbent tenure context"
+      ],
+      "output_files": {
+        "draft": {
+          "path": "election/draft.json",
+          "bytes": 14208,
+          "sha256": "2043d0f10a3176a80c3f1669747e638a822bcb3bb76ab8526c3ae1e754e0f183"
+        },
+        "revised": {
+          "path": "election/revised.json",
+          "bytes": 21700,
+          "sha256": "99832a9ef28c49cc535071697742f09e21cc29cb6d0f966da5a54746c991b629"
+        }
+      }
+    },
+    {
+      "source": "aviation",
+      "agent_context": "/root/discovery_aviation",
+      "original_examples_retained_as_equal_json_values": true,
+      "challenge_case_added": true,
+      "draft_types": [
+        "Flight",
+        "RoleAssignment",
+        "OperatingContext",
+        "InteractionEpisode",
+        "Event",
+        "Observation",
+        "EncounterGroup",
+        "SafetyAction",
+        "Claim"
+      ],
+      "revision_types": [
+        "Flight",
+        "RoleAssignment",
+        "OperatingContext",
+        "InteractionEpisode",
+        "Event",
+        "Observation",
+        "EncounterGroup",
+        "SafetyAction",
+        "Claim",
+        "AlertPolicy"
+      ],
+      "output_files": {
+        "draft": {
+          "path": "aviation/draft.json",
+          "bytes": 19646,
+          "sha256": "cff3a9b945b8e8b1c8fc72d61801a2a2e317bd3294d5b6e471a37386d0b8b8ab"
+        },
+        "revised": {
+          "path": "aviation/revised.json",
+          "bytes": 31204,
+          "sha256": "cea74dc9359778e3c54e56735a25523e9b4d064a9feb2d4a02a7e57ce75061f2"
+        }
+      }
+    }
+  ],
+  "fidelity_review": "Selected claims checked against saved source text. Not an exhaustive factual audit.",
+  "encoding_note": "The election draft and revision contain a replacement character in the reproduced article title. Original responses remain unchanged.",
+  "selected_source_checks": [
+    {
+      "source": "election",
+      "locations": [
+        "5th District",
+        "29th District",
+        "26th District"
+      ],
+      "checked": [
+        "Hall appointment context and four named candidates",
+        "Mena Senate run and connected House opening",
+        "Krishnadasan partial-term special-election win and repeat ballot explanation"
+      ]
+    },
+    {
+      "source": "aviation",
+      "locations": [
+        "History of Flight at 2047:39 to 2047:44",
+        "Air Traffic Control",
+        "Near Midair Collision Events at DCA",
+        "Operator and Aircraft Information"
+      ],
+      "checked": [
+        "Event order and conditional wording about instruction reception",
+        "Different crew frequencies and controller audibility",
+        "944179 operations, 15214 and 85 occurrences, their windows and thresholds",
+        "TCAS inhibition thresholds at 900 ft and 400 ft AGL"
+      ]
+    }
+  ],
+  "viewer_verification": {
+    "browser": "Chromium, repo headless driver",
+    "passed": [
+      "Original JSON content and download equality against all four saved files",
+      "Exact task prompts, dispatches and per-source material",
+      "Four independent slides and six shared main tabs",
+      "Shared scope, model, example and prompt subviews",
+      "Per-slide scroll state, keyboard, native touch swipe and refresh",
+      "JSON and SVG downloads",
+      "No pane or document horizontal overflow at widths 320, 390 and 1280",
+      "No expanders, no browser page errors"
+    ],
+    "visual_review": {
+      "self_read": "No body clipping across width, blank icons, or overlap with the temporary look greeting. Selected content can continue by vertical scrolling.",
+      "blind_reader": "Understood the chosen versus alternative scope. Flagged exposed technical paths, perceived serif text, lower boundary clipping and multiple progress controls.",
+      "informed_reader": "Confirmed that internal review controls, temporary greeting, reserved footer and scrolling pane fit the intent. Withdrew a definite serif-fallback diagnosis. Phone fields fit; horizontal navigation strips show partially visible next options.",
+      "reconciliation": "Paths and progress controls serve the internal reviewer. The greeting dismisses with Done. The body font is system sans serif. Partially visible navigation options are intentionally in single-line horizontal scrolling strips; browser interaction checks reach every type and tab."
+    }
+  }
+}

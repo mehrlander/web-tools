@@ -139,9 +139,12 @@ working tree is not touched. Each `--repo` names a repository by the label its
 growth data file carries and a clone of it, read at `--branch` (default `main`)
 for its Markdown paths, renames, plugin sources and vendored copies. The output holds, per
 repository and file, `opened` and `context`, each a list of one day per session
-counted as days after `from`, the first record's day, and `via`, the opening
-sessions by route. It is derived from the records, so it stays in
-web-tools-private beside them, never in a public repository.
+counted as days after `from`, the first record's day; `via`, the opening
+sessions by route; and `basis`, the context sessions by how the record knows
+(`receipt` or `reconstructed`). It is derived from the records, so it stays in
+web-tools-private, never in a public repository. The laptop daemon rebuilds it
+daily on that repository's `background` branch; the `doc-reads` row of its
+`data/design/scheduled-tasks.csv` schedules the run.
 
 ## Opening a data file
 
@@ -150,28 +153,32 @@ The page reads `#gz=<data>` (the data file gzipped and base64url-encoded), else
 stored `ghToken` and is the only route that reaches a private repo. With none of
 these it reads web-tools' own `data/doc-growth/web-tools.json`. The session
 counts come from `?reads=owner/repo[@ref]:path`, else web-tools-private's
-`state/doc-reads.json`, through the same stored token. `?view=table` opens the
+`state/doc-reads.json` on its `background` branch, through the same stored
+token. `?view=table` opens the
 page on its table in place of the chart.
 
 ## Where it appears
 
 A repo whose `.web-tools.json` sets `growth` to its data file's path
 ([field reference](manifest-fields.csv)) is listed in Map → Docs → Growth, which
-reads its data file at the selected repo's ref and the session counts at
-web-tools-private's main; `?growthrepo=` picks the repo. The web-tools data file
+reads its data file at the selected repo's ref and the session counts on
+web-tools-private's `background` branch; `?growthrepo=` picks the repo. The web-tools data file
 needs no token; every other repo's, and the session counts, need the viewer's
 token. In Map → Docs → Inventory, the web-tools data file adds a sparkline and a
 net word change to each of the hub's document rows that the file holds at two
-or more samples; the rows render without them when the file is missing.
+or more samples; the rows render without them when the file is missing. Inventory's
+readership column reads the same session counts where they hold the
+repository, and the sessions cache otherwise, so for those repositories both
+tabs count a read alike.
 
 ## Refreshing
 
 The growth file is refreshed on demand, not by the commit hook. Every commit
 shifts the last frame, so a hook that regenerated the file would make every
-commit touch it. The session counts are refreshed on demand too. Each file's
-`generated` field is also the day the script ran, so the same inputs give
-different bytes on different days. Nothing flags a
-stale file: compare `generated` with today. To refresh the web-tools growth file,
+commit touch it. The session counts are rebuilt daily by the laptop daemon, as
+above. Each file's `generated` field is also the day the script ran, so the same
+inputs give different bytes on different days. Nothing flags a stale growth
+file: compare `generated` with today. To refresh the web-tools growth file,
 run the first command from the root of an unshallowed clone, with `.` as the
 clone, `data/doc-growth/web-tools.json` as the output, and
 `--name mehrlander/web-tools`. The chart's last sample counts every recorded

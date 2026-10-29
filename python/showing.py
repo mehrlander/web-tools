@@ -416,11 +416,15 @@ WHOLE_GENERATED = ("dist/", "console/suite.js", "pages/README.md", "pages/index.
                    *vendored_copies())
 
 def derived_paths():
+    """The tracked files .gitattributes gives the derived-CSV merge driver."""
     try:
-        text = (ROOT / ".gitattributes").read_text(encoding="utf-8")
-    except OSError:
+        files = subprocess.run(["git", "ls-files", "-z"], cwd=ROOT, capture_output=True, check=True).stdout
+        out = subprocess.run(["git", "check-attr", "--stdin", "-z", "merge"], cwd=ROOT, input=files,
+                             capture_output=True, check=True).stdout.decode("utf-8", "surrogateescape")
+    except (OSError, subprocess.CalledProcessError):
         return set()
-    return {l.split()[0] for l in text.splitlines() if "merge=derived-csv" in l and l.split()}
+    parts = out.split("\0")
+    return {parts[i] for i in range(0, len(parts) - 2, 3) if parts[i + 2] == "derived-csv"}
 
 def is_derived(p, derived=None):
     return p.startswith(WHOLE_GENERATED) or p in (derived if derived is not None else derived_paths())
