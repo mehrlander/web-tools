@@ -67,57 +67,2257 @@
  "edits": [],
  "ratings": [],
  "path": [],
- "problems": [],
- "repairs": [],
+ "problems": [
+  {
+   "problem": "names",
+   "blocks": [
+    "P1"
+   ],
+   "quote": "build-on-commit hook",
+   "note": "The heading calls it the build-on-commit hook, P4 the commit-time hook, P5 and P6 the hook; CLAUDE.md elsewhere says the commit hook. Nothing links the heading's name to P4's."
+  },
+  {
+   "problem": "premise",
+   "blocks": [
+    "P2"
+   ],
+   "quote": "offline artifact",
+   "note": "node/README.md#the-pre-build says third-party libraries (Tailwind, daisyUI, Phosphor, Alpine, CodeMirror) stay on their CDN tags, and its comparison line reads 'whole library, one fetch, no own-code network'. 'Offline' promises more than the file delivers."
+  },
+  {
+   "problem": "unintroduced",
+   "blocks": [
+    "P2"
+   ],
+   "quote": "a `gh.load` chain",
+   "note": "The chain is never explained. docs/loader.md: a loader-based page calls gh.load(...) once per component and kit, and each file is fetched and run at runtime."
+  },
+  {
+   "problem": "unintroduced",
+   "blocks": [
+    "P2"
+   ],
+   "quote": "only what `app/index.html` reaches",
+   "note": "'Reaches' is node/README.md's term of art and 'what' has no noun: the set is lib files only, found by string-literal paths and x-data component names, transitively."
+  },
+  {
+   "problem": "connection",
+   "blocks": [
+    "P2"
+   ],
+   "quote": "Both are tracked.",
+   "note": "It says nothing about why the two files are committed or what keeps them current. The hook that does is introduced two paragraphs later, and P4 never says the dist files are among its artifacts."
+  },
+  {
+   "problem": "connection",
+   "blocks": [
+    "P3"
+   ],
+   "quote": "The `gh.load` chain it replaces",
+   "note": "'it' has no single referent: the previous sentence is a pointer to node/README.md, and the candidates are dist/web-tools.js, dist/app.js and the pre-build."
+  },
+  {
+   "problem": "connection",
+   "blocks": [
+    "P3"
+   ],
+   "quote": "Which folder the file belongs in",
+   "note": "'The file' has no single referent: the previous sentence is about adding a file to lib/, so the folder is already named. docs/code-layers.md decides among lib/, lib/kits/, lib/alpineComponents/, lib/ops/, python/ and node/."
+  },
+  {
+   "problem": "premise",
+   "blocks": [
+    "P3"
+   ],
+   "quote": "measured by `npm run code-scan`",
+   "note": "docs/code-layers.md calls code-scan advisory: it counts, per folder, the files any document names and any test exercises (python/unclaimed-code.py). It does not check placement. Placement is checked by python/code-shape.py (npm run code-shape) through node/test/code-layers.test.mjs."
+  },
+  {
+   "problem": "unintroduced",
+   "blocks": [
+    "P4"
+   ],
+   "quote": "derived artifact",
+   "note": "The term is never defined here; the reader has to guess it means P2's dist files. node/README.md#the-refresh-model defines the split: a derived artifact is refreshed one of two ways, by whether its generator is deterministic."
+  },
+  {
+   "problem": "unintroduced",
+   "blocks": [
+    "P4"
+   ],
+   "quote": "the legs",
+   "note": "'Legs' is never introduced. They are the hook's separate regeneration steps, headed '# --- leg' in .githooks/pre-commit and tabulated in node/README.md."
+  },
+  {
+   "problem": "premise",
+   "blocks": [
+    "P5"
+   ],
+   "quote": "Don't hand-edit a file the hook writes",
+   "note": "Too broad: node/README.md#the-refresh-model says docs/docs.csv, docs/harness.csv, docs/registries.csv and docs/tests-authored.csv are hand-edited except for the fields or rows a generator writes."
+  },
+  {
+   "problem": "connection",
+   "blocks": [
+    "P5"
+   ],
+   "quote": "are the exception",
+   "note": "The exception is to nothing stated. After 'Don't hand-edit' it reads as leave to hand-edit PNGs; the rule it excepts is P4's claim that the hook owns every deterministic derived artifact. Thumbnails are not deterministic, so the hook only warns (.githooks/pre-commit, leg thumb-nudge)."
+  },
+  {
+   "problem": "unintroduced",
+   "blocks": [
+    "P6"
+   ],
+   "quote": "a `PreToolUse` hook disappears when the session root sits above this repo",
+   "note": "The reader is not told what a PreToolUse hook is, that this hook was one until 2026-08-06, or what the session root is. As written the clause is a non-sequitur after 'Git owns the hook'. 'Session root' and 'project root' (node/README.md) also name one thing twice."
+  },
+  {
+   "problem": "unintroduced",
+   "blocks": [
+    "P6"
+   ],
+   "quote": "the CSV merge driver",
+   "note": "Which driver is not said. It is derived-csv, registered by npm run setup and named in .gitattributes (node/README.md#the-refresh-model)."
+  },
+  {
+   "problem": "names",
+   "blocks": [
+    "P6"
+   ],
+   "quote": "that shared path",
+   "note": "'Path' reads as a file path. It means the setup code that npm run setup runs: session-githooks.sh and session-start.sh call node/checkout-setup.mjs (docs/environment/extending.md#sessionstart-checkout-delegates)."
+  },
+  {
+   "problem": "connection",
+   "blocks": [
+    "P6"
+   ],
+   "quote": "`--no-verify` bypasses it.",
+   "note": "'it' could be the shared path of the previous sentence, and the flag is bare. It is `git commit --no-verify` and it bypasses the hook."
+  },
+  {
+   "problem": "connection",
+   "blocks": [
+    "P7"
+   ],
+   "quote": "**Verification stays independent.**",
+   "note": "Independent of what is never said. The next two sentences show it is independent of the hook and of setup, which may not have run."
+  },
+  {
+   "problem": "names",
+   "blocks": [
+    "P7"
+   ],
+   "quote": "tracked artifacts",
+   "note": "One kind of file has four names in this section: 'derived artifact' (P4), 'a file the hook writes' (P5), 'tracked artifacts' and 'hook-owned output' (P7). 'Setup' is also the unglossed npm run setup of P6."
+  },
+  {
+   "problem": "premise",
+   "blocks": [
+    "P7"
+   ],
+   "quote": "checks every generator under `npm test`",
+   "note": "node/test/derived-artifacts.test.mjs holds twelve --check tests. The console build, tests registry, docs registry and CSV census are pinned by node/test/console-suite.test.mjs, tests-registry.test.mjs, docs-registry.test.mjs and csv-census.test.mjs, so the file does not check every generator, though the suite does."
+  },
+  {
+   "problem": "unintroduced",
+   "blocks": [
+    "P7"
+   ],
+   "quote": "A local merge that restamps its combined index pauses for the gated",
+   "note": "'Restamps', 'combined index' and 'gated' are undefined, the agent that restamps (the hook) is left out, and the sentence is about the hook's behavior in a merge, not about verification. node/README.md#the-refresh-model ('Automatic local merge commits use the same order') owns it."
+  },
+  {
+   "problem": "premise",
+   "blocks": [
+    "P8"
+   ],
+   "quote": "on every pull request",
+   "note": "A pull request that cannot merge has no merge ref, so no pull_request run starts (test.yml header, PR #413). The workflow also runs on pushes to main and to session branches (claude/**, codex/**, gemini/**, agent/**), which is the backstop."
+  },
+  {
+   "problem": "names",
+   "blocks": [
+    "P8"
+   ],
+   "quote": "so the test speaks even when no session runs the suite",
+   "note": "'The test' here is the whole suite (`npm test`), but in P7 'the test' is the one file derived-artifacts.test.mjs; 'speaks' is figurative and 'the suite' follows in the same clause."
+  },
+  {
+   "problem": "unintroduced",
+   "blocks": [
+    "P8"
+   ],
+   "quote": "a finding never fails it, so a red run is a fault in the pass, not in a page",
+   "note": "Never says what page-measures does, what a finding is, or what the pass is. .github/workflows/page-measures.yml: it renders touched pages in headless Chromium and reports sideways scroll, blank icons, empty tables and the like; it goes red only when the pass itself is broken."
+  },
+  {
+   "problem": "names",
+   "blocks": [
+    "P8"
+   ],
+   "quote": "or the runner grows a browser install",
+   "note": "'The runner' could be node's test runner; it means the CI machine, and 'grows' is figurative. The install step would have to download a browser."
+  },
+  {
+   "problem": "unintroduced",
+   "blocks": [
+    "P8"
+   ],
+   "quote": "a claim about a pinned tree",
+   "note": "'Pinned tree' is jargon for a fixed set of dependency versions, which a lockfile would give. .github/workflows/test.yml: no lockfile to npm ci against."
+  }
+ ],
+ "repairs": [
+  {
+   "id": "r1",
+   "kind": "qualify",
+   "blocks": [
+    "P1"
+   ],
+   "from": "build-on-commit hook",
+   "text": "commit-time hook",
+   "why": "P4 and node/README.md#the-refresh-model name .githooks/pre-commit the commit-time hook; grep finds no link to the heading's anchor, so renaming it breaks nothing."
+  },
+  {
+   "id": "r2",
+   "kind": "qualify",
+   "blocks": [
+    "P2"
+   ],
+   "from": "offline artifact",
+   "text": "artifact that needs no network for the library's own code",
+   "why": "node/README.md#the-pre-build: 'no own-code network'; 'Third-party libs ... stay on their CDN tags'."
+  },
+  {
+   "id": "r3",
+   "kind": "qualify",
+   "blocks": [
+    "P2"
+   ],
+   "from": "instead of a `gh.load` chain",
+   "text": "instead of a chain of per-file `gh.load` calls",
+   "why": "docs/loader.md opening: a page 'calls gh.load(...) for each component and kit it needs, and each file is fetched ... and run on the spot'."
+  },
+  {
+   "id": "r4",
+   "kind": "qualify",
+   "blocks": [
+    "P2"
+   ],
+   "from": "only what `app/index.html` reaches",
+   "text": "only the `lib/` files that `app/index.html` names, directly or transitively",
+   "why": "node/README.md#the-apps-pre-build: build-app.mjs 'walks the app's reach (every lib path named as a string literal, transitively, plus every component an x-data names)'."
+  },
+  {
+   "id": "r5",
+   "kind": "connect",
+   "blocks": [
+    "P2"
+   ],
+   "from": "Both are tracked.",
+   "text": "Both are tracked, and the commit-time hook below rebuilds them.",
+   "why": "node/README.md#the-refresh-model table: lib/ runs build:lib into dist/web-tools.js, and lib/ or app/index.html runs build:app into dist/app.js, staged in the same commit."
+  },
+  {
+   "id": "r6",
+   "kind": "connect",
+   "blocks": [
+    "P3"
+   ],
+   "from": "chain it replaces",
+   "text": "chain the pre-build replaces",
+   "why": "P2 names the pre-build as what stands in for the chain; node/README.md#the-pre-build: 'one import instead of a gh.load chain'."
+  },
+  {
+   "id": "r7",
+   "kind": "connect",
+   "blocks": [
+    "P3"
+   ],
+   "from": "Which folder the file belongs in",
+   "text": "Which folder a new code file belongs in",
+   "why": "docs/code-layers.md opens 'Which folder a new code file goes in, and the rule that admits it.'"
+  },
+  {
+   "id": "r8",
+   "kind": "qualify",
+   "blocks": [
+    "P3"
+   ],
+   "from": "measured by `npm run code-scan`",
+   "text": "enforced under `lib/` by `npm run code-shape` and `node/test/code-layers.test.mjs`",
+   "why": "docs/code-layers.md: 'code-shape.py (npm run code-shape) reads what each file attaches to, and code-layers.test.mjs fails a misplaced file under lib/'."
+  },
+  {
+   "id": "r9",
+   "kind": "add",
+   "blocks": [
+    "P4"
+   ],
+   "from": "derived artifact is owned by",
+   "text": "derived artifact (a committed file generated from other files, such as `dist/web-tools.js`) is owned by",
+   "why": "node/README.md#the-refresh-model: 'Every derived artifact in the repo is refreshed one of two ways, split on one property: whether its generator is deterministic'; P2's dist/web-tools.js is the first example."
+  },
+  {
+   "id": "r10",
+   "kind": "qualify",
+   "blocks": [
+    "P4"
+   ],
+   "from": "lists the legs, the order they run in",
+   "text": "lists the hook's legs (its separate regeneration steps), the order they run in",
+   "why": ".githooks/pre-commit header: 'The full list is the `# --- leg` headers below, in the order they run'."
+  },
+  {
+   "id": "r11",
+   "kind": "qualify",
+   "blocks": [
+    "P5"
+   ],
+   "from": "a file the hook writes",
+   "text": "a file, or a field, that the hook writes",
+   "why": "node/README.md#the-refresh-model: 'Four are not [generated whole] ... hand-edited except for the fields or rows a generator writes.'"
+  },
+  {
+   "id": "r12",
+   "kind": "connect",
+   "blocks": [
+    "P5"
+   ],
+   "from": "are the exception",
+   "text": "are derived but not deterministic, so the hook only warns about them",
+   "why": "CLAUDE.md Per-session refresh: 'screenshots are slow and not byte-deterministic; the commit hook only warns about them'; .githooks/pre-commit header."
+  },
+  {
+   "id": "r13",
+   "kind": "connect",
+   "blocks": [
+    "P6"
+   ],
+   "from": "a `PreToolUse` hook disappears when the session root sits above this repo",
+   "text": "a Claude Code `PreToolUse` hook (what this hook was until 2026-08-06) disappears when the session's project root sits above this repo",
+   "why": ".githooks/pre-commit header: 'THIS WAS A CLAUDE CODE PreToolUse(Bash) HOOK UNTIL 2026-08-06'; docs/environment/extending.md#the-session-dispatcher: settings.json 'is read only when the session's project root is that repo'."
+  },
+  {
+   "id": "r14",
+   "kind": "qualify",
+   "blocks": [
+    "P6"
+   ],
+   "from": "the CSV merge driver",
+   "text": "the `derived-csv` merge driver",
+   "why": "node/README.md#the-refresh-model: setup 'registers the `derived-csv` merge driver named by `.gitattributes`'."
+  },
+  {
+   "id": "r15",
+   "kind": "qualify",
+   "blocks": [
+    "P6"
+   ],
+   "from": "that shared path",
+   "text": "that same setup",
+   "why": "docs/environment/extending.md: 'npm run setup is now the owner of those checkout settings'; the startup scripts call the same node/checkout-setup.mjs."
+  },
+  {
+   "id": "r16",
+   "kind": "connect",
+   "blocks": [
+    "P6"
+   ],
+   "from": "`--no-verify` bypasses it.",
+   "text": "`git commit --no-verify` bypasses the hook.",
+   "why": "docs/environment/extending.md: '`git commit --no-verify` is the deliberate local bypass'; .githooks/commit-msg header."
+  },
+  {
+   "id": "r17",
+   "kind": "connect",
+   "blocks": [
+    "P7"
+   ],
+   "from": "**Verification stays independent.**",
+   "text": "**Verification stays independent of the hook.**",
+   "why": "node/test/derived-artifacts.test.mjs header: 'the invariant gets an owner that does not depend on the harness'; docs/environment/extending.md 'What no hook covers'."
+  },
+  {
+   "id": "r18",
+   "kind": "qualify",
+   "blocks": [
+    "P7"
+   ],
+   "from": "Setup never regenerates tracked artifacts",
+   "text": "`npm run setup` never regenerates derived artifacts",
+   "why": "P4 and P6 name the command and the artifacts; node/README.md#the-refresh-model: setup 'does not ... regenerate anything'."
+  },
+  {
+   "id": "r19",
+   "kind": "qualify",
+   "blocks": [
+    "P7"
+   ],
+   "from": "Repair hook-owned output with",
+   "text": "Repair stale derived artifacts with",
+   "why": "Same name as P4; docs/environment/extending.md: 'a stale artifact fails the suite wherever it runs'."
+  },
+  {
+   "id": "r20",
+   "kind": "qualify",
+   "blocks": [
+    "P7"
+   ],
+   "from": "checks every generator under `npm test`",
+   "text": "checks most generators under `npm test`",
+   "why": "node/test/derived-artifacts.test.mjs has twelve --check tests; the remaining generators are checked by their own test files."
+  },
+  {
+   "id": "r21",
+   "kind": "qualify",
+   "blocks": [
+    "P7"
+   ],
+   "from": "A local merge that restamps its combined index pauses for the gated `git -c core.editor=true merge --continue` path.",
+   "text": "When the hook changes files while a local merge is committing, it stops the merge uncommitted; finish it with `git -c core.editor=true merge --continue`.",
+   "why": "node/README.md#the-refresh-model: 'If refresh changed the index, the hook deliberately stops the commit, leaves the clean merge ... in progress, and prints one next step: git -c core.editor=true merge --continue'; .githooks/pre-merge-commit."
+  },
+  {
+   "id": "r22",
+   "kind": "qualify",
+   "blocks": [
+    "P8"
+   ],
+   "from": "on every pull request",
+   "text": "on every mergeable pull request",
+   "why": ".github/workflows/test.yml header: 'a PR that cannot be merged has none, so no run starts'; 'no usable merge ref, no run'."
+  },
+  {
+   "id": "r23",
+   "kind": "qualify",
+   "blocks": [
+    "P8"
+   ],
+   "from": "so the test speaks even when no session runs the suite",
+   "text": "so the suite reports even when no session runs it",
+   "why": "P7 uses 'the test' for node/test/derived-artifacts.test.mjs; this sentence's subject is `npm test`, the suite."
+  },
+  {
+   "id": "r24",
+   "kind": "qualify",
+   "blocks": [
+    "P8"
+   ],
+   "from": "a finding never fails it",
+   "text": "a finding (a defect it measures in a browser, such as sideways scroll) never fails it",
+   "why": ".github/workflows/page-measures.yml header: 'reports what node/render/measure.mjs reads off it: sideways scroll at phone width ...'; 'REPORT ONLY. Findings never turn this red.'"
+  },
+  {
+   "id": "r25",
+   "kind": "qualify",
+   "blocks": [
+    "P8"
+   ],
+   "from": "a fault in the pass",
+   "text": "a fault in its measuring pass",
+   "why": ".github/workflows/page-measures.yml: 'It goes red only when the pass itself is broken'."
+  },
+  {
+   "id": "r26",
+   "kind": "qualify",
+   "blocks": [
+    "P8"
+   ],
+   "from": "or the runner grows a browser install",
+   "text": "or CI has to download a browser",
+   "why": ".github/workflows/test.yml: PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD is set because 'every Playwright-driven check is deliberately named without .test.'."
+  },
+  {
+   "id": "r27",
+   "kind": "qualify",
+   "blocks": [
+    "P8"
+   ],
+   "from": "a claim about a pinned tree",
+   "text": "a claim about pinned dependency versions",
+   "why": ".github/workflows/test.yml: 'package-lock.json is gitignored in this repo, so there is no lockfile'."
+  }
+ ],
  "ideas": [],
  "rblocks": [
   {
    "id": "P1",
    "kind": "heading",
-   "text": "## The pre-build & the build-on-commit hook",
+   "text": "## The pre-build & the commit-time hook",
    "words": 7
   },
   {
    "id": "P2",
    "kind": "para",
-   "text": "`dist/web-tools.js` is **the pre-build**: the whole `lib/` frozen into one self-booting offline artifact, so a page adopts the library with one import instead of a `gh.load` chain. `dist/app.js` is the app's own: only what `app/index.html` reaches. Both are tracked. See [`node/README.md`](node/README.md#the-pre-build).",
-   "words": 41
+   "text": "`dist/web-tools.js` is **the pre-build**: the whole `lib/` frozen into one self-booting artifact that needs no network for the library's own code, so a page adopts the library with one import instead of a chain of per-file `gh.load` calls. `dist/app.js` is the app's own: only the `lib/` files that `app/index.html` names, directly or transitively. Both are tracked, and the commit-time hook below rebuilds them. See [`node/README.md`](node/README.md#the-pre-build).",
+   "words": 65
   },
   {
    "id": "P3",
    "kind": "para",
-   "text": "The `gh.load` chain it replaces is the repo's default, not a legacy path. [`docs/loader.md`](docs/loader.md) is the only statement of the contract a file must honor to be loadable that way, plus the timing invariants the boot sequence depends on. Read it before adding a file to `lib/` or changing how a page boots. Which folder the file belongs in is answered in [`docs/code-layers.md`](docs/code-layers.md) and measured by `npm run code-scan`.",
-   "words": 69
+   "text": "The `gh.load` chain the pre-build replaces is the repo's default, not a legacy path. [`docs/loader.md`](docs/loader.md) is the only statement of the contract a file must honor to be loadable that way, plus the timing invariants the boot sequence depends on. Read it before adding a file to `lib/` or changing how a page boots. Which folder a new code file belongs in is answered in [`docs/code-layers.md`](docs/code-layers.md) and enforced under `lib/` by `npm run code-shape` and `node/test/code-layers.test.mjs`.",
+   "words": 76
   },
   {
    "id": "P4",
    "kind": "para",
-   "text": "Every **deterministic** derived artifact is owned by one commit-time hook, [`.githooks/pre-commit`](.githooks/pre-commit). Before a `git commit` it regenerates and stages, in the same commit, whatever the pending changes touch. [`node/README.md`](node/README.md#the-refresh-model) lists the legs, the order they run in, and why that order matters.",
-   "words": 42
+   "text": "Every **deterministic** derived artifact (a committed file generated from other files, such as `dist/web-tools.js`) is owned by one commit-time hook, [`.githooks/pre-commit`](.githooks/pre-commit). Before a `git commit` it regenerates and stages, in the same commit, whatever the pending changes touch. [`node/README.md`](node/README.md#the-refresh-model) lists the hook's legs (its separate regeneration steps), the order they run in, and why that order matters.",
+   "words": 57
   },
   {
    "id": "P5",
    "kind": "para",
-   "text": "Don't hand-edit a file the hook writes; edit the source and let the hook refresh it. Thumbnails (`pages/thumbs/*.png`) are the exception (see \"Per-session refresh\" above).",
-   "words": 25
+   "text": "Don't hand-edit a file, or a field, that the hook writes; edit the source and let the hook refresh it. Thumbnails (`pages/thumbs/*.png`) are derived but not deterministic, so the hook only warns about them (see \"Per-session refresh\" above).",
+   "words": 38
   },
   {
    "id": "P6",
    "kind": "para",
-   "text": "**Git owns the hook, not Claude:** a `PreToolUse` hook disappears when the session root sits above this repo. Run `npm run setup` once per checkout for hooks, the CSV merge driver, and dependencies; `npm run ready` checks without writing. Claude's startup scripts delegate to that shared path. `--no-verify` bypasses it. Details: [extending.md](docs/environment/extending.md).",
-   "words": 52
+   "text": "**Git owns the hook, not Claude:** a Claude Code `PreToolUse` hook (what this hook was until 2026-08-06) disappears when the session's project root sits above this repo. Run `npm run setup` once per checkout for hooks, the `derived-csv` merge driver, and dependencies; `npm run ready` checks without writing. Claude's startup scripts delegate to that same setup. `git commit --no-verify` bypasses the hook. Details: [extending.md](docs/environment/extending.md).",
+   "words": 64
   },
   {
    "id": "P7",
    "kind": "para",
-   "text": "**Verification stays independent.** Setup never regenerates tracked artifacts, and API, MCP, or server-side writes cannot run local hooks. [`node/test/derived-artifacts.test.mjs`](node/test/derived-artifacts.test.mjs) therefore checks every generator under `npm test`. Repair hook-owned output with `npm run artifacts:refresh`, then run any additional command the test names. A local merge that restamps its combined index pauses for the gated `git -c core.editor=true merge --continue` path.",
-   "words": 59
+   "text": "**Verification stays independent of the hook.** `npm run setup` never regenerates derived artifacts, and API, MCP, or server-side writes cannot run local hooks. [`node/test/derived-artifacts.test.mjs`](node/test/derived-artifacts.test.mjs) therefore checks most generators under `npm test`. Repair stale derived artifacts with `npm run artifacts:refresh`, then run any additional command the test names. When the hook changes files while a local merge is committing, it stops the merge uncommitted; finish it with `git -c core.editor=true merge --continue`.",
+   "words": 71
   },
   {
    "id": "P8",
    "kind": "para",
-   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports it as a check on the PR, so the test speaks even when no session runs the suite. `page-measures.yml` also runs on pull requests that touch a page, but only reports: a finding never fails it, so a red run is a fault in the pass, not in a page. The suite is browser-free by construction (`node --test` globs `node/test/**/*.test.mjs`, and every Playwright-driven check is named without `.test.`), so keep it that way or the runner grows a browser install. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh on each run and a green check is not a claim about a pinned tree.",
-   "words": 114
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every mergeable pull request and reports it as a check on the PR, so the suite reports even when no session runs it. `page-measures.yml` also runs on pull requests that touch a page, but only reports: a finding (a defect it measures in a browser, such as sideways scroll) never fails it, so a red run is a fault in its measuring pass, not in a page. The suite is browser-free by construction (`node --test` globs `node/test/**/*.test.mjs`, and every Playwright-driven check is named without `.test.`), so keep it that way or CI has to download a browser. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh on each run and a green check is not a claim about pinned dependency versions.",
+   "words": 126
   }
- ]
+ ],
+ "reading": {
+  "format": "passage-reading/1",
+  "title": "CLAUDE.md: the pre-build and the build-on-commit hook",
+  "made": "2026-10-29",
+  "source": {
+   "repo": "mehrlander/web-tools",
+   "path": "CLAUDE.md",
+   "note": "Lines 28 to 43 of CLAUDE.md as committed: the section on the pre-build, the commit-time hook that keeps derived artifacts current, and the test and workflows that check them."
+  },
+  "gist": "Names the two committed pre-builds and the gh.load chain they stand in for, then the one commit-time hook that regenerates deterministic derived artifacts, how it is installed and bypassed, and the test and workflows that check artifacts whether or not the hook ran.",
+  "topic": "hook",
+  "context": [
+   {
+    "id": "claude",
+    "repo": "mehrlander/web-tools",
+    "path": "CLAUDE.md",
+    "ref": "36f42696ac57ba377951122434636a5085361464",
+    "why": "The file the passage belongs to. Its Per-session refresh section, which sentence 13 points at, states the thumbnail rule."
+   },
+   {
+    "id": "readme",
+    "repo": "mehrlander/web-tools",
+    "path": "node/README.md",
+    "ref": "36f42696ac57ba377951122434636a5085361464",
+    "why": "The page the passage links twice: the pre-build, and the refresh model with the hook's legs and order."
+   },
+   {
+    "id": "loader",
+    "repo": "mehrlander/web-tools",
+    "path": "docs/loader.md",
+    "ref": "36f42696ac57ba377951122434636a5085361464",
+    "why": "The loader contract that sentence 6 says is the only statement of the rules for a loadable file."
+   },
+   {
+    "id": "layers",
+    "repo": "mehrlander/web-tools",
+    "path": "docs/code-layers.md",
+    "ref": "36f42696ac57ba377951122434636a5085361464",
+    "why": "The document sentence 8 cites for which folder a file belongs in; it also says what code-scan counts."
+   },
+   {
+    "id": "hookfile",
+    "repo": "mehrlander/web-tools",
+    "path": ".githooks/pre-commit",
+    "ref": "36f42696ac57ba377951122434636a5085361464",
+    "why": "The hook itself; its header states the legs and the PreToolUse history that sentence 14 leans on."
+   },
+   {
+    "id": "ext",
+    "repo": "mehrlander/web-tools",
+    "path": "docs/environment/extending.md",
+    "ref": "36f42696ac57ba377951122434636a5085361464",
+    "why": "The page sentence 18 points at for the details of the hook and its setup."
+   },
+   {
+    "id": "dtest",
+    "repo": "mehrlander/web-tools",
+    "path": "node/test/derived-artifacts.test.mjs",
+    "ref": "36f42696ac57ba377951122434636a5085361464",
+    "why": "The test sentences 21 and 22 name."
+   },
+   {
+    "id": "testyml",
+    "repo": "mehrlander/web-tools",
+    "path": ".github/workflows/test.yml",
+    "ref": "36f42696ac57ba377951122434636a5085361464",
+    "why": "The workflow sentences 24, 26 and 27 describe."
+   },
+   {
+    "id": "pm",
+    "repo": "mehrlander/web-tools",
+    "path": ".github/workflows/page-measures.yml",
+    "ref": "36f42696ac57ba377951122434636a5085361464",
+    "why": "The workflow sentence 25 describes."
+   },
+   {
+    "id": "pkg",
+    "repo": "mehrlander/web-tools",
+    "path": "package.json",
+    "ref": "36f42696ac57ba377951122434636a5085361464",
+    "why": "Defines npm run artifacts:refresh, named in sentence 22."
+   }
+  ],
+  "entities": {
+   "prebuild": {
+    "label": "the pre-build",
+    "kind": "record",
+    "gloss": "The file dist/web-tools.js: every lib/*.js inlined into one self-resolving file that boots the library when imported. Third-party libraries still load from their CDN tags.",
+    "basis": "context",
+    "ctx": [
+     {
+      "doc": "readme",
+      "quote": "every `lib/*.js` inlined into one self-resolving artifact at `dist/web-tools.js`"
+     },
+     {
+      "doc": "readme",
+      "quote": "The artifact auto-boots: importing it runs gh-boot's base chain"
+     },
+     {
+      "doc": "readme",
+      "quote": "stay on their CDN tags"
+     }
+    ]
+   },
+   "app-prebuild": {
+    "label": "dist/app.js",
+    "kind": "record",
+    "gloss": "The app's own pre-build: only the lib/ files the app page reaches. Its reach is every lib path named as a string literal, transitively, plus every component an x-data names.",
+    "basis": "context",
+    "ctx": [
+     {
+      "doc": "readme",
+      "quote": "`app/index.html` imports `dist/app.js`, not the whole library"
+     },
+     {
+      "doc": "readme",
+      "quote": "walks the app's **reach** (every lib path named as a string literal, transitively, plus every component an `x-data` names"
+     }
+    ]
+   },
+   "gh-load-chain": {
+    "label": "the gh.load chain",
+    "kind": "concept",
+    "gloss": "A loader-based page's run of gh.load(...) calls, each fetching one component or kit through the GitHub contents API at runtime.",
+    "basis": "context",
+    "ctx": [
+     {
+      "doc": "loader",
+      "quote": "calls `gh.load(...)` for each component and kit it needs, and each file is fetched (through the GitHub contents API) and run on the spot"
+     }
+    ]
+   },
+   "loader-contract": {
+    "label": "the loader contract (docs/loader.md)",
+    "kind": "record",
+    "gloss": "The document that states what a file must do to be loadable through gh.load, with the timing invariants the boot sequence depends on.",
+    "basis": "context",
+    "ctx": [
+     {
+      "doc": "loader",
+      "quote": "the contract a file must honor to be loadable this way, the timing invariants the boot sequence depends on"
+     }
+    ]
+   },
+   "code-layers": {
+    "label": "docs/code-layers.md",
+    "kind": "record",
+    "gloss": "A table of which folder a new code file goes in and the rule that admits it. Placement under lib/ is held by python/code-shape.py (npm run code-shape) and node/test/code-layers.test.mjs.",
+    "basis": "context",
+    "ctx": [
+     {
+      "doc": "layers",
+      "quote": "Which folder a new code file goes in, and the rule that admits it."
+     },
+     {
+      "doc": "layers",
+      "quote": "(`npm run code-shape`) reads what each file attaches to"
+     },
+     {
+      "doc": "layers",
+      "quote": "fails a misplaced file under `lib/`"
+     }
+    ]
+   },
+   "code-scan": {
+    "label": "npm run code-scan",
+    "kind": "event",
+    "gloss": "A run of python/unclaimed-code.py over lib, python and node: an advisory count, per folder, of the code files any document names and any test exercises. It does not say which folder a file belongs in.",
+    "basis": "context",
+    "ctx": [
+     {
+      "doc": "layers",
+      "quote": "is advisory: it counts, per folder, the files any document names and any test exercises."
+     }
+    ]
+   },
+   "hook": {
+    "label": "the commit-time hook",
+    "kind": "record",
+    "gloss": "The git hook .githooks/pre-commit. Before every git commit it regenerates and stages the derived artifacts whose sources the pending changes touch. It is a git hook, not a Claude Code hook.",
+    "basis": "context",
+    "ctx": [
+     {
+      "doc": "readme",
+      "quote": "a git hook rather than a Claude Code hook, so it fires whatever the session's project root is"
+     },
+     {
+      "doc": "readme",
+      "quote": "runs before every `git commit` and regenerates + stages whatever the pending changes touch"
+     }
+    ]
+   },
+   "derived-artifact": {
+    "label": "derived artifact",
+    "kind": "record",
+    "gloss": "A file generated from other files in the repo, such as dist/web-tools.js. node/README.md splits derived artifacts on whether their generator is deterministic; the hook refreshes the deterministic ones.",
+    "basis": "context",
+    "ctx": [
+     {
+      "doc": "readme",
+      "quote": "Every derived artifact in the repo is refreshed one of two ways, split on one property: whether its generator is **deterministic**."
+     },
+     {
+      "doc": "readme",
+      "quote": "**Deterministic artifacts ride in the commit that changes their source.**"
+     }
+    ]
+   },
+   "legs": {
+    "label": "the legs",
+    "kind": "record",
+    "gloss": "The hook's separate regeneration steps, each headed `# --- leg` in .githooks/pre-commit and run in a fixed order.",
+    "basis": "context",
+    "ctx": [
+     {
+      "doc": "hookfile",
+      "quote": "The full list is the `# --- leg` headers below, in the order they run"
+     }
+    ]
+   },
+   "thumbnails": {
+    "label": "thumbnails",
+    "kind": "record",
+    "gloss": "The PNG screenshots in pages/thumbs/, one per page. The hook only warns about them; a session regenerates them once, before a merge, because screenshots are slow and not byte-deterministic.",
+    "basis": "context",
+    "ctx": [
+     {
+      "doc": "claude",
+      "quote": "Thumbs are refreshed once per session, not per commit, because screenshots are slow and not byte-deterministic; the commit hook only warns about them."
+     }
+    ]
+   },
+   "pretooluse": {
+    "label": "a PreToolUse hook",
+    "kind": "record",
+    "gloss": "A Claude Code hook declared in .claude/settings.json that runs before a tool call. This repo's commit refresher was one until 2026-08-06, when it moved to git.",
+    "basis": "context",
+    "ctx": [
+     {
+      "doc": "hookfile",
+      "quote": "THIS WAS A CLAUDE CODE PreToolUse(Bash) HOOK UNTIL 2026-08-06"
+     },
+     {
+      "doc": "ext",
+      "quote": "A Claude Code hook has to be named individually in `.claude/settings.json`, and that file is read **only when the session's project root is that repo**"
+     }
+    ]
+   },
+   "session-root": {
+    "label": "the session root",
+    "kind": "concept",
+    "gloss": "The project root of a Claude Code session. A session spanning several checkouts has its root above all of them, so none of their .claude/settings.json hooks fire.",
+    "basis": "context",
+    "ctx": [
+     {
+      "doc": "ext",
+      "quote": "A session spanning several checkouts has its root above all of them (primary working directory `/home/user`, repos below it), so none of their declared hooks fire"
+     }
+    ]
+   },
+   "setup": {
+    "label": "npm run setup",
+    "kind": "event",
+    "gloss": "A run, once per clone or worktree, that points git at .githooks, registers the derived-csv merge driver and installs the development dependencies. It never regenerates artifacts.",
+    "basis": "context",
+    "ctx": [
+     {
+      "doc": "readme",
+      "quote": "Run `npm run setup` once in a new clone or linked worktree."
+     },
+     {
+      "doc": "readme",
+      "quote": "registers the `derived-csv` merge driver named by `.gitattributes`"
+     },
+     {
+      "doc": "ext",
+      "quote": "`npm run setup` is now the owner of those checkout settings and the development dependencies; `npm run ready` checks them without writing"
+     }
+    ]
+   },
+   "merge-driver": {
+    "label": "the CSV merge driver",
+    "kind": "thing",
+    "gloss": "The derived-csv git merge driver, registered by npm run setup. It unions CSV rows, strictly three-way merges authored cells and leaves computed cells at the current side's value.",
+    "basis": "context",
+    "ctx": [
+     {
+      "doc": "readme",
+      "quote": "The driver unions rows, strictly three-way merges authored cells, and deliberately leaves computed cells at the current side's value."
+     }
+    ]
+   },
+   "startup-scripts": {
+    "label": "Claude's startup scripts",
+    "kind": "record",
+    "gloss": "The .claude/hooks/session-*.sh scripts Claude Code runs at session start: session-githooks.sh calls node/checkout-setup.mjs with --git-only, session-start.sh with --dependencies-only.",
+    "basis": "context",
+    "ctx": [
+     {
+      "doc": "ext",
+      "quote": "with `--git-only` in every Claude session"
+     },
+     {
+      "doc": "ext",
+      "quote": "and calls it with `--dependencies-only`"
+     }
+    ]
+   },
+   "no-verify": {
+    "label": "--no-verify",
+    "kind": "concept",
+    "gloss": "The git commit flag that skips git's commit hooks, this one included.",
+    "basis": "context",
+    "ctx": [
+     {
+      "doc": "ext",
+      "quote": "`git commit --no-verify` is the deliberate local bypass"
+     }
+    ]
+   },
+   "verification": {
+    "label": "verification",
+    "kind": "event",
+    "gloss": "The check that each derived artifact still matches its source, done by a test that does not rely on the hook having run.",
+    "basis": "context",
+    "ctx": [
+     {
+      "doc": "dtest",
+      "quote": "So the invariant gets an owner that does not depend on the harness."
+     },
+     {
+      "doc": "dtest",
+      "quote": "separate because setup can be skipped, --no-verify can bypass the hooks, and"
+     }
+    ]
+   },
+   "derived-test": {
+    "label": "derived-artifacts.test.mjs",
+    "kind": "record",
+    "gloss": "A test that runs the generators in --check mode, comparing bytes without writing, and fails when a derived artifact is behind its source.",
+    "basis": "context",
+    "ctx": [
+     {
+      "doc": "dtest",
+      "quote": "the generators in --check mode, which compares bytes instead of writing"
+     },
+     {
+      "doc": "ext",
+      "quote": "`node/test/derived-artifacts.test.mjs` re-runs the generators in `--check` mode inside `npm test`, and a stale artifact fails the suite wherever it runs"
+     }
+    ]
+   },
+   "refresh-cmd": {
+    "label": "npm run artifacts:refresh",
+    "kind": "event",
+    "gloss": "A run of git hook run pre-commit -- --all: the hook's legs over every file instead of only the staged ones.",
+    "basis": "context",
+    "ctx": [
+     {
+      "doc": "pkg",
+      "quote": "\"artifacts:refresh\": \"git hook run pre-commit -- --all\""
+     }
+    ]
+   },
+   "merge-pause": {
+    "label": "the merge pause",
+    "kind": "event",
+    "gloss": "When the hook's refresh changes the combined index of an automatic local merge, the hook stops the commit and leaves the merge in progress; git -c core.editor=true merge --continue finishes it through the ordinary commit path, where commit-msg's consent gate runs.",
+    "basis": "context",
+    "ctx": [
+     {
+      "doc": "readme",
+      "quote": "If refresh changed the index, the hook deliberately stops the commit, leaves the clean merge and its refreshed index in progress, and prints one next step: `git -c core.editor=true merge --continue`."
+     },
+     {
+      "doc": "readme",
+      "quote": "That continuation uses the ordinary commit path, so `pre-commit` runs again and `commit-msg` preserves the consent gate"
+     }
+    ]
+   },
+   "test-workflow": {
+    "label": ".github/workflows/test.yml",
+    "kind": "record",
+    "gloss": "A GitHub Actions workflow that runs npm test and reports the result as a check on the pull request. It reports and commits nothing. A pull request that cannot merge gets no pull_request run.",
+    "basis": "context",
+    "ctx": [
+     {
+      "doc": "testyml",
+      "quote": "Read-only: this one reports, it does not commit."
+     },
+     {
+      "doc": "testyml",
+      "quote": "This one is triggered by a pull request, so its result attaches to the"
+     },
+     {
+      "doc": "testyml",
+      "quote": "and a PR that cannot be merged has none, so no run starts"
+     }
+    ]
+   },
+   "suite": {
+    "label": "the suite",
+    "kind": "record",
+    "gloss": "The tests npm test runs: every file under node/test/ named *.test.mjs.",
+    "basis": "passage"
+   },
+   "measures-workflow": {
+    "label": "page-measures.yml",
+    "kind": "record",
+    "gloss": ".github/workflows/page-measures.yml: renders every page a pull request touches in headless Chromium and reports what node/render/measure.mjs reads off it. A finding never turns it red.",
+    "basis": "context",
+    "ctx": [
+     {
+      "doc": "pm",
+      "quote": "Renders every page a pull request touches in headless Chromium and reports"
+     },
+     {
+      "doc": "pm",
+      "quote": "REPORT ONLY. Findings never turn this red."
+     }
+    ]
+   },
+   "finding": {
+    "label": "a finding",
+    "kind": "record",
+    "gloss": "One problem the page-measures run reads off a page, such as sideways scroll at phone width, blank icons or empty tables.",
+    "basis": "context",
+    "ctx": [
+     {
+      "doc": "pm",
+      "quote": "what node/render/measure.mjs reads off it: sideways scroll at phone width and"
+     }
+    ]
+   },
+   "pass": {
+    "label": "the pass",
+    "kind": "event",
+    "gloss": "The page-measures run itself, which first proves its detectors fire against a page with known defects; a red run means that proof or the run broke.",
+    "basis": "context",
+    "ctx": [
+     {
+      "doc": "pm",
+      "quote": "only when the pass itself is broken, and the first thing it does is prove it"
+     }
+    ]
+   },
+   "lockfile": {
+    "label": "package-lock.json",
+    "kind": "record",
+    "gloss": "npm's record of exact dependency versions. It is gitignored in this repo, so no lockfile exists for CI to install from.",
+    "basis": "context",
+    "ctx": [
+     {
+      "doc": "testyml",
+      "quote": "package-lock.json is gitignored in this repo, so there is no lockfile to"
+     }
+    ]
+   },
+   "runner": {
+    "label": "the runner",
+    "kind": "thing",
+    "gloss": "The GitHub Actions machine that runs test.yml's steps. Its install step skips the Playwright browser download.",
+    "basis": "context",
+    "ctx": [
+     {
+      "doc": "testyml",
+      "quote": "runs-on: ubuntu-latest"
+     },
+     {
+      "doc": "testyml",
+      "quote": "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'"
+     }
+    ]
+   }
+  },
+  "lead": "The pre-build & the build-on-commit hook",
+  "sentences": [
+   {
+    "n": 1,
+    "text": "`dist/web-tools.js` is the pre-build: the whole `lib/` frozen into one self-booting offline artifact, so a page adopts the library with one import instead of a `gh.load` chain.",
+    "mentions": [
+     {
+      "e": "prebuild",
+      "quote": "`dist/web-tools.js`"
+     },
+     {
+      "e": "prebuild",
+      "quote": "the pre-build"
+     },
+     {
+      "e": "gh-load-chain",
+      "quote": "a `gh.load` chain"
+     }
+    ],
+    "links": [],
+    "atoms": [
+     {
+      "id": "a",
+      "type": "definition",
+      "claim": "`dist/web-tools.js` is called the pre-build: the whole `lib/` folder frozen into one self-booting artifact that works offline.",
+      "quote": "`dist/web-tools.js` is the pre-build: the whole `lib/` frozen into one self-booting offline artifact",
+      "on": [
+       "prebuild"
+      ],
+      "note": "'Offline' is looser than it reads: node/README.md says third-party libraries stay on their CDN tags, and the file is itself fetched or imported once."
+     },
+     {
+      "id": "b",
+      "type": "assertion",
+      "claim": "A page that imports the pre-build adopts the library with one import instead of running a chain of `gh.load` calls.",
+      "quote": "so a page adopts the library with one import instead of a `gh.load` chain",
+      "on": [
+       "prebuild",
+       "gh-load-chain"
+      ],
+      "for": "a",
+      "as": "elaborates"
+     }
+    ]
+   },
+   {
+    "n": 2,
+    "text": "`dist/app.js` is the app's own: only what `app/index.html` reaches.",
+    "mentions": [
+     {
+      "e": "app-prebuild",
+      "quote": "`dist/app.js`"
+     },
+     {
+      "e": "prebuild",
+      "quote": "the app's own",
+      "form": "ellipsis",
+      "slot": "noun modified by own",
+      "fill": "pre-build"
+     }
+    ],
+    "links": [
+     {
+      "to": 1,
+      "kind": "contrasts",
+      "here": "only what `app/index.html` reaches",
+      "there": "`dist/web-tools.js` is the pre-build: the whole `lib/` frozen into one self-booting offline artifact",
+      "gloss": "Sentence 1's pre-build holds the whole `lib/`; this one holds only the part the app page reaches.",
+      "implied": true
+     }
+    ],
+    "atoms": [
+     {
+      "id": "a",
+      "type": "definition",
+      "claim": "`dist/app.js` is the app's own pre-build.",
+      "quote": "`dist/app.js` is the app's own",
+      "on": [
+       "app-prebuild",
+       "prebuild"
+      ]
+     },
+     {
+      "id": "b",
+      "type": "definition",
+      "claim": "`dist/app.js` contains only the `lib/` files that `app/index.html` reaches.",
+      "quote": "only what `app/index.html` reaches",
+      "on": [
+       "app-prebuild"
+      ],
+      "note": "'Reaches' is node/README.md's term for every lib path named as a string literal, transitively, plus every component an x-data names.",
+      "for": "a",
+      "as": "elaborates"
+     }
+    ]
+   },
+   {
+    "n": 3,
+    "text": "Both are tracked.",
+    "mentions": [
+     {
+      "e": "prebuild",
+      "quote": "Both",
+      "form": "anaphor"
+     },
+     {
+      "e": "app-prebuild",
+      "quote": "Both",
+      "form": "anaphor"
+     }
+    ],
+    "links": [],
+    "atoms": [
+     {
+      "id": "a",
+      "type": "assertion",
+      "claim": "`dist/web-tools.js` and `dist/app.js` are both committed to git, although `dist/` is otherwise gitignored.",
+      "quote": "Both are tracked",
+      "on": [
+       "prebuild",
+       "app-prebuild"
+      ],
+      "note": "'Tracked' means committed; .gitignore ignores dist/* except these files. The sentence does not say the hook is what keeps them current."
+     }
+    ]
+   },
+   {
+    "n": 4,
+    "text": "See `node/README.md`.",
+    "mentions": [],
+    "links": [],
+    "atoms": [
+     {
+      "id": "a",
+      "type": "rule",
+      "claim": "Read the pre-build section of `node/README.md` for more about the pre-build.",
+      "quote": "See `node/README.md`",
+      "on": [
+       "prebuild"
+      ]
+     }
+    ]
+   },
+   {
+    "n": 5,
+    "text": "The `gh.load` chain it replaces is the repo's default, not a legacy path.",
+    "mentions": [
+     {
+      "e": "gh-load-chain",
+      "quote": "The `gh.load` chain"
+     },
+     {
+      "e": "prebuild",
+      "quote": "it",
+      "form": "anaphor",
+      "note": "'it' is the pre-build; the nearest noun phrase, `node/README.md`, is only a pointer."
+     }
+    ],
+    "links": [
+     {
+      "to": 1,
+      "kind": "narrows",
+      "here": "not a legacy path",
+      "there": "so a page adopts the library with one import instead of a `gh.load` chain",
+      "gloss": "Sentence 1 says the pre-build stands in for the chain; this sentence limits that: the chain is still the default way pages load code.",
+      "implied": true
+     }
+    ],
+    "atoms": [
+     {
+      "id": "a",
+      "type": "assertion",
+      "claim": "The `gh.load` chain, which the pre-build replaces, is the repo's default way for a page to load code.",
+      "quote": "The `gh.load` chain it replaces is the repo's default",
+      "on": [
+       "gh-load-chain",
+       "prebuild"
+      ]
+     },
+     {
+      "id": "b",
+      "type": "assertion",
+      "claim": "The `gh.load` chain is not a legacy path.",
+      "quote": "not a legacy path",
+      "on": [
+       "gh-load-chain"
+      ],
+      "for": "a",
+      "as": "elaborates"
+     }
+    ]
+   },
+   {
+    "n": 6,
+    "text": "`docs/loader.md` is the only statement of the contract a file must honor to be loadable that way, plus the timing invariants the boot sequence depends on.",
+    "mentions": [
+     {
+      "e": "loader-contract",
+      "quote": "`docs/loader.md`"
+     },
+     {
+      "e": "loader-contract",
+      "quote": "the contract a file must honor to be loadable that way"
+     },
+     {
+      "e": "gh-load-chain",
+      "quote": "that way",
+      "form": "anaphor",
+      "ante": 5,
+      "note": "'That way' is loading through the gh.load chain named in sentence 5."
+     }
+    ],
+    "links": [],
+    "atoms": [
+     {
+      "id": "a",
+      "type": "assertion",
+      "claim": "`docs/loader.md` is the only document that states the contract a file must honor to be loadable through the `gh.load` chain.",
+      "quote": "`docs/loader.md` is the only statement of the contract a file must honor to be loadable that way",
+      "on": [
+       "loader-contract",
+       "gh-load-chain"
+      ]
+     },
+     {
+      "id": "b",
+      "type": "assertion",
+      "claim": "`docs/loader.md` also states the timing invariants the boot sequence depends on.",
+      "quote": "plus the timing invariants the boot sequence depends on",
+      "on": [
+       "loader-contract"
+      ],
+      "for": "a",
+      "as": "elaborates"
+     }
+    ]
+   },
+   {
+    "n": 7,
+    "text": "Read it before adding a file to `lib/` or changing how a page boots.",
+    "mentions": [
+     {
+      "e": "loader-contract",
+      "quote": "it",
+      "form": "anaphor",
+      "in": "Read it before",
+      "note": "'It' is `docs/loader.md`, the document named first in sentence 6."
+     }
+    ],
+    "links": [],
+    "atoms": [
+     {
+      "id": "a",
+      "type": "rule",
+      "claim": "Read `docs/loader.md` before adding a file to `lib/` or changing how a page boots.",
+      "quote": "Read it before adding a file to `lib/` or changing how a page boots",
+      "on": [
+       "loader-contract"
+      ]
+     }
+    ]
+   },
+   {
+    "n": 8,
+    "text": "Which folder the file belongs in is answered in `docs/code-layers.md` and measured by `npm run code-scan`.",
+    "mentions": [
+     {
+      "e": "code-layers",
+      "quote": "`docs/code-layers.md`"
+     },
+     {
+      "e": "code-scan",
+      "quote": "`npm run code-scan`"
+     }
+    ],
+    "links": [
+     {
+      "to": 7,
+      "kind": "elaborates",
+      "here": "Which folder the file belongs in is answered in `docs/code-layers.md`",
+      "there": "Read it before adding a file to `lib/` or changing how a page boots",
+      "gloss": "'The file' is the file being added in sentence 7, but that sentence already names `lib/`; the folder in question is the layer among lib/, lib/kits/, lib/alpineComponents/, lib/ops/, python/ and node/.",
+      "implied": true
+     }
+    ],
+    "atoms": [
+     {
+      "id": "a",
+      "type": "assertion",
+      "claim": "Which folder a new code file belongs in is answered in `docs/code-layers.md`.",
+      "quote": "Which folder the file belongs in is answered in `docs/code-layers.md`",
+      "on": [
+       "code-layers"
+      ]
+     },
+     {
+      "id": "b",
+      "type": "assertion",
+      "claim": "`npm run code-scan` measures which folder a file belongs in.",
+      "quote": "measured by `npm run code-scan`",
+      "on": [
+       "code-scan",
+       "code-layers"
+      ],
+      "note": "docs/code-layers.md says otherwise: code-scan is advisory and counts, per folder, the files any document names and any test exercises. Placement under lib/ is checked by npm run code-shape and node/test/code-layers.test.mjs.",
+      "for": "a",
+      "as": "elaborates"
+     }
+    ]
+   },
+   {
+    "n": 9,
+    "text": "Every deterministic derived artifact is owned by one commit-time hook, `.githooks/pre-commit`.",
+    "mentions": [
+     {
+      "e": "derived-artifact",
+      "quote": "Every deterministic derived artifact"
+     },
+     {
+      "e": "hook",
+      "quote": "one commit-time hook, `.githooks/pre-commit`"
+     }
+    ],
+    "links": [],
+    "atoms": [
+     {
+      "id": "a",
+      "type": "assertion",
+      "claim": "Every derived artifact whose generator is deterministic is owned by one hook that runs at commit time, `.githooks/pre-commit`.",
+      "quote": "Every deterministic derived artifact is owned by one commit-time hook, `.githooks/pre-commit`",
+      "on": [
+       "derived-artifact",
+       "hook"
+      ]
+     },
+     {
+      "id": "b",
+      "type": "assertion",
+      "claim": "Derived artifacts with a non-deterministic generator, such as thumbnails, are not owned by the hook.",
+      "quote": "deterministic",
+      "on": [
+       "derived-artifact",
+       "hook",
+       "thumbnails"
+      ],
+      "implied": true,
+      "note": "The word sets up a contrast the sentence does not draw. Sentence 13 names thumbnails as the exception."
+     }
+    ]
+   },
+   {
+    "n": 10,
+    "text": "Before a `git commit` it regenerates and stages, in the same commit, whatever the pending changes touch.",
+    "mentions": [
+     {
+      "e": "hook",
+      "quote": "it",
+      "form": "anaphor",
+      "in": "it regenerates"
+     },
+     {
+      "e": "derived-artifact",
+      "quote": "whatever the pending changes touch",
+      "note": "The derived artifacts whose sources have pending changes."
+     }
+    ],
+    "links": [
+     {
+      "to": 9,
+      "kind": "elaborates",
+      "here": "Before a `git commit` it regenerates",
+      "there": "Every deterministic derived artifact is owned by one commit-time hook, `.githooks/pre-commit`",
+      "gloss": "Says what owning an artifact means in practice: regenerating it, and staging it, at commit time.",
+      "implied": true
+     }
+    ],
+    "atoms": [
+     {
+      "id": "a",
+      "type": "assertion",
+      "claim": "The hook regenerates derived artifacts before a `git commit` completes.",
+      "quote": "Before a `git commit` it regenerates",
+      "on": [
+       "hook",
+       "derived-artifact"
+      ]
+     },
+     {
+      "id": "b",
+      "type": "assertion",
+      "claim": "The hook stages the regenerated files in the same commit.",
+      "quote": "stages, in the same commit,",
+      "on": [
+       "hook"
+      ],
+      "for": "a",
+      "as": "elaborates"
+     },
+     {
+      "id": "c",
+      "type": "assertion",
+      "claim": "The hook regenerates only the artifacts whose sources the pending changes touch.",
+      "quote": "whatever the pending changes touch",
+      "on": [
+       "hook",
+       "derived-artifact"
+      ],
+      "for": "a",
+      "as": "narrows"
+     }
+    ]
+   },
+   {
+    "n": 11,
+    "text": "`node/README.md` lists the legs, the order they run in, and why that order matters.",
+    "mentions": [
+     {
+      "e": "legs",
+      "quote": "the legs"
+     },
+     {
+      "e": "legs",
+      "quote": "they",
+      "form": "anaphor",
+      "in": "the order they run in"
+     }
+    ],
+    "links": [],
+    "atoms": [
+     {
+      "id": "a",
+      "type": "assertion",
+      "claim": "`node/README.md` lists the hook's legs.",
+      "quote": "`node/README.md` lists the legs",
+      "on": [
+       "legs",
+       "hook"
+      ],
+      "note": "The passage never says what a leg is; .githooks/pre-commit headers each regeneration step '# --- leg'."
+     },
+     {
+      "id": "b",
+      "type": "assertion",
+      "claim": "`node/README.md` gives the order the legs run in.",
+      "quote": "the order they run in",
+      "on": [
+       "legs"
+      ],
+      "for": "a",
+      "as": "elaborates"
+     },
+     {
+      "id": "c",
+      "type": "assertion",
+      "claim": "`node/README.md` explains why the order of the legs matters.",
+      "quote": "why that order matters",
+      "on": [
+       "legs"
+      ],
+      "for": "a",
+      "as": "elaborates"
+     }
+    ]
+   },
+   {
+    "n": 12,
+    "text": "Don't hand-edit a file the hook writes; edit the source and let the hook refresh it.",
+    "mentions": [
+     {
+      "e": "hook",
+      "quote": "the hook",
+      "in": "a file the hook writes"
+     },
+     {
+      "e": "derived-artifact",
+      "quote": "a file the hook writes",
+      "note": "Another name for a derived artifact."
+     },
+     {
+      "e": "hook",
+      "quote": "the hook",
+      "in": "let the hook refresh it"
+     },
+     {
+      "e": "derived-artifact",
+      "quote": "it",
+      "form": "anaphor",
+      "in": "refresh it"
+     }
+    ],
+    "links": [],
+    "atoms": [
+     {
+      "id": "a",
+      "type": "rule",
+      "claim": "Do not hand-edit a file that the hook writes.",
+      "quote": "Don't hand-edit a file the hook writes",
+      "on": [
+       "derived-artifact",
+       "hook"
+      ],
+      "note": "node/README.md lists four registry CSVs that the hook writes only in part and that are hand-edited otherwise, so the rule is narrower than the sentence."
+     },
+     {
+      "id": "b",
+      "type": "rule",
+      "claim": "Edit the file's source and let the hook refresh the file.",
+      "quote": "edit the source and let the hook refresh it",
+      "on": [
+       "derived-artifact",
+       "hook"
+      ],
+      "for": "a",
+      "as": "elaborates"
+     }
+    ]
+   },
+   {
+    "n": 13,
+    "text": "Thumbnails (`pages/thumbs/*.png`) are the exception (see \"Per-session refresh\" above).",
+    "mentions": [
+     {
+      "e": "thumbnails",
+      "quote": "Thumbnails"
+     }
+    ],
+    "links": [
+     {
+      "to": 9,
+      "kind": "narrows",
+      "here": "Thumbnails (`pages/thumbs/*.png`) are the exception",
+      "there": "Every deterministic derived artifact is owned by one commit-time hook, `.githooks/pre-commit`",
+      "gloss": "The exception is to the hook owning every deterministic derived artifact: thumbnails are derived but not deterministic. The sentence before it, on hand-editing, is not what they are an exception to.",
+      "implied": true
+     }
+    ],
+    "atoms": [
+     {
+      "id": "a",
+      "type": "assertion",
+      "claim": "Thumbnails are the exception.",
+      "quote": "Thumbnails (`pages/thumbs/*.png`) are the exception",
+      "on": [
+       "thumbnails"
+      ],
+      "note": "The rule excepted is left unnamed; the pointer and .githooks/pre-commit show it is the hook's ownership of derived artifacts."
+     },
+     {
+      "id": "b",
+      "type": "assertion",
+      "claim": "The hook does not regenerate thumbnails; it only warns, and a session refreshes them once, before a merge.",
+      "quote": "see \"Per-session refresh\" above",
+      "on": [
+       "thumbnails",
+       "hook"
+      ],
+      "implied": true,
+      "note": "Stated in CLAUDE.md's Per-session refresh section, which the pointer sends the reader to."
+     }
+    ]
+   },
+   {
+    "n": 14,
+    "text": "Git owns the hook, not Claude: a `PreToolUse` hook disappears when the session root sits above this repo.",
+    "mentions": [
+     {
+      "e": "hook",
+      "quote": "the hook"
+     },
+     {
+      "e": "pretooluse",
+      "quote": "a `PreToolUse` hook"
+     },
+     {
+      "e": "session-root",
+      "quote": "the session root"
+     }
+    ],
+    "links": [],
+    "atoms": [
+     {
+      "id": "a",
+      "type": "assertion",
+      "claim": "Git, not Claude Code, owns the hook.",
+      "quote": "Git owns the hook, not Claude",
+      "on": [
+       "hook"
+      ]
+     },
+     {
+      "id": "b",
+      "type": "assertion",
+      "claim": "A Claude Code `PreToolUse` hook disappears when the session's project root sits above this repo.",
+      "quote": "a `PreToolUse` hook disappears when the session root sits above this repo",
+      "on": [
+       "pretooluse",
+       "session-root"
+      ],
+      "for": "a",
+      "as": "supports"
+     },
+     {
+      "id": "c",
+      "type": "assertion",
+      "claim": "This hook was a `PreToolUse` hook until 2026-08-06; the sentence gives that kind of hook's failure as the reason ownership moved to git.",
+      "quote": "a `PreToolUse` hook",
+      "on": [
+       "pretooluse",
+       "hook"
+      ],
+      "implied": true,
+      "note": "The sentence never says the hook was once a PreToolUse hook; the header of .githooks/pre-commit does."
+     }
+    ]
+   },
+   {
+    "n": 15,
+    "text": "Run `npm run setup` once per checkout for hooks, the CSV merge driver, and dependencies; `npm run ready` checks without writing.",
+    "mentions": [
+     {
+      "e": "setup",
+      "quote": "`npm run setup`"
+     },
+     {
+      "e": "hook",
+      "quote": "hooks",
+      "note": "The git hooks in .githooks/ (pre-commit, commit-msg, pre-merge-commit), not Claude Code hooks."
+     },
+     {
+      "e": "merge-driver",
+      "quote": "the CSV merge driver"
+     }
+    ],
+    "links": [],
+    "atoms": [
+     {
+      "id": "a",
+      "type": "rule",
+      "claim": "Run `npm run setup` once per checkout.",
+      "quote": "Run `npm run setup` once per checkout",
+      "on": [
+       "setup"
+      ]
+     },
+     {
+      "id": "b",
+      "type": "assertion",
+      "claim": "`npm run setup` sets up the checkout's git hooks, the CSV merge driver and the dependencies.",
+      "quote": "for hooks, the CSV merge driver, and dependencies",
+      "on": [
+       "setup",
+       "hook",
+       "merge-driver"
+      ],
+      "for": "a",
+      "as": "elaborates"
+     },
+     {
+      "id": "c",
+      "type": "assertion",
+      "claim": "`npm run ready` checks that this setup is in place without writing anything.",
+      "quote": "`npm run ready` checks without writing",
+      "on": [
+       "setup"
+      ],
+      "note": "The object of 'checks' is left to the reader; node/README.md says ready reads the effective hook path and driver config."
+     }
+    ]
+   },
+   {
+    "n": 16,
+    "text": "Claude's startup scripts delegate to that shared path.",
+    "mentions": [
+     {
+      "e": "startup-scripts",
+      "quote": "Claude's startup scripts"
+     },
+     {
+      "e": "setup",
+      "quote": "that shared path",
+      "form": "anaphor",
+      "note": "Not a file path: the setup code that `npm run setup` runs, node/checkout-setup.mjs."
+     }
+    ],
+    "links": [
+     {
+      "to": 14,
+      "kind": "narrows",
+      "here": "Claude's startup scripts delegate to that shared path",
+      "there": "Git owns the hook, not Claude",
+      "gloss": "Sentence 14 says Claude does not own the hook; this says what Claude's part is: its session-start scripts call the same setup.",
+      "implied": true
+     }
+    ],
+    "atoms": [
+     {
+      "id": "a",
+      "type": "assertion",
+      "claim": "The scripts Claude Code runs at session start call the same setup code that `npm run setup` runs.",
+      "quote": "Claude's startup scripts delegate to that shared path",
+      "on": [
+       "startup-scripts",
+       "setup"
+      ]
+     }
+    ]
+   },
+   {
+    "n": 17,
+    "text": "`--no-verify` bypasses it.",
+    "mentions": [
+     {
+      "e": "no-verify",
+      "quote": "`--no-verify`"
+     },
+     {
+      "e": "hook",
+      "quote": "it",
+      "form": "anaphor",
+      "note": "'It' could be the setup path of sentence 16; docs/environment/extending.md names --no-verify as the bypass of the hook."
+     }
+    ],
+    "links": [],
+    "atoms": [
+     {
+      "id": "a",
+      "type": "assertion",
+      "claim": "`git commit --no-verify` bypasses the hook.",
+      "quote": "`--no-verify` bypasses it",
+      "on": [
+       "no-verify",
+       "hook"
+      ]
+     }
+    ]
+   },
+   {
+    "n": 18,
+    "text": "Details: extending.md.",
+    "mentions": [],
+    "links": [],
+    "atoms": [
+     {
+      "id": "a",
+      "type": "assertion",
+      "claim": "`docs/environment/extending.md` holds the details of the hook and its setup.",
+      "quote": "Details: extending.md",
+      "on": [
+       "hook",
+       "setup"
+      ]
+     }
+    ]
+   },
+   {
+    "n": 19,
+    "text": "Verification stays independent.",
+    "mentions": [
+     {
+      "e": "verification",
+      "quote": "Verification"
+     }
+    ],
+    "links": [],
+    "atoms": [
+     {
+      "id": "a",
+      "type": "assertion",
+      "claim": "The check that derived artifacts match their sources does not depend on the hook.",
+      "quote": "Verification stays independent",
+      "on": [
+       "verification",
+       "hook"
+      ],
+      "note": "The passage never says independent of what; docs/environment/extending.md and the test's header say the hook and setup."
+     }
+    ]
+   },
+   {
+    "n": 20,
+    "text": "Setup never regenerates tracked artifacts, and API, MCP, or server-side writes cannot run local hooks.",
+    "mentions": [
+     {
+      "e": "setup",
+      "quote": "Setup"
+     },
+     {
+      "e": "derived-artifact",
+      "quote": "tracked artifacts",
+      "note": "Another name for derived artifacts."
+     },
+     {
+      "e": "hook",
+      "quote": "local hooks",
+      "note": "Plural: any git hook run in a local checkout, this one included."
+     }
+    ],
+    "links": [
+     {
+      "to": 19,
+      "kind": "supports",
+      "here": "Setup never regenerates tracked artifacts",
+      "there": "Verification stays independent",
+      "gloss": "Two reasons the hook's refresh cannot be assumed to have happened, so the check cannot rest on it: setup does not run it, and remote writes bypass it.",
+      "implied": true
+     }
+    ],
+    "atoms": [
+     {
+      "id": "a",
+      "type": "assertion",
+      "claim": "`npm run setup` never regenerates tracked derived artifacts.",
+      "quote": "Setup never regenerates tracked artifacts",
+      "on": [
+       "setup",
+       "derived-artifact"
+      ]
+     },
+     {
+      "id": "b",
+      "type": "assertion",
+      "claim": "Writes made through the GitHub API, through MCP or on the server cannot run local hooks.",
+      "quote": "API, MCP, or server-side writes cannot run local hooks",
+      "on": [
+       "hook"
+      ]
+     }
+    ]
+   },
+   {
+    "n": 21,
+    "text": "`node/test/derived-artifacts.test.mjs` therefore checks every generator under `npm test`.",
+    "mentions": [
+     {
+      "e": "derived-test",
+      "quote": "`node/test/derived-artifacts.test.mjs`"
+     },
+     {
+      "e": "suite",
+      "quote": "`npm test`"
+     }
+    ],
+    "links": [
+     {
+      "to": 20,
+      "kind": "rests-on",
+      "here": "`node/test/derived-artifacts.test.mjs` therefore checks every generator under `npm test`",
+      "there": "Setup never regenerates tracked artifacts",
+      "gloss": "'Therefore' takes its reason from the first fact: setup does not regenerate artifacts."
+     },
+     {
+      "to": 20,
+      "kind": "rests-on",
+      "here": "`node/test/derived-artifacts.test.mjs` therefore checks every generator under `npm test`",
+      "there": "API, MCP, or server-side writes cannot run local hooks",
+      "gloss": "'Therefore' takes its reason from the second fact: remote writes cannot run the hook."
+     }
+    ],
+    "atoms": [
+     {
+      "id": "a",
+      "type": "assertion",
+      "claim": "`node/test/derived-artifacts.test.mjs` checks every generator under `npm test`.",
+      "quote": "`node/test/derived-artifacts.test.mjs` therefore checks every generator under `npm test`",
+      "on": [
+       "derived-test",
+       "suite",
+       "verification"
+      ],
+      "note": "Overstated: the file runs twelve --check tests; other generators (console, tests registry, docs registry, CSV census) are checked by their own test files."
+     }
+    ]
+   },
+   {
+    "n": 22,
+    "text": "Repair hook-owned output with `npm run artifacts:refresh`, then run any additional command the test names.",
+    "mentions": [
+     {
+      "e": "derived-artifact",
+      "quote": "hook-owned output",
+      "note": "Another name for derived artifacts."
+     },
+     {
+      "e": "refresh-cmd",
+      "quote": "`npm run artifacts:refresh`"
+     },
+     {
+      "e": "derived-test",
+      "quote": "the test",
+      "form": "anaphor",
+      "note": "The derived-artifacts test of sentence 21, not the whole suite that sentence 24 calls 'the test'."
+     }
+    ],
+    "links": [
+     {
+      "to": 21,
+      "kind": "rests-on",
+      "here": "Repair hook-owned output with `npm run artifacts:refresh`",
+      "there": "`node/test/derived-artifacts.test.mjs` therefore checks every generator under `npm test`",
+      "gloss": "The repair is what to do when the test of sentence 21 reports an artifact behind its source.",
+      "implied": true
+     }
+    ],
+    "atoms": [
+     {
+      "id": "a",
+      "type": "rule",
+      "claim": "Repair a stale derived artifact with `npm run artifacts:refresh`.",
+      "quote": "Repair hook-owned output with `npm run artifacts:refresh`",
+      "on": [
+       "derived-artifact",
+       "refresh-cmd"
+      ]
+     },
+     {
+      "id": "b",
+      "type": "rule",
+      "claim": "After refreshing, run any further command that the failing test names.",
+      "quote": "then run any additional command the test names",
+      "on": [
+       "derived-test"
+      ],
+      "for": "a",
+      "as": "elaborates"
+     }
+    ]
+   },
+   {
+    "n": 23,
+    "text": "A local merge that restamps its combined index pauses for the gated `git -c core.editor=true merge --continue` path.",
+    "mentions": [
+     {
+      "e": "merge-pause",
+      "quote": "A local merge that restamps its combined index pauses"
+     }
+    ],
+    "links": [],
+    "atoms": [
+     {
+      "id": "a",
+      "type": "assertion",
+      "claim": "When the hook's refresh changes the combined index of an automatic local merge, the merge stops before committing and continues through the commit-msg-gated path `git -c core.editor=true merge --continue`.",
+      "quote": "A local merge that restamps its combined index pauses for the gated `git -c core.editor=true merge --continue` path",
+      "on": [
+       "merge-pause",
+       "hook"
+      ],
+      "note": "'Restamps', 'combined index' and 'gated' are undefined here; the agent that restamps is the hook, left out of the sentence. node/README.md carries the account."
+     },
+     {
+      "id": "b",
+      "type": "rule",
+      "claim": "After such a pause, run `git -c core.editor=true merge --continue`.",
+      "quote": "`git -c core.editor=true merge --continue`",
+      "on": [
+       "merge-pause"
+      ],
+      "implied": true,
+      "note": "The sentence describes the path; that the reader should take it is inferred from node/README.md."
+     }
+    ]
+   },
+   {
+    "n": 24,
+    "text": "`.github/workflows/test.yml` runs `npm test` on every pull request and reports it as a check on the PR, so the test speaks even when no session runs the suite.",
+    "mentions": [
+     {
+      "e": "test-workflow",
+      "quote": "`.github/workflows/test.yml`"
+     },
+     {
+      "e": "suite",
+      "quote": "`npm test`"
+     },
+     {
+      "e": "suite",
+      "quote": "it",
+      "form": "anaphor",
+      "in": "reports it as",
+      "note": "The result of the run, not the command."
+     },
+     {
+      "e": "suite",
+      "quote": "the test",
+      "form": "anaphor",
+      "note": "The whole suite here, as opposed to 'the test' of sentence 22, which is one file."
+     },
+     {
+      "e": "suite",
+      "quote": "the suite"
+     }
+    ],
+    "links": [
+     {
+      "to": 21,
+      "kind": "elaborates",
+      "here": "so the test speaks even when no session runs the suite",
+      "there": "`node/test/derived-artifacts.test.mjs` therefore checks every generator under `npm test`",
+      "gloss": "Sentence 21 puts the artifact check under `npm test`; this sentence says what runs `npm test` when no session does: the pull request workflow.",
+      "implied": true
+     }
+    ],
+    "atoms": [
+     {
+      "id": "a",
+      "type": "assertion",
+      "claim": "`.github/workflows/test.yml` runs `npm test` on every pull request.",
+      "quote": "`.github/workflows/test.yml` runs `npm test` on every pull request",
+      "on": [
+       "test-workflow",
+       "suite"
+      ],
+      "note": "Not quite every: a pull request that cannot merge has no merge ref and gets no pull_request run; the workflow also runs on pushes to main and to session branches."
+     },
+     {
+      "id": "b",
+      "type": "assertion",
+      "claim": "The workflow reports the result as a check on the pull request.",
+      "quote": "reports it as a check on the PR",
+      "on": [
+       "test-workflow",
+       "suite"
+      ]
+     },
+     {
+      "id": "c",
+      "type": "assertion",
+      "claim": "The suite's result therefore appears on the pull request even when no session runs the suite.",
+      "quote": "so the test speaks even when no session runs the suite",
+      "on": [
+       "suite"
+      ],
+      "for": "b",
+      "as": "rests-on"
+     }
+    ]
+   },
+   {
+    "n": 25,
+    "text": "`page-measures.yml` also runs on pull requests that touch a page, but only reports: a finding never fails it, so a red run is a fault in the pass, not in a page.",
+    "mentions": [
+     {
+      "e": "measures-workflow",
+      "quote": "`page-measures.yml`"
+     },
+     {
+      "e": "finding",
+      "quote": "a finding"
+     },
+     {
+      "e": "measures-workflow",
+      "quote": "it",
+      "form": "anaphor",
+      "in": "fails it"
+     },
+     {
+      "e": "pass",
+      "quote": "the pass"
+     }
+    ],
+    "links": [
+     {
+      "to": 24,
+      "kind": "contrasts",
+      "here": "but only reports",
+      "there": "reports it as a check on the PR",
+      "gloss": "'Also' puts both workflows on pull requests; 'but only reports' sets this one apart from test.yml, whose failing run turns the pull request's check red."
+     }
+    ],
+    "atoms": [
+     {
+      "id": "a",
+      "type": "assertion",
+      "claim": "`page-measures.yml` also runs on pull requests that touch a page.",
+      "quote": "`page-measures.yml` also runs on pull requests that touch a page",
+      "on": [
+       "measures-workflow"
+      ]
+     },
+     {
+      "id": "b",
+      "type": "assertion",
+      "claim": "`page-measures.yml` only reports.",
+      "quote": "but only reports",
+      "on": [
+       "measures-workflow"
+      ],
+      "for": "a",
+      "as": "narrows"
+     },
+     {
+      "id": "c",
+      "type": "assertion",
+      "claim": "A finding never fails `page-measures.yml`.",
+      "quote": "a finding never fails it",
+      "on": [
+       "finding",
+       "measures-workflow"
+      ],
+      "for": "b",
+      "as": "elaborates"
+     },
+     {
+      "id": "d",
+      "type": "assertion",
+      "claim": "A red `page-measures.yml` run therefore means the measuring pass itself is broken, not a page.",
+      "quote": "so a red run is a fault in the pass, not in a page",
+      "on": [
+       "pass",
+       "measures-workflow"
+      ],
+      "for": "c",
+      "as": "rests-on"
+     }
+    ]
+   },
+   {
+    "n": 26,
+    "text": "The suite is browser-free by construction (`node --test` globs `node/test/**/*.test.mjs`, and every Playwright-driven check is named without `.test.`), so keep it that way or the runner grows a browser install.",
+    "mentions": [
+     {
+      "e": "suite",
+      "quote": "The suite"
+     },
+     {
+      "e": "suite",
+      "quote": "it",
+      "form": "anaphor",
+      "in": "keep it that way"
+     },
+     {
+      "e": "runner",
+      "quote": "the runner"
+     }
+    ],
+    "links": [],
+    "atoms": [
+     {
+      "id": "a",
+      "type": "assertion",
+      "claim": "The suite is browser-free by construction.",
+      "quote": "The suite is browser-free by construction",
+      "on": [
+       "suite"
+      ]
+     },
+     {
+      "id": "b",
+      "type": "assertion",
+      "claim": "`node --test` expands the glob `node/test/**/*.test.mjs`, so only files named `*.test.mjs` are in the suite.",
+      "quote": "`node --test` globs `node/test/**/*.test.mjs`",
+      "on": [
+       "suite"
+      ],
+      "for": "a",
+      "as": "supports"
+     },
+     {
+      "id": "c",
+      "type": "assertion",
+      "claim": "Every Playwright-driven check is named without `.test.`, so the glob does not pick it up.",
+      "quote": "every Playwright-driven check is named without `.test.`",
+      "on": [
+       "suite"
+      ],
+      "for": "a",
+      "as": "supports"
+     },
+     {
+      "id": "d",
+      "type": "rule",
+      "claim": "Keep the suite browser-free.",
+      "quote": "so keep it that way",
+      "on": [
+       "suite"
+      ]
+     },
+     {
+      "id": "e",
+      "type": "assertion",
+      "claim": "If the suite stops being browser-free, the runner needs a browser installed.",
+      "quote": "or the runner grows a browser install",
+      "on": [
+       "runner",
+       "suite"
+      ],
+      "for": "d",
+      "as": "supports"
+     }
+    ]
+   },
+   {
+    "n": 27,
+    "text": "`package-lock.json` is gitignored, so CI resolves dependency ranges fresh on each run and a green check is not a claim about a pinned tree.",
+    "mentions": [
+     {
+      "e": "lockfile",
+      "quote": "`package-lock.json`"
+     },
+     {
+      "e": "test-workflow",
+      "quote": "CI",
+      "note": "The test.yml run on GitHub Actions."
+     }
+    ],
+    "links": [
+     {
+      "to": 24,
+      "kind": "elaborates",
+      "here": "a green check is not a claim about a pinned tree",
+      "there": "reports it as a check on the PR",
+      "gloss": "'A green check' is the pull request check of sentence 24; this sentence says what that check does not show.",
+      "implied": true
+     }
+    ],
+    "atoms": [
+     {
+      "id": "a",
+      "type": "assertion",
+      "claim": "`package-lock.json` is gitignored.",
+      "quote": "`package-lock.json` is gitignored",
+      "on": [
+       "lockfile"
+      ]
+     },
+     {
+      "id": "b",
+      "type": "assertion",
+      "claim": "With no lockfile, CI resolves dependency version ranges fresh on each run.",
+      "quote": "CI resolves dependency ranges fresh on each run",
+      "on": [
+       "test-workflow",
+       "lockfile"
+      ],
+      "for": "a",
+      "as": "rests-on"
+     },
+     {
+      "id": "c",
+      "type": "assertion",
+      "claim": "A passing check says nothing about a fixed set of dependency versions.",
+      "quote": "a green check is not a claim about a pinned tree",
+      "on": [
+       "test-workflow"
+      ],
+      "for": "b",
+      "as": "rests-on",
+      "note": "'A pinned tree' is not defined in the passage; read as a fixed set of dependency versions."
+     }
+    ]
+   }
+  ]
+ }
 }
