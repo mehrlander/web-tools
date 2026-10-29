@@ -618,14 +618,14 @@ test('a fact carries its definition on data-title-tip, not in a title', () => {
   // comparison.
   const shownValues = new Set(text.map(f => String(f.v) + (f.unit ? ' ' + f.unit : '')));
   const extras = noted.filter(n => !shownValues.has(n.textContent.replace(/\s+/g, ' ').trim()));
-  // The other nine are the labels on the icon-only controls: Contents, On
-  // GitHub, Previous view, Next view, Open the page in a new tab, Swipe through
-  // every view full screen, Read n cards one at a time, Open this session in
-  // Claude Code, and The stored record on GitHub.
-  assert.equal(extras.length, 13,
-    'the id, the running-ref marker, the pages mark, the Gemini summary and nine control labels off-strip: '
+  // The other ten are the labels on the icon-only controls: Sessions in Web
+  // Tools, Contents, On GitHub, Previous view, Next view, Open the page in a new
+  // tab, Swipe through every view full screen, Read n cards one at a time, Open
+  // this session in Claude Code, and The stored record on GitHub.
+  assert.equal(extras.length, 14,
+    'the id, the running-ref marker, the pages mark, the Gemini summary and ten control labels off-strip: '
     + JSON.stringify(extras.map(n => n.textContent.trim() || n.getAttribute('data-title-tip'))));
-  assert.equal(noted.length, text.length + 13, 'every text fact and those thirteen, and nothing else');
+  assert.equal(noted.length, text.length + 14, 'every text fact and those fourteen, and nothing else');
   // MATCHED ON THE VALUE, not on the fact's name, because the name is no longer
   // drawn: the strip renders `2026-08-05` and `40 calls`, so a lookup keyed on
   // "day" or "calls" would find the definition of whichever fact happened to
@@ -671,8 +671,8 @@ test('the page tells the brief that no embedder draws its header', () => {
   assert.match(page, /opts = \{ \.\.\.opts, framed: false,/,
     'the page hands the brief a literal, not its own iframe test');
   assert.doesNotMatch(page, /framed: this\.framed/, 'and no address form still passes it through');
-  // The page keeps its own flag, which still stands its address bar down.
-  assert.match(page, /x-show="!framed \|\| !target"/);
+  // The address bar is the way in, shown only while no session is named.
+  assert.match(page, /x-show="!target" class="shrink-0 border-b/);
 });
 
 // ── The scope ───────────────────────────────────────────────────────────────

@@ -152,16 +152,12 @@
      restores what it found. -->
 <body class="min-h-[100dvh] flex flex-col bg-base-100 text-base-content" x-data="sessionPage()" x-cloak>
 
-  <!-- Stands down inside a frame, the courtesy branch.html and links.html pay
-       their embedder: the app supplies its own chrome.
-
-       Except with nothing loaded, which was a dead end and shipped as one: a
-       toss carrying no session address rendered the empty state under a hidden
-       address bar, so the page said "name a session above" with nothing above
-       it and no way in. The courtesy is to an embedder that has already
-       supplied an address; where none arrived, the way to supply one has to be
-       on the page. Found 2026-08-26 by opening the tossed page itself. -->
-  <div x-show="!framed || !target" class="shrink-0 border-b border-base-300 bg-base-100">
+  <!-- Shown only while no session is named, where it is the page's one way in:
+       a toss carrying no address once rendered the empty state under a hidden
+       bar, so the page said "name a session above" with nothing above it (found
+       2026-08-26). Once a session is loaded the bar stands down, and the way out
+       is the head's link to the app's Sessions view. -->
+  <div x-show="!target" class="shrink-0 border-b border-base-300 bg-base-100">
     <div class="mx-auto px-4 py-2 flex items-center gap-2">
       <span class="text-lg">&#128172;</span>
       <input x-model="input" @keydown.enter="go()" placeholder="short id, branch, or owner/repo:path"
@@ -208,7 +204,6 @@
   document.addEventListener('alpine:init', () => {
     Alpine.data('sessionPage', () => ({
       input: '', target: null, busy: false, err: '',
-      framed: (() => { try { return window.self !== window.top; } catch { return true; } })(),
 
       async init(){
         // Before anything reads window.sessionRender: Alpine booted inside the
@@ -308,17 +303,13 @@
             const spec = window.DataPayload?.parseSpec?.(t.spec) || {};
             opts = { repo: spec.repo || STORE, path: spec.path || t.spec };
           }
-          // ONE FLAG WAS STANDING FOR TWO FACTS, and this page passed the wrong
-          // one for four addresses. `this.framed` says the PAGE is in an
-          // iframe, which is why its own address bar stands down once a session
-          // is loaded. The brief's `framed` says something else: that a HOST
-          // draws the title and the id, so the view need not repeat them. That
-          // is true of the app's Sessions pane, which mounts the COMPONENT
-          // inside a deck whose header carries both. It is true of nothing that
-          // embeds this PAGE: the only embedder is the toss, and the toss draws
-          // nothing. So a tossed session had no title and no id anywhere on
-          // screen, and only the facts strip said which one it was (reported
-          // 2026-09-01 from the phone).
+          // `framed: false`, ALWAYS. The brief's `framed` says a HOST draws the
+          // title and the id, so the view need not repeat them. That is true of
+          // the app's Sessions pane, which mounts the COMPONENT inside a deck
+          // whose header carries both. It is true of nothing that embeds this
+          // PAGE: the only embedder is the toss, and the toss draws nothing.
+          // Passing whether the page sat in an iframe instead left a tossed
+          // session with no title and no id on screen (reported 2026-09-01).
           opts = { ...opts, framed: false, ...(t.at || {}), onFind: value => this.stampFind(value) };
           this.target = opts;
           window.__sessionTarget = opts;
