@@ -31,7 +31,9 @@
     its Edits tab swipes through them, and Before / after reads the passage
     through green, yellow or red. A dome (kind dome/1, python/swarm/dome.py)
     puts one paragraph in front of bouts of fighters whose edits all land on
-    one text: its Edits tab swipes through every edit that landed, in order.
+    one text: its Edits tab swipes through every edit that landed, in order,
+    and Reader tasks shows the referee's check of each question on the
+    original and after each bout, ★ marking the result.
 
     Input, first match wins: #gz=<base64url> (the gzipped ledger, from
     `swarm.py gz <run>`), then ?src=owner/repo[@ref]:path (via the contents
@@ -58,7 +60,7 @@
     const TIERS = ['repair', 'green', 'yellow', 'red'];
     function swarmView() {
       return {
-        led: null, k: 0, tab: 'compare', side: 'result', marks: false, tier: 'yellow', para: null, lsel: '0',
+        led: null, k: 0, tab: 'compare', side: 'result', marks: false, tier: 'yellow', para: null, lsel: '0', tsel: null,
         sel: null, kinds: { core: true, tactic: true, draft: true, word: true },
         src: '', err: '', loading: false, mdClass: '', srcHtml: '', resHtml: {},
         KINDS, ROLES, TIER, TIERS, ADD, DEL,
@@ -99,7 +101,7 @@
           for (const r of led.rounds) if (r.harvest) this.resHtml[r.n] = GuideRender.render(r.harvest.text).html;
           if (this.isLadder) {
             for (const c of this.choices) this.resHtml[c.id] = GuideRender.render(c.text).html;
-            if (!this.choices.some(c => c.id === this.tier)) this.tier = this.isDome ? (this.choices.at(-1) || {}).id : 'yellow';
+            if (!this.choices.some(c => c.id === this.tier)) this.tier = this.isDome ? (this.led.best ? 'b' + this.led.best : (this.choices.at(-1) || {}).id) : 'yellow';
             if (this.para && !led.blocks.some(b => b.id === this.para)) this.para = null;
             if (!this._opened || !this.tabs.some(([id]) => id === this.tab)) this.tab = 'edits';
             this._opened = true;
@@ -112,6 +114,7 @@
         get isBold() { return !!this.led && this.led.kind === 'ladder/2'; },
         get tabs() {
           if (this.isBold) return [['edits', 'Edits'], ['compare', 'Before / after'], ['ideas', 'Ideas']];
+          if (this.tasks.length) return [['edits', 'Edits'], ['compare', 'Before / after'], ['tasks', 'Reader tasks']];
           return this.isLadder ? [['edits', 'Edits'], ['compare', 'Before / after']]
             : [['compare', 'Before / after'], ['rounds', 'Rounds'], ['notes', 'Notes'], ['core', 'Must keep']];
         },
@@ -227,7 +230,7 @@
         // What Before / after can put on its right: the passage through each
         // tier, then any whole rewrite, which is an alternative to the path.
         get choices() {
-          if (this.isDome) return (this.led.bouts || []).map(b => ({ id: 'b' + b.n, label: 'after bout ' + b.n, text: b.text, whole: true }));
+          if (this.isDome) return (this.led.bouts || []).map(b => ({ id: 'b' + b.n, label: 'after bout ' + b.n + (this.led.best === b.n ? ' ★' : ''), text: b.text, whole: true }));
           const out = TIERS.filter(t => t !== 'repair' || this.steps.some(s => s.risk === 'repair'))
             .map(t => ({ id: t, label: t === 'repair' ? 'repaired' : t, text: this.tierText(t), tier: t }));
           for (const w of this.led.wholes || []) out.push({ id: w.edit, label: w.by.replace('architect-', '').replace('scout-', 'scout ') + ' rewrite', text: w.text, tier: w.risk, whole: true });
@@ -239,6 +242,22 @@
         // built on them, narrowed to the picked paragraph.
         mine(x) { return !this.para || x.blocks.includes(this.para); },
         get found() { return (this.led.problems || []).filter(p => this.mine(p)); },
+        // Reader tasks: a dome's questions, checked on the original (0) and after each bout.
+        get tasks() { return this.isDome ? ((this.led.brief || {}).tasks || []) : []; },
+        get targets() { return [0, ...(this.led.bouts || []).map(b => b.n)]; },
+        cell(task, n) { return (this.led.checks || []).find(c => c.task === task && c.target === n) || null; },
+        wordsAt(n) { const b = (this.led.bouts || []).find(x => x.n === n); return b ? b.words : this.led.blocks[0].words; },
+        get tcell() {
+          const c = this.tsel && this.cell(this.tsel.t, this.tsel.n);
+          return c ? { t: this.tasks.find(t => t.id === c.task), n: c.target, c } : null;
+        },
+        // A bout's check, for its header: every live task passing, or the ones that fail.
+        boutMark(n) {
+          const live = this.tasks.filter(t => !t.dropped), got = live.map(t => this.cell(t.id, n));
+          if (!live.length || got.some(c => !c)) return this.led.best === n ? ' · ★' : '';
+          const bad = live.filter((t, j) => got[j].status !== 'pass').map(t => t.id);
+          return (bad.length ? ' · ✗ ' + bad.join(' ') : ' · ✓ ' + live.length + ' tasks') + (this.led.best === n ? ' · ★' : '');
+        },
         get lenses() {
           const out = {};
           for (const i of (this.led.ideas || []).filter(i => this.mine(i))) (out[i.lens] = out[i.lens] || []).push(i);
@@ -348,7 +367,7 @@
             const s = id === '0' ? null : this.stepAt(id).s;
             const b = s && s.bout !== at ? this.led.bouts.find(x => x.n === (at = s.bout)) : null;
             return (b ? '<div class="sticky top-0 z-10 bg-base-200 px-2.5 py-0.5 font-mono text-xs">'
-              + window.esc('bout ' + b.n + (b.model ? ' · ' + b.model : '') + ' · ' + b.landed + ' of ' + (b.landed + b.knocked) + ' landed · ' + b.words + ' words') + '</div>' : '')
+              + window.esc('bout ' + b.n + (b.model ? ' · ' + b.model : '') + ' · ' + b.landed + ' of ' + (b.landed + b.knocked) + ' landed · ' + b.words + ' words' + this.boutMark(b.n)) + '</div>' : '')
               + this.rowHtml(id);
           }).join('');
         },
@@ -537,6 +556,51 @@
               </div>
             </template>
           </section>
+        </template>
+      </div>
+    </template>
+
+    <!-- reader tasks: each question against the original and each bout's text -->
+    <template x-if="isDome && tab === 'tasks'">
+      <div class="p-4 pb-24 flex flex-col gap-4">
+        <table class="table table-sm">
+          <thead>
+            <tr>
+              <th>question</th>
+              <template x-for="n in targets" :key="n"><th class="text-center font-mono" x-text="n ? 'b' + n : 'orig'"></th></template>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="t in tasks" :key="t.id">
+              <tr class="align-top" :class="t.dropped && 'opacity-50'">
+                <td class="text-pretty"><span class="font-mono text-xs opacity-70" x-text="t.id"></span> <span x-text="t.question"></span></td>
+                <template x-for="n in targets" :key="n">
+                  <td class="text-center">
+                    <template x-if="cell(t.id, n)">
+                      <button class="btn btn-xs btn-square" :class="tsel && tsel.t === t.id && tsel.n === n ? 'btn-neutral' : 'btn-ghost'" @click="tsel = { t: t.id, n }"
+                        :aria-label="t.id + (n ? ' after bout ' + n : ' on the original')">
+                        <span :class="cell(t.id, n).status === 'pass' ? 'text-success' : 'text-error'" x-text="cell(t.id, n).status === 'pass' ? '✓' : '✗'"></span>
+                      </button>
+                    </template>
+                  </td>
+                </template>
+              </tr>
+            </template>
+            <tr class="font-mono text-xs">
+              <td class="opacity-70">words</td>
+              <template x-for="n in targets" :key="n"><td class="text-center" x-text="wordsAt(n) + (led.best === n ? ' ★' : '')"></td></template>
+            </tr>
+          </tbody>
+        </table>
+        <template x-if="tcell">
+          <div class="flex flex-col gap-1 border-l-4 border-base-300 pl-3 text-pretty">
+            <div class="font-mono text-xs opacity-80" x-text="tcell.t.id + ' · ' + (tcell.n ? 'after bout ' + tcell.n : 'the original') + ' · ' + tcell.c.status"></div>
+            <div class="font-semibold" x-text="tcell.t.question"></div>
+            <div><span class="opacity-70">the referee answered</span> <span x-text="tcell.c.answer"></span></div>
+            <div><span class="opacity-70">an answer needs</span> <span x-text="tcell.t.expected.join('; ')"></span></div>
+            <div x-show="!!tcell.c.missing"><span class="opacity-70">missing</span> <span x-text="tcell.c.missing"></span></div>
+            <div x-show="!!tcell.t.dropped"><span class="opacity-70">dropped:</span> <span x-text="tcell.t.dropped"></span></div>
+          </div>
         </template>
       </div>
     </template>

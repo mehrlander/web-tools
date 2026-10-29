@@ -43,13 +43,30 @@ The path starts with the repairs (blue), then runs green, yellow and red across 
 
 ## A dome
 
-[`dome.py`](dome.py) puts one paragraph in front of bouts of fighters, briefs in [`dome.md`](dome.md). Every fighter in a bout edits the paragraph as the last bout left it, with the original and the Qualified writing rules in view, and all of the bout's edits land on that one text, so the page reads as one paragraph changing edit by edit, each step shown against the original.
+[`dome.py`](dome.py) puts one paragraph in front of bouts of fighters, with briefs in [`dome.md`](dome.md). Every fighter in a bout edits the paragraph as the last bout left it, with the original in view, and all of the bout's edits land on that one text, so the page reads as one paragraph changing edit by edit, each step shown against the original. Reader tasks hold the run to the original's core: questions a reader with only the paragraph must be able to answer, each with the facts an answer needs. A referee answers them blind after every bout, and a task that fails becomes a finding the next bout's fighters see. [The reduction-panel skill](../../skills/reduction-panel/SKILL.md) ends on the same gate: behavior, not review, decides what was lost.
 
 ```bash
-python3 python/swarm/dome.py init python/swarm/runs/<slug> <file> <first-line> <last-line> --title "<title>"
+python3 python/swarm/dome.py init python/swarm/runs/<slug> <file> <first-line> <last-line> --title "<title>" --about "<what the paragraph is>" --bouts 3 --fighters cutter,fuser,slugger
 ```
 
-Then, for each bout `N`:
+Then run `dome.py next python/swarm/runs/<slug>`, start the agents it prints, one each and in parallel, each told to read its context file and follow it, and run `next` again, until it prints `ready for review`. `next` is the coordinator: it folds in what the last action's agents wrote (smashing a bout, recording a check), decides the next action, writes its agents' context files, and stops the run when the allowance of bouts is spent or a bout saves no words while every task passes. The result is the shortest text on which every task passes. `dome.py`'s docstring lists the actions; `--tasks <file>` supplies the tasks in place of a tasker, and `next --force` smashes a bout without a fighter that never wrote. Commit the ledger after each action to follow the run on the page, whose Reader tasks tab shows each question's check on the original and after each bout.
 
-1. `dome.py context python/swarm/runs/<slug> N <temperament>` for each temperament in `dome.md`, and one Agent each, in parallel. A fighter writes up to three edits, each the exact words it replaces and the words that replace them, and no reasons, except that one edit a bout may be a complaint (a repair with what the reader lost), and an edit that fixes one of the owner's writing peeves names it.
-2. `dome.py smash python/swarm/runs/<slug> N --model <model>` lands the bout's repairs first, then the rest biggest swing first (the most words claimed, then the most saved). An edit whose words an earlier one already changed is knocked out.
+```mermaid
+flowchart TD
+    H0(["👤 Paragraph, allowance, optional reader tasks"])
+    C{"⚙️ next: fold in, then issue a named action"}
+    K["🤖 Tasker: write the reader tasks"]
+    B{{"🤖 ∥ Bout: fighters edit the paragraph now"}}
+    X["⚙️ smash: repairs first, then the biggest swing"]
+    T["🤖 Referee: answer blind, reveal, grade"]
+    H(["👤 Inspect and steer"])
+    H0 --> C
+    C -->|"write_tasks"| K --> C
+    C -->|"bout"| B --> X --> C
+    C -->|"run_check"| T -->|"findings"| C
+    C -->|"present"| H
+    H -->|"edit the tasks or the allowance in the ledger"| C
+    X -.->|"each step against the original"| H
+```
+
+The smash lands a bout's repairs first, then the rest biggest swing first (the most words claimed, then the most saved). An edit whose words are no longer there exactly once, or that overlaps words its bout already wrote, is knocked out. [`node/test/dome-loop.test.mjs`](../../node/test/dome-loop.test.mjs) runs the loop end to end with canned agents.

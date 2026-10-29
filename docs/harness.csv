@@ -321,7 +321,7 @@ python/source-bundles.py,"write and check a repository's declared source-bundle 
 python/stranded-titles.py,,python,356,npm:stranded-titles,,no,yes,yes
 python/stranded-triage.py,"split a stranded branch's `missing` paths into moved, retired, stranded and unknown, using the default branch's whole tree and its deletion history, which the API-side scan reads neither of",python,269,argv,skills/tend/SKILL.md,no,yes,yes
 python/sunset-scan.py,scan a repo for SUNSET(YYYY-MM-DD) markers and report the ones now due,python,111,npm:sunset,.githooks/pre-commit,no,no,yes
-python/swarm/dome.py,,python/swarm,185,argv,python/swarm/README.md,no,yes,no
+python/swarm/dome.py,,python/swarm,503,argv,python/swarm/README.md,no,yes,yes
 python/swarm/ladder.py,,python/swarm,455,argv,python/swarm/README.md;python/swarm/dome.py,no,yes,no
 python/swarm/swarm.py,,python/swarm,305,argv,python/swarm/README.md;python/swarm/dome.py;python/swarm/ladder.py,no,yes,no
 python/text-carriers.py,"inventory the CSV and JSON files that already hold authored prose, and registry their field names to show how much vocabulary those files share",python,552,imported,docs/text-content.md;node/test/,no,yes,yes
