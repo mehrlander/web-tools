@@ -27,7 +27,7 @@ lib/kits/dictate.js,Dictate,"voice input as a plain text buffer: start the engin
 lib/kits/doc-growth.js,DocGrowth,"a repository's markdown over time, as one bubble chart and one ranking, drawn from the payload python/doc-growth.py writes and the session counts…",282,no,no,2,yes
 lib/kits/doc-index.js,DocIndex,"every estate repo's Markdown, with word counts, kept in the private registry so the Map's Docs tab can read the constellation's documentation in one fetch.",140,no,no,2,yes
 lib/kits/dock-split.js,dockSplit,the drag handle between two panes.,263,no,yes,11,yes
-lib/kits/docx.js,docxKit,"WordprocessingML (.docx) preparation: what a Word file has to have done to it before a browser renderer draws it faithfully, and what it knows about itself…",506,no,no,1,yes
+lib/kits/docx.js,docxKit,"WordprocessingML (.docx) preparation: what a Word file has to have done to it before a browser renderer draws it faithfully, and what it knows about itself…",512,no,no,1,yes
 lib/kits/dom-shot.js,DomShot,render a live DOM node to a PNG in the browser.,218,no,no,1,yes
 lib/kits/errands.js,Errands,one record for everything a session needs a person's browser to do.,463,no,no,7,yes
 lib/kits/estate-search.js,EstateSearch,"The estate's search calls, in one place, with one cache.",557,no,no,8,yes
@@ -36,17 +36,18 @@ lib/kits/file-correspondence.js,FileCorrespondence,Associate submitted text with
 lib/kits/file-deck.js,fileDeck,"a changeset's files, read one at a time.",518,no,no,14,yes
 lib/kits/file-index.js,FileIndex,"the estate's file names, kept in the private registry so the sidebar finder can match a name in every repo on the first keystroke.",197,no,no,3,yes
 lib/kits/findings.js,Findings,"what a tending pass concluded, kept as notes that carry a `finding` object: {""id"":""n…"",""at"":""…"",""author"":""…"",""about"":""<first subject>"",""text"":""<title>"",…",251,no,no,4,yes
+lib/kits/git-attributes.js,GitAttributes,".gitattributes, resolved in the browser as git resolves it.",167,no,no,1,yes
 lib/kits/git-change.js,GitChange,"pure browser-capable Git bundle & packfile unpacker, delta patch resolver, and git-change/1 envelope validator.",643,no,no,1,yes
 lib/kits/github-links.js,GithubLinks,"the GitHub destinations for one repo, as menu rows.",97,no,no,4,yes
 lib/kits/guide-render.js,GuideRender,"a guide PR body, rendered as something you can walk.",448,no,no,18,yes
 lib/kits/gz-payload.js,GzPayload,"The `#gz=` payload, in one place: text gzipped, then base64url, so a page, a document or a data envelope rides in a link with nothing hosted and no token…",41,no,no,15,yes
-lib/kits/io.js,io,"user data in and out of the page: file picker, file download, blob preview, and the clipboard.",229,no,yes,24,yes
+lib/kits/io.js,io,"user data in and out of the page: file picker, file download, blob preview, and the clipboard.",229,no,yes,23,yes
 lib/kits/json-explorer.js,JsonExplorer,"Native, framework-free JSON Explorer & Schema Profiler.",747,no,no,1,yes
 lib/kits/land.js,Land,"where the reader was just sent, and how they get told.",260,no,yes,8,yes
 lib/kits/last-write.js,LastWrite,"the copy this page just committed, for the next fold",70,no,no,5,yes
 lib/kits/linked-swiper.js,linkedSwiper,"a list with a detail: the list beside, or over, a strip of one card per row, the two moving together.",326,no,yes,4,yes
 lib/kits/lists.js,Lists,"the registry's lists/ folder, read and written as one kind of file.",235,no,no,4,yes
-lib/kits/look.js,Look,"look markers: a link that lands on a place in a page, says why, and can ring the control to tap.",1724,no,yes,4,yes
+lib/kits/look.js,Look,"look markers: a link that lands on a place in a page, says why, and can ring the control to tap.",1744,no,yes,5,yes
 lib/kits/md-diff.js,mdDiff,a markdown change read as the DOCUMENT rather than as its source.,1510,no,yes,19,yes
 lib/kits/md-doc.js,mdDoc,a markdown document rendered as something you can read and take pieces OUT of.,999,no,no,16,yes
 lib/kits/md-edit-studio.js,mdEditVariants,"the section editor as a studio: the source and a live reading of the change on one full screen, with no mode to switch.",611,no,no,1,no
@@ -63,7 +64,7 @@ lib/kits/page-storage.js,PageStorage,"What a visited page keeps in its browser s
 lib/kits/panel-tip.js,PanelTip,the PANEL-TIP of the house popup rule: the ✕ and the ways out.,306,no,yes,8,yes
 lib/kits/pdf.js,pdf,"browser PDF extraction: text, geometry, and table structure.",2302,no,no,6,yes
 lib/kits/peek.js,Peek,"what is under the pointer, and what contains it.",780,no,yes,11,yes
-lib/kits/persistence.js,persistence,idb-keyval-backed key/value persistence.,369,no,yes,8,yes
+lib/kits/persistence.js,persistence,idb-keyval-backed key/value persistence.,372,no,yes,8,yes
 lib/kits/portable-align.js,PortableAlign,Pure assessment of a repo's alignment with the web-tools coordination surface: which of the environmental hooks that spread the portable set (the…,71,no,no,2,yes
 lib/kits/powershell-editor.js,PowerShellEditor,"The PowerShell workspace's editor, on CodeMirror 6.",267,no,no,1,yes
 lib/kits/powershell-language.js,PowerShellLanguage,"Browser-only, heuristic PowerShell and XAML inspection for the code workspace.",455,no,no,3,yes
@@ -82,14 +83,14 @@ lib/kits/repo-address.js,RepoAddress,"The `owner/repo[@ref]:path` address, in on
 lib/kits/repo-checks.js,RepoChecks,"Declared staleness checks for a repo, evaluated on sight.",319,no,no,3,yes
 lib/kits/repo-config-cache.js,RepoConfigCache,Config aggregate + history + alignment grade for the web-tools ecosystem.,120,no,no,3,yes
 lib/kits/repo-proposals.js,RepoProposals,Proposals: the write-side counterpart to the reads an errand asks for (lib/kits/errands.js).,652,no,no,2,yes
-lib/kits/repo-sessions-cache.js,RepoSessionsCache,Sessions aggregate for the web-tools ecosystem.,1958,no,no,5,yes
+lib/kits/repo-sessions-cache.js,RepoSessionsCache,Sessions aggregate for the web-tools ecosystem.,1993,no,no,5,yes
 lib/kits/report-layout.js,ReportLayout,"a report layout, meaning the declared shape of a printed table, kept apart from the rows it prints.",303,no,yes,3,yes
 lib/kits/review-target.js,reviewTarget,parse and mint the address grammar for the review page (pages/review.html).,133,no,no,5,yes
 lib/kits/root-has-prune.js,RootHasPrune,"daisyUI's :root:has() rules, removed from the loaded stylesheet so that a change anywhere in the page stops costing a restyle of all of it.",112,no,no,1,yes
 lib/kits/route-activity.js,routeActivity,"rank the app's own routes by when the code behind each last moved, and join each to the work in flight against it.",358,no,no,6,yes
 lib/kits/route-join.js,RouteJoin,"the app-route join: the hub's own route manifest, and for each open pull request against the hub, the files it touches.",129,no,no,2,yes
 lib/kits/row-menu.js,rowMenu,"a tap on a row, and what you can do with it",249,no,yes,4,yes
-lib/kits/session-export.js,sessionExport,"a session as a list of exchanges, plus the pure function that turns any part of one into markdown.",1590,no,no,5,yes
+lib/kits/session-export.js,sessionExport,"a session as a list of exchanges, plus the pure function that turns any part of one into markdown.",1593,no,no,5,yes
 lib/kits/session-index.js,SessionIndex,"a token index over what sessions SAID, so the exhaustive pass stops costing the whole store.",418,no,no,7,yes
 lib/kits/session-render.js,sessionRender,a session record as a readable conversation.,1289,no,no,3,yes
 lib/kits/sessions-crawl.js,SessionsCrawl,"The sessions crawl as a kit: the pass that folds the per-session records under sessions/ in the private registry into state/sessions.json, its phone copy…",217,no,no,1,yes

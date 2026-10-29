@@ -208,7 +208,21 @@ def asked(info, show=None, tap=None, walkthrough=None, steps=None, path=None):
             return [f"the page declares no walkthrough named {walkthrough!r}"]
         return []
     ats = anchors_of(show, tap, steps, path)
-    return [f"{a!r} is not an anchor on this page" for a in ats if resolve(info, str(a)) is None]
+    return [f"{a!r} is a CSS selector; the kit reads it as a name, so write css:{a}" for a in ats
+            if looks_like_selector(str(a))] \
+        + [f"{a!r} is not an anchor on this page" for a in ats
+           if not looks_like_selector(str(a)) and resolve(info, str(a)) is None]
+
+
+# A bare selector is read by the kit as a name, so it lands nowhere; a page that
+# declares no names would otherwise pass it as unchecked (2026-10-29: four such
+# links in one session, each "Not on this page" on the reader's screen). A name
+# may carry ':', '/', '.' and '-' (`table:docs/x.csv`), never these.
+SELECTOR = re.compile(r"[\[\]=>*~+\s]|^[.#]")
+
+
+def looks_like_selector(at):
+    return not at.startswith(("text:", "css:")) and bool(SELECTOR.search(at))
 
 
 def address(at):
