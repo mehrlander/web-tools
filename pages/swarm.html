@@ -331,7 +331,7 @@
                         <template x-if="(e.builds_on || []).length"><span class="opacity-60" x-text="'← ' + e.builds_on.join(' ')"></span></template>
                       </div>
                       <template x-if="e.tag === 'word'">
-                        <div class="text-pretty break-words"><span class="line-through opacity-60" x-text="e.from"></span> <span x-text="e.to || '∅'"></span></div>
+                        <div class="text-pretty break-words"><span class="line-through opacity-60" x-text="e.from"></span> <span x-text="e.text || '∅'"></span></div>
                       </template>
                       <template x-if="e.tag !== 'word'"><div class="text-pretty whitespace-pre-wrap break-words" x-text="e.text"></div></template>
                       <template x-for="(v, j) in downs(e)" :key="j">

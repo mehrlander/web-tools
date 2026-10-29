@@ -77,7 +77,7 @@ def init(run, path, l0, l1, title=None):
 
 
 def fmt_entry(e):
-    body = f"\"{e['from']}\" -> \"{e['to']}\"" if e['tag'] == 'word' else e['text']
+    body = f"\"{e['from']}\" -> \"{e['text']}\"" if e['tag'] == 'word' else e['text']
     ups = sum(1 for v in e.get('votes', []) if v['v'] > 0)
     downs = [v for v in e.get('votes', []) if v['v'] < 0]
     s = f"- {e['id']} [{','.join(e['anchors'])}] ({e['role']}, +{ups} -{len(downs)})"
@@ -152,7 +152,7 @@ def check_reader(led, lines, role=None):
         for b in o.get('builds_on', []):
             if b not in ids: errs.append(f'line {i}: builds_on unknown entry {b}')
         if tag == 'word':
-            if 'from' not in o or 'to' not in o: errs.append(f'line {i}: a word entry needs from and to'); continue
+            if 'from' not in o or 'text' not in o: errs.append(f'line {i}: a word entry needs from and text'); continue
             if o['from'] not in unit_text(led, an): errs.append(f"line {i}: from \"{o['from']}\" is not in {','.join(an)}")
         elif not str(o.get('text', '')).strip():
             errs.append(f'line {i}: text is empty')
@@ -227,7 +227,7 @@ def merge(run, n):
             seq[o['tag']] += 1
             e = {'id': f"{n}.{TAGS[o['tag']]}{seq[o['tag']]}", 'round': n, 'role': role,
                  'tag': o['tag'], 'anchors': o['anchors']}
-            e.update({k: o[k] for k in ('text', 'from', 'to', 'builds_on') if k in o})
+            e.update({k: o[k] for k in ('text', 'from', 'builds_on') if k in o})
             led['entries'].append(e); made.append(e['id'])
         rnd['readers'].append({'role': role, 'entries': made, 'votes': cast})
     led['rounds'].append(rnd)

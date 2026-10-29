@@ -1522,7 +1522,7 @@
     "S1"
    ],
    "from": ", not just the budget",
-   "to": ""
+   "text": ""
   },
   {
    "id": "1.d1",
@@ -1570,7 +1570,7 @@
     "S2"
    ],
    "from": "same hostname, same boot, same `HTTPS_PROXY`, same user, same checkouts",
-   "to": "same hostname, boot, `HTTPS_PROXY`, user, checkouts"
+   "text": "same hostname, boot, `HTTPS_PROXY`, user, checkouts"
   },
   {
    "id": "1.w3",
@@ -1581,7 +1581,7 @@
     "S3"
    ],
    "from": "**What is separate is the context window, not the machine.** That single fact explains the shared search budget, the shared concurrency cap, and why agents can write",
-   "to": "**Only the context window is separate.** Hence the shared search budget, the shared concurrency cap, and why agents can write"
+   "text": "**Only the context window is separate.** Hence the shared search budget, the shared concurrency cap, and why agents can write"
   },
   {
    "id": "1.d4",
@@ -1618,7 +1618,7 @@
     "S6"
    ],
    "from": "The cap's real cost is not the visible rejection but a **silent drop**: an item that was in the roster, never dispatched successfully, and therefore never reports.",
-   "to": "The cap's real cost is a **silent drop**: a rostered item never dispatched successfully, so it never reports."
+   "text": "The cap's real cost is a **silent drop**: a rostered item never dispatched successfully, so it never reports."
   },
   {
    "id": "1.d6",
@@ -1651,7 +1651,7 @@
     "S9"
    ],
    "from": "per the authoring reference, and this container reported 4 CPUs (`nproc`), so a Workflow would have run two agents",
-   "to": "and this container reported 4 CPUs (`nproc`), so a Workflow would run two agents"
+   "text": "and this container reported 4 CPUs (`nproc`), so a Workflow would run two agents"
   },
   {
    "id": "1.d8",
@@ -1708,7 +1708,7 @@
     "S14"
    ],
    "from": "An agent that has written its file and run a checker still holds its slot until it returns",
-   "to": "An agent that has written its file and run a checker holds its slot until it returns"
+   "text": "An agent that has written its file and run a checker holds its slot until it returns"
   },
   {
    "id": "1.d12",
@@ -1763,7 +1763,7 @@
     "S19"
    ],
    "from": "That run: ",
-   "to": ""
+   "text": ""
   },
   {
    "id": "1.t1",
@@ -2303,7 +2303,7 @@
     "S1"
    ],
    "from": ", not just the budget",
-   "to": ""
+   "text": ""
   },
   {
    "id": "1.w9",
@@ -2314,14 +2314,14 @@
     "S6"
    ],
    "from": "The cap's real cost is not the visible rejection but a ",
-   "to": "The cap's real cost is a ",
    "votes": [
     {
      "round": 3,
      "role": "builder",
      "v": 1
     }
-   ]
+   ],
+   "text": "The cap's real cost is a "
   },
   {
    "id": "1.w10",
@@ -2332,7 +2332,6 @@
     "S9"
    ],
    "from": ", per the authoring reference",
-   "to": "",
    "votes": [
     {
      "round": 2,
@@ -2340,7 +2339,8 @@
      "v": -1,
      "why": "Drops 'per the authoring reference', so the formula reads as measured; only the 4 CPUs were measured 2026-09-06."
     }
-   ]
+   ],
+   "text": ""
   },
   {
    "id": "1.w11",
@@ -2351,7 +2351,7 @@
     "S10"
    ],
    "from": "; on this box the Agent tool wins by a factor of ten",
-   "to": "; here the Agent tool wins"
+   "text": "; here the Agent tool wins"
   },
   {
    "id": "1.w12",
@@ -2362,7 +2362,7 @@
     "S11"
    ],
    "from": "From the same run of 124 agents (17 minutes at the cap):",
-   "to": "Same 124-agent run (17 minutes at the cap):"
+   "text": "Same 124-agent run (17 minutes at the cap):"
   },
   {
    "id": "1.w13",
@@ -2373,7 +2373,7 @@
     "S14"
    ],
    "from": "An agent that has written its file and run a checker still holds its slot",
-   "to": "An agent holds its slot"
+   "text": "An agent holds its slot"
   },
   {
    "id": "1.w14",
@@ -2384,14 +2384,14 @@
     "S17"
    ],
    "from": "It is the Agent-tool equivalent of Workflow's `schema` option, and it is committed.",
-   "to": "It is committed, and stands in for Workflow's `schema` option.",
    "votes": [
     {
      "round": 3,
      "role": "builder",
      "v": 1
     }
-   ]
+   ],
+   "text": "It is committed, and stands in for Workflow's `schema` option."
   },
   {
    "id": "1.w15",
@@ -2402,7 +2402,7 @@
     "S19"
    ],
    "from": "That run: ",
-   "to": ""
+   "text": ""
   },
   {
    "id": "2.d1",

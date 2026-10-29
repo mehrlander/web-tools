@@ -22,8 +22,8 @@ kinds:
   its expected saving in words.
 - `{"tag":"draft","anchors":["S2","S3"],"text":"...","builds_on":["1.t2"]}`:
   replacement wording for those units, read in place of them.
-- `{"tag":"word","anchors":["S5"],"from":"exact phrase","to":"shorter phrase"}`:
-  a phrase swap; `from` must appear verbatim in the anchored unit, and `to`
+- `{"tag":"word","anchors":["S5"],"from":"exact phrase","text":"shorter phrase"}`:
+  a phrase swap; `from` must appear verbatim in the anchored unit, and `text`
   may be empty for a cut.
 - `{"vote":"1.d2","v":1}` or `{"vote":"1.d2","v":-1,"why":"..."}`: a vote on
   an existing entry; a `-1` names what a reader would lose or do wrongly.
