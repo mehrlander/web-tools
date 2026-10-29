@@ -94,6 +94,15 @@ its observation time when contact is lost. A responding server with an observati
 older than fifteen seconds also loses its Live status. Closing the phone browser
 stops polling and does not stop collection.
 
+Tapping a main-list item toggles its compact inline details. An external-link icon
+opens the item's existing Web Tools session detail, errand or result in a separate
+browser context, preserving Now's position and open panel. Items without a valid
+browser destination, including current local Codex and Gemini sessions, have no
+external icon. The companion does not invent links for local-only records. Older
+phone detail bookmarks and the worker's own report view remain supported. On iOS,
+a Home Screen web app may open an external link in a Safari browser sheet, where
+the system offers the control to continue in Safari.
+
 After installation, run `desktop/enable-phone.ps1` using the owner's Windows
 account. The script reads the existing Tailscale identity, restricts the companion
 to that identity, and configures private HTTPS through Tailscale Serve. Unmet HTTPS
@@ -118,6 +127,74 @@ desktop settings; those settings never enter API responses or tracked files.
 - `GET /api/v1/results/<id>`: a selected reply, capped at 20,000 characters, plus
   the phone's link to its full saved result in Web Tools.
 - `GET /api/v1/desktop`: full desktop snapshot for the authenticated local app.
+
+### Account usage
+
+The front-page assistant strip also shows compact allowance bars with percentages
+used, labeled by each reported period (for example, 5h or Week). A small tick
+marks the even-use budget pace, with amber fill for usage above that pace. The
+weekly reset day and local time appear beneath the bars. Hover and Usage provide
+the exact reset, pace difference and stale-reading details. Pace compares used
+allowance with elapsed time; it is not a forecast and is hidden for stale, expired
+or unknown periods. Model quotas without a
+reported duration say Quota. Missing periods never gain a guessed bar; multiple
+model or bucket readings for one period use the account-wide limit when present,
+otherwise the most used reading. The full Usage view retains every limit.
+
+The phone's Usage tab and the desktop's Usage panel show account allowances,
+percentage used, reset countdowns and exact reset dates. Known window lengths
+also get a time-elapsed tick. Readings are collected independently about once a
+minute, without blocking activity. Local history samples every five minutes,
+keeps eight days and sends at most sixty points per current window to the phone.
+A trend begins with observed readings, without reconstructing past consumption.
+Expired or stale readings remain labeled; passing a reset never supplies an
+assumed zero.
+
+Codex uses the signed-in CLI's documented `account/rateLimits/read` app-server
+method. The CLI manages its own authentication. Each reported bucket and period
+remains separate. Gemini uses the existing Antigravity worker's loopback
+`RetrieveUserQuotaSummary` response, which identifies the shared `gemini-5h`
+and `gemini-weekly` buckets with explicit window names and reset times. Workers
+without the summary method fall back to per-model `GetUserStatus` quotas without
+inferring their duration. Temporary summary failures retain the named readings
+and their history as stale. That local interface is version-dependent and may
+contain cached provider data; the displayed time is when the worker status was
+read. The collector never starts the worker or a conversation. Only Gemini model
+quotas enter the Gemini lane. Claude models served through Antigravity do not
+describe the user's separate Claude subscription. Identical Gemini model
+readings and histories are grouped visually. An unreported period stays unknown.
+
+Claude account usage connects through the existing Claude Code sign-in. Run
+`claude auth login --claudeai` once if that sign-in has expired. The companion
+reads the account usage endpoint shipped with Claude Code about every five
+minutes, using Windows certificate trust. Existing OAuth credentials stay in
+Claude's configuration directory (`CLAUDE_CONFIG_DIR` or `%USERPROFILE%\.claude`).
+Normal token refresh preserves unrelated credential-file data and a newer sign-in
+made by Claude. Redirects are disabled on authenticated requests. No model call
+or API-key billing is used. The endpoint is version-dependent; failed reads retain
+the previous values with an explicit connection notice. Account-wide and reported
+model-specific weekly limits stay separate.
+
+Claude's documented Code statusline JSON can also supply `rate_limits.five_hour`
+and `rate_limits.seven_day`. A local statusline integration can pipe that JSON to
+`python <installed-companion>/worker/usage.py --state <desktop-data> --capture claude`.
+The capture command saves only the two percentages, reset times and capture time,
+and prints nothing. An existing statusline should retain its normal output.
+The normal desktop data directory is `%LOCALAPPDATA%\WebToolsDesktop`. No statusline
+settings are changed automatically. Without a reporter, the Claude lane explicitly
+says it is not connected. The account reader covers the subscription's usage
+without requiring a separate reporter in each cloud session.
+
+Each assistant's usage header has a browser-link icon. Codex opens ChatGPT's
+Usage settings and Claude opens Claude's Usage settings. Gemini opens the
+Antigravity browser entry point; the vendor places model quotas under Settings
+and does not document a standalone browser quota address. The desktop opens only
+these three approved destinations in the system browser. The phone opens the
+same addresses separately.
+
+Usage files remain beside the companion settings in `usage.json` and
+`usage-inputs/claude.json`. No credential, transcript, account identifier or raw
+provider error enters the usage projection. Missing fields never imply zero.
 
 The phone projection omits request notes, filesystem fields, downloads and native
 actions. Polling uses conditional GET every two seconds in the foreground, pauses

@@ -45,7 +45,7 @@ Four things measured on one live session:
   arrive, so a hook prints what matters first, as
   [`session-dispatch.sh`](../../skills/hooks/session-dispatch.sh) prints its
   warning first.
-- **The cap is per hook entry, not across the event.** In the same session the
+- **The cap is per hook command, not across the event.** In the same session the
   dispatcher's 28,670-character payload was cut while a separate 298-character
   SessionStart hook arrived whole. Each registered hook command gets its own
   attachment and its own verdict, so the dispatcher's guard is correctly scoped
@@ -248,6 +248,16 @@ blocked download doesn't matter.
   **`playwright@1.56.x`**; other client versions error with "executable doesn't
   exist". `npx playwright install chromium` is unnecessary here (and its CDN is
   blocked anyway).
+- **The image can move ahead of the pin.** On 2026-10-28 the container shipped
+  build 1243 only (`/opt/pw-browsers/chromium-1243/chrome-linux64/chrome`, and
+  an empty `chromium_headless_shell-1243`), so `npm run shot` under this repo's
+  `playwright@1.56.0` failed with "Executable doesn't exist at
+  …/chromium_headless_shell-1194/…". A scratch browsers folder that names the
+  installed binary at the pinned build's paths runs it unchanged:
+  `chromium_headless_shell-1194/chrome-linux/headless_shell` and
+  `chromium-1194/chrome-linux/chrome`, each a symlink to the 1243 `chrome`,
+  each folder holding an empty `INSTALLATION_COMPLETE`, with
+  `PLAYWRIGHT_BROWSERS_PATH` set to that folder for the one command.
 - No `PUPPETEER_*` var is set, so puppeteer needs `PUPPETEER_EXECUTABLE_PATH`
   (or an explicit `executablePath`) pointed at the binary above. Playwright is
   the frictionless driver.

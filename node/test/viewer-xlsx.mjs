@@ -27,9 +27,9 @@
 //   9. a pivot names the range its cache was built from, and the records tab
 //      draws the rows behind it with their shared-item indices resolved
 //
-// And four for the Extract tab, which selects the readings to share:
+// And four for the Overview, which selects the readings to share:
 //
-//  10. a sheet selects its available readings, and each can be unticked
+//  10. a ticked sheet takes its values, and each other reading is its own tick
 //  11. related pivots and caches are independent choices, not side effects
 //  12. the figure line stays compact and the actions reflect a usable export
 //  13. the preview, saved file, and link carry the same v2 envelope
@@ -163,7 +163,7 @@ const SHEET2 = `<?xml version="1.0"?>
   <row r="2"><c r="A2" t="s"><v>2</v></c><c r="B2" s="1"><v>45000</v></c></row>
 </sheetData></worksheet>`;
 
-// A comment on Budget, so the Extract matrix has a second lit kind beside
+// A comment on Budget, so the Overview has a second lit reading beside
 // Values and the screenshot shows a real pick rather than one cell.
 const COMMENTS = `<?xml version="1.0"?>
 <comments xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
@@ -222,7 +222,7 @@ await mkdir(path.join(root, 'node', '.preview'), { recursive: true });
 
 const browser = await chromium.launch({ args: ['--no-sandbox', '--ignore-certificate-errors'] });
 const page = await browser.newPage({ viewport: { width: 1100, height: 800 } });
-// The Extract tab hands its payload over as a link on the clipboard, and
+// The Overview hands its payload over as a link on the clipboard, and
 // reading it back is how the last claim below checks what actually leaves.
 // Without the grant the read throws and that claim degrades to a skip, which
 // is the quiet kind of coverage gap this file exists to avoid.
@@ -259,24 +259,32 @@ const state = () => page.evaluate(() => {
 });
 
 // The structure pane, read the same way: what is drawn, not what is behind it.
+// Since 2026-10-23 its tables are Tabulator grids under the Details pills, so
+// a head is a column title and a row is its cells; the plain table is read
+// the same way where Tabulator did not load.
 const structure = () => page.evaluate(() => {
   const root = document.querySelector('[data-xs="root"]');
-  const tabs = root?.querySelector('[data-xs="tabs"]');
-  const buttons = [...(tabs?.querySelectorAll('button') || [])];
-  const table = root?.querySelector('table');
-  const head = [...(table?.querySelectorAll('thead th') || [])].map(th => th.textContent.trim());
-  const rows = [...(table?.querySelectorAll('tbody tr') || [])]
-    .map(tr => [...tr.children].map(td => td.textContent.trim()));
+  const segs = [...(root?.querySelectorAll('[data-seg]') || [])];
+  const pills = [...(root?.querySelectorAll('[data-dt]') || [])];
+  const grid = root?.querySelector('.tabulator');
+  const table = grid ? null : root?.querySelector('[data-xs="dt-body"] table, [data-xs="ln-body"] table');
+  const head = grid
+    ? [...grid.querySelectorAll('.tabulator-col-title')].map(e => e.textContent.trim())
+    : [...(table?.querySelectorAll('thead th') || [])].map(th => th.textContent.trim());
+  const rows = grid
+    ? [...grid.querySelectorAll('.tabulator-row')].map(r => [...r.querySelectorAll('.tabulator-cell')].map(c => c.textContent.trim()))
+    : [...(table?.querySelectorAll('tbody tr') || [])].map(tr => [...tr.children].map(td => td.textContent.trim()));
   return {
-    tabs: buttons.map(b => b.textContent.replace(/\s+/g, ' ').trim()),
-    disabled: buttons.filter(b => b.disabled).map(b => b.textContent.replace(/\s+/g, ' ').trim()),
-    active: buttons.findIndex(b => b.classList.contains('btn-active')),
+    segments: segs.map(b => b.textContent.trim()),
+    tabs: pills.map(b => b.textContent.replace(/\s+/g, ' ').trim()),
+    disabled: pills.filter(b => b.disabled).map(b => b.textContent.replace(/\s+/g, ' ').trim()),
+    active: pills.findIndex(b => b.classList.contains('btn-active')),
     picker: [...(root?.querySelectorAll('[data-xs="pick"] option') || [])].map(o => o.textContent.trim()),
     head, rows,
   };
 });
 
-// The Extract tab, read the same way: what is drawn, not what is behind it.
+// The Overview, read the same way: what is drawn, not what is behind it.
 const extract = () => page.evaluate(() => {
   const box = document.querySelector('[data-xs="ex"]');
   const on = (el) => el.classList.contains('text-primary');
@@ -291,8 +299,12 @@ const extract = () => page.evaluate(() => {
     figure: box?.querySelector('[data-xs="ex-fig"]')?.textContent.trim() || '',
     sheets: [...(box?.querySelectorAll('[data-ex-sheetrow]') || [])]
       .map(b => ({ name: b.dataset.exSheetrow, lit: on(b) })),
-    objects: [...(box?.querySelectorAll('[data-ex-object]') || [])]
-      .map(b => ({ id: b.dataset.exObject, label: b.textContent.replace(/\s+/g, ' ').trim(), lit: on(b) })),
+    // The list's own include boxes, one per object; the picked object's
+    // detail repeats its box, which is the same choice.
+    objects: [...(box?.querySelectorAll('[data-ov-icon][data-ex-object]') || [])]
+      .map(b => ({ id: b.dataset.exObject, label: b.closest('tr')?.textContent.replace(/\s+/g, ' ').trim(), lit: on(b) })),
+    // Whose readings the detail shows: the sheet picked in the list.
+    selected: box?.querySelector('[data-ov-row].bg-base-200')?.dataset.ovId || null,
     cells,
     preview: box?.querySelector('[data-xs="ex-preview-json"]')?.textContent || '',
     previewOptions: [...(box?.querySelectorAll('[data-xs="ex-preview-pick"] option') || [])]
@@ -315,12 +327,19 @@ const tapSheet = async (name) => {
   await page.waitForTimeout(600);
 };
 
+// A Details pill by its label, or the Overview, where the share is picked.
 const openTab = async (label) => {
   await page.evaluate((want) => {
-    const b = [...document.querySelectorAll('[data-xs="tabs"] button')]
-      .find(x => x.textContent.trim().startsWith(want));
-    b?.click();
+    const seg = want === 'Overview' ? 'overview' : want === 'Links' ? 'links' : 'details';
+    document.querySelector(`[data-seg="${seg}"]`)?.click();
+    if (seg === 'details') [...document.querySelectorAll('[data-dt]')].find(x => x.textContent.trim() === want)?.click();
   }, label);
+  await page.waitForTimeout(700);
+};
+
+// A row of the Overview list, picked as a tap on its name does.
+const pickRow = async (id) => {
+  await page.evaluate((n) => document.querySelector(`[data-ov-row][data-ov-id="${n}"] td:nth-child(2)`)?.click(), id);
   await page.waitForTimeout(400);
 };
 
@@ -391,14 +410,17 @@ try {
   await page.evaluate(() => Alpine.$data(document.getElementById('dv-viewer')).switchMode('xlsx-structure'));
   await page.waitForTimeout(2500);
 
+  const x0 = await structure();
+  ok('it opens on three surfaces, the Overview first',
+     JSON.stringify(x0.segments) === JSON.stringify(['Overview', 'Links', 'Details']), JSON.stringify(x0.segments));
+  await openTab('Sheets');
   const x = await structure();
-  ok('opening it draws its own tabs',
-     x.tabs.some(l => l.startsWith('Sheets')) && x.tabs.some(l => l.startsWith('Parts')),
-     JSON.stringify(x.tabs));
+  ok('Details draws its own pills',
+     x.tabs.includes('Sheets') && x.tabs.includes('File parts'), JSON.stringify(x.tabs));
   // Claim 6, both halves: the empty one is present AND it is disabled.
-  ok('a tab with nothing in it still says so', x.tabs.some(l => l === 'Queries 0'), JSON.stringify(x.tabs));
-  ok('and it cannot be opened', x.disabled.includes('Queries 0'), JSON.stringify(x.disabled));
-  ok('a tab with something in it carries the count', x.tabs.includes('Sources 1'), JSON.stringify(x.tabs));
+  ok('a pill with nothing behind it is still there', x.tabs.includes('Queries'), JSON.stringify(x.tabs));
+  ok('and it cannot be opened', x.disabled.includes('Queries'), JSON.stringify(x.disabled));
+  ok('a pill with something behind it can', !x.disabled.includes('Connections'), JSON.stringify(x.disabled));
 
   // Claim 7. The grid drew Notes like any other sheet; only this says it is hidden.
   const vis = x.head.indexOf('Visibility');
@@ -410,7 +432,7 @@ try {
   ok('the shared-string id list is not one of the columns', !x.head.includes('String Ids'),
      JSON.stringify(x.head));
 
-  await openTab('Sources');
+  await openTab('Connections');
   const src = await structure();
   ok('the connection reads as a web query with its url',
      src.rows.some(r => r.includes('Web') && r.some(c => c.includes('ofm.wa.gov'))),
@@ -441,8 +463,8 @@ try {
      JSON.stringify(rec.rows) === JSON.stringify([['722', '41'], ['600', '17']]),
      JSON.stringify(rec.rows));
 
-  console.log('the sheet-centered Extract tab:');
-  await openTab('Extract');
+  console.log('the Overview, where the share is picked:');
+  await openTab('Overview');
   const e0 = await extract();
   // Claim 10, first half: nothing is picked, so nothing is lit and no figure
   // claims otherwise.
@@ -455,10 +477,11 @@ try {
   ok('a kind this workbook has none of is present and disabled',
      e0.cells.find(c => c.sheet === 'Budget' && c.kind === 'validations')?.disabled === true,
      JSON.stringify(e0.cells.filter(c => c.disabled)));
-  ok('the checklist draws every sheet with its own nine readings',
-     e0.cells.filter(c => c.sheet === 'Budget').length === 9 &&
-     e0.cells.filter(c => c.sheet === 'Notes').length === 9,
-     JSON.stringify(e0.cells.map(c => [c.sheet, c.kind])));
+  ok('the list draws every sheet with its own include box',
+     e0.sheets.map(s => s.name).join() === 'Budget,Notes', JSON.stringify(e0.sheets));
+  ok('and the picked sheet\'s detail draws its ten readings, and only its',
+     e0.cells.length === 10 && e0.cells.every(c => c.sheet === e0.selected),
+     JSON.stringify({ selected: e0.selected, cells: e0.cells.map(c => [c.sheet, c.kind]) }));
   ok('the three modeled objects are individual choices',
      e0.objects.length === 3 &&
      e0.objects.some(o => o.id.startsWith('pivot:')) &&
@@ -468,15 +491,18 @@ try {
 
   await tapSheet('Budget');
   const e1 = await extract();
-  ok('choosing Budget selects its available readings, not Notes',
-     e1.cells.filter(c => c.lit).length === e0.cells.filter(c => c.sheet === 'Budget' && !c.disabled).length &&
-     e1.cells.filter(c => c.lit).every(c => c.sheet === 'Budget'),
+  // Since 2026-10-23 a tick takes the values alone: every reading at once
+  // made an 800-row sheet a 1.5 MB extract, past what a link carries.
+  ok('ticking Budget takes its values, not every reading, and not Notes',
+     e1.selected === 'Budget' &&
+     e1.cells.filter(c => c.lit).map(c => [c.sheet, c.kind]).join() === 'Budget,values' &&
+     e1.sheets.find(s => s.name === 'Notes')?.lit === false,
      JSON.stringify(e1.cells.filter(c => c.lit).map(c => [c.sheet, c.kind])));
   ok('and the readings carry their counts',
      e1.cells.find(c => c.sheet === 'Budget' && c.kind === 'values')?.label === 'Values 2',
      JSON.stringify(e1.cells.filter(c => c.lit).map(c => c.label)));
   ok('the figures are one compact line',
-     new RegExp(`^\\d+ items${SEP}\\d+ rows${SEP}[\\d.]+ (B|KB)(${SEP}link [\\d.]+ (B|KB))?$`).test(e1.figure),
+     new RegExp(`^\\d+ items?${SEP}\\d+ rows?${SEP}[\\d.]+ (B|KB)(${SEP}link [\\d.]+ (B|KB))?$`).test(e1.figure),
      e1.figure);
   ok('and the actions come alive with it', e1.actions.every(a => !a.disabled), JSON.stringify(e1.actions));
   ok('related pivot and cached rows stay off', !e1.objects.some(o => o.lit),
@@ -484,20 +510,27 @@ try {
 
   await page.evaluate(() => document.querySelector('[data-ex-sheet="Budget"][data-ex-cell="comments"]')?.click());
   await page.waitForTimeout(600);
+  const e2a = await extract();
+  ok('a reading ticked in the detail joins the values',
+     e2a.cells.filter(c => c.lit).map(c => c.kind).sort().join() === 'comments,values',
+     JSON.stringify(e2a.cells.filter(c => c.lit).map(c => [c.sheet, c.kind])));
+  await page.evaluate(() => document.querySelector('[data-ex-sheet="Budget"][data-ex-cell="comments"]')?.click());
+  await page.waitForTimeout(600);
   const e2 = await extract();
-  ok('unticking Budget comments leaves the other Budget readings on',
+  ok('and unticked, leaves the values on',
      !e2.cells.find(c => c.sheet === 'Budget' && c.kind === 'comments')?.lit &&
      e2.cells.find(c => c.sheet === 'Budget' && c.kind === 'values')?.lit,
      JSON.stringify(e2.cells.filter(c => c.lit).map(c => [c.sheet, c.kind])));
   ok('no kind name is clipped at pane width', !e2.clipped.length, JSON.stringify(e2.clipped));
 
+  await pickRow('Notes');
   await page.evaluate(() => document.querySelector('[data-ex-sheet="Notes"][data-ex-cell="values"]')?.click());
   await page.waitForTimeout(600);
   const e3 = await extract();
   ok('Notes values can be included without its other readings',
      e3.cells.filter(c => c.sheet === 'Notes' && c.lit).map(c => c.kind).join() === 'values',
      JSON.stringify(e3.cells.filter(c => c.sheet === 'Notes' && c.lit)));
-  await page.evaluate(() => document.querySelector('[data-ex-object^="pivot:"]')?.click());
+  await page.evaluate(() => document.querySelector('[data-ov-icon][data-ex-object^="pivot:"]')?.click());
   await page.waitForTimeout(600);
   const e4 = await extract();
   ok('an individual pivot can be selected without its cached rows',
@@ -516,6 +549,9 @@ try {
   ok('each exported item has its own preview choice',
      e4.previewOptions.length === preview.items.length + 1,
      JSON.stringify(e4.previewOptions));
+  // The preview sits behind the JSON button, in place of the detail.
+  await page.locator('[data-xs="ov-json"]').click();
+  await page.waitForTimeout(300);
   await page.selectOption('[data-xs="ex-preview-pick"]', preview.items[0].name);
   const itemPreview = await page.locator('[data-xs="ex-preview-json"]').textContent();
   ok('an item preview is its exact serialized content', itemPreview === preview.items[0].content,
@@ -596,9 +632,9 @@ try {
 
   await page.evaluate(() => Alpine.$data(document.getElementById('dv-viewer')).switchMode('xlsx-structure'));
   await page.waitForTimeout(3000);
-  await openTab('Extract');
+  await openTab('Overview');
   const real = await extract();
-  ok('the Extract matrix draws over the real workbook, with its three sheets',
+  ok('the Overview lists the real workbook\'s three sheets, in workbook order',
      real.sheets.map(x => x.name).join() === 'Summary,Ledger,Archive',
      JSON.stringify(real.sheets.map(x => x.name)));
   // The cut, on a file large enough to have one. The toy fixture cannot show
@@ -646,15 +682,15 @@ try {
 
   // A structure table is WIDE rather than long: Sheets is 3 rows across 15
   // columns and 1219px in a 372px pane. Its scroll has to be its own, or the
-  // pane takes the tab strip and the filter sideways with it.
+  // pane takes the pills and the filter sideways with it.
   const panes = [];
-  for (const label of ['Sheets', 'Parts', 'Pivots']) {
+  for (const label of ['Sheets', 'File parts', 'Pivots']) {
     await openTab(label);
     panes.push(await page.evaluate((w) => {
       const stage = document.querySelector('[data-xs="stage"]');
-      const t = stage.querySelector('table');
+      const t = stage.querySelector('.tabulator-table, table');
       return { tab: w, slides: stage.scrollWidth > stage.clientWidth + 1,
-               wider: t ? Math.round(t.getBoundingClientRect().width) > stage.clientWidth : false };
+               wider: t ? Math.round(t.scrollWidth || t.getBoundingClientRect().width) > stage.clientWidth : false };
     }, label));
   }
   ok('these tables really are wider than the pane, so the claim below has teeth',

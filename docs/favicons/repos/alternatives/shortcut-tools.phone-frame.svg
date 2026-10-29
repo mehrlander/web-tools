@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="shortcut-tools: phone frame">
+  <title>shortcut-tools: phone frame</title>
+  <desc>A phone drawn as its frame, a lightning bolt on its screen: a shortcut, on the device it runs on.</desc>
+  <g fill="currentColor">
+    <path fill-rule="evenodd" d="M11 2.25 H21 A4.5 4.5 0 0 1 25.5 6.75 V25.75 A4.5 4.5 0 0 1 21 30.25 H11 A4.5 4.5 0 0 1 6.5 25.75 V6.75 A4.5 4.5 0 0 1 11 2.25 Z M11 4.5 A2.25 2.25 0 0 0 8.75 6.75 V25.75 A2.25 2.25 0 0 0 11 28 H21 A2.25 2.25 0 0 0 23.25 25.75 V6.75 A2.25 2.25 0 0 0 21 4.5 Z"/>
+    <path d="M17.75 7 L11.25 17.43 H15.25 L14 25.5 L20.75 14.4 H16.75 Z"/>
+  </g>
+</svg>

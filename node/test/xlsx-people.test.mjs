@@ -136,9 +136,33 @@ test('carried() follows the pick: values carry a column, styles do not, comments
   const pick = (sheets) => ({ sheets: new Map(Object.entries(sheets).map(([k, v]) => [k, new Set(v)])), objects: new Set() });
   assert.deepEqual(XlsxPeople.carried(f, pick({ Staff: ['values'] })).map(x => x.id).sort(),
     ['column:Staff:B', 'column:Staff:D']);
+  assert.deepEqual(XlsxPeople.carried(f, pick({ Staff: ['raw'] })).map(x => x.id).sort(),
+    ['column:Staff:B', 'column:Staff:D'], 'raw values carry the same cells');
   assert.deepEqual(XlsxPeople.carried(f, pick({ Staff: ['styles'] })), []);
   assert.deepEqual(XlsxPeople.carried(f, pick({ Staff: ['comments'] })).map(x => x.id), ['author:Staff']);
   assert.deepEqual(XlsxPeople.carried(f, pick({ Totals: ['values', 'cells'] })), []);
+});
+
+// A long column is judged on a sample and counted in full, so the check does
+// not grow with the rows and the count it reports is still every cell.
+test('a long column is judged on a sample and counted cell by cell', () => {
+  const who = ['Lopez, Maria', 'Chen, David', 'Okafor, Grace', 'Novak, Peter', 'Kim, Rachel', 'Reed, Thomas'];
+  const big = [row(1, [str('A1', 'Program'), str('B1', 'Analyst')])];
+  // Column A: 2,000 program names, then 4,000 people, so a sample read only
+  // from the top would see none of them. Column B: 6,000 people.
+  for (let r = 2; r <= 6001; r++) {
+    big.push(row(r, [str(`A${r}`, r <= 2001 ? 'Member Services' : who[r % 6]), str(`B${r}`, who[(r + 1) % 6])]));
+  }
+  const parts = [
+    ['[Content_Types].xml', '<?xml version="1.0"?><Types xmlns="ct"/>'],
+    ['xl/workbook.xml', `<?xml version="1.0"?><workbook xmlns="wb" xmlns:r="rel"><sheets><sheet name="Big" sheetId="1" r:id="rId1"/></sheets></workbook>`],
+    ['xl/_rels/workbook.xml.rels', `<?xml version="1.0"?><Relationships xmlns="rel"><Relationship Id="rId1" Type=".../worksheet" Target="worksheets/sheet1.xml"/></Relationships>`],
+    ['xl/worksheets/sheet1.xml', sheet(big)],
+  ];
+  const f = XlsxPeople.scan(xlsxKit.analyze(parts), { firstNames: FIRST });
+  const col = (c) => f.findings.find(x => x.id === `column:Big:${c}`);
+  assert.deepEqual([col('B')?.count, col('B')?.filled], [6000, 6000], 'every cell of a flagged column counted');
+  assert.deepEqual([col('A')?.count, col('A')?.filled], [4000, 6000], 'names that start partway down are seen by the spread half');
 });
 
 test('the file properties are reported and never carried by an extract', () => {

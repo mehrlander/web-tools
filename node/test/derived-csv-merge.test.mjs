@@ -25,6 +25,17 @@ import { parseCsv, writeCsv } from '../build/registries-load.mjs';
 const DRIVER = path.join(repoRoot, 'node/derived-csv-merge.mjs');
 const HEAD = 'path,subject,status,reach,words,maintenance,formerly';
 
+// The tracked files git itself gives the driver, asked of git rather than read
+// from .gitattributes as text, so a pattern or a later line counts as git counts it.
+const attributed = () => {
+  const files = spawnSync('git', ['ls-files', '-z'], { cwd: repoRoot }).stdout;
+  const out = spawnSync('git', ['check-attr', '--stdin', '-z', 'merge'], { cwd: repoRoot, input: files }).stdout
+    .toString().split('\0');
+  const paths = [];
+  for (let i = 0; i + 2 < out.length; i += 3) if (out[i + 2] === 'derived-csv') paths.push(out[i]);
+  return paths;
+};
+
 const csv = (...rows) => [HEAD, ...rows].join('\n') + '\n';
 const row = (p, subject = 's', words = '100', maintenance = 'm') =>
   `${p},${subject},living,app,${words},${maintenance},`;
@@ -130,9 +141,7 @@ test('every attributed path is a registry the driver can actually resolve', () =
   // .gitattributes naming a file the driver refuses would be worse than not
   // naming it: the refusal is silent in a merge, and the conflict comes back
   // looking like the driver was never there.
-  const attrs = readFileSync(path.join(repoRoot, '.gitattributes'), 'utf8')
-    .split('\n').filter(l => l.includes('merge=derived-csv'))
-    .map(l => l.split(/\s+/)[0]);
+  const attrs = attributed();
   assert.ok(attrs.length >= 10, 'the attribute file still names the registries');
 
   const reg = Object.fromEntries(readFileSync(path.join(repoRoot, 'docs/registries.csv'), 'utf8')
@@ -149,10 +158,7 @@ test('the driver writes each attributed file exactly as its deriver does', () =>
   // merge would land a whole-file reformat in the diff and then fight the next
   // restamp. Both sides already use writeCsv from registries-load, and this is
   // what holds them there.
-  const attrs = readFileSync(path.join(repoRoot, '.gitattributes'), 'utf8')
-    .split('\n').filter(l => l.includes('merge=derived-csv')).map(l => l.split(/\s+/)[0]);
-
-  for (const f of attrs) {
+  for (const f of attributed()) {
     const orig = readFileSync(path.join(repoRoot, f), 'utf8');
     const cols = orig.split(/\r?\n/)[0].split(',').map(c => c.replace(/^"|"$/g, ''));
     assert.equal(writeCsv(parseCsv(orig), cols), orig, `${f} would be reformatted by a resolved merge`);

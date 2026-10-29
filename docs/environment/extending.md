@@ -19,6 +19,7 @@ Hooks come from three places: git hooks in `.githooks/`, which `npm run setup` a
 | invoke-sessions | `SessionStart` | [`invoke-sessions.sh`](../../skills/hooks/invoke-sessions.sh) | tells the session to invoke `/portable:sessions` when no session store is checked out | `invoke-sessions.test.mjs` |
 | environment-report | `SessionStart` | [`environment-report.sh`](../../skills/hooks/environment-report.sh) | says which setup script built the environment and whether it changed on `main` | `environment-report.test.mjs` |
 | account-skills | `SessionStart` | [`account-skills.py`](../../skills/hooks/account-skills.py) `--hook` | the account's skills against what they should be; silent unless something needs attention | |
+| default-files-hint | `UserPromptSubmit` | [`default-files-hint.py`](../../skills/hooks/default-files-hint.py) | says the default skill files changed since the session last read them, naming the commit it read and the files, and to invoke `/portable:default`; silent once it has | `default-files-hint.test.mjs` |
 | reading-column-guard | `PreToolUse` on Edit, Write | [`reading-column-guard.sh`](../../skills/hooks/reading-column-guard.sh) | refuses a class that narrows text to a reading column | |
 | send-later-guard | `PreToolUse` on `send_later` | [`send-later-guard.sh`](../../skills/hooks/send-later-guard.sh) | refuses a scheduled self check-in | `send-later-guard.test.mjs` |
 | ask-question-guard | `PreToolUse` on `AskUserQuestion` | [`ask-question-guard.sh`](../../skills/hooks/ask-question-guard.sh) | denies the tool and says to ask in prose; an `AskUserQuestion` prompt appearing means the guard is not firing | `plugin-setup-hooks.test.mjs` |
@@ -105,9 +106,10 @@ environment settings to rebuild.
   the plugin root, which is the marketplace entry's `source`. **The marketplace
   entry declares nothing, and must not**: a `hooks` key there in file-path or
   array form refuses the whole plugin, and the suite pins the key's absence.
-- Give the hook its own entry in `hooks.json`. The harness caps output per
-  hook entry, not across the event, so a line folded into another hook's
-  output is the first thing truncated on a heavy session
+- Give the hook its own command in `hooks.json`, rather than folding its
+  output into another hook's script. The harness caps each hook command's
+  output, not the event's, so a line folded into another hook's output is the
+  first thing truncated on a heavy session
   ([capabilities.md](capabilities.md#sessionstart-hooks-a-per-hook-size-ceiling-and-where-the-cut-lands)
   has the measurement).
 - **The delivered copy is not executable.** The plugin is installed by copy
