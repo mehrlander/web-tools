@@ -110,16 +110,6 @@ A page follows the house style, which takes precedence over any general design, 
 
 ## Handover
 
-### Surfacing · `/h:surfacing`
-
-A reply hands over what the reader needs in order to act.
-
-- A reply ends in a fixed order, with one closing state that matches the actual state of the work.
-
-**Covers:** every chat reply.
-
-**Detail:** [CONVERSATION.md](https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md).
-
 ### Links · `/h:link`
 
 Link every file, pull request, session and page a reply mentions.
