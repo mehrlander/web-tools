@@ -1041,6 +1041,18 @@ test('an old record gets its notes when the file states when each turn was sent'
   window.__topicsDoc = null;
 });
 
+test('turns sent at one instant keep both notes, in turn order', async () => {
+  // The recorder stores a message and the image sent with it as two prompts at
+  // one instant; keyed by instant alone, the second note overwrote the first.
+  const at = record.prompts[0].at;
+  const doc = { ...TOPICS_DOC, turns: [{ turn: 0, at, summary: 'The message.', headline: 'M' },
+                                       { turn: 1, at, summary: 'The image.', headline: 'I' }] };
+  const data = await mountTopics(doc, 'me/topics-c3');
+  assert.deepEqual(JSON.parse(JSON.stringify(data.turnNotes()[at])).map((n) => n.summary),
+    ['The message.', 'The image.']);
+  window.__topicsDoc = null;
+});
+
 test('the outline is built once, with the turn notes, when the topics file is prompt', async () => {
   // It was built bare at settle and again when the file landed: two builds of
   // every slide's outline, three slides at a time in the swiper, which on a
