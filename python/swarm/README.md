@@ -23,7 +23,9 @@ Then, for each round `N`:
 3. `context … N harvester`, one Agent, then
    `python3 python/swarm/swarm.py harvest python/swarm/runs/<slug> N`.
 
-Commit and push the run directory after each round, and the page follows it:
+Commit and push the run's `ledger.json` after each round; it holds every entry,
+vote and harvest, and the rest of the run directory is ignored scratch. The
+page follows it:
 `?src=mehrlander/web-tools@<branch>:python/swarm/runs/<slug>/ledger.json`,
 with ↻ to re-read. `swarm.py status` prints the same rounds as text, and
 `swarm.py gz` the ledger as a `#gz=` payload for a run with no commit.
