@@ -523,3 +523,15 @@ test('the table button opens the table section alone, and grid places none over 
   g.fire('tableBuilt');
   assert.equal(head.children.length, 0, 'the grid put something over its own headers');
 });
+
+test('dense rows are shorter and keep a fingertip target, for a long list of short choices', () => {
+  reset();
+  RM.open({ x: 0, y: 0, items: [{ heading: 'object' }, { label: 'Goods', run() {} }], dense: true });
+  const row = menu().querySelector('[role="menuitem"]');
+  assert.match(row.className, /max-sm:min-h-8/, 'a dense row kept the 44px phone target');
+  assert.doesNotMatch(row.className, /max-sm:min-h-11/);
+  RM.close();
+  RM.open({ x: 0, y: 0, items: [{ label: 'Goods', run() {} }] });
+  assert.match(menu().querySelector('[role="menuitem"]').className, /max-sm:min-h-11/, 'the default lost its phone target');
+  RM.close();
+});
