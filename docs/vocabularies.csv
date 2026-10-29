@@ -122,6 +122,8 @@ hook-events,phase,session,Session,"The session itself: setup, start, instruction
 hook-events,phase,prompt,Prompt and reply,"A prompt arriving and the reply it gets, through to the turn ending.",
 hook-events,phase,tool,Tool calls,"A tool call: its permission, the call, its result and any MCP input it asks for.",
 hook-events,phase,agents,Agents and tasks,"Subagents, teammates, tasks and worktrees.",
+hook-events,basis,changelog,Changelog,"A line in Claude Code's changelog names the event as added in this release.",
+hook-events,basis,package,Package,"No changelog line names the event, so the release is the first published package whose code names it.",
 agents,kind,definition,,"a Claude Code agent definition file: frontmatter plus a system prompt, loaded by the platform and invoked by name",
 agents,kind,inline,,"a role whose prompt lives inside a skill's text, spawned through the Agent tool when the skill runs; it has no name the platform knows",
 agents,team,critic,,"reviews against a written standard, a verdict per rule of that standard",

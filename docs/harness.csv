@@ -268,6 +268,8 @@ node/render/scenarios/stage-sheet-reader.mjs,,node/render/scenarios,62,driver,,n
 node/render/scenarios/stage-sniffed-name.mjs,,node/render/scenarios,25,driver,,no,no,no
 node/render/scenarios/stage-stitch.mjs,"the stage composer's stitch key: a caret in a sentence gap turns the full-stop cell into the cell that takes one back, the same swap the annotator's card makes off the same kit verb",node/render/scenarios,52,driver,,no,no,no
 node/render/scenarios/stage-transform-chip.mjs,"stages three transform-shaped items, opens one in the workbench, and asserts the table actually drew",node/render/scenarios,54,driver,,no,no,yes
+node/render/scenarios/stage-workbook-bench.mjs,,node/render/scenarios,95,driver,,no,no,no
+node/render/scenarios/stage-workbook-people.mjs,,node/render/scenarios,66,driver,,no,no,no
 node/render/scenarios/state-view.mjs,"Populate the State view for a screenshot: stub the registry reads with a current cache, a stale one, an unchecked one, and the buttonless entity index",node/render/scenarios,280,driver,,no,no,no
 node/render/scenarios/subject-action-probe.mjs,"probe: can the shell invoke a toss subject's action closure, or only reach it",node/render/scenarios,124,driver,,no,no,no
 node/render/scenarios/tending-findings.mjs,,node/render/scenarios,68,driver,,yes,no,yes

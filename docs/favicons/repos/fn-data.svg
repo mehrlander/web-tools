@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="fn-data">
   <title>fn-data</title>
-  <desc>A rising line with an arrowhead: fiscal notes, what a bill would cost. It stands on the detached base bar that marks the public-record stores. Drawn in one ink on the budget-drs app icon's box and rules, for the page to paint in its text colour: solid, no strokes, and every gap at least 2.5 units, which is about 1.4 CSS pixels at 16.</desc>
-  <g fill="currentColor">
+  <desc>A rising line with an arrowhead: fiscal notes, what a bill would cost. It stands on the detached base bar that marks the public-record stores. Drawn on the budget-drs app icon's box and rules in one colour, violet-600 (#7c3aed): solid, no strokes, and every gap at least 2.5 units, which is about 1.4 CSS pixels at 16.</desc>
+  <g fill="#7c3aed">
     <path d="M4.13 21.13 L11.63 13.63 L9.37 11.37 L1.87 18.87 Z"/>
     <path d="M9.49 13.74 L14.99 18.24 L17.01 15.76 L11.51 11.26 Z"/>
     <path d="M17.13 18.13 L25.13 10.13 L22.87 7.87 L14.87 15.87 Z"/>

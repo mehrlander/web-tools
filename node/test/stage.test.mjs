@@ -844,6 +844,22 @@ test('rows are recognized in all three shapes the workbench eats', () => {
   assert.equal(kindOfPaste(JSON.stringify([{ a: 1 }, { a: 2 }])), 'rows', 'a JSON row array');
 });
 
+test('a dropped workbook is offered to the workbench, and other bytes are not', () => {
+  const drop = (name) => {
+    reset();
+    data.onDropped({ file: {}, name, size: 4, type: '',
+                     bytes: Uint8Array.from([0x50, 0x4b, 0x03, 0x04]), buf: new ArrayBuffer(4) });
+    return window.StageIntake.transformKindOf(data.localItems[0]);
+  };
+  assert.equal(drop('budget.xlsx'), 'workbook');
+  assert.equal(drop('macros.XLSM'), 'workbook', 'the extension is read case-blind');
+  assert.equal(drop('archive.zip'), '', 'a ZIP is not a workbook because it is a ZIP');
+  assert.equal(drop('legacy.xls'), '', 'the binary format is not one the reader opens');
+  assert.equal(data.transformables[0]?.label, undefined, 'and the chip row offers nothing for it');
+  drop('budget.xlsx');
+  assert.equal(data.transformables[0]?.label, 'a workbook', 'the chip row names what it would open');
+});
+
 test('a rows function is a transform, and other JavaScript is not', () => {
   assert.equal(kindOfPaste('rows => rows.filter(r => r.a)'), 'fn');
   assert.equal(kindOfPaste('function tidy(rows) { return rows }'), 'fn');
