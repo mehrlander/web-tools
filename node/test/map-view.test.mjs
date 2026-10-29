@@ -89,6 +89,9 @@ const sessions = {
     { path: 'home/docs/elsewhere.md', sessions: 7, count: 7, last: '2026-08-04T20:00:00Z' },
   ],
 };
+// The read counts the Growth chart draws (python/doc-reads.py), served only
+// once a test sets them, so the cache-only cases above run as they did.
+let docReadsFile = null;
 const asked = [];
 window.TOKEN = 'ignored-in-test';
 window.GH = class {
@@ -127,6 +130,10 @@ window.GH = class {
     if (Object.hasOwn(automationFiles, p)) return { text: automationFiles[p] };
     if (p === 'data/checks-reading/explanations.csv') return { text: explainCsv };
     if (p === 'state/sessions.json') return { text: JSON.stringify(sessions) };
+    if (p === 'state/doc-reads.json') {
+      if (docReadsFile) return { text: JSON.stringify(docReadsFile) };
+      throw Object.assign(new Error('404'), { status: 404 });
+    }
     return { text: toCsv(manifest.items) };
   }
 };
@@ -949,6 +956,33 @@ test('an injected doc says what this column cannot see, not that the text arrive
   // Unmeasurable stays distinguishable from unread: injected carries a word,
   // a never-opened doc shows nothing at all (the tail hides on empty).
   assert.equal(data.docReadLabel({ path: 'docs/nobody-opens-this.md', reach: 'orphan' }), '');
+});
+
+// Since 2026-10-25 the column takes both facts from the read counts where they
+// hold the repo, so Inventory and Growth count reads alike; the cache answers
+// only for a repo the counts do not hold.
+test('readership reads the Growth read counts on background, the cache only where they lack the repo', async () => {
+  docReadsFile = {
+    from: '2026-07-29', sessions: 600,
+    repos: { 'mehrlander/web-tools': {
+      'docs/APP.md': { opened: [3, 40, 80], context: [], via: { shell: 2, tool: 1 } },
+      'docs/CONVENTIONS.md': { opened: [], context: [1, 2, 3, 4], basis: { reconstructed: 4 } },
+    } },
+  };
+  data.docReads = null; data.docReadsDoc = null; data._growthReads = null;
+  await data.loadDocReads();
+  assert.ok(asked.some(a => a.path === 'state/doc-reads.json' && a.ref === 'background'), 'read on the background branch');
+  assert.equal(data.docReadLabel({ path: 'docs/APP.md', reach: 'project' }), '3 reads', 'not the cache\'s 9');
+  assert.match(data.docReadHint({ path: 'docs/APP.md', reach: 'project' }), /3 of 600 recorded sessions \(2 by shell, 1 by file tool\), last 2026-10-17/);
+  const injected = { path: 'docs/CONVENTIONS.md', reach: 'injected' };
+  assert.equal(data.docReadLabel(injected), '4 in context', 'presence from the counts, never added to opening');
+  assert.match(data.docReadHint(injected), /4 of 600 recorded sessions, by reconstruction/);
+  assert.equal(data.docReadLabel({ path: 'docs/nobody-opens-this.md', reach: 'orphan' }), '',
+    'a file the counts hold no row for reads as unopened, not as the cache\'s answer');
+  data.docRepo = 'mehrlander/budget-wa';
+  assert.equal(data.docCounted({ path: 'docs/APP.md' }), null, 'a repo the counts lack falls back to the cache');
+  data.docRepo = '';
+  docReadsFile = null; data.docReadsDoc = null; data._growthReads = null;
 });
 
 test('an absent check renders as visibly absent, and only where one is owed', () => {

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="shortcut-tools: reference">
+  <title>shortcut-tools: reference</title>
+  <desc>A book with a lightning bolt cut out of its cover, its pages beneath: the action dictionary the repository keeps.</desc>
+  <g fill="currentColor">
+    <path fill-rule="evenodd" d="M8 2.75 H26 V24.75 H8 A2 2 0 0 1 6 22.75 V4.75 A2 2 0 0 1 8 2.75 Z M18 6 L10.75 15.25 H15 L13.75 22 L21.25 12.75 H17 Z"/>
+    <rect x="8.5" y="27.25" width="17.5" height="2.5"/>
+  </g>
+</svg>

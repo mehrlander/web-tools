@@ -876,8 +876,7 @@ html.dk-dragging main{transition:none !important}
             <button @click="pickRepo(r.repo)"
                     class="w-full min-h-11 flex items-center gap-2.5 px-3 rounded-lg text-left text-base transition-colors hover:bg-base-200 active:bg-base-300"
                     :class="$store.browser.repo === r.repo ? 'text-primary font-semibold' : 'text-base-content/80'">
-              <span x-show="repoMarkSrc(r.repo)" class="inline-block size-5 shrink-0 bg-current text-base-content/50 [mask:var(--mark)_center/contain_no-repeat]" :style="markStyle(repoMarkSrc(r.repo))" aria-hidden="true"></span>
-              <i x-show="!repoMarkSrc(r.repo)" class="ph shrink-0 text-xl text-base-content/50" :class="r.icon"></i>
+              <span class="inline-flex shrink-0" x-html="repoMarkHtml(r, { cls: 'text-xl', color: 'text-base-content/50' })"></span>
               <span class="min-w-0 flex-1 truncate font-mono" x-text="r.short"></span>
               <i x-show="r.priv" class="ph ph-lock shrink-0 text-sm text-base-content/30"></i>
               <i x-show="$store.browser.repo === r.repo" class="ph ph-check shrink-0 text-base text-primary"></i>
@@ -989,8 +988,7 @@ html.dk-dragging main{transition:none !important}
                   <button @click="openPinned(r.repo)" :data-title-tip="r.repo"
                           class="flex items-center gap-2 min-w-0 flex-1 min-h-9 pl-2 text-left transition-colors"
                           :class="$store.browser.repo===r.repo ? 'text-primary font-semibold' : 'text-base-content/80'">
-                    <span x-show="repoMarkSrc(r.repo)" class="inline-block size-4 shrink-0 bg-current [mask:var(--mark)_center/contain_no-repeat]" :style="markStyle(repoMarkSrc(r.repo))" aria-hidden="true"></span>
-                    <i x-show="!repoMarkSrc(r.repo)" class="ph text-base shrink-0" :class="r.icon"></i><span class="truncate" x-text="r.short"></span>
+                    <span class="inline-flex shrink-0" x-html="repoMarkHtml(r)"></span><span class="truncate" x-text="r.short"></span>
                   </button>
                   <button @click.stop="rowMenu(r.repo, $event, 'github')"
                           @mouseenter="rowMenuHover(r.repo, $event, 'github')" @mouseleave="hoverLeaveMenu()"
@@ -2464,8 +2462,10 @@ function catalogThumbPath(repo, path, query){
 // (projectIconSrc). Outside the shell's data because it is bookkeeping no view
 // draws, and a reactive copy would re-run every binding that consulted it.
 const PROJECT_ICONS_ASKED = new Set();
-// The same bookkeeping for the hub's drawn marks (hubMarkSrc).
+// The same bookkeeping for the hub's drawn marks (hubMarkSrc), and for the
+// mark files repoMarkHtml reads, by file.
 const HUB_MARKS_ASKED = new Set();
+const REPO_MARKS_ASKED = new Set();
 
 // The links board's item kinds, as the shell renders them. It carries only the
 // glyph fallbacks pages/links.html uses, since the shell shows a rail item as a
@@ -2480,7 +2480,7 @@ const RAIL_KIND = { link: 'ph-arrow-up-right', action: 'ph-lightning', repo: 'ph
 // subview it lands on; every other address is a subview and keeps the key it
 // was first published at, so an old ?tab= link still lands where it pointed.
 const MAP_TABS = ['overview', 'reach', 'research', 'harness', 'dimensions', 'docs', 'data', 'watch'];
-const MAP_SUBVIEWS = ['aims', 'icons', 'projects', 'distribution', 'outposts', 'exploration', 'events', 'scheduled', 'programs', 'set', 'tests', 'skills', 'agents', 'peeves', 'context', 'lifetimes', 'surfacing', 'patterns', 'views', 'kits', 'showing', 'fab', 'growth', 'policy', 'themes', 'registries', 'public', 'names'];
+const MAP_SUBVIEWS = ['aims', 'icons', 'projects', 'distribution', 'outposts', 'exploration', 'events', 'scheduled', 'programs', 'set', 'tests', 'skills', 'agents', 'peeves', 'context', 'lifetimes', 'surfacing', 'patterns', 'views', 'kits', 'showing', 'fab', 'growth', 'policy', 'themes', 'registries', 'attributes', 'public', 'names'];
 const MAP_ROUTES = [...MAP_TABS, ...MAP_SUBVIEWS];
 // Where a bare ?view=map lands, and so the one address its URL never stamps:
 // the Overview, every address with its sentence. Reach held it until
@@ -3227,6 +3227,10 @@ function app(){ return {
               repo,
               short: repo.split('/')[1] || repo,
               icon: cfg.icon || 'ph-bookmark-simple',
+              // The rest of the mark (lib/kits/repo-mark.js): a drawn SVG, a
+              // tone, a glyph weight. repoMarkHtml draws them; the session
+              // brief reads them from this list rather than the manifest.
+              mark: cfg.mark || '', tone: cfg.tone || '', weight: cfg.weight || '',
               group: cfg.group || '',
               order: Number.isFinite(cfg.order) ? cfg.order : 0,
               // Filled by enrichSidebarPrivacy (the cache has no privacy); the
@@ -4855,6 +4859,7 @@ function app(){ return {
   powershellOutpostItem: '', // the PowerShell outpost view's selected file (repo path), stamped as &item=
   projectIcons: {},         // repo@ref:file -> the project icon as a data URL ('' until read, or when the read failed)
   hubMarks: {},             // hub path -> a drawn mark as a data URL ('' until read, or when the hub has no such file)
+  repoMarks: {},            // repo@ref:path of a mark file -> its read (RepoMark.load's svg: drawable, or null); absent until read
   projectAppRoute: '',      // the App tab's page query, a route into the app (?view=…), stamped as &item=
   projectPageThumbs: {},    // a route card's cached shot by thumb path, as a data URL ('' when the cache has none)
   projectHtml: '',
@@ -5020,6 +5025,26 @@ function app(){ return {
     return this.hubMarkSrc('docs/favicons/repos/' + name + '.svg');
   },
   markStyle(src){ return src ? { '--mark': 'url("' + src + '")' } : {}; },
+  // A repository's mark in the shell's own lists (the sidebar's Repos rows, the
+  // repo switchers), drawn by lib/kits/repo-mark.js, as the session brief and
+  // the estate draw theirs: the SVG the manifest declares, else the hub's drawn
+  // mark for the repository, else the glyph, in its tone. `r` is an
+  // estateRepos row, `o` RepoMark.html's options. The Map still draws the
+  // hub's file itself (repoMarkSrc).
+  repoMarkHtml(r, o){
+    const M = window.RepoMark;
+    if (!M || !r) return '';
+    const s = M.spec(r, r.repo);
+    if (!s.mark) return M.html(s, o);
+    // Only the file's read is kept, by file, so a manifest change to a glyph
+    // or a tone shows without a reload.
+    const key = s.mark.repo + '@' + s.mark.ref + ':' + s.mark.path;
+    if (!REPO_MARKS_ASKED.has(key)) {
+      REPO_MARKS_ASKED.add(key);
+      queueMicrotask(() => M.load(s).then((l) => { this.repoMarks[key] = l.svg; }));
+    }
+    return M.html(key in this.repoMarks ? { ...s, svg: this.repoMarks[key] } : s, o);
+  },
   async loadProjectIcon(key, repo, ref, f){
     const s = Alpine.store('browser');
     const gh = repo === s.repo && s.gh ? s.gh
@@ -5630,6 +5655,7 @@ function app(){ return {
       label: r.short,
       title: r.repo,
       icon: r.icon || 'ph-folder-simple',
+      markHtml: this.repoMarkHtml(r, { cls: 'text-sm', color: 'text-base-content/70' }),
       current: r.repo === current,
       head: true,
       run: () => {

@@ -388,6 +388,20 @@ test('readZip: a workbook without queries leaves xl.powerQuery undefined', async
   assert.equal(xl.powerQuery, undefined);
 });
 
+// One read per workbook: the Sheet, Grid and Structure readings and the
+// workbench door each ask for the same file with their own copy of its bytes.
+test('readZip: the same bytes, in another copy, return the first read', async () => {
+  const wb = new JSZip();
+  for (const [path, xml] of buildParts()) wb.file(path, xml);
+  const bytes = await wb.generateAsync({ type: 'uint8array' });
+  const first = await xlsxKit.readZip(bytes);
+  assert.equal(await xlsxKit.readZip(Uint8Array.from(bytes)), first, 'a copy of the bytes is the same workbook');
+  assert.notEqual(await xlsxKit.readZip(bytes, { fresh: true }), first, 'fresh reads anew');
+  wb.file('xl/extra.xml', '<?xml version="1.0"?><x/>');
+  const other = await wb.generateAsync({ type: 'uint8array' });
+  assert.notEqual(await xlsxKit.readZip(other), first, 'another workbook is another read');
+});
+
 // ---- number formats -----------------------------------------------------
 
 test('formatKind: classifies a code by what it makes a value mean', () => {

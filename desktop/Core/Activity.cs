@@ -39,7 +39,8 @@ public record ActivityChange(string Key, string Id, string Provider, string Titl
 public record LaptopSnapshot(ActivitySnapshot Activity, DaemonSignal Daemon,
     List<ApplicationSignal> Applications, List<Place> Places, List<RecentFile> Downloads,
     string MachineName, DateTimeOffset SeenThrough, SessionSnapshot Sessions, double ScanMilliseconds,
-    CloudSnapshot Cloud, List<ActivityEvent> Events, List<ActivityChange>? Changes = null);
+    CloudSnapshot Cloud, List<ActivityEvent> Events, List<ActivityChange>? Changes = null,
+    List<ProviderUsage>? Usage = null);
 
 public static class Activity
 {
@@ -89,6 +90,9 @@ public static class NavigationPolicy
 {
     public const string AppUrl = "https://mehrlander.github.io/web-tools/app/";
     public const string LocalUrl = "https://desktop.web-tools.local/index.html";
+
+    public static bool IsUsagePage(string? address) => address is
+        "https://chatgpt.com/settings/usage" or "https://claude.ai/settings/usage" or "https://antigravity.google.com/";
 
     public static bool IsWebTools(string? address) => Uri.TryCreate(address, UriKind.Absolute, out var uri)
         && uri.Scheme == "https" && uri.IsDefaultPort && uri.UserInfo.Length == 0

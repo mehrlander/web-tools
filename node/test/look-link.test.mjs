@@ -53,6 +53,19 @@ test('a literal, a bound prefix, a whole bound literal and an id are each counte
   assert.deepEqual(Object.keys(info.walkthroughs), ['good']);
 });
 
+test('make refuses a bare CSS selector, which the kit would read as a name', () => {
+  // A page that declares no names passes any bare string as unchecked, so a
+  // selector without css: went out and landed nowhere.
+  const bare = page('bare.html', '<!doctype html><script src="../lib/kits/look.js"></script><button data-x>x</button>');
+  for (const at of ['[data-x]', 'button[aria-label="Go"]', '.btn', '#main', 'nav > a']) {
+    const r = py('make', bare, '--show', at);
+    assert.equal(r.status, 1, at + ' is refused');
+    assert.match(r.stderr, /CSS selector.*css:/, at + ' is told to take css:');
+  }
+  assert.equal(py('make', bare, '--show', 'css:[data-x]').status, 0, 'with css: it goes out');
+  assert.equal(py('make', FIXTURE, '--show', 'tab-a').status, 0, 'a name is still a name');
+});
+
 test('check passes a page whose walkthroughs and openers all resolve', () => {
   const r = py('check', FIXTURE);
   assert.equal(r.status, 0, r.stdout + r.stderr);
