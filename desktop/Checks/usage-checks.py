@@ -72,13 +72,27 @@ class UsageChecks(unittest.TestCase):
             model = dict(modelId='gemini-test', label='Gemini test', quotaInfo=dict(remainingFraction=.5, resetTime='2027-01-15T08:00:00Z'))
             data = dict(userStatus=dict(cascadeModelConfigData=dict(clientModelConfigs=[model])))
             opener = Mock()
-            opener.open.side_effect = [OSError('old worker'), io.BytesIO(json.dumps(data).encode())]
+            unsupported = usage.urllib.error.HTTPError('http://fixture',404,'unsupported',{},None)
+            opener.open.side_effect = [unsupported, io.BytesIO(json.dumps(data).encode())]
             with patch.object(usage.urllib.request, 'build_opener', return_value=opener):
                 values = usage.gemini_read(repo)
             self.assertEqual(values[0]['usedPercent'],50)
             self.assertIsNone(values[0]['durationMinutes'])
             self.assertTrue(opener.open.call_args_list[0].args[0].full_url.endswith('/RetrieveUserQuotaSummary'))
             self.assertTrue(opener.open.call_args_list[1].args[0].full_url.endswith('/GetUserStatus'))
+
+    def test_gemini_transient_failure_keeps_named_readings_stale(self):
+        with tempfile.TemporaryDirectory() as folder:
+            repo = Path(folder)
+            tool = repo / 'sessions' / 'tools' / 'gemini_followup.py'
+            tool.parent.mkdir(parents=True)
+            tool.write_text("WORKER_PORT = 12345\nWORKER_CSRF_TOKEN = 'fixture-token'\n", encoding='utf-8')
+            opener = Mock()
+            opener.open.side_effect = usage.urllib.error.HTTPError('http://fixture',503,'unavailable',{},None)
+            with patch.object(usage.urllib.request, 'build_opener', return_value=opener):
+                with self.assertRaises(usage.urllib.error.HTTPError):
+                    usage.gemini_read(repo)
+            self.assertEqual(opener.open.call_count,1)
 
     def test_bad_percentages_never_become_zero(self):
         for value in [None, '20', True, -1, 101, float('nan'), float('inf')]:

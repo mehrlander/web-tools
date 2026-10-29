@@ -16,6 +16,7 @@ import shutil
 import subprocess
 import threading
 import time
+import urllib.error
 import urllib.request
 
 NO_WINDOW = getattr(subprocess, 'CREATE_NO_WINDOW', 0)
@@ -191,8 +192,10 @@ def gemini_read(repo):
                 windows = gemini_windows(json.loads(response.read(1048576)))
             if windows:
                 return windows
-        except Exception:
-            if method == 'GetUserStatus':
+        except urllib.error.HTTPError as error:
+            # A transient quota-service failure must retain the prior named
+            # windows as stale, rather than replacing them with ambiguous models.
+            if method == 'GetUserStatus' or error.code not in (404,501):
                 raise
     return []
 
