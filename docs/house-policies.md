@@ -80,15 +80,19 @@ In a document that future sessions read to decide what to do, include content on
 - Include a reason only where it clarifies intent, and keep it minimal.
 - Before adding to such a document, check whether code derives the fact, a test enforces it, or another document owns it, and link instead.
 
-**Covers:** docs, skills, CLAUDE.md and AGENTS.md; not replies, and not writing for another audience, such as an essay.
+**Covers:** docs, skills, CLAUDE.md, AGENTS.md and code comments; not replies, and not writing for another audience, such as an essay.
 
 **Detail:** [doc-craft](https://github.com/mehrlander/web-tools/blob/main/skills/doc-craft/SKILL.md), its opening and "General Principles"; web-tools [CLAUDE.md](https://github.com/mehrlander/web-tools/blob/main/CLAUDE.md) for the check before adding.
 
-### Code comments · `/h:comment`
+### Stay current · `/h:current`
 
-A code comment states, in the present tense, a contract or constraint that the code cannot show. Change history goes in the commit message: the date of a change, the bug or incident that prompted it, counts and timings measured when the comment was written, and what the code used to do.
+Living text says what is true now; history goes to the records built to hold it.
 
-**Covers:** comments a session writes or edits, in any repo. PowerShell keeps its stricter rule of no comments ([windows-powershell](https://github.com/mehrlander/web-tools/blob/main/skills/windows-powershell/SKILL.md), "No comments").
+- A comment, doc or skill states the present, not when it changed, what prompted the change, figures measured at the time, or what it used to do.
+- When a living sentence is wrong, fix the sentence; add no "formerly" or "corrected" note and no dated update line.
+- History belongs in commit messages, a task's progress log and dated or write-once records.
+
+**Covers:** code comments, docs, skills, CLAUDE.md, AGENTS.md and PR descriptions; not dated records, which are history by design.
 
 ## Pages
 
