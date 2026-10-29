@@ -254,6 +254,13 @@ blocked download doesn't matter.
   `playwright@1.56.x`) as of 2026-05-30, and on 2026-10-28 `npm run shot`
   under that old pin failed at launch. `npx playwright install
   chromium` is unnecessary here (and its CDN is blocked anyway).
+- **Until the pin catches up with a moved image**, a scratch browsers folder
+  that names the installed binary at the pinned build's paths runs the old
+  client unchanged. Against the 1194 pin on 2026-10-28 that was
+  `chromium_headless_shell-1194/chrome-linux/headless_shell` and
+  `chromium-1194/chrome-linux/chrome`, each a symlink to an installed 1243
+  binary, each folder holding an empty `INSTALLATION_COMPLETE`, with
+  `PLAYWRIGHT_BROWSERS_PATH` set to that folder for the one command.
 - No `PUPPETEER_*` var is set, so puppeteer needs `PUPPETEER_EXECUTABLE_PATH`
   (or an explicit `executablePath`) pointed at the binary above. Playwright is
   the frictionless driver.

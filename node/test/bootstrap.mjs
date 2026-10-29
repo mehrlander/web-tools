@@ -283,9 +283,10 @@ export function captureAlpineErrors(Alpine) {
 // real dependency goes missing (see the `stub-hides-the-wiring` snag). The
 // address grammar is another: components read window.RepoAddress at call
 // time, since lib/kits/repo-address.js owns the owner/repo[@ref]:path grammar,
-// the assistant prefixes a branch label drops are window.AssistantMark's, and
-// every byte count a view shows is window.Traffic.fmtBytes'.
-const STANDING = ['lib/kits/repo-address.js', 'lib/kits/claude-mark.js', 'lib/kits/assistant-mark.js', 'lib/kits/traffic.js'];
+// the assistant prefixes a branch label drops are window.AssistantMark's, a
+// repository's mark is window.RepoMark's, and every byte count a view shows is
+// window.Traffic.fmtBytes'.
+const STANDING = ['lib/kits/repo-address.js', 'lib/kits/claude-mark.js', 'lib/kits/assistant-mark.js', 'lib/kits/repo-mark.js', 'lib/kits/traffic.js'];
 
 // Import the real Alpine, register it on the window, run each component file
 // in the window realm (they hook 'alpine:init'), start Alpine, and let the
