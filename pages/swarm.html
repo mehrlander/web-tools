@@ -347,7 +347,7 @@
             const s = id === '0' ? null : this.stepAt(id).s;
             const b = s && s.bout !== at ? this.led.bouts.find(x => x.n === (at = s.bout)) : null;
             return (b ? '<div class="sticky top-0 z-10 bg-base-200 px-2.5 py-0.5 font-mono text-xs">'
-              + window.esc('bout ' + b.n + (b.model ? ' · ' + b.model : '') + ' · ' + b.landed + ' landed, ' + b.knocked + ' knocked out · ' + b.words + ' words') + '</div>' : '')
+              + window.esc('bout ' + b.n + (b.model ? ' · ' + b.model : '') + ' · ' + b.landed + ' of ' + (b.landed + b.knocked) + ' landed · ' + b.words + ' words') + '</div>' : '')
               + this.rowHtml(id);
           }).join('');
         },
