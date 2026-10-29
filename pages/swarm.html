@@ -280,8 +280,8 @@
           return out;
         },
         diffHtml(a, b) {
-          return this.diffRuns(a, b).map(r => r.k === 'add' ? '<span data-chg class="' + ADD + '">' + window.esc(r.t) + '</span>'
-            : r.k === 'del' ? '<span data-chg class="' + DEL + '">' + window.esc(r.t) + '</span>' : window.esc(r.t)).join('');
+          return this.diffRuns(a, b).map(r => r.k === 'add' ? '<span class="' + ADD + '">' + window.esc(r.t) + '</span>'
+            : r.k === 'del' ? '<span class="' + DEL + '">' + window.esc(r.t) + '</span>' : window.esc(r.t)).join('');
         },
         get shown() { return this.para ? this.steps.filter(s => s.blocks.includes(this.para)) : this.steps; },
         stepIds() { return ['0', ...this.shown.map(s => s.edit)]; },
@@ -324,8 +324,8 @@
               r.t.split(/\n\n+/).forEach((t, j) => { if (j) paras.push([]); if (t) paras[paras.length - 1].push({ k: '', t }); });
             } else paras[paras.length - 1].push(r);
           }
-          const html = p => p.map(r => r.k === 'add' ? '<span data-chg class="' + ADD + '">' + window.esc(r.t) + '</span>'
-            : r.k === 'del' ? '<span data-chg class="' + DEL + '">' + window.esc(r.t) + '</span>' : window.esc(r.t)).join('');
+          const html = p => p.map(r => r.k === 'add' ? '<span class="' + ADD + '">' + window.esc(r.t) + '</span>'
+            : r.k === 'del' ? '<span class="' + DEL + '">' + window.esc(r.t) + '</span>' : window.esc(r.t)).join('');
           return paras.filter(p => p.some(r => r.k)).map(p => '<p>' + html(p) + '</p>').join('<p class="opacity-40 text-center">⋯</p>');
         },
         cardHtml(id) {
@@ -362,15 +362,24 @@
               ids: () => this.stepIds(), sel: () => this.lsel, noun: 'step', listMax: 'max-h-[22vh]',
               name: id => id === '0' ? { code: this.para || 'passage', title: 'as written' } : { code: 'step ' + this.stepAt(id).i + ' of ' + this.steps.length, title: this.stepTitle(id) },
               body: id => this.cardHtml(id),
-              drawn: el => { const c = el.querySelector('[data-chg]'); if (c) c.scrollIntoView({ block: 'center' }); },
               empty: '<div class="p-4 opacity-60">No edits.</div>',
-              onPick: (id) => { this.lsel = id; },
+              onPick: (id, via) => {
+                this.lsel = id;
+                if (this._deck && via !== 'deck') this._deck.deck.go(this.stepIds().indexOf(id), 'instant');
+              },
+              deck: () => {
+                const ids = this.stepIds();
+                this._deck = swipeDeck.open({
+                  count: ids.length, start: Math.max(0, ids.indexOf(this.lsel)), title: this.heading,
+                  render: (i, el) => { el.innerHTML = this.cardHtml(ids[i]); },
+                  onSlide: i => this._ls.pick(ids[i], 'deck'),
+                  onClose: () => { this._deck = null; },
+                });
+              },
             });
           } else {
             this._ls.mount();
           }
-          const keep = () => linkedSwiper.mark(this.$refs.llist, 'step', this.lsel);
-          this.$nextTick(() => requestAnimationFrame(() => requestAnimationFrame(keep)));
         },
 
         // Before / after, either kind: the result the controls name, and the
