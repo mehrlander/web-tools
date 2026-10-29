@@ -11,7 +11,6 @@
   await gh.load('kits/swipe-deck.js');
   const esc = window.esc;
 
-  const CALL = slug => `https://mehrlander.github.io/web-tools/pages/user-call.html#src=mehrlander/web-tools-private:user-calls/7674990d-${slug}.json`;
   const BLOB = 'https://github.com/mehrlander/web-tools/blob/main/';
   const VERDICT = {
     create: { label: 'Create', cls: 'badge-primary' },
@@ -64,7 +63,7 @@
     reason: 'Of the branch and merge rows, one states a judgment: once a branch merges, it is finished. You have said so repeatedly, and the rule holds in every repo. The case against an entry: [CONVERSATION.md](https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md) and the Claude Code platform prompt already state the rule.',
     names: [
       { text: 'Merged means closed · `/h:merged`', pick: true },
-      { text: 'Merge means merge · `/h:merge`, your phrase' },
+      { text: 'Merge means merge · `/h:merge` (your phrase)' },
       { text: 'Fresh branch after merge · `/h:fresh`' } ],
     draft: [
       '### Merged means closed · `/h:merged`',
@@ -122,30 +121,124 @@
   const label = t => `<p class="text-xs font-semibold uppercase tracking-widest text-base-content/50">${t}</p>`;
   const badge = v => `<span class="badge ${VERDICT[v].cls}">${VERDICT[v].label}</span>`;
 
+  // The two answers each slide offers: my recommendation first, then the other way.
+  const ACTS = { create: ['Add', 'Skip'], borderline: ['Add', 'Skip'], covered: ['Leave', 'Add entry'],
+                 leave: ['Leave', 'Add entry'], change: ['Reword', 'Keep'] };
+  const acts = c => ACTS[c.verdict];
+  const defName = c => c.names ? Math.max(0, c.names.findIndex(n => n.pick)) : -1;
+
+  // Your verdicts. A draft stays in this browser until Send; a sent one is read
+  // back from the call's answers file, so the deck opens on what you last sent.
+  const KEY = 'policy-deck-verdicts';
+  const V = (() => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } })();
+  const keep = () => { try { localStorage.setItem(KEY, JSON.stringify(V)); } catch {} };
+  const v = c => (V[c.call] ||= { act: null, name: defName(c), note: '', sent: null });
+  const decided = () => C.filter(c => v(c).act !== null);
+  const unsent = () => decided().filter(c => !v(c).sent || v(c).sent.at < (v(c).at || ''));
+  const set = (c, k, x) => { Object.assign(v(c), { [k]: x, at: new Date().toISOString() }); keep(); paint(); };
+
+  const STORE = 'mehrlander/web-tools-private';
+  const path = c => `user-calls/7674990d-${c.call}.answers.jsonl`;
+  const nameText = (c, i) => c.names[i].text.replace(/^(Current|Proposed): /, '').replace(/\s*\(your phrase\)$/, '');
+  const entryOf = c => {
+    const x = v(c), alt = x.act === 1, renamed = c.names && x.name !== defName(c) && c.verdict !== 'change';
+    const lines = [alt ? acts(c)[1] + '.' : '', renamed ? 'Name: ' + nameText(c, x.name).replace(/`/g, '') + '.' : '', x.note.trim()];
+    const take = !alt && !renamed && !x.note.trim();
+    return { answer: take ? 'Take' : 'Adjust', ...(take ? {} : { then: 'go' }), note: lines.filter(Boolean).join(' '),
+             verdict: acts(c)[x.act], ...(c.names && c.verdict !== 'change' ? { name: nameText(c, x.name).replace(/`/g, '') } : {}),
+             at: new Date().toISOString() };
+  };
+
+  async function readSent() {
+    if (!window.TOKEN) return;
+    await Promise.all(C.map(async c => {
+      try {
+        const t = (await new window.GH({ token: window.TOKEN, repo: STORE, ref: 'main' }).get(path(c), window.GH.FRESH)).text;
+        const last = t.split('\n').filter(Boolean).map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean).pop();
+        if (!last) return;
+        const x = v(c);
+        x.sent = { at: last.at, verdict: last.verdict || acts(c)[last.answer === 'Take' ? 0 : 1] };
+        if (x.act === null) { x.act = Math.max(0, acts(c).indexOf(x.sent.verdict)); x.at = last.at; if (last.name && c.names) x.name = Math.max(0, c.names.findIndex(n => nameText(c, c.names.indexOf(n)).replace(/`/g, '') === last.name)); }
+      } catch { /* no answer yet */ }
+    }));
+    keep(); paint();
+  }
+
+  let sending = false, sendErr = '';
+  async function send() {
+    const todo = unsent();
+    if (!todo.length || sending) return;
+    if (!window.TOKEN) { sendErr = 'Save a GitHub token on the toss page first'; paint(); return; }
+    sending = true; sendErr = ''; paint();
+    try {
+      if (!window.UserCallForm) await gh.load('alpineComponents/user-call-form.js');
+      const out = [];
+      for (const c of todo) {
+        const e = entryOf(c);
+        await window.UserCallForm.postAnswer({ repo: STORE, ref: 'main', path: path(c), entry: e });
+        v(c).sent = { at: v(c).at || e.at, verdict: e.verdict };
+        out.push(`- **${c.title}**: ${e.verdict}${e.answer === 'Take' ? ', as recommended' : ''}${e.note ? '\n  > ' + e.note : ''}`);
+        keep(); paint();
+      }
+      await new window.GH({ token: window.TOKEN, repo: 'mehrlander/web-tools' }).req('issues/1159/comments',
+        { method: 'POST', body: JSON.stringify({ body: `**Policy verdicts** (${out.length} of ${C.length})\n\n${out.join('\n')}\n\n_Sent from the policy deck; each answer is in its user call's answers file._` }) });
+    } catch (e) { sendErr = 'Not sent: ' + (e?.message || e); }
+    sending = false; paint();
+  }
+
+  // The verdict row, under the header on every candidate slide.
+  const row = c => {
+    const x = v(c), wrap = document.createElement('div');
+    wrap.className = 'flex w-full flex-wrap items-center gap-2 py-1';
+    wrap.innerHTML = acts(c).map((a, k) => `<button data-act="${k}" class="btn btn-sm ${x.act === k ? 'btn-primary' : 'btn-outline'}">
+        ${x.act === k ? '<i class="ph ph-check"></i>' : ''}${esc(a)}${k ? '' : ' <span class="text-xs opacity-60">rec.</span>'}</button>`).join('')
+      + `<button data-note class="btn btn-sm btn-ghost ${x.note ? 'text-primary' : ''}"><i class="ph ph-note-pencil"></i>${x.note ? 'Note' : ''}</button>`
+      + `<span class="ml-auto text-xs text-base-content/50">${x.sent && x.sent.at >= (x.at || '') ? 'sent' : x.act !== null ? 'not sent' : ''}</span>`
+      + `<textarea data-text class="textarea textarea-sm w-full ${x.note || x.open ? '' : 'hidden'}" rows="2" placeholder="Note on ${esc(c.title)}">${esc(x.note)}</textarea>`;
+    wrap.querySelectorAll('[data-act]').forEach(b => b.onclick = () => set(c, 'act', x.act === +b.dataset.act ? null : +b.dataset.act));
+    const ta = wrap.querySelector('[data-text]');
+    wrap.querySelector('[data-note]').onclick = () => { x.open = !x.open; ta.classList.toggle('hidden'); ta.focus(); };
+    ta.onchange = () => set(c, 'note', ta.value);
+    return wrap;
+  };
+
+  const sendBtn = () => {
+    const n = unsent().length;
+    return `<button data-send class="btn btn-primary" ${n && !sending ? '' : 'disabled'}><i class="ph ph-paper-plane-tilt"></i>
+      ${sending ? 'Sending…' : n ? `Send ${n} verdict${n > 1 ? 's' : ''}` : decided().length ? 'All sent' : 'Send'}</button>
+      ${sendErr ? `<span class="text-error">${esc(sendErr)}</span>` : ''}`;
+  };
+
   const glance = slide => {
     slide.innerHTML = `<article class="space-y-5">
       <h2 class="text-3xl font-semibold text-balance">Eight survey areas, seven named judgments</h2>
-      <ol class="divide-y divide-base-300 border-y border-base-300">${C.map((c, i) => `
-        <li class="flex cursor-pointer gap-3 py-3 hover:bg-base-200" data-go="${i + 1}">
+      <ol class="divide-y divide-base-300 border-y border-base-300">${C.map((c, i) => {
+        const x = v(c);
+        return `<li class="flex cursor-pointer gap-3 py-3 hover:bg-base-200" data-go="${i + 1}">
           <span class="w-5 shrink-0 pt-1 font-mono text-sm text-base-content/50">${i + 1}</span>
-          <div class="min-w-0 space-y-1">
+          <div class="min-w-0 flex-1 space-y-1">
             <p class="flex flex-wrap items-center gap-2 text-xl font-medium">${esc(c.title)} ${badge(c.verdict)}</p>
-            <p class="text-lg text-base-content/70 text-pretty">${md(c.short)}</p></div></li>`).join('')}
-      </ol></article>`;
-    slide.querySelectorAll('[data-go]').forEach(r =>
-      r.addEventListener('click', () => deck.deck.go(+r.dataset.go)));
+            <p class="text-lg text-base-content/70 text-pretty">${md(c.short)}</p></div>
+          <span class="shrink-0 pt-1 text-lg ${x.act === null ? 'text-base-content/30' : x.act ? 'font-semibold' : 'text-primary'}">${x.act === null ? '·' : esc(acts(c)[x.act])}</span></li>`; }).join('')}
+      </ol>
+      <div class="flex flex-wrap items-center gap-3">${sendBtn()}</div></article>`;
+    slide.querySelectorAll('[data-go]').forEach(r => r.addEventListener('click', () => deck.deck.go(+r.dataset.go)));
+    slide.querySelector('[data-send]').onclick = send;
   };
 
   const card = (c, slide) => {
+    const x = v(c);
     slide.innerHTML = `<article class="space-y-6">
       <div class="flex flex-wrap items-baseline gap-3">
         <h2 class="text-3xl font-semibold text-balance">${esc(c.title)}</h2>${badge(c.verdict)}
-        <a class="btn btn-sm btn-primary ml-auto" target="_blank" href="${CALL(c.call)}"><i class="ph ph-gavel"></i> Decide</a>
       </div>
       <p class="text-sm text-base-content/50">${md(c.area)}</p>
       <p class="text-xl leading-8 text-pretty">${md(c.reason)}</p>
       ${c.names ? `<section class="space-y-2">${label(c.namesLabel || 'Names')}
-        <ul class="space-y-1 text-xl leading-8">${c.names.map(n => `<li>${n.pick ? '<i class="ph ph-check text-primary"></i> ' : '<span class="inline-block w-5"></span>'}${md(n.text)}</li>`).join('')}</ul></section>` : ''}
+        <ul class="space-y-1 text-xl leading-8">${c.names.map((n, k) => c.verdict === 'change'
+          ? `<li>${n.pick ? '<i class="ph ph-arrow-right text-primary"></i> ' : '<span class="inline-block w-5"></span>'}${md(n.text)}</li>`
+          : `<li><button data-name="${k}" class="flex w-full items-start gap-2 rounded px-1 text-left hover:bg-base-200">
+              <i class="ph ${x.name === k ? 'ph-radio-button text-primary' : 'ph-circle text-base-content/40'} mt-2"></i><span>${md(n.text)}${n.pick ? ' <span class="text-xs text-base-content/50">rec.</span>' : ''}</span></button></li>`).join('')}</ul></section>` : ''}
       ${c.draft ? `<section class="space-y-2">${label('Draft entry')}
         <div class="space-y-3 border-l-4 border-primary/40 pl-4 text-xl leading-8">${c.draft.map((p, k) => !k ? `<h3 class="font-semibold">${md(p.replace(/^### /, ''))}</h3>`
           : p.startsWith('- ') ? `<p class="text-pretty pl-5 -indent-5">•&nbsp; ${md(p.slice(2))}</p>`
@@ -153,22 +246,39 @@
       <section class="space-y-2">${label('Evidence')}
         <ul class="list-disc space-y-1 pl-6 text-xl leading-8">${c.evidence.map(e => `<li class="text-pretty">${md(e)}</li>`).join('')}</ul></section>
     </article>`;
+    slide.querySelectorAll('[data-name]').forEach(b => b.onclick = () => set(c, 'name', +b.dataset.name));
+  };
+
+  // Repaint what a verdict changes: the row, the header count, and the open slides.
+  const built = new Map();
+  const paint = () => {
+    if (!deck) return;
+    const i = deck.deck.active();
+    deck.setSubheader(i ? row(C[i - 1]) : null);
+    const n = decided().length;
+    deck.setSubtitle(n ? `${n} of ${C.length} decided` + (unsent().length ? ` · ${unsent().length} not sent` : ' · sent') : 'For docs/house-policies.md');
+    for (const [k, el] of built) if (el.isConnected) (k ? card(C[k - 1], el) : glance(el));
   };
 
   const start = +(location.hash.match(/slide=(\d+)/) || [])[1] || 0;
+  let deck = null;
   const open = () => window.swipeDeck.open({
     start,
     count: C.length + 1,
-    render: (i, slide) => i ? card(C[i - 1], slide) : glance(slide),
+    render: (i, slide) => { built.set(i, slide); i ? card(C[i - 1], slide) : glance(slide); },
     title: 'Policy candidates',
     subtitle: 'For docs/house-policies.md',
     icon: 'ph-scales',
     innerClass: 'w-full',
     link: { href: BLOB + 'docs/house-policies.md', title: 'House policies', icon: 'ph-github-logo' },
-    index: i => i ? { title: C[i - 1].title, subtitle: VERDICT[C[i - 1].verdict].label } : { title: 'At a glance' },
+    actions: [{ icon: 'ph-paper-plane-tilt', title: 'Send verdicts', onClick: () => send() }],
+    index: i => i ? { title: C[i - 1].title, subtitle: v(C[i - 1]).act === null ? VERDICT[C[i - 1].verdict].label : acts(C[i - 1])[v(C[i - 1]).act] } : { title: 'At a glance' },
+    onSlide: () => paint(),
   });
-  let deck = open();
-  document.getElementById('reopen').addEventListener('click', () => { deck = open(); });
+  deck = open();
+  paint();
+  readSent();
+  document.getElementById('reopen').addEventListener('click', () => { deck = open(); paint(); });
   document.body.dataset.ready = '1';
 </script>
 </head>
