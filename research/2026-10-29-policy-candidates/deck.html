@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Policy candidates</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script type="module">
+  await import('https://mehrlander.github.io/web-tools/lib/entry.js');
+  await gh.load('kits/swipe-deck.js');
+  const esc = window.esc;
+
+  const BLOB = 'https://github.com/mehrlander/web-tools/blob/main/';
+  const VERDICT = {
+    create: { label: 'Create', cls: 'badge-primary' },
+    borderline: { label: 'Borderline', cls: 'badge-primary badge-outline' },
+    leave: { label: 'Leave', cls: 'badge-ghost' },
+    covered: { label: 'Covered', cls: 'badge-ghost' },
+  };
+
+  // One candidate per slide; every field sits at the same place on every card.
+  const C = [
+  { title: 'No em dashes', verdict: 'create',
+    short: 'New entry in the Writing group',
+    reason: 'You asked for it, it applies to all prose a session writes, and its name states the rule.',
+    names: [
+      { text: 'No em dashes · `/h:dash`, `/h:emdash`', pick: true },
+      { text: 'Plain punctuation · `/h:punct`' },
+      { text: 'Dashless prose · `/h:dashless`' } ],
+    draft: [
+      '### No em dashes · `/h:dash`, `/h:emdash`',
+      'Join ideas with a colon, a comma, a semicolon, parentheses or a new sentence, not a dash.',
+      '- Em dashes may have been fine once, but they are now an easy button for AI, and we would rather stick to standard professional writing.',
+      '**Covers:** all prose a session writes, including text drafted for the owner to send.',
+      '**Detail:** [QUALIFIED-WRITING.md](' + 'https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md' + '), its opening paragraph.',
+      '**See also:** [peeves](https://github.com/mehrlander/web-tools/blob/main/skills/peeves/peeves.csv) P64, percussive negation and contrast.' ],
+    evidence: [
+      'Your words, in the session that asked for this deck: "it\'s so clear that it deserves a place and it\'s kind of its own thing."',
+      'QUALIFIED-WRITING.md, opening: "No em dashes: use colons, commas, semicolons, parentheses, or new sentences."',
+      'Peeve P07, Em dashes: covers en dashes and double hyphens used to join ideas, so the entry need not repeat it.',
+      'Your profile text, 2026-09-26: "Avoid the em dash, a noxious weed in AI output." Earliest found: 2026-07-30.' ] },
+  { title: 'Branches and merges', verdict: 'borderline',
+    short: 'One entry, Merged means closed, in the Handover group',
+    reason: 'One entry, for one rule. For it: the name already exists and the rule applies in every repo. Against it: CONVERSATION.md and the Claude Code platform prompt already state it, so the entry is mostly an address.',
+    names: [
+      { text: 'Merged means closed · `/h:merged`', pick: true },
+      { text: 'New work, new branch · `/h:newbranch`' },
+      { text: 'One branch, one merge · `/h:once`' } ],
+    draft: [
+      '### Merged means closed · `/h:merged`',
+      'A merged branch takes no further commits; follow-up work starts a new branch from the current tip of the target branch and opens a new pull request.',
+      '**Covers:** every branch a session pushes, in any repo.',
+      '**Detail:** [post-merge-branch-mutation.md](https://github.com/mehrlander/web-tools/blob/main/docs/github/post-merge-branch-mutation.md); [CONVERSATION.md](https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md), the 🟣 Merged state.' ],
+    evidence: [
+      'post-merge-branch-mutation.md, its rule of thumb: "Merged means closed." Authorship of that wording is unknown.',
+      'CONVERSATION.md, 🟣 Merged: "Further edits go in a new PR."',
+      'The pick keeps the source document\'s phrase, so the rule has one name. "Closed" here means the branch, not the pull request state.',
+      'The other rows stay where they are: draft PRs, branch prefixes, `npm run preflight` and PR subscription in AGENTS.md and CONVERSATION.md. "A red check is not mergeable" stays in AGENTS.md; the 🟢 Ready to merge state already requires passing checks.',
+      'Your words: "Merge means merge" (2026-08-05); a new branch "is always my preference" (2026-09-27). In July you preferred the same branch.' ] },
+  { title: 'Commit discipline', verdict: 'leave',
+    short: 'Stays in CONSTELLATION.md, principle 1',
+    reason: 'Both rules (what is committable, and branch versus direct-to-main) are architecture you settle. Each direct-to-main writer is listed in `docs/direct-to-main.csv`, and its own skill applies the rule.',
+    evidence: [
+      'CONSTELLATION.md, principle 1: "Committable is small, diffable source … Not committable is generated, large, or binary output."',
+      'Same principle: GitHub flow for code and documentation, direct to `main` for shared state such as task trackers and session logs.',
+      'Your words, 2026-09-20: "if it is generated, then presumably we don\'t need to actually store it." Nothing found on direct-to-main beyond the tracker.' ] },
+  { title: 'Repo boundaries and delivery', verdict: 'leave',
+    short: 'Stays in CONSTELLATION.md and MARKETPLACE.md',
+    reason: 'A session applies these rules only when proposing a new repo or a new delivery channel, and that decision is yours under Who decides (`/h:who`, "architectural direction").',
+    evidence: [
+      'CONSTELLATION.md, principle 2: "a repo boundary exists where a visibility boundary exists, and otherwise usually does not."',
+      'MARKETPLACE.md: hooks ship in the plugin "because it is the one channel that reaches every session".',
+      'Your words: "generally all the skills should be available in the plugin" (2026-09-24). No statement found that splits repos at a visibility boundary.' ] },
+  { title: 'Derived artifacts', verdict: 'leave',
+    short: 'Stays in web-tools CLAUDE.md, which a test enforces',
+    reason: 'Every web-tools session loads CLAUDE.md, and `node/test/derived-artifacts.test.mjs` fails a hand-edited generated file. What earns space (`/h:crit`) says to link to a rule a test enforces rather than restate it.',
+    evidence: [
+      'web-tools CLAUDE.md: "Don\'t hand-edit a file the hook writes; edit the source and let the hook refresh it."',
+      'Your words are about specific files ("wouldn\'t just hand edit the standoff", 2026-08-29); the general rule appears only in pasted directives.' ] },
+  { title: 'Registries', verdict: 'leave',
+    short: 'Stays in docs/registries.md, which a test enforces',
+    reason: 'registries.md owns the rules, and a test refuses two registries describing one property of one target. The idea under them, that each statement has one owner, is peeve P08, and What earns space (`/h:crit`) already says it for documents: "check whether … another document owns it, and link instead."',
+    evidence: [
+      'web-tools CLAUDE.md: "one property about one target answers to one registry (gated)."',
+      'Peeve P08, Say a thing once: "one owner per statement, linked from elsewhere."',
+      'Your words, 2026-10-11: "I think now we have registries and streams." The one-registry rule appears only in quotes of registries.md.' ] },
+  { title: 'Tracker filing', verdict: 'covered',
+    short: 'Already in Who decides; details stay in the tasks skill',
+    reason: 'Who decides (`/h:who`) already says "The owner decides … new tracker tasks." The tasks skill keeps the other two filing rules: file only what a later session would have to rediscover, and file one task per outcome. That skill loads whenever a task is filed.',
+    evidence: [
+      'Peeve P32, No unrequested tasks: "Do not file a tracker task unless the owner asks for one."',
+      'tasks skill, rule 3: "File by outcome, not by observation."',
+      'Your words, 2026-09-16: "Filing a task needs the user to name it. A general go-ahead is not sufficient."' ] },
+  { title: 'Skill authoring', verdict: 'leave',
+    short: 'Stays in the skill-prefs skill',
+    reason: 'skill-prefs loads whenever a skill is written. Its rule that a skill\'s description names the situation that calls for the skill would make the best entry here, as "Name the situation · `/h:trigger`", but it applies only to skill descriptions.',
+    evidence: [
+      'skill-prefs: "The trigger should name the situation that summons the skill, never the material it produces."',
+      'skill-prefs: "Prefer a single SKILL.md to a zip bundle."',
+      'Your words, 2026-07-30: "we need a short description that triggers appropriately." Nothing found on single-file packaging.' ] }
+];
+
+  const md = s => esc(s)
+    .replace(/`([^`]+)`/g, '<code class="font-mono text-[0.9em]">$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a class="link" href="$2">$1</a>');
+
+  const label = t => `<p class="text-xs font-semibold uppercase tracking-widest text-base-content/50">${t}</p>`;
+  const badge = v => `<span class="badge ${VERDICT[v].cls}">${VERDICT[v].label}</span>`;
+
+  const glance = slide => {
+    slide.innerHTML = `<article class="space-y-5">
+      <h2 class="text-3xl font-semibold text-balance">Eight candidates: one create, one borderline</h2>
+      <ol class="divide-y divide-base-300 border-y border-base-300">${C.map((c, i) => `
+        <li class="flex cursor-pointer gap-3 py-3 hover:bg-base-200" data-go="${i + 1}">
+          <span class="w-5 shrink-0 pt-1 font-mono text-sm text-base-content/50">${i + 1}</span>
+          <div class="min-w-0 space-y-1">
+            <p class="flex flex-wrap items-center gap-2 text-xl font-medium">${esc(c.title)} ${badge(c.verdict)}</p>
+            <p class="text-lg text-base-content/70 text-pretty">${md(c.short)}</p></div></li>`).join('')}
+      </ol></article>`;
+    slide.querySelectorAll('[data-go]').forEach(r =>
+      r.addEventListener('click', () => deck.deck.go(+r.dataset.go)));
+  };
+
+  const card = (c, slide) => {
+    slide.innerHTML = `<article class="space-y-6">
+      <div class="flex flex-wrap items-baseline gap-3">
+        <h2 class="text-3xl font-semibold text-balance">${esc(c.title)}</h2>${badge(c.verdict)}
+      </div>
+      <p class="text-xl leading-8 text-pretty">${md(c.reason)}</p>
+      ${c.names ? `<section class="space-y-2">${label('Names')}
+        <ul class="space-y-1 text-xl leading-8">${c.names.map(n => `<li>${n.pick ? '<i class="ph ph-check text-primary"></i> ' : '<span class="inline-block w-5"></span>'}${md(n.text)}</li>`).join('')}</ul></section>` : ''}
+      ${c.draft ? `<section class="space-y-2">${label('Draft entry')}
+        <div class="space-y-3 border-l-4 border-primary/40 pl-4 text-xl leading-8">${c.draft.map((p, k) => !k ? `<h3 class="font-semibold">${md(p.replace(/^### /, ''))}</h3>`
+          : p.startsWith('- ') ? `<p class="text-pretty pl-5 -indent-5">•&nbsp; ${md(p.slice(2))}</p>`
+          : `<p class="text-pretty">${md(p)}</p>`).join('')}</div></section>` : ''}
+      <section class="space-y-2">${label('Evidence')}
+        <ul class="list-disc space-y-1 pl-6 text-xl leading-8">${c.evidence.map(e => `<li class="text-pretty">${md(e)}</li>`).join('')}</ul></section>
+    </article>`;
+  };
+
+  const open = () => window.swipeDeck.open({
+    count: C.length + 1,
+    render: (i, slide) => i ? card(C[i - 1], slide) : glance(slide),
+    title: 'Policy candidates',
+    subtitle: 'For docs/house-policies.md',
+    icon: 'ph-scales',
+    innerClass: 'w-full',
+    link: { href: BLOB + 'docs/house-policies.md', title: 'House policies', icon: 'ph-github-logo' },
+    index: i => i ? { title: C[i - 1].title, subtitle: VERDICT[C[i - 1].verdict].label } : { title: 'At a glance' },
+  });
+  let deck = open();
+  document.getElementById('reopen').addEventListener('click', () => { deck = open(); });
+  document.body.dataset.ready = '1';
+</script>
+</head>
+<body class="bg-base-100 text-base-content">
+<main class="px-4 py-8"><button id="reopen" class="btn"><i class="ph ph-cards"></i> Policy candidates</button></main>
+</body>
+</html>
