@@ -122,8 +122,12 @@ desktop settings; those settings never enter API responses or tracked files.
 ### Account usage
 
 The front-page assistant strip also shows compact allowance bars with percentages
-used, labeled by each reported period (for example, 5h or Week). Reset times and
-stale-reading details are available on hover or in Usage. Model quotas without a
+used, labeled by each reported period (for example, 5h or Week). A small tick
+marks the even-use budget pace, with amber fill for usage above that pace. The
+weekly reset day and local time appear beneath the bars. Hover and Usage provide
+the exact reset, pace difference and stale-reading details. Pace compares used
+allowance with elapsed time; it is not a forecast and is hidden for stale, expired
+or unknown periods. Model quotas without a
 reported duration say Quota. Missing periods never gain a guessed bar; multiple
 model or bucket readings for one period use the account-wide limit when present,
 otherwise the most used reading. The full Usage view retains every limit.
@@ -140,7 +144,11 @@ assumed zero.
 Codex uses the signed-in CLI's documented `account/rateLimits/read` app-server
 method. The CLI manages its own authentication. Each reported bucket and period
 remains separate. Gemini uses the existing Antigravity worker's loopback
-`GetUserStatus` response. That local interface is version-dependent and may
+`RetrieveUserQuotaSummary` response, which identifies the shared `gemini-5h`
+and `gemini-weekly` buckets with explicit window names and reset times. Workers
+without the summary method fall back to per-model `GetUserStatus` quotas without
+inferring their duration. Temporary summary failures retain the named readings
+and their history as stale. That local interface is version-dependent and may
 contain cached provider data; the displayed time is when the worker status was
 read. The collector never starts the worker or a conversation. Only Gemini model
 quotas enter the Gemini lane. Claude models served through Antigravity do not

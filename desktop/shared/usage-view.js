@@ -11,6 +11,18 @@
   const duration = minutes => !Number.isFinite(minutes) || minutes <= 0 ? '' : minutes < 60 ? `${minutes}m` : minutes < 1440 ? `${+(minutes / 60).toFixed(1)}h` : `${+(minutes / 1440).toFixed(1)}d`;
   const date = value => new Date(value).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
   const percent = value => `${+value.toFixed(1)}%`;
+  function pace(row, now, stale) {
+    const reset = Date.parse(row.resetsAt), minutes = row.durationMinutes;
+    if (stale || reset <= now || !Number.isFinite(minutes) || minutes <= 0) return null;
+    const elapsed = Math.max(0, Math.min(100, (now - (reset - minutes * 60000)) / (minutes * 60000) * 100));
+    const delta = row.usedPercent - elapsed, points = Math.round(Math.abs(delta));
+    return {elapsed, over:Math.max(0,delta), text:points ? `${points} percentage points ${delta > 0 ? 'over' : 'under'} even pace` : 'On even pace'};
+  }
+  function paceMark(value, compact = false) {
+    if (!value) return '';
+    const position = value.elapsed.toFixed(1);
+    return `${value.over > 0 ? `<span data-over-pace aria-hidden="true" class="absolute inset-y-0 rounded-r-full bg-amber-500" style="left:${position}%;width:${value.over.toFixed(1)}%"></span>` : ''}<span data-elapsed="${position}" class="absolute -top-0.5 ${compact ? 'h-2' : 'h-3'} w-px bg-stone-800" style="left:calc(${position}% - 1px)" aria-hidden="true"></span>`;
+  }
   function countdown(reset, now) {
     const minutes = Math.ceil((Date.parse(reset) - now) / 60000);
     if (minutes <= 0) return 'Reset due';
@@ -40,11 +52,11 @@
   function allowance(row, provider, stale, now) {
     const reset = Date.parse(row.resetsAt), expired = reset <= now;
     const period = duration(row.durationMinutes);
-    const elapsed = period ? Math.max(0, Math.min(100, (now - (reset - row.durationMinutes * 60000)) / (row.durationMinutes * 60000) * 100)) : null;
+    const budget = pace(row,now,stale), elapsed = budget?.elapsed ?? null;
     const used = row.usedPercent;
-    const title = `${row.label}${row.models?.length > 1 ? ': ' + row.models.join(', ') : ''}. Reset ${date(row.resetsAt)}${elapsed !== null ? `. ${Math.round(elapsed)}% of window elapsed.` : '. Window length not reported.'}`;
+    const title = `${row.label}${row.models?.length > 1 ? ': ' + row.models.join(', ') : ''}. Reset ${date(row.resetsAt)}${budget ? `. ${Math.round(elapsed)}% of window elapsed. ${budget.text}.` : !period ? '. Window length not reported.' : ''}`;
     const heading = period ? `${period}${row.label.toLowerCase() !== provider && row.label !== 'All models' ? ' · ' + row.label : ''}` : row.label;
-    return `<div data-usage-window="${escape(row.id)}" class="py-2" title="${escape(title)}"><div class="flex items-baseline justify-between gap-2 text-xs"><span class="min-w-0 break-words font-medium">${escape(heading)}</span><span class="shrink-0 tabular-nums ${used >= 90 && !expired ? 'text-rose-700' : 'text-stone-600'}">${expired ? 'Awaiting reset reading' : `${percent(used)} used${stale ? ' · last reading' : ''}`}</span></div><div ${expired ? 'aria-hidden="true"' : `role="progressbar" aria-label="${escape(names[provider] + ' ' + heading + ' allowance used')}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${used}"`} class="relative mt-1.5 h-2 rounded-full bg-stone-200"><span class="absolute inset-y-0 left-0 rounded-full ${expired || stale ? 'bg-stone-400' : used >= 90 ? 'bg-rose-500' : fills[provider]}" style="width:${used}%"></span>${elapsed !== null && !expired ? `<span data-elapsed="${elapsed.toFixed(1)}" class="absolute -top-0.5 h-3 w-px bg-stone-800" style="left:calc(${elapsed}% - 1px)" aria-hidden="true"></span>` : ''}</div><div class="mt-1 flex flex-wrap justify-between gap-x-2 gap-y-0.5 text-[10px] text-stone-500"><span>${escape(countdown(row.resetsAt,now))} · ${escape(date(row.resetsAt))}</span><span>${elapsed === null ? 'Window length not reported' : `${Math.round(elapsed)}% of time elapsed`}</span></div>${!expired ? trend(row,now) : ''}</div>`;
+    return `<div data-usage-window="${escape(row.id)}" class="py-2" title="${escape(title)}"><div class="flex items-baseline justify-between gap-2 text-xs"><span class="min-w-0 break-words font-medium">${escape(heading)}</span><span class="shrink-0 tabular-nums ${used >= 90 && !expired ? 'text-rose-700' : 'text-stone-600'}">${expired ? 'Awaiting reset reading' : `${percent(used)} used${stale ? ' · last reading' : ''}`}</span></div><div ${expired ? 'aria-hidden="true"' : `role="progressbar" aria-label="${escape(names[provider] + ' ' + heading + ' allowance used' + (budget ? '. ' + budget.text : ''))}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${used}"`} class="relative mt-1.5 h-2 rounded-full bg-stone-200"><span class="absolute inset-y-0 left-0 rounded-full ${expired || stale ? 'bg-stone-400' : used >= 90 ? 'bg-rose-500' : fills[provider]}" style="width:${used}%"></span>${paceMark(budget)}</div><div class="mt-1 flex flex-wrap justify-between gap-x-2 gap-y-0.5 text-[10px] text-stone-500"><span>${escape(countdown(row.resetsAt,now))} · ${escape(date(row.resetsAt))}</span><span data-pace-status class="${budget?.over >= 0.5 ? 'text-amber-800' : ''}">${budget ? escape(budget.text) : !period ? 'Window length not reported' : 'Pace unavailable'}</span></div>${!expired ? trend(row,now) : ''}</div>`;
   }
   function compact(provider, options = {}) {
     const now = options.now ?? Date.now(), key = provider?.provider;
@@ -62,12 +74,17 @@
     }
     const selected = [...periods].sort((a,b) => (a[1].durationMinutes || Infinity) - (b[1].durationMinutes || Infinity)).slice(0,2);
     if (!selected.length) return `<span data-compact-usage class="block text-[9px] leading-3 text-stone-400" ${tip}="${escape(provider?.notice || 'No usage reading available. See Usage for connection details.')}">Usage unavailable</span>`;
+    const deadline = (selected.find(([,r]) => r.durationMinutes === 10080) || selected.at(-1))[1];
+    const expiredDeadline = Date.parse(deadline.resetsAt) <= now;
+    const resetLabel = new Date(deadline.resetsAt).toLocaleString([], {weekday:'short',hour:'numeric',minute:'2-digit'});
+    const resetTip = `${deadline.durationMinutes === 10080 ? 'Week' : 'Quota'} resets ${date(deadline.resetsAt)}`;
     return `<span data-compact-usage class="block space-y-0.5">${selected.map(([period,row]) => {
       const expired = Date.parse(row.resetsAt) <= now;
       const name = period === '7d' ? 'Week' : period;
-      const title = `${names[key] || 'Account'} · ${name} · ${row.label}: ${expired ? 'awaiting reset reading' : `${percent(row.usedPercent)} used${stale ? ' (last reading)' : ''}`}. ${countdown(row.resetsAt,now)} · ${date(row.resetsAt)}.${periods.size > 2 || rows.length > selected.length ? ' More limits in Usage.' : ''}`;
-      return `<span data-compact-window="${escape(row.id)}" ${tip}="${escape(title)}" class="flex items-center gap-1 text-[9px] leading-[11px] text-stone-500"><span class="w-6 shrink-0 text-left">${escape(name)}</span><span ${expired ? 'aria-hidden="true"' : `role="progressbar" aria-label="${escape(title)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${row.usedPercent}"`} class="relative h-1 min-w-0 flex-1 overflow-hidden rounded-full bg-stone-200"><span class="absolute inset-y-0 left-0 rounded-full ${stale || expired ? 'bg-stone-400' : row.usedPercent >= 90 ? 'bg-rose-500' : fills[key]}" style="width:${expired ? 0 : row.usedPercent}%"></span></span><span class="w-8 shrink-0 text-right tabular-nums ${stale && !expired ? 'text-amber-800' : ''}">${expired ? '—' : `${Math.round(row.usedPercent)}%${stale ? '*' : ''}`}</span></span>`;
-    }).join('')}</span>`;
+      const budget = pace(row,now,stale);
+      const title = `${names[key] || 'Account'} · ${name} · ${row.label}: ${expired ? 'awaiting reset reading' : `${percent(row.usedPercent)} used${stale ? ' (last reading)' : ''}`}. ${countdown(row.resetsAt,now)} · ${date(row.resetsAt)}.${budget ? ` ${Math.round(budget.elapsed)}% of time elapsed. ${budget.text}.` : ''}${periods.size > 2 || rows.length > selected.length ? ' More limits in Usage.' : ''}`;
+      return `<span data-compact-window="${escape(row.id)}" ${tip}="${escape(title)}" class="flex items-center gap-1 text-[9px] leading-[11px] text-stone-500"><span class="w-6 shrink-0 text-left">${escape(name)}</span><span ${expired ? 'aria-hidden="true"' : `role="progressbar" aria-label="${escape(title)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${row.usedPercent}"`} class="relative h-1 min-w-0 flex-1 rounded-full bg-stone-200"><span class="absolute inset-y-0 left-0 rounded-full ${stale || expired ? 'bg-stone-400' : row.usedPercent >= 90 ? 'bg-rose-500' : fills[key]}" style="width:${expired ? 0 : row.usedPercent}%"></span>${paceMark(budget,true)}</span><span class="w-8 shrink-0 text-right tabular-nums ${stale && !expired ? 'text-amber-800' : ''}">${expired ? '—' : `${Math.round(row.usedPercent)}%${stale ? '*' : ''}`}</span></span>`;
+    }).join('')}<span data-compact-reset class="block truncate text-left text-[9px] leading-3 text-stone-500" ${tip}="${escape(resetTip)}">${expiredDeadline ? 'Reset due' : `Reset ${escape(resetLabel)}`}</span></span>`;
   }
   function render(providers = [], options = {}) {
     const now = options.now ?? Date.now();
@@ -80,7 +97,7 @@
       const mark = window.assistantMark?.svg(key,{cls:'size-4 shrink-0'}) || '';
       const linkName = key === 'gemini' ? 'Open Antigravity' : `Open ${names[key]} usage page`;
       return `<section data-usage-provider="${key}" class="px-3 py-2"><div class="flex items-center justify-between gap-2"><div class="flex items-center gap-1"><h2 class="flex items-center gap-1.5 text-[13px] font-semibold ${colours[key]}">${mark}${names[key]}</h2><a data-usage-link="${key}" href="${pages[key]}" target="_blank" rel="noopener noreferrer" aria-label="${linkName}" title="${linkName}${key === 'gemini' ? ' · Model quotas are in Antigravity Settings' : ''}" class="flex size-7 items-center justify-center rounded text-stone-500 hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-emerald-700">${openIcon}</a></div><span class="text-[10px] ${stale && rows.length ? 'text-amber-800' : 'text-stone-500'}">${rows.length ? escape(stale ? 'Last reading · ' + updated.toLowerCase() : updated) : provider?.status === 'available' ? 'No limits reported' : 'Not connected'}</span></div>${rows.length ? rows.map(row => allowance(row,key,stale,now)).join('') + (stale && provider.notice ? `<p class="pb-1 text-[11px] text-amber-800">${escape(provider.notice)}</p>` : '') : `<p class="py-2 text-xs text-stone-500">${escape(provider?.notice || (key === 'claude' ? 'Claude usage is not connected yet.' : 'Waiting for an account reading.'))}</p>`}<p class="text-[10px] text-stone-400">${escape(provider?.source || (key === 'claude' ? 'Claude account' : key === 'gemini' ? 'Antigravity account' : 'Codex account'))}${rows.some(r => r.models?.length > 1) ? ' · Identical model readings grouped' : ''}</p></section>`;
-    }).join('')}<p class="px-3 py-2 text-[10px] leading-4 text-stone-500">Bars show allowance used. The tick shows time elapsed where the window length is known. Trends begin when readings are collected; resets are never assumed to mean 0%.</p></section>`;
+    }).join('')}<p class="px-3 py-2 text-[10px] leading-4 text-stone-500">Fill shows allowance used; the tick marks an even budget pace through the period. Amber shows usage above that pace. This comparison assumes even use, not a forecast. Unknown periods and stale readings have no pace marker. Trends begin with collected readings; resets never imply 0%.</p></section>`;
   }
   window.NowUsage = {render,compact};
 })();
