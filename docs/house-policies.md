@@ -11,7 +11,7 @@ A policy states a preference that holds across tasks, in wording the owner appro
 - An entry gives the preference and its scope, and links to the document that holds procedure and detail; neither restates the other.
 - A session commits proposed wording on its branch, shows the owner the commit's diff in chat, and merges it only after the owner approves it.
 - A policy gets a document of its own only after its entry has been misapplied twice.
-- A shortcut names a preference or a bounded topic. A policy may have several shortcuts, and no shortcut is reused.
+- A shortcut names a preference or a bounded topic. A policy has one command, its slashed shortcut, and may list aliases without the slash; no shortcut is reused.
 - Cite an entry by its shortcut, a slash command such as `/h:qualify`. After the first mention in a document or reply, `h:qualify` alone is enough.
 - A shortcut is an address, not a summary: read the entry before applying it.
 
@@ -27,7 +27,7 @@ A policy for one public repo is an entry in this document whose scope names that
 
 ## Writing
 
-### Qualified writing · `/h:qual`, `/h:q`, `/h:qualify`
+### Qualified writing · `/h:qualify`, `h:qw`
 
 Qualify noun phrases, and introduce each referent before referring to it, so that a reader who has not followed the conversation can identify every subject.
 
@@ -35,7 +35,7 @@ Qualify noun phrases, and introduce each referent before referring to it, so tha
 
 **Detail:** [QUALIFIED-WRITING.md](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md), rules 1, 4 and 5.
 
-### Precise register · `/h:precise`, `/h:slang`
+### Precise register · `/h:precise`, `h:slang`
 
 Use the standard term a general reader knows, in a plain, dry register.
 
@@ -72,7 +72,7 @@ Keep the reader's main question in view.
 
 **Detail:** [QUALIFIED-WRITING.md](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md), rule 3.
 
-### What earns space · `/h:crit`, `/h:doe`
+### What earns space · `/h:critical`, `h:oe`
 
 In a document that future sessions read to decide what to do, include content only where it changes what the reader does.
 
@@ -80,9 +80,19 @@ In a document that future sessions read to decide what to do, include content on
 - Include a reason only where it clarifies intent, and keep it minimal.
 - Before adding to such a document, check whether code derives the fact, a test enforces it, or another document owns it, and link instead.
 
-**Covers:** docs, skills, CLAUDE.md and AGENTS.md; not replies, and not writing for another audience, such as an essay.
+**Covers:** docs, skills, CLAUDE.md, AGENTS.md and code comments; not replies, and not writing for another audience, such as an essay.
 
 **Detail:** [doc-craft](https://github.com/mehrlander/web-tools/blob/main/skills/doc-craft/SKILL.md), its opening and "General Principles"; web-tools [CLAUDE.md](https://github.com/mehrlander/web-tools/blob/main/CLAUDE.md) for the check before adding.
+
+### Stay current · `/h:current`
+
+Living text says what is true now; history goes to the records built to hold it.
+
+- A comment, doc or skill states the present, not when it changed, what prompted the change, figures measured at the time, or what it used to do.
+- When a living sentence is wrong, fix the sentence; add no "formerly" or "corrected" note and no dated update line.
+- History belongs in commit messages, a task's progress log and dated or write-once records.
+
+**Covers:** code comments, docs, skills, CLAUDE.md, AGENTS.md and PR descriptions; not dated records, which are history by design.
 
 ## Pages
 
@@ -99,16 +109,6 @@ A page follows the house style, which takes precedence over any general design, 
 **Detail:** [html-style](https://github.com/mehrlander/web-tools/blob/main/skills/html-style/SKILL.md).
 
 ## Handover
-
-### Surfacing · `/h:surf`, `/h:surfacing`
-
-A reply hands over what the reader needs in order to act.
-
-- A reply ends in a fixed order, with one closing state that matches the actual state of the work.
-
-**Covers:** every chat reply.
-
-**Detail:** [CONVERSATION.md](https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md).
 
 ### Links · `/h:link`
 
@@ -189,7 +189,7 @@ When a rule bears on what the owner has asked, quote it, name its source, and of
 
 **Covers:** replies that cite a rule, policy or convention.
 
-### Verdict language · `/h:verdict`, `/h:ruling`
+### Verdict language · `/h:verdict`, `h:ruling`
 
 Report what a source says and what was observed, not a verdict on either.
 
