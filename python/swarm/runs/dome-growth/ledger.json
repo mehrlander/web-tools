@@ -90,7 +90,7 @@
    "words": 124
   }
  ],
- "state": "in_progress",
+ "state": "ready_for_review",
  "actions": [
   {
    "id": "a1",
@@ -308,7 +308,30 @@
      "output": "b3-fixer.jsonl"
     }
    ],
-   "status": "issued"
+   "status": "done",
+   "used": 6
+  },
+  {
+   "id": "a9",
+   "op": "run_check",
+   "target": 3,
+   "reason": "check what bout 3 left",
+   "agents": [
+    {
+     "name": "referee 3",
+     "model": "sonnet",
+     "context": "c3-referee.ctx.md",
+     "output": "c3-referee.jsonl"
+    }
+   ],
+   "status": "done",
+   "used": 1
+  },
+  {
+   "id": "a10",
+   "op": "present",
+   "reason": "the allowance of 3 bouts is spent",
+   "status": "done"
   }
  ],
  "bouts": [
@@ -343,6 +366,22 @@
    "knocked": 4,
    "text": "The growth file is refreshed on demand, not by the commit hook: a regenerating hook would make every commit touch the file, since each commit shifts the chart's last sample. The laptop daemon rebuilds the session counts daily. Each file's `generated` field is the day doc-growth.py ran, so the same inputs give different bytes on other days. Nothing flags a stale growth file: compare `generated` with today. To refresh the web-tools growth file, run `python3 python/doc-growth.py . -o data/doc-growth/web-tools.json --name mehrlander/web-tools` from the root of an unshallowed clone, with `.` as the clone. The chart's last sample counts every recorded session, so session counts newer than the growth file still show in full.",
    "words": 113
+  },
+  {
+   "n": 3,
+   "model": "haiku",
+   "fighters": [
+    "cutter",
+    "fixer",
+    "fuser",
+    "qualifier",
+    "restorer",
+    "slugger"
+   ],
+   "landed": 6,
+   "knocked": 1,
+   "text": "The growth file is refreshed on demand, not by the commit hook, since a regenerating hook would touch the file on every commit: each commit shifts the growth chart's last sample. The laptop daemon rebuilds the session counts daily. Each growth file's `generated` field is the day doc-growth.py ran, so identical inputs give different bytes on other days. Nothing flags a stale growth file: compare `generated` with today. To refresh the web-tools growth file, run `python3 python/doc-growth.py . -o data/doc-growth/web-tools.json --name mehrlander/web-tools` from an unshallowed clone's root. The chart's last sample counts every recorded session, so session counts newer than the growth file show in full.",
+   "words": 106
   }
  ],
  "edits": [
@@ -553,6 +592,65 @@
    "from": "shifts the last frame",
    "text": "shifts the chart's last sample",
    "landed": true
+  },
+  {
+   "id": "b3.slugger.1",
+   "bout": 3,
+   "by": "slugger",
+   "from": "The growth file is refreshed on demand, not by the commit hook: a regenerating hook would make every commit touch the file, since each commit shifts the chart's last sample.",
+   "text": "The growth file is refreshed on demand, not by the commit hook, since a regenerating hook would touch the file on every commit: each commit shifts the growth chart's last sample.",
+   "peeve": "P05",
+   "landed": true
+  },
+  {
+   "id": "b3.fixer.1",
+   "bout": 3,
+   "by": "fixer",
+   "from": "so session counts newer than the growth file still show in full",
+   "text": "so session counts newer than the growth file show in full",
+   "landed": true
+  },
+  {
+   "id": "b3.restorer.1",
+   "bout": 3,
+   "by": "restorer",
+   "from": "so the same inputs give different bytes on other days",
+   "text": "so identical inputs give different bytes on other days",
+   "landed": true
+  },
+  {
+   "id": "b3.fuser.1",
+   "bout": 3,
+   "by": "fuser",
+   "from": "from the root of an unshallowed clone",
+   "text": "from an unshallowed clone's root",
+   "landed": true
+  },
+  {
+   "id": "b3.cutter.1",
+   "bout": 3,
+   "by": "cutter",
+   "from": ", with `.` as the clone",
+   "text": "",
+   "peeve": "P01",
+   "landed": true
+  },
+  {
+   "id": "b3.qualifier.1",
+   "bout": 3,
+   "by": "qualifier",
+   "from": "Each file's `generated` field",
+   "text": "Each growth file's `generated` field",
+   "peeve": "P05",
+   "landed": true
+  },
+  {
+   "id": "b3.qualifier.2",
+   "bout": 3,
+   "by": "qualifier",
+   "from": "touch the file",
+   "text": "touch the growth file",
+   "landed": false
   }
  ],
  "path": [
@@ -627,6 +725,60 @@
    ],
    "text": "The growth file is refreshed on demand, not by the commit hook: a regenerating hook would make every commit touch the file, since each commit shifts the chart's last sample. The laptop daemon rebuilds the session counts daily. Each file's `generated` field is the day doc-growth.py ran, so the same inputs give different bytes on other days. Nothing flags a stale growth file: compare `generated` with today. To refresh the web-tools growth file, run `python3 python/doc-growth.py . -o data/doc-growth/web-tools.json --name mehrlander/web-tools` from the root of an unshallowed clone, with `.` as the clone. The chart's last sample counts every recorded session, so session counts newer than the growth file still show in full.",
    "words": 113
+  },
+  {
+   "edit": "b3.slugger.1",
+   "bout": 3,
+   "blocks": [
+    "P1"
+   ],
+   "text": "The growth file is refreshed on demand, not by the commit hook, since a regenerating hook would touch the file on every commit: each commit shifts the growth chart's last sample. The laptop daemon rebuilds the session counts daily. Each file's `generated` field is the day doc-growth.py ran, so the same inputs give different bytes on other days. Nothing flags a stale growth file: compare `generated` with today. To refresh the web-tools growth file, run `python3 python/doc-growth.py . -o data/doc-growth/web-tools.json --name mehrlander/web-tools` from the root of an unshallowed clone, with `.` as the clone. The chart's last sample counts every recorded session, so session counts newer than the growth file still show in full.",
+   "words": 114
+  },
+  {
+   "edit": "b3.fixer.1",
+   "bout": 3,
+   "blocks": [
+    "P1"
+   ],
+   "text": "The growth file is refreshed on demand, not by the commit hook, since a regenerating hook would touch the file on every commit: each commit shifts the growth chart's last sample. The laptop daemon rebuilds the session counts daily. Each file's `generated` field is the day doc-growth.py ran, so the same inputs give different bytes on other days. Nothing flags a stale growth file: compare `generated` with today. To refresh the web-tools growth file, run `python3 python/doc-growth.py . -o data/doc-growth/web-tools.json --name mehrlander/web-tools` from the root of an unshallowed clone, with `.` as the clone. The chart's last sample counts every recorded session, so session counts newer than the growth file show in full.",
+   "words": 113
+  },
+  {
+   "edit": "b3.restorer.1",
+   "bout": 3,
+   "blocks": [
+    "P1"
+   ],
+   "text": "The growth file is refreshed on demand, not by the commit hook, since a regenerating hook would touch the file on every commit: each commit shifts the growth chart's last sample. The laptop daemon rebuilds the session counts daily. Each file's `generated` field is the day doc-growth.py ran, so identical inputs give different bytes on other days. Nothing flags a stale growth file: compare `generated` with today. To refresh the web-tools growth file, run `python3 python/doc-growth.py . -o data/doc-growth/web-tools.json --name mehrlander/web-tools` from the root of an unshallowed clone, with `.` as the clone. The chart's last sample counts every recorded session, so session counts newer than the growth file show in full.",
+   "words": 112
+  },
+  {
+   "edit": "b3.fuser.1",
+   "bout": 3,
+   "blocks": [
+    "P1"
+   ],
+   "text": "The growth file is refreshed on demand, not by the commit hook, since a regenerating hook would touch the file on every commit: each commit shifts the growth chart's last sample. The laptop daemon rebuilds the session counts daily. Each file's `generated` field is the day doc-growth.py ran, so identical inputs give different bytes on other days. Nothing flags a stale growth file: compare `generated` with today. To refresh the web-tools growth file, run `python3 python/doc-growth.py . -o data/doc-growth/web-tools.json --name mehrlander/web-tools` from an unshallowed clone's root, with `.` as the clone. The chart's last sample counts every recorded session, so session counts newer than the growth file show in full.",
+   "words": 110
+  },
+  {
+   "edit": "b3.cutter.1",
+   "bout": 3,
+   "blocks": [
+    "P1"
+   ],
+   "text": "The growth file is refreshed on demand, not by the commit hook, since a regenerating hook would touch the file on every commit: each commit shifts the growth chart's last sample. The laptop daemon rebuilds the session counts daily. Each file's `generated` field is the day doc-growth.py ran, so identical inputs give different bytes on other days. Nothing flags a stale growth file: compare `generated` with today. To refresh the web-tools growth file, run `python3 python/doc-growth.py . -o data/doc-growth/web-tools.json --name mehrlander/web-tools` from an unshallowed clone's root. The chart's last sample counts every recorded session, so session counts newer than the growth file show in full.",
+   "words": 105
+  },
+  {
+   "edit": "b3.qualifier.1",
+   "bout": 3,
+   "blocks": [
+    "P1"
+   ],
+   "text": "The growth file is refreshed on demand, not by the commit hook, since a regenerating hook would touch the file on every commit: each commit shifts the growth chart's last sample. The laptop daemon rebuilds the session counts daily. Each growth file's `generated` field is the day doc-growth.py ran, so identical inputs give different bytes on other days. Nothing flags a stale growth file: compare `generated` with today. To refresh the web-tools growth file, run `python3 python/doc-growth.py . -o data/doc-growth/web-tools.json --name mehrlander/web-tools` from an unshallowed clone's root. The chart's last sample counts every recorded session, so session counts newer than the growth file show in full.",
+   "words": 106
   }
  ],
  "checks": [
@@ -719,6 +871,36 @@
    "task": "t5",
    "status": "pass",
    "answer": "The laptop daemon rebuilds the session counts daily. Yes, the newer counts show on the chart before the growth file is refreshed, because the chart's last sample counts every recorded session, so session counts newer than the growth file still show in full."
+  },
+  {
+   "target": 3,
+   "task": "t1",
+   "status": "pass",
+   "answer": "No. The growth file is refreshed on demand, not by the commit hook, because a regenerating hook would touch the file on every commit: each commit shifts the growth chart's last sample."
+  },
+  {
+   "target": 3,
+   "task": "t2",
+   "status": "pass",
+   "answer": "Compare the file's `generated` field with today's date. Nothing warns or flags a stale growth file, so the reader has to make that comparison themselves."
+  },
+  {
+   "target": 3,
+   "task": "t3",
+   "status": "pass",
+   "answer": "Run `python3 python/doc-growth.py . -o data/doc-growth/web-tools.json --name mehrlander/web-tools` from the root of an unshallowed clone, passing `.` as the repo, `-o data/doc-growth/web-tools.json` as the output and `--name mehrlander/web-tools`."
+  },
+  {
+   "target": 3,
+   "task": "t4",
+   "status": "pass",
+   "answer": "Not a fault. Each growth file's `generated` field is the day doc-growth.py ran, so identical inputs give different bytes on other days."
+  },
+  {
+   "target": 3,
+   "task": "t5",
+   "status": "pass",
+   "answer": "The laptop daemon rebuilds the session counts daily. Yes, the newer counts show in full on the chart before the growth file is refreshed, because the chart's last sample counts every recorded session."
   }
  ],
  "peeves": {
@@ -728,5 +910,7 @@
   "P07": "Em dashes",
   "P63": "Forced line breaks",
   "P64": "Percussive negation and contrast"
- }
+ },
+ "best": 3,
+ "stop": "the allowance of 3 bouts is spent"
 }
