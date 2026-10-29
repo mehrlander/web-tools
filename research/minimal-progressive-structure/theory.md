@@ -27,7 +27,7 @@ text takes two moves of different character:
    appears as a label one step from its own view. This move is determined by
    the reader the page is for.
 
-The term is the owner's, and its three words map onto the two moves.
+The term is the owner's, and its three words name the theory's parts.
 *Structure* is the recovered graph. *Progressive* is the layering, in which each
 interaction raises one neighbor by one level. *Minimal* is the constraint
 holding both in check: the fewest entities, levels and controls that still
