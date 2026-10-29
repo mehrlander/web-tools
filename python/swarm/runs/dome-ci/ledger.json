@@ -1,0 +1,27 @@
+{
+ "kind": "dome/1",
+ "title": "The CI paragraph of CLAUDE.md's pre-build section",
+ "source": {
+  "path": "CLAUDE.md",
+  "lines": [
+   42,
+   42
+  ],
+  "ref": "e02dc8d4810632432c1af3ae18e6b43d555a42c1",
+  "repo": "mehrlander/web-tools",
+  "url": "https://github.com/mehrlander/web-tools/blob/e02dc8d4810632432c1af3ae18e6b43d555a42c1/CLAUDE.md#L42-L42",
+  "words": 114,
+  "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports it as a check on the PR, so the test speaks even when no session runs the suite. `page-measures.yml` also runs on pull requests that touch a page, but only reports: a finding never fails it, so a red run is a fault in the pass, not in a page. The suite is browser-free by construction (`node --test` globs `node/test/**/*.test.mjs`, and every Playwright-driven check is named without `.test.`), so keep it that way or the runner grows a browser install. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh on each run and a green check is not a claim about a pinned tree."
+ },
+ "blocks": [
+  {
+   "id": "P1",
+   "kind": "para",
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports it as a check on the PR, so the test speaks even when no session runs the suite. `page-measures.yml` also runs on pull requests that touch a page, but only reports: a finding never fails it, so a red run is a fault in the pass, not in a page. The suite is browser-free by construction (`node --test` globs `node/test/**/*.test.mjs`, and every Playwright-driven check is named without `.test.`), so keep it that way or the runner grows a browser install. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh on each run and a green check is not a claim about a pinned tree.",
+   "words": 114
+  }
+ ],
+ "bouts": [],
+ "edits": [],
+ "path": []
+}

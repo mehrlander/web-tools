@@ -29,7 +29,9 @@
     python/swarm/roles.md. An edit ladder (kind ladder/1, python/swarm/ladder.py)
     holds single edits per paragraph, judged and ordered from safest to boldest:
     its Edits tab swipes through them, and Before / after reads the passage
-    through green, yellow or red.
+    through green, yellow or red. A dome (kind dome/1, python/swarm/dome.py)
+    puts one paragraph in front of bouts of fighters whose edits all land on
+    one text: its Edits tab swipes through every edit that landed, in order.
 
     Input, first match wins: #gz=<base64url> (the gzipped ledger, from
     `swarm.py gz <run>`), then ?src=owner/repo[@ref]:path (via the contents
@@ -97,7 +99,7 @@
           for (const r of led.rounds) if (r.harvest) this.resHtml[r.n] = GuideRender.render(r.harvest.text).html;
           if (this.isLadder) {
             for (const c of this.choices) this.resHtml[c.id] = GuideRender.render(c.text).html;
-            if (!this.choices.some(c => c.id === this.tier)) this.tier = 'yellow';
+            if (!this.choices.some(c => c.id === this.tier)) this.tier = this.isDome ? (this.choices.at(-1) || {}).id : 'yellow';
             if (this.para && !led.blocks.some(b => b.id === this.para)) this.para = null;
             if (!this._opened || !this.tabs.some(([id]) => id === this.tab)) this.tab = 'edits';
             this._opened = true;
@@ -105,7 +107,8 @@
           }
           document.title = this.heading + ' · Reduction swarm';
         },
-        get isLadder() { return !!this.led && /^ladder\//.test(this.led.kind); },
+        get isLadder() { return !!this.led && /^(ladder|dome)\//.test(this.led.kind); },
+        get isDome() { return !!this.led && this.led.kind === 'dome/1'; },
         get isBold() { return !!this.led && this.led.kind === 'ladder/2'; },
         get tabs() {
           if (this.isBold) return [['edits', 'Edits'], ['compare', 'Before / after'], ['ideas', 'Ideas']];
@@ -216,7 +219,7 @@
           const e = this.led.edits.find(e => e.id === id);
           return e && { ...e, from: e.from ?? e.find, text: e.text ?? e.replace, blocks: e.blocks || [e.block] };
         },
-        ratingsOf(id) { return this.led.ratings.filter(r => r.edit === id); },
+        ratingsOf(id) { return (this.led.ratings || []).filter(r => r.edit === id); },
         tierText(t) {
           const ok = this.steps.filter(s => TIERS.indexOf(s.risk) <= TIERS.indexOf(t));
           return ok.length ? ok[ok.length - 1].text : this.original;
@@ -224,6 +227,7 @@
         // What Before / after can put on its right: the passage through each
         // tier, then any whole rewrite, which is an alternative to the path.
         get choices() {
+          if (this.isDome) return (this.led.bouts || []).map(b => ({ id: 'b' + b.n, label: 'after bout ' + b.n, text: b.text, whole: true }));
           const out = TIERS.filter(t => t !== 'repair' || this.steps.some(s => s.risk === 'repair'))
             .map(t => ({ id: t, label: t === 'repair' ? 'repaired' : t, text: this.tierText(t), tier: t }));
           for (const w of this.led.wholes || []) out.push({ id: w.edit, label: w.by.replace('architect-', '').replace('scout-', 'scout ') + ' rewrite', text: w.text, tier: w.risk, whole: true });
@@ -303,6 +307,13 @@
               + '<span class="size-2.5 flex-none rounded-full bg-base-content/20"></span>' + mono('0', 'w-6 opacity-60')
               + '<span class="min-w-0 flex-1 truncate font-semibold">original</span></div>';
           }
+          if (this.isDome) {
+            const { i, s, prev } = this.stepAt(id), d = this.wc(prev) - s.words;
+            return '<div role="option" tabindex="0" data-step="' + window.esc(id) + '" aria-selected="' + sel + '" class="' + base + '">'
+              + mono(String(i), 'w-6 opacity-60') + mono(this.editOf(id).by, 'w-16 truncate opacity-70')
+              + '<span class="min-w-0 flex-1 truncate">' + window.esc(this.stepTitle(id)) + '</span>'
+              + mono(d >= 0 ? '−' + d : '+' + (-d), 'w-8 text-right') + '</div>';
+          }
           const { i, s } = this.stepAt(id), marks = this.marksOf(id, s);
           return '<div role="option" tabindex="0" data-step="' + window.esc(id) + '" aria-selected="' + sel + '" class="' + base + '">'
             + '<span class="size-2.5 flex-none rounded-full ' + TIER[s.risk].dot + '"></span>' + mono(String(i), 'w-6 opacity-60')
@@ -328,8 +339,27 @@
             : r.k === 'del' ? '<span class="' + DEL + '">' + window.esc(r.t) + '</span>' : window.esc(r.t)).join('');
           return paras.filter(p => p.some(r => r.k)).map(p => '<p>' + html(p) + '</p>').join('<p class="opacity-40 text-center">⋯</p>');
         },
+        // A dome's list, each bout's edits under a row naming the bout.
+        listHtml(ids) {
+          if (!this.isDome) return ids.map(id => this.rowHtml(id)).join('');
+          let at = 0;
+          return ids.map(id => {
+            const s = id === '0' ? null : this.stepAt(id).s;
+            const b = s && s.bout !== at ? this.led.bouts.find(x => x.n === (at = s.bout)) : null;
+            return (b ? '<div class="sticky top-0 z-10 bg-base-200 px-2.5 py-0.5 font-mono text-xs">'
+              + window.esc('bout ' + b.n + (b.model ? ' · ' + b.model : '') + ' · ' + b.landed + ' landed, ' + b.knocked + ' knocked out · ' + b.words + ' words') + '</div>' : '')
+              + this.rowHtml(id);
+          }).join('');
+        },
         cardHtml(id) {
           const box = 'leading-8 text-pretty whitespace-pre-wrap break-words border-l-4 pl-3 flex flex-col gap-3 ';
+          if (this.isDome && id !== '0') {
+            const { s, prev } = this.stepAt(id), d = this.wc(prev) - s.words;
+            return '<div class="flex flex-col gap-3 pb-24">'
+              + '<div class="font-mono text-xs opacity-80">' + window.esc('bout ' + s.bout + ' · ' + this.editOf(id).by + ' · '
+                + (d >= 0 ? '−' + d : '+' + (-d)) + (Math.abs(d) === 1 ? ' word' : ' words') + ' · ' + s.words + ' now') + '</div>'
+              + '<div class="' + box + 'border-base-300"><p>' + this.diffHtml(prev, s.text) + '</p></div></div>';
+          }
           if (id === '0') {
             const shown = this.para ? this.led.blocks.filter(b => b.id === this.para) : this.led.blocks;
             return '<div class="flex flex-col gap-3 pb-24"><div class="' + box + 'border-base-300">'
@@ -355,7 +385,7 @@
           if (!this.isLadder || !this.$refs.llist) return;
           const ids = this.stepIds();
           if (!ids.includes(this.lsel)) this.lsel = '0';
-          this.$refs.llist.innerHTML = ids.map(id => this.rowHtml(id)).join('');
+          this.$refs.llist.innerHTML = this.listHtml(ids);
           if (!this._ls) {
             this._ls = linkedSwiper.attach({
               root: this.$refs.lroot, list: this.$refs.llist, card: this.$refs.lcard, key: 'step',
@@ -385,10 +415,14 @@
         // Before / after, either kind: the result the controls name, and the
         // version it is compared with.
         get res() {
-          if (this.isLadder) { const c = this.choice; return { text: c.text, words: this.wc(c.text), html: this.resHtml[c.id], label: c.label }; }
+          if (this.isLadder) { const c = this.choice; return c ? { text: c.text, words: this.wc(c.text), html: this.resHtml[c.id], label: c.label } : null; }
           return this.h ? { text: this.h.text, words: this.h.words, html: this.resHtml[this.n], label: 'Round ' + this.n + ' result' } : null;
         },
         get base() {
+          if (this.isDome) {
+            const cs = this.choices, i = cs.findIndex(c => c.id === this.tier);
+            return i > 0 ? { text: cs[i - 1].text, label: 'bout ' + (i) } : { text: this.original, label: 'the original' };
+          }
           if (this.isLadder) {
             const c = this.choice;
             if (c.whole) return { text: this.tierText('repair'), label: this.steps.some(s => s.risk === 'repair') ? 'repaired' : 'the original' };
@@ -434,7 +468,7 @@
         <button class="btn btn-sm shrink-0" :class="tab === id ? 'btn-neutral' : 'btn-ghost'" @click="tab = id" x-text="label"></button>
       </template>
     </nav>
-    <div class="flex items-center gap-2 px-4 py-2 border-t border-base-300 overflow-x-auto" x-show="isLadder && (tab === 'edits' || tab === 'ideas')">
+    <div class="flex items-center gap-2 px-4 py-2 border-t border-base-300 overflow-x-auto" x-show="isLadder && led.blocks.length > 1 && (tab === 'edits' || tab === 'ideas')">
       <span class="text-xs opacity-70 shrink-0">paragraph</span>
       <button class="btn btn-xs shrink-0" :class="para === null ? 'btn-neutral' : 'btn-ghost'" @click="pickPara(null)">all</button>
       <template x-for="b in (isLadder ? led.blocks : [])" :key="b.id">
