@@ -1,6 +1,6 @@
 {
  "kind": "swarm/1",
- "title": "Subagents share the container",
+ "title": "Subagents share the container, not just the budget",
  "source": {
   "path": "docs/environment/capabilities.md",
   "lines": [
@@ -9,6 +9,10 @@
   ],
   "words": 408,
   "sha256": "06ffdafde35e82bff59998b59371edb0a41c9e3a64688bc4738bed99c1e4fc64",
+  "ref": "17ff19cfc21cc5da48106449057e5e6da0098b48",
+  "repo": "mehrlander/web-tools",
+  "url": "https://github.com/mehrlander/web-tools/blob/17ff19cfc21cc5da48106449057e5e6da0098b48/docs/environment/capabilities.md#L320-L363",
+  "heading": "Subagents share the container, not just the budget",
   "text": "## Subagents share the container, not just the budget\n\nA subagent reads a file the main loop just wrote and the reverse: same\nhostname, same boot, same `HTTPS_PROXY`, same user, same checkouts, branch and\nHEAD.\n\n**What is separate is the context window, not the machine.** That single fact\nexplains the shared search budget, the shared concurrency cap, and why agents\ncan write directly into the repo for the main loop to commit. The `Agent`\ntool's `isolation: \"worktree\"` and `isolation: \"remote\"` options are the\nexceptions; by default everything is shared.\n\n**Concurrency caps at 20 subagents.** Larger dispatches partially fail with\n`Concurrent subagent limit reached`, raisable with\n`CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`. The cap's real cost is not the visible\nrejection but a **silent drop**: an item that was in the roster, never\ndispatched successfully, and therefore never reports. Reconcile the roster\nagainst what actually launched, never against what was dispatched.\n`ListAgents` settles it in one call.\n\n**The Workflow tool's cap is a different number, and it is a function of the\nmachine** *(measured 2026-09-06)*: min(16, CPUs minus 2) per run, per the\nauthoring reference, and this container reported 4 CPUs (`nproc`), so a\nWorkflow would have run two agents at a time against the Agent tool's twenty.\nRead `nproc` before choosing the venue for a fan-out; on this box the Agent\ntool wins by a factor of ten. From the same run of 124 agents (17 minutes at\nthe cap):\n\n- The Agent tool has no effort parameter; only Workflow's `agent()` takes one.\n  A \"low effort\" instruction has to travel in the prompt.\n- **Output on disk is not agent done.** An agent that has written its file and\n  run a checker still holds its slot until it returns, so a ledger kept from\n  file arrivals overcounts free slots by one or two and the next launch is\n  refused. `ListAgents` is the count; the refusal is cheap and the relaunch is\n  the fix.\n- A validator the agent runs on its own output before returning, one script\n  named in the prompt, made 124 of 124 outputs parse and conform. It is the\n  Agent-tool equivalent of Workflow's `schema` option, and it is committed.\n- Cost lives in the transcripts, not the notification: each transcript line's\n  `message.usage` block sums to the agent's spend. That run: 91.3M tokens, of\n  which 74.4M were cache reads of the shared prompt and 300k were output;\n  readers averaged 105k tokens and about two minutes, skeptics 97k and about\n  90 seconds.\n"
  },
  "units": [
@@ -194,7 +198,8 @@
       "1.c20",
       "1.c21"
      ],
-     "votes": 0
+     "votes": 0,
+     "model": "sonnet"
     },
     {
      "role": "drafter",
@@ -225,7 +230,8 @@
       "1.t2",
       "1.t3"
      ],
-     "votes": 0
+     "votes": 0,
+     "model": "sonnet"
     },
     {
      "role": "tactician",
@@ -273,7 +279,8 @@
       "1.w14",
       "1.w15"
      ],
-     "votes": 0
+     "votes": 0,
+     "model": "sonnet"
     }
    ],
    "harvest": {
@@ -620,7 +627,8 @@
     "note": "First harvest: d21 spliced with t8/t9/t13 wording; opened bullets merged, 'block'/'still' trimmed, nothing cut that a live core item needs.",
     "dropped": [],
     "core_carried": 34,
-    "core_total": 34
+    "core_total": 34,
+    "model": "sonnet"
    }
   },
   {
@@ -640,7 +648,8 @@
       "2.d9",
       "2.d10"
      ],
-     "votes": 14
+     "votes": 14,
+     "model": "sonnet"
     },
     {
      "role": "challenger",
@@ -650,7 +659,8 @@
       "2.t2",
       "2.t3"
      ],
-     "votes": 0
+     "votes": 0,
+     "model": "sonnet"
     }
    ],
    "harvest": {
@@ -949,7 +959,8 @@
     "note": "302 to ~250 words: dropped hostname/boot/user, 'straight', 'before returning', 'by one or two', 'the cap's real cost', 'not what was dispatched'; kept 'authoring reference' (1.w10 -1); slot and silent-drop bullets stay separate.",
     "dropped": [],
     "core_carried": 31,
-    "core_total": 31
+    "core_total": 31,
+    "model": "sonnet"
    }
   },
   {
@@ -969,7 +980,8 @@
       "3.d9",
       "3.d10"
      ],
-     "votes": 15
+     "votes": 15,
+     "model": "sonnet"
     },
     {
      "role": "challenger",
@@ -979,7 +991,8 @@
       "3.t2",
       "3.t3"
      ],
-     "votes": 0
+     "votes": 0,
+     "model": "sonnet"
     }
    ],
    "harvest": {
@@ -1260,7 +1273,8 @@
     "note": "Challenger 3.d11's heading and one-paragraph opening, builder 3.d9's bullets, 'a refusal is cheap' restored (c16), 'of the shared prompt' cut (c20 is dead).",
     "dropped": [],
     "core_carried": 28,
-    "core_total": 28
+    "core_total": 28,
+    "model": "sonnet"
    }
   }
  ],

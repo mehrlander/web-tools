@@ -4,8 +4,8 @@
     swarm.py init <run> <file> <first-line> <last-line> [--title T]
     swarm.py context <run> <round> <role>    write a reader's brief, print its paths
     swarm.py check <run> <output>            validate a reader's .jsonl or a harvest .json
-    swarm.py merge <run> <round>             fold r<round>-<role>.jsonl into the ledger
-    swarm.py harvest <run> <round>           fold r<round>-harvest.json and score it
+    swarm.py merge <run> <round> [--model M] fold r<round>-<role>.jsonl into the ledger
+    swarm.py harvest <run> <round> [--model M]  fold r<round>-harvest.json and score it
     swarm.py status <run>                    one line per round
     swarm.py gz <run>                        the ledger as a #gz= payload
 
@@ -56,6 +56,24 @@ def best(led, before):
     return hs[-1] if hs else None
 
 
+def git(cwd, *a):
+    return subprocess.run(['git', *a], cwd=cwd, capture_output=True, text=True).stdout.strip()
+
+
+def where(path, l0, l1):
+    """The source's repo, commit and blob URL, so a reader can open the passage."""
+    top = git(Path(path).resolve().parent, 'rev-parse', '--show-toplevel')
+    if not top:
+        return {}
+    rel = Path(path).resolve().relative_to(top).as_posix()
+    m = re.search(r'([^/:]+/[^/]+?)(?:\.git)?$', git(top, 'remote', 'get-url', 'origin'))
+    ref = git(top, 'log', '-1', '--format=%H', '--', rel) or git(top, 'rev-parse', 'HEAD')
+    out = {'path': rel, 'ref': ref}
+    if m:
+        out.update(repo=m.group(1), url=f'https://github.com/{m.group(1)}/blob/{ref}/{rel}#L{l0}-L{l1}')
+    return out
+
+
 def init(run, path, l0, l1, title=None):
     run = Path(run); run.mkdir(parents=True, exist_ok=True)
     raw = Path(path).read_text(encoding='utf-8').split('\n')
@@ -68,9 +86,10 @@ def init(run, path, l0, l1, title=None):
         u = json.loads(line)
         units.append({'id': f'S{i}', 'kind': u['kind'], 'start': u['start'] - base,
                       'end': u['end'] - base, 'words': u['words'], 'text': ' '.join(u['text'].split())})
-    led = {'kind': 'swarm/1', 'title': title or Path(path).name,
-           'source': {'path': path, 'lines': [l0, l1], 'words': words(chunk),
-                      'sha256': hashlib.sha256(chunk.encode()).hexdigest(), 'text': chunk},
+    head = re.sub(r'^#+\s*', '', units[0]['text']) if units and units[0]['kind'].startswith('h') else None
+    led = {'kind': 'swarm/1', 'title': title or head or Path(path).name,
+           'source': {'path': path, 'lines': [l0, l1], **where(path, l0, l1), 'heading': head,
+                      'words': words(chunk), 'sha256': hashlib.sha256(chunk.encode()).hexdigest(), 'text': chunk},
            'units': units, 'rounds': [], 'entries': []}
     save(run, led)
     print(f'{run}/ledger.json: {len(units)} units, {words(chunk)} words')
@@ -201,7 +220,7 @@ def check(run, out):
     return not errs
 
 
-def merge(run, n):
+def merge(run, n, model='sonnet'):
     run, n, led = Path(run), int(n), load(run)
     if any(r['n'] == n for r in led['rounds']):
         sys.exit(f'round {n} is already merged')
@@ -229,13 +248,13 @@ def merge(run, n):
                  'tag': o['tag'], 'anchors': o['anchors']}
             e.update({k: o[k] for k in ('text', 'from', 'builds_on') if k in o})
             led['entries'].append(e); made.append(e['id'])
-        rnd['readers'].append({'role': role, 'entries': made, 'votes': cast})
+        rnd['readers'].append({'role': role, 'model': model, 'entries': made, 'votes': cast})
     led['rounds'].append(rnd)
     save(run, led)
     print(f"round {n}: " + '; '.join(f"{r['role']} {len(r['entries'])} entries, {r['votes']} votes" for r in rnd['readers']))
 
 
-def harvest(run, n):
+def harvest(run, n, model='sonnet'):
     run, n, led = Path(run), int(n), load(run)
     rnd = next((r for r in led['rounds'] if r['n'] == n), None)
     if not rnd:
@@ -247,7 +266,7 @@ def harvest(run, n):
     carried = {a for m in o['map'] for a in m['from']}
     h = {'text': o['text'], 'words': words(o['text']), 'map': o['map'], 'core': o['core'],
          'note': o.get('note', ''), 'dropped': [u['id'] for u in led['units'] if u['id'] not in carried],
-         'core_carried': sum(1 for c in o['core'] if 'quote' in c), 'core_total': len(o['core'])}
+         'core_carried': sum(1 for c in o['core'] if 'quote' in c), 'core_total': len(o['core']), 'model': model}
     rnd['harvest'] = h
     save(run, led)
     print(f"round {n}: {led['source']['words']} -> {h['words']} words, core {h['core_carried']}/{h['core_total']}, dropped {', '.join(h['dropped']) or 'none'}")
@@ -278,5 +297,8 @@ if __name__ == '__main__':
         init(a[1], a[2], int(a[3]), int(a[4]), t)
     elif a[0] == 'check':
         sys.exit(0 if check(a[1], a[2]) else 1)
+    elif a[0] in ('merge', 'harvest'):
+        m = a[a.index('--model') + 1] if '--model' in a else 'sonnet'
+        (merge if a[0] == 'merge' else harvest)(a[1], a[2], m)
     else:
         {'context': context, 'merge': merge, 'harvest': harvest, 'status': status, 'gz': gz}[a[0]](*a[1:])

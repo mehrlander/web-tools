@@ -30,7 +30,10 @@ kinds:
 
 `anchors` lists unit ids in source order, or `["ALL"]` for the whole passage.
 `builds_on` is optional and lists the ids of ledger entries, shown below, that
-an entry extends; your own entries get ids when the round is merged. Write only
+an entry extends; your own entries get ids when the round is merged. Ids are for
+`builds_on` and votes only: in any `text`, `why` or `note`, name an entry's
+content by quoting a few of its words, since a reader of the result sees the
+words and never the ids. Write only
 the kinds your role names. Before returning, run the check command named below
 and fix every line it reports.
 
