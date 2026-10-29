@@ -146,7 +146,7 @@ node/render/scenarios/estate-lists.mjs,"the whole Lists pane with created lists 
 node/render/scenarios/estate-open.mjs,Activity's Open view seeded token-free so the list renders headlessly,node/render/scenarios,205,driver,node/render/scenarios/estate-crawl-progress.mjs,no,no,no
 node/render/scenarios/estate-pins.mjs,the Lists pane with the Pin block populated above To-do and Jot,node/render/scenarios,96,driver,,no,no,no
 node/render/scenarios/estate-rows.mjs,the grouped-grid Repos view with a nested companion card,node/render/scenarios,88,driver,,no,no,no
-node/render/scenarios/estate-sessions.mjs,"the Sessions and Lists panes on fixture data, token-free",node/render/scenarios,768,driver,node/render/scenarios/estate-crawl-progress.mjs,no,no,yes
+node/render/scenarios/estate-sessions.mjs,"the Sessions and Lists panes on fixture data, token-free",node/render/scenarios,802,driver,node/render/scenarios/estate-crawl-progress.mjs,no,no,yes
 node/render/scenarios/estate-skills.mjs,,node/render/scenarios,106,driver,,no,no,no
 node/render/scenarios/estate-snags.mjs,,node/render/scenarios,115,driver,,no,no,no
 node/render/scenarios/estate-surfaces-embed.mjs,"the Surfaces view rendering a kind:embed item, collapsed",node/render/scenarios,81,driver,,no,no,no

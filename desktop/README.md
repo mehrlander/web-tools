@@ -140,15 +140,33 @@ quotas enter the Gemini lane. Claude models served through Antigravity do not
 describe the user's separate Claude subscription. Identical Gemini model
 readings and histories are grouped visually. An unreported period stays unknown.
 
-Claude's documented Code statusline JSON can supply `rate_limits.five_hour` and
-`rate_limits.seven_day`. A local statusline integration can pipe that JSON to
+Claude account usage connects through the existing Claude Code sign-in. Run
+`claude auth login --claudeai` once if that sign-in has expired. The companion
+reads the account usage endpoint shipped with Claude Code about every five
+minutes, using Windows certificate trust. Existing OAuth credentials stay in
+Claude's configuration directory (`CLAUDE_CONFIG_DIR` or `%USERPROFILE%\.claude`).
+Normal token refresh preserves unrelated credential-file data and a newer sign-in
+made by Claude. Redirects are disabled on authenticated requests. No model call
+or API-key billing is used. The endpoint is version-dependent; failed reads retain
+the previous values with an explicit connection notice. Account-wide and reported
+model-specific weekly limits stay separate.
+
+Claude's documented Code statusline JSON can also supply `rate_limits.five_hour`
+and `rate_limits.seven_day`. A local statusline integration can pipe that JSON to
 `python <installed-companion>/worker/usage.py --state <desktop-data> --capture claude`.
 The capture command saves only the two percentages, reset times and capture time,
 and prints nothing. An existing statusline should retain its normal output.
 The normal desktop data directory is `%LOCALAPPDATA%\WebToolsDesktop`. No statusline
 settings are changed automatically. Without a reporter, the Claude lane explicitly
-says it is not connected. Cloud session activity hooks alone do not supply account
-quotas. A cloud reporter transport remains separate work.
+says it is not connected. The account reader covers the subscription's usage
+without requiring a separate reporter in each cloud session.
+
+Each assistant's usage header has a browser-link icon. Codex opens ChatGPT's
+Usage settings and Claude opens Claude's Usage settings. Gemini opens the
+Antigravity browser entry point; the vendor places model quotas under Settings
+and does not document a standalone browser quota address. The desktop opens only
+these three approved destinations in the system browser. The phone opens the
+same addresses separately.
 
 Usage files remain beside the companion settings in `usage.json` and
 `usage-inputs/claude.json`. No credential, transcript, account identifier or raw

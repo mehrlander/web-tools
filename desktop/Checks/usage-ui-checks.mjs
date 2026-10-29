@@ -13,6 +13,8 @@ const provider = {provider:'claude',status:'available',source:'Claude Code statu
 const render = (data) => { doc.querySelector('main').innerHTML = window.NowUsage.render(data,{now}); };
 render([provider]);
 check(doc.querySelectorAll('[data-usage-provider]').length === 3,'All assistants have a usage lane.');
+check(doc.querySelector('[data-usage-link=codex]').href === 'https://chatgpt.com/settings/usage' && doc.querySelector('[data-usage-link=claude]').href === 'https://claude.ai/settings/usage' && doc.querySelector('[data-usage-link=gemini]').href === 'https://antigravity.google.com/','Each lane links to the correct account site, including assistants without a reading.');
+check([...doc.querySelectorAll('[data-usage-link]')].every(a => a.target === '_blank' && a.rel.includes('noopener') && a.getAttribute('aria-label')),'Usage links have accessible labels and open separately without opener access.');
 check(doc.querySelectorAll('[role=progressbar]').length === 2,'Only reported windows get percentage bars.');
 check(doc.querySelector('[data-elapsed]').dataset.elapsed === '40.0','The five-hour elapsed marker is based on reset and actual window duration.');
 check(doc.body.textContent.includes('5h') && doc.body.textContent.includes('7d') && doc.body.textContent.includes('Resets in 3h 0m'),'Short and long windows show independent resets.');
@@ -27,6 +29,10 @@ check(!doc.querySelector('[data-elapsed]') && doc.body.textContent.includes('Win
 check(doc.querySelectorAll('[data-usage-window]').length === 1 && doc.body.textContent.includes('Identical model readings grouped'),'Identical Gemini model readings stay compact.');
 render([{...provider,source:'<img src=x onerror=alert(1)>',windows:[{...row,label:'<script>bad</script>',history:[{at:'2027-01-15T04:00:00Z',usedPercent:10,resetsAt:reset},{at:'2027-01-15T04:30:00Z',usedPercent:20,resetsAt:reset}]}]}]);
 check(!doc.querySelector('img,script') && doc.querySelector('[data-usage-trend]'),'Source labels are escaped while observations render a trend.');
+render([{...provider,status:'available',windows:[],notice:'No active quota windows reported by Claude.'}]);
+check(doc.querySelector('[data-usage-provider=claude]').textContent.includes('No limits reported') && !doc.querySelector('[role=progressbar]'),'A connected account with no reported limits is distinct from missing sign-in.');
+render([{...provider,status:'stale',notice:'Claude sign-in has expired. Sign in again on this laptop.'}]);
+check(doc.querySelector('[data-usage-provider=claude]').textContent.includes('sign-in has expired'),'A retained reading also exposes the action needed to restore its connection.');
 render([{...provider,windows:[{...row,history:[{at:'2027-01-15T04:00:00Z',usedPercent:80,resetsAt:'2027-01-15T03:00:00Z'},{at:'2027-01-15T04:30:00Z',usedPercent:20,resetsAt:reset}]}]}]);
 check(!doc.querySelector('[data-usage-trend]'),'A trend never connects observations across different reset windows.');
 console.log(`${checks} usage display checks passed.`);
