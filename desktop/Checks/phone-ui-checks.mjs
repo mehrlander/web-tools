@@ -30,6 +30,7 @@ const legacyReviewKey = 'web-tools-now-reviewed:Fixture laptop';
 const legacyReview = JSON.stringify({since:Date.now() - 86400000,seen:{cloud:'change-1'}});
 window.localStorage.setItem(legacyReviewKey,legacyReview);
 window.eval(read('../shared/now-shared.js'));
+window.eval(read('../shared/usage-view.js'));
 window.eval(read('../../node_modules/marked/lib/marked.umd.js'));
 window.eval(read('../../node_modules/dompurify/dist/purify.min.js'));
 window.eval(read('../phone/reading.js'));
@@ -39,6 +40,12 @@ const check = (condition,message) => { assert.ok(condition,message); checks++; }
 const click = selector => { const node = doc.querySelector(selector); assert.ok(node,selector); node.click(); };
 async function poll() { const current = [...timers].find(([,timer]) => timer.delay >= 2000 && timer.delay !== 6000); assert.ok(current,'Poll scheduled'); timers.delete(current[0]); current[1].fn(); await flush(); }
 await flush();
+click('[data-tab=usage]');
+check(doc.querySelectorAll('[data-usage-provider]').length === 3 && !doc.querySelector('[role=progressbar]'),'Usage shows all three providers and missing quotas never become zero usage.');
+snapshot.usage = [{provider:'codex',source:'Codex account',status:'available',observedAt:now,windows:[{id:'codex:primary',label:'codex',usedPercent:28,resetsAt:new Date(Date.now()+3600000).toISOString(),durationMinutes:300,history:[]}]}];
+await poll();
+check(doc.querySelector('[role=progressbar]')?.getAttribute('aria-valuenow') === '28' && doc.querySelector('#content').textContent.includes('Resets in'),'Live usage readings reach the Usage tab with a reset countdown.');
+click('[data-tab=now]');
 check(doc.querySelectorAll('#assistants svg').length === 3,'The phone view shows the three shared assistant marks.');
 check(doc.querySelector('#connection').textContent.includes('Laptop live'),'A fresh observation has steady local live status.');
 check(doc.querySelector('#content').textContent.includes('Needs you') && doc.querySelector('#content').textContent.includes('Recorded: choice needed'),'Cloud attention remains a recorded state.');
