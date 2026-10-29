@@ -12,12 +12,9 @@ insight. Getting there is usually iterative: present the pieces, pare the
 representation down, layer it, and manage each disclosure tightly, until it
 builds a dense web of connected information.
 
-These steps have a written procedure,
-[method.md](https://github.com/mehrlander/web-tools/blob/main/research/minimal-progressive-structure/method.md),
-aimed at a limit,
+The limit of that work is
 [minimal progressive structure](https://github.com/mehrlander/web-tools/blob/main/research/minimal-progressive-structure/theory.md#the-definition):
-a layout that delivers all of its content with no text describing its own
-organization.
+all of the content, and no text describing its organization.
 
 ## "A page is for comparing"
 
@@ -43,9 +40,9 @@ comparison. Treat any `stats`, `stat-value`, or KPI-tile grid as a defect.
 
 **2. No explanatory prose.** GitHub doesn't explain and neither should we. Use
 structure, labels, and controls to show relationships: a range control starting
-at 2015 says the data starts in 2015. On a page that presents a document, such
-as a bill or a report, a sentence stating what the document says is content,
-not explanation, and the page opens with it.
+at 2015 says the data starts in 2015. Title the page with its topic sentence,
+not its topic: "SJR 8201 would let the state invest WA Cares funds in stocks",
+not "Investing WA Cares tax dollars".
 
 **3. Don't narrow text to a reading column.** `max-w-prose`, `max-w-2xl`,
 `max-w-3xl`, `max-w-4xl`, `container mx-auto`, and a `prose` class without
