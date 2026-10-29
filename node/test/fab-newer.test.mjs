@@ -4,7 +4,8 @@
 // (or its long-press row) redraws at the branch's latest commit. What breaks
 // without these: a badge over a page already at the tip, a badge built from a
 // merged PR's branch, calls spent with no token, a refocus that re-reads from
-// the one-minute cache, and a tap that drags the launcher instead of redrawing.
+// the one-minute cache, a tap that drags the launcher instead of redrawing, and
+// a tap that redraws nothing because the kit it routes through never loaded.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -56,10 +57,11 @@ async function until(fn, n = 40) { for (let i = 0; i < n && !fn(); i++) await ti
 test('a pinned toss behind its branch wears the badge, and a tap redraws at the tip', async () => {
   answers = { 'compare/': ahead(2) };
   const { d, badge, el } = await mount({ repo: 'me/r', ref: SHA, branch: 'claude/x', path: 'pages/a.html' });
-  assert.deepEqual({ ...d.newer }, { branch: 'claude/x', ahead: 2, target: 'claude/x@cccccccccccc' });
+  assert.deepEqual({ ...d.newer }, { branch: 'claude/x', ahead: 2, sha: 'cccccccccccc', target: 'claude/x@cccccccccccc' });
   assert.deepEqual(calls.map(c => c.p), ['compare/' + SHA + '...claude/x'], 'the named branch needs no PR lookup');
   assert.ok(await until(() => shown(badge())), 'the badge is up');
   assert.match(badge().textContent, /2/);
+  assert.equal(badge().dataset.titleTip, '2 newer versions', 'the badge\'s tip is the count alone');
   badge().click();
   await until(() => navs.length);
   assert.deepEqual(navs, ['me/r@claude/x@cccccccccccc:pages/a.html'], 'redrawn at the tip, pinned');
@@ -69,8 +71,28 @@ test('a pinned toss behind its branch wears the badge, and a tap redraws at the 
   const row = el.querySelector('[data-fab-newer-row]');
   assert.ok(row, 'the menu carries the row');
   assert.match(row.textContent, /Latest version/);
-  assert.match(row.dataset.titleTip, /claude\/x/, 'the branch rides in the tip');
+  assert.equal(row.dataset.titleTip, 'Commit cccccccccccc, the latest on claude/x', 'the commit and branch ride in the tip');
   assert.match(row.textContent, /2 newer/);
+});
+
+test('a tap before the guide kit has loaded waits for it, rather than redrawing nothing', async () => {
+  // A toss shell pulls fab.js alone, so kits/guide-render.js (where
+  // renderTarget lives) arrives by self-load, and until 2026-10-29 only a
+  // rendered PR guide asked for it. The first test above has the kit up front,
+  // which is how it passed while the badge did nothing on a real toss.
+  answers = { 'compare/': ahead(1) };
+  const kit = window.GuideRender;
+  delete window.GuideRender;
+  try {
+    const { d, badge } = await mount({ repo: 'me/r', ref: SHA, branch: 'claude/x', path: 'pages/a.html' });
+    const loads = [];
+    d._selfLoad = async (p, ready) => { loads.push(p); if (p === 'kits/guide-render.js') window.GuideRender = kit; return ready(); };
+    assert.ok(await until(() => shown(badge())), 'the badge is up');
+    badge().click();
+    await until(() => navs.length);
+    assert.ok(loads.includes('kits/guide-render.js'), 'the tap asked for the kit');
+    assert.deepEqual(navs, ['me/r@claude/x@cccccccccccc:pages/a.html'], 'and then redrew at the tip');
+  } finally { window.GuideRender = kit; }
 });
 
 test('a commit-only link finds its branch through an open pull request, never a merged one', async () => {
