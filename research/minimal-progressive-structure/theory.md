@@ -16,7 +16,9 @@ encoding of a message can be, and practical codes approach that limit without
 reaching it. Minimal progressive structure is a limit of that kind. Some
 arrangements have no convention a reader knows: a chart that plots recorded
 altitudes beside altitudes a crew only spoke aloud needs a sentence saying so,
-as the judges of the NTSB pages noted. A practical page keeps that text.
+as both NTSB designer judges noted
+([A](experiment/judgments/dca-designera.json),
+[B](experiment/judgments/dca-designerb.json)). A practical page keeps that text.
 
 ## The claim
 
