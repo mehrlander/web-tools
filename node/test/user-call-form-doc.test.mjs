@@ -125,6 +125,24 @@ test('nothing records until every staged edit is decided, and a decision stays m
   assert.equal(mark(1).dataset.decision, 'open', 'a second tap lets it go');
 });
 
+test('Old and New draw the whole file as it stands and as proposed; Changes keeps its decisions', async () => {
+  act(1, 'Keep');
+  await tick(2);
+  const view = (v) => root().querySelector(`[data-doc-view="${v}"]`).click();
+  view('old');
+  await until(() => drawn.length >= 2);
+  assert.deepEqual(drawn.at(-1), { a: DOC, b: DOC }, 'the file as it stands');
+  view('new');
+  await until(() => drawn.length >= 3);
+  assert.deepEqual(drawn.at(-1), { a: 'First.\n\nSecond.\n\nThird.\n\nFourth.\n', b: 'First.\n\nSecond.\n\nThird.\n\nFourth.\n' }, 'the file with every edit');
+  view('changes');
+  await until(() => mark(1));
+  assert.equal(mark(1).dataset.decision, 'confirmed', 'a decision survives the switch');
+  act(1, 'Keep');
+  await tick(2);
+  assert.match(root().querySelector('[data-doc-file]').href, /toss-render\.html#data=me\/widget@main:docs\/x\.md$/, 'the file itself, at the call\'s ref');
+});
+
 test('the answer line is the one Dictate and the Docs tab write, with the kept edits as a patch', async () => {
   act(1, 'Keep');
   act(2, 'Discard');
