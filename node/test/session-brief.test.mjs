@@ -59,9 +59,12 @@ const gets = () => log.filter(l => l.startsWith('get:'));
 // standalone mount also lists each repo's user-calls/ folder, a different read.
 const trees = () => log.filter(l => l.startsWith('tree:') && !l.startsWith('tree:contents/user-calls'));
 class FakeGH {
-  constructor(conf = {}) { this.repo = conf.repo || ''; this.ref = conf.ref || 'main'; }
+  constructor(conf = {}) { this.repo = conf.repo || ''; this.ref = conf.ref || 'main'; this.pinned = 'ref' in conf; }
   async get(p) {
-    log.push('get:' + this.repo + ':' + p);
+    log.push('get:' + this.repo + ':' + p + (p === '.web-tools.json' && !this.pinned ? ' (selection)' : ''));
+    // A repository's manifest, where a test serves one (the marks tests).
+    const manifest = window.__manifests?.[this.repo];
+    if (p === '.web-tools.json' && manifest) return { text: JSON.stringify(manifest) };
     // `__recordPatch` and `__recordSha` let a test serve a later record, and
     // the blob sha GitHub reports beside it, without a second fixture.
     if (p === PATH) return { text: JSON.stringify({ ...record, ...(window.__recordPatch || {}), readFrom: this.repo }),
@@ -131,7 +134,9 @@ window.Alpine = Alpine;
 // a cold pages/session.html does not, which is the case the listing covers.
 // repo-address.js is booted by every page; the component's GitHub links are
 // built by window.RepoAddress.github.
-for (const k of ['lib/kits/repo-address.js', 'lib/kits/closing-state.js', 'lib/kits/repo-sessions-cache.js']) {
+// repo-mark.js is booted by every page too, and draws the scope's marks,
+// escaping through vanilla-bundle's window.esc, which boots first of all.
+for (const k of ['lib/vanilla-bundle.js', 'lib/kits/repo-address.js', 'lib/kits/repo-mark.js', 'lib/kits/closing-state.js', 'lib/kits/repo-sessions-cache.js']) {
   new window.Function('window', readFileSync(path.join(repoRoot, k), 'utf8'))(window);
 }
 for (const p of ['lib/alpine-bundle.js', 'lib/alpineComponents/session-brief.js']) {
@@ -818,13 +823,70 @@ test('the pill draws declared marks and counts the rest', () => {
   // Nine checkouts drew six neutral bookmarks in a row on a phone (owner,
   // 2026-10-22).
   const d = lent();
+  const M = window.RepoMark;
   const was = { record: d.record, marks: d.marks };
   try {
     d.record = { ...d.rec, attached: ['home', 'web-tools', 'wtp-a', 'wtp-b'] };
-    d.marks = { home: 'ph-house', 'web-tools': 'ph-toolbox', 'wtp-a': '', 'wtp-b': '' };
+    d.marks = { home: M.spec({ icon: 'ph-house' }), 'web-tools': M.spec({ icon: 'ph-toolbox' }), 'wtp-a': '', 'wtp-b': '' };
     assert.deepEqual(Array.from(d.scopeMarked), ['home', 'web-tools']);
     assert.equal(d.scopeRepos.length - d.scopeMarked.length, 2, 'drawn as +2');
   } finally { d.record = was.record; d.marks = was.marks; }
+});
+
+test('the pill and the checkouts panel draw a repository one way, in its tone', async () => {
+  // One renderer for both (kits/repo-mark.js), so the two cannot drift: a
+  // toned glyph is duotone in its tone in each, an untoned one keeps the plain
+  // weight and takes the colour around it, as every mark did before tones.
+  const d = lent();
+  const M = window.RepoMark;
+  const was = { record: d.record, marks: d.marks };
+  try {
+    d.record = { ...d.rec, repos: [], attached: ['home', 'shortcut-tools', 'wtp-a'] };
+    d.marks = { home: M.spec({ icon: 'ph-house' }), 'shortcut-tools': M.spec({ icon: 'ph-lightning', tone: 'yellow' }), 'wtp-a': '' };
+    await tick(2);
+    const pill = window.document.querySelector('#lent [data-scope-pill]');
+    const bolt = pill.querySelector('i.ph-lightning');
+    assert.deepEqual([...bolt.classList].filter(c => Object.values(M.WEIGHTS).includes(c)), ['ph-duotone'],
+      'one weight class, never `ph` beside another');
+    assert.ok(bolt.classList.contains('text-yellow-500'), 'in its tone');
+    const house = pill.querySelector('i.ph-house');
+    assert.ok(house.classList.contains('ph'), 'an untoned glyph keeps its weight');
+    assert.ok(![...house.classList].some(c => c.startsWith('text-') && c !== 'text-base'),
+      'and carries no colour of its own, so the pill\'s grey and its hover reach it');
+    assert.equal(pill.textContent.replace(/\s+/g, ''), '+1', 'the undeclared one is counted');
+    // The panel's row: the same mark at the panel's size, its tone over the
+    // panel's grey, and the neutral glyph for the repository that declares none.
+    const row = d.markHtml('shortcut-tools', { cls: 'text-lg', color: 'text-base-content/60' });
+    assert.match(row, /ph-duotone ph-lightning/);
+    assert.match(row, /text-yellow-500/);
+    assert.ok(!row.includes('text-base-content/60'), 'one colour: the tone replaces the panel\'s');
+    assert.match(d.markHtml('home', { cls: 'text-lg', color: 'text-base-content/60' }), /text-base-content\/60/);
+    assert.match(d.markHtml('wtp-a'), /ph-bookmark-simple/, 'none declared: the neutral glyph');
+  } finally { d.record = was.record; d.marks = was.marks; }
+});
+
+test('marks come from the app\'s estate list, else from each manifest at the page\'s selection', async () => {
+  // In the app the list is already read (no manifest read at all); on a cold
+  // page each repository's .web-tools.json is read once, without naming a ref,
+  // so a preview link's refs= decides which branch's manifest draws.
+  const d = lent();
+  const was = { record: d.record, marks: d.marks, shell: window.__shell };
+  try {
+    window.__shell = { estateRepos: [{ repo: 'me/home', icon: 'ph-house', tone: 'orange' }] };
+    window.__manifests = { 'me/mark-cold': { icon: 'ph-lightning', tone: 'yellow', weight: 'fill' } };
+    d.record = { ...d.rec, repos: [], attached: ['home', 'mark-cold', 'mark-none'] };
+    d.marks = {};
+    d.loadMarks();
+    await tick(4);
+    assert.equal(d.marks.home.tone, 'orange', 'the estate list\'s answer');
+    assert.ok(!gets().some(g => g.startsWith('get:me/home:')), 'and nothing read for it');
+    assert.deepEqual([d.marks['mark-cold'].glyph, d.marks['mark-cold'].tone, d.marks['mark-cold'].weight],
+                     ['ph-lightning', 'yellow', 'fill'], 'the manifest\'s, weight as declared');
+    assert.ok(gets().includes('get:me/mark-cold:.web-tools.json (selection)'), 'read at the selection, not pinned to main');
+    assert.equal(d.marks['mark-none'], '', 'a manifest that cannot be read declares nothing');
+  } finally {
+    d.record = was.record; d.marks = was.marks; window.__shell = was.shell; delete window.__manifests;
+  }
 });
 
 test('a session that names no checkout draws no pill', () => {
