@@ -1,0 +1,8 @@
+Review your model using the original source and reader purpose. Find one
+consequential weakness in its scope or internal structure. Use a concrete case
+to explain the weakness, and revise only where the change offers a reader
+benefit. Retain the original two examples; you may add one brief challenge case.
+Explain what changed, what the examples demonstrate, and what remains uncertain.
+Choose your own JSON schema and return the complete revised model. Preserve
+the distinction between source facts, interpretations, proposed extensions,
+and unknowns. Return readable, indented JSON with no HTML or outside prose.
