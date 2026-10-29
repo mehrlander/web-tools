@@ -541,7 +541,626 @@
    "why": ".github/workflows/test.yml: 'package-lock.json is gitignored in this repo, so there is no lockfile'."
   }
  ],
- "ideas": [],
+ "ideas": [
+  {
+   "id": "action.1",
+   "lens": "action",
+   "idea": "P4 to P7 read as a description of the hook, so a session has to work out the rules from it. Rewrite them as four actions (commit normally, never hand-edit generated output, run setup once per checkout, repair stale output and check the merge), each opening with its verb, and move the legs, the reasons and the PreToolUse history to the linked documents, which already own them.",
+   "kind": "restructure",
+   "blocks": [
+    "P4",
+    "P5",
+    "P6",
+    "P7"
+   ],
+   "rewrite": "- **Edit the source and commit as usual.** Before each `git commit`, [`.githooks/pre-commit`](.githooks/pre-commit) regenerates and stages, in the same commit, every **deterministic** derived artifact (a committed file generated from other files, such as `dist/web-tools.js`) that the pending changes touch. The steps are listed in [node/README.md](node/README.md#the-refresh-model).\n\n- **Never hand-edit a generated file or field the hook writes.** Thumbnails (`pages/thumbs/*.png`) are derived but not deterministic, so the hook only warns about them. Regenerate them once per session before a merge (see \"Per-session refresh\" above).\n\n- **Run `npm run setup` once per checkout.** It installs the hooks, the `derived-csv` merge driver and dependencies, and it never regenerates derived artifacts. The commit hook is a git hook, not a Claude Code hook; [extending.md](docs/environment/extending.md) gives the reason. Claude's startup scripts call the same setup script. `npm run ready` checks without writing, and `git commit --no-verify` bypasses the hook.\n\n- **Repair stale output, then check.** `npm test` checks most generators in [`derived-artifacts.test.mjs`](node/test/derived-artifacts.test.mjs), independently of the hook, which `--no-verify` bypasses and API, MCP, or server-side writes cannot run. Repair stale output with `npm run artifacts:refresh`, then run any additional command the test names. When a local merge stops because the hook changed files, finish it with `git -c core.editor=true merge --continue`.",
+   "saves": 26,
+   "why": "The reader sees a run-book, not a system report: each paragraph now names the action a session takes. node/README.md#the-refresh-model owns the legs and their order, extending.md owns the Claude hook scope, and derived-artifacts.test.mjs owns the check, so CLAUDE.md keeps the rules and links the mechanism. The hook is a git hook and setup never regenerates (checkout-setup.mjs), both as the passage says. Thumbnails stay the one exception, and \"only\" and \"never\" survive verbatim."
+  },
+  {
+   "id": "action.2",
+   "lens": "action",
+   "idea": "P2 gives the reader the adoption step as one import of dist/web-tools.js, with the worked example linked, and says what dist/app.js leaves out: five heavy kits (annotate, pdf, dictate, xlsx, redact) load on first use and are not in the bundle. \"Reaches\" becomes \"uses\", and \"tracked\" becomes \"committed\".",
+   "kind": "qualify",
+   "blocks": [
+    "P2"
+   ],
+   "rewrite": "`dist/web-tools.js` is **the pre-build**: the whole `lib/` frozen into one self-booting artifact that needs no network for the library's own code. A page adopts the library with one `import` of that file, instead of a chain of per-file `gh.load` calls ([`pages/demos/prebuild-demo.html`](pages/demos/prebuild-demo.html) is the worked example). `dist/app.js` is the app's own: the `lib/` files that `app/index.html` uses, directly or through other files, except five heavy kits (`annotate`, `pdf`, `dictate`, `xlsx`, `redact`) that load on first use. Both are committed, and the commit-time hook below rebuilds them. See [`node/README.md`](node/README.md#the-pre-build).",
+   "saves": -22,
+   "why": "node/README.md#the-apps-pre-build says app/index.html imports dist/app.js and that five kits are left out on purpose; build-app.mjs holds them in LAZY, so a reader adding one of those kits to the app should expect it to load at runtime. The adoption action needs the one import, which node/README.md#the-pre-build gives. Side note outside this lens: the demo's default import, ../dist/web-tools.js, resolves from pages/demos/ to pages/dist/, which does not exist, so the demo's non-?use path looks broken."
+  },
+  {
+   "id": "action.3",
+   "lens": "action",
+   "idea": "P8 opens with the browser-free naming rule, the one a session breaks by accident, and gives its example file. The page-measures sentence adds the action the report implies: read the job summary, because a green run can still carry findings.",
+   "kind": "reorder",
+   "blocks": [
+    "P8"
+   ],
+   "rewrite": "A check that drives a browser through Playwright is named without `.test.` (`node/test/subject-actions.mjs`, not `subject-actions.test.mjs`), because `node --test` globs `node/test/**/*.test.mjs` and the suite has to stay browser-free, or CI has to download a browser. [`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every mergeable pull request and reports it as a check on the PR, so the suite reports even when no session runs it. [`page-measures.yml`](.github/workflows/page-measures.yml) also runs on pull requests that touch a page, but only reports: a finding (such as sideways scroll) never fails it. Read the page-measures run's job summary for findings, and treat a red page-measures run as a fault in its measuring pass, not in a page. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh on each run and a green check is not a claim about pinned dependency versions.",
+   "saves": -7,
+   "why": "The rule that protects the suite (name browser checks without .test.) matters most to a session writing a test, so it leads. test.yml and page-measures.yml confirm the trigger and report-only facts: page-measures publishes the report as the run's job summary, and findings never turn the run red. The lockfile sentence is kept because package-lock.json is gitignored (.gitignore) and test.yml runs npm install."
+  },
+  {
+   "id": "bold-cut.1",
+   "lens": "bold-cut",
+   "idea": "Delete P8 entirely. Its CI facts are restated from the headers of .github/workflows/test.yml and .github/workflows/page-measures.yml, and its one failing premise, that the suite runs on every pull request, can be repaired only by deleting the paragraph.",
+   "kind": "cut",
+   "blocks": [
+    "P8"
+   ],
+   "rewrite": "",
+   "saves": 126,
+   "why": "Every fact in P8 has an owner. The header of .github/workflows/test.yml gives the trigger, the reason a pull request that cannot merge gets no run (PR #413), the browser-free rule with its reason (every Playwright check is named without .test. and stays a manual run), and the gitignored package-lock.json. The header of .github/workflows/page-measures.yml says it is report only (Findings never turn this red) and goes red only when the pass itself is broken, which is the one rule a reader acts on: a red run means fix the pass, not the page. The premise fails: test.yml does not run on every pull request, since a pull request that cannot merge has no merge ref and so no pull_request run starts. Repairing that inside 126 words would restate the workflow header, so the repair is the cut. The negations P8 carries (never, only, no) survive verbatim in those headers. The one thing P8 alone says is that CI runs npm test on pull requests; the on: block of test.yml states it, and node/README.md (The refresh model) states it too. That README section is already stale: it lists pushes to main only, while test.yml also runs on pushes to claude/**, codex/**, gemini/**, and agent/** branches."
+  },
+  {
+   "id": "connect.1",
+   "lens": "connect",
+   "idea": "Say why the two dist files are tracked: GitHub Pages serves main as-is with no build step, so a page loads the committed copy, and the commit-time hook has to stage the rebuilt file in the same commit as the lib/ change.",
+   "kind": "connect",
+   "blocks": [
+    "P2",
+    "P4"
+   ],
+   "rewrite": "Both are tracked because GitHub Pages serves `main` as-is, with no build step, so a page loads the committed copy; the commit-time hook below rebuilds them when `lib/` changes.",
+   "saves": -18,
+   "why": "node/README.md#the-refresh-model says GitHub Pages serves main as-is with no deploy build, and node/README.md#the-pre-build says dist/web-tools.js is committed and served same-origin by Pages; .gitignore keeps only three dist files tracked. That reason is what puts the rebuild in the same commit (P4), which P2 only asserts."
+  },
+  {
+   "id": "connect.2",
+   "lens": "connect",
+   "idea": "Name the three routes that skip the hook in P7's opening, so that independent of the hook points at the pull request's npm test check, which catches what those routes let through; the new P7 sentence then makes P8's clause so the test speaks even when no session runs the suite redundant.",
+   "kind": "connect",
+   "blocks": [
+    "P6",
+    "P7",
+    "P8"
+   ],
+   "rewrite": "The hook does not run in a checkout where `npm run setup` was skipped, when `git commit --no-verify` bypasses it, or for API, MCP, or server-side writes, and `npm run setup` never regenerates derived artifacts. The pull request's `npm test` check catches what gets through, whether or not a session ran the suite.",
+   "saves": -24,
+   "why": ".github/workflows/test.yml's header names the three routes (checkout setup can be skipped, --no-verify can bypass the hooks, and GitHub API, MCP and server-side writes cannot run them) and says the derived-artifacts test runs on every PR, so stale output is caught by the platform rather than accepted because local setup looked ready. node/README.md#the-refresh-model says the same about server-side writes."
+  },
+  {
+   "id": "duplicate.1",
+   "lens": "duplicate",
+   "idea": "Merge P4 and P5 and drop the thumbnail sentence: P5's 'let the hook refresh it' repeats P4's 'regenerates and stages', and the thumbnail reason repeats 'Per-session refresh: thumbnails' in CLAUDE.md, the section directly above, which says the same thing. 'Edit the source, not the output' states the one rule a reader acts on.",
+   "kind": "merge",
+   "blocks": [
+    "P4",
+    "P5"
+   ],
+   "rewrite": "Every **deterministic** derived artifact (a committed file generated from other files, such as `dist/web-tools.js`) is owned by one commit-time hook, [`.githooks/pre-commit`](.githooks/pre-commit), which regenerates and stages, in the same commit, whatever the pending changes touch, so edit the source, not the output. [`node/README.md`](node/README.md#the-refresh-model) lists the hook's legs (its separate regeneration steps), the order they run in, and why that order matters.",
+   "saves": 35,
+   "why": "Premise checked in node/README.md: generators are byte-deterministic (line 307), but screenshots are not (line 338), so P4's word 'deterministic' already puts thumbnails outside the hook's claim. The thumbnail refresh rule stays where it is owned, in CLAUDE.md's 'Per-session refresh: thumbnails' and node/README.md line 337. The reason in P5 came from the reader's repair: the source P5 was only a pointer, so keep that pointer if the editor wants the exception visible in this section. 'Edit the source, not the output' also fits the CSV case the reader flagged (docs.csv and similar are hand-edited except computed fields) without the file-level claim."
+  },
+  {
+   "id": "duplicate.2",
+   "lens": "duplicate",
+   "idea": "Cut the restated replacement from the start of P3: P2 already says the pre-build replaces the gh.load chain ('instead of a chain of per-file gh.load calls'), so P3 can open on the chain and name only what is new, that it is the default.",
+   "kind": "cut",
+   "blocks": [
+    "P2",
+    "P3"
+   ],
+   "rewrite": "The gh.load chain is the repo's default, not a legacy path.",
+   "saves": 3,
+   "why": "P3's opening clause 'the pre-build replaces' restates the contrast drawn in the paragraph before, so only 'the repo's default, not a legacy path' is new. The rewrite replaces P3's first sentence only; the rest of P3 stands. The rule a reader acts on survives: the chain is still the default, and docs/loader.md governs files that load that way. P2 still names what the pre-build replaces."
+  },
+  {
+   "id": "fusion.1",
+   "lens": "fusion",
+   "idea": "State the thumbnail scope inside the sentence that states the hook's rule, so P5 keeps only the do-not-hand-edit rule.",
+   "kind": "merge",
+   "blocks": [
+    "P4",
+    "P5"
+   ],
+   "rewrite": "Every **deterministic** derived artifact (a committed file generated from other files, such as `dist/web-tools.js`) is owned by one commit-time hook, [`.githooks/pre-commit`](.githooks/pre-commit); thumbnails (`pages/thumbs/*.png`), derived but not deterministic, fall outside that rule and get only a warning (see \"Per-session refresh\" above). Before a `git commit` it regenerates and stages, in the same commit, whatever the pending changes touch. [`node/README.md`](node/README.md#the-refresh-model) lists the hook's legs (its separate regeneration steps), the order they run in, and why that order matters.\n\nDon't hand-edit a file, or a field, that the hook writes; edit the source and let the hook refresh it.",
+   "saves": -1,
+   "why": "The reader found that 'are the exception' in P5 excepts nothing stated: P4 scopes its rule to deterministic artifacts, and thumbnails are not deterministic, but P5 never says so. Putting that scope into the rule's own sentence, as 'fall outside that rule', names what the thumbnails are outside. The Per-session refresh pointer survives in parentheses."
+  },
+  {
+   "id": "fusion.2",
+   "lens": "fusion",
+   "idea": "Put 'setup never regenerates' into the sentence that says what setup does, and tie P7's independence to the reasons the test gives, so P7 follows from P6.",
+   "kind": "merge",
+   "blocks": [
+    "P6",
+    "P7"
+   ],
+   "rewrite": "**Git owns the hook, not Claude:** it is a git hook, not a Claude Code `PreToolUse` hook, so it fires whatever the session's project root is. Run `npm run setup` once per checkout: it configures the hooks, the `derived-csv` merge driver and dependencies, and never regenerates a derived artifact. `npm run ready` checks without writing. Claude's startup scripts delegate to that same setup. `git commit --no-verify` bypasses the hook. Details: [extending.md](docs/environment/extending.md).\n\n**Verification stays independent of the hook.** [`node/test/derived-artifacts.test.mjs`](node/test/derived-artifacts.test.mjs) checks most generators under `npm test` by regenerating without writing and comparing bytes, so a skipped setup, a `--no-verify` commit or a server-side write does not stop it from catching a stale artifact. Repair stale derived artifacts with `npm run artifacts:refresh`, then run any additional command the test names. When the hook changes files while a local merge is committing, it stops the merge uncommitted; finish it with `git -c core.editor=true merge --continue`.",
+   "saves": -16,
+   "why": "P7 opens 'Verification stays independent of the hook' with no reason until its second sentence, and 'npm run setup never regenerates' belongs with P6's account of what setup does. The header of node/test/derived-artifacts.test.mjs gives the reasons: setup can be skipped, --no-verify can bypass the hooks, and API, MCP and server-side writes have no local checkout. The 'until 2026-08-06' history is dropped from P6 because git holds it. Saves are negative; the gain is the causal link."
+  },
+  {
+   "id": "fusion.3",
+   "lens": "fusion",
+   "idea": "Introduce the gh.load chain at its first use, as the per-file path that fetches and runs each file at runtime, and keep P3's 'not a legacy path' with its basis.",
+   "kind": "merge",
+   "blocks": [
+    "P2",
+    "P3"
+   ],
+   "rewrite": "`dist/web-tools.js` is **the pre-build**: the whole `lib/` frozen into one self-booting artifact that needs no network for the library's own code, so a page adopts the library with one import instead of the per-file `gh.load` chain, which fetches and runs each file at runtime. Most pages still use that chain, so it is not a legacy path. `dist/app.js` is the app's own: only the `lib/` files that `app/index.html` names, directly or transitively. Both are tracked, and the commit-time hook below rebuilds them. See [`node/README.md`](node/README.md#the-pre-build).\n\n[`docs/loader.md`](docs/loader.md) is the only statement of the contract a file must honor to be loadable that way, plus the timing invariants the boot sequence depends on. Read it before adding a file to `lib/` or changing how a page boots. Which folder a new code file belongs in is answered in [`docs/code-layers.md`](docs/code-layers.md) and enforced under `lib/` by `npm run code-shape` and `node/test/code-layers.test.mjs`.",
+   "saves": -5,
+   "why": "P2 names 'a chain of per-file gh.load calls' before P3 says what the chain is. P3 says 'the repo's default' without saying what that means. docs/loader.md says each file is fetched and run on the spot, and that most pages load their code at runtime, which is the basis for 'not a legacy path'. node/README.md says to develop against the chain and ship against the pre-build, so the claim is kept to what most pages do, not to delivery."
+  },
+  {
+   "id": "guard.1",
+   "lens": "guard",
+   "idea": "Keep P6's sentence \"Run `npm run setup` once per checkout...\" verbatim, and cut the PreToolUse history around it. That clause describes a mechanism the reader cannot act on and leaves \"PreToolUse\" undefined, while the setup sentence is what stops a fresh checkout from committing with no hook.",
+   "kind": "cut",
+   "blocks": [
+    "P6"
+   ],
+   "rewrite": "**Git owns the hook, not Claude:** git runs it on every commit in a checkout where `npm run setup` has pointed git at `.githooks`. Run `npm run setup` once per checkout for hooks, the `derived-csv` merge driver, and dependencies; `npm run ready` checks without writing. Claude's startup scripts run the git part of that setup in every session. `git commit --no-verify` bypasses the hook. Details: [extending.md](docs/environment/extending.md).",
+   "saves": -2,
+   "why": "A reader in a fresh clone outside a Claude session can commit a lib/ change with no hook installed, leaving dist/web-tools.js stale. The gap shows only in the derived-artifacts test on the PR, and the repair P7 names, npm run artifacts:refresh, runs git hook run pre-commit, which fails with \"cannot find a hook named pre-commit\" until setup sets core.hooksPath (node/checkout-setup.mjs line 146; checked in a scratch repo with git 2.43). The PreToolUse clause is about 25 words of history, so cutting it is a clarity gain that costs the words of the added setup condition."
+  },
+  {
+   "id": "guard.2",
+   "lens": "guard",
+   "idea": "Name the setup condition in P4, where the hook is first described as regenerating on every commit, so the reader learns the guard before P5 tells them to rely on the hook.",
+   "kind": "connect",
+   "blocks": [
+    "P4"
+   ],
+   "rewrite": "Every **deterministic** derived artifact (a committed file generated from other files, such as `dist/web-tools.js`) is owned by one commit-time hook, [`.githooks/pre-commit`](.githooks/pre-commit). Before a `git commit` it regenerates and stages, in the same commit, whatever the pending changes touch, but only in a checkout where `npm run setup` has run, which is covered below. [`node/README.md`](node/README.md#the-refresh-model) lists the hook's legs (its separate regeneration steps), the order they run in, and why that order matters.",
+   "saves": -15,
+   "why": "P4 states the hook's behavior without its condition, and the condition arrives in P6, after P5 has told the reader to edit source and let the hook refresh it. The added clause costs about fifteen words and puts the guard in the paragraph that first relies on the hook; P6 keeps the command itself."
+  },
+  {
+   "id": "half.1",
+   "lens": "half",
+   "idea": "Rewrite the whole passage at about half its length, keeping every rule a reader acts on: the pre-build and the hook each shrink to a short paragraph, the setup and verification commands stay verbatim, and CI keeps only what a red run means.",
+   "kind": "restructure",
+   "blocks": [
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7",
+    "P8"
+   ],
+   "rewrite": "## The pre-build & the commit-time hook\n\n`dist/web-tools.js` is **the pre-build**: all of `lib/` in one self-booting file, with no network for the library's own code, replacing a chain of per-file `gh.load(...)` calls. `dist/app.js` holds only the `lib/` files that `app/index.html` uses. Both are tracked and rebuilt by the commit-time hook ([`node/README.md`](node/README.md#the-pre-build)).\n\nThe `gh.load` chain is still the repo's default, not a legacy path. [`docs/loader.md`](docs/loader.md) is the only statement of the contract a file must honor to load that way, so read it before adding a file to `lib/` or changing how a page boots. [`docs/code-layers.md`](docs/code-layers.md) says which folder a new file belongs in.\n\nEvery **deterministic** derived artifact, a committed file generated from source, is refreshed by one commit-time hook, [`.githooks/pre-commit`](.githooks/pre-commit), which stages it in the same commit. Never hand-edit a generated file: edit its source. Four `docs/` CSVs take hand edits outside their generated fields. Thumbnails (`pages/thumbs/*.png`) are not deterministic, so the hook only warns about them.\n\nRun `npm run setup` once per clone or linked worktree: it installs the hooks, the `derived-csv` merge driver and dependencies. `npm run ready` checks without writing. `git commit --no-verify` bypasses the hook.\n\n`npm test` checks generated output against its source, since `--no-verify` bypasses the hook and server-side writes never run it ([`derived-artifacts.test.mjs`](node/test/derived-artifacts.test.mjs)). Repair with `npm run artifacts:refresh`, then any extra command the test names. If the hook stops a local merge, finish it with `git -c core.editor=true merge --continue`.\n\nCI runs `npm test` on each mergeable pull request and each push to `main` or a session branch ([`test.yml`](.github/workflows/test.yml)). [`page-measures.yml`](.github/workflows/page-measures.yml) only reports: a finding never fails it, so a red run is a fault in its pass, not in a page. Keep the suite browser-free: name Playwright checks without `.test.`.",
+   "saves": 217,
+   "why": "The draft is 287 words, about 57 percent of the passage, not half: each further cut would drop a rule. It fixes the reader's findings in place: the gh.load chain is explained in P2, the four docs/ CSVs are carved out of the don't-hand-edit rule, the merge-continue command is kept, and the CI claim now matches test.yml's on: block (mergeable pull requests, plus pushes to main and session branches). Checked against node/README.md (pre-build, refresh model), .githooks/pre-commit, node/test/derived-artifacts.test.mjs, .github/workflows/test.yml and page-measures.yml."
+  },
+  {
+   "id": "half.2",
+   "lens": "half",
+   "idea": "Cut the CI paragraph to a pointer: test.yml and page-measures.yml headers already state why the suite is browser-free and that the page measures are report-only, so the passage needs only the run trigger and the never-fails rule.",
+   "kind": "cut",
+   "blocks": [
+    "P8"
+   ],
+   "rewrite": "CI runs `npm test` on each mergeable pull request and each push to `main` or a session branch. [`page-measures.yml`](.github/workflows/page-measures.yml) only reports: its header says a finding never fails it. [`test.yml`](.github/workflows/test.yml) says why the suite stays browser-free.",
+   "saves": 90,
+   "why": "The original P8 is 126 words; the pointer is 36. The two headers own the detail: test.yml says the suite is browser-free and that a conflicted pull request starts no run, and page-measures.yml says findings never turn the run red. The pointer keeps the never and only rules in the passage, so the cut loses no rule a reader acts on."
+  },
+  {
+   "id": "headline.1",
+   "lens": "headline",
+   "idea": "Collapse P7 and P8 into one verification paragraph. The reasons each repeats already sit in node/README.md#the-refresh-model and in the headers of .github/workflows/test.yml and page-measures.yml, so the paragraph keeps only what a reader acts on: the artifacts:refresh-then-test repair, the browser-free rule, the report-only reading of a red page-measures run, and the merge command.",
+   "kind": "delegate",
+   "blocks": [
+    "P7",
+    "P8"
+   ],
+   "rewrite": "**Verification does not depend on the hook.** `npm run setup` never regenerates derived artifacts, and API, MCP, or server-side writes cannot run local hooks. Repair stale derived artifacts with `npm run artifacts:refresh`, then run any additional command the test names; [`node/test/derived-artifacts.test.mjs`](node/test/derived-artifacts.test.mjs) checks most generators under `npm test`. [`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every mergeable pull request, so the suite reports even when no session runs it; keep the suite browser-free, or CI has to download a browser. [`page-measures.yml`](.github/workflows/page-measures.yml) only reports: a finding (such as sideways scroll) never fails it, so a red run means the render itself broke, not the page. A local merge that the hook changes stops uncommitted; finish it with `git -c core.editor=true merge --continue`.",
+   "saves": 79,
+   "why": "P7 fails the headline test: 'Verification stays independent of the hook' names no check until its second sentence, and its third sentence is the hook's merge behavior, which node/README.md#the-refresh-model owns. P8's headline survives: 'so the suite reports even when no session runs it' holds through the push trigger on main and on claude/**, codex/**, gemini/**, agent/** in test.yml. The lockfile sentence states a fact (package-lock.json is gitignored, .gitignore line 10) that no action depends on, so it goes."
+  },
+  {
+   "id": "headline.2",
+   "lens": "headline",
+   "idea": "P6 survives its lead ('Git owns the hook, not Claude') but not its reason, which uses PreToolUse and a dated parenthetical the reader never gets. Replace the clause with the reason the refresh model gives, that a git hook fires whatever the session's project root is, so the lead and its reason connect.",
+   "kind": "connect",
+   "blocks": [
+    "P6"
+   ],
+   "rewrite": "**Git owns the hook, not Claude:** a git hook fires whatever the session's project root is, and a Claude Code hook is read only when that root is this repo.",
+   "saves": -3,
+   "why": "A repair, not a cut: the premise holds. docs/environment/extending.md (The session dispatcher) says a Claude Code hook is named in .claude/settings.json, that file is read only when the session's project root is that repo, and a session rooted above several checkouts is the common case. The 'until 2026-08-06' note is history that git holds, so it goes."
+  },
+  {
+   "id": "headline.3",
+   "lens": "headline",
+   "idea": "Cut the thumbnail sentence from P5. Its 'exception' premise fails: the hook never writes thumbnails (it only warns when a page changes without its thumbnail), so they cannot be an exception to 'don't hand-edit a file the hook writes', and the 'Per-session refresh: thumbnails' section directly above already says so.",
+   "kind": "premise",
+   "blocks": [
+    "P5"
+   ],
+   "rewrite": "",
+   "saves": 18,
+   "why": "P5's headline (don't hand-edit what the hook writes; let the hook refresh it) survives alone, so the second sentence is surplus. node/README.md#the-refresh-model says thumbnails refresh once per session before a merge and the hook only warns. Headlines of P2, P3 and P4 also survive their first sentences; P6 and P7 need more, as the first two ideas show."
+  },
+  {
+   "id": "list.1",
+   "lens": "list",
+   "idea": "The two workflows that run on pull requests become a table of trigger and red-run meaning, so a reader sees at once that page-measures reports findings without failing on them.",
+   "kind": "restructure",
+   "blocks": [
+    "P8"
+   ],
+   "rewrite": "Two workflows run on pull requests:\n\n| Workflow | Runs on | A red run means |\n|---|---|---|\n| [`test.yml`](.github/workflows/test.yml) | every mergeable pull request, so the suite (`npm test`) reports even when no session runs it | the suite failed |\n| [`page-measures.yml`](.github/workflows/page-measures.yml) | pull requests that touch a page | only a broken measuring pass: a finding (a defect it measures in a browser, such as sideways scroll) never fails it |\n\nThe suite is browser-free by construction (`node --test` globs `node/test/**/*.test.mjs`, and every Playwright-driven check is named without `.test.`), so keep it that way or CI has to download a browser. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh on each run and a green check is not a claim about pinned dependency versions.",
+   "saves": -2,
+   "why": "The paragraph states each workflow's trigger and failure rule in separate clauses; the table puts the trigger and the failure meaning side by side. The browser-free and lockfile sentences are kept verbatim after it. Facts from .github/workflows/test.yml (pull_request, no path filter, npm test) and page-measures.yml (pull_request paths, report only, header on red)."
+  },
+  {
+   "id": "list.2",
+   "lens": "list",
+   "idea": "The two repairs in P7 answer two different causes with two different commands, so they become a two-item list keyed by cause, which lets a reader find the fix from the symptom.",
+   "kind": "restructure",
+   "blocks": [
+    "P7"
+   ],
+   "rewrite": "**Verification stays independent of the hook.** `npm run setup` never regenerates derived artifacts, and API, MCP, or server-side writes cannot run local hooks. [`node/test/derived-artifacts.test.mjs`](node/test/derived-artifacts.test.mjs) therefore checks most generators under `npm test`. Repairs, by cause:\n\n- A stale derived artifact (the test fails): run `npm run artifacts:refresh`, then any additional command the test names.\n- A local merge the hook paused, with the merge still in progress: finish it with `git -c core.editor=true merge --continue`.",
+   "saves": -3,
+   "why": "The paragraph joins the stale-artifact repair and the merge-pause finish in one chain, although each answers a different cause. The merge wording follows node/README.md#the-refresh-model (the hook stops a clean merge and leaves it in progress). The stale-artifact wording follows node/test/derived-artifacts.test.mjs, whose header says a mismatch means the artifact is behind its source and that a failing check names the command to run."
+  },
+  {
+   "id": "list.3",
+   "lens": "list",
+   "idea": "The three things `npm run setup` configures become a list, so a reader can check each against a checkout.",
+   "kind": "restructure",
+   "blocks": [
+    "P6"
+   ],
+   "rewrite": "**Git owns the hook, not Claude:** a Claude Code `PreToolUse` hook (what this hook was until 2026-08-06) disappears when the session's project root sits above this repo. Run `npm run setup` once per checkout. It sets up three things:\n\n- the git hooks in `.githooks`,\n- the `derived-csv` merge driver,\n- the dev dependencies.\n\n`npm run ready` checks those three without writing. Claude's startup scripts delegate to that same setup. `git commit --no-verify` bypasses the hook. Details: [extending.md](docs/environment/extending.md).",
+   "saves": -14,
+   "why": "The sentence packs three configured items into a clause after 'for'. node/checkout-setup.mjs sets core.hooksPath to .githooks, registers merge.derived-csv, and runs npm install --include=dev, so each bullet matches the code. Net cost is a few words, which the clarity gain justifies."
+  },
+  {
+   "id": "merge.1",
+   "lens": "merge",
+   "idea": "Merge P4 and P5 into one paragraph: the hook owns deterministic artifacts, so they are not hand-edited, and thumbnails are the one exception, which now follows the rule it excepts.",
+   "kind": "merge",
+   "blocks": [
+    "P4",
+    "P5"
+   ],
+   "rewrite": "Every **deterministic** derived artifact (a committed file generated from other files, such as `dist/web-tools.js`) is owned by one commit-time hook, [`.githooks/pre-commit`](.githooks/pre-commit). Before a `git commit` it regenerates and stages, in the same commit, whatever the pending changes touch, so do not hand-edit a file, or a field, that the hook writes: edit the source and let the hook refresh it. [`node/README.md`](node/README.md#the-refresh-model) lists the hook's legs (its separate regeneration steps), the order they run in, and why that order matters. Thumbnails (`pages/thumbs/*.png`) are the exception, since they are derived but not deterministic: the hook only warns about them (see \"Per-session refresh\" above).",
+   "saves": -6,
+   "why": "node/README.md#the-refresh-model says every generator is byte-deterministic except the screenshots, and .githooks/pre-commit runs thumbnails as the warn-only leg thumb-nudge, so the exception only makes sense after the rule. The reader found 'are the exception' pointing at nothing. The rule is restated as 'a file, or a field, that the hook writes', which covers the hand-edited CSVs node/README.md names. 'not deterministic' and 'only warns' survive verbatim. The gain is the referent, not words."
+  },
+  {
+   "id": "merge.2",
+   "lens": "merge",
+   "idea": "Merge P6 and P7 into one paragraph that names the hook's gaps first (no setup, --no-verify, API and server-side writes) and then the suite that covers them, so 'independent of the hook' has a referent and the PreToolUse aside becomes the plain git-hook fact.",
+   "kind": "merge",
+   "blocks": [
+    "P6",
+    "P7"
+   ],
+   "rewrite": "**The commit hook covers local commits only, so verification does not depend on it.** It is a git hook, not a Claude Code hook, so it fires whatever the session's project root is, once `npm run setup` has run in the checkout. Setup also registers the `derived-csv` merge driver and the dependencies; `npm run ready` checks without writing, and Claude's startup scripts delegate to that same setup. A checkout whose setup was skipped, a `git commit --no-verify`, and any GitHub API, MCP, or server-side write run no hook, and `npm run setup` never regenerates derived artifacts. So [`node/test/derived-artifacts.test.mjs`](node/test/derived-artifacts.test.mjs) re-runs generators in check mode under `npm test`, and a stale artifact fails the suite wherever it runs. Repair one with `npm run artifacts:refresh`, then run any additional command the test names. If a local merge's refresh changes files, the merge stops uncommitted; finish it with `git -c core.editor=true merge --continue`. Details: [extending.md](docs/environment/extending.md).",
+   "saves": -19,
+   "why": "docs/environment/extending.md#what-no-hook-covers names the gaps (a clone whose setup was skipped, --no-verify, API, MCP and server-side writes) and the answer, the --check re-run in derived-artifacts.test.mjs, so the two paragraphs are one point. 'Verification stays independent of the hook' gets its referent. node/README.md states the git-hook fact in its own words, which replaces the 2026-08-06 PreToolUse aside. 'never' and 'not' survive verbatim. The claim is kept at the suite level, since the test file alone does not check every generator."
+  },
+  {
+   "id": "merge.3",
+   "lens": "merge",
+   "idea": "Merge P2 and P3 into one paragraph: the pre-build and the gh.load chain it replaces, so 'it' and 'the chain' each have one referent and gh.load is explained where it first appears.",
+   "kind": "merge",
+   "blocks": [
+    "P2",
+    "P3"
+   ],
+   "rewrite": "`dist/web-tools.js` is **the pre-build**: the whole `lib/` frozen into one self-booting artifact that needs no network for the library's own code, so a page adopts the library with one import instead of the chain of `gh.load` calls it replaces. That chain is the repo's default, not a legacy path: a page calls `gh.load(...)` for each component and kit it needs, and each file is fetched and run on the spot. [`docs/loader.md`](docs/loader.md) is the only statement of the contract a file must honor to load that way, plus the timing invariants the boot sequence depends on, so read it before adding a file to `lib/` or changing how a page boots. Which folder a new code file belongs in is answered in [`docs/code-layers.md`](docs/code-layers.md) and enforced under `lib/` by `npm run code-shape` and `node/test/code-layers.test.mjs`. `dist/app.js` is the app's own: only the `lib/` files that `app/index.html` names, directly or transitively. Both are tracked, and the commit-time hook below rebuilds them. See [`node/README.md`](node/README.md#the-pre-build).",
+   "saves": -18,
+   "why": "docs/loader.md opens by saying most pages load their code at runtime through gh.load(...) calls, which backs the 'repo's default' claim, and node/README.md#the-pre-build calls the pre-build 'one import instead of a gh.load chain'. Putting the replaced chain beside the pre-build gives 'it' one referent and explains gh.load on first mention. 'only' (the lib/ files; the only statement) and 'not' (not a legacy path) survive verbatim. The gain is the referent, not words."
+  },
+  {
+   "id": "misplaced.1",
+   "lens": "misplaced",
+   "idea": "Cut P2 to P8 down to the pointer above: the pre-build, the hook's legs, the setup and verification rules, and the CI paragraph are each already stated in node/README.md, docs/environment/extending.md or .github/workflows/test.yml, and the rules a session acts on fit in one short paragraph.",
+   "kind": "delegate",
+   "blocks": [
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7",
+    "P8"
+   ],
+   "rewrite": "`dist/web-tools.js` (the pre-build) and `dist/app.js` are committed, and the commit-time hook regenerates both before each `git commit`; [node/README.md](node/README.md#the-pre-build) and [node/README.md](node/README.md#the-refresh-model) say how. Read [docs/loader.md](docs/loader.md) before adding a file to `lib/` or changing how a page boots, and [docs/code-layers.md](docs/code-layers.md) for which folder it belongs in. Don't hand-edit hook output; edit its source. Run `npm run setup` once per checkout to install the hook; `git commit --no-verify` bypasses it. Repair stale output with `npm run artifacts:refresh`, then run `npm test`, whose derived-artifact check fails on stale output. Keep the `npm test` suite browser-free, which is what lets [test.yml](.github/workflows/test.yml) skip the browser install. `page-measures.yml` only reports: its findings never fail a run, so a red run is a fault in its pass, not in a page.",
+   "saves": 374,
+   "why": "node/README.md#the-pre-build and #the-refresh-model already hold the pre-build, the hook's legs and their order, the merge continuation, and the thumbnail rule. docs/environment/extending.md ('SessionStart checkout delegates' and 'What no hook covers') makes the claims of P6 and P7, and says the commit hook is a git hook rather than a Claude Code hook, which is why P6's PreToolUse clause can go. .github/workflows/test.yml's header (lines 18 to 20) holds the browser-free rationale that P8 repeats. Every rule a session acts on survives in the rewrite: run setup, the --no-verify bypass, no hand-edits, artifacts:refresh, the browser-free suite, and page-measures reporting only."
+  },
+  {
+   "id": "misplaced.2",
+   "lens": "misplaced",
+   "idea": "Cut the thumbnail sentence from P5: it repeats the Per-session refresh: thumbnails section, which already says the commit hook only warns about thumbnails.",
+   "kind": "cut",
+   "blocks": [
+    "P5"
+   ],
+   "rewrite": "Don't hand-edit a file the hook writes; edit the source and let the hook refresh it.",
+   "saves": 22,
+   "why": "The thumbnail rule has one home, the paragraph under 'Per-session refresh: thumbnails' at line 22 of CLAUDE.md. P5 restates it two sections later, and its word 'exception' refers only back to that rule, so the sentence adds nothing a reader cannot get in the place the rule belongs."
+  },
+  {
+   "id": "misplaced.3",
+   "lens": "misplaced",
+   "idea": "Cut the enforcement clause from P3: docs/code-layers.md already says that npm run code-shape and node/test/code-layers.test.mjs check placement under lib/, so the pre-build section repeats a claim owned elsewhere.",
+   "kind": "delegate",
+   "blocks": [
+    "P3"
+   ],
+   "rewrite": "Which folder a new code file belongs in is answered in [`docs/code-layers.md`](docs/code-layers.md).",
+   "saves": 10,
+   "why": "docs/code-layers.md ('Attachment decides') names code-shape.py, npm run code-shape and code-layers.test.mjs, and says code-scan is advisory. The reader already caught this passage claiming code-scan measures placement, which is a sign the clause sits where its facts are easy to get wrong; the placement check belongs with the layer rule it enforces."
+  },
+  {
+   "id": "names.1",
+   "lens": "names",
+   "idea": "P2 calls dist/app.js \"the app's own\", but node/README.md calls it the app's pre-build (the build:app row and the heading \"The app's pre-build\"), and the hook's app-build leg header says the same. Use that name, and have P3 name dist/web-tools.js by its file, so the bare \"pre-build\" keeps one referent.",
+   "kind": "qualify",
+   "blocks": [
+    "P2",
+    "P3"
+   ],
+   "rewrite": "`dist/app.js` is **the app's pre-build**: only the `lib/` files that `app/index.html` names, directly or transitively. (P3's opening sentence becomes: The `gh.load` chain that `dist/web-tools.js` replaces is the repo's default, not a legacy path.)",
+   "saves": 0,
+   "why": "node/README.md line 62 says \"the app's own pre-build\" and line 198 is headed \"The app's pre-build\"; .githooks/pre-commit leg app-build reads \"(the app's pre-build)\". The passage drops \"pre-build\" for that artifact, so the family has no shared name. Once it is named, P3's bare \"the pre-build\" has two candidates, and naming the file settles it. Word count is unchanged."
+  },
+  {
+   "id": "names.2",
+   "lens": "names",
+   "idea": "P5 says \"a file, or a field, that the hook writes\" for the set P4 has just called derived artifacts. Use P4's term for the files and keep the field clause, since fields are not artifacts.",
+   "kind": "connect",
+   "blocks": [
+    "P5"
+   ],
+   "rewrite": "Don't hand-edit a derived artifact, or a field the hook writes; edit the source and let the hook refresh it. Thumbnails (`pages/thumbs/*.png`) are derived but not deterministic, so the hook only warns about them (see \"Per-session refresh\" above).",
+   "saves": 0,
+   "why": "P4 defines the hook's files as derived artifacts, and node/README.md's refresh model (line 257: \"Every derived artifact in the repo is refreshed one of two ways\") uses that term for thumbnails too, so P5's rule should match P4's definition. The field clause stays because node/README.md's table (line 275) calls CSV fields derived fields, which a generator writes but which are not files."
+  },
+  {
+   "id": "names.3",
+   "lens": "names",
+   "idea": "The hook has three names in CLAUDE.md: the heading says build-on-commit hook (line 28), lines 22 and 49 say commit hook, and the body says commit-time hook (line 34). The passage's P1 heading already uses commit-time hook, the name node/README.md's refresh model uses, so CLAUDE.md should take that name too.",
+   "kind": "connect",
+   "blocks": [
+    "P1"
+   ],
+   "rewrite": "## The pre-build & the commit-time hook",
+   "saves": 0,
+   "why": "This is a sync note, not a passage edit: the fix lands in /home/user/web-tools/CLAUDE.md outside these lines. node/README.md uses both commit hook (line 209) and commit-time hook (lines 215 and 261), so the repo carries both names, and P4 and P1 of the passage already settle on commit-time."
+  },
+  {
+   "id": "newcomer.1",
+   "lens": "newcomer",
+   "idea": "Move P8, the paragraph on what CI runs and why the suite stays browser-free, out of this pre-build section into Environment & testing, where a reader writing a test looks. The hook and the pre-build never depend on it, so a newcomer reading this section for the hook meets a paragraph that answers a different question.",
+   "kind": "restructure",
+   "blocks": [
+    "P8"
+   ],
+   "rewrite": "",
+   "saves": 126,
+   "why": "P8 says what CI runs on a pull request, not how the pre-build or the hook works. Its browser-free rule is already owned by the header comment of .github/workflows/test.yml, which says every Playwright-driven check is named without .test. and stays a manual run, and by the browser-free line in README.md. Moved whole, P8 keeps never, only and not verbatim, so no rule is lost."
+  },
+  {
+   "id": "newcomer.2",
+   "lens": "newcomer",
+   "idea": "Replace P3's first sentence with the repo's own rule for which path to use: develop against the gh.load chain, ship against the pre-build. A reader then learns when each applies instead of inferring it from the name.",
+   "kind": "connect",
+   "blocks": [
+    "P3"
+   ],
+   "rewrite": "Develop against the `gh.load` chain and ship against the pre-build: the chain is the repo's default, not a legacy path.",
+   "saves": -6,
+   "why": "node/README.md#the-pre-build says 'Develop against the gh.load chain, ship against the pre-build' (line 193). The current sentence defines the chain only by what replaces it. The rewrite adds six words and keeps not verbatim."
+  },
+  {
+   "id": "newcomer.3",
+   "lens": "newcomer",
+   "idea": "Cut the PreToolUse clause from P6. It describes the hook's retired form in the present tense, and the rewrite states what holds now: the hook is a git hook, so it fires in any checkout where npm run setup has run once.",
+   "kind": "premise",
+   "blocks": [
+    "P6"
+   ],
+   "rewrite": "**Git owns the hook, not Claude:** the hook is a git hook, so it fires in any checkout where `npm run setup` has run once.",
+   "saves": 2,
+   "why": "The premise fails. The hook stopped being a Claude Code PreToolUse hook on 2026-08-06, so the clause 'disappears when the session's project root sits above this repo' describes a mechanism no reader can act on now. node/README.md#the-refresh-model says the git hook 'fires whatever the session's project root is', and that setup stores a relative .githooks path per checkout, so the hook follows the checkout that runs setup."
+  },
+  {
+   "id": "opening.1",
+   "lens": "opening",
+   "idea": "Introduce the section's terms where the opening first uses them: say both dist/ files are derived from lib/ and app/index.html, which gives P4's derived artifact its referent, and say what a gh.load call is. Say why both files are committed and what keeps them current, so Both are tracked stops being a bare fact. P4's parenthetical then repeats the opening and can go.",
+   "kind": "restructure",
+   "blocks": [
+    "P2",
+    "P4"
+   ],
+   "rewrite": "Two files under `dist/` are derived from `lib/` and `app/index.html`. `dist/web-tools.js` is **the pre-build**: all of `lib/` in one file that needs no network for the library's own code, so a page imports the library once instead of making one runtime `gh.load` call per component and kit. `dist/app.js` is the app's own pre-build: only the `lib/` files that `app/index.html` names, directly or transitively. Both are committed, and the commit-time hook below regenerates each when its sources change. See [`node/README.md`](node/README.md#the-pre-build).",
+   "saves": -7,
+   "why": "Repairs the reader's unintroduced terms in P2 and P4 (derived artifact, the gh.load chain, Both are tracked). The no-network claim stays: node/README.md#the-pre-build says the pre-build has no own-code network and third-party libraries stay on CDN tags. docs/loader.md line 4 says a loader page calls gh.load for each component and kit, which is the contrast the opening draws. The regeneration sources match the refresh table in node/README.md#the-refresh-model: lib/ for dist/web-tools.js, and lib/ plus app/index.html for dist/app.js."
+  },
+  {
+   "id": "opening.2",
+   "lens": "opening",
+   "idea": "Move the one rule a reader must act on to the end of P2, and cut P5's opening sentence, which repeats it. P5's thumbnail sentence then reads as the exception to P4's deterministic rule, which is the connection the reader found missing.",
+   "kind": "merge",
+   "blocks": [
+    "P2",
+    "P5"
+   ],
+   "rewrite": "Edit the sources, not the two `dist/` files: the commit-time hook below regenerates each in the same commit whenever its sources change.",
+   "saves": 8,
+   "why": "The rewrite replaces P2's last sentence (Both are tracked, and the commit-time hook below rebuilds them), which says nothing about why the files exist. P5's opening sentence (Don't hand-edit a file, or a field, that the hook writes) is broader than the dist/ files: node/README.md#the-refresh-model says docs/docs.csv and the other registry CSVs are hand-edited except for the fields a generator writes. The rule here covers only the two dist/ files, which the refresh table in node/README.md#the-refresh-model supports."
+  },
+  {
+   "id": "owner.1",
+   "lens": "owner",
+   "idea": "Delegate the CI mechanics to the two workflow headers, which own the triggers, the no-run caveat and what page-measures measures. Keep only the two rules an agent acts on: a red page-measures run is a fault in its measuring, and the suite stays browser-free by naming Playwright checks without `.test.`.",
+   "kind": "delegate",
+   "blocks": [
+    "P8"
+   ],
+   "rewrite": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on pull requests and on pushes to `main` and session branches, and reports the result as a check. Its header says what that check cannot promise. [`page-measures.yml`](.github/workflows/page-measures.yml) runs on pull requests that touch a page and reports only: a measured defect never fails it, so a red run is a fault in the measuring, not in a page. Keep the suite browser-free by naming each Playwright-driven check without `.test.`, or CI has to download a browser.",
+   "saves": 46,
+   "why": "test.yml and page-measures.yml headers own the triggers, the no-run caveat and what each measures; the passage restates them in 126 words. Dropping 'every mergeable' also removes the premise the reader flagged, since a conflicted pull request has no merge ref and so no run (test.yml header)."
+  },
+  {
+   "id": "owner.2",
+   "lens": "owner",
+   "idea": "Replace the PreToolUse history and the setup detail with links to the owners: a git hook fires whatever the project root is, and Claude sessions set up hooks at start. The paragraph keeps the one action an agent takes, running setup in a checkout no Claude session opens.",
+   "kind": "delegate",
+   "blocks": [
+    "P6"
+   ],
+   "rewrite": "**Git owns the hook, not Claude:** it is a git hook, so it fires whatever the session's project root is ([why](docs/environment/extending.md#the-session-dispatcher)). Claude sessions set up hooks at start ([how](docs/environment/extending.md#sessionstart-checkout-delegates)); a checkout no Claude session opens needs `npm run setup` once, and `npm run ready` checks without writing. `git commit --no-verify` bypasses the hook.",
+   "saves": 11,
+   "why": "node/README.md#the-refresh-model says the hook is a git hook, so it fires whatever the project root is, and extending.md#the-session-dispatcher says why settings.json hooks do not fire above a checkout. The 'until 2026-08-06' history and the delegate clause belong to those owners; the rewrite keeps the setup command and the bypass."
+  },
+  {
+   "id": "owner.3",
+   "lens": "owner",
+   "idea": "Replace the pre-build's contents with a link to node/README.md's pre-build section, and link the unintroduced gh.load to docs/loader.md. The paragraph keeps the two file names, what each one is, and the rule that the hook rebuilds both.",
+   "kind": "delegate",
+   "blocks": [
+    "P2"
+   ],
+   "rewrite": "`dist/web-tools.js` is **the pre-build**: the whole `lib/` as one self-booting file, so a page needs one import in place of the per-file [`gh.load`](docs/loader.md) calls ([node/README.md](node/README.md#the-pre-build) has the detail). `dist/app.js` is the app's own pre-build, holding only the `lib/` files that `app/index.html` reaches. Both are tracked and rebuilt by the commit-time hook below.",
+   "saves": 13,
+   "why": "node/README.md#the-pre-build owns what the pre-build contains (the one-import difference, the CDN libraries staying on their tags) and #the-apps-pre-build owns how app.js's set is found; docs/loader.md owns gh.load. 'Only' stays verbatim, as the brief requires."
+  },
+  {
+   "id": "premise.1",
+   "lens": "premise",
+   "idea": "The clause on the PreToolUse hook gives only history, a dated move from 2026-08-06 with a term the reader never meets, and the one action it supports, running npm run setup, is already stated. Keep the present-tense mechanism, that git fires the hook on every commit from any folder, and leave the history to the hook's own header, which P4 already links.",
+   "kind": "premise",
+   "blocks": [
+    "P6"
+   ],
+   "rewrite": "**Git owns the hook, not Claude:** git fires it on every commit, whatever folder a session starts in. Run `npm run setup` once per checkout for hooks, the `derived-csv` merge driver, and dependencies; `npm run ready` checks without writing. Claude's startup scripts delegate to that same setup. `git commit --no-verify` bypasses the hook. Details: [extending.md](docs/environment/extending.md).",
+   "saves": 9,
+   "why": "The premise is true and documented: docs/environment/extending.md says the Claude hook file is read only when the session's project root is that repo, and the header of .githooks/pre-commit (lines 22 to 29) records the 2026-08-06 move. But P6 gives a reader the history, not a reason that changes what they do, since the action is running setup, which the paragraph already says. The rewrite keeps git owning the hook and the reason in present tense; the history stays in the hook header that P4 links. The flag and the word not survive verbatim."
+  },
+  {
+   "id": "qualify-to-cut.1",
+   "lens": "qualify-to-cut",
+   "idea": "In P3, the clause saying what the loader contract covers, 'the contract a file must honor to be loadable that way, plus the timing invariants the boot sequence depends on', can become 'the contract for files loaded through gh.load, timing invariants included': the qualifier names the subject, and the next sentence already says when to read the doc.",
+   "kind": "qualify",
+   "blocks": [
+    "P3"
+   ],
+   "rewrite": "the contract for files loaded through `gh.load`, timing invariants included",
+   "saves": 10,
+   "why": "docs/loader.md is titled 'The loader contract' (line 1) and opens by naming the same two things, 'the contract a file must honor to be loadable this way' and 'the timing invariants the boot sequence depends on' (lines 24 to 26), so the qualifier says what the doc covers in fewer words. gh.load is already introduced in P2 ('a chain of per-file gh.load calls'), so the reader meets the term before the qualifier uses it. 'Only' survives verbatim. Cost: the sentence no longer says why a file must honor the contract; the detail sits in the doc's 'The timing invariants, stated explicitly' section (line 337)."
+  },
+  {
+   "id": "qualify-to-cut.2",
+   "lens": "qualify-to-cut",
+   "idea": "In P8, the parenthetical that defines a finding can give way to a qualifier: 'a browser-measured finding, such as sideways scroll, never fails it'. The qualifier says where the measuring happens, and the example says which kind of defect it looks for.",
+   "kind": "qualify",
+   "blocks": [
+    "P8"
+   ],
+   "rewrite": "a browser-measured finding, such as sideways scroll, never fails it",
+   "saves": 6,
+   "why": ".github/workflows/page-measures.yml says in its header (lines 3 to 4) that it renders each touched page in headless Chromium and reports sideways scroll at phone width, and that findings never turn the run red (line 16). 'Browser-measured' carries the first fact, the example keeps the second, and 'never' survives verbatim. The saving is small, but it removes a definition the reader has to hold while reading the sentence that depends on it."
+  },
+  {
+   "id": "qualify-to-cut.3",
+   "lens": "qualify-to-cut",
+   "idea": "Replace 'derived artifact (a committed file generated from other files, such as dist/web-tools.js)' in P4 with the standard term 'generated file, such as dist/web-tools.js': 'Every deterministic generated file, such as dist/web-tools.js, is owned by one commit-time hook'. Then P5's 'derived but not deterministic' and P7's two 'derived artifacts' change to 'generated' to match.",
+   "kind": "qualify",
+   "blocks": [
+    "P4",
+    "P5",
+    "P7"
+   ],
+   "rewrite": "Every **deterministic** generated file, such as `dist/web-tools.js`, is owned by one commit-time hook",
+   "saves": 7,
+   "why": "'Generated' is the ordinary word, so it needs no parenthetical, and 'deterministic' carries the split. Cost: node/README.md line 257 defines the same files as 'derived artifacts', so this renames the term in CLAUDE.md and leaves node/README.md needing the same word, or the passage trades one name split for another. Its own 'Most of these files are generated whole' (later in the same section) already uses the word."
+  },
+  {
+   "id": "rationale.1",
+   "lens": "rationale",
+   "idea": "Cut the dated history, the PreToolUse name and the sentence on startup scripts from the git-owns-the-hook paragraph: none of them changes what a reader runs. The reason that stays, that a hook declared in .claude/settings.json does not fire above the repo, is what stops a reader from adding a Claude hook that silently never runs.",
+   "kind": "cut",
+   "blocks": [
+    "P6"
+   ],
+   "rewrite": "**Git owns the hook, not Claude:** a hook declared in `.claude/settings.json` does not fire when the session's project root sits above this repo. Run `npm run setup` once per checkout for hooks, the `derived-csv` merge driver, and dependencies; `npm run ready` checks without writing. `git commit --no-verify` bypasses the hook. Details: [extending.md](docs/environment/extending.md).",
+   "saves": 12,
+   "why": "The date is history: .githooks/pre-commit records the move in its header (lines 22 to 26). The startup sentence describes setup that the instruction already has the reader run once per checkout. docs/environment/extending.md, The session dispatcher, confirms the reason as rewritten: a hook named in .claude/settings.json is read only when the session's project root is that repo."
+  },
+  {
+   "id": "rationale.2",
+   "lens": "rationale",
+   "idea": "Cut the clause that CI resolves dependency ranges fresh on each run. The reader acts on the consequence, that a green check claims no pinned versions, and the gitignored lockfile already states the premise.",
+   "kind": "cut",
+   "blocks": [
+    "P8"
+   ],
+   "rewrite": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every mergeable pull request and reports it as a check on the PR, so the suite reports even when no session runs it. `page-measures.yml` also runs on pull requests that touch a page, but only reports: a finding (a defect it measures in a browser, such as sideways scroll) never fails it, so a red run is a fault in its measuring pass, not in a page. The suite is browser-free by construction (`node --test` globs `node/test/**/*.test.mjs`, and every Playwright-driven check is named without `.test.`), so keep it that way or CI has to download a browser. `package-lock.json` is gitignored, so a green check is not a claim about pinned dependency versions.",
+   "saves": 9,
+   "why": "The mechanism is real: .github/workflows/test.yml runs npm install (line 105), and .gitignore line 10 lists package-lock.json. But no reader writing about a green check needs the mechanism to avoid claiming pinned versions."
+  },
+  {
+   "id": "rationale.3",
+   "lens": "rationale",
+   "idea": "Cut why that order matters from the pointer to node/README.md. That section owns the reason, and the pointer needs only the legs and their order to send a reader there.",
+   "kind": "cut",
+   "blocks": [
+    "P4"
+   ],
+   "rewrite": "Every **deterministic** derived artifact (a committed file generated from other files, such as `dist/web-tools.js`) is owned by one commit-time hook, [`.githooks/pre-commit`](.githooks/pre-commit). Before a `git commit` it regenerates and stages, in the same commit, whatever the pending changes touch. [`node/README.md`](node/README.md#the-refresh-model) lists the hook's legs (its separate regeneration steps) and the order they run in.",
+   "saves": 4,
+   "why": "node/README.md#the-refresh-model says why: a leg that writes into a folder precedes the leg that measures it. A reader who needs the reason follows the link; a reader who only commits does not act on it here."
+  },
+  {
+   "id": "reorder.1",
+   "lens": "reorder",
+   "idea": "Fold the hand-edit rule and the thumbnail exception into the hook paragraph, so the exception sits beside the definition of deterministic that it depends on and the separate paragraph goes.",
+   "kind": "reorder",
+   "blocks": [
+    "P4",
+    "P5"
+   ],
+   "rewrite": "Every **deterministic** derived artifact (a committed file generated from other files, such as `dist/web-tools.js`) is owned by one commit-time hook, [`.githooks/pre-commit`](.githooks/pre-commit). Before a `git commit` it regenerates and stages, in the same commit, whatever the pending changes touch: edit the source, and don't hand-edit a file, or a field, that the hook writes. [`node/README.md`](node/README.md#the-refresh-model) lists the hook's legs (its separate regeneration steps), the order they run in, and why that order matters. Thumbnails (`pages/thumbs/*.png`) are derived but not deterministic, so the hook only warns about them (see \"Per-session refresh\" above).",
+   "saves": 5,
+   "why": "P5's thumbnail sentence is an exception to the rule P4 states, and its hand-edit rule restates what P4's regeneration sentence already implies. Placed under P4's definition, the exception needs no hunt for its referent. This does not cure P2's forward pointer, 'the commit-time hook below': moving P4 ahead of P2 would name dist/web-tools.js before P2 introduces it, so that clause needs a cut, not a reorder."
+  },
+  {
+   "id": "reorder.2",
+   "lens": "reorder",
+   "idea": "Move the local-merge sentence from P7 up into P4, where the hook's refresh is first stated, so P7 is verification alone.",
+   "kind": "reorder",
+   "blocks": [
+    "P4",
+    "P7"
+   ],
+   "rewrite": "A local merge also runs the refresh, through `pre-merge-commit`; if that changes files, the merge pauses uncommitted until `git -c core.editor=true merge --continue` completes it.",
+   "saves": -1,
+   "why": "The sentence describes what the commit-time hook does during a merge, a behavior P4 introduces. In P7 it follows the repair command and reads as one more verification step, and 'the merge' there has no stated cause. The move supplies the cause and keeps the link to node/README.md#the-refresh-model, which owns the behavior (pre-merge-commit, 'Automatic local merge commits use the same order'). The saving is small; the gain is placement."
+  },
+  {
+   "id": "third.1",
+   "lens": "third",
+   "idea": "Rewrite the whole passage at about a third of its length (504 to 174 words), keeping what a reader acts on: what the pre-build is, when to read docs/loader.md, what the hook regenerates, that thumbnails are only warned about, that setup never regenerates, and that --no-verify bypasses the hook. The third is a restructure, not a set of trims, so the builder can take it whole as the alternative to the path.",
+   "kind": "restructure",
+   "blocks": [
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7",
+    "P8"
+   ],
+   "rewrite": "## The pre-build & the commit-time hook\n\n`dist/web-tools.js` is **the pre-build**: all of `lib/` in one self-booting file, so a page loads the whole library with one import instead of a `gh.load` call per file. `dist/app.js` holds only the `lib/` files that `app/index.html` names, directly or transitively. Before adding a file to `lib/`, read [`docs/loader.md`](docs/loader.md) for the contract a file must meet.\n\n[`.githooks/pre-commit`](.githooks/pre-commit) regenerates `dist/web-tools.js` and `dist/app.js`, and any other deterministic derived file whose source changed, into the same commit. Thumbnails (`pages/thumbs/*.png`) are not deterministic, so the hook only warns about them. Don't hand-edit what a generator writes: change the source and let the hook refresh it.\n\nIt is a git hook, not a Claude Code hook, so it fires even when a session's project root sits above this repo. Run `npm run setup` once per clone to install the hook; setup never regenerates anything. `git commit --no-verify` bypasses the hook, which is why [`test.yml`](.github/workflows/test.yml) runs `npm test` on every mergeable pull request: stale output fails that check. Repair the output with `npm run artifacts:refresh`.",
+   "saves": 329,
+   "why": "What is lost: the gh.load chain as the repo's default (node/README.md says develop against it, ship against the pre-build); the x-data component mapping and the five kits dist/app.js leaves out (node/README.md#the-app's-pre-build); the code-layers pointer and npm run code-shape (docs/code-layers.md); the refresh legs, their order and the merge-pause step (node/README.md#the-refresh-model); the per-session thumbnail refresh before a merge; the push-trigger backstop for pull requests that cannot merge (test.yml); the API and MCP writes that cannot run hooks as a reason for CI; and page-measures' report-only rule and the browser-free suite (page-measures.yml, test.yml). The four hand-edited CSVs are now covered only by 'what a generator writes', which is accurate but does not name them."
+  }
+ ],
  "rblocks": [
   {
    "id": "P1",
