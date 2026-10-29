@@ -180,4 +180,4 @@ gitattributes,edit,write-once,Write-once,"Nothing changes once the file is on ma
 gitattributes,edit,regenerated,Regenerated,"Rebuilt whole by a builder, never edited by hand. The builder's own checks hold it.",
 gitattributes,edit,tool-written,Tool-written,Written by its tool and nothing else.,
 gitattributes,edit,by-status,By status,"A tracker task: in place until its status is done, then write-once.",
-gitattributes,merge,derived-csv,Registry merge,"Merged by node/derived-csv-merge.mjs: rows are matched on the registry's key, a recorded cell merges three ways, a computed cell keeps this branch's value for the deriver to restamp, and a row only the other branch added goes at the end.",
+gitattributes,merge,derived-csv,Registry merge,"Merged by node/derived-csv-merge.mjs: rows are matched on the registry's key, a recorded cell merges three ways, a computed cell keeps this branch's value for the deriver to restamp, and row order follows whichever branch changed it.",

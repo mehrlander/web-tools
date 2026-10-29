@@ -31,9 +31,8 @@ docs/themes.csv merge=derived-csv
 tracker/board-tags.csv merge=derived-csv
 tracker/board.csv merge=derived-csv
 
-# An authored registry whose row order carries no meaning: the driver unions
-# the rows two branches each add. A registry whose order is read, such as
-# docs/aims-reading.csv, stays out, since the driver appends a new row at the end.
+# An authored registry: the driver unions the rows two branches each add, and
+# keeps the row order of whichever branch changed it.
 docs/map-tabs.csv merge=derived-csv
 
 # Edit policy: how each file may change. Each value's meaning is a row of
