@@ -11,8 +11,8 @@ what it predicts. The [account](README.md) holds the test.
 with no text spent describing its organization, because familiar conventions
 convey it.
 
-It is a limit in the way Shannon's are: a page approaches it without reaching
-it, and the distance that remains is the text a convention could have carried.
+Like the bound in Shannon's source coding theorem (1948), the definition names
+a limit to approach, not a state a page reaches.
 
 ## The claim
 
@@ -27,7 +27,7 @@ text takes two moves of different character:
    appears as a label one step from its own view. This move is determined by
    the reader the page is for.
 
-The theory's name is the owner's: **minimal progressive structure** (MPS).
+The term is the owner's, and its three words map onto the two moves.
 *Structure* is the recovered graph. *Progressive* is the layering, in which each
 interaction raises one neighbor by one level. *Minimal* is the constraint
 holding both in check: the fewest entities, levels and controls that still
@@ -229,4 +229,5 @@ In this repository the theory
 sits under the opening of the [html-style skill](../../skills/html-style/SKILL.md),
 whose "Project what matters" paragraph names the same steps (present the
 pieces, pare the representation down, layer it, manage each disclosure)
-without a procedure for any of them. MPS is a candidate procedure.
+without a procedure for any of them. [method.md](method.md) is a candidate
+procedure.
