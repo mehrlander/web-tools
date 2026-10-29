@@ -142,15 +142,22 @@ def smash(run, n, model=''):
     # biggest swing: the most words claimed, then the most words saved, so on
     # one span a cut beats a rewrite. A tie goes to the fighter named first.
     order = sorted(edits, key=lambda e: (not e.get('repair'), -words(e['from']), words(e['text']), e['id']))
+    tidy = lambda t: re.sub(r' +([.,;:)])', r'\1', re.sub(r'  +', ' ', t)).strip()
+    # An edit lands only on words the bout started with: the spans this bout
+    # has already written are off limits, so two fighters' words never stack.
+    written = []
     for e in order:
         ms = list(loose(e['from']).finditer(text))
-        if len(ms) != 1:
+        a, b = ms[0].span() if len(ms) == 1 else (0, 0)
+        if len(ms) != 1 or any(a < y and x < b for x, y in written):
             e['landed'] = False
             continue
-        a, b = ms[0].span()
-        text = re.sub(r'  +', ' ', text[:a] + e['text'] + text[b:]).strip()
+        d = len(e['text']) - (b - a)
+        written = [(x + d, y + d) if x >= b else (x, y) for x, y in written] + [(a, a + len(e['text']))]
+        text = text[:a] + e['text'] + text[b:]
         e['landed'] = True
-        led['path'].append({'edit': e['id'], 'bout': n, 'blocks': ['P1'], 'text': text, 'words': words(text)})
+        led['path'].append({'edit': e['id'], 'bout': n, 'blocks': ['P1'], 'text': tidy(text), 'words': words(text)})
+    text = tidy(text)
     led['edits'] += order
     led['peeves'] = {k: v['name'] for k, v in peeves().items()}
     landed = sum(e['landed'] for e in order)
