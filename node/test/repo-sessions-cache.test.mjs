@@ -217,6 +217,27 @@ test('stalePaths refetches only what moved, including the live record every Stop
   assert.deepEqual(S.stalePaths(null, listing).length, 3, 'a cold cache fetches everything');
 });
 
+test('stalePaths re-reads, once, a recent row from before defaultAt existed', () => {
+  const recent = 'sessions/2026/08/2026-08-05-b8fae678.json';
+  const old = 'sessions/2026/07/2026-07-20-aaaaaaaa.json';
+  const loaded = 'sessions/2026/08/2026-08-05-cccccccc.json';
+  const prev = S.buildCache(null, {
+    [recent]: { record: record(), sha: 'sha1' },
+    [old]: { record: record({ short: 'aaaaaaaa', day: '2026-07-20', started: '2026-07-20T09:00:00Z',
+                              ended: '2026-07-20T10:00:00Z' }), sha: 'sha2' },
+    [loaded]: { record: record({ short: 'cccccccc' }), sha: 'sha3' },
+  }, null, '2026-08-05T18:00:00Z');
+  // The first two rows were folded before the field existed; the third has it,
+  // empty, as a session that never loaded the default skill does.
+  for (const r of prev.rows) if (S.pathOf(r) !== loaded) delete r.defaultAt;
+  const listing = [{ path: recent, sha: 'sha1' }, { path: old, sha: 'sha2' }, { path: loaded, sha: 'sha3' }];
+  const now = Date.parse('2026-08-06T00:00:00Z');
+  assert.deepEqual(S.stalePaths(prev, listing, now), [recent],
+    'only the recent row lacking the field; an old one and an empty-but-present one are left alone');
+  const healed = S.buildCache(prev, { [recent]: { record: record(), sha: 'sha1' } }, null, '2026-08-06T00:00:00Z');
+  assert.deepEqual(S.stalePaths(healed, listing, now), [], 'the re-read writes the field, so it is not asked again');
+});
+
 test('a crawl that did not look at a record keeps its row; a deleted record loses it', () => {
   const p1 = 'sessions/2026/08/2026-08-05-b8fae678.json';
   const p2 = 'sessions/2026/08/2026-08-04-aaaaaaaa.json';
