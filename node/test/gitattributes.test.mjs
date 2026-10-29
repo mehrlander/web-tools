@@ -1,5 +1,5 @@
 // .gitattributes as a declaring file: the attributes it gives each tracked
-// file, and the vocabulary that says what each value means.
+// file, and the vocabulary that says what each of the estate's own values means.
 //
 // Every read goes through `git check-attr`, never the file's text, so a
 // pattern, a later line and a folder's own .gitattributes count as git counts
@@ -12,7 +12,7 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { repoRoot } from './bootstrap.mjs';
+import { repoRoot, loadKit } from './bootstrap.mjs';
 import { parseCsv } from '../build/registries-load.mjs';
 
 // Only the committed declarations: no user or system attribute file.
@@ -39,11 +39,13 @@ test("the edit-policy engine's own cases pass", () => {
   assert.equal(r.status, 0, r.stderr || r.stdout);
 });
 
-test('every attribute value a tracked file carries has a definition in docs/vocabularies.csv', () => {
+test("every value of the estate's own attributes has a definition in docs/vocabularies.csv", () => {
   // The Map view's Attributes tab shows each value with its definition, so a
-  // value with none would reach the reader as a bare word.
+  // value with none would reach the reader as a bare word. An attribute git or
+  // GitHub acts on is defined in their documentation, which the tab links.
+  const { BUILT_IN } = loadKit('git-attributes').GitAttributes;
   const defined = new Set(vocab.map(r => r.property + '=' + r.value));
-  const used = new Set(attributes().map(([, name, value]) => name + '=' + value));
+  const used = new Set(attributes().filter(([, name]) => !BUILT_IN[name]).map(([, name, value]) => name + '=' + value));
   assert.ok(used.has('edit=in-place'), 'no tracked file carries edit, so this test checks nothing');
   assert.deepEqual([...used].filter(k => !defined.has(k)).sort(), []);
 });
