@@ -138,14 +138,28 @@ for (const k of keys) {
 
 if (conflicts.length) bail(`${conflicts.length} authored cell(s) changed on both sides: ${conflicts.slice(0, 5).join(', ')}`);
 
-// Row ORDER is not merged and does not need to be: every one of these files is
-// written by a deriver that sorts, so the next restamp normalises it. Ours
-// first, then rows only theirs had, which keeps the diff small in the common
-// case where one side only appended.
-const seen = new Set();
-const ordered = [];
-for (const row of ours.rows) { const k = keyOf(row); if (!seen.has(k)) { const m = merged.find(x => keyOf(x) === k); if (m) { ordered.push(m); seen.add(k); } } }
-for (const row of merged) { const k = keyOf(row); if (!seen.has(k)) { ordered.push(row); seen.add(k); } }
+// Row order merges three ways, like a cell. Not every attributed file is
+// re-sorted by a deriver (docs/docs.csv keeps its rows where they stand), so an
+// order neither side chose would ride into the next pull request. The side that
+// changed the base's order leads, ours when both did; each row only the other
+// side has goes after the row that precedes it there.
+const byKey = new Map(merged.map(r => [keyOf(r), r]));
+const seq = (side) => side.rows.map(keyOf).filter(k => byKey.has(k));
+const sameOrder = (a, b) => {
+  const inA = new Set(a), inB = new Set(b);
+  return a.filter(k => inB.has(k)).join('\0') === b.filter(k => inA.has(k)).join('\0');
+};
+const [lead, other] = sameOrder(seq(ours), base.rows.map(keyOf)) ? [theirs, ours] : [ours, theirs];
+const ordered = seq(lead).map(k => byKey.get(k));
+const placed = new Set(seq(lead));
+let prev = null;
+for (const k of seq(other)) {
+  if (!placed.has(k)) {
+    ordered.splice(prev === null ? 0 : ordered.findIndex(r => keyOf(r) === prev) + 1, 0, byKey.get(k));
+    placed.add(k);
+  }
+  prev = k;
+}
 
 writeFileSync(oursPath, writeCsv(ordered, cols));
 console.error(`derived-csv-merge: ${filePath} resolved (${ordered.length} rows; ${computed.size} computed column(s) left to the deriver)`);
