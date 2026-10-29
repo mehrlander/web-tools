@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 <!-- Generated from docs/house-policies.md by node/build/policy-skills.mjs; do not hand-edit. -->
 
-# Surfacing · `/h:surf`, `/h:surfacing`
+# Surfacing · `/h:surfacing`
 
 A reply hands over what the reader needs in order to act.
 

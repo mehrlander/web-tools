@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 <!-- Generated from docs/house-policies.md by node/build/policy-skills.mjs; do not hand-edit. -->
 
-# Qualified writing · `/h:qual`, `/h:q`, `/h:qualify`
+# Qualified writing · `/h:qualify`, `h:qw`
 
 Qualify noun phrases, and introduce each referent before referring to it, so that a reader who has not followed the conversation can identify every subject.
 

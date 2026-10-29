@@ -1,14 +1,15 @@
 #!/usr/bin/env node
-// The h plugin's skills, one per shortcut, written from docs/house-policies.md.
+// The h plugin's skills, one per command, written from docs/house-policies.md.
 //
-// docs/house-policies.md is authoritative. Each `### Title · `/h:a`, `/h:b``
-// entry becomes plugins/h/skills/a/SKILL.md and plugins/h/skills/b/SKILL.md,
-// each holding the whole entry, so `/h:a` shows the entry it names. Every skill
-// is user-only (disable-model-invocation), which keeps all of them out of the
-// skill list a session's model reads.
+// docs/house-policies.md is authoritative. In a `### Title · `/h:a`, `h:b``
+// heading the slashed name is a command and the unslashed one an alias: the
+// entry becomes plugins/h/skills/a/SKILL.md, holding the whole entry, so `/h:a`
+// shows it, and `h:b` gets no skill. Every skill is user-only
+// (disable-model-invocation), which keeps all of them out of the skill list a
+// session's model reads.
 //
-// It refuses a shortcut that two entries claim, or one a skill name cannot
-// carry, since the document's own rule is that no shortcut is reused.
+// It refuses a name, command or alias, that two entries claim, or one a skill
+// name cannot carry, since the document's own rule is that no shortcut is reused.
 //
 // --check compares bytes and writes nothing, which is what
 // derived-artifacts.test.mjs runs.
@@ -31,7 +32,8 @@ export function entries(text) {
       if (line.startsWith('### ')) {
         const [title, list = ''] = line.slice(4).split(' · ');
         const names = [...list.matchAll(/`\/h:([^`]+)`/g)].map(m => m[1]);
-        cur = { heading: line.slice(4), title: title.trim(), names, body: [] };
+        const aliases = [...list.matchAll(/`h:([^`]+)`/g)].map(m => m[1]);
+        cur = { heading: line.slice(4), title: title.trim(), names, aliases, body: [] };
       }
     } else if (cur) cur.body.push(line);
   }
@@ -60,13 +62,13 @@ function skillFor(e, name) {
 const want = new Map();
 const owner = new Map();
 for (const e of entries(readFileSync(path.join(repoRoot, SOURCE), 'utf8'))) {
-  if (!e.names.length) throw new Error(`${SOURCE}: "${e.title}" names no /h: shortcut`);
-  for (const name of e.names) {
-    if (!/^[a-z0-9-]+$/.test(name)) throw new Error(`${SOURCE}: /h:${name} is not a valid skill name`);
-    if (owner.has(name)) throw new Error(`${SOURCE}: /h:${name} is claimed by "${owner.get(name)}" and "${e.title}"`);
+  if (!e.names.length) throw new Error(`${SOURCE}: "${e.title}" names no /h: command`);
+  for (const name of [...e.names, ...e.aliases]) {
+    if (!/^[a-z0-9-]+$/.test(name)) throw new Error(`${SOURCE}: h:${name} is not a valid skill name`);
+    if (owner.has(name)) throw new Error(`${SOURCE}: h:${name} is claimed by "${owner.get(name)}" and "${e.title}"`);
     owner.set(name, e.title);
-    want.set(name, skillFor(e, name));
   }
+  for (const name of e.names) want.set(name, skillFor(e, name));
 }
 
 const have = existsSync(SKILLS)
