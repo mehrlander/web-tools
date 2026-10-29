@@ -566,16 +566,16 @@
         <table class="table text-base">
           <thead>
             <tr>
-              <th>question</th>
-              <template x-for="n in targets" :key="n"><th class="text-center font-mono" x-text="n ? 'b' + n : 'orig'"></th></template>
+              <th class="pl-0">question</th>
+              <template x-for="n in targets" :key="n"><th class="px-1 text-center font-mono" x-text="n ? 'b' + n : 'orig'"></th></template>
             </tr>
           </thead>
           <tbody>
             <template x-for="t in tasks" :key="t.id">
               <tr class="align-top" :class="t.dropped && 'opacity-50'">
-                <td class="text-pretty"><span class="font-mono text-xs opacity-70" x-text="t.id"></span> <span x-text="t.question"></span></td>
+                <td class="pl-0 text-pretty"><span class="font-mono text-xs opacity-70" x-text="t.id"></span> <span x-text="t.question"></span></td>
                 <template x-for="n in targets" :key="n">
-                  <td class="text-center">
+                  <td class="px-1 text-center">
                     <template x-if="cell(t.id, n)">
                       <button class="btn btn-xs btn-square" :class="tsel && tsel.t === t.id && tsel.n === n ? 'btn-neutral' : 'btn-ghost'" @click="tsel = { t: t.id, n }"
                         :aria-label="t.id + (n ? ' after bout ' + n : ' on the original')">
@@ -587,8 +587,8 @@
               </tr>
             </template>
             <tr class="font-mono text-xs">
-              <td class="opacity-70">words</td>
-              <template x-for="n in targets" :key="n"><td class="text-center" x-text="wordsAt(n) + (led.best === n ? ' ★' : '')"></td></template>
+              <td class="pl-0 opacity-70">words</td>
+              <template x-for="n in targets" :key="n"><td class="px-1 text-center whitespace-nowrap" x-text="wordsAt(n) + (led.best === n ? ' ★' : '')"></td></template>
             </tr>
           </tbody>
         </table>
