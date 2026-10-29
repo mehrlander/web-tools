@@ -35,6 +35,7 @@ main,,shortcut-log,Shortcut Log,shortcut-log.html,thumbs/shortcut-log.png,https:
 main,,shortcut-run,Run Shortcut,shortcut-run.html,thumbs/shortcut-run.png,https://github.com/mehrlander/web-tools/blob/main/pages/shortcut-run.html,
 main,,shortcuts,Shortcuts,shortcuts.html,thumbs/shortcuts.png,https://github.com/mehrlander/web-tools/blob/main/pages/shortcuts.html,
 main,,shorter,Shorter,shorter.html,thumbs/shorter.png,https://github.com/mehrlander/web-tools/blob/main/pages/shorter.html,"Adjudicate a shorter draft against your text: word-diff, accept-by-default edits, per-span rewrite with an optional in-browser LLM."
+main,,swarm,Reduction swarm,swarm.html,thumbs/swarm.png,https://github.com/mehrlander/web-tools/blob/main/pages/swarm.html,
 main,,text-lab,Text Lab,text-lab.html,thumbs/text-lab.png,https://github.com/mehrlander/web-tools/blob/main/pages/text-lab.html,
 main,,toss-render,Toss Render,toss-render.html,thumbs/toss-render.png,https://github.com/mehrlander/web-tools/blob/main/pages/toss-render.html,"Render tossed HTML payloads or allowlisted repo paths (the 🥏 target); with no address, paste anything and see it shown the way it deserves."
 main,,transform,Transform,transform.html,thumbs/transform.png,https://github.com/mehrlander/web-tools/blob/main/pages/transform.html,"Multi-tab rows ⇒ rows workbench: $name refs, worker run, profile and pivot views, gz bundles. The standalone face of lib/alpineComponents/transform-workbench.js."

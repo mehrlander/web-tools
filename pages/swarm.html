@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="en" data-theme="winter">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reduction swarm</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🐝</text></svg>">
+  <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+  <script src="https://cdn.jsdelivr.net/npm/diff@5.2.0/dist/diff.min.js"></script>
+
+  <script type="module">
+    // ?use=<branch|tag|sha> pins everything entry.js loads to a ref; defaults to main.
+    await import('https://mehrlander.github.io/web-tools/lib/entry.js');
+    await gh.load('kits/gz-payload.js');
+    await gh.load('kits/url-params.js');
+    await gh.load('kits/repo-address.js');
+    await gh.load('alpine-bundle.js');
+  </script>
+
+  <!--
+    Reduction swarm: one passage, a ledger of reader entries anchored to its
+    units, and a harvest per round. The ledger (kind swarm/1) is written by
+    python/swarm/swarm.py; roles are in python/swarm/roles.md.
+
+    Input, first match wins: #gz=<base64url> (the gzipped ledger, from
+    `swarm.py gz <run>`), then ?src=owner/repo[@ref]:path (via the contents
+    API; ↻ re-reads it, so a run in progress can be followed).
+  -->
+  <script>
+    const TAGS = { core: 'c', tactic: 't', draft: 'd', word: 'w' };
+    function swarmView() {
+      return {
+        led: null, k: 0, tab: 'rounds', sel: null, hl: [], q: -1, diff: false,
+        tags: { core: true, tactic: true, draft: true, word: true },
+        src: '', err: '', loading: false,
+
+        async init() {
+          this.src = UrlParams.get('src') || '';
+          const gz = UrlParams.get('gz');
+          try {
+            if (gz) this.take(JSON.parse(await GzPayload.decode(gz)));
+            else if (this.src) await this.fetch();
+          } catch (e) { this.err = String(e?.message || e); }
+          addEventListener('keydown', (e) => {
+            if (e.target.closest('input')) return;
+            if (e.key === 'ArrowLeft') this.step(-1);
+            else if (e.key === 'ArrowRight') this.step(1);
+            else if (e.key === 'Escape') this.clear();
+          });
+        },
+        async fetch() {
+          this.loading = true; this.err = '';
+          try {
+            const spec = RepoAddress.parse(this.src);
+            const g = new GH({ token: window.TOKEN, repo: spec ? spec.repo : 'mehrlander/web-tools', ...(spec && spec.ref ? { ref: spec.ref } : {}) });
+            const atEnd = !this.led || this.k === this.R - 1;
+            this.take(JSON.parse((await g.get(spec ? spec.path : this.src)).text), atEnd);
+          } catch (e) { this.err = String(e?.message || e); }
+          this.loading = false;
+        },
+        take(led, follow = true) {
+          this.led = led;
+          if (follow || this.k >= led.rounds.length) this.k = Math.max(0, led.rounds.length - 1);
+          document.title = led.title + ' · Swarm';
+        },
+
+        get R() { return this.led ? this.led.rounds.length : 0; },
+        get cur() { return this.led ? this.led.rounds[this.k] || null : null; },
+        get n() { return this.cur ? this.cur.n : 0; },
+        get h() { return this.cur ? this.cur.harvest || null : null; },
+        get prevText() {
+          const p = this.k > 0 ? this.led.rounds[this.k - 1].harvest : null;
+          return p ? p.text : this.led.source.text;
+        },
+        get prevLabel() { return this.k > 0 ? 'R' + this.led.rounds[this.k - 1].n : 'source'; },
+        step(d) { if (this.R) { this.k = Math.min(this.R - 1, Math.max(0, this.k + d)); this.q = -1; this.hl = []; } },
+        clear() { this.sel = null; this.hl = []; this.q = -1; },
+
+        // The header's comparison: source words, then each round's harvest.
+        get bars() {
+          if (!this.led) return '';
+          const v = [this.led.source.words, ...this.led.rounds.map(r => r.harvest ? r.harvest.words : 0)];
+          const max = Math.max(...v), w = 14, gap = 4, H = 28;
+          const rects = v.map((x, i) => {
+            const h = Math.max(2, Math.round(H * x / max));
+            const on = i === this.k + 1;
+            const cls = i === 0 ? 'fill-base-content/30' : on ? 'fill-primary' : 'fill-base-content/60';
+            return `<rect class="${cls}" x="${i * (w + gap)}" y="${H - h}" width="${w}" height="${h}" rx="2"/>`;
+          }).join('');
+          return `<svg width="${v.length * (w + gap)}" height="${H}" viewBox="0 0 ${v.length * (w + gap)} ${H}">${rects}</svg>`;
+        },
+
+        upTo(list) { return (list || []).filter(v => v.round <= this.n); },
+        ups(e) { return this.upTo(e.votes).filter(v => v.v > 0).length; },
+        downs(e) { return this.upTo(e.votes).filter(v => v.v < 0); },
+        get used() { return new Set(this.h ? this.h.map.flatMap(m => m.uses || []) : []); },
+        chips(u) {
+          const c = {};
+          for (const e of this.led.entries) if (e.round <= this.n && e.anchors.includes(u.id)) c[e.tag] = (c[e.tag] || 0) + 1;
+          return Object.keys(TAGS).filter(t => c[t]).map(t => TAGS[t] + c[t]).join(' ');
+        },
+        dropped(u) { return !!this.h && this.h.dropped.includes(u.id); },
+        lit(u) { return this.hl.includes(u.id) || this.sel === u.id; },
+        pickUnit(id) { this.sel = this.sel === id ? null : id; this.hl = []; this.q = -1; if (this.tab === 'source' || this.tab === 'harvest') this.tab = 'ledger'; },
+
+        get groups() {
+          const s = this.sel, out = [];
+          for (const e of this.led.entries) {
+            if (e.round > this.n || !this.tags[e.tag]) continue;
+            if (s && !e.anchors.includes(s) && e.anchors[0] !== 'ALL') continue;
+            let g = out[out.length - 1];
+            if (!g || g.n !== e.round || g.role !== e.role) out.push(g = { n: e.round, role: e.role, items: [] });
+            g.items.push(e);
+          }
+          return out;
+        },
+        castBy(g) {
+          const r = this.led.rounds.find(r => r.n === g.n);
+          const x = r && r.readers.find(x => x.role === g.role);
+          return x ? x.votes : 0;
+        },
+
+        get segs() {
+          const h = this.h, out = [];
+          if (!h) return out;
+          let pos = 0;
+          h.map.forEach((m, i) => {
+            const at = h.text.indexOf(m.quote, pos);
+            if (at < 0) return;
+            if (at > pos) out.push({ t: h.text.slice(pos, at), i: -1 });
+            out.push({ t: m.quote, i });
+            pos = at + m.quote.length;
+          });
+          if (pos < h.text.length) out.push({ t: h.text.slice(pos), i: -1 });
+          return out;
+        },
+        get dsegs() {
+          return Diff.diffWords(this.prevText, this.h ? this.h.text : '').map(p => ({ t: p.value, k: p.added ? 'add' : p.removed ? 'del' : '' }));
+        },
+        pickQuote(i) {
+          if (this.q === i) { this.q = -1; this.hl = []; return; }
+          this.q = i; this.hl = this.h.map[i].from;
+        },
+        get quote() { return this.q >= 0 && this.h ? this.h.map[this.q] : null; },
+
+        get cores() { return this.led.entries.filter(e => e.tag === 'core' && e.round <= this.n); },
+        coreAt(e, r) {
+          const c = r.harvest && r.harvest.core.find(c => c.id === e.id);
+          return !c ? '' : ('quote' in c ? 'ok' : 'lost');
+        },
+        coreNow(e) { return this.h ? this.h.core.find(c => c.id === e.id) || null : null; },
+
+        // One row per round: who read, what they added, what the harvest came to.
+        get table() {
+          let prev = this.led.source.words;
+          return this.led.rounds.map((r, i) => {
+            const h = r.harvest, row = { i, n: r.n, readers: r.readers, h, delta: h ? h.words - prev : null };
+            if (h) prev = h.words;
+            return row;
+          });
+        },
+        added(r) {
+          const ids = new Set(r.entries);
+          const c = {};
+          for (const e of this.led.entries) if (ids.has(e.id)) c[e.tag] = (c[e.tag] || 0) + 1;
+          return Object.keys(TAGS).filter(t => c[t]).map(t => c[t] + ' ' + t).join(', ') || 'no entries';
+        },
+      };
+    }
+  </script>
+</head>
+
+<body class="bg-base-100 text-base-content">
+<div x-data="swarmView()" class="fixed inset-0 grid grid-rows-[auto_auto_minmax(0,1fr)_auto]">
+
+  <!-- header: identity, the round's figure, the word bars, reload -->
+  <header class="flex items-center gap-3 px-4 py-2 border-b border-base-300 min-w-0">
+    <div class="min-w-0 flex-1">
+      <div class="font-semibold truncate text-balance" x-text="led ? led.title : 'Reduction swarm'"></div>
+      <div class="text-xs opacity-70 font-mono" x-show="!!led">
+        <span x-text="led && led.source.words"></span> →
+        <span x-text="h ? h.words : '…'"></span> words
+        <template x-if="h"><span> · core <span x-text="h.core_carried + '/' + h.core_total"></span> · dropped <span x-text="h.dropped.length + '/' + led.units.length"></span> units</span></template>
+      </div>
+    </div>
+    <div x-show="!!led" x-html="bars" class="shrink-0"></div>
+    <button class="btn btn-ghost btn-sm btn-square" x-show="!!src" @click="fetch()" :disabled="!!loading" aria-label="Reload">
+      <i class="ph ph-arrow-clockwise text-lg" :class="loading && 'animate-spin'"></i>
+    </button>
+  </header>
+
+  <!-- tabs -->
+  <nav class="flex items-center gap-1 px-4 py-1 border-b border-base-300 overflow-x-auto" x-show="!!led">
+    <button class="btn btn-sm" :class="tab === 'rounds' ? 'btn-neutral' : 'btn-ghost'" @click="tab = 'rounds'">Rounds</button>
+    <button class="btn btn-sm lg:hidden" :class="tab === 'source' ? 'btn-neutral' : 'btn-ghost'" @click="tab = 'source'">Source</button>
+    <button class="btn btn-sm" :class="tab === 'harvest' ? 'btn-neutral' : 'btn-ghost'" @click="tab = 'harvest'">Harvest</button>
+    <button class="btn btn-sm" :class="tab === 'ledger' ? 'btn-neutral' : 'btn-ghost'" @click="tab = 'ledger'">Ledger</button>
+    <button class="btn btn-sm" :class="tab === 'core' ? 'btn-neutral' : 'btn-ghost'" @click="tab = 'core'">Core</button>
+    <template x-if="sel">
+      <button class="btn btn-sm btn-outline btn-primary ml-auto font-mono" @click="clear()"><span x-text="sel"></span><i class="ph ph-x"></i></button>
+    </template>
+  </nav>
+
+  <!-- content -->
+  <main class="min-h-0 grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+
+    <!-- no ledger yet -->
+    <template x-if="!led">
+      <div class="p-4 flex flex-col gap-2 lg:col-span-2">
+        <label class="input w-full">
+          <span class="font-mono text-xs opacity-70">src</span>
+          <input type="text" x-model="src" placeholder="owner/repo@ref:path/to/ledger.json" @keydown.enter="fetch()">
+        </label>
+        <div class="text-error text-sm" x-show="!!err" x-text="err"></div>
+      </div>
+    </template>
+
+    <!-- source units -->
+    <section class="min-h-0 overflow-y-auto border-base-300 lg:border-r" :class="tab === 'source' ? 'block' : 'hidden lg:block'" x-show="!!led">
+      <template x-if="led">
+        <ol class="divide-y divide-base-200">
+          <template x-for="u in led.units" :key="u.id">
+            <li>
+              <button class="w-full text-left px-4 py-2 flex gap-3 items-baseline" :class="lit(u) ? 'bg-primary/10' : 'hover:bg-base-200'" @click="pickUnit(u.id)">
+                <span class="font-mono text-xs opacity-60 w-7 shrink-0" x-text="u.id"></span>
+                <span class="flex-1 min-w-0 text-pretty" :class="dropped(u) ? 'line-through opacity-50' : ''" x-text="u.text"></span>
+                <span class="font-mono text-xs opacity-60 shrink-0" x-text="chips(u)"></span>
+              </button>
+            </li>
+          </template>
+        </ol>
+      </template>
+    </section>
+
+    <!-- right pane -->
+    <section class="min-h-0 overflow-y-auto" :class="tab === 'source' ? 'hidden lg:block' : 'block'" x-show="!!led">
+      <template x-if="led">
+        <div class="p-4 flex flex-col gap-4">
+
+          <!-- rounds -->
+          <template x-if="tab === 'rounds'">
+            <table class="table table-sm">
+              <thead><tr><th class="font-mono">round</th><th>readers</th><th class="text-right">words</th><th class="text-right">core</th></tr></thead>
+              <tbody>
+                <tr class="opacity-70">
+                  <td class="font-mono">source</td><td x-text="led.units.length + ' units'"></td>
+                  <td class="text-right font-mono" x-text="led.source.words"></td><td></td>
+                </tr>
+                <template x-for="row in table" :key="row.n">
+                  <tr class="cursor-pointer align-top" :class="row.i === k ? 'bg-primary/10' : 'hover:bg-base-200'" @click="k = row.i; tab = 'harvest'">
+                    <td class="font-mono" x-text="'R' + row.n"></td>
+                    <td>
+                      <template x-for="r in row.readers" :key="r.role">
+                        <div><span class="font-semibold" x-text="r.role"></span> <span class="opacity-70" x-text="added(r) + (r.votes ? ', ' + r.votes + ' votes' : '')"></span></div>
+                      </template>
+                      <div class="text-xs opacity-70 text-pretty" x-show="!!row.h" x-text="row.h && row.h.note"></div>
+                    </td>
+                    <td class="text-right font-mono whitespace-nowrap">
+                      <div x-text="row.h ? row.h.words : '…'"></div>
+                      <div class="text-xs" :class="row.delta < 0 ? 'text-success' : 'text-error'" x-show="row.delta !== null" x-text="(row.delta > 0 ? '+' : '') + row.delta"></div>
+                    </td>
+                    <td class="text-right font-mono whitespace-nowrap" x-text="row.h ? row.h.core_carried + '/' + row.h.core_total : ''"></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </template>
+
+          <!-- harvest -->
+          <template x-if="tab === 'harvest' || tab === 'source'">
+            <div class="flex flex-col gap-3">
+              <template x-if="!h"><div class="text-sm opacity-70">No harvest this round.</div></template>
+              <template x-if="h">
+                <div class="flex flex-col gap-3">
+                  <div class="flex items-center gap-2 flex-wrap text-xs">
+                    <span class="font-mono opacity-70" x-text="'R' + n"></span>
+                    <span class="opacity-70 flex-1 min-w-0 text-pretty" x-text="h.note"></span>
+                    <label class="label cursor-pointer gap-2">
+                      <input type="checkbox" class="toggle toggle-xs" x-model="diff">
+                      <span x-text="'diff vs ' + prevLabel"></span>
+                    </label>
+                  </div>
+                  <div class="whitespace-pre-wrap leading-7" x-show="!diff"><template x-for="(s, i) in segs" :key="i"><span
+                    :class="s.i < 0 ? '' : (q === s.i ? 'bg-primary/20 rounded cursor-pointer' : 'hover:bg-base-200 rounded cursor-pointer')"
+                    @click="s.i >= 0 && pickQuote(s.i)" x-text="s.t"></span></template></div>
+                  <div class="whitespace-pre-wrap leading-7" x-show="diff"><template x-for="(s, i) in dsegs" :key="i"><span
+                    :class="s.k === 'add' ? 'bg-success/20' : s.k === 'del' ? 'bg-error/10 line-through opacity-60' : ''" x-text="s.t"></span></template></div>
+                  <template x-if="quote">
+                    <div class="flex flex-wrap items-center gap-1 text-xs">
+                      <span class="opacity-70">from</span>
+                      <template x-for="a in quote.from" :key="a"><button class="badge badge-sm badge-primary badge-outline font-mono" @click="pickUnit(a)" x-text="a"></button></template>
+                      <span class="opacity-70 ml-2" x-show="(quote.uses || []).length">uses</span>
+                      <template x-for="id in quote.uses || []" :key="id"><span class="badge badge-sm font-mono" x-text="id"></span></template>
+                    </div>
+                  </template>
+                  <div class="flex flex-wrap items-center gap-1 text-xs" x-show="h.dropped.length">
+                    <span class="opacity-70">dropped</span>
+                    <template x-for="a in h.dropped" :key="a"><button class="badge badge-sm badge-ghost font-mono line-through" @click="pickUnit(a)" x-text="a"></button></template>
+                  </div>
+                  <template x-for="c in h.core.filter(c => 'lost' in c)" :key="c.id">
+                    <div class="text-xs"><span class="font-mono text-error" x-text="c.id + ' lost'"></span> <span class="opacity-70" x-text="c.lost"></span></div>
+                  </template>
+                </div>
+              </template>
+            </div>
+          </template>
+
+          <!-- ledger -->
+          <template x-if="tab === 'ledger'">
+            <div class="flex flex-col gap-3">
+              <div class="flex items-center gap-1 overflow-x-auto">
+                <template x-for="t in Object.keys(tags)" :key="t">
+                  <button class="btn btn-xs" :class="tags[t] ? 'btn-neutral' : 'btn-ghost opacity-60'" @click="tags[t] = !tags[t]" x-text="t"></button>
+                </template>
+              </div>
+              <template x-for="g in groups" :key="g.n + g.role">
+                <div class="flex flex-col gap-2">
+                  <div class="text-xs font-mono opacity-70 border-b border-base-200 pb-1">
+                    <span x-text="'R' + g.n + ' · ' + g.role + ' · ' + g.items.length + ' entries · ' + castBy(g) + ' votes cast'"></span>
+                  </div>
+                  <template x-for="e in g.items" :key="e.id">
+                    <div class="pl-3 border-l-2" :class="e.round === n ? 'border-primary' : 'border-base-300'">
+                      <div class="flex flex-wrap items-center gap-1 text-xs font-mono">
+                        <span class="font-semibold" x-text="e.id"></span>
+                        <span class="opacity-60" x-text="e.tag"></span>
+                        <template x-for="a in e.anchors" :key="a"><button class="opacity-70 hover:underline" @click="a !== 'ALL' && pickUnit(a)" x-text="a"></button></template>
+                        <span class="text-success" x-show="ups(e)" x-text="'+' + ups(e)"></span>
+                        <span class="text-error" x-show="downs(e).length" x-text="'−' + downs(e).length"></span>
+                        <span class="badge badge-xs badge-primary" x-show="used.has(e.id)" x-text="'in R' + n"></span>
+                        <template x-if="(e.builds_on || []).length"><span class="opacity-60" x-text="'← ' + e.builds_on.join(' ')"></span></template>
+                      </div>
+                      <template x-if="e.tag === 'word'">
+                        <div class="text-pretty"><span class="line-through opacity-60" x-text="e.from"></span> <span x-text="e.to || '∅'"></span></div>
+                      </template>
+                      <template x-if="e.tag !== 'word'"><div class="text-pretty whitespace-pre-wrap" x-text="e.text"></div></template>
+                      <template x-for="(v, j) in downs(e)" :key="j">
+                        <div class="text-xs opacity-70"><span class="text-error font-mono" x-text="'−1 ' + v.role + ' R' + v.round"></span> <span x-text="v.why"></span></div>
+                      </template>
+                    </div>
+                  </template>
+                </div>
+              </template>
+            </div>
+          </template>
+
+          <!-- core -->
+          <template x-if="tab === 'core'">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th class="font-mono">id</th><th>payload</th>
+                  <template x-for="r in led.rounds.slice(0, k + 1)" :key="r.n"><th class="font-mono text-center" x-text="'R' + r.n"></th></template>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="e in cores" :key="e.id">
+                  <tr>
+                    <td class="font-mono text-xs align-top">
+                      <div x-text="e.id"></div>
+                      <div class="opacity-60" x-text="'+' + ups(e) + ' −' + downs(e).length"></div>
+                    </td>
+                    <td class="align-top">
+                      <div class="text-pretty" :class="downs(e).length > ups(e) ? 'line-through opacity-60' : ''" x-text="e.text"></div>
+                      <template x-if="coreNow(e)">
+                        <div class="text-xs opacity-70" x-text="coreNow(e).quote ? '“' + coreNow(e).quote + '”' : coreNow(e).lost"></div>
+                      </template>
+                    </td>
+                    <template x-for="r in led.rounds.slice(0, k + 1)" :key="r.n">
+                      <td class="text-center align-top">
+                        <i class="ph" :class="{ 'ph-check text-success': coreAt(e, r) === 'ok', 'ph-x text-error': coreAt(e, r) === 'lost', 'ph-minus opacity-30': coreAt(e, r) === '' }"></i>
+                      </td>
+                    </template>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </template>
+        </div>
+      </template>
+    </section>
+  </main>
+
+  <!-- footer: rounds -->
+  <footer class="flex items-center justify-center gap-3 px-4 py-2 border-t border-base-300" x-show="R > 1">
+    <button class="btn btn-ghost btn-sm btn-square" @click="step(-1)" :disabled="k === 0" aria-label="Previous round"><i class="ph ph-caret-left text-lg"></i></button>
+    <div class="flex items-center gap-2">
+      <template x-for="(r, i) in led ? led.rounds : []" :key="r.n">
+        <button class="font-mono text-xs px-2 py-1 rounded" :class="i === k ? 'bg-primary text-primary-content' : 'opacity-60 hover:bg-base-200'" @click="k = i; q = -1; hl = []" x-text="'R' + r.n"></button>
+      </template>
+    </div>
+    <button class="btn btn-ghost btn-sm btn-square" @click="step(1)" :disabled="k === R - 1" aria-label="Next round"><i class="ph ph-caret-right text-lg"></i></button>
+  </footer>
+</div>
+</body>
+</html>

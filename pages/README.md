@@ -51,6 +51,7 @@ the link-dense text twin of the visual index above.
 | `shortcut-run` | Run Shortcut | [view](https://mehrlander.github.io/web-tools/pages/shortcut-run.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/shortcut-run.html) |
 | `shortcuts` | Shortcuts | [view](https://mehrlander.github.io/web-tools/pages/shortcuts.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/shortcuts.html) |
 | `shorter` | Shorter | [view](https://mehrlander.github.io/web-tools/pages/shorter.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/shorter.html) |
+| `swarm` | Reduction swarm | [view](https://mehrlander.github.io/web-tools/pages/swarm.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/swarm.html) |
 | `text-lab` | Text Lab | [view](https://mehrlander.github.io/web-tools/pages/text-lab.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/text-lab.html) |
 | `toss-render` | Toss Render | [view](https://mehrlander.github.io/web-tools/pages/toss-render.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/toss-render.html) |
 | `transform` | Transform | [view](https://mehrlander.github.io/web-tools/pages/transform.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/transform.html) |

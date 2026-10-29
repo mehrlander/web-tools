@@ -39,7 +39,7 @@ lib/kits/findings.js,Findings,"what a tending pass concluded, kept as notes that
 lib/kits/git-change.js,GitChange,"pure browser-capable Git bundle & packfile unpacker, delta patch resolver, and git-change/1 envelope validator.",643,no,no,1,yes
 lib/kits/github-links.js,GithubLinks,"the GitHub destinations for one repo, as menu rows.",97,no,no,4,yes
 lib/kits/guide-render.js,GuideRender,"a guide PR body, rendered as something you can walk.",448,no,no,18,yes
-lib/kits/gz-payload.js,GzPayload,"The `#gz=` payload, in one place: text gzipped, then base64url, so a page, a document or a data envelope rides in a link with nothing hosted and no token…",41,no,no,15,yes
+lib/kits/gz-payload.js,GzPayload,"The `#gz=` payload, in one place: text gzipped, then base64url, so a page, a document or a data envelope rides in a link with nothing hosted and no token…",41,no,no,16,yes
 lib/kits/io.js,io,"user data in and out of the page: file picker, file download, blob preview, and the clipboard.",229,no,yes,24,yes
 lib/kits/json-explorer.js,JsonExplorer,"Native, framework-free JSON Explorer & Schema Profiler.",747,no,no,1,yes
 lib/kits/land.js,Land,"where the reader was just sent, and how they get told.",260,no,yes,8,yes
@@ -78,7 +78,7 @@ lib/kits/read-aloud.js,readAloud,"markdown reduced to what is worth hearing, and
 lib/kits/record-deck.js,recordDeck,"a table's records, read one at a time.",337,no,no,5,yes
 lib/kits/redact.js,Redact,"cover parts of an image with labelled boxes, crop it, and prove the covered pixels are gone before it is copied out.",585,no,no,1,yes
 lib/kits/repo-activity-cache.js,RepoActivityCache,Activity aggregate for the web-tools ecosystem.,221,no,no,7,yes
-lib/kits/repo-address.js,RepoAddress,"The `owner/repo[@ref]:path` address, in one place.",234,yes,no,26,yes
+lib/kits/repo-address.js,RepoAddress,"The `owner/repo[@ref]:path` address, in one place.",234,yes,no,27,yes
 lib/kits/repo-checks.js,RepoChecks,"Declared staleness checks for a repo, evaluated on sight.",319,no,no,3,yes
 lib/kits/repo-config-cache.js,RepoConfigCache,Config aggregate + history + alignment grade for the web-tools ecosystem.,120,no,no,3,yes
 lib/kits/repo-proposals.js,RepoProposals,Proposals: the write-side counterpart to the reads an errand asks for (lib/kits/errands.js).,652,no,no,2,yes
@@ -110,7 +110,7 @@ lib/kits/title-tip.js,TitleTip,"the TITLE-TIP of the house popup rule: `data-tit
 lib/kits/traffic-log.js,TrafficLog,the app writes down what its calls did worth reading,185,no,no,5,yes
 lib/kits/traffic.js,Traffic,"the pure read of what a page has pulled over the network, and the vocabulary the FAB's Traffic tab renders.",690,yes,no,4,yes
 lib/kits/treemap.js,treemap,pure logic for mapping a file tree as a treemap.,159,no,no,2,yes
-lib/kits/url-params.js,UrlParams,"Reading a page's own input params, fragment first, query as fallback.",149,no,no,9,yes
+lib/kits/url-params.js,UrlParams,"Reading a page's own input params, fragment first, query as fallback.",149,no,no,10,yes
 lib/kits/user-calls.js,UserCalls,what waits on the owner (window.UserCalls).,153,no,no,3,yes
 lib/kits/vanilla-demo.js,demo,"the living-documentation demo format, distilled from pages/drop/live-docs-concept.html.",574,no,no,11,yes
 lib/kits/visit-log.js,VisitLog,"turn an address into a storable visit, by allowlist.",309,no,no,2,yes

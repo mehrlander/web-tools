@@ -1,0 +1,21 @@
+{"tag":"core","anchors":["S1","S2","S3"],"text":"Subagents share the container (files, HTTPS_PROXY, checkouts, branch, HEAD); only context windows are separate."}
+{"tag":"core","anchors":["S3"],"text":"Sharing explains the shared search budget and concurrency cap."}
+{"tag":"core","anchors":["S3"],"text":"Agents can write directly into the repo for the main loop to commit."}
+{"tag":"core","anchors":["S4"],"text":"Agent tool `isolation: \"worktree\"` and `isolation: \"remote\"` are the exceptions to sharing."}
+{"tag":"core","anchors":["S5"],"text":"Agent concurrency caps at 20; larger dispatches partially fail with `Concurrent subagent limit reached`."}
+{"tag":"core","anchors":["S5"],"text":"Raise the cap with `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`."}
+{"tag":"core","anchors":["S6"],"text":"Cap's real cost is a silent drop: a rostered item never dispatched successfully never reports."}
+{"tag":"core","anchors":["S7","S8"],"text":"Reconcile the roster against what launched, not what was dispatched; `ListAgents` settles it in one call."}
+{"tag":"core","anchors":["S9"],"text":"Workflow cap is min(16, CPUs minus 2) per run (measured 2026-09-06)."}
+{"tag":"core","anchors":["S9"],"text":"This container reports 4 CPUs (`nproc`): Workflow would run two agents at a time."}
+{"tag":"core","anchors":["S9","S10"],"text":"Read `nproc` before choosing a fan-out venue; here the Agent tool (20) beats Workflow tenfold."}
+{"tag":"core","anchors":["S11"],"text":"Measurements below come from one run of 124 agents, 17 minutes at the cap."}
+{"tag":"core","anchors":["S12","S13"],"text":"Agent tool has no effort parameter (only Workflow's `agent()` does); a low-effort instruction must go in the prompt."}
+{"tag":"core","anchors":["S14"],"text":"Output on disk is not agent done: the agent holds its slot until it returns."}
+{"tag":"core","anchors":["S14"],"text":"A ledger kept from file arrivals overcounts free slots by one or two."}
+{"tag":"core","anchors":["S14","S15"],"text":"A refused launch is cheap: count slots with `ListAgents` and relaunch."}
+{"tag":"core","anchors":["S16"],"text":"Prompt-named validator the agent runs on its own output made 124 of 124 outputs parse and conform."}
+{"tag":"core","anchors":["S17"],"text":"The validator is the Agent-tool equivalent of Workflow's `schema` option, and it is committed."}
+{"tag":"core","anchors":["S18"],"text":"Cost is in the transcripts: sum each line's `message.usage` block for the agent's spend, not the notification."}
+{"tag":"core","anchors":["S19"],"text":"Run totals: 91.3M tokens, 74.4M cache reads of the shared prompt, 300k output."}
+{"tag":"core","anchors":["S19"],"text":"Readers averaged 105k tokens and about two minutes; skeptics 97k and about 90 seconds."}
