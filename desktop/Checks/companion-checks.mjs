@@ -38,6 +38,7 @@ try {
   const first = await request('/api/v1/now',owner);
   const phone = await first.json();
   check(first.ok && phone.schemaVersion === 1 && Array.isArray(phone.items),'The owner receives the versioned phone projection.');
+  check(Array.isArray(phone.usage) && (await request('/usage-view.js',owner)).ok,'The private phone API and assets expose the normalized usage view.');
   const serialized = JSON.stringify(phone);
   check(!serialized.includes(token) && !serialized.includes('repositoriesRoot') && !serialized.includes('workspace') && !serialized.includes('downloads'), 'The phone response omits credentials, configuration and filesystem fields.');
   check(first.headers.get('cache-control') === 'no-store' && first.headers.get('content-security-policy').includes("frame-ancestors 'none'"),'Private responses disable caching and framing.');
@@ -48,6 +49,7 @@ try {
   check(foreignHost === 403,'An unexpected host cannot bypass the local boundary.');
   check((await request('/companion-access.json',owner)).status === 404 && (await request('/api/v1/results/missing',owner)).status === 404,'Settings and arbitrary result paths are unavailable.');
   check((await request('/vendor/assistant-mark.js',owner)).ok && (await request('/',owner)).ok,'The phone assets are served from the same private origin.');
+  check((await request('/vendor/marked.js',owner)).ok && (await request('/vendor/purify.js',owner)).ok && (await request('/reading.js',owner)).ok,'The formatted detail renderer and its existing Markdown dependencies are served from the private origin.');
   await new Promise(resolve => setTimeout(resolve,2300));
   const later = await (await request('/api/v1/now',owner)).json();
   check(new Date(later.observedAt) > new Date(phone.observedAt),'Collection continues between requests with no desktop process.');

@@ -5,7 +5,7 @@
 //     --script node/render/scenarios/map-docs.mjs \
 //     --out node/.preview/map-docs.png --full
 //
-// Same stub shape as map-showing.mjs: the sandbox blocks api.github.com, so
+// The sandbox blocks api.github.com, so
 // the scenario serves the REAL committed docs/docs.csv through GH.get, with
 // no token, proving the tab renders for a tokenless reader. What the pixels
 // prove: the documents registry grouped by folder with status badges, and the

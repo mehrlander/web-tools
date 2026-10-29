@@ -18,8 +18,8 @@ stays visible above either tab.
   cloud session updates from Web Tools' existing captured-session cache.
 - An activity feed with assistant, state and text filters, plus a selected result
   or a short history of observed local session events.
-- Since you last looked: one latest meaningful change per piece of work, with
-  review memory saved separately in each desktop or phone browser.
+- Recent activity: one latest meaningful change per piece of work, without
+  read receipts or a step to acknowledge the activity.
 - Published Claude checkpoints with topic titles, recent exchange summaries,
   measured activity and links to the resulting pull requests.
 - The Gemini worker's last reported task and report time, alongside its queue.
@@ -94,6 +94,15 @@ its observation time when contact is lost. A responding server with an observati
 older than fifteen seconds also loses its Live status. Closing the phone browser
 stops polling and does not stop collection.
 
+Tapping a main-list item toggles its compact inline details. An external-link icon
+opens the item's existing Web Tools session detail, errand or result in a separate
+browser context, preserving Now's position and open panel. Items without a valid
+browser destination, including current local Codex and Gemini sessions, have no
+external icon. The companion does not invent links for local-only records. Older
+phone detail bookmarks and the worker's own report view remain supported. On iOS,
+a Home Screen web app may open an external link in a Safari browser sheet, where
+the system offers the control to continue in Safari.
+
 After installation, run `desktop/enable-phone.ps1` using the owner's Windows
 account. The script reads the existing Tailscale identity, restricts the companion
 to that identity, and configures private HTTPS through Tailscale Serve. Unmet HTTPS
@@ -118,6 +127,74 @@ desktop settings; those settings never enter API responses or tracked files.
 - `GET /api/v1/results/<id>`: a selected reply, capped at 20,000 characters, plus
   the phone's link to its full saved result in Web Tools.
 - `GET /api/v1/desktop`: full desktop snapshot for the authenticated local app.
+
+### Account usage
+
+The front-page assistant strip also shows compact allowance bars with percentages
+used, labeled by each reported period (for example, 5h or Week). A small tick
+marks the even-use budget pace, with amber fill for usage above that pace. The
+weekly reset day and local time appear beneath the bars. Hover and Usage provide
+the exact reset, pace difference and stale-reading details. Pace compares used
+allowance with elapsed time; it is not a forecast and is hidden for stale, expired
+or unknown periods. Model quotas without a
+reported duration say Quota. Missing periods never gain a guessed bar; multiple
+model or bucket readings for one period use the account-wide limit when present,
+otherwise the most used reading. The full Usage view retains every limit.
+
+The phone's Usage tab and the desktop's Usage panel show account allowances,
+percentage used, reset countdowns and exact reset dates. Known window lengths
+also get a time-elapsed tick. Readings are collected independently about once a
+minute, without blocking activity. Local history samples every five minutes,
+keeps eight days and sends at most sixty points per current window to the phone.
+A trend begins with observed readings, without reconstructing past consumption.
+Expired or stale readings remain labeled; passing a reset never supplies an
+assumed zero.
+
+Codex uses the signed-in CLI's documented `account/rateLimits/read` app-server
+method. The CLI manages its own authentication. Each reported bucket and period
+remains separate. Gemini uses the existing Antigravity worker's loopback
+`RetrieveUserQuotaSummary` response, which identifies the shared `gemini-5h`
+and `gemini-weekly` buckets with explicit window names and reset times. Workers
+without the summary method fall back to per-model `GetUserStatus` quotas without
+inferring their duration. Temporary summary failures retain the named readings
+and their history as stale. That local interface is version-dependent and may
+contain cached provider data; the displayed time is when the worker status was
+read. The collector never starts the worker or a conversation. Only Gemini model
+quotas enter the Gemini lane. Claude models served through Antigravity do not
+describe the user's separate Claude subscription. Identical Gemini model
+readings and histories are grouped visually. An unreported period stays unknown.
+
+Claude account usage connects through the existing Claude Code sign-in. Run
+`claude auth login --claudeai` once if that sign-in has expired. The companion
+reads the account usage endpoint shipped with Claude Code about every five
+minutes, using Windows certificate trust. Existing OAuth credentials stay in
+Claude's configuration directory (`CLAUDE_CONFIG_DIR` or `%USERPROFILE%\.claude`).
+Normal token refresh preserves unrelated credential-file data and a newer sign-in
+made by Claude. Redirects are disabled on authenticated requests. No model call
+or API-key billing is used. The endpoint is version-dependent; failed reads retain
+the previous values with an explicit connection notice. Account-wide and reported
+model-specific weekly limits stay separate.
+
+Claude's documented Code statusline JSON can also supply `rate_limits.five_hour`
+and `rate_limits.seven_day`. A local statusline integration can pipe that JSON to
+`python <installed-companion>/worker/usage.py --state <desktop-data> --capture claude`.
+The capture command saves only the two percentages, reset times and capture time,
+and prints nothing. An existing statusline should retain its normal output.
+The normal desktop data directory is `%LOCALAPPDATA%\WebToolsDesktop`. No statusline
+settings are changed automatically. Without a reporter, the Claude lane explicitly
+says it is not connected. The account reader covers the subscription's usage
+without requiring a separate reporter in each cloud session.
+
+Each assistant's usage header has a browser-link icon. Codex opens ChatGPT's
+Usage settings and Claude opens Claude's Usage settings. Gemini opens the
+Antigravity browser entry point; the vendor places model quotas under Settings
+and does not document a standalone browser quota address. The desktop opens only
+these three approved destinations in the system browser. The phone opens the
+same addresses separately.
+
+Usage files remain beside the companion settings in `usage.json` and
+`usage-inputs/claude.json`. No credential, transcript, account identifier or raw
+provider error enters the usage projection. Missing fields never imply zero.
 
 The phone projection omits request notes, filesystem fields, downloads and native
 actions. Polling uses conditional GET every two seconds in the foreground, pauses
@@ -145,7 +222,7 @@ up to 256 signal files from the last two UTC dates and expires signals after a d
 These signals synchronize with errands every five seconds. An unfinished turn
 with no report for three minutes becomes quiet; a response or failure ends its
 working state. Published topic checkpoints keep their separate provenance and time.
-Tool heartbeats do not create new unseen-work badges.
+Tool heartbeats update live activity without creating a new change record.
 
 Remove `Web Tools Companion.lnk` from the current user's Startup folder to disable
 sign-in startup. Stop `WebTools.Companion` to stop collection. Disable the private
@@ -158,8 +235,8 @@ at one immutable Git revision through `ls-tree` and `cat-file --batch`. Fetch
 updates `origin/background` and, for cloud records, `origin/main`; the checkout, index, local edits, and checked-out
 branch are untouched.
 The latest eighty request filenames and every unresolved request are available;
-the list shows forty matching entries at once. Browser review memory identifies
-which changes have been seen.
+the list shows forty matching entries at once. Recent activity remains visible
+as the feed updates, without an acknowledgement step.
 
 The worker's record contract lives in the private repo's
 [`errands/README.md`](https://github.com/mehrlander/web-tools-private/blob/main/errands/README.md).
@@ -192,9 +269,9 @@ available; missing summaries leave the recorded session available.
 `activity-changes.json` retains the latest meaningful change per item for seven
 days, up to 150 items. Starting or finishing a local turn, publishing a cloud
 checkpoint, and errand transitions create changes. Local commentary alone does
-not. The browser initially shows changes from the preceding day and remembers
-the changes explicitly marked seen; newer changes to reviewed work reappear.
-Reviewing changes writes browser storage only and leaves the worker untouched.
+not. The phone's Now view shows three recent changes outside In progress and
+Needs you; the Recent tab shows the retained history. Desktop opens on Recent.
+The views do not track whether activity has been seen.
 
 The worker view reads the last 64 KiB of `poller.log`, accepting known timestamped
 batch, publication, errand, scheduled-job and error events. The view shows a short

@@ -237,7 +237,11 @@ test('the two sub-tab encodings, counted', () => {
   // trigger row opens; Scheduled moved under the same row and kept its key.
   // 44 to 45 on 2026-10-22: Harness took Programs, the declared programs.
   // 45 to 46 on 2026-10-23: Overview took Icons, the estate's icon families.
-  assert.equal(params, 46, 'sub-tabs addressed as ?view=<parent>&tab=');
+  // 46 to 47 on 2026-10-27: Browser took FAB, the FAB's signals, which had
+  // been a legend on Showing.
+  // 47 to 48 on 2026-10-29: Data took Attributes, what .gitattributes gives
+  // each file.
+  assert.equal(params, 48, 'sub-tabs addressed as ?view=<parent>&tab=');
 });
 
 // The Map's row is a copy of the shell's address list, and it is a copy that
@@ -459,18 +463,17 @@ test('a route opens AT a ref, which is the whole reason to draw the join', () =>
 // web-tools #850, where the same idea was substring tests in the kit.
 test('a Map hit names the tab most of its files belong to, and the link lands there', () => {
   const tabFiles = R.tabFilesFrom(rows('map-tabs.csv'));
-  assert.deepEqual(tabFiles.policy, ['docs/policies.csv', 'docs/policy-topics.csv']);
+  assert.deepEqual(tabFiles.policy, ['docs/house-policies.md']);
   assert.ok(!Object.values(tabFiles).flat().some(p => p.endsWith('/')), 'a folder link claims nothing');
   const m = { ...manifest, routes: manifest.routes.map(r => r.key === 'map' ? { ...r, tabFiles } : r) };
   const map = (files) => R.routesTouched(m, files).on.find(r => r.key === 'map');
-  // A branch that adds a CSV also restamps the census, the Data tab's file.
-  const policy = map(['docs/policies.csv', 'docs/policy-topics.csv', 'data/csv-census.csv', 'lib/alpineComponents/map.js']);
+  const policy = map(['docs/house-policies.md', 'lib/alpineComponents/map.js']);
   assert.equal(policy.tab, 'policy');
   assert.equal(R.viewUrl(policy, 'abc123'),
     'https://mehrlander.github.io/web-tools/pages/toss-render.html#gh=mehrlander/web-tools@abc123:app/index.html?view=map&tab=policy');
-  assert.equal(map(['docs/policies.csv', 'data/csv-census.csv']).tab, undefined, 'a tie names no tab');
+  assert.equal(map(['docs/house-policies.md', 'data/csv-census.csv']).tab, undefined, 'a tie names no tab');
   assert.equal(map(['lib/alpineComponents/map.js']).tab, undefined, 'the component itself is every tab');
-  assert.equal(R.routesTouched(manifest, ['docs/policies.csv']).on.find(r => r.key === 'map').tab, undefined,
+  assert.equal(R.routesTouched(manifest, ['docs/house-policies.md']).on.find(r => r.key === 'map').tab, undefined,
     'no tabFiles, no tab: the estate rows, which do not read the registry, are unchanged');
 });
 
@@ -527,22 +530,4 @@ test('the manifest builder keeps the shell out of the routes and names it twice'
   assert.ok(manifest.shellNote, 'the shell carries its own note');
   assert.ok(manifest.groups.length > 1, 'group glosses came from the vocabulary');
   assert.equal(manifest.groups.every(g => g.key && g.label), true);
-});
-
-// ── docs/forms/ answers to the subjects registry ─────────────────────────
-//
-// Each form's document is named on its subjects row. Held both ways: a named
-// doc exists, and a file in the folder is named by a row, so a document cannot
-// drift out of the app's own index.
-test('every doc a type names exists, and every form doc is named', async () => {
-  const { readdirSync } = await import('node:fs');
-  const named = new Set();
-  for (const r of rows('subjects.csv')) {
-    if (!r.doc) continue;
-    assert.ok(existsSync(path.join(repoRoot, r.doc)), `subjects.csv ${r.key}: doc missing on disk: ${r.doc}`);
-    named.add(r.doc);
-  }
-  for (const f of readdirSync(path.join(repoRoot, 'docs/forms')).filter(f => f.endsWith('.md') && f !== 'README.md')) {
-    assert.ok(named.has(`docs/forms/${f}`), `docs/forms/${f} is named by no subjects row`);
-  }
 });

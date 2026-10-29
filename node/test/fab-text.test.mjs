@@ -72,11 +72,8 @@ test('the strip is data, and every tab in it has a pane', async () => {
   // Joined rather than deep-compared: Alpine hands back a reactive Proxy, and
   // deepEqual checks the prototype before it checks the contents.
   const keys = [...d.TABS].map(t => t.key);
-  assert.equal(keys.join(','), 'about,render,inspect,traffic,text,note',
-    'reading order: what the page is, then how it was delivered, then what it says, then '
-    + 'a place to write about it (Notes moved into the annotate card on 2026-08-25; Note '
-    + 'came back on 2026-10-20 as a plain field; About took over the Map\'s Sources and '
-    + 'methods on 2026-10-22)');
+  assert.equal(keys.join(','), 'about,render,inspect,traffic,text',
+    'About combines page information and notes; the remaining tabs describe delivery and text');
 
   // The pane list lives in the template, so read it from the source the
   // component was built from rather than from a second list here.
@@ -118,6 +115,26 @@ test('About reads the page’s about live, skips one not on screen, and steps as
     assert.equal(ran, 1);
     assert.equal(d.open, false, 'the drawer steps out of the way of what the row opens');
   } finally { off.remove(); page.remove(); }
+});
+
+// A swipe deck renders its neighbouring slides beside the one in view, so
+// every slide has boxes and the first in the document can be one the reader
+// has left. The Sessions pane is the case.
+test('About reads the instance in view when a component has several', async () => {
+  Alpine.data('aboutSlide', (n) => ({ n, get about() { return { title: 'Slide ' + this.n }; } }));
+  const left = doc.createElement('div'); left.setAttribute('x-data', 'aboutSlide(1)');
+  const here = doc.createElement('div'); here.setAttribute('x-data', 'aboutSlide(2)');
+  doc.body.append(left, here);
+  Alpine.initTree(left); Alpine.initTree(here);
+  for (const [el, x] of [[left, -400], [here, 0]]) {
+    el.getClientRects = () => [{}];
+    el.getBoundingClientRect = () => ({ left: x, right: x + 300, top: 0, bottom: 600, width: 300, height: 600 });
+  }
+  try {
+    const d = await mountFab();
+    d.detect();
+    assert.equal(d.pageAbout.title, 'Slide 2', 'the slide on screen, not the first in the document');
+  } finally { left.remove(); here.remove(); }
 });
 
 test('setTab switches the pane and runs the tab’s opener', async () => {
@@ -327,7 +344,7 @@ const REG = {
     'path,subject,status\n' +
     'docs/loader.md,the loader contract,living\n' +
     'CLAUDE.md,the repo instructions,living\n',
-  'docs/tests.csv':
+  'docs/tests-authored.csv':
     'path,protects,kind\n' +
     'node/test/fab-text.test.mjs,the fifth tab,behavior\n',
   'docs/harness.csv': 'path,role,layer\n',

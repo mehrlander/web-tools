@@ -101,7 +101,10 @@ SKIP_DIRS = {'node_modules', '.git', 'dist', 'archive'}
 # python/dead-opacity.py.
 REACHES = re.compile(r'@theme inline|lib/entry\.js|gh-api\.js|gh-boot|dist/web-tools\.js'
                      r'|dist/app\.js|dist/dictate\.js')
-SKIP_PREFIX = ('node/test/',)
+# research/ keeps an inquiry's specimens with their original bytes
+# (docs/CONSTELLATION.md, "Projects and research"); a page built there by a
+# test agent is a capture, not a page we ship.
+SKIP_PREFIX = ('node/test/', 'research/')
 
 
 def supported(root):

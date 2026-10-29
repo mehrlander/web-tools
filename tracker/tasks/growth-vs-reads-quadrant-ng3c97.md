@@ -1,7 +1,10 @@
 ---
 id: growth-vs-reads-quadrant-ng3c97
 title: Read a document's growth against its readership, on the Docs tab
-status: backlog
+status: done
+closed: 2026-10-25
+resolution: superseded
+session: claude/doc-care
 opened: 2026-08-28
 size: M
 ---
@@ -92,3 +95,4 @@ opens its document in the deck the table's rows already use.
   genuinely open on both sides; the rest were waiting on a yes.
 - 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).
 - 2026-10-07: Decided. The owner took all four recommended answers (user call 2708d02c-web-tools-answers): recent slope, presence, labelled corners, injected docs excluded and named on the view. The task is ready to build as written.
+- 2026-10-25: Closed as superseded, at the owner's direction ("pursue the items you have left", 2026-10-25, on the recommendation to close it). The Map's Docs → Growth tab now draws each document's words, edits and the sessions that opened it, week by week (branch claude/doc-care, web-tools #1077), from state/doc-reads.json, which counts injected docs too, so this task's reason to exclude them no longer holds. Two decided parts were not built: labelled corners and recent slope as the growth measure; a new task would carry them if the chart wants them.

@@ -7,9 +7,9 @@
 //
 // Parsing is NOT reimplemented: lib/kits/wsl-core.js is dependency-free, so
 // this script executes it exactly as the browser's gh.load does (a
-// `new Function('gh', src)` body) and injects the same-version npm packages
-// (fast-xml-parser@4.5.1, flat@6) through `makeParsers` — this script and
-// the pages run the identical transform/classify code.
+// `new Function('gh', src)` body) and injects the npm builds of
+// fast-xml-parser and flat through `makeParsers`, so this script and the
+// pages run the identical transform/classify code.
 //
 // Usage (from repo root, after npm install):
 //   npm run wsl-fetch                  incremental: refetch lists, fill missing
@@ -29,13 +29,25 @@ import { flatten } from 'flat';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
+// Run the dependency-free core exactly as the browser does — gh.load executes
+// it as a `new Function('gh', src)` body — then inject Node's npm XML libs
+// through makeParsers. Same bytes as the page, no source rewrite.
+const coreSrc = readFileSync(path.join(here, '..', '..', 'lib', 'kits', 'wsl-core.js'), 'utf8');
+new Function('gh', coreSrc)({});
+const core = globalThis.wslCore;
+const { URLS, consolidate, getBillNumber } = core;
+const { parseLegislationXml, parsePrefilesXml, parseSponsorsXml,
+        parseRcwXml, parseHistoryXml, parseActionsXml } = core.makeParsers({ XMLParser, flatten });
+
 // --- CLI ---------------------------------------------------------------
 const args = process.argv.slice(2);
 const opt = (name, dflt) => {
     const i = args.indexOf('--' + name);
     return i >= 0 ? args[i + 1] : dflt;
 };
-const BIENNIUM = opt('biennium', '2025-26');
+// Blank or absent takes the open biennium by the calendar (wsl-core's
+// currentBiennium), which is what the monthly scheduled run relies on.
+const BIENNIUM = opt('biennium', '') || core.currentBiennium();
 // The legislation endpoint is date-based, not biennium-scoped; default the
 // lower bound to the biennium's own start year so a past-year fetch reaches
 // back far enough (and no further than needed).
@@ -85,15 +97,6 @@ const pool = async (items, worker) => {
 };
 
 // --- Main ---------------------------------------------------------------
-// Run the dependency-free core exactly as the browser does — gh.load executes
-// it as a `new Function('gh', src)` body — then inject Node's npm XML libs
-// through makeParsers. Same bytes as the page, no source rewrite.
-const coreSrc = readFileSync(path.join(here, '..', '..', 'lib', 'kits', 'wsl-core.js'), 'utf8');
-new Function('gh', coreSrc)({});
-const core = globalThis.wslCore;
-const { URLS, consolidate, getBillNumber } = core;
-const { parseLegislationXml, parsePrefilesXml, parseSponsorsXml,
-        parseRcwXml, parseHistoryXml, parseActionsXml } = core.makeParsers({ XMLParser, flatten });
 
 mkdirSync(dataDir, { recursive: true });
 

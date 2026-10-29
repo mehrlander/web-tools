@@ -45,7 +45,7 @@ Four things measured on one live session:
   arrive, so a hook prints what matters first, as
   [`session-dispatch.sh`](../../skills/hooks/session-dispatch.sh) prints its
   warning first.
-- **The cap is per hook entry, not across the event.** In the same session the
+- **The cap is per hook command, not across the event.** In the same session the
   dispatcher's 28,670-character payload was cut while a separate 298-character
   SessionStart hook arrived whole. Each registered hook command gets its own
   attachment and its own verdict, so the dispatcher's guard is correctly scoped

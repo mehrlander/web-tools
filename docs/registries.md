@@ -11,7 +11,7 @@ and what the suite checks. What each field means is not here. It is in
 [`registries.csv`](registries.csv), one row per registry;
 [`properties.csv`](properties.csv), one row per non-key column; and
 [`vocabularies.csv`](vocabularies.csv), one row per value of each closed
-domain. All three render in the app's **Map view, Registries tab**. The gate is
+domain. The app's **Map view, Data tab** shows a registry's row in its table's panel-tip and a column's definition in the column's. The gate is
 [`properties-registry.test.mjs`](../node/test/properties-registry.test.mjs).
 
 ## A worked example
@@ -162,12 +162,7 @@ twice. What a stream must keep (ids, times, corrections) is the next document.
 2. Choose a stable key. Declare `identity` only if the key can be compared with
    other registries' keys.
 3. One table, one CSV file. Two registries never share a file.
-4. Add the row to `registries.csv`: `path`, `key`, `identity`, `membership`,
-   `inherits`, `target`, `scope`, `span`, `fields`, `gate`, `area`, `title`,
-   `gloss`. `fields` is `governed`; the suite asserts that no registry is
-   `ungoverned`, so declaring one means changing the test and stating why.
-   `gate` is a test path, or the token `none`. `area` is `files` where the
-   target has a path in this repository and `names` otherwise.
+4. Add the row to `registries.csv`: `path`, `key`, `identity`, `membership`, `inherits`, `target`, `scope`, `span`, `fields`, `gate`, `key_primitive`, `title`, `gloss`. `fields` is `governed`; the suite asserts that no registry is `ungoverned`, so declaring one means changing the test and stating why. `gate` is a test path, or the token `none`. `key_primitive` is `locator` where `identity` is `path` or `path:<prefix>`, and `id` otherwise.
 5. Add one row to `properties.csv` per non-key column: `mode`, `deriver` (for
    `computed`), `required`, `form`, `exclusive`, `values`, `column_primitive`,
    `gloss`.
@@ -185,6 +180,8 @@ the writer uses that list.
 A blank cell means *not asserted*, never an empty string or a checked result of
 none. Where that distinction matters, use a token: `gate: none` means checked,
 and nothing holds the registry. Read the token, not the cell's truthiness.
+
+Keep `recorded` and `computed` properties in separate files, so a generator does not overwrite values a person writes: `tests-index` writes `docs/tests.csv` whole, and in `docs/tests-authored.csv` only adds a row for a new test, with `kind` set to `behavior` and `protects` blank, or removes a deleted test's row. The exceptions are named, with reasons, in [`properties-registry.test.mjs`](../node/test/properties-registry.test.mjs).
 
 Store `recorded` values always; authored judgment cannot be recomputed. Store
 `computed` values only where a browser, a gate or a reviewable diff needs a
@@ -210,7 +207,9 @@ by its test names:
 - every `required: value` property is present on every row
 - a declared id is its registry key, and a declared label draws from a set or repeats
 - modes are coherent: computed names a real deriver, recorded names none
-- every registry declares its area, and leads with a title and a gloss
+- a registry file is all recorded or all computed, or a named exception
+- every registry declares its key primitive, and leads with a title and a gloss
+- a locator key resolves into the tree, and only a path identity makes one
 - `renders_in` matches its derivation on every registry
 - no target answers to two registries for the same property
 - the ownership gate still fires when two registries do claim one pair (a
@@ -229,15 +228,7 @@ each have a registry row, and every non-key column in both has a declaration.
 
 ## Reader-facing fields
 
-`title` and `gloss` identify a registry in the Map view. `area` groups the tab
-by one question: does the target have a path in this repository (`files`) or
-not (`names`). `renders_in` is derived by
-[`registries-reach.mjs`](../node/build/registries-reach.mjs) from the files under
-`lib/`, `pages/` and `app/` that name the registry's path.
-That directory list is literal (`APP_DIRS`); when the app moves, move it. An
-empty `renders_in` says no app surface reads the registry, which is a question
-rather than a verdict, since a GitHub-rendered projection is a legitimate
-consumer.
+`title` and `gloss` identify a registry in the Map view. `key_primitive` groups the Data tab's Registries list: registries keyed by a locator, then those keyed by an id. `renders_in` is derived by [`registries-reach.mjs`](../node/build/registries-reach.mjs) from the files under `lib/`, `pages/` and `app/` that name the registry's path. That directory list is literal (`APP_DIRS`); when the app moves, move it. An empty `renders_in` says no app surface reads the registry, which is a question rather than a verdict, since a GitHub-rendered projection is a legitimate consumer.
 
 ## Limits of the model
 
@@ -245,6 +236,17 @@ A registry row names one CSV. Authority spread across many files cannot be a
 registry, so it is stated here instead: each skill's `SKILL.md` owns that
 skill's description, and each agent's definition file owns its model, tools and
 preloads.
+
+A property assigned by path pattern, so that a file takes its value from where
+it sits rather than from a row of its own, is declared in
+[`.gitattributes`](../.gitattributes): for example, the merge driver git runs
+on a registry's file, or how a file may change (`edit`). An attribute git or
+GitHub acts on, such as `text`, is defined in their documentation, and
+[`git-attributes.js`](../lib/kits/git-attributes.js) lists each one with a link
+to it. Each value of the estate's own attributes has its meaning in a row of
+`vocabularies.csv` with `gitattributes` in its `registry` column, and
+[`gitattributes.test.mjs`](../node/test/gitattributes.test.mjs) holds every such
+value in use to a row.
 
 Declarations govern the columns of registered CSVs, not prose inside JavaScript
 or HTML. [`content.csv`](../data/design/content.csv) classifies those files as

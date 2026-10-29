@@ -1,0 +1,199 @@
+{
+  "title": "What kind of thing is it, by when it acts?",
+  "lede": "Two questions name it: what sets it off, and whether it acts once, again as written down, or again decided each time.",
+  "grid": {
+    "across": {
+      "values": [
+        {
+          "label": "The clock sets it off"
+        },
+        {
+          "label": "Something happens, or someone asks"
+        }
+      ]
+    },
+    "down": {
+      "values": [
+        {
+          "label": "Acts once"
+        },
+        {
+          "label": "Recurs, as written down"
+        },
+        {
+          "label": "Recurs, decided each time"
+        }
+      ]
+    },
+    "cells": [
+      [
+        {
+          "word": "",
+          "gloss": "goes off once, at a time set in advance",
+          "examples": [
+            "a reminder someone asked for",
+            "PR check-in"
+          ]
+        },
+        {
+          "word": "one-off",
+          "gloss": "done once, for one occasion",
+          "examples": [
+            "a dated probe",
+            "a tracker task",
+            "a one-off plugin install"
+          ]
+        }
+      ],
+      [
+        {
+          "word": "scheduled",
+          "gloss": "the clock sets off each run",
+          "examples": [
+            "morning brief",
+            "text-occurrences refresh",
+            "wsl-fetch.yml"
+          ]
+        },
+        {
+          "word": "standing",
+          "gloss": "kept in force: acts at each occasion until withdrawn",
+          "examples": [
+            "never schedule a check-in",
+            "plugin subscription",
+            "test.yml"
+          ]
+        }
+      ],
+      [
+        {
+          "word": "",
+          "gloss": "a clock repeats only from something written down",
+          "impossible": true
+        },
+        {
+          "word": "ad hoc",
+          "gloss": "it comes again and again, and is decided each time",
+          "examples": [
+            "a recurring fork",
+            "the ad-hoc entity scripts"
+          ]
+        }
+      ]
+    ]
+  },
+  "add": [
+    {
+      "word": "on request",
+      "icon": "hand-pointing",
+      "gloss": "someone asks for each run of a kept procedure",
+      "examples": [
+        "/drain",
+        "pension Standing loop",
+        "wayback-fetch.yml"
+      ]
+    },
+    {
+      "word": "gated",
+      "icon": "funnel",
+      "gloss": "it runs each time, but acts only when a check finds a reason",
+      "examples": [
+        "news-fetch",
+        "submittal deadline note",
+        "statute watch"
+      ]
+    },
+    {
+      "word": "polled",
+      "icon": "arrows-clockwise",
+      "gloss": "a timed check finds its occasion, so it acts at the next check",
+      "examples": [
+        "a Gemini errand",
+        "Codex request 001",
+        "session topic summaries"
+      ]
+    },
+    {
+      "word": "routine",
+      "icon": "calendar-check",
+      "gloss": "someone runs it to a calendar, from written steps",
+      "examples": [
+        "Monthly report",
+        "Quarterly Strategy Review"
+      ]
+    }
+  ],
+  "renames": [
+    {
+      "things": [
+        "news-fetch"
+      ],
+      "from": "scheduled",
+      "becomes": "standing",
+      "why": "No clock sets it off: it runs when a session starts, if two days have passed. The registry's README says a blank schedule means no schedule."
+    },
+    {
+      "things": [
+        "config crawl"
+      ],
+      "from": "periodic",
+      "becomes": "standing",
+      "why": "It runs when a view that reads it opens, and reads only repos that moved. app/index.html says its old interval was never a schedule."
+    },
+    {
+      "things": [
+        "scheduled-tasks.yml"
+      ],
+      "from": "triggered",
+      "becomes": "scheduled",
+      "why": "docs/properties.csv files GitHub's schedule among the events, so the harness counts an hourly cron as event-fired."
+    },
+    {
+      "things": [
+        "morning brief"
+      ],
+      "from": "routine",
+      "becomes": "scheduled",
+      "why": "web-tools calls a Claude scheduled task a Routine in writers.csv, venues.md, vocabularies.csv and inbound.md; the registry calls it a scheduled task, and budget-drs uses routine for work someone runs to a calendar."
+    },
+    {
+      "things": [
+        "PR check-in"
+      ],
+      "from": "scheduled",
+      "becomes": "a word for the box at top left (call 2)",
+      "why": "The send-later guard calls it a scheduled self check-in, but it goes off once; scheduled here means a clock that sets off each run."
+    },
+    {
+      "things": [
+        "spike-report prompt"
+      ],
+      "from": "ad hoc",
+      "becomes": "on request",
+      "why": "home's 2026-03-17 entry calls it ad hoc because it is used when a question comes up, but it follows the same written steps each time; ad hoc here means decided each time."
+    }
+  ],
+  "open": [
+    {
+      "question": "Adopt occasioned for whatever the clock does not set off?",
+      "recommend": "yes, for timing only",
+      "why": "The scheduled-task registry already defines scheduled as neither someone asking nor something happening, and occasioned names the other half in one word. But the forms codebook in data/ui-units coded each page's occasion as standing, occasioned or inbox from 2026-10-22 and replaced it with job tags on 2026-10-23 (commit 3b9e76670), the day this map was drawn, so occasioned and this poster's standing were both retired in a nearby sense."
+    },
+    {
+      "question": "What should a timer set to go off once be called?",
+      "recommend": "reminder",
+      "why": "The send-later guard already calls the kind someone asked for a reminder, and a standing instruction refuses the other kind, the PR check-in."
+    },
+    {
+      "question": "Retire triggered and periodic as words for when estate work acts?",
+      "recommend": "yes",
+      "why": "Triggered means any start, an event or a condition by turns; periodic's one live use names a crawl that runs when a view opens. Say what sets it off, or say gated. The budget submittal's if-triggered status follows OFM's forms and can stay."
+    },
+    {
+      "question": "Keep news-fetch in the scheduled-task registry once it is not called scheduled?",
+      "recommend": "yes",
+      "why": "The registry's README already gives session-start rows a blank schedule and says why their timing matters: news-fetch's feeds drop items after about three days. The row records that risk; the name is what changes."
+    }
+  ],
+  "by": "Placed by one reader's hand coding of 33 things across web-tools, home and web-tools-private. No second reader has checked the coding, and the renames are that reader's proposals."
+}

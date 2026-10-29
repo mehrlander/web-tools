@@ -11,7 +11,8 @@ Usage:
   findings.py add <file.json|->            one finding object, or a list of them
   findings.py update <id> <file.json|->    {"text": "what changed", "finding": {...}}
   findings.py list [--all] [--json]        folded findings, open unless --all
-  findings.py check [--open] [--json]      witness verdicts for every finding (open only with --open)
+  findings.py check [--open] [--json]      witness verdicts for every finding (open only with --open),
+                                           and the user calls answered since each was assessed
   findings.py vectors <file.json>          compare() over shared cases, for the parity test
 """
 
@@ -280,6 +281,42 @@ def pinned(w, seen):
     return "unverifiable", "unreadable ref"
 
 
+def answered_calls(f, local):
+    """The user calls among an open finding's subjects that the owner closed
+    after the finding was last assessed. The answer the finding waited on has
+    arrived, so the finding is due again though every witness holds: on
+    2026-10-25, 41 of 51 open findings named a call closed weeks before, and
+    `check` flagged none. A settled finding has no step left for an answer to
+    unblock, and settling one need not move its assessedAt, so it is skipped."""
+    out = []
+    for s in (f.get("subjects") or []) if f.get("open") else []:
+        if not USER_CALL.match(s):
+            continue
+        repo, path = s.split(":", 1)
+        co = local.get(repo.split("@")[0])
+        if not co:
+            continue
+        fetch(co, "main")
+        r = note.git(co, "show", f"origin/main:{path}", check=False)
+        try:
+            call = json.loads(r.stdout) if r.returncode == 0 else {}
+        except ValueError:
+            call = {}
+        closed = call.get("closed") or {}
+        if call.get("status") == "closed" and stamp(closed.get("at")) > stamp(f.get("assessedAt")):
+            answer = closed.get("answer") or "closed"
+            out.append({"ref": s, "verdict": "changed", "detail": f"answered {str(closed['at'])[:10]}: {answer}"})
+    return out
+
+
+def stamp(t):
+    """An ISO time as a comparable UTC datetime; a missing or unreadable one sorts first."""
+    try:
+        return datetime.fromisoformat(str(t).replace("Z", "+00:00")).astimezone(timezone.utc)
+    except ValueError:
+        return datetime.min.replace(tzinfo=timezone.utc)
+
+
 def checkouts(store_repo):
     """owner/repo -> local checkout, for the checkouts beside the store.
     FINDINGS_CHECKOUTS ({"owner/repo": "/path"}) names others, as a test does."""
@@ -513,6 +550,7 @@ def main(argv):
                 for w in f.get("witnesses") or []:
                     verdict, detail = compare(w, observe(w, f["assessedAt"], local, repo))
                     f["verdicts"].append({"ref": w.get("ref"), "verdict": verdict, "detail": detail})
+                f["verdicts"] += answered_calls(f, local)
                 f["moved"] = [v for v in f["verdicts"] if v["verdict"] in ("changed", "broken")]
         if args.json:
             print(json.dumps(fs, indent=1, ensure_ascii=False))

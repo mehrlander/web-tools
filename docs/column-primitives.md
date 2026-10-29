@@ -1,12 +1,8 @@
 # Column primitives
 
-One property, `column_primitive`, saying what kind of thing a column holds. It is
-the coarse question that sits above [`LINKAGE.md`](https://github.com/mehrlander/home/blob/main/projects/budget-drs/data/design/LINKAGE.md)'s
-`column_domain`. `docs/properties.csv` declares it on every row, and the two
-budget-drs property tables, `data/design/properties.csv` and
-`lineage/columns.csv`, declare it too. The counts from its first population, on
-2026-09-10, and the manifest-fields pilot are a dated record:
-[`data/column-primitives/2026-09-10-first-population.md`](../data/column-primitives/2026-09-10-first-population.md).
+One property, `column_primitive`, saying which of four roles a column plays in its row. It is the coarse question that sits above [`LINKAGE.md`](https://github.com/mehrlander/home/blob/main/projects/budget-drs/data/design/LINKAGE.md)'s `column_domain`.
+
+`docs/properties.csv` declares it on every row, `docs/registries.csv` declares it for each registry's key as `key_primitive`, and the two budget-drs property tables, `data/design/properties.csv` and `lineage/columns.csv`, declare it too. The Map's Data tab draws each declared column in its primitive's mark. The counts from its first population, on 2026-09-10, and the manifest-fields pilot are a dated record: [`data/column-primitives/2026-09-10-first-population.md`](../data/column-primitives/2026-09-10-first-population.md).
 
 ## The four
 

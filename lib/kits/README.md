@@ -72,17 +72,6 @@ elsewhere:
 | `wsl-core.js`, `wsl.js` | `pages/wsl-sync/` | |
 | `brief.js`, `export.js`, `dom-shot.js` | the FAB's take menu | |
 
-## Notes no header holds yet
-
-- `persistence.js`: a collection that outgrows queries over `all()` (millions
-  of records, indexed lookups) gets raw-IDB helpers in this kit rather than a
-  second library.
-- `docx.js` declines rather than guesses at these, and leaves them to the
-  painter: a `w:sym` run is not mapped; tracked changes, footnotes and comments
-  are not prepared; `SECTIONPAGES` and every field but PAGE and NUMPAGES keep
-  their cached result. Header geometry is the painter's, so a logo that
-  overlaps body text in the render most likely overlaps in Word too.
-
 `lib/build.js` is not a kit (it extends `GH.prototype`); how it and the loader
 share one contract is "Load and build are one contract" in
 [`docs/loader.md`](../../docs/loader.md), and the build pipeline is in
