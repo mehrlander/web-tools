@@ -6,8 +6,9 @@ The subject may be a collection, a particular instance, a person's activity,
 an ongoing process, or a body of knowledge.
 
 The proposed improvement is to discover scope and internal structure together.
-Examples can expose a poor scope choice as well as a poor schema. The scope
-and activity discovery steps below are proposals for the next trial.
+Examples can expose a poor scope choice as well as a poor schema. The two-source
+pilot below now exercises those steps, with its requests and original responses
+preserved for direct inspection.
 
 ## Findings from the JSON trials
 
@@ -100,7 +101,7 @@ populated factual claims. Return readable, indented JSON, with no HTML or prose
 outside the JSON.
 ```
 
-## Next exploratory trial
+## Pilot protocol
 
 Use the same request and this broad reader purpose on two existing sources:
 
@@ -154,6 +155,64 @@ visible alongside the model, examples, exact request, and original JSON.
 Mechanical checks cover JSON validity and preservation. Human assessment
 concerns whether the proposed organization reveals something worth seeing.
 
-The next decision is whether to retain or revise this discovery process after
-inspecting the pilot. Presentation generation follows once a useful model and
-its intended views are concrete enough to assess.
+## Pilot results, 2026-10-28
+
+The [new swipe deck](discovery-review.html#map=1&tab=scope) contains four
+models: an election draft and revision, then an aviation draft and revision.
+Scope, Model, Examples, Review, JSON and Prompt tabs remain selected when the
+reader changes slides. Nested tab selections also persist. The viewer uses
+explicit adapters; its diagrams and review notes are separate from the saved
+agent responses.
+
+Each source received the same request and broad reader purpose in a fresh
+agent context, without a suggested domain schema. The follow-up went to the
+same agent. Both revisions retained their original two examples as equal JSON
+values and added one challenge case. The [run record](discovery-pilot/run.json)
+and [preservation checks](discovery-pilot/checks.json) link the requests,
+source snapshots, outputs and hashes. These records preserve task messages and
+files, rather than a provider API or hidden runtime transcript.
+
+| Source | Draft's organizing choice | Revision's concrete change |
+|---|---|---|
+| Election article | Explain routes to changed representation. Distinguish overlapping competition in Hall's contest from linked openings around Mena's Senate run. | Broaden the scope to include continuing officeholders. A Krishnadasan challenge case connects an appointment, a partial-term special-election win and the next contest. The sketch grows from five types to six. |
+| Aviation preliminary report | Explain separation arrangements and evidence across aircraft, communications and historical encounter groups. | Add conditional alert policy. A challenge case distinguishes the reported traffic advisory from the rules governing advisory availability, without asserting an exact device state. The sketch grows from nine types to ten. |
+
+The two scopes lead to different structures even with the same broad reader
+purpose. The election revision also supplies a concrete example of scope
+changing during modeling: representation can continue through a new election,
+so a scope centered on replacement misses part of the subject.
+
+The aviation examples demonstrate another useful distinction. A recorded
+instruction, a possible gap in its reception, and a reported cockpit
+interpretation are separate claims. The historical example keeps encounter
+counts attached to their thresholds and reporting window. The model explains
+why those counts do not directly yield the share of flights affected. Selected
+timestamps, thresholds, counts and the partial-term history were checked
+against the saved sources; the check was not an exhaustive factual audit.
+
+Several limitations remain visible:
+
+- Both revisions add a type. Neither tests whether existing structures could
+  express the same benefit with less complexity.
+- The outputs are conceptual sketches with substantial explanatory prose.
+  The election sketch has no consistent machine-readable field schema for its
+  event histories. The aviation sketch lists fields and relationships, but
+  does not populate every proposed type in its examples.
+- The challenge cases exercise the added distinctions; they do not establish
+  the usefulness of every object, or demonstrate navigation through a complete
+  population. The aviation revision is about 31 KB, against a 20 KB draft;
+  the election grows from about 14 KB to 22 KB despite the concise request.
+- The election outputs contain a replacement character in the copied article
+  title. The original JSON has been preserved. The source snapshots retain
+  their original bytes.
+- One draft and revision per source can expose useful choices. The pilot
+  cannot attribute an improvement to a particular prompt sentence, establish
+  a best schema, or demonstrate improved HTML.
+
+Retain the scope proposal, contrasting examples and challenge revision as a
+working process. The next useful check is to select a model and trace one
+reader question through actual records and links. Where the answer currently
+exists only in commentary, ask the modeler to encode the relationship using
+the smallest useful structure. Preserve the same examples and allow replacing
+or removing a type. That check would test the model's operational value before
+generating a page from it.
