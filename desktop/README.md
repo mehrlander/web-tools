@@ -145,9 +145,10 @@ Codex uses the signed-in CLI's documented `account/rateLimits/read` app-server
 method. The CLI manages its own authentication. Each reported bucket and period
 remains separate. Gemini uses the existing Antigravity worker's loopback
 `RetrieveUserQuotaSummary` response, which identifies the shared `gemini-5h`
-and `gemini-weekly` buckets with explicit window names and reset times. If the
-summary is unavailable, the collector falls back to per-model `GetUserStatus`
-quotas without inferring their duration. That local interface is version-dependent and may
+and `gemini-weekly` buckets with explicit window names and reset times. Workers
+without the summary method fall back to per-model `GetUserStatus` quotas without
+inferring their duration. Temporary summary failures retain the named readings
+and their history as stale. That local interface is version-dependent and may
 contain cached provider data; the displayed time is when the worker status was
 read. The collector never starts the worker or a conversation. Only Gemini model
 quotas enter the Gemini lane. Claude models served through Antigravity do not
