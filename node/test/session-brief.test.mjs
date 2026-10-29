@@ -1021,7 +1021,22 @@ test('a session that went on after Gemini read it is behind, by the turns it mis
   assert.equal(g.state, 'behind');
   assert.equal(g.label, '1/2', 'the strip shows how far it got');
   assert.deepEqual(Array.from(g.rows, r => r.mark), ['done', 'after']);
+  // TWO's turns are exactly two hours apart, which is not more than two: one
+  // stretch, headed at its first turn.
+  assert.ok(g.rows[0].head, 'the first turn heads its stretch');
+  assert.equal(g.rows[1].head, '', 'a two-hour gap is not a break');
   assert.ok(g.lines.some(l => /has moved since/.test(l)), 'and the panel says the record moved');
+});
+
+test('a break of more than two hours starts a new stretch in the panel', async () => {
+  const LATER = [TWO[0], { at: '2026-08-05T16:30:00Z', text: 'back after lunch' }];
+  const doc = { ...TOPICS_DOC, turn_count: 2, source_ended: record.ended, source_blob: 'ddd',
+                turns: [...TOPICS_DOC.turns, { turn: 1, summary: 'Then the other thing.', headline: 'The other thing' }] };
+  const d0 = await mountRead(doc, 'me/gemini-g', { prompts: LATER }, 'ddd');
+  const rows = d0.geminiDetail.rows;
+  assert.deepEqual(Array.from(rows, r => r.mark), ['done', 'done']);
+  assert.ok(rows[0].head && rows[1].head, 'each side of the break is headed');
+  assert.notEqual(rows[0].head, rows[1].head, 'by its own start');
 });
 
 test('the blob decides where both sides have one, even when the end stamp agrees', async () => {
