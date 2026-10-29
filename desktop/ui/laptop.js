@@ -144,6 +144,7 @@
     html('notice', notices.length ? `<div class="rounded border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">${notices.map(escape).join('<br>')}</div>` : '');
     renderAssistants();
     renderQueue();
+    html('usage', window.NowUsage?.render(data.usage || []) || 'Usage unavailable');
     html('applications', data.applications.filter(a => !/Codex|Gemini|Claude|Antigravity/i.test(a.name)).map(app => `<div class="flex items-center justify-between gap-3" data-title-tip="${escape(app.detail)}"><span class="text-base">${escape(app.name)}</span><span class="shrink-0 text-xs ${app.state === 'open' ? 'text-emerald-800' : 'text-stone-500'}">${app.state === 'open' ? 'Detected' : 'Not detected'}</span></div>`).join(''));
     html('places', data.places.map(p => `<button class="flex items-center justify-between rounded px-1 py-1.5 text-left text-base text-emerald-900 hover:bg-emerald-50" data-action="place" data-id="${escape(p.id)}">${escape(p.name)}<span aria-hidden="true">↗</span></button>`).join(''));
     html('downloads', data.downloads.slice(0,3).map(f => `<div class="min-w-0"><div class="break-words text-base">${escape(f.name)}</div><span class="text-xs text-stone-500">${time(f.modifiedAt)}</span></div>`).join('') || '<p class="text-sm text-stone-500">No recent files</p>');

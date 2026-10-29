@@ -39,7 +39,8 @@ public record ActivityChange(string Key, string Id, string Provider, string Titl
 public record LaptopSnapshot(ActivitySnapshot Activity, DaemonSignal Daemon,
     List<ApplicationSignal> Applications, List<Place> Places, List<RecentFile> Downloads,
     string MachineName, DateTimeOffset SeenThrough, SessionSnapshot Sessions, double ScanMilliseconds,
-    CloudSnapshot Cloud, List<ActivityEvent> Events, List<ActivityChange>? Changes = null);
+    CloudSnapshot Cloud, List<ActivityEvent> Events, List<ActivityChange>? Changes = null,
+    List<ProviderUsage>? Usage = null);
 
 public static class Activity
 {
