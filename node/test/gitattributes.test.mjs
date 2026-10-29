@@ -39,13 +39,13 @@ test("the edit-policy engine's own cases pass", () => {
   assert.equal(r.status, 0, r.stderr || r.stdout);
 });
 
-test('every attribute value a tracked file carries has a gloss in docs/vocabularies.csv', () => {
-  // The Map view's Attributes tab shows each value with its gloss, so a value
-  // with none would reach the reader as a bare word.
-  const glossed = new Set(vocab.map(r => r.property + '=' + r.value));
+test('every attribute value a tracked file carries has a definition in docs/vocabularies.csv', () => {
+  // The Map view's Attributes tab shows each value with its definition, so a
+  // value with none would reach the reader as a bare word.
+  const defined = new Set(vocab.map(r => r.property + '=' + r.value));
   const used = new Set(attributes().map(([, name, value]) => name + '=' + value));
   assert.ok(used.has('edit=in-place'), 'no tracked file carries edit, so this test checks nothing');
-  assert.deepEqual([...used].filter(k => !glossed.has(k)).sort(), []);
+  assert.deepEqual([...used].filter(k => !defined.has(k)).sort(), []);
 });
 
 test('every file docs/docs.csv marks record is write-once, and every write-once file is a record', () => {
