@@ -1,64 +1,33 @@
 # Edit ladder, bold run: the roles
 
-A bold run reads a passage before it shortens it. A reader finds where the
-passage fails its own reader and repairs it; scouts each look through one lens
-for a bold idea; builders turn the strongest ideas into concrete rewrites;
-judges rate everything. `ladder.py context` hands each agent the common brief,
-its role's section, and its lens or assignment.
+A bold run reads a passage before it shortens it. A reader finds where the passage fails its own reader and repairs it; scouts each look through one lens for a bold idea; builders turn the strongest ideas into concrete rewrites; judges rate everything. `ladder.py context` hands each agent the common brief, its role's section, and its lens or assignment.
 
 ## bold
 
-The passage is shown by paragraph, `P1`, `P2`, and so on, with the Qualified
-writing rules below it. Those rules are the standard: a shorter passage that
-breaks them is worse, not better.
+The passage is shown by paragraph, `P1`, `P2`, and so on, with the Qualified writing rules below it. Those rules are the standard: a shorter passage that breaks them is worse, not better.
 
 What is worth proposing, in order:
 
-1. **A repair**: a term used before it is introduced, one thing called by
-   several names, a missing connection between two statements. A repair may
-   add words. It states only what the repository says; name the file.
-2. **A structural cut**: material another document already owns (link it), a
-   paragraph that repeats one elsewhere in the file, a sentence in the wrong
-   place, two paragraphs that make one point.
-3. **A premise cut**: a claim resting on a shaky premise, such as a warning
-   about a case that does not happen or a reason no reader acts on. Say why the
-   premise fails, and check it against the repository.
-4. **A qualifier that replaces explanation**: a word or two that lets a clause
-   go.
+1. **A repair**: a term used before it is introduced, one thing called by several names, a missing connection between two statements. A repair may add words. It states only what the repository says; name the file.
+2. **A structural cut**: material another document already owns (link it), a paragraph that repeats one elsewhere in the file, a sentence in the wrong place, two paragraphs that make one point.
+3. **A premise cut**: a claim resting on a shaky premise, such as a warning about a case that does not happen or a reason no reader acts on. Say why the premise fails, and check it against the repository.
+4. **A qualifier that replaces explanation**: a word or two that lets a clause go.
 
-What is not worth proposing: trimming a word or two from a sentence that is
-already clear, dropping an article or a connective, or any cut that leaves a
-reader guessing what a term means. Clarity is never traded for a small gain.
+What is not worth proposing: trimming a word or two from a sentence that is already clear, dropping an article or a connective, or any cut that leaves a reader guessing what a term means. Clarity is never traded for a small gain.
 
-Identifiers, file paths, commands, flags, numbers and the words `not`, `never`,
-`no`, `only`, `except` and `unless` survive verbatim. The repository is at
-`/home/user/web-tools`; read any file the passage names before relying on it.
+The owner's writing peeves are listed after the Qualified writing rules. An idea or an edit that fixes one names it, with `"peeve"` set to its id (`"peeve":"P64"`); one that introduces one is worse, whatever it saves.
+
+Identifiers, file paths, commands, flags, numbers and the words `not`, `never`, `no`, `only`, `except` and `unless` survive verbatim. The repository is at `/home/user/web-tools`; read any file the passage names before relying on it.
 
 ## reader
 
-Read the passage closely, following the passage-reading skill
-(`skills/passage-reading/SKILL.md`, its contract `docs/envelopes/passage-reading.md`
-and its example `skills/passage-reading/references/skill-prefs-description.json`).
-Write the reading to `reading.json` in the run directory, with the source
-file as context, and run its checker until it passes:
-`python3 skills/passage-reading/scripts/check.py <run>/reading.json --root /home/user/web-tools`.
+Read the passage closely, following the passage-reading skill (`skills/passage-reading/SKILL.md`, its contract `docs/envelopes/passage-reading.md` and its example `skills/passage-reading/references/skill-prefs-description.json`). Write the reading to `reading.json` in the run directory, with the source file as context, and run its checker until it passes: `python3 skills/passage-reading/scripts/check.py <run>/reading.json --root /home/user/web-tools`.
 
-Then write JSON Lines to the output path. For each place the passage fails its
-reader, a problem:
-`{"problem":"unintroduced|names|connection|premise","blocks":["P8"],"quote":"exact words","note":"..."}`.
-For each problem you can fix from what the repository says, a repair:
-`{"repair":"qualify|connect|add","blocks":["P8"],"from":"exact words in that paragraph","text":"the repaired words","why":"what was wrong, and the file that supports the fix"}`.
-A repair replaces `from` with `text` and may be longer. Keep each repair to
-the fewest words that remove the guess.
+Then write JSON Lines to the output path. For each place the passage fails its reader, a problem: `{"problem":"unintroduced|names|connection|premise","blocks":["P8"],"quote":"exact words","note":"..."}`. For each problem you can fix from what the repository says, a repair: `{"repair":"qualify|connect|add","blocks":["P8"],"from":"exact words in that paragraph","text":"the repaired words","why":"what was wrong, and the file that supports the fix"}`. A repair replaces `from` with `text` and may be longer. Keep each repair to the fewest words that remove the guess.
 
 ## scout
 
-Look at the passage through your lens only, and propose one to three ideas, as
-JSON Lines to the output path:
-`{"idea":"one or two sentences","kind":"cut|merge|reorder|delegate|qualify|connect|premise|restructure","blocks":["P4","P5"],"rewrite":"your draft of the new words, or empty","saves":12,"why":"..."}`.
-`saves` is your estimate of words saved, negative when the idea adds words.
-Be bold: an idea a careful editor would not dare is welcome, as long as it
-keeps every rule a reader acts on. Say so when your lens finds nothing.
+Look at the passage through your lens only, and propose one to three ideas, as JSON Lines to the output path: `{"idea":"one or two sentences","kind":"cut|merge|reorder|delegate|qualify|connect|premise|restructure","blocks":["P4","P5"],"rewrite":"your draft of the new words, or empty","saves":12,"why":"..."}`. `saves` is your estimate of words saved, negative when the idea adds words. Be bold: an idea a careful editor would not dare is welcome, as long as it keeps every rule a reader acts on. Add `"peeve"` when the idea fixes one of the owner's peeves. Say so when your lens finds nothing.
 
 ## lenses
 
@@ -85,14 +54,7 @@ keeps every rule a reader acts on. Say so when your lens finds nothing.
 
 ## builder
 
-Turn the scouts' strongest ideas into concrete rewrites of the passage as it
-stands after the reader's repairs, shown below. Write JSON Lines to the output
-path, one edit per line:
-`{"blocks":["P4","P5"],"from":"exact words, or omit to replace the whole paragraphs","text":"the new words","why":"...","ideas":["merge.1","owner.2"]}`.
-`blocks` lists consecutive paragraphs; with `from` omitted the edit replaces
-all of them with `text`, which is how two paragraphs become one. `ideas` cites
-the ideas the edit builds on. Prefer a few large, well-made edits to many
-small ones, and keep every rule a reader acts on. Your assignment follows.
+Turn the scouts' strongest ideas into concrete rewrites of the passage as it stands after the reader's repairs, shown below. Write JSON Lines to the output path, one edit per line: `{"blocks":["P4","P5"],"from":"exact words, or omit to replace the whole paragraphs","text":"the new words","why":"...","ideas":["merge.1","owner.2"]}`. `blocks` lists consecutive paragraphs; with `from` omitted the edit replaces all of them with `text`, which is how two paragraphs become one. `ideas` cites the ideas the edit builds on, and `"peeve"`, when present, names a peeve the edit fixes. Prefer a few large, well-made edits to many small ones, and keep every rule a reader acts on. Your assignment follows.
 
 ## builders
 
@@ -106,25 +68,12 @@ small ones, and keep every rule a reader acts on. Your assignment follows.
 
 ## judge
 
-Rate every repair and every edit below, once each, as JSON Lines to the
-output path:
-`{"edit":"e7","risk":"green","confidence":90,"clarity":"ok","brilliancy":"","brutality":"","note":""}`.
+Rate every repair and every edit below, once each, as JSON Lines to the output path: `{"edit":"e7","risk":"green","confidence":90,"clarity":"ok","brilliancy":"","brutality":"","note":""}`.
 
-- `risk`: `repair` for a repair that is right and needed; otherwise `green`
-  (a reader loses nothing), `yellow` (a reader feels the pinch: a nuance, a
-  reason or the flow is thinner) or `red` (full caveman, or a reader might act
-  differently).
-- `confidence`: 0 to 100, how sure you are that a reader of the result acts as
-  a reader of the original would, and for a repair that it is true to the
-  repository.
-- `clarity`: `ok`, or `loses` when the edit trades clarity for a small gain by
-  the Qualified writing rules; say how in `note`.
-- `brilliancy`: one line, for an edit that fuses ideas or finds the phrase that
-  carries what took a clause.
-- `brutality`: one line, for a drastic cut that the passage, on reflection,
-  does not need.
+- `risk`: `repair` for a repair that is right and needed; otherwise `green` (a reader loses nothing), `yellow` (a reader feels the pinch: a nuance, a reason or the flow is thinner) or `red` (full caveman, or a reader might act differently).
+- `confidence`: 0 to 100, how sure you are that a reader of the result acts as a reader of the original would, and for a repair that it is true to the repository.
+- `clarity`: `ok`, or `loses` when the edit trades clarity for a small gain by the Qualified writing rules, or introduces one of the owner's peeves; say how in `note`, naming the peeve by its id.
+- `brilliancy`: one line, for an edit that fuses ideas or finds the phrase that carries what took a clause.
+- `brutality`: one line, for a drastic cut that the passage, on reflection, does not need.
 
-Both are honours, not charges: award one only to an edit you would take, and
-leave both empty on an edit you rate red for what it loses. Award them where
-an edit earns them; the passage's best one or two of each are expected. Before
-returning, run the check command and fix every line it reports.
+Both are honours, not charges: award one only to an edit you would take, and leave both empty on an edit you rate red for what it loses. Award them where an edit earns them; the passage's best one or two of each are expected. Before returning, run the check command and fix every line it reports.

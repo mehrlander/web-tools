@@ -22,7 +22,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import swarm  # noqa: E402  (shared: load, save, where, words, gz)
-from ladder import sections, listed, loose, QW  # noqa: E402
+from ladder import sections, listed, loose, QW, peeves, peeves_md, check_peeve  # noqa: E402
 
 words = swarm.words
 MAX_EDITS = 3
@@ -63,7 +63,7 @@ def context(run, n, fighter):
          f'## The original ({words(orig)} words)', '', '```text', orig, '```', '',
          f'## The paragraph now ({words(cur)} words)', '']
     L += ['It is still the original: this is the first bout.', ''] if cur == orig else ['```text', cur, '```', '']
-    L += ['## The Qualified writing rules', '', QW.read_text(encoding='utf-8').split('---', 1)[-1].strip(), '']
+    L += ['## The Qualified writing rules', '', QW.read_text(encoding='utf-8').split('---', 1)[-1].strip(), ''] + peeves_md()
     ctx.write_text('\n'.join(L), encoding='utf-8')
     print(ctx); print(out)
 
@@ -110,6 +110,7 @@ def check(run, out):
             errs.append(f'line {i}: "text" is the same as "from"')
         if 'lost' in o and not (isinstance(o['lost'], str) and o['lost'].strip()):
             errs.append(f'line {i}: "lost" must say what the reader lost')
+        errs += check_peeve(o, i)
     if sum('lost' in o for _, o in ls) > 1:
         errs.append('more than one repair; a fighter may complain once a bout')
     print(f'{Path(out).name}: ' + ('ok' if not errs else '\n  ' + '\n  '.join(errs)))
@@ -134,6 +135,8 @@ def smash(run, n, model=''):
             # A complaint: the words the reader lost are the repair's reason.
             if str(o.get('lost', '')).strip():
                 e.update(repair=True, why=o['lost'])
+            if o.get('peeve'):
+                e['peeve'] = o['peeve']
             edits.append(e)
     # Repairs first, so a complaint is heard before the cuts land; then the
     # biggest swing: the most words claimed, then the most words saved, so on
@@ -149,6 +152,7 @@ def smash(run, n, model=''):
         e['landed'] = True
         led['path'].append({'edit': e['id'], 'bout': n, 'blocks': ['P1'], 'text': text, 'words': words(text)})
     led['edits'] += order
+    led['peeves'] = {k: v['name'] for k, v in peeves().items()}
     landed = sum(e['landed'] for e in order)
     led['bouts'].append({'n': n, 'model': model, 'fighters': [bout_of(f)[1] for f in files],
                          'landed': landed, 'knocked': len(order) - landed, 'text': text, 'words': words(text)})

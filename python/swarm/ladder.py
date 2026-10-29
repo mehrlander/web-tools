@@ -16,7 +16,7 @@ scout-<lens>, builders builder-<name> and judges judge-<x>; its briefs are
 bold.md, and <what> is repairs, ideas, edits, then ratings. Either ledger is
 <run>/ledger.json, read by pages/swarm.html.
 """
-import json, re, sys
+import csv, json, re, sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -26,7 +26,29 @@ import swarm  # noqa: E402  (shared: load, save, where, words, gz)
 TIERS = ['repair', 'green', 'yellow', 'red']
 PROPOSERS = {'trimmer': 'green', 'pincher': 'yellow', 'caveman': 'red'}
 QW = HERE.parent.parent / 'docs' / 'QUALIFIED-WRITING.md'
+PEEVES = HERE.parent.parent / 'skills' / 'peeves' / 'peeves.csv'
 words = swarm.words
+
+
+def peeves():
+    """The owner's active writing peeves, by id, each with the look-for
+    examples of the rows merged into it (the peeves skill's rule)."""
+    rows = list(csv.DictReader(PEEVES.open(encoding='utf-8')))
+    out = {}
+    for r in rows:
+        if r['area'] == 'writing' and r['status'] == 'active' and not r['merged_into'].strip():
+            looks = [x['look_for'] for x in [r] + [x for x in rows if x['merged_into'].strip() == r['id']] if x['look_for'].strip()]
+            out[r['id']] = {'name': r['name'], 'peeve': r['peeve'], 'look_for': '; '.join(looks)}
+    return out
+
+
+def peeves_md():
+    return ['## The owner\'s writing peeves', ''] + [
+        f"- **{i} {p['name']}**: {p['peeve']} Look for: {p['look_for']}" for i, p in peeves().items()] + ['']
+
+
+def check_peeve(o, i):
+    return [f"line {i}: peeve {o['peeve']} is not one of {', '.join(peeves())}"] if 'peeve' in o and o['peeve'] not in peeves() else []
 
 
 def sections(name):
@@ -151,7 +173,7 @@ def context(run, role):
             L += ['### Your lens', '', f"**{rest[0]}**: {listed(br['lenses'])[rest[0]]}", '']
         if base == 'builder':
             L += ['### Your assignment', '', f"**{rest[0]}**: {listed(br['builders'])[rest[0]]}", '']
-        L += ['## The Qualified writing rules', '', QW.read_text(encoding='utf-8'), '']
+        L += ['## The Qualified writing rules', '', QW.read_text(encoding='utf-8'), ''] + peeves_md()
     L += ['## Paths', '', f'- Output: `{out}`', f'- Check: {check}', '']
     if bold and base == 'reader':
         L += [f'- Reading: `{run / "reading.json"}`', '']
@@ -228,9 +250,10 @@ def check(run, out):
             if o.get('kind') not in ('cut', 'merge', 'reorder', 'delegate', 'qualify', 'connect', 'premise', 'restructure'): errs.append(f'line {i}: kind unknown')
             if not isinstance(o.get('saves'), int): errs.append(f'line {i}: saves must be a whole number')
             if not o.get('blocks') or any(b not in [x['id'] for x in led['rblocks']] for b in o['blocks']): errs.append(f'line {i}: blocks unknown')
+            errs += check_peeve(o, i)
         elif role.startswith('builder'):
             ideas = {x['id'] for x in led.get('ideas', [])}
-            errs += check_edit(led['rblocks'], o, i, need_from=False)
+            errs += check_edit(led['rblocks'], o, i, need_from=False) + check_peeve(o, i)
             bad = [x for x in o.get('ideas', []) if x not in ideas]
             if bad: errs.append(f'line {i}: unknown ideas {bad}')
         elif role.startswith('judge'):
@@ -297,7 +320,9 @@ def merge(run, what):
             for n, (_, o) in enumerate(lines_of(f), 1):
                 # A scout's draft is its `rewrite`; the ledger calls drafted words `text`, as in an edit.
                 led['ideas'].append({'id': f'{lens}.{n}', 'lens': lens, **{k: o.get(k, '') for k in ('idea', 'kind', 'blocks')},
-                                     'text': o.get('rewrite', ''), **{k: o.get(k, '') for k in ('saves', 'why')}})
+                                     'text': o.get('rewrite', ''), **{k: o.get(k, '') for k in ('saves', 'why')},
+                                     **({'peeve': o['peeve']} if o.get('peeve') else {})})
+        led['peeves'] = {k: v['name'] for k, v in peeves().items()}
     elif what == 'edits':
         led['edits'] = []
         for f in files('builder-*.jsonl'):
@@ -306,6 +331,8 @@ def merge(run, what):
                 e = {'id': f"e{len(led['edits']) + 1}", 'blocks': o['blocks'], 'by': name, 'text': o['text'], 'why': o['why'], 'ideas': o.get('ideas', [])}
                 if str(o.get('from', '')).strip():
                     e['from'] = o['from']
+                if o.get('peeve'):
+                    e['peeve'] = o['peeve']
                 if name.startswith('architect'):
                     e['whole'] = True
                 led['edits'].append(e)

@@ -312,7 +312,8 @@
             return '<div role="option" tabindex="0" data-step="' + window.esc(id) + '" aria-selected="' + sel + '" class="' + base + '">'
               + mono(String(i), 'w-6 opacity-60') + mono(e.by, 'w-16 truncate opacity-70')
               + '<span class="min-w-0 flex-1 truncate">' + window.esc(this.stepTitle(id)) + '</span>'
-              + (e.repair ? mono('↩', 'font-bold') : '') + mono(d > 0 ? '−' + d : d < 0 ? '+' + (-d) : '±0', 'w-8 text-right') + '</div>';
+              + (e.repair ? mono('↩', 'font-bold') : '') + (e.peeve ? mono(e.peeve, 'font-bold') : '')
+              + mono(d > 0 ? '−' + d : d < 0 ? '+' + (-d) : '±0', 'w-8 text-right') + '</div>';
           }
           const { i, s } = this.stepAt(id), marks = this.marksOf(id, s);
           return '<div role="option" tabindex="0" data-step="' + window.esc(id) + '" aria-selected="' + sel + '" class="' + base + '">'
@@ -351,6 +352,13 @@
               + this.rowHtml(id);
           }).join('');
         },
+        // An edit that fixes one of the owner's writing peeves names it.
+        peeveHtml(id) {
+          if (!id) return '';
+          const name = (this.led.peeves || {})[id];
+          return '<div class="text-pretty"><span class="font-bold">✎ fixes ' + window.esc(id) + '</span>'
+            + (name ? ' <span class="opacity-70">' + window.esc(name) + '</span>' : '') + '</div>';
+        },
         cardHtml(id) {
           const box = 'leading-8 text-pretty whitespace-pre-wrap break-words border-l-4 pl-3 flex flex-col gap-3 ';
           // A dome's card reads against the original, so the red piles up step by step.
@@ -360,6 +368,7 @@
               + '<div class="font-mono text-xs opacity-80">' + window.esc('bout ' + s.bout + ' · ' + e.by + ' · '
                 + (d > 0 ? '−' + d : d < 0 ? '+' + (-d) : '±0') + ' this edit · ' + s.words + ' of ' + this.wc(this.original) + ' words') + '</div>'
               + (e.repair ? '<div class="text-pretty"><span class="font-bold">↩ complaint</span> <span class="opacity-70">' + window.esc(e.why) + '</span></div>' : '')
+              + this.peeveHtml(e.peeve)
               + '<div class="' + box + 'border-base-300"><p>' + this.diffHtml(this.original, s.text) + '</p></div></div>';
           }
           if (id === '0') {
@@ -379,6 +388,7 @@
             + line(box + TIER[s.risk].border, this.changedHtml(prev, s.text))
             + (s.replaces ? line('text-pretty', '<span class="font-bold">↺ replaces</span> <span class="opacity-70">' + window.esc(s.replaces.map(x => 'step ' + this.stepAt(x).i).join(', ') + ', which it overlaps') + '</span>') : '')
             + honour('brilliancy', '!!') + honour('brutality', '✂')
+            + this.peeveHtml(e.peeve)
             + line('text-pretty', label(who) + window.esc(e.why))
             + rs.map(r => line('text-pretty', label(r.by + ': ' + r.risk + ', ' + r.confidence + '%' + (r.clarity === 'loses' ? ', ?! loses clarity' : '')) + window.esc(r.note || ''))).join('')
             + '</div>';
@@ -519,6 +529,7 @@
                 <div class="flex flex-wrap items-center gap-x-2 text-xs font-mono opacity-80">
                   <span x-text="i.kind"></span><span class="opacity-70" x-text="i.blocks.join('–')"></span>
                   <span x-text="(i.saves >= 0 ? 'saves ' + i.saves : 'adds ' + (-i.saves)) + ' words'"></span>
+                  <span class="font-bold" x-show="!!i.peeve" x-text="'✎ ' + i.peeve"></span>
                   <template x-for="eid in builtFrom(i.id)" :key="eid"><span class="badge badge-xs badge-primary" x-text="'built into step ' + (stepAt(eid).i || eid)"></span></template>
                 </div>
                 <div class="text-pretty" x-text="i.idea"></div>
