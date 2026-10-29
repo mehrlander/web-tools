@@ -787,7 +787,17 @@ test('the FAB is told what a note is about, in the notes store\'s locators', () 
   try {
     d.pane = 'outline';
     const plain = (x) => JSON.parse(JSON.stringify(x));   // the view's objects are the jsdom realm's
-    assert.deepEqual(plain(d.about.subject), { about: STORE + ':' + PATH, label: 'Session b8fae678' });
+    const was2 = d.topics;
+    d.topics = null;
+    assert.equal(d.about.subject.about, STORE + ':' + PATH);
+    assert.equal(d.about.subject.label, 'a named session', 'named by the host\'s label where one was lent');
+    const lent = d.facts; d.facts = null;
+    d.topics = { title: 'What Gemini called it' };
+    assert.equal(d.about.subject.label, 'What Gemini called it', 'else by the topics file');
+    assert.equal(d.about.title, 'What Gemini called it');
+    d.topics = null;
+    assert.equal(d.about.subject.label, 'Session b8fae678', 'else by its id');
+    d.facts = lent; d.topics = was2;
     assert.equal(d.about.selection, null, 'off the Views tab there is no item');
     assert.equal(d.about.sources[0].path, PATH, 'and the record is what the view reads');
     d.pane = 'views';
