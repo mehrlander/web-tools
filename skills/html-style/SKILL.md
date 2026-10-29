@@ -13,9 +13,9 @@ representation down, layer it, and manage each disclosure tightly, until it
 builds a dense web of connected information.
 
 [The method](https://github.com/mehrlander/web-tools/blob/main/research/minimal-progressive-structure/method.md)
-turns these steps into a procedure, and
-[its definition](https://github.com/mehrlander/web-tools/blob/main/research/minimal-progressive-structure/theory.md#the-definition)
-names the limit they approach.
+turns these steps into a procedure. They approach a limit,
+[minimal progressive structure](https://github.com/mehrlander/web-tools/blob/main/research/minimal-progressive-structure/theory.md#the-definition):
+a page that spends no text describing its own organization.
 
 ## "A page is for comparing"
 
@@ -41,9 +41,9 @@ comparison. Treat any `stats`, `stat-value`, or KPI-tile grid as a defect.
 
 **2. No explanatory prose.** GitHub doesn't explain and neither should we. Use
 structure, labels, and controls to show relationships: a range control starting
-at 2015 says the data starts in 2015. On a page about a subject, such as a bill
-or a report, a sentence stating what that subject does is content, not
-explanation, and the page opens with it.
+at 2015 says the data starts in 2015. On a page that presents a document, such
+as a bill or a report, a sentence stating what the document says is content,
+not explanation, and the page opens with it.
 
 **3. Don't narrow text to a reading column.** `max-w-prose`, `max-w-2xl`,
 `max-w-3xl`, `max-w-4xl`, `container mx-auto`, and a `prose` class without

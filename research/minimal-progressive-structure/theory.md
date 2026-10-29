@@ -12,8 +12,10 @@ with no text spent describing its organization, because familiar conventions
 convey it.
 
 Shannon's source coding theorem (1948) bounds how short a lossless encoding of
-a message can be. The definition names a bound of the same kind: a limit a page
-approaches, not a state it reaches.
+a message can be, and real codes come close without reaching the bound. The
+definition works the same way. Some relations have no convention a reader
+knows, so a real page keeps some text describing its organization, and the
+definition sets the zero against which that text is counted.
 
 ## The claim
 
@@ -28,8 +30,7 @@ text takes two moves of different character:
    appears as a label one step from its own view. This move is determined by
    the reader the page is for.
 
-The name minimal progressive structure came with the request that started this
-work, and its three words name the theory's parts. *Structure* is the recovered
+The three words of the name map onto the theory's parts. *Structure* is the recovered
 graph that the layout projects. *Progressive* is the layering, in which each
 interaction raises one neighbor by one level. *Minimal* is the constraint
 holding both in check: no text, entity, level or control beyond what reaches
@@ -227,8 +228,6 @@ checks as a gate before building; and the whole as one procedure. The claim
 of novelty is therefore narrow: the assembly, the normal-form test, the
 governing question, and the checks.
 
-In this repository the theory
-sits under the opening of the [html-style skill](../../skills/html-style/SKILL.md),
-whose "Project what matters" paragraph names the same steps (present the
-pieces, pare the representation down, layer it, manage each disclosure)
-without a procedure for any of them; [the method](method.md) is one.
+In this repository the
+[html-style skill](../../skills/html-style/SKILL.md) links the method from its
+opening paragraph.
