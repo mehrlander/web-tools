@@ -46,7 +46,7 @@ lib/kits/land.js,Land,"where the reader was just sent, and how they get told.",2
 lib/kits/last-write.js,LastWrite,"the copy this page just committed, for the next fold",70,no,no,5,yes
 lib/kits/linked-swiper.js,linkedSwiper,"a list with a detail: the list beside, or over, a strip of one card per row, the two moving together.",326,no,yes,4,yes
 lib/kits/lists.js,Lists,"the registry's lists/ folder, read and written as one kind of file.",235,no,no,4,yes
-lib/kits/look.js,Look,"look markers: a link that lands on a place in a page, says why, and can ring the control to tap.",1724,no,yes,4,yes
+lib/kits/look.js,Look,"look markers: a link that lands on a place in a page, says why, and can ring the control to tap.",1744,no,yes,5,yes
 lib/kits/md-diff.js,mdDiff,a markdown change read as the DOCUMENT rather than as its source.,1510,no,yes,19,yes
 lib/kits/md-doc.js,mdDoc,a markdown document rendered as something you can read and take pieces OUT of.,999,no,no,16,yes
 lib/kits/md-edit-studio.js,mdEditVariants,"the section editor as a studio: the source and a live reading of the change on one full screen, with no mode to switch.",611,no,no,1,no
