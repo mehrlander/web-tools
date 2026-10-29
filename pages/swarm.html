@@ -180,9 +180,8 @@
             }).join(', ');
           });
         },
-        esc(t) { return String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]); },
         inline(t) {
-          return this.esc(String(t || '').replace(/^\s*(?:#+|-)\s+/, ''))
+          return window.esc(String(t || '').replace(/^\s*(?:#+|-)\s+/, ''))
             .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
             .replace(/`([^`]+)`/g, '<code class="font-mono text-[0.9em] bg-base-200 rounded px-1">$1</code>');
         },
@@ -384,7 +383,7 @@
                 <td class="align-top">
                   <div class="text-pretty break-words" :class="downs(e).length > ups(e) ? 'line-through opacity-60' : ''" x-html="inline(e.text)"></div>
                   <template x-if="coreNow(e)">
-                    <div class="opacity-70 break-words text-pretty" x-html="coreNow(e).quote ? 'kept as “' + inline(coreNow(e).quote) + '”' : 'given up: ' + esc(deid(coreNow(e).lost, n))"></div>
+                    <div class="opacity-70 break-words text-pretty" x-html="coreNow(e).quote ? 'kept as “' + inline(coreNow(e).quote) + '”' : 'given up: ' + window.esc(deid(coreNow(e).lost, n))"></div>
                   </template>
                   <template x-if="downs(e).length > ups(e)">
                     <div class="opacity-70 break-words text-pretty" x-text="'voted out as a repeat: ' + deid(downs(e)[0].why, downs(e)[0].round)"></div>
