@@ -11,8 +11,9 @@ what it predicts. The [account](README.md) holds the test.
 with no text spent describing its organization, because familiar conventions
 convey it.
 
-Like the bound in Shannon's source coding theorem (1948), the definition names
-a limit to approach, not a state a page reaches.
+Shannon's source coding theorem (1948) bounds how short a lossless encoding of
+a message can be. The definition names a bound of the same kind: a limit a page
+approaches, not a state it reaches.
 
 ## The claim
 
@@ -27,11 +28,12 @@ text takes two moves of different character:
    appears as a label one step from its own view. This move is determined by
    the reader the page is for.
 
-The term is the owner's, and its three words name the theory's parts.
-*Structure* is the recovered graph. *Progressive* is the layering, in which each
+The name minimal progressive structure came with the request that started this
+work, and its three words name the theory's parts. *Structure* is the recovered
+graph that the layout projects. *Progressive* is the layering, in which each
 interaction raises one neighbor by one level. *Minimal* is the constraint
-holding both in check: the fewest entities, levels and controls that still
-reach every fact and still answer the governing question on the first screen.
+holding both in check: no text, entity, level or control beyond what reaches
+every fact and answers the governing question on the first screen.
 
 ## Text is a serialization of a graph
 
@@ -229,5 +231,4 @@ In this repository the theory
 sits under the opening of the [html-style skill](../../skills/html-style/SKILL.md),
 whose "Project what matters" paragraph names the same steps (present the
 pieces, pare the representation down, layer it, manage each disclosure)
-without a procedure for any of them. [method.md](method.md) is a candidate
-procedure.
+without a procedure for any of them; [the method](method.md) is one.
