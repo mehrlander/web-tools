@@ -1,11 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="chat-histories">
   <title>chat-histories</title>
-  <desc>Two speech bubbles, the nearer one cut clear of the other: the archive of conversations. Drawn in one ink on the budget-drs app icon's box and rules, for the page to paint in its text colour: solid, no strokes, and every gap at least 2.5 units, which is about 1.4 CSS pixels at 16.</desc>
+  <desc>Two speech bubbles, the nearer one cut clear of the other: the archive of conversations. Drawn on the budget-drs app icon's box and rules in one colour, sky-600 (#0284c7): solid, no strokes, and every gap at least 2.5 units, which is about 1.4 CSS pixels at 16.</desc>
   <mask id="clear" maskUnits="userSpaceOnUse" x="0" y="0" width="32" height="32">
     <rect width="32" height="32" fill="#fff"/>
     <rect x="-0.5" y="8" width="24" height="18.5" rx="6" fill="#000"/>
   </mask>
-  <g fill="currentColor">
+  <g fill="#0284c7">
     <path mask="url(#clear)" d="M14.5 3 H26.5 A3.5 3.5 0 0 1 30 6.5 V13 A3.5 3.5 0 0 1 26.5 16.5 H26 V20 L22.5 16.5 H14.5 A3.5 3.5 0 0 1 11 13 V6.5 A3.5 3.5 0 0 1 14.5 3 Z"/>
     <path d="M5.5 10.5 H17.5 A3.5 3.5 0 0 1 21 14 V20.5 A3.5 3.5 0 0 1 17.5 24 H10.5 L5.5 29 V24 A3.5 3.5 0 0 1 2 20.5 V14 A3.5 3.5 0 0 1 5.5 10.5 Z"/>
   </g>
