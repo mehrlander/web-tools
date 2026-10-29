@@ -1,0 +1,208 @@
+{
+ "kind": "dome/1",
+ "title": "Refreshing the growth file",
+ "source": {
+  "path": "docs/doc-growth.md",
+  "lines": [
+   176,
+   185
+  ],
+  "ref": "17ff19cfc21cc5da48106449057e5e6da0098b48",
+  "repo": "mehrlander/web-tools",
+  "url": "https://github.com/mehrlander/web-tools/blob/17ff19cfc21cc5da48106449057e5e6da0098b48/docs/doc-growth.md#L176-L185",
+  "file": "/home/user/web-tools/docs/doc-growth.md",
+  "words": 124,
+  "text": "The growth file is refreshed on demand, not by the commit hook. Every commit shifts the last frame, so a hook that regenerated the file would make every commit touch it. The session counts are rebuilt daily by the laptop daemon, as above. Each file's `generated` field is also the day the script ran, so the same inputs give different bytes on different days. Nothing flags a stale growth file: compare `generated` with today. To refresh the web-tools growth file, run the first command from the root of an unshallowed clone, with `.` as the clone, `data/doc-growth/web-tools.json` as the output, and `--name mehrlander/web-tools`. The chart's last sample counts every recorded session, so session counts newer than the growth file still show in full there."
+ },
+ "brief": {
+  "about": "a paragraph of `docs/doc-growth.md` on refreshing the growth file",
+  "root": "/home/user/web-tools",
+  "tasks": [
+   {
+    "id": "t1",
+    "question": "A contributor proposes having the commit hook regenerate the growth file so it is always current. Should they, and why or why not?",
+    "expected": [
+     "no: the file is refreshed on demand, not by the commit hook",
+     "every commit shifts the last frame",
+     "a regenerating hook would make every commit touch the file"
+    ]
+   },
+   {
+    "id": "t2",
+    "question": "How can a reader tell whether the growth file is stale, and what warns them if it is?",
+    "expected": [
+     "nothing flags a stale growth file",
+     "compare the generated field with today"
+    ]
+   },
+   {
+    "id": "t3",
+    "question": "What exactly must someone do to refresh the web-tools growth file: where do they run the command, and what do they pass it?",
+    "expected": [
+     "run the first command",
+     "from the root of an unshallowed clone",
+     "`.` as the clone",
+     "`data/doc-growth/web-tools.json` as the output",
+     "`--name mehrlander/web-tools`"
+    ]
+   },
+   {
+    "id": "t4",
+    "question": "Someone reruns the refresh on a later day with no change to the repository and finds the file differs. Is that a fault, and why does it happen?",
+    "expected": [
+     "each file's generated field is the day the script ran",
+     "the same inputs give different bytes on different days"
+    ]
+   },
+   {
+    "id": "t5",
+    "question": "Session counts have been rebuilt since the growth file was last refreshed. Who rebuilds them and how often, and do the newer counts show on the chart before the growth file is refreshed?",
+    "expected": [
+     "the laptop daemon rebuilds the session counts daily",
+     "the chart's last sample counts every recorded session",
+     "session counts newer than the growth file still show in full"
+    ]
+   }
+  ],
+  "models": {
+   "tasker": "sonnet",
+   "referee": "sonnet",
+   "fighter": "haiku"
+  },
+  "allowance": {
+   "bouts": 3,
+   "fighters": [
+    "cutter",
+    "fuser",
+    "qualifier",
+    "slugger",
+    "restorer",
+    "fixer"
+   ],
+   "jobs": 23
+  }
+ },
+ "blocks": [
+  {
+   "id": "P1",
+   "kind": "para",
+   "text": "The growth file is refreshed on demand, not by the commit hook. Every commit shifts the last frame, so a hook that regenerated the file would make every commit touch it. The session counts are rebuilt daily by the laptop daemon, as above. Each file's `generated` field is also the day the script ran, so the same inputs give different bytes on different days. Nothing flags a stale growth file: compare `generated` with today. To refresh the web-tools growth file, run the first command from the root of an unshallowed clone, with `.` as the clone, `data/doc-growth/web-tools.json` as the output, and `--name mehrlander/web-tools`. The chart's last sample counts every recorded session, so session counts newer than the growth file still show in full there.",
+   "words": 124
+  }
+ ],
+ "state": "in_progress",
+ "actions": [
+  {
+   "id": "a1",
+   "op": "write_tasks",
+   "target": null,
+   "reason": "the run has no reader tasks yet",
+   "agents": [
+    {
+     "name": "tasker",
+     "model": "sonnet",
+     "context": "tasks.ctx.md",
+     "output": "tasks.jsonl"
+    }
+   ],
+   "status": "done",
+   "used": 1
+  },
+  {
+   "id": "a2",
+   "op": "run_check",
+   "target": 0,
+   "reason": "calibrate the tasks on the original",
+   "agents": [
+    {
+     "name": "referee 0",
+     "model": "sonnet",
+     "context": "c0-referee.ctx.md",
+     "output": "c0-referee.jsonl"
+    }
+   ],
+   "status": "done",
+   "used": 1
+  },
+  {
+   "id": "a3",
+   "op": "bout",
+   "target": 1,
+   "reason": "every task passes; cut further",
+   "agents": [
+    {
+     "name": "cutter",
+     "model": "haiku",
+     "context": "b1-cutter.ctx.md",
+     "output": "b1-cutter.jsonl"
+    },
+    {
+     "name": "fuser",
+     "model": "haiku",
+     "context": "b1-fuser.ctx.md",
+     "output": "b1-fuser.jsonl"
+    },
+    {
+     "name": "qualifier",
+     "model": "haiku",
+     "context": "b1-qualifier.ctx.md",
+     "output": "b1-qualifier.jsonl"
+    },
+    {
+     "name": "slugger",
+     "model": "haiku",
+     "context": "b1-slugger.ctx.md",
+     "output": "b1-slugger.jsonl"
+    },
+    {
+     "name": "restorer",
+     "model": "haiku",
+     "context": "b1-restorer.ctx.md",
+     "output": "b1-restorer.jsonl"
+    },
+    {
+     "name": "fixer",
+     "model": "haiku",
+     "context": "b1-fixer.ctx.md",
+     "output": "b1-fixer.jsonl"
+    }
+   ],
+   "status": "issued"
+  }
+ ],
+ "bouts": [],
+ "edits": [],
+ "path": [],
+ "checks": [
+  {
+   "target": 0,
+   "task": "t1",
+   "status": "pass",
+   "answer": "No. Every commit shifts the last frame, so a hook that regenerated the growth file would make every commit touch it. The file is refreshed on demand instead, not by the commit hook."
+  },
+  {
+   "target": 0,
+   "task": "t2",
+   "status": "pass",
+   "answer": "Compare the file's `generated` field (the day the script ran) with today's date. Nothing warns or flags a stale growth file; the reader has to make that comparison themselves."
+  },
+  {
+   "target": 0,
+   "task": "t3",
+   "status": "pass",
+   "answer": "Run the first command (the growth script; the paragraph does not name it) from the root of an unshallowed clone, passing `.` as the clone, `data/doc-growth/web-tools.json` as the output, and `--name mehrlander/web-tools`."
+  },
+  {
+   "target": 0,
+   "task": "t4",
+   "status": "pass",
+   "answer": "Not a fault. Each file's `generated` field is the day the script ran, so the same inputs give different bytes on different days."
+  },
+  {
+   "target": 0,
+   "task": "t5",
+   "status": "pass",
+   "answer": "The laptop daemon rebuilds the session counts daily. Yes, the newer counts still show in full on the chart before the growth file is refreshed, because the chart's last sample counts every recorded session."
+  }
+ ]
+}
