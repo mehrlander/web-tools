@@ -9,8 +9,10 @@
 
 A fighter's file is <run>/b<bout>-<fighter>.jsonl, and its brief is dome.md
 with one of its temperaments. A bout's edits land on the text the last bout
-left, the biggest swing first (the most words claimed, then the most saved);
-an edit whose words are no longer there exactly once is knocked out. Each landed edit
+left: first the repairs, each answering a fighter's complaint that the reader
+lost something the original said, then the rest biggest swing first (the most
+words claimed, then the most saved). An edit whose words are no longer there
+exactly once is knocked out. Each landed edit
 is a step on the path, so the paragraph can be read edit by edit. The ledger is
 <run>/ledger.json (kind dome/1), read by pages/swarm.html.
 """
@@ -20,7 +22,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import swarm  # noqa: E402  (shared: load, save, where, words, gz)
-from ladder import sections, listed, loose  # noqa: E402
+from ladder import sections, listed, loose, QW  # noqa: E402
 
 words = swarm.words
 MAX_EDITS = 3
@@ -58,9 +60,10 @@ def context(run, n, fighter):
          '## Your temperament', '', f'**{fighter}**: {temper[fighter]}', '',
          '## Paths', '', f'- Output: `{out}`',
          f'- Check: `python3 {HERE / "dome.py"} check {run} {out}`', '',
-         f'## The paragraph now ({words(cur)} words)', '', '```text', cur, '```', '']
-    if cur != orig:
-        L += [f'## The original ({words(orig)} words)', '', '```text', orig, '```', '']
+         f'## The original ({words(orig)} words)', '', '```text', orig, '```', '',
+         f'## The paragraph now ({words(cur)} words)', '']
+    L += ['It is still the original: this is the first bout.', ''] if cur == orig else ['```text', cur, '```', '']
+    L += ['## The Qualified writing rules', '', QW.read_text(encoding='utf-8').split('---', 1)[-1].strip(), '']
     ctx.write_text('\n'.join(L), encoding='utf-8')
     print(ctx); print(out)
 
@@ -105,6 +108,10 @@ def check(run, out):
             errs.append(f'line {i}: "from" is {words(f)} words, more than half the paragraph')
         if ' '.join(f.split()) == ' '.join(t.split()):
             errs.append(f'line {i}: "text" is the same as "from"')
+        if 'lost' in o and not (isinstance(o['lost'], str) and o['lost'].strip()):
+            errs.append(f'line {i}: "lost" must say what the reader lost')
+    if sum('lost' in o for _, o in ls) > 1:
+        errs.append('more than one repair; a fighter may complain once a bout')
     print(f'{Path(out).name}: ' + ('ok' if not errs else '\n  ' + '\n  '.join(errs)))
     return not errs
 
@@ -123,10 +130,15 @@ def smash(run, n, model=''):
             sys.exit(f'{f.name} does not pass its check')
         _, who = bout_of(f)
         for k, (_, o) in enumerate(lines_of(f), 1):
-            edits.append({'id': f'b{n}.{who}.{k}', 'bout': n, 'by': who, 'from': o['from'], 'text': o['text']})
-    # Biggest swing first: the most words claimed, then the most words saved, so
-    # on one span a cut beats a rewrite; a tie goes to the fighter named first.
-    order = sorted(edits, key=lambda e: (-words(e['from']), words(e['text']), e['id']))
+            e = {'id': f'b{n}.{who}.{k}', 'bout': n, 'by': who, 'from': o['from'], 'text': o['text']}
+            # A complaint: the words the reader lost are the repair's reason.
+            if str(o.get('lost', '')).strip():
+                e.update(repair=True, why=o['lost'])
+            edits.append(e)
+    # Repairs first, so a complaint is heard before the cuts land; then the
+    # biggest swing: the most words claimed, then the most words saved, so on
+    # one span a cut beats a rewrite. A tie goes to the fighter named first.
+    order = sorted(edits, key=lambda e: (not e.get('repair'), -words(e['from']), words(e['text']), e['id']))
     for e in order:
         ms = list(loose(e['from']).finditer(text))
         if len(ms) != 1:

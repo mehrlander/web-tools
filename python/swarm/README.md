@@ -84,8 +84,9 @@ every scout's ideas, marked where an edit was built on them.
 
 [`dome.py`](dome.py) puts one paragraph in front of bouts of fighters, briefs
 in [`dome.md`](dome.md). Every fighter in a bout edits the paragraph as the last
-bout left it, and all of the bout's edits land on that one text, so the page
-reads as one paragraph changing edit by edit.
+bout left it, with the original and the Qualified writing rules in view, and
+all of the bout's edits land on that one text, so the page reads as one
+paragraph changing edit by edit, each step shown against the original.
 
 ```bash
 python3 python/swarm/dome.py init python/swarm/runs/<slug> <file> <first-line> <last-line> --title "<title>"
@@ -96,7 +97,9 @@ Then, for each bout `N`:
 1. `dome.py context python/swarm/runs/<slug> N <temperament>` for each of the
    ten temperaments in `dome.md`, and one Agent each, in parallel. A fighter
    writes up to three edits, each the exact words it replaces and the words
-   that replace them, and no reasons.
+   that replace them, and no reasons, except that one edit a bout may be a
+   complaint: a repair with what the reader lost.
 2. `dome.py smash python/swarm/runs/<slug> N --model <model>` lands the bout's
-   edits biggest swing first (the most words claimed, then the most saved). An
-   edit whose words an earlier one already changed is knocked out.
+   repairs first, then the rest biggest swing first (the most words claimed,
+   then the most saved). An edit whose words an earlier one already changed is
+   knocked out.

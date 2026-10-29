@@ -308,11 +308,11 @@
               + '<span class="min-w-0 flex-1 truncate font-semibold">original</span></div>';
           }
           if (this.isDome) {
-            const { i, s, prev } = this.stepAt(id), d = this.wc(prev) - s.words;
+            const { i, s, prev } = this.stepAt(id), e = this.editOf(id), d = this.wc(prev) - s.words;
             return '<div role="option" tabindex="0" data-step="' + window.esc(id) + '" aria-selected="' + sel + '" class="' + base + '">'
-              + mono(String(i), 'w-6 opacity-60') + mono(this.editOf(id).by, 'w-16 truncate opacity-70')
+              + mono(String(i), 'w-6 opacity-60') + mono(e.by, 'w-16 truncate opacity-70')
               + '<span class="min-w-0 flex-1 truncate">' + window.esc(this.stepTitle(id)) + '</span>'
-              + mono(d >= 0 ? '−' + d : '+' + (-d), 'w-8 text-right') + '</div>';
+              + (e.repair ? mono('↩', 'font-bold') : '') + mono(d >= 0 ? '−' + d : '+' + (-d), 'w-8 text-right') + '</div>';
           }
           const { i, s } = this.stepAt(id), marks = this.marksOf(id, s);
           return '<div role="option" tabindex="0" data-step="' + window.esc(id) + '" aria-selected="' + sel + '" class="' + base + '">'
@@ -353,12 +353,14 @@
         },
         cardHtml(id) {
           const box = 'leading-8 text-pretty whitespace-pre-wrap break-words border-l-4 pl-3 flex flex-col gap-3 ';
+          // A dome's card reads against the original, so the red piles up step by step.
           if (this.isDome && id !== '0') {
-            const { s, prev } = this.stepAt(id), d = this.wc(prev) - s.words;
+            const { s, prev } = this.stepAt(id), e = this.editOf(id), d = this.wc(prev) - s.words;
             return '<div class="flex flex-col gap-3 pb-24">'
-              + '<div class="font-mono text-xs opacity-80">' + window.esc('bout ' + s.bout + ' · ' + this.editOf(id).by + ' · '
-                + (d >= 0 ? '−' + d : '+' + (-d)) + (Math.abs(d) === 1 ? ' word' : ' words') + ' · ' + s.words + ' now') + '</div>'
-              + '<div class="' + box + 'border-base-300"><p>' + this.diffHtml(prev, s.text) + '</p></div></div>';
+              + '<div class="font-mono text-xs opacity-80">' + window.esc('bout ' + s.bout + ' · ' + e.by + ' · '
+                + (d >= 0 ? '−' + d : '+' + (-d)) + ' this edit · ' + s.words + ' of ' + this.wc(this.original) + ' words') + '</div>'
+              + (e.repair ? '<div class="text-pretty"><span class="font-bold">↩ complaint</span> <span class="opacity-70">' + window.esc(e.why) + '</span></div>' : '')
+              + '<div class="' + box + 'border-base-300"><p>' + this.diffHtml(this.original, s.text) + '</p></div></div>';
           }
           if (id === '0') {
             const shown = this.para ? this.led.blocks.filter(b => b.id === this.para) : this.led.blocks;
@@ -419,10 +421,7 @@
           return this.h ? { text: this.h.text, words: this.h.words, html: this.resHtml[this.n], label: 'Round ' + this.n + ' result' } : null;
         },
         get base() {
-          if (this.isDome) {
-            const cs = this.choices, i = cs.findIndex(c => c.id === this.tier);
-            return i > 0 ? { text: cs[i - 1].text, label: 'bout ' + (i) } : { text: this.original, label: 'the original' };
-          }
+          if (this.isDome) return { text: this.original, label: 'the original' };
           if (this.isLadder) {
             const c = this.choice;
             if (c.whole) return { text: this.tierText('repair'), label: this.steps.some(s => s.risk === 'repair') ? 'repaired' : 'the original' };
