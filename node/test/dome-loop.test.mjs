@@ -28,9 +28,9 @@ const next = (run, ...a) => {
 }
 
 // A run over the paragraph on line 3: bouts of two fighters, two unless given.
-function fixture (tasks, bouts = 2) {
+function fixture (tasks, bouts = 2, para = PARA) {
   const dir = mkdtempSync(join(tmpdir(), 'dome-'))
-  writeFileSync(join(dir, 'doc.md'), '# Doc\n\n' + PARA + '\n')
+  writeFileSync(join(dir, 'doc.md'), '# Doc\n\n' + para + '\n')
   jsonl(join(dir, 'tasks.jsonl'), TASKS)
   const run = join(dir, 'run')
   execFileSync('python3', [DOME, 'init', run, join(dir, 'doc.md'), '3', '3', '--bouts', String(bouts), '--fighters', 'cutter,fuser',
@@ -138,4 +138,15 @@ test('a repair lands first, and a bout that saves nothing ends the run', () => {
   assert.equal(led.state, 'ready_for_review')
   assert.match(led.stop, /bout 2 saved no words/)
   assert.equal(led.best, 1)
+})
+
+test('the smash tidies a cut without touching a code span', () => {
+  const run = fixture(true, 1, 'Run `make . -o out` from the root, not by hand.')
+  next(run)
+  referee(run, 0, { t1: true, t2: true, t3: 'the data team' })
+  next(run)
+  jsonl(join(run, 'b1-cutter.jsonl'), [{ from: ', not by hand', text: '' }])
+  jsonl(join(run, 'b1-fuser.jsonl'), [{ from: 'from the root', text: 'from the repository root' }])
+  const led = next(run)
+  assert.equal(led.bouts[0].text, 'Run `make . -o out` from the repository root.')
 })

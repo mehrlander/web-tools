@@ -352,7 +352,10 @@ def smash(run, n, model='', files=None):
     # biggest swing: the most words claimed, then the most words saved, so on
     # one span a cut beats a rewrite. A tie goes to the fighter named first.
     order = sorted(edits, key=lambda e: (not e.get('repair'), -words(e['from']), words(e['text']), e['id']))
-    tidy = lambda t: re.sub(r' +([.,;:)])', r'\1', re.sub(r'  +', ' ', t)).strip()
+    # Close the gaps a cut leaves, outside code spans, where a space before a
+    # full stop can be an argument (`script . -o out`).
+    tidy = lambda t: ''.join(p if p.startswith('`') else re.sub(r' +([.,;:)])', r'\1', re.sub(r'  +', ' ', p))
+                             for p in re.split(r'(`[^`]*`)', t)).strip()
     # An edit lands only on words the bout started with: the spans this bout
     # has already written are off limits, so two fighters' words never stack.
     written = []
