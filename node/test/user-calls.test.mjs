@@ -5,7 +5,7 @@
 // would stage it (one block the file still holds), one spans two blocks and
 // so is never staged, and one was applied long ago; the fourth names a file
 // that cannot be read. What is under test: which calls are open, what counts
-// as pending, what is kept beside it as unstageable and why, the per-file
+// as pending, what is kept beside it as unstageable or moot and why, the per-file
 // fold, and the links.
 
 import test from 'node:test';
@@ -94,11 +94,13 @@ test('a proposal counts only as Dictate would stage it: one block the file still
   assert.deepEqual(x.calls.map((c) => c.id), ['a1-doc'], 'the open documentation call is filed under its document, ref dropped');
   assert.deepEqual(x.unstaged.map((u) => [u.from, u.reason, u.kind, u.basis]), [
     ['First of a run.\n\nSecond of the run.', 'spans', 'edit', 'https://github.com/mehrlander/web-tools/pull/2'],
-    ['Applied long ago.', 'gone', 'edit', 'https://github.com/mehrlander/web-tools/pull/3'],
-  ], 'what Dictate cannot stage is kept beside, with its reason; the rejected one is answered and left out');
+  ], 'what Dictate cannot stage and a person still could is kept beside, with its reason; the rejected one is answered and left out');
+  assert.deepEqual(x.moot.map((u) => [u.from, u.reason, u.kind]), [['Applied long ago.', 'gone', 'edit']],
+    'one whose text is gone is moot, kept apart');
   const missing = by.get('mehrlander/web-tools:docs/missing.md');
   assert.equal(missing.staged, 0, 'a file main no longer holds stages nothing');
-  assert.deepEqual(missing.unstaged.map((u) => [u.from, u.to, u.reason]), [['Anything.', 'Else.', 'file']], 'and says why');
+  assert.deepEqual(missing.unstaged, []);
+  assert.deepEqual(missing.moot.map((u) => [u.from, u.to, u.reason]), [['Anything.', 'Else.', 'file']], 'its proposals are moot, and say why');
 });
 
 test('a pair whose proposed text is in the file has been applied, and is not counted as unstageable', async () => {
@@ -107,6 +109,7 @@ test('a pair whose proposed text is in the file has been applied, and is not cou
   try {
     const x = (await U.pendingEdits({ fresh: true })).get('mehrlander/web-tools:docs/x.md');
     assert.deepEqual(x.unstaged.map((u) => u.reason), ['spans']);
+    assert.deepEqual(x.moot, [], 'applied is neither');
   } finally { FILES['mehrlander/web-tools:docs/x.md'] = keep; }
 });
 

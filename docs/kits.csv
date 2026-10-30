@@ -115,7 +115,7 @@ lib/kits/traffic-log.js,TrafficLog,the app writes down what its calls did worth 
 lib/kits/traffic.js,Traffic,"the pure read of what a page has pulled over the network, and the vocabulary the FAB's Traffic tab renders.",690,yes,no,4,yes
 lib/kits/treemap.js,treemap,pure logic for mapping a file tree as a treemap.,159,no,no,2,yes
 lib/kits/url-params.js,UrlParams,"Reading a page's own input params, fragment first, query as fallback.",149,no,no,9,yes
-lib/kits/user-calls.js,UserCalls,what waits on the owner (window.UserCalls).,172,no,no,3,yes
+lib/kits/user-calls.js,UserCalls,what waits on the owner (window.UserCalls).,179,no,no,3,yes
 lib/kits/vanilla-demo.js,demo,"the living-documentation demo format, distilled from pages/drop/live-docs-concept.html.",574,no,no,11,yes
 lib/kits/visit-log.js,VisitLog,"turn an address into a storable visit, by allowlist.",309,no,no,2,yes
 lib/kits/wring.js,wring,"single-document template induction: give it one document with repeated structure (a log, an HTML page) and it returns the recurring templates (fixed…",1329,no,no,4,yes
