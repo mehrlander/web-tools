@@ -86,6 +86,14 @@ Hover over Live to see scan and synchronization timings.
 
 ## Private phone view
 
+The assistant headers on phone and desktop have separate launch arrows for
+Codex, Antigravity and Claude Code. These work even when the assistant has no
+recent activity. Names still filter the activity list; launch arrows use the
+provider's HTTPS address in a separate browser context. Codex opens ChatGPT,
+which includes Codex on mobile. Claude's Code URL also
+supports its installed mobile app through universal links. Browser and app
+handoff follows the device's link settings.
+
 The phone has its own Now, Queue and Recent views, assistant filters, result
 details and short observed history. The phone view is read-only. The laptop must
 be awake and online; waking the laptop through Windows App can restore access.

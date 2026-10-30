@@ -1,6 +1,16 @@
 (() => {
   'use strict';
   const escape = text => String(text ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const assistants = {
+    codex:{name:'Codex in ChatGPT',url:'https://chatgpt.com/'},
+    gemini:{name:'Antigravity',url:'https://antigravity.google.com/'},
+    claude:{name:'Claude Code',url:'https://claude.ai/code'}
+  };
+  function assistantLink(key, {cls = '', tooltip = false} = {}) {
+    if (!Object.hasOwn(assistants,key)) return '';
+    const {name,url} = assistants[key], label = `Open ${name}`;
+    return `<a data-provider-link="${key}" href="${url}" target="_blank" rel="noopener noreferrer" aria-label="${label}" ${tooltip ? 'data-title-tip' : 'title'}="${label}" class="flex size-7 shrink-0 items-center justify-center rounded text-stone-500 hover:bg-stone-200/60 focus-visible:outline-2 focus-visible:outline-emerald-700 ${escape(cls)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="size-3.5" aria-hidden="true"><path d="M14 4h6v6M20 4 10 14M10 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5"/></svg></a>`;
+  }
   const safeLink = value => {
     try {
       const url = new URL(value);
@@ -22,5 +32,5 @@
     if (!value) return '';
     return density(`<section class="mt-6 border-t border-stone-200 pt-4"><h3 class="text-sm font-semibold text-stone-600">Latest turn</h3><p class="mt-1 text-xs text-stone-500">First observed ${escape(stamp(value.startedAt))}</p>${value.lastTool ? `<p class="mt-2 text-sm text-stone-500">Last tool: ${escape(value.lastTool)}</p>` : ''}${value.prompt ? `<h4 class="mt-4 text-xs font-medium text-stone-500">Prompt preview</h4><p class="mt-1 whitespace-pre-wrap break-words text-base leading-7">${escape(value.prompt)}</p>` : ''}${value.response ? `<h4 class="mt-4 text-xs font-medium text-stone-500">Response preview</h4><p class="mt-1 whitespace-pre-wrap break-words text-base leading-7">${escape(value.response)}</p>` : ''}</section>`, compact);
   }
-  window.NowView = {safeLink,checkpoint,turn};
+  window.NowView = {safeLink,checkpoint,turn,assistantLink};
 })();
