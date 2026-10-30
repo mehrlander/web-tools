@@ -18,6 +18,7 @@ account links to its own materials. The shared placement rule is in
 - [Documentation problems and drafting proposals](DOC_CRAFT_STUDY.md), with the original specimens.
 - [Minimal progressive structure](minimal-progressive-structure/README.md): a theory of how text becomes a layered page, its prior art, and a blind test of the method on page-building agents.
 - [Fan-out review of the Web Tools app, 2026-10-25](2026-10-25-fan-out-review.md): ranked follow-ups from seven lenses, and which kinds of reading found them.
+- [Policy candidates, 2026-10-29](2026-10-29-policy-candidates/README.md): which of the retired survey's rules become house policies, as a swipe deck.
 - [Code jobs](code-jobs/README.md): whether a model reader finds functions that do one job in several files.
 
 The Excel research is in `projects/office/research/` in `mehrlander/home`.
