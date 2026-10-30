@@ -16,20 +16,21 @@ description: >-
 
 **A checkout is not delivery.** No repo's `CLAUDE.md` imports these documents,
 so a web-tools checkout does not mean they are in context. Read on whatever the
-checkout looks like, and stop only if both documents are demonstrably in context
+checkout looks like, and stop only if all three documents are demonstrably in context
 already.
 
-Load both. [`CONVERSATION.md`](CONVERSATION.md) governs how a reply reaches the reader;
+Load all three. [`CONVERSATION.md`](CONVERSATION.md) governs how a reply reaches the reader;
 [`QUALIFIED-WRITING.md`](QUALIFIED-WRITING.md) governs the prose of every document, commit message, PR
-body, and reply the session writes. Neither is optional, and the writing half
-is the one a session is most likely to violate without noticing. Prefer the
-copies beside this `SKILL.md`, which ship in the plugin and cost no fetch;
-otherwise:
+body, and reply the session writes; [doc-craft](../doc-craft/SKILL.md) governs every
+edit to documentation. None is optional, and the writing rules are the ones a
+session is most likely to violate without noticing. Prefer the copies linked
+here, which ship in the plugin and cost no fetch; otherwise:
 
 ```bash
-base=https://raw.githubusercontent.com/mehrlander/web-tools/main/docs
-curl -fsSL "$base/CONVERSATION.md"
-curl -fsSL "$base/QUALIFIED-WRITING.md"
+base=https://raw.githubusercontent.com/mehrlander/web-tools/main
+curl -fsSL "$base/docs/CONVERSATION.md"
+curl -fsSL "$base/docs/QUALIFIED-WRITING.md"
+curl -fsSL "$base/skills/doc-craft/SKILL.md"
 ```
 
 If `curl` is denied, use `mcp__github__get_file_contents` (owner `mehrlander`,
