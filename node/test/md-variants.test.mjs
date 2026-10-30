@@ -162,3 +162,49 @@ test('without a file, no variant is marked and the first stays the default', asy
   assert.equal(host.querySelectorAll('[data-md-variants-proposal]').length, 0);
   host.remove();
 });
+
+// What plan leaves out: every pair proposed for a file that no block stages,
+// with the reason, so a queue counted by plan can say what it does not stage.
+// One document, one proposal per reason, and one that stages.
+test('unstaged names each proposed pair plan does not stage, and why', () => {
+  const A = 'Alpha stands alone.', B = 'Beta opens a run.', C = 'Gamma closes it.';
+  const L = 'A long paragraph whose middle sentence is proposed. It goes on after.';
+  const doc = `# Doc\n\n${A}\n\n${B}\n\n${C}\n\n${L}\n\nApplied text now.\n`;
+  const file = { repo: 'mehrlander/web-tools', path: 'docs/x.md' };
+  const ix = {
+    passages: { a: A, a2: 'Alpha, alone.', a3: 'Alpha, solo.', bc: `${B}\n\n${C}`, bc2: 'Beta and gamma.',
+                m: 'whose middle sentence is proposed.', m2: 'with a middle.', o: 'Old text.', o2: 'Applied text now.',
+                g: 'Edited away since.', g2: 'Never landed.', u: 'Unpaired.', u2: 'Unpaired two.' },
+    variants: [
+      { id: 'v1', from: 'a', to: 'a2', author: 'x', purpose: 'update' },
+      { id: 'v2', from: 'a', to: 'a3', author: 'y', purpose: 'tighten' },
+      { id: 'v3', from: 'bc', to: 'bc2', author: 'x', purpose: 'tighten' },
+      { id: 'v4', from: 'm', to: 'm2', author: 'x', purpose: 'update' },
+      { id: 'v5', from: 'o', to: 'o2', author: 'x', purpose: 'update' },
+      { id: 'v6', from: 'g', to: 'g2', author: 'x', purpose: 'clarity' },
+    ],
+    proposals: [
+      { from: 'a', to: 'a2', ...file, basis: 'b1' },   // staged: the block's pick
+      { from: 'a', to: 'a3', ...file, basis: 'b2' },   // the same block, picked second
+      { from: 'a', to: 'a3', ...file, basis: 'b2bis' },// the same pair again: one entry
+      { from: 'bc', to: 'bc2', ...file, basis: 'b3' },
+      { from: 'm', to: 'm2', ...file, basis: 'b4' },
+      { from: 'o', to: 'o2', ...file, basis: 'b5' },
+      { from: 'g', to: 'g2', ...file, basis: 'b6' },
+      { from: 'g', to: 'g2', repo: 'mehrlander/web-tools', path: 'docs/other.md', basis: 'b7' },
+    ],
+  };
+  const by = (xs) => Object.fromEntries(xs.map((u) => [u.from + '>' + u.to, [u.reason, u.kind]]));
+  assert.deepEqual(by(K.unstaged(doc, ix, { file })), {
+    'a>a3': ['behind', 'tighten'], 'bc>bc2': ['spans', 'tighten'], 'm>m2': ['inside', 'edit'],
+    'o>o2': ['applied', 'edit'], 'g>g2': ['gone', 'tighten'],
+  }, 'the staged pair is not named, a repeated pair is named once, and another file\'s proposal not at all');
+  assert.deepEqual(Object.values(by(K.unstaged(null, ix, { file }))).map((x) => x[0]),
+    ['file', 'file', 'file', 'file', 'file', 'file'], 'a file that cannot be read stages nothing, the would-be pick included');
+  const planned = K.plan(doc, ix, { file });
+  assert.deepEqual(K.unstaged(doc, ix, { file, planned }).map((u) => u.reason), K.unstaged(doc, ix, { file }).map((u) => u.reason),
+    'a plan the caller already has gives the same answer');
+  assert.deepEqual(K.unstaged(doc, { ...ix, variants: ix.variants.filter((v) => v.id !== 'v2') }, { file })
+    .find((u) => u.to === 'a3').reason, 'unpaired', 'a block proposed with no variant holding the pair');
+  assert.deepEqual(K.unstaged(doc, ix, { file: { repo: 'mehrlander/web-tools', path: 'docs/none.md' } }), [], 'no proposals, nothing to say');
+});

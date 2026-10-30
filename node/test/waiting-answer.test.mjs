@@ -473,3 +473,65 @@ test('a withdrawn vote leaves the row: an author\'s latest vote is the one that 
   assert.doesNotMatch(data.callLine(decision), /Gemini votes/);
   NOTES.pop();
 });
+
+// NOTHING SILENTLY ABSENT: a file in Edits and Tighten also counts what
+// Dictate cannot stage on it and a person still could, with the reason on its
+// tip, and a file with only that is still listed, muted and after the files
+// with work, with no way into Dictate. A proposal whose text or file is gone
+// is moot: it takes no row, and one line under the list counts it, by reason
+// on its tip. The tab's count stays what Dictate would stage.
+test('a file counts the proposals Dictate cannot stage, by reason; a moot one is only counted, under the list', async () => {
+  const it = (kind, extra = {}) => ({ from: 'Old.', to: 'New.', author: 'Claude', purpose: kind === 'edit' ? 'update' : 'tighten', kind, basis: '', why: '', ...extra });
+  data.pending = new Map([
+    ['acme/widget:docs/a.md', { file: 'acme/widget:docs/a.md', calls: [], staged: 1, items: [it('edit')], bases: [],
+      unstaged: [it('edit', { reason: 'inside' }), it('edit', { reason: 'spans' }), it('edit', { reason: 'inside' }), it('tighten', { reason: 'spans' })],
+      moot: [it('edit', { reason: 'gone' }), it('tighten', { reason: 'gone' })] }],
+    ['acme/widget:docs/b.md', { file: 'acme/widget:docs/b.md', calls: [], staged: 0, items: [], bases: [],
+      unstaged: [it('edit', { reason: 'behind' })], moot: [] }],
+    ['acme/widget:docs/c.md', { file: 'acme/widget:docs/c.md', calls: [{ id: 'x' }], staged: 0, items: [], bases: [], unstaged: [], moot: [] }],
+    ['acme/widget:docs/gone.md', { file: 'acme/widget:docs/gone.md', calls: [], staged: 0, items: [], bases: [], unstaged: [],
+      moot: [it('edit', { reason: 'file' }), it('edit', { reason: 'file' }), it('tighten', { reason: 'file' })] }],
+  ]);
+  data.setTab('edit');
+  await until(() => el.querySelectorAll('[data-waiting-file]').length === 2);
+  assert.equal(data.count('edit'), 1, 'the tab counts what Dictate would stage');
+  assert.equal(data.count('tighten'), 0);
+  const rows = [...el.querySelectorAll('[data-waiting-file]')];
+  assert.deepEqual(rows.map((r) => r.dataset.file), ['acme/widget:docs/a.md', 'acme/widget:docs/b.md'],
+    'the file with work first, and a file with only moot proposals takes no row');
+  const a = data.filesOf('edit')[0], b = data.filesOf('edit')[1];
+  assert.deepEqual(Array.from(data.reasonsOf(a), (x) => [x.reason, x.n, x.label]), [['inside', 2, 'part of a paragraph'], ['spans', 1, 'across paragraphs']]);
+  assert.equal(data.unstagedTip(a), 'Dictate cannot stage 3: 2 part of a paragraph, 1 across paragraphs.');
+  assert.equal(rows[0].querySelector('[data-waiting-unstaged]').dataset.titleTip, data.unstagedTip(a), 'the reasons are on the count\'s tip');
+  assert.match(rows[1].querySelector('.font-mono').className, /text-base-content\/50/, 'a file with nothing to stage is muted');
+  assert.equal(data.unstagedTip(b), 'Dictate cannot stage 1: 1 behind another.');
+  assert.equal(data.groupsOf('edit')[0].unstaged, 4, 'the repository counts them too');
+  assert.equal(data.fileLine(b, 'edit'), 'widget · 1 cannot be staged');
+  assert.equal(data.fileLine(a, 'edit'), 'widget · 1 edit · 3 cannot be staged');
+  const moot = el.querySelector('[data-waiting-moot]');
+  assert.equal(moot.textContent.trim(), '3 proposals whose text is gone', 'the moot edits, across every file, as one line');
+  assert.equal(moot.dataset.titleTip, '2 file gone, 1 text gone.', 'by reason on its tip');
+
+  data.pickRow('acme/widget:docs/b.md');
+  await until(() => foot().style.display === 'none');
+  assert.equal(foot().style.display, 'none', 'nothing staged, so no Review in Dictate and no empty footer');
+  data.mounted['edit:acme/widget:docs/b.md'] = true;
+  await until(() => el.querySelector('[data-waiting-detail-file][data-file="acme/widget:docs/b.md"] [data-waiting-unstaged-item]'));
+  const card = el.querySelector('[data-waiting-detail-file][data-file="acme/widget:docs/b.md"]');
+  assert.deepEqual([...card.querySelectorAll('[data-waiting-unstaged-list] .badge[data-reason]')].map((x) => x.textContent.trim()), ['1 behind another']);
+  assert.deepEqual([...card.querySelectorAll('[data-waiting-unstaged-item]')].map((x) => x.dataset.reason), ['behind'], 'each one listed with its reason');
+
+  data.setTab('tighten');
+  await until(() => el.querySelectorAll('[data-waiting-file]').length === 1);
+  assert.equal(el.querySelector('[data-waiting-file]').dataset.file, 'acme/widget:docs/a.md', 'a tightening it cannot stage lists the file under Tighten');
+  await until(() => el.querySelector('[data-waiting-moot]')?.textContent.trim() === '2 proposals whose text is gone');
+  assert.equal(el.querySelector('[data-waiting-moot]').textContent.trim(), '2 proposals whose text is gone');
+  assert.equal(data.mootTip('tighten'), '1 file gone, 1 text gone.');
+
+  data.pending = new Map([['acme/widget:docs/gone.md', { file: 'acme/widget:docs/gone.md', calls: [], staged: 0, items: [], bases: [], unstaged: [],
+    moot: [it('tighten', { reason: 'file' })] }]]);
+  await until(() => !el.querySelector('[data-waiting-file]'));
+  assert.equal(el.querySelectorAll('[data-waiting-file]').length, 0, 'nothing anyone can act on, so no rows');
+  assert.equal(el.querySelector('[data-waiting-moot]').textContent.trim(), '1 proposal whose text is gone', 'and still nothing silently missing');
+  data.pending = new Map(); data.setTab('calls');
+});
