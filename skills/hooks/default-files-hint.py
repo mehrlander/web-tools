@@ -2,10 +2,11 @@
 """UserPromptSubmit: say when the default skill files changed since the session
 last read them, so it reviews them before it answers.
 
-THE FILES. skills/default/ holds SKILL.md and the two documents it tells the
+THE FILES. skills/default/ holds SKILL.md and two of the documents it tells the
 session to read, CONVERSATION.md and QUALIFIED-WRITING.md (copies of docs/,
-rewritten by the commit hook). A session takes them in once, at start or after a
-compaction, and keeps that copy for the rest of its life.
+rewritten by the commit hook); the third, doc-craft/SKILL.md, sits beside the
+folder. A session takes them in once, at start or after a compaction, and keeps
+that copy for the rest of its life.
 
 THE GAP. The plugin moves to main at every start and resume (refresh-plugin.sh),
 but invoke-default.sh's instruction reaches a session at startup and compaction
@@ -71,8 +72,13 @@ def files(folder):
 
 
 def changed(read, now):
-    """Names of the files that differ between two copies of the folder."""
+    """Names of the files that differ between two copies of the folder, with
+    doc-craft/SKILL.md from beside each."""
     a, b = files(read), files(now)
+    for side, folder in ((a, read), (b, now)):
+        craft = folder.parent / "doc-craft" / "SKILL.md"
+        if craft.is_file():
+            side["doc-craft/SKILL.md"] = craft
     return sorted(n for n in a.keys() | b.keys()
                   if n not in a or n not in b or a[n].read_bytes() != b[n].read_bytes())
 
