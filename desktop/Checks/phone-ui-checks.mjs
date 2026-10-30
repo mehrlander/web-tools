@@ -39,7 +39,7 @@ const flush = () => new Promise(resolve => setImmediate(resolve));
 const check = (condition,message) => { assert.ok(condition,message); checks++; };
 const click = selector => { const node = doc.querySelector(selector); assert.ok(node,selector); node.click(); };
 const openDetail = key => { window.history.pushState({nowDetail:true},'', '#item=' + encodeURIComponent(key)); window.dispatchEvent(new window.PopStateEvent('popstate')); };
-doc.addEventListener('click',event => { if (event.target.closest('[data-external]')) event.preventDefault(); },true);
+doc.addEventListener('click',event => { if (event.target.closest('[data-external],[data-provider-link]')) event.preventDefault(); },true);
 async function poll() { const current = [...timers].find(([,timer]) => timer.delay >= 2000 && timer.delay !== 6000); assert.ok(current,'Poll scheduled'); timers.delete(current[0]); current[1].fn(); await flush(); }
 await flush();
 click('[data-tab=usage]');
@@ -56,7 +56,16 @@ check(doc.querySelector('#assistants [data-assistant=codex] [role=progressbar]')
 snapshot.usage[0].windows[0].usedPercent = 32;
 await poll();
 check(doc.querySelector('#assistants [data-assistant=codex] [role=progressbar]')?.getAttribute('aria-valuenow') === '32','A quota-only update reaches the front page without switching tabs.');
-check(doc.querySelectorAll('#assistants svg').length === 3,'The phone view shows the three shared assistant marks.');
+check(doc.querySelectorAll('#assistants [data-assistant] svg').length === 3,'The phone view shows the three shared assistant marks.');
+const providerLinks = [...doc.querySelectorAll('#assistants [data-provider-link]')];
+check(providerLinks.length === 3 && providerLinks.map(a=>a.href).join('|') === 'https://chatgpt.com/|https://antigravity.google.com/|https://claude.ai/code','All three assistants have a direct launch address, including providers without a quota reading.');
+check(providerLinks.every(a=>a.target === '_blank' && a.rel.includes('noopener') && a.rel.includes('noreferrer') && a.getAttribute('aria-label')) && !doc.querySelector('#assistants button a'),'Launch links are accessible, open separately, and are not nested in filter buttons.');
+const launchRoute = window.location.href;
+click('[data-provider-link=gemini]');
+check(window.location.href === launchRoute && doc.querySelector('[data-assistant=gemini]').getAttribute('aria-pressed') === 'false','Launching Antigravity does not change the current route or assistant filter.');
+doc.querySelector('[data-provider-link=gemini]').focus(); snapshot.usage[0].windows[0].usedPercent = 33;
+await poll();
+check(doc.activeElement?.dataset.providerLink === 'gemini','A quota update preserves keyboard focus on a header launch link.');
 check(doc.querySelector('#connection').textContent.includes('Laptop live'),'A fresh observation has steady local live status.');
 check(doc.querySelector('#content').textContent.includes('Needs you') && doc.querySelector('#content').textContent.includes('Recorded: choice needed'),'Cloud attention remains a recorded state.');
 check(!doc.querySelector('#content img'),'Untrusted session titles render as text.');
