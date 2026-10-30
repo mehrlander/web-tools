@@ -4150,7 +4150,10 @@ function app(){ return {
     const one = async () => {
       while (i < members.length){
         const repo = members[i++];
-        const head = act?.repos?.[repo]?.recentCommits?.[0]?.sha || '';
+        // State writes are left out, or the file index's own commit would read
+        // as a change to the registry on the next pass (repo-activity-cache.js).
+        const commits = act?.repos?.[repo]?.recentCommits;
+        const head = window.RepoActivityCache?.contentHead?.(commits) || commits?.[0]?.sha || '';
         try {
           const e = await F.crawlRepo(repo, head, {
             makeGH: (r) => new window.GH({ token: window.TOKEN, repo: r }),
