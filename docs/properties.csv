@@ -211,6 +211,11 @@ writers,mode,recorded,,value,list,no,,value,"how it sets: replace a file, append
 writers,write_kind,recorded,,counted,list,no,,value,the Writes view kinds its commits read as (lib/kits/write-kinds.js); blank where not yet measured
 writers,defined_in,recorded,,value,column,yes,,locator,"the file that defines or documents it, a path here or owner/repo@ref:path"
 writers,gloss,recorded,,value,column,yes,,value,what it does
+direct-to-main,target_repo,recorded,,value,column,yes,,value,"the repository whose main the process writes, by its name; all where every estate repository has the paths"
+direct-to-main,path_pattern,recorded,,value,list,no,,value,"the paths the process owns on that main, as glob patterns, comma separated"
+direct-to-main,writer,recorded,,value,list,no,,value,"the writers that run it, by their key in docs/writers.csv"
+direct-to-main,sync_discipline,recorded,,value,column,yes,,value,"when the process pushes, in words: on every commit, throttled, or once per run"
+direct-to-main,gloss,recorded,,value,column,yes,,value,what the paths hold and why they skip a pull request
 intents,label,recorded,,value,column,yes,,value,"the how-to question the row answers, as the Set tab lists it"
 intents,path,recorded,,value,list,no,,value,"start:<what starts it>, then the writers that carry it in order by their writers key, then dest:<where it lands>; every step a line the Set diagram draws"
 intents,caveat,recorded,,value,column,yes,,value,"the one thing to know at the step it concerns, in a few words, shown under that step while the path is lit"

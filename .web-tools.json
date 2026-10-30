@@ -92,6 +92,11 @@
   ],
   "research": [
     {
+      "path": "research/2026-10-29-policy-candidates/README.md",
+      "label": "Policy candidates: which survey rules become house policies",
+      "kind": "probe"
+    },
+    {
       "path": "research/2026-10-27-peeves-review.md",
       "label": "Peeve names and consolidation proposal",
       "kind": "probe"
