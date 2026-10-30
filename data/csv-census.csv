@@ -32,7 +32,7 @@ docs/context-sources.csv,33,20,8837,"[""id"",""circle"",""item"",""repo"",""path
 docs/context-topics.csv,12,4,2749,"[""topic"",""label"",""verdict"",""gloss""]"
 docs/conversation.csv,13,7,6020,"[""key"",""lead"",""title"",""glyph"",""use"",""form"",""boundary""]"
 docs/css-baseline.csv,86,2,2664,"[""path"",""declarations""]"
-docs/direct-to-main.csv,17,6,3952,"[""process"",""target_repo"",""path_pattern"",""writer"",""sync_discipline"",""gloss""]"
+docs/direct-to-main.csv,18,6,4480,"[""process"",""target_repo"",""path_pattern"",""writer"",""sync_discipline"",""gloss""]"
 docs/docs.csv,114,7,28762,"[""path"",""subject"",""status"",""reach"",""words"",""maintenance"",""formerly""]"
 docs/fab-signals.csv,10,10,2232,"[""key"",""facet"",""part"",""label"",""icon"",""tone"",""when"",""gloss"",""note"",""status""]"
 docs/harness.csv,352,9,71594,"[""path"",""role"",""layer"",""lines"",""invocation"",""callers"",""emits"",""named"",""tested""]"
