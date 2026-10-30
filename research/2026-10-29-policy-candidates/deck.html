@@ -26,10 +26,10 @@
     short: 'New entry in the Writing group',
     reason: 'You asked for it, it applies to all prose a session writes, and the name states the preference.',
     names: [
-      { text: 'No em dashes · `/h:dash`, `/h:emdash`', pick: true },
+      { text: 'No em dashes · `/h:dash`, `h:emdash`', pick: true },
       { text: 'Plain punctuation · `/h:punct`' } ],
     draft: [
-      '### No em dashes · `/h:dash`, `/h:emdash`',
+      '### No em dashes · `/h:dash`, `h:emdash`',
       'Join ideas with a colon, a comma, a semicolon, parentheses or a new sentence, not a dash.',
       '- Em dashes may have been fine once, but they are now an easy button for AI, and we would rather stick to standard professional writing.',
       '**Covers:** all prose a session writes, including text drafted for the owner to send.',
@@ -76,15 +76,15 @@
       'The other branch rows are procedure (draft PRs, branch prefixes, `npm run preflight`, PR subscription) and stay in [AGENTS.md](https://github.com/mehrlander/web-tools/blob/main/AGENTS.md) and CONVERSATION.md.' ] },
   { title: 'Say a thing once', area: 'From the retired survey: registries', verdict: 'covered',
     short: 'Already in What earns space; registry mechanics stay in registries.md',
-    reason: 'The judgment under the registry rules is that each statement has one owner and is linked from elsewhere. What earns space (`/h:crit`) already says it for documents, and [registries.md](https://github.com/mehrlander/web-tools/blob/main/docs/registries.md) applies it to CSVs, with a test that refuses two registries describing one property of one target.',
+    reason: 'The judgment under the registry rules is that each statement has one owner and is linked from elsewhere. What earns space (`/h:critical`) already says it for documents, and [registries.md](https://github.com/mehrlander/web-tools/blob/main/docs/registries.md) applies it to CSVs, with a test that refuses two registries describing one property of one target.',
     evidence: [
       'Peeve P08, Say a thing once: "one owner per statement, linked from elsewhere, never restated in a second file."',
-      '`/h:crit`: "check whether code derives the fact, a test enforces it, or another document owns it, and link instead."',
+      '`/h:critical`: "check whether code derives the fact, a test enforces it, or another document owns it, and link instead."',
       'Your words, 2026-10-11: "I think now we have registries and streams." The one-registry rule appears only in quotes of registries.md.',
-      'As an entry of its own it would be Say a thing once · `/h:once`, widening `/h:crit`\'s third bullet to data and code; I recommend against, since the peeve and `/h:crit` already reach it.' ] },
+      'As an entry of its own it would be Say a thing once · `/h:once`, widening `/h:critical`\'s third bullet to data and code; I recommend against, since the peeve and `/h:critical` already reach it.' ] },
   { title: 'The owner names each task', area: 'From the retired survey: tracker filing', verdict: 'covered',
     short: 'Already in Who decides; the assessment-records rule folds into Stay current',
-    reason: 'Who decides (`/h:who`) already says "The owner decides … new tracker tasks." The tasks skill keeps the procedure: file only what a later session would have to rediscover, and one task per outcome. The survey\'s rule that assessment records are historical and never regenerated folds into Stay current once its wording is approved (`/h:current`, drafted in [web-tools #1157](https://github.com/mehrlander/web-tools/pull/1157)): living text says what is true now, and history goes to the records built to hold it.',
+    reason: 'Who decides (`/h:who`) already says "The owner decides … new tracker tasks." The tasks skill keeps the procedure: file only what a later session would have to rediscover, and one task per outcome. The survey\'s rule that assessment records are historical and never regenerated folds into Stay current (`/h:current`): living text says what is true now, and history goes to the records built to hold it.',
     evidence: [
       'Your words, 2026-09-16: "Filing a task needs the user to name it. A general go-ahead is not sufficient."',
       'Peeve P32, No unrequested tasks: "Do not file a tracker task unless the owner asks for one."',
@@ -103,10 +103,10 @@
       'Your words, 2026-07-30: "we need a short description that triggers appropriately."' ] },
   { title: 'Name the preference', area: 'The /h:policy entry, its naming line', verdict: 'change', namesLabel: 'Wording',
     short: 'Proposed change to /h:policy\'s line on shortcuts',
-    reason: 'You agreed on 2026-10-29 that an entry is named for the preference it states, as Stay current is, and not for its topic. The `/h:policy` line now allows either. By my reading, 16 of the 22 existing names are topics or activities (Links, Checking, Kits, Scripts); six come closer to a preference (Look first, Who decides). I recommend changing the line now; renaming the 16 changes approved wording, so that waits on your word.',
+    reason: 'You agreed on 2026-10-29 that an entry is named for the preference it states, as Stay current is, and not for its topic. The `/h:policy` line now allows either. By my reading, 15 of the 22 existing names are topics or activities (Links, Checking, Kits, Scripts); seven come closer to a preference (Look first, Stay current, Who decides). I recommend changing the line now; renaming the 15 changes approved wording, so that waits on your word.',
     names: [
       { text: 'Current: "A shortcut names a preference or a bounded topic."' },
-      { text: 'Proposed: "An entry and its shortcut are named for the preference the entry states, as Look first is; a topic alone is not an entry."', pick: true } ],
+      { text: 'Proposed: "An entry and its shortcut are named for the preference the entry states, as Look first and Stay current are; a topic alone is not an entry."', pick: true } ],
     evidence: [
       'Your words, 2026-10-29, on #1157: "comment is not a policy and that\'s a tension. The policy would be like h:current."',
       'Same thread: "They\'re kind of like judgments ultimately."',

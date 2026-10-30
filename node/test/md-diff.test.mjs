@@ -314,7 +314,9 @@ test('with `group`, a stretch of new paragraphs is one container, and reverting 
   window.document.body.append(host);
   return mdDiff.render(host, base, next, { group: true }).then((h) => {
     assert.equal(host.querySelectorAll('.md-diff-change').length, 2);
-    assert.match(host.querySelector('.md-diff-change').textContent, /New first[\s\S]*New third/);
+    const box = host.querySelector('.md-diff-change');
+    assert.match(box.textContent, /New first[\s\S]*New third/);
+    assert.ok([...box.querySelectorAll('ins')].every((x) => x.textContent.trim()), 'no mark over the space between paragraphs');
     return mdDiff.render(host, base, next);
   }).then(() => {
     assert.equal(host.querySelectorAll('.md-diff-change').length, 4, 'without it, one container per block');
