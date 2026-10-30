@@ -143,7 +143,7 @@ test('Old and New draw the whole file as it stands and as proposed; Changes keep
   assert.equal(mark(1).dataset.decision, 'confirmed', 'a decision survives the switch');
   act(1, 'Keep');
   await tick(2);
-  assert.match(root().querySelector('[data-doc-file]').href, /toss-render\.html#data=me\/widget@main:docs\/x\.md$/, 'the file itself, at the call\'s ref');
+  assert.equal(root().querySelector('[data-doc-file]'), null, 'no link out to the file');
 });
 
 test('the answer line is the one Dictate and the Docs tab write, with the kept edits as a patch', async () => {
