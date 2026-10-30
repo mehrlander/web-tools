@@ -9,6 +9,7 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Decide a shared component for expanding rows, and replace the Idea board and ACFR modals](tasks/expanding-rows-and-modals-kits-1r7is4.md) · M
 - 🎫 [Persist FAB captures, the write path to state/captures/](tasks/fab-capture-button-f6q38m.md) · S
 - 🎫 [Explore a fuller file history in the Branch view](tasks/file-history-in-branch-view-hxtdep.md) · ? (awaiting: owner to choose a direction; open-ended by request, bolder ideas welcome)
+- 🎫 [Build the lineup, the form for choosing one of several working options](tasks/lineup-choice-form-9vz5w0.md) · L (awaiting: whether a lineup's verdict lands as a verdict file beside the request (as approval/1 does) or as a note in the notes store; sign-off on the two governed-doc entries below)
 - 🎫 [Build our own JSON tree for display, keep vanilla-jsoneditor for editing](tasks/own-json-tree-retire-vje-i0lcj2.md) · M
 - 🎫 [Audit the app's views for viewport breakpoints inside the content pane](tasks/pane-width-not-window-width-wnabwo.md) · S
 - 🎫 [Pinch-zoom and pan for pdf-inspect's page view](tasks/pdf-inspect-pinch-zoom-5wz3kt.md) · M
