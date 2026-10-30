@@ -2,10 +2,11 @@
 name: default
 description: >-
   The context every session runs on: the portable conventions from
-  mehrlander/web-tools, the conversation rules (docs/CONVERSATION.md) and
-  the Qualified writing rules (docs/QUALIFIED-WRITING.md), shipped beside
-  this skill. Load them at the start of any session that did not receive
-  them, and in any repo when the user
+  mehrlander/web-tools, the conversation rules (docs/CONVERSATION.md), the
+  Qualified writing rules (docs/QUALIFIED-WRITING.md) and the doc-craft
+  rules (skills/doc-craft/SKILL.md), shipped in the plugin. Load them at
+  the start of any session that did not receive them, and in any repo when
+  the user
   mentions "my conventions", "house rules", surfacing/per-file link
   format, show-pixels/screenshot-it, "hand over the artifact"/SendUserFile,
   branch anchor, wrap-up, PR body shape, qualified writing, or the no-em-dash
@@ -22,8 +23,8 @@ already.
 Load all three. [`CONVERSATION.md`](CONVERSATION.md) governs how a reply reaches the reader;
 [`QUALIFIED-WRITING.md`](QUALIFIED-WRITING.md) governs the prose of every document, commit message, PR
 body, and reply the session writes; [doc-craft](../doc-craft/SKILL.md) governs every
-edit to documentation. None is optional, and the writing rules are the ones a
-session is most likely to violate without noticing.
+edit to documentation. None is optional, and the writing rules are easy to
+violate without noticing.
 
 Apply them with the current repo substituted into the URL templates; where the
 current repo's own CLAUDE.md conflicts on a point, the current repo wins.
