@@ -151,6 +151,7 @@ test('an edit with a background and a proposal carries a book and a bulb, each o
   assert.equal(m.dataset.titleTip, undefined, 'its marks speak for it');
   const tips = [...m.querySelectorAll('[data-doc-tip]')].map((b) => b.dataset.docTip);
   assert.deepEqual(tips, ['background', 'proposal']);
+  assert.ok([...m.querySelectorAll('[data-doc-tip]')].every((b) => !b.dataset.titleTip), 'no label tip over the blurb');
   const panel = () => box(2).querySelector('[data-doc-tip-panel]');
   m.querySelector('[data-doc-tip="proposal"]').click();
   await tick(2);
