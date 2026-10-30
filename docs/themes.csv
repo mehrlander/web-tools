@@ -38,6 +38,7 @@ docs/environment/capabilities.md,skills/scour/SKILL.md,7,true,the webfetch summa
 docs/envelopes/README.md,docs/envelopes/workbook-extract.md,7,true,no change to lib kits data payload js lib kits data payload js;why this is a profile over data view rather than a sibling,10,196
 skills/scour/PRIOR-ART.md,skills/scour/SKILL.md,5,,relevant cluster can sit behind a page that scores low on its own;leads harvested from a business association return more business associations,10,196
 skills/agents/house-style-critic.md,skills/screenshot-review/SKILL.md,5,,a style verdict on a broken render grades the failure as a design choice,10,196
+docs/house-policies.md,skills/doc-craft/SKILL.md,5,,readme md https github com mehrlander web tools blob main docs constellation md principle,10,196
 docs/envelopes/data-view.md,docs/environment/testing.md,5,,node render scenarios data view item mjs node render scenarios data view item mjs,10,196
 docs/envelopes/audit.md,docs/envelopes/shorter.md,5,,pages audit render html https mehrlander github io web tools pages audit render html,10,196
 README.md,lib/kits/README.md,5,,the kits tab https mehrlander github io web tools app view map tab kits,10,196
@@ -49,6 +50,7 @@ courier/README.md,sites/wsldocs.sos.wa.gov/README.md,4,,which route reaches a pa
 skills/doc-audit/SKILL.md,skills/passage-reading/SKILL.md,3,,md https github com mehrlander web tools blob main docs envelopes;https mehrlander github io web tools pages toss render html,10,196
 skills/agents/house-style-critic.md,skills/agents/peeves-critic.md,3,true,do not rewrite name the fix in one clause only where the,10,196
 pages/drop/fills-concepts/3-reactive-surface/PROMPT.md,pages/drop/fills-concepts/CATALOG.md,3,,aic 2 html aic kimi html collection browser html collection browser 2,10,196
+docs/github/post-merge-branch-mutation.md,docs/house-policies.md,3,,from the current tip of the target branch and opens a new,10,196
 docs/github/README.md,docs/github/markdown.md,3,,when you view a md on github no javascript no build step,10,196
 docs/environment/capabilities.md,docs/github/README.md,3,,mcp layer does to a call and to the text it carries,10,196
 docs/environment/capabilities.md,docs/environment/extending.md,3,,sessionstart hooks a per hook size ceiling and where the cut lands,10,196

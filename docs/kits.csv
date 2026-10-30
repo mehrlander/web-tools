@@ -32,7 +32,7 @@ lib/kits/dom-shot.js,DomShot,render a live DOM node to a PNG in the browser.,218
 lib/kits/errands.js,Errands,one record for everything a session needs a person's browser to do.,463,no,no,7,yes
 lib/kits/estate-search.js,EstateSearch,"The estate's search calls, in one place, with one cache.",557,no,no,8,yes
 lib/kits/export.js,exporter,"export a page to a portable, self-resolving copy: ""download this page plus the data it read()s"" as one zip, optionally with its code inlined.",210,no,yes,9,yes
-lib/kits/file-correspondence.js,FileCorrespondence,Associate submitted text with one file at one repository revision.,171,no,no,2,yes
+lib/kits/file-correspondence.js,FileCorrespondence,Associate submitted text with one file at one repository revision.,184,no,no,2,yes
 lib/kits/file-deck.js,fileDeck,"a changeset's files, read one at a time.",518,no,no,14,yes
 lib/kits/file-index.js,FileIndex,"the estate's file names, kept in the private registry so the sidebar finder can match a name in every repo on the first keystroke.",197,no,no,3,yes
 lib/kits/findings.js,Findings,"what a tending pass concluded, kept as notes that carry a `finding` object: {""id"":""n…"",""at"":""…"",""author"":""…"",""about"":""<first subject>"",""text"":""<title>"",…",251,no,no,4,yes
@@ -48,13 +48,13 @@ lib/kits/last-write.js,LastWrite,"the copy this page just committed, for the nex
 lib/kits/linked-swiper.js,linkedSwiper,"a list with a detail: the list beside, or over, a strip of one card per row, the two moving together.",326,no,yes,4,yes
 lib/kits/lists.js,Lists,"the registry's lists/ folder, read and written as one kind of file.",235,no,no,4,yes
 lib/kits/look.js,Look,"look markers: a link that lands on a place in a page, says why, and can ring the control to tap.",1744,no,yes,5,yes
-lib/kits/md-diff.js,mdDiff,a markdown change read as the DOCUMENT rather than as its source.,1510,no,yes,19,yes
+lib/kits/md-diff.js,mdDiff,a markdown change read as the DOCUMENT rather than as its source.,1671,no,yes,19,yes
 lib/kits/md-doc.js,mdDoc,a markdown document rendered as something you can read and take pieces OUT of.,999,no,no,16,yes
 lib/kits/md-edit-studio.js,mdEditVariants,"the section editor as a studio: the source and a live reading of the change on one full screen, with no mode to switch.",611,no,no,1,no
 lib/kits/md-edit-tabs.js,mdEditVariants,"Wikipedia's source editor for one markdown section: Write, Preview and Changes over one text box, in place on a wide screen and the whole screen on a phone.",557,no,no,2,no
 lib/kits/md-edit.js,mdEdit,"edit one section of a markdown file where it is rendered, and save it back to the repository it came from.",970,no,no,5,yes
 lib/kits/md-history.js,mdHistory,"a markdown document read WITH the history of its passages: what each one used to say, the commit that changed it, and the variants the Text collection holds…",275,no,no,2,yes
-lib/kits/md-surface.js,MdSurface,"a markdown buffer shown RENDERED, and still aimed at by character offset, so a text surface can edit its source while the reader looks at the document.",1260,no,no,6,yes
+lib/kits/md-surface.js,MdSurface,"a markdown buffer shown RENDERED, and still aimed at by character offset, so a text surface can edit its source while the reader looks at the document.",1171,no,no,6,yes
 lib/kits/md-unwrap.js,mdUnwrap,join hard-wrapped markdown lines into one line per paragraph.,142,no,no,1,yes
 lib/kits/md-variants.js,mdVariants,"a markdown document read WITH the variants retained against its paragraphs, and the proposals among them made for this file.",281,no,yes,6,yes
 lib/kits/messaging.js,messaging,string-path pub/sub.,73,no,yes,4,yes

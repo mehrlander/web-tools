@@ -146,10 +146,14 @@ window.GH.FRESH = { cache: 'no-store' };
 window.GH.toBase64 = s => Buffer.from(s, 'utf8').toString('base64');
 const checks = [];
 const shellCalls = [];
+// Decoding is the real kit's, since a stub over TextDecoder tests the runtime:
+// this sandbox's Node reads windows-1252 as ISO-8859-1.
+new window.Function(readFileSync(path.join(repoRoot, 'lib/kits/file-correspondence.js'), 'utf8'))();
+const { decodeBytes, windows1252 } = window.FileCorrespondence;
 window.FileCorrespondence = {
   applies: t => /\.(ps1|psm1|xaml)$/i.test(t?.path || ''),
   declaration: text => (String(text).match(/^\s*#\s*@file\s+(.+?)\s*$/im) || [])[1] || '',
-  decodeBytes: (bytes, encoding = 'auto') => new TextDecoder(encoding === 'auto' ? 'utf-8' : encoding, { fatal: true }).decode(bytes),
+  decodeBytes, windows1252,
   checksUnder: async (repo, prefix) => checks.filter(c => c.repo === repo && c.path.startsWith(prefix)),
   reopen: async c => { shellCalls.push(['reopen', c.id]); },
 };
