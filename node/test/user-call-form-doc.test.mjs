@@ -18,7 +18,7 @@ const STORE = 'me/private';
 const DOC = 'One.\n\nTwo.\n\nThree.\n\nFour.\n';
 const CALL = { id: 'c0ffee01-doc', session: 'c0ffee01', kind: 'documentation', question: 'Apply 4 edits to docs/x.md?',
   brief: 'Tidy the doc.', file: 'me/widget@main:docs/x.md', recommend: 'Apply all three',
-  edits: [{ from: 'One.', to: 'First.', why: 'clearer' }, { from: 'Two.', to: 'Second.' }, { from: 'Gone.', to: 'Nothing.' },
+  edits: [{ from: 'One.', to: 'First.', why: 'clearer' }, { from: 'Two.', to: 'Second.', background: 'Two reads as a count.', proposal: 'Names the order.' }, { from: 'Gone.', to: 'Nothing.' },
           { from: 'Three.\n\nFour.', to: 'Third.\n\nFourth.' }] };
 const puts = [];
 class FakeGH {
@@ -144,6 +144,23 @@ test('Old and New draw the whole file as it stands and as proposed; Changes keep
   act(1, 'Keep');
   await tick(2);
   assert.equal(root().querySelector('[data-doc-file]'), null, 'no link out to the file');
+});
+
+test('an edit with a background and a proposal carries a book and a bulb, each opening its text', async () => {
+  const m = mark(2);
+  assert.equal(m.dataset.titleTip, undefined, 'its marks speak for it');
+  const tips = [...m.querySelectorAll('[data-doc-tip]')].map((b) => b.dataset.docTip);
+  assert.deepEqual(tips, ['background', 'proposal']);
+  m.querySelector('[data-doc-tip="proposal"]').click();
+  await tick(2);
+  const panel = box(2).querySelector('[data-doc-tip-panel]');
+  assert.equal(panel?.dataset.docTipPanel, 'proposal');
+  assert.match(panel.textContent, /Names the order\./);
+  m.querySelector('[data-doc-tip="background"]').click();
+  await tick(2);
+  assert.equal(box(2).querySelectorAll('[data-doc-tip-panel]').length, 1, 'one panel at a time');
+  assert.match(box(2).querySelector('[data-doc-tip-panel]').textContent, /Two reads as a count\./);
+  assert.equal(mark(1).querySelector('[data-doc-tip]'), null, 'an edit without them keeps its why');
 });
 
 test('the answer line is the one Dictate and the Docs tab write, with the kept edits as a patch', async () => {
