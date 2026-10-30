@@ -13,7 +13,10 @@ const makeGh = (filesPerCommit, opts = {}) => {
   const gh = new GH({ repo: 'o/r' });
   const calls = { list: 0, details: [], maxInFlight: 0 };
   let inFlight = 0;
-  gh.req = async (path) => {
+  gh.req = async (full) => {
+    calls.paths = [...(calls.paths || []), full];
+    const path = full.replace(/^\/repos\/[^/]+\/[^/]+\//, '');
+    if (opts.switchTo && path.startsWith('commits?')) gh.repo = opts.switchTo;
     if (path.startsWith('commits?')) {
       calls.list++;
       return filesPerCommit.map((_, i) => ({
@@ -332,4 +335,10 @@ test('a raw blob read that fails goes back through req, so its error reads as be
              json: async () => ({ message: 'API rate limit exceeded' }) };
   }, () => assert.rejects(() => gh.get('sessions/big.json'), /GitHub Error 403: API rate limit exceeded/));
   assert.equal(blobTries, 2, 'the raw read, then the one req() makes');
+});
+
+test('reads every detail from the repo it started on, though the client is repointed', async () => {
+  const { gh, calls } = makeGh([['a'], ['b']], { switchTo: 'o/other' });
+  await gh.recentFiles(2);
+  assert.ok(calls.paths.every(p => p.startsWith('/repos/o/r/')), calls.paths.join(' '));
 });
