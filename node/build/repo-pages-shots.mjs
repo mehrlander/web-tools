@@ -35,7 +35,7 @@ import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
-import { chromium } from 'playwright';
+import { launch } from '../render/chromium.mjs';
 import { resolveCdn, typeFor } from '../render/cdn.mjs';
 import { loadKit } from './kit-shim.mjs';
 import { repoRoot as webToolsRoot } from '../repo-root.mjs';
@@ -125,7 +125,7 @@ const server = http.createServer(async (req, res) => {
 await new Promise(r => server.listen(0, '127.0.0.1', r));
 const port = server.address().port;
 
-const browser = await chromium.launch({ args: ['--no-sandbox', '--ignore-certificate-errors'] });
+const browser = await launch({ args: ['--no-sandbox', '--ignore-certificate-errors'] });
 const results = [];
 for (const t of targets) {
   const [owner, name] = opts.repo.split('/');

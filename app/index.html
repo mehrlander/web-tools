@@ -72,7 +72,7 @@
 <title>Web Tools</title>
 <link rel="icon" type="image/svg+xml" href="../lib/favicon.svg">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
-<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5,npm/@tailwindcss/typography/dist/typography.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5,npm/@tailwindcss/typography/dist/typography.min.css" rel="stylesheet" crossorigin="anonymous" data-prune-root-has />
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
 <script type="module">
   // The pre-build: one same-origin import carries the whole lib/ (the loader,
@@ -126,6 +126,11 @@
   } else {
     await import('../dist/app.js');
   }
+  // daisyUI's :root:has() rules come out of the stylesheet above, which is
+  // CORS-mode so it can be read: each one made every change in the page
+  // restyle all of it. kits/root-has-prune.js has the measurement and what
+  // the two families of rule did. A failure leaves the stylesheet as it was.
+  window.gh?.load?.('kits/root-has-prune.js').then(() => window.RootHasPrune?.run()).catch(() => {});
   // A 401 or 403 opens the This browser view rather than gh-auth's takeover,
   // registered here because this is the first moment ghAuth exists. Before the
   // shell has mounted there is no view to open, so the takeover still answers

@@ -94,11 +94,11 @@ test('a proposal counts only as Dictate would stage it: one block the file still
   assert.equal(by.has('mehrlander/web-tools:docs/missing.md'), false, 'a file that cannot be read holds nothing');
 });
 
-test('links: a call answered in Dictate, the others on the call page, at the version the page runs at', () => {
+test("links: every call answered on its call page, Dictate for a file's proposals, at the version the page runs at", () => {
   const doc = { kind: 'documentation', file: 'mehrlander/web-tools@dev:docs/x.md', _repo: STORE, _ref: 'main', _path: 'user-calls/a1-doc.json' };
   const merge = { kind: 'merge', _repo: STORE, _ref: 'main', _path: 'user-calls/a1-merge.json' };
-  assert.equal(U.href(doc), 'https://mehrlander.github.io/web-tools/pages/dictate.html?file=mehrlander/web-tools:docs/x.md'
-    + '&user-call=' + STORE + ':user-calls/a1-doc.json');
+  assert.equal(U.href(doc), 'https://mehrlander.github.io/web-tools/pages/user-call.html#src=' + STORE + ':user-calls/a1-doc.json',
+    'a documentation call is answered on its call page, not in Dictate');
   assert.equal(U.href(merge), 'https://mehrlander.github.io/web-tools/pages/user-call.html#src=' + STORE + ':user-calls/a1-merge.json');
   assert.equal(U.dictateHref({ file: 'mehrlander/web-tools:docs/x.md', proposed: true }),
     'https://mehrlander.github.io/web-tools/pages/dictate.html?file=mehrlander/web-tools:docs/x.md&proposed');

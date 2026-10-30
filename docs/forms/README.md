@@ -40,7 +40,7 @@ known by the answer it asks for.
 | --- | --- | --- | --- |
 | decision | approves or returns one proposal | the Approve page (`approval/1`); a user call | a verdict file beside the request; the call's `answers.jsonl` |
 | choice | picks one of several alternatives | none yet | |
-| change | keeps or discards each proposed edit | Dictate and the Map's Docs tab for a documentation call; the Proposals view | the call's `answers.jsonl`; the target file |
+| change | keeps or discards each proposed edit | the call page for a documentation call, which Dictate and the Map's Docs tab also answer; the Proposals view | the call's `answers.jsonl`; the target file |
 | label | gives each item one label from a fixed set | the audit render (`audit/1`) | the standoff file, saved back to its path |
 | reaction | votes or comments, closing nothing | Text Lab; the Tending view | home's `reviews.jsonl`; the notes store |
 | questionnaire | fills in named boxes | the Inquiry page (`inquiry/1`) | the payload's `reply_to` |

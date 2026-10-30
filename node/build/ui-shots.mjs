@@ -51,7 +51,7 @@
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync, statSync } from 'node:fs';
 import path from 'node:path';
-import { chromium } from 'playwright';
+import { launch } from '../render/chromium.mjs';
 import { writeCsv } from './registries-load.mjs';
 import { HUB, ESTATE, STORES, rowsOf, slug, codedUnits, focusJs, evalFrom, shoot, needHomeModules, stageOf, PUBLIC_SIBLINGS } from './ui-recipes.mjs';
 
@@ -184,7 +184,7 @@ needHomeModules();
 const work = codedUnits(ONLY);
 console.log(`${work.length} units to shoot, ${JOBS} at a time`);
 
-const browser = await chromium.launch({ args: ['--no-sandbox'] });
+const browser = await launch({ args: ['--no-sandbox'] });
 const resize = await (await browser.newContext()).newPage();
 const done = new Map(STORES.map(s => [s.name, []]));
 const before = new Map(STORES.flatMap(s => rowsOf(path.join(s.thumbs, 'thumbs.csv')).map(r => [r.unit, r])));

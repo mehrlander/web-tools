@@ -26,7 +26,7 @@ Keep the redirect at `pages/show-repo/show-repo.html`; saved links depend on it.
 
 ## Token requirement
 
-Stage links (`#stage=`) and private-repo access require the browser's stored `ghToken`. The Claude app's browser may lack that token. State the requirement with every stage link. A stage holding only pasted text mints as `#gz=`, which carries the text in the link and needs no token ([stage.md](stage.md)). For repo files and a reader without a token, download the stage's concatenated bundle and send the file.
+Stage links (`#stage=`) and private-repo access require the browser's stored `ghToken`. The Claude app's browser may lack that token. A stage holding only pasted text mints as `#gz=`, which carries the text in the link and needs no token ([stage.md](stage.md)). For repo files and a reader without a token, download the stage's concatenated bundle and send the file.
 
 When GitHub rejects the token, the app opens **This browser** (`?view=here`), which shows the saved token's record and takes a new one. Tokens are stored per browser: the one saved in Safari is not the one an iOS home-screen app reads.
 
@@ -119,5 +119,5 @@ Use `x-blob` with an `owner/repo[@ref]:path` address for exact files. It derives
 ## Use from a Claude session
 
 - **Browse:** `…/app/?repo=owner/repo`, optionally with `&ref=` or `&view=files&path=<dir>`. The bare app URL opens the estate.
-- **Stage 🗂️:** create a `#stage=` link using [stage.md](stage.md); state the token requirement.
+- **Stage 🗂️:** create a `#stage=` link using [stage.md](stage.md).
 - **Configure:** edit the repo's `.web-tools.json` using [manifest.md](manifest.md).

@@ -1,5 +1,6 @@
-// The table mode's controls live in the VIEWER'S HEADER, not in a strip of
-// their own.
+// The table mode's control lives in the VIEWER'S HEADER, not in a strip of
+// its own. The header-filter funnel that once sat beside it moved into the
+// grid's column menu (kits/row-menu.js, tested in row-menu.test.mjs).
 //
 // The strip was two idioms for one job: a labelled checkbox ("Header filters")
 // sitting under a row of icon buttons, costing a band of a phone screen to say
@@ -9,10 +10,8 @@
 //
 // What the cases hold is the part that fails silently. A mode mounts from
 // inside a requestAnimationFrame, so two rapid switches interleave (clear,
-// clear, append, append) and the row grows a second funnel and a second deck;
-// the sequence token is what stops it, and nothing about a duplicated button
-// throws. The toggle's own contract is here too, since an icon has to say its
-// state in the mark: a checkbox carries a word and a glyph cannot.
+// clear, append, append) and the row grows a second deck; the sequence token
+// is what stops it, and nothing about a duplicated button throws.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -46,29 +45,17 @@ const slotOf = () => {
   window.document.body.append(s);
   return s;
 };
-// The two buttons order their classes differently (the header helper appends
-// the glyph, swipeDeck.entry leads with it), so pull the ph-* token out rather
-// than reading a position.
+// swipeDeck.entry leads its class list with the glyph, so pull the ph-* token
+// out rather than reading a position.
 const glyph = (i) => i.className.split(' ').find(c => c.startsWith('ph-')) || '';
 const icons = (slot) => [...slot.querySelectorAll('button i')].map(glyph);
 
-test('the filter toggle says its state in the glyph, and flips both', () => {
+test('the header row carries no filter toggle: the column menu has it', () => {
   const slot = slotOf(), target = window.document.createElement('div');
   target.innerHTML = '<div class="tabulator-header-filter"></div>';
   R.mountTableControls(slot, fakeTable(), target, { name: 'rows.csv' });
-
-  const btn = slot.querySelector('button');
-  assert.equal(glyph(btn.querySelector('i')), 'ph-funnel');
-  assert.equal(btn.getAttribute('data-title-tip'), 'Hide the header filters');
-
-  btn.dispatchEvent(new window.Event('click'));
-  assert.equal(glyph(btn.querySelector('i')), 'ph-funnel-x',
-    'an icon has to carry the state a checkbox carried in a word');
-  assert.equal(btn.getAttribute('data-title-tip'), 'Show the header filters', 'and the tooltip says where a tap goes');
-  assert.equal(target.querySelector('.tabulator-header-filter').style.display, 'none');
-
-  btn.dispatchEvent(new window.Event('click'));
-  assert.equal(target.querySelector('.tabulator-header-filter').style.display, '');
+  assert.equal(slot.querySelectorAll('button').length, 0,
+    'the funnel moved into every column header (kits/row-menu.js), so nothing is here before the build');
 });
 
 test('a second mount supersedes the first rather than stacking on it', async () => {
@@ -78,23 +65,21 @@ test('a second mount supersedes the first rather than stacking on it', async () 
   // interleaving switchMode's own clear cannot see.
   R.mountTableControls(slot, t1, target, { name: 'a.csv' });
   R.mountTableControls(slot, t2, target, { name: 'b.csv' });
-  assert.equal(slot.querySelectorAll('button').length, 1, 'one funnel, not two');
-
   await t1.fire('tableBuilt');
-  assert.deepEqual(icons(slot), ['ph-funnel'],
+  assert.deepEqual(icons(slot), [],
     'the superseded mount does not add its deck button on waking');
 
   await t2.fire('tableBuilt');
-  assert.deepEqual(icons(slot), ['ph-funnel', 'ph-cards-three'],
-    'the live mount does');
+  assert.deepEqual(icons(slot), ['ph-cards-three'],
+    'the live mount does, once');
 });
 
-test('an empty table offers a filter toggle and no deck', async () => {
+test('an empty table offers no deck', async () => {
   const slot = slotOf(), target = window.document.createElement('div');
   const t = fakeTable([]);
   R.mountTableControls(slot, t, target, { name: 'empty.csv' });
   await t.fire('tableBuilt');
-  assert.deepEqual(icons(slot), ['ph-funnel'], 'nothing to read is not a button');
+  assert.deepEqual(icons(slot), [], 'nothing to read is not a button');
 });
 
 test('the deck entry wears the header row, not the Branch-detail emphasis', async () => {
@@ -102,7 +87,7 @@ test('the deck entry wears the header row, not the Branch-detail emphasis', asyn
   const t = fakeTable();
   R.mountTableControls(slot, t, target, { name: 'rows.csv' });
   await t.fire('tableBuilt');
-  const deck = slot.querySelectorAll('button')[1];
+  const deck = slot.querySelector('button');
   assert.match(deck.className, /btn-ghost/, 'ghost here: the file is the subject, the deck is one lens');
   assert.doesNotMatch(deck.className, /btn-sm/, 'and full size, to sit with copy and mode');
   assert.equal(deck.getAttribute('data-title-tip'), 'Read 2 records one at a time', 'same wording as every other door');

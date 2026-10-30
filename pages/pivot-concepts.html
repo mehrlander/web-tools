@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pivot concepts</title>
+<!-- An idea board for the pivot builder: five ways to say which fields are
+     rows, which run across, which is the value and which filter, each live on
+     the shared engine (lib/kits/table-stats.js, TableStats.pivot) over the same
+     sample, and one result view whose layout is chosen separately, so a
+     builder and a result shape can be compared in any pairing. The filters
+     sit in their own strip over the table in every builder. Menus are the
+     estate's own (lib/kits/row-menu.js). A pill drags as soon as it moves,
+     by mouse or finger; a tap picks it up, lights every place it can go,
+     and a tap on one of those puts it there. -->
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script src="../lib/vanilla-bundle.js"></script>
+<script src="../lib/kits/table-stats.js"></script>
+<script src="../lib/kits/row-menu.js"></script>
+<script src="../lib/kits/title-tip.js"></script>
+</head>
+<body class="bg-base-100 text-base-content">
+<div class="h-dvh grid grid-rows-[auto_auto_auto_minmax(0,1fr)] grid-cols-[minmax(0,1fr)]">
+
+  <header class="border-b border-base-300 px-4 pt-3 pb-2 flex flex-col gap-2">
+    <div class="flex items-baseline gap-3">
+      <h1 class="text-lg font-semibold tracking-tight">Pivot concepts</h1>
+      <span id="figure" class="text-xs font-mono text-base-content/60"></span>
+    </div>
+    <div class="flex items-center gap-2 overflow-x-auto text-xs">
+      <span class="shrink-0 w-12 text-base-content/50">Builder</span>
+      <div id="concepts" class="flex gap-1.5"></div>
+    </div>
+    <div class="flex items-center gap-2 overflow-x-auto text-xs">
+      <span class="shrink-0 w-12 text-base-content/50">Result</span>
+      <div id="views" class="flex gap-1.5"></div>
+    </div>
+  </header>
+
+  <section id="builder" class="border-b border-base-300 px-4 py-3 select-none"></section>
+
+  <!-- The filters, over the table they narrow, whichever builder is up. -->
+  <section id="filters" class="border-b border-base-300 px-4 py-1.5 select-none bg-base-200/40" data-zone="filters"></section>
+
+  <main id="result" class="min-h-0 overflow-auto"></main>
+</div>
+
+<!-- The pill under a finger or a mouse while it is dragged. -->
+<div id="ghost" class="hidden fixed z-[80] pointer-events-none -translate-x-1/2 -translate-y-1/2"></div>
+<!-- Where the dragged pill will land. -->
+<div id="caret" class="hidden fixed z-[79] pointer-events-none w-0.5 rounded-full bg-primary"></div>
+<!-- A field's card, from the caret on its pill. -->
+<div id="card" class="hidden fixed z-[75] w-72 max-w-[calc(100vw-2rem)] rounded-box border border-base-300 bg-base-100 shadow-xl text-sm" role="dialog"></div>
+
+<script>
+(() => {
+  const S = window.TableStats, P = S.pivot;
+
+  // ── the sample ──────────────────────────────────────────────────────────────
+  // A state budget's shape: agency › program, fund, object of expenditure,
+  // fiscal year, dollars, and FTEs only on salary lines (blank elsewhere, so a
+  // pivot of FTEs shows the skipped-row count doing its job).
+  const rand = (() => { let a = 20261024; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; })();
+  const AGENCIES = {
+    Health: ['Public Health', 'Licensing', 'Labs'], Ecology: ['Air', 'Water', 'Toxics'],
+    Transportation: ['Highways', 'Ferries', 'Rail'], Corrections: ['Prisons', 'Community'],
+    Revenue: ['Audit', 'Taxpayer Services'],
+  };
+  const FUNDS = ['001 General', '108 Motor Vehicle', '17P Capital', '489 Federal'];
+  const OBJECTS = ['Salaries', 'Benefits', 'Goods', 'Travel', 'Grants'];
+  const ROWS = [];
+  for (const [agency, progs] of Object.entries(AGENCIES)) for (const program of progs) {
+    const funds = FUNDS.filter(() => rand() < 0.55).slice(0, 2);
+    if (!funds.length) funds.push(FUNDS[0]);
+    for (const fund of funds) for (const object of OBJECTS) for (const year of ['FY26', 'FY27']) {
+      const base = { Salaries: 9e5, Benefits: 3e5, Goods: 2e5, Travel: 4e4, Grants: 6e5 }[object];
+      ROWS.push({
+        agency, program, fund, object, year,
+        amount: Math.round(base * (0.4 + rand() * 1.2) * 100) / 100,
+        fte: object === 'Salaries' ? Math.round((6 + rand() * 40) * 10) / 10 : '',
+      });
+    }
+  }
+  const SCAN = P.scan(ROWS);
+  const FIELDS = SCAN.cols;
+  const VALUES = Object.fromEntries(FIELDS.map(f => [f, [...new Set(ROWS.map(r => String(r[f] ?? '')))].sort()]));
+
+  // ── state ───────────────────────────────────────────────────────────────────
+  const st = {
+    concept: 'shelves', layout: 'grid', compact: true, heat: false,
+    rows: ['agency'], cols: ['year'], value: 'amount', agg: 'sum',
+    filters: [], excluded: {},          // field -> Set of values left out
+    collapsed: new Set(),               // grid outline: paths folded shut
+    sel: null,                          // tap and drop: { field, from } picked up
+    ranges: {},                         // number filter: field -> { lo, hi }
+    sep: ', ',                          // what a list joins its values with
+  };
+  const ROLE = { rows: 'Rows', cols: 'Across', value: 'Value', filters: 'Filter' };
+  // The value's functions as its pill shows them: three letters or fewer, so
+  // the pill keeps one width. A tap steps through the ones that fit the field.
+  const SHORT = { sum: 'sum', avg: 'avg', min: 'min', max: 'max', count: 'ct', list: 'list' };
+  const STEPS = (f) => SCAN.isNum[f] ? ['sum', 'avg', 'min', 'max'] : ['count', 'list'];
+  const AGGS = (f) => SCAN.isNum[f] ? ['sum', 'avg', 'min', 'max', 'count', 'list'] : ['count', 'list'];
+  const ICON = { rows: 'ph-rows', cols: 'ph-columns', value: 'ph-sigma', filters: 'ph-funnel' };
+  const roleOf = (f) => st.rows.includes(f) ? 'rows' : st.cols.includes(f) ? 'cols' : st.value === f ? 'value' : null;
+  const list = (zone) => zone === 'value' ? (st.value ? [st.value] : []) : st[zone];
+
+  // A field holds one of rows, across and value at a time; a filter rides
+  // beside any of them. Placing a value that is not a number counts its rows.
+  function place(field, zone, at = Infinity) {
+    if (zone === 'tray') return remove(field);
+    if (zone === 'filters') {
+      const l = st.filters.filter(x => x !== field);
+      l.splice(Math.min(at, l.length), 0, field); st.filters = l;
+      return render();
+    }
+    st.rows = st.rows.filter(x => x !== field);
+    st.cols = st.cols.filter(x => x !== field);
+    if (st.value === field) st.value = null;
+    if (zone === 'value') {
+      st.value = field;
+      st.agg = AGGS(field).includes(st.agg) && st.agg !== 'count' ? st.agg : STEPS(field)[0];
+    } else {
+      const l = st[zone]; l.splice(Math.min(at, l.length), 0, field);
+    }
+    st.collapsed.clear();
+    render();
+  }
+  function remove(field, zone) {
+    if (zone === 'filters') { st.filters = st.filters.filter(x => x !== field); delete st.excluded[field]; delete st.ranges[field]; return render(); }
+    st.rows = st.rows.filter(x => x !== field);
+    st.cols = st.cols.filter(x => x !== field);
+    if (st.value === field) st.value = null;
+    render();
+  }
+
+  // ── the engine, through TableStats ──────────────────────────────────────────
+  function compute() {
+    // A text filter leaves out the values unticked; a number filter keeps the
+    // rows between its bounds, either bound open.
+    const inRange = (f, r) => {
+      const g = st.ranges[f]; if (!g || (g.lo == null && g.hi == null)) return true;
+      const v = S.parseNum(r[f]); if (v === null) return false;
+      return (g.lo == null || v >= g.lo) && (g.hi == null || v <= g.hi);
+    };
+    const rows = ROWS.filter(r => st.filters.every(f => !st.excluded[f]?.has(String(r[f] ?? '')) && inRange(f, r)));
+    const agg = st.value ? st.agg : 'count';
+    const cfg = { rows: st.rows, cols: st.cols, measure: st.value, agg, sep: st.sep, dec: P.decFor(SCAN, st.value, agg) };
+    return { cfg, res: P.tree(rows, cfg), n: rows.length };
+  }
+
+  // ── formatting ──────────────────────────────────────────────────────────────
+  const esc = (s) => window.esc(String(s ?? ''));
+  const compactFmt = new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 });
+  // A list's cell is text, truncated to a column's width; the card and the
+  // Cards view show it whole.
+  const num = (v, dec) => typeof v === 'string' && v !== '' ? `<span class="inline-block max-w-56 truncate align-bottom font-sans text-left">${esc(v)}</span>`
+    : v === '' || v == null ? '' : st.compact && Math.abs(v) >= 1000
+    ? compactFmt.format(v)
+    : Number(v).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: dec });
+  // Ten steps of the accent, the only opacities a daisyUI colour takes.
+  const TINT = ['', 'bg-primary/10', 'bg-primary/20', 'bg-primary/30', 'bg-primary/40', 'bg-primary/50'];
+  const tint = (v, max) => st.heat && max > 0 && typeof v === 'number' ? TINT[Math.max(1, Math.round((Math.abs(v) / max) * 5))] : '';
+  const aggName = () => st.value ? ({ avg: 'Average', count: 'Count', list: 'List' }[st.agg] || st.agg[0].toUpperCase() + st.agg.slice(1)) + ' of ' + st.value : 'Rows';
+
+  // ── pills ───────────────────────────────────────────────────────────────────
+  // data-pill marks a draggable field; data-from names where it sits. A pill's
+  // role shows in its icon, so a pill means the same thing in every concept.
+  // A PILL IS A CAPSULE, not a daisyUI button: 28px tall, a 1px border, the
+  // name truncating before the pill outgrows its line. Its colour says what
+  // the field holds (numbers in the secondary hue, text in the page's own);
+  // placed pills are tinted, tray pills plain, the picked-up pill ringed. Its
+  // segments, each a tap of its own: the name (pick up, or drag), the value's
+  // summary when it is the value, and a caret for the field's card. Only the
+  // Tap builder, which has no shelves to say a pill's role, shows a role icon.
+  function pill(field, from, { role = from, cls = '', label, roleIcon = false } = {}) {
+    const placed = role && role !== 'tray';
+    const num = SCAN.isNum[field];
+    const sel = st.sel && st.sel.field === field && st.sel.from === from;
+    const ex = st.excluded[field]?.size;
+    const seg = 'inline-flex items-center self-stretch border-l border-base-content/10';
+    const g = st.ranges[field], ranged = role === 'filters' && g && (g.lo != null || g.hi != null);
+    const kept = role === 'filters' && (ex || ranged) ? `<span class="${seg} px-1.5 text-xs font-sans text-base-content/60">${ranged ? (g.lo != null ? '≥' + g.lo : '') + (g.lo != null && g.hi != null ? ' ' : '') + (g.hi != null ? '≤' + g.hi : '') : (VALUES[field].length - ex) + '/' + VALUES[field].length}</span>` : '';
+    // THE VALUE'S FUNCTION, a small pill inside its pill: sum, avg, min, max,
+    // each three letters, so the pill keeps one width whichever is in use. A
+    // tap steps to the next; count, which no longer summarizes the numbers but
+    // the rows, is on the field's card. A text value can only count, and its
+    // inner pill does not step.
+    const isValue = role === 'value' && from === 'value' && st.value === field;
+    const agg = isValue
+      ? `<span data-agg class="inline-flex items-center justify-center self-center h-5.5 w-10 ml-0.5 rounded-full bg-base-100 border border-base-300 text-[11px] font-sans text-base-content/70" aria-label="Summary: ${st.agg}, tap for the next">${SHORT[st.agg]}</span>` : '';
+    return `<button type="button" data-pill data-field="${esc(field)}" data-from="${from}"
+      class="inline-flex items-stretch h-7 max-w-full shrink-0 rounded-full border overflow-hidden font-mono text-[13px] leading-none touch-none select-none [-webkit-touch-callout:none]
+        ${placed ? 'bg-primary/10 border-primary/40' : 'bg-base-100 border-base-300'} ${num ? 'text-secondary' : 'text-base-content'}
+        ${sel ? 'ring-2 ring-[var(--color-primary)] ring-offset-1 ring-offset-base-100' : ''} ${cls}">
+      ${agg}<span class="inline-flex items-center gap-1 ${isValue ? 'pl-1.5' : 'pl-2.5'} pr-1.5 min-w-0">${roleIcon && placed ? `<i class="ph ${ICON[role]} text-xs opacity-70"></i>` : ''}<span class="truncate" ${tipAttrs(field)} data-title-tip-bare>${esc(label ?? field)}</span></span>${kept}<span data-info class="${seg} px-1.5 text-base-content/50" aria-label="About ${esc(field)}"><i class="ph ph-caret-down text-[10px]"></i></span></button>`;
+  }
+  const empty = (zone, text) => `<span class="text-xs text-base-content/40 italic px-1" data-empty="${zone}">${text}</span>`;
+
+  // ── the five builders ───────────────────────────────────────────────────────
+  const TRAY = () => FIELDS.map(f => pill(f, 'tray', { role: roleOf(f) || 'tray' })).join('');
+
+  function shelfLine(zone) {
+    const items = list(zone);
+    return `<div class="flex items-center gap-2 min-h-10 px-2 py-1 border-b border-base-200 last:border-b-0" data-zone="${zone}">
+      <span class="shrink-0 w-14 flex items-center gap-1 text-xs text-base-content/60"><i class="ph ${ICON[zone]}"></i>${ROLE[zone]}</span>
+      <div class="flex flex-wrap items-center gap-1.5 min-w-0">${items.length ? items.map(f => pill(f, zone)).join('') : empty(zone, 'drop a field')}</div>
+    </div>`;
+  }
+
+  const BUILDERS = {
+    shelves: {
+      label: 'Shelves', icon: 'ph-rows',
+      html: () => `<div class="flex flex-col gap-2">
+        <div class="flex flex-wrap gap-1.5" data-zone="tray">${FIELDS.filter(f => !roleOf(f)).map(f => pill(f, 'tray')).join('') || empty('tray', 'every field is placed')}</div>
+        <div class="rounded-box border border-base-300 overflow-hidden">
+          ${['rows', 'cols', 'value'].map(shelfLine).join('')}
+        </div></div>`,
+    },
+    line: {
+      label: 'One line', icon: 'ph-text-align-left',
+      // The three roles as labelled groups on one wrapping line: as many rows
+      // as the pills need, rather than one per role.
+      html: () => `<div class="flex flex-col gap-2">
+        <div class="flex flex-wrap gap-1.5" data-zone="tray">${FIELDS.filter(f => !roleOf(f)).map(f => pill(f, 'tray')).join('') || empty('tray', 'every field is placed')}</div>
+        <div class="flex flex-wrap items-center gap-1.5">
+          ${['rows', 'cols', 'value'].map(z => `<div class="inline-flex flex-wrap items-center gap-1 min-h-10 rounded-full bg-base-200/60 p-1" data-zone="${z}">
+            ${list(z).length ? list(z).map(f => pill(f, z)).join('') : `<span class="px-2 text-xs text-base-content/50 flex items-center gap-1"><i class="ph ${ICON[z]}"></i>${ROLE[z]}</span>`}</div>`).join('')}
+        </div></div>`,
+    },
+    tap: {
+      label: 'Tap', icon: 'ph-hand-tap',
+      // Every field on one wrapping line; a tap moves it to the next role.
+      html: () => `<div class="flex flex-wrap gap-1.5" data-zone="tray" data-cycle>${FIELDS.map(f => {
+        const r = roleOf(f), i = r === 'rows' ? st.rows.indexOf(f) : r === 'cols' ? st.cols.indexOf(f) : -1;
+        return pill(f, r || 'tray', { role: r || 'tray', roleIcon: true, label: f + (i >= 0 && list(r).length > 1 ? ' ' + (i + 1) : '') });
+      }).join('')}</div>`,
+    },
+    sentence: {
+      label: 'Sentence', icon: 'ph-chat-text',
+      html: () => {
+        const slot = (zone, f, i) => `<button type="button" class="link link-primary decoration-dotted font-semibold" data-slot="${zone}" data-index="${i}">${esc(f)}</button>`;
+        // An addition is a small worded chip, so it says what it adds.
+        const add = (zone, word) => ` <button type="button" class="btn btn-xs rounded-full btn-ghost bg-base-200 font-normal align-middle" data-slot="${zone}" data-index="-1"><i class="ph ph-plus"></i>${word}</button>`;
+        const by = st.rows.map((f, i) => (i ? ' then ' : ' by ') + slot('rows', f, i)).join('') + (st.rows.length < 4 ? add('rows', st.rows.length ? 'then' : 'by') : '');
+        const across = st.cols.length ? ' across ' + st.cols.map((f, i) => slot('cols', f, i)).join(' and ') : add('cols', 'across');
+        const where = '';
+        const what = st.value
+          ? `<button type="button" class="link link-primary decoration-dotted font-semibold" data-slot="agg">${esc(st.agg === 'avg' ? 'average' : st.agg)}</button> of ${slot('value', st.value, 0)}`
+          : `<button type="button" class="link link-primary decoration-dotted font-semibold" data-slot="value" data-index="0">count of rows</button>`;
+        return `<p class="text-xl leading-9 text-pretty">Show ${what}${by}${across}${where}</p>`;
+      },
+    },
+    table: {
+      label: 'In-table', icon: 'ph-table',
+      // No builder of its own: the tray, and the result's header as the drop
+      // targets (see grid()).
+      html: () => `<div class="flex flex-wrap gap-1.5" data-zone="tray">${FIELDS.filter(f => !roleOf(f)).map(f => pill(f, 'tray')).join('') || empty('tray', 'every field is placed')}</div>`,
+    },
+  };
+
+  // ── the result ──────────────────────────────────────────────────────────────
+  // GRID: one label column, the row fields nested in it as an outline rather
+  // than a column each, which is what keeps a phone's width for the numbers.
+  // A group row carries its subtotal and folds. The header and the label
+  // column stay put while the body scrolls both ways.
+  function grid({ cfg, res }, zones) {
+    const keys = res.colKeys, dec = cfg.dec, depth = cfg.rows.length;
+    const valueOf = (node) => keys.length ? node.value : node.value;
+    let max = 0;
+    const leaves = [];
+    (function walk(n, d) { if (d === depth) { leaves.push(n); for (const k of keys) if (k in n.cells) max = Math.max(max, Math.abs(n.cells[k])); if (!keys.length) max = Math.max(max, Math.abs(n.value)); } n.children.forEach(c => walk(c, d + 1)); })(res.tree, 0);
+    const th = 'sticky top-0 z-10 bg-base-200 px-2 py-1.5 text-right font-mono text-xs font-medium whitespace-nowrap';
+    const corner = zones
+      ? `<div class="flex flex-col gap-1 items-start" data-zone="rows">${st.rows.length ? st.rows.map(f => pill(f, 'rows', {})).join('') : empty('rows', 'rows here')}</div>`
+      : `<span class="text-base-content/60">${esc(cfg.rows.join(' › ') || 'Total')}</span>`;
+    const band = zones ? `<tr><th class="sticky left-0 top-0 z-30 bg-base-200 px-2 py-1 text-left align-top" data-zone="value">${st.value ? pill(st.value, 'value', {}) : empty('value', 'value here')}</th>
+        <th colspan="${keys.length + 1}" class="sticky top-0 z-20 bg-base-200 px-2 py-1 text-left" data-zone="cols"><div class="flex gap-1">${st.cols.length ? st.cols.map(f => pill(f, 'cols', {})).join('') : empty('cols', 'across here')}</div></th></tr>` : '';
+    const top = zones ? 'top-9' : 'top-0';
+    const head = `<tr><th class="sticky left-0 ${top} z-30 bg-base-200 px-2 py-1.5 text-left text-xs font-medium align-bottom">${corner}</th>
+      ${keys.map(k => `<th class="${th} ${top}">${esc(k)}</th>`).join('')}
+      <th class="${th} ${top}">${keys.length ? 'Total' : esc(aggName())}</th></tr>`;
+    const body = [];
+    (function walk(n, d, path) {
+      if (d > 0) {
+        const id = path.join('\u0001'), group = d < depth, shut = st.collapsed.has(id);
+        body.push(`<tr class="${group ? 'bg-base-200/60 font-semibold' : ''}">
+          <th class="sticky left-0 z-[5] ${group ? 'bg-base-200' : 'bg-base-100'} px-2 py-1 text-left font-normal whitespace-nowrap max-w-44 truncate" style="padding-left:${0.5 + (d - 1) * 0.9}rem">
+            ${group ? `<button type="button" class="inline-flex items-center gap-1 font-semibold" data-fold="${esc(id)}"><i class="ph ${shut ? 'ph-caret-right' : 'ph-caret-down'} text-xs"></i>${esc(n.label)}</button>` : esc(n.label)}</th>
+          ${keys.map(k => `<td class="px-2 py-1 text-right font-mono tabular-nums whitespace-nowrap ${group ? '' : tint(n.cells[k] ?? '', max)}">${num(n.cells[k] ?? '', dec)}</td>`).join('')}
+          <td class="px-2 py-1 text-right font-mono tabular-nums whitespace-nowrap font-semibold ${!keys.length && !group ? tint(n.value, max) : ''}">${num(n.value, dec)}</td></tr>`);
+        if (group && shut) return;
+      }
+      n.children.forEach(c => walk(c, d + 1, [...path, c.label]));
+    })(res.tree, 0, []);
+    const t = res.tree;
+    const foot = `<tr class="font-bold"><th class="sticky left-0 bottom-0 z-20 bg-base-300 px-2 py-1.5 text-left">Total</th>
+      ${keys.map(k => `<td class="sticky bottom-0 bg-base-300 px-2 py-1.5 text-right font-mono tabular-nums">${num(t.cells[k] ?? '', dec)}</td>`).join('')}
+      <td class="sticky bottom-0 bg-base-300 px-2 py-1.5 text-right font-mono tabular-nums">${num(t.value, dec)}</td></tr>`;
+    return `<table class="text-sm border-separate border-spacing-0 min-w-full"><thead>${band}${head}</thead><tbody>${body.join('')}</tbody><tfoot>${foot}</tfoot></table>`;
+  }
+
+  // CARDS: one card per top group, no sideways scroll at all. The across
+  // values become label-value pairs, and a deeper level becomes lines.
+  function cards({ cfg, res }) {
+    const keys = res.colKeys, dec = cfg.dec;
+    if (!cfg.rows.length) return `<div class="p-4">${grid({ cfg, res })}</div>`;
+    const card = (n) => `<article class="rounded-box border border-base-300 p-3 flex flex-col gap-2">
+      <header class="flex items-baseline gap-2"><h2 class="font-semibold grow min-w-0 truncate">${esc(n.label)}</h2>
+        <span class="font-mono tabular-nums font-semibold">${num(n.value, dec)}</span></header>
+      ${keys.length ? `<dl class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-0.5 text-sm">${keys.map(k => `<dt class="font-mono text-xs text-base-content/60 self-center">${esc(k)}</dt><dd class="font-mono tabular-nums text-right">${num(n.cells[k] ?? '', dec)}</dd>`).join('')}</dl>` : ''}
+      ${n.children.length ? `<ul class="flex flex-col text-sm border-t border-base-200 pt-1">${n.children.map(c => `<li class="flex gap-2 py-0.5"><span class="grow min-w-0 truncate">${esc(c.label)}</span><span class="font-mono tabular-nums">${num(c.value, dec)}</span></li>`).join('')}</ul>` : ''}
+    </article>`;
+    return `<div class="p-4 grid gap-3 grid-cols-[repeat(auto-fill,minmax(min(100%,16rem),1fr))]">${res.tree.children.map(card).join('')}</div>`;
+  }
+
+  // ── the field's card ────────────────────────────────────────────────────────
+  // What TableStats.profile reads in the column, the same figures the
+  // explorer's Columns view and the workbench's Profile show. No buttons of
+  // its own: a field becomes a filter the way it takes any role, by drag or by
+  // tap and drop onto the strip.
+  const PROFILE = Object.fromEntries(S.profile(ROWS).columns.map(c => [c.name, c]));
+  function openCard(anchor, field) {
+    const c = PROFILE[field], card = $('card');
+    const n = (v) => Number(v).toLocaleString(undefined, { maximumFractionDigits: 2 });
+    const r = roleOf(field);
+    const top = c.topValues.slice(0, 6), most = Math.max(1, ...top.map(t => t.count));
+    const unique = c.distinctCount === c.filled;
+    // The header says it all in one line: the name, what it holds, how many
+    // distinct values (the figure that decides whether a field can group),
+    // and its role. Fill and blank counts were a row of tiles nobody read.
+    card.innerHTML = `<div class="flex items-baseline gap-2 px-3 pt-2.5 pb-2 border-b border-base-200">
+        <span class="font-mono font-semibold truncate ${SCAN.isNum[field] ? 'text-secondary' : ''}">${esc(field)}</span>
+        <span class="text-xs text-base-content/60 whitespace-nowrap">${esc(c.type)} · ${c.distinctCount.toLocaleString()}${c.distinctCapped ? '+' : ''} distinct</span>
+        <span class="ml-auto text-xs text-base-content/60 whitespace-nowrap">${r ? ROLE[r] : 'not placed'}</span></div>
+      ${c.numStats ? `<div class="px-3 py-2 border-b border-base-200 font-mono text-xs tabular-nums flex justify-between gap-2">
+        <span><span class="text-base-content/50">min</span> ${n(c.numStats.min)}</span><span><span class="text-base-content/50">median</span> ${n(c.numStats.median)}</span><span><span class="text-base-content/50">max</span> ${n(c.numStats.max)}</span></div>` : ''}
+      ${top.length && !unique && !(st.filters.includes(field) && !SCAN.isNum[field]) ? `<ul class="px-3 py-2 flex flex-col gap-1">${top.map(t => `<li class="grid grid-cols-[minmax(0,1fr)_auto] gap-2 items-center">
+          <span class="relative truncate px-1 rounded-sm"><span class="absolute inset-y-0 left-0 bg-primary/10 rounded-sm" style="width:${Math.round(t.count / most * 100)}%"></span><span class="relative">${esc(t.value)}</span></span>
+          <span class="font-mono text-xs tabular-nums text-base-content/60">${t.count}</span></li>`).join('')}</ul>` : ''}
+      ${r === 'value' ? `<div class="px-3 pt-2.5 flex flex-col gap-1.5"><div class="join w-full">${AGGS(field).map(a => `<button type="button" data-card-agg="${a}" class="join-item btn btn-xs flex-1 font-normal ${st.agg === a ? 'btn-primary' : 'btn-ghost border border-base-300'}">${SHORT[a]}</button>`).join('')}</div>
+        ${st.agg === 'list' ? `<div class="flex items-center gap-1 text-xs"><span class="text-base-content/60 pr-1">joined by</span>${[', ', ' | ', '; '].map(x => `<button type="button" data-card-sep="${esc(x)}" class="btn btn-xs font-mono font-normal ${st.sep === x ? 'btn-primary' : 'btn-ghost border border-base-300'}">${esc(x.trim())}</button>`).join('')}</div>` : ''}</div>` : ''}
+      ${st.filters.includes(field) ? filterControls(field) : ''}
+      <div class="pb-2.5"></div>`;
+    const a = anchor.getBoundingClientRect();
+    card.classList.remove('hidden');
+    const w = card.offsetWidth, h = card.offsetHeight;
+    card.style.left = Math.max(8, Math.min(a.left, innerWidth - w - 8)) + 'px';
+    card.style.top = (a.bottom + h + 8 < innerHeight ? a.bottom + 6 : Math.max(8, a.top - h - 6)) + 'px';
+  }
+  const closeCard = () => $('card').classList.add('hidden');
+  document.addEventListener('pointerdown', (e) => { if (!e.target.closest('#card, [data-info]')) closeCard(); }, true);
+  document.addEventListener('scroll', closeCard, true);
+
+  // A PILL'S FACTS are the house title-tip (kits/title-tip.js). Not its name,
+  // which the pill already shows, nor its role, which its place shows: the
+  // lead is its type as an icon pill, then what it holds as a row of pills,
+  // its distinct count and a number's range or a text field's commonest
+  // value. A mouse gets it on hover; a tap opens it, and since the same tap
+  // picks the pill up and redraws the builder, it is opened again on the
+  // redrawn pill. It sits over the page, so nothing moves to make room.
+  const TYPE = { number: 'ph-bold ph-hash', text: 'ph-bold ph-text-aa' };
+  function facts(f) {
+    const c = PROFILE[f], type = SCAN.isNum[f] ? 'number' : 'text';
+    const held = type === 'number' && c.numStats
+      ? [compactFmt.format(c.numStats.min) + ' to ' + compactFmt.format(c.numStats.max)]
+      : c.topValues.slice(0, 1).map(t => 'most ' + (t.value.length > 18 ? t.value.slice(0, 17) + '…' : t.value));
+    return { type, icon: TYPE[type], pills: [VALUES[f].length.toLocaleString() + ' distinct', ...held] };
+  }
+  function tipAttrs(f) {
+    const x = facts(f);
+    return `data-title-tip="${esc(x.type + ': ' + x.pills.join(', '))}" data-title-tip-lead="${x.type}" data-title-tip-lead-icon="${x.icon}" data-title-tip-pills="${esc(x.pills.join('|'))}"`;
+  }
+  function placeTip() {
+    if (!window.TitleTip) return;
+    const p = st.sel && document.querySelector(`[data-pill][data-field="${CSS.escape(st.sel.field)}"][data-from="${st.sel.from}"] [data-title-tip]`);
+    p ? window.TitleTip.open(p) : window.TitleTip.close();
+  }
+
+
+  // ── drawing ─────────────────────────────────────────────────────────────────
+  const $ = (id) => document.getElementById(id);
+  const chip = (on, attrs, inner) => `<button type="button" ${attrs} class="btn btn-xs rounded-full shrink-0 font-normal ${on ? 'btn-primary' : 'btn-ghost bg-base-200'}">${inner}</button>`;
+
+  function render() {
+    $('concepts').innerHTML = Object.entries(BUILDERS).map(([k, b]) => chip(st.concept === k, `data-concept="${k}"`, `<i class="ph ${b.icon}"></i>${b.label}`)).join('');
+    $('views').innerHTML = [
+      chip(st.layout === 'grid', 'data-layout="grid"', '<i class="ph ph-table"></i>Grid'),
+      chip(st.layout === 'cards', 'data-layout="cards"', '<i class="ph ph-cards"></i>Cards'),
+      chip(st.compact, 'data-toggle="compact"', '1.2M'),
+      chip(st.heat, 'data-toggle="heat"', '<i class="ph ph-paint-bucket"></i>Tint'),
+      chip(false, 'data-swap', '<i class="ph ph-arrows-left-right"></i>Swap'),
+    ].join('');
+    $('builder').innerHTML = BUILDERS[st.concept].html();
+    $('filters').innerHTML = `<div class="flex flex-wrap items-center gap-1.5 min-h-9">
+      <span class="text-xs text-base-content/60 flex items-center gap-1 pr-1"><i class="ph ph-funnel"></i>Filter</span>
+      ${st.filters.map(f => pill(f, 'filters', {})).join('')}
+      <button type="button" class="btn btn-xs rounded-full btn-ghost font-normal" data-addfilter><i class="ph ph-plus"></i>filter</button></div>`;
+    const out = compute();
+    $('figure').textContent = `${out.n.toLocaleString()} of ${ROWS.length.toLocaleString()} rows` + (out.res.skipped ? ` · ${out.res.skipped} skipped, no ${st.value}` : '');
+    $('result').innerHTML = st.layout === 'cards' && st.concept !== 'table' ? cards(out) : grid(out, st.concept === 'table');
+    // TAP AND DROP: with a pill picked up, every place it can go lights up as
+    // a drop target does, and a tap there puts it there. The tray takes it
+    // back out; its own place is not a target.
+    // The filter strip is the one target render does not redraw, so the
+    // lighting is cleared everywhere before any is set.
+    // Quietly: a dashed outline on each place it can go. The full light is the
+    // drag's, on the one place under the pointer.
+    const LIT = ['outline-1', 'outline-dashed', '-outline-offset-2', 'outline-[color-mix(in_oklab,var(--color-primary)_55%,transparent)]', 'cursor-pointer'];
+    document.querySelectorAll('[data-zone]').forEach(z => z.classList.remove(...LIT));
+    if (st.sel) for (const z of document.querySelectorAll('[data-zone]')) {
+      const zone = z.dataset.zone;
+      const own = zone === st.sel.from || (zone === 'tray' && st.sel.from === 'tray') || (zone === 'filters' && st.filters.includes(st.sel.field));
+      if (!own) z.classList.add(...LIT);
+    }
+    placeTip();
+  }
+
+  // ── menus ───────────────────────────────────────────────────────────────────
+  // The estate's own (kits/row-menu.js), so a pill's menu looks like a grid's.
+  const at = (el) => { const r = el.getBoundingClientRect(); return { x: r.left, y: r.bottom + 4 }; };
+  // A filter's values to tick, and the way out. Dense, since the list is long
+  // and every row is one short value.
+  // A FILTER'S CONTROLS live in its card. A text field: its values to tick,
+  // in a list that scrolls. A number field: two bounds, either left open, so
+  // "above", "below" and "between" are one control.
+  function filterControls(field) {
+    if (SCAN.isNum[field]) {
+      const g = st.ranges[field] || {};
+      const box = (k, ph) => `<input type="number" inputmode="decimal" data-range="${k}" data-field="${esc(field)}" value="${g[k] ?? ''}" placeholder="${ph}" class="input input-xs w-full font-mono">`;
+      return `<div class="px-3 pt-2.5 flex items-center gap-1.5 text-xs"><span class="text-base-content/60">from</span>${box('lo', 'any')}<span class="text-base-content/60">to</span>${box('hi', 'any')}</div>`;
+    }
+    // One list, not two: each value's row is its tick, its bar and its count,
+    // commonest first, standing in for the card's own list of top values.
+    const ex = st.excluded[field] || new Set();
+    const counts = new Map();
+    for (const r of ROWS) { const v = String(r[field] ?? ''); counts.set(v, (counts.get(v) || 0) + 1); }
+    const vals = [...counts].sort((a, b) => b[1] - a[1]), most = Math.max(1, ...counts.values());
+    return `<div class="px-3 pt-2 flex flex-col gap-1">
+      <div class="flex gap-2 text-xs"><button type="button" class="link link-hover" data-tick-all="${esc(field)}">all</button><button type="button" class="link link-hover" data-tick-none="${esc(field)}">none</button></div>
+      <ul class="max-h-52 overflow-auto flex flex-col gap-1">${vals.map(([v, n]) => `<li><label class="grid grid-cols-[auto_minmax(0,1fr)_auto] gap-2 items-center cursor-pointer">
+        <input type="checkbox" class="checkbox checkbox-xs" data-tick="${esc(v)}" data-field="${esc(field)}" ${ex.has(v) ? '' : 'checked'}>
+        <span class="relative truncate px-1 rounded-sm ${ex.has(v) ? 'opacity-50' : ''}"><span class="absolute inset-y-0 left-0 bg-primary/10 rounded-sm" style="width:${Math.round(n / most * 100)}%"></span><span class="relative">${esc(v || '(blank)')}</span></span>
+        <span class="font-mono text-xs tabular-nums text-base-content/60">${n}</span></label></li>`).join('')}</ul></div>`;
+  }
+  const aggMenu = (el) => window.rowMenu.open({ ...at(el), dense: true, items: ['sum', 'avg', 'min', 'max', 'count']
+    .filter(a => a !== st.agg && AGGS(st.value).includes(a)).concat(AGGS(st.value).includes('list') && st.agg !== 'list' ? ['list'] : []).map(a => ({ icon: 'ph-function', label: { avg: 'average', count: 'count', list: 'list of values' }[a] || a, run: () => { st.agg = a; render(); } })) });
+
+  // The sentence's words: the field lists for a slot, or the aggregates.
+  function slotMenu(el) {
+    const zone = el.dataset.slot, i = +el.dataset.index;
+    if (zone === 'agg') return aggMenu(el);
+    const cur = i >= 0 ? list(zone)[i] : null;
+    const opts = FIELDS.filter(f => zone === 'value' ? f !== cur : !list(zone).includes(f));
+    const items = [{ heading: ROLE[zone] }, ...opts.map(f => ({ icon: SCAN.isNum[f] ? 'ph-hash' : 'ph-text-aa', label: f, run: () => {
+      if (cur && zone !== 'value') remove(cur, zone);
+      place(f, zone, i >= 0 ? i : Infinity);
+    } }))];
+    if (zone === 'value' && st.value) items.push({ icon: 'ph-hash', label: 'count of rows', run: () => remove(st.value) });
+    if (cur && zone !== 'value') items.push({ icon: 'ph-x', label: 'Remove ' + cur, run: () => remove(cur, zone) });
+    window.rowMenu.open({ ...at(el), items, dense: true });
+  }
+  const cycle = (f) => {
+    const order = [null, 'rows', 'cols', 'value'];
+    const next = order[(order.indexOf(roleOf(f)) + 1) % order.length];
+    next ? place(f, next) : remove(f);
+  };
+
+  // ── the drag ────────────────────────────────────────────────────────────
+  // A pill drags as soon as it moves 5px, by mouse or by finger: pills are
+  // touch-none, so a finger on one is the pill's, and a swipe that starts off
+  // the pills still scrolls. A press that does not move is a tap.
+  let press = null, drag = null, suppress = false;
+  document.addEventListener('pointerdown', (e) => {
+    const p = e.target.closest('[data-pill]');
+    if (!p || e.button > 0) return;
+    press = { p, x: e.clientX, y: e.clientY, id: e.pointerId };
+  });
+  document.addEventListener('pointermove', (e) => {
+    if (!press || e.pointerId !== press.id) return;
+    if (!drag) {
+      if (Math.hypot(e.clientX - press.x, e.clientY - press.y) < 5) return;
+      begin(e.clientX, e.clientY);
+    }
+    follow(e.clientX, e.clientY);
+  });
+  document.addEventListener('touchmove', (e) => { if (drag) e.preventDefault(); }, { passive: false });
+  const end = (e) => {
+    if (!press || (e && e.pointerId !== press.id)) return;
+    if (drag) { drop(); suppress = true; setTimeout(() => { suppress = false; }, 350); }
+    press = null;
+  };
+  document.addEventListener('pointerup', end);
+  document.addEventListener('pointercancel', () => { if (drag) cancelDrag(); press = null; });
+
+  function begin(x, y) {
+    const { p } = press;
+    drag = { field: p.dataset.field, from: p.dataset.from, src: p, target: null };
+    st.sel = null;
+    try { window.getSelection()?.removeAllRanges(); } catch {}
+    $('ghost').innerHTML = p.outerHTML;
+    $('ghost').firstElementChild.classList.add('shadow-lg', 'scale-110');
+    $('ghost').classList.remove('hidden');
+    p.classList.add('opacity-30');
+    follow(x, y);
+  }
+  function follow(x, y) {
+    const g = $('ghost'); g.style.left = x + 'px'; g.style.top = y + 'px';
+    document.querySelectorAll('[data-zone].ring-2').forEach(z => z.classList.remove('ring-2', 'ring-[var(--color-primary)]', 'bg-primary/10'));
+    const under = document.elementFromPoint(x, y);
+    const zone = under?.closest('[data-zone]');
+    const caret = $('caret');
+    if (!zone) { drag.target = null; caret.classList.add('hidden'); return; }
+    zone.classList.add('ring-2', 'ring-[var(--color-primary)]', 'bg-primary/10');
+    // The landing index: before the first pill in the zone whose middle is
+    // past the pointer on the pointer's own line.
+    const pills = [...zone.querySelectorAll('[data-pill]')].filter(el => el !== drag.src);
+    let index = pills.length, ref = null;
+    for (let i = 0; i < pills.length; i++) {
+      const r = pills[i].getBoundingClientRect();
+      if (y < r.top - 4) { index = i; ref = r; break; }
+      if (y <= r.bottom + 4 && x < r.left + r.width / 2) { index = i; ref = r; break; }
+    }
+    drag.target = { zone: zone.dataset.zone, index };
+    const z = zone.dataset.zone;
+    if (z === 'tray' || z === 'value' || !pills.length) { caret.classList.add('hidden'); return; }
+    const r = ref || pills[pills.length - 1].getBoundingClientRect();
+    caret.style.left = (ref ? r.left - 4 : r.right + 3) + 'px';
+    caret.style.top = r.top + 'px'; caret.style.height = r.height + 'px';
+    caret.classList.remove('hidden');
+  }
+  function cancelDrag() {
+    $('ghost').classList.add('hidden'); $('caret').classList.add('hidden');
+    drag?.src.classList.remove('opacity-30');
+    document.querySelectorAll('[data-zone].ring-2').forEach(z => z.classList.remove('ring-2', 'ring-[var(--color-primary)]', 'bg-primary/10'));
+    drag = null;
+  }
+  function drop() {
+    const d = drag; cancelDrag();
+    if (!d.target) return d.from !== 'tray' && remove(d.field, d.from);    // dropped nowhere: out
+    const { zone, index } = d.target;
+    if (zone === d.from && zone === 'tray') return;
+    // Moving within one line: the index counted the line without the pill.
+    if (zone === 'tray') return remove(d.field, d.from);
+    if (d.from === 'filters' && zone !== 'filters') remove(d.field, 'filters');
+    place(d.field, zone, index);
+  }
+
+  // ── taps ────────────────────────────────────────────────────────────────────
+  document.addEventListener('click', (e) => {
+    if (suppress) { e.preventDefault(); e.stopPropagation(); return; }
+    const t = e.target;
+    const c = t.closest('[data-concept]'); if (c) { st.concept = c.dataset.concept; return render(); }
+    const l = t.closest('[data-layout]'); if (l) { st.layout = l.dataset.layout; return render(); }
+    const g = t.closest('[data-toggle]'); if (g) { st[g.dataset.toggle] = !st[g.dataset.toggle]; return render(); }
+    if (t.closest('[data-swap]')) { [st.rows, st.cols] = [st.cols, st.rows]; st.collapsed.clear(); return render(); }
+    const f = t.closest('[data-fold]'); if (f) { const id = f.dataset.fold; st.collapsed.has(id) ? st.collapsed.delete(id) : st.collapsed.add(id); return render(); }
+    const s = t.closest('[data-slot]'); if (s) return slotMenu(s);
+    const inf = t.closest('[data-info]');
+    if (inf) { e.preventDefault(); const p = inf.closest('[data-pill]'); return $('card').classList.contains('hidden') || $('card').dataset.field !== p.dataset.field ? ($('card').dataset.field = p.dataset.field, openCard(p, p.dataset.field)) : closeCard(); }
+    const ca = t.closest('[data-card-agg]');
+    if (ca) { st.agg = ca.dataset.cardAgg; render(); return openCard(document.querySelector('[data-zone="value"] [data-pill]') || ca, st.value); }
+    const cs = t.closest('[data-card-sep]'); if (cs) { st.sep = cs.dataset.cardSep; render(); return openCard(document.querySelector('[data-zone="value"] [data-pill]') || cs, st.value); }
+    const ta = t.closest('[data-tick-all], [data-tick-none]');
+    if (ta) {
+      const f = ta.dataset.tickAll ?? ta.dataset.tickNone;
+      st.excluded[f] = ta.dataset.tickAll != null ? new Set() : new Set(VALUES[f]);
+      render(); return openCard(document.querySelector(`#filters [data-field="${CSS.escape(f)}"]`) || ta, f);
+    }
+    if (t.closest('#card')) return;
+    const ag = t.closest('[data-agg]');
+    if (ag) {
+      e.preventDefault();
+      const STEP = STEPS(st.value);
+      st.agg = STEP[(STEP.indexOf(st.agg) + 1) % STEP.length];
+      return render();
+    }
+    const af = t.closest('[data-addfilter]');
+    if (af) return window.rowMenu.open({ ...at(af), dense: true, items: [{ heading: 'Filter by' }, ...FIELDS.filter(f => !st.filters.includes(f)).map(f => ({ label: f, run: () => place(f, 'filters') }))] });
+    const p = t.closest('[data-pill]');
+    if (p) {
+      if (p.closest('[data-cycle]')) return cycle(p.dataset.field);
+      const field = p.dataset.field, from = p.dataset.from;
+      st.sel = st.sel && st.sel.field === field && st.sel.from === from ? null : { field, from };
+      return render();
+    }
+    if (st.sel) {
+      const z = t.closest('[data-zone]');
+      const pick = st.sel; st.sel = null;
+      if (z && !t.closest('[role="menu"]')) {
+        const zone = z.dataset.zone;
+        if (zone === 'tray') return remove(pick.field, pick.from);
+        if (pick.from === 'filters' && zone !== 'filters') remove(pick.field, 'filters');
+        return place(pick.field, zone);
+      }
+      if (!t.closest('[role="menu"]')) return render();
+    }
+  }, true);
+  // The card's own inputs: ticks and bounds apply as they change, and the card
+  // stays open over the redrawn page.
+  $('card').addEventListener('change', (e) => {
+    const t = e.target;
+    if (t.dataset.tick == null) return;
+    const ex = st.excluded[t.dataset.field] ||= new Set();
+    t.checked ? ex.delete(t.dataset.tick) : ex.add(t.dataset.tick);
+    render();
+  });
+  $('card').addEventListener('input', (e) => {
+    const t = e.target;
+    if (!t.dataset.range) return;
+    const g = st.ranges[t.dataset.field] ||= {};
+    const v = t.value === '' ? null : Number(t.value);
+    g[t.dataset.range] = Number.isFinite(v) ? v : null;
+    render();
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeCard(); if (st.sel) { st.sel = null; render(); } } });
+
+  render();
+})();
+</script>
+</body>
+</html>

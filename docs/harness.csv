@@ -28,7 +28,7 @@ node/build/kit-shim.mjs,run a browser-shaped gh.load kit inside Node; the bridge
 node/build/kits-index.mjs,"restamp docs/kits.csv, the kit shelf registry, every field read off lib/kits/ and the files that load it",node/build,173,npm:kits-index,.githooks/pre-commit,yes,no,yes
 node/build/pages-index.mjs,regenerate both page catalogs: pages/README.md and pages/index.html,node/build,469,npm:pages-index,.githooks/pre-commit,yes,yes,yes
 node/build/pages-shots.mjs,"regenerate pages/thumbs/*.png, one screenshot per page for the visual index",node/build,92,npm:pages-shots,.githooks/pre-commit;node/build/pages-index.mjs,no,yes,yes
-node/build/policy-skills.mjs,"writes the h plugin's skills, one user-only skill per shortcut in docs/house-policies.md; refuses a shortcut two entries claim; --check compares bytes",node/build,100,npm:policy-skills,.githooks/pre-commit,yes,yes,yes
+node/build/policy-skills.mjs,"writes the h plugin's skills, one user-only skill per shortcut in docs/house-policies.md; refuses a shortcut two entries claim; --check compares bytes",node/build,102,npm:policy-skills,.githooks/pre-commit,yes,yes,yes
 node/build/registries-load.mjs,"read and write the registry pair (docs/registries.csv, docs/properties.csv): the CSV parse, the path/fragment split, and the column order a restamp must preserve",node/build,81,imported,node/build/docs-reach.mjs;node/build/docs-readme.mjs;node/build/registries-reach.mjs;node/build/tools-index.mjs;node/build/ui-instances.mjs;node/build/ui-recipes.mjs;node/build/ui-shots.mjs;node/derived-csv-merge.mjs;node/test/;node/ui-units.mjs,no,yes,yes
 node/build/registries-reach.mjs,"stamp renders_in into docs/registries.csv: the app files that name each registry's path, empty being the Data tab's no-app-surface warning",node/build,90,npm:registries-reach,.githooks/pre-commit;node/test/,yes,yes,yes
 node/build/repo-pages-shots.mjs,regenerate pages-gallery thumbnails for another repo's pages catalog,node/build,184,argv,node/README.md,no,yes,yes
@@ -42,12 +42,13 @@ node/build/vendor-docs.mjs,"copies each traveling doc from docs/ into the defaul
 node/build/verify-build.mjs,prove a page's dist build renders byte-identical to its live gh.load chain,node/build,85,npm:verify-build,,no,yes,no
 node/check-branch-status.mjs,the stated agreement check for the branches view against home's unmerged-branches.sh,node,144,argv,,no,yes,yes
 node/checkout-setup.mjs,"configures checkout hooks and the CSV merge driver, installs browser-free development dependencies, and diagnoses readiness without regenerating tracked artifacts",node,421,npm:setup,.claude/hooks/session-githooks.sh;.claude/hooks/session-start.sh;README.md;node/README.md;node/test/,yes,yes,yes
-node/derived-csv-merge.mjs,"A git merge driver for the registry CSVs: reads docs/properties.csv for which columns a deriver owns, unions the rows on the declared key, and refuses to a normal conflict on anything else. Registered per clone by .claude/hooks/session-githooks.sh.",node,153,imported,node/checkout-setup.mjs;node/test/,yes,no,yes
+node/derived-csv-merge.mjs,"A git merge driver for the registry CSVs: reads docs/properties.csv for which columns a deriver owns, unions the rows on the declared key, and refuses to a normal conflict on anything else. Registered per clone by .claude/hooks/session-githooks.sh.",node,167,imported,node/checkout-setup.mjs;node/test/,yes,no,yes
 node/doc-index-seed.mjs,"seed the document index (state/docs.json in web-tools-private) from local checkouts, so the hourly crawl starts incremental instead of reading every Markdown file in the estate through the API",node,73,argv,,yes,no,no
 node/git-change.mjs,,node,292,argv,,yes,no,yes
 node/gold-set.mjs,,node,199,npm:gold-set,,yes,yes,no
 node/powershell-units.mjs,Emit PowerShell statement inventories or before/after review units without executing the input,node,50,argv,,yes,no,no
 node/render/cdn.mjs,the CDN URL to local-file resolver both renderers share,node/render,832,imported,node/build/repo-pages-shots.mjs;node/render/netlog.mjs;node/render/screenshot.mjs;node/test/,no,yes,yes
+node/render/chromium.mjs,,node/render,29,imported,node/build/repo-pages-shots.mjs;node/build/ui-shots.mjs;node/render/netlog.mjs;node/render/screenshot.mjs;node/test/,no,yes,yes
 node/render/measure.mjs,,node/render,178,imported,node/render/page-measures.mjs;node/render/screenshot.mjs,no,no,yes
 node/render/netlog.mjs,"the Chromium request log: what a load costs by host and endpoint, writes blocked; the boot-cost measure",node/render,157,argv,,no,yes,no
 node/render/page-measures.mjs,,node/render,116,npm:page-measures,.github/workflows/page-measures.yml,yes,no,yes
@@ -269,6 +270,8 @@ node/render/scenarios/stage-sheet-reader.mjs,,node/render/scenarios,62,driver,,n
 node/render/scenarios/stage-sniffed-name.mjs,,node/render/scenarios,25,driver,,no,no,no
 node/render/scenarios/stage-stitch.mjs,"the stage composer's stitch key: a caret in a sentence gap turns the full-stop cell into the cell that takes one back, the same swap the annotator's card makes off the same kit verb",node/render/scenarios,52,driver,,no,no,no
 node/render/scenarios/stage-transform-chip.mjs,"stages three transform-shaped items, opens one in the workbench, and asserts the table actually drew",node/render/scenarios,54,driver,,no,no,yes
+node/render/scenarios/stage-workbook-bench.mjs,,node/render/scenarios,95,driver,,no,no,no
+node/render/scenarios/stage-workbook-people.mjs,,node/render/scenarios,66,driver,,no,no,no
 node/render/scenarios/state-view.mjs,"Populate the State view for a screenshot: stub the registry reads with a current cache, a stale one, an unchecked one, and the buttonless entity index",node/render/scenarios,280,driver,,no,no,no
 node/render/scenarios/subject-action-probe.mjs,"probe: can the shell invoke a toss subject's action closure, or only reach it",node/render/scenarios,124,driver,,no,no,no
 node/render/scenarios/tending-findings.mjs,,node/render/scenarios,68,driver,,yes,no,yes
@@ -331,7 +334,7 @@ skills/hooks/account-skills.py,"compares the claude.ai account's synced skills w
 skills/hooks/ask-question-guard.sh,refuses AskUserQuestion in every session the plugin reaches and says to ask in prose; the project-settings deny in home and web-tools stays as a backstop,skills/hooks,38,hook:PreToolUse,,no,yes,yes
 skills/hooks/check-edit-policy.py,"the edit-policy gate a repo's .githooks/commit-msg calls: refuses a change that breaks the edit attribute .gitattributes gives a file, unless the message names it as an exception; --range checks a branch's commits for CI",skills/hooks,278,imported,.githooks/commit-msg;.github/workflows/test.yml,yes,no,yes
 skills/hooks/commit-consent.py,the consent check a repo's .githooks/commit-msg calls: refuses a commit that files a task or rewrites a governing document without an approval field,skills/hooks,337,imported,.githooks/commit-msg,no,yes,yes
-skills/hooks/default-files-hint.py,"says, when the user submits a prompt, that the default skill files changed since the session last read them and that it should invoke /portable:default and review them; silent when they match",skills/hooks,122,hook:UserPromptSubmit,,no,yes,yes
+skills/hooks/default-files-hint.py,"says, when the user submits a prompt, that the default skill files changed since the session last read them and that it should invoke /portable:default and review them; silent when they match",skills/hooks,128,hook:UserPromptSubmit,,no,yes,yes
 skills/hooks/environment-report.sh,"Prints at session start which commit of the setup script built the environment, and says to rebuild when it has moved on main.",skills/hooks,27,hook:SessionStart,,no,yes,yes
 skills/hooks/invoke-default.sh,tells a session to invoke /portable:default when no checkout it read @-imports the conversation rules; silent when they arrived or the repo opted out,skills/hooks,149,hook:SessionStart,,no,yes,yes
 skills/hooks/invoke-sessions.sh,tells a session to invoke /portable:sessions when no session-record store is checked out beside the project root,skills/hooks,99,hook:SessionStart,,no,yes,yes
