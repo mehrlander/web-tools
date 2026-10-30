@@ -113,8 +113,7 @@ quotes, `<`, and closing script text; ordinary data alone does not check escapin
 
 ## Title-tips and panel-tips
 
-This section is the one statement of the house popup rule; rule 11 of the
-style guide, the kit headers and page comments point here.
+This section is the one statement of the house popup rule; rule 11 of the style guide, the kit headers and page comments point here. Rule 13 of the [style guide](../SKILL.md#the-rules) rules out modal dialogs.
 
 A popup is a **title-tip** or a **panel-tip**, and one question decides which:
 **can the reader tap anything inside it?** A link, a ↗ reference, a copy button,

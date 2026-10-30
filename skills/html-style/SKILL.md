@@ -27,12 +27,7 @@ what?", then give the compared things one place:
 
 ## The rules
 
-**1. No stat cards.** A row of tiles, each a label over a big number, spends the
-page's best space on figures with no comparison, baseline, denominator, or
-movement. Put a headline figure in the header as one compact line, such as
-`62/100 category · 35/100 systems`, and supporting analysis one tap away in an
-info dialog. Where figures deserve room, give them a form that holds a
-comparison. Treat any `stats`, `stat-value`, or KPI-tile grid as a defect.
+**1. No stat cards.** A row of tiles, each a label over a big number, spends the page's best space on figures with no comparison, baseline, denominator, or movement. Put a headline figure in the header as one compact line, such as `62/100 category · 35/100 systems`, and supporting analysis in a panel-tip. Where figures deserve room, give them a form that holds a comparison. Treat any `stats`, `stat-value`, or KPI-tile grid as a defect.
 
 **2. No explanatory prose.** GitHub doesn't explain and neither should we. Use
 structure, labels, and controls to show relationships: a range control starting
@@ -122,6 +117,8 @@ list sits beside the strip; on a phone it stays in view above the strip. The
 reference is the linked-swiper kit
 ([`linked-swiper.js`](https://github.com/mehrlander/web-tools/blob/main/lib/kits/linked-swiper.js)),
 coded `linked-swiper`.
+
+**13. Avoid modal dialogs.** Consider a panel-tip, the deck takeover (rule 4), or another more fluid alternative.
 
 ## Handing a page over
 
