@@ -303,6 +303,25 @@ test('a wholly removed block still has its one reading', () => {
   });
 });
 
+test('with `group`, a stretch of new paragraphs is one container, and reverting its entries takes it all back', () => {
+  const base = 'One.\n\nTwo.\n';
+  const next = 'One.\n\nNew first.\n\nNew second.\n\nNew third.\n\nTwo, reworded here.\n';
+  const gs = mdDiff.groups(base, next).filter(Array.isArray);
+  assert.deepEqual(gs.map((g) => g.map((e) => e.kind)), [['added', 'added', 'added'], ['changed']],
+    'the three added paragraphs are one group, the reworded one its own');
+  assert.equal(mdDiff.revert(base, next, gs[0]), 'One.\n\nTwo, reworded here.\n');
+  const host = window.document.createElement('div');
+  window.document.body.append(host);
+  return mdDiff.render(host, base, next, { group: true }).then((h) => {
+    assert.equal(host.querySelectorAll('.md-diff-change').length, 2);
+    assert.match(host.querySelector('.md-diff-change').textContent, /New first[\s\S]*New third/);
+    return mdDiff.render(host, base, next);
+  }).then(() => {
+    assert.equal(host.querySelectorAll('.md-diff-change').length, 4, 'without it, one container per block');
+    host.remove();
+  });
+});
+
 test('a change carries a note and actions that show only while it is selected', () => {
   // The host's explanation of a change (a proposal's reason, a call's why) and
   // what can be done about it, shown with the selection the way Dictate's
