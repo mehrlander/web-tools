@@ -50,6 +50,19 @@ Use the standard term a general reader knows, in a plain, dry register.
 
 **Detail:** [QUALIFIED-WRITING.md](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md), rule 2.
 
+### No em dashes · `/h:dash`, `h:emdash`
+
+Join ideas with a colon, a comma, a semicolon, parentheses or a new sentence, not a dash.
+
+- Em dashes may have been fine once, but they are now an easy button for AI, and we would rather stick to standard professional writing.
+- A quotation keeps the punctuation of its source.
+
+**Covers:** all prose a session writes, including text drafted for the owner to send.
+
+**Detail:** [QUALIFIED-WRITING.md](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md), its opening paragraph.
+
+**See also:** [peeves](https://github.com/mehrlander/web-tools/blob/main/skills/peeves/peeves.csv) P64, percussive negation and contrast.
+
 ### Showing · `/h:show`
 
 Show rather than explain.
@@ -120,6 +133,14 @@ Link every file, pull request, session and page a reply mentions.
 **Covers:** replies, documents and PR bodies.
 
 **Detail:** [CONVERSATION.md](https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md), "Reference is a link"; in web-tools, [showing.md](https://github.com/mehrlander/web-tools/blob/main/docs/showing.md) and `npm run showing`.
+
+### Merged means closed · `/h:merged`
+
+A merged branch takes no further commits; follow-up work starts again from the current tip of the target branch and opens a new pull request.
+
+**Covers:** every branch a session pushes, in any repo.
+
+**Detail:** [post-merge-branch-mutation.md](https://github.com/mehrlander/web-tools/blob/main/docs/github/post-merge-branch-mutation.md); [CONVERSATION.md](https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md), the 🟣 Merged state.
 
 ## Evidence and confidence
 
@@ -255,3 +276,11 @@ A script outside `lib/` goes with its caller.
 **Covers:** web-tools.
 
 **Detail:** [code-layers.md](https://github.com/mehrlander/web-tools/blob/main/docs/code-layers.md), "Outside `lib/`".
+
+### Edit the source · `/h:source`
+
+Change a generated file by changing its source and running its generator.
+
+**Covers:** every file a generator writes, in any repo: bundles, boards, catalogs and payloads.
+
+**Detail:** [CONSTELLATION.md](https://github.com/mehrlander/web-tools/blob/main/docs/CONSTELLATION.md), principle 1; web-tools [CLAUDE.md](https://github.com/mehrlander/web-tools/blob/main/CLAUDE.md), "The pre-build & the build-on-commit hook".
