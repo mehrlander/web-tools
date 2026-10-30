@@ -66,11 +66,11 @@ public partial class MainWindow : Window
             local.NavigationStarting += (_, a) => {
                 if (NavigationPolicy.IsLocal(a.Uri)) return;
                 a.Cancel = true;
-                if (NavigationPolicy.IsUsagePage(a.Uri)) OpenExternal(a.Uri);
+                if (NavigationPolicy.IsExternalPage(a.Uri)) OpenExternal(a.Uri);
             };
             local.NewWindowRequested += (_, a) => {
                 a.Handled = true;
-                if (NavigationPolicy.IsUsagePage(a.Uri)) OpenExternal(a.Uri);
+                if (NavigationPolicy.IsExternalPage(a.Uri)) OpenExternal(a.Uri);
             };
             local.WebMessageReceived += LaptopMessage;
             local.NavigationCompleted += async (_, a) => {

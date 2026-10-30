@@ -43,7 +43,10 @@ const click = selector => { const node = doc.querySelector(selector); assert.ok(
 snapshot();
 check(doc.querySelector('[data-filter=all]').getAttribute('aria-pressed') === 'true' && doc.querySelectorAll('#errands .activity-row').length === 7, 'Desktop opens on Recent, including activity that an older app version marked seen.');
 check(doc.querySelectorAll('#assistants > article').length === 3, 'All three assistants have a prominent lane.');
-check(doc.querySelectorAll('#assistants svg').length === 3, 'Assistant marks come from the existing shared kits.');
+check(doc.querySelectorAll('#assistants [data-assistant] svg').length === 3, 'Assistant marks come from the existing shared kits.');
+const assistantLinks = [...doc.querySelectorAll('#assistants [data-provider-link]')];
+check(assistantLinks.length === 3 && assistantLinks.map(a=>a.href).join('|') === 'https://chatgpt.com/|https://antigravity.google.com/|https://claude.ai/code','Desktop assistant headers offer the same three launch destinations as the phone.');
+check(assistantLinks.every(a=>a.target === '_blank' && a.rel.includes('noopener') && a.getAttribute('aria-label')) && !doc.querySelector('#assistants button a'),'Desktop launch controls are separate accessible links without nested controls.');
 data.usage = [{provider:'codex',status:'available',observedAt:now,windows:[{id:'weekly',label:'codex',usedPercent:3,durationMinutes:10080,resetsAt:new Date(Date.now()+86400000).toISOString()}]}];
 snapshot();
 check(doc.querySelector('#assistants [role=progressbar]')?.getAttribute('aria-valuenow') === '3','The desktop assistant header shows reported usage beside the assistant.');

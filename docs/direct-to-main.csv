@@ -1,4 +1,4 @@
-﻿process,target_repo,path_pattern,writer,sync_discipline,gloss
+process,target_repo,path_pattern,writer,sync_discipline,gloss
 tracker-state,all,"*/tracker/tasks/*.md, */tracker/board.*, trackers.md",session-web;session-local,immediate push on commit,"cross-session memory and backlog status, written through the tasks skill"
 session-records,web-tools-private,"sessions/YYYY/MM/*.json",session-record,throttled push during session,"preserving ephemeral container transcripts, written by the on-stop hook with git plumbing"
 session-turns,web-tools-private,"sessions/activity/YYYY-MM-DD/*.json",session-activity,conditional push,"bounded Claude cloud prompt and response signals; tool reports at most every thirty seconds"
