@@ -18,7 +18,7 @@ const STORE = 'me/private';
 const DOC = 'One.\n\nTwo.\n\nThree.\n\nFour.\n';
 const CALL = { id: 'c0ffee01-doc', session: 'c0ffee01', kind: 'documentation', question: 'Apply 4 edits to docs/x.md?',
   brief: 'Tidy the doc.', file: 'me/widget@main:docs/x.md', recommend: 'Apply all three',
-  edits: [{ from: 'One.', to: 'First.', why: 'clearer' }, { from: 'Two.', to: 'Second.', background: 'Two reads as a count.', proposal: 'Names the order.' }, { from: 'Gone.', to: 'Nothing.' },
+  edits: [{ from: 'One.', to: 'First.', why: 'clearer' }, { from: 'Two.', to: 'Second.', background: 'Two reads as a count on 2026-10-29.', proposal: 'Names the **order** with `Second`.' }, { from: 'Gone.', to: 'Nothing.' },
           { from: 'Three.\n\nFour.', to: 'Third.\n\nFourth.' }] };
 const puts = [];
 class FakeGH {
@@ -146,20 +146,30 @@ test('Old and New draw the whole file as it stands and as proposed; Changes keep
   assert.equal(root().querySelector('[data-doc-file]'), null, 'no link out to the file');
 });
 
-test('an edit with a background and a proposal carries a book and a bulb, each opening its text', async () => {
+test('an edit with a background and a proposal carries a book and a bulb, each opening its text alone', async () => {
   const m = mark(2);
   assert.equal(m.dataset.titleTip, undefined, 'its marks speak for it');
   const tips = [...m.querySelectorAll('[data-doc-tip]')].map((b) => b.dataset.docTip);
   assert.deepEqual(tips, ['background', 'proposal']);
+  const panel = () => box(2).querySelector('[data-doc-tip-panel]');
   m.querySelector('[data-doc-tip="proposal"]').click();
   await tick(2);
-  const panel = box(2).querySelector('[data-doc-tip-panel]');
-  assert.equal(panel?.dataset.docTipPanel, 'proposal');
-  assert.match(panel.textContent, /Names the order\./);
+  assert.equal(panel()?.dataset.docTipPanel, 'proposal');
+  assert.equal(panel().textContent, 'Names the order with Second.', 'the text alone: no label, no ✕');
+  assert.equal(panel().querySelector('strong')?.textContent, 'order');
+  assert.equal(panel().querySelector('code')?.textContent, 'Second');
   m.querySelector('[data-doc-tip="background"]').click();
   await tick(2);
-  assert.equal(box(2).querySelectorAll('[data-doc-tip-panel]').length, 1, 'one panel at a time');
-  assert.match(box(2).querySelector('[data-doc-tip-panel]').textContent, /Two reads as a count\./);
+  assert.equal(box(2).querySelectorAll('[data-doc-tip-panel]').length, 1, 'one tip at a time');
+  assert.equal(panel().querySelector('.whitespace-nowrap')?.textContent, '2026-10-29', 'a date stays on one line');
+  m.querySelector('[data-doc-tip="background"]').click();
+  await tick(2);
+  assert.equal(panel(), null, 'a second tap on its mark closes it');
+  m.querySelector('[data-doc-tip="proposal"]').click();
+  await tick(2);
+  panel().click();
+  await tick(2);
+  assert.equal(panel(), null, 'and so does a tap on the tip');
   assert.equal(mark(1).querySelector('[data-doc-tip]'), null, 'an edit without them keeps its why');
 });
 
