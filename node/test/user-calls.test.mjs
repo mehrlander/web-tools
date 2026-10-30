@@ -5,7 +5,8 @@
 // would stage it (one block the file still holds), one spans two blocks and
 // so is never staged, and one was applied long ago; the fourth names a file
 // that cannot be read. What is under test: which calls are open, what counts
-// as pending, the per-file fold, and the links.
+// as pending, what is kept beside it as unstageable or moot and why, the per-file
+// fold, and the links.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -91,7 +92,25 @@ test('a proposal counts only as Dictate would stage it: one block the file still
     notes: [{ by: 'owner', at: '2026-10-07T00:00:01Z', note: 'check the tone' }] }],
     'each staged block carries its text as it stands and as proposed, its kind, its reason, its passage ids and its comments');
   assert.deepEqual(x.calls.map((c) => c.id), ['a1-doc'], 'the open documentation call is filed under its document, ref dropped');
-  assert.equal(by.has('mehrlander/web-tools:docs/missing.md'), false, 'a file that cannot be read holds nothing');
+  assert.deepEqual(x.unstaged.map((u) => [u.from, u.reason, u.kind, u.basis]), [
+    ['First of a run.\n\nSecond of the run.', 'spans', 'edit', 'https://github.com/mehrlander/web-tools/pull/2'],
+  ], 'what Dictate cannot stage and a person still could is kept beside, with its reason; the rejected one is answered and left out');
+  assert.deepEqual(x.moot.map((u) => [u.from, u.reason, u.kind]), [['Applied long ago.', 'gone', 'edit']],
+    'one whose text is gone is moot, kept apart');
+  const missing = by.get('mehrlander/web-tools:docs/missing.md');
+  assert.equal(missing.staged, 0, 'a file main no longer holds stages nothing');
+  assert.deepEqual(missing.unstaged, []);
+  assert.deepEqual(missing.moot.map((u) => [u.from, u.to, u.reason]), [['Anything.', 'Else.', 'file']], 'its proposals are moot, and say why');
+});
+
+test('a pair whose proposed text is in the file has been applied, and is not counted as unstageable', async () => {
+  const keep = FILES['mehrlander/web-tools:docs/x.md'];
+  FILES['mehrlander/web-tools:docs/x.md'] = keep.replace('Tail.', 'Tail.\n\nGone.');
+  try {
+    const x = (await U.pendingEdits({ fresh: true })).get('mehrlander/web-tools:docs/x.md');
+    assert.deepEqual(x.unstaged.map((u) => u.reason), ['spans']);
+    assert.deepEqual(x.moot, [], 'applied is neither');
+  } finally { FILES['mehrlander/web-tools:docs/x.md'] = keep; }
 });
 
 test("links: every call answered on its call page, Dictate for a file's proposals, at the version the page runs at", () => {
