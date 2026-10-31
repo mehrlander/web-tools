@@ -199,6 +199,7 @@ node/render/scenarios/md-diff-one-height.mjs,,node/render/scenarios,63,driver,,n
 node/render/scenarios/md-diff-one-stop.mjs,,node/render/scenarios,51,driver,,no,no,no
 node/render/scenarios/nest-probe.mjs,"probe: a nested self-toss's address bar, and the FAB's actions at depth two",node/render/scenarios,44,driver,,no,no,no
 node/render/scenarios/open-drawer.mjs,the FAB drawer open with the take grid scrolled into view,node/render/scenarios,20,driver,,no,no,no
+node/render/scenarios/originals.mjs,,node/render/scenarios,138,driver,,no,no,no
 node/render/scenarios/outline-follows-page.mjs,scroll the page and check every live outline stays on the thing it is drawn around,node/render/scenarios,78,driver,,no,no,no
 node/render/scenarios/paste-address-routes.mjs,,node/render/scenarios,52,driver,,no,no,no
 node/render/scenarios/paste-anywhere.mjs,dispatches a real two-flavor ClipboardEvent on a non-Stage view and reports where the app-wide paste routed it,node/render/scenarios,42,driver,,no,no,no
