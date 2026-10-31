@@ -24,11 +24,11 @@
 <!--
   A STAGED TRANSFORM. A session hands over a function in this page's link
   (node/paste-run-link.mjs mints it); the reader pastes data the session should
-  not hold, the function runs on it here, and the reader copies the result, or
+  not see, the function runs on it here, and the reader copies the result, or
   sends it to the stage aimed where the link says, to hand it back. Nothing
   leaves the page by itself.
 
-  The link: #gz= of {title, ask, fn, send?} as JSON, through kits/gz-payload.js.
+  The link: #gz= of {title?, ask?, fn, send?} as JSON, through kits/gz-payload.js.
   fn is the source of a function (rows, text) => result: rows are the paste as
   a table (a header row and string cells, tab or comma separated), text the
   paste itself. A result that is an array of objects shows as a table and

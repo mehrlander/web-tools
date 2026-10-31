@@ -22,6 +22,10 @@ test('the link carries the title, the ask and the function, and opens the page',
   assert.deepEqual(payload(url), { title: 'Counts', ask: 'Paste a sheet', fn: '(rows) => rows.length' });
 });
 
+test('the title and the ask are optional', () => {
+  assert.deepEqual(payload(mint(fn)), { fn: '(rows) => rows.length' });
+});
+
 test('--send splits into the stage target and the file name', () => {
   const p = payload(mint(fn, '--title', 'T', '--send', 'mehrlander/home@main:projects/x/dump/out.tsv'));
   assert.deepEqual(p.send, { to: 'mehrlander/home@main:projects/x/dump', file: 'out.tsv' });
