@@ -609,50 +609,50 @@ test('a file that fails to decode is offered its encoding, and the retry compare
 test('Changes shows what the work computer is known to hold against GitHub now, and opens by default when they differ', async () => {
   const xaml = `${P}/app/Forms/Bookmarks/Bookmarks.xaml`, ctl = `${P}/app/Forms/Bookmarks/Bookmarks.ps1`, original = files[xaml];
   const writes = requests.filter(r => r.method !== 'GET').length;
-  const views = () => el.querySelector('[data-source-views]');
   const diff = () => el.querySelector('[data-source-diff]');
-  // Hidden by its own class or by a pane of the file component around it.
-  const shown = node => { for (let n = node; n && !n.hasAttribute?.('data-ps-file'); n = n.parentElement) if (/(^|\s)hidden(\s|$)/.test(n.className)) return false; return true; };
-  const tabs = () => [...views().querySelectorAll('[role=tab]')].map(b => b.textContent.trim());
+  // Hidden by its own class or by a pane around it; the view flips these by class, not x-show.
+  const shown = node => { for (let n = node; n && n !== el; n = n.parentElement) if (/(^|\s)hidden(\s|$)/.test(n.className)) return false; return true; };
+  const tabs = () => data.detailTabs.map(t => t.label);
   // No action row: no Files, no Stage, no Open code workspace, no Mark as installed.
   data.select(xaml); await settle();
   const labels = q('button').map(b => b.textContent.trim());
   for (const gone of ['Files', 'Stage', 'Open code workspace', 'Mark as installed']) assert.ok(!labels.includes(gone), gone + ' is gone');
   // Recorded and unchanged since: nothing to compare, so Code only.
   assert.equal(data.stateOf(xaml).state, 'reported');
-  assert.ok(!tabs().includes('Line changes')); assert.equal(data.sourceView, 'code');
+  assert.ok(!tabs().includes('Changes')); assert.equal(data.shownTab, 'code');
   // GitHub moves past the recorded version: Changes opens on the update.
   files[xaml] = '<Window>\n  <Grid/>\n</Window>\n'; advanceHead();
   await data.reload(); data.select(xaml); await settle(); await settle();
   assert.equal(data.stateOf(xaml).state, 'changed');
-  assert.equal(data.sourceView, 'changes', 'the update is the default view');
-  assert.ok(tabs().includes('Line changes')); assert.ok(shown(diff()));
+  assert.equal(data.shownTab, 'changes', 'the update is the default view');
+  assert.equal(data.changesMode, 'file', 'XAML has no blocks, so Changes is the whole file');
+  assert.ok(!shown(el.querySelector('[data-changes-mode]')), 'no Blocks switch without blocks');
+  assert.ok(shown(diff()));
   assert.ok(!shown(el.querySelector('[data-source-plain]')));
   assert.match(data.baseline.label, /^reported installed at [0-9a-f]{7}$/);
   assert.deepEqual([...data.diffRows.filter(r => r.type !== 'eq').map(r => r.type + ' ' + r.text)],
     ['del <Window/>', 'add <Window>', 'add   <Grid/>', 'add </Window>']);
   assert.match(diff().textContent, /GitHub now at/);
-  // Code is one tap away and Changes comes back.
-  [...views().querySelectorAll('button')].find(b => b.textContent === 'Code').click(); await settle();
-  assert.equal(data.sourceView, 'code'); assert.ok(shown(el.querySelector('[data-source-plain]'))); assert.ok(!shown(diff()));
+  // File is one tap away and Changes comes back.
+  el.querySelector('[data-detail-tabs] [data-tab=code]').click(); await settle();
+  assert.equal(data.shownTab, 'code'); assert.ok(shown(el.querySelector('[data-source-plain]'))); assert.ok(!shown(diff()));
   // A copy supplied from the work computer is newer evidence and takes over.
   await data.compareDrop(dropped('<Window>\n</Window>\n')); await settle(); await settle();
-  assert.equal(data.sourceView, 'code', 'a supplied copy is described first, not opened as a diff');
   assert.equal(data.copyNote.title, 'This copy differs from GitHub.');
   assert.deepEqual(JSON.parse(JSON.stringify(data.copyNote.notes)), ['No named control or resource key changed; the difference is in layout or values.']);
   assert.equal(data.shownTab, 'copy', 'a copy opens on what it holds');
   [...el.querySelectorAll('[data-copy-summary] button')].find(b => b.textContent === 'Show line changes').click(); await settle();
-  assert.equal(data.sourceView, 'changes'); assert.equal(data.shownTab, 'code');
+  assert.equal(data.shownTab, 'changes'); assert.equal(data.changesMode, 'file'); assert.ok(shown(diff()));
   assert.equal(data.baseline.label, 'Supplied copy');
   assert.deepEqual([...data.diffRows.filter(r => r.type !== 'eq').map(r => r.type + ' ' + r.text)], ['add   <Grid/>']);
-  // The menu's Show changes returns to it from Code.
-  data.setSourceView('code'); await settle();
+  // The menu's Show changes returns to it from File.
+  data.setDetailTab('code'); await settle();
   await data.runAction(xaml, 'changes'); await settle();
-  assert.equal(data.sourceView, 'changes');
+  assert.equal(data.shownTab, 'changes'); assert.equal(data.changesMode, 'file');
   // No evidence and nothing to guess: Code, with no note. A new file's
   // pending box already says it is new; an assumed-synced file says nothing.
   data.select(ctl); await settle(); await settle();
-  assert.equal(data.baseline, null); assert.equal(data.sourceView, 'code'); assert.equal(data.baselineNote, '');
+  assert.equal(data.baseline, null); assert.equal(data.shownTab, 'code'); assert.equal(data.baselineNote, '');
   data.select(`${P}/app/Profile.ps1`); await settle(); await settle();
   assert.equal(data.baselineNote, '');
   assert.equal(requests.filter(r => r.method !== 'GET').length, writes, 'Changes writes nothing');
@@ -670,7 +670,7 @@ test('a pending update with no record compares from the version before its chang
   history = { path: profile, until: '2026-09-20T00:00:00Z', revision };
   await data.reload(); data.select(profile); await settle(); await settle();
   assert.equal(data.stateOf(profile).state, 'pending-changed');
-  assert.equal(data.sourceView, 'changes', 'the pending update is the default view');
+  assert.equal(data.shownTab, 'changes', 'the pending update is the default view');
   assert.equal(data.baseline.label, 'Before the pending change (bbbbbbb, before 2026-09-20)');
   assert.deepEqual([...data.diffRows.map(r => r.type + ' ' + r.text)], ['del profile v1', 'add profile']);
   // No earlier version: say so.
@@ -853,7 +853,7 @@ test('a pasted copy is described by function before any diff, and can open as a 
   // In the adopter's direction: what taking GitHub's version would do to this copy.
   assert.deepEqual([...note.rows.map(r => r.name + ': ' + r.label)], ['Get-Mark: Differs from GitHub', 'Old-One: Not in this copy', 'New-One: Only in this copy']);
   assert.deepEqual([...note.notes], ['New 5.1 problem at line 3: The ternary operator (? :) requires PowerShell 7 or later; Windows PowerShell 5.1 needs if and else.']);
-  assert.equal(data.sourceView, 'code', 'no jump to the line diff');
+  assert.equal(data.shownTab, 'copy', 'no jump to the line diff');
   assert.equal(data.shownTab, 'copy');
   assert.match(el.querySelector('[data-copy-summary]').textContent, /New-One\s*Only in this copy/);
   window.PowerShellEditor = { create: async (host, cfg) => ({ host, cfg, open() {}, readOnly() {}, go() {}, command() {}, focus() {}, refresh() {}, destroy() {} }) };

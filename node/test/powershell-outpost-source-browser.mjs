@@ -215,12 +215,12 @@ try {
     await desk.page.locator('[data-source-diff]').waitFor({ state: 'visible' });
     assert.equal(await desk.page.evaluate(() => window.__shell.compared.length), 0);
     assert.equal(await desk.page.evaluate(() => Alpine.$data(document.querySelector('#mount')).checks[0].content), 'function Get-Message {}\n');
-    await desk.page.locator('[data-source-views] button', { hasText: 'Code' }).click();
+    await desk.page.locator('[data-detail-tabs] [data-tab=code]').click();
     assert.equal((await desk.editor()).text, display(files[A]), 'a drop compares; it does not insert into the read-only view');
     await desk.page.waitForFunction(() => !document.querySelector('[data-source-file]').classList.contains('ring-2'));
     assert.equal(await desk.page.evaluate(() => document.querySelector('[data-source-file]').classList.contains('border-base-300')), true, 'the box settles to its quiet border');
   });
-  await check('a file changed since it was recorded opens on Changes, a card per change, and Code is one tap away', async () => {
+  await check('a file changed since it was recorded opens on Changes, a card per change, the whole file one switch away, and File one tap away', async () => {
     await desk.select(C); await desk.settled();
     await desk.page.waitForFunction(() => Alpine.$data(document.querySelector('#mount')).shownTab === 'changes');
     const card = desk.page.locator('[data-change-strip] [data-unit]').first();
@@ -229,8 +229,9 @@ try {
     const lines = await card.locator('[data-unit-diff] [data-changed]').allInnerTexts();
     assert.deepEqual(lines.map(t => t.replace(/\s+/g, ' ').trim()), ['− $Step = 1', '+ param([int]$Step = 2)']);
     assert.equal(await desk.page.locator('[data-source] .cm-editor').isVisible(), false);
-    // Code holds the whole-file line diff, opened on the update.
-    await desk.page.locator('[data-detail-tabs] [data-tab=code]').click();
+    if (process.env.SHOTS) await desk.page.screenshot({ path: path.join(process.env.SHOTS, 'source-pane-blocks.png'), fullPage: true });
+    // Whole file shows the same comparison as one line diff.
+    await desk.page.locator('[data-changes-mode] button', { hasText: 'Whole file' }).click();
     await desk.page.locator('[data-source-diff]').waitFor({ state: 'visible' });
     const rows = await desk.page.locator('[data-source-diff] [role=row]').evaluateAll(rs => rs
       .map(r => r.querySelector('[aria-label]').getAttribute('aria-label') + ' ' + r.querySelector('pre').textContent)
@@ -240,7 +241,7 @@ try {
     for (const label of ['Files', 'Stage', 'Open code workspace', 'Mark as installed']) assert.equal(await desk.page.getByRole('button', { name: label, exact: true }).count(), 0, label + ' is gone');
     assert.equal(await desk.page.locator('[data-row]', { hasText: 'C.psm1' }).locator('[data-status]').getAttribute('data-title-tip'), 'Update pending');
     if (process.env.SHOTS) await desk.page.screenshot({ path: path.join(process.env.SHOTS, 'source-pane-changes.png'), fullPage: true });
-    await desk.page.locator('[data-source-views] button', { hasText: 'Code' }).click();
+    await desk.page.locator('[data-detail-tabs] [data-tab=code]').click();
     await desk.page.locator('[data-source] .cm-editor').waitFor({ state: 'visible' });
     assert.equal((await desk.editor()).text, files[C]);
     assert.equal(await desk.page.locator('[data-source-diff]').isVisible(), false);
@@ -289,7 +290,7 @@ try {
     assert.equal(await menu.getByRole('button', { name: 'Confirm installed…' }).isVisible(), true);
     if (process.env.SHOTS) await phone.page.screenshot({ path: path.join(process.env.SHOTS, 'status-menu-phone.png') });
     await phone.page.keyboard.press('Escape');
-    assert.equal(await phone.page.getByLabel('Copy GitHub text', { exact: true }).isVisible(), true, 'Copy shows on the GitHub tab');
+    assert.equal(await phone.page.getByLabel('Copy GitHub text', { exact: true }).isVisible(), true, 'Copy shows on the File tab');
     await phone.page.locator('[data-detail-tabs] [data-tab=copy]').click();
     assert.equal(await phone.page.locator('[data-copy-zone]').isVisible(), true, 'the paste zone is one tab over');
     await phone.page.locator('[data-detail-tabs] [data-tab=code]').click();
@@ -343,7 +344,7 @@ try {
   await check('parser load failure leaves source review available and selection disabled', async () => {
     await noParser.select(C); await noParser.settled();
     await noParser.page.waitForFunction(() => Alpine.$data(document.querySelector('#mount')).unitError.includes('could not load'));
-    assert.equal(await noParser.page.locator('[data-source-diff]').isVisible(), true, 'the whole-file line diff still shows on Code');
+    assert.equal(await noParser.page.locator('[data-source-diff]').isVisible(), true, 'the whole-file line diff still shows on Changes');
     await noParser.page.locator('[data-detail-tabs] [data-tab=changes]').click();
     assert.match(await noParser.page.locator('[data-unit-review]').innerText(), /could not load/);
     assert.equal(await noParser.page.getByRole('button', { name: 'Preview update', exact: true }).count(), 0, 'no cards, so nothing to choose or preview');
