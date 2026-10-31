@@ -190,8 +190,8 @@ try {
     for (const gone of ['Download GitHub text', 'Copy transfer script', 'Compare a file with this file'])
       assert.equal(await desk.page.getByLabel(gone, { exact: true }).count(), 0, gone + ' is gone');
     assert.equal(await desk.page.locator('textarea').count(), 0);
-    // The paste zone is the Your copy tab's; a drop anywhere on the column still lands.
-    await desk.page.locator('[data-detail-tabs] [data-tab=copy]').click();
+    // The paste zone closes the Changes tab; a drop anywhere on the column still lands.
+    await desk.page.locator('[data-detail-tabs] [data-tab=changes]').click();
     await desk.page.locator('[data-copy-zone]').click();
     assert.equal(await desk.page.evaluate(() => window.__shell.pasted), 1);
     await desk.page.locator('[data-detail-tabs] [data-tab=code]').click();
@@ -207,7 +207,7 @@ try {
     // The view compares the drop itself, in memory: a summary says what the
     // copy is, Changes is one tap away, and nothing goes to the shell's
     // stored-check flow.
-    await desk.page.waitForFunction(() => Alpine.$data(document.querySelector('#mount')).baseline?.label === 'Supplied copy');
+    await desk.page.waitForFunction(() => Alpine.$data(document.querySelector('#mount')).baseline?.label === 'Pasted copy');
     await desk.page.locator('[data-copy-summary]').waitFor({ state: 'visible' });
     assert.match(await desk.page.locator('[data-copy-summary]').innerText(), /differs from GitHub[\s\S]*Get-Message\s+Differs from GitHub/);
     if (process.env.SHOTS) await desk.page.screenshot({ path: path.join(process.env.SHOTS, 'copy-summary-desktop.png'), fullPage: true });
@@ -291,7 +291,7 @@ try {
     if (process.env.SHOTS) await phone.page.screenshot({ path: path.join(process.env.SHOTS, 'status-menu-phone.png') });
     await phone.page.keyboard.press('Escape');
     assert.equal(await phone.page.getByLabel('Copy GitHub text', { exact: true }).isVisible(), true, 'Copy shows on the File tab');
-    await phone.page.locator('[data-detail-tabs] [data-tab=copy]').click();
+    await phone.page.locator('[data-detail-tabs] [data-tab=changes]').click();
     assert.equal(await phone.page.locator('[data-copy-zone]').isVisible(), true, 'the paste zone is one tab over');
     await phone.page.locator('[data-detail-tabs] [data-tab=code]').click();
     await phone.page.locator('[data-source] .cm-editor').waitFor({ state: 'visible' });
@@ -310,7 +310,7 @@ try {
       const local = oldC + 'function Local-Only { "keep me" }\n';
       await selected.page.evaluate(async text => { const v = Alpine.$data(document.querySelector('#mount')); await v.takeCopy(v.target(), text, 'C.psm1', 'paste'); }, local);
       await selected.page.waitForFunction(() => { const v = Alpine.$data(document.querySelector('#mount')); return v.unitReview && !v.unitBusy; });
-      assert.equal(await selected.page.evaluate(() => Alpine.$data(document.querySelector('#mount')).shownTab), 'copy', 'a copy opens on what it holds');
+      assert.equal(await selected.page.evaluate(() => Alpine.$data(document.querySelector('#mount')).shownTab), 'changes', 'a copy opens on what it holds');
       assert.match(await selected.page.locator('[data-copy-summary]').innerText(), /is the earlier version: none of GitHub's 1 change is in it|has 0 of GitHub's 1 change/);
       await selected.page.locator('[data-detail-tabs] [data-tab=changes]').click();
       await selected.page.getByLabel('Select Get-Count', { exact: true }).check();
