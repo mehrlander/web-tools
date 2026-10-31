@@ -21,7 +21,7 @@ public record Place(string Id, string Name, string Detail);
 public record RecentFile(string Id, string Name, DateTimeOffset ModifiedAt, long Bytes);
 public record LocalSession(string Id, string Provider, string Title, string State,
     DateTimeOffset UpdatedAt, string Workspace, string Detail = "", string Location = "Laptop",
-    SessionCheckpoint? Checkpoint = null, SessionTurn? Turn = null, LocalWork? Work = null);
+    SessionCheckpoint? Checkpoint = null, SessionTurn? Turn = null, LocalWork? Work = null, string? SourceUrl = null);
 public record WorkSegment(string Id, string Headline, string Summary, DateTimeOffset At,
     DateTimeOffset GeneratedAt, List<string> Evidence);
 public record LocalWork(DateTimeOffset Through, int Agents, List<WorkSegment> Segments, List<string>? Members = null);
@@ -31,16 +31,17 @@ public record CheckpointTurn(int Turn, string Headline, string Summary, int File
 public record SessionCheckpoint(string Summary, string Headline, DateTimeOffset At,
     DateTimeOffset? AnalyzedAt, List<CheckpointTurn> Turns, List<WorkLink> Links);
 public record SessionSnapshot(List<LocalSession> Items, List<string> Notices);
-public record CloudSnapshot(List<LocalSession> Items, DateTimeOffset? CapturedAt, string? Notice);
+public record CloudSnapshot(List<LocalSession> Items, DateTimeOffset? CapturedAt, string? Notice,
+    Dictionary<string, string>? SessionUrls = null);
 public record ActivityEvent(string Id, string Provider, string Title, string State,
     DateTimeOffset At, string Detail, string Location, string SessionId);
 public record ActivityChange(string Key, string Id, string Provider, string Title, string State,
-    DateTimeOffset At, string Detail, string Location, string? Url);
+    DateTimeOffset At, string Detail, string Location, string? Url, string? SessionUrl = null);
 public record LaptopSnapshot(ActivitySnapshot Activity, DaemonSignal Daemon,
     List<ApplicationSignal> Applications, List<Place> Places, List<RecentFile> Downloads,
     string MachineName, DateTimeOffset SeenThrough, SessionSnapshot Sessions, double ScanMilliseconds,
     CloudSnapshot Cloud, List<ActivityEvent> Events, List<ActivityChange>? Changes = null,
-    List<ProviderUsage>? Usage = null);
+    List<ProviderUsage>? Usage = null, string? GeminiInstanceId = null);
 
 public static class Activity
 {
@@ -94,8 +95,11 @@ public static class NavigationPolicy
     public static bool IsUsagePage(string? address) => address is
         "https://chatgpt.com/settings/usage" or "https://claude.ai/settings/usage" or "https://antigravity.google.com/";
 
-    public static bool IsExternalPage(string? address) => IsUsagePage(address) || address is
-        "https://chatgpt.com/" or "https://claude.ai/code";
+    public static bool IsExternalPage(string? address) => IsWebTools(address) || IsUsagePage(address) || address is
+        "https://chatgpt.com/" or "https://claude.ai/code" || SessionLinks.Safe(address) is not null;
+
+    public static string? ExternalTarget(string? address) => Uri.TryCreate(address,UriKind.Absolute,out var uri)
+        && (uri.Scheme is "https" or "http" || SessionLinks.Safe(address) is not null) ? uri.AbsoluteUri : null;
 
     public static bool IsWebTools(string? address) => Uri.TryCreate(address, UriKind.Absolute, out var uri)
         && uri.Scheme == "https" && uri.IsDefaultPort && uri.UserInfo.Length == 0

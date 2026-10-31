@@ -1,7 +1,7 @@
 (() => {
   'use strict';
   let snapshot, filter = 'all', assistant = 'all', search = '', selected = '', lastFeed = '', lastAssistants = '';
-  let entries = [], visible = [];
+  let entries = [], visible = [], launchKey = '', copiedTitle = '';
   const bridge = window.chrome?.webview;
   const el = id => document.getElementById(id);
   const html = (id, value) => { if (el(id).innerHTML !== value) el(id).innerHTML = value; };
@@ -95,6 +95,9 @@
 
   function renderFeed() {
     if (!snapshot) return;
+    const list = el('errands'), scroll = list.scrollTop, focused = list.contains(document.activeElement) ? document.activeElement : null;
+    const action = focused && ['launch','sessionLink','sessionHome','external','copyTitle'].find(key=>focused.dataset[key]);
+    const owner = action && focused.dataset[action];
     visible = entries.filter(item => {
       if (assistant !== 'all' && keyFor(item.provider) !== assistant) return false;
       if (filter === 'open' && !open(item)) return false;
@@ -105,12 +108,14 @@
     }).slice(0,40);
     if (!visible.some(e => e.key === selected)) selected = visible[0]?.key || '';
     document.querySelectorAll('.filters button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.filter === filter)));
-    const signature = JSON.stringify([visible,selected]);
+    const signature = JSON.stringify([visible,selected,launchKey,copiedTitle]);
     if (signature !== lastFeed) {
       lastFeed = signature;
-      html('errands', visible.length ? visible.map(item => `<article class="activity-row border-b border-stone-100 px-4 py-3 ${item.key === selected ? 'bg-emerald-50/50' : ''}"><div class="flex items-start justify-between gap-4"><button class="activity-title ${item.kind === 'errand' ? 'errand-title' : ''} text-left text-base leading-6 hover:text-emerald-800" data-pick="${escape(item.key)}" aria-pressed="${item.key === selected}">${escape(item.title)}</button><span class="shrink-0 text-xs text-stone-500">${time(item.at)}</span></div><div class="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-stone-500">${badge(item.state)}<span>${escape(item.provider)}</span><span>${escape(item.location)}</span>${item.hasLocalOutput ? '<span>Local output</span>' : ''}${item.kind !== 'errand' && (item.checkpoint?.headline || item.detail) ? `<span class="min-w-0 truncate">${escape(item.checkpoint?.headline || item.detail)}</span>` : ''}</div></article>`).join('') : `<p class="p-5 text-base text-stone-500">${search ? 'No matching activity' : filter === 'queued' ? 'No errands in the queue' : filter === 'open' ? 'No work in progress' : filter === 'new' ? 'No activity needs your attention' : filter === 'done' ? 'No recent completions' : 'No recent activity'}</p>`);
+      html('errands', visible.length ? visible.map(item => `<article class="activity-row border-b border-stone-100 px-4 py-3 ${item.key === selected ? 'bg-emerald-50/50' : ''}"><div class="flex items-start justify-between gap-4"><button class="activity-title ${item.kind === 'errand' ? 'errand-title' : ''} text-left text-base leading-6 hover:text-emerald-800" data-pick="${escape(item.key)}" aria-pressed="${item.key === selected}">${escape(item.title)}</button><span class="flex shrink-0 items-center gap-2 text-xs text-stone-500">${time(item.at)}<button data-launch="${escape(item.key)}" aria-label="Open session options: ${escape(item.title)}" aria-expanded="${launchKey === item.key}" class="flex size-7 items-center justify-center rounded text-emerald-900 hover:bg-stone-100">↗</button></span></div><div class="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-stone-500">${badge(item.state)}<span>${escape(item.provider)}</span><span>${escape(item.location)}</span>${item.hasLocalOutput ? '<span>Local output</span>' : ''}${item.kind !== 'errand' && (item.checkpoint?.headline || item.detail) ? `<span class="min-w-0 truncate">${escape(item.checkpoint?.headline || item.detail)}</span>` : ''}</div>${launchKey === item.key ? `<div class="mt-2">${window.NowView.sessionActions(item,{desktop:true,copied:copiedTitle === item.key})}</div>` : ''}</article>`).join('') : `<p class="p-5 text-base text-stone-500">${search ? 'No matching activity' : filter === 'queued' ? 'No errands in the queue' : filter === 'open' ? 'No work in progress' : filter === 'new' ? 'No activity needs your attention' : filter === 'done' ? 'No recent completions' : 'No recent activity'}</p>`);
     }
     renderDetail();
+    if (action && !focused.isConnected) [...list.querySelectorAll('button,a')].find(node=>node.dataset[action] === owner)?.focus({preventScroll:true});
+    list.scrollTop = scroll;
     el('record-note').textContent = `${visible.length} shown · Recent activity and open errands${assistant !== 'all' ? ` · ${assistant}` : ''}`;
   }
 
@@ -160,6 +165,15 @@
     selected = key; renderAssistants(); renderFeed();
   }
   document.addEventListener('click', event => {
+    const launch = event.target.closest('[data-launch]');
+    if (launch) { launchKey = launchKey === launch.dataset.launch ? '' : launch.dataset.launch; copiedTitle = ''; renderFeed(); return; }
+    const copy = event.target.closest('[data-copy-title]');
+    if (copy) {
+      const item = entries.find(i => i.key === copy.dataset.copyTitle);
+      if (item && navigator.clipboard?.writeText) navigator.clipboard.writeText(item.title).then(() => { copiedTitle = item.key; renderFeed(); }).catch(() => { copy.textContent = 'Copy unavailable'; });
+      else copy.textContent = 'Copy unavailable';
+      return;
+    }
     const choice = event.target.closest('[data-assistant]');
     if (choice) { assistant = assistant === choice.dataset.assistant ? 'all' : choice.dataset.assistant; renderAssistants(); renderFeed(); return; }
     const queue = event.target.closest('[data-queue-pick]');

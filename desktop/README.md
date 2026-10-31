@@ -104,11 +104,16 @@ its observation time when contact is lost. A responding server with an observati
 older than fifteen seconds also loses its Live status. Closing the phone browser
 stops polling and does not stop collection.
 
-Tapping a main-list item toggles its compact inline details. An external-link icon
-opens the item's existing Web Tools session detail, errand or result in a separate
-browser context, preserving Now's position and open panel. Items without a valid
-browser destination, including current local Codex and Gemini sessions, have no
-external icon. The companion does not invent links for local-only records. Older
+Tapping a main-list item toggles its compact inline details. Each item's launch
+arrow opens compact choices for the provider session and its Web Tools record,
+preserving Now's position and open detail. Claude uses its captured original URL;
+Gemini uses the conversation ID and the enabled Antigravity instance reported by
+the existing local service. The companion checks that routing every thirty seconds
+without enabling remote access or launching a provider. Codex's documented thread
+link opens its desktop app. On mobile, where no direct thread route is established,
+the control offers ChatGPT and the original session title to copy for lookup.
+Unavailable direct links are labeled; errands keep their saved request/result
+destinations. Provider URLs are validated separately from Web Tools links. Older
 phone detail bookmarks and the worker's own report view remain supported. On iOS,
 a Home Screen web app may open an external link in a Safari browser sheet, where
 the system offers the control to continue in Safari.

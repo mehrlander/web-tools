@@ -41,6 +41,9 @@ const data = {
 const snapshot = () => receive({data:{type:'snapshot',data}});
 const click = selector => { const node = doc.querySelector(selector); assert.ok(node, `Missing ${selector}`); node.click(); };
 snapshot();
+click('[data-launch="errand:result"]');
+check(doc.querySelector('[data-external="errand:result"]')?.href === 'https://mehrlander.github.io/web-tools/app/?repo=mehrlander/web-tools-private&ref=background&view=files&file=errands%2Fresults%2Fresult.json','A desktop errand launcher resolves its saved result URL from the actual errand ID.');
+click('[data-launch="errand:result"]');
 check(doc.querySelector('[data-filter=all]').getAttribute('aria-pressed') === 'true' && doc.querySelectorAll('#errands .activity-row').length === 7, 'Desktop opens on Recent, including activity that an older app version marked seen.');
 check(doc.querySelectorAll('#assistants > article').length === 3, 'All three assistants have a prominent lane.');
 check(doc.querySelectorAll('#assistants [data-assistant] svg').length === 3, 'Assistant marks come from the existing shared kits.');
@@ -122,6 +125,14 @@ check(!doc.querySelector('#detail b') && doc.querySelector('#detail').textConten
 click('[data-action=work-link]'); check(messages.at(-1).id === 'cloud:0', 'Checkpoint links send only a known session and link index to the native bridge.');
 data.changes[1].id = 'cloud-latest'; snapshot();
 check(doc.querySelectorAll('#errands .activity-row').length === 1 && !doc.querySelector('#errands').textContent.includes('New change'), 'A cloud update stays visible without unread badges.');
+data.cloud.items[0].sourceUrl = 'https://claude.ai/code/session_fixture'; snapshot();
+const launch = doc.querySelector('#errands [data-launch]');
+check(launch?.getAttribute('aria-label').startsWith('Open session options:'),'Each desktop feed item has a separate session launcher.');
+launch.click();
+check(doc.querySelector('#errands [data-session-link]')?.href === 'https://claude.ai/code/session_fixture','The desktop launcher uses the same validated original Claude URL as the phone.');
+doc.querySelector('#errands [data-session-link]').focus(); doc.querySelector('#errands').scrollTop = 90;
+data.cloud.items[0].detail = 'A new observation'; snapshot();
+check(doc.activeElement.dataset.sessionLink === launch.dataset.launch && doc.querySelector('#errands').scrollTop === 90,'A desktop update preserves the open launcher, focused session link and list scroll position.');
 
 dom.window.close();
 console.log(`${checks} Now UI checks passed.`);
