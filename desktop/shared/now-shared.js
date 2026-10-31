@@ -32,10 +32,10 @@
   }
   function sessionActions(item, {desktop = false, copied = false} = {}) {
     const key = /gemini/i.test(item.provider) ? 'gemini' : /claude/i.test(item.provider) ? 'claude' : 'codex';
-    const thread = item.key?.startsWith('session:Codex:') ? item.key.slice(14) : item.id;
-    const direct = sessionUrl(item.sessionUrl || item.sourceUrl || (key === 'codex' ? `codex://threads/${thread}` : ''),key,desktop);
-    const web = safeLink(item.url)?.startsWith('https://mehrlander.github.io/web-tools/') ? safeLink(item.url) : '';
     const errand = item.kind === 'errand' || item.key?.startsWith('errand:');
+    const thread = item.key?.startsWith('session:Codex:') ? item.key.slice(14) : item.id;
+    const direct = errand ? '' : sessionUrl(item.sessionUrl || item.sourceUrl || (key === 'codex' ? `codex://threads/${thread}` : ''),key,desktop);
+    const web = safeLink(item.url)?.startsWith('https://mehrlander.github.io/web-tools/') ? safeLink(item.url) : '';
     const actions = [], owner = escape(item.key), cls = 'inline-flex min-h-9 items-center rounded-md border border-stone-200 bg-white px-2.5 text-xs text-emerald-900 hover:bg-stone-50';
     const link = (url,label,type) => `<a data-${type}="${owner}" href="${escape(url)}" target="_blank" rel="noopener noreferrer" class="${cls}">${label} ↗</a>`;
     if (direct) actions.push(link(direct,`Open in ${{codex:'Codex',gemini:'Antigravity',claude:'Claude'}[key]}`,'session-link'));

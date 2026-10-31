@@ -58,11 +58,14 @@ static class PhoneChecks
         var linked = PhoneActivity.Create(snapshot with {
             Sessions = new([local with { Id = thread },local with { Id = thread, Provider = "Gemini" }],[]),
             Cloud = historical, GeminiInstanceId = instance,
-            Changes = [new("cloud:older","journal-id","Claude","Older work","idle",now,"Reply","Cloud",null)]
+            Changes = [new("cloud:older","journal-id","Claude","Older work","idle",now,"Reply","Cloud",null),
+                new("errand:" + thread,"errand-change","Gemini","A saved errand","complete",now,"Result","Laptop",NavigationPolicy.ErrandUrl(thread,true))]
         },now);
         check(linked.Items.Single(i=>i.Provider == "Codex").SessionUrl == "codex://threads/" + thread
             && linked.Items.Single(i=>i.Provider == "Gemini" && i.Kind == "session").SessionUrl == geminiUrl
-            && linked.Changes?.Single().SessionUrl == claudeUrl,
+            && linked.Changes?.Single(c=>c.Key == "cloud:older").SessionUrl == claudeUrl,
             "The phone projects direct provider links for current local work and historical Claude records separately from Web Tools detail URLs.");
+        check(linked.Changes?.Single(c=>c.Key.StartsWith("errand:")).SessionUrl is null,
+            "An errand whose ID resembles a conversation UUID never gains a fabricated provider session link.");
     }
 }

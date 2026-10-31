@@ -368,5 +368,6 @@ doc.activeElement.dispatchEvent(new window.KeyboardEvent('keydown',{key:'Escape'
 check(doc.querySelector('[data-launch-panel="recent-1"]').hidden && doc.activeElement.dataset.launch === 'recent-1','Escape closes the launcher and returns focus to its own button.');
 check(window.NowView.sessionUrl('codex://threads/'+conversation,'codex',true) && !window.NowView.sessionUrl('codex://threads/'+conversation,'codex',false),'A documented Codex desktop URI is offered on desktop only, rather than assumed to work on mobile.');
 check(!window.NowView.sessionUrl(geminiUrl+'&action=run','gemini',true) && !window.NowView.sessionUrl('https://user@claude.ai/code/session_x','claude',true) && !window.NowView.sessionUrl('https://claude.ai.evil.test/code/session_x','claude',true) && !window.NowView.sessionUrl(geminiUrl,'claude',true),'The UI independently rejects altered provider URLs and cross-provider destinations.');
+check(!window.NowView.sessionActions({key:'errand:'+conversation,id:conversation,provider:'Gemini',kind:'change',sessionUrl:geminiUrl,url:'https://mehrlander.github.io/web-tools/app/?view=stage&errand='+conversation}).includes('data-session-link'),'A historical errand remains a saved errand even if a cached payload incorrectly supplies a provider conversation URL.');
 console.log(`${checks} phone interaction checks passed.`);
 dom.window.close();
