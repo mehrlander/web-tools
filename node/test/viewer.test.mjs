@@ -250,13 +250,36 @@ test('markdown offers a separate full-width History reading', () => {
   data.file = 'docs/history.md';
   data.content = '# Passage history\n\nCurrent wording.\n';
   const ids = data.availableModes.map(mode => mode.id);
-  assert.ok(ids.includes('variants'));
+  assert.ok(!ids.includes('variants'), 'variants are marks on the Preview, not a reading to pick');
   assert.ok(ids.includes('history'), 'history is not folded into variant semantics');
   const mod = window.ViewRegistry.modules.find(mode => mode.id === 'history');
   assert.equal(mod.icon, 'ph-clock-counter-clockwise');
   const doc = new window.DOMParser().parseFromString(mod.render(data.fileContext), 'text/html');
   assert.ok(doc.querySelector('[data-md-history]'));
   assert.match(doc.body.firstElementChild.className, /overflow-auto/);
+});
+
+test('Preview marks its variants after the render, on the stripped Markdown, for the file it read', async () => {
+  const mod = window.ViewRegistry.modules.find(mode => mode.id === 'preview');
+  const root = window.document.createElement('div');
+  root.innerHTML = '<div class="prose"><p>Current wording.</p></div>';
+  window.document.body.append(root);
+  const marked = [];
+  const prior = { mdDoc: window.mdDoc, mdVariants: window.mdVariants };
+  window.mdDoc = { enhance: () => {} };
+  window.mdVariants = { mark: async (box, md, opts) => { marked.push({ box, md, opts }); return { count: 0 }; } };
+  try {
+    mod.after({ ext: 'md', content: '---\ntitle: x\n---\nCurrent wording.\n', repo: 'mehrlander/web-tools',
+                name: 'docs/x.md', ref: 'main' }, { root, alive: () => true });
+    assert.equal(marked.length, 1);
+    assert.equal(marked[0].box, root.querySelector('.prose'));
+    assert.equal(marked[0].md, 'Current wording.\n');
+    assert.equal(marked[0].opts.file.repo, 'mehrlander/web-tools');
+    assert.equal(marked[0].opts.file.path, 'docs/x.md');
+  } finally {
+    for (const [k, v] of Object.entries(prior)) { if (v === undefined) delete window[k]; else window[k] = v; }
+    root.remove();
+  }
 });
 
 test('History hands the kit the stripped Markdown and a git source for the file\'s own repo, ref, and path', async () => {

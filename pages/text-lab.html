@@ -59,8 +59,8 @@
   is read: the house swipe-deck, with the same door (the cards glyph) every
   other list here uses. Two decks. The filtered variants, one pair per slide in
   md-diff's old/both/new swipe, so a variant reads exactly as it does in the
-  file viewer. And a text run's documents, one file per slide in the file
-  viewer's own Variants reading (kits/md-variants.js), so a pass is seen where
+  file viewer. And a text run's documents, one file per slide in md-variants'
+  full-document reading (kits/md-variants.js), so a pass is seen where
   it lands rather than as loose pairs.
 
   Data contract. Everything is read live from mehrlander/home through the
@@ -478,7 +478,7 @@
       wordCount(s) { return (String(s || '').match(/\S+/g) || []).length },
 
       // "owner/name:path" as the reader says it, and as an app address that
-      // opens the file in Files, a tap from its Variants reading.
+      // opens the file in Files, where its paragraphs carry their variant marks.
       shortLoc(loc) {
         const i = String(loc).indexOf(':');
         return `${loc.slice(0, i).split('/').pop()}/${loc.slice(i + 1)}`;
@@ -746,7 +746,7 @@
         }
       },
 
-      // One document per slide, drawn by the file viewer's Variants reading
+      // One document per slide, drawn by md-variants' full-document reading
       // against the document as it stands on main, so the slide shows every
       // variant the collection holds for it, this run's and any other's.
       async openRunDeck(run, start = 0) {
@@ -791,7 +791,7 @@
         try {
           // Read-only, so no ref: the file follows the page's selection.
           const repo = new window.GH({ token: window.TOKEN || '', repo: f.repo });
-          // The frontmatter is stripped, as the file viewer's Variants reading
+          // The frontmatter is stripped, as the file viewer's Preview
           // strips it, or a skill's YAML renders as one bold heading.
           const md = (await repo.get(f.path)).text.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, '');
           host.textContent = '';
