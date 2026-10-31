@@ -110,11 +110,14 @@ const read = () => {
   r.xl.powerQuery = { sections: [{ path: 'Formulas/Section1.m', m: [
     'section Section1;',
     '',
+    '[ Description = "Seed download from example.gov" ]',
     'shared Base = let Source = Csv.Document(Web.Contents("https://example.gov/feed.csv")) in Source;',
     '',
+    '[ Description = "Filtered feed (mentions Base in description)" ]',
     'shared Feed = let Source = Base, #"Kept" = Table.SelectRows(Source, each [Note] <> "shared Fake = 1") in #"Kept";',
     '',
-    'shared Local = let T = Excel.CurrentWorkbook(){[Name="LedgerTbl"]}[Content] in T;',
+    '[ Description = "Reads LedgerTbl and filters [Base] column without referencing Base query" ]',
+    'shared Local = let T = Excel.CurrentWorkbook(){[Name="LedgerTbl"]}[Content], K = Table.SelectRows(T, each [Base] <> "Base") in K;',
     '',
     'shared Source = let A = 1 in A;',
   ].join('\n') }] };
@@ -173,9 +176,12 @@ test('a pivot to its source sheet, a query to its table, a query to what it read
 });
 
 test('one M file holds every query, each by its name', () => {
-  assert.deepEqual(XlsxMap.queries(read()).map(q => q.name), ['Base', 'Feed', 'Local', 'Source'],
+  const qs = XlsxMap.queries(read());
+  assert.deepEqual(qs.map(q => q.name), ['Base', 'Feed', 'Local', 'Source'],
     'and "shared Fake" inside a string opens no query');
-  assert.match(XlsxMap.queries(read())[1].m, /^let Source = Base/);
+  assert.equal(qs[0].m, 'let Source = Csv.Document(Web.Contents("https://example.gov/feed.csv")) in Source',
+    'trailing semicolon and following [ Description = ... ] attribute are stripped cleanly');
+  assert.match(qs[1].m, /^let Source = Base/);
 });
 
 test('a sheet of headings over rows is a table; a sheet of labels is a form', () => {
