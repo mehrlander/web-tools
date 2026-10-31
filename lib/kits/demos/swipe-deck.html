@@ -159,7 +159,7 @@
         ${n.paras.map(p => `<p class="text-xl leading-8 text-pretty">${esc(p)}</p>`).join('')}
         <table class="w-full border border-base-300"><tbody>${rows(n.readings)}</tbody></table>
         ${drillable ? `<button data-drill class="btn btn-sm btn-outline">
-            <i class="ph ph-caret-right"></i> Readings, one at a time</button>` : ''}
+            <i class="ph ph-cards-three"></i> Readings, one at a time</button>` : ''}
       </article>`;
     slide.querySelector('[data-drill]')?.addEventListener('click', () => drillReadings(i));
   };

@@ -2126,7 +2126,7 @@ window.__audit = {
     deck() {
       const secs = this.sections;
       (this._viewer ? (o) => swipeDeck.drill(this._viewer, o) : (o) => swipeDeck.open(o))({
-        count: secs.length, title: this.a.title, subtitle: this.so.question, icon: 'ph-cards',
+        count: secs.length, title: this.a.title, subtitle: this.so.question,
         render: (i, slide) => {
           const s = secs[i];
           const head = document.createElement('div');
