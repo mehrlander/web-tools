@@ -49,6 +49,7 @@ npm run setup
 dotnet run --project .\desktop\Checks\DesktopChecks.csproj
 node .\desktop\Checks\ui-checks.mjs
 node .\desktop\Checks\phone-ui-checks.mjs
+node .\desktop\Checks\computer-ui-checks.mjs
 node .\desktop\Checks\companion-checks.mjs
 ```
 
@@ -94,13 +95,17 @@ which includes Codex on mobile. Claude's Code URL also
 supports its installed mobile app through universal links. Browser and app
 handoff follows the device's link settings.
 
-The phone has one Now feed: current work, waiting errands and all recent items
+The phone opens on one Now feed: current work, waiting errands and all recent items
 in the current snapshot, with assistant filters, inline details and short observed
 history. The assistant headers keep compact usage bars visible above the feed;
 the full Usage view remains available on desktop. The phone view is read-only. The laptop must
 be awake and online; waking the laptop through Windows App can restore access.
 The last received snapshot remains in that browser's local storage, labeled with
-its observation time when contact is lost. A responding server with an observation
+its observation time when contact is lost. After a successful online visit, a
+service worker saves only the interface assets for offline reloads. API responses
+never enter Cache Storage; a network failure uses the saved interface, while an
+HTTP access denial is returned directly. The interface can therefore still offer
+Windows App when the laptop is unreachable. A responding server with an observation
 older than fifteen seconds also loses its Live status. Closing the phone browser
 stops polling and does not stop collection.
 
@@ -141,7 +146,42 @@ desktop settings; those settings never enter API responses or tracked files.
   observed events.
 - `GET /api/v1/results/<id>`: a selected reply, capped at 20,000 characters, plus
   the phone's link to its full saved result in Web Tools.
+- `GET /api/v1/computer`: current Windows session state, machine measurements and
+  grouped desktop application windows, with a separate window-observation time.
 - `GET /api/v1/desktop`: full desktop snapshot for the authenticated local app.
+
+### Computer view
+
+The phone's title menu switches between Now and Computer, retaining each view's
+reading position. Computer shows application icons, names and window counts;
+tapping an app reveals its window titles and minimized state. The companion
+enumerates top-level desktop windows in its own Windows session every five
+seconds, excluding shell helpers, tool windows, owned dialogs and cloaked windows.
+UWP frame hosts resolve to their child app where possible. The view is a window
+inventory, so tray-only apps, services and windows on other virtual desktops may
+be absent. An open window does not imply agent work. No executable paths, command
+lines, screenshots or process-control actions enter the API.
+
+Windows session APIs report lock and remote-connection state. Locked,
+disconnected or unknown sessions retain the previous window list and its original
+observation time. CPU, physical-memory use, and battery/power readings continue
+independently; unavailable values remain unknown. The companion saves the latest
+Computer observation beside its settings for restart continuity. The phone polls
+Computer every three seconds while that view is visible, pauses when hidden,
+backs off on failure, and stores its last observation locally with a stale label.
+The isolated companion-check environment never collects real window titles.
+
+A Windows App button stays in the shared phone header. Its Connect option uses
+Microsoft's documented legacy iOS `rdp://` format with the private Tailscale host
+and no credentials. Compatibility with the current iPhone Windows App requires
+a device check. The alternative runs an existing iPhone shortcut named
+**Windows App** via Apple's documented `shortcuts://run-shortcut` URL. Create that
+shortcut with a single **Open App** action selecting Windows App. The companion
+does not alter remote desktop, firewall, login or wake settings.
+
+When changing the offline interface's asset contract, increment the cache version
+in `phone/sw.js`. Successful installation replaces only this app's older shell
+caches, without reloading an open page or caching private API bodies.
 
 ### Account usage
 

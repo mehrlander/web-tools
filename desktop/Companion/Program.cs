@@ -8,6 +8,7 @@ using var instance = new Mutex(true, "Local\\WebTools.Companion." + port, out va
 if (!first) return;
 CompanionAccess.Ensure();
 var collector = new ActivityCollector();
+var computer = new ComputerReader();
 var builder = WebApplication.CreateSlimBuilder(args);
 builder.Logging.ClearProviders();
 builder.WebHost.ConfigureKestrel(server => server.Listen(IPAddress.Loopback, port));
@@ -29,7 +30,7 @@ app.Use(async (context, next) => {
     context.Response.Headers.CacheControl = "no-store";
     context.Response.Headers["X-Content-Type-Options"] = "nosniff";
     context.Response.Headers["Referrer-Policy"] = "no-referrer";
-    context.Response.Headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'";
+    context.Response.Headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'";
     if (!IPAddress.IsLoopback(context.Connection.RemoteIpAddress ?? IPAddress.None) || !validHost || !(local || owner && !desktop)) {
         context.Response.StatusCode = 403;
         await context.Response.WriteAsync("Connect through your private Tailscale address using the owner's account.");
@@ -59,6 +60,14 @@ app.MapGet("/api/v1/now", (HttpContext context) => {
     if (context.Request.Headers.IfNoneMatch == etag) return Results.StatusCode(304);
     return Results.Bytes(payload, "application/json; charset=utf-8");
 });
+app.MapGet("/api/v1/computer", (HttpContext context) => {
+    if (computer.Latest is not { } value) return Results.StatusCode(503);
+    var payload = JsonSerializer.SerializeToUtf8Bytes(value, json);
+    var etag = "\"" + Convert.ToHexString(SHA256.HashData(payload)) + "\"";
+    context.Response.Headers.ETag = etag;
+    if (context.Request.Headers.IfNoneMatch == etag) return Results.StatusCode(304);
+    return Results.Bytes(payload, "application/json; charset=utf-8");
+});
 app.MapGet("/api/v1/results/{id}", (string id) => collector.Latest is { } activity && Activity.ValidId(id)
     && PhoneActivity.Reply(activity.Snapshot, id) is { } reply ? Results.Json(new { reply }, json) : Results.NotFound());
 
@@ -66,6 +75,8 @@ app.MapGet("/api/v1/results/{id}", (string id) => collector.Latest is { } activi
 var assets = new Dictionary<string, (string File, string Type)> {
     ["/"] = ("index.html", "text/html; charset=utf-8"),
     ["/phone.js"] = ("phone.js", "text/javascript; charset=utf-8"),
+    ["/computer.js"] = ("computer.js", "text/javascript; charset=utf-8"),
+    ["/sw.js"] = ("sw.js", "text/javascript; charset=utf-8"),
     ["/reading.js"] = ("reading.js", "text/javascript; charset=utf-8"),
     ["/now-shared.js"] = ("now-shared.js", "text/javascript; charset=utf-8"),
     ["/usage-view.js"] = ("usage-view.js", "text/javascript; charset=utf-8"),
@@ -81,6 +92,8 @@ var assets = new Dictionary<string, (string File, string Type)> {
 foreach (var (route, asset) in assets) app.MapGet(route, () => Results.File(Path.Combine(AppContext.BaseDirectory, "phone", asset.File), asset.Type));
 var sampling = Task.Run(() => collector.Run(app.Lifetime.ApplicationStopping));
 var summaries = Task.Run(() => LocalSummaryRunner.Run(app.Lifetime.ApplicationStopping));
+var machineSampling = Task.Run(() => computer.Run(app.Lifetime.ApplicationStopping));
 await app.RunAsync();
 await sampling;
 await summaries;
+await machineSampling;

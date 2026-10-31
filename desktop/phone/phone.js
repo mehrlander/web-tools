@@ -30,6 +30,7 @@
   const selected = () => { try { return new URLSearchParams(location.hash.slice(1)).get('item') || ''; } catch { return ''; } };
 
   function connection() {
+    if (window.NowComputer?.active()) { window.NowComputer.connection(); return; }
     const fresh = data && Date.now() - new Date(data.observedAt).getTime() < 15000;
     const live = connected && fresh;
     const text = accessDenied ? 'Access unavailable · Connect with your Tailscale account' : live ? 'Laptop live · Updates automatically' : data ? `${connected ? 'Activity paused' : 'Laptop unreachable'} · Last seen ${stamp(data.observedAt)}` : failures ? 'Laptop unreachable · Waiting for connection' : 'Connecting to your laptop…';
@@ -91,6 +92,7 @@
   }
 
   function render() {
+    if (window.NowComputer?.active()) { connection(); return; }
     if (!data) { connection(); return; }
     // Rebuilding open panels can temporarily shorten the document and clamp its scroll position.
     const viewport = {left:window.scrollX,top:window.scrollY};
@@ -318,7 +320,8 @@
     [...panel.querySelectorAll('[data-facet]')].find(n => n.dataset.facet === facet)?.focus({preventScroll:true});
     event.preventDefault();
   });
-  window.addEventListener('popstate', () => { detail(); if (!selected()) renderPanels(); connection(); window.scrollTo(0,savedScroll); });
+  window.addEventListener('popstate', () => { if (window.NowComputer?.active()) return; detail(); if (!selected()) renderPanels(); connection(); window.scrollTo(0,savedScroll); });
+  window.addEventListener('nowviewchange', () => { if (!window.NowComputer?.active()) { render(); connection(); } });
   document.addEventListener('visibilitychange', () => { clearTimeout(timer); if (!document.hidden) poll(); });
   window.addEventListener('online', poll);
   window.addEventListener('offline', () => { connected = false; connection(); });
