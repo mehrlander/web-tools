@@ -66,3 +66,17 @@ Text.BeforeDelimiter(Text.AfterDelimiter(raw, "cite="), "'")
 - **IIS directory listings use uppercase tags** (`<A HREF=`). Case-sensitive matching (e.g. `href=`) will miss them entirely.
 - **Relative hrefs** need the base domain prepended manually: Power Query won't resolve them.
 - **Use `Table.Buffer()`** on expensive upstream fetches to prevent redundant re-evaluation during downstream steps.
+
+## Packaging M in a closed `.xlsx` (MS-QDEFF `DataMashup`)
+
+To generate an `.xlsx` workbook containing a live, refreshable Power Query (`M`) expression without running desktop Excel (see `projects/office/research/2026-10-30-power-query-workbook/build_pq_xlsx.py`):
+
+1. **Build the inner OPC ZIP (`Formulas/Section1.m`):**
+   - Include `[Content_Types].xml`, `_rels/.rels`, `Config/Package.xml`, and `Formulas/Section1.m` (`section Section1; shared QueryName = let ... in ...;`).
+2. **Assemble the MS-QDEFF binary stream:**
+   - Concatenate `[Version: uint32 = 0]` + `[PkgLen: uint32]` + `[Inner OPC ZIP]` + `[PermissionsLen: uint32]` + `[Permissions XML]` + `[MetaLen: uint32]` + `[Metadata Stream]` + `[EndLen: uint32 = 0]`.
+   - Writing four zero bytes (`\x00\x00\x00\x00`) for the trailing Permission Bindings length omits the machine-bound Windows DPAPI blob while allowing desktop Excel to open and refresh (`Workbook.RefreshAll()`) without prompts or repair warnings.
+3. **Wrap in `customXml/item1.xml` and wire the workbook parts:**
+   - Base64-encode the binary stream inside `<DataMashup xmlns="http://schemas.microsoft.com/DataMashup">...</DataMashup>` (desktop Excel writes `customXml/item1.xml` as UTF-16LE with a `FF FE` byte-order mark; ZIP readers must decode UTF-16LE/BE before matching `<DataMashup>`).
+   - Pair with `xl/connections.xml` (`type="5"`, `<dbPr connection="Provider=Microsoft.Mashup.OleDb.1;Data Source=$Workbook$;Location=QueryName" command="SELECT * FROM [QueryName]"/>`), a hidden `<definedName name="workbook_Connection_..." hidden="1">` in `xl/workbook.xml`, and a `QueryTable`-backed worksheet table (`xl/tables/table1.xml` + `xl/queryTables/queryTable1.xml`).
+
