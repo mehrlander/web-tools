@@ -40,6 +40,7 @@
     "upstreams": "python3 python/upstream-skills.py",
     "showing": "python3 python/showing.py",
     "stage-link": "node node/stage-link.mjs",
+    "paste-run-link": "node node/paste-run-link.mjs",
     "pages": "npm run pages-shots && npm run pages-index",
     "wsl-fetch": "node pages/wsl-sync/fetch-data.mjs",
     "tracker-board": "python3 skills/tasks/build-board.py tracker/tasks tracker/board.md",

@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- The function this page runs arrives in its link, so it runs in a worker
+     that has no network (connect-src 'none') and no reach into this origin's
+     storage or DOM, where the GitHub token other pages use is kept. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; worker-src blob:; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src https://cdn.jsdelivr.net data:; img-src 'self' data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Paste run</title>
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web,npm/papaparse@5/papaparse.min.js"></script>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<!-- The codec's base64 halves are gh-api.js's, a module that exports its
+     class; modules and deferred scripts run in order, so window.GH is set
+     before Alpine starts the page. -->
+<script type="module">import GH from "../lib/gh-api.js"; window.GH = GH;</script>
+<script src="../lib/kits/gz-payload.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js" defer></script>
+</head>
+<!--
+  A STAGED TRANSFORM. A session hands over a function in this page's link
+  (node/paste-run-link.mjs mints it); the reader pastes data the session should
+  not hold, the function runs on it here, and the reader copies the result, or
+  sends it to the stage aimed where the link says, to hand it back. Nothing
+  leaves the page by itself.
+
+  The link: #gz= of {title, ask, fn, send?} as JSON, through kits/gz-payload.js.
+  fn is the source of a function (rows, text) => result: rows are the paste as
+  a table (a header row and string cells, tab or comma separated), text the
+  paste itself. A result that is an array of objects shows as a table and
+  copies as TSV; anything else shows and copies as text. send, when present,
+  is {to: "owner/repo@ref:folder", file: "name.tsv"}.
+-->
+<body class="min-h-dvh bg-base-200 text-base-content">
+<main x-data="pasteRun()" x-init="init()" class="flex w-full flex-col gap-3 p-4">
+  <header class="flex flex-col gap-1">
+    <h1 class="text-xl font-semibold text-balance" x-text="spec.title || 'Paste run'"></h1>
+    <p x-show="spec.ask" class="text-pretty opacity-70" x-text="spec.ask"></p>
+    <p x-show="err" class="text-error" x-text="err"></p>
+  </header>
+
+  <details x-show="spec.fn" class="collapse collapse-arrow rounded-box border border-base-300 bg-base-100">
+    <summary class="collapse-title min-h-0 py-2 font-mono text-xs uppercase tracking-wider opacity-60">The function</summary>
+    <div class="collapse-content"><pre class="overflow-x-auto font-mono text-xs leading-5" x-text="spec.fn"></pre></div>
+  </details>
+
+  <section x-show="spec.fn" class="flex flex-col gap-2">
+    <textarea x-ref="box" class="textarea w-full font-mono text-xs" rows="4" placeholder="Paste here"
+              @paste="$nextTick(() => take($refs.box.value))" @input.debounce.400ms="take($refs.box.value)"></textarea>
+    <div x-show="shape" class="flex flex-wrap items-center gap-2 text-sm">
+      <span class="opacity-70" x-text="shape"></span>
+      <span x-show="running" class="loading loading-spinner loading-xs"></span>
+      <span x-show="runErr" class="text-error" x-text="runErr"></span>
+    </div>
+  </section>
+
+  <section x-show="hasOut" class="flex flex-col gap-2">
+    <div class="flex flex-wrap items-center gap-2">
+      <span class="font-semibold">Result</span>
+      <span class="text-sm opacity-60" x-text="outShape"></span>
+      <button class="btn btn-sm btn-primary ml-auto" @click="copy()"><i class="ph ph-copy"></i><span x-text="copied ? 'Copied' : 'Copy result'"></span></button>
+      <button x-show="spec.send" class="btn btn-sm btn-outline" @click="send()"><i class="ph ph-paper-plane-tilt"></i>Send</button>
+    </div>
+    <p x-show="sent" class="text-sm opacity-70" x-text="sent"></p>
+    <template x-if="table">
+      <div class="overflow-x-auto rounded-box border border-base-300 bg-base-100">
+        <table class="table table-sm">
+          <thead><tr><template x-for="c in table.cols" :key="c"><th x-text="c"></th></template></tr></thead>
+          <tbody>
+            <template x-for="(r, i) in table.shown" :key="i">
+              <tr><template x-for="c in table.cols" :key="c"><td class="whitespace-nowrap" :class="table.num[c] && 'text-right tabular-nums'" x-text="r[c] ?? ''"></td></template></tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+    </template>
+    <template x-if="!table"><pre class="overflow-x-auto rounded-box border border-base-300 bg-base-100 p-3 font-mono text-xs leading-5" x-text="outText"></pre></template>
+  </section>
+</main>
+
+<script>
+// The worker's prelude takes away every way out before the function is
+// defined: no request, no script import, no storage handle. The CSP above
+// already refuses connections; this is the second lock.
+const PRELUDE = `
+for (const k of ["fetch", "XMLHttpRequest", "WebSocket", "EventSource", "importScripts", "indexedDB", "caches", "BroadcastChannel", "WebTransport"]) {
+  try { delete self[k]; } catch (e) {}
+  try { self[k] = undefined; } catch (e) {}
+}
+self.onmessage = async (e) => {
+  try {
+    const fn = new Function("return (" + e.data.fn + ")")();
+    const out = await fn(e.data.rows, e.data.text);
+    self.postMessage({ out: JSON.parse(JSON.stringify(out === undefined ? null : out)) });
+  } catch (x) { self.postMessage({ err: String((x && x.stack) || x) }); }
+};`;
+const SHOW = 500;
+
+function pasteRun() {
+  return {
+    spec: {}, err: "", shape: "", running: false, runErr: "", hasOut: false,
+    out: null, table: null, outText: "", outShape: "", copied: false, sent: "", worker: null,
+    async init() {
+      const gz = new URLSearchParams(location.hash.slice(1)).get("gz");
+      if (!gz) { this.err = "This link carries no function."; return; }
+      try { this.spec = await GzPayload.decodeJson(gz); }
+      catch (e) { this.err = "The link's function could not be read: " + e.message; return; }
+      if (typeof this.spec.fn !== "string" || !this.spec.fn.trim()) this.err = "The link's payload has no fn.";
+      this.$nextTick(() => this.$refs.box && this.$refs.box.focus());
+    },
+    take(text) {
+      if (!text || !text.trim()) return;
+      const p = Papa.parse(text.replace(/\r\n?/g, "\n"), { header: true, skipEmptyLines: true });
+      const rows = p.data, cols = (p.meta.fields || []).length;
+      this.shape = rows.length && cols > 1 ? `${rows.length.toLocaleString()} rows × ${cols} columns` : `${text.length.toLocaleString()} characters`;
+      this.run(cols > 1 ? rows : [], text);
+    },
+    run(rows, text) {
+      if (this.worker) this.worker.terminate();
+      const url = URL.createObjectURL(new Blob([PRELUDE], { type: "text/javascript" }));
+      const w = this.worker = new Worker(url);
+      URL.revokeObjectURL(url);
+      Object.assign(this, { running: true, runErr: "", hasOut: false, copied: false, sent: "" });
+      w.onmessage = (e) => {
+        this.running = false; w.terminate(); this.worker = null;
+        if (e.data.err) { this.runErr = e.data.err; return; }
+        this.show(e.data.out);
+      };
+      w.onerror = (e) => { this.running = false; this.runErr = e.message || "The function failed."; };
+      w.postMessage({ fn: this.spec.fn, rows, text });
+    },
+    show(out) {
+      this.out = out; this.hasOut = true;
+      const isRows = Array.isArray(out) && out.length && out.every(r => r && typeof r === "object" && !Array.isArray(r));
+      if (isRows) {
+        const cols = [...new Set(out.flatMap(r => Object.keys(r)))];
+        const num = Object.fromEntries(cols.map(c => [c, out.every(r => r[c] == null || r[c] === "" || typeof r[c] === "number")]));
+        this.table = { cols, num, shown: out.slice(0, SHOW) };
+        this.outText = [cols.join("\t"), ...out.map(r => cols.map(c => String(r[c] ?? "").replace(/[\t\r\n]+/g, " ")).join("\t"))].join("\n");
+        this.outShape = `${out.length.toLocaleString()} rows × ${cols.length} columns` + (out.length > SHOW ? `, the first ${SHOW} shown; Copy takes all` : "");
+      } else {
+        this.table = null;
+        this.outText = typeof out === "string" ? out : JSON.stringify(out, null, 2);
+        this.outShape = `${this.outText.length.toLocaleString()} characters`;
+      }
+    },
+    async copy() {
+      try { await navigator.clipboard.writeText(this.outText); this.copied = true; setTimeout(() => { this.copied = false; }, 1500); }
+      catch (e) { this.runErr = "The clipboard refused: " + e.message; }
+    },
+    // To the Web Tools stage aimed where the link says, as the Load tab's
+    // Stage does: the file rides the link under the stage's 24 KB budget, and
+    // past it goes to the clipboard while the stage opens aimed and empty.
+    async send() {
+      const s = this.spec.send || {}, base = "https://mehrlander.github.io/web-tools/app/";
+      const file = s.file || "paste-run.txt", dest = encodeURIComponent(s.to || "");
+      const gz = await GzPayload.encodeJson([{ name: file, text: this.outText }]);
+      let url = base + "#gz=" + gz + "&dest=" + dest;
+      if (gz.length > 32 * 1024) {
+        url = base + "?view=stage&dest=" + dest;
+        try { await navigator.clipboard.writeText(this.outText); } catch (e) {}
+        this.sent = `The stage opened aimed at ${s.to}; the result is on the clipboard: paste it there as ${file}, then Send.`;
+      } else this.sent = `The stage opened with ${file}, aimed at ${s.to}; Send there is the commit.`;
+      window.open(url, "_blank", "noopener");
+    },
+  };
+}
+</script>
+</body>
+</html>
