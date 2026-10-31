@@ -1,12 +1,6 @@
 # Text tools on the page at hand
 
-Three Web Tools surfaces read prose where it is displayed: the **Text tab** in
-the drawer of the FAB (the floating action button on every page), the
-**variant marks** on the file viewer's markdown Preview, and the viewer's
-**History** mode. The estate's other text
-instruments take a corpus or pasted text. None of the three calls a model or
-changes anything. The mechanics are in
-[`fab.js`](../lib/alpineComponents/fab.js) and the kits linked below.
+Three Web Tools surfaces read prose where it is displayed: the **Text tab** in the drawer of the FAB (the floating action button on every page), the **variant marks** on the file viewer's markdown Preview, and the viewer's **History** mode. The estate's other text instruments take a corpus or pasted text. None of the three calls a model or changes anything. The mechanics are in [`fab.js`](../lib/alpineComponents/fab.js) and the kits linked below.
 
 ## The Text tab
 
@@ -18,8 +12,7 @@ reports three things:
 - **Retained variants:** alternative wordings of a passage whose text equals
   the selection exactly, from the Text collection in `mehrlander/home`. Each
   shows its author and kind of edit. None can be applied. Text Lab lists the
-  whole collection. The switch under the heading turns the variant marks on
-  documents off or on for this browser.
+  whole collection.
 - **Registered files:** the files the text names, with what their registry says
   about each.
 
@@ -58,24 +51,7 @@ without a committed vocabulary?
 
 ## The variant marks
 
-Wherever the file viewer previews a markdown file, each paragraph whose exact
-text has a retained variant carries a faint sparkle in the right margin, with
-the count when there is more than one. The sparkle is filled and in the
-primary colour when a variant is proposed for this file, meaning a proposal
-names the same repo and path. A tap opens the paragraph in place: the variant
-read against it, the words that leave struck and the words that arrive
-tinted, with its author and kind of edit underneath, the other variants one tap
-away, and a link to the proposal's basis when there is one. A second tap
-restores the paragraph. The marks are on by default; the FAB's Text tab turns
-them off for the browser.
-
-The marks need a token that reads `mehrlander/home`; without one the preview
-shows nothing extra and makes no read. Placing them reads only
-`variants.jsonl` and `proposals.jsonl` and hashes each paragraph; the passages
-file loads on the first tap. [`kits/md-variants.js`](../lib/kits/md-variants.js)
-places them and draws the card on [`kits/md-diff.js`](../lib/kits/md-diff.js).
-Exact matching is the limit: a variant whose paragraph has been edited since no
-longer matches, and History is where it can still be found.
+Wherever the file viewer previews a markdown file, a paragraph whose exact text has a retained variant gets a margin mark that opens its variants in place; a filled mark means one of them is [proposed](#where-variants-and-proposals-come-from) for this file. [`kits/md-variants.js`](../lib/kits/md-variants.js) places the marks and draws the variants with [`kits/md-diff.js`](../lib/kits/md-diff.js). The marks are on by default and are switched off for the browser in the FAB's Text tab, under **Retained variants**. Exact matching is the limit: a variant whose paragraph has been edited since no longer matches, and the History mode still lists it.
 
 ## The History mode
 
