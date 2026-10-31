@@ -280,8 +280,8 @@ public partial class MainWindow : Window
         if (Directory.Exists(path)) Process.Start(new ProcessStartInfo("explorer.exe") { UseShellExecute = false, ArgumentList = { path } });
     }
     private static void OpenExternal(string address) {
-        if (Uri.TryCreate(address, UriKind.Absolute, out var uri) && uri.Scheme is "https" or "http")
-            Process.Start(new ProcessStartInfo(uri.AbsoluteUri) { UseShellExecute = true });
+        if (NavigationPolicy.ExternalTarget(address) is { } target)
+            Process.Start(new ProcessStartInfo(target) { UseShellExecute = true });
     }
 
     private void WriteDiagnostics()

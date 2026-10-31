@@ -98,6 +98,9 @@ public static class NavigationPolicy
     public static bool IsExternalPage(string? address) => IsUsagePage(address) || address is
         "https://chatgpt.com/" or "https://claude.ai/code" || SessionLinks.Safe(address) is not null;
 
+    public static string? ExternalTarget(string? address) => Uri.TryCreate(address,UriKind.Absolute,out var uri)
+        && (uri.Scheme is "https" or "http" || SessionLinks.Safe(address) is not null) ? uri.AbsoluteUri : null;
+
     public static bool IsWebTools(string? address) => Uri.TryCreate(address, UriKind.Absolute, out var uri)
         && uri.Scheme == "https" && uri.IsDefaultPort && uri.UserInfo.Length == 0
         && uri.Host == "mehrlander.github.io" && uri.AbsolutePath.StartsWith("/web-tools/", StringComparison.Ordinal);

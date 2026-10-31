@@ -50,6 +50,10 @@ static class PhoneChecks
         check(NavigationPolicy.IsExternalPage(geminiUrl) && NavigationPolicy.IsExternalPage(claudeUrl)
             && NavigationPolicy.IsExternalPage("codex://threads/" + thread),
             "Known exact session routes may leave the desktop WebView through the system handler.");
+        check(NavigationPolicy.ExternalTarget("codex://threads/" + thread) == "codex://threads/" + thread
+            && new[] { "codex://threads/new", "codex://settings", "file:///private", "javascript:alert(1)" }
+                .All(url=>NavigationPolicy.ExternalTarget(url) is null),
+            "The final shell dispatcher accepts the exact Codex thread URI and rejects unrelated native actions and schemes.");
         var historical = CloudSessions.Parse(JsonSerializer.Serialize(new { rows = new[] {
             new { id = "older", agent = claudeUrl, ended = now.AddDays(-2) }
         } }),now);
