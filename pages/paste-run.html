@@ -4,11 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <!-- The function this page runs arrives in its link, so it runs in a worker
-     that has no network (connect-src 'none') and no reach into this origin's
-     storage or DOM, where the GitHub token other pages use is kept. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; worker-src blob:; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src https://cdn.jsdelivr.net data:; img-src 'self' data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+     that can open no connection (connect-src 'none'), can load no script but
+     this site's and the four CDN scripts below, each by its own URL (a comma in
+     a combined URL would split the policy in two), and has no reach into this
+     origin's storage or DOM, where the GitHub token other pages use is kept. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4 https://cdn.jsdelivr.net/npm/@phosphor-icons/web https://cdn.jsdelivr.net/npm/papaparse@5/papaparse.min.js https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js; worker-src blob:; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src https://cdn.jsdelivr.net data:; img-src 'self' data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
 <title>Paste run</title>
-<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web,npm/papaparse@5/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<script src="https://cdn.jsdelivr.net/npm/@phosphor-icons/web"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5/papaparse.min.js"></script>
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
 <!-- The codec's base64 halves are gh-api.js's, a module that exports its
      class; modules and deferred scripts run in order, so window.GH is set
