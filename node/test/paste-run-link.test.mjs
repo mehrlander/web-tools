@@ -8,10 +8,9 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { gunzipSync } from 'node:zlib';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { repoRoot } from '../repo-root.mjs';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
-const mint = (...args) => execFileSync('node', [path.join(root, 'node/paste-run-link.mjs'), ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+const mint = (...args) => execFileSync('node', [path.join(repoRoot, 'node/paste-run-link.mjs'), ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
 const payload = (url) => JSON.parse(gunzipSync(Buffer.from(new URL(url).hash.replace(/^#gz=/, ''), 'base64url')).toString('utf8'));
 const dir = mkdtempSync(path.join(tmpdir(), 'paste-run-'));
 const fn = path.join(dir, 'fn.js');

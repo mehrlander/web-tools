@@ -229,7 +229,7 @@ node/test/page-storage.test.mjs,behavior,"The code the courier runs on a visited
 node/test/page-targets.test.mjs,behavior,"A page framed by an app gets a link straight at itself, which renders a document that boots into nothing, or a render chip freezes a crawled commit instead of following the branch."
 node/test/panel-tip-kit.test.mjs,behavior,lib/kits/panel-tip.js
 node/test/passage-reading-check.test.mjs,behavior,"skills/passage-reading/scripts/check.py: that a link end which is part of an atom, rather than a whole atom or a mention, is refused, and that the worked example passes."
-node/test/paste-run-link.test.mjs,behavior,
+node/test/paste-run-link.test.mjs,behavior,"The paste-run link (node/paste-run-link.mjs) dropping the title, ask or function from the #gz= payload pages/paste-run.html reads, splitting --send into the wrong stage target or file, or minting a link from a file that does not parse as a function."
 node/test/paste-session-branch.test.mjs,behavior,"Pasting a Claude session URL or a branch identifier routes to that detail deck instead of staging as content, and a file-carrying or multi-item clipboard is declined."
 node/test/path-picker.test.mjs,behavior,"Path ranking: exact, prefix, substring, then no match, with containers ordered first."
 node/test/pdf-find.test.mjs,behavior,"Text search over a PDF's extracted items: case and typographic folding, phrases split across items, per-line rectangles, and glyph-tight sub-run boxes, so the reading column's find highlights land on the right words."
