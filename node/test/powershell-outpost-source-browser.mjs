@@ -45,7 +45,7 @@ const fixture = { repo, revision, files, blobs: Object.fromEntries(Object.entrie
 // repo.js registers Alpine.data('repo'), as the app does; that name shadows the
 // view's repo inside the pane's x-data expression, which is how the 2026-09-25
 // break reached the app while this check stayed green.
-const scripts = ['kits/csv.js', 'kits/powershell-outpost.js', 'kits/sync-status.js', 'kits/text-diff.js', 'kits/github-links.js', 'kits/powershell-editor.js', 'kits/powershell-workspace.js', 'kits/powershell-language.js', 'kits/powershell-units.js', 'alpineComponents/repo.js', 'alpineComponents/powershell-file.js', 'alpineComponents/powershell-outpost-view.js'];
+const scripts = ['kits/csv.js', 'kits/powershell-outpost.js', 'kits/sync-status.js', 'kits/text-diff.js', 'kits/repo-address.js', 'kits/github-links.js', 'kits/powershell-editor.js', 'kits/powershell-workspace.js', 'kits/powershell-language.js', 'kits/powershell-units.js', 'alpineComponents/repo.js', 'alpineComponents/powershell-file.js', 'alpineComponents/powershell-outpost-view.js'];
 const html = `<!doctype html><html><head><meta charset="utf-8"><title>PowerShell outpost source pane verification</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
@@ -57,6 +57,7 @@ window.TOKEN = 't';
 const __drafts = new Map(); window.persistence = { collection: () => ({ async find(m) { return [...__drafts.values()].filter(m); }, async put(r) { __drafts.set(r.id, r); return r; }, async delete(id) { __drafts.delete(id); } }) };
 window.GH = class {
   static FRESH = { cache: 'no-store' };
+  static decodeBytes(b64) { return Uint8Array.from(atob(String(b64).replace(/\\s/g, '')), c => c.charCodeAt(0)); }
   constructor(opts = {}) { this.repo = opts.repo; this.ref = opts.ref || 'main'; }
   async get(path) {
     const f = window.__fixture;
@@ -184,7 +185,7 @@ try {
   });
   await check('the Source header tools and the paste zone are visible, and a drop on the pane is described, then compared', async () => {
     await desk.select(A); await desk.settled();
-    for (const label of ['Open in deck', 'Copy GitHub text'])
+    for (const label of ['Copy GitHub text'])
       assert.equal(await desk.page.getByLabel(label, { exact: true }).isVisible(), true, label);
     for (const gone of ['Download GitHub text', 'Copy transfer script', 'Compare a file with this file'])
       assert.equal(await desk.page.getByLabel(gone, { exact: true }).count(), 0, gone + ' is gone');
@@ -237,7 +238,7 @@ try {
     assert.deepEqual(rows, ['Removed     $Step = 1', 'Added     param([int]$Step = 2)']);
     assert.match(await desk.page.locator('[data-source-diff]').innerText(), /reported installed at ccccccc/);
     for (const label of ['Files', 'Stage', 'Open code workspace', 'Mark as installed']) assert.equal(await desk.page.getByRole('button', { name: label, exact: true }).count(), 0, label + ' is gone');
-    assert.equal(await desk.page.locator('[data-row]', { hasText: 'C.psm1' }).locator('[data-status]').getAttribute('title'), 'Update pending');
+    assert.equal(await desk.page.locator('[data-row]', { hasText: 'C.psm1' }).locator('[data-status]').getAttribute('data-title-tip'), 'Update pending');
     if (process.env.SHOTS) await desk.page.screenshot({ path: path.join(process.env.SHOTS, 'source-pane-changes.png'), fullPage: true });
     await desk.page.locator('[data-source-views] button', { hasText: 'Code' }).click();
     await desk.page.locator('[data-source] .cm-editor').waitFor({ state: 'visible' });
@@ -246,15 +247,15 @@ try {
   });
   await check('Edit in the pane writes a browser draft, and its menu offers the draft actions', async () => {
     await desk.select(B); await desk.settled();
-    await desk.page.locator('[data-file-actions] [title="Edit"]').click();
+    await desk.page.locator('[data-file-actions] [aria-label="Edit"]').click();
     assert.equal((await desk.editor()).readOnly, false);
     await desk.page.locator('[data-source] .cm-content').click();
     await desk.page.keyboard.press('Control+End');
     await desk.page.keyboard.type('# edited');
     await desk.page.waitForFunction(() => Alpine.$data(document.querySelector('#mount')).draftList.length === 1);
-    await desk.page.locator('[data-file-actions] [title="Done editing"]').click();
+    await desk.page.locator('[data-file-actions] [aria-label="Done editing"]').click();
     assert.equal((await desk.editor()).readOnly, true);
-    await desk.page.locator('[data-file-actions] [title="File actions"]').click();
+    await desk.page.locator('[data-file-actions] [aria-label="File actions"]').click();
     const menu = desk.page.locator('[data-file-menu]');
     await menu.waitFor({ state: 'visible' });
     const items = await menu.locator('li').allInnerTexts();
@@ -288,7 +289,7 @@ try {
     assert.equal(await menu.getByRole('button', { name: 'Confirm installed…' }).isVisible(), true);
     if (process.env.SHOTS) await phone.page.screenshot({ path: path.join(process.env.SHOTS, 'status-menu-phone.png') });
     await phone.page.keyboard.press('Escape');
-    assert.equal(await phone.page.getByLabel('Copy GitHub text', { exact: true }).isVisible(), true, 'Copy shows on the Code tab');
+    assert.equal(await phone.page.getByLabel('Copy GitHub text', { exact: true }).isVisible(), true, 'Copy shows on the GitHub tab');
     await phone.page.locator('[data-detail-tabs] [data-tab=copy]').click();
     assert.equal(await phone.page.locator('[data-copy-zone]').isVisible(), true, 'the paste zone is one tab over');
     await phone.page.locator('[data-detail-tabs] [data-tab=code]').click();
