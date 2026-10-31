@@ -213,7 +213,7 @@ test('unstaged names each proposed pair plan does not stage, and why', () => {
 // mark() reads only variants.jsonl and proposals.jsonl to place a marker, so
 // the stub GH serves those two, keyed by the real passage ids, and serves the
 // passages only for the tap that opens a card.
-async function marksFixture() {
+async function marksFixture(doc = DOC) {
   const T = window.TextCollection;
   const id = (s) => T.passageId(s);
   const [t1, t1c, t1h, t3, t3n] = await Promise.all([P1, P1_CLARITY, P1_HALF, P3, P3_NEW].map(id));
@@ -244,7 +244,7 @@ async function marksFixture() {
   window.localStorage.removeItem(K.MARKS_KEY);
   const box = window.document.createElement('div');
   box.className = 'prose';
-  box.innerHTML = marked.parse(DOC);
+  box.innerHTML = marked.parse(doc);
   window.document.body.replaceChildren(box);
   return { box, calls, T };
 }
@@ -252,20 +252,38 @@ const tick = () => new Promise((r) => setTimeout(r, 0));
 // jsdom has no scrolling; md-diff's swipe deck scrolls its track to the inline stop.
 window.HTMLElement.prototype.scrollTo ??= function () {};
 
-test('mark puts one marker on each rendered block with variants, from the light read alone', async () => {
+const BARE = DOC.replace(/^# .*\n\n/, '');
+const sectionTool = (box) => box.querySelector('[data-md-variant-section]');
+const until = async (ok) => { for (let i = 0; i < 80 && !ok(); i++) await new Promise((r) => setTimeout(r, 10)); };
+
+test('mark puts the sparkle in the heading\'s row of tools, counting its paragraphs, from the light read alone', async () => {
   const { box, calls, T } = await marksFixture();
   const r = await K.mark(box, DOC, { file: FILE, token: 't' });
   assert.equal(r.count, 2);
+  assert.equal(r.sections, 1);
   assert.deepEqual(calls.sort(), [T.PATHS.proposals, T.PATHS.variants].sort(), 'no passages until a card opens');
-  const marks = [...box.querySelectorAll('[data-md-variant-mark]')];
+  const tool = sectionTool(box);
+  assert.equal(tool.closest('h1'), box.querySelector('h1'), 'in the heading');
+  assert.ok(tool.closest('.md-sec-tools'), 'in its row of tools, beside edit and copy where md-doc drew them');
+  assert.equal(tool.textContent.trim(), '2', 'two paragraphs under it have variants');
+  assert.match(tool.getAttribute('aria-label'), /2 paragraphs with variants \(3 in all\), one proposed for this file/);
+  assert.match(tool.querySelector('i').className, /ph-fill/, 'a proposal for the open file fills it');
+  assert.equal(box.querySelectorAll('.md-variant-mark').length, 0, 'no margin marks under a heading');
+  await K.mark(box, DOC, { file: FILE, token: 't' });
+  assert.equal(box.querySelectorAll('[data-md-variant-section]').length, 1, 'marking again replaces, never doubles');
+});
+
+test('a paragraph above the first heading keeps the margin mark', async () => {
+  const { box } = await marksFixture(BARE);
+  const r = await K.mark(box, BARE, { file: FILE, token: 't' });
+  assert.equal(r.count, 2);
+  assert.equal(r.sections, 0);
+  const marks = [...box.querySelectorAll('.md-variant-mark')];
   assert.deepEqual(marks.map((m) => m.parentElement.textContent.startsWith('The lanes') ? 'P1'
     : m.parentElement.textContent.startsWith('Carry-forward') ? 'P3' : '?'), ['P1', 'P3'], 'on the paragraphs, in order');
   assert.equal(marks[0].getAttribute('aria-label'), '2 retained variants, proposed for this file');
-  assert.match(marks[0].querySelector('i').className, /ph-fill/, 'a proposal for the open file fills the mark');
-  assert.equal(marks[1].getAttribute('aria-label'), '1 retained variant', 'a proposal for another file does not');
+  assert.equal(marks[1].getAttribute('aria-label'), '1 retained variant', 'a proposal for another file does not fill it');
   assert.ok(marks.every((m) => m.parentElement.classList.contains('relative')));
-  await K.mark(box, DOC, { file: FILE, token: 't' });
-  assert.equal(box.querySelectorAll('[data-md-variant-mark]').length, 2, 'marking again replaces, never doubles');
 });
 
 test('without a token mark reads nothing and leaves the render untouched', async () => {
@@ -288,23 +306,24 @@ test('the switch clears every marked box and brings the marks back, per browser'
   assert.equal(box.querySelectorAll('[data-md-variant-mark]').length, 0);
   assert.equal((await K.mark(box, DOC, { token: 't' })).off, true, 'a fresh render stays clear while off');
   K.setMarks(true);
-  for (let i = 0; i < 20 && !box.querySelector('[data-md-variant-mark]'); i++) await new Promise((r) => setTimeout(r, 10));
+  await until(() => sectionTool(box));
   assert.equal(window.localStorage.getItem(K.MARKS_KEY), null, 'on is the absent key');
-  assert.equal(box.querySelectorAll('[data-md-variant-mark]').length, 2);
+  assert.ok(sectionTool(box));
 });
 
-test('a tap opens the paragraph in place as the proposed variant, and a second tap restores it', async () => {
+test('the heading\'s sparkle opens every card in its section; a card\'s own mark closes it alone', async () => {
   const { box } = await marksFixture();
   await K.mark(box, DOC, { file: FILE, token: 't' });
-  const mark = box.querySelector('[data-md-variant-mark]');
-  const para = mark.parentElement;
-  mark.click();
-  for (let i = 0; i < 50 && !box.querySelector('[data-md-variant-card]'); i++) await new Promise((r) => setTimeout(r, 10));
-  const card = box.querySelector('[data-md-variant-card]');
-  assert.ok(card, 'the card opens');
-  assert.equal(para.hidden, true, 'in place of the paragraph');
-  assert.equal(card.nextElementSibling, para);
-  assert.equal(mark.parentElement, card, 'the marker travels with it, to close it');
+  const tool = sectionTool(box);
+  const paras = [...box.querySelectorAll('p')].filter((p) => /^(The lanes|Carry-forward)/.test(p.textContent));
+  tool.click();
+  await until(() => box.querySelectorAll('[data-md-variant-card]').length === 2 && tool.getAttribute('aria-expanded') === 'true');
+  const cards = [...box.querySelectorAll('[data-md-variant-card]')];
+  assert.equal(cards.length, 2, 'both paragraphs open');
+  assert.equal(tool.getAttribute('aria-expanded'), 'true');
+  assert.ok(paras.every((p) => p.hidden), 'in place of their paragraphs');
+  assert.equal(cards[0].nextElementSibling, paras[0]);
+  const card = cards[0];
   assert.match(card.textContent, /Chief of Staff \(Grok\)/, 'the proposed variant is the one shown');
   assert.ok(card.querySelector('[data-md-variants-proposal]'), 'marked as proposed here');
   assert.ok(card.querySelector('.md-diff-change'), 'drawn as md-diff\'s container, as the call form draws an edit');
@@ -317,12 +336,17 @@ test('a tap opens the paragraph in place as the proposed variant, and a second t
   window.document.body.dispatchEvent(down);
   assert.equal(down.defaultPrevented, false, 'ArrowDown still scrolls the document');
   step().querySelector('[aria-label="Previous variant"]').click();
-  for (let i = 0; i < 50 && !/Variant 1 of 2/.test(step()?.textContent || ''); i++) await new Promise((r) => setTimeout(r, 10));
+  await until(() => /Variant 1 of 2/.test(step()?.textContent || ''));
   assert.match(step().textContent, /Variant 1 of 2/);
   assert.match(card.textContent, /Ollama mistral:7b/, 'the arrow moves to the other variant');
   assert.equal(step().querySelector('[aria-label="Previous variant"]').disabled, true);
-  mark.click();
-  assert.equal(box.querySelector('[data-md-variant-card]'), null);
-  assert.equal(para.hidden, false);
-  assert.equal(mark.parentElement, para);
+  card.querySelector('.md-variant-mark').click();
+  assert.equal(box.querySelectorAll('[data-md-variant-card]').length, 1, 'its own mark closes that card alone');
+  assert.equal(paras[0].hidden, false);
+  assert.equal(tool.getAttribute('aria-expanded'), 'true', 'the section still has one open');
+  tool.click();
+  await tick();
+  assert.equal(box.querySelectorAll('[data-md-variant-card]').length, 0, 'the heading closes the rest');
+  assert.ok(paras.every((p) => !p.hidden));
+  assert.equal(tool.getAttribute('aria-expanded'), 'false');
 });
