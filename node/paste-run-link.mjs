@@ -4,14 +4,15 @@
 // should not hold and hand back only the result.
 //
 // Usage:
-//   npm run -s paste-run-link -- <fn.js> --title "<title>" [--ask "<one line>"] [--send <owner/repo@ref:folder/file>]
+//   npm run -s paste-run-link -- <fn.js> --title "<title>" [--ask "<one line>"] [--send <owner/repo@ref:folder/file>] [--page <url>]
 //
 // <fn.js> holds the source of one function, (rows, text) => result; rows are
 // the paste as a table, text the paste itself (pages/paste-run.html says how a
 // result shows). --send names where the page's Send aims the Web Tools stage;
 // without it the reader copies the result. The payload is {title, ask, fn,
 // send?} as JSON, gzipped, base64url, in #gz=, the form kits/gz-payload.js
-// reads. The link goes to stdout and its length to stderr.
+// reads. --page points the link at another copy of the page, such as a local
+// server under test. The link goes to stdout and its length to stderr.
 
 import { readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
