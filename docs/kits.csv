@@ -48,7 +48,7 @@ lib/kits/last-write.js,LastWrite,"the copy this page just committed, for the nex
 lib/kits/linked-swiper.js,linkedSwiper,"a list with a detail: the list beside, or over, a strip of one card per row, the two moving together.",326,no,yes,4,yes
 lib/kits/lists.js,Lists,"the registry's lists/ folder, read and written as one kind of file.",235,no,no,4,yes
 lib/kits/look.js,Look,"look markers: a link that lands on a place in a page, says why, and can ring the control to tap.",1744,no,yes,5,yes
-lib/kits/md-diff.js,mdDiff,a markdown change read as the DOCUMENT rather than as its source.,1671,no,yes,19,yes
+lib/kits/md-diff.js,mdDiff,a markdown change read as the DOCUMENT rather than as its source.,1671,no,yes,18,yes
 lib/kits/md-doc.js,mdDoc,a markdown document rendered as something you can read and take pieces OUT of.,999,no,no,16,yes
 lib/kits/md-edit-studio.js,mdEditVariants,"the section editor as a studio: the source and a live reading of the change on one full screen, with no mode to switch.",611,no,no,1,no
 lib/kits/md-edit-tabs.js,mdEditVariants,"Wikipedia's source editor for one markdown section: Write, Preview and Changes over one text box, in place on a wide screen and the whole screen on a phone.",557,no,no,2,no
@@ -56,7 +56,7 @@ lib/kits/md-edit.js,mdEdit,"edit one section of a markdown file where it is rend
 lib/kits/md-history.js,mdHistory,"a markdown document read WITH the history of its passages: what each one used to say, the commit that changed it, and the variants the Text collection holds…",275,no,no,2,yes
 lib/kits/md-surface.js,MdSurface,"a markdown buffer shown RENDERED, and still aimed at by character offset, so a text surface can edit its source while the reader looks at the document.",1171,no,no,6,yes
 lib/kits/md-unwrap.js,mdUnwrap,join hard-wrapped markdown lines into one line per paragraph.,142,no,no,1,yes
-lib/kits/md-variants.js,mdVariants,"a markdown document read WITH the variants retained against its paragraphs, and the proposals among them made for this file.",326,no,yes,6,yes
+lib/kits/md-variants.js,mdVariants,"a markdown document read WITH the variants retained against its paragraphs, and the proposals among them made for this file.",515,no,yes,7,yes
 lib/kits/messaging.js,messaging,string-path pub/sub.,73,no,yes,4,yes
 lib/kits/notes.js,Notes,"short, signed, dated observations addressed to a subject.",156,no,no,9,yes
 lib/kits/page-report.js,PageReport,the page files its own bug report,233,no,no,5,yes
@@ -108,7 +108,7 @@ lib/kits/sync-status.js,SyncStatus,"how a synchronization state looks, wherever 
 lib/kits/table-stats.js,DataProfile,"a table's profile and its pivot, computed once for the estate TableStats.parseNum(v) -> number | null TableStats.profile(rows, { columns }) -> { rowCount,…",418,no,no,5,yes
 lib/kits/tabular-explorer.js,TabularExplorer,"Exploratory Data Analysis (EDA) and immersive inspection for tabular data (CSV, TSV, JSON rows).",851,no,no,2,yes
 lib/kits/term-marks.js,TermMarks,a glossary's terms marked where a text first names them (window.TermMarks).,39,no,no,1,yes
-lib/kits/text-collection.js,TextCollection,"the shared Text collection, read in the browser.",556,no,no,6,yes
+lib/kits/text-collection.js,TextCollection,"the shared Text collection, read in the browser.",599,no,no,6,yes
 lib/kits/text-diff.js,textDiff,"patience diff over lines, plus word-level diff inside a changed line pair.",318,no,no,4,yes
 lib/kits/title-tip.js,TitleTip,"the TITLE-TIP of the house popup rule: `data-title-tip=""…""` in place of `title=""…""`.",439,no,yes,22,yes
 lib/kits/traffic-log.js,TrafficLog,the app writes down what its calls did worth reading,185,no,no,5,yes

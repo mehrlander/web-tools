@@ -208,3 +208,106 @@ test('unstaged names each proposed pair plan does not stage, and why', () => {
     .find((u) => u.to === 'a3').reason, 'unpaired', 'a block proposed with no variant holding the pair');
   assert.deepEqual(K.unstaged(doc, ix, { file: { repo: 'mehrlander/web-tools', path: 'docs/none.md' } }), [], 'no proposals, nothing to say');
 });
+
+// ── Marks on a rendered Preview ────────────────────────────────────────────
+// mark() reads only variants.jsonl and proposals.jsonl to place a marker, so
+// the stub GH serves those two, keyed by the real passage ids, and serves the
+// passages only for the tap that opens a card.
+async function marksFixture() {
+  const T = window.TextCollection;
+  const id = (s) => T.passageId(s);
+  const [t1, t1c, t1h, t3, t3n] = await Promise.all([P1, P1_CLARITY, P1_HALF, P3, P3_NEW].map(id));
+  const rows = (xs) => xs.map((x) => JSON.stringify(x)).join('\n') + '\n';
+  const blobs = {
+    [T.PATHS.passages]: rows([[t1, P1], [t1c, P1_CLARITY], [t1h, P1_HALF], [t3, P3], [t3n, P3_NEW]].map(([i, text]) => ({ id: i, text }))),
+    [T.PATHS.variants]: rows([
+      { from: t1, to: t1c, author: 'Ollama mistral:7b', purpose: 'clarity' },
+      { from: t1, to: t1h, author: 'Chief of Staff (Grok)', purpose: 'half-length' },
+      { from: t3, to: t3n, author: 'doc-audit', purpose: 'qualify' },
+    ]),
+    [T.PATHS.proposals]: rows([
+      { from: t1, to: t1h, ...FILE, basis: BASIS },
+      { from: t3, to: t3n, repo: 'mehrlander/home', path: 'somewhere/else.md', basis: BASIS },
+    ]),
+  };
+  const calls = [];
+  window.GH = class {
+    constructor(o) { this.repo = o.repo; this.token = o.token; }
+    get headers() { return { Authorization: `Bearer ${this.token}` }; }
+    async get(p) {
+      calls.push(p);
+      if (!(p in blobs)) { const e = new Error('Not Found'); e.status = 404; throw e; }
+      return { text: blobs[p] };
+    }
+  };
+  T.clear();
+  window.localStorage.removeItem(K.MARKS_KEY);
+  const box = window.document.createElement('div');
+  box.className = 'prose';
+  box.innerHTML = marked.parse(DOC);
+  window.document.body.replaceChildren(box);
+  return { box, calls, T };
+}
+const tick = () => new Promise((r) => setTimeout(r, 0));
+
+test('mark puts one marker on each rendered block with variants, from the light read alone', async () => {
+  const { box, calls, T } = await marksFixture();
+  const r = await K.mark(box, DOC, { file: FILE, token: 't' });
+  assert.equal(r.count, 2);
+  assert.deepEqual(calls.sort(), [T.PATHS.proposals, T.PATHS.variants].sort(), 'no passages until a card opens');
+  const marks = [...box.querySelectorAll('[data-md-variant-mark]')];
+  assert.deepEqual(marks.map((m) => m.parentElement.textContent.startsWith('The lanes') ? 'P1'
+    : m.parentElement.textContent.startsWith('Carry-forward') ? 'P3' : '?'), ['P1', 'P3'], 'on the paragraphs, in order');
+  assert.equal(marks[0].getAttribute('aria-label'), '2 retained variants, proposed for this file');
+  assert.match(marks[0].querySelector('i').className, /ph-fill/, 'a proposal for the open file fills the mark');
+  assert.equal(marks[1].getAttribute('aria-label'), '1 retained variant', 'a proposal for another file does not');
+  assert.ok(marks.every((m) => m.parentElement.classList.contains('relative')));
+  await K.mark(box, DOC, { file: FILE, token: 't' });
+  assert.equal(box.querySelectorAll('[data-md-variant-mark]').length, 2, 'marking again replaces, never doubles');
+});
+
+test('without a token mark reads nothing and leaves the render untouched', async () => {
+  const { box, calls } = await marksFixture();
+  const before = box.innerHTML;
+  const saved = window.TOKEN; delete window.TOKEN;
+  try {
+    assert.equal((await K.mark(box, DOC, { token: '' })).count, 0);
+  } finally { if (saved !== undefined) window.TOKEN = saved; }
+  assert.deepEqual(calls, []);
+  assert.equal(box.innerHTML, before);
+});
+
+test('the switch clears every marked box and brings the marks back, per browser', async () => {
+  const { box } = await marksFixture();
+  await K.mark(box, DOC, { file: FILE, token: 't' });
+  K.setMarks(false);
+  await tick();
+  assert.equal(window.localStorage.getItem(K.MARKS_KEY), 'off');
+  assert.equal(box.querySelectorAll('[data-md-variant-mark]').length, 0);
+  assert.equal((await K.mark(box, DOC, { token: 't' })).off, true, 'a fresh render stays clear while off');
+  K.setMarks(true);
+  for (let i = 0; i < 20 && !box.querySelector('[data-md-variant-mark]'); i++) await new Promise((r) => setTimeout(r, 10));
+  assert.equal(window.localStorage.getItem(K.MARKS_KEY), null, 'on is the absent key');
+  assert.equal(box.querySelectorAll('[data-md-variant-mark]').length, 2);
+});
+
+test('a tap opens the paragraph in place as the proposed variant, and a second tap restores it', async () => {
+  const { box } = await marksFixture();
+  await K.mark(box, DOC, { file: FILE, token: 't' });
+  const mark = box.querySelector('[data-md-variant-mark]');
+  const para = mark.parentElement;
+  mark.click();
+  for (let i = 0; i < 50 && !box.querySelector('[data-md-variant-card]'); i++) await new Promise((r) => setTimeout(r, 10));
+  const card = box.querySelector('[data-md-variant-card]');
+  assert.ok(card, 'the card opens');
+  assert.equal(para.hidden, true, 'in place of the paragraph');
+  assert.equal(card.nextElementSibling, para);
+  assert.equal(mark.parentElement, card, 'the marker travels with it, to close it');
+  assert.match(card.textContent, /Chief of Staff \(Grok\)/, 'the proposed variant is the one shown');
+  assert.ok(card.querySelector('[data-md-variants-proposal]'), 'marked as proposed here');
+  assert.equal(card.querySelectorAll('[data-md-variants-pick]').length, 2, 'with the other one a tap away');
+  mark.click();
+  assert.equal(box.querySelector('[data-md-variant-card]'), null);
+  assert.equal(para.hidden, false);
+  assert.equal(mark.parentElement, para);
+});
