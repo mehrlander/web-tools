@@ -2,7 +2,7 @@
 // evidence. Every row shape below is copied from shortcuts/log/ in
 // web-tools-private, because the defect this kit exists to fix was a shape
 // read wrongly: a paste row's `build` is Library-Paste's own stamp, and the page
-// scored it against the pasted chain, so every paste read stale.
+// scored it against the pasted shortcut, so every paste read stale.
 //
 // Then the baseline. An install from a commit on an open pull request is scored
 // against that PR's head, not main, and anything the kit cannot answer yields
@@ -28,7 +28,7 @@ const FETCH = JSON.stringify({ op: 'fetch', name: 'Run-AppDetermined', build: '1
 const DUMP = JSON.stringify({ op: 'dump', name: 'Dump-Named', file: '2026-09-25-121941.zip', build: 'c4fd8aa' });
 const RUN = 'run name=Run-Pick build=b07361d chose=Get-FileInfo\n{"Base64":"' + 'x'.repeat(300) + '"}';
 
-test('a paste row is about the pasted chain, and its build is the target', () => {
+test('a paste row is about the pasted shortcut, and its build is the target', () => {
   const e = K.parse('2026-09-25-081915', PASTE);
   assert.equal(e.op, 'paste');
   assert.equal(e.install, true);
@@ -40,7 +40,7 @@ test('a paste row is about the pasted chain, and its build is the target', () =>
   assert.equal(e.verb, 'pasted');
 });
 
-test('a fetch row carries the installer\'s build, not the chain\'s', () => {
+test('a fetch row carries the installer\'s build, not the installed shortcut\'s', () => {
   const e = K.parse('2026-08-30-172440', FETCH);
   assert.equal(e.build, '');
   assert.equal(e.installer.build, '16b4f91');

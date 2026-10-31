@@ -1,6 +1,6 @@
 ---
 name: apple-shortcuts-actions
-description: Compose Apple Shortcuts actions and hand them over as a tappable link that drops wired action cards onto the user's clipboard, ready to paste into any shortcut. Use when they want to build, generate, or share a shortcut or a chain of actions, when they ask for actions they can paste, or when they describe an automation and the natural delivery is a paste-in link rather than a signed file. Also use when an action's identifier or parameter shape has to be looked up.
+description: Compose Apple Shortcuts actions and hand them over as a tappable link that drops wired action cards onto the user's clipboard, ready to paste into any shortcut. Use when they want to build, generate, or share a shortcut or a sequence of actions, when they ask for actions they can paste, or when they describe an automation and the natural delivery is a paste-in link rather than a signed file. Also use when an action's identifier or parameter shape has to be looked up.
 ---
 
 # Apple Shortcuts actions
@@ -10,7 +10,7 @@ description: Compose Apple Shortcuts actions and hand them over as a tappable li
 A whole `.shortcut` file needs Apple's signature and does not import without it.
 An individual action needs only the `com.apple.shortcuts.action` pasteboard
 type, which a shortcut on the device can stamp. Actions can therefore be
-composed anywhere and pasted freely, a wired chain at once, which the editor
+composed anywhere and pasted freely, a whole wired sequence at once, which the editor
 cannot do: it copies one action at a time.
 
 Delivery is a `shortcuts://run-shortcut` link. Tapping it runs a receiver that
@@ -27,11 +27,11 @@ caption naming what it holds, how many actions, and where to paste.
 [`mehrlander/shortcut-tools`](https://github.com/mehrlander/shortcut-tools)
 holds the tooling, the 810-action dictionary, and the format record.
 
-1. Write the chain as `{"label", "actions": [{"id", "p"}]}`, where `p` is
+1. Write the actions as a workflow file, `{"label", "actions": [{"id", "p"}]}`, where `p` is
    `WFWorkflowActionParameters` verbatim.
 2. Resolve every name against the dictionary (`node cli.js get <name>`), not
    from memory. `gettext` is not a key; the Text action is `text`.
-3. `python3 tools/pack.py <chain>.json` prints the link.
+3. `python3 tools/pack.py <workflow>.json` prints the link.
 4. `python3 tools/pack.py --verify "<link>"` against the exact text being sent.
 5. Hand it over as `📋 [caption](link)`.
 

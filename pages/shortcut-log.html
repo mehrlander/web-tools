@@ -9,7 +9,7 @@
 { // A run handed over from chat arrives as #run=<shortcuts:// link> (see the
   // note below). It fires once the document is parsed: fired from here, before
   // parsing, it stalled the page in headless Chromium (2026-10-21), and it need
-  // not wait for the library chain or a token. The address drops it, so a
+  // not wait for the web-tools library to load or for a token. The address drops it, so a
   // reload or a Back cannot fire it again.
   const m = /^#run=(.+)$/.exec(location.hash);
   let link = m ? m[1] : '';
@@ -197,7 +197,7 @@
 
           <div x-show="item.name" class="flex flex-wrap gap-2">
             <button @click="only = item.name; close()" class="btn btn-sm"><i class="ph ph-funnel"></i><span x-text="'Only ' + item.name"></span></button>
-            <a :href="'shortcuts.html?name=' + encodeURIComponent(item.name)" class="btn btn-sm btn-ghost"><i class="ph ph-link"></i>Chain</a>
+            <a :href="'shortcuts.html?name=' + encodeURIComponent(item.name)" class="btn btn-sm btn-ghost"><i class="ph ph-file-code"></i>Workflow</a>
           </div>
 
           <template x-if="item.op === 'dump' && item.fields.file">
@@ -246,7 +246,7 @@
 </div>
 
 <script type="module">
-// The repo's standard boot. ?use=<ref> pins the chain to a branch for
+// The repo's standard boot. ?use=<ref> pins the library code to a branch for
 // previewing edits, exactly as the other loader pages do.
 const q = new URLSearchParams(location.search);
 await import('https://mehrlander.github.io/web-tools/lib/entry.js');
@@ -329,7 +329,7 @@ document.addEventListener('alpine:init', () => Alpine.data('shortcutLog', () => 
   entries: [],        // parsed, newest first, the loaded window
   limit: PAGE,
   filter: 'all',
-  only: q.get('name') || '',   // ?name= opens on one shortcut; Chains links here that way
+  only: q.get('name') || '',   // ?name= opens on one shortcut; Workflows links here that way
   sel: '',
   raw: false,
   loading: false,

@@ -15,14 +15,14 @@ Do not construct or edit the URLs by hand.
 ## Choose a command
 
 Run these commands from `mehrlander/shortcut-tools`.
-`<chain>` is a workflow JSON file; `<Name>` is an installed shortcut's name.
+`<workflow>` is a JSON file under `workflows/`; `<Name>` is an installed shortcut's name.
 
 | Task | Command | Required on the phone |
 | --- | --- | --- |
-| Copy actions for pasting | `python3 tools/pack.py <chain> --url` | `Copy-ActionFromClaude` |
-| Install a shortcut | `python3 tools/plist.py <chain> --link --fetch --ref <sha>` | `Library-Fetch` |
-| Replace an installed shortcut | `python3 tools/plist.py <chain> --link --replace --ref <sha>` | `Library-Replace` |
-| Install by paste (no signing) | `python3 tools/pack.py <chain> --install --ref <sha>` | `Library-Paste` |
+| Copy actions for pasting | `python3 tools/pack.py <workflow> --url` | `Copy-ActionFromClaude` |
+| Install a shortcut | `python3 tools/plist.py <workflow> --link --fetch --ref <sha>` | `Library-Fetch` |
+| Replace an installed shortcut | `python3 tools/plist.py <workflow> --link --replace --ref <sha>` | `Library-Replace` |
+| Install by paste (no signing) | `python3 tools/pack.py <workflow> --install --ref <sha>` | `Library-Paste` |
 | Run a shortcut | `python3 tools/run.py <Name>` | The named shortcut |
 | Run with text input | `python3 tools/run.py <Name> --text '<input>'` | The named shortcut |
 | Run and report the result | `python3 tools/run.py <Name> --log` | The named shortcut, `Run-Steps`, and `Log-Repo` |
@@ -39,15 +39,15 @@ Do not combine `--text` with a sequence or `--log`.
 
 Prefer `Library-Fetch`, which downloads a file signed before the user taps.
 
-1. Build the plist: `python3 tools/plist.py <chain>`.
-2. Sign and save it: `python3 tools/plist.py <chain> --write-signed`.
+1. Build the plist: `python3 tools/plist.py <workflow>`.
+2. Sign and save it: `python3 tools/plist.py <workflow> --write-signed`.
 3. Commit and push the workflow, plist, signed file, and signing manifest.
 4. Generate the install link using the commit SHA containing those files.
 
 `--fetch` only generates the link; it does not sign or publish the file.
 
 The older `Library-Import` route sends the plist for signing from the phone.
-If using that route, first run `python3 tools/plist.py <chain> --sign` and
+If using that route, first run `python3 tools/plist.py <workflow> --sign` and
 confirm success. A signing-service failure can appear on the phone as
 “Unrecognized archive format.”
 
