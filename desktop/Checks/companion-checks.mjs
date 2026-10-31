@@ -30,6 +30,7 @@ try {
   }
   check(ready,'The background collector produces an activity snapshot without a desktop window.');
   check((await request('/api/v1/now')).status === 403,'Anonymous local requests cannot read activity.');
+  check((await request('/api/v1/computer')).status === 403 && (await request('/api/v1/computer',{'Tailscale-User-Login':'other@example.test'})).status === 403,'Computer readings share the owner-only access boundary.');
   check((await request('/')).status === 403,'The phone page also requires owner access.');
   check((await request('/api/v1/now',{'Tailscale-User-Login':'other@example.test'})).status === 403,'Another Tailscale identity cannot read the owner activity.');
   check((await request('/api/v1/desktop',owner)).status === 403,'The phone identity cannot read the desktop snapshot.');
@@ -39,6 +40,12 @@ try {
   const phone = await first.json();
   check(first.ok && phone.schemaVersion === 1 && Array.isArray(phone.items),'The owner receives the versioned phone projection.');
   check(Array.isArray(phone.usage) && (await request('/usage-view.js',owner)).ok,'The private phone API and assets expose the normalized usage view.');
+  const computerResponse = await request('/api/v1/computer',owner), computer = await computerResponse.json();
+  check(computerResponse.ok && computer.schemaVersion === 1 && Array.isArray(computer.applications) && computer.sessionState === 'unknown' && computer.cpuPercent === null,'The separate Computer projection uses explicit unavailable readings in an isolated fixture.');
+  check(!JSON.stringify(computer).includes(token) && !JSON.stringify(computer).includes('repositoriesRoot') && !JSON.stringify(computer).includes('commandLine'),'Computer readings omit credentials, commands and settings.');
+  check((await request('/api/v1/computer',{...owner,'If-None-Match':computerResponse.headers.get('etag')})).status === 304,'Computer polling supports unchanged observations.');
+  check((await request('/api/v1/computer',owner,'POST')).status === 405,'The Computer route offers no machine control actions.');
+  check((await request('/computer.js',owner)).ok && (await request('/sw.js',owner)).ok,'The Computer view and offline interface worker are explicit private assets.');
   const serialized = JSON.stringify(phone);
   check(!serialized.includes(token) && !serialized.includes('repositoriesRoot') && !serialized.includes('workspace') && !serialized.includes('downloads'), 'The phone response omits credentials, configuration and filesystem fields.');
   check(first.headers.get('cache-control') === 'no-store' && first.headers.get('content-security-policy').includes("frame-ancestors 'none'"),'Private responses disable caching and framing.');

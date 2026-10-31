@@ -17,21 +17,26 @@
   <script src="/now-shared.js" defer></script>
   <script src="/usage-view.js" defer></script>
   <script src="/reading.js" defer></script>
+  <script src="/computer.js" defer></script>
   <script src="/phone.js" defer></script>
 </head>
 <body class="min-h-dvh bg-stone-100 font-sans text-stone-900 antialiased">
   <main id="overview" class="min-h-dvh">
     <header class="sticky top-0 z-10 border-b border-stone-200 bg-stone-100/95 backdrop-blur">
       <div class="flex items-center justify-between gap-2 px-3 py-1">
-        <div class="flex min-w-0 items-center gap-2"><img src="/icon.svg" class="size-6" alt=""><div class="min-w-0"><h1 class="text-lg font-semibold">Now</h1><p id="machine" class="truncate text-[10px] text-stone-500">Your laptop</p></div></div>
+        <div class="flex min-w-0 items-center gap-2"><img src="/icon.svg" class="size-6" alt=""><div class="min-w-0"><h1><button id="view-picker" aria-expanded="false" aria-controls="view-menu" class="flex min-h-7 items-center gap-1 text-lg font-semibold"><span id="view-title">Now</span><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" class="size-3 text-stone-500" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg></button></h1><p id="machine" class="truncate text-[10px] text-stone-500">Your laptop</p></div></div>
         <div id="connection" role="status" class="ml-auto text-[10px] text-stone-500">Connecting…</div>
-        <a href="https://mehrlander.github.io/web-tools/app/" target="_blank" rel="noopener noreferrer" aria-label="Open Web Tools" class="flex size-11 items-center justify-center rounded-full border border-stone-200 bg-white text-stone-600"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="size-5" aria-hidden="true"><path d="M14 4h6v6M20 4 10 14M10 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5"/></svg></a>
+        <button id="remote-picker" aria-label="Open Windows App options" title="Windows App" aria-expanded="false" aria-controls="remote-menu" class="flex size-9 shrink-0 items-center justify-center rounded-full border border-stone-200 bg-white text-sky-800"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="size-5" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 21h8m-4-5v5m-5-11h10m-3-3 3 3-3 3"/></svg></button>
+        <a href="https://mehrlander.github.io/web-tools/app/" target="_blank" rel="noopener noreferrer" aria-label="Open Web Tools" class="flex size-9 shrink-0 items-center justify-center rounded-full border border-stone-200 bg-white text-stone-600"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="size-5" aria-hidden="true"><path d="M14 4h6v6M20 4 10 14M10 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1-1v-5"/></svg></a>
       </div>
+      <nav id="view-menu" hidden aria-label="Choose view" class="absolute left-3 top-12 z-20 w-44 rounded-xl border border-stone-200 bg-white p-1 shadow-lg"><button data-view="now" aria-current="page" class="block min-h-11 w-full rounded-lg px-3 text-left text-sm">Now</button><button data-view="computer" class="block min-h-11 w-full rounded-lg px-3 text-left text-sm">Computer</button></nav>
+      <section id="remote-menu" hidden aria-label="Windows App" class="absolute right-3 top-12 z-20 w-72 max-w-[calc(100vw-1.5rem)] rounded-xl border border-stone-200 bg-white p-3 shadow-lg"><h2 class="text-xs font-semibold text-stone-500">Windows App</h2><a id="remote-connect" class="mt-1 flex min-h-11 items-center text-sm text-sky-800">Connect to laptop ↗</a><a href="shortcuts://run-shortcut?name=Windows%20App" class="flex min-h-11 items-center text-sm text-sky-800">Open using Shortcut ↗</a><p class="text-[11px] leading-4 text-stone-500">If Connect does not open Windows App, create an iPhone shortcut named <strong>Windows App</strong> with one <strong>Open App</strong> action for Windows App, then use Shortcut.</p></section>
       <nav id="assistants" aria-label="Filter by assistant" class="grid grid-cols-3 border-t border-stone-200"></nav>
     </header>
     <div id="notice" class="empty:hidden border-b border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900"></div>
     <div id="content" class="pb-8"><p class="p-4 text-base text-stone-500">Reading current activity…</p></div>
     <footer id="source-times" class="px-4 pb-8 text-xs leading-5 text-stone-500"></footer>
+    <section id="computer" hidden aria-label="Computer" class="pb-8"></section>
   </main>
   <section id="detail" hidden class="min-h-dvh bg-white" aria-label="Selected activity"></section>
 </body>
