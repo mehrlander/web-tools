@@ -179,6 +179,26 @@
         "?view=map&tab=showing",
         "?view=waiting"
       ]
+    },
+    {
+      "name": "testing",
+      "label": "Testing",
+      "icon": "ph-flask",
+      "path": "programs/testing",
+      "governs": [
+        "docs/tests.csv",
+        "docs/tests-authored.csv",
+        "docs/environment/testing.md",
+        ".github/workflows/test.yml",
+        ".github/workflows/page-measures.yml"
+      ],
+      "reviewers": [
+        "portable:owner-proxy",
+        "portable:peeves-critic"
+      ],
+      "views": [
+        "?view=map&tab=tests"
+      ]
     }
   ]
 }
