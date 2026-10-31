@@ -249,6 +249,8 @@ async function marksFixture() {
   return { box, calls, T };
 }
 const tick = () => new Promise((r) => setTimeout(r, 0));
+// jsdom has no scrolling; md-diff's swipe deck scrolls its track to the inline stop.
+window.HTMLElement.prototype.scrollTo ??= function () {};
 
 test('mark puts one marker on each rendered block with variants, from the light read alone', async () => {
   const { box, calls, T } = await marksFixture();
@@ -305,7 +307,20 @@ test('a tap opens the paragraph in place as the proposed variant, and a second t
   assert.equal(mark.parentElement, card, 'the marker travels with it, to close it');
   assert.match(card.textContent, /Chief of Staff \(Grok\)/, 'the proposed variant is the one shown');
   assert.ok(card.querySelector('[data-md-variants-proposal]'), 'marked as proposed here');
-  assert.equal(card.querySelectorAll('[data-md-variants-pick]').length, 2, 'with the other one a tap away');
+  assert.ok(card.querySelector('.md-diff-change'), 'drawn as md-diff\'s container, as the call form draws an edit');
+  assert.equal(card.querySelectorAll('[data-md-variants-pick]').length, 0, 'no row of purpose labels');
+  const step = () => card.querySelector('[data-md-variant-step]');
+  assert.match(step().textContent, /Variant 2 of 2/, 'it opens on the proposed one, second of the two');
+  assert.equal(step().querySelector('[aria-label="Next variant"]').disabled, true);
+  // The page's keys stay the page's: the card installs no document listener.
+  const down = new window.KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true });
+  window.document.body.dispatchEvent(down);
+  assert.equal(down.defaultPrevented, false, 'ArrowDown still scrolls the document');
+  step().querySelector('[aria-label="Previous variant"]').click();
+  for (let i = 0; i < 50 && !/Variant 1 of 2/.test(step()?.textContent || ''); i++) await new Promise((r) => setTimeout(r, 10));
+  assert.match(step().textContent, /Variant 1 of 2/);
+  assert.match(card.textContent, /Ollama mistral:7b/, 'the arrow moves to the other variant');
+  assert.equal(step().querySelector('[aria-label="Previous variant"]').disabled, true);
   mark.click();
   assert.equal(box.querySelector('[data-md-variant-card]'), null);
   assert.equal(para.hidden, false);
