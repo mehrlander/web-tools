@@ -184,7 +184,7 @@ await withPage(token, async page => {
   ok('the detail names the installer and its own stamp', /Library-Paste f18efdb/.test(facts), facts);
 });
 
-// Chains links each shortcut to its own entries this way.
+// The Workflows view links each shortcut to its own entries this way.
 await withPage(token, async page => {
   await page.waitForFunction(() => document.querySelectorAll('[data-row]').length > 0, null, { timeout: 15000 });
   await page.waitForTimeout(500);

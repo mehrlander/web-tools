@@ -5,12 +5,12 @@
 //
 // catalog.json and the private device sources are stubbed, so what is checked
 // is the part this page decides for itself: which view the URL selects, whether
-// a `run X` line resolves to X's own page, who calls a chain (an answer no file
-// holds, since a chain records its targets and nothing records its callers),
+// a `run X` line resolves to X's own page, who calls a workflow (an answer no file
+// holds, since a workflow records its targets and nothing records its callers),
 // and the three ways an answer can be missing. That last one is the rule this
 // page exists under: an unknown must never render like a good answer, so a
 // catalog with no listing, a name the catalog does not hold, and a device
-// nobody read each have to say so rather than draw an empty chain.
+// nobody read each have to say so rather than draw an empty listing.
 //
 // Exits nonzero on any failure. Not part of `npm test` (needs a browser).
 
@@ -37,13 +37,13 @@ const server = http.createServer(async (req, res) => {
 await new Promise(r => server.listen(0, '127.0.0.1', r));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
-// Four rows, one per case the page has to tell apart: a named chain that calls
-// another and calls out of the estate; the chain it calls, which therefore has
+// Four rows, one per case the page has to tell apart: a named workflow that calls
+// another and calls out of the estate; the workflow it calls, which therefore has
 // a caller; a probe, which has no name and so can never be installed; and a
 // row with no listing at all, which is what a catalog published before the
 // listing existed looks like.
 const CATALOG = {
-  meta: { chains: 4, installable: 3, external_targets: 1 },
+  meta: { workflows: 4, installable: 3, external_targets: 1 },
   external_targets: ['Show-Ace'],
   rows: [
     { file: 'alpha.json', label: 'Alpha: calls one of ours and one of theirs (4 actions)',
@@ -67,8 +67,8 @@ const CATALOG = {
 };
 
 // The survey, which is the device half's first source. Three names, and only
-// one of them is a chain in the catalog above: that asymmetry is the real one
-// (77 chains against 606 surveyed names), and it is what the missing-name
+// one of them is a workflow in the catalog above: that asymmetry is the real one
+// (77 workflows against 606 surveyed names), and it is what the missing-name
 // answers are built on.
 const LIBRARY = {
   meta: { shortcuts: 3, actions: 40 },
@@ -131,7 +131,7 @@ const handler = async route => {
   if (url.includes('/contents/shortcuts/log'))
     return json(route, Object.keys(LOG).map(name => ({ name, path: 'shortcuts/log/' + name })));
   if (url.endsWith('/__man')) return route.fulfill({ status: 200, body: MANIFEST });
-  // The boot chain, served from this checkout: hitting the real CDN and the
+  // The library boot, served from this checkout: hitting the real CDN and the
   // real API would make this check depend on the network and on rate limits.
   if (url.includes('/lib/gh-api.js'))
     return route.fulfill({ status: 200, contentType: 'application/javascript',
@@ -177,15 +177,15 @@ const list = await page.evaluate(() => ({
 const st = JSON.stringify(list.states);
 ok('page boots with no error', errors.length === 0, errors[0]);
 ok('the device half is read with a token', list.status === 'device read', list.status);
-ok('the default view is the installable chains', list.rows === 3, String(list.rows));
-ok('every chain name is a link to its own page',
-   list.hrefs.every(h => /^\?(name|chain)=/.test(h)), list.hrefs.join(' '));
+ok('the default view is the installable workflows', list.rows === 3, String(list.rows));
+ok('every workflow name is a link to its own page',
+   list.hrefs.every(h => /^\?(name|file)=/.test(h)), list.hrefs.join(' '));
 // The join this page exists for: a build that ran matches the build published.
 ok('a paste is read by its target, not the installer\'s stamp: current', list.states.Alpha === 'current', st);
-ok('a chain the device has never reported reads not installed', list.states.Gamma === 'not installed', st);
+ok('a workflow the device has never reported reads not installed', list.states.Gamma === 'not installed', st);
 ok('states are drawn with the shared icons', list.icons.some(c => c.includes('ph-check-circle'))
    && list.icons.some(c => c.includes('ph-plus-circle')), list.icons.join(' | '));
-ok('the header states the counts', /4 chains · 3 installable/.test(list.tally), list.tally);
+ok('the header states the counts', /4 workflows · 3 installable/.test(list.tally), list.tally);
 
 // ── the detail view ────────────────────────────────────────────────────────
 await open('?name=Alpha');
@@ -207,7 +207,7 @@ const d = await page.evaluate(() => {
     buttons: [...document.querySelectorAll('#detail .btn')].map(b => b.textContent),
   };
 });
-ok('?name= opens that chain instead of the list', d.listHidden && d.filtersHidden && d.title === 'Alpha',
+ok('?name= opens that workflow instead of the list', d.listHidden && d.filtersHidden && d.title === 'Alpha',
    `${d.title} list=${d.listHidden}`);
 ok('the figures move to the header', /alpha\.json · aaa111 · 6 cards · file settings/.test(d.meta), d.meta);
 ok('every action is listed', d.lines === 6, String(d.lines));
@@ -216,14 +216,14 @@ ok('a literal is marked as a literal', d.literal.join() === '"hello there"', d.l
 ok('a value reference is a jump', d.refs.join(',') === '«0»,«0»', d.refs.join(','));
 // The reason a by-name call is worth linking: the name is a string nothing
 // validates, and a link that resolves is the cheapest proof that it still does.
-ok('a call to a chain we hold is a link to it', d.runLinks.join() === '?name=Beta', d.runLinks.join());
+ok('a call to a workflow we hold is a link to it', d.runLinks.join() === '?name=Beta', d.runLinks.join());
 ok('a call out of the estate is not a link',
    d.text[4].includes('run Show-Ace') && d.runLinks.length === 1,
    d.text[4] + ' / ' + d.runLinks.join());
 ok('what it calls is shown', d.chips.includes('Beta') && d.chips.includes('Show-Ace'), d.chips.join(','));
 // THE INSTALL LINK'S RECEIVER, which is the whole of the clean-install rule.
 // Import over a name the device already holds leaves both copies and the older
-// one keeps the index, so the button on a chain that is already there has to
+// one keeps the index, so the button on a shortcut that is already there has to
 // name Library-Replace. Asserting the label alone would pass on a button that
 // says Replace and sends an Import.
 //
@@ -232,7 +232,7 @@ ok('what it calls is shown', d.chips.includes('Beta') && d.chips.includes('Show-
 // block near the end checks the default.
 await open('?name=Alpha&signer=up');
 d.buttons = await page.evaluate(() => [...document.querySelectorAll('#detail .btn')].map(b => b.textContent));
-ok('a chain already on the device is replaced, not imported over',
+ok('a shortcut already on the device is replaced, not imported over',
    d.buttons.some(b => b.includes('Replace')), d.buttons.join(','));
 const aHref = await page.locator('#detail a.btn-primary').getAttribute('href');
 ok('and its link names Library-Replace',
@@ -252,11 +252,11 @@ const b = await page.evaluate(() => ({
   chips: [...document.querySelectorAll('#detail .badge')].map(b => b.textContent),
   buttons: [...document.querySelectorAll('#detail .btn')].map(b => b.textContent),
 }));
-ok('a chain is told who calls it', b.labels.includes('Called by') && b.chips.includes('Alpha'),
+ok('a workflow is told who calls it', b.labels.includes('Called by') && b.chips.includes('Alpha'),
    b.labels.join(',') + ' / ' + b.chips.join(','));
 await open('?name=Beta&signer=up');
 b.buttons = await page.evaluate(() => [...document.querySelectorAll('#detail .btn')].map(b => b.textContent));
-ok('a chain the device lacks offers a plain install',
+ok('a workflow the device lacks offers a plain install',
    b.buttons.some(t => t.includes('Install')) && !b.buttons.some(t => t.includes('Replace')),
    b.buttons.join(','));
 const bHref = await page.locator('#detail a.btn-primary').getAttribute('href');
@@ -264,7 +264,7 @@ ok('and its link names Library-Import, since there is nothing to delete',
    bHref.includes('name=Library-Import'), bHref);
 
 // ── the three missing answers ──────────────────────────────────────────────
-await open('?chain=probe-thing.json');
+await open('?file=probe-thing.json');
 const p = await page.evaluate(() => ({
   title: document.getElementById('title').textContent,
   buttons: [...document.querySelectorAll('#detail .btn')].map(b => b.textContent),
@@ -274,13 +274,13 @@ ok('a probe is never offered for install',
    !p.buttons.some(t => /Install|Run|Plist/.test(t)), p.buttons.join(','));
 
 await open('?name=Gamma');
-ok('a catalog with no listing says so rather than drawing an empty chain',
+ok('a catalog with no listing says so rather than drawing an empty listing',
    (await page.locator('#detail').textContent()).includes('No listing in catalog.json'));
 
 // A NAME OFF THE CATALOG HAS THREE ANSWERS, and the page used to give one.
 // `?name=Choose-GPT` is the case that exposed it: a real shortcut, on the
-// device, answered with "No chain here called Choose-GPT", which reads as "no
-// such thing" and is not what was checked.
+// device, answered as though nothing had that name, which reads as "no such
+// thing" and is not what was checked.
 await open('?name=Choose-Thing');
 const dev = await page.evaluate(() => ({
   title: document.getElementById('title').textContent,
@@ -299,10 +299,10 @@ ok('what it offers instead is Open',
    dev.hrefs.some(h => h.includes('name=Library-Open')), dev.hrefs.join(' '));
 ok('its survey figures are stated', /kept · authored · called · 9 cards/.test(dev.meta), dev.meta);
 // survey.py computes both directions for these, so both are shown, and a name
-// that IS a chain here becomes a link back into the catalog.
+// that IS a workflow here becomes a link back into the catalog.
 ok('its calls and callers are shown',
    dev.chips.includes('Alpha') && dev.chips.includes('Menu-Thing'), dev.chips.join(','));
-ok('and a call that is a chain here links to it',
+ok('and a call that is a workflow here links to it',
    dev.chipLinks.join() === '?name=Alpha', dev.chipLinks.join());
 
 // In the manifest and not in the survey. 89 names were in that gap on
@@ -314,7 +314,7 @@ ok('a name newer than the dump says so, and dates the dump it is newer than',
 
 await open('?name=Nope-NotHere');
 ok('a name in neither the catalog nor the device is the only flat no',
-   /not a chain in this catalog, and not on the device/.test(
+   /no workflow by that name, and not on the device/.test(
      await page.locator('#detail').textContent()));
 
 // ── back, and the pins that must survive it ────────────────────────────────
@@ -345,7 +345,7 @@ const n = await bare.evaluate(() => ({
   tally: document.getElementById('tally').textContent,
 }));
 ok('without a token the catalog still renders', n.rows === 3, String(n.rows));
-ok('without a token no chain claims a device state', n.badges === 0, String(n.badges));
+ok('without a token no workflow claims a device state', n.badges === 0, String(n.badges));
 ok('the header says the device was not read', n.status === 'no token', n.status);
 ok('and states no device figures', !/current|stale/.test(n.tally), n.tally);
 
@@ -396,7 +396,7 @@ ok('and its link names Library-Paste', pasteHref.includes('name=Library-Paste'),
 ok('carrying the name, the packed address and the build',
    decodeURIComponent(pasteHref).endsWith('text=Alpha\nhttps://raw.githubusercontent.com/mehrlander/shortcut-tools/main/packed/alpha.json\naaa111'),
    decodeURIComponent(pasteHref));
-ok('a chain with file-level settings says a paste cannot set them',
+ok('a workflow with file-level settings says a paste cannot set them',
    /cannot set/.test(await pasteBtn.getAttribute('title') || ''));
 
 await browser.close();
