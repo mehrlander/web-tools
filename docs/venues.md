@@ -22,7 +22,8 @@ This account has no self-hosted Claude Code Remote pool (`ccpool_`), as of
 - No venue is the default. Run unattended work where its inputs already are:
   work across repos fits the laptop's clones, as constellation-atlas and
   text-occurrences do. A script needs no model, so it fits a `daemon` row or
-  GitHub's runners rather than a cloud session.
+  GitHub's runners rather than a cloud session. A `daemon` row's script can
+  still ask Gemini, through the daemon's own engines, as news-connect does.
 - Remote Control (on a session started there) and Dispatch reach the laptop
   from the phone.
 
