@@ -27,7 +27,10 @@ jobs:
       - name: Check laptop view interactions
         run: node desktop/Checks/ui-checks.mjs
       - name: Check phone interactions
-        run: node desktop/Checks/phone-ui-checks.mjs
+        run: |
+          node desktop/Checks/phone-ui-checks.mjs
+          node desktop/Checks/computer-ui-checks.mjs
+          node desktop/Checks/offline-checks.mjs
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
