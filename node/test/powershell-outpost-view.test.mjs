@@ -562,11 +562,15 @@ test('the Code tab shows the selected file read-only, keeps one editor across ta
   data.select(FORMS); await settle();
 });
 
-test('the Source header carries only Open in deck and Copy; a copy arrives through the paste zone', async () => {
+test('the file bar puts Copy beside Edit and its menu offers Open full screen; a copy arrives through the paste zone', async () => {
   data.select(FORMS); await settle();
-  const tools = el.querySelector('[data-source-tools]');
-  const labels = [...tools.querySelectorAll('[aria-label]')].map(b => b.getAttribute('aria-label'));
-  assert.deepEqual(labels, ['Open in deck', 'Copy GitHub text']);
+  assert.equal(el.querySelector('[data-source-tools]'), null, 'no second toolbar above the file');
+  const bar = el.querySelector('[data-source] [data-file-actions]');
+  const labels = [...bar.querySelectorAll(':scope > button[aria-label]')].map(b => b.getAttribute('aria-label'));
+  assert.deepEqual(labels.filter(l => l !== 'Edit'), ['Copy GitHub text']);
+  if (labels.includes('Edit')) assert.deepEqual(labels, ['Copy GitHub text', 'Edit']);
+  const pane = Alpine.$data(el.querySelector('[data-source] [data-ps-file]'));
+  assert.ok(pane.menuRows().some(r => r.label === 'Open full screen'), 'Open full screen is in the file menu');
   assert.equal(el.querySelector('input[type=file]'), null, 'no file picker: a file is dropped on the zone or the column');
   const rowLabels = q('button.btn-sm').filter(b => !b.closest('[data-source]')).map(b => b.textContent.trim()).filter(Boolean);
   for (const gone of ['Compare copy', 'Copy GitHub text', 'Download']) assert.ok(!rowLabels.includes(gone), gone + ' left the action row');
@@ -616,13 +620,13 @@ test('Changes shows what the work computer is known to hold against GitHub now, 
   for (const gone of ['Files', 'Stage', 'Open code workspace', 'Mark as installed']) assert.ok(!labels.includes(gone), gone + ' is gone');
   // Recorded and unchanged since: nothing to compare, so Code only.
   assert.equal(data.stateOf(xaml).state, 'reported');
-  assert.ok(!tabs().includes('Work copy')); assert.equal(data.sourceView, 'code');
+  assert.ok(!tabs().includes('Line changes')); assert.equal(data.sourceView, 'code');
   // GitHub moves past the recorded version: Changes opens on the update.
   files[xaml] = '<Window>\n  <Grid/>\n</Window>\n'; advanceHead();
   await data.reload(); data.select(xaml); await settle(); await settle();
   assert.equal(data.stateOf(xaml).state, 'changed');
   assert.equal(data.sourceView, 'changes', 'the update is the default view');
-  assert.ok(tabs().includes('Work copy')); assert.ok(shown(diff()));
+  assert.ok(tabs().includes('Line changes')); assert.ok(shown(diff()));
   assert.ok(!shown(el.querySelector('[data-source-plain]')));
   assert.match(data.baseline.label, /^reported installed at [0-9a-f]{7}$/);
   assert.deepEqual([...data.diffRows.filter(r => r.type !== 'eq').map(r => r.type + ' ' + r.text)],
@@ -691,7 +695,7 @@ test('the status icon opens a menu of the actions the file\'s state allows; a di
   icon.click(); await settle();
   const menu = rowOf(profile).querySelector('[data-status-menu]');
   assert.notEqual(menu.style.display, 'none');
-  assert.deepEqual([...menu.querySelectorAll('li button')].map(b => b.textContent.trim()), ['Confirm installed…', 'Open in deck']);
+  assert.deepEqual([...menu.querySelectorAll('li button')].map(b => b.textContent.trim()), ['Confirm installed…', 'Open full screen']);
   // Right-click opens the same menu; Escape closes it.
   data.menuFor = ''; await settle();
   rowOf(profile).dispatchEvent(new window.MouseEvent('contextmenu', { bubbles: true, cancelable: true })); await settle();
@@ -730,7 +734,7 @@ test('the file deck reads one file per slide, edits into a browser draft, and wr
   const original = files[FORMS], written = publications.length, writes = requests.filter(r => r.method !== 'GET').length;
   const poll = async (fn, msg) => { for (let i = 0; i < 100; i++) { if (fn()) return; await tick(1); } assert.fail(msg); };
   data.filter = ''; data.select(''); await settle();
-  assert.ok(data.actionsFor(FORMS).some(a => a.key === 'deck' && a.label === 'Open in deck'));
+  assert.ok(data.actionsFor(FORMS).some(a => a.key === 'deck' && a.label === 'Open full screen'));
   await data.runAction(FORMS, 'deck');
   const deck = window.swipeDeck.stack.at(-1);
   assert.ok(deck, 'the deck opened');
@@ -1219,5 +1223,20 @@ test('a module or form opens whole from its name, and every name in it opens whe
   } finally {
     Object.assign(files, { [mp]: saved.manifest, [FORMS]: saved.forms, [CTL]: saved.ctl, [XAML]: saved.xaml, [PROFILE]: saved.profile });
     delete files[`${P}/data/loads.csv`]; advanceHead(); await data.reload();
+  }
+});
+
+test('Copy GitHub text leaves a byte-order mark off the clipboard, so a paste into the ISE does not start with U+FEFF', async () => {
+  const saved = files[PROFILE];
+  try {
+    files[PROFILE] = '﻿[PSCustomObject]@{}\r\n';
+    advanceHead(); await data.reload(); data.select(PROFILE); await settle();
+    await data.copyText();
+    assert.equal(clip.at(-1), '[PSCustomObject]@{}\r\n');
+    const bar = el.querySelector('[data-source] [data-file-actions]');
+    bar.querySelector('[aria-label="Copy GitHub text"]').click(); await settle(); await settle();
+    assert.equal(clip.at(-1), '[PSCustomObject]@{}\r\n', 'the bar button copies the same text');
+  } finally {
+    files[PROFILE] = saved; advanceHead(); await data.reload();
   }
 });
