@@ -872,8 +872,8 @@ html.dk-dragging main{transition:none !important}
       <div x-show="crumbMenu" x-cloak x-transition.opacity.duration.120ms
            class="absolute inset-x-2 top-full z-40 mt-1 max-h-[60vh] overflow-y-auto rounded-box border border-base-300 bg-base-100 shadow-xl">
         <div class="flex flex-col py-1">
-          <!-- estateSwitcherRows: the members, plus the open family's
-               originals repos hung off their working repo's row by the
+          <!-- estateSwitcherRows: the members, plus the originals repos of
+               the working repo in view, indented under its row by the
                sidebar's 1 px rule (repoOriginals, beside repoProjects). -->
           <template x-for="r in estateSwitcherRows" :key="r.repo">
             <div :class="r.child && 'ml-5 pl-1 border-l border-base-300'">
@@ -1310,22 +1310,21 @@ html.dk-dragging main{transition:none !important}
       <div class="border-t border-base-200"
            x-show="!estateCtx && repoProjects($store.browser.repo).length"></div>
 
-      <!-- ORIGINALS: the open family's originals repos (repoOriginals). In a
-           working repo, the ones it names; in an originals repo, its siblings
-           with itself marked, under a head naming the working repo, which is
-           a button back to it. The rows take the project rows' shape and rule.
-           GitHub's stored size sits before the GitHub button, since for these
-           repos it is what says fetch by path rather than clone. -->
-      <div class="flex flex-col gap-0.5" x-show="!estateCtx && originalsFamily" data-originals-section>
+      <!-- Originals of the working repo in view (repoOriginals): in a working
+           repo, the ones it lists; in an originals repo, the same list with
+           itself marked, and the head names the working repo as a button.
+           Rows take the project rows' shape and rule, with GitHub's stored
+           size before the GitHub button. -->
+      <div class="flex flex-col gap-0.5" x-show="!estateCtx && originalsWorkingRepo" data-originals-section>
         <div class="text-base font-semibold text-base-content/50 px-2 pb-1 flex items-center gap-1.5 min-w-0">
           <i class="ph ph-vault"></i><span>Originals</span>
-          <button x-show="originalsFamily && originalsFamily !== $store.browser.repo" @click="openOriginalsHost()"
-                  class="min-w-0 truncate font-normal text-sm text-base-content/40 hover:text-primary transition-colors"
+          <button x-show="originalsWorkingRepo && originalsWorkingRepo !== $store.browser.repo" @click="openOriginalsHost()"
+                  class="min-w-0 truncate font-normal text-base text-base-content/60 hover:text-primary transition-colors"
                   :data-title-tip="'Open ' + originalsHostLabel($store.browser.repo)"
                   x-text="'of ' + originalsHostLabel($store.browser.repo)"></button>
         </div>
         <div class="flex flex-col gap-0.5 ml-4 pl-2 border-l border-base-300">
-        <template x-for="o in repoOriginals(originalsFamily)" :key="o.repo">
+        <template x-for="o in repoOriginals(originalsWorkingRepo)" :key="o.repo">
           <div class="flex items-center rounded-lg transition-colors hover:bg-base-200"
                :class="$store.browser.repo === o.repo && 'bg-primary/10'">
             <button @click="openPinned(o.repo)"
@@ -1337,7 +1336,7 @@ html.dk-dragging main{transition:none !important}
               <span x-show="o.projectLabel" class="hidden sm:inline min-w-0 truncate shrink-3 font-mono text-xs text-base-content/40" x-text="'› ' + o.projectLabel"></span>
             </button>
             <!-- The size gives way to the project hint, and the hint to the
-                 name on a phone; the row's title-tip carries both. -->
+                 name on a phone; the row's title-tip states both. -->
             <span x-show="repoSizeLabel(o.repo) && !o.projectLabel" class="shrink-0 font-mono text-xs text-base-content/40"
                   data-title-tip="GitHub's stored size" x-text="repoSizeLabel(o.repo)"></span>
             <a :href="githubUrlFor(o.repo)" target="_blank" rel="noopener" @click.stop
@@ -1349,7 +1348,7 @@ html.dk-dragging main{transition:none !important}
         </div>
       </div>
 
-      <div class="border-t border-base-200" x-show="!estateCtx && originalsFamily"></div>
+      <div class="border-t border-base-200" x-show="!estateCtx && originalsWorkingRepo"></div>
 
       <!-- Needs attention: the repo's own declared checks (.web-tools.json
            "checks"), evaluated on open. Only what is NOT passing renders, so a
@@ -1685,8 +1684,8 @@ html.dk-dragging main{transition:none !important}
             <span x-show="repoPushed" class="badge badge-ghost badge-sm gap-1">
               <i class="ph ph-clock"></i><span x-text="'pushed ' + repoPushed"></span>
             </span>
-            <!-- An originals repo's way back to the working repo (or project)
-                 that names it: the one fact its own page cannot know. -->
+            <!-- An originals repo has no manifest, so its page cannot say
+                 which working repo lists it; this badge does, and opens it. -->
             <button x-show="originalsHost($store.browser.repo)" @click="openOriginalsHost()" data-originals-host
                     class="badge badge-sm badge-outline badge-primary gap-1 cursor-pointer"
                     :data-title-tip="'Originals repo: files as fetched, read by path from ' + originalsHostLabel($store.browser.repo)">
@@ -4905,27 +4904,13 @@ function app(){ return {
   },
 
   // ── Originals: the repos a working repo keeps its fetched files in ─────────
-  // home's constellation doctrine (created/2026-06-27-constellation-
-  // architecture.md, Principle 2) separates a WORKING repo, checked out for
-  // work, from an ORIGINALS repo, which holds files exactly as fetched at the
-  // paths they would have in the working repo and is fetched by path, never
-  // checked out. An originals repo carries no manifest and is not a member, so
-  // until this it surfaced only as an Unfiled row offering Adopt.
-  //
-  // THE WORKING REPO DECLARES, in `originals` (owner/repo strings), at the top
-  // level or on the one `projects` entry the files serve. It already owns the
-  // relation (its manifests pin every original by path and SHA-256), and an
-  // originals repo's premise is that it holds the files and nothing else. So an
-  // originals repo is shown WHERE ITS WORKING REPO IS: nested under it in the
-  // switcher, listed in its repo sidebar, folded under it in the Repos grid,
-  // and its own masthead links back. It never joins the membership list, so
-  // the activity crawl, the Stage pickers and the alignment grade, which exist
-  // for repos where sessions work, do not reach it. Registry rows: `originals`
-  // and `projects[].originals` in docs/manifest-fields.csv.
-  //
-  // Same `cfg` convention as repoProjects: the open repo's live manifest wins,
-  // else the main-derived cache. A member named as an originals repo is a
-  // misdeclaration and is dropped, which also keeps the switcher's keys unique.
+  // An originals repo holds a working repo's files exactly as fetched, at the
+  // paths they would have there, and is fetched by path rather than cloned. It
+  // has no manifest and is not a member; the working repo lists it in
+  // `originals`, at the top level or on the `projects` entry it serves. Where
+  // the app shows it is in the field's docs/manifest-fields.csv row.
+  // Same `cfg` rule as repoProjects: the open repo's live manifest, else the
+  // cache. A member listed here is dropped, which keeps switcher keys unique.
   repoOriginals(repo, cfg){
     const s = Alpine.store('browser');
     if (!cfg) cfg = (repo && repo === s.repo && s.config) ? s.config : this.estateConfigs?.[repo];
@@ -4949,11 +4934,11 @@ function app(){ return {
     }
     return out;
   },
-  // Every claim in a config map, keyed by the originals repo: { host, project,
-  // projectLabel }. Members' claims are read first, then the rest by name, and
-  // the first claim wins, so two working repos naming one originals repo give a
-  // stable answer rather than an order-of-arrival one. The estate's Unfiled
-  // rows call this with their own map (estate.js, loadUnfiled).
+  // Every listing in a config map, keyed by the originals repo: { host,
+  // project, projectLabel }, host being the working repo. Members are read
+  // first, then the rest by name, and the first listing wins, so two working
+  // repos naming one originals repo resolve the same way every time. The
+  // Repos grid's Unfiled rows call this with their own map (estate.js).
   originalsClaims(confs){
     const out = {};
     const names = Object.keys(confs || {}).filter(n => confs[n] && typeof confs[n] === 'object');
@@ -4966,16 +4951,16 @@ function app(){ return {
   originalsHost(repo){
     return (repo && this.originalsClaims(this.estateConfigs)[repo]) || null;
   },
-  // The working repo whose originals the open repo belongs with: itself when it
-  // names any, its host when it is one, else ''.
-  get originalsFamily(){
+  // The working repo whose originals are in view: the open repo when it lists
+  // any, the working repo that lists the open repo when it is one, else ''.
+  get originalsWorkingRepo(){
     const cur = Alpine.store('browser').repo;
     if (!cur) return '';
     if (this.repoOriginals(cur).length) return cur;
     return this.originalsHost(cur)?.host || '';
   },
-  // The open originals repo's way back: the project its host names it on, else
-  // the host itself.
+  // From an open originals repo to the project that lists it, or else to the
+  // working repo.
   openOriginalsHost(repo){
     const h = this.originalsHost(repo || Alpine.store('browser').repo);
     if (!h) return;
@@ -4987,23 +4972,22 @@ function app(){ return {
     return h ? (h.host.split('/')[1] || h.host) + (h.projectLabel ? ' › ' + h.projectLabel : '') : '';
   },
   // GitHub's stored size, from the account list enrichSidebarPrivacy already
-  // reads. For an originals repo it is the number that says fetch by path
-  // rather than clone.
+  // reads. For an originals repo it says whether a clone is reasonable.
   repoSizes: {},
   repoSizeLabel(repo){
     const kb = this.repoSizes?.[repo];
     return Number.isFinite(kb) && kb > 0 ? window.Traffic.fmtBytes(kb * 1024) : '';
   },
-  // The switchers' rows: the members, and under the open family's working repo
-  // its originals, so an open originals repo is marked where it belongs and no
-  // other family's originals spend rows. Both the crumb's menu and the
-  // masthead's read this.
+  // The switchers' rows: the members, with the originals of the working repo
+  // in view (originalsWorkingRepo) listed under it, so an open originals repo
+  // is marked under its working repo and no other originals take rows. The
+  // crumb's menu and the masthead's both read this.
   get estateSwitcherRows(){
-    const family = this.originalsFamily;
+    const working = this.originalsWorkingRepo;
     const out = [];
     for (const r of this.estateRepos || []){
       out.push(r);
-      if (r.repo !== family) continue;
+      if (r.repo !== working) continue;
       for (const o of this.repoOriginals(r.repo))
         out.push({ repo: o.repo, short: o.short, child: true, hint: o.projectLabel, host: r.repo });
     }
@@ -5817,7 +5801,7 @@ function app(){ return {
     this.openRelativeLink(e, '');
   },
   // An originals row is a head row too, since its label is a repo name, which
-  // is all `head` means; `child` hangs it off its working repo's row.
+  // is all `head` means; `child` indents it under its working repo's row.
   get estateRepoMenuItems(){
     const current = Alpine.store('browser').repo;
     return this.estateSwitcherRows.map(r => ({

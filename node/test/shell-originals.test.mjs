@@ -3,9 +3,9 @@
 // and are not estate members. The working repo names them in `originals`, at
 // the top level or on one `projects` entry, and the app shows each under it.
 // This holds the parse (repoOriginals), the claim map every surface reads
-// (originalsClaims: members first, first claim wins), the family the open repo
-// belongs to, the switcher rows that nest a family's originals under its
-// working repo, and the markup that renders them in the crumb switcher, the
+// (originalsClaims: members first, first listing wins), the working repo in
+// view for the open repo, the switcher rows that indent its originals under
+// it, and the markup that renders them in the crumb switcher, the
 // masthead menu, the masthead's way back and the repo sidebar.
 //
 // Driven over the shared shell.mjs harness: the inline app() with stubbed
@@ -78,12 +78,12 @@ test('originalsClaims: a member outranks a non-member, then the first by name', 
   });
 });
 
-test('originalsFamily: a working repo is its own family, an originals repo joins its host', () => {
-  assert.equal(shellAt(WA).shell.originalsFamily, WA);
-  assert.equal(shellAt('me/budget-wa-abr').shell.originalsFamily, WA);
-  assert.equal(shellAt('me/budget-drs-acfr').shell.originalsFamily, HOME);
-  assert.equal(shellAt('me/unrelated').shell.originalsFamily, '');
-  assert.equal(shellAt('').shell.originalsFamily, '');
+test('originalsWorkingRepo: a working repo is itself, an originals repo resolves to its working repo', () => {
+  assert.equal(shellAt(WA).shell.originalsWorkingRepo, WA);
+  assert.equal(shellAt('me/budget-wa-abr').shell.originalsWorkingRepo, WA);
+  assert.equal(shellAt('me/budget-drs-acfr').shell.originalsWorkingRepo, HOME);
+  assert.equal(shellAt('me/unrelated').shell.originalsWorkingRepo, '');
+  assert.equal(shellAt('').shell.originalsWorkingRepo, '');
 });
 
 test('the masthead way back opens the project when the claim sits on one, else the host', () => {
@@ -101,9 +101,9 @@ test('the masthead way back opens the project when the claim sits on one, else t
   assert.equal(atAbr.repoGlyph('me/budget-wa-abr'), 'ph-vault', 'a claimed repo with no config wears the vault');
 });
 
-test('switcher rows: only the open family\'s originals, hung under their working repo', () => {
+test('switcher rows: only the originals of the working repo in view, indented under it', () => {
   const rowsAt = (repo) => shellAt(repo).shell.estateSwitcherRows.map(r => (r.child ? '  ' : '') + r.repo);
-  assert.deepEqual(rowsAt('me/unrelated'), [HOME, WA], 'no family open: the members alone');
+  assert.deepEqual(rowsAt('me/unrelated'), [HOME, WA], 'no working repo in view: the members alone');
   assert.deepEqual(rowsAt(WA), [HOME, WA, '  me/budget-wa-lbn', '  me/budget-wa-abr']);
   assert.deepEqual(rowsAt('me/budget-drs-acfr'), [HOME, '  me/budget-drs-acfr', WA]);
 });
@@ -147,7 +147,7 @@ test('markup: both switchers, the masthead and the repo sidebar render the origi
   assert.match(page, /data-originals-host[\s\S]{0,400}openOriginalsHost\(\)|openOriginalsHost\(\)[\s\S]{0,200}data-originals-host/,
     'the masthead carries the way back');
   assert.match(page, /data-originals-section/, 'the repo sidebar carries the section');
-  assert.match(page, /x-for="o in repoOriginals\(originalsFamily\)"/, 'listing the open family');
+  assert.match(page, /x-for="o in repoOriginals\(originalsWorkingRepo\)"/, 'listing the working repo in view');
   const menu = readFileSync(path.join(repoRoot, 'lib/alpineComponents/repo-menu.js'), 'utf8');
   assert.match(menu, /item\.child && 'ml-3 pl-1 border-l border-base-300'/, 'the masthead menu indents a child');
   assert.match(menu, /x-show="item\.hint"/, 'and draws its hint');
