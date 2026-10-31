@@ -10,8 +10,8 @@ description: Compose Apple Shortcuts actions and hand them over as a tappable li
 A whole `.shortcut` file needs Apple's signature and does not import without it.
 An individual action needs only the `com.apple.shortcuts.action` pasteboard
 type, which a shortcut on the device can stamp. Actions can therefore be
-composed anywhere and pasted freely, a whole wired sequence at once, which the editor
-cannot do: it copies one action at a time.
+composed anywhere and pasted freely, a whole wired sequence at once, which the
+editor cannot do: it copies one action at a time.
 
 Delivery is a `shortcuts://run-shortcut` link. Tapping it runs a receiver that
 decodes the payload, stamps the type, and copies. Nothing is signed, installed,
@@ -27,7 +27,8 @@ caption naming what it holds, how many actions, and where to paste.
 [`mehrlander/shortcut-tools`](https://github.com/mehrlander/shortcut-tools)
 holds the tooling, the 810-action dictionary, and the format record.
 
-1. Write the actions as a workflow file, `{"label", "actions": [{"id", "p"}]}`, where `p` is
+1. Write the actions as a workflow file,
+   `{"label", "actions": [{"id", "p"}]}`, where `p` is
    `WFWorkflowActionParameters` verbatim.
 2. Resolve every name against the dictionary (`node cli.js get <name>`), not
    from memory. `gettext` is not a key; the Text action is `text`.

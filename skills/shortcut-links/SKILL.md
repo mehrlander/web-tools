@@ -15,7 +15,8 @@ Do not construct or edit the URLs by hand.
 ## Choose a command
 
 Run these commands from `mehrlander/shortcut-tools`.
-`<workflow>` is a JSON file under `workflows/`; `<Name>` is an installed shortcut's name.
+`<workflow>` is a JSON file under `workflows/`; `<Name>` is an installed
+shortcut's name.
 
 | Task | Command | Required on the phone |
 | --- | --- | --- |
