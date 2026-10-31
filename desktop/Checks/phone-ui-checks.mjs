@@ -5,12 +5,15 @@ import {JSDOM} from 'jsdom';
 const read = path => readFileSync(new URL(path,import.meta.url),'utf8');
 const dom = new JSDOM(read('../phone/index.html'),{url:'https://fixture.example.ts.net/',runScripts:'outside-only',pretendToBeVisual:true});
 const {window} = dom, doc = window.document;
+Object.defineProperty(window.navigator,'userAgent',{value:'iPhone'});
+let copied = '';
+Object.defineProperty(window.navigator,'clipboard',{value:{writeText:async text=>{copied=text;}}});
 const now = new Date().toISOString(), earlier = seconds => new Date(Date.now()-seconds*1000).toISOString();
 const item = (key,state,provider = 'Gemini') => ({key,id:key,kind:'errand',provider,location:'Laptop',title:key,state,detail:'',at:now,createdAt:now,needsAttention:false,isNew:false,url:null});
 let snapshot = {schemaVersion:1,machineName:'Fixture laptop',observedAt:now,scanMilliseconds:8,sources:{queueAvailable:true,recordsConnected:true,recordsSyncedAt:now,workerState:'detected',cloudCapturedAt:now,notices:[]},items:[
   {...item('local','working','Codex'),kind:'session',title:'Working <img src=x onerror=alert(1)>',detail:'**Checking** the queue'},
   {...item('second','queued'),createdAt:earlier(20)}, {...item('first','queued'),createdAt:earlier(90)},
-  item('accepted','claimed'), {...item('cloud','recorded','Claude'),kind:'cloud',location:'Cloud',detail:'Recorded: choice needed',needsAttention:true,url:'https://mehrlander.github.io/web-tools/app/?view=sessions&session=cloud'},
+  item('accepted','claimed'), {...item('cloud','recorded','Claude'),kind:'cloud',location:'Cloud',detail:'Recorded: choice needed',needsAttention:true,url:'https://mehrlander.github.io/web-tools/app/?view=sessions&session=cloud',sessionUrl:'https://claude.ai/code/session_fixture'},
   {...item('result','complete'),title:'A complete result',url:'javascript:alert(1)'}
 ],events:[]};
 const timers = new Map(); let nextTimer = 0, unavailable = false, fetches = 0, replyFetches = 0, checks = 0;
@@ -39,7 +42,7 @@ const flush = () => new Promise(resolve => setImmediate(resolve));
 const check = (condition,message) => { assert.ok(condition,message); checks++; };
 const click = selector => { const node = doc.querySelector(selector); assert.ok(node,selector); node.click(); };
 const openDetail = key => { window.history.pushState({nowDetail:true},'', '#item=' + encodeURIComponent(key)); window.dispatchEvent(new window.PopStateEvent('popstate')); };
-doc.addEventListener('click',event => { if (event.target.closest('[data-external],[data-provider-link]')) event.preventDefault(); },true);
+doc.addEventListener('click',event => { if (event.target.closest('[data-external],[data-provider-link],[data-session-link],[data-session-home]')) event.preventDefault(); },true);
 async function poll() { const current = [...timers].find(([,timer]) => timer.delay >= 2000 && timer.delay !== 6000); assert.ok(current,'Poll scheduled'); timers.delete(current[0]); current[1].fn(); await flush(); }
 await flush();
 check(!doc.querySelector('#tabs,[data-tab]') && doc.querySelectorAll('#assistants [data-assistant]').length === 3 && !doc.querySelector('[role=progressbar]'),'The phone opens straight to activity with assistant filters, no view tabs and no fabricated usage.');
@@ -69,18 +72,24 @@ check(doc.querySelector('#content').textContent.includes('Needs you') && doc.que
 check(!doc.querySelector('#content img'),'Untrusted session titles render as text.');
 check(doc.querySelector('[data-inspect=local] [data-summary]').textContent === 'Checking the queue','Collapsed previews flatten Markdown rather than exposing formatting markers.');
 check(doc.querySelector('[data-item=local] svg[data-location=Laptop]')?.getAttribute('aria-label') === 'On this laptop' && doc.querySelector('[data-item=cloud] svg[data-location=Cloud]')?.getAttribute('aria-label') === 'Cloud','Local and cloud cards have distinct SVG location marks with accessible names.');
-const initialRow = doc.querySelector('#content [data-inspect]'), clock = window.Date.now;
-check(!doc.querySelector('#content [data-pick]') && !initialRow.closest('[data-item]').querySelector('[data-external]'),'Main-list items have no internal Full view button; local work without a browser destination has no external icon.');
+let initialRow = doc.querySelector('#content [data-inspect]'); const clock = window.Date.now;
+check(!doc.querySelector('#content [data-pick]') && doc.querySelectorAll('#content [data-launch]').length === doc.querySelectorAll('#content [data-item]').length,'Each list item has a separate session launcher while tapping its title keeps inline reading.');
+click('[data-launch=cloud]');
+check(doc.querySelector('[data-session-link=cloud]')?.href === 'https://claude.ai/code/session_fixture' && doc.querySelector('[data-launch=cloud]').getAttribute('aria-expanded') === 'true','The Claude launcher offers the actual provider session, alongside its Web Tools record.');
 const cloudLink = doc.querySelector('[data-item=cloud] [data-external]');
-check(cloudLink?.href === snapshot.items.find(i=>i.key==='cloud').url && cloudLink.target === '_blank' && cloudLink.rel.includes('noopener') && cloudLink.rel.includes('noreferrer') && cloudLink.getAttribute('aria-label').startsWith('Open session in Web Tools:'),'The separate session icon opens its real Web Tools destination in a safe external context.');
+check(cloudLink?.href === snapshot.items.find(i=>i.key==='cloud').url && cloudLink.target === '_blank' && cloudLink.rel.includes('noopener') && cloudLink.rel.includes('noreferrer'),'The optional Web Tools detail opens separately with safe link attributes.');
 check(!doc.querySelector('[data-inspect] a') && !doc.querySelector('[data-item=result] [data-external]'),'External links are not nested inside item buttons, and unsafe destinations have no icon.');
 snapshot.items.find(i=>i.key==='local').url = 'https://phishing@example.com/';
-await poll();
+await poll(); click('[data-launch=local]');
 check(!doc.querySelector('[data-item=local] [data-external]'),'An arbitrary external host is not accepted as a session destination.');
 snapshot.items.find(i=>i.key==='local').url = 'https://phishing@mehrlander.github.io/web-tools/app/';
 await poll();
 check(!doc.querySelector('[data-item=local] [data-external]'),'A URL with embedded credentials is not offered as a session destination.');
 snapshot.items.find(i=>i.key==='local').url = null; await poll();
+check(doc.querySelector('[data-session-home=local]')?.href === 'https://chatgpt.com/' && doc.querySelector('[data-launch-panel=local]').textContent.includes('Direct mobile thread link unavailable') && !doc.querySelector('[data-session-link=local]'),'Local Codex work offers an honest mobile fallback without pretending the home URL is a direct thread link.');
+click('[data-copy-title=local]'); await flush();
+check(copied === snapshot.items.find(i=>i.key==='local').title && doc.querySelector('[data-copy-title=local]').textContent === 'Copied','Copy session title uses the original searchable title and confirms completion.');
+click('[data-launch=cloud]'); initialRow = doc.querySelector('#content [data-inspect]');
 check(initialRow.querySelector('time').textContent === 'just now' && initialRow.querySelector('time').getAttribute('datetime') === now && !!initialRow.querySelector('time').title,'The card timestamp shows relative age with the exact date available on the same element.');
 window.Date.now = () => clock() + 60000; await poll();
 check(doc.querySelector('#content [data-inspect]') === initialRow, 'A changing relative clock does not replace tappable activity rows.');
@@ -327,6 +336,7 @@ await poll();
 check(pageTop === 350 && pageScrolls.at(-1) === 350,'A browser temporarily clamping the document during an update restores the original page position.');
 delete content.innerHTML;
 click('[data-inspect=scroll-a]');
+click('[data-launch=scroll-a]');
 const externalRoute = window.location.href;
 click('[data-external=scroll-a]');
 check(pageTop === 350 && !doc.querySelector('#overview').hidden && window.location.href === externalRoute && !doc.querySelector('[data-inline=scroll-a]').hidden,'Opening an external session keeps the list route, scroll position and expanded panel in place.');
@@ -347,5 +357,16 @@ click('[data-assistant=gemini]');
 check(doc.querySelector('[aria-label=Waiting] [data-item=waiting]') && doc.querySelectorAll('[aria-label="Other recent"] [data-item]').length === 4 && !doc.querySelector('[data-item=busy]') && !doc.querySelector('[data-item="archived-0"]'),'The Gemini header filters both waiting errands and the full recent feed without a queue tab.');
 click('[data-assistant=gemini]');
 check(doc.querySelectorAll('[aria-label="Other recent"] [data-item]').length === 16 && !doc.querySelector('[data-tab]'),'Tapping the selected assistant restores the full feed with no secondary navigation.');
+const instance = '00000000-0000-0000-0000-000000000002-v2', conversation = '00000000-0000-0000-0000-000000000001';
+const geminiUrl = `https://antigravity.google.com/r/${instance}?p=c%2F${conversation}`;
+snapshot.items[1].sessionUrl = geminiUrl; await poll(); click('[data-launch="recent-1"]');
+const geminiLaunch = doc.querySelector('[data-session-link="recent-1"]');
+check(geminiLaunch?.href === geminiUrl && geminiLaunch.textContent.includes('Open in Antigravity') && geminiLaunch.target === '_blank' && !doc.querySelector('[data-launch-panel="recent-1"]').textContent.includes('unavailable'),'The Gemini launcher offers its exact remote conversation in a separate browser context.');
+geminiLaunch.focus(); snapshot.items[1].detail = 'Another observation'; await poll();
+check(doc.activeElement.dataset.sessionLink === 'recent-1' && !doc.querySelector('[data-launch-panel="recent-1"]').hidden && pageTop === 350,'Polling retains an open session launcher, focused link and page position.');
+doc.activeElement.dispatchEvent(new window.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
+check(doc.querySelector('[data-launch-panel="recent-1"]').hidden && doc.activeElement.dataset.launch === 'recent-1','Escape closes the launcher and returns focus to its own button.');
+check(window.NowView.sessionUrl('codex://threads/'+conversation,'codex',true) && !window.NowView.sessionUrl('codex://threads/'+conversation,'codex',false),'A documented Codex desktop URI is offered on desktop only, rather than assumed to work on mobile.');
+check(!window.NowView.sessionUrl(geminiUrl+'&action=run','gemini',true) && !window.NowView.sessionUrl('https://user@claude.ai/code/session_x','claude',true) && !window.NowView.sessionUrl('https://claude.ai.evil.test/code/session_x','claude',true) && !window.NowView.sessionUrl(geminiUrl,'claude',true),'The UI independently rejects altered provider URLs and cross-provider destinations.');
 console.log(`${checks} phone interaction checks passed.`);
 dom.window.close();

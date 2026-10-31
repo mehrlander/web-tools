@@ -122,6 +122,14 @@ check(!doc.querySelector('#detail b') && doc.querySelector('#detail').textConten
 click('[data-action=work-link]'); check(messages.at(-1).id === 'cloud:0', 'Checkpoint links send only a known session and link index to the native bridge.');
 data.changes[1].id = 'cloud-latest'; snapshot();
 check(doc.querySelectorAll('#errands .activity-row').length === 1 && !doc.querySelector('#errands').textContent.includes('New change'), 'A cloud update stays visible without unread badges.');
+data.cloud.items[0].sourceUrl = 'https://claude.ai/code/session_fixture'; snapshot();
+const launch = doc.querySelector('#errands [data-launch]');
+check(launch?.getAttribute('aria-label').startsWith('Open session options:'),'Each desktop feed item has a separate session launcher.');
+launch.click();
+check(doc.querySelector('#errands [data-session-link]')?.href === 'https://claude.ai/code/session_fixture','The desktop launcher uses the same validated original Claude URL as the phone.');
+doc.querySelector('#errands [data-session-link]').focus(); doc.querySelector('#errands').scrollTop = 90;
+data.cloud.items[0].detail = 'A new observation'; snapshot();
+check(doc.activeElement.dataset.sessionLink === launch.dataset.launch && doc.querySelector('#errands').scrollTop === 90,'A desktop update preserves the open launcher, focused session link and list scroll position.');
 
 dom.window.close();
 console.log(`${checks} Now UI checks passed.`);
