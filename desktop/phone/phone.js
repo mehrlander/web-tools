@@ -17,14 +17,13 @@
   const observedTime = at => `<time data-at="${escape(at)}" datetime="${escape(at)}" title="${escape(stamp(at))}">${escape(stamp(at))}</time>`;
   const stamp = at => at ? new Date(at).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) : 'Not yet';
   const safeUrl = value => { try { const url = new URL(value); return url.origin === 'https://mehrlander.github.io' && !url.username && !url.password && !url.port && url.pathname.startsWith('/web-tools/') ? url.href : ''; } catch { return ''; } };
-  let data, tab = 'now', assistant = '', timer, etag = '', failures = 0, pending = false, connected = false, accessDenied = false, savedScroll = 0;
+  let data, assistant = '', timer, etag = '', failures = 0, pending = false, connected = false, accessDenied = false, savedScroll = 0;
   const expanded = new Set();
   const selectedDetails = new Map();
   const panelScrolls = new Map();
   const replies = new Map();
   const filtered = () => (data?.items || []).filter(i => !assistant || keyFor(i.provider) === assistant);
   const active = i => ['working','quiet','claimed','reply'].includes(i.state);
-  const finished = i => ['complete','failed','interrupted'].includes(i.state) || i.state === 'idle' && /codex/i.test(i.provider) || i.kind === 'cloud' && i.turn && i.state === 'idle' || i.kind === 'cloud' && /recorded: (done|merged|closed|clean exit)/i.test(i.detail);
   const recordedChange = change => ({...change,kind:'change',state:'recorded'});
   const selected = () => { try { return new URLSearchParams(location.hash.slice(1)).get('item') || ''; } catch { return ''; } };
 
@@ -65,7 +64,7 @@
   }
 
   function group(title, items, empty = '', numbered = false, inline = true) {
-    return `<section><h2 class="flex items-center justify-between px-3 pt-2 pb-1 text-xs font-semibold text-stone-600"><span>${escape(title)}</span>${items.length ? `<span class="font-normal">${items.length}</span>` : ''}</h2>${items.length ? items.map((i,n) => row(i, numbered ? n + 1 : 0, inline)).join('') : `<p class="px-3 py-2 text-[13px] text-stone-500">${escape(empty)}</p>`}</section>`;
+    return `<section aria-label="${escape(title)}"><h2 class="flex items-center justify-between px-3 pt-2 pb-1 text-xs font-semibold text-stone-600"><span>${escape(title)}</span>${items.length ? `<span class="font-normal">${items.length}</span>` : ''}</h2>${items.length ? items.map((i,n) => row(i, numbered ? n + 1 : 0, inline)).join('') : `<p class="px-3 py-2 text-[13px] text-stone-500">${escape(empty)}</p>`}</section>`;
   }
 
   function changeItems() {
@@ -75,9 +74,12 @@
       return item || recordedChange(c);
     });
   }
-  function changesSection(limit, exclude = new Set(), title = 'Recent activity') {
-    const items = changeItems().filter(i => !exclude.has(i.key));
-    return `<section aria-label="${title}"><h2 class="px-3 pt-2 pb-1 text-xs font-semibold text-stone-600">${title} <span class="font-normal">${items.length || ''}</span></h2>${items.length ? items.slice(0,limit).map(i => row(i)).join('') : '<p class="px-3 py-2 text-[13px] text-stone-500">No recent activity.</p>'}${items.length > limit ? '<button data-tab="recent" class="min-h-11 px-4 text-sm text-emerald-900">All recent →</button>' : ''}</section>`;
+  function recentItems(items, exclude) {
+    const recent = new Map();
+    for (const item of [...changeItems(),...items]) {
+      if (!exclude.has(item.key)) recent.set(item.key,item);
+    }
+    return [...recent.values()].sort((a,b) => Date.parse(b.at) - Date.parse(a.at));
   }
   function workerReport(recentOnly = false) {
     const report = data.sources.workerActivity;
@@ -97,7 +99,6 @@
     const focusOwner = focus?.dataset.for;
     el('machine').textContent = data.machineName;
     const waiting = data.items.filter(i => i.state === 'queued');
-    el('queue-count').textContent = data.sources.queueAvailable ? waiting.length : '?';
     html('assistants', ['codex','gemini','claude'].map(key => {
       const items = data.items.filter(i => keyFor(i.provider) === key);
       const working = items.filter(i => i.state === 'working').length;
@@ -107,31 +108,19 @@
       const usage = window.NowUsage?.compact(data.usage?.find(p => p.provider === key)) || '';
       return `<div class="relative min-w-0"><button data-assistant="${key}" aria-pressed="${assistant === key}" class="block min-h-11 w-full min-w-0 border-b-2 px-2 py-1 ${assistant === key ? 'border-stone-700 bg-white' : 'border-transparent'}"><span class="flex items-center justify-center gap-1 pr-5 text-xs font-medium ${colours[key]}">${mark(key)}${{codex:'Codex',gemini:'Gemini',claude:'Claude'}[key]}</span><span class="mt-0.5 block text-[10px] text-stone-500">${state}</span><span class="mx-auto mt-1 block min-h-6 max-w-28">${usage}</span></button>${window.NowView.assistantLink(key,{cls:'absolute right-0 top-0'})}</div>`;
     }).join(''));
-    document.querySelectorAll('[data-tab]').forEach(button => {
-      const current = button.dataset.tab === tab;
-      button.setAttribute('aria-pressed', String(current));
-      button.classList.toggle('bg-stone-800', current); button.classList.toggle('text-white', current);
-    });
     const items = filtered();
     const notices = [...data.sources.notices];
     if (waiting.length && data.sources.workerState === 'absent') notices.unshift('Gemini errands are waiting. Worker not detected.');
     html('notice', notices.map(escape).join('<br>'));
-    if (tab === 'usage') {
-      html('content', window.NowUsage?.render(data.usage || [], {provider:assistant}) || 'Usage unavailable');
-    } else if (tab === 'queue') {
-      const queued = items.filter(i => i.state === 'queued').sort((a,b) => new Date(a.createdAt) - new Date(b.createdAt));
-      html('content', workerReport() + `<div class="flex items-center justify-between gap-2 px-4 pt-4 text-xs text-stone-500"><span>Gemini worker · ${data.sources.workerState === 'detected' ? 'Detected' : data.sources.workerState === 'absent' ? 'Not detected' : 'Status unavailable'}</span><span>${data.sources.recordsConnected ? '' : 'Saved queue'}</span></div>` + group('Waiting', queued, !data.sources.queueAvailable ? 'Queue unavailable' : assistant && assistant !== 'gemini' ? 'Gemini queue hidden by assistant filter' : 'Queue clear', true) + (items.some(i => ['claimed','reply'].includes(i.state)) ? group('Accepted by worker', items.filter(i => ['claimed','reply'].includes(i.state))) : ''));
-    } else if (tab === 'recent') {
-      html('content', changesSection(150) + group('Recent results and sessions', items.filter(i => !changeItems().some(c => c.key === i.key) && !['queued','claimed','working','quiet','reply'].includes(i.state)).slice(0,40), 'No recent results') + (data.events.length ? `<section><h2 class="px-3 pt-2 pb-1 text-xs font-semibold text-stone-600">Observed activity</h2>${data.events.filter(e => !assistant || keyFor(e.provider) === assistant).slice(0,15).map(e => `<div class="border-b border-stone-200 px-4 py-3"><div class="flex items-center gap-2 text-xs text-stone-500">${mark(e.provider,'size-4')}<span>${escape(e.provider)} · ${escape(age(e.at))}</span></div><p class="mt-0.5 text-[13px] leading-5">${escape(e.detail || labels[e.state] || e.state)}</p><p class="mt-1 truncate text-xs text-stone-500">${escape(e.title)}</p></div>`).join('')}</section>` : ''));
-    } else {
-      const current = items.filter(active);
-      const needs = items.filter(i => i.needsAttention && !active(i));
-      const shown = new Set([...current,...needs].map(i => i.key));
-      const changed = new Set(changeItems().map(i => i.key));
-      const remaining = items.filter(i => !shown.has(i.key) && !changed.has(i.key));
-      html('content', group('In progress', current, 'No current work observed') + workerReport(true) + changesSection(3, shown, 'Other recent') + (needs.length ? group('Needs you', needs) : '') + (remaining.some(finished) ? group('Recently finished', remaining.filter(finished).slice(0,4)) : '') + (!current.length && !needs.length && remaining.some(i => i.kind === 'cloud' && !finished(i)) ? group('Latest cloud records', remaining.filter(i => i.kind === 'cloud' && !finished(i)).slice(0,3)) : ''));
-    }
-    html('source-times', tab === 'usage' ? '' : `Errands synced ${escape(stamp(data.sources.recordsSyncedAt))}<br>Cloud records captured ${escape(stamp(data.sources.cloudCapturedAt))}`);
+    const current = items.filter(active);
+    const queued = items.filter(i => i.state === 'queued').sort((a,b) => Date.parse(a.createdAt) - Date.parse(b.createdAt));
+    const needs = items.filter(i => i.needsAttention && !active(i) && i.state !== 'queued');
+    const shown = new Set([...current,...queued,...needs].map(i => i.key));
+    const recent = recentItems(items,shown);
+    const queueTitle = data.sources.recordsConnected ? 'Waiting' : 'Waiting · Saved queue';
+    const queue = queued.length ? group(queueTitle,queued,'',true) : assistant === 'gemini' && !data.sources.queueAvailable ? group('Waiting',[],'Queue unavailable') : '';
+    html('content', group('In progress',current,'No current work observed') + (needs.length ? group('Needs you',needs) : '') + queue + workerReport(true) + group('Other recent',recent,'No recent activity.'));
+    html('source-times', `Errands synced ${escape(stamp(data.sources.recordsSyncedAt))}<br>Cloud records captured ${escape(stamp(data.sources.cloudCapturedAt))}`);
     renderPanels(); detail(); connection();
     if (focusAction && !focus.isConnected) [...document.querySelectorAll('#content button,#content a,#assistants button,#assistants a')].find(n => n.dataset[focusAction] === focusKey && n.dataset.for === focusOwner)?.focus({preventScroll:true});
     document.querySelectorAll('time[data-at]').forEach(node => { node.textContent = age(node.dataset.at); });
@@ -295,7 +284,6 @@
       renderPanels();
       return;
     }
-    if (button.dataset.tab) { tab = button.dataset.tab; render(); window.scrollTo(0,0); }
     if (button.dataset.assistant) { assistant = assistant === button.dataset.assistant ? '' : button.dataset.assistant; render(); }
     if (button.dataset.pick) { rememberPanelScroll(); savedScroll = window.scrollY; history.pushState({nowDetail:true},'', '#item=' + encodeURIComponent(button.dataset.pick)); detail(); connection(); window.scrollTo(0,0); }
     if (button.hasAttribute('data-back')) {

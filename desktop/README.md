@@ -94,8 +94,10 @@ which includes Codex on mobile. Claude's Code URL also
 supports its installed mobile app through universal links. Browser and app
 handoff follows the device's link settings.
 
-The phone has its own Now, Queue and Recent views, assistant filters, result
-details and short observed history. The phone view is read-only. The laptop must
+The phone has one Now feed: current work, waiting errands and all recent items
+in the current snapshot, with assistant filters, inline details and short observed
+history. The assistant headers keep compact usage bars visible above the feed;
+the full Usage view remains available on desktop. The phone view is read-only. The laptop must
 be awake and online; waking the laptop through Windows App can restore access.
 The last received snapshot remains in that browser's local storage, labeled with
 its observation time when contact is lost. A responding server with an observation
