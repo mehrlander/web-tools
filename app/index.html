@@ -872,16 +872,16 @@ html.dk-dragging main{transition:none !important}
       <div x-show="crumbMenu" x-cloak x-transition.opacity.duration.120ms
            class="absolute inset-x-2 top-full z-40 mt-1 max-h-[60vh] overflow-y-auto rounded-box border border-base-300 bg-base-100 shadow-xl">
         <div class="flex flex-col py-1">
-          <!-- estateSwitcherRows: the members, plus the originals repos of
-               the working repo in view, indented under its row by the
-               sidebar's 1 px rule (repoOriginals, beside repoProjects). -->
+          <!-- estateSwitcherRows: the members, plus the satellites of the
+               member in view, indented under its row by the sidebar's 1 px
+               rule (repoSatellites, beside repoProjects). -->
           <template x-for="r in estateSwitcherRows" :key="r.repo">
             <div :class="r.child && 'ml-5 pl-1 border-l border-base-300'">
             <button @click="pickRepo(r.repo)"
                     class="w-full flex items-center gap-2.5 px-3 rounded-lg text-left text-base transition-colors hover:bg-base-200 active:bg-base-300"
                     :class="[$store.browser.repo === r.repo ? 'text-primary font-semibold' : 'text-base-content/80', r.child ? 'min-h-9' : 'min-h-11']">
               <span x-show="!r.child" class="inline-flex shrink-0" x-html="r.child ? '' : repoMarkHtml(r, { cls: 'text-xl', color: 'text-base-content/50' })"></span>
-              <i x-show="r.child" class="ph ph-vault shrink-0 text-base text-base-content/40"></i>
+              <i x-show="r.child" class="ph ph-planet shrink-0 text-base text-base-content/40"></i>
               <span class="min-w-0 flex-1 truncate font-mono" x-text="r.short"></span>
               <span x-show="r.hint" class="shrink-0 font-mono text-xs text-base-content/40" x-text="'› ' + r.hint"></span>
               <i x-show="r.priv" class="ph ph-lock shrink-0 text-sm text-base-content/30"></i>
@@ -1310,34 +1310,34 @@ html.dk-dragging main{transition:none !important}
       <div class="border-t border-base-200"
            x-show="!estateCtx && repoProjects($store.browser.repo).length"></div>
 
-      <!-- Originals of the working repo in view (repoOriginals): in a working
-           repo, the ones it lists; in an originals repo, the same list with
-           itself marked, and the head names the working repo as a button.
+      <!-- Satellites of the member in view (repoSatellites): in a member,
+           its own; in a satellite, the same list with itself marked, and the
+           head names the parent as a button.
            Rows take the project rows' shape and rule, with GitHub's stored
            size before the GitHub button. -->
-      <div class="flex flex-col gap-0.5" x-show="!estateCtx && originalsWorkingRepo" data-originals-section>
+      <div class="flex flex-col gap-0.5" x-show="!estateCtx && satelliteHost" data-satellites-section>
         <div class="text-base font-semibold text-base-content/50 px-2 pb-1 flex items-center gap-1.5 min-w-0">
-          <i class="ph ph-vault"></i><span>Originals</span>
-          <button x-show="originalsWorkingRepo && originalsWorkingRepo !== $store.browser.repo" @click="openOriginalsHost()"
+          <i class="ph ph-planet"></i><span>Satellites</span>
+          <button x-show="satelliteHost && satelliteHost !== $store.browser.repo" @click="openSatelliteParent()"
                   class="min-w-0 truncate font-normal text-base text-base-content/60 hover:text-primary transition-colors"
-                  :data-title-tip="'Open ' + originalsHostLabel($store.browser.repo)"
-                  x-text="'of ' + originalsHostLabel($store.browser.repo)"></button>
+                  :data-title-tip="'Open ' + satelliteParentLabel($store.browser.repo)"
+                  x-text="'of ' + satelliteParentLabel($store.browser.repo)"></button>
         </div>
         <div class="flex flex-col gap-0.5 ml-4 pl-2 border-l border-base-300">
-        <template x-for="o in repoOriginals(originalsWorkingRepo)" :key="o.repo">
+        <template x-for="o in repoSatellites(satelliteHost)" :key="o.repo">
           <div class="flex items-center rounded-lg transition-colors hover:bg-base-200"
                :class="$store.browser.repo === o.repo && 'bg-primary/10'">
             <button @click="openPinned(o.repo)"
-                    :data-title-tip="o.repo + (o.project ? ': originals for ' + o.project : '') + (repoSizeLabel(o.repo) ? ', ' + repoSizeLabel(o.repo) + ' stored' : '')"
+                    :data-title-tip="o.repo + (o.project ? ': satellite of ' + o.project : '') + (repoSizeLabel(o.repo) ? ', ' + repoSizeLabel(o.repo) + ' stored' : '')"
                     class="flex items-center gap-2 min-w-0 flex-1 px-2 py-1.5 text-base text-left transition-colors"
                     :class="$store.browser.repo === o.repo ? 'text-primary font-semibold' : 'text-base-content/80'">
-              <i class="ph ph-vault text-base shrink-0" :class="$store.browser.repo === o.repo ? '' : 'text-base-content/40'"></i>
+              <i class="ph ph-planet text-base shrink-0" :class="$store.browser.repo === o.repo ? '' : 'text-base-content/40'"></i>
               <span class="truncate" x-text="o.short"></span>
               <span x-show="o.projectLabel" class="hidden sm:inline min-w-0 truncate shrink-3 font-mono text-xs text-base-content/40" x-text="'› ' + o.projectLabel"></span>
             </button>
-            <!-- The size gives way to the project hint, and the hint to the
-                 name on a phone; the row's title-tip states both. -->
-            <span x-show="repoSizeLabel(o.repo) && !o.projectLabel" class="shrink-0 font-mono text-xs text-base-content/40"
+            <!-- The size gives way to the project hint, and both to the name
+                 on a phone; the row's title-tip states both. -->
+            <span x-show="repoSizeLabel(o.repo) && !o.projectLabel" class="hidden sm:inline shrink-0 font-mono text-xs text-base-content/40"
                   data-title-tip="GitHub's stored size" x-text="repoSizeLabel(o.repo)"></span>
             <a :href="githubUrlFor(o.repo)" target="_blank" rel="noopener" @click.stop
                :data-title-tip="o.repo + ' on GitHub'"
@@ -1348,7 +1348,7 @@ html.dk-dragging main{transition:none !important}
         </div>
       </div>
 
-      <div class="border-t border-base-200" x-show="!estateCtx && originalsWorkingRepo"></div>
+      <div class="border-t border-base-200" x-show="!estateCtx && satelliteHost"></div>
 
       <!-- Needs attention: the repo's own declared checks (.web-tools.json
            "checks"), evaluated on open. Only what is NOT passing renders, so a
@@ -1684,12 +1684,12 @@ html.dk-dragging main{transition:none !important}
             <span x-show="repoPushed" class="badge badge-ghost badge-sm gap-1">
               <i class="ph ph-clock"></i><span x-text="'pushed ' + repoPushed"></span>
             </span>
-            <!-- An originals repo has no manifest, so its page cannot say
-                 which working repo lists it; this badge does, and opens it. -->
-            <button x-show="originalsHost($store.browser.repo)" @click="openOriginalsHost()" data-originals-host
+            <!-- A satellite usually has no manifest, so its page cannot say
+                 whose it is; this badge does, and opens the parent. -->
+            <button x-show="satelliteParent($store.browser.repo)" @click="openSatelliteParent()" data-satellite-parent
                     class="badge badge-sm badge-outline badge-primary gap-1 cursor-pointer"
-                    :data-title-tip="'Originals repo: files as fetched, read by path from ' + originalsHostLabel($store.browser.repo)">
-              <i class="ph ph-vault"></i><span x-text="'originals · ' + originalsHostLabel($store.browser.repo)"></span>
+                    :data-title-tip="'Satellite of ' + satelliteParentLabel($store.browser.repo) + (satelliteParent($store.browser.repo)?.by === 'listed' ? ', listed in its manifest' : ', by name')">
+              <i class="ph ph-planet"></i><span x-text="'satellite of ' + satelliteParentLabel($store.browser.repo)"></span>
               <i class="ph ph-arrow-right"></i>
             </button>
           </div>
@@ -2783,6 +2783,7 @@ function app(){ return {
   // from the same config cache as appViews (loadEstateSidebar), so it is
   // token-gated and empty without a token.
   estateRepos: [], // resolved [{repo, short, icon, group, order}]
+  accountRepoNames: [], // every repo the config cache names, member or not (satelliteClaims)
   estateConfigs: {}, // repo -> its .web-tools.json, from the same cache pass
   // ── The hide list ────────────────────────────────────────────────────────
   // Membership and every descriptive field are properties OF A REPO, written
@@ -3256,9 +3257,13 @@ function app(){ return {
     try {
       const reg = new window.GH({ token: window.TOKEN, repo: this.REGISTRY_REPO, ref: 'main' });
       const views = [], repos = [], configs = {};
+      let names = [];
       try {
         const cache = JSON.parse((await reg.get('state/configs.json')).text);
         const entries = cache.repos || {};
+        // Every repo the crawl covers, config or not: the satellites rule
+        // (satelliteClaims) reads names, and most satellites have no config.
+        names = Object.keys(entries);
         // The hide list rides in on the same read: it is a field of the
         // registry's OWN config, and the registry is one of the repos the
         // crawl already covers, so honouring it costs no second fetch.
@@ -3371,6 +3376,7 @@ function app(){ return {
       this.appViews = views;
       this.estateRepos = repos;
       this.estateConfigs = configs;
+      this.accountRepoNames = names;
       this.enrichSidebarPrivacy();   // independent; the list renders without it
       this.loadRail(configs);        // likewise: one extra GET, off the render path
     } catch { this.appViews = []; this.estateRepos = []; this.estateConfigs = {}; }
@@ -3492,7 +3498,7 @@ function app(){ return {
       const acct = await new window.GH({ token: window.TOKEN }).repos();
       const byName = new Map(acct.map(r => [r.full_name, !!r.private]));
       for (const r of this.estateRepos){ const p = byName.get(r.repo); if (p !== undefined) r.priv = p; }
-      // Sizes ride the same list, for the originals rows (repoSizeLabel).
+      // Sizes come in the same list, for the satellite rows (repoSizeLabel).
       this.repoSizes = Object.fromEntries(acct.filter(r => Number.isFinite(r.size)).map(r => [r.full_name, r.size]));
     } catch {}
   },
@@ -4903,92 +4909,105 @@ function app(){ return {
     if (Alpine.store('browser').repo === repo) this.goProject(p.path);
   },
 
-  // ── Originals: the repos a working repo keeps its fetched files in ─────────
-  // An originals repo holds a working repo's files exactly as fetched, at the
-  // paths they would have there, and is fetched by path rather than cloned. It
-  // has no manifest and is not a member; the working repo lists it in
-  // `originals`, at the top level or on the `projects` entry it serves. Where
-  // the app shows it is in the field's docs/manifest-fields.csv row.
-  // Same `cfg` rule as repoProjects: the open repo's live manifest, else the
-  // cache. A member listed here is dropped, which keeps switcher keys unique.
-  repoOriginals(repo, cfg){
-    const s = Alpine.store('browser');
-    if (!cfg) cfg = (repo && repo === s.repo && s.config) ? s.config : this.estateConfigs?.[repo];
-    if (!cfg || typeof cfg !== 'object') return [];
-    const members = new Set((this.estateRepos || []).map(r => r.repo));
-    const out = [], seen = new Set([repo]);
-    const take = (list, project) => {
-      if (!Array.isArray(list)) return;
-      for (const v of list){
-        const name = typeof v === 'string' ? v.trim() : '';
-        if (!/^[^/\s]+\/[^/\s]+$/.test(name) || seen.has(name) || members.has(name)) continue;
-        seen.add(name);
-        out.push({ repo: name, short: name.split('/')[1], project: project?.path || '', projectLabel: project?.label || '' });
-      }
-    };
-    take(cfg.originals, null);
-    if (Array.isArray(cfg.projects)) for (const e of cfg.projects){
-      if (!e || typeof e !== 'object' || typeof e.path !== 'string' || !e.path) continue;
-      const path = e.path.replace(/\/+$/, '');
-      take(e.originals, { path, label: e.label || path.split('/').pop() });
+  // ── Satellites: repos that belong to a member or to one of its projects ───
+  // A satellite is a repo off the estate that belongs to a member, such as a
+  // store of fetched files a member's scripts read by path. Its NAME says whose
+  // it is: a member's name, or a member project's folder name, then "-" and a
+  // suffix (budget-wa-lbn belongs to budget-wa; foo-bar to a project folder
+  // foo). The longest match wins, a repo before a project on a tie. A satellite
+  // whose name cannot say so is listed in its parent's `satellites` field
+  // (owner/repo strings), and a listing outranks the name. Where the app shows
+  // a satellite is in that field's docs/manifest-fields.csv row.
+  //
+  // Read over every repo the config cache names (accountRepoNames, members or
+  // not) and the configs it holds, with the open repo's live manifest in place
+  // of its cached one. Members are never satellites, which keeps the
+  // switchers' keys unique.
+  satelliteClaims(confs, names){
+    confs = confs || {};
+    const owner = (n) => n.split('/')[0], short = (n) => n.split('/')[1] || n;
+    const all = [...new Set([...(names || []), ...Object.keys(confs)])].filter(n => /^[^/\s]+\/[^/\s]+$/.test(n));
+    const member = (n) => confs[n]?.estate === true;
+    const out = {};
+    // Listings first: members' before the rest, then by name.
+    const hosts = all.filter(n => confs[n] && Array.isArray(confs[n].satellites))
+      .sort((a, b) => member(b) - member(a) || a.localeCompare(b));
+    for (const host of hosts) for (const v of confs[host].satellites){
+      const name = typeof v === 'string' ? v.trim() : '';
+      if (!/^[^/\s]+\/[^/\s]+$/.test(name) || name === host || member(name) || out[name]) continue;
+      out[name] = { host, project: '', projectLabel: '', by: 'listed' };
+    }
+    // Then names: every member, and every project a member declares.
+    const parents = [];
+    for (const m of all.filter(member)){
+      parents.push({ prefix: short(m) + '-', host: m, project: '', projectLabel: '' });
+      for (const p of this.repoProjects(m, confs[m]))
+        parents.push({ prefix: p.path.split('/').pop() + '-', host: m, project: p.path, projectLabel: p.label });
+    }
+    parents.sort((a, b) => b.prefix.length - a.prefix.length || !!a.project - !!b.project || a.host.localeCompare(b.host));
+    for (const n of all){
+      if (member(n) || out[n]) continue;
+      const p = parents.find(p => owner(p.host) === owner(n) && short(n).length > p.prefix.length && short(n).startsWith(p.prefix));
+      if (p) out[n] = { host: p.host, project: p.project, projectLabel: p.projectLabel, by: 'name' };
     }
     return out;
   },
-  // Every listing in a config map, keyed by the originals repo: { host,
-  // project, projectLabel }, host being the working repo. Members are read
-  // first, then the rest by name, and the first listing wins, so two working
-  // repos naming one originals repo resolve the same way every time. The
-  // Repos grid's Unfiled rows call this with their own map (estate.js).
-  originalsClaims(confs){
-    const out = {};
-    const names = Object.keys(confs || {}).filter(n => confs[n] && typeof confs[n] === 'object');
-    names.sort((a, b) => (confs[b].estate === true) - (confs[a].estate === true) || a.localeCompare(b));
-    for (const host of names)
-      for (const o of this.repoOriginals(host, confs[host]))
-        if (!out[o.repo]) out[o.repo] = { host, project: o.project, projectLabel: o.projectLabel };
-    return out;
+  // The shell's own claim map: the cache's configs and names, with the open
+  // repo's live manifest in place of its cached one.
+  get satelliteMap(){
+    const s = Alpine.store('browser');
+    const confs = (s.repo && s.config) ? { ...this.estateConfigs, [s.repo]: s.config } : this.estateConfigs;
+    return this.satelliteClaims(confs, this.accountRepoNames);
   },
-  originalsHost(repo){
-    return (repo && this.originalsClaims(this.estateConfigs)[repo]) || null;
+  satelliteParent(repo){
+    return (repo && this.satelliteMap[repo]) || null;
   },
-  // The working repo whose originals are in view: the open repo when it lists
-  // any, the working repo that lists the open repo when it is one, else ''.
-  get originalsWorkingRepo(){
+  // A repo's satellites: those belonging to the repo itself first, then each
+  // project's, each run by name.
+  repoSatellites(repo){
+    if (!repo) return [];
+    return Object.entries(this.satelliteMap).filter(([, c]) => c.host === repo)
+      .map(([name, c]) => ({ repo: name, short: name.split('/')[1], project: c.project, projectLabel: c.projectLabel, by: c.by }))
+      .sort((a, b) => a.project.localeCompare(b.project) || a.repo.localeCompare(b.repo));
+  },
+  // The member whose satellites are in view: the open repo when it has any,
+  // the open satellite's parent when it is one, else ''.
+  get satelliteHost(){
     const cur = Alpine.store('browser').repo;
     if (!cur) return '';
-    if (this.repoOriginals(cur).length) return cur;
-    return this.originalsHost(cur)?.host || '';
+    if (this.repoSatellites(cur).length) return cur;
+    return this.satelliteParent(cur)?.host || '';
   },
-  // From an open originals repo to the project that lists it, or else to the
-  // working repo.
-  openOriginalsHost(repo){
-    const h = this.originalsHost(repo || Alpine.store('browser').repo);
+  // From an open satellite to its project, or else to the member.
+  openSatelliteParent(repo){
+    const h = this.satelliteParent(repo || Alpine.store('browser').repo);
     if (!h) return;
     if (h.project) this.openProject(h.host, { path: h.project });
     else this.openPinned(h.host);
   },
-  originalsHostLabel(repo){
-    const h = this.originalsHost(repo);
+  satelliteParentLabel(repo){
+    const h = this.satelliteParent(repo);
     return h ? (h.host.split('/')[1] || h.host) + (h.projectLabel ? ' › ' + h.projectLabel : '') : '';
   },
   // GitHub's stored size, from the account list enrichSidebarPrivacy already
-  // reads. For an originals repo it says whether a clone is reasonable.
+  // reads. For a satellite of fetched files it says whether a clone is
+  // reasonable.
   repoSizes: {},
   repoSizeLabel(repo){
     const kb = this.repoSizes?.[repo];
     return Number.isFinite(kb) && kb > 0 ? window.Traffic.fmtBytes(kb * 1024) : '';
   },
-  // The switchers' rows: the members, with the originals of the working repo
-  // in view (originalsWorkingRepo) listed under it, so an open originals repo
-  // is marked under its working repo and no other originals take rows. The
-  // crumb's menu and the masthead's both read this.
+  // The switchers' rows: the members, with the satellites of the member in
+  // view (satelliteHost) indented under it, so an open satellite is marked
+  // under its parent and no other satellites take rows. The crumb's menu and
+  // the masthead's both read this.
   get estateSwitcherRows(){
-    const working = this.originalsWorkingRepo;
+    const host = this.satelliteHost;
     const out = [];
     for (const r of this.estateRepos || []){
       out.push(r);
-      if (r.repo !== working) continue;
-      for (const o of this.repoOriginals(r.repo))
+      if (r.repo !== host) continue;
+      for (const o of this.repoSatellites(r.repo))
         out.push({ repo: o.repo, short: o.short, child: true, hint: o.projectLabel, host: r.repo });
     }
     return out;
@@ -5667,7 +5686,7 @@ function app(){ return {
     const cfg = s.config || this.estateConfigs?.[r];
     const icon = cfg?.icon;
     if (icon) return icon.startsWith('ph-') ? icon : 'ph-' + icon;
-    if (this.originalsHost(r)) return 'ph-vault';
+    if (this.satelliteParent(r)) return 'ph-planet';
     return 'ph-folder-simple';
   },
   get repoLanding(){
@@ -5800,15 +5819,15 @@ function app(){ return {
   onRepoReadmeClick(e){
     this.openRelativeLink(e, '');
   },
-  // An originals row is a head row too, since its label is a repo name, which
-  // is all `head` means; `child` indents it under its working repo's row.
+  // A satellite row is a head row too, since its label is a repo name, which
+  // is all `head` means; `child` indents it under its parent's row.
   get estateRepoMenuItems(){
     const current = Alpine.store('browser').repo;
     return this.estateSwitcherRows.map(r => ({
       key: 'repo:' + r.repo,
       label: r.short,
-      title: r.child ? r.repo + ': originals of ' + (r.host.split('/')[1] || r.host) + (r.hint ? ' › ' + r.hint : '') : r.repo,
-      icon: r.child ? 'ph-vault' : (r.icon || 'ph-folder-simple'),
+      title: r.child ? r.repo + ': satellite of ' + (r.host.split('/')[1] || r.host) + (r.hint ? ' › ' + r.hint : '') : r.repo,
+      icon: r.child ? 'ph-planet' : (r.icon || 'ph-folder-simple'),
       markHtml: r.child ? '' : this.repoMarkHtml(r, { cls: 'text-sm', color: 'text-base-content/70' }),
       current: r.repo === current,
       head: true,

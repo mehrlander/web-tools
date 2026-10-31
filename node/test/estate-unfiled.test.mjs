@@ -227,47 +227,55 @@ test('signed out there is no account to ask about', async () => {
   window.__shell.hasToken = () => true;
 });
 
-// ── Originals: a fourth state, and a decided one ─────────────────────────────
-// A working repo names its originals repos in its own manifest (`originals`,
-// at the top level or on a project), so those rows fold under Originals with
-// the working repo named, and offer no Adopt. The claim map is the shell's own
-// parse (originalsClaims), lent here through window.__shell as the app does.
+// ── Satellites: a fourth state, and a settled one ────────────────────────────
+// A repo off the estate whose name is a member's (or a member project's folder)
+// plus "-" and a suffix, or that a member lists in `satellites`, belongs to
+// that member. Its row folds under Satellites with the parent named, and
+// offers no Adopt. The rule is the shell's own (satelliteClaims), lent here
+// through window.__shell as the app does.
 import { makeShell } from './shell.mjs';
 
-test('a repo a working repo names folds into Originals, out of Unfiled, with no Adopt', async () => {
+test('a satellite folds into Satellites, out of Unfiled, with its parent named and no Adopt', async () => {
   const { shell } = makeShell();
-  window.__shell.originalsClaims = (c) => shell.originalsClaims(c);
+  window.__shell.satelliteClaims = (c, n) => shell.satelliteClaims(c, n);
   try {
-    await loadWith({ ...CONFIG_MAP, 'me/tools': { estate: true, group: 'core', order: 0,
-      originals: ['me/older'], projects: [{ path: 'projects/drs', label: 'DRS', originals: ['me/retired'] }] } });
+    // me/recent stays Unfiled: "recent" begins with the project folder's
+    // name "re" but not with "re-", so its name says nothing.
+    const accountWith = [...ACCOUNT_FIXTURE, acctRow('me/tools-scans', { pushed_at: '2026-04-01T00:00:00Z' }),
+                         acctRow('me/re-pdfs', { pushed_at: '2026-04-02T00:00:00Z', archived: true })];
+    await loadWith({ ...CONFIG_MAP,
+      'me/tools': { estate: true, group: 'core', order: 0, satellites: ['me/older'],
+                    projects: [{ path: 'projects/re', label: 'Re' }] },
+      'me/tools-scans': null, 'me/re-pdfs': null,
+    }, accountWith);
     assert.deepEqual(groups(), [
-      ['open',      ['me/recent', 'me/oldest']],
-      ['originals', ['me/older', 'me/retired']],     // by working repo, then name: "tools" before "tools › DRS"
-      ['aside',     ['me/aside']],
-    ], 'a claim outranks archived, since an originals repo may well be archived read-only');
-    const [, originals] = data.unfiledSections;
-    assert.equal(data.unfiledShown(originals), false, 'the settled group folds');
-    const older = data.unfiledRepos.find(r => r.repo === 'me/older');
-    const retired = data.unfiledRepos.find(r => r.repo === 'me/retired');
-    assert.equal(data.originalsFor(older), 'tools');
-    assert.equal(data.originalsFor(retired), 'tools › DRS');
+      ['open',       ['me/recent', 'me/oldest']],
+      ['satellites', ['me/older', 'me/tools-scans', 'me/re-pdfs']],   // by parent label, then name: "tools", "tools", "tools › Re"
+      ['aside',      ['me/aside']],
+      ['retired',    ['me/retired']],
+    ], 'a satellite outranks archived, since a store of fetched files may well be archived read-only');
+    const sec = data.unfiledSections.find(s => s.key === 'satellites');
+    assert.equal(data.unfiledShown(sec), false, 'the settled group folds');
+    const row = (n) => data.unfiledRepos.find(r => r.repo === n);
+    assert.equal(data.satelliteOf(row('me/older')), 'tools');
+    assert.equal(data.satelliteOf(row('me/re-pdfs')), 'tools › Re');
 
-    // The chip opens the working repo, or the project when the claim sits on one.
+    // The badge opens the parent, or the project when the parent is one.
     const calls = [];
     const openRepo = data.openRepo;
     data.openRepo = (r) => calls.push(['repo', r]);
     window.__shell.openProject = (r, p) => calls.push(['project', r, p.path]);
-    data.openOriginalsHost(older);
-    data.openOriginalsHost(retired);
+    data.openSatelliteParent(row('me/tools-scans'));
+    data.openSatelliteParent(row('me/re-pdfs'));
     data.openRepo = openRepo;
-    assert.deepEqual(calls, [['repo', 'me/tools'], ['project', 'me/tools', 'projects/drs']]);
+    assert.deepEqual(calls, [['repo', 'me/tools'], ['project', 'me/tools', 'projects/re']]);
   } finally {
-    delete window.__shell.originalsClaims;
+    delete window.__shell.satelliteClaims;
     delete window.__shell.openProject;
   }
 });
 
-test('without the shell\'s parse there are no claims, and the three states stand', async () => {
-  await loadWith({ ...CONFIG_MAP, 'me/tools': { estate: true, originals: ['me/older'] } });
+test('without the shell\'s rule there are no satellites, and the three states stand', async () => {
+  await loadWith({ ...CONFIG_MAP, 'me/tools': { estate: true, satellites: ['me/older'] } });
   assert.deepEqual(groups().map(([k]) => k), ['open', 'aside', 'retired']);
 });

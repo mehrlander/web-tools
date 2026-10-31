@@ -199,7 +199,6 @@ node/render/scenarios/md-diff-one-height.mjs,,node/render/scenarios,63,driver,,n
 node/render/scenarios/md-diff-one-stop.mjs,,node/render/scenarios,51,driver,,no,no,no
 node/render/scenarios/nest-probe.mjs,"probe: a nested self-toss's address bar, and the FAB's actions at depth two",node/render/scenarios,44,driver,,no,no,no
 node/render/scenarios/open-drawer.mjs,the FAB drawer open with the take grid scrolled into view,node/render/scenarios,20,driver,,no,no,no
-node/render/scenarios/originals.mjs,,node/render/scenarios,138,driver,,no,no,no
 node/render/scenarios/outline-follows-page.mjs,scroll the page and check every live outline stays on the thing it is drawn around,node/render/scenarios,78,driver,,no,no,no
 node/render/scenarios/paste-address-routes.mjs,,node/render/scenarios,52,driver,,no,no,no
 node/render/scenarios/paste-anywhere.mjs,dispatches a real two-flavor ClipboardEvent on a non-Stage view and reports where the app-wide paste routed it,node/render/scenarios,42,driver,,no,no,no
@@ -235,6 +234,7 @@ node/render/scenarios/report-layout-by-year.mjs,"Shoots the report-layout demo o
 node/render/scenarios/repos-abandoned-badge.mjs,"the repo card's abandoned-branch badge, beside stranded and open PRs",node/render/scenarios,12,driver,,no,no,no
 node/render/scenarios/routed-subject.mjs,"the drawer over a routed subject, the file as the reported identity",node/render/scenarios,54,driver,,no,no,no
 node/render/scenarios/routes-pane.mjs,"Renders Activity's Routes pane with real data for a headless shot: the manifest from the served tree, each declared file's last-commit date derived from git log at render time rather than frozen, and a set of open PRs covering the on/near/no-match cases.",node/render/scenarios,77,driver,,no,no,no
+node/render/scenarios/satellites.mjs,,node/render/scenarios,141,driver,,no,no,no
 node/render/scenarios/search-chats.mjs,the Files view's Chats lane: the fourth mode pill and a chat hit's shape,node/render/scenarios,56,driver,,no,no,no
 node/render/scenarios/search-cold.mjs,the Files view's cold open: a bare arrival scopes to the browsed repo and walks it,node/render/scenarios,50,driver,,no,no,no
 node/render/scenarios/search-controls.mjs,"the Files view's scope controls, with the ref picker open",node/render/scenarios,72,driver,,no,no,no
