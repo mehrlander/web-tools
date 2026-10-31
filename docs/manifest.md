@@ -266,9 +266,9 @@ token:
   laptop is awake, the daemon forwards the errand to Gemini and writes Gemini's
   reply to the result file. Declining the errand on the Stage cancels it.
 - **`codex-errand`** (venue `personal-laptop`) is a task for Codex on the
-  laptop, for work needing its apps or computer use, taken when the owner asks
-  Codex to do its errands. File it with `sessions/tools/codex_errand.py` in
-  web-tools-private.
+  laptop, for work needing that machine's apps or computer use, taken when the
+  owner asks Codex to do its errands. File it with
+  `sessions/tools/codex_errand.py` in web-tools-private.
 
 ## Inbox and outbox
 
