@@ -21,6 +21,7 @@ main,,inquiry,Inquiry,inquiry.html,thumbs/inquiry.png,https://github.com/mehrlan
 main,,launcher,Popup Launcher · setup,launcher.html,thumbs/launcher.png,https://github.com/mehrlander/web-tools/blob/main/pages/launcher.html,"Popup launcher setup — paste a token, copy out the bookmarklet."
 main,,links,Links,links.html,thumbs/links.png,https://github.com/mehrlander/web-tools/blob/main/pages/links.html,"home's bookmarks board: a pinned rail, areas of links, and an area's markdown dossier, all editable in place."
 main,,passage-reader,Passage reader,passage-reader.html,thumbs/passage-reader.png,https://github.com/mehrlander/web-tools/blob/main/pages/passage-reader.html,
+main,,paste-run,Paste run,paste-run.html,thumbs/paste-run.png,https://github.com/mehrlander/web-tools/blob/main/pages/paste-run.html,
 main,,pdf-inspect,PDF Inspect,pdf-inspect.html,thumbs/pdf-inspect.png,https://github.com/mehrlander/web-tools/blob/main/pages/pdf-inspect.html,
 main,,peek,Peek — DOM under a selection,peek.html,thumbs/peek.png,https://github.com/mehrlander/web-tools/blob/main/pages/peek.html,
 main,,pip-steps,Floating steps,pip-steps.html,thumbs/pip-steps.png,https://github.com/mehrlander/web-tools/blob/main/pages/pip-steps.html,"Steps that float over another app, through iOS Picture-in-Picture."
