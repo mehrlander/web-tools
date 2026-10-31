@@ -226,3 +226,48 @@ test('signed out there is no account to ask about', async () => {
   assert.deepEqual(groups(), []);
   window.__shell.hasToken = () => true;
 });
+
+// ── Originals: a fourth state, and a decided one ─────────────────────────────
+// A working repo names its originals repos in its own manifest (`originals`,
+// at the top level or on a project), so those rows fold under Originals with
+// the working repo named, and offer no Adopt. The claim map is the shell's own
+// parse (originalsClaims), lent here through window.__shell as the app does.
+import { makeShell } from './shell.mjs';
+
+test('a repo a working repo names folds into Originals, out of Unfiled, with no Adopt', async () => {
+  const { shell } = makeShell();
+  window.__shell.originalsClaims = (c) => shell.originalsClaims(c);
+  try {
+    await loadWith({ ...CONFIG_MAP, 'me/tools': { estate: true, group: 'core', order: 0,
+      originals: ['me/older'], projects: [{ path: 'projects/drs', label: 'DRS', originals: ['me/retired'] }] } });
+    assert.deepEqual(groups(), [
+      ['open',      ['me/recent', 'me/oldest']],
+      ['originals', ['me/older', 'me/retired']],     // by working repo, then name: "tools" before "tools › DRS"
+      ['aside',     ['me/aside']],
+    ], 'a claim outranks archived, since an originals repo may well be archived read-only');
+    const [, originals] = data.unfiledSections;
+    assert.equal(data.unfiledShown(originals), false, 'the settled group folds');
+    const older = data.unfiledRepos.find(r => r.repo === 'me/older');
+    const retired = data.unfiledRepos.find(r => r.repo === 'me/retired');
+    assert.equal(data.originalsFor(older), 'tools');
+    assert.equal(data.originalsFor(retired), 'tools › DRS');
+
+    // The chip opens the working repo, or the project when the claim sits on one.
+    const calls = [];
+    const openRepo = data.openRepo;
+    data.openRepo = (r) => calls.push(['repo', r]);
+    window.__shell.openProject = (r, p) => calls.push(['project', r, p.path]);
+    data.openOriginalsHost(older);
+    data.openOriginalsHost(retired);
+    data.openRepo = openRepo;
+    assert.deepEqual(calls, [['repo', 'me/tools'], ['project', 'me/tools', 'projects/drs']]);
+  } finally {
+    delete window.__shell.originalsClaims;
+    delete window.__shell.openProject;
+  }
+});
+
+test('without the shell\'s parse there are no claims, and the three states stand', async () => {
+  await loadWith({ ...CONFIG_MAP, 'me/tools': { estate: true, originals: ['me/older'] } });
+  assert.deepEqual(groups().map(([k]) => k), ['open', 'aside', 'retired']);
+});

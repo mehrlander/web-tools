@@ -872,15 +872,22 @@ html.dk-dragging main{transition:none !important}
       <div x-show="crumbMenu" x-cloak x-transition.opacity.duration.120ms
            class="absolute inset-x-2 top-full z-40 mt-1 max-h-[60vh] overflow-y-auto rounded-box border border-base-300 bg-base-100 shadow-xl">
         <div class="flex flex-col py-1">
-          <template x-for="r in estateRepos" :key="r.repo">
+          <!-- estateSwitcherRows: the members, plus the open family's
+               originals repos hung off their working repo's row by the
+               sidebar's 1 px rule (repoOriginals, beside repoProjects). -->
+          <template x-for="r in estateSwitcherRows" :key="r.repo">
+            <div :class="r.child && 'ml-5 pl-1 border-l border-base-300'">
             <button @click="pickRepo(r.repo)"
-                    class="w-full min-h-11 flex items-center gap-2.5 px-3 rounded-lg text-left text-base transition-colors hover:bg-base-200 active:bg-base-300"
-                    :class="$store.browser.repo === r.repo ? 'text-primary font-semibold' : 'text-base-content/80'">
-              <span class="inline-flex shrink-0" x-html="repoMarkHtml(r, { cls: 'text-xl', color: 'text-base-content/50' })"></span>
+                    class="w-full flex items-center gap-2.5 px-3 rounded-lg text-left text-base transition-colors hover:bg-base-200 active:bg-base-300"
+                    :class="[$store.browser.repo === r.repo ? 'text-primary font-semibold' : 'text-base-content/80', r.child ? 'min-h-9' : 'min-h-11']">
+              <span x-show="!r.child" class="inline-flex shrink-0" x-html="r.child ? '' : repoMarkHtml(r, { cls: 'text-xl', color: 'text-base-content/50' })"></span>
+              <i x-show="r.child" class="ph ph-vault shrink-0 text-base text-base-content/40"></i>
               <span class="min-w-0 flex-1 truncate font-mono" x-text="r.short"></span>
+              <span x-show="r.hint" class="shrink-0 font-mono text-xs text-base-content/40" x-text="'› ' + r.hint"></span>
               <i x-show="r.priv" class="ph ph-lock shrink-0 text-sm text-base-content/30"></i>
               <i x-show="$store.browser.repo === r.repo" class="ph ph-check shrink-0 text-base text-primary"></i>
             </button>
+            </div>
           </template>
           <p x-show="!estateRepos.length" class="px-3 py-2 text-sm text-base-content/50">
             No other repositories loaded.
@@ -1303,6 +1310,47 @@ html.dk-dragging main{transition:none !important}
       <div class="border-t border-base-200"
            x-show="!estateCtx && repoProjects($store.browser.repo).length"></div>
 
+      <!-- ORIGINALS: the open family's originals repos (repoOriginals). In a
+           working repo, the ones it names; in an originals repo, its siblings
+           with itself marked, under a head naming the working repo, which is
+           a button back to it. The rows take the project rows' shape and rule.
+           GitHub's stored size sits before the GitHub button, since for these
+           repos it is what says fetch by path rather than clone. -->
+      <div class="flex flex-col gap-0.5" x-show="!estateCtx && originalsFamily" data-originals-section>
+        <div class="text-base font-semibold text-base-content/50 px-2 pb-1 flex items-center gap-1.5 min-w-0">
+          <i class="ph ph-vault"></i><span>Originals</span>
+          <button x-show="originalsFamily && originalsFamily !== $store.browser.repo" @click="openOriginalsHost()"
+                  class="min-w-0 truncate font-normal text-sm text-base-content/40 hover:text-primary transition-colors"
+                  :data-title-tip="'Open ' + originalsHostLabel($store.browser.repo)"
+                  x-text="'of ' + originalsHostLabel($store.browser.repo)"></button>
+        </div>
+        <div class="flex flex-col gap-0.5 ml-4 pl-2 border-l border-base-300">
+        <template x-for="o in repoOriginals(originalsFamily)" :key="o.repo">
+          <div class="flex items-center rounded-lg transition-colors hover:bg-base-200"
+               :class="$store.browser.repo === o.repo && 'bg-primary/10'">
+            <button @click="openPinned(o.repo)"
+                    :data-title-tip="o.repo + (o.project ? ': originals for ' + o.project : '') + (repoSizeLabel(o.repo) ? ', ' + repoSizeLabel(o.repo) + ' stored' : '')"
+                    class="flex items-center gap-2 min-w-0 flex-1 px-2 py-1.5 text-base text-left transition-colors"
+                    :class="$store.browser.repo === o.repo ? 'text-primary font-semibold' : 'text-base-content/80'">
+              <i class="ph ph-vault text-base shrink-0" :class="$store.browser.repo === o.repo ? '' : 'text-base-content/40'"></i>
+              <span class="truncate" x-text="o.short"></span>
+              <span x-show="o.projectLabel" class="hidden sm:inline min-w-0 truncate shrink-3 font-mono text-xs text-base-content/40" x-text="'› ' + o.projectLabel"></span>
+            </button>
+            <!-- The size gives way to the project hint, and the hint to the
+                 name on a phone; the row's title-tip carries both. -->
+            <span x-show="repoSizeLabel(o.repo) && !o.projectLabel" class="shrink-0 font-mono text-xs text-base-content/40"
+                  data-title-tip="GitHub's stored size" x-text="repoSizeLabel(o.repo)"></span>
+            <a :href="githubUrlFor(o.repo)" target="_blank" rel="noopener" @click.stop
+               :data-title-tip="o.repo + ' on GitHub'"
+               class="wt-row-btn shrink-0 h-8 flex items-center justify-center text-base-content/30 hover:text-primary transition-colors">
+              <i class="ph ph-github-logo text-base leading-none"></i></a>
+          </div>
+        </template>
+        </div>
+      </div>
+
+      <div class="border-t border-base-200" x-show="!estateCtx && originalsFamily"></div>
+
       <!-- Needs attention: the repo's own declared checks (.web-tools.json
            "checks"), evaluated on open. Only what is NOT passing renders, so a
            current repo shows nothing here at all: badging green states would
@@ -1637,6 +1685,14 @@ html.dk-dragging main{transition:none !important}
             <span x-show="repoPushed" class="badge badge-ghost badge-sm gap-1">
               <i class="ph ph-clock"></i><span x-text="'pushed ' + repoPushed"></span>
             </span>
+            <!-- An originals repo's way back to the working repo (or project)
+                 that names it: the one fact its own page cannot know. -->
+            <button x-show="originalsHost($store.browser.repo)" @click="openOriginalsHost()" data-originals-host
+                    class="badge badge-sm badge-outline badge-primary gap-1 cursor-pointer"
+                    :data-title-tip="'Originals repo: files as fetched, read by path from ' + originalsHostLabel($store.browser.repo)">
+              <i class="ph ph-vault"></i><span x-text="'originals · ' + originalsHostLabel($store.browser.repo)"></span>
+              <i class="ph ph-arrow-right"></i>
+            </button>
           </div>
 
           <!-- Tabstrip -->
@@ -3437,6 +3493,8 @@ function app(){ return {
       const acct = await new window.GH({ token: window.TOKEN }).repos();
       const byName = new Map(acct.map(r => [r.full_name, !!r.private]));
       for (const r of this.estateRepos){ const p = byName.get(r.repo); if (p !== undefined) r.priv = p; }
+      // Sizes ride the same list, for the originals rows (repoSizeLabel).
+      this.repoSizes = Object.fromEntries(acct.filter(r => Number.isFinite(r.size)).map(r => [r.full_name, r.size]));
     } catch {}
   },
 
@@ -4845,6 +4903,112 @@ function app(){ return {
     await this.ensureBrowser(repo);
     if (Alpine.store('browser').repo === repo) this.goProject(p.path);
   },
+
+  // ── Originals: the repos a working repo keeps its fetched files in ─────────
+  // home's constellation doctrine (created/2026-06-27-constellation-
+  // architecture.md, Principle 2) separates a WORKING repo, checked out for
+  // work, from an ORIGINALS repo, which holds files exactly as fetched at the
+  // paths they would have in the working repo and is fetched by path, never
+  // checked out. An originals repo carries no manifest and is not a member, so
+  // until this it surfaced only as an Unfiled row offering Adopt.
+  //
+  // THE WORKING REPO DECLARES, in `originals` (owner/repo strings), at the top
+  // level or on the one `projects` entry the files serve. It already owns the
+  // relation (its manifests pin every original by path and SHA-256), and an
+  // originals repo's premise is that it holds the files and nothing else. So an
+  // originals repo is shown WHERE ITS WORKING REPO IS: nested under it in the
+  // switcher, listed in its repo sidebar, folded under it in the Repos grid,
+  // and its own masthead links back. It never joins the membership list, so
+  // the activity crawl, the Stage pickers and the alignment grade, which exist
+  // for repos where sessions work, do not reach it. Registry rows: `originals`
+  // and `projects[].originals` in docs/manifest-fields.csv.
+  //
+  // Same `cfg` convention as repoProjects: the open repo's live manifest wins,
+  // else the main-derived cache. A member named as an originals repo is a
+  // misdeclaration and is dropped, which also keeps the switcher's keys unique.
+  repoOriginals(repo, cfg){
+    const s = Alpine.store('browser');
+    if (!cfg) cfg = (repo && repo === s.repo && s.config) ? s.config : this.estateConfigs?.[repo];
+    if (!cfg || typeof cfg !== 'object') return [];
+    const members = new Set((this.estateRepos || []).map(r => r.repo));
+    const out = [], seen = new Set([repo]);
+    const take = (list, project) => {
+      if (!Array.isArray(list)) return;
+      for (const v of list){
+        const name = typeof v === 'string' ? v.trim() : '';
+        if (!/^[^/\s]+\/[^/\s]+$/.test(name) || seen.has(name) || members.has(name)) continue;
+        seen.add(name);
+        out.push({ repo: name, short: name.split('/')[1], project: project?.path || '', projectLabel: project?.label || '' });
+      }
+    };
+    take(cfg.originals, null);
+    if (Array.isArray(cfg.projects)) for (const e of cfg.projects){
+      if (!e || typeof e !== 'object' || typeof e.path !== 'string' || !e.path) continue;
+      const path = e.path.replace(/\/+$/, '');
+      take(e.originals, { path, label: e.label || path.split('/').pop() });
+    }
+    return out;
+  },
+  // Every claim in a config map, keyed by the originals repo: { host, project,
+  // projectLabel }. Members' claims are read first, then the rest by name, and
+  // the first claim wins, so two working repos naming one originals repo give a
+  // stable answer rather than an order-of-arrival one. The estate's Unfiled
+  // rows call this with their own map (estate.js, loadUnfiled).
+  originalsClaims(confs){
+    const out = {};
+    const names = Object.keys(confs || {}).filter(n => confs[n] && typeof confs[n] === 'object');
+    names.sort((a, b) => (confs[b].estate === true) - (confs[a].estate === true) || a.localeCompare(b));
+    for (const host of names)
+      for (const o of this.repoOriginals(host, confs[host]))
+        if (!out[o.repo]) out[o.repo] = { host, project: o.project, projectLabel: o.projectLabel };
+    return out;
+  },
+  originalsHost(repo){
+    return (repo && this.originalsClaims(this.estateConfigs)[repo]) || null;
+  },
+  // The working repo whose originals the open repo belongs with: itself when it
+  // names any, its host when it is one, else ''.
+  get originalsFamily(){
+    const cur = Alpine.store('browser').repo;
+    if (!cur) return '';
+    if (this.repoOriginals(cur).length) return cur;
+    return this.originalsHost(cur)?.host || '';
+  },
+  // The open originals repo's way back: the project its host names it on, else
+  // the host itself.
+  openOriginalsHost(repo){
+    const h = this.originalsHost(repo || Alpine.store('browser').repo);
+    if (!h) return;
+    if (h.project) this.openProject(h.host, { path: h.project });
+    else this.openPinned(h.host);
+  },
+  originalsHostLabel(repo){
+    const h = this.originalsHost(repo);
+    return h ? (h.host.split('/')[1] || h.host) + (h.projectLabel ? ' › ' + h.projectLabel : '') : '';
+  },
+  // GitHub's stored size, from the account list enrichSidebarPrivacy already
+  // reads. For an originals repo it is the number that says fetch by path
+  // rather than clone.
+  repoSizes: {},
+  repoSizeLabel(repo){
+    const kb = this.repoSizes?.[repo];
+    return Number.isFinite(kb) && kb > 0 ? window.Traffic.fmtBytes(kb * 1024) : '';
+  },
+  // The switchers' rows: the members, and under the open family's working repo
+  // its originals, so an open originals repo is marked where it belongs and no
+  // other family's originals spend rows. Both the crumb's menu and the
+  // masthead's read this.
+  get estateSwitcherRows(){
+    const family = this.originalsFamily;
+    const out = [];
+    for (const r of this.estateRepos || []){
+      out.push(r);
+      if (r.repo !== family) continue;
+      for (const o of this.repoOriginals(r.repo))
+        out.push({ repo: o.repo, short: o.short, child: true, hint: o.projectLabel, host: r.repo });
+    }
+    return out;
+  },
   // ── The project view: a workspace's front page ───────────────────────────
   // A repo's landing is its README; a project's is the README in its folder,
   // which is the same promise one level down. The pane carries the workspace's
@@ -5519,6 +5683,7 @@ function app(){ return {
     const cfg = s.config || this.estateConfigs?.[r];
     const icon = cfg?.icon;
     if (icon) return icon.startsWith('ph-') ? icon : 'ph-' + icon;
+    if (this.originalsHost(r)) return 'ph-vault';
     return 'ph-folder-simple';
   },
   get repoLanding(){
@@ -5651,16 +5816,20 @@ function app(){ return {
   onRepoReadmeClick(e){
     this.openRelativeLink(e, '');
   },
+  // An originals row is a head row too, since its label is a repo name, which
+  // is all `head` means; `child` hangs it off its working repo's row.
   get estateRepoMenuItems(){
     const current = Alpine.store('browser').repo;
-    return (this.estateRepos || []).map(r => ({
+    return this.estateSwitcherRows.map(r => ({
       key: 'repo:' + r.repo,
       label: r.short,
-      title: r.repo,
-      icon: r.icon || 'ph-folder-simple',
-      markHtml: this.repoMarkHtml(r, { cls: 'text-sm', color: 'text-base-content/70' }),
+      title: r.child ? r.repo + ': originals of ' + (r.host.split('/')[1] || r.host) + (r.hint ? ' › ' + r.hint : '') : r.repo,
+      icon: r.child ? 'ph-vault' : (r.icon || 'ph-folder-simple'),
+      markHtml: r.child ? '' : this.repoMarkHtml(r, { cls: 'text-sm', color: 'text-base-content/70' }),
       current: r.repo === current,
       head: true,
+      child: !!r.child,
+      hint: r.hint || '',
       run: () => {
         this.closeRepoMenu();
         if (r.repo !== current) this.openPinned(r.repo);
