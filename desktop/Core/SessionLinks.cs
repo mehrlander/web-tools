@@ -23,4 +23,14 @@ public static class SessionLinks
         provider == "Codex" && Guid.TryParseExact(id, "D", out _) ? Safe("codex://threads/" + id)
         : provider == "Gemini" && geminiInstance is not null ? Safe("https://antigravity.google.com/r/" + geminiInstance + "?p=c%2F" + id)
         : provider == "Claude" && source?.StartsWith("https://claude.ai/code/",StringComparison.Ordinal) == true ? Safe(source) : null;
+
+    public static List<ActivityChange> HydrateChanges(IEnumerable<ActivityChange> changes,
+        Dictionary<string,string>? cloudUrls, string? geminiInstance) => changes.Select(c => {
+            if (!c.Key.StartsWith("cloud:",StringComparison.Ordinal) && !c.Key.StartsWith("session:",StringComparison.Ordinal))
+                return c with { SessionUrl = null };
+            var id = c.Key.StartsWith("cloud:",StringComparison.Ordinal) ? c.Key[6..] : c.Key.Split(':').Last();
+            var source = c.SessionUrl;
+            if (c.Location == "Cloud" && cloudUrls?.TryGetValue(id,out var url) == true) source = url;
+            return c with { SessionUrl = For(c.Provider,id,source,geminiInstance) };
+        }).ToList();
 }

@@ -35,11 +35,14 @@
     const errand = item.kind === 'errand' || item.key?.startsWith('errand:');
     const thread = item.key?.startsWith('session:Codex:') ? item.key.slice(14) : item.id;
     const direct = errand ? '' : sessionUrl(item.sessionUrl || item.sourceUrl || (key === 'codex' ? `codex://threads/${thread}` : ''),key,desktop);
-    const web = safeLink(item.url)?.startsWith('https://mehrlander.github.io/web-tools/') ? safeLink(item.url) : '';
+    const id = item.key?.startsWith('errand:') ? item.key.slice(7) : item.id;
+    const result = ['reply','complete','failed'].includes(item.state);
+    const saved = item.url || (desktop && errand && /^[A-Za-z0-9][A-Za-z0-9.-]{0,95}$/.test(id) && !id.includes('..') ? 'https://mehrlander.github.io/web-tools/app/?' + (result ? 'repo=mehrlander/web-tools-private&ref=background&view=files&file=' + encodeURIComponent(`errands/results/${id}.json`) : 'view=stage&errand=' + encodeURIComponent(id)) : '');
+    const web = safeLink(saved)?.startsWith('https://mehrlander.github.io/web-tools/') ? safeLink(saved) : '';
     const actions = [], owner = escape(item.key), cls = 'inline-flex min-h-9 items-center rounded-md border border-stone-200 bg-white px-2.5 text-xs text-emerald-900 hover:bg-stone-50';
     const link = (url,label,type) => `<a data-${type}="${owner}" href="${escape(url)}" target="_blank" rel="noopener noreferrer" class="${cls}">${label} ↗</a>`;
     if (direct) actions.push(link(direct,`Open in ${{codex:'Codex',gemini:'Antigravity',claude:'Claude'}[key]}`,'session-link'));
-    if (web) actions.push(link(web,errand ? ['reply','complete','failed'].includes(item.state) ? 'Open result' : 'Open errand' : 'Web Tools detail','external'));
+    if (web) actions.push(link(web,errand ? result ? 'Open result' : 'Open errand' : 'Web Tools detail','external'));
     if (!direct && !errand) actions.unshift(link(assistants[key].url,`Open ${key === 'codex' ? 'ChatGPT' : assistants[key].name}`,'session-home'));
     if (!errand) actions.push(`<button data-copy-title="${owner}" class="${cls}">${copied ? 'Copied' : 'Copy session title'}</button>`);
     const note = errand && !web ? 'Saved errand destination unavailable.' : !direct && !errand ? key === 'codex' && !desktop ? 'Direct mobile thread link unavailable. Find this conversation in ChatGPT’s Codex tab.' : 'Direct session link unavailable. Use the session title to find the conversation.' : '';

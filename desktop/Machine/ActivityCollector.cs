@@ -55,7 +55,8 @@ public sealed class ActivityCollector
                     }).ToList() };
                     var events = journal.Observe(current.Items, now);
                     var cloud = active.Cloud;
-                    var updates = changes.Observe(current.Items.Concat(cloud.Items), activity.Errands, now);
+                    var updates = SessionLinks.HydrateChanges(changes.Observe(current.Items.Concat(cloud.Items), activity.Errands, now),
+                        cloud.SessionUrls,sessionLinks.GeminiInstance);
                     var snapshot = new LaptopSnapshot(activity, daemon, applications, LaptopSignals.Places(root),
                         LaptopSignals.Downloads(), Environment.MachineName, settings.SeenThrough, current,
                         watch.Elapsed.TotalMilliseconds, cloud, events, updates, usage.Latest, sessionLinks.GeminiInstance);

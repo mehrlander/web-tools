@@ -34,14 +34,7 @@ public static class PhoneActivity
             new(snapshot.Activity.Revision is not null, snapshot.Activity.Connected, snapshot.Activity.SyncedAt,
                 snapshot.Daemon.State, snapshot.Daemon.LastLogAt, snapshot.Cloud.CapturedAt, notices, snapshot.Daemon.Activity, snapshot.Daemon.Reports),
             items.OrderByDescending(i => i.At).ToList(), snapshot.Events.Take(50).ToList(),
-            (snapshot.Changes ?? []).Select(c => {
-                if (!c.Key.StartsWith("cloud:",StringComparison.Ordinal) && !c.Key.StartsWith("session:",StringComparison.Ordinal))
-                    return c with { SessionUrl = null };
-                var id = c.Key.StartsWith("cloud:", StringComparison.Ordinal) ? c.Key[6..] : c.Key.Split(':').Last();
-                var source = c.SessionUrl;
-                if (c.Location == "Cloud" && snapshot.Cloud.SessionUrls?.TryGetValue(id,out var url) == true) source = url;
-                return c with { SessionUrl = SessionLinks.For(c.Provider,id,source,snapshot.GeminiInstanceId) };
-            }).ToList(), snapshot.Usage ?? []);
+            SessionLinks.HydrateChanges(snapshot.Changes ?? [],snapshot.Cloud.SessionUrls,snapshot.GeminiInstanceId), snapshot.Usage ?? []);
     }
 
     // Reply bodies are requested only for the selected result. Request notes,

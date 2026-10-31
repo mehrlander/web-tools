@@ -95,7 +95,7 @@ public static class NavigationPolicy
     public static bool IsUsagePage(string? address) => address is
         "https://chatgpt.com/settings/usage" or "https://claude.ai/settings/usage" or "https://antigravity.google.com/";
 
-    public static bool IsExternalPage(string? address) => IsUsagePage(address) || address is
+    public static bool IsExternalPage(string? address) => IsWebTools(address) || IsUsagePage(address) || address is
         "https://chatgpt.com/" or "https://claude.ai/code" || SessionLinks.Safe(address) is not null;
 
     public static string? ExternalTarget(string? address) => Uri.TryCreate(address,UriKind.Absolute,out var uri)

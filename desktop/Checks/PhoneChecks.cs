@@ -54,6 +54,11 @@ static class PhoneChecks
             && new[] { "codex://threads/new", "codex://settings", "file:///private", "javascript:alert(1)" }
                 .All(url=>NavigationPolicy.ExternalTarget(url) is null),
             "The final shell dispatcher accepts the exact Codex thread URI and rejects unrelated native actions and schemes.");
+        check(new[] { "https://chatgpt.com/", "https://antigravity.google.com/", "https://claude.ai/code",
+            geminiUrl,claudeUrl,"codex://threads/" + thread,NavigationPolicy.ErrandUrl("saved"),NavigationPolicy.ErrandUrl("saved",true),
+            NavigationPolicy.AppUrl + "?view=sessions&session=older" }.All(url=>NavigationPolicy.IsExternalPage(url) && NavigationPolicy.ExternalTarget(url) is not null)
+            && !NavigationPolicy.IsExternalPage("https://mehrlander.github.io.evil.test/web-tools/app/"),
+            "Every launcher destination category passes both the WebView boundary and final dispatcher, including saved Web Tools records.");
         var historical = CloudSessions.Parse(JsonSerializer.Serialize(new { rows = new[] {
             new { id = "older", agent = claudeUrl, ended = now.AddDays(-2) }
         } }),now);
