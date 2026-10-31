@@ -245,7 +245,7 @@ branch. The scripts an errand runs stay on main (`errands/prompts/`, `sites/`),
 where `run.script` addresses them; web-tools-private's README, "Three layers",
 says why the records moved.
 
-Three methods need no one at the Stage, because none borrows the Stage's
+Four methods need no one at the Stage, because none borrows the Stage's
 token:
 
 - **`workflow-run`** (venue `actions-hosted`) is a script run by
@@ -265,6 +265,12 @@ token:
   it with `sessions/tools/errand_runner.py` in web-tools-private. While the
   laptop is awake, the daemon forwards the errand to Gemini and writes Gemini's
   reply to the result file. Declining the errand on the Stage cancels it.
+- **`codex-errand`** (venue `personal-laptop`) leaves a task for Codex on the
+  laptop, for work that needs that machine's apps or computer use. File it with
+  `sessions/tools/codex_errand.py` in web-tools-private. Nothing polls for it:
+  when the owner asks Codex to do its errands, Codex claims it, does it and
+  writes the result file, with any returned files under
+  `errands/output/<id>/`. Declining the errand on the Stage cancels it.
 
 ## Inbox and outbox
 

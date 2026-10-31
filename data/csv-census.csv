@@ -51,7 +51,7 @@ docs/routes-kinds.csv,12,15,1370,"[""kind"",""label"",""subject"",""detect"",""e
 docs/routes-modes.csv,7,7,2462,"[""param"",""form"",""carries"",""trust"",""sandbox"",""reach"",""note""]"
 docs/routes-paste.csv,6,6,2680,"[""surface"",""path"",""recognizes"",""becomes"",""declines_to"",""gate""]"
 docs/routes-routes.csv,6,7,2377,"[""key"",""repo"",""ref"",""path"",""renders"",""doc"",""example""]"
-docs/run-methods.csv,7,5,2341,"[""method"",""venues"",""output_return"",""rules"",""gloss""]"
+docs/run-methods.csv,8,5,2927,"[""method"",""venues"",""output_return"",""rules"",""gloss""]"
 docs/showing-mechanisms.csv,5,11,3451,"[""key"",""glyph"",""label"",""form"",""subject"",""opens"",""handles"",""use"",""reaches"",""misses"",""narrative""]"
 docs/subjects.csv,9,7,2672,"[""key"",""label"",""needs"",""carrier"",""detect"",""icon"",""gloss""]"
 docs/tests-authored.csv,469,3,113077,"[""path"",""kind"",""protects""]"
