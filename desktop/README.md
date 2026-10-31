@@ -50,6 +50,7 @@ dotnet run --project .\desktop\Checks\DesktopChecks.csproj
 node .\desktop\Checks\ui-checks.mjs
 node .\desktop\Checks\phone-ui-checks.mjs
 node .\desktop\Checks\computer-ui-checks.mjs
+node .\desktop\Checks\offline-checks.mjs
 node .\desktop\Checks\companion-checks.mjs
 ```
 
@@ -103,7 +104,7 @@ be awake and online; waking the laptop through Windows App can restore access.
 The last received snapshot remains in that browser's local storage, labeled with
 its observation time when contact is lost. After a successful online visit, a
 service worker saves only the interface assets for offline reloads. API responses
-never enter Cache Storage; a network failure uses the saved interface, while an
+never enter Cache Storage; a network or server failure uses the saved interface, while an
 HTTP access denial is returned directly. The interface can therefore still offer
 Windows App when the laptop is unreachable. A responding server with an observation
 older than fifteen seconds also loses its Live status. Closing the phone browser
