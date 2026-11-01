@@ -25,7 +25,7 @@
   and gzips {name, before, after, cards} into #gz=. No token and no fetch, so
   the page opens anywhere and cannot disagree with what was proposed.
 
-  WHAT IS SHOWN. The after listing, in the Chains page's form (index gutter,
+  WHAT IS SHOWN. The after listing, in the Workflows view's form (index gutter,
   nesting kept as indent, verb in bold), with added lines marked and removed
   lines struck through where they stood. Lines are matched on their text
   without the index, since an insertion renumbers everything below it.
@@ -400,7 +400,7 @@ document.addEventListener('alpine:init', () => Alpine.data('edit', () => ({
 
   jump(id) { document.getElementById(id)?.scrollIntoView({ block: 'center' }); },
 
-  // The Chains page's colouring, as segments rather than markup: the verb
+  // The Workflows view's colouring, as segments rather than markup: the verb
   // bold, then «N» references, "literals" and $sources each in their own tone.
   paint(s) {
     const lead = s.match(/^ */)[0], rest = s.slice(lead.length);
