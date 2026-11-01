@@ -107,7 +107,7 @@
     const img = S.src === 'icons'
       ? `<img src="${esc(item.img)}" alt="" loading="lazy" class="size-12">`
       : `<img src="${esc(item.img)}" alt="" loading="lazy" class="h-24 w-full object-contain">`;
-    return `<button type="button" data-id="${esc(item.id)}" class="relative flex flex-col items-center gap-1.5 rounded-box border p-2.5 ${on ? 'border-primary bg-primary/10 ring-2 ring-primary' : 'border-base-200 bg-base-100 hover:border-base-300'}">
+    return `<button type="button" data-id="${esc(item.id)}" class="relative flex flex-col items-center gap-1.5 rounded-box border p-2.5 ${on ? 'border-primary bg-primary/10 ring-2 ring-[var(--color-primary)]' : 'border-base-200 bg-base-100 hover:border-base-300'}">
       ${img}<span class="w-full truncate text-xs text-base-content/50">${esc(item.label)}</span>
       ${on ? '<i class="ph-fill ph-check-circle absolute right-1 top-1 text-lg text-primary"></i>' : ''}</button>`;
   }
