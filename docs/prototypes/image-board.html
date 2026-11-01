@@ -16,8 +16,10 @@
   //   &sets=game-icons,noto    only these Iconify sets (their prefixes)
   //   &color=d97706            the tint for single-colour icons
   //   &title=Surfacing         the board's name
-  //   &group=medium            off, tight, medium or loose: near-alike icons
-  //                            fold into one tile with a +N badge
+  //   &group=medium            each search's starting grouping: off, tight,
+  //                            medium or loose; near-alike icons fold into
+  //                            one tile with a +N badge, and each search's
+  //                            heading changes its own
   // Both sources answer a browser directly (CORS), so nothing is fetched ahead
   // of time. Picks persist in this browser per board and leave as text, one
   // line per pick, to paste into a session. The footer keeps clear of the
@@ -30,9 +32,12 @@
     queries: (P.get('q') || 'gem,crystal,pickaxe').split(',').map(s => s.trim()).filter(Boolean),
     sets: (P.get('sets') || '').split(',').map(s => s.trim()).filter(Boolean),
     group: ['off', 'tight', 'medium', 'loose'].includes(P.get('group')) ? P.get('group') : 'medium',
-    results: {}, shapes: {}, open: {}, picks: [], copied: '',
+    results: {}, shapes: {}, open: {}, level: {}, picks: [], copied: '',
   };
   const CUT = { off: 0, tight: 0.12, medium: 0.22, loose: 0.32 };
+  // Fewer dots, broader groups: nine for every icon, one for the loosest fold.
+  const LEVELS = [['off', 'ph-dots-nine', 'all'], ['tight', 'ph-dots-six', 'tight'], ['medium', 'ph-dots-three', 'medium'], ['loose', 'ph-dot', 'loose']];
+  const levelOf = q => S.level[q] || S.group;
   const KEY = 'image-board:' + S.title + ':' + S.queries.join(',');
   try { S.picks = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch {}
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S.picks)); } catch {} };
@@ -114,8 +119,8 @@
   }
   const jac = (a, b) => { let i = 0, u = 0; for (let k = 0; k < a.length; k++) { i += a[k] & b[k]; u += a[k] | b[k]; } return u ? 1 - i / u : 0; };
   const apart = (a, b) => 0.6 * jac(a.fill, b.fill) + 0.4 * jac(a.ink, b.ink);
-  function groupsOf(items) {
-    const cut = CUT[S.group], lead = [];
+  function groupsOf(items, level) {
+    const cut = CUT[level], lead = [];
     for (const it of items) {
       const f = S.shapes[it.id];
       const L = cut && f && lead.find(l => S.shapes[l.item.id] && apart(S.shapes[l.item.id], f) < cut);
@@ -123,7 +128,7 @@
     }
     return lead;
   }
-  const grouping = () => S.src === 'icons' && S.group !== 'off';
+  const grouping = q => S.src === 'icons' && levelOf(q) !== 'off';
 
   // Wikimedia answers a burst of searches with an error page that carries no
   // CORS header, which a browser reports as a failed fetch; so Commons is
@@ -176,22 +181,23 @@
     const body = r == null ? '<span class="loading loading-dots loading-md text-base-content/40"></span>'
       : r.err ? `<p class="font-mono text-sm text-error">${esc(r.err)}</p>`
       : !r.length ? '<p class="text-base-content/50">Nothing found.</p>'
-      : `<div class="grid grid-cols-[repeat(auto-fill,minmax(84px,1fr))] gap-2">${grouping()
-          ? groupsOf(r).map(g => tile(g.item, g.members.length) + (S.open[g.item.id] ? g.members.map(m => tile(m, 0, true)).join('') : '')).join('')
+      : `<div class="grid grid-cols-[repeat(auto-fill,minmax(84px,1fr))] gap-2">${grouping(q)
+          ? groupsOf(r, levelOf(q)).map(g => tile(g.item, g.members.length) + (S.open[g.item.id] ? g.members.map(m => tile(m, 0, true)).join('') : '')).join('')
           : r.map(it => tile(it)).join('')}</div>`;
-    const count = !Array.isArray(r) ? '' : grouping() ? `${r.length} · ${groupsOf(r).length} groups` : r.length;
-    return `<section id="q-${esc(q)}" class="flex scroll-mt-36 flex-col gap-2.5">
-      <h2 class="flex items-baseline gap-2 pt-4">
+    const count = !Array.isArray(r) ? '' : grouping(q) ? `${r.length} · ${groupsOf(r, levelOf(q)).length} groups, ${levelOf(q)}` : `${r.length}, all`;
+    const levels = S.src !== 'icons' ? '' : `<div class="join ml-auto" role="radiogroup" aria-label="Grouping for ${esc(q)}">${LEVELS.map(([k, icon, name]) =>
+      `<button type="button" role="radio" aria-checked="${levelOf(q) === k}" aria-label="${name}" data-level="${k}" data-q="${esc(q)}"
+        class="btn btn-xs btn-square join-item ${levelOf(q) === k ? 'btn-neutral' : 'btn-ghost'}"><i class="ph-bold ${icon} text-base"></i></button>`).join('')}</div>`;
+    return `<section id="q-${esc(q)}" class="flex scroll-mt-24 flex-col gap-2.5">
+      <h2 class="flex items-center gap-2 pt-4">
         <span class="font-semibold">${esc(q)}</span>
-        <span class="text-xs text-base-content/40">${count}</span></h2>${body}</section>`;
+        <span class="text-xs text-base-content/40">${count}</span>${levels}</h2>${body}</section>`;
   }
 
   function render() {
     document.getElementById('head').innerHTML = `
       <div class="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 pt-3">
         <h1 class="mr-auto text-lg font-semibold">${esc(S.title)}</h1>
-        ${S.src === 'icons' ? `<div class="join">${['off', 'tight', 'medium', 'loose'].map(k => `<button type="button" data-group="${k}"
-          class="btn btn-xs join-item ${S.group === k ? 'btn-neutral' : 'btn-ghost'}">${k === 'off' ? 'All' : k[0].toUpperCase() + k.slice(1)}</button>`).join('')}</div>` : ''}
         <div class="join">${['icons', 'commons'].map(s => `<button type="button" data-src="${s}"
           class="btn btn-xs join-item ${S.src === s ? 'btn-neutral' : 'btn-ghost'}">${s === 'icons' ? 'Icons' : 'Commons'}</button>`).join('')}</div>
       </div>
@@ -216,9 +222,9 @@
   addEventListener('click', e => {
     const x = e.target.closest('[data-expand]');
     if (x) { S.open[x.dataset.expand] = !S.open[x.dataset.expand]; return render(); }
-    const t = e.target.closest('[data-id],[data-src],[data-group],#copy,[data-jump]');
+    const t = e.target.closest('[data-id],[data-src],[data-level],#copy,[data-jump]');
     if (!t) return;
-    if (t.dataset.group) { S.group = t.dataset.group; return render(); }
+    if (t.dataset.level) { S.level[t.dataset.q] = t.dataset.level; return render(); }
     if (t.id === 'copy') return copy();
     if (t.dataset.src) { S.src = t.dataset.src; loadAll(); return; }
     if (t.dataset.jump) { e.preventDefault(); document.getElementById('q-' + t.dataset.jump)?.scrollIntoView({ block: 'start' }); return; }
