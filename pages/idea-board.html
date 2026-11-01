@@ -24,9 +24,10 @@
 
   An idea's card has two faces, the PROPOSAL (its sketch) and the COMMENTARY
   (what the author says about it, and the reader's star and note). Below xl one
-  switch, in the strip's header and again in the deck's, shows one face on every
-  card, so a swipe walks all the proposals or all the commentaries; the face
-  rides in the address as face=commentary. From xl the two sit side by side and
+  switch of two marks, in the strip's header and again in the deck's, shows one
+  face on every card, so a swipe walks all the proposals or all the
+  commentaries; each header writes the face's name, and the address carries it
+  as face=commentary. From xl the two sit side by side and
   the switch goes. The brief is the board's background and the selection its
   conclusion, each wearing its mark from kits/call-marks.js.
 -->
@@ -144,7 +145,10 @@ document.addEventListener('alpine:init', () => {
       this.paintFace();
     },
     // One switch, built as plain DOM so the deck's header can carry a copy.
-    // The active button names its face; the other is its mark alone.
+    // Both buttons are marks alone, and the face's NAME is written in the
+    // header the switch sits in (faceName): a label shown only on the selected
+    // button changed the switch's width on every tap and left the other option
+    // unnamed (snag label-only-on-the-selected-option).
     faceSwitch() {
       const wrap = document.createElement('span');
       wrap.className = 'join xl:hidden shrink-0';
@@ -154,7 +158,7 @@ document.addEventListener('alpine:init', () => {
         const b = document.createElement('button');
         b.type = 'button';
         b.dataset.faceBtn = f;
-        b.className = 'btn btn-sm join-item gap-1.5 px-2.5';
+        b.className = 'btn btn-sm btn-square join-item';
         b.onclick = () => this.setFace(f);
         wrap.append(b);
       }
@@ -167,13 +171,22 @@ document.addEventListener('alpine:init', () => {
         b.classList.toggle('btn-active', on);
         b.setAttribute('aria-pressed', on);
         b.setAttribute('aria-label', name);
-        b.innerHTML = this.mark(f, 18) + (on ? `<span>${name}</span>` : '');
+        b.innerHTML = this.mark(f, 18);
       });
+      if (this.deck) this.deck.setSubtitle(this.deckSub());
+    },
+    // The face's name, for an idea's card; the brief and the selection have none.
+    get faceName() { return this.cur > 0 && this.cur < this.last ? (window.CallMarks?.LABEL[this.face] || this.face) : ''; },
+    // The deck's subtitle names the face where one face is on screen, and the
+    // board where both are (xl) or the card has none.
+    deckSub() {
+      return this.faceName && !window.matchMedia('(min-width: 80rem)').matches ? this.faceName : 'Idea board';
     },
 
     // One move, from the list, the strip or the expanded deck, reaches the other two.
     sync(i, from) {
       this.cur = i;
+      if (this.deck) this.deck.setSubtitle(this.deckSub());
       if (from !== 'strip' && this.strip.active() !== i) this.strip.go(i, 'instant');
       if (from !== 'deck' && this.deck && this.deck.deck.active() !== i) this.deck.deck.go(i, 'instant');
       this.$nextTick(() => this.$refs.list.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' }));
@@ -189,7 +202,7 @@ document.addEventListener('alpine:init', () => {
       setTimeout(() => { settled = true; }, 600);
       this.deck = swipeDeck.open({
         count: this.count, start, render: (k, el) => this.render(k, el),
-        title: this.B.title, subtitle: 'Idea board', icon: 'ph-squares-four', actions: [this.faceSwitch()],
+        title: this.B.title, subtitle: this.deckSub(), icon: 'ph-squares-four', actions: [this.faceSwitch()],
         index: k => ({ title: this.label(k), subtitle: this.at(k)?.kind || '' }),
         onSlide: k => { if (!settled) { if (k !== start) return; settled = true; } this.sync(k, 'deck'); },
         onClose: () => { this.deck = null; },
@@ -369,6 +382,7 @@ document.addEventListener('alpine:init', () => {
           <button class="btn btn-ghost btn-sm btn-square" @click="sync(Math.max(0, cur - 1), 'list')" aria-label="Previous"><i class="ph ph-caret-left text-lg"></i></button>
           <span class="tabular-nums text-sm text-base-content/60" x-text="cur === 0 ? 'Brief' : cur === last ? 'Selection' : cur + ' / ' + B.ideas.length"></span>
           <button class="btn btn-ghost btn-sm btn-square" @click="sync(Math.min(count - 1, cur + 1), 'list')" aria-label="Next"><i class="ph ph-caret-right text-lg"></i></button>
+          <span x-show="faceName" class="text-sm font-medium xl:hidden" x-text="faceName"></span>
           <span class="ml-auto flex" x-init="$el.append(faceSwitch())"></span>
           <button class="btn btn-ghost btn-sm btn-square" @click="expand()" aria-label="Expand" data-title-tip="Expand"><i class="ph ph-arrows-out text-lg"></i></button>
         </div>
