@@ -18,7 +18,8 @@
   //   &title=Surfacing         the board's name
   // Both sources answer a browser directly (CORS), so nothing is fetched ahead
   // of time. Picks persist in this browser per board and leave as text, one
-  // line per pick, to paste into a session.
+  // line per pick, to paste into a session. The footer keeps clear of the
+  // bottom-right corner, where a host page's FAB sits.
   const P = new URLSearchParams(location.hash.slice(1));
   const S = {
     title: P.get('title') || 'Image board',
@@ -136,7 +137,7 @@
       </div>`;
     document.getElementById('grid').innerHTML = S.queries.map(section).join('');
     document.getElementById('foot').innerHTML = `
-      <div class="flex items-center gap-3 px-4 py-2.5">
+      <div class="flex items-center gap-3 py-2.5 pl-4 pr-20">
         <div class="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto">
           <span class="shrink-0 text-sm font-medium">${S.picks.length} picked</span>
           ${S.picks.map(p => `<button type="button" data-id="${esc(p.id)}" class="shrink-0 rounded border border-base-200 bg-base-100 p-1">
