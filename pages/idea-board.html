@@ -22,14 +22,10 @@
   renders inline, cleaned first. Picks and notes stay in this browser, keyed by the board's
   address without its ref, and leave as text.
 
-  An idea's card has two faces, the PROPOSAL (its sketch) and the COMMENTARY
-  (what the author says about it, and the reader's star and note). Below xl one
-  switch of two marks, in the strip's header and again in the deck's, shows one
-  face on every card, so a swipe walks all the proposals or all the
-  commentaries; each header writes the face's name, and the address carries it
-  as face=commentary. From xl the two sit side by side and
-  the switch goes. The brief is the board's background and the selection its
-  conclusion, each wearing its mark from kits/call-marks.js.
+  An idea's card has two faces, the proposal and the commentary, and one
+  switch turns every card at once; docs/idea-board.md (Faces) states what each
+  face shows and when the switch appears. setFace() explains how both the strip
+  and the deck follow the switch with nothing redrawn.
 -->
 <script>window.__depsReady = new Promise(r => { window.__depsDone = r; });</script>
 <script type="module">
@@ -145,10 +141,10 @@ document.addEventListener('alpine:init', () => {
       this.paintFace();
     },
     // One switch, built as plain DOM so the deck's header can carry a copy.
-    // Both buttons are marks alone, and the face's NAME is written in the
-    // header the switch sits in (faceName): a label shown only on the selected
-    // button changed the switch's width on every tap and left the other option
-    // unnamed (snag label-only-on-the-selected-option).
+    // Both buttons are marks alone: a label shown only on the selected button
+    // changed the switch's width on every tap and left the other option
+    // unnamed (snag label-only-on-the-selected-option). The marks need no
+    // caption, so the header's room goes to the card's name.
     faceSwitch() {
       const wrap = document.createElement('span');
       wrap.className = 'join xl:hidden shrink-0';
@@ -173,15 +169,9 @@ document.addEventListener('alpine:init', () => {
         b.setAttribute('aria-label', name);
         b.innerHTML = this.mark(f, 18);
       });
-      if (this.deck) this.deck.setSubtitle(this.deckSub());
     },
-    // The face's name, for an idea's card; the brief and the selection have none.
-    get faceName() { return this.cur > 0 && this.cur < this.last ? (window.CallMarks?.LABEL[this.face] || this.face) : ''; },
-    // The deck's subtitle names the face where one face is on screen, and the
-    // board where both are (xl) or the card has none.
-    deckSub() {
-      return this.faceName && !window.matchMedia('(min-width: 80rem)').matches ? this.faceName : 'Idea board';
-    },
+    // The deck's subtitle names the card in view, as the strip's header does.
+    deckSub() { const i = this.cur; return i > 0 && i < this.last ? i + ' ' + this.at(i).title : this.label(i); },
 
     // One move, from the list, the strip or the expanded deck, reaches the other two.
     sync(i, from) {
@@ -235,25 +225,27 @@ document.addEventListener('alpine:init', () => {
       if (i === 0) return this.renderBrief(el);
       if (i === this.last) return this.renderSelection(el);
       const d = this.at(i), role = this.role(d.n);
-      const head = `<span class="tabular-nums text-base-content/50">${d.n}</span>
-            <h2 class="text-xl font-semibold text-balance">${esc(d.title)}</h2>
-            <span class="text-sm text-base-content/60">${esc(d.kind)}</span>`;
+      // A part of the commentary: its icon, whose tip names it, beside its text.
+      const part = (icon, tip, text) => `<dt class="pt-0.5 text-base-content/50" data-title-tip="${tip}" data-title-tip-bare aria-label="${tip}">${icon}</dt><dd class="text-pretty">${text}</dd>`;
+      const ph = c => `<i class="ph ${c} text-xl"></i>`;
+      const dl = 'grid grid-cols-[1.5rem_minmax(0,1fr)] gap-x-3 gap-y-3 content-start';
       el.innerHTML = `<div class="grid gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] xl:items-start">
-        <section data-face-part="proposal" class="grid gap-3 content-start max-xl:in-data-[face=commentary]:hidden">
-          <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">${head}</div>
+        <section data-face-part="proposal" class="grid content-start max-xl:in-data-[face=commentary]:hidden">
           ${this.sketch(d, 'border border-base-300 rounded-box p-2')}
         </section>
         <section data-face-part="commentary" class="grid gap-4 content-start max-xl:in-data-[face=proposal]:hidden">
-          <div class="grid grid-cols-[auto_minmax(0,1fr)] gap-3 items-center xl:hidden">
-            <button data-flip class="block rounded-box border border-base-300 overflow-hidden bg-white" aria-label="Show the proposal">
+          <div class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 items-start xl:grid-cols-1">
+            <button data-flip class="block rounded-box border border-base-300 overflow-hidden bg-white xl:hidden" aria-label="Show the proposal">
               ${d.src ? `<img src="${d.src}" alt="" class="block h-24 w-auto max-w-28 object-contain">` : `<span class="grid place-items-center h-24 w-20 text-primary">${this.mark('proposal', 28)}</span>`}
             </button>
-            <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">${head}</div>
+            <dl class="${dl}">
+              ${part(ph('ph-shapes'), 'Its principal difference', esc(d.kind))}
+              ${role ? part(this.mark('conclusion', 20), 'Its part in the selection', role === 'base' ? 'Base' : 'Graft: ' + esc(role)) : ''}
+            </dl>
           </div>
-          <dl class="grid grid-cols-[6rem_minmax(0,1fr)] gap-x-4 gap-y-3">
-            <dt class="text-sm text-base-content/60 pt-1">Reader meets</dt><dd class="text-pretty">${esc(d.encounter)}</dd>
-            <dt class="text-sm text-base-content/60 pt-1">Shows</dt><dd class="text-pretty">${esc(d.helps)}</dd>
-            ${role ? `<dt class="text-sm text-base-content/60 pt-1">Selection</dt><dd class="text-pretty">${role === 'base' ? 'Base' : 'Graft: ' + esc(role)}</dd>` : ''}
+          <dl class="${dl}">
+            ${part(ph('ph-eye'), 'What the reader meets', esc(d.encounter))}
+            ${part(ph('ph-brain'), 'What it helps the reader understand', esc(d.helps))}
           </dl>
           <div class="grid grid-cols-[auto_minmax(0,1fr)] gap-2 items-start">
             <button data-pick="${d.n}" class="btn btn-ghost btn-square text-xl" aria-label="Pick"></button>
@@ -270,7 +262,6 @@ document.addEventListener('alpine:init', () => {
     renderBrief(el) {
       const B = this.B;
       el.innerHTML = `<div class="grid gap-4">
-        <h2 class="text-xl font-semibold flex items-center gap-2"><span class="text-base-content/60">${this.mark('background', 22)}</span>Brief</h2>
         <dl class="grid grid-cols-[6rem_minmax(0,1fr)] gap-x-4 gap-y-3">
           <dt class="text-sm text-base-content/60 pt-1">Subject</dt><dd class="text-pretty">${esc(B.subject)}</dd>
           <dt class="text-sm text-base-content/60 pt-1">Result</dt><dd class="text-pretty">${esc(B.brief.result)}</dd>
@@ -286,7 +277,6 @@ document.addEventListener('alpine:init', () => {
       const ref = (n, extra = '') => `<button data-go="${n}" class="link link-hover font-semibold text-left">${n} · ${esc(this.idea(n).title)}</button>${extra}`;
       const thumb = n => `<button data-go="${n}" class="grid gap-1 text-left content-start">${this.sketch(this.idea(n), 'border border-base-300 rounded-box p-1 overflow-hidden max-h-48')}<span class="text-xs text-base-content/60">${n} · ${esc(this.idea(n).title)}</span></button>`;
       el.innerHTML = `<div class="grid gap-4">
-        <h2 class="text-xl font-semibold flex items-center gap-2"><span class="text-base-content/60">${this.mark('conclusion', 22)}</span>Selection</h2>
         <div class="grid grid-cols-3 gap-3">${[...S.pick, ...S.grafts.map(([n]) => n)].map(thumb).join('')}</div>
         <dl class="grid grid-cols-[6rem_minmax(0,1fr)] gap-x-4 gap-y-3">
           <dt class="text-sm text-base-content/60 pt-1">Base</dt><dd class="grid gap-1">${S.pick.map(n => ref(n)).join('')}</dd>
@@ -378,12 +368,16 @@ document.addEventListener('alpine:init', () => {
       </ol>
 
       <section x-ref="detail" class="grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] min-h-0 min-w-0">
-        <div class="flex items-center gap-2 px-4 py-1.5 border-b border-base-200">
+        <div class="flex items-center gap-1 pl-4 pr-3 py-1.5 border-b border-base-200">
+          <span class="min-w-0 flex-1 flex items-center gap-2">
+            <span x-show="cur === 0" class="shrink-0 text-base-content/60" x-html="mark('background', 18)"></span>
+            <span x-show="cur === last" class="shrink-0 text-base-content/60" x-html="mark('conclusion', 18)"></span>
+            <span x-show="cur > 0 && cur < last" class="shrink-0 tabular-nums text-base-content/50" x-text="cur"></span>
+            <span class="font-semibold truncate" x-text="label(cur)"></span>
+          </span>
           <button class="btn btn-ghost btn-sm btn-square" @click="sync(Math.max(0, cur - 1), 'list')" aria-label="Previous"><i class="ph ph-caret-left text-lg"></i></button>
-          <span class="tabular-nums text-sm text-base-content/60" x-text="cur === 0 ? 'Brief' : cur === last ? 'Selection' : cur + ' / ' + B.ideas.length"></span>
           <button class="btn btn-ghost btn-sm btn-square" @click="sync(Math.min(count - 1, cur + 1), 'list')" aria-label="Next"><i class="ph ph-caret-right text-lg"></i></button>
-          <span x-show="faceName" class="text-sm font-medium xl:hidden" x-text="faceName"></span>
-          <span class="ml-auto flex" x-init="$el.append(faceSwitch())"></span>
+          <span class="flex" x-init="$el.append(faceSwitch())"></span>
           <button class="btn btn-ghost btn-sm btn-square" @click="expand()" aria-label="Expand" data-title-tip="Expand"><i class="ph ph-arrows-out text-lg"></i></button>
         </div>
         <div x-ref="track" class="min-h-0 min-w-0 h-full"></div>

@@ -44,9 +44,9 @@ the board that was handed over.
 
 ## Faces
 
-Each idea's card has two faces. The proposal face shows the idea's `title`, `kind` and `sketch`; the commentary face shows `encounter`, `helps`, the idea's role in the selection (base or graft, from `selection.pick` and `selection.grafts`), and the reader's star and note. Below 1280 pixels wide, a switch above the strip, repeated in the header of the full-screen deck the strip expands into, shows one face on every card, and `face=commentary` in the address opens on the commentary face; wider, the two faces sit side by side.
+A board has four parts: the brief is its background, each idea has a proposal and a commentary, and the selection is its conclusion. [`lib/kits/call-marks.js`](../lib/kits/call-marks.js) draws an icon for each part: a book for the background, a bulb for the proposal, a speech bubble for the commentary and a stamp for the conclusion.
 
-The brief and the selection have no faces: the brief is the board's background and the selection its conclusion. [`lib/kits/call-marks.js`](../lib/kits/call-marks.js) draws a mark for each of the four parts, a book for the background, a bulb for the proposal, a speech bubble for the commentary and a stamp for the conclusion, and the page uses them on the brief, the face switch and the selection.
+Each idea's card has two faces. The proposal face is the idea's `sketch`; the commentary face shows the idea's `kind`, `encounter`, `helps` and role in the selection (base or graft, from `selection.pick` and `selection.grafts`), each beside an icon whose tip names it, then the reader's star and note. The header above the strip of cards names the card in view by its number and `title`. Below 1280 pixels wide, a switch of two icons in that header, the bulb and the speech bubble, repeated in the header of the full-screen deck the strip expands into, shows one face on every card, and `face=commentary` in the address opens on the commentary face; wider, the two faces sit side by side.
 
 ## Returning picks
 
