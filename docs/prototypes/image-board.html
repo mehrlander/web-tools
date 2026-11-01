@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en" data-theme="winter">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Image board</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script type="module">
+  // An image board, built 2026-11-01 for ideation: a list of searches becomes a
+  // grid of found images, one section per search, and a tap picks one. The
+  // board is its address, so making one costs a link:
+  //   #q=gem,crystal,pickaxe   the searches, comma-separated
+  //   &src=icons|commons       Iconify's open-licensed icon sets (default), or
+  //                            Wikimedia Commons drawings and photos
+  //   &sets=game-icons,noto    only these Iconify sets (their prefixes)
+  //   &color=d97706            the tint for single-colour icons
+  //   &title=Surfacing         the board's name
+  // Both sources answer a browser directly (CORS), so nothing is fetched ahead
+  // of time. Picks persist in this browser per board and leave as text, one
+  // line per pick, to paste into a session.
+  const P = new URLSearchParams(location.hash.slice(1));
+  const S = {
+    title: P.get('title') || 'Image board',
+    src: P.get('src') === 'commons' ? 'commons' : 'icons',
+    color: (P.get('color') || '').replace(/[^0-9a-f]/gi, ''),
+    queries: (P.get('q') || 'gem,crystal,pickaxe').split(',').map(s => s.trim()).filter(Boolean),
+    sets: (P.get('sets') || '').split(',').map(s => s.trim()).filter(Boolean),
+    results: {}, picks: [], copied: '',
+  };
+  const KEY = 'image-board:' + S.title + ':' + S.queries.join(',');
+  try { S.picks = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch {}
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S.picks)); } catch {} };
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  // Each source answers a search with items { id, img, label, href }.
+  const SOURCES = {
+    // One request per set, not per icon: a search's results are grouped by
+    // set, each set's bodies come back in one JSON read, and the SVG is built
+    // here. currentColor would draw black inside an <img>, so it takes the tint.
+    async icons(q) {
+      const sets = S.sets.length ? `&prefixes=${S.sets.join(',')}` : '';
+      const r = await fetch(`https://api.iconify.design/search?query=${encodeURIComponent(q)}&limit=96${sets}`).then(r => r.json());
+      const ids = (r.icons || []).map(id => id.split(':'));
+      const bySet = {};
+      for (const [set, name] of ids) (bySet[set] ||= []).push(name);
+      const ink = '#' + (S.color || '374151');
+      const svgs = {};
+      await Promise.all(Object.entries(bySet).map(async ([set, names]) => {
+        const d = await fetch(`https://api.iconify.design/${set}.json?icons=${names.join(',')}`).then(r => r.json()).catch(() => null);
+        for (const name of names) {
+          let ic = d?.icons?.[name], al = d?.aliases?.[name];
+          if (!ic && al) ic = { ...d.icons?.[al.parent], ...al };
+          if (!ic?.body) continue;
+          const w = ic.width || d.width || 16, h = ic.height || d.height || 16;
+          svgs[set + ':' + name] = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${ic.left || 0} ${ic.top || 0} ${w} ${h}">${ic.body.replaceAll('currentColor', ink)}</svg>`;
+        }
+      }));
+      return ids.filter(([set, name]) => svgs[set + ':' + name]).map(([set, name]) => ({
+        id: 'iconify ' + set + ':' + name, label: set, href: `https://icon-sets.iconify.design/${set}/${name}/`,
+        img: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgs[set + ':' + name]) }));
+    },
+    async commons(q) {
+      const u = 'https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search'
+        + `&gsrnamespace=6&gsrlimit=48&gsrsearch=${encodeURIComponent(q + ' filetype:drawing|bitmap')}`
+        + '&prop=imageinfo&iiprop=url&iiurlwidth=240';
+      const r = await fetch(u).then(r => r.json());
+      return Object.values(r.query?.pages || {}).sort((a, b) => a.index - b.index).map(p => ({
+        id: 'commons ' + p.title, img: p.imageinfo?.[0]?.thumburl, label: p.title.replace(/^File:/, '').replace(/\.\w+$/, ''),
+        href: p.imageinfo?.[0]?.descriptionurl })).filter(x => x.img);
+    },
+  };
+
+  // Wikimedia answers a burst of searches with an error page that carries no
+  // CORS header, which a browser reports as a failed fetch; so Commons is
+  // asked one search at a time, and each search gets one retry.
+  async function load(q) {
+    S.results[q] = null; render();
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try { S.results[q] = await SOURCES[S.src](q); break; }
+      catch (e) { S.results[q] = { err: String(e.message || e) }; await new Promise(r => setTimeout(r, 1500)); }
+    }
+    render();
+  }
+  async function loadAll() {
+    if (S.src === 'commons') { for (const q of S.queries) await load(q); }
+    else S.queries.forEach(load);
+  }
+
+  const picked = id => S.picks.some(p => p.id === id);
+  function toggle(item) {
+    S.picks = picked(item.id) ? S.picks.filter(p => p.id !== item.id) : [...S.picks, item];
+    S.copied = ''; save(); render();
+  }
+  const pickText = () => S.picks.map(p => `${p.id}  ${p.href || p.img}`).join('\n');
+  async function copy() {
+    const text = pickText();
+    try { await navigator.clipboard.writeText(text); S.copied = 'ok'; }
+    catch { S.copied = 'manual'; }
+    render();
+    if (S.copied === 'manual') { const t = document.getElementById('picktext'); t?.focus(); t?.select(); }
+  }
+
+  function tile(item) {
+    const on = picked(item.id);
+    const img = S.src === 'icons'
+      ? `<img src="${esc(item.img)}" alt="" loading="lazy" class="size-12">`
+      : `<img src="${esc(item.img)}" alt="" loading="lazy" class="h-24 w-full object-contain">`;
+    return `<button type="button" data-id="${esc(item.id)}" class="relative flex flex-col items-center gap-1.5 rounded-box border p-2.5 ${on ? 'border-primary bg-primary/10 ring-2 ring-primary' : 'border-base-200 bg-base-100 hover:border-base-300'}">
+      ${img}<span class="w-full truncate text-xs text-base-content/50">${esc(item.label)}</span>
+      ${on ? '<i class="ph-fill ph-check-circle absolute right-1 top-1 text-lg text-primary"></i>' : ''}</button>`;
+  }
+
+  function section(q) {
+    const r = S.results[q];
+    const body = r == null ? '<span class="loading loading-dots loading-md text-base-content/40"></span>'
+      : r.err ? `<p class="font-mono text-sm text-error">${esc(r.err)}</p>`
+      : !r.length ? '<p class="text-base-content/50">Nothing found.</p>'
+      : `<div class="grid grid-cols-[repeat(auto-fill,minmax(84px,1fr))] gap-2">${r.map(tile).join('')}</div>`;
+    return `<section id="q-${esc(q)}" class="flex flex-col gap-2.5">
+      <h2 class="sticky top-0 z-10 flex items-baseline gap-2 bg-base-200/90 py-1.5 backdrop-blur">
+        <span class="font-semibold">${esc(q)}</span>
+        <span class="text-xs text-base-content/40">${Array.isArray(r) ? r.length : ''}</span></h2>${body}</section>`;
+  }
+
+  function render() {
+    document.getElementById('head').innerHTML = `
+      <div class="flex items-center gap-3 px-4 pt-3">
+        <h1 class="text-lg font-semibold">${esc(S.title)}</h1>
+        <div class="join ml-auto">${['icons', 'commons'].map(s => `<button type="button" data-src="${s}"
+          class="btn btn-xs join-item ${S.src === s ? 'btn-neutral' : 'btn-ghost'}">${s === 'icons' ? 'Icons' : 'Commons'}</button>`).join('')}</div>
+      </div>
+      <div class="flex items-center gap-1.5 overflow-x-auto px-4 py-2">
+        ${S.queries.map(q => `<a href="#q-${esc(q)}" data-jump="${esc(q)}" class="badge badge-ghost shrink-0 whitespace-nowrap">${esc(q)}</a>`).join('')}
+        <form id="add" class="shrink-0"><input name="q" placeholder="Add a search" class="input input-xs w-36"></form>
+      </div>`;
+    document.getElementById('grid').innerHTML = S.queries.map(section).join('');
+    document.getElementById('foot').innerHTML = `
+      <div class="flex items-center gap-3 px-4 py-2.5">
+        <div class="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto">
+          <span class="shrink-0 text-sm font-medium">${S.picks.length} picked</span>
+          ${S.picks.map(p => `<button type="button" data-id="${esc(p.id)}" class="shrink-0 rounded border border-base-200 bg-base-100 p-1">
+            <img src="${esc(p.img)}" alt="" class="size-7 object-contain"></button>`).join('')}
+        </div>
+        <button type="button" id="copy" class="btn btn-sm btn-primary shrink-0" ${S.picks.length ? '' : 'disabled'}>${S.copied === 'ok' ? 'Copied' : 'Copy picks'}</button>
+      </div>
+      ${S.copied === 'manual' ? `<textarea id="picktext" readonly rows="3" class="textarea textarea-sm mx-4 mb-3 w-[calc(100%-2rem)] font-mono">${esc(pickText())}</textarea>` : ''}`;
+  }
+
+  const byId = id => Object.values(S.results).flat().find(x => x && x.id === id) || S.picks.find(p => p.id === id);
+  addEventListener('click', e => {
+    const t = e.target.closest('[data-id],[data-src],#copy,[data-jump]');
+    if (!t) return;
+    if (t.id === 'copy') return copy();
+    if (t.dataset.src) { S.src = t.dataset.src; loadAll(); return; }
+    if (t.dataset.jump) { e.preventDefault(); document.getElementById('q-' + t.dataset.jump)?.scrollIntoView({ block: 'start' }); return; }
+    const item = byId(t.dataset.id); if (item) toggle(item);
+  });
+  addEventListener('submit', e => {
+    e.preventDefault();
+    const q = new FormData(e.target).get('q')?.trim();
+    if (q && !S.queries.includes(q)) { S.queries.push(q); load(q); }
+  });
+  render();
+  loadAll();
+</script>
+</head>
+<body class="bg-base-200">
+  <div class="fixed inset-0 grid grid-rows-[auto_1fr_auto]">
+    <header id="head" class="border-b border-base-300 bg-base-100"></header>
+    <main id="grid" class="flex flex-col gap-6 overflow-y-auto px-4 pb-6"></main>
+    <footer id="foot" class="border-t border-base-300 bg-base-100"></footer>
+  </div>
+</body>
+</html>
