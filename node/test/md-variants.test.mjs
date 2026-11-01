@@ -328,6 +328,9 @@ test('the heading\'s sparkle opens every card in its section; a card\'s own mark
   assert.equal(cards[0].nextElementSibling, paras[0]);
   const card = cards[0];
   await until(() => card.querySelector('.md-diff-change'));
+  // The card opens on the proposed variant, slide 1, by an instant jump a frame
+  // after it mounts (jsdom's track is 1px wide under the stub, so slide 1 is at 1).
+  await until(() => card.querySelector(':scope > .sd-track').scrollLeft === 1);
   assert.match(card.textContent, /Chief of Staff \(Grok\)/, 'the proposed variant is the one shown');
   assert.ok(card.querySelector('[data-md-variants-proposal]'), 'marked as proposed here');
   assert.ok(card.querySelector('.md-diff-change'), 'drawn as md-diff\'s container, as the call form draws an edit');
