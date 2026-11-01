@@ -85,10 +85,11 @@
     scrollTo(0,positions[next ? 'computer' : 'now']);
   }
   function closeMenus() {
-    for (const kind of ['view','remote']) { el(kind + '-menu').hidden = true; el(kind + '-picker').setAttribute('aria-expanded','false'); }
+    el('view-menu').hidden = true;
+    el('view-picker').setAttribute('aria-expanded','false');
   }
   document.addEventListener('click', event => {
-    const picker = event.target.closest('#view-picker,#remote-picker');
+    const picker = event.target.closest('#view-picker');
     if (picker) {
       const menu = el(picker.getAttribute('aria-controls')), wasOpen = !menu.hidden;
       closeMenus(); menu.hidden = wasOpen; picker.setAttribute('aria-expanded',String(!wasOpen)); return;
@@ -101,12 +102,11 @@
       button.setAttribute('aria-expanded',String(open.has(key)));
       el('windows-' + key).hidden = !open.has(key);
     }
-    if (!event.target.closest('#remote-menu,#view-menu')) closeMenus();
+    if (!event.target.closest('#view-menu')) closeMenus();
   });
   document.addEventListener('keydown', event => {
     if (event.key !== 'Escape') return;
-    const kind = !el('remote-menu').hidden ? 'remote' : !el('view-menu').hidden ? 'view' : '';
-    if (kind) { closeMenus(); el(kind + '-picker').focus({preventScroll:true}); event.preventDefault(); }
+    if (!el('view-menu').hidden) { closeMenus(); el('view-picker').focus({preventScroll:true}); event.preventDefault(); }
   });
   const route = event => {
     const name = new URLSearchParams(location.hash.slice(1)).get('view');
@@ -118,9 +118,6 @@
   window.addEventListener('online',poll);
   window.addEventListener('offline',() => { connected = false; render(); });
   try { const prior = JSON.parse(localStorage.getItem('web-tools-computer-snapshot')); if (valid(prior)) data = prior; } catch { }
-  const host = location.hostname;
-  if (/^[a-z0-9-]+\.[a-z0-9-]+\.ts\.net$/i.test(host)) el('remote-connect').href = 'rdp://full%20address=s:' + encodeURIComponent(host);
-  else { el('remote-connect').remove(); }
   window.NowComputer = {active:() => active,connection};
   if (new URLSearchParams(location.hash.slice(1)).get('view') === 'computer') route();
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});

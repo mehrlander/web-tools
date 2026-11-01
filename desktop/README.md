@@ -172,13 +172,14 @@ Computer every three seconds while that view is visible, pauses when hidden,
 backs off on failure, and stores its last observation locally with a stale label.
 The isolated companion-check environment never collects real window titles.
 
-A Windows App button stays in the shared phone header. Its Connect option uses
-Microsoft's documented legacy iOS `rdp://` format with the private Tailscale host
-and no credentials. Compatibility with the current iPhone Windows App requires
-a device check. The alternative runs an existing iPhone shortcut named
-**Windows App** via Apple's documented `shortcuts://run-shortcut` URL. Create that
-shortcut with a single **Open App** action selecting Windows App. The companion
-does not alter remote desktop, firewall, login or wake settings.
+The shared phone header's monitor button directly runs the owner's existing
+**Open-Windows** iPhone shortcut through
+`shortcuts://run-shortcut?name=Open-Windows`. The shortcut's **Open App** action
+selects Microsoft's Windows app (`com.microsoft.rdc.ios`). The legacy `rdp://`
+handoff did not work on the owner's iPhone, so the interface no longer offers that
+route or a connection-options menu. The shortcut opens Windows App; the owner's
+saved laptop connection remains there. The companion does not alter remote
+desktop, firewall, login or wake settings.
 
 When changing the offline interface's asset contract, increment the cache version
 in `phone/sw.js`. Successful installation replaces only this app's older shell
