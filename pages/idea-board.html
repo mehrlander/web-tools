@@ -21,6 +21,14 @@
   so it cannot run script and its marker ids cannot collide; an HTML sketch
   renders inline, cleaned first. Picks and notes stay in this browser, keyed by the board's
   address without its ref, and leave as text.
+
+  An idea's card has two faces, the PROPOSAL (its sketch) and the COMMENTARY
+  (what the author says about it, and the reader's star and note). Below xl one
+  switch, in the strip's header and again in the deck's, shows one face on every
+  card, so a swipe walks all the proposals or all the commentaries; the face
+  rides in the address as face=commentary. From xl the two sit side by side and
+  the switch goes. The brief is the board's background and the selection its
+  conclusion, each wearing its mark from kits/call-marks.js.
 -->
 <script>window.__depsReady = new Promise(r => { window.__depsDone = r; });</script>
 <script type="module">
@@ -39,6 +47,7 @@
     await gh.load('kits/swipe-deck.js');
     await gh.load('kits/io.js');
     await gh.load('kits/title-tip.js');
+    await gh.load('kits/call-marks.js');    // book, bulb, speech bubble, stamp
   } finally { window.__depsDone(); }
 </script>
 <script>
@@ -60,6 +69,7 @@ document.addEventListener('alpine:init', () => {
 
   Alpine.data('ideaBoard', () => ({
     B: null, addr: '', err: '', cur: 0, copied: false, picks: [], notes: {}, strip: null, deck: null,
+    face: param('face') === 'commentary' ? 'commentary' : 'proposal',
     // Slide 0 is the brief, 1 to n the ideas, and the last the selection.
     get count() { return this.B.ideas.length + 2; },
     get last() { return this.B.ideas.length + 1; },
@@ -70,6 +80,7 @@ document.addEventListener('alpine:init', () => {
 
     async init() {
       await window.__depsReady;
+      document.documentElement.dataset.face = this.face;
       try { this.B = await this.read(); } catch (e) { this.err = e.message; return; }
       for (const d of this.B.ideas) {
         const svg = /^\s*<svg/i.test(d.sketch);
@@ -118,6 +129,48 @@ document.addEventListener('alpine:init', () => {
       return (S.grafts.find(([g]) => g === n) || [])[1] || '';
     },
 
+    mark(kind, size = 16) { return window.CallMarks ? window.CallMarks.svg(kind, { size }) : ''; },
+
+    // THE FACE IS THE BOARD'S, NOT A CARD'S. It is an attribute on the root, and
+    // each face hides itself below xl when the other is chosen, so the strip and
+    // the deck (mounted outside this component) both follow it with nothing
+    // redrawn, and a note half written survives the flip.
+    setFace(f) {
+      this.face = f;
+      document.documentElement.dataset.face = f;
+      const h = location.hash.replace(/(^#|&)face=[^&]*/g, '').replace(/^#?&?/, '');
+      const nh = f === 'commentary' ? (h ? h + '&' : '') + 'face=commentary' : h;
+      try { history.replaceState(null, '', location.pathname + location.search + (nh ? '#' + nh : '')); } catch (e) {}
+      this.paintFace();
+    },
+    // One switch, built as plain DOM so the deck's header can carry a copy.
+    // The active button names its face; the other is its mark alone.
+    faceSwitch() {
+      const wrap = document.createElement('span');
+      wrap.className = 'join xl:hidden shrink-0';
+      wrap.setAttribute('role', 'group');
+      wrap.setAttribute('aria-label', 'Face');
+      for (const f of ['proposal', 'commentary']) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.dataset.faceBtn = f;
+        b.className = 'btn btn-sm join-item gap-1.5 px-2.5';
+        b.onclick = () => this.setFace(f);
+        wrap.append(b);
+      }
+      queueMicrotask(() => this.paintFace());
+      return wrap;
+    },
+    paintFace() {
+      document.querySelectorAll('[data-face-btn]').forEach(b => {
+        const f = b.dataset.faceBtn, on = f === this.face, name = window.CallMarks?.LABEL[f] || f;
+        b.classList.toggle('btn-active', on);
+        b.setAttribute('aria-pressed', on);
+        b.setAttribute('aria-label', name);
+        b.innerHTML = this.mark(f, 18) + (on ? `<span>${name}</span>` : '');
+      });
+    },
+
     // One move, from the list, the strip or the expanded deck, reaches the other two.
     sync(i, from) {
       this.cur = i;
@@ -125,12 +178,20 @@ document.addEventListener('alpine:init', () => {
       if (from !== 'deck' && this.deck && this.deck.deck.active() !== i) this.deck.deck.go(i, 'instant');
       this.$nextTick(() => this.$refs.list.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' }));
     },
+    // THE DECK REPORTS SLIDE 0 ONCE AS IT MOUNTS, before it scrolls to its
+    // start, and taken as the reader's move that report pulled the strip back
+    // to the brief, which then pulled the deck back with it (measured
+    // 2026-11-01: every expand landed on the brief). So the deck is heard only
+    // once it has reached its start, or after a beat if it never reports it.
     expand() {
+      const start = this.cur;
+      let settled = start === 0;
+      setTimeout(() => { settled = true; }, 600);
       this.deck = swipeDeck.open({
-        count: this.count, start: this.cur, render: (k, el) => this.render(k, el),
-        title: this.B.title, subtitle: 'Idea board', icon: 'ph-squares-four',
+        count: this.count, start, render: (k, el) => this.render(k, el),
+        title: this.B.title, subtitle: 'Idea board', icon: 'ph-squares-four', actions: [this.faceSwitch()],
         index: k => ({ title: this.label(k), subtitle: this.at(k)?.kind || '' }),
-        onSlide: k => this.sync(k, 'deck'),
+        onSlide: k => { if (!settled) { if (k !== start) return; settled = true; } this.sync(k, 'deck'); },
         onClose: () => { this.deck = null; },
       });
     },
@@ -161,13 +222,20 @@ document.addEventListener('alpine:init', () => {
       if (i === 0) return this.renderBrief(el);
       if (i === this.last) return this.renderSelection(el);
       const d = this.at(i), role = this.role(d.n);
-      el.innerHTML = `<div class="grid gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] xl:items-start">
-        ${this.sketch(d, 'border border-base-300 rounded-box p-2')}
-        <div class="grid gap-4">
-          <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <span class="tabular-nums text-base-content/50">${d.n}</span>
+      const head = `<span class="tabular-nums text-base-content/50">${d.n}</span>
             <h2 class="text-xl font-semibold text-balance">${esc(d.title)}</h2>
-            <span class="text-sm text-base-content/60">${esc(d.kind)}</span>
+            <span class="text-sm text-base-content/60">${esc(d.kind)}</span>`;
+      el.innerHTML = `<div class="grid gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] xl:items-start">
+        <section data-face-part="proposal" class="grid gap-3 content-start max-xl:in-data-[face=commentary]:hidden">
+          <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">${head}</div>
+          ${this.sketch(d, 'border border-base-300 rounded-box p-2')}
+        </section>
+        <section data-face-part="commentary" class="grid gap-4 content-start max-xl:in-data-[face=proposal]:hidden">
+          <div class="grid grid-cols-[auto_minmax(0,1fr)] gap-3 items-center xl:hidden">
+            <button data-flip class="block rounded-box border border-base-300 overflow-hidden bg-white" aria-label="Show the proposal">
+              ${d.src ? `<img src="${d.src}" alt="" class="block h-24 w-auto max-w-28 object-contain">` : `<span class="grid place-items-center h-24 w-20 text-primary">${this.mark('proposal', 28)}</span>`}
+            </button>
+            <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">${head}</div>
           </div>
           <dl class="grid grid-cols-[6rem_minmax(0,1fr)] gap-x-4 gap-y-3">
             <dt class="text-sm text-base-content/60 pt-1">Reader meets</dt><dd class="text-pretty">${esc(d.encounter)}</dd>
@@ -178,8 +246,9 @@ document.addEventListener('alpine:init', () => {
             <button data-pick="${d.n}" class="btn btn-ghost btn-square text-xl" aria-label="Pick"></button>
             <textarea data-note class="textarea w-full text-base" rows="2" placeholder="Note"></textarea>
           </div>
-        </div>
+        </section>
       </div>`;
+      el.querySelector('[data-flip]').onclick = () => this.setFace('proposal');
       el.querySelector('[data-pick]').onclick = () => { this.toggle(d.n); this.paint(d.n); };
       this.paint(d.n);
       this.note(el, d.n);
@@ -188,7 +257,7 @@ document.addEventListener('alpine:init', () => {
     renderBrief(el) {
       const B = this.B;
       el.innerHTML = `<div class="grid gap-4">
-        <h2 class="text-xl font-semibold">Brief</h2>
+        <h2 class="text-xl font-semibold flex items-center gap-2"><span class="text-base-content/60">${this.mark('background', 22)}</span>Brief</h2>
         <dl class="grid grid-cols-[6rem_minmax(0,1fr)] gap-x-4 gap-y-3">
           <dt class="text-sm text-base-content/60 pt-1">Subject</dt><dd class="text-pretty">${esc(B.subject)}</dd>
           <dt class="text-sm text-base-content/60 pt-1">Result</dt><dd class="text-pretty">${esc(B.brief.result)}</dd>
@@ -204,7 +273,7 @@ document.addEventListener('alpine:init', () => {
       const ref = (n, extra = '') => `<button data-go="${n}" class="link link-hover font-semibold text-left">${n} · ${esc(this.idea(n).title)}</button>${extra}`;
       const thumb = n => `<button data-go="${n}" class="grid gap-1 text-left content-start">${this.sketch(this.idea(n), 'border border-base-300 rounded-box p-1 overflow-hidden max-h-48')}<span class="text-xs text-base-content/60">${n} · ${esc(this.idea(n).title)}</span></button>`;
       el.innerHTML = `<div class="grid gap-4">
-        <h2 class="text-xl font-semibold">Selection</h2>
+        <h2 class="text-xl font-semibold flex items-center gap-2"><span class="text-base-content/60">${this.mark('conclusion', 22)}</span>Selection</h2>
         <div class="grid grid-cols-3 gap-3">${[...S.pick, ...S.grafts.map(([n]) => n)].map(thumb).join('')}</div>
         <dl class="grid grid-cols-[6rem_minmax(0,1fr)] gap-x-4 gap-y-3">
           <dt class="text-sm text-base-content/60 pt-1">Base</dt><dd class="grid gap-1">${S.pick.map(n => ref(n)).join('')}</dd>
@@ -266,7 +335,7 @@ document.addEventListener('alpine:init', () => {
         <li role="option" :aria-selected="cur === 0 ? 'true' : 'false'" @click="sync(0, 'list')"
             class="cursor-pointer grid gap-x-3 items-center px-3 py-2 border-b border-base-200 hover:bg-base-200"
             :class="[cur === 0 && 'bg-base-200', thumbs ? 'grid-cols-[4rem_minmax(0,1fr)]' : 'grid-cols-[auto_minmax(0,1fr)]']">
-          <i class="ph ph-info text-2xl justify-self-center"></i>
+          <span class="justify-self-center text-base-content/70" x-html="mark('background', 26)"></span>
           <span class="grid min-w-0">
             <span class="font-semibold">Brief</span>
             <span class="text-xs text-base-content/60 truncate" x-text="B.brief.result"></span>
@@ -287,7 +356,7 @@ document.addEventListener('alpine:init', () => {
         <li role="option" :aria-selected="cur === last ? 'true' : 'false'" @click="sync(last, 'list')"
             class="cursor-pointer grid gap-x-3 items-center px-3 py-2 border-b border-base-200 hover:bg-base-200"
             :class="[cur === last && 'bg-base-200', thumbs ? 'grid-cols-[4rem_minmax(0,1fr)]' : 'grid-cols-[auto_minmax(0,1fr)]']">
-          <i class="ph ph-check-circle text-2xl justify-self-center"></i>
+          <span class="justify-self-center text-base-content/70" x-html="mark('conclusion', 26)"></span>
           <span class="grid min-w-0">
             <span class="font-semibold">Selection</span>
             <span class="text-xs text-base-content/60 truncate" x-text="B.selection.pick.concat(B.selection.grafts.map(([n]) => n)).join(' + ')"></span>
@@ -300,7 +369,8 @@ document.addEventListener('alpine:init', () => {
           <button class="btn btn-ghost btn-sm btn-square" @click="sync(Math.max(0, cur - 1), 'list')" aria-label="Previous"><i class="ph ph-caret-left text-lg"></i></button>
           <span class="tabular-nums text-sm text-base-content/60" x-text="cur === 0 ? 'Brief' : cur === last ? 'Selection' : cur + ' / ' + B.ideas.length"></span>
           <button class="btn btn-ghost btn-sm btn-square" @click="sync(Math.min(count - 1, cur + 1), 'list')" aria-label="Next"><i class="ph ph-caret-right text-lg"></i></button>
-          <button class="btn btn-ghost btn-sm btn-square ml-auto" @click="expand()" aria-label="Expand" data-title-tip="Expand"><i class="ph ph-arrows-out text-lg"></i></button>
+          <span class="ml-auto flex" x-init="$el.append(faceSwitch())"></span>
+          <button class="btn btn-ghost btn-sm btn-square" @click="expand()" aria-label="Expand" data-title-tip="Expand"><i class="ph ph-arrows-out text-lg"></i></button>
         </div>
         <div x-ref="track" class="min-h-0 min-w-0 h-full"></div>
       </section>
