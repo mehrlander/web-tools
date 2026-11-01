@@ -48,6 +48,7 @@ tracker/tasks/*.md                    edit=by-status
 docs/github/mcp-server-routing.md     edit=write-once
 docs/showing-consolidation.md         edit=write-once
 docs/prototypes/md-edit-ideas.json    edit=write-once
+docs/prototypes/program-icons-ideas.json edit=write-once
 
 # Rebuilt whole by a builder, never by hand: the commit hook's legs
 # (node/README.md, "The refresh model") and the page thumbnails.
