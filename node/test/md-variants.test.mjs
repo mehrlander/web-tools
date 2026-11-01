@@ -250,7 +250,10 @@ async function marksFixture(doc = DOC) {
 }
 const tick = () => new Promise((r) => setTimeout(r, 0));
 // jsdom has no scrolling; md-diff's swipe deck scrolls its track to the inline stop.
-window.HTMLElement.prototype.scrollTo ??= function () {};
+window.HTMLElement.prototype.scrollTo = function ({ left = 0 } = {}) {
+  Object.defineProperty(this, 'scrollLeft', { value: left, configurable: true, writable: true });
+  this.dispatchEvent(new window.Event('scroll'));
+};
 
 const BARE = DOC.replace(/^# .*\n\n/, '');
 const sectionTool = (box) => box.querySelector('[data-md-variant-section]');
@@ -324,6 +327,7 @@ test('the heading\'s sparkle opens every card in its section; a card\'s own mark
   assert.ok(paras.every((p) => p.hidden), 'in place of their paragraphs');
   assert.equal(cards[0].nextElementSibling, paras[0]);
   const card = cards[0];
+  await until(() => card.querySelector('.md-diff-change'));
   assert.match(card.textContent, /Chief of Staff \(Grok\)/, 'the proposed variant is the one shown');
   assert.ok(card.querySelector('[data-md-variants-proposal]'), 'marked as proposed here');
   assert.ok(card.querySelector('.md-diff-change'), 'drawn as md-diff\'s container, as the call form draws an edit');
@@ -335,11 +339,27 @@ test('the heading\'s sparkle opens every card in its section; a card\'s own mark
   const down = new window.KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true });
   window.document.body.dispatchEvent(down);
   assert.equal(down.defaultPrevented, false, 'ArrowDown still scrolls the document');
+  // TWO SWIPES, ONE AT A TIME: the readings swipe first; a tap on the badge
+  // hands the swipe to the variants, and a tap on the readings pill takes it back.
+  const outer = card.querySelector(':scope > .sd-track');
+  const inner = () => [...card.querySelectorAll('.md-diff-change .sd-track')];
+  assert.equal(card.dataset.mdVariantAxis, 'reading');
+  assert.equal(outer.style.overflowX, 'hidden', 'the variants hold still');
+  assert.ok(inner().every((t) => t.style.overflowX === ''), 'the readings swipe');
+  step().querySelector('span').click();
+  assert.equal(card.dataset.mdVariantAxis, 'variants');
+  assert.equal(outer.style.overflowX, '', 'the variants swipe');
+  assert.ok(inner().length && inner().every((t) => t.style.overflowX === 'hidden'), 'the readings hold still');
+  assert.ok(step().classList.contains('ring-1'), 'the active badge is ringed');
+  card.querySelector('.md-diff-stops button').click();
+  assert.equal(card.dataset.mdVariantAxis, 'reading', 'a tap on the readings pill takes the swipe back');
+  assert.ok(card.querySelector('.md-diff-stops').classList.contains('ring-1'));
   step().querySelector('[aria-label="Previous variant"]').click();
   await until(() => /Variant 1 of 2/.test(step()?.textContent || ''));
   assert.match(step().textContent, /Variant 1 of 2/);
   assert.match(card.textContent, /Ollama mistral:7b/, 'the arrow moves to the other variant');
   assert.equal(step().querySelector('[aria-label="Previous variant"]').disabled, true);
+  assert.equal(card.dataset.mdVariantAxis, 'variants', 'an arrow hands the swipe to the variants too');
   card.querySelector('.md-variant-mark').click();
   assert.equal(box.querySelectorAll('[data-md-variant-card]').length, 1, 'its own mark closes that card alone');
   assert.equal(paras[0].hidden, false);
