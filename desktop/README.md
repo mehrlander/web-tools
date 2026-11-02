@@ -99,7 +99,8 @@ handoff follows the device's link settings.
 The phone opens on one Now feed: current work, waiting errands and all recent items
 in the current snapshot, with assistant filters, inline details and short observed
 history. The assistant headers keep compact usage bars visible above the feed;
-the full Usage view remains available on desktop. The phone view is read-only. The laptop must
+the full Usage view remains available on desktop. Now and Computer are read-only;
+Devices offers Stereo Bridge's media controls. The laptop must
 be awake and online; waking the laptop through Windows App can restore access.
 The last received snapshot remains in that browser's local storage, labeled with
 its observation time when contact is lost. After a successful online visit, a
@@ -137,7 +138,8 @@ open the existing hosted app, with that browser's own Web Tools authentication.
 `WebTools.Companion` listens only at `127.0.0.1:47831`. Tailscale Serve proxies that
 listener and supplies the owner's identity header. The companion accepts the owner
 identity or a per-user local bearer, validates the Host and Origin, disables HTTP
-caching, and offers no CORS access or write routes. Other Tailscale identities are
+caching, and offers no CORS access. Only the six Stereo Bridge actions accept POST,
+with a deliberate-action header and a same-origin browser request. Other Tailscale identities are
 denied. The desktop-only route requires the local bearer even through Serve.
 Access settings, including the bearer, live in `companion-access.json` beside
 desktop settings; those settings never enter API responses or tracked files.
@@ -149,11 +151,14 @@ desktop settings; those settings never enter API responses or tracked files.
   the phone's link to its full saved result in Web Tools.
 - `GET /api/v1/computer`: current Windows session state, machine measurements and
   grouped desktop application windows, with a separate window-observation time.
+- `GET /api/v1/devices`: Stereo Bridge's current media and playback capabilities.
+- `POST /api/v1/devices/stereo/<action>`: previous, play-pause, next, volume-down,
+  mute or volume-up. Controls require the same owner access as observations.
 - `GET /api/v1/desktop`: full desktop snapshot for the authenticated local app.
 
 ### Computer view
 
-The phone's title menu switches between Now and Computer, retaining each view's
+The phone's title menu switches between Now, Computer and Devices, retaining each view's
 reading position. Computer shows application icons, names and window counts;
 tapping an app reveals its window titles and minimized state. The companion
 enumerates top-level desktop windows in its own Windows session every five
@@ -184,6 +189,12 @@ desktop, firewall, login or wake settings.
 When changing the offline interface's asset contract, increment the cache version
 in `phone/sw.js`. Successful installation replaces only this app's older shell
 caches, without reloading an open page or caching private API bodies.
+
+### Devices view
+
+Stereo Bridge must already be running on the laptop. While Devices is visible, the phone polls the companion every two seconds. The companion reads Stereo Bridge's fixed loopback API on port 45831, showing the current track, player, timeline and available playback controls. Volume and mute affect Windows' selected audio output; no numeric volume or output-device reading is available. Tailscale carries the control requests. Phone audio still needs the existing Bluetooth connection.
+
+The adapter disables redirects, bounds responses and omits native errors. Unavailable or stale observations disable controls. Actions run once, without retries, offline replay or a command queue; an unconfirmed response stays labeled. The interface distinguishes a reachable Bridge with no media from an unavailable Bridge. Roku discovery and control are not included in this version.
 
 ### Account usage
 
