@@ -80,6 +80,12 @@ and a hidden repo keeps `estate: true` and every field it declared. Its effect
 is in its [manifest-fields.csv](manifest-fields.csv) row (opening a hidden repo
 by address still works).
 
+**Satellites are shown without joining the estate.** A repo off the estate whose
+name is a member's, or a member project's folder's, followed by `-` belongs to
+that member, and the member's `satellites` field lists those whose names cannot
+say so. The app shows each under its parent without adding it to the membership
+list; the field's [manifest-fields.csv](manifest-fields.csv) row says where.
+
 **`landing` and `pages` are not mutually exclusive.** A repo setting both gets
 the custom page as its front door and the catalog as a standalone Pages view;
 setting only `pages` gets the gallery as the landing. Neither arrangement hides
