@@ -60,7 +60,7 @@
         const lines = (await g.get(S.at.answers, window.GH.FRESH)).text.split('\n').filter(l => l.trim());
         const last = lines.length ? JSON.parse(lines[lines.length - 1]) : null;
         if (last) { S.sent = last; S.picks = (last.picks || []).map(x => ({ id: x.id, href: x.href, img: '' })); S.note = last.note || ''; }
-      } catch (e) { if (e?.status !== 404) S.err = 'Could not read the answers: ' + (e?.message || e); }
+      } catch (e) { if (e?.status && e.status !== 404) S.err = 'Could not read the answers: ' + (e?.message || e); }
     } catch (e) { S.err = 'Could not read the call: ' + (e?.message || e) + (window.TOKEN ? '' : '. It needs your GitHub token.'); }
   }
   const CUT = { off: 0, tight: 0.12, medium: 0.22, loose: 0.32 };
