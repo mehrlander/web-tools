@@ -117,21 +117,6 @@
     },
 
     async init() {
-      // "OPEN THE LATEST TO EDIT" from a pinned document (kits/md-edit.js asks
-      // through web-tools:go-ref). The drawer answers when the document is its
-      // own subject, as in a framed toss; where it is describing this page
-      // instead (opened directly, or a top-level toss), this page answers by
-      // reading the same file at the branch and showing it there.
-      window.addEventListener('web-tools:go-ref', (e) => {
-        const d = e.detail, it = this.item;
-        if (!d || d.handled || !d.ref || !it || !it.spec || it.spec.path !== d.path
-            || (d.repo && it.spec.repo !== d.repo)) return;
-        d.handled = true;
-        it.spec = { repo: it.spec.repo, ref: d.ref, path: it.spec.path };
-        it.src = it.spec.repo + '@' + d.ref + ':' + it.spec.path;
-        it.content = null;
-        this.open(this.sel, false);
-      });
       try {
         // Fragment first, query as fallback, per key (lib/kits/url-params.js): the
         // payload wants '#' for size and privacy, while ?src= is how a routed

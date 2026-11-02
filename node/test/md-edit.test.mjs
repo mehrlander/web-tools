@@ -291,34 +291,3 @@ test('no token still shows the pencil: the editor asks for one', () => {
   assert.deepEqual(actsFor({ addr: ADDR, edit: { full: FULL } }), ['edit', 'copy']);
   window.ghAuth = { resolve: () => 'tok' };
 });
-
-// A COMMIT ON SCREEN EDITS ITS BRANCH (owner, 2026-11-02): standing() reads
-// where the pin sits on the branch its link named, and goRef() asks the
-// drawer to render the latest instead.
-test('standing reads a pin against its branch: commits since, or a branch that no longer holds it', async () => {
-  const asked = [];
-  const prior = window.GH;
-  let answer = { ahead_by: 0, behind_by: 0 };
-  window.GH = class { constructor(o) { this.o = o; } async req(p) { asked.push(p); if (answer instanceof Error) throw answer; return answer; } };
-  try {
-    const addr = { repo: 'me/r', ref: '4ca7634b385c', branch: 'claude/x-y' };
-    assert.deepEqual({ ...(await mdEdit.standing(addr)) }, { newer: 0, gone: false });
-    assert.deepEqual(asked, ['compare/4ca7634b385c...claude/x-y'], 'the branch keeps its slash');
-    answer = { ahead_by: 3, behind_by: 0 };
-    assert.equal((await mdEdit.standing(addr)).newer, 3);
-    answer = { ahead_by: 2, behind_by: 1 };
-    assert.equal((await mdEdit.standing(addr)).gone, true, 'force-pushed past the pin');
-    answer = new Error('404');
-    assert.equal(await mdEdit.standing(addr), null, 'an unreadable compare says so, and claims nothing');
-  } finally { window.GH = prior; }
-});
-
-test('goRef asks the drawer to render a ref, and says when nobody heard', () => {
-  assert.equal(mdEdit.goRef('main'), false, 'no drawer listening');
-  const heard = [];
-  const on = (e) => { heard.push(e.detail.ref); e.detail.handled = true; };
-  window.addEventListener('web-tools:go-ref', on);
-  try { assert.equal(mdEdit.goRef('claude/x'), true); }
-  finally { window.removeEventListener('web-tools:go-ref', on); }
-  assert.deepEqual(heard, ['claude/x']);
-});

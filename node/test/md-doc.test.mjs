@@ -693,6 +693,12 @@ test('a pinned commit with its branch keeps a dimmed pencil; without one, none',
   assert.ok(pen.hasAttribute('data-md-pinned'));
   assert.match(pen.className, /\bopacity-40\b/, 'dimmed');
   assert.match(pen.getAttribute('aria-label'), /Editing is available from live branch renders only/);
+  assert.equal(pen.getAttribute('aria-disabled'), 'true', 'disabled, and says so');
+  const opened = [];
+  const prior = window.mdEdit;
+  window.mdEdit = { open: (x) => { opened.push(x); return null; } };
+  try { pen.click(); } finally { window.mdEdit = prior; }
+  assert.deepEqual(opened, [], 'a click opens nothing');
 
   const bare = window.document.createElement('div');
   mdDoc.render(bare, DOC, { addr: { ...ADDR, ref: '4ca7634b385c' }, edit: { full: DOC } });
