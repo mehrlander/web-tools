@@ -1,9 +1,9 @@
 // docs/venues.csv: one row per place work runs, rendered as the Map view Set
-// tab's machine boxes. Three things spell a venue by its key: writers.csv's
-// `machine`, run-methods.csv's `venues`, and errands.js's VENUES, which an
-// errand's run.venue must be one of. What breaks without this: each grows its
-// own spelling of the same place, as the three did before the registry, and a
-// label or gloss is written twice.
+// tab's machine boxes. writers.csv's `machine` and run-methods.csv's `venues`
+// declare that they reference it, and properties-registry.test.mjs holds every
+// declared reference. What is left here is what a declaration cannot reach:
+// errands.js's VENUES literal, the Set tab's reading of the registry, and the
+// document that shares its subject.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -27,14 +27,8 @@ test('every venue has one row, a label and a Phosphor icon', () => {
   }
 });
 
-test('every writer runs on a venue', () => {
-  for (const r of Csv.rows(read('docs/writers.csv')))
-    assert.ok(keys.has(r.machine), `${r.writer}: machine ${r.machine} is not a docs/venues.csv key`);
-});
-
-test('every venue a run method allows is a venue, and VENUES is exactly those', () => {
+test('VENUES is exactly the venues run-methods.csv allows', () => {
   const used = new Set(Csv.rows(read('docs/run-methods.csv')).flatMap(m => Csv.list(m.venues)));
-  for (const v of used) assert.ok(keys.has(v), `run-methods.csv names ${v}, which is not a docs/venues.csv key`);
   assert.deepEqual([...Errands.VENUES].sort(), [...used].sort(),
     'errands.js VENUES differs from the venues run-methods.csv allows');
 });
