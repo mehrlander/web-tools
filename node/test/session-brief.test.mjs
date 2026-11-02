@@ -243,24 +243,19 @@ test('the Look row groups its chips by branch, from a lent list', () => {
     'one group per repo and branch, in arrival order, the same branch name in two repos kept apart');
 });
 
-test('a standalone page draws the Look row from its own branch views', () => {
-  // Nothing is lent outside the app, so the row draws the html views loadWork
-  // already read for the Views tab: each keeps its render target as `look`. A
-  // Markdown view has none and draws no chip, and one address draws once.
+test('a standalone page draws no Look row: its views are the Views tab', () => {
+  // Nothing is lent outside the app, and the page's own branch reads fill the
+  // Views tab, whose contents list groups the same pages by branch. A row of
+  // chips above the tabs would list them twice (owner, 2026-11-02).
   window.__probe = { id: 'y', repo: STORE, facts: { id: 'y', day: '2026-08-05' }, record: null };
   const el = window.document.createElement('div');
   el.setAttribute('x-data', 'sessionBrief(window.__probe)');
   window.document.body.append(el);
   Alpine.initTree(el);
   const d = Alpine.$data(el);
-  assert.equal(d.pageChips.length, 0, 'no views, no lent list: no row');
-  const look = { kind: 'render', repo: 'me/web-tools', ref: 'claude/b', path: 'pages/p.html', label: 'p.html',
-                 addr: 'me/web-tools@claude/b:pages/p.html', url: 'u:p', title: 'Render pages/p.html at claude/b' };
-  d.work.views = [{ kind: 'html', path: 'pages/p.html', look }, { kind: 'md', path: 'docs/a.md', look: null },
-                  { kind: 'html', path: 'pages/p.html', look }];
-  const plain = (x) => JSON.parse(JSON.stringify(x));
-  assert.deepEqual(plain(d.pageChips.map(c => c.url)), ['u:p']);
-  assert.deepEqual(plain(d.pageGroups.map(x => [x.key, x.chips.length])), [['me/web-tools@claude/b', 1]]);
+  d.work.views = [{ kind: 'html', path: 'pages/p.html', slug: 'me/web-tools', branch: 'claude/b', url: 'u:p' }];
+  assert.equal(d.pageChips.length, 0);
+  assert.equal(d.pageGroups.length, 0);
 });
 
 test('an unreadable record costs the outline and nothing else', () => {
