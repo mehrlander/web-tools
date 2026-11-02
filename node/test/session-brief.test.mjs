@@ -222,6 +222,47 @@ test('a zero failure count is stated in the tools panel, not on the strip', () =
   assert.ok(!('agents' in s), 'and so is a fan-out nobody ran');
 });
 
+test('the Look row groups its chips by branch, from a lent list', () => {
+  // Each chip is a kits/guide-render.js target and names its repo and ref, so
+  // a session whose work spans two branches draws two groups, each led by its
+  // branch, as each branch tile under a Sessions card carries its own chips.
+  const chip = (repo, ref, path) => ({ kind: 'render', repo, ref, path, label: path.split('/').pop(),
+                                       addr: repo + '@' + ref + ':' + path, url: 'u:' + repo + '@' + ref + ':' + path,
+                                       title: 'Render ' + path + ' at ' + ref });
+  const pages = [chip('me/web-tools', 'claude/a', 'pages/one.html'), chip('me/home', 'claude/a', 'app/index.html'),
+                 chip('me/web-tools', 'claude/a', 'pages/two.html')];
+  window.__probe = { id: 'x', repo: STORE, facts: { id: 'x', day: '2026-08-05' }, pages, record: null };
+  const el = window.document.createElement('div');
+  el.setAttribute('x-data', 'sessionBrief(window.__probe)');
+  window.document.body.append(el);
+  Alpine.initTree(el);
+  const g = Alpine.$data(el).pageGroups;
+  // Through JSON, since the getter's arrays belong to the jsdom realm.
+  assert.deepEqual(JSON.parse(JSON.stringify(g.map(x => [x.key, x.repoShort, x.chips.map(c => c.label)]))),
+    [['me/web-tools@claude/a', 'web-tools', ['one.html', 'two.html']], ['me/home@claude/a', 'home', ['index.html']]],
+    'one group per repo and branch, in arrival order, the same branch name in two repos kept apart');
+});
+
+test('a standalone page draws the Look row from its own branch views', () => {
+  // Nothing is lent outside the app, so the row draws the html views loadWork
+  // already read for the Views tab: each keeps its render target as `look`. A
+  // Markdown view has none and draws no chip, and one address draws once.
+  window.__probe = { id: 'y', repo: STORE, facts: { id: 'y', day: '2026-08-05' }, record: null };
+  const el = window.document.createElement('div');
+  el.setAttribute('x-data', 'sessionBrief(window.__probe)');
+  window.document.body.append(el);
+  Alpine.initTree(el);
+  const d = Alpine.$data(el);
+  assert.equal(d.pageChips.length, 0, 'no views, no lent list: no row');
+  const look = { kind: 'render', repo: 'me/web-tools', ref: 'claude/b', path: 'pages/p.html', label: 'p.html',
+                 addr: 'me/web-tools@claude/b:pages/p.html', url: 'u:p', title: 'Render pages/p.html at claude/b' };
+  d.work.views = [{ kind: 'html', path: 'pages/p.html', look }, { kind: 'md', path: 'docs/a.md', look: null },
+                  { kind: 'html', path: 'pages/p.html', look }];
+  const plain = (x) => JSON.parse(JSON.stringify(x));
+  assert.deepEqual(plain(d.pageChips.map(c => c.url)), ['u:p']);
+  assert.deepEqual(plain(d.pageGroups.map(x => [x.key, x.chips.length])), [['me/web-tools@claude/b', 1]]);
+});
+
 test('an unreadable record costs the outline and nothing else', () => {
   // The store is private, so a reader whose token cannot reach it still gets
   // everything the cache knew. What it loses is the record, and therefore the
