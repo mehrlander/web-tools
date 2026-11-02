@@ -73,12 +73,15 @@ document.addEventListener('alpine:init', () => {
     return window.ghAuth?.resolve() || '';
   };
   const param = k => new URLSearchParams(location.hash.slice(1)).get(k) || new URLSearchParams(location.search).get(k);
-  // A note box: a plain textarea, with a microphone to its left where the
-  // browser has a speech recognizer, under `lead` (an idea card's star). The
+  // A note box: a plain textarea, with a microphone to its left, under
+  // `lead` (an idea card's star). The microphone always shows, crossed out
+  // where the browser has no speech recognizer, so its absence is never
+  // mistaken for a page that has not updated. The
   // left keeps it clear of the page's FAB, which sits in the bottom-right
   // corner on a phone. note() wires both.
+  const NO_SR = 'This browser has no speech recognizer. On a phone, the keyboard\'s microphone dictates into the box.';
   const noteBox = (ph, lead = '') => `<div class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-2 items-start">
-      <div class="flex flex-col">${lead}<button type="button" data-mic class="hidden btn btn-ghost btn-square text-xl"></button></div>
+      <div class="flex flex-col">${lead}<button type="button" data-mic class="btn btn-ghost btn-square text-xl"></button></div>
       <textarea data-note class="textarea w-full text-base" rows="3" placeholder="${ph}"></textarea>
       <p data-heard class="hidden col-start-2 mt-1 text-sm text-base-content/60 italic text-pretty" aria-live="polite"></p>
     </div>`;
@@ -232,7 +235,6 @@ document.addEventListener('alpine:init', () => {
       box.oninput = () => this.setNote(k, box.value, box);
       mic.dataset.mic = k;
       el.querySelector('[data-heard]').dataset.heard = k;
-      mic.classList.toggle('hidden', !window.Dictate?.available());
       mic.onclick = () => this.dictate(k);
       this.paintMic(k);
     },
@@ -253,6 +255,7 @@ document.addEventListener('alpine:init', () => {
     // for one.
     dict: null,
     dictate(k) {
+      if (!window.Dictate?.available()) return this.paintMic(k, '', NO_SR);
       const was = this.dict;
       if (was) { this.setNote(was.k, was.base + was.h.flush()); was.h.stop(); this.dict = null; this.paintMic(was.k); }
       if (was?.k === k) return;
@@ -261,7 +264,7 @@ document.addEventListener('alpine:init', () => {
         onText: t => { this.setNote(k, base + t); if (/[.!?]$/.test(t)) h.armCapital(true); },
         onInterim: t => this.paintMic(k, t),
         onState: () => { if (!h.listening && this.dict?.h === h) this.dict = null; this.paintMic(k); },
-        onError: m => this.paintMic(k, '', m),
+        onError: m => this.paintMic(k, '', 'Dictation stopped: ' + m),
       });
       this.dict = { k, h, base };
       if (!base.trim() || /[.!?]\s*$/.test(base)) h.armCapital(true);
@@ -269,16 +272,16 @@ document.addEventListener('alpine:init', () => {
       this.paintMic(k);
     },
     paintMic(k, heard = '', err = '') {
-      const on = this.dict?.k === k;
+      const on = this.dict?.k === k, can = !!window.Dictate?.available();
       document.querySelectorAll(`[data-mic="${k}"]`).forEach(b => {
-        b.innerHTML = `<i class="ph ${on ? 'ph-fill ph-microphone text-error animate-pulse' : 'ph-microphone'}"></i>`;
+        b.innerHTML = `<i class="ph ${on ? 'ph-fill ph-microphone text-error animate-pulse' : can ? 'ph-microphone' : 'ph-microphone-slash text-base-content/40'}"></i>`;
         b.setAttribute('aria-pressed', on);
-        b.setAttribute('aria-label', on ? 'Stop dictating' : 'Dictate');
-        b.dataset.titleTip = on ? 'Stop dictating' : 'Dictate into this note';
+        b.setAttribute('aria-label', on ? 'Stop dictating' : can ? 'Dictate' : NO_SR);
+        b.dataset.titleTip = on ? 'Stop dictating' : can ? 'Dictate into this note' : NO_SR;
       });
       document.querySelectorAll(`[data-note="${k}"]`).forEach(b => { b.readOnly = on; });
       document.querySelectorAll(`[data-heard="${k}"]`).forEach(p => {
-        p.textContent = err ? 'Dictation stopped: ' + err : heard || (on ? 'Listening…' : '');
+        p.textContent = err || heard || (on ? 'Listening…' : '');
         p.classList.toggle('hidden', !p.textContent);
         p.classList.toggle('text-error', !!err);
       });
