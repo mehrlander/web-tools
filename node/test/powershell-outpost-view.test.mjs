@@ -540,7 +540,12 @@ test('the Code tab shows the selected file read-only, keeps one editor across ta
   assert.ok(!hidden(plain()));
   assert.ok(hidden(el.querySelector('[data-source-editor]')));
   assert.equal(data.shownTab, 'code', 'nothing to compare from, so the file opens on its code');
-  assert.deepEqual([...el.querySelectorAll('[data-detail-tabs] [role=tab]')].map(b => b.dataset.tab), ['changes', 'code']);
+  assert.deepEqual([...el.querySelectorAll('[data-detail-tabs] [role=tab]')].map(b => b.dataset.tab), ['changes', 'code', 'problems', 'outline'],
+    'the file component\'s panes are tabs of the one row');
+  assert.equal(el.querySelector('[data-source-views]').parentElement.style.display, 'none', 'no second tab row inside the file');
+  data.setDetailTab('outline'); await settle();
+  assert.equal(data.shownTab, 'outline'); assert.ok(!hidden(pane()), 'Outline shows in the file pane');
+  data.setDetailTab('code'); await settle();
   assert.equal(el.querySelector('[data-unit-base]').textContent, data.baselineNote || 'No update for this file.', 'with nothing to compare from, Changes says why');
   // Another tab hides the pane by class, so the one editor view survives.
   data.setDetailTab('changes'); await settle();
