@@ -628,7 +628,7 @@ test('Changes shows what the work computer is known to hold against GitHub now, 
   assert.equal(data.stateOf(xaml).state, 'changed');
   assert.equal(data.shownTab, 'changes', 'the update is the default view');
   assert.equal(data.changesMode, 'file', 'XAML has no blocks, so Changes is the whole file');
-  assert.ok(!shown(el.querySelector('[data-changes-mode]')), 'no Blocks switch without blocks');
+  assert.equal(el.querySelector('[data-changes-mode]'), null, 'no switch: a file the parser cannot split shows its whole-file diff');
   assert.ok(shown(diff()));
   assert.ok(!shown(el.querySelector('[data-source-plain]')));
   assert.match(data.baseline.label, /^reported installed at [0-9a-f]{7}$/);
@@ -643,7 +643,6 @@ test('Changes shows what the work computer is known to hold against GitHub now, 
   assert.equal(data.copyNote.title, 'This copy differs from GitHub.');
   assert.deepEqual(JSON.parse(JSON.stringify(data.copyNote.notes)), ['No named control or resource key changed; the difference is in layout or values.']);
   assert.equal(data.shownTab, 'changes', 'a copy opens on what it holds, in Changes');
-  [...el.querySelectorAll('[data-copy-summary] button')].find(b => b.textContent === 'Show line changes').click(); await settle();
   assert.equal(data.shownTab, 'changes'); assert.equal(data.changesMode, 'file'); assert.ok(shown(diff()));
   assert.equal(data.baseline.label, 'Pasted copy');
   assert.deepEqual([...data.diffRows.filter(r => r.type !== 'eq').map(r => r.type + ' ' + r.text)], ['add   <Grid/>']);
@@ -1118,13 +1117,14 @@ test('a pending update opens on Changes, a card per block; a pasted copy reads a
     assert.equal(q('[data-change-strip] [data-unit]').length, 2);
     assert.equal(q('details').length, 0, 'no expanders: every diff is open');
     assert.ok(q('[data-unit] input').every(i => i.disabled), 'choosing waits for the work copy');
-    assert.notEqual(el.querySelector('[data-unit-needs-copy]').style.display, 'none');
+    assert.match(el.querySelector('[data-copy-zone]').textContent, /copy of Forms\.psm1 from the work computer to compare it and choose changes/);
+    assert.match(q('[data-change-strip] [data-unit]')[0].textContent, /1 · A/, 'each card is numbered and named by its procedure');
     assert.match(el.querySelector('[data-unit-base]').textContent, /^Work set \(ccccccc\) → update \(/);
     // The earlier version with one local edit, pasted: read block by block.
     await data.takeCopy(data.target(), 'function A { 1 }\nfunction B { 1 }\nfunction C { 9 }\n', 'clip', 'paste'); await settle();
     for (let i = 0; i < 20 && data.unitBusy; i++) await tick(2);
     assert.equal(data.shownTab, 'changes');
-    assert.equal(data.copyNote.title, 'This copy has 0 of GitHub\'s 2 changes, and 1 block of its own.');
+    assert.equal(data.copyNote.title, 'This copy has 0 of GitHub\'s 2 changes, and 1 change of its own.');
     assert.deepEqual([...data.copyNote.rows.map(r => r.name + ': ' + r.label)],
       ['A: Earlier version; GitHub changed it', 'D: GitHub adds it', 'C: Edited in this copy', 'B: Same as GitHub']);
     assert.match(data.copyNote.against, /^Earlier: Work set \(ccccccc/);
@@ -1141,7 +1141,7 @@ test('a pending update opens on Changes, a card per block; a pasted copy reads a
     const check = data.latestCheck(FORMS).id;
     await data.takeCopy(data.target(), 'function A { 1 }\n', 'clip', 'paste'); await settle();
     assert.equal(data.copyNote.fragment, true);
-    assert.equal(data.copyNote.title, 'This copy holds 1 of the 4 blocks in Forms.psm1. Only those are compared.');
+    assert.equal(data.copyNote.title, 'This copy holds 1 of the 4 parts of Forms.psm1. Only those are compared.');
     assert.equal(data.latestCheck(FORMS).id, check, 'the earlier full copy is still the base');
     assert.ok(!q('[data-copy-summary] button').some(b => /Record the/.test(b.textContent) && b.style.display !== 'none'));
     // Paste-and-match: pasted code goes to the file it most resembles.

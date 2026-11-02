@@ -211,8 +211,7 @@ try {
     await desk.page.locator('[data-copy-summary]').waitFor({ state: 'visible' });
     assert.match(await desk.page.locator('[data-copy-summary]').innerText(), /differs from GitHub[\s\S]*Get-Message\s+Differs from GitHub/);
     if (process.env.SHOTS) await desk.page.screenshot({ path: path.join(process.env.SHOTS, 'copy-summary-desktop.png'), fullPage: true });
-    await desk.page.locator('[data-copy-summary] button', { hasText: 'Show line changes' }).click();
-    await desk.page.locator('[data-source-diff]').waitFor({ state: 'visible' });
+    await desk.page.locator('[data-change-strip] [data-unit]').first().waitFor({ state: 'visible' });
     assert.equal(await desk.page.evaluate(() => window.__shell.compared.length), 0);
     assert.equal(await desk.page.evaluate(() => Alpine.$data(document.querySelector('#mount')).checks[0].content), 'function Get-Message {}\n');
     await desk.page.locator('[data-detail-tabs] [data-tab=code]').click();
@@ -220,24 +219,18 @@ try {
     await desk.page.waitForFunction(() => !document.querySelector('[data-source-file]').classList.contains('ring-2'));
     assert.equal(await desk.page.evaluate(() => document.querySelector('[data-source-file]').classList.contains('border-base-300')), true, 'the box settles to its quiet border');
   });
-  await check('a file changed since it was recorded opens on Changes, a card per change, the whole file one switch away, and File one tap away', async () => {
+  await check('a file changed since it was recorded opens on Changes, a numbered card per change with no switch, and File one tap away', async () => {
     await desk.select(C); await desk.settled();
     await desk.page.waitForFunction(() => Alpine.$data(document.querySelector('#mount')).shownTab === 'changes');
     const card = desk.page.locator('[data-change-strip] [data-unit]').first();
     await card.waitFor({ state: 'visible' });
-    assert.match(await card.innerText(), /Get-Count[\s\S]*Changed · Function · line 1 · \+1 −1/);
+    assert.match(await card.innerText(), /1 · Get-Count[\s\S]*Changed · Function · line 1 · \+1 −1/);
     const lines = await card.locator('[data-unit-diff] [data-changed]').allInnerTexts();
     assert.deepEqual(lines.map(t => t.replace(/\s+/g, ' ').trim()), ['− $Step = 1', '+ param([int]$Step = 2)']);
     assert.equal(await desk.page.locator('[data-source] .cm-editor').isVisible(), false);
     if (process.env.SHOTS) await desk.page.screenshot({ path: path.join(process.env.SHOTS, 'source-pane-blocks.png'), fullPage: true });
-    // Whole file shows the same comparison as one line diff.
-    await desk.page.locator('[data-changes-mode] button', { hasText: 'Whole file' }).click();
-    await desk.page.locator('[data-source-diff]').waitFor({ state: 'visible' });
-    const rows = await desk.page.locator('[data-source-diff] [role=row]').evaluateAll(rs => rs
-      .map(r => r.querySelector('[aria-label]').getAttribute('aria-label') + ' ' + r.querySelector('pre').textContent)
-      .filter(t => !t.startsWith('Unchanged')));
-    assert.deepEqual(rows, ['Removed     $Step = 1', 'Added     param([int]$Step = 2)']);
-    assert.match(await desk.page.locator('[data-source-diff]').innerText(), /reported installed at ccccccc/);
+    assert.equal(await desk.page.locator('[data-changes-mode]').count(), 0, 'no Blocks and Whole file switch');
+    assert.equal(await desk.page.locator('[data-source-diff]').isVisible(), false, 'a file the parser splits shows cards, not the whole-file diff');
     for (const label of ['Files', 'Stage', 'Open code workspace', 'Mark as installed']) assert.equal(await desk.page.getByRole('button', { name: label, exact: true }).count(), 0, label + ' is gone');
     assert.equal(await desk.page.locator('[data-row]', { hasText: 'C.psm1' }).locator('[data-status]').getAttribute('data-title-tip'), 'Shipped');
     if (process.env.SHOTS) await desk.page.screenshot({ path: path.join(process.env.SHOTS, 'source-pane-changes.png'), fullPage: true });
