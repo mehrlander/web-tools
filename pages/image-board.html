@@ -4,12 +4,20 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Image board</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🖼️</text></svg>">
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
 <script type="module">
-  // An image board, built 2026-11-01 for ideation: a list of searches becomes a
-  // grid of found images, one section per search, and a tap picks one. The
-  // board is its address, so making one costs a link:
+  // The image board, the form for a choice among found images (docs/forms): a
+  // list of searches becomes a grid of found images, one section per search,
+  // and a tap picks one. Opened on a pick call, it answers like any call:
+  //   #call=owner/repo[@ref]:user-calls/<session>-<slug>.json
+  // reads the call (user-call/1, kind pick; web-tools-private
+  // user-calls/user-call.py), frames its question and brief, searches its
+  // board, and sends the picks to <id>.answers.jsonl beside it through
+  // UserCallForm.postAnswer, so a session reads them with `user-call.py
+  // answers`. Opened without a call, the board is its address and picks leave
+  // as text, one line each, to paste into a session:
   //   #q=gem,crystal,pickaxe   the searches, comma-separated
   //   &src=icons|commons       Iconify's open-licensed icon sets (default), or
   //                            Wikimedia Commons drawings and photos
@@ -21,10 +29,20 @@
   //                            one tile with a +N badge, and each search's
   //                            heading changes its own
   // Both sources answer a browser directly (CORS), so nothing is fetched ahead
-  // of time. Picks persist in this browser per board and leave as text, one
-  // line per pick, to paste into a session. The footer keeps clear of the
-  // bottom-right corner, where a host page's FAB sits.
-  const P = new URLSearchParams(location.hash.slice(1));
+  // of time. Picks persist in this browser per board. The footer keeps clear
+  // of the bottom-right corner, where the FAB sits.
+  const ref = new URLSearchParams(location.search).get('use');
+  if (ref) {
+    const src = await fetch(`https://raw.githubusercontent.com/mehrlander/web-tools/${ref}/dist/web-tools.js`, { cache: 'no-store' });
+    if (!src.ok) throw new Error(`?use=${ref}: could not fetch the bundle (HTTP ${src.status})`);
+    const url = URL.createObjectURL(new Blob([await src.text()], { type: 'text/javascript' }));
+    try { await import(url); } finally { URL.revokeObjectURL(url); }
+  } else {
+    await import('../dist/web-tools.js');
+  }
+  await gh.load('kits/repo-address.js');
+  await gh.load('alpineComponents/user-call-form.js');
+  const P = new URLSearchParams(location.hash.slice(1) || location.search.slice(1));
   const S = {
     title: P.get('title') || 'Image board',
     src: P.get('src') === 'commons' ? 'commons' : 'icons',
@@ -33,15 +51,40 @@
     sets: (P.get('sets') || '').split(',').map(s => s.trim()).filter(Boolean),
     group: ['off', 'tight', 'medium', 'loose'].includes(P.get('group')) ? P.get('group') : 'medium',
     results: {}, shapes: {}, open: {}, level: {}, picks: [], copied: '',
+    call: null, at: null, err: '', sent: null, sending: false, note: '',
   };
+
+  // A pick call sets the board and receives the answer. The latest answer
+  // already sent comes back as the starting picks.
+  const callAt = P.get('call') ? window.RepoAddress?.parse(P.get('call')) : null;
+  if (P.get('call') && !callAt) S.err = 'Not a call address: ' + P.get('call');
+  if (callAt) {
+    try {
+      const g = new window.GH({ token: window.TOKEN, repo: callAt.repo, ref: callAt.ref });
+      S.call = JSON.parse((await g.get(callAt.path, window.GH.FRESH)).text);
+      S.at = { ...callAt, answers: callAt.path.replace(/\.json$/, '.answers.jsonl') };
+      const b = S.call.board || {};
+      S.title = S.call.question || S.title;
+      S.src = b.src === 'commons' ? 'commons' : 'icons';
+      S.color = String(b.color || '').replace(/[^0-9a-f]/gi, '');
+      S.queries = (b.q || []).map(x => String(x).trim()).filter(Boolean);
+      S.sets = b.sets || [];
+      S.group = ['off', 'tight', 'medium', 'loose'].includes(b.group) ? b.group : 'medium';
+      try {
+        const lines = (await g.get(S.at.answers, window.GH.FRESH)).text.split('\n').filter(l => l.trim());
+        const last = lines.length ? JSON.parse(lines[lines.length - 1]) : null;
+        if (last) { S.sent = last; S.picks = (last.picks || []).map(x => ({ id: x.id, href: x.href, img: '' })); S.note = last.note || ''; }
+      } catch (e) { if (e?.status !== 404) S.err = 'Could not read the answers: ' + (e?.message || e); }
+    } catch (e) { S.err = 'Could not read the call: ' + (e?.message || e) + (window.TOKEN ? '' : '. It needs your GitHub token.'); }
+  }
   const CUT = { off: 0, tight: 0.12, medium: 0.22, loose: 0.32 };
   // Fewer dots, broader groups: nine for every icon, one for the loosest fold.
   const LEVELS = [['off', 'ph-dots-nine', 'all'], ['tight', 'ph-dots-six', 'tight'], ['medium', 'ph-dots-three', 'medium'], ['loose', 'ph-dot', 'loose']];
   const levelOf = q => S.level[q] || S.group;
-  const KEY = 'image-board:' + S.title + ':' + S.queries.join(',');
-  try { S.picks = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch {}
+  const KEY = 'image-board:' + (P.get('call') || S.title + ':' + S.queries.join(','));
+  if (!S.sent) try { S.picks = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch {}
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S.picks)); } catch {} };
-  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const esc = window.esc;
 
   // Each source answers a search with items { id, img, label, href }.
   const SOURCES = {
@@ -155,6 +198,20 @@
     S.picks = picked(item.id) ? S.picks.filter(p => p.id !== item.id) : [...S.picks, item];
     S.copied = ''; save(); render();
   }
+  // The answer, shaped as every call's is ({answer, note, at, by}) plus the
+  // picks, appended beside the call; postAnswer reads fresh and retries a
+  // lost race, so two sends are two lines and the latest wins.
+  async function send() {
+    S.sending = true; S.err = ''; render();
+    try {
+      const entry = { answer: 'Picked', picks: S.picks.map(p => ({ id: p.id, href: p.href || '' })),
+                      note: S.note.trim(), at: new Date().toISOString() };
+      S.sent = await window.UserCallForm.postAnswer({ repo: S.at.repo, ref: S.at.ref || 'main', path: S.at.answers, entry });
+    } catch (e) { S.err = 'Not sent: ' + (e?.message || e); }
+    S.sending = false; render();
+  }
+  const sentNow = () => S.sent && JSON.stringify((S.sent.picks || []).map(x => x.id)) === JSON.stringify(S.picks.map(p => p.id))
+    && (S.sent.note || '') === S.note.trim();
   const pickText = () => S.picks.map(p => `${p.id}  ${p.href || p.img}`).join('\n');
   async function copy() {
     const text = pickText();
@@ -197,24 +254,37 @@
   function render() {
     document.getElementById('head').innerHTML = `
       <div class="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 pt-3">
-        <h1 class="mr-auto text-lg font-semibold">${esc(S.title)}</h1>
+        <h1 class="mr-auto text-lg font-semibold text-balance">${esc(S.title)}</h1>
         <div class="join">${['icons', 'commons'].map(s => `<button type="button" data-src="${s}"
           class="btn btn-xs join-item ${S.src === s ? 'btn-neutral' : 'btn-ghost'}">${s === 'icons' ? 'Icons' : 'Commons'}</button>`).join('')}</div>
+        ${S.call?.brief ? `<p class="w-full text-sm text-base-content/60 text-pretty">${esc(S.call.brief)}</p>` : ''}
       </div>
       <div class="flex items-center gap-1.5 overflow-x-auto px-4 py-2">
         ${S.queries.map(q => `<a href="#q-${esc(q)}" data-jump="${esc(q)}" class="badge badge-ghost shrink-0 whitespace-nowrap">${esc(q)}</a>`).join('')}
         <form id="add" class="shrink-0"><input name="q" placeholder="Add a search" class="input input-xs w-36"></form>
       </div>`;
-    document.getElementById('grid').innerHTML = S.queries.map(section).join('');
+    document.getElementById('grid').innerHTML = callAt && !S.call
+      ? `<p class="pt-6 text-error">${esc(S.err)}</p>` : S.queries.map(section).join('');
+    const thumb = p => { const img = byId(p.id)?.img || p.img;
+      return img ? `<img src="${esc(img)}" alt="" class="size-7 object-contain">`
+        : `<span class="block max-w-24 truncate px-1 font-mono text-xs">${esc(p.id.split(/[ :]/).pop())}</span>`; };
+    const action = S.call
+      ? `<button type="button" id="send" class="btn btn-sm btn-primary shrink-0" ${S.picks.length && !S.sending && !sentNow() ? '' : 'disabled'}>${
+          S.sending ? 'Sending' : sentNow() ? 'Sent' : S.sent ? 'Send again' : 'Send picks'}</button>`
+      : `<button type="button" id="copy" class="btn btn-sm btn-primary shrink-0" ${S.picks.length ? '' : 'disabled'}>${S.copied === 'ok' ? 'Copied' : 'Copy picks'}</button>`;
     document.getElementById('foot').innerHTML = `
       <div class="flex items-center gap-3 py-2.5 pl-4 pr-20">
         <div class="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto">
           <span class="shrink-0 text-sm font-medium">${S.picks.length} picked</span>
-          ${S.picks.map(p => `<button type="button" data-id="${esc(p.id)}" class="shrink-0 rounded border border-base-200 bg-base-100 p-1">
-            <img src="${esc(p.img)}" alt="" class="size-7 object-contain"></button>`).join('')}
+          ${S.picks.map(p => `<button type="button" data-id="${esc(p.id)}" class="shrink-0 rounded border border-base-200 bg-base-100 p-1">${thumb(p)}</button>`).join('')}
         </div>
-        <button type="button" id="copy" class="btn btn-sm btn-primary shrink-0" ${S.picks.length ? '' : 'disabled'}>${S.copied === 'ok' ? 'Copied' : 'Copy picks'}</button>
+        ${action}
       </div>
+      ${S.call ? `<div class="flex flex-wrap items-center gap-x-3 gap-y-1 pb-2.5 pl-4 pr-20">
+        <input id="note" value="${esc(S.note)}" placeholder="Note" class="input input-sm min-w-0 flex-1">
+        <span class="text-xs text-base-content/50">${S.sent ? `${(S.sent.picks || []).length} sent ${esc(new Date(S.sent.at).toLocaleString())}` : 'Not sent'}</span>
+        ${S.err ? `<span class="w-full text-sm text-error">${esc(S.err)}</span>` : ''}
+      </div>` : ''}
       ${S.copied === 'manual' ? `<textarea id="picktext" readonly rows="3" class="textarea textarea-sm mx-4 mb-3 w-[calc(100%-2rem)] font-mono">${esc(pickText())}</textarea>` : ''}`;
   }
 
@@ -222,10 +292,11 @@
   addEventListener('click', e => {
     const x = e.target.closest('[data-expand]');
     if (x) { S.open[x.dataset.expand] = !S.open[x.dataset.expand]; return render(); }
-    const t = e.target.closest('[data-id],[data-src],[data-level],#copy,[data-jump]');
+    const t = e.target.closest('[data-id],[data-src],[data-level],#copy,#send,[data-jump]');
     if (!t) return;
     if (t.dataset.level) { S.level[t.dataset.q] = t.dataset.level; return render(); }
     if (t.id === 'copy') return copy();
+    if (t.id === 'send') return send();
     if (t.dataset.src) { S.src = t.dataset.src; loadAll(); return; }
     if (t.dataset.jump) { e.preventDefault(); document.getElementById('q-' + t.dataset.jump)?.scrollIntoView({ block: 'start' }); return; }
     const item = byId(t.dataset.id); if (item) toggle(item);
@@ -235,8 +306,16 @@
     const q = new FormData(e.target).get('q')?.trim();
     if (q && !S.queries.includes(q)) { S.queries.push(q); load(q); }
   });
+  // The note is read as typed, and the Send button follows it without a
+  // redraw that would take the caret away.
+  addEventListener('input', e => {
+    if (e.target.id !== 'note') return;
+    S.note = e.target.value;
+    const b = document.getElementById('send');
+    if (b) { b.disabled = !S.picks.length || S.sending || sentNow(); b.textContent = sentNow() ? 'Sent' : S.sent ? 'Send again' : 'Send picks'; }
+  });
   render();
-  loadAll();
+  if (!callAt || S.call) loadAll();
 </script>
 </head>
 <body class="bg-base-200">
