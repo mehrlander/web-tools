@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="Map Outposts, moon">
+  <title>Map Outposts, moon</title>
+  <desc>A ringed planet with an orbit broken at the upper right, where a moon rides: a body held at a distance by a path rather than a wire. Drawn in one ink on the budget-drs app icon's box and rules, for the page to paint in its text colour: solid, no strokes, and every gap at least 2.5 units, which is about 1.4 CSS pixels at 16.</desc>
+  <g fill="currentColor">
+    <path d="M18.81 4.07 A12.5 12.5 0 1 0 28.18 13.44 L25.5 14.06 A9.75 9.75 0 1 1 18.19 6.75 Z"/>
+    <path fill-rule="evenodd" d="M10.5 16.25 A5.5 5.5 0 1 0 21.5 16.25 A5.5 5.5 0 1 0 10.5 16.25 Z M13.25 16.25 A2.75 2.75 0 1 0 18.75 16.25 A2.75 2.75 0 1 0 13.25 16.25 Z"/>
+    <path d="M20.87 8.38 A3 3 0 1 0 26.87 8.38 A3 3 0 1 0 20.87 8.38 Z"/>
+  </g>
+</svg>

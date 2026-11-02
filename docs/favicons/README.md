@@ -22,7 +22,7 @@ A repository's manifest can replace the file with its own `mark` and colour whic
 
 ### Map marks
 
-Files: [`map/`](map/). Drawn 2026-10-22: one mark for each of the Map's tab groups, each a miniature of the view it opens, and one for each outpost but Work PowerShell, which wears the wps project's mark. The Map draws them on its tab strip, its Overview headings, and its outposts in Reach and in Outposts.
+Files: [`map/`](map/). Drawn 2026-10-22: one mark for each of the Map's tab groups, each a miniature of the view it opens, and one for each outpost but Work PowerShell, which wears the wps project's mark. The Map draws them on its tab strip, its Overview headings, and its outposts in Reach and in Outposts. Drawn 2026-11-02: [`outposts.svg`](map/outposts.svg), for outposts as a kind, shown on a project's Outpost tab and on the Outposts subview's tab and Overview row, which read it from the `m` field of that subview's entry in [`map.js`](../../lib/alpineComponents/map.js).
 
 ### Primitive marks
 
