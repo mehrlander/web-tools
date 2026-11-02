@@ -176,6 +176,11 @@ test('the ref bar names a pin\'s branch, says pinned, and counts the commits sin
   assert.equal(d.refStanding.kind, 'behind');
   assert.equal(d.refStanding.text, '↓2');
   assert.equal(d.refFriendly, 'Fab naming', 'the words of a session branch, with no PR to name it');
+  d.subjectBranch = 'claude/ref-bar-live-pinned';
+  assert.equal(d.refFriendly, 'Ref bar live pinned', 'a six-letter word that ends the branch is kept');
+  d.subjectBranch = 'claude/kind-hypatia-6jjlei';
+  assert.equal(d.refFriendly, 'Kind hypatia', 'a random tail with a digit is dropped');
+  d.subjectBranch = 'claude/fab-naming-todqvq';
   d.open = true; d.activeTab = 'render';
   await until(() => el.querySelector('[data-ref-bar]') && /↓2/.test(el.querySelector('[data-ref-bar]').textContent), 80);
   const bar = el.querySelector('[data-ref-bar]').textContent.replace(/\s+/g, ' ');
