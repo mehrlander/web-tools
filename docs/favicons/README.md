@@ -22,7 +22,7 @@ A repository's manifest can replace the file with its own `mark` and colour whic
 
 ### Map marks
 
-Files: [`map/`](map/). Drawn 2026-10-22: one mark for each of the Map's tab groups, each a miniature of the view it opens, and one for each outpost but Work PowerShell, which wears the wps project's mark. The Map draws them on its tab strip, its Overview headings, and its outposts in Reach and in Outposts.
+Files: [`map/`](map/). Drawn 2026-10-22: one mark for each of the Map's tab groups, each a miniature of the view it opens, and one for each outpost but Work PowerShell, which wears the wps project's mark. The Map draws them on its tab strip, its Overview headings, and its outposts in Reach and in Outposts. Drawn 2026-11-02: [`outposts.svg`](map/outposts.svg), for outposts as a kind, shown on a project's Outpost tab and on the Outposts subview's tab and Overview row, which read it from the `m` field of that subview's entry in [`map.js`](../../lib/alpineComponents/map.js).
 
 ### Primitive marks
 
@@ -35,9 +35,9 @@ A project's or a program's own icon is an SVG drawn to the rules of the budget-d
 - `viewBox="1.5 1.75 29 29"`, solid fills, no strokes.
 - Every gap at least 2.5 units, about 1.4 CSS px at 16.
 - A project's or a program's mark takes a colour no other project or program uses; an agent's icon is coloured too, and may repeat a project's colour. A repository's mark takes a colour no other repository's mark uses, and shortcut-tools' keeps the Shortcuts icon's pink and violet; a page draws it as an `<img>`. Every other mark is filled with `currentColor`, which an `<img>` draws black, so a page paints it as a CSS mask in its text colour.
-- The hub's repositories share a hexagon, and the public-record stores stand on the detached base bar (`<rect x="2" y="24.4" width="28" height="4.6"/>`).
+- The hub's repositories share a hexagon, the public-record stores stand on the detached base bar (`<rect x="2" y="24.4" width="28" height="4.6"/>`), and a program's mark is cut from a rounded tile in its colour (`<rect x="2" y="2.25" width="28" height="28" rx="7"/>`).
 - A `<desc>` says what the mark depicts.
-- The options considered for a mark sit beside it in `alternatives/` as `<mark>.<option>.svg`. Choosing one swaps it with the mark, which moves into `alternatives/`.
+- The options considered for a mark sit beside it in `alternatives/` as `<mark>.<option>.svg`. Choosing one swaps it with the mark, which moves into `alternatives/`. The program marks, [`programs/surfacing/icon.svg`](../../programs/surfacing/icon.svg) and [`programs/testing/icon.svg`](../../programs/testing/icon.svg), keep their previous mark in the `alternatives/` beside each; the other ideas drawn for them are in [`program-mark-ideas.html`](../prototypes/program-mark-ideas.html).
 
 ## In review
 
