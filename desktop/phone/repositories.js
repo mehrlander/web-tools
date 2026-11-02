@@ -1,12 +1,12 @@
 (() => {
   'use strict';
-  const el=id=>document.getElementById(id), expanded=new Set();
+  const el=id=>document.getElementById(id);
   const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const stamp=value=>new Date(value).toLocaleString([],{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
   const ago=value=>{const minutes=Math.max(0,Math.floor((Date.now()-Date.parse(value))/60000));return minutes<1?'just now':minutes<60?minutes+'m ago':minutes<1440?Math.floor(minutes/60)+'h ago':Math.floor(minutes/1440)+'d ago';};
   const valid=value=>value?.schemaVersion===1 && Number.isFinite(Date.parse(value.observedAt)) && Array.isArray(value.repositories) && value.repositories.length<=256
     && Array.isArray(value.refreshing) && value.repositories.every(r=>/^[a-f0-9]{24}$/.test(r.key) && typeof r.name==='string' && Array.isArray(r.checkouts) && r.checkouts.length<=256 && r.checkouts.every(c=>/^[a-f0-9]{24}$/.test(c.key)&&typeof c.name==='string'&&typeof c.branch==='string'&&c.main&&c.tracked));
-  let data,active=false,connected=false,pending=false,timer,staleTimer,etag='',failed=false,denied=false,message='',sending='';
+  let data,active=false,connected=false,pending=false,timer,staleTimer,etag='',failed=false,denied=false,message='',sending='',menu='';
   const fresh=()=>connected&&navigator.onLine!==false&&data&&Date.now()-Date.parse(data.observedAt)<45000;
   const url=repo=>/^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repo.url||'')?repo.url:null;
   function connection(){
@@ -16,40 +16,27 @@
   }
   function comparison(value){
     if(Number.isInteger(value?.ahead)&&Number.isInteger(value?.behind))return value.ahead||value.behind?`${value.ahead?`<span class="text-amber-800">↑ ${value.ahead.toLocaleString()}</span>`:''}${value.ahead&&value.behind?' · ':''}${value.behind?`<span class="text-sky-800">↓ ${value.behind.toLocaleString()}</span>`:''}`:'<span class="text-emerald-800">In sync</span>';
-    return `<span class="text-stone-500">${escape(({'not-checked':'Not checked','no-upstream':'No tracked branch','remote-missing':'Branch absent on GitHub','fetch-needed':'Fetch needed','incomplete-history':'Shallow history','unrelated-history':'Unrelated history'})[value?.state]||'Unavailable')}</span>`;
-  }
-  function status(repo){
-    const checks=repo.checkouts,tracked=checks.map(c=>c.tracked);
-    if(!url(repo))return ['Local repository','text-stone-500 bg-stone-100'];
-    if(checks.some(c=>c.conflicts>0))return ['Conflicts','text-red-800 bg-red-50'];
-    if(tracked.some(c=>c.state==='diverged'))return ['Diverged','text-amber-800 bg-amber-50'];
-    if(checks.some(c=>c.changed>0||c.untracked>0))return ['Local changes','text-amber-800 bg-amber-50'];
-    if(tracked.some(c=>c.state==='ahead'))return ['Ahead','text-amber-800 bg-amber-50'];
-    if(tracked.some(c=>c.state==='behind'))return ['Behind','text-sky-800 bg-sky-50'];
-    if(!repo.checkedAt)return ['Not checked','text-stone-500 bg-stone-100'];
-    if(repo.notice||Date.now()-Date.parse(repo.checkedAt)>600000)return ['Last comparison','text-stone-500 bg-stone-100'];
-    if(tracked.every(c=>c.state==='current'))return ['Branch synced','text-emerald-800 bg-emerald-50'];
-    return ['Review','text-stone-500 bg-stone-100'];
+    return `<span class="text-stone-500">${escape(({'not-checked':'Not checked','no-upstream':'No tracked branch','remote-missing':'Branch absent on GitHub','fetch-needed':'Check needed','incomplete-history':'Shallow history','unrelated-history':'Unrelated history'})[value?.state]||'Unavailable')}</span>`;
   }
   const external='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="size-4" aria-hidden="true"><path d="M14 4h6v6M20 4 10 14M10 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5"/></svg>';
   function row(repo){
-    const [label,tone]=status(repo),href=url(repo),busy=!!sending||fresh()&&data.refreshing.includes(repo.key);
-    const main=repo.checkouts.find(c=>c.branch===c.main.branch)||repo.checkouts[0];
-    const summary=repo.checkouts.length===1?`<span class="truncate">${escape(main.main.branch||'GitHub')}</span><span class="shrink-0">${comparison(main.main)}</span>`:`<span>${repo.checkouts.length} checkouts</span><span class="truncate">${repo.checkouts.every(c=>Number.isInteger(c.main.behind))?repo.checkouts.filter(c=>c.main.behind>0).length+' behind '+escape(main.main.branch||'default'):repo.checkouts.some(c=>Number.isInteger(c.main.behind))?repo.checkouts.filter(c=>c.main.behind>0).length+' behind · '+repo.checkouts.filter(c=>!Number.isInteger(c.main.behind)).length+' unknown':'Not checked'}</span>`;
+    const href=url(repo),name=repo.name.replace(/^[^/]+\//,''),busy=sending===repo.key||sending==='all'||fresh()&&data.refreshing.includes(repo.key);
     const details=repo.checkouts.map(c=>{
       const same=c.tracked.branch&&c.tracked.branch===c.main.branch;
-      const changes=c.changed===null?'Local status unavailable':[c.changed?c.changed+' changed':'',c.untracked?c.untracked+' untracked':'',c.conflicts?c.conflicts+' conflicts':''].filter(Boolean).join(' · ')||'No uncommitted changes';
-      return `<li class="border-t border-stone-100 py-2"><div class="flex items-start justify-between gap-2"><span class="min-w-0"><span class="block break-words text-xs font-medium">Checkout · ${escape(c.name)}</span><span class="block break-all text-[11px] text-stone-500">${escape(c.branch==='(detached)'?'Detached checkout':c.branch||'Branch unavailable')}</span></span></div><p class="mt-1 text-[11px] ${c.changed||c.untracked?'text-amber-800':'text-stone-500'}">${escape(changes)}</p><dl class="mt-1 space-y-0.5 text-[11px]"><div class="flex justify-between gap-2"><dt class="min-w-0 break-all text-stone-500">${same?'Tracked + ':''}${c.main.branch?escape(c.main.branch):'GitHub default branch'}</dt><dd class="shrink-0">${comparison(c.main)}</dd></div>${same?'':`<div class="flex justify-between gap-2"><dt class="min-w-0 break-all text-stone-500">${escape(c.upstream||'Tracked branch')}</dt><dd class="shrink-0">${comparison(c.tracked)}</dd></div>`}</dl></li>`;
+      const changes=c.changed===null||c.untracked===null?'Local status unavailable':[c.changed?c.changed+' changed':'',c.untracked?c.untracked+' untracked':'',c.conflicts?c.conflicts+' conflicts':''].filter(Boolean).join(' · ');
+      const reference=same?'GitHub '+escape(c.main.branch):'GitHub branch';
+      return `<li data-checkout="${c.key}" class="min-w-0 py-1.5 first:pt-0 last:pb-0"><p class="break-words text-xs leading-5">${repo.checkouts.length===1&&c.name===name?'':`<span class="font-medium">${escape(c.name)}</span><span class="text-stone-500"> · </span>`}<span class="text-stone-500">${escape(c.branch==='(detached)'?'Detached checkout':c.branch||'Branch unavailable')}</span></p><dl class="text-xs leading-5"><div class="flex flex-wrap gap-x-2"><dt class="break-all text-stone-500" title="${escape(c.upstream||'No tracked branch')}">${reference}</dt><dd>${comparison(c.tracked)}</dd></div>${same?'':`<div class="flex flex-wrap gap-x-2"><dt class="break-all text-stone-500">${escape(c.main.branch||'Default branch')}</dt><dd>${comparison(c.main)}</dd></div>`}</dl>${changes?`<p class="text-xs leading-5 ${c.conflicts?'text-red-800':'text-amber-800'}">${escape(changes)}</p>`:''}</li>`;
     }).join('');
-    return `<article class="border-b border-stone-100 bg-white"><div class="flex items-stretch"><button data-repo="${repo.key}" aria-expanded="${expanded.has(repo.key)}" aria-controls="repo-${repo.key}" class="min-h-14 min-w-0 flex-1 px-3 py-2 text-left active:bg-stone-50"><span class="flex flex-wrap items-center gap-x-2 gap-y-1"><span class="break-words text-sm font-medium">${escape(repo.name.replace(/^[^/]+\//,''))}</span><span class="rounded px-1 text-[10px] ${tone}">${label}</span></span><span class="mt-1 flex gap-2 text-[11px] text-stone-500">${summary}<span class="ml-auto shrink-0 text-[10px]" title="${repo.checkedAt?escape(stamp(repo.checkedAt)):'Not checked'}">${repo.checkedAt?'GitHub '+escape(ago(repo.checkedAt)):'Unchecked'}</span></span></button><button data-fetch="${repo.key}" aria-label="Fetch GitHub for ${escape(repo.name)}" ${fresh()&&href&&!busy?'':'disabled'} class="min-h-11 min-w-11 shrink-0 px-2 text-xs text-sky-800 disabled:text-stone-400">${busy?'Fetching…':'Fetch'}</button>${href?`<a href="${href}" target="_blank" rel="noopener noreferrer" aria-label="Open ${escape(repo.name)} on GitHub" class="flex min-h-11 w-11 shrink-0 items-center justify-center text-stone-500">${external}</a>`:''}</div><div id="repo-${repo.key}" ${expanded.has(repo.key)?'':'hidden'} class="px-3 pb-2">${repo.notice?`<p class="pb-1 text-[11px] text-amber-800">${escape(repo.notice)}</p>`:''}<ul>${details}</ul>${repo.checkouts.some(c=>c.main.branch&&c.branch!==c.main.branch)?'<p class="mt-1 text-[11px] text-stone-500">Feature branches can differ from the default branch. Squash merges can retain different commit IDs.</p>':''}</div></article>`;
+    const checked=repo.checkedAt?(repo.notice||Date.now()-Date.parse(repo.checkedAt)>600000?'Last check ':'Checked ')+ago(repo.checkedAt):'Not checked';
+    return `<article data-repository="${repo.key}" class="relative border-b border-stone-200 bg-white px-3 pb-2"><div class="flex min-h-8 items-center gap-2 pr-11"><h2 class="min-w-0 flex-1 break-words text-sm font-semibold">${escape(name)}</h2><span class="shrink-0 text-[10px] text-stone-500" title="${repo.checkedAt?escape(stamp(repo.checkedAt)):'No successful GitHub check'}">${busy?'Checking…':escape(checked)}</span>${href?`<button data-menu="${repo.key}" aria-label="Actions for ${escape(repo.name)}" aria-haspopup="menu" aria-expanded="${menu===repo.key}" aria-controls="repo-menu-${repo.key}" class="absolute right-3 top-0 flex min-h-11 w-11 shrink-0 items-center justify-center rounded-lg text-stone-600 hover:bg-stone-100"><svg viewBox="0 0 24 24" fill="currentColor" class="size-5" aria-hidden="true"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg></button><div id="repo-menu-${repo.key}" data-repo-menu="${repo.key}" ${menu===repo.key?'':'hidden'} role="menu" aria-label="Actions for ${escape(repo.name)}" class="absolute right-3 top-11 z-20 w-64 max-w-[calc(100vw-1.5rem)] rounded-xl border border-stone-200 bg-white p-1 shadow-lg"><button role="menuitem" data-fetch="${repo.key}" ${fresh()&&!sending&&!busy?'':'disabled'} class="block min-h-11 w-full rounded-lg px-3 py-2 text-left text-sm text-sky-800 hover:bg-stone-50 disabled:text-stone-400"><span class="block font-medium">${busy?'Checking GitHub…':'Check GitHub now'}</span><span class="mt-0.5 block text-xs leading-4 text-stone-500">Refresh comparisons; keep local branches and files unchanged.</span></button><a role="menuitem" data-github="${repo.key}" href="${href}" target="_blank" rel="noopener noreferrer" class="flex min-h-11 items-center justify-between gap-2 rounded-lg px-3 text-sm text-sky-800 hover:bg-stone-50">Open on GitHub ${external}</a></div>`:''}</div>${repo.notice?`<p class="mb-1 text-xs text-amber-800">${escape(repo.notice)}</p>`:''}<ul class="divide-y divide-stone-100">${details}</ul></article>`;
   }
   function render(){
     if(!active)return;
-    const viewport={x:scrollX,y:scrollY},focus=document.activeElement,action=focus?.dataset.repo?'repo':focus?.dataset.fetch?'fetch':null,key=action&&focus.dataset[action];
+    const viewport={x:scrollX,y:scrollY},focus=document.activeElement,action=['menu','fetch','github'].find(key=>focus?.dataset[key]),key=action&&focus.dataset[action];
     if(!data){el('repositories').innerHTML=`<p class="px-3 py-4 text-sm text-stone-500">${denied?'Access unavailable. Connect with your Tailscale account.':failed?'Repository readings unavailable. Waiting for the laptop.':'Reading local checkouts…'}</p>`;connection();return;}
     el('machine').textContent=data.machineName;
     const count=data.repositories.reduce((sum,r)=>sum+r.checkouts.length,0),busy=fresh()&&data.refreshing.length>0||sending;
-    el('repositories').innerHTML=`<div class="px-3 py-2"><div class="flex items-center justify-between gap-2"><p class="text-xs text-stone-600">${data.repositories.length} repos · ${count} checkouts</p><button data-fetch="all" ${fresh()&&!busy&&data.repositories.some(r=>url(r))?'':'disabled'} class="min-h-11 text-xs font-medium text-sky-800 disabled:text-stone-400">${busy?'Fetching '+data.refreshing.length+'…':'Fetch GitHub'}</button></div><p class="text-[11px] leading-4 text-stone-500">Fetch refreshes GitHub data; working branches and files stay unchanged.</p><p class="mt-0.5 text-[11px] text-stone-500">↑ Local-only · ↓ GitHub-only commits, versus the named branch.</p>${!fresh()?'<p class="mt-1 text-xs text-amber-800">Saved observation · Fetch unavailable while offline.</p>':''}${data.notice?`<p class="mt-1 text-xs text-amber-800">${escape(data.notice)}</p>`:''}<p role="status" class="empty:hidden mt-1 text-[11px] text-sky-800">${escape(message)}</p></div>${data.repositories.map(row).join('')}${!count?'<p class="px-3 py-3 text-sm text-stone-500">No local checkouts observed.</p>':''}`;
+    el('repositories').innerHTML=`<div class="px-3 py-2"><div class="flex items-center justify-between gap-2"><p class="text-xs text-stone-600">${data.repositories.length} repos · ${count} checkouts</p><button data-fetch="all" ${fresh()&&!busy&&data.repositories.some(r=>url(r))?'':'disabled'} class="min-h-11 text-xs font-medium text-sky-800 disabled:text-stone-400">${busy?'Checking GitHub…':'Check all repos'}</button></div><p class="text-[11px] leading-4 text-stone-500">Comparisons refresh automatically; checks leave local branches and files unchanged.</p><p class="mt-0.5 text-[11px] text-stone-500">↑ Ahead · ↓ Behind the named GitHub branch, in commits.</p>${!fresh()?'<p class="mt-1 text-xs text-amber-800">Saved observation · Checking unavailable while offline.</p>':''}${data.notice?`<p class="mt-1 text-xs text-amber-800">${escape(data.notice)}</p>`:''}<p role="status" class="empty:hidden mt-1 text-[11px] text-sky-800">${escape(message)}</p></div>${data.repositories.map(row).join('')}${!count?'<p class="px-3 py-3 text-sm text-stone-500">No local checkouts observed.</p>':''}`;
     if(action)[...el('repositories').querySelectorAll(`[data-${action}]`)].find(n=>n.dataset[action]===key&&!n.disabled)?.focus({preventScroll:true});
     if(scrollX!==viewport.x||scrollY!==viewport.y)scrollTo(viewport.x,viewport.y);
     connection();clearTimeout(staleTimer);if(fresh())staleTimer=setTimeout(render,Math.max(1,45000-(Date.now()-Date.parse(data.observedAt))));
@@ -68,14 +55,43 @@
   async function fetchRepo(key){
     if(!fresh()||sending||document.hidden)return;sending=key;message='';render();
     const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),6000);
-    try{const response=await fetch('/api/v1/repositories/'+key+'/fetch',{method:'POST',headers:{'X-WebTools-Action':'1'},cache:'no-store',signal:controller.signal});message=response.status===202?'Fetch queued. Working files and branches stay as they are.':response.status===409?'Already fetching.':'Fetch unavailable.';
+    try{const response=await fetch('/api/v1/repositories/'+key+'/fetch',{method:'POST',headers:{'X-WebTools-Action':'1'},cache:'no-store',signal:controller.signal});message=response.status===202?'GitHub check queued. Local branches and files stay unchanged.':response.status===409?'Already checking GitHub.':'GitHub check unavailable.';
       if(response.status===403){data=undefined;etag='';denied=true;connected=false;localStorage.removeItem('web-tools-repositories-snapshot');}
-    }catch{message='Could not confirm the fetch request.';connected=false;}
+    }catch{message='Could not confirm the GitHub check request.';connected=false;}
     finally{clearTimeout(timeout);sending='';render();poll();}
   }
-  document.addEventListener('click',event=>{if(!active)return;const button=event.target.closest('[data-repo],[data-fetch]');if(button?.dataset.repo){const key=button.dataset.repo;expanded.has(key)?expanded.delete(key):expanded.add(key);button.setAttribute('aria-expanded',String(expanded.has(key)));el('repo-'+key).hidden=!expanded.has(key);}if(button?.dataset.fetch&&!button.disabled)fetchRepo(button.dataset.fetch);});
+  function setMenu(key,restore=false){
+    const previous=menu;menu=key;
+    el('repositories').querySelectorAll('[data-repo-menu]').forEach(node=>{node.hidden=node.dataset.repoMenu!==menu;});
+    el('repositories').querySelectorAll('[data-menu]').forEach(node=>{node.setAttribute('aria-expanded',String(node.dataset.menu===menu));if(restore&&node.dataset.menu===previous)node.focus({preventScroll:true});});
+  }
+  document.addEventListener('click',event=>{
+    if(!active)return;
+    const button=event.target.closest('[data-menu],[data-fetch],[data-github]');
+    if(button?.dataset.menu){setMenu(menu===button.dataset.menu?'':button.dataset.menu);return;}
+    if(button?.dataset.fetch&&!button.disabled){const key=button.dataset.fetch;setMenu('',true);fetchRepo(key);return;}
+    if(button?.dataset.github){setMenu('',true);return;}
+    if(!event.target.closest('[data-repo-menu]'))setMenu('');
+  });
+  document.addEventListener('keydown',event=>{
+    if(!active)return;
+    const trigger=event.target.closest('[data-menu]');
+    if(trigger&&['ArrowDown','ArrowUp'].includes(event.key)){
+      event.preventDefault();setMenu(trigger.dataset.menu);
+      const items=[...el('repo-menu-'+menu).querySelectorAll('[role=menuitem]:not(:disabled)')];
+      (event.key==='ArrowUp'?items.at(-1):items[0])?.focus({preventScroll:true});return;
+    }
+    if(!menu)return;
+    if(event.key==='Escape'){event.preventDefault();setMenu('',true);return;}
+    if(event.key==='Tab'){setMenu('',true);return;}
+    if(!event.target.closest('[data-repo-menu]')||!['ArrowDown','ArrowUp','Home','End'].includes(event.key))return;
+    event.preventDefault();
+    const items=[...el('repo-menu-'+menu).querySelectorAll('[role=menuitem]:not(:disabled)')],index=items.indexOf(document.activeElement);
+    const next=event.key==='Home'?0:event.key==='End'?items.length-1:(index+(event.key==='ArrowDown'?1:-1)+items.length)%items.length;
+    items[next]?.focus({preventScroll:true});
+  });
   document.addEventListener('visibilitychange',()=>{clearTimeout(timer);if(!document.hidden)poll();});
   window.addEventListener('online',poll);window.addEventListener('offline',()=>{connected=false;render();});
   try{const prior=JSON.parse(localStorage.getItem('web-tools-repositories-snapshot'));if(valid(prior))data=prior;}catch{}
-  window.NowRepositories={connection,setActive:value=>{active=value;clearTimeout(timer);clearTimeout(staleTimer);if(active){render();poll();}}};
+  window.NowRepositories={connection,setActive:value=>{active=value;clearTimeout(timer);clearTimeout(staleTimer);if(active){render();poll();}else setMenu('');}};
 })();
