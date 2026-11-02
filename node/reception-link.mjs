@@ -11,9 +11,9 @@
 // <fn.js> holds the source of one function, (rows, text) => result; rows are
 // the paste as a table, text the paste itself. --note says what is wanted, as
 // every errand's note does, and --label heads the page. --dest and --file are
-// named as an errand's are (docs/manifest.md, "Errands"): where the page's Send
-// aims the Stage, and the result's file name; without --dest the reader copies
-// the result. The payload is {label?, note, fn, dest?, file?} as JSON,
+// named as an errand's are (lib/kits/errands.js): where the page's Send aims the
+// Stage, and the result's file name; without --dest the reader copies the
+// result. The payload is {label?, note, fn, dest?, file?} as JSON,
 // gzipped, base64url, in #gz=, the form kits/gz-payload.js reads. --page points
 // the link at another copy of the page, such as a local server under test. The
 // link goes to stdout and its length to stderr.
