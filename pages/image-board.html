@@ -250,7 +250,7 @@
       <div class="flex flex-col gap-1.5 px-4 pt-3 pb-1">
         <h1 class="text-xl font-semibold leading-snug text-balance">${esc(S.title)}</h1>
         ${S.call?.brief || pr ? `<p class="text-base leading-snug text-pretty">${esc(S.call?.brief || '')}
-          ${pr ? `<a href="https://github.com/${esc(pr.slug)}/pull/${esc(pr.n)}" class="ml-1 inline-flex items-center gap-1 rounded-full border border-base-300 px-2 text-sm leading-6 hover:bg-base-200"><i class="ph ph-git-pull-request"></i>#${esc(pr.n)}</a>` : ''}</p>` : ''}
+          ${pr ? `<a href="${esc(window.RepoAddress.github.pull(pr.slug, pr.n))}" class="ml-1 inline-flex items-center gap-1 rounded-full border border-base-300 px-2 text-sm leading-6 hover:bg-base-200"><i class="ph ph-git-pull-request"></i>#${esc(pr.n)}</a>` : ''}</p>` : ''}
       </div>`;
     document.getElementById('head').innerHTML = `
       <div class="flex items-center gap-2 px-4 py-2">
