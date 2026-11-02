@@ -13,8 +13,9 @@ every board follows.
 | --- | --- |
 | `#gh=owner/repo[@ref]:path` | the file, through the viewer's stored GitHub token |
 | `#gz=<base64url>` | the gzipped JSON carried in the link, for a reader with no token |
+| `#user-call=owner/repo[@ref]:path` | a pick call whose `board.ideas` is the board's `#gh=` address, and the reader's picks go to the call |
 
-Both also read from the query. Pin `@ref` to a commit so the link keeps showing
+Each also reads from the query. Pin `@ref` to a commit so the link keeps showing
 the board that was handed over.
 
 ## Fields
@@ -55,3 +56,12 @@ included. The header's copy button puts them on the clipboard as text that names
 the board's address, to paste into the session that made the board. Picks and
 notes stay in the browser, keyed by the address without its ref, so a board
 republished at a new commit keeps them.
+
+Opened on a pick call, the header also sends them, as the image board sends its
+picks and through the same code (`UserCallForm.postAnswer`): one line in the
+call's `answers.jsonl`, each pick named `idea <n> <title>` and each note under
+the card it was written on, and the same picks and notes commented on the
+call's pull request when the call names one, which wakes the session watching
+it. Opened again, the board starts from the latest line rather than from the
+browser. [`user-call.py`](https://github.com/mehrlander/web-tools-private/blob/main/user-calls/user-call.py)
+in web-tools-private states the call's fields and prints its link.

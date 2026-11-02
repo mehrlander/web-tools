@@ -20,7 +20,12 @@
   button in a dialog (html-style rule 13). An SVG sketch renders as an image,
   so it cannot run script and its marker ids cannot collide; an HTML sketch
   renders inline, cleaned first. Picks and notes stay in this browser, keyed by the board's
-  address without its ref, and leave as text.
+  address without its ref, and leave as text through Copy. Opened on a pick call
+  (#user-call=, web-tools-private user-calls/user-call.py) whose board names the
+  board's JSON, the page also sends them, as the image board does: one line in
+  the call's answers.jsonl through UserCallForm.postAnswer, commented on the
+  call's pull request where it names one, and the latest line read back as the
+  starting picks.
 
   Each idea is one card: its commentary, a short and qualified discussion of
   what the option brings, then its sketch, then the reader's star and note. The
@@ -45,6 +50,7 @@
     await gh.load('kits/io.js');
     await gh.load('kits/title-tip.js');
     await gh.load('kits/call-marks.js');    // book, bulb, speech bubble, stamp
+    await gh.load('alpineComponents/user-call-form.js');   // postAnswer and prOf, for a pick call
   } finally { window.__depsDone(); }
 </script>
 <script>
@@ -72,13 +78,14 @@ document.addEventListener('alpine:init', () => {
 
   Alpine.data('ideaBoard', () => ({
     B: null, addr: '', err: '', cur: 0, copied: false, picks: [], notes: {}, strip: null, deck: null,
+    call: null, callAt: null, sent: null, sending: false,
     // Slide 0 is the brief, 1 to n the ideas, and the last the selection.
     get count() { return this.B.ideas.length + 2; },
     get last() { return this.B.ideas.length + 1; },
     at(i) { return this.B.ideas[i - 1]; },
     // Rows carry a thumbnail only when every sketch is an SVG one.
     get thumbs() { return this.B.ideas.every(d => d.src); },
-    get key() { return 'idea-board:' + (this.addr.replace(/@[^:]*/, '') || this.B.title); },
+    get key() { return 'idea-board:' + (this.callAt ? 'call:' + this.callAt.path : this.addr.replace(/@[^:]*/, '') || this.B.title); },
 
     async init() {
       await window.__depsReady;
@@ -88,7 +95,12 @@ document.addEventListener('alpine:init', () => {
         d.src = svg ? img(d.sketch) : '';
         d.html = svg ? '' : clean(d.sketch);
       }
-      try {
+      // The latest answer sent to the call, where there is one, is where the
+      // reader starts; otherwise what this browser kept.
+      if (this.sent) {
+        this.picks = (this.sent.picks || []).map(x => x.n).filter(n => this.idea(n));
+        this.notes = Object.fromEntries((this.sent.notes || []).map(x => [x.n ?? 'selection', x.note]));
+      } else try {
         const v = JSON.parse(localStorage.getItem(this.key) || 'null');
         if (v) { this.picks = v.picks || []; this.notes = v.notes || {}; }
       } catch (e) {}
@@ -102,7 +114,22 @@ document.addEventListener('alpine:init', () => {
       });
     },
     async read() {
-      const gz = param('gz'), spec = param('gh');
+      const gz = param('gz'), callSpec = param('user-call');
+      let spec = param('gh');
+      if (callSpec) {
+        const c = window.RepoAddress.parse(callSpec);
+        if (!c) throw new Error('#user-call= reads owner/repo[@ref]:path, and this is not one: ' + callSpec);
+        const g = new GH({ token: tokenNow(), repo: c.repo, ...(c.ref ? { ref: c.ref } : {}) });
+        try { this.call = JSON.parse((await g.get(c.path, GH.FRESH)).text); }
+        catch (e) { throw new Error(`Could not read the call ${callSpec}${tokenNow() ? '' : ' without a stored GitHub token'}: ${e.message}`); }
+        this.callAt = { ...c, answers: c.path.replace(/\.json$/, '.answers.jsonl') };
+        spec = this.call.board?.ideas;
+        if (!spec) throw new Error('The call ' + callSpec + ' names no idea board (board.ideas)');
+        try {
+          const lines = (await g.get(this.callAt.answers, GH.FRESH)).text.split('\n').filter(l => l.trim());
+          this.sent = lines.length ? JSON.parse(lines[lines.length - 1]) : null;
+        } catch (e) { if (e?.status && e.status !== 404) this.err = 'Could not read the answers: ' + e.message; }
+      }
       if (gz) {
         return window.GzPayload.decodeJson(gz);
       }
@@ -259,6 +286,45 @@ document.addEventListener('alpine:init', () => {
       return L.join('\n');
     },
     async copy() { this.copied = await io.copy(this.text()); if (this.copied) setTimeout(() => this.copied = false, 1500); },
+
+    // ── Sending to a pick call ─────────────────────────────────────────────
+    // A pick's id names the card the way user-call.py's `answers` prints it;
+    // `n` brings the picks back as the starting state when the call reopens.
+    answerOf() {
+      const id = n => 'idea ' + n + ' ' + this.idea(n).title;
+      const notes = this.B.ideas.filter(d => (this.notes[d.n] || '').trim()).map(d => ({ on: id(d.n), n: d.n, note: this.notes[d.n].trim() }));
+      if ((this.notes.selection || '').trim()) notes.push({ on: 'selection', note: this.notes.selection.trim() });
+      return { answer: 'Picked', picks: this.picks.map(n => ({ id: id(n), href: '', n })), ...(notes.length ? { notes } : {}) };
+    },
+    get closed() { return !!this.call && (this.call.status === 'closed' || !!this.call.closed); },
+    get sentNow() {
+      if (!this.sent) return false;
+      const a = this.answerOf(), same = (x, y) => JSON.stringify(x || []) === JSON.stringify(y || []);
+      return same(this.sent.picks?.map(x => x.n), a.picks.map(x => x.n)) && same(this.sent.notes?.map(x => x.note), a.notes?.map(x => x.note));
+    },
+    get canSend() { return !!tokenNow() && !this.sending && !this.sentNow && !this.closed && (this.picks.length || this.answerOf().notes); },
+    get sendLabel() { return this.closed ? 'Closed' : this.sending ? 'Sending' : this.sentNow ? 'Sent' : this.sent ? 'Send again' : 'Send'; },
+    get sendTip() {
+      const pr = window.UserCallForm.prOf(this.call?.pr);
+      return this.closed ? 'This call is closed' : !tokenNow() ? 'Sending needs a stored GitHub token'
+        : 'Send picks and notes to the call' + (pr ? ', and comment them on ' + pr.label : '');
+    },
+    async send() {
+      if (!this.canSend) return;
+      this.sending = true; this.err = '';
+      try {
+        const entry = { ...this.answerOf(), board: this.call.board.ideas, at: new Date().toISOString() };
+        const pr = window.UserCallForm.prOf(this.call.pr);
+        const id = this.call.id || this.callAt.path.split('/').pop().replace(/\.json$/, '');
+        const comment = pr ? `**User call: ${this.call.question}**\n\nAnswer: **Picked**, ${entry.picks.length}\n\n`
+          + entry.picks.map(x => '- ' + x.id).join('\n')
+          + (entry.notes ? '\n\n' + entry.notes.map(x => '> **' + (x.n ? 'Idea ' + x.n : 'Selection') + ':** ' + x.note).join('\n>\n') : '')
+          + `\n\n_${id}, sent from the idea board._` : '';
+        this.sent = await window.UserCallForm.postAnswer({ repo: this.callAt.repo, ref: this.callAt.ref || 'main',
+          path: this.callAt.answers, entry, pr, comment, token: tokenNow() });
+      } catch (e) { this.err = 'Not sent: ' + (e?.message || e); }
+      this.sending = false;
+    },
   }));
 });
 </script>
@@ -277,6 +343,11 @@ document.addEventListener('alpine:init', () => {
       <div class="ml-auto flex items-center gap-1">
         <button class="btn btn-ghost btn-sm gap-1 tabular-nums" @click="copy()" aria-label="Copy picks" data-title-tip="Copy picks and notes">
           <i class="ph text-lg" :class="copied ? 'ph-check' : 'ph-copy'"></i><span x-text="copied ? 'Copied' : picks.length + ' picked'"></span>
+        </button>
+        <!-- The call form's answer button: ghost, tinted with the primary colour, as the image board's is -->
+        <button x-show="call" @click="send()" :disabled="!canSend" :aria-label="sendTip" :data-title-tip="sendTip"
+                class="btn btn-sm btn-ghost gap-1 border-[color-mix(in_srgb,var(--color-primary)_45%,var(--color-base-100))] bg-primary/10 text-primary hover:bg-primary/15">
+          <i class="ph text-lg" :class="sending ? 'ph-spinner animate-spin' : sentNow ? 'ph-check' : 'ph-paper-plane-tilt'"></i><span x-text="sendLabel"></span>
         </button>
       </div>
     </template>
