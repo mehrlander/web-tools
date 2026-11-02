@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `node/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 16 are named by CLAUDE.md,
-22 by a skill, 42 by a page or component. The remaining 33 are
+22 by a skill, 43 by a page or component. The remaining 33 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -63,6 +63,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`text-tools.md`](text-tools.md) *(orphan)* — the FAB's Text tab: why it exists, why the join is the path rather than a term, and an assessment of what it is not
 - [`themes.csv`](themes.csv) *(measured)* — the duplication graph as committed data: every pair of markdown files sharing at least three ten-word windows, weighted, with the repeated passages themselves. Clusters of it are the Map view's themes, and which clusters exist is a function of the weight threshold, so the payload carries every edge and the reader carries the dial
 - [`tools.csv`](tools.csv) — which pages the Tools view shows, and the icon each is given
+- [`credentials.csv`](credentials.csv) — the credentials writers commit with, one row each: its kind, the venue that holds it and whose name its commits carry
 - [`venues.csv`](venues.csv) — the places work runs, one row per venue: what each is and what work there reaches
 - [`venues.md`](venues.md) *(measured)* — dated observations about the venues docs/venues.csv lists: what each product needs to keep running, and where unattended work fits
 - [`vocabularies.csv`](vocabularies.csv) — what each value of a closed domain means, one row per value
