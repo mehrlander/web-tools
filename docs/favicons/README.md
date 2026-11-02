@@ -47,13 +47,11 @@ A project's or a program's own icon is an SVG drawn to the rules of the budget-d
 
 File: [`web-tools-icon-3d.png`](web-tools-icon-3d.png). A 180 × 180 candidate with a lighter graphite tile, the blue mark reduced to roughly two-thirds of the canvas, and shallow extrusion. The [iPhone size check](../../pages/scratch/web-tools-icon-preview.html) compares the production-size raster with the active tile at 60, 40, and 29 CSS pixels. This is a design candidate, not the shipped Home Screen icon.
 
-### Testing marks
+### Test-concept marks
 
-Files: [`testing/`](testing/). Drawn 2026-11-01: 95 candidate marks for testing concepts. They are not assigned: no skill, agent or Map view reads the folder, and it has no row in [`icon-families.csv`](../icon-families.csv). A skill that adopts one takes it from here; the rest stay as a library to draw from.
+Files: [`test-concepts/`](test-concepts/). Drawn 2026-11-01: 94 candidate marks for testing concepts, meant for skills such as sandbox-traps, gold-set and screenshot-review. They are not program marks; a program's mark is declared with the program in `.web-tools.json`. None is assigned yet: no skill, agent or Map view reads the folder, and it has no row in [`icon-families.csv`](../icon-families.csv). A skill that adopts one takes it from here; the rest stay as a library to draw from.
 
-Each keeps the drawn-mark rules above and is one ink: a single `currentColor` path, filled even-odd, every shape inside 2 to 30.
-
-The contact sheets show each mark large, at a true 16 px, and that 16 px raster enlarged: [light](testing/contact.png) and [dark](testing/contact-dark.png) for containment to stress, [light](testing/contact-2.png) and [dark](testing/contact-2-dark.png) for timing to primitives. They were rendered from the 32-unit drawing box, so their framing is a touch looser than the files'. Strongest at 16 px: `pass-badge`, `fail-badge`, `flask-check`, `test-bot`, `console-log`, `shield-pass`, `flaky-dice`, `bug`, `audit-lens`, `assert-equals`, `sandbox-dashed`, `smoke-test`.
+Each keeps the drawn-mark rules above and is one ink: a single `currentColor` path, filled even-odd, every shape inside 2 to 30. Strongest at 16 px: `pass-badge`, `fail-badge`, `flask-check`, `test-bot`, `console-log`, `shield-pass`, `flaky-dice`, `bug`, `audit-lens`, `assert-equals`, `sandbox-dashed`, `smoke-test`.
 
 | Theme | Marks |
 |---|---|
@@ -61,7 +59,7 @@ The contact sheets show each mark large, at a true 16 px, and that 16 px raster 
 | Find / inspect | `bug`, `bug-fix`, `audit-lens`, `crosshair`, `spotlight`, `scan`, `binoculars`, `lens-check` |
 | Pass / fail / gate | `validate-gate`, `traffic-light`, `stamp`, `shield-pass`, `test-strip`, `pass-badge`, `fail-badge`, `pass-fail-pair` |
 | Known-good / gold | `medal`, `golden-file`, `calibrate`, `master-key`, `certified-seal`, `reference-sample` |
-| Trap / false signal | `mousetrap`, `false-face`, `cracked-check`, `honeypot`, `decoy-duck`, `bear-trap` |
+| Trap / false signal | `mousetrap`, `false-face`, `cracked-check`, `honeypot`, `decoy-duck` |
 | Regression / change | `regression-bars`, `regression-trend`, `before-after`, `plus-minus`, `rerun`, `snapshot-stack` |
 | Coverage / matrix | `coverage-gap`, `heatmap`, `checklist`, `variants`, `overlap-venn` |
 | Stress / chaos / load | `stress-squeeze`, `chaos-zigzag`, `pressure-gauge`, `load-weight`, `breaking-load`, `spike` |
