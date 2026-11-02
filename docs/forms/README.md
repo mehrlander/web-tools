@@ -39,7 +39,7 @@ known by the answer it asks for.
 | Answer | The reader | Form | The answer lands in |
 | --- | --- | --- | --- |
 | decision | approves or returns one proposal | the Approve page (`approval/1`); a user call | a verdict file beside the request; the call's `answers.jsonl` |
-| choice | picks one of several alternatives | none yet | |
+| choice | picks one or more of several alternatives | for found images, the [image board](../../pages/image-board.html), opened on a pick call | the call's `answers.jsonl` |
 | change | keeps or discards each proposed edit | the call page for a documentation call, which Dictate and the Map's Docs tab also answer; the Proposals view | the call's `answers.jsonl`; the target file |
 | label | gives each item one label from a fixed set | the audit render (`audit/1`) | the standoff file, saved back to its path |
 | reaction | votes or comments, closing nothing | Text Lab; the Tending view | home's `reviews.jsonl`; the notes store |
@@ -49,7 +49,7 @@ An answer counts only where the form writes it for the work that raised it to
 read. The idea board and the design sprint's option page collect a choice, and
 the Review page a judgment of a changeset, but each keeps it in the browser or
 records nothing, so it reaches the work only through chat. They are tagged
-respond with no answer, and choice is a kind with no form yet.
+respond with no answer.
 
 A diff is a way of drawing a change, not a kind of form: a diff of a proposed
 edit belongs to a change form, and a diff of two pasted texts is a make tool.
