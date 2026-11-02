@@ -37,7 +37,6 @@ the link-dense text twin of the visual index above.
 | `launcher` | Popup Launcher · setup | [view](https://mehrlander.github.io/web-tools/pages/launcher.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/launcher.html) |
 | `links` | Links | [view](https://mehrlander.github.io/web-tools/pages/links.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/links.html) |
 | `passage-reader` | Passage reader | [view](https://mehrlander.github.io/web-tools/pages/passage-reader.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/passage-reader.html) |
-| `paste-run` | Paste run | [view](https://mehrlander.github.io/web-tools/pages/paste-run.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/paste-run.html) |
 | `pdf-inspect` | PDF Inspect | [view](https://mehrlander.github.io/web-tools/pages/pdf-inspect.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/pdf-inspect.html) |
 | `peek` | Peek — DOM under a selection | [view](https://mehrlander.github.io/web-tools/pages/peek.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/peek.html) |
 | `pip-steps` | Floating steps | [view](https://mehrlander.github.io/web-tools/pages/pip-steps.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/pip-steps.html) |
@@ -45,6 +44,7 @@ the link-dense text twin of the visual index above.
 | `pivot-table` | Excel Pivot Table Viewer | [view](https://mehrlander.github.io/web-tools/pages/pivot-table.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/pivot-table.html) |
 | `probe-snap` | Probe snap | [view](https://mehrlander.github.io/web-tools/pages/probe-snap.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/probe-snap.html) |
 | `probe-window` | Probe window | [view](https://mehrlander.github.io/web-tools/pages/probe-window.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/probe-window.html) |
+| `reception` | Reception | [view](https://mehrlander.github.io/web-tools/pages/reception.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/reception.html) |
 | `repo-atlas` | Repo Atlas | [view](https://mehrlander.github.io/web-tools/pages/repo-atlas.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/repo-atlas.html) |
 | `review` | Review | [view](https://mehrlander.github.io/web-tools/pages/review.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/review.html) |
 | `session` | Session | [view](https://mehrlander.github.io/web-tools/pages/session.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/session.html) |
