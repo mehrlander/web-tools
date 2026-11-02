@@ -2,7 +2,10 @@
   "title": "UI concepts, drawn",
   "subject": "How Alpine components, kits, units, patterns, parts and slots relate",
   "made": "2026-11-01",
-  "brief": "Annotating a Web Tools page needs a target a person would name, and the estate describes its interface at three levels that nothing yet draws together: the UI codebook's patterns, parts and slots (`data/ui-units/`), the kits that draw some of those patterns, and the Alpine components that draw the pages. A diagram relating them would sit in the Map view's Browser group, beside the Dimensions, Gallery and Kits tabs that each show one of them.\n\nThe eight concepts were drawn before any was judged, as the design-sprint skill asks. Every count in them was read from `data/ui-units/` and `docs/kits.csv` on 2026-11-01, and the session page is the unit traced throughout, since it is the first page annotation will target and its markup declares no pattern.\n\nA concept succeeds if a reader can say afterward how an Alpine component, a kit, a unit, a pattern, a part and a slot relate, and can see for any one unit which of those ties is missing. So it must show the code concepts, the screen concepts, the markup declarations that tie the two together, where a tie is missing, and one real unit traced through.",
+  "brief": {
+    "background": "Annotating a Web Tools page needs a target a person would name, and the estate describes its interface at three levels that nothing yet draws together: the UI codebook's patterns, parts and slots (`data/ui-units/`), the kits that draw some of those patterns, and the Alpine components that draw the pages. A diagram relating them, for the Map view's Browser group, should let a reader say how an Alpine component, a kit, a unit, a pattern, a part and a slot relate, and see for any one unit which of those ties is missing.",
+    "methodology": "The eight concepts were drawn before any was judged, as the design-sprint skill asks, and each had to show the code concepts, the screen concepts, the markup declarations that tie the two together, where a tie is missing, and one real unit traced through. Every count in them was read from `data/ui-units/` and `docs/kits.csv` on 2026-11-01, and the session page is the unit traced throughout, since it is the first page annotation will target and its markup declares no pattern."
+  },
   "ideas": [
     {
       "n": 1,
