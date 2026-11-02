@@ -3,7 +3,7 @@
   const el = id => document.getElementById(id);
   const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const stamp = value => new Date(value).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
-  const open = new Set(), positions = {now:0,computer:0};
+  const open = new Set();
   let data, active = false, connected = false, pending = false, timer, etag = '', failures = 0;
   const valid = value => value?.schemaVersion === 1 && Array.isArray(value.applications) && value.applications.length <= 256 && Number.isFinite(Date.parse(value.observedAt)) && value.applications.every(a => /^[A-Za-z0-9-]{1,80}$/.test(a.key) && typeof a.name === 'string' && Array.isArray(a.windows) && a.windows.length <= 256 && a.windows.every(w => typeof w.title === 'string'));
   const finite = value => typeof value === 'number' && Number.isFinite(value);
@@ -66,59 +66,17 @@
       if (active && !document.hidden) timer = setTimeout(poll,Math.min(15000,3000 * 2 ** Math.min(failures,3)));
     }
   }
-  function setView(name, navigate = true) {
-    const next = name === 'computer';
-    if (next !== active) positions[active ? 'computer' : 'now'] = scrollY;
-    active = next;
-    if (navigate) history.pushState(null,'',next ? '#view=computer' : location.pathname + location.search);
-    el('view-title').textContent = next ? 'Computer' : 'Now';
-    document.title = (next ? 'Computer' : 'Now') + ' | Web Tools';
-    for (const id of ['assistants','notice','content','source-times']) el(id).hidden = next;
-    el('computer').hidden = !next;
-    for (const button of document.querySelectorAll('[data-view]')) {
-      if (button.dataset.view === (next ? 'computer' : 'now')) button.setAttribute('aria-current','page');
-      else button.removeAttribute('aria-current');
-    }
-    clearTimeout(timer); render();
-    window.dispatchEvent(new CustomEvent('nowviewchange',{detail:{computer:next}}));
-    if (next) poll();
-    scrollTo(0,positions[next ? 'computer' : 'now']);
-  }
-  function closeMenus() {
-    el('view-menu').hidden = true;
-    el('view-picker').setAttribute('aria-expanded','false');
-  }
   document.addEventListener('click', event => {
-    const picker = event.target.closest('#view-picker');
-    if (picker) {
-      const menu = el(picker.getAttribute('aria-controls')), wasOpen = !menu.hidden;
-      closeMenus(); menu.hidden = wasOpen; picker.setAttribute('aria-expanded',String(!wasOpen)); return;
-    }
-    const button = event.target.closest('[data-view],[data-computer-app]');
-    if (button?.dataset.view) { closeMenus(); setView(button.dataset.view); el('view-picker').focus({preventScroll:true}); }
-    if (button?.dataset.computerApp) {
-      const key = button.dataset.computerApp;
-      if (open.has(key)) open.delete(key); else open.add(key);
-      button.setAttribute('aria-expanded',String(open.has(key)));
-      el('windows-' + key).hidden = !open.has(key);
-    }
-    if (!event.target.closest('#view-menu')) closeMenus();
+    const button = event.target.closest('[data-computer-app]');
+    if (!button) return;
+    const key = button.dataset.computerApp;
+    if (open.has(key)) open.delete(key); else open.add(key);
+    button.setAttribute('aria-expanded',String(open.has(key)));
+    el('windows-' + key).hidden = !open.has(key);
   });
-  document.addEventListener('keydown', event => {
-    if (event.key !== 'Escape') return;
-    if (!el('view-menu').hidden) { closeMenus(); el('view-picker').focus({preventScroll:true}); event.preventDefault(); }
-  });
-  const route = event => {
-    const name = new URLSearchParams(location.hash.slice(1)).get('view');
-    if (active || name === 'computer') { setView(name,false); event?.stopImmediatePropagation(); }
-  };
-  window.addEventListener('popstate',route);
-  window.addEventListener('hashchange',() => { if (active !== (new URLSearchParams(location.hash.slice(1)).get('view') === 'computer')) route(); });
   document.addEventListener('visibilitychange',() => { clearTimeout(timer); if (!document.hidden) poll(); });
   window.addEventListener('online',poll);
   window.addEventListener('offline',() => { connected = false; render(); });
   try { const prior = JSON.parse(localStorage.getItem('web-tools-computer-snapshot')); if (valid(prior)) data = prior; } catch { }
-  window.NowComputer = {active:() => active,connection};
-  if (new URLSearchParams(location.hash.slice(1)).get('view') === 'computer') route();
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+  window.NowComputer = {connection,setActive:value => { active = value; clearTimeout(timer); if (active) { render(); poll(); } }};
 })();

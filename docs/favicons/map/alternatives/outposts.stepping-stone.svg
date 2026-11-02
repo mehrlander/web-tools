@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="Map Outposts, stepping stone">
+  <title>Map Outposts, stepping stone</title>
+  <desc>A solid dot for home, a smaller dot halfway, and an open ring beyond it: the outpost with the trip out to it drawn as one step. Drawn in one ink on the budget-drs app icon's box and rules, for the page to paint in its text colour: solid, no strokes, and every gap at least 2.5 units, which is about 1.4 CSS pixels at 16.</desc>
+  <g fill="currentColor">
+    <path fill-rule="evenodd" d="M13.5 11.25 A7.5 7.5 0 1 0 28.5 11.25 A7.5 7.5 0 1 0 13.5 11.25 Z M16 11.25 A5 5 0 1 0 26 11.25 A5 5 0 1 0 16 11.25 Z"/>
+    <path d="M10.41 20.09 A1.75 1.75 0 1 0 13.91 20.09 A1.75 1.75 0 1 0 10.41 20.09 Z"/>
+    <path d="M3.5 25.75 A3 3 0 1 0 9.5 25.75 A3 3 0 1 0 3.5 25.75 Z"/>
+  </g>
+</svg>
