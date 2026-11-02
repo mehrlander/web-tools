@@ -241,8 +241,9 @@ test('the two sub-tab encodings, counted', () => {
   // been a legend on Showing.
   // 47 to 48 on 2026-10-29: Data took Attributes, what .gitattributes gives
   // each file.
-  // 48 to 49 on 2026-11-02: Browser took Layers, one UI unit read through
-  // every layer, the overview the UI concepts idea board chose.
+  // 48 to 49 on 2026-11-02: Browser now opens on its two concepts. The
+  // Gallery became Units under a key of its own, and a new Patterns tab took
+  // the Gallery's old key, so one address was added and none retired.
   assert.equal(params, 49, 'sub-tabs addressed as ?view=<parent>&tab=');
 });
 

@@ -10,7 +10,7 @@ web-tools:map/growth,web-tools-map-growth.desk.jpg,web-tools-map-growth.phone.jp
 web-tools:map/harness,web-tools-map-harness.desk.jpg,web-tools-map-harness.phone.jpg,2026-10-06,app/index.html?view=map&tab=harness,slots @69,list
 web-tools:map/kits,web-tools-map-kits.desk.jpg,web-tools-map-kits.phone.jpg,2026-10-06,app/index.html?view=map&tab=kits,slots @59,list
 web-tools:map/outposts,web-tools-map-outposts.desk.jpg,web-tools-map-outposts.phone.jpg,2026-10-06,app/index.html?view=map&tab=outposts,slots @59,card-grid
-web-tools:map/patterns,web-tools-map-patterns.desk.jpg,web-tools-map-patterns.phone.jpg,2026-10-06,app/index.html?view=map&tab=patterns,slots @59,card-grid
+web-tools:map/units,web-tools-map-units.desk.jpg,web-tools-map-units.phone.jpg,2026-10-06,app/index.html?view=map&tab=units,slots @59,card-grid
 web-tools:map/policy,web-tools-map-policy.desk.jpg,web-tools-map-policy.phone.jpg,2026-10-06,app/index.html?view=map&tab=policy,slots @59,card-grid
 web-tools:map/registries,web-tools-map-registries.desk.jpg,web-tools-map-registries.phone.jpg,2026-10-06,app/index.html?view=map&tab=registries,slots @59,card-grid
 web-tools:map/showing,web-tools-map-showing.desk.jpg,web-tools-map-showing.phone.jpg,2026-10-28,app/index.html?view=map&tab=showing,slots @69,linked-swiper

@@ -107,7 +107,7 @@ definition and are observed across its units:
   makes such a pattern checkable without making it a component.
 - **How many units use it, and in which apps.** The Dimensions view counts
   each code's units in scope.
-- **How its declarations fared.** The Gallery says, under each Body code,
+- **How its declarations fared.** The Units view says, under each Body code,
   which kit draws it in how many of its units, and how many units declare
   it and hold.
 

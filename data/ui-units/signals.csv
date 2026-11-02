@@ -16,7 +16,7 @@ web-tools:lib/alpineComponents/file-review.js,web-tools,1781,0,0,0,1,0,0,0,0,0,0
 web-tools:lib/alpineComponents/here-view.js,web-tools,926,1,0,0,0,0,0,0,0,1,0,0,1,0,0,3,0,1,1,1,page-storage;persistence;swipe-deck;traffic-log,yes,,
 web-tools:lib/alpineComponents/idb-importer.js,web-tools,304,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,0,1,1,,,,
 web-tools:lib/alpineComponents/idb-tree.js,web-tools,125,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,,,,
-web-tools:lib/alpineComponents/map.js,web-tools,15703,6,0,1,10,0,0,0,39,1,0,2,194,11,0,0,0,2,0,30,call-answer;call-marks;closing-state;csv;doc-growth;doc-index;dock-split;file-deck;git-attributes;land;linked-swiper;md-diff;md-doc;md-variants;panel-tip;record-deck;route-activity;route-join;source-peek;src-doc;swipe-deck;title-tip;user-calls,,,
+web-tools:lib/alpineComponents/map.js,web-tools,15603,6,0,1,10,0,0,0,39,1,0,2,194,11,0,0,0,2,0,30,call-answer;call-marks;closing-state;csv;doc-growth;doc-index;dock-split;file-deck;git-attributes;land;linked-swiper;md-diff;md-doc;md-variants;panel-tip;record-deck;route-activity;route-join;source-peek;src-doc;swipe-deck;title-tip;user-calls,,,
 web-tools:lib/alpineComponents/mention.js,web-tools,452,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,,,,
 web-tools:lib/alpineComponents/path-picker.js,web-tools,489,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,1,,,,
 web-tools:lib/alpineComponents/powershell-file.js,web-tools,303,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,2,2,1,,,,
