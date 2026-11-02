@@ -20,12 +20,9 @@
   button in a dialog (html-style rule 13). An SVG sketch renders as an image,
   so it cannot run script and its marker ids cannot collide; an HTML sketch
   renders inline, cleaned first. Picks and notes stay in this browser, keyed by the board's
-  address without its ref, and leave as text through Copy. Opened on a pick call
-  (#user-call=, web-tools-private user-calls/user-call.py) whose board names the
-  board's JSON, the page also sends them, as the image board does: one line in
-  the call's answers.jsonl through UserCallForm.postAnswer, commented on the
-  call's pull request where it names one, and the latest line read back as the
-  starting picks.
+  address without its ref. They leave as text through Copy, and through Send
+  when the page is opened on a pick call (#user-call=); docs/idea-board.md
+  (Returning picks) states what Send writes.
 
   Each idea is one card: its commentary, a short and qualified discussion of
   what the option brings, then its sketch, then the reader's star and note. The
