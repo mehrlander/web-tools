@@ -287,3 +287,13 @@ test('a CSV or TSV peeks as a table of its first rows', () => {
   assert.match(html, /<td[^>]*>one, two<\/td>/);
   assert.ok(SP.body('x.csv', Array.from({ length: 60 }, (_, i) => 'r' + i).join('\n')).truncated, 'a long table is an excerpt');
 });
+
+// The grid's columns follow the viewer's rule: the title as written and
+// escaped, a field unique per column, colN for a blank or repeated header.
+test('a table peek builds the grid the viewer builds: unique fields, escaped titles', () => {
+  const { columns, data } = SP.gridOf([['id', '', 'id', '<b>'], ['a', 'b', 'c', 'd']]);
+  assert.deepEqual(columns.map(c => c.field), ['id', 'col2', 'col3', '<b>']);
+  assert.equal(columns[3].title, '&lt;b&gt;');
+  assert.deepEqual(data, [{ id: 'a', col2: 'b', col3: 'c', '<b>': 'd' }]);
+  assert.deepEqual(SP.cellsOf('x.csv', 'a,"b,c"\r\n1,2\n'), [['a', 'b,c'], ['1', '2']]);
+});
