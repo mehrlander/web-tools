@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="testing program">
+  <title>testing program</title>
+  <desc>A shield with a check on it, cut from an amber-600 tile: the shield open, the check left in the tile's colour. Drawn on the drawn-mark box and rules (docs/favicons/README.md): solid fills, no strokes, and every gap at least 2.5 units, which is about 1.4 CSS pixels at 16. The ideas it was chosen from are in docs/prototypes/program-mark-ideas.html.</desc>
+  <mask id="cut" maskUnits="userSpaceOnUse" x="0" y="0" width="32" height="32">
+    <rect width="32" height="32" fill="#fff"/>
+    <path fill="#000" d="M16 5.25L25.24 8.11V15.15C25.24 22.85 19.7 26.15 16 27.25C12.3 26.15 6.76 22.85 6.76 15.15V8.11Z"/>
+    <g fill="#fff"><path d="M10.35 17.12 L13.86 21.3 L15.92 19.56 L12.41 15.38Z"/><path d="M15.97 21.24 L21.89 13.32 L19.72 11.7 L13.81 19.62Z"/><circle cx="11.38" cy="16.25" r="1.35"/><circle cx="14.89" cy="20.43" r="1.35"/><circle cx="20.8" cy="12.51" r="1.35"/></g>
+  </mask>
+  <g fill="#d97706" mask="url(#cut)"><rect x="2" y="2.25" width="28" height="28" rx="7"/></g>
+</svg>

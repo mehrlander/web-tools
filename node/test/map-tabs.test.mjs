@@ -72,13 +72,14 @@ const MAP_ROUTES = [...routeKeys('MAP_TABS'), ...routeKeys('MAP_SUBVIEWS')];
 // Since 2026-10-13 the Map has two doors: Overview (what the hub is and holds:
 // Contents and Purpose) and Reach (what it covers: the routes diagram, which
 // Reach lands on and so shares its key with, then Projects, Distribution,
-// Outposts and Data). Icons joined Overview on 2026-10-23, and Attributes
-// joined Data on 2026-10-29.
+// Outposts and Data). Icons joined Overview on 2026-10-23, Attributes joined
+// Data on 2026-10-29, and Programs moved from Harness to Overview on
+// 2026-11-01.
 const GROUPS = [
-  ['Overview', [['overview', 'Contents'], ['aims', 'Purpose'], ['icons', 'Icons']]],
+  ['Overview', [['overview', 'Contents'], ['aims', 'Purpose'], ['programs', 'Programs'], ['icons', 'Icons']]],
   ['Reach', [['reach', 'Routes'], ['projects', 'Projects'], ['distribution', 'Distribution'], ['outposts', 'Outposts']]],
   ['Research', [['research', 'Probes'], ['exploration', 'Exploration']]],
-  ['Harness', [['harness', 'Automation'], ['programs', 'Programs'], ['set', 'Set'], ['tests', 'Tests'], ['skills', 'Skills'], ['agents', 'Agents'], ['peeves', 'Peeves'], ['context', 'Context'], ['lifetimes', 'Lifetimes'], ['surfacing', 'Surfacing']]],
+  ['Harness', [['harness', 'Automation'], ['set', 'Set'], ['tests', 'Tests'], ['skills', 'Skills'], ['agents', 'Agents'], ['peeves', 'Peeves'], ['context', 'Context'], ['lifetimes', 'Lifetimes'], ['surfacing', 'Surfacing']]],
   ['Browser', [['model', 'Model'], ['units', 'Units'], ['patterns', 'Patterns'], ['dimensions', 'Dimensions'], ['views', 'Views'], ['kits', 'Kits'], ['showing', 'Showing'], ['fab', 'FAB']]],
   ['Docs', [['docs', 'Inventory'], ['growth', 'Growth'], ['policy', 'Policy'], ['themes', 'Themes']]],
   ['Data', [['data', 'Tables'], ['attributes', 'Attributes']]],
