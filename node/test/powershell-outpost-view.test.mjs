@@ -332,7 +332,7 @@ test('the record survives a reload, and GitHub moving turns it into "changed sin
   assert.equal(data.lastTransfer[FORMS], undefined, 'a download of older bytes is not evidence of transferring the new file');
   assert.equal(data.stateOf(FORMS).label, 'GitHub changed since verification');
   data.select(FORMS); await settle();
-  assert.match(el.querySelector('[data-status-line]').textContent, /^Shipped, newer than the adopted copy · adopted \d{4}-\d{2}-\d{2}$/);
+  assert.match(el.querySelector('[data-status-line]').textContent, /^Shipped, newer than the adopted copy · last adopted \d{4}-\d{2}-\d{2}$/);
   // A later copy that differs from the new revision contradicts the record.
   await window.__shell.openCorrespondence({ repo: 'mehrlander/home', ref: 'main', path: FORMS }, 'something else\n', 'Forms.psm1', 'drop');
   await settle();
@@ -1152,6 +1152,24 @@ test('a pending update opens on Changes, a card per block; a pasted copy reads a
     await data.compareMatch(data.match.files[0]); await settle();
     assert.equal(data.selected, FORMS); assert.equal(data.copyNote.fragment, true);
     assert.equal(requests.filter(r => r.method !== 'GET').length, writes, 'none of this writes');
+    // The procedure is the unit: the file counts its changes since the known
+    // version, and stays Shipped until each is recorded adopted.
+    for (let i = 0; i < 100 && !data.adoption[FORMS]; i++) await tick(2);
+    assert.equal(data.statusOf(FORMS).label, 'Shipped, 2 changes pending');
+    const sha = async t => Buffer.from(await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(t))).toString('hex');
+    const A = (await window.PowerShellUnits.compare(earlier, files[FORMS])).units.find(u => u.name === 'A');
+    files[ledger] = JSON.stringify({ schema: 1, observations: [{ date: '2026-10-06T00:00:00.000Z', path: FORMS, revision: revision,
+      blob_sha: 'd'.repeat(40), before_sha256: 'e'.repeat(64), result_sha256: 'f'.repeat(64), note: '',
+      units: [{ name: 'A', kind: 'Function', action: 'Replace', start: 0, end: 1, after_start: 0, after_end: 1,
+        before_sha256: 'e'.repeat(64), after_sha256: await sha(A.after) }] }] });
+    data.checks = []; advanceHead(); await data.reload(); await settle();
+    for (let i = 0; i < 100 && !data.adoption[FORMS]; i++) await tick(2);
+    assert.equal(data.statusOf(FORMS).label, 'Shipped, 1 change pending', 'A is adopted; D is not');
+    assert.equal(data.statusOf(FORMS).short, 'Shipped');
+    data.select(FORMS); await settle();
+    for (let i = 0; i < 100 && !data.unitAdopted.length; i++) await tick(2);
+    assert.match(data.changeMeta(data.visibleUnits.find(u => u.name === 'A')), /^Adopted · /);
+    assert.doesNotMatch(data.changeMeta(data.visibleUnits.find(u => u.name === 'D')), /Adopted/);
   } finally {
     parser.delete(); window.PowerShellUnits = null; window.PowerShellMatch = undefined; history = null;
     Object.assign(files, { [mp]: saved.manifest, [FORMS]: saved.forms, [ledger]: saved.ledger }); advanceHead(); await data.reload();
@@ -1178,7 +1196,7 @@ test('a module or form opens whole from its name, and every name in it opens whe
     heads()[0].click(); await settle();
     await poll(() => data.resource === 'Modules/Forms' && !data.resBusy && data.resReach, 'the module did not read');
     assert.equal(window.__shell.powershellOutpostItem, `${P}/app/Modules/Forms/`, 'the address names the folder');
-    assert.match(el.querySelector('[data-resource-figure]').textContent, /^1 file · 3 functions( · 1 to adopt)?$/);
+    assert.match(el.querySelector('[data-resource-figure]').textContent, /^1 file · 3 functions( · (1 file|\d+ changes?) to adopt)?$/);
     assert.deepEqual([...data.resReachGroups.map(g => g.key + ':' + g.list.map(f => f.name).join())], ['outside:Import-Form', 'inside:Get-Helper', 'none:Show-Nothing']);
     assert.match(el.querySelector('[data-function] [data-caller]').textContent, /Profile\.ps1/, 'its caller, named');
     assert.match(el.querySelector('[data-resource-neighbours]').textContent, /Loaded by\s+Profile\.ps1\s*import/);
