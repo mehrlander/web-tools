@@ -20,7 +20,7 @@
   const paths = {
     previous:'<path d="M5 5v14m14-14L8 12l11 7Z"/>', next:'<path d="M19 5v14M5 5l11 7-11 7Z"/>',
     play:'<path d="m8 4 12 8-12 8Z"/>', pause:'<path d="M8 4v16m8-16v16"/>',
-    down:'<path d="M3 9v6h4l5 4V5L7 9Zm13 3h6"/>', up:'<path d="M3 9v6h4l5 4V5L7 9Zm4 3h6m-3-3v6"/>',
+    down:'<path d="M3 9v6h4l5 4V5L7 9ZM16 12h6"/>', up:'<path d="M3 9v6h4l5 4V5L7 9ZM16 12h6m-3-3v6"/>',
     mute:'<path d="M3 9v6h4l5 4V5L7 9Zm13 0 6 6m0-6-6 6"/>'
   };
   function button(action,label,icon,enabled,large=false) {
