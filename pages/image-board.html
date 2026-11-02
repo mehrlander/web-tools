@@ -10,14 +10,12 @@
 <script type="module">
   // The image board, the form for a choice among found images (docs/forms): a
   // list of searches becomes a grid of found images, one section per search,
-  // and a tap picks one. Opened on a pick call, it answers like any call:
+  // and a tap picks one. The page is opened one of two ways.
   //   #call=owner/repo[@ref]:user-calls/<session>-<slug>.json
-  // reads the call (user-call/1, kind pick; web-tools-private
-  // user-calls/user-call.py), frames its question and brief, searches its
-  // board, and sends the picks to <id>.answers.jsonl beside it through
-  // UserCallForm.postAnswer, so a session reads them with `user-call.py
-  // answers`. Opened without a call, the board is its address and picks leave
-  // as text, one line each, to paste into a session:
+  // A pick call (web-tools-private user-calls/user-call.py, which states the
+  // call's fields and its answer) sets the searches and receives the picks.
+  // Without a call, the address sets the searches, and the picks are copied
+  // out as text to paste into a session:
   //   #q=gem,crystal,pickaxe   the searches, comma-separated
   //   &src=icons|commons       Iconify's open-licensed icon sets (default), or
   //                            Wikimedia Commons drawings and photos
@@ -198,9 +196,6 @@
     S.picks = picked(item.id) ? S.picks.filter(p => p.id !== item.id) : [...S.picks, item];
     S.copied = ''; save(); render();
   }
-  // The answer, shaped as every call's is ({answer, note, at, by}) plus the
-  // picks, appended beside the call; postAnswer reads fresh and retries a
-  // lost race, so two sends are two lines and the latest wins.
   async function send() {
     S.sending = true; S.err = ''; render();
     try {
@@ -245,8 +240,8 @@
     const levels = S.src !== 'icons' ? '' : `<div class="join ml-auto" role="radiogroup" aria-label="Grouping for ${esc(q)}">${LEVELS.map(([k, icon, name]) =>
       `<button type="button" role="radio" aria-checked="${levelOf(q) === k}" aria-label="${name}" data-level="${k}" data-q="${esc(q)}"
         class="btn btn-xs btn-square join-item ${levelOf(q) === k ? 'btn-neutral' : 'btn-ghost'}"><i class="ph-bold ${icon} text-base"></i></button>`).join('')}</div>`;
-    return `<section id="q-${esc(q)}" class="flex scroll-mt-24 flex-col gap-2.5">
-      <h2 class="flex items-center gap-2 pt-4">
+    return `<section id="q-${esc(q)}" class="flex flex-col gap-2.5">
+      <h2 class="flex items-center gap-2 pt-4 text-balance">
         <span class="font-semibold">${esc(q)}</span>
         <span class="text-xs text-base-content/40">${count}</span>${levels}</h2>${body}</section>`;
   }
@@ -298,7 +293,14 @@
     if (t.id === 'copy') return copy();
     if (t.id === 'send') return send();
     if (t.dataset.src) { S.src = t.dataset.src; loadAll(); return; }
-    if (t.dataset.jump) { e.preventDefault(); document.getElementById('q-' + t.dataset.jump)?.scrollIntoView({ block: 'start' }); return; }
+    // The sticky header's height varies (a call's brief, a phone's wrap), so
+    // a jump measures it rather than assuming a scroll margin.
+    if (t.dataset.jump) {
+      e.preventDefault();
+      const to = document.getElementById('q-' + t.dataset.jump);
+      if (to) scrollTo({ top: to.getBoundingClientRect().top + scrollY - document.getElementById('head').offsetHeight });
+      return;
+    }
     const item = byId(t.dataset.id); if (item) toggle(item);
   });
   addEventListener('submit', e => {
