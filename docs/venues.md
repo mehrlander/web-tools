@@ -1,10 +1,6 @@
 # Venues: where work can run
 
-Work in this estate runs in the places [venues.csv](venues.csv) lists, one row
-per venue: what each is and what work there reaches. Who works at each, and what
-starts them, are rows of [writers.csv](writers.csv); the Map view's Set tab
-boxes those writers by venue. This document keeps the dated observations about
-the venues, which a row cannot carry.
+Each venue is a row of [venues.csv](venues.csv), and who works at each is a row of [writers.csv](writers.csv).
 
 This account has no self-hosted Claude Code Remote pool (`ccpool_`), as of
 2026-10-13.
@@ -22,9 +18,7 @@ This account has no self-hosted Claude Code Remote pool (`ccpool_`), as of
 - Remote Control (on a session started there) and Dispatch reach the laptop
   from the phone.
 
-[writers.csv](writers.csv)'s `machine`, [run-methods.csv](run-methods.csv)'s
-`venues` and an errand's `run.venue` each name a venue by its key in venues.csv;
-the tracker's `venue:` tag names programs instead.
+The tracker's [`venue:` tag](TRACKER.md#two-conventional-open-tags-venue-and-action) names something else and is not keyed to these rows.
 
 Checked 2026-10-13 against this account's environments, the pull requests behind
 the `codex/` branches, and press reports of Anthropic's Cowork and Dispatch
