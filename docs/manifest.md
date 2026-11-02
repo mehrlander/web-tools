@@ -245,9 +245,10 @@ branch. The scripts an errand runs stay on main (`errands/prompts/`, `sites/`),
 where `run.script` addresses them; web-tools-private's README, "Three layers",
 says why the records moved.
 
-An errand can also be a [reception link](../node/reception-link.mjs), with no
-record: one runs a session's function on what you paste, in a page that opens
-no connection, and hands only the result to the Stage.
+An errand with no record can travel as a [reception link](../pages/reception.html),
+minted by `npm run -s reception-link`: it runs a session's function on what you
+paste, keeps the paste in the browser, and returns only the result, copied back
+or sent to the Stage.
 
 Four methods need no one at the Stage, because none borrows the Stage's
 token:

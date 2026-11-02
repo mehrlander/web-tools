@@ -6,23 +6,23 @@
 // data in the browser.
 //
 // Usage:
-//   npm run -s reception-link -- <fn.js> [--label "<label>"] [--note "<what is wanted>"] [--dest <owner/repo[@ref]:folder>] [--file <name>] [--page <url>]
+//   npm run -s reception-link -- <fn.js> --note "<what is wanted>" [--label "<label>"] [--dest <owner/repo[@ref]:folder>] [--file <name>] [--page <url>]
 //
 // <fn.js> holds the source of one function, (rows, text) => result; rows are
-// the paste as a table, text the paste itself. --label and --note are what the
-// page shows. --dest and --file are named as an errand's are (docs/manifest.md,
-// "Errands"): where the page's Send aims the Stage, and the result's file name;
-// without --dest the reader copies the result. The payload is {label?, note?,
-// fn, dest?, file?} as JSON, gzipped, base64url, in #gz=, the form
-// kits/gz-payload.js reads. --page points the link at another copy of the page,
-// such as a local server under test. The link goes to stdout and its length to
-// stderr.
+// the paste as a table, text the paste itself. --note says what is wanted, as
+// every errand's note does, and --label heads the page. --dest and --file are
+// named as an errand's are (docs/manifest.md, "Errands"): where the page's Send
+// aims the Stage, and the result's file name; without --dest the reader copies
+// the result. The payload is {label?, note, fn, dest?, file?} as JSON,
+// gzipped, base64url, in #gz=, the form kits/gz-payload.js reads. --page points
+// the link at another copy of the page, such as a local server under test. The
+// link goes to stdout and its length to stderr.
 
 import { readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 
 const PAGE = 'https://mehrlander.github.io/web-tools/pages/reception.html';
-const USAGE = 'Usage: npm run -s reception-link -- <fn.js> [--label "<label>"] [--note "<what is wanted>"] [--dest <owner/repo[@ref]:folder>] [--file <name>] [--page <url>]';
+const USAGE = 'Usage: npm run -s reception-link -- <fn.js> --note "<what is wanted>" [--label "<label>"] [--dest <owner/repo[@ref]:folder>] [--file <name>] [--page <url>]';
 const fail = (msg) => { console.error('reception-link: ' + msg); process.exit(1); };
 
 const args = process.argv.slice(2);
@@ -37,6 +37,7 @@ for (let i = 0; i < args.length; i++) {
   else src = a;
 }
 if (!src) fail('name the function file');
+if (!opt.note) fail('--note says what is wanted, as every errand does');
 if (opt.dest && !/^[^/@:\s]+\/[^/@:\s]+(?:@[^:\s]+)?:\S+$/.test(opt.dest)) fail('--dest takes owner/repo[@ref]:folder');
 if (opt.file && !opt.dest) fail('--file names the result for --dest; give --dest too');
 

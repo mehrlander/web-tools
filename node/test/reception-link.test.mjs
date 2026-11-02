@@ -1,5 +1,5 @@
 // node/reception-link.mjs mints the link pages/reception.html reads: the
-// payload {label?, note?, fn, dest?, file?} gzipped and base64url in #gz=,
+// payload {label?, note, fn, dest?, file?} gzipped and base64url in #gz=,
 // which kits/gz-payload.js decodes. These hold the minter to that contract.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -22,19 +22,20 @@ test('the link carries the label, the note and the function, and opens the page'
   assert.deepEqual(payload(url), { label: 'Counts', note: 'Paste a sheet', fn: '(rows) => rows.length' });
 });
 
-test('the label and the note are optional', () => {
-  assert.deepEqual(payload(mint(fn)), { fn: '(rows) => rows.length' });
+test('the note is required and the label optional', () => {
+  assert.deepEqual(payload(mint(fn, '--note', 'N')), { note: 'N', fn: '(rows) => rows.length' });
+  assert.throws(() => mint(fn));
 });
 
 test('--dest and --file ride as an errand names them', () => {
-  const p = payload(mint(fn, '--dest', 'mehrlander/home@main:projects/x/dump', '--file', 'out.tsv'));
+  const p = payload(mint(fn, '--note', 'N', '--dest', 'mehrlander/home@main:projects/x/dump', '--file', 'out.tsv'));
   assert.deepEqual([p.dest, p.file], ['mehrlander/home@main:projects/x/dump', 'out.tsv']);
 });
 
 test('a malformed --dest, a --file without --dest, and a file that is not a function are refused', () => {
-  assert.throws(() => mint(fn, '--dest', 'projects/x/dump'));
-  assert.throws(() => mint(fn, '--file', 'out.tsv'));
+  assert.throws(() => mint(fn, '--note', 'N', '--dest', 'projects/x/dump'));
+  assert.throws(() => mint(fn, '--note', 'N', '--file', 'out.tsv'));
   const bad = path.join(dir, 'bad.js');
   writeFileSync(bad, 'rows => {');
-  assert.throws(() => mint(bad));
+  assert.throws(() => mint(bad, '--note', 'N'));
 });
