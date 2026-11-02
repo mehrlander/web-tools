@@ -22,10 +22,10 @@
   renders inline, cleaned first. Picks and notes stay in this browser, keyed by the board's
   address without its ref, and leave as text.
 
-  An idea's card has two faces, the proposal and the commentary, and one
-  switch turns every card at once; docs/idea-board.md (Faces) states what each
-  face shows and when the switch appears. setFace() explains how both the strip
-  and the deck follow the switch with nothing redrawn.
+  Each idea is one card: its commentary, a short and qualified discussion of
+  what the option brings, then its sketch, then the reader's star and note. The
+  strip's header and the deck's subtitle name the card in view, so the card
+  spends no room on its own title. docs/idea-board.md (Cards) states the rest.
 -->
 <script>window.__depsReady = new Promise(r => { window.__depsDone = r; });</script>
 <script type="module">
@@ -58,6 +58,12 @@ document.addEventListener('alpine:init', () => {
     d.querySelectorAll('*').forEach(e => [...e.attributes].forEach(a => (/^on/i.test(a.name) || /^\s*javascript:/i.test(a.value)) && e.removeAttribute(a.name)));
     return d.body.innerHTML;
   };
+  // A commentary's formatting: paragraphs at blank lines, line breaks kept,
+  // **bold** and `code`, everything else escaped.
+  const prose = t => String(t || '').trim().split(/\n\s*\n/).map(p => '<p>' + esc(p)
+    .replace(/\*\*([^*]+)\*\*/g, '<strong class="font-semibold">$1</strong>')
+    .replace(/`([^`]+)`/g, '<code class="rounded bg-base-200 px-1 font-mono text-[0.9em]">$1</code>')
+    .replace(/\n/g, '<br>') + '</p>').join('');
   const tokenNow = () => {
     if (window.TOKEN) return window.TOKEN;
     return window.ghAuth?.resolve() || '';
@@ -66,7 +72,6 @@ document.addEventListener('alpine:init', () => {
 
   Alpine.data('ideaBoard', () => ({
     B: null, addr: '', err: '', cur: 0, copied: false, picks: [], notes: {}, strip: null, deck: null,
-    face: param('face') === 'commentary' ? 'commentary' : 'proposal',
     // Slide 0 is the brief, 1 to n the ideas, and the last the selection.
     get count() { return this.B.ideas.length + 2; },
     get last() { return this.B.ideas.length + 1; },
@@ -77,7 +82,6 @@ document.addEventListener('alpine:init', () => {
 
     async init() {
       await window.__depsReady;
-      document.documentElement.dataset.face = this.face;
       try { this.B = await this.read(); } catch (e) { this.err = e.message; return; }
       for (const d of this.B.ideas) {
         const svg = /^\s*<svg/i.test(d.sketch);
@@ -126,50 +130,11 @@ document.addEventListener('alpine:init', () => {
       return (S.grafts.find(([g]) => g === n) || [])[1] || '';
     },
 
+    // A board written before the commentary field held encounter and helps;
+    // they are read as its commentary, in that order.
+    commentary(d) { return d.commentary != null ? d.commentary : [d.encounter, d.helps].filter(Boolean).join('\n\n'); },
     mark(kind, size = 16) { return window.CallMarks ? window.CallMarks.svg(kind, { size }) : ''; },
 
-    // THE FACE IS THE BOARD'S, NOT A CARD'S. It is an attribute on the root, and
-    // each face hides itself below xl when the other is chosen, so the strip and
-    // the deck (mounted outside this component) both follow it with nothing
-    // redrawn, and a note half written survives the flip.
-    setFace(f) {
-      this.face = f;
-      document.documentElement.dataset.face = f;
-      const h = location.hash.replace(/(^#|&)face=[^&]*/g, '').replace(/^#?&?/, '');
-      const nh = f === 'commentary' ? (h ? h + '&' : '') + 'face=commentary' : h;
-      try { history.replaceState(null, '', location.pathname + location.search + (nh ? '#' + nh : '')); } catch (e) {}
-      this.paintFace();
-    },
-    // One switch, built as plain DOM so the deck's header can carry a copy.
-    // Both buttons are marks alone: a label shown only on the selected button
-    // changed the switch's width on every tap and left the other option
-    // unnamed (snag label-only-on-the-selected-option). The marks need no
-    // caption, so the header's room goes to the card's name.
-    faceSwitch() {
-      const wrap = document.createElement('span');
-      wrap.className = 'join xl:hidden shrink-0';
-      wrap.setAttribute('role', 'group');
-      wrap.setAttribute('aria-label', 'Face');
-      for (const f of ['proposal', 'commentary']) {
-        const b = document.createElement('button');
-        b.type = 'button';
-        b.dataset.faceBtn = f;
-        b.className = 'btn btn-sm btn-square join-item';
-        b.onclick = () => this.setFace(f);
-        wrap.append(b);
-      }
-      queueMicrotask(() => this.paintFace());
-      return wrap;
-    },
-    paintFace() {
-      document.querySelectorAll('[data-face-btn]').forEach(b => {
-        const f = b.dataset.faceBtn, on = f === this.face, name = window.CallMarks?.LABEL[f] || f;
-        b.classList.toggle('btn-active', on);
-        b.setAttribute('aria-pressed', on);
-        b.setAttribute('aria-label', name);
-        b.innerHTML = this.mark(f, 18);
-      });
-    },
     // The deck's subtitle names the card in view, as the strip's header does.
     deckSub() { const i = this.cur; return i > 0 && i < this.last ? i + ' ' + this.at(i).title : this.label(i); },
 
@@ -192,7 +157,7 @@ document.addEventListener('alpine:init', () => {
       setTimeout(() => { settled = true; }, 600);
       this.deck = swipeDeck.open({
         count: this.count, start, render: (k, el) => this.render(k, el),
-        title: this.B.title, subtitle: this.deckSub(), icon: 'ph-squares-four', actions: [this.faceSwitch()],
+        title: this.B.title, subtitle: this.deckSub(), icon: 'ph-squares-four',
         index: k => ({ title: this.label(k), subtitle: this.at(k)?.kind || '' }),
         onSlide: k => { if (!settled) { if (k !== start) return; settled = true; } this.sync(k, 'deck'); },
         onClose: () => { this.deck = null; },
@@ -224,32 +189,17 @@ document.addEventListener('alpine:init', () => {
     render(i, el) {
       if (i === 0) return this.renderBrief(el);
       if (i === this.last) return this.renderSelection(el);
-      const d = this.at(i), role = this.role(d.n);
-      // Each face is one block. The proposal is the sketch with its summary
-      // (encounter) as the caption; the commentary is one paragraph, the
-      // concept's kind, what it helps with and its place in the selection,
-      // with the thumbnail inset so a swipe through commentaries keeps its bearings.
-      const kind = esc(d.kind.charAt(0).toUpperCase() + d.kind.slice(1));
-      const place = role ? ' <span class="text-base-content/60">In the selection: ' + (role === 'base' ? 'base' : 'graft, ' + esc(role)) + '.</span>' : '';
-      el.innerHTML = `<div class="grid gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] xl:items-start">
-        <section data-face-part="proposal" class="grid gap-3 content-start max-xl:in-data-[face=commentary]:hidden">
-          ${this.sketch(d, 'border border-base-300 rounded-box p-2')}
-          <p class="text-pretty">${esc(d.encounter)}</p>
-        </section>
-        <section data-face-part="commentary" class="grid gap-4 content-start max-xl:in-data-[face=proposal]:hidden">
-          <div class="flow-root">
-            <button data-flip class="float-left mr-4 mb-1 block rounded-box border border-base-300 overflow-hidden bg-white xl:hidden" aria-label="Show the proposal">
-              ${d.src ? `<img src="${d.src}" alt="" class="block h-24 w-auto max-w-28 object-contain">` : `<span class="grid place-items-center h-24 w-20 text-primary">${this.mark('proposal', 28)}</span>`}
-            </button>
-            <p class="text-pretty"><span class="font-semibold">${kind}.</span> ${esc(d.helps)}${place}</p>
-          </div>
-          <div class="grid grid-cols-[auto_minmax(0,1fr)] gap-2 items-start">
-            <button data-pick="${d.n}" class="btn btn-ghost btn-square text-xl" aria-label="Pick"></button>
-            <textarea data-note class="textarea w-full text-base" rows="2" placeholder="Note"></textarea>
-          </div>
-        </section>
+      const d = this.at(i);
+      // One card: the commentary first, then the sketch, then the reader's star
+      // and note. From xl the sketch takes the right-hand column beside both.
+      el.innerHTML = `<div class="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] xl:grid-rows-[auto_minmax(0,1fr)] xl:items-start">
+        <div class="grid gap-3 text-pretty">${prose(this.commentary(d))}</div>
+        <div class="xl:col-start-2 xl:row-start-1 xl:row-span-2">${this.sketch(d, 'border border-base-300 rounded-box p-2')}</div>
+        <div class="grid grid-cols-[auto_minmax(0,1fr)] gap-2 items-start">
+          <button data-pick="${d.n}" class="btn btn-ghost btn-square text-xl" aria-label="Pick"></button>
+          <textarea data-note class="textarea w-full text-base" rows="2" placeholder="Note"></textarea>
+        </div>
       </div>`;
-      el.querySelector('[data-flip]').onclick = () => this.setFace('proposal');
       el.querySelector('[data-pick]').onclick = () => { this.toggle(d.n); this.paint(d.n); };
       this.paint(d.n);
       this.note(el, d.n);
@@ -373,7 +323,6 @@ document.addEventListener('alpine:init', () => {
           </span>
           <button class="btn btn-ghost btn-sm btn-square" @click="sync(Math.max(0, cur - 1), 'list')" aria-label="Previous"><i class="ph ph-caret-left text-lg"></i></button>
           <button class="btn btn-ghost btn-sm btn-square" @click="sync(Math.min(count - 1, cur + 1), 'list')" aria-label="Next"><i class="ph ph-caret-right text-lg"></i></button>
-          <span class="flex" x-init="$el.append(faceSwitch())"></span>
           <button class="btn btn-ghost btn-sm btn-square" @click="expand()" aria-label="Expand" data-title-tip="Expand"><i class="ph ph-arrows-out text-lg"></i></button>
         </div>
         <div x-ref="track" class="min-h-0 min-w-0 h-full"></div>

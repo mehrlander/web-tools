@@ -23,7 +23,7 @@ the board that was handed over.
 | --- | --- |
 | `title`, `subject`, `made` | the board's name, what it is about, and the date |
 | `brief.result`, `brief.musts[]` | the intended result and what the concept must show, from phase 1 |
-| `ideas[]` | eight concepts: `n`, `title`, `kind` (its principal difference), `encounter` (what readers meet), `helps` (what it helps them understand), `sketch` |
+| `ideas[]` | eight concepts: `n`, `title`, `kind` (its principal difference), `commentary`, `sketch` |
 | `selection.pick[]` | the base concept's `n` |
 | `selection.grafts[]` | `[n, what is taken from it]` pairs |
 | `selection.rationale`, `selection.assumptions[]` | why, and the open questions the choice rests on |
@@ -42,11 +42,11 @@ the board that was handed over.
   attributes and `javascript:` links are removed. Rows then carry no
   thumbnails, since the page cannot draw a reduced copy of a fragment.
 
-## Faces
+## Cards
 
-A board has four parts: the brief is its background, each idea has a proposal and a commentary, and the selection is its conclusion. [`lib/kits/call-marks.js`](../lib/kits/call-marks.js) draws an icon for each part: a book for the background, a bulb for the proposal, a speech bubble for the commentary and a stamp for the conclusion.
+A board has four parts: the brief is its background, each idea has a proposal and a commentary, and the selection is its conclusion. [`lib/kits/call-marks.js`](../lib/kits/call-marks.js) draws an icon for each part (a book, a bulb, a speech bubble and a stamp), and the page marks the brief with the book and the selection with the stamp.
 
-Each idea's card has two faces. The proposal face is the idea's `sketch`, with the idea's `encounter` below it as a summary. The commentary face is one paragraph, the idea's `kind`, its `helps` and its role in the selection (base or graft, from `selection.pick` and `selection.grafts`), then the reader's star and note. The header above the strip of cards names the card in view by its number and `title`. Below 1280 pixels wide, a switch of two icons in that header, the bulb and the speech bubble, repeated in the header of the full-screen deck the strip expands into, shows one face on every card, and `face=commentary` in the address opens on the commentary face; wider, the two faces sit side by side.
+Each idea is one card: its `commentary`, then its `sketch`, then the reader's star and note; from 1280 pixels wide the sketch sits beside the other two. The commentary is a short, qualified discussion of what the option brings, in paragraphs separated by a blank line, with `**bold**` and `` `code` `` the only marks drawn. The header above the strip of cards names the card in view by its number and `title`. A board written before `commentary` existed carries `encounter` and `helps` instead, and the page reads them as its commentary, in that order.
 
 ## Returning picks
 
