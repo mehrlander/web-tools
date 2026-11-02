@@ -9,6 +9,7 @@ if (!first) return;
 CompanionAccess.Ensure();
 var collector = new ActivityCollector();
 var computer = new ComputerReader();
+using var stereo = new StereoBridgeClient();
 var builder = WebApplication.CreateSlimBuilder(args);
 builder.Logging.ClearProviders();
 builder.WebHost.ConfigureKestrel(server => server.Listen(IPAddress.Loopback, port));
@@ -36,7 +37,8 @@ app.Use(async (context, next) => {
         await context.Response.WriteAsync("Connect through your private Tailscale address using the owner's account.");
         return;
     }
-    if (request.Method is not ("GET" or "HEAD")) {
+    var mediaAction = request.Method == "POST" && request.Path.StartsWithSegments("/api/v1/devices/stereo");
+    if (request.Method is not ("GET" or "HEAD") && !mediaAction) {
         context.Response.StatusCode = 405;
         context.Response.Headers.Allow = "GET, HEAD";
         return;
@@ -44,6 +46,14 @@ app.Use(async (context, next) => {
     // Same-origin reads only, with no CORS opt-in or cookie authentication.
     if (request.Headers.Origin.Count > 0 && request.Headers.Origin != "https://" + request.Host
         && request.Headers.Origin != "http://" + request.Host) {
+        context.Response.StatusCode = 403;
+        return;
+    }
+    // Browser controls need a same-origin POST and a custom header. Cross-site
+    // forms cannot supply that header, and no preflight/CORS access is offered.
+    if (mediaAction && (request.Headers["X-WebTools-Action"] != "1" || !local && request.Headers.Origin.Count != 1
+        || request.Headers["Sec-Fetch-Site"] == "cross-site" || request.QueryString.HasValue
+        || request.ContentLength is > 0 || request.Headers.TransferEncoding.Count > 0)) {
         context.Response.StatusCode = 403;
         return;
     }
@@ -68,6 +78,11 @@ app.MapGet("/api/v1/computer", (HttpContext context) => {
     if (context.Request.Headers.IfNoneMatch == etag) return Results.StatusCode(304);
     return Results.Bytes(payload, "application/json; charset=utf-8");
 });
+app.MapGet("/api/v1/devices", async (CancellationToken stop) => Results.Json(await stereo.Read(stop), json));
+app.MapPost("/api/v1/devices/stereo/{action}", async (HttpContext context, string action) => {
+    var result = await stereo.Execute(action, context.RequestAborted);
+    return Results.Json(new { result.Ok, result.Message }, json, statusCode: result.Status);
+});
 app.MapGet("/api/v1/results/{id}", (string id) => collector.Latest is { } activity && Activity.ValidId(id)
     && PhoneActivity.Reply(activity.Snapshot, id) is { } reply ? Results.Json(new { reply }, json) : Results.NotFound());
 
@@ -76,6 +91,8 @@ var assets = new Dictionary<string, (string File, string Type)> {
     ["/"] = ("index.html", "text/html; charset=utf-8"),
     ["/phone.js"] = ("phone.js", "text/javascript; charset=utf-8"),
     ["/computer.js"] = ("computer.js", "text/javascript; charset=utf-8"),
+    ["/devices.js"] = ("devices.js", "text/javascript; charset=utf-8"),
+    ["/views.js"] = ("views.js", "text/javascript; charset=utf-8"),
     ["/sw.js"] = ("sw.js", "text/javascript; charset=utf-8"),
     ["/reading.js"] = ("reading.js", "text/javascript; charset=utf-8"),
     ["/now-shared.js"] = ("now-shared.js", "text/javascript; charset=utf-8"),
