@@ -26,6 +26,7 @@ w.eval(read('../../lib/kits/claude-mark.js'));
 w.eval(read('../../lib/kits/assistant-mark.js'));
 w.eval(read('../shared/now-shared.js'));
 w.eval(read('../phone/computer.js'));
+w.eval(read('../phone/views.js'));
 w.eval(read('../phone/phone.js'));
 const flush = () => new Promise(resolve => setImmediate(resolve));
 const check = (condition,message) => { assert.ok(condition,message); checks++; };
