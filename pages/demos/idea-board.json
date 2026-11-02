@@ -2,7 +2,10 @@
   "title": "Branch drift, drawn",
   "subject": "How far a branch has moved from main",
   "made": "2026-10-12",
-  "brief": "A branch drifts from main as both move on. Whether it still merges cleanly depends on how far each side has moved, which files both have touched, and how long ago they parted, and today a reader pieces that together from three places.\n\nThe eight concepts below were sketched before any was judged. A concept succeeds if the reader can say at a glance whether the branch merges cleanly now and what makes it risky, so it must show the commits ahead and behind since the merge base, the files changed on both sides, and how old the merge base is.",
+  "brief": {
+    "background": "A branch drifts from main as both move on. Whether it still merges cleanly depends on how far each side has moved, which files both have touched, and how long ago they parted, and today a reader pieces that together from three places. A drawing should let the reader say at a glance whether the branch merges cleanly now and what makes it risky.",
+    "methodology": "The eight concepts were sketched before any was judged. Each had to show the commits ahead and behind since the merge base, the files changed on both sides, and how old the merge base is."
+  },
   "ideas": [
     {
       "n": 1,

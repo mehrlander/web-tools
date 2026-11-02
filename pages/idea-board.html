@@ -134,14 +134,17 @@ document.addEventListener('alpine:init', () => {
     // (docs/prototypes/md-edit-ideas.json, a write-once record) is read with
     // the two joined as its commentary.
     commentary(d) { return d.commentary != null ? d.commentary : [d.encounter, d.helps].filter(Boolean).join('\n\n'); },
-    // A board whose brief is result and musts[] (docs/prototypes/md-edit-ideas.json
-    // again) has the two read as prose: the result, then what a concept must show.
-    get briefText() {
-      const b = this.B.brief;
-      return typeof b === 'string' ? b : [b.result, (b.musts || []).length ? 'A concept must show ' + b.musts.map(m => /^.[a-z]/.test(m) ? m.charAt(0).toLowerCase() + m.slice(1) : m).join('; ') + '.' : ''].filter(Boolean).join('\n\n');
+    // [label, text] pairs: the brief's Background and Methodology. A brief of
+    // result and musts[] (docs/prototypes/md-edit-ideas.json again) is one
+    // unlabelled paragraph: the result, then what a concept must show.
+    get briefParts() {
+      const b = this.B.brief || {};
+      if (b.background || b.methodology) return [['Background', b.background], ['Methodology', b.methodology]].filter(([, t]) => t);
+      const musts = (b.musts || []).map(m => /^.[a-z]/.test(m) ? m.charAt(0).toLowerCase() + m.slice(1) : m);
+      return [[null, [b.result, musts.length ? 'A concept must show ' + musts.join('; ') + '.' : ''].filter(Boolean).join(' ')]];
     },
     // The brief's list row: its first paragraph, unformatted.
-    get briefLead() { return this.briefText.split(/\n\s*\n/)[0].replace(/\*\*|`/g, ''); },
+    get briefLead() { return (this.briefParts[0]?.[1] || '').replace(/\*\*|`/g, ''); },
     mark(kind, size = 16) { return window.CallMarks ? window.CallMarks.svg(kind, { size }) : ''; },
 
     // The deck's subtitle names the card in view, as the strip's header does.
@@ -214,13 +217,13 @@ document.addEventListener('alpine:init', () => {
       this.note(el, d.n);
     },
 
-    // The brief is prose, formatted as a commentary is, with its date beneath.
-    // It sits on a tinted, bordered panel in a serif face, so it reads as the
-    // board's own document and not as a ninth idea; the idea cards stay on the
-    // plain ground in the page's sans.
+    // The brief is its Background and its Methodology, a paragraph each under
+    // its label, on a tinted panel so it is not taken for a ninth idea, with the
+    // board's date beneath.
     renderBrief(el) {
-      el.innerHTML = `<div class="rounded-box border border-base-300 bg-base-200 px-5 py-4 grid gap-3 text-pretty font-serif">${prose(this.briefText)}
-        <p class="text-sm text-base-content/50 font-sans">${esc(this.B.made)}</p>
+      el.innerHTML = `<div class="rounded-box border border-base-300 bg-base-200 px-5 py-4 grid gap-4 text-pretty">
+        ${this.briefParts.map(([label, text]) => `<section class="grid gap-1">${label ? `<h3 class="text-sm font-semibold text-base-content/60">${label}</h3>` : ''}<div class="grid gap-3">${prose(text)}</div></section>`).join('')}
+        <p class="text-sm text-base-content/50">${esc(this.B.made)}</p>
       </div>`;
     },
 
