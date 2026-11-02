@@ -33,7 +33,7 @@ substituting the current repo in URL templates.
 
 * **SPUR.** Asked for a SPUR, a Summary of Proposal for Unfamiliar Reader, summarize the session's current proposal for someone who has not followed the session and knows none of the shorthand or coined terms the session uses.
 
-* **CDE.** Asked for a CDE of a term, give its Concept (the idea in plain words), Definition (the exact statement) and Examples. When the term's boundary is unclear, add a Foil: the nearest case it excludes, which the [Frayer model](https://en.wikipedia.org/wiki/Frayer_model) calls a non-example.
+* **CDE.** Asked for a CDE of a term, give its Concept (the idea in plain words), Definition (the exact statement) and Examples. When the term is easily confused with another, add a Foil: the nearest case the term excludes (a non-example in the [Frayer model](https://en.wikipedia.org/wiki/Frayer_model)).
 
 ## A reply that changed files
 
