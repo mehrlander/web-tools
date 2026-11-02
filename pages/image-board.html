@@ -52,8 +52,7 @@
     call: null, at: null, err: '', sent: null, sending: false, note: '',
   };
 
-  // A pick call sets the board and receives the answer. The latest answer
-  // already sent comes back as the starting picks.
+  // The latest answer already sent comes back as the starting picks.
   const callAt = P.get('call') ? window.RepoAddress?.parse(P.get('call')) : null;
   if (P.get('call') && !callAt) S.err = 'Not a call address: ' + P.get('call');
   if (callAt) {
