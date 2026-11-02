@@ -225,28 +225,24 @@ document.addEventListener('alpine:init', () => {
       if (i === 0) return this.renderBrief(el);
       if (i === this.last) return this.renderSelection(el);
       const d = this.at(i), role = this.role(d.n);
-      // A part of the commentary: its icon, whose tip names it, beside its text.
-      const part = (icon, tip, text) => `<dt class="pt-0.5 text-base-content/50" data-title-tip="${tip}" data-title-tip-bare aria-label="${tip}">${icon}</dt><dd class="text-pretty">${text}</dd>`;
-      const ph = c => `<i class="ph ${c} text-xl"></i>`;
-      const dl = 'grid grid-cols-[1.5rem_minmax(0,1fr)] gap-x-3 gap-y-3 content-start';
+      // Each face is one block. The proposal is the sketch with its summary
+      // (encounter) as the caption; the commentary is one paragraph, the
+      // concept's kind, what it helps with and its place in the selection,
+      // with the thumbnail inset so a swipe through commentaries keeps its bearings.
+      const kind = esc(d.kind.charAt(0).toUpperCase() + d.kind.slice(1));
+      const place = role ? ' <span class="text-base-content/60">In the selection: ' + (role === 'base' ? 'base' : 'graft, ' + esc(role)) + '.</span>' : '';
       el.innerHTML = `<div class="grid gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] xl:items-start">
-        <section data-face-part="proposal" class="grid content-start max-xl:in-data-[face=commentary]:hidden">
+        <section data-face-part="proposal" class="grid gap-3 content-start max-xl:in-data-[face=commentary]:hidden">
           ${this.sketch(d, 'border border-base-300 rounded-box p-2')}
+          <p class="text-pretty">${esc(d.encounter)}</p>
         </section>
         <section data-face-part="commentary" class="grid gap-4 content-start max-xl:in-data-[face=proposal]:hidden">
-          <div class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 items-start xl:grid-cols-1">
-            <button data-flip class="block rounded-box border border-base-300 overflow-hidden bg-white xl:hidden" aria-label="Show the proposal">
+          <div class="flow-root">
+            <button data-flip class="float-left mr-4 mb-1 block rounded-box border border-base-300 overflow-hidden bg-white xl:hidden" aria-label="Show the proposal">
               ${d.src ? `<img src="${d.src}" alt="" class="block h-24 w-auto max-w-28 object-contain">` : `<span class="grid place-items-center h-24 w-20 text-primary">${this.mark('proposal', 28)}</span>`}
             </button>
-            <dl class="${dl}">
-              ${part(ph('ph-shapes'), 'Its principal difference', esc(d.kind))}
-              ${role ? part(this.mark('conclusion', 20), 'Its part in the selection', role === 'base' ? 'Base' : 'Graft: ' + esc(role)) : ''}
-            </dl>
+            <p class="text-pretty"><span class="font-semibold">${kind}.</span> ${esc(d.helps)}${place}</p>
           </div>
-          <dl class="${dl}">
-            ${part(ph('ph-eye'), 'What the reader meets', esc(d.encounter))}
-            ${part(ph('ph-brain'), 'What it helps the reader understand', esc(d.helps))}
-          </dl>
           <div class="grid grid-cols-[auto_minmax(0,1fr)] gap-2 items-start">
             <button data-pick="${d.n}" class="btn btn-ghost btn-square text-xl" aria-label="Pick"></button>
             <textarea data-note class="textarea w-full text-base" rows="2" placeholder="Note"></textarea>
