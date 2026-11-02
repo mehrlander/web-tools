@@ -1,24 +1,25 @@
 (() => {
   'use strict';
-  const el = id => document.getElementById(id), positions = {now:0,computer:0,devices:0};
+  const el = id => document.getElementById(id), positions = {now:0,computer:0,devices:0,repositories:0};
   let current = 'now';
-  const panel = () => current === 'devices' ? window.NowDevices : window.NowComputer;
-  const name = () => ['computer','devices'].includes(new URLSearchParams(location.hash.slice(1)).get('view')) ? new URLSearchParams(location.hash.slice(1)).get('view') : 'now';
+  const panel = () => ({computer:window.NowComputer,devices:window.NowDevices,repositories:window.NowRepositories})[current];
+  const name = () => ['computer','devices','repositories'].includes(new URLSearchParams(location.hash.slice(1)).get('view')) ? new URLSearchParams(location.hash.slice(1)).get('view') : 'now';
   function setView(next, navigate = true) {
     if (current !== next) positions[current] = scrollY;
     current = next;
     if (navigate) history.pushState(null,'',next === 'now' ? location.pathname + location.search : '#view=' + next);
-    el('view-title').textContent = {now:'Now',computer:'Computer',devices:'Devices'}[next];
+    el('view-title').textContent = {now:'Now',computer:'Computer',devices:'Devices',repositories:'Repositories'}[next];
     document.title = el('view-title').textContent + ' | Web Tools';
     el('overview').hidden = false; el('detail').hidden = true;
     for (const id of ['assistants','notice','content','source-times']) el(id).hidden = next !== 'now';
-    for (const id of ['computer','devices']) el(id).hidden = next !== id;
+    for (const id of ['computer','devices','repositories']) el(id).hidden = next !== id;
     for (const button of document.querySelectorAll('[data-view]')) {
       if (button.dataset.view === next) button.setAttribute('aria-current','page');
       else button.removeAttribute('aria-current');
     }
     window.NowComputer?.setActive(next === 'computer');
     window.NowDevices?.setActive(next === 'devices');
+    window.NowRepositories?.setActive(next === 'repositories');
     window.dispatchEvent(new CustomEvent('nowviewchange'));
     scrollTo(0,positions[next]);
   }

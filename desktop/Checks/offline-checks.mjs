@@ -32,6 +32,7 @@ check(entries.includes('/') && entries.includes('/computer.js') && entries.every
 check(await request('/api/v1/now') === undefined && await request('/api/v1/computer') === undefined && await request('/api/v1/results/example') === undefined,'Private API requests always bypass the worker.');
 check(await request('/phone.js','POST') === undefined && await request('https://foreign.example/phone.js') === undefined,'Write requests and other origins bypass the interface worker.');
 check(await request('/api/v1/devices') === undefined && await request('/api/v1/devices/stereo/mute','POST') === undefined,'Device observations and media controls bypass the worker without caching or offline replay.');
+check(await request('/api/v1/repositories') === undefined && await request('/api/v1/repositories/all/fetch','POST') === undefined,'Repository observations and fetch actions bypass offline caching and replay.');
 network='offline';
 check((await(await request('/?version=2')).text()).includes('Interface /'),'A saved interface can reload offline despite a cache-busting page query.');
 check((await(await request('/computer.js')).text()).includes('Interface /computer.js'),'The Computer interface can load offline.');

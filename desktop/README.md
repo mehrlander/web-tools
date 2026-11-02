@@ -138,7 +138,7 @@ open the existing hosted app, with that browser's own Web Tools authentication.
 `WebTools.Companion` listens only at `127.0.0.1:47831`. Tailscale Serve proxies that
 listener and supplies the owner's identity header. The companion accepts the owner
 identity or a per-user local bearer, validates the Host and Origin, disables HTTP
-caching, and offers no CORS access. Only the six Stereo Bridge actions accept POST,
+caching, and offers no CORS access. Stereo Bridge actions and repository fetches accept POST,
 with a deliberate-action header and a same-origin browser request. Other Tailscale identities are
 denied. The desktop-only route requires the local bearer even through Serve.
 Access settings, including the bearer, live in `companion-access.json` beside
@@ -152,13 +152,16 @@ desktop settings; those settings never enter API responses or tracked files.
 - `GET /api/v1/computer`: current Windows session state, machine measurements and
   grouped desktop application windows, with a separate window-observation time.
 - `GET /api/v1/devices`: Stereo Bridge's current media and playback capabilities.
+- `GET /api/v1/repositories`: local checkout state and dated GitHub comparisons.
+- `POST /api/v1/repositories/<key>/fetch`: queue a fetch for a discovered repository,
+  or `all`, without integrating changes into any working branch.
 - `POST /api/v1/devices/stereo/<action>`: previous, play-pause, next, volume-down,
   mute or volume-up. Controls require the same owner access as observations.
 - `GET /api/v1/desktop`: full desktop snapshot for the authenticated local app.
 
 ### Computer view
 
-The phone's title menu switches between Now, Computer and Devices, retaining each view's
+The phone's title menu switches between Now, Computer, Devices and Repositories, retaining each view's
 reading position. Computer shows application icons, names and window counts;
 tapping an app reveals its window titles and minimized state. The companion
 enumerates top-level desktop windows in its own Windows session every five
@@ -195,6 +198,12 @@ caches, without reloading an open page or caching private API bodies.
 Stereo Bridge must already be running on the laptop. While Devices is visible, the phone polls the companion every two seconds. The companion reads Stereo Bridge's fixed loopback API on port 45831, showing the current track, player, timeline and available playback controls. Volume and mute affect Windows' selected audio output; no numeric volume or output-device reading is available. Tailscale carries the control requests. Phone audio still needs the existing Bluetooth connection.
 
 The adapter disables redirects, bounds responses and omits native errors. Unavailable or stale observations disable controls. Actions run once, without retries, offline replay or a command queue; an unconfirmed response stays labeled. The interface distinguishes a reachable Bridge with no media from an unavailable Bridge. Roku discovery and control are not included in this version.
+
+### Repositories view
+
+Repositories groups direct child Git checkouts under the configured repositories folder by their GitHub origin. The companion reads branch, working-file and commit differences every ten seconds. Each checkout compares separately with its tracked origin branch and GitHub's default branch. Shallow or unavailable history stays labeled rather than gaining guessed counts. A feature branch's main gap does not establish that its published branch is out of date; squash merges can retain different commit IDs.
+
+The companion fetches on startup and every five minutes. Fetch GitHub queues a fresh check for all groups; each row can fetch its own group. Fetches use explicit remote-tracking destinations, skip tags, pruning, submodules and automatic maintenance, and leave the working branch, index and files unchanged. Failed checks retain their previous successful time and a notice. The phone polls every three seconds while the view is visible and disables fetch controls when its observation is stale or offline. Fetch reads GitHub changes; pull integrates changes into a working branch. This version offers fetch only. Git credentials, full filesystem paths, file contents and raw Git diagnostics stay outside the phone projection.
 
 ### Account usage
 

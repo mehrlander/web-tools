@@ -76,6 +76,15 @@ try {
   check((await request('/vendor/assistant-mark.js',owner)).ok && (await request('/',owner)).ok,'The phone assets are served from the same private origin.');
   check((await request('/vendor/marked.js',owner)).ok && (await request('/vendor/purify.js',owner)).ok && (await request('/reading.js',owner)).ok,'The formatted detail renderer and its existing Markdown dependencies are served from the private origin.');
   const controls={...owner,Origin:`http://127.0.0.1:${port}`,'X-WebTools-Action':'1'};
+  const repositoryResponse=await request('/api/v1/repositories',owner), repositoryData=await repositoryResponse.json();
+  check(repositoryResponse.ok && repositoryData.repositories.length===0 && repositoryData.refreshing.length===0,'Isolated API fixtures never discover or fetch the real checkout estate.');
+  check((await request('/api/v1/repositories')).status===403 && (await request('/api/v1/repositories',{'Tailscale-User-Login':'other@example.test'})).status===403,'Repository observations share the owner-only access boundary.');
+  check((await request('/api/v1/repositories',{...owner,'If-None-Match':repositoryResponse.headers.get('etag')})).status===304,'Repository polling supports conditional observations.');
+  for(const headers of [owner,{...controls,Origin:'https://foreign.example'},{...controls,'Sec-Fetch-Site':'cross-site'}])
+    check((await request('/api/v1/repositories/all/fetch',headers,'POST')).status===403,'Repository fetches require the deliberate-action header and same origin.');
+  check((await request('/api/v1/repositories/missing/fetch',controls,'POST')).status===404 && (await request('/api/v1/repositories/all/fetch',controls,'POST')).status===404,'Unknown or empty repository selections cannot start a Git process.');
+  check((await request('/api/v1/repositories/all/pull',controls,'POST')).status===405 && (await request('/api/v1/repositories',owner,'POST')).status===405,'Repository routes offer no pull or branch integration actions.');
+  check((await request('/repositories.js',owner)).ok && repositoryResponse.headers.get('cache-control')==='no-store','Repository assets are explicit and private observations are not HTTP cached.');
   const command='/api/v1/devices/stereo/';
   check((await request('/devices.js',owner)).ok && (await request('/views.js',owner)).ok,'Devices and shared navigation are explicit private assets.');
   check((await request('/api/v1/devices')).status===403 && (await request(command+'mute',{},'POST')).status===403,'Anonymous requests cannot read devices or control media.');

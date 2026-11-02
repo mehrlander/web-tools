@@ -9,6 +9,7 @@ if (!first) return;
 CompanionAccess.Ensure();
 var collector = new ActivityCollector();
 var computer = new ComputerReader();
+var repositories = new RepositoryReader();
 using var stereo = new StereoBridgeClient();
 var builder = WebApplication.CreateSlimBuilder(args);
 builder.Logging.ClearProviders();
@@ -38,7 +39,9 @@ app.Use(async (context, next) => {
         return;
     }
     var mediaAction = request.Method == "POST" && request.Path.StartsWithSegments("/api/v1/devices/stereo");
-    if (request.Method is not ("GET" or "HEAD") && !mediaAction) {
+    var repositoryAction = request.Method == "POST" && request.Path.StartsWithSegments("/api/v1/repositories")
+        && request.Path.Value!.EndsWith("/fetch", StringComparison.Ordinal);
+    if (request.Method is not ("GET" or "HEAD") && !mediaAction && !repositoryAction) {
         context.Response.StatusCode = 405;
         context.Response.Headers.Allow = "GET, HEAD";
         return;
@@ -51,7 +54,7 @@ app.Use(async (context, next) => {
     }
     // Browser controls need a same-origin POST and a custom header. Cross-site
     // forms cannot supply that header, and no preflight/CORS access is offered.
-    if (mediaAction && (request.Headers["X-WebTools-Action"] != "1" || !local && request.Headers.Origin.Count != 1
+    if ((mediaAction || repositoryAction) && (request.Headers["X-WebTools-Action"] != "1" || !local && request.Headers.Origin.Count != 1
         || request.Headers["Sec-Fetch-Site"] == "cross-site" || request.QueryString.HasValue
         || request.ContentLength is > 0 || request.Headers.TransferEncoding.Count > 0)) {
         context.Response.StatusCode = 403;
@@ -79,6 +82,18 @@ app.MapGet("/api/v1/computer", (HttpContext context) => {
     return Results.Bytes(payload, "application/json; charset=utf-8");
 });
 app.MapGet("/api/v1/devices", async (CancellationToken stop) => Results.Json(await stereo.Read(stop), json));
+app.MapGet("/api/v1/repositories", (HttpContext context) => {
+    if (repositories.Latest is not { } value) return Results.StatusCode(503);
+    var payload = JsonSerializer.SerializeToUtf8Bytes(value, json);
+    var etag = "\"" + Convert.ToHexString(SHA256.HashData(payload)) + "\"";
+    context.Response.Headers.ETag = etag;
+    if (context.Request.Headers.IfNoneMatch == etag) return Results.StatusCode(304);
+    return Results.Bytes(payload, "application/json; charset=utf-8");
+});
+app.MapPost("/api/v1/repositories/{key}/fetch", (string key) => {
+    var status = repositories.RequestFetch(key);
+    return Results.Json(new { accepted = status == 202 }, json, statusCode: status);
+});
 app.MapPost("/api/v1/devices/stereo/{action}", async (HttpContext context, string action) => {
     var result = await stereo.Execute(action, context.RequestAborted);
     return Results.Json(new { result.Ok, result.Message }, json, statusCode: result.Status);
@@ -93,6 +108,7 @@ var assets = new Dictionary<string, (string File, string Type)> {
     ["/computer.js"] = ("computer.js", "text/javascript; charset=utf-8"),
     ["/devices.js"] = ("devices.js", "text/javascript; charset=utf-8"),
     ["/views.js"] = ("views.js", "text/javascript; charset=utf-8"),
+    ["/repositories.js"] = ("repositories.js", "text/javascript; charset=utf-8"),
     ["/sw.js"] = ("sw.js", "text/javascript; charset=utf-8"),
     ["/reading.js"] = ("reading.js", "text/javascript; charset=utf-8"),
     ["/now-shared.js"] = ("now-shared.js", "text/javascript; charset=utf-8"),
@@ -110,7 +126,9 @@ foreach (var (route, asset) in assets) app.MapGet(route, () => Results.File(Path
 var sampling = Task.Run(() => collector.Run(app.Lifetime.ApplicationStopping));
 var summaries = Task.Run(() => LocalSummaryRunner.Run(app.Lifetime.ApplicationStopping));
 var machineSampling = Task.Run(() => computer.Run(app.Lifetime.ApplicationStopping));
+var repositorySampling = Task.Run(() => repositories.Run(app.Lifetime.ApplicationStopping));
 await app.RunAsync();
 await sampling;
 await summaries;
 await machineSampling;
+await repositorySampling;
