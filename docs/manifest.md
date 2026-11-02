@@ -246,9 +246,9 @@ where `run.script` addresses them; web-tools-private's README, "Three layers",
 says why the records moved.
 
 An errand with no record can travel as a [reception link](../pages/reception.html),
-minted by `npm run -s reception-link`: it runs a session's function on what you
-paste, keeps the paste in the browser, and returns only the result, copied back
-or sent to the Stage.
+minted by `npm run -s reception-link`. The link runs a session's function on what
+you paste, keeps the paste in the browser, and returns only the result: copied
+back, or sent to the Stage when the link names a `dest`.
 
 Four methods need no one at the Stage, because none borrows the Stage's
 token:
