@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="Testing mark: bracketed-block">
-  <title>Testing mark: bracketed-block</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="Test-concept mark: bracketed-block">
+  <title>Test-concept mark: bracketed-block</title>
   <desc>A block between brackets: scope fenced off.</desc>
   <path fill="currentColor" fill-rule="evenodd" d="M23 26.5 L23 29.5 L29.5 29.5 L29.5 2.5 L23 2.5 L23 5.5 L26.5 5.5 L26.5 26.5 Z M16.91 9.15 L16.57 8.96 L16.2 8.86 L16 8.84 L15.61 8.89 L15.25 9.04 L15.09 9.15 L9.28 14.94 L9.04 15.25 L8.89 15.61 L8.86 15.8 L8.84 16 L8.89 16.39 L9.04 16.75 L9.28 17.06 L14.94 22.72 L15.09 22.85 L15.43 23.04 L15.8 23.14 L16 23.16 L16.39 23.11 L16.75 22.96 L17.06 22.72 L22.72 17.06 L22.96 16.75 L23.11 16.39 L23.14 16.2 L23.16 16 L23.11 15.61 L22.96 15.25 L22.72 14.94 Z M2.5 29.5 L9 29.5 L9 26.5 L5.5 26.5 L5.5 5.5 L9 5.5 L9 2.5 L2.5 2.5 Z"/>
 </svg>

@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="Testing mark: breaking-load">
-  <title>Testing mark: breaking-load</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="Test-concept mark: breaking-load">
+  <title>Test-concept mark: breaking-load</title>
   <desc>An arrow pressing a slab that cracks: the breaking point.</desc>
   <path fill="currentColor" fill-rule="evenodd" d="M15.18 20.44 L19.2 22.47 L19.45 22.69 L19.63 22.97 L19.73 23.29 L19.75 23.46 L19.71 23.79 L19.59 24.11 L17.99 27 L27.7 26.99 L28.07 26.89 L28.41 26.69 L28.69 26.41 L28.89 26.07 L28.95 25.89 L29 25.5 L28.99 19.3 L28.89 18.93 L28.69 18.59 L28.41 18.31 L28.07 18.11 L27.89 18.05 L27.5 18 L16.4 18 Z M14 2.5 L14 8.5 L8.5 8.5 L16 15 L23.5 8.5 L18 8.5 L18 2.5 Z M4.11 18.05 L3.75 18.2 L3.59 18.31 L3.31 18.59 L3.2 18.75 L3.05 19.11 L3 19.5 L3.01 25.7 L3.05 25.89 L3.2 26.25 L3.44 26.56 L3.59 26.69 L3.75 26.8 L4.11 26.95 L4.5 27 L15.13 27 L16.77 24.03 L12.94 22.12 L12.8 22.04 L12.56 21.82 L12.38 21.55 L12.27 21.24 L12.25 21.07 L12.28 20.75 L12.32 20.59 L13.6 18 L4.5 18 Z"/>
 </svg>

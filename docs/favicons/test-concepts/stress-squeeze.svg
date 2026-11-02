@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="Testing mark: stress-squeeze">
-  <title>Testing mark: stress-squeeze</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="Test-concept mark: stress-squeeze">
+  <title>Test-concept mark: stress-squeeze</title>
   <desc>Four wedges pressing a block: stress from every side.</desc>
   <path fill="currentColor" fill-rule="evenodd" d="M29.5 9.5 L22.5 16 L29.5 22.5 Z M22.5 2.5 L9.5 2.5 L16 9.5 Z M22.5 29.5 L16 22.5 L9.5 29.5 Z M13.12 12.26 L12.75 12.38 L12.54 12.54 L12.38 12.75 L12.26 13.12 L12.25 18.75 L12.33 19.13 L12.46 19.36 L12.64 19.54 L12.87 19.67 L13.25 19.75 L18.75 19.75 L19.01 19.72 L19.36 19.54 L19.54 19.36 L19.67 19.13 L19.75 18.75 L19.75 13.25 L19.72 12.99 L19.54 12.64 L19.25 12.38 L19.01 12.28 L18.75 12.25 Z M2.5 9.5 L2.5 22.5 L9.5 16 Z"/>
 </svg>
