@@ -157,7 +157,8 @@ def snapshot(root, state):
         source = read_source(state, entry['key'])
         upstream = row['upstream'] or ''
         row['tracked'] = compare(entry, row, upstream[7:] if upstream.startswith('origin/') else None, source, cache)
-        row['main'] = compare(entry, row, source.get('defaultBranch'), source, cache)
+        row['main'] = compare(entry, row, source.get('defaultBranch'), source, cache) if source.get('defaultBranch') else {
+            'branch': None, 'state': 'not-checked', 'ahead': None, 'behind': None}
         row.pop('head')
         return entry, row, source
     groups = {}

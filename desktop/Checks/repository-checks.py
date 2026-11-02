@@ -64,6 +64,7 @@ class RepositoryChecks(unittest.TestCase):
 
     def test_no_network_check_is_not_reported_as_current(self):
         self.assertEqual(self.row()['tracked']['state'], 'not-checked')
+        self.assertEqual(self.row()['main']['state'], 'not-checked')
         self.remote_commit()
         self.assertEqual(self.row()['tracked']['state'], 'not-checked')
 

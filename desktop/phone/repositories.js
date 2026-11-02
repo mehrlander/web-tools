@@ -35,7 +35,7 @@
   function row(repo){
     const [label,tone]=status(repo),href=url(repo),busy=!!sending||fresh()&&data.refreshing.includes(repo.key);
     const main=repo.checkouts.find(c=>c.branch===c.main.branch)||repo.checkouts[0];
-    const summary=repo.checkouts.length===1?`<span class="truncate">${escape(main.main.branch||'GitHub')}</span><span class="shrink-0">${comparison(main.main)}</span>`:`<span>${repo.checkouts.length} checkouts</span><span class="truncate">${repo.checkouts.filter(c=>c.main.behind>0).length} behind ${escape(main.main.branch||'main')}</span>`;
+    const summary=repo.checkouts.length===1?`<span class="truncate">${escape(main.main.branch||'GitHub')}</span><span class="shrink-0">${comparison(main.main)}</span>`:`<span>${repo.checkouts.length} checkouts</span><span class="truncate">${repo.checkouts.every(c=>Number.isInteger(c.main.behind))?repo.checkouts.filter(c=>c.main.behind>0).length+' behind '+escape(main.main.branch||'default'):repo.checkouts.some(c=>Number.isInteger(c.main.behind))?repo.checkouts.filter(c=>c.main.behind>0).length+' behind · '+repo.checkouts.filter(c=>!Number.isInteger(c.main.behind)).length+' unknown':'Not checked'}</span>`;
     const details=repo.checkouts.map(c=>{
       const same=c.tracked.branch&&c.tracked.branch===c.main.branch;
       const changes=c.changed===null?'Local status unavailable':[c.changed?c.changed+' changed':'',c.untracked?c.untracked+' untracked':'',c.conflicts?c.conflicts+' conflicts':''].filter(Boolean).join(' · ')||'No uncommitted changes';
