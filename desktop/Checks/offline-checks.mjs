@@ -31,9 +31,11 @@ const entries=[...stores].filter(([key])=>key.startsWith('web-tools-now-shell-')
 check(entries.includes('/') && entries.includes('/computer.js') && entries.every(key=>!key.startsWith('/api/')),'Only explicit interface assets enter Cache Storage.');
 check(await request('/api/v1/now') === undefined && await request('/api/v1/computer') === undefined && await request('/api/v1/results/example') === undefined,'Private API requests always bypass the worker.');
 check(await request('/phone.js','POST') === undefined && await request('https://foreign.example/phone.js') === undefined,'Write requests and other origins bypass the interface worker.');
+check(await request('/api/v1/devices') === undefined && await request('/api/v1/devices/stereo/mute','POST') === undefined,'Device observations and media controls bypass the worker without caching or offline replay.');
 network='offline';
 check((await(await request('/?version=2')).text()).includes('Interface /'),'A saved interface can reload offline despite a cache-busting page query.');
 check((await(await request('/computer.js')).text()).includes('Interface /computer.js'),'The Computer interface can load offline.');
+check((await(await request('/devices.js')).text()).includes('Interface /devices.js') && (await(await request('/views.js')).text()).includes('Interface /views.js'),'The Devices interface and shared view navigation can load offline.');
 network=502;
 check((await(await request('/')).text()).includes('Interface /'),'A temporary proxy/server failure preserves access to the saved interface.');
 for (const status of [403,404]) {
