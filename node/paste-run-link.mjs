@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // node/paste-run-link.mjs: mint a link to pages/paste-run.html carrying a
-// function, so a session can ask the reader to run it on data the session
-// should not see and hand back only the result.
+// function, so the reader can run it on data that stays in the browser and
+// hand back only the result.
 //
 // Usage:
 //   npm run -s paste-run-link -- <fn.js> [--title "<title>"] [--ask "<one line>"] [--send <owner/repo@ref:folder/file>] [--page <url>]
