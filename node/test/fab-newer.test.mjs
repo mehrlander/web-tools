@@ -182,13 +182,18 @@ test('the ref bar names a pin\'s branch, says pinned, and counts the commits sin
   assert.equal(d.refFriendly, 'Kind hypatia', 'a random tail with a digit is dropped');
   d.subjectBranch = 'claude/fab-naming-todqvq';
   d.open = true; d.activeTab = 'render';
-  await until(() => el.querySelector('[data-ref-bar]') && /↓2/.test(el.querySelector('[data-ref-bar]').textContent), 80);
+  await until(() => el.querySelector('[data-ref-bar]') && /2 behind/.test(el.querySelector('[data-ref-bar]').textContent), 80);
   const bar = el.querySelector('[data-ref-bar]').textContent.replace(/\s+/g, ' ');
-  assert.match(bar, /claude\/fab-naming-todqvq pinned @aaaaaaa/);
-  assert.match(bar, /↓2/);
+  assert.match(bar, /claude\/fab-naming-todqvq @aaaaaaa \(2 behind\)/);
   assert.equal(d.refTip, 'Branches with another version of this page', 'the tip says what the tap opens');
-  const live = el.querySelector('[data-ref-live]');
-  assert.ok(live && live.style.display !== 'none', 'a pin on a session branch offers that branch live');
+  const pill = el.querySelector('[data-ref-pin]');
+  assert.ok(pill, 'the pinned commit is a pill');
+  assert.match(pill.textContent.replace(/\s+/g, ' '), /@aaaaaaa \(2 behind\)/);
+  const x = pill.querySelector('[data-ref-unpin]');
+  assert.ok(x, 'with an x that unpins');
+  x.click();
+  await until(() => navs.length);
+  assert.deepEqual(navs, ['me/r@claude/fab-naming-todqvq:pages/a.html'], 'unpinning shows the line live');
 });
 
 test('a pin at its branch\'s latest says latest, and a live branch counts against main', async () => {
@@ -203,6 +208,5 @@ test('a pin at its branch\'s latest says latest, and a live branch counts agains
   assert.equal(live.d.refLine, 'claude/x');
   assert.deepEqual({ ...live.d.refStanding, tip: '' }, { kind: 'line', ahead: 3, behind: 1, tip: '' });
   assert.deepEqual(calls.map(c => c.p), ['compare/main...claude/x']);
-  const btn = live.el.querySelector('[data-ref-live]');
-  assert.ok(!btn || btn.style.display === 'none', 'a live branch needs no live button');
+  assert.equal(live.el.querySelector('[data-ref-pin]'), null, 'a live branch has no pin to take off');
 });
