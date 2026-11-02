@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Shortcuts</title>
+<title>Workflows</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🧩</text></svg>">
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
@@ -18,16 +18,16 @@
   we built", in 12,500 words ordered by the date each thing was discovered. The
   question a reader actually opens with, "what do we maintain and is the phone
   carrying the current copy", had no surface at all, and could not have one while
-  the answer lived in 75 separate chain files.
+  the answer lived in 75 separate workflow files.
 
-  So shortcut-tools publishes catalog.json, one row per chain, and this page is
+  So shortcut-tools publishes catalog.json, one row per workflow, and this page is
   its reader. The two are the same split every other page here runs: the
   structured stage is committed and checked in the repo that owns the data, and
   the render holds no judgment of its own.
 
   THE JOIN IS THIS PAGE'S JOB, AND ONLY THIS PAGE'S. catalog.json carries what
-  the chain files state and nothing about any device, deliberately, so it stays
-  deterministic and its --check can be exact. Whether a chain is installed, which
+  the workflow files state and nothing about any device, deliberately, so it stays
+  deterministic and its --check can be exact. Whether a shortcut is installed, which
   build ran, and when, are facts about a phone. They live in web-tools-private,
   they need a token, and they are layered on here.
 
@@ -39,7 +39,7 @@
   THREE SOURCES SAY "ON DEVICE" AND ALL THREE ARE PARTIAL. library.json is a
   snapshot of the last dump, so anything installed since is missing from it. The
   newest manifest is the device's own list and is newer, but still a moment in
-  time. The log holds installs and runs and only for chains that report. Reading
+  time. The log holds installs and runs and only for shortcuts that report. Reading
   all three together is what run.py's own audit does, and it is the reason a name
   installed yesterday does not read as absent.
 
@@ -55,9 +55,9 @@
   actually see. While the signing worker both receivers depend on is down
   (SIGNER_DOWN below), every install goes through Library-Paste instead.
 
-  AND A NAME OFF THE CATALOG GETS AN ANSWER. 77 chains here against 606 surveyed
-  on the device means most names a link can carry are not chains, and the page
-  used to answer all of them with "No chain here called X" whether the name was
+  AND A NAME OFF THE CATALOG GETS AN ANSWER. 77 workflows here against 606
+  shortcuts surveyed on the device means most names a link can carry have no
+  workflow here, and the page used to answer all of them alike whether the name was
   a device shortcut, newer than the dump, or genuinely nothing. It now says
   which, and offers Open rather than Install, because a device shortcut has no
   plist here to install.
@@ -66,18 +66,18 @@
   style. The figure that would deserve room is "how many are stale", and it earns
   its place by being a filter rather than a tile.
 
-  ONE PAGE, TWO VIEWS. ?name=<Chain> opens that chain on its own: its sentence,
+  ONE PAGE, TWO VIEWS. ?name=<Name> opens that workflow on its own: its sentence,
   every action in order, what it calls, what calls it, and the same install and
   run links its row carries. A view rather than a second page, because the two
   halves share a boot, one catalog fetch and one read of the device, and because
-  a listing's `run X` line is then a link to X's own page. Unnamed chains are
-  reachable the same way as ?chain=<file>, since half the catalog is probes and
+  a listing's `run X` line is then a link to X's own page. Unnamed workflows are
+  reachable the same way as ?file=<file>, since half the catalog is probes and
   demos and a row that cannot be opened is a dead row.
 
   WHY IT EXISTS AT ALL. A handover in chat carries the listing in its own table,
   and used to carry a path into GitHub beside it. The path answered "where does
   this come from" and nothing else. This view answers the question that follows
-  it: what the chain calls, what would break if it changed, and whether the phone
+  it: what the shortcut calls, what would break if it changed, and whether the phone
   is holding this build.
 -->
 </head>
@@ -86,17 +86,17 @@
 
   <header class="bg-base-100 border-b border-base-300 px-3 py-2 flex flex-col gap-2">
     <div class="flex items-center gap-2">
-      <a id="back" class="btn btn-xs btn-ghost btn-circle hidden" href="#" aria-label="All chains">
+      <a id="back" class="btn btn-xs btn-ghost btn-circle hidden" href="#" aria-label="All workflows">
         <i class="ph ph-arrow-left"></i>
       </a>
-      <h1 id="title" class="text-lg font-bold truncate min-w-0">Shortcuts</h1>
+      <h1 id="title" class="text-lg font-bold truncate min-w-0">Workflows</h1>
       <span id="tally" class="text-xs opacity-60 font-mono truncate min-w-0">loading</span>
       <span id="status" class="badge badge-ghost badge-sm ml-auto">…</span>
       <button id="refresh" class="btn btn-xs btn-ghost" aria-label="Refresh">
         <i class="ph ph-arrows-clockwise"></i>
       </button>
     </div>
-    <!-- The header's second line is the filters in the list and the chain's own
+    <!-- The header's second line is the filters in the list and the workflow's own
          figures in the detail view: one slot, since a reader is never doing
          both, and a footer cannot hold them without truncating on a phone. -->
     <div id="meta" class="hidden text-xs opacity-60 font-mono text-pretty"></div>
@@ -114,7 +114,7 @@
     </div>
   </header>
 
-  <!-- pb-14 keeps the last row clear of the boot chain's floating button,
+  <!-- pb-14 keeps the last row clear of gh-boot's floating button,
        which is fixed and therefore sits over the end of a scrolling table. -->
   <main class="overflow-auto pb-14 min-w-0">
     <div id="list">
@@ -125,7 +125,7 @@
       <table class="table table-pin-rows" data-pattern="list">
         <thead>
           <tr class="text-xs">
-            <th>Chain</th>
+            <th>Workflow</th>
             <th class="text-right hidden sm:table-cell">Cards</th>
             <th class="hidden sm:table-cell">Build</th>
             <th>Device</th>
@@ -140,10 +140,9 @@
 
   <footer class="bg-base-100 border-t border-base-300 px-3 py-2 flex items-center gap-3 text-xs">
     <span id="count" class="opacity-60 font-mono truncate min-w-0"></span>
-    <!-- The three siblings, and both of the outward ones were repointed on
-         2026-09-19. "Chains" named the workflows tree while this page became the
-         app view called Chains, so the word meant two things one line apart; it
-         is the folder's own name now. "Library" pointed at a GitHub blob of
+    <!-- The three siblings. The folder link says "Folder" rather than
+         "Workflows" because this view is itself called Workflows, and one word
+         naming two things one line apart is the confusion to avoid. "Library" pointed at a GitHub blob of
          web-tools-private's 104-line library.html, which is not the library
          surface: shortcut-tools' pages/library.html is, at 975 lines and four
          facets, and it is the page promoted as the Shortcuts view. It is in a
@@ -151,7 +150,7 @@
          unhosted page, through the toss. -->
     <a class="link link-hover ml-auto" href="shortcut-log.html">Log</a>
     <a class="link link-hover"
-       href="https://github.com/mehrlander/shortcut-tools/tree/main/workflows">Workflows</a>
+       href="https://github.com/mehrlander/shortcut-tools/tree/main/workflows">Folder</a>
     <a class="link link-hover"
        href="toss-render.html#gh=mehrlander/shortcut-tools:pages/library.html">Library</a>
   </footer>
@@ -160,7 +159,7 @@
 <script type="module">
 // The repo's standard boot, same as shortcut-log.html: gh-api.js, then
 // gh-auth.js, which owns token resolution and the token screen. ?use=<ref> pins
-// the library chain to a branch for previewing edits.
+// this page's library code to a branch for previewing edits.
 const q = new URLSearchParams(location.search);
 await import('https://mehrlander.github.io/web-tools/lib/entry.js');
 await gh.load('gh-auth.js');
@@ -171,15 +170,15 @@ await gh.load('kits/sync-status.js');
 const SE = window.ShortcutEvidence;
 
 // ?ref= points the catalog and the install links at a branch of shortcut-tools,
-// so a chain can be reviewed here before it reaches main. It is separate from
-// ?use=, which pins this page's own library chain; the two repos move apart.
+// so a workflow can be reviewed here before it reaches main. It is separate from
+// ?use=, which pins this page's own library code; the two repos move apart.
 // Absent ?ref=, a link's refs=mehrlander/shortcut-tools@<ref> answers.
 const REF     = q.get('ref') || window.GH.refFor('mehrlander/shortcut-tools') || 'main';
-const CHAINS  = 'mehrlander/shortcut-tools';
+const TOOLS   = 'mehrlander/shortcut-tools';
 const PRIVATE = 'mehrlander/web-tools-private';
-const CATALOG = `https://raw.githubusercontent.com/${CHAINS}/${REF}/catalog.json`;
-const PLIST   = n => `https://raw.githubusercontent.com/${CHAINS}/${REF}/plists/${n}.plist`;
-const BLOB    = f => window.RepoAddress.github.blob(CHAINS, REF, `workflows/${f}`);
+const CATALOG = `https://raw.githubusercontent.com/${TOOLS}/${REF}/catalog.json`;
+const PLIST   = n => `https://raw.githubusercontent.com/${TOOLS}/${REF}/plists/${n}.plist`;
+const BLOB    = f => window.RepoAddress.github.blob(TOOLS, REF, `workflows/${f}`);
 const LOGS    = 40;   // enough history for build freshness; older runs say nothing new
 // The 2 a.m. automation writes two rows a night, stamped 0200xx, and they had
 // filled 35 of the 40 slots by 2026-10-25, so installs and runs a day old fell
@@ -236,22 +235,22 @@ const REPLACE = 'Library-Replace';
 // failed on every tap. Until a signer is back, installs go through
 // Library-Paste, which deletes any copy by that name, creates the shortcut,
 // opens it and leaves the actions on the clipboard; its third line is the build
-// it checks for "already installed". A paste cannot set a chain's file-level
-// settings, so a chain that declares them says so on its button. When signing
+// it checks for "already installed". A paste cannot set a workflow's file-level
+// settings, so a workflow that declares them says so on its button. When signing
 // returns, make `up` the default; `?signer=up` previews it, and is how the
 // page's own check keeps the Import and Replace rule tested meanwhile.
 const SIGNER_DOWN = q.get('signer') !== 'up';
 const PASTE   = 'Library-Paste';
-const PACKED  = f => `https://raw.githubusercontent.com/${CHAINS}/${REF}/packed/${f}`;
+const PACKED  = f => `https://raw.githubusercontent.com/${TOOLS}/${REF}/packed/${f}`;
 const installLink = (row, target) =>
   `shortcuts://run-shortcut?name=${encodeURIComponent(target)}&input=text&text=`
   + encodeURIComponent(target === PASTE
     ? row.name + '\n' + PACKED(row.file) + (row.build ? '\n' + row.build : '')
     : row.name + '\n' + PLIST(row.name));
-const PASTE_NOTE = 'A paste cannot set this chain\'s file-level settings; '
+const PASTE_NOTE = 'A paste cannot set this shortcut\'s file-level settings; '
   + 'set its toggles by hand (pack.py --install lists them).';
 
-// WHICH RECEIVER IS A FACT ABOUT THE DEVICE, NOT ABOUT THE CHAIN, which is why
+// WHICH RECEIVER IS A FACT ABOUT THE DEVICE, NOT ABOUT THE WORKFLOW, which is why
 // this page decides it and tools/plist.py does not. Importing over a name the
 // library already holds leaves BOTH copies, and the older one keeps the index:
 // every `shortcuts://run-shortcut?name=` link and every runworkflow card naming
@@ -361,7 +360,7 @@ async function loadDevice() {
 
 // ---- state ----------------------------------------------------------------
 
-// Five answers, and the fifth is silence. A chain with no name is never
+// Five answers, and the fifth is silence. A workflow with no name is never
 // installed, so it has no device state to report and is not counted as absent.
 function state(row) {
   if (!row.name) return null;
@@ -405,14 +404,14 @@ function matches(row, view, needle) {
 
 // ---- routing --------------------------------------------------------------
 
-// ?name=<Chain> is the detail view's whole address, so a link handed over in
+// ?name=<Name> is the detail view's whole address, so a link handed over in
 // chat lands on it. ?use= and ?ref= ride along untouched through every
 // navigation: they say which code and which branch the page is reading, and
 // losing either mid-visit would silently change what is being looked at.
 function href(row) {
   const p = new URLSearchParams(location.search);
-  p.delete('name'); p.delete('chain');
-  if (row) row.name ? p.set('name', row.name) : p.set('chain', row.file);
+  p.delete('name'); p.delete('file');
+  if (row) row.name ? p.set('name', row.name) : p.set('file', row.file);
   const s = p.toString();
   return s ? '?' + s : location.pathname;
 }
@@ -492,7 +491,7 @@ function paint() {
   el('count').textContent = `${shown.length} of ${catalog.rows.length}`;
 }
 
-// ---- render: one chain ----------------------------------------------------
+// ---- render: one workflow -------------------------------------------------
 
 // sketch.py writes "%3d %s%s%s": a right-aligned index, the nesting as two
 // spaces per level, the verb, and one summarised parameter. The index becomes
@@ -501,7 +500,7 @@ function paint() {
 const INDEX = 4;
 
 // Four kinds of token appear in a listing and only one of them is a shortcut
-// name. «N» is the line that produced a value, "…" is a literal the chain
+// name. «N» is the line that produced a value, "…" is a literal the workflow
 // carries, $input and its siblings are the run-time sources, and a bare
 // capitalised word after `run` is a by-name call: a string nothing validates,
 // which is why it is worth making it a link that visibly fails to resolve.
@@ -535,8 +534,8 @@ function flash(i) {
 }
 
 // A catalog published before the listing existed has no sketch, and a ?ref=
-// can still name one. Saying so beats a chain that renders as having no
-// actions, which is the same shape as a chain that has none.
+// can still name one. Saying so beats a workflow that renders as having no
+// actions, which is the same shape as a workflow that has none.
 function listing(row) {
   if (!row.sketch)
     return node('p', 'text-sm opacity-50', `No listing in catalog.json at ${REF}.`);
@@ -622,9 +621,9 @@ function detail(row) {
   wrap.append(bar);
 
   // What it calls, and what calls it. The second is the one no file holds: a
-  // chain records its targets and nothing records its callers, so the answer
+  // workflow records its targets and nothing records its callers, so the answer
   // only exists once every row is in hand, which is here. Both sit above the
-  // listing: on a 67-action chain they are otherwise three screens down.
+  // listing: on a 67-action workflow they are otherwise three screens down.
   const callers = catalog.rows.filter(r => r.name && r.targets.includes(row.name))
                               .map(r => r.name);
   const rel = node('div', 'flex flex-col gap-2');
@@ -652,12 +651,12 @@ function detail(row) {
 // A NAME OFF THE CATALOG IS STILL A QUESTION WITH AN ANSWER, and until
 // 2026-09-19 this page gave the same four words to three different situations.
 // `?name=Choose-GPT` is the case that exposed it: a real shortcut, second line
-// of the 2026-09-18 manifest, and the page said "No chain here called
-// Choose-GPT", which reads as "no such thing" and is not what was checked.
+// of the 2026-09-18 manifest, and the page said it had nothing by that name,
+// which reads as "no such thing" and is not what was checked.
 //
 // Three outcomes now, and the third is silence about a thing we did not look at.
-// The device holds 606 surveyed names against this catalog's 77 chains, so most
-// names a link can carry are device shortcuts rather than authored chains, and
+// The device holds 606 surveyed names against this catalog's 77 workflows, so most
+// names a link can carry are device shortcuts with no workflow here, and
 // the honest reply names which set it fell in. There is nothing to install
 // either way: a device shortcut has no plist here, so the button that appears is
 // Open, not Install, and saying so is the point rather than a consolation.
@@ -670,7 +669,7 @@ function missing(what) {
 
   if (onDevice) {
     wrap.append(node('p', 'text-base leading-relaxed text-pretty',
-      `${what} is on the device and is not a chain this repo authors, `
+      `${what} is on the device, and shortcut-tools has no workflow for it, `
       + 'so there is no plist to install and no build to score.'));
 
     const bar = node('div', 'flex flex-wrap gap-2');
@@ -685,7 +684,7 @@ function missing(what) {
     wrap.append(bar);
 
     if (row) {
-      // Its callers are the half no single file holds for a chain either, and
+      // Its callers are the half no single file holds for a workflow either, and
       // here survey.py has already computed both directions, so both are shown.
       const chip = (label, names) => {
         if (!names || !names.length) return null;
@@ -721,12 +720,12 @@ function missing(what) {
     }
   } else {
     // Unread device is not an absent name. Without a token this page can see 77
-    // chains and nothing else, so it says what it checked rather than what it
+    // workflows and nothing else, so it says what it checked rather than what it
     // concluded.
     wrap.append(node('p', 'text-base leading-relaxed text-pretty',
       device
-        ? `Nothing called ${what}: not a chain in this catalog, and not on the device.`
-        : `No chain here called ${what}. The device has not been read, so a shortcut `
+        ? `Nothing called ${what}: no workflow by that name, and not on the device.`
+        : `No workflow here called ${what}. The device has not been read, so a shortcut `
           + 'by that name would not be visible from here.'));
     el('meta').textContent = '';
     el('tally').textContent = '';
@@ -742,7 +741,7 @@ function missing(what) {
 function route() {
   if (!catalog) return;
   const p = new URLSearchParams(location.search);
-  const name = p.get('name'), file = p.get('chain');
+  const name = p.get('name'), file = p.get('file');
   const row = name ? byName(name) : file ? byFile(file) : null;
   const detailed = !!(name || file);
 
@@ -754,7 +753,7 @@ function route() {
   el('back').setAttribute('href', href(null));
   document.querySelector('main').scrollTop = 0;
 
-  if (!detailed) { el('title').textContent = 'Shortcuts'; paint(); tally(); return }
+  if (!detailed) { el('title').textContent = 'Workflows'; paint(); tally(); return }
   if (row) detail(row); else missing(name || file);
 }
 
@@ -763,7 +762,7 @@ function route() {
 function tally() {
   const rows = catalog.rows;
   const named = rows.filter(r => r.name);
-  const parts = [`${rows.length} chains`, `${named.length} installable`];
+  const parts = [`${rows.length} workflows`, `${named.length} installable`];
   if (device) {
     const s = named.map(state);
     parts.push(`${s.filter(x => x === 'current').length} current`,
