@@ -186,7 +186,9 @@ test('the ref bar names a pin\'s branch, says pinned, and counts the commits sin
   const bar = el.querySelector('[data-ref-bar]').textContent.replace(/\s+/g, ' ');
   assert.match(bar, /claude\/fab-naming-todqvq pinned @aaaaaaa/);
   assert.match(bar, /↓2/);
-  assert.match(d.refTip, /^Pinned at aaaaaaa11111 on claude\/fab-naming-todqvq/);
+  assert.equal(d.refTip, 'Branches with another version of this page', 'the tip says what the tap opens');
+  const live = el.querySelector('[data-ref-live]');
+  assert.ok(live && live.style.display !== 'none', 'a pin on a session branch offers that branch live');
 });
 
 test('a pin at its branch\'s latest says latest, and a live branch counts against main', async () => {
@@ -201,5 +203,6 @@ test('a pin at its branch\'s latest says latest, and a live branch counts agains
   assert.equal(live.d.refLine, 'claude/x');
   assert.deepEqual({ ...live.d.refStanding, tip: '' }, { kind: 'line', ahead: 3, behind: 1, tip: '' });
   assert.deepEqual(calls.map(c => c.p), ['compare/main...claude/x']);
-  assert.match(live.d.refTip, /^Live on claude\/x, not main/);
+  const btn = live.el.querySelector('[data-ref-live]');
+  assert.ok(!btn || btn.style.display === 'none', 'a live branch needs no live button');
 });

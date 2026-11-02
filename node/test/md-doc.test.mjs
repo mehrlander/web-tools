@@ -692,7 +692,7 @@ test('a pinned commit with its branch keeps a dimmed pencil; without one, none',
   assert.ok(pen, 'the pencil stays');
   assert.ok(pen.hasAttribute('data-md-pinned'));
   assert.match(pen.className, /\bopacity-40\b/, 'dimmed');
-  assert.match(pen.getAttribute('aria-label'), /Pinned to a commit on main/);
+  assert.match(pen.getAttribute('aria-label'), /Editing is available from live branch renders only/);
 
   const bare = window.document.createElement('div');
   mdDoc.render(bare, DOC, { addr: { ...ADDR, ref: '4ca7634b385c' }, edit: { full: DOC } });
