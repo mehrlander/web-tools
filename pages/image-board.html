@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en" data-theme="winter">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Image board</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🖼️</text></svg>">
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script type="module">
+  // The image board, the form for a choice among found images (docs/forms):
+  // one section of found images per search, and a tap picks one. A pick call
+  // (web-tools-private user-calls/user-call.py states its fields and answer)
+  // sets the searches and receives the picks:
+  //   #user-call=owner/repo[@ref]:user-calls/<session>-<slug>.json
+  // Without one, the address sets them and the picks are copied out as text:
+  //   #q=gem,crystal    searches         &src=icons|commons  Iconify or Wikimedia Commons
+  //   &sets=game-icons  Iconify sets     &color=d97706       tint for one-colour icons
+  //   &title=Surfacing  the board's name &group=medium       how far near-alike icons fold
+  const ref = new URLSearchParams(location.search).get('use');
+  if (ref) {
+    const src = await fetch(`https://raw.githubusercontent.com/mehrlander/web-tools/${ref}/dist/web-tools.js`, { cache: 'no-store' });
+    if (!src.ok) throw new Error(`?use=${ref}: could not fetch the bundle (HTTP ${src.status})`);
+    const url = URL.createObjectURL(new Blob([await src.text()], { type: 'text/javascript' }));
+    try { await import(url); } finally { URL.revokeObjectURL(url); }
+  } else {
+    await import('../dist/web-tools.js');
+  }
+  await gh.load('kits/repo-address.js');
+  await gh.load('alpineComponents/user-call-form.js');
+  await gh.load('kits/title-tip.js');
+  const P = new URLSearchParams(location.hash.slice(1) || location.search.slice(1));
+  const S = {
+    title: P.get('title') || 'Image board',
+    src: P.get('src') === 'commons' ? 'commons' : 'icons',
+    color: (P.get('color') || '').replace(/[^0-9a-f]/gi, ''),
+    queries: (P.get('q') || 'gem,crystal,pickaxe').split(',').map(s => s.trim()).filter(Boolean),
+    sets: (P.get('sets') || '').split(',').map(s => s.trim()).filter(Boolean),
+    group: ['off', 'tight', 'medium', 'loose'].includes(P.get('group')) ? P.get('group') : 'medium',
+    results: {}, shapes: {}, open: {}, level: {}, picks: [], copied: '',
+    call: null, at: null, err: '', sent: null, sending: false, note: '', post: true,
+  };
+
+  // The latest answer already sent comes back as the starting picks.
+  const callAt = P.get('user-call') ? window.RepoAddress?.parse(P.get('user-call')) : null;
+  if (P.get('user-call') && !callAt) S.err = 'Not a call address: ' + P.get('user-call');
+  if (callAt) {
+    try {
+      const g = new window.GH({ token: window.TOKEN, repo: callAt.repo, ref: callAt.ref });
+      S.call = JSON.parse((await g.get(callAt.path, window.GH.FRESH)).text);
+      S.at = { ...callAt, answers: callAt.path.replace(/\.json$/, '.answers.jsonl') };
+      const b = S.call.board || {};
+      S.title = S.call.question || S.title;
+      S.src = b.src === 'commons' ? 'commons' : 'icons';
+      S.color = String(b.color || '').replace(/[^0-9a-f]/gi, '');
+      S.queries = (b.q || []).map(x => String(x).trim()).filter(Boolean);
+      S.sets = b.sets || [];
+      S.group = ['off', 'tight', 'medium', 'loose'].includes(b.group) ? b.group : 'medium';
+      try {
+        const lines = (await g.get(S.at.answers, window.GH.FRESH)).text.split('\n').filter(l => l.trim());
+        const last = lines.length ? JSON.parse(lines[lines.length - 1]) : null;
+        if (last) { S.sent = last; S.picks = (last.picks || []).map(x => ({ id: x.id, href: x.href, img: '' })); S.note = last.note || ''; }
+      } catch (e) { if (e?.status && e.status !== 404) S.err = 'Could not read the answers: ' + (e?.message || e); }
+    } catch (e) { S.err = 'Could not read the call: ' + (e?.message || e) + (window.TOKEN ? '' : '. It needs your GitHub token.'); }
+  }
+  const CUT = { off: 0, tight: 0.12, medium: 0.22, loose: 0.32 };
+  // Fewer dots, broader groups: nine for every icon, one for the loosest fold.
+  const LEVELS = [['off', 'ph-dots-nine', 'all'], ['tight', 'ph-dots-six', 'tight'], ['medium', 'ph-dots-three', 'medium'], ['loose', 'ph-dot', 'loose']];
+  const levelOf = q => S.level[q] || S.group;
+  const KEY = 'image-board:' + (P.get('user-call') || S.title + ':' + S.queries.join(','));
+  if (!S.sent) try { S.picks = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch {}
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S.picks)); } catch {} };
+  const esc = window.esc;
+
+  // Each source answers a search with items { id, img, label, href }.
+  const SOURCES = {
+    // One request per set, not per icon: a search's results are grouped by
+    // set, each set's bodies come back in one JSON read, and the SVG is built
+    // here. currentColor would draw black inside an <img>, so it takes the tint.
+    async icons(q) {
+      const sets = S.sets.length ? `&prefixes=${S.sets.join(',')}` : '';
+      const r = await fetch(`https://api.iconify.design/search?query=${encodeURIComponent(q)}&limit=96${sets}`).then(r => r.json());
+      const ids = (r.icons || []).map(id => id.split(':'));
+      const bySet = {};
+      for (const [set, name] of ids) (bySet[set] ||= []).push(name);
+      const ink = '#' + (S.color || '374151');
+      const svgs = {};
+      await Promise.all(Object.entries(bySet).map(async ([set, names]) => {
+        const d = await fetch(`https://api.iconify.design/${set}.json?icons=${names.join(',')}`).then(r => r.json()).catch(() => null);
+        for (const name of names) {
+          let ic = d?.icons?.[name], al = d?.aliases?.[name];
+          if (!ic && al) ic = { ...d.icons?.[al.parent], ...al };
+          if (!ic?.body) continue;
+          const w = ic.width || d.width || 16, h = ic.height || d.height || 16;
+          svgs[set + ':' + name] = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${ic.left || 0} ${ic.top || 0} ${w} ${h}">${ic.body.replaceAll('currentColor', ink)}</svg>`;
+        }
+      }));
+      return ids.filter(([set, name]) => svgs[set + ':' + name]).map(([set, name]) => ({
+        id: 'iconify ' + set + ':' + name, label: set, href: `https://icon-sets.iconify.design/${set}/${name}/`,
+        img: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgs[set + ':' + name]) }));
+    },
+    async commons(q) {
+      const u = 'https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search'
+        + `&gsrnamespace=6&gsrlimit=48&gsrsearch=${encodeURIComponent(q + ' filetype:drawing|bitmap')}`
+        + '&prop=imageinfo&iiprop=url&iiurlwidth=240';
+      const r = await fetch(u).then(r => r.json());
+      return Object.values(r.query?.pages || {}).sort((a, b) => a.index - b.index).map(p => ({
+        id: 'commons ' + p.title, img: p.imageinfo?.[0]?.thumburl, label: p.title.replace(/^File:/, '').replace(/\.\w+$/, ''),
+        href: p.imageinfo?.[0]?.descriptionurl })).filter(x => x.img);
+    },
+  };
+
+  // Grouping without a vision model: each icon, drawn at 64 px, becomes two
+  // 16 x 16 grids, its ink and its filled silhouette, cropped to the ink.
+  // Distance is 1 minus their overlap (0.6 silhouette, 0.4 ink), and an icon
+  // joins the first more relevant icon within the cut.
+  async function shapeOf(src, R = 64, K = 16) {
+    const im = new Image(); im.src = src; await im.decode();
+    const c = document.createElement('canvas'); c.width = c.height = R;
+    const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(im, 0, 0, R, R);
+    const a = g.getImageData(0, 0, R, R).data, ink = new Uint8Array(R * R), out = new Uint8Array(R * R), st = [];
+    for (let i = 0; i < R * R; i++) ink[i] = a[i * 4 + 3] > 96 ? 1 : 0;
+    for (let i = 0; i < R; i++) st.push(i, R * (R - 1) + i, i * R, i * R + R - 1);
+    while (st.length) {
+      const p = st.pop(); if (out[p] || ink[p]) continue; out[p] = 1;
+      const x = p % R, y = (p / R) | 0;
+      if (x > 0) st.push(p - 1); if (x < R - 1) st.push(p + 1); if (y > 0) st.push(p - R); if (y < R - 1) st.push(p + R);
+    }
+    let x0 = R, y0 = R, x1 = -1, y1 = -1;
+    for (let p = 0; p < R * R; p++) if (ink[p]) { const x = p % R, y = (p / R) | 0; x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
+    if (x1 < 0) return null;
+    const side = Math.max(x1 - x0, y1 - y0) + 1, ox = x0 - (side - (x1 - x0 + 1)) / 2, oy = y0 - (side - (y1 - y0 + 1)) / 2;
+    const grid = m => {
+      const v = new Uint8Array(K * K);
+      for (let j = 0; j < K; j++) for (let i = 0; i < K; i++) {
+        let sum = 0, n = 0;
+        for (let y = Math.floor(oy + j * side / K); y < oy + (j + 1) * side / K; y++)
+          for (let x = Math.floor(ox + i * side / K); x < ox + (i + 1) * side / K; x++) { n++; if (x >= 0 && y >= 0 && x < R && y < R) sum += m(y * R + x); }
+        v[j * K + i] = n && sum / n >= 0.4 ? 1 : 0;
+      }
+      return v;
+    };
+    return { ink: grid(p => ink[p]), fill: grid(p => 1 - out[p]) };
+  }
+  const jac = (a, b) => { let i = 0, u = 0; for (let k = 0; k < a.length; k++) { i += a[k] & b[k]; u += a[k] | b[k]; } return u ? 1 - i / u : 0; };
+  const apart = (a, b) => 0.6 * jac(a.fill, b.fill) + 0.4 * jac(a.ink, b.ink);
+  function groupsOf(items, level) {
+    const cut = CUT[level], lead = [];
+    for (const it of items) {
+      const f = S.shapes[it.id];
+      const L = cut && f && lead.find(l => S.shapes[l.item.id] && apart(S.shapes[l.item.id], f) < cut);
+      if (L) L.members.push(it); else lead.push({ item: it, members: [] });
+    }
+    return lead;
+  }
+  const grouping = q => S.src === 'icons' && levelOf(q) !== 'off';
+
+  // Wikimedia answers a burst of searches with an error page that carries no
+  // CORS header, which a browser reports as a failed fetch; so Commons is
+  // asked one search at a time, and each search gets one retry.
+  async function load(q) {
+    S.results[q] = null; render();
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try { S.results[q] = await SOURCES[S.src](q); break; }
+      catch (e) { S.results[q] = { err: String(e.message || e) }; await new Promise(r => setTimeout(r, 1500)); }
+    }
+    render();
+    if (S.src === 'icons' && Array.isArray(S.results[q])) {
+      await Promise.all(S.results[q].map(async it => { try { S.shapes[it.id] ||= await shapeOf(it.img); } catch {} }));
+      render();
+    }
+  }
+  async function loadAll() {
+    if (S.src === 'commons') { for (const q of S.queries) await load(q); }
+    else S.queries.forEach(load);
+  }
+
+  const picked = id => S.picks.some(p => p.id === id);
+  function toggle(item) {
+    S.picks = picked(item.id) ? S.picks.filter(p => p.id !== item.id) : [...S.picks, item];
+    S.copied = ''; save(); render();
+  }
+  // As the call form answers: the line beside the call, and where the call
+  // names a PR, the same answer commented there, which wakes a waiting session.
+  async function send() {
+    S.sending = true; S.err = ''; render();
+    try {
+      const entry = { answer: 'Picked', picks: S.picks.map(p => ({ id: p.id, href: p.href || '' })),
+                      note: S.note.trim(), at: new Date().toISOString() };
+      const pr = S.call.pr && S.post ? window.UserCallForm.prOf(S.call.pr) : null;
+      const id = S.call.id || S.at.path.split('/').pop().replace(/\.json$/, '');
+      const comment = pr ? `**User call: ${S.call.question}**\n\nAnswer: **Picked**, ${entry.picks.length}\n\n`
+        + entry.picks.map(x => `- [${x.id.replace(/^\w+ /, '')}](${x.href})`).join('\n')
+        + (entry.note ? '\n\n> ' + entry.note : '') + `\n\n_${id}, sent from the image board._` : '';
+      S.sent = await window.UserCallForm.postAnswer({ repo: S.at.repo, ref: S.at.ref || 'main', path: S.at.answers, entry, pr, comment });
+    } catch (e) { S.err = 'Not sent: ' + (e?.message || e); }
+    S.sending = false; render();
+  }
+  const sentNow = () => S.sent && JSON.stringify((S.sent.picks || []).map(x => x.id)) === JSON.stringify(S.picks.map(p => p.id))
+    && (S.sent.note || '') === S.note.trim();
+  const closed = () => !!S.call && (S.call.status === 'closed' || !!S.call.closed);
+  const ago = iso => { const m = Math.round((Date.now() - new Date(iso)) / 60000);
+    return m < 1 ? 'just now' : m < 60 ? m + 'm ago' : m < 1440 ? Math.round(m / 60) + 'h ago' : Math.round(m / 1440) + 'd ago'; };
+  const sendLabel = () => S.sending ? 'Sending' : sentNow() ? 'Sent' : S.sent ? 'Send again' : 'Send';
+  const canSend = () => S.picks.length && !S.sending && !sentNow() && !closed();
+  // The call form's answer button: ghost, tinted with the primary colour.
+  const ACT = 'btn btn-sm btn-ghost shrink-0 gap-1 border-[color-mix(in_srgb,var(--color-primary)_45%,var(--color-base-100))] bg-primary/10 text-primary hover:bg-primary/15';
+  const pickText = () => S.picks.map(p => `${p.id}  ${p.href || p.img}`).join('\n');
+  async function copy() {
+    const text = pickText();
+    try { await navigator.clipboard.writeText(text); S.copied = 'ok'; }
+    catch { S.copied = 'manual'; }
+    render();
+    if (S.copied === 'manual') { const t = document.getElementById('picktext'); t?.focus(); t?.select(); }
+  }
+
+  function tile(item, more = 0, member = false) {
+    const on = picked(item.id);
+    const img = S.src === 'icons'
+      ? `<img src="${esc(item.img)}" alt="" loading="lazy" class="size-12">`
+      : `<img src="${esc(item.img)}" alt="" loading="lazy" class="h-24 w-full object-contain">`;
+    return `<button type="button" data-id="${esc(item.id)}" class="relative flex flex-col items-center gap-1.5 rounded-box border p-2.5 ${on ? 'border-primary bg-primary/10 ring-2 ring-[var(--color-primary)]' : 'border-base-200 bg-base-100 hover:border-base-300'}">
+      ${img}<span class="w-full truncate text-xs text-base-content/50">${esc(item.label)}</span>
+      ${on ? '<i class="ph-fill ph-check-circle absolute right-1 top-1 text-lg text-primary"></i>' : ''}
+      ${more ? `<span data-expand="${esc(item.id)}" class="badge badge-sm absolute left-1 top-1 ${S.open[item.id] ? 'badge-neutral' : 'badge-ghost'}">+${more}</span>` : ''}</button>`
+      .replace('border-base-200 bg-base-100', member ? 'border-dashed border-base-300 bg-base-200' : 'border-base-200 bg-base-100');
+  }
+
+  function section(q) {
+    const r = S.results[q];
+    const body = r == null ? '<span class="loading loading-dots loading-md text-base-content/40"></span>'
+      : r.err ? `<p class="font-mono text-sm text-error">${esc(r.err)}</p>`
+      : !r.length ? '<p class="text-base-content/50">Nothing found.</p>'
+      : `<div class="grid grid-cols-[repeat(auto-fill,minmax(84px,1fr))] gap-2">${grouping(q)
+          ? groupsOf(r, levelOf(q)).map(g => tile(g.item, g.members.length) + (S.open[g.item.id] ? g.members.map(m => tile(m, 0, true)).join('') : '')).join('')
+          : r.map(it => tile(it)).join('')}</div>`;
+    const count = !Array.isArray(r) ? '' : grouping(q) ? `${r.length} · ${groupsOf(r, levelOf(q)).length} groups, ${levelOf(q)}` : `${r.length}, all`;
+    const levels = S.src !== 'icons' ? '' : `<div class="join ml-auto" role="radiogroup" aria-label="Grouping for ${esc(q)}">${LEVELS.map(([k, icon, name]) =>
+      `<button type="button" role="radio" aria-checked="${levelOf(q) === k}" aria-label="${name}" data-title-tip="${name}" data-level="${k}" data-q="${esc(q)}"
+        class="btn btn-xs btn-square join-item ${levelOf(q) === k ? 'btn-neutral' : 'btn-ghost'}"><i class="ph-bold ${icon} text-base"></i></button>`).join('')}</div>`;
+    return `<section id="q-${esc(q)}" class="flex flex-col gap-2.5">
+      <h2 class="flex items-center gap-2 pt-4 text-balance">
+        <span class="font-semibold">${esc(q)}</span>
+        <span class="text-xs text-base-content/40">${count}</span>${levels}</h2>${body}</section>`;
+  }
+
+  function render() {
+    const pr = S.call?.pr ? window.UserCallForm.prOf(S.call.pr) : null;
+    document.getElementById('top').innerHTML = `
+      <div class="flex flex-col gap-1.5 px-4 pt-3 pb-1">
+        <h1 class="text-xl font-semibold leading-snug text-balance">${esc(S.title)}</h1>
+        ${S.call?.brief || pr ? `<p class="text-base leading-snug text-pretty">${esc(S.call?.brief || '')}
+          ${pr ? `<a href="${esc(window.RepoAddress.github.pull(pr.slug, pr.n))}" class="ml-1 inline-flex items-center gap-1 rounded-full border border-base-300 px-2 text-sm leading-6 hover:bg-base-200"><i class="ph ph-git-pull-request"></i>#${esc(pr.n)}</a>` : ''}</p>` : ''}
+      </div>`;
+    document.getElementById('head').innerHTML = `
+      <div class="flex items-center gap-2 px-4 py-2">
+        <div class="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto">
+          ${S.queries.map(q => `<a href="#q-${esc(q)}" data-jump="${esc(q)}" class="badge badge-ghost shrink-0 whitespace-nowrap">${esc(q)}</a>`).join('')}
+          <form id="add" class="shrink-0"><input name="q" placeholder="Search" class="input input-sm w-36 max-sm:text-base"></form>
+        </div>
+        <div class="join shrink-0">${['icons', 'commons'].map(s => `<button type="button" data-src="${s}"
+          class="btn btn-xs join-item ${S.src === s ? 'btn-neutral' : 'btn-ghost'}">${s === 'icons' ? 'Icons' : 'Commons'}</button>`).join('')}</div>
+      </div>`;
+    document.getElementById('grid').innerHTML = callAt && !S.call
+      ? `<p class="pt-6 text-error">${esc(S.err)}</p>` : S.queries.map(section).join('');
+    const thumb = p => { const img = byId(p.id)?.img || p.img;
+      return img ? `<img src="${esc(img)}" alt="" class="size-7 object-contain">`
+        : `<span class="block max-w-24 truncate px-1 font-mono text-xs">${esc(p.id.split(/[ :]/).pop())}</span>`; };
+    const action = S.call
+      ? `<button type="button" id="send" class="${ACT}" ${canSend() ? '' : 'disabled'}><i class="ph ph-paper-plane-tilt"></i><span>${sendLabel()}</span></button>`
+      : `<button type="button" id="copy" class="${ACT}" ${S.picks.length ? '' : 'disabled'}><i class="ph ph-copy"></i><span>${S.copied === 'ok' ? 'Copied' : 'Copy'}</span></button>`;
+    document.getElementById('foot').innerHTML = `
+      <div class="flex items-center gap-3 py-2.5 pl-4 pr-20">
+        <div class="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto">
+          <span class="shrink-0 text-sm font-medium">${S.picks.length} picked</span>
+          ${S.picks.map(p => `<button type="button" data-id="${esc(p.id)}" class="shrink-0 rounded border border-base-200 bg-base-100 p-1">${thumb(p)}</button>`).join('')}
+        </div>
+        ${action}
+      </div>
+      ${S.call ? `<div class="flex flex-wrap items-center gap-x-3 gap-y-1 pb-2.5 pl-4 pr-20">
+        <input id="note" value="${esc(S.note)}" placeholder="Note" class="input input-sm min-w-0 flex-1 max-sm:text-base" ${closed() ? 'disabled' : ''}>
+        ${pr && !closed() ? `<label class="flex items-center gap-1 text-sm"><input type="checkbox" id="post" class="checkbox checkbox-xs" ${S.post ? 'checked' : ''}>Post on #${esc(pr.n)}</label>` : ''}
+        <span class="text-sm text-base-content/60">${closed() ? 'Closed' : S.sent ? `Sent ${(S.sent.picks || []).length} · ${ago(S.sent.at)}` : 'Not sent'}</span>
+        ${S.err ? `<span class="w-full text-sm text-error">${esc(S.err)}</span>` : ''}
+      </div>` : ''}
+      ${S.copied === 'manual' ? `<textarea id="picktext" readonly rows="3" class="textarea textarea-sm mx-4 mb-3 w-[calc(100%-2rem)] font-mono">${esc(pickText())}</textarea>` : ''}`;
+  }
+
+  const byId = id => Object.values(S.results).flat().find(x => x && x.id === id) || S.picks.find(p => p.id === id);
+  addEventListener('click', e => {
+    const x = e.target.closest('[data-expand]');
+    if (x) { S.open[x.dataset.expand] = !S.open[x.dataset.expand]; return render(); }
+    const t = e.target.closest('[data-id],[data-src],[data-level],#copy,#send,[data-jump]');
+    if (!t) return;
+    if (t.dataset.level) { S.level[t.dataset.q] = t.dataset.level; return render(); }
+    if (t.id === 'copy') return copy();
+    if (t.id === 'send') return send();
+    if (t.dataset.src) { S.src = t.dataset.src; loadAll(); return; }
+    // The sticky header's height varies (a call's brief, a phone's wrap), so
+    // a jump measures it rather than assuming a scroll margin.
+    if (t.dataset.jump) {
+      e.preventDefault();
+      const to = document.getElementById('q-' + t.dataset.jump);
+      if (to) scrollTo({ top: to.getBoundingClientRect().top + scrollY - document.getElementById('head').offsetHeight });
+      return;
+    }
+    const item = byId(t.dataset.id); if (item) toggle(item);
+  });
+  addEventListener('submit', e => {
+    e.preventDefault();
+    const q = new FormData(e.target).get('q')?.trim();
+    if (q && !S.queries.includes(q)) { S.queries.push(q); load(q); }
+  });
+  // The note is read as typed, and the Send button follows it without a
+  // redraw that would take the caret away.
+  addEventListener('input', e => {
+    if (e.target.id === 'post') { S.post = e.target.checked; return; }
+    if (e.target.id !== 'note') return;
+    S.note = e.target.value;
+    const b = document.getElementById('send');
+    if (b) { b.disabled = !canSend(); b.querySelector('span').textContent = sendLabel(); }
+  });
+  render();
+  if (!callAt || S.call) loadAll();
+</script>
+</head>
+<body class="bg-base-200">
+  <!-- No fixed root: toss draws this page in a frame, and on iOS a fixed
+       element measures against the outer window and loses its right side
+       (html-style rule 5). The chrome sticks over document scrolling instead. -->
+  <div class="flex min-h-dvh flex-col">
+    <header id="top" class="bg-base-100"></header>
+    <div id="head" class="sticky top-0 z-20 border-b border-base-300 bg-base-100"></div>
+    <main id="grid" class="flex flex-1 flex-col gap-6 px-4 pb-6"></main>
+    <footer id="foot" class="sticky bottom-0 z-20 border-t border-base-300 bg-base-100"></footer>
+  </div>
+</body>
+</html>
