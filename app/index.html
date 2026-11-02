@@ -186,6 +186,9 @@
   await gh.load('kits/csv.js');
   // Sessions-aggregate builders for the private cache (state/sessions.json).
   await gh.load('kits/closing-state.js');
+  // The marks for the parts of a call (background, proposal, commentary,
+  // conclusion), which the Map's Icons tab lists as a drawn family.
+  await gh.load('kits/call-marks.js');
   await gh.load('kits/repo-sessions-cache.js');
   // The crawl that folds the records into it, shared with the headless runner
   // (node/sessions-crawl.mjs) the way kits/activity-crawl.js is.
