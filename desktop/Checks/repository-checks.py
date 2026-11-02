@@ -134,6 +134,19 @@ class RepositoryChecks(unittest.TestCase):
         for value in ['https://github.com.evil.test/o/r', 'file:///tmp/repo', 'ext::run-command', 'https://github.com/o/r?token=secret']:
             self.assertIsNone(repos.github_name(value))
 
+    def test_configured_pruning_and_fetch_destinations_are_not_adopted(self):
+        self.cmd('-C', str(self.local), 'config', 'fetch.prune', 'true')
+        self.cmd('-C', str(self.local), 'config', 'fetch.pruneTags', 'true')
+        self.cmd('-C', str(self.local), 'config', 'remote.origin.fetch', '+refs/heads/*:refs/heads/*')
+        head = self.cmd('-C', str(self.local), 'rev-parse', 'HEAD')
+        self.cmd('-C', str(self.local), 'update-ref', 'refs/remotes/origin/keep', head)
+        self.cmd('-C', str(self.local), 'tag', 'keep-local-tag')
+        self.remote_commit()
+        self.fetch()
+        self.assertEqual(self.cmd('-C', str(self.local), 'rev-parse', 'HEAD'), head)
+        self.assertEqual(self.cmd('-C', str(self.local), 'rev-parse', 'refs/remotes/origin/keep'), head)
+        self.assertEqual(self.cmd('-C', str(self.local), 'rev-parse', 'refs/tags/keep-local-tag'), head)
+
 
 if __name__ == '__main__':
     unittest.main()

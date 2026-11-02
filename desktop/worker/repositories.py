@@ -7,6 +7,8 @@ import json
 import os
 from pathlib import Path
 import re
+import shlex
+import shutil
 import subprocess
 from urllib.parse import urlsplit
 
@@ -20,10 +22,14 @@ def key(value):
 
 
 def git(path, *args, timeout=8):
-    env = {**os.environ, 'GIT_OPTIONAL_LOCKS': '0', 'GIT_TERMINAL_PROMPT': '0', 'GCM_INTERACTIVE': 'Never'}
+    env = {**os.environ, 'GIT_OPTIONAL_LOCKS': '0', 'GIT_TERMINAL_PROMPT': '0', 'GCM_INTERACTIVE': 'Never', 'GH_PROMPT_DISABLED': '1'}
+    authentication = []
+    gh = shutil.which('gh')
+    if gh and ('ls-remote' in args or 'fetch' in args):
+        authentication = ['-c', 'credential.helper=', '-c', 'credential.helper=!' + shlex.quote(gh.replace('\\', '/')) + ' auth git-credential']
     try:
         result = subprocess.run(['git', '--no-optional-locks', '-c', 'core.fsmonitor=false',
-                                 '-c', 'credential.interactive=never', '-C', str(path), *args],
+                                 '-c', 'credential.interactive=never', *authentication, '-C', str(path), *args],
                                 env=env, capture_output=True, encoding='utf-8', errors='replace', timeout=timeout)
         return result.stdout.strip() if result.returncode == 0 and len(result.stdout) <= 4_194_304 else None
     except (OSError, subprocess.TimeoutExpired):
@@ -47,9 +53,10 @@ def github_name(remote):
     return name if re.fullmatch(r'[A-Za-z0-9_.-]{1,100}/[A-Za-z0-9_.-]{1,100}', name) else None
 
 
-def discover(root):
+def discover(root, folders=None):
     try:
-        paths = sorted(p for p in root.iterdir() if p.is_dir() and not p.is_symlink() and (p / '.git').exists())[:256]
+        candidates = root.iterdir() if folders is None else (root / name for name in folders if Path(name).name == name and name not in ('.', '..'))
+        paths = sorted(p for p in candidates if p.is_dir() and not p.is_symlink() and p.resolve().parent == root.resolve() and (p / '.git').exists())[:256]
     except OSError:
         return []
     def identify(path):
@@ -63,7 +70,7 @@ def discover(root):
 def local_status(entry):
     path = entry['path']
     status = git(path, 'status', '--porcelain=v2', '--branch', '--untracked-files=all', timeout=12)
-    row = {'key': key(str(path.resolve()).lower()), 'name': path.name[:128], 'branch': '', 'upstream': None,
+    row = {'key': key(str(path.resolve()).lower()), 'name': path.name[:256], 'branch': '', 'upstream': None,
            'changed': None, 'untracked': None, 'conflicts': None, 'head': None}
     if status is None:
         return row
@@ -99,7 +106,7 @@ def write_source(state, repo_key, value):
     temporary.replace(target)
 
 
-def compare(entry, row, branch, source):
+def compare(entry, row, branch, source, cache):
     result = {'branch': branch, 'state': 'not-checked', 'ahead': None, 'behind': None}
     if not branch:
         result['state'] = 'no-upstream'
@@ -111,6 +118,10 @@ def compare(entry, row, branch, source):
         result['state'] = 'remote-missing'
         return result
     head = row['head']
+    cache_key = row['key'] + ':' + key(branch)
+    cached = cache.get(cache_key, {})
+    if head and isinstance(cached, dict) and cached.get('head') == head and cached.get('tip') == tip and isinstance(cached.get('result'), dict):
+        return cached['result']
     if not head or not re.fullmatch(r'[a-f0-9]{40,64}', head) or not re.fullmatch(r'[a-f0-9]{40,64}', tip):
         result['state'] = 'unavailable'
     elif head == tip:
@@ -128,17 +139,25 @@ def compare(entry, row, branch, source):
             result.update(ahead=ahead, behind=behind, state='diverged' if ahead and behind else 'ahead' if ahead else 'behind' if behind else 'current')
         else:
             result['state'] = 'unavailable'
+    if result['ahead'] is not None:
+        cache[cache_key] = {'head': head, 'tip': tip, 'result': result}
     return result
 
 
 def snapshot(root, state):
     entries = discover(root)
+    cache_path = state / 'repository-comparisons.json'
+    try:
+        cache = json.loads(cache_path.read_text(encoding='utf-8'))
+        if not isinstance(cache, dict): cache = {}
+    except (OSError, ValueError):
+        cache = {}
     def observe(entry):
         row = local_status(entry)
         source = read_source(state, entry['key'])
         upstream = row['upstream'] or ''
-        row['tracked'] = compare(entry, row, upstream[7:] if upstream.startswith('origin/') else None, source)
-        row['main'] = compare(entry, row, source.get('defaultBranch'), source)
+        row['tracked'] = compare(entry, row, upstream[7:] if upstream.startswith('origin/') else None, source, cache)
+        row['main'] = compare(entry, row, source.get('defaultBranch'), source, cache)
         row.pop('head')
         return entry, row, source
     groups = {}
@@ -149,13 +168,17 @@ def snapshot(root, state):
                 'checkedAt': source.get('checkedAt'), 'attemptedAt': source.get('attemptedAt'),
                 'notice': source.get('notice'), 'checkouts': []})
             group['checkouts'].append(row)
+    state.mkdir(parents=True, exist_ok=True)
+    temporary = cache_path.with_suffix('.tmp')
+    temporary.write_text(json.dumps(dict(list(cache.items())[-1024:])), encoding='utf-8')
+    temporary.replace(cache_path)
     return {'schemaVersion': 1, 'machineName': os.environ.get('COMPUTERNAME', 'Laptop'), 'observedAt': stamp(),
             'repositories': sorted(groups.values(), key=lambda g: g['name'].lower()), 'refreshing': [],
             'notice': None if root.is_dir() else 'Repositories folder unavailable.'}
 
 
-def fetch_repository(root, state, repo_key):
-    entries = [entry for entry in discover(root) if entry['key'] == repo_key and entry['repo']]
+def fetch_repository(root, state, repo_key, folders=None):
+    entries = [entry for entry in discover(root, folders) if entry['key'] == repo_key and entry['repo']]
     if not entries:
         return False
     source = read_source(state, repo_key)
@@ -192,6 +215,10 @@ def fetch_repository(root, state, repo_key):
         return False
     tips[default] = head
     safe = {b: sha for b, sha in tips.items() if git(entries[0]['path'], 'check-ref-format', 'refs/heads/' + b) is not None}
+    if default not in safe:
+        source['notice'] = 'GitHub default branch could not be validated.'
+        write_source(state, repo_key, source)
+        return False
     success, seen = True, set()
     for entry in entries:
         if entry['common'] in seen:
@@ -199,7 +226,7 @@ def fetch_repository(root, state, repo_key):
         seen.add(entry['common'])
         # Explicit destinations are remote-tracking refs only. Configured
         # fetch refspecs, tags, submodules, pruning and maintenance are excluded.
-        result = git(entry['path'], 'fetch', '--no-tags', '--no-write-fetch-head', '--no-recurse-submodules',
+        result = git(entry['path'], 'fetch', '--no-tags', '--no-prune', '--no-prune-tags', '--no-write-fetch-head', '--no-recurse-submodules',
                      '--no-auto-maintenance', '--refmap=', url,
                      *['+refs/heads/' + b + ':refs/remotes/origin/' + b for b in sorted(safe)], timeout=60)
         success = success and result is not None
@@ -214,11 +241,12 @@ def main():
     parser.add_argument('--root', type=Path, required=True)
     parser.add_argument('--state', type=Path, required=True)
     parser.add_argument('--fetch', dest='fetch_key')
+    parser.add_argument('--checkout', action='append')
     args = parser.parse_args()
     if args.fetch_key:
         if not re.fullmatch(r'[a-f0-9]{24}', args.fetch_key):
             raise SystemExit(2)
-        fetch_repository(args.root, args.state, args.fetch_key)
+        fetch_repository(args.root, args.state, args.fetch_key, args.checkout)
     else:
         print(json.dumps(snapshot(args.root, args.state)))
 

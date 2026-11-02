@@ -24,7 +24,7 @@ click('[data-repo]');check(!doc.querySelector('#repo-'+groupKey).hidden&&doc.que
 top=160;doc.querySelector('[data-repo]').focus();data.repositories[0].checkouts[0].tracked.behind=5;await poll();
 check(top===160&&doc.activeElement.dataset.repo===groupKey&&!doc.querySelector('#repo-'+groupKey).hidden,'Polling preserves the expanded repo, keyboard focus and scroll position.');
 const c=data.repositories[0].checkouts[0];c.branch='feature/work';c.tracked=comp('current',0,0,'feature/work');c.main=comp('diverged',1,8);c.changed=0;c.untracked=0;await poll();
-check(doc.querySelector('#repositories').textContent.includes('Tracked branches in sync')&&doc.querySelector('#repo-'+groupKey).textContent.includes('↓ 8'),'A branch can match its upstream while separately showing a main gap.');
+check(doc.querySelector('#repositories').textContent.includes('Branch synced')&&doc.querySelector('#repo-'+groupKey).textContent.includes('↓ 8'),'A branch can match its upstream while separately showing a main gap.');
 data.repositories[0].name='fixture/<img src=x onerror=alert(1)>';data.repositories[0].url='javascript:alert(1)';await poll();
 check(!doc.querySelector('#repositories img,[onerror]')&&!doc.querySelector('#repositories a')&&doc.querySelector('#repositories').textContent.includes('<img'),'Names render as text and unsafe GitHub links are absent.');
 data.repositories[0].name='fixture/project';data.repositories[0].url='https://github.com/fixture/project';await poll();

@@ -36,7 +36,13 @@ public sealed class RepositoryReader
             RedirectStandardOutput = true, RedirectStandardError = true };
         foreach (var arg in new[] { "-u", Path.Combine(AppContext.BaseDirectory, "worker", "repositories.py"),
             "--root", UserSettings.Load().RepositoriesRoot, "--state", UserSettings.DataDirectory }) start.ArgumentList.Add(arg);
-        if (key is not null) { start.ArgumentList.Add("--fetch"); start.ArgumentList.Add(key); }
+        if (key is not null) {
+            start.ArgumentList.Add("--fetch"); start.ArgumentList.Add(key);
+            List<string> folders;
+            lock (gate) folders = latest?.Repositories.FirstOrDefault(r => r.Key == key)?.Checkouts.Select(c => c.Name).ToList() ?? [];
+            if (folders.Count == 0) return null;
+            foreach (var folder in folders) { start.ArgumentList.Add("--checkout"); start.ArgumentList.Add(folder); }
+        }
         start.Environment["PYTHONIOENCODING"] = "utf-8";
         using var process = Process.Start(start);
         if (process is null) return null;
