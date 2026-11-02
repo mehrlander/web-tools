@@ -186,6 +186,9 @@
   await gh.load('kits/csv.js');
   // Sessions-aggregate builders for the private cache (state/sessions.json).
   await gh.load('kits/closing-state.js');
+  // The marks for the parts of a call (background, proposal, commentary,
+  // conclusion), which the Map's Icons tab lists as a drawn family.
+  await gh.load('kits/call-marks.js');
   await gh.load('kits/repo-sessions-cache.js');
   // The crawl that folds the records into it, shared with the headless runner
   // (node/sessions-crawl.mjs) the way kits/activity-crawl.js is.
@@ -1967,7 +1970,9 @@ html.dk-dragging main{transition:none !important}
               <button role="tab" x-show="project.powershellOutpost" @click="goProjectTab('outpost')" :aria-selected="projectPane==='outpost'"
                       class="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-medium transition-colors"
                       :class="projectPane==='outpost' ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'">
-                <i class="ph ph-desktop text-base hidden sm:inline"></i>Outpost</button>
+                <span x-show="hubMarkSrc('docs/favicons/map/outposts.svg')" class="hidden sm:inline-block size-4 shrink-0 bg-current [mask:var(--mark)_center/contain_no-repeat]"
+                      :style="markStyle(hubMarkSrc('docs/favicons/map/outposts.svg'))" aria-hidden="true"></span>
+                <i x-show="!hubMarkSrc('docs/favicons/map/outposts.svg')" class="ph ph-desktop text-base hidden sm:inline"></i>Outpost</button>
               <button role="tab" x-show="projectBoardFile" @click="goProjectTab('board')" :aria-selected="projectTab==='board'"
                       class="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-medium transition-colors"
                       :class="projectTab==='board' ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'">
