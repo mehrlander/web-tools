@@ -36,7 +36,7 @@ doc.querySelector('[data-checkout]').click();
 check(doc.querySelector('[data-repo-menu]').hidden,'Tapping outside the menu dismisses it without changing the checkout summary.');
 const c=data.repositories[0].checkouts[0];c.branch='feature/work';c.tracked=comp('current',0,0,'feature/work');c.main=comp('diverged',1,8);c.changed=0;c.untracked=0;await poll();
 const comparisons=[...doc.querySelectorAll('[data-checkout] dl>div')];
-check(comparisons.length===2&&comparisons[0].querySelector('dt').textContent==='GitHub branch'&&comparisons[0].querySelector('dd').textContent==='In sync'&&comparisons[1].querySelector('dt').textContent==='main'&&comparisons[1].querySelector('dd').textContent.includes('↓ 8'),'A branch can match its GitHub branch while separately showing a main gap.');
+check(comparisons.length===2&&comparisons[0].querySelector('dt').textContent==='GitHub branch'&&comparisons[0].querySelector('dd').textContent==='In sync'&&comparisons[1].querySelector('dt').textContent==='GitHub main'&&comparisons[1].querySelector('dd').textContent.includes('↓ 8'),'A branch can match its GitHub branch while separately showing a main gap.');
 check(!doc.querySelector('[data-checkout]').textContent.includes('changed'),'Clean checkouts omit an extra local-changes line.');
 const second={...structuredClone(c),key:'c'.repeat(24),name:'project-other',branch:'other',tracked:comp('no-upstream',null,null,null),main:comp('incomplete-history',null,null)};
 data.repositories[0].checkouts.push(second);await poll();
