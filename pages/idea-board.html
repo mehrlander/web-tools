@@ -130,8 +130,9 @@ document.addEventListener('alpine:init', () => {
       return (S.grafts.find(([g]) => g === n) || [])[1] || '';
     },
 
-    // A board written before the commentary field held encounter and helps;
-    // they are read as its commentary, in that order.
+    // A board whose ideas have encounter and helps in place of commentary
+    // (docs/prototypes/md-edit-ideas.json, a write-once record) is read with
+    // the two joined as its commentary.
     commentary(d) { return d.commentary != null ? d.commentary : [d.encounter, d.helps].filter(Boolean).join('\n\n'); },
     mark(kind, size = 16) { return window.CallMarks ? window.CallMarks.svg(kind, { size }) : ''; },
 

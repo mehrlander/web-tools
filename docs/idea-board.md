@@ -44,9 +44,9 @@ the board that was handed over.
 
 ## Cards
 
-A board has four parts: the brief is its background, each idea has a proposal and a commentary, and the selection is its conclusion. [`lib/kits/call-marks.js`](../lib/kits/call-marks.js) draws an icon for each part (a book, a bulb, a speech bubble and a stamp), and the page marks the brief with the book and the selection with the stamp.
+A board has four parts: the brief is its background, each idea has a proposal (its `title`, `kind` and `sketch`) and a commentary (its `commentary`), and the selection is its conclusion. [`lib/kits/call-marks.js`](../lib/kits/call-marks.js) draws an icon for each part, and the page marks the brief and the selection with the kit's book and stamp.
 
-Each idea is one card: its `commentary`, then its `sketch`, then the reader's star and note; from 1280 pixels wide the sketch sits beside the other two. The commentary is a short, qualified discussion of what the option brings, in paragraphs separated by a blank line, with `**bold**` and `` `code` `` the only marks drawn. The header above the strip of cards names the card in view by its number and `title`. A board written before `commentary` existed carries `encounter` and `helps` instead, and the page reads them as its commentary, in that order.
+Each idea is one card: its commentary, then its sketch, then the reader's star and note; from 1280 pixels wide the sketch sits beside the other two. The commentary is a short, qualified discussion of what the idea brings, in paragraphs separated by a blank line, with `**bold**` and `` `code` `` the only formatting drawn. The header above the strip of cards names the card in view by its number and `title`. A board whose ideas have `encounter` and `helps` in place of `commentary`, as [`docs/prototypes/md-edit-ideas.json`](prototypes/md-edit-ideas.json) does (a record, never edited once on main), is read with the two joined as its commentary.
 
 ## Returning picks
 
