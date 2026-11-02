@@ -22,7 +22,7 @@ the board that was handed over.
 | Field | Holds |
 | --- | --- |
 | `title`, `subject`, `made` | the board's name, what it is about, and the date |
-| `brief` | prose from phase 1: the background, how the concepts were made, the intended result and what a concept must show, formatted as a commentary is |
+| `brief` | prose from phase 1: the background, how the concepts were made, the intended result and what a concept must show, with the formatting [Cards](#cards) describes |
 | `ideas[]` | eight concepts: `n`, `title`, `kind` (its principal difference), `commentary`, `sketch` |
 | `selection.pick[]` | the base concept's `n` |
 | `selection.grafts[]` | `[n, what is taken from it]` pairs |
@@ -44,9 +44,9 @@ the board that was handed over.
 
 ## Cards
 
-A board has four parts: the brief is its background, each idea has a proposal (its `title`, `kind` and `sketch`) and a commentary (its `commentary`), and the selection is its conclusion. [`lib/kits/call-marks.js`](../lib/kits/call-marks.js) draws an icon for each part, and the page marks the brief and the selection with the kit's book and stamp.
+A board has four parts: the brief gives its background and method, each idea has a proposal (its `title`, `kind` and `sketch`) and a commentary (its `commentary`), and the selection is its conclusion. [`lib/kits/call-marks.js`](../lib/kits/call-marks.js) draws an icon for each part, and the page marks the brief and the selection with the kit's book and stamp.
 
-Each idea is one card: its commentary, then its sketch, then the reader's star and note; from 1280 pixels wide the sketch sits beside the other two. The commentary is a short, qualified discussion of what the idea brings, in paragraphs separated by a blank line, with `**bold**` and `` `code` `` the only formatting drawn. The header above the strip of cards names the card in view by its number and `title`. The brief card shows the brief as prose with the board's `made` date beneath it. A board whose brief has `result` and `musts[]` and whose ideas have `encounter` and `helps`, as [`docs/prototypes/md-edit-ideas.json`](prototypes/md-edit-ideas.json) does (a record, never edited once on main), is read with each pair joined into prose.
+Each idea is one card: its commentary, then its sketch, then the reader's star and note; from 1280 pixels wide the sketch sits beside the other two. The commentary is a short, qualified discussion of what the idea brings, in paragraphs separated by a blank line, with `**bold**` and `` `code` `` the only formatting drawn. The header above the strip of cards names the card in view by its number and `title`. The brief card shows the brief as prose with the board's `made` date beneath it. A board whose brief has `result` and `musts[]` and whose ideas have `encounter` and `helps`, as [`docs/prototypes/md-edit-ideas.json`](prototypes/md-edit-ideas.json) does (a record, never edited once on main), is read with each pair turned into prose.
 
 ## Returning picks
 
