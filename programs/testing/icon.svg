@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="testing program">
+  <title>testing program</title>
+  <desc>A check mark whose three corners are nodes, cut from an amber-600 tile: one check run in three places, the laptop, the cloud and GitHub. Drawn on the drawn-mark box and rules (docs/favicons/README.md): solid fills, no strokes, and every gap at least 2.5 units, which is about 1.4 CSS pixels at 16. The ideas it was chosen from are in docs/prototypes/program-mark-ideas.html.</desc>
+  <mask id="cut" maskUnits="userSpaceOnUse" x="0" y="0" width="32" height="32">
+    <rect width="32" height="32" fill="#fff"/>
+    <g fill="#000"><path d="M7.99 17.49 L12.74 22.67 L14.65 20.92 L9.9 15.73Z"/><path d="M14.69 22.63 L23.62 11.97 L21.63 10.3 L12.7 20.96Z"/><circle cx="8.94" cy="16.61" r="2.6"/><circle cx="13.7" cy="21.79" r="2.6"/><circle cx="22.62" cy="11.14" r="3.0"/></g>
+  </mask>
+  <g fill="#d97706" mask="url(#cut)"><rect x="2" y="2.25" width="28" height="28" rx="7"/></g>
+</svg>
