@@ -47,6 +47,34 @@ A project's or a program's own icon is an SVG drawn to the rules of the budget-d
 
 File: [`web-tools-icon-3d.png`](web-tools-icon-3d.png). A 180 × 180 candidate with a lighter graphite tile, the blue mark reduced to roughly two-thirds of the canvas, and shallow extrusion. The [iPhone size check](../../pages/scratch/web-tools-icon-preview.html) compares the production-size raster with the active tile at 60, 40, and 29 CSS pixels. This is a design candidate, not the shipped Home Screen icon.
 
+### Testing marks
+
+Files: [`testing/`](testing/). Drawn 2026-11-01: 95 candidate marks for testing concepts. They are not assigned: no skill, agent or Map view reads the folder, and it has no row in [`icon-families.csv`](../icon-families.csv). A skill that adopts one takes it from here; the rest stay as a library to draw from.
+
+Each keeps the drawn-mark rules above and is one ink: a single `currentColor` path, filled even-odd, every shape inside 2 to 30.
+
+The contact sheets show each mark large, at a true 16 px, and that 16 px raster enlarged: [light](testing/contact.png) and [dark](testing/contact-dark.png) for containment to stress, [light](testing/contact-2.png) and [dark](testing/contact-2-dark.png) for timing to primitives. They were rendered from the 32-unit drawing box, so their framing is a touch looser than the files'. Strongest at 16 px: `pass-badge`, `fail-badge`, `flask-check`, `test-bot`, `console-log`, `shield-pass`, `flaky-dice`, `bug`, `audit-lens`, `assert-equals`, `sandbox-dashed`, `smoke-test`.
+
+| Theme | Marks |
+|---|---|
+| Containment / sandbox | `sandbox-dashed`, `isolation-hex`, `specimen-jar`, `petri-dish`, `cage`, `capsule`, `bracketed-block` |
+| Find / inspect | `bug`, `bug-fix`, `audit-lens`, `crosshair`, `spotlight`, `scan`, `binoculars`, `lens-check` |
+| Pass / fail / gate | `validate-gate`, `traffic-light`, `stamp`, `shield-pass`, `test-strip`, `pass-badge`, `fail-badge`, `pass-fail-pair` |
+| Known-good / gold | `medal`, `golden-file`, `calibrate`, `master-key`, `certified-seal`, `reference-sample` |
+| Trap / false signal | `mousetrap`, `false-face`, `cracked-check`, `honeypot`, `decoy-duck`, `bear-trap` |
+| Regression / change | `regression-bars`, `regression-trend`, `before-after`, `plus-minus`, `rerun`, `snapshot-stack` |
+| Coverage / matrix | `coverage-gap`, `heatmap`, `checklist`, `variants`, `overlap-venn` |
+| Stress / chaos / load | `stress-squeeze`, `chaos-zigzag`, `pressure-gauge`, `load-weight`, `breaking-load`, `spike` |
+| Timing / flake | `stopwatch`, `flaky-dice`, `scheduled-run`, `flaky-signal`, `timeout` |
+| Harness / automate | `gears`, `conveyor`, `plug`, `test-bot`, `pipeline`, `test-rack`, `flask-check` |
+| Mock / intercept | `mock-twin`, `intercept`, `puppet`, `reroute`, `stand-in` |
+| Observe / live | `live-signal`, `radar`, `heartbeat`, `waveform`, `eye`, `console-log` |
+| Filter / smoke | `funnel`, `smoke-test`, `sieve`, `noise-filter` |
+| Scale / parallel | `balance`, `parallel-runs`, `hub`, `nested-dolls`, `replicas` |
+| History / archive | `film-strip`, `archive-box`, `echo-history`, `rewind-clock` |
+| Usability | `user-path`, `click-target`, `tap-ripple` |
+| Test primitives | `assert-equals`, `breakpoint`, `unit-cube`, `canary` |
+
 ### Per-page emoji marks
 
 Many pages carry their own emoji favicon, written inline as a `data:image/svg+xml` URI holding a single `<text>` glyph, among them 🌿 branch, 📊 data-view, 🔖 links, 🧪 console-playground, 💎 shorter, 🔍 review and pdf-inspect, ✍️ word-select, 🐈‍⬛ compression-helper, 🥏 toss-render. A page that declares none inherits the hex nut from `gh-boot.js`, so the estate needs no per-page icon file and no registry.

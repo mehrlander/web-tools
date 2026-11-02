@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="Testing mark: scan">
+  <title>Testing mark: scan</title>
+  <desc>Viewfinder corners with a sweep line: a scan pass.</desc>
+  <path fill="currentColor" fill-rule="evenodd" d="M22 2 L22 5 L27 5 L27 10 L30 10 L30 2 Z M27 22 L27 27 L22 27 L22 30 L30 30 L30 22 Z M3.8 14.51 L3.43 14.61 L3.25 14.7 L3.09 14.81 L2.81 15.09 L2.61 15.43 L2.55 15.61 L2.5 16 L2.55 16.39 L2.61 16.57 L2.81 16.91 L2.94 17.06 L3.25 17.3 L3.43 17.39 L3.61 17.45 L4 17.5 L28 17.5 L28.39 17.45 L28.57 17.39 L28.75 17.3 L29.06 17.06 L29.3 16.75 L29.39 16.57 L29.45 16.39 L29.5 16 L29.49 15.8 L29.39 15.43 L29.19 15.09 L29.06 14.94 L28.75 14.7 L28.57 14.61 L28.39 14.55 L28 14.5 Z M2 10 L5 10 L5 5 L10 5 L10 2 L2 2 Z M10 27 L5 27 L5 22 L2 22 L2 30 L10 30 Z"/>
+</svg>

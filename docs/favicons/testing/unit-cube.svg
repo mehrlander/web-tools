@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="Testing mark: unit-cube">
+  <title>Testing mark: unit-cube</title>
+  <desc>A cube split into its three faces: a unit under test.</desc>
+  <path fill="currentColor" fill-rule="evenodd" d="M17.25 27.36 L26.25 22.27 L26.25 11.64 L17.25 16.73 Z M7.04 9.5 L16 14.56 L24.96 9.5 L16 4.44 Z M14.75 27.36 L14.75 16.73 L5.75 11.64 L5.75 22.27 Z"/>
+</svg>
