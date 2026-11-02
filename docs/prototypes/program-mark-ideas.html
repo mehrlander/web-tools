@@ -7,8 +7,8 @@
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/alpinejs@3/dist/cdn.min.js" defer></script>
 <!-- Every idea drawn so far for the two programs' marks, Surfacing and
-     Testing, side by side (2026-11-02): one card per idea, its variations
-     opened from the card, and a pinned lineup that sets the estate's
+     Testing, side by side (2026-11-02): one card per idea, the picked idea's
+     variations in a fixed-height strip per program, and a pinned lineup that sets the estate's
      repository marks beside the pick from each program. The Program as
      control redraws every mark as a program icon (bare, on a tinted tile,
      knocked out of a solid tile, or under a gauge arc); the wrap scales the
@@ -38,14 +38,14 @@
 </head>
 <body class="min-h-dvh bg-base-200" x-data="{
     data: JSON.parse(document.getElementById('pile').textContent),
-    cue: 'solid', open: { surfacing: null, testing: null }, sel: { surfacing: [0, 0], testing: [0, 0] },
+    cue: 'solid', sel: { surfacing: [0, 0], testing: [0, 0] },
     progs: [['surfacing', 'Surfacing'], ['testing', 'Testing']],
     uri(s) { return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(s) },
     show(p, s) { return this.uri(asProgram(s, p, this.cue)) },
     pick(p) { const [g, i] = this.sel[p]; return this.data[p][g].items[i] },
-    card(p, gi) { this.open[p] = this.open[p] === gi ? null : gi; if (this.open[p] === gi && this.sel[p][0] !== gi) this.sel[p] = [gi, 0] },
-    isSel(p, gi, ii) { return this.sel[p][0] === gi && this.sel[p][1] === ii } }">
-  <header class="sticky top-0 z-10 border-b border-[var(--color-base-300)] bg-base-200/95 px-4 pt-3 pb-2 backdrop-blur">
+    card(p, gi) { if (this.sel[p][0] !== gi) { this.sel[p] = [gi, 0]; this.$nextTick(() => { const el = document.querySelector(`[data-strip=${p}]`); if (el) el.scrollLeft = 0 }) } },
+    }">
+  <header class="sticky top-0 z-10 border-b border-[var(--color-base-300)] bg-base-200 px-4 pt-3 pb-2">
     <div class="flex flex-wrap items-baseline gap-x-3">
       <h1 class="text-xl font-semibold">Program mark ideas</h1>
       <span class="font-mono text-xs text-base-content/60">Surfacing 14 ideas · 123 marks · Testing 24 ideas · 125 marks</span>
@@ -56,12 +56,28 @@
         <button class="btn btn-sm rounded-full" :class="cue === k ? 'btn-neutral' : 'btn-ghost'" @click="cue = k" x-text="n"></button>
       </template>
     </div>
-    <div class="mt-2 flex flex-wrap items-center gap-2.5 rounded-box bg-base-100 px-3 py-2">
+    <div class="mt-2 flex items-center gap-2.5 overflow-x-auto whitespace-nowrap rounded-box bg-base-100 px-3 py-2">
       <template x-for="r in data.repos" :key="r.name"><img :src="uri(r.svg)" :alt="r.name" class="block size-6 shrink-0 lg:size-7"></template>
       <span class="mx-1 h-7 w-px shrink-0 bg-[var(--color-base-300)]"></span>
       <template x-for="[p, n] in progs" :key="p">
         <div class="flex items-center gap-1.5"><img :src="show(p, pick(p).svg)" :alt="n" class="block size-7 shrink-0">
           <span class="text-xs text-base-content/70" x-text="n + ': ' + pick(p).name"></span></div>
+      </template>
+    </div>
+    <div class="mt-2 grid grid-cols-2 gap-3 lg:gap-4">
+      <template x-for="[p, n] in progs" :key="'strip-' + p">
+        <div class="min-w-0 rounded-box bg-base-100 px-2 pt-1.5 pb-1">
+          <div class="truncate px-1 text-xs text-base-content/60" x-text="n + ' · ' + data[p][sel[p][0]].name + ' · ' + data[p][sel[p][0]].items.length"></div>
+          <div class="flex gap-1 overflow-x-auto pt-1" :data-strip="p">
+            <template x-for="(it, ii) in data[p][sel[p][0]].items" :key="p + sel[p][0] + '-' + ii">
+              <button class="flex w-[4.25rem] shrink-0 flex-col items-center gap-1 rounded-box p-1"
+                :class="sel[p][1] === ii ? 'bg-[var(--color-base-200)]' : ''" @click="sel[p] = [sel[p][0], ii]">
+                <img :src="show(p, it.svg)" alt="" class="block size-9">
+                <span class="w-full truncate text-center text-xs text-base-content/70" x-text="it.name"></span>
+              </button>
+            </template>
+          </div>
+        </div>
       </template>
     </div>
   </header>
@@ -71,25 +87,12 @@
         <h2 class="pb-2 text-xs font-semibold uppercase tracking-wide text-base-content/50" x-text="n + ' · ' + data[p].length + ' ideas'"></h2>
         <div class="grid grid-cols-[repeat(auto-fill,minmax(4.25rem,1fr))] gap-2 lg:grid-cols-[repeat(auto-fill,minmax(5.5rem,1fr))]">
           <template x-for="(g, gi) in data[p]" :key="p + gi">
-            <div class="contents">
-              <button class="flex flex-col items-center gap-1 rounded-box border bg-base-100 p-1.5 text-center lg:gap-1.5 lg:p-2"
-                :class="open[p] === gi ? 'border-[var(--color-primary)]' : 'border-[var(--color-base-300)]'" @click="card(p, gi)">
-                <img :src="show(p, (sel[p][0] === gi ? g.items[sel[p][1]] : g.items[0]).svg)" alt="" class="block size-10 lg:size-11">
-                <span class="text-xs font-medium leading-tight text-balance" x-text="g.name"></span>
-                <span class="font-mono text-xs text-base-content/50" x-text="g.items.length"></span>
-              </button>
-              <div class="col-span-full rounded-box border border-[var(--color-base-300)] bg-base-100 p-2" x-show="open[p] === gi">
-                <div class="grid grid-cols-[repeat(auto-fill,minmax(4.5rem,1fr))] gap-2">
-                  <template x-for="(it, ii) in g.items" :key="it.name">
-                    <button class="flex flex-col items-center gap-1 rounded-box p-1.5 text-center"
-                      :class="isSel(p, gi, ii) ? 'bg-[var(--color-base-200)]' : ''" @click="sel[p] = [gi, ii]">
-                      <img :src="show(p, it.svg)" alt="" class="block size-10">
-                      <span class="text-xs leading-tight text-base-content/70 text-balance" x-text="it.name"></span>
-                    </button>
-                  </template>
-                </div>
-              </div>
-            </div>
+            <button class="flex flex-col items-center gap-1 rounded-box border bg-base-100 p-1.5 text-center lg:gap-1.5 lg:p-2"
+              :class="sel[p][0] === gi ? 'border-[var(--color-primary)]' : 'border-[var(--color-base-300)]'" @click="card(p, gi)">
+              <img :src="show(p, (sel[p][0] === gi ? g.items[sel[p][1]] : g.items[0]).svg)" alt="" class="block size-10 lg:size-11">
+              <span class="text-xs font-medium leading-tight text-balance" x-text="g.name"></span>
+              <span class="font-mono text-xs text-base-content/50" x-text="g.items.length"></span>
+            </button>
           </template>
         </div>
       </section>
