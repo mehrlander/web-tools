@@ -232,11 +232,11 @@ test('selecting a file shows its destination and makes it the shell\'s correspon
   assert.equal(window.__shell.powershellOutpostItem, FORMS);
   assert.ok(shellCalls.some(c => c[0] === 'syncUrl'));
   assert.match(el.textContent, /Documents\\WindowsPowerShell\\Modules\\Forms\\Forms\.psm1/);
-  assert.equal(data.statusOf(FORMS).label, 'Update pending');
+  assert.equal(data.statusOf(FORMS).label, 'Shipped, waiting to be adopted');
   assert.doesNotMatch(el.textContent, /Nothing recorded for this file|local state unknown/, 'no "we do not know" notes on the pane');
   assert.equal(el.querySelector('[data-observations]').style.display, 'none', 'an empty ledger history is not shown');
   const line = () => el.querySelector('[data-status-line]').textContent;
-  assert.equal(line(), 'Update pending · since 2026-09-14', 'one status line carries the state and its date');
+  assert.equal(line(), 'Shipped, waiting to be adopted · since 2026-09-14', 'one status line carries the state and its date');
   assert.doesNotMatch(el.querySelector('[data-adoption]').textContent, /awaiting adoption|Pending since/, 'the pending note is only the entry\'s own words');
   assert.equal(el.querySelector('[data-powershell-outpost] dl'), null, 'no installs-to / GitHub-now field list');
   assert.match(el.querySelector('[data-adoption]').textContent, /Module import has not run on the work computer/);
@@ -300,7 +300,7 @@ test('recording shows the exact row and adoption closure before publishing both 
   assert.equal(JSON.parse(files[`${P}/data/outpost.json`]).pending_adoption.length, 1);
   assert.equal(data.revision, publications[0].body.sha);
   assert.match(el.textContent, /reported installed/);
-  assert.match(el.querySelector('[data-status-line]').textContent, /^Confirmed installed · \d{4}-\d{2}-\d{2}$/);
+  assert.match(el.querySelector('[data-status-line]').textContent, /^Adopted, reported placed · \d{4}-\d{2}-\d{2}$/);
 });
 
 test('a browser check can be promoted to a verified row, and then reads as recorded', async () => {
@@ -332,7 +332,7 @@ test('the record survives a reload, and GitHub moving turns it into "changed sin
   assert.equal(data.lastTransfer[FORMS], undefined, 'a download of older bytes is not evidence of transferring the new file');
   assert.equal(data.stateOf(FORMS).label, 'GitHub changed since verification');
   data.select(FORMS); await settle();
-  assert.match(el.querySelector('[data-status-line]').textContent, /^Update pending · installed \d{4}-\d{2}-\d{2}$/);
+  assert.match(el.querySelector('[data-status-line]').textContent, /^Shipped, newer than the adopted copy · adopted \d{4}-\d{2}-\d{2}$/);
   // A later copy that differs from the new revision contradicts the record.
   await window.__shell.openCorrespondence({ repo: 'mehrlander/home', ref: 'main', path: FORMS }, 'something else\n', 'Forms.psm1', 'drop');
   await settle();
@@ -697,7 +697,7 @@ test('the status icon opens a menu of the actions the file\'s state allows; a di
   icon.click(); await settle();
   const menu = rowOf(profile).querySelector('[data-status-menu]');
   assert.notEqual(menu.style.display, 'none');
-  assert.deepEqual([...menu.querySelectorAll('li button')].map(b => b.textContent.trim()), ['Confirm installed…', 'Open full screen']);
+  assert.deepEqual([...menu.querySelectorAll('li button')].map(b => b.textContent.trim()), ['Mark adopted…', 'Open full screen']);
   // Right-click opens the same menu; Escape closes it.
   data.menuFor = ''; await settle();
   rowOf(profile).dispatchEvent(new window.MouseEvent('contextmenu', { bubbles: true, cancelable: true })); await settle();
@@ -705,9 +705,9 @@ test('the status icon opens a menu of the actions the file\'s state allows; a di
   window.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape' })); await settle();
   assert.equal(data.menuFor, '');
   assert.deepEqual([...data.actionsFor(demo).map(a => a.key)], ['deck'], 'repository-only material offers no placement');
-  // Confirm installed… selects the file and opens the confirm; nothing writes until it is tapped.
+  // Mark adopted… selects the file and opens the confirm; nothing writes until it is tapped.
   icon.click(); await settle();
-  [...rowOf(profile).querySelectorAll('[data-status-menu] li button')].find(b => /Confirm installed/.test(b.textContent)).click();
+  [...rowOf(profile).querySelectorAll('[data-status-menu] li button')].find(b => /Mark adopted/.test(b.textContent)).click();
   for (let i = 0; i < 10 && !data.pending; i++) await tick(2);
   assert.equal(data.selected, profile); assert.equal(data.pending.kind, 'installed');
   assert.match(el.textContent, /I placed this on the work computer/);
@@ -1017,10 +1017,10 @@ test('a file whose strict dependency is still pending is confirmed with it, in o
   data.select(PROFILE); await settle();
   assert.deepEqual([...data.placeable(data.item).map(i => i.path)], [CTL, PROFILE], 'the new form first, then the profile that loads it');
   assert.match(el.querySelector('[data-install-with]').textContent, /Install with\s+Bookmarks\.ps1/);
-  assert.ok(data.actionsFor(PROFILE).some(a => a.key === 'install' && a.label === 'Confirm all 2 installed…'));
+  assert.ok(data.actionsFor(PROFILE).some(a => a.key === 'install' && a.label === 'Mark all 2 adopted…'));
   data.select(CTL); await settle();
   assert.equal(el.querySelector('[data-install-with]').style.display, 'none', 'what loads a file does not ride with it');
-  assert.ok(data.actionsFor(CTL).some(a => a.label === 'Confirm installed…'), 'alone, it is confirmed alone');
+  assert.ok(data.actionsFor(CTL).some(a => a.label === 'Mark adopted…'), 'alone, it is confirmed alone');
   data.select(PROFILE); await settle();
   await data.askInstalled(); await settle();
   assert.deepEqual([...data.pending.rows.map(r => r.path)], [CTL, PROFILE]);
@@ -1178,7 +1178,7 @@ test('a module or form opens whole from its name, and every name in it opens whe
     heads()[0].click(); await settle();
     await poll(() => data.resource === 'Modules/Forms' && !data.resBusy && data.resReach, 'the module did not read');
     assert.equal(window.__shell.powershellOutpostItem, `${P}/app/Modules/Forms/`, 'the address names the folder');
-    assert.match(el.querySelector('[data-resource-figure]').textContent, /^1 file · 3 functions( · 1 to install)?$/);
+    assert.match(el.querySelector('[data-resource-figure]').textContent, /^1 file · 3 functions( · 1 to adopt)?$/);
     assert.deepEqual([...data.resReachGroups.map(g => g.key + ':' + g.list.map(f => f.name).join())], ['outside:Import-Form', 'inside:Get-Helper', 'none:Show-Nothing']);
     assert.match(el.querySelector('[data-function] [data-caller]').textContent, /Profile\.ps1/, 'its caller, named');
     assert.match(el.querySelector('[data-resource-neighbours]').textContent, /Loaded by\s+Profile\.ps1\s*import/);

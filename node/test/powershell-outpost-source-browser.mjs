@@ -239,7 +239,7 @@ try {
     assert.deepEqual(rows, ['Removed     $Step = 1', 'Added     param([int]$Step = 2)']);
     assert.match(await desk.page.locator('[data-source-diff]').innerText(), /reported installed at ccccccc/);
     for (const label of ['Files', 'Stage', 'Open code workspace', 'Mark as installed']) assert.equal(await desk.page.getByRole('button', { name: label, exact: true }).count(), 0, label + ' is gone');
-    assert.equal(await desk.page.locator('[data-row]', { hasText: 'C.psm1' }).locator('[data-status]').getAttribute('data-title-tip'), 'Update pending');
+    assert.equal(await desk.page.locator('[data-row]', { hasText: 'C.psm1' }).locator('[data-status]').getAttribute('data-title-tip'), 'Shipped');
     if (process.env.SHOTS) await desk.page.screenshot({ path: path.join(process.env.SHOTS, 'source-pane-changes.png'), fullPage: true });
     await desk.page.locator('[data-detail-tabs] [data-tab=code]').click();
     await desk.page.locator('[data-source] .cm-editor').waitFor({ state: 'visible' });
@@ -287,7 +287,7 @@ try {
     await menu.waitFor({ state: 'visible' });
     const mb = await menu.boundingBox();
     assert.ok(mb.x >= 0 && mb.x + mb.width <= 390, 'the detail menu is inside the viewport: ' + JSON.stringify(mb));
-    assert.equal(await menu.getByRole('button', { name: 'Confirm installed…' }).isVisible(), true);
+    assert.equal(await menu.getByRole('button', { name: 'Mark adopted…' }).isVisible(), true);
     if (process.env.SHOTS) await phone.page.screenshot({ path: path.join(process.env.SHOTS, 'status-menu-phone.png') });
     await phone.page.keyboard.press('Escape');
     assert.equal(await phone.page.getByLabel('Copy GitHub text', { exact: true }).isVisible(), true, 'Copy shows on the File tab');
