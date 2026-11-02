@@ -25,7 +25,7 @@ docs/agents.csv,18,11,4769,"[""id"",""kind"",""team"",""path"",""icon"",""anchor
 docs/aims-goals.csv,5,3,380,"[""key"",""name"",""gloss""]"
 docs/aims-initiatives.csv,5,3,839,"[""key"",""name"",""gloss""]"
 docs/aims-reading.csv,5,4,378,"[""repo"",""path"",""private"",""gloss""]"
-docs/app-routes.csv,25,11,14406,"[""key"",""address"",""label"",""stop"",""group"",""what"",""files"",""note"",""tabs"",""reads"",""lands""]"
+docs/app-routes.csv,25,11,14413,"[""key"",""address"",""label"",""stop"",""group"",""what"",""files"",""note"",""tabs"",""reads"",""lands""]"
 docs/assistant-branches.csv,7,5,1090,"[""branch"",""repo"",""assistant"",""basis"",""declared""]"
 docs/context-links.csv,5,4,657,"[""from"",""to"",""kind"",""gloss""]"
 docs/context-sources.csv,33,20,8837,"[""id"",""circle"",""item"",""repo"",""path"",""defined_in"",""link"",""arrives"",""when"",""reach"",""read"",""change"",""evidence"",""status"",""tally"",""topics"",""gloss"",""assistant"",""discretion"",""role""]"
