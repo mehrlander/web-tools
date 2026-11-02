@@ -51,7 +51,7 @@ without a committed vocabulary?
 
 ## The variant marks
 
-Wherever the file viewer previews a markdown file, a paragraph whose exact text has a retained variant gets a margin mark that opens its variants in place; a filled mark means one of them is [proposed](#where-variants-and-proposals-come-from) for this file. [`kits/md-variants.js`](../lib/kits/md-variants.js) places the marks and draws the variants with [`kits/md-diff.js`](../lib/kits/md-diff.js). The marks are on by default and are switched off for the browser in the FAB's Text tab, under **Retained variants**. Exact matching is the limit: a variant whose paragraph has been edited since no longer matches, and the History mode still lists it.
+Wherever the file viewer previews a markdown file, a heading whose section holds paragraphs with retained variants gets a mark beside its edit and copy icons, counting those paragraphs, and a tap opens their variants in place; a filled mark means one of those variants is [proposed](#where-variants-and-proposals-come-from) for this file. A paragraph above the first heading gets its mark in the margin. [`kits/md-variants.js`](../lib/kits/md-variants.js) places the marks and draws the variants with [`kits/md-diff.js`](../lib/kits/md-diff.js). The marks are on by default and are switched off for the browser in the FAB's Text tab, under **Retained variants**. Exact matching is the limit: a variant whose paragraph has been edited since no longer matches, and the History mode still lists it.
 
 ## The History mode
 
