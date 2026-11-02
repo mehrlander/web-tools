@@ -241,7 +241,9 @@ test('the two sub-tab encodings, counted', () => {
   // been a legend on Showing.
   // 47 to 48 on 2026-10-29: Data took Attributes, what .gitattributes gives
   // each file.
-  assert.equal(params, 48, 'sub-tabs addressed as ?view=<parent>&tab=');
+  // 48 to 49 on 2026-11-02: Browser took Layers, one UI unit read through
+  // every layer, the overview the UI concepts idea board chose.
+  assert.equal(params, 49, 'sub-tabs addressed as ?view=<parent>&tab=');
 });
 
 // The Map's row is a copy of the shell's address list, and it is a copy that
