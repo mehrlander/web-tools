@@ -215,9 +215,12 @@ document.addEventListener('alpine:init', () => {
     },
 
     // The brief is prose, formatted as a commentary is, with its date beneath.
+    // It sits on a tinted, bordered panel in a serif face, so it reads as the
+    // board's own document and not as a ninth idea; the idea cards stay on the
+    // plain ground in the page's sans.
     renderBrief(el) {
-      el.innerHTML = `<div class="grid gap-3 text-pretty">${prose(this.briefText)}
-        <p class="text-sm text-base-content/50">${esc(this.B.made)}</p>
+      el.innerHTML = `<div class="rounded-box border border-base-300 bg-base-200 px-5 py-4 grid gap-3 text-pretty font-serif">${prose(this.briefText)}
+        <p class="text-sm text-base-content/50 font-sans">${esc(this.B.made)}</p>
       </div>`;
     },
 
