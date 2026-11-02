@@ -3,7 +3,7 @@
 // ----------------------------------------------------------------------------
 // This block lives in a Text action inside the user's Copy-ActionFromJson
 // shortcut. The shortcut calls it as  (THIS)(payload)  where payload is the
-// parsed chain object: { actions: [ { id, p }, ... ] }.
+// parsed payload: { actions: [ { id, p }, ... ] }.
 //
 // It serializes each action to a full plist XML document and writes
 //   { "actions": [ "<?xml...>", ... ] }
