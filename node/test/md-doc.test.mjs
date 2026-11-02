@@ -680,3 +680,25 @@ test('headOf: reaches the heading node of a section other than the located one',
   assert.equal(mdDoc.headOf(box, 999), null);
   host.remove();
 });
+
+// A COMMIT ON SCREEN keeps its pencil when its branch is known (owner,
+// 2026-11-02: "you would still see the edit button, but it would show as
+// disabled"), dimmed, and edits the branch through kits/md-edit.js; a commit
+// with no branch named has nowhere to save, so no pencil.
+test('a pinned commit with its branch keeps a dimmed pencil; without one, none', () => {
+  const pinned = window.document.createElement('div');
+  mdDoc.render(pinned, DOC, { addr: { ...ADDR, ref: '4ca7634b385c', branch: 'main' }, edit: { full: DOC } });
+  const pen = act(pinned, 1, 'edit');
+  assert.ok(pen, 'the pencil stays');
+  assert.ok(pen.hasAttribute('data-md-pinned'));
+  assert.match(pen.className, /\bopacity-40\b/, 'dimmed');
+  assert.match(pen.getAttribute('aria-label'), /Pinned to a commit on main/);
+
+  const bare = window.document.createElement('div');
+  mdDoc.render(bare, DOC, { addr: { ...ADDR, ref: '4ca7634b385c' }, edit: { full: DOC } });
+  assert.equal(act(bare, 1, 'edit'), null, 'no branch, no pencil');
+
+  const live = window.document.createElement('div');
+  mdDoc.render(live, DOC, { addr: ADDR, edit: { full: DOC } });
+  assert.equal(act(live, 1, 'edit').hasAttribute('data-md-pinned'), false, 'a branch is edited as it stands');
+});

@@ -124,7 +124,10 @@ test('no badge at the tip, on a branch-named ref, or without a token', async () 
 
   const named = await mount({ repo: 'me/r', ref: 'claude/x', path: 'pages/a.html' });
   assert.equal(named.d.newer, null);
-  assert.deepEqual(calls, [], 'a branch-named address already follows its tip');
+  // The only call a branch-named address makes is the ref bar's line standing
+  // against the default branch (checkLine); the newer check makes none.
+  assert.deepEqual(calls.map(c => c.p).filter(p => !p.startsWith('compare/main...')), [],
+    'a branch-named address already follows its tip');
 
   token = '';
   try {
@@ -160,4 +163,38 @@ test('the badge is a button, so the launcher\'s touch guard lets its tap through
   await until(() => badge());
   assert.equal(badge().tagName, 'BUTTON');
   assert.ok(!badge().closest('[role="button"]'), 'and it is not a control inside the launcher control');
+});
+
+// ── The ref bar: line, live or pinned, standing, friendly name ──────────────
+test('the ref bar names a pin\'s branch, says pinned, and counts the commits since', async () => {
+  answers = { 'compare/': ahead(2) };
+  const { d, el } = await mount({ repo: 'me/r', ref: SHA, branch: 'claude/fab-naming-todqvq', path: 'pages/a.html' });
+  await until(() => d.pin);
+  assert.equal(d.refPinned, true);
+  assert.equal(d.refLine, 'claude/fab-naming-todqvq', 'the line is the branch the link named, not the commit');
+  assert.equal(d.refSha, SHA.slice(0, 7));
+  assert.equal(d.refStanding.kind, 'behind');
+  assert.equal(d.refStanding.text, '↓2');
+  assert.equal(d.refFriendly, 'Fab naming', 'the words of a session branch, with no PR to name it');
+  d.open = true; d.activeTab = 'render';
+  await until(() => el.querySelector('[data-ref-bar]') && /↓2/.test(el.querySelector('[data-ref-bar]').textContent), 80);
+  const bar = el.querySelector('[data-ref-bar]').textContent.replace(/\s+/g, ' ');
+  assert.match(bar, /claude\/fab-naming-todqvq pinned @aaaaaaa/);
+  assert.match(bar, /↓2/);
+  assert.match(d.refTip, /^Pinned at aaaaaaa11111 on claude\/fab-naming-todqvq/);
+});
+
+test('a pin at its branch\'s latest says latest, and a live branch counts against main', async () => {
+  answers = { 'compare/': { ahead_by: 0, behind_by: 0, commits: [] } };
+  const tip = await mount({ repo: 'me/r', ref: SHA, branch: 'claude/x', path: 'pages/a.html' });
+  await until(() => tip.d.pin);
+  assert.equal(tip.d.refStanding.kind, 'latest');
+  answers = { 'compare/': { ahead_by: 3, behind_by: 1, commits: [] } };
+  const live = await mount({ repo: 'me/r', ref: 'claude/x', path: 'pages/a.html' });
+  await until(() => live.d.line);
+  assert.equal(live.d.refPinned, false);
+  assert.equal(live.d.refLine, 'claude/x');
+  assert.deepEqual({ ...live.d.refStanding, tip: '' }, { kind: 'line', ahead: 3, behind: 1, tip: '' });
+  assert.deepEqual(calls.map(c => c.p), ['compare/main...claude/x']);
+  assert.match(live.d.refTip, /^Live on claude\/x, not main/);
 });
