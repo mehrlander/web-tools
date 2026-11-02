@@ -82,7 +82,9 @@ document.addEventListener('alpine:init', () => {
     at(i) { return this.B.ideas[i - 1]; },
     // Rows carry a thumbnail only when every sketch is an SVG one.
     get thumbs() { return this.B.ideas.every(d => d.src); },
-    get key() { return 'idea-board:' + (this.callAt ? 'call:' + this.callAt.path : this.addr.replace(/@[^:]*/, '') || this.B.title); },
+    // Keyed by the board, not the call, so picks made on the board's own link
+    // are still there when it is opened on a call.
+    get key() { return 'idea-board:' + (this.addr.replace(/@[^:]*/, '') || this.B.title); },
 
     async init() {
       await window.__depsReady;
