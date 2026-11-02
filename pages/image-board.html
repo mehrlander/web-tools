@@ -8,27 +8,15 @@
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
 <script type="module">
-  // The image board, the form for a choice among found images (docs/forms): a
-  // list of searches becomes a grid of found images, one section per search,
-  // and a tap picks one. The page is opened one of two ways.
-  //   #call=owner/repo[@ref]:user-calls/<session>-<slug>.json
-  // A pick call (web-tools-private user-calls/user-call.py, which states the
-  // call's fields and its answer) sets the searches and receives the picks.
-  // Without a call, the address sets the searches, and the picks are copied
-  // out as text to paste into a session:
-  //   #q=gem,crystal,pickaxe   the searches, comma-separated
-  //   &src=icons|commons       Iconify's open-licensed icon sets (default), or
-  //                            Wikimedia Commons drawings and photos
-  //   &sets=game-icons,noto    only these Iconify sets (their prefixes)
-  //   &color=d97706            the tint for single-colour icons
-  //   &title=Surfacing         the board's name
-  //   &group=medium            each search's starting grouping: off, tight,
-  //                            medium or loose; near-alike icons fold into
-  //                            one tile with a +N badge, and each search's
-  //                            heading changes its own
-  // Both sources answer a browser directly (CORS), so nothing is fetched ahead
-  // of time. Picks persist in this browser per board. The footer keeps clear
-  // of the bottom-right corner, where the FAB sits.
+  // The image board, the form for a choice among found images (docs/forms):
+  // one section of found images per search, and a tap picks one. A pick call
+  // (web-tools-private user-calls/user-call.py states its fields and answer)
+  // sets the searches and receives the picks:
+  //   #user-call=owner/repo[@ref]:user-calls/<session>-<slug>.json
+  // Without one, the address sets them and the picks are copied out as text:
+  //   #q=gem,crystal    searches         &src=icons|commons  Iconify or Wikimedia Commons
+  //   &sets=game-icons  Iconify sets     &color=d97706       tint for one-colour icons
+  //   &title=Surfacing  the board's name &group=medium       how far near-alike icons fold
   const ref = new URLSearchParams(location.search).get('use');
   if (ref) {
     const src = await fetch(`https://raw.githubusercontent.com/mehrlander/web-tools/${ref}/dist/web-tools.js`, { cache: 'no-store' });
@@ -40,6 +28,7 @@
   }
   await gh.load('kits/repo-address.js');
   await gh.load('alpineComponents/user-call-form.js');
+  await gh.load('kits/title-tip.js');
   const P = new URLSearchParams(location.hash.slice(1) || location.search.slice(1));
   const S = {
     title: P.get('title') || 'Image board',
@@ -49,12 +38,12 @@
     sets: (P.get('sets') || '').split(',').map(s => s.trim()).filter(Boolean),
     group: ['off', 'tight', 'medium', 'loose'].includes(P.get('group')) ? P.get('group') : 'medium',
     results: {}, shapes: {}, open: {}, level: {}, picks: [], copied: '',
-    call: null, at: null, err: '', sent: null, sending: false, note: '',
+    call: null, at: null, err: '', sent: null, sending: false, note: '', post: true,
   };
 
   // The latest answer already sent comes back as the starting picks.
-  const callAt = P.get('call') ? window.RepoAddress?.parse(P.get('call')) : null;
-  if (P.get('call') && !callAt) S.err = 'Not a call address: ' + P.get('call');
+  const callAt = P.get('user-call') ? window.RepoAddress?.parse(P.get('user-call')) : null;
+  if (P.get('user-call') && !callAt) S.err = 'Not a call address: ' + P.get('user-call');
   if (callAt) {
     try {
       const g = new window.GH({ token: window.TOKEN, repo: callAt.repo, ref: callAt.ref });
@@ -78,7 +67,7 @@
   // Fewer dots, broader groups: nine for every icon, one for the loosest fold.
   const LEVELS = [['off', 'ph-dots-nine', 'all'], ['tight', 'ph-dots-six', 'tight'], ['medium', 'ph-dots-three', 'medium'], ['loose', 'ph-dot', 'loose']];
   const levelOf = q => S.level[q] || S.group;
-  const KEY = 'image-board:' + (P.get('call') || S.title + ':' + S.queries.join(','));
+  const KEY = 'image-board:' + (P.get('user-call') || S.title + ':' + S.queries.join(','));
   if (!S.sent) try { S.picks = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch {}
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S.picks)); } catch {} };
   const esc = window.esc;
@@ -121,14 +110,10 @@
     },
   };
 
-  // Grouping without a vision model: each icon is drawn at 64 px and reduced
-  // to two 16 x 16 grids, its ink and its filled silhouette (the ink plus every
-  // hole the outside cannot reach), both cropped to the ink's bounding box so
-  // position, padding and scale drop out. The silhouette makes the outline,
-  // solid and two-tone cuts of one design alike; the ink keeps a different
-  // interior apart. Distance is 1 minus intersection over union, weighted
-  // 0.6 silhouette and 0.4 ink, and each icon joins the first more relevant
-  // icon within the cut, so a group shows its most relevant member.
+  // Grouping without a vision model: each icon, drawn at 64 px, becomes two
+  // 16 x 16 grids, its ink and its filled silhouette, cropped to the ink.
+  // Distance is 1 minus their overlap (0.6 silhouette, 0.4 ink), and an icon
+  // joins the first more relevant icon within the cut.
   async function shapeOf(src, R = 64, K = 16) {
     const im = new Image(); im.src = src; await im.decode();
     const c = document.createElement('canvas'); c.width = c.height = R;
@@ -195,17 +180,31 @@
     S.picks = picked(item.id) ? S.picks.filter(p => p.id !== item.id) : [...S.picks, item];
     S.copied = ''; save(); render();
   }
+  // As the call form answers: the line beside the call, and where the call
+  // names a PR, the same answer commented there, which wakes a waiting session.
   async function send() {
     S.sending = true; S.err = ''; render();
     try {
       const entry = { answer: 'Picked', picks: S.picks.map(p => ({ id: p.id, href: p.href || '' })),
                       note: S.note.trim(), at: new Date().toISOString() };
-      S.sent = await window.UserCallForm.postAnswer({ repo: S.at.repo, ref: S.at.ref || 'main', path: S.at.answers, entry });
+      const pr = S.call.pr && S.post ? window.UserCallForm.prOf(S.call.pr) : null;
+      const id = S.call.id || S.at.path.split('/').pop().replace(/\.json$/, '');
+      const comment = pr ? `**User call: ${S.call.question}**\n\nAnswer: **Picked**, ${entry.picks.length}\n\n`
+        + entry.picks.map(x => `- [${x.id.replace(/^\w+ /, '')}](${x.href})`).join('\n')
+        + (entry.note ? '\n\n> ' + entry.note : '') + `\n\n_${id}, sent from the image board._` : '';
+      S.sent = await window.UserCallForm.postAnswer({ repo: S.at.repo, ref: S.at.ref || 'main', path: S.at.answers, entry, pr, comment });
     } catch (e) { S.err = 'Not sent: ' + (e?.message || e); }
     S.sending = false; render();
   }
   const sentNow = () => S.sent && JSON.stringify((S.sent.picks || []).map(x => x.id)) === JSON.stringify(S.picks.map(p => p.id))
     && (S.sent.note || '') === S.note.trim();
+  const closed = () => !!S.call && (S.call.status === 'closed' || !!S.call.closed);
+  const ago = iso => { const m = Math.round((Date.now() - new Date(iso)) / 60000);
+    return m < 1 ? 'just now' : m < 60 ? m + 'm ago' : m < 1440 ? Math.round(m / 60) + 'h ago' : Math.round(m / 1440) + 'd ago'; };
+  const sendLabel = () => S.sending ? 'Sending' : sentNow() ? 'Sent' : S.sent ? 'Send again' : 'Send';
+  const canSend = () => S.picks.length && !S.sending && !sentNow() && !closed();
+  // The call form's answer button: ghost, tinted with the primary colour.
+  const ACT = 'btn btn-sm btn-ghost shrink-0 gap-1 border-[color-mix(in_srgb,var(--color-primary)_45%,var(--color-base-100))] bg-primary/10 text-primary hover:bg-primary/15';
   const pickText = () => S.picks.map(p => `${p.id}  ${p.href || p.img}`).join('\n');
   async function copy() {
     const text = pickText();
@@ -237,7 +236,7 @@
           : r.map(it => tile(it)).join('')}</div>`;
     const count = !Array.isArray(r) ? '' : grouping(q) ? `${r.length} · ${groupsOf(r, levelOf(q)).length} groups, ${levelOf(q)}` : `${r.length}, all`;
     const levels = S.src !== 'icons' ? '' : `<div class="join ml-auto" role="radiogroup" aria-label="Grouping for ${esc(q)}">${LEVELS.map(([k, icon, name]) =>
-      `<button type="button" role="radio" aria-checked="${levelOf(q) === k}" aria-label="${name}" data-level="${k}" data-q="${esc(q)}"
+      `<button type="button" role="radio" aria-checked="${levelOf(q) === k}" aria-label="${name}" data-title-tip="${name}" data-level="${k}" data-q="${esc(q)}"
         class="btn btn-xs btn-square join-item ${levelOf(q) === k ? 'btn-neutral' : 'btn-ghost'}"><i class="ph-bold ${icon} text-base"></i></button>`).join('')}</div>`;
     return `<section id="q-${esc(q)}" class="flex flex-col gap-2.5">
       <h2 class="flex items-center gap-2 pt-4 text-balance">
@@ -246,16 +245,21 @@
   }
 
   function render() {
+    const pr = S.call?.pr ? window.UserCallForm.prOf(S.call.pr) : null;
+    document.getElementById('top').innerHTML = `
+      <div class="flex flex-col gap-1.5 px-4 pt-3 pb-1">
+        <h1 class="text-xl font-semibold leading-snug text-balance">${esc(S.title)}</h1>
+        ${S.call?.brief || pr ? `<p class="text-base leading-snug text-pretty">${esc(S.call?.brief || '')}
+          ${pr ? `<a href="https://github.com/${esc(pr.slug)}/pull/${esc(pr.n)}" class="ml-1 inline-flex items-center gap-1 rounded-full border border-base-300 px-2 text-sm leading-6 hover:bg-base-200"><i class="ph ph-git-pull-request"></i>#${esc(pr.n)}</a>` : ''}</p>` : ''}
+      </div>`;
     document.getElementById('head').innerHTML = `
-      <div class="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 pt-3">
-        <h1 class="mr-auto text-lg font-semibold text-balance">${esc(S.title)}</h1>
-        <div class="join">${['icons', 'commons'].map(s => `<button type="button" data-src="${s}"
+      <div class="flex items-center gap-2 px-4 py-2">
+        <div class="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto">
+          ${S.queries.map(q => `<a href="#q-${esc(q)}" data-jump="${esc(q)}" class="badge badge-ghost shrink-0 whitespace-nowrap">${esc(q)}</a>`).join('')}
+          <form id="add" class="shrink-0"><input name="q" placeholder="Search" class="input input-sm w-36 max-sm:text-base"></form>
+        </div>
+        <div class="join shrink-0">${['icons', 'commons'].map(s => `<button type="button" data-src="${s}"
           class="btn btn-xs join-item ${S.src === s ? 'btn-neutral' : 'btn-ghost'}">${s === 'icons' ? 'Icons' : 'Commons'}</button>`).join('')}</div>
-        ${S.call?.brief ? `<p class="w-full text-sm text-base-content/60 text-pretty">${esc(S.call.brief)}</p>` : ''}
-      </div>
-      <div class="flex items-center gap-1.5 overflow-x-auto px-4 py-2">
-        ${S.queries.map(q => `<a href="#q-${esc(q)}" data-jump="${esc(q)}" class="badge badge-ghost shrink-0 whitespace-nowrap">${esc(q)}</a>`).join('')}
-        <form id="add" class="shrink-0"><input name="q" placeholder="Add a search" class="input input-xs w-36"></form>
       </div>`;
     document.getElementById('grid').innerHTML = callAt && !S.call
       ? `<p class="pt-6 text-error">${esc(S.err)}</p>` : S.queries.map(section).join('');
@@ -263,9 +267,8 @@
       return img ? `<img src="${esc(img)}" alt="" class="size-7 object-contain">`
         : `<span class="block max-w-24 truncate px-1 font-mono text-xs">${esc(p.id.split(/[ :]/).pop())}</span>`; };
     const action = S.call
-      ? `<button type="button" id="send" class="btn btn-sm btn-primary shrink-0" ${S.picks.length && !S.sending && !sentNow() ? '' : 'disabled'}>${
-          S.sending ? 'Sending' : sentNow() ? 'Sent' : S.sent ? 'Send again' : 'Send picks'}</button>`
-      : `<button type="button" id="copy" class="btn btn-sm btn-primary shrink-0" ${S.picks.length ? '' : 'disabled'}>${S.copied === 'ok' ? 'Copied' : 'Copy picks'}</button>`;
+      ? `<button type="button" id="send" class="${ACT}" ${canSend() ? '' : 'disabled'}><i class="ph ph-paper-plane-tilt"></i><span>${sendLabel()}</span></button>`
+      : `<button type="button" id="copy" class="${ACT}" ${S.picks.length ? '' : 'disabled'}><i class="ph ph-copy"></i><span>${S.copied === 'ok' ? 'Copied' : 'Copy'}</span></button>`;
     document.getElementById('foot').innerHTML = `
       <div class="flex items-center gap-3 py-2.5 pl-4 pr-20">
         <div class="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto">
@@ -275,8 +278,9 @@
         ${action}
       </div>
       ${S.call ? `<div class="flex flex-wrap items-center gap-x-3 gap-y-1 pb-2.5 pl-4 pr-20">
-        <input id="note" value="${esc(S.note)}" placeholder="Note" class="input input-sm min-w-0 flex-1">
-        <span class="text-xs text-base-content/50">${S.sent ? `${(S.sent.picks || []).length} sent ${esc(new Date(S.sent.at).toLocaleString())}` : 'Not sent'}</span>
+        <input id="note" value="${esc(S.note)}" placeholder="Note" class="input input-sm min-w-0 flex-1 max-sm:text-base" ${closed() ? 'disabled' : ''}>
+        ${pr && !closed() ? `<label class="flex items-center gap-1 text-sm"><input type="checkbox" id="post" class="checkbox checkbox-xs" ${S.post ? 'checked' : ''}>Post on #${esc(pr.n)}</label>` : ''}
+        <span class="text-sm text-base-content/60">${closed() ? 'Closed' : S.sent ? `Sent ${(S.sent.picks || []).length} · ${ago(S.sent.at)}` : 'Not sent'}</span>
         ${S.err ? `<span class="w-full text-sm text-error">${esc(S.err)}</span>` : ''}
       </div>` : ''}
       ${S.copied === 'manual' ? `<textarea id="picktext" readonly rows="3" class="textarea textarea-sm mx-4 mb-3 w-[calc(100%-2rem)] font-mono">${esc(pickText())}</textarea>` : ''}`;
@@ -310,10 +314,11 @@
   // The note is read as typed, and the Send button follows it without a
   // redraw that would take the caret away.
   addEventListener('input', e => {
+    if (e.target.id === 'post') { S.post = e.target.checked; return; }
     if (e.target.id !== 'note') return;
     S.note = e.target.value;
     const b = document.getElementById('send');
-    if (b) { b.disabled = !S.picks.length || S.sending || sentNow(); b.textContent = sentNow() ? 'Sent' : S.sent ? 'Send again' : 'Send picks'; }
+    if (b) { b.disabled = !canSend(); b.querySelector('span').textContent = sendLabel(); }
   });
   render();
   if (!callAt || S.call) loadAll();
@@ -324,7 +329,8 @@
        element measures against the outer window and loses its right side
        (html-style rule 5). The chrome sticks over document scrolling instead. -->
   <div class="flex min-h-dvh flex-col">
-    <header id="head" class="sticky top-0 z-20 border-b border-base-300 bg-base-100"></header>
+    <header id="top" class="bg-base-100"></header>
+    <div id="head" class="sticky top-0 z-20 border-b border-base-300 bg-base-100"></div>
     <main id="grid" class="flex flex-1 flex-col gap-6 px-4 pb-6"></main>
     <footer id="foot" class="sticky bottom-0 z-20 border-t border-base-300 bg-base-100"></footer>
   </div>
