@@ -134,6 +134,14 @@ document.addEventListener('alpine:init', () => {
     // (docs/prototypes/md-edit-ideas.json, a write-once record) is read with
     // the two joined as its commentary.
     commentary(d) { return d.commentary != null ? d.commentary : [d.encounter, d.helps].filter(Boolean).join('\n\n'); },
+    // A board whose brief is result and musts[] (docs/prototypes/md-edit-ideas.json
+    // again) has the two read as prose: the result, then what a concept must show.
+    get briefText() {
+      const b = this.B.brief;
+      return typeof b === 'string' ? b : [b.result, (b.musts || []).length ? 'A concept must show ' + b.musts.map(m => /^.[a-z]/.test(m) ? m.charAt(0).toLowerCase() + m.slice(1) : m).join('; ') + '.' : ''].filter(Boolean).join('\n\n');
+    },
+    // The brief's list row: its first paragraph, unformatted.
+    get briefLead() { return this.briefText.split(/\n\s*\n/)[0].replace(/\*\*|`/g, ''); },
     mark(kind, size = 16) { return window.CallMarks ? window.CallMarks.svg(kind, { size }) : ''; },
 
     // The deck's subtitle names the card in view, as the strip's header does.
@@ -206,16 +214,10 @@ document.addEventListener('alpine:init', () => {
       this.note(el, d.n);
     },
 
+    // The brief is prose, formatted as a commentary is, with its date beneath.
     renderBrief(el) {
-      const B = this.B;
-      el.innerHTML = `<div class="grid gap-4">
-        <dl class="grid grid-cols-[6rem_minmax(0,1fr)] gap-x-4 gap-y-3">
-          <dt class="text-sm text-base-content/60 pt-1">Subject</dt><dd class="text-pretty">${esc(B.subject)}</dd>
-          <dt class="text-sm text-base-content/60 pt-1">Result</dt><dd class="text-pretty">${esc(B.brief.result)}</dd>
-          <dt class="text-sm text-base-content/60 pt-1">Must show</dt>
-          <dd class="grid gap-1">${B.brief.musts.map(m => `<span class="text-pretty">${esc(m)}</span>`).join('')}</dd>
-          <dt class="text-sm text-base-content/60 pt-1">Made</dt><dd>${esc(B.made)}</dd>
-        </dl>
+      el.innerHTML = `<div class="grid gap-3 text-pretty">${prose(this.briefText)}
+        <p class="text-sm text-base-content/50">${esc(this.B.made)}</p>
       </div>`;
     },
 
@@ -288,7 +290,7 @@ document.addEventListener('alpine:init', () => {
           <span class="justify-self-center text-base-content/70" x-html="mark('background', 26)"></span>
           <span class="grid min-w-0">
             <span class="font-semibold">Brief</span>
-            <span class="text-xs text-base-content/60 truncate" x-text="B.brief.result"></span>
+            <span class="text-xs text-base-content/60 truncate" x-text="briefLead"></span>
           </span>
         </li>
         <template x-for="(d, i) in B.ideas" :key="d.n">
