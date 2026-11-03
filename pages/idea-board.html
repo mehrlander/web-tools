@@ -361,12 +361,12 @@ document.addEventListener('alpine:init', () => {
       const a = this.answerOf(), same = (x, y) => JSON.stringify(x || []) === JSON.stringify(y || []);
       return same(this.sent.picks?.map(x => x.n), a.picks.map(x => x.n)) && same(this.sent.notes?.map(x => x.note), a.notes?.map(x => x.note));
     },
-    get canSend() { return !!tokenNow() && !this.sending && !this.sentNow && !this.closed && (this.picks.length || this.answerOf().notes); },
+    get canSend() { return !!this.call && !!tokenNow() && !this.sending && !this.sentNow && !this.closed && (this.picks.length || this.answerOf().notes); },
     get sendLabel() { return this.closed ? 'Closed' : this.sending ? 'Sending' : this.sentNow ? 'Sent' : this.sent ? 'Send again' : 'Send'; },
     get sendTip() {
       const pr = window.UserCallForm.prOf(this.call?.pr);
-      return this.closed ? 'This call is closed' : !tokenNow() ? 'Sending needs a stored GitHub token'
-        : 'Send picks and notes to the call' + (pr ? ', and comment them on ' + pr.label : '');
+      return !this.call ? 'No call to send to; use Copy' : this.closed ? 'This call is closed'
+        : !tokenNow() ? 'Sending needs a stored GitHub token' : 'Send to the call' + (pr ? ' and ' + pr.label : '');
     },
     async send() {
       if (!this.canSend) return;
@@ -403,9 +403,10 @@ document.addEventListener('alpine:init', () => {
         <button class="btn btn-ghost btn-sm gap-1 tabular-nums" @click="copy()" aria-label="Copy picks" data-title-tip="Copy picks and notes">
           <i class="ph text-lg" :class="copied ? 'ph-check' : 'ph-copy'"></i><span x-text="copied ? 'Copied' : picks.length + ' picked'"></span>
         </button>
-        <!-- The call form's answer button: ghost, tinted with the primary colour, as the image board's is -->
-        <button x-show="call" @click="send()" :disabled="!canSend" :aria-label="sendTip" :data-title-tip="sendTip"
-                class="btn btn-sm btn-ghost gap-1 border-[color-mix(in_srgb,var(--color-primary)_45%,var(--color-base-100))] bg-primary/10 text-primary hover:bg-primary/15">
+        <!-- The call form's answer button: ghost, tinted with the primary colour, as the image board's is.
+             Shown on every board and disabled without a call, so its absence is never read as a missing feature. -->
+        <button @click="send()" :disabled="!canSend" :aria-label="sendTip" :data-title-tip="sendTip"
+                class="btn btn-sm btn-ghost gap-1 border-[color-mix(in_srgb,var(--color-primary)_45%,var(--color-base-100))] bg-primary/10 text-primary hover:bg-primary/15 disabled:opacity-40">
           <i class="ph text-lg" :class="sending ? 'ph-spinner animate-spin' : sentNow ? 'ph-check' : 'ph-paper-plane-tilt'"></i><span x-text="sendLabel"></span>
         </button>
       </div>
