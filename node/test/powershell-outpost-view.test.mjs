@@ -1192,6 +1192,7 @@ test('a pending update opens on Changes, a card per block; a pasted copy reads a
     for (let i = 0; i < 100 && !data.unitAdopted.length; i++) await tick(2);
     assert.match(data.changeMeta(data.visibleUnits.find(u => u.name === 'A')), /^Adopted · /);
     assert.doesNotMatch(data.changeMeta(data.visibleUnits.find(u => u.name === 'D')), /Adopted/);
+    assert.equal(data.detailTabs.find(t => t.key === 'changes').count, 1, 'the tab counts what the status line counts: D, not the adopted A');
   } finally {
     parser.delete(); window.PowerShellUnits = null; window.PowerShellMatch = undefined; history = null;
     Object.assign(files, { [mp]: saved.manifest, [FORMS]: saved.forms, [ledger]: saved.ledger }); advanceHead(); await data.reload();
