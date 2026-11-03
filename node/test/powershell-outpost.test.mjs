@@ -681,3 +681,21 @@ test('resources group module and form folders and read their neighbours, composi
   assert.deepEqual(row('Write-Note').also, [P + '/app/Modules/Log/Log.psm1']);
   assert.deepEqual(K.pendingOf(R.get('Forms/Panel')).map(p => [p.limit, p.files.map(i => i.name)]), [['Never loaded', ['Panel.ps1', 'Panel.xaml']]], 'a shared limit is said once');
 });
+
+test('a change is adopted when a later record placed the same unit at the same text, and a file counts what is pending', async () => {
+  const hex = async t => Buffer.from(await webcrypto.subtle.digest('SHA-256', new TextEncoder().encode(t))).toString('hex');
+  const review = { units: [
+    { id: 'change-0', kind: 'Function', name: 'A', after: 'function A { 2 }\r\n' },
+    { id: 'change-1', kind: 'Function', name: 'B', after: 'function B { 3 }\r\n' },
+    { id: 'change-2', kind: 'Other', name: 'Other changes', after: '$x = 1\r\n', formatOnly: true },
+  ] };
+  const record = (date, name, after) => ({ date, path: FORMS, units: [{ name, kind: 'Function', after_sha256: after }] });
+  const rows = [record('2026-10-10T00:00:00.000Z', 'A', await hex('function A { 2 }\r\n')),
+    record('2026-10-11T00:00:00.000Z', 'B', await hex('function B { 2 }\r\n'))];
+  const a = await K.adoption(review, rows);
+  assert.deepEqual(a.changes.map(c => [c.id, c.adopted]), [['change-0', true], ['change-1', false]],
+    'B was placed at an earlier text, so its newer change is pending; whitespace is not a change');
+  assert.equal(a.pending, 1); assert.equal(a.adopted, 1);
+  assert.equal((await K.adoption(review, rows, '2026-10-10T12:00:00.000Z')).adopted, 0,
+    'a record before the version the work computer is known to hold adopts nothing after it');
+});
