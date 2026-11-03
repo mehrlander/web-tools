@@ -150,7 +150,7 @@ test('the guide-body sync does not prescribe a file list in the body', () => {
   const at = doc.indexOf('* **The PR guide');
   assert.ok(at >= 0, 'CONVERSATION.md should carry the PR guide rule');
   const guide = doc.slice(at);
-  assert.ok(/Leave files and checks to the branch page/.test(guide),
+  assert.ok(/Leave out files and commits, which the branch page reads/.test(guide),
     'the guide should carry judgment, not a file list');
   assert.ok(/in plain prose/.test(guide),
     'the guide template should ask for prose, not the caption\'s link triplets');
