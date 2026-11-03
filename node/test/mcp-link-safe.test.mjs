@@ -145,9 +145,11 @@ test('--check exits non-zero only when something would be defanged', () => {
 // into a PR body. It did until 2026-08-25, contradicting CONVERSATION.md's own
 // "The body does not enumerate files" since 2026-08-08.
 test('the guide-body sync does not prescribe a file list in the body', () => {
-  // The rule lives in CONVERSATION.md's Guide pointer, which every session loads.
+  // The rule lives in CONVERSATION.md's "The PR guide", which every session loads.
   const doc = readFileSync(path.join(repoRoot, 'docs', 'CONVERSATION.md'), 'utf8');
-  const guide = doc.slice(doc.indexOf('* **Guide pointer'));
+  const at = doc.indexOf('* **The PR guide');
+  assert.ok(at >= 0, 'CONVERSATION.md should carry the PR guide rule');
+  const guide = doc.slice(at);
   assert.ok(/Leave files and checks to the branch page/.test(guide),
     'the guide should carry judgment, not a file list');
   assert.ok(/in plain prose/.test(guide),

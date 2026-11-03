@@ -25,7 +25,7 @@ substituting the current repo in URL templates.
 
   Use 🟢, not 🪧, when the reader's shared intention gives the session a clear path. A call, a decision only the reader can make, closes on ⚖️ **Choice needed:**, and only once the question has been fully assessed for an unfamiliar reader: give the question, then `Recommended: <answer>, because <reason>.` Without that assessment, close on 🪧. A request for the reader's judgment of something shown is 👁️‍🗨️; a request for an act or a fact is 🛵.
 
-* **Close in one order.** End with the caption, render line, 🧭, then the state. Include a state when no files changed. A wake (a nudge, stop hook, finished job, PR event, or moved base) that leaves the reader nothing new gets no reply. If the harness then requires visible output, reply with one line naming the wake.
+* **Close in one order.** End with the caption, render line, then the state. Include a state when no files changed. A wake (a nudge, stop hook, finished job, PR event, or moved base) that leaves the reader nothing new gets no reply. If the harness then requires visible output, reply with one line naming the wake.
 
 * **Surfacing caption.** Use:
   `💬 [session](…/pages/session.html#id=<short>) · <N> files · [this turn](…/commit/<sha>)`
@@ -43,24 +43,23 @@ substituting the current repo in URL templates.
 
 * **Open the branch 🌿.** Use `…/pages/branch.html#gh=owner/repo@branch[&base=ref]`, or `…#gh=owner/repo&pr=<n>` for a PR's head and base. Add `&file=<path>` to open a file or `&pane=files` to open the file list.
 
-* **Guide pointer 🧭.** A PR's guide is the part of its body between `[//]: # (guide)` and `[//]: # (/guide)`. The branch page shows the body above the files. After a push that changes the branch's state, rewrite the guide with `update_pull_request`, once `python3 python/mcp-link-safe.py --check body.md`, run from a web-tools checkout, passes. Leave files and checks to the branch page. Use:
+* **The PR guide.** A PR's guide is the part of its body between `[//]: # (guide)` and `[//]: # (/guide)`, which the branch page shows above the files. Write it when the PR opens, when its purpose changes, and before it merges. Leave files and checks to the branch page, which reads them fresh. Write a body with `update_pull_request` once `python3 python/mcp-link-safe.py --check body.md`, run from a web-tools checkout, passes. Use:
 
   ```markdown
   ## What this PR does
   <one sentence: the resulting capability>
   ## Why this branch exists
-  <the problem, and what a reader needs to resume, in plain prose>
+  <the problem and the decisions behind the change, in plain prose>
   ## Open threads
-  1. 🟢 **<title>**: <state and next step>
+  1. 🟢 **<title>**: <the next step>
   2. 🟡 **<title>**: <what it waits on>
-  3. ✅ **<title>**: <decision or result>
   ## Risk
-  <an uncertainty, failing check or stale assumption, or "None.">
+  <an uncertainty or stale assumption>
   ---
-  🌿 [Open the branch](<branch URL>) · 🥏 [Live page](<render URL>)
+  🌿 [Open the branch](<branch URL>)
   ```
 
-  Use `🧭 [PR #N](…) (body synced)` only when this turn rewrote the guide; otherwise use `(body not synced)`. Do not carry the marker forward from an earlier reply.
+  List only threads still open, since the tend skill reads them in merged PRs as follow-ups. Omit a section with nothing to say.
 
 ## Displaying content
 
