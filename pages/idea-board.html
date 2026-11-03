@@ -47,6 +47,7 @@
     await gh.load('kits/io.js');
     await gh.load('kits/title-tip.js');
     await gh.load('kits/call-marks.js');    // book, bulb, speech bubble, stamp
+    await gh.load('kits/dictate.js');       // the note box's microphone
     await gh.load('alpineComponents/user-call-form.js');   // postAnswer and prOf, for a pick call
   } finally { window.__depsDone(); }
 </script>
@@ -72,6 +73,15 @@ document.addEventListener('alpine:init', () => {
     return window.ghAuth?.resolve() || '';
   };
   const param = k => new URLSearchParams(location.hash.slice(1)).get(k) || new URLSearchParams(location.search).get(k);
+  // A note box: a plain textarea, with a microphone to its left where the
+  // browser has a speech recognizer, under `lead` (an idea card's star). The
+  // left keeps it clear of the page's FAB, which sits in the bottom-right
+  // corner on a phone. note() wires both.
+  const noteBox = (ph, lead = '') => `<div class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-2 items-start">
+      <div class="flex flex-col">${lead}<button type="button" data-mic class="hidden btn btn-ghost btn-square text-xl"></button></div>
+      <textarea data-note class="textarea w-full text-base" rows="3" placeholder="${ph}"></textarea>
+      <p data-heard class="hidden col-start-2 mt-1 text-sm text-base-content/60 italic text-pretty" aria-live="polite"></p>
+    </div>`;
 
   Alpine.data('ideaBoard', () => ({
     B: null, addr: '', err: '', cur: 0, copied: false, picks: [], notes: {}, strip: null, deck: null,
@@ -213,15 +223,65 @@ document.addEventListener('alpine:init', () => {
       });
     },
 
-    // A note box bound to notes[k], for an idea's number or 'selection'.
+    // A note box bound to notes[k], for an idea's number or 'selection'. The
+    // strip and the deck each draw one, so every write goes to both.
     note(el, k) {
-      const box = el.querySelector('[data-note]');
+      const box = el.querySelector('[data-note]'), mic = el.querySelector('[data-mic]');
       box.value = this.notes[k] || '';
       box.dataset.note = k;
-      box.oninput = () => {
-        this.notes = { ...this.notes, [k]: box.value };
-        document.querySelectorAll(`[data-note="${k}"]`).forEach(b => b !== box && (b.value = box.value));
-      };
+      box.oninput = () => this.setNote(k, box.value, box);
+      mic.dataset.mic = k;
+      el.querySelector('[data-heard]').dataset.heard = k;
+      mic.classList.toggle('hidden', !window.Dictate?.available());
+      mic.onclick = () => this.dictate(k);
+      this.paintMic(k);
+    },
+    setNote(k, v, from) {
+      this.notes = { ...this.notes, [k]: v };
+      document.querySelectorAll(`[data-note="${k}"]`).forEach(b => { if (b !== from) { b.value = v; b.scrollTop = b.scrollHeight; } });
+    },
+
+    // ── Dictation ───────────────────────────────────────────────────────────
+    // The browser's own recognizer through kits/dictate.js, which keeps the
+    // microphone open across pauses and ends a sentence where the speaker
+    // pauses. One note at a time. What is heard is added after the note's
+    // text; the words still being heard show under the box, and the box is
+    // read-only until the microphone stops, so typing and speech never write
+    // the note at once. Stopping keeps the words still being heard. The kit
+    // leaves capitals to the engine, which not every engine gives, so a
+    // sentence the note or the kit's pause period has just closed is armed
+    // for one.
+    dict: null,
+    dictate(k) {
+      const was = this.dict;
+      if (was) { this.setNote(was.k, was.base + was.h.flush()); was.h.stop(); this.dict = null; this.paintMic(was.k); }
+      if (was?.k === k) return;
+      const base = (this.notes[k] || '').replace(/\s*$/, s => (this.notes[k] || '').trim() ? ' ' : '');
+      const h = window.Dictate.create({
+        onText: t => { this.setNote(k, base + t); if (/[.!?]$/.test(t)) h.armCapital(true); },
+        onInterim: t => this.paintMic(k, t),
+        onState: () => { if (!h.listening && this.dict?.h === h) this.dict = null; this.paintMic(k); },
+        onError: m => this.paintMic(k, '', m),
+      });
+      this.dict = { k, h, base };
+      if (!base.trim() || /[.!?]\s*$/.test(base)) h.armCapital(true);
+      h.start();
+      this.paintMic(k);
+    },
+    paintMic(k, heard = '', err = '') {
+      const on = this.dict?.k === k;
+      document.querySelectorAll(`[data-mic="${k}"]`).forEach(b => {
+        b.innerHTML = `<i class="ph ${on ? 'ph-fill ph-microphone text-error animate-pulse' : 'ph-microphone'}"></i>`;
+        b.setAttribute('aria-pressed', on);
+        b.setAttribute('aria-label', on ? 'Stop dictating' : 'Dictate');
+        b.dataset.titleTip = on ? 'Stop dictating' : 'Dictate into this note';
+      });
+      document.querySelectorAll(`[data-note="${k}"]`).forEach(b => { b.readOnly = on; });
+      document.querySelectorAll(`[data-heard="${k}"]`).forEach(p => {
+        p.textContent = err ? 'Dictation stopped: ' + err : heard || (on ? 'Listening…' : '');
+        p.classList.toggle('hidden', !p.textContent);
+        p.classList.toggle('text-error', !!err);
+      });
     },
 
     render(i, el) {
@@ -233,10 +293,7 @@ document.addEventListener('alpine:init', () => {
       el.innerHTML = `<div class="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] xl:grid-rows-[auto_minmax(0,1fr)] xl:items-start">
         <div class="grid gap-3 text-pretty">${prose(this.commentary(d))}</div>
         <div class="xl:col-start-2 xl:row-start-1 xl:row-span-2">${this.sketch(d, 'border border-base-300 rounded-box p-2')}</div>
-        <div class="grid grid-cols-[auto_minmax(0,1fr)] gap-2 items-start">
-          <button data-pick="${d.n}" class="btn btn-ghost btn-square text-xl" aria-label="Pick"></button>
-          <textarea data-note class="textarea w-full text-base" rows="2" placeholder="Note"></textarea>
-        </div>
+        ${noteBox('Note', `<button data-pick="${d.n}" class="btn btn-ghost btn-square text-xl" aria-label="Pick"></button>`)}
       </div>`;
       el.querySelector('[data-pick]').onclick = () => { this.toggle(d.n); this.paint(d.n); };
       this.paint(d.n);
@@ -267,7 +324,7 @@ document.addEventListener('alpine:init', () => {
           <dt class="text-sm text-base-content/60 pt-1">Rests on</dt>
           <dd class="grid gap-2">${S.assumptions.map(a => `<span class="text-pretty">${esc(a)}</span>`).join('')}</dd>
         </dl>
-        <textarea data-note class="textarea w-full text-base" rows="2" placeholder="Note on the selection"></textarea>
+        ${noteBox('Note on the selection')}
       </div>`;
       el.querySelectorAll('[data-go]').forEach(b => {
         b.onclick = () => {
