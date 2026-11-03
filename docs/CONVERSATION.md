@@ -43,7 +43,7 @@ substituting the current repo in URL templates.
 
 * **Open the branch 🌿.** Use `…/pages/branch.html#gh=owner/repo@branch[&base=ref]`, or `…#gh=owner/repo&pr=<n>` for a PR's head and base. Add `&file=<path>` to open a file or `&pane=files` to open the file list.
 
-* **The PR guide.** A PR's guide is the part of its body between `[//]: # (guide)` and `[//]: # (/guide)`, which the branch page shows above the files. Write it when the PR opens, when its purpose changes, and before it merges. Leave out files and commits, which the branch page reads fresh, and checks, which GitHub shows. Write a body with `update_pull_request` once `python3 python/mcp-link-safe.py --check body.md`, run from a web-tools checkout, passes. Use:
+* **The PR guide.** A PR's guide is the part of its body between `[//]: # (guide)` and `[//]: # (/guide)`, which the branch page shows above the files. Write it when the PR opens, when its purpose changes, and before it merges. Leave out files, which the branch page shows, and commits and checks, which GitHub's PR page shows. Write a body with `update_pull_request` once `python3 python/mcp-link-safe.py --check body.md`, run from a web-tools checkout, passes. Use:
 
   ```markdown
   ## What this PR does
