@@ -171,3 +171,29 @@ test('keys() serves a track built some other way, one registration per host, and
   assert.equal(at, 20, 'under two, the key is not taken');
   host.remove();
 });
+
+test('a click in the card hands it the keys: a host is made focusable, and focus on it arms the strip', async () => {
+  // The head row's title is plain text, and a click on plain text puts focus
+  // nowhere, so the arrows answered only while the pointer stayed over the
+  // card (owner, 2026-11-03). keys() makes the host itself focusable; a host
+  // that already declares a tabindex keeps its own.
+  const host = doc.createElement('div');
+  const title = doc.createElement('span');
+  title.textContent = 'a view';
+  host.append(title);
+  doc.body.append(host);
+  let at = 0;
+  sd.keys(host, d => { at += d; }, () => 3);
+  assert.equal(host.getAttribute('tabindex'), '-1');
+  host.focus();
+  assert.equal(doc.activeElement, host, 'the card itself takes focus');
+  key('ArrowRight');
+  assert.equal(at, 1, 'and with focus on it, Right steps the strip');
+  host.remove();
+  const own = doc.createElement('div');
+  own.setAttribute('tabindex', '0');
+  doc.body.append(own);
+  sd.keys(own, () => {}, () => 3);
+  assert.equal(own.getAttribute('tabindex'), '0', 'a declared tabindex stays');
+  own.remove();
+});
