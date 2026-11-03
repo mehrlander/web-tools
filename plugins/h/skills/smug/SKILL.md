@@ -1,6 +1,6 @@
 ---
 name: smug
-description: "Avoid smug so: A sentence that turns on \"so\" often presents one cause as forcing one result. Avoid the form, and check examples you find for cause to remove or trim."
+description: 'Avoid smug so: A sentence that turns on "so" often presents one cause as forcing one result. Avoid the form, and check examples you find for cause to remove or trim.'
 disable-model-invocation: true
 ---
 
