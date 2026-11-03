@@ -224,11 +224,18 @@ try {
     await desk.page.waitForFunction(() => Alpine.$data(document.querySelector('#mount')).shownTab === 'changes');
     const card = desk.page.locator('[data-change-strip] [data-unit]').first();
     await card.waitFor({ state: 'visible' });
-    assert.match(await card.innerText(), /1 · Get-Count[\s\S]*Changed · Function · line 1 · \+1 −1/);
+    assert.match(await desk.page.locator('[data-change-head]').innerText(), /1 · Get-Count[\s\S]*Changed · Function · line 1 · \+1 −1/);
     const lines = await card.locator('[data-unit-diff] [data-changed]').allInnerTexts();
     assert.deepEqual(lines.map(t => t.replace(/\s+/g, ' ').trim()), ['− $Step = 1', '+ param([int]$Step = 2)']);
     assert.equal(await desk.page.locator('[data-source] .cm-editor').isVisible(), false);
     if (process.env.SHOTS) await desk.page.screenshot({ path: path.join(process.env.SHOTS, 'source-pane-blocks.png'), fullPage: true });
+    // The header row's list button drops every change; a pick goes there and closes it.
+    await desk.page.locator('[data-change-list-btn]').click();
+    await desk.page.locator('[data-change-list]').waitFor({ state: 'visible' });
+    assert.match(await desk.page.locator('[data-change-row]').first().innerText(), /1\s+Get-Count/);
+    if (process.env.SHOTS) await desk.page.screenshot({ path: path.join(process.env.SHOTS, 'change-list.png'), fullPage: true });
+    await desk.page.locator('[data-change-row]').first().click();
+    await desk.page.locator('[data-change-list]').waitFor({ state: 'hidden' });
     assert.equal(await desk.page.locator('[data-changes-mode]').count(), 0, 'no Blocks and Whole file switch');
     assert.equal(await desk.page.locator('[data-source-diff]').isVisible(), false, 'a file the parser splits shows cards, not the whole-file diff');
     for (const label of ['Files', 'Stage', 'Open code workspace', 'Mark as installed']) assert.equal(await desk.page.getByRole('button', { name: label, exact: true }).count(), 0, label + ' is gone');

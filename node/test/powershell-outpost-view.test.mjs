@@ -546,7 +546,7 @@ test('the Code tab shows the selected file read-only, keeps one editor across ta
   data.setDetailTab('outline'); await settle();
   assert.equal(data.shownTab, 'outline'); assert.ok(!hidden(pane()), 'Outline shows in the file pane');
   data.setDetailTab('code'); await settle();
-  assert.equal(el.querySelector('[data-unit-base]').textContent, data.baselineNote || 'No update for this file.', 'with nothing to compare from, Changes says why');
+  assert.equal(el.querySelector('[data-unit-none]').textContent, data.baselineNote || 'No update for this file.', 'with nothing to compare from, Changes says why');
   // Another tab hides the pane by class, so the one editor view survives.
   data.setDetailTab('changes'); await settle();
   assert.ok(hidden(pane())); assert.ok(!hidden(el.querySelector('[data-unit-review]')));
@@ -1069,7 +1069,9 @@ test('selective review keeps unchecked local code and records only the explicitl
     await data.takeCopy(data.target(), local, 'Forms.psm1', 'paste'); await settle();
     assert.equal(data.unitReview.units.length, 2);
     const written = publications.length;
-    const checkbox = q('[data-unit] input').find(e => e.getAttribute('aria-label') === 'Select B');
+    data.goChange(1); await settle();
+    const checkbox = el.querySelector('[data-change-head] input');
+    assert.equal(checkbox.getAttribute('aria-label'), 'Select B', 'the header row carries the change in view');
     checkbox.click(); await settle();
     await data.prepareUnits(); await settle();
     assert.equal(data.unitPrepared.text, local.replace('B { 1 }', 'B { 2 }'));
@@ -1121,9 +1123,14 @@ test('a pending update opens on Changes, a card per block; a pasted copy reads a
     assert.deepEqual([...data.visibleUnits.map(u => u.action + ' ' + u.name)], ['Replace A', 'Add D']);
     assert.equal(q('[data-change-strip] [data-unit]').length, 2);
     assert.equal(q('details').length, 0, 'no expanders: every diff is open');
-    assert.ok(q('[data-unit] input').every(i => i.disabled), 'choosing waits for the work copy');
+    assert.equal(q('[data-change-strip] [data-unit] input').length, 0, 'a card in the strip draws no header of its own');
+    assert.ok(el.querySelector('[data-change-head] input').disabled, 'choosing waits for the work copy');
     assert.match(el.querySelector('[data-copy-zone]').textContent, /copy of Forms\.psm1 from the work computer to compare it and choose changes/);
-    assert.match(q('[data-change-strip] [data-unit]')[0].textContent, /1 · A/, 'each card is numbered and named by its procedure');
+    assert.match(el.querySelector('[data-change-head]').textContent, /1 · A/, 'the header row numbers and names the change in view');
+    assert.deepEqual(q('[data-change-row]').map(b => b.textContent.replace(/\s+/g, ' ').trim().split(' ').slice(0, 2).join(' ')), ['1 A', '2 D'], 'the list holds every change, numbered');
+    q('[data-change-row]')[1].click(); await settle();
+    assert.equal(data.changeAt, 1); assert.match(el.querySelector('[data-change-head]').textContent, /2 · D/, 'a pick in the list moves the strip and the header follows');
+    data.goChange(0); await settle();
     assert.match(el.querySelector('[data-unit-base]').textContent, /^Work set \(ccccccc\) → update \(/);
     // The earlier version with one local edit, pasted: read block by block.
     await data.takeCopy(data.target(), 'function A { 1 }\nfunction B { 1 }\nfunction C { 9 }\n', 'clip', 'paste'); await settle();
@@ -1136,8 +1143,9 @@ test('a pending update opens on Changes, a card per block; a pasted copy reads a
     // The copy is now the base: every card is choosable, and the strip steps.
     data.setDetailTab('changes'); await settle();
     assert.deepEqual([...data.visibleUnits.map(u => u.name)], ['A', 'C', 'D']);
-    assert.ok(q('[data-unit] input').every(i => !i.disabled));
-    q('[data-unit] input').find(i => i.getAttribute('aria-label') === 'Select A').click(); await settle();
+    assert.ok(!el.querySelector('[data-change-head] input').disabled);
+    assert.equal(el.querySelector('[data-change-head] input').getAttribute('aria-label'), 'Select A');
+    el.querySelector('[data-change-head] input').click(); await settle();
     assert.equal(data.selectionLine, '1 of 3 chosen');
     data.goChange(5); assert.equal(data.changeAt, 2, 'the strip stops at its last card');
     await data.prepareUnits(); await settle();
