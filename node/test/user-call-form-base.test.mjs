@@ -41,7 +41,13 @@ window.TOKEN = 'tkn';
 window.gh = { load: async () => {} };
 window.AssistantMark = { shortBranch: (b) => String(b || '') };
 const drawn = [];
-window.mdDiff = { render: async (host, a, b) => { drawn.push({ a, b }); host.replaceChildren(); } };
+// md-diff leaves its containers in the host, as the real one does.
+window.mdDiff = { render: async (host, a, b) => {
+  drawn.push({ a, b });
+  const box = window.document.createElement('section');
+  box.dataset.md = '';
+  host.replaceChildren(box);
+} };
 const merges = [];
 window.cm6Merge = { unified: async (host, o) => {
   const el = window.document.createElement('div');
@@ -87,6 +93,7 @@ test('Diff draws the whole file as one unified diff, and leaves when another vie
   await tick(4);
   assert.deepEqual({ ...merges[0].o }, { original: OLD, doc: NEW, language: 'md' });
   assert.ok(root().querySelector('[data-doc-host] .cm-editor'));
+  assert.equal(root().querySelector('[data-doc-host] [data-md]'), null, "the Changes view's containers are gone, not left above the diff");
   const before = drawn.length;
   view('changes');
   await until(() => drawn.length > before);
