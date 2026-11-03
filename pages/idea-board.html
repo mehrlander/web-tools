@@ -277,7 +277,7 @@ document.addEventListener('alpine:init', () => {
         b.innerHTML = `<i class="ph ${on ? 'ph-fill ph-microphone text-error animate-pulse' : can ? 'ph-microphone' : 'ph-microphone-slash text-base-content/40'}"></i>`;
         b.setAttribute('aria-pressed', on);
         b.setAttribute('aria-label', on ? 'Stop dictating' : can ? 'Dictate' : NO_SR);
-        b.dataset.titleTip = on ? 'Stop dictating' : can ? 'Dictate into this note' : NO_SR;
+        b.dataset.titleTip = on ? 'Stop dictating' : can ? 'Dictate' : 'No dictation in this browser';
       });
       document.querySelectorAll(`[data-note="${k}"]`).forEach(b => { b.readOnly = on; });
       document.querySelectorAll(`[data-heard="${k}"]`).forEach(p => {
