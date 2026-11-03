@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Repository mockups | Web Tools</title>
+  <style>
+    :root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#292524;background:#f5f5f4}
+    *{box-sizing:border-box}body{margin:0}button,a{font:inherit}a{color:#24634f;text-underline-offset:3px}button{cursor:pointer}button:focus-visible,a:focus-visible{outline:2px solid #2563eb;outline-offset:3px}[hidden]{display:none!important}
+    header{max-width:1230px;margin:auto;padding:20px 16px 12px}h1{font-size:22px;letter-spacing:-.4px;margin:0 0 5px;font-weight:650}header p{font-size:13px;line-height:1.5;color:#57534e;margin:0}.status{font-size:11px;color:#78716c;margin-top:6px}
+    nav{position:sticky;top:0;z-index:2;background:#f5f5f4f5;backdrop-filter:blur(10px);border-bottom:1px solid #e7e5e4;padding:8px 16px}.controls{max-width:1198px;margin:auto;display:flex;align-items:center;gap:10px}.tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px;padding:3px;background:#e7e5e4;border-radius:9px;max-width:480px;flex:1}.tabs button{min-height:34px;border:0;background:transparent;border-radius:6px;font-size:12px;white-space:nowrap;color:#57534e;padding:0 8px}.tabs button[aria-pressed=true]{background:white;color:#292524;box-shadow:0 1px 3px #29252412;font-weight:600}.compare{border:0;background:transparent;padding:6px 0;min-height:34px;font-size:12px;color:#24634f;white-space:nowrap}
+    main{max-width:1230px;margin:auto;padding:16px;display:grid;grid-template-columns:minmax(0,390px);justify-content:center;gap:24px}main[data-current=all]{grid-template-columns:repeat(3,minmax(0,1fr));align-items:start}figure{min-width:0;margin:0}figcaption{font-size:14px;font-weight:600;line-height:1.5;margin-bottom:4px}.description{font-size:12px;color:#57534e;line-height:1.5;min-height:36px;margin:0 0 10px}.shot{display:block;width:100%;height:auto;border:1px solid #e7e5e4;border-radius:10px;background:white}.open{font-size:12px;display:inline-block;padding:10px 0}.recommendation{max-width:1230px;margin:0 auto;padding:0 16px 14px;font-size:13px;line-height:1.5;color:#57534e}footer{max-width:1230px;margin:auto;padding:0 16px 24px;display:flex;gap:16px;flex-wrap:wrap;font-size:12px}
+    @media(max-width:700px){header{padding-top:16px}.controls{gap:8px}.tabs button{font-size:11px;padding:0 4px}.compare{font-size:11px}main[data-current=all]{grid-template-columns:minmax(0,390px)}main{padding-top:12px}.description{min-height:0}.status{font-size:11px}}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Repository mockups</h1>
+    <p>Three ways to show material outside Git.</p>
+    <p class="status">Preview only · Illustrative data · App unchanged</p>
+  </header>
+  <nav aria-label="Choose mockup">
+    <div class="controls">
+      <div class="tabs">
+        <button data-select="a" aria-pressed="false">A · Counts</button>
+        <button data-select="b" aria-pressed="false">B · Folders</button>
+        <button data-select="c" aria-pressed="false">C · Detail</button>
+        <button data-select="menu" aria-pressed="false">⋮ Menu</button>
+      </div>
+      <button class="compare" data-select="all" aria-pressed="false">Compare all</button>
+    </div>
+  </nav>
+  <main data-current="all">
+    <figure data-option="a">
+      <figcaption>A · Counts in the list</figcaption>
+      <p class="description">A compact Local files link shows counts beneath its checkout.</p>
+      <img class="shot" src="https://raw.githubusercontent.com/mehrlander/web-tools/codex/repository-mockups/desktop/mockups/repository-local-files/a-counts.png" alt="Repository overview with a Local files link showing two untracked files and four ignored folders" width="780" height="1520">
+      <a class="open" href="https://raw.githubusercontent.com/mehrlander/web-tools/codex/repository-mockups/desktop/mockups/repository-local-files/a-counts.png" target="_blank" rel="noopener noreferrer">Full-size screenshot ↗</a>
+    </figure>
+    <figure data-option="b">
+      <figcaption>B · Folders in the list</figcaption>
+      <p class="description">Names and sizes stay visible, adding height to each checkout.</p>
+      <img class="shot" src="https://raw.githubusercontent.com/mehrlander/web-tools/codex/repository-mockups/desktop/mockups/repository-local-files/b-folders.png" alt="Repository overview with exports, recordings, node_modules and cache folder names and sizes inline" width="780" height="1520">
+      <a class="open" href="https://raw.githubusercontent.com/mehrlander/web-tools/codex/repository-mockups/desktop/mockups/repository-local-files/b-folders.png" target="_blank" rel="noopener noreferrer">Full-size screenshot ↗</a>
+    </figure>
+    <figure data-option="c">
+      <figcaption>C · Local files screen</figcaption>
+      <p class="description">A destination from A or B, with ignored and untracked entries.</p>
+      <img class="shot" src="https://raw.githubusercontent.com/mehrlander/web-tools/codex/repository-mockups/desktop/mockups/repository-local-files/c-local-files.png" alt="Dedicated local-files inventory with All, Ignored and Untracked text filters, folder sizes and file counts" width="780" height="1520">
+      <a class="open" href="https://raw.githubusercontent.com/mehrlander/web-tools/codex/repository-mockups/desktop/mockups/repository-local-files/c-local-files.png" target="_blank" rel="noopener noreferrer">Full-size screenshot ↗</a>
+    </figure>
+    <figure data-option="menu" hidden>
+      <figcaption>Simple vertical ⋮ menu</figcaption>
+      <p class="description">Two plain actions: Check GitHub now and Open on GitHub.</p>
+      <img class="shot" src="https://raw.githubusercontent.com/mehrlander/web-tools/codex/repository-mockups/desktop/mockups/repository-local-files/menu.png" alt="Vertical three-dot menu with Check GitHub now and Open on GitHub, without subitems or explanatory text" width="780" height="1520">
+      <a class="open" href="https://raw.githubusercontent.com/mehrlander/web-tools/codex/repository-mockups/desktop/mockups/repository-local-files/menu.png" target="_blank" rel="noopener noreferrer">Full-size screenshot ↗</a>
+    </figure>
+  </main>
+  <p class="recommendation">Recommended: A for the overview, opening C for inspection.</p>
+  <footer>
+    <a href="https://github.com/mehrlander/web-tools/tree/codex/repository-mockups/desktop/mockups/repository-local-files" target="_blank" rel="noopener noreferrer">Files on GitHub ↗</a>
+    <a href="https://raw.githubusercontent.com/mehrlander/web-tools/codex/repository-mockups/desktop/mockups/repository-local-files/comparison.png" target="_blank" rel="noopener noreferrer">Comparison image ↗</a>
+  </footer>
+  <script>
+    (()=>{
+      const main=document.querySelector('main');
+      function select(key){
+        main.dataset.current=key;
+        document.querySelectorAll('[data-option]').forEach(node=>{node.hidden=key==='all'?node.dataset.option==='menu':node.dataset.option!==key;});
+        document.querySelectorAll('[data-select]').forEach(node=>node.setAttribute('aria-pressed',String(node.dataset.select===key)));
+      }
+      document.addEventListener('click',event=>{const button=event.target.closest('[data-select]');if(!button)return;select(button.dataset.select);});
+      select(matchMedia('(min-width:900px)').matches?'all':'a');
+    })();
+  </script>
+</body>
+</html>

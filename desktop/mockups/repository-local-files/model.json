@@ -1,0 +1,78 @@
+{
+  "reader_question": "What local material is outside Git in this checkout, and how much belongs in the overview?",
+  "evidence_status": "Illustrative populated cases, not observations of ignored files on the laptop.",
+  "checkout": {
+    "repository": "web-tools",
+    "folder": "web-tools-desktop",
+    "branch": "codex/repository-freshness",
+    "github_branch": {
+      "ahead": 0,
+      "behind": 0
+    },
+    "github_main": {
+      "ahead": 5,
+      "behind": 4
+    }
+  },
+  "local_entries": [
+    {
+      "name": "exports/",
+      "kind": "folder",
+      "git_state": "ignored",
+      "files": 12,
+      "size": "34 MB",
+      "updated": "18m ago"
+    },
+    {
+      "name": "recordings/",
+      "kind": "folder",
+      "git_state": "ignored",
+      "files": 3,
+      "size": "28 MB",
+      "updated": "2h ago"
+    },
+    {
+      "name": "node_modules/",
+      "kind": "folder",
+      "git_state": "ignored",
+      "files": 18400,
+      "size": "240 MB",
+      "updated": "6d ago",
+      "role": "Dependencies"
+    },
+    {
+      "name": ".cache/",
+      "kind": "folder",
+      "git_state": "ignored",
+      "files": 76,
+      "size": "8 MB",
+      "updated": "10m ago",
+      "role": "Cache"
+    },
+    {
+      "name": "notes.md",
+      "kind": "file",
+      "git_state": "untracked",
+      "size": "12 KB",
+      "updated": "just now"
+    },
+    {
+      "name": "scratch.json",
+      "kind": "file",
+      "git_state": "untracked",
+      "size": "4 KB",
+      "updated": "35m ago"
+    }
+  ],
+  "relationships": [
+    "Every local entry belongs to one checkout, not to every checkout of the repository.",
+    "Ignored and untracked are separate Git states.",
+    "Git state alone does not establish backup coverage.",
+    "Simple actions operate on a repository; local-file navigation selects a checkout."
+  ],
+  "alternatives": {
+    "a": "Counts in the repository list, explicit link to detail.",
+    "b": "Folder names and sizes directly below their checkout.",
+    "c": "A dedicated local-files screen with text filters and grouped rows."
+  }
+}
