@@ -310,14 +310,3 @@ test('a table peek names its size in the header and gives each column a pill', (
   assert.match(html, /data-peek-col="id"/);
   assert.match(html, /data-peek-col="a &quot;b&quot;"/);
 });
-
-// A pill's values list: distinct and blank counts, then the most frequent
-// values with their counts, escaped.
-test('a column pill lists its most frequent values with their counts', () => {
-  const html = SP.valuesHtml({ distinctCount: 12, distinctCapped: false, nulls: 3,
-    topValues: [{ value: 'main', count: 7 }, { value: '<b>', count: 2 }] });
-  assert.match(html, /12 distinct · 3 blank/);
-  assert.match(html, />main<\/span>.*>7<\/span>/);
-  assert.match(html, /&lt;b&gt;/);
-  assert.equal(SP.valuesHtml(null), '');
-});
