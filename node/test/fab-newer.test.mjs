@@ -50,6 +50,9 @@ async function mount(subject) {
   return { el, d: Alpine.$data(el), badge: () => el.querySelector('[data-fab-newer]') };
 }
 const shown = (node) => !!node && node.style.display !== 'none';
+// The calls the newer check makes, without the ref bar's line standing against
+// the default branch (checkLine), which a pin with a known line makes too.
+const own = () => calls.map(c => c.p).filter(p => !p.startsWith('compare/main...'));
 // The check is two awaits and Alpine renders a tick after it, so wait on the
 // condition rather than on a count of ticks.
 async function until(fn, n = 40) { for (let i = 0; i < n && !fn(); i++) await tick(1); return fn(); }
@@ -58,7 +61,7 @@ test('a pinned toss behind its branch wears the badge, and a tap redraws at the 
   answers = { 'compare/': ahead(2) };
   const { d, badge, el } = await mount({ repo: 'me/r', ref: SHA, branch: 'claude/x', path: 'pages/a.html' });
   assert.deepEqual({ ...d.newer }, { branch: 'claude/x', ahead: 2, sha: 'cccccccccccc', target: 'claude/x@cccccccccccc' });
-  assert.deepEqual(calls.map(c => c.p), ['compare/' + SHA + '...claude/x'], 'the named branch needs no PR lookup');
+  assert.deepEqual(own(), ['compare/' + SHA + '...claude/x'], 'the named branch needs no PR lookup');
   assert.ok(await until(() => shown(badge())), 'the badge is up');
   assert.match(badge().textContent, /2/);
   assert.equal(badge().dataset.titleTip, '2 newer versions', 'the badge\'s tip is the count alone');
@@ -106,7 +109,7 @@ test('a commit-only link finds its branch through an open pull request, never a 
   const { d } = await mount({ repo: 'me/r', ref: SHA, path: 'pages/a.html' });
   await until(() => d.newer);
   assert.equal(d.newer && d.newer.branch, 'claude/y');
-  assert.deepEqual(calls.map(c => c.p), ['commits/' + SHA + '/pulls', 'compare/' + SHA + '...claude/y']);
+  assert.deepEqual(own(), ['commits/' + SHA + '/pulls', 'compare/' + SHA + '...claude/y']);
 
   answers = { ['commits/' + SHA + '/pulls']: [{ state: 'closed', head: { ref: 'claude/old', repo: { full_name: 'me/r' } } }] };
   const merged = await mount({ repo: 'me/r', ref: SHA, path: 'pages/b.html' });
@@ -126,8 +129,7 @@ test('no badge at the tip, on a branch-named ref, or without a token', async () 
   assert.equal(named.d.newer, null);
   // The only call a branch-named address makes is the ref bar's line standing
   // against the default branch (checkLine); the newer check makes none.
-  assert.deepEqual(calls.map(c => c.p).filter(p => !p.startsWith('compare/main...')), [],
-    'a branch-named address already follows its tip');
+  assert.deepEqual(own(), [], 'a branch-named address already follows its tip');
 
   token = '';
   try {
@@ -141,7 +143,7 @@ test('a return to the tab re-asks past the read cache, and not twice in a row', 
   answers = { 'compare/': ahead(1) };
   const { d } = await mount({ repo: 'me/r', ref: SHA, branch: 'claude/x', path: 'pages/a.html' });
   await until(() => d.newer);
-  assert.equal(calls.length, 1);
+  assert.equal(own().length, 1);
   d._newerAt = 0;
   answers = { 'compare/': ahead(3) };
   doc.dispatchEvent(new window.Event('visibilitychange'));
@@ -165,48 +167,73 @@ test('the badge is a button, so the launcher\'s touch guard lets its tap through
   assert.ok(!badge().closest('[role="button"]'), 'and it is not a control inside the launcher control');
 });
 
-// ── The ref bar: line, live or pinned, standing, friendly name ──────────────
-test('the ref bar names a pin\'s branch, says pinned, and counts the commits since', async () => {
-  answers = { 'compare/': ahead(2) };
+// ── The ref bar: the line's row, and a pin's row under it ─────────────────
+test('the ref bar draws the line with its standing against main, and the pin under it', async () => {
+  answers = { 'compare/main...': { ahead_by: 29, behind_by: 39, commits: [] }, 'compare/': ahead(2) };
   const { d, el } = await mount({ repo: 'me/r', ref: SHA, branch: 'claude/fab-naming-todqvq', path: 'pages/a.html' });
-  await until(() => d.pin);
+  await until(() => d.pin && d.line);
   assert.equal(d.refPinned, true);
   assert.equal(d.refLine, 'claude/fab-naming-todqvq', 'the line is the branch the link named, not the commit');
   assert.equal(d.refSha, SHA.slice(0, 7));
-  assert.equal(d.refStanding.kind, 'behind');
-  assert.equal(d.refStanding.text, '↓2');
-  assert.equal(d.refFriendly, 'Fab naming', 'the words of a session branch, with no PR to name it');
-  d.subjectBranch = 'claude/ref-bar-live-pinned';
-  assert.equal(d.refFriendly, 'Ref bar live pinned', 'a six-letter word that ends the branch is kept');
-  d.subjectBranch = 'claude/kind-hypatia-6jjlei';
-  assert.equal(d.refFriendly, 'Kind hypatia', 'a random tail with a digit is dropped');
-  d.subjectBranch = 'claude/fab-naming-todqvq';
+  assert.deepEqual({ ...d.refLineStanding }, { ahead: 29, behind: 39 }, 'the line against main, though the view is pinned');
+  assert.deepEqual({ ...d.refPinStanding }, { kind: 'behind', text: '↓2' });
+  assert.equal(calls.filter(c => c.p.startsWith('compare/main...')).length, 1, 'the line is asked about once');
+  assert.equal(d.refPr, null, 'no PR, no line under the branch');
   d.open = true; d.activeTab = 'render';
-  await until(() => el.querySelector('[data-ref-bar]') && /2 behind/.test(el.querySelector('[data-ref-bar]').textContent), 80);
-  const bar = el.querySelector('[data-ref-bar]').textContent.replace(/\s+/g, ' ');
-  assert.match(bar, /claude\/fab-naming-todqvq @aaaaaaa \(2 behind\)/);
-  assert.equal(d.refTip, 'Branches with another version of this page', 'the tip says what the tap opens');
-  const pill = el.querySelector('[data-ref-pin]');
-  assert.ok(pill, 'the pinned commit is a pill');
-  assert.match(pill.textContent.replace(/\s+/g, ' '), /@aaaaaaa \(2 behind\)/);
-  const x = pill.querySelector('[data-ref-unpin]');
-  assert.ok(x, 'with an x that unpins');
+  await until(() => el.querySelector('[data-ref-pin-standing]') && el.querySelector('[data-ref-line-standing]'), 80);
+  const bar = el.querySelector('[data-ref-bar]');
+  assert.match(bar.textContent.replace(/\s+/g, ' '), /claude\/fab-naming-todqvq ↑29 ↓39 └ @aaaaaaa ↓2/);
+  assert.ok(!/house/.test(bar.innerHTML), 'no house: that icon is the home repo\'s');
+  const toggle = el.querySelector('[data-ref-toggle]');
+  assert.equal(toggle.tagName, 'BUTTON');
+  assert.equal(toggle.getAttribute('aria-label'), 'Branches with another version of this page', 'the branch name opens the list');
+  const leave = el.querySelector('[data-ref-leave]');
+  assert.ok(shown(leave), 'the line\'s row has an x');
+  assert.equal(leave.getAttribute('aria-label'), 'Go to main', 'and it goes to main');
+  const x = el.querySelector('[data-ref-pin] [data-ref-unpin]');
+  assert.equal(x.getAttribute('aria-label'), 'Unpin: show claude/fab-naming-todqvq live');
   x.click();
   await until(() => navs.length);
   assert.deepEqual(navs, ['me/r@claude/fab-naming-todqvq:pages/a.html'], 'unpinning shows the line live');
 });
 
-test('a pin at its branch\'s latest says latest, and a live branch counts against main', async () => {
+test('a pin at latest says latest, a pin on main has no line x, and a live branch has no pin row', async () => {
   answers = { 'compare/': { ahead_by: 0, behind_by: 0, commits: [] } };
   const tip = await mount({ repo: 'me/r', ref: SHA, branch: 'claude/x', path: 'pages/a.html' });
   await until(() => tip.d.pin);
-  assert.equal(tip.d.refStanding.kind, 'latest');
+  assert.deepEqual({ ...tip.d.refPinStanding }, { kind: 'latest', text: 'latest' });
+
+  answers = { 'compare/': ahead(5) };
+  const onMain = await mount({ repo: 'me/r', ref: SHA, branch: 'main', path: 'pages/a.html' });
+  await until(() => onMain.d.pin);
+  assert.equal(onMain.d.refLineStanding, null, 'main is not measured against itself');
+  assert.deepEqual(calls.map(c => c.p), ['compare/' + SHA + '...main'], 'nor asked about');
+  onMain.d.open = true; onMain.d.activeTab = 'render';
+  await until(() => onMain.el.querySelector('[data-ref-unpin]'), 80);
+  assert.ok(!shown(onMain.el.querySelector('[data-ref-leave]')), 'pinned on main, the main row has no x');
+  assert.equal(onMain.el.querySelector('[data-ref-unpin]').getAttribute('aria-label'), 'Unpin: show main live');
+
   answers = { 'compare/': { ahead_by: 3, behind_by: 1, commits: [] } };
   const live = await mount({ repo: 'me/r', ref: 'claude/x', path: 'pages/a.html' });
   await until(() => live.d.line);
   assert.equal(live.d.refPinned, false);
   assert.equal(live.d.refLine, 'claude/x');
-  assert.deepEqual({ ...live.d.refStanding, tip: '' }, { kind: 'line', ahead: 3, behind: 1, tip: '' });
+  assert.deepEqual({ ...live.d.refLineStanding }, { ahead: 3, behind: 1 });
   assert.deepEqual(calls.map(c => c.p), ['compare/main...claude/x']);
-  assert.equal(live.el.querySelector('[data-ref-pin]'), null, 'a live branch has no pin to take off');
+  assert.equal(live.el.querySelector('[data-ref-pin]'), null, 'a live branch has no pin row');
+});
+
+test('a pin\'s line with a pull request carries its title under the name', async () => {
+  answers = {
+    'compare/': ahead(1),
+    'pulls?': [{ number: 1201, title: 'Ref bar rows', state: 'open', head: { ref: 'claude/x' } }],
+  };
+  const { d, el } = await mount({ repo: 'me/r', ref: SHA, branch: 'claude/x', path: 'pages/a.html' });
+  d.activeTab = 'render';
+  d.toggle();
+  await until(() => d.refPr, 80);
+  assert.ok(calls.some(c => c.p.startsWith('pulls?') && c.p.includes(encodeURIComponent('me:claude/x'))), 'asked for the line\'s PRs');
+  assert.deepEqual({ ...d.refPr }, { number: 1201, title: 'Ref bar rows' }, 'the line\'s PR, found under the line rather than the commit');
+  await until(() => /#1201 · Ref bar rows/.test(el.querySelector('[data-ref-pr]').textContent), 80);
+  assert.ok(await until(() => shown(el.querySelector('[data-ref-pr]')), 80), 'and the line shows');
 });
