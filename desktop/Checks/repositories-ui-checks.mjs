@@ -52,6 +52,8 @@ click('[data-files="'+checkoutKey+'"]');
 check(w.location.hash.includes('checkout='+checkoutKey)&&doc.querySelector('#view-title').textContent==='Local files'&&!doc.querySelector('#repository-back').hidden&&doc.querySelectorAll('#local-results .bg-white').length===3,'A local-files link opens the checkout inventory as a separate routed screen.');
 click('[data-file-filter=untracked]');
 check(doc.querySelector('#local-results').textContent.includes('note.md')&&!doc.querySelector('#local-results').textContent.includes('exports/'),'Text filters distinguish ignored folders from untracked files.');
+c.localFiles.entries=c.localFiles.entries.filter(e=>e.gitState!=='untracked');await poll();
+check(doc.querySelector('#local-results').textContent.includes('No untracked entries in this scan.')&&doc.querySelector('[data-file-filter=ignored]').textContent==='Ignored 2','An empty category does not claim the checkout has no other local entries.');
 click('[data-file-filter=all]');const search=doc.querySelector('[data-local-search]');search.value='exports';search.dispatchEvent(new w.Event('input',{bubbles:true}));search.focus();top=80;
 c.localFiles.observedAt=new Date().toISOString();await poll();
 check(doc.querySelector('[data-local-search]')===search&&doc.activeElement===search&&search.value==='exports'&&top===80&&doc.querySelector('#local-results').textContent.includes('exports/')&&!doc.querySelector('#local-results').textContent.includes('node_modules/'),'Polling preserves the search input, filter, keyboard focus and detail reading position.');
