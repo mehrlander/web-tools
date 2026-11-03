@@ -18,7 +18,7 @@ Above the tabs, not inside one, sits the LAYER strip naming the frame stack this
 
 ## Render: the ref bar
 
-Render leads with a ref bar. Its first row names the branch, with ↑/↓ commit counts against the default branch; off the default branch, it adds 🌿 for the branch page and ✕ to return to the default branch. A view pinned to a commit gets a second row with ↓ for the branch's commits since, or "latest", and ✕ to unpin. The branch name opens a dropdown of the branches carrying a different version of this page; one tap renders there, in place inside a toss.
+Render's ref bar names the branch in its first row, with ↑/↓ commit counts against the default branch; off the default branch, the row adds 🌿 for the branch page and ✕ to return to the default branch. A link that names a commit pins the view to it, and the bar adds a row with ↓ for the branch's commits since, or "latest", and ✕ to unpin. The branch name opens a dropdown of the branches carrying a different version of this page, and one tap renders that version.
 
 ## Render: the width bar
 
