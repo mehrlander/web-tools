@@ -312,6 +312,17 @@ try {
     if (process.env.SHOTS) await phone.page.screenshot({ path: path.join(process.env.SHOTS, 'source-pane-phone.png'), fullPage: true });
     assert.equal(await phone.writes(), 0);
   });
+  await check('on a phone a file with two versions keeps its six tabs on one line, Problems and Outline as icons', async () => {
+    await phone.select(C); await phone.settled();
+    const row = phone.page.locator('[data-detail-tabs]');
+    assert.deepEqual(await row.locator('[role=tab]').evaluateAll(ts => ts.map(t => t.dataset.tab)), ['changes', 'adopted', 'code', 'diff', 'problems', 'outline']);
+    const fit = await row.evaluate(r => r.scrollWidth - r.clientWidth);
+    assert.ok(fit <= 0, 'the tab row fits a phone, over by ' + fit);
+    assert.equal(await row.locator('[data-tab=problems] .ph-warning-circle').isVisible(), true);
+    assert.equal(await row.locator('[data-tab=problems]').innerText(), '', 'Problems shows its icon, not its word');
+    assert.equal(await row.locator('[data-tab=changes] [data-tab-count]').innerText(), '1');
+    if (process.env.SHOTS) await phone.page.screenshot({ path: path.join(process.env.SHOTS, 'tabs-phone.png') });
+  });
   await phone.context.close();
 
   for (const width of [1500, 390]) {
