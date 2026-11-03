@@ -19,7 +19,7 @@ const poll=async()=>{w.dispatchEvent(new w.Event('online'));await flush();};
 check(!requests.length,'The phone does not request repository readings outside that view.');
 top=250;click('[data-view=repositories]');await flush();
 check(w.location.hash==='#view=repositories'&&!doc.querySelector('#repositories').hidden&&doc.querySelector('#content').hidden,'Repositories has a separate route in the title menu.');
-check(doc.querySelector('[data-checkout]').textContent.includes('↑ 2')&&doc.querySelector('[data-checkout]').textContent.includes('↓ 4')&&doc.querySelector('[data-checkout]').textContent.includes('2 changed · 1 untracked'),'Checkout comparisons and local changes are visible without an extra tap.');
+check(doc.querySelector('[data-checkout]').textContent.includes('↑ 2')&&doc.querySelector('[data-checkout]').textContent.includes('↓ 4')&&doc.querySelector('[data-checkout]').textContent.includes('2 changed files · 1 untracked file'),'Checkout comparisons and local changes are visible without an extra tap.');
 const row=doc.querySelector('[data-repository]'),beforeTap=row.innerHTML;row.click();
 check(row.innerHTML===beforeTap&&!doc.querySelector('[data-repo]')&&!doc.querySelector('[data-checkout] [aria-expanded]'),'Repository rows have no expansion action.');
 click('[data-menu]');

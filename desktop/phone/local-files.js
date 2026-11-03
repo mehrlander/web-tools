@@ -24,7 +24,7 @@
     const value=checkout.localFiles,entries=value?.entries||[];if(!value)return '';
     if(value?.state==='ready'&&!value.partial&&!entries.length)return '';
     const folders=entries.filter(e=>e.kind==='folder').slice(0,3);
-    return `${folders.length?`<ul class="mt-1">${folders.map(e=>`<li class="flex min-h-6 items-center gap-1.5 text-xs">${folder}<span class="min-w-0 flex-1 break-all line-clamp-2" title="${escape(e.path)}">${escape(e.path)}</span><span class="shrink-0 text-[10px] text-stone-500">${e.gitState==='ignored'?'Ignored':'Untracked'}</span><span class="shrink-0 text-[11px] text-stone-500">${size(e.bytes,e.partial)}</span></li>`).join('')}</ul>`:''}<button data-files="${checkout.key}" class="flex min-h-8 w-full items-center justify-between gap-2 text-left text-xs text-emerald-800"><span>Local files</span><span class="ml-auto text-[11px] text-stone-500">${value.state!=='ready'?'Unavailable':entries.length.toLocaleString()+' observed entries'}</span>${arrow}</button>`;
+    return `${folders.length?`<ul class="mt-1">${folders.map(e=>`<li class="flex min-h-6 items-center gap-1.5 text-xs">${folder}<span class="min-w-0 flex-1 break-all line-clamp-2" title="${escape(e.path)}">${escape(e.path)}</span><span class="shrink-0 text-[10px] text-stone-500">${e.gitState==='ignored'?'Ignored':'Untracked'}</span><span class="shrink-0 text-[11px] text-stone-500">${size(e.bytes,e.partial)}</span></li>`).join('')}</ul>`:''}<button data-files="${checkout.key}" class="flex min-h-8 w-full items-center justify-between gap-2 text-left text-xs text-emerald-800"><span>All local files</span><span class="ml-auto text-[11px] text-stone-500">${value.state!=='ready'?'Unavailable':entries.length.toLocaleString()+' entries'}</span>${arrow}</button>`;
   }
   function header(show,active=true){
     if(el('repository-back'))el('repository-back').hidden=!show;
@@ -54,9 +54,9 @@
       el('repositories').innerHTML=`<div class="bg-white px-3 pb-2 pt-2"><h2 id="local-repo" class="text-sm font-semibold"></h2><p id="local-checkout" class="mt-0.5 break-all text-[11px] text-stone-500"></p><p id="local-observed" class="mt-1 text-[10px] text-stone-500"></p></div><div class="bg-white px-3 pb-2"><div class="flex rounded-lg bg-stone-200 p-0.5" role="group" aria-label="Local file type">${['all','ignored','untracked'].map(k=>`<button data-file-filter="${k}" aria-pressed="${filter===k}" class="min-h-8 flex-1 rounded-md px-2 text-xs">${k}</button>`).join('')}</div><input data-local-search aria-label="Find local files" type="search" placeholder="Find files or folders" class="mt-2 h-8 w-full rounded-md border border-stone-200 bg-stone-50 px-2 text-xs" value="${escape(query)}"></div><p id="local-notice" class="empty:hidden px-3 py-1.5 text-[11px] text-amber-800"></p><div id="local-results"></div><p class="px-3 pt-2 text-[10px] leading-4 text-stone-500">Names and metadata only · Sizes marked ≥ are partial.</p>`;
     }
     el('local-repo').textContent=repo?.name||'Checkout no longer observed';
-    el('local-checkout').textContent=checkout?checkout.name+' · '+checkout.branch:'';
+    el('local-checkout').textContent=checkout?'Checkout · '+checkout.name+' · '+checkout.branch:'';
     inventory=checkout?.localFiles;
-    el('local-observed').textContent=inventory?(isLive?'Observed ':'Saved inventory · Observed ')+ago(inventory.observedAt):'Waiting for the laptop inventory';
+    el('local-observed').textContent=inventory?(isLive?'Inventory observed ':'Saved inventory · Observed ')+ago(inventory.observedAt):'Waiting for the laptop inventory';
     el('local-observed').title=inventory?stamp(inventory.observedAt):'';
     el('local-notice').textContent=inventory?.notice||'';
     if(!checkout){el('local-results').innerHTML='<p class="px-3 py-3 text-sm text-stone-500">Return to Repositories to choose an observed checkout.</p>';return;}
