@@ -132,7 +132,20 @@ class LocalFilesChecks(unittest.TestCase):
         self.assertTrue(row['partial'])
         self.assertEqual(files.role('node_modules/'), 'Dependencies')
         self.assertEqual(files.role('desktop/__pycache__/'), 'Cache')
+        self.assertEqual(files.role('desktop/App/bin/'), 'Build output')
+        self.assertEqual(files.role('.playwright-cli/'), 'Automation')
         self.assertIsNone(files.role('reports/'))
+
+    def test_recognizable_build_folders_do_not_bury_other_local_folders(self):
+        with (self.checkout / '.gitignore').open('a', encoding='utf-8') as rules:
+            rules.write('bin/\n.playwright-cli/\n')
+        self.cmd('-C', str(self.checkout), 'add', '.gitignore')
+        self.cmd('-C', str(self.checkout), 'commit', '-m', 'build folder rules')
+        self.write('bin/output.dll', 'build')
+        self.write('.playwright-cli/session.yml', 'automation')
+        self.write('exports/report.txt', 'report')
+        self.write('node_modules/pkg/index.js', 'dependency')
+        self.assertEqual([e['path'] for e in self.collect()['entries']], ['exports/', 'node_modules/', '.playwright-cli/', 'bin/'])
 
     def test_worktree_inventories_are_separate(self):
         other = self.base / 'other'

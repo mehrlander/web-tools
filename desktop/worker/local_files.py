@@ -41,6 +41,10 @@ def role(relative):
         return 'Dependencies'
     if parts & {'.cache', '__pycache__', '.pytest_cache', '.mypy_cache', '.ruff_cache'}:
         return 'Cache'
+    if parts & {'bin', 'obj'}:
+        return 'Build output'
+    if '.playwright-cli' in parts:
+        return 'Automation'
     return None
 
 
@@ -108,7 +112,8 @@ def collect(checkout, checkout_key, git, max_entries=96, max_nodes=30000, second
         candidates.extend((name, state) for name in raw.split('\0') if name)
     # Useful names stay visible before large dependency/cache trees consume a
     # measurement budget. Classification still comes entirely from Git.
-    candidates = sorted(set(candidates), key=lambda c: (bool(role(c[0])), not c[0].endswith('/'), c[0].casefold(), c[1]))
+    order = {None: 0, 'Dependencies': 1, 'Cache': 2, 'Automation': 3, 'Build output': 4}
+    candidates = sorted(set(candidates), key=lambda c: (order[role(c[0])], not c[0].endswith('/'), c[0].casefold(), c[1]))
     value['partial'] = len(candidates) > max_entries
     budget = {'nodes': 0, 'limit': max_nodes, 'end': time.monotonic() + seconds}
     for relative, state in candidates[:max_entries]:
