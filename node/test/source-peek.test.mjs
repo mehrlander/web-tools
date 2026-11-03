@@ -298,13 +298,15 @@ test('a table peek builds the grid the viewer builds: unique fields, escaped tit
   assert.deepEqual(SP.cellsOf('x.csv', 'a,"b,c"\r\n1,2\n'), [['a', 'b,c'], ['1', '2']]);
 });
 
-// Under a table peek's header: the size, then a pill per column that scrolls
-// the grid to it.
-test('a table peek names its size and gives each column a pill', () => {
+// A table peek's size goes in the header line as rows and columns; under the
+// header, a pill per column scrolls the grid to it.
+test('a table peek names its size in the header and gives each column a pill', () => {
+  assert.equal(SP.sizeText(17, 6), '17r · 6c');
+  assert.equal(SP.sizeText(1200, 3), '1,200r · 3c');
+  assert.match(SP.frame('o/r@main:a.csv', '', '17r · 6c'), /data-peek-size[^>]*>17r · 6c</);
+  assert.doesNotMatch(SP.frame('o/r@main:a.md', ''), /data-peek-size/);
   const { columns } = SP.gridOf([['id', 'a "b"'], ['1', '2']]);
-  const html = SP.colsHtml(columns, 1);
-  assert.match(html, /1 row · 2 columns/);
+  const html = SP.colsHtml(columns);
   assert.match(html, /data-peek-col="id"/);
   assert.match(html, /data-peek-col="a &quot;b&quot;"/);
-  assert.match(SP.colsHtml(columns, 1200), /1,200 rows/);
 });
