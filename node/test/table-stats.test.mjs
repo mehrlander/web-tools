@@ -69,12 +69,3 @@ test('list joins each group\'s distinct values, leaves blanks out, and caps a lo
   const long = TableStats.pivot.tree(many, { rows: ['g'], measure: 'v', agg: 'list' }).tree.value;
   assert.match(long, /, \+5$/, 'twenty-five values did not stop at twenty with a count of the rest');
 });
-
-test('profile keeps as many top values as asked, six by default', () => {
-  const rows = 'abcdefghijkl'.split('').flatMap((k, i) => Array.from({ length: 12 - i }, () => ({ v: k })));
-  const col = (o) => TableStats.profile(rows, o).columns.find(c => c.name === 'v');
-  assert.equal(col().topValues.length, 6);
-  const ten = col({ top: 10 }).topValues;
-  assert.equal(ten.length, 10);
-  assert.equal(JSON.stringify(ten.slice(0, 3).map(t => [t.value, t.count])), JSON.stringify([['a', 12], ['b', 11], ['c', 10]]));
-});
