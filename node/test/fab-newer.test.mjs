@@ -178,15 +178,18 @@ test('the ref bar draws the line with its standing against main, and the pin und
   assert.deepEqual({ ...d.refLineStanding }, { ahead: 29, behind: 39 }, 'the line against main, though the view is pinned');
   assert.deepEqual({ ...d.refPinStanding }, { kind: 'behind', text: '↓2' });
   assert.equal(calls.filter(c => c.p.startsWith('compare/main...')).length, 1, 'the line is asked about once');
-  assert.equal(d.refPr, null, 'no PR, no line under the branch');
   d.open = true; d.activeTab = 'render';
   await until(() => el.querySelector('[data-ref-pin-standing]') && el.querySelector('[data-ref-line-standing]'), 80);
   const bar = el.querySelector('[data-ref-bar]');
-  assert.match(bar.textContent.replace(/\s+/g, ' '), /claude\/fab-naming-todqvq ↑29 ↓39 └ @aaaaaaa ↓2/);
+  assert.match(bar.textContent.replace(/\s+/g, ' '), /claude\/fab-naming-todqvq ↑29 ↓39 🌿 └ @aaaaaaa ↓2/);
   assert.ok(!/house/.test(bar.innerHTML), 'no house: that icon is the home repo\'s');
   const toggle = el.querySelector('[data-ref-toggle]');
   assert.equal(toggle.tagName, 'BUTTON');
   assert.equal(toggle.getAttribute('aria-label'), 'Branches with another version of this page', 'the branch name opens the list');
+  assert.equal(el.querySelector('[data-ref-pr]'), null, 'the bar carries no PR title: that is the guide\'s');
+  const leaf = el.querySelector('[data-ref-branch-page]');
+  assert.ok(shown(leaf), 'the branch row links its branch page');
+  assert.match(leaf.getAttribute('href'), /pages\/branch\.html#gh=me\/r@claude\/fab-naming-todqvq$/, 'at the line, not the commit');
   const leave = el.querySelector('[data-ref-leave]');
   assert.ok(shown(leave), 'the line\'s row has an x');
   assert.equal(leave.getAttribute('aria-label'), 'Go to main', 'and it goes to main');
@@ -211,6 +214,7 @@ test('a pin at latest says latest, a pin on main has no line x, and a live branc
   onMain.d.open = true; onMain.d.activeTab = 'render';
   await until(() => onMain.el.querySelector('[data-ref-unpin]'), 80);
   assert.ok(!shown(onMain.el.querySelector('[data-ref-leave]')), 'pinned on main, the main row has no x');
+  assert.ok(!shown(onMain.el.querySelector('[data-ref-branch-page]')), 'nor a branch page link');
   assert.equal(onMain.el.querySelector('[data-ref-unpin]').getAttribute('aria-label'), 'Unpin: show main live');
 
   answers = { 'compare/': { ahead_by: 3, behind_by: 1, commits: [] } };
@@ -223,17 +227,15 @@ test('a pin at latest says latest, a pin on main has no line x, and a live branc
   assert.equal(live.el.querySelector('[data-ref-pin]'), null, 'a live branch has no pin row');
 });
 
-test('a pin\'s line with a pull request carries its title under the name', async () => {
+test('a pin\'s pull requests are found under its line, not the commit', async () => {
   answers = {
     'compare/': ahead(1),
     'pulls?': [{ number: 1201, title: 'Ref bar rows', state: 'open', head: { ref: 'claude/x' } }],
   };
-  const { d, el } = await mount({ repo: 'me/r', ref: SHA, branch: 'claude/x', path: 'pages/a.html' });
+  const { d } = await mount({ repo: 'me/r', ref: SHA, branch: 'claude/x', path: 'pages/a.html' });
   d.activeTab = 'render';
   d.toggle();
-  await until(() => d.refPr, 80);
+  await until(() => d.branchPrs.length, 80);
   assert.ok(calls.some(c => c.p.startsWith('pulls?') && c.p.includes(encodeURIComponent('me:claude/x'))), 'asked for the line\'s PRs');
-  assert.deepEqual({ ...d.refPr }, { number: 1201, title: 'Ref bar rows' }, 'the line\'s PR, found under the line rather than the commit');
-  await until(() => /#1201 · Ref bar rows/.test(el.querySelector('[data-ref-pr]').textContent), 80);
-  assert.ok(await until(() => shown(el.querySelector('[data-ref-pr]')), 80), 'and the line shows');
+  assert.equal(d.branchPrs[0] && d.branchPrs[0].number, 1201, 'and the guide has them, though the view is a commit');
 });
