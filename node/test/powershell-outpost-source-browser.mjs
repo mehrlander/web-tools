@@ -236,6 +236,17 @@ try {
     if (process.env.SHOTS) await desk.page.screenshot({ path: path.join(process.env.SHOTS, 'change-list.png'), fullPage: true });
     await desk.page.locator('[data-change-row]').first().click();
     await desk.page.locator('[data-change-list]').waitFor({ state: 'hidden' });
+    // Adopted, Shipped and Diff while GitHub's text differs from the recorded version.
+    assert.deepEqual(await desk.page.locator('[data-detail-tabs] [role=tab]').evaluateAll(ts => ts.map(t => t.innerText.replace(/\s+/g, ' ').trim())),
+      ['Changes 1', 'Adopted', 'Shipped', 'Diff', 'Problems', 'Outline']);
+    await desk.page.locator('[data-detail-tabs] [data-tab=diff]').click();
+    await desk.page.locator('[data-whole-diff]').waitFor({ state: 'visible' });
+    assert.match(await desk.page.locator('[data-whole-diff]').innerText(), /reported installed at ccccccc → shipped \(aaaaaaa\)[\s\S]*\+1 −1 lines/);
+    if (process.env.SHOTS) await desk.page.screenshot({ path: path.join(process.env.SHOTS, 'whole-diff.png'), fullPage: true });
+    await desk.page.locator('[data-detail-tabs] [data-tab=adopted]').click();
+    await desk.page.locator('[data-adopted]').waitFor({ state: 'visible' });
+    if (process.env.SHOTS) await desk.page.screenshot({ path: path.join(process.env.SHOTS, 'adopted.png'), fullPage: true });
+    await desk.page.locator('[data-detail-tabs] [data-tab=changes]').click();
     assert.equal(await desk.page.locator('[data-changes-mode]').count(), 0, 'no Blocks and Whole file switch');
     assert.equal(await desk.page.locator('[data-source-diff]').isVisible(), false, 'a file the parser splits shows cards, not the whole-file diff');
     for (const label of ['Files', 'Stage', 'Open code workspace', 'Mark as installed']) assert.equal(await desk.page.getByRole('button', { name: label, exact: true }).count(), 0, label + ' is gone');

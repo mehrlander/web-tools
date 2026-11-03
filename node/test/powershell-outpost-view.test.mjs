@@ -639,7 +639,9 @@ test('Changes shows what the work computer is known to hold against GitHub now, 
   assert.match(data.baseline.label, /^reported installed at [0-9a-f]{7}$/);
   assert.deepEqual([...data.diffRows.filter(r => r.type !== 'eq').map(r => r.type + ' ' + r.text)],
     ['del <Window/>', 'add <Window>', 'add   <Grid/>', 'add </Window>']);
-  assert.match(diff().textContent, /Update \(/);
+  assert.match(diff().textContent, /shipped \(/, 'a known adopted version makes GitHub\'s the shipped one');
+  assert.deepEqual([...data.detailTabs.map(t => t.label)], ['Changes', 'Adopted', 'Shipped', 'Problems', 'Outline'],
+    'Adopted and Shipped while they differ; no Diff tab, since Changes is the whole-file diff for XAML');
   // File is one tap away and Changes comes back.
   el.querySelector('[data-detail-tabs] [data-tab=code]').click(); await settle();
   assert.equal(data.shownTab, 'code'); assert.ok(shown(el.querySelector('[data-source-plain]'))); assert.ok(!shown(diff()));
@@ -1131,7 +1133,13 @@ test('a pending update opens on Changes, a card per block; a pasted copy reads a
     q('[data-change-row]')[1].click(); await settle();
     assert.equal(data.changeAt, 1); assert.match(el.querySelector('[data-change-head]').textContent, /2 · D/, 'a pick in the list moves the strip and the header follows');
     data.goChange(0); await settle();
-    assert.match(el.querySelector('[data-unit-base]').textContent, /^Work set \(ccccccc\) → update \(/);
+    assert.match(el.querySelector('[data-unit-base]').textContent, /^Work set \(ccccccc\) → shipped \(/);
+    assert.deepEqual([...data.detailTabs.map(t => t.key)], ['changes', 'adopted', 'code', 'diff', 'problems', 'outline']);
+    data.setDetailTab('adopted'); await settle();
+    assert.deepEqual([...el.querySelectorAll('[data-adopted-text] pre')].map(p => p.textContent), ['function A { 1 }', 'function B { 1 }', 'function C { 1 }'], 'Adopted shows the known version');
+    data.setDetailTab('diff'); await settle();
+    assert.match(el.querySelector('[data-whole-diff]').textContent, /\+2 −1 lines/);
+    data.setDetailTab('changes'); await settle();
     // The earlier version with one local edit, pasted: read block by block.
     await data.takeCopy(data.target(), 'function A { 1 }\nfunction B { 1 }\nfunction C { 9 }\n', 'clip', 'paste'); await settle();
     for (let i = 0; i < 20 && data.unitBusy; i++) await tick(2);
