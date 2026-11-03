@@ -49,3 +49,21 @@ test('going to main leaves for the deployed page, with the page\'s own query', a
   const d = await mount();
   assert.equal(d.topLiveUrl, 'https://mehrlander.github.io/web-tools/pages/data-view.html?src=me/r:a.md#intro=hi');
 });
+
+test('a page query inside the address is the page\'s, not part of its path', async () => {
+  // How npm run showing mints it, #gh=…:pages/data-view.html?src=…, which the
+  // renderer moves into the query with the page query encoded inside gh=.
+  window.history.replaceState(null, '', '/web-tools/pages/toss-render.html?top&gh=mehrlander/web-tools@claude/x@aaaaaaa11111:pages/data-view.html%3Fsrc%3Dme/r@b@cccccccc:a.md');
+  try {
+    const d = await mount();
+    assert.equal(d.path, 'pages/data-view.html', 'the path stops at the page query');
+    d.frameRef = 'claude/x';
+    assert.equal(d.tossUrl, 'https://mehrlander.github.io/web-tools/pages/toss-render.html'
+      + '?top&gh=mehrlander/web-tools@claude/x:pages/data-view.html%3Fsrc%3Dme/r@b@cccccccc:a.md',
+      'unpinned, the page query rides along as it came');
+    assert.equal(d.topLiveUrl, 'https://mehrlander.github.io/web-tools/pages/data-view.html?src=me/r@b@cccccccc:a.md');
+  } finally {
+    window.history.replaceState(null, '', new URL(ADDR).pathname + new URL(ADDR).search + new URL(ADDR).hash);
+  }
+});
+
