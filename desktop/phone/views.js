@@ -21,7 +21,7 @@
     window.NowDevices?.setActive(next === 'devices');
     window.NowRepositories?.setActive(next === 'repositories');
     window.dispatchEvent(new CustomEvent('nowviewchange'));
-    scrollTo(0,positions[next]);
+    if (next !== 'repositories') scrollTo(0,positions[next]);
   }
   function closeMenu() { el('view-menu').hidden = true; el('view-picker').setAttribute('aria-expanded','false'); }
   document.addEventListener('click', event => {

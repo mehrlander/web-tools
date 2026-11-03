@@ -152,7 +152,8 @@ desktop settings; those settings never enter API responses or tracked files.
 - `GET /api/v1/computer`: current Windows session state, machine measurements and
   grouped desktop application windows, with a separate window-observation time.
 - `GET /api/v1/devices`: Stereo Bridge's current media and playback capabilities.
-- `GET /api/v1/repositories`: local checkout state and dated GitHub comparisons.
+- `GET /api/v1/repositories`: local checkout state, dated GitHub comparisons and
+  local file inventories.
 - `POST /api/v1/repositories/<key>/fetch`: queue a fetch for a discovered repository,
   or `all`, without integrating changes into any working branch.
 - `POST /api/v1/devices/stereo/<action>`: previous, play-pause, next, volume-down,
@@ -204,6 +205,8 @@ The adapter disables redirects, bounds responses and omits native errors. Unavai
 Repositories groups direct child Git checkouts under the configured repositories folder by their GitHub origin. The companion reads branch, working-file and commit differences every ten seconds. Each checkout compares separately with its tracked origin branch and GitHub's default branch. Shallow or unavailable history stays labeled rather than gaining guessed counts. A feature branch can differ from GitHub's default branch while matching its tracked branch; squash merges can retain different commit IDs.
 
 The companion fetches on startup and every five minutes. Check all repos queues a fresh check for all groups; each repository's action menu offers Check GitHub now for its own group. Fetches use explicit remote-tracking destinations, skip tags, pruning, submodules and automatic maintenance, and leave the working branch, index and files unchanged. Failed checks retain their previous successful time and a notice. The phone polls every three seconds while the view is visible and disables check controls when its observation is stale or offline. Fetch reads GitHub changes; pull integrates changes into a working branch. This version offers fetch only. Git credentials, full filesystem paths, file contents and raw Git diagnostics stay outside the phone projection.
+
+The companion inventories ignored and untracked entries on a separate loop from Git comparisons, waiting a minute after each completed scan. The phone shows up to three folder names per checkout; Local files opens that checkout's inventory with text filters and search. Readings include relative names, logical file sizes, file counts and modification times. Empty directories, links and Git administrative files are excluded. Entry, node and time budgets label omitted entries and partial measurements; missing sizes remain unknown. Inventory time stays separate from GitHub checks. The inventory exposes no file contents or file-changing actions.
 
 ### Account usage
 
@@ -273,7 +276,7 @@ Usage files remain beside the companion settings in `usage.json` and
 `usage-inputs/claude.json`. No credential, transcript, account identifier or raw
 provider error enters the usage projection. Missing fields never imply zero.
 
-The phone projection omits request notes, filesystem fields, downloads and native
+The activity projection omits request notes, filesystem fields, downloads and native
 actions. Polling uses conditional GET every two seconds in the foreground, pauses
 when hidden, refreshes immediately on return, and backs off to fifteen seconds on
 failure. The phone distinguishes local observation, Git synchronization and captured

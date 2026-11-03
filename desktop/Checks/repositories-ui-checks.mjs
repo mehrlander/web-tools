@@ -11,7 +11,7 @@ let data={schemaVersion:1,machineName:'Laptop',observedAt:at,refreshing:[],repos
 w.setTimeout=(fn,delay)=>{timers.set(++id,{fn,delay});return id;};w.clearTimeout=key=>timers.delete(key);
 Object.defineProperty(w,'scrollY',{get:()=>top});w.scrollTo=(_x,y)=>{top=y;};w.AbortController=AbortController;
 w.fetch=async(path,options={})=>{requests.push({path,...options});if(offline)throw new Error();if(options.method==='POST'){if(hold)await hold;data.refreshing=[groupKey];return{ok:true,status:202};}return{ok:!denied,status:denied?403:200,headers:{get:()=>''},json:async()=>structuredClone(data)};};
-w.eval(read('../phone/repositories.js'));w.eval(read('../phone/views.js'));
+w.eval(read('../phone/local-files.js'));w.eval(read('../phone/repositories.js'));w.eval(read('../phone/views.js'));
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
 const check=(condition,message)=>{assert.ok(condition,message);checks++;};
 const click=selector=>{const node=doc.querySelector(selector);assert.ok(node,selector);node.click();};
@@ -23,7 +23,7 @@ check(doc.querySelector('[data-checkout]').textContent.includes('↑ 2')&&doc.qu
 const row=doc.querySelector('[data-repository]'),beforeTap=row.innerHTML;row.click();
 check(row.innerHTML===beforeTap&&!doc.querySelector('[data-repo]')&&!doc.querySelector('[data-checkout] [aria-expanded]'),'Repository rows have no expansion action.');
 click('[data-menu]');
-check(!doc.querySelector('[data-repo-menu]').hidden&&doc.querySelector('[data-menu]').getAttribute('aria-expanded')==='true'&&doc.querySelector('[data-fetch="'+groupKey+'"]').textContent.includes('Check GitHub now'),'The three-dot menu names the check action and explains that local files stay unchanged.');
+check(!doc.querySelector('[data-repo-menu]').hidden&&doc.querySelector('[data-menu]').getAttribute('aria-expanded')==='true'&&doc.querySelector('[data-fetch="'+groupKey+'"]').textContent==='Check GitHub now'&&doc.querySelectorAll('[data-repo-menu] [role=menuitem]').length===2,'The simple menu has exactly two plain actions and no explanatory subitems.');
 top=160;doc.querySelector('[data-fetch="'+groupKey+'"]').focus();data.repositories[0].checkouts[0].tracked.behind=5;await poll();
 check(top===160&&doc.activeElement.dataset.fetch===groupKey&&!doc.querySelector('[data-repo-menu]').hidden,'Polling preserves the open action menu, keyboard focus and scroll position.');
 doc.activeElement.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
@@ -41,6 +41,23 @@ check(!doc.querySelector('[data-checkout]').textContent.includes('changed'),'Cle
 const second={...structuredClone(c),key:'c'.repeat(24),name:'project-other',branch:'other',tracked:comp('no-upstream',null,null,null),main:comp('incomplete-history',null,null)};
 data.repositories[0].checkouts.push(second);await poll();
 check(doc.querySelectorAll('[data-checkout]').length===2&&doc.querySelector('[data-checkout="'+second.key+'"]').textContent.includes('No tracked branch')&&doc.querySelector('[data-checkout="'+second.key+'"]').textContent.includes('Shallow history'),'Every grouped checkout stays visible, with unknown comparisons labeled rather than zeroed.');
+
+c.localFiles={key:checkoutKey,name:c.name,state:'ready',observedAt:at,partial:true,notice:'Some measurements are incomplete.',entries:[
+  {key:'d'.repeat(24),path:'exports/',kind:'folder',gitState:'ignored',bytes:34000000,files:12,modifiedAt:at,partial:false,role:null},
+  {key:'e'.repeat(24),path:'node_modules/',kind:'folder',gitState:'ignored',bytes:240000000,files:18400,modifiedAt:at,partial:true,role:'Dependencies'},
+  {key:'f'.repeat(24),path:'note.md',kind:'file',gitState:'untracked',bytes:12,files:1,modifiedAt:at,partial:false,role:null}
+]};await poll();
+check(doc.querySelector('[data-checkout="'+checkoutKey+'"]').textContent.includes('exports/')&&doc.querySelector('[data-checkout="'+checkoutKey+'"]').textContent.includes('≥ 240 MB'),'The overview shows real folder names and clearly labels partial sizes.');
+click('[data-files="'+checkoutKey+'"]');
+check(w.location.hash.includes('checkout='+checkoutKey)&&doc.querySelector('#view-title').textContent==='Local files'&&!doc.querySelector('#repository-back').hidden&&doc.querySelectorAll('#local-results .bg-white').length===3,'A local-files link opens the checkout inventory as a separate routed screen.');
+click('[data-file-filter=untracked]');
+check(doc.querySelector('#local-results').textContent.includes('note.md')&&!doc.querySelector('#local-results').textContent.includes('exports/'),'Text filters distinguish ignored folders from untracked files.');
+click('[data-file-filter=all]');const search=doc.querySelector('[data-local-search]');search.value='exports';search.dispatchEvent(new w.Event('input',{bubbles:true}));search.focus();top=80;
+c.localFiles.observedAt=new Date().toISOString();await poll();
+check(doc.querySelector('[data-local-search]')===search&&doc.activeElement===search&&search.value==='exports'&&top===80&&doc.querySelector('#local-results').textContent.includes('exports/')&&!doc.querySelector('#local-results').textContent.includes('node_modules/'),'Polling preserves the search input, filter, keyboard focus and detail reading position.');
+w.history.replaceState(null,'',w.location.href);click('#repository-back');
+check(!w.location.hash.includes('checkout=')&&doc.querySelector('#view-title').textContent==='Repositories'&&doc.querySelector('#repository-back').hidden&&top===160,'Back from a direct inventory route restores the repository list and its reading position.');
+check([...doc.querySelectorAll('[data-menu] circle')].every(n=>n.getAttribute('cx')==='12'),'Repository action triggers use vertical three-dot icons.');
 data.repositories[0].name='fixture/<img src=x onerror=alert(1)>';data.repositories[0].url='javascript:alert(1)';await poll();
 check(!doc.querySelector('#repositories img,[onerror]')&&!doc.querySelector('#repositories a')&&doc.querySelector('#repositories').textContent.includes('<img'),'Names render as text and unsafe GitHub links are absent.');
 data.repositories[0].name='fixture/project';data.repositories[0].url='https://github.com/fixture/project';await poll();

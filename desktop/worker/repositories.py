@@ -21,7 +21,7 @@ def key(value):
     return hashlib.sha256(value.encode('utf-8')).hexdigest()[:24]
 
 
-def git(path, *args, timeout=8):
+def git(path, *args, timeout=8, strip=True):
     env = {**os.environ, 'GIT_OPTIONAL_LOCKS': '0', 'GIT_TERMINAL_PROMPT': '0', 'GCM_INTERACTIVE': 'Never', 'GH_PROMPT_DISABLED': '1'}
     authentication = []
     gh = shutil.which('gh')
@@ -31,7 +31,7 @@ def git(path, *args, timeout=8):
         result = subprocess.run(['git', '--no-optional-locks', '-c', 'core.fsmonitor=false',
                                  '-c', 'credential.interactive=never', *authentication, '-C', str(path), *args],
                                 env=env, capture_output=True, encoding='utf-8', errors='replace', timeout=timeout)
-        return result.stdout.strip() if result.returncode == 0 and len(result.stdout) <= 4_194_304 else None
+        return (result.stdout.strip() if strip else result.stdout) if result.returncode == 0 and len(result.stdout) <= 4_194_304 else None
     except (OSError, subprocess.TimeoutExpired):
         return None
 
@@ -243,8 +243,12 @@ def main():
     parser.add_argument('--state', type=Path, required=True)
     parser.add_argument('--fetch', dest='fetch_key')
     parser.add_argument('--checkout', action='append')
+    parser.add_argument('--local-files', action='store_true')
     args = parser.parse_args()
-    if args.fetch_key:
+    if args.local_files:
+        from local_files import inventories
+        print(json.dumps(inventories(discover(args.root), git, key)))
+    elif args.fetch_key:
         if not re.fullmatch(r'[a-f0-9]{24}', args.fetch_key):
             raise SystemExit(2)
         fetch_repository(args.root, args.state, args.fetch_key, args.checkout)

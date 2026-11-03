@@ -85,6 +85,7 @@ try {
   check((await request('/api/v1/repositories/missing/fetch',controls,'POST')).status===404 && (await request('/api/v1/repositories/all/fetch',controls,'POST')).status===404,'Unknown or empty repository selections cannot start a Git process.');
   check((await request('/api/v1/repositories/all/pull',controls,'POST')).status===405 && (await request('/api/v1/repositories',owner,'POST')).status===405,'Repository routes offer no pull or branch integration actions.');
   check((await request('/repositories.js',owner)).ok && repositoryResponse.headers.get('cache-control')==='no-store','Repository assets are explicit and private observations are not HTTP cached.');
+  check((await request('/local-files.js',owner)).ok && (await request('/local-files.js')).status===403,'The local-files interface shares the existing private asset boundary.');
   const command='/api/v1/devices/stereo/';
   check((await request('/devices.js',owner)).ok && (await request('/views.js',owner)).ok,'Devices and shared navigation are explicit private assets.');
   check((await request('/api/v1/devices')).status===403 && (await request(command+'mute',{},'POST')).status===403,'Anonymous requests cannot read devices or control media.');

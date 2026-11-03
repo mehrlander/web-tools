@@ -36,6 +36,7 @@ check(await request('/api/v1/repositories') === undefined && await request('/api
 network='offline';
 check((await(await request('/?version=2')).text()).includes('Interface /'),'A saved interface can reload offline despite a cache-busting page query.');
 check((await(await request('/computer.js')).text()).includes('Interface /computer.js'),'The Computer interface can load offline.');
+check((await(await request('/local-files.js')).text()).includes('Interface /local-files.js'),'The local-files detail interface is available in the saved shell.');
 check((await(await request('/devices.js')).text()).includes('Interface /devices.js') && (await(await request('/views.js')).text()).includes('Interface /views.js'),'The Devices interface and shared view navigation can load offline.');
 network=502;
 check((await(await request('/')).text()).includes('Interface /'),'A temporary proxy/server failure preserves access to the saved interface.');

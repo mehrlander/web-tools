@@ -109,6 +109,7 @@ var assets = new Dictionary<string, (string File, string Type)> {
     ["/devices.js"] = ("devices.js", "text/javascript; charset=utf-8"),
     ["/views.js"] = ("views.js", "text/javascript; charset=utf-8"),
     ["/repositories.js"] = ("repositories.js", "text/javascript; charset=utf-8"),
+    ["/local-files.js"] = ("local-files.js", "text/javascript; charset=utf-8"),
     ["/sw.js"] = ("sw.js", "text/javascript; charset=utf-8"),
     ["/reading.js"] = ("reading.js", "text/javascript; charset=utf-8"),
     ["/now-shared.js"] = ("now-shared.js", "text/javascript; charset=utf-8"),
