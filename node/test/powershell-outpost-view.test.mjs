@@ -1129,6 +1129,7 @@ test('a pending update opens on Changes, a card per block; a pasted copy reads a
     assert.ok(el.querySelector('[data-change-head] input').disabled, 'choosing waits for the work copy');
     assert.match(el.querySelector('[data-copy-zone]').textContent, /copy of Forms\.psm1 from the work computer to compare it and choose changes/);
     assert.match(el.querySelector('[data-change-head]').textContent, /1 · A/, 'the header row numbers and names the change in view');
+    assert.ok(data.visibleUnits.every(u => { const r = data.unitDiff(u); return r.length && r[0].text.trim() && r.at(-1).text.trim(); }), 'a card opens and closes on a line with code, not the previous statement\'s line break');
     assert.deepEqual(q('[data-change-row]').map(b => b.textContent.replace(/\s+/g, ' ').trim().split(' ').slice(0, 2).join(' ')), ['1 A', '2 D'], 'the list holds every change, numbered');
     q('[data-change-row]')[1].click(); await settle();
     assert.equal(data.changeAt, 1); assert.match(el.querySelector('[data-change-head]').textContent, /2 · D/, 'a pick in the list moves the strip and the header follows');
