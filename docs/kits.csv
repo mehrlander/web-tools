@@ -98,7 +98,7 @@ lib/kits/session-render.js,sessionRender,a session record as a readable conversa
 lib/kits/sessions-crawl.js,SessionsCrawl,"The sessions crawl as a kit: the pass that folds the per-session records under sessions/ in the private registry into state/sessions.json, its phone copy…",217,no,no,1,yes
 lib/kits/shortcut-evidence.js,ShortcutEvidence,the device's return channel read as outpost evidence.,176,no,no,2,yes
 lib/kits/shorter-payload.js,ShorterPayload,Reading a shorter toss.,76,no,no,1,yes
-lib/kits/source-peek.js,SourcePeek,the hover card behind an exact-file GitHub jump-over.,717,yes,yes,12,yes
+lib/kits/source-peek.js,SourcePeek,the hover card behind an exact-file GitHub jump-over.,751,yes,yes,12,yes
 lib/kits/src-doc.js,srcDoc,"A RENDERED VIEW OF A SOURCE FILE SAYS SO, AND SAYS WHICH FILE.",118,no,no,8,yes
 lib/kits/stage-handoff.js,StageHandoff,"one paste, two documents",116,no,no,4,no
 lib/kits/standoff.js,Standoff,"The standoff annotation: its invariants, the six edits it admits, and the one serialization both of its writers must agree on.",655,no,no,4,yes
@@ -106,7 +106,7 @@ lib/kits/subject-channel.js,subjectChannel,telling the FAB sidebar what you are 
 lib/kits/surface.js,Surface,"the surface envelope, in one place.",206,no,no,1,yes
 lib/kits/swipe-deck.js,swipeDeck,"the house swipe format: a snap-scrolling track of slides, and the fullscreen takeover that frames it.",1695,no,yes,36,yes
 lib/kits/sync-status.js,SyncStatus,"how a synchronization state looks, wherever the estate shows one.",31,no,no,4,yes
-lib/kits/table-stats.js,DataProfile,"a table's profile and its pivot, computed once for the estate TableStats.parseNum(v) -> number | null TableStats.profile(rows, { columns }) -> { rowCount,…",418,no,no,5,yes
+lib/kits/table-stats.js,DataProfile,"a table's profile and its pivot, computed once for the estate TableStats.parseNum(v) -> number | null TableStats.profile(rows, { columns, top }) -> {…",419,no,no,6,yes
 lib/kits/tabular-explorer.js,TabularExplorer,"Exploratory Data Analysis (EDA) and immersive inspection for tabular data (CSV, TSV, JSON rows).",851,no,no,2,yes
 lib/kits/term-marks.js,TermMarks,a glossary's terms marked where a text first names them (window.TermMarks).,39,no,no,1,yes
 lib/kits/text-collection.js,TextCollection,"the shared Text collection, read in the browser.",556,no,no,6,yes
