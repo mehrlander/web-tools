@@ -113,12 +113,15 @@ test('a pair whose proposed text is in the file has been applied, and is not cou
   } finally { FILES['mehrlander/web-tools:docs/x.md'] = keep; }
 });
 
-test("links: every call answered on its call page, Dictate for a file's proposals, at the version the page runs at", () => {
+test("links: a pick call answered on its board and every other call on its call page, Dictate for a file's proposals, at the version the page runs at", () => {
   const doc = { kind: 'documentation', file: 'mehrlander/web-tools@dev:docs/x.md', _repo: STORE, _ref: 'main', _path: 'user-calls/a1-doc.json' };
   const merge = { kind: 'merge', _repo: STORE, _ref: 'main', _path: 'user-calls/a1-merge.json' };
   assert.equal(U.href(doc), 'https://mehrlander.github.io/web-tools/pages/user-call.html#src=' + STORE + ':user-calls/a1-doc.json',
     'a documentation call is answered on its call page, not in Dictate');
   assert.equal(U.href(merge), 'https://mehrlander.github.io/web-tools/pages/user-call.html#src=' + STORE + ':user-calls/a1-merge.json');
+  const pick = { kind: 'pick', _repo: STORE, _ref: 'main', _path: 'user-calls/a1-picks.json' };
+  assert.equal(U.href(pick), 'https://mehrlander.github.io/web-tools/pages/image-board.html#user-call=' + STORE + ':user-calls/a1-picks.json',
+    'a pick call is answered on its image board, not on a call page that only links there');
   assert.equal(U.dictateHref({ file: 'mehrlander/web-tools:docs/x.md', proposed: true }),
     'https://mehrlander.github.io/web-tools/pages/dictate.html?file=mehrlander/web-tools:docs/x.md&proposed');
   assert.equal(U.dictateHref({ file: 'mehrlander/web-tools:docs/x.md', proposed: 'tighten' }),

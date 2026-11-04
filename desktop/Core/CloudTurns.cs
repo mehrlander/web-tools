@@ -41,7 +41,7 @@ public static class CloudTurns
                     : state == "interrupted" ? "Turn stopped with an error"
                     : state == "ended" ? "Cloud session ended" : "Response recorded";
                 var item = new LocalSession(id, "Claude", title, quiet ? "quiet" : state == "ended" ? "idle" : state,
-                    at, "", detail, "Cloud", Turn: new(prompt, Clip("response", 4000), start, at, tool));
+                    at, "", detail, "Cloud", Turn: new(prompt, Clip("response", 4000), start, at, tool), SourceUrl: SessionLinks.Safe(source));
                 if (!latest.TryGetValue(id, out var previous) || previous.UpdatedAt < at) latest[id] = item;
             } catch (Exception e) when (e is JsonException or InvalidOperationException or FormatException) { }
         }
@@ -49,7 +49,7 @@ public static class CloudTurns
             if (items.TryGetValue(id, out var record)) {
                 // A later recorded response supersedes a delayed start/tool publication.
                 if (record.UpdatedAt > signal.UpdatedAt) {
-                    items[id] = record with { Turn = signal.Turn };
+                    items[id] = record with { Turn = signal.Turn, SourceUrl = record.SourceUrl ?? signal.SourceUrl };
                     continue;
                 }
                 items[id] = signal with { Title = record.Title, Checkpoint = record.Checkpoint };

@@ -1,13 +1,15 @@
-// kits/xlsx-people.js — where a workbook may name people. The fixture is
-// hand-built XML parts, like xlsx-extract.test.mjs, and the first-name list is
-// a small Set handed in, since the real one is a fetch.
+// kits/xlsx-people.js — where a workbook names people, and whose names they
+// are. The fixture is hand-built XML parts, like xlsx-extract.test.mjs, and
+// the name lists are small arrays handed to makeLists(), since the real ones
+// are a fetch.
 //
 // What would rot silently, in order:
 //
-//   1. the names that ARE there are found: a person column, a form label's
-//      value, an address, a comment author, the file's creator.
+//   1. the names that ARE there are found: a person column, a name in a form's
+//      cell, an address, a comment author, the file's creator.
 //   2. the phrases that only look like names are not: a program named
-//      "Member Services", "Budget Office", "Grace Period", "June Total".
+//      "Member Services", "Budget Office", "Grace Period", "June Total", and
+//      two ordinary words that are also a first name and a surname.
 //   3. carried() follows the pick, reading by reading, so the roster never
 //      reports a name an extract would not hold, and always one it would.
 
@@ -25,7 +27,17 @@ loadKit('xlsx-people', { window: w });
 globalThis.window = w;
 const { xlsxKit, XlsxPeople } = w;
 
-const FIRST = new Set(['Dana', 'Maria', 'David', 'Grace', 'Peter', 'Rachel', 'Thomas', 'June']);
+// The surnames run most common first, as the Census list does; the filler
+// puts Class and Start past the 1,000 most common, where an ordinary word
+// beside an ordinary first name stops reading as a person.
+const LISTS = XlsxPeople.makeLists(
+  ['Dana', 'Maria', 'David', 'Grace', 'Peter', 'Rachel', 'Thomas', 'June', 'Mark', 'Job'],
+  ['smith', 'garcia', 'lopez', 'chen', 'kim', 'reed', 'young', 'obrien', 'mckay',
+   ...Array.from({ length: 1000 }, (_, i) => `filler${i}`),
+   'whitfield', 'novak', 'okafor', 'class', 'start'],
+  ['grace', 'june', 'mark', 'job', 'smith', 'young', 'class', 'fair', 'start', 'member', 'services',
+   'budget', 'office', 'period', 'total', 'administration', 'central', 'reception', 'unit', 'contact', 'team'],
+);
 
 const str = (ref, t) => `<c r="${ref}" t="inlineStr"><is><t>${t}</t></is></c>`;
 const num = (ref, v) => `<c r="${ref}"><v>${v}</v></c>`;
@@ -75,11 +87,11 @@ const parts = () => [
     <dc:creator>Pat Morgan</dc:creator><cp:lastModifiedBy>Pat Morgan</cp:lastModifiedBy></cp:coreProperties>`],
 ];
 
-const found = () => XlsxPeople.scan(xlsxKit.analyze(parts()), { firstNames: FIRST });
+const found = () => XlsxPeople.scan(xlsxKit.analyze(parts()), { lists: LISTS });
 const ids = (f) => f.findings.map(x => x.id).sort();
 
 test('kit surface', () => {
-  assert.deepEqual(Object.keys(XlsxPeople).sort(), ['carried', 'loadFirstNames', 'nameKind', 'rows', 'scan', 'where']);
+  assert.deepEqual(Object.keys(XlsxPeople).sort(), ['carried', 'loadLists', 'makeLists', 'namesIn', 'rows', 'scan', 'where']);
 });
 
 test('every planted name is found, in the place it sits', () => {
@@ -94,41 +106,47 @@ test('every planted name is found, in the place it sits', () => {
   ]);
 });
 
-test('a column is judged as a whole, with its heading and its evidence', () => {
+test('a column of names is one finding, with its heading, its count and the names themselves', () => {
   const emp = found().findings.find(f => f.id === 'column:Staff:B');
   assert.equal(emp.header, 'Employee');
-  assert.deepEqual(emp.evidence, ['dictionary', 'header']);
+  assert.deepEqual(emp.evidence, ['names']);
   assert.equal(emp.count, 4);
   assert.equal(emp.filled, 4);
-  assert.deepEqual(emp.samples, ['Lopez, Maria', 'Chen, David', 'Okafor, Grace']);
+  assert.deepEqual(emp.names, ['Lopez, Maria', 'Chen, David', 'Okafor, Grace', 'Novak, Peter']);
+  assert.deepEqual(found().findings.find(f => f.id === 'column:Staff:D').names, ['Rachel Kim', 'Thomas Reed'], 'each name once');
 });
 
-test('a form names a person beside its label; a lone address is a cell, not its column', () => {
+test('a name or an address in a form is a cell, not its column', () => {
   const f = found().findings;
-  assert.equal(f.find(x => x.id === 'cell:Cover:C3').label, 'Prepared by');
-  assert.deepEqual(f.find(x => x.id === 'cell:Cover:C6').evidence, ['label', 'email']);
+  assert.deepEqual(f.find(x => x.id === 'cell:Cover:C3').names, ['Dana Whitfield']);
+  assert.deepEqual(f.find(x => x.id === 'cell:Cover:C6').evidence, ['email']);
   assert.equal(f.some(x => x.id === 'column:Cover:C'), false);
 });
 
 test('phrases that only look like names are not reported', () => {
-  for (const s of ['Member Services', 'Budget Office', 'Grace Period', 'June Total', 'Analyst 3', 'FY27 Staffing Request'])
-    assert.equal(XlsxPeople.nameKind(s, FIRST), null, s);
+  for (const s of ['Member Services', 'Budget Office', 'Grace Period', 'June Total', 'Analyst 3', 'FY27 Staffing Request',
+    'IS Administration', 'Central Reception Unit Contact Team', 'Job Class', 'Fair Start', 'Lopez, MARIA'])
+    assert.deepEqual(XlsxPeople.namesIn(s, LISTS), [], s);
   assert.equal(found().findings.some(x => x.sheet === 'Totals'), false);
 });
 
-test('nameKind reads the usual shapes, all capitals, and an address', () => {
-  assert.equal(XlsxPeople.nameKind('Lopez, Maria', FIRST), 'dictionary');
-  assert.equal(XlsxPeople.nameKind('LOPEZ, MARIA', FIRST), 'dictionary');
-  assert.equal(XlsxPeople.nameKind('Maria J. Lopez', FIRST), 'dictionary');
-  assert.equal(XlsxPeople.nameKind("Siobhan O'Brien-McKay", FIRST), 'shape', 'off the list, still a name shape');
-  assert.equal(XlsxPeople.nameKind('a.b@example.org', FIRST), 'email');
+test('namesIn reads the usual shapes, all capitals, a name inside a sentence, and an address', () => {
+  const at = (s) => XlsxPeople.namesIn(s, LISTS);
+  assert.deepEqual(at('Lopez, Maria'), ['Lopez, Maria']);
+  assert.deepEqual(at('LOPEZ, MARIA'), ['LOPEZ, MARIA']);
+  assert.deepEqual(at('Maria J. Lopez'), ['Maria J. Lopez']);
+  assert.deepEqual(at('Prepared by Dana Whitfield'), ['Dana Whitfield']);
+  assert.deepEqual(at('Contact: Rachel Kim (360) 555-0100'), ['Rachel Kim']);
+  assert.deepEqual(at('Mark Smith'), ['Mark Smith'], 'two ordinary words, but one of the most common surnames');
+  assert.deepEqual(at('Mateo Garcia'), ['Mateo Garcia'], 'an unlisted first name that is no English word');
+  assert.deepEqual(at("Siobhan O'Brien-McKay"), ["Siobhan O'Brien-McKay"]);
+  assert.deepEqual(at('Ask a.b@example.org'), ['a.b@example.org']);
 });
 
-test('without a first-name list, a headed column still reads, and the scan says it ran without one', () => {
+test('without the name lists, the scan finds addresses, authors and properties, and says it ran without them', () => {
   const f = XlsxPeople.scan(xlsxKit.analyze(parts()), {});
-  assert.equal(f.dictionary, false);
-  const emp = f.findings.find(x => x.id === 'column:Staff:B');
-  assert.deepEqual(emp?.evidence, ['header']);
+  assert.equal(f.lists, false);
+  assert.deepEqual(ids(f), ['author:Staff', 'cell:Cover:C6', 'property:creator', 'property:last modified by']);
 });
 
 test('carried() follows the pick: values carry a column, styles do not, comments carry their authors', () => {
@@ -159,7 +177,7 @@ test('a long column is judged on a sample and counted cell by cell', () => {
     ['xl/_rels/workbook.xml.rels', `<?xml version="1.0"?><Relationships xmlns="rel"><Relationship Id="rId1" Type=".../worksheet" Target="worksheets/sheet1.xml"/></Relationships>`],
     ['xl/worksheets/sheet1.xml', sheet(big)],
   ];
-  const f = XlsxPeople.scan(xlsxKit.analyze(parts), { firstNames: FIRST });
+  const f = XlsxPeople.scan(xlsxKit.analyze(parts), { lists: LISTS });
   const col = (c) => f.findings.find(x => x.id === `column:Big:${c}`);
   assert.deepEqual([col('B')?.count, col('B')?.filled], [6000, 6000], 'every cell of a flagged column counted');
   assert.deepEqual([col('A')?.count, col('A')?.filled], [4000, 6000], 'names that start partway down are seen by the spread half');
@@ -169,13 +187,13 @@ test('the file properties are reported and never carried by an extract', () => {
   const f = found();
   const all = { sheets: new Map(['Cover', 'Staff', 'Totals'].map(n => [n, new Set(['values', 'cells', 'comments'])])), objects: new Set() };
   assert.equal(XlsxPeople.carried(f, all).some(x => x.kind === 'property'), false);
-  assert.deepEqual(f.findings.find(x => x.id === 'property:creator').samples, ['Pat Morgan']);
+  assert.deepEqual(f.findings.find(x => x.id === 'property:creator').names, ['Pat Morgan']);
 });
 
 test('rows() puts each finding where a reader would look for it', () => {
   const rows = XlsxPeople.rows(found());
   assert.deepEqual(rows.find(r => r.Where === 'Staff!B'),
-    { Where: 'Staff!B', Field: 'Employee', Evidence: 'dictionary, header', Count: '4 of 4',
-      Examples: 'Lopez, Maria; Chen, David; Okafor, Grace' });
+    { Where: 'Staff!B', Field: 'Employee', Evidence: 'names', Count: '4 of 4',
+      Names: 'Lopez, Maria; Chen, David; Okafor, Grace; Novak, Peter' });
   assert.equal(rows.find(r => r.Field === 'creator').Where, 'file');
 });

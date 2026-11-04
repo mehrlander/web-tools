@@ -162,7 +162,8 @@ test('a lent row renders the strip and the title without waiting on the record',
   // flash the whole head on every swipe.
   const s = strip(lent());
   assert.equal(s.calls, 40);
-  assert.equal(s.failures, 1);
+  assert.equal(lent().strip.find(f => f.k === 'calls').t, 'tool calls, 1 failed',
+    'the one failure rides the wrench');
   assert.equal(lent().timeFacts.span, '3h 0m', 'how long it ran is the time panel\'s');
   assert.equal(s.repos, 'web-tools');
   // Short and friendly (owner, 2026-10-22), with the year only past a year
@@ -170,7 +171,7 @@ test('a lent row renders the strip and the title without waiting on the record',
   assert.match(s.day, /^Aug 5(, 2026)?$/);
 });
 
-test('the strip carries four facts and no more, and names which', () => {
+test('the strip carries three facts and no more, and names which', () => {
   // A CEILING, not a list for its own sake. Nine facts wrapped the strip to
   // three lines at 430px, half of a phone's head, and two of the nine were
   // printed again 44px below as the Outline and Files tab counts. `asks` and
@@ -178,10 +179,11 @@ test('the strip carries four facts and no more, and names which', () => {
   // FORMAT's version rather than a fact about the session, and `out tokens`
   // because nothing reads differently for a large one. `ran` went into the
   // start date's panel on 2026-10-22, beside when the session last moved.
+  // `failures` folded into the wrench on 2026-11-02, as on the Sessions row.
   // Array.from, because a getter's return reaches a test through Alpine's
   // reactive proxy and deepEqual compares prototypes.
   assert.deepEqual(Array.from(lent().strip, f => f.k),
-    ['day', 'calls', 'failures', 'repos']);
+    ['day', 'calls', 'repos']);
 });
 
 test('a count is a glyph that opens its panel; only the self-naming values are text', () => {
@@ -192,11 +194,9 @@ test('a count is a glyph that opens its panel; only the self-naming values are t
   // word any more.
   const f = Object.fromEntries(lent().strip.map(x => [x.k, x]));
   assert.deepEqual(Object.fromEntries(Object.entries(f).map(([k, x]) => [k, x.unit])),
-    { day: '', calls: '', failures: '', repos: '' });
+    { day: '', calls: '', repos: '' });
   assert.equal(f.calls.icon, 'ph-wrench');
-  assert.equal(f.calls.panel, 'tools');
-  assert.equal(f.failures.panel, 'tools', 'failures open the same list, where the failing tool is named');
-  assert.equal(f.failures.tone, 'text-warning');
+  assert.equal(f.calls.panel, 'tools', 'the list where a failing tool is named');
   assert.equal(f.day.panel, 'time', 'the date opens when it ran');
   assert.equal(f.day.icon, '', 'and draws no glyph: the date names itself');
 });
@@ -204,9 +204,9 @@ test('a count is a glyph that opens its panel; only the self-naming values are t
 test('a zero failure count is stated in the tools panel, not on the strip', () => {
   // "no failures" and "not captured" are different answers, and the panel is
   // where the first one is said: its header reads "none failed". The strip
-  // follows the Sessions row, where failures ride the tools card and take a
-  // place of their own only when there are some (2026-10-22). Measured zero
-  // calls still count, which is why the filter tests `v === 0`.
+  // follows the Sessions row, where failures ride the tools card and never
+  // take a place of their own. Measured zero calls still count, which is why
+  // the filter tests `v === 0`.
   const bare = { id: 'x', day: '2026-08-05', exchanges: 0, calls: 0, failures: 0 };
   window.__probe = { id: 'x', repo: STORE, facts: bare, record: null };
   const el = window.document.createElement('div');
@@ -220,6 +220,42 @@ test('a zero failure count is stated in the tools panel, not on the strip', () =
   assert.equal(d.toolTally.failures, 0, 'and the panel has it to state');
   assert.equal(d.timeFacts.span, '', 'a duration nothing could compute is absent, not zero');
   assert.ok(!('agents' in s), 'and so is a fan-out nobody ran');
+});
+
+test('the Look row groups its chips by branch, from a lent list', () => {
+  // Each chip is a kits/guide-render.js target and names its repo and ref, so
+  // a session whose work spans two branches draws two groups, each led by its
+  // branch, as each branch tile under a Sessions card carries its own chips.
+  const chip = (repo, ref, path) => ({ kind: 'render', repo, ref, path, label: path.split('/').pop(),
+                                       addr: repo + '@' + ref + ':' + path, url: 'u:' + repo + '@' + ref + ':' + path,
+                                       title: 'Render ' + path + ' at ' + ref });
+  const pages = [chip('me/web-tools', 'claude/a', 'pages/one.html'), chip('me/home', 'claude/a', 'app/index.html'),
+                 chip('me/web-tools', 'claude/a', 'pages/two.html')];
+  window.__probe = { id: 'x', repo: STORE, facts: { id: 'x', day: '2026-08-05' }, pages, record: null };
+  const el = window.document.createElement('div');
+  el.setAttribute('x-data', 'sessionBrief(window.__probe)');
+  window.document.body.append(el);
+  Alpine.initTree(el);
+  const g = Alpine.$data(el).pageGroups;
+  // Through JSON, since the getter's arrays belong to the jsdom realm.
+  assert.deepEqual(JSON.parse(JSON.stringify(g.map(x => [x.key, x.repoShort, x.chips.map(c => c.label)]))),
+    [['me/web-tools@claude/a', 'web-tools', ['one.html', 'two.html']], ['me/home@claude/a', 'home', ['index.html']]],
+    'one group per repo and branch, in arrival order, the same branch name in two repos kept apart');
+});
+
+test('a standalone page draws no Look row: its views are the Views tab', () => {
+  // Nothing is lent outside the app, and the page's own branch reads fill the
+  // Views tab, whose contents list groups the same pages by branch. A row of
+  // chips above the tabs would list them twice (owner, 2026-11-02).
+  window.__probe = { id: 'y', repo: STORE, facts: { id: 'y', day: '2026-08-05' }, record: null };
+  const el = window.document.createElement('div');
+  el.setAttribute('x-data', 'sessionBrief(window.__probe)');
+  window.document.body.append(el);
+  Alpine.initTree(el);
+  const d = Alpine.$data(el);
+  d.work.views = [{ kind: 'html', path: 'pages/p.html', slug: 'me/web-tools', branch: 'claude/b', url: 'u:p' }];
+  assert.equal(d.pageChips.length, 0);
+  assert.equal(d.pageGroups.length, 0);
 });
 
 test('an unreadable record costs the outline and nothing else', () => {

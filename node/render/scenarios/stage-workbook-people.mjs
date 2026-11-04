@@ -8,9 +8,10 @@
 //   XLSX_FIXTURE=<a workbook with names in it> npm run shot -- app/index.html \
 //     --query "view=stage" --script node/render/scenarios/stage-workbook-people.mjs --wait 3000
 //
-// The first-name list is a jsDelivr fetch the renderer serves from
-// node_modules, so a run without @stdlib/datasets-{female,male}-first-names-en
-// installed shows the check's own fallback (headings, labels, addresses).
+// The name lists are jsDelivr fetches the renderer serves from node_modules,
+// so a run without @stdlib/datasets-{female,male}-first-names-en@0.2.3,
+// @zxcvbn-ts/language-en@4.1.1 and wordlist-english@1.2.1 installed shows the
+// check's own fallback (addresses, comment authors, file properties).
 
 import { readFileSync } from 'node:fs';
 

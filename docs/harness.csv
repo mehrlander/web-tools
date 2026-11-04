@@ -6,7 +6,7 @@ path,role,layer,lines,invocation,callers,emits,named,tested
 .githooks/pre-commit,the ordered derived-artifact refresher: updates pending sources during commits and can force every hook-owned leg for explicit repair,.githooks,383,git:pre-commit,,no,yes,yes
 .githooks/pre-merge-commit,runs the ordered refresher over a clean combined merge and pauses for gated continuation when the index tree changes,.githooks,26,git:pre-merge-commit,,no,yes,yes
 .github/workflows/activity-cache.yml,"refreshes the estate activity cache (state/activity.json in web-tools-private) when a merge lands, so the Activity view is current before anyone opens the app rather than after; runs the app's own crawl through node/activity-crawl.mjs, and does nothing until the ESTATE_CRAWL_TOKEN secret exists; the hourly pass also folds the session records into state/sessions.json and the phone's state/session-menu.json through node/sessions-crawl.mjs",.github/workflows,155,ci:push+repository_dispatch+workflow_dispatch,,no,no,yes
-.github/workflows/desktop.yml,"builds the Windows desktop and companion and checks activity, Git isolation, phone interactions and read-only access",.github/workflows,42,ci:pull_request+push,,no,no,no
+.github/workflows/desktop.yml,"builds the Windows desktop and companion and checks activity, Git isolation, phone interactions and read-only access",.github/workflows,46,ci:pull_request+push,,no,no,no
 .github/workflows/errand-browser.yml,"Runs workflow-run errands: browser checks against live GitHub in WebKit and Chromium on a hosted runner, dispatched by a session, results read from the job log.",.github/workflows,92,ci:workflow_dispatch+pull_request,,no,yes,yes
 .github/workflows/page-measures.yml,measures the pages a pull request changes in headless Chromium and reports; a finding never fails it,.github/workflows,85,ci:pull_request+workflow_dispatch,,no,yes,no
 .github/workflows/refresh-derived.yml,runs the commit hook's repair pass on main after each push and commits what moved,.github/workflows,81,ci:push+workflow_dispatch,,yes,yes,no
@@ -28,7 +28,7 @@ node/build/kit-shim.mjs,run a browser-shaped gh.load kit inside Node; the bridge
 node/build/kits-index.mjs,"restamp docs/kits.csv, the kit shelf registry, every field read off lib/kits/ and the files that load it",node/build,173,npm:kits-index,.githooks/pre-commit,yes,no,yes
 node/build/pages-index.mjs,regenerate both page catalogs: pages/README.md and pages/index.html,node/build,469,npm:pages-index,.githooks/pre-commit,yes,yes,yes
 node/build/pages-shots.mjs,"regenerate pages/thumbs/*.png, one screenshot per page for the visual index",node/build,92,npm:pages-shots,.githooks/pre-commit;node/build/pages-index.mjs,no,yes,yes
-node/build/policy-skills.mjs,"writes the h plugin's skills, one user-only skill per shortcut in docs/house-policies.md; refuses a shortcut two entries claim; --check compares bytes",node/build,102,npm:policy-skills,.githooks/pre-commit,yes,yes,yes
+node/build/policy-skills.mjs,"writes the h plugin's skills, one user-only skill per shortcut in docs/house-policies.md; refuses a shortcut two entries claim; --check compares bytes",node/build,107,npm:policy-skills,.githooks/pre-commit,yes,yes,yes
 node/build/registries-load.mjs,"read and write the registry pair (docs/registries.csv, docs/properties.csv): the CSV parse, the path/fragment split, and the column order a restamp must preserve",node/build,81,imported,node/build/docs-reach.mjs;node/build/docs-readme.mjs;node/build/registries-reach.mjs;node/build/tools-index.mjs;node/build/ui-instances.mjs;node/build/ui-recipes.mjs;node/build/ui-shots.mjs;node/derived-csv-merge.mjs;node/test/;node/ui-units.mjs,no,yes,yes
 node/build/registries-reach.mjs,"stamp renders_in into docs/registries.csv: the app files that name each registry's path, empty being the Data tab's no-app-surface warning",node/build,90,npm:registries-reach,.githooks/pre-commit;node/test/,yes,yes,yes
 node/build/repo-pages-shots.mjs,regenerate pages-gallery thumbnails for another repo's pages catalog,node/build,184,argv,node/README.md,no,yes,yes
@@ -234,6 +234,7 @@ node/render/scenarios/report-layout-by-year.mjs,"Shoots the report-layout demo o
 node/render/scenarios/repos-abandoned-badge.mjs,"the repo card's abandoned-branch badge, beside stranded and open PRs",node/render/scenarios,12,driver,,no,no,no
 node/render/scenarios/routed-subject.mjs,"the drawer over a routed subject, the file as the reported identity",node/render/scenarios,54,driver,,no,no,no
 node/render/scenarios/routes-pane.mjs,"Renders Activity's Routes pane with real data for a headless shot: the manifest from the served tree, each declared file's last-commit date derived from git log at render time rather than frozen, and a set of open PRs covering the on/near/no-match cases.",node/render/scenarios,77,driver,,no,no,no
+node/render/scenarios/satellites.mjs,,node/render/scenarios,141,driver,,no,no,no
 node/render/scenarios/search-chats.mjs,the Files view's Chats lane: the fourth mode pill and a chat hit's shape,node/render/scenarios,56,driver,,no,no,no
 node/render/scenarios/search-cold.mjs,the Files view's cold open: a bare arrival scopes to the browsed repo and walks it,node/render/scenarios,50,driver,,no,no,no
 node/render/scenarios/search-controls.mjs,"the Files view's scope controls, with the ref picker open",node/render/scenarios,72,driver,,no,no,no
@@ -245,6 +246,7 @@ node/render/scenarios/session-contents.mjs,"enters the session deck from the out
 node/render/scenarios/session-exchange-card.mjs,,node/render/scenarios,58,driver,,no,no,no
 node/render/scenarios/session-list.mjs,"seed a token and wait for the list's own line, so the token-gated Sessions pane renders a list of sessions for a shot",node/render/scenarios,27,driver,,no,no,no
 node/render/scenarios/session-table.mjs,"the Sessions pane's Table lens at any of its three grains, seeded from a sibling web-tools-private checkout where there is one and from invented rows where there is not; LATE=1 seeds the rows after the mount instead of before it, which is the order the app boots in and the only one that shows a table left empty by late-arriving rows",node/render/scenarios,166,driver,,no,no,no
+node/render/scenarios/session-topic-card.mjs,,node/render/scenarios,68,driver,,no,no,no
 node/render/scenarios/session-topics.mjs,,node/render/scenarios,81,driver,,no,no,no
 node/render/scenarios/shortcut-log-app-view.mjs,,node/render/scenarios,73,driver,,no,no,no
 node/render/scenarios/showing-paste-rows.mjs,,node/render/scenarios,27,driver,,no,no,no
@@ -270,7 +272,7 @@ node/render/scenarios/stage-sniffed-name.mjs,,node/render/scenarios,25,driver,,n
 node/render/scenarios/stage-stitch.mjs,"the stage composer's stitch key: a caret in a sentence gap turns the full-stop cell into the cell that takes one back, the same swap the annotator's card makes off the same kit verb",node/render/scenarios,52,driver,,no,no,no
 node/render/scenarios/stage-transform-chip.mjs,"stages three transform-shaped items, opens one in the workbench, and asserts the table actually drew",node/render/scenarios,54,driver,,no,no,yes
 node/render/scenarios/stage-workbook-bench.mjs,,node/render/scenarios,95,driver,,no,no,no
-node/render/scenarios/stage-workbook-people.mjs,,node/render/scenarios,66,driver,,no,no,no
+node/render/scenarios/stage-workbook-people.mjs,,node/render/scenarios,67,driver,,no,no,no
 node/render/scenarios/state-view.mjs,"Populate the State view for a screenshot: stub the registry reads with a current cache, a stale one, an unchecked one, and the buttonless entity index",node/render/scenarios,280,driver,,no,no,no
 node/render/scenarios/subject-action-probe.mjs,"probe: can the shell invoke a toss subject's action closure, or only reach it",node/render/scenarios,124,driver,,no,no,no
 node/render/scenarios/tending-findings.mjs,,node/render/scenarios,68,driver,,yes,no,yes
