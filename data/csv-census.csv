@@ -42,7 +42,7 @@ docs/icon-families.csv,17,7,1586,"[""family"",""group"",""label"",""source"",""i
 docs/intents.csv,11,6,1871,"[""intent"",""label"",""path"",""caveat"",""caveat_at"",""doc""]"
 docs/kits.csv,130,8,17717,"[""path"",""namespace"",""gloss"",""lines"",""boot"",""demo"",""users"",""tested""]"
 docs/manifest-fields.csv,127,6,28398,"[""key"",""type"",""consumer"",""status"",""required"",""summary""]"
-docs/map-tabs.csv,39,4,26278,"[""tab"",""gloss"",""refs"",""narrative""]"
+docs/map-tabs.csv,39,4,26037,"[""tab"",""gloss"",""refs"",""narrative""]"
 docs/outposts.csv,4,12,2202,"[""id"",""title"",""gloss"",""declared"",""observed"",""reports"",""cadence"",""check"",""record"",""outpost_protocol"",""upkeep"",""doc""]"
 docs/portable.csv,108,6,9795,"[""kind"",""command"",""path"",""title"",""role"",""use""]"
 docs/properties.csv,353,10,54687,"[""registry"",""property"",""mode"",""deriver"",""required"",""form"",""exclusive"",""values"",""column_primitive"",""gloss""]"
