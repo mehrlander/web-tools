@@ -287,3 +287,14 @@ test('a CSV or TSV peeks as a table of its first rows', () => {
   assert.match(html, /<td[^>]*>one, two<\/td>/);
   assert.ok(SP.body('x.csv', Array.from({ length: 60 }, (_, i) => 'r' + i).join('\n')).truncated, 'a long table is an excerpt');
 });
+
+// An image is seeded as a URL with kind 'image' and drawn whole inside the
+// card, fitted rather than cropped to the card's height.
+test('an image seeded by URL peeks as the picture, fitted and escaped', async () => {
+  SP.seed('shot.png', 'blob:x/1', 'image');
+  assert.equal(SP.cached('shot.png'), 'blob:x/1', 'a seeded picture paints without a Loading pass');
+  assert.equal((await SP.read('shot.png')).kind, 'image');
+  const html = SP.imageHtml('blob:x/"1');
+  assert.match(html, /<img src="blob:x\/&quot;1"/);
+  assert.match(html, /max-w-full max-h-\[24rem\]/);
+});

@@ -334,12 +334,16 @@
    the reflow on it alone left main padded by the width of a deck that had
    been closed: squeezed on every view, and across reloads, since the
    preference is stored. `data-deck-open` is the kit's fact and the deck's
-   lifetime; the pane is the host's and the reader's. Both, or no reflow. */
-@media (min-width:1024px){:root[data-deck-pane="dock"][data-deck-open] main{padding-right:calc(100vw - var(--deck-left));transition:padding-right .15s ease-out}}
+   lifetime; the pane is the host's and the reader's. Both, or no reflow.
+
+   The app's own main only, `main[data-pattern="host"]`. A bare `main` also
+   matches one rendered inside the deck, such as the Stage's image editor's,
+   and gives it the deck's width as padding, which leaves it no width at all. */
+@media (min-width:1024px){:root[data-deck-pane="dock"][data-deck-open] main[data-pattern="host"]{padding-right:calc(100vw - var(--deck-left));transition:padding-right .15s ease-out}}
 /* Except while the seam is being dragged. A 150ms ease is right for the
    toggle, which is a jump, and wrong for a drag, where it makes the list
    trail the finger by a frame and a half and reads as lag in the page. */
-html.dk-dragging main{transition:none !important}
+html.dk-dragging main[data-pattern="host"]{transition:none !important}
 /* The Repos row's two menu buttons. Narrow and chrome-free on a fine pointer,
    where they are a pair of glyphs at the row's edge and a hover background made
    each one read as a separate tile; the row's own hover tint is the feedback,
