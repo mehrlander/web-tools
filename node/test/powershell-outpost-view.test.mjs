@@ -232,11 +232,11 @@ test('selecting a file shows its destination and makes it the shell\'s correspon
   assert.equal(window.__shell.powershellOutpostItem, FORMS);
   assert.ok(shellCalls.some(c => c[0] === 'syncUrl'));
   assert.match(el.textContent, /Documents\\WindowsPowerShell\\Modules\\Forms\\Forms\.psm1/);
-  assert.equal(data.statusOf(FORMS).label, 'Update pending');
+  assert.equal(data.statusOf(FORMS).label, 'Shipped, waiting to be adopted');
   assert.doesNotMatch(el.textContent, /Nothing recorded for this file|local state unknown/, 'no "we do not know" notes on the pane');
   assert.equal(el.querySelector('[data-observations]').style.display, 'none', 'an empty ledger history is not shown');
   const line = () => el.querySelector('[data-status-line]').textContent;
-  assert.equal(line(), 'Update pending · since 2026-09-14', 'one status line carries the state and its date');
+  assert.equal(line(), 'Shipped, waiting to be adopted · since 2026-09-14', 'one status line carries the state and its date');
   assert.doesNotMatch(el.querySelector('[data-adoption]').textContent, /awaiting adoption|Pending since/, 'the pending note is only the entry\'s own words');
   assert.equal(el.querySelector('[data-powershell-outpost] dl'), null, 'no installs-to / GitHub-now field list');
   assert.match(el.querySelector('[data-adoption]').textContent, /Module import has not run on the work computer/);
@@ -300,7 +300,7 @@ test('recording shows the exact row and adoption closure before publishing both 
   assert.equal(JSON.parse(files[`${P}/data/outpost.json`]).pending_adoption.length, 1);
   assert.equal(data.revision, publications[0].body.sha);
   assert.match(el.textContent, /reported installed/);
-  assert.match(el.querySelector('[data-status-line]').textContent, /^Confirmed installed · \d{4}-\d{2}-\d{2}$/);
+  assert.match(el.querySelector('[data-status-line]').textContent, /^Adopted, reported placed · \d{4}-\d{2}-\d{2}$/);
 });
 
 test('a browser check can be promoted to a verified row, and then reads as recorded', async () => {
@@ -332,7 +332,7 @@ test('the record survives a reload, and GitHub moving turns it into "changed sin
   assert.equal(data.lastTransfer[FORMS], undefined, 'a download of older bytes is not evidence of transferring the new file');
   assert.equal(data.stateOf(FORMS).label, 'GitHub changed since verification');
   data.select(FORMS); await settle();
-  assert.match(el.querySelector('[data-status-line]').textContent, /^Update pending · installed \d{4}-\d{2}-\d{2}$/);
+  assert.match(el.querySelector('[data-status-line]').textContent, /^Shipped, newer than the adopted copy · last adopted \d{4}-\d{2}-\d{2}$/);
   // A later copy that differs from the new revision contradicts the record.
   await window.__shell.openCorrespondence({ repo: 'mehrlander/home', ref: 'main', path: FORMS }, 'something else\n', 'Forms.psm1', 'drop');
   await settle();
@@ -540,8 +540,13 @@ test('the Code tab shows the selected file read-only, keeps one editor across ta
   assert.ok(!hidden(plain()));
   assert.ok(hidden(el.querySelector('[data-source-editor]')));
   assert.equal(data.shownTab, 'code', 'nothing to compare from, so the file opens on its code');
-  assert.deepEqual([...el.querySelectorAll('[data-detail-tabs] [role=tab]')].map(b => b.dataset.tab), ['changes', 'code']);
-  assert.equal(el.querySelector('[data-unit-base]').textContent, data.baselineNote || 'No update for this file.', 'with nothing to compare from, Changes says why');
+  assert.deepEqual([...el.querySelectorAll('[data-detail-tabs] [role=tab]')].map(b => b.dataset.tab), ['changes', 'code', 'problems', 'outline'],
+    'the file component\'s panes are tabs of the one row');
+  assert.equal(el.querySelector('[data-source-views]').parentElement.style.display, 'none', 'no second tab row inside the file');
+  data.setDetailTab('outline'); await settle();
+  assert.equal(data.shownTab, 'outline'); assert.ok(!hidden(pane()), 'Outline shows in the file pane');
+  data.setDetailTab('code'); await settle();
+  assert.equal(el.querySelector('[data-unit-none]').textContent, data.baselineNote || 'No update for this file.', 'with nothing to compare from, Changes says why');
   // Another tab hides the pane by class, so the one editor view survives.
   data.setDetailTab('changes'); await settle();
   assert.ok(hidden(pane())); assert.ok(!hidden(el.querySelector('[data-unit-review]')));
@@ -628,13 +633,15 @@ test('Changes shows what the work computer is known to hold against GitHub now, 
   assert.equal(data.stateOf(xaml).state, 'changed');
   assert.equal(data.shownTab, 'changes', 'the update is the default view');
   assert.equal(data.changesMode, 'file', 'XAML has no blocks, so Changes is the whole file');
-  assert.ok(!shown(el.querySelector('[data-changes-mode]')), 'no Blocks switch without blocks');
+  assert.equal(el.querySelector('[data-changes-mode]'), null, 'no switch: a file the parser cannot split shows its whole-file diff');
   assert.ok(shown(diff()));
   assert.ok(!shown(el.querySelector('[data-source-plain]')));
   assert.match(data.baseline.label, /^reported installed at [0-9a-f]{7}$/);
   assert.deepEqual([...data.diffRows.filter(r => r.type !== 'eq').map(r => r.type + ' ' + r.text)],
     ['del <Window/>', 'add <Window>', 'add   <Grid/>', 'add </Window>']);
-  assert.match(diff().textContent, /Update \(/);
+  assert.match(diff().textContent, /shipped \(/, 'a known adopted version makes GitHub\'s the shipped one');
+  assert.deepEqual([...data.detailTabs.map(t => t.label)], ['Changes', 'Adopted', 'Shipped', 'Problems', 'Outline'],
+    'Adopted and Shipped while they differ; no Diff tab, since Changes is the whole-file diff for XAML');
   // File is one tap away and Changes comes back.
   el.querySelector('[data-detail-tabs] [data-tab=code]').click(); await settle();
   assert.equal(data.shownTab, 'code'); assert.ok(shown(el.querySelector('[data-source-plain]'))); assert.ok(!shown(diff()));
@@ -643,7 +650,6 @@ test('Changes shows what the work computer is known to hold against GitHub now, 
   assert.equal(data.copyNote.title, 'This copy differs from GitHub.');
   assert.deepEqual(JSON.parse(JSON.stringify(data.copyNote.notes)), ['No named control or resource key changed; the difference is in layout or values.']);
   assert.equal(data.shownTab, 'changes', 'a copy opens on what it holds, in Changes');
-  [...el.querySelectorAll('[data-copy-summary] button')].find(b => b.textContent === 'Show line changes').click(); await settle();
   assert.equal(data.shownTab, 'changes'); assert.equal(data.changesMode, 'file'); assert.ok(shown(diff()));
   assert.equal(data.baseline.label, 'Pasted copy');
   assert.deepEqual([...data.diffRows.filter(r => r.type !== 'eq').map(r => r.type + ' ' + r.text)], ['add   <Grid/>']);
@@ -697,7 +703,7 @@ test('the status icon opens a menu of the actions the file\'s state allows; a di
   icon.click(); await settle();
   const menu = rowOf(profile).querySelector('[data-status-menu]');
   assert.notEqual(menu.style.display, 'none');
-  assert.deepEqual([...menu.querySelectorAll('li button')].map(b => b.textContent.trim()), ['Confirm installed…', 'Open full screen']);
+  assert.deepEqual([...menu.querySelectorAll('li button')].map(b => b.textContent.trim()), ['Mark adopted…', 'Open full screen']);
   // Right-click opens the same menu; Escape closes it.
   data.menuFor = ''; await settle();
   rowOf(profile).dispatchEvent(new window.MouseEvent('contextmenu', { bubbles: true, cancelable: true })); await settle();
@@ -705,9 +711,9 @@ test('the status icon opens a menu of the actions the file\'s state allows; a di
   window.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape' })); await settle();
   assert.equal(data.menuFor, '');
   assert.deepEqual([...data.actionsFor(demo).map(a => a.key)], ['deck'], 'repository-only material offers no placement');
-  // Confirm installed… selects the file and opens the confirm; nothing writes until it is tapped.
+  // Mark adopted… selects the file and opens the confirm; nothing writes until it is tapped.
   icon.click(); await settle();
-  [...rowOf(profile).querySelectorAll('[data-status-menu] li button')].find(b => /Confirm installed/.test(b.textContent)).click();
+  [...rowOf(profile).querySelectorAll('[data-status-menu] li button')].find(b => /Mark adopted/.test(b.textContent)).click();
   for (let i = 0; i < 10 && !data.pending; i++) await tick(2);
   assert.equal(data.selected, profile); assert.equal(data.pending.kind, 'installed');
   assert.match(el.textContent, /I placed this on the work computer/);
@@ -1017,10 +1023,10 @@ test('a file whose strict dependency is still pending is confirmed with it, in o
   data.select(PROFILE); await settle();
   assert.deepEqual([...data.placeable(data.item).map(i => i.path)], [CTL, PROFILE], 'the new form first, then the profile that loads it');
   assert.match(el.querySelector('[data-install-with]').textContent, /Install with\s+Bookmarks\.ps1/);
-  assert.ok(data.actionsFor(PROFILE).some(a => a.key === 'install' && a.label === 'Confirm all 2 installed…'));
+  assert.ok(data.actionsFor(PROFILE).some(a => a.key === 'install' && a.label === 'Mark all 2 adopted…'));
   data.select(CTL); await settle();
   assert.equal(el.querySelector('[data-install-with]').style.display, 'none', 'what loads a file does not ride with it');
-  assert.ok(data.actionsFor(CTL).some(a => a.label === 'Confirm installed…'), 'alone, it is confirmed alone');
+  assert.ok(data.actionsFor(CTL).some(a => a.label === 'Mark adopted…'), 'alone, it is confirmed alone');
   data.select(PROFILE); await settle();
   await data.askInstalled(); await settle();
   assert.deepEqual([...data.pending.rows.map(r => r.path)], [CTL, PROFILE]);
@@ -1065,7 +1071,9 @@ test('selective review keeps unchecked local code and records only the explicitl
     await data.takeCopy(data.target(), local, 'Forms.psm1', 'paste'); await settle();
     assert.equal(data.unitReview.units.length, 2);
     const written = publications.length;
-    const checkbox = q('[data-unit] input').find(e => e.getAttribute('aria-label') === 'Select B');
+    data.goChange(1); await settle();
+    const checkbox = el.querySelector('[data-change-head] input');
+    assert.equal(checkbox.getAttribute('aria-label'), 'Select B', 'the header row carries the change in view');
     checkbox.click(); await settle();
     await data.prepareUnits(); await settle();
     assert.equal(data.unitPrepared.text, local.replace('B { 1 }', 'B { 2 }'));
@@ -1117,22 +1125,36 @@ test('a pending update opens on Changes, a card per block; a pasted copy reads a
     assert.deepEqual([...data.visibleUnits.map(u => u.action + ' ' + u.name)], ['Replace A', 'Add D']);
     assert.equal(q('[data-change-strip] [data-unit]').length, 2);
     assert.equal(q('details').length, 0, 'no expanders: every diff is open');
-    assert.ok(q('[data-unit] input').every(i => i.disabled), 'choosing waits for the work copy');
-    assert.notEqual(el.querySelector('[data-unit-needs-copy]').style.display, 'none');
-    assert.match(el.querySelector('[data-unit-base]').textContent, /^Work set \(ccccccc\) → update \(/);
+    assert.equal(q('[data-change-strip] [data-unit] input').length, 0, 'a card in the strip draws no header of its own');
+    assert.ok(el.querySelector('[data-change-head] input').disabled, 'choosing waits for the work copy');
+    assert.match(el.querySelector('[data-copy-zone]').textContent, /copy of Forms\.psm1 from the work computer to compare it and choose changes/);
+    assert.match(el.querySelector('[data-change-head]').textContent, /1 · A/, 'the header row numbers and names the change in view');
+    assert.ok(data.visibleUnits.every(u => { const r = data.unitDiff(u); return r.length && r[0].text.trim() && r.at(-1).text.trim(); }), 'a card opens and closes on a line with code, not the previous statement\'s line break');
+    assert.deepEqual(q('[data-change-row]').map(b => b.textContent.replace(/\s+/g, ' ').trim().split(' ').slice(0, 2).join(' ')), ['1 A', '2 D'], 'the list holds every change, numbered');
+    q('[data-change-row]')[1].click(); await settle();
+    assert.equal(data.changeAt, 1); assert.match(el.querySelector('[data-change-head]').textContent, /2 · D/, 'a pick in the list moves the strip and the header follows');
+    data.goChange(0); await settle();
+    assert.match(el.querySelector('[data-unit-base]').textContent, /^Work set \(ccccccc\) → shipped \(/);
+    assert.deepEqual([...data.detailTabs.map(t => t.key)], ['changes', 'adopted', 'code', 'diff', 'problems', 'outline']);
+    data.setDetailTab('adopted'); await settle();
+    assert.deepEqual([...el.querySelectorAll('[data-adopted-text] pre')].map(p => p.textContent), ['function A { 1 }', 'function B { 1 }', 'function C { 1 }'], 'Adopted shows the known version');
+    data.setDetailTab('diff'); await settle();
+    assert.match(el.querySelector('[data-whole-diff]').textContent, /\+2 −1 lines/);
+    data.setDetailTab('changes'); await settle();
     // The earlier version with one local edit, pasted: read block by block.
     await data.takeCopy(data.target(), 'function A { 1 }\nfunction B { 1 }\nfunction C { 9 }\n', 'clip', 'paste'); await settle();
     for (let i = 0; i < 20 && data.unitBusy; i++) await tick(2);
     assert.equal(data.shownTab, 'changes');
-    assert.equal(data.copyNote.title, 'This copy has 0 of GitHub\'s 2 changes, and 1 block of its own.');
+    assert.equal(data.copyNote.title, 'This copy has 0 of GitHub\'s 2 changes, and 1 change of its own.');
     assert.deepEqual([...data.copyNote.rows.map(r => r.name + ': ' + r.label)],
       ['A: Earlier version; GitHub changed it', 'D: GitHub adds it', 'C: Edited in this copy', 'B: Same as GitHub']);
     assert.match(data.copyNote.against, /^Earlier: Work set \(ccccccc/);
     // The copy is now the base: every card is choosable, and the strip steps.
     data.setDetailTab('changes'); await settle();
     assert.deepEqual([...data.visibleUnits.map(u => u.name)], ['A', 'C', 'D']);
-    assert.ok(q('[data-unit] input').every(i => !i.disabled));
-    q('[data-unit] input').find(i => i.getAttribute('aria-label') === 'Select A').click(); await settle();
+    assert.ok(!el.querySelector('[data-change-head] input').disabled);
+    assert.equal(el.querySelector('[data-change-head] input').getAttribute('aria-label'), 'Select A');
+    el.querySelector('[data-change-head] input').click(); await settle();
     assert.equal(data.selectionLine, '1 of 3 chosen');
     data.goChange(5); assert.equal(data.changeAt, 2, 'the strip stops at its last card');
     await data.prepareUnits(); await settle();
@@ -1141,7 +1163,7 @@ test('a pending update opens on Changes, a card per block; a pasted copy reads a
     const check = data.latestCheck(FORMS).id;
     await data.takeCopy(data.target(), 'function A { 1 }\n', 'clip', 'paste'); await settle();
     assert.equal(data.copyNote.fragment, true);
-    assert.equal(data.copyNote.title, 'This copy holds 1 of the 4 blocks in Forms.psm1. Only those are compared.');
+    assert.equal(data.copyNote.title, 'This copy holds 1 of the 4 parts of Forms.psm1. Only those are compared.');
     assert.equal(data.latestCheck(FORMS).id, check, 'the earlier full copy is still the base');
     assert.ok(!q('[data-copy-summary] button').some(b => /Record the/.test(b.textContent) && b.style.display !== 'none'));
     // Paste-and-match: pasted code goes to the file it most resembles.
@@ -1152,6 +1174,25 @@ test('a pending update opens on Changes, a card per block; a pasted copy reads a
     await data.compareMatch(data.match.files[0]); await settle();
     assert.equal(data.selected, FORMS); assert.equal(data.copyNote.fragment, true);
     assert.equal(requests.filter(r => r.method !== 'GET').length, writes, 'none of this writes');
+    // The procedure is the unit: the file counts its changes since the known
+    // version, and stays Shipped until each is recorded adopted.
+    for (let i = 0; i < 100 && !data.adoption[FORMS]; i++) await tick(2);
+    assert.equal(data.statusOf(FORMS).label, 'Shipped, 2 changes pending');
+    const sha = async t => Buffer.from(await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(t))).toString('hex');
+    const A = (await window.PowerShellUnits.compare(earlier, files[FORMS])).units.find(u => u.name === 'A');
+    files[ledger] = JSON.stringify({ schema: 1, observations: [{ date: '2026-10-06T00:00:00.000Z', path: FORMS, revision: revision,
+      blob_sha: 'd'.repeat(40), before_sha256: 'e'.repeat(64), result_sha256: 'f'.repeat(64), note: '',
+      units: [{ name: 'A', kind: 'Function', action: 'Replace', start: 0, end: 1, after_start: 0, after_end: 1,
+        before_sha256: 'e'.repeat(64), after_sha256: await sha(A.after) }] }] });
+    data.checks = []; advanceHead(); await data.reload(); await settle();
+    for (let i = 0; i < 100 && !data.adoption[FORMS]; i++) await tick(2);
+    assert.equal(data.statusOf(FORMS).label, 'Shipped, 1 change pending', 'A is adopted; D is not');
+    assert.equal(data.statusOf(FORMS).short, 'Shipped');
+    data.select(FORMS); await settle();
+    for (let i = 0; i < 100 && !data.unitAdopted.length; i++) await tick(2);
+    assert.match(data.changeMeta(data.visibleUnits.find(u => u.name === 'A')), /^Adopted · /);
+    assert.doesNotMatch(data.changeMeta(data.visibleUnits.find(u => u.name === 'D')), /Adopted/);
+    assert.equal(data.detailTabs.find(t => t.key === 'changes').count, 1, 'the tab counts what the status line counts: D, not the adopted A');
   } finally {
     parser.delete(); window.PowerShellUnits = null; window.PowerShellMatch = undefined; history = null;
     Object.assign(files, { [mp]: saved.manifest, [FORMS]: saved.forms, [ledger]: saved.ledger }); advanceHead(); await data.reload();
@@ -1178,7 +1219,7 @@ test('a module or form opens whole from its name, and every name in it opens whe
     heads()[0].click(); await settle();
     await poll(() => data.resource === 'Modules/Forms' && !data.resBusy && data.resReach, 'the module did not read');
     assert.equal(window.__shell.powershellOutpostItem, `${P}/app/Modules/Forms/`, 'the address names the folder');
-    assert.match(el.querySelector('[data-resource-figure]').textContent, /^1 file · 3 functions( · 1 to install)?$/);
+    assert.match(el.querySelector('[data-resource-figure]').textContent, /^1 file · 3 functions( · (1 file|\d+ changes?) to adopt)?$/);
     assert.deepEqual([...data.resReachGroups.map(g => g.key + ':' + g.list.map(f => f.name).join())], ['outside:Import-Form', 'inside:Get-Helper', 'none:Show-Nothing']);
     assert.match(el.querySelector('[data-function] [data-caller]').textContent, /Profile\.ps1/, 'its caller, named');
     assert.match(el.querySelector('[data-resource-neighbours]').textContent, /Loaded by\s+Profile\.ps1\s*import/);
