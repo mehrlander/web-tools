@@ -16,7 +16,7 @@ const STORE = 'me/private';
 const OLD = 'One.\n\nTwo.\n';
 const NEW = 'First.\n\nSecond.\n';
 const CALL = { id: 'c0ffee02-doc', session: 'c0ffee02', kind: 'documentation', question: 'Apply 2 edits to docs/x.md?',
-  brief: 'Tidy the doc.', file: 'me/widget@feature:docs/x.md', pr: 'me/widget#7',
+  brief: 'Tidy the doc.', file: 'me/widget@feature:docs/x.md', pr: 'me/widget#7', materials: [{ kind: 'pr', ref: 'me/widget#7' }],
   edits: [{ from: 'One.', to: 'First.' }, { from: 'Two.', to: 'Second.' }] };
 class FakeGH {
   constructor(conf = {}) { this.repo = conf.repo || ''; this.ref = conf.ref || ''; }
@@ -84,6 +84,13 @@ test("a call filed on its PR's branch is read at the PR's base, where its edits 
   assert.deepEqual(drawn[0], { a: OLD, b: NEW }, 'the base against the file with every edit in it');
   assert.match(root().querySelector('[data-doc-head]').textContent, /docs\/x\.md · main/, 'the head says where the file was read');
   assert.equal(root().querySelectorAll('[data-doc-unplaced]').length, 0, 'no edit reads as already in the file');
+});
+
+test('a documentation call has no deck below: the document card takes the full height', () => {
+  assert.equal(data().mats.length, 0, 'its materials open no deck');
+  assert.equal(root().querySelector('[data-swipe-section]').style.display, 'none');
+  assert.match(root().querySelector('[data-call-card]').className, /max-h-full/);
+  assert.ok(root().querySelector('[data-call-card] [data-pr-chip]'), 'the PR stays a chip in the brief');
 });
 
 test('Diff draws the whole file as one unified diff, and leaves when another view is chosen', async () => {
