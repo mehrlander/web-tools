@@ -19,7 +19,12 @@ const poll=async()=>{w.dispatchEvent(new w.Event('online'));await flush();};
 check(!requests.length,'The phone does not request repository readings outside that view.');
 top=250;click('[data-view=repositories]');await flush();
 check(w.location.hash==='#view=repositories'&&!doc.querySelector('#repositories').hidden&&doc.querySelector('#content').hidden,'Repositories has a separate route in the title menu.');
-check(doc.querySelector('[data-checkout]').textContent.includes('↑ 2')&&doc.querySelector('[data-checkout]').textContent.includes('↓ 4')&&doc.querySelector('[data-checkout]').textContent.includes('2 changed files · 1 untracked file'),'Checkout comparisons and local changes are visible without an extra tap.');
+check(doc.querySelector('[data-checkout]').textContent.includes('2 commits ahead')&&doc.querySelector('[data-checkout]').textContent.includes('4 behind GitHub')&&doc.querySelector('[data-checkout]').textContent.includes('2 changed files · 1 untracked file'),'Checkout comparisons name commits and direction separately from changed files.');
+check(doc.querySelector('#connection').textContent==='Live'&&doc.querySelector('[data-github-time]').textContent==='GitHub · now'&&!doc.querySelector('[data-checkout]').textContent.includes('GitHub main'),'Connection freshness, GitHub freshness and the local branch have distinct compact labels.');
+click('#repository-info');doc.querySelector('#repository-info').focus();top=160;await poll();
+check(!doc.querySelector('#repository-help').hidden&&doc.activeElement.id==='repository-info'&&top===160&&doc.querySelector('#repository-help').textContent.includes('local branches and files stay unchanged'),'The touch help survives polling and explains checks without changing the reading position.');
+doc.activeElement.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
+check(doc.querySelector('#repository-help').hidden&&doc.activeElement.id==='repository-info','Escape dismisses check help and restores focus.');
 const row=doc.querySelector('[data-repository]'),beforeTap=row.innerHTML;row.click();
 check(row.innerHTML===beforeTap&&!doc.querySelector('[data-repo]')&&!doc.querySelector('[data-checkout] [aria-expanded]'),'Repository rows have no expansion action.');
 click('[data-menu]');
@@ -36,11 +41,11 @@ doc.querySelector('[data-checkout]').click();
 check(doc.querySelector('[data-repo-menu]').hidden,'Tapping outside the menu dismisses it without changing the checkout summary.');
 const c=data.repositories[0].checkouts[0];c.branch='feature/work';c.tracked=comp('current',0,0,'feature/work');c.main=comp('diverged',1,8);c.changed=0;c.untracked=0;await poll();
 const comparisons=[...doc.querySelectorAll('[data-checkout] dl>div')];
-check(comparisons.length===2&&comparisons[0].querySelector('dt').textContent==='GitHub branch'&&comparisons[0].querySelector('dd').textContent==='In sync'&&comparisons[1].querySelector('dt').textContent==='GitHub main'&&comparisons[1].querySelector('dd').textContent.includes('↓ 8'),'A branch can match its GitHub branch while separately showing a main gap.');
+check(comparisons.length===2&&comparisons[0].querySelector('dt').textContent==='feature/work'&&comparisons[0].querySelector('dd').textContent==='Same commits as GitHub'&&comparisons[1].querySelector('dt').textContent==='vs GitHub main'&&comparisons[1].querySelector('dd').textContent.includes('8 behind'),'A branch can match its GitHub branch while separately showing a main gap.');
 check(!doc.querySelector('[data-checkout]').textContent.includes('changed'),'Clean checkouts omit an extra local-changes line.');
 const second={...structuredClone(c),key:'c'.repeat(24),name:'project-other',branch:'other',tracked:comp('no-upstream',null,null,null),main:comp('incomplete-history',null,null)};
 data.repositories[0].checkouts.push(second);await poll();
-check(doc.querySelectorAll('[data-checkout]').length===2&&doc.querySelector('[data-checkout="'+second.key+'"]').textContent.includes('No tracked branch')&&doc.querySelector('[data-checkout="'+second.key+'"]').textContent.includes('Shallow history'),'Every grouped checkout stays visible, with unknown comparisons labeled rather than zeroed.');
+check(doc.querySelectorAll('[data-checkout]').length===2&&doc.querySelector('[data-checkout="'+second.key+'"]').textContent.includes('No GitHub tracking branch')&&doc.querySelector('[data-checkout="'+second.key+'"]').textContent.includes('Limited history'),'Every grouped checkout stays visible, with unknown comparisons labeled rather than zeroed.');
 
 c.localFiles={key:checkoutKey,name:c.name,state:'ready',observedAt:at,partial:true,notice:'Some measurements are incomplete.',entries:[
   {key:'d'.repeat(24),path:'exports/',kind:'folder',gitState:'ignored',bytes:34000000,files:12,modifiedAt:at,partial:false,role:null},
@@ -70,8 +75,8 @@ const request=requests.find(r=>r.method==='POST');check(request.path==='/api/v1/
 release();hold=null;await flush();await flush();
 check(doc.querySelector('[data-fetch="'+groupKey+'"]').disabled&&doc.querySelector('[data-repo-menu]').hidden&&doc.querySelector('#repositories').textContent.includes('Local branches and files stay unchanged'),'Queued work closes the menu and never implies a checkout update.');
 data.refreshing=[];data.repositories[0].checkedAt=new Date(Date.now()-900000).toISOString();await poll();
-check(doc.querySelector('#repositories').textContent.includes('Last check'),'Old GitHub checks are visibly distinguished from current comparisons.');
-offline=true;await poll();const before=requests.length;click('[data-fetch=all]');check(requests.length===before&&doc.querySelector('[data-fetch=all]').disabled&&doc.querySelector('#repositories').textContent.includes('Saved observation'),'Offline data remains readable but cannot queue a fetch.');
+check(doc.querySelector('[data-github-time]').textContent==='GitHub · 15m ago'&&doc.querySelector('[data-github-time]').classList.contains('text-amber-800'),'An older GitHub check keeps its explicit age and gains a stale color.');
+offline=true;await poll();const before=requests.length;click('[data-fetch=all]');check(requests.length===before&&doc.querySelector('[data-fetch=all]').disabled&&doc.querySelector('#repositories').textContent.includes('Saved data'),'Offline data remains readable but cannot queue a fetch.');
 click('[data-view=now]');check(top===250&&doc.querySelector('#repositories').hidden,'Returning to Now restores its independent reading position.');
 click('[data-view=repositories]');await flush();check(top===160,'Repositories retains its own reading position.');
 offline=false;data.observedAt=new Date(Date.now()-60000).toISOString();await poll();check(doc.querySelector('[data-fetch=all]').disabled,'A stale local observation cannot enable fetching.');
