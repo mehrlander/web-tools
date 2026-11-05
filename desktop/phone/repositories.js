@@ -8,6 +8,7 @@
   const icons={refresh:svg('<path d="M20 7v5h-5M4 17v-5h5M5.3 8a7 7 0 0 1 11.6-3L20 8M4 16l3.1 3A7 7 0 0 0 18.7 16"/>'),
     warning:svg('<path d="m12 3 10 18H2L12 3ZM12 9v5m0 3v1"/>'),
     changes:svg('<path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8l-5-5ZM14 3v5h5M8 12h6m-3-3v6m-3 3h6"/>'),
+    untracked:svg('<path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8l-5-5ZM14 3v5h5M8 14h8m-4-4v8"/>'),
     local:svg('<path d="M3 7V5h7l2 2h9v13H3ZM8 12h8m-8 4h5"/>'),
     more:svg('<circle cx="12" cy="5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="19" r="1" fill="currentColor"/>'),
     external:svg('<path d="M14 4h6v6M20 4 10 14M10 4H5v16h15V14"/>')};
@@ -39,19 +40,25 @@
     return `<span data-commit="${key}:state" tabindex="0" data-title-tip="${escape(tip+' '+age)}" data-title-tip-bare aria-label="${escape(tip)}" class="inline-flex min-h-6 min-w-6 shrink-0 cursor-pointer items-center justify-center text-amber-700">${icons.warning}</span>`;
   }
   function status(checkout){
-    const changed=checkout.changed,untracked=checkout.untracked,conflicts=checkout.conflicts||0,entries=checkout.localFiles?.entries||[];
-    const unknown=changed===null||untracked===null,unavailable=checkout.localFiles?.state==='unavailable';
-    if(!unknown&&!unavailable&&!changed&&!untracked&&!conflicts&&!entries.length)return '';
-    const count=(changed||0)+(untracked||0),tone=conflicts?'text-red-700':count||unknown||unavailable||checkout.localFiles?.partial?'text-amber-700':'text-stone-500';
-    const label=[changed?changed+' changed '+(changed===1?'file':'files'):'',untracked?untracked+' untracked '+(untracked===1?'file':'files'):'',conflicts?conflicts+' '+(conflicts===1?'conflict':'conflicts'):'',unknown?'Local status unavailable':'',unavailable?'Local inventory unavailable':'',entries.length?'Local inventory available':''].filter(Boolean).join('; ');
-    return `<button data-signal="${checkout.key}" data-focus="${checkout.key}:signal" aria-label="${escape(label+' in '+checkout.name)}" aria-haspopup="true" aria-expanded="${popup?.type==='status'&&popup.key===checkout.key}" aria-controls="status-${checkout.key}" class="flex min-h-10 w-8 shrink-0 items-center justify-center ${popup?.type==='status'&&popup.key===checkout.key?'rounded-md bg-stone-100':''} ${tone}">${conflicts||unknown?icons.warning:count?icons.changes:icons.local}</button>`;
+    const changed=checkout.changed,untracked=checkout.untracked,conflicts=checkout.conflicts||0,local=checkout.localFiles,ignored=(local?.entries||[]).filter(e=>e.gitState==='ignored');
+    const compact=n=>n<1000?n.toLocaleString():new Intl.NumberFormat('en',{notation:'compact',maximumFractionDigits:1}).format(n).toLowerCase();
+    const metric=(kind,icon,n,label,tone,partial=false)=>{
+      const open=popup?.type==='status'&&popup.key===checkout.key&&popup.metric===kind;
+      return `<button data-signal="${checkout.key}" data-metric="${kind}" data-focus="${checkout.key}:signal:${kind}" aria-label="${escape(label+' in '+checkout.name)}" aria-haspopup="true" aria-expanded="${open}" aria-controls="status-${checkout.key}" class="inline-flex min-h-10 min-w-7 shrink-0 items-center justify-center gap-0.5 px-0.5 ${open?'rounded-md bg-stone-100':''} ${tone} [&>svg]:size-3.5">${icon}${n===null?'':`<span aria-hidden="true" class="text-[11px] font-medium tabular-nums">${partial?'≥':''}${compact(n)}</span>`}</button>`;
+    };
+    return [
+      changed||conflicts?metric('changed',conflicts?icons.warning:icons.changes,changed||conflicts,(changed||conflicts).toLocaleString()+' changed tracked '+((changed||conflicts)===1?'file':'files')+(conflicts?'; '+conflicts.toLocaleString()+' '+(conflicts===1?'conflict':'conflicts'):''),conflicts?'text-red-700':'text-amber-700'):'',
+      untracked?metric('untracked',icons.untracked,untracked,untracked.toLocaleString()+' untracked '+(untracked===1?'file':'files'),'text-emerald-700'):'',
+      ignored.length?metric('ignored',icons.local,ignored.length,(local.partial?'At least ':'')+ignored.length.toLocaleString()+' ignored inventory '+(ignored.length===1?'entry':'entries')+(local.partial?'; incomplete inventory':''),'text-stone-500',local.partial):'',
+      changed===null||untracked===null||local?.state==='unavailable'?metric('unavailable',icons.warning,null,[changed===null||untracked===null?'Local status unavailable':'',local?.state==='unavailable'?'Local inventory unavailable':''].filter(Boolean).join('; '),'text-amber-700'):''
+    ].join('');
   }
   function statusPanel(checkout){
     const count=(n,word)=>n.toLocaleString()+' '+word+(n===1?'':'s');
     const local=checkout.localFiles,entries=local?.entries||[],ignored=entries.filter(e=>e.gitState==='ignored'),untracked=entries.filter(e=>e.gitState==='untracked');
     const inventoryCount=rows=>{const folders=rows.filter(e=>e.kind==='folder').length,files=rows.length-folders;return [folders?count(folders,'folder'):'',files?count(files,'file'):''].filter(Boolean).join(', ');};
     const link=(state,label)=>`<button data-inventory="${checkout.key}:${state}" data-focus="${checkout.key}:${state}" class="flex min-h-9 w-full items-center justify-between gap-3 text-left text-xs text-emerald-800"><span>${escape(label)}</span><span aria-hidden="true">›</span></button>`;
-    return `<div id="status-${checkout.key}" data-popup="status:${checkout.key}" ${popup?.type==='status'&&popup.key===checkout.key?'':'hidden'} role="region" aria-label="Local status for ${escape(checkout.name)}" class="absolute right-1 top-10 z-30 w-56 max-w-[calc(100vw-1rem)] rounded-xl border border-stone-200 bg-white px-3 py-2 shadow-lg">${checkout.conflicts?`<p class="py-1 text-xs font-medium text-red-700">${count(checkout.conflicts,'conflict')}</p>`:''}${checkout.changed?`<p class="py-1 text-xs text-amber-800">${checkout.changed.toLocaleString()} changed ${checkout.changed===1?'file':'files'}</p>`:''}${local?.state==='unavailable'?'<p class="py-1 text-xs text-amber-700">Local inventory unavailable</p>':''}${checkout.changed===null||checkout.untracked===null?'<p class="py-1 text-xs text-stone-500">Local status unavailable</p>':''}${checkout.untracked||untracked.length?link('untracked',checkout.untracked?checkout.untracked.toLocaleString()+' untracked '+(checkout.untracked===1?'file':'files'):'Untracked · '+inventoryCount(untracked)):''}${ignored.length?link('ignored','Ignored · '+inventoryCount(ignored)):''}${entries.length?`<p class="border-t border-stone-100 pt-1 text-[10px] text-stone-500">${local.partial?'Partial inventory · ':''}${escape(ago(local.observedAt))}</p>`:''}</div>`;
+    return `<div id="status-${checkout.key}" data-popup="status:${checkout.key}" ${popup?.type==='status'&&popup.key===checkout.key?'':'hidden'} role="region" aria-label="Local status for ${escape(checkout.name)}" class="absolute right-1 top-10 z-30 w-56 max-w-[calc(100vw-1rem)] rounded-xl border border-stone-200 bg-white px-3 py-2 shadow-lg">${checkout.conflicts?`<p class="py-1 text-xs font-medium text-red-700">${count(checkout.conflicts,'conflict')}</p>`:''}${checkout.changed?`<p class="py-1 text-xs text-amber-800">${checkout.changed.toLocaleString()} changed tracked ${checkout.changed===1?'file':'files'}</p>`:''}${local?.state==='unavailable'?'<p class="py-1 text-xs text-amber-700">Local inventory unavailable</p>':''}${checkout.changed===null||checkout.untracked===null?'<p class="py-1 text-xs text-stone-500">Local status unavailable</p>':''}${checkout.untracked||untracked.length?link('untracked',checkout.untracked?checkout.untracked.toLocaleString()+' untracked '+(checkout.untracked===1?'file':'files'):'Untracked · '+inventoryCount(untracked)):''}${ignored.length?link('ignored','Ignored · '+(local.partial?'≥ ':'')+inventoryCount(ignored)):''}${entries.length?`<p class="border-t border-stone-100 pt-1 text-[10px] text-stone-500">${local.partial?'Partial inventory · ':''}${escape(ago(local.observedAt))}</p>`:''}</div>`;
   }
   function tools(checkout){
     if(!checkout)return '';
@@ -73,10 +80,10 @@
     panel.style.maxHeight=Math.max(120,innerHeight-80)+'px';panel.style.overflowY='auto';
     const rect=panel.getBoundingClientRect();if(rect.height&&rect.bottom>innerHeight-8){panel.style.top='auto';panel.style.bottom='100%';}
   }
-  function setPopup(type,key,restore=false){
+  function setPopup(type,key,restore=false,metric=''){
     if(!type&&!popup)return;
-    const prior=popup;popup=type?{type,key}:null;refresh();
-    if(restore&&prior)el('repositories').querySelector(`[data-focus="${prior.key}:${prior.type==='status'?'signal':prior.key==='all'?'fetch':'menu'}"]`)?.focus({preventScroll:true});
+    const prior=popup;popup=type?{type,key,metric}:null;refresh();
+    if(restore&&prior)el('repositories').querySelector(`[data-focus="${prior.key}:${prior.type==='status'?'signal:'+prior.metric:prior.key==='all'?'fetch':'menu'}"]`)?.focus({preventScroll:true});
   }
   function render(){
     if(!active)return;
@@ -125,7 +132,7 @@
     if(!active)return;
     const button=event.target.closest('[data-menu],[data-signal],[data-fetch],[data-github],[data-inventory]');
     if(button?.dataset.menu){const key=button.dataset.menu;setPopup(popup?.type==='menu'&&popup.key===key?null:'menu',key);return;}
-    if(button?.dataset.signal){const key=button.dataset.signal;setPopup(popup?.type==='status'&&popup.key===key?null:'status',key);return;}
+    if(button?.dataset.signal){const key=button.dataset.signal,metric=button.dataset.metric;setPopup(popup?.type==='status'&&popup.key===key&&popup.metric===metric?null:'status',key,false,metric);return;}
     if(button?.dataset.fetch&&!button.disabled){fetchRepo(button.dataset.fetch,button.dataset.anchor);return;}
     if(button?.dataset.github){setPopup(null);return;}
     if(button?.dataset.inventory){const [key,filter]=button.dataset.inventory.split(':');const c=checkoutFor(key);if(c){setPopup(null);openFolder(c.name,filter);}return;}
