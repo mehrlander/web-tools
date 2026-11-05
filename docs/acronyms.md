@@ -1,6 +1,6 @@
 # Acronyms
 
-This file collects, mostly for fun, the acronyms the owner has coined for asks made of a session and for an order of explaining a term. No session loads it, and the conversation rules do not name it; a session that meets one of these names can find it here by searching for the name.
+This file collects, mostly for fun, the acronyms the owner has coined for asks made of a session and for an order of explaining a term. It is for the owner, and for a session that meets one of these names and searches for it.
 
 ## SPUR
 
