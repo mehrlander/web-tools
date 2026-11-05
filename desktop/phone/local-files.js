@@ -20,11 +20,18 @@
         &&['folder','file'].includes(e.kind)&&['ignored','untracked'].includes(e.gitState)&&(e.bytes===null||Number.isFinite(e.bytes)&&e.bytes>=0)
         &&(e.files===null||Number.isInteger(e.files)&&e.files>=0)&&(e.modifiedAt===null||Number.isFinite(Date.parse(e.modifiedAt))));
   }
-  function preview(checkout){
+  function summary(checkout){
     const value=checkout.localFiles,entries=value?.entries||[];if(!value)return '';
     if(value?.state==='ready'&&!value.partial&&!entries.length)return '';
-    const folders=entries.filter(e=>e.kind==='folder').slice(0,3);
-    return `${folders.length?`<ul class="mt-1">${folders.map(e=>`<li class="flex min-h-6 items-center gap-1.5 text-xs">${folder}<span class="min-w-0 flex-1 truncate">${escape(e.path)}</span><span class="shrink-0 text-[11px] text-stone-600">${e.gitState==='ignored'?'Ignored':'Untracked'}</span><span class="shrink-0 text-[11px] text-stone-600">${size(e.bytes,e.partial)}</span></li>`).join('')}</ul>`:''}<button data-files="${checkout.key}" class="flex min-h-8 w-full items-center justify-between gap-2 text-left text-xs text-emerald-800"><span>All local files</span><span class="ml-auto text-[11px] text-stone-500">${value.state!=='ready'?'Unavailable':entries.length.toLocaleString()+' '+(entries.length===1?'entry':'entries')}</span>${arrow}</button>`;
+    const groups=['ignored','untracked'].map(state=>{
+      const rows=entries.filter(e=>e.gitState===state),folders=rows.filter(e=>e.kind==='folder').length,files=rows.length-folders;
+      if(!rows.length)return '';
+      const counts=[folders?folders.toLocaleString()+' '+(folders===1?'folder':'folders'):'',files?files.toLocaleString()+' '+(files===1?'file':'files'):''].filter(Boolean).join(', ');
+      return {label:state==='ignored'?'Ignored':'Untracked',counts};
+    }).filter(Boolean);
+    const details=value.state!=='ready'?'Unavailable':groups.length?groups.map(g=>`<span class="text-stone-600">${g.label} <span class="text-stone-400">·</span> ${g.counts}</span>`).join(''):'Partial scan';
+    const description=value.state!=='ready'?'Unavailable':groups.length?groups.map(g=>g.label+': '+g.counts).join('; ')+(value.partial?'; partial scan':''):'Partial scan';
+    return `<button data-files="${checkout.key}" aria-label="Local files for ${escape(checkout.name)}: ${escape(description)}" class="mt-1 flex min-h-9 w-full items-center gap-2 rounded-lg bg-emerald-50/70 px-2 py-1.5 text-left text-xs text-emerald-800 active:bg-emerald-100/70">${folder}<span class="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-4 gap-y-0.5"><span class="font-medium">Local files</span>${details}</span>${value.state==='ready'&&groups.length&&value.partial?'<span class="shrink-0 text-[10px] text-stone-500">Partial</span>':''}${arrow}</button>`;
   }
   function header(show,active=true){
     if(el('repository-back'))el('repository-back').hidden=!show;
@@ -67,5 +74,5 @@
     filter=button.dataset.fileFilter;renderResults();
   });
   document.addEventListener('input',event=>{if(event.target.matches('[data-local-search]')){query=event.target.value;renderResults();}});
-  window.NowLocalFiles={valid,preview,render,header};
+  window.NowLocalFiles={valid,summary,render,header};
 })();

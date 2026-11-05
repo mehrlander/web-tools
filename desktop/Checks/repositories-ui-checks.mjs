@@ -53,12 +53,15 @@ const second={...structuredClone(c),key:'c'.repeat(24),name:'project-other',bran
 data.repositories[0].checkouts.push(second);await poll();
 check(doc.querySelectorAll('[data-checkout]').length===2&&doc.querySelector('[data-checkout="'+second.key+'"]').textContent.includes('No GitHub tracking branch')&&doc.querySelector('[data-checkout="'+second.key+'"]').textContent.includes('Limited history'),'Every grouped checkout stays visible, with unknown comparisons labeled rather than zeroed.');
 
+c.changed=2;c.untracked=1;
 c.localFiles={key:checkoutKey,name:c.name,state:'ready',observedAt:at,partial:true,notice:'Some measurements are incomplete.',entries:[
   {key:'d'.repeat(24),path:'exports/',kind:'folder',gitState:'ignored',bytes:34000000,files:12,modifiedAt:at,partial:false,role:null},
   {key:'e'.repeat(24),path:'node_modules/',kind:'folder',gitState:'ignored',bytes:240000000,files:18400,modifiedAt:at,partial:true,role:'Dependencies'},
   {key:'f'.repeat(24),path:'note.md',kind:'file',gitState:'untracked',bytes:12,files:1,modifiedAt:at,partial:false,role:null}
 ]};await poll();
-check(doc.querySelector('[data-checkout="'+checkoutKey+'"]').textContent.includes('exports/')&&doc.querySelector('[data-checkout="'+checkoutKey+'"]').textContent.includes('≥ 240 MB'),'The overview shows real folder names and clearly labels partial sizes.');
+const inventoryControl=doc.querySelector('[data-files="'+checkoutKey+'"]');
+check(doc.querySelector('[data-checkout="'+checkoutKey+'"]').textContent.includes('2 changed files')&&!doc.querySelector('[data-checkout="'+checkoutKey+'"]').textContent.includes('1 untracked file'),'Tracked changes stay visible while an inventory count replaces the duplicate untracked line.');
+check(!doc.querySelector('[data-checkout="'+checkoutKey+'"]').textContent.includes('exports/')&&!inventoryControl.textContent.includes('MB')&&inventoryControl.textContent.includes('Ignored')&&inventoryControl.textContent.includes('2 folders')&&inventoryControl.textContent.includes('Untracked')&&inventoryControl.textContent.includes('1 file')&&inventoryControl.textContent.includes('Partial')&&inventoryControl.querySelector('svg'),'The main list has an icon control with observed folder/file counts and partial state, without names or sizes.');
 click('[data-files="'+checkoutKey+'"]');
 check(w.location.hash.includes('checkout='+checkoutKey)&&doc.querySelector('#view-title').textContent==='Local files'&&!doc.querySelector('#repository-back').hidden&&doc.querySelectorAll('#local-results .bg-white').length===3,'A local-files link opens the checkout inventory as a separate routed screen.');
 click('[data-file-filter=untracked]');
