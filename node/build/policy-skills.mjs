@@ -41,12 +41,17 @@ export function entries(text) {
   return out.map(e => ({ ...e, body: e.body.join('\n').trim() }));
 }
 
+// A description holding a double quote is single-quoted, since YAML's
+// double-quoted form writes it as \" and a rendered page shows that escape
+// as text it cannot map back to the file.
+const yamlString = (s) => (s.includes('"') ? `'${s.replace(/'/g, "''")}'` : JSON.stringify(s));
+
 function skillFor(e, name) {
   const lede = e.body.split('\n\n')[0].replace(/\s+/g, ' ');
   return [
     '---',
     `name: ${name}`,
-    `description: ${JSON.stringify(`${e.title}: ${lede}`)}`,
+    `description: ${yamlString(`${e.title}: ${lede}`)}`,
     'disable-model-invocation: true',
     '---',
     '',

@@ -33,6 +33,8 @@ substituting the current repo in URL templates.
 
 * **SPUR.** Asked for a SPUR, a Summary of Proposal for Unfamiliar Reader, summarize the session's current proposal for someone who has not followed the session and knows none of the shorthand or coined terms the session uses.
 
+* **CDE.** Concept, Definition, Examples: an order for explaining a term. A possible fourth letter is F, for Foil: the nearest case the term excludes, a non-example in the [Frayer model](https://en.wikipedia.org/wiki/Frayer_model).
+
 ## A reply that changed files
 
 * **Branch anchor.** The first reply that changes files begins with `Working branch: [branch-name](url)`. Code changes use GitHub flow on a branch with assistant prefixes (`claude/`, `codex/`, `gemini/`, `grok/`). Shared coordination state (task trackers, personal lists, session logs, crawl caches) uses Real-time mode directly on `main`. Include the assistant's commit trailer from [AGENTS.md](https://github.com/mehrlander/web-tools/blob/main/AGENTS.md#assistant-identity-and-attribution).
