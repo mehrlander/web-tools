@@ -47,6 +47,7 @@ tracker/tasks/*.md                    edit=by-status
 # The documents docs/docs.csv marks `record`.
 docs/github/mcp-server-routing.md     edit=write-once
 docs/showing-consolidation.md         edit=write-once
+docs/prototypes/content-maturity-ideas.json edit=write-once
 docs/prototypes/md-edit-ideas.json    edit=write-once
 docs/prototypes/program-icons-ideas.json edit=write-once
 docs/prototypes/ui-concepts-ideas.json    edit=write-once
