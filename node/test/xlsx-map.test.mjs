@@ -199,3 +199,26 @@ test('a sheet of headings over rows is a table; a sheet of labels is a form', ()
   assert.deepEqual(g.Lookups.named, ['TaxRate']);
   assert.deepEqual([g['Q1 / Plan'].hiddenRows, g['Q1 / Plan'].hiddenCols], [[3], ['C']], 'hidden rows by number, columns by letter, within the used width');
 });
+
+test('a query named inside a record constructor links, while a field selector of the same name does not', () => {
+  const m = [
+    'section Section1;',
+    'shared FiscalYear = "FY1" meta [IsParameterQuery = true, Type = "Text", IsParameterQueryRequired = true];',
+    'shared WebIRows = Excel.CurrentWorkbook(){[Name = "LedgerTbl"]}[Content];',
+    'shared Ledger = let',
+    '  Filtered = Table.SelectRows(WebIRows, each [FiscalYear] = "FY1"),',
+    '  Rec = [Year = FiscalYear, Count = Table.RowCount(Filtered)]',
+    'in Rec;',
+  ].join('\r\n');
+  const r = read();
+  r.xl.powerQuery = { sections: [{ path: 'Formulas/Section1.m', m }] };
+  const qs = XlsxMap.queries(r);
+  assert.deepEqual(qs.map(q => q.name), ['FiscalYear', 'WebIRows', 'Ledger']);
+  const qLinks = XlsxMap.links(r).filter(l => l.kind === 'source' && l.to.type === 'query').map(XlsxMap.phrase).sort();
+  assert.deepEqual(qLinks, [
+    'query FiscalYear feeds query Ledger',
+    'query WebIRows feeds query Ledger',
+    'table LedgerTbl on Ledger feeds query WebIRows',
+  ]);
+});
+
