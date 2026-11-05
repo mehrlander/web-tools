@@ -1,7 +1,10 @@
 ---
 id: surfacing-gate-content-okwnp6
 title: Hold CONVERSATION.md to conversation.csv by content, not by lead-in
-status: backlog
+status: done
+closed: 2026-11-05
+resolution: superseded
+session: claude/elegant-feynman-yp1ox0-retire-csv
 opened: 2026-09-10
 size: S
 ---
@@ -58,3 +61,4 @@ clause lived and where it survived.
 - 2026-09-10: Filed out of PR #646, which restored the lost clause but left the
   gate that missed it unchanged.
 - 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).
+- 2026-11-05: Closed as superseded, at the owner's direction ("Is that necessary?" of the hand-kept csv, then "go ahead" on retiring it). Branch claude/elegant-feynman-yp1ox0-retire-csv, web-tools #1221, removes docs/conversation.csv: the Map's Surfacing tab reads its cards from CONVERSATION.md, so there is no second copy left to drift and no gate to strengthen.
