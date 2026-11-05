@@ -2,7 +2,7 @@ path,rows,columns,bytes,headers
 archive/skills/archive.csv,1,4,234,"[""name"",""retired"",""reason"",""successor""]"
 data/checks-reading/2026-09-05-gaps.csv,152,5,7377,"[""path"",""lines"",""named_by_tests"",""named_in_protects"",""layer""]"
 data/checks-reading/2026-09-05-reading.csv,243,17,310600,"[""path"",""repo"",""oracle"",""scope"",""data_kinds"",""blocks"",""stop_sites"",""resists"",""confidence"",""construction"",""objects"",""smells"",""misses"",""expert_reading"",""oracle_notes"",""resists_why"",""shard""]"
-data/checks-reading/explanations.csv,82,17,71165,"[""repo"",""artifact"",""script"",""where"",""script_sha"",""kind"",""term"",""requirement"",""a"",""a_mode"",""b"",""b_mode"",""failure"",""limit"",""blocks"",""unit"",""count""]"
+data/checks-reading/explanations.csv,77,17,66625,"[""repo"",""artifact"",""script"",""where"",""script_sha"",""kind"",""term"",""requirement"",""a"",""a_mode"",""b"",""b_mode"",""failure"",""limit"",""blocks"",""unit"",""count""]"
 data/column-primitives/2026-09-10-manifest-fields-pilot.csv,58,5,3493,"[""key"",""declared_type"",""primitive"",""cardinality"",""note""]"
 data/conventions-delivery/2026-09-13-reading.csv,168,8,15237,"[""record"",""day"",""started"",""verdict"",""hub_checkout"",""surfacing_in_context"",""hub_claude_md_sha"",""skill_calls""]"
 data/csv-census.csv,69,5,9357,"[""path"",""rows"",""columns"",""bytes"",""headers""]"
