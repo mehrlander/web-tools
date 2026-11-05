@@ -60,13 +60,13 @@
       if(current!==key){filter='all';query='';}current=key;signature='';
       el('repositories').innerHTML=`<div class="bg-white px-3 pb-2 pt-2"><h2 id="local-repo" class="text-sm font-semibold"></h2><p id="local-checkout" class="mt-0.5 break-all text-[11px] text-stone-500"></p><p id="local-observed" class="mt-1 text-[10px] text-stone-500"></p></div><div class="bg-white px-3 pb-2"><div class="flex rounded-lg bg-stone-200 p-0.5" role="group" aria-label="Local file type">${['all','ignored','untracked'].map(k=>`<button data-file-filter="${k}" aria-pressed="${filter===k}" class="min-h-8 flex-1 rounded-md px-2 text-xs">${k}</button>`).join('')}</div><input data-local-search aria-label="Find local files" type="search" placeholder="Find files or folders" class="mt-2 h-8 w-full rounded-md border border-stone-200 bg-stone-50 px-2 text-xs" value="${escape(query)}"></div><p id="local-notice" class="empty:hidden px-3 py-1.5 text-[11px] text-amber-800"></p><div id="local-results"></div><p class="px-3 pt-2 text-[10px] leading-4 text-stone-500">Names and metadata only · Sizes marked ≥ are partial.</p>`;
     }
-    el('local-repo').textContent=repo?.name||'Checkout no longer observed';
-    el('local-checkout').textContent=checkout?'Checkout · '+checkout.name+' · '+checkout.branch:'';
+    el('local-repo').textContent=repo?.name||'Folder no longer observed';
+    el('local-checkout').textContent=checkout?checkout.name+' · '+checkout.branch:'';
     inventory=checkout?.localFiles;
     el('local-observed').textContent=inventory?(isLive?'Inventory observed ':'Saved inventory · Observed ')+ago(inventory.observedAt):'Waiting for the laptop inventory';
     el('local-observed').title=inventory?stamp(inventory.observedAt):'';
     el('local-notice').textContent=inventory?.notice||'';
-    if(!checkout){el('local-results').innerHTML='<p class="px-3 py-3 text-sm text-stone-500">Return to Repositories to choose an observed checkout.</p>';return;}
+    if(!checkout){el('local-results').innerHTML='<p class="px-3 py-3 text-sm text-stone-500">Return to Repositories to choose an observed folder.</p>';return;}
     renderResults();
   }
   document.addEventListener('click',event=>{

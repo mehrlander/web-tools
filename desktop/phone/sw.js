@@ -1,7 +1,7 @@
 'use strict';
 // Cache the interface only. Private API responses never enter Cache Storage.
 // Last observations remain in this browser's existing local storage.
-const version = 'web-tools-now-shell-local-file-summary';
+const version = 'web-tools-now-shell-folder-branch';
 const assets = ['/', '/phone.js', '/computer.js', '/devices.js', '/views.js', '/repositories.js', '/local-files.js', '/reading.js', '/now-shared.js', '/usage-view.js', '/icon.svg', '/apple-touch-icon.png', '/manifest.webmanifest', '/vendor/tailwind.js', '/vendor/marked.js', '/vendor/purify.js', '/vendor/assistant-mark.js', '/vendor/claude-mark.js', '/vendor/title-tip.js'];
 self.addEventListener('install', event => event.waitUntil((async () => {
   const cache = await caches.open(version);
