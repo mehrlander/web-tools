@@ -9,8 +9,9 @@
 <script type="module">
   // The harness picture (skills/design-sprint, phase 3; the idea board is
   // harness-map-ideas.json beside this file). A designed diagram over live
-  // data: the places code runs, grouped as yours or hosted, each holding its
-  // writers; a line from every writer to the credential it commits with; one
+  // data: the machines code runs on, grouped as yours or hosted, each holding
+  // its writers, and one box more for writers that run in a browser on any of
+  // several machines; a line from every writer to the credential it commits with; one
   // road per credential into GitHub, as thick as the writers on it and
   // labelled with whose name its commits carry. The layout is authored; every
   // name, count and line is read from the registries, so it stays true as rows
@@ -24,14 +25,24 @@
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
   const [wcsv, ccsv, vcsv, mcsv, dcsv] = await Promise.all(
-    ['docs/writers.csv', 'docs/credentials.csv', 'docs/venues.csv', 'docs/run-methods.csv', 'docs/direct-to-main.csv'].map(get));
-  const WRITERS = Csv.rows(wcsv), CREDS = Csv.rows(ccsv), PLACES = Csv.rows(vcsv), METHODS = Csv.rows(mcsv), MAIN = Csv.rows(dcsv);
+    ['docs/writers.csv', 'docs/credentials.csv', 'docs/machines.csv', 'docs/run-methods.csv', 'docs/direct-to-main.csv'].map(get));
+  const WRITERS = Csv.rows(wcsv), CREDS = Csv.rows(ccsv), MACHINES = Csv.rows(vcsv), METHODS = Csv.rows(mcsv), MAIN = Csv.rows(dcsv);
+  // A writer on several machines (a page in a browser on any of them) is drawn
+  // once, in a box for that set, placed after the first machine it names.
+  const labelOf = id => MACHINES.find(m => m.machine === id)?.label || id;
+  const PLACES = [];
+  for (const m of MACHINES) {
+    PLACES.push(m);
+    for (const set of [...new Set(WRITERS.map(w => w.machine))].filter(v => Csv.list(v).length > 1 && Csv.list(v)[0] === m.machine))
+      PLACES.push({ machine: set, label: Csv.list(set).map(labelOf).join(' or ') });
+  }
 
   // THE OPINION. Which places are yours and which are a provider's is the
   // diagram's first division; the registries do not record ownership, so the
-  // page states it. A place not listed here falls to the hosted side.
-  const YOURS = ['personal-laptop', 'browser', 'iphone', 'work-machine'];
-  const side = v => YOURS.includes(v) ? 'yours' : 'hosted';
+  // page states it. A machine not listed here falls to the hosted side, and a
+  // set of machines falls where its first one does.
+  const YOURS = ['personal-laptop', 'iphone', 'work-machine'];
+  const side = v => YOURS.includes(Csv.list(v)[0]) ? 'yours' : 'hosted';
   const MODEL = { claude: 'Claude', gpt: 'GPT', gemini: 'Gemini' };
 
   // Geometry, in SVG units drawn 1:1 with CSS pixels: on a phone the diagram
@@ -42,12 +53,19 @@
 
   const placeBoxes = { yours: [], hosted: [] };
   for (const p of PLACES) {
-    const ws = WRITERS.filter(w => w.machine === p.venue);
-    const errands = METHODS.filter(m => Csv.list(m.venues).includes(p.venue)).map(m => m.method);
+    const ws = WRITERS.filter(w => w.machine === p.machine);
+    const errands = METHODS.filter(m => Csv.list(m.machines).includes(p.machine)).map(m => m.method);
+    // The run methods named over a box, in lines that fit its width; the box
+    // sits lower by the lines past the first.
+    const lines = errands.reduce((acc, m) => {
+      const last = acc[acc.length - 1];
+      if (last && (last + ' · ' + m).length <= 44) acc[acc.length - 1] = last + ' · ' + m; else acc.push(m);
+      return acc;
+    }, []);
     const h = HEAD + Math.max(1, ws.length) * ROW + 12;
-    placeBoxes[side(p.venue)].push({ p, ws, errands, h });
+    placeBoxes[side(p.machine)].push({ p, ws, errands, lines, pre: Math.max(0, lines.length - 1) * 16, h });
   }
-  const stack = (list) => { let y = TOP + 46; for (const b of list) { b.y = y; y += b.h + GAP; } return y; };
+  const stack = (list) => { let y = TOP + 46; for (const b of list) { y += b.pre; b.y = y; y += b.h + GAP; } return y; };
   const H = Math.max(stack(placeBoxes.yours), stack(placeBoxes.hosted)) + 10;
 
   // Each credential sits beside the places that hold it, at the height of
@@ -94,7 +112,7 @@
   // so the picture's other lines stay readable: out of Anthropic's cloud,
   // along the top, down the gutter beside each column, and into each place
   // a run method can reach, its methods named in the gap above the box.
-  const from = placeBoxes.hosted.find(b => b.p.venue === 'anthropic-cloud');
+  const from = placeBoxes.hosted.find(b => b.p.machine === 'anthropic-cloud');
   if (from) {
     const busY = TOP + 46, xl = X.yours + PW + 18, xr = X.hosted - 18, err = 'stroke-primary hm-errand hidden';
     const targets = s => placeBoxes[s].filter(b => b.errands.length && b !== from);
@@ -111,10 +129,12 @@
   // Places and their writers.
   for (const s of ['yours', 'hosted']) for (const b of placeBoxes[s]) {
     const x = s === 'yours' ? X.yours : X.hosted;
-    svg += `<g data-place="${esc(b.p.venue)}">`;
+    svg += `<g data-place="${esc(b.p.machine)}">`;
     svg += `<rect x="${x}" y="${b.y}" width="${PW}" height="${b.h}" rx="14" class="fill-base-200/60 stroke-base-300" stroke-width="1.5"${b.ws.length ? '' : ' stroke-dasharray="5 4"'}/>`;
     svg += `<text x="${x + 16}" y="${b.y + 26}" font-size="17" font-weight="600" class="fill-base-content">${esc(b.p.label)}</text>`;
-    if (b.errands.length && b.p.venue !== 'anthropic-cloud') svg += `<text x="${x + PW - 6}" y="${b.y - 6}" text-anchor="end" font-size="13" class="fill-primary hm-errand-label hidden">${esc(b.errands.join(' · '))}</text>`;
+    if (b.errands.length && b.p.machine !== 'anthropic-cloud') b.lines.forEach((line, i) => {
+      svg += `<text x="${x + PW - 6}" y="${b.y - 6 - (b.lines.length - 1 - i) * 16}" text-anchor="end" font-size="13" class="fill-primary hm-errand-label hidden">${esc(line)}</text>`;
+    });
     if (!b.ws.length) svg += `<text x="${x + 16}" y="${b.y + HEAD + 18}" font-size="15" class="fill-base-content/40">no writers</text>`;
     b.ws.forEach((w, i) => {
       const y = b.y + HEAD + i * ROW;
@@ -155,7 +175,7 @@
   const defs = `<defs><marker id="hm-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-primary"/></marker></defs>`;
   root.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" class="max-w-none lg:max-w-full lg:w-full lg:h-auto" font-family="ui-sans-serif, system-ui, sans-serif">${defs}${svg}</svg>`;
   document.getElementById('figure').textContent =
-    `${WRITERS.length} writers · ${CREDS.length} credentials · ${PLACES.length} places`;
+    `${WRITERS.length} writers · ${CREDS.length} credentials · ${MACHINES.length} machines`;
 
   // A tap on a writer or a key lights what it connects to; a tap elsewhere clears.
   const lit = (sel) => {

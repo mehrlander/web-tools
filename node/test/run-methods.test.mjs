@@ -1,7 +1,7 @@
 // docs/run-methods.csv owns how a person runs an errand's script; kits/errands.js
 // carries a copy as its METHODS literal, so validate() and normalize() need no
 // fetch. What breaks without this: the registry and the kit drift, and validate()
-// enforces venues and return routes the registry no longer declares.
+// enforces machines and return routes the registry no longer declares.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -18,10 +18,10 @@ const list = (s) => splitList(s).map(x => x.trim()).filter(Boolean);
 
 test('the METHODS literal and docs/run-methods.csv agree; the CSV is the owner', () => {
   const fromCsv = Object.fromEntries(rows.map(r => [r.method, {
-    venues: list(r.venues), outputReturn: r.output_return, rules: list(r.rules) }]));
+    machines: list(r.machines), outputReturn: r.output_return, rules: list(r.rules) }]));
   assert.deepEqual(JSON.parse(JSON.stringify(E.METHODS)), fromCsv);
 });
 
-test('every venue a method allows is one the errand schema knows', () => {
-  for (const r of rows) for (const v of list(r.venues)) assert.ok(E.VENUES.includes(v), r.method + ': ' + v);
+test('every machine a method allows is one the errand schema knows', () => {
+  for (const r of rows) for (const v of list(r.machines)) assert.ok(E.MACHINES.includes(v), r.method + ': ' + v);
 });

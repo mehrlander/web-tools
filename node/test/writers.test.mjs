@@ -9,7 +9,7 @@
 // in this tree. docs/direct-to-main.csv joins to it by its `writer` column, so
 // every key there has to be a writer here. Every value the tab labels has its
 // label in docs/vocabularies.csv, since the tab reads its words from there,
-// except a machine, which is a venue and is held by venues.test.mjs.
+// except a machine, which docs/machines.csv labels and machines.test.mjs holds.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
