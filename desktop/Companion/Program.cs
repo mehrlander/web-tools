@@ -121,7 +121,8 @@ var assets = new Dictionary<string, (string File, string Type)> {
     ["/vendor/marked.js"] = ("vendor/marked.js", "text/javascript; charset=utf-8"),
     ["/vendor/purify.js"] = ("vendor/purify.js", "text/javascript; charset=utf-8"),
     ["/vendor/assistant-mark.js"] = ("vendor/assistant-mark.js", "text/javascript; charset=utf-8"),
-    ["/vendor/claude-mark.js"] = ("vendor/claude-mark.js", "text/javascript; charset=utf-8")
+    ["/vendor/claude-mark.js"] = ("vendor/claude-mark.js", "text/javascript; charset=utf-8"),
+    ["/vendor/title-tip.js"] = ("vendor/title-tip.js", "text/javascript; charset=utf-8")
 };
 foreach (var (route, asset) in assets) app.MapGet(route, () => Results.File(Path.Combine(AppContext.BaseDirectory, "phone", asset.File), asset.Type));
 var sampling = Task.Run(() => collector.Run(app.Lifetime.ApplicationStopping));
