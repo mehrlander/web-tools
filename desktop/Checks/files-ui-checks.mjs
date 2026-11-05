@@ -60,8 +60,16 @@ const indicator=doc.querySelector('[data-commit]');indicator.focus();top=130;awa
 check(doc.activeElement.dataset.commit===indicator.dataset.commit&&doc.querySelector('#wt-title-tip').hasAttribute('data-open')&&top===130,'Explorer branch tooltips and focus stay anchored through repository polling.');
 doc.activeElement.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
 offline=true;await poll();check(doc.querySelector('#local-observed').textContent.includes('Saved')&&doc.querySelector('[data-folder=project]'),'A lost connection labels and retains the observed folder listing.');
+const reloaded=new JSDOM(read('../phone/index.html'),{url:'https://fixture.example.ts.net/#view=files',runScripts:'outside-only',pretendToBeVisual:true}),saved=reloaded.window;
+saved.localStorage.setItem('web-tools-repositories-snapshot',w.localStorage.getItem('web-tools-repositories-snapshot'));
+saved.localStorage.setItem('web-tools-files-root',w.localStorage.getItem('web-tools-files-root'));
+saved.localStorage.setItem('web-tools-files-snapshot',JSON.stringify(folders.get('project/src')));
+saved.scrollTo=()=>{};saved.setTimeout=()=>1;saved.clearTimeout=()=>{};saved.AbortController=AbortController;saved.matchMedia=()=>({matches:false});saved.fetch=async()=>{throw new Error('Offline');};
+saved.eval(read('../../lib/kits/title-tip.js'));saved.eval(read('../phone/local-files.js'));saved.eval(read('../phone/repositories.js'));saved.eval(read('../phone/views.js'));await flush();
+check(saved.document.querySelector('[data-folder=project]')&&saved.document.querySelector('#local-observed').textContent.includes('Saved'),'An offline reload opens the saved root even when a deeper folder was last visited.');
+reloaded.window.close();
 offline=false;denied=true;await poll();
-check(!w.localStorage.getItem('web-tools-files-snapshot')&&!w.localStorage.getItem('web-tools-repositories-snapshot')&&!doc.querySelector('[data-folder=project]'),'An access denial discards saved private folder and repository observations.');
+check(!w.localStorage.getItem('web-tools-files-snapshot')&&!w.localStorage.getItem('web-tools-files-root')&&!w.localStorage.getItem('web-tools-repositories-snapshot')&&!doc.querySelector('[data-folder=project]'),'An access denial discards saved private root, folder and repository observations.');
 denied=false;await poll();click('[data-view=now]');
 check(doc.querySelector('#repositories').hidden,'Leaving Files returns to the selected main view.');
 check(requests.every(r=>!r.method||r.method==='GET'),'Browsing only issues read requests.');

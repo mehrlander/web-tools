@@ -85,13 +85,13 @@
     try{
       const response=await fetch('/api/v1/files?path='+encodeURIComponent(path),{cache:'no-store',signal:request.signal});
       if(!active||current!==path||controller!==request)return;
-      if(response.status===403){cache.clear();listing=undefined;denied=true;localStorage.removeItem('web-tools-files-snapshot');}
+      if(response.status===403){cache.clear();listing=undefined;denied=true;localStorage.removeItem('web-tools-files-snapshot');localStorage.removeItem('web-tools-files-root');}
       if(!response.ok)throw new Error();
       const value=await response.json();if(!validListing(value,path))throw new Error();
       if(!active||current!==path||controller!==request)return;
       listing=value;denied=false;failed=false;
       if(cache.size>=24)cache.delete(cache.keys().next().value);cache.set(path,value);
-      try{localStorage.setItem('web-tools-files-snapshot',JSON.stringify(value));}catch{}
+      try{localStorage.setItem('web-tools-files-snapshot',JSON.stringify(value));if(!path)localStorage.setItem('web-tools-files-root',JSON.stringify(value));}catch{}
     }catch{if(active&&current===path&&controller===request)failed=true;}
     finally{clearTimeout(timeout);if(controller===request){controller=null;if(active&&current===path){results();timer=setTimeout(poll,failed?15000:10000);}}}
   }
@@ -105,13 +105,13 @@
   }
   function stop(clear=false){
     active=false;clearTimeout(timer);timer=undefined;controller?.abort();controller=null;
-    if(clear){cache.clear();listing=undefined;localStorage.removeItem('web-tools-files-snapshot');}
+    if(clear){cache.clear();listing=undefined;localStorage.removeItem('web-tools-files-snapshot');localStorage.removeItem('web-tools-files-root');}
   }
   function setFilter(value){if(active&&['all','tracked','untracked','ignored'].includes(value)&&filter!==value){filter=value;results();}}
   document.addEventListener('click',event=>{const button=event.target.closest('[data-file-filter]');if(active&&button){const params=new URLSearchParams(location.hash.slice(1));if(button.dataset.fileFilter==='all')params.delete('filter');else params.set('filter',button.dataset.fileFilter);history.replaceState(history.state,'','#'+params);setFilter(button.dataset.fileFilter);}});
   document.addEventListener('input',event=>{if(active&&event.target.matches('[data-local-search]')){query=event.target.value;results();}});
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)poll();else clearTimeout(timer);});
   window.addEventListener('online',poll);
-  try{const prior=JSON.parse(localStorage.getItem('web-tools-files-snapshot'));if(validListing(prior,prior?.path))cache.set(prior.path,prior);}catch{}
+  for(const key of ['web-tools-files-root','web-tools-files-snapshot'])try{const prior=JSON.parse(localStorage.getItem(key));if(validListing(prior,key==='web-tools-files-root'?'':prior?.path))cache.set(prior.path,prior);}catch{}
   window.NowLocalFiles={valid,render,header,stop,setFilter,filter:()=>filter,refresh:()=>{signature='';results();}};
 })();
