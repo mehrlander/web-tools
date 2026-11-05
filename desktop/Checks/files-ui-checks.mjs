@@ -34,9 +34,9 @@ const flush=async()=>{await new Promise(r=>setImmediate(r));await new Promise(r=
 const check=(condition,message)=>{assert.ok(condition,message);checks++;};
 const click=selector=>{assert.ok(doc.querySelector(selector),selector);doc.querySelector(selector).click();};
 const poll=async()=>{w.dispatchEvent(new w.Event('online'));await flush();};
-click('[data-view=repositories]');await flush();top=220;
+click('[data-view=files]');await flush();top=220;
 click('[data-folder=""]');await flush();
-check(w.location.hash==='#view=repositories&folder='&&doc.querySelector('#view-title').textContent==='Files','Files has a root route within the shared app shell.');
+check(w.location.hash==='#view=files'&&doc.querySelector('#view-title').textContent==='Files','Files has a root route within the shared app shell.');
 check(doc.querySelector('#local-breadcrumb').textContent==='repos'&&doc.querySelector('[data-folder=project]')&&doc.querySelector('[data-folder=ordinary]'),'The root shows actual sibling folders, including non-Git folders, under its real root name.');
 check(doc.querySelector('#local-results').textContent.includes('work')&&doc.querySelectorAll('[data-commit]').length===2&&!doc.querySelector('#local-results').textContent.includes('61'),'Working folders show their selected branch and only its tracked synchronization pair.');
 check(doc.querySelector('#file-filters').hidden,'Git filters are omitted at the estate root.');
