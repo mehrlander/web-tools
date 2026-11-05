@@ -18,8 +18,6 @@ This account has no self-hosted Claude Code Remote pool (`ccpool_`), as of
 - Remote Control (on a session started there) and Dispatch reach the laptop
   from the phone.
 
-The tracker's [`venue:` tag](TRACKER.md#two-conventional-open-tags-venue-and-action) names a channel, such as `cowork` or `daemon`, not a machines.csv key.
-
 Checked 2026-10-13 against this account's environments, the pull requests behind
 the `codex/` branches, and press reports of Anthropic's Cowork and Dispatch
 announcements.
