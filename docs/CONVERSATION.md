@@ -31,12 +31,6 @@ substituting the current repo in URL templates.
   `💬 [session](…/pages/session.html#id=<short>) · <N> files · [this turn](…/commit/<sha>)`
   `<short>` is the first eight characters of `$CLAUDE_CODE_SESSION_ID`. A reply that changed no files carries the link alone. Calculate `<N>` with `git diff origin/main...HEAD --name-only | wc -l`. Omit `this turn` on a single-commit branch. With no session archive checked out, there is no session file, so link the 🌿 branch in place of 💬. Mention files in prose only when something non-obvious must be said about them.
 
-* **SPUR.** Asked for a SPUR, a Summary of Proposal for Unfamiliar Reader, summarize the session's current proposal for someone who has not followed the session and knows none of the shorthand or coined terms the session uses.
-
-* **FAIR.** Asked for a FAIR, a Fresh Assessment of Intention and Reasoning, reassess the session's work from the reader's goal rather than from the current proposal: restate the goal, test whether the session's reasoning so far serves it, lay out the ways to reach the goal with the tradeoffs of each, and recommend one with its reason and the session's confidence. Write it, like a SPUR, for a reader who has not followed the session.
-
-* **CDE.** Concept, Definition, Examples: an order for explaining a term. A possible fourth letter is F, for Foil: the nearest case the term excludes, a non-example in the [Frayer model](https://en.wikipedia.org/wiki/Frayer_model).
-
 ## A reply that changed files
 
 * **Branch anchor.** The first reply that changes files begins with `Working branch: [branch-name](url)`. Code changes use GitHub flow on a branch with assistant prefixes (`claude/`, `codex/`, `gemini/`, `grok/`). Shared coordination state (task trackers, personal lists, session logs, crawl caches) uses Real-time mode directly on `main`. Include the assistant's commit trailer from [AGENTS.md](https://github.com/mehrlander/web-tools/blob/main/AGENTS.md#assistant-identity-and-attribution).
