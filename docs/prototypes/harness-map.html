@@ -36,7 +36,7 @@
 
   // Geometry, in SVG units drawn 1:1 with CSS pixels: on a phone the diagram
   // pans inside its own box rather than shrinking its type.
-  const PW = 380, KW = 210, HW = 220, ROW = 30, HEAD = 40, GAP = 22, TOP = 20, M = 20, G1 = 40, G2 = 60;
+  const PW = 380, KW = 236, HW = 220, ROW = 30, HEAD = 40, GAP = 22, TOP = 20, M = 20, G1 = 40, G2 = 60;
   const W = 2 * (M + PW + G1 + KW + G2) + HW;
   const X = { yours: M, ykey: M + PW + G1, hub: M + PW + G1 + KW + G2, hkey: W - M - PW - G1 - KW, hosted: W - M - PW };
 
@@ -47,7 +47,7 @@
     const h = HEAD + Math.max(1, ws.length) * ROW + 12;
     placeBoxes[side(p.venue)].push({ p, ws, errands, h });
   }
-  const stack = (list) => { let y = TOP + 34; for (const b of list) { b.y = y; y += b.h + GAP; } return y; };
+  const stack = (list) => { let y = TOP + 46; for (const b of list) { b.y = y; y += b.h + GAP; } return y; };
   const H = Math.max(stack(placeBoxes.yours), stack(placeBoxes.hosted)) + 10;
 
   // Each credential sits beside the places that hold it, at the height of
