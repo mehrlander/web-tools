@@ -18,7 +18,7 @@ The estate's goals are in [`aims.json`](aims.json), shown in Map → Docs → Pu
 
 ## Product boundary
 
-Views of the estate are built into the app. Views of repository content are app views, declared by the owning repo in `.web-tools.json` ([manifest.md](manifest.md)). A page with its own header and navigation, such as the [budget-drs app](https://github.com/mehrlander/home/tree/main/projects/budget-drs/app), is a full app and opens at its own address ([`fullApp`](manifest-fields.csv)).
+Views of the estate are built into the app. Views of repository content are app views, declared by the owning repo in `.web-tools.json` ([manifest.md](manifest.md)). A page with its own header and navigation, such as the [budget-drs app](https://github.com/mehrlander/home/tree/main/projects/budget-drs/app), is a full app and opens outside Web Tools ([`fullApp`](manifest-fields.csv)).
 
 The app browses and transfers files. `toss-render` runs pages. Artifacts publish snapshots to claude.ai ([artifacts.md](artifacts.md)).
 
