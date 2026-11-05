@@ -28,8 +28,8 @@ the copy a session reads, so the delivered rule was the weaker one, and 338 of
 
 ## Related
 
-- `node/test/surfacing-manifest.test.mjs`: lead-in-only membership gate that missed the drift
-- `docs/conversation.csv`: manifest rows whose `boundary` clauses should stay in the prose
+- Retired by web-tools #1221: `node/test/surfacing-manifest.test.mjs`, the lead-in-only membership gate that missed the drift
+- Retired by web-tools #1221: `docs/conversation.csv`, the manifest rows whose `boundary` clauses should stay in the prose
 - `docs/CONVERSATION.md`: prose bullets a session reads; source of the lost clause
 - `docs/docs.csv`: says summaries are paraphrases and deliberately unchecked
 - task `surplus-state-rate-reread-zyl265`: measures whether the restored close-order rule worked
