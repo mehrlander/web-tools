@@ -1,8 +1,7 @@
-venue,label,icon,gloss,reaches
+machine,label,icon,gloss,reaches
 anthropic-cloud,Anthropic's cloud,ph-cloud,"A cloud container on a fresh clone: Claude Code on the web, and Cowork on web and mobile.","a clone of each repository the session was started with, connectors, an allowlisted network, headless Chromium; none of your files"
 openai-cloud,OpenAI's cloud,ph-cloud,"Codex cloud tasks, in a container on a clone of a connected repo; unused here.",a clone of a connected repo; none of your files
 personal-laptop,Home laptop,ph-laptop,"The home laptop, as the signed-in user: Claude Code, Cowork, Antigravity, the Codex app and the laptop daemon run here.","the laptop as you: files, apps, browser, and fetched clones of the estate's repos under ~/gh"
 work-machine,Work machine,ph-desktop,"Your work computer, under work's rules; no agent runs there.","work files, under work's rules; code arrives by copy-paste from GitHub or the Web Tools app"
 actions-hosted,GitHub's runners,ph-github-logo,"GitHub-hosted runners, which GitHub Actions workflows run on.","open egress, CPU only, no local files"
-browser,Your browser,ph-browser,"The Web Tools app with your token, or GitHub's own website.",what the GitHub token stored in that browser reaches
 iphone,Your phone,ph-device-mobile,"Your iPhone: Shortcuts writing through Log-Repo, and pages opened from a link.",what the GitHub token stored on the device reaches

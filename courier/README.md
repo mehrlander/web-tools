@@ -28,7 +28,7 @@ writes `errands/results/<id>.json`, with a reason required on a decline.
   "run": {
     "script": "mehrlander/web-tools@main:sites/wsldocs.sos.wa.gov/courier/list-cafr.js",
     "method": "courier-bookmark",
-    "venue": "browser",
+    "venue": "personal-laptop",
     "outputType": "text"
   },
   "dest": "mehrlander/web-tools-private@main:courier/results",

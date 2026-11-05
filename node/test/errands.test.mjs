@@ -1,6 +1,6 @@
 // kits/errands.js: one record for everything a session needs a person's browser
 // for. What breaks without these: an old mailbox record read as the wrong kind
-// of errand; a run block the Stage would show with a venue or return route its
+// of errand; a run block the Stage would show with a machine or return route its
 // method cannot use; a grade saying green on a partial read or an unmet
 // expectation, which is the one line a person trusts before tapping; a signed
 // result that cannot find its errand; a decline closed without its reason.
@@ -50,16 +50,16 @@ test('normalize reads the older mailbox shapes as errands', () => {
   assert.equal(E.normalize(null), null);
 });
 
-test('normalize fills outputReturn, and a single venue, from the method registry', () => {
+test('normalize fills outputReturn, and a single machine, from the method registry', () => {
   const e = E.normalize({ id: 'x', note: 'n', dest: 'me/r:d', run: RUN });
   assert.equal(e.run.outputReturn, 'direct-to-clipboard');
   assert.equal(e.run.outputSigned, false, 'unsigned unless the record says true');
-  const c = E.normalize({ id: 'c', note: 'n', dest: 'me/r:d', url: 'https://x.example/',
-    run: { script: 'me/r@main:c.js', method: 'courier-bookmark' } });
-  assert.equal(c.run.venue, 'browser', 'a method with one venue supplies it');
-  assert.equal(c.run.outputReturn, 'courier-message');
+  const c = E.normalize({ id: 'c', note: 'n', dest: 'me/r:d',
+    run: { script: 'me/r@main:c.html', method: 'device-link' } });
+  assert.equal(c.run.venue, 'iphone', 'a method with one machine supplies it');
+  assert.equal(c.run.outputReturn, 'self-filed');
   const two = E.normalize({ id: 'p', note: 'n', dest: 'me/r:d', run: { script: 'me/r@main:p.ps1', method: 'ise-f5' } });
-  assert.equal(two.run.venue, '', 'a method with two venues does not pick one');
+  assert.equal(two.run.venue, '', 'a method with two machines does not pick one');
 });
 
 test('validate: a note on every errand, an action only for the Stage reads', () => {
@@ -84,7 +84,7 @@ test('validate refuses a run its method cannot perform', () => {
   assert.match(v({ ...RUN, script: 'ps/list.ps1' }).error, /owner\/repo@ref:path/);
   assert.match(v({ ...RUN, method: 'f5' }).error, /unknown run.method/);
   assert.match(v({ ...RUN, outputType: 'xml' }).error, /unknown run.outputType/);
-  const courier = { script: 'me/r@main:c.js', method: 'courier-bookmark' };
+  const courier = { script: 'me/r@main:c.js', method: 'courier-bookmark', venue: 'personal-laptop' };
   assert.match(v(courier).error, /url of its page/);
   assert.equal(v(courier, { url: 'https://x.example/' }).ok, true);
 });
@@ -163,7 +163,7 @@ test('withErrandId puts the id after # @file in PowerShell and first in JavaScri
 test('a computer-use errand carries a prompt: filled from the registry, headed by its id', () => {
   const e = E.normalize({ id: 'e3', note: 'probe', dest: 'me/r:out',
     run: { script: 'me/r@main:errands/prompts/e3.md', method: 'computer-use' } });
-  assert.equal(e.run.venue, 'personal-laptop', 'the one venue a computer-use agent runs on');
+  assert.equal(e.run.venue, 'personal-laptop', 'the one machine a computer-use agent runs on');
   assert.equal(e.run.outputReturn, 'report-pasted');
   assert.deepEqual(E.validate(e), { ok: true });
   assert.equal(E.withErrandId('Goal: probe.', 'computer-use', 'e3'), 'Errand: e3\n\nGoal: probe.',
