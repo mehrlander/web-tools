@@ -73,15 +73,15 @@ const MAP_ROUTES = [...routeKeys('MAP_TABS'), ...routeKeys('MAP_SUBVIEWS')];
 // Contents and Purpose) and Reach (what it covers: the routes diagram, which
 // Reach lands on and so shares its key with, then Projects, Distribution,
 // Outposts and Data). Icons joined Overview on 2026-10-23, Attributes joined
-// Data on 2026-10-29, and Programs moved from Harness to Overview on
-// 2026-11-01.
+// Data on 2026-10-29, Programs moved from Harness to Overview on
+// 2026-11-01, and Development joined Docs on 2026-11-05.
 const GROUPS = [
   ['Overview', [['overview', 'Contents'], ['aims', 'Purpose'], ['programs', 'Programs'], ['icons', 'Icons']]],
   ['Reach', [['reach', 'Routes'], ['projects', 'Projects'], ['distribution', 'Distribution'], ['outposts', 'Outposts']]],
   ['Research', [['research', 'Probes'], ['exploration', 'Exploration']]],
   ['Harness', [['harness', 'Automation'], ['set', 'Set'], ['tests', 'Tests'], ['skills', 'Skills'], ['agents', 'Agents'], ['peeves', 'Peeves'], ['context', 'Context'], ['lifetimes', 'Lifetimes'], ['surfacing', 'Surfacing']]],
   ['Browser', [['dimensions', 'Dimensions'], ['patterns', 'Gallery'], ['views', 'Views'], ['kits', 'Kits'], ['showing', 'Showing'], ['fab', 'FAB']]],
-  ['Docs', [['docs', 'Inventory'], ['growth', 'Growth'], ['policy', 'Policy'], ['themes', 'Themes']]],
+  ['Docs', [['docs', 'Inventory'], ['growth', 'Growth'], ['policy', 'Policy'], ['themes', 'Themes'], ['development', 'Development']]],
   ['Data', [['data', 'Tables'], ['attributes', 'Attributes']]],
   ['Watch', [['watch', 'Triggers'], ['public', 'Public'], ['names', 'Names']]],
 ];

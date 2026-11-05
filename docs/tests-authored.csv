@@ -62,6 +62,7 @@ node/test/concept-index.test.mjs,gate,A term declared canonical in a hub doc is 
 node/test/config-form.test.mjs,behavior,"The config form edits one manifest entry without restructuring the file, so an authored shape, an unrendered field, and a cleared key all survive an edit to something else."
 node/test/console-scan.test.mjs,behavior,The console scanner persists fresh records and dedups by key across passes.
 node/test/console-suite.test.mjs,behavior,"The console query language: chained scopes, staged selection, and the operators it documents."
+node/test/content-development.test.mjs,behavior,
 node/test/content-domains.test.mjs,gate,"docs/properties.csv's copy of the content registry's value domains, against the skill that owns them: a convenience copy that can drift is what this registry model exists to catch."
 node/test/content-registry.test.mjs,behavior,"The browser-side registry reader: quoted CSV parses header-driven, an exact file row beats any subtree and the longest prefix wins, and grouping leads with authored work, collapses mechanical, and carries a description only when one locator covers the group."
 node/test/context-sources.test.mjs,gate,"The context registry stays true to the tree: a hook added to hooks.json without a row, a path that no longer exists, an undeclared topic or a private half with drifted columns fails here instead of entering sessions unaccounted for."

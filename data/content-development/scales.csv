@@ -1,0 +1,9 @@
+scale,level,name,gloss
+held_as,prose,Prose,"Markdown or plain text, with no rows a builder or page reads."
+held_as,records,Records,"Rows in CSV or JSON that a builder or page reads."
+held_as,checked,Records with a check,"Records a committed check holds the display or its payload to."
+held_as,gold,Records with a gold set,"Checked records also scored against an independently labeled sample."
+shown_in,file,File,"Read as a file on GitHub or in a checkout; no page renders it."
+shown_in,page,Page,"A standalone HTML page, including a frozen study page."
+shown_in,appendix,Appendix,"Framed inside an app that does not own the page."
+shown_in,view,App view,"Rendered in an app's own document: a main view, a tab, or a Map subview."

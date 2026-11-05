@@ -120,6 +120,18 @@ coded `linked-swiper`.
 
 **13. Avoid modal dialogs.** Consider a panel-tip, the deck takeover (rule 4), or another more fluid alternative.
 
+**14. A figure draws a mechanism from data.** A diagram belongs on a page when it
+shows what a reader would otherwise assemble from prose: a flow, a sequence of
+states, the difference between two options. Draw it from a data file so it stays
+current. Let a grid place the boxes, so type stays at reading size, and let an
+SVG layer draw only the lines between them, measured from the boxes. Label each
+line, or number it against a list beside the figure; on a phone the lines go and
+the list says the same in words. The accent marks the path or option the figure
+is about (rule 10). The Map's
+[Routes](https://mehrlander.github.io/web-tools/app/?view=map&tab=reach) and
+[Development](https://mehrlander.github.io/web-tools/app/?view=map&tab=development)
+subviews are the reference.
+
 ## Handing a page over
 
 In a web-tools checkout, run `npm run showing`. Elsewhere, pick by what the

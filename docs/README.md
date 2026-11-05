@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `node/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 16 are named by CLAUDE.md,
-22 by a skill, 41 by a page or component. The remaining 35 are
+22 by a skill, 42 by a page or component. The remaining 35 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -77,6 +77,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`context-sources.csv`](context-sources.csv) — the context registry: everything that enters a session, where it is defined, how it arrives, and who can change it
 - [`context-topics.csv`](context-topics.csv) — the topics two or more context sources speak to, each with a verdict on whether the overlap is by design
 - [`context.md`](context.md) *(orphan)* — where a context-registry row goes, how topics and tally join it, and what the gate checks
+- [`content-development.md`](content-development.md) — how a piece of content moves from notes toward an app view: the two scales it sits on, how it is held and where it is shown, and when each move is worth its upkeep
 - [`showing-consolidation.md`](showing-consolidation.md) *(record, orphan)* — the 2026-09-27 to 09-29 plan and evidence log for selecting versions in a toss: scenarios, the frame-versus-top-mode comparison, the harness evidence, and the experiment ids (E1 to E12) that tests and code comments cite
 - [`outposts.md`](outposts.md) — outposts: places outside git that hold estate material, and the four parts every one is held by (declared, observed, check, upkeep)
 - [`outposts.csv`](outposts.csv) — the outposts registry: each place outside git that holds estate material, with its declaration, observation, check, record, outpost protocol and upkeep

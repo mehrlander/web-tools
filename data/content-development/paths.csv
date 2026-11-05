@@ -1,0 +1,7 @@
+example,seq,date,held_as,shown_in,state,evidence,move
+Information landscape,1,2026-08-13,prose,file,done,home:projects/wa-budget-landscape/README.md,pages pulled into Markdown
+Information landscape,2,2026-08-14,prose,appendix,done,home:projects/wa-budget-landscape/display/explorer.html,explorer framed as the Landscape appendix
+Information landscape,3,2026-11-05,checked,appendix,proposed,home:projects/wa-budget-landscape/README.md,one slice of claims lifted into checked rows
+Pension systems,1,2026-09,prose,file,done,home:projects/pension-landscape/README.md,source texts gathered
+Pension systems,2,2026-09,checked,file,done,home:projects/pension-landscape/tools/check.py,rows with quotes held by a check
+Pension systems,3,2026-10,checked,appendix,done,home:projects/pension-landscape/display/explorer.html,explorer framed as an appendix
