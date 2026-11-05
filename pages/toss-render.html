@@ -1061,7 +1061,7 @@ document.addEventListener('click',function(e){
   // Web Tools ref from libRef, which are the two names page boots read it by.
   // Then the fetch shim, so the page's relative runtime fetches resolve from
   // the repo.
-  function addressHtml(text, { owner, name, ref, depRef, path, pageQuery, lib, libAsked, top }) {
+  function addressHtml(text, { owner, name, ref, branch, depRef, path, pageQuery, lib, libAsked, top }) {
     // `ref` is the displayed file's version; `depRef` the ref the rest of its
     // repository defaults to (showAddress's depOf). One unless a path entry
     // chose the file's version alone.
@@ -1135,6 +1135,11 @@ document.addEventListener('click',function(e){
     if (lib) injected.use = lib;
     if (libAsked) prelude += '<script>window.__lib=' + JSON.stringify(libAsked) + ';<\/script>';
     if (ref) prelude += '<script>window.__ref=' + JSON.stringify(ref) + ';<\/script>';
+    // A pinned address's branch, beside its commit, so a top-level page's
+    // drawer can name the line a pin belongs to (fab.js refLine): __ref alone
+    // is the bare commit.
+    if (branch) prelude += '<script>window.__refBranch=' + JSON.stringify(branch)
+      + ';window.__refRepo=' + JSON.stringify(owner + '/' + name) + ';<\/script>';
     if (top) {
       // The page's address is this tab's real query, so the frame's scoped shim
       // does not apply; the top shim hides this renderer's `gh` and `top` from
@@ -1511,10 +1516,10 @@ document.addEventListener('click',function(e){
     // payload in the fragment, which must stay opaque in a frame.
     if (TOP && topHidden().some(k => k !== 'top' && param(k))) {
       topAddressInQuery(pageFrag);
-      return writeTop(addressHtml(looked, { owner, name, ref, depRef: depOf(''), path, pageQuery, lib, libAsked,
+      return writeTop(addressHtml(looked, { owner, name, ref, branch, depRef: depOf(''), path, pageQuery, lib, libAsked,
                                            top: { addr, repo: repoKey, path } }));
     }
-    showTrusted(addressHtml(looked, { owner, name, ref, depRef: depOf(''), path, pageQuery, lib, libAsked }),
+    showTrusted(addressHtml(looked, { owner, name, ref, branch, depRef: depOf(''), path, pageQuery, lib, libAsked }),
       'Toss · ' + name + (ref ? '@' + ref : '') + '/' + path, addr, pageFrag);
     // A pinned address's branch rides on the subject, so the FAB can tell
     // whether that branch has moved past the commit on screen.
