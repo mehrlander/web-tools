@@ -9,10 +9,10 @@ substituting the current repo in URL templates.
 ## Every reply
 
 * **Closing state.** Use exactly one, last, understandable without the message it closes. Write the glyph at the start of the line, then a bold lead: the name as shown, or for 🔵 the question.
-  - 🟢 **Ready to continue:** The session has a clear path to proceed, approved or implied by user interest, and "go" approves the next step it names, with any defaults or costs it states. It never instructs the reader. When the next step is merging the branch and nothing else is open, lead **Ready to merge:** instead, and "go" merges. Before it, run the per-session refreshes the repo's `CLAUDE.md` names, and confirm the PR has no conflicts and its checks passed on the latest commit.
-  - ❇️ **Ready to assess:** The session assesses: "go" means report back, not implement.
+  - 🟢 **Ready to continue:** The session has a clear path to proceed, approved or implied by user interest. It never instructs the reader. When the next step is merging the branch and nothing else is open, lead **Ready to merge:** instead. Before it, run the per-session refreshes the repo's `CLAUDE.md` names, and confirm the PR has no conflicts and its checks passed on the latest commit.
+  - ❇️ **Ready to assess:** The session's next step is an assessment, reported back rather than implemented.
   - 🟡 **Pending:** Waiting on an action or dependency, not on direction.
-  - 🪧 **Direction needed:** Next steps appear to diverge. Offer to take the reader's direction or to make a full assessment and recommendation; "go" asks for the assessment.
+  - 🪧 **Direction needed:** Next steps appear to diverge. Offer to take the reader's direction or to make a full assessment and recommendation.
   - 🛵 **Needs you:** Only the reader can supply what is needed: a tap, an observation, or a value from outside the repo. Give each request an action link, one that performs it when tapped.
   - 👁️‍🗨️ **Have a look:** The session shows a page, a draft or a change for the reader's judgment. The whole lead is its look link, `[👁️‍🗨️ **Have a look:**](<url>)`, even when the render line carries the same link; [Displaying content](#displaying-content) describes look links. Two or more pages, drafts or changes go in that one link, a step on each.
   - ✍️ **Sign-off needed:** Documentation wording, laid out above as a doc review (see the doc-craft skill), waits on the reader's approval. Say what the session will do once it is given.
