@@ -10,6 +10,7 @@ CompanionAccess.Ensure();
 var collector = new ActivityCollector();
 var computer = new ComputerReader();
 var repositories = new RepositoryReader();
+var folders = new FolderReader();
 using var stereo = new StereoBridgeClient();
 var builder = WebApplication.CreateSlimBuilder(args);
 builder.Logging.ClearProviders();
@@ -94,6 +95,11 @@ app.MapPost("/api/v1/repositories/{key}/fetch", (string key) => {
     var status = repositories.RequestFetch(key);
     return Results.Json(new { accepted = status == 202 }, json, statusCode: status);
 });
+app.MapGet("/api/v1/files", async (HttpContext context) => {
+    if (context.Request.Query.Any(p => p.Key != "path" || p.Value.Count != 1)) return Results.BadRequest();
+    var result = await folders.Read(context.Request.Query["path"].ToString(), context.RequestAborted);
+    return result.Value is { } value ? Results.Json(value, json) : Results.StatusCode(result.Status);
+});
 app.MapPost("/api/v1/devices/stereo/{action}", async (HttpContext context, string action) => {
     var result = await stereo.Execute(action, context.RequestAborted);
     return Results.Json(new { result.Ok, result.Message }, json, statusCode: result.Status);
@@ -101,7 +107,7 @@ app.MapPost("/api/v1/devices/stereo/{action}", async (HttpContext context, strin
 app.MapGet("/api/v1/results/{id}", (string id) => collector.Latest is { } activity && Activity.ValidId(id)
     && PhoneActivity.Reply(activity.Snapshot, id) is { } reply ? Results.Json(new { reply }, json) : Results.NotFound());
 
-// Explicit assets only. No file browsing, arbitrary path, diagnostics or settings route.
+// Explicit assets only. Folder metadata has its own root-bound API.
 var assets = new Dictionary<string, (string File, string Type)> {
     ["/"] = ("index.html", "text/html; charset=utf-8"),
     ["/phone.js"] = ("phone.js", "text/javascript; charset=utf-8"),

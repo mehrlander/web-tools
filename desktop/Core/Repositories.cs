@@ -14,3 +14,7 @@ public record RepositoryGroup(string Key, string Name, string? Url, DateTimeOffs
     DateTimeOffset? AttemptedAt, string? Notice, List<RepositoryCheckout> Checkouts);
 public record RepositorySnapshot(int SchemaVersion, string MachineName, DateTimeOffset ObservedAt,
     List<RepositoryGroup> Repositories, List<string> Refreshing, string? Notice = null);
+public record FolderEntry(string Name, string Kind, string? GitState, long? Bytes,
+    DateTimeOffset ModifiedAt, string? Role);
+public record FolderSnapshot(int SchemaVersion, string RootName, string Path, DateTimeOffset ObservedAt,
+    string State, List<FolderEntry> Entries, bool Partial, string? Notice);

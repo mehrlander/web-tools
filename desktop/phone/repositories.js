@@ -23,7 +23,10 @@
         return `<span data-commit="${key}:${direction}" tabindex="0" data-title-tip="${escape(tip)}" data-title-tip-bare aria-label="${escape(tip)}" class="inline-flex min-h-6 min-w-6 cursor-pointer items-center justify-center gap-0.5 ${direction==='ahead'&&count?'text-[color:var(--color-success,#047857)]':'text-stone-600'}"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" class="size-3" aria-hidden="true"><path d="${direction==='ahead'?'M8 13V3m-4 4 4-4 4 4':'M8 3v10m-4-4 4 4 4-4'}"/></svg><span aria-hidden="true">${count.toLocaleString()}</span></span>`;
       }).join('')}</span>`;
     }
-    return `<span class="text-stone-500">${escape(({'not-checked':'Not checked','no-upstream':'No GitHub tracking branch','remote-missing':'Branch missing on GitHub','fetch-needed':'Check needed','incomplete-history':'Limited history','unrelated-history':'Separate histories'})[value?.state]||'Comparison unavailable')}</span>`;
+    const target='GitHub '+(value?.branch||'tracking branch');
+    const label=({'not-checked':'Not checked','no-upstream':'No GitHub tracking branch','remote-missing':'Branch missing on GitHub','fetch-needed':'Check needed','incomplete-history':'Limited history','unrelated-history':'Separate histories'})[value?.state]||'Comparison unavailable';
+    const tip=({'no-upstream':'No tracked GitHub branch is configured.','unrelated-history':`The local branch and ${target} have separate commit histories.`,'incomplete-history':`Limited history prevents comparison with ${target}.`,'remote-missing':`${target} was absent at the last check.`,'not-checked':`${target} has not been checked.`,'fetch-needed':`Check GitHub to compare with ${target}.`})[value?.state]||`Could not compare with ${target}.`;
+    return `<span data-commit="${key}:state" tabindex="0" data-title-tip="${escape(tip)}" data-title-tip-bare class="text-[11px] text-stone-500">${escape(label)}</span>`;
   }
   const refresh='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="size-3.5 shrink-0" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5M5.3 8a7 7 0 0 1 11.6-3L20 8M4 16l3.1 3A7 7 0 0 0 18.7 16"/></svg>';
   const branch='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" class="mt-1 size-3 shrink-0 text-stone-500" aria-hidden="true"><circle cx="4" cy="3" r="1.5"/><circle cx="4" cy="13" r="1.5"/><circle cx="12" cy="3" r="1.5"/><path d="M4 4.5v7M12 4.5A5 5 0 0 1 7 9.5H4"/></svg>';
@@ -31,13 +34,10 @@
   function row(repo){
     const href=url(repo),name=repo.name.replace(/^[^/]+\//,''),busy=sending===repo.key||sending==='all'||fresh()&&data.refreshing.includes(repo.key);
     const details=repo.checkouts.map(c=>{
-      const same=c.tracked.branch&&c.tracked.branch===c.main.branch;
       const inventoryShowsUntracked=c.localFiles?.state==='ready'&&c.localFiles.entries.some(e=>e.gitState==='untracked');
       const changes=c.changed===null||c.untracked===null?'Local status unavailable':[c.changed?c.changed+' changed '+(c.changed===1?'file':'files'):'',c.untracked&&!inventoryShowsUntracked?c.untracked+' untracked '+(c.untracked===1?'file':'files'):'',c.conflicts?c.conflicts+' conflicts':''].filter(Boolean).join(' · ');
       const localBranch=escape(c.branch==='(detached)'?'Detached':c.branch||'Branch unavailable');
-      const reference=same||c.tracked.branch&&c.tracked.branch!==c.branch?'GitHub '+escape(c.tracked.branch||c.main.branch):'GitHub branch';
-      const line=(label,value,kind)=>`<div class="flex min-w-0 items-center gap-x-1"><dt class="min-w-0 break-all text-[11px] text-stone-600">${label}</dt><dd>${comparison(value,c.key+':'+kind)}</dd></div>`;
-      return `<li data-checkout="${c.key}" class="min-w-0 py-1.5 first:pt-0 last:pb-0"><p data-local-folder class="break-all text-xs font-medium leading-5 text-stone-800">${escape(c.name)}</p><div class="pl-3"><p data-local-branch class="flex min-w-0 items-start gap-1.5 text-xs leading-5 text-stone-600">${branch}<span class="min-w-0 break-all">${localBranch}</span></p><dl class="flex flex-wrap gap-x-3 text-xs leading-5">${line(reference,c.tracked,'tracked')}${same?'':line(escape(c.main.branch?'GitHub '+c.main.branch:'GitHub default'),c.main,'main')}</dl>${changes?`<p class="text-xs leading-5 ${c.conflicts?'text-red-800':'text-amber-800'}">${escape(changes)}</p>`:''}</div>${window.NowLocalFiles?.summary(c)||''}</li>`;
+      return `<li data-checkout="${c.key}" class="min-w-0 py-1.5 first:pt-0 last:pb-0"><p data-local-folder class="break-all text-xs font-medium leading-5 text-stone-800">${escape(c.name)}</p><div class="pl-3"><div data-local-branch class="flex min-w-0 flex-wrap items-center gap-x-2 text-xs leading-5 text-stone-600"><span class="flex min-w-0 items-start gap-1.5">${branch}<span class="min-w-0 break-all">${localBranch}</span></span>${comparison(c.tracked,c.key+':tracked')}</div>${changes?`<p class="text-xs leading-5 ${c.conflicts?'text-red-800':'text-amber-800'}">${escape(changes)}</p>`:''}</div>${window.NowLocalFiles?.summary(c)||''}</li>`;
     }).join('');
     const checked=repo.checkedAt?ago(repo.checkedAt).replace('just now','now'):'not checked',old=repo.checkedAt&&Date.now()-Date.parse(repo.checkedAt)>600000;
     return `<article data-repository="${repo.key}" class="relative border-b border-stone-200 bg-white px-3 pb-2"><div class="flex min-h-8 items-center gap-2 pr-8"><h2 class="min-w-0 flex-1 break-words text-sm font-semibold">${escape(name)}</h2><span data-github-time class="shrink-0 text-[11px] ${old?'text-amber-800':'text-stone-600'}" aria-label="${repo.checkedAt?'GitHub last checked '+escape(stamp(repo.checkedAt)):'GitHub not checked'}">GitHub · ${escape(checked)}</span>${href?`<button data-menu="${repo.key}" aria-label="Actions for ${escape(repo.name)}" aria-haspopup="menu" aria-expanded="${menu===repo.key}" aria-controls="repo-menu-${repo.key}" class="absolute right-0 top-0 flex min-h-11 w-11 shrink-0 items-center justify-center rounded-lg text-stone-600 hover:bg-stone-100"><svg viewBox="0 0 24 24" fill="currentColor" class="size-5" aria-hidden="true"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg></button><div id="repo-menu-${repo.key}" data-repo-menu="${repo.key}" ${menu===repo.key?'':'hidden'} role="menu" aria-label="Actions for ${escape(repo.name)}" class="absolute right-1 top-11 z-20 w-52 max-w-[calc(100vw-0.5rem)] rounded-xl border border-stone-200 bg-white p-1 shadow-lg"><button role="menuitem" data-fetch="${repo.key}" ${fresh()&&!sending&&!busy?'':'disabled'} class="block min-h-11 w-full rounded-lg px-3 py-2 text-left text-sm text-sky-800 hover:bg-stone-50 disabled:text-stone-400"><span class="block font-medium">${busy?'Checking GitHub…':'Check GitHub now'}</span></button><a role="menuitem" data-github="${repo.key}" href="${href}" target="_blank" rel="noopener noreferrer" class="flex min-h-11 items-center justify-between gap-2 rounded-lg px-3 text-sm text-sky-800 hover:bg-stone-50">Open on GitHub ${external}</a></div>`:''}</div>${repo.notice?`<p class="mb-1 text-xs text-amber-800">${escape(repo.notice)}</p>`:''}<ul class="divide-y divide-stone-100">${details}</ul></article>`;
@@ -45,16 +45,18 @@
   function render(){
     if(!active)return;
     const viewport={x:scrollX,y:scrollY},focus=document.activeElement,helpFocus=focus?.id==='repository-info',action=['menu','fetch','github','files','commit'].find(key=>focus?.dataset[key]),key=action&&focus.dataset[action],tip=el('repositories').querySelector('[data-commit][aria-describedby="wt-title-tip"]')?.dataset.commit;
-    if(!data){window.TitleTip?.close();el('repositories').innerHTML=`<p class="px-3 py-4 text-sm text-stone-500">${denied?'Access unavailable. Connect with your Tailscale account.':failed?'Repository readings unavailable. Waiting for the laptop.':'Reading local folders…'}</p>`;connection();return;}
+    if(!data){window.NowLocalFiles?.stop(denied);window.TitleTip?.close();el('repositories').innerHTML=`<p class="px-3 py-4 text-sm text-stone-500">${denied?'Access unavailable. Connect with your Tailscale account.':failed?'Repository readings unavailable. Waiting for the laptop.':'Reading local folders…'}</p>`;connection();return;}
     el('machine').textContent=data.machineName;
     if(selected){
-      window.NowLocalFiles.render(data,selected,fresh());
+      const path=selected.startsWith('folder:')?selected.slice(7):data.repositories.flatMap(r=>r.checkouts).find(c=>c.key===selected)?.name;
+      window.NowLocalFiles.render(data,path??'',fresh());
       if(scrollX!==viewport.x||scrollY!==viewport.y)scrollTo(viewport.x,viewport.y);
       connection();return;
     }
+    window.NowLocalFiles?.stop();
     window.NowLocalFiles?.header(false);
     const count=data.repositories.reduce((sum,r)=>sum+r.checkouts.length,0),busy=fresh()&&data.refreshing.length>0||sending;
-    el('repositories').innerHTML=`<div class="relative px-3"><div class="flex min-h-11 items-center justify-between gap-1"><div class="flex min-w-0 items-center"><p class="text-xs text-stone-600">${data.repositories.length} ${data.repositories.length===1?'repo':'repos'} · ${count} ${count===1?'folder':'folders'}</p><button id="repository-info" aria-label="About repository checks" aria-expanded="${help}" aria-controls="repository-help" class="flex size-8 shrink-0 items-center justify-center text-stone-500"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="size-3.5" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v1"/></svg></button></div><button data-fetch="all" aria-label="Check all repositories on GitHub" aria-busy="${Boolean(busy)}" ${fresh()&&!busy&&data.repositories.some(r=>url(r))?'':'disabled'} class="flex min-h-11 shrink-0 items-center gap-1 text-xs font-medium text-sky-800 disabled:text-stone-400"><span class="${busy?'animate-spin':''}">${refresh}</span>Check GitHub</button></div><div id="repository-help" ${help?'':'hidden'} role="note" class="absolute left-3 right-3 top-10 z-20 rounded-xl border border-stone-200 bg-white p-3 text-xs leading-5 text-stone-600 shadow-lg"><p>Live: connected to the laptop.</p><p>Folders are local working copies.</p><p>Comparisons count commits. File edits appear separately.</p><p>GitHub checks run automatically. Check GitHub refreshes those comparisons; local branches and files stay unchanged.</p></div>${!fresh()?'<p class="pb-1 text-xs text-amber-800">Saved data · GitHub checks unavailable.</p>':''}${data.notice?`<p class="pb-1 text-xs text-amber-800">${escape(data.notice)}</p>`:''}<p role="status" class="empty:hidden pb-1 text-[11px] text-sky-800">${escape(message)}</p></div>${data.repositories.map(row).join('')}${!count?'<p class="px-3 py-3 text-sm text-stone-500">No local folders observed.</p>':''}`;
+    el('repositories').innerHTML=`<div class="relative px-3"><div class="flex min-h-11 items-center justify-between gap-1"><div class="flex min-w-0 items-center"><p class="text-xs text-stone-600">${data.repositories.length} ${data.repositories.length===1?'repo':'repos'} · ${count} ${count===1?'folder':'folders'}</p><button data-folder="" aria-label="Browse repository root folder" class="ml-1 flex min-h-9 items-center gap-1 px-1 text-xs font-medium text-emerald-800"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="size-4" aria-hidden="true"><path d="M3 7V5h7l2 2h9v13H3Z"/></svg>Files</button><button id="repository-info" aria-label="About repository checks" aria-expanded="${help}" aria-controls="repository-help" class="flex size-8 shrink-0 items-center justify-center text-stone-500"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="size-3.5" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v1"/></svg></button></div><button data-fetch="all" aria-label="Check all repositories on GitHub" aria-busy="${Boolean(busy)}" ${fresh()&&!busy&&data.repositories.some(r=>url(r))?'':'disabled'} class="flex min-h-11 shrink-0 items-center gap-1 text-xs font-medium text-sky-800 disabled:text-stone-400"><span class="${busy?'animate-spin':''}">${refresh}</span><span class="hidden sm:inline">Check GitHub</span></button></div><div id="repository-help" ${help?'':'hidden'} role="note" class="absolute left-3 right-3 top-10 z-20 rounded-xl border border-stone-200 bg-white p-3 text-xs leading-5 text-stone-600 shadow-lg"><p>Live: connected to the laptop.</p><p>Each working folder has one selected branch, or a detached commit.</p><p>Arrows compare that branch with its tracked GitHub counterpart. File edits appear separately.</p><p>GitHub checks run automatically. Check GitHub refreshes those comparisons; local branches and files stay unchanged.</p></div>${!fresh()?'<p class="pb-1 text-xs text-amber-800">Saved data · GitHub checks unavailable.</p>':''}${data.notice?`<p class="pb-1 text-xs text-amber-800">${escape(data.notice)}</p>`:''}<p role="status" class="empty:hidden pb-1 text-[11px] text-sky-800">${escape(message)}</p></div>${data.repositories.map(row).join('')}${!count?'<p class="px-3 py-3 text-sm text-stone-500">No local folders observed.</p>':''}`;
     if(helpFocus)el('repository-info')?.focus({preventScroll:true});
     if(action)[...el('repositories').querySelectorAll(`[data-${action}]`)].find(n=>n.dataset[action]===key&&!n.disabled)?.focus({preventScroll:true});
     if(tip){const trigger=[...el('repositories').querySelectorAll('[data-commit]')].find(n=>n.dataset.commit===tip);if(trigger)window.TitleTip?.open(trigger);else window.TitleTip?.close();}
@@ -94,17 +96,21 @@
   function route(enter=false){
     if(!active)return;
     const params=new URLSearchParams(location.hash.slice(1));if(params.get('view')!=='repositories')return;
-    const key=params.get('checkout')||'',next=/^[a-f0-9]{24}$/.test(key)?key:'';
+    const key=params.get('checkout')||'',next=params.has('folder')?'folder:'+params.get('folder'):/^[a-f0-9]{24}$/.test(key)?key:'';
     if(next!==selected){if(!enter)remember();selected=next;setMenu('');setHelp(false);window.TitleTip?.close();render();scrollTo(0,positions.get(selected)||0);}
     else {render();if(enter)scrollTo(0,positions.get(selected)||0);}
   }
   function openFiles(key){
-    if(!data?.repositories.some(r=>r.checkouts.some(c=>c.key===key)))return;
-    history.pushState({localFiles:true},'','#view=repositories&checkout='+key);route();
+    const checkout=data?.repositories.flatMap(r=>r.checkouts).find(c=>c.key===key);if(!checkout)return;
+    openFolder(checkout.name);
+  }
+  function openFolder(path){
+    history.pushState({localFiles:true},'','#view=repositories&folder='+encodeURIComponent(path));route();
   }
   function back(){
     if(history.state?.localFiles){history.back();return;}
-    history.replaceState(null,'','#view=repositories');route();
+    const path=selected.startsWith('folder:')?selected.slice(7):'';
+    history.replaceState(null,'',path?'#view=repositories&folder='+encodeURIComponent(path.split('/').slice(0,-1).join('/')):'#view=repositories');route();
   }
   document.addEventListener('click',event=>{
     if(!active)return;
@@ -112,6 +118,7 @@
     if(!event.target.closest('#repository-help'))setHelp(false);
     if(event.target.closest('#repository-back')){back();return;}
     const files=event.target.closest('[data-files]');if(files){openFiles(files.dataset.files);return;}
+    const folder=event.target.closest('[data-folder]');if(folder){openFolder(folder.dataset.folder);return;}
     const button=event.target.closest('[data-menu],[data-fetch],[data-github]');
     if(button?.dataset.menu){setMenu(menu===button.dataset.menu?'':button.dataset.menu);return;}
     if(button?.dataset.fetch&&!button.disabled){const key=button.dataset.fetch;setMenu('',true);fetchRepo(key);return;}
@@ -140,5 +147,5 @@
   window.addEventListener('popstate',()=>route());window.addEventListener('hashchange',()=>route());
   window.addEventListener('online',poll);window.addEventListener('offline',()=>{connected=false;render();});
   try{const prior=JSON.parse(localStorage.getItem('web-tools-repositories-snapshot'));if(valid(prior))data=prior;}catch{}
-  window.NowRepositories={connection,setActive:value=>{const prior=active;if(prior&&!value)remember();active=value;clearTimeout(timer);clearTimeout(staleTimer);if(active){route(!prior);poll();}else {setMenu('');setHelp(false);window.TitleTip?.close();window.NowLocalFiles?.header(false,false);}}};
+  window.NowRepositories={connection,comparison,setActive:value=>{const prior=active;if(prior&&!value)remember();active=value;clearTimeout(timer);clearTimeout(staleTimer);if(active){route(!prior);poll();}else {setMenu('');setHelp(false);window.TitleTip?.close();window.NowLocalFiles?.stop();window.NowLocalFiles?.header(false,false);}}};
 })();

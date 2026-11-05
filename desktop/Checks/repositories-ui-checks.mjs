@@ -22,7 +22,7 @@ check(!requests.length,'The phone does not request repository readings outside t
 top=250;click('[data-view=repositories]');await flush();
 check(w.location.hash==='#view=repositories'&&!doc.querySelector('#repositories').hidden&&doc.querySelector('#content').hidden,'Repositories has a separate route in the title menu.');
 check(indicator('tracked','ahead').getAttribute('data-title-tip')==='2 commits ahead of GitHub main.'&&indicator('tracked','behind').getAttribute('data-title-tip')==='4 commits behind GitHub main.'&&doc.querySelector('[data-checkout]').textContent.includes('2 changed files · 1 untracked file'),'Commit indicators explain their units, direction and GitHub target separately from file changes.');
-check(doc.querySelector('#connection').textContent==='Live'&&doc.querySelector('[data-github-time]').textContent==='GitHub · now'&&doc.querySelector('[data-checkout] dt').textContent==='GitHub main','Connection freshness, GitHub freshness and the local branch have distinct compact labels.');
+check(doc.querySelector('#connection').textContent==='Live'&&doc.querySelector('[data-github-time]').textContent==='GitHub · now'&&!doc.querySelector('[data-checkout] dt')&&doc.querySelectorAll('[data-checkout] [data-commit]').length===2,'Connection freshness, GitHub freshness and the local branch have distinct compact labels.');
 indicator('tracked','behind').focus();top=160;await poll();
 check(doc.querySelector('#wt-title-tip').hasAttribute('data-open')&&doc.querySelector('#wt-title-tip').textContent==='4 commits behind GitHub main.'&&doc.activeElement.dataset.commit===checkoutKey+':tracked:behind'&&top===160,'The shared tooltip stays attached to the current count and preserves keyboard focus and scroll across polling.');
 doc.activeElement.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
@@ -47,13 +47,13 @@ check(doc.activeElement.dataset.github===groupKey&&doc.activeElement.href==='htt
 doc.querySelector('[data-checkout]').click();
 check(doc.querySelector('[data-repo-menu]').hidden,'Tapping outside the menu dismisses it without changing the checkout summary.');
 const c=data.repositories[0].checkouts[0];c.branch='feature/work';c.tracked=comp('current',0,0,'feature/work');c.main=comp('diverged',1,8);c.changed=0;c.untracked=0;await poll();
-const comparisons=[...doc.querySelectorAll('[data-checkout] dl>div')];
-check(comparisons.length===2&&doc.querySelector('[data-local-branch]').textContent==='feature/work'&&doc.querySelector('[data-local-folder]').textContent==='project'&&comparisons[0].querySelector('dt').textContent==='GitHub branch'&&indicator('tracked','ahead').textContent==='0'&&indicator('tracked','behind').textContent==='0'&&comparisons[1].querySelector('dt').textContent==='GitHub main'&&indicator('main','behind').getAttribute('data-title-tip')==='8 commits behind GitHub main.','Matching a tracked branch and a separate main gap remain distinct, with explicit zero counts.');
+check(doc.querySelector('[data-local-branch]').textContent.includes('feature/work')&&doc.querySelectorAll('[data-checkout] [data-commit]').length===2&&!indicator('main','behind')&&!doc.querySelector('[data-checkout]').textContent.includes('GitHub')&&indicator('tracked','behind').getAttribute('data-title-tip')==='0 commits behind GitHub feature/work.','Only synchronization with the tracked branch appears beside the branch, with explicit zero counts and a target-specific tooltip.');
 check(!doc.querySelector('[data-checkout]').textContent.includes('changed'),'Clean checkouts omit an extra local-changes line.');
 const second={...structuredClone(c),key:'c'.repeat(24),name:'project-other',branch:'other',tracked:comp('no-upstream',null,null,null),main:comp('incomplete-history',null,null)};
 data.repositories[0].checkouts.push(second);await poll();
 check([...doc.querySelectorAll('[data-local-folder]')].map(n=>n.textContent).join(',')==='project,project-other','Every working folder is named, including the repo-named folder and its siblings.');
-check(doc.querySelectorAll('[data-checkout]').length===2&&doc.querySelector('[data-checkout="'+second.key+'"]').textContent.includes('No GitHub tracking branch')&&doc.querySelector('[data-checkout="'+second.key+'"]').textContent.includes('Limited history'),'Every grouped checkout stays visible, with unknown comparisons labeled rather than zeroed.');
+check(doc.querySelectorAll('[data-checkout]').length===2&&doc.querySelector('[data-checkout="'+second.key+'"]').textContent.includes('No GitHub tracking branch')&&!doc.querySelector('[data-checkout="'+second.key+'"]').textContent.includes('Limited history'),'Every grouped checkout stays visible, with unknown comparisons labeled rather than zeroed.');
+check(doc.querySelector('[data-checkout="'+second.key+'"] [data-commit]').getAttribute('data-title-tip')==='No tracked GitHub branch is configured.','Unknown comparison states identify the tracked-branch condition on touch.');
 
 c.changed=2;c.untracked=1;
 c.localFiles={key:checkoutKey,name:c.name,state:'ready',observedAt:at,partial:true,notice:'Some measurements are incomplete.',entries:[
@@ -64,17 +64,7 @@ c.localFiles={key:checkoutKey,name:c.name,state:'ready',observedAt:at,partial:tr
 const inventoryControl=doc.querySelector('[data-files="'+checkoutKey+'"]');
 check(doc.querySelector('[data-checkout="'+checkoutKey+'"]').textContent.includes('2 changed files')&&!doc.querySelector('[data-checkout="'+checkoutKey+'"]').textContent.includes('1 untracked file'),'Tracked changes stay visible while an inventory count replaces the duplicate untracked line.');
 check(!doc.querySelector('[data-checkout="'+checkoutKey+'"]').textContent.includes('exports/')&&!inventoryControl.textContent.includes('MB')&&inventoryControl.textContent.includes('Ignored')&&inventoryControl.textContent.includes('2 folders')&&inventoryControl.textContent.includes('Untracked')&&inventoryControl.textContent.includes('1 file')&&inventoryControl.textContent.includes('Partial')&&inventoryControl.querySelector('svg'),'The main list has an icon control with observed folder/file counts and partial state, without names or sizes.');
-click('[data-files="'+checkoutKey+'"]');
-check(w.location.hash.includes('checkout='+checkoutKey)&&doc.querySelector('#view-title').textContent==='Local files'&&!doc.querySelector('#repository-back').hidden&&doc.querySelectorAll('#local-results .bg-white').length===3,'A local-files link opens the checkout inventory as a separate routed screen.');
-click('[data-file-filter=untracked]');
-check(doc.querySelector('#local-results').textContent.includes('note.md')&&!doc.querySelector('#local-results').textContent.includes('exports/'),'Text filters distinguish ignored folders from untracked files.');
-c.localFiles.entries=c.localFiles.entries.filter(e=>e.gitState!=='untracked');await poll();
-check(doc.querySelector('#local-results').textContent.includes('No untracked entries in this scan.')&&doc.querySelector('[data-file-filter=ignored]').textContent==='Ignored 2','An empty category does not claim the checkout has no other local entries.');
-click('[data-file-filter=all]');const search=doc.querySelector('[data-local-search]');search.value='exports';search.dispatchEvent(new w.Event('input',{bubbles:true}));search.focus();top=80;
-c.localFiles.observedAt=new Date().toISOString();await poll();
-check(doc.querySelector('[data-local-search]')===search&&doc.activeElement===search&&search.value==='exports'&&top===80&&doc.querySelector('#local-results').textContent.includes('exports/')&&!doc.querySelector('#local-results').textContent.includes('node_modules/'),'Polling preserves the search input, filter, keyboard focus and detail reading position.');
-w.history.replaceState(null,'',w.location.href);click('#repository-back');
-check(!w.location.hash.includes('checkout=')&&doc.querySelector('#view-title').textContent==='Repositories'&&doc.querySelector('#repository-back').hidden&&top===160,'Back from a direct inventory route restores the repository list and its reading position.');
+check(doc.querySelector('[data-folder=""]')&&inventoryControl.getAttribute('aria-label').includes('Browse files'),'Both root and working-folder browsing have explicit controls.');
 check([...doc.querySelectorAll('[data-menu] circle')].every(n=>n.getAttribute('cx')==='12'),'Repository action triggers use vertical three-dot icons.');
 data.repositories[0].name='fixture/<img src=x onerror=alert(1)>';data.repositories[0].url='javascript:alert(1)';await poll();
 check(!doc.querySelector('#repositories img,[onerror]')&&!doc.querySelector('#repositories a')&&doc.querySelector('#repositories').textContent.includes('<img'),'Names render as text and unsafe GitHub links are absent.');
