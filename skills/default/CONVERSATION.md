@@ -33,6 +33,8 @@ substituting the current repo in URL templates.
 
 * **SPUR.** Asked for a SPUR, a Summary of Proposal for Unfamiliar Reader, summarize the session's current proposal for someone who has not followed the session and knows none of the shorthand or coined terms the session uses.
 
+* **FAIR.** Asked for a FAIR, a Fresh Assessment of Intention and Reasoning, reassess the session's work from the reader's goal rather than from the current proposal: restate the goal, test whether the session's reasoning so far serves it, lay out the ways to reach the goal with the tradeoffs of each, and recommend one with its reason and the session's confidence. Write it, like a SPUR, for a reader who has not followed the session.
+
 * **CDE.** Concept, Definition, Examples: an order for explaining a term. A possible fourth letter is F, for Foil: the nearest case the term excludes, a non-example in the [Frayer model](https://en.wikipedia.org/wiki/Frayer_model).
 
 ## A reply that changed files
