@@ -310,3 +310,14 @@ test('a table peek names its size in the header and gives each column a pill', (
   assert.match(html, /data-peek-col="id"/);
   assert.match(html, /data-peek-col="a &quot;b&quot;"/);
 });
+
+// An image is seeded as a URL with kind 'image' and drawn whole inside the
+// card, fitted rather than cropped to the card's height.
+test('an image seeded by URL peeks as the picture, fitted and escaped', async () => {
+  SP.seed('shot.png', 'blob:x/1', 'image');
+  assert.equal(SP.cached('shot.png'), 'blob:x/1', 'a seeded picture paints without a Loading pass');
+  assert.equal((await SP.read('shot.png')).kind, 'image');
+  const html = SP.imageHtml('blob:x/"1');
+  assert.match(html, /<img src="blob:x\/&quot;1"/);
+  assert.match(html, /max-w-full max-h-\[24rem\]/);
+});
