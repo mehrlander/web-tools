@@ -240,8 +240,9 @@ test('the two sub-tab encodings, counted', () => {
   // 46 to 47 on 2026-10-27: Browser took FAB, the FAB's signals, which had
   // been a legend on Showing.
   // 47 to 48 on 2026-10-29: Data took Attributes, what .gitattributes gives
-  // each file.
-  assert.equal(params, 48, 'sub-tabs addressed as ?view=<parent>&tab=');
+  // each file. 48 to 49 on 2026-11-05: Docs took Development, worked examples
+  // of content on two scales.
+  assert.equal(params, 49, 'sub-tabs addressed as ?view=<parent>&tab=');
 });
 
 // The Map's row is a copy of the shell's address list, and it is a copy that

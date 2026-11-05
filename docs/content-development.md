@@ -12,7 +12,7 @@ A piece of content has a position on two scales, defined in
 [`scales.csv`](../data/content-development/scales.csv):
 
 - **Held as:** prose, records, records with a check, records with a gold set.
-- **Shown in:** a file, a page, an appendix framed in an app, an app view.
+- **Shown in:** a file, a page, a page framed in an app, an app view.
 
 The scales move separately. The budget-drs app frames two pages from home side
 by side as appendices: the information landscape over Markdown pages with an
@@ -33,8 +33,8 @@ rule.
 | Records to records with a check | anything displays them; the check lands in the same change | home [`CLAUDE.md`](https://github.com/mehrlander/home/blob/main/CLAUDE.md), structured stages |
 | Check to gold set | the question is whether the records are right, not whether the display matches them | the [`gold-set`](../skills/gold-set/SKILL.md) skill |
 | File to page | a reader needs a comparison the file cannot give | the [`html-style`](../skills/html-style/SKILL.md) skill, "A page is for comparing" |
-| Page to appendix | an app's reader needs a page whose subject the app does not own | budget-drs [`app/view/README.md`](https://github.com/mehrlander/home/blob/main/projects/budget-drs/app/view/README.md), Appendix views |
-| Appendix to app view | the app must hold the content, not only reach it: import and pin a copy with its lineage | the same section, "Reaching is not holding" |
+| Page to framed in an app | an app's reader needs a page whose subject the app does not own (an appendix) | budget-drs [`app/view/README.md`](https://github.com/mehrlander/home/blob/main/projects/budget-drs/app/view/README.md), Appendix views |
+| Framed to app view | the app must hold the content, not only reach it: import and pin a copy with its lineage | the same section, "Reaching is not holding" |
 | Page to Web Tools app view | a repository's page deserves its own stop in the Web Tools app | [`APP.md`](APP.md); [`manifest.md`](manifest.md), `appView` |
 
 ## When to stop, or move back
@@ -51,6 +51,7 @@ where to stop:
 - A question asked once a cycle can keep its CSV with no view (budget-drs
   [`pension-sections-proposal.md`](https://github.com/mehrlander/home/blob/main/projects/budget-drs/app/view/pension-sections-proposal.md)).
 
-Moves also run back. A main view became an appendix when its subject moved to
-another repository, and a view became a Markdown document when the reading it
-offered was no longer a standing one. Both are in the worked examples.
+Moves also run back. In the worked examples, the Contracts view was retired and
+its statewide page returned two days later as an appendix, the CORE throughline
+view was retired with its detail kept in a Markdown file, and the pension catalog
+left a tab of the Benefits view for an appendix of its own.

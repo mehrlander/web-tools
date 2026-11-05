@@ -12,8 +12,8 @@ level, least held or farthest from an app first:
 
 - `held_as` is how the content is held: prose, records, records with a check,
   records with a gold set.
-- `shown_in` is where a reader meets it: a file, a page, an appendix framed in
-  an app, an app view.
+- `shown_in` is where a reader meets it: a file, a page, a page framed in an
+  app, an app view.
 
 [`paths.csv`](paths.csv) has one row per point:
 
