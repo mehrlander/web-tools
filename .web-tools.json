@@ -174,7 +174,6 @@
         "portable:house-style-critic"
       ],
       "views": [
-        "?view=map&tab=surfacing",
         "?view=map&tab=showing",
         "?view=waiting"
       ]
