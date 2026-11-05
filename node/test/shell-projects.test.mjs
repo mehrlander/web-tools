@@ -792,7 +792,7 @@ test('the pane wires the tabs, the app frame, the pages grid, and the docs tree'
   assert.match(page, /@click="goProjectTab\('pages'\)" :disabled="!projectPages\.length"/,
     'the Pages tab is always offered, disabled where the workspace claims no pages');
   assert.match(page, /@click="goProjectTab\('docs'\)"/, 'Files has lost its Docs mode');
-  assert.match(page, /x-if="projectPane==='app'"/, 'the landing is no longer the App tab');
+  assert.match(page, /x-if="projectPane==='app' && !fullAppExit"/, 'the landing is no longer the App tab, or a full app is framed');
   assert.match(page, /:src="projectLandingUrl"/, 'the landing iframe is gone');
   assert.match(page, /@click="openProjectApp\(''\)" :aria-pressed="projectPane==='app'" data-project-app/,
     'the App button beside the name no longer opens the app at its front');
