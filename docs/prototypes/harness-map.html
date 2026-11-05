@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en" data-theme="winter">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Harness map</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script type="module">
+  // The harness picture (skills/design-sprint, phase 3; the idea board is
+  // harness-map-ideas.json beside this file). A designed diagram over live
+  // data: the places code runs, grouped as yours or hosted, each holding its
+  // writers; a line from every writer to the credential it commits with; one
+  // road per credential into GitHub, as thick as the writers on it and
+  // labelled with whose name its commits carry. The layout is authored; every
+  // name, count and line is read from the registries, so it stays true as rows
+  // change. Not app code yet: a prototype to judge before it becomes a Map tab.
+  await import('https://mehrlander.github.io/web-tools/lib/entry.js');
+  await gh.load('kits/csv.js');
+
+  const REF = window.__ref || new URLSearchParams(location.search).get('ref') || 'main';
+  const RAW = p => `https://raw.githubusercontent.com/mehrlander/web-tools/${REF}/${p}`;
+  const get = p => fetch(RAW(p)).then(r => { if (!r.ok) throw new Error(p + ' ' + r.status); return r.text(); });
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  const [wcsv, ccsv, vcsv, mcsv, dcsv] = await Promise.all(
+    ['docs/writers.csv', 'docs/credentials.csv', 'docs/venues.csv', 'docs/run-methods.csv', 'docs/direct-to-main.csv'].map(get));
+  const WRITERS = Csv.rows(wcsv), CREDS = Csv.rows(ccsv), PLACES = Csv.rows(vcsv), METHODS = Csv.rows(mcsv), MAIN = Csv.rows(dcsv);
+
+  // THE OPINION. Which places are yours and which are a provider's is the
+  // diagram's first division; the registries do not record ownership, so the
+  // page states it. A place not listed here falls to the hosted side.
+  const YOURS = ['personal-laptop', 'browser', 'iphone', 'work-machine'];
+  const side = v => YOURS.includes(v) ? 'yours' : 'hosted';
+  const MODEL = { claude: 'Claude', gpt: 'GPT', gemini: 'Gemini' };
+
+  // Geometry, in SVG units drawn 1:1 with CSS pixels: on a phone the diagram
+  // pans inside its own box rather than shrinking its type.
+  const PW = 380, KW = 210, HW = 220, ROW = 30, HEAD = 40, GAP = 22, TOP = 20, M = 20, G1 = 40, G2 = 60;
+  const W = 2 * (M + PW + G1 + KW + G2) + HW;
+  const X = { yours: M, ykey: M + PW + G1, hub: M + PW + G1 + KW + G2, hkey: W - M - PW - G1 - KW, hosted: W - M - PW };
+
+  const placeBoxes = { yours: [], hosted: [] };
+  for (const p of PLACES) {
+    const ws = WRITERS.filter(w => w.machine === p.venue);
+    const errands = METHODS.filter(m => Csv.list(m.venues).includes(p.venue)).map(m => m.method);
+    const h = HEAD + Math.max(1, ws.length) * ROW + 12;
+    placeBoxes[side(p.venue)].push({ p, ws, errands, h });
+  }
+  const stack = (list) => { let y = TOP + 34; for (const b of list) { b.y = y; y += b.h + GAP; } return y; };
+  const H = Math.max(stack(placeBoxes.yours), stack(placeBoxes.hosted)) + 10;
+
+  // Each credential sits beside the places that hold it, at the height of
+  // the writers that use it, so a line from writer to key stays short.
+  const keys = CREDS.map(c => {
+    const ws = WRITERS.filter(w => w.credential === c.credential);
+    return { c, ws, s: side(c.held_at) };
+  });
+  const writerAt = {};
+  for (const s of ['yours', 'hosted']) for (const b of placeBoxes[s]) b.ws.forEach((w, i) => {
+    writerAt[w.writer] = { x: s === 'yours' ? X.yours + PW : X.hosted, y: b.y + HEAD + i * ROW + ROW / 2, s };
+  });
+  for (const s of ['yours', 'hosted']) {
+    const ks = keys.filter(k => k.s === s).map(k => ({ k, want: k.ws.length ? k.ws.reduce((a, w) => a + writerAt[w.writer].y, 0) / k.ws.length : H / 2 }))
+      .sort((a, b) => a.want - b.want);
+    let last = -Infinity;
+    for (const { k, want } of ks) { k.y = Math.max(want - 24, last + 62); last = k.y; }
+  }
+  // GitHub spans the keys, so every road reaches it level.
+  const ky = keys.map(k => k.y);
+  const HUB = { y: Math.min(...ky) - 20, h: Math.max(300, Math.max(...ky) + 68 - (Math.min(...ky) - 20)) };
+
+  const curve = (x1, y1, x2, y2) => `M${x1} ${y1} C${(x1 + x2) / 2} ${y1} ${(x1 + x2) / 2} ${y2} ${x2} ${y2}`;
+  let svg = '';
+  // Side labels.
+  svg += `<text x="${X.yours}" y="${TOP + 14}" class="fill-base-content/50" font-size="15" font-weight="600">YOUR MACHINES</text>`;
+  svg += `<text x="${X.hosted + PW}" y="${TOP + 14}" text-anchor="end" class="fill-base-content/50" font-size="15" font-weight="600">PROVIDERS' MACHINES</text>`;
+
+  // Writer to key: the many-to-one that is the picture's point.
+  for (const k of keys) {
+    const kx = k.s === 'yours' ? X.ykey : X.hkey + KW;
+    for (const w of k.ws) {
+      const a = writerAt[w.writer];
+      svg += `<path data-w="${esc(w.writer)}" data-k="${esc(k.c.credential)}" d="${curve(a.x, a.y, kx, k.y + 24)}" fill="none" stroke-width="1.6" class="stroke-base-content/30 hm-line"/>`;
+    }
+  }
+  // Key to GitHub: one road per credential, as thick as its writers.
+  for (const k of keys) {
+    const x1 = k.s === 'yours' ? X.ykey + KW : X.hkey, x2 = k.s === 'yours' ? X.hub : X.hub + HW;
+    const y2 = Math.min(HUB.y + HUB.h - 20, Math.max(HUB.y + 20, k.y + 24));
+    svg += `<path data-k="${esc(k.c.credential)}" d="${curve(x1, k.y + 24, x2, y2)}" fill="none" stroke-width="${2 + k.ws.length * 2}" stroke-linecap="round" class="stroke-base-content/25 hm-line"/>`;
+  }
+  // Errand routes: what a Claude session can send to a place. Drawn as a bus,
+  // so the picture's other lines stay readable: out of Anthropic's cloud,
+  // along the top, down the gutter beside each column, and into each place
+  // a run method can reach, its methods named in the gap above the box.
+  const from = placeBoxes.hosted.find(b => b.p.venue === 'anthropic-cloud');
+  if (from) {
+    const busY = TOP + 46, xl = X.yours + PW + 18, xr = X.hosted - 18, err = 'stroke-primary hm-errand';
+    const targets = s => placeBoxes[s].filter(b => b.errands.length && b !== from);
+    const lowest = s => Math.max(...targets(s).map(b => b.y + 26), busY);
+    svg += `<path d="M${X.hosted} ${from.y + 26} H${xr} V${busY} H${xl} V${lowest('yours')}" fill="none" stroke-width="2" stroke-dasharray="6 5" class="${err}" style="display:none"/>`;
+    if (targets('hosted').length) svg += `<path d="M${xr} ${from.y + 26} V${lowest('hosted')}" fill="none" stroke-width="2" stroke-dasharray="6 5" class="${err}" style="display:none"/>`;
+    svg += `<text x="${(xl + xr) / 2}" y="${busY - 8}" text-anchor="middle" font-size="13" class="fill-primary hm-errand" style="display:none">errands a Claude session can file</text>`;
+    for (const s of ['yours', 'hosted']) for (const b of targets(s)) {
+      const yy = b.y + 26, bx = s === 'yours' ? X.yours + PW : X.hosted, tx = s === 'yours' ? xl : xr;
+      svg += `<path d="M${tx} ${yy} H${bx + (s === 'yours' ? 4 : -4)}" fill="none" stroke-width="2" marker-end="url(#hm-arrow)" class="${err}" style="display:none"/>`;
+    }
+  }
+
+  // Places and their writers.
+  for (const s of ['yours', 'hosted']) for (const b of placeBoxes[s]) {
+    const x = s === 'yours' ? X.yours : X.hosted;
+    svg += `<g data-place="${esc(b.p.venue)}">`;
+    svg += `<rect x="${x}" y="${b.y}" width="${PW}" height="${b.h}" rx="14" class="fill-base-200/60 stroke-base-300" stroke-width="1.5"${b.ws.length ? '' : ' stroke-dasharray="5 4"'}/>`;
+    svg += `<text x="${x + 16}" y="${b.y + 26}" font-size="17" font-weight="600" class="fill-base-content">${esc(b.p.label)}</text>`;
+    if (b.errands.length && b.p.venue !== 'anthropic-cloud') svg += `<text x="${x + PW - 6}" y="${b.y - 6}" text-anchor="end" font-size="13" class="fill-primary hm-errand-label" style="display:none">${esc(b.errands.join(' · '))}</text>`;
+    if (!b.ws.length) svg += `<text x="${x + 16}" y="${b.y + HEAD + 18}" font-size="15" class="fill-base-content/40">no writers</text>`;
+    b.ws.forEach((w, i) => {
+      const y = b.y + HEAD + i * ROW;
+      const agent = w.kind === 'agent';
+      svg += `<g data-w="${esc(w.writer)}" data-k="${esc(w.credential)}" class="hm-writer cursor-pointer">`;
+      svg += `<rect x="${x + 10}" y="${y + 2}" width="${PW - 20}" height="${ROW - 4}" rx="8" class="${agent ? 'fill-primary/10' : 'fill-base-100'}"/>`;
+      svg += w.kind === 'agent' ? `<circle cx="${x + 24}" cy="${y + ROW / 2}" r="5" class="fill-primary"/>`
+        : w.kind === 'person' ? `<circle cx="${x + 24}" cy="${y + ROW / 2}" r="4.5" fill="none" stroke-width="1.6" class="stroke-base-content/60"/>`
+        : `<rect x="${x + 19.5}" y="${y + ROW / 2 - 4.5}" width="9" height="9" class="fill-base-content/40"/>`;
+      svg += `<text x="${x + 38}" y="${y + ROW / 2 + 5}" font-size="15" class="fill-base-content">${esc(w.name)}</text>`;
+      if (w.model) svg += `<text x="${x + PW - 18}" y="${y + ROW / 2 + 5}" text-anchor="end" font-size="13" font-weight="600" class="fill-primary">${esc(MODEL[w.model] || w.model)}</text>`;
+      svg += `</g>`;
+    });
+    svg += `</g>`;
+  }
+  // Keys.
+  for (const k of keys) {
+    const x = k.s === 'yours' ? X.ykey : X.hkey;
+    svg += `<g data-k="${esc(k.c.credential)}" class="hm-key cursor-pointer">`;
+    svg += `<rect x="${x}" y="${k.y}" width="${KW}" height="48" rx="10" class="fill-base-100 stroke-base-content/30" stroke-width="1.5"/>`;
+    svg += `<text x="${x + 12}" y="${k.y + 20}" font-size="14" font-weight="600" class="fill-base-content">${esc(k.c.label)}</text>`;
+    svg += `<text x="${x + 12}" y="${k.y + 39}" font-size="13" class="fill-base-content/60">as ${esc(k.c.commits_as)} · ${k.ws.length} writer${k.ws.length === 1 ? '' : 's'}</text>`;
+    svg += `</g>`;
+  }
+  // GitHub, with what lands straight on main in each repository.
+  const byRepo = {};
+  for (const d of MAIN) byRepo[d.target_repo] = (byRepo[d.target_repo] || 0) + 1;
+  svg += `<rect x="${X.hub}" y="${HUB.y}" width="${HW}" height="${HUB.h}" rx="18" class="fill-base-content" />`;
+  svg += `<text x="${X.hub + HW / 2}" y="${HUB.y + 36}" text-anchor="middle" font-size="22" font-weight="700" class="fill-base-100">GitHub</text>`;
+  svg += `<text x="${X.hub + HW / 2}" y="${HUB.y + 60}" text-anchor="middle" font-size="13" class="fill-base-100/70">straight to main</text>`;
+  Object.entries(byRepo).sort((a, b) => b[1] - a[1]).forEach(([repo, n], i) => {
+    const y = HUB.y + 92 + i * 28;
+    svg += `<text x="${X.hub + 18}" y="${y}" font-size="15" class="fill-base-100">${esc(repo === 'all' ? 'every repo' : repo)}</text>`;
+    svg += `<text x="${X.hub + HW - 18}" y="${y}" text-anchor="end" font-size="15" font-weight="600" class="fill-base-100">${n}</text>`;
+  });
+
+  const root = document.getElementById('map');
+  const defs = `<defs><marker id="hm-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-primary"/></marker></defs>`;
+  root.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" class="max-w-none lg:max-w-full lg:w-full lg:h-auto" font-family="ui-sans-serif, system-ui, sans-serif">${defs}${svg}</svg>`;
+  document.getElementById('figure').textContent =
+    `${WRITERS.length} writers · ${CREDS.length} credentials · ${PLACES.length} places`;
+
+  // A tap on a writer or a key lights what it connects to; a tap elsewhere clears.
+  const lit = (sel) => {
+    root.querySelectorAll('[data-w],[data-k]').forEach(el => {
+      const on = !sel || (sel.w ? el.dataset.w === sel.w || (!el.dataset.w && el.dataset.k === sel.k) : el.dataset.k === sel.k);
+      el.style.opacity = on ? '' : '0.18';
+    });
+    root.querySelectorAll('[data-place]').forEach(el => { el.style.opacity = ''; });
+  };
+  root.addEventListener('click', e => {
+    const w = e.target.closest('.hm-writer'), k = e.target.closest('.hm-key');
+    lit(w ? { w: w.dataset.w, k: w.dataset.k } : k ? { k: k.dataset.k } : null);
+  });
+  const errands = document.getElementById('errands');
+  errands.addEventListener('change', () => {
+    const on = errands.checked;
+    root.querySelectorAll('.hm-errand, .hm-errand-label').forEach(el => { el.style.display = on ? '' : 'none'; });
+    root.querySelectorAll('.hm-line').forEach(el => { el.style.opacity = on ? '0.25' : ''; });
+  });
+  document.body.dataset.ready = '1';
+</script>
+</head>
+<body class="min-h-dvh bg-base-100 text-base-content">
+  <header class="sticky top-0 z-10 flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-base-300 bg-base-100 px-4 py-3">
+    <h1 class="text-lg font-semibold">Harness map</h1>
+    <span id="figure" class="font-mono text-xs text-base-content/60"></span>
+    <span class="flex items-center gap-3 text-xs text-base-content/60">
+      <span class="flex items-center gap-1"><span class="inline-block size-2.5 rounded-full bg-primary"></span>agent</span>
+      <span class="flex items-center gap-1"><span class="inline-block size-2.5 bg-base-content/40"></span>process</span>
+      <span class="flex items-center gap-1"><span class="inline-block size-2.5 rounded-full border border-base-content/60"></span>you</span>
+    </span>
+    <label class="ml-auto flex items-center gap-2 text-sm"><input id="errands" type="checkbox" class="toggle toggle-sm toggle-primary">Errand routes</label>
+  </header>
+  <main id="map" class="overflow-auto p-4"></main>
+</body>
+</html>
