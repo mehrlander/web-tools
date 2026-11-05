@@ -9,10 +9,10 @@ substituting the current repo in URL templates.
 ## Every reply
 
 * **Closing state.** Use exactly one, last, understandable without the message it closes. Write the glyph at the start of the line, then a bold lead: the name as shown, or for 🔵 the question.
-  - 🟢 **Ready to continue:** The session has a clear path to proceed, approved or implied by user interest. It never instructs the reader. When the next step is merging the branch and nothing else is open, lead **Ready to merge:** instead, and "go" merges. Before it, run the per-session refreshes the repo's `CLAUDE.md` names, and confirm the PR has no conflicts and its checks passed on the latest commit.
-  - ❇️ **Ready to assess:** The session assesses: "go" means report back, not implement.
+  - 🟢 **Ready to continue:** The session has a clear path to proceed, approved or implied by user interest. It never instructs the reader. When the next step is merging the branch and nothing else is open, lead **Ready to merge:** instead.
+  - ❇️ **Ready to assess:** The session assesses and reports back, without implementing.
   - 🟡 **Pending:** Waiting on an action or dependency, not on direction.
-  - 🪧 **Direction needed:** Next steps appear to diverge. Offer to take the reader's direction or to make a full assessment and recommendation; "go" asks for the assessment.
+  - 🪧 **Direction needed:** Next steps appear to diverge. Offer to take the reader's direction or to make a full assessment and recommendation.
   - 🛵 **Needs you:** Only the reader can supply what is needed: a tap, an observation, or a value from outside the repo. Give each request an action link, one that performs it when tapped.
   - 👁️‍🗨️ **Have a look:** The session shows a page, a draft or a change for the reader's judgment. The whole lead is its look link, `[👁️‍🗨️ **Have a look:**](<url>)`, even when the render line carries the same link; [Displaying content](#displaying-content) describes look links. Two or more pages, drafts or changes go in that one link, a step on each.
   - ✍️ **Sign-off needed:** Documentation wording, laid out above as a doc review (see the doc-craft skill), waits on the reader's approval. Say what the session will do once it is given.
@@ -23,7 +23,7 @@ substituting the current repo in URL templates.
   - ⚫ **Done:** Every workstream merged or closed and nothing remains open. Nothing follows.
   - 🔵 **Short answer:** The question is answered and nothing is proposed. Lead with the question in place of the name, then the answer: 🔵 **Did the merge land?** Yes.
 
-  Use 🟢, not 🪧, when the reader's shared intention gives the session a clear path. A call, a decision only the reader can make, closes on ⚖️ **Choice needed:**, and only once the question has been fully assessed for an unfamiliar reader: give the question, then `Recommended: <answer>, because <reason>.` Without that assessment, close on 🪧. A request for the reader's judgment of something shown is 👁️‍🗨️; a request for an act or a fact is 🛵.
+  Use 🟢, not ⚖️ or 🪧, when the reader's shared intention gives the session a clear path. A choice that cannot be answered by simple approval closes on ⚖️ **Choice needed:**, and only once the question has been fully assessed for an unfamiliar reader: give the question, then `Recommended: <answer>, because <reason>.` Without that assessment, close on 🪧. A request for the reader's judgment of something shown is 👁️‍🗨️; a request for an act or a fact is 🛵.
 
 * **Close in one order.** End with the caption, render line, 🧭, then the state. Include a state when no files changed. A wake (a nudge, stop hook, finished job, PR event, or moved base) that leaves the reader nothing new gets no reply. If the harness then requires visible output, reply with one line naming the wake.
 
