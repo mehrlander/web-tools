@@ -5,16 +5,15 @@
 //
 //   npm run shot -- app/index.html --script node/render/scenarios/map-surfacing-read.mjs
 //
-// The tab is public (it reads the hub's docs/conversation.csv), so this needs no
-// token: the sandbox's contents-API shim serves the manifest and the doc from
-// the working tree, which is what makes a branch's copy the one under test.
+// The tab is public (it reads the hub's docs/CONVERSATION.md), so this needs no
+// token: the sandbox's contents-API shim serves the doc from the working tree,
+// which is what makes a branch's copy the one under test.
 //
 // MODE picks what is rendered:
 //   none   the tab as it stands, for the header and the lede
 //   peek   hover the header's CONVERSATION.md mark, for the card       (default)
 //   deck   the deck door, filling the content pane
 //   dock   the door, then the pane toggle, so the doc sits beside the cards
-//   csv    docked, then swiped to the index slide, for the table rendition
 //   over   docked, then a peek opened from the list, which must sit ABOVE it
 //   docs   the Docs tab's own door, over its selected folder
 //   lead   a card title tapped, which docks the deck and marks its bullet
@@ -43,7 +42,7 @@ export default async (page) => {
   if (mode === 'lead') {
     // A card well down the list, so the mark has to have scrolled the slide to
     // be visible at all: a shot of the top of the doc would pass either way.
-    await page.locator('button[title^="Show Toss data"]').first().click();
+    await page.locator('button[title^="Show A rendered view"]').first().click();
     await page.waitForTimeout(3200);
     return;
   }
@@ -73,10 +72,6 @@ export default async (page) => {
   if (mode !== 'deck') {
     await page.locator('button[title="Dock beside the list"]').first().click();
     await page.waitForTimeout(700);
-  }
-  if (mode === 'csv') {
-    await page.keyboard.press('ArrowRight');
-    await page.waitForTimeout(1600);
   }
   if (mode === 'over') {
     // The regression this covers is a z-index one: the card is appended at

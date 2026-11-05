@@ -1,10 +1,9 @@
-// A Surfacing card points at the bullet it paraphrases, and the anchor holds.
+// A Surfacing card points at the bullet it comes from, and the anchor holds.
 //
-// docs/conversation.csv's `lead` is the bold lead-in of a bullet in CONVERSATION.md,
-// and surfacing-manifest.test.mjs already holds that membership both ways. What
-// it cannot say is whether the key SURVIVES RENDERING, which is the only form
-// the Map view's card ever meets it in: the card calls findLead() against the
-// deck slide's DOM, not against the file.
+// A card's `lead` is the bold lead-in of a bullet in CONVERSATION.md, read from
+// the file. What reading cannot say is whether the key SURVIVES RENDERING,
+// which is the only form the Map view's card ever meets it in: the card calls
+// findLead() against the deck slide's DOM, not against the file.
 //
 // The gap between those two is a real one and it is exactly one selector wide.
 // The rules are a LOOSE list, so marked wraps each item's content in a <p>
@@ -22,12 +21,12 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { JSDOM } from 'jsdom';
 import { marked } from 'marked';
-import { parseCsv } from '../build/registries-load.mjs';
 import { repoRoot } from './bootstrap.mjs';
 
-const leads = parseCsv(readFileSync(path.join(repoRoot, 'docs', 'conversation.csv'), 'utf8'))
-  .map(r => r.lead);
 const doc = readFileSync(path.join(repoRoot, 'docs', 'CONVERSATION.md'), 'utf8');
+// The rules after the introduction's horizontal rule, as the Map view's
+// conversationRules reads them.
+const leads = [...(doc.split('\n---\n')[1] || '').matchAll(/^\* \*\*(.+?)\*\*/gm)].map(m => m[1]);
 
 // The component's own two functions, copied here rather than imported: map.js
 // is an Alpine component that needs a browser realm to evaluate, and the rule
@@ -41,12 +40,12 @@ const { window } = new JSDOM('<!doctype html><body><div id="box"></div></body>')
 const box = window.document.getElementById('box');
 box.innerHTML = marked.parse(doc);
 
-test('every card in the index resolves to a bullet in the rendered doc', () => {
+test('every card resolves to a bullet in the rendered doc', () => {
   const found = new Map([...box.querySelectorAll(SEL)].map(el => [leadKey(el.textContent), el]));
   const missed = leads.filter(l => !found.has(leadKey(l)));
   assert.deepEqual(missed, [],
     'a card whose title tap would open the doc and highlight nothing');
-  assert.ok(leads.length > 10, 'the index was read, and is not empty');
+  assert.ok(leads.length > 10, 'the rules were read, and are not empty');
 });
 
 test('the anchor is the list item, since that is what gets marked', () => {

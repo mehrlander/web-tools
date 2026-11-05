@@ -135,7 +135,6 @@
       "path": "programs/surfacing",
       "governs": [
         "docs/CONVERSATION.md",
-        "docs/conversation.csv",
         "skills/claude-markdown/",
         "skills/look-markers/",
         "skills/hooks/reply-check.py",

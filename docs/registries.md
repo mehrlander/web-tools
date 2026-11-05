@@ -122,8 +122,8 @@ population, and add its row to `registries.csv` in the same commit. Before
 creating one, ask where the assertions already live:
 
 - In code, as an authoritative array: render that array. Do not transcribe it.
-- In prose, with a CSV that only indexes it: state the relation and gate both
-  directions. `conversation.csv` has this shape.
+- In prose: read the prose, as the Map's Surfacing tab reads `CONVERSATION.md`.
+  Do not restate it in a CSV.
 - In an existing registry: add a projection, not a second authority.
 - In live state, such as the current branch or CI status: read it live.
 
