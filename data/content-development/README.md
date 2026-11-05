@@ -1,19 +1,16 @@
 # Content development: worked examples
 
 Worked examples of how pieces of content in web-tools and home moved between
-forms, each a dated path of points. The Map's **Docs → Development** subview draws
-them. [`docs/content-development.md`](../../docs/content-development.md) states
+forms, each a dated path of points. The Map's
+[Docs → Development](https://mehrlander.github.io/web-tools/app/?view=map&tab=development)
+subview draws them. [`docs/content-development.md`](../../docs/content-development.md) states
 the frame and when each move is worth making.
 
 ## The two files
 
-[`scales.csv`](scales.csv) defines the two scales a point sits on, one row per
-level, least held or farthest from an app first:
-
-- `held_as` is how the content is held: prose, records, records with a check,
-  records with a gold set.
-- `shown_in` is where a reader meets it: a file, a page, a page framed in an
-  app, an app view.
+[`scales.csv`](scales.csv) defines the two scales a point sits on, `held_as`
+(how the content is held) and `shown_in` (where a reader meets it), one row per
+level, least held or farthest from an app first.
 
 [`paths.csv`](paths.csv) has one row per point:
 
