@@ -27,7 +27,7 @@ what?", then give the compared things one place:
 
 ## The rules
 
-**1. No stat cards.** A row of tiles, each a label over a big number, spends the page's best space on figures with no comparison, baseline, denominator, or movement. A line of totals under the title is the same stat card without its frame. Put each count on the thing it counts: a filter pill carries the count of its rows, a section or container the count of what it holds, and supporting analysis goes in a panel-tip. Where figures deserve room, give them a form that holds a comparison. Treat any `stats`, `stat-value`, or KPI-tile grid as a defect.
+**1. No stat cards.** A row of tiles, each a label over a big number, spends the page's best space on figures with no comparison, baseline, denominator, or movement. Show a count with the content or controls that give it context. Filter pills can be especially effective to associate counts with the categories and units that they speak to.
 
 **2. No explanatory prose.** GitHub doesn't explain and neither should we. Use
 structure, labels, and controls to show relationships: a range control starting
