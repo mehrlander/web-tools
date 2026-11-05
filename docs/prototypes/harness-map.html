@@ -96,15 +96,15 @@
   // a run method can reach, its methods named in the gap above the box.
   const from = placeBoxes.hosted.find(b => b.p.venue === 'anthropic-cloud');
   if (from) {
-    const busY = TOP + 46, xl = X.yours + PW + 18, xr = X.hosted - 18, err = 'stroke-primary hm-errand';
+    const busY = TOP + 46, xl = X.yours + PW + 18, xr = X.hosted - 18, err = 'stroke-primary hm-errand hidden';
     const targets = s => placeBoxes[s].filter(b => b.errands.length && b !== from);
     const lowest = s => Math.max(...targets(s).map(b => b.y + 26), busY);
-    svg += `<path d="M${X.hosted} ${from.y + 26} H${xr} V${busY} H${xl} V${lowest('yours')}" fill="none" stroke-width="2" stroke-dasharray="6 5" class="${err}" style="display:none"/>`;
-    if (targets('hosted').length) svg += `<path d="M${xr} ${from.y + 26} V${lowest('hosted')}" fill="none" stroke-width="2" stroke-dasharray="6 5" class="${err}" style="display:none"/>`;
-    svg += `<text x="${(xl + xr) / 2}" y="${busY - 8}" text-anchor="middle" font-size="13" class="fill-primary hm-errand" style="display:none">errands a Claude session can file</text>`;
+    svg += `<path d="M${X.hosted} ${from.y + 26} H${xr} V${busY} H${xl} V${lowest('yours')}" fill="none" stroke-width="2" stroke-dasharray="6 5" class="${err}"/>`;
+    if (targets('hosted').length) svg += `<path d="M${xr} ${from.y + 26} V${lowest('hosted')}" fill="none" stroke-width="2" stroke-dasharray="6 5" class="${err}"/>`;
+    svg += `<text x="${(xl + xr) / 2}" y="${busY - 8}" text-anchor="middle" font-size="13" class="fill-primary hm-errand hidden">errands a Claude session can file</text>`;
     for (const s of ['yours', 'hosted']) for (const b of targets(s)) {
       const yy = b.y + 26, bx = s === 'yours' ? X.yours + PW : X.hosted, tx = s === 'yours' ? xl : xr;
-      svg += `<path d="M${tx} ${yy} H${bx + (s === 'yours' ? 4 : -4)}" fill="none" stroke-width="2" marker-end="url(#hm-arrow)" class="${err}" style="display:none"/>`;
+      svg += `<path d="M${tx} ${yy} H${bx + (s === 'yours' ? 4 : -4)}" fill="none" stroke-width="2" marker-end="url(#hm-arrow)" class="${err}"/>`;
     }
   }
 
@@ -114,7 +114,7 @@
     svg += `<g data-place="${esc(b.p.venue)}">`;
     svg += `<rect x="${x}" y="${b.y}" width="${PW}" height="${b.h}" rx="14" class="fill-base-200/60 stroke-base-300" stroke-width="1.5"${b.ws.length ? '' : ' stroke-dasharray="5 4"'}/>`;
     svg += `<text x="${x + 16}" y="${b.y + 26}" font-size="17" font-weight="600" class="fill-base-content">${esc(b.p.label)}</text>`;
-    if (b.errands.length && b.p.venue !== 'anthropic-cloud') svg += `<text x="${x + PW - 6}" y="${b.y - 6}" text-anchor="end" font-size="13" class="fill-primary hm-errand-label" style="display:none">${esc(b.errands.join(' · '))}</text>`;
+    if (b.errands.length && b.p.venue !== 'anthropic-cloud') svg += `<text x="${x + PW - 6}" y="${b.y - 6}" text-anchor="end" font-size="13" class="fill-primary hm-errand-label hidden">${esc(b.errands.join(' · '))}</text>`;
     if (!b.ws.length) svg += `<text x="${x + 16}" y="${b.y + HEAD + 18}" font-size="15" class="fill-base-content/40">no writers</text>`;
     b.ws.forEach((w, i) => {
       const y = b.y + HEAD + i * ROW;
@@ -172,7 +172,7 @@
   const errands = document.getElementById('errands');
   errands.addEventListener('change', () => {
     const on = errands.checked;
-    root.querySelectorAll('.hm-errand, .hm-errand-label').forEach(el => { el.style.display = on ? '' : 'none'; });
+    root.querySelectorAll('.hm-errand, .hm-errand-label').forEach(el => el.classList.toggle('hidden', !on));
     root.querySelectorAll('.hm-line').forEach(el => { el.style.opacity = on ? '0.25' : ''; });
   });
   document.body.dataset.ready = '1';
