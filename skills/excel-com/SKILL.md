@@ -22,14 +22,12 @@ mistake.
 | Write a file, no Excel present | OOXML, ClosedXML, EPPlus | yes |
 | Active workbook, selection, active cell | **COM** | no |
 | Format a sheet someone is looking at | **COM** | no |
-| Add Power Query queries | zip and XML, unless the saved file must already hold query results or an existing query's M changes ([`power-query`](../power-query/SKILL.md)) | yes |
+| Add Power Query queries | zip and XML, or COM ([`power-query`](../power-query/SKILL.md) says which) | yes, for zip and XML |
 | Create or refresh pivots, refresh Power Query output, or drive audit arrows | **COM** | no |
 | Anything that must survive without Excel installed | not COM | yes |
 
-COM earns its cost when the running application holds the state or must create,
-evaluate or preserve a native object. Reading a closed workbook's contents
-usually needs only a file reader. ImportExcel and EPPlus normally manipulate
-the file package; writing PowerShell does not by itself mean using Excel COM.
+COM only earns its cost when the running application holds the state. Reading a
+workbook's contents is almost never that.
 
 ## 2. Do not rebuild `ExcelService`
 
@@ -117,37 +115,23 @@ Around it:
   Use `Get-ExcelApp` when the task explicitly concerns the user's active
   workbook, and verify which workbook the returned app exposes.
 
-### Native Power Query creation and refresh
+### Power Query: add, load and refresh
 
-The personal Windows laptop exercised this route in Excel build 20527 on
-2026-10-30. `Workbook.Queries.Add(name, mSource, description)` stores an actual
-M query. To materialize the query, create a worksheet `ListObject` with
-`SourceType = 0` and an OLE DB source:
+`Workbook.Queries.Add(name, m, description)` saves a query but neither runs nor
+loads it. To load it, add a worksheet `ListObject` with `SourceType = 0` and
+this OLE DB source:
 
 ```text
-OLEDB;Provider=Microsoft.Mashup.OleDb.1;Data Source=$Workbook$;Location=SalesByRegion;Extended Properties=""
+OLEDB;Provider=Microsoft.Mashup.OleDb.1;Data Source=$Workbook$;Location=<Query>;Extended Properties=""
 ```
 
-Set the table's `QueryTable.CommandType = 2`, its command text to
-`SELECT * FROM [SalesByRegion]`, and `BackgroundQuery = $false`; then call
-`Refresh($false)`. Adding the M formula alone does not evaluate or load it.
-The query name in `Location` and SQL must match the saved query.
-
-The [retained builder and results](https://github.com/mehrlander/home/blob/main/projects/office/research/2026-10-30-excel-script-creation/README.md)
-include a changed-input refresh, restoration, saving, reopening, exact M-source
-comparison and another native refresh. The source table was inside the same
-workbook. External credentials, privacy prompts, Data Model loading and server
-execution were not tested. The other two ways to add queries are in
-[`power-query`](../power-query/SKILL.md): writing the `DataMashup` part into the
-file without Excel, and a person pasting them into the Queries & Connections
-pane after `Set-MashupClipboard` puts them on the clipboard.
-
-The [follow-up pipeline](https://github.com/mehrlander/home/blob/main/projects/office/research/2026-10-30-excel-script-creation/FOLLOWUP.md)
-also exercised a local CSV, an unloaded source query, two dependent loaded
-outputs, appending source data and changing a query's M formula. A note and a
-formula on an existing sheet survived the query additions and six checked
-refresh states. That fixture establishes those retained cells, not every
-possible workbook feature.
+Then set its `QueryTable.CommandType = 2`, its `CommandText` to
+`SELECT * FROM [<Query>]` and `BackgroundQuery = $false`, and call
+`Refresh($false)`. The name in `Location` and the SQL must match the saved
+query. Setting `Workbook.Queries.Item(<Query>).Formula` changes a query's M;
+refresh again to see it. [`New-PowerQueryDemo.ps1`](https://github.com/mehrlander/home/blob/main/projects/office/research/2026-10-30-excel-script-creation/New-PowerQueryDemo.ps1)
+is the tested builder; external credentials, privacy prompts and Data Model
+loading were not tested.
 
 ## 5. Report-sheet idiom
 
@@ -172,37 +156,31 @@ another, and nothing in the sheet says which.
 
 ## 6. Make the sheet prove itself
 
-When a sheet contains a reconciliation, a check cell can expose a failed
-relationship:
+Build in a check cell that fails loudly:
 
 ```
 =SUMPRODUCT(ABS(<block A> + <block B> - <total block>))
 ```
 
-The result should read `0.00`. `SUMPRODUCT` avoids needing Ctrl+Shift+Enter.
-The check establishes internal consistency, not that the inputs are correct.
-When Excel is available, compare actual native values with independent expected
-results and exercise an input change and restoration where the behavior depends
-on refresh or recalculation. A saved PASS label is not execution evidence.
+Reads `0.00` or it does not. `SUMPRODUCT` avoids needing Ctrl+Shift+Enter, so it
+survives an older Excel. Point the user at that cell by address in the reply. It
+proves internal consistency, not that the inputs are correct.
 
-## 7. Check the available execution environment
+## 7. Check whether Excel is reachable
 
-Do not infer a Linux sandbox from the fact that the caller is an agent. On a
-Windows desktop, check the installed Excel path and COM registration, then try
-a small task-owned activation probe. A registered COM class can still be
-inaccessible in the current sandbox: `0x80070005` was observed before an
-authorized run outside the restriction succeeded. Report the access boundary;
-do not change application security settings to obtain access.
+On Windows, check that Excel is installed and that a small COM activation of a
+task-owned instance succeeds; a restricted sandbox can refuse it with `0x80070005` even though
+Excel is registered. Report that boundary rather than change security settings.
 
-If native Excel is available, run the bounded build, check the saved workbook
-after reopening and inspect its appearance. Close only owned workbooks and the
-owned application. Native refresh completion is separate from ordinary formula
-calculation completion.
+If Excel is reachable, run the build, reopen the saved workbook and check it,
+and close only what the script opened. If it is not:
 
-If the environment has no accessible Excel, deliver a self-contained script
-and say which native behavior remains unrun. A file library's output or a
-successful syntax check does not establish COM execution. Do not claim a
-workbook works merely because the script looks plausible.
+- Deliver **one self-contained script**, handed over as a file, not a snippet to
+  reassemble.
+- Include the check cell from section 6 and **name its address** in the reply.
+- Say the code is unrun. Do not report a sheet as working.
+- Expect one round trip. Read the diff adversarially before sending, since the
+  traps in section 3 are exactly what survives a careful read.
 
 A partial build is the failure mode to watch for in a screenshot: the script
 threw mid-way, `finally` restored the display, and the sheet looks finished. The

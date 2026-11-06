@@ -11,33 +11,17 @@ This skill covers three patterns and the constraints they all run into.
 
 ## Script storage and execution
 
-The TypeScript runs in Excel's Office Scripts runtime; a local Node process is
-not that runtime. The script file is separate from the workbook. On the tested
-personal-account Windows installation, Excel stored `.osts` JSON in OneDrive,
-with source in `body` and wrapper metadata in `version`, `parameterInfo` and
-`apiInfo`.
+An Office Script runs only in Excel's Office Scripts runtime. Excel stores each
+script apart from the workbook, as `.osts` JSON in the account's OneDrive with
+the source in `body`; locate the file Excel created, since its folder varies by
+account.
 
-The [2026-10-30 experiment](https://github.com/mehrlander/home/blob/main/projects/office/research/2026-10-30-excel-script-creation/README.md)
-initialized one script in Excel, replaced that task-owned file's body through
-PowerShell, reloaded the editor and ran the code through Excel's Run command.
-Three executions created a workbook and verified changed and restored inputs.
-The experiment does not establish automatic gallery discovery for arbitrary
-new `.osts` files or a standalone local command-line runner. File content,
-account storage, gallery registration and invocation need separate verification.
-Use the account's observed script directory; the literal local
-`OneDrive/Documents/Office Scripts` directory was absent on the tested laptop.
+To install a script from code, create it once in Excel's Code Editor, then
+replace its `body` with [`Install-OfficeScriptBody.ps1`](https://github.com/mehrlander/home/blob/main/projects/office/research/2026-10-30-excel-script-creation/Install-OfficeScriptBody.ps1);
+Excel did not pick up a `.osts` file written from scratch. Running it still
+takes Excel's **Run**. The [runbook](https://github.com/mehrlander/home/blob/main/projects/office/research/2026-10-30-excel-script-creation/RUNBOOK.md) has the steps.
 
-Keep the workbook and script as separate deliverables when portability matters.
-A workbook copy contains the created objects and results; workbook association
-and sharing are separate operations from saving a script file.
-
-For tabular views that grow, derive totals and notes positions from the result
-table's size. The follow-up found that a fixed row-10 total would collide with
-the fifth region. The revised demo was executed with eight regions and also
-rejected nonnumeric and empty inputs before replacing its previous successful
-output. Its [installer and runbook](https://github.com/mehrlander/home/blob/main/projects/office/research/2026-10-30-excel-script-creation/RUNBOOK.md)
-retain the metadata-preserving file update, backup, UI invocation and recovery
-steps. A previous displayed result remains stale after a failed run.
+After a failed run, the sheet the script writes still shows its previous result.
 
 ---
 
