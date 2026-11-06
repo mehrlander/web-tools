@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="filing program">
-  <title>filing program</title>
-  <desc>A folder with a tab, cut from a slate-600 tile. Drawn on the drawn-mark box and rules (docs/favicons/README.md): solid fills, no strokes, and every gap at least 2.5 units, which is about 1.4 CSS pixels at 16. Proposed with the program; the program is not yet adopted.</desc>
-  <mask id="cut" maskUnits="userSpaceOnUse" x="0" y="0" width="32" height="32">
-    <rect width="32" height="32" fill="#fff"/>
-    <g fill="#000"><path d="M6.5 8.75 H13.25 L15.75 11.25 H25.5 V24.75 H6.5Z"/></g>
-  </mask>
-  <g fill="#475569" mask="url(#cut)"><rect x="2" y="2.25" width="28" height="28" rx="7"/></g>
-</svg>

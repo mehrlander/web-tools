@@ -1,7 +1,7 @@
-# Surfacing
+# Sessions
 
-Surfacing is how work reaches its reader, the owner. The files the surfacing
-program governs are declared under `programs` in
+Sessions covers what a session is given, what runs around it, and how its work
+reaches its reader, the owner. The files the sessions program governs are declared under `programs` in
 [`.web-tools.json`](../../.web-tools.json) and listed in the Map view's Programs
 tab; a program is defined in
 [CONSTELLATION.md](../../docs/CONSTELLATION.md#projects-and-research).
@@ -13,6 +13,8 @@ tab; a program is defined in
 | Reply | what a reply hands over: its closing state, caption and links, stated in [`CONVERSATION.md`](../../docs/CONVERSATION.md) |
 | Showing | the link that makes a thing openable, stated in [`showing.md`](../../docs/showing.md) |
 | Forms | the standard way to show content of a kind: the standing forms in [`docs/forms/`](../../docs/forms/), the envelopes in [`docs/envelopes/`](../../docs/envelopes/README.md), and the Waiting view |
+| Delivery | the skills, agents and conventions the `portable` plugin brings into a session, stated in [`MARKETPLACE.md`](../../docs/MARKETPLACE.md) |
+| Automation | the hooks a session runs, and the scheduled jobs and triggers that run without one |
 
 ## Measures
 

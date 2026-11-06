@@ -39,7 +39,6 @@ programs,array,app,,,"The repo's programs: each organizes work and related resou
 programs[].name,string,app,,yes,"The program's key: what /portable:programs takes, and the `project:` value its tasks carry in the repo's tracker."
 programs[].label,string,app,,no,Display name. Defaults to the name.
 programs[].status,string,app,,no,"""proposed"" for a program offered but not adopted: it has a folder for its mark and declares no charter or governed files. Absent for an adopted program."
-programs[].domain,string,app,,no,"The domain the program sits in. The Map's Programs tab groups programs under their domains, in the order each domain first appears."
 programs[].scope,string,app,,no,"What the program covers, in a few words, shown under its name on the Map's Programs tab."
 programs[].icon,string,app,,yes,"A repo-root-relative SVG, drawn in its own colours wherever the program is named, or a `ph-` glyph."
 programs[].path,string,app,,yes,"The program's folder, repo-root-relative. Its README.md is the charter, stating the program's purpose, standard, measures and reviewers; the program's own material accumulates beside it."
