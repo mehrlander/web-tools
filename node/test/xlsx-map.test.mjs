@@ -222,3 +222,22 @@ test('a query named inside a record constructor links, while a field selector of
   ]);
 });
 
+test('a URL inside a string hides no later query reference, while a name only in a comment or a string links nothing', () => {
+  const m = [
+    'section Section1;',
+    'shared Rates = 1;',
+    'shared Feed = let',
+    '  Raw = Web.Contents("https://example.gov/a.csv"),',
+    '  K = Table.SelectRows(Rates, each [Fund] = "600")',
+    'in K;',
+    'shared Noted = let K = 2 // not Rates',
+    'in K;',
+    'shared Quoted = let K = "Rates" in K;',
+  ].join('\n');
+  const r = read();
+  r.xl.powerQuery = { sections: [{ path: 'Formulas/Section1.m', m }] };
+  const qLinks = XlsxMap.links(r).filter(l => l.kind === 'source' && l.from.type === 'query' && l.to.type === 'query').map(XlsxMap.phrase);
+  assert.deepEqual(qLinks, ['query Rates feeds query Feed'],
+    'the // in "https://" is not a comment, so Rates after it still links; Noted and Quoted name Rates only in a comment and a string');
+});
+
