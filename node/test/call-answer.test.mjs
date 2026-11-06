@@ -103,3 +103,54 @@ test('the line goes beside the call, and on its PR only when asked', async () =>
   assert.match(posted[1].comment, /for a session to apply/);
   assert.match(posted[1].comment, /x-call, answered in the Docs tab\._$/);
 });
+
+// A session commits its edits before it files the call (doc-craft), so the
+// call's ref already holds them. What can go wrong is a call that shows every
+// edit as already applied, with nothing to decide, or an answer whose patch
+// cannot apply to the branch: one built against the base, putting in edits the
+// branch already has.
+const COMMITTED = [{ from: 'A first paragraph.', to: 'One.' }, { from: 'A third.', to: 'Three.' }];
+const reader = (byRef) => async (ref) => { if (!(ref in byRef)) throw new Error('no ' + ref); return byRef[ref]; };
+const stub = { MdSurface: { patch: (p, a, b) => JSON.stringify([p, a, b]) } };
+
+test('a call filed after its edits are committed is decided on the text they replace, at its base', async () => {
+  const { A } = load(stub);
+  const head = A.stage(BASE, COMMITTED).text;
+  const call = { file: 'o/r@topic:doc.md', base: 'main', edits: COMMITTED };
+  const s = await A.source(call, reader({ topic: head, main: BASE }));
+  assert.equal(s.base, BASE);
+  assert.equal(s.committed, 'main');
+  assert.deepEqual(s.status, ['staged', 'staged'], 'each edit is the owner\'s to keep or discard');
+  const viaPr = await A.source({ ...call, base: undefined }, reader({ topic: head, main: BASE }), async () => 'main');
+  assert.equal(viaPr.committed, 'main', 'a call naming a PR finds the base through it');
+});
+
+test("a committed call's patch takes the discarded edits back out of the branch, and keeping all needs none", async () => {
+  const { A } = load(stub);
+  const head = A.stage(BASE, COMMITTED).text;
+  const kept = A.answerPatch({ path: 'doc.md', base: BASE, edits: COMMITTED, decisions: ['confirmed', 'confirmed'], committed: 'main' });
+  assert.equal(kept, '', 'the branch already says what was decided');
+  const [p, from, to] = JSON.parse(A.answerPatch({ path: 'doc.md', base: BASE, edits: COMMITTED, decisions: ['discarded', 'confirmed'], committed: 'main' }));
+  assert.equal(p, 'doc.md');
+  assert.equal(from, head, 'cut from the branch as it stands');
+  assert.match(to, /^A first paragraph\./, 'the discarded edit is taken back out');
+  assert.match(to, /Three\./, 'the kept one stays');
+});
+
+test('an uncommitted call is staged on the file as it names it, and its patch puts the confirmed edits in', async () => {
+  const { A } = load(stub);
+  const call = { file: 'o/r@main:doc.md', edits: COMMITTED };
+  const s = await A.source(call, reader({ main: BASE }));
+  assert.equal(s.committed, '');
+  assert.equal(A.answerPatch({ path: 'doc.md', base: BASE, edits: COMMITTED, decisions: ['discarded', 'discarded'], committed: '' }), '');
+  const [, from, to] = JSON.parse(A.answerPatch({ path: 'doc.md', base: BASE, edits: COMMITTED, decisions: ['confirmed', 'discarded'], committed: '' }));
+  assert.equal(from, BASE);
+  assert.match(to, /^One\./);
+});
+
+test("the PR comment says which way a committed call's patch runs", () => {
+  const { A } = load();
+  const call = { id: 'x', question: 'Keep 2 edits?' };
+  assert.match(A.comment(call, { answer: '1 discarded', patch: 'd', base: 'main' }, 'the call form'), /discarded edits as a patch that takes them back out/);
+  assert.match(A.comment(call, { answer: '1 confirmed', patch: 'd' }, 'the call form'), /confirmed edits as a patch/);
+});
