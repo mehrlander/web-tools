@@ -71,14 +71,8 @@ Text.BeforeDelimiter(Text.AfterDelimiter(raw, "cite="), "'")
 
 ## Getting M into a workbook
 
-Only Excel's Power Query engine runs M: a query added without Excel shows no results until someone refreshes it in Excel. A workbook keeps its queries in one `DataMashup` part, and three tested routes add them:
-
 | Route | Use when | Code |
 |---|---|---|
-| COM: `Workbook.Queries.Add`, a query table, `Refresh($false)`; mechanics in [`excel-com`](../excel-com/SKILL.md) | the saved workbook must already hold results, or an existing query's M must change | [`New-PowerQueryDemo.ps1`](https://github.com/mehrlander/home/blob/main/projects/office/research/2026-10-30-excel-script-creation/New-PowerQueryDemo.ps1) |
-| File writer: Python writes the `DataMashup` part | no Excel is at hand, and whoever opens the workbook can refresh it | [`build_pq_xlsx.py`](https://github.com/mehrlander/home/blob/main/projects/office/research/2026-10-30-power-query-workbook/build_pq_xlsx.py) |
-| Clipboard: a person pastes into Queries & Connections | a person is already working in the workbook | [`Set-MashupClipboard`](https://github.com/mehrlander/home/blob/main/projects/wps/app/Modules/ExcelService/ExcelXml.ps1) |
-
-The *add Power Query queries* rows of the [office crosswalk](https://github.com/mehrlander/home/blob/main/projects/office/crosswalk.csv) hold the evidence and the file writer's limits.
-
-Desktop Excel saves the `DataMashup` part (`customXml/item*.xml`) as UTF-16LE with a byte-order mark; a reader that decodes it as UTF-8 finds no `<DataMashup>`.
+| COM: `Workbook.Queries.Add`; mechanics in [`excel-com`](../excel-com/SKILL.md) | the saved workbook must already hold results, or an existing query's M must change | [`New-PowerQueryDemo.ps1`](https://github.com/mehrlander/home/blob/main/projects/office/research/2026-10-30-excel-script-creation/New-PowerQueryDemo.ps1) |
+| File writer, in Python | no Excel is at hand; the workbook shows results once someone refreshes it in Excel | [`build_pq_xlsx.py`](https://github.com/mehrlander/home/blob/main/projects/office/research/2026-10-30-power-query-workbook/build_pq_xlsx.py) |
+| Clipboard: paste into Queries & Connections | a person is already working in the workbook | [`Set-MashupClipboard`](https://github.com/mehrlander/home/blob/main/projects/wps/app/Modules/ExcelService/ExcelXml.ps1) |

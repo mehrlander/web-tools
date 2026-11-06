@@ -22,8 +22,8 @@ mistake.
 | Write a file, no Excel present | OOXML, ClosedXML, EPPlus | yes |
 | Active workbook, selection, active cell | **COM** | no |
 | Format a sheet someone is looking at | **COM** | no |
-| Add Power Query queries | zip and XML, or COM ([`power-query`](../power-query/SKILL.md) says which) | yes, for zip and XML |
-| Create or refresh pivots, refresh Power Query output, or drive audit arrows | **COM** | no |
+| Add Power Query queries | zip and XML, or COM to save results with them ([`power-query`](../power-query/SKILL.md)) | yes, for zip and XML |
+| Create or refresh pivots, drive audit arrows | **COM** | no |
 | Anything that must survive without Excel installed | not COM | yes |
 
 COM only earns its cost when the running application holds the state. Reading a
@@ -77,7 +77,7 @@ one hit in this estate.
 | Off-by-one on every index | Excel is 1-based, PowerShell is 0-based, and a Variant array bridges the two | keep the conversion in one helper |  |
 | A formula is rejected on a non-English install | `.Formula` is US English, `.FormulaLocal` follows the UI | write `.Formula` and let Excel localize the display |  |
 | `GetActiveObject` returns nothing while Excel is plainly open | the running instance is at a different elevation, or the ROT entry is missing | fall back to `New-Object -ComObject`, and say which one was used |  |
-| `EXCEL.EXE` survives a task-owned build | a COM reference is still held | close owned workbooks, call `Quit` on the owned application and release references; preserve an intentionally borrowed session |  |
+| `EXCEL.EXE` survives the script | a COM reference is still held | let the app stay visible and user-owned rather than creating and hiding one |  |
 
 ## 4. The write pattern
 
@@ -111,27 +111,22 @@ Around it:
 - Name every layout row and column (`$rSrc`, `$fyFirstCol`), never a magic number.
 - Build range addresses on their own line, always.
 - Wrap the whole build in `try` / `finally` with `ScreenUpdating` restored.
-- For an isolated build, create a task-owned app with `New-Object -ComObject`.
-  Use `Get-ExcelApp` when the task explicitly concerns the user's active
-  workbook, and verify which workbook the returned app exposes.
+- Take the app with `Get-ExcelApp`, falling back to `New-Object -ComObject`.
 
 ### Power Query: add, load and refresh
 
-`Workbook.Queries.Add(name, m, description)` saves a query but neither runs nor
-loads it. To load it, add a worksheet `ListObject` with `SourceType = 0` and
+`Workbook.Queries.Add(name, m, description)` saves a query; to run and load it,
+add a worksheet `ListObject` with `SourceType = 0` and
 this OLE DB source:
 
 ```text
 OLEDB;Provider=Microsoft.Mashup.OleDb.1;Data Source=$Workbook$;Location=<Query>;Extended Properties=""
 ```
 
-Then set its `QueryTable.CommandType = 2`, its `CommandText` to
+Then set the table's `QueryTable.CommandType = 2`, its `CommandText` to
 `SELECT * FROM [<Query>]` and `BackgroundQuery = $false`, and call
-`Refresh($false)`. The name in `Location` and the SQL must match the saved
-query. Setting `Workbook.Queries.Item(<Query>).Formula` changes a query's M;
-refresh again to see it. [`New-PowerQueryDemo.ps1`](https://github.com/mehrlander/home/blob/main/projects/office/research/2026-10-30-excel-script-creation/New-PowerQueryDemo.ps1)
-is the tested builder; external credentials, privacy prompts and Data Model
-loading were not tested.
+`Refresh($false)`. Setting `Workbook.Queries.Item(<Query>).Formula` changes a
+query's M; refresh again to see it.
 
 ## 5. Report-sheet idiom
 
@@ -156,7 +151,8 @@ another, and nothing in the sheet says which.
 
 ## 6. Make the sheet prove itself
 
-Build in a check cell that fails loudly:
+The sheet is built by code that was never run against Excel, so build in a cell
+that fails loudly:
 
 ```
 =SUMPRODUCT(ABS(<block A> + <block B> - <total block>))
@@ -166,14 +162,9 @@ Reads `0.00` or it does not. `SUMPRODUCT` avoids needing Ctrl+Shift+Enter, so it
 survives an older Excel. Point the user at that cell by address in the reply. It
 proves internal consistency, not that the inputs are correct.
 
-## 7. Check whether Excel is reachable
+## 7. You cannot run this here
 
-On Windows, check that Excel is installed and that a small COM activation of a
-task-owned instance succeeds; a restricted sandbox can refuse it with `0x80070005` even though
-Excel is registered. Report that boundary rather than change security settings.
-
-If Excel is reachable, run the build, reopen the saved workbook and check it,
-and close only what the script opened. If it is not:
+No Excel in a Linux sandbox, and no substitute worth pretending with. So:
 
 - Deliver **one self-contained script**, handed over as a file, not a snippet to
   reassemble.
