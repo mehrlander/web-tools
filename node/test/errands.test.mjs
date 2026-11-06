@@ -84,7 +84,7 @@ test('validate refuses a run its method cannot perform', () => {
   assert.match(v({ ...RUN, script: 'ps/list.ps1' }).error, /owner\/repo@ref:path/);
   assert.match(v({ ...RUN, method: 'f5' }).error, /unknown run.method/);
   assert.match(v({ ...RUN, outputType: 'xml' }).error, /unknown run.outputType/);
-  const courier = { script: 'me/r@main:c.js', method: 'courier-bookmark', venue: 'personal-laptop' };
+  const courier = { script: 'me/r@main:c.js', method: 'courier-bookmark' };
   assert.match(v(courier).error, /url of its page/);
   assert.equal(v(courier, { url: 'https://x.example/' }).ok, true);
 });
@@ -233,4 +233,14 @@ test('fulfill performs each read against the token, and never throws', async () 
   assert.equal(f.data.files[1].ok, false, 'one missing file does not sink the rest');
   assert.equal((await read({ action: 'fetch' }, {})).ok, false, 'a bad request is refused before the network');
   assert.equal((await read({}, {})).ok, false, 'a plain errand is not a read');
+});
+
+// A method that runs in a browser page names no machine, so its errand need
+// not name one, and one that names a machine is held to its method's list.
+test('a browser method takes no machine; a machine method takes only its own', () => {
+  const v = (run, extra = {}) => E.validate(E.normalize({ id: 'x', note: 'n', dest: 'me/r:d', run, ...extra }));
+  assert.deepEqual([...E.METHODS['console-enter'].machines], []);
+  assert.equal(v({ script: 'me/r@main:c.js', method: 'console-enter' }).ok, true);
+  assert.equal(E.normalize({ id: 'x', note: 'n', dest: 'me/r:d', run: { script: 'me/r@main:c.js', method: 'console-enter' } }).run.venue, '');
+  assert.match(v({ script: 'me/r@main:p.ps1', method: 'ise-f5', venue: 'iphone' }).error, /ise-f5 runs on personal-laptop or work-machine/);
 });

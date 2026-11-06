@@ -27,12 +27,9 @@ test('every machine has one row, a label and a Phosphor icon', () => {
   }
 });
 
-test('every writer runs on machines the registry lists', () => {
-  for (const r of Csv.rows(read('docs/writers.csv'))) {
-    const ms = Csv.list(r.machine);
-    assert.ok(ms.length, `${r.writer}: no machine`);
-    for (const m of ms) assert.ok(keys.has(m), `${r.writer}: machine ${m} is not a docs/machines.csv key`);
-  }
+test('every writer runs on a machine the registry lists, or in a browser', () => {
+  for (const r of Csv.rows(read('docs/writers.csv')))
+    assert.ok(!r.machine || keys.has(r.machine), `${r.writer}: machine ${r.machine} is not a docs/machines.csv key`);
 });
 
 test('every machine a run method allows is a machine, and MACHINES is exactly those', () => {
