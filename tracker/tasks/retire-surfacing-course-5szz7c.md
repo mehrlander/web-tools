@@ -22,7 +22,7 @@ Map each section to where it is already covered, move what is unique (the guide-
 - `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `docs/house-policies.md`: name the course or rules quoted from it.
 - mehrlander/home `CLAUDE.md`: cites the course twice (working style, surfacing section).
 - `node/test/assistant-mark.test.mjs`, `node/test/state-the-rule.test.mjs`, `node/test/mcp-link-safe.test.mjs`: read the course.
-- `programs/surfacing/README.md`: the course is a governed file of the program once web-tools #1055 merges.
+- `programs/sessions/README.md`: the course is a governed file of the program once web-tools #1055 merges.
 
 ## Done when
 
