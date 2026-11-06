@@ -26,7 +26,7 @@ Object.defineProperty(window, 'opener', { value: opener, configurable: true });
 // The registry holds two courier errands, each its own file, and a closed one
 // whose result is already written.
 const courier = (id, host) => ({ id, note: 'Collect the links on ' + host, url: 'https://' + host + '/', title: id,
-  run: { script: 'mehrlander/web-tools-private@main:sites/' + host + '/go.js', method: 'courier-bookmark', venue: 'personal-laptop' },
+  run: { script: 'mehrlander/web-tools-private@main:sites/' + host + '/go.js', method: 'courier-bookmark' },
   dest: 'mehrlander/web-tools-private@main:courier/results', file: id + '.md' });
 const PRIVATE = {
   'pub.json': courier('pub', 'site.example'),

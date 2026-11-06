@@ -10,8 +10,8 @@
   // The harness picture (skills/design-sprint, phase 3; the idea board is
   // harness-map-ideas.json beside this file). A designed diagram over live
   // data: the machines code runs on, grouped as yours or hosted, each holding
-  // its writers, and one box more for writers that run in a browser on any of
-  // several machines; a line from every writer to the credential it commits with; one
+  // its writers, and one box more for the pages, which run in whatever browser
+  // opens them; a line from every writer to the credential it commits with; one
   // road per credential into GitHub, as thick as the writers on it and
   // labelled with whose name its commits carry. The layout is authored; every
   // name, count and line is read from the registries, so it stays true as rows
@@ -27,22 +27,16 @@
   const [wcsv, ccsv, vcsv, mcsv, dcsv] = await Promise.all(
     ['docs/writers.csv', 'docs/credentials.csv', 'docs/machines.csv', 'docs/run-methods.csv', 'docs/direct-to-main.csv'].map(get));
   const WRITERS = Csv.rows(wcsv), CREDS = Csv.rows(ccsv), MACHINES = Csv.rows(vcsv), METHODS = Csv.rows(mcsv), MAIN = Csv.rows(dcsv);
-  // A writer on several machines (a page in a browser on any of them) is drawn
-  // once, in a box for that set, placed after the first machine it names.
-  const labelOf = id => MACHINES.find(m => m.machine === id)?.label || id;
-  const PLACES = [];
-  for (const m of MACHINES) {
-    PLACES.push(m);
-    for (const set of [...new Set(WRITERS.map(w => w.machine))].filter(v => Csv.list(v).length > 1 && Csv.list(v)[0] === m.machine))
-      PLACES.push({ machine: set, label: Csv.list(set).map(labelOf).join(' or ') });
-  }
+  // A page names no machine: it runs in whatever browser opens it, so the
+  // pages, and the run methods that need only a browser, share one box.
+  const PLACES = [...MACHINES, { machine: '', label: 'In a browser' }];
 
   // THE OPINION. Which places are yours and which are a provider's is the
   // diagram's first division; the registries do not record ownership, so the
-  // page states it. A machine not listed here falls to the hosted side, and a
-  // set of machines falls where its first one does.
+  // page states it. A machine not listed here falls to the hosted side; a
+  // browser is yours, since it writes with what you saved in it.
   const YOURS = ['personal-laptop', 'iphone', 'work-machine'];
-  const side = v => YOURS.includes(Csv.list(v)[0]) ? 'yours' : 'hosted';
+  const side = v => !v || YOURS.includes(v) ? 'yours' : 'hosted';
   const MODEL = { claude: 'Claude', gpt: 'GPT', gemini: 'Gemini' };
 
   // Geometry, in SVG units drawn 1:1 with CSS pixels: on a phone the diagram
@@ -54,7 +48,7 @@
   const placeBoxes = { yours: [], hosted: [] };
   for (const p of PLACES) {
     const ws = WRITERS.filter(w => w.machine === p.machine);
-    const errands = METHODS.filter(m => Csv.list(m.machines).includes(p.machine)).map(m => m.method);
+    const errands = METHODS.filter(m => p.machine ? Csv.list(m.machines).includes(p.machine) : !m.machines).map(m => m.method);
     // The run methods named over a box, in lines that fit its width; the box
     // sits lower by the lines past the first.
     const lines = errands.reduce((acc, m) => {
