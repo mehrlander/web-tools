@@ -129,10 +129,11 @@
   ],
   "programs": [
     {
-      "name": "surfacing",
-      "label": "Surfacing",
-      "icon": "programs/surfacing/icon.svg",
-      "path": "programs/surfacing",
+      "name": "sessions",
+      "label": "Sessions",
+      "scope": "replies and render links, the plugin, hooks and scheduled jobs",
+      "icon": "programs/sessions/icon.svg",
+      "path": "programs/sessions",
       "governs": [
         "docs/CONVERSATION.md",
         "docs/conversation.csv",
@@ -177,12 +178,25 @@
       "views": [
         "?view=map&tab=surfacing",
         "?view=map&tab=showing",
-        "?view=waiting"
+        "?view=waiting",
+        "?view=map&tab=agents",
+        "?view=map&tab=context",
+        "?view=map&tab=distribution",
+        "?view=map&tab=lifetimes",
+        "?view=map&tab=outposts",
+        "?view=map&tab=reach",
+        "?view=map&tab=skills",
+        "?view=map&tab=harness",
+        "?view=map&tab=events",
+        "?view=map&tab=scheduled",
+        "?view=map&tab=set",
+        "?view=map&tab=watch"
       ]
     },
     {
       "name": "testing",
       "label": "Testing",
+      "scope": "the suite and where each check runs",
       "icon": "programs/testing/icon.svg",
       "path": "programs/testing",
       "governs": [
@@ -198,6 +212,61 @@
       ],
       "views": [
         "?view=map&tab=tests"
+      ]
+    },
+    {
+      "name": "organization",
+      "label": "Organization",
+      "status": "proposed",
+      "scope": "repositories, registries, session records and history",
+      "icon": "programs/organization/icon.svg",
+      "path": "programs/organization",
+      "views": [
+        "?view=map&tab=overview",
+        "?view=map&tab=aims",
+        "?view=map&tab=attributes",
+        "?view=map&tab=data",
+        "?view=map&tab=docs",
+        "?view=map&tab=icons",
+        "?view=map&tab=programs",
+        "?view=map&tab=projects",
+        "?view=map&tab=registries",
+        "?view=map&tab=public",
+        "?view=map&tab=names",
+        "?view=sessions",
+        "?view=branches",
+        "?view=search"
+      ]
+    },
+    {
+      "name": "content",
+      "label": "Content",
+      "status": "proposed",
+      "scope": "writing rules, docs and pages",
+      "icon": "programs/content/icon.svg",
+      "path": "programs/content",
+      "views": [
+        "?view=map&tab=growth",
+        "?view=map&tab=peeves",
+        "?view=map&tab=policy",
+        "?view=map&tab=themes",
+        "?view=map&tab=dimensions",
+        "?view=map&tab=kits",
+        "?view=map&tab=patterns",
+        "?view=map&tab=views",
+        "?view=pages"
+      ]
+    },
+    {
+      "name": "discovery",
+      "label": "Discovery",
+      "status": "proposed",
+      "scope": "research, probes and outside sources",
+      "icon": "programs/discovery/icon.svg",
+      "path": "programs/discovery",
+      "views": [
+        "?view=map&tab=exploration",
+        "?view=map&tab=research"
       ]
     }
   ]
