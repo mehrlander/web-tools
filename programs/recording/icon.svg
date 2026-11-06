@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="recording program">
+  <title>recording program</title>
+  <desc>A clock face with its hands, cut from a pink-600 tile. Drawn on the drawn-mark box and rules (docs/favicons/README.md): solid fills, no strokes, and every gap at least 2.5 units, which is about 1.4 CSS pixels at 16. Proposed with the program; the program is not yet adopted.</desc>
+  <mask id="cut" maskUnits="userSpaceOnUse" x="0" y="0" width="32" height="32">
+    <rect width="32" height="32" fill="#fff"/>
+    <g fill="#000"><circle cx="16" cy="16.25" r="9.5"/></g>
+    <g fill="#fff"><path d="M14.75 9.75 H17.25 V15 H21.25 V17.5 H14.75Z"/></g>
+  </mask>
+  <g fill="#db2777" mask="url(#cut)"><rect x="2" y="2.25" width="28" height="28" rx="7"/></g>
+</svg>
