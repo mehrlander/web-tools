@@ -8,6 +8,7 @@ import { existsSync, readFileSync, mkdirSync } from 'node:fs';
 import { chromium } from 'playwright';
 import { repoRoot } from '../repo-root.mjs';
 import { resolveCdn, typeFor, blobSha } from '../render/cdn.mjs';
+import { launch as launchChromium } from '../render/chromium.mjs';
 
 const store = 'mehrlander/web-tools-private';
 const day = new Date().toISOString().slice(0, 10), month = day.slice(0, 7);
@@ -53,7 +54,7 @@ const check = (name, condition) => { assert.ok(condition, name); console.log('ok
 try {
   const launchErrors = [];
   for (const option of [{}, { channel: 'chrome' }, { channel: 'msedge' }]) {
-    try { browser = await chromium.launch({ headless: true, ...option }); break; }
+    try { browser = await launchChromium({ headless: true, ...option }); break; }
     catch (e) { launchErrors.push(e.message); }
   }
   assert.ok(browser, 'Could not launch a browser: ' + launchErrors.join('\n'));

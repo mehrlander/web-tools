@@ -45,6 +45,7 @@ import { readFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 import { resolveCdn, typeFor } from '../render/cdn.mjs';
 import { repoRoot } from '../repo-root.mjs';
+import { launch as launchChromium } from '../render/chromium.mjs';
 
 const WIDTH = 560;           // the reply card's own bound, near enough
 
@@ -139,7 +140,7 @@ const measure = async (page, md) => page.evaluate((md) => {
   })));
 }, md);
 
-const browser = await chromium.launch({ args: ['--no-sandbox'] });
+const browser = await launchChromium({ args: ['--no-sandbox'] });
 try {
   const page = await browser.newPage({ viewport: { width: WIDTH + 40, height: 900 } });
   await page.route('**/*', route => {

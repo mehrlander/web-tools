@@ -23,6 +23,7 @@ import { readFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 import { resolveCdn, typeFor } from '../render/cdn.mjs';
 import { repoRoot as root } from '../repo-root.mjs';
+import { launch as launchChromium } from '../render/chromium.mjs';
 
 const REF = 'main';
 const ADDR = `gh=mehrlander/web-tools@${REF}:pages/toss-render.html` +
@@ -47,7 +48,7 @@ const server = http.createServer(async (req, res) => {
 await new Promise(r => server.listen(0, '127.0.0.1', r));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
-const browser = await chromium.launch({ args: ['--no-sandbox', '--ignore-certificate-errors'] });
+const browser = await launchChromium({ args: ['--no-sandbox', '--ignore-certificate-errors'] });
 const context = await browser.newContext();
 await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin });
 const page = await context.newPage();

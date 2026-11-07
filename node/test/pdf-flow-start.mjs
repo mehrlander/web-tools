@@ -43,6 +43,7 @@ import { readFileSync } from 'node:fs';
 import { chromium } from 'playwright';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { repoRoot as root } from '../repo-root.mjs';
+import { launch as launchChromium } from '../render/chromium.mjs';
 
 const failures = [];
 const ok = (name, cond, detail = '') => {
@@ -92,7 +93,7 @@ const server = http.createServer((req, res) => {
 await new Promise(r => server.listen(0, '127.0.0.1', r));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
-const browser = await chromium.launch({ args: ['--no-sandbox'] });
+const browser = await launchChromium({ args: ['--no-sandbox'] });
 const page = await browser.newPage({ viewport: { width: 1000, height: 700 } });
 page.on('pageerror', e => { console.log(`  [pageerror] ${e.message}`); failures.push('pageerror'); });
 
