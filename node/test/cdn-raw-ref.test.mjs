@@ -40,3 +40,13 @@ test('a folder at a ref is listed as the contents API lists it', () => {
   assert.ok(Array.isArray(list), r.tag);
   assert.ok(list.some(e => e.type === 'file' && e.path === 'docs/favicons/map/docs.svg'));
 });
+
+// A contents request for a file that is not here answers 404, as GitHub does.
+// It answered an empty 200, so a page that shows an absent state on a 404
+// parsed nothing instead and rendered a different branch than it does live.
+test('a contents path that is not here answers 404', () => {
+  const r = resolveCdn(`https://api.github.com/repos/${REPO}/contents/no/such/file.json`, repoRoot, null, {});
+  assert.equal(r.status, 404, r.tag);
+  assert.match(r.tag, /^MISS api /);
+  assert.equal(JSON.parse(r.body).message, 'Not Found');
+});
