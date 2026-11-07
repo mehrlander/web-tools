@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `node/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 16 are named by CLAUDE.md,
-22 by a skill, 44 by a page or component. The remaining 37 are
+22 by a skill, 44 by a page or component. The remaining 38 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -156,6 +156,7 @@ marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/prototypes/
 
+- [`content-maturity-ideas.json`](prototypes/content-maturity-ideas.json) *(record, orphan)* — the idea board for a diagram of content maturity: eight ways to draw four levels from Markdown notes to a view in the app, and the staircase selected with three grafts
 - [`md-edit-ideas.json`](prototypes/md-edit-ideas.json) *(record, orphan)* — the idea board for the Markdown section editor: eight concepts drawn over the Intake section of docs/stage.md, and the selection the two built editors came from
 - [`harness-map-ideas.json`](prototypes/harness-map-ideas.json) *(record, orphan)* — the idea board for the harness picture: eight ways to draw how writers, the credentials they commit with and the machines they run on reach GitHub, and the selection docs/prototypes/harness-map.html builds
 - [`model-diagram-ideas.json`](prototypes/model-diagram-ideas.json) *(record, orphan)* — the idea board for redrawing the Map's Model diagram: eight ways to show a reader new to the codebook what a unit, its pattern, parts and frame codes are, drawn on the Docs tab, and the selection

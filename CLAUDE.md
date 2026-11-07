@@ -23,7 +23,7 @@ Before a merge, if any `pages/*.html` changed this session (`git diff main...HEA
 
 ## Guide-PR support: platform auto-create is on
 
-The account's Claude Code web settings ("Create pull requests automatically" with "Create as draft") create a draft PR on a session's first push. A session working in an added repo opens the draft itself through the GitHub MCP. Body sync is manual and follows the guide pointer in [docs/CONVERSATION.md](docs/CONVERSATION.md); no hook or CI tracks it. `BRANCH-GUIDE.md` files are retired; delete any stray one on sight.
+The account's Claude Code web settings ("Create pull requests automatically" with "Create as draft") create a draft PR on a session's first push. A session working in an added repo opens the draft itself through the GitHub MCP. The guide in the PR body follows "The PR guide" in [docs/CONVERSATION.md](docs/CONVERSATION.md); no hook or CI tracks it. `BRANCH-GUIDE.md` files are retired; delete any stray one on sight.
 
 ## The pre-build & the build-on-commit hook
 
