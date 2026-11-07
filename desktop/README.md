@@ -2,15 +2,14 @@
 
 A Windows desktop version of [Web Tools](https://mehrlander.github.io/web-tools/app/).
 The Web Tools tab loads the deployed app directly. The Now tab brings current
-assistant work, the Gemini queue and recent results together. An activity strip
+assistant work, assistant errand queues and recent results together. An activity strip
 stays visible above either tab.
 
 ## First version
 
 - Codex, Gemini and Claude lanes with shared assistant marks, session names,
   activity states, timestamps and explicit Laptop or Cloud labels.
-- Gemini worker queue: waiting errands in request order, claimed work, arriving
-  replies, and distinct empty, unavailable and saved-snapshot states.
+- Assistant errand queues: waiting errands in request order, claimed work and arriving replies. The Gemini worker card distinguishes empty, unavailable and saved-snapshot states.
 - Recent results with local output folders
   and the corresponding Web Tools errand one click away.
 - Gemini worker process detection and the last local log write time.
@@ -317,6 +316,7 @@ The reader fetches the private checkout's `background` branch. It reads requests
 at one immutable Git revision through `ls-tree` and `cat-file --batch`. Fetch
 updates `origin/background` and, for cloud records, `origin/main`; the checkout, index, local edits, and checked-out
 branch are untouched.
+The request's `run.method` assigns its assistant lane: `laptop-daemon` to Gemini, `codex-errand` to Codex, and `claude-errand` to Claude. Unknown methods are skipped. All three methods use the same request, claim and result shape. The method identifies the assistant, not continued execution or the machine running Codex or Claude. The Gemini worker card counts only Gemini errands.
 The latest eighty request filenames and every unresolved request are available;
 the list shows forty matching entries at once. Recent activity remains visible
 as the feed updates, without an acknowledgement step.

@@ -19,7 +19,7 @@ public static class PhoneActivity
     public static PhoneSnapshot Create(LaptopSnapshot snapshot, DateTimeOffset observedAt, string? error = null)
     {
         var items = snapshot.Activity.Errands.Where(j => j.IsOpen || j.UpdatedAt > observedAt.AddDays(-1))
-            .Select(j => new PhoneItem("errand:" + j.Id, j.Id, "errand", "Gemini", "Laptop", j.Title,
+            .Select(j => new PhoneItem("errand:" + j.Id, j.Id, "errand", j.Provider, j.Location, j.Title,
                 j.State, j.Message ?? "", j.UpdatedAt, j.CreatedAt, j.State == "failed" && j.IsNew, j.IsNew,
                 NavigationPolicy.ErrandUrl(j.Id, j.State is "reply" or "complete" or "failed"))).ToList();
         items.AddRange(snapshot.Sessions.Items.Concat(snapshot.Cloud.Items).Select(s => new PhoneItem(

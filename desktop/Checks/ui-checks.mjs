@@ -134,5 +134,22 @@ doc.querySelector('#errands [data-session-link]').focus(); doc.querySelector('#e
 data.cloud.items[0].detail = 'A new observation'; snapshot();
 check(doc.activeElement.dataset.sessionLink === launch.dataset.launch && doc.querySelector('#errands').scrollTop === 90,'A desktop update preserves the open launcher, focused session link and list scroll position.');
 
+data.sessions.items = []; data.cloud.items = []; data.changes = []; data.events = [];
+data.activity.errands = ['Codex','Gemini','Claude'].flatMap(provider => [
+  {...job(provider+'-queued','queued',provider+' queue'),provider,location:provider === 'Gemini' ? 'Laptop' : ''},
+  {...job(provider+'-claimed','claimed',provider+' accepted'),provider,location:''}
+]);
+snapshot(); click('[data-assistant=claude]');
+for (const provider of ['Codex','Gemini','Claude']) {
+  const key = provider.toLowerCase();
+  check(doc.querySelector(`[data-assistant=${key}]`).closest('article').textContent.includes('1 queued'),provider+' desktop lane counts only its own queue.');
+  click(`[data-assistant=${key}]`);
+  check(doc.querySelectorAll('#errands .activity-row').length === 2 && doc.querySelector('#errands').textContent.includes(provider+' queue'),provider+' desktop filter retains its queued and claimed errands.');
+  click(`[data-assistant=${key}]`);
+}
+check(doc.querySelector('#queue').textContent.includes('Gemini queue') && !doc.querySelector('#queue').textContent.includes('Codex queue')
+  && !doc.querySelector('#queue').textContent.includes('Claude accepted'),'The desktop Gemini worker card contains only Gemini errands.');
+data.activity.errands = data.activity.errands.filter(j => j.provider !== 'Gemini'); data.daemon.state = 'absent'; snapshot();
+check(!doc.querySelector('#notice').textContent.includes('Gemini errands are waiting'),'Other assistant queues do not trigger a Gemini worker warning on desktop.');
 dom.window.close();
 console.log(`${checks} Now UI checks passed.`);
