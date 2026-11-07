@@ -7,8 +7,8 @@
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/alpinejs@3/dist/cdn.min.js" defer></script>
 <script src="../../lib/kits/repo-address.js"></script>
-<!-- Every idea drawn or gathered for the programs' marks, one column per
-     program shown: one card per idea, under a strip of the picked idea's
+<!-- Every idea drawn or gathered for the programs' marks, the ideas of the
+     program chosen in the lineup: one card per idea, under a strip of the picked idea's
      variations that stays at the top of its column, and a lineup that sets the estate's repository
      marks beside the pick from each of the five programs. Sessions' pile opens on
      ideas drawn for Sessions (2026-11-07), then Surfacing's, drawn on 2026-11-02, when the cube with its top face in
@@ -104,7 +104,7 @@
     data: JSON.parse(document.getElementById('pile').textContent),
     cue: 'solid', sel: { sessions: [0, 0], testing: [5, 0], organization: [0, 0], content: [0, 0], discovery: [0, 0] },
     progs: [['sessions', 'Sessions'], ['testing', 'Testing'], ['organization', 'Organization'], ['content', 'Content'], ['discovery', 'Discovery']],
-    on: ['organization', 'content', 'discovery'],
+    cur: (() => { try { return localStorage.getItem('program-mark-ideas:program') || 'organization' } catch { return 'organization' } })(),
     favs: { sessions: [], testing: [], organization: [], content: [], discovery: [] },
     moving: { p: '', i: -1 }, drag: null, reps: {},
     call: null, at: null, sent: null, sending: false, err: '', note: '', copied: false,
@@ -125,9 +125,9 @@
         } catch (e) { if (e.status !== 404) this.err = 'Could not read the answers: ' + e.message }
       } catch (e) { this.err = 'Could not read the call: ' + e.message + (GH.token() ? '' : '. It needs your GitHub token, set in the app.') }
     },
-    get shown() { return this.progs.filter(([p]) => this.on.includes(p)) },
-    get cols() { const n = this.shown.length; return n === 1 ? 'grid-cols-1' : n === 2 ? 'grid-cols-2' : n === 3 ? 'grid-cols-1 md:grid-cols-3' : 'grid-cols-1 md:grid-cols-2 xl:grid-cols-' + n },
-    toggle(p) { this.on = this.on.includes(p) ? (this.on.length > 1 ? this.on.filter(x => x !== p) : this.on) : this.progs.map(([k]) => k).filter(k => k === p || this.on.includes(k)) },
+    // One program at a time, chosen from the lineup.
+    get shown() { return this.progs.filter(([p]) => p === this.cur) },
+    open(p) { this.cur = p; try { localStorage.setItem('program-mark-ideas:program', p) } catch {} },
     uri(s) { return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(s) },
     show(p, it) { return this.uri(it && it.svg ? asProgram(it.svg, p, this.cue) : BLANK(p)) },
     // Each idea keeps the mark chosen in it, and its card shows that mark.
@@ -191,34 +191,30 @@
   <header class="border-b border-[var(--color-base-300)] bg-base-200 px-4 pt-3 pb-2 mb-3">
     <h1 class="text-xl font-semibold" x-text="call ? call.question : 'Program mark ideas'"></h1>
     <div class="mt-2 flex items-center gap-1 overflow-x-auto whitespace-nowrap">
-      <span class="mr-1 text-xs text-base-content/60">Programs</span>
-      <template x-for="[p, n] in progs" :key="'pill-' + p">
-        <button class="btn btn-xs h-7 rounded-full px-2.5 font-medium" :class="on.includes(p) ? 'btn-neutral' : 'btn-ghost'" @click="toggle(p)" :aria-pressed="on.includes(p)">
-          <span x-text="n"></span></button>
-      </template>
-    </div>
-    <div class="mt-1.5 flex items-center gap-1 overflow-x-auto whitespace-nowrap">
       <span class="mr-1 text-xs text-base-content/60">Program as</span>
       <template x-for="[k, n] in [['mark', 'Mark'], ['tint', 'Tinted tile'], ['solid', 'Solid tile'], ['gauge', 'Gauge arc']]" :key="k">
         <button class="btn btn-xs h-7 rounded-full px-2.5 font-medium" :class="cue === k ? 'btn-neutral' : 'btn-ghost'" @click="cue = k" x-text="n"></button>
       </template>
     </div>
-    <!-- The lineup: each program's lead, then the repository marks it has to
-         sit beside, smaller, since those are settled. -->
-    <div class="mt-2 rounded-box bg-base-100 px-3 py-2">
-      <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+    <!-- The lineup: each program's lead, which opens that program's ideas
+         below, then the repository marks it has to sit beside, smaller, since
+         those are settled. -->
+    <div class="mt-2 rounded-box bg-base-100 px-2 py-2">
+      <div class="flex flex-wrap items-center gap-1" role="radiogroup" aria-label="Program">
         <template x-for="[p, n] in progs" :key="p">
-          <div class="flex min-w-0 items-center gap-1.5"><img :src="show(p, lead(p))" :alt="n" class="block size-8 shrink-0">
+          <button type="button" role="radio" :aria-checked="String(cur === p)" @click="open(p)"
+            class="flex min-w-0 items-center gap-1.5 rounded-box px-1.5 py-1 text-left" :class="cur === p ? 'bg-base-200 ring-2 ring-[var(--color-primary)]' : 'hover:bg-base-200'">
+            <img :src="show(p, lead(p))" :alt="n" class="block size-8 shrink-0">
             <div class="min-w-0 leading-tight"><div class="text-xs font-medium" x-text="n"></div>
-              <div class="max-w-[9rem] truncate text-xs text-base-content/60" x-text="(favs[p].length ? '1. ' : '') + (lead(p) ? lead(p).name : '')"></div></div></div>
+              <div class="max-w-[9rem] truncate text-xs text-base-content/60" x-text="(favs[p].length ? '1. ' : '') + (lead(p) ? lead(p).name : '')"></div></div></button>
         </template>
       </div>
-      <div class="mt-2 flex items-center gap-2 overflow-x-auto border-t border-[var(--color-base-200)] pt-2">
+      <div class="mx-1.5 mt-2 flex items-center gap-2 overflow-x-auto border-t border-[var(--color-base-200)] pt-2">
         <template x-for="r in data.repos" :key="r.name"><img :src="uri(r.svg)" :alt="r.name" class="block size-5 shrink-0"></template>
       </div>
     </div>
   </header>
-  <main class="grid gap-3 px-3 pb-3 lg:gap-4 lg:px-4 lg:pb-4" :class="cols">
+  <main class="px-3 pb-3 lg:px-4 lg:pb-4">
     <template x-for="[p, n] in shown" :key="p">
       <section class="min-w-0">
         <!-- The program's favorites and the strip of the picked idea ride at
