@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="organization program">
   <title>organization program</title>
-  <desc>A folder with a tab, cut from a blue-600 tile. Drawn on the drawn-mark box and rules (docs/favicons/README.md): solid fills, no strokes, and every gap at least 2.5 units, which is about 1.4 CSS pixels at 16. Proposed with the program; the program is not yet adopted.</desc>
+  <desc>A sitemap: one node above three, joined by a bar, cut from a blue-600 tile. Drawn on the drawn-mark box and rules (docs/favicons/README.md): solid fills, no strokes, and every gap at least 2.5 units, which is about 1.4 CSS pixels at 16. Chosen 2026-11-07; the ideas it was chosen from are in docs/prototypes/program-mark-ideas.html.</desc>
   <mask id="cut" maskUnits="userSpaceOnUse" x="0" y="0" width="32" height="32">
     <rect width="32" height="32" fill="#fff"/>
-    <g fill="#000"><path d="M6.5 8.75 H13.25 L15.75 11.25 H25.5 V24.75 H6.5Z"/></g>
+    <g fill="#000"><rect x="12.5" y="6.25" width="7" height="5" rx="1.25"/><rect x="14.75" y="11" width="2.5" height="3"/><rect x="7.58" y="13.75" width="16.84" height="2.5" rx="0.5"/><rect x="7.58" y="16" width="2.5" height="3"/><rect x="14.75" y="16" width="2.5" height="3"/><rect x="21.92" y="16" width="2.5" height="3"/><rect x="6.50" y="18.75" width="4.67" height="6.5" rx="1.25"/><rect x="13.67" y="18.75" width="4.67" height="6.5" rx="1.25"/><rect x="20.83" y="18.75" width="4.67" height="6.5" rx="1.25"/></g>
   </mask>
   <g fill="#2563eb" mask="url(#cut)"><rect x="2" y="2.25" width="28" height="28" rx="7"/></g>
 </svg>
