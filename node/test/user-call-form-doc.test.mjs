@@ -125,7 +125,7 @@ test('a documentation call shows no PR readiness, even when the PR has conflicts
 test('the edits are listed at the top, each with its summary, and a tap scrolls the document to it', async () => {
   const rows = [...root().querySelectorAll('[data-doc-row]')];
   assert.equal(rows.length, 4, 'one row per edit');
-  assert.match(rows[0].textContent, /^\s*1\s*clearer/, 'its number and its why, when it has no proposal');
+  assert.match(rows[0].textContent.replace(/\s+/g, ' ').trim(), /^Edit 1\. clearer$/, 'a bold run-in label, then its why when it has no proposal');
   assert.match(rows[1].textContent, /Names the order with Second\./, 'its proposal, marks stripped');
   assert.match(rows[3].textContent, /Third\./, 'else the text it puts in');
   scrolled.length = 0;
