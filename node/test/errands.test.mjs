@@ -1,6 +1,6 @@
 // kits/errands.js: one record for everything a session needs a person's browser
 // for. What breaks without these: an old mailbox record read as the wrong kind
-// of errand; a run block the Stage would show with a venue or return route its
+// of errand; a run block the Stage would show with a machine or return route its
 // method cannot use; a grade saying green on a partial read or an unmet
 // expectation, which is the one line a person trusts before tapping; a signed
 // result that cannot find its errand; a decline closed without its reason.
@@ -50,16 +50,16 @@ test('normalize reads the older mailbox shapes as errands', () => {
   assert.equal(E.normalize(null), null);
 });
 
-test('normalize fills outputReturn, and a single venue, from the method registry', () => {
+test('normalize fills outputReturn, and a single machine, from the method registry', () => {
   const e = E.normalize({ id: 'x', note: 'n', dest: 'me/r:d', run: RUN });
   assert.equal(e.run.outputReturn, 'direct-to-clipboard');
   assert.equal(e.run.outputSigned, false, 'unsigned unless the record says true');
-  const c = E.normalize({ id: 'c', note: 'n', dest: 'me/r:d', url: 'https://x.example/',
-    run: { script: 'me/r@main:c.js', method: 'courier-bookmark' } });
-  assert.equal(c.run.venue, 'browser', 'a method with one venue supplies it');
-  assert.equal(c.run.outputReturn, 'courier-message');
+  const c = E.normalize({ id: 'c', note: 'n', dest: 'me/r:d',
+    run: { script: 'me/r@main:c.html', method: 'device-link' } });
+  assert.equal(c.run.venue, 'iphone', 'a method with one machine supplies it');
+  assert.equal(c.run.outputReturn, 'self-filed');
   const two = E.normalize({ id: 'p', note: 'n', dest: 'me/r:d', run: { script: 'me/r@main:p.ps1', method: 'ise-f5' } });
-  assert.equal(two.run.venue, '', 'a method with two venues does not pick one');
+  assert.equal(two.run.venue, '', 'a method with two machines does not pick one');
 });
 
 test('validate: a note on every errand, an action only for the Stage reads', () => {
@@ -163,7 +163,7 @@ test('withErrandId puts the id after # @file in PowerShell and first in JavaScri
 test('a computer-use errand carries a prompt: filled from the registry, headed by its id', () => {
   const e = E.normalize({ id: 'e3', note: 'probe', dest: 'me/r:out',
     run: { script: 'me/r@main:errands/prompts/e3.md', method: 'computer-use' } });
-  assert.equal(e.run.venue, 'personal-laptop', 'the one venue a computer-use agent runs on');
+  assert.equal(e.run.venue, 'personal-laptop', 'the one machine a computer-use agent runs on');
   assert.equal(e.run.outputReturn, 'report-pasted');
   assert.deepEqual(E.validate(e), { ok: true });
   assert.equal(E.withErrandId('Goal: probe.', 'computer-use', 'e3'), 'Errand: e3\n\nGoal: probe.',
@@ -233,4 +233,14 @@ test('fulfill performs each read against the token, and never throws', async () 
   assert.equal(f.data.files[1].ok, false, 'one missing file does not sink the rest');
   assert.equal((await read({ action: 'fetch' }, {})).ok, false, 'a bad request is refused before the network');
   assert.equal((await read({}, {})).ok, false, 'a plain errand is not a read');
+});
+
+// A method that runs in a browser page names no machine, so its errand need
+// not name one, and one that names a machine is held to its method's list.
+test('a browser method takes no machine; a machine method takes only its own', () => {
+  const v = (run, extra = {}) => E.validate(E.normalize({ id: 'x', note: 'n', dest: 'me/r:d', run, ...extra }));
+  assert.deepEqual([...E.METHODS['console-enter'].machines], []);
+  assert.equal(v({ script: 'me/r@main:c.js', method: 'console-enter' }).ok, true);
+  assert.equal(E.normalize({ id: 'x', note: 'n', dest: 'me/r:d', run: { script: 'me/r@main:c.js', method: 'console-enter' } }).run.venue, '');
+  assert.match(v({ script: 'me/r@main:p.ps1', method: 'ise-f5', venue: 'iphone' }).error, /ise-f5 runs on personal-laptop or work-machine/);
 });

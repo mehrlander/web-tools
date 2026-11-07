@@ -7,7 +7,7 @@ Testing checks that the owner's code and data do what they claim. The files the 
 | Area | Covers |
 | --- | --- |
 | Suite | what the tests are and what each protects, starting from web-tools' [`node/test/`](../../node/test/) and its registries [`docs/tests.csv`](../../docs/tests.csv) and [`docs/tests-authored.csv`](../../docs/tests-authored.csv), shown in the Map view's [Tests tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=tests) |
-| Venues | which checks run in which [venue](../../docs/venues.md), such as GitHub's runners, the Home laptop and Anthropic's cloud; who starts each check and why; and whether one check runs in more than one venue |
+| Venues | which checks run in which [venue](../../docs/machines.md), such as GitHub's runners, the Home laptop and Anthropic's cloud; who starts each check and why; and whether one check runs in more than one venue |
 
 ## Measures
 
