@@ -91,7 +91,6 @@ node/test/diff-tool-engine.test.mjs,behavior,"The diff engine: identical input y
 node/test/doc-growth-kit.test.mjs,behavior,lib/kits/doc-growth.js
 node/test/doc-index.test.mjs,behavior,"The document index breaks if a non-Markdown file is indexed, an unmoved repo is reread, an unchanged file is read again, or a capped run leaves its pending files unread on the next one."
 node/test/doc-overlap.test.mjs,gate,the Themes tab's similar-wording tables: that each match names scanned files and that its UTF-16 offsets still cut the hashed passage from every unchanged file
-node/test/doc-review.test.mjs,behavior,"doc-review.py renders a briefing and the branch's edits as the doc review, linking the commit once it is pushed, and refuses a briefing that omits a hunk, names one that does not exist or gives an unknown kind, so no change reaches a commit unseen."
 node/test/dock-split-bounds.test.mjs,behavior,"A stop the caller recomputes per container width, which is the only way to say a pixel floor in percent. Without this min and max freeze at attach, so the handle stops in the wrong place at every width but one and the aria bounds report stops it never took."
 node/test/dock-split.test.mjs,behavior,lib/kits/dock-split.js
 node/test/docs-registry.test.mjs,gate,"Every docs/ file has exactly one registry row, and reach and words match the derivation."
