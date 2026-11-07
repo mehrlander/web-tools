@@ -42,6 +42,7 @@ jobs:
           python desktop/Checks/work-summary-checks.py
           python desktop/Checks/repository-checks.py
           python desktop/Checks/local-file-checks.py
+          python desktop/Checks/laptop-inventory-checks.py
           python desktop/Checks/folder-explorer-checks.py
       - name: Check account allowance normalization and display
         run: |

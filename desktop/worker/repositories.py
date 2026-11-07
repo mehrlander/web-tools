@@ -333,10 +333,20 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--root', type=Path, required=True)
     parser.add_argument('--state', type=Path, required=True)
-    parser.add_argument('--fetch', dest='fetch_key')
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument('--fetch', dest='fetch_key')
     parser.add_argument('--checkout', action='append')
-    parser.add_argument('--local-files', action='store_true')
+    mode.add_argument('--local-files', action='store_true')
+    mode.add_argument('--publish-laptop-files', action='store_true')
     args = parser.parse_args()
+    if args.publish_laptop_files:
+        from laptop_inventory import InventoryError, publish
+        try:
+            value = publish(args.root)
+        except (InventoryError, OSError, ValueError, subprocess.TimeoutExpired):
+            value = {'state': 'unavailable', 'path': 'state/laptop-files.tsv'}
+        print(json.dumps(value))
+        return
     if args.local_files:
         from local_files import inventories
         print(json.dumps(inventories(discover(args.root), git, key)))
