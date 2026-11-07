@@ -56,13 +56,13 @@ without a committed vocabulary?
 
 ## The variant marks
 
-Where the file viewer previews a markdown file, a heading whose section holds
-paragraphs with retained variants gets a mark beside its edit and copy icons,
-counting those paragraphs; a tap opens their variants in place. A filled mark
-means one of those variants is
-[proposed](#where-variants-and-proposals-come-from) for this file. [`kits/md-variants.js`](../lib/kits/md-variants.js) places the
-marks, and the FAB's Text tab turns them off for the browser. A variant whose
-paragraph has since been edited no longer matches.
+A heading whose section holds paragraphs with retained variants gets a mark
+counting those paragraphs, and a tap opens their variants in place. A filled
+mark means one of those variants is
+[proposed](#where-variants-and-proposals-come-from) for this file.
+[`kits/md-variants.js`](../lib/kits/md-variants.js) places the marks, and the
+FAB's Text tab turns them off. A variant whose paragraph has since been edited
+no longer matches.
 
 ## The History mode
 
