@@ -80,7 +80,7 @@ const GROUPS = [
   ['Reach', [['reach', 'Routes'], ['projects', 'Projects'], ['distribution', 'Distribution'], ['outposts', 'Outposts']]],
   ['Research', [['research', 'Probes'], ['exploration', 'Exploration']]],
   ['Harness', [['harness', 'Automation'], ['set', 'Set'], ['tests', 'Tests'], ['skills', 'Skills'], ['agents', 'Agents'], ['peeves', 'Peeves'], ['context', 'Context'], ['lifetimes', 'Lifetimes'], ['surfacing', 'Surfacing']]],
-  ['Browser', [['dimensions', 'Dimensions'], ['patterns', 'Gallery'], ['views', 'Views'], ['kits', 'Kits'], ['showing', 'Showing'], ['fab', 'FAB']]],
+  ['Browser', [['model', 'Model'], ['units', 'Pages'], ['patterns', 'Patterns'], ['dimensions', 'Dimensions'], ['views', 'Views'], ['kits', 'Kits'], ['showing', 'Showing'], ['fab', 'FAB']]],
   ['Docs', [['docs', 'Inventory'], ['growth', 'Growth'], ['policy', 'Policy'], ['themes', 'Themes']]],
   ['Data', [['data', 'Tables'], ['attributes', 'Attributes']]],
   ['Watch', [['watch', 'Triggers'], ['public', 'Public'], ['names', 'Names']]],
