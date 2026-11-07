@@ -221,6 +221,7 @@
       "scope": "repositories, registries, session records and history",
       "icon": "programs/organization/icon.svg",
       "path": "programs/organization",
+      "governs": [],
       "views": [
         "?view=map&tab=overview",
         "?view=map&tab=aims",
@@ -245,6 +246,7 @@
       "scope": "writing rules, docs and pages",
       "icon": "programs/content/icon.svg",
       "path": "programs/content",
+      "governs": [],
       "views": [
         "?view=map&tab=growth",
         "?view=map&tab=peeves",
@@ -264,6 +266,7 @@
       "scope": "research, probes and outside sources",
       "icon": "programs/discovery/icon.svg",
       "path": "programs/discovery",
+      "governs": [],
       "views": [
         "?view=map&tab=exploration",
         "?view=map&tab=research"
