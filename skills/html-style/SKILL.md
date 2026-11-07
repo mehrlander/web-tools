@@ -82,9 +82,16 @@ wrong, not the type. Decks and documents run `text-xl` or larger with
 Everything the reader came to read shares a size; `text-xs` and monospace belong
 to labels, counters, and timestamps.
 
-**8. A short text block balances its lines.** Put `text-balance` on a heading,
-lede, caption, or any block read at a glance, and `text-pretty` on running copy,
-which fixes a stranded last word without evening out full lines.
+**8. Running copy wraps plainly.** Leave the wrapping of a paragraph, or any
+block that can run to three lines, at its default, and keep its last word off a
+line of its own with a no-break space (` `) in place of the space before
+it. Do not put `text-pretty` on such a block: WebKit, which Safari and every
+iPhone browser run, implements it by evening out every line of the block, so
+each one stops short of the right edge, where Chromium adjusts only the last
+few lines. `text-balance` or `text-pretty` suits a block of at most two lines,
+such as a heading or a short caption. Check wrapping in WebKit as well as
+Chromium; [`capabilities.md`](https://github.com/mehrlander/web-tools/blob/main/docs/environment/capabilities.md#browsers--headless-rendering-available)
+says how to install it.
 
 **9. Content starts at the top.** Do not vertically centre a slide because it
 looks balanced when short; across a deck it moves the first line on every card.
@@ -127,6 +134,8 @@ coded `linked-swiper`.
 **16. The layout holds still.** A scrollbar appearing, a counter gaining a digit, or a container's content changing moves nothing else: reserve the scrollbar's gutter, give counters `tabular-nums`, and size a container for its largest content.
 
 **17. An item and its counterparts highlight together.** Where one item appears in two or more places on a page, hovering or tapping any of them marks the others.
+
+**18. A value takes the form its content asks for.** A card or panel does not set its fields in a label column, each value beside or under its label in the same weight. A locator is a link, short labels and dates run as one line of items, a sentence stands as a sentence, and a related item leads with an icon and its name in bold. Leave out a field whose value is a placeholder, the usual default, or a restatement of another field. A table whose rows share columns is exempt.
 
 ## Handing a page over
 

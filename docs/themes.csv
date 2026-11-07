@@ -39,6 +39,9 @@ docs/house-policies.md,skills/report-distiller/SKILL.md,7,,qualified writing md 
 docs/environment/capabilities.md,skills/scour/SKILL.md,7,true,the webfetch summarizer sometimes returns anthropic or anthropic's claude agent sdk as page content;webfetch returns a small model's answer rather than the page's markdown,10,197
 docs/envelopes/README.md,docs/envelopes/workbook-extract.md,7,true,no change to lib kits data payload js lib kits data payload js;why this is a profile over data view rather than a sibling,10,197
 skills/scour/PRIOR-ART.md,skills/scour/SKILL.md,5,,relevant cluster can sit behind a page that scores low on its own;leads harvested from a business association return more business associations,10,197
+skills/html-style/SKILL.md,skills/wayback/SKILL.md,5,,capabilities md https github com mehrlander web tools blob main docs environment capabilities md,10,197
+skills/html-style/SKILL.md,skills/scour/SKILL.md,5,,capabilities md https github com mehrlander web tools blob main docs environment capabilities md,10,197
+skills/gold-set/SKILL.md,skills/html-style/SKILL.md,5,,capabilities md https github com mehrlander web tools blob main docs environment capabilities md,10,197
 skills/agents/house-style-critic.md,skills/screenshot-review/SKILL.md,5,,a style verdict on a broken render grades the failure as a design choice,10,197
 docs/house-policies.md,skills/doc-craft/SKILL.md,5,,readme md https github com mehrlander web tools blob main docs constellation md principle,10,197
 docs/envelopes/data-view.md,docs/environment/testing.md,5,,node render scenarios data view item mjs node render scenarios data view item mjs,10,197
@@ -49,9 +52,11 @@ skills/html-style/references/mechanics.md,skills/look-markers/SKILL.md,4,,html h
 lib/kits/README.md,node/README.md,4,,load and build are one contract in docs loader md docs loader md,10,197
 docs/house-policies.md,skills/tree/SKILL.md,4,,conversation md https github com mehrlander web tools blob main docs conversation md,10,197
 courier/README.md,sites/wsldocs.sos.wa.gov/README.md,4,,which route reaches a page bookmarklets readme md which route reaches a page,10,197
+skills/html-style/SKILL.md,skills/notes/SKILL.md,3,,js https github com mehrlander web tools blob main lib kits;md https github com mehrlander web tools blob main docs,10,197
 skills/doc-audit/SKILL.md,skills/passage-reading/SKILL.md,3,,md https github com mehrlander web tools blob main docs envelopes;https mehrlander github io web tools pages toss render html,10,197
 skills/agents/house-style-critic.md,skills/agents/peeves-critic.md,3,true,do not rewrite name the fix in one clause only where the,10,197
 pages/drop/fills-concepts/3-reactive-surface/PROMPT.md,pages/drop/fills-concepts/CATALOG.md,3,,aic 2 html aic kimi html collection browser html collection browser 2,10,197
+docs/house-policies.md,skills/html-style/SKILL.md,3,,md https github com mehrlander web tools blob main docs showing;https github com mehrlander web tools blob main lib kits,10,197
 docs/github/post-merge-branch-mutation.md,docs/house-policies.md,3,,from the current tip of the target branch and opens a new,10,197
 docs/github/README.md,docs/github/markdown.md,3,,when you view a md on github no javascript no build step,10,197
 docs/environment/capabilities.md,docs/github/README.md,3,,mcp layer does to a call and to the text it carries,10,197
