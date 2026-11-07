@@ -82,7 +82,7 @@ const GROUPS = [
   ['Harness', [['harness', 'Automation'], ['set', 'Set'], ['tests', 'Tests'], ['skills', 'Skills'], ['agents', 'Agents'], ['peeves', 'Peeves'], ['context', 'Context'], ['lifetimes', 'Lifetimes'], ['surfacing', 'Surfacing']]],
   ['Browser', [['model', 'Model'], ['units', 'Pages'], ['patterns', 'Patterns'], ['dimensions', 'Dimensions'], ['views', 'Views'], ['kits', 'Kits'], ['showing', 'Showing'], ['fab', 'FAB']]],
   ['Docs', [['docs', 'Inventory'], ['growth', 'Growth'], ['policy', 'Policy'], ['themes', 'Themes']]],
-  ['Data', [['data', 'Tables'], ['attributes', 'Attributes']]],
+  ['Data', [['data', 'Tables'], ['relations', 'Relations'], ['attributes', 'Attributes']]],
   ['Watch', [['watch', 'Triggers'], ['public', 'Public'], ['names', 'Names']]],
 ];
 
@@ -112,6 +112,8 @@ test('every tab in the strip is one entry in the array that generates it', () =>
   // 6 to 7 on 2026-10-19: Watch, by the owner's decision in session 1fd50ebd.
   // 7 to 8 on 2026-10-23: Data, holding Reach's CSVs and Docs' Registries
   // as one Tables view, on the owner's go-ahead in session 5d9aea14.
+  // 2026-11-02: Relations joins Data, drawing the declared joins between
+  // registries, at the owner's request in session eaf5d33d.
   assert.equal(TABS.length, 8, 'eight top-level tabs, Overview first and Reach second');
   assert.deepEqual(TABS.map(t => t.n), GROUPS.map(([n]) => n), 'the tabs, by label, in strip order');
   assert.deepEqual(SUBVIEW_GROUPS.map(g => [TABS.find(t => t.k === g.parent)?.n, g.options]), GROUPS,
