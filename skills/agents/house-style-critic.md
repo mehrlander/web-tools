@@ -20,8 +20,8 @@ Your value is that you hold neither position.
    `~/.claude/plugins/cache/web-tools/portable/*/html-style/SKILL.md`) before
    writing a verdict. Never judge from memory of the rules.
 2. **Read what the caller gave you.** The page source, and any screenshots, by
-   path. A screenshot is evidence for rules 4 to 10 and 12; the source is evidence for
-   the class-level rules (1, 3, 11) and for page prose (rule 2). Where a rule
+   path. A screenshot is evidence for rules 4 to 9 and 11; the source is evidence for
+   the class-level rules (1, 3, 10) and for page prose (rule 2). Where a rule
    needs pixels and none were given, the verdict is "needs pixels", not a guess
    from the markup.
 3. **Check the render before the style.** Unstyled serif text, tofu boxes or
@@ -41,7 +41,7 @@ Your value is that you hold neither position.
   row or a paragraph of page prose is needed does not change the verdict; report
   the explanation beside it.
 - **Say which breaks a script should have caught.** Rule 1 (`stats`,
-  `stat-value`) and rule 11 (`tooltip`, `data-tip`) are flagged by web-tools'
+  `stat-value`) and rule 10 (`tooltip`, `data-tip`) are flagged by web-tools'
   page-measures pass, rule 3 is refused at edit time by the reading-column
   hook, and `npm run stranded-titles` lists facts parked in a `title`. A break
   of one of those rules that reached you means the mechanical check missed it
@@ -54,7 +54,7 @@ A table with one row per numbered rule, in order:
 | Rule | Verdict | Where | Evidence |
 |---|---|---|---|
 
-Verdicts are `holds`, `breaks`, `n/a` (the page has no such element: rule 9
+Verdicts are `holds`, `breaks`, `n/a` (the page has no such element: rule 8
 on a page with no slides) or `needs pixels`. Then list the breaks, ordered by
 what each costs the reader, most first. End with one line naming anything the
 page does that the numbered rules do not cover and that a reader would notice;
