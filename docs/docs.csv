@@ -29,7 +29,7 @@ docs/envelopes/shorter.md,the shorter envelope contract: a document and a shorte
 docs/envelopes/surface.md,the surface format contract,living,orphan,1617,authored; named by the envelope primitive; says the sibling schemas are a written contract that nothing validates against,
 docs/envelopes/workbook-extract.md,the workbook-extract envelope contract: sheet readings and individual modeled objects,living,orphan,2404,"authored; prose contract for lib/kits/xlsx-extract.js, with the schema beside it; states why this is a profile over data-view rather than a sibling of it",
 docs/environment/README.md,"the environment docs' front door, and their update discipline",living,orphan,332,authored; states the rules the four concern files follow,
-docs/environment/capabilities.md,what the sandbox can run and reach,measured,project,3541,"authored; per-claim verification dates, edited in place and re-dated, probes preferred over assertions",
+docs/environment/capabilities.md,what the sandbox can run and reach,measured,project,3544,"authored; per-claim verification dates, edited in place and re-dated, probes preferred over assertions",
 docs/environment/container.md,what the box is and what persists across sessions,measured,project,2231,"authored; per-claim verification dates, edited in place",
 docs/environment/extending.md,"the Claude Code component model, the hooks this repo and its plugin run, the settings they depend on, and the plugin's context cost",living,project,2175,authored; a hook table whose script headers own the detail,
 docs/environment/testing.md,how to test HTML and JS in the sandbox,measured,project,2849,"authored; per-claim verification dates, edited in place",
