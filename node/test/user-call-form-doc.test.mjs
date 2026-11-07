@@ -65,7 +65,8 @@ window.mdDiff = { render: async (host, a, b, opts) => {
 } };
 window.Diff = {};
 window.MdSurface = { patch: (p, a, b) => 'PATCH ' + p + ' ' + JSON.stringify(b) };
-window.__form = { src: STORE + ':user-calls/c0ffee01-doc.json' };
+const heads = [];
+window.__form = { src: STORE + ':user-calls/c0ffee01-doc.json', onHead: (hd) => heads.push(hd) };
 
 const { default: Alpine } = await import('alpinejs/dist/module.esm.js');
 captureAlpineErrors(Alpine);
@@ -94,6 +95,12 @@ test('the document is drawn whole, its edits staged, under a head naming the fil
   assert.match(root().querySelector('[data-doc-head]').textContent, /docs\/x\.md/);
   assert.match(root().querySelector('[data-doc-head]').textContent, /4 edits · 0 of 3 decided/);
   assert.equal(root().querySelector('[data-dictate-link]'), null, 'no way out to Dictate');
+});
+
+test('a deck header names the document, not the kind of call', () => {
+  assert.ok(heads.length, 'the form reported a header');
+  assert.equal(heads.at(-1).title, 'docs/x.md');
+  assert.equal(heads.at(-1).icon, 'ph-pencil-line', 'the kind is the icon\'s to say');
 });
 
 test('an edit md-diff draws as several changes marks each, under the one decision', async () => {
