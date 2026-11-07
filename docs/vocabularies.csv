@@ -9,6 +9,7 @@ docs,reach,app,by the app,"named in lib/, pages/ or app/ code, so a page loads i
 docs,reach,orphan,orphan,listed only by the generated docs index,
 harness,layer,python,,Python scripts,
 harness,layer,python/annotate,,"standalone scripts that segment, build, patch, project, and check a standoff annotation",
+harness,layer,python/swarm,,"the reduction swarm: a ledger of reader entries over one passage, merged and harvested round by round",
 harness,layer,node,,Node files at the folder root,
 harness,layer,node/build,,"generators: snapshot a page or the lib into an offline artifact, or restamp a committed registry",
 harness,layer,node/render,,"exercise a page headlessly: the jsdom logic render, the Chromium pixel render, and their shared CDN resolver",

@@ -27,7 +27,7 @@ lib/kits/dictate-record.js,DictateRecord,"an edit to one file as data: its chang
 lib/kits/dictate.js,Dictate,"voice input as a plain text buffer: start the engine, speak, and read `text` back.",1938,no,yes,12,yes
 lib/kits/doc-growth.js,DocGrowth,"a repository's markdown over time, as one bubble chart and one ranking, drawn from the payload python/doc-growth.py writes and the session counts…",282,no,no,2,yes
 lib/kits/doc-index.js,DocIndex,"every estate repo's Markdown, with word counts, kept in the private registry so the Map's Docs tab can read the constellation's documentation in one fetch.",140,no,no,2,yes
-lib/kits/dock-split.js,dockSplit,the drag handle between two panes.,263,no,yes,11,yes
+lib/kits/dock-split.js,dockSplit,the drag handle between two panes.,263,no,yes,12,yes
 lib/kits/docx.js,docxKit,"WordprocessingML (.docx) preparation: what a Word file has to have done to it before a browser renderer draws it faithfully, and what it knows about itself…",512,no,no,1,yes
 lib/kits/dom-shot.js,DomShot,render a live DOM node to a PNG in the browser.,218,no,no,1,yes
 lib/kits/errands.js,Errands,one record for everything a session needs a person's browser to do.,475,no,no,7,yes
@@ -40,13 +40,13 @@ lib/kits/findings.js,Findings,"what a tending pass concluded, kept as notes that
 lib/kits/git-attributes.js,GitAttributes,".gitattributes, resolved in the browser as git resolves it.",167,no,no,1,yes
 lib/kits/git-change.js,GitChange,"pure browser-capable Git bundle & packfile unpacker, delta patch resolver, and git-change/1 envelope validator.",643,no,no,1,yes
 lib/kits/github-links.js,GithubLinks,"the GitHub destinations for one repo, as menu rows.",97,no,no,4,yes
-lib/kits/guide-render.js,GuideRender,"a guide PR body, rendered as something you can walk.",448,no,no,18,yes
-lib/kits/gz-payload.js,GzPayload,"The `#gz=` payload, in one place: text gzipped, then base64url, so a page, a document or a data envelope rides in a link with nothing hosted and no token…",41,no,no,16,yes
+lib/kits/guide-render.js,GuideRender,"a guide PR body, rendered as something you can walk.",448,no,no,19,yes
+lib/kits/gz-payload.js,GzPayload,"The `#gz=` payload, in one place: text gzipped, then base64url, so a page, a document or a data envelope rides in a link with nothing hosted and no token…",41,no,no,17,yes
 lib/kits/io.js,io,"user data in and out of the page: file picker, file download, blob preview, and the clipboard.",229,no,yes,23,yes
 lib/kits/json-explorer.js,JsonExplorer,"Native, framework-free JSON Explorer & Schema Profiler.",747,no,no,1,yes
 lib/kits/land.js,Land,"where the reader was just sent, and how they get told.",260,no,yes,9,yes
 lib/kits/last-write.js,LastWrite,"the copy this page just committed, for the next fold",70,no,no,5,yes
-lib/kits/linked-swiper.js,linkedSwiper,"a list with a detail: the list beside, or over, a strip of one card per row, the two moving together.",326,no,yes,4,yes
+lib/kits/linked-swiper.js,linkedSwiper,"a list with a detail: the list beside, or over, a strip of one card per row, the two moving together.",326,no,yes,5,yes
 lib/kits/lists.js,Lists,"the registry's lists/ folder, read and written as one kind of file.",235,no,no,4,yes
 lib/kits/look.js,Look,"look markers: a link that lands on a place in a page, says why, and can ring the control to tap.",1744,no,yes,5,yes
 lib/kits/md-diff.js,mdDiff,a markdown change read as the DOCUMENT rather than as its source.,1705,no,yes,18,yes
@@ -80,7 +80,7 @@ lib/kits/read-aloud.js,readAloud,"markdown reduced to what is worth hearing, and
 lib/kits/record-deck.js,recordDeck,"a table's records, read one at a time.",337,no,no,5,yes
 lib/kits/redact.js,Redact,"cover parts of an image with labelled boxes, crop it, and prove the covered pixels are gone before it is copied out.",585,no,no,1,yes
 lib/kits/repo-activity-cache.js,RepoActivityCache,Activity aggregate for the web-tools ecosystem.,236,no,no,7,yes
-lib/kits/repo-address.js,RepoAddress,"The `owner/repo[@ref]:path` address, in one place.",234,yes,no,29,yes
+lib/kits/repo-address.js,RepoAddress,"The `owner/repo[@ref]:path` address, in one place.",234,yes,no,30,yes
 lib/kits/repo-checks.js,RepoChecks,"Declared staleness checks for a repo, evaluated on sight.",319,no,no,3,yes
 lib/kits/repo-config-cache.js,RepoConfigCache,Config aggregate + history + alignment grade for the web-tools ecosystem.,120,no,no,3,yes
 lib/kits/repo-mark.js,RepoMark,"a repository's mark, resolved from its manifest and drawn one way wherever a repository is named.",210,yes,no,6,yes
@@ -104,7 +104,7 @@ lib/kits/stage-handoff.js,StageHandoff,"one paste, two documents",116,no,no,4,no
 lib/kits/standoff.js,Standoff,"The standoff annotation: its invariants, the six edits it admits, and the one serialization both of its writers must agree on.",655,no,no,4,yes
 lib/kits/subject-channel.js,subjectChannel,telling the FAB sidebar what you are looking at.,140,no,no,8,yes
 lib/kits/surface.js,Surface,"the surface envelope, in one place.",206,no,no,1,yes
-lib/kits/swipe-deck.js,swipeDeck,"the house swipe format: a snap-scrolling track of slides, and the fullscreen takeover that frames it.",1702,no,yes,37,yes
+lib/kits/swipe-deck.js,swipeDeck,"the house swipe format: a snap-scrolling track of slides, and the fullscreen takeover that frames it.",1702,no,yes,38,yes
 lib/kits/sync-status.js,SyncStatus,"how a synchronization state looks, wherever the estate shows one.",31,no,no,4,yes
 lib/kits/table-stats.js,DataProfile,"a table's profile and its pivot, computed once for the estate TableStats.parseNum(v) -> number | null TableStats.profile(rows, { columns }) -> { rowCount,…",418,no,no,5,yes
 lib/kits/tabular-explorer.js,TabularExplorer,"Exploratory Data Analysis (EDA) and immersive inspection for tabular data (CSV, TSV, JSON rows).",851,no,no,2,yes
@@ -115,7 +115,7 @@ lib/kits/title-tip.js,TitleTip,"the TITLE-TIP of the house popup rule: `data-tit
 lib/kits/traffic-log.js,TrafficLog,the app writes down what its calls did worth reading,186,no,no,5,yes
 lib/kits/traffic.js,Traffic,"the pure read of what a page has pulled over the network, and the vocabulary the FAB's Traffic tab renders.",693,yes,no,4,yes
 lib/kits/treemap.js,treemap,pure logic for mapping a file tree as a treemap.,159,no,no,2,yes
-lib/kits/url-params.js,UrlParams,"Reading a page's own input params, fragment first, query as fallback.",149,no,no,9,yes
+lib/kits/url-params.js,UrlParams,"Reading a page's own input params, fragment first, query as fallback.",149,no,no,10,yes
 lib/kits/user-calls.js,UserCalls,what waits on the owner (window.UserCalls).,181,no,no,4,yes
 lib/kits/vanilla-demo.js,demo,"the living-documentation demo format, distilled from pages/drop/live-docs-concept.html.",574,no,no,11,yes
 lib/kits/visit-log.js,VisitLog,"turn an address into a storable visit, by allowlist.",309,no,no,2,yes
