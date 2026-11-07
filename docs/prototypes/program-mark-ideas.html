@@ -148,10 +148,12 @@
     // selects it for the arrow buttons instead.
     // On an iPhone sheet, touch-action alone loses the drag to the sheet; the
     // favorites also cancel their touch events (docs/ios-sheet-drags.md).
-    grab(e, p, i) { this.drag = { p, i, x: e.clientX, y: e.clientY, moved: false }; try { e.target.setPointerCapture(e.pointerId) } catch {} },
+    // A drag lifts a copy of the favorite that follows the pointer, and leaves
+    // a faint placeholder where the favorite will land.
+    grab(e, p, i) { const r = e.currentTarget.getBoundingClientRect(); this.drag = { p, i, x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY, ox: e.clientX - r.left, oy: e.clientY - r.top, moved: false }; try { e.target.setPointerCapture(e.pointerId) } catch {} },
     over(e) {
       const d = this.drag; if (!d) return;
-      if (!d.moved && Math.hypot(e.clientX - d.x, e.clientY - d.y) < 6) return; d.moved = true;
+      if (!d.moved && Math.hypot(e.clientX - d.x0, e.clientY - d.y0) < 6) return; d.moved = true; d.x = e.clientX; d.y = e.clientY;
       const el = document.elementsFromPoint(e.clientX, e.clientY).find(n => n.dataset && n.dataset.fav && n.dataset.fav.startsWith(d.p + ':'));
       const j = el ? +el.dataset.fav.split(':')[1] : -1;
       if (j >= 0 && j !== d.i) { const f = [...this.favs[d.p]]; f.splice(j, 0, f.splice(d.i, 1)[0]); this.favs[d.p] = f; d.i = j }
@@ -226,7 +228,7 @@
             <div x-show="favs[p].length" class="flex flex-wrap gap-1.5 px-1 pt-1.5">
               <template x-for="(k, i) in favs[p]" :key="p + '-' + k">
                 <button type="button" :data-fav="p + ':' + i" @pointerdown.prevent="grab($event, p, i)" @touchstart.prevent @touchmove.prevent :aria-label="(i + 1) + '. ' + label(p, k)"
-                  class="relative touch-none select-none rounded-lg p-0.5 [-webkit-touch-callout:none]" :class="[moving.p === p && moving.i === i ? 'ring-2 ring-[var(--color-primary)]' : '', drag && drag.p === p && drag.i === i && drag.moved ? 'opacity-50' : '']">
+                  class="relative cursor-grab touch-none select-none rounded-lg p-0.5 [-webkit-touch-callout:none]" :class="[moving.p === p && moving.i === i ? 'ring-2 ring-[var(--color-primary)]' : '', drag && drag.p === p && drag.i === i && drag.moved ? 'opacity-25 outline-2 outline-dashed outline-[var(--color-base-300)]' : '']">
                   <img :src="show(p, itemOf(p, k))" alt="" draggable="false" class="pointer-events-none block size-10">
                   <span class="pointer-events-none absolute -top-1 -left-1 flex size-4 items-center justify-center rounded-full bg-neutral text-[0.625rem] font-semibold text-neutral-content" x-text="i + 1"></span>
                 </button>
@@ -266,6 +268,14 @@
       </section>
     </template>
   </main>
+  <!-- The lifted copy of a favorite being dragged. -->
+  <template x-if="drag && drag.moved">
+    <div class="pointer-events-none fixed z-50 rotate-3 scale-110 rounded-lg bg-base-100 p-0.5 shadow-xl ring-2 ring-[var(--color-primary)]"
+      :style="`left:${drag.x - drag.ox}px;top:${drag.y - drag.oy}px`">
+      <div class="relative"><img :src="show(drag.p, itemOf(drag.p, favs[drag.p][drag.i]))" alt="" class="block size-10">
+        <span class="absolute -top-1 -left-1 flex size-4 items-center justify-center rounded-full bg-neutral text-[0.625rem] font-semibold text-neutral-content" x-text="drag.i + 1"></span></div>
+    </div>
+  </template>
   <!-- The answer: each program's favorites in order, sent to the pick call the
        page was opened on (#user-call=owner/repo[@ref]:path), or copied as text. -->
   <footer x-show="total() || call || err" class="sticky bottom-0 z-20 border-t border-[var(--color-base-300)] bg-base-100 py-2 pl-4 pr-20">
