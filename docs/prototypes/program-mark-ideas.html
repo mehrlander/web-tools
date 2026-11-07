@@ -18,7 +18,13 @@
      the owner's steer), then references gathered by idea from open icon sets through
      Iconify: an item with an `icon` is an Iconify id, fetched from
      api.iconify.design when the page opens, and `sources` names each set and
-     its licence. The Program as control redraws every mark as a program icon
+     its licence. A star on a mark makes it a
+     favorite: each program's favorites sit numbered above its strip, in an
+     order set by dragging them or by the arrows a tapped favorite shows, and
+     the first leads in the lineup. They stay in this browser until sent:
+     opened on a pick call (#user-call=owner/repo[@ref]:path), Send records
+     them as the call's answer beside it and comments them on its pull
+     request; without one, Copy puts them on the clipboard. The Program as control redraws every mark as a program icon
      (bare, on a tinted tile, knocked out of a solid tile, or under a gauge
      arc); the wrap scales the mark, so a mark picked this way is redrawn at
      tile size before it ships. Testing's pile includes the test-concept
@@ -63,6 +69,36 @@
       }
     }));
   }
+
+  // Favorites go back as a pick call's answer, the line user-call-form.js's
+  // postAnswer appends beside the call, and its comment on the call's PR.
+  // Inlined here because the page runs on CDN Alpine without the web-tools
+  // bundle, which starts an Alpine of its own. The token is the one the app
+  // stores in this browser.
+  const GH = {
+    token() { try { const t = localStorage.getItem('ghToken'); return t && !t.includes('🎟') ? t.trim() : ''; } catch { return ''; } },
+    async req(url, opt = {}) {
+      const h = { Accept: 'application/vnd.github+json', ...(opt.headers || {}) }; const t = GH.token(); if (t) h.Authorization = 'Bearer ' + t;
+      const r = await fetch('https://api.github.com/' + url, { ...opt, headers: h });
+      if (!r.ok) { const e = new Error(r.status + ' ' + (await r.text()).slice(0, 160)); e.status = r.status; throw e; }
+      const t = await r.text(); try { return t ? JSON.parse(t) : null } catch { throw new Error('GitHub sent an unreadable answer') }
+    },
+    async file(at, path) {
+      const d = await GH.req(`repos/${at.repo}/contents/${path}` + (at.ref ? '?ref=' + encodeURIComponent(at.ref) : ''));
+      if (!d || !d.content && d.content !== '') { const e = new Error('no file at ' + path); e.status = 404; throw e; }
+      return { sha: d.sha, text: new TextDecoder().decode(Uint8Array.from(atob(d.content.replace(/\s/g, '')), c => c.charCodeAt(0))) };
+    },
+    async append(at, path, entry) {
+      let cur = { text: '', sha: null };
+      try { cur = await GH.file(at, path); } catch (e) { if (e.status !== 404) throw e; }
+      const text = (cur.text && !cur.text.endsWith('\n') ? cur.text + '\n' : cur.text) + JSON.stringify(entry) + '\n';
+      const bytes = new TextEncoder().encode(text); let bin = ''; bytes.forEach(b => bin += String.fromCharCode(b));
+      const put = { message: 'answer: ' + path.split('/').pop() + ' = ' + entry.answer, content: btoa(bin), ...(at.ref ? { branch: at.ref } : {}), ...(cur.sha ? { sha: cur.sha } : {}) };
+      await GH.req(`repos/${at.repo}/contents/${path}`, { method: 'PUT', body: JSON.stringify(put) });
+    },
+  };
+  // owner/repo[@ref]:path
+  const callAddress = (s) => { const m = String(s || '').match(/^([^/@:\s]+\/[^/@:\s]+)(?:@([^:\s]+))?:(\S+\.json)$/); return m ? { repo: m[1], ref: m[2] || '', path: m[3] } : null; };
 </script>
 </head>
 <body class="min-h-dvh bg-base-200" x-data="{
@@ -70,19 +106,88 @@
     cue: 'solid', sel: { sessions: [3, 0], testing: [5, 0], organization: [0, 0], content: [0, 0], discovery: [0, 0] },
     progs: [['sessions', 'Sessions'], ['testing', 'Testing'], ['organization', 'Organization'], ['content', 'Content'], ['discovery', 'Discovery']],
     on: ['organization', 'content', 'discovery'],
-    init() { fetchIcons(this.data) },
+    favs: { sessions: [], testing: [], organization: [], content: [], discovery: [] },
+    moving: { p: '', i: -1 }, drag: null,
+    call: null, at: null, sent: null, sending: false, err: '', note: '', copied: false,
+    get store() { return 'program-mark-ideas:favorites' + (this.at ? ':' + this.at.path : '') },
+    async init() {
+      const hash = new URLSearchParams(location.hash.slice(1));
+      this.at = callAddress(hash.get('user-call'));
+      try { Object.assign(this.favs, JSON.parse(localStorage.getItem(this.store) || '{}')) } catch {}
+      fetchIcons(this.data);
+      if (!this.at) return;
+      try {
+        this.call = JSON.parse((await GH.file(this.at, this.at.path)).text);
+        try {
+          const lines = (await GH.file(this.at, this.at.path.replace(/\.json$/, '.answers.jsonl'))).text.split('\n').filter(l => l.trim());
+          const last = lines.length ? JSON.parse(lines[lines.length - 1]) : null;
+          if (last) { this.sent = last; this.note = last.note || ''; if (!localStorage.getItem(this.store)) this.favs = this.fromPicks(last.picks || []) }
+        } catch (e) { if (e.status !== 404) this.err = 'Could not read the answers: ' + e.message }
+      } catch (e) { this.err = 'Could not read the call: ' + e.message + (GH.token() ? '' : '. It needs your GitHub token, set in the app.') }
+    },
     get shown() { return this.progs.filter(([p]) => this.on.includes(p)) },
     get cols() { const n = this.shown.length; return n === 1 ? 'grid-cols-1' : n === 2 ? 'grid-cols-2' : n === 3 ? 'grid-cols-1 md:grid-cols-3' : 'grid-cols-1 md:grid-cols-2 xl:grid-cols-' + n },
     toggle(p) { this.on = this.on.includes(p) ? (this.on.length > 1 ? this.on.filter(x => x !== p) : this.on) : this.progs.map(([k]) => k).filter(k => k === p || this.on.includes(k)) },
     marks(p) { return this.data[p].reduce((n, g) => n + g.items.length, 0) },
     uri(s) { return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(s) },
-    show(p, it) { return this.uri(it.svg ? asProgram(it.svg, p, this.cue) : BLANK(p)) },
+    show(p, it) { return this.uri(it && it.svg ? asProgram(it.svg, p, this.cue) : BLANK(p)) },
     pick(p) { const [g, i] = this.sel[p]; return this.data[p][g].items[i] },
-    source(it) { const s = it.icon && this.data.sources[it.icon.split(':')[0]]; return s ? s.name + ', ' + s.license : '' },
+    source(it) { const s = it && it.icon && this.data.sources[it.icon.split(':')[0]]; return s ? s.name + ', ' + s.license : '' },
     card(p, gi) { if (this.sel[p][0] !== gi) { this.sel[p] = [gi, 0]; this.$nextTick(() => { const el = document.querySelector(`[data-strip=${p}]`); if (el) el.scrollLeft = 0 }) } },
-    }">
+    // A mark's key names its source: an Iconify id, or the drawn mark's name.
+    keyOf(p, it) { return it.icon ? 'iconify ' + it.icon : 'drawn ' + p + ':' + it.name },
+    itemOf(p, k) { for (const g of this.data[p]) for (const it of g.items) if (this.keyOf(p, it) === k) return it; return null },
+    label(p, k) { const it = this.itemOf(p, k); return it ? it.name : k },
+    isFav(p, it) { return this.favs[p].includes(this.keyOf(p, it)) },
+    star(p, it) { const k = this.keyOf(p, it); this.favs[p] = this.isFav(p, it) ? this.favs[p].filter(x => x !== k) : [...this.favs[p], k]; this.moving = { p: '', i: -1 }; this.save() },
+    save() { this.copied = false; try { localStorage.setItem(this.store, JSON.stringify(this.favs)) } catch {} },
+    move(p, i, d) { const f = [...this.favs[p]], j = i + d; if (j < 0 || j >= f.length) return; [f[i], f[j]] = [f[j], f[i]]; this.favs[p] = f; this.moving = { p, i: j }; this.save() },
+    unstar(p, i) { this.favs[p] = this.favs[p].filter((_, x) => x !== i); this.moving = { p: '', i: -1 }; this.save() },
+    // Drag a favorite by pointer, mouse or finger; a press that does not move
+    // selects it for the arrow buttons instead.
+    grab(e, p, i) { this.drag = { p, i, x: e.clientX, y: e.clientY, moved: false }; e.target.setPointerCapture?.(e.pointerId) },
+    over(e) {
+      const d = this.drag; if (!d) return;
+      if (!d.moved && Math.hypot(e.clientX - d.x, e.clientY - d.y) < 6) return; d.moved = true;
+      const el = document.elementsFromPoint(e.clientX, e.clientY).find(n => n.dataset && n.dataset.fav && n.dataset.fav.startsWith(d.p + ':'));
+      const j = el ? +el.dataset.fav.split(':')[1] : -1;
+      if (j >= 0 && j !== d.i) { const f = [...this.favs[d.p]]; f.splice(j, 0, f.splice(d.i, 1)[0]); this.favs[d.p] = f; d.i = j }
+    },
+    drop() { const d = this.drag; if (!d) return; this.drag = null; if (d.moved) { this.moving = { p: '', i: -1 }; this.save() } else this.moving = this.moving.p === d.p && this.moving.i === d.i ? { p: '', i: -1 } : { p: d.p, i: d.i } },
+    // The lineup shows each program's first favorite, or the mark in view.
+    lead(p) { return this.favs[p].length ? this.itemOf(p, this.favs[p][0]) : this.pick(p) },
+    total() { return this.progs.reduce((n, [p]) => n + this.favs[p].length, 0) },
+    href(k) { const m = k.match(/^iconify ([^:]+):(.+)$/); return m ? `https://api.iconify.design/${m[1]}/${m[2]}.svg` : '' },
+    picks() { return this.progs.flatMap(([p, n]) => this.favs[p].map((k, i) => ({ id: `${n} ${i + 1}: ${k}`, href: this.href(k), program: p, rank: i + 1 }))) },
+    fromPicks(list) { const f = { sessions: [], testing: [], organization: [], content: [], discovery: [] }; for (const x of [...list].sort((a, b) => (a.rank || 0) - (b.rank || 0))) if (f[x.program]) f[x.program].push(String(x.id).replace(/^[^:]+: /, '')); return f },
+    text() { return this.picks().map(x => x.id + (x.href ? '  ' + x.href : '')).join('\n') + (this.note.trim() ? '\n\n' + this.note.trim() : '') },
+    sentNow() { return this.sent && JSON.stringify((this.sent.picks || []).map(x => x.id)) === JSON.stringify(this.picks().map(x => x.id)) && (this.sent.note || '') === this.note.trim() },
+    closed() { return !!this.call && (this.call.status === 'closed' || !!this.call.closed) },
+    canSend() { return this.call && this.total() && !this.sending && !this.sentNow() && !this.closed() },
+    sendLabel() { return this.sending ? 'Sending' : this.sentNow() ? 'Sent' : this.sent ? 'Send again' : 'Send' },
+    ago(iso) { const m = Math.round((Date.now() - new Date(iso)) / 60000); return m < 1 ? 'just now' : m < 60 ? m + 'm ago' : m < 1440 ? Math.round(m / 60) + 'h ago' : Math.round(m / 1440) + 'd ago' },
+    async send() {
+      this.sending = true; this.err = '';
+      try {
+        const entry = { answer: 'Picked', picks: this.picks(), note: this.note.trim(), at: new Date().toISOString() };
+        try { entry.by = (await GH.req('user')).login } catch {}
+        const m = String(this.call.pr || '').match(/^([^/]+\/[^#]+)#(\d+)$/);
+        if (m) {
+          const id = this.call.id || this.at.path.split('/').pop().replace(/\.json$/, '');
+          const body = `**User call: ${this.call.question}**\n\nAnswer: **Picked**, ${entry.picks.length}\n\n`
+            + entry.picks.map(x => '- ' + (x.href ? `[${x.id}](${x.href})` : x.id)).join('\n')
+            + (entry.note ? '\n\n> ' + entry.note : '') + `\n\n_${id}, sent from the program mark ideas page._`;
+          entry.comment = (await GH.req(`repos/${m[1]}/issues/${m[2]}/comments`, { method: 'POST', body: JSON.stringify({ body }) })).html_url;
+        }
+        await GH.append(this.at, this.at.path.replace(/\.json$/, '.answers.jsonl'), entry);
+        this.sent = entry;
+      } catch (e) { this.err = 'Not sent: ' + e.message }
+      this.sending = false;
+    },
+    async copy() { try { await navigator.clipboard.writeText(this.text()); this.copied = true } catch (e) { this.err = 'Not copied: ' + e.message } },
+    }" @pointermove.window="over($event)" @pointerup.window="drop()" @pointercancel.window="drop()">
   <header class="border-b border-[var(--color-base-300)] bg-base-200 px-4 pt-3 pb-2 mb-3">
-    <h1 class="text-xl font-semibold">Program mark ideas</h1>
+    <h1 class="text-xl font-semibold" x-text="call ? call.question : 'Program mark ideas'"></h1>
     <div class="mt-2 flex items-center gap-2 overflow-x-auto whitespace-nowrap">
       <span class="text-xs text-base-content/60">Programs</span>
       <template x-for="[p, n] in progs" :key="'pill-' + p">
@@ -100,42 +205,79 @@
       <template x-for="r in data.repos" :key="r.name"><img :src="uri(r.svg)" :alt="r.name" class="block size-6 shrink-0 lg:size-7"></template>
       <span class="mx-1 h-7 w-px shrink-0 bg-[var(--color-base-300)]"></span>
       <template x-for="[p, n] in progs" :key="p">
-        <div class="flex items-center gap-1.5"><img :src="show(p, pick(p))" :alt="n" class="block size-7 shrink-0">
-          <span class="text-xs text-base-content/70" x-text="n + ': ' + pick(p).name"></span></div>
+        <div class="flex items-center gap-1.5"><img :src="show(p, lead(p))" :alt="n" class="block size-7 shrink-0">
+          <span class="text-xs text-base-content/70" x-text="n + ': ' + (favs[p].length ? '1. ' : '') + (lead(p) ? lead(p).name : '')"></span></div>
       </template>
     </div>
   </header>
   <main class="grid gap-3 px-3 pb-3 lg:gap-4 lg:px-4 lg:pb-4" :class="cols">
     <template x-for="[p, n] in shown" :key="p">
       <section class="min-w-0">
-        <!-- The pick strip rides at the top of its own column while that
-             column's ideas scroll under it. -->
+        <!-- The program's favorites and the strip of the picked idea ride at
+             the top of its column while the column's ideas scroll under them. -->
         <div class="sticky top-0 z-10 bg-base-200 pb-2">
           <div class="rounded-box bg-base-100 px-2 pt-1.5 pb-1 shadow-sm">
-            <div class="truncate px-1 text-xs text-base-content/60"><span class="font-semibold text-base-content" x-text="n"></span><span x-text="' · ' + data[p][sel[p][0]].name + ' · ' + data[p][sel[p][0]].items.length + (source(pick(p)) ? ' · ' + source(pick(p)) : '')"></span></div>
+            <div class="flex items-baseline gap-2 px-1 text-xs text-base-content/60"><span class="font-semibold text-base-content" x-text="n"></span><span x-text="favs[p].length ? 'Favorites' : 'No favorites yet'"></span></div>
+            <div x-show="favs[p].length" class="flex flex-wrap gap-1.5 px-1 pt-1.5">
+              <template x-for="(k, i) in favs[p]" :key="p + '-' + k">
+                <button type="button" :data-fav="p + ':' + i" @pointerdown.prevent="grab($event, p, i)" :aria-label="(i + 1) + '. ' + label(p, k)"
+                  class="relative touch-none select-none rounded-lg p-0.5" :class="[moving.p === p && moving.i === i ? 'ring-2 ring-[var(--color-primary)]' : '', drag && drag.p === p && drag.i === i && drag.moved ? 'opacity-50' : '']">
+                  <img :src="show(p, itemOf(p, k))" alt="" draggable="false" class="pointer-events-none block size-10">
+                  <span class="pointer-events-none absolute -top-1 -left-1 flex size-4 items-center justify-center rounded-full bg-neutral text-[0.625rem] font-semibold text-neutral-content" x-text="i + 1"></span>
+                </button>
+              </template>
+            </div>
+            <div x-show="moving.p === p && favs[p][moving.i]" class="flex items-center gap-1 px-1 pt-1">
+              <button type="button" class="btn btn-xs btn-ghost" @click="move(p, moving.i, -1)" :disabled="moving.i === 0" aria-label="Earlier">◀</button>
+              <button type="button" class="btn btn-xs btn-ghost" @click="move(p, moving.i, 1)" :disabled="moving.i === favs[p].length - 1" aria-label="Later">▶</button>
+              <span class="min-w-0 flex-1 truncate text-xs text-base-content/70" x-text="favs[p][moving.i] ? (moving.i + 1) + '. ' + label(p, favs[p][moving.i]) : ''"></span>
+              <button type="button" class="btn btn-xs btn-ghost" @click="unstar(p, moving.i)">Remove</button>
+            </div>
+            <div class="mt-1.5 truncate border-t border-[var(--color-base-200)] px-1 pt-1.5 text-xs text-base-content/60" x-text="data[p][sel[p][0]].name + ' · ' + data[p][sel[p][0]].items.length + (source(pick(p)) ? ' · ' + source(pick(p)) : '')"></div>
             <div class="flex gap-1 overflow-x-auto pt-1" :data-strip="p">
               <template x-for="(it, ii) in data[p][sel[p][0]].items" :key="p + sel[p][0] + '-' + ii">
-                <button class="flex w-[4.25rem] shrink-0 flex-col items-center gap-1 rounded-box p-1"
-                  :class="sel[p][1] === ii ? 'bg-[var(--color-base-200)]' : ''" @click="sel[p] = [sel[p][0], ii]">
-                  <img :src="show(p, it)" alt="" class="block size-9">
-                  <span class="w-full truncate text-center text-xs text-base-content/70" x-text="it.name"></span>
-                </button>
+                <div class="relative w-[4.25rem] shrink-0">
+                  <button type="button" class="flex w-full flex-col items-center gap-1 rounded-box p-1"
+                    :class="sel[p][1] === ii ? 'bg-[var(--color-base-200)]' : ''" @click="sel[p] = [sel[p][0], ii]">
+                    <img :src="show(p, it)" alt="" class="block size-9">
+                    <span class="w-full truncate text-center text-xs text-base-content/70" x-text="it.name"></span>
+                  </button>
+                  <button type="button" class="absolute -top-0.5 right-0 flex size-6 items-center justify-center text-base leading-none"
+                    :class="isFav(p, it) ? 'text-amber-500' : 'text-base-content/30'" @click="star(p, it)" :aria-pressed="isFav(p, it)" :aria-label="(isFav(p, it) ? 'Unstar ' : 'Star ') + it.name" x-text="isFav(p, it) ? '★' : '☆'"></button>
+                </div>
               </template>
             </div>
           </div>
         </div>
         <div class="grid grid-cols-[repeat(auto-fill,minmax(4.25rem,1fr))] gap-2 lg:grid-cols-[repeat(auto-fill,minmax(5.5rem,1fr))]">
           <template x-for="(g, gi) in data[p]" :key="p + gi">
-            <button class="flex flex-col items-center gap-1 rounded-box border bg-base-100 p-1.5 text-center lg:gap-1.5 lg:p-2"
+            <button class="relative flex flex-col items-center gap-1 rounded-box border bg-base-100 p-1.5 text-center lg:gap-1.5 lg:p-2"
               :class="sel[p][0] === gi ? 'border-[var(--color-primary)]' : 'border-[var(--color-base-300)]'" @click="card(p, gi)">
               <img :src="show(p, sel[p][0] === gi ? g.items[sel[p][1]] : g.items[0])" alt="" class="block size-10 lg:size-11">
               <span class="text-xs font-medium leading-tight text-balance" x-text="g.name"></span>
               <span class="font-mono text-xs text-base-content/50" x-text="g.items.length"></span>
+              <span x-show="g.items.some(it => isFav(p, it))" class="absolute top-1 right-1.5 text-xs text-amber-500" x-text="'★' + g.items.filter(it => isFav(p, it)).length"></span>
             </button>
           </template>
         </div>
       </section>
     </template>
   </main>
+  <!-- The answer: each program's favorites in order, sent to the pick call the
+       page was opened on (#user-call=owner/repo[@ref]:path), or copied as text. -->
+  <footer x-show="total() || call || err" class="sticky bottom-0 z-20 border-t border-[var(--color-base-300)] bg-base-100 px-4 py-2">
+    <div class="flex items-center gap-3">
+      <div class="flex min-w-0 flex-1 items-center gap-3 overflow-x-auto whitespace-nowrap">
+        <template x-for="[p, n] in progs" :key="'foot-' + p">
+          <span x-show="favs[p].length" class="flex shrink-0 items-center gap-1.5 text-sm"><img :src="show(p, lead(p))" :alt="n" class="block size-5"><span class="hidden sm:inline" x-text="n"></span><span class="font-mono text-xs opacity-60" x-text="favs[p].length"></span></span>
+        </template>
+      </div>
+      <span class="shrink-0 text-xs text-base-content/60" x-show="call" x-text="closed() ? 'Closed' : sent ? 'Sent ' + (sent.picks || []).length + ' · ' + ago(sent.at) : 'Not sent'"></span>
+      <button x-show="call" type="button" class="btn btn-sm shrink-0 border-[color-mix(in_srgb,var(--color-primary)_45%,var(--color-base-100))] bg-primary/10 text-primary hover:bg-primary/15" :disabled="!canSend()" @click="send()" x-text="sendLabel()"></button>
+      <button x-show="!call" type="button" class="btn btn-sm shrink-0" :disabled="!total()" @click="copy()" x-text="copied ? 'Copied' : 'Copy'"></button>
+    </div>
+    <input x-show="call && total()" x-model="note" type="text" placeholder="Note" class="input input-sm mt-2 w-full">
+    <p x-show="err" class="mt-1 text-sm text-error" x-text="err"></p>
+  </footer>
 </body>
 </html>
