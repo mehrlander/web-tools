@@ -1,0 +1,93 @@
+{
+ "title": "The harness picture",
+ "subject": "How work gets done across the estate: who writes, where, with which credential, and where it lands",
+ "made": "2026-11-05",
+ "brief": {
+  "background": "Six registries now describe the harness: writers, venues, credentials, run methods, direct-to-main, and the joins between them. The Relations tab draws their schema, uniformly. This board looks for a designed picture of the structure itself, so that the owner can say for any agent or automation where it runs, what it signs in with, and where its work lands, and can judge which route to use to send work to Claude, Codex or Gemini.",
+  "methodology": "Eight concepts were written before any was judged, each differing in its **explanatory mechanism**: containment, flow, a credential-centred graph, metaphor, matrix, proportional flow, hierarchy, geography. Each had to carry the **one fact that should stand out**: five writers on the laptop share one git credential, while Claude in the cloud has its own. Data from `docs/writers.csv`, `docs/credentials.csv`, `docs/venues.csv`, `docs/run-methods.csv` and `docs/direct-to-main.csv` on web-tools#1197."
+ },
+ "ideas": [
+  {
+   "n": 1,
+   "title": "Security zones",
+   "kind": "containment",
+   "commentary": "Machines as nested zones around you, with each credential a key on the zone's boundary.\n\nIt makes **where** vivid: the laptop is close, the clouds far. But concentric rings imply a ranking of trust the data does not record, and repos have no natural place.",
+   "sketch": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 320 220\" font-family=\"system-ui, sans-serif\" font-size=\"14\" fill=\"none\" stroke=\"#1f2937\" stroke-width=\"2\"><circle cx=\"160\" cy=\"110\" r=\"100\"/><circle cx=\"160\" cy=\"110\" r=\"62\"/><circle cx=\"160\" cy=\"110\" r=\"24\" fill=\"#1f2937\"/><text x=\"160\" y=\"115\" text-anchor=\"middle\" fill=\"#fff\" stroke=\"none\" font-weight=\"600\">you</text><text x=\"160\" y=\"62\" text-anchor=\"middle\" fill=\"#1f2937\" stroke=\"none\" font-weight=\"400\">laptop</text><text x=\"160\" y=\"22\" text-anchor=\"middle\" fill=\"#1f2937\" stroke=\"none\" font-weight=\"400\">clouds</text><rect x=\"214\" y=\"98\" width=\"22\" height=\"16\" rx=\"3\" fill=\"#fbbf24\" stroke=\"none\"/><text x=\"244\" y=\"112\" text-anchor=\"start\" fill=\"#1f2937\" stroke=\"none\" font-weight=\"400\">key</text></svg>"
+  },
+  {
+   "n": 2,
+   "title": "Flow columns",
+   "kind": "flow",
+   "commentary": "The Set tab's columns extended with a key column: what starts a writer, the writer, the key it writes with, where it lands.\n\nPrecise and already familiar from the Set tab, but a reader learns a row at a time; the shared laptop key is one box among many.",
+   "sketch": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 320 220\" font-family=\"system-ui, sans-serif\" font-size=\"14\" fill=\"none\" stroke=\"#1f2937\" stroke-width=\"2\"><rect x=\"10\" y=\"40\" width=\"60\" height=\"140\" rx=\"8\"/><rect x=\"90\" y=\"40\" width=\"70\" height=\"140\" rx=\"8\"/><rect x=\"180\" y=\"40\" width=\"60\" height=\"140\" rx=\"8\"/><rect x=\"258\" y=\"40\" width=\"54\" height=\"140\" rx=\"8\"/><text x=\"40\" y=\"30\" text-anchor=\"middle\" fill=\"#1f2937\" stroke=\"none\" font-weight=\"400\">start</text><text x=\"125\" y=\"30\" text-anchor=\"middle\" fill=\"#1f2937\" stroke=\"none\" font-weight=\"400\">writer</text><text x=\"210\" y=\"30\" text-anchor=\"middle\" fill=\"#1f2937\" stroke=\"none\" font-weight=\"400\">key</text><text x=\"285\" y=\"30\" text-anchor=\"middle\" fill=\"#1f2937\" stroke=\"none\" font-weight=\"400\">lands</text><path d=\"M70 80 H90 M160 80 H180 M240 80 H258\"/></svg>"
+  },
+  {
+   "n": 3,
+   "title": "Key ring",
+   "kind": "credential-centred graph",
+   "commentary": "Each credential is a hub, with the writers that use it hanging off it and the repos it opens on the far side.\n\nIt makes the **shared laptop credential** impossible to miss. It loses where things run: the machine is only implied by which keys sit together.",
+   "sketch": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 320 220\" font-family=\"system-ui, sans-serif\" font-size=\"14\" fill=\"none\" stroke=\"#1f2937\" stroke-width=\"2\"><circle cx=\"160\" cy=\"110\" r=\"30\" fill=\"#fbbf24\" stroke=\"none\"/><text x=\"160\" y=\"115\" text-anchor=\"middle\" fill=\"#1f2937\" stroke=\"none\" font-weight=\"600\">git</text><path d=\"M160 110 L60 40\"/><circle cx=\"60\" cy=\"40\" r=\"10\" fill=\"#fff\"/><path d=\"M160 110 L40 110\"/><circle cx=\"40\" cy=\"110\" r=\"10\" fill=\"#fff\"/><path d=\"M160 110 L60 180\"/><circle cx=\"60\" cy=\"180\" r=\"10\" fill=\"#fff\"/><path d=\"M160 110 L260 60\"/><circle cx=\"260\" cy=\"60\" r=\"10\" fill=\"#fff\"/><path d=\"M160 110 L270 160\"/><circle cx=\"270\" cy=\"160\" r=\"10\" fill=\"#fff\"/><text x=\"160\" y=\"212\" text-anchor=\"middle\" fill=\"#1f2937\" stroke=\"none\" font-weight=\"400\">one key, five writers</text></svg>"
+  },
+  {
+   "n": 4,
+   "title": "Theatre",
+   "kind": "metaphor",
+   "commentary": "Your own image: machines as stages, harnesses as costumes, models as the cast, credentials as props in hand.\n\nMemorable and true to how the session reasoned, but a stage drawing cannot carry 18 writers and 7 keys legibly, and the metaphor needs explaining to anyone else.",
+   "sketch": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 320 220\" font-family=\"system-ui, sans-serif\" font-size=\"14\" fill=\"none\" stroke=\"#1f2937\" stroke-width=\"2\"><path d=\"M20 170 H140 M180 170 H300\"/><text x=\"80\" y=\"195\" text-anchor=\"middle\" fill=\"#1f2937\" stroke=\"none\" font-weight=\"400\">laptop stage</text><text x=\"240\" y=\"195\" text-anchor=\"middle\" fill=\"#1f2937\" stroke=\"none\" font-weight=\"400\">cloud stage</text><circle cx=\"45\" cy=\"130\" r=\"12\"/><path d=\"M45 142 V165\"/><circle cx=\"80\" cy=\"130\" r=\"12\"/><path d=\"M80 142 V165\"/><circle cx=\"115\" cy=\"130\" r=\"12\"/><path d=\"M115 142 V165\"/><circle cx=\"240\" cy=\"130\" r=\"12\"/><path d=\"M240 142 V165\"/><text x=\"160\" y=\"40\" text-anchor=\"middle\" fill=\"#1f2937\" stroke=\"none\" font-weight=\"400\">cast in costume</text></svg>"
+  },
+  {
+   "n": 5,
+   "title": "Matrix",
+   "kind": "matrix",
+   "commentary": "Writers down the side, credentials and machines across, a dot where they meet.\n\nCompact, complete and easy to check against the CSVs. It shows no direction or flow, so it answers lookup questions and not the question of how work moves.",
+   "sketch": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 320 220\" font-family=\"system-ui, sans-serif\" font-size=\"14\" fill=\"none\" stroke=\"#1f2937\" stroke-width=\"2\"><path d=\"M80 40 H310\" stroke=\"#d1d5db\" stroke-width=\"1\"/><path d=\"M80 68 H310\" stroke=\"#d1d5db\" stroke-width=\"1\"/><path d=\"M80 96 H310\" stroke=\"#d1d5db\" stroke-width=\"1\"/><path d=\"M80 124 H310\" stroke=\"#d1d5db\" stroke-width=\"1\"/><path d=\"M80 152 H310\" stroke=\"#d1d5db\" stroke-width=\"1\"/><path d=\"M80 180 H310\" stroke=\"#d1d5db\" stroke-width=\"1\"/><path d=\"M80 208 H310\" stroke=\"#d1d5db\" stroke-width=\"1\"/><path d=\"M110 30 V200\" stroke=\"#d1d5db\" stroke-width=\"1\"/><path d=\"M150 30 V200\" stroke=\"#d1d5db\" stroke-width=\"1\"/><path d=\"M190 30 V200\" stroke=\"#d1d5db\" stroke-width=\"1\"/><path d=\"M230 30 V200\" stroke=\"#d1d5db\" stroke-width=\"1\"/><path d=\"M270 30 V200\" stroke=\"#d1d5db\" stroke-width=\"1\"/><path d=\"M310 30 V200\" stroke=\"#d1d5db\" stroke-width=\"1\"/><circle cx=\"110\" cy=\"40\" r=\"7\" fill=\"#1f2937\" stroke=\"none\"/><circle cx=\"110\" cy=\"68\" r=\"7\" fill=\"#1f2937\" stroke=\"none\"/><circle cx=\"110\" cy=\"96\" r=\"7\" fill=\"#1f2937\" stroke=\"none\"/><circle cx=\"150\" cy=\"124\" r=\"7\" fill=\"#1f2937\" stroke=\"none\"/><circle cx=\"190\" cy=\"152\" r=\"7\" fill=\"#1f2937\" stroke=\"none\"/><circle cx=\"230\" cy=\"180\" r=\"7\" fill=\"#1f2937\" stroke=\"none\"/><text x=\"10\" y=\"45\" text-anchor=\"start\" fill=\"#1f2937\" stroke=\"none\" font-weight=\"400\">writers</text><text x=\"110\" y=\"22\" text-anchor=\"start\" fill=\"#1f2937\" stroke=\"none\" font-weight=\"400\">keys</text></svg>"
+  },
+  {
+   "n": 6,
+   "title": "Sankey",
+   "kind": "proportional flow",
+   "commentary": "Bands from what starts work, through machines and keys, to where it lands, each as wide as the writers on it.\n\nIt weighs things honestly (the laptop band is the widest), but individual writers disappear into bands, and with 18 writers the widths are small integers that read as noise.",
+   "sketch": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 320 220\" font-family=\"system-ui, sans-serif\" font-size=\"14\" fill=\"none\" stroke=\"#1f2937\" stroke-width=\"2\"><path d=\"M20 50 C120 50 120 90 200 90 L300 90\" stroke-width=\"22\" stroke=\"#9ca3af\"/><path d=\"M20 140 C120 140 120 120 200 120 L300 120\" stroke-width=\"10\" stroke=\"#9ca3af\"/><path d=\"M20 190 C120 190 120 150 200 150 L300 150\" stroke-width=\"6\" stroke=\"#9ca3af\"/><text x=\"20\" y=\"30\" text-anchor=\"start\" fill=\"#1f2937\" stroke=\"none\" font-weight=\"400\">you · time · event</text><text x=\"300\" y=\"75\" text-anchor=\"end\" fill=\"#1f2937\" stroke=\"none\" font-weight=\"400\">main</text></svg>"
+  },
+  {
+   "n": 7,
+   "title": "Signature tree",
+   "kind": "hierarchy",
+   "commentary": "You at the top; beneath, the writers grouped by whose name their commits carry: you, Claude, or the workflow bot.\n\nIt answers attribution directly, which the Writes view cares about, but it hides machines and makes three of the seven keys look alike.",
+   "sketch": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 320 220\" font-family=\"system-ui, sans-serif\" font-size=\"14\" fill=\"none\" stroke=\"#1f2937\" stroke-width=\"2\"><rect x=\"120\" y=\"14\" width=\"80\" height=\"30\" rx=\"6\"/><text x=\"160\" y=\"34\" text-anchor=\"middle\" fill=\"#1f2937\" stroke=\"none\" font-weight=\"400\">you</text><path d=\"M160 44 V70 M60 70 H260 M60 70 V90 M160 70 V90 M260 70 V90\"/><rect x=\"14\" y=\"90\" width=\"92\" height=\"30\" rx=\"6\"/><rect x=\"114\" y=\"90\" width=\"92\" height=\"30\" rx=\"6\"/><rect x=\"214\" y=\"90\" width=\"92\" height=\"30\" rx=\"6\"/><text x=\"60\" y=\"110\" text-anchor=\"middle\" fill=\"#1f2937\" stroke=\"none\" font-weight=\"400\">as you</text><text x=\"160\" y=\"110\" text-anchor=\"middle\" fill=\"#1f2937\" stroke=\"none\" font-weight=\"400\">as Claude</text><text x=\"260\" y=\"110\" text-anchor=\"middle\" fill=\"#1f2937\" stroke=\"none\" font-weight=\"400\">as bot</text><text x=\"160\" y=\"170\" text-anchor=\"middle\" fill=\"#1f2937\" stroke=\"none\" font-weight=\"400\">commits, by whose name</text></svg>"
+  },
+  {
+   "n": 8,
+   "title": "Hub map",
+   "kind": "geography",
+   "commentary": "GitHub at the centre, where every write ends. Your machines on one side, the providers' on the other, each holding its writers; one road per credential runs into GitHub, as thick as the writers on it and labelled with whose name it signs.\n\nIt shows where, with what and whose name in one picture, and its two sides carry the one division the registries do not record: yours or a provider's.",
+   "sketch": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 320 220\" font-family=\"system-ui, sans-serif\" font-size=\"14\" fill=\"none\" stroke=\"#1f2937\" stroke-width=\"2\"><rect x=\"130\" y=\"60\" width=\"60\" height=\"100\" rx=\"10\" fill=\"#1f2937\" stroke=\"none\"/><text x=\"160\" y=\"115\" text-anchor=\"middle\" fill=\"#fff\" stroke=\"none\" font-weight=\"600\">GitHub</text><rect x=\"10\" y=\"30\" width=\"80\" height=\"60\" rx=\"8\"/><rect x=\"10\" y=\"120\" width=\"80\" height=\"60\" rx=\"8\"/><rect x=\"230\" y=\"30\" width=\"80\" height=\"60\" rx=\"8\"/><rect x=\"230\" y=\"120\" width=\"80\" height=\"60\" rx=\"8\"/><text x=\"50\" y=\"64\" text-anchor=\"middle\" fill=\"#1f2937\" stroke=\"none\" font-weight=\"400\">laptop</text><text x=\"50\" y=\"154\" text-anchor=\"middle\" fill=\"#1f2937\" stroke=\"none\" font-weight=\"400\">phone</text><text x=\"270\" y=\"64\" text-anchor=\"middle\" fill=\"#1f2937\" stroke=\"none\" font-weight=\"400\">cloud</text><text x=\"270\" y=\"154\" text-anchor=\"middle\" fill=\"#1f2937\" stroke=\"none\" font-weight=\"400\">runners</text><path d=\"M90 60 C115 60 110 90 130 90\" stroke-width=\"7\" stroke=\"#9ca3af\"/><path d=\"M90 150 C115 150 110 130 130 130\" stroke-width=\"3\" stroke=\"#9ca3af\"/><path d=\"M230 60 C205 60 210 90 190 90\" stroke-width=\"5\" stroke=\"#9ca3af\"/><path d=\"M230 150 C205 150 210 130 190 130\" stroke-width=\"4\" stroke=\"#9ca3af\"/><rect x=\"96\" y=\"70\" width=\"14\" height=\"10\" rx=\"2\" fill=\"#fbbf24\" stroke=\"none\"/></svg>"
+  }
+ ],
+ "selection": {
+  "pick": [
+   8
+  ],
+  "grafts": [
+   [
+    1,
+    "machines as boxes that contain their writers"
+   ],
+   [
+    3,
+    "the credential as a node the writers converge on, so the shared laptop key reads at a glance"
+   ],
+   [
+    7,
+    "whose name each road's commits carry, written on its key"
+   ]
+  ],
+  "rationale": "The hub map answers all three questions in one picture without hiding a level: the writer sits in its machine, its line runs to its key, and the key's road into GitHub is as thick as the writers that share it. The key ring's convergence and the signature tree's names ride on it, and the errand routes, the session's original goal, fit as a second layer switched on from the header.",
+  "assumptions": [
+   "Is GitHub as the centre right, when local copies stay on the machine until pushed?",
+   "Should the browser stay a place of its own, pending the venue-or-machine call?",
+   "Is one GitHub block enough, or should each repository get its own?",
+   "Do the errand routes belong on this picture, or on one of their own?"
+  ]
+ }
+}

@@ -23,7 +23,7 @@ public sealed class ChangeJournal(string path)
             var signature = state + "\n" + detail;
             if (items.TryGetValue(key, out var previous) && previous.State == state && previous.Detail == detail
                 && (!versioned || previous.At == at)) {
-                items[key] = previous with { Title = title, SessionUrl = sessionUrl };
+                items[key] = previous with { Provider = provider, Location = location, Title = title, SessionUrl = sessionUrl };
                 return;
             }
             var id = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(key + "\n" + signature + "\n" + at.ToString("O"))))[..24];
@@ -48,12 +48,13 @@ public sealed class ChangeJournal(string path)
         }
         foreach (var job in errands) {
             var detail = job.State switch {
-                "queued" => "Added to the Gemini queue", "claimed" => "Accepted by the Gemini worker",
+                "queued" => "Added to the " + job.Provider + " queue",
+                "claimed" => job.Provider == "Gemini" ? "Accepted by the Gemini worker" : "Accepted by " + job.Provider,
                 "reply" => "A reply is arriving", "complete" => "Result ready", "failed" => "Result needs review", _ => "Errand updated"
             };
             // Later replies are meaningful even when the errand remains in the same state.
             if (job.State is "reply" or "complete" or "failed") detail += " · " + (job.Message ?? "");
-            Add("errand:" + job.Id, "Gemini", job.Title, job.State, job.UpdatedAt, detail, "Laptop",
+            Add("errand:" + job.Id, job.Provider, job.Title, job.State, job.UpdatedAt, detail, job.Location,
                 NavigationPolicy.ErrandUrl(job.Id, job.State is "reply" or "complete" or "failed"), versioned: true);
         }
         changes = items.Values.Where(c => c.At >= now.AddDays(-7) && c.At <= now.AddMinutes(1))

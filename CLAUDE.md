@@ -2,7 +2,7 @@
 
 [docs/CONVERSATION.md](docs/CONVERSATION.md), [docs/QUALIFIED-WRITING.md](docs/QUALIFIED-WRITING.md) and [doc-craft](skills/doc-craft/SKILL.md) are the whole cross-repo contract: how a session's work reaches a reader, how the prose carrying it is written, and how documentation is edited. Everything below is web-tools-specific.
 
-**Delivery is the plugin, here as everywhere.** At startup and compaction, the `portable` plugin's `invoke-default` hook adds one instruction to the session's context, to invoke `/portable:default`, which loads all three, unless a checkout's CLAUDE.md already imports them. This file imports none of them, on purpose: an import would make the hub the one repo that could not notice the plugin path failing. If the conventions are missing from a session here, either the hook did not add its instruction or the session did not act on it, and that is worth knowing rather than papering over. Three one-line defaults: this sandbox is one venue among several ([docs/venues.md](docs/venues.md)); before adding to a doc, ask whether the app derives it, the suite enforces it, or another document owns it, and link instead; be wary of improvements addressing hypothetical problems. What travels to other repos is indexed in [`docs/portable.csv`](docs/portable.csv); the distribution channel is the plugin marketplace ([docs/MARKETPLACE.md](docs/MARKETPLACE.md)).
+**Delivery is the plugin, here as everywhere.** At startup and compaction, the `portable` plugin's `invoke-default` hook adds one instruction to the session's context, to invoke `/portable:default`, which loads all three, unless a checkout's CLAUDE.md already imports them. This file imports none of them, on purpose: an import would make the hub the one repo that could not notice the plugin path failing. If the conventions are missing from a session here, either the hook did not add its instruction or the session did not act on it, and that is worth knowing rather than papering over. Three one-line defaults: this sandbox is one machine among several ([docs/machines.md](docs/machines.md)); before adding to a doc, ask whether the app derives it, the suite enforces it, or another document owns it, and link instead; be wary of improvements addressing hypothetical problems. What travels to other repos is indexed in [`docs/portable.csv`](docs/portable.csv); the distribution channel is the plugin marketplace ([docs/MARKETPLACE.md](docs/MARKETPLACE.md)).
 
 ## The Web Tools app
 
@@ -23,7 +23,7 @@ Before a merge, if any `pages/*.html` changed this session (`git diff main...HEA
 
 ## Guide-PR support: platform auto-create is on
 
-The account's Claude Code web settings ("Create pull requests automatically" with "Create as draft") create a draft PR on a session's first push. A session working in an added repo opens the draft itself through the GitHub MCP. Body sync is manual and follows the guide pointer in [docs/CONVERSATION.md](docs/CONVERSATION.md); no hook or CI tracks it. `BRANCH-GUIDE.md` files are retired; delete any stray one on sight.
+The account's Claude Code web settings ("Create pull requests automatically" with "Create as draft") create a draft PR on a session's first push. A session working in an added repo opens the draft itself through the GitHub MCP. The guide in the PR body follows "The PR guide" in [docs/CONVERSATION.md](docs/CONVERSATION.md); no hook or CI tracks it. `BRANCH-GUIDE.md` files are retired; delete any stray one on sight.
 
 ## The pre-build & the build-on-commit hook
 

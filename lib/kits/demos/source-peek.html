@@ -10,17 +10,20 @@
   await import('https://mehrlander.github.io/web-tools/lib/entry.js');
   // The address grammar the card parses a data-peek with, then the kit itself.
   await gh.load('kits/repo-address.js');
+  // The one CSV parser, which a table peek splits its cells with.
+  await gh.load('kits/csv.js');
   await gh.load('kits/source-peek.js');
   // No self-install: the boot manifest calls this for a chain-booted app, and a
   // page loading the kit on its own owns the listeners.
   SourcePeek.install();
 
-  // The three seeded samples. Bytes carried in the page, so the cache is warm
+  // The four seeded samples, the CSV abridged to four of its columns. Bytes carried in the page, so the cache is warm
   // before the first hover and read()'s fetch is never reached.
   const sample = id => document.getElementById(id).textContent.replace(/^\n/, '');
   SourcePeek.seed('mehrlander/web-tools@main:tracker/tasks/add-task-tracker-skill-iwr1ay.md', sample('s-md'));
   SourcePeek.seed('mehrlander/web-tools@main:.web-tools.json', sample('s-json'));
   SourcePeek.seed('mehrlander/web-tools@main:lib/kits/source-peek.js', sample('s-src'));
+  SourcePeek.seed('mehrlander/web-tools@main:docs/run-methods.csv', sample('s-csv'));
 
   // Alpine boots from unpkg while this chain is still fetching, so the bench
   // below evaluates once before the kit exists. The flag is what it re-reads.
@@ -47,6 +50,17 @@ The tracker's mechanics live only in `docs/TRACKER.md`: the task file schema, th
 {"icon":"ph-toolbox","estate":true,"group":"core","order":11,"tracker":"tracker/board.md","pins":["pages","console","lib/alpineComponents","docs/CONVENTIONS.md","docs/SURFACING.md"]}
 </script>
 
+<script type="text/plain" id="s-csv">
+method,venues,output_return,gloss
+ise-f5,personal-laptop;work-machine,direct-to-clipboard,Paste into the PowerShell ISE script pane and press F5.
+console-enter,browser,direct-to-clipboard,Paste into the browser's developer console on the page and press Enter.
+courier-bookmark,browser,courier-message,Tap the courier bookmarklet on the page; the Stage popup sends the script and receives the result by message.
+computer-use,personal-laptop,report-pasted,"Hand the prompt to a computer-use agent on the home laptop (Claude Dispatch, Gemini in Antigravity, or Codex) and paste its report onto the errand; if no agent can do it, do it yourself."
+workflow-run,actions-hosted,job-log,Nothing for you to do: the session dispatches the workflow on a GitHub-hosted runner and reads the result from its log.
+device-link,iphone,self-filed,Open the link on your iPhone and leave it until the banner turns green or red; the page files the result itself.
+laptop-daemon,personal-laptop,self-filed,Nothing for you to do: the laptop daemon picks it up within a few minutes and files the result. Decline it to cancel.
+codex-errand,personal-laptop,self-filed,"Ask Codex on the laptop, in its clone of web-tools-private, to do its errands; it takes this one, does it and files the result itself. Decline it to cancel."
+</script>
 <script type="text/plain" id="s-src">
   // ── Pure: what a peek shows ─────────────────────────────────────────────
   // Three renditions, by extension, because the useful excerpt of a file is not
@@ -99,8 +113,8 @@ The tracker's mechanics live only in `docs/TRACKER.md`: the task file schema, th
   </header>
 
   <section class="space-y-2">
-    <h2 class="text-[11px] font-semibold uppercase tracking-widest text-base-content/40">Three renditions, seeded</h2>
-    <p class="text-[13px] text-base-content/50">Seeded through <code class="font-mono">SourcePeek.seed()</code> from bytes this page carries, so these three open with no token and no network.</p>
+    <h2 class="text-[11px] font-semibold uppercase tracking-widest text-base-content/40">Four renditions, seeded</h2>
+    <p class="text-[13px] text-base-content/50">Seeded through <code class="font-mono">SourcePeek.seed()</code> from bytes this page carries, so these four open with no token and no network.</p>
     <ul class="divide-y divide-[var(--color-base-300)] border border-base-300 rounded-lg max-w-lg">
       <li class="flex items-center gap-3 px-3 py-2">
         <i class="ph ph-file-text text-base-content/30 text-[17px]"></i>
@@ -124,6 +138,14 @@ The tracker's mechanics live only in `docs/TRACKER.md`: the task file schema, th
         <a id="t-src" class="ml-auto shrink-0 text-base-content/30 hover:text-primary"
            href="https://github.com/mehrlander/web-tools/blob/main/lib/kits/source-peek.js"
            data-peek="mehrlander/web-tools@main:lib/kits/source-peek.js"
+           target="_blank" rel="noopener" title="Open on GitHub"><i class="ph ph-github-logo text-[17px]"></i></a>
+      </li>
+      <li class="flex items-center gap-3 px-3 py-2">
+        <i class="ph ph-table text-base-content/30 text-[17px]"></i>
+        <span class="font-mono text-[13.5px] truncate min-w-0">docs/run-methods.csv</span>
+        <a id="t-csv" class="ml-auto shrink-0 text-base-content/30 hover:text-primary"
+           href="https://github.com/mehrlander/web-tools/blob/main/docs/run-methods.csv"
+           data-peek="mehrlander/web-tools@main:docs/run-methods.csv"
            target="_blank" rel="noopener" title="Open on GitHub"><i class="ph ph-github-logo text-[17px]"></i></a>
       </li>
       <li class="flex items-center gap-3 px-3 py-2">
