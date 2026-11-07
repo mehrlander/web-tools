@@ -29,7 +29,8 @@
      lineup shows, when that is not the mark the page opens on. They stay in this browser until sent:
      opened on a pick call (#user-call=owner/repo[@ref]:path), Send records
      them as the call's answer beside it and comments them on its pull
-     request; without one, Copy puts them on the clipboard. The Program as control redraws every mark as a program icon
+     request; without one, Copy puts them on the clipboard. #program=<name>
+     opens the page on that program. The Program as control redraws every mark as a program icon
      (bare, on a tinted tile, knocked out of a solid tile, or under a gauge
      arc); the wrap scales the mark, so a mark picked this way is redrawn at
      tile size before it ships. Testing's pile includes the test-concept
@@ -116,6 +117,7 @@
     async init() {
       const hash = new URLSearchParams(location.hash.slice(1));
       this.at = hash.get('user-call') ? window.RepoAddress.parse(hash.get('user-call')) : null;
+      if (this.data[hash.get('program')] && this.progs.some(([q]) => q === hash.get('program'))) this.cur = hash.get('program');
       try { Object.assign(this.favs, JSON.parse(localStorage.getItem(this.store) || '{}')) } catch {}
       try { this.reps = JSON.parse(localStorage.getItem('program-mark-ideas:reps') || '{}') } catch {}
       try { for (const [p, n] of Object.entries(JSON.parse(localStorage.getItem('program-mark-ideas:ideas') || '{}'))) { const gi = (this.data[p] || []).findIndex(g => g.name === n); if (gi >= 0) this.sel[p] = [gi, this.rep(p, gi)] } } catch {}
