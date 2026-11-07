@@ -104,6 +104,11 @@ test('a deck header names the document, not the kind of call', () => {
   assert.equal(heads.at(-1).action, null, 'no record circle in the header: the Record row under the document records');
 });
 
+test('in the deck a documentation call shows its brief, not its question or a recommendation', () => {
+  assert.equal(root().querySelector('[data-call-question]').style.display, 'none', 'the deck header names the document');
+  assert.equal(root().querySelector('[data-call-recommend]').style.display, 'none');
+});
+
 test('an edit md-diff draws as several changes marks each, under the one decision', async () => {
   const marks = () => [...root().querySelectorAll('[data-doc-mark][data-doc-edit="4"]')];
   assert.equal(marks().length, 2, 'a two-block edit is two containers');

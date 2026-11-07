@@ -86,6 +86,10 @@ test("a call filed on its PR's branch is read at the PR's base, where its edits 
   assert.equal(root().querySelectorAll('[data-doc-unplaced]').length, 0, 'no edit reads as already in the file');
 });
 
+test('on its own page a documentation call keeps its question, the only title it has', () => {
+  assert.notEqual(root().querySelector('[data-call-question]').style.display, 'none');
+});
+
 test('a documentation call has no deck below: the document card takes the full height', () => {
   assert.equal(data().mats.length, 0, 'its materials open no deck');
   assert.equal(root().querySelector('[data-swipe-section]').style.display, 'none');
