@@ -6,6 +6,7 @@
 <title>Program mark ideas</title>
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/alpinejs@3/dist/cdn.min.js" defer></script>
+<script src="../../lib/kits/repo-address.js"></script>
 <!-- Every idea drawn or gathered for the programs' marks, one column per
      program shown: one card per idea, under a strip of the picked idea's
      variations that stays at the top of its column, and a lineup that sets the estate's repository
@@ -81,7 +82,7 @@
       const h = { Accept: 'application/vnd.github+json', ...(opt.headers || {}) }; const t = GH.token(); if (t) h.Authorization = 'Bearer ' + t;
       const r = await fetch('https://api.github.com/' + url, { ...opt, headers: h });
       if (!r.ok) { const e = new Error(r.status + ' ' + (await r.text()).slice(0, 160)); e.status = r.status; throw e; }
-      const t = await r.text(); try { return t ? JSON.parse(t) : null } catch { throw new Error('GitHub sent an unreadable answer') }
+      const body = await r.text(); try { return body ? JSON.parse(body) : null } catch { throw new Error('GitHub sent an unreadable answer') }
     },
     async file(at, path) {
       const d = await GH.req(`repos/${at.repo}/contents/${path}` + (at.ref ? '?ref=' + encodeURIComponent(at.ref) : ''));
@@ -97,8 +98,6 @@
       await GH.req(`repos/${at.repo}/contents/${path}`, { method: 'PUT', body: JSON.stringify(put) });
     },
   };
-  // owner/repo[@ref]:path
-  const callAddress = (s) => { const m = String(s || '').match(/^([^/@:\s]+\/[^/@:\s]+)(?:@([^:\s]+))?:(\S+\.json)$/); return m ? { repo: m[1], ref: m[2] || '', path: m[3] } : null; };
 </script>
 </head>
 <body class="min-h-dvh bg-base-200" x-data="{
@@ -112,7 +111,7 @@
     get store() { return 'program-mark-ideas:favorites' + (this.at ? ':' + this.at.path : '') },
     async init() {
       const hash = new URLSearchParams(location.hash.slice(1));
-      this.at = callAddress(hash.get('user-call'));
+      this.at = hash.get('user-call') ? window.RepoAddress.parse(hash.get('user-call')) : null;
       try { Object.assign(this.favs, JSON.parse(localStorage.getItem(this.store) || '{}')) } catch {}
       fetchIcons(this.data);
       if (!this.at) return;

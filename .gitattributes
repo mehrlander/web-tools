@@ -49,6 +49,7 @@ docs/github/mcp-server-routing.md     edit=write-once
 docs/showing-consolidation.md         edit=write-once
 docs/prototypes/md-edit-ideas.json    edit=write-once
 docs/prototypes/program-icons-ideas.json edit=write-once
+docs/prototypes/program-mark-picking-ideas.json edit=write-once
 docs/prototypes/ui-concepts-ideas.json    edit=write-once
 
 # Rebuilt whole by a builder, never by hand: the commit hook's legs
