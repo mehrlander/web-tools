@@ -250,12 +250,6 @@ branch. The scripts an errand runs stay on main (`errands/prompts/`, `sites/`),
 where `run.script` addresses them; web-tools-private's README, "Three layers",
 says why the records moved.
 
-A session can send an errand without filing a request, as a reception link:
-`npm run -s reception-link -- <fn.js> --note "<what is wanted>"` prints a link to
-[`pages/reception.html`](../pages/reception.html) that runs the function in
-`<fn.js>` on text you paste and gives back only its output. The header of
-[`node/reception-link.mjs`](../node/reception-link.mjs) lists the options.
-
 Four methods need no one at the Stage, because none borrows the Stage's
 token:
 
@@ -280,6 +274,12 @@ token:
   laptop, for work needing that machine's apps or computer use, taken when the
   owner asks Codex to do its errands. File it with
   `sessions/tools/codex_errand.py` in web-tools-private.
+
+A session can also send an errand as a reception link, with no file in
+`errands/requests`: `npm run -s reception-link -- <fn.js> --note "<what is wanted>"`
+prints a link to [`pages/reception.html`](../pages/reception.html) that runs the
+function in `<fn.js>` on text you paste and gives back only its output. The header
+of [`node/reception-link.mjs`](../node/reception-link.mjs) lists the options.
 
 ## Inbox and outbox
 
