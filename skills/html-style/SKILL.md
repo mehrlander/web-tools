@@ -122,13 +122,11 @@ coded `linked-swiper`.
 
 **14. Show the source.** Show the original: the publisher's own document rather than a conversion made here, quoted text exactly as written with only highlighting added, and a change inline in the document it changes.
 
-**15. Before an action, show what it acts on.** An approve, copy, or confirm control sits beside what it acts on: the item, the content, the diff against the stored version.
+**15. Keep the reader's context.** A link to a row scrolls to it and leaves the other rows in view.
 
-**16. Keep the reader's context.** A link to a row scrolls to it and leaves the other rows in view.
+**16. The layout holds still.** A scrollbar appearing, a counter gaining a digit, or a container's content changing moves nothing else: reserve the scrollbar's gutter, give counters `tabular-nums`, and size a container for its largest content.
 
-**17. The layout holds still.** A scrollbar appearing, a counter gaining a digit, or a container's content changing moves nothing else: reserve the scrollbar's gutter, give counters `tabular-nums`, and size a container for its largest content.
-
-**18. An item and its counterparts highlight together.** Where one item appears in two or more places on a page, hovering or tapping any of them marks the others.
+**17. An item and its counterparts highlight together.** Where one item appears in two or more places on a page, hovering or tapping any of them marks the others.
 
 ## Handing a page over
 
