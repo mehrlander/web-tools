@@ -42,6 +42,15 @@ test('add writes one line to main, whatever branch the checkout is on', () => {
   assert.equal(existsSync(path.join(store, 'notes')), false, 'the working tree is left alone');
 });
 
+test('an anchor that is not JSON is refused plainly, and nothing is written', () => {
+  const before = onMain().length;
+  const r = run('add', 'mehrlander/web-tools#803', 'Anchored.', '--anchor', 'docs/venues.md');
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /--anchor takes a JSON text-quote anchor/);
+  assert.doesNotMatch(r.stderr, /Traceback/);
+  assert.equal(onMain().length, before);
+});
+
 test('a reply is a note about a note, and show nests it under its parent', () => {
   const parent = onMain()[0].id;
   const r = run('reply', parent, 'Correction: CI had not run.', '--author', 'mehrlander');

@@ -49,6 +49,7 @@ import { chromium } from 'playwright';
 import JSZip from 'jszip';
 import { resolveCdn, typeFor } from '../render/cdn.mjs';
 import { repoRoot as root } from '../repo-root.mjs';
+import { launch as launchChromium } from '../render/chromium.mjs';
 
 
 // JSZip is seeded as a global rather than imported. The kit checks for a global
@@ -220,7 +221,7 @@ const origin = `http://127.0.0.1:${server.address().port}`;
 
 await mkdir(path.join(root, 'node', '.preview'), { recursive: true });
 
-const browser = await chromium.launch({ args: ['--no-sandbox', '--ignore-certificate-errors'] });
+const browser = await launchChromium({ args: ['--no-sandbox', '--ignore-certificate-errors'] });
 const page = await browser.newPage({ viewport: { width: 1100, height: 800 } });
 // The Overview hands its payload over as a link on the clipboard, and
 // reading it back is how the last claim below checks what actually leaves.

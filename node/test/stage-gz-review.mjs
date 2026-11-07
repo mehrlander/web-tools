@@ -27,6 +27,7 @@ import { readFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 import { resolveCdn, typeFor } from '../render/cdn.mjs';
 import { repoRoot as root } from '../repo-root.mjs';
+import { launch as launchChromium } from '../render/chromium.mjs';
 
 const PAGE = 'app/index.html';
 
@@ -45,7 +46,7 @@ const server = http.createServer(async (req, res) => {
 await new Promise(r => server.listen(0, '127.0.0.1', r));
 const base = `http://127.0.0.1:${server.address().port}`;
 
-const browser = await chromium.launch();
+const browser = await launchChromium();
 
 // Same interception the screenshot harness uses: resolveCdn classifies into
 // continue / empty / fulfill, and a falsy return served as a miss would empty

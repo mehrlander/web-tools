@@ -8,6 +8,7 @@ import { existsSync, readFileSync, mkdirSync } from 'node:fs';
 import { chromium } from 'playwright';
 import { repoRoot } from '../repo-root.mjs';
 import { resolveCdn, typeFor, blobSha } from '../render/cdn.mjs';
+import { launch as launchChromium } from '../render/chromium.mjs';
 
 const STORE = 'mehrlander/web-tools-private';
 const NOW = Date.now(), DAY = 864e5;
@@ -404,7 +405,7 @@ async function queryHistoryScenario() {
 try {
   const launchErrors = [];
   for (const option of [{}, { channel: 'chrome' }, { channel: 'msedge' }]) {
-    try { browser = await chromium.launch({ headless: true, ...option }); break; }
+    try { browser = await launchChromium({ headless: true, ...option }); break; }
     catch (error) { launchErrors.push(error.message); }
   }
   assert.ok(browser, 'Chromium, Chrome or Edge must launch:\n' + launchErrors.join('\n'));

@@ -470,6 +470,10 @@ function gitEvidence(u, repoRoot) {
   return null;
 }
 
+// The contents API's answer for a path that is not there.
+const notFound = (tag) => ({ kind: 'fulfill', status: 404, contentType: 'application/json; charset=utf-8',
+                             body: '{"message":"Not Found"}', tag });
+
 export function resolveCdn(rawUrl, repoRoot, ref, headers = {}) {
   let u;
   try { u = new URL(rawUrl); } catch { return { kind: 'continue' }; }
@@ -710,7 +714,10 @@ export function resolveCdn(rawUrl, repoRoot, ref, headers = {}) {
         }),
       };
     }
-    return { kind: 'empty', contentType: 'application/json; charset=utf-8', tag: `MISS api ${tail}` };
+    // A file that is not here answers 404, as the contents API does, so a page
+    // that branches on a missing file (a fallback, an "absent" state) renders
+    // that branch headlessly instead of parsing an empty 200.
+    return notFound(`MISS api ${tail}`);
   }
 
   // --- A SIBLING repo's contents, served from its checkout next to this one ---
@@ -763,7 +770,7 @@ export function resolveCdn(rawUrl, repoRoot, ref, headers = {}) {
         }),
       };
     }
-    return { kind: 'empty', contentType: 'application/json; charset=utf-8', tag: `MISS api ${name}/${rel}` };
+    return notFound(`MISS api ${name}/${rel}`);
   }
 
   // --- Third-party libs: jsDelivr /combine/ (comma-joined specs) ---

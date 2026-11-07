@@ -323,6 +323,32 @@ test('the wrapper records the method, from init or from a Request', async () => 
   assert.equal(win.__trafficTotals.calls, 3);
 });
 
+// Every GraphQL query reaches one URL, so the repeat check grouped them all
+// as one call, and a write's upload never showed, since only the response's
+// length was read (web-tools #1168, thread 2: about 4 MB a pass went unseen).
+test('the wrapper records what a call sent, and a GraphQL call\'s operation', async () => {
+  const { win } = await bootWithStub({ fetchImpl: async () => ({ status: 200, headers: { get: () => null } }) });
+  const q = (name, vars) => JSON.stringify({ query: `query ${name}($o:String!) { repository(owner:$o) { id } }`, variables: vars });
+  await win.fetch('https://api.github.com/graphql', { method: 'POST', body: q('BranchesDated', { o: 'a' }) });
+  await win.fetch('https://api.github.com/graphql', { method: 'POST', body: q('BranchesDated', { o: 'b' }) });
+  await win.fetch('https://api.github.com/repos/o/r/contents/x.json', { method: 'PUT', body: 'é'.repeat(10) });
+  await win.fetch('https://api.github.com/repos/o/r/commits');
+  const [a, b, put, get] = win.__traffic;
+  assert.match(a.op, /^BranchesDated#/, 'the operation is named');
+  assert.notEqual(a.op, b.op, 'the same query with other variables is another call');
+  assert.equal(put.sent, 20, 'bytes, not characters');
+  assert.equal(put.op, null, 'a REST call has no operation');
+  assert.equal(get.sent, null, 'a call with no body sent nothing it knows of');
+  assert.equal(win.__trafficTotals.sent, a.sent + b.sent + 20);
+});
+
+test('repeats are keyed by a GraphQL call\'s operation, and carry what they sent', () => {
+  const g = (t, op) => ({ t, url: 'https://api.github.com/graphql', method: 'POST', status: 200, wire: 100, sent: 50, op });
+  const rows = [0, 1, 2, 3].map(t => g(t, 'A#1')).concat([4, 5, 6].map(t => g(t, 'B#2')));
+  const reps = T.trafficFindings(rows, {}).filter(x => x.kind === 'repeat');
+  assert.deepEqual(reps.map(x => [x.op, x.calls, x.sent]), [['A#1', 4, 200]], 'three calls of B are not a repeat of A');
+});
+
 test('a response with no content-length is unknown, not zero', async () => {
   const { win } = await bootWithStub({ fetchImpl: async () => ({ status: 200, headers: { get: () => null } }) });
   await win.fetch('https://api.github.com/repos/o/r/commits');

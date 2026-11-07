@@ -26,6 +26,7 @@ import path from 'node:path';
 import { readFileSync } from 'node:fs';
 import { chromium } from 'playwright';
 import { repoRoot as root } from '../repo-root.mjs';
+import { launch as launchChromium } from '../render/chromium.mjs';
 
 const failures = [];
 const ok = (name, cond, detail = '') => {
@@ -46,7 +47,7 @@ const PAGE = `<!doctype html><html><body style="margin:0">
   <div style="height:1500px"></div>
 </body></html>`;
 
-const browser = await chromium.launch({ args: ['--no-sandbox'] });
+const browser = await launchChromium({ args: ['--no-sandbox'] });
 const page = await browser.newPage({ viewport: { width: 900, height: 700 } });
 try {
   await page.setContent(PAGE);
