@@ -1,5 +1,4 @@
-// screenshot.mjs interaction scenario: the estate's Lists pane with the Pin
-// block populated above To-do and Jot.
+// screenshot.mjs interaction scenario: the Lists view's Pin tab, populated.
 //
 //   node node/render/screenshot.mjs app/index.html \
 //     --script node/render/scenarios/estate-pins.mjs \
@@ -7,11 +6,9 @@
 //
 // The sandbox blocks api.github.com and the registry is private, so the
 // scenario stubs the GH methods the estate touches and serves fixture list
-// files. What the pixels prove: the Pin block on top with its address+title
-// add form, pins in a multi-column grid grouped by group (repo short name
-// as fallback), each with the push-pin mark, title, and note; each heading's
-// GitHub jump-over beside its count; To-do and Jot unchanged in their halves
-// below.
+// files. What the pixels prove: the Pin tab's address+title add form and
+// GitHub jump-over, and pins in a multi-column grid grouped by group (repo
+// short name as fallback), each with the push-pin mark, title, and note.
 //
 // p1 carries the REAL note from lists/pin.json, and p5 the title addPin
 // derives when none is typed (the path's last segment, one long hyphenated
@@ -75,7 +72,7 @@ export default async function (page) {
       return origReq.call(this, path);
     };
 
-    window.__shell.goLists();
+    window.__shell.goLists('pin');
     const host = [...document.querySelectorAll('[x-data]')]
       .find(el => (el.getAttribute('x-data') || '').includes('estate('));
     if (!host) return 'no estate host';
