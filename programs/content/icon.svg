@@ -1,10 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="content program">
   <title>content program</title>
-  <desc>A broad angular leaf, folded along its midrib and two creases, cut from a purple-600 tile. Drawn on the drawn-mark box and rules (docs/favicons/README.md): solid fills, no strokes, and every gap at least 2.5 units, which is about 1.4 CSS pixels at 16. Chosen 2026-11-07, the owner's faceted leaf made broader; the ideas it was chosen from are in docs/prototypes/program-mark-ideas.html.</desc>
+  <desc>A leaf in two halves, one solid and one cut by two veins, cut from a purple-600 tile. Drawn on the drawn-mark box and rules (docs/favicons/README.md): solid fills, no strokes, and every gap at least 2.5 units, which is about 1.4 CSS pixels at 16. Chosen 2026-11-07, the owner's first favorite: redrawn after the bold leaf of the Solar icon set (480 Design, CC BY 4.0), with two veins where it has three, since three at the 2.5-unit gap leave veins too thin to see; the ideas it was chosen from are in docs/prototypes/program-mark-ideas.html.</desc>
   <mask id="cut" maskUnits="userSpaceOnUse" x="0" y="0" width="32" height="32">
     <rect width="32" height="32" fill="#fff"/>
-    <g fill="#000"><path d="M9.5 23.5 L7.31 15.84 L12.2 9.18 L23.5 8.5 L23.6 19.82 L17.29 25.16Z"/><path d="M9.57 25.25 L11.53 23.15 L9.71 21.45 L7.75 23.55Z"/></g>
-    <g fill="#fff"><path d="M11.53 23.15 L23.01 10.85 L21.19 9.15 L9.71 21.45Z"/><path d="M14.66 19.15 L13.44 9.03 L10.96 9.33 L12.18 19.45Z"/><path d="M13.36 20.55 L23.54 21.07 L23.67 18.57 L13.48 18.05Z"/></g>
+    <g fill="#000"><path d="M16 6 C15.5 6 15 6.15 14.54 6.38 C10.55 8.24 8 13.44 8 17.91 C8 22.37 11.58 26.03 16 26.03 C20.42 26.03 24 22.37 24 17.91 C24 13.44 21.45 8.24 17.46 6.38 C17 6.15 16.5 6 16 6Z"/></g>
+    <g fill="#fff"><rect x="14.75" y="3" width="2.5" height="26"/><path d="M16 11.73 L28 -0.27 L28 3.27 L16 15.27Z"/><path d="M16 18.98 L28 6.98 L28 10.52 L16 22.52Z"/></g>
   </mask>
   <g fill="#9333ea" mask="url(#cut)"><rect x="2" y="2.25" width="28" height="28" rx="7"/></g>
 </svg>
