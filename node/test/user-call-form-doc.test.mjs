@@ -198,7 +198,7 @@ test('Old and New draw the whole file as it stands and as proposed; Changes keep
   assert.equal(root().querySelector('[data-doc-file]'), null, 'no link out to the file');
 });
 
-test("an edit's label carries a book for its background; its proposal is its list row, under a bulb", async () => {
+test("an edit's label carries a book for its background, and no bulb anywhere", async () => {
   const m = mark(2);
   assert.equal(m.dataset.titleTip, undefined, 'its mark speaks for it');
   assert.deepEqual([...m.querySelectorAll('[data-doc-tip]')].map((b) => b.dataset.docTip), ['background'], 'a book, no bulb');
@@ -216,9 +216,7 @@ test("an edit's label carries a book for its background; its proposal is its lis
   await tick(2);
   assert.equal(panel(), null, 'and so does a tap on the tip');
   assert.equal(mark(1).querySelector('[data-doc-tip]'), null, 'an edit without a background keeps its why');
-  const bulb = (n) => root().querySelector(`[data-doc-row="${n}"] [data-doc-row-bulb]`);
-  assert.notEqual(bulb(2).style.display, 'none', 'the bulb marks a proposal in the list');
-  assert.equal(bulb(1).style.display, 'none', 'a row showing a why has no bulb');
+  assert.equal(root().querySelector('[data-doc-row-bulb]'), null, 'the list carries no bulb (owner, 2026-11-07)');
 });
 
 test('the answer line is the one Dictate and the Docs tab write, with the kept edits as a patch', async () => {
