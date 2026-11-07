@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="discovery program">
   <title>discovery program</title>
-  <desc>Mountains: a high peak with a snow line, a lower one behind, and the sun, cut from a green-600 tile. Drawn on the drawn-mark box and rules (docs/favicons/README.md): solid fills, no strokes, and every gap at least 2.5 units, which is about 1.4 CSS pixels at 16. Chosen 2026-11-07 from the owner's favorites; the ideas it was chosen from are in docs/prototypes/program-mark-ideas.html.</desc>
+  <desc>Mountains: a high peak with a snow line, a lower one behind, and the sun, cut from a green-600 tile. Drawn on the drawn-mark box and rules (docs/favicons/README.md): solid fills, no strokes, and every gap at least 2.5 units, which is about 1.4 CSS pixels at 16. Chosen 2026-11-07, the owner's first favorite: redrawn after the mountains icon of Phosphor (MIT); the ideas it was chosen from are in docs/prototypes/program-mark-ideas.html.</desc>
   <mask id="cut" maskUnits="userSpaceOnUse" x="0" y="0" width="32" height="32">
     <rect width="32" height="32" fill="#fff"/>
     <g fill="#000"><path d="M5.5 25 L12.25 11 L19 25Z"/><path d="M21.5 15.5 L27 25 L21.88 25 L19.21 19.46Z"/><circle cx="23.5" cy="8.75" r="2.6"/></g>
