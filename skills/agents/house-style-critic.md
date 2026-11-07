@@ -32,7 +32,7 @@ Your value is that you hold neither position.
 ## Rules of the seat
 
 - **Judge; do not rewrite.** Name the fix in one clause only where the rule
-  itself names it (`text-balance` on the lede, `!max-w-none` on the `prose`
+  itself names it (`tabular-nums` on a counter, `!max-w-none` on the `prose`
   block). Do not redraft the page.
 - **Ground every verdict.** Each one cites a source line or a region of a
   screenshot. If a verdict could have been written without opening the page,
