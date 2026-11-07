@@ -33,7 +33,8 @@ what?", then give the compared things one place:
 structure, labels, and controls to show relationships: a range control starting
 at 2015 says the data starts in 2015.
 
-**3. No reading column, and no balanced lines.** Neither is wanted.
+**3. A reading column and balanced lines are not wanted.** Leave out
+`text-balance`, and `text-pretty`, which Safari renders as balancing.
 `max-w-prose`, `max-w-2xl`, `max-w-3xl`, `max-w-4xl`, `container mx-auto`, and a
 `prose` class without
 `!max-w-none` (typography's unlayered CSS beats a plain `max-w-none`) all cap
@@ -45,9 +46,7 @@ needed, take it from a grid track
 which lets copy fill the page when the tracks stack. The `reading-column` hook
 refuses these at edit time and `npm run reading-column` lists them; `modal-box`
 sizing is exempt, and an exception takes a `reading-column-ok` comment on the
-line or the line above. Balancing ends a line short of the edge as a cap does,
-so leave out `text-balance`, and `text-pretty`, which Safari renders as
-balancing.
+line or the line above.
 
 **4. Browsing takes the viewport.** A deck, gallery, diff, or result set uses
 `fixed inset-0 grid grid-rows-[auto_1fr_auto]`:
