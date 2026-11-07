@@ -10,6 +10,8 @@ public sealed class ActivityCollector
     private readonly SessionReader sessions = new(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
     private readonly ActivityJournal journal = new(Path.Combine(UserSettings.DataDirectory, "activity-history.json"));
     private readonly ChangeJournal changes = new(Path.Combine(UserSettings.DataDirectory, "activity-changes.json"));
+    private readonly UsageRunner usage = new();
+    private readonly SessionLinkRunner sessionLinks = new();
     private ErrandReader? reader;
     private string root = "";
     private DateTimeOffset processesChecked;
@@ -24,6 +26,8 @@ public sealed class ActivityCollector
     {
         // Network reads never block the two-second local sampling loop.
         var synchronize = Synchronize(stop);
+        var quotas = usage.Run(stop);
+        var routes = Task.Run(() => sessionLinks.Run(stop),stop);
         try {
             using var timer = new PeriodicTimer(TimeSpan.FromSeconds(2));
             do {
@@ -46,18 +50,22 @@ public sealed class ActivityCollector
                         processesChecked = now;
                     }
                     var current = LocalWorkReader.Join(sessions.Read(now), Path.Combine(UserSettings.DataDirectory, "work", "summaries.json"), now);
+                    current = current with { Items = current.Items.Select(s => s with {
+                        SourceUrl = SessionLinks.For(s.Provider,s.Id,s.SourceUrl,sessionLinks.GeminiInstance)
+                    }).ToList() };
                     var events = journal.Observe(current.Items, now);
                     var cloud = active.Cloud;
-                    var updates = changes.Observe(current.Items.Concat(cloud.Items), activity.Errands, now);
+                    var updates = SessionLinks.HydrateChanges(changes.Observe(current.Items.Concat(cloud.Items), activity.Errands, now),
+                        cloud.SessionUrls,sessionLinks.GeminiInstance);
                     var snapshot = new LaptopSnapshot(activity, daemon, applications, LaptopSignals.Places(root),
                         LaptopSignals.Downloads(), Environment.MachineName, settings.SeenThrough, current,
-                        watch.Elapsed.TotalMilliseconds, cloud, events, updates);
+                        watch.Elapsed.TotalMilliseconds, cloud, events, updates, usage.Latest, sessionLinks.GeminiInstance);
                     Volatile.Write(ref latest, new(now, snapshot, active.SyncMilliseconds));
                     Volatile.Write(ref error, null);
                 } catch { Volatile.Write(ref error, "The latest local activity scan failed. Showing the last observation."); }
             } while (await timer.WaitForNextTickAsync(stop));
         } catch (OperationCanceledException) when (stop.IsCancellationRequested) { }
-        finally { await synchronize; }
+        finally { await Task.WhenAll(synchronize, quotas, routes); }
     }
 
     private async Task Synchronize(CancellationToken stop)

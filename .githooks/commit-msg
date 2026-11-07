@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
-# git commit-msg hook — the consent gate, then the machine-path gate. Both
-# engines are portable and live in the plugin (skills/hooks/commit-consent.py,
-# skills/hooks/machine-paths.py); this file is the lines that let git find
-# them, the same split markers/status.py already uses. The machine-path gate
-# refuses a commit whose added lines name a path into one machine's user
-# folder; it sits here because commit-msg is the hook that refuses, while
-# pre-commit only regenerates and warns.
+# git commit-msg hook — the consent gate, the machine-path gate, then the
+# edit-policy gate. All three engines are portable and live in the plugin
+# (skills/hooks/commit-consent.py, machine-paths.py, check-edit-policy.py); this
+# file is the lines that let git find them, the same split markers/status.py
+# already uses. The machine-path gate refuses a commit whose added lines name a
+# path into one machine's user folder. The edit-policy gate refuses a change
+# that breaks the `edit` attribute .gitattributes gives a file, and passes a
+# change whose message names it with `Edit-policy-exception: <path>`. Both gates sit
+# here because commit-msg is the hook that refuses, while pre-commit only
+# regenerates and warns.
 #
 # WHY commit-msg AND NOT pre-commit. pre-commit runs before the message exists,
 # so it can refuse but cannot read an answer. commit-msg gets the message file
@@ -61,4 +64,7 @@ if script=$(plugin_script hooks/commit-consent.py); then
 fi
 if script=$(plugin_script hooks/machine-paths.py); then
   python3 "$script" --staged || exit 1
+fi
+if script=$(plugin_script hooks/check-edit-policy.py); then
+  python3 "$script" --staged --message "$1" || exit 1
 fi

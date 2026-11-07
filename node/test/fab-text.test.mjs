@@ -117,6 +117,26 @@ test('About reads the page’s about live, skips one not on screen, and steps as
   } finally { off.remove(); page.remove(); }
 });
 
+// A swipe deck renders its neighbouring slides beside the one in view, so
+// every slide has boxes and the first in the document can be one the reader
+// has left. The Sessions pane is the case.
+test('About reads the instance in view when a component has several', async () => {
+  Alpine.data('aboutSlide', (n) => ({ n, get about() { return { title: 'Slide ' + this.n }; } }));
+  const left = doc.createElement('div'); left.setAttribute('x-data', 'aboutSlide(1)');
+  const here = doc.createElement('div'); here.setAttribute('x-data', 'aboutSlide(2)');
+  doc.body.append(left, here);
+  Alpine.initTree(left); Alpine.initTree(here);
+  for (const [el, x] of [[left, -400], [here, 0]]) {
+    el.getClientRects = () => [{}];
+    el.getBoundingClientRect = () => ({ left: x, right: x + 300, top: 0, bottom: 600, width: 300, height: 600 });
+  }
+  try {
+    const d = await mountFab();
+    d.detect();
+    assert.equal(d.pageAbout.title, 'Slide 2', 'the slide on screen, not the first in the document');
+  } finally { left.remove(); here.remove(); }
+});
+
 test('setTab switches the pane and runs the tab’s opener', async () => {
   const d = await mountFab();
   let ran = 0;

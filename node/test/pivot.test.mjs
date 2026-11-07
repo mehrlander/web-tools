@@ -1,6 +1,7 @@
 // alpineComponents/transform-workbench.js — the Pivot view's arithmetic: the
 // column scan that decides dimensions from measures, the grouped tree, and the
-// flat rows the pane shows. Driven against the component factory directly with
+// flat rows the pane shows. The arithmetic lives in kits/table-stats.js since
+// 2026-10-24; these cases drive it through the workbench, its first reader. Driven against the component factory directly with
 // a stubbed Alpine, since none of it touches the DOM; no jsdom, no pixels.
 //
 // What is actually under test is the pane's three claims: a sum tree is a
@@ -49,8 +50,8 @@ function loadFactory(kits = []) {
 
 // A component instance far enough along to pivot: the factory's own defaults,
 // one tab of rows, and Alpine.raw as identity.
-function bench(rows, kits) {
-  const wb = loadFactory(kits)({});
+function bench(rows, kits = []) {
+  const wb = loadFactory(['lib/kits/table-stats.js', ...kits])({});
   wb.tabs = [{ name: 't', rows }];
   wb.active = 0;
   wb.sendToViewer = () => {};
@@ -210,4 +211,18 @@ test('the Layout view is inert on a page that did not load the kit', () => {
   wb.pvDraw();
   assert.equal(wb.rpReady(), false);
   assert.equal(wb.rpHtml, '', 'no markup, and no throw: the pane says what is missing');
+});
+
+test("the Profile reads the shared profiler: a spreadsheet's money is numeric, not string", () => {
+  const wb = bench(ROWS);
+  const prof = wb.profile(ROWS);
+  const amount = prof.find(r => r.Column === 'amount');
+  assert.equal(amount.Type, 'categorical', 'one "n/a" among the amounts keeps the column from being wholly numeric');
+  const clean = wb.profile(ROWS.slice(0, 6)).find(r => r.Column === 'amount');
+  assert.equal(clean.Type, 'numeric');
+  assert.match(clean.Summary, /^min -400 · median /);
+  assert.deepEqual(Object.keys(clean), ['Column', 'Type', 'Filled %', 'Blank', 'Distinct', 'Summary']);
+  const fund = wb.profile(ROWS).find(r => r.Column === 'fund');
+  assert.equal(fund['Filled %'], 86, 'six of seven funds filled');
+  assert.match(fund.Summary, /^600-1 \(4\)/, 'the commonest value leads, with its count');
 });

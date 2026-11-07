@@ -16,19 +16,21 @@
   const age = at => { const seconds = Math.max(0, Math.round((Date.now() - new Date(at).getTime()) / 1000)); return seconds < 60 ? 'just now' : seconds < 3600 ? `${Math.floor(seconds / 60)}m ago` : seconds < 86400 ? `${Math.floor(seconds / 3600)}h ago` : new Date(at).toLocaleDateString(); };
   const observedTime = at => `<time data-at="${escape(at)}" datetime="${escape(at)}" title="${escape(stamp(at))}">${escape(stamp(at))}</time>`;
   const stamp = at => at ? new Date(at).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) : 'Not yet';
-  const safeUrl = value => { try { const url = new URL(value); return url.origin === 'https://mehrlander.github.io' && url.pathname.startsWith('/web-tools/') ? url.href : ''; } catch { return ''; } };
-  let data, tab = 'now', assistant = '', timer, etag = '', failures = 0, pending = false, connected = false, accessDenied = false, savedScroll = 0;
+  const safeUrl = value => { try { const url = new URL(value); return url.origin === 'https://mehrlander.github.io' && !url.username && !url.password && !url.port && url.pathname.startsWith('/web-tools/') ? url.href : ''; } catch { return ''; } };
+  let data, assistant = '', timer, etag = '', failures = 0, pending = false, connected = false, accessDenied = false, savedScroll = 0;
+  let launchKey = '', copiedTitle = '';
+  const desktop = !/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) && !(navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const expanded = new Set();
   const selectedDetails = new Map();
   const panelScrolls = new Map();
   const replies = new Map();
   const filtered = () => (data?.items || []).filter(i => !assistant || keyFor(i.provider) === assistant);
   const active = i => ['working','quiet','claimed','reply'].includes(i.state);
-  const finished = i => ['complete','failed','interrupted'].includes(i.state) || i.state === 'idle' && /codex/i.test(i.provider) || i.kind === 'cloud' && i.turn && i.state === 'idle' || i.kind === 'cloud' && /recorded: (done|merged|closed|clean exit)/i.test(i.detail);
   const recordedChange = change => ({...change,kind:'change',state:'recorded'});
   const selected = () => { try { return new URLSearchParams(location.hash.slice(1)).get('item') || ''; } catch { return ''; } };
 
   function connection() {
+    if (window.NowViews?.active()) { window.NowViews.connection(); return; }
     const fresh = data && Date.now() - new Date(data.observedAt).getTime() < 15000;
     const live = connected && fresh;
     const text = accessDenied ? 'Access unavailable · Connect with your Tailscale account' : live ? 'Laptop live · Updates automatically' : data ? `${connected ? 'Activity paused' : 'Laptop unreachable'} · Last seen ${stamp(data.observedAt)}` : failures ? 'Laptop unreachable · Waiting for connection' : 'Connecting to your laptop…';
@@ -56,13 +58,16 @@
     return `<svg data-location="${location}" role="img" aria-label="${label}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" class="inline-block size-3.5 shrink-0 ${location === 'Cloud' ? 'text-sky-700' : 'text-stone-500'}"><title>${label}</title>${path}</svg>`;
   }
   const fullIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="size-4" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5M3 3l6 6m12-6-6 6M3 21l6-6m12 6-6-6"/></svg>';
+  const externalIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="size-4" aria-hidden="true"><path d="M14 4h6v6M20 4 10 14M10 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5"/></svg>';
   function row(item, position, inline = true) {
     const key = escape(item.key), summary = replyPreview(statusText(item));
-    return `<article data-item="${key}" class="min-w-0 border-b border-stone-100 bg-white"><div class="relative"><button ${inline ? `data-inspect="${key}" aria-expanded="false" aria-controls="inline-${encodeURIComponent(item.key)}"` : `data-pick="${key}"`} class="block min-h-11 w-full px-3 py-2 text-left active:bg-stone-50"><span class="flex items-start gap-2">${position ? `<span class="w-5 shrink-0 pt-1 text-sm text-amber-700">${position}.</span>` : `<span class="pt-0.5 ${colours[keyFor(item.provider)]}">${mark(item.provider)}</span>`}<span class="min-w-0 flex-1"><span class="flex items-start gap-1 ${inline ? 'pr-9' : ''}"><span class="line-clamp-2 min-w-0 flex-1 text-pretty text-[14px] font-medium leading-5">${escape(itemTitle(item))}</span>${inline ? '' : `<span class="shrink-0 pt-0.5 text-stone-400">${fullIcon}</span>`}</span><span class="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px] text-stone-500">${badge(item.state)}<span>${escape(item.provider)}</span>${locationMark(item.location)}${item.work?.agents ? `<span>${item.work.agents} agents</span>` : ''}${observedTime(item.at)}</span>${summary ? `<span data-summary class="mt-1 line-clamp-2 text-pretty text-[13px] leading-[19px] text-stone-600">${escape(summary.slice(0,180))}</span>` : ''}</span></span></button>${inline ? `<button data-pick="${key}" aria-label="Open full view: ${escape(item.title)}" title="Full view" class="absolute right-1 top-1 flex size-11 items-center justify-center rounded text-emerald-900 active:bg-stone-100">${fullIcon}</button>` : ''}</div>${inline ? `<div id="inline-${encodeURIComponent(item.key)}" data-inline="${key}" hidden></div>` : ''}</article>`;
+    const external = inline ? `<button data-launch="${key}" aria-expanded="${launchKey === item.key}" aria-controls="launch-${encodeURIComponent(item.key)}" aria-label="Open session options: ${escape(item.title)}" title="Open session" class="absolute right-1 top-1 flex size-11 items-center justify-center rounded text-emerald-900 active:bg-stone-100">${externalIcon}</button>` : '';
+    const launch = inline ? `<div id="launch-${encodeURIComponent(item.key)}" data-launch-panel="${key}" ${launchKey === item.key ? '' : 'hidden'} class="pl-10 pr-3 pb-2">${launchKey === item.key ? window.NowView.sessionActions(item,{desktop,copied:copiedTitle === item.key}) : ''}</div>` : '';
+    return `<article data-item="${key}" class="min-w-0 border-b border-stone-100 bg-white"><div class="relative"><button ${inline ? `data-inspect="${key}" aria-expanded="false" aria-controls="inline-${encodeURIComponent(item.key)}"` : `data-pick="${key}"`} class="block min-h-11 w-full px-3 py-2 text-left active:bg-stone-50"><span class="flex items-start gap-2">${position ? `<span class="w-5 shrink-0 pt-1 text-sm text-amber-700">${position}.</span>` : `<span class="pt-0.5 ${colours[keyFor(item.provider)]}">${mark(item.provider)}</span>`}<span class="min-w-0 flex-1"><span class="flex items-start gap-1 ${external ? 'pr-9' : ''}"><span class="line-clamp-2 min-w-0 flex-1 text-pretty text-[14px] font-medium leading-5">${escape(itemTitle(item))}</span>${inline ? '' : `<span class="shrink-0 pt-0.5 text-stone-400">${fullIcon}</span>`}</span><span class="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px] text-stone-500">${badge(item.state)}<span>${escape(item.provider)}</span>${locationMark(item.location)}${item.work?.agents ? `<span>${item.work.agents} agents</span>` : ''}${observedTime(item.at)}</span>${summary ? `<span data-summary class="mt-1 line-clamp-2 text-pretty text-[13px] leading-[19px] text-stone-600">${escape(summary.slice(0,180))}</span>` : ''}</span></span></button>${external}</div>${launch}${inline ? `<div id="inline-${encodeURIComponent(item.key)}" data-inline="${key}" hidden></div>` : ''}</article>`;
   }
 
   function group(title, items, empty = '', numbered = false, inline = true) {
-    return `<section><h2 class="flex items-center justify-between px-3 pt-2 pb-1 text-xs font-semibold text-stone-600"><span>${escape(title)}</span>${items.length ? `<span class="font-normal">${items.length}</span>` : ''}</h2>${items.length ? items.map((i,n) => row(i, numbered ? n + 1 : 0, inline)).join('') : `<p class="px-3 py-2 text-[13px] text-stone-500">${escape(empty)}</p>`}</section>`;
+    return `<section aria-label="${escape(title)}"><h2 class="flex items-center justify-between px-3 pt-2 pb-1 text-xs font-semibold text-stone-600"><span>${escape(title)}</span>${items.length ? `<span class="font-normal">${items.length}</span>` : ''}</h2>${items.length ? items.map((i,n) => row(i, numbered ? n + 1 : 0, inline)).join('') : `<p class="px-3 py-2 text-[13px] text-stone-500">${escape(empty)}</p>`}</section>`;
   }
 
   function changeItems() {
@@ -72,9 +77,12 @@
       return item || recordedChange(c);
     });
   }
-  function changesSection(limit, exclude = new Set(), title = 'Recent activity') {
-    const items = changeItems().filter(i => !exclude.has(i.key));
-    return `<section aria-label="${title}"><h2 class="px-3 pt-2 pb-1 text-xs font-semibold text-stone-600">${title} <span class="font-normal">${items.length || ''}</span></h2>${items.length ? items.slice(0,limit).map(i => row(i)).join('') : '<p class="px-3 py-2 text-[13px] text-stone-500">No recent activity.</p>'}${items.length > limit ? '<button data-tab="recent" class="min-h-11 px-4 text-sm text-emerald-900">All recent →</button>' : ''}</section>`;
+  function recentItems(items, exclude) {
+    const recent = new Map();
+    for (const item of [...changeItems(),...items]) {
+      if (!exclude.has(item.key)) recent.set(item.key,item);
+    }
+    return [...recent.values()].sort((a,b) => Date.parse(b.at) - Date.parse(a.at));
   }
   function workerReport(recentOnly = false) {
     const report = data.sources.workerActivity;
@@ -84,50 +92,41 @@
   }
 
   function render() {
+    if (window.NowViews?.active()) { connection(); return; }
     if (!data) { connection(); return; }
     // Rebuilding open panels can temporarily shorten the document and clamp its scroll position.
     const viewport = {left:window.scrollX,top:window.scrollY};
     rememberPanelScroll();
-    const focus = el('content').contains(document.activeElement) ? document.activeElement : null;
-    const focusAction = focus && ['inspect','pick','facet'].find(key => focus.dataset[key]);
+    const focus = ['content','assistants'].some(id => el(id).contains(document.activeElement)) ? document.activeElement : null;
+    const focusAction = focus && ['inspect','pick','facet','external','assistant','providerLink','launch','copyTitle','sessionLink','sessionHome'].find(key => focus.dataset[key]);
     const focusKey = focusAction && focus.dataset[focusAction];
     const focusOwner = focus?.dataset.for;
     el('machine').textContent = data.machineName;
     const waiting = data.items.filter(i => i.state === 'queued');
-    el('queue-count').textContent = data.sources.queueAvailable ? waiting.length : '?';
     html('assistants', ['codex','gemini','claude'].map(key => {
       const items = data.items.filter(i => keyFor(i.provider) === key);
       const working = items.filter(i => i.state === 'working').length;
       const queued = key === 'gemini' ? waiting.length : 0;
       const needs = items.filter(i => i.needsAttention).length;
       const state = working ? `${working} working` : needs ? `${needs} need you` : queued ? `${queued} waiting` : items.some(i => i.state === 'quiet') ? 'Quiet' : items.some(i => i.kind === 'cloud') ? 'Recorded' : items.length ? 'Recent' : 'No activity';
-      return `<button data-assistant="${key}" aria-pressed="${assistant === key}" class="min-h-11 min-w-0 border-b-2 px-1 py-1 ${assistant === key ? 'border-stone-700 bg-white' : 'border-transparent'}"><span class="flex items-center justify-center gap-1 text-xs font-medium ${colours[key]}">${mark(key)}${{codex:'Codex',gemini:'Gemini',claude:'Claude'}[key]}</span><span class="mt-0.5 block text-[10px] text-stone-500">${state}</span></button>`;
+      const usage = window.NowUsage?.compact(data.usage?.find(p => p.provider === key)) || '';
+      return `<div class="relative min-w-0"><button data-assistant="${key}" aria-pressed="${assistant === key}" class="block min-h-11 w-full min-w-0 border-b-2 px-2 py-1 ${assistant === key ? 'border-stone-700 bg-white' : 'border-transparent'}"><span class="flex items-center justify-center gap-1 pr-5 text-xs font-medium ${colours[key]}">${mark(key)}${{codex:'Codex',gemini:'Gemini',claude:'Claude'}[key]}</span><span class="mt-0.5 block text-[10px] text-stone-500">${state}</span><span class="mx-auto mt-1 block min-h-6 max-w-28">${usage}</span></button>${window.NowView.assistantLink(key,{cls:'absolute right-0 top-0'})}</div>`;
     }).join(''));
-    document.querySelectorAll('[data-tab]').forEach(button => {
-      const current = button.dataset.tab === tab;
-      button.setAttribute('aria-pressed', String(current));
-      button.classList.toggle('bg-stone-800', current); button.classList.toggle('text-white', current);
-    });
     const items = filtered();
     const notices = [...data.sources.notices];
     if (waiting.length && data.sources.workerState === 'absent') notices.unshift('Gemini errands are waiting. Worker not detected.');
     html('notice', notices.map(escape).join('<br>'));
-    if (tab === 'queue') {
-      const queued = items.filter(i => i.state === 'queued').sort((a,b) => new Date(a.createdAt) - new Date(b.createdAt));
-      html('content', workerReport() + `<div class="flex items-center justify-between gap-2 px-4 pt-4 text-xs text-stone-500"><span>Gemini worker · ${data.sources.workerState === 'detected' ? 'Detected' : data.sources.workerState === 'absent' ? 'Not detected' : 'Status unavailable'}</span><span>${data.sources.recordsConnected ? '' : 'Saved queue'}</span></div>` + group('Waiting', queued, !data.sources.queueAvailable ? 'Queue unavailable' : assistant && assistant !== 'gemini' ? 'Gemini queue hidden by assistant filter' : 'Queue clear', true) + (items.some(i => ['claimed','reply'].includes(i.state)) ? group('Accepted by worker', items.filter(i => ['claimed','reply'].includes(i.state))) : ''));
-    } else if (tab === 'recent') {
-      html('content', changesSection(150) + group('Recent results and sessions', items.filter(i => !changeItems().some(c => c.key === i.key) && !['queued','claimed','working','quiet','reply'].includes(i.state)).slice(0,40), 'No recent results') + (data.events.length ? `<section><h2 class="px-3 pt-2 pb-1 text-xs font-semibold text-stone-600">Observed activity</h2>${data.events.filter(e => !assistant || keyFor(e.provider) === assistant).slice(0,15).map(e => `<div class="border-b border-stone-200 px-4 py-3"><div class="flex items-center gap-2 text-xs text-stone-500">${mark(e.provider,'size-4')}<span>${escape(e.provider)} · ${escape(age(e.at))}</span></div><p class="mt-0.5 text-[13px] leading-5">${escape(e.detail || labels[e.state] || e.state)}</p><p class="mt-1 truncate text-xs text-stone-500">${escape(e.title)}</p></div>`).join('')}</section>` : ''));
-    } else {
-      const current = items.filter(active);
-      const needs = items.filter(i => i.needsAttention && !active(i));
-      const shown = new Set([...current,...needs].map(i => i.key));
-      const changed = new Set(changeItems().map(i => i.key));
-      const remaining = items.filter(i => !shown.has(i.key) && !changed.has(i.key));
-      html('content', group('In progress', current, 'No current work observed') + workerReport(true) + changesSection(3, shown, 'Other recent') + (needs.length ? group('Needs you', needs) : '') + (remaining.some(finished) ? group('Recently finished', remaining.filter(finished).slice(0,4)) : '') + (!current.length && !needs.length && remaining.some(i => i.kind === 'cloud' && !finished(i)) ? group('Latest cloud records', remaining.filter(i => i.kind === 'cloud' && !finished(i)).slice(0,3)) : ''));
-    }
+    const current = items.filter(active);
+    const queued = items.filter(i => i.state === 'queued').sort((a,b) => Date.parse(a.createdAt) - Date.parse(b.createdAt));
+    const needs = items.filter(i => i.needsAttention && !active(i) && i.state !== 'queued');
+    const shown = new Set([...current,...queued,...needs].map(i => i.key));
+    const recent = recentItems(items,shown);
+    const queueTitle = data.sources.recordsConnected ? 'Waiting' : 'Waiting · Saved queue';
+    const queue = queued.length ? group(queueTitle,queued,'',true) : assistant === 'gemini' && !data.sources.queueAvailable ? group('Waiting',[],'Queue unavailable') : '';
+    html('content', group('In progress',current,'No current work observed') + (needs.length ? group('Needs you',needs) : '') + queue + workerReport(true) + group('Other recent',recent,'No recent activity.'));
     html('source-times', `Errands synced ${escape(stamp(data.sources.recordsSyncedAt))}<br>Cloud records captured ${escape(stamp(data.sources.cloudCapturedAt))}`);
     renderPanels(); detail(); connection();
-    if (focusAction && !focus.isConnected) [...el('content').querySelectorAll('button')].find(n => n.dataset[focusAction] === focusKey && n.dataset.for === focusOwner)?.focus({preventScroll:true});
+    if (focusAction && !focus.isConnected) [...document.querySelectorAll('#content button,#content a,#assistants button,#assistants a')].find(n => n.dataset[focusAction] === focusKey && n.dataset.for === focusOwner)?.focus({preventScroll:true});
     document.querySelectorAll('time[data-at]').forEach(node => { node.textContent = age(node.dataset.at); });
     if (window.scrollX !== viewport.left || window.scrollY !== viewport.top) window.scrollTo(viewport.left,viewport.top);
   }
@@ -183,7 +182,7 @@
   }
   function itemBody(item) {
     const url = safeUrl(item.url);
-    return `<div class="mt-4 space-y-5 text-[13px] leading-5 text-stone-700 [overflow-wrap:anywhere]">${detailParts(item,false).map(p => `<section aria-label="${p.title}"><h3 class="mb-2 text-xs font-semibold text-stone-500">${p.title}</h3>${p.body}</section>`).join('')}</div>${url ? `<a class="mt-3 inline-flex min-h-11 items-center gap-1 text-sm text-emerald-800 underline underline-offset-2" href="${escape(url)}">Open in Web Tools ↗</a>` : ''}`;
+    return `<div class="mt-4 space-y-5 text-[13px] leading-5 text-stone-700 [overflow-wrap:anywhere]">${detailParts(item,false).map(p => `<section aria-label="${p.title}"><h3 class="mb-2 text-xs font-semibold text-stone-500">${p.title}</h3>${p.body}</section>`).join('')}</div>${url ? `<a class="mt-3 inline-flex min-h-11 items-center gap-1 text-sm text-emerald-800 underline underline-offset-2" href="${escape(url)}" target="_blank" rel="noopener noreferrer">Open in Web Tools ↗</a>` : ''}`;
   }
 
   function rememberPanelScroll() {
@@ -265,7 +264,7 @@
         try { localStorage.setItem('web-tools-now-snapshot', JSON.stringify(data)); } catch { }
       }
       failures = 0; connected = true; render();
-    } catch { failures++; connected = false; connection(); }
+    } catch { failures++; connected = false; render(); }
     finally {
       clearTimeout(timeout); pending = false;
       if (!document.hidden) timer = setTimeout(poll, Math.min(15000, 2000 * 2 ** Math.min(failures,3)));
@@ -274,6 +273,16 @@
 
   document.addEventListener('click', event => {
     const button = event.target.closest('button'); if (!button) return;
+    if (button.dataset.launch) {
+      launchKey = launchKey === button.dataset.launch ? '' : button.dataset.launch;
+      copiedTitle = ''; render(); return;
+    }
+    if (button.dataset.copyTitle) {
+      const key = button.dataset.copyTitle, item = findItem(key);
+      if (item && navigator.clipboard?.writeText) navigator.clipboard.writeText(item.title).then(() => { copiedTitle = key; render(); }).catch(() => { button.textContent = 'Copy unavailable'; });
+      else button.textContent = 'Copy unavailable';
+      return;
+    }
     if (button.dataset.facet) {
       const key = button.dataset.for, facet = button.dataset.facet;
       if (selectedDetails.get(key) === facet) return;
@@ -289,7 +298,6 @@
       renderPanels();
       return;
     }
-    if (button.dataset.tab) { tab = button.dataset.tab; render(); window.scrollTo(0,0); }
     if (button.dataset.assistant) { assistant = assistant === button.dataset.assistant ? '' : button.dataset.assistant; render(); }
     if (button.dataset.pick) { rememberPanelScroll(); savedScroll = window.scrollY; history.pushState({nowDetail:true},'', '#item=' + encodeURIComponent(button.dataset.pick)); detail(); connection(); window.scrollTo(0,0); }
     if (button.hasAttribute('data-back')) {
@@ -298,6 +306,11 @@
     }
   });
   document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && launchKey && (event.target.closest('[data-launch-panel]') || event.target.closest('[data-launch]'))) {
+      const key = launchKey; launchKey = ''; render();
+      [...document.querySelectorAll('[data-launch]')].find(n => n.dataset.launch === key)?.focus({preventScroll:true});
+      event.preventDefault(); return;
+    }
     const button = event.target.closest('[data-facet]');
     if (!button || !['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) return;
     const panel = button.closest('[data-inline]'), tabs = [...panel.querySelectorAll('[data-facet]')];
@@ -307,7 +320,8 @@
     [...panel.querySelectorAll('[data-facet]')].find(n => n.dataset.facet === facet)?.focus({preventScroll:true});
     event.preventDefault();
   });
-  window.addEventListener('popstate', () => { detail(); if (!selected()) renderPanels(); connection(); window.scrollTo(0,savedScroll); });
+  window.addEventListener('popstate', () => { if (window.NowViews?.active()) return; detail(); if (!selected()) renderPanels(); connection(); window.scrollTo(0,savedScroll); });
+  window.addEventListener('nowviewchange', () => { if (!window.NowViews?.active()) { render(); connection(); } });
   document.addEventListener('visibilitychange', () => { clearTimeout(timer); if (!document.hidden) poll(); });
   window.addEventListener('online', poll);
   window.addEventListener('offline', () => { connected = false; connection(); });

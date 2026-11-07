@@ -63,7 +63,7 @@ SHARED_MIN = 3      # shared windows before a pair is reported
 # own docs by construction (restatement there is the record, not the rot).
 # outside/ holds pinned copies of skills other people wrote
 # (docs/upstream-skills.csv), so its prose is not the estate's to deduplicate.
-# plugins/h/ is generated from docs/house-policies.md, one copy per shortcut.
+# plugins/h/ is generated from docs/house-policies.md, one copy per command.
 # research/ keeps what an inquiry tried or gathered (docs/CONSTELLATION.md,
 # "Projects and research"): prompts rendered from one template and model files
 # written to one method repeat each other by design, as archive/ does.

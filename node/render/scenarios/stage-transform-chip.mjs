@@ -42,7 +42,7 @@ export default async function (page) {
       // The pane the tool actually drew. An empty table with a full chrome
       // around it is the failure this scenario exists to catch: the render
       // hook returns silently when Tabulator is missing.
-      tableRows: document.querySelectorAll('#tf-tab-target .tabulator-row').length,
+      tableRows: document.querySelectorAll('#tf-tab-target > :not(.hidden) .tabulator-row').length,
     };
   });
 

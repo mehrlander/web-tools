@@ -27,7 +27,7 @@ artifact).
 - **Stage link 🗂️:** `…/app/#stage=owner/repo[@ref]:path1,path2;owner2/repo2:path3`, a cross-repo fileset to view, copy or download as one bundle, transfer into another repo, or review as a diff. Refs are pointers (content stays behind the viewer's token). The full grammar is in `docs/stage.md`.
 - **Manifest:** a repo's root `.web-tools.json` (`landing`, `pins`, `stage.files`, `stage.targets`) configures how the app presents it.
 
-## The honesty caveat (state it on every stage handoff)
+## Who can open a stage link
 
 A stage link is **token-gated**, exactly like toss-render's `#gh=`: it works
 only for the token owner in a token-bearing browser. Treat the Claude app's

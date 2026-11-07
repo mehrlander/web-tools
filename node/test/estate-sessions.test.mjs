@@ -1730,47 +1730,70 @@ test('sessionTopicHopPaths traces return arcs from emoji edge into margin', () =
   assert.ok(hops.startsWith('M 0 '), 'arc starts at the outer edge of the emoji');
 });
 
-test('openSessionTopicCard opens in-place prose card and toggles off on re-tap', () => {
+test('a topic card lists Gemini headlines for its turns and toggles off on re-tap', async () => {
   const S = window.RepoSessionsCache;
   const agenda = [
-    { topic: 'First Work', turns: [0, 1], state: { glyph: '🟢', name: 'Ready', line: 'Ready' } },
+    { topic: 'First Work', kind: 'new', area: 'App shell', turns: [0, 1] },
     { topic: 'Second Work', turns: [2, 2] },
+    // The state is the LAST stretch's (RepoSessionsCache.topicList).
+    { topic: 'First Work', turns: [3, 3],
+      state: { glyph: '🟢', name: 'Ready', line: '🟢 **Ready to continue:** next' } },
   ];
-  const row = S.summarize(rec({
-    short: 'topcard1', session_id: 'topcard1-0000-0000-0000-000000000000',
-    prompts: [{ at: '2026-08-05T13:00:00Z', text: 'ask 1' },
-              { at: '2026-08-05T13:30:00Z', text: 'ask 2' },
-              { at: '2026-08-05T14:00:00Z', text: 'ask 3' }],
-    replies: [{ at: '2026-08-05T13:15:00Z', text: 'ans 1' },
-              { at: '2026-08-05T13:45:00Z', text: 'ans 2' },
-              { at: '2026-08-05T14:30:00Z', text: 'ans 3' }],
-  }), 'top1');
-  row.topicAgenda = S.topicStretches(agenda);
+  const path = 'sessions/topics/2026/08/2026-08-05-topcard1.json';
+  FILES[path] = { turns: [
+    { turn: 0, headline: 'Opened the work', summary: 'long 0' },
+    { turn: 1, headline: null, summary: null },
+    { turn: 2, headline: 'Elsewhere', summary: 'long 2' },
+    { turn: 3, headline: '', summary: 'Came back to it' },
+  ] };
+  data.sessionTopicsDoc = { sessions: { topcard1: { path, analyzed_at: '2026-08-05T15:00:00Z' } } };
+  const row = { id: 'topcard1', topicAgenda: S.topicStretches(agenda) };
 
   const ev = { currentTarget: {} };
-  data.openSessionAtTopic(row, 'First Work', ev);
-  assert.ok(data.rowCard, 'a card opens in place');
-  assert.equal(data.rowCard.cls, 'topic');
-  assert.equal(data.rowCard.topic, 'First Work');
-  assert.equal(data.rowCard.count, 2, 'two turns in First Work');
+  const filled = data.openSessionAtTopic(row, 'First Work', ev);
+  assert.equal(data.rowCard.kind, 'headlines', 'a short list, not the transcript');
+  assert.equal(data.rowCard.count, 3, 'three turns across two visits');
   assert.equal(data.rowCard.topicGlyph, '🟢');
-  assert.ok(data.rowCard.turns.some(t => t.inTopic), 'turns inside the topic are flagged');
+  assert.equal(data.rowCard.meta, 'New work · App shell');
+  assert.equal(data.rowCard.state, '🟢 Ready to continue: next', 'bold markers dropped');
+  assert.ok(data.rowCard.loading, 'opens before the companion lands');
+  await filled;
+  assert.deepEqual(plain(data.rowCard.rows), [
+    { n: 1, text: 'Opened the work', gap: false },
+    { n: 2, text: '', gap: false },
+    { n: 4, text: 'Came back to it', gap: true },
+  ], 'numbered from 1, a skipped turn left empty, a return opens with a rule');
+  assert.equal(data.rowCard.loading, false);
 
-  // Tapping the same topic again toggles it off
   data.openSessionAtTopic(row, 'First Work', ev);
   assert.equal(data.rowCard, null, 'tapping again toggles off the topic card');
 
-  // Calling without an event delegates to full session detail
+  // The card's route onward opens the session at the topic.
   const origDetail = data.openSessionDetail;
   let calledDetail = null;
   data.openSessionDetail = (r) => { calledDetail = r; };
   try {
-    data.openSessionAtTopic(row, 'First Work');
+    await data.openSessionAtTopic(row, 'First Work', ev);
+    data.openCardTopic();
+    assert.equal(data.rowCard, null, 'the card closes on the way out');
     assert.equal(data._openCard?.topic, 'First Work');
     assert.equal(calledDetail, row);
   } finally {
     data.openSessionDetail = origDetail;
+    data._openCard = null;
   }
+});
+
+test('a topic card over a companion with no per-turn headlines says so', async () => {
+  const S = window.RepoSessionsCache;
+  const path = 'sessions/topics/2026/08/2026-08-05-topcard2.json';
+  FILES[path] = { title: 'old', summary: 'format 4', agenda: [] };
+  data.sessionTopicsDoc = { sessions: { topcard2: { path, analyzed_at: '' } } };
+  const row = { id: 'topcard2', topicAgenda: S.topicStretches([{ topic: 'Only', turns: [0, 2] }]) };
+  await data.openSessionAtTopic(row, 'Only', { currentTarget: {} });
+  assert.deepEqual(plain(data.rowCard.rows), []);
+  assert.match(data.rowCard.note, /before it wrote a headline/);
+  data.closeRowCard();
 });
 
 test('sessionTopicItems consolidates minor asides into Other and abuts zero-gap', () => {
@@ -1794,9 +1817,8 @@ test('sessionTopicItems consolidates minor asides into Other and abuts zero-gap'
   assert.equal(items[3].topic, 'Topic 3');
   assert.equal(items[4].topic, 'Topic 4');
 
-  // Verify label and tip
+  // Verify label
   assert.equal(data.sessionTopicLabel(items[2]), 'Other · 1 turn aside');
-  assert.ok(data.sessionTopicTip(items[2]).includes('Other / asides'));
 
   // Verify exact zero-gap abutting
   const p1 = data.sessionTopicChronoPath(row, items[0]);

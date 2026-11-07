@@ -39,7 +39,7 @@ files[project + '/data/observations.csv'] = 'date,path,kind,revision,blob_sha,lo
   + ['2026-09-01T00:00:00Z', C, 'installed', oldRevision, blob(oldC), createHash('sha256').update(oldC).digest('hex'), '', 'copy', ''].join(',') + '\n';
 const fixture = { repo, revision, files, blobs: Object.fromEntries(Object.entries(files).map(([p, t]) => [p, blob(t)])),
   oldRevision, old: { [C]: { text: oldC, sha: blob(oldC) } } };
-const scripts = ['kits/csv.js', 'kits/powershell-outpost.js', 'kits/sync-status.js', 'kits/text-diff.js', 'kits/github-links.js', 'kits/powershell-editor.js', 'kits/powershell-workspace.js', 'kits/powershell-language.js', 'kits/swipe-deck.js', 'alpineComponents/powershell-file.js', 'alpineComponents/powershell-outpost-view.js'];
+const scripts = ['kits/csv.js', 'kits/powershell-outpost.js', 'kits/sync-status.js', 'kits/text-diff.js', 'kits/repo-address.js', 'kits/github-links.js', 'kits/powershell-editor.js', 'kits/powershell-workspace.js', 'kits/powershell-language.js', 'kits/powershell-units.js', 'kits/swipe-deck.js', 'alpineComponents/powershell-file.js', 'alpineComponents/powershell-outpost-view.js'];
 const html = `<!doctype html><html><head><meta charset="utf-8"><title>PowerShell outpost source pane verification</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
@@ -51,6 +51,7 @@ window.TOKEN = 't';
 const __drafts = new Map(); window.persistence = { collection: () => ({ async find(m) { return [...__drafts.values()].filter(m); }, async put(r) { __drafts.set(r.id, r); return r; }, async delete(id) { __drafts.delete(id); } }) };
 window.GH = class {
   static FRESH = { cache: 'no-store' };
+  static decodeBytes(b64) { return Uint8Array.from(atob(String(b64).replace(/\\s/g, '')), c => c.charCodeAt(0)); }
   constructor(opts = {}) { this.repo = opts.repo; this.ref = opts.ref || 'main'; }
   async get(path) {
     const f = window.__fixture;
@@ -138,13 +139,13 @@ try {
     await check(name + ': the deck opens the chosen file read-only in the real editor', async () => {
       await v.page.evaluate(p => Alpine.$data(document.querySelector('#mount')).openFileDeck(p), A);
       await v.page.waitForSelector('[data-ps-file] .cm-editor', { timeout: 30000 });
-      await v.page.waitForSelector('button[title="Edit"]', { timeout: 30000 });
+      await v.page.waitForSelector('button[aria-label="Edit"]', { timeout: 30000 });
       assert.equal(await v.page.evaluate(() => window.swipeDeck.stack.at(-1).title), 'A.psm1');
       assert.equal((await card()).plain, false);
       assert.equal(await v.page.evaluate(() => document.documentElement.scrollWidth), width, 'no horizontal page scroll');
     });
     await check(name + ': Edit unlocks the editor, pauses the swipe, and keeps CRLF in the draft', async () => {
-      await v.page.click('button[title="Edit"]');
+      await v.page.click('button[aria-label="Edit"]');
       await v.page.click('[data-ps-file] .cm-content');
       await v.page.keyboard.press('Control+End');
       await v.page.keyboard.press('Enter');
@@ -161,9 +162,9 @@ try {
       if (process.env.SHOTS) await v.page.screenshot({ path: process.env.SHOTS + '/file-deck-' + name + '-editing.png' });
     });
     await check(name + ': the file menu opens under its button, above the slide', async () => {
-      await v.page.click('button[title="Done editing"]');
-      await v.page.click('button[title="File actions"]');
-      const box = await v.page.locator('.sd-hdr-menu').boundingBox(), btn = await v.page.locator('button[title="File actions"]').boundingBox();
+      await v.page.click('button[aria-label="Done editing"]');
+      await v.page.click('button[aria-label="File actions"]');
+      const box = await v.page.locator('.sd-hdr-menu').boundingBox(), btn = await v.page.locator('button[aria-label="File actions"]').boundingBox();
       assert.ok(box.x + box.width >= btn.x && box.x <= btn.x + btn.width + 8, 'the menu spans its button horizontally');
       const labels = await v.page.locator('.sd-hdr-menu li').allTextContents();
       assert.ok(labels.map(t => t.trim()).includes('Publish drafts…'));

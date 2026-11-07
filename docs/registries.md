@@ -237,6 +237,17 @@ registry, so it is stated here instead: each skill's `SKILL.md` owns that
 skill's description, and each agent's definition file owns its model, tools and
 preloads.
 
+A property assigned by path pattern, so that a file takes its value from where
+it sits rather than from a row of its own, is declared in
+[`.gitattributes`](../.gitattributes): for example, the merge driver git runs
+on a registry's file, or how a file may change (`edit`). An attribute git or
+GitHub acts on, such as `text`, is defined in their documentation, and
+[`git-attributes.js`](../lib/kits/git-attributes.js) lists each one with a link
+to it. Each value of the estate's own attributes has its meaning in a row of
+`vocabularies.csv` with `gitattributes` in its `registry` column, and
+[`gitattributes.test.mjs`](../node/test/gitattributes.test.mjs) holds every such
+value in use to a row.
+
 Declarations govern the columns of registered CSVs, not prose inside JavaScript
 or HTML. [`content.csv`](../data/design/content.csv) classifies those files as
 artifacts; [`text-content.md`](text-content.md) measures what that leaves out.

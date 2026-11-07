@@ -77,8 +77,11 @@ test('an SVG a CSV family names exists', () => {
 // A drawn mark's alternatives (docs/favicons/README.md, Drawn marks): each
 // file in an alternatives/ folder is <mark>.<option>.svg beside a mark that
 // exists, and keeps the drawn-mark rules a file can be read for: the shared
-// box, a <desc> saying what it depicts, no strokes, and the mark's own paint.
-// The 2.5-unit gap is a design check, measured when the mark is drawn.
+// box, a <desc> saying what it depicts, and no strokes. It need not be painted
+// as its mark is: a page draws a one-ink file and one in its own colours each
+// as it should (lib/kits/repo-mark.js, and the Map's iconDraw), so an option
+// in one ink can stand beside a coloured mark, as shortcut-tools' do. The
+// 2.5-unit gap is a design check, measured when the mark is drawn.
 test('every alternative names its mark and keeps the drawn-mark rules', () => {
   const files = execFileSync('git', ['-C', repoRoot, 'ls-files', '*/alternatives/*.svg'], { encoding: 'utf8' }).split('\n').filter(Boolean);
   for (const f of files) {
@@ -87,10 +90,9 @@ test('every alternative names its mark and keeps the drawn-mark rules', () => {
     assert.ok(m, `${f}: named <mark>.<option>.svg`);
     const mark = path.join(dir, m[1] + '.svg');
     assert.ok(existsSync(at(mark)), `${f}: its mark ${mark} exists`);
-    const svg = readFileSync(at(f), 'utf8'), own = readFileSync(at(mark), 'utf8');
+    const svg = readFileSync(at(f), 'utf8');
     assert.match(svg, /viewBox="1\.5 1\.75 29 29"/, `${f}: the drawn-mark box`);
     assert.match(svg, /<desc>[^<]+<\/desc>/, `${f}: a <desc> says what it depicts`);
     assert.doesNotMatch(svg, /\bstroke(-width)?=/, `${f}: solid fills, no strokes`);
-    assert.equal(/currentColor/.test(svg), /currentColor/.test(own), `${f}: painted as its mark is`);
   }
 });

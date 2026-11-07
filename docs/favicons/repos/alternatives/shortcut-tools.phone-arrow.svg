@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="shortcut-tools: phone arrow">
+  <title>shortcut-tools: phone arrow</title>
+  <desc>An arrow pointing into a phone, as in the 📲 emoji: a link handed over that lands on the device.</desc>
+  <g fill="currentColor">
+    <path fill-rule="evenodd" d="M17.5 2.25 H24 A3.5 3.5 0 0 1 27.5 5.75 V26.75 A3.5 3.5 0 0 1 24 30.25 H17.5 A3.5 3.5 0 0 1 14 26.75 V5.75 A3.5 3.5 0 0 1 17.5 2.25 Z M16.5 4.75 V27.75 H25 V4.75 Z"/>
+    <path d="M2.5 14.75 H6.5 V10.75 L11.5 16.25 L6.5 21.75 V17.75 H2.5 Z"/>
+  </g>
+</svg>

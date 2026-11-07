@@ -8,7 +8,8 @@
 // `data-sd-taps` (the formatted sheet, which selects a cell on a tap) is
 // exempt from the tap only, since a sheet is still scrolled down like a page.
 // The scroll half is the stage-sheet-reader scenario's, since jsdom has no
-// scrolling to measure.
+// scrolling to measure. The file viewer marks its own root `data-sd-taps`, so
+// no reading it hosts toggles the chrome on a tap.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -24,9 +25,9 @@ window.Element.prototype.scrollIntoView = function(){};
 
 const tick = (n = 1) => new Promise(r => setTimeout(r, n * 10));
 
-const openWith = async (attr) => {
+const openWith = async (attr, count = 2) => {
   const h = sd.open({
-    count: 2, immersive: true,
+    count, immersive: true,
     render: (i, slide) => {
       const doc = window.document.createElement('div');
       if (attr) doc.setAttribute(attr, '');
@@ -40,8 +41,9 @@ const openWith = async (attr) => {
   await tick(3);
   const panel = h.el.querySelector('.sd-subheader').parentElement;
   const header = panel.children[0];
+  const footer = panel.children[3];
   const tap = () => h.el.querySelector('.cell').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
-  return { h, header, tap };
+  return { h, header, footer, tap };
 };
 
 test('a tap on a plain document toggles the chrome', async () => {
@@ -63,3 +65,15 @@ const holds = async (attr) => {
 
 test('a tap inside a working surface leaves the chrome where it is', () => holds('data-sd-surface'));
 test('a tap inside a slide that selects on a tap leaves the chrome where it is', () => holds('data-sd-taps'));
+
+// A deck of one hides its footer, since there is nothing to page; the chrome
+// coming back must not bring it with it. It did until 2026-10-23.
+test('a deck of one keeps its footer away when the chrome comes back', async () => {
+  const { h, header, footer, tap } = await openWith(null, 1);
+  assert.equal(footer.classList.contains('hidden'), true, 'no pager for one document');
+  tap();
+  tap();
+  assert.equal(header.classList.contains('hidden'), false, 'the header is back');
+  assert.equal(footer.classList.contains('hidden'), true, 'and the footer is not');
+  h.drop();
+});

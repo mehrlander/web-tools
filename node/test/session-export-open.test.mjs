@@ -1299,6 +1299,16 @@ test('a turn with a note gets one more line, and a turn without one does not', (
   assert.equal(window.document.querySelector('[data-turn-note]'), null, 'no notes, no lines');
 });
 
+test('two asks sent at one instant take their notes in row order', () => {
+  // A message and the image sent with it: two prompts, one instant, two rows.
+  const at = RECORD.prompts[0].at;
+  buildWith({ ...RECORD, prompts: [RECORD.prompts[0], { ...RECORD.prompts[1], at }] },
+            { notes: { [at]: [{ summary: 'Note for the message.', headline: '' },
+                              { summary: 'Note for the image.', headline: '' }] } });
+  assert.equal(noteOf(1).textContent, 'Note for the message.');
+  assert.equal(noteOf(2).textContent, 'Note for the image.', 'not the first note again');
+});
+
 test('the note sits in the row\'s grid, in grey, under the reply', () => {
   build({ notes: NOTES });
   const row = rowOf(1);

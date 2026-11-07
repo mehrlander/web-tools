@@ -11,6 +11,10 @@ This text carries five revisions the 2026-10-25 test called for, listed in the
 [account](README.md#what-the-test-changed-in-the-method); the text the test
 agents received is [method-as-tested.md](experiment/conditions/method-as-tested.md).
 
+A proposed pass for discovering scope and internal structure precedes these
+halves; its findings and next trial are in [Discovering information
+structure](discovery.md).
+
 ## Half one: normalize
 
 Each form removes one defect, in the manner of database normal forms.

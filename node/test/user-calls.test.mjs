@@ -5,7 +5,8 @@
 // would stage it (one block the file still holds), one spans two blocks and
 // so is never staged, and one was applied long ago; the fourth names a file
 // that cannot be read. What is under test: which calls are open, what counts
-// as pending, the per-file fold, and the links.
+// as pending, what is kept beside it as unstageable or moot and why, the per-file
+// fold, and the links.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -91,15 +92,36 @@ test('a proposal counts only as Dictate would stage it: one block the file still
     notes: [{ by: 'owner', at: '2026-10-07T00:00:01Z', note: 'check the tone' }] }],
     'each staged block carries its text as it stands and as proposed, its kind, its reason, its passage ids and its comments');
   assert.deepEqual(x.calls.map((c) => c.id), ['a1-doc'], 'the open documentation call is filed under its document, ref dropped');
-  assert.equal(by.has('mehrlander/web-tools:docs/missing.md'), false, 'a file that cannot be read holds nothing');
+  assert.deepEqual(x.unstaged.map((u) => [u.from, u.reason, u.kind, u.basis]), [
+    ['First of a run.\n\nSecond of the run.', 'spans', 'edit', 'https://github.com/mehrlander/web-tools/pull/2'],
+  ], 'what Dictate cannot stage and a person still could is kept beside, with its reason; the rejected one is answered and left out');
+  assert.deepEqual(x.moot.map((u) => [u.from, u.reason, u.kind]), [['Applied long ago.', 'gone', 'edit']],
+    'one whose text is gone is moot, kept apart');
+  const missing = by.get('mehrlander/web-tools:docs/missing.md');
+  assert.equal(missing.staged, 0, 'a file main no longer holds stages nothing');
+  assert.deepEqual(missing.unstaged, []);
+  assert.deepEqual(missing.moot.map((u) => [u.from, u.to, u.reason]), [['Anything.', 'Else.', 'file']], 'its proposals are moot, and say why');
 });
 
-test('links: a call answered in Dictate, the others on the call page, at the version the page runs at', () => {
+test('a pair whose proposed text is in the file has been applied, and is not counted as unstageable', async () => {
+  const keep = FILES['mehrlander/web-tools:docs/x.md'];
+  FILES['mehrlander/web-tools:docs/x.md'] = keep.replace('Tail.', 'Tail.\n\nGone.');
+  try {
+    const x = (await U.pendingEdits({ fresh: true })).get('mehrlander/web-tools:docs/x.md');
+    assert.deepEqual(x.unstaged.map((u) => u.reason), ['spans']);
+    assert.deepEqual(x.moot, [], 'applied is neither');
+  } finally { FILES['mehrlander/web-tools:docs/x.md'] = keep; }
+});
+
+test("links: a pick call answered on its board and every other call on its call page, Dictate for a file's proposals, at the version the page runs at", () => {
   const doc = { kind: 'documentation', file: 'mehrlander/web-tools@dev:docs/x.md', _repo: STORE, _ref: 'main', _path: 'user-calls/a1-doc.json' };
   const merge = { kind: 'merge', _repo: STORE, _ref: 'main', _path: 'user-calls/a1-merge.json' };
-  assert.equal(U.href(doc), 'https://mehrlander.github.io/web-tools/pages/dictate.html?file=mehrlander/web-tools:docs/x.md'
-    + '&user-call=' + STORE + ':user-calls/a1-doc.json');
+  assert.equal(U.href(doc), 'https://mehrlander.github.io/web-tools/pages/user-call.html#src=' + STORE + ':user-calls/a1-doc.json',
+    'a documentation call is answered on its call page, not in Dictate');
   assert.equal(U.href(merge), 'https://mehrlander.github.io/web-tools/pages/user-call.html#src=' + STORE + ':user-calls/a1-merge.json');
+  const pick = { kind: 'pick', _repo: STORE, _ref: 'main', _path: 'user-calls/a1-picks.json' };
+  assert.equal(U.href(pick), 'https://mehrlander.github.io/web-tools/pages/image-board.html#user-call=' + STORE + ':user-calls/a1-picks.json',
+    'a pick call is answered on its image board, not on a call page that only links there');
   assert.equal(U.dictateHref({ file: 'mehrlander/web-tools:docs/x.md', proposed: true }),
     'https://mehrlander.github.io/web-tools/pages/dictate.html?file=mehrlander/web-tools:docs/x.md&proposed');
   assert.equal(U.dictateHref({ file: 'mehrlander/web-tools:docs/x.md', proposed: 'tighten' }),

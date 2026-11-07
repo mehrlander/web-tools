@@ -844,6 +844,22 @@ test('rows are recognized in all three shapes the workbench eats', () => {
   assert.equal(kindOfPaste(JSON.stringify([{ a: 1 }, { a: 2 }])), 'rows', 'a JSON row array');
 });
 
+test('a dropped workbook is offered to the workbench, and other bytes are not', () => {
+  const drop = (name) => {
+    reset();
+    data.onDropped({ file: {}, name, size: 4, type: '',
+                     bytes: Uint8Array.from([0x50, 0x4b, 0x03, 0x04]), buf: new ArrayBuffer(4) });
+    return window.StageIntake.transformKindOf(data.localItems[0]);
+  };
+  assert.equal(drop('budget.xlsx'), 'workbook');
+  assert.equal(drop('macros.XLSM'), 'workbook', 'the extension is read case-blind');
+  assert.equal(drop('archive.zip'), '', 'a ZIP is not a workbook because it is a ZIP');
+  assert.equal(drop('legacy.xls'), '', 'the binary format is not one the reader opens');
+  assert.equal(data.transformables[0]?.label, undefined, 'and the chip row offers nothing for it');
+  drop('budget.xlsx');
+  assert.equal(data.transformables[0]?.label, 'a workbook', 'the chip row names what it would open');
+});
+
 test('a rows function is a transform, and other JavaScript is not', () => {
   assert.equal(kindOfPaste('rows => rows.filter(r => r.a)'), 'fn');
   assert.equal(kindOfPaste('function tidy(rows) { return rows }'), 'fn');
@@ -1012,6 +1028,38 @@ test('an image pill shows its image instead, and closing the bar lets the URL go
   assert.match(decoded, /^blob:/);
   data.dismissOffers();
   assert.ok(!liveUrls.has(url) && !liveUrls.has(decoded), 'closing the bar revokes both');
+});
+
+test('a local row peeks from its name: text as text, a bitmap as its picture, other binaries not at all', async () => {
+  reset();
+  const seeded = [];
+  window.SourcePeek = { seed: (k, text, kind) => seeded.push([k, text, kind]) };
+  const IN = window.StageIntake;
+  IN.take({ text: 'a staged note', name: 'note.md', size: 13 });
+  IN.take({ bytes: new Uint8Array([1, 2, 3]), name: 'shot.png', size: 3, type: 'image/png' });
+  IN.take({ bytes: new Uint8Array([4, 5]), name: 'book.pdf', size: 2, type: 'application/pdf' });
+  const by = (n) => data.localItems.find(it => (it.path || it.name) === n);
+
+  assert.equal(data.localPeek(by('note.md')), 'note.md');
+  assert.deepEqual(seeded.find(r => r[0] === 'note.md'), ['note.md', 'a staged note', undefined],
+    'a text row seeds its own text, so the card never fetches');
+
+  assert.equal(data.localPeek(by('shot.png')), 'shot.png');
+  const shot = seeded.find(r => r[0] === 'shot.png');
+  assert.equal(shot[2], 'image');
+  assert.match(shot[1], /^blob:/);
+  data.localPeek(by('shot.png'));
+  assert.equal(seeded.filter(r => r[0] === 'shot.png').map(r => r[1]).filter((u, i, a) => a.indexOf(u) === i).length, 1,
+    'one URL per image, however often the row draws');
+
+  assert.equal(data.localPeek(by('book.pdf')), null, 'a binary the card cannot draw carries no peek');
+
+  await tick(2);
+  assert.ok(window.document.querySelector('#st [data-peek="shot.png"]'), 'the row\'s name carries the peek');
+
+  data.rm(by('shot.png'));
+  data.localPeek(by('note.md'));
+  assert.ok(data.localPeek(by('note.md')) && !liveUrls.has(shot[1]), 'a removed image lets its URL go');
 });
 
 // ---- the pill's menu -------------------------------------------------------

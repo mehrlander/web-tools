@@ -8,6 +8,8 @@ using var instance = new Mutex(true, "Local\\WebTools.Companion." + port, out va
 if (!first) return;
 CompanionAccess.Ensure();
 var collector = new ActivityCollector();
+var computer = new ComputerReader();
+using var stereo = new StereoBridgeClient();
 var builder = WebApplication.CreateSlimBuilder(args);
 builder.Logging.ClearProviders();
 builder.WebHost.ConfigureKestrel(server => server.Listen(IPAddress.Loopback, port));
@@ -29,13 +31,14 @@ app.Use(async (context, next) => {
     context.Response.Headers.CacheControl = "no-store";
     context.Response.Headers["X-Content-Type-Options"] = "nosniff";
     context.Response.Headers["Referrer-Policy"] = "no-referrer";
-    context.Response.Headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'";
+    context.Response.Headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'";
     if (!IPAddress.IsLoopback(context.Connection.RemoteIpAddress ?? IPAddress.None) || !validHost || !(local || owner && !desktop)) {
         context.Response.StatusCode = 403;
         await context.Response.WriteAsync("Connect through your private Tailscale address using the owner's account.");
         return;
     }
-    if (request.Method is not ("GET" or "HEAD")) {
+    var mediaAction = request.Method == "POST" && request.Path.StartsWithSegments("/api/v1/devices/stereo");
+    if (request.Method is not ("GET" or "HEAD") && !mediaAction) {
         context.Response.StatusCode = 405;
         context.Response.Headers.Allow = "GET, HEAD";
         return;
@@ -43,6 +46,14 @@ app.Use(async (context, next) => {
     // Same-origin reads only, with no CORS opt-in or cookie authentication.
     if (request.Headers.Origin.Count > 0 && request.Headers.Origin != "https://" + request.Host
         && request.Headers.Origin != "http://" + request.Host) {
+        context.Response.StatusCode = 403;
+        return;
+    }
+    // Browser controls need a same-origin POST and a custom header. Cross-site
+    // forms cannot supply that header, and no preflight/CORS access is offered.
+    if (mediaAction && (request.Headers["X-WebTools-Action"] != "1" || !local && request.Headers.Origin.Count != 1
+        || request.Headers["Sec-Fetch-Site"] == "cross-site" || request.QueryString.HasValue
+        || request.ContentLength is > 0 || request.Headers.TransferEncoding.Count > 0)) {
         context.Response.StatusCode = 403;
         return;
     }
@@ -59,6 +70,19 @@ app.MapGet("/api/v1/now", (HttpContext context) => {
     if (context.Request.Headers.IfNoneMatch == etag) return Results.StatusCode(304);
     return Results.Bytes(payload, "application/json; charset=utf-8");
 });
+app.MapGet("/api/v1/computer", (HttpContext context) => {
+    if (computer.Latest is not { } value) return Results.StatusCode(503);
+    var payload = JsonSerializer.SerializeToUtf8Bytes(value, json);
+    var etag = "\"" + Convert.ToHexString(SHA256.HashData(payload)) + "\"";
+    context.Response.Headers.ETag = etag;
+    if (context.Request.Headers.IfNoneMatch == etag) return Results.StatusCode(304);
+    return Results.Bytes(payload, "application/json; charset=utf-8");
+});
+app.MapGet("/api/v1/devices", async (CancellationToken stop) => Results.Json(await stereo.Read(stop), json));
+app.MapPost("/api/v1/devices/stereo/{action}", async (HttpContext context, string action) => {
+    var result = await stereo.Execute(action, context.RequestAborted);
+    return Results.Json(new { result.Ok, result.Message }, json, statusCode: result.Status);
+});
 app.MapGet("/api/v1/results/{id}", (string id) => collector.Latest is { } activity && Activity.ValidId(id)
     && PhoneActivity.Reply(activity.Snapshot, id) is { } reply ? Results.Json(new { reply }, json) : Results.NotFound());
 
@@ -66,8 +90,13 @@ app.MapGet("/api/v1/results/{id}", (string id) => collector.Latest is { } activi
 var assets = new Dictionary<string, (string File, string Type)> {
     ["/"] = ("index.html", "text/html; charset=utf-8"),
     ["/phone.js"] = ("phone.js", "text/javascript; charset=utf-8"),
+    ["/computer.js"] = ("computer.js", "text/javascript; charset=utf-8"),
+    ["/devices.js"] = ("devices.js", "text/javascript; charset=utf-8"),
+    ["/views.js"] = ("views.js", "text/javascript; charset=utf-8"),
+    ["/sw.js"] = ("sw.js", "text/javascript; charset=utf-8"),
     ["/reading.js"] = ("reading.js", "text/javascript; charset=utf-8"),
     ["/now-shared.js"] = ("now-shared.js", "text/javascript; charset=utf-8"),
+    ["/usage-view.js"] = ("usage-view.js", "text/javascript; charset=utf-8"),
     ["/icon.svg"] = ("icon.svg", "image/svg+xml"),
     ["/apple-touch-icon.png"] = ("apple-touch-icon.png", "image/png"),
     ["/manifest.webmanifest"] = ("manifest.webmanifest", "application/manifest+json"),
@@ -80,6 +109,8 @@ var assets = new Dictionary<string, (string File, string Type)> {
 foreach (var (route, asset) in assets) app.MapGet(route, () => Results.File(Path.Combine(AppContext.BaseDirectory, "phone", asset.File), asset.Type));
 var sampling = Task.Run(() => collector.Run(app.Lifetime.ApplicationStopping));
 var summaries = Task.Run(() => LocalSummaryRunner.Run(app.Lifetime.ApplicationStopping));
+var machineSampling = Task.Run(() => computer.Run(app.Lifetime.ApplicationStopping));
 await app.RunAsync();
 await sampling;
 await summaries;
+await machineSampling;

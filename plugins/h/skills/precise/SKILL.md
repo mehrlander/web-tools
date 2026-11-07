@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 <!-- Generated from docs/house-policies.md by node/build/policy-skills.mjs; do not hand-edit. -->
 
-# Precise register · `/h:precise`, `/h:slang`
+# Precise register · `/h:precise`, `h:slang`
 
 Use the standard term a general reader knows, in a plain, dry register.
 

@@ -1,0 +1,214 @@
+{
+  "model_name": "How Washington legislative contests can change representation",
+  "scope": {
+    "status": "model_design",
+    "proposal": "Explain the different routes to changed representation in the 2026 legislative contests described by the supplied article: a change of party, replacement within a party, and succession after an officeholder leaves or seeks another seat.",
+    "specific_reader_job": "Given a district profile, identify which seat is being contested, what kind of change is possible, and how that contest connects to other seats or officeholders.",
+    "benefit": "A reader can distinguish several simultaneous contests in one district and understand that partisan competition, an incumbent challenge, and an open seat are separate dimensions that can overlap.",
+    "consequential_alternative": {
+      "scope": "Build a candidate comparison guide for deciding whom to support.",
+      "benefit": "Such a guide would connect candidate backgrounds and policy positions directly to a reader's preferences.",
+      "tradeoff": "The article supplies uneven biographies and policy information. Using those details as a balanced voter guide would risk treating missing coverage as a missing position. The chosen scope instead explains contest structure without ranking candidates."
+    },
+    "inquiry_vs_material_coverage": {
+      "inquiry": "The mechanisms by which the described elections could change legislative representation, including connections between contests.",
+      "supplied_coverage": "One early article dated May 8, 2026, described as the first of two installments. It discusses selected contests in districts 3, 5, 11, 26, 29, 32, and 42, with different levels of detail.",
+      "boundary": "The article is not a statewide inventory, a uniform platform survey, or evidence of subsequent election outcomes. Being included does not establish that a race is more competitive than an omitted race."
+    },
+    "reconsideration_after_exploration": "Use the election for a particular seat as the basic unit, group contests by district, and connect contests through officeholder movements. A single district-level race record would collapse distinct House and Senate contests, particularly in districts 26, 29, and 32."
+  },
+  "source": {
+    "id": "article",
+    "publisher": "Washington State Standard",
+    "title_as_supplied": "Legislative races to watch as Washington’s election season revs up",
+    "date": "2026-05-08",
+    "url": "https://washingtonstatestandard.com/2026/05/08/a-dozen-legislative-races-to-watch-as-washingtons-election-season-revs-up/",
+    "license_as_supplied": "CC BY-NC-ND 4.0",
+    "use": "All populated factual claims below come exclusively from the supplied article. Source locations refer to its introductory text or named district sections."
+  },
+  "evidence_rules": {
+    "supported_fact": "An assertion reported in the supplied material, with its reporting date and location retained. This status does not imply independent verification.",
+    "interpretation": "An explanation or comparison derived from stated facts, kept outside the factual records.",
+    "proposed_extension": "A potentially useful structure whose factual population requires more information.",
+    "unknown": "Information absent, incomplete, or internally inconsistent in the supplied material. Null means unknown, not none.",
+    "inheritance": "A facts block's status and source location apply to every populated factual value in that block. Example identifiers and descriptive seat keys are local model identifiers, not official seat numbers."
+  },
+  "structure": {
+    "status": "model_design",
+    "things": [
+      {
+        "type": "District",
+        "purpose": "Groups distinct legislative seats and supplies reported geographic or political context. District context is not itself an election forecast."
+      },
+      {
+        "type": "Seat",
+        "identity": "District, chamber, and official position number when known.",
+        "purpose": "Distinguishes the office from its current holder. When the House position number is missing, use a provisional key referring to the named holder."
+      },
+      {
+        "type": "Contest",
+        "identity": "A seat and election cycle.",
+        "purpose": "Holds the dated candidate field, incumbent status, open-seat circumstances, and any special-term context. Primary and general elections are stages of the same contest."
+      },
+      {
+        "type": "Person and candidacy",
+        "purpose": "Separates a person, their current office, and the seat they seek. Party preference and any reported ideological characterization belong to the candidacy's dated evidence."
+      },
+      {
+        "type": "Change or event",
+        "purpose": "Records retirement, appointment, a run for another office, or an election outcome. Distinguishes an announced departure or candidacy from completed succession."
+      }
+    ],
+    "relationships": [
+      "A district contains several seats; a seat has a contest in an election cycle.",
+      "A person holds a seat and may separately seek that seat or another seat.",
+      "A reported departure or run for another office can explain why another contest is open.",
+      "Candidates compete within one field; same-party and different-party competition can coexist.",
+      "A claim about a person, contest, district, or event retains its source location and reporting date."
+    ],
+    "comparison_dimensions": {
+      "officeholder_continuity": ["incumbent running", "open seat", "unknown"],
+      "field_composition": ["same-party competition", "different-party competition", "reported absence of party affiliation", "unspecified party preference"],
+      "reported_change_drivers": ["retirement", "seeking another office", "appointment history", "special-election or partial-term context"],
+      "guardrail": "These are overlapping dimensions, not exclusive race categories. A Democrat challenging a Democrat is not automatically a progressive challenger, and an unspecified party is not automatically an unaffiliated candidacy."
+    }
+  },
+  "shared_context": {
+    "facts": {
+      "status": "supported_fact",
+      "source_location": "article introduction",
+      "reporting_date": "2026-05-08",
+      "house_seats_up": 98,
+      "senate_seats_up": 24,
+      "senate_seats_total": 49,
+      "primary_date": "2026-08-04",
+      "primary_advancement": "The top two candidates advance to the general election.",
+      "general_election_date": "2026-11-03",
+      "reported_house_composition": {"Democrats": 59, "Republicans": 39}
+    },
+    "source_conflict": {
+      "status": "unknown",
+      "subject": "Current Senate party composition",
+      "reported_values": [
+        {"source_location": "article introduction", "Democrats": 30, "Republicans": 19},
+        {"source_location": "42nd District section", "Democrats": 29, "Republicans": 20}
+      ],
+      "handling": "Preserve both reported values. The supplied material does not resolve the discrepancy, so do not calculate a definitive statewide seat-change scenario from either value."
+    }
+  },
+  "examples": [
+    {
+      "id": "five_house",
+      "structural_choice": "One contest with overlapping kinds of competition",
+      "facts": {
+        "status": "supported_fact",
+        "source_location": "5th District section",
+        "reporting_date": "2026-05-08",
+        "district": 5,
+        "seat": {"chamber": "House", "provisional_key": "Hall seat", "official_position_number": null},
+        "incumbent": "Zach Hall",
+        "incumbent_entry": "Appointed the previous June to replace Victoria Hunt after Hunt moved to the district's Senate seat.",
+        "prior_election_context": "Hall did not have to run in 2025 because his appointment followed that year's candidate filing deadline.",
+        "named_field": [
+          {"person": "Zach Hall", "party": "Democrat", "role": "incumbent"},
+          {"person": "Michelle Bennett", "party": "Republican", "role": "challenger"},
+          {"person": "Aimee Warmerdam", "party": "Democrat", "role": "challenger", "reported_characterization": "progressive challenger"},
+          {"person": "Topher Leritz", "party_description": "does not have any party affiliation", "role": "challenger"}
+        ],
+        "reported_district_context": "Democrats hold all three legislative seats; Republicans have eyed the district as possible territory for gains."
+      },
+      "interpretations": [
+        {
+          "status": "interpretation",
+          "claim": "This contest simultaneously tests an appointed incumbent, includes competition within the Democratic field, and offers a Republican route to changing the seat's party representation. None of those structural observations establishes the likely winner."
+        }
+      ],
+      "unknowns": [
+        {"status": "unknown", "item": "Official House position number"},
+        {"status": "unknown", "item": "Relative candidate strength, primary qualifiers, and general-election result"}
+      ]
+    },
+    {
+      "id": "twenty_nine_succession",
+      "structural_choice": "Two contests connected by an officeholder's move",
+      "facts": {
+        "status": "supported_fact",
+        "source_location": "29th District section",
+        "reporting_date": "2026-05-08",
+        "district": 29,
+        "reported_district_context": "The district votes reliably Democratic.",
+        "contests": [
+          {
+            "seat": {"chamber": "Senate", "provisional_key": "Conway seat"},
+            "opening": "Steve Conway is retiring.",
+            "named_candidates_in_this_example": [
+              {"person": "Sharlett Mena", "party": "Democrat", "current_office": "state representative"}
+            ],
+            "field_coverage": "The article identifies Mena's Senate candidacy but does not supply a complete Senate field."
+          },
+          {
+            "seat": {"chamber": "House", "provisional_key": "Mena seat", "official_position_number": null},
+            "opening": "Mena's Senate run opens her House seat.",
+            "named_field": [
+              {"person": "Patrick Stickney", "party": "Democrat"},
+              {"person": "Joe Bushnell", "party": "Democrat"},
+              {"person": "Erin Chapman-Smith", "party": "Democrat"},
+              {"person": "Natasha Laitila", "party": "Democrat"},
+              {"person": "Darek Blum", "party": "Republican"},
+              {"person": "Sheri Hayes", "party": "Republican"}
+            ]
+          }
+        ],
+        "connections": [
+          {"from": "Conway retirement", "relationship": "creates opening in", "to": "Senate contest"},
+          {"from": "Mena", "relationship": "seeks", "to": "Senate seat"},
+          {"from": "Mena Senate run", "relationship": "opens", "to": "Mena House seat"}
+        ]
+      },
+      "interpretations": [
+        {
+          "status": "interpretation",
+          "claim": "The connected contests show how one retirement can accompany a wider reshuffling of officeholders. Mena's candidacy links the contests; the model does not record Mena as Conway's successor because no outcome is supplied."
+        }
+      ],
+      "unknowns": [
+        {"status": "unknown", "item": "Complete Senate candidate field and eventual successors"},
+        {"status": "unknown", "item": "Conway's party affiliation, which this supplied section does not state"},
+        {"status": "unknown", "item": "Official position number for Mena's House seat"}
+      ],
+      "example_selection": "The separate Morgan House contest described in the article is outside this small example; omission does not mean the district has only these two contests."
+    }
+  ],
+  "consequential_comparison": {
+    "status": "interpretation",
+    "claim": "A change of officeholder and a change of party control are distinct outcomes. Hall's contest could retain the incumbent, replace him with another Democrat, or produce a different party outcome. The Mena House contest requires a new holder because the seat is opening, but a new holder would not by itself imply a party change. Tracking seat, person, and party separately makes that distinction visible.",
+    "primary_implication": "Because the reported rule advances two candidates, candidate party labels should not be treated as a promise that one nominee from each party will reach the general election."
+  },
+  "what_the_examples_leave_untested": [
+    "A special-election winner running again after securing a partial term, as described for Deb Krishnadasan in the 26th District.",
+    "Two officeholders competing for one seat, as with Cindy Ryu and Jesse Salomon in the 32nd District Senate race.",
+    "A field containing only two candidates, as described for Lauren Davis and Imraan Siddiqi in the 32nd District.",
+    "How endorsements, policy differences, fundraising, or previous results explain electoral strength; the examples do not establish those causal relationships.",
+    "Post-primary field changes, completed succession, and statewide effects on party control."
+  ],
+  "extensions_requiring_more_information": [
+    {
+      "status": "proposed_extension",
+      "structure": "Verified seat registry and dated candidate-field snapshots",
+      "information_needed": "Official position identifiers, complete filings, withdrawals, and subsequent updates.",
+      "benefit": "Connect the same seat across time without relying on a former holder's name."
+    },
+    {
+      "status": "proposed_extension",
+      "structure": "Comparable issue-position and support relationships",
+      "information_needed": "Consistent candidate statements, issue definitions, endorsement dates, and comparable fundraising periods.",
+      "benefit": "Support a fairer candidate comparison while preserving the distinction between a recorded stance, an endorsement, and evidence of electoral strength."
+    },
+    {
+      "status": "proposed_extension",
+      "structure": "Election results and chamber-composition changes",
+      "information_needed": "Verified results and a reconciled baseline for Senate membership.",
+      "benefit": "Explain which possible changes occurred and how those outcomes affected the legislature."
+    }
+  ]
+}

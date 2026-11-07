@@ -22,6 +22,10 @@
 // list gets no note.
 // CARDTOP=1 scrolls that card back to its first entry (it opens at the last).
 // STALE=1 puts the first row a summarizer version behind.
+// DEFAULT_STALE=1 gives the first row a session holding an older copy of the
+// default skill files than main's, so its Claude mark wears the "!"; with
+// DEFAULT_STALE=tip the "!" is hovered and its tip shot. Pair it with LANE,
+// since the mark speaks only for sessions active in the last week.
 //
 // LIVE=1 replaces the first row's hand-written prose with a lean row plus a
 // stubbed record (TURNS_RECORD below), so the card runs the real path: the
@@ -592,6 +596,36 @@ export default async function (page) {
         (i ? r : { ...r, reply: '', replyCut: '', turns: [], replyAt: '' }));
     });
     await page.waitForTimeout(200);
+  }
+
+  // DEFAULT_STALE: the row's defaultAt names a plugin commit, and the view
+  // compares skills/default/'s listing there with main's (estate.js
+  // sessionDefaultChanged). Those contents reads are answered here, since the
+  // sandbox has no token: CONVERSATION.md differs at the first row's commit.
+  if (process.env.DEFAULT_STALE) {
+    await page.evaluate(() => {
+      window.TOKEN = window.TOKEN || 'FIXTURE';
+      const LISTING = {
+        main: { 'SKILL.md': 's1', 'CONVERSATION.md': 'c2', 'QUALIFIED-WRITING.md': 'q1' },
+        '10a665538998': { 'SKILL.md': 's1', 'CONVERSATION.md': 'c1', 'QUALIFIED-WRITING.md': 'q1' },
+        'f2b530f2bbff': { 'SKILL.md': 's1', 'CONVERSATION.md': 'c2', 'QUALIFIED-WRITING.md': 'q1' },
+      };
+      const req = window.GH.prototype.req;
+      window.GH.prototype.req = async function (p, o) {
+        const m = /^contents\/skills\/default\?ref=(.+)$/.exec(p);
+        if (!m) return req.call(this, p, o);
+        const files = LISTING[decodeURIComponent(m[1])];
+        if (!files) throw new Error('404');
+        return Object.entries(files).map(([name, sha]) => ({ type: 'file', name, sha }));
+      };
+      const st = window.Alpine.$data(document.querySelector('[x-data^="estate"]'));
+      st.sessionRows_ = st.sessionRows_.map((r, i) => ({ ...r, defaultAt: i ? 'f2b530f2bbff' : '10a665538998' }));
+    });
+    await page.waitForTimeout(900);
+    if (process.env.DEFAULT_STALE === 'tip') {
+      await page.locator('[data-default-stale]:visible').first().hover();
+      await page.waitForTimeout(500);
+    }
   }
 
   // LIVE=1: the first row goes LEAN and a record stands behind it, which is

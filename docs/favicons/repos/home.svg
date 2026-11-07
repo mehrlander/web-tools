@@ -1,7 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="home">
   <title>home</title>
-  <desc>A house with a gable roof and a door cut out of it: the private base and slow-memory layer. Drawn in one ink on the budget-drs app icon's box and rules, for the page to paint in its text colour: solid, no strokes, and every gap at least 2.5 units, which is about 1.4 CSS pixels at 16.</desc>
-  <g fill="currentColor">
-    <path d="M16 3 L30 14.5 H26.5 V29 H18.5 V20.5 H13.5 V29 H5.5 V14.5 H2 Z"/>
+  <desc>A house whose roof stands clear of its walls, a door cut out of them: the private base and slow-memory layer. Drawn on the budget-drs app icon's box and rules in one colour, slate-600 (#475569): solid, no strokes, and every gap at least 2.5 units, which is about 1.4 CSS pixels at 16.</desc>
+  <g fill="#475569">
+    <path d="M16 2.5 L30.25 14 L28.25 16.5 L16 6.6 L3.75 16.5 L1.75 14 Z"/>
+    <path d="M16 10.9 L25.5 18.6 V29 H18.5 V22 H13.5 V29 H6.5 V18.6 Z"/>
   </g>
 </svg>

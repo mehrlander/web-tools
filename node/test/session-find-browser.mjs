@@ -183,8 +183,11 @@ try {
       await page.waitForFunction(p => window.Alpine.$data(document.querySelector('#mount > div')).pane === p,
         pane.toLowerCase());
     }
+    // Alpine redraws x-show a frame after the pane changes, so wait for the
+    // field rather than reading it at once.
     ok('Files and Raw return to the preserved conversation search',
-      (await state()).query === 'cobalt orchard' && await input.isVisible());
+      (await state()).query === 'cobalt orchard'
+        && await input.waitFor({ state: 'visible', timeout: 5000 }).then(() => true, () => false));
     await input.fill('toolonlysignal');
     await page.waitForFunction(() => window.Alpine.$data(document.querySelector('#mount > div')).findQuery === 'toolonlysignal');
     ok('tool-only text does not become a conversation hit',
@@ -205,8 +208,9 @@ try {
       narrow.document <= width + 1 && narrow.results <= narrow.resultBox + 1, JSON.stringify(narrow));
     await input.press('Escape');
     await page.waitForFunction(() => !window.Alpine.$data(document.querySelector('#mount > div')).findQuery);
-    ok('Escape clears search and restores the outline',
-      await page.locator('[x-ref="outline"]').isVisible() && await input.inputValue() === '');
+    ok('Escape clears search, closes the field and restores the outline',
+      await page.locator('[x-ref="outline"]').isVisible() && !(await input.isVisible())
+        && await page.locator('[role="search"] input').inputValue() === '');
     await context.close();
   }
   ok('no uncaught browser errors', runtimeErrors.length === 0, runtimeErrors.join(' | '));

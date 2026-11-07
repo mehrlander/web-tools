@@ -1,0 +1,30 @@
+{
+  "run": "2026-10-28",
+  "method": "Two independent fresh agent contexts, one draft then one revision in each context. No model override.",
+  "initial_request": "Develop a concise information model that would help the intended reader\nunderstand this subject. Choose your own JSON schema.\n\nFirst propose a useful scope and explain its benefit to the reader. Consider\none consequential alternative. Distinguish the scope of the inquiry from the\ncoverage of the supplied material.\n\nExplore the internal structure of the chosen subject. Look for meaningful\nthings, groupings, activities, events, changes, recurring patterns, and other\nrelationships where they matter. Let the material and reader purpose determine\nwhich structures earn a place. Reconsider the scope if the exploration reveals\na more useful organization.\n\nPopulate two small examples that exercise different structural choices. Explain\none consequential relationship or comparison the model makes understandable,\nand identify what the examples leave untested.\n\nKeep source-supported facts, interpretations, proposed structures needing more\ninformation, and unknowns distinguishable. Use only the supplied material for\npopulated factual claims. Return readable, indented JSON, with no HTML or prose\noutside the JSON.",
+  "reader_purpose": "Help a general reader understand the subject described by the material and\nthe consequential connections within it. Explain what more specific reader\njob your chosen scope serves.",
+  "revision_request": "Review your model using the original source and reader purpose. Find one\nconsequential weakness in its scope or internal structure. Use a concrete case\nto explain the weakness, and revise only where the change offers a reader\nbenefit. Retain the original two examples; you may add one brief challenge case.\nExplain what changed, what the examples demonstrate, and what remains uncertain.\nChoose your own JSON schema and return the complete revised model. Preserve\nthe distinction between source facts, interpretations, proposed extensions,\nand unknowns. Return readable, indented JSON with no HTML or outside prose.",
+  "sources": [
+    {
+      "key": "election",
+      "source_sha256": "eb4722e8090bb8752efe638f592c94bdac2b23fc6a3241370e0de05e995e52ad",
+      "source_bytes": 9953,
+      "request_sha256": "0f68aa1bc82d2253b1d2f4ffd60fe08f0c3835cdc3fb1105c09411e356fd7bf6",
+      "draft": "election/draft.json",
+      "revision": "election/revised.json"
+    },
+    {
+      "key": "aviation",
+      "source_sha256": "7773de7bc5f431e995d362fb7707c8eb8ef1f09df9fc34284bc5ec620f6c38c8",
+      "source_bytes": 37463,
+      "request_sha256": "932a44d71eaac5e0ed7ada469a6a1a5f0647b0c5771d964110296e6abd3c73aa",
+      "draft": "aviation/draft.json",
+      "revision": "aviation/revised.json"
+    }
+  ],
+  "execution_note": "Agents were forked with no conversation history, no model override, and the saved task dispatch. Each revision used the same agent context. Files preserve task requests and responses, not a provider API or hidden runtime transcript.",
+  "agent_contexts": {
+    "election": "/root/discovery_election",
+    "aviation": "/root/discovery_aviation"
+  }
+}

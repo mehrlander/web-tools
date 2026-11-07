@@ -84,6 +84,26 @@ test('an absent anchor says so on screen rather than landing nowhere', async () 
   assert.equal(card(w).querySelector('code').textContent, 'nowhere');
 });
 
+test('a page that says it is busy is waited for past the anchor wait, then answered', async () => {
+  // The session page marks itself aria-busy while it reads a record of several
+  // megabytes; its marks exist only after that.
+  const w = realm('<main aria-busy="true"></main>');
+  w.Look.start([{ at: 'late', say: 'found it' }], { wait: 60 });
+  await wait(250);
+  assert.equal(said(w), undefined, 'still looking while the page is busy');
+  const main = w.document.querySelector('main');
+  main.innerHTML = '<p data-at="late">here</p>';
+  main.setAttribute('aria-busy', 'false');
+  await wait(250);
+  assert.equal(said(w), 'found it', 'and lands once the anchor renders');
+  const v = realm('<main aria-busy="true"></main>');
+  v.Look.start([{ at: 'never', say: 'unused' }], { wait: 60 });
+  await wait(150);
+  v.document.querySelector('main').setAttribute('aria-busy', 'false');
+  await wait(700);
+  assert.match(said(v), /^Not on this page: never$/, 'a miss is still said once the page goes quiet');
+});
+
 test('a target that exists but never shows is reported as hidden, not absent', async () => {
   // Two different repairs: an absent anchor is a wrong name, a hidden one is a
   // region that names no opener.

@@ -36,9 +36,11 @@ Tend deletes no branch and proposes no deletion. `findings.py` sits beside
 this file; [`lib/kits/findings.js`](https://github.com/mehrlander/web-tools/blob/main/lib/kits/findings.js) states the
 record.
 
-1. **Reassess.** `findings.py check` names the findings whose witnesses
-   changed. Reread each and reply with `findings.py update`: revise it, confirm
-   it with fresh witnesses, or renew attention on a settled one
+1. **Reassess.** Check out each repository an open finding names, in the
+   folder that holds the other checkouts; `check` reads a witness in any other
+   repository as unverifiable. `findings.py check` names the findings whose
+   witnesses changed. Reread each and reply with `findings.py update`: revise
+   it, confirm it with fresh witnesses, or renew attention on a settled one
    (`status: "open"`, a new `next`). An update replaces each field it carries,
    so send whole lists.
 2. **Select.** `findings.py candidates` lists what mechanical signals raise and
@@ -51,14 +53,20 @@ record.
    witnesses. A step that needs the owner's word, such as closing a pull
    request, is prepared, then filed with like steps as one user call
    (`user-calls/user-call.py` in the registry) that the finding names among
-   its subjects; the Waiting view shows it.
+   its subjects; the Waiting view shows it. A next step that is new work,
+   rather than landing work that exists, joins that call as a question to the
+   owner: file it as a task or drop it; either answer settles the finding.
    Witnesses include what lies outside the subjects, such as main's copy of a
-   file the work was compared against.
+   file the work was compared against. Choose as a witness the narrowest file
+   that holds the claim: a file edited daily brings the finding back on every
+   pass.
 5. **Act** on each subject's *Act* tier. Record a step done on the finding it
    advanced (`findings.py update`, `did`, and the step that remains); it
    settles only once no next step remains.
-6. **Reply** with what the pass did, the user calls it filed, and its
-   sidesteps: where the work did something other than what the owner asked.
+6. **Reply** with what the pass did and its sidesteps: where the work did
+   something other than what the owner asked. Put each user call it filed in
+   the reply as its question, recommendation and link, and offer one answer
+   that accepts every recommendation, so the calls can close in the session.
 
 Act unasked only on a mechanical test. Read GitHub through the GitHub MCP, not
 `gh` or `curl`.
@@ -86,14 +94,16 @@ its class:
 | merged-tip | Tip SHA equals `head.sha` of a merged pull request. |
 | closed-tip | Tip SHA equals `head.sha` of a pull request closed without merging. |
 | ancestor | `git rev-list --count origin/<b> --not origin/main` prints `0`. |
+| orphan | `git merge-base origin/<b> origin/main` prints nothing. |
 | content-settled | `python3 python/stranded-triage.py . origin/<b>` reports every path `landed`, `moved` or `retired`, or `differs` where the branch's blob appears at that path in `git log <merge-base>..origin/main -- <path>`. |
 | residue-free | Paths differ, but every line the branch added is in main's copy. |
 | novel | Anything else, including anything a shallow clone leaves undecided. |
 
 `branches.py`, beside this file, applies the table to every remote branch in
-the checkouts and lists the novel ones with their residue.
+the checkouts and lists the novel and orphan ones, the novel with their
+residue. `--since` takes the previous pass's date.
 
-- **Act:** report the settled classes as counts.
+- **Act:** report the settled classes as counts, and orphan branches by name.
 - **Find:** a novel branch. Its residue is the lines it added
   (`git diff -U0 <merge-base> origin/<b> -- <path>`) that
   `git show origin/main:<path>` lacks. Name its origin (`Claude-Session`

@@ -6,6 +6,7 @@ import { makeWindow, repoRoot } from './bootstrap.mjs';
 
 const { window } = makeWindow({ html: '<!doctype html><html><body></body></html>' });
 new window.Function(readFileSync(path.join(repoRoot, 'lib/vanilla-bundle.js'), 'utf8'))();
+new window.Function(readFileSync(path.join(repoRoot, 'lib/kits/table-stats.js'), 'utf8'))();
 new window.Function(readFileSync(path.join(repoRoot, 'lib/kits/tabular-explorer.js'), 'utf8'))();
 
 const { DataProfile, TabularExplorer } = window;

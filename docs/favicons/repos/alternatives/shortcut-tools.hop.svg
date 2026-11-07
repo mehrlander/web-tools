@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="shortcut-tools: hop">
+  <title>shortcut-tools: hop</title>
+  <desc>A hop: an arrow arcing over and landing, for a shortcut.</desc>
+  <g fill="currentColor">
+    <path d="M3.5 26 V17.5 A11 11 0 0 1 25.5 17.5 H21.75 A7.25 7.25 0 0 0 7.25 17.5 V26 Z"/>
+    <path d="M19 17.49 L28.25 17.49 L23.62 26 Z"/>
+  </g>
+</svg>

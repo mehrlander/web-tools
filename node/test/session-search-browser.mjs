@@ -128,6 +128,8 @@ try {
     await page.evaluate(() => window.swipeDeck.stack[0].deck.go(1));
     await page.waitForFunction(() => new URLSearchParams(location.search).get('session') === 'bbb22222');
     check(label + ' a neighbouring session has no inherited query', !new URL(page.url()).searchParams.has('find'));
+    // No query on this slide, so its find field is closed behind the icon.
+    await activeBrief(1).getByRole('button', { name: 'Find in conversation', exact: true }).click();
     await activeBrief(1).getByRole('searchbox', { name: 'Find in conversation' }).fill('retry');
     await page.waitForFunction(() => new URLSearchParams(location.search).get('find') === 'retry');
     await page.evaluate(() => window.swipeDeck.stack[0].deck.go(0));

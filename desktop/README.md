@@ -49,6 +49,8 @@ npm run setup
 dotnet run --project .\desktop\Checks\DesktopChecks.csproj
 node .\desktop\Checks\ui-checks.mjs
 node .\desktop\Checks\phone-ui-checks.mjs
+node .\desktop\Checks\computer-ui-checks.mjs
+node .\desktop\Checks\offline-checks.mjs
 node .\desktop\Checks\companion-checks.mjs
 ```
 
@@ -86,13 +88,42 @@ Hover over Live to see scan and synchronization timings.
 
 ## Private phone view
 
-The phone has its own Now, Queue and Recent views, assistant filters, result
-details and short observed history. The phone view is read-only. The laptop must
+The assistant headers on phone and desktop have separate launch arrows for
+Codex, Antigravity and Claude Code. These work even when the assistant has no
+recent activity. Names still filter the activity list; launch arrows use the
+provider's HTTPS address in a separate browser context. Codex opens ChatGPT,
+which includes Codex on mobile. Claude's Code URL also
+supports its installed mobile app through universal links. Browser and app
+handoff follows the device's link settings.
+
+The phone opens on one Now feed: current work, waiting errands and all recent items
+in the current snapshot, with assistant filters, inline details and short observed
+history. The assistant headers keep compact usage bars visible above the feed;
+the full Usage view remains available on desktop. Now and Computer are read-only;
+Devices offers Stereo Bridge's media controls. The laptop must
 be awake and online; waking the laptop through Windows App can restore access.
 The last received snapshot remains in that browser's local storage, labeled with
-its observation time when contact is lost. A responding server with an observation
+its observation time when contact is lost. After a successful online visit, a
+service worker saves only the interface assets for offline reloads. API responses
+never enter Cache Storage; a network or server failure uses the saved interface, while an
+HTTP access denial is returned directly. The interface can therefore still offer
+Windows App when the laptop is unreachable. A responding server with an observation
 older than fifteen seconds also loses its Live status. Closing the phone browser
 stops polling and does not stop collection.
+
+Tapping a main-list item toggles its compact inline details. Each item's launch
+arrow opens compact choices for the provider session and its Web Tools record,
+preserving Now's position and open detail. Claude uses its captured original URL;
+Gemini uses the conversation ID and the enabled Antigravity instance reported by
+the existing local service. The companion checks that routing every thirty seconds
+without enabling remote access or launching a provider. Codex's documented thread
+link opens its desktop app. On mobile, where no direct thread route is established,
+the control offers ChatGPT and the original session title to copy for lookup.
+Unavailable direct links are labeled; errands keep their saved request/result
+destinations. Provider URLs are validated separately from Web Tools links. Older
+phone detail bookmarks and the worker's own report view remain supported. On iOS,
+a Home Screen web app may open an external link in a Safari browser sheet, where
+the system offers the control to continue in Safari.
 
 After installation, run `desktop/enable-phone.ps1` using the owner's Windows
 account. The script reads the existing Tailscale identity, restricts the companion
@@ -107,7 +138,8 @@ open the existing hosted app, with that browser's own Web Tools authentication.
 `WebTools.Companion` listens only at `127.0.0.1:47831`. Tailscale Serve proxies that
 listener and supplies the owner's identity header. The companion accepts the owner
 identity or a per-user local bearer, validates the Host and Origin, disables HTTP
-caching, and offers no CORS access or write routes. Other Tailscale identities are
+caching, and offers no CORS access. Only the six Stereo Bridge actions accept POST,
+with a deliberate-action header and a same-origin browser request. Other Tailscale identities are
 denied. The desktop-only route requires the local bearer even through Serve.
 Access settings, including the bearer, live in `companion-access.json` beside
 desktop settings; those settings never enter API responses or tracked files.
@@ -117,7 +149,120 @@ desktop settings; those settings never enter API responses or tracked files.
   observed events.
 - `GET /api/v1/results/<id>`: a selected reply, capped at 20,000 characters, plus
   the phone's link to its full saved result in Web Tools.
+- `GET /api/v1/computer`: current Windows session state, machine measurements and
+  grouped desktop application windows, with a separate window-observation time.
+- `GET /api/v1/devices`: Stereo Bridge's current media and playback capabilities.
+- `POST /api/v1/devices/stereo/<action>`: previous, play-pause, next, volume-down,
+  mute or volume-up. Controls require the same owner access as observations.
 - `GET /api/v1/desktop`: full desktop snapshot for the authenticated local app.
+
+### Computer view
+
+The phone's title menu switches between Now, Computer and Devices, retaining each view's
+reading position. Computer shows application icons, names and window counts;
+tapping an app reveals its window titles and minimized state. The companion
+enumerates top-level desktop windows in its own Windows session every five
+seconds, excluding shell helpers, tool windows, owned dialogs and cloaked windows.
+UWP frame hosts resolve to their child app where possible. The view is a window
+inventory, so tray-only apps, services and windows on other virtual desktops may
+be absent. An open window does not imply agent work. No executable paths, command
+lines, screenshots or process-control actions enter the API.
+
+Windows session APIs report lock and remote-connection state. Locked,
+disconnected or unknown sessions retain the previous window list and its original
+observation time. CPU, physical-memory use, and battery/power readings continue
+independently; unavailable values remain unknown. The companion saves the latest
+Computer observation beside its settings for restart continuity. The phone polls
+Computer every three seconds while that view is visible, pauses when hidden,
+backs off on failure, and stores its last observation locally with a stale label.
+The isolated companion-check environment never collects real window titles.
+
+The shared phone header's monitor button directly runs the owner's existing
+**Open-Windows** iPhone shortcut through
+`shortcuts://run-shortcut?name=Open-Windows`. The shortcut's **Open App** action
+selects Microsoft's Windows app (`com.microsoft.rdc.ios`). The legacy `rdp://`
+handoff did not work on the owner's iPhone, so the interface no longer offers that
+route or a connection-options menu. The shortcut opens Windows App; the owner's
+saved laptop connection remains there. The companion does not alter remote
+desktop, firewall, login or wake settings.
+
+When changing the offline interface's asset contract, increment the cache version
+in `phone/sw.js`. Successful installation replaces only this app's older shell
+caches, without reloading an open page or caching private API bodies.
+
+### Devices view
+
+Stereo Bridge must already be running on the laptop. While Devices is visible, the phone polls the companion every two seconds. The companion reads Stereo Bridge's fixed loopback API on port 45831, showing the current track, player, timeline and available playback controls. Volume and mute affect Windows' selected audio output; no numeric volume or output-device reading is available. Tailscale carries the control requests. Phone audio still needs the existing Bluetooth connection.
+
+The adapter disables redirects, bounds responses and omits native errors. Unavailable or stale observations disable controls. Actions run once, without retries, offline replay or a command queue; an unconfirmed response stays labeled. The interface distinguishes a reachable Bridge with no media from an unavailable Bridge. Roku discovery and control are not included in this version.
+
+### Account usage
+
+The front-page assistant strip also shows compact allowance bars with percentages
+used, labeled by each reported period (for example, 5h or Week). A small tick
+marks the even-use budget pace, with amber fill for usage above that pace. The
+weekly reset day and local time appear beneath the bars. Hover and Usage provide
+the exact reset, pace difference and stale-reading details. Pace compares used
+allowance with elapsed time; it is not a forecast and is hidden for stale, expired
+or unknown periods. Model quotas without a
+reported duration say Quota. Missing periods never gain a guessed bar; multiple
+model or bucket readings for one period use the account-wide limit when present,
+otherwise the most used reading. The full Usage view retains every limit.
+
+The phone's Usage tab and the desktop's Usage panel show account allowances,
+percentage used, reset countdowns and exact reset dates. Known window lengths
+also get a time-elapsed tick. Readings are collected independently about once a
+minute, without blocking activity. Local history samples every five minutes,
+keeps eight days and sends at most sixty points per current window to the phone.
+A trend begins with observed readings, without reconstructing past consumption.
+Expired or stale readings remain labeled; passing a reset never supplies an
+assumed zero.
+
+Codex uses the signed-in CLI's documented `account/rateLimits/read` app-server
+method. The CLI manages its own authentication. Each reported bucket and period
+remains separate. Gemini uses the existing Antigravity worker's loopback
+`RetrieveUserQuotaSummary` response, which identifies the shared `gemini-5h`
+and `gemini-weekly` buckets with explicit window names and reset times. Workers
+without the summary method fall back to per-model `GetUserStatus` quotas without
+inferring their duration. Temporary summary failures retain the named readings
+and their history as stale. That local interface is version-dependent and may
+contain cached provider data; the displayed time is when the worker status was
+read. The collector never starts the worker or a conversation. Only Gemini model
+quotas enter the Gemini lane. Claude models served through Antigravity do not
+describe the user's separate Claude subscription. Identical Gemini model
+readings and histories are grouped visually. An unreported period stays unknown.
+
+Claude account usage connects through the existing Claude Code sign-in. Run
+`claude auth login --claudeai` once if that sign-in has expired. The companion
+reads the account usage endpoint shipped with Claude Code about every five
+minutes, using Windows certificate trust. Existing OAuth credentials stay in
+Claude's configuration directory (`CLAUDE_CONFIG_DIR` or `%USERPROFILE%\.claude`).
+Normal token refresh preserves unrelated credential-file data and a newer sign-in
+made by Claude. Redirects are disabled on authenticated requests. No model call
+or API-key billing is used. The endpoint is version-dependent; failed reads retain
+the previous values with an explicit connection notice. Account-wide and reported
+model-specific weekly limits stay separate.
+
+Claude's documented Code statusline JSON can also supply `rate_limits.five_hour`
+and `rate_limits.seven_day`. A local statusline integration can pipe that JSON to
+`python <installed-companion>/worker/usage.py --state <desktop-data> --capture claude`.
+The capture command saves only the two percentages, reset times and capture time,
+and prints nothing. An existing statusline should retain its normal output.
+The normal desktop data directory is `%LOCALAPPDATA%\WebToolsDesktop`. No statusline
+settings are changed automatically. Without a reporter, the Claude lane explicitly
+says it is not connected. The account reader covers the subscription's usage
+without requiring a separate reporter in each cloud session.
+
+Each assistant's usage header has a browser-link icon. Codex opens ChatGPT's
+Usage settings and Claude opens Claude's Usage settings. Gemini opens the
+Antigravity browser entry point; the vendor places model quotas under Settings
+and does not document a standalone browser quota address. The desktop opens only
+these three approved destinations in the system browser. The phone opens the
+same addresses separately.
+
+Usage files remain beside the companion settings in `usage.json` and
+`usage-inputs/claude.json`. No credential, transcript, account identifier or raw
+provider error enters the usage projection. Missing fields never imply zero.
 
 The phone projection omits request notes, filesystem fields, downloads and native
 actions. Polling uses conditional GET every two seconds in the foreground, pauses

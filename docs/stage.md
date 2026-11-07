@@ -6,7 +6,7 @@ local items from pastes, drops and dictation, so one stage spans repos. The view
 its intake (`StageIntake`) and its link codec (`StageLink`) are in
 [`lib/alpineComponents/stage.js`](../lib/alpineComponents/stage.js). The app
 around the stage is documented in [APP.md](APP.md), including the token
-requirement that every `#stage=` handoff states.
+requirement.
 
 The stage does not save. A curated set is a `.surface` file
 ([envelopes/surface.md](envelopes/surface.md)).

@@ -1,7 +1,7 @@
 (() => {
   'use strict';
   let snapshot, filter = 'all', assistant = 'all', search = '', selected = '', lastFeed = '', lastAssistants = '';
-  let entries = [], visible = [];
+  let entries = [], visible = [], launchKey = '', copiedTitle = '';
   const bridge = window.chrome?.webview;
   const el = id => document.getElementById(id);
   const html = (id, value) => { if (el(id).innerHTML !== value) el(id).innerHTML = value; };
@@ -50,7 +50,8 @@
   function renderAssistants() {
     const local = entries.filter(e => e.kind === 'session');
     const cloud = entries.filter(e => e.kind === 'cloud');
-    const signature = JSON.stringify([local,cloud,assistant,snapshot.applications,snapshot.sessions?.notices,snapshot.cloud?.notice,snapshot.cloud?.capturedAt,snapshot.activity.errands.filter(j => j.state === 'queued').length]);
+    const usage = Object.fromEntries(['codex','gemini','claude'].map(key => [key,window.NowUsage?.compact(snapshot.usage?.find(p => p.provider === key),{tooltip:true}) || '']));
+    const signature = JSON.stringify([local,cloud,assistant,usage,snapshot.applications,snapshot.sessions?.notices,snapshot.cloud?.notice,snapshot.cloud?.capturedAt,snapshot.activity.errands.filter(j => j.state === 'queued').length]);
     if (signature === lastAssistants) return;
     lastAssistants = signature;
     const styles = {codex:'border-emerald-500 bg-emerald-50/50',gemini:'border-blue-500 bg-blue-50/50',claude:'border-orange-400 bg-orange-50/50'};
@@ -70,7 +71,7 @@
       const tip = key === 'claude' ? 'Cloud turn hooks report prompts, tool activity and responses. Unfinished turns with no report for three minutes appear quiet. Published checkpoints keep their own time.' : 'Local session events. Unfinished work with no event for three minutes appears quiet.';
       const sourceTip = [unavailable, key === 'claude' ? snapshot.cloud?.notice : '', appOpen ? 'Application process detected.' : '', snapshot.cloud?.capturedAt && key === 'claude' ? `Cloud cache captured ${stamp(snapshot.cloud.capturedAt)}.` : ''].filter(Boolean).join(' ');
       const sourceLabel = key === 'claude' ? cloudLoading ? 'Cloud records loading' : snapshot.cloud?.notice ? 'Saved cloud records' : records.length ? 'Cloud records connected' : 'No recent cloud records' : appOpen ? 'App open on this laptop' : 'Local sessions';
-      return `<article class="min-w-0 rounded-lg border-l-4 p-3 ${styles[key]}"><div class="flex items-center justify-between gap-2"><button data-assistant="${key}" aria-pressed="${assistant === key}" class="flex items-center gap-2 rounded text-base font-semibold hover:underline">${mark(key)}${name}</button><span class="text-xs ${working ? 'font-medium text-emerald-800' : 'text-stone-600'}" data-title-tip="${escape(tip)}">${escape(state)}</span></div><div class="mt-2 space-y-2">${display.map(s => `<button class="session block w-full rounded text-left hover:bg-white/70" data-pick="${escape(s.key)}"><span class="flex items-center gap-2 text-xs text-stone-500">${badge(s.state)}<span>${escape(s.provider === 'Gemini worker' ? 'Worker' : s.location)}</span>${time(s.at)}</span><span class="mt-1 block truncate text-base leading-6" data-title-tip="${escape(s.title)}">${escape(s.title)}</span>${((s.turn ? s.detail : s.checkpoint?.headline || s.detail)) && (s.state === 'working' || s.kind === 'cloud') ? `<span class="mt-0.5 block truncate text-sm text-stone-600" data-title-tip="${escape((s.turn ? s.detail : s.checkpoint?.headline || s.detail))}">${escape((s.turn ? s.detail : s.checkpoint?.headline || s.detail))}</span>` : ''}${s.checkpoint ? `<span class="mt-1 block text-xs text-violet-800">Checkpoint ${time(s.checkpoint.at)}</span>` : ''}</button>`).join('') || '<p class="py-2 text-base text-stone-500">No recent sessions</p>'}</div><div class="mt-2 text-xs text-stone-500" data-title-tip="${escape(sourceTip)}">${sourceLabel}${key === 'gemini' ? ` · ${snapshot.activity.errands.filter(j => j.state === 'queued').length} queued` : ''}</div></article>`;
+      return `<article class="min-w-0 rounded-lg border-l-4 p-3 ${styles[key]}"><div class="flex items-center justify-between gap-2"><div class="min-w-0"><div class="flex items-center"><button data-assistant="${key}" aria-pressed="${assistant === key}" class="flex items-center gap-2 rounded text-base font-semibold hover:underline">${mark(key)}${name}</button>${window.NowView.assistantLink(key,{tooltip:true})}</div><span class="ml-8 block text-xs ${working ? 'font-medium text-emerald-800' : 'text-stone-600'}" data-title-tip="${escape(tip)}">${escape(state)}</span></div><div class="w-28 shrink-0">${usage[key]}</div></div><div class="mt-2 space-y-2">${display.map(s => `<button class="session block w-full rounded text-left hover:bg-white/70" data-pick="${escape(s.key)}"><span class="flex items-center gap-2 text-xs text-stone-500">${badge(s.state)}<span>${escape(s.provider === 'Gemini worker' ? 'Worker' : s.location)}</span>${time(s.at)}</span><span class="mt-1 block truncate text-base leading-6" data-title-tip="${escape(s.title)}">${escape(s.title)}</span>${((s.turn ? s.detail : s.checkpoint?.headline || s.detail)) && (s.state === 'working' || s.kind === 'cloud') ? `<span class="mt-0.5 block truncate text-sm text-stone-600" data-title-tip="${escape((s.turn ? s.detail : s.checkpoint?.headline || s.detail))}">${escape((s.turn ? s.detail : s.checkpoint?.headline || s.detail))}</span>` : ''}${s.checkpoint ? `<span class="mt-1 block text-xs text-violet-800">Checkpoint ${time(s.checkpoint.at)}</span>` : ''}</button>`).join('') || '<p class="py-2 text-base text-stone-500">No recent sessions</p>'}</div><div class="mt-2 text-xs text-stone-500" data-title-tip="${escape(sourceTip)}">${sourceLabel}${key === 'gemini' ? ` · ${snapshot.activity.errands.filter(j => j.state === 'queued').length} queued` : ''}</div></article>`;
     }).join(''));
   }
 
@@ -94,6 +95,9 @@
 
   function renderFeed() {
     if (!snapshot) return;
+    const list = el('errands'), scroll = list.scrollTop, focused = list.contains(document.activeElement) ? document.activeElement : null;
+    const action = focused && ['launch','sessionLink','sessionHome','external','copyTitle'].find(key=>focused.dataset[key]);
+    const owner = action && focused.dataset[action];
     visible = entries.filter(item => {
       if (assistant !== 'all' && keyFor(item.provider) !== assistant) return false;
       if (filter === 'open' && !open(item)) return false;
@@ -104,12 +108,14 @@
     }).slice(0,40);
     if (!visible.some(e => e.key === selected)) selected = visible[0]?.key || '';
     document.querySelectorAll('.filters button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.filter === filter)));
-    const signature = JSON.stringify([visible,selected]);
+    const signature = JSON.stringify([visible,selected,launchKey,copiedTitle]);
     if (signature !== lastFeed) {
       lastFeed = signature;
-      html('errands', visible.length ? visible.map(item => `<article class="activity-row border-b border-stone-100 px-4 py-3 ${item.key === selected ? 'bg-emerald-50/50' : ''}"><div class="flex items-start justify-between gap-4"><button class="activity-title ${item.kind === 'errand' ? 'errand-title' : ''} text-left text-base leading-6 hover:text-emerald-800" data-pick="${escape(item.key)}" aria-pressed="${item.key === selected}">${escape(item.title)}</button><span class="shrink-0 text-xs text-stone-500">${time(item.at)}</span></div><div class="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-stone-500">${badge(item.state)}<span>${escape(item.provider)}</span><span>${escape(item.location)}</span>${item.hasLocalOutput ? '<span>Local output</span>' : ''}${item.kind !== 'errand' && (item.checkpoint?.headline || item.detail) ? `<span class="min-w-0 truncate">${escape(item.checkpoint?.headline || item.detail)}</span>` : ''}</div></article>`).join('') : `<p class="p-5 text-base text-stone-500">${search ? 'No matching activity' : filter === 'queued' ? 'No errands in the queue' : filter === 'open' ? 'No work in progress' : filter === 'new' ? 'No activity needs your attention' : filter === 'done' ? 'No recent completions' : 'No recent activity'}</p>`);
+      html('errands', visible.length ? visible.map(item => `<article class="activity-row border-b border-stone-100 px-4 py-3 ${item.key === selected ? 'bg-emerald-50/50' : ''}"><div class="flex items-start justify-between gap-4"><button class="activity-title ${item.kind === 'errand' ? 'errand-title' : ''} text-left text-base leading-6 hover:text-emerald-800" data-pick="${escape(item.key)}" aria-pressed="${item.key === selected}">${escape(item.title)}</button><span class="flex shrink-0 items-center gap-2 text-xs text-stone-500">${time(item.at)}<button data-launch="${escape(item.key)}" aria-label="Open session options: ${escape(item.title)}" aria-expanded="${launchKey === item.key}" class="flex size-7 items-center justify-center rounded text-emerald-900 hover:bg-stone-100">↗</button></span></div><div class="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-stone-500">${badge(item.state)}<span>${escape(item.provider)}</span><span>${escape(item.location)}</span>${item.hasLocalOutput ? '<span>Local output</span>' : ''}${item.kind !== 'errand' && (item.checkpoint?.headline || item.detail) ? `<span class="min-w-0 truncate">${escape(item.checkpoint?.headline || item.detail)}</span>` : ''}</div>${launchKey === item.key ? `<div class="mt-2">${window.NowView.sessionActions(item,{desktop:true,copied:copiedTitle === item.key})}</div>` : ''}</article>`).join('') : `<p class="p-5 text-base text-stone-500">${search ? 'No matching activity' : filter === 'queued' ? 'No errands in the queue' : filter === 'open' ? 'No work in progress' : filter === 'new' ? 'No activity needs your attention' : filter === 'done' ? 'No recent completions' : 'No recent activity'}</p>`);
     }
     renderDetail();
+    if (action && !focused.isConnected) [...list.querySelectorAll('button,a')].find(node=>node.dataset[action] === owner)?.focus({preventScroll:true});
+    list.scrollTop = scroll;
     el('record-note').textContent = `${visible.length} shown · Recent activity and open errands${assistant !== 'all' ? ` · ${assistant}` : ''}`;
   }
 
@@ -144,6 +150,7 @@
     html('notice', notices.length ? `<div class="rounded border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">${notices.map(escape).join('<br>')}</div>` : '');
     renderAssistants();
     renderQueue();
+    html('usage', window.NowUsage?.render(data.usage || []) || 'Usage unavailable');
     html('applications', data.applications.filter(a => !/Codex|Gemini|Claude|Antigravity/i.test(a.name)).map(app => `<div class="flex items-center justify-between gap-3" data-title-tip="${escape(app.detail)}"><span class="text-base">${escape(app.name)}</span><span class="shrink-0 text-xs ${app.state === 'open' ? 'text-emerald-800' : 'text-stone-500'}">${app.state === 'open' ? 'Detected' : 'Not detected'}</span></div>`).join(''));
     html('places', data.places.map(p => `<button class="flex items-center justify-between rounded px-1 py-1.5 text-left text-base text-emerald-900 hover:bg-emerald-50" data-action="place" data-id="${escape(p.id)}">${escape(p.name)}<span aria-hidden="true">↗</span></button>`).join(''));
     html('downloads', data.downloads.slice(0,3).map(f => `<div class="min-w-0"><div class="break-words text-base">${escape(f.name)}</div><span class="text-xs text-stone-500">${time(f.modifiedAt)}</span></div>`).join('') || '<p class="text-sm text-stone-500">No recent files</p>');
@@ -158,6 +165,15 @@
     selected = key; renderAssistants(); renderFeed();
   }
   document.addEventListener('click', event => {
+    const launch = event.target.closest('[data-launch]');
+    if (launch) { launchKey = launchKey === launch.dataset.launch ? '' : launch.dataset.launch; copiedTitle = ''; renderFeed(); return; }
+    const copy = event.target.closest('[data-copy-title]');
+    if (copy) {
+      const item = entries.find(i => i.key === copy.dataset.copyTitle);
+      if (item && navigator.clipboard?.writeText) navigator.clipboard.writeText(item.title).then(() => { copiedTitle = item.key; renderFeed(); }).catch(() => { copy.textContent = 'Copy unavailable'; });
+      else copy.textContent = 'Copy unavailable';
+      return;
+    }
     const choice = event.target.closest('[data-assistant]');
     if (choice) { assistant = assistant === choice.dataset.assistant ? 'all' : choice.dataset.assistant; renderAssistants(); renderFeed(); return; }
     const queue = event.target.closest('[data-queue-pick]');
