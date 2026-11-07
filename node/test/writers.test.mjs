@@ -8,7 +8,8 @@
 // has to be one write-kinds.js knows, and a local definition has to be a file
 // in this tree. docs/direct-to-main.csv joins to it by its `writer` column, so
 // every key there has to be a writer here. Every value the tab labels has its
-// label in docs/vocabularies.csv, since the tab reads its words from there.
+// label in docs/vocabularies.csv, since the tab reads its words from there,
+// except a machine, which docs/machines.csv labels and machines.test.mjs holds.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
@@ -55,21 +56,6 @@ test('a Writes view kind is one write-kinds.js knows, and a local definition exi
   }
 });
 
-// An errand's run.venue names the machine a person runs code on (docs/venues.md
-// notes the fields that share the word). This column is a machine too,
-// so it is named `machine` and spells a machine the way run-methods.csv does.
-// Two values are writers' own, because no run method runs there: the cloud
-// container a web session uses, and "your computer", which is coarser than
-// run.venue's personal-laptop and work-machine.
-test('a machine is spelled as run-methods.csv spells it, except the two writers alone need', () => {
-  const runVenues = new Set(Csv.rows(read('docs/run-methods.csv')).flatMap(m => Csv.list(m.venues)));
-  const own = new Set(['container', 'computer']);
-  for (const r of writers)
-    assert.ok(runVenues.has(r.machine) || own.has(r.machine),
-      `${r.writer}: machine ${r.machine} is neither a run-methods.csv venue nor container or computer`);
-  for (const v of own) assert.ok(!runVenues.has(v), `run-methods.csv now spells ${v}; drop it from this test's own list`);
-});
-
 test('every writer docs/direct-to-main.csv names is a writer here', () => {
   const rows = Csv.rows(read('docs/direct-to-main.csv'));
   for (const d of rows) {
@@ -85,7 +71,6 @@ test('every value the tab labels has its label in docs/vocabularies.csv', () => 
   const want = (prop, v) => assert.ok(vocab.has(prop + '=' + v), `writers.${prop} ${v} has no label in docs/vocabularies.csv`);
   for (const r of writers) {
     want('kind', r.kind);
-    want('machine', r.machine);
     if (r.model) want('model', r.model);
     for (const s of Csv.list(r.starts)) want('starts', s);
     for (const w of Csv.list(r.sets_on)) want('sets_on', w);
