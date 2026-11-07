@@ -241,9 +241,13 @@ test('the two sub-tab encodings, counted', () => {
   // been a legend on Showing.
   // 47 to 48 on 2026-10-29: Data took Attributes, what .gitattributes gives
   // each file.
-  // 48 to 49 on 2026-11-02: Data took Relations, the declared joins between
+  // 48 to 50 on 2026-11-02: Browser now opens on Model, every concept it
+  // presents and how they relate, then its two concepts by name. The Gallery
+  // became Units under a key of its own, and a new Patterns tab took the
+  // Gallery's old key, so two addresses were added and none retired.
+  // 50 to 51 on 2026-11-07: Data took Relations, the declared joins between
   // registries.
-  assert.equal(params, 49, 'sub-tabs addressed as ?view=<parent>&tab=');
+  assert.equal(params, 51, 'sub-tabs addressed as ?view=<parent>&tab=');
 });
 
 // The Map's row is a copy of the shell's address list, and it is a copy that
