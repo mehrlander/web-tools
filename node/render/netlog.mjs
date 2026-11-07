@@ -77,7 +77,7 @@ await page.route('**/*', route => {
   if (c.kind === 'continue') return route.continue();
   if (c.kind === 'empty') return route.fulfill({ status: 200, contentType: c.contentType, body: '' });
   rec.bytes = Buffer.byteLength(c.body);
-  return route.fulfill({ status: 200, contentType: c.contentType, body: c.body });
+  return route.fulfill({ status: c.status || 200, contentType: c.contentType, body: c.body });
 });
 page.on('response', async resp => {
   const rec = reqs.find(x => x.url === resp.url() && !x.status);

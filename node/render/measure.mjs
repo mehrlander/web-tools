@@ -69,7 +69,7 @@ function probeDom() {
     return h && t && parseFloat(getComputedStyle(h).fontSize) <= parseFloat(getComputedStyle(t).fontSize);
   });
   const statCards = all.filter(el => el.matches('.stats, .stat-value'));           // html-style rule 1
-  const daisyTips = all.filter(el => el.matches('.tooltip, [data-tip]'));          // html-style rule 11
+  const daisyTips = all.filter(el => el.matches('.tooltip, [data-tip]'));          // html-style rule 10
 
   const sample = els => els.slice(0, 2).map(name);
   return {

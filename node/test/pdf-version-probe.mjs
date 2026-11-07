@@ -20,6 +20,7 @@ import { execFileSync } from 'node:child_process';
 import { chromium } from 'playwright';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { repoRoot as root } from '../repo-root.mjs';
+import { launch as launchChromium } from '../render/chromium.mjs';
 
 const args = process.argv.slice(2).filter(a => !a.startsWith('--'));
 const asJson = process.argv.includes('--json');
@@ -84,7 +85,7 @@ function serve(files) {
 const bytes = await fixture();
 const kit = readFileSync(path.join(root, 'lib', 'kits', 'pdf.js'), 'utf8');
 const pdflib = readFileSync(path.join(root, 'node_modules', 'pdf-lib', 'dist', 'pdf-lib.min.js'));
-const browser = await chromium.launch();
+const browser = await launchChromium();
 console.log(`chromium ${browser.version()}\n`);
 const report = [];
 
