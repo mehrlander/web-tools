@@ -126,7 +126,7 @@ coded `linked-swiper`.
 
 **16. Keep the reader's context.** A link to a row scrolls to it and leaves the other rows in view.
 
-**17. The layout holds still.** A scrollbar appearing, a counter gaining a digit, or a container's content changing moves nothing else: reserve the scrollbar's gutter and give counters `tabular-nums`.
+**17. The layout holds still.** A scrollbar appearing, a counter gaining a digit, or a container's content changing moves nothing else: reserve the scrollbar's gutter, give counters `tabular-nums`, and size a container for its largest content.
 
 **18. An item and its counterparts highlight together.** Where one item appears in two or more places on a page, hovering or tapping any of them marks the others.
 
