@@ -1,6 +1,11 @@
 # Text tools on the page at hand
 
-Three Web Tools surfaces read prose where it is displayed: the **Text tab** in the drawer of the FAB (the floating action button on every page), the **variant marks** on the file viewer's markdown Preview, and the viewer's **History** mode. The estate's other text instruments take a corpus or pasted text. None of the three calls a model or changes anything. The mechanics are in [`fab.js`](../lib/alpineComponents/fab.js) and the kits linked below.
+Three Web Tools surfaces read prose where it is displayed: the **Text tab** in
+the drawer of the FAB (the floating action button on every page), the file
+viewer's **variant marks** on a markdown Preview, and its **History** mode. The
+estate's other text instruments take a corpus or pasted text. None of the three
+calls a model or changes anything. The mechanics are in
+[`fab.js`](../lib/alpineComponents/fab.js) and the kits linked below.
 
 ## The Text tab
 
@@ -51,7 +56,13 @@ without a committed vocabulary?
 
 ## The variant marks
 
-Wherever the file viewer previews a markdown file, a heading whose section holds paragraphs with retained variants gets a mark beside its edit and copy icons, counting those paragraphs, and a tap opens their variants in place; a filled mark means one of those variants is [proposed](#where-variants-and-proposals-come-from) for this file. A paragraph above the first heading gets its mark in the margin. [`kits/md-variants.js`](../lib/kits/md-variants.js) places the marks and draws the variants with [`kits/md-diff.js`](../lib/kits/md-diff.js). The marks are on by default and are switched off for the browser in the FAB's Text tab, under **Retained variants**. Exact matching is the limit: a variant whose paragraph has been edited since no longer matches, and the History mode still lists it.
+Where the file viewer previews a markdown file, a heading whose section holds
+paragraphs with retained variants gets a mark beside its edit and copy icons,
+counting those paragraphs; a tap opens their variants in place. A filled mark
+means one of them is [proposed](#where-variants-and-proposals-come-from) for
+this file. [`kits/md-variants.js`](../lib/kits/md-variants.js) places the
+marks, and the FAB's Text tab turns them off for the browser. A variant whose
+paragraph has since been edited no longer matches.
 
 ## The History mode
 
