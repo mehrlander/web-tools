@@ -40,6 +40,9 @@ class FakeGH {
 const { window, problems } = makeWindow({ html: `<!doctype html><html><body>
   <div id="form" x-data="userCallForm(window.__form)"></div></body></html>` });
 window.GH = FakeGH;
+// jsdom has no layout: a scroll is recorded, by the element it would bring into view.
+const scrolled = [];
+window.Element.prototype.scrollIntoView = function () { scrolled.push(this); };
 window.TOKEN = 'tkn';
 window.gh = { load: async () => {} };
 window.AssistantMark = { shortBranch: (b) => String(b || '') };
@@ -115,6 +118,33 @@ test('a documentation call shows no PR readiness, even when the PR has conflicts
   assert.equal(data().blocker, 'This PR has merge conflicts.');
   assert.equal(root().querySelector('[data-call-blocker]').style.display, 'none');
   data().facts = null;
+});
+
+test('the edits are listed at the top, each with its summary, and a tap scrolls the document to it', async () => {
+  const rows = [...root().querySelectorAll('[data-doc-row]')];
+  assert.equal(rows.length, 4, 'one row per edit');
+  assert.match(rows[0].textContent, /Edit 1\s*clearer/, 'its why, when it has no proposal');
+  assert.match(rows[1].textContent, /Names the order with Second\./, 'its proposal, marks stripped');
+  assert.match(rows[3].textContent, /Third\./, 'else the text it puts in');
+  scrolled.length = 0;
+  rows[1].click();
+  await tick(2);
+  assert.equal(scrolled.at(-1), box(2), 'the document scrolls to the edit');
+  assert.equal(data().docActive, 1);
+  assert.match(rows[1].className, /border-primary/, 'and its row is marked');
+  rows[2].click();
+  await tick(2);
+  assert.equal(scrolled.at(-1), root().querySelector('[data-doc-unplaced="3"]'), 'an edit the file cannot place scrolls to its line');
+});
+
+test('a tap from another view goes back to Changes, then scrolls', async () => {
+  root().querySelector('[data-doc-view="old"]').click();
+  await tick(2);
+  scrolled.length = 0;
+  root().querySelector('[data-doc-row="1"]').click();
+  await until(() => scrolled.length);
+  assert.equal(data().docView, 'changes');
+  assert.equal(scrolled.at(-1), box(1));
 });
 
 test('an edit md-diff draws as several changes marks each, under the one decision', async () => {

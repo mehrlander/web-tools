@@ -95,6 +95,7 @@ test('a new document is drawn whole, with no changes and no view to switch to', 
   assert.match(root().querySelector('[data-doc-head]').textContent, /New document/);
   const views = root().querySelector('[data-doc-view]').closest('.join');
   assert.equal(views.style.display, 'none', 'Old, Changes, Diff and New are hidden');
+  assert.equal(root().querySelector('[data-doc-list]').style.display, 'none', 'and there is no list of edits');
 });
 
 test('a documentation slide fills the deck: no ground padding and no card border', () => {
