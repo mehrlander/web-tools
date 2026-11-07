@@ -18,7 +18,7 @@ Above the tabs, not inside one, sits the LAYER strip naming the frame stack this
 
 ## Render: the ref bar
 
-Render leads with a ref bar naming the ref this view is rendered at, which opens a dropdown of the branches carrying a different version of this page (blob-compare against the default branch); one tap renders there, outside a toss by navigating to toss-render, inside one by re-addressing in place via __tossNavigate; over a file deck or the Stage's reader it asks __deckNavigate first, which re-renders where the reader stands. Off the default branch the ref bar turns warning and grows a button labeled with the default branch ("main") that returns to the live deployed page, or, where the repo serves no Pages, re-addresses this same view at that branch.
+Render's ref bar names the branch in its first row, with ↑/↓ commit counts against the default branch; off the default branch, the row adds 🌿 for the branch page and ✕ to return to the default branch. A link that names a commit pins the view to it, and the bar adds a row with ↓ for the branch's commits since, or "latest", and ✕ to unpin. The branch name opens a dropdown of the branches carrying a different version of this page, and one tap renders that version.
 
 ## Render: the width bar
 

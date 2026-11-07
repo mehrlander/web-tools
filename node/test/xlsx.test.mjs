@@ -381,6 +381,30 @@ test('readZip: a workbook carrying queries reports them under xl.powerQuery', as
   assert.equal(xl.sheets.sheet1.name, 'Data');
 });
 
+test('readZip: decodes UTF-16LE customXml/item1.xml as written by desktop Excel', async () => {
+  const xml = await makeMashupXml();
+  const utf16le = new Uint8Array(2 + xml.length * 2);
+  utf16le[0] = 0xff;
+  utf16le[1] = 0xfe;
+  for (let i = 0; i < xml.length; i++) {
+    const code = xml.charCodeAt(i);
+    utf16le[2 + i * 2] = code & 0xff;
+    utf16le[2 + i * 2 + 1] = code >> 8;
+  }
+  const wb = new JSZip();
+  for (const [path, partXml] of buildParts()) wb.file(path, partXml);
+  wb.file('customXml/item1.xml', utf16le);
+  const bytes = await wb.generateAsync({ type: 'uint8array' });
+
+  const nativeRead = await xlsxKit.readZip(bytes, { fresh: true });
+  assert.equal(nativeRead.xl.powerQuery?.part, 'customXml/item1.xml');
+  assert.equal(nativeRead.xl.powerQuery?.sections[0].m, M_CODE);
+
+  const jszipRead = await xlsxKit.readZip(bytes, { fresh: true, zip: 'jszip' });
+  assert.equal(jszipRead.xl.powerQuery?.part, 'customXml/item1.xml');
+  assert.equal(jszipRead.xl.powerQuery?.sections[0].m, M_CODE);
+});
+
 test('readZip: a workbook without queries leaves xl.powerQuery undefined', async () => {
   const wb = new JSZip();
   for (const [path, xml] of buildParts()) wb.file(path, xml);
