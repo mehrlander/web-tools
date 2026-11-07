@@ -44,7 +44,7 @@ test('add writes one line to main, whatever branch the checkout is on', () => {
 
 test('an anchor that is not JSON is refused plainly, and nothing is written', () => {
   const before = onMain().length;
-  const r = run('add', 'mehrlander/web-tools#803', 'Anchored.', '--anchor', 'docs/venues.md');
+  const r = run('add', 'mehrlander/web-tools#803', 'Anchored.', '--anchor', 'docs/venues.md', '--author', 'claude/x');
   assert.notEqual(r.status, 0);
   assert.match(r.stderr, /--anchor takes a JSON text-quote anchor/);
   assert.doesNotMatch(r.stderr, /Traceback/);
