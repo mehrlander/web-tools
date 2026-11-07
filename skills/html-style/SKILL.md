@@ -120,15 +120,15 @@ coded `linked-swiper`.
 
 **13. Avoid modal dialogs.** Consider a panel-tip, the deck takeover (rule 4), or another more fluid alternative.
 
-**14. Show the source.** Where a page presents a document, a quotation, or a change, show the original: the authority's own PDF or document rather than a conversion made here, quoted text exactly as written with only highlighting added, and a change in place in the real document rather than a summary of it.
+**14. Show the source.** Where a page presents a document, a quotation, or a change, show the original: the authority's own PDF or document rather than a conversion made here, quoted text exactly as written with only highlighting added, and a change shown inline in the document it changes rather than a summary of it.
 
-**15. Before an action, show what it acts on.** An approve control sits beside the item it approves, a copy button beside the content it copies, and a confirm beside the diff against the stored version. Where that content does not fit on the surface, its name opens a viewer to act from.
+**15. Before an action, show what it acts on.** An approve control sits beside the item it approves, a copy button beside the content it copies, and a confirm beside the diff against the stored version. Where that content does not fit on the surface, its name opens it in a panel-tip, with the action beside it.
 
-**16. Keep the reader's context.** A link into a table or list scrolls to its row among the others rather than filtering them away. A detail opens over the current view, as a panel-tip, a [source peek](https://github.com/mehrlander/web-tools/blob/main/lib/kits/source-peek.js), or the deck takeover (rule 4), rather than navigating off it.
+**16. Keep the reader's context.** A link to one row of a table or list, from prose or from another view, scrolls to that row among the others rather than filtering them away. A detail opens over the current view (rule 13) rather than navigating off it.
 
-**17. The layout holds still.** A change of content or state moves nothing it did not change: a scrollbar appearing, a counter gaining a digit, a note being added, a tab switch. Reserve the scrollbar's gutter or scroll inside the pane, give counters `tabular-nums` and a fixed width, and size a container for its largest state.
+**17. The layout holds still.** A change of content or state moves nothing it did not change: a scrollbar appearing, a counter gaining a digit, a note being added. Reserve the scrollbar's gutter or scroll inside the pane, give counters `tabular-nums` and a fixed width, and size a container for its largest state.
 
-**18. An item and its counterparts highlight together.** Where one item appears in more than one place, such as a row and its point on a chart, a term and its other mentions, or an entry and its box in a diagram, hovering or tapping any of them marks the others. Rule 12's list and strip are one case.
+**18. An item and its counterparts highlight together.** Where one item appears in two or more places on a page, such as a row and its point on a chart, a term and its other mentions, or an entry and its box in a diagram, hovering or tapping any of them marks the others.
 
 ## Handing a page over
 
