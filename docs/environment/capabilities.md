@@ -285,20 +285,21 @@ broken file. Check the file itself with `ffprobe` before believing the pixels.
 feature detection works; only playback is missing. Neither WebM nor VP9 was
 tested, so an all-open-codec file may well render.
 
-**WebKit is not pre-installed, and it is the only check of how Safari wraps
-text** *(measured 2026-11-02)*. Safari and every iPhone browser run WebKit,
-whose `text-wrap: pretty` evens out every line of a paragraph where Chromium's
-adjusts only the last few (html-style rule 8), so a wrapping fault on the phone
-can pass every Chromium check. The globally installed Playwright, 1.63.0 in
-`/opt/node-tools`, installed WebKit 26.6 into `$PLAYWRIGHT_BROWSERS_PATH`: run
-`npx playwright install webkit` there, then `apt-get update` and
-`npx playwright install-deps webkit` for its system libraries. The download
-succeeded that day despite the blocked CDN noted above. This repo's
-`playwright@1.56.0` expects a different WebKit build and does not find it, so
+**WebKit is not pre-installed, and Chromium does not show how Safari wraps
+text** *(measured 2026-11-02)*. Safari and most iPhone browsers run WebKit,
+whose `text-wrap: pretty` evened out every line of a paragraph in WebKit 26.6;
+Chromium's adjusts only the last few lines
+([html-style rule 8](../../skills/html-style/SKILL.md)). A wrapping fault on the
+phone can pass every Chromium check. The globally installed Playwright, 1.63.0
+in `/opt/node-tools`, installed WebKit 26.6 into `$PLAYWRIGHT_BROWSERS_PATH`:
+run `npx playwright install webkit` there, then `apt-get update` and
+`npx playwright install-deps webkit` for its system libraries. Playwright's
+download CDN, noted above as blocked, served it that day. This repo's
+`playwright@1.56.0` expects a different WebKit build and does not find it;
 launch through the global one:
-`require('/opt/node-tools/node_modules/playwright').webkit.launch()`. Its Linux
-build cannot construct a synthetic `Touch` event, so a script that dispatches
-touches runs in Chromium. The install lasts only as long as the container.
+`require('/opt/node-tools/node_modules/playwright').webkit.launch()`. WebKit's
+Linux build cannot construct a synthetic `Touch` event, and a script that
+dispatches touches needs Chromium.
 
 **Driving it** is in [testing.md](testing.md): launching Playwright,
 screenshotting, the TLS-proxy launch flag, and rendering a full repo page.

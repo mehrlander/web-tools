@@ -85,10 +85,10 @@ to labels, counters, and timestamps.
 **8. Running copy wraps plainly.** Leave the wrapping of a paragraph, or any
 block that can run to three lines, at its default, and keep its last word off a
 line of its own with a no-break space (` `) in place of the space before
-it. Do not put `text-pretty` on such a block: WebKit, which Safari and every
-iPhone browser run, implements it by evening out every line of the block, so
-each one stops short of the right edge, where Chromium adjusts only the last
-few lines. `text-balance` or `text-pretty` suits a block of at most two lines,
+it. Do not put `text-pretty` on such a block: WebKit, which Safari and most
+iPhone browsers run, implements it by evening out every line of the block, and
+each line stops short of the right edge; Chromium adjusts only the last few
+lines. `text-balance` or `text-pretty` suits a block of at most two lines,
 such as a heading or a short caption. Check wrapping in WebKit as well as
 Chromium; [`capabilities.md`](https://github.com/mehrlander/web-tools/blob/main/docs/environment/capabilities.md#browsers--headless-rendering-available)
 says how to install it.
@@ -135,7 +135,7 @@ coded `linked-swiper`.
 
 **17. An item and its counterparts highlight together.** Where one item appears in two or more places on a page, hovering or tapping any of them marks the others.
 
-**18. A value takes the form its content asks for.** A card or panel does not set its fields in a label column, each value beside or under its label in the same weight. A locator is a link, short labels and dates run as one line of items, a sentence stands as a sentence, and a related item leads with an icon and its name in bold. Leave out a field whose value is a placeholder, the usual default, or a restatement of another field. A table whose rows share columns is exempt.
+**18. A value takes the form its content asks for.** A card or panel does not set its fields in a label column, each value beside or under its label in the same weight. A URL or file path is a link, short labels and dates run as one line of items, a sentence runs as text without a label, and an item the record points to, such as a file it cites, leads with an icon and its name in bold. Leave out a field whose value is a placeholder, a value nearly every card shares, or a restatement of another field. A table whose rows share columns is exempt.
 
 ## Handing a page over
 
