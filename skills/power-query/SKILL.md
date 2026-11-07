@@ -2,7 +2,8 @@
 name: power-query
 description: >
   Patterns, gotchas, and best practices for Power Query (M language). Use whenever
-  the user is writing or debugging Power Query / M code.
+  the user is writing or debugging Power Query / M code, or putting queries into a
+  workbook.
 ---
 
 # Power Query
@@ -66,3 +67,12 @@ Text.BeforeDelimiter(Text.AfterDelimiter(raw, "cite="), "'")
 - **IIS directory listings use uppercase tags** (`<A HREF=`). Case-sensitive matching (e.g. `href=`) will miss them entirely.
 - **Relative hrefs** need the base domain prepended manually: Power Query won't resolve them.
 - **Use `Table.Buffer()`** on expensive upstream fetches to prevent redundant re-evaluation during downstream steps.
+- **Separate `Excel.CurrentWorkbook()` table reads from multi-query references (Formula Firewall):** Power Query's firewall refuses a query that both reads a workbook table via `Excel.CurrentWorkbook(){[Name="..."]}[Content]` and references another query (`"references other queries or steps, so it may not directly access a data source"`). Give each workbook table its own connection-only staging query, and have downstream queries reference only queries.
+
+## Getting M into a workbook
+
+| Route | Use when | Code |
+|---|---|---|
+| COM: `Workbook.Queries.Add`; mechanics in [`excel-com`](../excel-com/SKILL.md) | the saved workbook must already hold results, or an existing query's M must change | [`New-PowerQueryDemo.ps1`](https://github.com/mehrlander/home/blob/main/projects/office/research/2026-10-30-excel-script-creation/New-PowerQueryDemo.ps1) |
+| File writer, in Python | no Excel is at hand; the workbook shows results once someone refreshes it in Excel | [`build_pq_xlsx.py`](https://github.com/mehrlander/home/blob/main/projects/office/research/2026-10-30-power-query-workbook/build_pq_xlsx.py) |
+| Clipboard: paste into Queries & Connections | a person is already working in the workbook | [`Set-MashupClipboard`](https://github.com/mehrlander/home/blob/main/projects/wps/app/Modules/ExcelService/ExcelXml.ps1) |

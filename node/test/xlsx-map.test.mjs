@@ -110,11 +110,14 @@ const read = () => {
   r.xl.powerQuery = { sections: [{ path: 'Formulas/Section1.m', m: [
     'section Section1;',
     '',
+    '[ Description = "Seed download from example.gov" ]',
     'shared Base = let Source = Csv.Document(Web.Contents("https://example.gov/feed.csv")) in Source;',
     '',
+    '[ Description = "Filtered feed (mentions Base in description)" ]',
     'shared Feed = let Source = Base, #"Kept" = Table.SelectRows(Source, each [Note] <> "shared Fake = 1") in #"Kept";',
     '',
-    'shared Local = let T = Excel.CurrentWorkbook(){[Name="LedgerTbl"]}[Content] in T;',
+    '[ Description = "Reads LedgerTbl and filters [Base] column without referencing Base query" ]',
+    'shared Local = let T = Excel.CurrentWorkbook(){[Name="LedgerTbl"]}[Content], K = Table.SelectRows(T, each [Base] <> "Base") in K;',
     '',
     'shared Source = let A = 1 in A;',
   ].join('\n') }] };
@@ -173,9 +176,12 @@ test('a pivot to its source sheet, a query to its table, a query to what it read
 });
 
 test('one M file holds every query, each by its name', () => {
-  assert.deepEqual(XlsxMap.queries(read()).map(q => q.name), ['Base', 'Feed', 'Local', 'Source'],
+  const qs = XlsxMap.queries(read());
+  assert.deepEqual(qs.map(q => q.name), ['Base', 'Feed', 'Local', 'Source'],
     'and "shared Fake" inside a string opens no query');
-  assert.match(XlsxMap.queries(read())[1].m, /^let Source = Base/);
+  assert.equal(qs[0].m, 'let Source = Csv.Document(Web.Contents("https://example.gov/feed.csv")) in Source',
+    'trailing semicolon and following [ Description = ... ] attribute are stripped cleanly');
+  assert.match(qs[1].m, /^let Source = Base/);
 });
 
 test('a sheet of headings over rows is a table; a sheet of labels is a form', () => {
@@ -193,3 +199,45 @@ test('a sheet of headings over rows is a table; a sheet of labels is a form', ()
   assert.deepEqual(g.Lookups.named, ['TaxRate']);
   assert.deepEqual([g['Q1 / Plan'].hiddenRows, g['Q1 / Plan'].hiddenCols], [[3], ['C']], 'hidden rows by number, columns by letter, within the used width');
 });
+
+test('a query named inside a record constructor links, while a field selector of the same name does not', () => {
+  const m = [
+    'section Section1;',
+    'shared FiscalYear = "FY1" meta [IsParameterQuery = true, Type = "Text", IsParameterQueryRequired = true];',
+    'shared WebIRows = Excel.CurrentWorkbook(){[Name = "LedgerTbl"]}[Content];',
+    'shared Ledger = let',
+    '  Filtered = Table.SelectRows(WebIRows, each [FiscalYear] = "FY1"),',
+    '  Rec = [Year = FiscalYear, Count = Table.RowCount(Filtered)]',
+    'in Rec;',
+  ].join('\r\n');
+  const r = read();
+  r.xl.powerQuery = { sections: [{ path: 'Formulas/Section1.m', m }] };
+  const qs = XlsxMap.queries(r);
+  assert.deepEqual(qs.map(q => q.name), ['FiscalYear', 'WebIRows', 'Ledger']);
+  const qLinks = XlsxMap.links(r).filter(l => l.kind === 'source' && l.to.type === 'query').map(XlsxMap.phrase).sort();
+  assert.deepEqual(qLinks, [
+    'query FiscalYear feeds query Ledger',
+    'query WebIRows feeds query Ledger',
+    'table LedgerTbl on Ledger feeds query WebIRows',
+  ]);
+});
+
+test('a URL inside a string hides no later query reference, while a name only in a comment or a string links nothing', () => {
+  const m = [
+    'section Section1;',
+    'shared Rates = 1;',
+    'shared Feed = let',
+    '  Raw = Web.Contents("https://example.gov/a.csv"),',
+    '  K = Table.SelectRows(Rates, each [Fund] = "600")',
+    'in K;',
+    'shared Noted = let K = 2 // not Rates',
+    'in K;',
+    'shared Quoted = let K = "Rates" in K;',
+  ].join('\n');
+  const r = read();
+  r.xl.powerQuery = { sections: [{ path: 'Formulas/Section1.m', m }] };
+  const qLinks = XlsxMap.links(r).filter(l => l.kind === 'source' && l.from.type === 'query' && l.to.type === 'query').map(XlsxMap.phrase);
+  assert.deepEqual(qLinks, ['query Rates feeds query Feed'],
+    'the // in "https://" is not a comment, so Rates after it still links; Noted and Quoted name Rates only in a comment and a string');
+});
+

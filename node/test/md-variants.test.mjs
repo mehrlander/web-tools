@@ -208,3 +208,168 @@ test('unstaged names each proposed pair plan does not stage, and why', () => {
     .find((u) => u.to === 'a3').reason, 'unpaired', 'a block proposed with no variant holding the pair');
   assert.deepEqual(K.unstaged(doc, ix, { file: { repo: 'mehrlander/web-tools', path: 'docs/none.md' } }), [], 'no proposals, nothing to say');
 });
+
+// ── Marks on a rendered Preview ────────────────────────────────────────────
+// mark() reads only variants.jsonl and proposals.jsonl to place a marker, so
+// the stub GH serves those two, keyed by the real passage ids, and serves the
+// passages only for the tap that opens a card.
+async function marksFixture(doc = DOC) {
+  const T = window.TextCollection;
+  const id = (s) => T.passageId(s);
+  const [t1, t1c, t1h, t3, t3n] = await Promise.all([P1, P1_CLARITY, P1_HALF, P3, P3_NEW].map(id));
+  const rows = (xs) => xs.map((x) => JSON.stringify(x)).join('\n') + '\n';
+  const blobs = {
+    [T.PATHS.passages]: rows([[t1, P1], [t1c, P1_CLARITY], [t1h, P1_HALF], [t3, P3], [t3n, P3_NEW]].map(([i, text]) => ({ id: i, text }))),
+    [T.PATHS.variants]: rows([
+      { from: t1, to: t1c, author: 'Ollama mistral:7b', purpose: 'clarity' },
+      { from: t1, to: t1h, author: 'Chief of Staff (Grok)', purpose: 'half-length' },
+      { from: t3, to: t3n, author: 'doc-audit', purpose: 'qualify' },
+    ]),
+    [T.PATHS.proposals]: rows([
+      { from: t1, to: t1h, ...FILE, basis: BASIS },
+      { from: t3, to: t3n, repo: 'mehrlander/home', path: 'somewhere/else.md', basis: BASIS },
+    ]),
+  };
+  const calls = [];
+  window.GH = class {
+    constructor(o) { this.repo = o.repo; this.token = o.token; }
+    get headers() { return { Authorization: `Bearer ${this.token}` }; }
+    async get(p) {
+      calls.push(p);
+      if (!(p in blobs)) { const e = new Error('Not Found'); e.status = 404; throw e; }
+      return { text: blobs[p] };
+    }
+  };
+  T.clear();
+  window.localStorage.removeItem(K.MARKS_KEY);
+  const box = window.document.createElement('div');
+  box.className = 'prose';
+  box.innerHTML = marked.parse(doc);
+  window.document.body.replaceChildren(box);
+  return { box, calls, T };
+}
+const tick = () => new Promise((r) => setTimeout(r, 0));
+// jsdom has no scrolling; md-diff's swipe deck scrolls its track to the inline stop.
+window.HTMLElement.prototype.scrollTo = function ({ left = 0 } = {}) {
+  Object.defineProperty(this, 'scrollLeft', { value: left, configurable: true, writable: true });
+  this.dispatchEvent(new window.Event('scroll'));
+};
+
+const BARE = DOC.replace(/^# .*\n\n/, '');
+const sectionTool = (box) => box.querySelector('[data-md-variant-section]');
+const until = async (ok) => { for (let i = 0; i < 80 && !ok(); i++) await new Promise((r) => setTimeout(r, 10)); };
+
+test('mark puts the sparkle in the heading\'s row of tools, counting its paragraphs, from the light read alone', async () => {
+  const { box, calls, T } = await marksFixture();
+  const r = await K.mark(box, DOC, { file: FILE, token: 't' });
+  assert.equal(r.count, 2);
+  assert.equal(r.sections, 1);
+  assert.deepEqual(calls.sort(), [T.PATHS.proposals, T.PATHS.variants].sort(), 'no passages until a card opens');
+  const tool = sectionTool(box);
+  assert.equal(tool.closest('h1'), box.querySelector('h1'), 'in the heading');
+  assert.ok(tool.closest('.md-sec-tools'), 'in its row of tools, beside edit and copy where md-doc drew them');
+  assert.equal(tool.textContent.trim(), '2', 'two paragraphs under it have variants');
+  assert.match(tool.getAttribute('aria-label'), /2 paragraphs with variants \(3 in all\), one proposed for this file/);
+  assert.match(tool.querySelector('i').className, /ph-fill/, 'a proposal for the open file fills it');
+  assert.equal(box.querySelectorAll('.md-variant-mark').length, 0, 'no margin marks under a heading');
+  await K.mark(box, DOC, { file: FILE, token: 't' });
+  assert.equal(box.querySelectorAll('[data-md-variant-section]').length, 1, 'marking again replaces, never doubles');
+});
+
+test('a paragraph above the first heading keeps the margin mark', async () => {
+  const { box } = await marksFixture(BARE);
+  const r = await K.mark(box, BARE, { file: FILE, token: 't' });
+  assert.equal(r.count, 2);
+  assert.equal(r.sections, 0);
+  const marks = [...box.querySelectorAll('.md-variant-mark')];
+  assert.deepEqual(marks.map((m) => m.parentElement.textContent.startsWith('The lanes') ? 'P1'
+    : m.parentElement.textContent.startsWith('Carry-forward') ? 'P3' : '?'), ['P1', 'P3'], 'on the paragraphs, in order');
+  assert.equal(marks[0].getAttribute('aria-label'), '2 retained variants, proposed for this file');
+  assert.equal(marks[1].getAttribute('aria-label'), '1 retained variant', 'a proposal for another file does not fill it');
+  assert.ok(marks.every((m) => m.parentElement.classList.contains('relative')));
+});
+
+test('without a token mark reads nothing and leaves the render untouched', async () => {
+  const { box, calls } = await marksFixture();
+  const before = box.innerHTML;
+  const saved = window.TOKEN; delete window.TOKEN;
+  try {
+    assert.equal((await K.mark(box, DOC, { token: '' })).count, 0);
+  } finally { if (saved !== undefined) window.TOKEN = saved; }
+  assert.deepEqual(calls, []);
+  assert.equal(box.innerHTML, before);
+});
+
+test('the switch clears every marked box and brings the marks back, per browser', async () => {
+  const { box } = await marksFixture();
+  await K.mark(box, DOC, { file: FILE, token: 't' });
+  K.setMarks(false);
+  await tick();
+  assert.equal(window.localStorage.getItem(K.MARKS_KEY), 'off');
+  assert.equal(box.querySelectorAll('[data-md-variant-mark]').length, 0);
+  assert.equal((await K.mark(box, DOC, { token: 't' })).off, true, 'a fresh render stays clear while off');
+  K.setMarks(true);
+  await until(() => sectionTool(box));
+  assert.equal(window.localStorage.getItem(K.MARKS_KEY), null, 'on is the absent key');
+  assert.ok(sectionTool(box));
+});
+
+test('the heading\'s sparkle opens every card in its section; a card\'s own mark closes it alone', async () => {
+  const { box } = await marksFixture();
+  await K.mark(box, DOC, { file: FILE, token: 't' });
+  const tool = sectionTool(box);
+  const paras = [...box.querySelectorAll('p')].filter((p) => /^(The lanes|Carry-forward)/.test(p.textContent));
+  tool.click();
+  await until(() => box.querySelectorAll('[data-md-variant-card]').length === 2 && tool.getAttribute('aria-expanded') === 'true');
+  const cards = [...box.querySelectorAll('[data-md-variant-card]')];
+  assert.equal(cards.length, 2, 'both paragraphs open');
+  assert.equal(tool.getAttribute('aria-expanded'), 'true');
+  assert.ok(paras.every((p) => p.hidden), 'in place of their paragraphs');
+  assert.equal(cards[0].nextElementSibling, paras[0]);
+  const card = cards[0];
+  await until(() => card.querySelector('.md-diff-change'));
+  // The card opens on the proposed variant, slide 1, by an instant jump a frame
+  // after it mounts (jsdom's track is 1px wide under the stub, so slide 1 is at 1).
+  await until(() => card.querySelector(':scope > .sd-track').scrollLeft === 1);
+  assert.match(card.textContent, /Chief of Staff \(Grok\)/, 'the proposed variant is the one shown');
+  assert.ok(card.querySelector('[data-md-variants-proposal]'), 'marked as proposed here');
+  assert.ok(card.querySelector('.md-diff-change'), 'drawn as md-diff\'s container, as the call form draws an edit');
+  assert.equal(card.querySelectorAll('[data-md-variants-pick]').length, 0, 'no row of purpose labels');
+  const step = () => card.querySelector('[data-md-variant-step]');
+  assert.match(step().textContent, /Variant 2 of 2/, 'it opens on the proposed one, second of the two');
+  assert.equal(step().querySelector('[aria-label="Next variant"]').disabled, true);
+  // The page's keys stay the page's: the card installs no document listener.
+  const down = new window.KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true });
+  window.document.body.dispatchEvent(down);
+  assert.equal(down.defaultPrevented, false, 'ArrowDown still scrolls the document');
+  // TWO SWIPES, ONE AT A TIME: the readings swipe first; a tap on the badge
+  // hands the swipe to the variants, and a tap on the readings pill takes it back.
+  const outer = card.querySelector(':scope > .sd-track');
+  const inner = () => [...card.querySelectorAll('.md-diff-change .sd-track')];
+  assert.equal(card.dataset.mdVariantAxis, 'reading');
+  assert.equal(outer.style.overflowX, 'hidden', 'the variants hold still');
+  assert.ok(inner().every((t) => t.style.overflowX === ''), 'the readings swipe');
+  step().querySelector('span').click();
+  assert.equal(card.dataset.mdVariantAxis, 'variants');
+  assert.equal(outer.style.overflowX, '', 'the variants swipe');
+  assert.ok(inner().length && inner().every((t) => t.style.overflowX === 'hidden'), 'the readings hold still');
+  assert.ok(step().classList.contains('ring-1'), 'the active badge is ringed');
+  card.querySelector('.md-diff-stops button').click();
+  assert.equal(card.dataset.mdVariantAxis, 'reading', 'a tap on the readings pill takes the swipe back');
+  assert.ok(card.querySelector('.md-diff-stops').classList.contains('ring-1'));
+  step().querySelector('[aria-label="Previous variant"]').click();
+  await until(() => /Variant 1 of 2/.test(step()?.textContent || ''));
+  assert.match(step().textContent, /Variant 1 of 2/);
+  assert.match(card.textContent, /Ollama mistral:7b/, 'the arrow moves to the other variant');
+  assert.equal(step().querySelector('[aria-label="Previous variant"]').disabled, true);
+  assert.equal(card.dataset.mdVariantAxis, 'variants', 'an arrow hands the swipe to the variants too');
+  card.querySelector('.md-variant-mark').click();
+  assert.equal(box.querySelectorAll('[data-md-variant-card]').length, 1, 'its own mark closes that card alone');
+  assert.equal(paras[0].hidden, false);
+  assert.equal(tool.getAttribute('aria-expanded'), 'true', 'the section still has one open');
+  tool.click();
+  await tick();
+  assert.equal(box.querySelectorAll('[data-md-variant-card]').length, 0, 'the heading closes the rest');
+  assert.ok(paras.every((p) => !p.hidden));
+  assert.equal(tool.getAttribute('aria-expanded'), 'false');
+});

@@ -22,7 +22,7 @@ Each also reads from the query. Pin `@ref` to a commit so the link keeps showing
 | Field | Holds |
 | --- | --- |
 | `title`, `subject`, `made` | the board's name, what it is about, and the date |
-| `brief.background`, `brief.methodology` | a paragraph each, from phase 1: the situation that gives rise to the board and what a reader should be able to do after it, then how the concepts were made and what each must show, with the formatting [Cards](#cards) describes |
+| `brief.background`, `brief.methodology` | a sentence each, from phase 1: what gives rise to the board, then how the concepts were made |
 | `ideas[]` | eight concepts: `n`, `title`, `kind` (its principal difference), `commentary`, `sketch` |
 | `selection.pick[]` | the base concept's `n` |
 | `selection.grafts[]` | `[n, what is taken from it]` pairs |
@@ -46,7 +46,7 @@ Each also reads from the query. Pin `@ref` to a commit so the link keeps showing
 
 A board has four parts: the brief gives its background and methodology, each idea has a proposal (its `title`, `kind` and `sketch`) and a commentary (its `commentary`), and the selection is its conclusion. [`lib/kits/call-marks.js`](../lib/kits/call-marks.js) draws an icon for each part, and the page marks the brief and the selection with the kit's book and stamp.
 
-Each idea is one card: its commentary, then its sketch, then the reader's star and note; from 1280 pixels wide the sketch sits beside the other two. The commentary is a short, qualified discussion of what the idea brings, in paragraphs separated by a blank line, with `**bold**` and `` `code` `` the only formatting drawn. The header above the strip of cards names the card in view by its number and `title`. The brief card shows the background and the methodology, each under its label, with the board's `made` date beneath them. A board whose brief has `result` and `musts[]` and whose ideas have `encounter` and `helps`, as [`docs/prototypes/md-edit-ideas.json`](prototypes/md-edit-ideas.json) does (a record, never edited once on main), is read with each pair turned into prose.
+Each idea is one card: its commentary, then its sketch, then the reader's star and note; from 1280 pixels wide the sketch sits beside the other two. The commentary is one sentence of insight into what the idea brings, with `**bold**` and `` `code` `` the only formatting drawn. The header above the strip of cards names the card in view by its number and `title`. The brief card shows the background and the methodology, each under its label, with the board's `made` date beneath them. A board whose brief has `result` and `musts[]` and whose ideas have `encounter` and `helps`, as [`docs/prototypes/md-edit-ideas.json`](prototypes/md-edit-ideas.json) does (a record, never edited once on main), is read with each pair turned into prose.
 
 ## Returning picks
 
@@ -56,4 +56,4 @@ the board's address, to paste into the session that made the board. Picks and
 notes stay in the browser, keyed by the address without its ref, so a board
 republished at a new commit keeps them.
 
-A pick call is a user call of kind `pick` whose `board.ideas` is the board's `#gh=` address; web-tools-private's [`user-call.py`](https://github.com/mehrlander/web-tools-private/blob/main/user-calls/user-call.py) states the call's fields and prints the call's link. When the page is opened on one, the header adds a Send button. Send writes the stars and notes as one line in the call's `answers.jsonl` and comments them on the pull request the call names, so a session subscribed to that pull request is notified. The [image board](../pages/image-board.html) answers the same way, through the same function, `postAnswer` in [`user-call-form.js`](../lib/alpineComponents/user-call-form.js). Reopened on the call, the board starts from the latest line rather than from the browser.
+On a [pick call](forms/README.md#respond-forms), opened at its `#user-call=` address, the header's Send records the stars and notes as the call's answer and comments them on its pull request. Reopened there, the board starts from the latest answer.

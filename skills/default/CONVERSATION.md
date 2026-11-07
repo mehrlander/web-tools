@@ -15,7 +15,7 @@ substituting the current repo in URL templates.
   - 🪧 **Direction needed:** Next steps appear to diverge. Offer to take the reader's direction or to make a full assessment and recommendation; "go" asks for the assessment.
   - 🛵 **Needs you:** Only the reader can supply what is needed: a tap, an observation, or a value from outside the repo. Give each request an action link, one that performs it when tapped.
   - 👁️‍🗨️ **Have a look:** The session shows a page, a draft or a change for the reader's judgment. The whole lead is its look link, `[👁️‍🗨️ **Have a look:**](<url>)`, even when the render line carries the same link; [Displaying content](#displaying-content) describes look links. Two or more pages, drafts or changes go in that one link, a step on each.
-  - ✍️ **Sign-off needed:** Documentation wording, laid out above as a doc review (see the doc-craft skill), waits on the reader's approval. Say what the session will do once it is given.
+  - ✍️ **Sign-off needed:** Documentation wording, presented as the doc-craft skill asks, waits on the reader's approval. Say what the session will do once it is given.
   - 🟠 **Attention:** A concrete problem must be settled before proceeding.
   - ⚪ **Clean exit:** Nothing remains here; the reader decides whether to wrap up.
   - 🟣 **Merged:** GitHub reports this branch merged. State what shipped in one line. Further edits go in a new PR.
@@ -25,7 +25,7 @@ substituting the current repo in URL templates.
 
   Use 🟢, not 🪧, when the reader's shared intention gives the session a clear path. A call, a decision only the reader can make, closes on ⚖️ **Choice needed:**, and only once the question has been fully assessed for an unfamiliar reader: give the question, then `Recommended: <answer>, because <reason>.` Without that assessment, close on 🪧. A request for the reader's judgment of something shown is 👁️‍🗨️; a request for an act or a fact is 🛵.
 
-* **Close in one order.** End with the caption, render line, 🧭, then the state. Include a state when no files changed. A wake (a nudge, stop hook, finished job, PR event, or moved base) that leaves the reader nothing new gets no reply. If the harness then requires visible output, reply with one line naming the wake.
+* **Close in one order.** End with the caption, render line, then the state. Include a state when no files changed. A wake (a nudge, stop hook, finished job, PR event, or moved base) that leaves the reader nothing new gets no reply. If the harness then requires visible output, reply with one line naming the wake.
 
 * **Surfacing caption.** Use:
   `💬 [session](…/pages/session.html#id=<short>) · <N> files · [this turn](…/commit/<sha>)`
@@ -39,28 +39,27 @@ substituting the current repo in URL templates.
 
 * **Branch anchor.** The first reply that changes files begins with `Working branch: [branch-name](url)`. Code changes use GitHub flow on a branch with assistant prefixes (`claude/`, `codex/`, `gemini/`, `grok/`). Shared coordination state (task trackers, personal lists, session logs, crawl caches) uses Real-time mode directly on `main`. Include the assistant's commit trailer from [AGENTS.md](https://github.com/mehrlander/web-tools/blob/main/AGENTS.md#assistant-identity-and-attribution).
 
-* **Reference is a link.** Use `[caption](url)` for anything the reader can open. Label touched source `[new]`, unchanged source `[main]`, and changes `[diff]`. Give a page, document, or data file a render link: 🥏 for a toss, 🔷 for the deployed page, 📦 for a Claude artifact. Cite a pull request as `[web-tools#997](…/pull/997) [🌿](…#gh=owner/repo&pr=997) [💬](…/pages/session.html#id=<short>) https://claude.ai/code/<session-id>`: the pull request, its branch, its session record, and its session, which the app shows by title. Omit a session link to the present session. The session id is in the head commit's `Claude-Session` trailer. Inside a sentence, omit 🌿 and 💬. Repeat a pull request as `` `#997` ``: any other `#997`, even in bold or as link text, becomes an unwanted `owner/repo#997` chip. Reserve `file:line` for grep and debugging.
+* **Reference is a link.** Use `[caption](url)` for anything the reader can open. Label touched source `[new]`, unchanged source `[main]`, and changes `[diff]`. Give a page, document, or data file a render link: 🥏 for a toss, 🔷 for the deployed page, 📦 for a Claude artifact. Cite a pull request as `[web-tools#997](…/pull/997) [🌿](…#gh=owner/repo&pr=997) [💬](…/pages/session.html#id=<short>) https://claude.ai/code/<session-id>`: the pull request, its branch, its session record, and its session, which the app shows by title. Omit a session link to the present session. The session id is in the head commit's `Claude-Session` trailer. Inside a sentence, omit 🌿 and 💬. Repeat a pull request as `` `#997` ``: any other `#997`, even in bold or as link text, becomes an unwanted `owner/repo#997` chip. Cite a house policy as `[h:smug](…/app/?view=map&tab=policy&h=smug)`, not as a slash command. Reserve `file:line` for grep and debugging.
 
 * **Open the branch 🌿.** Use `…/pages/branch.html#gh=owner/repo@branch[&base=ref]`, or `…#gh=owner/repo&pr=<n>` for a PR's head and base. Add `&file=<path>` to open a file or `&pane=files` to open the file list.
 
-* **Guide pointer 🧭.** A PR's guide is the part of its body between `[//]: # (guide)` and `[//]: # (/guide)`. The branch page shows the body above the files. After a push that changes the branch's state, rewrite the guide with `update_pull_request`, once `python3 python/mcp-link-safe.py --check body.md`, run from a web-tools checkout, passes. Leave files and checks to the branch page. Use:
+* **The PR guide.** A PR's guide is the part of its body between `[//]: # (guide)` and `[//]: # (/guide)`. Write it when the PR opens, when its purpose changes, and before it merges. Leave out files, which the branch page shows, and commits and checks, which GitHub shows. Check a body with `python3 python/mcp-link-safe.py --check body.md`, run from a web-tools checkout, before sending it. Use:
 
   ```markdown
   ## What this PR does
   <one sentence: the resulting capability>
   ## Why this branch exists
-  <the problem, and what a reader needs to resume, in plain prose>
+  <the problem and the decisions behind the change, in plain prose>
   ## Open threads
-  1. 🟢 **<title>**: <state and next step>
-  2. 🟡 **<title>**: <what it waits on>
-  3. ✅ **<title>**: <decision or result>
+  1. 🟢 **<title>**: <a step the session will take>
+  2. 🟡 **<title>**: <what it waits on, and on whom>
   ## Risk
-  <an uncertainty, failing check or stale assumption, or "None.">
+  <an uncertainty or stale assumption>
   ---
-  🌿 [Open the branch](<branch URL>) · 🥏 [Live page](<render URL>)
+  🌿 [Open the branch](<branch URL>)
   ```
 
-  Use `🧭 [PR #N](…) (body synced)` only when this turn rewrote the guide; otherwise use `(body not synced)`. Do not carry the marker forward from an earlier reply.
+  List only threads still open, and omit a section with nothing to say.
 
 ## Displaying content
 

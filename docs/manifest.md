@@ -224,10 +224,10 @@ Every errand carries a `note` saying what is wanted. Three optional fields say h
 
 - `action` names a mechanism the Stage performs itself: `tree`, `branches` or
   `fetch`, a read of one of your repos with your token.
-- `run` describes what gets run: `script` (`owner/repo@ref:path`), `venue`,
-  `method`, `outputReturn`, `outputType` and `outputSigned`. The methods, the
-  venues each allows and how each returns its output are the registry
-  [`run-methods.csv`](run-methods.csv). A `courier-bookmark` run executes on a
+- `run` describes what gets run: `script` (`owner/repo@ref:path`), `venue` (a
+  [`machines.csv`](machines.csv) key), `method`, `outputReturn`, `outputType` and
+  `outputSigned`. The methods, the machines each allows and how each returns its
+  output are the registry [`run-methods.csv`](run-methods.csv). A `courier-bookmark` run executes on a
   page the session cannot reach; see `courier/README.md`. A `computer-use` run's
   script is a prompt rather than code: the person hands it to a computer-use
   agent on the home laptop, whichever product, pastes the agent's report onto
