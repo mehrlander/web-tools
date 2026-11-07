@@ -89,7 +89,7 @@ test("a call filed on its PR's branch is read at the PR's base, where its edits 
 test('a documentation call has no deck below: the document card takes the full height', () => {
   assert.equal(data().mats.length, 0, 'its materials open no deck');
   assert.equal(root().querySelector('[data-swipe-section]').style.display, 'none');
-  assert.match(root().querySelector('[data-call-card]').className, /max-h-full/);
+  assert.match(root().querySelector('[data-call-card]').className, /\bflex-1\b/, 'the card fills the slide (owner, 2026-11-07)');
   assert.ok(root().querySelector('[data-call-card] [data-pr-chip]'), 'the PR stays a chip in the brief');
 });
 
