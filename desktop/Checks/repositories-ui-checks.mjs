@@ -46,6 +46,7 @@ check(row().querySelector('[data-branch-signal]').classList.contains('text-viole
 c.branchStatus.state='review';c.branchStatus.url='javascript:alert(1)';await poll();click(`[data-branch-signal="${key}"]`);
 check(branchPanel().textContent.includes('local history still needs review')&&!branchPanel().querySelector('a'),'Post-merge review remains distinct and unsafe PR links are omitted.');
 c.branchStatus={state:'incorporated',checkedAt:at};await poll();check(branchPanel().textContent.includes('Included in GitHub default branch'),'Work already incorporated without a PR has its own explanation.');
+c.branchStatus.state='snapshot';c.main.branch='<img src=x onerror=x>';await poll();check(branchPanel().textContent.includes('<img src=x onerror=x>')&&!branchPanel().querySelector('img,[onerror]'),'Snapshot branch names remain literal text in the detail panel.');c.main.branch='main';
 delete c.branchStatus;await poll();check(branchPanel().textContent.includes('Branch status not checked'),'Saved observations without lifecycle metadata remain honest.');
 click('#local-observed');top=0;
 check([...row().querySelectorAll('[data-metric]')].map(n=>n.textContent).join(',')==='2,1,2'&&!row().querySelector('[data-folder]').textContent.includes('changed'),'Separate compact counts expose changed tracked files, untracked files and ignored inventory entries without row labels.');
