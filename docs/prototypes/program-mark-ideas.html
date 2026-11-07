@@ -106,13 +106,14 @@
     progs: [['sessions', 'Sessions'], ['testing', 'Testing'], ['organization', 'Organization'], ['content', 'Content'], ['discovery', 'Discovery']],
     on: ['organization', 'content', 'discovery'],
     favs: { sessions: [], testing: [], organization: [], content: [], discovery: [] },
-    moving: { p: '', i: -1 }, drag: null,
+    moving: { p: '', i: -1 }, drag: null, reps: {},
     call: null, at: null, sent: null, sending: false, err: '', note: '', copied: false,
     get store() { return 'program-mark-ideas:favorites' + (this.at ? ':' + this.at.path : '') },
     async init() {
       const hash = new URLSearchParams(location.hash.slice(1));
       this.at = hash.get('user-call') ? window.RepoAddress.parse(hash.get('user-call')) : null;
       try { Object.assign(this.favs, JSON.parse(localStorage.getItem(this.store) || '{}')) } catch {}
+      try { this.reps = JSON.parse(localStorage.getItem('program-mark-ideas:reps') || '{}') } catch {}
       fetchIcons(this.data);
       if (!this.at) return;
       try {
@@ -130,9 +131,12 @@
     marks(p) { return this.data[p].reduce((n, g) => n + g.items.length, 0) },
     uri(s) { return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(s) },
     show(p, it) { return this.uri(it && it.svg ? asProgram(it.svg, p, this.cue) : BLANK(p)) },
-    pick(p) { const [g, i] = this.sel[p]; return this.data[p][g].items[i] },
+    // Each idea keeps the mark chosen in it, and its card shows that mark.
+    rep(p, g) { return this.reps[p + ':' + g] ?? 0 },
+    choose(p, ii) { const g = this.sel[p][0]; this.reps = { ...this.reps, [p + ':' + g]: ii }; this.sel[p] = [g, ii]; try { localStorage.setItem('program-mark-ideas:reps', JSON.stringify(this.reps)) } catch {} },
+    pick(p) { const g = this.sel[p][0]; return this.data[p][g].items[this.rep(p, g)] || this.data[p][g].items[0] },
     source(it) { const s = it && it.icon && this.data.sources[it.icon.split(':')[0]]; return s ? s.name + ', ' + s.license : '' },
-    card(p, gi) { if (this.sel[p][0] !== gi) { this.sel[p] = [gi, 0]; this.$nextTick(() => { const el = document.querySelector(`[data-strip=${p}]`); if (el) el.scrollLeft = 0 }) } },
+    card(p, gi) { if (this.sel[p][0] !== gi) { this.sel[p] = [gi, this.rep(p, gi)]; this.$nextTick(() => { const el = document.querySelector(`[data-strip=${p}]`), b = el && el.querySelectorAll(':scope > div')[this.rep(p, gi)]; if (el) el.scrollLeft = b ? Math.max(0, b.offsetLeft - el.offsetLeft - 8) : 0 }) } },
     // A mark's key names its source: an Iconify id, or the drawn mark's name.
     keyOf(p, it) { return it.icon ? 'iconify ' + it.icon : 'drawn ' + p + ':' + it.name },
     itemOf(p, k) { for (const g of this.data[p]) for (const it of g.items) if (this.keyOf(p, it) === k) return it; return null },
@@ -237,7 +241,7 @@
               <template x-for="(it, ii) in data[p][sel[p][0]].items" :key="p + sel[p][0] + '-' + ii">
                 <div class="relative w-[4.25rem] shrink-0">
                   <button type="button" class="flex w-full flex-col items-center gap-1 rounded-box p-1"
-                    :class="sel[p][1] === ii ? 'bg-[var(--color-base-200)]' : ''" @click="sel[p] = [sel[p][0], ii]">
+                    :class="rep(p, sel[p][0]) === ii ? 'bg-[var(--color-base-200)]' : ''" @click="choose(p, ii)">
                     <img :src="show(p, it)" alt="" class="block size-9">
                     <span class="w-full truncate text-center text-xs text-base-content/70" x-text="it.name"></span>
                   </button>
@@ -252,7 +256,7 @@
           <template x-for="(g, gi) in data[p]" :key="p + gi">
             <button class="relative flex flex-col items-center gap-1 rounded-box border bg-base-100 p-1.5 text-center lg:gap-1.5 lg:p-2"
               :class="sel[p][0] === gi ? 'border-[var(--color-primary)]' : 'border-[var(--color-base-300)]'" @click="card(p, gi)">
-              <img :src="show(p, sel[p][0] === gi ? g.items[sel[p][1]] : g.items[0])" alt="" class="block size-10 lg:size-11">
+              <img :src="show(p, g.items[rep(p, gi)] || g.items[0])" alt="" class="block size-10 lg:size-11">
               <span class="text-xs font-medium leading-tight text-balance" x-text="g.name"></span>
               <span class="font-mono text-xs text-base-content/50" x-text="g.items.length"></span>
               <span x-show="g.items.some(it => isFav(p, it))" class="absolute top-1 right-1.5 text-xs text-amber-500" x-text="'★' + g.items.filter(it => isFav(p, it)).length"></span>
