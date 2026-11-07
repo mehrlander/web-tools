@@ -133,20 +133,19 @@ test('the edits are listed at the top, each with its summary, and a tap scrolls 
   await tick(2);
   assert.equal(scrolled.at(-1), box(2), 'the document scrolls to the edit');
   assert.equal(data().docActive, 1);
-  assert.match(rows[1].className, /border-primary/, 'and its row is marked');
+  assert.match(rows[1].className, /bg-primary\/10/, 'and its row is marked');
   rows[2].click();
   await tick(2);
   assert.equal(scrolled.at(-1), root().querySelector('[data-doc-unplaced="3"]'), 'an edit the file cannot place scrolls to its line');
 });
 
-test('a tap from another view goes back to Changes, then scrolls', async () => {
+test('the list shows in Changes only, the one view that draws the edits', async () => {
+  // x-show applies on the next frame, so each check waits for it.
+  const list = () => root().querySelector('[data-doc-list]');
   root().querySelector('[data-doc-view="old"]').click();
-  await tick(2);
-  scrolled.length = 0;
-  root().querySelector('[data-doc-row="1"]').click();
-  await until(() => scrolled.length);
-  assert.equal(data().docView, 'changes');
-  assert.equal(scrolled.at(-1), box(1));
+  assert.ok(await until(() => list().style.display === 'none'), 'hidden in Old');
+  root().querySelector('[data-doc-view="changes"]').click();
+  assert.ok(await until(() => box(1) && list().style.display !== 'none'), 'back in Changes');
 });
 
 test('an edit md-diff draws as several changes marks each, under the one decision', async () => {
@@ -199,32 +198,27 @@ test('Old and New draw the whole file as it stands and as proposed; Changes keep
   assert.equal(root().querySelector('[data-doc-file]'), null, 'no link out to the file');
 });
 
-test('an edit with a background and a proposal carries a book and a bulb, each opening its text alone', async () => {
+test("an edit's label carries a book for its background; its proposal is its list row, under a bulb", async () => {
   const m = mark(2);
-  assert.equal(m.dataset.titleTip, undefined, 'its marks speak for it');
-  const tips = [...m.querySelectorAll('[data-doc-tip]')].map((b) => b.dataset.docTip);
-  assert.deepEqual(tips, ['background', 'proposal']);
-  assert.ok([...m.querySelectorAll('[data-doc-tip]')].every((b) => !b.dataset.titleTip), 'no label tip over the blurb');
+  assert.equal(m.dataset.titleTip, undefined, 'its mark speaks for it');
+  assert.deepEqual([...m.querySelectorAll('[data-doc-tip]')].map((b) => b.dataset.docTip), ['background'], 'a book, no bulb');
   const panel = () => box(2).querySelector('[data-doc-tip-panel]');
-  m.querySelector('[data-doc-tip="proposal"]').click();
-  await tick(2);
-  assert.equal(panel()?.dataset.docTipPanel, 'proposal');
-  assert.equal(panel().textContent, 'Names the order with Second.', 'the text alone: no label, no ✕');
-  assert.equal(panel().querySelector('strong')?.textContent, 'order');
-  assert.equal(panel().querySelector('code')?.textContent, 'Second');
   m.querySelector('[data-doc-tip="background"]').click();
   await tick(2);
-  assert.equal(box(2).querySelectorAll('[data-doc-tip-panel]').length, 1, 'one tip at a time');
+  assert.equal(panel()?.dataset.docTipPanel, 'background');
   assert.equal(panel().querySelector('.whitespace-nowrap')?.textContent, '2026-10-29', 'a date stays on one line');
   m.querySelector('[data-doc-tip="background"]').click();
   await tick(2);
   assert.equal(panel(), null, 'a second tap on its mark closes it');
-  m.querySelector('[data-doc-tip="proposal"]').click();
+  m.querySelector('[data-doc-tip="background"]').click();
   await tick(2);
   panel().click();
   await tick(2);
   assert.equal(panel(), null, 'and so does a tap on the tip');
-  assert.equal(mark(1).querySelector('[data-doc-tip]'), null, 'an edit without them keeps its why');
+  assert.equal(mark(1).querySelector('[data-doc-tip]'), null, 'an edit without a background keeps its why');
+  const bulb = (n) => root().querySelector(`[data-doc-row="${n}"] [data-doc-row-bulb]`);
+  assert.notEqual(bulb(2).style.display, 'none', 'the bulb marks a proposal in the list');
+  assert.equal(bulb(1).style.display, 'none', 'a row showing a why has no bulb');
 });
 
 test('the answer line is the one Dictate and the Docs tab write, with the kept edits as a patch', async () => {
