@@ -288,6 +288,29 @@ test('a CSV or TSV peeks as a table of its first rows', () => {
   assert.ok(SP.body('x.csv', Array.from({ length: 60 }, (_, i) => 'r' + i).join('\n')).truncated, 'a long table is an excerpt');
 });
 
+// The grid's columns follow the viewer's rule: the title as written and
+// escaped, a field unique per column, colN for a blank or repeated header.
+test('a table peek builds the grid the viewer builds: unique fields, escaped titles', () => {
+  const { columns, data } = SP.gridOf([['id', '', 'id', '<b>'], ['a', 'b', 'c', 'd']]);
+  assert.deepEqual(columns.map(c => c.field), ['id', 'col2', 'col3', '<b>']);
+  assert.equal(columns[3].title, '&lt;b&gt;');
+  assert.deepEqual(data, [{ id: 'a', col2: 'b', col3: 'c', '<b>': 'd' }]);
+  assert.deepEqual(SP.cellsOf('x.csv', 'a,"b,c"\r\n1,2\n'), [['a', 'b,c'], ['1', '2']]);
+});
+
+// A table peek's size goes in the header line as rows and columns; under the
+// header, a pill per column scrolls the grid to it.
+test('a table peek names its size in the header and gives each column a pill', () => {
+  assert.equal(SP.sizeText(17, 6), '17r · 6c');
+  assert.equal(SP.sizeText(1200, 3), '1,200r · 3c');
+  assert.match(SP.frame('o/r@main:a.csv', '', '17r · 6c'), /data-peek-size[^>]*>17r · 6c</);
+  assert.doesNotMatch(SP.frame('o/r@main:a.md', ''), /data-peek-size/);
+  const { columns } = SP.gridOf([['id', 'a "b"'], ['1', '2']]);
+  const html = SP.colsHtml(columns);
+  assert.match(html, /data-peek-col="id"/);
+  assert.match(html, /data-peek-col="a &quot;b&quot;"/);
+});
+
 // An image is seeded as a URL with kind 'image' and drawn whole inside the
 // card, fitted rather than cropped to the card's height.
 test('an image seeded by URL peeks as the picture, fitted and escaped', async () => {
