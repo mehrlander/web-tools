@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Program mark ideas</title>
+<title>Program marks</title>
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/alpinejs@3/dist/cdn.min.js" defer></script>
 <script src="../../lib/kits/repo-address.js"></script>
@@ -190,7 +190,7 @@
     async copy() { try { await navigator.clipboard.writeText(this.text()); this.copied = true } catch (e) { this.err = 'Not copied: ' + e.message } },
     }" @pointermove.window="over($event)" @pointerup.window="drop()" @pointercancel.window="drop()">
   <header class="border-b border-[var(--color-base-300)] bg-base-200 px-4 pt-3 pb-2 mb-3">
-    <h1 class="text-xl font-semibold" x-text="call ? call.question : 'Program mark ideas'"></h1>
+    <h1 class="text-xl font-semibold">Program marks</h1>
     <div class="mt-2 flex items-center gap-1 overflow-x-auto whitespace-nowrap">
       <span class="mr-1 text-xs text-base-content/60">Program as</span>
       <template x-for="[k, n] in [['mark', 'Mark'], ['tint', 'Tinted tile'], ['solid', 'Solid tile'], ['gauge', 'Gauge arc']]" :key="k">
