@@ -1,10 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="content program">
   <title>content program</title>
-  <desc>A plant: a stem with a small leaf and a large one, each veined, cut from a purple-600 tile. Drawn on the drawn-mark box and rules (docs/favicons/README.md): solid fills, no strokes, and every gap at least 2.5 units, which is about 1.4 CSS pixels at 16. Chosen 2026-11-07 from the owner's favorites; the ideas it was chosen from are in docs/prototypes/program-mark-ideas.html.</desc>
+  <desc>An angular leaf, folded along its midrib and two creases, cut from a purple-600 tile. Drawn on the drawn-mark box and rules (docs/favicons/README.md): solid fills, no strokes, and every gap at least 2.5 units, which is about 1.4 CSS pixels at 16. Chosen 2026-11-07 from the owner's favorites; the ideas it was chosen from are in docs/prototypes/program-mark-ideas.html.</desc>
   <mask id="cut" maskUnits="userSpaceOnUse" x="0" y="0" width="32" height="32">
     <rect width="32" height="32" fill="#fff"/>
-    <g fill="#000"><rect x="14.75" y="15.75" width="2.5" height="10.75" rx="1.25"/><path d="M15.25 19.75 Q14.52 11.42 6.25 10.25 Q6.98 18.58 15.25 19.75Z"/><path d="M16.75 17 Q26 15.61 25.75 6.25 Q16.5 7.64 16.75 17Z"/></g>
-    <g fill="#fff"><path d="M13.46 16.04 L9.68 12.05 L7.86 13.77 L11.64 17.76Z"/><path d="M20.41 14.58 L24.19 10.06 L22.27 8.46 L18.49 12.97Z"/></g>
+    <g fill="#000"><path d="M8.75 24.25 L8.33 17.03 L13.99 9.91 L24.25 7.75 L22.42 18.46 L15.99 24.21Z"/><path d="M8.73 26.1 L10.9 23.79 L9.08 22.07 L6.91 24.38Z"/></g>
+    <g fill="#fff"><path d="M10.9 23.79 L23.61 10.26 L21.79 8.54 L9.08 22.07Z"/><path d="M14.65 19.38 L15.23 9.99 L12.74 9.83 L12.15 19.22Z"/><path d="M13.52 20.54 L22.54 19.7 L22.31 17.21 L13.28 18.06Z"/></g>
   </mask>
   <g fill="#9333ea" mask="url(#cut)"><rect x="2" y="2.25" width="28" height="28" rx="7"/></g>
 </svg>
