@@ -26,6 +26,7 @@ run('lib/kits/repo-address.js');   // the address grammar source-peek reads with
 // the one function it uses stands in.
 window.esc = s => String(s == null ? '' : s)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+run('lib/kits/csv.js');          // the one CSV parser a table excerpt splits cells with
 run('lib/kits/source-peek.js');
 const SP = window.SourcePeek;
 
@@ -270,4 +271,53 @@ test('the head carries exactly one mark, pointing at the address it shows', () =
   assert.match(head, /target="_blank"/);
   assert.match(head, /rel="noopener"/);
   assert.match(head, /ph-github-logo/);
+});
+
+// A CSV or TSV peeks as a table, the way GitHub draws one: its header and first
+// rows, split by kits/csv.js, so a quoted comma stays inside its cell.
+test('a CSV or TSV peeks as a table of its first rows', () => {
+  assert.equal(SP.kindOf('docs/writers.csv'), 'table');
+  assert.equal(SP.kindOf('data/rows.TSV'), 'table');
+  const b = SP.body('docs/x.csv', 'id,gloss\na,"one, two"\nb,three\n');
+  assert.equal(b.kind, 'table');
+  assert.deepEqual(b.rows, [['id', 'gloss'], ['a', 'one, two'], ['b', 'three']]);
+  assert.deepEqual(SP.body('x.tsv', 'a\tb\n1\t2').rows, [['a', 'b'], ['1', '2']]);
+  const html = SP.tableHtml(b.rows);
+  assert.match(html, /<th[^>]*>gloss<\/th>/);
+  assert.match(html, /<td[^>]*>one, two<\/td>/);
+  assert.ok(SP.body('x.csv', Array.from({ length: 60 }, (_, i) => 'r' + i).join('\n')).truncated, 'a long table is an excerpt');
+});
+
+// The grid's columns follow the viewer's rule: the title as written and
+// escaped, a field unique per column, colN for a blank or repeated header.
+test('a table peek builds the grid the viewer builds: unique fields, escaped titles', () => {
+  const { columns, data } = SP.gridOf([['id', '', 'id', '<b>'], ['a', 'b', 'c', 'd']]);
+  assert.deepEqual(columns.map(c => c.field), ['id', 'col2', 'col3', '<b>']);
+  assert.equal(columns[3].title, '&lt;b&gt;');
+  assert.deepEqual(data, [{ id: 'a', col2: 'b', col3: 'c', '<b>': 'd' }]);
+  assert.deepEqual(SP.cellsOf('x.csv', 'a,"b,c"\r\n1,2\n'), [['a', 'b,c'], ['1', '2']]);
+});
+
+// A table peek's size goes in the header line as rows and columns; under the
+// header, a pill per column scrolls the grid to it.
+test('a table peek names its size in the header and gives each column a pill', () => {
+  assert.equal(SP.sizeText(17, 6), '17r · 6c');
+  assert.equal(SP.sizeText(1200, 3), '1,200r · 3c');
+  assert.match(SP.frame('o/r@main:a.csv', '', '17r · 6c'), /data-peek-size[^>]*>17r · 6c</);
+  assert.doesNotMatch(SP.frame('o/r@main:a.md', ''), /data-peek-size/);
+  const { columns } = SP.gridOf([['id', 'a "b"'], ['1', '2']]);
+  const html = SP.colsHtml(columns);
+  assert.match(html, /data-peek-col="id"/);
+  assert.match(html, /data-peek-col="a &quot;b&quot;"/);
+});
+
+// An image is seeded as a URL with kind 'image' and drawn whole inside the
+// card, fitted rather than cropped to the card's height.
+test('an image seeded by URL peeks as the picture, fitted and escaped', async () => {
+  SP.seed('shot.png', 'blob:x/1', 'image');
+  assert.equal(SP.cached('shot.png'), 'blob:x/1', 'a seeded picture paints without a Loading pass');
+  assert.equal((await SP.read('shot.png')).kind, 'image');
+  const html = SP.imageHtml('blob:x/"1');
+  assert.match(html, /<img src="blob:x\/&quot;1"/);
+  assert.match(html, /max-w-full max-h-\[24rem\]/);
 });

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="Work PowerShell outpost">
+  <title>Work PowerShell outpost</title>
+  <desc>A desktop screen whose display holds a folder: Documents\WindowsPowerShell on the work computer. Drawn in one ink on the budget-drs app icon's box and rules, for the page to paint in its text colour: solid, no strokes, and every gap at least 2.5 units, which is about 1.4 CSS pixels at 16.</desc>
+  <g fill="currentColor">
+    <path fill-rule="evenodd" d="M5.5 4 H26.5 A3 3 0 0 1 29.5 7 V20 A3 3 0 0 1 26.5 23 H5.5 A3 3 0 0 1 2.5 20 V7 A3 3 0 0 1 5.5 4 Z M5 6.5 V20.5 H27 V6.5 Z"/>
+    <rect x="14.25" y="22.5" width="3.5" height="4.5"/>
+    <rect x="9" y="26.5" width="14" height="2.5" rx="1.2"/>
+    <path d="M8.8 9.5 H13.2 L14.4 11 H23.2 A0.8 0.8 0 0 1 24 11.8 V17.2 A0.8 0.8 0 0 1 23.2 18 H8.8 A0.8 0.8 0 0 1 8 17.2 V10.3 A0.8 0.8 0 0 1 8.8 9.5 Z"/>
+  </g>
+</svg>

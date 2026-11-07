@@ -183,7 +183,7 @@
     {
       "name": "testing",
       "label": "Testing",
-      "icon": "ph-flask",
+      "icon": "programs/testing/icon.svg",
       "path": "programs/testing",
       "governs": [
         "docs/tests.csv",
