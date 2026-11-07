@@ -22,6 +22,7 @@ mistake.
 | Write a file, no Excel present | OOXML, ClosedXML, EPPlus | yes |
 | Active workbook, selection, active cell | **COM** | no |
 | Format a sheet someone is looking at | **COM** | no |
+| Add Power Query queries | zip and XML, or COM to save results with them ([`power-query`](../power-query/SKILL.md)) | yes, for zip and XML |
 | Create or refresh pivots, drive audit arrows | **COM** | no |
 | Anything that must survive without Excel installed | not COM | yes |
 
@@ -111,6 +112,21 @@ Around it:
 - Build range addresses on their own line, always.
 - Wrap the whole build in `try` / `finally` with `ScreenUpdating` restored.
 - Take the app with `Get-ExcelApp`, falling back to `New-Object -ComObject`.
+
+### Power Query: add, load and refresh
+
+`Workbook.Queries.Add(name, m, description)` saves a query; to run and load it,
+add a worksheet `ListObject` with `SourceType = 0` and
+this OLE DB source:
+
+```text
+OLEDB;Provider=Microsoft.Mashup.OleDb.1;Data Source=$Workbook$;Location=<Query>;Extended Properties=""
+```
+
+Then set the table's `QueryTable.CommandType = 2`, its `CommandText` to
+`SELECT * FROM [<Query>]` and `BackgroundQuery = $false`, and call
+`Refresh($false)`. Setting `Workbook.Queries.Item(<Query>).Formula` changes a
+query's M; refresh again to see it.
 
 ## 5. Report-sheet idiom
 
