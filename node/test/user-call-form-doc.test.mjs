@@ -109,6 +109,14 @@ test('in the deck a documentation call shows its brief, not its question or a re
   assert.equal(root().querySelector('[data-call-recommend]').style.display, 'none');
 });
 
+test('a documentation call shows no PR readiness, even when the PR has conflicts', async () => {
+  data().facts = { state: 'open', mergeable: 'dirty' };
+  await tick(2);
+  assert.equal(data().blocker, 'This PR has merge conflicts.');
+  assert.equal(root().querySelector('[data-call-blocker]').style.display, 'none');
+  data().facts = null;
+});
+
 test('an edit md-diff draws as several changes marks each, under the one decision', async () => {
   const marks = () => [...root().querySelectorAll('[data-doc-mark][data-doc-edit="4"]')];
   assert.equal(marks().length, 2, 'a two-block edit is two containers');
