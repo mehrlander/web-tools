@@ -1,0 +1,788 @@
+<!doctype html>
+<html lang="en" data-theme="winter">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reduction swarm</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🐝</text></svg>">
+  <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+  <script src="https://cdn.jsdelivr.net/npm/diff@5.2.0/dist/diff.min.js"></script>
+
+  <script type="module">
+    // ?use=<branch|tag|sha> pins everything entry.js loads to a ref; defaults to main.
+    await import('https://mehrlander.github.io/web-tools/lib/entry.js');
+    await gh.load('kits/gz-payload.js');
+    await gh.load('kits/url-params.js');
+    await gh.load('kits/repo-address.js');
+    await gh.load('kits/guide-render.js');   // house markdown type for both sides
+    await gh.load('kits/swipe-deck.js');     // the strip under linked-swiper
+    await gh.load('kits/dock-split.js');
+    await gh.load('kits/linked-swiper.js');  // an edit ladder's steps, a list over a strip
+    await gh.load('alpine-bundle.js');
+  </script>
+
+  <!--
+    Reduction swarm: one passage shortened by rounds of model readers who add
+    notes to a shared ledger, with one assembled result per round. The ledger
+    (kind swarm/1) is written by python/swarm/swarm.py; the readers' briefs are
+    python/swarm/roles.md. An edit ladder (kind ladder/1, python/swarm/ladder.py)
+    holds single edits per paragraph, judged and ordered from safest to boldest:
+    its Edits tab swipes through them, and Before / after reads the passage
+    through green, yellow or red. A dome (kind dome/1, python/swarm/dome.py)
+    puts one paragraph in front of bouts of fighters whose edits all land on
+    one text: its Edits tab swipes through every edit that landed, in order,
+    and Reader tasks shows the referee's check of each question on the
+    original and after each bout, ★ marking the result.
+
+    Input, first match wins: #gz=<base64url> (the gzipped ledger, from
+    `swarm.py gz <run>`), then ?src=owner/repo[@ref]:path (via the contents
+    API; ↻ re-reads it, so a run in progress can be followed).
+  -->
+  <script>
+    // Ledger kinds, as the page names them.
+    const KINDS = { core: 'must keep', tactic: 'move', draft: 'draft', word: 'word swap' };
+    // What each role does, as a label beside its name.
+    const ROLES = {
+      distiller: 'names the must-keep facts', tactician: 'proposes structural moves',
+      drafter: 'drafts shorter wording', challenger: 'rewrites the whole passage shorter',
+      builder: 'combines drafts and votes', harvester: 'assembles the round’s result',
+    };
+    const TIER = {
+      repair: { dot: 'bg-blue-500', pill: 'bg-blue-100 text-blue-800', border: 'border-blue-500', on: 'bg-blue-600 text-white border-blue-600' },
+      green: { dot: 'bg-green-500', pill: 'bg-green-100 text-green-800', border: 'border-green-500', on: 'bg-green-600 text-white border-green-600' },
+      yellow: { dot: 'bg-yellow-400', pill: 'bg-yellow-100 text-yellow-800', border: 'border-yellow-400', on: 'bg-yellow-400 text-yellow-950 border-yellow-400' },
+      red: { dot: 'bg-red-500', pill: 'bg-red-100 text-red-800', border: 'border-red-500', on: 'bg-red-600 text-white border-red-600' },
+    };
+    // A diff reads as GitHub's does: removed words struck on red, added words on green.
+    const DEL = 'rounded-sm bg-red-100 text-red-800 line-through decoration-red-400 px-0.5';
+    const ADD = 'rounded-sm bg-green-100 text-green-900 px-0.5';
+    const TIERS = ['repair', 'green', 'yellow', 'red'];
+    function swarmView() {
+      return {
+        led: null, k: 0, tab: 'compare', side: 'result', marks: false, tier: 'yellow', para: null, lsel: '0', tsel: null,
+        sel: null, kinds: { core: true, tactic: true, draft: true, word: true },
+        src: '', err: '', loading: false, mdClass: '', srcHtml: '', resHtml: {},
+        KINDS, ROLES, TIER, TIERS, ADD, DEL,
+
+        async init() {
+          this.src = UrlParams.get('src') || '';
+          const gz = UrlParams.get('gz');
+          try {
+            await GuideRender.needMarked();
+            this.mdClass = GuideRender.bodyClass('page');
+            if (gz) this.take(JSON.parse(await GzPayload.decode(gz)));
+            else if (this.src) await this.fetch();
+          } catch (e) { this.err = String(e?.message || e); }
+          this.$watch('tab', t => { if (t === 'edits') this.$nextTick(() => this.mountLadder()); });
+          addEventListener('keydown', (e) => {
+            if (e.target.closest('input')) return;
+            if (e.key === 'ArrowLeft') this.step(-1);
+            else if (e.key === 'ArrowRight') this.step(1);
+            else if (e.key === 'Escape') this.sel = null;
+          });
+        },
+        async fetch() {
+          this.loading = true; this.err = '';
+          try {
+            const spec = RepoAddress.parse(this.src);
+            const g = new GH({ token: window.TOKEN, repo: spec ? spec.repo : 'mehrlander/web-tools', ...(spec && spec.ref ? { ref: spec.ref } : {}) });
+            const atEnd = !this.led || this.k === this.R - 1;
+            this.take(JSON.parse((await g.get(spec ? spec.path : this.src)).text), atEnd);
+          } catch (e) { this.err = String(e?.message || e); }
+          this.loading = false;
+        },
+        take(led, follow = true) {
+          this.led = led;
+          led.rounds = led.rounds || [];
+          if (follow || this.k >= led.rounds.length) this.k = Math.max(0, led.rounds.length - 1);
+          this.srcHtml = GuideRender.render(led.source.text).html;
+          this.resHtml = {};
+          for (const r of led.rounds) if (r.harvest) this.resHtml[r.n] = GuideRender.render(r.harvest.text).html;
+          if (this.isLadder) {
+            for (const c of this.choices) this.resHtml[c.id] = GuideRender.render(c.text).html;
+            if (!this.choices.some(c => c.id === this.tier)) this.tier = this.isDome ? (this.led.best ? 'b' + this.led.best : (this.choices.at(-1) || {}).id) : 'yellow';
+            if (this.para && !led.blocks.some(b => b.id === this.para)) this.para = null;
+            if (!this._opened || !this.tabs.some(([id]) => id === this.tab)) this.tab = 'edits';
+            this._opened = true;
+            this.$nextTick(() => this.mountLadder());
+          }
+          document.title = this.heading + ' · Reduction swarm';
+        },
+        get isLadder() { return !!this.led && /^(ladder|dome)\//.test(this.led.kind); },
+        get isDome() { return !!this.led && this.led.kind === 'dome/1'; },
+        get isBold() { return !!this.led && this.led.kind === 'ladder/2'; },
+        get tabs() {
+          if (this.isBold) return [['edits', 'Edits'], ['compare', 'Before / after'], ['ideas', 'Ideas']];
+          if (this.tasks.length) return [['edits', 'Edits'], ['compare', 'Before / after'], ['tasks', 'Reader tasks']];
+          return this.isLadder ? [['edits', 'Edits'], ['compare', 'Before / after']]
+            : [['compare', 'Before / after'], ['rounds', 'Rounds'], ['notes', 'Notes'], ['core', 'Must keep']];
+        },
+
+        get R() { return this.led ? this.led.rounds.length : 0; },
+        get cur() { return this.led ? this.led.rounds[this.k] || null : null; },
+        get n() { return this.cur ? this.cur.n : 0; },
+        get h() { return this.cur ? this.cur.harvest || null : null; },
+        get last() { const hs = this.led ? this.led.rounds.filter(r => r.harvest) : []; return hs.length ? hs[hs.length - 1].harvest : null; },
+        get heading() {
+          if (!this.led) return 'Reduction swarm';
+          const u = (this.led.units || [])[0];
+          return this.led.source.heading || (u && /^h\d/.test(u.kind) ? u.text.replace(/^#+\s*/, '') : this.led.title);
+        },
+        get where() {
+          const s = this.led.source;
+          return s.path + (s.lines ? ' · lines ' + s.lines[0] + '–' + s.lines[1] : '');
+        },
+        step(d) { if (this.R) this.k = Math.min(this.R - 1, Math.max(0, this.k + d)); },
+        go(i, tab) { this.k = i; if (tab) this.tab = tab; },
+
+        // Before / after: the result at the chosen round, or its changes
+        // against the version before it.
+        get prevText() {
+          const p = this.k > 0 ? this.led.rounds[this.k - 1].harvest : null;
+          return p ? p.text : this.led.source.text;
+        },
+        get prevLabel() { return this.k > 0 ? 'round ' + this.led.rounds[this.k - 1].n : 'the original'; },
+        get dsegs() {
+          const md = (t) => t.replace(/^#+\s*/gm, '').replace(/\*\*|`/g, '');
+          return Diff.diffWords(md(this.prevText), md(this.h ? this.h.text : '')).map(p => ({ t: p.value, k: p.added ? 'add' : p.removed ? 'del' : '' }));
+        },
+
+        // Rounds: who read, what each added, what the result came to.
+        get table() {
+          let prev = this.led.source.words;
+          return this.led.rounds.map((r, i) => {
+            const h = r.harvest, row = { i, n: r.n, readers: r.readers, h, delta: h ? h.words - prev : null };
+            if (h) prev = h.words;
+            return row;
+          });
+        },
+        added(r) {
+          const ids = new Set(r.entries), c = {};
+          for (const e of this.led.entries) if (ids.has(e.id)) c[e.tag] = (c[e.tag] || 0) + 1;
+          const parts = Object.keys(KINDS).filter(t => c[t]).map(t => c[t] + ' ' + KINDS[t] + (c[t] > 1 && t !== 'core' ? 's' : ''));
+          if (r.votes) parts.push(r.votes + ' votes');
+          return parts.join(', ') || 'nothing';
+        },
+
+        // Notes: the ledger, by round and reader, for one sentence or all.
+        upTo(list) { return (list || []).filter(v => v.round <= this.n); },
+        ups(e) { return this.upTo(e.votes).filter(v => v.v > 0).length; },
+        downs(e) { return this.upTo(e.votes).filter(v => v.v < 0); },
+        get used() { return new Set(this.h ? this.h.map.flatMap(m => m.uses || []) : []); },
+        count(u) { return this.led.entries.filter(e => e.round <= this.n && e.anchors.includes(u.id)).length; },
+        dropped(u) { return !!this.h && this.h.dropped.includes(u.id); },
+        get groups() {
+          const s = this.sel, out = [];
+          for (const e of this.led.entries) {
+            if (e.round > this.n || !this.kinds[e.tag]) continue;
+            if (s && !e.anchors.includes(s) && e.anchors[0] !== 'ALL') continue;
+            let g = out[out.length - 1];
+            if (!g || g.n !== e.round || g.role !== e.role) out.push(g = { n: e.round, role: e.role, items: [] });
+            g.items.push(e);
+          }
+          return out;
+        },
+        named(i) { const n = this.led.rounds[i].n; return this.led.entries.filter(e => e.tag === 'core' && e.round <= n).length; },
+        // A note may cite another entry by id (1.c23, d21, t8/t9); show a few of
+        // its words instead, since the reader of the page never sees ids.
+        byId(id, n) {
+          if (id.includes('.')) return this.led.entries.find(e => e.id === id);
+          for (let r = n; r >= 1; r--) { const e = this.led.entries.find(e => e.id === r + '.' + id); if (e) return e; }
+          return null;
+        },
+        deid(t, n, mode) {
+          return (t || '').replace(/\b(?:\d+\.)?[ctdw]\d+\b(?:\/(?:\d+\.)?[ctdw]\d+\b)*/g, (m) => {
+            const es = m.split('/').map(id => this.byId(id, n));
+            if (es.some(e => !e)) return m;
+            if (mode === 'kind') {
+              const k = KINDS[es[0].tag], many = es.length > 1;
+              return many ? es.length + ' ' + k + 's' : k;
+            }
+            return es.map(e => {
+              const w = this.plain(e.tag === 'word' ? e.from : e.text).split(/\s+/);
+              return '“' + w.slice(0, 6).join(' ') + (w.length > 6 ? '…' : '') + '”';
+            }).join(', ');
+          });
+        },
+        inline(t) {
+          return window.esc(String(t || '').replace(/^\s*(?:#+|-)\s+/, ''))
+            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+            .replace(/`([^`]+)`/g, '<code class="font-mono text-[0.9em] bg-base-200 rounded px-1">$1</code>');
+        },
+        plain(t) { return t.replace(/^#+\s*/, '').replace(/\*\*|`/g, ''); },
+        anchorLabel(e) { return e.anchors[0] === 'ALL' ? 'whole passage' : e.anchors.join(' '); },
+
+        // The edit ladder: one path through the whole passage, safest first.
+        get steps() { return this.led.path || []; },
+        get original() { return this.led.blocks.map(b => b.text).join('\n\n'); },
+        editOf(id) {
+          const r = (this.led.repairs || []).find(r => r.id === id);
+          if (r) return { ...r, by: 'reader', aim: 'repair' };
+          const e = this.led.edits.find(e => e.id === id);
+          return e && { ...e, from: e.from ?? e.find, text: e.text ?? e.replace, blocks: e.blocks || [e.block] };
+        },
+        ratingsOf(id) { return (this.led.ratings || []).filter(r => r.edit === id); },
+        tierText(t) {
+          const ok = this.steps.filter(s => TIERS.indexOf(s.risk) <= TIERS.indexOf(t));
+          return ok.length ? ok[ok.length - 1].text : this.original;
+        },
+        // What Before / after can put on its right: the passage through each
+        // tier, then any whole rewrite, which is an alternative to the path.
+        get choices() {
+          if (this.isDome) return (this.led.bouts || []).map(b => ({ id: 'b' + b.n, label: 'after bout ' + b.n + (this.led.best === b.n ? ' ★' : ''), text: b.text, whole: true }));
+          const out = TIERS.filter(t => t !== 'repair' || this.steps.some(s => s.risk === 'repair'))
+            .map(t => ({ id: t, label: t === 'repair' ? 'repaired' : t, text: this.tierText(t), tier: t }));
+          for (const w of this.led.wholes || []) out.push({ id: w.edit, label: w.by.replace('architect-', '').replace('scout-', 'scout ') + ' rewrite', text: w.text, tier: w.risk, whole: true });
+          return out;
+        },
+        get choice() { return this.choices.find(c => c.id === this.tier) || this.choices[0]; },
+        pickPara(bid) { this.para = bid; this.lsel = '0'; this.$nextTick(() => this.mountLadder()); },
+        // Ideas: what the reader found, and each scout's ideas with the edits
+        // built on them, narrowed to the picked paragraph.
+        mine(x) { return !this.para || x.blocks.includes(this.para); },
+        get found() { return (this.led.problems || []).filter(p => this.mine(p)); },
+        // Reader tasks: a dome's questions, checked on the original (0) and after each bout.
+        get tasks() { return this.isDome ? ((this.led.brief || {}).tasks || []) : []; },
+        get targets() { return [0, ...(this.led.bouts || []).map(b => b.n)]; },
+        cell(task, n) { return (this.led.checks || []).find(c => c.task === task && c.target === n) || null; },
+        wordsAt(n) { const b = (this.led.bouts || []).find(x => x.n === n); return b ? b.words : this.led.blocks[0].words; },
+        get tcell() {
+          const c = this.tsel && this.cell(this.tsel.t, this.tsel.n);
+          return c ? { t: this.tasks.find(t => t.id === c.task), n: c.target, c } : null;
+        },
+        // A bout's check, for its header: every live task passing, or the ones that fail.
+        boutMark(n) {
+          const live = this.tasks.filter(t => !t.dropped), got = live.map(t => this.cell(t.id, n));
+          if (!live.length || got.some(c => !c)) return this.led.best === n ? ' · ★' : '';
+          const bad = live.filter((t, j) => got[j].status !== 'pass').map(t => t.id);
+          return (bad.length ? ' · ✗ ' + bad.join(' ') : ' · ✓ ' + live.length + ' tasks') + (this.led.best === n ? ' · ★' : '');
+        },
+        get lenses() {
+          const out = {};
+          for (const i of (this.led.ideas || []).filter(i => this.mine(i))) (out[i.lens] = out[i.lens] || []).push(i);
+          return Object.entries(out);
+        },
+        builtFrom(ideaId) { return this.led.edits.filter(e => (e.ideas || []).includes(ideaId)).map(e => e.id); },
+        async openReading() {
+          const gz = await GzPayload.encodeJson(this.led.reading);
+          open('https://mehrlander.github.io/web-tools/pages/passage-reader.html#gz=' + gz, '_blank');
+        },
+        // Plain text for a diff: headings, bold pairs, code ticks and link syntax
+        // go; a lone ** (a glob such as node/test/**/*.test.mjs) stays.
+        md(t) {
+          return String(t || '').replace(/^#+\s*/gm, '').replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+            .replace(/\*\*([^*\n]+?)\*\*/g, '$1').replace(/`/g, '');
+        },
+        // A word diff, grouped the way GitHub shows a change: each run of
+        // adjacent changes becomes the struck words, then the new words, with
+        // the spaces around them left unmarked.
+        diffRuns(a, b) {
+          const out = [], blk = [];
+          const push = (k, t) => { if (t) out.push({ k, t }); };
+          const flush = () => {
+            if (!blk.length) return;
+            const all = blk.map(p => p.value).join('');
+            const delRaw = blk.filter(p => !p.added).map(p => p.value).join('');
+            const addRaw = blk.filter(p => !p.removed).map(p => p.value).join('');
+            const del = delRaw.trim(), add = addRaw.trim();
+            const hasDel = blk.some(p => p.removed), hasAdd = blk.some(p => p.added);
+            const lead = /^\s/.test(all) || (hasDel && /^\s/.test(delRaw)) || (hasAdd && /^\s/.test(addRaw));
+            if (lead && !(out.length && /\s$/.test(out[out.length - 1].t))) push('', ' ');
+            if (hasDel) push('del', del);
+            if (hasDel && hasAdd) push('', ' ');
+            if (hasAdd) push('add', add);
+            if (/\s$/.test(all)) push('', ' ');
+            blk.length = 0;
+          };
+          for (const p of Diff.diffWords(this.md(a), this.md(b))) {
+            if (p.added || p.removed || (!p.value.trim() && blk.length)) blk.push(p);
+            else { flush(); push('', p.value); }
+          }
+          flush();
+          return out;
+        },
+        diffHtml(a, b) {
+          return this.diffRuns(a, b).map(r => r.k === 'add' ? '<span class="' + ADD + '">' + window.esc(r.t) + '</span>'
+            : r.k === 'del' ? '<span class="' + DEL + '">' + window.esc(r.t) + '</span>' : window.esc(r.t)).join('');
+        },
+        get shown() { return this.para ? this.steps.filter(s => s.blocks.includes(this.para)) : this.steps; },
+        stepIds() { return ['0', ...this.shown.map(s => s.edit)]; },
+        stepAt(id) {
+          const i = this.steps.findIndex(s => s.edit === id);
+          return { i: i + 1, s: this.steps[i], prev: i > 0 ? this.steps[i - 1].text : this.original };
+        },
+        won(r, kind) { return (r.honours || []).find(h => h.honour === kind); },
+        marksOf(id, s) {
+          const rs = this.ratingsOf(id);
+          return [s.replaces ? '↺' : '', rs.some(r => this.won(r, 'brilliancy')) ? '!!' : '', rs.some(r => this.won(r, 'brutality')) ? '✂' : '', rs.some(r => r.clarity === 'loses') ? '?!' : ''].filter(Boolean).join(' ');
+        },
+        rowHtml(id) {
+          const sel = this.lsel === id;
+          const base = 'flex cursor-pointer items-center gap-2 border-b border-base-200 px-2.5 py-1 aria-selected:bg-base-300';
+          const mono = (t, w) => '<span class="flex-none font-mono text-xs ' + (w || '') + '">' + window.esc(t) + '</span>';
+          if (id === '0') {
+            return '<div role="option" tabindex="0" data-step="0" aria-selected="' + sel + '" class="' + base + '">'
+              + '<span class="size-2.5 flex-none rounded-full bg-base-content/20"></span>' + mono('0', 'w-6 opacity-60')
+              + '<span class="min-w-0 flex-1 truncate font-semibold">original</span></div>';
+          }
+          if (this.isDome) {
+            const { i, s, prev } = this.stepAt(id), e = this.editOf(id), d = this.wc(prev) - s.words;
+            return '<div role="option" tabindex="0" data-step="' + window.esc(id) + '" aria-selected="' + sel + '" class="' + base + '">'
+              + mono(String(i), 'w-6 opacity-60') + mono(e.by, 'w-16 truncate opacity-70')
+              + '<span class="min-w-0 flex-1 truncate">' + window.esc(this.stepTitle(id)) + '</span>'
+              + (e.repair ? mono('↩', 'font-bold') : '') + (e.peeve ? mono(e.peeve, 'font-bold') : '')
+              + mono(d > 0 ? '−' + d : d < 0 ? '+' + (-d) : '±0', 'w-8 text-right') + '</div>';
+          }
+          const { i, s } = this.stepAt(id), marks = this.marksOf(id, s);
+          return '<div role="option" tabindex="0" data-step="' + window.esc(id) + '" aria-selected="' + sel + '" class="' + base + '">'
+            + '<span class="size-2.5 flex-none rounded-full ' + TIER[s.risk].dot + '"></span>' + mono(String(i), 'w-6 opacity-60')
+            + (this.para ? '' : mono(s.blocks.join('–'), 'w-12 opacity-60'))
+            + '<span class="min-w-0 flex-1 truncate">' + window.esc(this.stepTitle(id)) + '</span>'
+            + (marks ? mono(marks, 'font-bold') : '') + mono(s.confidence + '%', 'w-10 text-right') + '</div>';
+        },
+        wc(t) { return String(t).split(/\s+/).filter(Boolean).length; },
+        stepTitle(id) {
+          const e = this.editOf(id), clip = (t, n) => { const w = this.md(t).split(/\s+/).filter(Boolean); return w.slice(0, n).join(' ') + (w.length > n ? '…' : ''); };
+          if (!String(e.from || '').trim()) return 'rewrite ' + e.blocks.join('–') + ': “' + clip(e.text, 6) + '”';
+          return String(e.text).trim() ? '“' + clip(e.from, 5) + '” → “' + clip(e.text, 5) + '”' : 'cut “' + clip(e.from, 6) + '”';
+        },
+        // The diff cut to the paragraphs it changes, a ⋯ between them.
+        changedHtml(a, b) {
+          const paras = [[]];
+          for (const r of this.diffRuns(a, b)) {
+            if (!r.k && r.t.includes('\n\n')) {
+              r.t.split(/\n\n+/).forEach((t, j) => { if (j) paras.push([]); if (t) paras[paras.length - 1].push({ k: '', t }); });
+            } else paras[paras.length - 1].push(r);
+          }
+          const html = p => p.map(r => r.k === 'add' ? '<span class="' + ADD + '">' + window.esc(r.t) + '</span>'
+            : r.k === 'del' ? '<span class="' + DEL + '">' + window.esc(r.t) + '</span>' : window.esc(r.t)).join('');
+          return paras.filter(p => p.some(r => r.k)).map(p => '<p>' + html(p) + '</p>').join('<p class="opacity-40 text-center">⋯</p>');
+        },
+        // A dome's list, each bout's edits under a row naming the bout.
+        listHtml(ids) {
+          if (!this.isDome) return ids.map(id => this.rowHtml(id)).join('');
+          let at = 0;
+          return ids.map(id => {
+            const s = id === '0' ? null : this.stepAt(id).s;
+            const b = s && s.bout !== at ? this.led.bouts.find(x => x.n === (at = s.bout)) : null;
+            return (b ? '<div class="sticky top-0 z-10 bg-base-200 px-2.5 py-0.5 font-mono text-xs">'
+              + window.esc('bout ' + b.n + (b.model ? ' · ' + b.model : '') + ' · ' + b.landed + ' of ' + (b.landed + b.knocked) + ' landed · ' + b.words + ' words' + this.boutMark(b.n)) + '</div>' : '')
+              + this.rowHtml(id);
+          }).join('');
+        },
+        // An edit that fixes one of the owner's writing peeves names it.
+        peeveHtml(id) {
+          if (!id) return '';
+          const name = (this.led.peeves || {})[id];
+          return '<div class="text-pretty"><span class="font-bold">✎ fixes ' + window.esc(id) + '</span>'
+            + (name ? ' <span class="opacity-70">' + window.esc(name) + '</span>' : '') + '</div>';
+        },
+        cardHtml(id) {
+          const box = 'leading-8 text-pretty whitespace-pre-wrap break-words border-l-4 pl-3 flex flex-col gap-3 ';
+          // A dome's card reads against the original, so the red piles up step by step.
+          if (this.isDome && id !== '0') {
+            const { s, prev } = this.stepAt(id), e = this.editOf(id), d = this.wc(prev) - s.words;
+            return '<div class="flex flex-col gap-3 pb-24">'
+              + '<div class="font-mono text-xs opacity-80">' + window.esc('bout ' + s.bout + ' · ' + e.by + ' · '
+                + (d > 0 ? '−' + d : d < 0 ? '+' + (-d) : '±0') + ' this edit · ' + s.words + ' of ' + this.wc(this.original) + ' words') + '</div>'
+              + (e.repair ? '<div class="text-pretty"><span class="font-bold">↩ complaint</span> <span class="opacity-70">' + window.esc(e.why) + '</span></div>' : '')
+              + this.peeveHtml(e.peeve)
+              + '<div class="' + box + 'border-base-300"><p>' + this.diffHtml(this.original, s.text) + '</p></div></div>';
+          }
+          if (id === '0') {
+            const shown = this.para ? this.led.blocks.filter(b => b.id === this.para) : this.led.blocks;
+            return '<div class="flex flex-col gap-3 pb-24"><div class="' + box + 'border-base-300">'
+              + shown.map(b => '<p>' + window.esc(this.md(b.text)) + '</p>').join('') + '</div></div>';
+          }
+          const { s, prev } = this.stepAt(id), e = this.editOf(id), rs = this.ratingsOf(id);
+          const line = (cls, html) => '<div class="' + cls + '">' + html + '</div>';
+          const label = t => '<span class="font-mono text-xs opacity-70">' + window.esc(t) + '</span> ';
+          const honour = (kind, sign) => rs.filter(r => this.won(r, kind)).map(r => line('text-pretty', '<span class="font-bold">' + sign + ' ' + kind + '</span> <span class="opacity-70">' + window.esc(r.by + ': ' + this.won(r, kind).why) + '</span>')).join('');
+          const saved = this.wc(prev) - s.words;
+          const who = e.aim === 'repair' ? 'reader, ' + e.kind : e.aim ? e.by + ', aiming ' + e.aim : e.by + ((e.ideas || []).length ? ', from ' + e.ideas.join(', ') : '');
+          return '<div class="flex flex-col gap-3 pb-24">'
+            + '<div class="flex flex-wrap items-center gap-2"><span class="rounded-full px-2.5 py-0.5 text-sm font-semibold ' + TIER[s.risk].pill + '">' + s.risk + '</span>'
+            + '<span class="font-mono text-xs opacity-80">' + window.esc(s.blocks.join('–') + ' · ' + s.confidence + '% confident · ' + (saved >= 0 ? '−' + saved : '+' + (-saved)) + (Math.abs(saved) === 1 ? ' word' : ' words')) + '</span></div>'
+            + line(box + TIER[s.risk].border, this.changedHtml(prev, s.text))
+            + (s.replaces ? line('text-pretty', '<span class="font-bold">↺ replaces</span> <span class="opacity-70">' + window.esc(s.replaces.map(x => 'step ' + this.stepAt(x).i).join(', ') + ', which it overlaps') + '</span>') : '')
+            + honour('brilliancy', '!!') + honour('brutality', '✂')
+            + this.peeveHtml(e.peeve)
+            + line('text-pretty', label(who) + window.esc(e.why))
+            + rs.map(r => line('text-pretty', label(r.by + ': ' + r.risk + ', ' + r.confidence + '%' + (r.clarity === 'loses' ? ', ?! loses clarity' : '')) + window.esc(r.note || ''))).join('')
+            + '</div>';
+        },
+        mountLadder() {
+          if (!this.isLadder || !this.$refs.llist) return;
+          const ids = this.stepIds();
+          if (!ids.includes(this.lsel)) this.lsel = '0';
+          this.$refs.llist.innerHTML = this.listHtml(ids);
+          if (!this._ls) {
+            this._ls = linkedSwiper.attach({
+              root: this.$refs.lroot, list: this.$refs.llist, card: this.$refs.lcard, key: 'step',
+              ids: () => this.stepIds(), sel: () => this.lsel, noun: 'step', listMax: 'max-h-[22vh]',
+              name: id => id === '0' ? { code: this.para || 'passage', title: 'as written' } : { code: 'step ' + this.stepAt(id).i + ' of ' + this.steps.length, title: this.stepTitle(id) },
+              body: id => this.cardHtml(id),
+              empty: '<div class="p-4 opacity-60">No edits.</div>',
+              onPick: (id, via) => {
+                this.lsel = id;
+                if (this._deck && via !== 'deck') this._deck.deck.go(this.stepIds().indexOf(id), 'instant');
+              },
+              deck: () => {
+                const ids = this.stepIds();
+                this._deck = swipeDeck.open({
+                  count: ids.length, start: Math.max(0, ids.indexOf(this.lsel)), title: this.heading,
+                  render: (i, el) => { el.innerHTML = this.cardHtml(ids[i]); },
+                  onSlide: i => this._ls.pick(ids[i], 'deck'),
+                  onClose: () => { this._deck = null; },
+                });
+              },
+            });
+          } else {
+            this._ls.mount();
+          }
+        },
+
+        // Before / after, either kind: the result the controls name, and the
+        // version it is compared with.
+        get res() {
+          if (this.isLadder) { const c = this.choice; return c ? { text: c.text, words: this.wc(c.text), html: this.resHtml[c.id], label: c.label } : null; }
+          return this.h ? { text: this.h.text, words: this.h.words, html: this.resHtml[this.n], label: 'Round ' + this.n + ' result' } : null;
+        },
+        get base() {
+          if (this.isDome) return { text: this.original, label: 'the original' };
+          if (this.isLadder) {
+            const c = this.choice;
+            if (c.whole) return { text: this.tierText('repair'), label: this.steps.some(s => s.risk === 'repair') ? 'repaired' : 'the original' };
+            const i = TIERS.indexOf(c.tier), prev = TIERS.slice(0, i).reverse().find(t => this.choices.some(x => x.id === t));
+            return prev ? { text: this.tierText(prev), label: prev === 'repair' ? 'repaired' : prev } : { text: this.original, label: 'the original' };
+          }
+          return { text: this.prevText, label: this.prevLabel };
+        },
+        get rsegs() { return this.diffRuns(this.base.text, this.res ? this.res.text : ''); },
+
+        // Must keep: each fact against each round's result.
+        get cores() { return this.led.entries.filter(e => e.tag === 'core' && e.round <= this.n); },
+        coreAt(e, r) {
+          const c = r.harvest && r.harvest.core.find(c => c.id === e.id);
+          return !c ? '' : ('quote' in c ? 'ok' : 'lost');
+        },
+        coreNow(e) { return this.h ? this.h.core.find(c => c.id === e.id) || null : null; },
+      };
+    }
+  </script>
+</head>
+
+<body class="bg-base-100 text-base-content [--fab-bottom:calc(env(safe-area-inset-bottom)+4.5rem)]">
+<div x-data="swarmView()" class="fixed inset-0 grid grid-rows-[auto_auto_minmax(0,1fr)_auto]">
+
+  <!-- header: what passage, where it lives, what it came to -->
+  <header class="flex items-center gap-3 px-4 py-2 border-b border-base-300 min-w-0">
+    <div class="min-w-0 flex-1">
+      <div class="font-semibold text-balance" x-text="heading"></div>
+      <template x-if="led">
+        <a class="link font-mono text-xs opacity-80" :href="led.source.url || '#'" target="_blank" rel="noopener" x-text="where"></a>
+      </template>
+    </div>
+    <button class="btn btn-ghost btn-sm btn-square" x-show="!!src" @click="fetch()" :disabled="!!loading" aria-label="Reload">
+      <i class="ph ph-arrow-clockwise text-lg" :class="loading && 'animate-spin'"></i>
+    </button>
+  </header>
+
+  <!-- tabs, and the paragraph filter that Edits and Ideas share -->
+  <div class="min-w-0 border-b border-base-300" x-show="!!led">
+    <nav class="flex items-center gap-1 px-4 py-1 overflow-x-auto">
+      <template x-for="[id, label] in tabs" :key="id">
+        <button class="btn btn-sm shrink-0" :class="tab === id ? 'btn-neutral' : 'btn-ghost'" @click="tab = id" x-text="label"></button>
+      </template>
+    </nav>
+    <div class="flex items-center gap-2 px-4 py-2 border-t border-base-300 overflow-x-auto" x-show="isLadder && led.blocks.length > 1 && (tab === 'edits' || tab === 'ideas')">
+      <span class="text-xs opacity-70 shrink-0">paragraph</span>
+      <button class="btn btn-xs shrink-0" :class="para === null ? 'btn-neutral' : 'btn-ghost'" @click="pickPara(null)">all</button>
+      <template x-for="b in (isLadder ? led.blocks : [])" :key="b.id">
+        <button class="btn btn-xs shrink-0 font-mono" :class="para === b.id ? 'btn-neutral' : 'btn-ghost'" @click="pickPara(b.id)" x-text="b.id"></button>
+      </template>
+    </div>
+  </div>
+
+  <main class="min-h-0 overflow-y-auto">
+
+    <!-- no ledger yet -->
+    <template x-if="!led">
+      <div class="p-4 flex flex-col gap-2">
+        <label class="input w-full">
+          <span class="font-mono text-xs opacity-70">src</span>
+          <input type="text" x-model="src" placeholder="owner/repo@ref:path/to/ledger.json" @keydown.enter="fetch()">
+        </label>
+        <div class="text-error text-sm" x-show="!!err" x-text="err"></div>
+      </div>
+    </template>
+
+    <!-- edits: one paragraph's steps, a list over a strip -->
+    <section class="h-full grid grid-rows-[minmax(0,1fr)]" x-show="isLadder && tab === 'edits'">
+      <div class="flex min-h-0 flex-col p-2.5">
+        <div x-ref="lroot">
+          <div x-ref="llist" role="listbox" aria-label="Steps"></div>
+          <div x-ref="lcard"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ideas: what the reader found, and every scout's ideas by lens -->
+    <template x-if="isBold && tab === 'ideas'">
+      <div class="p-4 pb-24 flex flex-col gap-6">
+        <section class="flex flex-col gap-2" x-show="found.length">
+          <div class="flex items-center gap-2">
+            <span class="font-semibold">What the reader found</span>
+            <button class="btn btn-xs btn-outline" x-show="!!led.reading" @click="openReading()">open the reading</button>
+          </div>
+          <template x-for="(p, j) in found" :key="j">
+            <div class="text-pretty"><span class="font-mono text-xs opacity-70" x-text="p.problem + ' · ' + p.blocks.join('–')"></span> “<span x-text="md(p.quote)"></span>” <span class="opacity-70" x-text="p.note"></span></div>
+          </template>
+        </section>
+        <template x-for="[lens, ideas] in lenses" :key="lens">
+          <section class="flex flex-col gap-2">
+            <div class="font-semibold" x-text="lens"></div>
+            <template x-for="i in ideas" :key="i.id">
+              <div class="pl-3 border-l-2" :class="builtFrom(i.id).length ? 'border-primary' : 'border-base-300'">
+                <div class="flex flex-wrap items-center gap-x-2 text-xs font-mono opacity-80">
+                  <span x-text="i.kind"></span><span class="opacity-70" x-text="i.blocks.join('–')"></span>
+                  <span x-text="(i.saves >= 0 ? 'saves ' + i.saves : 'adds ' + (-i.saves)) + ' words'"></span>
+                  <span class="font-bold" x-show="!!i.peeve" x-text="'✎ ' + i.peeve"></span>
+                  <template x-for="eid in builtFrom(i.id)" :key="eid"><span class="badge badge-xs badge-primary" x-text="'built into step ' + (stepAt(eid).i || eid)"></span></template>
+                </div>
+                <div class="text-pretty" x-text="i.idea"></div>
+                <div class="text-pretty opacity-70" x-text="i.why"></div>
+              </div>
+            </template>
+          </section>
+        </template>
+      </div>
+    </template>
+
+    <!-- reader tasks: each question against the original and each bout's text -->
+    <template x-if="isDome && tab === 'tasks'">
+      <div class="p-4 pb-24 flex flex-col gap-4">
+        <table class="table text-base">
+          <thead>
+            <tr>
+              <th class="pl-0">question</th>
+              <template x-for="n in targets" :key="n"><th class="px-1 text-center font-mono" x-text="n ? 'b' + n : 'orig'"></th></template>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="t in tasks" :key="t.id">
+              <tr class="align-top" :class="t.dropped && 'opacity-50'">
+                <td class="pl-0 text-pretty"><span class="font-mono text-xs opacity-70" x-text="t.id"></span> <span x-text="t.question"></span></td>
+                <template x-for="n in targets" :key="n">
+                  <td class="px-1 text-center">
+                    <template x-if="cell(t.id, n)">
+                      <button class="btn btn-xs btn-square" :class="tsel && tsel.t === t.id && tsel.n === n ? 'btn-neutral' : 'btn-ghost'" @click="tsel = { t: t.id, n }"
+                        :aria-label="t.id + (n ? ' after bout ' + n : ' on the original')">
+                        <span class="text-lg font-bold" :class="cell(t.id, n).status === 'pass' ? 'text-success' : 'text-error'" x-text="cell(t.id, n).status === 'pass' ? '✓' : '✗'"></span>
+                      </button>
+                    </template>
+                  </td>
+                </template>
+              </tr>
+            </template>
+            <tr class="font-mono text-xs">
+              <td class="pl-0 opacity-70">words</td>
+              <template x-for="n in targets" :key="n"><td class="px-1 text-center whitespace-nowrap" x-text="wordsAt(n) + (led.best === n ? ' ★' : '')"></td></template>
+            </tr>
+          </tbody>
+        </table>
+        <template x-if="tcell">
+          <div class="flex flex-col gap-1 border-l-4 border-base-300 pl-3 text-pretty">
+            <div class="font-mono text-xs opacity-80" x-text="tcell.t.id + ' · ' + (tcell.n ? 'after bout ' + tcell.n : 'the original') + ' · ' + tcell.c.status"></div>
+            <div class="font-semibold" x-text="tcell.t.question"></div>
+            <div><span class="opacity-70">the referee answered</span> <span x-text="tcell.c.answer"></span></div>
+            <div><span class="opacity-70">an answer needs</span> <span x-text="tcell.t.expected.join('; ')"></span></div>
+            <div x-show="!!tcell.c.missing"><span class="opacity-70">missing</span> <span x-text="tcell.c.missing"></span></div>
+            <div x-show="!!tcell.t.dropped"><span class="opacity-70">dropped:</span> <span x-text="tcell.t.dropped"></span></div>
+          </div>
+        </template>
+      </div>
+    </template>
+
+    <!-- before / after -->
+    <template x-if="led && tab === 'compare'">
+      <div class="h-full flex flex-col">
+        <div class="join px-4 pt-2 lg:hidden">
+          <button class="join-item btn btn-xs" :class="side === 'original' ? 'btn-neutral' : 'btn-outline'" @click="side = 'original'" >Original</button>
+          <button class="join-item btn btn-xs" :class="side === 'result' ? 'btn-neutral' : 'btn-outline'" @click="side = 'result'" x-text="res ? res.label : 'Result'"></button>
+        </div>
+        <div class="flex-1 min-h-0 grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+          <section class="min-h-0 overflow-y-auto px-4 pb-24 lg:border-r border-base-300" :class="side === 'original' ? 'block' : 'hidden lg:block'">
+            <div class="text-xs font-mono opacity-70 py-2 hidden lg:block">Original</div>
+            <div :class="mdClass" class="text-base! leading-7 [&_code]:text-[0.9em]! [&_code]:px-[0.15em]! [&_h1]:text-xl! [&_h2]:text-lg! [&_h3]:text-base! [&_h1]:text-balance [&_h2]:text-balance [&_h3]:text-balance [&_p]:text-pretty [&_li]:text-pretty" x-html="srcHtml"></div>
+          </section>
+          <section class="min-h-0 overflow-y-auto px-4 pb-24" :class="side === 'result' ? 'block' : 'hidden lg:block'">
+            <div class="flex flex-wrap items-center gap-2 py-2 text-xs">
+              <template x-if="isLadder">
+                <div class="flex items-center gap-1 overflow-x-auto max-w-full">
+                  <template x-for="c in choices" :key="c.id">
+                    <button class="btn btn-xs shrink-0" :class="tier === c.id ? (c.whole ? 'btn-neutral' : TIER[c.tier].on) : 'btn-outline'" @click="tier = c.id" x-text="c.label"></button>
+                  </template>
+                </div>
+              </template>
+              <span class="font-mono opacity-70 hidden lg:inline" x-show="!isLadder" x-text="res ? res.label : 'none yet'"></span>
+              <label class="label cursor-pointer gap-2 ml-auto" x-show="!!res">
+                <input type="checkbox" class="toggle toggle-xs" x-model="marks">
+                <span x-text="'changes from ' + base.label"></span>
+              </label>
+            </div>
+            <template x-if="res && !marks"><div :class="mdClass" class="text-base! leading-7 [&_code]:text-[0.9em]! [&_code]:px-[0.15em]! [&_h1]:text-xl! [&_h2]:text-lg! [&_h3]:text-base! [&_h1]:text-balance [&_h2]:text-balance [&_h3]:text-balance [&_p]:text-pretty [&_li]:text-pretty" x-html="res.html"></div></template>
+            <template x-if="res && marks">
+              <div class="whitespace-pre-wrap break-words leading-7 text-pretty"><template x-for="(s, i) in rsegs" :key="i"><span
+                :class="s.k === 'add' ? ADD : s.k === 'del' ? DEL : ''" x-text="s.t"></span></template></div>
+            </template>
+          </section>
+        </div>
+      </div>
+    </template>
+
+    <!-- rounds -->
+    <template x-if="led && tab === 'rounds'">
+      <div class="p-4 pb-24">
+        <table class="table text-base">
+          <thead><tr><th class="font-mono">round</th><th>model readers, and what each added</th><th class="text-right">words</th><th class="text-right">must-keep facts kept</th></tr></thead>
+          <tbody>
+            <tr class="opacity-70">
+              <td class="font-mono">original</td><td x-text="led.units.length + ' sentences and headings'"></td>
+              <td class="text-right font-mono" x-text="led.source.words"></td><td></td>
+            </tr>
+            <template x-for="row in table" :key="row.n">
+              <tr class="cursor-pointer align-top" :class="row.i === k ? 'bg-primary/10' : 'hover:bg-base-200'" @click="go(row.i, 'compare')">
+                <td class="font-mono" x-text="row.n"></td>
+                <td>
+                  <template x-for="r in row.readers" :key="r.role">
+                    <div class="text-pretty">
+                      <span class="font-semibold" x-text="r.role"></span>
+                      <span class="opacity-70" x-text="(ROLES[r.role] || '') + (r.model ? ' (' + r.model + ')' : '')"></span>:
+                      <span x-text="added(r)"></span>
+                    </div>
+                  </template>
+                  <div class="text-pretty" x-show="!!row.h">
+                    <span class="font-semibold">harvester</span>
+                    <span class="opacity-70" x-text="ROLES.harvester"></span>:
+                    <span x-text="row.h && deid(row.h.note, row.n, 'kind')"></span>
+                  </div>
+                </td>
+                <td class="text-right font-mono whitespace-nowrap">
+                  <div x-text="row.h ? row.h.words : '…'"></div>
+                  <div class="text-xs" :class="row.delta < 0 ? 'text-success' : 'text-error'" x-show="row.delta !== null" x-text="(row.delta > 0 ? '+' : '') + row.delta"></div>
+                </td>
+                <td class="text-right font-mono whitespace-nowrap">
+                  <div x-text="row.h ? row.h.core_carried + ' of ' + named(row.i) : ''"></div>
+                  <div class="text-xs opacity-70" x-show="!!row.h && named(row.i) > row.h.core_total" x-text="row.h && (named(row.i) - row.h.core_total) + ' voted out'"></div>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+    </template>
+
+    <!-- notes: the ledger -->
+    <template x-if="led && tab === 'notes'">
+      <div class="h-full grid grid-rows-[auto_minmax(0,1fr)]">
+      <div class="flex items-center gap-2 px-4 py-2 border-b border-base-300 overflow-x-auto">
+        <span class="text-xs opacity-70 shrink-0">show</span>
+        <template x-for="t in Object.keys(kinds)" :key="t">
+          <button class="btn btn-xs shrink-0" :class="kinds[t] ? 'btn-neutral' : 'btn-ghost opacity-60'" @click="kinds[t] = !kinds[t]" x-text="KINDS[t]"></button>
+        </template>
+      </div>
+      <div class="min-h-0 grid grid-rows-[minmax(0,2fr)_minmax(0,3fr)] lg:grid-rows-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <ol class="min-h-0 overflow-y-auto lg:pb-24 divide-y divide-base-200 border-b lg:border-b-0 lg:border-r border-base-300">
+          <li>
+            <button class="w-full text-left px-4 py-2" :class="sel === null ? 'bg-base-200 font-semibold' : 'hover:bg-base-200'" @click="sel = null">Every sentence</button>
+          </li>
+          <template x-for="u in led.units" :key="u.id">
+            <li>
+              <button class="w-full text-left px-4 py-2 flex gap-3 items-baseline" :class="sel === u.id ? 'bg-base-200' : 'hover:bg-base-200'" @click="sel = sel === u.id ? null : u.id">
+                <span class="font-mono text-xs opacity-60 w-7 shrink-0" x-text="u.id"></span>
+                <span class="flex-1 min-w-0 text-pretty break-words" :class="[dropped(u) ? 'line-through opacity-50' : '', /^h\d/.test(u.kind) ? 'font-semibold' : '']" x-text="plain(u.text)"></span>
+                <span class="font-mono text-xs opacity-60 shrink-0" x-text="count(u) + ' notes'"></span>
+              </button>
+            </li>
+          </template>
+        </ol>
+        <div class="min-h-0 overflow-y-auto p-4 pb-24 flex flex-col gap-3">
+          <template x-for="g in groups" :key="g.n + g.role">
+            <div class="flex flex-col gap-2">
+              <div class="text-xs font-mono opacity-70 border-b border-base-200 pb-1" x-text="'added in round ' + g.n + ' by ' + g.role + ' · ' + g.items.length + ' notes'"></div>
+              <template x-for="e in g.items" :key="e.id">
+                <div class="pl-3 border-l-2" :class="e.round === n ? 'border-primary' : 'border-base-300'">
+                  <div class="flex flex-wrap items-center gap-x-2 text-xs font-mono opacity-80">
+                    <span x-text="KINDS[e.tag]"></span>
+                    <span class="opacity-70" x-text="anchorLabel(e)"></span>
+                    <span class="text-success" x-show="ups(e)" x-text="'+' + ups(e)"></span>
+                    <span class="text-error" x-show="downs(e).length" x-text="'−' + downs(e).length"></span>
+                    <span class="badge badge-xs badge-primary" x-show="used.has(e.id)" x-text="'used in round ' + n"></span>
+                  </div>
+                  <template x-if="e.tag === 'word'">
+                    <div class="text-pretty break-words"><span class="line-through opacity-60" x-text="e.from"></span> <span x-text="e.text || '∅'"></span></div>
+                  </template>
+                  <template x-if="e.tag !== 'word'"><div class="text-pretty whitespace-pre-wrap break-words" x-html="inline(e.text)"></div></template>
+                  <template x-for="(v, j) in downs(e)" :key="j">
+                    <div class="opacity-70 text-pretty"><span class="text-error font-mono text-xs" x-text="'voted down by ' + v.role + ':'"></span> <span x-text="deid(v.why, v.round)"></span></div>
+                  </template>
+                </div>
+              </template>
+            </div>
+          </template>
+        </div>
+      </div>
+      </div>
+    </template>
+
+    <!-- must keep -->
+    <template x-if="led && tab === 'core'">
+      <div class="p-4 pb-24">
+        <table class="table text-base">
+          <thead>
+            <tr>
+              <th>fact a reader must still get</th>
+              <template x-for="r in led.rounds.slice(0, k + 1)" :key="r.n"><th class="font-mono text-center" x-text="'round ' + r.n"></th></template>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="e in cores" :key="e.id">
+              <tr>
+                <td class="align-top">
+                  <div class="text-pretty break-words" :class="downs(e).length > ups(e) ? 'line-through opacity-60' : ''" x-html="inline(e.text)"></div>
+                  <template x-if="coreNow(e)">
+                    <div class="opacity-70 break-words text-pretty" x-html="coreNow(e).quote ? 'kept as “' + inline(coreNow(e).quote) + '”' : 'given up: ' + window.esc(deid(coreNow(e).lost, n))"></div>
+                  </template>
+                  <template x-if="downs(e).length > ups(e)">
+                    <div class="opacity-70 break-words text-pretty" x-text="'voted out as a repeat: ' + deid(downs(e)[0].why, downs(e)[0].round)"></div>
+                  </template>
+                </td>
+                <template x-for="r in led.rounds.slice(0, k + 1)" :key="r.n">
+                  <td class="text-center align-top">
+                    <i class="ph-bold text-lg" :class="{ 'ph-check text-success': coreAt(e, r) === 'ok', 'ph-x text-error': coreAt(e, r) === 'lost', 'ph-minus opacity-30': coreAt(e, r) === '' }"></i>
+                  </td>
+                </template>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+    </template>
+  </main>
+
+  <!-- footer: rounds -->
+  <footer class="flex items-center justify-center gap-3 px-4 py-2 border-t border-base-300" x-show="R > 1">
+    <button class="btn btn-ghost btn-sm btn-square" @click="step(-1)" :disabled="k === 0" aria-label="Previous round"><i class="ph ph-caret-left text-lg"></i></button>
+    <div class="flex items-center gap-2">
+      <span class="text-xs opacity-70" x-text="tab === 'compare' ? 'result of' : tab === 'rounds' ? 'selected' : 'as of'"></span>
+      <template x-for="(r, i) in led ? led.rounds : []" :key="r.n">
+        <button class="font-mono text-xs px-2 py-1 rounded" :class="i === k ? 'bg-primary text-primary-content' : 'opacity-60 hover:bg-base-200'" @click="k = i" x-text="'round ' + r.n"></button>
+      </template>
+    </div>
+    <button class="btn btn-ghost btn-sm btn-square" @click="step(1)" :disabled="k === R - 1" aria-label="Next round"><i class="ph ph-caret-right text-lg"></i></button>
+  </footer>
+</div>
+</body>
+</html>

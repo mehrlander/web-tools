@@ -31,12 +31,19 @@ jobs:
           node desktop/Checks/phone-ui-checks.mjs
           node desktop/Checks/computer-ui-checks.mjs
           node desktop/Checks/devices-ui-checks.mjs
+          node desktop/Checks/repositories-ui-checks.mjs
+          node desktop/Checks/files-ui-checks.mjs
           node desktop/Checks/offline-checks.mjs
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - name: Check local work evidence and summaries
-        run: python desktop/Checks/work-summary-checks.py
+        run: |
+          python desktop/Checks/work-summary-checks.py
+          python desktop/Checks/repository-checks.py
+          python desktop/Checks/local-file-checks.py
+          python desktop/Checks/laptop-inventory-checks.py
+          python desktop/Checks/folder-explorer-checks.py
       - name: Check account allowance normalization and display
         run: |
           python desktop/Checks/usage-checks.py
