@@ -44,13 +44,14 @@ public sealed class RepositoryReader
         }
     }
 
-    private async Task<string?> RunScript(string? key, CancellationToken stop, bool files = false)
+    private async Task<string?> RunScript(string? key, CancellationToken stop, bool files = false, bool publish = false)
     {
         var start = new ProcessStartInfo("python") { UseShellExecute = false, CreateNoWindow = true,
             RedirectStandardOutput = true, RedirectStandardError = true };
         foreach (var arg in new[] { "-u", Path.Combine(AppContext.BaseDirectory, "worker", "repositories.py"),
             "--root", UserSettings.Load().RepositoriesRoot, "--state", UserSettings.DataDirectory }) start.ArgumentList.Add(arg);
         if (files) start.ArgumentList.Add("--local-files");
+        if (publish) start.ArgumentList.Add("--publish-laptop-files");
         if (key is not null) {
             start.ArgumentList.Add("--fetch"); start.ArgumentList.Add(key);
             List<string> folders;
@@ -62,7 +63,7 @@ public sealed class RepositoryReader
         using var process = Process.Start(start);
         if (process is null) return null;
         using var budget = CancellationTokenSource.CreateLinkedTokenSource(stop);
-        budget.CancelAfter(TimeSpan.FromSeconds(files ? 180 : key is null ? 90 : 240));
+        budget.CancelAfter(TimeSpan.FromSeconds(publish ? 600 : files ? 180 : key is null ? 90 : 240));
         using var cancel = budget.Token.Register(() => { try { if (!process.HasExited) process.Kill(entireProcessTree: true); } catch (InvalidOperationException) { } });
         // Ignore diagnostics; raw Git errors can contain credential-helper or path details.
         process.BeginErrorReadLine();
@@ -72,6 +73,13 @@ public sealed class RepositoryReader
         return process.ExitCode == 0 && value.Length < (files ? 4_194_304 : 2_097_152) ? value : null;
     }
 
+    private async Task<DateTimeOffset> PublishInventory(CancellationToken stop)
+    {
+        try { await RunScript(null, stop, publish: true); }
+        catch (Exception e) when (e is IOException or JsonException or System.ComponentModel.Win32Exception or OperationCanceledException) { }
+        return DateTimeOffset.UtcNow;
+    }
+
     private async Task FilesLoop(CancellationToken stop)
     {
         try {
@@ -79,29 +87,40 @@ public sealed class RepositoryReader
             if (prior is { SchemaVersion: 1 } && prior.MachineName == Environment.MachineName)
                 lock (gate) inventories = prior.Checkouts.ToDictionary(c => c.Key);
         } catch (Exception e) when (e is IOException or JsonException) { }
-        do {
-            try {
-                var output = await RunScript(null, stop, files: true);
-                var value = output is null ? null : JsonSerializer.Deserialize<RepositoryLocalFiles>(output, json);
-                if (value is not { SchemaVersion: 1 } || value.Checkouts.Count > 256) throw new IOException();
-                lock (gate) {
-                    foreach (var item in value.Checkouts) {
-                        if (item.State != "ready" && inventories.TryGetValue(item.Key, out var old))
-                            inventories[item.Key] = old with { Notice = "Local file scan unavailable. Showing the last inventory." };
-                        else inventories[item.Key] = item;
-                    }
-                    inventories = inventories.Where(p => value.Checkouts.Any(c => c.Key == p.Key)).ToDictionary(p => p.Key, p => p.Value);
-                    filesPaused = false;
-                    value = value with { Checkouts = inventories.Values.ToList() };
+        Task<DateTimeOffset>? publication = null;
+        var nextPublication = DateTimeOffset.MinValue;
+        try {
+            do {
+                if (publication?.IsCompleted == true) {
+                    nextPublication = (await publication).AddMinutes(15);
+                    publication = null;
                 }
-                Directory.CreateDirectory(UserSettings.DataDirectory);
-                await File.WriteAllTextAsync(filesSaved + ".tmp", JsonSerializer.Serialize(value, json), stop);
-                File.Move(filesSaved + ".tmp", filesSaved, true);
-            } catch (Exception e) when (e is IOException or JsonException or System.ComponentModel.Win32Exception or OperationCanceledException) {
-                lock (gate) filesPaused = true;
-            }
-            await Task.Delay(TimeSpan.FromMinutes(1), stop);
-        } while (!stop.IsCancellationRequested);
+                if (publication is null && DateTimeOffset.UtcNow >= nextPublication)
+                    publication = PublishInventory(stop);
+                try {
+                    var output = await RunScript(null, stop, files: true);
+                    var value = output is null ? null : JsonSerializer.Deserialize<RepositoryLocalFiles>(output, json);
+                    if (value is not { SchemaVersion: 1 } || value.Checkouts.Count > 256) throw new IOException();
+                    lock (gate) {
+                        foreach (var item in value.Checkouts) {
+                            if (item.State != "ready" && inventories.TryGetValue(item.Key, out var old))
+                                inventories[item.Key] = old with { Notice = "Local file scan unavailable. Showing the last inventory." };
+                            else inventories[item.Key] = item;
+                        }
+                        inventories = inventories.Where(p => value.Checkouts.Any(c => c.Key == p.Key)).ToDictionary(p => p.Key, p => p.Value);
+                        filesPaused = false;
+                        value = value with { Checkouts = inventories.Values.ToList() };
+                    }
+                    Directory.CreateDirectory(UserSettings.DataDirectory);
+                    await File.WriteAllTextAsync(filesSaved + ".tmp", JsonSerializer.Serialize(value, json), stop);
+                    File.Move(filesSaved + ".tmp", filesSaved, true);
+                } catch (Exception e) when (e is IOException or JsonException or System.ComponentModel.Win32Exception or OperationCanceledException) {
+                    lock (gate) filesPaused = true;
+                }
+                await Task.Delay(TimeSpan.FromMinutes(1), stop);
+            } while (!stop.IsCancellationRequested);
+        }
+        finally { if (publication is not null) await publication; }
     }
 
     private async Task Scan(CancellationToken stop)
