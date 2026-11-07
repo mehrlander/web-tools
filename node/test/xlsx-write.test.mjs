@@ -479,6 +479,19 @@ test('verify catches a package it should reject', async () => {
   assert.ok(outOfRange.problems.some(p => p.kind === 'index' && /activeTab/.test(p.message)),
     JSON.stringify(outOfRange.problems));
 
+  // calcChain's `i` is a sheetId, which can run past the sheet count: an id
+  // the workbook carries passes, and one no sheet carries is named.
+  const calc = (i) => broken(async (z) => {
+    const x = await z.file('xl/workbook.xml').async('string');
+    z.file('xl/workbook.xml', x.replace(/(<sheet\b[^>]*\bsheetId=")\d+"/, '$124"'));
+    z.file('xl/calcChain.xml', `<?xml version="1.0"?><calcChain xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><c r="A1" i="${i}"/></calcChain>`);
+  });
+  const highId = await calc(24);
+  assert.ok(!highId.problems.some(p => /calcChain names/.test(p.message)), 'a sheetId past the sheet count is not an error: ' + JSON.stringify(highId.problems));
+  const noSheet = await calc(2);
+  assert.ok(noSheet.problems.some(p => p.kind === 'index' && /calcChain names sheetId 2/.test(p.message)),
+    JSON.stringify(noSheet.problems));
+
   const orphanPart = await broken(async (z) => {
     z.file('xl/orphan.xml', '<?xml version="1.0"?><x/>');
   });
