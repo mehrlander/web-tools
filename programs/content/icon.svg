@@ -1,10 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="content program">
   <title>content program</title>
   <desc>A leaf in two halves, one solid and one cut by two veins, cut from a purple-600 tile. Drawn on the drawn-mark box and rules (docs/favicons/README.md): solid fills, no strokes, and every gap at least 2.5 units, which is about 1.4 CSS pixels at 16. Chosen 2026-11-07, the owner's first favorite: redrawn after the bold leaf of the Solar icon set (480 Design, CC BY 4.0), with two veins where it has three, since three at the 2.5-unit gap leave veins too thin to see; the ideas it was chosen from are in docs/prototypes/program-mark-ideas.html.</desc>
-  <mask id="cut" maskUnits="userSpaceOnUse" x="0" y="0" width="32" height="32">
-    <rect width="32" height="32" fill="#fff"/>
-    <g fill="#000"><path d="M16 6 C15.5 6 15 6.15 14.54 6.38 C10.55 8.24 8 13.44 8 17.91 C8 22.37 11.58 26.03 16 26.03 C20.42 26.03 24 22.37 24 17.91 C24 13.44 21.45 8.24 17.46 6.38 C17 6.15 16.5 6 16 6Z"/></g>
-    <g fill="#fff"><rect x="14.75" y="3" width="2.5" height="26"/><path d="M16 11.73 L28 -0.27 L28 3.27 L16 15.27Z"/><path d="M16 18.98 L28 6.98 L28 10.52 L16 22.52Z"/></g>
-  </mask>
-  <g fill="#9333ea" mask="url(#cut)"><rect x="2" y="2.25" width="28" height="28" rx="7"/></g>
+  <path fill="#9333ea" d="M9 2.25L23 2.25C26.866 2.25 30 5.384 30 9.25L30 23.25C30 27.116 26.866 30.25 23 30.25L9 30.25C5.134 30.25 2 27.116 2 23.25L2 9.25C2 5.384 5.134 2.25 9 2.25ZM14.75 6.282C14.679 6.313 14.609 6.345 14.54 6.38C10.55 8.24 8 13.44 8 17.91C8 21.941 10.924 25.318 14.75 25.931ZM17.25 25.931C21.076 25.318 24 21.941 24 17.91C24 16.922 23.875 15.898 23.638 14.882L17.25 21.27ZM22.749 12.231C22.379 11.393 21.932 10.592 21.416 9.854L17.25 14.02L17.25 17.73ZM19.773 7.957C19.073 7.309 18.298 6.771 17.46 6.38C17.391 6.345 17.321 6.313 17.25 6.282L17.25 10.48Z"/>
 </svg>

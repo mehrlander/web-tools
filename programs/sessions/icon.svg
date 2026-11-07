@@ -1,9 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="sessions program">
   <title>sessions program</title>
   <desc>Three turns of a conversation, alternating sides, cut from a cyan-600 tile. Drawn on the drawn-mark box and rules (docs/favicons/README.md): solid fills, no strokes, and every gap at least 2.5 units, which is about 1.4 CSS pixels at 16. Chosen 2026-11-07, the owner's first favorite once Surfacing became Sessions, in place of the cube; the ideas it was chosen from are in docs/prototypes/program-mark-ideas.html.</desc>
-  <mask id="cut" maskUnits="userSpaceOnUse" x="0" y="0" width="32" height="32">
-    <rect width="32" height="32" fill="#fff"/>
-    <g fill="#000"><rect x="6.5" y="6.75" width="14" height="4.5"/><rect x="11.5" y="13.75" width="14" height="4.5"/><rect x="6.5" y="20.75" width="14" height="4.5"/></g>
-  </mask>
-  <g fill="#0891b2" mask="url(#cut)"><rect x="2" y="2.25" width="28" height="28" rx="7"/></g>
+  <path fill="#0891b2" d="M9 2.25L23 2.25C26.866 2.25 30 5.384 30 9.25L30 23.25C30 27.116 26.866 30.25 23 30.25L9 30.25C5.134 30.25 2 27.116 2 23.25L2 9.25C2 5.384 5.134 2.25 9 2.25ZM6.5 6.75L6.5 11.25L20.5 11.25L20.5 6.75ZM11.5 13.75L11.5 18.25L25.5 18.25L25.5 13.75ZM6.5 20.75L6.5 25.25L20.5 25.25L20.5 20.75Z"/>
 </svg>
