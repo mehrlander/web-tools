@@ -6,7 +6,7 @@ lib/kits/branch-brief.js,BranchBrief,"a branch as a subject, not a row.",466,no,
 lib/kits/branch-status.js,BranchStatus,"Branch-scan math: the content-level landed/stranded signal, ported from home's tools/unmerged-branches.sh (the CLI reference instrument).",615,no,no,7,yes
 lib/kits/brief.js,brief,"assemble a page into a review brief: one markdown document holding the page source plus the source of the modules the page itself loaded, sized for pasting…",247,no,no,3,yes
 lib/kits/browser-kind.js,BrowserKind,"what kind of browser this is, and what the reader calls it ─ Browser storage is kept per browser, per profile and, on iOS, per home-screen app, so anything…",58,no,no,2,yes
-lib/kits/call-answer.js,CallAnswer,answering a documentation user call (window.CallAnswer).,143,no,no,3,yes
+lib/kits/call-answer.js,CallAnswer,answering a documentation user call (window.CallAnswer).,179,no,no,3,yes
 lib/kits/call-marks.js,CallMarks,"the marks for the parts of anything put to the reader for a call: the background that gives rise to it, the proposal itself, the commentary on it, and the…",41,no,no,3,no
 lib/kits/chat-archive.js,chatArchive,"the chat archive as a venue of activity, read one month at a time.",330,no,no,4,yes
 lib/kits/chat-render.js,chatRender,"chat transcript renderer: markdown in, readable conversation out, with fenced code blocks promoted to live artifacts.",1201,no,no,9,yes
@@ -19,7 +19,7 @@ lib/kits/compression.js,compression,Brotli/Gzip/Acorn wrappers + bookmarklet pac
 lib/kits/console.js,consoleKit,console retention + filter + subscribe layer.,119,yes,no,7,yes
 lib/kits/content-registry.js,ContentRegistry,"the epistemic content registry, read in the browser.",111,no,no,5,yes
 lib/kits/crawl-runs.js,CrawlRuns,The `runs` ring: the few facts about a crawl that its output cannot show.,89,no,no,2,yes
-lib/kits/csv.js,Csv,"CSV, small and shared.",56,no,no,11,yes
+lib/kits/csv.js,Csv,"CSV, small and shared.",56,no,no,12,yes
 lib/kits/data-payload.js,DataPayload,Reading a data toss.,190,no,no,4,yes
 lib/kits/data-shelf.js,dataShelf,shelf record schema + helpers.,73,no,no,1,yes
 lib/kits/dictate-handoff.js,dictateHandoff,carry a draft from a composer on a page to the dictation page.,78,no,no,2,yes
@@ -30,7 +30,7 @@ lib/kits/doc-index.js,DocIndex,"every estate repo's Markdown, with word counts, 
 lib/kits/dock-split.js,dockSplit,the drag handle between two panes.,263,no,yes,11,yes
 lib/kits/docx.js,docxKit,"WordprocessingML (.docx) preparation: what a Word file has to have done to it before a browser renderer draws it faithfully, and what it knows about itself…",512,no,no,1,yes
 lib/kits/dom-shot.js,DomShot,render a live DOM node to a PNG in the browser.,218,no,no,1,yes
-lib/kits/errands.js,Errands,one record for everything a session needs a person's browser to do.,471,no,no,7,yes
+lib/kits/errands.js,Errands,one record for everything a session needs a person's browser to do.,475,no,no,7,yes
 lib/kits/estate-search.js,EstateSearch,"The estate's search calls, in one place, with one cache.",557,no,no,8,yes
 lib/kits/export.js,exporter,"export a page to a portable, self-resolving copy: ""download this page plus the data it read()s"" as one zip, optionally with its code inlined.",210,no,yes,9,yes
 lib/kits/file-correspondence.js,FileCorrespondence,Associate submitted text with one file at one repository revision.,184,no,no,2,yes
@@ -44,7 +44,7 @@ lib/kits/guide-render.js,GuideRender,"a guide PR body, rendered as something you
 lib/kits/gz-payload.js,GzPayload,"The `#gz=` payload, in one place: text gzipped, then base64url, so a page, a document or a data envelope rides in a link with nothing hosted and no token…",41,no,no,15,yes
 lib/kits/io.js,io,"user data in and out of the page: file picker, file download, blob preview, and the clipboard.",229,no,yes,23,yes
 lib/kits/json-explorer.js,JsonExplorer,"Native, framework-free JSON Explorer & Schema Profiler.",747,no,no,1,yes
-lib/kits/land.js,Land,"where the reader was just sent, and how they get told.",260,no,yes,8,yes
+lib/kits/land.js,Land,"where the reader was just sent, and how they get told.",260,no,yes,9,yes
 lib/kits/last-write.js,LastWrite,"the copy this page just committed, for the next fold",70,no,no,5,yes
 lib/kits/linked-swiper.js,linkedSwiper,"a list with a detail: the list beside, or over, a strip of one card per row, the two moving together.",326,no,yes,4,yes
 lib/kits/lists.js,Lists,"the registry's lists/ folder, read and written as one kind of file.",235,no,no,4,yes
@@ -91,14 +91,14 @@ lib/kits/review-target.js,reviewTarget,parse and mint the address grammar for th
 lib/kits/root-has-prune.js,RootHasPrune,"daisyUI's :root:has() rules, removed from the loaded stylesheet so that a change anywhere in the page stops costing a restyle of all of it.",112,no,no,1,yes
 lib/kits/route-activity.js,routeActivity,"rank the app's own routes by when the code behind each last moved, and join each to the work in flight against it.",358,no,no,6,yes
 lib/kits/route-join.js,RouteJoin,"the app-route join: the hub's own route manifest, and for each open pull request against the hub, the files it touches.",129,no,no,2,yes
-lib/kits/row-menu.js,rowMenu,"a tap on a row, and what you can do with it",620,no,yes,8,yes
+lib/kits/row-menu.js,rowMenu,"a tap on a row, and what you can do with it",620,no,yes,9,yes
 lib/kits/session-export.js,sessionExport,"a session as a list of exchanges, plus the pure function that turns any part of one into markdown.",1622,no,no,5,yes
 lib/kits/session-index.js,SessionIndex,"a token index over what sessions SAID, so the exhaustive pass stops costing the whole store.",418,no,no,7,yes
 lib/kits/session-render.js,sessionRender,a session record as a readable conversation.,1413,no,no,3,yes
 lib/kits/sessions-crawl.js,SessionsCrawl,"The sessions crawl as a kit: the pass that folds the per-session records under sessions/ in the private registry into state/sessions.json, its phone copy…",217,no,no,1,yes
 lib/kits/shortcut-evidence.js,ShortcutEvidence,the device's return channel read as outpost evidence.,176,no,no,2,yes
 lib/kits/shorter-payload.js,ShorterPayload,Reading a shorter toss.,76,no,no,1,yes
-lib/kits/source-peek.js,SourcePeek,the hover card behind an exact-file GitHub jump-over.,621,yes,yes,12,yes
+lib/kits/source-peek.js,SourcePeek,the hover card behind an exact-file GitHub jump-over.,735,yes,yes,12,yes
 lib/kits/src-doc.js,srcDoc,"A RENDERED VIEW OF A SOURCE FILE SAYS SO, AND SAYS WHICH FILE.",118,no,no,8,yes
 lib/kits/stage-handoff.js,StageHandoff,"one paste, two documents",116,no,no,4,no
 lib/kits/standoff.js,Standoff,"The standoff annotation: its invariants, the six edits it admits, and the one serialization both of its writers must agree on.",655,no,no,4,yes
@@ -125,7 +125,7 @@ lib/kits/wsl-core.js,wslCore,"dependency-free WSL core: the XML→record parsers
 lib/kits/wsl.js,wsl,browser-facing WSL kit.,312,no,no,3,yes
 lib/kits/xlsx-chart.js,xlsxChartKit,Browser SVG previews of supported Excel chart models.,456,no,no,1,yes
 lib/kits/xlsx-extract.js,XlsxExtract,PICK PART OF A WORKBOOK AND CARRY THE ANSWER AWAY.,841,no,no,3,yes
-lib/kits/xlsx-map.js,XlsxMap,"HOW A WORKBOOK'S PARTS CONNECT, and what each sheet holds, read from what kits/xlsx.js already parsed.",407,no,no,1,yes
+lib/kits/xlsx-map.js,XlsxMap,"HOW A WORKBOOK'S PARTS CONNECT, and what each sheet holds, read from what kits/xlsx.js already parsed.",414,no,no,1,yes
 lib/kits/xlsx-people.js,XlsxPeople,"WHERE A WORKBOOK NAMES PEOPLE, and whose names they are, found before any of it is shared.",347,no,no,1,yes
 lib/kits/xlsx-write.js,xlsxWriteKit,build a new workbook holding a chosen subset of another workbook's sheets.,1115,no,no,2,yes
-lib/kits/xlsx.js,xlsxKit,"OOXML (.xlsx) structural inspector: unzip, walk every XML/rels part, and surface the internal cross-references (shared strings, styles, sheet rels, comments,…",3295,no,yes,11,yes
+lib/kits/xlsx.js,xlsxKit,"OOXML (.xlsx) structural inspector: unzip, walk every XML/rels part, and surface the internal cross-references (shared strings, styles, sheet rels, comments,…",3312,no,yes,11,yes

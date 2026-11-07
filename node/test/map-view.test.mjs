@@ -1100,8 +1100,8 @@ test('a tab tap renders, loads, and hands the tab to the shell', async () => {
   await tick(2);
   assert.equal(d2.mapTab, 'docs');
   assert.equal(d2.displayTab, 'docs');
-  assert.equal(JSON.stringify(d2.subviews.map(s => s.k)), JSON.stringify(['docs', 'growth', 'policy', 'themes', 'development']),
-    'Docs exposes Inventory first, then Growth, Policy, Themes and Development; Registries moved to Data on 2026-10-23');
+  assert.equal(JSON.stringify(d2.subviews.map(s => s.k)), JSON.stringify(['docs', 'growth', 'policy', 'themes']),
+    'Docs exposes Inventory first, then Growth, Policy and Themes; Registries moved to Data on 2026-10-23');
   assert.deepEqual([...taps], ['docs'], 'the shell is told, so the URL gets stamped');
   assert.ok(d2.docsReg, 'the tab fetched its own manifest');
 
@@ -1734,7 +1734,18 @@ test('Context\'s address rides with Context alone, and comes back with it', asyn
 
 test('an address that does not open Context arms none of its keys', () => {
   const { shell } = makeShell({ search: '?view=map&tab=tests&ctxtopic=house-style' });
-  assert.deepEqual({ ...shell.mapCtx }, { ctxlens: '', ctxsort: '', ctxtopic: '', ctxsource: '', setintent: '', growthrepo: '' });
+  assert.deepEqual({ ...shell.mapCtx }, { ctxlens: '', ctxsort: '', ctxtopic: '', ctxsource: '', setintent: '', growthrepo: '', h: '' });
+});
+
+test("a policy link's entry rides with the Policies tab alone", async () => {
+  const { shell } = makeShell({ search: '?view=map&tab=policy&h=smug' });
+  assert.equal(shell.mapCtx.h, 'smug', 'an address that opens Policies arms its entry');
+  await shell.routeFromUrl(shell.parseUrl());
+  assert.equal(shell.deepLinkParams().get('h'), 'smug', 'the entry survives the stamp');
+  shell.goMapTab('docs');
+  assert.equal(shell.deepLinkParams().has('h'), false, 'h rode onto another tab');
+  const other = makeShell({ search: '?view=map&tab=docs&h=smug' }).shell;
+  assert.equal(other.mapCtx.h, '', 'an address that does not open Policies arms none of its keys');
 });
 
 test("Growth's corpus rides with Growth alone", () => {

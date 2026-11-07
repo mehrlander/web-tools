@@ -120,6 +120,14 @@ coded `linked-swiper`.
 
 **13. Avoid modal dialogs.** Consider a panel-tip, the deck takeover (rule 4), or another more fluid alternative.
 
+**14. Show the source.** A page presents the publisher's own document rather than a conversion made here, quoted text exactly as written with only highlighting added, and a change inline in the document it changes.
+
+**15. Keep the reader's context.** A link to a row scrolls to it and leaves the other rows in view.
+
+**16. The layout holds still.** A scrollbar appearing, a counter gaining a digit, or a container's content changing moves nothing else: reserve the scrollbar's gutter, give counters `tabular-nums`, and size a container for its largest content.
+
+**17. An item and its counterparts highlight together.** Where one item appears in two or more places on a page, hovering or tapping any of them marks the others.
+
 ## Handing a page over
 
 In a web-tools checkout, run `npm run showing`. Elsewhere, pick by what the

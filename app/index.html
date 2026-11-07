@@ -520,6 +520,7 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
                   class="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-base font-medium transition-colors"
                   :class="navActive(v) ? 'text-primary bg-primary/10' : 'text-base-content/70 hover:bg-base-200'">
             <i class="ph text-base leading-none" :class="v.icon"></i><span x-text="v.label"></span>
+            <i x-show="v.fullApp" x-cloak class="ph ph-arrow-up-right text-sm leading-none text-base-content/40"></i>
           </button>
         </template>
       </nav>
@@ -1148,6 +1149,7 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
                   :class="view==='app' && appView && appView.key===v.key ? 'bg-primary/10 text-primary font-semibold' : 'text-base-content/80'">
             <i class="ph text-base" :class="v.icon"></i><span x-text="v.label"></span>
             <span x-show="v.ref" x-cloak class="min-w-0 truncate font-mono text-sm font-normal text-base-content/40" x-text="'@' + v.ref"></span>
+            <i x-show="v.fullApp" x-cloak class="ph ph-arrow-up-right text-sm text-base-content/40"></i>
           </button>
         </template>
       </div>
@@ -1448,7 +1450,7 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
        here (a 1280 window with the sidebar open leaves main 928px, and `xl:`
        called that three columns too); the dock is just where being wrong got
        loud. Adoption is per view, `lg:` to `@3xl:`, as each is touched. -->
-  <main data-pattern="host" class="@container flex-1 min-w-0 min-h-0"
+  <main data-pattern="host" x-effect="leaveForFullApp()" class="@container flex-1 min-w-0 min-h-0"
         @touchstart.passive="onSwipeStart($event)" @touchmove="onSwipeMove($event)"
         @touchend.passive="onSwipeEnd($event)" @touchcancel.passive="onSwipeCancel()">
 
@@ -1479,7 +1481,7 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
          rendered live through toss-render's #gh= address mode, the same way a
          custom landing embeds. Full-bleed, beside Repos / Stage. -->
     <div x-show="view==='app'" class="h-full">
-      <template x-if="appView">
+      <template x-if="appView && !fullAppExit">
         <iframe :src="appViewUrl" data-pattern="host" class="w-full h-full border-0 bg-base-100"
                 sandbox="allow-scripts allow-same-origin allow-popups allow-downloads"></iframe>
       </template>
@@ -1948,10 +1950,10 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
               <h1 class="text-xl font-bold tracking-tight truncate" x-text="project.label"></h1>
               <template x-if="project.landing">
                 <button @click="openProjectApp('')" :aria-pressed="projectPane==='app'" data-project-app
-                        :data-title-tip="'Open ' + project.label + '\'s app'" :aria-label="'Open ' + project.label + '\'s app'"
+                        :data-title-tip="'Open ' + project.label + '\'s app' + (projectLandingFull ? ' outside Web Tools' : '')" :aria-label="'Open ' + project.label + '\'s app'"
                         class="shrink-0 rounded p-0.5 transition-colors"
                         :class="projectPane==='app' ? 'bg-primary/10 ring-1 ring-[var(--color-primary)]/30' : 'hover:bg-base-200'">
-                  <i class="ph ph-app-window text-base text-primary"></i></button>
+                  <i class="ph text-base text-primary" :class="projectLandingFull ? 'ph-arrow-square-out' : 'ph-app-window'"></i></button>
               </template>
               <button @click="goLanding()" class="min-w-0 truncate font-mono text-xs text-base-content/40 hover:text-primary transition-colors"
                       :data-title-tip="$store.browser.repo" x-text="$store.browser.repo"></button>
@@ -2015,7 +2017,7 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
                  button beside the name, or at a route (a page query, stamped
                  as &item=) from a route card in Pages. The FAB carries the
                  bust-out to the full-viewport page. -->
-            <template x-if="projectPane==='app'">
+            <template x-if="projectPane==='app' && !fullAppExit">
               <iframe :src="projectLandingUrl" data-pattern="host" class="grow w-full border-0 bg-base-100 mt-4"
                       sandbox="allow-scripts allow-same-origin allow-popups allow-downloads"></iframe>
             </template>
@@ -2543,19 +2545,19 @@ const RAIL_KIND = { link: 'ph-arrow-up-right', action: 'ph-lightning', repo: 'ph
 // ?tab= param before the component mounts. A tab shares its key with the
 // subview it lands on; every other address is a subview and keeps the key it
 // was first published at, so an old ?tab= link still lands where it pointed.
-const MAP_TABS = ['overview', 'reach', 'research', 'harness', 'dimensions', 'docs', 'data', 'watch'];
-const MAP_SUBVIEWS = ['aims', 'icons', 'projects', 'distribution', 'outposts', 'exploration', 'events', 'scheduled', 'programs', 'set', 'tests', 'skills', 'agents', 'peeves', 'context', 'lifetimes', 'surfacing', 'patterns', 'views', 'kits', 'showing', 'fab', 'growth', 'policy', 'themes', 'development', 'registries', 'attributes', 'public', 'names'];
+const MAP_TABS = ['overview', 'reach', 'research', 'harness', 'model', 'docs', 'data', 'watch'];
+const MAP_SUBVIEWS = ['aims', 'icons', 'projects', 'distribution', 'outposts', 'exploration', 'events', 'scheduled', 'programs', 'set', 'tests', 'skills', 'agents', 'peeves', 'context', 'lifetimes', 'surfacing', 'units', 'patterns', 'dimensions', 'views', 'kits', 'showing', 'fab', 'growth', 'policy', 'themes', 'registries', 'relations', 'attributes', 'public', 'names'];
 const MAP_ROUTES = [...MAP_TABS, ...MAP_SUBVIEWS];
 // Where a bare ?view=map lands, and so the one address its URL never stamps:
 // the Overview, every address with its sentence. Reach held it until
 // 2026-10-12, when the sentences left the tops of the tabs for one front door.
 const MAP_HOME = 'overview';
 // The Map subviews' own sub-addresses (lib/alpineComponents/map.js,
-// syncCtxAddress, syncSetAddress and syncGrowthAddress), each key with the tab
-// it belongs to: Context's grouping, sort, question and source, Set's question,
-// and Growth's corpus.
+// syncCtxAddress, syncSetAddress, syncGrowthAddress and syncPolicyAddress),
+// each key with the tab it belongs to: Context's grouping, sort, question and
+// source, Set's question, Growth's corpus, and the Policies tab's entry.
 const MAP_CTX_TAB = { ctxlens: 'context', ctxsort: 'context', ctxtopic: 'context', ctxsource: 'context', setintent: 'set',
-                      growthrepo: 'growth' };
+                      growthrepo: 'growth', h: 'policy' };
 const mapCtxOf = get => Object.fromEntries(Object.keys(MAP_CTX_TAB).map(k => [k, get(k) || '']));
 
 // marked, loaded once on demand for the overview README render. kits/md-doc.js
@@ -2773,7 +2775,8 @@ function app(){ return {
   // repo's config through the same config cache, token-gated: no token, no app
   // views (like the Stage). Each is a sidebar entry in the estate switcher,
   // rendered live through toss-render #gh=.
-  appViews: [],     // resolved [{repo, path, label, icon, order, slug, key}]
+  appViews: [],     // resolved [{repo, path, label, icon, order, slug, key, fullApp}]
+  fullAppKeys: [],  // 'repo:path' of every page a manifest flags fullApp:true
   // Settles when the crawl above has been read once. A slug address awaits it;
   // a token-less or failed load still settles, so the wait cannot hang, and the
   // lookup then simply misses. Pre-set to a resolved promise so a caller that
@@ -3262,10 +3265,10 @@ function app(){ return {
   // Token-gated: without a token there is no cache read, so both stay empty and
   // no private repo or page is named, matching the Stage and the private estate.
   async loadEstateSidebar(){
-    if (!this.hasToken()) { this.appViews = []; this.estateRepos = []; this.estateConfigs = {}; return; }
+    if (!this.hasToken()) { this.appViews = []; this.fullAppKeys = []; this.estateRepos = []; this.estateConfigs = {}; return; }
     try {
       const reg = new window.GH({ token: window.TOKEN, repo: this.REGISTRY_REPO, ref: 'main' });
-      const views = [], repos = [], configs = {};
+      const views = [], repos = [], configs = {}, fullApps = [];
       let names = [];
       try {
         const cache = JSON.parse((await reg.get('state/configs.json')).text);
@@ -3310,6 +3313,14 @@ function app(){ return {
           const pages = cfg.pages;
           if (!Array.isArray(pages)) continue;
           for (const pg of pages) {
+            // A FULL APP brings its own shell (docs/APP.md, "Product
+            // boundary"), so this app opens it at its own address rather than
+            // framing it. The flag marks the page at that path, whichever of
+            // its entries carries it, so route entries need not repeat it.
+            if (pg && pg.fullApp === true && pg.path) {
+              const f = resolveCatalogPath(pg.path, repo, '');
+              fullApps.push(f.repo + ':' + f.path);
+            }
             if (pg && pg.appView === true && pg.path) {
               // The render target may be a cross-repo page (owner/repo[@ref]:path):
               // home promotes the news view whose renderer lives in web-tools.
@@ -3382,13 +3393,15 @@ function app(){ return {
         }
       }
       repos.sort((a, b) => a.group.localeCompare(b.group) || (a.order - b.order) || a.repo.localeCompare(b.repo));
+      for (const v of views) v.fullApp = fullApps.includes(v.repo + ':' + v.path);
+      this.fullAppKeys = fullApps;
       this.appViews = views;
       this.estateRepos = repos;
       this.estateConfigs = configs;
       this.accountRepoNames = names;
       this.enrichSidebarPrivacy();   // independent; the list renders without it
       this.loadRail(configs);        // likewise: one extra GET, off the render path
-    } catch { this.appViews = []; this.estateRepos = []; this.estateConfigs = {}; }
+    } catch { this.appViews = []; this.fullAppKeys = []; this.estateRepos = []; this.estateConfigs = {}; }
   },
 
   // ── The hide list: read, write, and who reads it ─────────────────────────
@@ -5238,13 +5251,21 @@ function app(){ return {
   // path a repo's custom landing takes, but following the browsed ref the way
   // projectGithubUrl does: inside a repo the honest project list is the one on
   // the ref you are standing on, and its landing is too.
-  get projectLandingUrl(){
+  // A landing in another repo is a qualified owner/repo[@ref]:path, the
+  // grammar `pages` entries use, and renders at its own ref.
+  get projectLandingTarget(){
     const p = this.project;
-    if (!p || !p.landing) return '';
+    if (!p || !p.landing) return null;
     const s = Alpine.store('browser');
-    // A landing in another repo is a qualified owner/repo[@ref]:path, the
-    // grammar `pages` entries use, and renders at its own ref.
-    const t = resolveCatalogPath(p.landing, s.repo, s.ref && s.ref !== s.defaultRef ? s.ref : '');
+    return resolveCatalogPath(p.landing, s.repo, s.ref && s.ref !== s.defaultRef ? s.ref : '');
+  },
+  get projectLandingFull(){
+    const t = this.projectLandingTarget;
+    return !!t && this.isFullApp(t.repo, t.path);
+  },
+  get projectLandingUrl(){
+    const t = this.projectLandingTarget;
+    if (!t) return '';
     return '../pages/toss-render.html#gh=' + t.repo + (t.ref ? '@' + t.ref : '') + ':' + t.path
       + (this.projectAppRoute ? '?' + this.projectAppRoute : '');
   },
@@ -6801,7 +6822,7 @@ function app(){ return {
               'sq', 'smode', 'srepo', 'sref', 'spath', 'sfile', 'sitem', 'sset', 'sscope', 'sextra',
               'session', 'list', 'topic', 'lens', 'grain', 'find', 'next',
               'aq', 'discussion', 'ascope', 'arepo', 'astate',
-              'ctxlens', 'ctxsort', 'ctxtopic', 'ctxsource', 'setintent',
+              'ctxlens', 'ctxsort', 'ctxtopic', 'ctxsource', 'setintent', 'h',
               'app', 'on', 'appRepo', 'appPath', 'appRef', 'appLabel', 'appIcon'],
 
   routeFor(view){ return this.VIEWS.find(r => r.key === view); },
@@ -7384,7 +7405,7 @@ function app(){ return {
   // is there; a header this fills would be the signal to fold it into one.
   get appNav(){
     return this.sidebarAppViews.map(v => ({
-      view: 'app', key: v.key, icon: v.icon, label: v.label,
+      view: 'app', key: v.key, icon: v.icon, label: v.label, fullApp: !!v.fullApp,
       title: this.appViewTitle(v),
       go: () => this.goAppView(v),
     }));
@@ -7397,7 +7418,7 @@ function app(){ return {
   // the declared one.
   appViewTitle(v){
     return (v.baseLabel || v.label) + ' — ' + (v.declaredBy || v.repo)
-      + (v.ref ? ' · rendered at ' + v.ref : '');
+      + (v.ref ? ' · rendered at ' + v.ref : '') + (v.fullApp ? ' · opens outside Web Tools' : '');
   },
   // The board behind the rail, if some repo also promotes it as an app view:
   // the Links section's header icon then opens the full board, the way the
@@ -8659,6 +8680,49 @@ function app(){ return {
   // icon edits that repo in place rather than switching the open repo (the
   // Config view is for the open repo).
   openRepoDialog(repo){ document.getElementById('repo')?.__repo?.openDialog(repo, { tab: 'settings' }); },
+  // ── Full apps open on their own ───────────────────────────────────────────
+  // A page a manifest flags `fullApp: true` has a shell of its own (budget-drs:
+  // its header, its rail of views). Framed here, two shells would stack, so
+  // wherever this app would frame one (an app view, a project's App pane) it
+  // replaces its own address with the page's instead. Replacing, not pushing:
+  // the click that got here already pushed this app's entry, so Back returns
+  // to the view the reader left, and a saved ?app= link redirects without a
+  // loop. The flag is read from the estate cache and from the browsed repo's
+  // own manifest, whichever has it first.
+  isFullApp(repo, path){
+    if (!repo || !path) return false;
+    const key = repo + ':' + path;
+    if (this.fullAppKeys.includes(key)) return true;
+    const s = Alpine.store('browser');
+    const pages = s.repo && Array.isArray(s.config?.pages) ? s.config.pages : [];
+    return pages.some(pg => {
+      if (!pg || pg.fullApp !== true || !pg.path) return false;
+      const t = resolveCatalogPath(pg.path, s.repo, '');
+      return t.repo + ':' + t.path === key;
+    });
+  },
+  // The address to leave for, or '' where nothing framed is a full app. The
+  // two frames below read it too, so a full app never starts loading here.
+  get fullAppExit(){
+    if (this.view === 'app') {
+      const v = this.appView;
+      return v && this.isFullApp(v.repo, v.path) ? this.appViewUrl : '';
+    }
+    if (this.view === 'project' && this.projectPane === 'app') {
+      return this.projectLandingFull ? this.projectLandingUrl : '';
+    }
+    return '';
+  },
+  // Run by an x-effect on <main>, which also catches a cold link whose
+  // manifest arrives after the route. The top window, as the FAB's bust-out
+  // does: when this app is itself tossed, its own location is the frame.
+  leaveForFullApp(){
+    const src = this.fullAppExit;
+    if (!src || this._leftFor === src) return;
+    this._leftFor = src;
+    const href = new URL(src, location.href).href;
+    try { window.top.location.replace(href); } catch (e) { location.replace(href); }
+  },
   // Select an estate-level app view; the main area renders it live via
   // toss-render #gh= (appViewUrl).
   goAppView(v){

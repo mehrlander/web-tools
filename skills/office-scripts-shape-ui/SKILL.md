@@ -9,6 +9,10 @@ With Office Scripts, a shape in Excel's drawing layer acts as a button, a displa
 
 This skill covers three patterns and the constraints they all run into.
 
+## Installing a script from code
+
+Excel keeps each script as `.osts` JSON in the account's OneDrive, apart from the workbook, with the source in `body`. Create the script once in Excel's Code Editor, then replace its `body` with [`Install-OfficeScriptBody.ps1`](https://github.com/mehrlander/home/blob/main/projects/office/research/2026-10-30-excel-script-creation/Install-OfficeScriptBody.ps1) ([runbook](https://github.com/mehrlander/home/blob/main/projects/office/research/2026-10-30-excel-script-creation/RUNBOOK.md)). Excel did not pick up a `.osts` file written from scratch, and running the script still takes Excel's **Run**.
+
 ---
 
 ## The patterns
