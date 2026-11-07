@@ -1,9 +1,10 @@
 // docs/machines.csv: one row per computer work runs on, rendered as the Map
-// view Set tab's machine boxes. Three things spell a machine by its key:
-// writers.csv's `machine`, run-methods.csv's `machines`, and errands.js's
-// MACHINES, which an errand's run.venue must be one of. What breaks without
-// this: each grows its own spelling of the same machine, as the three did
-// before the registry, and a label or gloss is written twice.
+// view Set tab's machine boxes. writers.csv's `machine`, run-methods.csv's
+// `machines` and credentials.csv's `held_at` declare that they reference it,
+// and properties-registry.test.mjs holds every declared reference. What is
+// left here is what a declaration cannot reach: errands.js's MACHINES literal,
+// which an errand's run.venue must be one of, the Set tab's reading of the
+// registry, and the document that shares its subject.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -27,14 +28,8 @@ test('every machine has one row, a label and a Phosphor icon', () => {
   }
 });
 
-test('every writer runs on a machine the registry lists, or in a browser', () => {
-  for (const r of Csv.rows(read('docs/writers.csv')))
-    assert.ok(!r.machine || keys.has(r.machine), `${r.writer}: machine ${r.machine} is not a docs/machines.csv key`);
-});
-
-test('every machine a run method allows is a machine, and MACHINES is exactly those', () => {
+test('MACHINES is exactly the machines run-methods.csv allows', () => {
   const used = new Set(Csv.rows(read('docs/run-methods.csv')).flatMap(m => Csv.list(m.machines)));
-  for (const v of used) assert.ok(keys.has(v), `run-methods.csv names ${v}, which is not a docs/machines.csv key`);
   assert.deepEqual([...Errands.MACHINES].sort(), [...used].sort(),
     'errands.js MACHINES differs from the machines run-methods.csv allows');
 });
