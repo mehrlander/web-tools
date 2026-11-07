@@ -101,6 +101,7 @@ test('a deck header names the document, not the kind of call', () => {
   assert.ok(heads.length, 'the form reported a header');
   assert.equal(heads.at(-1).title, 'docs/x.md');
   assert.equal(heads.at(-1).icon, 'ph-pencil-line', 'the kind is the icon\'s to say');
+  assert.equal(heads.at(-1).action, null, 'no record circle in the header: the Record row under the document records');
 });
 
 test('an edit md-diff draws as several changes marks each, under the one decision', async () => {
