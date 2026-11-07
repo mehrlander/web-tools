@@ -12,7 +12,6 @@ A policy states a preference that holds across tasks, in wording the owner appro
 - A session commits proposed wording on its branch, shows the owner the commit's diff in chat, and merges it only after the owner approves it.
 - A policy gets a document of its own only after its entry has been misapplied twice.
 - A shortcut names a preference or a bounded topic. A policy has one command, its slashed shortcut, and may list aliases without the slash; no shortcut is reused.
-- Cite an entry by its shortcut, a slash command such as `/h:qualify`. After the first mention in a document or reply, `h:qualify` alone is enough.
 - A shortcut is an address, not a summary: read the entry before applying it.
 
 **Covers:** this document, and the repo-specific policies under `/h:local`.
@@ -62,6 +61,12 @@ Join ideas with a colon, a comma, a semicolon, parentheses or a new sentence, no
 **Detail:** [QUALIFIED-WRITING.md](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md), its opening paragraph.
 
 **See also:** [peeves](https://github.com/mehrlander/web-tools/blob/main/skills/peeves/peeves.csv) P64, percussive negation and contrast.
+
+### Avoid smug so · `/h:smug`
+
+A sentence that turns on "so" often presents one cause as forcing one result. Avoid the form, and check examples you find for cause to remove or trim.
+
+**Covers:** all prose a session writes.
 
 ### Showing · `/h:show`
 
