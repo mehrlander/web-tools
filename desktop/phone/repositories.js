@@ -10,6 +10,10 @@
     changes:svg('<path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8l-5-5ZM14 3v5h5M8 12h6m-3-3v6m-3 3h6"/>'),
     untracked:svg('<path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8l-5-5ZM14 3v5h5M8 14h8m-4-4v8"/>'),
     local:svg('<path d="M3 7V5h7l2 2h9v13H3ZM8 12h8m-8 4h5"/>'),
+    branch:svg('<circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M6 7v10m12-10v2a5 5 0 0 1-5 5H6"/>'),
+    pull:svg('<circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="19" r="2"/><path d="M6 7v10m12 0V9a4 4 0 0 0-4-4h-2m3-3-3 3 3 3"/>'),
+    merged:svg('<circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M6 7v10m12-10v2a5 5 0 0 1-5 5H6"/><path d="m12 11-3 3 3 3"/>'),
+    check:svg('<path d="m5 12 4 4L19 6"/>'),
     more:svg('<circle cx="12" cy="5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="19" r="1" fill="currentColor"/>'),
     external:svg('<path d="M14 4h6v6M20 4 10 14M10 4H5v16h15V14"/>')};
   const valid=value=>value?.schemaVersion===1&&Number.isFinite(Date.parse(value.observedAt))&&Array.isArray(value.repositories)&&value.repositories.length<=256
@@ -30,7 +34,7 @@
     el('connection').setAttribute('aria-label',fresh()?'Connected to '+(data.machineName||'the laptop'):data?'Saved laptop observation from '+stamp(data.observedAt):el('connection').textContent);
   }
   function comparison(value,key){
-    const checkout=checkoutFor(key.split(':')[0]),repo=checkout&&repoFor(checkout),age=checkAge(repo)+(repo?.notice?' '+repo.notice:'');
+    const checkout=checkoutFor(key.split(':')[0]),repo=checkout&&repoFor(checkout),upstream=checkout?.upstream?.startsWith('origin/')?checkout.upstream.slice(7):'',age=checkAge(repo)+(repo?.notice?' '+repo.notice:'')+(upstream&&upstream!==value?.branch?' Configured upstream: GitHub '+upstream+'.':'');
     if(Number.isInteger(value?.ahead)&&Number.isInteger(value?.behind))return `<span class="inline-flex shrink-0 items-center gap-1 font-mono text-[11px] font-medium tabular-nums">${['ahead','behind'].map(direction=>{
       const n=value[direction],tip=`${n.toLocaleString()} ${n===1?'commit':'commits'} ${direction==='ahead'?'ahead of':'behind'} GitHub ${value.branch||'tracking branch'}. ${age}`;
       return `<span data-commit="${key}:${direction}" tabindex="0" data-title-tip="${escape(tip)}" data-title-tip-bare aria-label="${escape(tip)}" class="inline-flex min-h-6 min-w-6 cursor-pointer items-center justify-center gap-0.5 ${n?direction==='ahead'?'text-[color:var(--color-success,#047857)]':'text-amber-700':'text-stone-500'}"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" class="size-3" aria-hidden="true"><path d="${direction==='ahead'?'M8 13V3m-4 4 4-4 4 4':'M8 3v10m-4-4 4 4 4-4'}"/></svg><span aria-hidden="true">${n.toLocaleString()}</span></span>`;
@@ -38,6 +42,14 @@
     const target='GitHub '+(value?.branch||'tracking branch');
     const tip=({'no-upstream':'No tracked GitHub branch is configured.','unrelated-history':`The local branch and ${target} have separate commit histories.`,'incomplete-history':`Limited history prevents comparison with ${target}.`,'remote-missing':`${target} was absent at the last check.`,'not-checked':`${target} has not been checked.`,'fetch-needed':`Check GitHub to compare with ${target}.`})[value?.state]||`Could not compare with ${target}.`;
     return `<span data-commit="${key}:state" tabindex="0" data-title-tip="${escape(tip+' '+age)}" data-title-tip-bare aria-label="${escape(tip)}" class="inline-flex min-h-6 min-w-6 shrink-0 cursor-pointer items-center justify-center text-amber-700">${icons.warning}</span>`;
+  }
+  function branchControl(checkout){
+    const meta=checkout.branchStatus||{},state=meta.state||'unknown';
+    const kind=({main:['branch','text-stone-500','Default branch'],snapshot:['check','text-sky-700','Default-branch snapshot'],open:['pull','text-sky-700','Open pull request'],merged:['merged','text-violet-700','Merged pull request'],incorporated:['check','text-emerald-700','Included in GitHub default branch'],review:['branch','text-amber-700','Branch needs review']})[state]||['branch','text-stone-400','Branch status not checked'];
+    const open=popup?.type==='branch'&&popup.key===checkout.key,repo=repoFor(checkout),url=safeUrl(repo);
+    const href=url&&Number.isInteger(meta.number)&&meta.number>0&&meta.url===url+'/pull/'+meta.number?meta.url:null;
+    const detail=state==='snapshot'?'Detached copy of GitHub '+(checkout.main?.branch||'default branch')+'.':state==='review'?meta.pullRequestState==='merged'?'The PR merged; local history still needs review.':meta.pullRequestState==='closed'?'The PR closed without merging.':'No pull request found for this branch.':'';
+    return `<span class="relative inline-flex shrink-0"><button data-branch-signal="${checkout.key}" data-focus="${checkout.key}:branch" aria-label="${escape(kind[2]+' for '+checkout.branch+' in '+checkout.name)}" aria-expanded="${open}" aria-haspopup="true" aria-controls="branch-${checkout.key}" class="inline-flex size-5 shrink-0 items-center justify-center ${kind[1]} ${open?'rounded bg-stone-100':''}">${icons[kind[0]]}</button><span id="branch-${checkout.key}" data-popup="branch:${checkout.key}" ${open?'':'hidden'} role="region" aria-label="Branch status for ${escape(checkout.name)}" class="absolute left-0 top-6 z-30 block w-64 max-w-[calc(100vw-3rem)] rounded-xl border border-stone-200 bg-white px-3 py-2 text-xs font-normal leading-5 shadow-lg"><span class="block font-medium ${kind[1]}">${kind[2]}</span>${meta.title?`<span class="mt-1 block text-stone-700">${escape(meta.title)}</span>`:''}${href?`<a href="${href}" target="_blank" rel="noopener noreferrer" class="inline-flex min-h-8 items-center gap-1 text-sky-800">PR ${meta.number}${icons.external}</a>`:''}${detail?`<span class="block text-stone-600">${detail}</span>`:''}<span class="block text-stone-600">${escape(checkout.tracked.branch?'Compared with GitHub '+checkout.tracked.branch:'No GitHub comparison target')}</span>${meta.checkedAt?`<span class="mt-1 block border-t border-stone-100 pt-1 text-[10px] text-stone-500">Checked ${escape(ago(meta.checkedAt))}</span>`:''}</span></span>`;
   }
   function status(checkout){
     const changed=checkout.changed,untracked=checkout.untracked,conflicts=checkout.conflicts||0,local=checkout.localFiles,ignored=(local?.entries||[]).filter(e=>e.gitState==='ignored');
@@ -83,7 +95,7 @@
   function setPopup(type,key,restore=false,metric=''){
     if(!type&&!popup)return;
     const prior=popup;popup=type?{type,key,metric}:null;refresh();
-    if(restore&&prior)el('repositories').querySelector(`[data-focus="${prior.key}:${prior.type==='status'?'signal:'+prior.metric:prior.key==='all'?'fetch':'menu'}"]`)?.focus({preventScroll:true});
+    if(restore&&prior)el('repositories').querySelector(`[data-focus="${prior.key}:${prior.type==='status'?'signal:'+prior.metric:prior.type==='branch'?'branch':prior.key==='all'?'fetch':'menu'}"]`)?.focus({preventScroll:true});
   }
   function render(){
     if(!active)return;
@@ -130,7 +142,8 @@
   }
   document.addEventListener('click',event=>{
     if(!active)return;
-    const button=event.target.closest('[data-menu],[data-signal],[data-fetch],[data-github],[data-inventory]');
+    const button=event.target.closest('[data-menu],[data-signal],[data-branch-signal],[data-fetch],[data-github],[data-inventory]');
+    if(button?.dataset.branchSignal){const key=button.dataset.branchSignal;setPopup(popup?.type==='branch'&&popup.key===key?null:'branch',key);return;}
     if(button?.dataset.menu){const key=button.dataset.menu;setPopup(popup?.type==='menu'&&popup.key===key?null:'menu',key);return;}
     if(button?.dataset.signal){const key=button.dataset.signal,metric=button.dataset.metric;setPopup(popup?.type==='status'&&popup.key===key&&popup.metric===metric?null:'status',key,false,metric);return;}
     if(button?.dataset.fetch&&!button.disabled){fetchRepo(button.dataset.fetch,button.dataset.anchor);return;}
@@ -157,5 +170,5 @@
   window.addEventListener('online',poll);window.addEventListener('offline',()=>{connected=false;render();});
   window.addEventListener('resize',positionPanels);window.addEventListener('scroll',positionPanels,{passive:true});
   try{const prior=JSON.parse(localStorage.getItem('web-tools-repositories-snapshot'));if(valid(prior))data=prior;}catch{}
-  window.NowRepositories={connection,comparison,tools,rootTools,positionPanels,version:()=>JSON.stringify([popup,sending,message,data]),setActive:value=>{const prior=active;if(prior&&!value)positions.set(selected,scrollY);active=value;clearTimeout(timer);clearTimeout(staleTimer);if(active){route(!prior);poll();}else {popup=null;window.TitleTip?.close();window.NowLocalFiles.stop();window.NowLocalFiles.header(false,false);}}};
+  window.NowRepositories={connection,comparison,branchControl,tools,rootTools,positionPanels,version:()=>JSON.stringify([popup,sending,message,data]),setActive:value=>{const prior=active;if(prior&&!value)positions.set(selected,scrollY);active=value;clearTimeout(timer);clearTimeout(staleTimer);if(active){route(!prior);poll();}else {popup=null;window.TitleTip?.close();window.NowLocalFiles.stop();window.NowLocalFiles.header(false,false);}}};
 })();

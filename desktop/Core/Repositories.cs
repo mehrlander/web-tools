@@ -7,9 +7,11 @@ public record RepositoryFileInventory(string Key, string Name, DateTimeOffset Ob
     List<RepositoryLocalEntry> Entries, bool Partial, string? Notice);
 public record RepositoryLocalFiles(int SchemaVersion, string MachineName, DateTimeOffset ObservedAt,
     List<RepositoryFileInventory> Checkouts);
+public record RepositoryBranchStatus(string State, string? Url, int? Number, string? Title,
+    DateTimeOffset? CheckedAt, string? PullRequestState = null);
 public record RepositoryCheckout(string Key, string Name, string Branch, string? Upstream,
     int? Changed, int? Untracked, int? Conflicts, RepositoryComparison Tracked, RepositoryComparison Main,
-    RepositoryFileInventory? LocalFiles = null);
+    RepositoryFileInventory? LocalFiles = null, RepositoryBranchStatus? BranchStatus = null);
 public record RepositoryGroup(string Key, string Name, string? Url, DateTimeOffset? CheckedAt,
     DateTimeOffset? AttemptedAt, string? Notice, List<RepositoryCheckout> Checkouts);
 public record RepositorySnapshot(int SchemaVersion, string MachineName, DateTimeOffset ObservedAt,

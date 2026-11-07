@@ -22,7 +22,7 @@ def key(value):
 
 
 def git(path, *args, timeout=8, strip=True):
-    env = {**os.environ, 'GIT_OPTIONAL_LOCKS': '0', 'GIT_TERMINAL_PROMPT': '0', 'GCM_INTERACTIVE': 'Never', 'GH_PROMPT_DISABLED': '1'}
+    env = {**os.environ, 'GIT_OPTIONAL_LOCKS': '0', 'GIT_NO_LAZY_FETCH': '1', 'GIT_TERMINAL_PROMPT': '0', 'GCM_INTERACTIVE': 'Never', 'GH_PROMPT_DISABLED': '1'}
     authentication = []
     gh = shutil.which('gh')
     if gh and ('ls-remote' in args or 'fetch' in args):
@@ -87,7 +87,92 @@ def local_status(entry):
             row['conflicts'] += line.startswith('u ')
         elif line.startswith('? '):
             row['untracked'] += 1
+    if not row['upstream'] and row['branch'] and row['branch'] != '(detached)':
+        remote = git(path, 'config', '--get', 'branch.' + row['branch'] + '.remote')
+        merge = git(path, 'config', '--get', 'branch.' + row['branch'] + '.merge') or ''
+        if remote == 'origin' and merge.startswith('refs/heads/'):
+            row['upstream'] = 'origin/' + merge[len('refs/heads/'):]
     return row
+
+
+def tracking_branch(row, source):
+    if row['branch'] in source.get('tips', {}):
+        return row['branch']
+    if row['branch'] == '(detached)' and source.get('defaultBranch') in source.get('tips', {}):
+        return source['defaultBranch']
+    upstream = row['upstream'] or ''
+    return upstream[7:] if upstream.startswith('origin/') else None
+
+
+def pull_requests(repo, branches):
+    gh = shutil.which('gh')
+    if not gh or not branches:
+        return None
+    owner, name = repo.split('/')
+    names = sorted(branches)[:128]
+    fields = ['b' + str(i) + ': pullRequests(headRefName:' + json.dumps(branch)
+              + ',first:10,states:[OPEN,CLOSED,MERGED],orderBy:{field:UPDATED_AT,direction:DESC})'
+              + '{nodes{number title url state headRefName headRefOid headRepository{nameWithOwner}}}'
+              for i, branch in enumerate(names)]
+    query = 'query{repository(owner:' + json.dumps(owner) + ',name:' + json.dumps(name) + '){' + ' '.join(fields) + '}}'
+    try:
+        result = subprocess.run([gh, 'api', 'graphql', '--input', '-'], input=json.dumps({'query': query}),
+                                capture_output=True, encoding='utf-8', errors='replace', timeout=25,
+                                env={**os.environ, 'GH_PROMPT_DISABLED': '1', 'GIT_TERMINAL_PROMPT': '0'})
+        if result.returncode or len(result.stdout) > 1_048_576:
+            return None
+        value = json.loads(result.stdout)
+        if value.get('errors'):
+            return None
+        rows = value['data']['repository']
+        found = {}
+        for i, branch in enumerate(names):
+            matches = [p for p in rows['b' + str(i)]['nodes'] if p.get('headRefName') == branch
+                       and (p.get('headRepository') or {}).get('nameWithOwner', '').lower() == repo.lower()]
+            pr = matches[0] if matches else None
+            found[branch] = None if pr is None else {
+                'number': pr['number'], 'title': pr['title'][:256], 'url': pr['url'],
+                'state': pr['state'].lower(), 'head': pr['headRefOid']}
+        return found
+    except (OSError, ValueError, KeyError, TypeError, subprocess.TimeoutExpired):
+        return None
+
+
+def branch_status(entry, row, source, cache):
+    branch, head = row['branch'], row['head']
+    pr = source.get('pullRequests', {}).get(branch)
+    main = source.get('tips', {}).get(source.get('defaultBranch'))
+    result = {'state': 'unknown', 'url': pr.get('url') if pr else None,
+              'number': pr.get('number') if pr else None, 'title': pr.get('title') if pr else None,
+              'pullRequestState': pr.get('state') if pr else None,
+              'checkedAt': source.get('pullRequestsCheckedAt')}
+    if branch == source.get('defaultBranch'):
+        result.update(state='main', checkedAt=source.get('checkedAt'))
+        return result
+    if pr and pr.get('state') == 'open':
+        result['state'] = 'open'
+        return result
+    signature = [branch, head, main, pr.get('state') if pr else None, pr.get('head') if pr else None,
+                 bool(source.get('pullRequestsCheckedAt'))]
+    cache_key = 'branch:' + row['key']
+    old = cache.get(cache_key, {})
+    if old.get('signature') == signature:
+        result['state'] = old['state']
+        return result
+    in_main = head and main and (head == main or row['main']['ahead'] == 0
+              or git(entry['path'], 'merge-base', '--is-ancestor', head, main) is not None)
+    if branch == '(detached)' and in_main:
+        result.update(state='snapshot', checkedAt=source.get('checkedAt'))
+    elif pr and pr.get('state') == 'merged' and head and (in_main or head == pr.get('head')
+            or git(entry['path'], 'merge-base', '--is-ancestor', head, pr.get('head', '')) is not None):
+        result['state'] = 'merged'
+    elif in_main:
+        result.update(state='incorporated', checkedAt=source.get('checkedAt'))
+    elif source.get('pullRequestsCheckedAt'):
+        result['state'] = 'review'
+    if result['state'] != 'unknown':
+        cache[cache_key] = {'signature': signature, 'state': result['state']}
+    return result
 
 
 def read_source(state, repo_key):
@@ -155,10 +240,10 @@ def snapshot(root, state):
     def observe(entry):
         row = local_status(entry)
         source = read_source(state, entry['key'])
-        upstream = row['upstream'] or ''
-        row['tracked'] = compare(entry, row, upstream[7:] if upstream.startswith('origin/') else None, source, cache)
+        row['tracked'] = compare(entry, row, tracking_branch(row, source), source, cache)
         row['main'] = compare(entry, row, source.get('defaultBranch'), source, cache) if source.get('defaultBranch') else {
             'branch': None, 'state': 'not-checked', 'ahead': None, 'behind': None}
+        row['branchStatus'] = branch_status(entry, row, source, cache)
         row.pop('head')
         return entry, row, source
     groups = {}
@@ -190,7 +275,10 @@ def fetch_repository(root, state, repo_key, folders=None):
     url = 'https://github.com/' + repo + '.git'
     branches = set()
     for entry in entries:
-        upstream = local_status(entry)['upstream'] or ''
+        status = local_status(entry)
+        if status['branch'] and status['branch'] != '(detached)':
+            branches.add(status['branch'])
+        upstream = status['upstream'] or ''
         if upstream.startswith('origin/'):
             branches.add(upstream[7:])
     refs = git(entries[0]['path'], 'ls-remote', '--symref', url, 'HEAD', *['refs/heads/' + b for b in sorted(branches)], timeout=25)
@@ -233,6 +321,9 @@ def fetch_repository(root, state, repo_key, folders=None):
         success = success and result is not None
     source.update(checkedAt=stamp(), defaultBranch=default, tips=safe,
                   notice=None if success else 'GitHub checked; some Git data could not be fetched. Counts may be unavailable.')
+    reviews = pull_requests(repo, branches - {default})
+    if reviews is not None:
+        source.update(pullRequests=reviews, pullRequestsCheckedAt=stamp())
     write_source(state, repo_key, source)
     return success
 

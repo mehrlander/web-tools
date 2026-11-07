@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import subprocess
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -36,6 +37,9 @@ class RepositoryChecks(unittest.TestCase):
         self.mock = patch.object(repos, 'git', fixture_git)
         self.mock.start()
         self.addCleanup(self.mock.stop)
+        self.reviews = patch.object(repos, 'pull_requests', return_value={})
+        self.reviews.start()
+        self.addCleanup(self.reviews.stop)
         self.repo_key = repos.key('fixture/project')
 
     def cmd(self, *args):
@@ -123,11 +127,83 @@ class RepositoryChecks(unittest.TestCase):
         self.assertNotIn('remote.git', value)
 
     def test_missing_remote_branch_is_distinct_from_no_upstream(self):
-        self.cmd('-C', str(self.local), 'config', 'branch.main.merge', 'refs/heads/gone')
+        self.cmd('-C', str(self.local), 'switch', '-c', 'feature/no-counterpart')
+        self.cmd('-C', str(self.local), 'config', 'branch.feature/no-counterpart.remote', 'origin')
+        self.cmd('-C', str(self.local), 'config', 'branch.feature/no-counterpart.merge', 'refs/heads/gone')
         self.fetch()
         self.assertEqual(self.row()['tracked']['state'], 'remote-missing')
-        self.cmd('-C', str(self.local), 'config', '--unset', 'branch.main.remote')
+        self.cmd('-C', str(self.local), 'config', '--unset', 'branch.feature/no-counterpart.remote')
         self.assertEqual(self.row()['tracked']['state'], 'no-upstream')
+
+    def feature(self):
+        self.cmd('-C', str(self.local), 'switch', '-c', 'feature/work')
+        self.commit(self.local, 'feature.txt', 'feature work')
+        self.cmd('-C', str(self.local), 'push', str(self.remote), 'feature/work')
+        self.cmd('-C', str(self.local), 'config', 'branch.feature/work.remote', 'origin')
+        self.cmd('-C', str(self.local), 'config', 'branch.feature/work.merge', 'refs/heads/feature/work')
+
+    def test_matching_branch_wins_over_main_upstream_without_changing_configuration(self):
+        self.feature()
+        self.cmd('-C', str(self.local), 'config', 'branch.feature/work.merge', 'refs/heads/main')
+        self.remote_commit()
+        self.fetch()
+        row = self.row()
+        self.assertEqual(row['tracked'], {'branch': 'feature/work', 'state': 'current', 'ahead': 0, 'behind': 0})
+        self.assertEqual(row['upstream'], 'origin/main')
+        self.assertEqual(self.cmd('-C', str(self.local), 'config', 'branch.feature/work.merge'), 'refs/heads/main')
+
+    def test_configured_branch_is_discovered_when_its_local_remote_ref_is_missing(self):
+        self.feature()
+        self.cmd('-C', str(self.local), 'update-ref', '-d', 'refs/remotes/origin/feature/work')
+        self.assertEqual(self.row()['upstream'], 'origin/feature/work')
+        self.fetch()
+        self.assertEqual(self.row()['tracked']['state'], 'current')
+
+    def review_source(self, state, head=None):
+        source = repos.read_source(self.state, self.repo_key)
+        source.update(pullRequestsCheckedAt=repos.stamp(), pullRequests={'feature/work': {
+            'number': 1, 'title': 'Feature work', 'url': 'https://github.com/fixture/project/pull/1',
+            'state': state, 'head': head or self.cmd('-C', str(self.local), 'rev-parse', 'HEAD')}})
+        repos.write_source(self.state, self.repo_key, source)
+
+    def test_open_pr_merged_pr_and_post_merge_work_remain_distinct(self):
+        self.feature()
+        self.fetch()
+        self.review_source('open')
+        self.assertEqual(self.row()['branchStatus']['state'], 'open')
+        self.review_source('merged')
+        self.assertEqual(self.row()['branchStatus']['state'], 'merged')
+        self.commit(self.local, 'later.txt', 'later work')
+        self.assertEqual(self.row()['branchStatus']['state'], 'review')
+
+    def test_main_and_incorporated_feature_need_no_pr(self):
+        self.fetch()
+        self.assertEqual(self.row()['branchStatus']['state'], 'main')
+        self.cmd('-C', str(self.local), 'switch', '-c', 'feature/incorporated')
+        self.assertEqual(self.row()['branchStatus']['state'], 'incorporated')
+        self.cmd('-C', str(self.local), 'switch', '--detach')
+        self.assertEqual(self.row()['branchStatus']['state'], 'snapshot')
+        self.assertEqual(self.row()['tracked']['branch'], 'main')
+
+    def test_unreviewed_feature_is_not_called_merged_when_lookup_is_unknown(self):
+        self.feature()
+        self.fetch()
+        self.assertEqual(self.row()['branchStatus']['state'], 'review')
+        source = repos.read_source(self.state, self.repo_key)
+        source.pop('pullRequestsCheckedAt')
+        repos.write_source(self.state, self.repo_key, source)
+        self.assertEqual(self.row()['branchStatus']['state'], 'unknown')
+
+    def test_failed_pr_lookup_retains_its_last_observation_time(self):
+        self.feature()
+        self.fetch()
+        self.review_source('open')
+        before = repos.read_source(self.state, self.repo_key)
+        with patch.object(repos, 'pull_requests', return_value=None):
+            self.fetch()
+        after = repos.read_source(self.state, self.repo_key)
+        self.assertEqual(after['pullRequestsCheckedAt'], before['pullRequestsCheckedAt'])
+        self.assertEqual(after['pullRequests'], before['pullRequests'])
 
     def test_only_github_identities_are_accepted(self):
         self.assertEqual(repos.github_name('git@github.com:owner/repo.git'), 'owner/repo')
@@ -147,6 +223,36 @@ class RepositoryChecks(unittest.TestCase):
         self.assertEqual(self.cmd('-C', str(self.local), 'rev-parse', 'HEAD'), head)
         self.assertEqual(self.cmd('-C', str(self.local), 'rev-parse', 'refs/remotes/origin/keep'), head)
         self.assertEqual(self.cmd('-C', str(self.local), 'rev-parse', 'refs/tags/keep-local-tag'), head)
+
+
+class RepositoryMetadataChecks(unittest.TestCase):
+    def test_lookup_uses_json_stdin_and_filters_other_repositories(self):
+        branch = 'feature/"quoted'
+        foreign = {'number': 9, 'title': 'Other work', 'url': 'https://github.com/other/project/pull/9',
+                   'state': 'OPEN', 'headRefName': branch, 'headRefOid': 'a' * 40,
+                   'headRepository': {'nameWithOwner': 'other/project'}}
+        owned = {**foreign, 'number': 4, 'title': 'Local <work>',
+                 'url': 'https://github.com/fixture/project/pull/4', 'headRepository': {'nameWithOwner': 'fixture/project'}}
+        payload = {'data': {'repository': {'b0': {'nodes': [foreign, owned]}}}}
+        response = SimpleNamespace(returncode=0, stdout=json.dumps(payload))
+        with patch.object(repos.shutil, 'which', return_value='gh'), patch.object(repos.subprocess, 'run', return_value=response) as run:
+            result = repos.pull_requests('fixture/project', {branch})
+        self.assertEqual(result[branch]['number'], 4)
+        self.assertEqual(result[branch]['state'], 'open')
+        self.assertEqual(run.call_args.args[0], ['gh', 'api', 'graphql', '--input', '-'])
+        self.assertIn(json.dumps(branch), json.loads(run.call_args.kwargs['input'])['query'])
+        self.assertEqual(run.call_args.kwargs['timeout'], 25)
+
+    def test_failed_or_oversized_metadata_never_becomes_an_empty_success(self):
+        for response in [SimpleNamespace(returncode=1, stdout=''), SimpleNamespace(returncode=0, stdout=' ' * 1_048_577),
+                         SimpleNamespace(returncode=0, stdout='{"errors":[{"message":"unavailable"}]}')]:
+            with patch.object(repos.shutil, 'which', return_value='gh'), patch.object(repos.subprocess, 'run', return_value=response):
+                self.assertIsNone(repos.pull_requests('fixture/project', {'feature/work'}))
+
+    def test_empty_success_distinguishes_absent_pr_from_unavailable_lookup(self):
+        response = SimpleNamespace(returncode=0, stdout='{"data":{"repository":{"b0":{"nodes":[]}}}}')
+        with patch.object(repos.shutil, 'which', return_value='gh'), patch.object(repos.subprocess, 'run', return_value=response):
+            self.assertEqual(repos.pull_requests('fixture/project', {'feature/work'}), {'feature/work': None})
 
 
 if __name__ == '__main__':

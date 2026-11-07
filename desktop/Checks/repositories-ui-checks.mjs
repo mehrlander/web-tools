@@ -14,6 +14,7 @@ const c={key,name:'project',branch:'feature/work',changed:2,untracked:1,conflict
 ]}};
 const other={key:otherKey,name:'project-other',branch:'other',changed:0,untracked:0,conflicts:0,tracked:comp('no-upstream',null,null,null),main:comp('incomplete-history',null,null,'main')};
 const repo={key:repoKey,name:'fixture/project',url:'https://github.com/fixture/project',checkedAt:at,notice:null,checkouts:[c,other]};
+c.upstream='origin/main';c.branchStatus={state:'open',number:4,url:'https://github.com/fixture/project/pull/4',title:'Review <local> work',checkedAt:at,pullRequestState:'open'};
 const data={schemaVersion:1,machineName:'Laptop',observedAt:at,refreshing:[],repositories:[repo]};
 const listing=path=>({schemaVersion:1,rootName:'repos',path,state:'ready',observedAt:at,partial:false,notice:null,entries:(path?['exports','node_modules']:['project','project-other','ordinary']).map(name=>({name,kind:'folder',gitState:path?'ignored':null,bytes:null,modifiedAt:at,role:null}))});
 w.setTimeout=(fn,delay)=>{timers.set(++id,{fn,delay});return id;};w.clearTimeout=k=>timers.delete(k);
@@ -33,6 +34,20 @@ check(w.location.hash==='#view=files'&&doc.querySelector('#view-title').textCont
 check(!doc.querySelector('[data-view=repositories],[data-repository],[data-files],#repository-info')&&doc.querySelectorAll('[data-checkout]').length===2&&doc.querySelector('[data-folder=ordinary]'),'The former grouped repository list is replaced by the actual folders.');
 check(indicator('ahead').getAttribute('data-title-tip').includes('2 commits ahead of GitHub feature/work.')&&indicator('behind').getAttribute('data-title-tip').includes('GitHub checked just now')&&!doc.querySelector('[data-commit*=":main:"]'),'Each branch shows one comparison whose tooltip includes its target and GitHub check age.');
 check(indicator('ahead').className.includes('--color-success')&&indicator('behind').classList.contains('text-amber-700'),'Ahead and behind counts carry restrained semantic colors.');
+check(indicator('behind').getAttribute('data-title-tip').includes('Configured upstream: GitHub main.'),'The comparison discloses a different configured upstream while targeting the matching branch.');
+click(`[data-branch-signal="${key}"]`);const branchPanel=()=>doc.querySelector('#branch-'+key);
+check(!branchPanel().hidden&&branchPanel().textContent.includes('Open pull request')&&branchPanel().querySelector('a').href==='https://github.com/fixture/project/pull/4'&&branchPanel().textContent.includes('Review <local> work')&&!branchPanel().querySelector('local'),'A compact branch icon opens safe, explicit PR context without an inline status label.');
+row().querySelector('[data-branch-signal]').focus();top=160;await poll();
+check(!branchPanel().hidden&&doc.activeElement.dataset.branchSignal===key&&top===160,'Branch context, focus and scroll survive automatic updates.');
+doc.activeElement.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
+check(branchPanel().hidden&&doc.activeElement.dataset.branchSignal===key,'Escape dismisses branch context and restores its source icon.');
+c.branchStatus.state='merged';c.branchStatus.pullRequestState='merged';await poll();
+check(row().querySelector('[data-branch-signal]').classList.contains('text-violet-700')&&row().querySelector('[data-branch-signal]').getAttribute('aria-label').includes('Merged'),'Merged work has a distinct icon color and accessible state.');
+c.branchStatus.state='review';c.branchStatus.url='javascript:alert(1)';await poll();click(`[data-branch-signal="${key}"]`);
+check(branchPanel().textContent.includes('local history still needs review')&&!branchPanel().querySelector('a'),'Post-merge review remains distinct and unsafe PR links are omitted.');
+c.branchStatus={state:'incorporated',checkedAt:at};await poll();check(branchPanel().textContent.includes('Included in GitHub default branch'),'Work already incorporated without a PR has its own explanation.');
+delete c.branchStatus;await poll();check(branchPanel().textContent.includes('Branch status not checked'),'Saved observations without lifecycle metadata remain honest.');
+click('#local-observed');top=0;
 check([...row().querySelectorAll('[data-metric]')].map(n=>n.textContent).join(',')==='2,1,2'&&!row().querySelector('[data-folder]').textContent.includes('changed'),'Separate compact counts expose changed tracked files, untracked files and ignored inventory entries without row labels.');
 check(row().querySelector('[data-metric=changed]').getAttribute('aria-label').includes('2 changed tracked files')&&row().querySelector('[data-metric=untracked]').getAttribute('aria-label').includes('1 untracked file')&&row().querySelector('[data-metric=ignored]').getAttribute('aria-label').includes('2 ignored inventory entries'),'Each file count identifies its own unit and folder for assistive technology.');
 const unknown=doc.querySelector(`[data-commit="${otherKey}:files:state"]`);

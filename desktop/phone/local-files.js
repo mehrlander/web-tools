@@ -7,7 +7,6 @@
   const folder='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="size-4 shrink-0 text-emerald-700" aria-hidden="true"><path d="M3 7V5a1 1 0 0 1 1-1h6l2 3h8a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7Z"/></svg>';
   const file='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="size-4 shrink-0 text-stone-500" aria-hidden="true"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8l-5-5ZM14 3v5h5"/></svg>';
   const arrow='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" class="size-3 shrink-0 text-stone-500" aria-hidden="true"><path d="m6 4 4 4-4 4"/></svg>';
-  const branch='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" class="mt-1 size-3 shrink-0" aria-hidden="true"><circle cx="4" cy="3" r="1.5"/><circle cx="4" cy="13" r="1.5"/><circle cx="12" cy="3" r="1.5"/><path d="M4 4.5v7M12 4.5A5 5 0 0 1 7 9.5H4"/></svg>';
   let current=null,filter='all',query='',listing,snapshot,live=false,active=false,timer,controller,failed=false,denied=false,signature='';
   const cache=new Map();
   function valid(value,key){
@@ -31,8 +30,8 @@
   const checkouts=()=>snapshot?.repositories.flatMap(r=>r.checkouts)||[];
   function branchLine(checkout){
     if(!checkout)return '';
-    const name=checkout.branch==='(detached)'?'Detached commit':checkout.branch||'Branch unavailable';
-    return `<div class="flex min-w-0 items-center gap-x-2 pl-6 pr-3 text-xs leading-5 text-stone-600"><span class="flex min-w-0 flex-1 items-start gap-1">${branch}<span data-file-branch="${checkout.key}" tabindex="0" data-title-tip="${escape(name)}" data-title-tip-bare class="min-w-0 truncate">${escape(name)}</span></span>${window.NowRepositories.comparison(checkout.tracked,checkout.key+':files')}</div>`;
+    const name=checkout.branch==='(detached)'?checkout.branchStatus?.state==='snapshot'?(checkout.main?.branch||'Default branch')+' snapshot':'Detached commit':checkout.branch||'Branch unavailable';
+    return `<div class="flex min-w-0 items-center gap-x-2 pl-6 pr-3 text-xs leading-5 text-stone-600"><span class="flex min-w-0 flex-1 items-start gap-1">${window.NowRepositories.branchControl(checkout)}<span data-file-branch="${checkout.key}" tabindex="0" data-title-tip="${escape(name)}" data-title-tip-bare class="min-w-0 truncate">${escape(name)}</span></span>${window.NowRepositories.comparison(checkout.tracked,checkout.key+':files')}</div>`;
   }
   function localInventory(){
     if(!current||!['ignored','untracked'].includes(filter))return;
