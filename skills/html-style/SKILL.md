@@ -36,12 +36,11 @@ at 2015 says the data starts in 2015.
 **3. A reading column and balanced lines are not wanted.** Leave out
 `text-balance`, and `text-pretty`, which Safari renders as balancing.
 `max-w-prose`, `max-w-2xl`, `max-w-3xl`, `max-w-4xl`, `container mx-auto`, and a
-`prose` class without
-`!max-w-none` (typography's unlayered CSS beats a plain `max-w-none`) all cap
-the text, with or without `mx-auto`. So does an arbitrary value: any `ch` cap,
-such as `max-w-[64ch]`, and an absolute cap from 42rem to 64rem, such as
-`max-w-[920px]`. The page's own layout sets the width. Where a measure is
-needed, take it from a grid track
+`prose` class without `!max-w-none` (typography's unlayered CSS beats a plain
+`max-w-none`) all cap the text, with or without `mx-auto`. So does an arbitrary
+value: any `ch` cap, such as `max-w-[64ch]`, and an absolute cap from 42rem to
+64rem, such as `max-w-[920px]`. The page's own layout sets the width. Where a
+measure is needed, take it from a grid track
 (`lg:grid-cols-[minmax(0,19rem)_minmax(0,1fr)]`, `min-w-0` on the wide track),
 which lets copy fill the page when the tracks stack. The `reading-column` hook
 refuses these at edit time and `npm run reading-column` lists them; `modal-box`
