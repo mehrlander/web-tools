@@ -18,8 +18,8 @@ const STORE = 'me/private';
 const DOC = 'One.\n\nTwo.\n\nThree.\n\nFour.\n';
 const CALL = { id: 'c0ffee01-doc', session: 'c0ffee01', kind: 'documentation', question: 'Apply 4 edits to docs/x.md?',
   brief: 'Tidy the doc.', file: 'me/widget@main:docs/x.md', recommend: 'Apply all three',
-  edits: [{ from: 'One.', to: 'First.', why: 'clearer' }, { from: 'Two.', to: 'Second.', background: 'Two reads as a count on 2026-10-29.', proposal: 'Names the **order** with `Second`.' }, { from: 'Gone.', to: 'Nothing.' },
-          { from: 'Three.\n\nFour.', to: 'Third.\n\nFourth.' }] };
+  edits: [{ from: 'One.', to: 'First.', why: 'clearer', notes: [{ kind: 'clarify', text: 'reads poorly' }] }, { from: 'Two.', to: 'Second.', background: 'Two reads as a count on 2026-10-29.', proposal: 'Names the **order** with `Second`.' }, { from: 'Gone.', to: 'Nothing.' },
+          { from: 'Three.\n\nFour.', to: 'Third.\n\nFourth.', notes: [{ kind: 'clarify', text: 'reads poorly' }, { kind: 'correct', text: 'says the wrong count' }] }] };
 const puts = [];
 class FakeGH {
   constructor(conf = {}) { this.repo = conf.repo || ''; }
@@ -125,7 +125,11 @@ test('a documentation call shows no PR readiness, even when the PR has conflicts
 test('the edits are listed at the top, each with its summary, and a tap scrolls the document to it', async () => {
   const rows = [...root().querySelectorAll('[data-doc-row]')];
   assert.equal(rows.length, 4, 'one row per edit');
-  assert.match(rows[0].textContent.replace(/\s+/g, ' ').trim(), /^Edit 1\. clearer$/, 'a bold run-in label, then its why when it has no proposal');
+  assert.match(rows[0].textContent.replace(/\s+/g, ' ').trim(), /^Edit 1\. Clarify clearer$/, 'a bold run-in label, its kind, then its why when it has no proposal');
+  const kinds = (n) => [...rows[n - 1].querySelectorAll('[data-doc-kind]')].map((k) => k.dataset.docKind);
+  assert.deepEqual(kinds(1), ['clarify']);
+  assert.deepEqual(kinds(4), ['correct', 'clarify'], 'each kind once, corrections first');
+  assert.deepEqual(kinds(2), [], 'an edit with no notes has no pill');
   assert.match(rows[1].textContent, /Names the order with Second\./, 'its proposal, marks stripped');
   assert.match(rows[3].textContent, /Third\./, 'else the text it puts in');
   scrolled.length = 0;
