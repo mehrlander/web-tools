@@ -120,7 +120,7 @@ coded `linked-swiper`.
 
 **13. Avoid modal dialogs.** Consider a panel-tip, the deck takeover (rule 4), or another more fluid alternative.
 
-**14. Show the source.** Show the original: the publisher's own document rather than a conversion made here, quoted text exactly as written with only highlighting added, and a change inline in the document it changes.
+**14. Show the source.** A page presents the publisher's own document rather than a conversion made here, quoted text exactly as written with only highlighting added, and a change inline in the document it changes.
 
 **15. Keep the reader's context.** A link to a row scrolls to it and leaves the other rows in view.
 
