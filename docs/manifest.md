@@ -275,6 +275,12 @@ token:
   owner asks Codex to do its errands. File it with
   `sessions/tools/codex_errand.py` in web-tools-private.
 
+A session can also send an errand as a reception link, with no file in
+`errands/requests`: `npm run -s reception-link -- <fn.js> --note "<what is wanted>"`
+prints a link to [`pages/reception.html`](../pages/reception.html) that runs the
+function in `<fn.js>` on text you paste and gives back only its output. The header
+of [`node/reception-link.mjs`](../node/reception-link.mjs) lists the options.
+
 ## Inbox and outbox
 
 Two optional manifest fields naming where material lands and where it is

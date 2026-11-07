@@ -118,13 +118,16 @@ the mps page.
 3. **Adding the method to the house style helped every time**: +1.5 on WA
    Cares, +2.0 on races, +0.5 on the NTSB report.
 4. **The house style alone scored lowest on all three sources.** Its pages
-   followed the rules (compact header figures, tabs, side-by-side columns) and
-   left out a plain sentence saying what the subject is: the WA Cares house
-   page never states what the measure does, the races house page labels seats
-   by surname, and the NTSB house page's first screen names the aircraft only
-   by code. Whether
-   rule 2 ("No explanatory prose") led the builders to drop that sentence is an
-   inference, not something the test isolates.
+   followed the rules (compact header figures, tabs, side-by-side columns), but
+   their structure left the subject unidentified: the WA Cares house page never
+   states what the measure does, the races house page labels seats by surname,
+   and the NTSB house page's first screen names the aircraft only by code.
+   These are missing identifying facts and labels without scent, not a missing
+   paragraph. The owner's reading of this result ([session 42672179](https://mehrlander.github.io/web-tools/pages/session.html#id=42672179)) is to find
+   the page's topic sentence and reflect it in the structure without writing it
+   as prose, which is what the definition of minimal progressive structure asks
+   for: the least use of text. The judges' preference for an explanatory
+   sentence is one of the limits below.
 5. **No page lost a fact.** The locator judge found every answer on every page.
    The arms differed in where answers sat: bare pages kept them on one long
    scroll; house pages moved them behind tabs; method pages put more on the
@@ -170,6 +173,9 @@ Five revisions, now in [method.md](method.md); the tested text is
 
 ### Limits
 
+- **Not conclusive.** One source of three moved and two tied, with one page per
+  arm on two of them. The test suggests the method helps; it establishes
+  nothing about the house style's rules.
 - **Small cells.** Races and the NTSB report ran one page per arm, so a single
   builder's choices stand for the arm.
 - **Judges share the builders' model family.** A shared taste could favor the
@@ -177,7 +183,9 @@ Five revisions, now in [method.md](method.md); the tested text is
   this test lacks.
 - **The rubric's reader is a newcomer.** The house style was written for the
   owner's working surfaces, whose reader knows the domain; a rubric built for
-  that reader could rank the house arm differently.
+  that reader could rank the house arm differently. A newcomer's rubric also
+  rewards the explanatory sentence the house style leaves out by design
+  (rule 2), which is one reading of finding 4.
 - **Harness defect.** The full-page screenshot of a page taller than 9,000
   pixels came out as its first screen; the judges noticed and took their own.
   [shoot.js](experiment/tools/shoot.js) is fixed.

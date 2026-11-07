@@ -106,15 +106,16 @@
     html('assistants', ['codex','gemini','claude'].map(key => {
       const items = data.items.filter(i => keyFor(i.provider) === key);
       const working = items.filter(i => i.state === 'working').length;
-      const queued = key === 'gemini' ? waiting.length : 0;
+      const queued = items.filter(i => i.state === 'queued').length;
+      const claimed = items.filter(i => i.state === 'claimed').length;
       const needs = items.filter(i => i.needsAttention).length;
-      const state = working ? `${working} working` : needs ? `${needs} need you` : queued ? `${queued} waiting` : items.some(i => i.state === 'quiet') ? 'Quiet' : items.some(i => i.kind === 'cloud') ? 'Recorded' : items.length ? 'Recent' : 'No activity';
+      const state = working ? `${working} working` : needs ? `${needs} need you` : queued ? `${queued} waiting` : claimed ? `${claimed} claimed` : items.some(i => i.state === 'quiet') ? 'Quiet' : items.some(i => i.kind === 'cloud') ? 'Recorded' : items.length ? 'Recent' : 'No activity';
       const usage = window.NowUsage?.compact(data.usage?.find(p => p.provider === key)) || '';
       return `<div class="relative min-w-0"><button data-assistant="${key}" aria-pressed="${assistant === key}" class="block min-h-11 w-full min-w-0 border-b-2 px-2 py-1 ${assistant === key ? 'border-stone-700 bg-white' : 'border-transparent'}"><span class="flex items-center justify-center gap-1 pr-5 text-xs font-medium ${colours[key]}">${mark(key)}${{codex:'Codex',gemini:'Gemini',claude:'Claude'}[key]}</span><span class="mt-0.5 block text-[10px] text-stone-500">${state}</span><span class="mx-auto mt-1 block min-h-6 max-w-28">${usage}</span></button>${window.NowView.assistantLink(key,{cls:'absolute right-0 top-0'})}</div>`;
     }).join(''));
     const items = filtered();
     const notices = [...data.sources.notices];
-    if (waiting.length && data.sources.workerState === 'absent') notices.unshift('Gemini errands are waiting. Worker not detected.');
+    if (waiting.some(i => keyFor(i.provider) === 'gemini') && data.sources.workerState === 'absent') notices.unshift('Gemini errands are waiting. Worker not detected.');
     html('notice', notices.map(escape).join('<br>'));
     const current = items.filter(active);
     const queued = items.filter(i => i.state === 'queued').sort((a,b) => Date.parse(a.createdAt) - Date.parse(b.createdAt));
@@ -227,7 +228,7 @@
     if (!data) return;
     const source = data.sources;
     const reports = source.workerReports?.length ? source.workerReports : source.workerActivity ? [source.workerActivity] : [];
-    const jobs = data.items.filter(i => i.kind === 'errand' && ['queued','claimed','reply'].includes(i.state));
+    const jobs = data.items.filter(i => i.kind === 'errand' && keyFor(i.provider) === 'gemini' && ['queued','claimed','reply'].includes(i.state));
     const queued = jobs.filter(i => i.state === 'queued').sort((a,b) => Date.parse(a.createdAt) - Date.parse(b.createdAt));
     const accepted = jobs.filter(i => i.state !== 'queued');
     const status = source.workerState === 'detected' ? 'Process detected' : source.workerState === 'absent' ? 'Process not detected' : 'Process status unavailable';
