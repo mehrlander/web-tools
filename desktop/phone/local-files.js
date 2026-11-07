@@ -36,13 +36,14 @@
     const name=checkout.branch==='(detached)'?checkout.branchStatus?.state==='snapshot'?(checkout.main?.branch||'Default branch')+' snapshot':'Detached commit':checkout.branch||'Branch unavailable';
     return `<div class="flex min-w-0 items-center gap-x-2 pl-6 pr-3 text-xs leading-5 text-stone-600"><span class="flex min-w-0 flex-1 items-start gap-1">${window.NowRepositories.branchControl(checkout)}<span data-file-branch="${checkout.key}" tabindex="0" data-title-tip="${escape(hint?hint+' · '+name:name)}" data-title-tip-bare class="min-w-0 truncate">${hint?`<span class="text-stone-500">${escape(hint)} · </span>`:''}${escape(name)}</span></span>${window.NowRepositories.comparison(checkout.tracked,checkout.key+':files')}</div>`;
   }
+  const isMain=checkout=>Boolean(checkout&&checkout.branch!=='(detached)'&&(checkout.branch===checkout.main?.branch||!checkout.main?.branch&&checkout.branchStatus?.state==='main'));
   function rootGroups(items){
     const entries=new Map(items.filter(e=>e.kind==='folder').map(e=>[e.name,e])),used=new Set(),groups=[];
     for(const repo of snapshot?.repositories||[]){
       const name=repo.name.split('/').at(-1),members=repo.checkouts.filter(c=>entries.has(c.name)).map(c=>({entry:entries.get(c.name),checkout:c}));
       if(!members.length)continue;
-      const isMain=m=>m.checkout.branchStatus?.state==='main'||m.checkout.branch!=='(detached)'&&m.checkout.branch===m.checkout.main?.branch;
-      const primary=members.find(m=>m.entry.name===name&&isMain(m))||members.find(isMain)||members.find(m=>m.checkout.branchStatus?.state==='snapshot')||members.find(m=>m.entry.name===name)||members[0];
+      const onMain=m=>isMain(m.checkout);
+      const primary=members.find(m=>m.entry.name===name&&onMain(m))||members.find(onMain)||members.find(m=>m.checkout.branchStatus?.state==='snapshot')||members.find(m=>m.entry.name===name)||members[0];
       for(const m of members)used.add(m.entry.name);
       groups.push({key:repo.key,name,primary,others:members.filter(m=>m!==primary).sort((a,b)=>a.entry.name.localeCompare(b.entry.name))});
     }
@@ -54,13 +55,13 @@
     return `<button data-workfolders="${key}" data-focus="${key}:workfolders" aria-expanded="${open}" aria-controls="workfolders-${key}" aria-label="${open?'Hide':'Show'} ${tip} for ${escape(name)}" data-title-tip="${tip}" data-title-tip-bare class="inline-flex min-h-8 shrink-0 items-center justify-center gap-1 rounded-md px-1.5 text-[11px] tabular-nums ${open?'bg-sky-50 text-sky-800':'text-stone-500'}">${workfolders}<span>${count}</span></button>`;
   }
   function entryRow(e,checkout,inventory,{label=e.name,control='',repo=false}={}){
-    const path=(current?current+'/':'')+e.name;
+    const path=(current?current+'/':'')+e.name,main=repo&&isMain(checkout);
     const badge=e.gitState&&filter==='all'?`<span class="shrink-0 rounded px-1 text-[10px] ${e.gitState==='ignored'?'bg-stone-100 text-stone-600':e.gitState==='untracked'?'bg-amber-50 text-amber-800':'text-stone-500'}">${({tracked:'Tracked',ignored:'Ignored',untracked:'Untracked'})[e.gitState]}</span>`:'';
     const parent=inventory&&label.includes('/')?label.slice(0,label.lastIndexOf('/')):'',name=parent?label.slice(parent.length+1):label;
     const parentLine=parent?`<span class="block break-all text-[11px] font-normal leading-4 text-stone-600">${escape(parent)}</span>`:'';
     const measurement=inventory&&e.kind==='folder'?`<span class="block text-[11px] font-normal text-stone-500">${e.files===null?'':(e.partial?'≥ ':'')+e.files+' '+(e.files===1?'file':'files')+' · '}${e.partial&&Number.isFinite(e.bytes)?'≥ ':''}${size(e.bytes)||'Size unavailable'}</span>`:'';
-    const content=`${repo?repository:e.kind==='folder'?folder:file}<span class="min-w-0 flex-1 ${current?'break-all':'truncate'} text-sm ${e.kind==='folder'?'font-medium':''}">${escape(name)}${parentLine}${measurement}</span>${badge}${e.role?`<span class="shrink-0 text-[10px] text-stone-500">${escape(e.role)}</span>`:''}${e.kind==='folder'?(checkout?'':arrow):`<span class="shrink-0 text-[11px] text-stone-500">${size(e.bytes)}</span>`}`;
-    return `<div ${checkout?`data-checkout="${checkout.key}"`:''} class="border-b border-stone-100 bg-white pl-3 ${checkout?'pb-1':'pr-3'}"><div class="flex min-w-0 items-center">${e.kind==='folder'?`<button data-folder="${escape(path)}" class="flex min-h-10 min-w-0 flex-1 items-center gap-2 py-1 text-left active:bg-stone-50" aria-label="Open folder ${escape(e.name)}">${content}</button>`:`<div class="flex min-h-9 min-w-0 flex-1 items-center gap-2 py-1">${content}</div>`}${control}${window.NowRepositories.tools(checkout)}</div>${branchLine(checkout,label!==e.name?e.name:'')}</div>`;
+    const content=`${main?'':repo?repository:e.kind==='folder'?folder:file}<span class="min-w-0 flex-1 ${current?'break-all':'truncate'} text-sm ${e.kind==='folder'?'font-medium':''}">${escape(name)}${parentLine}${measurement}</span>${badge}${e.role?`<span class="shrink-0 text-[10px] text-stone-500">${escape(e.role)}</span>`:''}${e.kind==='folder'?(checkout?'':arrow):`<span class="shrink-0 text-[11px] text-stone-500">${size(e.bytes)}</span>`}`;
+    return `<div ${checkout?`data-checkout="${checkout.key}"`:''} class="border-b border-stone-100 bg-white pl-3 ${checkout?main?'':'pb-1':'pr-3'}"><div class="flex min-w-0 items-center">${main?window.NowRepositories.branchControl(checkout,true):''}${e.kind==='folder'?`<button data-folder="${escape(path)}" class="flex min-h-10 min-w-0 flex-1 items-center gap-2 py-1 text-left active:bg-stone-50" aria-label="Open folder ${escape(e.name)}">${content}</button>`:`<div class="flex min-h-9 min-w-0 flex-1 items-center gap-2 py-1">${content}</div>`}${main?window.NowRepositories.comparison(checkout.tracked,checkout.key+':files',true):''}${control}${window.NowRepositories.tools(checkout)}</div>${main?'':branchLine(checkout,label!==e.name?e.name:'')}</div>`;
   }
   function rootRows(items){
     const {groups,other}=rootGroups(items),matches=name=>name.toLocaleLowerCase().includes(query.toLocaleLowerCase());
