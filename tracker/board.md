@@ -6,9 +6,10 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Align the Map view's names, addresses, and warning vocabulary](tasks/align-map-view-cleanup-40afu8.md) · L
 - 🎫 [Reach the take-away menu from the app's Pages gallery](tasks/brief-from-the-pages-gallery-7d4031.md) · S
 - 🎫 [Gate house-style rule 1 (stat cards) and widen scanner roots](tasks/enforce-house-style-ryz0z5.md) · S
-- 🎫 [Decide a shared component for expanding rows, and move the hand-built modals onto sheet-modal](tasks/expanding-rows-and-modals-kits-1r7is4.md) · M
+- 🎫 [Decide a shared component for expanding rows, and replace the Idea board and ACFR modals](tasks/expanding-rows-and-modals-kits-1r7is4.md) · M
 - 🎫 [Persist FAB captures, the write path to state/captures/](tasks/fab-capture-button-f6q38m.md) · S
 - 🎫 [Explore a fuller file history in the Branch view](tasks/file-history-in-branch-view-hxtdep.md) · ? (awaiting: owner to choose a direction; open-ended by request, bolder ideas welcome)
+- 🎫 [Build the lineup, the form for choosing one of several working options](tasks/lineup-choice-form-9vz5w0.md) · L (awaiting: whether a lineup's verdict lands as a verdict file beside the request (as approval/1 does) or as a note in the notes store; sign-off on the two governed-doc entries below)
 - 🎫 [Build our own JSON tree for display, keep vanilla-jsoneditor for editing](tasks/own-json-tree-retire-vje-i0lcj2.md) · M
 - 🎫 [Audit the app's views for viewport breakpoints inside the content pane](tasks/pane-width-not-window-width-wnabwo.md) · S
 - 🎫 [Pinch-zoom and pan for pdf-inspect's page view](tasks/pdf-inspect-pinch-zoom-5wz3kt.md) · M
@@ -17,7 +18,6 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Retire `shell`, and name the parts instead of the collection](tasks/retire-shell-name-the-parts-r152bt.md) · M
 - 🎫 [Give the stage a way to carry part of a file](tasks/stage-partial-file-selection-k8mtou.md) · M
 - 🎫 [Convert the title attributes outside the app to title-tips](tasks/stranded-titles-panel-or-drop-o6hqom.md) · M
-- 🎫 [Hold CONVERSATION.md to conversation.csv by content, not by lead-in](tasks/surfacing-gate-content-okwnp6.md) · S
 - 🎫 [Split the app reference by view and form, and make the registries one model](tasks/views-forms-and-key-primitive-k5ngay.md) · L
 
 ## In progress
@@ -105,6 +105,7 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Stand up the project tracker](tasks/stand-up-project-tracker-3t7h04.md) (`claude/tracker-concept-assessment-yto1m1`)
 - 🎫 [Make the cache-to-surface dependency checkable, not prose](tasks/surface-census-feeds-relation-anle6b.md) (`claude/surface-census-feeds-relation-1v5n23`)
 - 🎫 [Carry commentary on a stage (prompts= link field, seed of a surface schema)](tasks/surface-schema-commentary-on-stage-hqz0uu.md) (`claude/web-tools-diff-review-s0nrq7`)
+- 🎫 [Hold CONVERSATION.md to conversation.csv by content, not by lead-in](tasks/surfacing-gate-content-okwnp6.md) (`claude/elegant-feynman-yp1ox0-retire-csv`)
 - 🎫 [Re-read the surplus closing-state rate against its baseline](tasks/surplus-state-rate-reread-zyl265.md) (`claude/marker-repetition-ci-churn-dywy6v`)
 - 🎫 [Make the take-away menu work inside a toss](tasks/take-away-inside-a-toss-k73cjq.md)
 - 🎫 [Toggle-only Tailwind classes do generate, and the spinners do spin](tasks/toggle-only-tailwind-classes-gxi5tq.md) (`claude/web-tools-tracker-review-m49yxc`)

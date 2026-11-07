@@ -5,6 +5,10 @@ static class UsageChecks
 {
     public static void Run(Action<bool, string> check)
     {
+        check(new[] { "https://chatgpt.com/", "https://antigravity.google.com/", "https://claude.ai/code" }
+            .All(NavigationPolicy.IsExternalPage), "The desktop opens each assistant's launch address in the system browser.");
+        check(new[] { "https://chatgpt.com/?untrusted=1", "https://claude.ai/code/other", "https://antigravity.google.com.evil.test/", "javascript:alert(1)" }
+            .All(url => !NavigationPolicy.IsExternalPage(url)), "Assistant launch links do not allow arbitrary external routes or schemes.");
         var path = Path.Combine(Path.GetTempPath(), "usage-check-" + Guid.NewGuid().ToString("N") + ".json");
         try {
             var at = DateTimeOffset.UtcNow;

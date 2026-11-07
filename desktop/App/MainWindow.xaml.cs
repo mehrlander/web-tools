@@ -66,11 +66,11 @@ public partial class MainWindow : Window
             local.NavigationStarting += (_, a) => {
                 if (NavigationPolicy.IsLocal(a.Uri)) return;
                 a.Cancel = true;
-                if (NavigationPolicy.IsUsagePage(a.Uri)) OpenExternal(a.Uri);
+                if (NavigationPolicy.IsExternalPage(a.Uri)) OpenExternal(a.Uri);
             };
             local.NewWindowRequested += (_, a) => {
                 a.Handled = true;
-                if (NavigationPolicy.IsUsagePage(a.Uri)) OpenExternal(a.Uri);
+                if (NavigationPolicy.IsExternalPage(a.Uri)) OpenExternal(a.Uri);
             };
             local.WebMessageReceived += LaptopMessage;
             local.NavigationCompleted += async (_, a) => {
@@ -280,8 +280,8 @@ public partial class MainWindow : Window
         if (Directory.Exists(path)) Process.Start(new ProcessStartInfo("explorer.exe") { UseShellExecute = false, ArgumentList = { path } });
     }
     private static void OpenExternal(string address) {
-        if (Uri.TryCreate(address, UriKind.Absolute, out var uri) && uri.Scheme is "https" or "http")
-            Process.Start(new ProcessStartInfo(uri.AbsoluteUri) { UseShellExecute = true });
+        if (NavigationPolicy.ExternalTarget(address) is { } target)
+            Process.Start(new ProcessStartInfo(target) { UseShellExecute = true });
     }
 
     private void WriteDiagnostics()

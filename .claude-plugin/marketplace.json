@@ -41,6 +41,7 @@
         "./claude-markdown",
         "./html-style",
         "./design-sprint",
+        "./page-design-loop",
         "./doc-craft",
         "./doc-audit",
         "./document-visual-mapping",

@@ -276,3 +276,42 @@ test('an empty scan CLEARS, which is why a failed read must omit the key', () =>
   assert.equal(kept.scan.branches[0].name, 'x', 'the stored verdicts survive');
   assert.equal(kept.counts.branches, 9, 'and so do the counts describing them');
 });
+
+// The loop this closes: the crawl's own commit to the registry moved the
+// registry's recent commits and pushedAt, so the next pass read a change and
+// committed again, every pass, for as long as a tab stayed open.
+const STATE_SUBJECTS = [
+  'Update activity cache (state/activity.json)',
+  'Update activity cache (state/activity.json) via Actions',
+  'Update file index (state/files.json)',
+  'Update doc index (state/docs.json) via Actions',
+  'Update config cache (state/configs.json)',
+  'Update sessions cache (state/sessions.json) via Gemini daemon',
+  'Update session menu index (state/session-menu.json)',
+  'Update reply prints (state/reply-prints.json)',
+  'Update session search index (state/sessions-index/2026-10.json)',
+  'Log activity crawl calls (state/calls.json)',
+  'Log tab traffic (logs/traffic)',
+];
+const ACTIVITY_SUBJECTS = ['sessions: 2026-10-29-7674990d', 'Merge pull request #12 from o/b',
+  'notes: a finding', 'Update README.md', 'Snag: a daisyUI join drawn by x-for has a square left end'];
+
+test('a state write is told from activity by its subject, as write-kinds.js classifies it', () => {
+  for (const msg of STATE_SUBJECTS) assert.ok(A.stateWrite({ msg }), msg);
+  for (const msg of ACTIVITY_SUBJECTS) assert.ok(!A.stateWrite({ msg }), msg);
+  const kinds = {};
+  new Function('window', readFileSync(path.join(repoRoot, 'lib/kits/write-kinds.js'), 'utf8'))(kinds);
+  for (const msg of STATE_SUBJECTS) assert.ok(kinds.WriteKinds.classify({ msg, author: 'mehrlander' }).state, msg);
+});
+
+test("a repo's entry hashes the same when only state writes or pushedAt moved", () => {
+  const own = (sha, day) => ({ ...commit(sha, day), msg: 'Update activity cache (state/activity.json)' });
+  const base = { pushedAt: 'p1', defaultBranch: 'main', recentCommits: [own('o1', 6), commit('a', 5)] };
+  const recommitted = { ...base, pushedAt: 'p2', recentCommits: [own('o2', 7), ...base.recentCommits] };
+  assert.equal(A.hashEntry(base), A.hashEntry(recommitted));
+  const worked = { ...recommitted, recentCommits: [commit('b', 8), ...recommitted.recentCommits] };
+  assert.notEqual(A.hashEntry(recommitted), A.hashEntry(worked));
+  assert.equal(A.contentHead(recommitted.recentCommits), 'a');
+  assert.equal(A.contentHead(worked.recentCommits), 'b');
+  assert.equal(A.contentHead([own('o3', 9)]), '');
+});

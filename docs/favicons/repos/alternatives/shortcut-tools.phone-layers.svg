@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="shortcut-tools: phone layers">
+  <title>shortcut-tools: phone layers</title>
+  <desc>A phone drawn as its frame, the Shortcuts app's two stacked layers on its screen: Shortcuts, on the device.</desc>
+  <mask id="clear" maskUnits="userSpaceOnUse" x="0" y="0" width="32" height="32">
+    <rect width="32" height="32" fill="#fff"/>
+    <rect x="9.32" y="8.32" width="13.36" height="13.36" rx="3.5" transform="rotate(45 16 15)" fill="#000"/>
+  </mask>
+  <g fill="currentColor">
+    <path fill-rule="evenodd" d="M10.5 2.25 H21.5 A4.5 4.5 0 0 1 26 6.75 V25.75 A4.5 4.5 0 0 1 21.5 30.25 H10.5 A4.5 4.5 0 0 1 6 25.75 V6.75 A4.5 4.5 0 0 1 10.5 2.25 Z M10.5 4.25 A2.5 2.5 0 0 0 8 6.75 V25.75 A2.5 2.5 0 0 0 10.5 28.25 H21.5 A2.5 2.5 0 0 0 24 25.75 V6.75 A2.5 2.5 0 0 0 21.5 4.25 Z"/>
+    <rect x="11.82" y="10.82" width="8.36" height="8.36" rx="1" transform="rotate(45 16 15)"/>
+    <g mask="url(#clear)"><rect x="11.82" y="15.57" width="8.36" height="8.36" rx="1" transform="rotate(45 16 19.75)"/></g>
+  </g>
+</svg>

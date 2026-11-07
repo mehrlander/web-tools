@@ -172,8 +172,8 @@ const r = await C.fold({
   loadIndex: async () => X,
   runs: CrawlRuns,
   // Which venue ran it, so a reader comparing durations in the run ring can
-  // see that this one was not a browser.
-  via: 'ci',
+  // see that this one was not a browser: --git is the laptop daemon's pass.
+  via: gitArg ? 'daemon' : 'ci',
 });
 
 console.log(`${r.total} records listed; read ${r.read}${r.deferred ? `, ${r.deferred} deferred to the next pass` : ''}.`);

@@ -49,6 +49,8 @@ npm run setup
 dotnet run --project .\desktop\Checks\DesktopChecks.csproj
 node .\desktop\Checks\ui-checks.mjs
 node .\desktop\Checks\phone-ui-checks.mjs
+node .\desktop\Checks\computer-ui-checks.mjs
+node .\desktop\Checks\offline-checks.mjs
 node .\desktop\Checks\companion-checks.mjs
 ```
 
@@ -86,19 +88,39 @@ Hover over Live to see scan and synchronization timings.
 
 ## Private phone view
 
-The phone has its own Now, Queue and Recent views, assistant filters, result
-details and short observed history. The phone view is read-only. The laptop must
+The assistant headers on phone and desktop have separate launch arrows for
+Codex, Antigravity and Claude Code. These work even when the assistant has no
+recent activity. Names still filter the activity list; launch arrows use the
+provider's HTTPS address in a separate browser context. Codex opens ChatGPT,
+which includes Codex on mobile. Claude's Code URL also
+supports its installed mobile app through universal links. Browser and app
+handoff follows the device's link settings.
+
+The phone opens on one Now feed: current work, waiting errands and all recent items
+in the current snapshot, with assistant filters, inline details and short observed
+history. The assistant headers keep compact usage bars visible above the feed;
+the full Usage view remains available on desktop. Now and Computer are read-only;
+Devices offers Stereo Bridge's media controls. The laptop must
 be awake and online; waking the laptop through Windows App can restore access.
 The last received snapshot remains in that browser's local storage, labeled with
-its observation time when contact is lost. A responding server with an observation
+its observation time when contact is lost. After a successful online visit, a
+service worker saves only the interface assets for offline reloads. API responses
+never enter Cache Storage; a network or server failure uses the saved interface, while an
+HTTP access denial is returned directly. The interface can therefore still offer
+Windows App when the laptop is unreachable. A responding server with an observation
 older than fifteen seconds also loses its Live status. Closing the phone browser
 stops polling and does not stop collection.
 
-Tapping a main-list item toggles its compact inline details. An external-link icon
-opens the item's existing Web Tools session detail, errand or result in a separate
-browser context, preserving Now's position and open panel. Items without a valid
-browser destination, including current local Codex and Gemini sessions, have no
-external icon. The companion does not invent links for local-only records. Older
+Tapping a main-list item toggles its compact inline details. Each item's launch
+arrow opens compact choices for the provider session and its Web Tools record,
+preserving Now's position and open detail. Claude uses its captured original URL;
+Gemini uses the conversation ID and the enabled Antigravity instance reported by
+the existing local service. The companion checks that routing every thirty seconds
+without enabling remote access or launching a provider. Codex's documented thread
+link opens its desktop app. On mobile, where no direct thread route is established,
+the control offers ChatGPT and the original session title to copy for lookup.
+Unavailable direct links are labeled; errands keep their saved request/result
+destinations. Provider URLs are validated separately from Web Tools links. Older
 phone detail bookmarks and the worker's own report view remain supported. On iOS,
 a Home Screen web app may open an external link in a Safari browser sheet, where
 the system offers the control to continue in Safari.
@@ -116,7 +138,8 @@ open the existing hosted app, with that browser's own Web Tools authentication.
 `WebTools.Companion` listens only at `127.0.0.1:47831`. Tailscale Serve proxies that
 listener and supplies the owner's identity header. The companion accepts the owner
 identity or a per-user local bearer, validates the Host and Origin, disables HTTP
-caching, and offers no CORS access or write routes. Other Tailscale identities are
+caching, and offers no CORS access. Only the six Stereo Bridge actions accept POST,
+with a deliberate-action header and a same-origin browser request. Other Tailscale identities are
 denied. The desktop-only route requires the local bearer even through Serve.
 Access settings, including the bearer, live in `companion-access.json` beside
 desktop settings; those settings never enter API responses or tracked files.
@@ -126,7 +149,52 @@ desktop settings; those settings never enter API responses or tracked files.
   observed events.
 - `GET /api/v1/results/<id>`: a selected reply, capped at 20,000 characters, plus
   the phone's link to its full saved result in Web Tools.
+- `GET /api/v1/computer`: current Windows session state, machine measurements and
+  grouped desktop application windows, with a separate window-observation time.
+- `GET /api/v1/devices`: Stereo Bridge's current media and playback capabilities.
+- `POST /api/v1/devices/stereo/<action>`: previous, play-pause, next, volume-down,
+  mute or volume-up. Controls require the same owner access as observations.
 - `GET /api/v1/desktop`: full desktop snapshot for the authenticated local app.
+
+### Computer view
+
+The phone's title menu switches between Now, Computer and Devices, retaining each view's
+reading position. Computer shows application icons, names and window counts;
+tapping an app reveals its window titles and minimized state. The companion
+enumerates top-level desktop windows in its own Windows session every five
+seconds, excluding shell helpers, tool windows, owned dialogs and cloaked windows.
+UWP frame hosts resolve to their child app where possible. The view is a window
+inventory, so tray-only apps, services and windows on other virtual desktops may
+be absent. An open window does not imply agent work. No executable paths, command
+lines, screenshots or process-control actions enter the API.
+
+Windows session APIs report lock and remote-connection state. Locked,
+disconnected or unknown sessions retain the previous window list and its original
+observation time. CPU, physical-memory use, and battery/power readings continue
+independently; unavailable values remain unknown. The companion saves the latest
+Computer observation beside its settings for restart continuity. The phone polls
+Computer every three seconds while that view is visible, pauses when hidden,
+backs off on failure, and stores its last observation locally with a stale label.
+The isolated companion-check environment never collects real window titles.
+
+The shared phone header's monitor button directly runs the owner's existing
+**Open-Windows** iPhone shortcut through
+`shortcuts://run-shortcut?name=Open-Windows`. The shortcut's **Open App** action
+selects Microsoft's Windows app (`com.microsoft.rdc.ios`). The legacy `rdp://`
+handoff did not work on the owner's iPhone, so the interface no longer offers that
+route or a connection-options menu. The shortcut opens Windows App; the owner's
+saved laptop connection remains there. The companion does not alter remote
+desktop, firewall, login or wake settings.
+
+When changing the offline interface's asset contract, increment the cache version
+in `phone/sw.js`. Successful installation replaces only this app's older shell
+caches, without reloading an open page or caching private API bodies.
+
+### Devices view
+
+Stereo Bridge must already be running on the laptop. While Devices is visible, the phone polls the companion every two seconds. The companion reads Stereo Bridge's fixed loopback API on port 45831, showing the current track, player, timeline and available playback controls. Volume and mute affect Windows' selected audio output; no numeric volume or output-device reading is available. Tailscale carries the control requests. Phone audio still needs the existing Bluetooth connection.
+
+The adapter disables redirects, bounds responses and omits native errors. Unavailable or stale observations disable controls. Actions run once, without retries, offline replay or a command queue; an unconfirmed response stays labeled. The interface distinguishes a reachable Bridge with no media from an unavailable Bridge. Roku discovery and control are not included in this version.
 
 ### Account usage
 

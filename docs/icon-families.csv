@@ -5,6 +5,7 @@ projects,drawn,Projects,.web-tools.json,,,docs/manifest-fields.csv#projects[].ic
 programs,drawn,Programs,.web-tools.json,,,docs/manifest-fields.csv#programs[].icon
 agents,drawn,Agents,docs/agents.csv,icon,id,docs/favicons/README.md#drawn-marks
 assistants,drawn,Assistants,lib/kits/assistant-mark.js,,,lib/kits/assistant-mark.js
+call-parts,drawn,Call parts,lib/kits/call-marks.js,,,lib/kits/call-marks.js
 map-addresses,phosphor,Map addresses,lib/alpineComponents/map.js,,,lib/alpineComponents/map.js
 repository-glyphs,phosphor,Repository glyphs,.web-tools.json,,,docs/manifest-fields.csv#icon
 subjects,phosphor,Subjects,docs/subjects.csv,icon,label,docs/showing.md#subjects-and-kinds

@@ -61,18 +61,18 @@ test('a note on a paragraph is held by it unchanged, by its card once edited, an
     'joined to the paragraph above, it is on the card that holds its text');
 });
 
-test('a note on an added paragraph is a point, held by that card, and its quote follows the text', () => {
+test('a note on added paragraphs is a point, held by their one card, and its quote follows the text', () => {
   const text = BASE.replace('Bravo para two.\n\n', 'Bravo para two.\n\nInserted para.\n\nSecond insert.\n\n');
   const us = units(BASE, text);
   const add = us.filter((u) => u.card != null);
-  assert.equal(add.length, 2, 'two added paragraphs are two cards at one point');
-  const n = R.make(add[1], BASE, text, 'Why two?');
+  assert.equal(add.length, 1, 'two added paragraphs side by side are one card');
+  const n = R.make(add[0], BASE, text, 'Why two?');
   assert.equal(n.o, n.e);
-  assert.equal(n.exact, 'Second insert.');
-  assert.equal(heldText(n, us, BASE, text), 'card 1', 'the added text decides between two cards at one point');
+  assert.equal(n.exact, 'Inserted para.\n\nSecond insert.', 'its quote is the whole card');
+  assert.equal(heldText(n, us, BASE, text), 'card 0');
   const typed = text.replace('Second insert.', 'Second insert, typed on.');
   const [m] = R.refresh([n], units(BASE, typed), typed);
-  assert.equal(m.exact, 'Second insert, typed on.');
+  assert.ok(m.exact.includes('Second insert, typed on.'));
 });
 
 test('rebase: through a commit, a note moves with its block, lands on an applied change, or is unplaced', () => {

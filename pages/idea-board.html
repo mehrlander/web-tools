@@ -15,10 +15,19 @@
 
   The body is a linked swiper (data/ui-units codes.csv): the list on top, a
   strip of cards below, and the full-screen deck the strip expands into, all
-  three moved by sync(). An SVG sketch renders as an image, so it cannot run
-  script and its marker ids cannot collide; an HTML sketch renders inline,
-  cleaned first. Picks and notes stay in this browser, keyed by the board's
-  address without its ref, and leave as text.
+  three moved by sync(). The brief leads the list and the strip as a card of
+  its own, as the selection closes them, rather than sitting behind an info
+  button in a dialog (html-style rule 13). An SVG sketch renders as an image,
+  so it cannot run script and its marker ids cannot collide; an HTML sketch
+  renders inline, cleaned first. Picks and notes stay in this browser, keyed by the board's
+  address without its ref. They leave as text through Copy, and through Send
+  when the page is opened on a pick call (#user-call=); docs/idea-board.md
+  (Returning picks) states what Send writes.
+
+  Each idea is one card: its commentary, a short and qualified discussion of
+  what the option brings, then its sketch, then the reader's star and note. The
+  strip's header and the deck's subtitle name the card in view, so the card
+  spends no room on its own title. docs/idea-board.md (Cards) states the rest.
 -->
 <script>window.__depsReady = new Promise(r => { window.__depsDone = r; });</script>
 <script type="module">
@@ -37,6 +46,9 @@
     await gh.load('kits/swipe-deck.js');
     await gh.load('kits/io.js');
     await gh.load('kits/title-tip.js');
+    await gh.load('kits/call-marks.js');    // book, bulb, speech bubble, stamp
+    await gh.load('kits/dictate.js');       // the note box's microphone
+    await gh.load('alpineComponents/user-call-form.js');   // postAnswer and prOf, for a pick call
   } finally { window.__depsDone(); }
 </script>
 <script>
@@ -50,17 +62,41 @@ document.addEventListener('alpine:init', () => {
     d.querySelectorAll('*').forEach(e => [...e.attributes].forEach(a => (/^on/i.test(a.name) || /^\s*javascript:/i.test(a.value)) && e.removeAttribute(a.name)));
     return d.body.innerHTML;
   };
+  // A commentary's formatting: paragraphs at blank lines, line breaks kept,
+  // **bold** and `code`, everything else escaped.
+  const prose = t => String(t || '').trim().split(/\n\s*\n/).map(p => '<p>' + esc(p)
+    .replace(/\*\*([^*]+)\*\*/g, '<strong class="font-semibold">$1</strong>')
+    .replace(/`([^`]+)`/g, '<code class="rounded bg-base-200 px-1 font-mono text-[0.9em]">$1</code>')
+    .replace(/\n/g, '<br>') + '</p>').join('');
   const tokenNow = () => {
     if (window.TOKEN) return window.TOKEN;
     return window.ghAuth?.resolve() || '';
   };
   const param = k => new URLSearchParams(location.hash.slice(1)).get(k) || new URLSearchParams(location.search).get(k);
+  // A note box: a plain textarea, with a microphone to its left, under
+  // `lead` (an idea card's star). The microphone always shows, crossed out
+  // where the browser has no speech recognizer, so its absence is never
+  // mistaken for a page that has not updated. The
+  // left keeps it clear of the page's FAB, which sits in the bottom-right
+  // corner on a phone. note() wires both.
+  const NO_SR = 'This browser has no speech recognizer. On a phone, the keyboard\'s microphone dictates into the box.';
+  const noteBox = (ph, lead = '') => `<div class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-2 items-start">
+      <div class="flex flex-col">${lead}<button type="button" data-mic class="btn btn-ghost btn-square text-xl"></button></div>
+      <textarea data-note class="textarea w-full text-base" rows="3" placeholder="${ph}"></textarea>
+      <p data-heard class="hidden col-start-2 mt-1 text-sm text-base-content/60 italic text-pretty" aria-live="polite"></p>
+    </div>`;
 
   Alpine.data('ideaBoard', () => ({
-    B: null, addr: '', err: '', cur: 0, brief: false, copied: false, picks: [], notes: {}, strip: null, deck: null,
-    get count() { return this.B.ideas.length + 1; },
+    B: null, addr: '', err: '', cur: 0, copied: false, picks: [], notes: {}, strip: null, deck: null,
+    call: null, callAt: null, sent: null, sending: false,
+    // Slide 0 is the brief, 1 to n the ideas, and the last the selection.
+    get count() { return this.B.ideas.length + 2; },
+    get last() { return this.B.ideas.length + 1; },
+    at(i) { return this.B.ideas[i - 1]; },
     // Rows carry a thumbnail only when every sketch is an SVG one.
     get thumbs() { return this.B.ideas.every(d => d.src); },
+    // Keyed by the board, not the call, so picks made on the board's own link
+    // are still there when it is opened on a call.
     get key() { return 'idea-board:' + (this.addr.replace(/@[^:]*/, '') || this.B.title); },
 
     async init() {
@@ -71,7 +107,12 @@ document.addEventListener('alpine:init', () => {
         d.src = svg ? img(d.sketch) : '';
         d.html = svg ? '' : clean(d.sketch);
       }
-      try {
+      // The latest answer sent to the call, where there is one, is where the
+      // reader starts; otherwise what this browser kept.
+      if (this.sent) {
+        this.picks = (this.sent.picks || []).map(x => x.n).filter(n => this.idea(n));
+        this.notes = Object.fromEntries((this.sent.notes || []).map(x => [x.n ?? 'selection', x.note]));
+      } else try {
         const v = JSON.parse(localStorage.getItem(this.key) || 'null');
         if (v) { this.picks = v.picks || []; this.notes = v.notes || {}; }
       } catch (e) {}
@@ -85,7 +126,22 @@ document.addEventListener('alpine:init', () => {
       });
     },
     async read() {
-      const gz = param('gz'), spec = param('gh');
+      const gz = param('gz'), callSpec = param('user-call');
+      let spec = param('gh');
+      if (callSpec) {
+        const c = window.RepoAddress.parse(callSpec);
+        if (!c) throw new Error('#user-call= reads owner/repo[@ref]:path, and this is not one: ' + callSpec);
+        const g = new GH({ token: tokenNow(), repo: c.repo, ...(c.ref ? { ref: c.ref } : {}) });
+        try { this.call = JSON.parse((await g.get(c.path, GH.FRESH)).text); }
+        catch (e) { throw new Error(`Could not read the call ${callSpec}${tokenNow() ? '' : ' without a stored GitHub token'}: ${e.message}`); }
+        this.callAt = { ...c, answers: c.path.replace(/\.json$/, '.answers.jsonl') };
+        spec = this.call.board?.ideas;
+        if (!spec) throw new Error('The call ' + callSpec + ' names no idea board (board.ideas)');
+        try {
+          const lines = (await g.get(this.callAt.answers, GH.FRESH)).text.split('\n').filter(l => l.trim());
+          this.sent = lines.length ? JSON.parse(lines[lines.length - 1]) : null;
+        } catch (e) { if (e?.status && e.status !== 404) this.err = 'Could not read the answers: ' + e.message; }
+      }
       if (gz) {
         return window.GzPayload.decodeJson(gz);
       }
@@ -103,7 +159,7 @@ document.addEventListener('alpine:init', () => {
 
     save() { try { localStorage.setItem(this.key, JSON.stringify({ picks: this.picks, notes: this.notes })); } catch (e) {} },
     idea(n) { return this.B.ideas.find(d => d.n === n); },
-    label(i) { return i < this.B.ideas.length ? this.B.ideas[i].title : 'Selection'; },
+    label(i) { return i === 0 ? 'Brief' : i === this.last ? 'Selection' : this.at(i).title; },
     picked(n) { return this.picks.includes(n); },
     toggle(n) { this.picks = this.picked(n) ? this.picks.filter(x => x !== n) : [...this.picks, n].sort((a, b) => a - b); },
     // What the board's own selection made of idea n: 'base', the graft's text, or ''.
@@ -113,19 +169,48 @@ document.addEventListener('alpine:init', () => {
       return (S.grafts.find(([g]) => g === n) || [])[1] || '';
     },
 
+    // A board whose ideas have encounter and helps in place of commentary
+    // (docs/prototypes/md-edit-ideas.json, a write-once record) is read with
+    // the two joined as its commentary.
+    commentary(d) { return d.commentary != null ? d.commentary : [d.encounter, d.helps].filter(Boolean).join('\n\n'); },
+    // [label, text] pairs: the brief's Background and Methodology. A brief of
+    // result and musts[] (docs/prototypes/md-edit-ideas.json again) is one
+    // unlabelled paragraph: the result, then what a concept must show.
+    get briefParts() {
+      const b = this.B.brief || {};
+      if (b.background || b.methodology) return [['Background', b.background], ['Methodology', b.methodology]].filter(([, t]) => t);
+      const musts = (b.musts || []).map(m => /^.[a-z]/.test(m) ? m.charAt(0).toLowerCase() + m.slice(1) : m);
+      return [[null, [b.result, musts.length ? 'A concept must show ' + musts.join('; ') + '.' : ''].filter(Boolean).join(' ')]];
+    },
+    // The brief's list row: its first paragraph, unformatted.
+    get briefLead() { return (this.briefParts[0]?.[1] || '').replace(/\*\*|`/g, ''); },
+    mark(kind, size = 16) { return window.CallMarks ? window.CallMarks.svg(kind, { size }) : ''; },
+
+    // The deck's subtitle names the card in view, as the strip's header does.
+    deckSub() { const i = this.cur; return i > 0 && i < this.last ? i + ' ' + this.at(i).title : this.label(i); },
+
     // One move, from the list, the strip or the expanded deck, reaches the other two.
     sync(i, from) {
       this.cur = i;
+      if (this.deck) this.deck.setSubtitle(this.deckSub());
       if (from !== 'strip' && this.strip.active() !== i) this.strip.go(i, 'instant');
       if (from !== 'deck' && this.deck && this.deck.deck.active() !== i) this.deck.deck.go(i, 'instant');
       this.$nextTick(() => this.$refs.list.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' }));
     },
+    // THE DECK REPORTS SLIDE 0 ONCE AS IT MOUNTS, before it scrolls to its
+    // start, and taken as the reader's move that report pulled the strip back
+    // to the brief, which then pulled the deck back with it (measured
+    // 2026-11-01: every expand landed on the brief). So the deck is heard only
+    // once it has reached its start, or after a beat if it never reports it.
     expand() {
+      const start = this.cur;
+      let settled = start === 0;
+      setTimeout(() => { settled = true; }, 600);
       this.deck = swipeDeck.open({
-        count: this.count, start: this.cur, render: (k, el) => this.render(k, el),
-        title: this.B.title, subtitle: 'Idea board', icon: 'ph-squares-four',
-        index: k => ({ title: this.label(k), subtitle: k < this.B.ideas.length ? this.B.ideas[k].kind : '' }),
-        onSlide: k => this.sync(k, 'deck'),
+        count: this.count, start, render: (k, el) => this.render(k, el),
+        title: this.B.title, subtitle: this.deckSub(), icon: 'ph-squares-four',
+        index: k => ({ title: this.label(k), subtitle: this.at(k)?.kind || '' }),
+        onSlide: k => { if (!settled) { if (k !== start) return; settled = true; } this.sync(k, 'deck'); },
         onClose: () => { this.deck = null; },
       });
     },
@@ -141,42 +226,91 @@ document.addEventListener('alpine:init', () => {
       });
     },
 
-    // A note box bound to notes[k], for an idea's number or 'selection'.
+    // A note box bound to notes[k], for an idea's number or 'selection'. The
+    // strip and the deck each draw one, so every write goes to both.
     note(el, k) {
-      const box = el.querySelector('[data-note]');
+      const box = el.querySelector('[data-note]'), mic = el.querySelector('[data-mic]');
       box.value = this.notes[k] || '';
       box.dataset.note = k;
-      box.oninput = () => {
-        this.notes = { ...this.notes, [k]: box.value };
-        document.querySelectorAll(`[data-note="${k}"]`).forEach(b => b !== box && (b.value = box.value));
-      };
+      box.oninput = () => this.setNote(k, box.value, box);
+      mic.dataset.mic = k;
+      el.querySelector('[data-heard]').dataset.heard = k;
+      mic.onclick = () => this.dictate(k);
+      this.paintMic(k);
+    },
+    setNote(k, v, from) {
+      this.notes = { ...this.notes, [k]: v };
+      document.querySelectorAll(`[data-note="${k}"]`).forEach(b => { if (b !== from) { b.value = v; b.scrollTop = b.scrollHeight; } });
+    },
+
+    // ── Dictation ───────────────────────────────────────────────────────────
+    // The browser's own recognizer through kits/dictate.js, which keeps the
+    // microphone open across pauses and ends a sentence where the speaker
+    // pauses. One note at a time. What is heard is added after the note's
+    // text; the words still being heard show under the box, and the box is
+    // read-only until the microphone stops, so typing and speech never write
+    // the note at once. Stopping keeps the words still being heard. The kit
+    // leaves capitals to the engine, which not every engine gives, so a
+    // sentence the note or the kit's pause period has just closed is armed
+    // for one.
+    dict: null,
+    dictate(k) {
+      if (!window.Dictate?.available()) return this.paintMic(k, '', NO_SR);
+      const was = this.dict;
+      if (was) { this.setNote(was.k, was.base + was.h.flush()); was.h.stop(); this.dict = null; this.paintMic(was.k); }
+      if (was?.k === k) return;
+      const base = (this.notes[k] || '').replace(/\s*$/, s => (this.notes[k] || '').trim() ? ' ' : '');
+      const h = window.Dictate.create({
+        onText: t => { this.setNote(k, base + t); if (/[.!?]$/.test(t)) h.armCapital(true); },
+        onInterim: t => this.paintMic(k, t),
+        onState: () => { if (!h.listening && this.dict?.h === h) this.dict = null; this.paintMic(k); },
+        onError: m => this.paintMic(k, '', 'Dictation stopped: ' + m),
+      });
+      this.dict = { k, h, base };
+      if (!base.trim() || /[.!?]\s*$/.test(base)) h.armCapital(true);
+      h.start();
+      this.paintMic(k);
+    },
+    paintMic(k, heard = '', err = '') {
+      const on = this.dict?.k === k, can = !!window.Dictate?.available();
+      document.querySelectorAll(`[data-mic="${k}"]`).forEach(b => {
+        b.innerHTML = `<i class="ph ${on ? 'ph-fill ph-microphone text-error animate-pulse' : can ? 'ph-microphone' : 'ph-microphone-slash text-base-content/40'}"></i>`;
+        b.setAttribute('aria-pressed', on);
+        b.setAttribute('aria-label', on ? 'Stop dictating' : can ? 'Dictate' : NO_SR);
+        b.dataset.titleTip = on ? 'Stop dictating' : can ? 'Dictate' : 'No dictation in this browser';
+      });
+      document.querySelectorAll(`[data-note="${k}"]`).forEach(b => { b.readOnly = on; });
+      document.querySelectorAll(`[data-heard="${k}"]`).forEach(p => {
+        p.textContent = err || heard || (on ? 'Listening…' : '');
+        p.classList.toggle('hidden', !p.textContent);
+        p.classList.toggle('text-error', !!err);
+      });
     },
 
     render(i, el) {
-      if (i === this.B.ideas.length) return this.renderSelection(el);
-      const d = this.B.ideas[i], role = this.role(d.n);
-      el.innerHTML = `<div class="grid gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] xl:items-start">
-        ${this.sketch(d, 'border border-base-300 rounded-box p-2')}
-        <div class="grid gap-4">
-          <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <span class="tabular-nums text-base-content/50">${d.n}</span>
-            <h2 class="text-xl font-semibold text-balance">${esc(d.title)}</h2>
-            <span class="text-sm text-base-content/60">${esc(d.kind)}</span>
-          </div>
-          <dl class="grid grid-cols-[6rem_minmax(0,1fr)] gap-x-4 gap-y-3">
-            <dt class="text-sm text-base-content/60 pt-1">Reader meets</dt><dd class="text-pretty">${esc(d.encounter)}</dd>
-            <dt class="text-sm text-base-content/60 pt-1">Shows</dt><dd class="text-pretty">${esc(d.helps)}</dd>
-            ${role ? `<dt class="text-sm text-base-content/60 pt-1">Selection</dt><dd class="text-pretty">${role === 'base' ? 'Base' : 'Graft: ' + esc(role)}</dd>` : ''}
-          </dl>
-          <div class="grid grid-cols-[auto_minmax(0,1fr)] gap-2 items-start">
-            <button data-pick="${d.n}" class="btn btn-ghost btn-square text-xl" aria-label="Pick"></button>
-            <textarea data-note class="textarea w-full text-base" rows="2" placeholder="Note"></textarea>
-          </div>
-        </div>
+      if (i === 0) return this.renderBrief(el);
+      if (i === this.last) return this.renderSelection(el);
+      const d = this.at(i);
+      // One card: the commentary first, then the sketch, then the reader's star
+      // and note. From xl the sketch takes the right-hand column beside both.
+      el.innerHTML = `<div class="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] xl:grid-rows-[auto_minmax(0,1fr)] xl:items-start">
+        <div class="grid gap-3 text-pretty">${prose(this.commentary(d))}</div>
+        <div class="xl:col-start-2 xl:row-start-1 xl:row-span-2">${this.sketch(d, 'border border-base-300 rounded-box p-2')}</div>
+        ${noteBox('Note', `<button data-pick="${d.n}" class="btn btn-ghost btn-square text-xl" aria-label="Pick"></button>`)}
       </div>`;
       el.querySelector('[data-pick]').onclick = () => { this.toggle(d.n); this.paint(d.n); };
       this.paint(d.n);
       this.note(el, d.n);
+    },
+
+    // The brief is its Background and its Methodology, a paragraph each under
+    // its label, on a tinted panel so it is not taken for a ninth idea, with the
+    // board's date beneath.
+    renderBrief(el) {
+      el.innerHTML = `<div class="rounded-box border border-base-300 bg-base-200 px-5 py-4 grid gap-4 text-pretty">
+        ${this.briefParts.map(([label, text]) => `<section class="grid gap-1">${label ? `<h3 class="text-sm font-semibold text-base-content/60">${label}</h3>` : ''}<div class="grid gap-3">${prose(text)}</div></section>`).join('')}
+        <p class="text-sm text-base-content/50">${esc(this.B.made)}</p>
+      </div>`;
     },
 
     renderSelection(el) {
@@ -184,7 +318,6 @@ document.addEventListener('alpine:init', () => {
       const ref = (n, extra = '') => `<button data-go="${n}" class="link link-hover font-semibold text-left">${n} · ${esc(this.idea(n).title)}</button>${extra}`;
       const thumb = n => `<button data-go="${n}" class="grid gap-1 text-left content-start">${this.sketch(this.idea(n), 'border border-base-300 rounded-box p-1 overflow-hidden max-h-48')}<span class="text-xs text-base-content/60">${n} · ${esc(this.idea(n).title)}</span></button>`;
       el.innerHTML = `<div class="grid gap-4">
-        <h2 class="text-xl font-semibold">Selection</h2>
         <div class="grid grid-cols-3 gap-3">${[...S.pick, ...S.grafts.map(([n]) => n)].map(thumb).join('')}</div>
         <dl class="grid grid-cols-[6rem_minmax(0,1fr)] gap-x-4 gap-y-3">
           <dt class="text-sm text-base-content/60 pt-1">Base</dt><dd class="grid gap-1">${S.pick.map(n => ref(n)).join('')}</dd>
@@ -194,12 +327,11 @@ document.addEventListener('alpine:init', () => {
           <dt class="text-sm text-base-content/60 pt-1">Rests on</dt>
           <dd class="grid gap-2">${S.assumptions.map(a => `<span class="text-pretty">${esc(a)}</span>`).join('')}</dd>
         </dl>
-        <textarea data-note class="textarea w-full text-base" rows="2" placeholder="Note on the selection"></textarea>
+        ${noteBox('Note on the selection')}
       </div>`;
       el.querySelectorAll('[data-go]').forEach(b => {
         b.onclick = () => {
-          const i = this.B.ideas.findIndex(d => d.n === +b.dataset.go);
-          this.sync(i, 'list');
+          this.sync(this.B.ideas.findIndex(d => d.n === +b.dataset.go) + 1, 'list');
         };
       });
       this.note(el, 'selection');
@@ -213,6 +345,45 @@ document.addEventListener('alpine:init', () => {
       return L.join('\n');
     },
     async copy() { this.copied = await io.copy(this.text()); if (this.copied) setTimeout(() => this.copied = false, 1500); },
+
+    // ── Sending to a pick call ─────────────────────────────────────────────
+    // A pick's id names the card the way user-call.py's `answers` prints it;
+    // `n` brings the picks back as the starting state when the call reopens.
+    answerOf() {
+      const id = n => 'idea ' + n + ' ' + this.idea(n).title;
+      const notes = this.B.ideas.filter(d => (this.notes[d.n] || '').trim()).map(d => ({ on: id(d.n), n: d.n, note: this.notes[d.n].trim() }));
+      if ((this.notes.selection || '').trim()) notes.push({ on: 'selection', note: this.notes.selection.trim() });
+      return { answer: 'Picked', picks: this.picks.map(n => ({ id: id(n), href: '', n })), ...(notes.length ? { notes } : {}) };
+    },
+    get closed() { return !!this.call && (this.call.status === 'closed' || !!this.call.closed); },
+    get sentNow() {
+      if (!this.sent) return false;
+      const a = this.answerOf(), same = (x, y) => JSON.stringify(x || []) === JSON.stringify(y || []);
+      return same(this.sent.picks?.map(x => x.n), a.picks.map(x => x.n)) && same(this.sent.notes?.map(x => x.note), a.notes?.map(x => x.note));
+    },
+    get canSend() { return !!this.call && !!tokenNow() && !this.sending && !this.sentNow && !this.closed && (this.picks.length || this.answerOf().notes); },
+    get sendLabel() { return this.closed ? 'Closed' : this.sending ? 'Sending' : this.sentNow ? 'Sent' : this.sent ? 'Send again' : 'Send'; },
+    get sendTip() {
+      const pr = window.UserCallForm.prOf(this.call?.pr);
+      return !this.call ? 'No call to send to; use Copy' : this.closed ? 'This call is closed'
+        : !tokenNow() ? 'Sending needs a stored GitHub token' : 'Send to the call' + (pr ? ' and ' + pr.label : '');
+    },
+    async send() {
+      if (!this.canSend) return;
+      this.sending = true; this.err = '';
+      try {
+        const entry = { ...this.answerOf(), board: this.call.board.ideas, at: new Date().toISOString() };
+        const pr = window.UserCallForm.prOf(this.call.pr);
+        const id = this.call.id || this.callAt.path.split('/').pop().replace(/\.json$/, '');
+        const comment = pr ? `**User call: ${this.call.question}**\n\nAnswer: **Picked**, ${entry.picks.length}\n\n`
+          + entry.picks.map(x => '- ' + x.id).join('\n')
+          + (entry.notes ? '\n\n' + entry.notes.map(x => '> **' + (x.n ? 'Idea ' + x.n : 'Selection') + ':** ' + x.note).join('\n>\n') : '')
+          + `\n\n_${id}, sent from the idea board._` : '';
+        this.sent = await window.UserCallForm.postAnswer({ repo: this.callAt.repo, ref: this.callAt.ref || 'main',
+          path: this.callAt.answers, entry, pr, comment, token: tokenNow() });
+      } catch (e) { this.err = 'Not sent: ' + (e?.message || e); }
+      this.sending = false;
+    },
   }));
 });
 </script>
@@ -232,7 +403,12 @@ document.addEventListener('alpine:init', () => {
         <button class="btn btn-ghost btn-sm gap-1 tabular-nums" @click="copy()" aria-label="Copy picks" data-title-tip="Copy picks and notes">
           <i class="ph text-lg" :class="copied ? 'ph-check' : 'ph-copy'"></i><span x-text="copied ? 'Copied' : picks.length + ' picked'"></span>
         </button>
-        <button class="btn btn-ghost btn-sm btn-square" @click="brief = true" aria-label="Brief" data-title-tip="Brief"><i class="ph ph-info text-lg"></i></button>
+        <!-- The call form's answer button: ghost, tinted with the primary colour, as the image board's is.
+             Shown on every board and disabled without a call, so its absence is never read as a missing feature. -->
+        <button @click="send()" :disabled="!canSend" :aria-label="sendTip" :data-title-tip="sendTip"
+                class="btn btn-sm btn-ghost gap-1 border-[color-mix(in_srgb,var(--color-primary)_45%,var(--color-base-100))] bg-primary/10 text-primary hover:bg-primary/15 disabled:opacity-40">
+          <i class="ph text-lg" :class="sending ? 'ph-spinner animate-spin' : sentNow ? 'ph-check' : 'ph-paper-plane-tilt'"></i><span x-text="sendLabel"></span>
+        </button>
       </div>
     </template>
   </header>
@@ -245,10 +421,19 @@ document.addEventListener('alpine:init', () => {
       <ol x-ref="list" role="listbox" aria-label="Concepts" tabindex="0"
           @keydown.down.prevent="sync(Math.min(count - 1, cur + 1), 'list')" @keydown.up.prevent="sync(Math.max(0, cur - 1), 'list')"
           class="max-h-[38dvh] overflow-y-auto border-b border-base-300 grid grid-cols-[minmax(0,1fr)] sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 content-start">
+        <li role="option" :aria-selected="cur === 0 ? 'true' : 'false'" @click="sync(0, 'list')"
+            class="cursor-pointer grid gap-x-3 items-center px-3 py-2 border-b border-base-200 hover:bg-base-200"
+            :class="[cur === 0 && 'bg-base-200', thumbs ? 'grid-cols-[4rem_minmax(0,1fr)]' : 'grid-cols-[auto_minmax(0,1fr)]']">
+          <span class="justify-self-center text-base-content/70" x-html="mark('background', 26)"></span>
+          <span class="grid min-w-0">
+            <span class="font-semibold">Brief</span>
+            <span class="text-xs text-base-content/60 truncate" x-text="briefLead"></span>
+          </span>
+        </li>
         <template x-for="(d, i) in B.ideas" :key="d.n">
-          <li role="option" :aria-selected="cur === i ? 'true' : 'false'" @click="sync(i, 'list')"
+          <li role="option" :aria-selected="cur === i + 1 ? 'true' : 'false'" @click="sync(i + 1, 'list')"
               class="cursor-pointer grid gap-x-3 items-center px-3 py-2 border-b border-base-200 hover:bg-base-200"
-              :class="[cur === i && 'bg-base-200', thumbs ? 'grid-cols-[4rem_minmax(0,1fr)_auto]' : 'grid-cols-[minmax(0,1fr)_auto]']">
+              :class="[cur === i + 1 && 'bg-base-200', thumbs ? 'grid-cols-[4rem_minmax(0,1fr)_auto]' : 'grid-cols-[minmax(0,1fr)_auto]']">
             <template x-if="thumbs"><span class="h-12 grid place-items-center overflow-hidden"><img :src="d.src" alt="" class="max-h-12 w-auto bg-white"></span></template>
             <span class="grid min-w-0">
               <span class="font-semibold truncate"><span class="tabular-nums text-base-content/50 font-normal" x-text="d.n"></span> <span x-text="d.title"></span></span>
@@ -257,10 +442,10 @@ document.addEventListener('alpine:init', () => {
             <i class="ph" :class="picked(d.n) ? 'ph-fill ph-star text-primary' : 'ph-star opacity-25'"></i>
           </li>
         </template>
-        <li role="option" :aria-selected="cur === B.ideas.length ? 'true' : 'false'" @click="sync(B.ideas.length, 'list')"
+        <li role="option" :aria-selected="cur === last ? 'true' : 'false'" @click="sync(last, 'list')"
             class="cursor-pointer grid gap-x-3 items-center px-3 py-2 border-b border-base-200 hover:bg-base-200"
-            :class="[cur === B.ideas.length && 'bg-base-200', thumbs ? 'grid-cols-[4rem_minmax(0,1fr)]' : 'grid-cols-[auto_minmax(0,1fr)]']">
-          <i class="ph ph-check-circle text-2xl justify-self-center"></i>
+            :class="[cur === last && 'bg-base-200', thumbs ? 'grid-cols-[4rem_minmax(0,1fr)]' : 'grid-cols-[auto_minmax(0,1fr)]']">
+          <span class="justify-self-center text-base-content/70" x-html="mark('conclusion', 26)"></span>
           <span class="grid min-w-0">
             <span class="font-semibold">Selection</span>
             <span class="text-xs text-base-content/60 truncate" x-text="B.selection.pick.concat(B.selection.grafts.map(([n]) => n)).join(' + ')"></span>
@@ -269,33 +454,21 @@ document.addEventListener('alpine:init', () => {
       </ol>
 
       <section x-ref="detail" class="grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] min-h-0 min-w-0">
-        <div class="flex items-center gap-2 px-4 py-1.5 border-b border-base-200">
+        <div class="flex items-center gap-1 pl-4 pr-3 py-1.5 border-b border-base-200">
+          <span class="min-w-0 flex-1 flex items-center gap-2">
+            <span x-show="cur === 0" class="shrink-0 text-base-content/60" x-html="mark('background', 18)"></span>
+            <span x-show="cur === last" class="shrink-0 text-base-content/60" x-html="mark('conclusion', 18)"></span>
+            <span x-show="cur > 0 && cur < last" class="shrink-0 tabular-nums text-base-content/50" x-text="cur"></span>
+            <span class="font-semibold truncate" x-text="label(cur)"></span>
+          </span>
           <button class="btn btn-ghost btn-sm btn-square" @click="sync(Math.max(0, cur - 1), 'list')" aria-label="Previous"><i class="ph ph-caret-left text-lg"></i></button>
-          <span class="tabular-nums text-sm text-base-content/60" x-text="(cur + 1) + ' / ' + count"></span>
           <button class="btn btn-ghost btn-sm btn-square" @click="sync(Math.min(count - 1, cur + 1), 'list')" aria-label="Next"><i class="ph ph-caret-right text-lg"></i></button>
-          <button class="btn btn-ghost btn-sm btn-square ml-auto" @click="expand()" aria-label="Expand" data-title-tip="Expand"><i class="ph ph-arrows-out text-lg"></i></button>
+          <button class="btn btn-ghost btn-sm btn-square" @click="expand()" aria-label="Expand" data-title-tip="Expand"><i class="ph ph-arrows-out text-lg"></i></button>
         </div>
         <div x-ref="track" class="min-h-0 min-w-0 h-full"></div>
       </section>
     </main>
   </template>
-
-  <dialog class="modal" :open="brief" @keydown.escape.window="brief = false">
-    <div class="modal-box w-11/12 max-w-3xl grid gap-4" x-show="B">
-      <div class="flex items-center">
-        <h2 class="font-semibold text-lg">Brief</h2>
-        <button class="btn btn-sm btn-ghost btn-square ml-auto" @click="brief = false" aria-label="Close"><i class="ph ph-x"></i></button>
-      </div>
-      <dl class="grid grid-cols-[6rem_minmax(0,1fr)] gap-x-4 gap-y-3">
-        <dt class="text-sm text-base-content/60 pt-1">Subject</dt><dd class="text-pretty" x-text="B?.subject"></dd>
-        <dt class="text-sm text-base-content/60 pt-1">Result</dt><dd class="text-pretty" x-text="B?.brief.result"></dd>
-        <dt class="text-sm text-base-content/60 pt-1">Must show</dt>
-        <dd class="grid gap-1"><template x-for="m in B?.brief.musts || []" :key="m"><span class="text-pretty" x-text="m"></span></template></dd>
-        <dt class="text-sm text-base-content/60 pt-1">Made</dt><dd x-text="B?.made"></dd>
-      </dl>
-    </div>
-    <div class="modal-backdrop" @click="brief = false"></div>
-  </dialog>
 </div>
 </body>
 </html>

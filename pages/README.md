@@ -32,6 +32,7 @@ the link-dense text twin of the visual index above.
 | `entities` | Entities | [view](https://mehrlander.github.io/web-tools/pages/entities.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/entities.html) |
 | `gist-editor` | Gist Editor | [view](https://mehrlander.github.io/web-tools/pages/gist-editor.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/gist-editor.html) |
 | `idea-board` | Idea board | [view](https://mehrlander.github.io/web-tools/pages/idea-board.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/idea-board.html) |
+| `image-board` | Image board | [view](https://mehrlander.github.io/web-tools/pages/image-board.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/image-board.html) |
 | `index` | web-tools | [view](https://mehrlander.github.io/web-tools/pages/index.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/index.html) |
 | `inquiry` | Inquiry | [view](https://mehrlander.github.io/web-tools/pages/inquiry.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/inquiry.html) |
 | `launcher` | Popup Launcher · setup | [view](https://mehrlander.github.io/web-tools/pages/launcher.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/launcher.html) |
@@ -40,6 +41,7 @@ the link-dense text twin of the visual index above.
 | `pdf-inspect` | PDF Inspect | [view](https://mehrlander.github.io/web-tools/pages/pdf-inspect.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/pdf-inspect.html) |
 | `peek` | Peek — DOM under a selection | [view](https://mehrlander.github.io/web-tools/pages/peek.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/peek.html) |
 | `pip-steps` | Floating steps | [view](https://mehrlander.github.io/web-tools/pages/pip-steps.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/pip-steps.html) |
+| `pivot-concepts` | Pivot concepts | [view](https://mehrlander.github.io/web-tools/pages/pivot-concepts.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/pivot-concepts.html) |
 | `pivot-table` | Excel Pivot Table Viewer | [view](https://mehrlander.github.io/web-tools/pages/pivot-table.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/pivot-table.html) |
 | `probe-snap` | Probe snap | [view](https://mehrlander.github.io/web-tools/pages/probe-snap.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/probe-snap.html) |
 | `probe-window` | Probe window | [view](https://mehrlander.github.io/web-tools/pages/probe-window.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/probe-window.html) |
@@ -49,7 +51,7 @@ the link-dense text twin of the visual index above.
 | `shortcut-edit` | Shortcut Edit | [view](https://mehrlander.github.io/web-tools/pages/shortcut-edit.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/shortcut-edit.html) |
 | `shortcut-log` | Shortcut Log | [view](https://mehrlander.github.io/web-tools/pages/shortcut-log.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/shortcut-log.html) |
 | `shortcut-run` | Run Shortcut | [view](https://mehrlander.github.io/web-tools/pages/shortcut-run.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/shortcut-run.html) |
-| `shortcuts` | Shortcuts | [view](https://mehrlander.github.io/web-tools/pages/shortcuts.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/shortcuts.html) |
+| `shortcuts` | Workflows | [view](https://mehrlander.github.io/web-tools/pages/shortcuts.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/shortcuts.html) |
 | `shorter` | Shorter | [view](https://mehrlander.github.io/web-tools/pages/shorter.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/shorter.html) |
 | `text-lab` | Text Lab | [view](https://mehrlander.github.io/web-tools/pages/text-lab.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/text-lab.html) |
 | `toss-render` | Toss Render | [view](https://mehrlander.github.io/web-tools/pages/toss-render.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/toss-render.html) |

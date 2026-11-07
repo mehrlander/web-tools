@@ -355,9 +355,9 @@ test('a paragraph added above a split: the cards revert from the last up, and th
     'item words here.\n\nAlpha one two three four. Alpha five six.\n\nBravo para.\n\n- other item.\n');
 });
 
-test('a paragraph and the list item tight under it, both added, revert from the last up', () => {
+test('a paragraph and the list item tight under it, both added, are one card and revert exactly', () => {
   const base = 'Alpha one.\n\nCharlie one.\n';
   const { out, runs } = checkAgainst(base, 'Alpha one.\n\nBravo:\n- item one.\n\nCharlie one.\n');
   assert.deepEqual(out, []);
-  assert.equal(runs.length, 2);
+  assert.equal(runs.length, 1);
 });

@@ -213,6 +213,10 @@ test('UTF-16LE BOM saved-file bytes compare through the file picker; alternate e
     const ansi = Uint8Array.from([0x66, 0x6f, 0x6f, 0xe9]);
     assert.throws(() => win.FileCorrespondence.decodeBytes(ansi), /Choose its encoding/);
     assert.equal(win.FileCorrespondence.decodeBytes(ansi, 'windows-1252'), 'fooé');
+    // 0x80 to 0x9F are punctuation, as browsers decode them, whatever the runtime's
+    // TextDecoder does; the five unassigned bytes keep their own code point.
+    assert.equal(win.FileCorrespondence.decodeBytes(Uint8Array.from([0x93, 0x41, 0x94, 0x80, 0x96, 0x81]), 'windows-1252'),
+      '\u201cA\u201d\u20ac\u2013\u0081');
     assert.equal(win.FileCorrespondence.decodeBytes(Uint8Array.from([0xfe, 0xff, 0x00, 0x41])), 'A');
     assert.throws(() => win.FileCorrespondence.decodeBytes(new Uint8Array()), /empty/);
     shell.view = 'search';

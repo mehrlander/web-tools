@@ -15,6 +15,9 @@ ones.
                     copy, so nothing is unique.
   open              heads an open pull request (from the crawl's cache); read
                     under Pull requests, not here.
+  orphan            shares no history with main, as a store branch such as
+                    web-tools-private's `background` does by design; listed by
+                    name, not read for residue.
   novel             the rest. Its residue is the added lines main's copy lacks.
 
 merged-tip and closed-tip need each pull request's head commit, which the cache
@@ -22,7 +25,9 @@ does not hold. A merge-commit repo's merged tips read as ancestor anyway; the
 branch of a pull request closed unmerged reads as novel here.
 
 Usage:
-  branches.py [--repo owner/repo] [--json]   counts per repo, then each novel branch
+  branches.py [--repo owner/repo] [--since YYYY-MM-DD] [--json]
+      counts per repo, then each novel and orphan branch; --since skips branches
+      whose tip is older, such as those a previous pass already classed
 """
 
 import argparse
@@ -53,7 +58,7 @@ COMMON_BASENAME = 3
 def classify(co, ref, main_files, main_blobs, basenames):
     mb = git(co, "merge-base", ref, "origin/main").strip()
     if not mb:
-        return "novel", {"why": "no merge base"}
+        return "orphan", {}
     novel, residue = [], 0
     for line in git(co, "diff", "--name-status", "--no-renames", mb, ref).splitlines():
         st, path = line.split("\t", 1)
@@ -90,6 +95,7 @@ def main(argv):
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--store", help="the notes folder, when the search would not find it")
     ap.add_argument("--repo")
+    ap.add_argument("--since", default="", help="skip branches whose tip commit is older (YYYY-MM-DD)")
     ap.add_argument("--json", action="store_true")
     a = ap.parse_args(argv)
     store_repo, _ = note.find_store(a.store)
@@ -112,7 +118,7 @@ def main(argv):
                         "refs/remotes/origin").splitlines():
             ref, sha, day = line.split(" ")
             branch = ref.split("/", 1)[1] if "/" in ref else ref
-            if branch in ("HEAD", "main") or ref == "origin":
+            if branch in ("HEAD", "main") or ref == "origin" or day < a.since:
                 continue
             row = {"repo": repo, "branch": branch, "sha": sha, "day": day}
             if git(co, "rev-list", "--count", ref, "--not", "origin/main").strip() == "0":
@@ -134,8 +140,9 @@ def main(argv):
         counts[r["repo"]][r["class"]] += 1
     for repo, c in counts.items():
         print(repo, "  ".join(f"{k} {v}" for k, v in sorted(c.items())))
-    for r in sorted((r for r in out if r["class"] == "novel"), key=lambda r: (r["repo"], r["day"])):
-        print(f"novel  {r['repo']}@{r['branch']}  {r['day']}  {r.get('residue', 0)} lines in {len(r.get('paths', []))} path(s)")
+    for r in sorted((r for r in out if r["class"] in ("novel", "orphan")), key=lambda r: (r["class"], r["repo"], r["day"])):
+        tail = f"  {r.get('residue', 0)} lines in {len(r.get('paths', []))} path(s)" if r["class"] == "novel" else ""
+        print(f"{r['class']:6} {r['repo']}@{r['branch']}  {r['day']}{tail}")
 
 
 if __name__ == "__main__":

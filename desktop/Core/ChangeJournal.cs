@@ -17,17 +17,17 @@ public sealed class ChangeJournal(string path)
         }
         var before = changes.ToList();
         var items = changes.GroupBy(c => c.Key).ToDictionary(g => g.Key, g => g.First());
-        void Add(string key, string provider, string title, string state, DateTimeOffset at, string detail, string location, string? url, bool versioned = false) {
+        void Add(string key, string provider, string title, string state, DateTimeOffset at, string detail, string location, string? url, bool versioned = false, string? sessionUrl = null) {
             if (at.Year < 2000 || at > now.AddMinutes(1) || at < now.AddDays(-7)) return;
             // A repeated scan, clock advance, or companion restart is not a change.
             var signature = state + "\n" + detail;
             if (items.TryGetValue(key, out var previous) && previous.State == state && previous.Detail == detail
                 && (!versioned || previous.At == at)) {
-                items[key] = previous with { Title = title };
+                items[key] = previous with { Title = title, SessionUrl = sessionUrl };
                 return;
             }
             var id = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(key + "\n" + signature + "\n" + at.ToString("O"))))[..24];
-            items[key] = new(key, id, provider, title, state, at, detail, location, url);
+            items[key] = new(key, id, provider, title, state, at, detail, location, url, sessionUrl);
         }
         foreach (var session in sessions) {
             var cloud = session.Location == "Cloud";
@@ -37,14 +37,14 @@ public sealed class ChangeJournal(string path)
                 var state = session.State == "quiet" ? "working" : session.State;
                 Add(key, session.Provider, session.Title, state, state == "working" ? turn.StartedAt : turn.UpdatedAt,
                     state == "working" ? "Started cloud turn" : state == "idle" ? "Response recorded" : "Turn interrupted",
-                    session.Location, NavigationPolicy.AppUrl + "?view=sessions&session=" + Uri.EscapeDataString(session.Id), versioned: true);
+                    session.Location, NavigationPolicy.AppUrl + "?view=sessions&session=" + Uri.EscapeDataString(session.Id), versioned: true, sessionUrl: session.SourceUrl);
                 continue;
             }
             var detail = cloud ? session.Checkpoint?.Headline ?? session.Detail
                 : session.State == "working" ? "Started work" : session.State == "idle" ? "Turn finished" : "Turn interrupted";
             Add(key, session.Provider, session.Title, session.State, session.Checkpoint?.At ?? session.UpdatedAt,
                 detail + (cloud && session.Checkpoint is not null ? " · " + session.Detail : ""), session.Location,
-                cloud ? NavigationPolicy.AppUrl + "?view=sessions&session=" + Uri.EscapeDataString(session.Id) : null);
+                cloud ? NavigationPolicy.AppUrl + "?view=sessions&session=" + Uri.EscapeDataString(session.Id) : null, sessionUrl: session.SourceUrl);
         }
         foreach (var job in errands) {
             var detail = job.State switch {

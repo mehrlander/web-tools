@@ -47,7 +47,10 @@ window.__shell = {
 
 // branch-status.js first: the takeover's header reads lifespanTitle from it,
 // unguarded, the way the shell's own load chain guarantees it.
+// vanilla-bundle for window.esc, which a branch row's repository mark escapes
+// through (kits/repo-mark.js); gh-boot loads it first on every page.
 const Alpine = await startAlpine(window, [
+  'lib/vanilla-bundle.js',
   'lib/kits/branch-status.js',
   // The takeover is a swipe-deck now, so the kit has to be present or
   // mountDeck falls back to gh.load, which is not wired in a unit harness.

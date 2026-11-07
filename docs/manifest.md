@@ -80,6 +80,11 @@ and a hidden repo keeps `estate: true` and every field it declared. Its effect
 is in its [manifest-fields.csv](manifest-fields.csv) row (opening a hidden repo
 by address still works).
 
+**Satellites stay off the estate.** A repo that belongs to an estate member, by
+its name or by that member's `satellites` field, is shown under that member and
+never joins the membership list. The rule and where the app shows a satellite
+are in the `satellites` row of [manifest-fields.csv](manifest-fields.csv).
+
 **`landing` and `pages` are not mutually exclusive.** A repo setting both gets
 the custom page as its front door and the catalog as a standalone Pages view;
 setting only `pages` gets the gallery as the landing. Neither arrangement hides
@@ -219,10 +224,10 @@ Every errand carries a `note` saying what is wanted. Three optional fields say h
 
 - `action` names a mechanism the Stage performs itself: `tree`, `branches` or
   `fetch`, a read of one of your repos with your token.
-- `run` describes what gets run: `script` (`owner/repo@ref:path`), `venue`,
-  `method`, `outputReturn`, `outputType` and `outputSigned`. The methods, the
-  venues each allows and how each returns its output are the registry
-  [`run-methods.csv`](run-methods.csv). A `courier-bookmark` run executes on a
+- `run` describes what gets run: `script` (`owner/repo@ref:path`), `venue` (a
+  [`machines.csv`](machines.csv) key), `method`, `outputReturn`, `outputType` and
+  `outputSigned`. The methods, the machines each allows and how each returns its
+  output are the registry [`run-methods.csv`](run-methods.csv). A `courier-bookmark` run executes on a
   page the session cannot reach; see `courier/README.md`. A `computer-use` run's
   script is a prompt rather than code: the person hands it to a computer-use
   agent on the home laptop, whichever product, pastes the agent's report onto
@@ -245,7 +250,7 @@ branch. The scripts an errand runs stay on main (`errands/prompts/`, `sites/`),
 where `run.script` addresses them; web-tools-private's README, "Three layers",
 says why the records moved.
 
-Three methods need no one at the Stage, because none borrows the Stage's
+Four methods need no one at the Stage, because none borrows the Stage's
 token:
 
 - **`workflow-run`** (venue `actions-hosted`) is a script run by
@@ -265,6 +270,10 @@ token:
   it with `sessions/tools/errand_runner.py` in web-tools-private. While the
   laptop is awake, the daemon forwards the errand to Gemini and writes Gemini's
   reply to the result file. Declining the errand on the Stage cancels it.
+- **`codex-errand`** (venue `personal-laptop`) is a task for Codex on the
+  laptop, for work needing that machine's apps or computer use, taken when the
+  owner asks Codex to do its errands. File it with
+  `sessions/tools/codex_errand.py` in web-tools-private.
 
 ## Inbox and outbox
 

@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MPS: prompts and results</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@5/themes.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@5/daisyui.css">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style>
+    [hidden] { display: none !important; }
+    html, body { margin: 0; height: 100%; }
+    body { font-family: ui-sans-serif, system-ui, sans-serif; }
+    .review { height: calc(100dvh - var(--review-dock-height, 0px)); display: grid; grid-template-rows: auto minmax(0, 1fr); }
+    .review-header { padding: .75rem 1rem 0; border-bottom: 1px solid var(--color-base-300); }
+    .review-picks { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .75rem; }
+    .review-picks label { display: flex; align-items: center; gap: .5rem; min-width: 0; }
+    .review-picks select { min-width: 0; max-width: 100%; }
+    .review-heading { display: flex; align-items: center; gap: .75rem; margin: .75rem 0 .5rem; }
+    .review-heading h1 { font-size: 1.125rem; line-height: 1.5; font-weight: 650; margin: 0; text-wrap: balance; }
+    .review-tabs { display: flex; gap: 1rem; }
+    .review-tabrow { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+    .review-tabs button { padding: .5rem .25rem; border-bottom: 3px solid transparent; font: inherit; cursor: pointer; }
+    .review-tabs button[aria-selected="true"] { border-color: var(--color-primary); color: var(--color-primary); font-weight: 650; }
+    .review-content { min-width: 0; min-height: 0; }
+    .review-prompt { height: 100%; overflow: auto; padding: 1rem 1rem 5rem; box-sizing: border-box; }
+    .review-prompt section + section { margin-top: 1.5rem; }
+    .review-prompt h2, .review-prompt summary { font-size: 1rem; font-weight: 650; }
+    .review-prompt h2 { margin: 0 0 .5rem; }
+    .review-prompt pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; font-size: 1.125rem; line-height: 1.8; }
+    .review-prompt details { border-top: 1px solid var(--color-base-300); padding: .75rem 0; }
+    .review-prompt summary { cursor: pointer; }
+    .review-prompt details pre { margin-top: .75rem; }
+    .review-result { height: 100%; }
+    .review-result iframe { display: block; width: 100%; height: 100%; border: 0; background: white; }
+    .review-status { margin: .75rem 0; }
+    @media (max-width: 560px) {
+      .review-header { padding: .5rem .75rem 0; }
+      .review-picks label { flex: 1 1 100%; }
+      .review-picks select { flex: 1; }
+      .review-heading { margin-top: .5rem; }
+      .review-prompt { padding: .75rem .75rem 5rem; }
+    }
+  </style>
+</head>
+<body class="bg-base-100 text-base-content">
+  <main class="review">
+    <header class="review-header">
+      <div class="review-picks">
+        <label>Test <select id="test" class="select select-bordered select-sm" aria-label="Test">
+          <option value="wacares">WA Cares ballot measure</option>
+          <option value="races">Washington legislative races</option>
+          <option value="dca">NTSB collision report</option>
+        </select></label>
+        <label>Version <select id="version" class="select select-bordered select-sm" aria-label="Version"></select></label>
+      </div>
+      <div class="review-heading">
+        <h1 id="example" data-at="example"></h1>
+        <span id="position" class="text-sm text-base-content/60"></span>
+      </div>
+      <div class="review-tabrow">
+        <div class="review-tabs" role="tablist" aria-label="Example view">
+          <button id="tab-prompt" type="button" role="tab" aria-selected="true" aria-controls="prompt-panel" tabindex="0">Prompt</button>
+          <button id="tab-result" type="button" role="tab" aria-selected="false" aria-controls="result-panel" tabindex="-1">Result</button>
+        </div>
+        <a id="open-result" class="link text-sm" target="_blank" rel="noopener">Open result</a>
+      </div>
+    </header>
+    <div class="review-content">
+      <div id="prompt-panel" class="review-prompt" role="tabpanel" aria-labelledby="tab-prompt" tabindex="0">
+        <p id="status" class="review-status" role="status">Loading the saved brief…</p>
+        <details>
+          <summary>Dispatch</summary>
+          <pre id="dispatch"></pre>
+        </details>
+        <section>
+          <h2>Brief</h2>
+          <pre id="brief"></pre>
+        </section>
+        <section id="inputs" aria-label="Referenced inputs"></section>
+      </div>
+      <div id="result-panel" class="review-result" role="tabpanel" aria-labelledby="tab-result" hidden>
+        <iframe id="result" title="Generated result" allow="clipboard-write"></iframe>
+      </div>
+    </div>
+  </main>
+
+  <script type="application/json" id="look-walkthroughs">
+  {
+    "wacares": [
+      {"at":"example","say":"No style guidance, run 1"},
+      {"at":"example","say":"House style"},
+      {"at":"example","say":"MPS method, run 1"},
+      {"at":"example","say":"House style plus MPS"},
+      {"at":"example","say":"No style guidance, run 2"},
+      {"at":"example","say":"MPS method, run 2"},
+      {"at":"example","say":"No style guidance, run 3"},
+      {"at":"example","say":"MPS method, run 3"}
+    ],
+    "races": [
+      {"at":"example","say":"No style guidance"},
+      {"at":"example","say":"House style"},
+      {"at":"example","say":"MPS method"},
+      {"at":"example","say":"House style plus MPS"}
+    ],
+    "dca": [
+      {"at":"example","say":"No style guidance"},
+      {"at":"example","say":"House style"},
+      {"at":"example","say":"MPS method"},
+      {"at":"example","say":"House style plus MPS"}
+    ]
+  }
+  </script>
+  <script src="../../lib/kits/land.js"></script>
+  <script src="../../lib/kits/look.js"></script>
+  <script>
+  (() => {
+    const REPO = 'mehrlander/web-tools';
+    const CAPTURE = '4e3d883f4f4b';
+    const METHOD = '8747c879880c167cd09a88a8b87f9b0b918e9582';
+    const STYLE = 'd933ee7157792f563a655f7ef3057140ecb5eba8';
+    const MECHANICS = '3c37d8f4aefed5b88ddc9de53cca9e2439b3726d';
+    const ROOT = 'research/minimal-progressive-structure/';
+    const VARIANTS = {
+      wacares: ['bare1', 'house', 'mps1', 'house-mps', 'bare2', 'mps2', 'bare3', 'mps3'],
+      races: ['bare', 'house', 'mps', 'house-mps'],
+      dca: ['bare', 'house', 'mps', 'house-mps']
+    };
+    const WALKS = JSON.parse(document.getElementById('look-walkthroughs').textContent);
+    const el = id => document.getElementById(id);
+    const cache = new Map();
+    let test = 'wacares', index = 0, tab = 'prompt', request = 0, frameRun = '';
+
+    function hash() { return new URLSearchParams(location.hash.slice(1)); }
+    function remember() {
+      const p = hash();
+      p.set('test', test);
+      p.set('walkthrough', test);
+      p.set('tab', tab);
+      p.set('stop', String(index + 1));
+      history.replaceState(null, '', '#' + p.toString());
+    }
+    function raw(path, ref = CAPTURE) {
+      return `https://raw.githubusercontent.com/${REPO}/${ref}/${path}`;
+    }
+    function read(path, ref = CAPTURE) {
+      const url = raw(path, ref);
+      if (!cache.has(url)) {
+        const response = fetch(url).then(r => {
+          if (!r.ok) throw new Error(`Could not load ${path} (${r.status}).`);
+          return r.text();
+        }).catch(error => { cache.delete(url); throw error; });
+        cache.set(url, response);
+      }
+      return cache.get(url);
+    }
+    function resultUrl(id) {
+      return `https://mehrlander.github.io/web-tools/pages/toss-render.html?top#gh=${REPO}@${CAPTURE}:${ROOT}experiment/pages/${id}.html`;
+    }
+    function ensureFrame() {
+      const id = `${test}-${VARIANTS[test][index]}`;
+      if (frameRun === id) return;
+      frameRun = id;
+      el('result').src = resultUrl(id);
+      el('result').title = `${el('test').selectedOptions[0].text}: ${WALKS[test][index].say}`;
+    }
+    function selectTab(value, focus = false) {
+      tab = value === 'result' ? 'result' : 'prompt';
+      for (const name of ['prompt', 'result']) {
+        const selected = name === tab;
+        el(`tab-${name}`).setAttribute('aria-selected', String(selected));
+        el(`tab-${name}`).tabIndex = selected ? 0 : -1;
+        el(`${name}-panel`).hidden = !selected;
+      }
+      if (tab === 'result') ensureFrame();
+      if (focus) el(`tab-${tab}`).focus();
+      remember();
+    }
+    function input(label, path, ref = CAPTURE) {
+      const details = document.createElement('details');
+      const summary = document.createElement('summary');
+      summary.textContent = label;
+      const text = document.createElement('pre');
+      details.append(summary, text);
+      details.addEventListener('toggle', async () => {
+        if (!details.open || details.dataset.loaded) return;
+        text.textContent = 'Loading…';
+        try { text.textContent = await read(path, ref); details.dataset.loaded = 'yes'; }
+        catch (error) { text.textContent = error.message; }
+      });
+      return details;
+    }
+    async function showRun(i) {
+      index = Math.min(VARIANTS[test].length - 1, Math.max(0, Number(i) || 0));
+      const token = ++request;
+      const variant = VARIANTS[test][index], id = `${test}-${variant}`;
+      el('version').value = String(index);
+      el('example').textContent = WALKS[test][index].say;
+      el('position').textContent = `${index + 1} / ${VARIANTS[test].length}`;
+      el('open-result').href = resultUrl(id);
+      el('dispatch').textContent = `Read /home/user/web-tools/${ROOT}experiment/prompts/${id}.txt and follow it exactly. That file is your full brief.`;
+      el('brief').textContent = '';
+      el('status').hidden = false;
+      el('status').textContent = 'Loading the saved brief…';
+      el('inputs').replaceChildren(input('Source text', `${ROOT}experiment/sources/${test}.txt`));
+      if (variant.includes('mps')) el('inputs').append(input('Method at the time of the test', `${ROOT}method.md`, METHOD));
+      if (variant.includes('house')) {
+        el('inputs').append(input('House style at the time of the test', 'skills/html-style/SKILL.md', STYLE));
+        el('inputs').append(input('Building mechanics at the time of the test', 'skills/html-style/references/mechanics.md', MECHANICS));
+      }
+      el('prompt-panel').scrollTop = 0;
+      if (tab === 'result') ensureFrame();
+      remember();
+      try {
+        const brief = await read(`${ROOT}experiment/prompts/${id}.txt`);
+        if (token !== request) return;
+        el('brief').textContent = brief;
+        el('status').hidden = true;
+      } catch (error) {
+        if (token === request) el('status').textContent = error.message;
+      }
+    }
+    function setTest(value) {
+      test = Object.hasOwn(VARIANTS, value) ? value : 'wacares';
+      el('test').value = test;
+      el('version').replaceChildren(...WALKS[test].map((step, i) => {
+        const option = document.createElement('option');
+        option.value = String(i);
+        option.textContent = `${i + 1}. ${step.say}`;
+        return option;
+      }));
+    }
+    function restart(i = 0) {
+      index = i;
+      remember();
+      Look.start(WALKS[test]);
+      Look.go(i);
+    }
+    let observedDock;
+    const dockSize = new ResizeObserver(() => {
+      const height = observedDock?.getBoundingClientRect().height || 0;
+      document.documentElement.style.setProperty('--review-dock-height', `${height ? Math.ceil(height) + 24 : 0}px`);
+    });
+    function reserveDock() {
+      const dock = document.querySelector('[role="region"][aria-label="Look marker"]');
+      if (dock === observedDock) return;
+      dockSize.disconnect();
+      observedDock = dock;
+      if (dock) dockSize.observe(dock);
+      else document.documentElement.style.setProperty('--review-dock-height', '0px');
+    }
+    new MutationObserver(reserveDock).observe(document.documentElement, { childList: true });
+    addEventListener('look:step', event => {
+      if (event.detail.n === VARIANTS[test].length) showRun(event.detail.i);
+    });
+    el('test').addEventListener('change', () => { setTest(el('test').value); restart(); });
+    el('version').addEventListener('change', () => restart(Number(el('version').value)));
+    for (const name of ['prompt', 'result']) {
+      el(`tab-${name}`).addEventListener('click', () => selectTab(name));
+      el(`tab-${name}`).addEventListener('keydown', event => {
+        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+        event.preventDefault();
+        event.stopPropagation();
+        selectTab(event.key === 'Home' ? 'prompt' : event.key === 'End' ? 'result' : tab === 'prompt' ? 'result' : 'prompt', true);
+      });
+    }
+    const initial = hash();
+    setTest(initial.get('test') || initial.get('walkthrough'));
+    index = Math.max(0, Math.min(VARIANTS[test].length - 1, Number(initial.get('stop') || 1) - 1));
+    tab = initial.get('tab') === 'result' ? 'result' : 'prompt';
+    showRun(index);
+    selectTab(tab);
+    addEventListener('DOMContentLoaded', () => {
+      if (!Look.fromHash()) restart(index);
+    });
+  })();
+  </script>
+</body>
+</html>

@@ -18,18 +18,20 @@ const HOOKS_JSON = JSON.parse(
 const OLD = 'aaaaaaaaaaa1';
 const NEW = 'bbbbbbbbbbb2';
 
-function cache({ conversation = 'rules v2', drop = false } = {}) {
+function cache({ conversation = 'rules v2', craft = 'craft v1', drop = false } = {}) {
   const dir = mkdtempSync(path.join(tmpdir(), 'default-files-hint-'));
   const portable = path.join(dir, 'cache/web-tools/portable');
-  const copy = (sha, conv) => {
+  const copy = (sha, conv, crafts) => {
     const d = path.join(portable, sha, 'default');
     mkdirSync(d, { recursive: true });
     writeFileSync(path.join(d, 'SKILL.md'), '# The default session context\n');
     writeFileSync(path.join(d, 'CONVERSATION.md'), `# Conversation\n${conv}\n`);
     writeFileSync(path.join(d, 'QUALIFIED-WRITING.md'), '# Qualified writing\n');
+    mkdirSync(path.join(portable, sha, 'doc-craft'), { recursive: true });
+    writeFileSync(path.join(portable, sha, 'doc-craft', 'SKILL.md'), `# Doc Craft\n${crafts}\n`);
   };
-  if (!drop) copy(OLD, 'rules v1');
-  copy(NEW, conversation);
+  if (!drop) copy(OLD, 'rules v1', 'craft v1');
+  copy(NEW, conversation, craft);
   return { dir, portable, root: path.join(portable, NEW) };
 }
 
@@ -69,6 +71,15 @@ test('a session that read an older copy is told the commit, the files and what t
     assert.match(msg, /CONVERSATION\.md changed/, 'names only the file that differs');
     assert.doesNotMatch(msg, /QUALIFIED-WRITING|SKILL\.md/);
     assert.match(msg, /Invoke \/portable:default and review them before your next response/);
+  } finally { rmSync(c.dir, { recursive: true, force: true }); }
+});
+
+test('doc-craft, read from beside the folder, counts as a default file', () => {
+  const c = cache({ conversation: 'rules v1', craft: 'craft v2' });
+  try {
+    const msg = context(run(c, [load(c.portable, OLD)]));
+    assert.match(msg, /doc-craft\/SKILL\.md changed/, 'names doc-craft alone');
+    assert.doesNotMatch(msg, /CONVERSATION|QUALIFIED-WRITING/);
   } finally { rmSync(c.dir, { recursive: true, force: true }); }
 });
 

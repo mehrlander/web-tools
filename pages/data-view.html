@@ -203,7 +203,9 @@
       // inline one is local, so the viewer offers none.
       v.defaultMode = it.view || AUTO_VIEW;
       const name = it.spec ? it.spec.path : it.name;
-      await v.show(name, it.content ?? '', it.spec ? { repo: it.spec.repo, ref: it.spec.ref } : { local: true });
+      await v.show(name, it.content ?? '', it.spec
+        ? { repo: it.spec.repo, ref: it.spec.ref, ...(it.spec.branch ? { branch: it.spec.branch } : {}) }
+        : { local: true });
     },
   });
 

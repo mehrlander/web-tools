@@ -381,11 +381,49 @@ test('readZip: a workbook carrying queries reports them under xl.powerQuery', as
   assert.equal(xl.sheets.sheet1.name, 'Data');
 });
 
+test('readZip: decodes UTF-16LE customXml/item1.xml as written by desktop Excel', async () => {
+  const xml = await makeMashupXml();
+  const utf16le = new Uint8Array(2 + xml.length * 2);
+  utf16le[0] = 0xff;
+  utf16le[1] = 0xfe;
+  for (let i = 0; i < xml.length; i++) {
+    const code = xml.charCodeAt(i);
+    utf16le[2 + i * 2] = code & 0xff;
+    utf16le[2 + i * 2 + 1] = code >> 8;
+  }
+  const wb = new JSZip();
+  for (const [path, partXml] of buildParts()) wb.file(path, partXml);
+  wb.file('customXml/item1.xml', utf16le);
+  const bytes = await wb.generateAsync({ type: 'uint8array' });
+
+  const nativeRead = await xlsxKit.readZip(bytes, { fresh: true });
+  assert.equal(nativeRead.xl.powerQuery?.part, 'customXml/item1.xml');
+  assert.equal(nativeRead.xl.powerQuery?.sections[0].m, M_CODE);
+
+  const jszipRead = await xlsxKit.readZip(bytes, { fresh: true, zip: 'jszip' });
+  assert.equal(jszipRead.xl.powerQuery?.part, 'customXml/item1.xml');
+  assert.equal(jszipRead.xl.powerQuery?.sections[0].m, M_CODE);
+});
+
 test('readZip: a workbook without queries leaves xl.powerQuery undefined', async () => {
   const wb = new JSZip();
   for (const [path, xml] of buildParts()) wb.file(path, xml);
   const { xl } = await xlsxKit.readZip(await wb.generateAsync({ type: 'uint8array' }));
   assert.equal(xl.powerQuery, undefined);
+});
+
+// One read per workbook: the Sheet, Grid and Structure readings and the
+// workbench door each ask for the same file with their own copy of its bytes.
+test('readZip: the same bytes, in another copy, return the first read', async () => {
+  const wb = new JSZip();
+  for (const [path, xml] of buildParts()) wb.file(path, xml);
+  const bytes = await wb.generateAsync({ type: 'uint8array' });
+  const first = await xlsxKit.readZip(bytes);
+  assert.equal(await xlsxKit.readZip(Uint8Array.from(bytes)), first, 'a copy of the bytes is the same workbook');
+  assert.notEqual(await xlsxKit.readZip(bytes, { fresh: true }), first, 'fresh reads anew');
+  wb.file('xl/extra.xml', '<?xml version="1.0"?><x/>');
+  const other = await wb.generateAsync({ type: 'uint8array' });
+  assert.notEqual(await xlsxKit.readZip(other), first, 'another workbook is another read');
 });
 
 // ---- number formats -----------------------------------------------------
@@ -1633,4 +1671,25 @@ test('a chart is parsed from xl/charts/ and placed in sheetLayout drawings', () 
   assert.ok(d.width > 0);
   assert.ok(d.height > 0);
   assert.equal(d.chart.title, 'Quarterly Revenue');
+});
+
+// openpyxl writes a sheet's comments to xl/comments/comment1.xml, singular,
+// where Excel writes xl/comments1.xml. The part pattern took only the plural,
+// so every comment in such a workbook read as absent: no red corner in the
+// Sheet view, nothing in the comments reading, no author for a names check.
+test('a comments part named comment1.xml (openpyxl) is read like comments1.xml', () => {
+  const r = xlsxKit.analyze([
+    ['xl/workbook.xml', `<?xml version="1.0"?><workbook xmlns="wb" xmlns:r="rel"><sheets>
+      <sheet name="Staff" sheetId="1" r:id="rId1"/></sheets></workbook>`],
+    ['xl/_rels/workbook.xml.rels', `<?xml version="1.0"?><Relationships xmlns="rel">
+      <Relationship Id="rId1" Type=".../worksheet" Target="worksheets/sheet1.xml"/></Relationships>`],
+    ['xl/worksheets/sheet1.xml', `<?xml version="1.0"?><worksheet xmlns="ws"><sheetData>
+      <row r="1"><c r="A1" t="inlineStr"><is><t>x</t></is></c></row></sheetData></worksheet>`],
+    ['xl/worksheets/_rels/sheet1.xml.rels', `<?xml version="1.0"?><Relationships xmlns="rel">
+      <Relationship Id="rId1" Type=".../comments" Target="../comments/comment1.xml"/></Relationships>`],
+    ['xl/comments/comment1.xml', `<?xml version="1.0"?><comments xmlns="cm"><authors><author>Jordan Ellis</author></authors>
+      <commentList><comment ref="A1" authorId="0"><text><t>check</t></text></comment></commentList></comments>`],
+  ]);
+  const notes = xlsxKit.workbookNotes(r.xl).filter(n => n.kind === 'comment');
+  assert.deepEqual(notes.map(n => [n.sheet, n.cell, n.author, n.text]), [['Staff', 'A1', 'Jordan Ellis', 'check']]);
 });

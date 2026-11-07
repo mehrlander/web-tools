@@ -1,0 +1,707 @@
+Develop a concise information model that would help the intended reader
+understand this subject. Choose your own JSON schema.
+
+First propose a useful scope and explain its benefit to the reader. Consider
+one consequential alternative. Distinguish the scope of the inquiry from the
+coverage of the supplied material.
+
+Explore the internal structure of the chosen subject. Look for meaningful
+things, groupings, activities, events, changes, recurring patterns, and other
+relationships where they matter. Let the material and reader purpose determine
+which structures earn a place. Reconsider the scope if the exploration reveals
+a more useful organization.
+
+Populate two small examples that exercise different structural choices. Explain
+one consequential relationship or comparison the model makes understandable,
+and identify what the examples leave untested.
+
+Keep source-supported facts, interpretations, proposed structures needing more
+information, and unknowns distinguishable. Use only the supplied material for
+populated factual claims. Return readable, indented JSON, with no HTML or prose
+outside the JSON.
+
+Reader purpose:
+Help a general reader understand the subject described by the material and
+the consequential connections within it. Explain what more specific reader
+job your chosen scope serves.
+
+Supplied material:
+# Aviation Investigation Preliminary Report: DCA25MA108, midair collision near Ronald Reagan Washington National Airport, January 29, 2025
+
+Source: National Transportation Safety Board. https://www.ntsb.gov/investigations/Documents/DCA25MA108%20Prelim.pdf
+License: US federal government work, public domain; text extracted from the PDF, page headers removed, figures omitted
+
+---
+
+Aviation Investigation Preliminary Report
+Location:
+
+Washington, DC
+
+Accident Number:
+
+DCA25MA108
+
+Date & Time:
+
+January 29, 2025, 20:48 Local
+
+Registration:
+
+N709PS (A1); UNREG
+(A2)
+
+Aircraft:
+
+BOMBARDIER INC CL-600-2C10
+(A1); Sikorsky UH60 (A2)
+
+Injuries:
+
+64 Fatal (A1); 3 Fatal
+(A2)
+
+Flight Conducted Under:
+
+Part 121: Air carrier - Scheduled (A1); Armed Forces (A2)
+
+On January 29, 2025, about 2048 eastern standard time (EST), a Sikorsky UH-60L, operated by
+the US Army under the callsign PAT25, and an MHI (Mitsubishi Heavy Industries) RJ Aviation
+(formerly Bombardier) CL-600-2C10 (CRJ700), N709PS, operated by PSA Airlines as flight
+5342, collided in flight approximately 0.5 miles southeast of Ronald Reagan Washington
+National Airport (DCA), Arlington, Virginia, and impacted the Potomac River in southwest
+Washington, District of Columbia.
+The 2 pilots, 2 flight attendants, and 60 passengers aboard the airplane and all 3 crew
+members aboard the helicopter were fatally injured. Both aircraft were destroyed as a result of
+the accident. Flight 5342 was operating under the provisions of Title 14 Code of Federal
+Regulations (CFR) Part 121 as a scheduled domestic passenger flight from Wichita Dwight D.
+Eisenhower National Airport (ICT), Wichita, Kansas, to DCA. PAT25 originated from Davison
+Army Airfield (DAA), Fort Belvoir, Virginia, for the purpose of the pilot’s annual standardization
+evaluation with the use of night vision goggles (NVGs). Night visual meteorological conditions
+prevailed in the area of DCA at the time of the accident. Figure 1 below shows preliminary
+radar flight track information for PAT25 and preliminary automatic dependent surveillancebroadcast (ADS-B) information for flight 5342.
+
+Figure 1. Google Earth image with preliminary ADS-B data for flight 5342 (blue line) and radar
+data for PAT25 (orange line).
+The NTSB traveled to the accident site to start the investigation and supervised water recovery
+operations. As part of the investigative process, the NTSB invited qualified parties to
+participate in the investigation. These included PSA Airlines, GE Aerospace, Sikorsky, Federal
+Aviation Administration (FAA), the US Army, National Air Traffic Controllers Association, Air
+Line Pilots Association, Association of Flight Attendants, International Association of
+Machinists and Aerospace Workers, Collins Aerospace, and the Metropolitan Washington
+Airports Authority. The Transportation Safety Board of Canada provided an accredited
+representative and Transport Canada and MHI RJ Aviation are their technical advisors.
+The parties were formed into specialized investigative groups led by NTSB group chairs in the
+areas of Air Carrier Operations and Human Performance, Airplane Structures, Airplane
+Systems, Powerplants, Helicopter Operations and Human Performance, Air Traffic Control
+
+(ATC) and Human Performance, Helicopter Airworthiness, Aircraft Performance, Survival
+Factors, and Flight Recorders (consisting of subgroups for airplane flight data recorder [FDR],
+airplane cockpit voice recorder [CVR], helicopter FDR, and helicopter CVR. All NTSB Board
+members visited the accident location, with Member Inman acting as the Member on-scene.
+Crew Experience
+Flight 5342
+Both flight crewmembers of flight 5342 held airline transport pilot certificates with type ratings
+for the CL-65 (which includes the CRJ-200, CRJ-700, and CRJ-900 airplanes). The captain had
+accumulated about 3,950 total hours of flight experience, of which about 3,024 hours were in
+the accident airplane make and model. The captain held an FAA first-class medical certificate
+issued on January 10, 2025.
+The first officer (FO) had accumulated about 2,469 total hours of flight experience, of which
+about 966 hours were in the accident airplane make and model. The FO held an FAA first-class
+medical certificate issued on October 31, 2024. The captain was the pilot flying, and the FO
+was the pilot monitoring for the entirety of the accident flight.
+PAT25
+The flight crew of PAT25 consisted of an instructor pilot (IP), pilot, and a crew chief. According
+to information provided by the US Army, both pilots were current and qualified in the accident
+helicopter. The IP held the rank of Chief Warrant Officer 2 and had accumulated about 968
+total hours of flight experience, of which about 300 hours were in the accident helicopter make
+and model. The pilot held the rank of Captain and had accumulated about 450 total hours of
+flight experience, of which about 326 hours were in the accident helicopter make and model.
+The crew chief held the rank of Staff Sargeant and had accumulated about 1,149 total flight
+hours, all of which was in UH-60 helicopters.
+History of Flight
+The following is preliminary information derived from both aircraft’s flight data recorders
+(FDRs) and cockpit voice recorders (CVRs) as well as ATC radar data and communications.
+Flight 5342 departed ICT at 1839 EST on an instrument flight rules flight plan. The helicopter
+flight crew filed a visual flight rules flight plan with DAA base operations and departed at 1845
+with the IP in the right seat and the pilot in the left seat.
+About 2015, flight 5342 started its initial descent.
+About 2030, PAT25 began travelling generally southbound after maneuvering near Laytonsville,
+Maryland. CVR audio from the helicopter indicated the IP was the pilot flying and the pilot was
+the pilot monitoring and transmitting on the radio at this time.
+
+PAT25 first checked in with the DCA tower controller at 2032. The controller issued the
+altimeter setting of 29.89 inches of mercury, and the PAT25 crew acknowledged by correctly
+reading back the altimeter setting. Following this initial contact with DCA tower, the crew
+conducted a change of control; the pilot became the pilot flying and the IP became the pilot
+monitoring and transmitting on the radio for the remainder of the flight.
+At 2033:41, the PAT25 crew requested Helicopter Route 1 to Route 4 to DAA, which the tower
+controller approved. At 2038:39, the helicopter reached the intersection of the DC Beltway and
+the Potomac River near Carderock, Maryland. After briefly turning westbound, PAT25 turned
+back to the east and began descending as it picked up Helicopter Route 1 over the Potomac
+River southeast toward downtown Washington, DC.
+At 2039:10, Potomac Approach cleared the crew of flight 5342, which was inbound to DCA
+from the south, for the Mount Vernon Visual Runway 1 approach. At 2040:46, the airplane
+rolled out of a left turn established on the instrument landing system localizer for runway 1, at
+approximately 4,000 ft pressure altitude, 170 knots (kts), with the landing gear up and flaps
+extended to 20º.
+At 2043:06, the flight 5342 crew made initial contact with DCA tower. At this time, the airplane
+was about 10.5 nautical miles (nm) from DCA. The tower controller asked if the crew could
+switch to runway 33. The crew agreed, and the controller subsequently cleared flight 5342 for
+landing on runway 33. The crew acknowledged and read back the clearance.
+At 2043:48, PAT25 was about 1.1 nm west of the Key Bridge. According to the helicopter’s
+CVR, the pilot indicated that they were at 300 ft. The IP indicated they were at 400 ft. Neither
+pilot made a comment discussing an altitude discrepancy. At 2044:27, as the helicopter
+approached Key Bridge, the IP indicated that the helicopter was at 300 ft descending to 200 ft.
+The flight 5342 FDR indicated that, between 2044:41 and 2044:45, the crew selected 30º of
+flaps and then 45º of flaps. At 2044:49, the airplane’s landing gear were down and locked. The
+airplane was fully configured for landing about 6.2 nm south of the airport. At 2045:27, the
+autopilot was disconnected and flight 5342 began a shallow right turn off of the runway 1
+localizer at a radio altitude of approximately 1,700 ft and an airspeed of 134 kts. This occurred
+approximately 5 nm south of the airport.
+At 2045:14, the crew of PAT25 advised the controller of their position over the Memorial
+Bridge. At 2045:30, PAT25 passed over the Memorial Bridge. CVR data revealed that the IP told
+the pilot that they were at 300 ft and needed to descend. The pilot said that they would
+descend to 200 ft. At 2045:58, the helicopter crossed over the Washington Tidal Basin and
+followed the Washington Channel consistent with Helicopter Route 1.
+
+At 2046:02, a radio transmission from the tower was audible on flight 5342’s CVR informing
+PAT25 that traffic just south of the Wilson Bridge was a CRJ (flight 5342) at 1,200 ft circling to
+runway 33.
+CVR data from the helicopter indicated that the portion of the transmission stating the CRJ
+was “circling” may not have been received by the crew of PAT25. The word “circling” is heard
+in ATC communications as well as the airplane’s CVR, but not on the helicopter’s CVR.
+At 2046:08, the PAT25 crew reported that they had the traffic in sight and requested to
+maintain visual separation. The controller approved the request. At this time, the distance
+between the two aircraft was about 6.5 nm. Figure 2 shows each aircraft’s approximate
+position at 2046:02, when the controller first advised the crew of PAT25 of flight 5342.
+
+Figure 2. Google Earth image with airplane and helicopter preliminary flight tracks overlaid,
+and each aircraft’s approximate position shown at 2046:02.
+
+At 2046:29, the flight 5342 CVR data indicated that the crew received a 1,000-ft automated
+callout.
+At 2046:48, DCA tower cleared other jet traffic on runway 1 for immediate departure with no
+delay.
+At 2047:27, or 32 seconds before impact, PAT25 passed the southern tip of Hains Point.
+About one second later, flight 5342 began a left roll to turn to final on runway 33. The airplane
+was at a radio altitude of 516 ft and 133 kts. At 2047:29, the crew of flight 5342 received a
+500-ft automated callout.
+At 2047:39, or 20 seconds before impact, a radio transmission from the tower was audible on
+both CVRs asking the PAT25 crew if the CRJ was in sight. A conflict alert was audible in the
+background of the ATC radio transmission.
+At 2047:40, the crew of flight 5342 received an automated traffic advisory from the airplane’s
+traffic alert and collision avoidance system (TCAS) system stating, “Traffic, Traffic.” At this
+time, the aircraft were about 0.95 nm apart, as shown in Figure 3.
+
+Figure 3. Google Earth image showing the approximate positions of both aircraft at 2047:40.
+At 2047:42, or 17 seconds before impact, a radio transmission from the tower was audible on
+both CVRs directing PAT25 to pass behind the CRJ. CVR data from the helicopter indicated
+that the portion of the transmission that stated “pass behind the” may not have been received
+by the PAT25 crew, as the transmission was stepped on by a 0.8-second mic key from PAT25.
+In response, at 2047:44, the crew of PAT25 indicated that traffic was in sight and requested
+visual separation, which was approved by DCA tower. CVR data indicated that, following this
+transmission, the IP told the pilot they believed ATC was asking for the helicopter to move left
+toward the east bank of the Potomac.
+At 2047:52, or 7 seconds before impact, flight 5342 rolled out on final approach for runway 33.
+The airplane was at a radio altitude of 344 ft and 143 kts.
+
+At 2047:58, or 1 second before impact, flight 5342 began to increase its pitch. FDR data
+showed the airplane’s elevators were deflected near their maximum nose up travel.
+At 2047:58, the controller issued a landing clearance to another airplane. During this
+transmission, audible reactions could be heard from the other tower controllers as they
+observed the collision, which occurred about 2047:59 while flight 5342 was over the Potomac
+River and on final approach for runway 33.
+The flight 5342 FDR indicated that the airplane’s last recorded radio altitude was 313 ft, 2
+seconds before the collision. The airplane’s pitch at the time of the collision was 9º nose up
+and roll was 11º left wing down. The airplane was descending at 448 ft per minute.
+The PAT25 FDR indicated that the radio altitude of the helicopter at the time of the collision
+was 278 ft and had been steady for the previous 5 seconds. The helicopter’s pitch at the time
+of the collision was about 0.5º nose up with a left roll of 1.6º.
+The NTSB obtained video recordings from several sources that showed the collision between
+the aircraft and their descent to the water. A preliminary review of the videos revealed that the
+airplane's left- and right-wing navigation lights, left-wing, right-wing, and tail anticollision
+(strobe) lights, nose, right-wing, and left-wing landing lights, as well as the upper and lower
+beacon lights, were all illuminated before the collision. Further, the helicopter's lower fuselage
+and aft pylon anticollision (strobe) lights, along with the left, right, and tail pylon position lights,
+were also illuminated before the collision. None of the airplane’s lights used LED technology.
+Video showed that, immediately after the collision, the outboard left wing of the airplane
+separated, and the airplane rolled about 450°, impacting the water in an approximate 45° noselow attitude with a left roll about 90°.
+Recorders
+Both the FDR and CVR aboard flight 5342 were L3-Harris Communications FA2100 solid-state
+memory digital recorders. The FDR and CVR from flight 5342 were recovered by a Federal
+Bureau of Investigation (FBI) dive team and immediately provided to engineers at the NTSB
+Vehicle Recorder Laboratory. Data from both the CVR and FDR were downloaded successfully.
+The CVR contained about 2 hours and 4 minutes of good to excellent quality audio that started
+mid-flight due to the CVR’s 2-hour recording capability. The FDR captured the entirety of the
+accident flight and contained about 400 parameters.
+PAT25 was equipped with a Goodrich Integrated Vehicle Health Management Unit (IVHMU),
+which incorporated a Penny & Giles Multi-Purpose Flight Recorder (MPFR) cockpit voice and
+flight data recorder. The combined recorder was recovered by the Metropolitan Police
+Department of the District of Columbia and transported to the NTSB Vehicle Recorder
+Laboratory. The cockpit voice recording contained about 2 hours of excellent quality audio.
+
+The MPFR captured the entirety of the accident flight and contained about 70 flight data
+parameters. By design, the MPFR portion of the IVHMU does not record date information, time
+information, or helicopter position information (GPS position). A review of the MPFR dataset
+revealed that the air data source for a parameter listed in provided documentation as
+“barometric altitude” was actually a recording of pressure altitude. Review of the recorded
+pressure altitude values revealed that they were inconsistent with other available data, and the
+pressure altitude parameter was declared invalid. Further work will determine if the invalid data
+for pressure altitude was limited to only what was recorded on the MPFR, and whether it may
+have affected other helicopter systems that used pressure altitude as a data source.
+Operator and Aircraft Information
+PSA Airlines is a wholly owned subsidiary of American Airlines based in Dayton, Ohio, and
+holds a 14 CFR 119 operating certificate for operations under 14 CFR Part 121. The company
+operates an all-jet fleet of MHI regional jet aircraft, including 61 MHI RJ CRJ700 and 80 MHI RJ
+CRJ900 airplanes. As part of standard FAA requirements for Part 121 operations, the CRJ was
+equipped with ADS-B out and a TCAS.
+According to the FAA, ADS-B uses GPS satellite signals to provide air traffic controllers and
+pilots with accurate information to help keep aircraft safely separated in the sky and on
+runways. Aircraft transceivers receive GPS signals and use them to determine the aircraft’s
+precise position, which is combined with other data and broadcast to other aircraft and ATC
+facilities.
+According to FAA publication “Introduction to TCAS II Version 7.1,” TCAS is a family of
+airborne devices that functions independently of the ground-based ATC system and provides
+collision avoidance protection for a broad spectrum of aircraft types. All TCAS systems
+provide some degree of collision threat alerting and a traffic display. TCAS II is mandated in
+the United States by the FAA for commercial aircraft, including regional airline aircraft with
+more than 30 seats or a maximum takeoff weight of more than 33,000 lbs. TCAS II provides
+traffic advisories (TAs) and resolution advisories (RAs), that is, recommended escape
+maneuvers, in the vertical dimension to either increase or maintain the existing vertical
+separation between aircraft. On descent below 900 ft above ground level (agl), TCAS inhibits
+RAs. Below 900 ft agl on descent, TCAS issues a TA when the intruding aircraft is about 20
+seconds from the closest point of approach, or 0.3 nm, whichever occurs first. As the aircraft
+descends below 400 ft agl on arrival, the aural annunciation associated with the TA is
+inhibited.
+According to the MHI RJ Flight Crew Operating Manual, the TCAS transceiver transmits
+interrogations and receives replies from other aircraft transponders. The signals are processed
+to produce information on range, azimuth, and altitude of aircraft in the vicinity. The TCAS
+provides both a visual display on the instrument panel as well as aural warnings to the flight
+crew when the computer predicts a conflict. A TA voice warning is announced as, “TRAFFIC -
+
+TRAFFIC.” RA voice warning instructions include, but are not limited to, annunciations such as,
+“CLIMB, CLIMB,” “DESCEND, DESCEND,” or “LEVEL OFF, LEVEL OFF.”
+The US Army 12th Aviation Battalion’s Bravo Company operates out of Davison Army Airfield
+at Fort Belvoir, Virginia, and has mission responsibility for priority air transport (PAT) and
+continuity of government operations. The accident helicopter was equipped with a transponder
+capable of transmitting ADS-B out. The helicopter was not equipped with an autopilot.
+Air Traffic Control
+The DCA control tower cab faces east looking across the Potomac River and, at the time of the
+accident, was handling traffic in a “North Operation,” meaning aircraft were landing and
+departing runway 1, with intermittent arrivals and departures to/from runway 33. The tower
+was staffed with five controllers at the time of the accident, working five open positions:
+assistant local control, ground control, clearance delivery, local control, and operations
+supervisor. The helicopter control and local control positions were combined at 1540 on the
+day of the accident, and the flight data and clearance delivery positions were combined. Flight
+5342 was communicating with the DCA tower controller via the published control tower
+frequency of 119.1 MHz; PAT25 was communicating with the tower controller via the
+published helicopter frequency of 134.35 MHz. Both frequencies utilized the very high
+frequency range. Because the aircraft were on different frequencies, the crews of flight 5342
+and PAT25 were not able to hear each other’s transmissions to the controller, but the
+controller’s transmissions to each aircraft would be audible to both flight crews.
+Helicopter Routes
+According to FAA Order 7210.3EE, Facility Operation and Administration, FAA Helicopter Route
+Charts are graphic portrayals of discrete and/or common helicopter routes or operating zones
+designed to facilitate helicopter access into, egress from, and operation within high density
+traffic areas. They generally include associated altitude or flight ceiling information to facilitate
+traffic avoidance and pilot adherence to minimum safe altitude requirements. The charts
+provide expanded and, in some cases, unique ground reference symbology to improve visual
+navigation.
+The Baltimore-Washington Helicopter Route Chart contains the helicopter routes for the
+Washington, DC area; the area immediately surrounding DCA is excerpted below (see figure 4).
+PAT25’s route on the night of the accident included Route 1, which begins in Cabin John,
+Maryland, and follows the western shore of the Potomac River southeast toward Washington,
+DC. After crossing Key Bridge, the route follows the eastern shore of the Potomac with the
+Kennedy Center and Lincoln Memorial to the east and Roosevelt Island to the west, crossing
+Memorial Bridge (a compulsory reporting point). After Memorial Bridge, the maximum
+allowable altitude on Route 1 is 200 ft above mean sea level (msl).
+
+Figure 4. Excerpt of FAA Baltimore-Washington Helicopter Chart showing the area surrounding
+DCA. (Source: FAA.)
+Route 1 then continues south of the Washington Monument, crossing West Potomac Park and
+the Tidal Basin before following the Washington Channel along East Potomac Park. Hains
+Point, the southernmost tip of East Potomac Park and located at the confluence of the
+Potomac and Anacostia rivers, is identified as a non-compulsory reporting point and the area
+where Route 4 intercepts Route 1. Route 4 continues south to the Woodrow Wilson Bridge
+
+along the Potomac River’s eastern shore, with DCA to the west. South of Wilson Bridge, the
+maximum allowable altitude along Route 4 increases from 200 ft msl to 300 feet msl.
+According to postaccident information obtained from FAA aeronautical information
+specialists, helicopter routes have no defined lateral boundaries and are drawn to depict linear
+paths along defined surface features in a manner legible to flight crews. Any applicable
+altitude and lateral distance restrictions are typically documented in the chart specifications or
+in warning boxes displayed on the chart.
+Airport Information and Emergency Response
+DCA, located in Arlington, Virginia, is operated by the Metropolitan Washington Airports
+Authority (MWAA) and is the 24th busiest airport in the United States. Due to noise regulations,
+aircraft flight patterns follow the Potomac or Anacostia rivers.
+DCA maintains three operational runways; runway 1/19 is the runway most commonly used for
+arriving and departing traffic and is 7,169 ft long with a width of 150 ft. Runway 15/33 is the
+second most commonly used runway and is 5,204 ft long and 150 ft wide. Runway 33 is
+equipped with a four-light precision approach path indicator (PAPI) that provides a 3° visual
+approach path indication to the runway touchdown zone. The runway 33 PAPI was operational
+at the time of the accident.
+MWAA Aircraft Rescue and Firefighting (ARFF) was notified of the accident about 2048 when
+the air traffic control tower activated the alert phone. At 2050, the tower confirmed the location
+of the accident was in the water at the approach end of runway 33, and runway 15/33 was
+subsequently closed. ARFF rescue boats launched at 2053, and the first victim was located in
+the water at 2059.
+Recovery of human remains was conducted by divers from the FBI’s Evidence Response Team,
+DC Fire & EMS Department, Metropolitan Police Department, Maryland State Police, Baltimore
+City and County Police and Fire, Randive, Inc. (under contract to the US Navy Supervisor of
+Salvage and Diving Operations [SUPSALV]), Prince George’s County Police divers, Maryland
+Natural Resources divers, Maryland State Fire Marshal divers, Anne Arundel County Fire
+Department divers and Maryland Transportation Authority Police Marine Division (surface
+support). The District of Columbia Office of the Chief Medical Examiner conducted autopsies
+of the civilian crew and toxicology samples were sent to FAA’s Forensic Sciences Laboratory,
+Civil Aerospace Medical Institute (CAMI) for analysis, as is standard practice. Civilian
+passengers were examined by the DC medical examiner. The Armed Forces Medical Examiner
+conducted autopsies and toxicology testing of the military crew.
+Recovery Operations and Aircraft Examinations
+The wreckage of both aircraft was located in the Potomac River in depths ranging between 1
+and 8 ft depending on tidal conditions. The helicopter wreckage was about 3,730 ft southeast
+of the approach end of runway 33 and included most of the major structure. The airplane was
+
+fragmented into several pieces centered about 2,345 ft southeast of the approach end of
+runway 33. The outboard left wing was recovered away from the main airplane wreckage,
+about 2,790 ft southeast of the approach end of runway 33. The Army Corps of Engineers and
+the US Navy SUPSALV surveyed the accident site using sonar and divers with helmet cameras.
+SUPSALV was assigned responsibility for aircraft recovery operations, which the NTSB
+supervised. The wreckage was recovered to a secured hangar at DCA.
+Airplane
+The airplane sustained extensive water impact damage to most of its structure. The fuselage
+was recovered in 13 major sections comprising the entire length of the airplane, from the
+radome in the nose to the aft fuselage and tail cone. Two areas of damage were noted to the
+lower right side aft fuselage wing-to-body fairing. There was a puncture in the right side of the
+fairing about 10 inches (in) by 8 in, and a slash through the lower surface of the fairing, internal
+structure, and lavatory access door about 29 in long by 2 in wide. An approximate 2-ft-long
+section of one of the helicopter’s tail rotor blades was embedded in the slash (see figure 5).
+
+Figure 5. Damage to aft fuselage with tail rotor blade.
+The vertical stabilizer and rudder remained attached to the aft fuselage and tail cone. The
+horizontal stabilizer and attached elevators separated from the top of the vertical stabilizer.
+The right wing was largely intact and remained attached to a portion of the right center
+fuselage. The right slats and flaps were in the fully extended position. The right landing gear
+remained attached and was in the extended position.
+The inboard left wing between the airplane’s centerline and wing station (WS) 178 was
+significantly fragmented. The upper portion of the left main landing gear remained attached to
+the left wing and the lower portion was separated; the outboard tire displayed a diagonal slash
+through all its layers. The outboard left wing from WS 178 to the wingtip was separated and
+recovered in the debris field. The inboard end of the left center slat displayed a linear slash
+mark about 52 inches long (see figure 6). The slat skin aft of the leading edge of the slash was
+
+gouged and abraded linearly aftward. The left wing forward spar aft of the slat was also cut
+along the same diagonal line, and the interior wing structure was damaged and deformed aft
+and inboard. There was some black paint transfer on the interior wing structure.
+Two other sections of the inboard left slat displayed impact/denting and associated black
+paint transfer (see figure 7). Various pieces of fibrous materials were found in multiple
+sections of the airplane, including the left wing and vertical stabilizer. Samples of the fibrous
+material were collected for documentation and identification at the NTSB Materials
+Laboratory.
+
+Figure 6. Close up view of slash mark displayed on left outboard slat.
+
+Figure 7. Close up view of impact mark on left inboard slat.
+The left (No. 1) engine was recovered separated from its pylon with the core mostly intact.
+Both fan core cowls were separated during the accident. The nacelle displayed no evidence of
+fire or uncontainment. All fan blades were bent aft and their leading edges exhibited dents,
+gouges, and missing material. The right (No. 2) engine was recovered mostly intact with its
+pylon attached. The nacelle displayed no evidence of fire or uncontainment. The fan blades
+were all full length and bent opposite the direction of rotation except for one blade that was
+fractured and separated about midspan. The leading edges of blade Nos. 10, 12, 14, 16, 19,
+and 22 displayed localized deformation near their tips. A section of the fan case rub strip was
+rubbed away from the 8 to 11 o’clock locations.
+The airplane’s TCAS transmitter receiver, communication management unit, transponder, air
+data computers, and exterior light bulbs were retained for additional examination.
+Helicopter
+The helicopter came to rest inverted with the tail structure separated from the fuselage around
+the tail transition section. The main fuselage had fractured into multiple pieces and was
+primarily held together during recovery by cabling, hoses, and remnant structure. The two
+internal crash-resistant fuel tanks (CFT) were present in their normally installed location; the
+right internal CFT was partially detached and the left internal CFT remained attached to the
+airframe.
+The tail boom was intact and exhibited damage limited to wrinkled skin. The vertical fin was
+mostly intact, except for its upper end, which was fractured and deformed to the right. The
+stabilator was intact and exhibited impact deformation in the forward direction about the
+middle and aft end of the stabilator.
+
+The main gearbox (MGB) remained attached to the structural roof beams, which had
+separated from the main fuselage. The MGB housing was whole, and the main rotor shaft
+remained installed. The main rotor hub remained installed on the main rotor shaft. All four
+main rotor blades were fractured near the hub.
+The tail rotor hub inboard and outboard retention plates were recovered as an assembly and
+remained installed on the tail rotor gearbox output shaft. One of the four tail rotor blades
+remained mostly intact but exhibited damage to its tip and trailing edge. Remnants of the other
+three tail rotor blades remained in the retention plate assembly.
+The cockpit area was heavily fragmented. The left seat pilot’s barometric altimeter and
+horizontal situation indicator were found separate from the cockpit area. The left barometric
+altimeter Kollsman window read between 29.88 and 29.89 inches of mercury (inHg).
+A portion of the right seat pilot’s instrument cluster was found separated from the cockpit
+structure but remained connected via hoses and cables. The right barometric altimeter
+Kollsman window was set to 29.87 inHg. Both left and right barometric altimeters, as well as
+the left and right radar altimeters and their antennae, were retained for additional examination.
+The electronic standby instrument system (ESIS) was found partially separated and remained
+attached via wiring. The glass cover was fractured, but the screen was not cracked. The ESIS
+was retained for additional examination.
+The pitot-static system was highly fragmented, with fractured pieces found in the cockpit area
+of the main wreckage. One whole pitot-static probe and one partial pitot-static probe were
+recovered, both of which were separated from the helicopter fuselage. The pitot and static
+lines from the left and right side pitot probes were traced along the airframe and exhibited
+fractures in multiple locations. The fittings at the unions along these lines were checked for
+security and confirmed to be tight. The fittings on the fractured pieces of the pitot-static
+system were confirmed to be tight except for one fitting for a pitot outlet line found near the
+cockpit nose wreckage. This line and the two pitot-static probes were retained for further
+examination.
+The aft portion of the No. 1 (left) engine from the diffuser and midframe assembly to the tail
+cone was recovered intact with no evidence of external fire or uncontainment. Additional
+pieces recovered by dive teams included the accessory gearbox, one compressor case half,
+the compressor stage 2 bladed disk, the power takeoff shaft bevel gear, two pieces of the main
+frame, and the swirl frame. The output drive assembly was separated from the engine but
+remained attached to a portion of the helicopter torque tube. The aft side of the output drive
+assembly contained the fractured end of the power turbine drive shaft. The helicopter drive
+shaft was fractured in front of the engine's output drive assembly.
+The No. 2 (right) engine appeared intact with no evidence of external fire or uncontainment.
+Hand rotation of the output drive shaft resulted in corresponding smooth and continuous
+rotation of the power turbine.
+
+Review of helicopter maintenance records indicated, and examination of the recovered
+helicopter wreckage confirmed, that the helicopter was equipped with a transponder. The
+transponder and its remote control unit were retained for additional examination.
+Two iPad minis were recovered separate from the helicopter main wreckage and retained for
+additional examination.
+Near Midair Collision Events at DCA
+Review of information gathered from voluntary safety reporting programs along with FAA data
+regarding encounters between helicopters and commercial aircraft near DCA from 2011
+through 2024 indicated that a vast majority of the reported events occurred on approach to
+landing. Initial analysis found that at least one TCAS resolution advisory (RA) was triggered per
+month due to proximity to a helicopter. In over half of these instances, the helicopter may have
+been above the route altitude restriction. Two-thirds of the events occurred at night.
+A review of commercial operations (instrument flight rules departures or arrivals) at DCA
+between October 2021 and December 2024 indicated a total of 944,179 operations. During
+that time, there were 15,214 occurrences between commercial airplanes and helicopters in
+which there was a lateral separation distance of less than 1 nm and vertical separation of less
+than 400 ft. There were 85 recorded events that involved a lateral separation less than 1,500 ft
+and vertical separation less than 200 ft.
+The data indicated that, between 2018 and 2024, runway 1 accounted for about 57% of
+arrivals, runway 19 accounted for about 38% of arrivals, runway 33 accounted for about 4% of
+arrivals, and runway 15 accounted for less than 1 percent of arrivals at DCA. Runway 15
+accounted for about 5% of departures from DCA.
+Safety Actions
+On January 31, 2025, the FAA issued a Notice to Airmen (NOTAM) prohibiting helicopter traffic
+from operating over the Potomac River near DCA from the surface up to and including 17,999
+ft msl with exceptions for lifesaving medical, active law enforcement, air defense, or
+presidential transport missions. If such missions are required, civilian aircraft will not be
+allowed in the area. The most recent version of the NOTAM, 5/4379, was issued on February
+19, 2025, with updated dimensions for the temporary flight restriction. The NOTAM is in effect
+through March 31, 2025, at 2359 UTC.
+On March 11, 2025, the NTSB issued two urgent safety recommendations to the FAA
+concerning the helicopter routes near DCA.
+The NTSB’s investigation is ongoing.
+
+Aircraft and Owner/Operator Information (A1)
+Aircraft Make:
+
+BOMBARDIER INC
+
+Registration:
+
+N709PS
+
+Model/Series:
+
+CL-600-2C10
+
+Aircraft Category:
+
+Airplane
+
+PSA Airlines
+
+Operating Certificate(s)
+Held:
+
+Flag carrier (121)
+
+Amateur Built:
+Operator:
+Operator Designator Code:
+
+Aircraft and Owner/Operator Information (A2)
+Aircraft Make:
+
+Sikorsky
+
+Registration:
+
+UNREG
+
+Model/Series:
+
+UH60 L
+
+Aircraft Category:
+
+Helicopter
+
+Army Department of Defense
+
+Operating Certificate(s)
+Held:
+
+None
+
+Amateur Built:
+Operator:
+Operator Designator Code:
+
+Meteorological Information and Flight Plan
+Conditions at Accident Site:
+
+VMC
+
+Condition of Light:
+
+Night
+
+Observation Facility, Elevation:
+
+KDCA,14 ft msl
+
+Observation Time:
+
+20:52 Local
+
+Distance from Accident Site:
+
+0 Nautical Miles
+
+Temperature/Dew Point:
+
+10°C /-7°C
+
+Lowest Cloud Condition:
+
+Clear
+
+Wind Speed/Gusts, Direction:
+
+14 knots / 23 knots, 300°
+
+Lowest Ceiling:
+
+None
+
+Visibility:
+
+10 miles
+
+Altimeter Setting:
+
+29.9 inches Hg
+
+Type of Flight Plan Filed:
+
+IFR (A1); MVFR (A2)
+
+Departure Point:
+
+Wichita, KS (ICT) (A1); Fort
+Belvoir, VA (DAA) (A2)
+
+Destination:
+
+Washington, DC (DCA)
+(A1); Fort Belvoir, VA
+(DAA) (A2)
+
+Wreckage and Impact Information (A1)
+Crew Injuries:
+
+4 Fatal
+
+Aircraft Damage:
+
+Destroyed
+
+Passenger Injuries:
+
+60 Fatal
+
+Aircraft Fire:
+
+Unknown
+
+Aircraft Explosion:
+
+Unknown
+
+Latitude, Longitude:
+
+38.845339,-77.024187
+
+Ground Injuries:
+Total Injuries:
+
+64 Fatal
+
+Wreckage and Impact Information (A2)
+Crew Injuries:
+
+2 Fatal
+
+Aircraft Damage:
+
+Destroyed
+
+Passenger Injuries:
+
+1 Fatal
+
+Aircraft Fire:
+
+Unknown
+
+Aircraft Explosion:
+
+Unknown
+
+Latitude, Longitude:
+
+38.845339,-77.024187
+
+Ground Injuries:
+Total Injuries:
+
+3 Fatal
+
+Administrative Information
+Investigator In Charge (IIC):
+
+Banning, David
+
+Additional Participating Persons:
+
+Patrick Lusch; FAA AVP-110
+Darren Hall; PSA Airlines
+Sam Farmiga; GE Aerospace
+Javier Casanova; Sikorsky
+Col Matthew Parker; US Army
+Seth Myers; National Air Traffic Controllers Association (NATCA)
+Daniel Mullin; Air Line Pilots Association (ALPA)
+Robin Coombs ; Association of Flight Attendants
+Robert Brown; International Association of Machinists and Aerospace Workers (IAM)
+Chris Paulino; Metropolitan Washington Airports Authority (MWAA)
+Ewan Tasker; Transportation Safety Board of Canada
+David Fisher; Mitsubishi Heavy Industries
+Ian Sturgeon; Transport Canada
+Shelley Ford; Collins Aerospace
+
+Investigation Class:
+
+Class 1
+
+Note:
+
+The NTSB traveled to the scene of this accident.
+

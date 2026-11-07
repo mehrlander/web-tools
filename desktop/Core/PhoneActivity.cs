@@ -2,7 +2,7 @@ namespace WebTools.Desktop;
 
 public record PhoneItem(string Key, string Id, string Kind, string Provider, string Location,
     string Title, string State, string Detail, DateTimeOffset At, DateTimeOffset CreatedAt,
-    bool NeedsAttention, bool IsNew, string? Url, SessionCheckpoint? Checkpoint = null, SessionTurn? Turn = null, LocalWork? Work = null);
+    bool NeedsAttention, bool IsNew, string? Url, SessionCheckpoint? Checkpoint = null, SessionTurn? Turn = null, LocalWork? Work = null, string? SessionUrl = null);
 public record PhoneSource(bool QueueAvailable, bool RecordsConnected, DateTimeOffset? RecordsSyncedAt,
     string WorkerState, DateTimeOffset? WorkerLogAt, DateTimeOffset? CloudCapturedAt, List<string> Notices,
     WorkerActivity? WorkerActivity = null, List<WorkerActivity>? WorkerReports = null);
@@ -26,13 +26,15 @@ public static class PhoneActivity
             (s.Location == "Cloud" ? "cloud:" : "session:" + s.Provider + ":") + s.Id, s.Id,
             s.Location == "Cloud" ? "cloud" : "session", s.Provider, s.Location, s.Title, s.State,
             s.Detail, s.UpdatedAt, s.UpdatedAt, NeedsAttention(s), false,
-            s.Location == "Cloud" ? NavigationPolicy.AppUrl + "?view=sessions&session=" + Uri.EscapeDataString(s.Id) : null, s.Checkpoint, s.Turn, s.Work)));
+            s.Location == "Cloud" ? NavigationPolicy.AppUrl + "?view=sessions&session=" + Uri.EscapeDataString(s.Id) : null,
+            s.Checkpoint, s.Turn, s.Work, SessionLinks.For(s.Provider,s.Id,s.SourceUrl,snapshot.GeminiInstanceId))));
         var notices = snapshot.Sessions.Notices.Concat(new[] { snapshot.Activity.Notice, snapshot.Cloud.Notice, error }
             .OfType<string>()).Distinct().ToList();
         return new(1, snapshot.MachineName, observedAt, snapshot.ScanMilliseconds,
             new(snapshot.Activity.Revision is not null, snapshot.Activity.Connected, snapshot.Activity.SyncedAt,
                 snapshot.Daemon.State, snapshot.Daemon.LastLogAt, snapshot.Cloud.CapturedAt, notices, snapshot.Daemon.Activity, snapshot.Daemon.Reports),
-            items.OrderByDescending(i => i.At).ToList(), snapshot.Events.Take(50).ToList(), snapshot.Changes ?? [], snapshot.Usage ?? []);
+            items.OrderByDescending(i => i.At).ToList(), snapshot.Events.Take(50).ToList(),
+            SessionLinks.HydrateChanges(snapshot.Changes ?? [],snapshot.Cloud.SessionUrls,snapshot.GeminiInstanceId), snapshot.Usage ?? []);
     }
 
     // Reply bodies are requested only for the selected result. Request notes,

@@ -102,6 +102,30 @@ test('rows added on both sides are unioned, which is the half a take-ours would 
     'SNAGS merge-drops-authored-csv-cells is exactly this row going missing');
 });
 
+test('a row only theirs added lands where theirs has it, not at the end', () => {
+  // docs/docs.csv is not re-sorted by its deriver, so a row main added in the
+  // middle and appended here would move on every merge of main.
+  const r = merge(csv(row('docs/a.md'), row('docs/c.md')),
+                  csv(row('docs/a.md', 's', '101'), row('docs/c.md'), row('docs/ours.md')),
+                  csv(row('docs/a.md'), row('docs/b.md'), row('docs/c.md')));
+  assert.equal(r.code, 0, r.err);
+  assert.deepEqual(r.out.trim().split('\n').slice(1).map(l => l.split(',')[0]),
+    ['docs/a.md', 'docs/b.md', 'docs/c.md', 'docs/ours.md']);
+});
+
+test('a move on one side survives a merge with a side that kept the old order', () => {
+  // Main moved docs/forms/README.md into place on 2026-10-29 while a branch kept
+  // the old order; taking the branch's order undid main's move.
+  const keys = (r) => r.out.trim().split('\n').slice(1).map(l => l.split(',')[0]);
+  const before = [row('docs/a.md'), row('docs/z.md'), row('docs/b.md')];
+  const moved = [row('docs/a.md'), row('docs/b.md'), row('docs/z.md')];
+  const theirsMoved = merge(csv(...before), csv(row('docs/a.md', 's', '101'), before[1], before[2]), csv(...moved));
+  assert.equal(theirsMoved.code, 0, theirsMoved.err);
+  assert.deepEqual(keys(theirsMoved), ['docs/a.md', 'docs/b.md', 'docs/z.md']);
+  const oursMoved = merge(csv(...before), csv(...moved), csv(row('docs/a.md', 's', '101'), before[1], before[2]));
+  assert.deepEqual(keys(oursMoved), ['docs/a.md', 'docs/b.md', 'docs/z.md']);
+});
+
 test('a row deleted on one side and untouched on the other stays deleted', () => {
   const r = merge(csv(row('docs/a.md'), row('docs/gone.md')),
                   csv(row('docs/a.md')),

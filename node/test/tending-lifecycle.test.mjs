@@ -160,12 +160,15 @@ test('attention renewed, then the owner resolves it in the shape the view writes
   assert.equal(f.outstanding, false);
 });
 
-test('a pull request the crawl cache lacks reads unverifiable on the command line', () => {
+test('a pull request the crawl cache lacks reads unverifiable on the command line, unless it merged', () => {
   const other = py('add', jfile({
     kind: 'superseded', title: 'An old pull request landed', subjects: ['acme/evidence#99'], why: 'w', evidence: ['merged'],
-    witnesses: [{ ref: 'acme/evidence#99', state: 'merged' }, { ref: 'acme/evidence#7', state: 'open', updated: '2026-09-01T00:00:00Z' }],
+    witnesses: [{ ref: 'acme/evidence#99', state: 'merged' }, { ref: 'acme/evidence#98', state: 'closed' },
+                { ref: 'acme/evidence#7', state: 'open', updated: '2026-09-01T00:00:00Z' }],
   })).split(' ')[0];
   const v = check(other).verdicts;
-  assert.deepEqual(v.map(x => [x.ref, x.verdict]), [['acme/evidence#99', 'unverifiable'], ['acme/evidence#7', 'ok']]);
-  assert.match(v[0].detail, /not in the crawl cache/);
+  // A merge is final, so a merged witness needs no lookup; a closed one can reopen.
+  assert.deepEqual(v.map(x => [x.ref, x.verdict]),
+    [['acme/evidence#99', 'ok'], ['acme/evidence#98', 'unverifiable'], ['acme/evidence#7', 'ok']]);
+  assert.match(v[1].detail, /not in the crawl cache/);
 });

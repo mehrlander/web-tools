@@ -1,0 +1,657 @@
+{
+  "subject": "Aircraft separation near DCA in the preliminary account of collision DCA25MA108",
+  "scope_proposal": {
+    "inquiry": "How two flights came to occupy a shared arrival environment, what separation arrangements and information were available, and how the accident relates to reported earlier encounters.",
+    "specific_reader_job": "Help a general reader follow the interaction between flight paths, traffic instructions, onboard alerts and evidence limitations without mistaking a preliminary sequence for an established cause.",
+    "benefit": "Connects the account across aircraft, air traffic control and historical encounters. A simple list of aircraft specifications or a single combined timeline would obscure who received which information and which comparisons the evidence permits.",
+    "consequential_alternative": {
+      "scope": "A complete accident and investigation inventory, including crew qualifications, wreckage, recovery, medical examinations and investigative organizations.",
+      "benefit": "Would better serve a reader tracking investigative completeness or physical reconstruction.",
+      "tradeoff": "Would give substantially more space to recovery and examination detail while making the operational interaction harder to follow. Physical findings remain eligible when they clarify an interaction or an evidence limitation."
+    },
+    "scope_after_exploration": "Retain the separation inquiry, organized around operational interactions rather than aircraft chapters. Add historical encounter groups as context, with their distinct observation windows and definitions preserved.",
+    "coverage_of_supplied_material": {
+      "source": "S1",
+      "includes": [
+        "A preliminary flight sequence, communications, recorder observations and aircraft equipment descriptions.",
+        "Route and runway context, controller configuration, crew information, wreckage and recovery findings.",
+        "Several historical encounter summaries and safety actions described through March 2025."
+      ],
+      "limits": [
+        "The supplied extraction omits figures and does not supply raw recordings, track datasets or historical encounter records.",
+        "The report states that the investigation is ongoing. The supplied material does not establish a probable cause.",
+        "The inquiry concerns separation relationships. The source's broader coverage does not require every examination detail to become a first-class model object.",
+        "The historical safety-action statements do not establish restrictions in force today."
+      ]
+    }
+  },
+  "source_registry": {
+    "S1": {
+      "title": "NTSB Aviation Investigation Preliminary Report, DCA25MA108",
+      "url": "https://www.ntsb.gov/investigations/Documents/DCA25MA108%20Prelim.pdf",
+      "material_used": "Only the supplied text extraction",
+      "source_status": "Preliminary report",
+      "license": "US federal government work, public domain",
+      "locator_convention": "Section headings and distinctive timestamps; no page numbers are inferred."
+    }
+  },
+  "epistemic_conventions": {
+    "source_supported": "The supplied report makes the claim. Preserve the report's uncertainty, approximation and attribution; source-supported does not mean independently verified or finally established.",
+    "interpretation": "An explanatory reading or derived comparison, explicitly linked to its supporting claims.",
+    "proposed_structure": "A useful modeling field or relationship whose populated factual value requires additional material.",
+    "unknown": "A question the supplied material does not resolve. Do not replace a missing value with zero, false or an inferred answer.",
+    "causation_rule": "Temporal order, proximity, an alert and a communication gap are different relationships. None automatically becomes a causal edge."
+  },
+  "information_model": {
+    "objects": [
+      {
+        "type": "Flight",
+        "purpose": "Keep aircraft, operator, mission and crew roles associated with the correct operation.",
+        "fields": [
+          "id",
+          "callsign",
+          "aircraft_id",
+          "operator",
+          "mission",
+          "origin",
+          "destination",
+          "role_assignments"
+        ]
+      },
+      {
+        "type": "RoleAssignment",
+        "purpose": "Represent who flies, monitors or transmits during a bounded interval; a person's seat or qualification is not a permanent operational role.",
+        "fields": [
+          "person_or_role_id",
+          "flight_id",
+          "function",
+          "valid_from",
+          "valid_to",
+          "support"
+        ]
+      },
+      {
+        "type": "OperatingContext",
+        "purpose": "Describe runway use, route segments, environmental conditions, controller responsibilities and radio channels in effect for an interaction.",
+        "fields": [
+          "id",
+          "kind",
+          "location",
+          "valid_interval",
+          "participants",
+          "rules_or_constraints",
+          "support"
+        ]
+      },
+      {
+        "type": "InteractionEpisode",
+        "purpose": "Group related events across participants, preserving a partial sequence and its operational context.",
+        "fields": [
+          "id",
+          "time_window",
+          "flight_ids",
+          "context_ids",
+          "events",
+          "relationships"
+        ]
+      },
+      {
+        "type": "Event",
+        "purpose": "Distinguish a maneuver, instruction, request, approval, warning, role change or collision rather than treating every timestamp as the same kind of fact.",
+        "fields": [
+          "id",
+          "kind",
+          "time",
+          "actor",
+          "intended_recipient",
+          "subject_flight",
+          "content",
+          "observations",
+          "support"
+        ]
+      },
+      {
+        "type": "Observation",
+        "purpose": "Keep what was measured, recorded, reported or inferred separate from the event being described.",
+        "fields": [
+          "id",
+          "observer_or_device",
+          "property",
+          "value",
+          "unit",
+          "reference",
+          "time",
+          "precision",
+          "validity",
+          "assertion_state",
+          "support"
+        ],
+        "important_distinctions": [
+          "A transmission exists, a recorder captures the transmission, and a person understands the transmission are separate claims.",
+          "Radio altitude, pressure altitude, altitude above mean sea level and a pilot's spoken altitude report require distinct reference fields.",
+          "A recorder limitation applies to particular parameters and intervals, not automatically to every output from the device."
+        ]
+      },
+      {
+        "type": "EncounterGroup",
+        "purpose": "Describe repeated patterns without inventing individual historical encounters from aggregate summaries.",
+        "fields": [
+          "id",
+          "observation_window",
+          "population",
+          "data_sources",
+          "selection_rule",
+          "count_or_pattern",
+          "related_group_ids",
+          "support"
+        ]
+      },
+      {
+        "type": "SafetyAction",
+        "purpose": "Connect a dated response to the operating context the response addresses, keeping action dates separate from accident dates and current validity.",
+        "fields": [
+          "id",
+          "issuer",
+          "action_date",
+          "kind",
+          "affected_context",
+          "effective_interval",
+          "exceptions",
+          "content_available",
+          "support"
+        ]
+      },
+      {
+        "type": "Claim",
+        "purpose": "Attach source locators, uncertainty and unresolved conflicts to any populated object or relationship.",
+        "fields": [
+          "id",
+          "assertion_state",
+          "statement",
+          "support",
+          "qualifiers",
+          "conflicting_claim_ids"
+        ]
+      },
+      {
+        "type": "AlertPolicy",
+        "purpose": "Represent a documented condition governing a particular alert output, separately from whether that condition applied and what a device actually did.",
+        "fields": [
+          "id",
+          "system_family",
+          "output_kind",
+          "condition",
+          "condition_reference",
+          "prescribed_effect",
+          "applicability_claims",
+          "observed_behavior_claims",
+          "assertion_state",
+          "support"
+        ],
+        "important_distinctions": [
+          "Traffic advisories identify a traffic concern; resolution advisories recommend vertical maneuvers in the supplied description.",
+          "Inhibiting a resolution advisory differs from inhibiting an audible traffic advisory.",
+          "A documented threshold is a source-supported policy claim. Applying the threshold to an aircraft at a particular instant requires compatible observations and can remain an interpretation or an unknown."
+        ]
+      }
+    ],
+    "relationships": [
+      {
+        "name": "operates_within",
+        "connects": "Flight or episode to operating context",
+        "meaning": "Associates an operation with routes, runway use or control configuration without assuming compliance."
+      },
+      {
+        "name": "changes_assignment",
+        "connects": "Role-change event to two role assignments",
+        "meaning": "Makes a handover explicit."
+      },
+      {
+        "name": "addresses",
+        "connects": "Communication to recipient and referenced traffic",
+        "meaning": "Separates the flight being instructed from the aircraft being discussed."
+      },
+      {
+        "name": "recorded_on",
+        "connects": "Event to observation",
+        "meaning": "Shows where evidence of the event exists; does not prove human receipt or understanding."
+      },
+      {
+        "name": "requests_or_approves",
+        "connects": "Request to approval and separation arrangement",
+        "meaning": "Represents the reported operational arrangement without asserting that separation was achieved."
+      },
+      {
+        "name": "precedes",
+        "connects": "Events with sufficient timing support",
+        "meaning": "Preserves chronology and approximate timing without adding causation."
+      },
+      {
+        "name": "comparable_under",
+        "connects": "Observations or encounter groups to comparison conditions",
+        "meaning": "Requires compatible time windows, reference frames and definitions."
+      },
+      {
+        "name": "responds_to",
+        "connects": "Safety action to affected operational context",
+        "meaning": "Records the scope of a response without claiming effectiveness."
+      },
+      {
+        "name": "evaluated_against_policy",
+        "connects": "An alert event or an explicitly posed question about an alert to an AlertPolicy and supporting flight-state observations",
+        "meaning": "Keeps the documented rule, applicability at the relevant time and observed output separate. The relationship does not turn an unreported advisory into an observed failure."
+      }
+    ],
+    "required_guardrails": [
+      "Store time basis and precision. A rounded accident time and a second-level reconstructed time need not conflict.",
+      "Represent route altitude ceilings with their own reference. Do not subtract a radio-altimeter reading from an msl ceiling to declare an altitude violation.",
+      "Do not infer what traffic a crew actually identified merely from a report of traffic in sight.",
+      "Preserve different historical reporting populations. Voluntary reports, threshold-based occurrences and total commercial operations do not share an automatic denominator.",
+      "Keep equipment capability separate from equipment activation, transmission, reception and successful use.",
+      "Distinguish a documented alert policy, evidence that the policy condition applied, and evidence of the actual output. An unreported resolution advisory is not an observed failed resolution advisory."
+    ]
+  },
+  "examples": [
+    {
+      "id": "E1",
+      "structural_choice": "A timed interaction with different actors, evidence channels and reported understanding.",
+      "context": {
+        "assertion_state": "source_supported",
+        "flights": [
+          {
+            "id": "F5342",
+            "description": "PSA Airlines flight 5342, CRJ700, approaching runway 33"
+          },
+          {
+            "id": "PAT25",
+            "description": "US Army UH-60L, returning to DAA after a standardization evaluation flight"
+          }
+        ],
+        "radio_configuration": {
+          "F5342_MHz": 119.1,
+          "PAT25_MHz": 134.35,
+          "reported_effect": "The crews could hear the controller's transmissions to both aircraft, but could not hear each other's transmissions to the controller."
+        },
+        "support": [
+          {
+            "source": "S1",
+            "sections": [
+              "History of Flight",
+              "Air Traffic Control",
+              "opening accident narrative"
+            ]
+          }
+        ]
+      },
+      "events": [
+        {
+          "id": "A",
+          "kind": "traffic_query",
+          "time": "20:47:39 EST, January 29, 2025",
+          "actor": "DCA tower",
+          "intended_recipient": "PAT25",
+          "subject_flight": "F5342",
+          "assertion_state": "source_supported",
+          "content": "Asked whether the CRJ was in sight.",
+          "recording_observation": "Transmission audible on both CVRs; a conflict alert was audible in the background of the ATC transmission."
+        },
+        {
+          "id": "B",
+          "kind": "onboard_traffic_advisory",
+          "time": "20:47:40 EST",
+          "actor": "F5342 TCAS",
+          "intended_recipient": "F5342 crew",
+          "assertion_state": "source_supported",
+          "content": "A traffic advisory sounded.",
+          "pair_separation": {
+            "value": 0.95,
+            "unit": "nm",
+            "qualifier": "about",
+            "dimension": "not explicitly identified in the quoted timeline statement"
+          }
+        },
+        {
+          "id": "C",
+          "kind": "instruction",
+          "time": "20:47:42 EST",
+          "actor": "DCA tower",
+          "intended_recipient": "PAT25",
+          "subject_flight": "F5342",
+          "assertion_state": "source_supported",
+          "content": "Directed PAT25 to pass behind the CRJ.",
+          "recording_observation": "The report states that the instruction's directional portion may not have been received by PAT25 because a 0.8-second PAT25 microphone key overlapped the transmission.",
+          "human_receipt": {
+            "assertion_state": "unknown",
+            "value": null
+          }
+        },
+        {
+          "id": "D",
+          "kind": "request_and_approval",
+          "time": "20:47:44 EST for the crew response",
+          "actor": "PAT25 crew, then DCA tower",
+          "assertion_state": "source_supported",
+          "content": "PAT25 reported traffic in sight and requested visual separation; DCA tower approved.",
+          "following_cockpit_statement": "The IP told the pilot they believed ATC was asking the helicopter to move left toward the Potomac's east bank."
+        }
+      ],
+      "relationships": [
+        {
+          "from": "A",
+          "to": "B",
+          "kind": "precedes",
+          "assertion_state": "source_supported"
+        },
+        {
+          "from": "B",
+          "to": "C",
+          "kind": "precedes",
+          "assertion_state": "source_supported"
+        },
+        {
+          "from": "C",
+          "to": "D",
+          "kind": "precedes",
+          "assertion_state": "source_supported"
+        },
+        {
+          "from": "C",
+          "to": "D",
+          "kind": "instruction_compared_with_reported_understanding",
+          "assertion_state": "interpretation",
+          "meaning": "The issued instruction and the subsequent cockpit interpretation concern different movements. The recording evidence supports examining that difference, but does not establish why the crew formed the interpretation or what the crew saw."
+        }
+      ],
+      "support_for_events_and_order": [
+        {
+          "source": "S1",
+          "section": "History of Flight",
+          "locators": [
+            "2047:39",
+            "2047:40",
+            "2047:42",
+            "2047:44"
+          ]
+        }
+      ],
+      "leaves_untested": [
+        "Detailed aircraft trajectories, altitude-reference reconciliation and the crew handover earlier in the flight.",
+        "What traffic PAT25 identified, what each crewmember understood, and the causal contribution of each event.",
+        "The exact onset of the background conflict alert and the timing of the tower approval within the response episode."
+      ]
+    },
+    {
+      "id": "E2",
+      "structural_choice": "Aggregate encounter groups with shared windows, nested thresholds and no invented event sequence.",
+      "common_context": {
+        "assertion_state": "source_supported",
+        "observation_window": "October 2021 through December 2024",
+        "airport": "DCA",
+        "commercial_operations": {
+          "count": 944179,
+          "definition": "Instrument flight rules departures or arrivals"
+        },
+        "support": [
+          {
+            "source": "S1",
+            "section": "Near Midair Collision Events at DCA"
+          }
+        ]
+      },
+      "groups": [
+        {
+          "id": "G1",
+          "assertion_state": "source_supported",
+          "population": "Occurrences between commercial airplanes and helicopters",
+          "selection_rule": {
+            "lateral_separation": "less than 1 nm",
+            "vertical_separation": "less than 400 ft",
+            "join": "both"
+          },
+          "count": 15214
+        },
+        {
+          "id": "G2",
+          "assertion_state": "source_supported",
+          "population": "Recorded events between commercial airplanes and helicopters",
+          "selection_rule": {
+            "lateral_separation": "less than 1500 ft",
+            "vertical_separation": "less than 200 ft",
+            "join": "both"
+          },
+          "count": 85
+        }
+      ],
+      "relationship": {
+        "assertion_state": "interpretation",
+        "kind": "stricter_threshold_within_shared_reporting_window",
+        "from": "G2",
+        "to": "G1",
+        "meaning": "G2 uses tighter lateral and vertical separation thresholds. The model can compare the two counts while preserving both dimensions instead of labeling every occurrence equally close.",
+        "qualification": "The numerical thresholds are nested. Event-level records and counting methods are absent, so individual membership, deduplication and exact record linkage remain unverified."
+      },
+      "consequential_comparison": {
+        "assertion_state": "interpretation",
+        "statement": "The historical summaries place the accident in a setting with many recorded close encounters. The 15,214 occurrences cannot be treated as 15,214 accidents, and dividing that count by 944,179 does not by itself yield a share of flights affected: the report does not establish one occurrence per distinct operation.",
+        "support": [
+          "G1",
+          "common_context"
+        ]
+      },
+      "support_for_groups": [
+        {
+          "source": "S1",
+          "section": "Near Midair Collision Events at DCA"
+        }
+      ],
+      "leaves_untested": [
+        "Whether runway 33, a particular route segment or a controller configuration had a higher encounter rate after accounting for exposure.",
+        "Individual encounter membership, repeated encounters involving the same flight and the historical data's completeness.",
+        "Linkage to the separate 2011 through 2024 reporting summary about night events, approach encounters and TCAS resolution advisories. Those findings have a different window and partly different data provenance."
+      ]
+    }
+  ],
+  "important_unpopulated_structures": [
+    {
+      "assertion_state": "proposed_structure",
+      "structure": "A synchronized trajectory series with latitude, longitude, time uncertainty and comparable vertical references.",
+      "why_needed": "Would permit spatial reconstruction and defensible testing of separation against route constraints.",
+      "missing_material": "Raw tracks, synchronization details, relevant reference conversions and uncertainty estimates."
+    },
+    {
+      "assertion_state": "proposed_structure",
+      "structure": "Historical encounter records linked to runway, route, conditions and exposure counts.",
+      "why_needed": "Would permit comparisons of encounter rates by operating context instead of comparisons of raw counts alone.",
+      "missing_material": "Event records, counting definitions and matching traffic exposure by context."
+    }
+  ],
+  "evidence_limits_and_open_questions": [
+    {
+      "assertion_state": "source_supported",
+      "statement": "PAT25's recorder pressure-altitude parameter was declared invalid. The report says further work would determine whether the problem was confined to the recording or affected other systems using pressure altitude.",
+      "support": [
+        {
+          "source": "S1",
+          "section": "Recorders"
+        }
+      ],
+      "model_consequence": "Mark that parameter invalid; do not discard the helicopter's separately reported radio-altitude observations or assume other systems were affected."
+    },
+    {
+      "assertion_state": "unknown",
+      "question": "What was PAT25's reconciled altitude above mean sea level relative to the route ceiling at each relevant time?",
+      "why_open": "The report gives a 200-ft msl maximum on Route 1 after Memorial Bridge and a 278-ft helicopter radio altitude at collision, but those values use different references. Spoken altitude reports and invalid recorded pressure altitude do not resolve the comparison.",
+      "support": [
+        {
+          "source": "S1",
+          "sections": [
+            "Helicopter Routes",
+            "History of Flight",
+            "Recorders"
+          ]
+        }
+      ]
+    },
+    {
+      "assertion_state": "unknown",
+      "question": "How should internal source inconsistencies be resolved?",
+      "conflicts_to_preserve": [
+        "The narrative describes three helicopter crew members; the final impact table classifies two as crew and one as a passenger. Both give three fatalities aboard PAT25.",
+        "The narrative says the helicopter filed a visual flight rules flight plan; the summary table labels the helicopter flight plan MVFR."
+      ],
+      "support": [
+        {
+          "source": "S1",
+          "sections": [
+            "opening accident narrative",
+            "Crew Experience",
+            "History of Flight",
+            "Meteorological Information and Flight Plan",
+            "Wreckage and Impact Information (A2)"
+          ]
+        }
+      ]
+    },
+    {
+      "assertion_state": "unknown",
+      "question": "What final causal findings and later safety outcomes followed?",
+      "why_open": "The supplied report states that the investigation is ongoing and mentions two urgent March 11, 2025 recommendations without supplying their text. Neither their detailed content nor later implementation and effectiveness can be populated."
+    }
+  ],
+  "revision_review": {
+    "assertion_state": "interpretation",
+    "weakness": "The model distinguishes recorded alerts from communications, but does not explicitly represent the operating policies that determine what an alert system can provide. A reader can follow the traffic advisory in E1 yet still assume that a maneuver instruction was necessarily available at the same moment.",
+    "concrete_case": "E1 records flight 5342's TCAS traffic advisory at 20:47:40. The supplied report separately describes low-altitude rules that inhibit resolution advisories and, at a lower threshold, the audible portion of traffic advisories. Without a policy object, an audible traffic warning, a recommended escape maneuver and the absence of a reported maneuver instruction are too easily conflated.",
+    "reader_benefit": "The revision lets a reader ask what kind of assistance was available under a stated condition before interpreting an alert or an unreported alert as evidence of successful or failed protection.",
+    "scope_decision": "Retain the original inquiry and its coverage boundary. System behavior already belongs to the separation inquiry; only the representation of conditional alert behavior needs strengthening.",
+    "changes": [
+      "Add an AlertPolicy object that separates a documented operating rule from an observed system event.",
+      "Add a policy relationship that keeps policy applicability and observed device behavior as separate claims.",
+      "Add one brief challenge case for TCAS advisories and altitude conditions. Preserve E1 and E2 without changing their populated facts or interpretations."
+    ],
+    "what_the_examples_demonstrate": [
+      "E1 distinguishes a tower instruction, a cockpit interpretation, a visual-separation request and a traffic advisory, with different actors and evidence channels.",
+      "E2 distinguishes aggregate encounter thresholds and reporting windows from individual flight sequences and exposure-adjusted risk.",
+      "The challenge case adds a different structural test: a documented condition can limit an alert output without proving the actual device state at a selected instant."
+    ],
+    "remaining_uncertainty": "The revision organizes the supplied description of TCAS behavior. The supplied material does not provide a complete device-specific configuration, a direct AGL value at the traffic-advisory instant, a complete advisory log or evidence sufficient to judge the system's compliance with every applicable policy. The revision does not resolve causation, crew perception or historical encounter risk."
+  },
+  "challenge_case": {
+    "id": "C1",
+    "structural_choice": "A condition-dependent alert policy connected to an observed event without assuming the policy's runtime state.",
+    "event_reference": "E1/B",
+    "policies": [
+      {
+        "id": "P_RA",
+        "type": "AlertPolicy",
+        "assertion_state": "source_supported",
+        "system_family": "TCAS, as described in the report's discussion of TCAS II",
+        "output_kind": "Resolution advisory: a recommended vertical escape maneuver",
+        "condition": {
+          "direction": "descent",
+          "altitude": {
+            "comparison": "below",
+            "value": 900,
+            "unit": "ft",
+            "reference": "above ground level"
+          }
+        },
+        "prescribed_effect": "Resolution advisories are inhibited.",
+        "support": [
+          {
+            "source": "S1",
+            "section": "Operator and Aircraft Information",
+            "locator": "TCAS discussion attributed to FAA Introduction to TCAS II Version 7.1"
+          }
+        ]
+      },
+      {
+        "id": "P_TA_AUDIO",
+        "type": "AlertPolicy",
+        "assertion_state": "source_supported",
+        "system_family": "TCAS, as described in the report's discussion of TCAS II",
+        "output_kind": "Aural annunciation associated with a traffic advisory",
+        "condition": {
+          "phase": "arrival descent",
+          "altitude": {
+            "comparison": "below",
+            "value": 400,
+            "unit": "ft",
+            "reference": "above ground level"
+          }
+        },
+        "prescribed_effect": "The aural annunciation is inhibited.",
+        "support": [
+          {
+            "source": "S1",
+            "section": "Operator and Aircraft Information",
+            "locator": "TCAS low-altitude advisory behavior"
+          }
+        ]
+      }
+    ],
+    "observations": [
+      {
+        "id": "C1_O1",
+        "assertion_state": "source_supported",
+        "time": "20:47:29 EST, January 29, 2025",
+        "property": "Automated altitude callout received by flight 5342 crew",
+        "value": 500,
+        "unit": "ft",
+        "reference": "The timeline calls this an automated callout; it does not explicitly label the callout's datum in this statement.",
+        "support": [
+          {
+            "source": "S1",
+            "section": "History of Flight",
+            "locator": "2047:29"
+          }
+        ]
+      },
+      {
+        "id": "C1_O2",
+        "assertion_state": "source_supported",
+        "time": "20:47:52 EST",
+        "property": "Flight 5342 radio altitude",
+        "value": 344,
+        "unit": "ft",
+        "reference": "Radio altitude",
+        "support": [
+          {
+            "source": "S1",
+            "section": "History of Flight",
+            "locator": "2047:52"
+          }
+        ]
+      }
+    ],
+    "comparison": {
+      "assertion_state": "interpretation",
+      "relationship": "evaluated_against_policy",
+      "event": "E1/B",
+      "policy_ids": [
+        "P_RA",
+        "P_TA_AUDIO"
+      ],
+      "supporting_observations": [
+        "C1_O1",
+        "C1_O2"
+      ],
+      "meaning": "The nearby altitude observations make low-altitude alert policies relevant to interpreting the reported traffic advisory. The report distinguishes a traffic warning from a maneuver recommendation, and distinguishes inhibition of that recommendation from inhibition of audible traffic warnings. An audible traffic advisory therefore does not, by itself, establish that an audible maneuver instruction was also available.",
+      "limit": "Neither nearby observation supplies a direct AGL value at 20:47:40. The model does not interpolate a flight state, declare the exact time each threshold was crossed or independently confirm implementation of either policy."
+    },
+    "unknowns": [
+      {
+        "assertion_state": "unknown",
+        "question": "What precise device state, altitude inputs and configuration governed advisory eligibility at 20:47:40?"
+      },
+      {
+        "assertion_state": "unknown",
+        "question": "What would a complete advisory record show beyond the reported traffic advisory? The selected sequence does not establish an observed resolution-advisory failure."
+      }
+    ],
+    "leaves_untested": [
+      "The complete TCAS trigger logic, device-specific configuration and runtime policy transitions.",
+      "Whether any different warning or maneuver would have prevented the collision."
+    ]
+  }
+}

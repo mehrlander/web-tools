@@ -59,9 +59,12 @@ const gets = () => log.filter(l => l.startsWith('get:'));
 // standalone mount also lists each repo's user-calls/ folder, a different read.
 const trees = () => log.filter(l => l.startsWith('tree:') && !l.startsWith('tree:contents/user-calls'));
 class FakeGH {
-  constructor(conf = {}) { this.repo = conf.repo || ''; this.ref = conf.ref || 'main'; }
+  constructor(conf = {}) { this.repo = conf.repo || ''; this.ref = conf.ref || 'main'; this.pinned = 'ref' in conf; }
   async get(p) {
-    log.push('get:' + this.repo + ':' + p);
+    log.push('get:' + this.repo + ':' + p + (p === '.web-tools.json' && !this.pinned ? ' (selection)' : ''));
+    // A repository's manifest, where a test serves one (the marks tests).
+    const manifest = window.__manifests?.[this.repo];
+    if (p === '.web-tools.json' && manifest) return { text: JSON.stringify(manifest) };
     // `__recordPatch` and `__recordSha` let a test serve a later record, and
     // the blob sha GitHub reports beside it, without a second fixture.
     if (p === PATH) return { text: JSON.stringify({ ...record, ...(window.__recordPatch || {}), readFrom: this.repo }),
@@ -131,7 +134,9 @@ window.Alpine = Alpine;
 // a cold pages/session.html does not, which is the case the listing covers.
 // repo-address.js is booted by every page; the component's GitHub links are
 // built by window.RepoAddress.github.
-for (const k of ['lib/kits/repo-address.js', 'lib/kits/closing-state.js', 'lib/kits/repo-sessions-cache.js']) {
+// repo-mark.js is booted by every page too, and draws the scope's marks,
+// escaping through vanilla-bundle's window.esc, which boots first of all.
+for (const k of ['lib/vanilla-bundle.js', 'lib/kits/repo-address.js', 'lib/kits/repo-mark.js', 'lib/kits/closing-state.js', 'lib/kits/repo-sessions-cache.js']) {
   new window.Function('window', readFileSync(path.join(repoRoot, k), 'utf8'))(window);
 }
 for (const p of ['lib/alpine-bundle.js', 'lib/alpineComponents/session-brief.js']) {
@@ -157,7 +162,8 @@ test('a lent row renders the strip and the title without waiting on the record',
   // flash the whole head on every swipe.
   const s = strip(lent());
   assert.equal(s.calls, 40);
-  assert.equal(s.failures, 1);
+  assert.equal(lent().strip.find(f => f.k === 'calls').t, 'tool calls, 1 failed',
+    'the one failure rides the wrench');
   assert.equal(lent().timeFacts.span, '3h 0m', 'how long it ran is the time panel\'s');
   assert.equal(s.repos, 'web-tools');
   // Short and friendly (owner, 2026-10-22), with the year only past a year
@@ -165,7 +171,7 @@ test('a lent row renders the strip and the title without waiting on the record',
   assert.match(s.day, /^Aug 5(, 2026)?$/);
 });
 
-test('the strip carries four facts and no more, and names which', () => {
+test('the strip carries three facts and no more, and names which', () => {
   // A CEILING, not a list for its own sake. Nine facts wrapped the strip to
   // three lines at 430px, half of a phone's head, and two of the nine were
   // printed again 44px below as the Outline and Files tab counts. `asks` and
@@ -173,10 +179,11 @@ test('the strip carries four facts and no more, and names which', () => {
   // FORMAT's version rather than a fact about the session, and `out tokens`
   // because nothing reads differently for a large one. `ran` went into the
   // start date's panel on 2026-10-22, beside when the session last moved.
+  // `failures` folded into the wrench on 2026-11-02, as on the Sessions row.
   // Array.from, because a getter's return reaches a test through Alpine's
   // reactive proxy and deepEqual compares prototypes.
   assert.deepEqual(Array.from(lent().strip, f => f.k),
-    ['day', 'calls', 'failures', 'repos']);
+    ['day', 'calls', 'repos']);
 });
 
 test('a count is a glyph that opens its panel; only the self-naming values are text', () => {
@@ -187,11 +194,9 @@ test('a count is a glyph that opens its panel; only the self-naming values are t
   // word any more.
   const f = Object.fromEntries(lent().strip.map(x => [x.k, x]));
   assert.deepEqual(Object.fromEntries(Object.entries(f).map(([k, x]) => [k, x.unit])),
-    { day: '', calls: '', failures: '', repos: '' });
+    { day: '', calls: '', repos: '' });
   assert.equal(f.calls.icon, 'ph-wrench');
-  assert.equal(f.calls.panel, 'tools');
-  assert.equal(f.failures.panel, 'tools', 'failures open the same list, where the failing tool is named');
-  assert.equal(f.failures.tone, 'text-warning');
+  assert.equal(f.calls.panel, 'tools', 'the list where a failing tool is named');
   assert.equal(f.day.panel, 'time', 'the date opens when it ran');
   assert.equal(f.day.icon, '', 'and draws no glyph: the date names itself');
 });
@@ -199,9 +204,9 @@ test('a count is a glyph that opens its panel; only the self-naming values are t
 test('a zero failure count is stated in the tools panel, not on the strip', () => {
   // "no failures" and "not captured" are different answers, and the panel is
   // where the first one is said: its header reads "none failed". The strip
-  // follows the Sessions row, where failures ride the tools card and take a
-  // place of their own only when there are some (2026-10-22). Measured zero
-  // calls still count, which is why the filter tests `v === 0`.
+  // follows the Sessions row, where failures ride the tools card and never
+  // take a place of their own. Measured zero calls still count, which is why
+  // the filter tests `v === 0`.
   const bare = { id: 'x', day: '2026-08-05', exchanges: 0, calls: 0, failures: 0 };
   window.__probe = { id: 'x', repo: STORE, facts: bare, record: null };
   const el = window.document.createElement('div');
@@ -215,6 +220,42 @@ test('a zero failure count is stated in the tools panel, not on the strip', () =
   assert.equal(d.toolTally.failures, 0, 'and the panel has it to state');
   assert.equal(d.timeFacts.span, '', 'a duration nothing could compute is absent, not zero');
   assert.ok(!('agents' in s), 'and so is a fan-out nobody ran');
+});
+
+test('the Look row groups its chips by branch, from a lent list', () => {
+  // Each chip is a kits/guide-render.js target and names its repo and ref, so
+  // a session whose work spans two branches draws two groups, each led by its
+  // branch, as each branch tile under a Sessions card carries its own chips.
+  const chip = (repo, ref, path) => ({ kind: 'render', repo, ref, path, label: path.split('/').pop(),
+                                       addr: repo + '@' + ref + ':' + path, url: 'u:' + repo + '@' + ref + ':' + path,
+                                       title: 'Render ' + path + ' at ' + ref });
+  const pages = [chip('me/web-tools', 'claude/a', 'pages/one.html'), chip('me/home', 'claude/a', 'app/index.html'),
+                 chip('me/web-tools', 'claude/a', 'pages/two.html')];
+  window.__probe = { id: 'x', repo: STORE, facts: { id: 'x', day: '2026-08-05' }, pages, record: null };
+  const el = window.document.createElement('div');
+  el.setAttribute('x-data', 'sessionBrief(window.__probe)');
+  window.document.body.append(el);
+  Alpine.initTree(el);
+  const g = Alpine.$data(el).pageGroups;
+  // Through JSON, since the getter's arrays belong to the jsdom realm.
+  assert.deepEqual(JSON.parse(JSON.stringify(g.map(x => [x.key, x.repoShort, x.chips.map(c => c.label)]))),
+    [['me/web-tools@claude/a', 'web-tools', ['one.html', 'two.html']], ['me/home@claude/a', 'home', ['index.html']]],
+    'one group per repo and branch, in arrival order, the same branch name in two repos kept apart');
+});
+
+test('a standalone page draws no Look row: its views are the Views tab', () => {
+  // Nothing is lent outside the app, and the page's own branch reads fill the
+  // Views tab, whose contents list groups the same pages by branch. A row of
+  // chips above the tabs would list them twice (owner, 2026-11-02).
+  window.__probe = { id: 'y', repo: STORE, facts: { id: 'y', day: '2026-08-05' }, record: null };
+  const el = window.document.createElement('div');
+  el.setAttribute('x-data', 'sessionBrief(window.__probe)');
+  window.document.body.append(el);
+  Alpine.initTree(el);
+  const d = Alpine.$data(el);
+  d.work.views = [{ kind: 'html', path: 'pages/p.html', slug: 'me/web-tools', branch: 'claude/b', url: 'u:p' }];
+  assert.equal(d.pageChips.length, 0);
+  assert.equal(d.pageGroups.length, 0);
 });
 
 test('an unreadable record costs the outline and nothing else', () => {
@@ -818,13 +859,70 @@ test('the pill draws declared marks and counts the rest', () => {
   // Nine checkouts drew six neutral bookmarks in a row on a phone (owner,
   // 2026-10-22).
   const d = lent();
+  const M = window.RepoMark;
   const was = { record: d.record, marks: d.marks };
   try {
     d.record = { ...d.rec, attached: ['home', 'web-tools', 'wtp-a', 'wtp-b'] };
-    d.marks = { home: 'ph-house', 'web-tools': 'ph-toolbox', 'wtp-a': '', 'wtp-b': '' };
+    d.marks = { home: M.spec({ icon: 'ph-house' }), 'web-tools': M.spec({ icon: 'ph-toolbox' }), 'wtp-a': '', 'wtp-b': '' };
     assert.deepEqual(Array.from(d.scopeMarked), ['home', 'web-tools']);
     assert.equal(d.scopeRepos.length - d.scopeMarked.length, 2, 'drawn as +2');
   } finally { d.record = was.record; d.marks = was.marks; }
+});
+
+test('the pill and the checkouts panel draw a repository one way, in its tone', async () => {
+  // One renderer for both (kits/repo-mark.js), so the two cannot drift: a
+  // toned glyph is duotone in its tone in each, an untoned one keeps the plain
+  // weight and takes the colour around it, as every mark did before tones.
+  const d = lent();
+  const M = window.RepoMark;
+  const was = { record: d.record, marks: d.marks };
+  try {
+    d.record = { ...d.rec, repos: [], attached: ['home', 'shortcut-tools', 'wtp-a'] };
+    d.marks = { home: M.spec({ icon: 'ph-house' }), 'shortcut-tools': M.spec({ icon: 'ph-lightning', tone: 'yellow' }), 'wtp-a': '' };
+    await tick(2);
+    const pill = window.document.querySelector('#lent [data-scope-pill]');
+    const bolt = pill.querySelector('i.ph-lightning');
+    assert.deepEqual([...bolt.classList].filter(c => Object.values(M.WEIGHTS).includes(c)), ['ph-duotone'],
+      'one weight class, never `ph` beside another');
+    assert.ok(bolt.classList.contains('text-yellow-500'), 'in its tone');
+    const house = pill.querySelector('i.ph-house');
+    assert.ok(house.classList.contains('ph'), 'an untoned glyph keeps its weight');
+    assert.ok(![...house.classList].some(c => c.startsWith('text-') && c !== 'text-base'),
+      'and carries no colour of its own, so the pill\'s grey and its hover reach it');
+    assert.equal(pill.textContent.replace(/\s+/g, ''), '+1', 'the undeclared one is counted');
+    // The panel's row: the same mark at the panel's size, its tone over the
+    // panel's grey, and the neutral glyph for the repository that declares none.
+    const row = d.markHtml('shortcut-tools', { cls: 'text-lg', color: 'text-base-content/60' });
+    assert.match(row, /ph-duotone ph-lightning/);
+    assert.match(row, /text-yellow-500/);
+    assert.ok(!row.includes('text-base-content/60'), 'one colour: the tone replaces the panel\'s');
+    assert.match(d.markHtml('home', { cls: 'text-lg', color: 'text-base-content/60' }), /text-base-content\/60/);
+    assert.match(d.markHtml('wtp-a'), /ph-bookmark-simple/, 'none declared: the neutral glyph');
+  } finally { d.record = was.record; d.marks = was.marks; }
+});
+
+test('marks come from the app\'s estate list, else from each manifest at the page\'s selection', async () => {
+  // In the app the list is already read (no manifest read at all); on a cold
+  // page each repository's .web-tools.json is read once, without naming a ref,
+  // so a preview link's refs= decides which branch's manifest draws.
+  const d = lent();
+  const was = { record: d.record, marks: d.marks, shell: window.__shell };
+  try {
+    window.__shell = { estateRepos: [{ repo: 'me/home', icon: 'ph-house', tone: 'orange' }] };
+    window.__manifests = { 'me/mark-cold': { icon: 'ph-lightning', tone: 'yellow', weight: 'fill' } };
+    d.record = { ...d.rec, repos: [], attached: ['home', 'mark-cold', 'mark-none'] };
+    d.marks = {};
+    d.loadMarks();
+    await tick(4);
+    assert.equal(d.marks.home.tone, 'orange', 'the estate list\'s answer');
+    assert.ok(!gets().some(g => g.startsWith('get:me/home:')), 'and nothing read for it');
+    assert.deepEqual([d.marks['mark-cold'].glyph, d.marks['mark-cold'].tone, d.marks['mark-cold'].weight],
+                     ['ph-lightning', 'yellow', 'fill'], 'the manifest\'s, weight as declared');
+    assert.ok(gets().includes('get:me/mark-cold:.web-tools.json (selection)'), 'read at the selection, not pinned to main');
+    assert.equal(d.marks['mark-none'], '', 'a manifest that cannot be read declares nothing');
+  } finally {
+    d.record = was.record; d.marks = was.marks; window.__shell = was.shell; delete window.__manifests;
+  }
 });
 
 test('a session that names no checkout draws no pill', () => {
@@ -963,6 +1061,31 @@ test('an old record whose turn count disagrees gets no notes, rather than notes 
   assert.equal(data.record.schema, 4);
   assert.equal(data.turnNotes(), null);
   assert.equal(data.gist.summary, 'What Gemini made of it.', 'the session-level summary still applies');
+  window.__topicsDoc = null;
+});
+
+test('an old record gets its notes when the file states when each turn was sent', async () => {
+  // The same disagreement as above, but each turn carries its own `at`, so
+  // pairing needs no count: the note goes to the row sent at that instant.
+  const later = '2026-08-05T14:00:00Z';
+  const doc = { ...TOPICS_DOC, turns: [{ ...TOPICS_DOC.turns[0], at: record.prompts[0].at },
+                                       { turn: 1, at: later, summary: 'A second turn.', headline: 'Second' }] };
+  const data = await mountTopics(doc, 'me/topics-c2');
+  assert.equal(data.record.schema, 4);
+  assert.deepEqual(Object.keys(data.turnNotes()), [record.prompts[0].at, later]);
+  assert.equal(data.turnNotes()[later].summary, 'A second turn.');
+  window.__topicsDoc = null;
+});
+
+test('turns sent at one instant keep both notes, in turn order', async () => {
+  // The recorder stores a message and the image sent with it as two prompts at
+  // one instant; keyed by instant alone, the second note overwrote the first.
+  const at = record.prompts[0].at;
+  const doc = { ...TOPICS_DOC, turns: [{ turn: 0, at, summary: 'The message.', headline: 'M' },
+                                       { turn: 1, at, summary: 'The image.', headline: 'I' }] };
+  const data = await mountTopics(doc, 'me/topics-c3');
+  assert.deepEqual(JSON.parse(JSON.stringify(data.turnNotes()[at])).map((n) => n.summary),
+    ['The message.', 'The image.']);
   window.__topicsDoc = null;
 });
 

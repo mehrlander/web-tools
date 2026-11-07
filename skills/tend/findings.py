@@ -355,6 +355,10 @@ def observe(w, assessed, local, store_repo):
     """What holds now for one witness, in the shape the browser observes."""
     kind, repo, at, path = parse_ref(str(w.get("ref", "")))
     co = local.get(repo)
+    if kind == "pr" and w.get("state") == "merged":
+        # A merge is final, and the cache's PR index stops at its reach, so a
+        # merged witness older than that would read unverifiable on every pass.
+        return {"state": "merged"}
     if kind == "pr":
         a = activity(repo, store_repo)
         if a is None:

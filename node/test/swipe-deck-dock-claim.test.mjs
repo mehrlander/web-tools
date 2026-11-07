@@ -102,3 +102,44 @@ test('a throwing predicate withholds rather than breaking the deck', () => {
   assert.ok(handle.el, 'the deck opened');
   handle.close();
 });
+
+// The width hook's `when` (2026-10-30). A host can dock a deck it does not
+// size: home's budget-drs app sizes the decks it places itself, while three of
+// its views lay a deck over a column with a divider of their own on that edge.
+// Unqualified, `__deckWidth` put the kit's seam on top of that divider. The
+// stub records what the kit asked dock-split for, which is the whole decision.
+function stubDockSplit(window) {
+  const calls = [];
+  window.dockSplit = { attach: (el, o) => { calls.push(o); return { destroy() {}, refresh() {} }; } };
+  return calls;
+}
+
+test('the width hook takes a `when` too, and a false one draws no seam', () => {
+  const window = mount();
+  const calls = stubDockSplit(window);
+  window.document.documentElement.dataset.deckPane = 'dock';
+  window.__deckWidth = () => 50;
+  window.__deckWidth.when = () => false;
+  let handle = window.swipeDeck.open({ count: 2, render: () => {} });
+  assert.equal(calls.length, 0, 'a deck its opener framed keeps the divider its view already has');
+  handle.close();
+
+  window.__deckWidth.when = () => true;
+  handle = window.swipeDeck.open({ count: 2, render: () => {} });
+  assert.equal(calls.length, 1, 'and the same host sizes a deck it placed itself');
+  handle.close();
+});
+
+test('the width hook passes its stops through to dock-split', () => {
+  const window = mount();
+  const calls = stubDockSplit(window);
+  window.document.documentElement.dataset.deckPane = 'dock';
+  const max = () => 58;
+  window.__deckWidth = () => 50;
+  window.__deckWidth.min = 27;
+  window.__deckWidth.max = max;
+  const handle = window.swipeDeck.open({ count: 2, render: () => {} });
+  assert.equal(calls[0].min, 27, 'a number stop arrives as given');
+  assert.equal(calls[0].max, max, 'a function stop arrives uncalled, so dock-split reads it on every clamp');
+  handle.close();
+});

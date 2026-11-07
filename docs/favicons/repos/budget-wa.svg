@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="budget-wa">
   <title>budget-wa</title>
-  <desc>An open ledger: the Washington budget record, kept by the source that published each part. It stands on the detached base bar that marks the public-record stores. Drawn in one ink on the budget-drs app icon's box and rules, for the page to paint in its text colour: solid, no strokes, and every gap at least 2.5 units, which is about 1.4 CSS pixels at 16.</desc>
-  <g fill="currentColor">
+  <desc>An open ledger: the Washington budget record, kept by the source that published each part. It stands on the detached base bar that marks the public-record stores. Drawn on the budget-drs app icon's box and rules in one colour, emerald-600 (#059669): solid, no strokes, and every gap at least 2.5 units, which is about 1.4 CSS pixels at 16.</desc>
+  <g fill="#059669">
     <path d="M2.5 5.5 L14.75 7.5 L14.75 21.9 L2.5 19.9 Z"/>
     <path d="M17.25 7.5 L29.5 5.5 L29.5 19.9 L17.25 21.9 Z"/>
     <rect x="2" y="24.4" width="28" height="4.6"/>
