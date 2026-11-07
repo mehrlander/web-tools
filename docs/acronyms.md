@@ -8,10 +8,10 @@ Summary of Proposal for Unfamiliar Reader. Asked for a SPUR, summarize the sessi
 
 ## FAIR
 
-Fresh Assessment of Intention and Reasoning. Asked for a FAIR, reassess the session's work from the reader's goal rather than from the current proposal: restate the goal, test whether the session's reasoning serves it, lay out the ways to reach the goal with the tradeoffs of each, and recommend one with its reason and the session's confidence. Write it, like a SPUR, for a reader who has not followed the session.
+Fresh Assessment of Intention and Reasoning. Asked for a FAIR, reassess the session's work from the reader's goal rather than from the current proposal: restate the goal, test whether the session's reasoning serves it, lay out the ways to reach the goal with the tradeoffs of each, and recommend one with its reason and the session's confidence. Write it for the reader of a [SPUR](#spur).
 
 Names passed over for FAIR: LEAF, SLATE, SLEDGE, DELVE and TOUR.
 
 ## CDE
 
-Concept, Definition, Examples: an order for explaining a term. A possible fourth letter is F, for Foil: the nearest case the term excludes, a non-example in the [Frayer model](https://en.wikipedia.org/wiki/Frayer_model).
+Concept, Definition, Examples: an order for explaining a term. A possible fourth letter is F, for Foil: the nearest case the term excludes, as in the [Frayer model](https://en.wikipedia.org/wiki/Frayer_model).
