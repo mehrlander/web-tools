@@ -82,7 +82,7 @@ wrong, not the type. Decks and documents run `text-xl` or larger with
 Everything the reader came to read shares a size; `text-xs` and monospace belong
 to labels, counters, and timestamps.
 
-**8. Running copy wraps plainly.** A block that can run to three lines or more keeps the default wrapping, with a no-break space (`\u00a0`) in place of the space before its last word, so that word never stands alone. Not `text-pretty`: Safari's WebKit evens out every line, leaving each short of the right edge, and Chromium does not show the fault. `text-balance` or `text-pretty` suits a block of at most two lines. Check wrapping in WebKit; [`capabilities.md`](https://github.com/mehrlander/web-tools/blob/main/docs/environment/capabilities.md#browsers--headless-rendering-available) says how to install it.
+**8. Running copy wraps plainly.** A block that can run to three lines or more keeps the default wrapping, with a no-break space (`\u00a0`) in place of the space before its last word, so the last line holds at least two words. Not `text-pretty`: under it WebKit, Safari's engine, evens out every line and leaves each short of the right edge, where Chromium does not. `text-balance` or `text-pretty` suits a block of at most two lines. Check wrapping in WebKit; [`capabilities.md`](https://github.com/mehrlander/web-tools/blob/main/docs/environment/capabilities.md#browsers--headless-rendering-available) says how to install it.
 
 **9. Content starts at the top.** Do not vertically centre a slide because it
 looks balanced when short; across a deck it moves the first line on every card.
