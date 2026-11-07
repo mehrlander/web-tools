@@ -68,13 +68,18 @@
     todo: [], jot: [], pin: [], snag: [], created: [], notes: [], pings: [], daemon: null,
     todoDraft: '', jotDraft: '', jotKind: '', pinDraft: '', pinTitle: '', snagDraft: '', pingDraft: '',
     noteAbout: '', noteDraft: '', createdDraft: '', createdNote: '',
-    showDone: false, snagOpen: '', menu: false, optMenu: false,
+    showDone: false, snagOpen: '', menu: false, optMenu: false, ownPanel: false,
 
     async init() {
       await this.load();
       this.loading = false;
       if (!this.lists.some(l => l.key === this.tab)) this.tab = 'to-do';
       this.sync();
+      // A walkthrough that arrived by link keeps the panel, so a look link
+      // with a step on this page and steps on others runs through; the
+      // options' own steps start only when the address carries none.
+      if (window.Look?.fromHash?.()) return;
+      this.ownPanel = true;
       addEventListener('look:step', e => { const o = OPTIONS[e.detail?.i]; if (o && o.v !== this.v) { this.v = o.v; this.menu = false; this.sync(); } });
       window.Look?.start(OPTIONS.map(o => ({ say: o.say, mark: o.mark })), { folded: true, from: this.v === 'b' ? 1 : 0 });
     },
@@ -128,9 +133,15 @@
     get cur() { return this.lists.find(l => l.key === this.tab) || this.lists[0]; },
     get createdList() { return this.created.find(l => l.path === this.cur.path) || null; },
     pick(key) { this.tab = key; this.menu = false; this.sync(); },
-    choose(v) { const i = OPTIONS.findIndex(o => o.v === v); this.v = v; this.optMenu = false; this.menu = false; this.sync(); window.Look?.go?.(i); },
+    choose(v) { const i = OPTIONS.findIndex(o => o.v === v); this.v = v; this.optMenu = false; this.menu = false; this.sync(); if (this.ownPanel) window.Look?.go?.(i); },
     sync() {
-      try { history.replaceState(null, '', '#v=' + this.v + (this.tab !== 'to-do' ? '&tab=' + this.tab : '') + '&stop=' + (this.v === 'b' ? 2 : 1)); } catch {}
+      // Only this page's keys change; a walkthrough's own (steps=, stop=)
+      // stay, and stop= is the options' only while they hold the panel.
+      const h = new URLSearchParams(location.hash.slice(1));
+      h.set('v', this.v);
+      if (this.tab !== 'to-do') h.set('tab', this.tab); else h.delete('tab');
+      if (this.ownPanel) h.set('stop', this.v === 'b' ? 2 : 1);
+      try { history.replaceState(null, '', '#' + h.toString()); } catch {}
     },
     listUrl(path) { return 'https://github.com/' + REG + '/blob/main/' + path; },
 
