@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `node/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 16 are named by CLAUDE.md,
-22 by a skill, 44 by a page or component. The remaining 37 are
+22 by a skill, 44 by a page or component. The remaining 38 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -99,6 +99,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`icon-families.csv`](icon-families.csv) — the icon families: each set of icons the estate has settled on, the file that declares its members, and the passage that discusses them
 - [`fab-signals.csv`](fab-signals.csv) — what the FAB says: each tint, glyph and badge it shows, when it shows, what it means and what a tap does
 - [`tests-authored.csv`](tests-authored.csv) — whether each test checks behavior or is a gate, and what breaks if it is deleted
+- [`acronyms.md`](acronyms.md) *(orphan)* — coined acronyms for asks a session may hear (SPUR, FAIR) and for an order of explaining a term (CDE), kept mostly for fun
 
 ## docs/envelopes/
 
