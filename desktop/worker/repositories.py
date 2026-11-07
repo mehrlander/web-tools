@@ -141,11 +141,12 @@ def pull_requests(repo, branches):
 def branch_status(entry, row, source, cache):
     branch, head = row['branch'], row['head']
     pr = source.get('pullRequests', {}).get(branch)
+    reviewed = branch in source.get('pullRequests', {}) and bool(source.get('pullRequestsCheckedAt'))
     main = source.get('tips', {}).get(source.get('defaultBranch'))
     result = {'state': 'unknown', 'url': pr.get('url') if pr else None,
               'number': pr.get('number') if pr else None, 'title': pr.get('title') if pr else None,
               'pullRequestState': pr.get('state') if pr else None,
-              'checkedAt': source.get('pullRequestsCheckedAt')}
+              'checkedAt': source.get('pullRequestsCheckedAt') if reviewed else None}
     if branch == source.get('defaultBranch'):
         result.update(state='main', checkedAt=source.get('checkedAt'))
         return result
@@ -153,7 +154,7 @@ def branch_status(entry, row, source, cache):
         result['state'] = 'open'
         return result
     signature = [branch, head, main, pr.get('state') if pr else None, pr.get('head') if pr else None,
-                 bool(source.get('pullRequestsCheckedAt'))]
+                 reviewed]
     cache_key = 'branch:' + row['key']
     old = cache.get(cache_key, {})
     if old.get('signature') == signature:
@@ -168,7 +169,7 @@ def branch_status(entry, row, source, cache):
         result['state'] = 'merged'
     elif in_main:
         result.update(state='incorporated', checkedAt=source.get('checkedAt'))
-    elif source.get('pullRequestsCheckedAt'):
+    elif reviewed:
         result['state'] = 'review'
     if result['state'] != 'unknown':
         cache[cache_key] = {'signature': signature, 'state': result['state']}

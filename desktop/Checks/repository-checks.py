@@ -37,7 +37,7 @@ class RepositoryChecks(unittest.TestCase):
         self.mock = patch.object(repos, 'git', fixture_git)
         self.mock.start()
         self.addCleanup(self.mock.stop)
-        self.reviews = patch.object(repos, 'pull_requests', return_value={})
+        self.reviews = patch.object(repos, 'pull_requests', side_effect=lambda _repo, branches: {branch: None for branch in branches})
         self.reviews.start()
         self.addCleanup(self.reviews.stop)
         self.repo_key = repos.key('fixture/project')
@@ -226,6 +226,15 @@ class RepositoryChecks(unittest.TestCase):
 
 
 class RepositoryMetadataChecks(unittest.TestCase):
+    def test_an_unqueried_branch_never_inherits_another_branches_review(self):
+        row = {'branch': 'feature/new', 'head': 'a' * 40, 'key': 'b' * 24, 'main': {'ahead': None}}
+        source = {'pullRequestsCheckedAt': repos.stamp(), 'pullRequests': {}}
+        result = repos.branch_status({'path': Path('.')}, row, source, {})
+        self.assertEqual(result['state'], 'unknown')
+        self.assertIsNone(result['checkedAt'])
+        source['pullRequests']['feature/new'] = None
+        self.assertEqual(repos.branch_status({'path': Path('.')}, row, source, {})['state'], 'review')
+
     def test_lookup_uses_json_stdin_and_filters_other_repositories(self):
         branch = 'feature/"quoted'
         foreign = {'number': 9, 'title': 'Other work', 'url': 'https://github.com/other/project/pull/9',
