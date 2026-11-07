@@ -95,8 +95,10 @@ test('mounting is quiet', () => assert.deepEqual(problems, []));
 test('the document is drawn whole, its edits staged, under a head naming the file', () => {
   assert.deepEqual(drawn[0], { a: DOC, b: 'First.\n\nSecond.\n\nThird.\n\nFourth.\n' }, 'the file as it stands against the file with every edit in it');
   assert.equal(box(1).dataset.pair, 'One.>First.');
-  assert.match(root().querySelector('[data-doc-head]').textContent, /docs\/x\.md/);
-  assert.match(root().querySelector('[data-doc-head]').textContent, /4 edits · 0 of 3 decided/);
+  const shown = (el) => el && el.style.display !== 'none';
+  assert.ok(![...root().querySelectorAll('[data-doc-head] > span')].some((el) => shown(el) && /docs\/x\.md|edits/.test(el.textContent)),
+    'in the deck the header names the file and the list counts the edits, so the head repeats neither');
+  assert.equal(data().docCount, '4 edits · 0 of 3 decided', 'the count is still worked out');
   assert.equal(root().querySelector('[data-dictate-link]'), null, 'no way out to Dictate');
 });
 
@@ -123,7 +125,7 @@ test('a documentation call shows no PR readiness, even when the PR has conflicts
 test('the edits are listed at the top, each with its summary, and a tap scrolls the document to it', async () => {
   const rows = [...root().querySelectorAll('[data-doc-row]')];
   assert.equal(rows.length, 4, 'one row per edit');
-  assert.match(rows[0].textContent, /Edit 1\s*clearer/, 'its why, when it has no proposal');
+  assert.match(rows[0].textContent, /^\s*1\s*clearer/, 'its number and its why, when it has no proposal');
   assert.match(rows[1].textContent, /Names the order with Second\./, 'its proposal, marks stripped');
   assert.match(rows[3].textContent, /Third\./, 'else the text it puts in');
   scrolled.length = 0;
