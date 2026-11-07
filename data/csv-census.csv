@@ -41,7 +41,7 @@ docs/hook-events.csv,33,6,2957,"[""event"",""phase"",""summary"",""version"",""r
 docs/hook-legs.csv,20,8,3216,"[""order"",""leg"",""gloss"",""watches"",""runs"",""stages"",""mode"",""in_repair""]"
 docs/icon-families.csv,17,7,1586,"[""family"",""group"",""label"",""source"",""icon_column"",""name_column"",""doc""]"
 docs/intents.csv,11,6,1879,"[""intent"",""label"",""path"",""caveat"",""caveat_at"",""doc""]"
-docs/kits.csv,130,8,17718,"[""path"",""namespace"",""gloss"",""lines"",""boot"",""demo"",""users"",""tested""]"
+docs/kits.csv,130,8,17719,"[""path"",""namespace"",""gloss"",""lines"",""boot"",""demo"",""users"",""tested""]"
 docs/machines.csv,6,5,1234,"[""machine"",""label"",""icon"",""gloss"",""reaches""]"
 docs/manifest-fields.csv,128,6,28484,"[""key"",""type"",""consumer"",""status"",""required"",""summary""]"
 docs/map-tabs.csv,40,4,26805,"[""tab"",""gloss"",""refs"",""narrative""]"
