@@ -7,6 +7,8 @@ public record Errand(string Id, string Title, string Note, string State,
     DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt, string? Host,
     string? Message, string? Reply, bool HasOutput, bool IsNew, bool HasLocalOutput = false)
 {
+    public string Provider { get; init; } = "Gemini";
+    public string Location => Provider == "Gemini" ? "Laptop" : "";
     public bool IsOpen => State is "queued" or "claimed" or "reply";
 }
 
@@ -69,7 +71,10 @@ public static class Activity
     {
         if (!ValidId(id) || request.ValueKind != JsonValueKind.Object) return null;
         var run = Child(request, "run");
-        if (Text(run, "method") != "laptop-daemon") return null;
+        var provider = Text(run, "method") switch {
+            "laptop-daemon" => "Gemini", "codex-errand" => "Codex", "claude-errand" => "Claude", _ => null
+        };
+        if (provider is null) return null;
         var created = Date(request, "createdAt");
         var data = Child(result, "data");
         var closed = Date(result, "closedAt", Date(result, "fulfilledAt", created));
@@ -83,7 +88,7 @@ public static class Activity
         return new(id, Text(request, "title", id), Text(request, "note"), state,
             created, updated, hasClaim ? Text(claim, "by") : Text(result, "by"),
             Text(result, "message"), Text(data, "reply"), hasOutput,
-            hasResult && updated > seenThrough);
+            hasResult && updated > seenThrough) { Provider = provider };
     }
 }
 

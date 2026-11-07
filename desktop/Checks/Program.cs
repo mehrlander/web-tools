@@ -19,6 +19,20 @@ Check(Activity.Join("test-1", request, default, arriving, false, seen)?.State ==
 Check(Activity.Join("test-1", request, default, Parse("""{"ok":false,"closedAt":"2026-01-02T03:00:00Z"}"""), false, seen)?.State == "failed", "Failed work is surfaced for review.");
 Check(Activity.Join("test-1", request, default, done, false, seen.AddDays(1))?.IsNew == false, "Reviewed results stop counting as new.");
 Check(Activity.Join("test-1", Parse("""{"run":{"method":"browser"}}"""), default, default, false, seen) is null, "Browser errands do not masquerade as local worker jobs.");
+foreach (var (method, provider) in new[] { ("laptop-daemon", "Gemini"), ("codex-errand", "Codex"), ("claude-errand", "Claude") }) {
+    var routed = Parse(JsonSerializer.Serialize(new { title = "Routed work", createdAt = seen, run = new { method } }));
+    Check(Activity.Join("routed", routed, default, default, false, seen) is { State: "queued" } queued && queued.Provider == provider,
+        method + " supplies the correct assistant queue.");
+    Check(Activity.Join("routed", routed, claim, default, false, seen) is { State: "claimed" } accepted && accepted.Provider == provider,
+        method + " preserves claim ownership without asserting execution.");
+    Check(Activity.Join("routed", routed, claim, arriving, false, seen) is { State: "reply" } reply && reply.Provider == provider,
+        method + " retains arriving replies in its lane.");
+    Check(Activity.Join("routed", routed, claim, done, true, seen) is { State: "complete", HasOutput: true } result && result.Provider == provider,
+        method + " retains the result and output after a claim.");
+}
+Check(Activity.Join("unknown", Parse("""{"run":{"method":"future-runner"}}"""), default, done, false, seen) is null
+    && Activity.Join("missing", Parse("{}"), default, default, false, seen) is null,
+    "Unknown and missing methods do not enter an assistant lane.");
 Check(Activity.Join("../../escape", request, default, default, false, seen) is null, "Errand identifiers cannot escape the output folder.");
 Check(NavigationPolicy.IsWebTools(NavigationPolicy.AppUrl + "?view=stage"), "The hosted app and its routes stay inside the desktop window.");
 Check(!NavigationPolicy.IsWebTools("https://mehrlander.github.io/web-tools-evil/app/"), "A lookalike path is outside the hosted app boundary.");
@@ -55,6 +69,10 @@ try {
         Directory.CreateDirectory(Path.Combine(seed, "errands", directory));
     await File.WriteAllTextAsync(Path.Combine(seed, "errands/requests/test-1.json"), request.GetRawText());
     await File.WriteAllTextAsync(Path.Combine(seed, "errands/requests/test-2.json"), request.GetRawText());
+    await File.WriteAllTextAsync(Path.Combine(seed, "errands/requests/codex-1.json"), request.GetRawText().Replace("laptop-daemon", "codex-errand"));
+    await File.WriteAllTextAsync(Path.Combine(seed, "errands/requests/claude-1.json"), request.GetRawText().Replace("laptop-daemon", "claude-errand"));
+    await File.WriteAllTextAsync(Path.Combine(seed, "errands/claims/claude-1.json"), claim.GetRawText());
+    await File.WriteAllTextAsync(Path.Combine(seed, "errands/requests/unknown-1.json"), request.GetRawText().Replace("laptop-daemon", "unknown"));
     await File.WriteAllTextAsync(Path.Combine(seed, "errands/results/test-1.json"), done.GetRawText());
     await File.WriteAllTextAsync(Path.Combine(seed, "errands/claims/test-1.json"), claim.GetRawText());
     await File.WriteAllTextAsync(Path.Combine(seed, "errands/output/test-1/report.txt"), "Fixture output");
@@ -84,7 +102,10 @@ try {
     var headBefore = await Commands.Text("git", ["rev-parse", "HEAD"], checkout);
     var reader = new ErrandReader(checkout);
     var live = await reader.Read(seen, force: true);
-    Check(live.Connected && live.Errands.Count == 2, "A real Git object read joins the available worker records.");
+    Check(live.Connected && live.Errands.Count == 4, "A real Git object read joins all supported assistant records and skips unknown methods.");
+    Check(live.Errands.Single(j => j.Id == "codex-1") is { Provider: "Codex", State: "queued" }
+        && live.Errands.Single(j => j.Id == "claude-1") is { Provider: "Claude", State: "claimed" },
+        "Codex and future Claude errands retain their lanes through the private background reader.");
     Check(reader.Cloud.Items.Single() is { State: "recorded", Location: "Cloud" },
         "The remote main cache supplies recorded cloud activity without asserting a running session.");
     Check(reader.Cloud.Items.Single() is { Title: "Cloud checkpoint fixture", Checkpoint.Headline: "A published checkpoint" },
@@ -97,7 +118,7 @@ try {
     await File.WriteAllTextAsync(Path.Combine(seed, "errands/results/test-2.json"), "{broken result");
     await CommitFixture();
     var damaged = await reader.Read(seen, force: true);
-    Check(damaged.Errands.Count == 1 && damaged.Notice?.Contains("unreadable") == true,
+    Check(damaged.Errands.Count == 3 && damaged.Notice?.Contains("unreadable") == true,
         "A malformed result is reported and never turns completed work into a queued job.");
     var turnAt = DateTimeOffset.UtcNow;
     var turnPath = $"sessions/activity/{turnAt:yyyy-MM-dd}/aabbccdd.json";
@@ -114,7 +135,7 @@ try {
         "Fresh background turn signals arrive without waiting for the thirty-second main cache or touching worker edits.");
     await Git(checkout, "remote", "set-url", "origin", Path.Combine(fixture, "missing-remote"));
     var offline = await reader.Read(seen, force: true);
-    Check(!offline.Connected && offline.Errands.Count == 1 && offline.Revision == signaled.Revision
+    Check(!offline.Connected && offline.Errands.Count == 3 && offline.Revision == signaled.Revision
         && offline.Notice?.Contains("last available") == true, "A failed fetch preserves the previous activity with an offline notice.");
     var missing = await new ErrandReader(Path.Combine(fixture, "missing-checkout")).Read(seen);
     Check(!missing.Connected && missing.Errands.Count == 0 && missing.Notice?.Contains("not found") == true,

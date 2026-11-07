@@ -17,6 +17,7 @@
     <Content Include="../../node_modules/dompurify/dist/purify.min.js" Link="phone/vendor/purify.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../../lib/kits/assistant-mark.js" Link="phone/vendor/assistant-mark.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../../lib/kits/claude-mark.js" Link="phone/vendor/claude-mark.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../lib/kits/title-tip.js" Link="phone/vendor/title-tip.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../../lib/favicon.svg" Link="phone/icon.svg" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../../apple-touch-icon.png" Link="phone/apple-touch-icon.png" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
