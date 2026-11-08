@@ -23,6 +23,7 @@ import { readFileSync } from 'node:fs';
 import { chromium } from 'playwright';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { repoRoot as root } from '../repo-root.mjs';
+import { launch as launchChromium } from '../render/chromium.mjs';
 
 const outDir = path.join(root, 'node', '.preview', 'pdf-kit');
 const keep = process.argv.includes('--keep');
@@ -166,7 +167,7 @@ const { server, port } = await serve({
   '/open.pdf': openBytes,
 });
 
-const browser = await chromium.launch();
+const browser = await launchChromium();
 const page = await browser.newPage();
 const errors = [];
 page.on('pageerror', e => errors.push(String(e)));

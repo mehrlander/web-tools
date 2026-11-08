@@ -13,7 +13,10 @@ const LISTING = {
   aaaaaaaaaaa1: { 'SKILL.md': 's1', 'CONVERSATION.md': 'c1', 'QUALIFIED-WRITING.md': 'q1' },
   bbbbbbbbbbb2: { 'SKILL.md': 's1', 'CONVERSATION.md': 'c2', 'QUALIFIED-WRITING.md': 'q1' },
   ddddddddddd4: { 'SKILL.md': 's0', 'CONVERSATION.md': 'c1', 'QUALIFIED-WRITING.md': 'q1' },
+  eeeeeeeeeee5: { 'SKILL.md': 's1', 'CONVERSATION.md': 'c2', 'QUALIFIED-WRITING.md': 'q1' },
 };
+// doc-craft's SKILL.md, the third file /portable:default loads, read beside the folder.
+const CRAFT = { main: 'd2', aaaaaaaaaaa1: 'd2', bbbbbbbbbbb2: 'd2', ddddddddddd4: 'd2', eeeeeeeeeee5: 'd1' };
 const reads = [];
 class StubGH {
   constructor(conf = {}) { this.repo = conf.repo || ''; this.ref = conf.ref || 'main'; }
@@ -21,6 +24,8 @@ class StubGH {
   async get() { throw new Error('404'); }
   async ls() { throw new Error('404'); }
   async req(p) {
+    const c = /^contents\/skills\/doc-craft\/SKILL\.md\?ref=(.+)$/.exec(p);
+    if (c) return { type: 'file', name: 'SKILL.md', sha: CRAFT[decodeURIComponent(c[1])] };
     const m = /^contents\/skills\/default\?ref=(.+)$/.exec(p);
     if (!m) return { default_branch: 'main', description: '', private: true, pushed_at: '' };
     reads.push(decodeURIComponent(m[1]));
@@ -65,6 +70,12 @@ test('the tip names every file that differs', async () => {
   assert.match(data.sessionDefaultNote(row('ddddddddddd4')), /^CONVERSATION\.md and SKILL\.md have changed on main since/);
 });
 
+test('a change to doc-craft marks the session, as the hint that clears it watches doc-craft too', async () => {
+  data.sessionDefaultStale(row('eeeeeeeeeee5'));
+  await settle(); await settle();
+  assert.deepEqual([...data.sessionDefaultChanged(row('eeeeeeeeeee5'))], ['doc-craft/SKILL.md']);
+});
+
 test('a session holding main\'s copy is not marked', async () => {
   data.sessionDefaultStale(row('bbbbbbbbbbb2'));
   await settle(); await settle();
@@ -76,7 +87,7 @@ test('each commit is read once, and kept for the next page', async () => {
   for (let i = 0; i < 3; i++) data.sessionDefaultStale(row('aaaaaaaaaaa1'));
   await settle();
   assert.equal(reads.length, before, 'no second read of a listing already held');
-  const kept = JSON.parse(window.localStorage.getItem('wt:defaultFilesAt') || '{}');
+  const kept = JSON.parse(window.localStorage.getItem('wt:defaultFilesAt:2') || '{}');
   assert.ok(kept.aaaaaaaaaaa1, 'a commit\'s listing is stored, since it never changes');
   assert.ok(!('main' in kept), 'main\'s listing is not stored, since main moves');
 });

@@ -23,6 +23,7 @@ import { readFile, mkdir } from 'node:fs/promises';
 import { chromium } from 'playwright';
 import { resolveCdn, typeFor } from '../render/cdn.mjs';
 import { repoRoot as root } from '../repo-root.mjs';
+import { launch as launchChromium } from '../render/chromium.mjs';
 
 const shots = path.join(root, 'node/.preview');
 await mkdir(shots, { recursive: true });
@@ -111,7 +112,7 @@ const toEnd = () => page.evaluate(() => {
 const below = (g) => g.scrollers.filter(s => s.top >= g.chrome.bottom - 1);
 
 try {
-  browser = await chromium.launch({ args: ['--no-sandbox', '--ignore-certificate-errors'],
+  browser = await launchChromium({ args: ['--no-sandbox', '--ignore-certificate-errors'],
     ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
       ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } : {}) });
   page = await browser.newPage({ viewport: { width: 390, height: 844 } });

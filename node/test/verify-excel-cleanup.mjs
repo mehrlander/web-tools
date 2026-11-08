@@ -9,6 +9,7 @@ import { gzipSync } from 'node:zlib';
 import { chromium } from 'playwright';
 import { resolveCdn, typeFor } from '../render/cdn.mjs';
 import { repoRoot as root } from '../repo-root.mjs';
+import { launch as launchChromium } from '../render/chromium.mjs';
 
 const out = path.resolve(process.env.XLSX_PREVIEW_DIR || path.join(root, 'node/.preview/excel-cleanup'));
 await mkdir(out, { recursive: true });
@@ -35,7 +36,7 @@ await new Promise(r => server.listen(0, '127.0.0.1', r));
 const origin = `http://127.0.0.1:${server.address().port}`;
 let browser;
 try {
-  browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL || undefined });
+  browser = await launchChromium({ channel: process.env.PLAYWRIGHT_CHANNEL || undefined });
   report.browserVersion = browser.version();
   const page = await browser.newPage({ viewport: { width: 1600, height: 950 }, deviceScaleFactor: 1 });
   page.on('pageerror', e => report.pageErrors.push(e.message));

@@ -5,13 +5,14 @@ status: backlog
 opened: 2026-10-25
 project: app
 size: L
-awaiting: whether a lineup's verdict lands as a verdict file beside the request (as approval/1 does) or as a note in the notes store; sign-off on the two governed-doc entries below
+awaiting: sign-off on the mark's entry in docs/favicons/README.md; the forms README's naming of the lineup waits on documentation call bb564bb3-lineup-forms (web-tools #1151)
 ---
 # Build the lineup, the form for choosing one of several working options
 
 A **lineup** is one page drawn several ways under a strip of option pills,
-so the reader compares working versions and picks one. It is the form the
-`choice` row of `docs/forms/README.md` lists as "none yet". The name and its
+so the reader compares working versions and picks one. It is a choice form in
+`docs/forms/README.md`, beside the image board and the idea board, which land
+their picks in a pick call (a user call of kind `pick`). The name and its
 mark were settled with the owner on 2026-10-23 to 2026-10-25, growing out of
 the option page in `docs/prototypes/themes-options.html` (the design-sprint
 skill's phase 3); a working prototype of a closings lineup was handed over as
@@ -56,10 +57,11 @@ Scope, in order:
    with the reader's token instead of carrying the counts, since web-tools is
    public.
 3. The drawer: a page contract naming the option on screen as a note's subject,
-   the verdict control, and Send from the Note tab.
+   the verdict control, and Send from the Note tab, which answers a pick call
+   as the idea board's Send does.
 4. With the owner's sign-off, since both are governed docs: the mark's entry
-   in `docs/favicons/README.md`, and the lineup named in the `choice` row of
-   `docs/forms/README.md`, with where its answer lands.
+   in `docs/favicons/README.md`, and the lineup moved into the `choice` row of
+   `docs/forms/README.md` once its pick lands in a pick call.
 
 ## Related
 
@@ -70,7 +72,8 @@ Scope, in order:
 - `docs/fab.md`: the drawer's account of the Note tab and the annotator
 - `docs/favicons/README.md`: the drawn-mark rules the mark follows
 - `docs/prototypes/themes-options.html`: the option page the lineup grew out of
-- `skills/design-sprint/SKILL.md`: phase 3, "Comparing working options", which hands over an option page
+- `skills/design-sprint/SKILL.md`: phase 3, "Comparing working options", which builds a lineup
+- `docs/prototypes/lists-options.html`: the worked example, two layouts of the Lists view, whose header says how a lineup is built
 - `mehrlander/web-tools-private:state/closings.json` (background branch): the data the first lineup draws
 
 ## Done when
@@ -82,3 +85,4 @@ decided.
 
 ## Progress log
 - 2026-10-25: Filed from claude/look-panel-fold after web-tools #1081 merged the look-panel hooks. Next: the lineup kit, scope item 1.
+- 2026-11-08: The owner agreed the lineup is a form whose home is `docs/forms/README.md`. Web-tools #1151 names it in the paragraph after the respond table (call `bb564bb3-lineup-forms`) and points design-sprint's phase 3 to it (call `bb564bb3-lineup-design-sprint`). The pick call, which landed 2026-11-02, answers where a verdict lands. Next: the lineup kit, scope item 1.

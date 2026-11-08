@@ -271,7 +271,7 @@ test('a sheet cell opts out of the title-tip kit\'s underline', () => {
 });
 
 test('a fact never rides in a title attribute', () => {
-  // House style rule 11: a title reaches no touch screen and cannot be captured
+  // House style rule 10: a title reaches no touch screen and cannot be captured
   // in a screenshot, so a fact parked in one is invisible to a pixel review.
   const html = drawWith(commented({ title: 'Rate', prompt: 'Hourly.', options: ['Yes'] }));
   assert.doesNotMatch(html, /\stitle="/, 'the cell markup carries a title attribute');

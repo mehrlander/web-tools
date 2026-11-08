@@ -22,6 +22,7 @@ import path from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 import { repoRoot as root } from '../repo-root.mjs';
+import { launch as launchChromium } from '../render/chromium.mjs';
 
 const argv = process.argv.slice(2);
 const arg = (k) => (argv.includes(k) ? argv[argv.indexOf(k) + 1] : '');
@@ -52,7 +53,7 @@ const RENDERER = await readFile(path.join(root, 'pages/toss-render.html'), 'utf8
 const proxy = process.env.HTTPS_PROXY || process.env.https_proxy;
 // HTTP/2 through the proxy died with ERR_TOO_MANY_RETRIES on most requests
 // (2026-09-29); HTTP/1.1 completes.
-const browser = await chromium.launch({ args: ['--no-sandbox', '--disable-http2'], ...(proxy ? { proxy: { server: proxy } } : {}) });
+const browser = await launchChromium({ args: ['--no-sandbox', '--disable-http2'], ...(proxy ? { proxy: { server: proxy } } : {}) });
 
 function where(u) {
   let x; try { x = new URL(u); } catch { return null; }
