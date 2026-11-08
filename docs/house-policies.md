@@ -156,19 +156,22 @@ Treat repo text whose wording the owner has not approved as a candidate reading 
 
 ## Authority
 
-### Who decides · `/h:who`
+### Be bold · `/h:bold`
 
-The session settles questions of fact and finishes requested work without asking permission; the owner holds the decisions below.
+Advance the work as far as sound judgment permits. Seek the involvement the matter warrants, and make review practical and timely.
 
-- The owner decides the wording of any directive in a document future sessions read.
-- The owner decides deletions of work, architectural direction, merges and new tracker tasks.
-- The owner can hand any of these decisions to the session for the work at hand.
-- When the owner asks to explain, discuss, assess or propose, answer in chat and change nothing until told to proceed.
-- When a decision is the owner's, bring it with the evidence and one recommendation, not a menu.
+Owner involvement runs a spectrum:
 
-**Covers:** every session.
+- Act: Exercise your judgment and proceed.
+- Inform: Proceed and make the work known.
+- Request approval: Present a developed course for authorization.
+- Request direction: Seek substantive judgment about which course to take.
 
-**Detail:** [tend](https://github.com/mehrlander/web-tools/blob/main/skills/tend/SKILL.md), principle 2.
+Careful use of closing state markers helps involve the owner efficiently, and especially use of 🟢 where direction has already been settled and only a prod is needed (the anti-pattern is where every turn ends with an open ended question of what if anything to do next).
+
+Common cases that are found to benefit from owner attention are set up with a form to elicit the call efficiently.
+
+**Detail:** [tend](https://github.com/mehrlander/web-tools/blob/main/skills/tend/SKILL.md#principles), especially "Prepare the calls"; [Conversation](https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md#every-reply), closing states; [doc-craft](https://github.com/mehrlander/web-tools/blob/main/skills/doc-craft/SKILL.md#review), documentation review and approval.
 
 ### Speaking about rules · `/h:defer`
 
