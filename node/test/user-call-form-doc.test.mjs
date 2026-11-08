@@ -125,7 +125,12 @@ test('a documentation call shows no PR readiness, even when the PR has conflicts
 test('the edits are listed at the top, each with its summary, and a tap scrolls the document to it', async () => {
   const rows = [...root().querySelectorAll('[data-doc-row]')];
   assert.equal(rows.length, 4, 'one row per edit');
-  assert.match(rows[0].textContent.replace(/\s+/g, ' ').trim(), /^Edit 1\. Clarify clearer$/, 'a bold run-in label, its kind, then its why when it has no proposal');
+  assert.match(rows[0].textContent.replace(/\s+/g, ' ').trim(), /^1\. clearer$/, 'its number, then its why when it has no proposal');
+  const lead = rows[0].querySelector('[data-doc-kind]'), num = rows[0].querySelector('[data-doc-row-n]');
+  assert.equal(lead.dataset.docKind, 'clarify');
+  assert.ok(lead.compareDocumentPosition(num) & window.Node.DOCUMENT_POSITION_FOLLOWING, 'the kind icon leads the line, before the number');
+  assert.equal(lead.dataset.titleTip, 'Clarification', 'and names itself in a tip');
+  assert.equal(rows[0].dataset.titleTipTap, 'none', 'which a tap on a phone does not open: the tap jumps');
   const kinds = (n) => [...rows[n - 1].querySelectorAll('[data-doc-kind]')].map((k) => k.dataset.docKind);
   assert.deepEqual(kinds(1), ['clarify']);
   assert.deepEqual(kinds(4), ['correct', 'clarify'], 'each kind once, corrections first');
