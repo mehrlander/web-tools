@@ -1,0 +1,1101 @@
+{
+ "kind": "dome/1",
+ "title": "The CI paragraph of CLAUDE.md's pre-build section, with complaints",
+ "source": {
+  "path": "CLAUDE.md",
+  "lines": [
+   42,
+   42
+  ],
+  "ref": "e02dc8d4810632432c1af3ae18e6b43d555a42c1",
+  "repo": "mehrlander/web-tools",
+  "url": "https://github.com/mehrlander/web-tools/blob/e02dc8d4810632432c1af3ae18e6b43d555a42c1/CLAUDE.md#L42-L42",
+  "words": 114,
+  "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports it as a check on the PR, so the test speaks even when no session runs the suite. `page-measures.yml` also runs on pull requests that touch a page, but only reports: a finding never fails it, so a red run is a fault in the pass, not in a page. The suite is browser-free by construction (`node --test` globs `node/test/**/*.test.mjs`, and every Playwright-driven check is named without `.test.`), so keep it that way or the runner grows a browser install. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh on each run and a green check is not a claim about a pinned tree."
+ },
+ "blocks": [
+  {
+   "id": "P1",
+   "kind": "para",
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports it as a check on the PR, so the test speaks even when no session runs the suite. `page-measures.yml` also runs on pull requests that touch a page, but only reports: a finding never fails it, so a red run is a fault in the pass, not in a page. The suite is browser-free by construction (`node --test` globs `node/test/**/*.test.mjs`, and every Playwright-driven check is named without `.test.`), so keep it that way or the runner grows a browser install. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh on each run and a green check is not a claim about a pinned tree.",
+   "words": 114
+  }
+ ],
+ "bouts": [
+  {
+   "n": 1,
+   "model": "haiku",
+   "fighters": [
+    "caveman",
+    "cutter",
+    "fixer",
+    "fuser",
+    "plain",
+    "premise",
+    "qualifier",
+    "reorder",
+    "restorer",
+    "slugger"
+   ],
+   "landed": 5,
+   "knocked": 18,
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports a check on the PR, even when no session runs `npm test`. `page-measures.yml` also runs on pull requests that touch a page, but only reports findings, so a failed run is a fault in `page-measures.yml`, not in a page. The suite stays browser-free because `node --test` globs `node/test/**/*.test.mjs`, so a Playwright-driven check must be named without `.test.`, or the CI runner would need a browser install. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh per run: a green check pins no dependency versions.",
+   "words": 94
+  },
+  {
+   "n": 2,
+   "model": "haiku",
+   "fighters": [
+    "caveman",
+    "cutter",
+    "fixer",
+    "fuser",
+    "plain",
+    "premise",
+    "qualifier",
+    "reorder",
+    "restorer",
+    "slugger"
+   ],
+   "landed": 6,
+   "knocked": 15,
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports a check on the PR, even when no session runs `npm test`. `page-measures.yml` runs on pull requests touching a page, but only reports findings, so a red run is a fault in the measuring scripts (`node/render/page-measures.mjs` and `node/test/page-measures.mjs`), not in a page. To keep the suite browser-free, name every Playwright-driven check without `.test.`, since `node --test` runs the files that match `node/test/**/*.test.mjs` and would otherwise make CI need a browser install. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh per run: a green check claims nothing about a pinned dependency tree.",
+   "words": 102
+  },
+  {
+   "n": 3,
+   "model": "haiku",
+   "fighters": [
+    "caveman",
+    "cutter",
+    "fixer",
+    "fuser",
+    "plain",
+    "premise",
+    "qualifier",
+    "reorder",
+    "restorer",
+    "slugger"
+   ],
+   "landed": 9,
+   "knocked": 11,
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on pull requests that can merge and reports a status check on the PR, even when no session runs `npm test`. `page-measures.yml` runs on pull requests touching a page, but only reports measurement findings, which never fail the workflow, so a failed run is a fault in the measuring pass (`node/render/measure.mjs`, `node/render/page-measures.mjs` and `node/test/page-measures.mjs`), not in a page. To keep the test suite browser-free, name every Playwright check without `.test.`, else `node --test` picks up `node/test/**/*.test.mjs` and CI needs a browser install. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh per run: a passing check says nothing about a fixed set of dependency versions.",
+   "words": 109
+  },
+  {
+   "n": 4,
+   "model": "sonnet",
+   "fighters": [
+    "caveman",
+    "cutter",
+    "fixer",
+    "fuser",
+    "plain",
+    "premise",
+    "qualifier",
+    "reorder",
+    "restorer",
+    "slugger"
+   ],
+   "landed": 7,
+   "knocked": 19,
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` as a status check on conflict-free pull requests, even when no one runs `npm test` locally. `page-measures.yml` runs on pull requests touching a page but only reports: its measurement findings never fail the workflow, so a red run is a fault in the measuring scripts (`node/render/page-measures.mjs`), not in a page. Keep the suite browser-free: `node --test` runs `node/test/**/*.test.mjs`, so name every Playwright check without `.test.`. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh per run and a passing check does not vouch for pinned dependency versions.",
+   "words": 91
+  }
+ ],
+ "edits": [
+  {
+   "id": "b1.slugger.1",
+   "bout": 1,
+   "by": "slugger",
+   "from": "The suite is browser-free by construction (`node --test` globs `node/test/**/*.test.mjs`, and every Playwright-driven check is named without `.test.`), so keep it that way or the runner grows a browser install.",
+   "text": "The suite stays browser-free because `node --test` globs `node/test/**/*.test.mjs`, so a Playwright-driven check must be named without `.test.`, or the CI runner would need a browser install.",
+   "landed": true
+  },
+  {
+   "id": "b1.caveman.1",
+   "bout": 1,
+   "by": "caveman",
+   "from": "so CI resolves dependency ranges fresh on each run and a green check is not a claim about a pinned tree.",
+   "text": "so CI resolves dependency ranges fresh per run: a green check pins no dependency versions.",
+   "landed": true
+  },
+  {
+   "id": "b1.fuser.1",
+   "bout": 1,
+   "by": "fuser",
+   "from": "so CI resolves dependency ranges fresh on each run and a green check is not a claim about a pinned tree",
+   "text": "so each CI run's fresh dependency resolution means a green check claims nothing about a pinned tree",
+   "landed": false
+  },
+  {
+   "id": "b1.reorder.1",
+   "bout": 1,
+   "by": "reorder",
+   "from": "and reports it as a check on the PR, so the test speaks even when no session runs the suite.",
+   "text": "and reports a check on the PR, even when no session runs `npm test`.",
+   "landed": true
+  },
+  {
+   "id": "b1.fuser.3",
+   "bout": 1,
+   "by": "fuser",
+   "from": "reports it as a check on the PR, so the test speaks even when no session runs the suite",
+   "text": "reports a PR check, so the test speaks even when no session runs the suite",
+   "landed": false
+  },
+  {
+   "id": "b1.restorer.1",
+   "bout": 1,
+   "by": "restorer",
+   "from": "reports it as a check on the PR, so the test speaks even when no session runs the suite",
+   "text": "reports it as a PR check, so the test speaks even when no session runs the suite",
+   "landed": false
+  },
+  {
+   "id": "b1.fuser.2",
+   "bout": 1,
+   "by": "fuser",
+   "from": "but only reports: a finding never fails it, so a red run is a fault in the pass",
+   "text": "but only reports findings, so a red run is a fault in the pass",
+   "landed": true
+  },
+  {
+   "id": "b1.restorer.2",
+   "bout": 1,
+   "by": "restorer",
+   "from": "on each run and a green check is not a claim about a pinned tree",
+   "text": "each run and a green check does not vouch for a pinned dependency tree",
+   "landed": false
+  },
+  {
+   "id": "b1.plain.2",
+   "bout": 1,
+   "by": "plain",
+   "from": "so a red run is a fault in the pass, not in a page",
+   "text": "so a failed run is a fault in `page-measures.yml`, not in a page",
+   "landed": true
+  },
+  {
+   "id": "b1.cutter.1",
+   "bout": 1,
+   "by": "cutter",
+   "from": ", so the test speaks even when no session runs the suite",
+   "text": "",
+   "landed": false
+  },
+  {
+   "id": "b1.reorder.3",
+   "bout": 1,
+   "by": "reorder",
+   "from": "so keep it that way or the runner grows a browser install.",
+   "text": "or the test runner grows a browser install.",
+   "landed": false
+  },
+  {
+   "id": "b1.plain.1",
+   "bout": 1,
+   "by": "plain",
+   "from": "a green check is not a claim about a pinned tree",
+   "text": "a passing check does not show which dependency versions were tested",
+   "landed": false
+  },
+  {
+   "id": "b1.plain.3",
+   "bout": 1,
+   "by": "plain",
+   "from": "so the test speaks even when no session runs the suite",
+   "text": "so the result appears even when no session runs the suite",
+   "landed": false
+  },
+  {
+   "id": "b1.fixer.1",
+   "bout": 1,
+   "by": "fixer",
+   "from": ", and every Playwright-driven check is named without `.test.`",
+   "text": "; Playwright checks are named without `.test.`",
+   "landed": false
+  },
+  {
+   "id": "b1.fixer.2",
+   "bout": 1,
+   "by": "fixer",
+   "from": "is not a claim about a pinned tree",
+   "text": "says nothing about a pinned tree",
+   "landed": false
+  },
+  {
+   "id": "b1.fixer.3",
+   "bout": 1,
+   "by": "fixer",
+   "from": "reports it as a check on the PR",
+   "text": "reports it as a PR check",
+   "landed": false
+  },
+  {
+   "id": "b1.reorder.2",
+   "bout": 1,
+   "by": "reorder",
+   "from": "The suite is browser-free by construction (",
+   "text": "Keep the suite browser-free (",
+   "landed": false
+  },
+  {
+   "id": "b1.restorer.3",
+   "bout": 1,
+   "by": "restorer",
+   "from": "or the runner grows a browser install",
+   "text": "or CI grows a browser install",
+   "landed": false
+  },
+  {
+   "id": "b1.premise.1",
+   "bout": 1,
+   "by": "premise",
+   "from": "on every pull request and reports it",
+   "text": "on every pull request that can merge and reports it",
+   "landed": false
+  },
+  {
+   "id": "b1.cutter.2",
+   "bout": 1,
+   "by": "cutter",
+   "from": ": a finding never fails it,",
+   "text": ",",
+   "landed": false
+  },
+  {
+   "id": "b1.qualifier.3",
+   "bout": 1,
+   "by": "qualifier",
+   "from": "a fault in the pass",
+   "text": "a fault in the page-measures workflow",
+   "landed": false
+  },
+  {
+   "id": "b1.qualifier.1",
+   "bout": 1,
+   "by": "qualifier",
+   "from": "or the runner grows",
+   "text": "or the CI runner grows",
+   "landed": false
+  },
+  {
+   "id": "b1.qualifier.2",
+   "bout": 1,
+   "by": "qualifier",
+   "from": "a pinned tree",
+   "text": "a pinned dependency tree",
+   "landed": false
+  },
+  {
+   "id": "b2.reorder.1",
+   "bout": 2,
+   "by": "reorder",
+   "from": "The suite stays browser-free because `node --test` globs `node/test/**/*.test.mjs`, so a Playwright-driven check must be named without `.test.`, or the CI runner would need a browser install.",
+   "text": "To keep the suite browser-free, name every Playwright-driven check without `.test.`, since `node --test` globs `node/test/**/*.test.mjs` and would otherwise make CI need a browser install.",
+   "repair": true,
+   "why": "that the naming rule covers every Playwright-driven check, not just some",
+   "landed": true
+  },
+  {
+   "id": "b2.slugger.1",
+   "bout": 2,
+   "by": "slugger",
+   "from": "The suite stays browser-free because `node --test` globs `node/test/**/*.test.mjs`, so a Playwright-driven check must be named without `.test.`, or the CI runner would need a browser install.",
+   "text": "Keep the `npm test` suite browser-free: `node --test` globs `node/test/**/*.test.mjs`, so a Playwright-driven check must be named without `.test.`, or the CI runner would need a browser install.",
+   "repair": true,
+   "why": "which suite is meant: 'The suite' now follows a sentence about page-measures.yml, so nothing in its immediate context names npm test, and the instruction to keep the suite browser-free reads as a description of its current state",
+   "landed": false
+  },
+  {
+   "id": "b2.premise.1",
+   "bout": 2,
+   "by": "premise",
+   "from": "so a failed run is a fault in `page-measures.yml`, not in a page",
+   "text": "so a red run is a fault in the measuring scripts (`node/render/page-measures.mjs` and `node/test/page-measures.mjs`), not in a page",
+   "repair": true,
+   "why": "where a red run points: the measuring code, which goes red only when it is broken; the paragraph named the workflow file instead",
+   "landed": true
+  },
+  {
+   "id": "b2.caveman.1",
+   "bout": 2,
+   "by": "caveman",
+   "from": "but only reports findings, so a failed run",
+   "text": "but only reports: a finding never fails the run, so a failed run",
+   "repair": true,
+   "why": "that a finding never fails the run, so a red run is a fault in the workflow, not in a page",
+   "landed": false
+  },
+  {
+   "id": "b2.cutter.1",
+   "bout": 2,
+   "by": "cutter",
+   "from": "a green check pins no dependency versions.",
+   "text": "a green check claims nothing about a pinned dependency tree.",
+   "repair": true,
+   "why": "that a green check is not a claim about a pinned tree; the text now says only that the check pins no versions",
+   "landed": true
+  },
+  {
+   "id": "b2.plain.1",
+   "bout": 2,
+   "by": "plain",
+   "from": "The suite stays browser-free because",
+   "text": "The `npm test` suite stays browser-free because",
+   "repair": true,
+   "why": "that 'the suite' means the npm test suite; the opening sentence names it, but two sentences now sit between them",
+   "landed": false
+  },
+  {
+   "id": "b2.restorer.1",
+   "bout": 2,
+   "by": "restorer",
+   "from": "The suite stays browser-free",
+   "text": "The `npm test` suite stays browser-free",
+   "repair": true,
+   "why": "that the suite is the npm test run: the first sentence now says npm test, and the page-measures sentence before 'The suite' names no suite, so the browser-free rule had no referent in its immediate context",
+   "landed": false
+  },
+  {
+   "id": "b2.slugger.2",
+   "bout": 2,
+   "by": "slugger",
+   "from": "`package-lock.json` is gitignored, so CI resolves dependency ranges fresh per run: a green check pins no dependency versions.",
+   "text": "`package-lock.json` is gitignored, so CI resolves dependency ranges fresh on each run, and a green check makes no claim about which dependency versions were tested.",
+   "landed": false
+  },
+  {
+   "id": "b2.caveman.2",
+   "bout": 2,
+   "by": "caveman",
+   "from": "a Playwright-driven check must be named without `.test.`, or the CI runner would need a browser install.",
+   "text": "Playwright checks must be named without `.test.`, or CI needs a browser install.",
+   "landed": false
+  },
+  {
+   "id": "b2.fuser.1",
+   "bout": 2,
+   "by": "fuser",
+   "from": "so a failed run is a fault in `page-measures.yml`, not in a page.",
+   "text": "so a failed run blames `page-measures.yml`, not a page.",
+   "landed": false
+  },
+  {
+   "id": "b2.reorder.2",
+   "bout": 2,
+   "by": "reorder",
+   "from": "so a failed run is a fault in `page-measures.yml`, not in a page.",
+   "text": "so a failed run is that workflow's fault, not a page's.",
+   "landed": false
+  },
+  {
+   "id": "b2.cutter.3",
+   "bout": 2,
+   "by": "cutter",
+   "from": "or the CI runner would need a browser install",
+   "text": "or CI would need a browser install",
+   "landed": false
+  },
+  {
+   "id": "b2.fixer.1",
+   "bout": 2,
+   "by": "fixer",
+   "from": "or the CI runner would need a browser install",
+   "text": "or CI would need a browser install",
+   "landed": false
+  },
+  {
+   "id": "b2.fuser.2",
+   "bout": 2,
+   "by": "fuser",
+   "from": "or the CI runner would need a browser install.",
+   "text": "or CI would need a browser install.",
+   "landed": false
+  },
+  {
+   "id": "b2.fixer.2",
+   "bout": 2,
+   "by": "fixer",
+   "from": "runs on pull requests that touch a page",
+   "text": "runs on pull requests touching a page",
+   "landed": true
+  },
+  {
+   "id": "b2.plain.2",
+   "bout": 2,
+   "by": "plain",
+   "from": "a green check pins no dependency versions",
+   "text": "a passing check says nothing about which exact dependency versions were tested",
+   "landed": false
+  },
+  {
+   "id": "b2.caveman.3",
+   "bout": 2,
+   "by": "caveman",
+   "from": "The suite stays browser-free because",
+   "text": "`npm test` stays browser-free:",
+   "landed": false
+  },
+  {
+   "id": "b2.cutter.2",
+   "bout": 2,
+   "by": "cutter",
+   "from": "also runs on pull requests",
+   "text": "runs on pull requests",
+   "landed": true
+  },
+  {
+   "id": "b2.qualifier.1",
+   "bout": 2,
+   "by": "qualifier",
+   "from": "that touch a page,",
+   "text": "that touch `pages/**/*.html`,",
+   "landed": false
+  },
+  {
+   "id": "b2.qualifier.2",
+   "bout": 2,
+   "by": "qualifier",
+   "from": "The suite stays browser-free",
+   "text": "The test suite stays browser-free",
+   "landed": false
+  },
+  {
+   "id": "b2.plain.3",
+   "bout": 2,
+   "by": "plain",
+   "from": "`node --test` globs `node/test/**/*.test.mjs`",
+   "text": "`node --test` runs the files that match `node/test/**/*.test.mjs`",
+   "landed": true
+  },
+  {
+   "id": "b3.premise.1",
+   "bout": 3,
+   "by": "premise",
+   "from": "a fault in the measuring scripts (`node/render/page-measures.mjs` and `node/test/page-measures.mjs`)",
+   "text": "a fault in the measuring pass (`node/render/measure.mjs`, `node/render/page-measures.mjs` and `node/test/page-measures.mjs`)",
+   "repair": true,
+   "why": "that the pass is three scripts, not two (node/render/measure.mjs holds the detectors), and that its install steps can also turn the run red",
+   "landed": true
+  },
+  {
+   "id": "b3.restorer.1",
+   "bout": 3,
+   "by": "restorer",
+   "from": "but only reports findings, so a red run",
+   "text": "but only reports findings, which never fail the workflow, so a red run",
+   "repair": true,
+   "why": "the explicit guarantee that a finding never fails the page-measures workflow, which is what makes a red run point at the measuring scripts and not at a page",
+   "landed": true
+  },
+  {
+   "id": "b3.cutter.1",
+   "bout": 3,
+   "by": "cutter",
+   "from": "To keep the suite browser-free",
+   "text": "To keep the test suite browser-free",
+   "repair": true,
+   "why": "The first sentence no longer names the suite, so the suite has no referent: the reader loses which suite must stay browser-free.",
+   "landed": true
+  },
+  {
+   "id": "b3.caveman.1",
+   "bout": 3,
+   "by": "caveman",
+   "from": "To keep the suite browser-free",
+   "text": "To keep the `npm test` suite browser-free",
+   "repair": true,
+   "why": "what 'the suite' names: the original introduced it as the suite that no session runs, and the paragraph never says it is the npm test suite.",
+   "landed": false
+  },
+  {
+   "id": "b3.plain.1",
+   "bout": 3,
+   "by": "plain",
+   "from": "To keep the suite browser-free",
+   "text": "To keep the `npm test` suite browser-free",
+   "repair": true,
+   "why": "which suite: the sentence before names the page-measures scripts, so 'the suite' can read as those rather than the suite that npm test runs",
+   "landed": false
+  },
+  {
+   "id": "b3.reorder.1",
+   "bout": 3,
+   "by": "reorder",
+   "from": "To keep the suite browser-free",
+   "text": "To keep the `npm test` suite browser-free",
+   "repair": true,
+   "why": "which suite: the first sentence now names `npm test`, not the suite, so 'the suite' has no referent",
+   "landed": false
+  },
+  {
+   "id": "b3.slugger.1",
+   "bout": 3,
+   "by": "slugger",
+   "from": "To keep the suite browser-free",
+   "text": "To keep the `npm test` suite browser-free",
+   "repair": true,
+   "why": "which suite the browser-free rule covers: 'the suite' has no referent, since the paragraph never names it",
+   "landed": false
+  },
+  {
+   "id": "b3.slugger.2",
+   "bout": 3,
+   "by": "slugger",
+   "from": "`page-measures.yml` runs on pull requests touching a page, but only reports findings, so a red run is a fault in the measuring scripts (`node/render/page-measures.mjs` and `node/test/page-measures.mjs`), not in a page.",
+   "text": "Because `page-measures.yml` only reports findings on pull requests touching a page, a red run is a fault in its measuring scripts (`node/render/page-measures.mjs` and `node/test/page-measures.mjs`), not in a page.",
+   "landed": false
+  },
+  {
+   "id": "b3.fuser.1",
+   "bout": 3,
+   "by": "fuser",
+   "from": "To keep the suite browser-free, name every Playwright-driven check without `.test.`, since `node --test` runs the files that match `node/test/**/*.test.mjs` and would otherwise make CI need a browser install.",
+   "text": "To keep CI from needing a browser install, name every Playwright-driven check without `.test.`, since `node --test` runs the files matching `node/test/**/*.test.mjs`.",
+   "landed": false
+  },
+  {
+   "id": "b3.caveman.2",
+   "bout": 3,
+   "by": "caveman",
+   "from": ", name every Playwright-driven check without `.test.`, since `node --test` runs the files that match `node/test/**/*.test.mjs` and would otherwise make CI need a browser install.",
+   "text": ", name every Playwright check without `.test.`, else `node --test` picks up `node/test/**/*.test.mjs` and CI needs a browser install.",
+   "landed": true
+  },
+  {
+   "id": "b3.reorder.3",
+   "bout": 3,
+   "by": "reorder",
+   "from": "`page-measures.yml` runs on pull requests touching a page, but only reports findings, so a red run is a fault in the measuring scripts",
+   "text": "`page-measures.yml` only reports findings on pull requests touching a page, so a red run is a fault in the measuring scripts",
+   "landed": false
+  },
+  {
+   "id": "b3.reorder.2",
+   "bout": 3,
+   "by": "reorder",
+   "from": "runs the files that match `node/test/**/*.test.mjs` and would otherwise make CI need a browser install",
+   "text": "runs files matching `node/test/**/*.test.mjs`, or else CI needs a browser install",
+   "landed": false
+  },
+  {
+   "id": "b3.premise.2",
+   "bout": 3,
+   "by": "premise",
+   "from": "runs `npm test` on every pull request and reports a check on the PR",
+   "text": "runs `npm test` on pull requests that can merge and reports a check on the PR",
+   "landed": true
+  },
+  {
+   "id": "b3.plain.2",
+   "bout": 3,
+   "by": "plain",
+   "from": "a green check claims nothing about a pinned dependency tree",
+   "text": "a passing check says nothing about a fixed set of dependency versions",
+   "landed": true
+  },
+  {
+   "id": "b3.plain.3",
+   "bout": 3,
+   "by": "plain",
+   "from": "a red run is a fault",
+   "text": "a failed run is a fault",
+   "landed": true
+  },
+  {
+   "id": "b3.qualifier.1",
+   "bout": 3,
+   "by": "qualifier",
+   "from": "reports a check on the PR",
+   "text": "reports a status check on the PR",
+   "landed": true
+  },
+  {
+   "id": "b3.fixer.1",
+   "bout": 3,
+   "by": "fixer",
+   "from": "runs the files that match",
+   "text": "runs files matching",
+   "landed": false
+  },
+  {
+   "id": "b3.qualifier.2",
+   "bout": 3,
+   "by": "qualifier",
+   "from": "To keep the suite browser-free",
+   "text": "To keep the `npm test` suite browser-free",
+   "landed": false
+  },
+  {
+   "id": "b3.cutter.2",
+   "bout": 3,
+   "by": "cutter",
+   "from": "the files that match",
+   "text": "files matching",
+   "landed": false
+  },
+  {
+   "id": "b3.qualifier.3",
+   "bout": 3,
+   "by": "qualifier",
+   "from": "but only reports findings",
+   "text": "but only reports measurement findings",
+   "landed": true
+  },
+  {
+   "id": "b4.slugger.1",
+   "bout": 4,
+   "by": "slugger",
+   "from": "runs on pull requests touching a page, but only reports measurement findings, which never fail the workflow, so a failed run is a fault in the measuring pass (`node/render/measure.mjs`, `node/render/page-measures.mjs` and `node/test/page-measures.mjs`), not in a page.",
+   "text": "runs on pull requests touching a page but only reports: its measurement findings never fail the workflow, so a red run is a fault in the measuring pass (`node/render/page-measures.mjs`), not in a page.",
+   "landed": true
+  },
+  {
+   "id": "b4.caveman.1",
+   "bout": 4,
+   "by": "caveman",
+   "from": "but only reports measurement findings, which never fail the workflow, so a failed run is a fault in the measuring pass (`node/render/measure.mjs`, `node/render/page-measures.mjs` and `node/test/page-measures.mjs`), not in a page.",
+   "text": "but only reports: findings never fail it, so a failed run is a fault in the measuring pass, not in a page.",
+   "landed": false
+  },
+  {
+   "id": "b4.caveman.2",
+   "bout": 4,
+   "by": "caveman",
+   "from": "To keep the test suite browser-free, name every Playwright check without `.test.`, else `node --test` picks up `node/test/**/*.test.mjs` and CI needs a browser install.",
+   "text": "Keep the suite browser-free: `node --test` runs `node/test/**/*.test.mjs`, so name every Playwright check without `.test.`.",
+   "landed": true
+  },
+  {
+   "id": "b4.reorder.1",
+   "bout": 4,
+   "by": "reorder",
+   "from": "runs `npm test` on pull requests that can merge and reports a status check on the PR, even when no session runs `npm test`",
+   "text": "runs `npm test` as a status check on pull requests that can merge, even when no session runs `npm test`",
+   "landed": true
+  },
+  {
+   "id": "b4.reorder.2",
+   "bout": 4,
+   "by": "reorder",
+   "from": "runs on pull requests touching a page, but only reports measurement findings, which never fail the workflow, so a failed run",
+   "text": "reports measurement findings on pull requests touching a page and never fails on them, so a failed run",
+   "landed": false
+  },
+  {
+   "id": "b4.slugger.2",
+   "bout": 4,
+   "by": "slugger",
+   "from": "so CI resolves dependency ranges fresh per run: a passing check says nothing about a fixed set of dependency versions.",
+   "text": "so CI resolves dependency ranges fresh per run and a passing check does not vouch for pinned dependency versions.",
+   "landed": true
+  },
+  {
+   "id": "b4.fuser.2",
+   "bout": 4,
+   "by": "fuser",
+   "from": "and reports a status check on the PR, even when no session runs `npm test`",
+   "text": "reporting a PR status check even when no session runs `npm test`",
+   "landed": false
+  },
+  {
+   "id": "b4.fuser.3",
+   "bout": 4,
+   "by": "fuser",
+   "from": "fresh per run: a passing check says nothing about a fixed set of dependency versions",
+   "text": "fresh per run, and a passing check says nothing about fixed dependency versions",
+   "landed": false
+  },
+  {
+   "id": "b4.fuser.1",
+   "bout": 4,
+   "by": "fuser",
+   "from": "but only reports measurement findings, which never fail the workflow, so a failed run",
+   "text": "but never fails on a measurement finding, so a failed run",
+   "landed": false
+  },
+  {
+   "id": "b4.restorer.1",
+   "bout": 4,
+   "by": "restorer",
+   "from": "pull requests that can merge and reports a status check on the PR",
+   "text": "pull requests without merge conflicts and reports a check on the PR",
+   "landed": false
+  },
+  {
+   "id": "b4.caveman.3",
+   "bout": 4,
+   "by": "caveman",
+   "from": "a passing check says nothing about a fixed set of dependency versions",
+   "text": "a passing check does not vouch for pinned versions",
+   "landed": false
+  },
+  {
+   "id": "b4.reorder.3",
+   "bout": 4,
+   "by": "reorder",
+   "from": "a passing check says nothing about a fixed set of dependency versions",
+   "text": "a passing check says nothing about pinned dependency versions",
+   "landed": false
+  },
+  {
+   "id": "b4.premise.2",
+   "bout": 4,
+   "by": "premise",
+   "from": "a passing check says nothing about a fixed set of dependency versions",
+   "text": "a passing check covers only the dependency versions that run resolved",
+   "landed": false
+  },
+  {
+   "id": "b4.fixer.3",
+   "bout": 4,
+   "by": "fixer",
+   "from": "says nothing about a fixed set of dependency versions",
+   "text": "says nothing about pinned dependency versions",
+   "landed": false
+  },
+  {
+   "id": "b4.cutter.2",
+   "bout": 4,
+   "by": "cutter",
+   "from": "reports a status check on the PR, even",
+   "text": "reports a status check, even",
+   "landed": false
+  },
+  {
+   "id": "b4.qualifier.1",
+   "bout": 4,
+   "by": "qualifier",
+   "from": "measurement findings, which never fail the workflow",
+   "text": "non-failing measurement findings",
+   "landed": false
+  },
+  {
+   "id": "b4.fixer.2",
+   "bout": 4,
+   "by": "fixer",
+   "from": "else `node --test` picks up `node/test/**/*.test.mjs` and",
+   "text": "else the `node --test` glob `node/test/**/*.test.mjs` matches it and",
+   "landed": false
+  },
+  {
+   "id": "b4.qualifier.3",
+   "bout": 4,
+   "by": "qualifier",
+   "from": "a fixed set of dependency versions",
+   "text": "pinned dependency versions",
+   "landed": false
+  },
+  {
+   "id": "b4.restorer.2",
+   "bout": 4,
+   "by": "restorer",
+   "from": "a fixed set of dependency versions",
+   "text": "pinned dependency versions",
+   "landed": false
+  },
+  {
+   "id": "b4.premise.1",
+   "bout": 4,
+   "by": "premise",
+   "from": "pull requests that can merge",
+   "text": "conflict-free pull requests",
+   "landed": true
+  },
+  {
+   "id": "b4.qualifier.2",
+   "bout": 4,
+   "by": "qualifier",
+   "from": "pull requests that can merge",
+   "text": "mergeable pull requests",
+   "landed": false
+  },
+  {
+   "id": "b4.plain.2",
+   "bout": 4,
+   "by": "plain",
+   "from": "no session runs `npm test`",
+   "text": "no one runs `npm test` locally",
+   "landed": true
+  },
+  {
+   "id": "b4.cutter.1",
+   "bout": 4,
+   "by": "cutter",
+   "from": " (`node/render/measure.mjs`, `node/render/page-measures.mjs` and `node/test/page-measures.mjs`)",
+   "text": "",
+   "landed": false
+  },
+  {
+   "id": "b4.fixer.1",
+   "bout": 4,
+   "by": "fixer",
+   "from": "(`node/render/measure.mjs`, `node/render/page-measures.mjs` and `node/test/page-measures.mjs`)",
+   "text": "(`node/render/page-measures.mjs`)",
+   "landed": false
+  },
+  {
+   "id": "b4.plain.1",
+   "bout": 4,
+   "by": "plain",
+   "from": "the measuring pass",
+   "text": "the measuring scripts",
+   "landed": true
+  },
+  {
+   "id": "b4.plain.3",
+   "bout": 4,
+   "by": "plain",
+   "from": "picks up",
+   "text": "runs",
+   "landed": false
+  }
+ ],
+ "path": [
+  {
+   "edit": "b1.slugger.1",
+   "bout": 1,
+   "blocks": [
+    "P1"
+   ],
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports it as a check on the PR, so the test speaks even when no session runs the suite. `page-measures.yml` also runs on pull requests that touch a page, but only reports: a finding never fails it, so a red run is a fault in the pass, not in a page. The suite stays browser-free because `node --test` globs `node/test/**/*.test.mjs`, so a Playwright-driven check must be named without `.test.`, or the CI runner would need a browser install. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh on each run and a green check is not a claim about a pinned tree.",
+   "words": 111
+  },
+  {
+   "edit": "b1.caveman.1",
+   "bout": 1,
+   "blocks": [
+    "P1"
+   ],
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports it as a check on the PR, so the test speaks even when no session runs the suite. `page-measures.yml` also runs on pull requests that touch a page, but only reports: a finding never fails it, so a red run is a fault in the pass, not in a page. The suite stays browser-free because `node --test` globs `node/test/**/*.test.mjs`, so a Playwright-driven check must be named without `.test.`, or the CI runner would need a browser install. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh per run: a green check pins no dependency versions.",
+   "words": 105
+  },
+  {
+   "edit": "b1.reorder.1",
+   "bout": 1,
+   "blocks": [
+    "P1"
+   ],
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports a check on the PR, even when no session runs `npm test`. `page-measures.yml` also runs on pull requests that touch a page, but only reports: a finding never fails it, so a red run is a fault in the pass, not in a page. The suite stays browser-free because `node --test` globs `node/test/**/*.test.mjs`, so a Playwright-driven check must be named without `.test.`, or the CI runner would need a browser install. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh per run: a green check pins no dependency versions.",
+   "words": 99
+  },
+  {
+   "edit": "b1.fuser.2",
+   "bout": 1,
+   "blocks": [
+    "P1"
+   ],
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports a check on the PR, even when no session runs `npm test`. `page-measures.yml` also runs on pull requests that touch a page, but only reports findings, so a red run is a fault in the pass, not in a page. The suite stays browser-free because `node --test` globs `node/test/**/*.test.mjs`, so a Playwright-driven check must be named without `.test.`, or the CI runner would need a browser install. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh per run: a green check pins no dependency versions.",
+   "words": 95
+  },
+  {
+   "edit": "b1.plain.2",
+   "bout": 1,
+   "blocks": [
+    "P1"
+   ],
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports a check on the PR, even when no session runs `npm test`. `page-measures.yml` also runs on pull requests that touch a page, but only reports findings, so a failed run is a fault in `page-measures.yml`, not in a page. The suite stays browser-free because `node --test` globs `node/test/**/*.test.mjs`, so a Playwright-driven check must be named without `.test.`, or the CI runner would need a browser install. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh per run: a green check pins no dependency versions.",
+   "words": 94
+  },
+  {
+   "edit": "b2.reorder.1",
+   "bout": 2,
+   "blocks": [
+    "P1"
+   ],
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports a check on the PR, even when no session runs `npm test`. `page-measures.yml` also runs on pull requests that touch a page, but only reports findings, so a failed run is a fault in `page-measures.yml`, not in a page. To keep the suite browser-free, name every Playwright-driven check without `.test.`, since `node --test` globs `node/test/**/*.test.mjs` and would otherwise make CI need a browser install. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh per run: a green check pins no dependency versions.",
+   "words": 92
+  },
+  {
+   "edit": "b2.premise.1",
+   "bout": 2,
+   "blocks": [
+    "P1"
+   ],
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports a check on the PR, even when no session runs `npm test`. `page-measures.yml` also runs on pull requests that touch a page, but only reports findings, so a red run is a fault in the measuring scripts (`node/render/page-measures.mjs` and `node/test/page-measures.mjs`), not in a page. To keep the suite browser-free, name every Playwright-driven check without `.test.`, since `node --test` globs `node/test/**/*.test.mjs` and would otherwise make CI need a browser install. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh per run: a green check pins no dependency versions.",
+   "words": 97
+  },
+  {
+   "edit": "b2.cutter.1",
+   "bout": 2,
+   "blocks": [
+    "P1"
+   ],
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports a check on the PR, even when no session runs `npm test`. `page-measures.yml` also runs on pull requests that touch a page, but only reports findings, so a red run is a fault in the measuring scripts (`node/render/page-measures.mjs` and `node/test/page-measures.mjs`), not in a page. To keep the suite browser-free, name every Playwright-driven check without `.test.`, since `node --test` globs `node/test/**/*.test.mjs` and would otherwise make CI need a browser install. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh per run: a green check claims nothing about a pinned dependency tree.",
+   "words": 100
+  },
+  {
+   "edit": "b2.fixer.2",
+   "bout": 2,
+   "blocks": [
+    "P1"
+   ],
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports a check on the PR, even when no session runs `npm test`. `page-measures.yml` also runs on pull requests touching a page, but only reports findings, so a red run is a fault in the measuring scripts (`node/render/page-measures.mjs` and `node/test/page-measures.mjs`), not in a page. To keep the suite browser-free, name every Playwright-driven check without `.test.`, since `node --test` globs `node/test/**/*.test.mjs` and would otherwise make CI need a browser install. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh per run: a green check claims nothing about a pinned dependency tree.",
+   "words": 99
+  },
+  {
+   "edit": "b2.cutter.2",
+   "bout": 2,
+   "blocks": [
+    "P1"
+   ],
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports a check on the PR, even when no session runs `npm test`. `page-measures.yml` runs on pull requests touching a page, but only reports findings, so a red run is a fault in the measuring scripts (`node/render/page-measures.mjs` and `node/test/page-measures.mjs`), not in a page. To keep the suite browser-free, name every Playwright-driven check without `.test.`, since `node --test` globs `node/test/**/*.test.mjs` and would otherwise make CI need a browser install. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh per run: a green check claims nothing about a pinned dependency tree.",
+   "words": 98
+  },
+  {
+   "edit": "b2.plain.3",
+   "bout": 2,
+   "blocks": [
+    "P1"
+   ],
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports a check on the PR, even when no session runs `npm test`. `page-measures.yml` runs on pull requests touching a page, but only reports findings, so a red run is a fault in the measuring scripts (`node/render/page-measures.mjs` and `node/test/page-measures.mjs`), not in a page. To keep the suite browser-free, name every Playwright-driven check without `.test.`, since `node --test` runs the files that match `node/test/**/*.test.mjs` and would otherwise make CI need a browser install. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh per run: a green check claims nothing about a pinned dependency tree.",
+   "words": 102
+  },
+  {
+   "edit": "b3.premise.1",
+   "bout": 3,
+   "blocks": [
+    "P1"
+   ],
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports a check on the PR, even when no session runs `npm test`. `page-measures.yml` runs on pull requests touching a page, but only reports findings, so a red run is a fault in the measuring pass (`node/render/measure.mjs`, `node/render/page-measures.mjs` and `node/test/page-measures.mjs`), not in a page. To keep the suite browser-free, name every Playwright-driven check without `.test.`, since `node --test` runs the files that match `node/test/**/*.test.mjs` and would otherwise make CI need a browser install. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh per run: a green check claims nothing about a pinned dependency tree.",
+   "words": 103
+  },
+  {
+   "edit": "b3.restorer.1",
+   "bout": 3,
+   "blocks": [
+    "P1"
+   ],
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports a check on the PR, even when no session runs `npm test`. `page-measures.yml` runs on pull requests touching a page, but only reports findings, which never fail the workflow, so a red run is a fault in the measuring pass (`node/render/measure.mjs`, `node/render/page-measures.mjs` and `node/test/page-measures.mjs`), not in a page. To keep the suite browser-free, name every Playwright-driven check without `.test.`, since `node --test` runs the files that match `node/test/**/*.test.mjs` and would otherwise make CI need a browser install. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh per run: a green check claims nothing about a pinned dependency tree.",
+   "words": 108
+  },
+  {
+   "edit": "b3.cutter.1",
+   "bout": 3,
+   "blocks": [
+    "P1"
+   ],
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports a check on the PR, even when no session runs `npm test`. `page-measures.yml` runs on pull requests touching a page, but only reports findings, which never fail the workflow, so a red run is a fault in the measuring pass (`node/render/measure.mjs`, `node/render/page-measures.mjs` and `node/test/page-measures.mjs`), not in a page. To keep the test suite browser-free, name every Playwright-driven check without `.test.`, since `node --test` runs the files that match `node/test/**/*.test.mjs` and would otherwise make CI need a browser install. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh per run: a green check claims nothing about a pinned dependency tree.",
+   "words": 109
+  },
+  {
+   "edit": "b3.caveman.2",
+   "bout": 3,
+   "blocks": [
+    "P1"
+   ],
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports a check on the PR, even when no session runs `npm test`. `page-measures.yml` runs on pull requests touching a page, but only reports findings, which never fail the workflow, so a red run is a fault in the measuring pass (`node/render/measure.mjs`, `node/render/page-measures.mjs` and `node/test/page-measures.mjs`), not in a page. To keep the test suite browser-free, name every Playwright check without `.test.`, else `node --test` picks up `node/test/**/*.test.mjs` and CI needs a browser install. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh per run: a green check claims nothing about a pinned dependency tree.",
+   "words": 103
+  },
+  {
+   "edit": "b3.premise.2",
+   "bout": 3,
+   "blocks": [
+    "P1"
+   ],
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on pull requests that can merge and reports a check on the PR, even when no session runs `npm test`. `page-measures.yml` runs on pull requests touching a page, but only reports findings, which never fail the workflow, so a red run is a fault in the measuring pass (`node/render/measure.mjs`, `node/render/page-measures.mjs` and `node/test/page-measures.mjs`), not in a page. To keep the test suite browser-free, name every Playwright check without `.test.`, else `node --test` picks up `node/test/**/*.test.mjs` and CI needs a browser install. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh per run: a green check claims nothing about a pinned dependency tree.",
+   "words": 105
+  },
+  {
+   "edit": "b3.plain.2",
+   "bout": 3,
+   "blocks": [
+    "P1"
+   ],
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on pull requests that can merge and reports a check on the PR, even when no session runs `npm test`. `page-measures.yml` runs on pull requests touching a page, but only reports findings, which never fail the workflow, so a red run is a fault in the measuring pass (`node/render/measure.mjs`, `node/render/page-measures.mjs` and `node/test/page-measures.mjs`), not in a page. To keep the test suite browser-free, name every Playwright check without `.test.`, else `node --test` picks up `node/test/**/*.test.mjs` and CI needs a browser install. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh per run: a passing check says nothing about a fixed set of dependency versions.",
+   "words": 107
+  },
+  {
+   "edit": "b3.plain.3",
+   "bout": 3,
+   "blocks": [
+    "P1"
+   ],
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on pull requests that can merge and reports a check on the PR, even when no session runs `npm test`. `page-measures.yml` runs on pull requests touching a page, but only reports findings, which never fail the workflow, so a failed run is a fault in the measuring pass (`node/render/measure.mjs`, `node/render/page-measures.mjs` and `node/test/page-measures.mjs`), not in a page. To keep the test suite browser-free, name every Playwright check without `.test.`, else `node --test` picks up `node/test/**/*.test.mjs` and CI needs a browser install. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh per run: a passing check says nothing about a fixed set of dependency versions.",
+   "words": 107
+  },
+  {
+   "edit": "b3.qualifier.1",
+   "bout": 3,
+   "blocks": [
+    "P1"
+   ],
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on pull requests that can merge and reports a status check on the PR, even when no session runs `npm test`. `page-measures.yml` runs on pull requests touching a page, but only reports findings, which never fail the workflow, so a failed run is a fault in the measuring pass (`node/render/measure.mjs`, `node/render/page-measures.mjs` and `node/test/page-measures.mjs`), not in a page. To keep the test suite browser-free, name every Playwright check without `.test.`, else `node --test` picks up `node/test/**/*.test.mjs` and CI needs a browser install. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh per run: a passing check says nothing about a fixed set of dependency versions.",
+   "words": 108
+  },
+  {
+   "edit": "b3.qualifier.3",
+   "bout": 3,
+   "blocks": [
+    "P1"
+   ],
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on pull requests that can merge and reports a status check on the PR, even when no session runs `npm test`. `page-measures.yml` runs on pull requests touching a page, but only reports measurement findings, which never fail the workflow, so a failed run is a fault in the measuring pass (`node/render/measure.mjs`, `node/render/page-measures.mjs` and `node/test/page-measures.mjs`), not in a page. To keep the test suite browser-free, name every Playwright check without `.test.`, else `node --test` picks up `node/test/**/*.test.mjs` and CI needs a browser install. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh per run: a passing check says nothing about a fixed set of dependency versions.",
+   "words": 109
+  },
+  {
+   "edit": "b4.slugger.1",
+   "bout": 4,
+   "blocks": [
+    "P1"
+   ],
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on pull requests that can merge and reports a status check on the PR, even when no session runs `npm test`. `page-measures.yml` runs on pull requests touching a page but only reports: its measurement findings never fail the workflow, so a red run is a fault in the measuring pass (`node/render/page-measures.mjs`), not in a page. To keep the test suite browser-free, name every Playwright check without `.test.`, else `node --test` picks up `node/test/**/*.test.mjs` and CI needs a browser install. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh per run: a passing check says nothing about a fixed set of dependency versions.",
+   "words": 106
+  },
+  {
+   "edit": "b4.caveman.2",
+   "bout": 4,
+   "blocks": [
+    "P1"
+   ],
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on pull requests that can merge and reports a status check on the PR, even when no session runs `npm test`. `page-measures.yml` runs on pull requests touching a page but only reports: its measurement findings never fail the workflow, so a red run is a fault in the measuring pass (`node/render/page-measures.mjs`), not in a page. Keep the suite browser-free: `node --test` runs `node/test/**/*.test.mjs`, so name every Playwright check without `.test.`. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh per run: a passing check says nothing about a fixed set of dependency versions.",
+   "words": 97
+  },
+  {
+   "edit": "b4.reorder.1",
+   "bout": 4,
+   "blocks": [
+    "P1"
+   ],
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` as a status check on pull requests that can merge, even when no session runs `npm test`. `page-measures.yml` runs on pull requests touching a page but only reports: its measurement findings never fail the workflow, so a red run is a fault in the measuring pass (`node/render/page-measures.mjs`), not in a page. Keep the suite browser-free: `node --test` runs `node/test/**/*.test.mjs`, so name every Playwright check without `.test.`. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh per run: a passing check says nothing about a fixed set of dependency versions.",
+   "words": 93
+  },
+  {
+   "edit": "b4.slugger.2",
+   "bout": 4,
+   "blocks": [
+    "P1"
+   ],
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` as a status check on pull requests that can merge, even when no session runs `npm test`. `page-measures.yml` runs on pull requests touching a page but only reports: its measurement findings never fail the workflow, so a red run is a fault in the measuring pass (`node/render/page-measures.mjs`), not in a page. Keep the suite browser-free: `node --test` runs `node/test/**/*.test.mjs`, so name every Playwright check without `.test.`. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh per run and a passing check does not vouch for pinned dependency versions.",
+   "words": 92
+  },
+  {
+   "edit": "b4.premise.1",
+   "bout": 4,
+   "blocks": [
+    "P1"
+   ],
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` as a status check on conflict-free pull requests, even when no session runs `npm test`. `page-measures.yml` runs on pull requests touching a page but only reports: its measurement findings never fail the workflow, so a red run is a fault in the measuring pass (`node/render/page-measures.mjs`), not in a page. Keep the suite browser-free: `node --test` runs `node/test/**/*.test.mjs`, so name every Playwright check without `.test.`. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh per run and a passing check does not vouch for pinned dependency versions.",
+   "words": 90
+  },
+  {
+   "edit": "b4.plain.2",
+   "bout": 4,
+   "blocks": [
+    "P1"
+   ],
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` as a status check on conflict-free pull requests, even when no one runs `npm test` locally. `page-measures.yml` runs on pull requests touching a page but only reports: its measurement findings never fail the workflow, so a red run is a fault in the measuring pass (`node/render/page-measures.mjs`), not in a page. Keep the suite browser-free: `node --test` runs `node/test/**/*.test.mjs`, so name every Playwright check without `.test.`. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh per run and a passing check does not vouch for pinned dependency versions.",
+   "words": 91
+  },
+  {
+   "edit": "b4.plain.1",
+   "bout": 4,
+   "blocks": [
+    "P1"
+   ],
+   "text": "[`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` as a status check on conflict-free pull requests, even when no one runs `npm test` locally. `page-measures.yml` runs on pull requests touching a page but only reports: its measurement findings never fail the workflow, so a red run is a fault in the measuring scripts (`node/render/page-measures.mjs`), not in a page. Keep the suite browser-free: `node --test` runs `node/test/**/*.test.mjs`, so name every Playwright check without `.test.`. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh per run and a passing check does not vouch for pinned dependency versions.",
+   "words": 91
+  }
+ ]
+}

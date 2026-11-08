@@ -369,5 +369,31 @@ check(doc.querySelector('[data-launch-panel="recent-1"]').hidden && doc.activeEl
 check(window.NowView.sessionUrl('codex://threads/'+conversation,'codex',true) && !window.NowView.sessionUrl('codex://threads/'+conversation,'codex',false),'A documented Codex desktop URI is offered on desktop only, rather than assumed to work on mobile.');
 check(!window.NowView.sessionUrl(geminiUrl+'&action=run','gemini',true) && !window.NowView.sessionUrl('https://user@claude.ai/code/session_x','claude',true) && !window.NowView.sessionUrl('https://claude.ai.evil.test/code/session_x','claude',true) && !window.NowView.sessionUrl(geminiUrl,'claude',true),'The UI independently rejects altered provider URLs and cross-provider destinations.');
 check(!window.NowView.sessionActions({key:'errand:'+conversation,id:conversation,provider:'Gemini',kind:'change',sessionUrl:geminiUrl,url:'https://mehrlander.github.io/web-tools/app/?view=stage&errand='+conversation}).includes('data-session-link'),'A historical errand remains a saved errand even if a cached payload incorrectly supplies a provider conversation URL.');
+snapshot.items = ['Codex','Gemini','Claude'].flatMap(provider => [
+  {...item(provider+'-queued','queued',provider),location:provider === 'Gemini' ? 'Laptop' : ''},
+  {...item(provider+'-claimed','claimed',provider),location:''},
+  {...item(provider+'-complete','complete',provider),url:'https://mehrlander.github.io/web-tools/app/?view=files&file='+provider}
+]);
+snapshot.changes = []; snapshot.events = []; snapshot.sources.workerState = 'absent';
+await poll();
+for (const provider of ['Codex','Gemini','Claude']) {
+  const key = provider.toLowerCase();
+  check(doc.querySelector(`[data-assistant=${key}]`).textContent.includes('1 waiting'),provider+' counts only its own waiting errands.');
+  click(`[data-assistant=${key}]`);
+  check(doc.querySelector('[aria-label=Waiting] [data-item]')?.dataset.item === provider+'-queued'
+    && doc.querySelector('[aria-label="In progress"] [data-item]')?.dataset.item === provider+'-claimed'
+    && doc.querySelector('[aria-label="Other recent"] [data-item]')?.dataset.item === provider+'-complete'
+    && doc.querySelectorAll('#content [data-item]').length === 3,provider+' filters queued, claimed and completed errands into its lane.');
+  click(`[data-assistant=${key}]`);
+}
+snapshot.sources.workerState = 'detected'; await poll();
+click('[data-pick="worker:gemini"]');
+check(doc.querySelector('#detail').textContent.includes('1 waiting') && !doc.querySelector('#detail').textContent.includes('Codex-queued')
+  && !doc.querySelector('#detail').textContent.includes('Claude-claimed'),'The Gemini worker detail excludes other assistants from its queue and accepted work.');
+click('[data-back]');
+snapshot.items = snapshot.items.filter(i => i.provider !== 'Gemini'); snapshot.sources.workerState = 'absent'; await poll();
+check(!doc.querySelector('#notice').textContent.includes('Gemini errands are waiting'),'Codex and Claude queues never trigger the missing Gemini worker warning.');
+snapshot.items = snapshot.items.filter(i => i.state !== 'queued'); await poll();
+check(['codex','claude'].every(key => doc.querySelector(`[data-assistant=${key}]`).textContent.includes('1 claimed')),'A claim is shown as claimed rather than fabricated running work.');
 console.log(`${checks} phone interaction checks passed.`);
 dom.window.close();

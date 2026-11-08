@@ -30,6 +30,7 @@ import { gzipSync } from 'node:zlib';
 import { chromium } from 'playwright';
 import { resolveCdn, typeFor } from '../render/cdn.mjs';
 import { repoRoot as root } from '../repo-root.mjs';
+import { launch as launchChromium } from '../render/chromium.mjs';
 
 
 // Hosts the copy must never need. Kept as one predicate so pass 2's block and
@@ -74,7 +75,7 @@ await new Promise(r => server.listen(0, '127.0.0.1', r));
 const port = server.address().port;
 const origin = `http://127.0.0.1:${port}`;
 
-const browser = await chromium.launch({ args: ['--no-sandbox', '--ignore-certificate-errors'] });
+const browser = await launchChromium({ args: ['--no-sandbox', '--ignore-certificate-errors'] });
 
 const results = [];
 const check = (name, pass, detail = '') => {

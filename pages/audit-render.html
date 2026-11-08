@@ -1314,7 +1314,7 @@ window.__audit = {
     // one slide per unit: the whole document painted as in Doc, that unit
     // current and its note set under it, scrolled into view. A swipe moves
     // the list's selection and a pick in the list moves the strip (html-style
-    // rule 12). Stacked at every width, since the page sits in a deck, whose
+    // rule 11). Stacked at every width, since the page sits in a deck, whose
     // frame is vertical.
     get noted() { return this.units.filter(u => u.note); },
     get rKey() { return this.rCat ?? (this.noted.length ? NOTED : this.axis[0]); },

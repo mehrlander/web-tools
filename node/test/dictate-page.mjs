@@ -23,6 +23,7 @@ import { readFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 import { resolveCdn, typeFor } from '../render/cdn.mjs';
 import { repoRoot as root } from '../repo-root.mjs';
+import { launch as launchChromium } from '../render/chromium.mjs';
 
 const PHONE = { width: 390, height: 844 };
 
@@ -43,7 +44,7 @@ const server = http.createServer(async (req, res) => {
 await new Promise(r => server.listen(0, '127.0.0.1', r));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
-const browser = await chromium.launch({ args: ['--no-sandbox', '--ignore-certificate-errors'] });
+const browser = await launchChromium({ args: ['--no-sandbox', '--ignore-certificate-errors'] });
 const ctx = await browser.newContext({ viewport: PHONE, hasTouch: true, isMobile: true });
 // A token, so Jot and Drop are live. BEFORE newPage: an init script added to a
 // context does not reach a page that already exists, which is why Drop sat

@@ -196,7 +196,14 @@ def main(argv):
         note = {"id": new_id(), "at": datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
                 "author": args.author or default_author(), "about": about, "text": args.text.strip()}
         if getattr(args, "anchor", None):
-            note["anchor"] = json.loads(args.anchor)
+            # Checked before anything is written: a plain string here raised a
+            # JSONDecodeError traceback, and a retry without --anchor wrote
+            # whatever text the retry carried.
+            try:
+                note["anchor"] = json.loads(args.anchor)
+            except ValueError:
+                raise SystemExit("note.py: --anchor takes a JSON text-quote anchor (lib/kits/annotate.js), "
+                                 'such as \'{"exact": "the quoted words"}\'; nothing was written')
         if args.vote:
             note["vote"] = "" if args.vote == "withdraw" else args.vote
         append(repo, store, note)

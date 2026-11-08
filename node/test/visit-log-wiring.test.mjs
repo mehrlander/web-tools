@@ -173,7 +173,7 @@ test('a row is one line: the thing, then the short context, and never both the s
   assert.notEqual(repoDetail, 'Repos', 'the two halves said the same word twice');
 
   // Nothing is parked in a `title`, which reaches no touch screen and no
-  // screenshot (house style, rule 11).
+  // screenshot (house style, rule 10).
   const panel = page.match(/<div x-show="markMenu"[\s\S]*?\n      <\/div>/);
   assert.ok(panel, 'the mark menu panel was not found');
   assert.ok(!/:title=/.test(panel[0]), 'a fact was parked in a title inside the mark menu');

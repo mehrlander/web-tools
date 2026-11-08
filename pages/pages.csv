@@ -29,6 +29,7 @@ main,,pivot-concepts,Pivot concepts,pivot-concepts.html,thumbs/pivot-concepts.pn
 main,,pivot-table,Excel Pivot Table Viewer,pivot-table.html,thumbs/pivot-table.png,https://github.com/mehrlander/web-tools/blob/main/pages/pivot-table.html,
 main,,probe-snap,Probe snap,probe-snap.html,thumbs/probe-snap.png,https://github.com/mehrlander/web-tools/blob/main/pages/probe-snap.html,
 main,,probe-window,Probe window,probe-window.html,thumbs/probe-window.png,https://github.com/mehrlander/web-tools/blob/main/pages/probe-window.html,
+main,,reception,Reception,reception.html,thumbs/reception.png,https://github.com/mehrlander/web-tools/blob/main/pages/reception.html,
 main,,repo-atlas,Repo Atlas,repo-atlas.html,thumbs/repo-atlas.png,https://github.com/mehrlander/web-tools/blob/main/pages/repo-atlas.html,"Zoomable treemap map of any GitHub repo — files as tiles, sized by bytes or count."
 main,,review,Review,review.html,thumbs/review.png,https://github.com/mehrlander/web-tools/blob/main/pages/review.html,"A branch changeset or file, reviewed: CM6 diffs vs a base, links, patch dumps — the 🔍 target."
 main,,session,Session,session.html,thumbs/session.png,https://github.com/mehrlander/web-tools/blob/main/pages/session.html,
@@ -37,6 +38,7 @@ main,,shortcut-log,Shortcut Log,shortcut-log.html,thumbs/shortcut-log.png,https:
 main,,shortcut-run,Run Shortcut,shortcut-run.html,thumbs/shortcut-run.png,https://github.com/mehrlander/web-tools/blob/main/pages/shortcut-run.html,
 main,,shortcuts,Workflows,shortcuts.html,thumbs/shortcuts.png,https://github.com/mehrlander/web-tools/blob/main/pages/shortcuts.html,
 main,,shorter,Shorter,shorter.html,thumbs/shorter.png,https://github.com/mehrlander/web-tools/blob/main/pages/shorter.html,"Adjudicate a shorter draft against your text: word-diff, accept-by-default edits, per-span rewrite with an optional in-browser LLM."
+main,,swarm,Reduction swarm,swarm.html,thumbs/swarm.png,https://github.com/mehrlander/web-tools/blob/main/pages/swarm.html,
 main,,text-lab,Text Lab,text-lab.html,thumbs/text-lab.png,https://github.com/mehrlander/web-tools/blob/main/pages/text-lab.html,
 main,,toss-render,Toss Render,toss-render.html,thumbs/toss-render.png,https://github.com/mehrlander/web-tools/blob/main/pages/toss-render.html,"Render tossed HTML payloads or allowlisted repo paths (the 🥏 target); with no address, paste anything and see it shown the way it deserves."
 main,,transform,Transform,transform.html,thumbs/transform.png,https://github.com/mehrlander/web-tools/blob/main/pages/transform.html,"Multi-tab rows ⇒ rows workbench: $name refs, worker run, profile and pivot views, gz bundles. The standalone face of lib/alpineComponents/transform-workbench.js."
