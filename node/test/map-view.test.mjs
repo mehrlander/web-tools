@@ -554,8 +554,13 @@ test('the conversation icon family reads its glyphs from CONVERSATION.md, on dem
   const rule = (t) => data.convRules.find(p => p.title === t);
   assert.equal(rule('A rendered view').glyph, '🥏', 'the glyph that ends a lead-in is drawn apart');
   assert.equal(rule('Closing state').glyph, '', 'a lead-in with no glyph has none');
+  // Read from the doc, not counted: the family is one member per glyph that
+  // ends a lead-in, so a glyph the doc drops (🧭, 2026-11) leaves it too.
   const fam = data.ICON_READERS.conversation.call(data);
-  assert.ok(fam.length >= 4 && fam.every(m => m.icon && m.from.path === 'docs/CONVERSATION.md'), 'each member is a glyph from the doc');
+  const glyphs = bullets.map(b => (b.match(/\s([^\x00-\x7F]+)\.?$/) || [])[1]).filter(Boolean);
+  assert.ok(glyphs.length > 0, 'the doc gives some lead-ins a glyph');
+  assert.deepEqual([...fam.map(m => m.icon)], glyphs, 'one member per glyph that ends a lead-in, in the doc\'s order');
+  assert.ok(fam.every(m => m.from.path === 'docs/CONVERSATION.md'), 'each member is a glyph from the doc');
 });
 
 test('Docs loads on demand and carries the registry', async () => {
