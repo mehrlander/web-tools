@@ -1,6 +1,6 @@
 # House policies
 
-Each policy states one of the owner's preferences. A policy that applies only to a private repo goes in that repo's CLAUDE.md.
+Each policy states a single preference. A policy that applies only to a private repo goes in that repo's CLAUDE.md.
 
 ## Writing
 
