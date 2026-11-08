@@ -297,6 +297,18 @@ test('a change to the FAB is tossed with ?top, since a frame shows the renderer\
   assert.match(d.why.join(' '), /FAB's own code/);
 });
 
+test('a change to the renderer and the FAB gets a second link, the page as the tab', () => {
+  // The nested renderer's drawer boots main, so the FAB's change showed in
+  // neither renderer (2026-11-03, the ref bar's branch).
+  const d = run('pages/toss-render.html,lib/alpineComponents/fab.js,pages/data-view.html');
+  assert.equal(d.case, 'renderer');
+  assert.equal(d.links.length, 2);
+  assert.equal((d.links[0].url.match(/#gh=/g) || []).length, 2, 'the first still nests the branch\'s renderer');
+  assert.match(d.links[1].url, new RegExp(`toss-render\\.html\\?top#gh=mehrlander/web-tools@${Z12}:pages/data-view\\.html$`));
+  assert.match(d.why.join(' '), /FAB's own code/);
+  assert.equal(run('pages/toss-render.html').links.length, 1, 'the renderer alone keeps one link');
+});
+
 // --path is the link a session used to build by hand: a file the branch did
 // not change, at the real commit rather than --files' zero one.
 test('--path links any named file at the real commit, a page by toss and a document by the data route', () => {

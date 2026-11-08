@@ -572,7 +572,21 @@ def pick(paths, base, ref, use_git=True, diff=None, at="", query="", overlay=Non
                       and p != "pages/toss-render.html" and not p.startswith("pages/thumbs/")), "pages/index.html")
         why.append("pages/toss-render.html changed, so the deployed renderer cannot show it: address the branch's own renderer and hand it a page as a trailing fragment, here "
                    + inner + "; any page can take its place after the second #gh=.")
-        return decision("renderer", [("pages/toss-render.html", None)], sha, slug, hosted, why, warn, facts, at, query, inner=inner)
+        d = decision("renderer", [("pages/toss-render.html", None)], sha, slug, hosted, why, warn, facts, at, query, inner=inner)
+        # A nested renderer's drawer is its own FAB, which boots main by
+        # design, so a change to the FAB's code shows in neither renderer.
+        # The inner page as the tab boots its own FAB at the branch: a second
+        # link, since the first still shows the renderer's change.
+        fab = [p for p in b["lib"] if p in FAB_CODE]
+        if fab:
+            head, sep, frag = address("page", inner, sha, slug, None, at, query, None, "", "").partition("#")
+            d["links"].append({"page": inner, "view": None, "via": "FAB",
+                               "url": (head.replace("toss-render.html?", "toss-render.html?top&", 1) if "?" in head
+                                       else head + "?top") + sep + frag})
+            d["why"].append("The change is also the FAB's own code (" + ", ".join(fab) + "), which the nested renderer's "
+                            "drawer runs from main, so a second link opens " + inner + " as the tab, which boots its own FAB.")
+            d = warn_cap(d)
+        return d
 
     # A page's own file. ?use= cannot reach it: Pages serves the page FILE from
     # the default branch, so the old shell would wrap the new lib, silently.
