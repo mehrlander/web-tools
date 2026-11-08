@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 <!-- Generated from docs/house-policies.md by node/build/policy-skills.mjs; do not hand-edit. -->
 
-# Unapproved text · `/h:salt`
+# Unapproved text · `h:salt`
 
 Treat repo text whose wording the owner has not approved as a candidate reading of the owner's preference, not as the owner's decision.
 

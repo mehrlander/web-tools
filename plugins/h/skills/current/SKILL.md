@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 <!-- Generated from docs/house-policies.md by node/build/policy-skills.mjs; do not hand-edit. -->
 
-# Stay current · `/h:current`
+# Stay current · `h:current`
 
 Living text says what is true now; history goes to the records built to hold it.
 
