@@ -36,6 +36,7 @@ import { chromium } from 'playwright';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { resolveCdn, typeFor } from '../render/cdn.mjs';
 import { repoRoot as root } from '../repo-root.mjs';
+import { launch as launchChromium } from '../render/chromium.mjs';
 
 const PAGE = 'app/index.html';
 const REPO = 'mehrlander/web-tools';
@@ -94,7 +95,7 @@ const contentsJson = (buf) => JSON.stringify({
   size: buf.length, sha: 'x'.repeat(40), html_url: 'https://example.invalid',
 });
 
-const browser = await chromium.launch({ args: ['--no-sandbox', '--ignore-certificate-errors'] });
+const browser = await launchChromium({ args: ['--no-sandbox', '--ignore-certificate-errors'] });
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 await page.route('**/*', route => {
   const url = route.request().url();

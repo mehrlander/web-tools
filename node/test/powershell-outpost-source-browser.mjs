@@ -20,6 +20,7 @@ import path from 'node:path';
 import { chromium } from 'playwright';
 import { repoRoot } from '../repo-root.mjs';
 import { resolveCdn, typeFor } from '../render/cdn.mjs';
+import { launch as launchChromium } from '../render/chromium.mjs';
 
 const project = 'projects/wps', repo = 'fixture/outpost', revision = 'a'.repeat(40);
 const blob = text => createHash('sha1').update('blob ' + Buffer.byteLength(text) + '\0').update(text).digest('hex');
@@ -139,7 +140,7 @@ try {
   const launches = [{}, { channel: 'chrome' }, { channel: 'msedge' }];
   let lastError;
   for (const option of launches) {
-    try { browser = await chromium.launch({ headless: true, ...option }); break; }
+    try { browser = await launchChromium({ headless: true, ...option }); break; }
     catch (error) { lastError = error; }
   }
   if (!browser) throw lastError;

@@ -10,6 +10,7 @@ import { readFile, mkdir } from 'node:fs/promises';
 import { chromium } from 'playwright';
 import { resolveCdn, typeFor } from '../render/cdn.mjs';
 import { repoRoot as root } from '../repo-root.mjs';
+import { launch as launchChromium } from '../render/chromium.mjs';
 
 const shots = path.join(root, 'node/.preview');
 await mkdir(shots, { recursive: true });
@@ -67,7 +68,7 @@ const origin = `http://127.0.0.1:${server.address().port}`;
 let browser;
 const runtimeErrors = [];
 try {
-  browser = await chromium.launch({ args: ['--no-sandbox', '--ignore-certificate-errors'],
+  browser = await launchChromium({ args: ['--no-sandbox', '--ignore-certificate-errors'],
     ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
       ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } : {}) });
   for (const [width, theme] of [[1280, 'winter'], [390, 'winter'], [320, 'dark']]) {
