@@ -8,8 +8,8 @@
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/alpinejs@3/dist/cdn.min.js" defer></script>
 <script src="../../lib/kits/repo-address.js"></script>
 <!-- Every idea drawn or gathered for the programs' marks, the ideas of the
-     program chosen in the lineup: one card per idea, under a strip of the picked idea's
-     variations that stays at the top of the column, and a lineup that sets the estate's repository
+     program chosen in the lead row: one card per idea, under a strip of the picked idea's
+     variations that stays at the top of the column, and a lead row that sets the estate's repository
      marks beside the pick from each of the five programs. Sessions' pile opens on
      ideas drawn and gathered for Sessions (2026-11-07), led by its current
      mark, three turns of a conversation (programs/sessions/icon.svg), then Surfacing's
@@ -25,8 +25,8 @@
      in, and the latest round's are badged New. A star on a mark makes it a
      favorite: each program's favorites sit numbered above its strip, in an
      order set by dragging them (a tapped one shows its name and Remove), and
-     the first leads in the lineup; a program with none sends the mark its
-     lineup shows, when that is not the mark the page opens on. They stay in this browser until sent:
+     the first leads in the lead row; a program with none sends the mark its
+     lead row shows, when that is not the mark the page opens on. They stay in this browser until sent:
      opened on a pick call (#user-call=owner/repo[@ref]:path), Send records
      them as the call's answer beside it and comments them on its pull
      request; without one, Copy puts them on the clipboard. #program=<name>
@@ -136,7 +136,7 @@
         } catch (e) { if (e.status !== 404) this.err = 'Could not read the answers: ' + e.message }
       } catch (e) { this.err = 'Could not read the call: ' + e.message + (GH.token() ? '' : '. It needs your GitHub token, set in the app.') }
     },
-    // One program at a time, chosen from the lineup.
+    // One program at a time, chosen from the lead row.
     get shown() { return this.progs.filter(([p]) => p === this.cur) },
     open(p) { this.cur = p; try { localStorage.setItem('program-mark-ideas:program', p) } catch {} },
     uri(s) { return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(s) },
@@ -146,7 +146,7 @@
     // an index, kept before, is ignored.
     rep(p, g) { const n = this.reps[p + ':' + this.data[p][g].name]; return typeof n === 'string' ? Math.max(0, this.data[p][g].items.findIndex(it => it.name === n)) : 0 },
     choose(p, ii) { const g = this.sel[p][0]; this.reps = { ...this.reps, [p + ':' + this.data[p][g].name]: this.data[p][g].items[ii].name }; this.sel[p] = [g, ii]; this.chosen = { ...this.chosen, [p]: this.keyOf(p, this.data[p][g].items[ii]) }; try { localStorage.setItem('program-mark-ideas:chosen', JSON.stringify(this.chosen)) } catch {} try { localStorage.setItem('program-mark-ideas:reps', JSON.stringify(this.reps)) } catch {} },
-    // The idea in view per program, kept by name: the lineup and Send read it.
+    // The idea in view per program, kept by name: the lead row and Send read it.
     keep() { try { localStorage.setItem('program-mark-ideas:ideas', JSON.stringify(Object.fromEntries(this.progs.map(([p]) => [p, this.data[p][this.sel[p][0]].name])))) } catch {} },
     pick(p) { const g = this.sel[p][0]; return this.data[p][g].items[this.rep(p, g)] || this.data[p][g].items[0] },
     source(it) { const s = it && it.icon && this.data.sources[it.icon.split(':')[0]]; return s ? s.name + ', ' + s.license : '' },
@@ -179,22 +179,22 @@
       if (j >= 0 && j !== d.i) { const f = [...this.favs[d.p]]; f.splice(j, 0, f.splice(d.i, 1)[0]); this.favs[d.p] = f; d.i = j }
     },
     drop() { const d = this.drag; if (!d) return; this.drag = null; if (d.moved) { this.moving = { p: '', i: -1 }; this.save() } else this.moving = this.moving.p === d.p && this.moving.i === d.i ? { p: '', i: -1 } : { p: d.p, i: d.i } },
-    // The lineup shows each program's first favorite, or else the mark last
+    // The lead row shows each program's first favorite, or else the mark last
     // tapped, or else the mark the page opens on; browsing leaves it alone.
     homeItem(p) { const [g, i] = this.home[p]; return this.data[p][g].items[i] },
     lead(p) { return this.favs[p].length ? this.itemOf(p, this.favs[p][0]) : (this.chosen[p] && this.itemOf(p, this.chosen[p])) || this.homeItem(p) },
     total() { return this.progs.reduce((n, [p]) => n + this.favs[p].length, 0) },
     href(k) { const m = k.match(/^iconify ([^:]+):(.+)$/); return m ? `https://api.iconify.design/${m[1]}/${m[2]}.svg` : '' },
-    // A program with no favorites sends the mark its lineup entry shows, when
+    // A program with no favorites sends the mark its lead row entry shows, when
     // that is not the mark the page opens on: a choice made by tapping.
     home: { sessions: [0, 0], testing: [5, 0], organization: [0, 0], content: [0, 0], discovery: [0, 0] },
     picks() { return this.progs.flatMap(([p, n]) => {
       if (this.favs[p].length) return this.favs[p].map((k, i) => ({ id: `${n} ${i + 1}: ${k}`, href: this.href(k), program: p, rank: i + 1 }));
       const it = this.lead(p);
       if (!it || this.keyOf(p, it) === this.keyOf(p, this.homeItem(p))) return [];
-      const k = this.keyOf(p, it); return [{ id: `${n} lineup: ${k}`, href: this.href(k), program: p, rank: 0, lineup: true }];
+      const k = this.keyOf(p, it); return [{ id: `${n} lead: ${k}`, href: this.href(k), program: p, rank: 0, lead: true }];
     }) },
-    fromPicks(list) { const f = { sessions: [], testing: [], organization: [], content: [], discovery: [] }; for (const x of [...list].filter(x => !x.lineup).sort((a, b) => (a.rank || 0) - (b.rank || 0))) if (f[x.program]) f[x.program].push(String(x.id).replace(/^[^:]+: /, '')); return f },
+    fromPicks(list) { const f = { sessions: [], testing: [], organization: [], content: [], discovery: [] }; for (const x of [...list].filter(x => !x.lead).sort((a, b) => (a.rank || 0) - (b.rank || 0))) if (f[x.program]) f[x.program].push(String(x.id).replace(/^[^:]+: /, '')); return f },
     text() { return this.picks().map(x => x.id + (x.href ? '  ' + x.href : '')).join('\n') + (this.note.trim() ? '\n\n' + this.note.trim() : '') },
     sentNow() { return this.sent && JSON.stringify((this.sent.picks || []).map(x => x.id)) === JSON.stringify(this.picks().map(x => x.id)) && (this.sent.note || '') === this.note.trim() },
     closed() { return !!this.call && (this.call.status === 'closed' || !!this.call.closed) },
@@ -229,7 +229,7 @@
         <button class="btn btn-xs h-7 rounded-full px-2.5 font-medium" :class="cue === k ? 'btn-neutral' : 'btn-ghost'" @click="cue = k" x-text="n"></button>
       </template>
     </div>
-    <!-- The lineup: each program's lead, which opens that program's ideas
+    <!-- The lead row: each program's lead, which opens that program's ideas
          below, then the repository marks it has to sit beside, smaller, since
          those are settled. -->
     <div class="mt-2 rounded-box bg-base-100 px-2 py-2">
