@@ -42,6 +42,8 @@ const { window, problems } = makeWindow({ html: `<!doctype html><html><body>
 window.GH = FakeGH;
 window.TOKEN = 'tkn';
 window.gh = { load: async () => {} };
+// The marks are the shared kit's, so the form draws what every call draws.
+window.eval(readFileSync(new URL('../../lib/kits/call-marks.js', import.meta.url), 'utf8'));
 window.AssistantMark = { shortBranch: (b) => String(b || '') };
 // md-diff's own suite holds its drawing; here it draws one container per
 // changed block, with the host's actions as buttons, as the real one does.
@@ -151,6 +153,7 @@ test('an edit with a background and a proposal carries a book and a bulb, each o
   assert.equal(m.dataset.titleTip, undefined, 'its marks speak for it');
   const tips = [...m.querySelectorAll('[data-doc-tip]')].map((b) => b.dataset.docTip);
   assert.deepEqual(tips, ['background', 'proposal']);
+  assert.ok([...m.querySelectorAll('[data-doc-tip]')].every((b) => b.querySelector('svg')), 'each mark is drawn');
   assert.ok([...m.querySelectorAll('[data-doc-tip]')].every((b) => !b.dataset.titleTip), 'no label tip over the blurb');
   const panel = () => box(2).querySelector('[data-doc-tip-panel]');
   m.querySelector('[data-doc-tip="proposal"]').click();
