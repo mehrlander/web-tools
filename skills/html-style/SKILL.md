@@ -125,7 +125,7 @@ coded `linked-swiper`.
 
 **16. An item and its counterparts highlight together.** Where one item appears in two or more places on a page, hovering or tapping any of them marks the others.
 
-**18. A value takes the form its content asks for.** Do not lay out a card's or panel's fields as label-value pairs. A URL or file path is a link, short labels and dates run as one line of items, a sentence runs as text without a label, and an item the card points to leads with an icon and its name in bold. Leave out a field whose value is a placeholder, a value nearly every card shares, or a restatement of another field. A table whose rows share columns is exempt.
+**17. A value takes the form its content asks for.** Do not lay out a card's or panel's fields as label-value pairs. A URL or file path is a link, short labels and dates run as one line of items, a sentence runs as text without a label, and an item the card points to leads with an icon and its name in bold. Leave out a field whose value is a placeholder, a value nearly every card shares, or a restatement of another field. A table whose rows share columns is exempt.
 
 ## Handing a page over
 
