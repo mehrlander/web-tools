@@ -73,7 +73,7 @@ Scope, in order:
 - `docs/favicons/README.md`: the drawn-mark rules the mark follows
 - `docs/prototypes/themes-options.html`: the option page the lineup grew out of
 - `skills/design-sprint/SKILL.md`: phase 3, "Comparing working options", which builds a lineup
-- `docs/prototypes/lists-options.html`: the worked example, two layouts of the Lists view, whose header says how a lineup is built
+- PR web-tools #1151: brings the worked example, `docs/prototypes/lists-options.html`, two layouts of the Lists view, whose header says how a lineup is built
 - `mehrlander/web-tools-private:state/closings.json` (background branch): the data the first lineup draws
 
 ## Done when
