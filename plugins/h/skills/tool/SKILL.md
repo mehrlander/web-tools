@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 <!-- Generated from docs/house-policies.md by node/build/policy-skills.mjs; do not hand-edit. -->
 
-# Scripts · `/h:tool`
+# Scripts · `h:tool`
 
 A script outside `lib/` goes with its caller.
 

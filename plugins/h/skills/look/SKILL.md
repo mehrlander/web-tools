@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 <!-- Generated from docs/house-policies.md by node/build/policy-skills.mjs; do not hand-edit. -->
 
-# Look first · `/h:look`
+# Look first · `h:look`
 
 Observe before explaining.
 

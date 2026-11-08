@@ -4,7 +4,7 @@ Each policy states a single preference. A policy that applies only to a private 
 
 ## Writing
 
-### Qualified writing · `/h:qualify`, `h:qw`
+### Qualified writing · `h:qualify`
 
 Qualify noun phrases, and introduce each referent before referring to it, so that a reader who has not followed the conversation can identify every subject.
 
@@ -12,7 +12,7 @@ Qualify noun phrases, and introduce each referent before referring to it, so tha
 
 **Detail:** [QUALIFIED-WRITING.md](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md), rules 1, 4 and 5.
 
-### Precise register · `/h:precise`, `h:slang`
+### Precise register · `h:precise`
 
 Use the standard term a general reader knows, in a plain, dry register.
 
@@ -27,7 +27,7 @@ Use the standard term a general reader knows, in a plain, dry register.
 
 **Detail:** [QUALIFIED-WRITING.md](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md), rule 2.
 
-### No em dashes · `/h:dash`, `h:emdash`
+### No em dashes · `h:dash`
 
 Join ideas with a colon, a comma, a semicolon, parentheses or a new sentence, not a dash.
 
@@ -40,13 +40,13 @@ Join ideas with a colon, a comma, a semicolon, parentheses or a new sentence, no
 
 **See also:** [peeves](https://github.com/mehrlander/web-tools/blob/main/skills/peeves/peeves.csv) P64, percussive negation and contrast.
 
-### Avoid smug so · `/h:smug`
+### Avoid smug so · `h:smug`
 
 A sentence that turns on "so" often presents one cause as forcing one result. Avoid the form, and check examples you find for cause to remove or trim.
 
 **Covers:** all prose a session writes.
 
-### Showing · `/h:show`
+### Showing · `h:show`
 
 Show rather than explain.
 
@@ -56,7 +56,7 @@ Show rather than explain.
 
 **Covers:** replies, documents and pages.
 
-### Main thread · `/h:thread`
+### Main thread · `h:thread`
 
 Keep the reader's main question in view.
 
@@ -68,7 +68,7 @@ Keep the reader's main question in view.
 
 **Detail:** [QUALIFIED-WRITING.md](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md), rule 3.
 
-### What earns space · `/h:critical`, `h:oe`
+### What earns space · `h:critical`
 
 In a document that future sessions read to decide what to do, include content only where it changes what the reader does.
 
@@ -80,7 +80,7 @@ In a document that future sessions read to decide what to do, include content on
 
 **Detail:** [doc-craft](https://github.com/mehrlander/web-tools/blob/main/skills/doc-craft/SKILL.md), its opening and "General Principles"; web-tools [CLAUDE.md](https://github.com/mehrlander/web-tools/blob/main/CLAUDE.md) for the check before adding.
 
-### Stay current · `/h:current`
+### Stay current · `h:current`
 
 Living text says what is true now; history goes to the records built to hold it.
 
@@ -92,7 +92,7 @@ Living text says what is true now; history goes to the records built to hold it.
 
 ## Handover
 
-### Links · `/h:link`
+### Links · `h:link`
 
 Link every file, pull request, session and page a reply mentions.
 
@@ -103,7 +103,7 @@ Link every file, pull request, session and page a reply mentions.
 
 **Detail:** [CONVERSATION.md](https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md), "Reference is a link"; in web-tools, [showing.md](https://github.com/mehrlander/web-tools/blob/main/docs/showing.md) and `npm run showing`.
 
-### Merged means closed · `/h:merged`
+### Merged means closed · `h:merged`
 
 A merged branch takes no further commits; follow-up work starts again from the current tip of the target branch and opens a new pull request.
 
@@ -113,7 +113,7 @@ A merged branch takes no further commits; follow-up work starts again from the c
 
 ## Evidence and confidence
 
-### Look first · `/h:look`
+### Look first · `h:look`
 
 Observe before explaining.
 
@@ -123,7 +123,7 @@ Observe before explaining.
 
 **Covers:** diagnosis, and any claim about how something behaves.
 
-### Checking · `/h:check`
+### Checking · `h:check`
 
 Verify a claim with a check that could have failed.
 
@@ -133,7 +133,7 @@ Verify a claim with a check that could have failed.
 
 **Covers:** claims about files, behavior, tests, links and CI.
 
-### Hedging · `/h:hedge`
+### Hedging · `h:hedge`
 
 State confidence as it is.
 
@@ -144,7 +144,7 @@ State confidence as it is.
 
 **Covers:** replies, findings and PR bodies.
 
-### Unapproved text · `/h:salt`
+### Unapproved text · `h:salt`
 
 Treat repo text whose wording the owner has not approved as a candidate reading of the owner's preference, not as the owner's decision.
 
@@ -156,7 +156,7 @@ Treat repo text whose wording the owner has not approved as a candidate reading 
 
 ## Authority
 
-### Be bold · `/h:bold`
+### Be bold · `h:bold`
 
 Advance the work as far as sound judgment permits. Seek the involvement the matter warrants, and make review practical and timely.
 
@@ -173,7 +173,7 @@ Common cases that are found to benefit from owner attention are set up with a fo
 
 **Detail:** [tend](https://github.com/mehrlander/web-tools/blob/main/skills/tend/SKILL.md#principles), especially "Prepare the calls"; [Conversation](https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md#every-reply), closing states; [doc-craft](https://github.com/mehrlander/web-tools/blob/main/skills/doc-craft/SKILL.md#review), documentation review and approval.
 
-### Speaking about rules · `/h:defer`
+### Speaking about rules · `h:defer`
 
 When a rule bears on what the owner has asked, quote it, name its source, and offer a reading labeled as a reading.
 
@@ -182,7 +182,7 @@ When a rule bears on what the owner has asked, quote it, name its source, and of
 
 **Covers:** replies that cite a rule, policy or convention.
 
-### Verdict language · `/h:verdict`, `h:ruling`
+### Verdict language · `h:verdict`
 
 Report what a source says and what was observed, not a verdict on either.
 
@@ -191,7 +191,7 @@ Report what a source says and what was observed, not a verdict on either.
 
 **Covers:** replies, findings and PR bodies that report on a source, a tool's output or an analysis.
 
-### Weighing a found rule · `/h:weigh`
+### Weighing a found rule · `h:weigh`
 
 When a rule found in a repo conflicts with what the owner has said in the conversation, the owner's statement governs.
 
@@ -203,7 +203,7 @@ When a rule found in a repo conflicts with what the owner has said in the conver
 
 ## Code placement
 
-### Library folders · `/h:place`
+### Library folders · `h:place`
 
 A file under `lib/` goes in the folder named by what it attaches to.
 
@@ -216,7 +216,7 @@ A file under `lib/` goes in the folder named by what it attaches to.
 
 **Detail:** [code-layers.md](https://github.com/mehrlander/web-tools/blob/main/docs/code-layers.md), its table and "Cases the table does not settle", checked by `node/test/code-layers.test.mjs`.
 
-### Scripts · `/h:tool`
+### Scripts · `h:tool`
 
 A script outside `lib/` goes with its caller.
 
@@ -228,7 +228,7 @@ A script outside `lib/` goes with its caller.
 
 **Detail:** [code-layers.md](https://github.com/mehrlander/web-tools/blob/main/docs/code-layers.md), "Outside `lib/`".
 
-### Edit the source · `/h:source`
+### Edit the source · `h:source`
 
 Change a generated file by changing its source and running its generator.
 

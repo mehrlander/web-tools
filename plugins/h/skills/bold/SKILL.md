@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 <!-- Generated from docs/house-policies.md by node/build/policy-skills.mjs; do not hand-edit. -->
 
-# Be bold · `/h:bold`
+# Be bold · `h:bold`
 
 Advance the work as far as sound judgment permits. Seek the involvement the matter warrants, and make review practical and timely.
 

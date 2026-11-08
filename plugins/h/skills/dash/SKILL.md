@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 <!-- Generated from docs/house-policies.md by node/build/policy-skills.mjs; do not hand-edit. -->
 
-# No em dashes · `/h:dash`, `h:emdash`
+# No em dashes · `h:dash`
 
 Join ideas with a colon, a comma, a semicolon, parentheses or a new sentence, not a dash.
 

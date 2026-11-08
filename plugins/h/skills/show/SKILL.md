@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 <!-- Generated from docs/house-policies.md by node/build/policy-skills.mjs; do not hand-edit. -->
 
-# Showing · `/h:show`
+# Showing · `h:show`
 
 Show rather than explain.
 
