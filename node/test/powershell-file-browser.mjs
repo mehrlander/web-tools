@@ -19,6 +19,7 @@ import path from 'node:path';
 import { chromium } from 'playwright';
 import { repoRoot } from '../repo-root.mjs';
 import { resolveCdn, typeFor } from '../render/cdn.mjs';
+import { launch as launchChromium } from '../render/chromium.mjs';
 
 const project = 'projects/wps', repo = 'fixture/outpost', revision = 'a'.repeat(40);
 const blob = text => createHash('sha1').update('blob ' + Buffer.byteLength(text) + '\0').update(text).digest('hex');
@@ -131,7 +132,7 @@ const openPage = async ({ width, height, withoutEsm = false }) => {
 
 
 try {
-  browser = await chromium.launch({ headless: true });
+  browser = await launchChromium({ headless: true });
   for (const [name, width, height] of [['phone', 390, 844], ['desktop', 1400, 900]]) {
     const v = await openPage({ width, height });
     const card = () => v.page.evaluate(() => { const c = [...document.querySelectorAll('[data-ps-file]')].map(n => Alpine.$data(n)).find(c => c.item.name === 'A.psm1');

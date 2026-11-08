@@ -20,6 +20,7 @@ import { readFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 import { typeFor } from '../render/cdn.mjs';
 import { repoRoot as root } from '../repo-root.mjs';
+import { launch as launchChromium } from '../render/chromium.mjs';
 
 const failures = [];
 const ok = (n, c, d = '') => {
@@ -107,7 +108,7 @@ const LOG = {
   '2026-09-15-090000.json': JSON.stringify({ op: 'run', name: 'Alpha', build: 'old000' }),
 };
 
-const browser = await chromium.launch({ args: ['--no-sandbox'] });
+const browser = await launchChromium({ args: ['--no-sandbox'] });
 const ctx = await browser.newContext({ viewport: { width: 430, height: 932 } });
 await ctx.addInitScript(() => { try { localStorage.setItem('ghToken', 'stub'); } catch {} });
 const page = await ctx.newPage();

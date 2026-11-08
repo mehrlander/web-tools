@@ -33,11 +33,12 @@ what?", then give the compared things one place:
 structure, labels, and controls to show relationships: a range control starting
 at 2015 says the data starts in 2015.
 
-**3. Don't narrow text to a reading column.** `max-w-prose`, `max-w-2xl`,
-`max-w-3xl`, `max-w-4xl`, `container mx-auto`, and a `prose` class without
-`!max-w-none` (typography's unlayered CSS beats a plain `max-w-none`) all cap
-the text, with or without `mx-auto`. So does an arbitrary value: any `ch` cap,
-such as `max-w-[64ch]`, and an absolute cap from 42rem to 64rem, such as
+**3. A reading column and balanced lines are not wanted.** Leave out
+`text-balance` and `text-pretty`. `max-w-prose`, `max-w-2xl`, `max-w-3xl`,
+`max-w-4xl`, `container mx-auto`, and a `prose` class without `!max-w-none`
+(typography's unlayered CSS beats a plain `max-w-none`) all cap the text, with
+or without `mx-auto`. So does an arbitrary value: any `ch` cap, such as
+`max-w-[64ch]`, and an absolute cap from 42rem to 64rem, such as
 `max-w-[920px]`. The page's own layout sets the width. Where a measure is
 needed, take it from a grid track
 (`lg:grid-cols-[minmax(0,19rem)_minmax(0,1fr)]`, `min-w-0` on the wide track),
@@ -61,13 +62,13 @@ for a single item, is left out rather than filled with boilerplate. Use dots for
 up to about 25 items, then a progress bar. Support arrow keys, Escape, and the
 phone back button. Give each filter a row under the header: a label, then its
 options as pills on one line that scrolls sideways rather than wrapping. Don't
-embed a deck in a page; a strip under its own list (rule 12) is the exception,
+embed a deck in a page; a strip under its own list (rule 11) is the exception,
 since its takeover is one tap away.
 
 **5. An embedded page has no fixed root.** A page another page may embed (an
 appendix, a toss render, a stage preview) takes rule 4's shape without the fixed
 root: `min-h-dvh` and sticky chrome over document scrolling, or an `h-dvh` root
-for a list over a strip (rule 12). In an iframe on
+for a list over a strip (rule 11). In an iframe on
 iOS, a fixed child measures against the outer viewport and loses its right-hand
 column, which headless Chromium does not show. Width queries measure the frame,
 not the window. With sticky chrome, save and
@@ -82,19 +83,15 @@ wrong, not the type. Decks and documents run `text-xl` or larger with
 Everything the reader came to read shares a size; `text-xs` and monospace belong
 to labels, counters, and timestamps.
 
-**8. A short text block balances its lines.** Put `text-balance` on a heading,
-lede, caption, or any block read at a glance, and `text-pretty` on running copy,
-which fixes a stranded last word without evening out full lines.
-
-**9. Content starts at the top.** Do not vertically centre a slide because it
+**8. Content starts at the top.** Do not vertically centre a slide because it
 looks balanced when short; across a deck it moves the first line on every card.
 
-**10. One accent, and it means something.** Colour carries information, not
+**9. One accent, and it means something.** Colour carries information, not
 decoration. Assign it by semantic role, and in a comparison lock each side's
 treatment across every view. Where two concerns compete for the accent, let a
 control pick which one is marked rather than spending a second colour.
 
-**11. A tooltip worth having is worth building.** Prefer text on the page. Do
+**10. A tooltip worth having is worth building.** Prefer text on the page. Do
 not use a `title`: the browser draws it only on mouse hover and outside the
 page, so touch screens and screenshots omit it. One line the page implies is a
 **title-tip**
@@ -106,7 +103,7 @@ Do not use daisyUI's `tooltip`, `data-tip`, or `cursor-help`. Details are in
 `npm run stranded-titles` lists facts parked in a `title`, and
 `TitleTip.open('#id')` opens one for a shot.
 
-**12. A list with a detail is a list over a strip.** The list sits above,
+**11. A list with a detail is a list over a strip.** The list sits above,
 capped near 40% of the height, over a strip of one card per item, swiped
 sideways. Each scrolls inside itself; the page does not. A pick in the list
 moves the strip, and a swipe moves the list's selection and keeps it in view.
@@ -118,15 +115,15 @@ reference is the linked-swiper kit
 ([`linked-swiper.js`](https://github.com/mehrlander/web-tools/blob/main/lib/kits/linked-swiper.js)),
 coded `linked-swiper`.
 
-**13. Avoid modal dialogs.** Consider a panel-tip, the deck takeover (rule 4), or another more fluid alternative.
+**12. Avoid modal dialogs.** Consider a panel-tip, the deck takeover (rule 4), or another more fluid alternative.
 
-**14. Show the source.** A page presents the publisher's own document rather than a conversion made here, quoted text exactly as written with only highlighting added, and a change inline in the document it changes.
+**13. Show the source.** A page presents the publisher's own document rather than a conversion made here, quoted text exactly as written with only highlighting added, and a change inline in the document it changes.
 
-**15. Keep the reader's context.** A link to a row scrolls to it and leaves the other rows in view.
+**14. Keep the reader's context.** A link to a row scrolls to it and leaves the other rows in view.
 
-**16. The layout holds still.** A scrollbar appearing, a counter gaining a digit, or a container's content changing moves nothing else: reserve the scrollbar's gutter, give counters `tabular-nums`, and size a container for its largest content.
+**15. The layout holds still.** A scrollbar appearing, a counter gaining a digit, or a container's content changing moves nothing else: reserve the scrollbar's gutter, give counters `tabular-nums`, and size a container for its largest content.
 
-**17. An item and its counterparts highlight together.** Where one item appears in two or more places on a page, hovering or tapping any of them marks the others.
+**16. An item and its counterparts highlight together.** Where one item appears in two or more places on a page, hovering or tapping any of them marks the others.
 
 **18. A value takes the form its content asks for.** Do not lay out a card's or panel's fields as label-value pairs. A URL or file path is a link, short labels and dates run as one line of items, a sentence runs as text without a label, and an item the card points to leads with an icon and its name in bold. Leave out a field whose value is a placeholder, a value nearly every card shares, or a restatement of another field. A table whose rows share columns is exempt.
 

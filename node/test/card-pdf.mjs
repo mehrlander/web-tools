@@ -22,6 +22,7 @@ import { chromium } from 'playwright';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { resolveCdn, typeFor } from '../render/cdn.mjs';
 import { repoRoot as root } from '../repo-root.mjs';
+import { launch as launchChromium } from '../render/chromium.mjs';
 
 const REPO = 'mehrlander/web-tools';
 const PDF = 'docs/fixtures/report.pdf';
@@ -56,7 +57,7 @@ const kit = (await readFile(path.join(root, 'lib', 'kits', 'pdf.js'), 'utf8'))
 const json = (b) => JSON.stringify({ content: b.toString('base64'), encoding: 'base64',
   size: b.length, sha: 'x'.repeat(40), html_url: 'https://example.invalid' });
 
-const browser = await chromium.launch({ args: ['--no-sandbox'] });
+const browser = await launchChromium({ args: ['--no-sandbox'] });
 const page = await browser.newPage({ viewport: { width: 900, height: 900 } });
 await page.route('**/*', route => {
   const url = route.request().url();

@@ -27,6 +27,7 @@
 // Not part of `npm test`: it needs the network and a pushed commit.
 
 import { chromium } from 'playwright';
+import { launch as launchChromium } from '../render/chromium.mjs';
 
 const argv = process.argv.slice(2);
 const arg = (k, d) => (argv.includes(k) ? argv[argv.indexOf(k) + 1] : d);
@@ -44,7 +45,7 @@ const CASES = [
 ];
 
 const proxy = process.env.HTTPS_PROXY || process.env.https_proxy;
-const browser = await chromium.launch({ args: ['--no-sandbox'], ...(proxy ? { proxy: { server: proxy } } : {}) });
+const browser = await launchChromium({ args: ['--no-sandbox'], ...(proxy ? { proxy: { server: proxy } } : {}) });
 
 // The sandbox's proxy drops requests now and then ("Failed to fetch"), which is
 // the network and not the page, so a case is retried whole, in a fresh context,

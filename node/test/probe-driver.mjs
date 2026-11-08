@@ -14,6 +14,7 @@ import path from 'node:path';
 import { chromium } from 'playwright';
 import { resolveCdn } from '../render/cdn.mjs';
 import { repoRoot as root } from '../repo-root.mjs';
+import { launch as launchChromium } from '../render/chromium.mjs';
 
 const SEL = ['mehrlander/home@main', 'mehrlander/web-tools-private@main',
   'mehrlander/home@main:projects/budget-drs/submittal/link-rewrite.js'];
@@ -22,7 +23,7 @@ const steps = `fab,write,reload,back,reload,go:${framed},fab`;
 const url = 'https://mehrlander.github.io/web-tools/pages/scratch/toss-top-probe.html?gh=mehrlander/web-tools:app/index.html&' +
   SEL.map(v => 'refs=' + v).join('&') + `&view=map&probe=test-probe-driver&steps=${steps}`;
 
-const browser = await chromium.launch();
+const browser = await launchChromium();
 const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
 await ctx.addInitScript(() => { try { localStorage.setItem('ghToken', 'test-token'); } catch {} });
 const page = await ctx.newPage();
@@ -58,7 +59,7 @@ console.log(ok && framedOk ? 'PASS: every step ran, in order, the go step mounte
 
 // A tab that dies during `fab`: Safari reloads it, and the run finds the step
 // still armed. Seeded here rather than crashed, since Chromium does not die.
-const b2 = await chromium.launch();
+const b2 = await launchChromium();
 const c2 = await b2.newContext();
 await c2.addInitScript(() => { try {
   localStorage.setItem('ghToken', 'test-token');
