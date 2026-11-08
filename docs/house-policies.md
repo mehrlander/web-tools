@@ -76,7 +76,7 @@ Show rather than explain.
 - Include a screenshot or a measurement rather than describe behavior.
 - Let structure and labels carry relationships rather than explanatory prose.
 
-**Covers:** replies, documents and pages; for pages, `/h:style`.
+**Covers:** replies, documents and pages.
 
 ### Main thread · `/h:thread`
 
@@ -111,20 +111,6 @@ Living text says what is true now; history goes to the records built to hold it.
 - History belongs in commit messages, a task's progress log and dated or write-once records.
 
 **Covers:** code comments, docs, skills, CLAUDE.md, AGENTS.md and PR descriptions; not dated records, which are history by design.
-
-## Pages
-
-### Page house style · `/h:style`
-
-A page follows the house style, which takes precedence over any general design, dashboard or charting skill.
-
-- Content uses the full width at reading size; text is not narrowed to a reading column.
-- Structure and labels carry relationships in place of explanatory prose.
-- A page carries no stat cards.
-
-**Covers:** every HTML page and artifact.
-
-**Detail:** [html-style](https://github.com/mehrlander/web-tools/blob/main/skills/html-style/SKILL.md).
 
 ## Handover
 
@@ -258,17 +244,6 @@ A file under `lib/` goes in the folder named by what it attaches to.
 **Covers:** web-tools.
 
 **Detail:** [code-layers.md](https://github.com/mehrlander/web-tools/blob/main/docs/code-layers.md), its table and "Cases the table does not settle", checked by `node/test/code-layers.test.mjs`.
-
-### Kits · `/h:kit`
-
-A kit registers one `window` namespace.
-
-- A kit loads through `gh.load`, so it has no top-level `import` or `export`.
-- A kit that needs Alpine reactivity gets a component wrapper rather than becoming a component.
-
-**Covers:** web-tools.
-
-**Detail:** [lib/kits/README.md](https://github.com/mehrlander/web-tools/blob/main/lib/kits/README.md), "Shape rules"; [code-layers.md](https://github.com/mehrlander/web-tools/blob/main/docs/code-layers.md), "Cases the table does not settle".
 
 ### Scripts · `/h:tool`
 

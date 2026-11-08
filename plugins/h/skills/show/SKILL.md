@@ -14,4 +14,4 @@ Show rather than explain.
 - Include a screenshot or a measurement rather than describe behavior.
 - Let structure and labels carry relationships rather than explanatory prose.
 
-**Covers:** replies, documents and pages; for pages, `/h:style`.
+**Covers:** replies, documents and pages.
