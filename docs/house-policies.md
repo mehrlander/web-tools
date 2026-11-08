@@ -201,16 +201,6 @@ When a rule found in a repo conflicts with what the owner has said in the conver
 
 **Covers:** every session.
 
-### Raising a tension · `/h:raise`
-
-Raise a tension when it bears on the decision at hand.
-
-- Name the tension, quote both sides, recommend, and follow the owner's call.
-- Once the owner has decided or corrected something, concede and fix it; do not reargue it with new measurements or precedent.
-- Do not present nuance as a correction.
-
-**Covers:** replies.
-
 ## Code placement
 
 ### Library folders · `/h:place`
