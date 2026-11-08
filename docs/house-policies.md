@@ -1,28 +1,6 @@
 # House policies
 
-These policies set out the owner's preferences and conventions, organized by principle. They are meant to be memorable and cited, the way WP:NPOV is cited on a Wikipedia talk page.
-
-## Policies
-
-### Policy entries · `/h:policy`
-
-A policy states a preference that holds across tasks, in wording the owner approved, with the cases it covers.
-
-- An entry gives the preference and its scope, and links to the document that holds procedure and detail; neither restates the other.
-- A session commits proposed wording on its branch, shows the owner the commit's diff in chat, and merges it only after the owner approves it.
-- A policy gets a document of its own only after its entry has been misapplied twice.
-- A shortcut names a preference or a bounded topic. A policy has one command, its slashed shortcut, and may list aliases without the slash; no shortcut is reused.
-- A shortcut is an address, not a summary: read the entry before applying it.
-
-**Covers:** this document, and the repo-specific policies under `/h:local`.
-
-### Repo-specific policies · `/h:local`
-
-A policy for one public repo is an entry in this document whose scope names that repo.
-
-- A private repo keeps its policies in its own CLAUDE.md, because this document is public.
-
-**Covers:** every repo whose sessions load this document.
+Each entry states one of the owner's preferences and names it for citation. This document is public: a policy that applies only to a private repo goes in that repo's CLAUDE.md.
 
 ## Writing
 
