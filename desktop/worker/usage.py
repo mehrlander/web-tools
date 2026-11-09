@@ -279,6 +279,13 @@ def collect(state, repo):
         providers.append(entry)
     write_json(state / 'usage.json', dict(schemaVersion=1, providers=providers))
     try:
+        from claude_tokens import collect as collect_claude_tokens
+        root = Path(os.environ.get('CLAUDE_CONFIG_DIR') or Path.home() / '.claude') / 'projects'
+        collect_claude_tokens(state, root, at)
+    except Exception:
+        # A token-log failure must not block account allowances or their archive.
+        pass
+    try:
         from usage_history import store
         store(state, providers, previous.get('providers', []), lambda: codex_call('account/usage/read'), at)
         write_json(state / 'usage-history-status.json', dict(status='available', checkedAt=at))

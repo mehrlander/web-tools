@@ -129,4 +129,6 @@ def read(state):
         periods = [dict(r) for r in db.execute('SELECT * FROM reset_readings ORDER BY reset,provider,bucket')]
         days = [dict(r) for r in db.execute('SELECT * FROM token_days ORDER BY day,provider')]
         return {'schemaVersion': 1, 'updatedAt': meta(db, 'updatedAt'), 'periods': periods, 'tokenDays': days,
-                'codexTokenStatus': meta(db, 'codexTokenStatus', 'unavailable')}
+                'codexTokenStatus': meta(db, 'codexTokenStatus', 'unavailable'),
+                'claudeTokenStatus': meta(db, 'claudeTokenStatus', 'waiting'),
+                'tokenSources': {'codex': 'Account-reported dates', 'claude': 'Laptop Claude Code logs, UTC dates, partial account coverage'}}
