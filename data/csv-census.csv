@@ -57,7 +57,7 @@ docs/run-methods.csv,8,5,2910,"[""method"",""machines"",""output_return"",""rule
 docs/showing-mechanisms.csv,5,11,3451,"[""key"",""glyph"",""label"",""form"",""subject"",""opens"",""handles"",""use"",""reaches"",""misses"",""narrative""]"
 docs/subjects.csv,9,7,2672,"[""key"",""label"",""needs"",""carrier"",""detect"",""icon"",""gloss""]"
 docs/tests-authored.csv,479,3,116152,"[""path"",""kind"",""protects""]"
-docs/tests.csv,479,6,406177,"[""path"",""test_count"",""method"",""runner"",""boot_smoke"",""test_names""]"
+docs/tests.csv,479,6,406279,"[""path"",""test_count"",""method"",""runner"",""boot_smoke"",""test_names""]"
 docs/text-fields.csv,13,5,4165,"[""field"",""audience"",""gloss"",""use_when"",""instead_of""]"
 docs/themes.csv,68,7,23927,"[""a"",""b"",""w"",""rule"",""quoted"",""shingle"",""scanned""]"
 docs/tools.csv,5,2,190,"[""path"",""icon""]"
