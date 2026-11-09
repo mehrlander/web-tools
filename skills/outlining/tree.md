@@ -17,8 +17,8 @@ Build the tree for one document and place each of its claims
 - Follow the document's content, not its headings: a heading may hold
   questions at several depths, and two headings may answer one question.
 - Make a question only where at least one claim answers it.
-- Build as deep as the content goes. Readers told to work fast mostly stopped
-  at depth 2; told to build as deep as the content goes, they reached 3 to 5.
+- Build as deep as the content goes. A reader against a time limit tends to
+  stop at depth 2, which flattens the measure.
 
 ## Placing claims
 
@@ -36,11 +36,9 @@ each separately.
 
 ## Reading depth
 
-Depth is an order within one document, not a level. Two readers placed a claim
-within one level of each other on 94% to 100% of claims, but they built
-different numbers of intermediate questions, so a depth of 3 from one reader or
-one document is not a depth of 3 from another. Compare depths within one
-reader's tree. The runs behind this are in home's
+Two readers of one document place a claim within one level of each other
+almost always, but they build different numbers of intermediate questions.
+Compare depths only within one reader's tree. The evidence is in home's
 [detail model](https://github.com/mehrlander/home/blob/main/projects/text/detail-model.md).
 
 ## Output

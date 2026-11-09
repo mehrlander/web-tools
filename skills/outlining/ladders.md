@@ -1,10 +1,8 @@
-# Genre ladders and the profile
+# Genre ladders
 
 A rung says what kind of point a claim makes, on a ladder chosen by the
 document's genre. It is a second tag on a claim ([`claims.md`](claims.md)),
-beside its type. Rungs compare across documents of one genre; depth
-([`tree.md`](tree.md)) does not, and the two barely correlate, so a report on a
-document's level of detail needs both.
+beside its type. Rungs compare across documents of one genre.
 
 ## Placing a claim
 
@@ -15,8 +13,7 @@ rung fits, and say why in `note`.
 
 **Check the genre first.** Place the claims with `other` available: a document
 of the ladder's genre leaves at most about a fifth of its claims on `other`, and
-one of another genre leaves a fifth to a half. The genre is a property of each
-document, not of its folder.
+one of another genre leaves a fifth to a half.
 
 ## Page: documents about a page, tool or app
 
@@ -56,12 +53,10 @@ document, not of its folder.
 | `open` | what remains unknown or undone | A gap, a next step not yet taken. |
 | `pointer` | where more lives | A link or reference with nothing else asserted. |
 
-A reference ladder, for definitions and how a tool or format behaves, is not
-drafted; taggers asked for `definition` and `behavior` as its core rungs.
+Reference documents, definitions and how a tool or format behaves, have no
+ladder yet; `definition` and `behavior` are its candidate core rungs.
 
-## Reading a profile
-
-A document's rung counts are its profile:
+## Reading the rung counts
 
 - A page document whose claims are mostly `not-page` is a builder's reference.
 - A practice document whose rules rarely reach `test` or `example` states rules
