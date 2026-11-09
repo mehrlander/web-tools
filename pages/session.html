@@ -156,7 +156,8 @@
        a toss carrying no address once rendered the empty state under a hidden
        bar, so the page said "name a session above" with nothing above it (found
        2026-08-26). Once a session is loaded the bar stands down, and the way out
-       is the head's link to the app's Sessions view. -->
+       is the takeover's ✕ or, inside a toss, the head's link to the app's
+       Sessions view. -->
   <div x-show="!target" class="shrink-0 border-b border-base-300 bg-base-100">
     <div class="mx-auto px-4 py-2 flex items-center gap-2">
       <span class="text-lg">&#128172;</span>
@@ -204,6 +205,9 @@
   document.addEventListener('alpine:init', () => {
     Alpine.data('sessionPage', () => ({
       input: '', target: null, busy: false, err: '',
+      // Whether this PAGE sits in an iframe (a toss). Not handed to the brief;
+      // it decides only whether a named session opens in the takeover.
+      framed: (() => { try { return window.self !== window.top; } catch { return true; } })(),
 
       async init(){
         // Before anything reads window.sessionRender: Alpine booted inside the
@@ -303,16 +307,20 @@
             const spec = window.DataPayload?.parseSpec?.(t.spec) || {};
             opts = { repo: spec.repo || STORE, path: spec.path || t.spec };
           }
-          // `framed: false`, ALWAYS. The brief's `framed` says a HOST draws the
-          // title and the id, so the view need not repeat them. That is true of
-          // the app's Sessions pane, which mounts the COMPONENT inside a deck
-          // whose header carries both. It is true of nothing that embeds this
-          // PAGE: the only embedder is the toss, and the toss draws nothing.
-          // Passing whether the page sat in an iframe instead left a tossed
-          // session with no title and no id on screen (reported 2026-09-01).
+          // `framed: false` for the inline mount. The brief's `framed` says a
+          // HOST draws the title and the id, so the view need not repeat them.
+          // That is true of a deck, whose header carries both; it is not true
+          // of a toss, which embeds this PAGE and draws nothing. Passing
+          // whether the page sat in an iframe instead left a tossed session
+          // with no title and no id on screen (reported 2026-09-01).
           opts = { ...opts, framed: false, ...(t.at || {}), onFind: value => this.stampFind(value) };
           this.target = opts;
           window.__sessionTarget = opts;
+          // TOP-LEVEL, THE APP'S OWN TAKEOVER: a deck of one with the header
+          // the app's Sessions deck draws. Inside a toss the inline mount
+          // below stays, since a fixed root in an iframe loses its right-hand
+          // column on iOS (house style rule 5).
+          if (!this.framed && this.openDeck(opts)) return;
           this.$nextTick(() => {
             // A fresh element each time: Alpine cannot re-initialise a tree it
             // already owns, so opening a second session replaces the mount
@@ -328,6 +336,41 @@
         } catch (e) {
           this.err = e?.message || String(e);
         } finally { this.busy = false; }
+      },
+
+      // The session as a one-slide takeover, its header the app's: the name,
+      // the day and the id, the Claude Code link. ✕, Escape and Back leave
+      // for the app's Sessions view, where the app's own takeover returns.
+      openDeck(opts){
+        if (!window.swipeDeck) return false;
+        const app = 'https://mehrlander.github.io/web-tools/app/?view=sessions';
+        const ref = window.gh?.ref || 'main';
+        const run = ref === 'main' ? '' : 'running ' + (/^[0-9a-f]{7,40}$/i.test(ref) ? ref.slice(0, 7) : ref);
+        const sub = (path) => {
+          const m = String(path || '').match(/(\d{4}-\d{2}-\d{2})-([0-9a-f]{8})\.json$/);
+          return [m ? m[1] : opts.day || '', m ? m[2] : opts.id || '', run].filter(Boolean).join(' · ');
+        };
+        let deck = null;
+        deck = window.swipeDeck.open({
+          count: 1, slideScroll: false, innerClass: 'h-full w-full min-w-0',
+          icon: 'ph-terminal-window', title: opts.id || opts.branch || 'Session', subtitle: sub(opts.path),
+          render: (i, slide) => {
+            window.__sessionSlide = { ...opts, framed: true, lent: false, onMeta: (m) => {
+              if (!deck || !m) return;
+              if (m.title) deck.setTitle(m.title);
+              deck.setSubtitle(sub(m.path));
+              if (m.agent) deck.setLink({ href: m.agent, title: 'Open this session in Claude Code',
+                                          svg: window.claudeMark?.svg?.({ cls: 'w-3.5 h-3.5 shrink-0' }) });
+            } };
+            const el = document.createElement('div');
+            el.className = 'h-full';
+            el.setAttribute('x-data', 'sessionBrief(window.__sessionSlide)');
+            slide.append(el);
+            Alpine.initTree(el);
+          },
+          onClose: () => location.replace(app),
+        });
+        return true;
       },
 
       stampFind(value){

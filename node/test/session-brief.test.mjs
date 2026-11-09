@@ -491,7 +491,9 @@ test('a resolver that throws costs its link and nothing else', async () => {
 
 test('pane picks the tab, and an unknown one falls back rather than blanking', () => {
   const at = (pane) => {
-    window.__p = { repo: STORE, record: { short: 'p', schema: 4 }, pane };
+    // One file, so the bottom region has a Files tab to land on: a session
+    // with none has no bottom region, and asking for its files falls back.
+    window.__p = { repo: STORE, record: { short: 'p', schema: 4, files: { 'x/y.js': { read: 1 } } }, pane };
     const el = window.document.createElement('div');
     el.setAttribute('x-data', 'sessionBrief(window.__p)');
     window.document.body.append(el);
@@ -807,9 +809,9 @@ test('one container: the views are a tab and the calls are the Calls tab\'s alon
   assert.doesNotMatch(now, /data-views/, 'and no views card');
   assert.match(now, /<div x-show="now" data-peek-host/, 'the card is the action message, where there is one');
   assert.doesNotMatch(src, /h-\[calc\(100dvh-4\.75rem\)\]/, 'nothing above the tabs is sized to the screen');
-  assert.match(src, /x-show="pane === 'views' && work\.views\.length"/, 'the views are a pane');
+  assert.match(src, /x-show="bottomPane === 'views' && work\.views\.length"/, 'the views are a pane');
   assert.match(src, /data-session-views-tab/, 'behind a tab of their own');
-  assert.match(src, /pane === 'views' && Math\.abs\(i - vAt\) <= 1/, 'whose frames wait for it to open');
+  assert.match(src, /bottomPane === 'views' && Math\.abs\(i - vAt\) <= 1/, 'whose frames wait for it to open');
 });
 
 test('the FAB is told what a note is about, in the notes store\'s locators', () => {

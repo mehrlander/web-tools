@@ -103,9 +103,15 @@ test('a framed slide reads its session\'s calls, and only its own', () => {
   assert.ok(listed.includes(STORE), 'the store\'s user-calls/ is listed');
 });
 
-test('the Calls tab comes first, ahead of the outline', () => {
-  const tabs = [...el('slide').querySelectorAll('[role=tab]')].map((t) => t.textContent.trim().match(/^[A-Za-z]+/)?.[0]);
-  assert.deepEqual(tabs.slice(0, 2), ['Calls', 'Outline']);
+// What waits on the owner is the first thing to see (owner, 2026-10-19). Since
+// the view split into two regions (2026-11-09), Calls leads the bottom row,
+// and that region opens on it while a call waits.
+test('the Calls tab leads the bottom row, and opens there while a call waits', async () => {
+  const row = el('slide').querySelector('[data-at="bottom-tabs"]');
+  const tabs = [...row.querySelectorAll('[role=tab]')].map((t) => t.textContent.trim().match(/^[A-Za-z]+/)?.[0]);
+  assert.equal(tabs[0], 'Calls');
+  await until(() => data('slide').openCallCount === 1);
+  assert.equal(data('slide').bottomPane, 'calls');
 });
 
 test('the Calls tab shows with a count, tinted while a call waits', async () => {
