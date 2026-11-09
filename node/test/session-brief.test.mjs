@@ -501,7 +501,9 @@ test('pane picks the tab, and an unknown one falls back rather than blanking', (
     return Alpine.$data(el).pane;
   };
   assert.equal(at('files'), 'files');
-  assert.equal(at('raw'), 'raw');
+  assert.equal(at('raw'), 'log', 'the record tab\'s old name still lands on it');
+  assert.equal(at('schema'), 'schema');
+  assert.equal(at('turns'), 'overview', 'no topics file, no Turns tab');
   assert.equal(at('outline'), 'outline');
   assert.equal(at('nonsense'), 'overview', 'the top region\'s own default');
   assert.equal(at(undefined), 'overview');
@@ -699,11 +701,13 @@ test('a fact carries its definition on data-title-tip, not in a title', () => {
   // The other ten are the labels on the icon-only controls: Sessions in Web
   // Tools, Contents, On GitHub, Previous view, Next view, Open the page in a new
   // tab, Swipe through every view full screen, Find in conversation, Read n
-  // cards one at a time, and Open this session in Claude Code.
-  assert.equal(extras.length, 14,
-    'the id, the running-ref marker, the pages mark, the Gemini summary and ten control labels off-strip: '
+  // cards one at a time, and Open this session in Claude Code. The fifteenth is
+  // the Gemini mark's state, a tip only while there is no Turns tab for a tap
+  // on the mark to open.
+  assert.equal(extras.length, 15,
+    'the id, the running-ref marker, the pages mark, the Gemini summary, the Gemini mark and ten control labels off-strip: '
     + JSON.stringify(extras.map(n => n.textContent.trim() || n.getAttribute('data-title-tip'))));
-  assert.equal(noted.length, text.length + 14, 'every text fact and those fourteen, and nothing else');
+  assert.equal(noted.length, text.length + 15, 'every text fact and those fifteen, and nothing else');
   // MATCHED ON THE VALUE, not on the fact's name, because the name is no longer
   // drawn: the strip renders `2026-08-05` and `40 calls`, so a lookup keyed on
   // "day" or "calls" would find the definition of whichever fact happened to
