@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 <!-- Generated from docs/house-policies.md by node/build/policy-skills.mjs; do not hand-edit. -->
 
-# Stay current · `/h:current`
+# Stay current · `h:current`
 
 Living text says what is true now; history goes to the records built to hold it.
 
@@ -14,4 +14,4 @@ Living text says what is true now; history goes to the records built to hold it.
 - When a living sentence is wrong, fix the sentence; add no "formerly" or "corrected" note and no dated update line.
 - History belongs in commit messages, a task's progress log and dated or write-once records.
 
-**Covers:** code comments, docs, skills, CLAUDE.md, AGENTS.md and PR descriptions; not dated records, which are history by design.
+**Backed by:** [doc-craft](https://github.com/mehrlander/web-tools/blob/main/skills/doc-craft/SKILL.md#general-principles), "State current reality".

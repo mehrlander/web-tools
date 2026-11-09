@@ -31,6 +31,7 @@ import { readFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 import { resolveCdn, typeFor } from '../render/cdn.mjs';
 import { repoRoot as root } from '../repo-root.mjs';
+import { launch as launchChromium } from '../render/chromium.mjs';
 
 const argv = process.argv.slice(2);
 const only = argv.includes('--only') ? new Set(argv[argv.indexOf('--only') + 1].split(',')) : null;
@@ -146,7 +147,7 @@ const server = http.createServer(async (req, res) => {
 });
 await new Promise(r => server.listen(0, '127.0.0.1', r));
 const base = `http://127.0.0.1:${server.address().port}`;
-const browser = await chromium.launch({ args: ['--no-sandbox'] });
+const browser = await launchChromium({ args: ['--no-sandbox'] });
 
 async function report(page, asked, c) {
   const depthOf = f => { let d = 0; for (let p = f && f.parentFrame(); p; p = p.parentFrame()) d++; return d; };

@@ -23,6 +23,7 @@ import { readFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 import { resolveCdn, typeFor } from '../render/cdn.mjs';
 import { repoRoot as root } from '../repo-root.mjs';
+import { launch as launchChromium } from '../render/chromium.mjs';
 
 const failures = [];
 const ok = (name, cond, detail = '') => {
@@ -44,7 +45,7 @@ const origin = `http://127.0.0.1:${server.address().port}`;
 const ADDR = 'me/web-tools@main:docs/CONVERSATION.md';
 const BLOB = 'https://github.com/me/web-tools/blob/main/docs/CONVERSATION.md';
 
-const browser = await chromium.launch({ args: ['--no-sandbox', '--ignore-certificate-errors'] });
+const browser = await launchChromium({ args: ['--no-sandbox', '--ignore-certificate-errors'] });
 const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
 await page.route('**/*', route => {
   const url = route.request().url();

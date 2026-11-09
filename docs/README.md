@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `node/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 16 are named by CLAUDE.md,
-21 by a skill, 44 by a page or component. The remaining 40 are
+22 by a skill, 43 by a page or component. The remaining 41 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -63,9 +63,6 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`text-tools.md`](text-tools.md) *(orphan)* — the FAB's Text tab: why it exists, why the join is the path rather than a term, and an assessment of what it is not
 - [`themes.csv`](themes.csv) *(measured)* — the duplication graph as committed data: every pair of markdown files sharing at least three ten-word windows, weighted, with the repeated passages themselves. Clusters of it are the Map view's themes, and which clusters exist is a function of the weight threshold, so the payload carries every edge and the reader carries the dial
 - [`tools.csv`](tools.csv) — which pages the Tools view shows, and the icon each is given
-- [`credentials.csv`](credentials.csv) — the credentials writers commit with, one row each: its kind, the venue that holds it and whose name its commits carry
-- [`machines.csv`](machines.csv) — the machines work runs on, one row per machine: what each is and what work there reaches
-- [`machines.md`](machines.md) *(measured)* — dated observations about the machines docs/machines.csv lists: what each product needs to keep running, and where unattended work fits
 - [`vocabularies.csv`](vocabularies.csv) — what each value of a closed domain means, one row per value
 - [`direct-to-main.csv`](direct-to-main.csv) — the writers that commit straight to main, and the paths each one owns
 - [`assistant-branches.csv`](assistant-branches.csv) — branches whose author is declared by a row, not read off a prefix or trailer, with the basis for each claim
@@ -89,16 +86,18 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`writers.csv`](writers.csv) — every program that commits to an estate repository: what starts it, the machine it runs on, and where and how it sets
 - [`context-links.csv`](context-links.csv) — the directed delivery connections between Context sources and the conditions on each connection
 - [`idea-board.md`](idea-board.md) — the idea board form: one design-sprint Crazy 8s board, its addresses, fields and sketch rules
-- [`house-policies.md`](house-policies.md) — the house policies: one entry per policy, each a preference with its scope, its shortcuts and a link to the document that holds its detail
+- [`house-policies.md`](house-policies.md) — the house policies: one entry per policy, each a preference with its h: name and what backs it
 - [`css-baseline.csv`](css-baseline.csv) *(measured)* — the CSS baseline: the most unexempt hand-written CSS declarations each file may carry, a ratchet on the house rule against vanilla CSS
 - [`hook-events.csv`](hook-events.csv) — every event Claude Code accepts a hook on, with the summary its /hooks menu gives
 - [`source-bundles.md`](source-bundles.md) *(orphan)* — the shared source-bundle convention: what a bundle is, its README frontmatter, the two tables and how a repository declares them
 - [`CONVERSATION.md`](CONVERSATION.md) — the conversation rules: the chat-handoff mechanics every reply uses
-- [`conversation.csv`](conversation.csv) — the gated index of the conversation rules CONVERSATION.md defines
 - [`intents.csv`](intents.csv) — what you might want done, each as a path through the Set diagram from what starts it to where it lands
 - [`icon-families.csv`](icon-families.csv) — the icon families: each set of icons the estate has settled on, the file that declares its members, and the passage that discusses them
 - [`fab-signals.csv`](fab-signals.csv) — what the FAB says: each tint, glyph and badge it shows, when it shows, what it means and what a tap does
 - [`tests-authored.csv`](tests-authored.csv) — whether each test checks behavior or is a gate, and what breaks if it is deleted
+- [`credentials.csv`](credentials.csv) — the credentials writers commit with, one row each: its kind, the venue that holds it and whose name its commits carry
+- [`machines.csv`](machines.csv) — the machines work runs on, one row per machine: what each is and what work there reaches
+- [`machines.md`](machines.md) *(measured)* — dated observations about the machines docs/machines.csv lists: what each product needs to keep running, and where unattended work fits
 - [`acronyms.md`](acronyms.md) *(orphan)* — coined acronyms for asks a session may hear (SPUR, FAIR) and for an order of explaining a term (CDE), kept mostly for fun
 
 ## docs/envelopes/
@@ -144,7 +143,7 @@ marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/forms/
 
-- [`README.md`](forms/README.md) *(orphan)* — what a form is, the five jobs a page does for the reader, and the answer each respond form asks for
+- [`README.md`](forms/README.md) — what a form is, the five jobs a page does for the reader, and the answer each respond form asks for
 
 ## docs/github/
 
@@ -158,9 +157,11 @@ marked *(orphan)* below: nothing points at them except this index.
 ## docs/prototypes/
 
 - [`content-maturity-ideas.json`](prototypes/content-maturity-ideas.json) *(record, orphan)* — the idea board for a diagram of content maturity: eight ways to draw four levels from Markdown notes to a view in the app, and the staircase selected with three grafts
-- [`harness-map-ideas.json`](prototypes/harness-map-ideas.json) *(record, orphan)* — the idea board for the harness picture: eight ways to draw how writers, the credentials they commit with and the machines they run on reach GitHub, and the selection docs/prototypes/harness-map.html builds
 - [`md-edit-ideas.json`](prototypes/md-edit-ideas.json) *(record, orphan)* — the idea board for the Markdown section editor: eight concepts drawn over the Intake section of docs/stage.md, and the selection the two built editors came from
+- [`harness-map-ideas.json`](prototypes/harness-map-ideas.json) *(record, orphan)* — the idea board for the harness picture: eight ways to draw how writers, the credentials they commit with and the machines they run on reach GitHub, and the selection docs/prototypes/harness-map.html builds
+- [`forms-tab-ideas.json`](prototypes/forms-tab-ideas.json) *(record, orphan)* — the idea board for the Map's Forms tab: eight ways to show the estate's forms with the pages that carry each, and the selection the tab builds
 - [`model-diagram-ideas.json`](prototypes/model-diagram-ideas.json) *(record, orphan)* — the idea board for redrawing the Map's Model diagram: eight ways to show a reader new to the codebook what a unit, its pattern, parts and frame codes are, drawn on the Docs tab, and the selection
 - [`model-diagram-redraw.json`](prototypes/model-diagram-redraw.json) *(record, orphan)* — the second idea board for the Map's Model diagram: five ways to draw the taxonomy of screen, chrome, content, unit, collection, item, field and overlay on the Docs tab, and the selection
 - [`program-icons-ideas.json`](prototypes/program-icons-ideas.json) *(record, orphan)* — the idea board for program icons: eight family cues that mark an icon as a program's rather than a project's, drawn for Surfacing and Testing, and the selection docs/prototypes/program-icons-options.html builds six of
+- [`program-mark-picking-ideas.json`](prototypes/program-mark-picking-ideas.json) *(record, orphan)* — the idea board for choosing program marks: eight ways to star favorites, order them and send the choice, and the pick docs/prototypes/program-mark-ideas.html builds
 - [`ui-concepts-ideas.json`](prototypes/ui-concepts-ideas.json) *(record, orphan)* — the idea board for a diagram of the UI concepts: eight ways to draw how Alpine components, kits, units, patterns, parts and slots relate, and the selection

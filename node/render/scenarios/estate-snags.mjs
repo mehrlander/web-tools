@@ -1,14 +1,14 @@
-// screenshot.mjs interaction scenario: the Lists pane's Snag section
+// screenshot.mjs interaction scenario: the Lists view's Snag tab
 // (kits/lists.js, lists/snag.json).
 //
-//   npm run shot -- app/index.html --query "view=lists" \
+//   npm run shot -- app/index.html --query "view=lists&tab=snag" \
 //     --script node/render/scenarios/estate-snags.mjs --width 1280 --height 1100
 //
 // The Lists view is token-gated and this renderer holds no token, so the seed
 // flips `authed` and plants the lists straight into the component, as
 // estate-lists.mjs does. The snags are five real items from the conversion of
 // web-tools' docs/SNAGS.md, so the pixels carry real titles, counts and entry
-// lengths. What they prove: the section between Jot and the created lists,
+// lengths. What they prove: the Snag tab's list,
 // rows last-bitten first with the ×N badge on a repeat, and, with the query
 // switches below, an entry opened in full and the add box filtering to a
 // likely repeat with its Again control showing.

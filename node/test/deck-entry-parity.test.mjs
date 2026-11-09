@@ -8,18 +8,15 @@
 // first renders. A host that waited for it would paint no button at all.
 //
 // So each of those keeps a literal, and this is what stops the literals
-// drifting. It is the same shape the surfacing manifest uses against
-// CONVERSATION.md: a copy that cannot be eliminated is held two-way by test
-// instead. If someone restyles the door in the kit, this fails and names every
+// drifting: a copy that cannot be eliminated is held by test instead. If someone restyles the door in the kit, this fails and names every
 // file that has to follow.
 //
 // There are seven copies as of 2026-09-04. branch-brief's is the door into a
 // branch's FILES; session-brief's is the door into a session's CARDS, and it
 // exists because that view was lifted out of pages/session.html to be mounted
 // per slide in the Sessions pane; search-view's is the door into the FILES a
-// search just found. The Map view's four arrived last: the Surfacing tab's
-// pair (the doc and its gated index), and the Docs, Tests and Harness tabs over
-// the list each is showing. An eighth joins the table below and needs no other
+// search just found. The Map view's arrived last: the Docs, Tests and Harness
+// tabs over the list each is showing. An eighth joins the table below and needs no other
 // change here, which is the point of the table.
 //
 // `pending` is the one thing a row can decline. Two of the doors render before
@@ -63,9 +60,6 @@ const DOORS = [
   { what: 'Files search', file: 'lib/alpineComponents/search-view.js',
     anchor: 'openDeck()', noun: 'file', count: "plural(fileHits.length, 'file')",
     pending: false },
-  { what: 'Map / Surfacing', file: 'lib/alpineComponents/map.js',
-    anchor: 'openSurfDeck()', noun: 'file', count: "plural(surfDeckFiles.length, 'file')",
-    pending: false, tone: 'ghost' },
   { what: 'Map / Docs', file: 'lib/alpineComponents/map.js',
     anchor: 'openDocDeck(docDirFiles[0])', noun: 'file',
     count: "plural(docDirFiles.length, 'file')", pending: false, tone: 'ghost' },

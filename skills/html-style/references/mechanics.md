@@ -113,7 +113,7 @@ quotes, `<`, and closing script text; ordinary data alone does not check escapin
 
 ## Title-tips and panel-tips
 
-This section is the one statement of the house popup rule; rule 11 of the style guide, the kit headers and page comments point here. Rule 13 of the [style guide](../SKILL.md#the-rules) rules out modal dialogs.
+This section is the one statement of the house popup rule; rule 10 of the style guide, the kit headers and page comments point here. Rule 12 of the [style guide](../SKILL.md#the-rules) rules out modal dialogs.
 
 A popup is a **title-tip** or a **panel-tip**, and one question decides which:
 **can the reader tap anything inside it?** A link, a ↗ reference, a copy button,
@@ -124,7 +124,7 @@ importance do not enter into it. The standard terms are a tooltip (ARIA
 `role="tooltip"`) and a popover.
 
 A `title` attribute is neither, and neither are daisyUI's `tooltip`,
-`data-tip` and `cursor-help`; none is used (rule 11).
+`data-tip` and `cursor-help`; none is used (rule 10).
 
 | | Title-tip | Panel-tip | Panel-tip, pinned |
 | --- | --- | --- | --- |

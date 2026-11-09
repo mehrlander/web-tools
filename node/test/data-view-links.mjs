@@ -1,13 +1,13 @@
 #!/usr/bin/env node
-// data-view's GitHub / Raw / CDN links, for an address that names no @ref.
+// data-view's GitHub and Raw links, for an address that names no @ref.
 //
 //   node node/test/data-view-links.mjs
 //
 // The one thing task one-repo-address-parser-5gtv92 asked to be verified by a
 // render rather than by reading. `DataPayload.parseSpec` used to fill a missing
 // @ref with 'main'; it now reports '' like the other two readers, and '' is
-// exactly what these three URLs cannot hold: it yields `blob//path` and `@/path`,
-// three broken links per item, which is why that copy was left alone when the
+// exactly what these URLs cannot hold: it yields `blob//path` and `@/path`,
+// broken links on every item, which is why that copy was left alone when the
 // shared module landed. The fallback moved to the link-building boundary in
 // alpineComponents/viewer.js, and this is the check that it actually did.
 //
@@ -22,6 +22,7 @@ import { readFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 import { resolveCdn, typeFor } from '../render/cdn.mjs';
 import { repoRoot as root } from '../repo-root.mjs';
+import { launch as launchChromium } from '../render/chromium.mjs';
 
 const REPO = 'mehrlander/web-tools';
 const FILE = 'tools/test/fixtures/rows.csv';
@@ -46,7 +47,7 @@ const server = http.createServer(async (req, res) => {
 await new Promise(r => server.listen(0, '127.0.0.1', r));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
-const browser = await chromium.launch({ args: ['--no-sandbox', '--ignore-certificate-errors'] });
+const browser = await launchChromium({ args: ['--no-sandbox', '--ignore-certificate-errors'] });
 const page = await browser.newPage();
 
 // Every contents-API read of the addressed file is answered here, whatever ref
@@ -84,14 +85,16 @@ async function links(src) {
 try {
   console.log(`no @ref (${REPO}:${FILE}):`);
   const bare = await links(`${REPO}:${FILE}`);
-  ok('the file rendered and offers links', bare.length >= 3, JSON.stringify(bare));
+  ok('the file rendered and offers links', bare.length >= 2, JSON.stringify(bare));
   ok('none is malformed by an empty ref',
     !bare.some(h => /blob\/\/|githubusercontent\.com\/[^/]+\/[^/]+\/\//.test(h) || h.includes('@/')),
     JSON.stringify(bare));
   ok('the blob link names a concrete branch', bare.some(h => h.includes(`/blob/main/${FILE}`)),
     JSON.stringify(bare.find(h => h.includes('/blob/'))));
-  ok('the CDN link names a concrete branch', bare.some(h => h.includes(`${REPO}@main/${FILE}`)),
-    JSON.stringify(bare.find(h => h.includes('jsdelivr'))));
+  // The viewer's CDN link went with jsDelivr for own code (2026-09-26); the
+  // raw link is the one that names the ref in the path.
+  ok('the raw link names a concrete branch', bare.some(h => h.includes(`githubusercontent.com/${REPO}/main/${FILE}`)),
+    JSON.stringify(bare.find(h => h.includes('githubusercontent'))));
   // The other half of the ref rule: fetching sends no ref at all, so the API
   // resolves the repo's default branch instead of being handed an empty one.
   ok('the fetch omitted the ref parameter rather than sending an empty one',

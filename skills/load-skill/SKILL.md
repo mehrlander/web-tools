@@ -31,7 +31,7 @@ If the user asks "what skills are available?" or "list my skills," fetch and sum
 
 ## Load a specific skill
 
-Given a skill name (e.g. `atomic-decomposition`), the SKILL.md URL is:
+Given a skill name (e.g. `outlining`), the SKILL.md URL is:
 
 ```
 <source>/<name>/SKILL.md

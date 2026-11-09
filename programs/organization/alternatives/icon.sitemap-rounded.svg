@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="organization program">
+  <title>organization program</title>
+  <desc>A sitemap: one node above two, joined by a bar, cut from a blue-600 tile. Drawn on the drawn-mark box and rules (docs/favicons/README.md): solid fills, no strokes, and every gap at least 2.5 units, which is about 1.4 CSS pixels at 16. Chosen 2026-11-07; the ideas it was chosen from are in docs/prototypes/program-mark-ideas.html.</desc>
+  <mask id="cut" maskUnits="userSpaceOnUse" x="0" y="0" width="32" height="32">
+    <rect width="32" height="32" fill="#fff"/>
+    <g fill="#000"><rect x="12.25" y="6.5" width="7.5" height="5.5" rx="1.5"/><rect x="14.75" y="11.5" width="2.5" height="2.75"/><rect x="9.25" y="13.75" width="13.5" height="2.5" rx="0.5"/><rect x="9.25" y="15.5" width="2.5" height="3.75"/><rect x="20.25" y="15.5" width="2.5" height="3.75"/><rect x="6.75" y="18.75" width="7.5" height="6.5" rx="1.5"/><rect x="17.75" y="18.75" width="7.5" height="6.5" rx="1.5"/></g>
+  </mask>
+  <g fill="#2563eb" mask="url(#cut)"><rect x="2" y="2.25" width="28" height="28" rx="7"/></g>
+</svg>

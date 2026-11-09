@@ -38,18 +38,21 @@ known by the answer it asks for.
 
 | Answer | The reader | Form | The answer lands in |
 | --- | --- | --- | --- |
-| decision | approves or returns one proposal | the Approve page (`approval/1`); a user call | a verdict file beside the request; the call's `answers.jsonl` |
+| approval | authorizes one proposal or returns it | the [Approve page](../../pages/approve.html) (`approval/1`); a user call that recommends an answer or confirms a merge | a verdict file beside the request; the call's `answers.jsonl` |
 | choice | picks one or more of several alternatives | for found images, the [image board](../../pages/image-board.html), and for a design sprint's concepts, the [idea board](../../pages/idea-board.html), each opened on a pick call (a user call of kind `pick`) | the call's `answers.jsonl` |
 | change | keeps or discards each proposed edit | the call page for a documentation call, which Dictate and the Map's Docs tab also answer; the Proposals view | the call's `answers.jsonl`; the target file |
 | label | gives each item one label from a fixed set | the audit render (`audit/1`) | the standoff file, saved back to its path |
 | reaction | votes or comments, closing nothing | Text Lab; the Tending view | home's `reviews.jsonl`; the notes store |
 | questionnaire | fills in named boxes | the Inquiry page (`inquiry/1`) | the payload's `reply_to` |
 
-An answer counts only where the form writes it for the work that raised it to
-read. The design sprint's option page collects a choice, and the Review page a
-judgment of a changeset, but each keeps it in the browser or records nothing,
-so it reaches the work only through chat. They are tagged respond with no
-answer.
+An answer counts only once the form writes it where the session or run that
+asked will read it. Two forms fall short of that. The **lineup** draws one page
+once per option under a strip that switches between them, for a choice among
+working versions of that page; the header of
+[`docs/prototypes/lists-options.html`](../prototypes/lists-options.html) says
+how a lineup is built. The [Review page](../../pages/review.html), tagged
+respond, collects a judgment of a changeset. On both, what the reader decides
+reaches the session only through chat.
 
 A diff is a way of drawing a change, not a kind of form: a diff of a proposed
 edit belongs to a change form, and a diff of two pasted texts is a make tool.

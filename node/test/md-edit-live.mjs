@@ -29,6 +29,7 @@ import { readFile as read } from 'node:fs/promises';
 import { chromium } from 'playwright';
 import { resolveCdn, typeFor } from '../render/cdn.mjs';
 import { repoRoot as root } from '../repo-root.mjs';
+import { launch as launchChromium } from '../render/chromium.mjs';
 
 const REPO = 'mehrlander/web-tools';
 const arg = (k, d) => { const i = process.argv.indexOf(k); return i >= 0 ? process.argv[i + 1] : d; };
@@ -85,7 +86,7 @@ const server = http.createServer(async (req, res) => {
 await new Promise(r => server.listen(0, '127.0.0.1', r));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
-const browser = await chromium.launch({ args: ['--no-sandbox', '--ignore-certificate-errors'] });
+const browser = await launchChromium({ args: ['--no-sandbox', '--ignore-certificate-errors'] });
 const page = await browser.newPage({ viewport: { width: WIDTH, height: 844 }, hasTouch: WIDTH < 600 });
 // A phone-width run passes for iOS where the editor asks (CSS.supports on
 // -webkit-touch-callout, as daisyUI does), so the zoom cap is exercised.
@@ -141,7 +142,6 @@ await page.route('**/*', async (route) => {
   if (p === `/repos/${REPO}/git/trees/tree1`) {
     return json(route, { truncated: false, tree: [{ path: 'docs/APP.md' }, { path: DOC }] });
   }
-  if (p === '/search/code') return json(route, { items: [] });
   const r = resolveCdn(url, root, null);
   if (r.kind === 'continue') return route.continue();
   if (r.kind === 'empty') return route.fulfill({ status: 200, contentType: r.contentType, body: '' });

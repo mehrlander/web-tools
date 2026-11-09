@@ -5,8 +5,8 @@
 sentence wider than the cap breaks mid-phrase beside a full-width page. Measured
 2026-09-01 on the Map view's tab gloss: the sentence wanted 842px, the cap gave
 768, and `text-balance` then evened the halves to 426 and 412, which is why the
-break reads as arbitrary. Rule 8 still wants `text-balance`; the cap is the
-defect.
+break reads as arbitrary. Rule 3 now rules out both; this scan finds the
+cap.
 
 WHY THIS SHIPS WITH THE PLUGIN RATHER THAN LIVING IN python/. The class is a
 model default, not a repo habit, so it arrives in every repo the same way. The

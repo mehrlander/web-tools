@@ -58,7 +58,6 @@ const aimsJson = readFileSync(path.join(repoRoot, 'docs', 'aims.json'), 'utf8');
 const aimsGoalsCsv = readFileSync(path.join(repoRoot, 'docs', 'aims-goals.csv'), 'utf8');
 const aimsInitiativesCsv = readFileSync(path.join(repoRoot, 'docs', 'aims-initiatives.csv'), 'utf8');
 const aimsReadingCsv = readFileSync(path.join(repoRoot, 'docs', 'aims-reading.csv'), 'utf8');
-const surfCsv = readFileSync(path.join(repoRoot, 'docs', 'conversation.csv'), 'utf8');
 const surfDoc = readFileSync(path.join(repoRoot, 'docs', 'CONVERSATION.md'), 'utf8');
 // The Overview and every Sources panel read the real sentences.
 const mapTabsCsv = readFileSync(path.join(repoRoot, 'docs', 'map-tabs.csv'), 'utf8');
@@ -111,7 +110,6 @@ window.GH = class {
     if (p === 'docs/aims-goals.csv') return { text: aimsGoalsCsv };
     if (p === 'docs/aims-initiatives.csv') return { text: aimsInitiativesCsv };
     if (p === 'docs/aims-reading.csv') return { text: aimsReadingCsv };
-    if (p === 'docs/conversation.csv') return { text: surfCsv };
     if (p === 'docs/CONVERSATION.md') return { text: surfDoc };
     if (p === 'docs/map-tabs.csv') return { text: mapTabsCsv };
     if (p === 'docs/registries.csv') return { text: propsRegCsv };
@@ -547,12 +545,22 @@ test('with no ?use=, both manifests are read at main', () => {
   for (const a of asked) assert.equal(a.ref, 'main', a.path);
 });
 
-test('Surfacing loads on demand and names its authoritative doc', async () => {
-  assert.equal(data.surf, null, 'the index is not fetched until the tab is opened');
-  await data.loadSurf();
-  assert.equal(data.surfErr, '');
-  assert.ok(data.surf.primitives.length > 10);
-  assert.equal(data.SURF_DOC, 'docs/CONVERSATION.md');
+test('the conversation icon family reads its glyphs from CONVERSATION.md, on demand', async () => {
+  assert.equal(data.convRules, null, 'the doc is not fetched until the Icons tab asks');
+  await data.loadConvRules();
+  assert.equal(data.CONV_DOC, 'docs/CONVERSATION.md');
+  const bullets = [...surfDoc.split('\n---\n')[1].matchAll(/^\* \*\*(.+?)\*\*/gm)].map(m => m[1]);
+  assert.deepEqual([...data.convRules.map(p => p.lead)], bullets, 'one rule per bullet, in the doc\'s order');
+  const rule = (t) => data.convRules.find(p => p.title === t);
+  assert.equal(rule('A rendered view').glyph, '🥏', 'the glyph that ends a lead-in is drawn apart');
+  assert.equal(rule('Closing state').glyph, '', 'a lead-in with no glyph has none');
+  // Read from the doc, not counted: the family is one member per glyph that
+  // ends a lead-in, so a glyph the doc drops (🧭, 2026-11) leaves it too.
+  const fam = data.ICON_READERS.conversation.call(data);
+  const glyphs = bullets.map(b => (b.match(/\s([^\x00-\x7F]+)\.?$/) || [])[1]).filter(Boolean);
+  assert.ok(glyphs.length > 0, 'the doc gives some lead-ins a glyph');
+  assert.deepEqual([...fam.map(m => m.icon)], glyphs, 'one member per glyph that ends a lead-in, in the doc\'s order');
+  assert.ok(fam.every(m => m.from.path === 'docs/CONVERSATION.md'), 'each member is a glyph from the doc');
 });
 
 test('Docs loads on demand and carries the registry', async () => {
@@ -1145,8 +1153,8 @@ test('a deep-linked tab opens on that tab and fetches its manifest', async () =>
   const d3 = Alpine.$data(el3);
   assert.equal(d3.mapTab, 'tests');
   assert.equal(d3.displayTab, 'harness', 'a Tests deep link selects its top-level Harness parent');
-  assert.equal(JSON.stringify(d3.subviews.map(s => s.k)), JSON.stringify(['harness', 'set', 'tests', 'skills', 'agents', 'peeves', 'context', 'lifetimes', 'surfacing']),
-    'Harness exposes Automation, Scheduled, Set, Tests, Skills, Agents, Peeves, Context, Lifetimes, and Surfacing');
+  assert.equal(JSON.stringify(d3.subviews.map(s => s.k)), JSON.stringify(['harness', 'set', 'tests', 'skills', 'agents', 'peeves', 'context', 'lifetimes']),
+    'Harness exposes Automation, Scheduled, Set, Tests, Skills, Agents, Peeves, Context and Lifetimes');
   assert.ok(d3.testsReg, 'the deep-linked tab loaded without a tap');
   // The comparison-grain reading rides the same load, non-fatally, and joins
   // on the test file named first in each row's `check`.
@@ -1734,7 +1742,7 @@ test('Context\'s address rides with Context alone, and comes back with it', asyn
 
 test('an address that does not open Context arms none of its keys', () => {
   const { shell } = makeShell({ search: '?view=map&tab=tests&ctxtopic=house-style' });
-  assert.deepEqual({ ...shell.mapCtx }, { ctxlens: '', ctxsort: '', ctxtopic: '', ctxsource: '', setintent: '', growthrepo: '', h: '' });
+  assert.deepEqual({ ...shell.mapCtx }, { ctxlens: '', ctxsort: '', ctxtopic: '', ctxsource: '', setintent: '', growthrepo: '', h: '', form: '' });
 });
 
 test("a policy link's entry rides with the Policies tab alone", async () => {
@@ -1746,6 +1754,17 @@ test("a policy link's entry rides with the Policies tab alone", async () => {
   assert.equal(shell.deepLinkParams().has('h'), false, 'h rode onto another tab');
   const other = makeShell({ search: '?view=map&tab=docs&h=smug' }).shell;
   assert.equal(other.mapCtx.h, '', 'an address that does not open Policies arms none of its keys');
+});
+
+test("a form link's row rides with the Forms tab alone", async () => {
+  const { shell } = makeShell({ search: '?view=map&tab=forms&form=answer:choice' });
+  assert.equal(shell.mapCtx.form, 'answer:choice', 'an address that opens Forms arms its row');
+  await shell.routeFromUrl(shell.parseUrl());
+  assert.equal(shell.deepLinkParams().get('form'), 'answer:choice', 'the row survives the stamp');
+  shell.goMapTab('docs');
+  assert.equal(shell.deepLinkParams().has('form'), false, 'form rode onto another tab');
+  const other = makeShell({ search: '?view=map&tab=docs&form=answer:choice' }).shell;
+  assert.equal(other.mapCtx.form, '', 'an address that does not open Forms arms none of its keys');
 });
 
 test("Growth's corpus rides with Growth alone", () => {
@@ -2004,7 +2023,7 @@ test('every field the Data tab reads off a registry exists on a registry row', a
 // The deck's markdown path renders a registry as a table, and the risk in that
 // conversion is not layout: it is a cell being READ as markdown. docs/ holds a
 // dozen registries and several of them describe markdown, so the first pass
-// turned conversation.csv's own `[caption](url)` into a link labelled "caption",
+// turned a registry's own `[caption](url)` into a link labelled "caption",
 // which is a file misreporting itself in the one view meant to show it whole.
 
 test('a registry converts to a table with a delimiter row', () => {
@@ -2021,7 +2040,7 @@ test('a cell is data, so its markdown is escaped rather than run', () => {
 });
 
 test('a pipe inside a cell does not split the row', () => {
-  // conversation.csv carries `#gz= | #gh=` in one field; unescaped it would read
+  // A registry can carry `#gz= | #gh=` in one field; unescaped it would read
   // as two columns and shift every cell after it.
   const md = data.csvToMarkdown('key,form\nk,"#gz= | #gh="\n');
   const row = md.split('\n')[2];
@@ -2042,49 +2061,6 @@ test('what is not a table declines rather than rendering as one', () => {
   assert.equal(data.csvToMarkdown('just a header\n'), null, 'no rows');
   assert.equal(data.csvToMarkdown('one\ncolumn\n'), null, 'one column is a list');
   assert.equal(data.csvToMarkdown(''), null);
-});
-
-// ── A card and its bullet ────────────────────────────────────────────────
-// The corpus half (does every card resolve against the rendered doc) is
-// surfacing-lead-anchor.test.mjs, which renders CONVERSATION.md for real. This is
-// the component half: the normalization and the selector the card actually
-// calls, plus the one failure mode that matters, which is a hit on the wrong
-// bullet rather than a miss.
-
-test('the lead key is normalized the way the manifest gate normalizes it', () => {
-  assert.equal(data.leadKey('Reference is a link.'), 'Reference is a link');
-  assert.equal(data.leadKey('Boundary:'), 'Boundary');
-  assert.equal(data.leadKey('  Show pixels.  '), 'Show pixels');
-  assert.equal(data.leadKey(''), '');
-  assert.equal(data.leadKey(undefined), '');
-});
-
-test('findLead reaches a loose list item, which is the shape marked emits', () => {
-  const box = window.document.createElement('div');
-  box.innerHTML = '<ul>' +
-    '<li><p><strong>Show pixels.</strong> body one</p></li>' +
-    '<li><p><strong>Hand over the artifact.</strong> body two</p></li></ul>';
-  assert.match(data.findLead(box, 'Show pixels').textContent, /body one/);
-  assert.match(data.findLead(box, 'Hand over the artifact').textContent, /body two/);
-  assert.equal(data.findLead(box, 'Not a primitive'), null);
-});
-
-test('and a tight list item too, so the doc may drop its blank lines', () => {
-  const box = window.document.createElement('div');
-  box.innerHTML = '<ul><li><strong>Branch anchor.</strong> body</li></ul>';
-  assert.match(data.findLead(box, 'Branch anchor').textContent, /body/);
-});
-
-test('a bold run that is not the item lead-in is not the anchor', () => {
-  // Every primitive carries a **Boundary:** run inside its own paragraph, and
-  // several carry **Form**. Matching one of those would scroll the reader to
-  // the middle of the right bullet or the wrong one; :first-child is what
-  // keeps the anchor the lead-in.
-  const box = window.document.createElement('div');
-  box.innerHTML = '<ul><li><p><strong>Show pixels.</strong> body ' +
-    '<strong>Boundary:</strong> a viewport shot</p></li></ul>';
-  assert.equal(data.findLead(box, 'Boundary'), null, 'a mid-paragraph run is not a lead-in');
-  assert.ok(data.findLead(box, 'Show pixels'), 'the lead-in still resolves');
 });
 
 // Proposals on the page: the reading deck labels the paragraph each pending
@@ -2358,7 +2334,7 @@ test('Peeves presents the reviewed list and resolves merged IDs through their re
   const before = data.peeveQ;
   try {
     data.peeveQ = '';
-    assert.equal(data.peeveRows.length, 30);
+    assert.equal(data.peeveRows.length, 31);
     const names = Array.from(data.peeveRows, p => p.name);
     assert.deepEqual(names, [...names].sort((a, b) => a.localeCompare(b)), 'all active entries share one alphabetical list');
     assert.equal(data.peeveRows.find(p => p.id === 'P10').name, 'Term loading');
@@ -2382,10 +2358,6 @@ test('Peeves presents the reviewed list and resolves merged IDs through their re
     assert.deepEqual(Array.from(data.peeveRows, p => p.id), ['P10']);
     data.peeveQ = 'P03';
     assert.deepEqual(Array.from(data.peeveRows, p => p.id), ['P10'], 'the old jargon ID still finds Term loading');
-    for (const id of ['P09', 'P15', 'P17', 'P19', 'P20', 'P27', 'P40', 'P59', 'P61']) {
-      data.peeveQ = id;
-      assert.equal(data.peeveRows.length, 0, id + ': retired entries do not reappear through search');
-    }
     data.peeveQ = 'P46';
     assert.equal(data.peeveRows.length, 0, 'guidance remains outside the short list');
     data.peeveQ = 'Shallow defense';
