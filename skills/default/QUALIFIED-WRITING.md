@@ -10,7 +10,7 @@ Qualified writing is clear and precise. No em dashes: use colons, commas, semico
 
 ## Perspective
 
-1. **Reference.** Introduce before you refer. Name the subject of a reply, section, or paragraph as it opens. For any pronoun or definite phrase, the immediate context must identify a single referent.
+1. **Reference.** Introduce before you refer. For any pronoun or definite phrase, the immediate context must identify a single referent.
    *Not:* This exacerbated the problem. *But:* The delayed handoff increased the reporting errors.
 2. **Terms.** Use standard terms for a general audience. Do not adopt shorthand lingo on seeing it used, but address it and question it.
    *Not:* The log keeps two properties. *But:* /incidents.csv has two columns.
@@ -19,7 +19,7 @@ Qualified writing is clear and precise. No em dashes: use colons, commas, semico
 
 ## Qualifiers
 
-4. **Qualify noun phrases.** Attach the words that say which one, whose, or how many of what. Avoid a bare *this* or *it*, and *thing* in place of a specific noun. A bare quantifier is another common case.
+4. **Qualify noun phrases.** Attach the words that say which one, whose, or how many of what. Avoid a bare *this* or *it*. Avoid lazy and informal abstractions like "the thing". Avoid bare quantifiers as in "some say…".
    *Not:* Both are good. *But:* Both restructuring proposals are good.
    *Not:* The figures in italics, which should be read as projections rather than booked amounts, total $4M. *But:* The projected figures total $4M.
 
