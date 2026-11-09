@@ -1,0 +1,92 @@
+{
+ "title": "A Forms tab, drawn",
+ "subject": "The estate's forms in the Map view",
+ "made": "2026-11-08",
+ "brief": {
+  "background": "The forms README names the estate's forms in prose tables, the codebook codes every page by job, answer and the object type it draws, and docs/subjects.csv lists the object types; nothing shows them as one set. A Forms tab should let the reader name every form, recognize each by its look, see the pages that use it and where its answer goes, and spot the gaps.",
+  "methodology": "The eight concepts were sketched before any was judged, over the sources that exist today: docs/forms/README.md, data/ui-units/codes.csv and coded.csv, docs/subjects.csv, and the page shots in data/ui-units/thumbs/."
+ },
+ "ideas": [
+  {
+   "n": 1,
+   "title": "List over a strip",
+   "kind": "information structure",
+   "commentary": "The house list-with-detail: forms in a list grouped by kind, respond by answer and object by subject, over a strip of one card per form with its shot, what it asks or shows, where its answer lands and the pages that use it.",
+   "sketch": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 320 240\" font-family=\"system-ui, sans-serif\" font-size=\"15\" fill=\"none\" stroke=\"#1f2937\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"10\" y=\"10\" width=\"110\" height=\"220\" rx=\"4\"/><text x=\"20\" y=\"34\" fill=\"#1f2937\" stroke=\"none\">Respond</text><text x=\"20\" y=\"60\" fill=\"#1f2937\" stroke=\"none\">  Decision</text><text x=\"20\" y=\"86\" fill=\"#1f2937\" stroke=\"none\">  Choice</text><text x=\"20\" y=\"112\" fill=\"#1f2937\" stroke=\"none\">  Change</text><text x=\"20\" y=\"138\" fill=\"#1f2937\" stroke=\"none\">Object</text><text x=\"20\" y=\"164\" fill=\"#1f2937\" stroke=\"none\">  Branch</text><text x=\"20\" y=\"190\" fill=\"#1f2937\" stroke=\"none\">  Session</text><text x=\"20\" y=\"216\" fill=\"#1f2937\" stroke=\"none\">  File</text><rect x=\"132\" y=\"10\" width=\"178\" height=\"220\" rx=\"4\"/><rect x=\"144\" y=\"24\" width=\"154\" height=\"70\" rx=\"4\" fill=\"#e5e7eb\" stroke=\"none\"/><text x=\"150\" y=\"64\" fill=\"#1f2937\" stroke=\"none\">shot of a page</text><text x=\"144\" y=\"118\" fill=\"#1f2937\" stroke=\"none\">what it asks</text><text x=\"144\" y=\"144\" fill=\"#1f2937\" stroke=\"none\">opens on · lands in</text><rect x=\"144\" y=\"164\" width=\"44\" height=\"30\" rx=\"4\" fill=\"#e5e7eb\" stroke=\"none\"/><rect x=\"196\" y=\"164\" width=\"44\" height=\"30\" rx=\"4\" fill=\"#e5e7eb\" stroke=\"none\"/><rect x=\"248\" y=\"164\" width=\"44\" height=\"30\" rx=\"4\" fill=\"#e5e7eb\" stroke=\"none\"/><text x=\"144\" y=\"214\" fill=\"#1f2937\" stroke=\"none\">pages that use it</text></svg>"
+  },
+  {
+   "n": 2,
+   "title": "Job by type matrix",
+   "kind": "information structure",
+   "commentary": "A periodic table: jobs down the side, answers and object types across, each cell holding its page count, so an empty cell is a gap the reader sees at once. The cells carry counts and no look, so it shows where forms are missing rather than what they are.",
+   "sketch": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 320 240\" font-family=\"system-ui, sans-serif\" font-size=\"15\" fill=\"none\" stroke=\"#1f2937\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><text x=\"8\" y=\"62\" fill=\"#1f2937\" stroke=\"none\">respond</text><text x=\"8\" y=\"98\" fill=\"#1f2937\" stroke=\"none\">follow</text><text x=\"8\" y=\"134\" fill=\"#1f2937\" stroke=\"none\">read</text><text x=\"8\" y=\"170\" fill=\"#1f2937\" stroke=\"none\">explore</text><text x=\"8\" y=\"206\" fill=\"#1f2937\" stroke=\"none\">make</text><text x=\"84\" y=\"30\" fill=\"#1f2937\" stroke=\"none\" font-size=\"13\">answer</text><text x=\"142\" y=\"30\" fill=\"#1f2937\" stroke=\"none\" font-size=\"13\">branch</text><text x=\"200\" y=\"30\" fill=\"#1f2937\" stroke=\"none\" font-size=\"13\">file</text><text x=\"258\" y=\"30\" fill=\"#1f2937\" stroke=\"none\" font-size=\"13\">repo</text><rect x=\"80\" y=\"40\" width=\"50\" height=\"28\" rx=\"4\"/><rect x=\"138\" y=\"40\" width=\"50\" height=\"28\" rx=\"4\" fill=\"#e5e7eb\" stroke=\"none\"/><rect x=\"196\" y=\"40\" width=\"50\" height=\"28\" rx=\"4\" fill=\"#e5e7eb\" stroke=\"none\"/><rect x=\"254\" y=\"40\" width=\"50\" height=\"28\" rx=\"4\"/><rect x=\"80\" y=\"76\" width=\"50\" height=\"28\" rx=\"4\" fill=\"#e5e7eb\" stroke=\"none\"/><rect x=\"138\" y=\"76\" width=\"50\" height=\"28\" rx=\"4\" fill=\"#e5e7eb\" stroke=\"none\"/><rect x=\"196\" y=\"76\" width=\"50\" height=\"28\" rx=\"4\"/><rect x=\"254\" y=\"76\" width=\"50\" height=\"28\" rx=\"4\" fill=\"#e5e7eb\" stroke=\"none\"/><rect x=\"80\" y=\"112\" width=\"50\" height=\"28\" rx=\"4\" fill=\"#e5e7eb\" stroke=\"none\"/><rect x=\"138\" y=\"112\" width=\"50\" height=\"28\" rx=\"4\"/><rect x=\"196\" y=\"112\" width=\"50\" height=\"28\" rx=\"4\" fill=\"#e5e7eb\" stroke=\"none\"/><rect x=\"254\" y=\"112\" width=\"50\" height=\"28\" rx=\"4\" fill=\"#e5e7eb\" stroke=\"none\"/><rect x=\"80\" y=\"148\" width=\"50\" height=\"28\" rx=\"4\"/><rect x=\"138\" y=\"148\" width=\"50\" height=\"28\" rx=\"4\" fill=\"#e5e7eb\" stroke=\"none\"/><rect x=\"196\" y=\"148\" width=\"50\" height=\"28\" rx=\"4\" fill=\"#e5e7eb\" stroke=\"none\"/><rect x=\"254\" y=\"148\" width=\"50\" height=\"28\" rx=\"4\"/><rect x=\"80\" y=\"184\" width=\"50\" height=\"28\" rx=\"4\" fill=\"#e5e7eb\" stroke=\"none\"/><rect x=\"138\" y=\"184\" width=\"50\" height=\"28\" rx=\"4\" fill=\"#e5e7eb\" stroke=\"none\"/><rect x=\"196\" y=\"184\" width=\"50\" height=\"28\" rx=\"4\"/><rect x=\"254\" y=\"184\" width=\"50\" height=\"28\" rx=\"4\" fill=\"#e5e7eb\" stroke=\"none\"/></svg>"
+  },
+  {
+   "n": 3,
+   "title": "Field guide",
+   "kind": "borrowed form",
+   "commentary": "A bird guide's plate: one large shot per form with its regions outlined and named, the marks that make it recognizable, its range of pages and the form it is easily confused with. It serves the README's own test, recognition before reading, at the cost of one form per screen.",
+   "sketch": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 320 240\" font-family=\"system-ui, sans-serif\" font-size=\"15\" fill=\"none\" stroke=\"#1f2937\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"10\" y=\"10\" width=\"300\" height=\"150\" rx=\"4\"/><rect x=\"24\" y=\"24\" width=\"272\" height=\"22\" rx=\"4\" stroke-dasharray=\"5 4\"/><rect x=\"24\" y=\"56\" width=\"130\" height=\"90\" rx=\"4\" stroke-dasharray=\"5 4\"/><rect x=\"166\" y=\"56\" width=\"130\" height=\"90\" rx=\"4\" stroke-dasharray=\"5 4\"/><text x=\"30\" y=\"40\" fill=\"#1f2937\" stroke=\"none\" font-size=\"13\">header: names the object</text><text x=\"28\" y=\"104\" fill=\"#1f2937\" stroke=\"none\" font-size=\"13\">list</text><text x=\"170\" y=\"104\" fill=\"#1f2937\" stroke=\"none\" font-size=\"13\">detail</text><text x=\"10\" y=\"190\" fill=\"#1f2937\" stroke=\"none\">Branch form: marks that make it recognizable</text><text x=\"10\" y=\"214\" fill=\"#1f2937\" stroke=\"none\">found on 4 pages · not to confuse with Session</text></svg>"
+  },
+  {
+   "n": 4,
+   "title": "Payload to landing",
+   "kind": "explanatory mechanism",
+   "commentary": "Each respond form as a station between the contract it opens on (an envelope, a call kind) and the file its answer lands in, so the reader traces how a request becomes a recorded answer. Object forms have no landing and fall out of the picture.",
+   "sketch": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 320 240\" font-family=\"system-ui, sans-serif\" font-size=\"15\" fill=\"none\" stroke=\"#1f2937\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"10\" y=\"20\" width=\"80\" height=\"34\" rx=\"4\"/><text x=\"18\" y=\"42\" fill=\"#1f2937\" stroke=\"none\" font-size=\"13\">approval/1</text><rect x=\"10\" y=\"70\" width=\"80\" height=\"34\" rx=\"4\"/><text x=\"18\" y=\"92\" fill=\"#1f2937\" stroke=\"none\" font-size=\"13\">pick call</text><rect x=\"10\" y=\"120\" width=\"80\" height=\"34\" rx=\"4\"/><text x=\"18\" y=\"142\" fill=\"#1f2937\" stroke=\"none\" font-size=\"13\">doc call</text><rect x=\"10\" y=\"170\" width=\"80\" height=\"34\" rx=\"4\"/><text x=\"18\" y=\"192\" fill=\"#1f2937\" stroke=\"none\" font-size=\"13\">audit/1</text><rect x=\"120\" y=\"20\" width=\"80\" height=\"34\" rx=\"4\" fill=\"#e5e7eb\" stroke=\"none\"/><text x=\"128\" y=\"42\" fill=\"#1f2937\" stroke=\"none\" font-size=\"13\">Approve</text><rect x=\"120\" y=\"70\" width=\"80\" height=\"34\" rx=\"4\" fill=\"#e5e7eb\" stroke=\"none\"/><text x=\"128\" y=\"92\" fill=\"#1f2937\" stroke=\"none\" font-size=\"13\">Image board</text><rect x=\"120\" y=\"120\" width=\"80\" height=\"34\" rx=\"4\" fill=\"#e5e7eb\" stroke=\"none\"/><text x=\"128\" y=\"142\" fill=\"#1f2937\" stroke=\"none\" font-size=\"13\">Call page</text><rect x=\"120\" y=\"170\" width=\"80\" height=\"34\" rx=\"4\" fill=\"#e5e7eb\" stroke=\"none\"/><text x=\"128\" y=\"192\" fill=\"#1f2937\" stroke=\"none\" font-size=\"13\">Audit</text><rect x=\"230\" y=\"20\" width=\"80\" height=\"34\" rx=\"4\"/><text x=\"236\" y=\"42\" fill=\"#1f2937\" stroke=\"none\" font-size=\"12\">verdict file</text><rect x=\"230\" y=\"70\" width=\"80\" height=\"34\" rx=\"4\"/><text x=\"236\" y=\"92\" fill=\"#1f2937\" stroke=\"none\" font-size=\"12\">answers</text><rect x=\"230\" y=\"120\" width=\"80\" height=\"34\" rx=\"4\"/><text x=\"236\" y=\"142\" fill=\"#1f2937\" stroke=\"none\" font-size=\"12\">answers</text><rect x=\"230\" y=\"170\" width=\"80\" height=\"34\" rx=\"4\"/><text x=\"236\" y=\"192\" fill=\"#1f2937\" stroke=\"none\" font-size=\"12\">standoff</text><path d=\"M90,37 L120,37\"/><path d=\"M200,37 L230,37\"/><path d=\"M90,87 L120,87\"/><path d=\"M200,87 L230,87\"/><path d=\"M90,137 L120,137\"/><path d=\"M200,137 L230,137\"/><path d=\"M90,187 L120,187\"/><path d=\"M200,187 L230,187\"/></svg>"
+  },
+  {
+   "n": 5,
+   "title": "Ledger table",
+   "kind": "information structure",
+   "commentary": "One row per form with shared columns: kind, job, opens on, lands in, pages, and whether the README names it, sortable by any column. Dense and comparable, with no picture of what a form looks like.",
+   "sketch": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 320 240\" font-family=\"system-ui, sans-serif\" font-size=\"15\" fill=\"none\" stroke=\"#1f2937\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M10,30 L310,30\"/><text x=\"14\" y=\"22\" fill=\"#1f2937\" stroke=\"none\" font-size=\"13\">form</text><text x=\"76\" y=\"22\" fill=\"#1f2937\" stroke=\"none\" font-size=\"13\">job</text><text x=\"138\" y=\"22\" fill=\"#1f2937\" stroke=\"none\" font-size=\"13\">lands in</text><text x=\"200\" y=\"22\" fill=\"#1f2937\" stroke=\"none\" font-size=\"13\">pages</text><text x=\"262\" y=\"22\" fill=\"#1f2937\" stroke=\"none\" font-size=\"13\">named</text><path d=\"M10,60 L310,60\" stroke=\"#d1d5db\"/><text x=\"14\" y=\"52\" fill=\"#1f2937\" stroke=\"none\" font-size=\"13\">Decision</text><text x=\"262\" y=\"52\" fill=\"#1f2937\" stroke=\"none\" font-size=\"13\">✓</text><path d=\"M10,90 L310,90\" stroke=\"#d1d5db\"/><text x=\"14\" y=\"82\" fill=\"#1f2937\" stroke=\"none\" font-size=\"13\">Choice</text><text x=\"262\" y=\"82\" fill=\"#1f2937\" stroke=\"none\" font-size=\"13\">–</text><path d=\"M10,120 L310,120\" stroke=\"#d1d5db\"/><text x=\"14\" y=\"112\" fill=\"#1f2937\" stroke=\"none\" font-size=\"13\">Change</text><text x=\"262\" y=\"112\" fill=\"#1f2937\" stroke=\"none\" font-size=\"13\">✓</text><path d=\"M10,150 L310,150\" stroke=\"#d1d5db\"/><text x=\"14\" y=\"142\" fill=\"#1f2937\" stroke=\"none\" font-size=\"13\">Label</text><text x=\"262\" y=\"142\" fill=\"#1f2937\" stroke=\"none\" font-size=\"13\">–</text><path d=\"M10,180 L310,180\" stroke=\"#d1d5db\"/><text x=\"14\" y=\"172\" fill=\"#1f2937\" stroke=\"none\" font-size=\"13\">Branch</text><text x=\"262\" y=\"172\" fill=\"#1f2937\" stroke=\"none\" font-size=\"13\">✓</text><path d=\"M10,210 L310,210\" stroke=\"#d1d5db\"/><text x=\"14\" y=\"202\" fill=\"#1f2937\" stroke=\"none\" font-size=\"13\">Session</text><text x=\"262\" y=\"202\" fill=\"#1f2937\" stroke=\"none\" font-size=\"13\">–</text></svg>"
+  },
+  {
+   "n": 6,
+   "title": "Instances side by side",
+   "kind": "explanatory mechanism",
+   "commentary": "For each form, the shots of every page that uses it in a row, so the reader judges whether the instances look alike, which is what makes a form recognizable. It needs the shots and answers consistency rather than coverage.",
+   "sketch": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 320 240\" font-family=\"system-ui, sans-serif\" font-size=\"15\" fill=\"none\" stroke=\"#1f2937\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><text x=\"10\" y=\"26\" fill=\"#1f2937\" stroke=\"none\">Choice form: its pages side by side</text><rect x=\"10\" y=\"40\" width=\"92\" height=\"120\" rx=\"4\" fill=\"#e5e7eb\" stroke=\"none\"/><text x=\"16\" y=\"180\" fill=\"#1f2937\" stroke=\"none\" font-size=\"13\">Image board</text><rect x=\"112\" y=\"40\" width=\"92\" height=\"120\" rx=\"4\" fill=\"#e5e7eb\" stroke=\"none\"/><text x=\"118\" y=\"180\" fill=\"#1f2937\" stroke=\"none\" font-size=\"13\">Idea board</text><rect x=\"214\" y=\"40\" width=\"92\" height=\"120\" rx=\"4\" fill=\"#e5e7eb\" stroke=\"none\"/><text x=\"220\" y=\"180\" fill=\"#1f2937\" stroke=\"none\" font-size=\"13\">Lineup</text><text x=\"10\" y=\"214\" fill=\"#1f2937\" stroke=\"none\" font-size=\"13\">do the instances look alike?</text></svg>"
+  },
+  {
+   "n": 7,
+   "title": "Coverage by job",
+   "kind": "metaphor",
+   "commentary": "Each job as a bar of its pages, filled by the share that use a named form, so read, explore and make show as the empty stretches the README calls none named yet. A measure for the Forms area, which has none, more than a catalog.",
+   "sketch": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 320 240\" font-family=\"system-ui, sans-serif\" font-size=\"15\" fill=\"none\" stroke=\"#1f2937\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><text x=\"10\" y=\"30\" fill=\"#1f2937\" stroke=\"none\">respond</text><rect x=\"90\" y=\"16\" width=\"200\" height=\"20\" rx=\"4\" fill=\"#e5e7eb\" stroke=\"none\"/><rect x=\"90\" y=\"16\" width=\"160\" height=\"20\" rx=\"4\" fill=\"#1f2937\" stroke=\"none\"/><text x=\"10\" y=\"72\" fill=\"#1f2937\" stroke=\"none\">follow</text><rect x=\"90\" y=\"58\" width=\"150\" height=\"20\" rx=\"4\" fill=\"#e5e7eb\" stroke=\"none\"/><rect x=\"90\" y=\"58\" width=\"75\" height=\"20\" rx=\"4\" fill=\"#1f2937\" stroke=\"none\"/><text x=\"10\" y=\"114\" fill=\"#1f2937\" stroke=\"none\">read</text><rect x=\"90\" y=\"100\" width=\"120\" height=\"20\" rx=\"4\" fill=\"#e5e7eb\" stroke=\"none\"/><rect x=\"90\" y=\"100\" width=\"0\" height=\"20\" rx=\"4\" fill=\"#1f2937\" stroke=\"none\"/><text x=\"10\" y=\"156\" fill=\"#1f2937\" stroke=\"none\">explore</text><rect x=\"90\" y=\"142\" width=\"180\" height=\"20\" rx=\"4\" fill=\"#e5e7eb\" stroke=\"none\"/><rect x=\"90\" y=\"142\" width=\"0\" height=\"20\" rx=\"4\" fill=\"#1f2937\" stroke=\"none\"/><text x=\"10\" y=\"198\" fill=\"#1f2937\" stroke=\"none\">make</text><rect x=\"90\" y=\"184\" width=\"90\" height=\"20\" rx=\"4\" fill=\"#e5e7eb\" stroke=\"none\"/><rect x=\"90\" y=\"184\" width=\"0\" height=\"20\" rx=\"4\" fill=\"#1f2937\" stroke=\"none\"/><text x=\"10\" y=\"232\" fill=\"#1f2937\" stroke=\"none\" font-size=\"13\">pages with a named form, by job</text></svg>"
+  },
+  {
+   "n": 8,
+   "title": "Definition cards",
+   "kind": "borrowed form",
+   "commentary": "A deck of Frayer cards: each form's concept, definition, examples and foil, drawn from codes.csv's gloss, test and not_to_confuse, for a reader learning the vocabulary. It teaches the terms and leaves out the pages.",
+   "sketch": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 320 240\" font-family=\"system-ui, sans-serif\" font-size=\"15\" fill=\"none\" stroke=\"#1f2937\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"10\" y=\"10\" width=\"300\" height=\"220\" rx=\"4\"/><text x=\"24\" y=\"40\" fill=\"#1f2937\" stroke=\"none\" font-weight=\"600\" font-size=\"20\">Choice</text><text x=\"24\" y=\"72\" fill=\"#1f2937\" stroke=\"none\">Concept: pick one of several</text><text x=\"24\" y=\"98\" fill=\"#1f2937\" stroke=\"none\">Definition: each drawn in full</text><text x=\"24\" y=\"124\" fill=\"#1f2937\" stroke=\"none\">Examples: image board, idea board</text><text x=\"24\" y=\"150\" fill=\"#1f2937\" stroke=\"none\">Foil: a selector frame,</text><text x=\"24\" y=\"172\" fill=\"#1f2937\" stroke=\"none\">which records nothing</text><circle cx=\"150\" cy=\"210\" r=\"4\" fill=\"#1f2937\"/><circle cx=\"166\" cy=\"210\" r=\"4\"/><circle cx=\"182\" cy=\"210\" r=\"4\"/></svg>"
+  }
+ ],
+ "selection": {
+  "pick": [
+   1
+  ],
+  "grafts": [
+   [
+    6,
+    "the card shows its pages' shots side by side"
+   ],
+   [
+    8,
+    "the card states the test and the foil"
+   ],
+   [
+    7,
+    "rows for respond pages with no answer and for candidate object types, so the gaps sit in the list"
+   ]
+  ],
+  "rationale": "A list over a strip is the house form for a set with a detail, it fits the Map's other list tabs, and its card can hold what makes a form a form: the look of its pages side by side, its test and foil, and where its answer lands.",
+  "assumptions": [
+   "Is every subject in docs/subjects.csv a form, though the README names only the branch and the session?",
+   "Should candidate object types, marked ? in coded.csv, sit in the list or in one line under it?",
+   "Is the README's respond table the right source for where each answer lands?"
+  ]
+ }
+}

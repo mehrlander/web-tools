@@ -80,7 +80,7 @@ const GROUPS = [
   ['Reach', [['reach', 'Routes'], ['projects', 'Projects'], ['distribution', 'Distribution'], ['outposts', 'Outposts']]],
   ['Research', [['research', 'Probes'], ['exploration', 'Exploration']]],
   ['Harness', [['harness', 'Automation'], ['set', 'Set'], ['tests', 'Tests'], ['skills', 'Skills'], ['agents', 'Agents'], ['peeves', 'Peeves'], ['context', 'Context'], ['lifetimes', 'Lifetimes']]],
-  ['Browser', [['model', 'Model'], ['units', 'Pages'], ['patterns', 'Patterns'], ['dimensions', 'Dimensions'], ['views', 'Views'], ['kits', 'Kits'], ['showing', 'Showing'], ['fab', 'FAB']]],
+  ['Browser', [['model', 'Model'], ['units', 'Pages'], ['forms', 'Forms'], ['patterns', 'Patterns'], ['dimensions', 'Dimensions'], ['views', 'Views'], ['kits', 'Kits'], ['showing', 'Showing'], ['fab', 'FAB']]],
   ['Docs', [['docs', 'Inventory'], ['growth', 'Growth'], ['policy', 'Policy'], ['themes', 'Themes']]],
   ['Data', [['data', 'Tables'], ['relations', 'Relations'], ['attributes', 'Attributes']]],
   ['Watch', [['watch', 'Triggers'], ['public', 'Public'], ['names', 'Names']]],
@@ -114,6 +114,8 @@ test('every tab in the strip is one entry in the array that generates it', () =>
   // as one Tables view, on the owner's go-ahead in session 5d9aea14.
   // 2026-11-02: Relations joins Data, drawing the declared joins between
   // registries, at the owner's request in session eaf5d33d.
+  // 2026-11-08: Forms joins Browser, the estate's forms with the pages that
+  // carry each, at the owner's request in session bb564bb3.
   assert.equal(TABS.length, 8, 'eight top-level tabs, Overview first and Reach second');
   assert.deepEqual(TABS.map(t => t.n), GROUPS.map(([n]) => n), 'the tabs, by label, in strip order');
   assert.deepEqual(SUBVIEW_GROUPS.map(g => [TABS.find(t => t.k === g.parent)?.n, g.options]), GROUPS,
