@@ -280,7 +280,7 @@ hook's `# --- leg` headers, derived into [`docs/hook-legs.csv`](../docs/hook-leg
 | `docs/house-policies.md` | `npm run policy-skills` | the h plugin's skills under `plugins/h/skills/` |
 | `skills/peeves/peeves.md` | `npm run peeves-csv` | `skills/peeves/peeves.csv` |
 | any markdown | `npm run themes-graph` | `docs/themes.csv` |
-| any code file or markdown | `npm run comment-blocks` | `data/comments/web-tools.json` |
+| any `.js`, `.mjs`, `.html`, `.py` or markdown file, `docs/*.csv` | `npm run comment-blocks` | `data/comments/web-tools.json` |
 | `docs/docs.csv` | `npm run docs-readme` | `docs/README.md` |
 | `tracker/tasks/` | `npm run tracker-board` | `tracker/board.md`, `tracker/board.csv`, `tracker/board-tags.csv` |
 | any tracked CSV | `python3 python/csv-census.py` | `data/csv-census.csv` |
