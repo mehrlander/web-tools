@@ -22,7 +22,6 @@ skill,/portable:tend,skills/tend/SKILL.md,tend,,plugin
 skill,/portable:rundown,skills/rundown/SKILL.md,rundown,,plugin
 skill,/portable:notes,skills/notes/SKILL.md,notes,,plugin
 skill,/portable:claude-errands,skills/claude-errands/SKILL.md,claude-errands,,plugin
-skill,/portable:atomic-decomposition,skills/atomic-decomposition/SKILL.md,atomic-decomposition,,plugin
 skill,/portable:bake-page,skills/bake-page/SKILL.md,bake-page,,plugin
 skill,/portable:caveman,skills/caveman/SKILL.md,caveman,,plugin
 skill,/portable:claude-markdown,skills/claude-markdown/SKILL.md,claude-markdown,,plugin
@@ -43,7 +42,6 @@ skill,/portable:passage-reading,skills/passage-reading/SKILL.md,passage-reading,
 skill,/portable:phosphor-icons,skills/phosphor-icons/SKILL.md,phosphor-icons,,plugin
 skill,/portable:power-query,skills/power-query/SKILL.md,power-query,,plugin
 skill,/portable:powershell-ise-theming,skills/powershell-ise-theming/SKILL.md,powershell-ise-theming,,plugin
-skill,/portable:question-margin,skills/question-margin/SKILL.md,question-margin,,plugin
 skill,/portable:reduction-panel,skills/reduction-panel/SKILL.md,reduction-panel,,plugin
 skill,/portable:peeves,skills/peeves/SKILL.md,peeves,,plugin
 skill,/portable:review-panel,skills/review-panel/SKILL.md,review-panel,,plugin

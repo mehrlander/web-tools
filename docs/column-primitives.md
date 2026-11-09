@@ -110,14 +110,12 @@ should say so.
 
 ## Open
 
-Four collisions this property inherits rather than creates.
+Three collisions this property inherits rather than creates.
 
 - **`value`** is tidy data's word for the content of any cell, which is broader
   than the sense used here.
 - **`label`** is already a column in several registries, where it means a
   display name. Freeing it needs a consumer count first.
-- **`primitive`** already names the surfacing set in `docs/conversation.csv`, so
-  this one is qualified at every use, never bare.
 - **`row_grain`** in budget-drs answers tidy data's *observation*. Whether to
   rename it is a separate decision, and `GRAINS.md` is its definition owner.
 

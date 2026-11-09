@@ -20,6 +20,7 @@ import { readFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 import { typeFor } from '../render/cdn.mjs';
 import { repoRoot as root } from '../repo-root.mjs';
+import { launch as launchChromium } from '../render/chromium.mjs';
 
 const failures = [];
 const ok = (n, c, d = '') => {
@@ -107,7 +108,7 @@ const LOG = {
   '2026-09-15-090000.json': JSON.stringify({ op: 'run', name: 'Alpha', build: 'old000' }),
 };
 
-const browser = await chromium.launch({ args: ['--no-sandbox'] });
+const browser = await launchChromium({ args: ['--no-sandbox'] });
 const ctx = await browser.newContext({ viewport: { width: 430, height: 932 } });
 await ctx.addInitScript(() => { try { localStorage.setItem('ghToken', 'stub'); } catch {} });
 const page = await ctx.newPage();
@@ -171,7 +172,8 @@ const list = await page.evaluate(() => ({
   states: Object.fromEntries([...document.querySelectorAll('#rows > tr')].map(tr =>
     [tr.querySelector('a.link').textContent, tr.children[3].querySelector('[aria-label]')?.getAttribute('aria-label') || ''])),
   icons: [...document.querySelectorAll('#rows > tr td:nth-child(4) i')].map(i => i.className),
-  tally: document.getElementById('tally').textContent,
+  pills: Object.fromEntries([...document.querySelectorAll('#view button')].map(b =>
+    [b.dataset.view, [...b.children].map(c => c.textContent).join(' ')])),
   status: document.getElementById('status').textContent,
 }));
 const st = JSON.stringify(list.states);
@@ -185,7 +187,10 @@ ok('a paste is read by its target, not the installer\'s stamp: current', list.st
 ok('a workflow the device has never reported reads not installed', list.states.Gamma === 'not installed', st);
 ok('states are drawn with the shared icons', list.icons.some(c => c.includes('ph-check-circle'))
    && list.icons.some(c => c.includes('ph-plus-circle')), list.icons.join(' | '));
-ok('the header states the counts', /4 workflows · 3 installable/.test(list.tally), list.tally);
+ok('each filter carries its count', list.pills.installable === 'Installable 3' && list.pills.all === 'All 4',
+   JSON.stringify(list.pills));
+ok('the device filters appear once the device is read', 'stale' in list.pills && 'absent' in list.pills,
+   JSON.stringify(list.pills));
 
 // ── the detail view ────────────────────────────────────────────────────────
 await open('?name=Alpha');
@@ -342,12 +347,12 @@ const n = await bare.evaluate(() => ({
   status: document.getElementById('status').textContent,
   rows: document.querySelectorAll('#rows > tr').length,
   badges: document.querySelectorAll('#rows > tr td:nth-child(4) i').length,
-  tally: document.getElementById('tally').textContent,
+  pills: [...document.querySelectorAll('#view button')].map(b => b.dataset.view),
 }));
 ok('without a token the catalog still renders', n.rows === 3, String(n.rows));
 ok('without a token no workflow claims a device state', n.badges === 0, String(n.badges));
 ok('the header says the device was not read', n.status === 'no token', n.status);
-ok('and states no device figures', !/current|stale/.test(n.tally), n.tally);
+ok('and offers no device filter', !n.pills.some(v => ['stale', 'device', 'absent'].includes(v)), n.pills.join(' '));
 
 // An unread device cannot tell an absent name from an unseen one, so the flat
 // no above must not be what it says.

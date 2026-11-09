@@ -5,6 +5,8 @@
 // files on disk: the program's folder and its README.md charter exist, every
 // governed path exists, no file answers
 // to two programs, and every reviewer is an agent docs/agents.csv lists.
+// A program with status "proposed" has a folder and a mark but no charter,
+// and governs nothing until it is adopted.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
@@ -44,7 +46,9 @@ test('every program names itself, an icon and a folder whose README.md is its ch
     // A ph- glyph, or an SVG file in the program's repository, as a project's icon may be.
     const icon = typeof e?.icon === 'string' ? e.icon : '';
     if (!icon.startsWith('ph-') && !(icon.endsWith('.svg') && existsSync(path.join(root, icon)))) gaps.push(`${id} needs a ph- icon or an SVG file`);
-    if (typeof e?.path !== 'string' || !existsSync(path.join(root, e.path, 'README.md'))) gaps.push(`${id}'s charter ${e?.path}/README.md is missing`);
+    if (e?.status !== undefined && e.status !== 'proposed') gaps.push(`${id} has status ${e.status}; only "proposed" is a status`);
+    const proposed = e?.status === 'proposed';
+    if (typeof e?.path !== 'string' || !existsSync(path.join(root, e.path, proposed ? '' : 'README.md'))) gaps.push(`${id}'s ${proposed ? 'folder' : 'charter'} ${e?.path}${proposed ? '' : '/README.md'} is missing`);
   }
   assert.deepEqual(gaps, []);
 });
@@ -56,6 +60,7 @@ test('every governed path exists, and no file answers to two programs', () => {
   const inside = (a, b) => a === b || (b.endsWith('/') && a.startsWith(b));
   for (const { repo, root, e } of declarations()) {
     const governs = Array.isArray(e?.governs) ? e.governs : [];
+    if (e?.status === 'proposed') { if (governs.length) gaps.push(`${repo}: ${e.name} is proposed and governs files`); continue; }
     if (!governs.length) gaps.push(`${repo}: ${e?.name} governs nothing`);
     for (const g of governs) {
       if (typeof g !== 'string' || !existsSync(path.join(root, g))) { gaps.push(`${repo}: ${e?.name} governs missing ${g}`); continue; }

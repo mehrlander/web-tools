@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="sessions program">
+  <title>sessions program</title>
+  <desc>A cube cut from a cyan-600 tile, its top face drawn only in outline. Drawn on the drawn-mark box and rules (docs/favicons/README.md): solid fills, no strokes, and every gap at least 2.5 units, which is about 1.4 CSS pixels at 16. The ideas it was chosen from are in docs/prototypes/program-mark-ideas.html.</desc>
+  <mask id="cut" maskUnits="userSpaceOnUse" x="0" y="0" width="32" height="32">
+    <rect width="32" height="32" fill="#fff"/>
+    <g fill="#000"><path fill-rule="evenodd" d="M15.28 15 L5.72 15 L10.5 6.72 L20.06 6.72Z M13.83 12.5 L10.05 12.5 L11.94 9.22 L15.73 9.22Z"/><path d="M17.44 16.25 L22.22 7.97 L27 16.25 L22.22 24.53Z"/><path d="M15.28 17.5 L20.06 25.78 L10.5 25.78 L5.72 17.5Z"/></g>
+  </mask>
+  <g fill="#0891b2" mask="url(#cut)"><rect x="2" y="2.25" width="28" height="28" rx="7"/></g>
+</svg>

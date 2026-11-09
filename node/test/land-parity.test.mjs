@@ -5,7 +5,7 @@
 // kit dependencies, one of its consumers loads it straight from jsDelivr, and
 // pages/pdf-inspect.html loads nothing beside it. So it carries literals, and
 // this is what stops them drifting, the same bargain deck-entry-parity.test.mjs
-// makes for the deck door and surfacing-manifest.test.mjs for the primitives.
+// makes for the deck door.
 //
 // WHAT DRIFTED BEFORE THIS EXISTED is the reason it is worth the file. On
 // 2026-09-04 the estate had six landings across five files and two repos, and

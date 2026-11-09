@@ -24,6 +24,7 @@ import path from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 import { repoRoot as root } from '../repo-root.mjs';
+import { launch as launchChromium } from '../render/chromium.mjs';
 
 const PAGE = '/pages/word-select.html';
 
@@ -39,7 +40,7 @@ const server = http.createServer(async (req, res) => {
 await new Promise(r => server.listen(0, '127.0.0.1', r));
 const port = server.address().port;
 
-const browser = await chromium.launch({ args: ['--no-sandbox'] });
+const browser = await launchChromium({ args: ['--no-sandbox'] });
 const ctx = await browser.newContext({
   viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2,
 });

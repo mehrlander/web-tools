@@ -26,3 +26,8 @@ playground-census.png
 # Local browser verification includes private activity snapshots.
 /.playwright-cli/
 /output/playwright/
+
+# Reduction swarm runs: ledger.json holds every entry, vote and harvest; the
+# agents' context files and raw outputs are scratch (python/swarm/README.md)
+python/swarm/runs/*/*
+!python/swarm/runs/*/ledger.json

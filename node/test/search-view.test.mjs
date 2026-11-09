@@ -1,8 +1,8 @@
 // alpineComponents/search-view.js — the central file surface's logic: seed
 // consumption (the finder's gate, the explorer's hand-off, or a deep link
-// auto-runs a carried query OR a carried scope), the three modes' dispatch into
-// the shared core (names takes the ref and the folder scope, contents builds
-// its scope qualifier including the API's `path:`, sessions greps), the browse
+// auto-runs a carried query OR a carried scope), the modes' dispatch into the
+// shared core (names takes the ref and the folder scope, contents asks the
+// crawled Markdown index and quotes each hit's line, sessions greps), the browse
 // gate (an empty query is a listing under a repo or a folder and a miss
 // otherwise), full-error surfacing, reading a file IN PLACE rather than routing
 // to a repo's Files view, stepping the file hits, clear, the cap, and the
@@ -27,7 +27,14 @@ window.EstateSearch = {
   reset() { CALLS.push(['reset']); },
   async names(a) { CALLS.push(['names', a]); if (ANSWER.throw) throw new Error(ANSWER.throw); return ANSWER; },
   async level(a) { CALLS.push(['level', a]); if (ANSWER.throw) throw new Error(ANSWER.throw); return LEVEL; },
-  async code(a)  { CALLS.push(['code', a]);  if (ANSWER.throw) throw new Error(ANSWER.throw); return ANSWER; },
+  // The content index's answer carries what it could not cover, which the
+  // view turns into its notice; a stub omitting it would read as unbuilt.
+  async contents(a) {
+    CALLS.push(['contents', a]);
+    if (ANSWER.throw) throw new Error(ANSWER.throw);
+    return { indexed: true, missing: [], pending: 0, ...ANSWER };
+  },
+  async snippet(a) { CALLS.push(['snippet', a]); return 'line about ' + a.q; },
   // `indexed` rides every sessions answer, because the view reads it to say
   // whether the deep half ran at all; a stub omitting it would exercise the
   // warning path on every case by accident.
@@ -52,6 +59,7 @@ window.gh = { load: async (p) => {
   LOADED.push(p);
   if (p.includes('chat-archive')) window.chatArchive = {};
   if (p.includes('session-index')) window.SessionIndex = {};
+  if (p.includes('content-index')) window.ContentIndex = { SKIP: { 'me/skipped': 'a reason' } };
 } };
 
 // The contents fetch behind the reader. Records what it was pointed at, since
@@ -87,6 +95,7 @@ ANSWER = { hits: [], total: 0 };
 const Alpine = await startAlpine(window, [
   'lib/alpine-bundle.js',
   'lib/kits/repo-address.js',   // the real address grammar: ?sfile= round-trips through it
+  'lib/kits/doc-growth.js',     // the real document kinds, which contents facets on
   'lib/alpineComponents/viewer.js',       // the reader this view embeds
   'lib/alpineComponents/ref-picker.js',   // and the two scope pickers it mounts
   'lib/alpineComponents/path-picker.js',
@@ -100,7 +109,7 @@ test('a parked seed is consumed at mount and auto-runs', async () => {
   await tick();
   assert.equal(data.q, 'seeded');
   assert.equal(data.mode, 'contents');
-  assert.equal(CALLS.filter(c => c[0] === 'code').length, 1);
+  assert.equal(CALLS.filter(c => c[0] === 'contents').length, 1);
   assert.equal(data.ran, true);
 });
 
@@ -240,24 +249,82 @@ test('typing turns the walk back into a recursive search of the same scope', asy
   data.q = '';
 });
 
-test('contents mode scopes to the chosen repo, or the account, and adds path: for a folder', async () => {
+test('contents mode asks the index over the chosen repo, or every repo, and a folder', async () => {
   CALLS = [];
-  ANSWER = { hits: [], total: 0 };
+  ANSWER = { hits: [{ repo: 'me/home', ref: '', path: 'docs/x.md' }], total: 1 };
   data.mode = 'contents'; data.q = 'needle'; data.repo = 'me/home'; data.path = '';
   await data.run();
-  assert.equal(CALLS.find(c => c[0] === 'code')[1].scope, 'repo:me/home');
-  data.repo = '';
+  const asked = CALLS.find(c => c[0] === 'contents')[1];
+  assert.deepEqual(j(asked.repos), ['me/home']);
+  assert.equal(asked.registry, 'me/registry');
+  data.repo = ''; data.path = 'docs';
   await data.run();
-  assert.equal(CALLS.filter(c => c[0] === 'code')[1][1].scope, 'user:me');
-  data.path = 'lib/kits';
-  await data.run();
-  assert.equal(CALLS.filter(c => c[0] === 'code')[2][1].scope, 'user:me path:lib/kits');
+  const all = CALLS.filter(c => c[0] === 'contents')[1][1];
+  assert.deepEqual(j(all.repos), ['me/tools', 'me/home'], 'all repos is the estate');
+  assert.equal(all.under, 'docs');
   data.path = '';
+});
+
+test('each contents hit quotes its line from its own file, after the list is drawn', async () => {
+  CALLS = [];
+  ANSWER = { hits: [{ repo: 'me/home', ref: '', path: 'a.md' }, { repo: 'me/home', ref: '', path: 'b.md' }], total: 2 };
+  data.mode = 'contents'; data.q = 'needle'; data.repo = '';
+  await data.run();
+  await tick();
+  assert.deepEqual(CALLS.filter(c => c[0] === 'snippet').map(c => c[1].path), ['a.md', 'b.md']);
+  assert.deepEqual(data.hits.map(h => h.note), ['line about needle', 'line about needle']);
+});
+
+test('contents pills count every kind in the answer, and a kind narrows the list to it', async () => {
+  ANSWER = { hits: [
+    { repo: 'me/home', ref: '', path: 'docs/a.md' }, { repo: 'me/home', ref: '', path: 'skills/x/SKILL.md' },
+    { repo: 'me/tools', ref: '', path: 'tracker/tasks/t.md' }, { repo: 'me/tools', ref: '', path: 'docs/b.md' },
+  ], total: 4 };
+  data.mode = 'contents'; data.q = 'needle'; data.repo = ''; data.path = ''; data.kind = '';
+  await data.run();
+  assert.deepEqual(j(data.kindCounts), [
+    { k: 'task', n: 'Tracker task', count: 1 }, { k: 'skill', n: 'Skill', count: 1 }, { k: 'doc', n: 'Doc', count: 2 },
+  ], 'in the classifier\'s order, only the kinds present');
+  assert.deepEqual(data.hits.map(h => h.sub), ['home', 'Skill · home', 'Tracker task · tools', 'tools'],
+    'a row names its kind, except a plain Doc');
+  data.pickKind('skill');
+  await tick();
+  assert.deepEqual(data.hits.map(h => h.path), ['skills/x/SKILL.md']);
+  assert.equal(data.total, 1);
+  assert.equal(data.kindCounts.length, 3, 'the pills still count the whole answer');
+  assert.equal(shell.searchSeed.kind, 'skill', 'the kind rides the address');
+  data.pickKind('skill');
+  await tick();
+  assert.equal(data.kind, ''); assert.equal(data.hits.length, 4, 'a second tap clears it');
+  data.pickKind('task'); await tick();
+  data.setMode('names');
+  assert.equal(data.kind, '', 'another mode does not carry a contents facet');
+  data.mode = 'contents';
+  ANSWER = { hits: [], total: 0 };
+});
+
+test('contents says what the index could not cover, rather than an empty list implying it', async () => {
+  data.mode = 'contents'; data.q = 'needle'; data.repo = '';
+  ANSWER = { hits: [], total: 0, indexed: false, missing: ['me/tools', 'me/home'] };
+  await data.run();
+  assert.match(data.error, /No contents index yet/);
+  ANSWER = { hits: [], total: 0, missing: ['me/home'] };
+  await data.run();
+  assert.equal(data.error, 'Not indexed yet: home.');
+  ANSWER = { hits: [], total: 0, pending: 1200 };
+  await data.run();
+  assert.match(data.error, /Index still filling: 1,200 files/);
+  data.repo = 'me/skipped';
+  ANSWER = { hits: [], total: 0, missing: ['me/skipped'] };
+  await data.run();
+  assert.equal(data.error, 'skipped is left out of the contents index.');
+  data.repo = '';
+  ANSWER = { hits: [], total: 0 };
 });
 
 test('a search failure surfaces the whole error and still counts as ran', async () => {
   ANSWER = { throw: 'GitHub Error 403 (Rate Rem: 0)' };
-  data.mode = 'contents'; data.q = 'boom';
+  data.mode = 'names'; data.q = 'boom'; data.repo = 'me/tools'; data.ref = '';
   await data.run();
   assert.equal(data.error, 'GitHub Error 403 (Rate Rem: 0)');
   assert.equal(data.ran, true);
@@ -301,10 +368,10 @@ test('the position steps through the file hits, and stops at the ends', async ()
   assert.equal(data.open.path, 'lib/b.js', 'stepping past the last stays put');
 });
 
-test('a contents hit carries no ref, and resolves late to the default branch', async () => {
+test('a hit with no ref resolves late to the default branch', async () => {
   FETCHED = [];
-  ANSWER = { hits: [{ repo: 'me/home', path: 'docs/x.md', frag: 'f' }], total: 1 };
-  data.mode = 'contents'; data.q = 'x'; data.repo = '';
+  ANSWER = { hits: [{ repo: 'me/home', path: 'docs/x.md' }], total: 1, truncated: false, errors: [] };
+  data.mode = 'names'; data.q = 'x'; data.repo = 'me/home'; data.ref = '';
   await data.run();
   await data.openHit(data.hits[0]);
   await tick();
@@ -515,7 +582,8 @@ test('a bare arrival lists the browsed repo rather than landing on nothing', asy
   cold.repo = 'me/browsed';
   assert.equal(cold.caveat, '', 'a Files listing that can run explains nothing');
   cold.mode = 'contents';
-  assert.match(cold.caveat, /384 KB/, 'contents keeps its caveats: no layout can show what a list is missing');
+  assert.equal(cold.caveat, '', 'contents names its corpus in the placeholder, not a line under the controls');
+  assert.equal(cold.queryPlaceholder, 'Search Markdown contents…');
 
   el.remove();
   store.repo = ''; store.ref = ''; store.defaultRef = '';
@@ -592,7 +660,7 @@ test('a hit with no ref decks at HEAD, and folders are not in the deck', async (
     hits: [{ repo: 'me/tools', ref: '', path: 'README.md' }],
     total: 1, truncated: false, errors: [],
   };
-  data.mode = 'contents'; data.q = 'thing'; data.repo = 'me/tools'; data.ref = '';
+  data.mode = 'names'; data.q = 'thing'; data.repo = 'me/tools'; data.ref = '';
   await data.run();
   data.closeFile();
   // A folder row rides the list and not the deck: fileHits is the readable set.

@@ -182,23 +182,12 @@
 <body class="min-h-screen bg-base-200 text-base-content roomy:h-dvh roomy:min-h-0 roomy:overflow-hidden roomy:flex roomy:flex-col"
       x-data="branchPage()" x-cloak>
 
-  <!-- The masthead stands down inside a frame, the same courtesy links.html
-       pays its embedder. Standalone use is unchanged.
+  <!-- The address bar shows only while no branch is open, as on
+       session.html. With a branch open, the takeover header (top-level) or the
+       brief's own head (inside a toss) names it. With nothing addressed, the
+       bar is the page's one way in, a toss included. -->
 
-       This used to name the app's branch-detail takeover as the embedder,
-       which stopped being true on 2026-08-13 when the takeover swapped its
-       iframe for a direct mount of the component. The only page-level
-       embedder left is the toss. This flag is still the page's own and still
-       correct; what was NOT correct was handing the same flag to the brief,
-       which is the note at `framed: false` below.
-
-       Except with nothing addressed, which was a dead end: a toss carrying no
-       branch rendered "address a branch above" under a hidden bar, with
-       nothing above it and no way in. The courtesy is owed to an embedder that
-       has already supplied an address; where none arrived, the way to supply
-       one has to be on the page. Found on session.html 2026-08-26 and fixed
-       here in the same pass, since the rule was copied between them. -->
-  <div x-show="!framed || !target" class="border-b border-base-300 bg-base-100 roomy:shrink-0">
+  <div x-show="!target" class="border-b border-base-300 bg-base-100 roomy:shrink-0">
     <div class="mx-auto px-4 py-2 flex items-center gap-2">
       <span class="text-lg">🌿</span>
       <input x-model="input" @keydown.enter="go()" placeholder="owner/repo@branch, or a PR URL"
@@ -349,6 +338,12 @@
                           }
                         } };
         window.__branchTarget = this.target;
+        // TOP-LEVEL, THE APP'S OWN TAKEOVER: a deck of one, its header the
+        // one the app's branch deck draws, the brief inside it framed and
+        // handing its facts row to that header. Inside a toss the page keeps
+        // the inline mount below, since a fixed root in an iframe loses its
+        // right-hand column on iOS (house style rule 5).
+        if (!this.framed && await this.openDeck()) return;
         this.$nextTick(() => {
           // A fresh element each time: Alpine cannot re-initialise a tree it
           // already owns, so opening a second branch replaces the mount rather
@@ -370,6 +365,36 @@
           old.replaceWith(el);
           Alpine.initTree(el);
         });
+      },
+
+      // The branch as a one-slide takeover. ✕, Escape and Back leave for the
+      // app's Branches view, which is where the app's own takeover returns to.
+      async openDeck() {
+        try { if (!window.swipeDeck) await window.gh.load('kits/swipe-deck.js'); } catch { return false; }
+        if (!window.swipeDeck) return false;
+        const t = this.target;
+        const app = 'https://mehrlander.github.io/web-tools/app/?view=branches';
+        let deck = null;
+        deck = window.swipeDeck.open({
+          count: 1, slideScroll: false, innerClass: 'h-full w-full min-w-0',
+          icon: 'ph-git-branch', title: t.repo.split('/').pop(), subtitle: t.branch,
+          render: (i, slide, ctx) => {
+            window.__branchSlide = { ...t, framed: true, chrome: ctx?.setChrome,
+              onMeta: (m) => {
+                t.onMeta(m);
+                if (m?.pr) deck?.setLink({ href: window.RepoAddress.github.pull(t.repo, m.pr),
+                                           icon: 'ph-git-pull-request', title: 'Pull request #' + m.pr });
+              } };
+            const el = document.createElement('div');
+            el.className = 'h-full';
+            el.setAttribute('x-data', 'branchBrief(window.__branchSlide)');
+            el.setAttribute('data-pattern', 'header-swiper');
+            slide.append(el);
+            Alpine.initTree(el);
+          },
+          onClose: () => location.replace(app),
+        });
+        return true;
       },
 
       // The optional authored layer, by whichever delivery the link used.

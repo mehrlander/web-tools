@@ -1,8 +1,8 @@
 // lib/kits/estate-search.js — the shared search core: the per-(repo, ref) tree
 // cache with its failure backoff (a failed fetch is remembered briefly, never
 // cached as an empty tree), file-name search across repos with per-repo error
-// reporting, the code-search call's shape (scope qualifier, text-match
-// fragments), the session grep over what a record quotes, and reset. Driven
+// reporting, the content index's search over its shards, the session grep
+// over what a record quotes, and reset. Driven
 // over a fake GH; no network, no pixels, no Alpine.
 
 import test from 'node:test';
@@ -22,13 +22,6 @@ let CHAT_READS = [];   // every archive path actually fetched
 // the fetch throws. The two forms exist because the trees API reports a blob's
 // size on the entry and most of these tests do not care what it is.
 let TREES = {};
-let SEARCH = null; // response served for /search/code
-// The two knobs the code lane's own diagnosis needs. SEARCH_REJECT stands in
-// for a browser-level rejection (status 0, no response ever seen); RATE is what
-// /rate_limit answers, or null to make that call fail too.
-let SEARCH_REJECT = null;
-let RATE = null;
-let RATE_CALLS = 0;
 let TREE_CALLS = [];
 let SESSION_GET = null;
 let READ_CALLS = [];
@@ -60,15 +53,6 @@ class FakeGH {
       };
       throw Object.assign(new Error('GitHub Error 404'), { status: 404 });
     }
-    if (String(path).startsWith('/search/code')) {
-      if (SEARCH_REJECT) throw SEARCH_REJECT;
-      if (SEARCH) return SEARCH;
-    }
-    if (String(path) === '/rate_limit') {
-      RATE_CALLS++;
-      if (!RATE) throw Object.assign(new Error('Network error on GET /rate_limit: Failed to fetch'), { status: 0 });
-      return RATE;
-    }
     throw Object.assign(new Error('404'), { status: 404 });
   }
 }
@@ -83,6 +67,7 @@ await startAlpine(window, [
   'lib/kits/chat-archive.js',
   'lib/kits/session-index.js',
   'lib/kits/file-index.js',
+  'lib/kits/content-index.js',
   'lib/kits/estate-search.js',
 ]);
 const ES = window.EstateSearch;
@@ -192,72 +177,6 @@ test('sizes ride the same tree read, so a listing and a match both carry them', 
   const res = await ES.names({ q: 'gh-api', repos: [{ repo: 'me/tools', ref: '' }], token: 'tkn' });
   assert.equal(res.hits[0].size, 9001);
   assert.deepEqual(TREE_CALLS, ['me/tools@HEAD']);
-});
-
-test('code: scope rides the query, fragments become clipped snippets', async () => {
-  SEARCH = { total_count: 1, items: [{
-    path: 'lib/x.js', repository: { full_name: 'me/tools' },
-    text_matches: [{ fragment: 'the needle sits here in the haystack of a longer line' }],
-  }] };
-  const res = await ES.code({ q: 'needle', scope: 'user:me', token: 'tkn' });
-  assert.equal(res.total, 1);
-  assert.equal(res.hits[0].path, 'lib/x.js');
-  assert.match(res.hits[0].frag, /needle sits here/);
-});
-
-// ── The code lane's diagnosis ────────────────────────────────────────────────
-//
-// A rejected fetch is the browser refusing to hand the response over, so the
-// page never sees a status and gh-api can only report "Failed to fetch". These
-// hold the second call that turns that into a reading. `status: 0` is the
-// signal, set by gh-api on exactly that path.
-const REJECTED = () => Object.assign(
-  new Error('Network error on GET /search/code?q=x: Failed to fetch'), { status: 0 });
-const budget = (remaining, limit = 10, inSecs = 42) => ({
-  resources: { code_search: { limit, remaining, reset: Math.round(Date.now() / 1000) + inSecs } },
-});
-
-test('code: a spent code-search limit is named, with the seconds until it resets', async () => {
-  SEARCH_REJECT = REJECTED(); RATE = budget(0); RATE_CALLS = 0;
-  await assert.rejects(ES.code({ q: 'x', scope: 'user:me', token: 'tkn' }), (e) => {
-    assert.match(e.message, /Code search is rate limited: 0 of 10 left, resets in 4[12]s\./);
-    assert.equal(e.status, 0);
-    assert.match(e.cause.message, /Failed to fetch/, 'the browser\'s own words are kept underneath');
-    return true;
-  });
-  assert.equal(RATE_CALLS, 1, 'one extra call, and only on a rejection');
-});
-
-test('code: budget left means the refusal was not the limit, and says so', async () => {
-  SEARCH_REJECT = REJECTED(); RATE = budget(9);
-  await assert.rejects(ES.code({ q: 'x', scope: 'user:me', token: 'tkn' }), (e) => {
-    assert.match(e.message, /Not the rate limit: 9 of 10 left/);
-    assert.match(e.message, /repo scope/, 'and names the thing left to check');
-    return true;
-  });
-});
-
-test('code: when /rate_limit fails too, the unreachable host is named as that', async () => {
-  SEARCH_REJECT = REJECTED(); RATE = null;
-  await assert.rejects(ES.code({ q: 'x', scope: 'user:me', token: 'tkn' }), (e) => {
-    // All three outcomes have to be TOLD APART by their wording. Passing the
-    // original through here read exactly like the un-diagnosed behaviour, so a
-    // reader could not tell whether the second call had run.
-    assert.match(e.message, /could not be reached at all/);
-    assert.doesNotMatch(e.message, /Failed to fetch/,
-      'the browser\'s words are the cause, not the message');
-    assert.match(e.cause.message, /Failed to fetch/, 'and they are still on the cause');
-    return true;
-  });
-});
-
-test('code: a GitHub answer speaks for itself and costs no second call', async () => {
-  SEARCH_REJECT = Object.assign(new Error('GitHub Error 422: Validation Failed'), { status: 422 });
-  RATE = budget(0); RATE_CALLS = 0;
-  await assert.rejects(ES.code({ q: 'x', scope: 'user:me', token: 'tkn' }),
-    /GitHub Error 422: Validation Failed/);
-  assert.equal(RATE_CALLS, 0, 'a status means the page saw the response; there is nothing to diagnose');
-  SEARCH_REJECT = null;
 });
 
 test('sessions: what was SAID is answered from the index, newest first', async () => {
@@ -542,22 +461,6 @@ test('clip: one line of context around the first case-insensitive hit', () => {
   assert.ok(c.length < 130);
 });
 
-test('code: the three rejection outcomes are told apart by their wording', async () => {
-  // The rule the pass-through broke. A diagnosis whose outcomes read alike is
-  // not a diagnosis: the reader cannot tell which of the three happened, and
-  // one of them is indistinguishable from no diagnosis at all.
-  const said = async (rate) => {
-    SEARCH_REJECT = REJECTED(); RATE = rate;
-    try { await ES.code({ q: 'x', scope: 'user:me', token: 'tkn' }); return '(no error)'; }
-    catch (e) { return e.message; }
-  };
-  const msgs = [await said(null), await said(budget(0)), await said(budget(9))];
-  assert.equal(new Set(msgs).size, 3, 'each outcome must read differently:\n  ' + msgs.join('\n  '));
-  // And none of them may be the browser's own words, which say nothing.
-  for (const m of msgs) assert.doesNotMatch(m, /^Network error on GET/);
-  SEARCH_REJECT = null;
-});
-
 // ── The chats lane ──────────────────────────────────────────────────────────
 // The sessions lane's opposite number: it matches what a SUMMARY says about a
 // chat rather than what a record quotes, so it reads about 10 MB of monthly
@@ -695,4 +598,34 @@ test('setFileIndex: what the crawl wrote is what the next search reads', async (
   ES.setFileIndex({ repos: { 'me/a': { sha: '9', dirs: { '': ['fresh.md'] } } } });
   const res = await ES.indexNames({ q: 'fresh', registry: REGISTRY, token: 'tkn' });
   assert.equal(res.hits.map(h => h.path).join(' '), 'fresh.md');
+});
+
+test('contents: the manifest names each repo\'s shards, hits carry their repo, and a folder narrows them', async () => {
+  const CI = window.ContentIndex, X = window.SessionIndex;
+  const shard = (docs) => CI.buildShard(Object.fromEntries(Object.entries(docs).map(([p, t]) => [p, { blob: 'b', terms: X.tokens(t) }])));
+  ES.reset();
+  FILES = {
+    [CI.MANIFEST]: { repos: {
+      'me/tools': { sha: 's1', docs: 2, pending: 0, shards: ['state/content-index/me.tools.0.json'] },
+      'me/home':  { sha: 's2', docs: 1, pending: 3, shards: ['state/content-index/me.home.0.json'] },
+    } },
+    'state/content-index/me.tools.0.json': shard({ 'docs/a.md': 'allotment packets', 'README.md': 'allotment intro' }),
+    'state/content-index/me.home.0.json': shard({ 'notes.md': 'an allotment note' }),
+  };
+  READ_CALLS = [];
+  const res = await ES.contents({ q: 'allotment', repos: ['me/home', 'me/tools', 'me/absent'], registry: REGISTRY, token: 'tkn' });
+  assert.deepEqual([...res.hits.map(h => h.repo + ':' + h.path)], ['me/home:notes.md', 'me/tools:docs/a.md', 'me/tools:README.md'],
+    'in the order the repos were asked for, then by path as the names lane sorts');
+  assert.equal(res.indexed, true); assert.equal(res.pending, 3); assert.deepEqual([...res.missing], ['me/absent']);
+  const under = await ES.contents({ q: 'allotment', repos: ['me/tools'], registry: REGISTRY, token: 'tkn', under: 'docs/' });
+  assert.deepEqual([...under.hits.map(h => h.path)], ['docs/a.md']);
+  assert.equal(READ_CALLS.filter(p => p === CI.MANIFEST).length, 1, 'the manifest and shards are read once');
+  assert.equal(ES.stats().contentShards, 2);
+});
+
+test('contents: no manifest yet is "not indexed", not an empty answer', async () => {
+  ES.reset();
+  FILES = {};
+  const res = await ES.contents({ q: 'x', repos: ['me/tools'], registry: REGISTRY, token: 'tkn' });
+  assert.equal(res.indexed, false); assert.deepEqual([...res.missing], ['me/tools']); assert.equal(res.hits.length, 0);
 });

@@ -297,7 +297,7 @@ test('the copy control copies its own section, with the address', async () => {
 
 test('each control is a labelled button a finger can hit, with no title attribute', () => {
   // A title draws only on mouse hover, outside the page, so a phone never sees
-  // it (html-style rule 11); the label rides aria-label and a title-tip.
+  // it (html-style rule 10); the label rides aria-label and a title-tip.
   const host = window.document.createElement('div');
   mdDoc.render(host, DOC, { addr: ADDR });
   const b = act(host, 1, 'copy');

@@ -20,8 +20,7 @@ export default async function (page) {
   assert.deepEqual(names, [...names].sort((a, b) => a.localeCompare(b)));
   for (const name of ['Term loading', 'Missing links', 'Raw options', 'Subtle veering', 'Micromanaged handoffs'])
     assert.ok(names.includes(name), name);
-  for (const id of ['P03', 'P09', 'P15', 'P19', 'P20'])
-    assert.equal(await list.locator('[data-row="' + id + '"]').count(), 0);
+  assert.equal(await list.locator('[data-row="P03"]').count(), 0, 'a merged id has no row of its own');
   const geometry = async () => root.evaluate(el => {
     const list = el.querySelector('[data-peeve-list]'), card = el.querySelector('[data-peeve-card]');
     return { height: el.clientHeight, list: list.clientHeight, detail: card.clientHeight,
