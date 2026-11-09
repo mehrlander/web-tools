@@ -24,7 +24,7 @@ So every entry carries both: the `span` it anchors to, and the `claim` as you ha
 Each claim gets one `type`. The four mark genuinely different ways a text commits, and three of them catch things a plain reading nods past.
 
 - **stated.** A fact asserted on the surface. Checkable in principle. The default, and most claims are these.
-- **existence.** The presupposition, carried by a definite reference, that some entity or event is real. "The actuary," "the fee increase," "the program" each assert *this thing exists* without ever predicating it, so it never appears as a sentence. A sentence that says a thing is present, such as "Chromium is pre-installed," predicates presence and is a stated claim. Subject to the load-bearing threshold below.
+- **existence.** The presupposition, carried by a definite reference, that some entity or event is real. "The actuary," "the fee increase," "the program" each assert *this thing exists* without ever predicating it, so it never appears as a sentence. Subject to the load-bearing threshold below.
 - **causal.** Asserts that one thing brought about another. Flagged as its own type because prose smuggles causation constantly through juxtaposition or a soft connective ("following," "led to," "after which," "in the wake of") while looking like mere sequence. When the cause is implied by arrangement rather than stated outright, mark the entry `implied: true`, so the sequence-versus-cause question stays queryable.
 - **evaluative.** A judgment the text commits to. "Well run," "the best account," "a troubled program." Not checkable against a source, which is why verification pipelines discard it, but fully a thing being said, so it is kept.
 
@@ -42,7 +42,7 @@ The factual core and the judgment are separate commitments and a reader can acce
 
 ## The load-bearing threshold for existence
 
-Presuppositions are unbounded. Every definite phrase technically presupposes existence, and most are trivially carried and not worth recording. The threshold is **text-internal**, a question about how the prose treats the thing, not about whether the thing is real. Surface an existence claim when the document **leans on** the entity, which takes two tests: the document refers to it as already established, without introducing it, and at least one other claim in the inventory is about it. "A Fund 600 reserve exists," yes, because the document refers to the reserve as a settled fact and hangs figures on it. "The year 2019 exists," no, because nothing rests on it as a contestable entity; it is just a date. In technical documentation, "the dispatcher's output guard" leans on a dispatcher the document never introduces and later describes, so "a dispatcher exists" is surfaced.
+Presuppositions are unbounded. Every definite phrase technically presupposes existence, and most are trivially carried and not worth recording. The threshold is **text-internal**, a question about how the prose treats the thing, not about whether the thing is real. Surface an existence claim when the document **leans on** the entity: refers to it as established, builds later claims on it, treats it as given rather than mentioning it in passing. "A Fund 600 reserve exists," yes, because the document refers to the reserve as a settled fact and hangs figures on it. "The year 2019 exists," no, because nothing rests on it as a contestable entity; it is just a date.
 
 This is a judgment call, like the grain, so apply it the same way each time: flag the existence of entities and events the document treats as load-bearing, not the existence of common nouns and calendar machinery. Whether a load-bearing entity turns out to be real is the next step's question, not this one's. This step only marks that the document is committed to it.
 
@@ -77,13 +77,23 @@ Beyond the four types, three shapes hide claims in plain prose:
 - **Superlatives and firsts.** "Only," "first," "largest," "unprecedented."
 - **Numbers buried in prose.** A percentage inside a clause is as much a claim as one in a table.
 
-## Standing alone, minimally: a worked example
+## Standing alone, minimally: worked examples
 
-"He served in the National Guard." -> **Stands alone, minimal:** "Kenneth Holland served in the National Guard." Pronoun resolved, nothing added. *Too much:* "Kenneth Holland, born November 24 1934 in Hickory, former U.S. Representative from South Carolina, served in the National Guard from 1952 to 1959." Now the claim drags five extra facts that each have to hold, and it will fail to match an evidence context that confirms only the service. Where a detail is needed to disambiguate, prefer the one the most sources would attest.
+The grain lives in examples more than in rules. Hold these as the calibration.
+
+- *In context:* "He served in the National Guard." -> **Stands alone, minimal:** "Kenneth Holland served in the National Guard." Pronoun resolved, nothing added. *Too much:* "Kenneth Holland, born November 24 1934 in Hickory, former U.S. Representative from South Carolina, served in the National Guard from 1952 to 1959." Now the claim drags four extra facts that each have to hold, and it will fail to match an evidence context that confirms only the service.
+- *Ambiguous subject:* a paragraph about a "David Heyman." -> "David Heyman, the film producer, founded Heyday Films." The descriptor is added because the name alone is ambiguous, and it is durable and widely attested. Profession disambiguates with one phrase. Birthdate would over-specify.
+- *Necessary addition:* "All taxes must be paid by April 15." -> "In the US, all taxes must be paid by April 15." The added context is not padding. Without it the claim is not interpretable, so it is the minimal move, not a violation of minimality.
+
+The rule under all three: add a detail only when its absence leaves the line ambiguous, and prefer the disambiguating detail that the most sources would attest.
+
+## The trap: decontextualization re-bundles
+
+Making a fragment stand alone tempts you to fold in a second fact, and now the entry is no longer one claim. "The album was released in 2018" becomes "The 'Blackpink in Your Area' compilation album was released in 2018," which has smuggled in a second claim: that the album is a compilation. The entry now reads as one assertion but carries two, and anyone checking it cannot tell which part failed.
+
+Hold the line: resolve references, but do not annex neighboring facts. If standing alone seems to require a second full claim, that is a signal the two were never separable, and they stay as one entry marked `composite`, rather than one entry pretending to be atomic.
 
 ## Composite vs singular: the call you will keep facing
-
-Making a fragment stand alone tempts you to fold in a second fact. "The album was released in 2018" becomes "The 'Blackpink in Your Area' compilation album was released in 2018," which has smuggled in a second claim, that the album is a compilation, and anyone checking the entry cannot tell which part failed. Resolve references, but do not annex neighboring facts. If standing alone seems to require a second full claim, the two were never separable: they stay as one entry marked `composite`, rather than one entry pretending to be atomic.
 
 The grain is a choice, not a discovery, so the procedure can only make this judgment repeatable. "She was a medallist at the European Championships in 1986" can be kept as one claim or split into three: that she medalled, the venue, the year. There is no universal right answer, only a consistent one.
 

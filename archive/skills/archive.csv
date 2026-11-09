@@ -1,2 +1,4 @@
 name,retired,reason,successor
 safe-html-templating,2026-10-08,"HTML construction guidance moved into html-style, beside the shared vanilla bundle; no separate kit corresponded to this skill.",skills/html-style/references/mechanics.md
+atomic-decomposition,2026-11-09,"Merged into outlining as its claims option, with the question tree and genre ladders, so the claim, question and outline units share one frame.",skills/outlining/claims.md
+question-margin,2026-11-09,"Merged into outlining as its questions option, beside claims, so the two readings of one text sit in one skill.",skills/outlining/questions.md
