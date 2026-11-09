@@ -149,13 +149,13 @@ the build to the session that does not depend on the plugin.
 The script lives here because the setup script cannot reach a private repo. It
 installs `portable` at user scope, because plugins load at session start and a
 session rooted above the checkouts reads no project settings. It allows
-`mcp__claude-code-remote__add_repo` at user scope too, so that
-[`/portable:sessions`](../../skills/sessions/SKILL.md) can add the session
-archive ([web-tools-private](https://github.com/mehrlander/web-tools-private))
-in auto mode, where the permission classifier can refuse that call when another
-session asked for it. The script then saves its own text, the commit it came
-from and when it ran to `~/.claude/environment-setup.ran`, which the plugin's
-environment report prints from at every session start
+`mcp__claude-code-remote__add_repo` at user scope too, to let
+[`/portable:sessions`](../../skills/sessions/SKILL.md) add the session archive
+([web-tools-private](https://github.com/mehrlander/web-tools-private)) in auto
+mode, where the permission classifier can refuse that call when a
+message from another session prompted it. The script then saves its own text,
+the commit it came from and when it ran to `~/.claude/environment-setup.ran`,
+which the plugin's environment report prints from at every session start
 ([extending.md](extending.md#sessionstart-the-environment-report)). The script
 writes no `~/.claude/CLAUDE.md` and no `AskUserQuestion` deny.
 
