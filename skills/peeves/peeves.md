@@ -352,7 +352,7 @@ Edits that weaken guidance that exists to steer away from model intuition. The p
 
 **Area:** writing · **Detector:** reader · **Sessions:** 3 · **Status:** active
 
-## Combined and retired
+## Combined entries
 
 ### Fix the sentence, add no note · `P02`
 
@@ -394,14 +394,6 @@ Say a thing once: one owner per statement, linked from elsewhere, never restated
 
 **Area:** writing · **Detector:** reader · **Sessions:** 13 · **Status:** active · **Merged into:** P01
 
-### Missing attribution · `P09`
-
-A borrowed idea presented as the project's own view, or analysis presented as an authoritative verdict. Attribution identifies whose idea or judgment the reader is seeing and links its source.
-
-**Look for:** 'the panel's verdict', 'our theory' for a borrowed idea; a summary of a source where a link to it would do
-
-**Area:** writing · **Detector:** reader · **Sessions:** 6 · **Status:** retired
-
 ### Retired words · `P11`
 
 Do not use the words the owner has retired: register in a coined sense, carry as a verb for what a file holds, carrier for a data file, and tray.
@@ -428,42 +420,6 @@ Name things for what they are, not by metaphor or vague umbrella.
 
 **Area:** naming · **Detector:** reader · **Sessions:** 12 · **Status:** active · **Merged into:** P10
 
-### Rambling replies · `P15`
-
-Buried conclusions, side issues and detail that distracts from the owner's question.
-
-**Look for:** a wall of text; a reply that ranges across several subjects; the conclusion at the bottom
-
-**Area:** chat-reply · **Detector:** reader · **Sessions:** 25 · **Status:** retired
-
-### Stay on the main issue · `P17`
-
-Stay on the owner's main issue; do not drift into possibilities, side topics, your own terminology or immaterial discrepancies.
-
-**Look for:** paragraphs on a side issue; a rounding difference treated as a finding
-
-**Area:** chat-reply · **Detector:** reader · **Sessions:** 10 · **Status:** retired · **Merged into:** P15
-
-### Extra setup · `P19`
-
-Delivery that makes the owner download short copyable text, assemble patch fragments or save and configure a script intended to run directly in the PowerShell ISE.
-
-**Look for:** a SendUserFile card for a short text or a script
-
-**Owner:** docs/CONVERSATION.md (a file card)
-
-**Area:** chat-reply · **Detector:** reader · **Sessions:** 20 · **Status:** retired
-
-### Unclear status · `P20`
-
-Closings or PR descriptions that misstate what is finished, open, merged or verified on the current commit.
-
-**Look for:** 'done' with next steps listed; 'clean exit' with open items; the same marker restated after each CI event
-
-**Owner:** docs/CONVERSATION.md (closing states, PR events)
-
-**Area:** chat-reply · **Detector:** reader · **Sessions:** 25 · **Status:** retired
-
 ### Link what you mention · `P24`
 
 Link every file, PR, session or page you mention.
@@ -473,16 +429,6 @@ Link every file, PR, session or page you mention.
 **Owner:** docs/CONVERSATION.md (reference is a link)
 
 **Area:** reporting · **Detector:** reader · **Sessions:** 45 · **Status:** active · **Merged into:** P23
-
-### State at each stop · `P27`
-
-At each stopping point, volunteer what was done, what is open, whether it has landed on main, and whether it is ready to wrap and merge.
-
-**Look for:** a reply that ends without saying whether the work is finished or merged
-
-**Owner:** docs/CONVERSATION.md (closing states)
-
-**Area:** reporting · **Detector:** reader · **Sessions:** 95 · **Status:** retired · **Merged into:** P20
 
 ### Shown versus inferred · `P28`
 
@@ -537,16 +483,6 @@ Do not propose deleting a feature, page or branch unless its removal was clearly
 **Look for:** a cleanup that removes working features
 
 **Area:** process · **Detector:** reader · **Sessions:** 4 · **Status:** active · **Merged into:** P16
-
-### PR body matches final state · `P40`
-
-Keep the PR description aligned with the final state, and confirm CI on the final commit.
-
-**Look for:** a PR body describing an earlier plan; 'green' claimed for an earlier head
-
-**Owner:** docs/CONVERSATION.md (guide pointer)
-
-**Area:** git-pr · **Detector:** reader · **Sessions:** 4 · **Status:** retired · **Merged into:** P20
 
 ### Try another route · `P41`
 
@@ -604,16 +540,6 @@ Show new views inside the app shell at their route, and put findings in data the
 
 **Area:** page-design · **Detector:** reader · **Sessions:** 15 · **Status:** active · **Merged into:** P33
 
-### PowerShell for the ISE · `P59`
-
-PowerShell for the owner pastes into the ISE and runs with F5: no param block, nothing to save, no comments beyond the skill's one # @file line, delivered as a link on the branch.
-
-**Look for:** a param() block, comment headers, instructions to save and run a .ps1
-
-**Owner:** skills/windows-powershell/SKILL.md
-
-**Area:** code · **Detector:** reader · **Sessions:** 14 · **Status:** retired · **Merged into:** P19
-
 ### Few short comments · `P60`
 
 Keep code comments short and few.
@@ -621,14 +547,6 @@ Keep code comments short and few.
 **Look for:** long comment blocks explaining code that reads plainly
 
 **Area:** code · **Detector:** reader · **Sessions:** 4 · **Status:** active · **Merged into:** P01
-
-### One drop-in patch · `P61`
-
-Offer a patch as one larger drop-in block that says where it goes, or as a link on the branch; never several small patches.
-
-**Look for:** two or three fragments to paste into one file
-
-**Area:** code · **Detector:** reader · **Sessions:** 3 · **Status:** retired · **Merged into:** P19
 
 ### Links land on the item · `P62`
 

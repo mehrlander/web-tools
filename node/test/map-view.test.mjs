@@ -2382,10 +2382,6 @@ test('Peeves presents the reviewed list and resolves merged IDs through their re
     assert.deepEqual(Array.from(data.peeveRows, p => p.id), ['P10']);
     data.peeveQ = 'P03';
     assert.deepEqual(Array.from(data.peeveRows, p => p.id), ['P10'], 'the old jargon ID still finds Term loading');
-    for (const id of ['P09', 'P15', 'P17', 'P19', 'P20', 'P27', 'P40', 'P59', 'P61']) {
-      data.peeveQ = id;
-      assert.equal(data.peeveRows.length, 0, id + ': retired entries do not reappear through search');
-    }
     data.peeveQ = 'P46';
     assert.equal(data.peeveRows.length, 0, 'guidance remains outside the short list');
     data.peeveQ = 'Shallow defense';

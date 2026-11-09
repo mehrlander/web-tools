@@ -13,8 +13,17 @@ import { parseCsv } from '../build/registries-load.mjs';
 const rows = parseCsv(readFileSync(path.join(repoRoot, 'skills', 'peeves', 'peeves.csv'), 'utf8'));
 const agents = parseCsv(readFileSync(path.join(repoRoot, 'docs', 'agents.csv'), 'utf8'));
 
-test('ids run P01 upward with no gap, so a cited id never shifts meaning', () => {
-  rows.forEach((r, i) => assert.equal(r.id, 'P' + String(i + 1).padStart(2, '0'), `row ${i + 1}`));
+// Entries the owner had removed. Their ids stay unused, so a cited id never
+// shifts meaning.
+const DELETED = ['P09', 'P15', 'P17', 'P19', 'P20', 'P27', 'P40', 'P59', 'P61'];
+
+test('ids run P01 upward, missing only the deleted ones, so a cited id never shifts meaning', () => {
+  const nums = rows.map(r => Number(r.id.slice(1)));
+  rows.forEach((r, i) => assert.match(r.id, /^P\d{2,}$/, `row ${i + 1}`));
+  nums.forEach((n, i) => i && assert.ok(n > nums[i - 1], `${rows[i].id} is out of order`));
+  const gaps = [];
+  for (let n = 1; n <= nums.at(-1); n++) if (!nums.includes(n)) gaps.push('P' + String(n).padStart(2, '0'));
+  assert.deepEqual(gaps, DELETED, 'a gap other than a deleted entry, or a deleted id reused');
 });
 
 test('every peeve can be checked: a statement, what tripping it looks like, a session count', () => {
@@ -37,17 +46,16 @@ test('every peeve has its own short name, the label the Map view lists it by', (
 test('consolidations preserve cited IDs and point directly to an entry with the same status', () => {
   const byId = new Map(rows.map(r => [r.id, r]));
   for (const r of rows) {
-    assert.ok(['active', 'guidance', 'retired'].includes(r.status), `${r.id}: unknown status`);
+    assert.ok(['active', 'guidance'].includes(r.status), `${r.id}: unknown status`);
     if (!r.merged_into) continue;
     const target = byId.get(r.merged_into);
     assert.ok(target && target.id !== r.id, `${r.id}: missing or self-referencing target`);
-    assert.ok(!target.merged_into && target.status !== 'guidance', `${r.id}: target must be an active or retired entry`);
+    assert.ok(!target.merged_into && target.status !== 'guidance', `${r.id}: target must be an active entry`);
     assert.equal(r.status, target.status, `${r.id}: status differs from its target`);
   }
   const active = rows.filter(r => !r.merged_into && r.status === 'active');
   assert.equal(active.length, 31);
   assert.equal(rows.filter(r => r.status === 'guidance').length, 7);
-  assert.deepEqual(rows.filter(r => r.status === 'retired' && !r.merged_into).map(r => r.id), ['P09', 'P15', 'P19', 'P20']);
   assert.equal(byId.get('P03').merged_into, 'P10', 'the jargon note follows the Term loading consolidation');
 });
 
