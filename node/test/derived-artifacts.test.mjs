@@ -54,6 +54,11 @@ test('the h plugin\'s skills match docs/house-policies.md', () => {
   assert.equal(r.status, 0, (r.stderr || '').trim() || 'policy-skills --check failed');
 });
 
+test('skills/peeves/peeves.csv matches skills/peeves/peeves.md', () => {
+  const r = check(['node/build/peeves-csv.mjs', '--check']);
+  assert.equal(r.status, 0, (r.stderr || '').trim() || 'peeves-csv --check failed');
+});
+
 test('docs/README.md matches the documentation registry', () => {
   const r = check(['node/build/docs-readme.mjs', '--check']);
   assert.equal(r.status, 0, (r.stderr || '').trim() || 'docs-readme --check failed');
