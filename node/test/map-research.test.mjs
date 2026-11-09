@@ -19,7 +19,7 @@ const manifests = {
   [hub]: { research: [account('research/excel/README.md', 'Excel findings')], tracker: 'tracker/board.md',
     programs: [{ name: 'surfacing', label: 'Surfacing', icon: 'ph-megaphone', path: 'programs/surfacing',
       governs: ['docs/CONVERSATION.md', 'python/showing.py'], measures: ['owner/private@background:state/closings.json'],
-      reviewers: ['portable:owner-proxy'], views: ['?view=map&tab=surfacing'] }, { label: 'unnamed' }] },
+      reviewers: ['portable:owner-proxy'], views: ['?view=map&tab=showing'] }, { label: 'unnamed' }] },
   [home]: { estate: true, projects: [
     { path: 'projects/text', label: 'Text', tracker: false },
     { path: 'projects/text/nested', label: 'Nested', tracker: 'boards/text.md' },
@@ -140,9 +140,9 @@ test('Programs lists each declaration on shared columns, with its open tasks fro
   data.programTasks(p); await tick(3);
   assert.equal(data.programTasks(p), 1, 'open rows whose project is the program');
   assert.equal(data.measureName(p.measures[0]), 'closings.json');
-  assert.equal(data.programViewLabel(p.views[0]), 'Surfacing');
+  assert.equal(data.programViewLabel(p.views[0]), 'Showing');
   data.openProgramView(p.views[0]);
-  assert.equal(data.mapTab, 'surfacing');
+  assert.equal(data.mapTab, 'showing');
   data.setTab('research');
 });
 

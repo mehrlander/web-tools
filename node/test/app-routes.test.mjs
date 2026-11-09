@@ -247,9 +247,12 @@ test('the two sub-tab encodings, counted', () => {
   // Gallery's old key, so two addresses were added and none retired.
   // 50 to 51 on 2026-11-07: Data took Relations, the declared joins between
   // registries.
-  // 51 to 52 on 2026-11-08: Browser took Forms, the estate's forms with the
+  // 51 to 50 on 2026-11-08: Harness retired Surfacing, a rendering of
+  // CONVERSATION.md with no registry behind it; the Programs tab's surfacing
+  // row and the Context and Docs tabs reach the document.
+  // 50 to 51 on 2026-11-08: Browser took Forms, the estate's forms with the
   // pages that carry each.
-  assert.equal(params, 52, 'sub-tabs addressed as ?view=<parent>&tab=');
+  assert.equal(params, 51, 'sub-tabs addressed as ?view=<parent>&tab=');
 });
 
 // The Map's row is a copy of the shell's address list, and it is a copy that
