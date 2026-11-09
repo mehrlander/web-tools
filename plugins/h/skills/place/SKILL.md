@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 <!-- Generated from docs/house-policies.md by node/build/policy-skills.mjs; do not hand-edit. -->
 
-# Library folders · `/h:place`
+# Library folders · `h:place`
 
 A file under `lib/` goes in the folder named by what it attaches to.
 

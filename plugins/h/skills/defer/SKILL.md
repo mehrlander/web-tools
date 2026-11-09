@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 <!-- Generated from docs/house-policies.md by node/build/policy-skills.mjs; do not hand-edit. -->
 
-# Speaking about rules · `/h:defer`
+# Speaking about rules · `h:defer`
 
 When a rule bears on what the owner has asked, quote it, name its source, and offer a reading labeled as a reading.
 
