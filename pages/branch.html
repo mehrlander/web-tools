@@ -182,15 +182,10 @@
 <body class="min-h-screen bg-base-200 text-base-content roomy:h-dvh roomy:min-h-0 roomy:overflow-hidden roomy:flex roomy:flex-col"
       x-data="branchPage()" x-cloak>
 
-  <!-- The address bar shows only while no branch is open, which is
-       session.html's rule. With a branch open the page's identity is the
-       takeover header (top-level) or the brief's own head (inside a toss), so
-       a bar holding the same address again was a second header (owner,
-       2026-11-09).
-
-       With nothing addressed it is the page's one way in: a toss carrying no
-       branch once rendered "address a branch above" under a hidden bar, with
-       nothing above it (found on session.html 2026-08-26). -->
+  <!-- The address bar shows only while no branch is open, as on
+       session.html. With a branch open, the takeover header (top-level) or the
+       brief's own head (inside a toss) names it. With nothing addressed, the
+       bar is the page's one way in, a toss included. -->
 
   <div x-show="!target" class="border-b border-base-300 bg-base-100 roomy:shrink-0">
     <div class="mx-auto px-4 py-2 flex items-center gap-2">
@@ -387,7 +382,7 @@
             window.__branchSlide = { ...t, framed: true, chrome: ctx?.setChrome,
               onMeta: (m) => {
                 t.onMeta(m);
-                if (m?.pr) deck?.setLink({ href: 'https://github.com/' + t.repo + '/pull/' + m.pr,
+                if (m?.pr) deck?.setLink({ href: window.RepoAddress.github.pull(t.repo, m.pr),
                                            icon: 'ph-git-pull-request', title: 'Pull request #' + m.pr });
               } };
             const el = document.createElement('div');

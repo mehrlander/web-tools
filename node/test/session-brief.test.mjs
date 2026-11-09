@@ -507,6 +507,41 @@ test('pane picks the tab, and an unknown one falls back rather than blanking', (
   assert.equal(at(undefined), 'outline');
 });
 
+// Two regions, each with its own default (owner, 2026-11-09): the top opens on
+// Gemini's topics where the file has any, else on the outline; the bottom opens
+// on a call while one waits, else on the views, else on the files, and is
+// absent when the session left none of the three.
+test('each region opens on its own default, and the bottom goes when it has nothing', () => {
+  const mount = (record) => {
+    window.__tabs = { repo: STORE, record };
+    const el = window.document.createElement('div');
+    el.setAttribute('x-data', 'sessionBrief(window.__tabs)');
+    window.document.body.append(el);
+    Alpine.initTree(el);
+    return Alpine.$data(el);
+  };
+  const bare = mount({ short: 'n', schema: 4 });
+  assert.deepEqual([...bare.bottomTabs], [], 'no calls, views or files: no bottom region');
+  assert.equal(bare.bottomPane, '');
+  assert.equal(bare.topPane, 'outline', 'no topics file: the outline');
+
+  const d = mount({ short: 't', schema: 4, files: { 'x/y.js': { read: 1 } } });
+  assert.deepEqual([...d.bottomTabs], ['files']);
+  assert.equal(d.bottomPane, 'files');
+  d.topics = { summary: 'What the session did', topics: ['One thing'] };
+  assert.equal(d.topPane, 'topics', 'a topics file: the Topics tab');
+  d.work.views = [{ name: 'a.md', key: 'a' }];
+  assert.equal(d.bottomPane, 'views', 'views lead the files');
+  d.calls = [{ id: 'c1', status: 'open' }];
+  assert.deepEqual([...d.bottomTabs], ['calls', 'views', 'files']);
+  assert.equal(d.bottomPane, 'calls', 'a call waiting leads');
+  d.calls = [{ id: 'c1', status: 'closed' }];
+  assert.equal(d.bottomPane, 'views', 'a closed call does not');
+  d.pane = 'files';
+  assert.equal(d.bottomPane, 'files', 'a tab asked for holds');
+  assert.equal(d.topPane, 'topics', 'and leaves the other region alone');
+});
+
 test('start opens the deck on one card, which is what makes an exchange addressable', async () => {
   opened.length = 0;
   window.__card = { repo: STORE, record, start: 3 };

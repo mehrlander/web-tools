@@ -307,12 +307,10 @@
             const spec = window.DataPayload?.parseSpec?.(t.spec) || {};
             opts = { repo: spec.repo || STORE, path: spec.path || t.spec };
           }
-          // `framed: false` for the inline mount. The brief's `framed` says a
-          // HOST draws the title and the id, so the view need not repeat them.
-          // That is true of a deck, whose header carries both; it is not true
-          // of a toss, which embeds this PAGE and draws nothing. Passing
-          // whether the page sat in an iframe instead left a tossed session
-          // with no title and no id on screen (reported 2026-09-01).
+          // `framed: false` for the inline mount: the brief's `framed` says a
+          // host draws the title and the id, as a deck's header does. A toss
+          // embeds this page and draws neither, so the page's own iframe test
+          // is not passed through.
           opts = { ...opts, framed: false, ...(t.at || {}), onFind: value => this.stampFind(value) };
           this.target = opts;
           window.__sessionTarget = opts;
