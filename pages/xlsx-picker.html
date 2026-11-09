@@ -35,13 +35,18 @@
 -->
 </head>
 <body class="bg-base-200">
-<div class="fixed inset-0 grid grid-rows-[auto_1fr_auto]" x-data="xlsxPicker" x-cloak>
+<div class="fixed inset-0 grid grid-cols-1 grid-rows-[auto_1fr_auto]" x-data="xlsxPicker" x-cloak>
 
-  <!-- header: identity, the one compact figure, the action -->
+  <!-- header: identity, the action. Each size rides with what it measures: the
+       source's beside its name, the rebuilt package's on the button that saves
+       it. The sheet count heads the sheet list, and a hidden sheet is badged in
+       its own row. -->
   <header class="flex items-center gap-3 flex-wrap px-3 py-2 border-b border-base-300 bg-base-100">
     <h1 class="font-bold flex items-center gap-2"><i class="ph ph-microsoft-excel-logo text-success"></i> Sheet Picker</h1>
-    <span x-show="file" class="font-mono text-xs opacity-70 truncate max-w-[18rem]" x-text="file?.name"></span>
-    <span class="text-xs opacity-70" x-text="summary"></span>
+    <span x-show="file" class="flex-1 basis-0 min-w-0 flex items-baseline gap-2 font-mono text-xs opacity-70">
+      <span class="truncate max-w-[18rem]" x-text="file?.name"></span>
+      <span class="shrink-0" x-text="file ? kb(file.bytes.length) : ''"></span>
+    </span>
 
     <div class="ml-auto flex items-center gap-2">
       <label class="btn btn-sm btn-ghost">
@@ -55,6 +60,7 @@
       </button>
       <button class="btn btn-sm btn-success" x-show="result" @click="save()">
         <i class="ph ph-download-simple"></i> <span x-text="'.' + suffix"></span>
+        <span class="font-mono font-normal opacity-80" x-text="result ? kb(result.bytes.length) : ''"></span>
       </button>
     </div>
   </header>
@@ -82,7 +88,7 @@
       <i class="ph ph-warning-circle"></i><span x-text="error" class="text-pretty"></span>
     </div>
 
-    <div x-show="plan" class="grid gap-4 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] items-start">
+    <div x-show="plan" class="grid gap-4 grid-cols-1 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] items-start">
 
       <!-- left: the choice -->
       <section class="flex flex-col gap-3 min-w-0">
