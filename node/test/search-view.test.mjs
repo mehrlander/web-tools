@@ -95,6 +95,7 @@ ANSWER = { hits: [], total: 0 };
 const Alpine = await startAlpine(window, [
   'lib/alpine-bundle.js',
   'lib/kits/repo-address.js',   // the real address grammar: ?sfile= round-trips through it
+  'lib/kits/doc-growth.js',     // the real document kinds, which contents facets on
   'lib/alpineComponents/viewer.js',       // the reader this view embeds
   'lib/alpineComponents/ref-picker.js',   // and the two scope pickers it mounts
   'lib/alpineComponents/path-picker.js',
@@ -272,6 +273,34 @@ test('each contents hit quotes its line from its own file, after the list is dra
   await tick();
   assert.deepEqual(CALLS.filter(c => c[0] === 'snippet').map(c => c[1].path), ['a.md', 'b.md']);
   assert.deepEqual(data.hits.map(h => h.note), ['line about needle', 'line about needle']);
+});
+
+test('contents pills count every kind in the answer, and a kind narrows the list to it', async () => {
+  ANSWER = { hits: [
+    { repo: 'me/home', ref: '', path: 'docs/a.md' }, { repo: 'me/home', ref: '', path: 'skills/x/SKILL.md' },
+    { repo: 'me/tools', ref: '', path: 'tracker/tasks/t.md' }, { repo: 'me/tools', ref: '', path: 'docs/b.md' },
+  ], total: 4 };
+  data.mode = 'contents'; data.q = 'needle'; data.repo = ''; data.path = ''; data.kind = '';
+  await data.run();
+  assert.deepEqual(j(data.kindCounts), [
+    { k: 'task', n: 'Tracker task', count: 1 }, { k: 'skill', n: 'Skill', count: 1 }, { k: 'doc', n: 'Doc', count: 2 },
+  ], 'in the classifier\'s order, only the kinds present');
+  assert.deepEqual(data.hits.map(h => h.sub), ['home', 'Skill · home', 'Tracker task · tools', 'tools'],
+    'a row names its kind, except a plain Doc');
+  data.pickKind('skill');
+  await tick();
+  assert.deepEqual(data.hits.map(h => h.path), ['skills/x/SKILL.md']);
+  assert.equal(data.total, 1);
+  assert.equal(data.kindCounts.length, 3, 'the pills still count the whole answer');
+  assert.equal(shell.searchSeed.kind, 'skill', 'the kind rides the address');
+  data.pickKind('skill');
+  await tick();
+  assert.equal(data.kind, ''); assert.equal(data.hits.length, 4, 'a second tap clears it');
+  data.pickKind('task'); await tick();
+  data.setMode('names');
+  assert.equal(data.kind, '', 'another mode does not carry a contents facet');
+  data.mode = 'contents';
+  ANSWER = { hits: [], total: 0 };
 });
 
 test('contents says what the index could not cover, rather than an empty list implying it', async () => {
@@ -553,7 +582,8 @@ test('a bare arrival lists the browsed repo rather than landing on nothing', asy
   cold.repo = 'me/browsed';
   assert.equal(cold.caveat, '', 'a Files listing that can run explains nothing');
   cold.mode = 'contents';
-  assert.match(cold.caveat, /Markdown files · Default branches/, 'contents keeps its caveats: no layout can show what a list is missing');
+  assert.equal(cold.caveat, '', 'contents names its corpus in the placeholder, not a line under the controls');
+  assert.equal(cold.queryPlaceholder, 'Search Markdown contents…');
 
   el.remove();
   store.repo = ''; store.ref = ''; store.defaultRef = '';
