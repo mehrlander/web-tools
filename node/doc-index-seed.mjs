@@ -4,7 +4,7 @@
 // the estate through the API: about 14,000 files across ten repos, measured
 // 2026-10-07, against the crawl's 300 reads per repo per run.
 //
-//   node node/doc-index-seed.mjs [--registry ../web-tools-private] [--repo owner/name ...] [--write]
+//   node node/doc-index-seed.mjs [--registry ../web-tools-private] [--repo owner/name ...] [--content] [--write]
 //
 // Each repo is read at the default-branch tip state/files.json last recorded,
 // from a checkout named like the repo beside this one (or under its owner's
@@ -13,8 +13,13 @@
 // read at its own tip instead, and the crawl catches up from there. A repo
 // with no checkout is skipped, and the crawl builds it in its first run.
 // Without --write it prints what it would store.
+//
+// --content also seeds the Markdown word index (lib/kits/content-index.js):
+// state/content-index.json and its shards, from the same texts, at the same
+// tips, so the crawl's first pass over it is incremental too. Repos the kit
+// skips are left out.
 
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { execFileSync, spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { repoRoot as root } from './repo-root.mjs';
@@ -24,11 +29,14 @@ const opt = (k, d) => { const i = argv.indexOf(k); return i < 0 ? d : argv[i + 1
 const registry = path.resolve(root, opt('--registry', '../web-tools-private'));
 const only = argv.flatMap((a, i) => a === '--repo' ? [argv[i + 1]] : []);
 const write = argv.includes('--write');
+const content = argv.includes('--content');
 
 const win = {};
-for (const f of ['lib/kits/file-index.js', 'lib/kits/doc-index.js'])
+for (const f of ['lib/kits/file-index.js', 'lib/kits/doc-index.js', 'lib/kits/session-index.js', 'lib/kits/content-index.js'])
   new Function('window', readFileSync(path.join(root, f), 'utf8'))(win);
 const D = win.DocIndex;
+const CI = win.ContentIndex;
+const gotContent = {};
 
 const files = JSON.parse(readFileSync(path.join(registry, 'state/files.json'), 'utf8'));
 const out = path.join(registry, D.CACHE_PATH);
@@ -58,9 +66,15 @@ for (const [repo, e] of Object.entries(files.repos || {})) {
     const size = +buf.toString('latin1', at, nl).split(' ')[2];
     const text = buf.toString('utf8', nl + 1, nl + 1 + size);
     at = nl + 1 + size + 1;
-    return { path: b.path, blob: b.blob, words: D.countWords(text) };
+    return { path: b.path, blob: b.blob, words: D.countWords(text), text };
   });
   got[repo] = { sha, at: new Date().toISOString(), truncated: false, ...D.encode(docs) };
+  if (content && !CI.SKIP[repo]) {
+    // The crawl compares the documents index's twelve-character blobs.
+    const entries = Object.fromEntries(docs.map(d => [d.path, { blob: d.blob.slice(0, 12), terms: win.SessionIndex.tokens(d.text) }]));
+    gotContent[repo] = { sha, docs: docs.length, pending: 0, shards: CI.split(repo, entries) };
+    console.log(`${repo}: content index in ${gotContent[repo].shards.length} shard(s)`);
+  }
   console.log(`${repo}: ${got[repo].docs} documents, ${got[repo].words} words at ${sha.slice(0, 7)}${sha === e.sha ? '' : ' (the clone\'s tip)'}`);
 }
 
@@ -70,3 +84,14 @@ if (prev?.runs) next.runs = prev.runs;
 if (!write) { console.log(`Dry run: would write ${path.relative(root, out)} (${Object.keys(next.repos).length} repos).`); process.exit(0); }
 writeFileSync(out, D.serialize(next));
 console.log(`Wrote ${path.relative(root, out)}.`);
+if (content) {
+  const manPath = path.join(registry, CI.MANIFEST);
+  const prevMan = existsSync(manPath) ? JSON.parse(readFileSync(manPath, 'utf8')) : null;
+  mkdirSync(path.join(registry, CI.SHARD_DIR), { recursive: true });
+  for (const e of Object.values(gotContent)) for (const s of e.shards) writeFileSync(path.join(registry, s.path), JSON.stringify(s.doc));
+  const scopeC = [...new Set([...Object.keys(prevMan?.repos || {}), ...Object.keys(gotContent)])];
+  const man = CI.buildManifest(prevMan, gotContent, scopeC, new Date().toISOString());
+  if (prevMan?.runs) man.runs = prevMan.runs;
+  writeFileSync(manPath, JSON.stringify(man, null, 1));
+  console.log(`Wrote ${path.relative(root, manPath)} and its shards (${Object.keys(gotContent).length} repos).`);
+}

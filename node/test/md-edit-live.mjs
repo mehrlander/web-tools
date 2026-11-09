@@ -142,7 +142,6 @@ await page.route('**/*', async (route) => {
   if (p === `/repos/${REPO}/git/trees/tree1`) {
     return json(route, { truncated: false, tree: [{ path: 'docs/APP.md' }, { path: DOC }] });
   }
-  if (p === '/search/code') return json(route, { items: [] });
   const r = resolveCdn(url, root, null);
   if (r.kind === 'continue') return route.continue();
   if (r.kind === 'empty') return route.fulfill({ status: 200, contentType: r.contentType, body: '' });
