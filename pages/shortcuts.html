@@ -62,9 +62,9 @@
   which, and offers Open rather than Install, because a device shortcut has no
   plist here to install.
 
-  NO STAT CARDS. The counts are one compact line in the header, per the house
-  style. The figure that would deserve room is "how many are stale", and it earns
-  its place by being a filter rather than a tile.
+  NO STAT CARDS, AND NO LINE OF TOTALS. Each filter is a pill carrying the count
+  it would show under whatever the search box holds, so "how many need
+  installing" is read off the control that lists them (html-style rule 1).
 
   ONE PAGE, TWO VIEWS. ?name=<Name> opens that workflow on its own: its sentence,
   every action in order, what it calls, what calls it, and the same install and
@@ -103,14 +103,7 @@
     <div id="filters" class="flex flex-col sm:flex-row sm:items-center gap-2">
       <input id="q" type="search" placeholder="filter by name" data-slot="frame:search"
              class="input input-sm input-bordered w-full sm:flex-1 sm:min-w-0">
-      <select id="view" class="select select-sm select-bordered w-full sm:w-auto" data-slot="frame:filter-switch">
-        <option value="installable">Installable</option>
-        <option value="stale">Needs installing</option>
-        <option value="device">On device</option>
-        <option value="absent">Not on device</option>
-        <option value="probes">Not installable</option>
-        <option value="all">All</option>
-      </select>
+      <div id="view" class="flex flex-wrap items-center gap-1" data-slot="frame:count-chips"></div>
     </div>
   </header>
 
@@ -433,9 +426,39 @@ function gist(row) {
   return t.replace(/\s*\(\d+ actions?\)\s*$/, '');
 }
 
+// The filters, each drawn with the count it would show. The three a device
+// read decides appear once the device has been read, since before then every
+// row's answer to them is unknown rather than zero.
+const VIEWS = [
+  ['installable', 'Installable'],
+  ['stale', 'Needs installing', true],
+  ['device', 'On device', true],
+  ['absent', 'Not on device', true],
+  ['probes', 'Not installable'],
+  ['all', 'All'],
+];
+let view = 'installable';
+function pills(needle) {
+  const box = el('view');
+  box.textContent = '';
+  for (const [key, label, read] of VIEWS) {
+    if (read && !device) continue;
+    const on = key === view;
+    const b = node('button', 'flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm transition-colors '
+      + (on ? 'bg-base-200 text-base-content' : 'text-base-content/60 hover:text-base-content'));
+    b.type = 'button';
+    b.dataset.view = key;
+    b.setAttribute('aria-pressed', String(on));
+    b.append(node('span', '', label),
+             node('span', 'font-mono text-xs', String(catalog.rows.filter(r => matches(r, key, needle)).length)));
+    b.onclick = () => { view = key; paint(); };
+    box.append(b);
+  }
+}
+
 function paint() {
-  const view = el('view').value;
   const needle = el('q').value.trim().toLowerCase();
+  pills(needle);
   const shown = catalog.rows.filter(r => matches(r, view, needle));
   const body = el('rows');
   body.textContent = '';
@@ -757,21 +780,9 @@ function route() {
   if (row) detail(row); else missing(name || file);
 }
 
-// The header's one compact line, which is where the figures go instead of a row
-// of tiles. The device half is only stated once it has been read.
-function tally() {
-  const rows = catalog.rows;
-  const named = rows.filter(r => r.name);
-  const parts = [`${rows.length} workflows`, `${named.length} installable`];
-  if (device) {
-    const s = named.map(state);
-    parts.push(`${s.filter(x => x === 'current').length} current`,
-               `${s.filter(x => x === 'stale').length} stale`,
-               `${s.filter(x => x === 'not on device').length} not installed`);
-  }
-  if (REF !== 'main') parts.push(REF);
-  el('tally').textContent = parts.join(' · ');
-}
+// Beside the title in the list: the ref being read, when it is not main. The
+// counts are on the filter pills.
+function tally() { el('tally').textContent = REF !== 'main' ? REF : ''; }
 
 async function load() {
   el('status').className = 'badge badge-ghost badge-sm';
@@ -792,7 +803,6 @@ async function load() {
 nav(el('back'));
 window.onpopstate = route;
 el('refresh').onclick = load;
-el('view').onchange = () => paint();
 el('q').oninput = () => paint();
 await load();
 window.ghAuth.bootDone();

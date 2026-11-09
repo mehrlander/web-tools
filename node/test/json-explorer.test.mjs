@@ -182,16 +182,17 @@ test('JsonExplorer keeps one filter input across renders, so typing is not inter
   explorer.destroy();
 });
 
-test('JsonExplorer Schema view renders a one-line summary and collections', () => {
+test('JsonExplorer Schema view totals its Fields table and renders collections', () => {
   const container = window.document.getElementById('c');
   const explorer = JsonExplorer.mount(container, {
     data: sampleSession,
     mode: 'schema',
   });
 
-  const summary = container.querySelector('[data-schema-summary]');
-  assert.ok(summary, 'summary line rendered');
-  assert.match(summary.textContent, /nodes · depth \d+ · \d+ collections?$/);
+  assert.equal(container.querySelector('[data-schema-summary]'), null, 'no line of totals above the table');
+  const total = container.querySelector('[data-schema-total]');
+  assert.ok(total, 'the Fields table has a foot');
+  assert.match(total.textContent, /^Alldepth \d+[\d,]+ nodes[\d.]+ (B|KB|MB)$/);
 
   const schemaTables = container.querySelectorAll('table');
   assert.ok(schemaTables.length >= 2, 'top keys and collection schema tables rendered');

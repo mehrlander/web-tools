@@ -14,10 +14,12 @@
   Built to skills/html-style. The three rules that shaped it, since a first
   draft broke all three:
 
-    No stat cards. The header carries one compact line, and it carries a
-    DENOMINATOR (files scanned against files present), because the scope of
-    the scan is the fact about this page most likely to be misread. Four tiles
-    reading 177 / 291 / 5,414 / 19% would say nothing.
+    No stat cards, and no line of totals standing in for them. Each count sits
+    on what it counts: the selected repo's button carries its DENOMINATOR (files
+    scanned against files present), because the scope of the scan is the fact
+    about this page most likely to be misread; the list's name and mention
+    totals head its columns; the flag rate labels the control that hides the
+    flagged. Four tiles reading 177 / 291 / 5,414 / 19% would say nothing.
     No page prose. Method, caveats, and the precision table live in the info
     dialog. Where a qualifier has to stay attached to what it qualifies, it is
     a LABEL: the contrast section is headed "errors included" rather than
@@ -107,17 +109,13 @@
         history.replaceState(null, '', `#${new URLSearchParams({view:this.view, repo:this.repo, label:this.label})}`);
       },
 
-      // The header line: what was read, against what was there. No precision
-      // figure here. It is per label and judged for only four of them, so it
-      // belongs in the row that shows one label at a time, and in the dialog
-      // with its sample size. A headline number with no denominator is the
-      // stat card this page is built to avoid.
-      get headline() {
-        if (!this.cur) return '';
-        const parts = [`${this.n(this.cur.filesScanned)}/${this.n(this.cur.filesTotal)} files scanned`];
-        if (this.cur.excludedByRegistry) parts.push(`${this.n(this.cur.excludedByRegistry)} excluded by registry`);
-        if (this.cur.skippedOversize) parts.push(`${this.n(this.cur.skippedOversize)} over 200KB`);
-        return parts.join(' · ');
+      // The scope of one repo's scan, on its button: what was read, against
+      // what was there. No precision figure here. It is per label and judged
+      // for only four of them, so it belongs in the row that shows one label
+      // at a time, and in the dialog with its sample size.
+      scope(r) {
+        const R = this.idx?.repos?.[r];
+        return R ? `${this.n(R.filesScanned)}/${this.n(R.filesTotal)}` : '';
       },
 
       get labelsPresent() { return NAMED.filter(l => this.cur?.labels?.[l]) },
@@ -158,11 +156,10 @@
 <body>
 <div x-data="entities" x-cloak class="fixed inset-0 grid grid-rows-[auto_1fr_auto] bg-base-200">
 
-  <!-- ── header: thin. identity, the one figure line, controls ──────────── -->
+  <!-- ── header: thin. identity, controls ──────────────────────────────── -->
   <header class="min-w-0 px-4 py-2 bg-base-100 border-b border-base-300">
     <div class="flex items-center gap-3 min-w-0">
       <h1 class="text-lg font-semibold shrink-0">Entities</h1>
-      <span class="text-xs opacity-60 tabular truncate hidden sm:block" x-text="headline"></span>
       <button class="btn btn-ghost btn-xs ml-auto shrink-0" @click="$refs.info.showModal()"
               title="method, measured precision, exclusions">
         <i class="ph ph-info"></i>
@@ -179,7 +176,10 @@
       <template x-for="r in repos" :key="r">
         <button class="btn btn-xs shrink-0" x-show="view!=='contrast'"
                 :class="repo===r ? 'btn-primary' : 'btn-ghost'"
-                @click="go({repo:r})" x-text="name(r)"></button>
+                @click="go({repo:r})">
+          <span x-text="name(r)"></span>
+          <span x-show="repo===r" class="font-mono font-normal opacity-80 tabular" x-text="scope(r)"></span>
+        </button>
       </template>
       <!-- Buttons, not a select: x-model on a <select> binds before x-for has
            rendered its options, so the control showed "all corpora" while the
@@ -199,7 +199,6 @@
         <template x-for="l in valueLabels" :key="l"><option :value="l" x-text="`${l} (value)`"></option></template>
       </select>
     </div>
-    <div class="text-xs opacity-60 tabular mt-1 sm:hidden" x-text="headline"></div>
   </header>
 
   <!-- ── content: the thing ─────────────────────────────────────────────── -->
@@ -219,8 +218,6 @@
                precision figure no matter what class the child carried, and that
                is the one number qualifying everything below it. -->
           <div class="flex items-baseline gap-4 text-xs tabular mb-3">
-            <span class="opacity-60" x-text="`${n(curLabel.names)} names, ${n(curLabel.mentions)} mentions`"></span>
-            <span class="opacity-60" x-show="!corpus" x-text="`${pct(curLabel.flagRate)} flagged by shape`"></span>
             <span class="opacity-60 italic" x-show="corpus">flags and precision are pooled-set measurements</span>
             <!-- A filled badge, not text-warning: winter's warning is a pale
                  amber on a light ground, so colour alone reads as de-emphasis,
@@ -230,10 +227,19 @@
                   x-text="judged(label)!==undefined ? `${pct(judged(label))} precision, adjudicated` : 'precision not judged'"></span>
             <label class="cursor-pointer flex items-center gap-1 ml-auto opacity-60" x-show="!corpus">
               <input type="checkbox" class="checkbox checkbox-xs" x-model="hideFlagged">
-              hide flagged
+              <span class="whitespace-nowrap" x-text="`hide ${pct(curLabel.flagRate)} flagged`"></span>
             </label>
           </div>
           <table class="table">
+            <!-- The list's totals head the columns they total: every name the
+                 label holds, of which the rows are the most mentioned. -->
+            <thead>
+              <tr class="text-xs font-normal opacity-60 tabular">
+                <th class="font-normal" x-text="`${n(curLabel.names)} names`"></th>
+                <th class="font-normal text-right" x-text="`${n(curLabel.mentions)} mentions`"></th>
+                <th></th><th></th>
+              </tr>
+            </thead>
             <tbody>
               <template x-for="r in rows" :key="r.name">
                 <tr class="hover">
@@ -376,12 +382,13 @@
         <div>
           <p class="font-medium mb-1">Corpus</p>
           <table class="table table-xs">
-            <thead><tr><th>repo</th><th class="text-right">scanned</th><th class="text-right">total</th><th class="text-right">skipped &gt;200KB</th></tr></thead>
+            <thead><tr><th>repo</th><th class="text-right">scanned</th><th class="text-right">total</th><th class="text-right">excluded</th><th class="text-right">skipped &gt;200KB</th></tr></thead>
             <tbody>
               <template x-for="r in repos" :key="r">
                 <tr><td x-text="name(r)"></td>
                   <td class="text-right tabular" x-text="n(idx.repos[r].filesScanned)"></td>
                   <td class="text-right tabular" x-text="n(idx.repos[r].filesTotal)"></td>
+                  <td class="text-right tabular opacity-50" x-text="n(idx.repos[r].excludedByRegistry)"></td>
                   <td class="text-right tabular opacity-50" x-text="n(idx.repos[r].skippedOversize)"></td></tr>
               </template>
             </tbody>
