@@ -13,5 +13,3 @@ Verify a claim with a check that could have failed.
 - Ask whether the observation itself could be wrong.
 - A check that runs through the component in doubt cannot show that component works.
 - Pair a positive result with a negative control where one is possible.
-
-**Covers:** claims about files, behavior, tests, links and CI.

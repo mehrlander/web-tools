@@ -10,11 +10,4 @@ disable-model-invocation: true
 
 A file under `lib/` goes in the folder named by what it attaches to.
 
-- A file that extends `GH.prototype`, or a boot bundle, goes in `lib/` itself.
-- A file that registers a `window` namespace goes in `lib/kits/`.
-- A file that registers with `Alpine.data` goes in `lib/alpineComponents/`.
-- A file that is a single function expression, reaching neither `window` nor `document`, goes in `lib/ops/`.
-
-**Covers:** web-tools.
-
-**Detail:** [code-layers.md](https://github.com/mehrlander/web-tools/blob/main/docs/code-layers.md), its table and "Cases the table does not settle", checked by `node/test/code-layers.test.mjs`.
+**Backed by:** [code-layers.md](https://github.com/mehrlander/web-tools/blob/main/docs/code-layers.md), checked by `node/test/code-layers.test.mjs`.
