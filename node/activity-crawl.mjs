@@ -77,10 +77,11 @@ for (const file of ['lib/gh-fetch.js', 'lib/gh-store.js', 'lib/kits/csv.js',
                     'lib/kits/crawl-runs.js', 'lib/kits/branch-status.js',
                     'lib/kits/repo-checks.js', 'lib/kits/repo-config-cache.js',
                     'lib/kits/repo-activity-cache.js', 'lib/kits/activity-crawl.js',
-                    'lib/kits/file-index.js', 'lib/kits/doc-index.js']) {
+                    'lib/kits/file-index.js', 'lib/kits/doc-index.js',
+                    'lib/kits/session-index.js', 'lib/kits/content-index.js']) {
   new Function('window', readFileSync(path.join(root, file), 'utf8'))(win);
 }
-const { ActivityCrawl: C, BranchStatus: B, RepoActivityCache: A, RepoConfigCache: CC, RepoChecks, CrawlRuns, FileIndex: FI, DocIndex: DI } = win;
+const { ActivityCrawl: C, BranchStatus: B, RepoActivityCache: A, RepoConfigCache: CC, RepoChecks, CrawlRuns, FileIndex: FI, DocIndex: DI, ContentIndex: CI } = win;
 
 // ── The preflight the header explains ───────────────────────────────────────
 {
@@ -201,6 +202,12 @@ for (const ix of INDEXES) {
     console.warn(`${ix.label}: ${e?.message || e}`);
   });
 }
+// The Markdown word index (lib/kits/content-index.js), after the documents
+// index because it reads the file list that pass just wrote.
+await crawlContent(targets).catch(e => {
+  failed.push(CI.MANIFEST);
+  console.warn(`Content index: ${e?.message || e}`);
+});
 
 if (!changed.length) {
   console.log(`No material change across ${targets.length} repo(s); nothing to commit.`);
@@ -257,6 +264,56 @@ async function crawlIndex({ kit, label, about }, repos, act) {
   }) ?? prevIdx?.runs;
   await reg.save(kit.CACHE_PATH, kit.serialize(nextIdx), `Update ${label.toLowerCase()} (${kit.CACHE_PATH})` + VIA, { sha: read?.sha });
   console.log(`Committed ${kit.CACHE_PATH} (${moved.join(', ')}).`);
+}
+
+// Several files rather than one: a manifest, and each repo's shards. A shard
+// is written only when its bytes moved, each as its own commit, then the
+// manifest that names them.
+async function crawlContent(repos) {
+  const t1 = Date.now();
+  const reads = new Map();
+  const readFile = (p) => {
+    if (!reads.has(p)) reads.set(p, reg.get(p, GH.FRESH).then(r => ({ doc: JSON.parse(r.text), sha: r.sha }))
+      .catch(e => { if (e?.status === 404) return null; throw e; }));
+    return reads.get(p);
+  };
+  const docs = (await readFile(DI.CACHE_PATH))?.doc;
+  const read = await readFile(CI.MANIFEST);
+  const prevIdx = read?.doc || null;
+  const got = {};
+  const writes = [];
+  let calls = 0;
+  for (const repo of repos) {
+    const e = await CI.crawlRepo(repo, docs?.repos?.[repo], {
+      makeGH: (r) => new GH({ token, repo: r }),
+      prev: prevIdx?.repos?.[repo] || null,
+      read: async (p) => (await readFile(p))?.doc || null,
+    }).catch(err => { console.warn(`${repo}: content index failed (${err?.message || err})`); return null; });
+    if (!e) continue;
+    got[repo] = e;
+    if (e.carried) continue;
+    calls += e.calls || 0;
+    console.log(`${repo}: ${e.docs} documents in ${e.shards.length} content shard(s)${e.pending ? `, ${e.pending} pending` : ''}`);
+    for (const s of e.shards) {
+      const text = JSON.stringify(s.doc);
+      const before = await readFile(s.path);
+      if (!before || JSON.stringify(before.doc) !== text) writes.push({ path: s.path, text, sha: before?.sha });
+    }
+  }
+  const scope = wantAll ? members : [...new Set([...Object.keys(prevIdx?.repos || {}), ...repos])];
+  const nextIdx = CI.buildManifest(prevIdx, got, scope, new Date().toISOString());
+  const moved = CI.changedRepos(prevIdx, nextIdx);
+  if (!moved.length && !writes.length) { console.log('Content index: no repo moved.'); return; }
+  if (dryRun) { console.log(`Content index would write ${writes.length} shard(s) for: ` + moved.join(', ')); return; }
+  for (const w of writes) {
+    await reg.save(w.path, w.text, `Update content index (${w.path})` + VIA, { sha: w.sha });
+  }
+  nextIdx.runs = CrawlRuns.push(prevIdx?.runs, {
+    at: nextIdx.generatedAt, ms: Date.now() - t1,
+    checked: repos.length, changed: moved.length, calls, via: 'ci',
+  }) ?? prevIdx?.runs;
+  await reg.save(CI.MANIFEST, JSON.stringify(nextIdx, null, 1), `Update content index (${CI.MANIFEST})` + VIA, { sha: read?.sha });
+  console.log(`Committed ${CI.MANIFEST} and ${writes.length} shard(s) (${moved.join(', ')}).`);
 }
 
 async function readCache() {

@@ -114,12 +114,6 @@ routes-paste,recognizes,recorded,,value,column,yes,,,value,what the surface read
 routes-paste,becomes,recorded,,value,column,yes,,,value,what a recognized paste turns into there
 routes-paste,declines_to,recorded,,value,column,yes,,,value,"where everything it does not recognize goes. The load-bearing field: a surface that routes some pastes has to say what happens to the rest, or the routing is a silent swallow"
 routes-paste,gate,recorded,,none,column,yes,,,locator,the check holding the behavior; absent where nothing does
-conversation,lead,recorded,,value,column,yes,,,value,"the bullet lead-in, held two-way against CONVERSATION.md's prose"
-conversation,title,recorded,,value,column,yes,,,value,the short name
-conversation,glyph,recorded,,counted,column,yes,,,value,the caption marker; blank on the rules that have no marker of their own
-conversation,use,recorded,,value,column,yes,,,value,"what the rule is for, in one line"
-conversation,boundary,recorded,,none,column,yes,,,value,where it stops working; carried wherever there is an edge to name
-conversation,form,recorded,,none,column,yes,,,value,"the concrete shape, where the rule has one"
 manifest-fields,type,recorded,,value,column,yes,string;number;boolean;object;array;boolean|object;string|array;string|boolean,,label,the JSON type the key takes
 manifest-fields,consumer,recorded,,value,column,yes,app;portable;session-hook,,label,"which tool reads the key: app (the Web Tools app presents the repo), portable (the conventions read it and the app ignores it), session-hook (a plugin hook reads it outside any page)"
 manifest-fields,summary,recorded,,value,column,yes,,,value,what the key does and who owns its value
@@ -345,7 +339,7 @@ peeves,look_for,recorded,,value,column,yes,,,value,"what tripping the peeve look
 peeves,owner,recorded,,counted,column,yes,,,value,"the document or check that already states the rule, when one does; that owner's wording governs and the row only points at it"
 peeves,detector,recorded,,value,column,yes,reader;lint;hook;measure,,label,"what catches a trip: a reader's judgment, a script, a hook at edit or commit time, or the page measures"
 peeves,sessions,recorded,,value,column,yes,,,value,"roughly how many recorded sessions show the owner making the correction, summed across the readers that mined them; an order of magnitude, not a count to compare closely"
-peeves,status,recorded,,value,column,yes,active;guidance;retired,,label,active peeves appear in one list; guidance is contextual and retired entries preserve historical IDs; merged rows inherit their target status
+peeves,status,recorded,,value,column,yes,active;guidance,,label,active peeves appear in one list; guidance is contextual; merged rows inherit their target status
 peeves,merged_into,recorded,,counted,column,yes,,peeves,locator,"the retained peeve ID that receives examples, references and evidence from this row; a merged row stays available by its original ID"
 css-baseline,declarations,computed,python/css-blocks.py,value,column,yes,,,value,the most unexempt hand-written declarations the file may carry; --write lowers it to the measurement and never raises it
 icon-families,group,recorded,,value,column,yes,drawn;phosphor;emoji,,label,"how the family's icons are made: an SVG drawn for the estate, a Phosphor glyph named by its class, or an emoji"

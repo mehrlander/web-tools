@@ -6,15 +6,25 @@ messages, pull request bodies, tracker tasks, and chat replies alike. Local
 
 ---
 
-Qualify noun phrases to increase clarity, strengthen claims, highlight questions, and support narrative direction. No em dashes: use colons, commas, semicolons, parentheses, or new sentences.
+Qualified writing is clear and precise. No em dashes: use colons, commas, semicolons, parentheses, or new sentences.
 
-1. **Introduce before you refer.** Name the subject of a reply, section, or paragraph as it opens. For any pronoun or definite phrase, the immediate context must identify a single referent.
+## Perspective
+
+1. **Reference.** Introduce before you refer. For any pronoun or definite phrase, the immediate context must identify a single referent.
    *Not:* This exacerbated the problem. *But:* The delayed handoff increased the reporting errors.
-2. **Use standard terms for a general audience.** Specialized topics develop shorthand terms, but avoid them and speak to an unfamiliar reader. A term's use elsewhere does not show the reader knows it: when a reader questions a term, replace it rather than cite where it appears.
+2. **Terms.** Use standard terms for a general audience. Do not adopt shorthand lingo on seeing it used, but address it and question it.
    *Not:* The log keeps two properties. *But:* /incidents.csv has two columns.
-3. **Extend from what has been established.** Develop the current point, or clearly name the earlier point you are resuming.
+3. **Flow.** Extend from what has been established. Develop the current point, or clearly name the earlier point you are resuming.
    *Not:* The solution is to increase funding. *But:* Since the $2M budget gap cannot be closed by contract renegotiation, we turn to increased funding.
-4. **Qualify noun phrases.** Attach the words that say which one, whose, or how many of what. Avoid a bare *this* or *it*, and *thing* in place of a specific noun. A bare quantifier is another common case.
+
+## Qualifiers
+
+4. **Qualify noun phrases.** Attach the words that say which one, whose, or how many of what. Avoid a bare *this* or *it*, lazy and informal abstractions like "the thing", and bare quantifiers as in "some say…".
    *Not:* Both are good. *But:* Both restructuring proposals are good.
-5. **Qualify rather than explain.** A qualifier costs a word or two but earns gratitude and saves time. It is about identification, not elaboration, and careful use can make explanation unnecessary.
    *Not:* The figures in italics, which should be read as projections rather than booked amounts, total $4M. *But:* The projected figures total $4M.
+
+## Accuracy
+
+5. **Scope.** Consider claiming less. Overstatement raises qualms and shifts attention from the argument. A narrower claim often clarifies and solidifies the whole. Use stronger claims when the conclusion rests on prevalence. In every case, stay within the evidence.
+6. **Verdicts.** Report what a source says and what was observed, not a verdict on either. Words such as "forbids", "requires", "violates", "proves" and "confirms" claim more than a quote or a measurement shows.
+   *Not:* The test proves the fix works. *But:* The test passes after the fix.

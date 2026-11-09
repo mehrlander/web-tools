@@ -491,7 +491,9 @@ test('a resolver that throws costs its link and nothing else', async () => {
 
 test('pane picks the tab, and an unknown one falls back rather than blanking', () => {
   const at = (pane) => {
-    window.__p = { repo: STORE, record: { short: 'p', schema: 4 }, pane };
+    // One file, so the bottom region has a Files tab to land on: a session
+    // with none has no bottom region, and asking for its files falls back.
+    window.__p = { repo: STORE, record: { short: 'p', schema: 4, files: { 'x/y.js': { read: 1 } } }, pane };
     const el = window.document.createElement('div');
     el.setAttribute('x-data', 'sessionBrief(window.__p)');
     window.document.body.append(el);
@@ -499,10 +501,47 @@ test('pane picks the tab, and an unknown one falls back rather than blanking', (
     return Alpine.$data(el).pane;
   };
   assert.equal(at('files'), 'files');
-  assert.equal(at('raw'), 'raw');
+  assert.equal(at('raw'), 'log', 'the record tab\'s old name still lands on it');
+  assert.equal(at('schema'), 'schema');
+  assert.equal(at('turns'), 'overview', 'no topics file, no Turns tab');
   assert.equal(at('outline'), 'outline');
-  assert.equal(at('nonsense'), 'outline');
-  assert.equal(at(undefined), 'outline');
+  assert.equal(at('nonsense'), 'overview', 'the top region\'s own default');
+  assert.equal(at(undefined), 'overview');
+});
+
+// Two regions, each with its own default (owner, 2026-11-09): the top opens on
+// the overview; the bottom opens on a call while one waits, else on the views,
+// else on the files, and is absent when the session left none of the three.
+test('each region opens on its own default, and the bottom goes when it has nothing', () => {
+  const mount = (record) => {
+    window.__tabs = { repo: STORE, record };
+    const el = window.document.createElement('div');
+    el.setAttribute('x-data', 'sessionBrief(window.__tabs)');
+    window.document.body.append(el);
+    Alpine.initTree(el);
+    return Alpine.$data(el);
+  };
+  const bare = mount({ short: 'n', schema: 4 });
+  assert.deepEqual([...bare.bottomTabs], [], 'no calls, views or files: no bottom region');
+  assert.equal(bare.bottomPane, '');
+  assert.equal(bare.topPane, 'overview', 'the top opens on the overview');
+
+  const d = mount({ short: 't', schema: 4, files: { 'x/y.js': { read: 1 } } });
+  assert.deepEqual([...d.bottomTabs], ['files']);
+  assert.equal(d.bottomPane, 'files');
+  d.work.views = [{ name: 'a.md', key: 'a' }];
+  assert.equal(d.bottomPane, 'views', 'views lead the files');
+  d.calls = [{ id: 'c1', status: 'open' }];
+  assert.deepEqual([...d.bottomTabs], ['calls', 'views', 'files']);
+  assert.equal(d.bottomPane, 'calls', 'a call waiting leads');
+  d.calls = [{ id: 'c1', status: 'closed' }];
+  assert.equal(d.bottomPane, 'views', 'a closed call does not');
+  d.pane = 'files';
+  assert.equal(d.bottomPane, 'files', 'a tab asked for holds');
+  assert.equal(d.topPane, 'overview', 'and leaves the other region alone');
+  d.pane = 'outline';
+  assert.equal(d.topPane, 'outline');
+  assert.equal(d.bottomPane, 'files', 'each region keeps its own tab');
 });
 
 test('start opens the deck on one card, which is what makes an exchange addressable', async () => {
@@ -662,11 +701,12 @@ test('a fact carries its definition on data-title-tip, not in a title', () => {
   // The other ten are the labels on the icon-only controls: Sessions in Web
   // Tools, Contents, On GitHub, Previous view, Next view, Open the page in a new
   // tab, Swipe through every view full screen, Find in conversation, Read n
-  // cards one at a time, and Open this session in Claude Code.
-  assert.equal(extras.length, 14,
-    'the id, the running-ref marker, the pages mark, the Gemini summary and ten control labels off-strip: '
+  // cards one at a time, and Open this session in Claude Code. The fifteenth is
+  // Copy as JSON, the Log tab's copy in the tab row.
+  assert.equal(extras.length, 15,
+    'the id, the running-ref marker, the pages mark, the Gemini summary, the Log tab\'s copy and ten control labels off-strip: '
     + JSON.stringify(extras.map(n => n.textContent.trim() || n.getAttribute('data-title-tip'))));
-  assert.equal(noted.length, text.length + 14, 'every text fact and those fourteen, and nothing else');
+  assert.equal(noted.length, text.length + 15, 'every text fact and those fifteen, and nothing else');
   // MATCHED ON THE VALUE, not on the fact's name, because the name is no longer
   // drawn: the strip renders `2026-08-05` and `40 calls`, so a lookup keyed on
   // "day" or "calls" would find the definition of whichever fact happened to
@@ -807,9 +847,9 @@ test('one container: the views are a tab and the calls are the Calls tab\'s alon
   assert.doesNotMatch(now, /data-views/, 'and no views card');
   assert.match(now, /<div x-show="now" data-peek-host/, 'the card is the action message, where there is one');
   assert.doesNotMatch(src, /h-\[calc\(100dvh-4\.75rem\)\]/, 'nothing above the tabs is sized to the screen');
-  assert.match(src, /x-show="pane === 'views' && work\.views\.length"/, 'the views are a pane');
+  assert.match(src, /x-show="bottomPane === 'views' && work\.views\.length"/, 'the views are a pane');
   assert.match(src, /data-session-views-tab/, 'behind a tab of their own');
-  assert.match(src, /pane === 'views' && Math\.abs\(i - vAt\) <= 1/, 'whose frames wait for it to open');
+  assert.match(src, /bottomPane === 'views' && Math\.abs\(i - vAt\) <= 1/, 'whose frames wait for it to open');
 });
 
 test('the FAB is told what a note is about, in the notes store\'s locators', () => {
