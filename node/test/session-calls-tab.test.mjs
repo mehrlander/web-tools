@@ -135,7 +135,7 @@ test('the pane holds one card per call: question, brief, recommendation, state',
   assert.equal(cards.length, 2);
   await until(() => /Answered: Take/.test(cards[1].textContent));
   assert.match(cards[0].textContent, /Topic Size[\s\S]*Open[\s\S]*Split topics\?[\s\S]*Eleven turns disagree\.[\s\S]*Recommended:\s*Keep them whole/);
-  assert.match(cards[1].textContent, /Decision[\s\S]*Lean[\s\S]*Answered: Take[\s\S]*Two steps\?/);
+  assert.match(cards[1].textContent, /Approval[\s\S]*Lean[\s\S]*Answered: Take[\s\S]*Two steps\?/);
 });
 
 test('a card opens the deck of call forms at that call', () => {
