@@ -200,7 +200,7 @@ test('words in the box send it as the adjustment, and changing them disarms the 
   assert.equal(data('slide').callNotes['c0ffee01-size'], '', 'the box is emptied once sent');
 });
 
-test('an address asking for Calls on a session with none lands on the outline', () => {
+test('an address asking for Calls on a session with none lands on the overview', () => {
   assert.equal(data('slide').pane, 'calls');
-  assert.equal(data('none').pane, 'outline');
+  assert.equal(data('none').pane, 'overview');
 });

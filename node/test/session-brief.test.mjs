@@ -503,14 +503,13 @@ test('pane picks the tab, and an unknown one falls back rather than blanking', (
   assert.equal(at('files'), 'files');
   assert.equal(at('raw'), 'raw');
   assert.equal(at('outline'), 'outline');
-  assert.equal(at('nonsense'), 'outline');
-  assert.equal(at(undefined), 'outline');
+  assert.equal(at('nonsense'), 'overview', 'the top region\'s own default');
+  assert.equal(at(undefined), 'overview');
 });
 
 // Two regions, each with its own default (owner, 2026-11-09): the top opens on
-// Gemini's topics where the file has any, else on the outline; the bottom opens
-// on a call while one waits, else on the views, else on the files, and is
-// absent when the session left none of the three.
+// the overview; the bottom opens on a call while one waits, else on the views,
+// else on the files, and is absent when the session left none of the three.
 test('each region opens on its own default, and the bottom goes when it has nothing', () => {
   const mount = (record) => {
     window.__tabs = { repo: STORE, record };
@@ -523,13 +522,11 @@ test('each region opens on its own default, and the bottom goes when it has noth
   const bare = mount({ short: 'n', schema: 4 });
   assert.deepEqual([...bare.bottomTabs], [], 'no calls, views or files: no bottom region');
   assert.equal(bare.bottomPane, '');
-  assert.equal(bare.topPane, 'outline', 'no topics file: the outline');
+  assert.equal(bare.topPane, 'overview', 'the top opens on the overview');
 
   const d = mount({ short: 't', schema: 4, files: { 'x/y.js': { read: 1 } } });
   assert.deepEqual([...d.bottomTabs], ['files']);
   assert.equal(d.bottomPane, 'files');
-  d.topics = { summary: 'What the session did', topics: ['One thing'] };
-  assert.equal(d.topPane, 'topics', 'a topics file: the Topics tab');
   d.work.views = [{ name: 'a.md', key: 'a' }];
   assert.equal(d.bottomPane, 'views', 'views lead the files');
   d.calls = [{ id: 'c1', status: 'open' }];
@@ -539,7 +536,10 @@ test('each region opens on its own default, and the bottom goes when it has noth
   assert.equal(d.bottomPane, 'views', 'a closed call does not');
   d.pane = 'files';
   assert.equal(d.bottomPane, 'files', 'a tab asked for holds');
-  assert.equal(d.topPane, 'topics', 'and leaves the other region alone');
+  assert.equal(d.topPane, 'overview', 'and leaves the other region alone');
+  d.pane = 'outline';
+  assert.equal(d.topPane, 'outline');
+  assert.equal(d.bottomPane, 'files', 'each region keeps its own tab');
 });
 
 test('start opens the deck on one card, which is what makes an exchange addressable', async () => {
