@@ -6703,7 +6703,7 @@ function app(){ return {
                                path: u.spath, file: u.sfile, sessionId: u.sitem,
                                sessionIds: u.sset == null ? null : u.sset.split(',').filter(Boolean),
                                sessionExtraIds: (u.sextra || '').split(',').filter(Boolean),
-                               sessionScope: u.sscope ? { scope: u.sscope } : null }); },
+                               sessionScope: u.sscope ? { scope: u.sscope } : null, kind: u.skind }); },
       stamp(p){
         const sd = this.searchSeed;
         if (!sd) return;
@@ -6713,6 +6713,7 @@ function app(){ return {
         if (sd.ref) p.set('sref', sd.ref);
         if (sd.path) p.set('spath', sd.path);
         if (sd.file) p.set('sfile', sd.file);
+        if (sd.kind) p.set('skind', sd.kind);
         if (sd.mode === 'sessions') {
           if (sd.sessionId) p.set('sitem', sd.sessionId);
           if (Array.isArray(sd.sessionIds)) p.set('sset', sd.sessionIds.join(','));
@@ -6819,7 +6820,7 @@ function app(){ return {
   // screen that means it. node/test/app-routes.test.mjs now holds the two to
   // each other, so a stamp added without its key fails rather than drifts.
   VIEW_KEYS: ['file', 'col', 'row', 'view', 'path', 'ref', 'project', 'tab', 'detail', 'item', 'call', 'window',
-              'sq', 'smode', 'srepo', 'sref', 'spath', 'sfile', 'sitem', 'sset', 'sscope', 'sextra',
+              'sq', 'smode', 'srepo', 'sref', 'spath', 'sfile', 'skind', 'sitem', 'sset', 'sscope', 'sextra',
               'session', 'list', 'topic', 'lens', 'grain', 'find', 'next',
               'aq', 'discussion', 'ascope', 'arepo', 'astate',
               'ctxlens', 'ctxsort', 'ctxtopic', 'ctxsource', 'setintent', 'h',
@@ -6861,7 +6862,7 @@ function app(){ return {
              appRepo: p.get('appRepo') || '', appPath: p.get('appPath') || '', appRef: p.get('appRef') || '',
              appLabel: p.get('appLabel') || '', appIcon: p.get('appIcon') || '',
              sq: p.get('sq') || '', smode: p.get('smode') || '', srepo: p.get('srepo') || '', sref: p.get('sref') || '',
-             spath: p.get('spath') || '', sfile: p.get('sfile') || '',
+             spath: p.get('spath') || '', sfile: p.get('sfile') || '', skind: p.get('skind') || '',
              sitem: p.get('sitem') || '', sset: p.get('sset'), sscope: p.get('sscope') || '',
              sextra: p.get('sextra') || '',
              aq: p.get('aq') || '', discussion: p.get('discussion') || '',
@@ -7477,7 +7478,7 @@ function app(){ return {
   },
   // The Tools view: the curated utility-page gallery (docs/tools.csv), public.
   goTools(){ this.toolsSeen = true; this.view = 'tools'; this.syncUrl(); },
-  // Open the Search view, optionally seeded ({ q, mode, repo, ref, path, file }).
+  // Open the Search view, optionally seeded ({ q, mode, repo, ref, path, file, kind }).
   // A seed reaches a mounted view by event (the component mounts once and
   // persists behind x-show); a first mount reads shell.searchSeed in its init
   // instead.
@@ -7493,7 +7494,8 @@ function app(){ return {
                           sessionId: opts.sessionId || '',
                           sessionIds: Array.isArray(opts.sessionIds) ? opts.sessionIds : null,
                           sessionExtraIds: Array.isArray(opts.sessionExtraIds) ? opts.sessionExtraIds : [],
-                          sessionRows: opts.sessionRows || [], sessionScope: opts.sessionScope || null };
+                          sessionRows: opts.sessionRows || [], sessionScope: opts.sessionScope || null,
+                          kind: opts.kind || '' };
       if (this.searchSeen) document.dispatchEvent(new CustomEvent('web-tools:search-seed', { detail: this.searchSeed }));
     }
     this.searchSeen = true; this.view = 'search'; this.syncUrl();

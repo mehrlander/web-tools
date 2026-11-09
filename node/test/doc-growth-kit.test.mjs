@@ -95,6 +95,9 @@ test('kind tells what a file is by its path alone, the first match winning', () 
     '.claude/agents/drs-budget-analyst.md': 'agent', 'lib/kits/README.md': 'readme',
     'skills/README.md': 'readme', 'skills/html-style/references/mechanics.md': 'reference',
     'tracker/README.md': 'readme', 'docs/agents.md': 'doc', 'docs/claude.md': 'doc',
+    // A skill named like a log folder is still a skill, and a retired one is archive.
+    '.claude/skills/blog/SKILL.md': 'skill', '.claude/skills/blog/VOICE.md': 'reference',
+    'archive/skills/old/SKILL.md': 'archive',
   };
   for (const [p, k] of Object.entries(cases)) assert.equal(G.kind(p), k, p);
   assert.ok(Object.values(cases).every(k => G.KINDS.some(x => x.k === k)), 'every kind is a named one');
