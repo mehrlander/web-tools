@@ -115,8 +115,8 @@ def js_comments(src, base_line=1):
             line += body.count("\n")
             i = j + 2
         elif c == "/" and not (
-            PREV_OPERAND.search(src[:i].rstrip())
-            and not KEYWORD_BEFORE_REGEX.search(src[:i].rstrip())
+            PREV_OPERAND.search(_tail(src, i))
+            and not KEYWORD_BEFORE_REGEX.search(_tail(src, i))
         ):
             i = _skip_regex(src, i, n)
         elif c in "\"'":
@@ -128,6 +128,14 @@ def js_comments(src, base_line=1):
         else:
             i += 1
     return out
+
+
+def _tail(src, i):
+    """The last 64 characters of `src[:i].rstrip()`, which is all either regex above reads."""
+    j = i - 1
+    while j >= 0 and src[j].isspace():
+        j -= 1
+    return src[max(0, j - 63):j + 1]
 
 
 def _skip_regex(src, i, n):
