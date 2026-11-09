@@ -1,8 +1,8 @@
 // alpineComponents/search-view.js — the central file surface's logic: seed
 // consumption (the finder's gate, the explorer's hand-off, or a deep link
-// auto-runs a carried query OR a carried scope), the three modes' dispatch into
-// the shared core (names takes the ref and the folder scope, contents builds
-// its scope qualifier including the API's `path:`, sessions greps), the browse
+// auto-runs a carried query OR a carried scope), the modes' dispatch into the
+// shared core (names takes the ref and the folder scope, sessions greps, and
+// contents fetches nothing but builds a link to GitHub's code search), the browse
 // gate (an empty query is a listing under a repo or a folder and a miss
 // otherwise), full-error surfacing, reading a file IN PLACE rather than routing
 // to a repo's Files view, stepping the file hits, clear, the cap, and the
@@ -27,7 +27,6 @@ window.EstateSearch = {
   reset() { CALLS.push(['reset']); },
   async names(a) { CALLS.push(['names', a]); if (ANSWER.throw) throw new Error(ANSWER.throw); return ANSWER; },
   async level(a) { CALLS.push(['level', a]); if (ANSWER.throw) throw new Error(ANSWER.throw); return LEVEL; },
-  async code(a)  { CALLS.push(['code', a]);  if (ANSWER.throw) throw new Error(ANSWER.throw); return ANSWER; },
   // `indexed` rides every sessions answer, because the view reads it to say
   // whether the deep half ran at all; a stub omitting it would exercise the
   // warning path on every case by accident.
@@ -96,12 +95,13 @@ const data = Alpine.$data(window.document.getElementById('sv'));
 const j = (x) => JSON.parse(JSON.stringify(x));
 const tick = () => new Promise(r => setTimeout(r, 10));
 
-test('a parked seed is consumed at mount and auto-runs', async () => {
+test('a parked seed is consumed at mount; a contents seed fetches nothing and keeps its address', async () => {
   await tick();
   assert.equal(data.q, 'seeded');
   assert.equal(data.mode, 'contents');
-  assert.equal(CALLS.filter(c => c[0] === 'code').length, 1);
-  assert.equal(data.ran, true);
+  assert.deepEqual(CALLS, [], 'contents is a link to GitHub, not a call');
+  assert.equal(data.ran, false, 'nothing ran, so no empty result list claims a search');
+  assert.ok(shell._synced > 0, 'the seeded address is still stamped');
 });
 
 test('names mode passes the ref and the folder scope to every scoped repo', async () => {
@@ -240,24 +240,24 @@ test('typing turns the walk back into a recursive search of the same scope', asy
   data.q = '';
 });
 
-test('contents mode scopes to the chosen repo, or the account, and adds path: for a folder', async () => {
+test('contents mode links to GitHub code search over the chosen repo, or the account, and a folder', async () => {
   CALLS = [];
-  ANSWER = { hits: [], total: 0 };
-  data.mode = 'contents'; data.q = 'needle'; data.repo = 'me/home'; data.path = '';
-  await data.run();
-  assert.equal(CALLS.find(c => c[0] === 'code')[1].scope, 'repo:me/home');
+  const G = window.RepoAddress.github;
+  data.mode = 'contents'; data.q = ' needle '; data.repo = 'me/home'; data.path = '';
+  assert.equal(data.githubSearch, G.codeSearch('needle repo:me/home'));
   data.repo = '';
+  assert.equal(data.githubSearch, G.codeSearch('needle user:me'), 'all repos is the account');
+  data.path = '/lib/kits/';
+  assert.equal(data.githubSearch, G.codeSearch('needle user:me path:/lib/kits/**'),
+    'a folder is an anchored glob, since a bare path: matches anywhere in a path');
   await data.run();
-  assert.equal(CALLS.filter(c => c[0] === 'code')[1][1].scope, 'user:me');
-  data.path = 'lib/kits';
-  await data.run();
-  assert.equal(CALLS.filter(c => c[0] === 'code')[2][1].scope, 'user:me path:lib/kits');
-  data.path = '';
+  assert.deepEqual(CALLS, [], 'running contents calls nothing');
+  data.path = ''; data.q = 'needle';
 });
 
 test('a search failure surfaces the whole error and still counts as ran', async () => {
   ANSWER = { throw: 'GitHub Error 403 (Rate Rem: 0)' };
-  data.mode = 'contents'; data.q = 'boom';
+  data.mode = 'names'; data.q = 'boom'; data.repo = 'me/tools'; data.ref = '';
   await data.run();
   assert.equal(data.error, 'GitHub Error 403 (Rate Rem: 0)');
   assert.equal(data.ran, true);
@@ -301,10 +301,10 @@ test('the position steps through the file hits, and stops at the ends', async ()
   assert.equal(data.open.path, 'lib/b.js', 'stepping past the last stays put');
 });
 
-test('a contents hit carries no ref, and resolves late to the default branch', async () => {
+test('a hit with no ref resolves late to the default branch', async () => {
   FETCHED = [];
-  ANSWER = { hits: [{ repo: 'me/home', path: 'docs/x.md', frag: 'f' }], total: 1 };
-  data.mode = 'contents'; data.q = 'x'; data.repo = '';
+  ANSWER = { hits: [{ repo: 'me/home', path: 'docs/x.md' }], total: 1, truncated: false, errors: [] };
+  data.mode = 'names'; data.q = 'x'; data.repo = 'me/home'; data.ref = '';
   await data.run();
   await data.openHit(data.hits[0]);
   await tick();
@@ -592,7 +592,7 @@ test('a hit with no ref decks at HEAD, and folders are not in the deck', async (
     hits: [{ repo: 'me/tools', ref: '', path: 'README.md' }],
     total: 1, truncated: false, errors: [],
   };
-  data.mode = 'contents'; data.q = 'thing'; data.repo = 'me/tools'; data.ref = '';
+  data.mode = 'names'; data.q = 'thing'; data.repo = 'me/tools'; data.ref = '';
   await data.run();
   data.closeFile();
   // A folder row rides the list and not the deck: fileHits is the readable set.

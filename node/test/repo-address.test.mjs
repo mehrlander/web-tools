@@ -286,4 +286,7 @@ test('github builders encode a ref and a path per segment, and default the ref t
   assert.equal(G.newFile('o/r', 'main', 'top.md'), 'https://github.com/o/r/new/main?filename=top.md');
   assert.equal(G.of(RA.parse('o/r@claude/x:a.md')), 'https://github.com/o/r/blob/claude/x/a.md');
   assert.equal(G.of(null), '');
+  assert.equal(G.codeSearch(' "a b" repo:o/r path:/lib/** '),
+    'https://github.com/search?type=code&q=%22a%20b%22%20repo%3Ao%2Fr%20path%3A%2Flib%2F**',
+    'the whole query is one encoded parameter, trimmed');
 });
