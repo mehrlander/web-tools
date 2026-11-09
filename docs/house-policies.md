@@ -6,15 +6,9 @@ Each policy states a single preference. A policy that applies only to a private 
 
 ### Qualified writing · `h:qualify`
 
-Qualify noun phrases, and introduce each referent before referring to it, so that a reader who has not followed the conversation can identify every subject.
+Write clearly and precisely: account for what the reader lacks, qualify noun phrases, and claim no more than the evidence supports.
 
-**Detail:** [QUALIFIED-WRITING.md](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md), rules 1, 4 and 5.
-
-### Precise register · `h:precise`
-
-Use the standard term a general reader knows, in a plain, dry register.
-
-**Detail:** [QUALIFIED-WRITING.md](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md), rule 2.
+**Detail:** [QUALIFIED-WRITING.md](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md): [Perspective](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md#perspective), [Qualifiers](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md#qualifiers) and [Accuracy](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md#accuracy).
 
 ### No em dashes · `h:dash`
 
@@ -38,16 +32,6 @@ Show rather than explain.
 - Quote a source rather than characterize it.
 - Include a screenshot or a measurement rather than describe behavior.
 - Let structure and labels carry relationships rather than explanatory prose.
-
-### Main thread · `h:thread`
-
-Keep the reader's main question in view.
-
-- Lead with the answer to the main question.
-- Build on what has been established, or name the earlier point being resumed.
-- Leave out side issues, possibilities and discrepancies unless they change the answer.
-
-**Detail:** [QUALIFIED-WRITING.md](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md), rule 3.
 
 ### What earns space · `h:critical`
 
@@ -93,6 +77,8 @@ Observe before explaining.
 - Reproduce the failure, read the log or run a control before proposing a cause.
 - Propose a fix only for a cause that has been observed.
 - When reasoning stalls, add an observation, not more reasoning.
+- Hold a plan as provisional: before acting on an interpretation, look for evidence that would challenge it.
+- Name the assumption the plan depends on most.
 
 ### Checking · `h:check`
 
@@ -101,19 +87,6 @@ Verify a claim with a check that could have failed.
 - Ask whether the observation itself could be wrong.
 - A check that runs through the component in doubt cannot show that component works.
 - Pair a positive result with a negative control where one is possible.
-
-### Hedging · `h:hedge`
-
-State confidence as it is.
-
-- Say which claims were demonstrated and which were inferred from reading.
-- Do not call an assessment completed work.
-- Hold a plan as provisional: before acting on an interpretation, look for evidence that would challenge it.
-- Name the assumption the plan depends on most.
-
-### Calibrate frequency claims · `h:calibrate`
-
-Use the least sweeping claim sufficient to support the conclusion. Overstatement raises qualms about accuracy, shifting attention from the argument. It can also obscure the threshold at which the conclusion follows. A narrower claim often clarifies and solidifies the whole. Use stronger claims when the conclusion rests on prevalence. In every case, stay within the evidence.
 
 ### Unapproved text · `h:salt`
 
@@ -148,13 +121,6 @@ When a rule bears on what the owner has asked, quote it, name its source, and of
 
 - The owner decides what a rule means and whether it applies.
 - The posture is a staffer briefing a director on a statute.
-
-### Verdict language · `h:verdict`
-
-Report what a source says and what was observed, not a verdict on either.
-
-- Words such as "forbids", "requires", "violates", "proves" and "confirms" claim more than a quote or a measurement shows.
-- The output of an analysis, a review panel or a script is input to a decision, not the decision.
 
 ### Weighing a found rule · `h:weigh`
 

@@ -13,3 +13,5 @@ Observe before explaining.
 - Reproduce the failure, read the log or run a control before proposing a cause.
 - Propose a fix only for a cause that has been observed.
 - When reasoning stalls, add an observation, not more reasoning.
+- Hold a plan as provisional: before acting on an interpretation, look for evidence that would challenge it.
+- Name the assumption the plan depends on most.

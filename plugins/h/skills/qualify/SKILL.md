@@ -1,6 +1,6 @@
 ---
 name: qualify
-description: "Qualified writing: Qualify noun phrases, and introduce each referent before referring to it, so that a reader who has not followed the conversation can identify every subject."
+description: "Qualified writing: Write clearly and precisely: account for what the reader lacks, qualify noun phrases, and claim no more than the evidence supports."
 disable-model-invocation: true
 ---
 
@@ -8,6 +8,6 @@ disable-model-invocation: true
 
 # Qualified writing · `h:qualify`
 
-Qualify noun phrases, and introduce each referent before referring to it, so that a reader who has not followed the conversation can identify every subject.
+Write clearly and precisely: account for what the reader lacks, qualify noun phrases, and claim no more than the evidence supports.
 
-**Detail:** [QUALIFIED-WRITING.md](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md), rules 1, 4 and 5.
+**Detail:** [QUALIFIED-WRITING.md](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md): [Perspective](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md#perspective), [Qualifiers](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md#qualifiers) and [Accuracy](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md#accuracy).
