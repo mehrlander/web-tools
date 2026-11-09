@@ -13,4 +13,4 @@ Link every file, pull request, session and page a reply mentions.
 - Each link lands on the item it names.
 - For a change a person can see, the link renders the change, and the session opens the link to confirm before handing it over.
 
-**Detail:** [CONVERSATION.md](https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md), "Reference is a link"; in web-tools, [showing.md](https://github.com/mehrlander/web-tools/blob/main/docs/showing.md) and `npm run showing`.
+**Backed by:** [CONVERSATION.md](https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md#a-reply-that-changed-files), "Reference is a link"; in web-tools, [showing.md](https://github.com/mehrlander/web-tools/blob/main/docs/showing.md) and `npm run showing`.

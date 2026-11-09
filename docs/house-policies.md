@@ -8,7 +8,7 @@ Each policy states a single preference. A policy that applies only to a private 
 
 Write clearly and precisely: account for what the reader lacks, qualify noun phrases, and claim no more than the evidence supports.
 
-**Detail:** [QUALIFIED-WRITING.md](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md): [Perspective](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md#perspective), [Qualifiers](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md#qualifiers) and [Accuracy](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md#accuracy).
+**Backed by:** [QUALIFIED-WRITING.md](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md): [Perspective](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md#perspective), [Qualifiers](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md#qualifiers) and [Accuracy](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md#accuracy).
 
 ### No em dashes · `h:dash`
 
@@ -17,7 +17,7 @@ Join ideas with a colon, a comma, a semicolon, parentheses or a new sentence, no
 - Em dashes may have been fine once, but they are now an easy button for AI, and we would rather stick to standard professional writing.
 - A quotation keeps the punctuation of its source.
 
-**Detail:** [QUALIFIED-WRITING.md](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md), its opening paragraph.
+**Backed by:** [QUALIFIED-WRITING.md](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md), its opening paragraph.
 
 **See also:** [peeves](https://github.com/mehrlander/web-tools/blob/main/skills/peeves/peeves.csv) P64, percussive negation and contrast.
 
@@ -41,7 +41,7 @@ In a document that future sessions read to decide what to do, include content on
 - Include a reason only where it clarifies intent, and keep it minimal.
 - Before adding to such a document, check whether code derives the fact, a test enforces it, or another document owns it, and link instead.
 
-**Detail:** [doc-craft](https://github.com/mehrlander/web-tools/blob/main/skills/doc-craft/SKILL.md), its opening and "General Principles"; web-tools [CLAUDE.md](https://github.com/mehrlander/web-tools/blob/main/CLAUDE.md) for the check before adding.
+**Backed by:** [doc-craft](https://github.com/mehrlander/web-tools/blob/main/skills/doc-craft/SKILL.md); [web-tools CLAUDE.md](https://github.com/mehrlander/web-tools/blob/main/CLAUDE.md#where-the-rest-of-the-system-lives), the check before adding to a doc.
 
 ### Stay current · `h:current`
 
@@ -60,13 +60,13 @@ Link every file, pull request, session and page a reply mentions.
 - Each link lands on the item it names.
 - For a change a person can see, the link renders the change, and the session opens the link to confirm before handing it over.
 
-**Detail:** [CONVERSATION.md](https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md), "Reference is a link"; in web-tools, [showing.md](https://github.com/mehrlander/web-tools/blob/main/docs/showing.md) and `npm run showing`.
+**Backed by:** [CONVERSATION.md](https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md#a-reply-that-changed-files), "Reference is a link"; in web-tools, [showing.md](https://github.com/mehrlander/web-tools/blob/main/docs/showing.md) and `npm run showing`.
 
 ### Merged means closed · `h:merged`
 
 A merged branch takes no further commits; follow-up work starts again from the current tip of the target branch and opens a new pull request.
 
-**Detail:** [post-merge-branch-mutation.md](https://github.com/mehrlander/web-tools/blob/main/docs/github/post-merge-branch-mutation.md); [CONVERSATION.md](https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md), the 🟣 Merged state.
+**Backed by:** [post-merge-branch-mutation.md](https://github.com/mehrlander/web-tools/blob/main/docs/github/post-merge-branch-mutation.md#rule-of-thumb); [CONVERSATION.md](https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md#every-reply), the 🟣 Merged state.
 
 ## Evidence and confidence
 
@@ -113,7 +113,7 @@ Careful use of closing state markers helps involve the owner efficiently, and es
 
 Common cases that are found to benefit from owner attention are set up with a form to elicit the call efficiently.
 
-**Detail:** [tend](https://github.com/mehrlander/web-tools/blob/main/skills/tend/SKILL.md#principles), especially "Prepare the calls"; [Conversation](https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md#every-reply), closing states; [doc-craft](https://github.com/mehrlander/web-tools/blob/main/skills/doc-craft/SKILL.md#review), documentation review and approval.
+**Backed by:** [tend](https://github.com/mehrlander/web-tools/blob/main/skills/tend/SKILL.md#principles), especially "Prepare the calls"; [Conversation](https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md#every-reply), closing states; [doc-craft](https://github.com/mehrlander/web-tools/blob/main/skills/doc-craft/SKILL.md#review), documentation review and approval.
 
 ### Speaking about rules · `h:defer`
 
@@ -136,25 +136,16 @@ When a rule found in a repo conflicts with what the owner has said in the conver
 
 A file under `lib/` goes in the folder named by what it attaches to.
 
-- A file that extends `GH.prototype`, or a boot bundle, goes in `lib/` itself.
-- A file that registers a `window` namespace goes in `lib/kits/`.
-- A file that registers with `Alpine.data` goes in `lib/alpineComponents/`.
-- A file that is a single function expression, reaching neither `window` nor `document`, goes in `lib/ops/`.
-
-**Detail:** [code-layers.md](https://github.com/mehrlander/web-tools/blob/main/docs/code-layers.md), its table and "Cases the table does not settle", checked by `node/test/code-layers.test.mjs`.
+**Backed by:** [code-layers.md](https://github.com/mehrlander/web-tools/blob/main/docs/code-layers.md), checked by `node/test/code-layers.test.mjs`.
 
 ### Scripts · `h:tool`
 
 A script outside `lib/` goes with its caller.
 
-- A pipeline step goes with its pipeline, a skill's script in that skill's folder, and a script a platform runs with that platform's files (`.githooks/`, `.github/workflows/`, `.claude/`).
-- A script kept only to explain a probe stays with the probe's findings.
-- Anything else goes in `python/` or `node/` by language.
-
-**Detail:** [code-layers.md](https://github.com/mehrlander/web-tools/blob/main/docs/code-layers.md), "Outside `lib/`".
+**Backed by:** [code-layers.md](https://github.com/mehrlander/web-tools/blob/main/docs/code-layers.md#outside-lib), "Outside `lib/`".
 
 ### Edit the source · `h:source`
 
 Change a generated file by changing its source and running its generator.
 
-**Detail:** [CONSTELLATION.md](https://github.com/mehrlander/web-tools/blob/main/docs/CONSTELLATION.md), principle 1; web-tools [CLAUDE.md](https://github.com/mehrlander/web-tools/blob/main/CLAUDE.md), "The pre-build & the build-on-commit hook".
+**Backed by:** [web-tools CLAUDE.md](https://github.com/mehrlander/web-tools/blob/main/CLAUDE.md#the-pre-build--the-build-on-commit-hook), "The pre-build & the build-on-commit hook".
