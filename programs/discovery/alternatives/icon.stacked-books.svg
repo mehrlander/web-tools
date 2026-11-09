@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="discovery program">
+  <title>discovery program</title>
+  <desc>Two books lying one on the other, each with a rounded spine and its pages curving in at the other end, cut from a green-600 tile. Drawn on the drawn-mark box and rules (docs/favicons/README.md): solid fills, no strokes, and every gap at least 2.5 units, which is about 1.4 CSS pixels at 16. Chosen 2026-11-07; the ideas it was chosen from are in docs/prototypes/program-mark-ideas.html.</desc>
+  <mask id="cut" maskUnits="userSpaceOnUse" x="0" y="0" width="32" height="32">
+    <rect width="32" height="32" fill="#fff"/>
+    <g fill="#000"><path d="M7 7.5 H22.75 Q25.75 8.6 25.75 11.125 Q25.75 13.65 22.75 14.75 H7 Q9.5 13.4 9.5 11.125 Q9.5 8.85 7 7.5Z"/><path d="M25 17.25 H9.25 Q6.25 18.35 6.25 20.875 Q6.25 23.4 9.25 24.5 H25 Q22.5 23.15 22.5 20.875 Q22.5 18.6 25 17.25Z"/></g>
+  </mask>
+  <g fill="#16a34a" mask="url(#cut)"><rect x="2" y="2.25" width="28" height="28" rx="7"/></g>
+</svg>

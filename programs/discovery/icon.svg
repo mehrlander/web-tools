@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="discovery program">
+  <title>discovery program</title>
+  <desc>Mountains: a high peak with a snow line, a lower one behind, and the sun, cut from a green-600 tile. Drawn on the drawn-mark box and rules (docs/favicons/README.md): solid fills, no strokes, and every gap at least 2.5 units, which is about 1.4 CSS pixels at 16. Chosen 2026-11-07, the owner's first favorite: redrawn after the mountains icon of Phosphor (MIT); the ideas it was chosen from are in docs/prototypes/program-mark-ideas.html.</desc>
+  <path fill="#16a34a" d="M9 2.25L23 2.25C26.866 2.25 30 5.384 30 9.25L30 23.25C30 27.116 26.866 30.25 23 30.25L9 30.25C5.134 30.25 2 27.116 2 23.25L2 9.25C2 5.384 5.134 2.25 9 2.25ZM5.5 25L19 25L12.25 11ZM21.5 15.5L19.21 19.46L21.88 25L27 25ZM26.1 8.75C26.1 7.314 24.936 6.15 23.5 6.15C22.064 6.15 20.9 7.314 20.9 8.75C20.9 10.186 22.064 11.35 23.5 11.35C24.936 11.35 26.1 10.186 26.1 8.75ZM10.75 18.25L12.25 15.15L13.75 18.25Z"/>
+</svg>
