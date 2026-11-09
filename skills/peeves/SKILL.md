@@ -5,7 +5,7 @@ description: "The owner's pet peeves: a numbered list (peeves.csv beside this fi
 
 # Pet peeves
 
-[`peeves.csv`](peeves.csv) is the list, one row per peeve:
+[`peeves.md`](peeves.md) is the list, one entry per peeve. The commit hook writes [`peeves.csv`](peeves.csv) from it, one row per entry, with these columns:
 
 | Column | Holds |
 | --- | --- |
