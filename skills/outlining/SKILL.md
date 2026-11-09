@@ -19,7 +19,7 @@ An outline succeeds on fidelity (each entry says what its source says), complete
 
 - **Dimension.** Structural traces what the document is: its headings, order and layout. Semantic traces what it means. Hierarchy can follow either.
 - **Grain.** How fine the unit: theme, section, paragraph, sentence, claim, subclaim, at one level or several.
-- **Unit.** What an entry is: a passage, a claim (what the source asserts) or a question (what it answers). Claims and questions are two readings of one text: claims inventory what it commits to, presupposed things included; questions show what a discussion settled and left open. Two measures build on claims: depth, how far down a tree of reader questions a claim sits, and rung, what kind of point it makes on its genre's ladder. The two barely correlate. A document's level of detail takes both.
+- **Unit.** What an entry is: a passage, a claim (what the source asserts) or a question (what it answers). Claims and questions are two readings of one text: claims inventory what it commits to, presupposed things included; questions show what a discussion settled and left open. Two measures build on claims: depth, how far down a tree of reader questions a claim sits, and rung, what kind of point it makes, from its genre's ladder, an ordered list of point types. The two barely correlate. A document's level of detail takes both.
 
 ## Process
 
