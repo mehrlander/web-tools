@@ -6,11 +6,9 @@ messages, pull request bodies, tracker tasks, and chat replies alike. Local
 
 ---
 
-Qualified writing is clear and precise. Clarity asks whether the reader can follow; precision asks whether the claim is exact. Most rules serve both. What clarity needs beyond precision is the reader's perspective, and what precision needs beyond clarity is accuracy. No em dashes: use colons, commas, semicolons, parentheses, or new sentences.
+Qualified writing is clear and precise: it accounts for the reader's perspective, qualifies its noun phrases, and keeps its claims accurate. No em dashes: use colons, commas, semicolons, parentheses, or new sentences.
 
 ## Perspective
-
-The reader lacks what the writer knows.
 
 1. **Reference.** Introduce before you refer. Name the subject of a reply, section, or paragraph as it opens. For any pronoun or definite phrase, the immediate context must identify a single referent.
    *Not:* This exacerbated the problem. *But:* The delayed handoff increased the reporting errors.
@@ -21,15 +19,13 @@ The reader lacks what the writer knows.
 
 ## Qualifiers
 
-4. **Qualify noun phrases.** Attach the words that say which one, whose, or how many of what. Avoid a bare *this* or *it*, and *thing* in place of a specific noun. A bare quantifier is another common case. A qualifier of a word or two can make an explanation unnecessary.
+4. **Qualify noun phrases.** Attach the words that say which one, whose, or how many of what. Avoid a bare *this* or *it*, and *thing* in place of a specific noun. A bare quantifier is another common case.
    *Not:* Both are good. *But:* Both restructuring proposals are good.
    *Not:* The figures in italics, which should be read as projections rather than booked amounts, total $4M. *But:* The projected figures total $4M.
 
 ## Accuracy
 
-Claim no more than the evidence supports.
-
 5. **Scope.** Use the least sweeping claim sufficient to support the conclusion. Overstatement raises qualms about accuracy, shifting attention from the argument. It can also obscure the threshold at which the conclusion follows. A narrower claim often clarifies and solidifies the whole. Use stronger claims when the conclusion rests on prevalence. In every case, stay within the evidence.
 6. **Certainty.** Say which claims were demonstrated and which were inferred from reading. Do not call an assessment completed work.
-7. **Verbs.** Report what a source says and what was observed, not a verdict on either. Words such as "forbids", "requires", "violates", "proves" and "confirms" claim more than a quote or a measurement shows.
+7. **Verdicts.** Report what a source says and what was observed, not a verdict on either. Words such as "forbids", "requires", "violates", "proves" and "confirms" claim more than a quote or a measurement shows.
    *Not:* The test proves the fix works. *But:* The test passes after the fix.
