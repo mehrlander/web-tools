@@ -52,22 +52,7 @@ unit of publication and access (an independent collaborator set, release surface
 or the option to open-source one part later) and it covers the near neighbors
 too. Clone weight is a secondary, real, but rarely decisive tiebreaker.
 
-## Principle 3: conventions sync by pull from a public hub
-
-Conventions are not secret. The moment the source of truth for them is public,
-every consumer (public or private) can fetch it with no credentials. So a public
-hub holds the conventions and orchestration patterns; every repo is a consumer
-via a committed, fail-soft pull; private repos hold private content, never
-private rules. The consequence: there is never a need for private-to-private
-convention sync.
-
-Two guards apply. Anything critical must live in the consumer's own committed
-contract (its `CLAUDE.md`), always present, since the pull is fail-soft; the hub carries the shared, evolving, elaborative
-layer. And a hub that is fetched and then invoked is a supply-chain surface: the
-hub must be owned and trusted, and pinning is the lever if that trust ever needs
-hardening.
-
-## Principle 4: bootstrapping and staying-in-sync are one operation
+## Principle 3: bootstrapping and staying-in-sync are one operation
 
 "How do we start a new repo from the same base" and "how do we keep repos
 current as conventions evolve" are the same question, answered by one mechanism.
@@ -79,7 +64,7 @@ only thing ever copied is that block, the minimal thing that lets everything els
 be pulled; a repo cannot pull the mechanism by which it
 pulls.
 
-## Principle 5: the repo owns its own story
+## Principle 4: the repo owns its own story
 
 A repo's account of what it holds and why is a property of the repo, not of the
 set. It is stated on the repo's own terms and does not change when a sibling
@@ -123,7 +108,7 @@ documentation can explain a finding we now rely on and link to the research.
 Historical captures keep their original bytes, with later corrections written
 in the surrounding account. Maintained tools stay with their callers.
 
-## Principle 6: documentation has four places, and everything else is a question
+## Principle 5: documentation has four places, and everything else is a question
 
 Four slots. A markdown file in none of them is a **residual**. Research a repository
 declares sits outside all four, its `README.md` included, and is not a residual.

@@ -20,8 +20,6 @@ Slogans, posturing, emphatic absolutes and sentences that sound profound while s
 
 **Look for:** 'it does one thing', 'is the floor', 'held to', 'carries weight', 'does the work', 'deliberately', 'never' used for emphasis; a sentence that sounds wise and says little
 
-**Owner:** docs/house-policies.md (h:precise)
-
 **Area:** writing · **Detector:** reader · **Sessions:** 35 · **Status:** active
 
 ### Vague writing · `P05`
@@ -30,7 +28,7 @@ Claims a reader cannot check, unnamed subjects and pronouns whose referents the 
 
 **Look for:** 'a file here', 'some cases', 'it is complicated'; a sentence that cannot be checked; two replies that disagree silently
 
-**Owner:** docs/QUALIFIED-WRITING.md (rules 3 to 5)
+**Owner:** docs/QUALIFIED-WRITING.md (rules 3 and 4)
 
 **Area:** writing · **Detector:** reader · **Sessions:** 30 · **Status:** active
 
