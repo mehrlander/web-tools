@@ -19,7 +19,7 @@ Qualified writing is clear and precise. No em dashes: use colons, commas, semico
 
 ## Qualifiers
 
-4. **Qualify noun phrases.** Attach the words that say which one, whose, or how many of what. Avoid a bare *this* or *it*. Avoid lazy and informal abstractions like "the thing". Avoid bare quantifiers as in "some say…".
+4. **Qualify noun phrases.** Attach the words that say which one, whose, or how many of what. Avoid a bare *this* or *it*, lazy and informal abstractions like "the thing", and bare quantifiers as in "some say…".
    *Not:* Both are good. *But:* Both restructuring proposals are good.
    *Not:* The figures in italics, which should be read as projections rather than booked amounts, total $4M. *But:* The projected figures total $4M.
 
