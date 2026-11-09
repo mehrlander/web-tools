@@ -361,3 +361,13 @@ test('a paragraph and the list item tight under it, both added, are one card and
   assert.deepEqual(out, []);
   assert.equal(runs.length, 1);
 });
+
+// Reached by the walk over docs/QUALIFIED-WRITING.md on 2026-11-09: taking
+// out the stray line put its blank line where the item's gap had been, and
+// taking back the item then added the old gap on top of it.
+test('a list item\'s last line cut to a stray marker: the cards revert with no extra blank line', () => {
+  const base = 'Lead.\n\n4. **Item.** Words here.\n   *Not:* A one. *But:* B one.\n   *Not:* C two. *But:* D two.\n\n## Next\n';
+  const { out, runs } = checkAgainst(base, 'Lead.\n\n4. **Item.** Words here.\n   *Not:* A one. *But:* B one.\n   *\n\n## Next\n');
+  assert.deepEqual(out, []);
+  assert.equal(runs.length, 2);
+});
