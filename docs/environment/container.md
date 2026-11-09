@@ -149,20 +149,15 @@ the build to the session that does not depend on the plugin.
 The script lives here because the setup script cannot reach a private repo. It
 installs `portable` at user scope, because plugins load at session start and a
 session rooted above the checkouts reads no project settings. It allows
-`mcp__claude-code-remote__add_repo` at user scope too, to let
-[`/portable:sessions`](../../skills/sessions/SKILL.md) add the session archive
-([web-tools-private](https://github.com/mehrlander/web-tools-private)) without
-a permission check. The script then saves its own text, the commit it came
+`mcp__claude-code-remote__add_repo` at user scope too, so that
+[`/portable:sessions`](../../skills/sessions/SKILL.md) can add the session
+archive ([web-tools-private](https://github.com/mehrlander/web-tools-private))
+in auto mode, where the permission classifier can refuse that call when another
+session asked for it. The script then saves its own text, the commit it came
 from and when it ran to `~/.claude/environment-setup.ran`, which the plugin's
 environment report prints from at every session start
 ([extending.md](extending.md#sessionstart-the-environment-report)). The script
 writes no `~/.claude/CLAUDE.md` and no `AskUserQuestion` deny.
-
-Without the `add_repo` rule, auto mode's permission classifier reviews that
-call. On 2026-11-09 one session messaged 14 finished sessions, asking each to
-add the archive so that the plugin's Stop hook could write each one's session
-record when it next went idle. The classifier denied the call in 10 of them
-([the count, in session record `2026-11-08-32610f4f`](https://github.com/mehrlander/web-tools-private/blob/main/sessions/2026/11/2026-11-08-32610f4f.json)).
 
 Changing the script does not rebuild the environment. A rebuild runs whatever
 is on `main` at that moment, and happens when the owner edits the environment
