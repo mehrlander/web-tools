@@ -1,6 +1,6 @@
 # Data view: the payload contract
 
-🔷 [pages/data-view.html](https://mehrlander.github.io/web-tools/pages/data-view.html) renders **data**, where toss-render's other modes render a page: a CSV, a JSON array, a markdown file, a text log. It is the renderer behind the `#data=` toss route, and it is thin on purpose. The presentation is the shared multi-mode viewer ([`lib/alpineComponents/viewer.js`](../../lib/alpineComponents/viewer.js)), so the mode strip, Tabulator table, JSON tree, markdown preview, syntax highlighting, and GitHub/Raw/CDN links all come from the component every other page uses.
+🔷 [pages/data-view.html](https://mehrlander.github.io/web-tools/pages/data-view.html) renders **data**, where toss-render's other modes render a page: a CSV, a JSON array, a markdown file, a text log. It is the renderer behind the `#data=` toss route, and it is thin on purpose. The presentation is the shared multi-mode viewer ([`lib/alpineComponents/viewer.js`](../../lib/alpineComponents/viewer.js)), so the mode strip, Tabulator table, JSON tree, markdown preview, syntax highlighting, and GitHub and Raw links all come from the component every other page uses.
 
 ## Delivery
 
@@ -45,7 +45,7 @@ The viewport toggles are not part of this vocabulary. `bleed` is a preference ab
 
 A payload is read by [`lib/kits/data-payload.js`](../../lib/kits/data-payload.js), which decides what it is rather than asking:
 
-**Bare** is any bytes at all: a CSV, a JSON array, a log, a markdown file. One item. The viewer's own module tests decide how to show it, so `rows.csv` opens as a table and `shape.json` opens as a tree with nothing said. An addressed payload keeps its repo path, so its extension is real and its GitHub/Raw/CDN links resolve; an inline one is named by sniffing its bytes.
+**Bare** is any bytes at all: a CSV, a JSON array, a log, a markdown file. One item. The viewer's own module tests decide how to show it, so `rows.csv` opens as a table and `shape.json` opens as a tree with nothing said. An addressed payload keeps its repo path, which gives it a real extension and GitHub and Raw links that resolve; an inline one is named by sniffing its bytes.
 
 **Envelope** is a JSON object carrying an `items` array. Use it for what bare bytes cannot express: several files in one toss, a default view per item, a note per item.
 
