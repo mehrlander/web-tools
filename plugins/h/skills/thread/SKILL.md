@@ -14,6 +14,4 @@ Keep the reader's main question in view.
 - Build on what has been established, or name the earlier point being resumed.
 - Leave out side issues, possibilities and discrepancies unless they change the answer.
 
-**Covers:** replies and documents.
-
 **Detail:** [QUALIFIED-WRITING.md](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md), rule 3.

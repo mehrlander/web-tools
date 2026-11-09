@@ -13,5 +13,3 @@ Show rather than explain.
 - Quote a source rather than characterize it.
 - Include a screenshot or a measurement rather than describe behavior.
 - Let structure and labels carry relationships rather than explanatory prose.
-
-**Covers:** replies, documents and pages.

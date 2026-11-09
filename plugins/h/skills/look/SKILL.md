@@ -13,5 +13,3 @@ Observe before explaining.
 - Reproduce the failure, read the log or run a control before proposing a cause.
 - Propose a fix only for a cause that has been observed.
 - When reasoning stalls, add an observation, not more reasoning.
-
-**Covers:** diagnosis, and any claim about how something behaves.

@@ -15,6 +15,4 @@ A file under `lib/` goes in the folder named by what it attaches to.
 - A file that registers with `Alpine.data` goes in `lib/alpineComponents/`.
 - A file that is a single function expression, reaching neither `window` nor `document`, goes in `lib/ops/`.
 
-**Covers:** web-tools.
-
 **Detail:** [code-layers.md](https://github.com/mehrlander/web-tools/blob/main/docs/code-layers.md), its table and "Cases the table does not settle", checked by `node/test/code-layers.test.mjs`.

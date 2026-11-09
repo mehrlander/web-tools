@@ -14,5 +14,3 @@ State confidence as it is.
 - Do not call an assessment completed work.
 - Hold a plan as provisional: before acting on an interpretation, look for evidence that would challenge it.
 - Name the assumption the plan depends on most.
-
-**Covers:** replies, findings and PR bodies.

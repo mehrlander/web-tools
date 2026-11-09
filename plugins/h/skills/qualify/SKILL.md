@@ -10,6 +10,4 @@ disable-model-invocation: true
 
 Qualify noun phrases, and introduce each referent before referring to it, so that a reader who has not followed the conversation can identify every subject.
 
-**Covers:** all prose a session writes: replies, documents, commit messages and PR bodies.
-
 **Detail:** [QUALIFIED-WRITING.md](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md), rules 1, 4 and 5.
