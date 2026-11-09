@@ -126,8 +126,6 @@ The flags answer separate questions and do not constrain each other: `type` is t
 - `composite`: true only for the held-together case above. Omit or false otherwise.
 - `note`: optional free text, for genuine observations not captured by a field.
 
-A caller that stores the list in another format, such as a CSV, keeps `implied` and `composite` as fields of their own; without them the two flags have nowhere to go.
-
 For a human reading rather than a downstream process, render a plain numbered list of the `claim` fields, optionally grouped by `type`. No verdict or support field appears here. Marking truth is verification, a separate job that operates on this output and adds its own field.
 
 ## Guardrails
