@@ -9,11 +9,11 @@ description: "Use when asked to outline a document, lay out its structure or pul
 
 Produce an outline of a document to match the intended use. Phase one settles the approach, and phase two produces the outline. Three artifacts result.
 
-- **The profile.** A fast read: structure and length, where substance sits against noise, a spread of rough outlines (topic, section, paragraph, concept) whose density reads signal and whose disagreements flag outliers, and the seams available for splitting, from markup boundaries down to plain bisection.
+- **The profile.** A fast read: structure and length, where substance sits against noise, a spread of rough outlines (topic, section, paragraph, concept) whose density reads signal and whose disagreements flag outliers, and where the source can be split, from markup boundaries down to plain bisection.
 - **The outline.** The entries, each one unit at the chosen grain, with any tag, note or rating the use needs.
 - **The crosswalk.** Each entry's link to its source span, walkable both ways: result to source confirms each line, source to result finds the discards.
 
-An outline succeeds on fidelity (each entry says what its source says), completeness (nothing matching the criteria is dropped), consistency (the same calls throughout, with no drift in grain or dimension) and validity (the criteria capture what the use wanted, not only what it said).
+An outline succeeds on fidelity (each entry says what its source says), completeness (nothing matching the criteria is dropped), consistency (the same calls throughout, grain and dimension held steady) and validity (the criteria capture what the use needed).
 
 ## Key insights
 
@@ -24,9 +24,9 @@ An outline succeeds on fidelity (each entry says what its source says), complete
 ## Process
 
 1. **Survey (phase one).** Build the profile, then propose the entry criteria (unit, grain, dimension) for the user to approve or adjust: a line for a short source, a plan for a long one. A measurement, compared across readers or documents, fixes the criteria in advance and skips the approval.
-2. **Produce the outline and crosswalk (phase two).** Emit entries at the chosen grain, each with its source span; the spans are the crosswalk. Leave out material that matches no criterion. A long source can fan out along the profile's seams and be merged; step 3 checks the result whatever the strategy.
-3. **Check coverage.** Emit the regions that match the criteria but reach no entry. This check, not the way the entries were produced, makes coverage trustworthy.
-4. **Check validity.** Emit the discards the intent wanted. Any means the criteria were too narrow: back to phase one.
+2. **Produce the outline and crosswalk (phase two).** Emit entries at the chosen grain, each with its source span; the spans are the crosswalk. Leave out material that matches no criterion. A long source can fan out along the splits the profile found and be merged; step 3 checks the result whatever the strategy.
+3. **Check coverage.** Emit the regions that match the criteria but reach no entry.
+4. **Check validity.** Emit the discards the intent wanted. Any such discard means the criteria were too narrow: back to phase one.
 
 ## Bundled
 
