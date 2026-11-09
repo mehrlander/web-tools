@@ -12,7 +12,7 @@ Qualified writing is clear and precise. No em dashes: use colons, commas, semico
 
 1. **Reference.** Introduce before you refer. Name the subject of a reply, section, or paragraph as it opens. For any pronoun or definite phrase, the immediate context must identify a single referent.
    *Not:* This exacerbated the problem. *But:* The delayed handoff increased the reporting errors.
-2. **Terms.** Use standard terms for a general audience. Specialized topics develop shorthand terms, but avoid them and speak to an unfamiliar reader. A term's use elsewhere does not show the reader knows it: when a reader questions a term, replace it rather than cite where it appears.
+2. **Terms.** Use standard terms for a general audience. Do not adopt shorthand lingo on seeing it used, but address it and question it.
    *Not:* The log keeps two properties. *But:* /incidents.csv has two columns.
 3. **Flow.** Extend from what has been established. Develop the current point, or clearly name the earlier point you are resuming.
    *Not:* The solution is to increase funding. *But:* Since the $2M budget gap cannot be closed by contract renegotiation, we turn to increased funding.
