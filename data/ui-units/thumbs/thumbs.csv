@@ -16,7 +16,6 @@ web-tools:map/policy,web-tools-map-policy.desk.jpg,web-tools-map-policy.phone.jp
 web-tools:map/registries,web-tools-map-registries.desk.jpg,web-tools-map-registries.phone.jpg,2026-10-06,app/index.html?view=map&tab=registries,slots @59,card-grid
 web-tools:map/showing,web-tools-map-showing.desk.jpg,web-tools-map-showing.phone.jpg,2026-10-28,app/index.html?view=map&tab=showing,slots @69,linked-swiper
 web-tools:map/skills,web-tools-map-skills.desk.jpg,web-tools-map-skills.phone.jpg,2026-10-06,app/index.html?view=map&tab=skills,slots @59,card-grid
-web-tools:map/surfacing,web-tools-map-surfacing.desk.jpg,web-tools-map-surfacing.phone.jpg,2026-10-06,app/index.html?view=map&tab=surfacing,slots @59,card-grid
 web-tools:map/tests,web-tools-map-tests.desk.jpg,web-tools-map-tests.phone.jpg,2026-10-06,app/index.html?view=map&tab=tests,slots @59,list
 web-tools:map/themes,web-tools-map-themes.desk.jpg,web-tools-map-themes.phone.jpg,2026-10-22,app/index.html?view=map&tab=themes,slots @69,linked-swiper
 web-tools:map/units,web-tools-map-units.desk.jpg,web-tools-map-units.phone.jpg,2026-11-06,app/index.html?view=map&tab=units,slots @59,card-grid

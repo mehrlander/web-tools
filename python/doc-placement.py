@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Where a repo's documentation sits, and what sits outside the four slots.
 
-The rule is docs/CONSTELLATION.md, principle 6. This counts it.
+The rule is docs/CONSTELLATION.md, principle 5. This counts it.
 
 Seven buckets, in the order a file is tested:
 
@@ -45,7 +45,7 @@ def tracked(root, pattern=None):
 
 
 def research(root):
-    """(files, folders) the repo declares as research. Principle 6 puts research
+    """(files, folders) the repo declares as research. Principle 5 puts research
     outside the four slots, its README included, so a declared README claims
     its folder and any other declared account claims itself."""
     try:
@@ -114,7 +114,7 @@ def main(argv):
     print()
     print("A residual is documentation-shaped markdown that no docs/ folder, README,")
     print("or agent contract accounts for. It is a question rather than a defect: read")
-    print("the directory rows, and see CONSTELLATION.md principle 6 for the two answers.")
+    print("the directory rows, and see CONSTELLATION.md principle 5 for the two answers.")
     return 0
 
 

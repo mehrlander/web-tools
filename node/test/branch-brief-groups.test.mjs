@@ -572,9 +572,10 @@ test('the head says which copy of the page is running, from the loader', () => {
 // same defect and fixed it on 2026-09-01; branch.html still had it three days
 // later, which is why this gate covers both pages rather than one.
 test('neither page hands the brief its own iframe test', () => {
-  // branch.html keeps its own flag, which stands its masthead down in a frame;
-  // session.html shows its address bar only while no session is named.
-  for (const [file, mount, bar] of [['pages/branch.html', /framed: false,/, /x-show="!framed \|\| !target"/],
+  // Both pages show their address bar only while nothing is named. The
+  // page's own iframe test now decides whether a named branch opens in the
+  // takeover, and is still not handed to the brief.
+  for (const [file, mount, bar] of [['pages/branch.html', /framed: false,/, /x-show="!target"/],
                                     ['pages/session.html', /framed: false,/, /x-show="!target"/]]) {
     const src = readFileSync(path.join(repoRoot, file), 'utf8');
     assert.match(src, mount, `${file}: the brief is handed a literal`);
