@@ -406,7 +406,7 @@ def comment_blocks(path, src):
     if path.endswith(".html"):
         for m in HTML_COMMENT.finditer(src):
             found.append((src.count("\n", 0, m.start()) + 1, "html", m.group(1)))
-        masked = HTML_COMMENT.sub(lambda m: "\n" * m.group(0).count("\n"), src)
+        masked = HTML_COMMENT.sub(lambda m: re.sub(r"[^\n]", " ", m.group(0)), src)
         for s in SCRIPT.finditer(masked):
             found += coalesce(js_comments(s.group(1), masked.count("\n", 0, s.start(1)) + 1))
     else:

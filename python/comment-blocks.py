@@ -98,9 +98,9 @@ def blocks_of(rel, src):
     out = []
     if rel.endswith(".py"):
         module, defs = py_kinds(src)
+        found = [b for b in found if _from_hash(lines, b) or b[0] == module or b[0] in defs]
         for i, (line, body, _n) in enumerate(found):
-            head = lines[line - 1].lstrip() if 0 < line <= len(lines) else ""
-            quoted = head[:4].lstrip("rRbBuUfF")[:3] in ep.TRIPLES
+            quoted = not _from_hash(lines, (line, body, _n))
             if quoted:
                 if line == module:
                     kind = "header"
@@ -117,6 +117,13 @@ def blocks_of(rel, src):
         first = i == 0 and (_only_prelude(lines, line) or (body_at and line < body_at))
         out.append((line, "header" if first else "comment", clean(body)))
     return out
+
+
+def _from_hash(lines, block):
+    """True when a block is a `#` run rather than a triple-quoted string."""
+    line, body = block[0], block[1]
+    first = body.split("\n")[0]
+    return 0 < line <= len(lines) and ("#" + first) in lines[line - 1]
 
 
 def _only_prelude(lines, line):

@@ -55,6 +55,7 @@ node/test/clipboard-one-owner.test.mjs,behavior,"The iOS clipboard fallback drif
 node/test/closing-state.test.mjs,behavior,"The conventions' closing state, in one vocabulary instead of two half-owners. The parser is strict because this repo's own sessions EDIT the conventions, so a reply can quote the whole list: line start plus a bold lead is what stops a session reading its own quotation as its state."
 node/test/code-doc.test.mjs,behavior,"Without this a note taken in a code pane reads as a css path instead of lib/kits/peek.js:340-360, and the line numbers can drift from the file the moment a highlighter changes the tree: the count runs against the declared source, and nothing else checks that the two still agree."
 node/test/code-layers.test.mjs,gate,"The lib/ boundary of docs/code-layers.md, in all three directions, read off the code-shape scan so the test and the rule share one instrument."
+node/test/comment-view.test.mjs,behavior,
 node/test/commit-consent.test.mjs,behavior,"The consent gate's refusals, and above all its wrong ones: a commit that changes no authored language is not stopped, so a session is never taught that the answer is --no-verify."
 node/test/component-descriptions.test.mjs,gate,"the bound on a component's description string, which the FAB shows in its Inspect tab: without it the Map and FAB manuals regrow in code"
 node/test/compression.test.mjs,behavior,Gzip round-trips through the GZ64 prefix protocol without corrupting the payload.
