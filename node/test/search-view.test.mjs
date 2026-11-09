@@ -582,7 +582,8 @@ test('a bare arrival lists the browsed repo rather than landing on nothing', asy
   cold.repo = 'me/browsed';
   assert.equal(cold.caveat, '', 'a Files listing that can run explains nothing');
   cold.mode = 'contents';
-  assert.match(cold.caveat, /Markdown files · Default branches/, 'contents keeps its caveats: no layout can show what a list is missing');
+  assert.equal(cold.caveat, '', 'contents names its corpus in the placeholder, not a line under the controls');
+  assert.equal(cold.queryPlaceholder, 'Search Markdown contents…');
 
   el.remove();
   store.repo = ''; store.ref = ''; store.defaultRef = '';
