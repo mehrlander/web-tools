@@ -16,7 +16,6 @@ const REGISTRY = 'me/registry';
 let FILES = {};    // "<path>" -> parsed JSON served from the registry
 let SAVES = [];    // every save call: { repo, path, value, message }
 let TREES = {};    // "<repo>" -> [blob paths] served from git/trees
-let SEARCH = null; // response served for /search/code
 
 class FakeGH {
   constructor(conf = {}) { this.repo = conf.repo || ''; this.ref = conf.ref || 'main'; }
@@ -27,7 +26,6 @@ class FakeGH {
   async req(path) {
     if (String(path).startsWith('git/trees/') && TREES[this.repo])
       return { tree: TREES[this.repo].map(p => ({ type: 'blob', path: p })), truncated: false };
-    if (String(path).startsWith('/search/code') && SEARCH) return SEARCH;
     throw Object.assign(new Error('404'), { status: 404 });
   }
   async save(path, value, message) { SAVES.push({ repo: this.repo, path, value, message }); return {}; }

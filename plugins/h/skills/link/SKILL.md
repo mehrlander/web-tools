@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 <!-- Generated from docs/house-policies.md by node/build/policy-skills.mjs; do not hand-edit. -->
 
-# Links · `/h:link`
+# Links · `h:link`
 
 Link every file, pull request, session and page a reply mentions.
 
