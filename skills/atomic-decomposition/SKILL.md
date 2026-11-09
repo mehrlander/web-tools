@@ -42,9 +42,9 @@ The factual core and the judgment are separate commitments and a reader can acce
 
 ## The load-bearing threshold for existence
 
-Presuppositions are unbounded. Every definite phrase technically presupposes existence, and most are trivially carried and not worth recording. The threshold is **text-internal**, a question about how the prose treats the thing, not about whether the thing is real. Surface an existence claim when the document **leans on** the entity: refers to it as established, builds later claims on it, treats it as given rather than mentioning it in passing. "A Fund 600 reserve exists," yes, because the document refers to the reserve as a settled fact and hangs figures on it. "The year 2019 exists," no, because nothing rests on it as a contestable entity; it is just a date. In technical documentation, "the dispatcher's output guard" leans on a dispatcher the document never introduces and later describes, so "a dispatcher exists" is surfaced.
+Presuppositions are unbounded. Every definite phrase technically presupposes existence, and most are trivially carried and not worth recording. The threshold is **text-internal**, a question about how the prose treats the thing, not about whether the thing is real. Surface an existence claim when the document **leans on** the entity, which takes two tests: the document refers to it as already established, without introducing it, and at least one other claim in the inventory is about it. "A Fund 600 reserve exists," yes, because the document refers to the reserve as a settled fact and hangs figures on it. "The year 2019 exists," no, because nothing rests on it as a contestable entity; it is just a date. In technical documentation, "the dispatcher's output guard" leans on a dispatcher the document never introduces and later describes, so "a dispatcher exists" is surfaced.
 
-This is a judgment call, like the grain, so apply it the same way each time with two tests: the document refers to the entity as already established, without introducing it, and at least one other claim in the inventory is about it. Flag the existence of entities and events that pass both, not the existence of common nouns and calendar machinery. Whether a load-bearing entity turns out to be real is the next step's question, not this one's. This step only marks that the document is committed to it.
+This is a judgment call, like the grain, so apply it the same way each time: flag the existence of entities and events the document treats as load-bearing, not the existence of common nouns and calendar machinery. Whether a load-bearing entity turns out to be real is the next step's question, not this one's. This step only marks that the document is committed to it.
 
 ## The one decision that governs consistency: grain
 
@@ -79,7 +79,7 @@ Beyond the four types, three shapes hide claims in plain prose:
 
 ## Standing alone, minimally: a worked example
 
-"He served in the National Guard." -> **Stands alone, minimal:** "Kenneth Holland served in the National Guard." Pronoun resolved, nothing added. *Too much:* "Kenneth Holland, born November 24 1934 in Hickory, former U.S. Representative from South Carolina, served in the National Guard from 1952 to 1959." Now the claim drags four extra facts that each have to hold, and it will fail to match an evidence context that confirms only the service. The rule: add a detail only when its absence leaves the line ambiguous, and prefer the disambiguating detail that the most sources would attest.
+"He served in the National Guard." -> **Stands alone, minimal:** "Kenneth Holland served in the National Guard." Pronoun resolved, nothing added. *Too much:* "Kenneth Holland, born November 24 1934 in Hickory, former U.S. Representative from South Carolina, served in the National Guard from 1952 to 1959." Now the claim drags five extra facts that each have to hold, and it will fail to match an evidence context that confirms only the service. Where a detail is needed to disambiguate, prefer the one the most sources would attest.
 
 ## Composite vs singular: the call you will keep facing
 
