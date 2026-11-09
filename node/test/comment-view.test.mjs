@@ -12,6 +12,7 @@ import path from 'node:path';
 import { makeWindow, loadKit, repoRoot } from './bootstrap.mjs';
 
 const { window } = makeWindow();
+window.eval(readFileSync(path.join(repoRoot, 'lib/vanilla-bundle.js'), 'utf8'));
 loadKit('comment-view.js', { window });
 const CV = window.commentView;
 const WORDS = (s) => (s.match(/[A-Za-z][A-Za-z'’-]+/g) || []).join(' ');
