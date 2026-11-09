@@ -47,6 +47,7 @@ docs/environment/container.md,docs/environment/extending.md,8,,a cloud setup scr
 skills/notes/SKILL.md,skills/tend/SKILL.md,7,,lib kits findings js https github com mehrlander web tools blob main lib kits findings js,10,207
 skills/gold-set/SKILL.md,skills/wayback/SKILL.md,7,,docs environment capabilities md https github com mehrlander web tools blob main docs environment capabilities md,10,207
 skills/gold-set/SKILL.md,skills/scour/SKILL.md,7,,docs environment capabilities md https github com mehrlander web tools blob main docs environment capabilities md,10,207
+docs/house-policies.md,skills/look-markers/SKILL.md,7,,lib kits look js https github com mehrlander web tools blob main lib kits look js,10,207
 docs/environment/capabilities.md,skills/scour/SKILL.md,7,true,the webfetch summarizer sometimes returns anthropic or anthropic's claude agent sdk as page content;webfetch returns a small model's answer rather than the page's markdown,10,207
 docs/envelopes/README.md,docs/envelopes/workbook-extract.md,7,true,no change to lib kits data payload js lib kits data payload js;why this is a profile over data view rather than a sibling,10,207
 docs/house-policies.md,skills/report-distiller/SKILL.md,6,,qualified writing md https github com mehrlander web tools blob main docs qualified writing md,10,207
@@ -59,12 +60,15 @@ skills/load-skill/SKILL.md,skills/web-tools-app/SKILL.md,4,,mcp github get file 
 skills/html-style/references/mechanics.md,skills/look-markers/SKILL.md,4,,html https github com mehrlander web tools blob main lib kits demos;js https github com mehrlander web tools blob main lib,10,207
 lib/kits/README.md,node/README.md,4,,load and build are one contract in docs loader md docs loader md,10,207
 docs/house-policies.md,skills/tree/SKILL.md,4,,conversation md https github com mehrlander web tools blob main docs conversation md,10,207
+docs/house-policies.md,skills/html-style/SKILL.md,4,,csv https github com mehrlander web tools blob main docs showing;js https github com mehrlander web tools blob main lib kits,10,207
 courier/README.md,sites/wsldocs.sos.wa.gov/README.md,4,,which route reaches a page bookmarklets readme md which route reaches a page,10,207
 skills/doc-audit/SKILL.md,skills/passage-reading/SKILL.md,3,,md https github com mehrlander web tools blob main docs envelopes;https mehrlander github io web tools pages toss render html,10,207
 skills/design-sprint/SKILL.md,skills/tree/SKILL.md,3,,md https github com mehrlander web tools blob main docs conversation md,10,207
 skills/agents/house-style-critic.md,skills/agents/peeves-critic.md,3,true,do not rewrite name the fix in one clause only where the,10,207
 python/swarm/bold.md,python/swarm/dome.md,3,,write json lines to the output path one edit per line;run the check command and fix every line it reports,10,207
 pages/drop/fills-concepts/3-reactive-surface/PROMPT.md,pages/drop/fills-concepts/CATALOG.md,3,,aic 2 html aic kimi html collection browser html collection browser 2,10,207
+docs/house-policies.md,skills/notes/SKILL.md,3,,js https github com mehrlander web tools blob main lib kits;md https github com mehrlander web tools blob main docs,10,207
+docs/house-policies.md,skills/html-style/references/mechanics.md,3,,js https github com mehrlander web tools blob main lib kits;csv https github com mehrlander web tools blob main docs,10,207
 docs/house-policies.md,skills/design-sprint/SKILL.md,3,,md https github com mehrlander web tools blob main docs conversation md,10,207
 docs/github/post-merge-branch-mutation.md,docs/house-policies.md,3,,from the current tip of the target branch and opens a new,10,207
 docs/github/README.md,docs/github/markdown.md,3,,when you view a md on github no javascript no build step,10,207
