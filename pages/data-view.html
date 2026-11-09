@@ -127,7 +127,12 @@
           this.payload = DataPayload.read(await gunzipB64url(gz));
         } else if (src) {
           this.srcSpec = src;
-          const parsed = DataPayload.parseSpec(src);
+          // A plain path is this repository's file, which fetchText reads
+          // there, so it takes this repository as its address too. Without
+          // one the viewer took it for a dropped local file, and a workbook or
+          // an image, whose bytes the viewer fetches itself, failed to open.
+          const parsed = DataPayload.parseSpec(src)
+            || (gh.repo ? { repo: gh.repo, ref: '', path: src.replace(/^\//, '') } : null);
           // Hand the reader the path so a bare payload keeps its real
           // extension instead of being sniffed from its bytes.
           this.payload = DataPayload.read(await fetchText(src), { name: parsed ? parsed.path : src });

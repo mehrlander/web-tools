@@ -878,9 +878,6 @@ window.__audit = {
     get decided() { return this.units.filter(u => (u.verdict || 'KEEP') !== 'KEEP').length; },
     // Words, not units: a one-line NAV pointer and a four-sentence provenance
     // paragraph are one unit each and are not the same amount of document.
-    // Whether the vocabulary has an `explanation` side, the share a section
-    // card states beside its words.
-    get explains() { return (this.so.vocabulary || []).some(v => v.side === 'explanation'); },
     wordsOf(k) { return this.units.filter(u => this.keyOf(u) === k).reduce((n, u) => n + u.words, 0); },
     wordsOn(side) {
       return this.units.filter(u => this.side(u.label) === side)
@@ -2130,14 +2127,23 @@ window.__audit = {
         count: secs.length, title: this.a.title, subtitle: this.so.question,
         render: (i, slide) => {
           const s = secs[i];
+          // Each label's share of the section's words, drawn as the legend's
+          // strip draws the document's, in place of a line of totals. The
+          // section's own heading opens the card below it.
           const head = document.createElement('div');
-          head.className = 'px-4 pt-4 pb-2 text-xs opacity-60';
+          head.className = 'px-4 pt-4 pb-2';
           const inSec = this.units.filter(u => u.start >= s.start && u.start < s.end);
-          const w = inSec.reduce((n, u) => n + u.words, 0);
-          const exp = inSec.filter(u => this.side(u.label) === 'explanation')
-                           .reduce((n, u) => n + u.words, 0);
-          head.textContent = `${s.title} · ${inSec.length} units` +
-            (this.explains ? ` · ${w ? Math.round(100 * exp / w) : 0}% explanation` : '');
+          const strip = document.createElement('div');
+          strip.className = 'flex h-1.5 rounded-full overflow-hidden';
+          strip.setAttribute('aria-hidden', 'true');
+          for (const k of this.axis) {
+            const w = inSec.filter(u => this.keyOf(u) === k).reduce((n, u) => n + u.words, 0);
+            if (!w) continue;
+            const seg = document.createElement('div');
+            seg.style.cssText = `flex:${w} 0 0;background:rgba(${this.HUE[k]},0.85)`;
+            strip.append(seg);
+          }
+          head.append(strip);
           const body = document.createElement('div');
           body.className = 'px-4 pb-6 overflow-y-auto';
           slide.append(head, body);
@@ -2149,7 +2155,10 @@ window.__audit = {
   await gh.load('alpine-bundle.js');
 </script>
 </head>
-<body class="bg-base-100 min-h-dvh" x-data="auditPage()" x-init="init()" @keydown.window="key($event)">
+<!-- Busy until the payload has loaded, so a look link waits for the header and
+     legend it renders (lib/kits/look.js, seek). -->
+<body class="bg-base-100 min-h-dvh" x-data="auditPage()" x-init="init()" @keydown.window="key($event)"
+      aria-busy="true" :aria-busy="a ? 'false' : 'true'">
 <template x-if="a">
   <div>
 
