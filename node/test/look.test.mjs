@@ -134,6 +134,21 @@ test('a page Alpine has not started is waited for, not called hidden', async () 
   assert.equal(said(v), 'rendered');
 });
 
+test('a page that has just started is given a beat to draw its first view', async () => {
+  // The app's Map drew the Icons tab a beat after Alpine lifted x-cloak, and
+  // inside a toss that beat outlasted QUIET_FOR.
+  const w = realm('<div x-cloak hidden></div>');
+  w.Look.start([{ at: 'first', say: 'drawn' }], { wait: 60 });
+  await wait(150);
+  const root = w.document.querySelector('[x-cloak]');
+  root.removeAttribute('x-cloak'); root.hidden = false;
+  await wait(700);
+  assert.equal(said(w), undefined, 'still waiting past QUIET_FOR after the start');
+  root.innerHTML = '<p data-at="first">here</p>';
+  await wait(250);
+  assert.equal(said(w), 'drawn');
+});
+
 test('a closed region is opened by the control it names', async () => {
   const w = realm(
     '<button data-at="tab-b">B</button>' +
