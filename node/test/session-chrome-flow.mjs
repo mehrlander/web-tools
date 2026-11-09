@@ -81,7 +81,7 @@ const geometry = () => page.evaluate(() => {
     return { top: Math.round(r.top), bottom: Math.round(r.bottom), h: Math.round(r.height),
       w: Math.round(r.width) };
   };
-  const shell = document.querySelector('#mount > div');
+  const shell = document.querySelector('[x-data^="sessionBrief"] > div');
   const chrome = shell?.querySelector('[x-ref="chrome"]');
   const rail = shell?.querySelector('[title^="the session, start to end."]')?.parentElement;
   const scrolling = [...document.querySelectorAll('*')]
@@ -91,7 +91,8 @@ const geometry = () => page.evaluate(() => {
     view: { h: innerHeight, w: innerWidth },
     doc: { h: document.documentElement.scrollHeight, y: Math.round(scrollY),
       w: document.documentElement.scrollWidth },
-    title: box(shell?.querySelector('.font-medium.leading-snug')),
+    // The takeover's header names the session top-level; inline, the view's own line does.
+    title: box(document.querySelector('.sd-header') || shell?.querySelector('.font-medium.leading-snug')),
     chrome: box(chrome),
     tabs: box(chrome?.querySelector('[role="tablist"]')),
     search: box(chrome?.querySelector('[role="search"]')),
@@ -131,6 +132,8 @@ try {
     return route.fulfill({ status: 200, contentType: r.contentType, body: r.kind === 'empty' ? '' : r.body });
   });
   await page.goto(`${origin}/pages/session.html#gz=${gz}`, { waitUntil: 'domcontentloaded' });
+  // The top region opens on the Overview; the outline is a tab away.
+  await page.locator('[data-at="tabs"]').getByRole('tab', { name: /^Outline/ }).click({ timeout: 30000 });
   await page.locator('[x-ref="outline"] [data-card="12"]').waitFor({ timeout: 30000 });
   // The head finishes after the first card, from reads and kits that arrive
   // later. Read nothing until the network is idle and the chrome has held its
@@ -184,30 +187,32 @@ try {
      JSON.stringify({ chrome: searched.chrome, search: searched.search, scrollers: searched.scrollers }));
   await page.screenshot({ path: path.join(shots, 'session-chrome-search.png') });
   await page.getByRole('button', { name: 'Clear conversation search', exact: true }).click();
-  await page.waitForFunction(() => !window.Alpine.$data(document.querySelector('#mount > div')).findQuery);
+  await page.waitForFunction(() => !window.Alpine.$data(document.querySelector('[x-data^="sessionBrief"] > div')).findQuery);
   await page.waitForTimeout(300);
   const cleared = await geometry();
   ok('clear restores the outline and its rail',
      await page.locator('[x-ref="outline"]').isVisible() && cleared.rail?.h > 0,
      JSON.stringify({ rail: cleared.rail }));
 
-  await page.locator('[x-ref="chrome"]').getByRole('tab', { name: /^Raw/ }).click();
+  // Log is the record's tree and Schema its profile, one explorer under two
+  // of the view's own tabs, with the explorer's view buttons and filter hidden.
+  await page.locator('[x-ref="chrome"]').getByRole('tab', { name: /^Log/ }).click();
   await page.locator('[x-ref="raw"] .json-explorer').waitFor();
-  await page.screenshot({ path: path.join(shots, 'session-chrome-raw-tree.png') });
-  await page.locator('[x-ref="raw"]').getByRole('tab', { name: /^JSON$/ }).click({ timeout: 5000 })
+  await page.screenshot({ path: path.join(shots, 'session-chrome-log.png') });
+  await page.locator('[x-ref="chrome"]').getByRole('tab', { name: /^Schema/ }).click({ timeout: 5000 })
     .catch(async error => {
-      console.log('Raw diagnostic:', await page.locator('[x-ref="raw"]').ariaSnapshot());
+      console.log('Schema diagnostic:', await page.locator('[x-ref="raw"]').ariaSnapshot());
       console.log('Browser errors:', errors);
       throw error;
     });
-  await page.locator('[x-ref="raw"] pre').waitFor();
+  await page.locator('[x-ref="raw"] table').first().waitFor();
   await page.waitForTimeout(400);
   const raw = await geometry();
-  ok('Raw clamps the record instead of laying it out as one long page',
+  ok('Log and Schema clamp the record instead of laying it out as one long page',
      raw.doc.h <= raw.view.h + 1, `doc ${raw.doc.h} (the regression: 40,528)`);
-  ok('Raw scrolls the code inside its own box, under the chrome',
+  ok('Schema scrolls inside its own box, under the chrome',
      below(raw).length === 1, JSON.stringify(raw.scrollers));
-  await page.screenshot({ path: path.join(shots, 'session-chrome-raw.png') });
+  await page.screenshot({ path: path.join(shots, 'session-chrome-schema.png') });
   ok('no uncaught browser errors', errors.length === 0, errors.join(' | '));
 } finally {
   await browser?.close();
