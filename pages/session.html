@@ -236,7 +236,8 @@
         const find = (pick('find') || '').trim();
         // `now` names the ref the action message is read from, main by default.
         const nowRef = pick('now');
-        const at = { ...(['outline', 'files', 'raw', 'calls'].includes(pane) ? { pane } : {}),
+        const at = { ...(['overview', 'turns', 'outline', 'log', 'schema', 'raw',
+                          'calls', 'views', 'files'].includes(pane) ? { pane } : {}),
                      ...(Number.isInteger(card) ? { start: card } : {}),
                      ...(find ? { find } : {}),
                      ...(nowRef ? { nowRef } : {}) };
