@@ -154,7 +154,9 @@
 </head>
 
 <body>
-<div x-data="entities" x-cloak class="fixed inset-0 grid grid-rows-[auto_1fr_auto] bg-base-200">
+<!-- Busy until the index has loaded, so a look link waits for the anchors it
+     renders (lib/kits/look.js, seek). -->
+<div x-data="entities" x-cloak aria-busy="true" :aria-busy="loading ? 'true' : 'false'" class="fixed inset-0 grid grid-rows-[auto_1fr_auto] bg-base-200">
 
   <!-- ── header: thin. identity, controls ──────────────────────────────── -->
   <header class="min-w-0 px-4 py-2 bg-base-100 border-b border-base-300">
@@ -237,17 +239,23 @@
               <tr class="text-xs font-normal opacity-60 tabular">
                 <th class="font-normal" x-text="`${n(curLabel.names)} names`"></th>
                 <th class="font-normal text-right" x-text="`${n(curLabel.mentions)} mentions`"></th>
-                <th></th><th></th>
+                <th class="hidden sm:table-cell"></th><th class="hidden sm:table-cell"></th>
               </tr>
             </thead>
             <tbody>
               <template x-for="r in rows" :key="r.name">
                 <tr class="hover">
-                  <td class="text-xl leading-8" :class="r.flags.length && 'opacity-50'" x-text="r.name"></td>
+                  <!-- On a phone the files and flags columns fold under the
+                       name, which keeps the row inside the screen. -->
+                  <td class="text-xl leading-8">
+                    <span :class="r.flags.length && 'opacity-50'" x-text="r.name"></span>
+                    <div class="sm:hidden text-xs font-mono opacity-40 leading-5"
+                         x-text="[r.files === undefined ? '' : `${n(r.files)} files`, ...(r.flags || [])].filter(Boolean).join(' · ')"></div>
+                  </td>
                   <td class="text-xl leading-8 tabular text-right w-24" x-text="n(r.mentions)"></td>
-                  <td class="text-xs opacity-40 tabular text-right w-20"
+                  <td class="text-xs opacity-40 tabular text-right w-20 hidden sm:table-cell"
                       x-text="r.files === undefined ? '' : `${n(r.files)} files`"></td>
-                  <td class="text-xs font-mono opacity-40" x-text="(r.flags || []).join(' ')"></td>
+                  <td class="text-xs font-mono opacity-40 hidden sm:table-cell" x-text="(r.flags || []).join(' ')"></td>
                 </tr>
               </template>
             </tbody>
