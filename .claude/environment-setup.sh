@@ -11,9 +11,8 @@
 # bash instead, the script has no file and the record would carry no text.
 claude plugin marketplace add mehrlander/web-tools || claude plugin marketplace update web-tools
 claude plugin install -s user portable@web-tools || true
-# Allow add_repo in every session, so /portable:sessions can attach the session
-# archive in auto mode; the classifier otherwise refuses an attach that another
-# session asked for. Merged into the file the install just wrote; idempotent.
+# Allow add_repo in every session (docs/environment/container.md says why),
+# merged into the settings the install just wrote.
 python3 - <<'PY'
 import json, pathlib
 p = pathlib.Path.home() / ".claude" / "settings.json"
