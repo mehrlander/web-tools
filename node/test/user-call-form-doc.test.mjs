@@ -47,9 +47,10 @@ window.eval(readFileSync(new URL('../../lib/kits/call-marks.js', import.meta.url
 window.AssistantMark = { shortBranch: (b) => String(b || '') };
 // md-diff's own suite holds its drawing; here it draws one container per
 // changed block, with the host's actions as buttons, as the real one does.
-const drawn = [];
+const drawn = [], gotos = [], movers = [];
 window.mdDiff = { render: async (host, a, b, opts) => {
   drawn.push({ a, b });
+  movers.length = 0;
   const A = a.split('\n\n'), B = b.split('\n\n');
   A.forEach((old, k) => {
     if (old === B[k]) return;
@@ -64,6 +65,8 @@ window.mdDiff = { render: async (host, a, b, opts) => {
     }
     host.append(box);
   });
+  // The handle the form keeps: its jump, and the move it follows.
+  return { goto: (k) => gotos.push(k), onMove: (cb) => { movers.push(cb); cb({ at: -1 }); } };
 } };
 window.Diff = {};
 window.MdSurface = { patch: (p, a, b) => 'PATCH ' + p + ' ' + JSON.stringify(b) };
@@ -114,6 +117,30 @@ test('an edit the file cannot place says why, under the document, with no contai
   assert.deepEqual(Array.from(data().doc.status), ['staged', 'staged', 'stale', 'staged']);
   assert.equal(mark(3), null);
   assert.match(root().querySelector('[data-doc-unplaced="3"]').textContent, /no longer holds/);
+});
+
+test('the edits are listed over the document, each row landing the document on its edit', async () => {
+  const rows = () => [...root().querySelectorAll('[data-doc-list] [data-doc-row]')];
+  assert.deepEqual(rows().map((r) => r.querySelector('.truncate').textContent),
+    ['clearer', 'Names the order with Second.', 'Nothing.', 'Third. Fourth.'],
+    'its why, else its proposal, else the words it changes, in one plain line');
+  assert.equal(rows()[2].textContent.trim().endsWith('not in the file'), true, 'an edit the file cannot place says so on its row');
+  rows()[3].click();
+  await tick(2);
+  assert.deepEqual(gotos, [2], 'a row lands on its first container');
+  assert.equal(rows()[3].getAttribute('aria-current'), 'true', 'and stays marked');
+  rows()[2].click();
+  await tick(2);
+  assert.deepEqual(gotos, [2], 'an edit with no container has nothing to land on');
+  movers.forEach((cb) => cb({ at: 0 }));
+  await tick(2);
+  assert.equal(rows()[0].getAttribute('aria-current'), 'true', 'moving by the strip or the keys moves the mark');
+  assert.equal(rows()[3].getAttribute('aria-current'), null);
+  act(1, 'Keep');
+  await tick(2);
+  assert.match(rows()[0].textContent, /kept/, 'a decision shows on its row');
+  act(1, 'Keep');
+  await tick(2);
 });
 
 test('nothing records until every staged edit is decided, and a decision stays marked', async () => {
