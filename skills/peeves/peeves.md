@@ -36,7 +36,7 @@ Claims a reader cannot check, unnamed subjects and pronouns whose referents the 
 
 ### Em dashes · `P07`
 
-Dashes used to join ideas in prose. The existing entry also covers en dashes and double hyphens used for that purpose.
+Em dashes, en dashes or double hyphens used to join ideas in prose.
 
 **Look for:** an em dash, en dash or double hyphen between clauses
 
@@ -114,7 +114,7 @@ Reporting an inferred result as demonstrated, handing over an unexamined screens
 
 **Look for:** 'should work'; a screenshot sent without comment on what it shows; asking the owner to run the test
 
-**Owner:** skills/screenshot-review/SKILL.md; docs/CONVERSATION.md (show pixels)
+**Owner:** skills/screenshot-review/SKILL.md; docs/CONVERSATION.md (a screenshot)
 
 **Area:** reporting · **Detector:** reader · **Sessions:** 65 · **Status:** active
 
