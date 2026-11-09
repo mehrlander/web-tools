@@ -25,7 +25,7 @@ Qualified writing is clear and precise. No em dashes: use colons, commas, semico
 
 ## Accuracy
 
-5. **Scope.** Use the least sweeping claim sufficient to support the conclusion. Overstatement raises qualms about accuracy, shifting attention from the argument. It can also obscure the threshold at which the conclusion follows. A narrower claim often clarifies and solidifies the whole. Use stronger claims when the conclusion rests on prevalence. In every case, stay within the evidence.
+5. **Scope.** Consider claiming less. Overstatement raises qualms and shifts attention from the argument. A narrower claim often clarifies and solidifies the whole. Use stronger claims when the conclusion rests on prevalence. In every case, stay within the evidence.
 6. **Certainty.** Say which claims were demonstrated and which were inferred from reading. Do not call an assessment completed work.
 7. **Verdicts.** Report what a source says and what was observed, not a verdict on either. Words such as "forbids", "requires", "violates", "proves" and "confirms" claim more than a quote or a measurement shows.
    *Not:* The test proves the fix works. *But:* The test passes after the fix.
