@@ -215,11 +215,21 @@
     {
       "name": "organization",
       "label": "Organization",
-      "status": "proposed",
       "scope": "repositories, registries, session records and history",
       "icon": "programs/organization/icon.svg",
       "path": "programs/organization",
-      "governs": [],
+      "governs": [
+        ".web-tools.json",
+        "docs/manifest-fields.csv",
+        "docs/registries.csv",
+        "docs/registries.md",
+        "docs/properties.csv",
+        "docs/TRACKER.md"
+      ],
+      "reviewers": [
+        "portable:owner-proxy",
+        "portable:peeves-critic"
+      ],
       "views": [
         "?view=map&tab=overview",
         "?view=map&tab=aims",
@@ -241,11 +251,25 @@
     {
       "name": "content",
       "label": "Content",
-      "status": "proposed",
       "scope": "writing rules, docs and pages",
       "icon": "programs/content/icon.svg",
       "path": "programs/content",
-      "governs": [],
+      "governs": [
+        "docs/QUALIFIED-WRITING.md",
+        "skills/peeves/",
+        "docs/house-policies.md",
+        "skills/doc-craft/",
+        "data/doc-growth/",
+        "docs/themes.csv",
+        "skills/html-style/",
+        "data/ui-units/codebook.md",
+        "docs/kits.csv"
+      ],
+      "reviewers": [
+        "portable:owner-proxy",
+        "portable:peeves-critic",
+        "portable:house-style-critic"
+      ],
       "views": [
         "?view=map&tab=growth",
         "?view=map&tab=peeves",
@@ -263,11 +287,18 @@
     {
       "name": "discovery",
       "label": "Discovery",
-      "status": "proposed",
       "scope": "research, probes and outside sources",
       "icon": "programs/discovery/icon.svg",
       "path": "programs/discovery",
-      "governs": [],
+      "governs": [
+        "research/",
+        "skills/scour/",
+        "skills/wayback/"
+      ],
+      "reviewers": [
+        "portable:owner-proxy",
+        "portable:peeves-critic"
+      ],
       "views": [
         "?view=map&tab=exploration",
         "?view=map&tab=research"
