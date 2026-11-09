@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 <!-- Generated from docs/house-policies.md by node/build/policy-skills.mjs; do not hand-edit. -->
 
-# Checking · `/h:check`
+# Checking · `h:check`
 
 Verify a claim with a check that could have failed.
 
