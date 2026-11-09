@@ -10,8 +10,6 @@ Write clearly and precisely: account for what the reader lacks, qualify noun phr
 
 **Backed by:** [QUALIFIED-WRITING.md](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md): [Perspective](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md#perspective), [Qualifiers](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md#qualifiers) and [Accuracy](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md#accuracy).
 
-**See also:** [the clarity and precision diagram](https://github.com/mehrlander/web-tools/blob/main/docs/qualified-writing.svg).
-
 ### No em dashes · `h:dash`
 
 Join ideas with a colon, a comma, a semicolon, parentheses or a new sentence, not a dash.
