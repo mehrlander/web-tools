@@ -386,3 +386,23 @@ test('without a note or actions a container adds neither', () => {
     host.remove();
   });
 });
+
+test('one draws a single change as its container, three stops, and installs nothing on the page', async () => {
+  window.HTMLElement.prototype.scrollTo ??= function () {};
+  const added = [];
+  const real = window.document.addEventListener;
+  window.document.addEventListener = function (type, ...rest) { added.push(type); return real.call(this, type, ...rest); };
+  let box;
+  try {
+    box = await mdDiff.one('The lanes answer to different authorities.', 'The two lanes answer to different authorities.', { size: 'drawer' });
+  } finally { window.document.addEventListener = real; }
+  assert.ok(box.classList.contains('md-diff-change'));
+  assert.deepEqual([...box.querySelectorAll('[data-mode], button')].map((b) => b.textContent.trim()).filter((t) => /^(old|inline|new)$/.test(t)),
+    ['old', 'inline', 'new']);
+  assert.ok(box.querySelector('.md-diff-idx').classList.contains('hidden'), 'the index is the host\'s to name');
+  assert.deepEqual(added, [], 'no keydown or pointerdown on the document, unlike render()');
+  window.document.body.append(box);
+  await new Promise((r) => setTimeout(r, 30));
+  assert.match(box.querySelector('.guide-body').className, /guide-body-sm/, 'the size reaches slides drawn after the call returned');
+  box.remove();
+});

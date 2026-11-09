@@ -285,6 +285,8 @@ const STATE_SUBJECTS = [
   'Update activity cache (state/activity.json) via Actions',
   'Update file index (state/files.json)',
   'Update doc index (state/docs.json) via Actions',
+  'Update content index (state/content-index.json) via Actions',
+  'Update content index (state/content-index/mehrlander.home.0.json) via Actions',
   'Update config cache (state/configs.json)',
   'Update sessions cache (state/sessions.json) via Gemini daemon',
   'Update session menu index (state/session-menu.json)',

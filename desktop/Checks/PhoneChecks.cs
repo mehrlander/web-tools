@@ -76,5 +76,26 @@ static class PhoneChecks
             "The phone projects direct provider links for current local work and historical Claude records separately from Web Tools detail URLs.");
         check(linked.Changes?.Single(c=>c.Key.StartsWith("errand:")).SessionUrl is null,
             "An errand whose ID resembles a conversation UUID never gains a fabricated provider session link.");
+        var jobs = new[] { "Gemini", "Codex", "Claude" }.SelectMany(provider =>
+            new[] { "queued", "claimed", "reply", "complete" }.Select(state => job with {
+                Id = provider.ToLowerInvariant() + "-" + state, Provider = provider, State = state
+            })).ToList();
+        var routed = PhoneActivity.Create(snapshot with { Activity = snapshot.Activity with { Errands = jobs },
+            Sessions = new([], []), Cloud = new([], now, null) }, now);
+        check(routed.Items.Count == 12 && jobs.All(j => routed.Items.Any(i => i.Id == j.Id
+            && i.Provider == j.Provider && i.State == j.State && i.SessionUrl is null)),
+            "The phone projects every assistant's queued, claimed, arriving and completed errands without inventing conversation links.");
+        check(routed.Items.Where(i => i.Provider != "Gemini").All(i => i.Location == "")
+            && routed.Items.Where(i => i.Provider == "Gemini").All(i => i.Location == "Laptop"),
+            "Only the laptop-daemon method establishes an errand's execution location.");
+        check(routed.Items.All(i => i.Url == NavigationPolicy.ErrandUrl(i.Id, i.State is "reply" or "complete")),
+            "Every assistant's errand links to its matching Web Tools request or result.");
+        var journalPath = Path.Combine(Path.GetTempPath(), "errand-lanes-" + Guid.NewGuid().ToString("N") + ".json");
+        try {
+            var changes = new ChangeJournal(journalPath).Observe([], jobs, now);
+            check(jobs.All(j => changes.Any(c => c.Key == "errand:" + j.Id && c.Provider == j.Provider
+                && c.Location == j.Location && (!c.Detail.Contains("Gemini") || j.Provider == "Gemini"))),
+                "The saved change journal retains the assistant and avoids Gemini worker wording on other assistants' errands.");
+        } finally { File.Delete(journalPath); File.Delete(journalPath + ".tmp"); }
     }
 }

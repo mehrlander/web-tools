@@ -26,6 +26,7 @@ import { chromium } from 'playwright';
 import { typeFor, resolveCdn } from '../render/cdn.mjs';
 import JSZip from 'jszip';
 import { repoRoot as root } from '../repo-root.mjs';
+import { launch as launchChromium } from '../render/chromium.mjs';
 
 const failures = [];
 const ok = (n, c, d = '') => {
@@ -112,7 +113,7 @@ const handler = async route => {
   return route.fulfill({ status: 404, body: '' });
 };
 
-const browser = await chromium.launch({ args: ['--no-sandbox'] });
+const browser = await launchChromium({ args: ['--no-sandbox'] });
 const withPage = async (setup, fn, query = '') => {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
   await ctx.addInitScript(setup);

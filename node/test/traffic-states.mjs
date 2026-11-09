@@ -32,6 +32,7 @@ import path from 'node:path';
 import { readFileSync } from 'node:fs';
 import { chromium } from 'playwright';
 import { repoRoot as root } from '../repo-root.mjs';
+import { launch as launchChromium } from '../render/chromium.mjs';
 
 const BODY_BYTES = 20000;
 const body = '/*' + 'x'.repeat(BODY_BYTES) + '*/';
@@ -71,7 +72,7 @@ const noTao = await asset(false);
 const host = await pageOrigin();
 const url = s => 'http://127.0.0.1:' + s.address().port;
 
-const browser = await chromium.launch();
+const browser = await launchChromium();
 const page = await (await browser.newContext()).newPage();
 await page.goto(url(host) + '/');
 await page.addScriptTag({ content: readFileSync(path.join(root, 'lib/kits/traffic.js'), 'utf8') });

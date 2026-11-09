@@ -194,6 +194,28 @@ test('every value in a closed domain is in that domain', () => {
   }
 });
 
+// A column that holds another registry's keys names that registry in
+// `references`, and every value it holds must be one of them. Before the
+// declaration, a join was stated only in a gloss and checked one registry at a
+// time, where it was checked at all; declared, this one test holds every join,
+// and the Map view's Relations tab draws them from the same rows.
+test('every declared reference names a registry, and every value is one of its keys', () => {
+  for (const d of decls.filter(d => d.references)) {
+    const target = byRegistry.get(d.references);
+    assert.ok(target, `${d.registry}.${d.property}: references ${d.references}, which is not a registry`);
+    assert.ok(!target.key.includes('+'), `${d.references}: a reference needs a one-column key, not ${target.key}`);
+    const keys = new Set(registryRows(target).map(r => r[target.key]));
+    const source = byRegistry.get(d.registry);
+    for (const row of registryRows(source)) {
+      const cell = String(row[d.property] || '');
+      const vals = d.form === 'list' || d.exclusive === 'no'
+        ? cell.split(';').map(x => x.trim()).filter(Boolean) : [cell.trim()].filter(Boolean);
+      for (const v of vals) assert.ok(keys.has(v),
+        `${source.file}: ${d.property}="${v}" is not a key of ${target.file}, which it references`);
+    }
+  }
+});
+
 // `required` was the next unchecked claim after `why`, and the same audit found
 // the same shape of rot: 54 declarations said `value`, nothing read any of
 // them, and three were false. Two were tests fields that are blank on
@@ -352,7 +374,7 @@ test('a registry file is all recorded or all computed, or a named exception', ()
 // terms. The list is exact, so a further deletion fails here and says which
 // measurement still names the file; rerunning the pass empties it.
 const PINNED_BROKEN = {
-  'doc-overlap-docs': ['docs/forms/branch.md', 'docs/forms/session.md', ...['branches', 'chats', 'lists', 'map', 'project',
+  'doc-overlap-docs': ['docs/forms/branch.md', 'docs/forms/session.md', 'docs/venues.md', ...['branches', 'chats', 'lists', 'map', 'project',
     'proposals', 'repos', 'search', 'sessions', 'state', 'tending', 'tools', 'writes'].map(v => `docs/views/${v}.md`)],
 };
 // A key may also name a file git ignores, which exists only once something has

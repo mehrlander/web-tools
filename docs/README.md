@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `node/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 16 are named by CLAUDE.md,
-22 by a skill, 41 by a page or component. The remaining 35 are
+22 by a skill, 44 by a page or component. The remaining 38 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -63,13 +63,12 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`text-tools.md`](text-tools.md) *(orphan)* — the FAB's Text tab: why it exists, why the join is the path rather than a term, and an assessment of what it is not
 - [`themes.csv`](themes.csv) *(measured)* — the duplication graph as committed data: every pair of markdown files sharing at least three ten-word windows, weighted, with the repeated passages themselves. Clusters of it are the Map view's themes, and which clusters exist is a function of the weight threshold, so the payload carries every edge and the reader carries the dial
 - [`tools.csv`](tools.csv) — which pages the Tools view shows, and the icon each is given
-- [`venues.md`](venues.md) *(measured)* — the venue map: the places agent work can run, what each reaches, and which programs there run attended
 - [`vocabularies.csv`](vocabularies.csv) — what each value of a closed domain means, one row per value
 - [`direct-to-main.csv`](direct-to-main.csv) — the writers that commit straight to main, and the paths each one owns
 - [`assistant-branches.csv`](assistant-branches.csv) — branches whose author is declared by a row, not read off a prefix or trailer, with the basis for each claim
 - [`subjects.csv`](subjects.csv) — the object types: what is on screen, what carries each, and how the address gives it away
 - [`annotation.md`](annotation.md) *(orphan)* — annotating a document: the standoff format, the audit page, the pass, and the edit rules, for any vocabulary
-- [`run-methods.csv`](run-methods.csv) *(orphan)* — how a person runs an errand's script: the venues each method allows and how its output returns
+- [`run-methods.csv`](run-methods.csv) — how a person runs an errand's script: the machines each method allows and how its output returns
 - [`csv-census.md`](csv-census.md) — the per-repository tracked-CSV inventory: adoption, index measurements and Map reading
 - [`locators.md`](locators.md) — locators: the kinds, the container-and-part canonical form, inbound lookup, and how a reference is tested (broken or changed, follow or pin, the hash cascade, verdicts, cost tiers)
 - [`fab.md`](fab.md) — the FAB: what it signals, its sidebar's six tabs, its menus, and the one-per-viewport rule
@@ -87,7 +86,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`writers.csv`](writers.csv) — every program that commits to an estate repository: what starts it, the machine it runs on, and where and how it sets
 - [`context-links.csv`](context-links.csv) — the directed delivery connections between Context sources and the conditions on each connection
 - [`idea-board.md`](idea-board.md) — the idea board form: one design-sprint Crazy 8s board, its addresses, fields and sketch rules
-- [`house-policies.md`](house-policies.md) — the house policies: one entry per policy, each a preference with its scope, its shortcuts and a link to the document that holds its detail
+- [`house-policies.md`](house-policies.md) — the house policies: one entry per policy, each a preference with its h: name and a link to the document that holds its detail
 - [`css-baseline.csv`](css-baseline.csv) *(measured)* — the CSS baseline: the most unexempt hand-written CSS declarations each file may carry, a ratchet on the house rule against vanilla CSS
 - [`hook-events.csv`](hook-events.csv) — every event Claude Code accepts a hook on, with the summary its /hooks menu gives
 - [`source-bundles.md`](source-bundles.md) *(orphan)* — the shared source-bundle convention: what a bundle is, its README frontmatter, the two tables and how a repository declares them
@@ -97,6 +96,9 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`icon-families.csv`](icon-families.csv) — the icon families: each set of icons the estate has settled on, the file that declares its members, and the passage that discusses them
 - [`fab-signals.csv`](fab-signals.csv) — what the FAB says: each tint, glyph and badge it shows, when it shows, what it means and what a tap does
 - [`tests-authored.csv`](tests-authored.csv) — whether each test checks behavior or is a gate, and what breaks if it is deleted
+- [`credentials.csv`](credentials.csv) — the credentials writers commit with, one row each: its kind, the venue that holds it and whose name its commits carry
+- [`machines.csv`](machines.csv) — the machines work runs on, one row per machine: what each is and what work there reaches
+- [`machines.md`](machines.md) *(measured)* — dated observations about the machines docs/machines.csv lists: what each product needs to keep running, and where unattended work fits
 
 ## docs/envelopes/
 
@@ -154,6 +156,10 @@ marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/prototypes/
 
+- [`content-maturity-ideas.json`](prototypes/content-maturity-ideas.json) *(record, orphan)* — the idea board for a diagram of content maturity: eight ways to draw four levels from Markdown notes to a view in the app, and the staircase selected with three grafts
 - [`md-edit-ideas.json`](prototypes/md-edit-ideas.json) *(record, orphan)* — the idea board for the Markdown section editor: eight concepts drawn over the Intake section of docs/stage.md, and the selection the two built editors came from
+- [`harness-map-ideas.json`](prototypes/harness-map-ideas.json) *(record, orphan)* — the idea board for the harness picture: eight ways to draw how writers, the credentials they commit with and the machines they run on reach GitHub, and the selection docs/prototypes/harness-map.html builds
+- [`model-diagram-ideas.json`](prototypes/model-diagram-ideas.json) *(record, orphan)* — the idea board for redrawing the Map's Model diagram: eight ways to show a reader new to the codebook what a unit, its pattern, parts and frame codes are, drawn on the Docs tab, and the selection
+- [`model-diagram-redraw.json`](prototypes/model-diagram-redraw.json) *(record, orphan)* — the second idea board for the Map's Model diagram: five ways to draw the taxonomy of screen, chrome, content, unit, collection, item, field and overlay on the Docs tab, and the selection
 - [`program-icons-ideas.json`](prototypes/program-icons-ideas.json) *(record, orphan)* — the idea board for program icons: eight family cues that mark an icon as a program's rather than a project's, drawn for Surfacing and Testing, and the selection docs/prototypes/program-icons-options.html builds six of
 - [`ui-concepts-ideas.json`](prototypes/ui-concepts-ideas.json) *(record, orphan)* — the idea board for a diagram of the UI concepts: eight ways to draw how Alpine components, kits, units, patterns, parts and slots relate, and the selection

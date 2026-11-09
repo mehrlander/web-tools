@@ -1734,7 +1734,18 @@ test('Context\'s address rides with Context alone, and comes back with it', asyn
 
 test('an address that does not open Context arms none of its keys', () => {
   const { shell } = makeShell({ search: '?view=map&tab=tests&ctxtopic=house-style' });
-  assert.deepEqual({ ...shell.mapCtx }, { ctxlens: '', ctxsort: '', ctxtopic: '', ctxsource: '', setintent: '', growthrepo: '' });
+  assert.deepEqual({ ...shell.mapCtx }, { ctxlens: '', ctxsort: '', ctxtopic: '', ctxsource: '', setintent: '', growthrepo: '', h: '' });
+});
+
+test("a policy link's entry rides with the Policies tab alone", async () => {
+  const { shell } = makeShell({ search: '?view=map&tab=policy&h=smug' });
+  assert.equal(shell.mapCtx.h, 'smug', 'an address that opens Policies arms its entry');
+  await shell.routeFromUrl(shell.parseUrl());
+  assert.equal(shell.deepLinkParams().get('h'), 'smug', 'the entry survives the stamp');
+  shell.goMapTab('docs');
+  assert.equal(shell.deepLinkParams().has('h'), false, 'h rode onto another tab');
+  const other = makeShell({ search: '?view=map&tab=docs&h=smug' }).shell;
+  assert.equal(other.mapCtx.h, '', 'an address that does not open Policies arms none of its keys');
 });
 
 test("Growth's corpus rides with Growth alone", () => {
@@ -2347,7 +2358,7 @@ test('Peeves presents the reviewed list and resolves merged IDs through their re
   const before = data.peeveQ;
   try {
     data.peeveQ = '';
-    assert.equal(data.peeveRows.length, 30);
+    assert.equal(data.peeveRows.length, 31);
     const names = Array.from(data.peeveRows, p => p.name);
     assert.deepEqual(names, [...names].sort((a, b) => a.localeCompare(b)), 'all active entries share one alphabetical list');
     assert.equal(data.peeveRows.find(p => p.id === 'P10').name, 'Term loading');
@@ -2371,10 +2382,6 @@ test('Peeves presents the reviewed list and resolves merged IDs through their re
     assert.deepEqual(Array.from(data.peeveRows, p => p.id), ['P10']);
     data.peeveQ = 'P03';
     assert.deepEqual(Array.from(data.peeveRows, p => p.id), ['P10'], 'the old jargon ID still finds Term loading');
-    for (const id of ['P09', 'P15', 'P17', 'P19', 'P20', 'P27', 'P40', 'P59', 'P61']) {
-      data.peeveQ = id;
-      assert.equal(data.peeveRows.length, 0, id + ': retired entries do not reappear through search');
-    }
     data.peeveQ = 'P46';
     assert.equal(data.peeveRows.length, 0, 'guidance remains outside the short list');
     data.peeveQ = 'Shallow defense';

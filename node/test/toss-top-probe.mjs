@@ -17,6 +17,7 @@ import { readFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 import { resolveCdn, typeFor } from '../render/cdn.mjs';
 import { repoRoot as root } from '../repo-root.mjs';
+import { launch as launchChromium } from '../render/chromium.mjs';
 
 const server = http.createServer(async (req, res) => {
   const rel = decodeURIComponent(req.url.split('?')[0]).replace(/^\//, '');
@@ -25,7 +26,7 @@ const server = http.createServer(async (req, res) => {
 });
 await new Promise(r => server.listen(0, '127.0.0.1', r));
 const origin = `http://127.0.0.1:${server.address().port}`;
-const browser = await chromium.launch({ args: ['--no-sandbox'] });
+const browser = await launchChromium({ args: ['--no-sandbox'] });
 
 async function open(url) {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });

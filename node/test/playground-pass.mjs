@@ -5,9 +5,10 @@
 // pointer events. Prints a JSON result; nonzero exit on any failure.
 import { chromium } from 'playwright';
 import path from 'node:path';
+import { launch as launchChromium } from '../render/chromium.mjs';
 
 const page_url = 'file://' + path.resolve('pages/console-playground.html');
-const browser = await chromium.launch();
+const browser = await launchChromium();
 const page = await browser.newPage({ viewport: { width: 1000, height: 900 } });
 await page.goto(page_url);
 await page.waitForSelector('#feed .feed-row');
