@@ -14,6 +14,4 @@ A script outside `lib/` goes with its caller.
 - A script kept only to explain a probe stays with the probe's findings.
 - Anything else goes in `python/` or `node/` by language.
 
-**Covers:** web-tools.
-
 **Detail:** [code-layers.md](https://github.com/mehrlander/web-tools/blob/main/docs/code-layers.md), "Outside `lib/`".
