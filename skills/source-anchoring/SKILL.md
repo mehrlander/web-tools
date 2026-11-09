@@ -32,7 +32,7 @@ Commit what claims are checked against as a diffable file:
 
 ## Claims in prose
 
-Figures announce themselves; characterizations, causes, superlatives and attributions hide. Use source-anchored-writing's provenance states: restatement is Supported; stitching is Inferred, and the note says so. Inventory a long document with atomic-decomposition first.
+Figures announce themselves; characterizations, causes, superlatives and attributions hide. Use source-anchored-writing's provenance states: restatement is Supported; stitching is Inferred, and the note says so. Inventory a long document with outlining's claims first.
 
 ## Avoid
 
