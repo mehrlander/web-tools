@@ -26,6 +26,7 @@ import { readFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 import { typeFor } from '../render/cdn.mjs';
 import { repoRoot as root } from '../repo-root.mjs';
+import { launch as launchChromium } from '../render/chromium.mjs';
 
 
 const failures = [];
@@ -44,7 +45,7 @@ const server = http.createServer(async (req, res) => {
 await new Promise(r => server.listen(0, '127.0.0.1', r));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
-const browser = await chromium.launch({ args: ['--no-sandbox'] });
+const browser = await launchChromium({ args: ['--no-sandbox'] });
 const page = await browser.newPage();
 const errors = [];
 page.on('pageerror', e => errors.push(String(e.message)));

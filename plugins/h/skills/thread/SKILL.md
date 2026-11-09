@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 <!-- Generated from docs/house-policies.md by node/build/policy-skills.mjs; do not hand-edit. -->
 
-# Main thread · `/h:thread`
+# Main thread · `h:thread`
 
 Keep the reader's main question in view.
 

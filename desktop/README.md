@@ -2,15 +2,14 @@
 
 A Windows desktop version of [Web Tools](https://mehrlander.github.io/web-tools/app/).
 The Web Tools tab loads the deployed app directly. The Now tab brings current
-assistant work, the Gemini queue and recent results together. An activity strip
+assistant work, assistant errand queues and recent results together. An activity strip
 stays visible above either tab.
 
 ## First version
 
 - Codex, Gemini and Claude lanes with shared assistant marks, session names,
   activity states, timestamps and explicit Laptop or Cloud labels.
-- Gemini worker queue: waiting errands in request order, claimed work, arriving
-  replies, and distinct empty, unavailable and saved-snapshot states.
+- Assistant errand queues: waiting errands in request order, claimed work and arriving replies. The Gemini worker card distinguishes empty, unavailable and saved-snapshot states.
 - Recent results with local output folders
   and the corresponding Web Tools errand one click away.
 - Gemini worker process detection and the last local log write time.
@@ -138,7 +137,7 @@ open the existing hosted app, with that browser's own Web Tools authentication.
 `WebTools.Companion` listens only at `127.0.0.1:47831`. Tailscale Serve proxies that
 listener and supplies the owner's identity header. The companion accepts the owner
 identity or a per-user local bearer, validates the Host and Origin, disables HTTP
-caching, and offers no CORS access. Only the six Stereo Bridge actions accept POST,
+caching, and offers no CORS access. Stereo Bridge actions and repository fetches accept POST,
 with a deliberate-action header and a same-origin browser request. Other Tailscale identities are
 denied. The desktop-only route requires the local bearer even through Serve.
 Access settings, including the bearer, live in `companion-access.json` beside
@@ -152,13 +151,18 @@ desktop settings; those settings never enter API responses or tracked files.
 - `GET /api/v1/computer`: current Windows session state, machine measurements and
   grouped desktop application windows, with a separate window-observation time.
 - `GET /api/v1/devices`: Stereo Bridge's current media and playback capabilities.
+- `GET /api/v1/repositories`: local checkout state, dated GitHub comparisons and
+  local file inventories.
+- `GET /api/v1/files?path=<relative-folder>`: immediate folder contents beneath the configured repositories root, with names, Git status and file sizes. An empty path lists the root.
+- `POST /api/v1/repositories/<key>/fetch`: queue a fetch for a discovered repository,
+  or `all`, without integrating changes into any working branch.
 - `POST /api/v1/devices/stereo/<action>`: previous, play-pause, next, volume-down,
   mute or volume-up. Controls require the same owner access as observations.
 - `GET /api/v1/desktop`: full desktop snapshot for the authenticated local app.
 
 ### Computer view
 
-The phone's title menu switches between Now, Computer and Devices, retaining each view's
+The phone's title menu switches between Now, Computer, Devices and Files, retaining each view's
 reading position. Computer shows application icons, names and window counts;
 tapping an app reveals its window titles and minimized state. The companion
 enumerates top-level desktop windows in its own Windows session every five
@@ -195,6 +199,16 @@ caches, without reloading an open page or caching private API bodies.
 Stereo Bridge must already be running on the laptop. While Devices is visible, the phone polls the companion every two seconds. The companion reads Stereo Bridge's fixed loopback API on port 45831, showing the current track, player, timeline and available playback controls. Volume and mute affect Windows' selected audio output; no numeric volume or output-device reading is available. Tailscale carries the control requests. Phone audio still needs the existing Bluetooth connection.
 
 The adapter disables redirects, bounds responses and omits native errors. Unavailable or stale observations disable controls. Actions run once, without retries, offline replay or a command queue; an unconfirmed response stays labeled. The interface distinguishes a reachable Bridge with no media from an unavailable Bridge. Roku discovery and control are not included in this version.
+
+### Files view
+
+Files groups working folders by repository at the configured root, showing each repository's default-branch folder first when available. An icon/count control reveals secondary work folders; Other files holds remaining root entries. Search includes collapsed folders. Top-level rows on the default branch omit branch labels and zero commit counts; their repository icon opens the folder name, branch, comparison and check time. Other Git working folders retain branch labels. The companion reads branch, working-file and commit differences every ten seconds. Named branches compare with the same-named GitHub branch when present, otherwise their configured GitHub upstream. Touch or keyboard focus on an arrow or warning symbol identifies the comparison branch, any different configured upstream, condition and GitHub check time. Comparisons that cannot establish counts use a warning symbol. The branch icon opens the observed PR state or inclusion in the GitHub default branch; a merged PR with unverified local inclusion remains flagged for review. Detached working folders compare with the GitHub default branch and are identified as snapshots when their commits are verified in that history. PR observations refresh with GitHub checks and retain their own last-successful time.
+
+The companion fetches on startup and every five minutes. The root refresh icon checks all GitHub repositories; working folders with a GitHub origin have a vertical menu offering Check GitHub and Open on GitHub. The GitHub link selects the comparison branch when available. Fetches use explicit remote-tracking destinations, skip tags, pruning, submodules and automatic maintenance, and leave the working branch, index and files unchanged. Failed checks retain their previous successful time and a notice in the comparison tooltip. The phone polls every three seconds while the view is visible and disables check controls when its observation is stale or offline. Fetch reads GitHub changes; pull integrates changes into a working branch. Working folder synchronization offers fetch only. Git credentials, full filesystem paths, file contents and raw Git diagnostics stay outside the phone projection.
+
+The companion inventories ignored and untracked entries on a separate loop from Git comparisons, waiting a minute after each completed scan. Local status icons show compact counts for changed tracked files, untracked files and ignored inventory entries; their panels retain exact counts, conflicts and inventory shortcuts. The explorer has breadcrumbs, search and All, Tracked, Untracked and Ignored filters. All lists immediate children; a Tracked folder contains tracked files. Ignored and Untracked also surface nested entries from the bounded local inventory, retaining measured folder sizes and file counts. Listings skip links and Git administrative entries and label incomplete scans. Folder listings refresh separately while visible, preserving search, focus and reading position. The root and last visited listings remain locally available when offline. File contents and file-changing actions are unavailable.
+
+The Files inventory loop also publishes [`state/laptop-files.tsv`](https://github.com/mehrlander/web-tools-private/blob/background/state/laptop-files.tsv) to the private checkout's `background` branch so cloud sessions can see local material. The collector uses directory/stat metadata and Git index, ignore and reference metadata without opening working-file contents. Tracked filenames stay out of the TSV; folder totals include them. The collector collapses `node_modules`, `.venv`, `venv`, `__pycache__`, `.pytest_cache` and ignored `bin`/`obj` trees to one measured row each. Paths are relative to the configured root (`.` names the root), and unavailable totals stay blank. The writer makes a normal commit only when content changes, at most once per fifteen minutes, and retries concurrent updates without force-pushing. The private checkout's branch, index and working files remain unchanged.
 
 ### Account usage
 
@@ -264,7 +278,7 @@ Usage files remain beside the companion settings in `usage.json` and
 `usage-inputs/claude.json`. No credential, transcript, account identifier or raw
 provider error enters the usage projection. Missing fields never imply zero.
 
-The phone projection omits request notes, filesystem fields, downloads and native
+The activity projection omits request notes, filesystem fields, downloads and native
 actions. Polling uses conditional GET every two seconds in the foreground, pauses
 when hidden, refreshes immediately on return, and backs off to fifteen seconds on
 failure. The phone distinguishes local observation, Git synchronization and captured
@@ -302,6 +316,7 @@ The reader fetches the private checkout's `background` branch. It reads requests
 at one immutable Git revision through `ls-tree` and `cat-file --batch`. Fetch
 updates `origin/background` and, for cloud records, `origin/main`; the checkout, index, local edits, and checked-out
 branch are untouched.
+The request's `run.method` assigns its assistant lane: `laptop-daemon` to Gemini, `codex-errand` to Codex, and `claude-errand` to Claude. Unknown methods are skipped. All three methods use the same request, claim and result shape. The method identifies the assistant, not continued execution or the machine running Codex or Claude. The Gemini worker card counts only Gemini errands.
 The latest eighty request filenames and every unresolved request are available;
 the list shows forty matching entries at once. Recent activity remains visible
 as the feed updates, without an acknowledgement step.

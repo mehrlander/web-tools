@@ -45,6 +45,7 @@ the link-dense text twin of the visual index above.
 | `pivot-table` | Excel Pivot Table Viewer | [view](https://mehrlander.github.io/web-tools/pages/pivot-table.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/pivot-table.html) |
 | `probe-snap` | Probe snap | [view](https://mehrlander.github.io/web-tools/pages/probe-snap.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/probe-snap.html) |
 | `probe-window` | Probe window | [view](https://mehrlander.github.io/web-tools/pages/probe-window.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/probe-window.html) |
+| `reception` | Reception | [view](https://mehrlander.github.io/web-tools/pages/reception.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/reception.html) |
 | `repo-atlas` | Repo Atlas | [view](https://mehrlander.github.io/web-tools/pages/repo-atlas.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/repo-atlas.html) |
 | `review` | Review | [view](https://mehrlander.github.io/web-tools/pages/review.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/review.html) |
 | `session` | Session | [view](https://mehrlander.github.io/web-tools/pages/session.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/session.html) |
@@ -53,6 +54,7 @@ the link-dense text twin of the visual index above.
 | `shortcut-run` | Run Shortcut | [view](https://mehrlander.github.io/web-tools/pages/shortcut-run.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/shortcut-run.html) |
 | `shortcuts` | Workflows | [view](https://mehrlander.github.io/web-tools/pages/shortcuts.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/shortcuts.html) |
 | `shorter` | Shorter | [view](https://mehrlander.github.io/web-tools/pages/shorter.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/shorter.html) |
+| `swarm` | Reduction swarm | [view](https://mehrlander.github.io/web-tools/pages/swarm.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/swarm.html) |
 | `text-lab` | Text Lab | [view](https://mehrlander.github.io/web-tools/pages/text-lab.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/text-lab.html) |
 | `toss-render` | Toss Render | [view](https://mehrlander.github.io/web-tools/pages/toss-render.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/toss-render.html) |
 | `transform` | Transform | [view](https://mehrlander.github.io/web-tools/pages/transform.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/transform.html) |

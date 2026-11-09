@@ -1,33 +1,10 @@
 # House policies
 
-These policies set out the owner's preferences and conventions, organized by principle. They are meant to be memorable and cited, the way WP:NPOV is cited on a Wikipedia talk page.
-
-## Policies
-
-### Policy entries · `/h:policy`
-
-A policy states a preference that holds across tasks, in wording the owner approved, with the cases it covers.
-
-- An entry gives the preference and its scope, and links to the document that holds procedure and detail; neither restates the other.
-- A session commits proposed wording on its branch, shows the owner the commit's diff in chat, and merges it only after the owner approves it.
-- A policy gets a document of its own only after its entry has been misapplied twice.
-- A shortcut names a preference or a bounded topic. A policy has one command, its slashed shortcut, and may list aliases without the slash; no shortcut is reused.
-- Cite an entry by its shortcut, a slash command such as `/h:qualify`. After the first mention in a document or reply, `h:qualify` alone is enough.
-- A shortcut is an address, not a summary: read the entry before applying it.
-
-**Covers:** this document, and the repo-specific policies under `/h:local`.
-
-### Repo-specific policies · `/h:local`
-
-A policy for one public repo is an entry in this document whose scope names that repo.
-
-- A private repo keeps its policies in its own CLAUDE.md, because this document is public.
-
-**Covers:** every repo whose sessions load this document.
+Each policy states a single preference. A policy that applies only to a private repo goes in that repo's CLAUDE.md.
 
 ## Writing
 
-### Qualified writing · `/h:qualify`, `h:qw`
+### Qualified writing · `h:qualify`
 
 Qualify noun phrases, and introduce each referent before referring to it, so that a reader who has not followed the conversation can identify every subject.
 
@@ -35,22 +12,15 @@ Qualify noun phrases, and introduce each referent before referring to it, so tha
 
 **Detail:** [QUALIFIED-WRITING.md](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md), rules 1, 4 and 5.
 
-### Precise register · `/h:precise`, `h:slang`
+### Precise register · `h:precise`
 
 Use the standard term a general reader knows, in a plain, dry register.
-
-- Avoid slang, coined labels and figurative names.
-- Avoid informal tone with any hint of soapboxing.
-- Before denying something with *no* on a verb's object or with *nothing* or *none*, as in "draws no underline" or "nothing opens it" (no-negation), ask whether the reader expected it; if not, say what happens instead or cut the sentence.
-- Give one thing one name: its file name, label and title match.
-- Write "always" or "never" only where it can be checked, not for emphasis.
-- Name the exact file, column, count or command rather than referring to it in general.
 
 **Covers:** all prose a session writes, and the names it gives files, labels and concepts.
 
 **Detail:** [QUALIFIED-WRITING.md](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md), rule 2.
 
-### No em dashes · `/h:dash`, `h:emdash`
+### No em dashes · `h:dash`
 
 Join ideas with a colon, a comma, a semicolon, parentheses or a new sentence, not a dash.
 
@@ -63,13 +33,13 @@ Join ideas with a colon, a comma, a semicolon, parentheses or a new sentence, no
 
 **See also:** [peeves](https://github.com/mehrlander/web-tools/blob/main/skills/peeves/peeves.csv) P64, percussive negation and contrast.
 
-### Avoid smug so · `/h:smug`
+### Avoid smug so · `h:smug`
 
 A sentence that turns on "so" often presents one cause as forcing one result. Avoid the form, and check examples you find for cause to remove or trim.
 
 **Covers:** all prose a session writes.
 
-### Showing · `/h:show`
+### Showing · `h:show`
 
 Show rather than explain.
 
@@ -77,9 +47,9 @@ Show rather than explain.
 - Include a screenshot or a measurement rather than describe behavior.
 - Let structure and labels carry relationships rather than explanatory prose.
 
-**Covers:** replies, documents and pages; for pages, `/h:style`.
+**Covers:** replies, documents and pages.
 
-### Main thread · `/h:thread`
+### Main thread · `h:thread`
 
 Keep the reader's main question in view.
 
@@ -91,7 +61,7 @@ Keep the reader's main question in view.
 
 **Detail:** [QUALIFIED-WRITING.md](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md), rule 3.
 
-### What earns space · `/h:critical`, `h:oe`
+### What earns space · `h:critical`
 
 In a document that future sessions read to decide what to do, include content only where it changes what the reader does.
 
@@ -103,7 +73,7 @@ In a document that future sessions read to decide what to do, include content on
 
 **Detail:** [doc-craft](https://github.com/mehrlander/web-tools/blob/main/skills/doc-craft/SKILL.md), its opening and "General Principles"; web-tools [CLAUDE.md](https://github.com/mehrlander/web-tools/blob/main/CLAUDE.md) for the check before adding.
 
-### Stay current · `/h:current`
+### Stay current · `h:current`
 
 Living text says what is true now; history goes to the records built to hold it.
 
@@ -113,23 +83,9 @@ Living text says what is true now; history goes to the records built to hold it.
 
 **Covers:** code comments, docs, skills, CLAUDE.md, AGENTS.md and PR descriptions; not dated records, which are history by design.
 
-## Pages
-
-### Page house style · `/h:style`
-
-A page follows the house style, which takes precedence over any general design, dashboard or charting skill.
-
-- Content uses the full width at reading size; text is not narrowed to a reading column.
-- Structure and labels carry relationships in place of explanatory prose.
-- A page carries no stat cards.
-
-**Covers:** every HTML page and artifact.
-
-**Detail:** [html-style](https://github.com/mehrlander/web-tools/blob/main/skills/html-style/SKILL.md).
-
 ## Handover
 
-### Links · `/h:link`
+### Links · `h:link`
 
 Link every file, pull request, session and page a reply mentions.
 
@@ -140,7 +96,7 @@ Link every file, pull request, session and page a reply mentions.
 
 **Detail:** [CONVERSATION.md](https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md), "Reference is a link"; in web-tools, [showing.md](https://github.com/mehrlander/web-tools/blob/main/docs/showing.md) and `npm run showing`.
 
-### Merged means closed · `/h:merged`
+### Merged means closed · `h:merged`
 
 A merged branch takes no further commits; follow-up work starts again from the current tip of the target branch and opens a new pull request.
 
@@ -150,7 +106,7 @@ A merged branch takes no further commits; follow-up work starts again from the c
 
 ## Evidence and confidence
 
-### Look first · `/h:look`
+### Look first · `h:look`
 
 Observe before explaining.
 
@@ -160,7 +116,7 @@ Observe before explaining.
 
 **Covers:** diagnosis, and any claim about how something behaves.
 
-### Checking · `/h:check`
+### Checking · `h:check`
 
 Verify a claim with a check that could have failed.
 
@@ -170,7 +126,7 @@ Verify a claim with a check that could have failed.
 
 **Covers:** claims about files, behavior, tests, links and CI.
 
-### Hedging · `/h:hedge`
+### Hedging · `h:hedge`
 
 State confidence as it is.
 
@@ -181,7 +137,11 @@ State confidence as it is.
 
 **Covers:** replies, findings and PR bodies.
 
-### Unapproved text · `/h:salt`
+### Calibrate frequency claims · `h:calibrate`
+
+Use the least sweeping claim sufficient to support the conclusion. Overstatement raises qualms about accuracy, shifting attention from the argument. It can also obscure the threshold at which the conclusion follows. A narrower claim often clarifies and solidifies the whole. Use stronger claims when the conclusion rests on prevalence. In every case, stay within the evidence.
+
+### Unapproved text · `h:salt`
 
 Treat repo text whose wording the owner has not approved as a candidate reading of the owner's preference, not as the owner's decision.
 
@@ -193,21 +153,24 @@ Treat repo text whose wording the owner has not approved as a candidate reading 
 
 ## Authority
 
-### Who decides · `/h:who`
+### Be bold · `h:bold`
 
-The session settles questions of fact and finishes requested work without asking permission; the owner holds the decisions below.
+Advance the work as far as sound judgment permits. Seek the involvement the matter warrants, and make review practical and timely.
 
-- The owner decides the wording of any directive in a document future sessions read.
-- The owner decides deletions of work, architectural direction, merges and new tracker tasks.
-- The owner can hand any of these decisions to the session for the work at hand.
-- When the owner asks to explain, discuss, assess or propose, answer in chat and change nothing until told to proceed.
-- When a decision is the owner's, bring it with the evidence and one recommendation, not a menu.
+Owner involvement runs a spectrum:
 
-**Covers:** every session.
+- Act: Exercise your judgment and proceed.
+- Inform: Proceed and make the work known.
+- Request approval: Present a developed course for authorization.
+- Request direction: Seek substantive judgment about which course to take.
 
-**Detail:** [tend](https://github.com/mehrlander/web-tools/blob/main/skills/tend/SKILL.md), principle 2.
+Careful use of closing state markers helps involve the owner efficiently, and especially use of 🟢 where direction has already been settled and only a prod is needed (the anti-pattern is where every turn ends with an open ended question of what if anything to do next).
 
-### Speaking about rules · `/h:defer`
+Common cases that are found to benefit from owner attention are set up with a form to elicit the call efficiently.
+
+**Detail:** [tend](https://github.com/mehrlander/web-tools/blob/main/skills/tend/SKILL.md#principles), especially "Prepare the calls"; [Conversation](https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md#every-reply), closing states; [doc-craft](https://github.com/mehrlander/web-tools/blob/main/skills/doc-craft/SKILL.md#review), documentation review and approval.
+
+### Speaking about rules · `h:defer`
 
 When a rule bears on what the owner has asked, quote it, name its source, and offer a reading labeled as a reading.
 
@@ -216,7 +179,7 @@ When a rule bears on what the owner has asked, quote it, name its source, and of
 
 **Covers:** replies that cite a rule, policy or convention.
 
-### Verdict language · `/h:verdict`, `h:ruling`
+### Verdict language · `h:verdict`
 
 Report what a source says and what was observed, not a verdict on either.
 
@@ -225,7 +188,7 @@ Report what a source says and what was observed, not a verdict on either.
 
 **Covers:** replies, findings and PR bodies that report on a source, a tool's output or an analysis.
 
-### Weighing a found rule · `/h:weigh`
+### Weighing a found rule · `h:weigh`
 
 When a rule found in a repo conflicts with what the owner has said in the conversation, the owner's statement governs.
 
@@ -235,19 +198,9 @@ When a rule found in a repo conflicts with what the owner has said in the conver
 
 **Covers:** every session.
 
-### Raising a tension · `/h:raise`
-
-Raise a tension when it bears on the decision at hand.
-
-- Name the tension, quote both sides, recommend, and follow the owner's call.
-- Once the owner has decided or corrected something, concede and fix it; do not reargue it with new measurements or precedent.
-- Do not present nuance as a correction.
-
-**Covers:** replies.
-
 ## Code placement
 
-### Library folders · `/h:place`
+### Library folders · `h:place`
 
 A file under `lib/` goes in the folder named by what it attaches to.
 
@@ -260,18 +213,7 @@ A file under `lib/` goes in the folder named by what it attaches to.
 
 **Detail:** [code-layers.md](https://github.com/mehrlander/web-tools/blob/main/docs/code-layers.md), its table and "Cases the table does not settle", checked by `node/test/code-layers.test.mjs`.
 
-### Kits · `/h:kit`
-
-A kit registers one `window` namespace.
-
-- A kit loads through `gh.load`, so it has no top-level `import` or `export`.
-- A kit that needs Alpine reactivity gets a component wrapper rather than becoming a component.
-
-**Covers:** web-tools.
-
-**Detail:** [lib/kits/README.md](https://github.com/mehrlander/web-tools/blob/main/lib/kits/README.md), "Shape rules"; [code-layers.md](https://github.com/mehrlander/web-tools/blob/main/docs/code-layers.md), "Cases the table does not settle".
-
-### Scripts · `/h:tool`
+### Scripts · `h:tool`
 
 A script outside `lib/` goes with its caller.
 
@@ -283,7 +225,7 @@ A script outside `lib/` goes with its caller.
 
 **Detail:** [code-layers.md](https://github.com/mehrlander/web-tools/blob/main/docs/code-layers.md), "Outside `lib/`".
 
-### Edit the source · `/h:source`
+### Edit the source · `h:source`
 
 Change a generated file by changing its source and running its generator.
 

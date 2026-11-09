@@ -167,7 +167,7 @@ test('the repo narrows no text to a reading column', () => {
 // describing a gate that does not exist.
 test('the skill names exactly the sizes the scanner enforces', () => {
   const skill = readFileSync(path.join(repoRoot, 'skills', 'html-style', 'SKILL.md'), 'utf8');
-  const rule = skill.split('**3. Don\'t narrow text to a reading column.**')[1].split('**4.')[0];
+  const rule = skill.split('**3. ')[1].split('**4.')[0];
   for (const cls of ['max-w-prose', 'max-w-2xl', 'max-w-3xl', 'max-w-4xl', 'container mx-auto', 'max-w-none']) {
     assert.ok(rule.includes(cls), `rule 3 does not name ${cls}`);
   }
@@ -224,7 +224,7 @@ test('the arbitrary form takes the same opt-out as the named one', () => {
 
 test('rule 3 names the arbitrary form, since the gate now refuses it', () => {
   const skill = readFileSync(path.join(repoRoot, 'skills', 'html-style', 'SKILL.md'), 'utf8');
-  const rule = skill.split('**3. Don\'t narrow text to a reading column.**')[1].split('**4.')[0];
+  const rule = skill.split('**3. ')[1].split('**4.')[0];
   for (const cls of ['max-w-[64ch]', 'max-w-[920px]']) {
     assert.ok(rule.includes(cls), `rule 3 does not name ${cls}`);
   }
