@@ -27,7 +27,7 @@ what?", then give the compared things one place:
 
 ## The rules
 
-**1. No stat cards.** A row of tiles, each a label over a big number, spends the page's best space on figures with no comparison, baseline, denominator, or movement. Put a headline figure in the header as one compact line, such as `62/100 category · 35/100 systems`, and supporting analysis in a panel-tip. Where figures deserve room, give them a form that holds a comparison. Treat any `stats`, `stat-value`, or KPI-tile grid as a defect.
+**1. No stat cards.** A row of tiles, each a label over a big number, spends the page's best space on figures with no comparison, baseline, denominator, or movement. Show a count with the content or controls that give it context. Filter pills can be especially effective to associate counts with the categories and units that they speak to.
 
 **2. No explanatory prose.** GitHub doesn't explain and neither should we. Use
 structure, labels, and controls to show relationships: a range control starting
@@ -51,14 +51,14 @@ line or the line above.
 `fixed inset-0 grid grid-rows-[auto_1fr_auto]`:
 
 ```text
-├── header   identity, compact figure, controls, counter
+├── header   identity, controls, counter
 ├── content  the thing; large, top-aligned, scrollable
 └── footer   previous, progress, next
 ```
 
 The shape is a default, and a page is **content-sensitive**: a slot the content
-would leave empty, such as a header figure the data does not have or a footer
-for a single item, is left out rather than filled with boilerplate. Use dots for
+would leave empty, such as a footer for a single item, is left out rather than
+filled with boilerplate. Use dots for
 up to about 25 items, then a progress bar. Support arrow keys, Escape, and the
 phone back button. Give each filter a row under the header: a label, then its
 options as pills on one line that scrolls sideways rather than wrapping. Don't
