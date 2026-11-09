@@ -403,3 +403,23 @@ test('a web-tools page is judged against its own ref, and a page with no loader 
   assert.equal(bare.at(-1).lib, null);
   assert.equal(d.layerLibWrong(bare.at(-1)), false);
 });
+
+// ── A nested toss: the deployed renderer framing a branch's renderer ────────
+// How a change to toss-render.html is shown (python/showing.py, the renderer
+// case). Measured on the owner's desktop, 2026-11-03: the strip listed the
+// branch's renderer a second time after the page, and the inner renderer wore
+// the wrong-version warning for booting main, which every renderer does.
+test('a nested toss lists each layer once, and its renderer is not marked for running main', async () => {
+  const d = await mountFab('data-repo="mehrlander/web-tools" data-path="pages/toss-render.html"');
+  const sha = 'e9941f5c10d8';
+  const inner = { repo: 'mehrlander/web-tools', ref: sha, path: 'pages/toss-render.html' };
+  const page = { repo: 'mehrlander/web-tools', ref: sha, path: 'pages/data-view.html' };
+  const dataView = Object.assign(blobWin(), { gh: { ref: sha } });
+  const renderer = Object.assign(blobWin({ subject: page, frames: [dataView] }), { gh: { ref: 'main' } });
+  const layers = d.readLayers({ frames: [renderer], __tossSubject: inner, location: { href: 'x' } });
+  assert.deepEqual(Array.from(layers.map(L => L.path)),
+    ['pages/toss-render.html', 'pages/toss-render.html', 'pages/data-view.html'],
+    'the deployed renderer, the branch\'s renderer, the page: three rows, none repeated');
+  assert.equal(d.layerLibWrong(layers[1]), false, 'a renderer boots main for its own drawer, by design');
+  assert.equal(d.layerLibWrong(layers[2]), false, 'the page runs the ref it was handed');
+});

@@ -227,7 +227,7 @@
   // Which repository file a pasted piece of PowerShell belongs to (window.PowerShellMatch).
   await gh.load('kits/powershell-match.js');
   await gh.load('kits/powershell-editor.js');
-  // The estate's search calls (trees, code-search API, session grep) with one
+  // The estate's search calls (trees, file-name index, content index, session grep) with one
   // shared cache, behind the sidebar finder and the Search view.
   await gh.load('kits/estate-search.js');
   // Pure alignment assessment behind the Distribution/Repos view (window.PortableAlign).
@@ -915,8 +915,8 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
          names from cached trees (a tap-gated row extends the pass estate-wide, the
          stage's loadAllTrees economy), and PR titles — with a token-gated "Jot this"
          floor so an unmatched query lands in the pile instead of nowhere. Two deeper
-         passes sit behind their own tap gates: "Search file contents" calls the
-         code-search API (snippets via text-match; default branches only), and
+         passes sit behind their own tap gates: "Search file contents" routes to
+         the Search view, which searches the crawled Markdown index, and
          "Search sessions" greps the captured records in web-tools-private client-
          side, hits opening the Sessions pane's paged reader. Any bare printable
          key reaches it, `/` included, through the shell's own router
@@ -937,7 +937,7 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
          explicitly; plain text matches repos, the nav, file names in every
          estate repo (the registry's state/files.json), and PR titles, grouped
          under a heading per kind, with tap-gated deeper passes: file
-         CONTENTS via the code-search API, and a client-side grep of the
+         CONTENTS through the crawled Markdown index, and a client-side grep of the
          captured session records. The last
          row is always "Jot this", so a query that found
          nothing is kept rather than lost. Sits in the SIDEBAR, not the
@@ -2393,7 +2393,7 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
     </div>
 
     <!-- The Search view: the central file surface (file names at any ref under
-         any folder, contents through the code-search API, the captured session
+         any folder, Markdown contents through the crawled word index, the captured session
          records), over the same shared core the sidebar finder uses
          (lib/kits/estate-search.js). The finder is for jumping; this is for
          investigating, and it is where each mode's caveats are stated in
@@ -2546,7 +2546,7 @@ const RAIL_KIND = { link: 'ph-arrow-up-right', action: 'ph-lightning', repo: 'ph
 // subview it lands on; every other address is a subview and keeps the key it
 // was first published at, so an old ?tab= link still lands where it pointed.
 const MAP_TABS = ['overview', 'reach', 'research', 'harness', 'model', 'docs', 'data', 'watch'];
-const MAP_SUBVIEWS = ['aims', 'icons', 'projects', 'distribution', 'outposts', 'exploration', 'events', 'scheduled', 'programs', 'set', 'tests', 'skills', 'agents', 'peeves', 'context', 'lifetimes', 'surfacing', 'units', 'patterns', 'dimensions', 'views', 'kits', 'showing', 'fab', 'growth', 'policy', 'themes', 'registries', 'relations', 'attributes', 'public', 'names'];
+const MAP_SUBVIEWS = ['aims', 'icons', 'projects', 'distribution', 'outposts', 'exploration', 'events', 'scheduled', 'programs', 'set', 'tests', 'skills', 'agents', 'peeves', 'context', 'lifetimes', 'units', 'forms', 'patterns', 'dimensions', 'views', 'kits', 'showing', 'fab', 'growth', 'policy', 'themes', 'registries', 'relations', 'attributes', 'public', 'names'];
 const MAP_ROUTES = [...MAP_TABS, ...MAP_SUBVIEWS];
 // Where a bare ?view=map lands, and so the one address its URL never stamps:
 // the Overview, every address with its sentence. Reach held it until
@@ -2557,8 +2557,13 @@ const MAP_HOME = 'overview';
 // each key with the tab it belongs to: Context's grouping, sort, question and
 // source, Set's question, Growth's corpus, and the Policies tab's entry.
 const MAP_CTX_TAB = { ctxlens: 'context', ctxsort: 'context', ctxtopic: 'context', ctxsource: 'context', setintent: 'set',
-                      growthrepo: 'growth', h: 'policy' };
+                      growthrepo: 'growth', h: 'policy', form: 'forms' };
 const mapCtxOf = get => Object.fromEntries(Object.keys(MAP_CTX_TAB).map(k => [k, get(k) || '']));
+// The Lists view's tab keys: a built-in list's name (to-do, jot, pin, snag,
+// ping, note) or a created list's file name without .json, which is the
+// lists kit's slug. To-do is where a bare ?view=lists lands.
+const LISTS_HOME = 'to-do';
+const LISTS_TAB = /^[a-z0-9][a-z0-9-]{0,80}$/;
 
 // marked, loaded once on demand for the overview README render. kits/md-doc.js
 // rides with it, because every one of these renders lands in a fixed-width
@@ -2735,6 +2740,7 @@ function app(){ return {
   configSeen: false,      // mount the config-view component lazily, on first visit
   mapSeen: false,         // mount the map component lazily, on first visit
   mapTab: MAP_HOME,       // the Map view's open tab, held HERE and not in map() because the URL is the shell's to own (see goMap)
+  listsTab: LISTS_HOME,   // the Lists view's open list, held here for the same reason (see goLists)
   // Context's sub-address, held here for the same reason. Seeded only from an
   // address that opens Context, since the map row stamps it there alone and a
   // value armed from any other address would surface on the next visit.
@@ -5505,7 +5511,7 @@ function app(){ return {
     this.projectDocsLoading = false;
     // The curated layer: a workspace keeping a documentation map gets it
     // rendered above the mechanical listing. The map is docs/README.md, the
-    // four-slot rule's own answer (CONSTELLATION.md principle 6); DOCS.md is the
+    // four-slot rule's own answer (CONSTELLATION.md principle 5); DOCS.md is the
     // older name and still honoured. Curation on top, mechanism underneath,
     // nothing owed when no index exists.
     const lead = rels && (rels.includes('docs/README.md') ? 'docs/README.md'
@@ -6586,7 +6592,10 @@ function app(){ return {
         if (this.hereTab !== 'token') p.set('tab', this.hereTab);
         if (this.hereTab !== 'token' && this.hereItem) p.set('item', this.hereItem);
       } },
-    { key: 'lists', open(){ this.goLists(); } },
+    // The open list rides as &tab=, To-do staying out of the URL as Map's
+    // home tab does.
+    { key: 'lists', open(u){ this.goLists(u.tab); },
+      stamp(p){ if (this.listsTab && this.listsTab !== LISTS_HOME) p.set('tab', this.listsTab); } },
     { key: 'branches', open(){ this.goBranches(); },
       stamp(p){
         // The branch open in the takeover, when one is. Being inside the swiper
@@ -6703,7 +6712,7 @@ function app(){ return {
                                path: u.spath, file: u.sfile, sessionId: u.sitem,
                                sessionIds: u.sset == null ? null : u.sset.split(',').filter(Boolean),
                                sessionExtraIds: (u.sextra || '').split(',').filter(Boolean),
-                               sessionScope: u.sscope ? { scope: u.sscope } : null }); },
+                               sessionScope: u.sscope ? { scope: u.sscope } : null, kind: u.skind }); },
       stamp(p){
         const sd = this.searchSeed;
         if (!sd) return;
@@ -6713,6 +6722,7 @@ function app(){ return {
         if (sd.ref) p.set('sref', sd.ref);
         if (sd.path) p.set('spath', sd.path);
         if (sd.file) p.set('sfile', sd.file);
+        if (sd.kind) p.set('skind', sd.kind);
         if (sd.mode === 'sessions') {
           if (sd.sessionId) p.set('sitem', sd.sessionId);
           if (Array.isArray(sd.sessionIds)) p.set('sset', sd.sessionIds.join(','));
@@ -6819,7 +6829,7 @@ function app(){ return {
   // screen that means it. node/test/app-routes.test.mjs now holds the two to
   // each other, so a stamp added without its key fails rather than drifts.
   VIEW_KEYS: ['file', 'col', 'row', 'view', 'path', 'ref', 'project', 'tab', 'detail', 'item', 'call', 'window',
-              'sq', 'smode', 'srepo', 'sref', 'spath', 'sfile', 'sitem', 'sset', 'sscope', 'sextra',
+              'sq', 'smode', 'srepo', 'sref', 'spath', 'sfile', 'skind', 'sitem', 'sset', 'sscope', 'sextra',
               'session', 'list', 'topic', 'lens', 'grain', 'find', 'next',
               'aq', 'discussion', 'ascope', 'arepo', 'astate',
               'ctxlens', 'ctxsort', 'ctxtopic', 'ctxsource', 'setintent', 'h',
@@ -6861,7 +6871,7 @@ function app(){ return {
              appRepo: p.get('appRepo') || '', appPath: p.get('appPath') || '', appRef: p.get('appRef') || '',
              appLabel: p.get('appLabel') || '', appIcon: p.get('appIcon') || '',
              sq: p.get('sq') || '', smode: p.get('smode') || '', srepo: p.get('srepo') || '', sref: p.get('sref') || '',
-             spath: p.get('spath') || '', sfile: p.get('sfile') || '',
+             spath: p.get('spath') || '', sfile: p.get('sfile') || '', skind: p.get('skind') || '',
              sitem: p.get('sitem') || '', sset: p.get('sset'), sscope: p.get('sscope') || '',
              sextra: p.get('sextra') || '',
              aq: p.get('aq') || '', discussion: p.get('discussion') || '',
@@ -7292,8 +7302,8 @@ function app(){ return {
   // switching on this.view, sharing the one lazy mount); estateCtx is the
   // wider context test the sidebar switches on.
   get isEstate(){ return ['repos', 'stage', 'lists', 'branches', 'activity', 'sessions', 'writes', 'chats', 'state', 'traffic'].includes(this.view); },
-  // The Lists view is the one estate pane that FILLS rather than flows: its two
-  // halves scroll inside themselves, so the page must not scroll and the chain
+  // The Lists view is the one estate pane that FILLS rather than flows: the
+  // open list scrolls inside itself, so the page must not scroll and the chain
   // from the pane down to the component root has to carry a definite height.
   // Every other view keeps the ordinary overflow-y-auto column. Held here
   // rather than inside the component because the two ancestors that need the
@@ -7443,8 +7453,25 @@ function app(){ return {
   // boot and by its own Refresh, so a session that opened elsewhere and walked
   // over to Repos an hour later read whatever the boot had left.
   goRepos(){ this.estateSeen = true; this.view = 'repos'; this.ensureFresh(); this.syncUrl(); },
-  // Lists: Pin, To-do, Jot, Ping and Note in one pane, at ?view=lists.
-  goLists(){ this.estateSeen = true; this.view = 'lists'; this.syncUrl(); },
+  // Lists: every list one at a time behind a row of tabs, at ?view=lists, the
+  // open one at &tab=<key>. Optional for the reason goMap's is: the nav button
+  // keeps the open list, a route call's URL is authoritative. The key is not
+  // checked against the lists here, since created lists are only known once
+  // the registry is read; the estate falls back to To-do for one it lacks.
+  goLists(tab){
+    if (tab !== undefined) this.listsTab = LISTS_TAB.test(tab) ? tab : LISTS_HOME;
+    this.estateSeen = true; this.view = 'lists'; this.syncUrl();
+  },
+  // A tab tap from inside the estate, stamped so back and forward walk the
+  // lists. A rename replaces the entry instead: the old key names a file that
+  // is gone, and Back to it would land on To-do.
+  goListsTab(tab, replace = false){
+    if (!LISTS_TAB.test(tab) || tab === this.listsTab) return;
+    this.listsTab = tab;
+    const restoring = this._restoring;
+    if (replace) this._restoring = true;
+    try { this.syncUrl(); } finally { this._restoring = restoring; }
+  },
   // The Map view: the coordination layer made inspectable (the Distribution
   // crosswalk plus per-repo scope and adoption).
   //
@@ -7477,7 +7504,7 @@ function app(){ return {
   },
   // The Tools view: the curated utility-page gallery (docs/tools.csv), public.
   goTools(){ this.toolsSeen = true; this.view = 'tools'; this.syncUrl(); },
-  // Open the Search view, optionally seeded ({ q, mode, repo, ref, path, file }).
+  // Open the Search view, optionally seeded ({ q, mode, repo, ref, path, file, kind }).
   // A seed reaches a mounted view by event (the component mounts once and
   // persists behind x-show); a first mount reads shell.searchSeed in its init
   // instead.
@@ -7493,7 +7520,8 @@ function app(){ return {
                           sessionId: opts.sessionId || '',
                           sessionIds: Array.isArray(opts.sessionIds) ? opts.sessionIds : null,
                           sessionExtraIds: Array.isArray(opts.sessionExtraIds) ? opts.sessionExtraIds : [],
-                          sessionRows: opts.sessionRows || [], sessionScope: opts.sessionScope || null };
+                          sessionRows: opts.sessionRows || [], sessionScope: opts.sessionScope || null,
+                          kind: opts.kind || '' };
       if (this.searchSeen) document.dispatchEvent(new CustomEvent('web-tools:search-seed', { detail: this.searchSeed }));
     }
     this.searchSeen = true; this.view = 'search'; this.syncUrl();

@@ -40,6 +40,21 @@ test('the setup script installs the plugin and records itself where the hook rea
   assert.match(body, /cat "\$0"/, 'it copies the file that ran, so the record is its own text');
 });
 
+test('the setup script allows add_repo in user settings, merged and idempotent', () => {
+  const block = body.match(/python3 - <<'PY'\n([\s\S]*?)\nPY\n/);
+  assert.ok(block, 'the allow rule is written by one python heredoc');
+  withHome(home => {
+    const file = path.join(home, '.claude', 'settings.json');
+    mkdirSync(path.dirname(file), { recursive: true });
+    writeFileSync(file, JSON.stringify({ enabledPlugins: { 'portable@web-tools': true } }));
+    const merge = () => execFileSync('python3', ['-'], { input: block[1], env: { ...process.env, HOME: home } });
+    merge(); merge();
+    const s = JSON.parse(readFileSync(file, 'utf8'));
+    assert.deepEqual(s.permissions.allow, ['mcp__claude-code-remote__add_repo']);
+    assert.equal(s.enabledPlugins['portable@web-tools'], true, 'the install\'s own settings survive');
+  });
+});
+
 test('the hook is silent when no setup record exists', () => {
   withHome(home => assert.equal(run(home), ''));
 });

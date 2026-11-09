@@ -878,13 +878,11 @@ window.__audit = {
     get decided() { return this.units.filter(u => (u.verdict || 'KEEP') !== 'KEEP').length; },
     // Words, not units: a one-line NAV pointer and a four-sentence provenance
     // paragraph are one unit each and are not the same amount of document.
+    wordsOf(k) { return this.units.filter(u => this.keyOf(u) === k).reduce((n, u) => n + u.words, 0); },
     wordsOn(side) {
       return this.units.filter(u => this.side(u.label) === side)
                        .reduce((n, u) => n + u.words, 0);
     },
-    // The binding vocabulary's headline figure. A vocabulary with no
-    // `explanation` side has no such figure, so the header says nothing.
-    get explains() { return (this.so.vocabulary || []).some(v => v.side === 'explanation'); },
     pctOn(side) { return Math.round(100 * this.wordsOn(side) / (this.words || 1)); },
     get words() { return this.units.reduce((n, u) => n + u.words, 0); },
     get shareOf() {
@@ -2129,14 +2127,23 @@ window.__audit = {
         count: secs.length, title: this.a.title, subtitle: this.so.question,
         render: (i, slide) => {
           const s = secs[i];
+          // Each label's share of the section's words, drawn as the legend's
+          // strip draws the document's, in place of a line of totals. The
+          // section's own heading opens the card below it.
           const head = document.createElement('div');
-          head.className = 'px-4 pt-4 pb-2 text-xs opacity-60';
+          head.className = 'px-4 pt-4 pb-2';
           const inSec = this.units.filter(u => u.start >= s.start && u.start < s.end);
-          const w = inSec.reduce((n, u) => n + u.words, 0);
-          const exp = inSec.filter(u => this.side(u.label) === 'explanation')
-                           .reduce((n, u) => n + u.words, 0);
-          head.textContent = `${s.title} · ${inSec.length} units` +
-            (this.explains ? ` · ${w ? Math.round(100 * exp / w) : 0}% explanation` : '');
+          const strip = document.createElement('div');
+          strip.className = 'flex h-1.5 rounded-full overflow-hidden';
+          strip.setAttribute('aria-hidden', 'true');
+          for (const k of this.axis) {
+            const w = inSec.filter(u => this.keyOf(u) === k).reduce((n, u) => n + u.words, 0);
+            if (!w) continue;
+            const seg = document.createElement('div');
+            seg.style.cssText = `flex:${w} 0 0;background:rgba(${this.HUE[k]},0.85)`;
+            strip.append(seg);
+          }
+          head.append(strip);
           const body = document.createElement('div');
           body.className = 'px-4 pb-6 overflow-y-auto';
           slide.append(head, body);
@@ -2148,22 +2155,22 @@ window.__audit = {
   await gh.load('alpine-bundle.js');
 </script>
 </head>
-<body class="bg-base-100 min-h-dvh" x-data="auditPage()" x-init="init()" @keydown.window="key($event)">
+<!-- Busy until the payload has loaded, so a look link waits for the header and
+     legend it renders (lib/kits/look.js, seek). -->
+<body class="bg-base-100 min-h-dvh" x-data="auditPage()" x-init="init()" @keydown.window="key($event)"
+      aria-busy="true" :aria-busy="a ? 'false' : 'true'">
 <template x-if="a">
   <div>
 
     <!-- Tenant chrome: this page is routinely tossed inside an iframe, so it
          sticks rather than taking the viewport, and it does not narrow itself
-         to a reading column. The figure is one compact line, not stat cards:
-         the reading that gives those numbers meaning is in each legend chip's
-         note. -->
+         to a reading column. No line of totals: each legend chip counts its
+         units and its note gives its share of words, the strip under the
+         legend draws those shares, and Review counts what has been removed. -->
     <header x-ref="hdr" class="sticky top-0 z-20 bg-base-100/90 backdrop-blur border-b border-base-300">
       <div class="px-4 py-2 flex flex-wrap items-center gap-x-3 gap-y-1">
         <span class="font-semibold" x-text="a.title"></span>
         <span class="text-xs opacity-60" x-text="so.question"></span>
-        <span class="text-xs font-mono opacity-70"
-              x-text="`${units.length} units · ${words.toLocaleString()} words · ` + (decided ? `${decided} removed · ` : '')
-                        + (explains ? `${pctOn('explanation')}% explanation` : `${vocab.length} labels`)"></span>
         <a class="text-xs link link-primary" :href="so.target.url" x-show="so.target.url">source</a>
         <div id="audit-faults" class="text-xs font-mono w-full whitespace-pre-line leading-tight
                     text-base-content/50"
@@ -2190,7 +2197,8 @@ window.__audit = {
           <button class="join-item btn btn-xs h-6 min-h-0 px-2.5 border-none transition-none font-normal" :class="view === 'standoff' ? 'btn-neutral' : 'btn-ghost bg-base-100'"
                   @click="view = 'standoff'">Spans</button>
           <button class="join-item btn btn-xs h-6 min-h-0 px-2.5 border-none transition-none font-normal" :class="view === 'review' ? 'btn-neutral' : 'btn-ghost bg-base-100'"
-                  @click="view = 'review'">Review</button>
+                  @click="view = 'review'">Review<span x-show="decided" class="inline-flex items-center gap-0.5 ml-1 opacity-70"
+                  aria-label="units removed"><i class="ph ph-scissors"></i><span class="font-mono tabular-nums" x-text="decided"></span></span></button>
         </div>
         <!-- Rendered, on or off, for whichever object is on screen: the
              formatted document or the spans table when on, the markdown or
@@ -2225,7 +2233,7 @@ window.__audit = {
            at a time, with Notes, every unit with a note, first. -->
       <!-- One line at any width. The chips take whatever the controls leave and
            scroll sideways when a vocabulary has more labels than fit. -->
-      <div x-ref="legend" class="flex items-center gap-2" :class="inDeck ? 'w-full' : 'px-4 pb-2'"
+      <div x-ref="legend" class="flex flex-wrap items-center gap-x-2 gap-y-1" :class="inDeck ? 'w-full' : 'px-4 pb-2'"
            x-show="view !== 'standoff'">
         <div class="flex-1 min-w-0 flex gap-1 overflow-x-auto [scrollbar-width:none]">
         <button class="btn btn-xs gap-1.5 border-0 shrink-0 bg-base-200" x-show="view === 'review' && noted.length" x-cloak
@@ -2261,6 +2269,16 @@ window.__audit = {
                       @click="mark = t[0]; paint()"><i class="ph-bold text-lg" :class="t[1]"></i></button>
             </template>
           </div>
+        </div>
+        <!-- Each label's share of the document's words, in its chip's hue and
+             in the chips' order: the part-to-whole the chips' notes give one
+             label at a time, drawn whole, so its figures stay in those notes.
+             A chip set aside dims its segment. -->
+        <div class="basis-full flex h-1.5 rounded-full overflow-hidden" x-show="view !== 'review' && axis.length > 1"
+             aria-hidden="true">
+          <template x-for="k in axis" :key="k">
+            <div :style="`flex:${wordsOf(k)} 0 0;background:rgba(${HUE[k]},${off[k] ? 0.15 : 0.85})`"></div>
+          </template>
         </div>
       </div>
     </header>

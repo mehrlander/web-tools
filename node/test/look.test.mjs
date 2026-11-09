@@ -113,6 +113,42 @@ test('a target that exists but never shows is reported as hidden, not absent', a
   assert.match(said(w), /^Hidden on this page: h$/);
 });
 
+test('a page Alpine has not started is waited for, not called hidden', async () => {
+  // x-cloak hides an Alpine page whole until Alpine starts and lifts it; the
+  // fixtures hide with `hidden`, so the start lifts both.
+  const start = (w) => { const d = w.document.querySelector('[x-cloak]'); d.removeAttribute('x-cloak'); d.hidden = false; };
+  const w = realm('<div x-cloak hidden><header><p data-at="c">x</p></header></div>');
+  w.Look.start([{ at: 'c', say: 'found it' }], { wait: 60 });
+  await wait(250);
+  assert.equal(said(w), undefined, 'still waiting while the page is cloaked');
+  start(w);
+  await wait(250);
+  assert.equal(said(w), 'found it', 'and lands once the page starts');
+  // A target the start renders, absent until then, is waited for the same way.
+  const v = realm('<div x-cloak hidden></div>');
+  v.Look.start([{ at: 'late', say: 'rendered' }], { wait: 60 });
+  await wait(250);
+  v.document.querySelector('[x-cloak]').innerHTML = '<p data-at="late">here</p>';
+  start(v);
+  await wait(250);
+  assert.equal(said(v), 'rendered');
+});
+
+test('a page that has just started is given a beat to draw its first view', async () => {
+  // The app's Map drew the Icons tab a beat after Alpine lifted x-cloak, and
+  // inside a toss that beat outlasted QUIET_FOR.
+  const w = realm('<div x-cloak hidden></div>');
+  w.Look.start([{ at: 'first', say: 'drawn' }], { wait: 60 });
+  await wait(150);
+  const root = w.document.querySelector('[x-cloak]');
+  root.removeAttribute('x-cloak'); root.hidden = false;
+  await wait(700);
+  assert.equal(said(w), undefined, 'still waiting past QUIET_FOR after the start');
+  root.innerHTML = '<p data-at="first">here</p>';
+  await wait(250);
+  assert.equal(said(w), 'drawn');
+});
+
 test('a closed region is opened by the control it names', async () => {
   const w = realm(
     '<button data-at="tab-b">B</button>' +

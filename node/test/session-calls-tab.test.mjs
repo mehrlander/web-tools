@@ -103,9 +103,15 @@ test('a framed slide reads its session\'s calls, and only its own', () => {
   assert.ok(listed.includes(STORE), 'the store\'s user-calls/ is listed');
 });
 
-test('the Calls tab comes first, ahead of the outline', () => {
-  const tabs = [...el('slide').querySelectorAll('[role=tab]')].map((t) => t.textContent.trim().match(/^[A-Za-z]+/)?.[0]);
-  assert.deepEqual(tabs.slice(0, 2), ['Calls', 'Outline']);
+// What waits on the owner is the first thing to see (owner, 2026-10-19). Since
+// the view split into two regions (2026-11-09), Calls leads the bottom row,
+// and that region opens on it while a call waits.
+test('the Calls tab leads the bottom row, and opens there while a call waits', async () => {
+  const row = el('slide').querySelector('[data-at="bottom-tabs"]');
+  const tabs = [...row.querySelectorAll('[role=tab]')].map((t) => t.textContent.trim().match(/^[A-Za-z]+/)?.[0]);
+  assert.equal(tabs[0], 'Calls');
+  await until(() => data('slide').openCallCount === 1);
+  assert.equal(data('slide').bottomPane, 'calls');
 });
 
 test('the Calls tab shows with a count, tinted while a call waits', async () => {
@@ -135,7 +141,7 @@ test('the pane holds one card per call: question, brief, recommendation, state',
   assert.equal(cards.length, 2);
   await until(() => /Answered: Take/.test(cards[1].textContent));
   assert.match(cards[0].textContent, /Topic Size[\s\S]*Open[\s\S]*Split topics\?[\s\S]*Eleven turns disagree\.[\s\S]*Recommended:\s*Keep them whole/);
-  assert.match(cards[1].textContent, /Decision[\s\S]*Lean[\s\S]*Answered: Take[\s\S]*Two steps\?/);
+  assert.match(cards[1].textContent, /Approval[\s\S]*Lean[\s\S]*Answered: Take[\s\S]*Two steps\?/);
 });
 
 test('a card opens the deck of call forms at that call', () => {
@@ -194,7 +200,7 @@ test('words in the box send it as the adjustment, and changing them disarms the 
   assert.equal(data('slide').callNotes['c0ffee01-size'], '', 'the box is emptied once sent');
 });
 
-test('an address asking for Calls on a session with none lands on the outline', () => {
+test('an address asking for Calls on a session with none lands on the overview', () => {
   assert.equal(data('slide').pane, 'calls');
-  assert.equal(data('none').pane, 'outline');
+  assert.equal(data('none').pane, 'overview');
 });

@@ -198,11 +198,14 @@ def main(argv):
     progs = declared(repo)
     if a.cmd == "list":
         for p in progs:
-            print(f"{p['name']}\t{p.get('label', '')}\t{p['path']}\t{len(p.get('governs') or [])} paths")
+            print(f"{p['name']}\t{p.get('label', '')}\t{p['path']}\t{p.get('status') or len(p.get('governs') or [])}"
+                  + ("" if p.get("status") else " paths"))
         return
     prog = next((p for p in progs if p.get("name") == a.name), None)
     if not prog:
         raise SystemExit(f"program.py: {slug(repo)} declares no program named {a.name!r}")
+    if prog.get("status") == "proposed":
+        raise SystemExit(f"program.py: {a.name} is proposed; it has no charter or governed files to report on")
     report(repo, prog, a.since)
 
 

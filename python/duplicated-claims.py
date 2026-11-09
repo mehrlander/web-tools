@@ -13,7 +13,7 @@ Ported 2026-08-16 from mehrlander/home's tools/duplicated-claims.py
 hub because the hub's own doc pairs (APP.md against its page's
 commentary, CONVENTIONS.md against its restatements) were being overlap-
 checked by hand in docs/text-content.md. Home still runs its copy; when it
-next drifts, the fix is to pull this one, per the no-private-to-private rule.
+next drifts, the fix is to pull this one.
 
 Method: strip fences, frontmatter, and tables; shingle the remaining prose
 into overlapping 10-word windows; report file pairs sharing at least

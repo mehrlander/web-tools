@@ -36,7 +36,7 @@
   way from here on:
     BARE      a CSV, a JSON array, any bytes. One item; the viewer's module
               tests decide how to show it. An addressed payload keeps its
-              path, so its extension (and its GitHub/Raw/CDN links) are real;
+              path, so its extension (and its GitHub and Raw links) are real;
               an inline one is named by sniff.
     ENVELOPE  a JSON object with an `items` array. Several files in one toss,
               each optionally naming a default `view` (a viewer module id:
@@ -127,12 +127,17 @@
           this.payload = DataPayload.read(await gunzipB64url(gz));
         } else if (src) {
           this.srcSpec = src;
-          const parsed = DataPayload.parseSpec(src);
+          // A plain path is this repository's file, which fetchText reads
+          // there, so it takes this repository as its address too. Without
+          // one the viewer took it for a dropped local file, and a workbook or
+          // an image, whose bytes the viewer fetches itself, failed to open.
+          const parsed = DataPayload.parseSpec(src)
+            || (gh.repo ? { repo: gh.repo, ref: '', path: src.replace(/^\//, '') } : null);
           // Hand the reader the path so a bare payload keeps its real
           // extension instead of being sniffed from its bytes.
           this.payload = DataPayload.read(await fetchText(src), { name: parsed ? parsed.path : src });
           // A bare addressed payload has a true home: give its one item the
-          // spec so the viewer's GitHub/Raw/CDN links resolve.
+          // spec so the viewer's GitHub and Raw links resolve.
           if (this.payload.kind === 'bare' && parsed) {
             Object.assign(this.payload.items[0], { src, spec: parsed, name: parsed.path });
           }
