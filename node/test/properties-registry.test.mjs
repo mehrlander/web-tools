@@ -375,7 +375,8 @@ test('a registry file is all recorded or all computed, or a named exception', ()
 // measurement still names the file; rerunning the pass empties it.
 const PINNED_BROKEN = {
   'doc-overlap-docs': ['docs/forms/branch.md', 'docs/forms/session.md', 'docs/venues.md', ...['branches', 'chats', 'lists', 'map', 'project',
-    'proposals', 'repos', 'search', 'sessions', 'state', 'tending', 'tools', 'writes'].map(v => `docs/views/${v}.md`)],
+    'proposals', 'repos', 'search', 'sessions', 'state', 'tending', 'tools', 'writes'].map(v => `docs/views/${v}.md`),
+    'programs/surfacing/README.md'],
 };
 // A key may also name a file git ignores, which exists only once something has
 // made it: content.csv classifies the lockfile npm writes on install, present in
