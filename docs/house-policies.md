@@ -10,6 +10,8 @@ Write clearly and precisely: account for what the reader lacks, qualify noun phr
 
 **Backed by:** [QUALIFIED-WRITING.md](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md): [Perspective](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md#perspective), [Qualifiers](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md#qualifiers) and [Accuracy](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md#accuracy).
 
+**See also:** [the clarity and precision diagram](https://github.com/mehrlander/web-tools/blob/main/docs/qualified-writing.svg).
+
 ### No em dashes · `h:dash`
 
 Join ideas with a colon, a comma, a semicolon, parentheses or a new sentence, not a dash.
@@ -24,6 +26,8 @@ Join ideas with a colon, a comma, a semicolon, parentheses or a new sentence, no
 ### Avoid smug so · `h:smug`
 
 A sentence that turns on "so" often presents one cause as forcing one result. Avoid the form, and check examples you find for cause to remove or trim.
+
+**Backed by:** [peeves](https://github.com/mehrlander/web-tools/blob/main/skills/peeves/peeves.md#smug-so--p68), P68 "Smug so".
 
 ### Showing · `h:show`
 
@@ -50,6 +54,8 @@ Living text says what is true now; history goes to the records built to hold it.
 - A comment, doc or skill states the present, not when it changed, what prompted the change, figures measured at the time, or what it used to do.
 - When a living sentence is wrong, fix the sentence; add no "formerly" or "corrected" note and no dated update line.
 - History belongs in commit messages, a task's progress log and dated or write-once records.
+
+**Backed by:** [doc-craft](https://github.com/mehrlander/web-tools/blob/main/skills/doc-craft/SKILL.md#general-principles), "State current reality".
 
 ## Handover
 
