@@ -28,7 +28,7 @@ Outlining can target informational content of different kinds and at different r
 
 - **Dimension.** Structural or semantic. Structural traces what the document is: its headers, its paragraph order, the arrangement on the page. Semantic traces what it means. They may align, ideally, and hierarchy may be seen in either.
 - **Grain.** How fine the unit: theme, section, paragraph, sentence, claim, subclaim. We may track at more than one level, flat or hierarchically.
-- **Unit.** What an entry is: a passage, a claim (what the source asserts) or a question (what it answers). Claims and questions are two readings of one text: claims inventory what it commits to, including what it presupposes; questions show what a discussion settled and left open. Two measures build on claims: depth, how far down a tree of reader questions a claim sits, and rung, what kind of point it makes on its genre's ladder. The two barely correlate, so a document's level of detail takes both.
+- **Unit.** What an entry is: a passage, a claim (what the source asserts) or a question (what it answers). Claims and questions are two readings of one text: claims inventory what it commits to, including what it presupposes; questions show what a discussion settled and left open. Two measures build on claims: depth, how far down a tree of reader questions a claim sits, and rung, what kind of point it makes on its genre's ladder. The two barely correlate. A document's level of detail takes both.
 
 ## Process
 
