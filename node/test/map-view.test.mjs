@@ -1742,7 +1742,7 @@ test('Context\'s address rides with Context alone, and comes back with it', asyn
 
 test('an address that does not open Context arms none of its keys', () => {
   const { shell } = makeShell({ search: '?view=map&tab=tests&ctxtopic=house-style' });
-  assert.deepEqual({ ...shell.mapCtx }, { ctxlens: '', ctxsort: '', ctxtopic: '', ctxsource: '', setintent: '', growthrepo: '', h: '' });
+  assert.deepEqual({ ...shell.mapCtx }, { ctxlens: '', ctxsort: '', ctxtopic: '', ctxsource: '', setintent: '', growthrepo: '', h: '', form: '' });
 });
 
 test("a policy link's entry rides with the Policies tab alone", async () => {
@@ -1754,6 +1754,17 @@ test("a policy link's entry rides with the Policies tab alone", async () => {
   assert.equal(shell.deepLinkParams().has('h'), false, 'h rode onto another tab');
   const other = makeShell({ search: '?view=map&tab=docs&h=smug' }).shell;
   assert.equal(other.mapCtx.h, '', 'an address that does not open Policies arms none of its keys');
+});
+
+test("a form link's row rides with the Forms tab alone", async () => {
+  const { shell } = makeShell({ search: '?view=map&tab=forms&form=answer:choice' });
+  assert.equal(shell.mapCtx.form, 'answer:choice', 'an address that opens Forms arms its row');
+  await shell.routeFromUrl(shell.parseUrl());
+  assert.equal(shell.deepLinkParams().get('form'), 'answer:choice', 'the row survives the stamp');
+  shell.goMapTab('docs');
+  assert.equal(shell.deepLinkParams().has('form'), false, 'form rode onto another tab');
+  const other = makeShell({ search: '?view=map&tab=docs&form=answer:choice' }).shell;
+  assert.equal(other.mapCtx.form, '', 'an address that does not open Forms arms none of its keys');
 });
 
 test("Growth's corpus rides with Growth alone", () => {

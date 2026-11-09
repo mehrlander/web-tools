@@ -55,6 +55,7 @@ docs/prototypes/program-mark-picking-ideas.json edit=write-once
 docs/prototypes/ui-concepts-ideas.json    edit=write-once
 docs/prototypes/model-diagram-ideas.json    edit=write-once
 docs/prototypes/model-diagram-redraw.json    edit=write-once
+docs/prototypes/forms-tab-ideas.json  edit=write-once
 
 # Rebuilt whole by a builder, never by hand: the commit hook's legs
 # (node/README.md, "The refresh model") and the page thumbnails.

@@ -1,13 +1,13 @@
-// screenshot.mjs interaction scenario: the whole Lists pane, created lists
-// included (kits/lists.js).
+// screenshot.mjs interaction scenario: the Lists view on a created list
+// (kits/lists.js), every list's tab above it.
 //
 //   npm run shot -- app/index.html --query "view=lists" \
 //     --script node/render/scenarios/estate-lists.mjs --width 1280 --height 1100
 //
 // The Lists view is token-gated and this renderer holds no token, so the seed
 // flips `authed` and plants every list straight into the component, as
-// ping.mjs does. What the pixels prove: the created-lists section between Jot
-// and Ping, its pill row carrying each list's own icon, title and count, the +
+// ping.mjs does. What the pixels prove: the tab row, the created lists after
+// its hairline, each tab carrying the list's own icon, title and count, the +
 // pill, the jump-over and settings glyphs for the list on screen, and rows of
 // text with a note under them.
 //
@@ -41,7 +41,8 @@ export default async function (page) {
       a.items[0] = { ...a.items[0], done: true, done_at: new Date().toISOString() };
     }
     data.createdLists = lists;
-    data.createdPick = q.get('pick') === 'words' ? 'lists/useful-words-and-phrases.json' : 'lists/aphorisms.json';
+    window.__shell.goListsTab(q.get('pick') === 'words' ? 'useful-words-and-phrases' : 'aphorisms');
+    await new Promise(r => setTimeout(r, 0));
     if (q.get('form') === 'new') { data.openCreatedNew(); data.createdNewTitle = 'Groceries'; data.createdNewIcon = 'shopping-cart'; }
     if (q.get('form') === 'settings') data.toggleCreatedSettings();
     await new Promise(r => setTimeout(r, 500));
