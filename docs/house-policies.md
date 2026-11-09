@@ -16,13 +16,6 @@ Qualify noun phrases, and introduce each referent before referring to it, so tha
 
 Use the standard term a general reader knows, in a plain, dry register.
 
-- Avoid slang, coined labels and figurative names.
-- Avoid informal tone with any hint of soapboxing.
-- Before denying something with *no* on a verb's object or with *nothing* or *none*, as in "draws no underline" or "nothing opens it" (no-negation), ask whether the reader expected it; if not, say what happens instead or cut the sentence.
-- Give one thing one name: its file name, label and title match.
-- Write "always" or "never" only where it can be checked, not for emphasis.
-- Name the exact file, column, count or command rather than referring to it in general.
-
 **Covers:** all prose a session writes, and the names it gives files, labels and concepts.
 
 **Detail:** [QUALIFIED-WRITING.md](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md), rule 2.
@@ -143,6 +136,10 @@ State confidence as it is.
 - Name the assumption the plan depends on most.
 
 **Covers:** replies, findings and PR bodies.
+
+### Calibrate frequency claims · `h:calibrate`
+
+Use the least sweeping claim sufficient to support the conclusion. Overstatement raises qualms about accuracy, shifting attention from the argument. It can also obscure the threshold at which the conclusion follows. A narrower claim often clarifies and solidifies the whole. Use stronger claims when the conclusion rests on prevalence. In every case, stay within the evidence.
 
 ### Unapproved text · `h:salt`
 
