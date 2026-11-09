@@ -19,7 +19,6 @@ import { marked } from 'marked';
 const { window } = makeWindow();
 window.marked = marked;
 const run = (file) => new Function('window', 'document', readFileSync(path.join(repoRoot, file), 'utf8'))(window, window.document);
-run('lib/kits/repo-address.js');   // github.com links have one owner
 run('lib/kits/src-doc.js');
 run('lib/kits/md-doc.js');
 run('lib/kits/md-edit.js');
@@ -197,20 +196,30 @@ test('a renamed heading names both anchors and the links here that break', () =>
   assert.equal(out.find(c => c.id === 'anchor-here').text, '1 link in this file point at #second');
 });
 
-test('links from other files to a renamed anchor are a GitHub search link, not a fetch', async () => {
-  // A page cannot read the code-search API (no CORS header on its answers),
-  // so the row settles at once with a link and the fake GH sees no request.
-  const reqs = [];
-  window.GH = class { constructor() {} async req(p) { reqs.push(p); return {}; } async get(p) { reqs.push(p); return { text: '' }; } };
+test('links from other files to a renamed anchor come from the content index, confirmed by reading', async () => {
+  // The index names candidates holding both words; only a real link counts.
+  const asked = [];
+  window.SessionIndex = {}; window.ContentIndex = {};
+  window.EstateSearch = { async contents(a) {
+    asked.push(a);
+    return { indexed: true, missing: [], hits: ['docs/x.md', 'docs/y.md', 'docs/z.md'].map(path => ({ repo: 'o/r', path })) };
+  } };
+  const texts = { 'docs/y.md': 'See [it](x.md#second).', 'docs/z.md': 'x.md and second, but no link to x.md#second-hand.' };
+  window.GH = class { constructor() {} async get(p) { return { text: texts[p] || '' }; } async req() { return {}; } };
   const s = sec('Second');
   const next = '## Final\n\nClosing words.';
   const body = mdEdit.place(BODY, 0, s, next);
-  const jobs = mdEdit._asyncJobs(S({ sec: s }), next, body, mdEdit.checks(s, next, { body }));
-  const rows = await Promise.all(jobs.map(j => j.done));
-  const row = rows.find(r => r.id === 'anchor-elsewhere');
-  assert.equal(row.level, 'info');
-  assert.equal(row.href, window.RepoAddress.github.codeSearch('"x.md#second" repo:o/r path:*.md'));
-  assert.deepEqual(reqs, []);
+  const run = async () => (await Promise.all(mdEdit._asyncJobs(S({ sec: s }), next, body, mdEdit.checks(s, next, { body })).map(j => j.done)))
+    .find(r => r.id === 'anchor-elsewhere');
+  const row = await run();
+  assert.equal(asked[0].q, 'x.md second');
+  assert.deepEqual(asked[0].repos, ['o/r']);
+  assert.equal(row.level, 'warn');
+  assert.equal(row.text, 'Linked from docs/y.md', 'the file itself and a longer anchor are not links to #second');
+
+  window.EstateSearch.contents = async () => ({ indexed: true, missing: ['o/r'], hits: [] });
+  assert.equal((await run()).text, 'Could not search other files for #second', 'a repo the index lacks says so');
+  delete window.EstateSearch; delete window.ContentIndex; delete window.SessionIndex;
 });
 
 test('em dashes are flagged only on added prose lines, by file line', () => {

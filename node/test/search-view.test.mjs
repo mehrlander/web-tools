@@ -1,8 +1,8 @@
 // alpineComponents/search-view.js — the central file surface's logic: seed
 // consumption (the finder's gate, the explorer's hand-off, or a deep link
 // auto-runs a carried query OR a carried scope), the modes' dispatch into the
-// shared core (names takes the ref and the folder scope, sessions greps, and
-// contents fetches nothing but builds a link to GitHub's code search), the browse
+// shared core (names takes the ref and the folder scope, contents asks the
+// crawled Markdown index and quotes each hit's line, sessions greps), the browse
 // gate (an empty query is a listing under a repo or a folder and a miss
 // otherwise), full-error surfacing, reading a file IN PLACE rather than routing
 // to a repo's Files view, stepping the file hits, clear, the cap, and the
@@ -27,6 +27,14 @@ window.EstateSearch = {
   reset() { CALLS.push(['reset']); },
   async names(a) { CALLS.push(['names', a]); if (ANSWER.throw) throw new Error(ANSWER.throw); return ANSWER; },
   async level(a) { CALLS.push(['level', a]); if (ANSWER.throw) throw new Error(ANSWER.throw); return LEVEL; },
+  // The content index's answer carries what it could not cover, which the
+  // view turns into its notice; a stub omitting it would read as unbuilt.
+  async contents(a) {
+    CALLS.push(['contents', a]);
+    if (ANSWER.throw) throw new Error(ANSWER.throw);
+    return { indexed: true, missing: [], pending: 0, ...ANSWER };
+  },
+  async snippet(a) { CALLS.push(['snippet', a]); return 'line about ' + a.q; },
   // `indexed` rides every sessions answer, because the view reads it to say
   // whether the deep half ran at all; a stub omitting it would exercise the
   // warning path on every case by accident.
@@ -51,6 +59,7 @@ window.gh = { load: async (p) => {
   LOADED.push(p);
   if (p.includes('chat-archive')) window.chatArchive = {};
   if (p.includes('session-index')) window.SessionIndex = {};
+  if (p.includes('content-index')) window.ContentIndex = { SKIP: { 'me/skipped': 'a reason' } };
 } };
 
 // The contents fetch behind the reader. Records what it was pointed at, since
@@ -95,13 +104,12 @@ const data = Alpine.$data(window.document.getElementById('sv'));
 const j = (x) => JSON.parse(JSON.stringify(x));
 const tick = () => new Promise(r => setTimeout(r, 10));
 
-test('a parked seed is consumed at mount; a contents seed fetches nothing and keeps its address', async () => {
+test('a parked seed is consumed at mount and auto-runs', async () => {
   await tick();
   assert.equal(data.q, 'seeded');
   assert.equal(data.mode, 'contents');
-  assert.deepEqual(CALLS, [], 'contents is a link to GitHub, not a call');
-  assert.equal(data.ran, false, 'nothing ran, so no empty result list claims a search');
-  assert.ok(shell._synced > 0, 'the seeded address is still stamped');
+  assert.equal(CALLS.filter(c => c[0] === 'contents').length, 1);
+  assert.equal(data.ran, true);
 });
 
 test('names mode passes the ref and the folder scope to every scoped repo', async () => {
@@ -240,19 +248,49 @@ test('typing turns the walk back into a recursive search of the same scope', asy
   data.q = '';
 });
 
-test('contents mode links to GitHub code search over the chosen repo, or the account, and a folder', async () => {
+test('contents mode asks the index over the chosen repo, or every repo, and a folder', async () => {
   CALLS = [];
-  const G = window.RepoAddress.github;
-  data.mode = 'contents'; data.q = ' needle '; data.repo = 'me/home'; data.path = '';
-  assert.equal(data.githubSearch, G.codeSearch('needle repo:me/home'));
-  data.repo = '';
-  assert.equal(data.githubSearch, G.codeSearch('needle user:me'), 'all repos is the account');
-  data.path = '/lib/kits/';
-  assert.equal(data.githubSearch, G.codeSearch('needle user:me path:/lib/kits/**'),
-    'a folder is an anchored glob, since a bare path: matches anywhere in a path');
+  ANSWER = { hits: [{ repo: 'me/home', ref: '', path: 'docs/x.md' }], total: 1 };
+  data.mode = 'contents'; data.q = 'needle'; data.repo = 'me/home'; data.path = '';
   await data.run();
-  assert.deepEqual(CALLS, [], 'running contents calls nothing');
-  data.path = ''; data.q = 'needle';
+  const asked = CALLS.find(c => c[0] === 'contents')[1];
+  assert.deepEqual(j(asked.repos), ['me/home']);
+  assert.equal(asked.registry, 'me/registry');
+  data.repo = ''; data.path = 'docs';
+  await data.run();
+  const all = CALLS.filter(c => c[0] === 'contents')[1][1];
+  assert.deepEqual(j(all.repos), ['me/tools', 'me/home'], 'all repos is the estate');
+  assert.equal(all.under, 'docs');
+  data.path = '';
+});
+
+test('each contents hit quotes its line from its own file, after the list is drawn', async () => {
+  CALLS = [];
+  ANSWER = { hits: [{ repo: 'me/home', ref: '', path: 'a.md' }, { repo: 'me/home', ref: '', path: 'b.md' }], total: 2 };
+  data.mode = 'contents'; data.q = 'needle'; data.repo = '';
+  await data.run();
+  await tick();
+  assert.deepEqual(CALLS.filter(c => c[0] === 'snippet').map(c => c[1].path), ['a.md', 'b.md']);
+  assert.deepEqual(data.hits.map(h => h.note), ['line about needle', 'line about needle']);
+});
+
+test('contents says what the index could not cover, rather than an empty list implying it', async () => {
+  data.mode = 'contents'; data.q = 'needle'; data.repo = '';
+  ANSWER = { hits: [], total: 0, indexed: false, missing: ['me/tools', 'me/home'] };
+  await data.run();
+  assert.match(data.error, /No contents index yet/);
+  ANSWER = { hits: [], total: 0, missing: ['me/home'] };
+  await data.run();
+  assert.equal(data.error, 'Not indexed yet: home.');
+  ANSWER = { hits: [], total: 0, pending: 1200 };
+  await data.run();
+  assert.match(data.error, /Index still filling: 1,200 files/);
+  data.repo = 'me/skipped';
+  ANSWER = { hits: [], total: 0, missing: ['me/skipped'] };
+  await data.run();
+  assert.equal(data.error, 'skipped is left out of the contents index.');
+  data.repo = '';
+  ANSWER = { hits: [], total: 0 };
 });
 
 test('a search failure surfaces the whole error and still counts as ran', async () => {
@@ -515,7 +553,7 @@ test('a bare arrival lists the browsed repo rather than landing on nothing', asy
   cold.repo = 'me/browsed';
   assert.equal(cold.caveat, '', 'a Files listing that can run explains nothing');
   cold.mode = 'contents';
-  assert.match(cold.caveat, /384 KB/, 'contents keeps its caveats: no layout can show what a list is missing');
+  assert.match(cold.caveat, /Markdown files · Default branches/, 'contents keeps its caveats: no layout can show what a list is missing');
 
   el.remove();
   store.repo = ''; store.ref = ''; store.defaultRef = '';

@@ -227,7 +227,7 @@
   // Which repository file a pasted piece of PowerShell belongs to (window.PowerShellMatch).
   await gh.load('kits/powershell-match.js');
   await gh.load('kits/powershell-editor.js');
-  // The estate's search calls (trees, file-name index, session grep) with one
+  // The estate's search calls (trees, file-name index, content index, session grep) with one
   // shared cache, behind the sidebar finder and the Search view.
   await gh.load('kits/estate-search.js');
   // Pure alignment assessment behind the Distribution/Repos view (window.PortableAlign).
@@ -916,7 +916,7 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
          stage's loadAllTrees economy), and PR titles — with a token-gated "Jot this"
          floor so an unmatched query lands in the pile instead of nowhere. Two deeper
          passes sit behind their own tap gates: "Search file contents" routes to
-         the Search view, which links to GitHub's code search, and
+         the Search view, which searches the crawled Markdown index, and
          "Search sessions" greps the captured records in web-tools-private client-
          side, hits opening the Sessions pane's paged reader. Any bare printable
          key reaches it, `/` included, through the shell's own router
@@ -937,7 +937,7 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
          explicitly; plain text matches repos, the nav, file names in every
          estate repo (the registry's state/files.json), and PR titles, grouped
          under a heading per kind, with tap-gated deeper passes: file
-         CONTENTS through the Search view's link to GitHub, and a client-side grep of the
+         CONTENTS through the crawled Markdown index, and a client-side grep of the
          captured session records. The last
          row is always "Jot this", so a query that found
          nothing is kept rather than lost. Sits in the SIDEBAR, not the
@@ -2393,7 +2393,7 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
     </div>
 
     <!-- The Search view: the central file surface (file names at any ref under
-         any folder, contents through a link to GitHub's code search, the captured session
+         any folder, Markdown contents through the crawled word index, the captured session
          records), over the same shared core the sidebar finder uses
          (lib/kits/estate-search.js). The finder is for jumping; this is for
          investigating, and it is where each mode's caveats are stated in

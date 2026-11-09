@@ -1,7 +1,8 @@
 // lib/kits/estate-search.js — the shared search core: the per-(repo, ref) tree
 // cache with its failure backoff (a failed fetch is remembered briefly, never
 // cached as an empty tree), file-name search across repos with per-repo error
-// reporting, the session grep over what a record quotes, and reset. Driven
+// reporting, the content index's search over its shards, the session grep
+// over what a record quotes, and reset. Driven
 // over a fake GH; no network, no pixels, no Alpine.
 
 import test from 'node:test';
@@ -66,6 +67,7 @@ await startAlpine(window, [
   'lib/kits/chat-archive.js',
   'lib/kits/session-index.js',
   'lib/kits/file-index.js',
+  'lib/kits/content-index.js',
   'lib/kits/estate-search.js',
 ]);
 const ES = window.EstateSearch;
@@ -598,9 +600,32 @@ test('setFileIndex: what the crawl wrote is what the next search reads', async (
   assert.equal(res.hits.map(h => h.path).join(' '), 'fresh.md');
 });
 
-test('no contents call: a page cannot read the code-search API, so none is offered', () => {
-  // GitHub answers an authenticated code search without a CORS header
-  // (measured 2026-11-09), so a browser withholds the answer. Contents is a
-  // link to github.com (RepoAddress.github.codeSearch), never a fetch here.
-  assert.equal(ES.code, undefined);
+test('contents: the manifest names each repo\'s shards, hits carry their repo, and a folder narrows them', async () => {
+  const CI = window.ContentIndex, X = window.SessionIndex;
+  const shard = (docs) => CI.buildShard(Object.fromEntries(Object.entries(docs).map(([p, t]) => [p, { blob: 'b', terms: X.tokens(t) }])));
+  ES.reset();
+  FILES = {
+    [CI.MANIFEST]: { repos: {
+      'me/tools': { sha: 's1', docs: 2, pending: 0, shards: ['state/content-index/me.tools.0.json'] },
+      'me/home':  { sha: 's2', docs: 1, pending: 3, shards: ['state/content-index/me.home.0.json'] },
+    } },
+    'state/content-index/me.tools.0.json': shard({ 'docs/a.md': 'allotment packets', 'README.md': 'allotment intro' }),
+    'state/content-index/me.home.0.json': shard({ 'notes.md': 'an allotment note' }),
+  };
+  READ_CALLS = [];
+  const res = await ES.contents({ q: 'allotment', repos: ['me/home', 'me/tools', 'me/absent'], registry: REGISTRY, token: 'tkn' });
+  assert.deepEqual([...res.hits.map(h => h.repo + ':' + h.path)], ['me/home:notes.md', 'me/tools:docs/a.md', 'me/tools:README.md'],
+    'in the order the repos were asked for, then by path as the names lane sorts');
+  assert.equal(res.indexed, true); assert.equal(res.pending, 3); assert.deepEqual([...res.missing], ['me/absent']);
+  const under = await ES.contents({ q: 'allotment', repos: ['me/tools'], registry: REGISTRY, token: 'tkn', under: 'docs/' });
+  assert.deepEqual([...under.hits.map(h => h.path)], ['docs/a.md']);
+  assert.equal(READ_CALLS.filter(p => p === CI.MANIFEST).length, 1, 'the manifest and shards are read once');
+  assert.equal(ES.stats().contentShards, 2);
+});
+
+test('contents: no manifest yet is "not indexed", not an empty answer', async () => {
+  ES.reset();
+  FILES = {};
+  const res = await ES.contents({ q: 'x', repos: ['me/tools'], registry: REGISTRY, token: 'tkn' });
+  assert.equal(res.indexed, false); assert.deepEqual([...res.missing], ['me/tools']); assert.equal(res.hits.length, 0);
 });
