@@ -250,7 +250,9 @@ test('the two sub-tab encodings, counted', () => {
   // 51 to 50 on 2026-11-08: Harness retired Surfacing, a rendering of
   // CONVERSATION.md with no registry behind it; the Programs tab's surfacing
   // row and the Context and Docs tabs reach the document.
-  assert.equal(params, 50, 'sub-tabs addressed as ?view=<parent>&tab=');
+  // 50 to 51 on 2026-11-08: Browser took Forms, the estate's forms with the
+  // pages that carry each.
+  assert.equal(params, 51, 'sub-tabs addressed as ?view=<parent>&tab=');
 });
 
 // The Map's row is a copy of the shell's address list, and it is a copy that

@@ -1,4 +1,4 @@
-// screenshot.mjs interaction scenario: the estate's Jots view with a
+// screenshot.mjs interaction scenario: the Lists view's Jot tab with a
 // populated pile.
 //
 //   node node/render/screenshot.mjs app/index.html \
@@ -59,7 +59,7 @@ export default async function (page) {
       return origReq.call(this, path);
     };
 
-    window.__shell.goJots();
+    window.__shell.goLists('jot');
     const host = [...document.querySelectorAll('[x-data]')]
       .find(el => (el.getAttribute('x-data') || '').includes('estate('));
     if (!host) return 'no estate host';
