@@ -10,8 +10,4 @@ disable-model-invocation: true
 
 A script outside `lib/` goes with its caller.
 
-- A pipeline step goes with its pipeline, a skill's script in that skill's folder, and a script a platform runs with that platform's files (`.githooks/`, `.github/workflows/`, `.claude/`).
-- A script kept only to explain a probe stays with the probe's findings.
-- Anything else goes in `python/` or `node/` by language.
-
-**Detail:** [code-layers.md](https://github.com/mehrlander/web-tools/blob/main/docs/code-layers.md), "Outside `lib/`".
+**Backed by:** [code-layers.md](https://github.com/mehrlander/web-tools/blob/main/docs/code-layers.md#outside-lib), "Outside `lib/`".
