@@ -66,7 +66,7 @@ requests first. On 2026-11-10 none of the four open pull requests touched it.
   `gh.load`, and the boot-timing invariants.
 - `docs/app-routes.csv`: each view's `files` column, which changes as views
   move.
-- `repos-grid-into-map-reach-1eheiq`: moves the Repos view into Map › Reach,
+- `tracker/tasks/repos-grid-into-map-reach-1eheiq.md`: moves the Repos view into Map › Reach,
   which takes Repos out of estate rather than into a component of its own;
   settle the order with it.
 - `lib/alpineComponents/map.js`: 16,346 lines in the same shape, out of scope
