@@ -47,8 +47,9 @@
                  work, with its kind, method, thread and what it left behind.
                  A row is one link: to the run's page when it has one, to its
                  README when not, opened in this view so Back returns. A run
-                 that declares its documents in a files.jsonl also opens as a
-                 deck of them, and a run that settled probes names how many.
+                 whose row declares a deck also opens as a deck of its
+                 documents; the collection is read when that is asked for, not
+                 when the pane opens. A run that settled probes names how many.
 
   Reviewing. Under every pair, in the list and in both decks, one line carries
   the variant's facts and a reader's three acts: vote it up, vote it down, and
@@ -177,6 +178,7 @@
       concept: '',
       filterStanding: '',
       runRows: [],
+      deckBusy: '',
       badgeFilter: {},
       probeRun: '',
       probeBy: 'date',
@@ -333,6 +335,13 @@
           : `${this.TOSS}#data=${this.REPO}@${this.DATA_REF}:${this.ROOT}/${run.run}/README.md`;
       },
       deckOf(run) { return this.textRuns.find(t => t.name === run.name) || null; },
+      async openDeckFor(run) {
+        this.deckBusy = run.name;
+        await this.loadTextRuns();
+        this.deckBusy = '';
+        const deck = this.deckOf(run);
+        if (deck) this.openRunDeck(deck);
+      },
       runGroups() {
         const key = this.runBy, out = new Map();
         for (const r of this.runRows) {
@@ -379,7 +388,12 @@
         this.syncPaneAddress();
         try {
           if (pane === 'variants') await this.loadVariants();
-          if (pane === 'runs') await this.loadTextRuns();
+          // With the registry the pane is already drawn, and the collection is
+          // read only when a deck is asked for: by a tap, or by the address.
+          if (pane === 'runs') {
+            if (!this.runRows.length || this.deckParam.startsWith('run:')) await this.loadTextRuns();
+            else if (this.runFocus) this.$nextTick(() => document.getElementById(`run-${this.runFocus}`)?.scrollIntoView({ block: 'center' }));
+          }
           if (pane === 'instruments' && !this.guideHtml) {
             await gh.load('kits/guide-render.js');
             await gh.load('kits/source-peek.js');
@@ -807,15 +821,23 @@
         if (this.textRunState !== 'idle') return;
         this.textRunState = 'loading';
         try {
-          const dirs = (await this.home.req(`contents/${this.TEXT_RUNS}?ref=${encodeURIComponent(this.DATA_REF)}`))
-            .filter(d => d.type === 'dir').map(d => d.name).sort().reverse();
+          // The run registry already names every run, its title, and which runs
+          // hold a files.jsonl, so with it there is no folder listing to read
+          // and no file to try in each of two dozen folders.
+          const known = this.runRows.filter(r => r.run.startsWith('runs/'));
+          const dirs = known.length ? known.map(r => r.name)
+            : (await this.home.req(`contents/${this.TEXT_RUNS}?ref=${encodeURIComponent(this.DATA_REF)}`))
+              .filter(d => d.type === 'dir').map(d => d.name).sort().reverse();
+          const withFiles = known.length ? known.filter(r => r.deck === 'files').map(r => r.name) : dirs;
           const titled = async (name) => {
+            const row = known.find(r => r.name === name);
+            if (row) return row.title;
             try {
               const readme = await this.home.get(`${this.TEXT_RUNS}/${name}/README.md`);
               return (/^#\s+(.+)$/m.exec(readme.text) || [])[1] || name.slice(11).replace(/-/g, ' ');
             } catch (_) { return name.slice(11).replace(/-/g, ' '); }   // a run without a README keeps its folder name
           };
-          const found = await Promise.all(dirs.map(async name => {
+          const found = await Promise.all(withFiles.map(async name => {
             const dir = `${this.TEXT_RUNS}/${name}`;
             try {
               const res = await this.home.get(`${dir}/files.jsonl`);
@@ -1389,10 +1411,10 @@
               <div class="flex flex-col items-end justify-center gap-1 shrink-0 py-3">
                 <button type="button" x-show="probesIn(r)" class="rounded-md bg-base-200 px-2 py-1 text-sm cursor-pointer whitespace-nowrap max-sm:min-h-11"
                         @click="showProbesOf(r)" x-text="probesIn(r) + (probesIn(r) === 1 ? ' probe' : ' probes')"></button>
-                <button x-show="deckOf(r)" class="btn btn-square btn-sm btn-ghost text-primary max-sm:h-11 max-sm:w-11"
+                <button x-show="r.deck" class="btn btn-square btn-sm btn-ghost text-primary max-sm:h-11 max-sm:w-11"
                         :aria-label="'Read the files of ' + r.title + ' one at a time'"
-                        @click="openRunDeck(deckOf(r))">
-                  <i class="ph ph-cards-three text-lg"></i>
+                        :disabled="deckBusy === r.name" @click="openDeckFor(r)">
+                  <i class="ph text-lg" :class="deckBusy === r.name ? 'ph-circle-notch animate-spin' : 'ph-cards-three'"></i>
                 </button>
                 <a class="font-mono text-xs text-base-content/70 hover:text-base-content py-1" :href="treeUrl(ROOT + '/' + r.run)">files</a>
               </div>
