@@ -252,7 +252,9 @@ test('the two sub-tab encodings, counted', () => {
   // row and the Context and Docs tabs reach the document.
   // 50 to 51 on 2026-11-08: Browser took Forms, the estate's forms with the
   // pages that carry each.
-  assert.equal(params, 51, 'sub-tabs addressed as ?view=<parent>&tab=');
+  // 51 to 52 on 2026-11-09: Docs took Comments, the comment blocks and
+  // docstrings in code.
+  assert.equal(params, 52, 'sub-tabs addressed as ?view=<parent>&tab=');
 });
 
 // The Map's row is a copy of the shell's address list, and it is a copy that

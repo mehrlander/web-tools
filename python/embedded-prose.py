@@ -5,7 +5,8 @@ Prose in a `.js` or `.html` file has no data file behind it and no registry row,
 counts it, nothing renders it, and nothing notices when it goes stale. This
 script counts it, in three classes that want three different answers:
 
-    commentary   a comment block: rationale addressed to whoever edits the file.
+    commentary   a comment block, an HTML comment in a template literal
+                 included: rationale addressed to whoever edits the file.
                  Legitimate in principle. The question is only ever SIZE, since
                  past a few hundred words a comment is a design document that
                  happens to live in a source file.
@@ -115,19 +116,32 @@ def js_comments(src, base_line=1):
             line += body.count("\n")
             i = j + 2
         elif c == "/" and not (
-            PREV_OPERAND.search(src[:i].rstrip())
-            and not KEYWORD_BEFORE_REGEX.search(src[:i].rstrip())
+            PREV_OPERAND.search(_tail(src, i))
+            and not KEYWORD_BEFORE_REGEX.search(_tail(src, i))
         ):
             i = _skip_regex(src, i, n)
         elif c in "\"'":
             j, i = i, _skip_quoted(src, i, n, c)
             line += src.count("\n", j, i)
         elif c == "`":
+            # An HTML comment in a template literal is string content to
+            # JavaScript, but in an Alpine component's markup it is the
+            # comment its author wrote, so it counts as one.
             j, i = i, _skip_template(src, i, n)
+            for m in HTML_COMMENT.finditer(src, j, i):
+                out.append((line + src.count("\n", j, m.start()), "html", m.group(1)))
             line += src.count("\n", j, i)
         else:
             i += 1
     return out
+
+
+def _tail(src, i):
+    """The last 64 characters of `src[:i].rstrip()`, which is all either regex above reads."""
+    j = i - 1
+    while j >= 0 and src[j].isspace():
+        j -= 1
+    return src[max(0, j - 63):j + 1]
 
 
 def _skip_regex(src, i, n):
@@ -398,7 +412,7 @@ def comment_blocks(path, src):
     if path.endswith(".html"):
         for m in HTML_COMMENT.finditer(src):
             found.append((src.count("\n", 0, m.start()) + 1, "html", m.group(1)))
-        masked = HTML_COMMENT.sub(lambda m: "\n" * m.group(0).count("\n"), src)
+        masked = HTML_COMMENT.sub(lambda m: re.sub(r"[^\n]", " ", m.group(0)), src)
         for s in SCRIPT.finditer(masked):
             found += coalesce(js_comments(s.group(1), masked.count("\n", 0, s.start(1)) + 1))
     else:
@@ -584,7 +598,10 @@ def strip_comments(path, src):
         elif c in "\"'":
             i = _skip_quoted(src, i, n, c)
         elif c == "`":
-            i = _skip_template(src, i, n)
+            j, i = i, _skip_template(src, i, n)
+            kept.append(src[last:j])
+            kept.append(HTML_COMMENT.sub("", src[j:i]))
+            last = i
         else:
             i += 1
     kept.append(src[last:])

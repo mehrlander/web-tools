@@ -99,6 +99,12 @@ test('docs/themes.csv matches the corpus the theme graph is read from', () => {
   assert.equal(r.status, 0, (r.stderr || '').trim() || 'themes-graph --check failed');
 });
 
+test('data/comments/web-tools.json matches the comment blocks in the code', () => {
+  const r = spawnSync('python3', ['python/comment-blocks.py', '.', '--skip', 'archive/', '--skip', 'dump/', '--skip', 'research/',
+                                  '--emit', 'data/comments/web-tools.json', '--check'], { cwd: repoRoot, encoding: 'utf8' });
+  assert.equal(r.status, 0, (r.stderr || '').trim() || 'comment-blocks --check failed');
+});
+
 
 test('the tracker board matches tracker/tasks/', () => {
   const r = spawnSync('python3',
