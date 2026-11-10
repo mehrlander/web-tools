@@ -7485,6 +7485,15 @@ function app(){ return {
     if (tab !== undefined) this.mapTab = MAP_ROUTES.includes(tab) ? tab : MAP_HOME;
     this.mapSeen = true; this.view = 'map'; this.syncUrl();
   },
+  // One house policy, by its h: name: the address a `h:name` citation links
+  // (?view=map&tab=policy&h=name), reached from inside the app by the finder's
+  // Policies rows. The event is for a Map already mounted, which read the
+  // address once at its init; a first mount reads the stamped address.
+  goPolicy(id){
+    this.mapCtx = { ...this.mapCtx, h: id || '' };
+    this.goMap('policy');
+    document.dispatchEvent(new CustomEvent('web-tools:open-policy', { detail: { id: id || '' } }));
+  },
   // A tab tap from inside map(): stamp the URL so back and forward walk the
   // tabs. The component holds its own copy for rendering and watches this one.
   goMapTab(tab){
