@@ -1,7 +1,8 @@
 // alpineComponents/quick-find.js — logic tests for the sidebar finder's lane
 // dispatcher: the #digits PR lane (open-repo hits first), the @ repo-then-file
 // walk (repo choice, folder completion, dir filtering, whole-tree fuzzy),
-// pasted addresses resolving exactly with no suggestions, the plain lane
+// pasted addresses resolving exactly with no suggestions, the h: policy lane
+// and the Policies, Skills and Tasks headings, the plain lane
 // (repos, views, cached file names with the estate-wide gate, PR titles), the
 // +prefix and floor jot lanes, the branch hit's open-branch-detail event, and
 // the jot write's fresh-read append. Driven over a fake GH and a stubbed
@@ -16,11 +17,13 @@ const REGISTRY = 'me/registry';
 let FILES = {};    // "<path>" -> parsed JSON served from the registry
 let SAVES = [];    // every save call: { repo, path, value, message }
 let TREES = {};    // "<repo>" -> [blob paths] served from git/trees
+let TEXTS = {};    // "<repo>:<path>" -> raw text served from any repo
 
 class FakeGH {
   constructor(conf = {}) { this.repo = conf.repo || ''; this.ref = conf.ref || 'main'; }
   async get(name) {
     if (this.repo === REGISTRY && FILES[name]) return { text: JSON.stringify(FILES[name]) };
+    if (TEXTS[this.repo + ':' + name]) return { text: TEXTS[this.repo + ':' + name] };
     throw Object.assign(new Error('404'), { status: 404 });
   }
   async req(path) {
@@ -68,6 +71,8 @@ const shell = {
   _went: [],
   _searched: [],
   goSearch(opts) { shell._searched.push(opts); },
+  goPolicy(id) { shell._went.push('policy:' + id); },
+  goMap(tab) { shell._went.push('map:' + tab); },
 };
 window.__shell = shell;
 
@@ -400,6 +405,91 @@ test('the finder store says when results show, so the sidebar list can step asid
   data.q = '';
   await Alpine.nextTick();
   assert.equal(Alpine.store('finder').open, false);
+});
+
+// ── Recognized kinds: policies, skills, tasks ──────────────────────────────
+// The hub is the finder's default, mehrlander/web-tools, made an estate member
+// for these tests so the index scope admits it.
+
+const HUB = 'mehrlander/web-tools';
+const POLICY_DOC = [
+  '# House policies', '', '## Writing', '',
+  '### No em dashes · `h:dash`', '', 'Join ideas with a colon.', '',
+  '### Take it with salt · `h:salt` · `h:grain`', '', 'Hedge.', '',
+  '## Showing', '', '### Showing · `h:show`', '',
+].join('\n');
+
+async function armPolicies() {
+  shell.estateRepos.push({ repo: HUB, icon: 'ph-wrench' });
+  TEXTS[HUB + ':docs/house-policies.md'] = POLICY_DOC;
+  await armIndex({
+    [HUB]: { sha: '1', dirs: {
+      'plugins/h/skills/salt': ['SKILL.md'], 'plugins/h/skills/dash': ['SKILL.md'],
+      'skills/salt-water': ['SKILL.md', 'notes.md'],
+      'tracker/tasks': ['salt-the-roads-ab12cd.md'], docs: ['salted.md'] } },
+  });
+  data._polAsked = false; data.pol_ = null;
+  await data.ensurePolicies();
+}
+
+test('h: lists every policy, h:frag narrows by name, and a row opens the policy', async () => {
+  await armPolicies();
+  data.q = 'h:';
+  assert.deepEqual(j(data.sections.map(s => s.id)), ['policies']);
+  assert.deepEqual(j(data.rows.filter(r => r.kind === 'policy').map(r => r.label)), ['h:dash', 'h:salt', 'h:show']);
+  data.q = 'h:sa';
+  const rows = data.rows.filter(r => r.kind === 'policy');
+  assert.deepEqual(j(rows.map(r => [r.label, r.sub])), [['h:salt', 'Take it with salt']]);
+  // A second name finds the entry under its first, and the slash form reads the same.
+  data.q = '/h:grain';
+  assert.deepEqual(j(data.rows.filter(r => r.kind === 'policy').map(r => r.id)), ['salt']);
+  shell._went.length = 0;
+  data.act(data.rows[0]);
+  assert.deepEqual(j(shell._went), ['policy:salt']);
+  assert.equal(data.q, '');
+});
+
+test('h: with a name that matches nothing still offers the Policy tab', () => {
+  data.q = 'h:zzz';
+  assert.deepEqual(j(data.rows.map(r => r.kind)), ['policies-tab']);
+  shell._went.length = 0;
+  data.act(data.rows[0]);
+  assert.deepEqual(j(shell._went), ['map:policy']);
+});
+
+test('a plain name answers under Policies, Skills, Tasks and Files, each hit under one heading', () => {
+  data.q = 'salt';
+  const by = Object.fromEntries(data.sections.map(s => [s.id, s]));
+  assert.deepEqual(j(data.sections.map(s => s.id)), ['policies', 'skills', 'tasks', 'files', 'further', 'keep']);
+  assert.deepEqual(j(by.policies.rows.map(r => r.label)), ['h:salt']);
+  // The policy's generated skill file is the policy, so no other heading lists it.
+  assert.deepEqual(j(by.skills.rows.map(r => [r.label, r.path])), [['salt-water', 'skills/salt-water/SKILL.md']]);
+  assert.deepEqual(j(by.tasks.rows.map(r => r.label)), ['salt-the-roads-ab12cd']);
+  assert.deepEqual(j(by.files.rows.map(r => r.path)), ['docs/salted.md', 'skills/salt-water/notes.md']);
+  assert.equal(by.files.total, 2);
+  // A skill row is still a file: it opens where files open.
+  assert.equal(by.skills.rows[0].kind, 'file');
+});
+
+test('a policy answers to a word of its title', () => {
+  data.q = 'em dash';
+  assert.deepEqual(j(data.rows.filter(r => r.kind === 'policy').map(r => r.label)), ['h:dash']);
+});
+
+test('before the policy doc is read, the file index names the policies', () => {
+  const held = data.pol_;
+  data.pol_ = null; data.rev_++;
+  data.q = 'h:sa';
+  assert.deepEqual(j(data.rows.filter(r => r.kind === 'policy').map(r => [r.label, r.sub])), [['h:salt', '']]);
+  data.pol_ = held; data.rev_++;
+});
+
+test('an address-shaped query that names nothing is read as plain text', () => {
+  data.q = 'nosuch:thing';
+  assert.equal(data.rows.some(r => r.kind === 'addr'), false);
+  assert.ok(data.rows.some(r => r.kind === 'code-gate'));
+  assert.ok(data.rows.some(r => r.kind === 'jot'));
+  shell.estateRepos.pop();
 });
 
 test('with no index the lane falls back to cached trees and the tap gate', async () => {
