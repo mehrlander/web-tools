@@ -30,7 +30,7 @@ in chat. One note addressed to the charter closes each run.
    working means. Say what moved, what the measure shows with its caveats, and
    which snags or tasks bear on it. Recommend a next step.
 3. **Propose.** A change to a governed file goes first to the reviewers the
-   declaration names (Agent tool), then to the owner: wording as a doc review
+   declaration names (Agent tool), then to the owner: wording as user calls
    (doc-craft skill), anything else with its evidence.
 4. **Record.** Leave one note addressed to the charter
    (`owner/repo:programs/<name>/README.md`) with the notes skill: what the report
