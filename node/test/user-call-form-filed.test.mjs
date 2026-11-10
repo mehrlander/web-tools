@@ -74,7 +74,10 @@ Alpine.start();
 const root = () => window.document.getElementById('form');
 const data = () => Alpine.$data(root());
 const until = async (ok) => { for (let i = 0; i < 80 && !ok(); i++) await tick(2); return ok(); };
-await until(() => data().doc.ready && root().querySelectorAll('[data-md-diff-change]').length === 2);
+// Drawn and painted: the edits' containers, and the head's "As filed", which
+// Alpine shows on a later tick than the draw (a parallel run caught it hidden).
+await until(() => data().doc.ready && root().querySelectorAll('[data-md-diff-change]').length === 2
+  && root().querySelector('[data-doc-filed]')?.style.display === '');
 const mark = (n) => root().querySelector(`[data-doc-mark][data-doc-edit="${n}"]`);
 
 test('mounting is quiet', () => assert.deepEqual(problems, []));
