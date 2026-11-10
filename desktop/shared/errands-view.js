@@ -10,7 +10,8 @@
     reply:'M3 12h4l3-8 4 16 3-8h4', laptop:'M5 4h14v12H5Zm-3 16h20',
     cloud:'M7 18a5 5 0 0 1-1-10 7 7 0 0 1 13 2 4 4 0 0 1-1 8Z',
     more:'M12 5h.01M12 12h.01M12 19h.01', errands:'M8 5H5v16h14V5h-3M8 3h8v4H8Zm0 9h8m-8 4h5',
-    back:'m14 5-7 7 7 7', open:'M14 4h6v6M20 4 10 14M10 4H4v16h16v-6'
+    back:'m14 5-7 7 7 7', open:'M14 4h6v6M20 4 10 14M10 4H4v16h16v-6',
+    file:'M14 2H5v20h14V7Zm0 0v5h5M8 12h8m-8 4h6'
   };
   const svg = name => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${name==='more'?3:1.7}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${paths[name] || paths.waiting}"/></svg>`;
   const mark = provider => window.assistantMark?.svg(provider.toLowerCase(),{cls:'erl-mark'}) || `<span class="erl-monogram">${esc(provider[0])}</span>`;
@@ -41,8 +42,49 @@
   const available = () => !!snapshot?.queueAvailable && !denied;
   const stale = () => !connected || Date.now()-Date.parse(snapshot?.observedAt)>30000 || !snapshot?.recordsConnected;
 
+  const bytes = value => value<1000?`${value} B`:value<1e6?`${(value/1000).toFixed(1)} KB`:`${(value/1e6).toFixed(1)} MB`;
+  const https = value => {try{const u=new URL(value);return u.protocol==='https:'&&!u.username&&!u.password?u.href:'';}catch{return '';}};
+  function structuredResult(value){
+    if(!Array.isArray(value)||!value.length||value.length>100||!value.every(row=>row&&typeof row==='object'&&!Array.isArray(row)))return '';
+    const fileRows=value.every(row=>typeof row.name==='string'&&row.name.trim()&&Number.isSafeInteger(row.bytes)&&row.bytes>=0&&(row.error==null||typeof row.error==='string'));
+    if(fileRows){
+      const total=value.reduce((sum,row)=>sum+row.bytes,0),errors=value.filter(row=>row.error).length;
+      if(!Number.isSafeInteger(total))return '';
+      return `<section class="erl-data" aria-label="Reported files"><div class="erl-data-summary">${value.length} ${value.length===1?'file':'files'} <span>${esc(bytes(total))}${errors?` · ${errors} with errors`:''}</span></div><ul class="erl-data-list">${value.map(row=>`<li><span class="erl-data-icon ${row.error?'erl-failed':''}" aria-label="${row.error?'Reported error':'File reported'}">${svg(row.error?'failed':'file')}</span><span class="erl-data-name">${esc(row.name)}${row.error?`<span class="erl-data-error">${esc(row.error)}</span>`:''}</span><span class="erl-data-size">${esc(bytes(row.bytes))}</span></li>`).join('')}</ul></section>`;
+    }
+    const projectRows=value.every(row=>typeof row.project==='string'&&Array.isArray(row.tableau)&&row.tableau.every(link=>typeof link==='string')&&Number.isSafeInteger(row.links)&&row.links>=0&&(row.error==null||typeof row.error==='string'));
+    if(projectRows)return `<section class="erl-data" aria-label="Reported projects"><div class="erl-data-summary">${value.length} ${value.length===1?'project':'projects'}</div><ul class="erl-project-list">${value.map(row=>`<li><strong>${esc(row.project)}</strong><span class="erl-project-links">${row.tableau.map(https).filter(Boolean).map(link=>`<a href="${esc(link)}" target="_blank" rel="noopener noreferrer">Tableau ${svg('open')}</a>`).join('')}<span>${row.links} ${row.links===1?'link':'links'}</span></span>${row.error?`<span class="erl-data-error">${esc(row.error)}</span>`:''}</li>`).join('')}</ul></section>`;
+    return '';
+  }
+  function reportHtml(body,item){
+    const host=document.createElement('div');
+    host.innerHTML=window.NowReading?.markdown(body)||`<p>${esc(body)}</p>`;
+    const converted=[];
+    for(const pre of host.querySelectorAll('pre')){
+      try{
+        const html=structuredResult(JSON.parse(pre.textContent));if(!html)continue;
+        const node=document.createElement('div');node.innerHTML=html;const data=node.firstElementChild;
+        pre.replaceWith(data);converted.push(data);
+      }catch{/* Unknown or incomplete JSON remains an ordinary code block. */}
+    }
+    // Some worker replies concatenate an interim update and the final result.
+    // Only trim that prefix when explicit Pending/Done markers bracket known data.
+    if(item.state==='complete'&&converted.length){
+      const nodes=[...host.children],first=nodes.indexOf(converted[0]),last=nodes.indexOf(converted.at(-1));
+      const pending=nodes.findIndex(n=>n.localName==='p'&&/^\s*(?:🟡\s*)?Pending:/u.test(n.textContent));
+      const done=nodes.findLastIndex(n=>n.localName==='p'&&/^\s*(?:⚫\s*)?Done:/u.test(n.textContent));
+      if(pending>=0&&pending<first&&done>last){
+        const outcome=nodes.slice(last+1,done).find(n=>n.localName==='p'&&n.textContent.trim());
+        if(outcome){nodes.slice(0,first).forEach(n=>n.remove());nodes[done].remove();host.prepend(outcome);}
+      }
+    }
+    return host.innerHTML;
+  }
+
   const style=document.createElement('style'); style.textContent=`
   .erl{color:#292524;font:inherit;overflow-anchor:none}.erl *{box-sizing:border-box}.erl button,.erl input{font:inherit}.erl button{cursor:pointer}.erl svg{width:17px;height:17px;flex:none;display:inline-block;vertical-align:middle}.erl button:focus-visible,.erl a:focus-visible{outline:2px solid #287f72;outline-offset:2px}.erl-controls{position:sticky;top:0;z-index:3;background:#f5f5f4;border-bottom:1px solid #e7e5e4;padding:9px 12px 8px}.erl-providers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;margin-bottom:8px}.erl-provider{display:flex;align-items:center;justify-content:center;gap:6px;min-height:34px;padding:4px;border:0;border-radius:7px;background:transparent;font-weight:600!important}.erl-provider[aria-pressed=true]{background:#e3e9e6}.erl .erl-mark{width:19px;height:19px}.erl-provider small{font-size:11px;font-weight:400;color:#78716c;font-variant-numeric:tabular-nums}.erl-codex{color:#248c78}.erl-gemini{color:#286dba}.erl-claude{color:#b77750}.erl-tabs{display:flex;border-radius:8px;background:#e7e7e3;padding:2px;gap:2px}.erl-tabs button{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;border:0;border-radius:6px;background:transparent;min-height:28px;font-size:12px;color:#57534e;white-space:nowrap}.erl-tabs button[aria-selected=true]{background:#fff;box-shadow:0 1px 3px #0002;color:#292524;font-weight:600}.erl-tabs small{font:inherit;font-size:10px;font-weight:400;font-variant-numeric:tabular-nums;color:#78716c}.erl-search{width:100%;min-height:32px;border:1px solid #deddd8;border-radius:7px;padding:5px 9px;background:#fff;margin-top:8px;font-size:12px!important}.erl-notice{padding:7px 12px;font-size:11px;background:#fffbeb;color:#854d0e;border-bottom:1px solid #fde68a}.erl-row{display:grid;grid-template-columns:minmax(0,1fr) 32px;background:#fff;border-bottom:1px solid #efeeeb;align-items:start}.erl-pick{display:grid;grid-template-columns:21px minmax(0,1fr);gap:8px;border:0;background:none;text-align:left;padding:11px 0 11px 12px;color:inherit;min-width:0;width:100%}.erl-title{font-size:14px;font-weight:550;line-height:1.4;text-wrap:pretty;overflow-wrap:anywhere}.erl-meta{display:flex;align-items:center;gap:6px;font-size:10px;color:#78716c;min-height:21px;font-variant-numeric:tabular-nums}.erl-meta svg{width:13px;height:13px}.erl-state{display:inline-flex;align-items:center;color:#568d83}.erl-failed{color:#b45309}.erl-queued{color:#8e7528}.erl-meta time{margin-left:2px}.erl-message{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:12px;color:#78716c;line-height:1.45;margin-top:2px}.erl-more{width:32px;height:42px;display:flex;align-items:center;justify-content:center;border:0;background:none;color:#78716c;padding:0}.erl-empty{padding:25px 16px;text-align:center;color:#78716c;font-size:13px}.erl-empty svg{display:block;width:24px;height:24px;margin:0 auto 7px;opacity:.65}.erl-foot{font-size:10px;color:#78716c;padding:9px 12px}.erl-menu,.erl-panel{position:fixed;z-index:60;background:white;border:1px solid #e7e5e4;box-shadow:0 6px 20px #0002;border-radius:12px;padding:5px;overflow:auto;overscroll-behavior:contain;overflow-anchor:none}.erl-menu a,.erl-menu button{display:flex;align-items:center;gap:8px;padding:10px 12px;min-height:40px;text-align:left;text-decoration:none;color:#28635a;font-size:13px;background:none;border:0;width:100%;border-radius:7px}.erl-menu a:hover,.erl-menu button:hover{background:#f5f5f4}.erl-panel{padding:12px;width:calc(100vw - 24px);max-height:60dvh;font-size:13px;line-height:1.5;overflow-wrap:anywhere}.erl-panel h2{font-size:14px;margin:0 0 5px;font-weight:600}.erl-dates{display:flex;flex-wrap:wrap;gap:2px 12px;margin:8px 0;font-size:11px;color:#78716c}.erl-dates span{white-space:nowrap}.erl-report{margin-top:10px;border-top:1px solid #e7e5e4;padding-top:10px}.erl-report p,.erl-report ul,.erl-report ol,.erl-report pre,.erl-report blockquote{margin:7px 0}.erl-report h1,.erl-report h2,.erl-report h3{font-size:13px;margin:12px 0 4px;font-weight:650}.erl-report ul,.erl-report ol{padding-left:20px}.erl-report ul{list-style:disc}.erl-report ol{list-style:decimal}.erl-report pre{padding:8px;background:#f5f5f4;overflow:auto;font-size:11px}.erl-report a{color:#28635a;text-decoration:underline}.erl-report table{display:block;overflow:auto;border-collapse:collapse}.erl-report th,.erl-report td{padding:4px;border-bottom:1px solid #e7e5e4}.erl-panel a.erl-record{display:inline-flex;align-items:center;gap:5px;margin-top:8px;color:#28635a;text-decoration:none;font-size:12px}.erl-entry{display:flex;align-items:center;gap:7px;width:100%;min-height:35px;padding:5px 12px;background:#f5f5f4;border:0;border-block:1px solid #e7e5e4;color:#57534e;font:inherit;font-size:12px;cursor:pointer}.erl-entry svg{width:16px;height:16px}.erl-entry .erl-entry-count{margin-left:auto;display:flex;align-items:center;gap:5px;font-size:11px;font-variant-numeric:tabular-nums}.erl-entry strong{font-weight:500}.erl [hidden]{display:none!important}
+  .erl-data{margin:10px 0}.erl-data-summary{display:flex;align-items:baseline;gap:9px;font-size:13px;font-weight:600}.erl-data-summary span{font-size:11px;font-weight:400;color:#78716c}.erl-report .erl-data-list,.erl-report .erl-project-list{list-style:none;padding:0;margin:5px 0}.erl-data-list li{display:grid;grid-template-columns:17px minmax(0,1fr) auto;align-items:start;gap:7px;padding:7px 0;border-top:1px solid #efeeeb}.erl-data-icon{color:#568d83;line-height:1.5}.erl-data-icon svg{width:16px;height:16px}.erl-data-name{overflow-wrap:anywhere;min-width:0}.erl-data-size{white-space:nowrap;color:#78716c;font-size:11px;padding-top:2px;font-variant-numeric:tabular-nums}.erl-data-error{display:block;color:#b45309;margin-top:3px}.erl-project-list li{padding:8px 0;border-top:1px solid #efeeeb}.erl-project-list strong{font-weight:550}.erl-project-links{display:flex;flex-wrap:wrap;gap:5px 12px;align-items:center;margin-top:3px;font-size:11px;color:#78716c}.erl-project-links a{display:inline-flex;align-items:center;gap:3px}.erl-project-links svg{width:12px;height:12px}
+  .erl-data-icon.erl-failed{color:#b45309}
   `; document.head.append(style);
   const menu=document.createElement('aside'), panel=document.createElement('aside');
   menu.className='erl erl-menu'; menu.hidden=true; menu.setAttribute('role','menu');menu.setAttribute('aria-label','Errand actions');
@@ -87,7 +129,7 @@
     const body=cached?.version===version?cached.body:null;
     const dates=[['Filed',item.createdAt],...(item.claimedAt?[['Taken on',item.claimedAt]]:[]),...(hasResult?[['Updated',item.at]]:[])].filter(([,at])=>Date.parse(at)>0).map(([name,at])=>`<span>${name} ${esc(stamp(at))}</span>`).join('');
     const url=safe(item.url),scroll=panel.scrollTop;
-    const rendered=body!==null?(window.NowReading?.markdown(body)||`<p>${esc(body)}</p>`):'<p>Reading result…</p>';
+    const rendered=body!==null?reportHtml(body,item):'<p>Reading result…</p>';
     replace(panel,`<h2>${esc(item.title)}</h2><span class="erl-meta"><span class="erl-state erl-${item.state}">${svg(glyph(item))}</span>${label(item)} · ${item.provider}${item.location?' · '+esc(item.location):''}</span>${dates?`<p class="erl-dates">${dates}</p>`:''}${item.state==='claimed'?'<p>A claim is recorded. Continued execution is not confirmed.</p>':''}${hasResult?`<div class="erl-report">${rendered}</div>`:item.detail?`<p>${esc(item.detail)}</p>`:''}${url?`<a class="erl-record" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${svg('open')}${hasResult?'Open saved result':'Open request'}</a>`:''}`);
     panel.hidden=false;panel.scrollTop=scroll;root?.querySelector(`[data-er-pick="${id}"]`)?.setAttribute('aria-expanded','true');place(panel,root.querySelector(`[data-er-pick="${id}"]`));if(focus)panel.focus({preventScroll:true});
     if(hasResult&&body===null&&!requests.has(id)){

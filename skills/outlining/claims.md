@@ -93,35 +93,29 @@ Pick one reading of "event reported together" and apply it to every sentence in 
 
 ## Output
 
-The stored format is a flat list of claim objects, in document order. It is the canonical artifact: render any inline-footnoted view from it, and never parse footnotes back into structure.
+The stored format is `claims.csv`, one row per claim in document order, every field quoted. It is the canonical artifact: render any inline-footnoted view from it, and never parse footnotes back into structure.
 
-Each object:
+| Column | Holds |
+| --- | --- |
+| `n` | The claim number, from 1 in document order. |
+| `section` | The heading the claim sits under, as the document writes it. |
+| `span` | A short phrase quoted exactly from the source; a script finds the claim's place by it. For a presupposed or structural claim, the trigger. |
+| `claim` | The proposition, stated plainly, standing alone. |
+| `type` | One of `stated`, `existence`, `causal`, `evaluative`. |
+| `implied` | `true` when the claim is carried by arrangement or presupposition rather than stated outright, chiefly for smuggled causation. Lets a later pass filter for the hidden claims without parsing prose. |
+| `composite` | `true` only for the held-together case above. |
+| `note` | Free text, for an observation no other column holds. |
 
-The flags answer separate questions and do not constrain each other: `type` is the kind of commitment, `implied` is whether the claim is surfaced or hidden (it cuts across types, though in practice it lands mostly on causal and existence), and `composite` is a grain note marking an entry that holds more than one fact on purpose. A claim can be any combination.
+Any of `implied`, `composite` and `note` that no row fills may be left out. Anchor by section and span, not by character offset or line number; those break the moment the source is edited, and this list is meant to be stored and re-read.
 
-```json
-{
-  "id": 4,
-  "sent": 1,
-  "span": "Following ... recovered the next quarter",
-  "type": "causal",
-  "claim": "The fee increase caused disbursements to recover.",
-  "implied": true,
-  "composite": false,
-  "note": "carried by 'following', no stated 'because'"
-}
+`type`, `implied` and `composite` answer separate questions, and a claim can carry any combination of them.
+
+```csv
+"n","section","span","claim","type","implied","composite","note"
+"4","Results","Following the fee increase","The fee increase caused disbursements to recover.","causal","true","","carried by 'following', no stated 'because'"
 ```
 
-- `id`: stable integer, claim order.
-- `sent`: index of the source sentence. Anchor by sentence index plus `span`, not by character offset; offsets break the moment the source is edited, and this list is meant to be stored and re-read.
-- `span`: short anchor phrase into the source. For presupposed or structural claims, the trigger.
-- `type`: one of `stated`, `existence`, `causal`, `evaluative`.
-- `claim`: the proposition, stated plainly, standing alone.
-- `implied`: true when the claim is carried by arrangement or presupposition rather than stated outright, chiefly for smuggled causation. Lets a downstream step filter for the hidden claims without parsing prose. Omit or false otherwise.
-- `composite`: true only for the held-together case above. Omit or false otherwise.
-- `note`: optional free text, for genuine observations not captured by a field.
-
-For a human reading rather than a downstream process, render a plain numbered list of the `claim` fields, optionally grouped by `type`. No verdict or support field appears here. Marking truth is verification, a separate job that operates on this output and adds its own field.
+A pass over the claims, such as a verification, a [placement](tree.md) or a [ladder](ladders.md), writes its own CSV beside `claims.csv`, keyed by `n`, with a row for each claim it judges. For a human reading rather than a downstream process, render a plain numbered list of the `claim` fields, optionally grouped by `type`.
 
 ## Guardrails
 

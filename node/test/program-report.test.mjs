@@ -1,7 +1,9 @@
 // skills/programs/program.py report: the changes section counts the commits to
 // the governed files since a date, a commit once for each governed entry it
 // touched, a folder entry covering the files under it, and leaves out the
-// commits that touch nothing governed.
+// commits that touch nothing governed. A governed registry whose every column
+// is computed is left out and named, and a shallow checkout whose history
+// starts after the window says so.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
@@ -29,19 +31,34 @@ test('the report counts governed commits per entry and lists the latest', () => 
       git('commit', '-q', '--no-verify', '-m', msg);
     };
     commit({ '.web-tools.json': JSON.stringify({ programs: [{ name: 'demo', label: 'Demo', path: 'programs/demo',
-      governs: ['docs/a.md', 'docs/forms/'] }] }), 'programs/demo/README.md': '# Demo' }, 'declare');
+      governs: ['docs/a.md', 'docs/forms/', 'docs/gen.csv', 'docs/mixed.csv'] }] }), 'programs/demo/README.md': '# Demo',
+      'docs/registries.csv': 'id,path\ngen,docs/gen.csv\nmixed,docs/mixed.csv\n',
+      'docs/properties.csv': 'registry,property,mode\ngen,n,computed\nmixed,n,computed\nmixed,why,recorded\n' }, 'declare');
     commit({ 'docs/a.md': '1' }, 'touch a');
     commit({ 'docs/forms/x.md': '1', 'docs/a.md': '2' }, 'touch a and a form');
     commit({ 'docs/other.md': '1', 'docs/forms-old.md': '1' }, 'touch nothing governed');
+    commit({ 'docs/gen.csv': '1' }, 'regenerate a registry');
+    commit({ 'docs/mixed.csv': '1' }, 'edit a registry with a recorded column');
     git('push', '-q', 'origin', 'HEAD:main');
 
     const r = spawnSync('python3', [SCRIPT, 'report', 'demo', '--since', '2000-01-01'], { cwd: work, env, encoding: 'utf8' });
     assert.equal(r.status, 0, r.stderr);
-    assert.match(r.stdout, /^2 commits\./m);
+    assert.match(r.stdout, /^3 commits\./m);
+    assert.match(r.stdout, /\| `docs\/mixed\.csv` \| 1 \|/);
+    assert.doesNotMatch(r.stdout, /regenerate a registry/);
+    assert.match(r.stdout, /^Not counted, as a generator writes each whole: `docs\/gen\.csv`\.$/m);
+    assert.doesNotMatch(r.stdout, /history is shallow/);
     assert.match(r.stdout, /\| `docs\/a\.md` \| 2 \|/);
     assert.match(r.stdout, /\| `docs\/forms\/` \| 1 \|/);
     assert.match(r.stdout, /- \w+ \d{4}-\d{2}-\d{2} touch a and a form/);
     assert.doesNotMatch(r.stdout, /touch nothing governed/);
+
+    // A clone cut at its newest commit holds none of the window before it.
+    const shallow = join(base, 'shallow');
+    spawnSync('git', ['clone', '-q', '--depth', '1', 'file://' + origin, shallow]);
+    const s = spawnSync('python3', [SCRIPT, 'report', 'demo', '--since', '2000-01-01'], { cwd: shallow, env, encoding: 'utf8' });
+    assert.equal(s.status, 0, s.stderr);
+    assert.match(s.stdout, /history is shallow and complete only from \d{4}-\d{2}-\d{2}/);
   } finally {
     rmSync(base, { recursive: true, force: true });
   }

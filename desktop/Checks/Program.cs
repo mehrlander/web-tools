@@ -44,6 +44,15 @@ foreach (var (method, venue, location) in new[] { ("codex-errand", "personal-lap
 }
 Check(Activity.Join("stream", request, claim, arriving, false, seen)?.Reply == "First reply",
     "Gemini's streaming reply remains the preferred report body.");
+var fencedReport = "Started the script.\n\n🟡 **Pending:** Waiting.\n\n```json\n[{\"name\":\"report.xlsx\",\"bytes\":20,\"error\":null}]\n```\n\nThe file was saved without errors.\n\n⚫ **Done:** Saved the file.";
+var fencedJob = Activity.Join("fenced-report", request, claim,
+    Parse(JsonSerializer.Serialize(new { ok = true, message = "```json", data = new { reply = fencedReport } })), false, seen)!;
+Check(PhoneActivity.ErrandPreview(fencedJob) == "The file was saved without errors.",
+    "A fence-only message falls back to the final narrative outside code and status markers.");
+Check(PhoneActivity.ErrandPreview(fencedJob with { Message = "**Saved** [the report](https://example.test/report)" }) == "Saved the report",
+    "A meaningful message remains the preview with inline Markdown removed.");
+Check(PhoneActivity.ErrandPreview(fencedJob with { Reply = "```json\n[{\"bytes\":20}]\n```" }) == "",
+    "Code-only results do not turn raw JSON or a fence into a preview.");
 Check(NavigationPolicy.IsWebTools(NavigationPolicy.AppUrl + "?view=stage"), "The hosted app and its routes stay inside the desktop window.");
 Check(!NavigationPolicy.IsWebTools("https://mehrlander.github.io/web-tools-evil/app/"), "A lookalike path is outside the hosted app boundary.");
 Check(!NavigationPolicy.IsWebTools("https://mehrlander.github.io.evil.test/web-tools/app/"), "A lookalike host is outside the hosted app boundary.");

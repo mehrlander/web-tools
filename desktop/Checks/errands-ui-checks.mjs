@@ -14,13 +14,14 @@ let snapshot={schemaVersion:1,observedAt:now,syncedAt:now,queueAvailable:true,re
   job('bad/id','Codex','queued'),{...job('other','Grok','queued')}
 ]};
 let offline=false,denied=false,resultCalls=0,checks=0;
+let report='## Findings\n\n**Useful report**\n\n<script>alert(1)</script>\n\n[Bad](javascript:alert(1))';
 w.AbortController=AbortController;w.scrollTo=()=>{};
 const timers=new Map();let tid=0;
 w.setTimeout=(fn,ms)=>{timers.set(++tid,{fn,ms});return tid;};w.clearTimeout=id=>timers.delete(id);
 w.fetch=async path=>{
   if(offline)throw Error('Offline');
   if(denied)return {ok:false,status:403};
-  if(path.startsWith('/api/v1/results/')){resultCalls++;return {ok:true,json:async()=>({reply:'## Findings\n\n**Useful report**\n\n<script>alert(1)</script>\n\n[Bad](javascript:alert(1))'})};}
+  if(path.startsWith('/api/v1/results/')){resultCalls++;return {ok:true,json:async()=>({reply:report})};}
   assert.equal(path,'/api/v1/errands');
   return {ok:true,status:200,headers:{get:()=>''},json:async()=>structuredClone(snapshot)};
 };
@@ -60,6 +61,40 @@ check(!doc.querySelector('.erl-menu').hidden&&doc.querySelector('.erl-menu a').t
 click('[data-er-menu=gemini-done]');check(!doc.querySelector('.erl-menu a'),'Unsafe saved destinations never become links.');
 click('[data-er-tab=results]');const search=doc.querySelector('[data-er-search]');search.focus();search.value='failed';search.dispatchEvent(new w.Event('input',{bubbles:true}));
 check(rows().join()==='codex-failed'&&doc.activeElement.hasAttribute('data-er-search'),'Result search retains focus and selection.');
+// Real worker replies concatenate early progress, structured output and a final outcome.
+report='The script was launched.\n\n🟡 **Pending:** Waiting for the script.\n\n```json\n'+JSON.stringify([
+  {name:'report.xlsx',bytes:2500000,error:null},{name:'<img src=x onerror=alert(1)>.xlsx',bytes:7500000,error:null}
+])+'\n```\n\nBoth files were saved without errors.\n\n⚫ **Done:** Saved both files.';
+snapshot.items.push(job('files-result','Gemini','complete'));await w.NowErrands.refresh();
+click('[data-er-tab=results]');click('[data-er-pick=files-result]');await flush();
+check(doc.querySelector('.erl-data-summary')?.textContent==='2 files 10.0 MB'
+  &&doc.querySelectorAll('.erl-data-list li').length===2&&!doc.querySelector('.erl-report pre'),
+  'Recognized file JSON becomes a compact file list with a count and total size.');
+check(doc.querySelector('.erl-report').firstElementChild.textContent==='Both files were saved without errors.'
+  &&!doc.querySelector('.erl-report').textContent.includes('Pending:'),
+  'An explicit final outcome leads a settled result instead of a superseded pending update.');
+check(!doc.querySelector('.erl-data img')&&doc.querySelector('.erl-data-name').textContent==='report.xlsx'
+  &&doc.querySelector('.erl-record').href.includes('files-result'),
+  'Filenames remain escaped and the original saved result stays available.');
+report='```json\n'+JSON.stringify([{name:'failed.xlsx',bytes:0,error:'Access denied <script>bad()</script>'}])+'\n```';
+snapshot.items.push(job('file-error','Codex','failed'));await w.NowErrands.refresh();
+click('[data-er-pick=file-error]');await flush();
+check(doc.querySelector('.erl-data-summary').textContent.includes('1 with errors')
+  &&doc.querySelector('.erl-data-error').textContent.includes('Access denied')&&!doc.querySelector('.erl-data script'),
+  'Reported file failures stay visible and their messages cannot become markup.');
+report='```json\n'+JSON.stringify([{project:'Project <b>one</b>',tableau:['https://example.test/dashboard','javascript:alert(1)'],links:11,error:null}])+'\n```';
+snapshot.items.push(job('project-result','Gemini','complete'));await w.NowErrands.refresh();
+click('[data-er-pick=project-result]');await flush();
+check(doc.querySelector('.erl-project-list strong').textContent==='Project <b>one</b>'
+  &&doc.querySelectorAll('.erl-project-list a').length===1
+  &&doc.querySelector('.erl-project-list a').href==='https://example.test/dashboard',
+  'Dashboard JSON becomes readable project rows with safe HTTPS destinations only.');
+report='```json\n{"unknown":"still data"}\n```\n\n```js\nconst answer = 42;\n```';
+snapshot.items.push(job('code-result','Claude','complete'));await w.NowErrands.refresh();
+click('[data-er-pick=code-result]');await flush();
+check(doc.querySelectorAll('.erl-report pre').length===2
+  &&doc.querySelector('.erl-report').textContent.includes('const answer = 42;'),
+  'Unrecognized JSON and intentional source code remain normal code blocks.');
 click('[data-er-tab=waiting]');offline=true;await w.NowErrands.refresh();
 check(doc.querySelector('.erl-notice').textContent.includes('Saved queue')&&rows().length===3,'A connection failure preserves the saved queue with a visible warning.');
 offline=false;snapshot.items=[];await w.NowErrands.refresh();
