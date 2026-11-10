@@ -32,7 +32,7 @@ Commit what claims are checked against as a diffable file:
 
 ## Claims in prose
 
-Figures announce themselves; characterizations, causes, superlatives and attributions hide. Use source-anchored-writing's provenance states: restatement is Supported; stitching is Inferred, and the note says so. Inventory a long document with outlining's claims first.
+Figures announce themselves; characterizations, causes, superlatives and attributions hide. Use source-anchored-writing's provenance states: restatement is Supported; stitching is Inferred, and the note says so. Inventory a long document with outlining's claims first. That inventory is a `claims.csv` with each claim numbered `n`; record the anchoring beside it as `anchors.csv`, with the columns `n,label,doc,at,quote,note`: the claim's number, its provenance state, the source, the place in it (a page, or a sheet and cells), the source's words, and for an Inferred claim what it stitches together.
 
 ## Avoid
 
