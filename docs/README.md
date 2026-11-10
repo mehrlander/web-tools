@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `node/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 16 are named by CLAUDE.md,
-22 by a skill, 43 by a page or component. The remaining 40 are
+22 by a skill, 43 by a page or component. The remaining 41 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -98,6 +98,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`credentials.csv`](credentials.csv) — the credentials writers commit with, one row each: its kind, the venue that holds it and whose name its commits carry
 - [`machines.csv`](machines.csv) — the machines work runs on, one row per machine: what each is and what work there reaches
 - [`machines.md`](machines.md) *(measured)* — dated observations about the machines docs/machines.csv lists: what each product needs to keep running, and where unattended work fits
+- [`acronyms.md`](acronyms.md) *(orphan)* — coined acronyms for asks a session may hear (SPUR, FAIR) and for an order of explaining a term (CDE), kept mostly for fun
 
 ## docs/envelopes/
 

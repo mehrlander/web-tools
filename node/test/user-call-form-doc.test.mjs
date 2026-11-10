@@ -18,8 +18,8 @@ const STORE = 'me/private';
 const DOC = 'One.\n\nTwo.\n\nThree.\n\nFour.\n';
 const CALL = { id: 'c0ffee01-doc', session: 'c0ffee01', kind: 'documentation', question: 'Apply 4 edits to docs/x.md?',
   brief: 'Tidy the doc.', file: 'me/widget@main:docs/x.md', recommend: 'Apply all three',
-  edits: [{ from: 'One.', to: 'First.', why: 'clearer' }, { from: 'Two.', to: 'Second.', background: 'Two reads as a count on 2026-10-29.', proposal: 'Names the **order** with `Second`.' }, { from: 'Gone.', to: 'Nothing.' },
-          { from: 'Three.\n\nFour.', to: 'Third.\n\nFourth.' }] };
+  edits: [{ from: 'One.', to: 'First.', why: 'clearer', notes: [{ kind: 'clarify', text: 'reads poorly' }] }, { from: 'Two.', to: 'Second.', background: 'Two reads as a count on 2026-10-29.', proposal: 'Names the **order** with `Second`.' }, { from: 'Gone.', to: 'Nothing.' },
+          { from: 'Three.\n\nFour.', to: 'Third.\n\nFourth.', notes: [{ kind: 'clarify', text: 'reads poorly' }, { kind: 'correct', text: 'says the wrong count' }] }] };
 const puts = [];
 class FakeGH {
   constructor(conf = {}) { this.repo = conf.repo || ''; }
@@ -40,6 +40,9 @@ class FakeGH {
 const { window, problems } = makeWindow({ html: `<!doctype html><html><body>
   <div id="form" x-data="userCallForm(window.__form)"></div></body></html>` });
 window.GH = FakeGH;
+// jsdom has no layout: a scroll is recorded, by the element it would bring into view.
+const scrolled = [];
+window.Element.prototype.scrollIntoView = function () { scrolled.push(this); };
 window.TOKEN = 'tkn';
 window.gh = { load: async () => {} };
 // The marks are the shared kit's, so the form draws what every call draws.
@@ -67,7 +70,8 @@ window.mdDiff = { render: async (host, a, b, opts) => {
 } };
 window.Diff = {};
 window.MdSurface = { patch: (p, a, b) => 'PATCH ' + p + ' ' + JSON.stringify(b) };
-window.__form = { src: STORE + ':user-calls/c0ffee01-doc.json' };
+const heads = [];
+window.__form = { src: STORE + ':user-calls/c0ffee01-doc.json', onHead: (hd) => heads.push(hd) };
 
 const { default: Alpine } = await import('alpinejs/dist/module.esm.js');
 captureAlpineErrors(Alpine);
@@ -93,9 +97,66 @@ test('mounting is quiet', () => assert.deepEqual(problems, []));
 test('the document is drawn whole, its edits staged, under a head naming the file', () => {
   assert.deepEqual(drawn[0], { a: DOC, b: 'First.\n\nSecond.\n\nThird.\n\nFourth.\n' }, 'the file as it stands against the file with every edit in it');
   assert.equal(box(1).dataset.pair, 'One.>First.');
-  assert.match(root().querySelector('[data-doc-head]').textContent, /docs\/x\.md/);
-  assert.match(root().querySelector('[data-doc-head]').textContent, /4 edits · 0 of 3 decided/);
+  const shown = (el) => el && el.style.display !== 'none';
+  assert.ok(![...root().querySelectorAll('[data-doc-head] > span')].some((el) => shown(el) && /docs\/x\.md|edits/.test(el.textContent)),
+    'in the deck the header names the file and the list counts the edits, so the head repeats neither');
+  assert.equal(data().docCount, '4 edits · 0 of 3 decided', 'the count is still worked out');
   assert.equal(root().querySelector('[data-dictate-link]'), null, 'no way out to Dictate');
+});
+
+test('a deck header names the document, not the kind of call', () => {
+  assert.ok(heads.length, 'the form reported a header');
+  assert.equal(heads.at(-1).title, 'docs/x.md');
+  assert.equal(heads.at(-1).icon, 'ph-pencil-line', 'the kind is the icon\'s to say');
+  assert.equal(heads.at(-1).action, null, 'no record circle in the header: the Record row under the document records');
+});
+
+test('in the deck a documentation call shows its brief, not its question or a recommendation', () => {
+  assert.equal(root().querySelector('[data-call-question]').style.display, 'none', 'the deck header names the document');
+  assert.equal(root().querySelector('[data-call-recommend]').style.display, 'none');
+});
+
+test('a documentation call shows no PR readiness, even when the PR has conflicts', async () => {
+  data().facts = { state: 'open', mergeable: 'dirty' };
+  await tick(2);
+  assert.equal(data().blocker, 'This PR has merge conflicts.');
+  assert.equal(root().querySelector('[data-call-blocker]').style.display, 'none');
+  data().facts = null;
+});
+
+test('the edits are listed at the top, each with its summary, and a tap scrolls the document to it', async () => {
+  const rows = [...root().querySelectorAll('[data-doc-row]')];
+  assert.equal(rows.length, 4, 'one row per edit');
+  assert.match(rows[0].textContent.replace(/\s+/g, ' ').trim(), /^1\. clearer$/, 'its number, then its why when it has no proposal');
+  const lead = rows[0].querySelector('[data-doc-kind]'), num = rows[0].querySelector('[data-doc-row-n]');
+  assert.equal(lead.dataset.docKind, 'clarify');
+  assert.ok(lead.compareDocumentPosition(num) & window.Node.DOCUMENT_POSITION_FOLLOWING, 'the kind icon leads the line, before the number');
+  assert.equal(lead.dataset.titleTip, 'Clarification', 'and names itself in a tip');
+  assert.equal(rows[0].dataset.titleTipTap, 'none', 'which a tap on a phone does not open: the tap jumps');
+  const kinds = (n) => [...rows[n - 1].querySelectorAll('[data-doc-kind]')].map((k) => k.dataset.docKind);
+  assert.deepEqual(kinds(1), ['clarify']);
+  assert.deepEqual(kinds(4), ['correct', 'clarify'], 'each kind once, corrections first');
+  assert.deepEqual(kinds(2), [], 'an edit with no notes has no pill');
+  assert.match(rows[1].textContent, /Names the order with Second\./, 'its proposal, marks stripped');
+  assert.match(rows[3].textContent, /Third\./, 'else the text it puts in');
+  scrolled.length = 0;
+  rows[1].click();
+  await tick(2);
+  assert.equal(scrolled.at(-1), box(2), 'the document scrolls to the edit');
+  assert.equal(data().docActive, 1);
+  assert.match(rows[1].className, /bg-primary\/10/, 'and its row is marked');
+  rows[2].click();
+  await tick(2);
+  assert.equal(scrolled.at(-1), root().querySelector('[data-doc-unplaced="3"]'), 'an edit the file cannot place scrolls to its line');
+});
+
+test('the list shows in Changes only, the one view that draws the edits', async () => {
+  // x-show applies on the next frame, so each check waits for it.
+  const list = () => root().querySelector('[data-doc-list]');
+  root().querySelector('[data-doc-view="old"]').click();
+  assert.ok(await until(() => list().style.display === 'none'), 'hidden in Old');
+  root().querySelector('[data-doc-view="changes"]').click();
+  assert.ok(await until(() => box(1) && list().style.display !== 'none'), 'back in Changes');
 });
 
 test('an edit md-diff draws as several changes marks each, under the one decision', async () => {
@@ -148,33 +209,27 @@ test('Old and New draw the whole file as it stands and as proposed; Changes keep
   assert.equal(root().querySelector('[data-doc-file]'), null, 'no link out to the file');
 });
 
-test('an edit with a background and a proposal carries a book and a bulb, each opening its text alone', async () => {
+test("an edit's label carries a book for its background, and no bulb anywhere", async () => {
   const m = mark(2);
-  assert.equal(m.dataset.titleTip, undefined, 'its marks speak for it');
-  const tips = [...m.querySelectorAll('[data-doc-tip]')].map((b) => b.dataset.docTip);
-  assert.deepEqual(tips, ['background', 'proposal']);
-  assert.ok([...m.querySelectorAll('[data-doc-tip]')].every((b) => b.querySelector('svg')), 'each mark is drawn');
+  assert.equal(m.dataset.titleTip, undefined, 'its mark speaks for it');
+  assert.deepEqual([...m.querySelectorAll('[data-doc-tip]')].map((b) => b.dataset.docTip), ['background'], 'a book, no bulb');
+  assert.ok([...m.querySelectorAll('[data-doc-tip]')].every((b) => b.querySelector('svg')), 'the mark is drawn');
   assert.ok([...m.querySelectorAll('[data-doc-tip]')].every((b) => !b.dataset.titleTip), 'no label tip over the blurb');
   const panel = () => box(2).querySelector('[data-doc-tip-panel]');
-  m.querySelector('[data-doc-tip="proposal"]').click();
-  await tick(2);
-  assert.equal(panel()?.dataset.docTipPanel, 'proposal');
-  assert.equal(panel().textContent, 'Names the order with Second.', 'the text alone: no label, no ✕');
-  assert.equal(panel().querySelector('strong')?.textContent, 'order');
-  assert.equal(panel().querySelector('code')?.textContent, 'Second');
   m.querySelector('[data-doc-tip="background"]').click();
   await tick(2);
-  assert.equal(box(2).querySelectorAll('[data-doc-tip-panel]').length, 1, 'one tip at a time');
+  assert.equal(panel()?.dataset.docTipPanel, 'background');
   assert.equal(panel().querySelector('.whitespace-nowrap')?.textContent, '2026-10-29', 'a date stays on one line');
   m.querySelector('[data-doc-tip="background"]').click();
   await tick(2);
   assert.equal(panel(), null, 'a second tap on its mark closes it');
-  m.querySelector('[data-doc-tip="proposal"]').click();
+  m.querySelector('[data-doc-tip="background"]').click();
   await tick(2);
   panel().click();
   await tick(2);
   assert.equal(panel(), null, 'and so does a tap on the tip');
-  assert.equal(mark(1).querySelector('[data-doc-tip]'), null, 'an edit without them keeps its why');
+  assert.equal(mark(1).querySelector('[data-doc-tip]'), null, 'an edit without a background keeps its why');
+  assert.equal(root().querySelector('[data-doc-row-bulb]'), null, 'the list carries no bulb (owner, 2026-11-07)');
 });
 
 test('the answer line is the one Dictate and the Docs tab write, with the kept edits as a patch', async () => {
