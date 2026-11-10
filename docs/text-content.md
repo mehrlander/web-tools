@@ -257,7 +257,7 @@ Reading `.py` was not a rounding error. In the same scope, adding builders to
 
 Python belongs in scope because a build script is where a page's reader-facing
 strings go to hide. A `blurb` list in
-[`build-atlas.py`](https://github.com/mehrlander/home/blob/main/projects/budget-drs/app/atlas/tools/build-atlas.py)
+[`build-atlas.py`](https://github.com/mehrlander/budget-drs/blob/main/app/atlas/tools/build-atlas.py)
 reaches a reader exactly as one in a view module does, and until this pass the
 two could not be counted by the same means: the 113 builder literals in the
 first version of this document had to be counted by hand.
@@ -303,13 +303,13 @@ prose.
 The clearest case, because there is no judgment in it. Reader-facing prose
 keyed by something, with nothing behind it:
 
-- [`app/view/app.html:580`](https://github.com/mehrlander/home/blob/main/projects/budget-drs/app/view/app.html#L580), 10 entries, 456 words. The `VIEWS` registry's per-view `blurb` fields.
-- [`app/view/views/spend.js:34`](https://github.com/mehrlander/home/blob/main/projects/budget-drs/app/view/views/spend.js#L34), 22 entries, 283 words. Object glosses: `"Employee Benefits": "The benefits load on staff pay."` The app's definitions of its own spend taxonomy, existing nowhere else in the repo.
-- [`app/lineage/tools/build-lineage.py:103`](https://github.com/mehrlander/home/blob/main/projects/budget-drs/app/lineage/tools/build-lineage.py#L103), 12 entries, 389 words. Provenance rationale keyed by script path, the largest of the builder tables.
-- [`data/design/catalog/tools/build-source-bundles.py:85`](https://github.com/mehrlander/home/blob/main/projects/budget-drs/data/design/catalog/tools/build-source-bundles.py#L85), 17 entries, 256 words.
+- [`app/view/app.html:580`](https://github.com/mehrlander/budget-drs/blob/main/app/view/app.html#L580), 10 entries, 456 words. The `VIEWS` registry's per-view `blurb` fields.
+- [`app/view/views/spend.js:34`](https://github.com/mehrlander/budget-drs/blob/main/app/view/views/spend.js#L34), 22 entries, 283 words. Object glosses: `"Employee Benefits": "The benefits load on staff pay."` The app's definitions of its own spend taxonomy, existing nowhere else in the repo.
+- [`app/lineage/tools/build-lineage.py:103`](https://github.com/mehrlander/budget-drs/blob/main/app/lineage/tools/build-lineage.py#L103), 12 entries, 389 words. Provenance rationale keyed by script path, the largest of the builder tables.
+- [`data/design/catalog/tools/build-source-bundles.py:85`](https://github.com/mehrlander/budget-drs/blob/main/data/design/catalog/tools/build-source-bundles.py#L85), 17 entries, 256 words.
 
 The first has a second reason to move.
-[`app/data-explorer/tools/build-data-explorer.py`](https://github.com/mehrlander/home/blob/main/projects/budget-drs/app/data-explorer/tools/build-data-explorer.py)
+[`app/data-explorer/tools/build-data-explorer.py`](https://github.com/mehrlander/budget-drs/blob/main/app/data-explorer/tools/build-data-explorer.py)
 regex-parses those `blurb` strings back out of `app.html` so the Views manifest
 can reuse them, and carries two guards against "regex shape drift." The guards
 are the tell. The builder is doing the right thing about the wrong file: the
@@ -408,7 +408,7 @@ after its actual values were read.
 The migration this document listed as the highest-ratio move, done, so the
 convention has a case rather than only a rule.
 
-[`data/design/views.csv`](https://github.com/mehrlander/home/blob/main/projects/budget-drs/data/design/views.csv)
+[`data/design/views.csv`](https://github.com/mehrlander/budget-drs/blob/main/data/design/views.csv)
 now holds ten views' `title`, `lens`, `kind`, and `gloss`. It sits
 beside `view-grains.csv` and `view-tabs.csv`, which are the same kind of
 manifest about the same views, and that placement was not a preference: the
@@ -431,7 +431,7 @@ Three things the migration turned up that generalize:
   missing title and an empty string for a missing blurb. That is right at
   runtime and exactly wrong to leave unchecked, since a stale payload renders as
   a plausible header with the prose silently gone.
-  [`verify-views-text.mjs`](https://github.com/mehrlander/home/blob/main/projects/budget-drs/app/view/tools/verify-views-text.mjs)
+  [`verify-views-text.mjs`](https://github.com/mehrlander/budget-drs/blob/main/app/view/tools/verify-views-text.mjs)
   walks the CSV to the payload to the shell and was confirmed against a negative
   control.
 * **Two verify scripts were reading the fields being moved.** Both now read the
@@ -492,7 +492,7 @@ Four of the five are done and described above: the field vocabulary, the
 `VIEWS` blurbs, the spend glosses, and the gate.
 
 **The spend glosses** moved to
-[`app/spend/spend-glosses.csv`](https://github.com/mehrlander/home/blob/main/projects/budget-drs/app/spend/spend-glosses.csv),
+[`app/spend/spend-glosses.csv`](https://github.com/mehrlander/budget-drs/blob/main/app/spend/spend-glosses.csv),
 23 rows with a `grain` column that had been a comment heading in the source and
 could not survive into a payload. Making it a column is most of what moving the
 table bought.
@@ -503,7 +503,7 @@ classes and only two: an authored data file nothing names, and a field name
 nothing accounts for. An alias passes.
 
 **The check that holds the migrations is generic**, not one per file pair.
-[`verify-text-payloads.mjs`](https://github.com/mehrlander/home/blob/main/projects/budget-drs/app/lineage/tools/verify-text-payloads.mjs)
+[`verify-text-payloads.mjs`](https://github.com/mehrlander/budget-drs/blob/main/app/lineage/tools/verify-text-payloads.mjs)
 declares nothing new: it reads `pipeline.csv` for which CSV feeds which payload,
 `pages.csv` for which page loads it, and this vocabulary for which columns hold
 prose. It found a third pair nobody had touched, and covers the next one without

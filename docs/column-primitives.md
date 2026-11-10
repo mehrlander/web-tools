@@ -1,6 +1,6 @@
 # Column primitives
 
-One property, `column_primitive`, saying which of four roles a column plays in its row. It is the coarse question that sits above [`LINKAGE.md`](https://github.com/mehrlander/home/blob/main/projects/budget-drs/data/design/LINKAGE.md)'s `column_domain`.
+One property, `column_primitive`, saying which of four roles a column plays in its row. It is the coarse question that sits above [`LINKAGE.md`](https://github.com/mehrlander/budget-drs/blob/main/data/design/LINKAGE.md)'s `column_domain`.
 
 `docs/properties.csv` declares it on every row, `docs/registries.csv` declares it for each registry's key as `key_primitive`, and the two budget-drs property tables, `data/design/properties.csv` and `lineage/columns.csv`, declare it too. The Map's Data tab draws each declared column in its primitive's mark. The counts from its first population, on 2026-09-10, and the manifest-fields pilot are a dated record: [`data/column-primitives/2026-09-10-first-population.md`](../data/column-primitives/2026-09-10-first-population.md).
 
@@ -48,7 +48,7 @@ anything, and only `value` needs a second question.
 ## It crosses position and does not nest inside it
 
 The other axis is the data-versus-documentation cut that budget-drs's
-[`EVIDENCE.md`](https://github.com/mehrlander/home/blob/main/projects/budget-drs/data/authored/EVIDENCE.md)
+[`EVIDENCE.md`](https://github.com/mehrlander/budget-drs/blob/main/data/authored/EVIDENCE.md)
 already carries: is a field the claim being made, or support for the claim? The
 two are independent, measured rather than assumed: in the judgment manifest,
 locator-shaped columns appear both in the support role (`from`) and as the
@@ -72,7 +72,7 @@ only for JOIN domains. budget-drs had said the second half before this property
 existed: `domains.csv` carries `domain_identity`, and its one `measure` value is
 `dollars`, registered as a domain precisely so a column that looks like a key can
 be declared not to be one: `items_long.fund` holds money rather than an account.
-[`LINKAGE.md`](https://github.com/mehrlander/home/blob/main/projects/budget-drs/data/design/LINKAGE.md)
+[`LINKAGE.md`](https://github.com/mehrlander/budget-drs/blob/main/data/design/LINKAGE.md)
 states it directly, that a domain is what lets a column that looks like a key be
 declared not to be one, and that shared domain membership is not evidence of a
 join.

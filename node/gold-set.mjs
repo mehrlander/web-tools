@@ -38,11 +38,11 @@ globalThis.DOMParser = new JSDOM('').window.DOMParser;
 
 
 // The sources are OFM's published 2027-29 budget instruction forms. They live
-// in the private `home` repo, checked out beside this one, which is the layout
+// in the private `budget-drs` repo, checked out beside this one, which is the layout
 // the estate assumes elsewhere (home's own CLAUDE.md runs
 // `python3 ../web-tools/python/showing.py`). Each also has a public
 // ofm.wa.gov URL, recorded in that snapshot's _meta/manifest.json.
-const DEFAULT_FROM = path.resolve(repoRoot, '..', 'home', 'projects', 'budget-drs', 'submittal',
+const DEFAULT_FROM = path.resolve(repoRoot, '..', 'budget-drs', 'submittal',
   'source-docs', '2026-06-13-ofm-instructions', 'part1-operating-transportation', 'forms');
 
 // WHAT EACH FILE IS FOR. Between them these three fire every graft the kit has
@@ -122,7 +122,7 @@ function checkSelection(read, keep) {
 
 if (!existsSync(from)) {
   console.error(`gold-set: no sources at ${from}`);
-  console.error('That is the sibling `home` checkout. Clone it beside this repo, or pass');
+  console.error('That is the sibling `budget-drs` checkout. Clone it beside this repo, or pass');
   console.error('  npm run gold-set -- --from <a directory holding the OFM forms>');
   process.exit(1);
 }

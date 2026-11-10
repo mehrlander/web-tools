@@ -1,9 +1,9 @@
 // screenshot.mjs interaction scenario: the Map view's Tests tab with the
 // `compared` toggle on, the comparison-grain reading
 // (data/checks-reading/explanations.csv) under each file that has one, and
-// the estate section fed by home's own file, read from the sibling
+// the estate section fed by budget-drs's own file, read from the sibling
 // checkout and served through the GH stub as if the address had laid it
-// over (?checking=mehrlander/home@main:files,comparisons).
+// over (?checking=mehrlander/budget-drs@main:files,comparisons).
 //
 //   node node/render/screenshot.mjs app/index.html \
 //     --script node/render/scenarios/map-tests-compared.mjs \
@@ -16,23 +16,23 @@
 import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-const HOME = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..', 'home');
-const PROBE = 'projects/budget-drs/data/design/probes/2026-09-05-checks-reading/';
+const BUDGET_DRS = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..', 'budget-drs');
+const PROBE = 'data/design/probes/2026-09-05-checks-reading/';
 export default async function (page) {
   const reg = await page.evaluate(() => fetch('../../docs/tests.csv').then(r => r.text()));
   const authored = await page.evaluate(() => fetch('../../docs/tests-authored.csv').then(r => r.text()));
   const expl = await page.evaluate(() => fetch('../../data/checks-reading/explanations.csv').then(r => r.text()));
-  const homeFiles = existsSync(path.join(HOME, PROBE, 'reading.csv')) ? readFileSync(path.join(HOME, PROBE, 'reading.csv'), 'utf8') : '';
-  const homeComps = existsSync(path.join(HOME, PROBE, 'explanations.csv')) ? readFileSync(path.join(HOME, PROBE, 'explanations.csv'), 'utf8') : '';
-  const ok = await page.evaluate(([regText, explText, homeFiles, homeComps, probe, authoredText]) => {
+  const estateFiles = existsSync(path.join(BUDGET_DRS, PROBE, 'reading.csv')) ? readFileSync(path.join(BUDGET_DRS, PROBE, 'reading.csv'), 'utf8') : '';
+  const estateComps = existsSync(path.join(BUDGET_DRS, PROBE, 'explanations.csv')) ? readFileSync(path.join(BUDGET_DRS, PROBE, 'explanations.csv'), 'utf8') : '';
+  const ok = await page.evaluate(([regText, explText, estateFiles, estateComps, probe, authoredText]) => {
     if (!window.Alpine || !window.__shell || !window.GH) return 'no shell';
     const origGet = window.GH.prototype.get;
     window.GH.prototype.get = async function (name) {
       if (name === 'docs/tests.csv') return { text: regText };
       if (name === 'docs/tests-authored.csv') return { text: authoredText };
       if (name === 'data/checks-reading/explanations.csv') return { text: explText };
-      if (name === probe + 'reading.csv' && homeFiles) return { text: homeFiles };
-      if (name === probe + 'explanations.csv' && homeComps) return { text: homeComps };
+      if (name === probe + 'reading.csv' && estateFiles) return { text: estateFiles };
+      if (name === probe + 'explanations.csv' && estateComps) return { text: estateComps };
       if (name === '.claude/settings.json' || name === 'CLAUDE.md' || name === '.web-tools.json'
           || name === 'docs/portable.csv' || name === 'state/configs.json' || name === 'state/activity.json'
           || name === 'lists/to-do.json' || name === 'lists/jot.json')
@@ -41,11 +41,11 @@ export default async function (page) {
     };
     // The override the address would carry, set before the tab loads.
     const u = new URL(location.href);
-    u.searchParams.set('checking', 'mehrlander/home@main:' + probe + 'reading.csv,' + probe + 'explanations.csv');
+    u.searchParams.set('checking', 'mehrlander/budget-drs@main:' + probe + 'reading.csv,' + probe + 'explanations.csv');
     history.replaceState(null, '', u.toString());
     window.__shell.goMap();
     return true;
-  }, [reg, expl, homeFiles, homeComps, PROBE, authored]);
+  }, [reg, expl, estateFiles, estateComps, PROBE, authored]);
   if (ok !== true) throw new Error('map-tests-compared scenario: ' + ok);
   const host = () => [...document.querySelectorAll('[x-data]')]
     .find(el => (el.getAttribute('x-data') || '').includes('map('));
@@ -90,7 +90,7 @@ export default async function (page) {
     const d = window.Alpine.$data(el);
     // Narrow the estate to the two files the review asked to see together.
     if (d.estateChecking) for (const g of d.estateChecking) {
-      const keep = new Set(['projects/budget-drs/data/build/build-pillars.py', 'projects/budget-drs/submittal/tools/verify-checklist.py']);
+      const keep = new Set(['data/build/build-pillars.py', 'submittal/tools/verify-checklist.py']);
       g.byPath = new Map([...g.byPath].filter(([k]) => keep.has(k)));
     }
   });
