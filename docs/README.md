@@ -90,7 +90,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`css-baseline.csv`](css-baseline.csv) *(measured)* — the CSS baseline: the most unexempt hand-written CSS declarations each file may carry, a ratchet on the house rule against vanilla CSS
 - [`hook-events.csv`](hook-events.csv) — every event Claude Code accepts a hook on, with the summary its /hooks menu gives
 - [`source-bundles.md`](source-bundles.md) *(orphan)* — the shared source-bundle convention: what a bundle is, its README frontmatter, the two tables and how a repository declares them
-- [`probes.md`](probes.md) *(orphan)* — the shared probe registry convention: a probes.csv beside a probes folder's declared README, its columns, and the check that reads it
+- [`probes.md`](probes.md) *(orphan)* — what a probe is and how probes are filed: alone, or several in a folder with a probes.csv registry that python/probes.py checks
 - [`CONVERSATION.md`](CONVERSATION.md) — the conversation rules: the chat-handoff mechanics every reply uses
 - [`intents.csv`](intents.csv) — what you might want done, each as a path through the Set diagram from what starts it to where it lands
 - [`icon-families.csv`](icon-families.csv) — the icon families: each set of icons the estate has settled on, the file that declares its members, and the passage that discusses them

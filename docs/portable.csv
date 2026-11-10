@@ -67,7 +67,7 @@ doc,,docs/machines.md,Machines,"the machine map: the computers agent work can ru
 doc,,docs/TRACKER.md,Project tracker,opt-in cross-session tracker: one file per task plus a generated board,adopt
 doc,,docs/CONSTELLATION.md,Constellation architecture,"the portable kernel of the what-goes-where doctrine: commit discipline, visibility forces repo boundaries, conventions pull from a public hub, the repo owns its own scope, documentation has four places. The theory behind the app's Map view",reference
 doc,,docs/source-bundles.md,Source bundles,"the shared way to keep material from outside a repository: a folder per bundle with a frontmatter README, and the two tables python/source-bundles.py writes from them",adopt
-doc,,docs/probes.md,Probe registries,"the shared way to keep several probes in one folder: a probes.csv beside the declared README, which python/probes.py checks",adopt
+doc,,docs/probes.md,Probes,"what a probe is and how probes are filed: alone, or several in a folder with a probes.csv registry that python/probes.py checks",adopt
 doc,,docs/APP.md,Web Tools app,"the Web Tools app: mission, goals, boundary, addresses, and what every view shares",on-demand
 doc,,docs/artifacts.md,Artifacts,the bake-and-publish pipeline and the 📦 marker's place in the link-choice matrix,on-demand
 doc,,docs/headless-vendoring.md,Headless vendoring,build with CDN stacks and test them headless where the sandbox blocks their CDNs,on-demand
