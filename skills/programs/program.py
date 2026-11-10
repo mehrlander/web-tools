@@ -6,8 +6,8 @@ A program is declared under `programs` in a checkout's .web-tools.json
 and collects what needs no judgment: commits to the governed files since the
 program's last note (a generator-written registry left out, and a warning
 where the checkout's history is shallower than the window), its open tasks, the snags whose targets include a governed
-file, the notes addressed to the charter (the README.md of the program's folder)
-or a governed file, and each measure's
+file, the notes addressed to the charter (the README.md of the program's folder,
+or of a folder the declaration's `formerly` names) or a governed file, and each measure's
 summary. Reading it is the session's job.
 
   python3 program.py list
@@ -119,7 +119,10 @@ def report(repo, prog, since):
     governs = prog.get("governs") or []
     charter_path = f"{prog['path']}/README.md"
     charter = f"{me}:{charter_path}"
-    subjects = {charter} | {f"{me}:{g}" for g in governs}
+    # A program that moved folders keeps its notes: a note addressed to the
+    # charter under a folder `formerly` names counts as addressed to this one.
+    charters = {charter} | {f"{me}:{old.rstrip('/')}/README.md" for old in prog.get("formerly") or []}
+    subjects = charters | {f"{me}:{g}" for g in governs}
 
     def about_program(locator):
         # A locator names the program when it is the charter or a governed
@@ -137,7 +140,7 @@ def report(repo, prog, since):
         store_repo, notes = None, None
         print(f"Notes: unavailable ({e})\n")
     if not since:
-        last = [n["at"] for n in notes or [] if n.get("about", "").split("#")[0] == charter]
+        last = [n["at"] for n in notes or [] if n.get("about", "").split("#")[0] in charters]
         # The note's full timestamp: git reads a bare date as that day at the
         # current clock time, which drops the commits made earlier that day.
         since = last[-1] if last else (datetime.now(timezone.utc) - timedelta(days=30)).strftime("%Y-%m-%d")

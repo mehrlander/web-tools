@@ -135,6 +135,7 @@
       "scope": "replies and render links, the plugin, hooks and scheduled jobs",
       "icon": "programs/sessions/icon.svg",
       "path": "programs/sessions",
+      "formerly": ["programs/surfacing"],
       "governs": [
         "docs/CONVERSATION.md",
         "skills/claude-markdown/",
