@@ -66,7 +66,7 @@
 
   Toss routes (typed content tosses, built on address mode):
     #<route>=<owner>/<repo>[@<ref>]:<path>
-    e.g. #data=mehrlander/home@main:projects/budget-drs/data/rows.csv
+    e.g. #data=mehrlander/budget-drs@main:data/design/domains.csv
   The key names a registered renderer page and the value is a content
   envelope's address, so a caller addresses the CONTENT, not the renderer, and
   this file stays schema-blind: it never parses the envelope. See showRoute
@@ -1503,7 +1503,7 @@ document.addEventListener('click',function(e){
     const baked = await inlineRelativeDeps(text, { owner, name, ref, path, refOf: depOf });
     // An explicit version wins over the rule: this renderer's ?lib= first, then
     // a `lib` the page query inside the address already carries, which is how
-    // links minted before the renderer had one said it (home's budget-drs
+    // links minted before the renderer had one said it (the budget-drs
     // pages read it), so those keep meaning what they meant.
     // An ask from outside this document counts too: a renderer framed by
     // another renderer, or run by the top-mode launcher, has its ask stamped

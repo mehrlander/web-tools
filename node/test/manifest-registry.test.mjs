@@ -56,7 +56,7 @@ const MANIFEST = '.web-tools.json';
 // choice and reversible from the Repos view, so its slugs are dormant rather
 // than out of scope. Absent siblings are skipped, so listing one costs nothing
 // in a session that did not clone it.
-const SIBLINGS = ['home', 'chat-histories', 'web-tools-private', 'shortcut-tools', 'fun'];
+const SIBLINGS = ['home', 'budget-drs', 'chat-histories', 'web-tools-private', 'shortcut-tools', 'fun'];
 
 function manifests() {
   const found = [];

@@ -497,7 +497,7 @@ Four of the five are done and described above: the field vocabulary, the
 could not survive into a payload. Making it a column is most of what moving the
 table bought.
 
-**The gate runs in both suites.** `text-carriers.py --check` is a step of home's
+**The gate runs in both suites.** `text-carriers.py --check` is a step of budget-drs's
 `tools/verify-artifacts.sh` and a node test here, and both pass. It gates two
 classes and only two: an authored data file nothing names, and a field name
 nothing accounts for. An alias passes.

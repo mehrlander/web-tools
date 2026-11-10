@@ -86,7 +86,7 @@ whatever the other row picks:
   instructions, tracker task, thread, blog post, log entry, archive, skill,
   agent definition, README, skill reference, or any other document.
 - **Folder**, the file's top-level folder, `(root)` for a file at the top, or
-  two levels (`projects/budget-drs`) for a file inside a subfolder of a folder
+  two levels (`projects/text`) for a file inside a subfolder of a folder
   `--containers` names (`projects`, `packages` and `apps` by default).
 
 Above the plot sit the y axis's title, with an info button whose panel says
