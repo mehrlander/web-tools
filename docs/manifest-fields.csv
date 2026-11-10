@@ -42,6 +42,7 @@ programs[].status,string,app,,no,"""proposed"" for a program offered for adoptio
 programs[].scope,string,app,,no,"What the program covers, in a few words."
 programs[].icon,string,app,,yes,"A repo-root-relative SVG, drawn in its own colours wherever the program is named, or a `ph-` glyph."
 programs[].path,string,app,,yes,"The program's folder, repo-root-relative. Its README.md is the charter, stating the program's purpose, standard, measures and reviewers; the program's own material accumulates beside it."
+programs[].formerly,array,app,,no,"Folders the program had before `path`, repo-root-relative. The programs skill counts a note addressed to the charter under one as addressed to the present charter."
 programs[].governs,array,session-hook,,yes,"Repo-root-relative paths the program governs; an entry ending in / covers everything under it. A file belongs to at most one program; the program-files hook names the program when a session edits one."
 programs[].measures,array,app,,no,"Data files that measure the standard, as repo-root-relative paths or qualified 'owner/repo[@ref]:path' locators."
 programs[].reviewers,array,app,,no,"Agent ids from docs/agents.csv that a proposed change to the program's files goes to before the owner sees it."

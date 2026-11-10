@@ -11,9 +11,19 @@ Organization keeps the files that describe the owner's repositories and record t
 | Session records and chats | the record of each Claude Code session and the archive of exported chats, read in the [Sessions](https://mehrlander.github.io/web-tools/app/?view=sessions) and [Chats](https://mehrlander.github.io/web-tools/app/?view=chats) views |
 | Trackers | each repository's task tracker, written to the schema in [`TRACKER.md`](../../docs/TRACKER.md) |
 
+## Processes
+
+A process is a recurring question or duty the program answers for. A session hands one to the program's manager, an agent briefed by [`manager.md`](manager.md).
+
+| Process | Starts when |
+| --- | --- |
+| Landing | the owner or a session asks whether earlier work landed, meaning that it reached `main` |
+
 ## Measures
 
-None yet.
+| Process | Measure | Working means |
+| --- | --- | --- |
+| Landing | [`state/landings.json`](https://github.com/mehrlander/web-tools-private/blob/background/state/landings.json) on web-tools-private's `background` branch: each week's sessions in which the owner asks that question | fewer sessions open on it |
 
 ## Reviewers
 

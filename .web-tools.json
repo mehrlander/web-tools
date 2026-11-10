@@ -135,6 +135,7 @@
       "scope": "replies and render links, the plugin, hooks and scheduled jobs",
       "icon": "programs/sessions/icon.svg",
       "path": "programs/sessions",
+      "formerly": ["programs/surfacing"],
       "governs": [
         "docs/CONVERSATION.md",
         "skills/claude-markdown/",
@@ -226,6 +227,9 @@
         "docs/registries.md",
         "docs/properties.csv",
         "docs/TRACKER.md"
+      ],
+      "measures": [
+        "mehrlander/web-tools-private@background:state/landings.json"
       ],
       "reviewers": [
         "portable:owner-proxy",

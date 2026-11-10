@@ -4,9 +4,10 @@
 A program is declared under `programs` in a checkout's .web-tools.json
 (docs/CONSTELLATION.md, "Projects and research"). This reads the declaration
 and collects what needs no judgment: commits to the governed files since the
-program's last note, its open tasks, the snags whose targets include a governed
-file, the notes addressed to the charter (the README.md of the program's folder)
-or a governed file, and each measure's
+program's last note (a generator-written registry left out, and a warning
+where the checkout's history is shallower than the window), its open tasks, the snags whose targets include a governed
+file, the notes addressed to the charter (the README.md of the program's folder,
+or of a folder the declaration's `formerly` names) or a governed file, and each measure's
 summary. Reading it is the session's job.
 
   python3 program.py list
@@ -70,6 +71,43 @@ def sibling(repo, name):
     return path if os.path.isdir(path) else None
 
 
+def parse_time(text):
+    try:
+        t = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return t if t.tzinfo else t.replace(tzinfo=timezone.utc)
+
+
+def complete_from(repo):
+    """The date from which a shallow checkout holds every commit on origin/main,
+    or None for a full one: the newest commit at which its history was cut."""
+    if git(repo, "rev-parse", "--is-shallow-repository").stdout.strip() != "true":
+        return None
+    try:
+        with open(os.path.join(repo, git(repo, "rev-parse", "--git-path", "shallow").stdout.strip())) as fh:
+            cuts = fh.read().split()
+    except OSError:
+        return None
+    dates = [parse_time(git(repo, "log", "-1", "--format=%cI", c).stdout.strip()) for c in cuts
+             if git(repo, "merge-base", "--is-ancestor", c, "origin/main").returncode == 0]
+    return max((d for d in dates if d), default=None)
+
+
+def generator_written(repo, governs):
+    """The governed files a generator writes whole: registries whose every
+    column is `computed` in docs/properties.csv (docs/registries.md). A commit
+    to one records another file's change, so it is no change to the program."""
+    import csv, io
+    def rows(path):
+        return list(csv.DictReader(io.StringIO(git(repo, "show", f"origin/main:{path}").stdout)))
+    modes = {}
+    for r in rows("docs/properties.csv"):
+        modes.setdefault(r.get("registry"), set()).add(r.get("mode"))
+    paths = {r.get("path") for r in rows("docs/registries.csv") if modes.get(r.get("id")) == {"computed"}}
+    return [g for g in governs if g in paths]
+
+
 def table(columns, rows):
     out = ["| " + " | ".join(columns) + " |", "| " + " | ".join("---" for _ in columns) + " |"]
     out += ["| " + " | ".join(str(c) for c in r) + " |" for r in rows]
@@ -81,7 +119,10 @@ def report(repo, prog, since):
     governs = prog.get("governs") or []
     charter_path = f"{prog['path']}/README.md"
     charter = f"{me}:{charter_path}"
-    subjects = {charter} | {f"{me}:{g}" for g in governs}
+    # A program that moved folders keeps its notes: a note addressed to the
+    # charter under a folder `formerly` names counts as addressed to this one.
+    charters = {charter} | {f"{me}:{old.rstrip('/')}/README.md" for old in prog.get("formerly") or []}
+    subjects = charters | {f"{me}:{g}" for g in governs}
 
     def about_program(locator):
         # A locator names the program when it is the charter or a governed
@@ -99,7 +140,7 @@ def report(repo, prog, since):
         store_repo, notes = None, None
         print(f"Notes: unavailable ({e})\n")
     if not since:
-        last = [n["at"] for n in notes or [] if n.get("about", "").split("#")[0] == charter]
+        last = [n["at"] for n in notes or [] if n.get("about", "").split("#")[0] in charters]
         # The note's full timestamp: git reads a bare date as that day at the
         # current clock time, which drops the commits made earlier that day.
         since = last[-1] if last else (datetime.now(timezone.utc) - timedelta(days=30)).strftime("%Y-%m-%d")
@@ -107,14 +148,20 @@ def report(repo, prog, since):
     print(f"## Changes to governed files since {since}\n")
     # Each commit with the files it touched, so the count can be read per
     # governed entry: a month of a broad program runs to hundreds of commits.
+    cut, start = complete_from(repo), parse_time(since)
+    if cut and start and start < cut:
+        print(f"This checkout's history is shallow and complete only from {cut.date()}, so earlier "
+              f"commits are missing from the counts below. `git fetch --shallow-since={since[:10]} origin main` deepens it.\n")
+    generated = generator_written(repo, governs)
+    counted = [g for g in governs if g not in generated]
     commits, per_entry = [], {}
     log = git(repo, "log", "--no-merges", f"--since={since}", "--format=@%h %ad %s", "--date=short",
-              "--name-only", "origin/main", "--", *governs).stdout
+              "--name-only", "origin/main", "--", *counted).stdout if counted else ""
     for line in log.splitlines():
         if line.startswith("@"):
             commits.append(line[1:])
         elif line and commits:
-            for g in governs:
+            for g in counted:
                 if line == g or (g.endswith("/") and line.startswith(g)):
                     per_entry.setdefault(g, set()).add(commits[-1])
     if not commits:
@@ -127,6 +174,8 @@ def report(repo, prog, since):
             print(f"\n{len(top) - 12} more paths with fewer commits.")
         print("\nLatest:\n")
         print("\n".join("- " + c for c in commits[:10]))
+    if generated:
+        print("\nNot counted, as a generator writes each whole: " + ", ".join(f"`{g}`" for g in generated) + ".")
 
     print("\n## Measures\n")
     for m in prog.get("measures") or []:
