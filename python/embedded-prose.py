@@ -5,7 +5,8 @@ Prose in a `.js` or `.html` file has no data file behind it and no registry row,
 counts it, nothing renders it, and nothing notices when it goes stale. This
 script counts it, in three classes that want three different answers:
 
-    commentary   a comment block: rationale addressed to whoever edits the file.
+    commentary   a comment block, an HTML comment in a template literal
+                 included: rationale addressed to whoever edits the file.
                  Legitimate in principle. The question is only ever SIZE, since
                  past a few hundred words a comment is a design document that
                  happens to live in a source file.
@@ -123,7 +124,12 @@ def js_comments(src, base_line=1):
             j, i = i, _skip_quoted(src, i, n, c)
             line += src.count("\n", j, i)
         elif c == "`":
+            # An HTML comment in a template literal is string content to
+            # JavaScript, but in an Alpine component's markup it is the
+            # comment its author wrote, so it counts as one.
             j, i = i, _skip_template(src, i, n)
+            for m in HTML_COMMENT.finditer(src, j, i):
+                out.append((line + src.count("\n", j, m.start()), "html", m.group(1)))
             line += src.count("\n", j, i)
         else:
             i += 1
@@ -592,7 +598,10 @@ def strip_comments(path, src):
         elif c in "\"'":
             i = _skip_quoted(src, i, n, c)
         elif c == "`":
-            i = _skip_template(src, i, n)
+            j, i = i, _skip_template(src, i, n)
+            kept.append(src[last:j])
+            kept.append(HTML_COMMENT.sub("", src[j:i]))
+            last = i
         else:
             i += 1
     kept.append(src[last:])
