@@ -285,6 +285,8 @@ broken file. Check the file itself with `ffprobe` before believing the pixels.
 feature detection works; only playback is missing. Neither WebM nor VP9 was
 tested, so an all-open-codec file may well render.
 
+**WebKit is not pre-installed** *(measured 2026-11-02)*. It can show where Safari renders a page differently from Chromium. In the one case measured, under `text-wrap: pretty`, WebKit 26.6 evened out every line of a paragraph, as the owner's iPhone did, and Chromium did not. The globally installed Playwright, 1.63.0 in `/opt/node-tools`, installs it: in that folder run `npx playwright install webkit`, then `apt-get update` and `npx playwright install-deps webkit`. This repo's `playwright@1.56.0` looks for a different WebKit build and does not find 26.6; launch through the global one: `require('/opt/node-tools/node_modules/playwright').webkit.launch()`. WebKit's Linux build refused to construct a synthetic `Touch` event; drive touches in Chromium.
+
 **Driving it** is in [testing.md](testing.md): launching Playwright,
 screenshotting, the TLS-proxy launch flag, and rendering a full repo page.
 
