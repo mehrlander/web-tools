@@ -212,3 +212,41 @@ test('a landing is re-asserted once the layout settles under it', async () => {
   await wait(450);
   assert.deepEqual(seen, [72], 'settle:false scrolls exactly once');
 });
+
+// THE ROUTE outlives the tint. A route naming a record stays in the address
+// (house policy h:route), and the view that landed keeps nothing open, so the
+// kit answers for it: Land.route() gives the keys while the landed element is
+// still displayed, which is the reader still being where the route says.
+test('a landing with a route keeps it while its target is displayed, and announces it', async () => {
+  const tab = window.document.createElement('section'), row = el();
+  tab.appendChild(row);
+  window.document.body.appendChild(tab);
+  const heard = [];
+  window.addEventListener('land:route', (e) => heard.push(e.detail));
+  Land.mark(row, { route: { piece: 'p-12' }, dwell: 20 });
+  assert.deepEqual(heard.at(-1), { piece: 'p-12' }, 'the page hears it, to write its address');
+  assert.deepEqual(Land.route(), { piece: 'p-12' });
+  await wait(50);
+  assert.ok(!lit(row), 'the tint fades on its dwell');
+  assert.deepEqual(Land.route(), { piece: 'p-12' }, 'and the route stays');
+  tab.style.display = 'none';
+  assert.equal(Land.route(), null, 'a tab change hides the target, and the route goes');
+  tab.style.display = '';
+  assert.equal(Land.route(), null, 'and coming back does not bring an old landing back');
+});
+
+test('a newer landing replaces the route, a clear around it drops it, and a mark without one leaves it', () => {
+  const a = el(), b = el(), other = el();
+  Land.mark(a, { route: { line: 'b01' } });
+  Land.mark(b, { route: { guide: 'g-3' } });
+  assert.deepEqual(Land.route(), { guide: 'g-3' }, 'the latest landing names where the reader is');
+  Land.mark(other, { scroll: false });
+  assert.deepEqual(Land.route(), { guide: 'g-3' }, 'a landing no route caused says nothing about the address');
+  Land.clear(a);
+  assert.deepEqual(Land.route(), { guide: 'g-3' }, 'a clear elsewhere keeps it');
+  Land.clear();
+  assert.equal(Land.route(), null, 'a clear around it drops it');
+  b.remove();
+  Land.mark(b, { route: { snote: 'n-1' } });
+  assert.equal(Land.route(), null, 'a target not in the page is not where the reader is');
+});
