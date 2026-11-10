@@ -303,6 +303,19 @@ if changed '*.md' python/duplicated-claims.py; then
   fi
 fi
 
+# --- leg comment-blocks: code or markdown -> the comments payload ----------------
+# data/comments/web-tools.json is every comment block and docstring in the
+# code, with the documents each names, which the Map view's Comments tab reads.
+# A code edit moves its blocks and a markdown edit can move what a name
+# resolves to. About 4s, byte-stable: files sorted, one per line.
+if changed '*.js' '*.mjs' '*.html' '*.py' '*.md' 'docs/*.csv'; then
+  if npm run comment-blocks --silent >/dev/null 2>&1; then
+    stage data/comments/web-tools.json
+  else
+    echo "build hook: 'npm run comment-blocks' failed - data/comments/web-tools.json may be stale" >&2
+  fi
+fi
+
 # --- leg docs-readme: docs/docs.csv -> docs/README.md -------------------------
 # The docs index is a projection of the documentation registry; regenerate it
 # whenever the registry (or the generator) has pending changes.

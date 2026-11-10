@@ -2546,7 +2546,7 @@ const RAIL_KIND = { link: 'ph-arrow-up-right', action: 'ph-lightning', repo: 'ph
 // subview it lands on; every other address is a subview and keeps the key it
 // was first published at, so an old ?tab= link still lands where it pointed.
 const MAP_TABS = ['overview', 'reach', 'research', 'harness', 'model', 'docs', 'data', 'watch'];
-const MAP_SUBVIEWS = ['aims', 'icons', 'projects', 'distribution', 'outposts', 'exploration', 'events', 'scheduled', 'programs', 'set', 'tests', 'skills', 'agents', 'peeves', 'context', 'lifetimes', 'units', 'forms', 'patterns', 'dimensions', 'views', 'kits', 'showing', 'fab', 'growth', 'policy', 'themes', 'registries', 'relations', 'attributes', 'public', 'names'];
+const MAP_SUBVIEWS = ['aims', 'icons', 'projects', 'distribution', 'outposts', 'exploration', 'events', 'scheduled', 'programs', 'set', 'tests', 'skills', 'agents', 'peeves', 'context', 'lifetimes', 'units', 'forms', 'patterns', 'dimensions', 'views', 'kits', 'showing', 'fab', 'growth', 'policy', 'themes', 'comments', 'registries', 'relations', 'attributes', 'public', 'names'];
 const MAP_ROUTES = [...MAP_TABS, ...MAP_SUBVIEWS];
 // Where a bare ?view=map lands, and so the one address its URL never stamps:
 // the Overview, every address with its sentence. Reach held it until
@@ -2557,7 +2557,7 @@ const MAP_HOME = 'overview';
 // each key with the tab it belongs to: Context's grouping, sort, question and
 // source, Set's question, Growth's corpus, and the Policies tab's entry.
 const MAP_CTX_TAB = { ctxlens: 'context', ctxsort: 'context', ctxtopic: 'context', ctxsource: 'context', setintent: 'set',
-                      growthrepo: 'growth', h: 'policy', form: 'forms' };
+                      growthrepo: 'growth', h: 'policy', form: 'forms', about: 'comments' };
 const mapCtxOf = get => Object.fromEntries(Object.keys(MAP_CTX_TAB).map(k => [k, get(k) || '']));
 // The Lists view's tab keys: a built-in list's name (to-do, jot, pin, snag,
 // ping, note) or a created list's file name without .json, which is the

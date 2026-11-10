@@ -274,6 +274,12 @@ token:
   laptop, for work needing that machine's apps or computer use, taken when the
   owner asks Codex to do its errands. File it with
   `sessions/tools/codex_errand.py` in web-tools-private.
+- **`claude-errand`** (venue `anthropic-cloud` or `personal-laptop`) runs the
+  other way: a task Codex or Gemini on the laptop leaves for a Claude session,
+  taken when the owner tells a session on that machine to look for errands
+  left for Claude. Codex files it with `sessions/tools/agent_errand.py --agent
+  claude` in web-tools-private, and the session follows the
+  [`claude-errands`](../skills/claude-errands/SKILL.md) skill.
 
 A session can also send an errand as a reception link, with no file in
 `errands/requests`: `npm run -s reception-link -- <fn.js> --note "<what is wanted>"`
