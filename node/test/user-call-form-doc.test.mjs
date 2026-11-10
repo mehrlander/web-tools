@@ -253,6 +253,27 @@ test("an edit's label carries a book for its background, and no bulb anywhere", 
   assert.equal(root().querySelector('[data-doc-row-bulb]'), null, 'the list carries no bulb (owner, 2026-11-07)');
 });
 
+test('a note sends back while edits are still open, with no patch, and the call stays answerable', async () => {
+  assert.equal(send().disabled, true, 'nothing typed, nothing to send');
+  data().doc.note = 'remove this passage rather than reverse it';
+  await tick(2);
+  assert.equal(send().disabled, false);
+  assert.match(send().textContent, /Send notes/);
+  send().click();
+  await until(() => puts.length);
+  const line = JSON.parse(Buffer.from(puts[0].body.content, 'base64').toString('utf8').trim().split('\n').pop());
+  assert.equal(line.answer, '3 open, 1 stale');
+  assert.equal(line.note, 'remove this passage rather than reverse it');
+  assert.equal(line.patch, undefined, 'an open edit is not taken out of the branch as though discarded');
+  await until(() => !data().busy);
+  assert.equal(data().done, '', 'notes sent back are not the answer');
+  assert.match(root().querySelector('[data-doc-sent]').textContent, /Notes sent; 3 still to decide/);
+  data().doc.note = '';
+  puts.length = 0;
+  await tick(2);
+  assert.equal(send().disabled, true);
+});
+
 test('the answer line is the one Dictate and the Docs tab write, with the kept edits as a patch', async () => {
   act(1, 'Keep');
   act(2, 'Discard');
