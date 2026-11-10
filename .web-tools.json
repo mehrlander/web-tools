@@ -228,6 +228,9 @@
         "docs/properties.csv",
         "docs/TRACKER.md"
       ],
+      "measures": [
+        "mehrlander/web-tools-private@background:state/landings.json"
+      ],
       "reviewers": [
         "portable:owner-proxy",
         "portable:peeves-critic"
