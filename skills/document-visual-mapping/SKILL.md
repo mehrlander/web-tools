@@ -5,7 +5,7 @@ description: "Map a reference document (PDF manual, rulebook, instruction packet
 
 # Document visual mapping
 
-Content mapping (`atomic-decomposition`) asks what a document
+Content mapping (`outlining`, its claims) asks what a document
 requires. This asks where on the page that requirement sits. Run it second, over
 the units a content pass kept. Skip the content pass and the register highlights
 whatever looks prominent; skip the register and the reader hunts fifty
