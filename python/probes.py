@@ -8,6 +8,14 @@ in that checkout's .web-tools.json whose kind is probe and whose path is a
 README.md; a folder joins when it holds a probes.csv. docs/probes.md is the
 contract. --new FOLDER writes an empty registry, its header only.
 
+A registry fails when a required column (probe, date, title, question,
+summary) is missing or a row leaves one empty; when two rows share an id or an
+id is not lowercase letters, digits and hyphens; when a date is not
+YYYY-MM-DD, or a dated id or path names another date than its row's; when a
+path names nothing in the folder; when a dated file or folder beside the
+registry is named by no row's path; and when a standing is not worked, mixed,
+failed or open. A declared folder with no probes.csv is counted and passes.
+
 Ported on 2026-11-10 from home's projects/budget-drs/data/design/tools/
 verify-probes.py, whose registry passes unchanged.
 """
