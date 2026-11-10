@@ -157,12 +157,12 @@ test('the edits are listed at the top, each with its summary, and a tap scrolls 
   assert.match(rows[1].className, /inset_3px_0_0_var\(--color-primary\)/, 'and its row is marked by a bar at its edge, not a fill');
   assert.ok(box(2).hasAttribute('data-md-diff-here'), 'its container is selected in md-diff, so the tap shows even with the edit in view');
   assert.equal(root().querySelectorAll('[data-md-diff-here]').length, 1, 'and only it');
-  assert.match(rows[1].querySelector('[data-doc-row-n]').className, /bg-primary\/15 text-primary ring-1/, 'its number keeps its tint and gains an outline');
+  assert.match(rows[1].querySelector('[data-doc-row-n]').className, /bg-primary\/15 text-primary border-\[var\(--color-primary\)\]/, 'its number keeps its tint and gains an outline');
   assert.match(mark(2).className, /border-\[var\(--color-primary\)\] bg-base-100/, 'and so does its label on the container');
   rows[1].click();
   await tick(2);
   assert.equal(root().querySelector('[data-md-diff-here]'), null, 'a second tap on the selected row lets it go');
-  assert.doesNotMatch(rows[1].querySelector('[data-doc-row-n]').className, /ring-1/);
+  assert.match(rows[1].querySelector('[data-doc-row-n]').className, /border-transparent/);
   rows[1].click();
   await tick(2);
   rows[2].click();
