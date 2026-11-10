@@ -41,8 +41,11 @@ import importlib.util
 import inspect
 import json
 import os
+import posixpath
 import re
+import subprocess
 import sys
+from urllib.parse import urlsplit
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 _spec = importlib.util.spec_from_file_location("embedded_prose", os.path.join(HERE, "embedded-prose.py"))
@@ -135,7 +138,7 @@ def resolver(tracked, own=""):
     by_base = {}
     for p in tracked:
         if p.endswith(".md") or (p.startswith("docs/") and p.endswith(".csv")):
-            by_base.setdefault(os.path.basename(p), []).append(p)
+            by_base.setdefault(posixpath.basename(p), []).append(p)
     known = set(tracked)
 
     def resolve(rel, name):
@@ -144,15 +147,15 @@ def resolver(tracked, own=""):
         if own and name.startswith(own + "/"):
             name = name[len(own) + 1:]
         bare = "/" not in name
-        hits = by_base.get(os.path.basename(name), [])
+        hits = by_base.get(posixpath.basename(name), [])
         if name in known and not (bare and len(hits) > 1):
             return name, None
-        d = os.path.dirname(rel)
+        d = posixpath.dirname(rel)
         while d:
-            near = os.path.normpath(os.path.join(d, name))
+            near = posixpath.normpath(posixpath.join(d, name))
             if near in known:
                 return near, None
-            d = os.path.dirname(d)
+            d = posixpath.dirname(d)
         if not bare:
             return (name, None) if name in known else (None, name)
         if len(hits) == 1:
@@ -165,10 +168,23 @@ def resolver(tracked, own=""):
     return resolve
 
 
+def repository_name(root):
+    """Use the origin's project name even when a working folder has another name."""
+    try:
+        remote = subprocess.run(["git", "-C", root, "remote", "get-url", "origin"],
+                                capture_output=True, text=True, timeout=20)
+        name = posixpath.basename(urlsplit(remote.stdout.strip()).path.rstrip("/")).removesuffix(".git")
+        if remote.returncode == 0 and re.fullmatch(r"[\w.-]+", name):
+            return name
+    except (OSError, ValueError, subprocess.TimeoutExpired):
+        pass
+    return os.path.basename(os.path.abspath(root))
+
+
 def build(root, skips):
     tracked = ep.tracked_files(root)
     every = _all_tracked(root)
-    resolve = resolver(every, os.path.basename(os.path.abspath(root)))
+    resolve = resolver(every, repository_name(root))
     reg = ep.content_registry(root)
     files = []
     for rel in sorted(tracked):
@@ -197,7 +213,6 @@ def build(root, skips):
 
 
 def _all_tracked(root):
-    import subprocess
     out = subprocess.run(["git", "-C", root, "ls-files", "-z"], capture_output=True, text=True).stdout
     return [f for f in out.split("\0") if f]
 
