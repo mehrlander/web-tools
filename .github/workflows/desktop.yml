@@ -29,6 +29,7 @@ jobs:
       - name: Check phone interactions
         run: |
           node desktop/Checks/phone-ui-checks.mjs
+          node desktop/Checks/errands-ui-checks.mjs
           node desktop/Checks/computer-ui-checks.mjs
           node desktop/Checks/devices-ui-checks.mjs
           node desktop/Checks/repositories-ui-checks.mjs

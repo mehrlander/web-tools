@@ -34,6 +34,16 @@ Check(Activity.Join("unknown", Parse("""{"run":{"method":"future-runner"}}"""), 
     && Activity.Join("missing", Parse("{}"), default, default, false, seen) is null,
     "Unknown and missing methods do not enter an assistant lane.");
 Check(Activity.Join("../../escape", request, default, default, false, seen) is null, "Errand identifiers cannot escape the output folder.");
+foreach (var (method, venue, location) in new[] { ("codex-errand", "personal-laptop", "Laptop"),
+    ("claude-errand", "anthropic-cloud", "Cloud"), ("claude-errand", "personal-laptop", "Laptop") }) {
+    var routed = Parse(JsonSerializer.Serialize(new { run = new { method, venue } }));
+    var report = Parse("""{"ok":true,"message":"Finished","data":{"reply":" ","report":"## Findings\nA useful report"}}""");
+    Check(Activity.Join("report", routed, claim, report, false, seen) is { } job && job.Location == location
+        && job.Reply == "## Findings\nA useful report" && job.ClaimedAt == Activity.Date(claim,"claimedAt"),
+        "Agent reports preserve their report body, claim time and declared " + location + " venue.");
+}
+Check(Activity.Join("stream", request, claim, arriving, false, seen)?.Reply == "First reply",
+    "Gemini's streaming reply remains the preferred report body.");
 Check(NavigationPolicy.IsWebTools(NavigationPolicy.AppUrl + "?view=stage"), "The hosted app and its routes stay inside the desktop window.");
 Check(!NavigationPolicy.IsWebTools("https://mehrlander.github.io/web-tools-evil/app/"), "A lookalike path is outside the hosted app boundary.");
 Check(!NavigationPolicy.IsWebTools("https://mehrlander.github.io.evil.test/web-tools/app/"), "A lookalike host is outside the hosted app boundary.");
@@ -137,6 +147,21 @@ try {
     var offline = await reader.Read(seen, force: true);
     Check(!offline.Connected && offline.Errands.Count == 3 && offline.Revision == signaled.Revision
         && offline.Notice?.Contains("last available") == true, "A failed fetch preserves the previous activity with an offline notice.");
+    for (var index = 0; index < 85; index++) {
+        var id = "zzz-old-" + index;
+        await File.WriteAllTextAsync(Path.Combine(seed,"errands/requests/" + id + ".json"), request.GetRawText());
+        await File.WriteAllTextAsync(Path.Combine(seed,"errands/results/" + id + ".json"), done.GetRawText());
+    }
+    await File.WriteAllTextAsync(Path.Combine(seed,"errands/requests/codex-new-result.json"),
+        """{"title":"Recent Codex result","run":{"method":"codex-errand","venue":"personal-laptop"}}""");
+    await File.WriteAllTextAsync(Path.Combine(seed,"errands/results/codex-new-result.json"),
+        JsonSerializer.Serialize(new { ok=true, closedAt=turnAt, data=new { report="Recent report" } }));
+    await CommitFixture();
+    await Git(checkout,"remote","set-url","origin",remote);
+    var retained = await reader.Read(seen, force:true);
+    Check(retained.Errands.Count(j=>!j.IsOpen)==80 && retained.Errands.Count(j=>j.IsOpen)==2
+        && retained.Errands.Any(j=>j.Id=="codex-new-result" && j.Reply=="Recent report"),
+        "Every open errand and the newest eighty results survive filename prefixes and old request dates.");
     var missing = await new ErrandReader(Path.Combine(fixture, "missing-checkout")).Read(seen);
     Check(!missing.Connected && missing.Errands.Count == 0 && missing.Notice?.Contains("not found") == true,
         "Missing local configuration is explicit rather than an empty success.");

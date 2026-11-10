@@ -90,6 +90,17 @@ static class PhoneChecks
             "Only the laptop-daemon method establishes an errand's execution location.");
         check(routed.Items.All(i => i.Url == NavigationPolicy.ErrandUrl(i.Id, i.State is "reply" or "complete")),
             "Every assistant's errand links to its matching Web Tools request or result.");
+        var old = job with { Id = "older-result", UpdatedAt = now.AddDays(-10), Reply = "  ", Message = "A useful result", Provider = "Claude", Venue = "anthropic-cloud", ClaimedAt = now.AddDays(-11) };
+        var errandSnapshot = snapshot with { Activity = snapshot.Activity with { Errands = [old] } };
+        var errandPhone = PhoneActivity.Errands(errandSnapshot, now);
+        check(!PhoneActivity.Create(errandSnapshot, now).Items.Any(i => i.Id == old.Id)
+            && errandPhone.Items.Single() is { Location: "Cloud", ClaimedAt: not null, NeedsAttention: false },
+            "The dedicated queue retains older results and execution venue without extending the Now feed's horizon.");
+        check(PhoneActivity.Reply(errandSnapshot, old.Id) == "A useful result",
+            "An empty or whitespace reply falls back to the recorded result message.");
+        check(!JsonSerializer.Serialize(errandPhone).Contains("Private request note")
+            && !JsonSerializer.Serialize(errandPhone).Contains("private host"),
+            "The focused errand API preserves the phone's request-note and host boundary.");
         var journalPath = Path.Combine(Path.GetTempPath(), "errand-lanes-" + Guid.NewGuid().ToString("N") + ".json");
         try {
             var changes = new ChangeJournal(journalPath).Observe([], jobs, now);

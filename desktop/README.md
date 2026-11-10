@@ -316,10 +316,8 @@ The reader fetches the private checkout's `background` branch. It reads requests
 at one immutable Git revision through `ls-tree` and `cat-file --batch`. Fetch
 updates `origin/background` and, for cloud records, `origin/main`; the checkout, index, local edits, and checked-out
 branch are untouched.
-The request's `run.method` assigns its assistant lane: `laptop-daemon` to Gemini, `codex-errand` to Codex, and `claude-errand` to Claude. Unknown methods are skipped. All three methods use the same request, claim and result shape. The method identifies the assistant, not continued execution or the machine running Codex or Claude. The Gemini worker card counts only Gemini errands.
-The latest eighty request filenames and every unresolved request are available;
-the list shows forty matching entries at once. Recent activity remains visible
-as the feed updates, without an acknowledgement step.
+The request's `run.method` assigns its assistant lane: `laptop-daemon` to Gemini, `codex-errand` to Codex, and `claude-errand` to Claude. Unknown methods are skipped. All three methods use the same request, claim and result shape. The method identifies the assistant; `run.venue` distinguishes laptop and cloud execution. A claim does not establish continued execution. The Gemini worker card counts only Gemini errands.
+The phone's Errands view filters by assistant and separates Waiting (oldest first), Taken on (claims and arriving replies), and Results. The read-only `/api/v1/errands` projection includes every open errand and the eighty latest results by update time; Now keeps its one-day result horizon. Selected results read Gemini's `data.reply` or the other agents' `data.report`, falling back to the result message. Request notes remain outside the phone API. The Now shortcut and title dropdown open Errands without initiating work.
 
 The worker's record contract lives in the private repo's
 [`errands/README.md`](https://github.com/mehrlander/web-tools-private/blob/main/errands/README.md).
