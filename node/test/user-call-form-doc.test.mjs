@@ -67,6 +67,15 @@ window.mdDiff = { render: async (host, a, b, opts) => {
     }
     host.append(box);
   });
+  // md-diff's selection, as the kit keeps it: md-diff:here sets it, the
+  // container carries data-md-diff-here, and each mover hears the move.
+  const movers = [];
+  const mark = (at) => {
+    for (const b of host.querySelectorAll('[data-md-diff-change]')) b.toggleAttribute('data-md-diff-here', +b.dataset.mdDiffChange === at);
+    movers.forEach((cb) => cb({ at }));
+  };
+  host.addEventListener('md-diff:here', (e) => mark(e.detail.at));
+  return { onMove: (cb) => { movers.push(cb); cb({ at: -1 }); } };
 } };
 window.Diff = {};
 window.MdSurface = { patch: (p, a, b) => 'PATCH ' + p + ' ' + JSON.stringify(b) };
@@ -127,7 +136,8 @@ test('a documentation call shows no PR readiness, even when the PR has conflicts
 test('the edits are listed at the top, each with its summary, and a tap scrolls the document to it', async () => {
   const rows = [...root().querySelectorAll('[data-doc-row]')];
   assert.equal(rows.length, 4, 'one row per edit');
-  assert.match(rows[0].textContent.replace(/\s+/g, ' ').trim(), /^1\. clearer$/, 'its number, then its why when it has no proposal');
+  assert.match(rows[0].textContent.replace(/\s+/g, ' ').trim(), /^1 clearer$/, 'its number, then its why when it has no proposal');
+  assert.match(rows[0].querySelector('[data-doc-row-n]').className, /bg-primary\/15 text-primary/, 'the number a tinted chip, so the list reads as a count');
   const lead = rows[0].querySelector('[data-doc-kind]'), num = rows[0].querySelector('[data-doc-row-n]');
   assert.equal(lead.dataset.docKind, 'clarify');
   assert.ok(lead.compareDocumentPosition(num) & window.Node.DOCUMENT_POSITION_FOLLOWING, 'the kind icon leads the line, before the number');
@@ -145,9 +155,20 @@ test('the edits are listed at the top, each with its summary, and a tap scrolls 
   assert.equal(scrolled.at(-1), box(2), 'the document scrolls to the edit');
   assert.equal(data().docActive, 1);
   assert.match(rows[1].className, /bg-primary\/10/, 'and its row is marked');
+  assert.ok(box(2).hasAttribute('data-md-diff-here'), 'its container is selected in md-diff, so the tap shows even with the edit in view');
+  assert.equal(root().querySelectorAll('[data-md-diff-here]').length, 1, 'and only it');
+  assert.match(rows[1].querySelector('[data-doc-row-n]').className, /bg-primary text-primary-content/, 'its number fills');
+  assert.match(mark(2).className, /badge-primary/, 'and so does its label on the container');
+  rows[1].click();
+  await tick(2);
+  assert.equal(root().querySelector('[data-md-diff-here]'), null, 'a second tap on the selected row lets it go');
+  assert.match(rows[1].querySelector('[data-doc-row-n]').className, /bg-primary\/15/);
+  rows[1].click();
+  await tick(2);
   rows[2].click();
   await tick(2);
   assert.equal(scrolled.at(-1), root().querySelector('[data-doc-unplaced="3"]'), 'an edit the file cannot place scrolls to its line');
+  assert.equal(root().querySelector('[data-md-diff-here]'), null, 'and selects nothing, having no container');
 });
 
 test('the list shows in Changes only, the one view that draws the edits', async () => {
