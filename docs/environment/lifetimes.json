@@ -470,7 +470,7 @@
       "from": "the setup script's plugin commands",
       "reverts": "an edit lasts one session; each new container starts from the snapshot's copy",
       "path": "~/.claude/settings.json",
-      "gloss": "user-scope settings, such as which plugins are on",
+      "gloss": "user-scope settings: which plugins are on, and the add_repo allow rule the setup script writes",
       "effects": {
         "start": {
           "state": "used",

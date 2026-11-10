@@ -21,6 +21,7 @@ skill,/portable:apple-shortcuts-actions,skills/apple-shortcuts-actions/SKILL.md,
 skill,/portable:tend,skills/tend/SKILL.md,tend,,plugin
 skill,/portable:rundown,skills/rundown/SKILL.md,rundown,,plugin
 skill,/portable:notes,skills/notes/SKILL.md,notes,,plugin
+skill,/portable:claude-errands,skills/claude-errands/SKILL.md,claude-errands,,plugin
 skill,/portable:bake-page,skills/bake-page/SKILL.md,bake-page,,plugin
 skill,/portable:caveman,skills/caveman/SKILL.md,caveman,,plugin
 skill,/portable:claude-markdown,skills/claude-markdown/SKILL.md,claude-markdown,,plugin
@@ -85,7 +86,6 @@ agent,,skills/agents/closer.md,Closer,,plugin
 dir,,skills,Plugin source,"the portable plugin's source tree: every skill it carries and the hook bundle, also served as static files that load-skill fetches",plugin
 script,,skills/tasks/build-board.py,build-board.py,regenerate a tracker's board.md from task frontmatter; ships inside the plugin,plugin
 script,,skills/in-flight/in-flight.py,in-flight.py,classify a branch estate into live / merged / unrelated / undecidable and reconcile tracker claims against it; ships inside the plugin,plugin
-script,,skills/doc-craft/doc-review.py,doc-review.py,print the doc review doc-craft's Review section describes from a briefing and the uncommitted edits; ships inside the plugin,plugin
 script,,python/sunset-scan.py,sunset-scan.py,,on-demand
 script,,python/unclaimed-code.py,unclaimed-code.py,,on-demand
 script,,python/doc-placement.py,doc-placement.py,,on-demand

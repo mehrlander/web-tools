@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en" data-theme="winter">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Edit list options</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<!--
+  An option page (skills/design-sprint, "Comparing working options"), built
+  2026-11-07 for the owner's ask on web-tools#1219: a documentation call's
+  slide in the deck of calls gets a list of its edits at the top, in place of
+  the PR's readiness line, each row a short proposal, the row for the edit in
+  view marked, a tap scrolling the document to its edit. Three ways to draw
+  that list, addressed #v=a, #v=b and #v=c; the slide around them is a static
+  copy of the real one (lib/alpineComponents/user-call-form.js) with a sample
+  document, so only the list differs between options.
+-->
+</head>
+<body class="bg-base-100 text-base-content">
+<div id="app" class="h-[100dvh] flex flex-col"></div>
+<script>
+const EDITS = [
+  { n: 1, before: 'The Variants mode lists every saved reading of a passage.', after: 'The variant marks list every saved reading of a passage.',
+    proposal: 'Names the variant marks in place of the Variants mode, which no longer exists, so the opening matches the page.' },
+  { n: 2, heading: true, before: 'The Variants mode', after: 'The variant marks',
+    proposal: 'Renames the section heading from The Variants mode to The variant marks.' },
+  { n: 3, before: 'Open the mode from the toolbar, then pick a passage to see its readings side by side.', after: 'A sparkle beside each heading opens that section\'s readings; the FAB switch turns the marks off.',
+    proposal: 'Rewrites the section to describe the marks beside each heading, the margin mark above the first heading, and the FAB switch.' },
+  { n: 4, before: 'Readings are matched to the file.', after: 'A reading shows only where its passage matches the file word for word.',
+    proposal: 'Adds the exact-matching limit: a reading shows only where its passage matches the file word for word, so a paraphrase stays hidden.' },
+];
+const FILLER = 'Text Lab keeps every reading a session or the owner proposes for a passage, with who proposed it and why, so a later reader can compare them before choosing.';
+const OPTIONS = { a: 'A · List, two lines', b: 'B · Strip of cards', c: 'C · One row, the rest on tap' };
+const v = new URLSearchParams(location.hash.slice(1)).get('v') || 'a';
+let active = 1;
+const decided = { 1: 'confirmed' };
+
+const book = '<i class="ph ph-book-open-text text-xs opacity-60"></i>';
+const bulb = '<i class="ph ph-lightbulb text-xs opacity-60"></i>';
+const badge = (e) => {
+  const d = decided[e.n];
+  const tone = d === 'confirmed' ? 'badge-success' : d === 'discarded' ? 'badge-error' : 'badge-ghost border-base-300';
+  return `<span class="badge badge-sm ${tone} gap-1 shrink-0 font-normal">Edit ${e.n}${d ? ' · kept' : ''}</span>`;
+};
+
+function list() {
+  if (v === 'a') return `
+    <div class="shrink-0 -mx-4 border-b border-base-300 bg-base-100 max-h-44 overflow-y-auto" data-list>
+      ${EDITS.map(e => `<button type="button" data-row="${e.n}" class="w-full flex items-start gap-2 px-4 py-2 text-left border-l-4 ${e.n === active ? 'border-primary bg-primary/10' : 'border-transparent'}">
+        ${badge(e)}<span class="text-sm leading-snug line-clamp-2 ${e.n === active ? '' : 'text-base-content/70'}">${e.proposal}</span></button>`).join('')}
+    </div>`;
+  if (v === 'b') return `
+    <div class="shrink-0 -mx-4 border-b border-base-300 py-2" data-list>
+      <div class="flex gap-2 overflow-x-auto snap-x snap-mandatory px-4 pb-1">
+        ${EDITS.map(e => `<button type="button" data-row="${e.n}" class="snap-start shrink-0 w-[78%] rounded-box border px-3 py-2 text-left ${e.n === active ? 'border-primary bg-primary/10' : 'border-base-300'}">
+          <div class="flex items-center gap-1.5 mb-1">${badge(e)}<span class="ml-auto flex gap-1">${book}${bulb}</span></div>
+          <p class="text-sm leading-snug line-clamp-2">${e.proposal}</p></button>`).join('')}
+      </div>
+    </div>`;
+  const e = EDITS.find(x => x.n === active);
+  return `
+    <div class="shrink-0 -mx-4 border-b border-base-300 px-4 py-2 flex items-start gap-2" data-list>
+      <button type="button" data-step="-1" class="btn btn-ghost btn-xs btn-square" ${active === 1 ? 'disabled' : ''}><i class="ph ph-caret-up"></i></button>
+      <button type="button" data-open class="flex-1 min-w-0 text-left">
+        <div class="flex items-center gap-1.5 mb-0.5">${badge(e)}<span class="text-xs text-base-content/60">${active} of ${EDITS.length}</span><i class="ph ph-list-bullets text-sm ml-auto opacity-60"></i></div>
+        <p class="text-sm leading-snug line-clamp-2">${e.proposal}</p></button>
+      <button type="button" data-step="1" class="btn btn-ghost btn-xs btn-square" ${active === EDITS.length ? 'disabled' : ''}><i class="ph ph-caret-down"></i></button>
+    </div>`;
+}
+
+function block(e) {
+  const tag = e.heading ? 'h2 class="text-lg font-semibold"' : 'p';
+  const close = e.heading ? 'h2' : 'p';
+  return `<section data-edit="${e.n}" class="relative mt-5 rounded-box border ${e.n === active ? 'border-primary' : 'border-base-300'} px-3 pt-4 pb-2">
+    <span class="absolute -top-2.5 left-1">${badge(e).replace('</span>', ' <span class="mx-0.5 h-3 w-px bg-current opacity-25"></span>' + book + bulb + '</span>')}</span>
+    <${tag}><del class="bg-error/15 text-error/90">${e.before}</del> <ins class="no-underline bg-success/15">${e.after}</ins></${close}>
+    <div class="flex justify-end gap-1 mt-1"><button class="btn btn-xs btn-ghost text-success">Keep</button><button class="btn btn-xs btn-ghost text-error">Discard</button></div>
+  </section>`;
+}
+
+function render() {
+  document.getElementById('app').innerHTML = `
+    <div class="shrink-0 bg-base-300/60 px-4 py-1 text-xs text-base-content/60">${OPTIONS[v]}</div>
+    <header class="shrink-0 flex items-center gap-2 px-3 py-2 border-b border-base-300">
+      <button class="btn btn-ghost btn-sm btn-circle"><i class="ph ph-x text-lg"></i></button>
+      <span class="btn btn-sm btn-square btn-soft btn-primary"><i class="ph ph-pencil-line"></i></span>
+      <h1 class="flex-1 min-w-0 truncate text-sm font-semibold">docs/text-tools.md</h1>
+      <span class="rounded-full border border-base-300 bg-base-200 px-3 py-1 font-mono text-xs tabular-nums text-base-content/60">2<span class="mx-0.5 opacity-40">/</span>4</span>
+    </header>
+    <div class="flex-1 min-h-0 flex flex-col bg-base-100 px-4 pt-2.5 gap-2">
+      <p class="text-sm text-base-content/70">Brings the variant marks into the text tools guide. <span class="ml-1 inline-flex items-center gap-1 rounded-full border border-success/60 bg-success/20 px-2 text-xs"><i class="ph ph-git-pull-request"></i>#1185</span></p>
+      <div class="shrink-0 -mx-4 flex flex-wrap items-center gap-x-3 gap-y-1 border-y border-base-300 px-4 py-2 text-sm">
+        <span class="flex items-center gap-1.5 font-mono"><i class="ph ph-file-text"></i>docs/text-tools.md · main</span>
+        <span class="opacity-70">4 edits · 1 of 4 decided</span>
+        <div class="join"><button class="join-item btn btn-xs btn-ghost border-base-300">Old</button><button class="join-item btn btn-xs btn-primary">Changes</button><button class="join-item btn btn-xs btn-ghost border-base-300">Diff</button><button class="join-item btn btn-xs btn-ghost border-base-300">New</button></div>
+      </div>
+      ${list()}
+      <div class="flex-1 min-h-0 -mx-4 px-4 overflow-y-auto" data-scroll>
+        <h1 class="text-xl font-semibold mt-2">Text tools</h1>
+        <p class="my-2">${FILLER}</p>
+        ${block(EDITS[0])}
+        <p class="my-3">${FILLER}</p>
+        ${block(EDITS[1])}
+        ${block(EDITS[2])}
+        <p class="my-3">${FILLER}</p>
+        ${block(EDITS[3])}
+        <p class="my-3 pb-24">${FILLER}</p>
+      </div>
+      <div class="shrink-0 -mx-4 flex items-center gap-2 border-t border-base-300 px-4 py-2">
+        <input class="input input-sm flex-1" placeholder="Note on the whole call">
+        <button class="btn btn-sm btn-primary" disabled><i class="ph ph-paper-plane-tilt"></i>3 to decide</button>
+      </div>
+    </div>`;
+  wire();
+}
+
+function go(n) {
+  active = Math.max(1, Math.min(EDITS.length, n));
+  const top = document.querySelector('[data-scroll]').scrollTop;
+  render();
+  const sc = document.querySelector('[data-scroll]');
+  sc.scrollTop = top;
+  sc.querySelector(`[data-edit="${active}"]`).scrollIntoView({ block: 'start', behavior: 'smooth' });
+}
+
+function wire() {
+  document.querySelectorAll('[data-row]').forEach(b => b.onclick = () => go(+b.dataset.row));
+  document.querySelectorAll('[data-step]').forEach(b => b.onclick = () => go(active + +b.dataset.step));
+  const sc = document.querySelector('[data-scroll]');
+  sc.onscroll = () => {
+    const edge = sc.getBoundingClientRect().top + 24;
+    const seen = [...sc.querySelectorAll('[data-edit]')].filter(s => s.getBoundingClientRect().bottom > edge)[0];
+    const n = seen ? +seen.dataset.edit : active;
+    if (n !== active) { const t = sc.scrollTop; active = n; render(); document.querySelector('[data-scroll]').scrollTop = t; }
+  };
+  const row = document.querySelector(`[data-list] [data-row="${active}"]`);
+  if (row && v === 'b') row.scrollIntoView({ inline: 'start', block: 'nearest' });
+}
+
+// The screenshots open on edit 2, partway down the document.
+render();
+requestAnimationFrame(() => { active = 2; render(); document.querySelector('[data-scroll]').querySelector('[data-edit="2"]').scrollIntoView({ block: 'start' }); });
+</script>
+</body>
+</html>

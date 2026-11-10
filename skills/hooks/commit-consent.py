@@ -260,7 +260,7 @@ DOC_PROMPT = """Commit rejected: {what}.
 
 On main, a documentation change needs the trailer  Doc-change-approved  (or
 Approved), one per documentation file it changes. Commit it on a branch
-instead, show the user the diff as the Review section of the doc-craft skill
+instead, offer it to the user as the Review section of the doc-craft skill
 describes, and merge after they approve it. To commit it here, quote their
 approval:
 
@@ -270,9 +270,9 @@ Ask plainly and quote whatever they answer; never tell them what words to use.""
 
 DOC_REMINDER = """Note: {what}.
 
-Show the user this commit's diff for approval now, as the Review section of the
-doc-craft skill describes. Name this change again whenever they ask what is open,
-show its diff again if they ask to merge, and merge only after they approve the
+Offer this commit's edits to the user for approval now, as the Review section of
+the doc-craft skill describes. Name this change again whenever they ask what is
+open, offer it again if they ask to merge, and merge only after they approve the
 wording."""
 
 

@@ -45,6 +45,24 @@
   const W = 2 * (M + PW + G1 + KW + G2) + HW;
   const X = { yours: M, ykey: M + PW + G1, hub: M + PW + G1 + KW + G2, hkey: W - M - PW - G1 - KW, hosted: W - M - PW };
 
+  // Errand routes: one per filer's machine, from run-methods.csv filed_by
+  // (writers, placed by writers.csv machine) to each machine the method runs
+  // on, or to the browser box for a method that names none. A route whose
+  // filer and target share a machine has no line to draw.
+  const machineOf = Object.fromEntries(WRITERS.map(w => [w.writer, w.machine || '']));
+  const ROUTES = [];
+  for (const m of METHODS) {
+    const to = Csv.list(m.machines).length ? Csv.list(m.machines) : [''];
+    for (const from of new Set(Csv.list(m.filed_by).map(w => machineOf[w]).filter(v => v !== undefined))) {
+      let r = ROUTES.find(x => x.from === from);
+      if (!r) ROUTES.push(r = { from, filers: new Set(), to: new Set() });
+      Csv.list(m.filed_by).filter(w => machineOf[w] === from).forEach(w => r.filers.add(w));
+      to.filter(t => t !== from).forEach(t => r.to.add(t));
+    }
+  }
+  const BUSES = ROUTES.filter(r => r.to.size);
+  const BUS_GAP = 22, EXTRA = Math.max(0, BUSES.length - 1) * BUS_GAP;
+
   const placeBoxes = { yours: [], hosted: [] };
   for (const p of PLACES) {
     const ws = WRITERS.filter(w => w.machine === p.machine);
@@ -59,7 +77,7 @@
     const h = HEAD + Math.max(1, ws.length) * ROW + 12;
     placeBoxes[side(p.machine)].push({ p, ws, errands, lines, pre: Math.max(0, lines.length - 1) * 16, h });
   }
-  const stack = (list) => { let y = TOP + 46; for (const b of list) { y += b.pre; b.y = y; y += b.h + GAP; } return y; };
+  const stack = (list) => { let y = TOP + 46 + EXTRA; for (const b of list) { y += b.pre; b.y = y; y += b.h + GAP; } return y; };
   const H = Math.max(stack(placeBoxes.yours), stack(placeBoxes.hosted)) + 10;
 
   // Each credential sits beside the places that hold it, at the height of
@@ -102,23 +120,32 @@
     const y2 = Math.min(HUB.y + HUB.h - 20, Math.max(HUB.y + 20, k.y + 24));
     svg += `<path data-k="${esc(k.c.credential)}" d="${curve(x1, k.y + 24, x2, y2)}" fill="none" stroke-width="${2 + k.ws.length * 2}" stroke-linecap="round" class="stroke-base-content/25 hm-line"/>`;
   }
-  // Errand routes: what a Claude session can send to a place. Drawn as a bus,
-  // so the picture's other lines stay readable: out of Anthropic's cloud,
-  // along the top, down the gutter beside each column, and into each place
-  // a run method can reach, its methods named in the gap above the box.
-  const from = placeBoxes.hosted.find(b => b.p.machine === 'anthropic-cloud');
-  if (from) {
-    const busY = TOP + 46, xl = X.yours + PW + 18, xr = X.hosted - 18, err = 'stroke-primary hm-errand hidden';
-    const targets = s => placeBoxes[s].filter(b => b.errands.length && b !== from);
-    const lowest = s => Math.max(...targets(s).map(b => b.y + 26), busY);
-    svg += `<path d="M${X.hosted} ${from.y + 26} H${xr} V${busY} H${xl} V${lowest('yours')}" fill="none" stroke-width="2" stroke-dasharray="6 5" class="${err}"/>`;
-    if (targets('hosted').length) svg += `<path d="M${xr} ${from.y + 26} V${lowest('hosted')}" fill="none" stroke-width="2" stroke-dasharray="6 5" class="${err}"/>`;
-    svg += `<text x="${(xl + xr) / 2}" y="${busY - 8}" text-anchor="middle" font-size="13" class="fill-primary hm-errand hidden">errands a Claude session can file</text>`;
+  // Errand routes, drawn as one bus per filer's machine, so the picture's
+  // other lines stay readable: out of the filer's box, along the top, down the
+  // gutter beside each column, and into each place the filer's methods reach,
+  // the methods named in the gap above the box. Each bus has its own colour,
+  // height, gutter offset and lane into a box, so no two run together.
+  const TONES = [{ stroke: 'stroke-primary', fill: 'fill-primary', mark: 'hm-arrow' },
+                 { stroke: 'stroke-secondary', fill: 'fill-secondary', mark: 'hm-arrow-2' }];
+  const boxOf = v => [...placeBoxes.yours, ...placeBoxes.hosted].find(b => b.p.machine === v);
+  BUSES.forEach((r, i) => {
+    const origin = boxOf(r.from);
+    if (!origin) return;
+    const tone = TONES[i % TONES.length], off = i * 8, err = `${tone.stroke} hm-errand hidden`;
+    const busY = TOP + 46 + EXTRA - i * BUS_GAP, gx = { yours: X.yours + PW + 18 + off, hosted: X.hosted - 18 - off };
+    const so = side(r.from), lane = 20 + i * 12, oy = origin.y + lane;
+    const targets = s => placeBoxes[s].filter(b => r.to.has(b.p.machine));
+    const lowest = s => Math.max(...targets(s).map(b => b.y + lane), busY);
+    svg += `<path d="M${so === 'yours' ? X.yours + PW : X.hosted} ${oy} H${gx[so]} V${busY}" fill="none" stroke-width="2" stroke-dasharray="6 5" class="${err}"/>`;
+    for (const s of ['yours', 'hosted']) if (targets(s).length)
+      svg += `<path d="M${gx[so]} ${busY} H${gx[s]} V${lowest(s)}" fill="none" stroke-width="2" stroke-dasharray="6 5" class="${err}"/>`;
+    const who = [...r.filers].map(w => WRITERS.find(x => x.writer === w)?.name || w).join(', ');
+    svg += `<text x="${(gx.yours + gx.hosted) / 2}" y="${busY - 6}" text-anchor="middle" font-size="13" class="${tone.fill} hm-errand hidden">errands filed by ${esc(who)}</text>`;
     for (const s of ['yours', 'hosted']) for (const b of targets(s)) {
-      const yy = b.y + 26, bx = s === 'yours' ? X.yours + PW : X.hosted, tx = s === 'yours' ? xl : xr;
-      svg += `<path d="M${tx} ${yy} H${bx + (s === 'yours' ? 4 : -4)}" fill="none" stroke-width="2" marker-end="url(#hm-arrow)" class="${err}"/>`;
+      const yy = b.y + lane, bx = s === 'yours' ? X.yours + PW : X.hosted;
+      svg += `<path d="M${gx[s]} ${yy} H${bx + (s === 'yours' ? 4 : -4)}" fill="none" stroke-width="2" marker-end="url(#${tone.mark})" class="${err}"/>`;
     }
-  }
+  });
 
   // Places and their writers.
   for (const s of ['yours', 'hosted']) for (const b of placeBoxes[s]) {
@@ -126,7 +153,7 @@
     svg += `<g data-place="${esc(b.p.machine)}">`;
     svg += `<rect x="${x}" y="${b.y}" width="${PW}" height="${b.h}" rx="14" class="fill-base-200/60 stroke-base-300" stroke-width="1.5"${b.ws.length ? '' : ' stroke-dasharray="5 4"'}/>`;
     svg += `<text x="${x + 16}" y="${b.y + 26}" font-size="17" font-weight="600" class="fill-base-content">${esc(b.p.label)}</text>`;
-    if (b.errands.length && b.p.machine !== 'anthropic-cloud') b.lines.forEach((line, i) => {
+    if (b.errands.length) b.lines.forEach((line, i) => {
       svg += `<text x="${x + PW - 6}" y="${b.y - 6 - (b.lines.length - 1 - i) * 16}" text-anchor="end" font-size="13" class="fill-primary hm-errand-label hidden">${esc(line)}</text>`;
     });
     if (!b.ws.length) svg += `<text x="${x + 16}" y="${b.y + HEAD + 18}" font-size="15" class="fill-base-content/40">no writers</text>`;
@@ -166,7 +193,7 @@
   });
 
   const root = document.getElementById('map');
-  const defs = `<defs><marker id="hm-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-primary"/></marker></defs>`;
+  const defs = `<defs><marker id="hm-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-primary"/></marker><marker id="hm-arrow-2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fill-secondary"/></marker></defs>`;
   root.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" class="max-w-none lg:max-w-full lg:w-full lg:h-auto" font-family="ui-sans-serif, system-ui, sans-serif">${defs}${svg}</svg>`;
   document.getElementById('figure').textContent =
     `${WRITERS.length} writers · ${CREDS.length} credentials · ${MACHINES.length} machines`;

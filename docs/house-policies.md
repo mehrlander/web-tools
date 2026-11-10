@@ -25,6 +25,8 @@ Join ideas with a colon, a comma, a semicolon, parentheses or a new sentence, no
 
 A sentence that turns on "so" often presents one cause as forcing one result. Avoid the form, and check examples you find for cause to remove or trim.
 
+**Backed by:** [peeves](https://github.com/mehrlander/web-tools/blob/main/skills/peeves/peeves.md#smug-so--p68), P68 "Smug so".
+
 ### Showing · `h:show`
 
 Show rather than explain.
@@ -50,6 +52,8 @@ Living text says what is true now; history goes to the records built to hold it.
 - A comment, doc or skill states the present, not when it changed, what prompted the change, figures measured at the time, or what it used to do.
 - When a living sentence is wrong, fix the sentence; add no "formerly" or "corrected" note and no dated update line.
 - History belongs in commit messages, a task's progress log and dated or write-once records.
+
+**Backed by:** [doc-craft](https://github.com/mehrlander/web-tools/blob/main/skills/doc-craft/SKILL.md#general-principles), "State current reality".
 
 ## Handover
 

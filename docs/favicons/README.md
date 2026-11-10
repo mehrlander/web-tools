@@ -1,6 +1,6 @@
 # Favicon archive
 
-The project's icon work in one place: the marks it ships, and the ones it has retired. New favicon designs go here.
+The project's icon work in one place: the marks it ships, and the ones it has retired. New favicon designs go here. The Map's [Icons tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=icons) shows the drawn marks as the app draws them.
 
 ## Active
 

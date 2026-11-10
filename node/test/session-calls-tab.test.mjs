@@ -152,6 +152,21 @@ test('a card opens the deck of call forms at that call', () => {
   assert.deepEqual(forms, ['c0ffee01-two']);
 });
 
+test('a deck opened on a documentation call holds only documentation calls, and the other kinds keep theirs', () => {
+  const s = data('slide'), keep = s.calls;
+  s.calls = [...keep, { id: 'c0ffee01-doc', session: 'c0ffee01', kind: 'documentation', question: 'Apply 1 edit to docs/x.md?',
+                        file: 'me/widget@claude/x:docs/x.md', edits: [{ from: 'a', to: 'b' }] }];
+  try {
+    decks.length = 0; forms.length = 0;
+    s.openCalls(2);
+    assert.deepEqual(decks, [{ count: 1, start: 0, title: 'Calls' }]);
+    assert.deepEqual(forms, ['c0ffee01-doc']);
+    decks.length = 0; forms.length = 0;
+    s.openCalls(1);
+    assert.deepEqual(decks, [{ count: 2, start: 1, title: 'Calls' }], 'the decisions keep their own deck');
+  } finally { s.calls = keep; }
+});
+
 const card = () => el('slide').querySelectorAll('[data-session-call]')[0];
 const send = () => card().querySelector('[data-session-call-send]');
 // The send's Confirm label is shown, not written, so its visibility is the test.
