@@ -19,11 +19,13 @@
   `-lab` is the suffix the tools themselves already use (termlab, registerlab,
   entitylab, concept-lab), so it names the whole without renaming a part.
 
-    probes       projects/text/probes/probes.json. One record per
-                 bounded question: question, method, corpus, result, verdict,
-                 what it opens. Failures are recorded at the same weight as
-                  successes, so the standing counts lead the header rather than
-                  being tucked behind a total.
+    probes       projects/text/probes/probes.csv, the registry docs/probes.md
+                 specifies. One row per bounded question, with a recorded
+                 standing and four badges (asks, grain, method, checked), each
+                 a value from projects/text/vocabulary.csv. The pane groups by
+                 date or by any badge, and a tap on a badge filters by it.
+                 Failures are recorded at the same weight as successes, so the
+                 standing counts lead the header.
     variants     The shared Text collection, read from its committed files
                  in home (passages.jsonl, variants.jsonl, proposals.jsonl):
                  every variant, as passage, alternative wording, author, and
@@ -41,12 +43,12 @@
                  run time, or does not have it. A coverage grid leads the pane:
                  property by state, so the empty cells read as loudly as the
                  full ones.
-    runs         the dated runs, each pointing at whatever it actually
-                 produced. A run with no page says "no page" instead of
-                 pretending, which is the same honesty the probe log keeps.
-                 Text collection runs lead the pane: any folder under
-                 projects/text/runs/ that declares its documents in a
-                 files.jsonl, each opening as a deck of those documents.
+    runs         projects/text/runs/runs.csv, one row per dated run of
+                 work, with its kind, method, thread and what it left behind.
+                 A row is one link: to the run's page when it has one, to its
+                 README when not, opened in this view so Back returns. A run
+                 that declares its documents in a files.jsonl also opens as a
+                 deck of them, and a run that settled probes names how many.
 
   Reviewing. Under every pair, in the list and in both decks, one line carries
   the variant's facts and a reader's three acts: vote it up, vote it down, and
@@ -174,6 +176,26 @@
       probes: [],
       concept: '',
       filterStanding: '',
+      runRows: [],
+      badgeFilter: {},
+      probeRun: '',
+      probeBy: 'date',
+      runBy: 'date',
+      PROBE_BYS: [['date', 'date'], ['standing', 'standing'], ['asks', 'asks'], ['grain', 'grain'], ['how', 'method'], ['checked', 'checked']],
+      RUN_BYS: [['date', 'date'], ['thread', 'thread'], ['kind', 'kind'], ['method', 'method']],
+      SEG: {
+        box: 'inline-flex items-center gap-0.5 rounded-lg bg-base-200/60 p-0.5',
+        item: 'rounded-md px-2.5 py-1 text-sm cursor-pointer whitespace-nowrap',
+        on: 'bg-base-100 font-medium shadow-sm',
+        off: 'text-base-content/70 hover:text-base-content',
+      },
+      CHIP: 'rounded-md bg-base-200 px-1.5 py-0.5 text-sm text-base-content/80 whitespace-nowrap',
+      BADGE_WORDS: {
+        asks: { detect: 'detects', compare: 'compares', classify: 'classifies' },
+        how: { script: 'by script', readers: 'by readers', both: 'script and readers', none: 'not run' },
+        method: { script: 'by script', readers: 'by readers', both: 'script and readers' },
+        checked: { gold: 'against gold labels', agreement: 'against a second reader', none: 'no check' },
+      },
       open: null,
       guideHtml: '',
       guideClass: '',
@@ -215,12 +237,20 @@
         this.normalizeVariantParams();
         this.home = new window.GH({ token: window.TOKEN || '', repo: this.REPO, ref: this.DATA_REF });
         try {
-          const res = await this.home.get(`${this.ROOT}/probes/probes.json`);
-          this.probes = JSON.parse(res.text).probes
+          await gh.load('kits/csv.js');
+          this.probes = (await this.readProbes())
             .sort((a, b) => (b.date + b.id).localeCompare(a.date + a.id));
         } catch (e) {
           this.error = `${e.message || e} (${this.REPO}@${this.DATA_REF})`;
         }
+        // The run registry is small and the Probes pane names a probe's run from
+        // it, so it loads with the probes. A ref that predates it leaves the
+        // list empty and the Runs pane falls back to its old listing.
+        try {
+          this.runRows = window.Csv.rows((await this.home.get(`${this.ROOT}/runs/runs.csv`)).text)
+            .map(r => ({ ...r, name: r.run.split('/').pop(), residue: r.residue.split(';').filter(Boolean) }))
+            .sort((a, b) => (b.date + b.run).localeCompare(a.date + a.run));
+        } catch (_) { this.runRows = []; }
         this.loading = false;
         // Whatever ?pane= asked for, not just the one that used to need it:
         // each pane's own guard makes the call a no-op when it has nothing to
@@ -228,9 +258,28 @@
         this.showPane(this.pane);
       },
 
-      // build-index.py's rule, on one probe's own verdict: open wins, then
+      // probes/probes.csv, the registry web-tools docs/probes.md specifies, with
+      // this project's badge columns. A ref that predates it still holds
+      // probes.json, whose records carry no title, standing or badges.
+      async readProbes() {
+        const list = v => (v || '').split(';').filter(Boolean);
+        try {
+          return window.Csv.rows((await this.home.get(`${this.ROOT}/probes/probes.csv`)).text).map(r => ({
+            id: r.probe, date: r.date, title: r.title, question: r.question, concepts: list(r.tags),
+            method: r.approach, corpus: r.corpus, result: r.result, verdict: r.summary, opens: r.opens,
+            artifacts: list(r.artifacts), cost: r.cost, run: r.run,
+            standing: r.standing, asks: r.asks, grain: r.grain, how: r.method, checked: r.checked,
+          }));
+        } catch (_) {
+          return JSON.parse((await this.home.get(`${this.ROOT}/probes/probes.json`)).text).probes;
+        }
+      },
+
+      // The registry's own standing where it records one. Otherwise the rule
+      // the old index used, on the verdict's first word: open wins, then
       // worked, then failed, and anything else is mixed.
       standingOf(p) {
+        if (this.STANDINGS[p.standing]) return p.standing;
         const v = (p.verdict || '').split('.')[0].toLowerCase();
         return v.startsWith('open') ? 'open'
              : v.startsWith('work') ? 'worked'
@@ -254,7 +303,45 @@
       get shown() {
         return this.probes.filter(p =>
           (!this.filterStanding || this.standingOf(p) === this.filterStanding)
-          && (!this.concept || p.concepts.includes(this.concept)));
+          && (!this.concept || p.concepts.includes(this.concept))
+          && (!this.probeRun || p.run === this.probeRun)
+          && Object.entries(this.badgeFilter).every(([dim, value]) => p[dim] === value));
+      },
+
+      // A badge is a value from a short list (home projects/text/vocabulary.csv).
+      // The words here are how a value reads on a row; an unlisted value shows
+      // as itself.
+      badgeText(dim, value) {
+        return (this.BADGE_WORDS[dim] || {})[value] || value;
+      },
+      probeBadges(p) {
+        return ['asks', 'grain', 'how', 'checked'].filter(dim => p[dim]).map(dim => ({ dim, value: p[dim] }));
+      },
+      toggleBadge(dim, value) {
+        const next = { ...this.badgeFilter };
+        if (next[dim] === value) delete next[dim]; else next[dim] = value;
+        this.badgeFilter = next;
+      },
+      runOf(p) { return this.runRows.find(r => r.run === p.run) || null; },
+      probesIn(run) { return this.probes.filter(p => p.run === run.run).length; },
+      showRun(run) { this.runFocus = run.name; this.showPane('runs'); },
+      showProbesOf(run) { this.probeRun = run.run; this.showPane('probes'); },
+      // Where a tap on a run goes: its page when it has one, its README when
+      // not. Both open in this view, so Back returns to the list.
+      runUrl(run) {
+        return run.page ? this.tossUrl(`${this.ROOT}/${run.page}`)
+          : `${this.TOSS}#data=${this.REPO}@${this.DATA_REF}:${this.ROOT}/${run.run}/README.md`;
+      },
+      deckOf(run) { return this.textRuns.find(t => t.name === run.name) || null; },
+      runGroups() {
+        const key = this.runBy, out = new Map();
+        for (const r of this.runRows) {
+          const k = key === 'date' ? r.date.slice(0, 7) : r[key];
+          if (!out.has(k)) out.set(k, []);
+          out.get(k).push(r);
+        }
+        const groups = [...out].map(([name, items]) => ({ name, items }));
+        return key === 'date' ? groups : groups.sort((a, b) => b.items.length - a.items.length);
       },
 
       // Sixteen probes are three working sessions, not sixteen loose questions,
@@ -263,6 +350,16 @@
       // string ten times over.
       probeGroups() {
         const out = [];
+        if (this.probeBy !== 'date') {
+          const by = new Map();
+          for (const p of this.shown) {
+            const k = this.probeBy === 'standing' ? this.standingOf(p) : (p[this.probeBy] || 'unrecorded');
+            if (!by.has(k)) by.set(k, []);
+            by.get(k).push(p);
+          }
+          return [...by].map(([k, items]) => ({ date: this.badgeText(this.probeBy, k), items }))
+            .sort((a, b) => b.items.length - a.items.length);
+        }
         for (const p of this.shown) {
           const last = out[out.length - 1];
           if (last && last.date === p.date) last.items.push(p);
@@ -781,7 +878,7 @@
               h('summary', { class: 'cursor-pointer font-mono text-xs opacity-60' }, 'What changed, and what the audit restored'),
               h('p', { class: 'mt-2 text-pretty' }, f.drafter || ''),
               h('p', { class: 'mt-2 text-pretty opacity-70' }, f.audit ? `Audit: ${f.audit}` : ''));
-            const doc = h('div', {}, h('span', { class: 'loading loading-dots loading-md opacity-20' }));
+            const doc = h('div', {}, h('span', { class: 'loading loading-dots loading-md opacity-60' }));
             slide.append(...[head, notes, doc].filter(Boolean));
             this.renderRunFile(doc, f);
           },
@@ -904,7 +1001,7 @@
 
 <!-- Sits outside the cloaked root and is removed by init(), so the page always
      says something: booting, or which step failed. -->
-<div id="boot" class="p-6 font-mono text-sm opacity-40">loading…</div>
+<div id="boot" class="p-6 font-mono text-sm opacity-70">loading…</div>
 
 <div x-data="textInstruments" x-cloak>
 
@@ -921,10 +1018,10 @@
       <h1 class="text-lg font-semibold">Text Lab</h1>
     </div>
 
-    <div class="flex items-center gap-0.5 rounded-lg bg-base-200/60 p-0.5 w-fit flex-wrap" role="tablist" data-slot="frame:tabs">
+    <div class="flex items-center gap-0.5 rounded-lg bg-base-200/60 p-0.5 w-fit max-w-full overflow-x-auto" role="tablist" data-slot="frame:tabs">
       <template x-for="key in PANES" :key="key">
         <button role="tab" @click="showPane(key)" :aria-selected="pane === key"
-                class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-base font-medium transition-colors"
+                class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-base font-medium transition-colors whitespace-nowrap shrink-0"
                 :class="pane === key ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'">
           <i class="ph text-lg" :class="PANE_META[key].icon"></i><span x-text="PANE_META[key].label"></span>
         </button>
@@ -934,7 +1031,7 @@
     <!-- variants: search, count, the deck door, author -->
     <div x-show="pane === 'variants'" class="flex items-center gap-3 flex-wrap">
       <label class="input input-sm input-bordered flex items-center gap-2 grow max-w-md">
-        <i class="ph ph-magnifying-glass opacity-40"></i>
+        <i class="ph ph-magnifying-glass opacity-70"></i>
         <input type="search" class="grow" data-find-box
                aria-label="Search variants" placeholder="search text, variant, author, or purpose"
                x-model="variantQ"
@@ -969,7 +1066,7 @@
       <template x-for="row in variantFacet('purpose')" :key="row.key">
         <button @click="setVariantFilter('purpose', variantPurpose === row.key ? '' : row.key)"
                 class="badge cursor-pointer gap-1 transition-opacity"
-                :class="variantPurpose === row.key ? 'badge-primary' : variantPurpose ? 'badge-ghost opacity-40' : 'badge-ghost'"
+                :class="variantPurpose === row.key ? 'badge-primary' : variantPurpose ? 'badge-ghost opacity-70' : 'badge-ghost'"
                 :title="purposeDef(row.key)?.gloss || row.key">
           <span x-text="row.key"></span><span class="opacity-60 tabular-nums" x-text="row.n.toLocaleString()"></span>
         </button>
@@ -992,6 +1089,30 @@
           <option :value="name" x-text="name + ' (' + n + ')'"></option>
         </template>
       </select>
+    </div>
+    <div x-show="pane === 'probes'" class="flex items-center gap-2 overflow-x-auto whitespace-nowrap -mx-4 px-4 sm:-mx-6 sm:px-6">
+      <span class="text-sm text-base-content/70 shrink-0">group by</span>
+      <div class="shrink-0" :class="SEG.box">
+        <template x-for="[key, label] in PROBE_BYS" :key="key">
+          <button type="button" :class="[SEG.item, probeBy === key ? SEG.on : SEG.off]" @click="probeBy = key" x-text="label"></button>
+        </template>
+      </div>
+      <template x-for="[dim, value] in Object.entries(badgeFilter)" :key="dim">
+        <button type="button" class="shrink-0 inline-flex items-center gap-1 rounded-md bg-primary/15 px-2 py-1 text-sm cursor-pointer" @click="toggleBadge(dim, value)">
+          <span x-text="badgeText(dim, value)"></span><i class="ph ph-x"></i>
+        </button>
+      </template>
+      <button type="button" x-show="probeRun" class="shrink-0 inline-flex items-center gap-1 rounded-md bg-primary/15 px-2 py-1 text-sm cursor-pointer" @click="probeRun = ''">
+        <span x-text="(runRows.find(r => r.run === probeRun) || {}).title || probeRun"></span><i class="ph ph-x"></i>
+      </button>
+    </div>
+    <div x-show="pane === 'runs' && runRows.length" class="flex items-center gap-2 overflow-x-auto whitespace-nowrap -mx-4 px-4 sm:-mx-6 sm:px-6">
+      <span class="text-sm text-base-content/70 shrink-0">group by</span>
+      <div class="shrink-0" :class="SEG.box">
+        <template x-for="[key, label] in RUN_BYS" :key="key">
+          <button type="button" :class="[SEG.item, runBy === key ? SEG.on : SEG.off]" @click="runBy = key" x-text="label"></button>
+        </template>
+      </div>
     </div>
 
     <!-- resources: the states are the filter, then properties -->
@@ -1017,7 +1138,7 @@
         :class="pane === 'variants' ? 'max-w-[96rem]' : 'max-w-[72rem]'">
 
     <div x-show="pane === 'probes' && loading" class="py-24 text-center">
-      <span class="loading loading-dots loading-md opacity-20"></span>
+      <span class="loading loading-dots loading-md opacity-60"></span>
     </div>
     <div x-show="error && pane !== 'variants'" class="font-mono text-sm text-error py-6" x-text="error"></div>
 
@@ -1028,7 +1149,7 @@
          current occurrence. -->
     <section x-show="pane === 'variants'">
       <div x-show="variantState === 'idle' || variantState === 'loading'" class="py-24 text-center">
-        <span class="loading loading-dots loading-md opacity-20"></span>
+        <span class="loading loading-dots loading-md opacity-60"></span>
       </div>
 
       <div x-show="variantState === 'error'"
@@ -1071,7 +1192,7 @@
       </template>
 
       <p x-show="variantState === 'done' && !variantRows.length"
-         class="py-16 text-center font-mono text-xs opacity-40">
+         class="py-16 text-center font-mono text-xs opacity-70">
         no variant carries that combination
       </p>
     </section>
@@ -1084,7 +1205,7 @@
     <section x-show="pane === 'probes' && !loading" data-pattern="list" data-part="list">
       <template x-for="g in probeGroups()" :key="g.date">
        <section class="mb-9">
-        <h2 class="font-mono text-xs uppercase tracking-wide opacity-40 pb-1 border-b border-base-300" data-part="group">
+        <h2 class="font-mono text-xs uppercase tracking-wide opacity-70 pb-1 border-b border-base-300" data-part="group">
           <span x-text="g.date"></span>
           <span class="ml-2" x-text="g.items.length + (g.items.length === 1 ? ' probe' : ' probes')" data-part="meta"></span>
         </h2>
@@ -1095,36 +1216,51 @@
           <button class="w-full text-left flex items-start gap-3" @click="open = open === p.id ? null : p.id">
             <span class="mt-2.5 w-1 h-5 rounded-sm shrink-0" :class="STANDINGS[standingOf(p)].bar" data-part="meta"></span>
             <span class="grow min-w-0">
-              <span class="block text-lg leading-7 text-pretty" x-text="p.question" data-part="title"></span>
-              <!-- The concepts belong on the collapsed row: they are the field's
-                   own vocabulary and the thing the header's filter selects on,
-                   so keeping them behind a tap left that filter with no visible
-                   referent and every row looking alike. -->
-              <span class="block mt-1 font-mono text-xs truncate">
-                <span :class="STANDINGS[standingOf(p)].text" x-text="standingOf(p)" data-part="meta"></span>
-                <span class="ml-2 opacity-40" x-text="p.concepts.join(' · ')" data-part="meta"></span>
+              <span x-show="p.title" class="block text-lg leading-7 font-medium" x-text="p.title" data-part="title"></span>
+              <span x-show="!p.title" class="block text-lg leading-7" x-text="p.question" data-part="title"></span>
+              <!-- The collapsed row carries the badges, since they are what the
+                   header groups and filters on. A registry without badges
+                   (probes.json) shows its concepts here as it used to. -->
+              <span class="flex flex-wrap items-center gap-1.5 mt-1.5">
+                <span class="text-sm font-medium mr-1" x-text="standingOf(p)" data-part="meta"></span>
+                <template x-for="b in probeBadges(p)" :key="b.dim">
+                  <span :class="[CHIP, badgeFilter[b.dim] === b.value && 'ring-1 ring-primary']" role="button"
+                        @click.stop="toggleBadge(b.dim, b.value)" x-text="badgeText(b.dim, b.value)" data-part="meta"></span>
+                </template>
+                <span x-show="!probeBadges(p).length" class="font-mono text-xs text-base-content/70 truncate" x-text="p.concepts.join(' · ')" data-part="meta"></span>
               </span>
             </span>
-            <i class="ph shrink-0 mt-2 opacity-30" :class="open === p.id ? 'ph-caret-down' : 'ph-caret-right'"></i>
+            <i class="ph shrink-0 mt-2 opacity-70" :class="open === p.id ? 'ph-caret-down' : 'ph-caret-right'"></i>
           </button>
 
           <div x-show="open === p.id" class="pl-4 mt-4 grid gap-4" data-part="body">
-            <template x-for="field in [['Method', p.method], ['Corpus', p.corpus], ['Result', p.result], ['Verdict', p.verdict], ['Opens', p.opens]]" :key="field[0]">
+            <template x-for="field in [['Question', p.title ? p.question : ''], ['Method', p.method], ['Corpus', p.corpus], ['Result', p.result], ['Verdict', p.verdict], ['Opens', p.opens]]" :key="field[0]">
               <div x-show="!!field[1]">
-                <div class="font-mono text-xs uppercase tracking-wide opacity-40" x-text="field[0]"></div>
+                <div class="font-mono text-xs uppercase tracking-wide opacity-70" x-text="field[0]"></div>
                 <p class="text-lg leading-7 text-pretty mt-0.5" x-text="field[1]"></p>
               </div>
             </template>
 
+            <div x-show="runOf(p) || (p.concepts.length && probeBadges(p).length)" class="flex flex-wrap items-center gap-1.5">
+              <button type="button" x-show="runOf(p)" class="inline-flex items-center gap-1.5 rounded-md bg-base-200 px-2 py-1 text-base cursor-pointer"
+                      @click="showRun(runOf(p))">
+                <i class="ph ph-play-circle"></i><span class="font-medium" x-text="(runOf(p) || {}).title"></span>
+              </button>
+              <template x-for="c in (probeBadges(p).length ? p.concepts : [])" :key="c">
+                <span class="font-mono text-xs text-base-content/70 rounded-md border border-base-300 px-1.5 py-0.5 cursor-pointer" role="button"
+                      @click="concept = concept === c ? '' : c" x-text="c"></span>
+              </template>
+            </div>
+
             <div class="flex flex-wrap items-center gap-x-4 gap-y-2 font-mono text-xs pt-1">
               <template x-for="a in p.artifacts" :key="a">
-                <a class="opacity-40 hover:opacity-100 transition-opacity"
+                <a class="opacity-70 hover:opacity-100 transition-opacity"
                    :href="artifactUrl(a)" target="_blank" rel="noopener" data-part="links">
                   <span x-text="artifactName(a)"></span><i class="ph ph-arrow-square-out ml-1"></i>
                 </a>
               </template>
-              <span class="opacity-40" x-show="!!p.cost" data-part="meta">cost: <span x-text="p.cost"></span></span>
-              <span class="opacity-30" x-text="p.id" data-part="meta"></span>
+              <span class="opacity-70" x-show="!!p.cost" data-part="meta">cost: <span x-text="p.cost"></span></span>
+              <span class="opacity-70" x-text="p.id" data-part="meta"></span>
             </div>
           </div>
         </article>
@@ -1132,7 +1268,7 @@
        </section>
       </template>
 
-      <p x-show="!shown.length && !error" class="py-16 text-center font-mono text-xs opacity-40">
+      <p x-show="!shown.length && !error" class="py-16 text-center font-mono text-xs opacity-70">
         no probe carries that combination
       </p>
     </section>
@@ -1140,7 +1276,7 @@
     <!-- ── instruments ────────────────────────────────────────────────── -->
     <section x-show="pane === 'instruments'">
       <div x-show="!guideHtml" class="py-24 text-center">
-        <span class="loading loading-dots loading-md opacity-20"></span>
+        <span class="loading loading-dots loading-md opacity-60"></span>
       </div>
       <div :class="guideClass" x-html="guideHtml"></div>
     </section>
@@ -1152,7 +1288,7 @@
          colour that repeats a heading is decoration. -->
     <section x-show="pane === 'resources'">
       <div x-show="!resources.length" class="py-24 text-center">
-        <span class="loading loading-dots loading-md opacity-20"></span>
+        <span class="loading loading-dots loading-md opacity-60"></span>
       </div>
 
       <!-- Coverage, before the list. One row per property a word can be rated
@@ -1162,7 +1298,7 @@
       <div x-show="resources.length" class="mb-10 overflow-x-auto">
         <table class="font-mono text-xs">
           <thead>
-            <tr class="opacity-40">
+            <tr class="opacity-70">
               <th class="text-left font-normal pb-1 pr-6">property</th>
               <template x-for="s in ['held','fetched','absent']" :key="s">
                 <th class="font-normal pb-1 px-3 w-16" x-text="s"></th>
@@ -1177,7 +1313,7 @@
                     :class="rate === row.name ? 'font-medium' : 'opacity-70'" x-text="row.name"></td>
                 <template x-for="s in ['held','fetched','absent']" :key="s">
                   <td class="py-1.5 px-3 text-center tabular-nums"
-                      :class="row[s] ? STATES[s].text : 'opacity-20'"
+                      :class="row[s] ? STATES[s].text : 'opacity-60'"
                       x-text="row[s] || '·'"></td>
                 </template>
               </tr>
@@ -1190,19 +1326,19 @@
         <section class="mb-10">
           <h2 class="font-mono text-xs uppercase tracking-wide mb-1" :class="STATES[g.state].text">
             <span x-text="g.state"></span>
-            <span class="opacity-40" x-text="g.items.length"></span>
+            <span class="opacity-70" x-text="g.items.length"></span>
           </h2>
 
           <template x-for="r in g.items" :key="r.id">
             <article class="border-t border-base-300 py-4">
               <div class="flex items-baseline gap-4">
                 <div class="text-lg leading-7 font-medium grow min-w-0" x-text="r.name"></div>
-                <div class="font-mono text-xs opacity-40 shrink-0" x-show="!!r.rows" x-text="(+r.rows).toLocaleString() + ' rows'"></div>
-                <a class="font-mono text-xs opacity-40 hover:opacity-100 transition-opacity shrink-0"
+                <div class="font-mono text-xs opacity-70 shrink-0" x-show="!!r.rows" x-text="(+r.rows).toLocaleString() + ' rows'"></div>
+                <a class="font-mono text-xs opacity-70 hover:opacity-100 transition-opacity shrink-0"
                    x-show="!!resourceUrl(r.locator)" :href="resourceUrl(r.locator)" target="_blank" rel="noopener">
                   <span x-text="resourceLabel(r.locator)"></span><i class="ph ph-arrow-square-out ml-1"></i>
                 </a>
-                <span class="font-mono text-xs opacity-30 shrink-0"
+                <span class="font-mono text-xs opacity-70 shrink-0"
                       x-show="!!r.locator && !resourceUrl(r.locator)" x-text="r.locator"></span>
               </div>
 
@@ -1210,27 +1346,68 @@
 
               <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1 font-mono text-xs mt-2">
                 <template x-for="p in list(r.rates)" :key="p">
-                  <button class="opacity-40 hover:opacity-100 underline decoration-dotted underline-offset-2 transition-opacity"
+                  <button class="opacity-70 hover:opacity-100 underline decoration-dotted underline-offset-2 transition-opacity"
                           @click="rate = p" x-text="p"></button>
                 </template>
-                <span class="opacity-30" x-text="list(r.unit).join(', ')"></span>
-                <span class="opacity-30" x-show="!!r.source" x-text="r.source"></span>
+                <span class="opacity-70" x-text="list(r.unit).join(', ')"></span>
+                <span class="opacity-70" x-show="!!r.source" x-text="r.source"></span>
               </div>
             </article>
           </template>
         </section>
       </template>
 
-      <p x-show="resources.length && !shownResources.length" class="py-16 text-center font-mono text-xs opacity-40">
+      <p x-show="resources.length && !shownResources.length" class="py-16 text-center font-mono text-xs opacity-70">
         no resource carries that combination
       </p>
     </section>
 
     <!-- ── runs ───────────────────────────────────────────────────────── -->
-    <section x-show="pane === 'runs'">
+    <section x-show="pane === 'runs' && runRows.length">
+      <template x-for="g in runGroups()" :key="g.name">
+        <section class="mb-9">
+          <h2 class="font-mono text-xs uppercase tracking-wide text-base-content/70 pb-1 border-b border-base-300">
+            <span x-text="g.name"></span><span class="ml-2 tabular-nums" x-text="g.items.length"></span>
+          </h2>
+          <template x-for="r in g.items" :key="r.run">
+            <article :id="'run-' + r.name" class="border-b border-base-200 flex items-stretch gap-2"
+                     :class="r.name === runFocus && 'bg-primary/5'">
+              <a :href="runUrl(r)" class="grow min-w-0 py-4 grid gap-1.5 hover:bg-base-200/50 active:bg-base-200 -mx-2 px-2 rounded-md">
+                <span class="flex items-center gap-2 text-lg leading-7 font-medium">
+                  <i class="ph shrink-0 text-base-content/70" :class="r.page ? 'ph-browser' : 'ph-file-text'"></i>
+                  <span x-text="r.title"></span>
+                </span>
+                <span class="text-lg leading-7 text-base-content/80 line-clamp-3" x-text="r.summary"></span>
+                <span class="flex flex-wrap items-center gap-1.5">
+                  <span :class="CHIP" class="font-medium" x-text="r.kind"></span>
+                  <span :class="CHIP" x-text="badgeText('method', r.method)"></span>
+                  <span :class="CHIP" x-text="r.thread"></span>
+                  <span :class="CHIP" x-text="'left ' + r.residue.join(', ')"></span>
+                  <span class="font-mono text-xs text-base-content/70 ml-1" x-text="r.date"></span>
+                </span>
+              </a>
+              <div class="flex flex-col items-end justify-center gap-1 shrink-0 py-3">
+                <button type="button" x-show="probesIn(r)" class="rounded-md bg-base-200 px-2 py-1 text-sm cursor-pointer whitespace-nowrap max-sm:min-h-11"
+                        @click="showProbesOf(r)" x-text="probesIn(r) + (probesIn(r) === 1 ? ' probe' : ' probes')"></button>
+                <button x-show="deckOf(r)" class="btn btn-square btn-sm btn-ghost text-primary max-sm:h-11 max-sm:w-11"
+                        :aria-label="'Read the files of ' + r.title + ' one at a time'"
+                        @click="openRunDeck(deckOf(r))">
+                  <i class="ph ph-cards-three text-lg"></i>
+                </button>
+                <a class="font-mono text-xs text-base-content/70 hover:text-base-content py-1" :href="treeUrl(ROOT + '/' + r.run)">files</a>
+              </div>
+            </article>
+          </template>
+        </section>
+      </template>
+    </section>
+
+    <!-- A ref that predates runs/runs.csv: the text collection's runs, then the
+         few listed by hand. -->
+    <section x-show="pane === 'runs' && !runRows.length">
       <template x-if="textRuns.length">
         <section class="mb-10">
-          <h2 class="font-mono text-xs uppercase tracking-wide opacity-40 pb-1 border-b border-base-300">
+          <h2 class="font-mono text-xs uppercase tracking-wide opacity-70 pb-1 border-b border-base-300">
             text collection<span class="ml-2 tabular-nums" x-text="textRuns.length"></span>
           </h2>
           <template x-for="r in textRuns" :key="r.name">
@@ -1238,11 +1415,11 @@
                      :class="r.name === runFocus && 'bg-primary/5'">
               <div class="grow min-w-0">
                 <div class="text-lg leading-7 font-medium text-balance" x-text="r.title"></div>
-                <div class="mt-1 font-mono text-xs opacity-40 tabular-nums"
+                <div class="mt-1 font-mono text-xs opacity-70 tabular-nums"
                      x-text="r.date + ' · ' + r.files.length + ' files · ' + r.variants.toLocaleString() + ' ' + r.unit"></div>
               </div>
               <div class="flex items-center gap-3 font-mono text-xs shrink-0">
-                <a class="opacity-40 hover:opacity-100 transition-opacity"
+                <a class="opacity-70 hover:opacity-100 transition-opacity"
                    :href="treeUrl(r.dir)" target="_blank" rel="noopener">files<i class="ph ph-arrow-square-out ml-1"></i></a>
                 <button class="btn btn-square btn-sm btn-ghost text-primary max-sm:h-11 max-sm:w-11"
                         :aria-label="'Read ' + r.files.length + ' files one at a time'"
@@ -1255,7 +1432,7 @@
           </template>
         </section>
       </template>
-      <h2 x-show="textRuns.length" class="font-mono text-xs uppercase tracking-wide opacity-40 pb-1 border-b border-base-300">
+      <h2 x-show="textRuns.length" class="font-mono text-xs uppercase tracking-wide opacity-70 pb-1 border-b border-base-300">
         other runs<span class="ml-2 tabular-nums" x-text="RUNS.length"></span>
       </h2>
       <template x-for="r in RUNS" :key="r.dir">
@@ -1263,14 +1440,14 @@
           <div class="grow min-w-0">
             <div class="text-lg leading-7 font-medium text-balance" x-text="r.title"></div>
             <div class="text-lg leading-7 text-pretty" x-text="r.line"></div>
-            <div class="mt-1 font-mono text-xs opacity-40" x-text="r.date"></div>
+            <div class="mt-1 font-mono text-xs opacity-70" x-text="r.date"></div>
           </div>
           <div class="flex flex-col items-end gap-1 font-mono text-xs shrink-0">
-            <a class="opacity-40 hover:opacity-100 transition-opacity"
+            <a class="opacity-70 hover:opacity-100 transition-opacity"
                :href="treeUrl(r.dir)" target="_blank" rel="noopener">files<i class="ph ph-arrow-square-out ml-1"></i></a>
-            <a x-show="!!r.page" class="opacity-40 hover:opacity-100 transition-opacity"
+            <a x-show="!!r.page" class="opacity-70 hover:opacity-100 transition-opacity"
                :href="tossUrl(r.page)" target="_blank" rel="noopener">open<i class="ph ph-arrow-square-out ml-1"></i></a>
-            <span x-show="!r.page" class="opacity-30">no page</span>
+            <span x-show="!r.page" class="opacity-70">no page</span>
           </div>
         </article>
       </template>
