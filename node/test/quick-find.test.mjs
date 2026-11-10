@@ -365,8 +365,10 @@ test('the headings come in reading order, and only where a lane found something'
   data.q = 'design';
   assert.deepEqual(j(data.sections.map(s => s.id)), ['files', 'further', 'keep']);
   data.q = 'home';
-  assert.deepEqual(j(data.sections.map(s => s.id)).slice(0, 1), ['go']);
-  assert.equal(data.sections[0].title, 'Go to');
+  assert.deepEqual(j(data.sections.map(s => s.id)).slice(0, 1), ['repos']);
+  assert.equal(data.sections[0].title, 'Repos');
+  data.q = 'map';
+  assert.equal(data.sections[0].title, 'Views');
 });
 
 test('a long answer shows six, then "+N more" opens thirty, then the Search view takes the rest', async () => {
@@ -447,6 +449,15 @@ test('h: lists every policy, h:frag narrows by name, and a row opens the policy'
   data.act(data.rows[0]);
   assert.deepEqual(j(shell._went), ['policy:salt']);
   assert.equal(data.q, '');
+});
+
+test('a bare h lists every policy, under the repos it matches', () => {
+  data.q = 'h';
+  assert.deepEqual(j(data.sections.map(s => s.id)).slice(0, 2), ['repos', 'policies']);
+  assert.deepEqual(j(data.rows.filter(r => r.kind === 'policy').map(r => r.label)), ['h:dash', 'h:salt', 'h:show']);
+  // No other single letter does.
+  data.q = 's';
+  assert.equal(data.rows.some(r => r.kind === 'policy'), false);
 });
 
 test('h: with a name that matches nothing still offers the Policy tab', () => {
