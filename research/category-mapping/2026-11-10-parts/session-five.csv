@@ -1,0 +1,11 @@
+instance,level,sits_inside,per_parent,holds,reader_does
+list,structure,pattern,exactly one,n/a,n/a
+item,structure,list,any number,n/a,n/a
+group,structure,list,any number,n/a,n/a
+detail,structure,pattern,exactly one,n/a,n/a
+title,content,item,at most one,a name,reads
+meta,content,item or group,any number,a fact,reads
+summary,content,item or group,unstated,a sentence,reads
+body,content,item,unstated,content,reads
+links,content,item or group,unstated,links away,leaves
+actions,content,item or group,unstated,controls,acts

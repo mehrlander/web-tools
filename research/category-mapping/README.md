@@ -128,6 +128,10 @@ None of these is acted on here; each is a separate decision.
    `docs/registries.md`, the document that owns the vocabulary, with the
    poster rendering it from there, once the calls on the poster are settled.
 
+## A later test: the ten parts
+
+On 2026-11-10 the same question was put to a different kind of set: the ten parts of [`data/ui-units/parts.csv`](../../data/ui-units/parts.csv), which are positions in a page's structure and not kinds of collection. Two readers working apart, one given a procedure and one given only the question, reported the same six regularities, and differed on how many of the six belong in a part's own row. [The parts test](2026-11-10-parts/README.md) holds both readings, the prompts, and the checks run on them.
+
 ## Sources
 
 The methods surveyed in the earlier version, read in their primary texts where reachable (the ISO standards in their preview samples):

@@ -1,0 +1,11 @@
+instance,level,function,on_group,extent,multiplicity,requirement,variants,in_promise
+list,pattern,contain,n/a,n/a,exactly one,required,none,no
+item,list,contain,n/a,n/a,any number,required,none,yes
+group,list,divide,n/a,name,any number,optional,none,no
+detail,pattern,contain,n/a,whole,exactly one,list-detail only,none,yes
+title,anatomy,describe,no,name,at most one,optional,none,no
+meta,anatomy,describe,yes,token,any number,optional,6,no
+summary,anatomy,describe,yes,line,at most one,optional,none,no
+body,anatomy,describe,no,block,any number,optional,4,no
+links,anatomy,lead,yes,n/a,any number,optional,3,no
+actions,anatomy,act,yes,n/a,any number,optional,none,no

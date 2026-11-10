@@ -1,0 +1,33 @@
+# separation-checks.py (web-tools commit 07357db1, skills/cat-map/) run on 2026-11-10 on each table,
+# with the pairs "list|detail" and "item|group". Lines of kind "empty" (value combinations no part has) are left out.
+
+== session-five.csv
+  fixed: level is fixed once sits_inside is known
+  fixed: level is fixed once holds is known
+  fixed: reader_does is fixed once holds is known
+  fixed: level is fixed once reader_does is known
+  identical: no characteristic separates list, detail
+  identical: no characteristic separates item, group
+  unseparated: nothing separates list from detail
+  unseparated: nothing separates item from group
+  reduct: sits_inside, holds
+  reduct: per_parent, holds
+
+== reader-c.csv
+  reduct: level, function, extent
+  reduct: level, extent, variants
+  reduct: function, extent, multiplicity
+  reduct: function, extent, in_promise
+
+== reader-m-kept.csv
+  identical: no characteristic separates list, detail
+  identical: no characteristic separates item, group
+  identical: no characteristic separates title, summary
+  identical: no characteristic separates meta, body
+  unseparated: nothing separates list from detail
+  unseparated: nothing separates item from group
+  reduct: level, basis, kinds
+  reduct: basis, per_owner, kinds
+  core basis: meta | links; body | links
+  core kinds: links | actions
+
