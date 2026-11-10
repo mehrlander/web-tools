@@ -1,12 +1,12 @@
-// alpineComponents/session-brief.js — `calls` in the session page's address
-// opens the deck of calls on those still waiting on the owner: `calls=open`
-// all of them, `calls=<kind>` one kind's. A session that filed one
-// documentation call per document hands over one link (user-call.py link
-// --deck), and the deck holds no call already answered or closed, whose slide
-// told the owner nothing.
+// alpineComponents/session-brief.js — the deck of a session's calls holds
+// those still waiting on the owner. A call already answered or closed is left
+// out unless it is the one opened: on 2026-11-09 a deck of nine slides held
+// four closed calls, and a closed call's slide told the owner nothing.
 //
 // Driven over a fake GH holding one session with five calls: two open
-// documentation calls, one closed, one answered, and an open decision.
+// documentation calls, one closed, one answered, and an open decision. The
+// address names an open documentation call, as doc-craft's one link does, and
+// the answers arrive after the calls, as they can over the network.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -46,7 +46,7 @@ class FakeGH {
   static FRESH = { cache: 'no-store' };
 }
 
-const { window, problems } = makeWindow({ url: 'https://localhost/pages/session.html#id=c0ffee01&calls=documentation&user-call=claude-md',
+const { window, problems } = makeWindow({ url: 'https://localhost/pages/session.html#id=c0ffee01&user-call=claude-md',
   html: `<!doctype html><html><body><div id="slide" x-data="sessionBrief(window.__slide)"></div></body></html>` });
 window.GH = FakeGH;
 window.TOKEN = 'tkn';
@@ -81,15 +81,15 @@ await until(() => decks.length > 0);
 
 test('mounting is quiet', () => assert.deepEqual(problems, []));
 
-test('calls=documentation opens one deck on the open documentation calls, at the call it names', () => {
+test('an address naming a documentation call opens a deck of the open ones, at that call', () => {
   assert.equal(data().calls.length, 5, 'the Calls tab still lists every call');
-  assert.deepEqual(decks, [{ count: 2, start: 1, title: 'Open calls', questions: ['readme?', 'claude-md?'] }],
+  assert.deepEqual(decks, [{ count: 2, start: 1, title: 'Calls', questions: ['readme?', 'claude-md?'] }],
     'no closed call, no answered one, no other kind');
 });
 
-test('a card on the Calls tab still opens the deck of every call', async () => {
+test('a closed call tapped on the Calls tab opens with the open ones of its kind', () => {
   decks.length = 0;
-  data().openCalls(0);
-  assert.equal(decks[0].count, 5);
-  assert.equal(decks[0].title, 'Calls');
+  data().openCalls(data().calls.findIndex((c) => c.slug === 'done'));
+  assert.deepEqual(decks[0].questions, ['readme?', 'claude-md?', 'done?'], 'the Calls tab lists open calls first');
+  assert.equal(decks[0].start, 2);
 });

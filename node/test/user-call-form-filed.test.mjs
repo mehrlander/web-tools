@@ -87,7 +87,7 @@ test('its edits are drawn from the call, passage by passage', () => {
   assert.deepEqual(drawn[0], { a: 'One.\n\n* * *\n\nTwo.', b: 'First.\n\n* * *\n\nSecond.' },
     'each edit\'s old text against its new, a rule between them');
   assert.deepEqual(Array.from(data().doc.status), ['staged', 'staged']);
-  assert.match(root().querySelector('[data-doc-head]').textContent, /2 edits, as filed/);
+  assert.equal(root().querySelector('[data-doc-filed]').style.display, '', 'the head says the edits are as filed');
   assert.equal(root().querySelector('[data-doc-unplaced]'), null, 'no edit reads as missing from the file');
 });
 
@@ -95,6 +95,8 @@ test('the decisions are the answer\'s, and nothing is offered to decide', () => 
   assert.equal(mark(1).dataset.decision, 'confirmed');
   assert.equal(mark(2).dataset.decision, 'discarded');
   assert.equal(root().querySelector('[data-act]'), null, 'no Keep, Discard or Note on a closed call');
-  const rows = [...root().querySelectorAll('[data-doc-list] [data-doc-row]')].map((r) => r.textContent.replace(/\s+/g, ' ').trim());
-  assert.deepEqual(rows, ['1 clearer kept', '2 an order, not a count discarded']);
+  const rows = [...root().querySelectorAll('[data-doc-list] [data-doc-row]')];
+  assert.deepEqual(rows.map((r) => r.textContent.replace(/\s+/g, ' ').trim()), ['1. clearer', '2. an order, not a count']);
+  assert.deepEqual(rows.map((r) => r.querySelector('[data-doc-row-n]').className.match(/text-(success|error)/)?.[1]), ['success', 'error'],
+    'each row\'s number takes the answer\'s decision');
 });
