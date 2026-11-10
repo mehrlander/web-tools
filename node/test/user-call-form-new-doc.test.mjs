@@ -92,7 +92,8 @@ test('mounting is quiet', () => assert.deepEqual(problems, []));
 test('a new document is drawn whole, with no changes and no view to switch to', () => {
   assert.deepEqual(drawn[0], { a: DOC, b: DOC }, 'the file against itself');
   assert.equal(root().querySelectorAll('[data-md-diff-change]').length, 0);
-  assert.match(root().querySelector('[data-doc-head]').textContent, /New document/);
+  const pill = root().querySelector('[data-doc-head] .badge-success');
+  assert.equal(pill?.textContent.trim(), 'New', 'a green New pill heads the document');
   const views = root().querySelector('[data-doc-view]').closest('.join');
   assert.equal(views.style.display, 'none', 'Old, Changes, Diff and New are hidden');
   assert.equal(root().querySelector('[data-doc-list]').style.display, 'none', 'and there is no list of edits');
