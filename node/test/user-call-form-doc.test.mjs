@@ -268,6 +268,12 @@ test('a note sends back while edits are still open, with no patch, and the call 
   await until(() => !data().busy);
   assert.equal(data().done, '', 'notes sent back are not the answer');
   assert.match(root().querySelector('[data-doc-sent]').textContent, /Notes sent; 3 still to decide/);
+  await tick(2);
+  assert.equal(send().disabled, true, 'the same notes cannot be sent twice');
+  assert.match(send().textContent, /Notes sent/);
+  data().doc.note = 'remove this passage rather than reverse it, please';
+  await tick(2);
+  assert.equal(send().disabled, false, 'a changed note can be sent');
   data().doc.note = '';
   puts.length = 0;
   await tick(2);
