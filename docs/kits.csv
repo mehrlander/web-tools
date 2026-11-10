@@ -15,7 +15,7 @@ lib/kits/closing-state.js,ClosingState,"the conventions' CLOSING STATE, as one v
 lib/kits/cm6-merge.js,cm6Merge,framework-free CodeMirror 6 *diff* factory: read-only side-by-side and unified merge views over two versions of a text.,162,no,no,9,yes
 lib/kits/cm6.js,cm6,framework-free CodeMirror 6 editor factory.,236,no,yes,19,yes
 lib/kits/code-doc.js,codeDoc,"SOURCE CODE AS A DECLARED RENDER: the second kind, and the one that says what the contract is actually for.",92,no,no,2,yes
-lib/kits/comment-view.js,commentView,"a code file read through its comments: each docstring and comment block laid out as prose in file order, with the code between them folded to one-line bars.",456,no,no,2,yes
+lib/kits/comment-view.js,commentView,"a code file read through its comments: each docstring and comment block laid out as prose in file order, with the code between them folded to one-line bars.",445,no,no,2,yes
 lib/kits/compression.js,compression,Brotli/Gzip/Acorn wrappers + bookmarklet packer.,365,no,yes,7,yes
 lib/kits/console.js,consoleKit,console retention + filter + subscribe layer.,119,yes,no,7,yes
 lib/kits/content-index.js,ContentIndex,"a word index over the estate's Markdown, so the Search view's Contents mode answers inside the app.",150,no,no,3,yes
