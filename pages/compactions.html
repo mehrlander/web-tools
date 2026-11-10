@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="en" data-theme="winter">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Compactions</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🗜️</text></svg>">
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+
+<!--
+  compactions.html — every compaction summary in the session store, newest
+  first, one opened beside the list.
+
+    #at=<file name without .md>    open that summary, e.g.
+                                   #at=2026-11-03-b2cdc8ac-20261105T032503Z
+
+  The files are web-tools-private sessions/compactions/YYYY/MM/<day>-<short>-
+  <UTC time>.md: frontmatter (schema compaction/1: context_before,
+  context_after, chars, ordinal, opening_ask and the session's ids), a title,
+  then the summary as the harness wrote it. The list is three levels of
+  contents-API listings, which give each file's name and size; a file is read
+  only when its card is the one in view. The store is private, so the reads
+  carry the viewer's stored token.
+
+  The summary is drawn line for line by sessionRender.compactionBody, the
+  session view's own drawing of one, with bold and code marked and nothing
+  else changed. A leading system-reminder block is harness text and is left
+  out. Its nine numbered sections are the pills over the text.
+
+  The session view's Cost tab links each compaction mark here.
+
+  List and card are html-style rule 11 (kits/linked-swiper.js); the card's
+  head opens the swipe deck over the same summaries.
+-->
+<script>window.__depsReady = new Promise(r => { window.__depsDone = r; });</script>
+<script type="module">
+  const q = new URLSearchParams(location.search);
+  const ref = q.get('use') || (q.getAll('refs').map(v => (String(v).match(/^mehrlander\/web-tools@([^:]+)$/) || [])[1]).find(Boolean));
+  if (ref) {
+    const src = await fetch(`https://raw.githubusercontent.com/mehrlander/web-tools/${ref}/dist/web-tools.js`, { cache: 'no-store' });
+    if (!src.ok) throw new Error(`?use=${ref}: could not fetch the bundle (HTTP ${src.status})`);
+    const url = URL.createObjectURL(new Blob([await src.text()], { type: 'text/javascript' }));
+    try { await import(url); } finally { URL.revokeObjectURL(url); }
+  } else {
+    await import('../dist/web-tools.js');
+  }
+  try {
+    await gh.load('kits/title-tip.js');
+    await gh.load('kits/swipe-deck.js');
+    await gh.load('kits/dock-split.js');
+    await gh.load('kits/linked-swiper.js');
+    await gh.load('kits/session-render.js');
+  } finally { window.__depsDone(); }
+</script>
+</head>
+<body class="h-dvh flex flex-col bg-base-200 text-base-content overflow-hidden [&[x-cloak]]:hidden"
+      x-data="compactions()" x-cloak>
+
+<header class="flex-none border-b border-base-300 bg-base-100">
+  <div class="flex items-center gap-2 px-3 py-2">
+    <i class="ph ph-arrows-in-line-vertical text-lg text-base-content/60"></i>
+    <h1 class="min-w-0 truncate text-base font-bold">Compactions</h1>
+    <span x-show="rows.length" class="font-mono text-xs tabular-nums text-base-content/60" x-text="rows.length"></span>
+    <a href="https://mehrlander.github.io/web-tools/app/?view=sessions" target="_top"
+       class="btn btn-ghost btn-sm btn-square ml-auto" data-title-tip="Sessions in Web Tools" aria-label="Sessions in Web Tools">
+      <i class="ph ph-terminal-window text-lg"></i></a>
+  </div>
+</header>
+
+<div x-show="loading" class="flex items-center gap-2 px-3 py-3 text-sm text-base-content/70">
+  <span class="loading loading-spinner loading-sm"></span> Listing summaries
+</div>
+<div x-show="error" class="alert alert-error m-3 px-3 py-2">
+  <i class="ph ph-warning-circle"></i><span x-text="error"></span>
+</div>
+
+<main x-show="rows.length" class="flex min-h-0 flex-1 flex-col p-2.5">
+  <div x-ref="root">
+    <div x-ref="list" role="listbox" aria-label="Compaction summaries"></div>
+    <div x-ref="card" @click="goSection($event)"></div>
+  </div>
+</main>
+
+<script>
+document.addEventListener('alpine:init', () => {
+  const STORE = 'mehrlander/web-tools-private';
+  const ROOT = 'sessions/compactions';
+  const esc = (s) => window.esc(String(s ?? ''));
+  // Read summaries, by row id, and the cards waiting on one. Outside Alpine:
+  // a summary runs to 27,000 characters and nothing on the page reacts to it.
+  const DOCS = new Map();
+  const WAITING = new Map();
+  const READING = new Map();
+
+  // `<day>-<short>-<YYYYMMDDTHHMMSSZ>`, the store's own name for a summary.
+  const parseName = (name) => {
+    const m = /^(\d{4}-\d{2}-\d{2})-([0-9a-f]{8})-(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/.exec(name);
+    if (!m) return null;
+    const at = new Date(Date.UTC(+m[3], m[4] - 1, +m[5], +m[6], +m[7], +m[8]));
+    return { day: m[1], short: m[2], at };
+  };
+
+  // Frontmatter, then the body. Values are JSON-quoted strings or bare numbers.
+  function parseDoc(text) {
+    const m = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(text);
+    const meta = {};
+    if (m) for (const line of m[1].split(/\r?\n/)) {
+      const kv = /^([\w-]+):\s*(.*)$/.exec(line);
+      if (!kv) continue;
+      let v = kv[2].trim();
+      try { v = JSON.parse(v); } catch { /* a bare word stays a string */ }
+      meta[kv[1]] = v;
+    }
+    let body = m ? text.slice(m[0].length) : text;
+    // The file's own title, which the card's head already says, and the
+    // harness's reminder block, which is not the summary.
+    body = body.replace(/^\s*# Compaction [^\n]*\n/, '')
+      .replace(/<system-reminder>[\s\S]*?<\/system-reminder>\n?/g, '')
+      .replace(/^\s+/, '');
+    // The nine numbered sections: `1. Primary Request and Intent:` at the
+    // start of a line, through `9. Optional Next Step:`.
+    const heads = [...body.matchAll(/^(\d{1,2})\. ([^\n]+?):[ \t]*$/gm)];
+    const sections = [];
+    const lead = heads.length ? body.slice(0, heads[0].index) : body;
+    heads.forEach((h, i) => {
+      const end = i + 1 < heads.length ? heads[i + 1].index : body.length;
+      sections.push({ n: +h[1], name: h[2], head: h[0], text: body.slice(h.index + h[0].length, end).replace(/^\n/, '').replace(/\s+$/, '') });
+    });
+    return { meta, lead: lead.replace(/\s+$/, ''), sections };
+  }
+
+  Alpine.data('compactions', () => ({
+    loading: true, error: '', rows: [], sel: '',
+    get token() { return window.TOKEN || window.ghAuth?.resolve() || ''; },
+
+    param(key) {
+      const h = new URLSearchParams((location.hash || '').replace(/^#/, '')).get(key);
+      return h || new URLSearchParams(location.search).get(key);
+    },
+    // The address follows the reader, where the page has one of its own.
+    address() {
+      if (!/^https?:$/.test(location.protocol) || !this.sel) return;
+      try { history.replaceState(history.state, '', '#at=' + encodeURIComponent(this.sel)); } catch {}
+    },
+    byId(id) { return this.rows.find(r => r.id === id); },
+    when(r, long) {
+      const d = r.at;
+      const day = d.toLocaleDateString([], { month: 'short', day: 'numeric',
+        ...(d.getFullYear() !== new Date().getFullYear() ? { year: 'numeric' } : {}) });
+      return day + ' ' + d.toLocaleTimeString([], { hour: long ? 'numeric' : '2-digit', minute: '2-digit' });
+    },
+    sessionHref(short) { return 'session.html#id=' + encodeURIComponent(short); },
+
+    async init() {
+      await window.__depsReady;
+      try {
+        this.gh = new GH({ token: this.token, repo: STORE, ref: 'main' });
+        this.rows = await this.list();
+        if (!this.rows.length) { this.error = 'No compaction summaries in ' + STORE + ' ' + ROOT; return; }
+        const at = this.param('at');
+        this.sel = this.byId(at) ? at : this.rows[0].id;
+        this.$nextTick(() => this.mount());
+      } catch (e) {
+        this.error = ROOT + ': ' + (e?.message || e);
+      } finally {
+        this.loading = false;
+      }
+      // Left and Right step the list wherever the strip's own keys do not
+      // reach (they answer while the card has the pointer or the focus).
+      document.addEventListener('keydown', (e) => {
+        const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+        if (!d || e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
+        if (window.swipeDeck?.top?.() || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName || '')) return;
+        e.preventDefault();
+        this._swiper?.step(d);
+      });
+    },
+
+    // Years, then months, then each month's files: the listings are the index.
+    async list() {
+      const dirs = (xs) => xs.filter(x => x.type === 'dir' && /^\d+$/.test(x.name)).map(x => x.path);
+      const years = dirs(await this.gh.ls(ROOT));
+      const months = (await Promise.all(years.map(y => this.gh.ls(y)))).flatMap(dirs);
+      const files = (await Promise.all(months.map(m => this.gh.ls(m)))).flat();
+      const rows = [];
+      for (const f of files) {
+        if (f.type !== 'file' || !f.name.endsWith('.md')) continue;
+        const id = f.name.slice(0, -3), n = parseName(id);
+        if (n) rows.push({ id, path: f.path, size: f.size || 0, ...n });
+      }
+      return rows.sort((a, b) => b.at - a.at || b.id.localeCompare(a.id));
+    },
+
+    rowHtml(r) {
+      const size = r.size && window.Traffic?.fmtBytes ? window.Traffic.fmtBytes(r.size) : '';
+      return `<div data-cmp="${esc(r.id)}" tabindex="-1" class="flex items-baseline gap-2 border-b border-base-200 px-3 py-2 cursor-pointer hover:bg-base-200/60 aria-selected:bg-base-200">`
+        + `<span class="font-mono text-xs tabular-nums text-base-content/70">${esc(this.when(r))}</span>`
+        + `<a href="${esc(this.sessionHref(r.short))}" class="link link-hover font-mono text-sm text-primary"`
+        + ` data-title-tip="Open session ${esc(r.short)}" aria-label="Open session ${esc(r.short)}">${esc(r.short)}</a>`
+        + `<span class="ml-auto font-mono text-xs tabular-nums text-base-content/55">${esc(size)}</span></div>`;
+    },
+
+    mount() {
+      this.$refs.list.innerHTML = this.rows.map(r => this.rowHtml(r)).join('');
+      this._swiper = linkedSwiper.attach({
+        root: this.$refs.root, list: this.$refs.list, card: this.$refs.card, key: 'cmp',
+        ids: () => this.rows.map(r => r.id), sel: () => this.sel,
+        noun: 'summary', seam: 'compactions-list', listMax: 'max-h-[38vh]',
+        // The arrows stay at every width: a phone swipes, and can also step.
+        tightBelow: 0,
+        name: (id) => this.nameOf(id),
+        body: (id, el) => { this.fill(id, el, false); },
+        empty: '',
+        onPick: (id, via) => {
+          this.sel = id;
+          this.address();
+          this.read(id);
+          if (this._deck && via !== 'deck') {
+            const i = this.rows.findIndex(r => r.id === id);
+            this._deck.deck.go(i, 'instant');
+          }
+        },
+        deck: () => this.openDeck(),
+      });
+      this.read(this.sel);
+      const keep = () => linkedSwiper.mark(this.$refs.list, 'cmp', this.sel);
+      requestAnimationFrame(() => requestAnimationFrame(keep));
+    },
+
+    nameOf(id) {
+      const r = this.byId(id);
+      if (!r) return {};
+      const d = DOCS.get(id);
+      const n = d && !d.error && d.meta.ordinal;
+      return { when: this.when(r), code: r.short, title: n ? 'Compaction ' + n : 'Compaction' };
+    },
+
+    // A card is drawn from the summary once it has been read. Until then it
+    // waits, and only the card in view is read: a neighbour the strip builds
+    // ahead is filled when the reader arrives on it.
+    fill(id, el, big) {
+      const d = DOCS.get(id);
+      if (!d) {
+        el.innerHTML = '<div class="flex justify-center py-10"><span class="loading loading-dots loading-md opacity-30"></span></div>';
+        if (!WAITING.has(id)) WAITING.set(id, new Set());
+        WAITING.get(id).add({ el, big });
+        if (id === this.sel) this.read(id);
+        return;
+      }
+      el.replaceChildren(this.cardEl(id, d, big));
+    },
+    read(id) {
+      const r = this.byId(id);
+      if (!r || DOCS.has(id) || READING.has(id)) return;
+      READING.set(id, (async () => {
+        try { DOCS.set(id, parseDoc((await this.gh.get(r.path)).text)); }
+        catch (e) { DOCS.set(id, { error: e?.message || String(e) }); }
+        READING.delete(id);
+        for (const w of WAITING.get(id) || []) if (w.el.isConnected) this.fill(id, w.el, w.big);
+        WAITING.delete(id);
+        if (id === this.sel) this._swiper?.paint();
+      })());
+    },
+
+    cardEl(id, d, big) {
+      const r = this.byId(id);
+      const box = document.createElement('div');
+      if (d.error) {
+        box.className = 'alert alert-warning';
+        box.textContent = r.path + ': ' + d.error;
+        return box;
+      }
+      const m = d.meta;
+      const size = big ? 'text-xl leading-8' : 'text-base leading-7';
+      const num = (v) => Number.isFinite(v) ? v.toLocaleString('en-US') : '?';
+      box.className = 'flex flex-col gap-3';
+      const facts = [
+        `<span>${esc(num(m.context_before))} → ${esc(num(m.context_after))} tokens of context</span>`,
+        Number.isFinite(m.chars) ? `<span>${esc(num(m.chars))} characters</span>` : '',
+        `<a href="${esc(this.sessionHref(r.short))}" class="link link-hover text-primary">session ${esc(r.short)}</a>`,
+      ].filter(Boolean).join('');
+      const pills = d.sections.map(s =>
+        `<button type="button" data-sec-go="${s.n}" class="btn btn-xs rounded-full font-normal btn-ghost border border-base-300 flex-none">`
+        + `<span class="font-mono opacity-60">${s.n}</span><span class="max-w-56 truncate">${esc(s.name)}</span></button>`).join('');
+      box.innerHTML = `<div class="flex flex-wrap items-baseline gap-x-3 gap-y-1 font-mono text-xs tabular-nums text-base-content/70">${facts}</div>`
+        + (m.opening_ask ? `<div class="line-clamp-2 text-base-content/70 ${big ? 'text-lg' : 'text-sm'}">${esc(m.opening_ask)}</div>` : '')
+        + (pills ? `<nav data-sec-nav class="sticky -top-3 z-10 -mx-3.5 -mt-3 flex gap-1 overflow-x-auto whitespace-nowrap border-b border-base-200 bg-base-100 px-3.5 pt-[1.125rem] pb-1.5 [scrollbar-width:none]" aria-label="Sections">${pills}</nav>` : '');
+      const body = (text) => {
+        const b = window.sessionRender.compactionBody(text);
+        b.classList.remove('text-sm', 'leading-6');
+        b.classList.add(...size.split(' '));
+        return b;
+      };
+      if (d.lead) box.append(body(d.lead));
+      for (const s of d.sections) {
+        const sec = document.createElement('section');
+        sec.dataset.sec = String(s.n);
+        sec.className = 'flex flex-col gap-1 scroll-mt-14';
+        const h = document.createElement('h3');
+        h.className = 'font-semibold ' + size;
+        h.textContent = s.head.trim();
+        sec.append(h);
+        if (s.text) sec.append(body(s.text));
+        box.append(sec);
+      }
+      return box;
+    },
+
+    // A section pill scrolls its card to that section.
+    goSection(e) {
+      const b = e.target instanceof Element ? e.target.closest('[data-sec-go]') : null;
+      if (!b) return;
+      const card = b.closest('[data-sec-nav]')?.parentElement;
+      const sec = card?.querySelector(`[data-sec="${b.getAttribute('data-sec-go')}"]`);
+      let sc = sec?.parentElement;
+      while (sc && sc !== document.body && !(sc.scrollHeight > sc.clientHeight && /(auto|scroll)/.test(getComputedStyle(sc).overflowY))) sc = sc.parentElement;
+      if (!sec || !sc || sc === document.body) return;
+      const nav = card.querySelector('[data-sec-nav]');
+      sc.scrollTo({ top: sc.scrollTop + sec.getBoundingClientRect().top - sc.getBoundingClientRect().top - (nav?.offsetHeight || 0) - 4 });
+    },
+
+    openDeck() {
+      const ids = this.rows.map(r => r.id);
+      this._deck = swipeDeck.open({
+        count: ids.length, start: Math.max(0, ids.indexOf(this.sel)),
+        title: 'Compactions', icon: 'ph-arrows-in-line-vertical', innerClass: 'w-full',
+        index: (i) => ({ title: this.when(this.rows[i]) + ' · ' + this.rows[i].short }),
+        render: (i, el) => this.fill(ids[i], el, true),
+        onSlide: (i) => this._swiper?.pick(ids[i]),
+        onClose: () => { this._deck = null; },
+      });
+      this._deck.el.addEventListener('click', (e) => this.goSection(e));
+    },
+  }));
+});
+</script>
+</body>
+</html>
