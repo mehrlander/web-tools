@@ -132,11 +132,11 @@ test('openBranches: open PRs and stranded branches only, freshest first', () => 
 // attribute, where a phone never reaches it.
 test('the branch line prefers the PR title, and falls back to the tip subject', () => {
   const [a, b, fresh] = data.openBranches;
-  assert.deepEqual(plain_(data.branchLine(a)), { text: 'PR a', pr: true },
+  assert.deepEqual(plain_(data.branchLine(a)), { text: 'PR a', pr: true, source: 'pr' },
     'a branch with a PR is named by its PR');
-  assert.deepEqual(plain_(data.branchLine(b)), { text: 'work b', pr: false },
+  assert.deepEqual(plain_(data.branchLine(b)), { text: 'work b', pr: false, source: 'commit' },
     'and one without falls back to the tip, marked as a commit line');
-  assert.deepEqual(plain_(data.branchLine(fresh)), { text: 'PR fresh', pr: true },
+  assert.deepEqual(plain_(data.branchLine(fresh)), { text: 'PR fresh', pr: true, source: 'pr' },
     'including a PR the scan never reached');
   assert.equal(data.branchLine({ repo: 'me/tools', name: 'x' }), null,
     'a branch with neither says nothing rather than an empty line');
@@ -148,7 +148,40 @@ test('the branch line prefers the PR title, and falls back to the tip subject', 
 test('the line takes a merged PR\'s title, not only an open one', () => {
   const row = { repo: 'me/tools', name: 'gone', subject: 'Merge origin/main',
                 prLast: { number: 4, state: 'closed', title: 'the work it shipped' } };
-  assert.deepEqual(plain_(data.branchLine(row)), { text: 'the work it shipped', pr: true });
+  assert.deepEqual(plain_(data.branchLine(row)), { text: 'the work it shipped', pr: true, source: 'pr' });
+});
+
+// Between the two: a branch with no PR title takes the title of a recorded
+// session it names, where that session has one. The tip's lead names which of
+// the three sources a line came from.
+test('with no PR title, the line takes a recorded session\'s title before the tip', () => {
+  const was = data.sessionRows_;
+  const row = { repo: 'me/tools', name: 'untitled', subject: 'Merge origin/main', sessions: ['u:none', 'u:1'] };
+  data.sessionRows_ = [{ id: 's1', agent: 'u:1', title: 'What the session set out to do' }];
+  assert.deepEqual(plain_(data.branchLine(row)),
+    { text: 'What the session set out to do', pr: false, source: 'session' });
+  assert.equal(data.branchLineSource(row).label, 'Session title');
+  data.sessionRows_ = [{ id: 's1', agent: 'u:1' }];
+  assert.equal(data.branchLine(row).source, 'commit', 'a session with no title leaves the tip standing');
+  assert.equal(data.branchLineSource(row).label, 'Newest commit');
+  assert.equal(data.branchLineSource({ ...row, prLast: { number: 4, title: 't' } }).label, 'PR title');
+  data.sessionRows_ = was;
+});
+
+// The open row: the list marks the item its deck is showing, in both lists.
+test('the row a deck is showing is the open row, and no row is once it closes', () => {
+  const [a, b] = data.openBranches;
+  const was = [data.detail, data.sessionDeck];
+  data.detail = { rows: [a, b], i: 1 };
+  assert.equal(data.branchIsOpen(b), true);
+  assert.equal(data.branchIsOpen(a), false);
+  data.detail = null;
+  assert.equal(data.branchIsOpen(b), false);
+  data.sessionDeck = { rows: [{ id: 's1' }, { id: 's2' }], i: 0 };
+  assert.equal(data.sessionIsOpen({ row: { id: 's1' } }), true);
+  assert.equal(data.sessionIsOpen({ row: { id: 's2' } }), false);
+  assert.equal(data.sessionIsOpen({ kind: 'stub' }), false, 'a stub has no record to be open');
+  [data.detail, data.sessionDeck] = was;
 });
 
 test('a row takes its start from whichever compare the crawl ran', () => {
