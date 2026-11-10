@@ -116,8 +116,9 @@ test('prose keeps every word and lays out a definition list, a list and a comman
 test('render marks the words looked up and opens a bar to its code', () => {
   const el = window.document.createElement('div');
   window.document.body.append(el);
-  const n = CV.render(el, PY, 'py', { mark: /split/gi });
-  assert.equal(n, 1, 'one mark, in the comment run');
+  const out = CV.render(el, PY, 'py', { mark: /split/gi });
+  assert.equal(out.marks, 1, 'one mark, in the comment run');
+  assert.deepEqual([out.blocks, out.share], [2, 50], 'two blocks holding 8 of the 16 non-blank lines');
   assert.equal(el.querySelector('mark').textContent, 'split');
   const bar = el.querySelector('[data-cv-code]');
   assert.equal(bar.getAttribute('aria-expanded'), 'false');
