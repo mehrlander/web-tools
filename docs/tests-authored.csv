@@ -324,6 +324,7 @@ node/test/session-record-hook.test.mjs,behavior,The session recorder finds its d
 node/test/session-render.test.mjs,behavior,"A session record merges into one ordered conversation and groups into cards small enough to page, each classified ask / answer / work / note, which is the one distinction a reader cannot make by eye."
 node/test/session-search-browser.mjs,behavior,Opening a search hit must reach its source exchange and preserve each session query through browser history and adjacent sessions.
 node/test/session-search-routing.test.mjs,behavior,A conversation query must follow its session across search and shared reader hosts without leaking into another session or breaking Back.
+node/test/session-usage.test.mjs,behavior,
 node/test/sessions-crawl.test.mjs,behavior,"The one-crawler property behind the hourly sessions refresh: a copy of the fold growing back in the shell, the shell's budgets and the kit's drifting apart, a capped pass claiming to be complete, and records past the row cap read again on every pass."
 node/test/sessions-refresh-and-graphql.test.mjs,behavior,"The Sessions view's in-place age-pill refresh, the busy flag and crawl label it drives, and the Activity GraphQL inspector's captured query, response and extracted metadata."
 node/test/sheet-modal.test.mjs,behavior,"Slot nodes are MOVED into the assembled chrome rather than rebuilt, so node identity and bindings survive init, and a breakpoint flip re-presents in place rather than resetting the sheet."
