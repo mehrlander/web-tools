@@ -182,7 +182,7 @@ at its write branch, never through the selection; its own parameter
 
 The `GH` client's reads (`get`, `bytes`, `ls`, `history`, `recentFiles`,
 `rawUrl`, `flatTree`) resolve each path through the selection; reads a page
-builds by hand take `GH.refFor(repo, path)`. The web-tools app and home's
+builds by hand take `GH.refFor(repo, path)`. The web-tools app and the
 budget-drs app forward the selection to every view and tenant they frame and
 every toss link they mint.
 
@@ -459,8 +459,8 @@ routes this repo's own pages take, and no third:
   the token the browser holds, and is current on the next load. Tossed, the
   page loads `main` unless the link asks for another version (see
   [Under the toss](#under-the-toss)). A page may still pin the import itself:
-  `entry.js?ref=<ref>` wins over everything, and the budget-drs pages in
-  `mehrlander/home` pass their `?lib=` that way.
+  `entry.js?ref=<ref>` wins over everything, and the pages in
+  `mehrlander/budget-drs` pass their `?lib=` that way.
 - **The pre-build**, for a page that wants the library whole: resolve `main`
   to its commit through the commits API, fetch `dist/web-tools.js` from
   raw.githubusercontent at that SHA, and blob-import it, which is the app's
@@ -489,8 +489,8 @@ Two things differ from a page in this repo:
   framed page sets `data-no-fab` on `<html>`, since the FAB belongs to the
   shell.
 
-Worked examples in `mehrlander/home`: `projects/budget-drs/app/view/app.html` (the chain),
-`projects/surfacer/app/surfacer.html` (the pre-build).
+Worked examples: `mehrlander/budget-drs:app/view/app.html` (the chain),
+`mehrlander/home:projects/surfacer/app/surfacer.html` (the pre-build).
 
 ## Quick checklist for "can I load this file through gh.load?"
 

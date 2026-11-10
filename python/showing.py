@@ -51,10 +51,10 @@ ANOTHER REPO'S PAGES. Run from a checkout other than web-tools (or pass
 repo's page graph. A repo whose pages are framed by one app declares it:
 
     "showing": {"hosted": false,
-                "app": "projects/budget-drs/app/view/app.html",
-                "app_dir": "projects/budget-drs/app/",
-                "views": {"submittal": "projects/budget-drs/submittal/",
-                          "cem": "projects/budget-drs/cem/"}}
+                "app": "app/view/app.html",
+                "app_dir": "app/",
+                "views": {"submittal": "submittal/",
+                          "cem": "cem/"}}
 
 and a change under a view's prefix, or under `app_dir` (the app's own files;
 the folder of `app` when omitted), resolves to

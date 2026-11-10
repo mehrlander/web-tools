@@ -7,7 +7,7 @@ description: Write or revise a roles sheet, a one-page document that divides one
 
 A roles sheet divides one process's work among the roles that do it, on one
 page. The owner's fiscal-note roles sheet set the form, and the Budget Process
-Roles sheet in `mehrlander/home` follows it, at `projects/budget-drs/org/`.
+Roles sheet in `mehrlander/budget-drs` follows it, at `org/`.
 There, `roles.json` holds the content, `build-sheet.py` fills a copy of the
 fiscal-note sheet's Word file with it, and the budget-drs app's Org view renders
 the same file in the browser.

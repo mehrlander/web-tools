@@ -86,8 +86,8 @@ committed set exercised the pivot graft nowhere at all.
 
 OFM's published 2027-29 biennial budget instruction forms, collected 2026-06-14
 from <https://ofm.wa.gov/budget/state-budget-2027-29/instructions/>. The snapshot
-lives in the private `mehrlander/home` repo under
-`projects/budget-drs/submittal/source-docs/2026-06-13-ofm-instructions/`, whose
+lives in the private `mehrlander/budget-drs` repo under
+`submittal/source-docs/2026-06-13-ofm-instructions/`, whose
 `_meta/manifest.json` records a public `ofm.wa.gov` URL for each one. They are
 blank published templates holding no agency data, which is why derivatives sit
 in this public repo while the snapshot does not.
