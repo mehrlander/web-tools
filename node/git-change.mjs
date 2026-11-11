@@ -184,6 +184,9 @@ Options:
   let createdTempRef = false;
 
   try {
+    if (git(['cat-file', '-t', headSha]) !== 'commit') {
+      throw new Error('Source head must name a commit object.');
+    }
     git(['check-ref-format', proposedRef]);
     git(['update-ref', tempRef, headSha, '0'.repeat(headSha.length)]);
     createdTempRef = true;

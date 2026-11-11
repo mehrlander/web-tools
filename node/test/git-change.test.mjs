@@ -363,6 +363,7 @@ for (const scenario of [
   { name: 'default current branch', branch: 'main', defaults: true },
   { name: 'output write failure', branch: 'codex/package-target', target: 'base', failure: 'output' },
   { name: 'invalid destination', branch: 'codex/invalid..branch', failure: 'branch' },
+  { name: 'annotated tag source', branch: 'codex/package-target', target: 'base', failure: 'tag' },
 ]) {
   test(`node/git-change.mjs: preserves local Git state for ${scenario.name}`, () => {
     const fixture = createTempGitBundle();
@@ -372,6 +373,7 @@ for (const scenario of [
         cwd: tempDir, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'],
       }).trim();
       if (scenario.target) git('branch', scenario.branch, scenario.target === 'base' ? baseSha : headSha);
+      if (scenario.failure === 'tag') git('tag', '-a', 'source-tag', '-m', 'Annotated source', headSha);
       if (scenario.newer) {
         writeFileSync(path.join(tempDir, 'file1.txt'), 'A newer checked-out commit\n');
         git('add', 'file1.txt');
@@ -391,12 +393,14 @@ for (const scenario of [
         : path.join(tempDir, 'output.git-change.json');
       const args = [path.resolve('node/git-change.mjs'), '--base', baseSha,
         '--out', outFile, '--repo', 'test/repo'];
-      if (!scenario.defaults) args.push('--head', headSha, '--branch', scenario.branch);
+      if (!scenario.defaults) args.push('--head', scenario.failure === 'tag' ? 'source-tag' : headSha, '--branch', scenario.branch);
       const run = () => execFileSync(process.execPath, args, {
         cwd: tempDir, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'],
       });
       if (scenario.failure) {
-        assert.throws(run, scenario.failure === 'output' ? /ENOENT/ : /check-ref-format/);
+        const error = scenario.failure === 'output' ? /ENOENT/
+          : scenario.failure === 'tag' ? /Source head must name a commit object/ : /check-ref-format/;
+        assert.throws(run, error);
       } else {
         run();
         const envelope = JSON.parse(readFileSync(outFile, 'utf8'));
