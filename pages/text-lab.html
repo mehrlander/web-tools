@@ -675,6 +675,7 @@
       },
 
       // The facets are what the collection holds, counted, most common first.
+      variantPick(kind) { return kind === 'purpose' ? this.variantPurpose : this.variantAuthor; },
       variantFacet(kind) {
         const counts = this.variantIndex?.summary?.[kind === 'author' ? 'by_author' : 'by_purpose'] || {};
         return Object.entries(counts).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
@@ -1274,50 +1275,44 @@
       </template>
     </div>
 
-    <!-- variants: search, count, the deck door, author -->
-    <div x-show="pane === 'variants'" class="flex items-center gap-3 flex-wrap">
-      <label class="input input-sm input-bordered flex items-center gap-2 grow max-w-md">
+    <!-- variants: search with the count and the deck door, then one row of
+         pills for purpose and one for author. Each row scrolls sideways
+         inside itself; nothing wraps on a phone. -->
+    <div x-show="pane === 'variants'" class="flex items-center gap-2 min-w-0">
+      <label class="input input-sm input-bordered flex items-center gap-2 grow min-w-0 max-w-md">
         <i class="ph ph-magnifying-glass opacity-70"></i>
-        <input type="search" class="grow" data-find-box
-               aria-label="Search variants" placeholder="search text, variant, author, or purpose"
+        <input type="search" class="grow min-w-0" data-find-box
+               aria-label="Search variants" placeholder="search variants"
                x-model="variantQ"
                @input.debounce.250ms="variantOpen = ''; syncVariantAddress()"
                @keydown.escape="variantQ = ''; variantOpen = ''; syncVariantAddress()">
       </label>
-      <span class="text-sm whitespace-nowrap">
-        <span class="font-semibold text-lg tabular-nums" x-text="variantRows.length.toLocaleString()"></span>
-        <span class="text-base-content/50"
-              x-text="variantRows.length === variantTotal ? ' variants' : ' of ' + variantTotal.toLocaleString() + ' variants'"></span>
+      <span class="text-sm whitespace-nowrap shrink-0">
+        <span class="font-semibold tabular-nums" x-text="variantRows.length.toLocaleString()"></span>
+        <span class="text-base-content/70"
+              x-text="variantRows.length === variantTotal ? '' : ' of ' + variantTotal.toLocaleString()"></span>
       </span>
-      <button x-show="variantRows.length" class="btn btn-square btn-sm btn-ghost text-primary max-sm:h-11 max-sm:w-11"
+      <button x-show="variantRows.length" class="btn btn-square btn-sm btn-ghost text-primary shrink-0 max-sm:h-10 max-sm:w-10"
               :aria-label="'Read ' + variantRows.length.toLocaleString() + ' variants one at a time'"
-              :title="'Read ' + variantRows.length.toLocaleString() + ' variants one at a time'"
               @click="openVariantDeck(variantRows)">
         <i class="ph ph-cards-three text-lg"></i>
       </button>
-      <select id="variant-author" class="select select-bordered select-sm w-auto max-w-[16rem]" aria-label="Author"
-              :value="variantAuthor" @change="setVariantFilter('author', $event.target.value)">
-        <option value="">Every author</option>
-        <template x-for="row in variantFacet('author')" :key="row.key">
-          <option :value="row.key" :selected="variantAuthor === row.key" x-text="row.key + ' (' + row.n.toLocaleString() + ')'"></option>
-        </template>
-      </select>
     </div>
 
-    <!-- purposes as a rail, as Search shows repos: few, and switched often -->
-    <div x-show="pane === 'variants' && variantIndex" class="flex flex-wrap items-center gap-1">
-      <button @click="setVariantFilter('purpose', '')"
-              class="badge cursor-pointer transition-opacity"
-              :class="!variantPurpose ? 'badge-primary' : 'badge-ghost opacity-50'">All</button>
-      <template x-for="row in variantFacet('purpose')" :key="row.key">
-        <button @click="setVariantFilter('purpose', variantPurpose === row.key ? '' : row.key)"
-                class="badge cursor-pointer gap-1 transition-opacity"
-                :class="variantPurpose === row.key ? 'badge-primary' : variantPurpose ? 'badge-ghost opacity-70' : 'badge-ghost'"
-                :title="purposeDef(row.key)?.gloss || row.key">
-          <span x-text="row.key"></span><span class="opacity-60 tabular-nums" x-text="row.n.toLocaleString()"></span>
-        </button>
-      </template>
-    </div>
+    <template x-for="kind in ['purpose', 'author']" :key="kind">
+      <div x-show="pane === 'variants' && variantIndex" class="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden whitespace-nowrap -mx-4 px-4 sm:-mx-6 sm:px-6">
+        <div :class="SEG.box" role="group" :aria-label="kind">
+          <button type="button" :class="[SEG.item, !variantPick(kind) ? SEG.on : SEG.off]" @click="setVariantFilter(kind, '')"
+                  x-text="kind === 'purpose' ? 'every purpose' : 'every author'"></button>
+          <template x-for="row in variantFacet(kind)" :key="row.key">
+            <button type="button" class="inline-flex items-center gap-1.5" :class="[SEG.item, variantPick(kind) === row.key ? SEG.on : SEG.off]"
+                    @click="setVariantFilter(kind, variantPick(kind) === row.key ? '' : row.key)">
+              <span x-text="row.key"></span><span class="font-mono text-xs tabular-nums text-base-content/60" x-text="row.n.toLocaleString()"></span>
+            </button>
+          </template>
+        </div>
+      </div>
+    </template>
 
     <!-- probes: the standings are the filter, then concepts -->
     <!-- probes: the standing counts with the concept picker held in view
