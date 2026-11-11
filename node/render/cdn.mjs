@@ -409,9 +409,8 @@ function gitEvidence(u, repoRoot) {
     const count = (range) => +git('rev-list', '--count', range).stdout.trim() || 0;
     const ahead = count(`${b}..${h}`), behind = count(`${h}..${b}`);
     const status = b === h ? 'identical' : behind === 0 ? 'ahead' : ahead === 0 ? 'behind' : 'diverged';
-    // Where the two last agreed, and the files that differ from there to the
-    // head, as GitHub's three-dot compare gives them: the viewer's Changes
-    // mode reads a file's earlier text at that commit.
+    // The merge base and the files that differ from it, as GitHub's compare
+    // gives them. The viewer's Changes mode reads both.
     const mb = git('merge-base', b, h).stdout.trim();
     const files = !mb ? [] : git('diff', '--name-status', '-M', mb, h).stdout.split('\n').filter(Boolean).map((line) => {
       const [st, from, to] = line.split('\t');
@@ -560,10 +559,8 @@ export function resolveCdn(rawUrl, repoRoot, ref, headers = {}) {
   // above serve the working tree so a render shows uncommitted work, and a
   // witness check needs the recorded objects. tending-findings.mjs sets it.
   //
-  // SHOT_GIT_API=siblings answers them for the other repositories only, so a
-  // render that compares a sibling's branches (the viewer's Changes mode on a
-  // document in another repository) still runs this checkout's uncommitted
-  // code.
+  // SHOT_GIT_API=siblings answers them for the other repositories only, and
+  // this checkout's uncommitted code still runs.
   if (host === 'api.github.com' && process.env.SHOT_GIT_API) {
     const own = u.pathname === `/repos/${REPO}` || u.pathname.startsWith(`/repos/${REPO}/`);
     const hit = process.env.SHOT_GIT_API === 'siblings' && own ? null : gitEvidence(u, repoRoot);

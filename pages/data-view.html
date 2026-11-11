@@ -33,9 +33,7 @@
     …/toss-render.html#data=<owner>/<repo>:<bundle.json>#item=raw.csv
 
   And one compares an addressed Markdown file with another ref:
-    #base=<ref>   opens the file on the viewer's Changes mode, the document
-                  with what differs from <ref> marked in place. Compared with
-                  the commit where the file's own ref left <ref>.
+    #base=<ref>   opens the file on the viewer's Changes mode (viewer.js)
   Through a routed toss:
     …/toss-render.html#data=<owner>/<repo>@<branch>:<doc.md>#base=main
 
@@ -104,8 +102,7 @@
   // unavailable for the file, so this never has to check what a mode supports.
   const AUTO_VIEW = (f) => window.ViewRegistry.READ_MODE(f);
 
-  // base=<ref>: the ref an addressed Markdown file is compared with. Read
-  // once, since it is part of the address the page was opened at.
+  // base=<ref>: the ref an addressed Markdown file is compared with.
   const BASE = UrlParams.get('base') || '';
   window.DATA_VIEW_BASE = BASE;
 
@@ -218,9 +215,7 @@
       if (!v) return;
       // An item that lives in a repo shows its path and gets real links; an
       // inline one is local, so the viewer offers none.
-      // An address that names a base opens its Markdown on Changes, the
-      // document with what differs from that base marked in place; any other
-      // file is unaffected.
+      // With a base on the address, Markdown opens on Changes.
       v.defaultMode = it.view || (BASE && it.spec ? (f) => (f.ext === 'md' ? 'changes' : AUTO_VIEW(f)) : AUTO_VIEW);
       const name = it.spec ? it.spec.path : it.name;
       await v.show(name, it.content ?? '', it.spec
