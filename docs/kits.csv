@@ -48,7 +48,7 @@ lib/kits/io.js,io,"user data in and out of the page: file picker, file download,
 lib/kits/json-explorer.js,JsonExplorer,"Native, framework-free JSON Explorer & Schema Profiler.",770,no,no,1,yes
 lib/kits/land.js,Land,"where the reader was just sent, and how they get told.",298,no,yes,9,yes
 lib/kits/last-write.js,LastWrite,"the copy this page just committed, for the next fold",70,no,no,5,yes
-lib/kits/linked-swiper.js,linkedSwiper,"a list with a detail: the list beside, or over, a strip of one card per row, the two moving together.",330,no,yes,6,yes
+lib/kits/linked-swiper.js,linkedSwiper,"a list with a detail: the list beside, or over, a strip of one card per row, the two moving together.",330,no,yes,7,yes
 lib/kits/lists.js,Lists,"the registry's lists/ folder, read and written as one kind of file.",235,no,no,4,yes
 lib/kits/look.js,Look,"look markers: a link that lands on a place in a page, says why, and can ring the control to tap.",1764,no,yes,7,yes
 lib/kits/md-diff.js,mdDiff,a markdown change read as the DOCUMENT rather than as its source.,1715,no,yes,18,yes
@@ -97,7 +97,7 @@ lib/kits/row-menu.js,rowMenu,"a tap on a row, and what you can do with it",620,n
 lib/kits/session-export.js,sessionExport,"a session as a list of exchanges, plus the pure function that turns any part of one into markdown.",1622,no,no,5,yes
 lib/kits/session-index.js,SessionIndex,"a token index over what sessions SAID, so the exhaustive pass stops costing the whole store.",418,no,no,9,yes
 lib/kits/session-render.js,sessionRender,a session record as a readable conversation.,1413,no,no,3,yes
-lib/kits/session-usage.js,SessionUsage,a session record as what each prompt cost and how much context it left behind.,170,no,no,1,yes
+lib/kits/session-usage.js,SessionUsage,a session record as what each prompt cost and how much context it left behind.,255,no,no,3,yes
 lib/kits/sessions-crawl.js,SessionsCrawl,"The sessions crawl as a kit: the pass that folds the per-session records under sessions/ in the private registry into state/sessions.json, its phone copy…",217,no,no,1,yes
 lib/kits/shortcut-evidence.js,ShortcutEvidence,the device's return channel read as outpost evidence.,176,no,no,2,yes
 lib/kits/shorter-payload.js,ShorterPayload,Reading a shorter toss.,76,no,no,1,yes
@@ -119,6 +119,7 @@ lib/kits/traffic-log.js,TrafficLog,the app writes down what its calls did worth 
 lib/kits/traffic.js,Traffic,"the pure read of what a page has pulled over the network, and the vocabulary the FAB's Traffic tab renders.",693,yes,no,5,yes
 lib/kits/treemap.js,treemap,pure logic for mapping a file tree as a treemap.,159,no,no,2,yes
 lib/kits/url-params.js,UrlParams,"Reading a page's own input params, fragment first, query as fallback.",149,no,no,10,yes
+lib/kits/usage-chart.js,UsageChart,"a session's context and cost per prompt as one SVG chart, drawn from kits/session-usage.js's reading (SessionUsage.read or SessionUsage.fromExtract).",226,no,no,2,yes
 lib/kits/user-calls.js,UserCalls,what waits on the owner (window.UserCalls).,181,no,no,4,yes
 lib/kits/vanilla-demo.js,demo,"the living-documentation demo format, distilled from pages/drop/live-docs-concept.html.",574,no,no,11,yes
 lib/kits/visit-log.js,VisitLog,"turn an address into a storable visit, by allowlist.",309,no,no,2,yes

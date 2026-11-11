@@ -92,7 +92,6 @@
   }
 
   function render() {
-    html('errand-entry', window.NowErrands?.summaryHtml() || '');
     if (window.NowViews?.active()) { connection(); return; }
     if (!data) { connection(); return; }
     // Rebuilding open panels can temporarily shorten the document and clamp its scroll position.
@@ -326,7 +325,6 @@
   window.addEventListener('nowviewchange', () => { if (!window.NowViews?.active()) { render(); connection(); } });
   document.addEventListener('visibilitychange', () => { clearTimeout(timer); if (!document.hidden) poll(); });
   window.addEventListener('online', poll);
-  window.addEventListener('errandschange', () => html('errand-entry',window.NowErrands?.summaryHtml() || ''));
   window.addEventListener('offline', () => { connected = false; connection(); });
   try { const cached = JSON.parse(localStorage.getItem('web-tools-now-snapshot')); if (cached?.schemaVersion === 1 && Array.isArray(cached.items)) data = cached; } catch { }
   render(); poll();

@@ -16,7 +16,7 @@
     el('view-title').textContent = {now:'Now',errands:'Errands',computer:'Computer',devices:'Devices',files:'Files'}[next];
     document.title = el('view-title').textContent + ' | Web Tools';
     el('overview').hidden = false; el('detail').hidden = true;
-    for (const id of ['assistants','notice','content','source-times','errand-entry']) el(id).hidden = next !== 'now';
+    for (const id of ['assistants','notice','content','source-times']) el(id).hidden = next !== 'now';
     for (const id of ['errands','computer','devices','repositories']) el(id).hidden = next !== (id==='repositories'?'files':id);
     for (const button of document.querySelectorAll('[data-view]')) {
       if (button.dataset.view === next) button.setAttribute('aria-current','page');
@@ -35,7 +35,6 @@
       const open = !el('view-menu').hidden; closeMenu(); el('view-menu').hidden = open;
       el('view-picker').setAttribute('aria-expanded',String(!open)); return;
     }
-    if (event.target.closest('[data-open-errands]')) { closeMenu(); setView('errands'); return; }
     const button = event.target.closest('[data-view]');
     if (button) { closeMenu(); setView(button.dataset.view); el('view-picker').focus({preventScroll:true}); }
     else if (!event.target.closest('#view-menu')) closeMenu();

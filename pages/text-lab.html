@@ -22,8 +22,11 @@
     probes       projects/text/probes/probes.csv, the registry docs/probes.md
                  specifies. One row per bounded question, with a recorded
                  standing and four badges (asks, grain, method, checked), each
-                 a value from projects/text/vocabulary.csv. The pane groups by
-                 date or by any badge, and a tap on a badge filters by it.
+                 a value from projects/text/vocabulary.csv. The pane is a list
+                 with a detail: the probes beside one probe's card, which
+                 holds its question, what was found, its particulars, its run
+                 and that run's other probes. The list groups by date or by
+                 any badge, and a tap on a badge in a card filters by it.
                  Failures are recorded at the same weight as successes, so the
                  standing counts lead the header.
     variants     The shared Text collection, read from its committed files
@@ -45,11 +48,12 @@
                  full ones.
     runs         projects/text/runs/runs.csv, one row per dated run of
                  work, with its kind, method, thread and what it left behind.
-                 A row is one link: to the run's page when it has one, to its
-                 README when not, opened in this view so Back returns. A run
-                 whose row declares a deck also opens as a deck of its
-                 documents; the collection is read when that is asked for, not
-                 when the pane opens. A run that settled probes names how many.
+                 The same list with a detail. A run's card holds what it did,
+                 the ways into it (its page, its write-up, its files, and a
+                 deck of its documents where its row declares one), the probes
+                 it settled and the other runs of the same effort. A probe or
+                 a run named in a card is a tap away. The collection is read
+                 only when a deck is asked for.
 
   Reviewing. Under every pair, in the list and in both decks, one line carries
   the variant's facts and a reader's three acts: vote it up, vote it down, and
@@ -103,6 +107,7 @@
   await gh.load('gh-auth.js');
 
   document.addEventListener('alpine:init', () => {
+    const esc = s => window.esc(s);   // lib/vanilla-bundle.js, loaded by the boot chain
     Alpine.data('textInstruments', () => ({
       REPO: 'mehrlander/home',
       ROOT: 'projects/text',
@@ -179,6 +184,9 @@
       filterStanding: '',
       runRows: [],
       deckBusy: '',
+      probeSel: params.get('probe') || '',
+      FACTS: [['method', 'ph-flask', 'Approach'], ['corpus', 'ph-books', 'Corpus'], ['result', 'ph-chart-bar', 'Result'],
+              ['opens', 'ph-door-open', 'What it opens'], ['cost', 'ph-timer', 'Cost']],
       badgeFilter: {},
       probeRun: '',
       probeBy: 'date',
@@ -254,6 +262,12 @@
             .sort((a, b) => (b.date + b.run).localeCompare(a.date + a.run));
         } catch (_) { this.runRows = []; }
         this.loading = false;
+        // The list-with-a-detail kit. A page that cannot load it still shows a
+        // list over a card; it only loses the swipe.
+        this.swipers = {};
+        try { await gh.load('kits/swipe-deck.js'); await gh.load('kits/linked-swiper.js'); } catch (_) {}
+        for (const key of ['filterStanding', 'concept', 'probeBy', 'badgeFilter', 'probeRun', 'runBy'])
+          this.$watch(key, () => this.$nextTick(() => this.mountDetail()));
         // Whatever ?pane= asked for, not just the one that used to need it:
         // each pane's own guard makes the call a no-op when it has nothing to
         // fetch, so naming a single pane here was a bug waiting for the second.
@@ -326,8 +340,189 @@
       },
       runOf(p) { return this.runRows.find(r => r.run === p.run) || null; },
       probesIn(run) { return this.probes.filter(p => p.run === run.run).length; },
-      showRun(run) { this.runFocus = run.name; this.showPane('runs'); },
+      // ── a list with a detail ──────────────────────────────────────────
+      // Probes and Runs each draw as a list beside a card. The registry is
+      // what makes a pane list-detail; a ref without it keeps the old listing.
+      get listDetail() {
+        return (this.pane === 'probes' && !this.loading && this.probes.length > 0)
+            || (this.pane === 'runs' && this.runRows.length > 0);
+      },
+      goRun(name) { this.runFocus = name; this.showPane('runs'); },
+      // A probe the current filters hide is shown by clearing them: the reader
+      // asked for the probe, not for the filter.
+      goProbe(id) {
+        if (!this.shown.some(p => p.id === id)) { this.filterStanding = ''; this.concept = ''; this.badgeFilter = {}; this.probeRun = ''; }
+        this.probeSel = id;
+        this.showPane('probes');
+      },
       showProbesOf(run) { this.probeRun = run.run; this.showPane('probes'); },
+      syncSel() {
+        const url = new URL(location.href);
+        const set = (key, value) => value ? url.searchParams.set(key, value) : url.searchParams.delete(key);
+        set('probe', this.pane === 'probes' ? this.probeSel : '');
+        set('run', this.pane === 'runs' ? this.runFocus : '');
+        history.replaceState(null, '', url);
+      },
+      chipHtml(text, attrs = '') {
+        return `<span class="${this.CHIP}${attrs ? ' cursor-pointer hover:bg-base-300' : ''}" ${attrs}>${esc(text)}</span>`;
+      },
+      groupHtml(name, n) {
+        return `<div class="sticky top-0 z-[1] flex items-baseline gap-2 bg-base-100 px-3 py-1.5 border-b border-base-200 font-mono text-xs uppercase tracking-wide text-base-content/70" data-part="group">`
+          + `<span>${esc(name)}</span><span class="tabular-nums">${n}</span></div>`;
+      },
+      probeRowHtml(p) {
+        const st = this.standingOf(p);
+        const line = [st, ...this.probeBadges(p).filter(b => b.dim !== 'checked').map(b => this.badgeText(b.dim, b.value))].join(' · ');
+        return `<div data-probe="${esc(p.id)}" role="option" tabindex="-1" data-part="item" class="flex gap-2.5 px-3 py-2.5 cursor-pointer border-b border-base-200 aria-selected:bg-base-200">`
+          + `<span class="w-1 self-stretch rounded-sm shrink-0 ${this.STANDINGS[st].bar}"></span>`
+          + `<span class="min-w-0 grid gap-0.5"><span class="text-base leading-6 font-medium" data-part="title">${esc(p.title || p.question)}</span>`
+          + `<span class="text-sm text-base-content/70 truncate" data-part="meta">${esc(line)}</span></span></div>`;
+      },
+      probeListHtml() {
+        return this.probeGroups().map(g => this.groupHtml(g.date, g.items.length) + g.items.map(p => this.probeRowHtml(p)).join('')).join('');
+      },
+      // A probe's card: the question as its headline, what was found beside the
+      // standing's colour, the badges, then the particulars, each led by an
+      // icon in place of a label. Its run and that run's other probes close it,
+      // so the reader can step sideways without going back to the list.
+      probeCardHtml(id) {
+        const p = this.probes.find(x => x.id === id);
+        if (!p) return '';
+        const st = this.standingOf(p), run = this.runOf(p);
+        const badges = this.probeBadges(p).map(b =>
+          this.chipHtml(this.badgeText(b.dim, b.value), `role="button" data-badge="${esc(b.dim)}:${esc(b.value)}"`)).join('');
+        const facts = this.FACTS.filter(([key]) => p[key]).map(([key, icon, label]) =>
+          `<div class="flex gap-3"><i class="ph ${icon} text-lg mt-1 shrink-0 text-base-content/60" role="img" aria-label="${label}"></i>`
+          + `<p class="text-base leading-7">${esc(p[key])}</p></div>`).join('');
+        const kin = run ? this.probes.filter(x => x.run === p.run && x.id !== p.id) : [];
+        const runHtml = !run ? '' :
+          `<div class="grid gap-1.5"><button type="button" data-go-run="${esc(run.name)}" class="flex items-center gap-2.5 rounded-lg border border-base-300 px-3 py-2 text-left cursor-pointer hover:bg-base-200">`
+          + `<i class="ph ph-play-circle text-xl shrink-0"></i><span class="min-w-0 grow"><span class="block font-semibold">${esc(run.title)}</span>`
+          + `<span class="block text-sm text-base-content/70">${esc([run.kind, run.thread, run.date].join(' · '))}</span></span><i class="ph ph-arrow-right shrink-0"></i></button>`
+          + kin.map(x => `<button type="button" data-go-probe="${esc(x.id)}" class="flex items-center gap-2.5 rounded-md px-3 py-1.5 text-left cursor-pointer hover:bg-base-200">`
+            + `<span class="w-1 h-5 rounded-sm shrink-0 ${this.STANDINGS[this.standingOf(x)].bar}"></span><span class="min-w-0 truncate">${esc(x.title || x.id)}</span></button>`).join('')
+          + `</div>`;
+        const concepts = !p.concepts.length ? '' : `<div class="flex flex-wrap gap-1.5">` + p.concepts.map(c =>
+          `<span role="button" data-concept="${esc(c)}" class="font-mono text-xs text-base-content/70 rounded-md border border-base-300 px-1.5 py-0.5 cursor-pointer hover:bg-base-200">${esc(c)}</span>`).join('') + `</div>`;
+        const arts = !p.artifacts.length ? '' : `<div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 font-mono text-xs">` + p.artifacts.map(a =>
+          `<a class="link link-hover text-base-content/70" href="${esc(this.artifactUrl(a))}">${esc(this.artifactName(a))}</a>`).join('')
+          + `<span class="text-base-content/60">${esc(p.id)}</span></div>`;
+        return `<div class="grid gap-4"><p class="text-xl leading-8">${esc(p.question)}</p>`
+          + `<div class="flex gap-3"><span class="w-1 rounded-sm shrink-0 ${this.STANDINGS[st].bar}"></span><p class="text-base leading-7 font-medium">${esc(p.verdict || '')}</p></div>`
+          + (badges ? `<div class="flex flex-wrap gap-1.5">${badges}</div>` : '')
+          + (facts ? `<div class="grid gap-3">${facts}</div>` : '') + runHtml + concepts + arts + `</div>`;
+      },
+      // A verdict's opening: its first sentence, with the second when the first
+      // is only the standing word ("Mixed.").
+      gist(text) {
+        const parts = (text || '').split(/(?<=\.)\s+/);
+        return parts[0].length < 24 && parts[1] ? parts[0] + ' ' + parts[1] : parts[0];
+      },
+      runRowHtml(r) {
+        const n = this.probesIn(r);
+        const line = [r.kind, r.thread, r.date, n ? n + (n === 1 ? ' probe' : ' probes') : ''].filter(Boolean).join(' · ');
+        return `<div data-run="${esc(r.name)}" role="option" tabindex="-1" data-part="item" class="flex gap-2.5 px-3 py-2.5 cursor-pointer border-b border-base-200 aria-selected:bg-base-200">`
+          + `<i class="ph ${r.page ? 'ph-browser' : 'ph-file-text'} text-lg mt-0.5 shrink-0 text-base-content/60"></i>`
+          + `<span class="min-w-0 grid gap-0.5"><span class="text-base leading-6 font-medium" data-part="title">${esc(r.title)}</span>`
+          + `<span class="text-sm text-base-content/70 truncate" data-part="meta">${esc(line)}</span></span></div>`;
+      },
+      runListHtml() {
+        return this.runGroups().map(g => this.groupHtml(g.name, g.items.length) + g.items.map(r => this.runRowHtml(r)).join('')).join('');
+      },
+      // A run's card: what it did, its badges, the ways into it, the probes it
+      // settled and the other runs of the same effort.
+      runCardHtml(name) {
+        const r = this.runRows.find(x => x.name === name);
+        if (!r) return '';
+        const chips = [r.kind, this.badgeText('method', r.method), r.thread, 'left ' + r.residue.join(', ')].map(t => this.chipHtml(t)).join('');
+        const readme = `${this.TOSS}#data=${this.REPO}@${this.DATA_REF}:${this.ROOT}/${r.run}/README.md`;
+        const acts = (r.page ? `<a class="btn btn-sm btn-primary" href="${esc(this.runUrl(r))}"><i class="ph ph-browser text-lg"></i>Open the page</a>` : '')
+          + `<a class="btn btn-sm ${r.page ? 'btn-ghost border-base-300' : 'btn-primary'}" href="${esc(readme)}"><i class="ph ph-file-text text-lg"></i>Read the write-up</a>`
+          + (r.deck ? `<button type="button" class="btn btn-sm btn-ghost border-base-300" data-deck="${esc(r.name)}"><i class="ph ph-cards-three text-lg"></i>Its documents, one at a time</button>` : '')
+          + `<a class="btn btn-sm btn-ghost border-base-300" href="${esc(this.treeUrl(this.ROOT + '/' + r.run))}"><i class="ph ph-folder text-lg"></i>Files</a>`;
+        const mine = this.probes.filter(p => p.run === r.run);
+        const probes = !mine.length ? '' : `<div class="grid">` + mine.map(p =>
+          `<button type="button" data-go-probe="${esc(p.id)}" class="flex items-start gap-2.5 rounded-md px-3 py-2 text-left cursor-pointer hover:bg-base-200">`
+          + `<span class="w-1 self-stretch rounded-sm shrink-0 ${this.STANDINGS[this.standingOf(p)].bar}"></span>`
+          + `<span class="min-w-0"><span class="block font-medium">${esc(p.title || p.id)}</span>`
+          + `<span class="block text-sm text-base-content/70">${esc(this.gist(p.verdict))}</span></span></button>`).join('') + `</div>`;
+        const kin = r.part_of ? this.runRows.filter(x => x.part_of === r.part_of && x.run !== r.run) : [];
+        const effort = !kin.length ? '' : `<div class="grid">` + kin.map(x =>
+          `<button type="button" data-go-run="${esc(x.name)}" class="flex items-center gap-2.5 rounded-md px-3 py-1.5 text-left cursor-pointer hover:bg-base-200">`
+          + `<i class="ph ph-play-circle text-lg shrink-0 text-base-content/60"></i><span class="min-w-0 truncate">${esc(x.title)}</span>`
+          + `<span class="text-sm text-base-content/70 shrink-0">${esc(x.kind)}</span></button>`).join('') + `</div>`;
+        return `<div class="grid gap-4"><p class="text-xl leading-8">${esc(r.summary)}</p>`
+          + `<div class="flex flex-wrap gap-1.5">${chips}</div><div class="flex flex-wrap gap-2">${acts}</div>${probes}${effort}</div>`;
+      },
+      detailSpec(kind) {
+        return kind === 'probe' ? {
+          box: this.$refs.probeBox, list: this.$refs.probeList, card: this.$refs.probeCard, key: 'probe', noun: 'probe',
+          ids: () => this.probeGroups().flatMap(g => g.items.map(p => p.id)),
+          sel: () => this.probeSel, set: id => { this.probeSel = id; },
+          listHtml: () => this.probeListHtml(), body: id => this.probeCardHtml(id),
+          name: id => { const p = this.probes.find(x => x.id === id) || {}; return { when: p.date, title: p.title || id }; },
+          empty: 'No probe carries that combination.',
+        } : {
+          box: this.$refs.runBox, list: this.$refs.runList, card: this.$refs.runCard, key: 'run', noun: 'run',
+          ids: () => this.runGroups().flatMap(g => g.items.map(r => r.name)),
+          sel: () => this.runFocus, set: id => { this.runFocus = id; },
+          listHtml: () => this.runListHtml(), body: id => this.runCardHtml(id),
+          name: id => { const r = this.runRows.find(x => x.name === id) || {}; return { when: r.date, title: r.title || id }; },
+          empty: 'No runs.',
+        };
+      },
+      // Draw the open pane's list and card, or redraw them after a filter or a
+      // grouping changed the rows. Without the kit the card still shows the
+      // selected row, and a tap on a row still picks it.
+      mountDetail() {
+        const kind = this.pane === 'probes' ? 'probe' : this.pane === 'runs' ? 'run' : '';
+        if (!kind || !this.listDetail) return;
+        const d = this.detailSpec(kind), ids = d.ids();
+        if (!ids.includes(d.sel())) d.set(ids[0] || '');
+        d.list.innerHTML = d.listHtml();
+        this.wireDetail(d);
+        const kit = window.linkedSwiper;
+        if (!kit) {
+          d.box.className = 'h-full grid gap-2 grid-rows-[minmax(0,38%)_minmax(0,1fr)]';
+          d.list.className = 'min-h-0 overflow-y-auto rounded-lg border border-base-300';
+          d.card.className = 'min-h-0 overflow-y-auto rounded-lg border border-base-300 px-3.5 py-3';
+          for (const row of d.list.querySelectorAll(`[data-${d.key}]`)) row.setAttribute('aria-selected', String(row.getAttribute(`data-${d.key}`) === d.sel()));
+          d.card.innerHTML = d.body(d.sel());
+        } else if (!this.swipers[kind]) {
+          this.swipers[kind] = kit.attach({
+            root: d.box, list: d.list, card: d.card, key: d.key, noun: d.noun,
+            ids: d.ids, sel: d.sel, body: d.body, name: d.name,
+            listMax: 'max-h-[36vh]', wide: 'grid-cols-[minmax(0,26rem)_minmax(0,1fr)]',
+            empty: `<p class="p-4 text-base-content/70">${d.empty}</p>`,
+            onPick: id => { d.set(id); this.syncSel(); },
+          });
+        } else {
+          this.swipers[kind].mount();
+        }
+        this.syncSel();
+        requestAnimationFrame(() => this.swipers[kind]?.show(String(d.sel())));
+      },
+      // One listener per card and per list, for the lifetime of the page: the
+      // kit redraws their contents and leaves the elements themselves alone.
+      wireDetail(d) {
+        if (d.card.dataset.wired) return;
+        d.card.dataset.wired = '1';
+        d.card.addEventListener('click', e => {
+          const hit = name => e.target.closest(`[data-${name}]`)?.getAttribute(`data-${name}`);
+          let v;
+          if ((v = hit('go-run'))) this.goRun(v);
+          else if ((v = hit('go-probe'))) this.goProbe(v);
+          else if ((v = hit('badge'))) this.toggleBadge(...v.split(':'));
+          else if ((v = hit('concept'))) this.concept = this.concept === v ? '' : v;
+          else if ((v = hit('deck'))) this.openDeckFor(this.runRows.find(r => r.name === v));
+        });
+        d.list.addEventListener('click', e => {
+          const row = e.target.closest(`[data-${d.key}]`);
+          if (!row || window.linkedSwiper) return;
+          d.set(row.getAttribute(`data-${d.key}`));
+          this.mountDetail();
+        });
+      },
       // Where a tap on a run goes: its page when it has one, its README when
       // not. Both open in this view, so Back returns to the list.
       runUrl(run) {
@@ -390,10 +585,7 @@
           if (pane === 'variants') await this.loadVariants();
           // With the registry the pane is already drawn, and the collection is
           // read only when a deck is asked for: by a tap, or by the address.
-          if (pane === 'runs') {
-            if (!this.runRows.length || this.deckParam.startsWith('run:')) await this.loadTextRuns();
-            else if (this.runFocus) this.$nextTick(() => document.getElementById(`run-${this.runFocus}`)?.scrollIntoView({ block: 'center' }));
-          }
+          if (pane === 'runs' && (!this.runRows.length || this.deckParam.startsWith('run:'))) await this.loadTextRuns();
           if (pane === 'instruments' && !this.guideHtml) {
             await gh.load('kits/guide-render.js');
             await gh.load('kits/source-peek.js');
@@ -414,6 +606,7 @@
         } catch (e) {
           this.error = `${pane}: ${e.message || e}`;
         }
+        this.$nextTick(() => this.mountDetail());
       },
 
       // The collection's two files, read by the shared kit that the FAB and the
@@ -1025,7 +1218,7 @@
      says something: booting, or which step failed. -->
 <div id="boot" class="p-6 font-mono text-sm opacity-70">loading…</div>
 
-<div x-data="textInstruments" x-cloak>
+<div x-data="textInstruments" x-cloak class="h-dvh grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)]">
 
   <!-- ── chrome ───────────────────────────────────────────────────────────
        The Web Tools app views' idiom (Search, Map): a pill strip of tabs with
@@ -1034,7 +1227,7 @@
        switching often, and a bordered select for the rest. Normal flow, not
        fixed: this page is a tenant, framed as an app view. The title shows
        only when the page stands alone; framed, the app's header names it. -->
-  <header class="px-4 sm:px-6 pt-4 pb-3 flex flex-col gap-3 border-b border-base-200">
+  <header class="px-4 sm:px-6 pb-2 flex flex-col gap-2 border-b border-base-200" :class="framed ? 'pt-1' : 'pt-3'">
     <div x-show="!framed" class="flex items-center gap-2">
       <i class="ph ph-flask text-xl text-base-content/50"></i>
       <h1 class="text-lg font-semibold">Text Lab</h1>
@@ -1043,9 +1236,9 @@
     <div class="flex items-center gap-0.5 rounded-lg bg-base-200/60 p-0.5 w-fit max-w-full overflow-x-auto" role="tablist" data-slot="frame:tabs">
       <template x-for="key in PANES" :key="key">
         <button role="tab" @click="showPane(key)" :aria-selected="pane === key"
-                class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-base font-medium transition-colors whitespace-nowrap shrink-0"
+                class="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-medium transition-colors whitespace-nowrap shrink-0"
                 :class="pane === key ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'">
-          <i class="ph text-lg" :class="PANE_META[key].icon"></i><span x-text="PANE_META[key].label"></span>
+          <i class="ph text-base" :class="PANE_META[key].icon"></i><span x-text="PANE_META[key].label"></span>
         </button>
       </template>
     </div>
@@ -1096,15 +1289,23 @@
     </div>
 
     <!-- probes: the standings are the filter, then concepts -->
-    <div x-show="pane === 'probes'" class="flex flex-wrap items-center gap-1" data-slot="frame:count-chips">
-      <template x-for="key in ['worked','mixed','failed','open']" :key="key">
-        <button class="badge badge-sm cursor-pointer gap-1 transition-opacity"
-                :class="filterStanding === key ? [STANDINGS[key].text, 'badge-outline', 'font-medium'] : 'badge-ghost'"
-                @click="filterStanding = filterStanding === key ? '' : key">
-          <span class="tabular-nums" x-text="counts[key]"></span><span x-text="key"></span>
-        </button>
-      </template>
-      <select id="probe-concept" class="select select-bordered select-sm w-auto max-w-[16rem] ml-2" aria-label="Concept" data-slot="frame:filter-switch"
+    <!-- probes: the standing counts with the concept picker held in view
+         beside them, then the grouping on a row of its own with any filter a
+         card's badge has set. Each strip scrolls sideways inside itself, so
+         the picker never leaves the viewport. -->
+    <div x-show="pane === 'probes'" class="flex items-center gap-2 min-w-0">
+      <div class="min-w-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden rounded-lg">
+        <div class="whitespace-nowrap" :class="SEG.box" data-slot="frame:count-chips">
+          <template x-for="key in ['worked','mixed','failed','open']" :key="key">
+            <button type="button" class="inline-flex items-center gap-1.5" :class="[SEG.item, filterStanding === key ? SEG.on : SEG.off]"
+                    @click="filterStanding = filterStanding === key ? '' : key">
+              <span class="w-2 h-2 rounded-full" :class="STANDINGS[key].bar"></span>
+              <span class="tabular-nums" x-text="counts[key]"></span><span x-text="key"></span>
+            </button>
+          </template>
+        </div>
+      </div>
+      <select id="probe-concept" class="select select-bordered select-sm shrink-0 w-36 sm:w-56 ml-auto sm:ml-0" aria-label="Concept" data-slot="frame:filter-switch"
               x-model="concept">
         <option value="">Every concept</option>
         <template x-for="[name, n] in concepts" :key="name">
@@ -1112,9 +1313,9 @@
         </template>
       </select>
     </div>
-    <div x-show="pane === 'probes'" class="flex items-center gap-2 overflow-x-auto whitespace-nowrap -mx-4 px-4 sm:-mx-6 sm:px-6">
-      <span class="text-sm text-base-content/70 shrink-0">group by</span>
+    <div x-show="pane === 'probes'" class="flex items-center gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden whitespace-nowrap -mx-4 px-4 sm:-mx-6 sm:px-6">
       <div class="shrink-0" :class="SEG.box">
+        <span class="pl-2 pr-1 text-sm text-base-content/70">by</span>
         <template x-for="[key, label] in PROBE_BYS" :key="key">
           <button type="button" :class="[SEG.item, probeBy === key ? SEG.on : SEG.off]" @click="probeBy = key" x-text="label"></button>
         </template>
@@ -1125,12 +1326,12 @@
         </button>
       </template>
       <button type="button" x-show="probeRun" class="shrink-0 inline-flex items-center gap-1 rounded-md bg-primary/15 px-2 py-1 text-sm cursor-pointer" @click="probeRun = ''">
-        <span x-text="(runRows.find(r => r.run === probeRun) || {}).title || probeRun"></span><i class="ph ph-x"></i>
+        <i class="ph ph-play-circle"></i><span x-text="(runRows.find(r => r.run === probeRun) || {}).title || probeRun"></span><i class="ph ph-x"></i>
       </button>
     </div>
     <div x-show="pane === 'runs' && runRows.length" class="flex items-center gap-2 overflow-x-auto whitespace-nowrap -mx-4 px-4 sm:-mx-6 sm:px-6">
-      <span class="text-sm text-base-content/70 shrink-0">group by</span>
       <div class="shrink-0" :class="SEG.box">
+        <span class="pl-2 pr-1 text-sm text-base-content/70">by</span>
         <template x-for="[key, label] in RUN_BYS" :key="key">
           <button type="button" :class="[SEG.item, runBy === key ? SEG.on : SEG.off]" @click="runBy = key" x-text="label"></button>
         </template>
@@ -1156,7 +1357,31 @@
     </div>
   </header>
 
-  <main class="px-4 sm:px-6 py-5 mx-auto"
+  <main class="min-h-0" :class="listDetail ? 'overflow-hidden' : 'overflow-y-auto'">
+
+   <!-- ── probes and runs: a list with a detail ─────────────────────────
+        html-style rule 11, drawn by kits/linked-swiper.js: the list beside
+        the card when the pane is wide, over it when narrow, each scrolling
+        inside itself. The rows and the cards are built in script
+        (probeListHtml, probeCardHtml and the run pair), since the kit fills
+        the card itself. data-pattern declares the unit
+        (data/ui-units/codebook.md); nothing at runtime reads it. -->
+   <div x-show="listDetail" class="h-full p-2" data-pattern="list-detail">
+     <div x-show="pane === 'probes'" class="h-full">
+       <div x-ref="probeBox" class="h-full">
+         <div x-ref="probeList" role="listbox" aria-label="Probes" data-part="list"></div>
+         <div x-ref="probeCard" class="min-h-0" data-part="detail"></div>
+       </div>
+     </div>
+     <div x-show="pane === 'runs'" class="h-full">
+       <div x-ref="runBox" class="h-full">
+         <div x-ref="runList" role="listbox" aria-label="Runs" data-part="list"></div>
+         <div x-ref="runCard" class="min-h-0" data-part="detail"></div>
+       </div>
+     </div>
+   </div>
+
+   <div x-show="!listDetail" class="px-4 sm:px-6 py-5 mx-auto"
         :class="pane === 'variants' ? 'max-w-[96rem]' : 'max-w-[72rem]'">
 
     <div x-show="pane === 'probes' && loading" class="py-24 text-center">
@@ -1216,82 +1441,6 @@
       <p x-show="variantState === 'done' && !variantRows.length"
          class="py-16 text-center font-mono text-xs opacity-70">
         no variant carries that combination
-      </p>
-    </section>
-
-    <!-- ── probes ─────────────────────────────────────────────────────── -->
-    <!-- data-pattern and data-part declare this a List and name its parts
-         (data/ui-units/codebook.md, "Declaring a pattern in markup"); nothing
-         at runtime reads them. Only Probes, the pane that paints first,
-         declares; a row opens in place, so there is no detail. -->
-    <section x-show="pane === 'probes' && !loading" data-pattern="list" data-part="list">
-      <template x-for="g in probeGroups()" :key="g.date">
-       <section class="mb-9">
-        <h2 class="font-mono text-xs uppercase tracking-wide opacity-70 pb-1 border-b border-base-300" data-part="group">
-          <span x-text="g.date"></span>
-          <span class="ml-2" x-text="g.items.length + (g.items.length === 1 ? ' probe' : ' probes')" data-part="meta"></span>
-        </h2>
-
-        <template x-for="p in g.items" :key="p.id">
-        <article class="border-b border-base-200 py-5" data-part="item">
-
-          <button class="w-full text-left flex items-start gap-3" @click="open = open === p.id ? null : p.id">
-            <span class="mt-2.5 w-1 h-5 rounded-sm shrink-0" :class="STANDINGS[standingOf(p)].bar" data-part="meta"></span>
-            <span class="grow min-w-0">
-              <span x-show="p.title" class="block text-lg leading-7 font-medium" x-text="p.title" data-part="title"></span>
-              <span x-show="!p.title" class="block text-lg leading-7" x-text="p.question" data-part="title"></span>
-              <!-- The collapsed row carries the badges, since they are what the
-                   header groups and filters on. A registry without badges
-                   (probes.json) shows its concepts here as it used to. -->
-              <span class="flex flex-wrap items-center gap-1.5 mt-1.5">
-                <span class="text-sm font-medium mr-1" x-text="standingOf(p)" data-part="meta"></span>
-                <template x-for="b in probeBadges(p)" :key="b.dim">
-                  <span :class="[CHIP, badgeFilter[b.dim] === b.value && 'ring-1 ring-primary']" role="button"
-                        @click.stop="toggleBadge(b.dim, b.value)" x-text="badgeText(b.dim, b.value)" data-part="meta"></span>
-                </template>
-                <span x-show="!probeBadges(p).length" class="font-mono text-xs text-base-content/70 truncate" x-text="p.concepts.join(' · ')" data-part="meta"></span>
-              </span>
-            </span>
-            <i class="ph shrink-0 mt-2 opacity-70" :class="open === p.id ? 'ph-caret-down' : 'ph-caret-right'"></i>
-          </button>
-
-          <div x-show="open === p.id" class="pl-4 mt-4 grid gap-4" data-part="body">
-            <template x-for="field in [['Question', p.title ? p.question : ''], ['Method', p.method], ['Corpus', p.corpus], ['Result', p.result], ['Verdict', p.verdict], ['Opens', p.opens]]" :key="field[0]">
-              <div x-show="!!field[1]">
-                <div class="font-mono text-xs uppercase tracking-wide opacity-70" x-text="field[0]"></div>
-                <p class="text-lg leading-7 text-pretty mt-0.5" x-text="field[1]"></p>
-              </div>
-            </template>
-
-            <div x-show="runOf(p) || (p.concepts.length && probeBadges(p).length)" class="flex flex-wrap items-center gap-1.5">
-              <button type="button" x-show="runOf(p)" class="inline-flex items-center gap-1.5 rounded-md bg-base-200 px-2 py-1 text-base cursor-pointer"
-                      @click="showRun(runOf(p))">
-                <i class="ph ph-play-circle"></i><span class="font-medium" x-text="(runOf(p) || {}).title"></span>
-              </button>
-              <template x-for="c in (probeBadges(p).length ? p.concepts : [])" :key="c">
-                <span class="font-mono text-xs text-base-content/70 rounded-md border border-base-300 px-1.5 py-0.5 cursor-pointer" role="button"
-                      @click="concept = concept === c ? '' : c" x-text="c"></span>
-              </template>
-            </div>
-
-            <div class="flex flex-wrap items-center gap-x-4 gap-y-2 font-mono text-xs pt-1">
-              <template x-for="a in p.artifacts" :key="a">
-                <a class="opacity-70 hover:opacity-100 transition-opacity"
-                   :href="artifactUrl(a)" target="_blank" rel="noopener" data-part="links">
-                  <span x-text="artifactName(a)"></span><i class="ph ph-arrow-square-out ml-1"></i>
-                </a>
-              </template>
-              <span class="opacity-70" x-show="!!p.cost" data-part="meta">cost: <span x-text="p.cost"></span></span>
-              <span class="opacity-70" x-text="p.id" data-part="meta"></span>
-            </div>
-          </div>
-        </article>
-        </template>
-       </section>
-      </template>
-
-      <p x-show="!shown.length && !error" class="py-16 text-center font-mono text-xs opacity-70">
-        no probe carries that combination
       </p>
     </section>
 
@@ -1385,45 +1534,6 @@
     </section>
 
     <!-- ── runs ───────────────────────────────────────────────────────── -->
-    <section x-show="pane === 'runs' && runRows.length">
-      <template x-for="g in runGroups()" :key="g.name">
-        <section class="mb-9">
-          <h2 class="font-mono text-xs uppercase tracking-wide text-base-content/70 pb-1 border-b border-base-300">
-            <span x-text="g.name"></span><span class="ml-2 tabular-nums" x-text="g.items.length"></span>
-          </h2>
-          <template x-for="r in g.items" :key="r.run">
-            <article :id="'run-' + r.name" class="border-b border-base-200 flex items-stretch gap-2"
-                     :class="r.name === runFocus && 'bg-primary/5'">
-              <a :href="runUrl(r)" class="grow min-w-0 py-4 grid gap-1.5 hover:bg-base-200/50 active:bg-base-200 -mx-2 px-2 rounded-md">
-                <span class="flex items-center gap-2 text-lg leading-7 font-medium">
-                  <i class="ph shrink-0 text-base-content/70" :class="r.page ? 'ph-browser' : 'ph-file-text'"></i>
-                  <span x-text="r.title"></span>
-                </span>
-                <span class="text-lg leading-7 text-base-content/80 line-clamp-3" x-text="r.summary"></span>
-                <span class="flex flex-wrap items-center gap-1.5">
-                  <span :class="CHIP" class="font-medium" x-text="r.kind"></span>
-                  <span :class="CHIP" x-text="badgeText('method', r.method)"></span>
-                  <span :class="CHIP" x-text="r.thread"></span>
-                  <span :class="CHIP" x-text="'left ' + r.residue.join(', ')"></span>
-                  <span class="font-mono text-xs text-base-content/70 ml-1" x-text="r.date"></span>
-                </span>
-              </a>
-              <div class="flex flex-col items-end justify-center gap-1 shrink-0 py-3">
-                <button type="button" x-show="probesIn(r)" class="rounded-md bg-base-200 px-2 py-1 text-sm cursor-pointer whitespace-nowrap max-sm:min-h-11"
-                        @click="showProbesOf(r)" x-text="probesIn(r) + (probesIn(r) === 1 ? ' probe' : ' probes')"></button>
-                <button x-show="r.deck" class="btn btn-square btn-sm btn-ghost text-primary max-sm:h-11 max-sm:w-11"
-                        :aria-label="'Read the files of ' + r.title + ' one at a time'"
-                        :disabled="deckBusy === r.name" @click="openDeckFor(r)">
-                  <i class="ph text-lg" :class="deckBusy === r.name ? 'ph-circle-notch animate-spin' : 'ph-cards-three'"></i>
-                </button>
-                <a class="font-mono text-xs text-base-content/70 hover:text-base-content py-1" :href="treeUrl(ROOT + '/' + r.run)">files</a>
-              </div>
-            </article>
-          </template>
-        </section>
-      </template>
-    </section>
-
     <!-- A ref that predates runs/runs.csv: the text collection's runs, then the
          few listed by hand. -->
     <section x-show="pane === 'runs' && !runRows.length">
@@ -1475,6 +1585,7 @@
       </template>
     </section>
 
+   </div>
   </main>
 
   <!-- The one panel-tip: a variant's details, or its notes and a box to add

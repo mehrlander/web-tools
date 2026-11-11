@@ -105,6 +105,5 @@ snapshot.notice=null;snapshot.queueAvailable=false;await w.NowErrands.refresh();
 check(doc.querySelector('.erl-notice').textContent==='Queue unavailable'&&!doc.querySelector('.erl-empty').textContent.includes('No errands waiting'),'A missing queue never appears as zero waiting.');
 denied=true;await w.NowErrands.refresh();
 check(doc.querySelector('.erl-notice').textContent==='Access unavailable'&&!w.NowErrands.state().available,'An owner-access denial clears private observations.');
-check(w.NowErrands.summaryHtml().includes('data-open-errands'),'Now has a compact queue entry point.');
 click('[data-view=now]');check(doc.querySelector('#errands').hidden&&doc.querySelector('.erl-panel').hidden,'Leaving Errands closes its transient panels.');
 dom.window.close();console.log(`${checks} focused errand checks passed.`);
