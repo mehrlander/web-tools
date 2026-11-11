@@ -130,6 +130,87 @@ test('a page locator is the file without its ref, from a blob URL or a toss link
   assert.equal(N.listItem('o/r', 'lists/jots.json', 'j1'), 'o/r:lists/jots.json#j1');
 });
 
+// What a list of notes shows for each one. Without these a chip counts a note
+// under the wrong kind of subject, a link pill opens the wrong place, and a
+// title runs on past its sentence or stops inside a file name.
+const SUBJECTS = [
+  ['o/r:sessions/2026/10/2026-10-22-0e71fee7.json', 'session'],
+  ['o/r:user-calls/a710e806-two-step-topics.json', 'call'],
+  ['o/r:lists/jot.json#j1', 'list'],
+  ['o/r:lists/snag.json#a-slug', 'list'],
+  ['o/tools:docs/SNAGS.md#a-slug', 'list'],
+  ['o/r#12', 'pull'],
+  ['o/r@claude/a-branch', 'branch'],
+  ['o/r@x#1', 'branch'],
+  ['o/r:docs/X.md', 'file'],
+  ['o/r:docs/X.md#a-heading', 'file'],
+  ['o/r@main:lib/a.js', 'file'],
+  ['o/r:tracker/tasks/a-task.md', 'file'],
+  ['o/r:lists/jot.json', 'file'],
+  ['o/r:sessions/compactions/2026/10/a.json', 'file'],
+  ['o/r', 'repo'],
+  ['note:nabc1', 'note'],
+  ['not a locator', ''],
+  ['', ''],
+];
+
+test('a locator reads as the kind of thing it names, and every kind has a label and an icon', () => {
+  for (const [about, kind] of SUBJECTS) assert.equal(N.kind(about), kind, JSON.stringify(about));
+  for (const [about, kind] of SUBJECTS) if (kind) assert.ok(N.KINDS[kind].label && /^ph-[a-z-]+$/.test(N.KINDS[kind].icon), about);
+  assert.deepEqual(Object.keys(N.KINDS), ['session', 'call', 'list', 'pull', 'branch', 'file', 'repo', 'note']);
+});
+
+test('a subject carries what a link to it is built from', () => {
+  const pick = (about, keys) => { const s = N.subject(about); return Object.fromEntries(keys.map(k => [k, s[k]])); };
+  assert.deepEqual(pick('o/r:sessions/2026/10/2026-10-22-0e71fee7.json', ['repo', 'path', 'name', 'short']),
+    { repo: 'o/r', path: 'sessions/2026/10/2026-10-22-0e71fee7.json', name: '2026-10-22-0e71fee7', short: '0e71fee7' });
+  assert.deepEqual(pick('o/r:user-calls/a710e806-two-step-topics.json', ['repo', 'name']), { repo: 'o/r', name: 'a710e806-two-step-topics' });
+  assert.deepEqual(pick('o/r:lists/jot.json#j1', ['repo', 'path', 'list', 'id']), { repo: 'o/r', path: 'lists/jot.json', list: 'jot', id: 'j1' });
+  assert.deepEqual(pick('o/tools:docs/SNAGS.md#a-slug', ['repo', 'list', 'id']), { repo: 'o/tools', list: 'snag', id: 'a-slug' },
+    'a snag keeps the address its entry had in the Markdown log');
+  assert.deepEqual(pick('o/r#12', ['repo', 'number']), { repo: 'o/r', number: 12 });
+  assert.deepEqual(pick('o/r@claude/a-branch', ['repo', 'ref']), { repo: 'o/r', ref: 'claude/a-branch' });
+  assert.deepEqual(pick('o/r@feat/x:docs/X.md#a-heading', ['repo', 'ref', 'path', 'fragment']),
+    { repo: 'o/r', ref: 'feat/x', path: 'docs/X.md', fragment: 'a-heading' });
+  assert.deepEqual(N.subject('o/r'), { kind: 'repo', repo: 'o/r' });
+  assert.deepEqual(N.subject('note:nabc1'), { kind: 'note', id: 'nabc1' });
+  assert.deepEqual(N.subject('a/b c'), { kind: '' });
+});
+
+// findings.js reads a finding's subjects with a parser of its own, which
+// tells a snag and a tracker task apart where a note's kind does not.
+test('a note and a finding read one locator as the same kind of thing', () => {
+  new Function('window', readFileSync(path.join(repoRoot, 'lib/kits/findings.js'), 'utf8'))(win);
+  const same = { session: ['session'], call: ['call'], list: ['snag', 'file'], pull: ['pr'], branch: ['branch'],
+                 file: ['file', 'task'], repo: ['repo'], note: ['note'], '': ['unknown'] };
+  for (const [about, kind] of SUBJECTS) {
+    const type = win.Findings.parse(about).type;
+    assert.ok(same[kind].includes(type), `${JSON.stringify(about)}: ${kind} beside ${type}`);
+  }
+  assert.equal(win.Findings.parse('o/r:lists/jot.json#j1').type, 'file', 'the one difference: only a note counts a jot as a list item');
+});
+
+test('a note is titled by its first sentence, cut at a word when it runs long', () => {
+  assert.equal(N.title('The kit still works on main. Nothing uses it.'), 'The kit still works on main');
+  assert.equal(N.title('Is it still needed? Nobody said.'), 'Is it still needed?');
+  assert.equal(N.title('\n\n  One line with no stop\nand a second line'), 'One line with no stop');
+  assert.equal(N.title('docs/code-layers.md was cut in v2.5 of the doc. More.'), 'docs/code-layers.md was cut in v2.5 of the doc',
+    'a stop inside a file name or a number ends nothing');
+  assert.equal(N.title('Named by H. W. Fowler, e.g. in 1926. Then more.'), 'Named by H. W. Fowler, e.g. in 1926',
+    'nor does one after an initial or an abbreviation');
+  assert.equal(N.title('- **Read** `npm test` in [the log](https://e.x/y). Then more.'), 'Read npm test in the log');
+  assert.equal(N.title('He wrote "done." And left.'), 'He wrote "done."');
+  assert.equal(N.title(''), '');
+  assert.equal(N.title(null), '');
+
+  const long = 'Reassessed 2026-10-29: the layers doc was cut to its admission rules but still classes a file that registers a namespace as a kit, and nothing else moved.';
+  const cut = N.title(long);
+  assert.equal(cut, 'Reassessed 2026-10-29: the layers doc was cut to its admission rules but still classes a…');
+  assert.ok(cut.length <= 90);
+  assert.equal(N.title(long, 30), 'Reassessed 2026-10-29: the…');
+  assert.equal(N.title('x'.repeat(200), 20), 'x'.repeat(19) + '…', 'a run with no space is cut where it stands');
+});
+
 test('a note may vote up or down on a user call, or withdraw with an empty vote, and nothing else', () => {
   const n = N.make({ about: 'a/b:user-calls/x.json', text: 'Still holds.', author: 'gemini', vote: 'up' });
   assert.equal(n.vote, 'up');
