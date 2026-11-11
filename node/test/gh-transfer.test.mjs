@@ -13,7 +13,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { repoRoot, withTraffic } from './bootstrap.mjs';
+import { repoRoot, withTraffic, GH_BASE64 } from './bootstrap.mjs';
 
 const src = readFileSync(path.join(repoRoot, 'lib/gh-transfer.js'), 'utf8');
 
@@ -24,6 +24,7 @@ function makeGH({ refFails = 0, contents = {}, blobs = {}, defaultBranch = 'main
   const reqs = [];
   let failed = 0, tipN = 0;
   function GH(conf = {}) { this.token = conf.token || ''; this.repo = conf.repo || ''; this.ref = ''; }
+  GH.toBase64 = GH_BASE64.toBase64;
   GH.FRESH = { cache: 'no-store' };
   GH.prototype.req = async function (p, opts = {}) {
     const body = opts.body ? JSON.parse(opts.body) : null;
@@ -31,7 +32,7 @@ function makeGH({ refFails = 0, contents = {}, blobs = {}, defaultBranch = 'main
     if (p === '') return { default_branch: defaultBranch };
     if (p.startsWith('contents/')) {
       if (opts.method === 'PUT') return { content: { sha: 'put-sha' } };
-      const key = p.slice('contents/'.length).split('?')[0];
+      const key = decodeURIComponent(new URL(p, 'https://api.github.com/').pathname.slice('/contents/'.length));
       if (!(key in contents)) throw Object.assign(new Error('404'), { status: 404 });
       return contents[key];
     }
@@ -101,6 +102,125 @@ test('content rides as base64 and is never decoded on the way through', async ()
   await gh.commitFiles([{ path: 'x', content: '3q2+7w==' }], { branch: 'main' });
   const blob = reqs.find(r => r.path === 'git/blobs').body;
   assert.deepEqual(blob, { content: '3q2+7w==', encoding: 'base64' });
+});
+
+test('an empty repository file copies alongside nonempty content in one commit', async () => {
+  const { gh, reqs } = makeGH({ contents: {
+    'empty.txt': { content: '', sha: 'empty-blob', size: 0 },
+  } });
+  const empty = await gh.getRaw('empty.txt');
+  const out = await gh.commitFiles([
+    { path: 'empty.txt', content: empty.content }, ...FILES,
+  ], { branch: 'main' });
+  assert.deepEqual(reqs.filter(r => r.path === 'git/blobs').map(r => r.body), [
+    { content: '', encoding: 'base64' },
+    { content: 'YQ==', encoding: 'base64' },
+    { content: 'Yg==', encoding: 'base64' },
+  ]);
+  assert.equal(reqs.find(r => r.path === 'git/trees').body.tree.length, 3);
+  assert.equal(reqs.filter(r => r.method === 'PATCH').length, 1);
+  assert.equal(out.files, 3);
+});
+
+test('empty content replaces an existing blob and takes precedence over bytes', async () => {
+  const { gh, reqs } = makeGH();
+  await gh.commitFiles([
+    { path: 'truncate.txt', content: '', sha: 'old-blob' },
+    { path: 'empty.txt', content: '', bytes: new Uint8Array([42]) },
+  ], { branch: 'main' });
+  assert.deepEqual(reqs.filter(r => r.path === 'git/blobs').map(r => r.body.content), ['', '']);
+  assert.deepEqual(reqs.find(r => r.path === 'git/trees').body.tree.map(f => f.sha), ['blob-1', 'blob-2']);
+});
+
+test('zero-byte buffers, existing blobs and explicit deletions keep their meanings', async () => {
+  const { gh, reqs } = makeGH();
+  await gh.commitFiles([
+    { path: 'buffer.bin', bytes: new ArrayBuffer(0) },
+    { path: 'array.bin', bytes: new Uint8Array(0) },
+    { path: 'existing.txt', sha: 'existing-blob' },
+    { path: 'deleted.txt', sha: null, content: '' },
+  ], { branch: 'main' });
+  assert.deepEqual(reqs.filter(r => r.path === 'git/blobs').map(r => r.body.content), ['', '']);
+  assert.deepEqual(reqs.find(r => r.path === 'git/trees').body.tree.map(f => f.sha), [
+    'blob-1', 'blob-2', 'existing-blob', null,
+  ]);
+});
+
+test('absent file payloads are still refused', async () => {
+  for (const payload of [{}, { content: null }, { content: undefined, bytes: null }]) {
+    const { gh, reqs } = makeGH();
+    await assert.rejects(() => gh.commitFiles([{ path: 'missing.txt', ...payload }], { branch: 'main' }),
+      /must have content, bytes, or sha/);
+    assert.equal(reqs.length, 0);
+  }
+});
+
+test('transfer reads and writes preserve literal URL characters in file paths', async () => {
+  const name = 'notes/A#B?C%2F & café.txt';
+  const { gh, reqs } = makeGH({ contents: { [name]: { content: 'YQ==', sha: 's1', size: 1 } } });
+  gh.ref = 'feature/copy#part&more+100%';
+  const file = await gh.getRaw(name);
+  await gh.saveRaw(name, file.content, 'copy', gh.ref);
+  const [read, write] = reqs;
+  for (const request of [read, write]) {
+    const url = new URL(request.path, 'https://api.github.com/');
+    assert.equal(decodeURIComponent(url.pathname), '/contents/' + name);
+    assert.equal(url.hash, '');
+  }
+  const readUrl = new URL(read.path, 'https://api.github.com/');
+  assert.equal(readUrl.searchParams.get('ref'), gh.ref);
+  assert.equal([...readUrl.searchParams].length, 1);
+  assert.equal(new URL(write.path, 'https://api.github.com/').search, '');
+  assert.equal(write.body.branch, gh.ref);
+});
+
+test('reserved branch characters survive commit retries and ref creation', async () => {
+  const branch = 'feature/copy#part&more+100%';
+  const { gh, reqs } = makeGH({ refFails: 1 });
+  await gh.commitFiles(FILES, { branch });
+  await gh.createRef('next#branch', branch);
+  const refs = reqs.filter(r => /^git\/refs?\/heads\//.test(r.path));
+  assert.equal(refs.length, 5, 'two tip reads, two ref moves, and the source branch read');
+  for (const request of refs) {
+    const url = new URL(request.path, 'https://api.github.com/');
+    assert.equal(decodeURIComponent(url.pathname).replace(/^\/git\/refs?\/heads\//, ''), branch);
+    assert.equal(url.search, '');
+    assert.equal(url.hash, '');
+    assert.ok(url.pathname.includes('/feature/'), 'branch separators remain path separators');
+  }
+  assert.equal(reqs.find(r => r.path === 'git/refs').body.ref, 'refs/heads/next#branch');
+});
+
+test('saveRaw refreshes a conflicting file SHA without changing the client ref', async () => {
+  const { gh, reqs } = makeGH();
+  Object.defineProperty(gh, 'ref', {
+    get() { return this._ref; },
+    set(value) { this._ref = value; this._pinned = true; this._pathsOnly = false; },
+  });
+  gh.ref = 'preview';
+  gh._pinned = false;
+  gh._pathsOnly = true;
+  const request = gh.req;
+  let writes = 0;
+  gh.req = async function(p, opts = {}) {
+    if (opts.method === 'PUT') {
+      writes++;
+      if (writes === 1) throw Object.assign(new Error('stale SHA'), { status: 409 });
+      assert.equal(JSON.parse(opts.body).sha, 'fresh-sha');
+    } else if (p.startsWith('contents/')) {
+      reqs.push({ path: p, opts });
+      return { content: '', sha: opts.cache === 'no-store' ? 'fresh-sha' : 'stale-sha', size: 0 };
+    }
+    return request.call(this, p, opts);
+  };
+  await gh.saveRaw('empty.txt', '', 'truncate', 'target');
+  assert.equal(writes, 2);
+  const recovery = reqs.find(r => r.opts.cache === 'no-store');
+  assert.ok(recovery, 'a recovery read bypasses the browser HTTP cache');
+  assert.equal(new URL(recovery.path, 'https://api.github.com/').searchParams.get('ref'), 'target');
+  assert.equal(gh.ref, 'preview');
+  assert.equal(gh._pinned, false);
+  assert.equal(gh._pathsOnly, true);
 });
 
 test('a branch that moved mid-upload rebuilds on the new tip rather than clobbering it', async () => {
