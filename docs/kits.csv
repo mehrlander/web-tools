@@ -21,7 +21,7 @@ lib/kits/console.js,consoleKit,console retention + filter + subscribe layer.,119
 lib/kits/content-index.js,ContentIndex,"a word index over the estate's Markdown, so the Search view's Contents mode answers inside the app.",150,no,no,3,yes
 lib/kits/content-registry.js,ContentRegistry,"the epistemic content registry, read in the browser.",111,no,no,5,yes
 lib/kits/crawl-runs.js,CrawlRuns,The `runs` ring: the few facts about a crawl that its output cannot show.,89,no,no,2,yes
-lib/kits/csv.js,Csv,"CSV, small and shared.",56,no,no,12,yes
+lib/kits/csv.js,Csv,"CSV, small and shared.",68,no,no,12,yes
 lib/kits/data-payload.js,DataPayload,Reading a data toss.,190,no,no,4,yes
 lib/kits/data-shelf.js,dataShelf,shelf record schema + helpers.,73,no,no,1,yes
 lib/kits/dictate-handoff.js,dictateHandoff,carry a draft from a composer on a page to the dictation page.,78,no,no,2,yes
@@ -44,7 +44,7 @@ lib/kits/git-change.js,GitChange,"pure browser-capable Git bundle & packfile unp
 lib/kits/github-links.js,GithubLinks,"the GitHub destinations for one repo, as menu rows.",97,no,no,4,yes
 lib/kits/guide-render.js,GuideRender,"a guide PR body, rendered as something you can walk.",448,no,no,19,yes
 lib/kits/gz-payload.js,GzPayload,"The `#gz=` payload, in one place: text gzipped, then base64url, so a page, a document or a data envelope rides in a link with nothing hosted and no token…",41,no,no,17,yes
-lib/kits/io.js,io,"user data in and out of the page: file picker, file download, blob preview, and the clipboard.",229,no,yes,23,yes
+lib/kits/io.js,io,"user data in and out of the page: file picker, file download, blob preview, and the clipboard.",235,no,yes,23,yes
 lib/kits/json-explorer.js,JsonExplorer,"Native, framework-free JSON Explorer & Schema Profiler.",770,no,no,1,yes
 lib/kits/land.js,Land,"where the reader was just sent, and how they get told.",298,no,yes,9,yes
 lib/kits/last-write.js,LastWrite,"the copy this page just committed, for the next fold",70,no,no,5,yes
