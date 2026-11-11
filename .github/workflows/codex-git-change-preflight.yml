@@ -1,0 +1,119 @@
+name: Validate Git change contribution
+on:
+  push:
+    branches: ['codex/git-change-preserve-local-branches']
+    paths: ['.github/workflows/codex-git-change-preflight.yml']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: codex-git-change-preflight
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    if: github.repository == 'mehrlander/web-tools' && github.ref == 'refs/heads/codex/git-change-preserve-local-branches'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      actions: write
+    env:
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+      PYTHONUTF8: '1'
+      PYTHONIOENCODING: utf-8
+      PR_BODY: |
+        [//]: # (guide)
+        ## What this PR does
+        Keeps local branches unchanged when packaging a committed Git change.
+        
+        ## Why this branch exists
+        The packager used the proposed destination branch as its temporary ref. When that branch already pointed to a different commit, packaging moved it to the source head and left it moved, including after an output error.
+        
+        Packaging now uses an exclusively created temporary ref. The bundle still advertises the proposed destination, so Stage's copied fetch command continues to work. Cleanup deletes the temporary ref only while it points to the packaged commit.
+        
+        ---
+        🌿 [Open the branch](https://mehrlander.github.io/web-tools/pages/branch.html#gh=mehrlander/web-tools@codex/git-change-preserve-local-branches)
+        [//]: # (/guide)
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          filter: blob:none
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Validate the final tree without this temporary workflow
+        id: validate
+        shell: bash
+        run: |
+          set -uo pipefail
+          git rm -- .github/workflows/codex-git-change-preflight.yml
+          set +e
+          npm run setup > "$RUNNER_TEMP/git-change-setup.log" 2>&1
+          setup_status=$?
+          focused_status=125
+          preflight_status=125
+          if [ "$setup_status" = 0 ]; then
+            node --require ./node/test/runtime-command.cjs --test --test-reporter=spec node/test/git-change.test.mjs > "$RUNNER_TEMP/git-change-focused.log" 2>&1
+            focused_status=$?
+            npm run preflight > "$RUNNER_TEMP/git-change-preflight.log" 2>&1
+            preflight_status=$?
+          fi
+          printf '%s' "$PR_BODY" > "$RUNNER_TEMP/git-change-pr.md"
+          python3 python/mcp-link-safe.py --check "$RUNNER_TEMP/git-change-pr.md" > "$RUNNER_TEMP/git-change-pr-check.log" 2>&1
+          pr_status=$?
+          npm run showing > "$RUNNER_TEMP/git-change-showing.log" 2>&1
+          showing_status=$?
+          {
+            echo "setup=$setup_status"
+            echo "focused=$focused_status"
+            echo "preflight=$preflight_status"
+            echo "pr=$pr_status"
+            echo "showing=$showing_status"
+          } >> "$GITHUB_OUTPUT"
+          export SETUP_STATUS="$setup_status" FOCUSED_STATUS="$focused_status" PREFLIGHT_STATUS="$preflight_status" PR_STATUS="$pr_status" SHOWING_STATUS="$showing_status"
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          root = Path(os.environ["RUNNER_TEMP"])
+          message = ["Refresh generated files after Git change validation", ""]
+          for label, key in [("setup", "SETUP"), ("focused", "FOCUSED"), ("preflight", "PREFLIGHT"), ("pr-check", "PR"), ("showing", "SHOWING")]:
+              status = os.environ[key + "_STATUS"]
+              message.append(f"{label}: exit {status}")
+              log = root / f"git-change-{label}.log"
+              if log.exists():
+                  data = log.read_text(errors="replace")
+                  if status != "0":
+                      message.extend(["", data[-20000:], ""])
+                  elif label in ("focused", "preflight"):
+                      message.extend(data.splitlines()[-12:])
+                  elif label == "showing":
+                      message.append(data[-3000:])
+              message.append("")
+          message.append("Co-Authored-By: Codex <codex@openai.com>")
+          (root / "git-change-validation-commit.txt").write_text("\n".join(message), encoding="utf-8")
+          PY
+      - name: Commit generated files and remove the temporary workflow
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git diff --cached --stat
+          git -c core.hooksPath=/dev/null commit --no-verify --file "$RUNNER_TEMP/git-change-validation-commit.txt"
+          git push origin HEAD:refs/heads/codex/git-change-preserve-local-branches
+      - name: Run ordinary CI on the committed tree
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run test.yml --ref codex/git-change-preserve-local-branches
+      - name: Report validation result
+        env:
+          SETUP_STATUS: ${{ steps.validate.outputs.setup }}
+          FOCUSED_STATUS: ${{ steps.validate.outputs.focused }}
+          PREFLIGHT_STATUS: ${{ steps.validate.outputs.preflight }}
+          PR_STATUS: ${{ steps.validate.outputs.pr }}
+        run: |
+          test "$SETUP_STATUS" = 0
+          test "$FOCUSED_STATUS" = 0
+          test "$PREFLIGHT_STATUS" = 0
+          test "$PR_STATUS" = 0
