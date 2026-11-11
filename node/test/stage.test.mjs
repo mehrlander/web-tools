@@ -13,7 +13,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdtempSync, rmSync, writeFileSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { makeWindow, startAlpine, tick, deckGeometry, withBase64, GH_BASE64 } from './bootstrap.mjs';
+import { makeWindow, startAlpine, tick, deckGeometry, withBase64, GH_BASE64, repoRoot } from './bootstrap.mjs';
 
 const calls = [];
 
@@ -1595,6 +1595,77 @@ test('a deposit is ONE commit, refs and pasted files together', async () => {
     'bytes ride byte-exact');
   assert.ok(!calls.some(c => c.kind === 'save' || c.kind === 'saveBytes' || c.kind === 'copyTo'),
     'the per-file write paths are not used, which is what made a deposit N commits');
+});
+
+test('a real deposit preserves empty repository, text and binary files beside nonempty files', async () => {
+  reset();
+  const previousGh = store.gh;
+  const requests = [];
+  // Exercise the transfer implementation, not FakeGH.commitFiles: the fake
+  // accepted empty content even when the real writer rejected the deposit.
+  class TransferGH extends FakeGH {
+    async req(requestPath, opts = {}) {
+      const body = opts.body ? JSON.parse(opts.body) : null;
+      requests.push({ repo: this.repo, path: requestPath, method: opts.method || 'GET', body });
+      if (this.repo === 'me/missing') throw Object.assign(new Error('404'), { status: 404 });
+      if (requestPath.startsWith('contents/')) {
+        const file = requestPath.slice('contents/'.length).split('?')[0];
+        if (file === 'empty.txt') return { content: '', size: 0, sha: 'empty-source' };
+        if (file === 'readme.txt') return { content: btoa('source text'), size: 11, sha: 'full-source' };
+      }
+      if (requestPath === 'git/blobs') {
+        return { sha: 'blob-' + requests.filter(r => r.path === 'git/blobs').length };
+      }
+      if (requestPath === 'git/ref/heads/topic') return { object: { sha: 'head' } };
+      if (requestPath === 'git/commits/head') return { tree: { sha: 'base-tree' } };
+      if (requestPath === 'git/trees') return { sha: 'new-tree' };
+      if (requestPath === 'git/commits') return { sha: 'c0ffee1234' };
+      if (requestPath === 'git/refs/heads/topic' && opts.method === 'PATCH') return {};
+      throw new Error('Unexpected transfer request: ' + requestPath);
+    }
+  }
+  new Function('window', readFileSync(path.join(repoRoot, 'lib/gh-transfer.js'), 'utf8'))({ GH: TransferGH });
+  try {
+    store.gh = new TransferGH({ token: 't', repo: 'me/open' });
+    store.stage = [
+      { repo: 'me/a', ref: '', path: 'empty.txt' },
+      { repo: 'me/a', ref: '', path: 'readme.txt' },
+      { repo: 'me/missing', ref: '', path: 'gone.txt' },
+      { local: true, id: 9401, name: 'local.txt', path: 'local.txt', size: 0, isText: true, text: '' },
+      { local: true, id: 9402, name: 'local.bin', path: 'local.bin', size: 0, isText: false, bytes: new Uint8Array(0) },
+      { local: true, id: 9403, name: 'note.txt', path: 'note.txt', size: 2, isText: true, text: 'yo' },
+    ];
+    data.destSpec = 'me/dest@topic:pkg';
+    data.sendArmed = false;
+    await data.send();
+    assert.equal(requests.length, 0, 'the first tap only arms the deposit');
+    await data.send();
+
+    const blobs = requests.filter(r => r.path === 'git/blobs');
+    assert.deepEqual(blobs.map(r => r.body), [
+      { content: '', encoding: 'base64' },
+      { content: btoa('source text'), encoding: 'base64' },
+      { content: '', encoding: 'base64' },
+      { content: '', encoding: 'base64' },
+      { content: btoa('yo'), encoding: 'base64' },
+    ], 'each readable file uploads its exact bytes, including all three empty files');
+    const trees = requests.filter(r => r.path === 'git/trees');
+    assert.equal(trees.length, 1);
+    assert.deepEqual(trees[0].body, {
+      base_tree: 'base-tree',
+      tree: ['empty.txt', 'readme.txt', 'local.txt', 'local.bin', 'note.txt'].map((name, i) => ({
+        path: 'pkg/' + name, mode: '100644', type: 'blob', sha: 'blob-' + (i + 1),
+      })),
+    }, 'the empty files stay in the destination tree while the unreadable source stays out');
+    assert.equal(requests.filter(r => r.path === 'git/commits').length, 1, 'the five files share one commit');
+    assert.equal(requests.filter(r => r.method === 'PATCH').length, 1, 'the destination branch advances once');
+    assert.ok(requests.filter(r => r.method === 'POST' || r.method === 'PATCH').every(r => r.repo === 'me/dest'));
+    assert.deepEqual(plain_(data.lastSend), { ok: 5, total: 6, failures: 1, sha: 'c0ffee1' });
+    assert.match(data.sendStatus, /^5\/6 copied to me\/dest:pkg in c0ffee1$/);
+  } finally {
+    store.gh = previousGh;
+    data.sendArmed = false;
+  }
 });
 
 test('a source read that fails is reported and left out, and the rest still commit', async () => {
