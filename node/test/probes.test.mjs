@@ -43,7 +43,7 @@ test('a registry that names every dated probe passes, and extra columns ride alo
   const r = run(fixture(t, GOOD));
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.match(r.stdout, /probes\/ ok, 3 probes/);
-  assert.match(r.stdout, /1 declared probe folder\(s\) keep no registry/);
+  assert.match(r.stdout, /1 declared probe README\(s\) with no probes\.csv beside them/);
 });
 
 test('each broken rule is named with its row', t => {
@@ -77,7 +77,7 @@ test('a missing required column stops the rows being read', t => {
 test('a declared folder without a registry is counted, not failed', t => {
   const r = run(fixture(t));
   assert.equal(r.status, 0, r.stdout + r.stderr);
-  assert.match(r.stdout, /2 declared probe folder\(s\) keep no registry/);
+  assert.match(r.stdout, /2 declared probe README\(s\) with no probes\.csv beside them/);
 });
 
 test('--new writes the required header and refuses to overwrite', t => {

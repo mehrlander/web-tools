@@ -20,6 +20,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
+import { getEventListeners } from 'node:events';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { repoRoot } from '../repo-root.mjs';
@@ -72,10 +73,226 @@ test('a kit that does not copy carries no clipboard machinery', () => {
   assert.doesNotMatch(src, /kits\/io\.js/, 'and nothing fetches io.js for it');
 });
 
-test('io.copy returns the deferred write\'s own answer', () => {
-  // The unfocused branch waits for a click and then copies. It used to resolve
-  // undefined, so a caller reading the result showed "Failed" on a copy that
-  // had just succeeded.
-  const src = readFileSync(join(KITS, 'io.js'), 'utf8');
-  assert.match(src, /resolve\(await io\.copy\(text\)\)/);
+const IO_SOURCE = readFileSync(join(repoRoot, KITS, 'io.js'), 'utf8');
+
+function clipboardPage({ focused = false, secure = true, clipboard = {}, copyResult = true,
+                         pasteText = '', pasteError } = {}) {
+  const timers = [], textareas = [], copies = [], listenerErrors = [];
+  let inClick = false;
+  class ClipboardDocument extends EventTarget {
+    hasFocus() { return focused; }
+    // Catch returned listener promises so a broken deferred operation can be
+    // observed as unsettled without also causing an unhandled rejection.
+    addEventListener(type, listener, options) {
+      super.addEventListener(type, event => {
+        const result = listener(event);
+        result?.catch?.(error => listenerErrors.push(error));
+      }, options);
+    }
+    createElement(tag) {
+      assert.equal(tag, 'textarea');
+      const ta = { value: '', style: {}, setAttribute() {}, focus() {},
+                   remove() { textareas.splice(textareas.indexOf(ta), 1); } };
+      return ta;
+    }
+    execCommand(command) {
+      assert.equal(command, 'paste');
+      if (pasteError) throw pasteError;
+      textareas.at(-1).value = pasteText;
+      return false; // iOS can populate the textarea while returning false.
+    }
+  }
+  const document = new ClipboardDocument();
+  document.body = { appendChild: ta => textareas.push(ta) };
+  const window = { isSecureContext: secure, copy: { legacy(text) {
+    copies.push({ text, inClick });
+    return copyResult;
+  } } };
+  new Function('window', 'document', 'navigator', 'AbortController', 'DOMException', 'setTimeout', 'console', IO_SOURCE)(
+    window, document, { clipboard }, AbortController, DOMException,
+    (run, ms) => timers.push({ run, ms }), { log() {}, error() {} });
+  return {
+    io: window.io, copies, textareas, listenerErrors,
+    get inClick() { return inClick; },
+    get clicks() { return getEventListeners(document, 'click').length; },
+    focus() { focused = true; },
+    click() {
+      focused = true; inClick = true;
+      try { document.dispatchEvent(new Event('click')); } finally { inClick = false; }
+    },
+    runTimers() {
+      let count = 0;
+      while (timers.length) {
+        assert.ok(++count <= 4, 'the clipboard fallback schedules a bounded number of timers');
+        timers.shift().run();
+      }
+    },
+    clean() {
+      assert.equal(getEventListeners(document, 'click').length, 0, 'no deferred click remains');
+      assert.equal(timers.length, 0, 'no fallback timer remains');
+      assert.equal(textareas.length, 0, 'the fallback textarea was removed');
+      assert.deepEqual(listenerErrors, [], 'the click handler left no rejected promise behind');
+    },
+  };
+}
+
+function observe(promise) {
+  const state = { status: 'pending' };
+  promise.then(value => Object.assign(state, { status: 'fulfilled', value }),
+               error => Object.assign(state, { status: 'rejected', error }));
+  return state;
+}
+
+const microtasks = async () => { for (let n = 0; n < 8; n++) await Promise.resolve(); };
+
+test('a deferred modern copy returns success and starts writing in the click', async () => {
+  const writes = [];
+  const page = clipboardPage({ clipboard: { writeText: text => {
+    writes.push({ text, inClick: page.inClick });
+    return Promise.resolve();
+  } } });
+  const state = observe(page.io.copy('held text'));
+  assert.deepEqual(writes, [], 'an unfocused call waits');
+  assert.equal(page.clicks, 1);
+  page.click();
+  assert.deepEqual(writes, [{ text: 'held text', inClick: true }], 'writing starts before the click returns');
+  await microtasks();
+  assert.deepEqual(state, { status: 'fulfilled', value: true });
+  page.clean();
 });
+
+for (const answer of [true, false]) {
+  test('a deferred legacy copy returns ' + answer, async () => {
+    const page = clipboardPage({ secure: false, copyResult: answer });
+    const state = observe(page.io.copy('legacy text'));
+    page.click();
+    assert.deepEqual(page.copies, [{ text: 'legacy text', inClick: true }]);
+    await microtasks();
+    assert.deepEqual(state, { status: 'fulfilled', value: answer });
+    page.clean();
+  });
+}
+
+test('a deferred modern paste returns text and starts reading in the click', async () => {
+  const reads = [];
+  const page = clipboardPage({ clipboard: { readText: () => {
+    reads.push(page.inClick);
+    return Promise.resolve('clipboard text');
+  } } });
+  const state = observe(page.io.paste());
+  assert.deepEqual(reads, []);
+  page.click();
+  assert.deepEqual(reads, [true], 'reading starts before the click returns');
+  await microtasks();
+  assert.deepEqual(state, { status: 'fulfilled', value: 'clipboard text' });
+  page.clean();
+});
+
+for (const focused of [false, true]) {
+  test('a newer ' + (focused ? 'focused' : 'unfocused') + ' copy settles the older caller and wins', async () => {
+    const writes = [];
+    const page = clipboardPage({ clipboard: { writeText: text => {
+      writes.push(text);
+      return Promise.resolve();
+    } } });
+    const older = observe(page.io.copy('older'));
+    if (focused) page.focus();
+    const newer = observe(page.io.copy('newer'));
+    await microtasks();
+    assert.deepEqual(older, { status: 'fulfilled', value: false });
+    assert.equal(page.clicks, focused ? 0 : 1);
+    page.click();
+    await microtasks();
+    assert.deepEqual(newer, { status: 'fulfilled', value: true });
+    assert.deepEqual(writes, ['newer'], 'the stale copy cannot overwrite the newer text on a later click');
+    page.click();
+    assert.deepEqual(writes, ['newer'], 'the deferred write runs once');
+    page.clean();
+  });
+
+  test('a newer ' + (focused ? 'focused' : 'unfocused') + ' paste cancels the older caller', async () => {
+    let reads = 0;
+    const page = clipboardPage({ clipboard: { readText: () => {
+      reads++;
+      return Promise.resolve('latest text');
+    } } });
+    const older = observe(page.io.paste());
+    if (focused) page.focus();
+    const newer = observe(page.io.paste());
+    await microtasks();
+    assert.equal(older.status, 'rejected');
+    assert.equal(older.error.name, 'AbortError', 'supersession is cancellation, not empty clipboard text');
+    assert.equal(page.clicks, focused ? 0 : 1);
+    page.click();
+    await microtasks();
+    assert.deepEqual(newer, { status: 'fulfilled', value: 'latest text' });
+    assert.equal(reads, 1, 'only the latest request reads');
+    page.click();
+    assert.equal(reads, 1);
+    page.clean();
+  });
+}
+
+for (const method of ['paste', 'pasteItems']) {
+  test('a rich clipboard read cancels an older ' + method + ' focus wait', async () => {
+    let textReads = 0, richReads = 0;
+    const clipboard = { readText: async () => { textReads++; return 'stale text'; } };
+    const page = clipboardPage({ clipboard });
+    const older = observe(page.io[method]());
+    assert.equal(page.clicks, 1, 'the older read is waiting for focus');
+    const html = '<p>new clipboard text</p>';
+    clipboard.read = async () => {
+      richReads++;
+      return [{ types: ['text/html'], getType: async () => new Blob([html], { type: 'text/html' }) }];
+    };
+    const latest = await page.io.pasteItems();
+    await microtasks();
+    assert.equal(older.status, 'rejected');
+    assert.equal(older.error.name, 'AbortError');
+    assert.deepEqual(latest, [{ kind: 'text', type: 'text/html', text: html, size: html.length }]);
+    assert.equal(richReads, 1);
+    assert.equal(page.clicks, 0, 'the rich read removes the older text-read listener');
+    page.click();
+    await microtasks();
+    assert.equal(textReads, 0, 'a later click cannot run the superseded read');
+    assert.equal(richReads, 1);
+    page.clean();
+  });
+}
+
+test('a deferred paste rejects when modern and legacy reads cannot supply text', async () => {
+  const page = clipboardPage({ clipboard: { readText: async () => { throw new Error('Permission denied'); } } });
+  const state = observe(page.io.paste());
+  page.click();
+  await microtasks();
+  assert.equal(page.textareas.length, 1, 'a refused modern read reaches the legacy fallback');
+  page.runTimers();
+  await microtasks();
+  assert.equal(state.status, 'rejected', 'the waiting caller settles instead of hanging');
+  assert.match(state.error.message, /Paste unavailable/);
+  page.clean();
+});
+
+test('a deferred legacy paste reads the textarea even when execCommand returns false', async () => {
+  const page = clipboardPage({ secure: false, pasteText: 'iOS pasted text' });
+  const state = observe(page.io.paste());
+  page.click();
+  page.runTimers();
+  await microtasks();
+  assert.deepEqual(state, { status: 'fulfilled', value: 'iOS pasted text' });
+  page.clean();
+});
+
+for (const focused of [false, true]) {
+  test('a throwing legacy paste cleans up and rejects its ' + (focused ? 'focused' : 'deferred') + ' caller', async () => {
+    const error = new Error('Paste command blocked');
+    const page = clipboardPage({ focused, secure: false, pasteError: error });
+    const state = observe(page.io.paste());
+    if (!focused) page.click();
+    assert.doesNotThrow(() => page.runTimers(), 'the timer routes the error to the clipboard caller');
+    await microtasks();
+    assert.equal(state.status, 'rejected');
+    assert.equal(state.error, error);
+    page.clean();
+  });
+}
