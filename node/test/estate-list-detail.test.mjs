@@ -25,7 +25,7 @@ class FakeGH {
   static FRESH = { cache: 'no-store' };
   static toBase64 = (s) => Buffer.from(s).toString('base64');
   // An age that reads as its date, so a row's meta can be told apart.
-  static ago = (iso) => (iso ? 'on ' + String(iso).slice(0, 10) : '');
+  static ago = (iso) => (iso ? 'age ' + String(iso).slice(0, 10) : '');
   constructor(conf = {}) { this.repo = conf.repo || ''; this.ref = conf.ref || 'main'; }
   ago(iso) { return FakeGH.ago(iso); }
   async repos() { return []; }
@@ -198,7 +198,7 @@ test('a root with no box when its strip is asked for gets the strip once it has 
   BOXLESS = true;
   window.__shell.listsTab = 'snag';
   await load();
-  await until(() => rowIds('snag').length === 3, 'the rows');
+  await until(() => rowIds('snag').length === 3, 'its rows drawn');
   await frames(8);
   assert.equal(snagRoot().querySelector('[data-ls="head"]'), null, 'no strip while the root has no box');
   BOXLESS = false;
@@ -257,8 +257,8 @@ test('both tabs declare the list and detail, each row a compact item', async () 
   // one sits where it does on every row.
   const slots = (row) => [...row.querySelector('[data-part="meta"]').children].map(text);
   await until(() => slots(rows[0])[2] === '2', "the first row's note count");
-  assert.deepEqual(slots(rows[0]), ['tools', '×2', '2', 'on 2026-10-03']);
-  assert.deepEqual(slots(rows[1]), ['tools', '', '', 'on 2026-10-02'], 'seen once, and no notes');
+  assert.deepEqual(slots(rows[0]), ['tools', '×2', '2', 'age 2026-10-03']);
+  assert.deepEqual(slots(rows[1]), ['tools', '', '', 'age 2026-10-02'], 'seen once, and no notes');
   for (const row of rows) assert.equal(row.querySelectorAll('[data-part="meta"]').length, 1);
 });
 
@@ -336,9 +336,9 @@ test('the Note list holds the notes that answer no other, and a card holds the t
   // One meta line: what it is about, a finding's kind and state, the
   // replies and the age. The last two are the same slots on every row.
   const slots = (row) => [...row.querySelector('[data-part="meta"]').children].filter(el => el.tagName !== 'TEMPLATE').map(text);
-  assert.deepEqual(slots(rows[2]), ['snag: the row count was off by one after a sort', '1', 'on 2026-10-04'], 'no author: the card has it');
-  assert.deepEqual(slots(rows[1]), ['tools #12', '', 'on 2026-10-06']);
-  assert.deepEqual(slots(rows[0]), ['tools / a-branch', 'Landed or overtaken, settled', '', 'on 2026-10-07'], "a finding's kind and state");
+  assert.deepEqual(slots(rows[2]), ['snag: the row count was off by one after a sort', '1', 'age 2026-10-04'], 'no author: the card has it');
+  assert.deepEqual(slots(rows[1]), ['tools #12', '', 'age 2026-10-06']);
+  assert.deepEqual(slots(rows[0]), ['tools / a-branch', 'Landed or overtaken, settled', '', 'age 2026-10-07'], "a finding's kind and state");
   for (const row of rows) assert.equal(row.querySelectorAll('[data-part="meta"]').length, 1);
 
   assert.equal(text(head('note')), '1/3', 'the head row repeats nothing the row and the chip say');
@@ -415,7 +415,7 @@ test('a card keeps its links to one row, its icon controls thumb-sized on touch,
   const card = cardOf('note', 'n4');
   const links = card.querySelector('[data-part="links"]');
   assert.deepEqual([...links.children].map(el => el.tagName), ['DIV', 'BUTTON'], 'the pills, then the funnel');
-  assert.match(links.firstElementChild.className, /flex-nowrap.*overflow-x-auto/, 'one row that scrolls sideways');
+  assert.match(links.firstElementChild.className, /flex-nowrap.*overflow-x-auto/, 'a single row, scrolled sideways');
   assert.equal(links.firstElementChild.querySelectorAll('a').length, 2);
   assert.equal(links.lastElementChild.getAttribute('aria-label'), 'Show only the notes about this');
   assert.match(card.className, /max-sm:pb-\[calc\(var\(--fab-bottom,1\.5rem\)\+4rem\)\]/, "the note dock's own clearance of the button");
@@ -435,11 +435,11 @@ test('a card keeps its links to one row, its icon controls thumb-sized on touch,
 
 test('a note just added takes the card', async () => {
   await open('note', 'n1');
-  data.noteAbout = 'o/tools#31'; data.noteDraft = 'One more on the pull request.';
+  data.noteAbout = 'o/tools#31'; data.noteDraft = 'One more for that pull request.';
   await data.addNote();
   const id = data.noteItems.at(-1).id;
   await shown('note', id);
-  assert.match(text(cardOf('note', id)), /One more on the pull request\./);
+  assert.match(text(cardOf('note', id)), /One more for that pull request\./);
   data.noteAbout = '';
 });
 
