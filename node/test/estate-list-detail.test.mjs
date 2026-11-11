@@ -147,7 +147,7 @@ const frames = (n) => new Promise(done => { const step = () => (n-- > 0 ? window
 // kit reads the track's place a frame after it scrolls, so a step taken
 // inside that frame would be answered with the row the strip just left.
 async function shown(tab, id) {
-  const on = () => picked(tab) === id && selected(tab).join() === id && text(head(tab)) && text(cardOf(tab, id))
+  const on = () => picked(tab) === id && selected(tab).join() === id && head(tab) && text(cardOf(tab, id))
     && rootOf(tab).querySelector('.sd-track').scrollLeft === rowIds(tab).indexOf(id);
   for (;;) {
     await until(on, `the ${tab} strip on ${id}`);
@@ -241,18 +241,20 @@ test('both tabs declare the list and detail, each row a compact item', async () 
 
 test("a card holds its snag's title, links, dates, entry and notes, and a row tap moves the card", async () => {
   await open('snag', 'a-count-off-by-one');
-  assert.match(text(head('snag')), /^a-count-off-by-one/, 'the head row names the snag by its id');
+  await until(() => text(head('snag')) === '2 1/3', "the head row: the snag's notes and the counter, and no name the card gives");
   const card = cardOf('snag', 'a-count-off-by-one');
   await until(() => /Fixed by the gate/.test(text(card)), 'the notes left on the snag');
   assert.equal(text(card.querySelector('[data-part="title"]')), 'the row count was off by one after a sort');
   assert.deepEqual([...card.querySelectorAll('[data-part="links"] button')].map(text), ['python/scan.py', 'node/test/scan.test.mjs']);
-  assert.match(text(card.querySelector('[data-part="meta"]')), /Bit 2026-10-01, 2026-10-03/);
+  assert.equal(text(card.querySelector('[data-part="meta"]')), 'a-count-off-by-one tools Bit 2026-10-01, 2026-10-03',
+    'the id in full, which is what a citation names, then the repo and the dates');
   assert.equal(card.querySelector('[data-part="body"] strong').textContent, 'sort', 'the entry, rendered');
-  assert.match(text(card), /Seen again on the phone\. me .* Fixed by the gate\. claude\/x/, 'the notes left on it, replies under them');
+  assert.match(text(card), /Seen again on the phone\. me 2026-10-04 Fixed by the gate\. claude\/x 2026-10-05$/,
+    'the notes left on it, replies under them, each with its day once');
 
   click(snagRoot().querySelector('[data-snag="a-door-left-open"]'));
   await shown('snag', 'a-door-left-open');
-  assert.match(text(head('snag')), /^a-door-left-open/);
+  assert.equal(text(head('snag')), '2/3');
   assert.equal(text(cardOf('snag', 'a-door-left-open').querySelector('[data-part="title"]')), 'a panel stayed open behind the next one');
 });
 
@@ -286,11 +288,10 @@ test("the head row carries what a row carried: the snag's notes, Again, Edit and
 
 test('deleting the snag in view hands the card to the row that took its place', async () => {
   await open('snag', 'a-door-left-open');
-  assert.match(text(head('snag')), /^a-door-left-open/);
   click(head('snag').querySelector('[aria-label="Delete"]'));
   await shown('snag', 'a-third-thing');
   assert.deepEqual(rowIds('snag'), ['a-count-off-by-one', 'a-third-thing']);
-  assert.match(text(head('snag')), /^a-third-thing/);
+  assert.equal(text(head('snag')), '2/2');
 });
 
 test('the add box narrows the list, and the first match takes the card', async () => {
@@ -298,7 +299,7 @@ test('the add box narrows the list, and the first match takes the card', async (
   data.snagDraft = 'third thing';
   await shown('snag', 'a-third-thing');
   assert.deepEqual(rowIds('snag'), ['a-third-thing']);
-  assert.match(text(head('snag')), /^a-third-thing/);
+  assert.match(text(cardOf('snag', 'a-third-thing').querySelector('[data-part="meta"]')), /^a-third-thing /);
   data.snagDraft = '';
 });
 
@@ -310,20 +311,19 @@ test('the Note list holds the notes that answer no other, and a card holds the t
   assert.match(text(rows[2]), /snag: the row count was off by one after a sort .* me 1$/, 'what it is about, its author, its reply');
   assert.match(text(rows[0]), /tools \/ a-branch .* Landed or overtaken, settled claude\/weed/, "a finding's kind and state");
 
-  assert.match(text(head('note')), /^settled ?Landed or overtaken/);
+  assert.equal(text(head('note')), '1/3', 'the head row repeats nothing the row and the chip say');
   const finding = cardOf('note', 'n4');
   await until(() => /Its one commit is on main/.test(text(finding)), "the finding's reason in its card");
   assert.deepEqual([...finding.querySelectorAll('[data-part="links"] a')].map(a => text(a) + ' ' + a.getAttribute('href')),
     ['tools / a-branch https://mehrlander.github.io/web-tools/pages/branch.html#gh=o/tools@claude/a-branch', 'tools #12 https://github.com/o/tools/pull/12']);
-  assert.match(text(finding), /The branch holds nothing main lacks\. claude\/weed .* Its one commit is on main\./);
+  assert.match(text(finding), /The branch holds nothing main lacks\. claude\/weed 2026-10-07 Its one commit is on main\.$/);
 
   click(noteRoot().querySelector('[data-note="n1"]'));
   await shown('note', 'n1');
-  assert.match(text(head('note')), /^List item/, 'a plain note is headed by the kind of thing it is about');
   const card = cardOf('note', 'n1');
   await until(() => /Fixed by the gate/.test(text(card)), 'the reply under the note');
   assert.equal((text(card).match(/Seen again on the phone\./g) || []).length, 1, 'the text once, with no title above it');
-  assert.match(text(card), /Seen again on the phone\. me .* Fixed by the gate\. claude\/x/);
+  assert.match(text(card), /Seen again on the phone\. me 2026-10-04 Fixed by the gate\. claude\/x 2026-10-05$/);
 });
 
 test('a reply is written from the card, under the note it answers', async () => {
@@ -404,7 +404,6 @@ test('an About chip narrows the list and moves the card to a note it holds', asy
   click(chips()[3]);
   await shown('note', 'n3');
   assert.deepEqual(rowIds('note'), ['n3']);
-  await until(() => /^Pull request/.test(text(head('note'))), 'the head row for the pull request note');
   click(chips()[3]);
   await until(() => data.noteKind === '', 'a second tap to let the chip go');
 });
