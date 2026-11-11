@@ -32,6 +32,13 @@
   Through a routed toss it is the trailing fragment of the route:
     …/toss-render.html#data=<owner>/<repo>:<bundle.json>#item=raw.csv
 
+  And one compares an addressed Markdown file with another ref:
+    #base=<ref>   opens the file on the viewer's Changes mode, the document
+                  with what differs from <ref> marked in place. Compared with
+                  the commit where the file's own ref left <ref>.
+  Through a routed toss:
+    …/toss-render.html#data=<owner>/<repo>@<branch>:<doc.md>#base=main
+
   Two payload shapes, told apart by lib/kits/data-payload.js and handled the same
   way from here on:
     BARE      a CSV, a JSON array, any bytes. One item; the viewer's module
@@ -96,6 +103,11 @@
   // wins on all three. The viewer's resolver still falls back where a mode is
   // unavailable for the file, so this never has to check what a mode supports.
   const AUTO_VIEW = (f) => window.ViewRegistry.READ_MODE(f);
+
+  // base=<ref>: the ref an addressed Markdown file is compared with. Read
+  // once, since it is part of the address the page was opened at.
+  const BASE = UrlParams.get('base') || '';
+  window.DATA_VIEW_BASE = BASE;
 
   window.app = () => ({
     payload: null,
@@ -206,7 +218,10 @@
       if (!v) return;
       // An item that lives in a repo shows its path and gets real links; an
       // inline one is local, so the viewer offers none.
-      v.defaultMode = it.view || AUTO_VIEW;
+      // An address that names a base opens its Markdown on Changes, the
+      // document with what differs from that base marked in place; any other
+      // file is unaffected.
+      v.defaultMode = it.view || (BASE && it.spec ? (f) => (f.ext === 'md' ? 'changes' : AUTO_VIEW(f)) : AUTO_VIEW);
       const name = it.spec ? it.spec.path : it.name;
       await v.show(name, it.content ?? '', it.spec
         ? { repo: it.spec.repo, ref: it.spec.ref, ...(it.spec.branch ? { branch: it.spec.branch } : {}) }
@@ -334,7 +349,7 @@
            Files view that isn't here, fill so it grows to this column. It
            carries its own header (name, size, mode strip, links). -->
       <div id="dv-viewer" class="flex flex-col flex-1 min-h-0"
-           x-data="viewer({ bindStore: false, fill: true })"></div>
+           x-data="viewer({ bindStore: false, fill: true, modules: { changes: { base: window.DATA_VIEW_BASE } } })"></div>
     </div>
   </template>
 </div>
