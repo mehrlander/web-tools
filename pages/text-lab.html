@@ -1289,29 +1289,37 @@
     </div>
 
     <!-- probes: the standings are the filter, then concepts -->
-    <div x-show="pane === 'probes'" class="flex items-center gap-2 overflow-x-auto whitespace-nowrap -mx-4 px-4 sm:-mx-6 sm:px-6">
-      <div class="shrink-0" :class="SEG.box" data-slot="frame:count-chips">
-        <template x-for="key in ['worked','mixed','failed','open']" :key="key">
-          <button type="button" class="inline-flex items-center gap-1.5" :class="[SEG.item, filterStanding === key ? SEG.on : SEG.off]"
-                  @click="filterStanding = filterStanding === key ? '' : key">
-            <span class="w-2 h-2 rounded-full" :class="STANDINGS[key].bar"></span>
-            <span class="tabular-nums" x-text="counts[key]"></span><span x-text="key"></span>
-          </button>
-        </template>
+    <!-- probes: the standing counts with the concept picker held in view
+         beside them, then the grouping on a row of its own with any filter a
+         card's badge has set. Each strip scrolls sideways inside itself, so
+         the picker never leaves the viewport. -->
+    <div x-show="pane === 'probes'" class="flex items-center gap-2 min-w-0">
+      <div class="min-w-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden rounded-lg">
+        <div class="whitespace-nowrap" :class="SEG.box" data-slot="frame:count-chips">
+          <template x-for="key in ['worked','mixed','failed','open']" :key="key">
+            <button type="button" class="inline-flex items-center gap-1.5" :class="[SEG.item, filterStanding === key ? SEG.on : SEG.off]"
+                    @click="filterStanding = filterStanding === key ? '' : key">
+              <span class="w-2 h-2 rounded-full" :class="STANDINGS[key].bar"></span>
+              <span class="tabular-nums" x-text="counts[key]"></span><span x-text="key"></span>
+            </button>
+          </template>
+        </div>
       </div>
-      <div class="shrink-0" :class="SEG.box">
-        <span class="pl-2 pr-1 text-sm text-base-content/70">by</span>
-        <template x-for="[key, label] in PROBE_BYS" :key="key">
-          <button type="button" :class="[SEG.item, probeBy === key ? SEG.on : SEG.off]" @click="probeBy = key" x-text="label"></button>
-        </template>
-      </div>
-      <select id="probe-concept" class="select select-bordered select-sm w-auto max-w-[14rem] shrink-0" aria-label="Concept" data-slot="frame:filter-switch"
+      <select id="probe-concept" class="select select-bordered select-sm shrink-0 w-36 sm:w-56 ml-auto sm:ml-0" aria-label="Concept" data-slot="frame:filter-switch"
               x-model="concept">
         <option value="">Every concept</option>
         <template x-for="[name, n] in concepts" :key="name">
           <option :value="name" x-text="name + ' (' + n + ')'"></option>
         </template>
       </select>
+    </div>
+    <div x-show="pane === 'probes'" class="flex items-center gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden whitespace-nowrap -mx-4 px-4 sm:-mx-6 sm:px-6">
+      <div class="shrink-0" :class="SEG.box">
+        <span class="pl-2 pr-1 text-sm text-base-content/70">by</span>
+        <template x-for="[key, label] in PROBE_BYS" :key="key">
+          <button type="button" :class="[SEG.item, probeBy === key ? SEG.on : SEG.off]" @click="probeBy = key" x-text="label"></button>
+        </template>
+      </div>
       <template x-for="[dim, value] in Object.entries(badgeFilter)" :key="dim">
         <button type="button" class="shrink-0 inline-flex items-center gap-1 rounded-md bg-primary/15 px-2 py-1 text-sm cursor-pointer" @click="toggleBadge(dim, value)">
           <span x-text="badgeText(dim, value)"></span><i class="ph ph-x"></i>
