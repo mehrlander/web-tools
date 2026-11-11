@@ -1,5 +1,6 @@
 // alpineComponents/estate.js with kits/linked-swiper.js: the Lists view's Snag
-// and Note tabs as a list over a strip of cards. What breaks without these: a
+// and Note tabs as a list over a strip of cards, and the cards full screen
+// (kits/swipe-deck.js open()). What breaks without these: a
 // tab that opens on bare rows because its strip was asked for a frame before
 // x-show revealed it, a row tap that leaves the card on the last snag, a card
 // that keeps a written item's old text, a control the flat rows had that the
@@ -463,3 +464,106 @@ test('an About chip narrows the list and moves the card to a note it holds', asy
   click(chips()[3]);
   await until(() => data.noteKind === '', 'a second tap to let the chip go');
 });
+
+// ── The cards full screen ────────────────────────────────────────────────
+// The takeover hangs off the body, outside the component's tree. Without the
+// scope it is handed, its cards are markup that binds to nothing: no title,
+// and controls that throw.
+const overlay = () => doc.querySelector('.sd-overlay');
+const deckTrack = () => overlay().querySelector('.sd-track');
+const deckCard = (i) => deckTrack().children[i];
+const sub = (label) => overlay().querySelector(`.sd-subheader [aria-label="${label}"]`);
+async function door(tab, at) {
+  click(head(tab).querySelector('[data-swipe-cards]'));
+  await until(() => overlay() && deckTrack().scrollLeft === at && text(deckCard(at)), `the takeover on card ${at}`);
+  await frames(3);
+}
+async function closed() {
+  await until(() => !overlay() && data.listDeck === '', 'the takeover to close');
+}
+
+test("the head row's door opens the cards full screen at the card in view, and closing returns to the card it closed on", async () => {
+  await open('snag', 'a-door-left-open');
+  assert.ok(head('snag').querySelector('[data-swipe-cards]'), 'the door, in the head row');
+  await door('snag', 1);
+  assert.equal(picked('snag'), 'a-door-left-open', "the kit's opening report of slide 0 is not a pick");
+  assert.equal(data.listDeck, 'snag');
+  assert.equal(text(deckCard(1).querySelector('[data-part="title"]')), 'a panel stayed open behind the next one');
+  assert.match(text(deckCard(1).querySelector('[data-part="meta"]')), /^a-door-left-open tools Bit 2026-10-02$/);
+  assert.match(deckCard(1).querySelector('[data-part="title"]').className, /group-\[\.is-deck\]:text-xl/, "a deck's reading size");
+  assert.deepEqual([...overlay().querySelectorAll('.sd-subheader button')].map(b => b.getAttribute('aria-label')),
+    ['Notes about this item', 'It happened again today', 'Edit', 'Delete'], "the snag's four controls, under the header");
+
+  deckTrack().scrollTo({ left: 2 });
+  await shown('snag', 'a-third-thing');
+  assert.equal(text(deckCard(2).querySelector('[data-part="title"]')), 'a third thing went wrong');
+  click(overlay().querySelector('[aria-label="Close"]'));
+  await closed();
+  await shown('snag', 'a-third-thing');
+});
+
+test('edit, Again and Delete act from the takeover, and a form is drawn there and not in the strip under it', async () => {
+  await open('snag', 'a-count-off-by-one');
+  await door('snag', 0);
+  const card = deckCard(0), under = cardOf('snag', 'a-count-off-by-one');
+  click(sub('Edit'));
+  await until(() => card.querySelectorAll('textarea').length === 2, 'the edit form in the takeover');
+  assert.equal(under.querySelectorAll('textarea').length, 0, 'none in the strip: two would each commit on a click in the other');
+  assert.equal(text(under.querySelector('[data-part="title"]')), 'the row count was off by one after a sort', 'which keeps the title');
+  data.editDraft = 'the row count was off by three after a sort';
+  click(card.querySelector('[aria-label="Save"]'));
+  await until(() => text(card.querySelector('[data-part="title"]')) === 'the row count was off by three after a sort', 'the saved title in the takeover');
+  assert.equal(text(under.querySelector('[data-part="title"]')), 'the row count was off by three after a sort', 'and under it');
+  assert.equal(JSON.parse(FILES['lists/snag.json']).items.find(x => x.id === 'a-count-off-by-one').text, 'the row count was off by three after a sort');
+
+  click(sub('It happened again today'));
+  const today = data.todayYmd();
+  await until(() => JSON.parse(FILES['lists/snag.json']).items.find(x => x.id === 'a-count-off-by-one').seen.at(-1) === today, 'Again to be saved');
+  await until(() => text(card.querySelector('[data-part="meta"]')).includes(today), 'the takeover card to redraw');
+  assert.ok(overlay(), 'a write that removes no row leaves the takeover open');
+
+  click(sub('Delete'));
+  await closed();
+  await shown('snag', 'a-door-left-open');
+  assert.deepEqual(rowIds('snag'), ['a-door-left-open', 'a-third-thing'], 'the takeover closes on the list as it now is');
+});
+
+test('a tab left with its takeover open lets the takeover go', async () => {
+  await open('snag', 'a-door-left-open');
+  await door('snag', 1);
+  await go('note');
+  await closed();
+  await shown('note', picked('note'));
+  await go('snag');
+  await shown('snag', 'a-door-left-open');
+});
+
+test('a reply is written from the takeover', async () => {
+  await open('note', 'n3');
+  await door('note', 1);
+  assert.equal(overlay().querySelector('.sd-subheader button'), null, 'a note has no controls of its own up there');
+  const card = deckCard(1), under = cardOf('note', 'n3');
+  click(card.querySelector('[aria-label="Reply"]'));
+  await until(() => card.querySelector('form input'), 'the reply form in the takeover');
+  assert.equal(under.querySelector('form'), null);
+  assert.equal(doc.activeElement, card.querySelector('form input'));
+  type(card.querySelector('form input'), 'from the takeover');
+  card.querySelector('form').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
+  await until(() => JSON.parse(FILES[NOTES].trim().split('\n').at(-1)).text === 'from the takeover', 'the reply to be saved');
+  assert.equal(JSON.parse(FILES[NOTES].trim().split('\n').at(-1)).about, 'note:n3');
+  await until(() => /from the takeover me/.test(text(card)), 'the reply in the takeover card');
+  window.history.back();
+  await closed();
+  await shown('note', 'n3');
+});
+
+test('what leaves the tab from a takeover card closes the takeover first', async () => {
+  await open('note', 'n1');
+  await door('note', 2);
+  data.snagOpen = 'a-third-thing';
+  click(deckCard(2).querySelector('[data-part="links"] a'));
+  await closed();
+  await shown('snag', 'a-count-off-by-one');
+  assert.equal(window.__shell.listsTab, 'snag');
+});
+
