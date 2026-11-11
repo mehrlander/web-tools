@@ -357,6 +357,8 @@ test('a note about a snag is written in its card, under its notes, and a card wi
   assert.ok(card.querySelectorAll('[aria-label="Reply"]')[1].compareDocumentPosition(box) & window.Node.DOCUMENT_POSITION_FOLLOWING,
     'the box follows the last of the notes');
   assert.match(box.className, /input input-bordered input-sm text-base flex-1 min-w-0/, "the reply form's classes");
+  assert.match(card.className, /(^| )pb-\[calc\(var\(--fab-bottom,1\.5rem\)\+4rem\)\]/,
+    "the card's end clears the floating panel button at every width: the send control is at the right, where the button floats");
   type(box, '  Twice more this week.  ');
   await until(() => !form.querySelector('button[type="submit"]').disabled, 'the send control to wake');
   form.dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
