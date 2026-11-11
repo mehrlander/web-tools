@@ -7,17 +7,18 @@ order,leg,gloss,watches,runs,stages,mode,in_repair
 6,tests-registry,node/test/ -> the test registry's derived fields,node/test;package.json;node/build/tests-index.mjs,npm run tests-index,docs/tests.csv;docs/tests-authored.csv,regenerates,yes
 7,harness-census,"node/, python/, .claude/, .github/workflows/ or any .md -> the harness census's derived fields",node;python;.claude;skills/hooks;.githooks;.github/workflows;package.json;node/build/tools-index.mjs;docs/harness.csv;*.md,npm run tools-index,docs/harness.csv;docs/hook-legs.csv,regenerates,yes
 8,kits-registry,lib/kits/ -> the kits registry,lib;pages;app;node/test;node/build/kits-index.mjs;docs/kits.csv,npm run kits-index,docs/kits.csv,regenerates,yes
-9,renders-in,lib/ or pages/ -> the registries' renders_in field,lib;pages;docs/registries.csv;node/build/registries-reach.mjs,npm run registries-reach,docs/registries.csv,regenerates,yes
-10,docs-reach,skills/pages/lib -> the registry's derived fields,skills;lib;pages;docs;node/build/docs-reach.mjs,npm run docs-reach,docs/docs.csv,regenerates,yes
-11,plugin-copies,the traveling docs -> the plugin's copies,docs/CONVERSATION.md;docs/QUALIFIED-WRITING.md;node/build/vendor-docs.mjs,npm run vendor-docs,skills/default/CONVERSATION.md;skills/default/QUALIFIED-WRITING.md,regenerates,yes
-12,policy-skills,docs/house-policies.md -> the h plugin's skills,docs/house-policies.md;node/build/policy-skills.mjs,npm run policy-skills,plugins/h/skills,regenerates,yes
-13,peeves-csv,skills/peeves/peeves.md -> skills/peeves/peeves.csv,skills/peeves/peeves.md;node/build/peeves-csv.mjs,npm run peeves-csv,skills/peeves/peeves.csv,regenerates,yes
-14,themes-graph,any markdown -> the theme graph,*.md;python/duplicated-claims.py,npm run themes-graph,docs/themes.csv,regenerates,yes
-15,comment-blocks,code or markdown -> the comments payload,*.js;*.mjs;*.html;*.py;*.md;docs/*.csv,npm run comment-blocks,data/comments/web-tools.json,regenerates,yes
-16,docs-readme,docs/docs.csv -> docs/README.md,docs/docs.csv;node/build/docs-readme.mjs,npm run docs-readme;npm run docs-reach,docs/README.md;docs/docs.csv,regenerates,yes
-17,tracker-board,tracker/tasks/ -> tracker/board.md + board.csv,tracker/tasks/,npm run tracker-board,tracker/board.md;tracker/board.csv;tracker/board-tags.csv,regenerates,yes
-18,csv-census,each tracked CSV -> the repo's own Data census,*.csv;.web-tools.json;python/csv-census.py,python/csv-census.py,data/csv-census.csv,regenerates,yes
-19,reading-columns,reading columns (warn only),,skills/hooks/reading-column.py,,warns,yes
-20,sunset-markers,SUNSET markers now due (warn only),,python/sunset-scan.py,,warns,yes
-21,anchors,annotations into what this commit changes (warn only),,python/annotate/anchors.py,,warns,no
-22,vendored,a staged change to a vendored copy (warn only),,python/vendored-copies.py,,warns,no
+9,components-registry,lib/alpineComponents/ -> the components registry,lib;pages;app;node/test;docs/app-routes.csv;node/build/components-index.mjs;docs/components.csv,npm run components-index,docs/components.csv,regenerates,yes
+10,renders-in,lib/ or pages/ -> the registries' renders_in field,lib;pages;docs/registries.csv;node/build/registries-reach.mjs,npm run registries-reach,docs/registries.csv,regenerates,yes
+11,docs-reach,skills/pages/lib -> the registry's derived fields,skills;lib;pages;docs;node/build/docs-reach.mjs,npm run docs-reach,docs/docs.csv,regenerates,yes
+12,plugin-copies,the traveling docs -> the plugin's copies,docs/CONVERSATION.md;docs/QUALIFIED-WRITING.md;node/build/vendor-docs.mjs,npm run vendor-docs,skills/default/CONVERSATION.md;skills/default/QUALIFIED-WRITING.md,regenerates,yes
+13,policy-skills,docs/house-policies.md -> the h plugin's skills,docs/house-policies.md;node/build/policy-skills.mjs,npm run policy-skills,plugins/h/skills,regenerates,yes
+14,peeves-csv,skills/peeves/peeves.md -> skills/peeves/peeves.csv,skills/peeves/peeves.md;node/build/peeves-csv.mjs,npm run peeves-csv,skills/peeves/peeves.csv,regenerates,yes
+15,themes-graph,any markdown -> the theme graph,*.md;python/duplicated-claims.py,npm run themes-graph,docs/themes.csv,regenerates,yes
+16,comment-blocks,code or markdown -> the comments payload,*.js;*.mjs;*.html;*.py;*.md;docs/*.csv,npm run comment-blocks,data/comments/web-tools.json,regenerates,yes
+17,docs-readme,docs/docs.csv -> docs/README.md,docs/docs.csv;node/build/docs-readme.mjs,npm run docs-readme;npm run docs-reach,docs/README.md;docs/docs.csv,regenerates,yes
+18,tracker-board,tracker/tasks/ -> tracker/board.md + board.csv,tracker/tasks/,npm run tracker-board,tracker/board.md;tracker/board.csv;tracker/board-tags.csv,regenerates,yes
+19,csv-census,each tracked CSV -> the repo's own Data census,*.csv;.web-tools.json;python/csv-census.py,python/csv-census.py,data/csv-census.csv,regenerates,yes
+20,reading-columns,reading columns (warn only),,skills/hooks/reading-column.py,,warns,yes
+21,sunset-markers,SUNSET markers now due (warn only),,python/sunset-scan.py,,warns,yes
+22,anchors,annotations into what this commit changes (warn only),,python/annotate/anchors.py,,warns,no
+23,vendored,a staged change to a vendored copy (warn only),,python/vendored-copies.py,,warns,no

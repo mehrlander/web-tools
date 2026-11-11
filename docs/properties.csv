@@ -31,6 +31,14 @@ hook-legs,runs,computed,node/build/tools-index.mjs,value,list,yes,,,value,the np
 hook-legs,stages,computed,node/build/tools-index.mjs,none,list,yes,,,locator,the files the step regenerates and adds to the commit; empty for a step that only warns
 hook-legs,mode,computed,node/build/tools-index.mjs,value,column,yes,regenerates;warns,,label,"regenerates when the step stages a file, warns when it only prints"
 hook-legs,in_repair,computed,node/build/tools-index.mjs,value,column,yes,yes;no,,label,"whether npm run artifacts:refresh, the repair pass refresh-derived.yml runs on main, runs the step"
+components,names,computed,node/build/components-index.mjs,value,column,yes,,,value,"every name the file registers with Alpine.data, in file order; x-data mounts the component by one of these. Blank is the warning state: a file in the component folder that registers nothing"
+components,gloss,computed,node/build/components-index.mjs,counted,column,yes,,,value,"the first sentence of the component's own description property, or of its leading comment where it has none. Read rather than authored; blank where neither opens with a sentence"
+components,lines,computed,node/build/components-index.mjs,value,column,yes,,,value,file length
+components,routes,computed,node/build/components-index.mjs,value,column,yes,,,value,"how many rows of docs/app-routes.csv name the file among their files; above zero, the component draws an app view"
+components,loads,computed,node/build/components-index.mjs,value,column,yes,,,value,"how many other files under lib/, pages/ and app/ name its load path"
+components,mounts,computed,node/build/components-index.mjs,value,column,yes,,,value,"how many other files there carry a line with x-data and one of its names; zero with zero loads is the warning state"
+components,patterns,computed,node/build/components-index.mjs,value,column,yes,,,value,"how many times the file writes data-pattern, the attribute a page's markup declares an arrangement with"
+components,tested,computed,node/build/components-index.mjs,value,column,yes,yes;no,,label,a file under node/test/ names it
 kits,namespace,computed,node/build/kits-index.mjs,value,column,yes,,,value,"the public handle: the last window.<name> assignment in the file, which the shelf's shape rule makes the namespace. Blank is the warning state: a kit nothing can reach by name"
 kits,gloss,computed,node/build/kits-index.mjs,counted,column,yes,,,value,"the first sentence of the kit's own header comment, its filename prefix stripped. The header is the kit's authoritative doc, so this is read rather than authored; blank where the file opens with code, and blanks are counted rather than hidden"
 kits,lines,computed,node/build/kits-index.mjs,value,column,yes,,,value,file length

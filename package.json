@@ -110,6 +110,7 @@
     "test:data-view-links": "node node/test/data-view-links.mjs",
     "tests-index": "node node/build/tests-index.mjs",
     "kits-index": "node node/build/kits-index.mjs",
+    "components-index": "node node/build/components-index.mjs",
     "ui-units": "node node/ui-units.mjs",
     "ui-shots": "node node/build/ui-shots.mjs",
     "ui-instances": "node node/build/ui-instances.mjs",

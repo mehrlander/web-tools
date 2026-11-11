@@ -1,0 +1,43 @@
+path,names,gloss,lines,routes,loads,mounts,patterns,tested
+lib/alpineComponents/branch-brief.js,branchBrief,"One branch as a page: derived state from the API, plus an optional authored layer",2238,1,6,3,0,yes
+lib/alpineComponents/cm-editor.js,cmEditor,"Minimal CodeMirror 6 editor; host wires toolbar, persistence, and language",75,0,2,0,0,no
+lib/alpineComponents/compactions.js,compactions,"Compactions: every compaction summary in the session store, newest first, one opened beside or under the list with its plain-language sections first and its…",658,1,2,2,1,yes
+lib/alpineComponents/compress-input-cm.js,compressInputCm,CodeMirror input panel for the compression helper with selection chunks,222,0,2,1,0,no
+lib/alpineComponents/compress-output.js,compressOutput,"Output panel for the compression helper; toggles raw, bookmarklet, or data URL",177,0,2,1,0,no
+lib/alpineComponents/config.js,config,"Per-repo .web-tools.json editor as a full view: a Settings form and a raw JSON pane over the open repo's config, kept in sync (tabbed on mobile, side by side…",841,1,1,1,0,yes
+lib/alpineComponents/console.js,debugConsole,"Rich console renderer: text rows with expandable JSON-tree (objects) and Tabulator (console.table) views, fed by kits/console.js with a raw __consoleLogs…",260,0,4,2,0,yes
+lib/alpineComponents/counter.js,counter,"Minimal demo component: increment, decrement, reset a number",14,0,3,3,0,yes
+lib/alpineComponents/crumb-bar.js,crumbBar,"Crumb trail for a header bar: 44 px targets, per-crumb truncation, sideways scroll, optional menu caret on a crumb",122,0,1,1,0,no
+lib/alpineComponents/drop-zone.js,dropZone,"Reusable file drop target: drag-drop, click-to-browse, and paste; emits a drop-file event carrying the File plus its ArrayBuffer, without owning what happens…",150,0,2,1,0,yes
+lib/alpineComponents/estate.js,estate,"All-repo estate: a full-width grouped grid of opted-in repo cards (membership + fields in each repo's own config), the Stage's bench, a personal to-do list, a…",14997,5,9,2,13,yes
+lib/alpineComponents/fab.js,fab,"Draggable floating button and view-mode indicator: its launcher marks a view rendered off the default branch or without a token, and opens a drawer whose…",8418,0,22,16,0,yes
+lib/alpineComponents/file-browser.js,fileBrowser,the Files view of a project or a repo.,324,1,2,1,0,yes
+lib/alpineComponents/file-review.js,fileReview,"Per-file review dossier: content at a ref, CM6 diff vs a base, links",1781,0,12,5,0,yes
+lib/alpineComponents/here-view.js,hereView,"This browser: the GitHub token and why a read failed, a note naming the browser, what this origin stores in localStorage and IndexedDB, and, from the courier,…",932,1,0,1,1,yes
+lib/alpineComponents/idb-importer.js,idbImporter,Modal that pulls records from any IndexedDB store into the data shelf collection,304,0,1,0,0,no
+lib/alpineComponents/idb-tree.js,idbTree,Sidebar tree of IndexedDB databases on this origin with store counts and filter,125,0,1,0,0,no
+lib/alpineComponents/map.js,map,"Map view: the coordination layer made inspectable, in top-level tabs whose subviews each read a committed registry or payload.",16567,1,5,1,30,yes
+lib/alpineComponents/mention.js,mention,In-textarea @-mention picker: type @ to browse the open repo's file tree (path-following + fuzzy) and insert an @path reference,452,0,2,1,0,yes
+lib/alpineComponents/path-picker.js,pathPicker,"A tap-through repo/path selector: a button-shaped trigger opens a navigable tree panel right below (repos, then folders, then files), and selection is taps…",489,2,4,7,0,yes
+lib/alpineComponents/powershell-file.js,powershellFile,"One PowerShell or XAML file: the source in the editor, read-only until Edit, with its browser draft, its Problems and its Outline beside it.",319,1,1,1,0,yes
+lib/alpineComponents/powershell-outpost-view.js,powershellOutpostView,"The PowerShell outpost view, shown in the Overview tab of a workspace declaring a PowerShell outpost manifest: PowerShell files grouped by outpost area,…",2398,1,2,1,1,yes
+lib/alpineComponents/proposals.js,proposals,"Proposals view: pending cross-repo edits from agent sessions, each resolved against the target file and applied only on a two-tap confirm.",463,1,1,1,1,yes
+lib/alpineComponents/public-browse.js,publicBrowse,"No-token public-repo file browser, read through one GitHub tree call and raw.githubusercontent, the rate-safe non-auth capability of the app",226,1,1,1,1,yes
+lib/alpineComponents/quick-find.js,quickFind,"Sidebar finder: #PR, @ repo-then-file navigation, h: house policies, pasted addresses, and name search grouped by kind (policies, skills, tasks, files), with…",848,0,1,1,0,yes
+lib/alpineComponents/ref-picker.js,refPicker,"Pick a ref of a given repo: a dated, newest-first branch list with a filter box that doubles as the way to a tag or a sha.",227,1,0,1,0,yes
+lib/alpineComponents/ref-switch.js,refSwitch,Header control for the ref the PAGE is running at (not the repo it is browsing).,658,0,2,1,0,yes
+lib/alpineComponents/repo-menu.js,repoMenu,"Flat, compact menu for one repo (window.__shell.menuRepo/menuKind): its actions, or its GitHub destinations",131,0,1,1,0,yes
+lib/alpineComponents/repo.js,repo,Repo picker with branch/tag/SHA switching for the GitHub browser store,674,0,6,8,0,yes
+lib/alpineComponents/search-view.js,searchView,"The central file surface: file names (any ref, any folder), Markdown contents (a crawled word index), and session records over one shared search core, with…",1558,1,0,1,1,yes
+lib/alpineComponents/session-brief.js,sessionBrief,"One captured session as a page: its facts, its outline, and the deck that reads it",3329,2,2,3,0,yes
+lib/alpineComponents/sheet-modal.js,sheetModal,"Bottom sheet under 640px, centered modal at or above it; one API for both",206,0,2,1,0,yes
+lib/alpineComponents/stage.js,stager,"The staged fileset as a main-area view: dropped local files and cross-repo refs in one stage, with view/remove per item and one send/save/mint deposit",6252,1,4,1,2,yes
+lib/alpineComponents/state-view.js,stateView,"State view: the estate’s derived state in one list: the five caches in the private registry (configs, branches, file names, sessions, entities) with when each…",2896,1,1,1,1,yes
+lib/alpineComponents/tending.js,tending,"Tending view: findings from tending passes (work that never reached the owner, questions only the owner can answer, overlapping efforts, and what was…",397,1,0,1,1,yes
+lib/alpineComponents/tools.js,tools,"Tools view: a curated gallery of utility pages (docs/tools.csv in the hub), rendered as cards with a thumbnail/live toggle, an open link, and a source link.",211,1,1,2,1,yes
+lib/alpineComponents/traffic-view.js,trafficView,"Traffic, the Activity pane at ?view=traffic.",617,1,0,1,0,no
+lib/alpineComponents/transform-workbench.js,tfViewer;transformWorkbench,"the generic multi-tab `rows => rows` transform workbench, extracted from the budget-drs app's Load tab (its third generation; pages/table-compress*.html were…",2486,0,3,0,0,yes
+lib/alpineComponents/user-call-form.js,userCallForm,"One call: a decision put to the owner, framed above, its materials swiped below, answered in place",1998,0,8,2,0,yes
+lib/alpineComponents/viewer.js,viewer,"Multi-mode file viewer (raw, code, preview, table, tree, image, pdf, page, docx, sheet, xlsx) with",5654,2,8,8,0,yes
+lib/alpineComponents/waiting.js,waiting,"Waiting view: the open user calls (decision, merge, documentation) from web-tools-private user-calls/, a merge or a decision answered in place from its row or…",1559,1,1,1,1,yes
+lib/alpineComponents/xlsx-picker.js,xlsxPicker,the reactive wrapper over kits/xlsx-write.js.,190,0,1,1,0,no
