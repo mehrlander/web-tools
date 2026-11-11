@@ -261,7 +261,10 @@ test('the markup offers the deck door on the list, each group, and each text run
   assert.equal((SRC.match(/ph-cards-three/g) || []).length >= 3, true);
   assert.match(SRC, /@click="openVariantDeck\(variantRows\)"/);
   assert.match(SRC, /@click="openRunDeck\(r\)"/);
-  assert.match(SRC, /variantFoot\(p, \{ deckAt: variantRows\.indexOf\(p\) \}\)/, 'a row opens the deck at itself');
+  // The row's place comes from a map built once per draw (variantPlace), since
+  // variantRows.indexOf per row re-ran the search for each of thousands of rows.
+  assert.match(SRC, /variantFoot\(p, \{ deckAt: variantPlace\(p\) \}\)/, 'a row opens the deck at itself');
+  assert.match(SRC, /variantPlace\(p\) \{ return variantAt\.get\(p\.id\) \?\? 0; \}/, 'its place is its index in the filtered list');
 });
 
 test('a run the collection\'s proposals cite is listed from them, and ?run= marks it', async () => {
