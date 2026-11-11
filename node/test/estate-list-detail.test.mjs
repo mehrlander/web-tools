@@ -273,7 +273,7 @@ test('both tabs declare the list and detail, each row a compact item', async () 
 
 test("a card holds its snag's title, links, dates, entry and notes, and a row tap moves the card", async () => {
   await open('snag', 'a-count-off-by-one');
-  await until(() => text(head('snag')) === '2 1/3', "the head row: the snag's notes and the counter, and no name the card gives");
+  await until(() => text(head('snag')) === '2 2 1/3', "the head row: how often the snag bit, its notes and the counter, and no name the card gives");
   const card = cardOf('snag', 'a-count-off-by-one');
   await until(() => /Fixed by the gate/.test(text(card)), 'the notes left on the snag');
   assert.equal(text(card.querySelector('[data-part="title"]')), 'the row count was off by one after a sort');
@@ -286,21 +286,43 @@ test("a card holds its snag's title, links, dates, entry and notes, and a row ta
 
   click(snagRoot().querySelector('[data-snag="a-door-left-open"]'));
   await shown('snag', 'a-door-left-open');
-  assert.equal(text(head('snag')), '2/3');
+  assert.equal(text(head('snag')), '1 2/3', 'bitten once, and no notes');
   assert.equal(text(cardOf('snag', 'a-door-left-open').querySelector('[data-part="title"]')), 'a panel stayed open behind the next one');
 });
 
-test("the head row carries what a row carried: the snag's notes, Again, Edit and Delete", async () => {
+// "It happened again" read as a refresh while it was a circular arrow among
+// the head's other controls. It is a vote: an up arrow and the count it adds
+// to, alone at the head row's left end.
+test('the vote leads the head row: an up arrow and how many dates the snag bit, and a tap adds today', async () => {
   await open('snag', 'a-count-off-by-one');
-  const act = (label) => head('snag').querySelector(`[data-part="actions"] [aria-label="${label}"]`);
-  await until(() => text(act('Notes about this item')) === '2', "the notes button's count");
+  const vote = () => head('snag').querySelector('[aria-label="It happened again today"]');
+  await until(() => vote() && text(vote()) === '2', 'the count of dates');
+  assert.equal(head('snag').querySelector('button'), vote(), "the head row's first control, at its left end");
+  assert.equal(vote().closest('[data-part="actions"]'), vote(), 'on its own, outside the group Edit and Delete share');
+  assert.ok(vote().querySelector('i.ph-arrow-fat-up'));
+  assert.equal(vote().getAttribute('data-title-tip'), 'It happened again today');
+  assert.ok(vote().className.includes('[@media(hover:none)]:min-h-10') && vote().className.includes('[@media(hover:none)]:min-w-10'), 'one thumb-sized target');
+  assert.ok(!/(^| )text-warning( |$)/.test(vote().className), 'quiet while the add box is empty');
+  data.snagDraft = 'count sort';
+  await until(() => /(^| )text-warning( |$)/.test(vote().className), 'the warning tone while the add box holds text');
+  data.snagDraft = '';
+  await until(() => !/(^| )text-warning( |$)/.test(vote().className), 'and quiet again when it is cleared');
 
-  click(act('It happened again today'));
+  click(vote());
   const today = data.todayYmd();
   await until(() => JSON.parse(FILES['lists/snag.json']).items.find(x => x.id === 'a-count-off-by-one').seen.at(-1) === today, 'Again to be saved');
   assert.deepEqual(JSON.parse(FILES['lists/snag.json']).items.find(x => x.id === 'a-count-off-by-one').seen, ['2026-10-01', '2026-10-03', today]);
+  await until(() => text(vote()) === '3', 'the count to follow the written list');
   await until(() => text(cardOf('snag', 'a-count-off-by-one').querySelector('[data-part="meta"]')).includes(today),
-    'the card to redraw from the written list');
+    'the card to redraw from the written list, which keeps the dates');
+  await data.takeUndo();
+  await until(() => text(vote()) === '2', 'the undo to take the date back');
+});
+
+test("the head row carries what else a row carried: the snag's notes, Edit and Delete", async () => {
+  await open('snag', 'a-count-off-by-one');
+  const act = (label) => head('snag').querySelector(`[data-part="actions"] [aria-label="${label}"]`);
+  await until(() => text(act('Notes about this item')) === '2', "the notes button's count");
 
   click(act('Edit'));
   const card = cardOf('snag', 'a-count-off-by-one');
@@ -325,7 +347,7 @@ test('deleting the snag in view hands the card to the row that took its place', 
   click(head('snag').querySelector('[aria-label="Delete"]'));
   await shown('snag', 'a-third-thing');
   assert.deepEqual(rowIds('snag'), ['a-count-off-by-one', 'a-third-thing']);
-  assert.equal(text(head('snag')), '2/2');
+  assert.equal(text(head('snag')), '1 2/2');
 });
 
 test('the add box narrows the list, and the first match takes the card', async () => {
@@ -439,9 +461,9 @@ test('a card keeps its links to one row, its icon controls thumb-sized on touch,
   const snag = cardOf('snag', 'a-count-off-by-one');
   assert.match(snag.querySelector('[data-part="links"]').className, /flex-nowrap.*overflow-x-auto/);
   await until(() => snag.querySelector('[aria-label="Reply"]'), 'the notes left on the snag');
-  const controls = [...head('snag').querySelectorAll('[data-part="actions"] button'), ...snag.querySelectorAll('[aria-label="Reply"]'),
-                    links.lastElementChild];
-  assert.equal(controls.length, 7, 'four on the head row, a reply under each of two notes, the funnel');
+  const controls = [...head('snag').querySelectorAll('button[data-part="actions"], [data-part="actions"] button'),
+                    ...snag.querySelectorAll('[aria-label="Reply"]'), links.lastElementChild];
+  assert.equal(controls.length, 7, 'the vote and three more on the head row, a reply under each of two notes, the funnel');
   for (const b of controls) {
     assert.ok(b.className.includes('[@media(hover:none)]:min-h-10') && b.className.includes('[@media(hover:none)]:min-w-10'), text(b) || b.getAttribute('aria-label'));
     if (b.getAttribute('aria-label') !== 'It happened again today') assert.ok(b.className.includes('[@media(hover:none)]:text-base-content/60'));
@@ -507,7 +529,8 @@ test("the head row's door opens the cards full screen at the card in view, and c
   assert.match(text(deckCard(1).querySelector('[data-part="meta"]')), /^a-door-left-open tools Bit 2026-10-02$/);
   assert.match(deckCard(1).querySelector('[data-part="title"]').className, /group-\[\.is-deck\]:text-xl/, "a deck's reading size");
   assert.deepEqual([...overlay().querySelectorAll('.sd-subheader button')].map(b => b.getAttribute('aria-label')),
-    ['Notes about this item', 'It happened again today', 'Edit', 'Delete'], "the snag's four controls, under the header");
+    ['It happened again today', 'Notes about this item', 'Edit', 'Delete'], "the snag's controls under the header, the vote first");
+  assert.equal(text(sub('It happened again today')), '1', 'with its count');
 
   deckTrack().scrollTo({ left: 2 });
   await shown('snag', 'a-third-thing');
@@ -569,9 +592,11 @@ test('edit, Again and Delete act from the takeover, and a form is drawn there an
   assert.equal(text(under.querySelector('[data-part="title"]')), 'the row count was off by three after a sort', 'and under it');
   assert.equal(JSON.parse(FILES['lists/snag.json']).items.find(x => x.id === 'a-count-off-by-one').text, 'the row count was off by three after a sort');
 
+  assert.equal(text(sub('It happened again today')), '2');
   click(sub('It happened again today'));
   const today = data.todayYmd();
   await until(() => JSON.parse(FILES['lists/snag.json']).items.find(x => x.id === 'a-count-off-by-one').seen.at(-1) === today, 'Again to be saved');
+  await until(() => text(sub('It happened again today')) === '3', "the vote's count to follow, in the takeover");
   await until(() => text(card.querySelector('[data-part="meta"]')).includes(today), 'the takeover card to redraw');
   assert.ok(overlay(), 'a write that removes no row leaves the takeover open');
 
