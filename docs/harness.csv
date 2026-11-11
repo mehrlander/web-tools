@@ -45,7 +45,7 @@ node/check-branch-status.mjs,the stated agreement check for the branches view ag
 node/checkout-setup.mjs,"configures checkout hooks and the CSV merge driver, installs browser-free development dependencies, and diagnoses readiness without regenerating tracked artifacts",node,421,npm:setup,.claude/hooks/session-githooks.sh;.claude/hooks/session-start.sh;README.md;node/README.md;node/test/,yes,yes,yes
 node/derived-csv-merge.mjs,"A git merge driver for the registry CSVs: reads docs/properties.csv for which columns a deriver owns, unions the rows on the declared key, and refuses to a normal conflict on anything else. Registered per clone by .claude/hooks/session-githooks.sh.",node,167,imported,node/checkout-setup.mjs;node/test/,yes,no,yes
 node/doc-index-seed.mjs,"seed the document index (state/docs.json in web-tools-private) from local checkouts, so the hourly crawl starts incremental instead of reading every Markdown file in the estate through the API",node,98,argv,,yes,no,no
-node/git-change.mjs,,node,302,argv,,yes,no,yes
+node/git-change.mjs,,node,305,argv,,yes,no,yes
 node/gold-set.mjs,,node,199,npm:gold-set,,yes,yes,no
 node/powershell-units.mjs,Emit PowerShell statement inventories or before/after review units without executing the input,node,50,argv,,yes,no,no
 node/reception-link.mjs,,node,52,npm:reception-link,,no,yes,yes
