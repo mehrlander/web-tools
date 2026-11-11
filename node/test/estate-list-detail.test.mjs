@@ -166,7 +166,7 @@ async function shown(tab, id) {
 async function load() {
   SAVES = [];
   FILES = { 'lists/snag.json': JSON.stringify({ items: SNAGS }), [NOTES]: NOTE_LINES.map(line).join('') };
-  data.snagDraft = ''; data.editId = null; data.undoOffer = null; data.replyTo = null; data.replyDrafts = {};
+  data.snagDraft = ''; data.editId = null; data.undoOffer = null; data.replyTo = null; data.replyDrafts = {}; data.snagNoteDrafts = {};
   data.noteAbout = ''; data.noteKind = '';
   await data.loadSnags(reg());
   await data.loadNotes(reg());
@@ -273,7 +273,7 @@ test('both tabs declare the list and detail, each row a compact item', async () 
 
 test("a card holds its snag's title, links, dates, entry and notes, and a row tap moves the card", async () => {
   await open('snag', 'a-count-off-by-one');
-  await until(() => text(head('snag')) === '2 2 1/3', "the head row: how often the snag bit, its notes and the counter, and no name the card gives");
+  await until(() => text(head('snag')) === '2 1/3', "the head row: how often the snag bit and the counter, and no name the card gives");
   const card = cardOf('snag', 'a-count-off-by-one');
   await until(() => /Fixed by the gate/.test(text(card)), 'the notes left on the snag');
   assert.equal(text(card.querySelector('[data-part="title"]')), 'the row count was off by one after a sort');
@@ -286,7 +286,7 @@ test("a card holds its snag's title, links, dates, entry and notes, and a row ta
 
   click(snagRoot().querySelector('[data-snag="a-door-left-open"]'));
   await shown('snag', 'a-door-left-open');
-  assert.equal(text(head('snag')), '1 2/3', 'bitten once, and no notes');
+  assert.equal(text(head('snag')), '1 2/3', 'bitten once');
   assert.equal(text(cardOf('snag', 'a-door-left-open').querySelector('[data-part="title"]')), 'a panel stayed open behind the next one');
 });
 
@@ -319,10 +319,13 @@ test('the vote leads the head row: an up arrow and how many dates the snag bit, 
   await until(() => text(vote()) === '2', 'the undo to take the date back');
 });
 
-test("the head row carries what else a row carried: the snag's notes, Edit and Delete", async () => {
+test('the head row carries Edit and Delete beside the vote, and no door to the Note tab', async () => {
   await open('snag', 'a-count-off-by-one');
   const act = (label) => head('snag').querySelector(`[data-part="actions"] [aria-label="${label}"]`);
-  await until(() => text(act('Notes about this item')) === '2', "the notes button's count");
+  await until(() => act('Edit'), 'the head row');
+  assert.deepEqual([...head('snag').querySelectorAll('button')].map(b => b.getAttribute('aria-label')).slice(0, 3),
+    ['It happened again today', 'Edit', 'Delete'], "ahead of the kit's counter and door");
+  assert.equal(head('snag').querySelector('[aria-label="Notes about this item"]'), null, "the snag's notes are in its card");
 
   click(act('Edit'));
   const card = cardOf('snag', 'a-count-off-by-one');
@@ -333,13 +336,64 @@ test("the head row carries what else a row carried: the snag's notes, Edit and D
   click(card.querySelector('[aria-label="Save"]'));
   await until(() => text(card.querySelector('[data-part="title"]')) === 'the row count was off by two after a sort', 'the saved title in the card');
   assert.ok(card.isConnected, "a write that leaves the rows as they were keeps the card, and the reader's place in it");
+});
 
-  click(act('Notes about this item'));
-  assert.equal(window.__shell.listsTab, 'note');
-  assert.equal(data.noteAbout, REGISTRY + ':lists/snag.json#a-count-off-by-one');
-  await until(() => rowIds('note').join() === 'n1', 'the list the count counted: the note at the old address, its reply in its card');
-  await shown('note', 'n1');
-  data.noteAbout = '';
+// The head row's bubble opened the Note tab filtered to the snag: a detour,
+// since the card lists the snag's notes. A note is written where they are.
+const noteBox = (card) => card.querySelector('input[aria-label="A note about this snag"]');
+const lastNote = () => JSON.parse(FILES[NOTES].trim().split('\n').at(-1));
+test('a note about a snag is written in its card, under its notes, and a card with none has the box too', async () => {
+  await open('snag', 'a-door-left-open');
+  const bare = cardOf('snag', 'a-door-left-open');
+  await until(() => noteBox(bare), 'the note box on a snag with no notes');
+  assert.equal(bare.querySelector('[aria-label="Reply"]'), null);
+  assert.equal(noteBox(bare).form.querySelector('button[type="submit"]').disabled, true, 'nothing to send yet');
+
+  click(snagRoot().querySelector('[data-snag="a-count-off-by-one"]'));
+  await shown('snag', 'a-count-off-by-one');
+  const card = cardOf('snag', 'a-count-off-by-one');
+  await until(() => card.querySelectorAll('[aria-label="Reply"]').length === 2, 'the notes left on the snag');
+  const box = noteBox(card), form = box.form;
+  assert.ok(card.querySelectorAll('[aria-label="Reply"]')[1].compareDocumentPosition(box) & window.Node.DOCUMENT_POSITION_FOLLOWING,
+    'the box follows the last of the notes');
+  assert.match(box.className, /input input-bordered input-sm text-base flex-1 min-w-0/, "the reply form's classes");
+  type(box, '  Twice more this week.  ');
+  await until(() => !form.querySelector('button[type="submit"]').disabled, 'the send control to wake');
+  form.dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
+  await until(() => lastNote().text === 'Twice more this week.', 'the note to be saved');
+  assert.equal(lastNote().about, REGISTRY + ':lists/snag.json#a-count-off-by-one', "the snag's own address in its list");
+  assert.equal(lastNote().author, 'me');
+  await until(() => /Twice more this week\. me /.test(text(card)), 'the note among the notes in the card');
+  await until(() => box.value === '' && !('a-count-off-by-one' in data.snagNoteDrafts), 'the box to empty once the note is saved');
+  assert.ok(card.isConnected && noteBox(card) === box, 'in the card it was typed in');
+  await until(() => SCROLLED.at(-1) === form, 'the box to be kept in view under the note that landed above it');
+  assert.equal(window.__shell.listsTab, 'snag', 'and the reader is still on the Snag tab');
+  const rows = [...snagRoot().querySelectorAll('[data-snag]')];
+  await until(() => text(rows[0].querySelector('[data-part="meta"]').children[2]) === '3', "the row's count of notes to follow");
+});
+
+test('what is typed in a note box stays with its snag across cards, and through a save that is refused', async () => {
+  await open('snag', 'a-count-off-by-one');
+  const card = () => cardOf('snag', 'a-count-off-by-one');
+  await until(() => noteBox(card()), 'the note box');
+  type(noteBox(card()), 'not saved yet');
+  click(snagRoot().querySelector('[data-snag="a-third-thing"]'));
+  await shown('snag', 'a-third-thing');
+  assert.equal(noteBox(cardOf('snag', 'a-third-thing')).value, '', "another snag's box is its own");
+  track('snag').scrollTo({ left: 0 });
+  await shown('snag', 'a-count-off-by-one');
+  assert.equal(noteBox(card()).value, 'not saved yet', 'a swipe back finds the text');
+
+  const req = FakeGH.prototype.req, lines = FILES[NOTES];
+  FakeGH.prototype.req = async function (path, opts) {
+    if (opts?.method === 'PUT') throw Object.assign(new Error('500'), { status: 500 });
+    return req.call(this, path, opts);
+  };
+  await data.addSnagNote(data.snagItems.find(x => x.id === 'a-count-off-by-one'));
+  FakeGH.prototype.req = req;
+  assert.equal(FILES[NOTES], lines, 'nothing was written');
+  assert.equal(noteBox(card()).value, 'not saved yet', 'and the text is still in the box');
+  assert.equal(data.snagNoteBusy, false, 'which can be sent again');
 });
 
 test('deleting the snag in view hands the card to the row that took its place', async () => {
@@ -463,7 +517,7 @@ test('a card keeps its links to one row, its icon controls thumb-sized on touch,
   await until(() => snag.querySelector('[aria-label="Reply"]'), 'the notes left on the snag');
   const controls = [...head('snag').querySelectorAll('button[data-part="actions"], [data-part="actions"] button'),
                     ...snag.querySelectorAll('[aria-label="Reply"]'), links.lastElementChild];
-  assert.equal(controls.length, 7, 'the vote and three more on the head row, a reply under each of two notes, the funnel');
+  assert.equal(controls.length, 6, 'the vote, Edit and Delete on the head row, a reply under each of two notes, the funnel');
   for (const b of controls) {
     assert.ok(b.className.includes('[@media(hover:none)]:min-h-10') && b.className.includes('[@media(hover:none)]:min-w-10'), text(b) || b.getAttribute('aria-label'));
     if (b.getAttribute('aria-label') !== 'It happened again today') assert.ok(b.className.includes('[@media(hover:none)]:text-base-content/60'));
@@ -529,7 +583,7 @@ test("the head row's door opens the cards full screen at the card in view, and c
   assert.match(text(deckCard(1).querySelector('[data-part="meta"]')), /^a-door-left-open tools Bit 2026-10-02$/);
   assert.match(deckCard(1).querySelector('[data-part="title"]').className, /group-\[\.is-deck\]:text-xl/, "a deck's reading size");
   assert.deepEqual([...overlay().querySelectorAll('.sd-subheader button')].map(b => b.getAttribute('aria-label')),
-    ['It happened again today', 'Notes about this item', 'Edit', 'Delete'], "the snag's controls under the header, the vote first");
+    ['It happened again today', 'Edit', 'Delete'], "the snag's controls under the header, the vote first");
   assert.equal(text(sub('It happened again today')), '1', 'with its count');
 
   deckTrack().scrollTo({ left: 2 });
@@ -578,7 +632,7 @@ test('the takeover stops short of the floating panel button while it is open, an
   await shown('snag', 'a-door-left-open');
 });
 
-test('edit, Again and Delete act from the takeover, and a form is drawn there and not in the strip under it', async () => {
+test('edit, Again, a note and Delete act from the takeover, and a form is drawn there and not in the strip under it', async () => {
   await open('snag', 'a-count-off-by-one');
   await door('snag', 0);
   const card = deckCard(0), under = cardOf('snag', 'a-count-off-by-one');
@@ -599,6 +653,15 @@ test('edit, Again and Delete act from the takeover, and a form is drawn there an
   await until(() => text(sub('It happened again today')) === '3', "the vote's count to follow, in the takeover");
   await until(() => text(card.querySelector('[data-part="meta"]')).includes(today), 'the takeover card to redraw');
   assert.ok(overlay(), 'a write that removes no row leaves the takeover open');
+
+  await until(() => noteBox(card), "the takeover card's note box");
+  type(noteBox(card), 'Noted from the full screen.');
+  noteBox(card).form.dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
+  await until(() => lastNote().text === 'Noted from the full screen.', 'the note to be saved from the takeover');
+  assert.equal(lastNote().about, REGISTRY + ':lists/snag.json#a-count-off-by-one');
+  await until(() => /Noted from the full screen\. me /.test(text(card)) && /Noted from the full screen\. me /.test(text(under)),
+    'the note in the takeover card and in the card under it');
+  assert.ok(overlay(), 'and the takeover stays open');
 
   click(sub('Delete'));
   await closed();
