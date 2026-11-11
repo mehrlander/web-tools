@@ -1,7 +1,10 @@
 // alpineComponents/estate.js — the Lists view's Note section: load, the about
-// field as prefix filter and address, replies nested under their note, and the
-// note key on a jot row that addresses the next note to that jot. Driven over a
-// fake GH holding notes/notes.jsonl in the registry; no network, no pixels.
+// field as prefix filter and address, replies nested under their note, the
+// note key on a jot row that addresses the next note to that jot, and what the
+// tab's list, chips and cards read: a note that answers no other as a list
+// item, the kinds of thing the notes are about with their counts, a card's
+// thread, and each subject as a link. Driven over a fake GH holding
+// notes/notes.jsonl in the registry; no network, no pixels.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -55,6 +58,7 @@ window.GH = FakeGH;
 window.__shell = {
   REGISTRY_REPO: REGISTRY, DEFAULT_REPO: 'me/tools', quickLinks: [],
   hasToken: () => true, _authState: 'auth', refreshConfigCache() {}, refreshActivity() {},
+  listsTab: 'note', goListsTab(tab) { this.listsTab = tab; },
 };
 
 const Alpine = await startAlpine(window, [
@@ -62,6 +66,7 @@ const Alpine = await startAlpine(window, [
   'lib/kits/surface.js',
   'lib/kits/repo-address.js',
   'lib/kits/notes.js',
+  'lib/kits/findings.js',
   'lib/kits/lists.js',
   'lib/alpineComponents/estate.js',
 ]);
@@ -126,4 +131,112 @@ test('an about that is not a locator cannot be submitted', () => {
   assert.equal(data.noteAboutOk, false);
   data.noteAbout = 'o/r:docs/X.md#a-slug';
   assert.equal(data.noteAboutOk, true);
+});
+
+// The list and its cards. Invented notes, one of each kind of subject.
+const KINDS = [
+  { id: 'n1', at: '2026-10-01T00:00:00Z', author: 'me', about: 'o/r#12', text: 'Merged cleanly. Nothing else to do.' },
+  { id: 'n2', at: '2026-10-02T00:00:00Z', author: 'claude/a-branch', about: 'o/r@claude/a-branch', text: 'branch origin' },
+  { id: 'n3', at: '2026-10-03T00:00:00Z', author: 'me', about: 'o/r:docs/X.md#a-heading', text: 'a doc note' },
+  { id: 'n4', at: '2026-10-04T00:00:00Z', author: 'me', about: 'o/r', text: 'about the repo' },
+  { id: 'n5', at: '2026-10-05T00:00:00Z', author: 'me', about: REGISTRY + ':sessions/2026/10/2026-10-05-0e71fee7.json', text: 'a session note' },
+  { id: 'n6', at: '2026-10-06T00:00:00Z', author: 'gemini', about: REGISTRY + ':user-calls/a710e806-two-step-topics.json', text: 'still holds' },
+  { id: 'n7', at: '2026-10-07T00:00:00Z', author: 'me', about: REGISTRY + ':lists/jot.json#j1', text: 'a jot note' },
+  { id: 'n8', at: '2026-10-08T00:00:00Z', author: 'me', about: 'o/tools:docs/SNAGS.md#a-slug', text: 'on the old snag address' },
+  { id: 'n9', at: '2026-10-09T00:00:00Z', author: 'me', about: 'o/r#14', text: 'second pull request note' },
+  { id: 'r1', at: '2026-10-10T00:00:00Z', author: 'me', about: 'note:n1', text: 'a reply' },
+  { id: 'r2', at: '2026-10-11T00:00:00Z', author: 'me', about: 'note:r1', text: 'a reply to the reply' },
+  { id: 'f1', at: '2026-10-12T00:00:00Z', author: 'claude/tend', about: 'o/r#12', text: 'Nothing tracks the follow-up.',
+    finding: { kind: 'answer', subjects: ['o/r#12', 'o/r@claude/a-branch', REGISTRY + ':lists/snag.json#a-slug', 'o/tools:docs/SNAGS.md#a-slug'],
+               why: 'The thread closed with the merge.', next: 'Ask the owner.', evidence: ['one', 'two'] } },
+];
+
+async function seedKinds() {
+  FILE = { text: KINDS.map(line).join(''), sha: 's' + ++SHA };
+  await data.loadNotes(reg());
+  data.noteAbout = ''; data.noteKind = '';
+  data.snagItems = [{ id: 'a-slug', text: 'a snag title', repo: 'o/tools', seen: ['2026-10-01'] }];
+}
+
+test('the list holds the notes that answer no other, newest first, and the tab counts them', async () => {
+  await seedKinds();
+  assert.equal(data.noteList.map(n => n.id).join(' '), 'f1 n9 n8 n7 n6 n5 n4 n3 n2 n1');
+  assert.equal(data.noteRows.length, 12, 'the replies are still notes');
+  assert.equal(data.listTabs.find(t => t.key === 'note').count, 10);
+  assert.equal(data.noteReplies(data.noteList.at(-1)), 2);
+  assert.equal(data.noteTitle(data.noteList.at(-1)), 'Merged cleanly');
+});
+
+test('the About chips count the notes by the kind of thing each is about, and one narrows the list', async () => {
+  await seedKinds();
+  assert.equal(data.noteKinds.map(k => k.label + ' ' + k.n).join(', '),
+    'Pull request 3, List item 2, Branch 1, File 1, Repo 1, Session 1, User call 1', 'most first, then by name');
+  data.noteKind = 'list';
+  assert.equal(data.noteList.map(n => n.id).join(' '), 'n8 n7');
+  data.noteAbout = 'o/r';
+  assert.equal(data.noteList.length, 0);
+  assert.equal(data.noteKinds.map(k => k.key + k.n).join(' '), 'pull3 branch1 file1 repo1 list0', 'the chosen kind keeps its chip at zero');
+  data.noteOn(data.JOT_PATH, { id: 'j1' });
+  assert.equal(data.noteKind, '', "a row's note button lets the chip go, so its notes are not hidden");
+  assert.equal(data.noteList.map(n => n.id).join(' '), 'n7');
+  data.noteAbout = '';
+});
+
+test("a card reads its note with the thread as rows, and nothing for a note that is gone", async () => {
+  await seedKinds();
+  const [root] = data.noteFor('n1');
+  assert.equal(root.rows.map(n => n.id + n.depth).join(' '), 'n10 r11 r22');
+  assert.equal(data.noteFor('no-such-note').length, 0);
+});
+
+test('a subject is a link pill that opens where the thing lives', async () => {
+  await seedKinds();
+  const pill = (about) => { const p = data.aboutPill(about); return [p.icon, p.label, p.href, p.out].join(' | '); };
+  assert.equal(pill('o/r#12'), 'ph-git-pull-request | r #12 | https://github.com/o/r/pull/12 | true');
+  assert.equal(pill('o/r@claude/a-branch'), 'ph-git-branch | r / a-branch | https://mehrlander.github.io/web-tools/pages/branch.html#gh=o/r@claude/a-branch | true');
+  assert.equal(pill('o/r:docs/X.md#a-heading'), 'ph-file-text | r X.md#a-heading | https://github.com/o/r/blob/HEAD/docs/X.md#a-heading | true');
+  assert.equal(pill('o/r@feat/x:lib/a.js'), 'ph-file-text | r a.js | https://github.com/o/r/blob/feat/x/lib/a.js | true');
+  assert.equal(pill('o/r'), 'ph-folder | r | https://github.com/o/r | true');
+  assert.equal(pill(REGISTRY + ':sessions/2026/10/2026-10-05-0e71fee7.json'),
+    'ph-terminal-window | session 0e71fee7 | https://mehrlander.github.io/web-tools/pages/session.html#id=0e71fee7 | true');
+  assert.match(pill(REGISTRY + ':user-calls/a710e806-two-step-topics.json'), /^ph-tray \| call two-step-topics \| /);
+  assert.equal(pill(REGISTRY + ':lists/snag.json#a-slug'), 'ph-list-bullets | snag: a snag title | ?view=lists&tab=snag | false');
+  assert.equal(pill('o/tools:docs/SNAGS.md#a-slug'), 'ph-list-bullets | snag: a snag title | ?view=lists&tab=snag | false');
+  assert.equal(pill(REGISTRY + ':lists/jot.json#j1'), 'ph-list-bullets | jot: an idea | ?view=lists&tab=jot | false');
+  assert.equal(pill('o/r:lists/no-such-list.json#x'), 'ph-list-bullets | o/r:lists/no-such-list.json#x |  | false', 'a list this registry does not hold opens nothing');
+});
+
+test('a list item pill opens its Lists tab, a snag with its card', async () => {
+  await seedKinds();
+  data.snagDraft = 'filtering'; data.snagOpen = '';
+  data.aboutPill('o/tools:docs/SNAGS.md#a-slug').go();
+  assert.equal(window.__shell.listsTab, 'snag');
+  assert.equal(data.snagOpen, 'a-slug');
+  assert.equal(data.snagDraft, '', 'out from under the add box filter');
+});
+
+test('a finding is read with its thread, and its card links every subject once', async () => {
+  await seedKinds();
+  const f1 = data.noteList[0];
+  assert.equal(data.findingKind(f1).label + ', ' + data.findingState(f1), 'Decision in Waiting, open');
+  assert.equal(data.noteFinding(data.noteList[1]), null, 'a plain note has none');
+  assert.equal(data.notePills(f1).map(p => p.label).join(' | '), 'r #12 | r / a-branch | snag: a snag title',
+    'the snag named at both of its addresses is one pill');
+  assert.equal(data.notePills(data.noteList[1]).map(p => p.label).join(' | '), 'r #14');
+  FILE = { text: FILE.text + line({ id: 'f2', at: '2026-10-13T00:00:00Z', author: 'me', about: 'note:f1', text: 'Handled.', finding: { status: 'resolved' } }), sha: 's' + ++SHA };
+  await data.loadNotes(reg());
+  assert.equal(data.findingState(data.noteList[0]), 'handled');
+});
+
+test('a note just added takes the card when the chosen chip lets it into the list', async () => {
+  await seedKinds();
+  data.noteOpen = 'n1';
+  data.noteAbout = 'o/r#30'; data.noteDraft = 'a new one';
+  await data.addNote();
+  assert.equal(data.noteItems.find(n => n.id === data.noteOpen)?.text, 'a new one');
+  data.noteKind = 'file'; data.noteOpen = 'n3';
+  data.noteAbout = 'o/r#31'; data.noteDraft = 'hidden by the chip';
+  await data.addNote();
+  assert.equal(data.noteOpen, 'n3');
+  data.noteAbout = ''; data.noteKind = '';
 });
