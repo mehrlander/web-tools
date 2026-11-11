@@ -5,8 +5,9 @@
 // x-show revealed it, a row tap that leaves the card on the last snag, a card
 // that keeps a written item's old text, a control the flat rows had that the
 // card dropped (Again, Edit, Delete, a row's notes, Reply), a delete that
-// throws the reader back to the top of the list, and a chip that narrows the
-// list under a card it no longer holds. jsdom has no layout, so the strip's
+// throws the reader back to the top of the list, a chip that narrows the
+// list under a card it no longer holds, and a takeover whose next arrow sits
+// under the floating panel button. jsdom has no layout, so the strip's
 // geometry is stubbed as the swipe-deck tests stub it; the pixels are the
 // headless scenarios' business. Every snag and note here is invented.
 
@@ -506,6 +507,44 @@ test("the head row's door opens the cards full screen at the card in view, and c
   click(overlay().querySelector('[aria-label="Close"]'));
   await closed();
   await shown('snag', 'a-third-thing');
+});
+
+// The floating panel button paints above everything at the bottom right,
+// where the takeover's footer puts its next arrow. Without this the arrow is
+// under the button on a phone, and the band left for the button shows the
+// foot of the card under the takeover.
+test('the takeover stops short of the floating panel button while it is open, and gives the room back', async () => {
+  const frame = doc.documentElement.style, room = () => frame.getPropertyValue('--deck-bottom');
+  await open('snag', 'a-door-left-open');
+  await door('snag', 1);
+  assert.equal(room(), '', 'no button on the page, nothing reserved');
+  click(overlay().querySelector('[aria-label="Close"]'));
+  await closed();
+
+  // The button's mount, kept from Alpine: only its presence is read.
+  const mount = doc.createElement('div');
+  mount.setAttribute('x-ignore', '');
+  mount.innerHTML = '<div x-data="fab()"></div>';
+  doc.body.append(mount);
+  await door('snag', 1);
+  assert.equal(room(), 'calc(var(--fab-bottom, 1.5rem) + 4rem)', "the band the button's own note dock leaves");
+  await until(() => snagRoot().className.includes('[:root:not([data-deck-pane=dock])_&]:invisible'),
+    'the list and strip under it to go out of sight, unless the takeover is docked beside them');
+  click(overlay().querySelector('[aria-label="Close"]'));
+  await closed();
+  assert.equal(room(), '', 'given back on close');
+  await until(() => !snagRoot().className.includes('invisible'), 'the list and strip back in sight');
+
+  frame.setProperty('--deck-bottom', '12px');
+  await door('snag', 1);
+  assert.equal(room(), 'calc(var(--fab-bottom, 1.5rem) + 4rem)');
+  await go('note');
+  await closed();
+  assert.equal(room(), '12px', "a takeover let go by a change of tab puts back what the page had");
+  frame.removeProperty('--deck-bottom');
+  mount.remove();
+  await go('snag');
+  await shown('snag', 'a-door-left-open');
 });
 
 test('edit, Again and Delete act from the takeover, and a form is drawn there and not in the strip under it', async () => {
