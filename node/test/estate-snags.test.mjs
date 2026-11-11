@@ -1,10 +1,10 @@
 // alpineComponents/estate.js — the Lists pane's Snag list (kits/lists.js,
 // lists/snag.json): load, last-bitten-first order, the add box filtering to a
-// likely repeat, a new snag's id and repo, Again with its undo, an edit of the
-// title and the entry, a delete with its undo, notes addressed to a snag under
-// its new address and the docs/SNAGS.md one older notes carry, what a snag's
-// card reads, and the entry rendered without letting markup through. Driven
-// over a fake GH; no network, no pixels.
+// likely repeat, a row's short name, a new snag's id and repo, Again with its
+// undo, an edit of the title and the entry, a delete with its undo, notes
+// addressed to a snag under its new address and the docs/SNAGS.md one older
+// notes carry, what a snag's card reads, and the entry rendered without
+// letting markup through. Driven over a fake GH; no network, no pixels.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -128,6 +128,21 @@ test('rows run last bitten first, and the add box keeps only the snags holding e
   assert.deepEqual(ids(data.snagRows), ['gate-skipped-the-new-folder']);
   data.snagDraft = 'a an';                       // words of two letters or fewer filter nothing
   assert.equal(data.snagRows.length, 3);
+  data.snagDraft = '';
+});
+
+test("a row is titled by the snag's short name, its own or its id read as words, and the add box finds it by either", async () => {
+  await seed([...SNAGS, { id: 'a-late-row', name: 'Tally before the tail', text: 'the sum was taken before the last line arrived',
+    repo: 'mehrlander/web-tools', seen: ['2026-07-01'], created_at: '2026-07-01T09:00:00.000Z' }]);
+  const by = (id) => data.snagItems.find(x => x.id === id);
+  assert.equal(data.snagName(by('gate-skipped-the-new-folder')), 'Gate skipped the new folder', 'the id, hyphens as spaces, a capital first');
+  assert.equal(data.snagName(by('a-late-row')), 'Tally before the tail', 'its own name where it has one');
+  data.snagDraft = 'tally tail';                 // the name is searched
+  assert.deepEqual(ids(data.snagRows), ['a-late-row']);
+  data.snagDraft = 'late row';                   // and the id still is
+  assert.deepEqual(ids(data.snagRows), ['a-late-row']);
+  data.snagDraft = 'sum last line';              // as the statement is
+  assert.deepEqual(ids(data.snagRows), ['a-late-row']);
   data.snagDraft = '';
 });
 

@@ -125,7 +125,8 @@ const SNAGS = [
   { id: 'a-count-off-by-one', text: 'the row count was off by one after a sort', note: 'The **sort** ran before the last row arrived.',
     repo: 'o/tools', seen: ['2026-10-01', '2026-10-03'], targets: ['o/tools:python/scan.py', 'o/tools:node/test/scan.test.mjs'],
     created_at: '2026-10-01T10:00:00.000Z' },
-  { id: 'a-door-left-open', text: 'a panel stayed open behind the next one', repo: 'o/tools', seen: ['2026-10-02'], created_at: '2026-10-02T10:00:00.000Z' },
+  { id: 'a-door-left-open', name: 'Stale drawer', text: 'a panel stayed open behind the next one', repo: 'o/tools', seen: ['2026-10-02'],
+    created_at: '2026-10-02T10:00:00.000Z' },
   { id: 'a-third-thing', text: 'a third thing went wrong', repo: 'o/other', seen: ['2026-09-01'], created_at: '2026-09-01T10:00:00.000Z' },
 ];
 const NOTE_LINES = [
@@ -255,7 +256,11 @@ test('both tabs declare the list and detail, each row a compact item', async () 
   }
   const rows = [...snagRoot().querySelectorAll('[data-snag]')];
   assert.deepEqual(rows.map(r => r.dataset.snag), ['a-count-off-by-one', 'a-door-left-open', 'a-third-thing'], 'last bitten first');
-  assert.equal(text(rows[0].querySelector('[data-part="title"]')), 'the row count was off by one after a sort');
+  // A row is titled by the snag's short name on one line: its id read as
+  // words, or its own name. The statement, two lines long, is the card's.
+  assert.equal(text(rows[0].querySelector('[data-part="title"]')), 'A count off by one');
+  assert.equal(text(rows[1].querySelector('[data-part="title"]')), 'Stale drawer');
+  for (const row of rows) assert.match(row.querySelector('[data-part="title"]').className, /\btruncate\b/, 'one line, cut short where it runs over');
   // One meta line, each fact in a slot of its own: the repo, how often, its
   // notes, how lately. A slot with nothing to say stays, empty, so the next
   // one sits where it does on every row.
@@ -329,6 +334,9 @@ test('the add box narrows the list, and the first match takes the card', async (
   await shown('snag', 'a-third-thing');
   assert.deepEqual(rowIds('snag'), ['a-third-thing']);
   assert.match(text(cardOf('snag', 'a-third-thing').querySelector('[data-part="meta"]')), /^a-third-thing /);
+  data.snagDraft = 'stale drawer';
+  await shown('snag', 'a-door-left-open');
+  assert.deepEqual(rowIds('snag'), ['a-door-left-open'], 'a name is matched as the statement and the id are');
   data.snagDraft = '';
 });
 
