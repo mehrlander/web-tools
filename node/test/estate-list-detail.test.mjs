@@ -68,6 +68,9 @@ window.cancelAnimationFrame = global.cancelAnimationFrame = (id) => clearTimeout
 let BOXLESS = false;
 const hiddenBy = (el) => { for (let e = el; e && e.style; e = e.parentElement) if (e.style.display === 'none') return true; return false; };
 window.Element.prototype.getClientRects = function () { return this.isConnected && !BOXLESS && !hiddenBy(this) ? [{}] : []; };
+// jsdom scrolls nothing; what was asked to come into view is kept.
+const SCROLLED = [];
+window.Element.prototype.scrollIntoView = function () { SCROLLED.push(this); };
 window.TOKEN = 'tkn';
 window.GH = FakeGH;
 window.__shell = {
@@ -363,6 +366,9 @@ test('a reply is written from the card, under the note it answers', async () => 
   click(card.querySelector('[aria-label="Reply"]'));
   await until(() => card.querySelector('form input'), 'the reply form under the note');
   assert.equal(doc.activeElement, card.querySelector('form input'), 'a form the reader opened takes focus');
+  await until(() => SCROLLED.at(-1) === card.querySelector('form'), 'the form to be brought into view');
+  assert.match(card.querySelector('form').className, /max-sm:scroll-mb-\[calc\(var\(--fab-bottom,1\.5rem\)\+4rem\)\]/,
+    'clear of the floating panel button, which sits where a form at the end of the card opens');
   type(card.querySelector('form input'), 'agreed');
   card.querySelector('form').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
   await until(() => JSON.parse(FILES[NOTES].trim().split('\n').at(-1)).text === 'agreed', 'the reply to be saved');
