@@ -134,8 +134,8 @@ test('a page locator is the file without its ref, from a blob URL or a toss link
 // under the wrong kind of subject, a link pill opens the wrong place, and a
 // title runs on past its sentence or stops inside a file name.
 const SUBJECTS = [
-  ['o/r:sessions/2026/10/2026-10-22-0e71fee7.json', 'session'],
-  ['o/r:user-calls/a710e806-two-step-topics.json', 'call'],
+  ['o/r:sessions/2026/10/2026-10-14-4b1d9c3e.json', 'session'],
+  ['o/r:user-calls/7e2c4a19-plain-row-labels.json', 'call'],
   ['o/r:lists/jot.json#j1', 'list'],
   ['o/r:lists/snag.json#a-slug', 'list'],
   ['o/tools:docs/SNAGS.md#a-slug', 'list'],
@@ -162,9 +162,9 @@ test('a locator reads as the kind of thing it names, and every kind has a label 
 
 test('a subject carries what a link to it is built from', () => {
   const pick = (about, keys) => { const s = N.subject(about); return Object.fromEntries(keys.map(k => [k, s[k]])); };
-  assert.deepEqual(pick('o/r:sessions/2026/10/2026-10-22-0e71fee7.json', ['repo', 'path', 'name', 'short']),
-    { repo: 'o/r', path: 'sessions/2026/10/2026-10-22-0e71fee7.json', name: '2026-10-22-0e71fee7', short: '0e71fee7' });
-  assert.deepEqual(pick('o/r:user-calls/a710e806-two-step-topics.json', ['repo', 'name']), { repo: 'o/r', name: 'a710e806-two-step-topics' });
+  assert.deepEqual(pick('o/r:sessions/2026/10/2026-10-14-4b1d9c3e.json', ['repo', 'path', 'name', 'short']),
+    { repo: 'o/r', path: 'sessions/2026/10/2026-10-14-4b1d9c3e.json', name: '2026-10-14-4b1d9c3e', short: '4b1d9c3e' });
+  assert.deepEqual(pick('o/r:user-calls/7e2c4a19-plain-row-labels.json', ['repo', 'name']), { repo: 'o/r', name: '7e2c4a19-plain-row-labels' });
   assert.deepEqual(pick('o/r:lists/jot.json#j1', ['repo', 'path', 'list', 'id']), { repo: 'o/r', path: 'lists/jot.json', list: 'jot', id: 'j1' });
   assert.deepEqual(pick('o/tools:docs/SNAGS.md#a-slug', ['repo', 'list', 'id']), { repo: 'o/tools', list: 'snag', id: 'a-slug' },
     'a snag keeps the address its entry had in the Markdown log');
@@ -203,11 +203,12 @@ test('a note is titled by its first sentence, cut at a word when it runs long', 
   assert.equal(N.title(''), '');
   assert.equal(N.title(null), '');
 
-  const long = 'Reassessed 2026-10-29: the layers doc was cut to its admission rules but still classes a file that registers a namespace as a kit, and nothing else moved.';
+  const long = 'Checked 2026-03-07: the harness table lost two rows in the last merge and still lists a script nobody runs, and the count beside it is stale.';
   const cut = N.title(long);
-  assert.equal(cut, 'Reassessed 2026-10-29: the layers doc was cut to its admission rules but still classes a…');
+  assert.equal(cut, 'Checked 2026-03-07: the harness table lost two rows in the last merge and still lists a…');
   assert.ok(cut.length <= 90);
-  assert.equal(N.title(long, 30), 'Reassessed 2026-10-29: the…');
+  assert.equal(N.title(long, 30), 'Checked 2026-03-07: the…');
+  assert.equal(N.title(long, 21), 'Checked 2026-03-07…', 'a cut that lands on a mark drops it');
   assert.equal(N.title('x'.repeat(200), 20), 'x'.repeat(19) + '…', 'a run with no space is cut where it stands');
 });
 

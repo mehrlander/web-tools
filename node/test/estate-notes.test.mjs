@@ -139,14 +139,14 @@ const KINDS = [
   { id: 'n2', at: '2026-10-02T00:00:00Z', author: 'claude/a-branch', about: 'o/r@claude/a-branch', text: 'branch origin' },
   { id: 'n3', at: '2026-10-03T00:00:00Z', author: 'me', about: 'o/r:docs/X.md#a-heading', text: 'a doc note' },
   { id: 'n4', at: '2026-10-04T00:00:00Z', author: 'me', about: 'o/r', text: 'about the repo' },
-  { id: 'n5', at: '2026-10-05T00:00:00Z', author: 'me', about: REGISTRY + ':sessions/2026/10/2026-10-05-0e71fee7.json', text: 'a session note' },
-  { id: 'n6', at: '2026-10-06T00:00:00Z', author: 'gemini', about: REGISTRY + ':user-calls/a710e806-two-step-topics.json', text: 'still holds' },
+  { id: 'n5', at: '2026-10-05T00:00:00Z', author: 'me', about: REGISTRY + ':sessions/2026/10/2026-10-05-4b1d9c3e.json', text: 'a session note' },
+  { id: 'n6', at: '2026-10-06T00:00:00Z', author: 'gemini', about: REGISTRY + ':user-calls/7e2c4a19-plain-row-labels.json', text: 'kept as is' },
   { id: 'n7', at: '2026-10-07T00:00:00Z', author: 'me', about: REGISTRY + ':lists/jot.json#j1', text: 'a jot note' },
   { id: 'n8', at: '2026-10-08T00:00:00Z', author: 'me', about: 'o/tools:docs/SNAGS.md#a-slug', text: 'on the old snag address' },
   { id: 'n9', at: '2026-10-09T00:00:00Z', author: 'me', about: 'o/r#14', text: 'second pull request note' },
-  { id: 'r1', at: '2026-10-10T00:00:00Z', author: 'me', about: 'note:n1', text: 'a reply' },
-  { id: 'r2', at: '2026-10-11T00:00:00Z', author: 'me', about: 'note:r1', text: 'a reply to the reply' },
-  { id: 'f1', at: '2026-10-12T00:00:00Z', author: 'claude/tend', about: 'o/r#12', text: 'Nothing tracks the follow-up.',
+  { id: 'r1', at: '2026-10-10T00:00:00Z', author: 'me', about: 'note:n1', text: 'replied once' },
+  { id: 'r2', at: '2026-10-11T00:00:00Z', author: 'me', about: 'note:r1', text: 'replied twice over' },
+  { id: 'f1', at: '2026-10-12T00:00:00Z', author: 'claude/weed', about: 'o/r#12', text: 'Nothing tracks the follow-up.',
     finding: { kind: 'answer', subjects: ['o/r#12', 'o/r@claude/a-branch', REGISTRY + ':lists/snag.json#a-slug', 'o/tools:docs/SNAGS.md#a-slug'],
                why: 'The thread closed with the merge.', next: 'Ask the owner.', evidence: ['one', 'two'] } },
 ];
@@ -197,9 +197,9 @@ test('a subject is a link pill that opens where the thing lives', async () => {
   assert.equal(pill('o/r:docs/X.md#a-heading'), 'ph-file-text | r X.md#a-heading | https://github.com/o/r/blob/HEAD/docs/X.md#a-heading | true');
   assert.equal(pill('o/r@feat/x:lib/a.js'), 'ph-file-text | r a.js | https://github.com/o/r/blob/feat/x/lib/a.js | true');
   assert.equal(pill('o/r'), 'ph-folder | r | https://github.com/o/r | true');
-  assert.equal(pill(REGISTRY + ':sessions/2026/10/2026-10-05-0e71fee7.json'),
-    'ph-terminal-window | session 0e71fee7 | https://mehrlander.github.io/web-tools/pages/session.html#id=0e71fee7 | true');
-  assert.match(pill(REGISTRY + ':user-calls/a710e806-two-step-topics.json'), /^ph-tray \| call two-step-topics \| /);
+  assert.equal(pill(REGISTRY + ':sessions/2026/10/2026-10-05-4b1d9c3e.json'),
+    'ph-terminal-window | session 4b1d9c3e | https://mehrlander.github.io/web-tools/pages/session.html#id=4b1d9c3e | true');
+  assert.match(pill(REGISTRY + ':user-calls/7e2c4a19-plain-row-labels.json'), /^ph-tray \| call plain-row-labels \| /);
   assert.equal(pill(REGISTRY + ':lists/snag.json#a-slug'), 'ph-list-bullets | snag: a snag title | ?view=lists&tab=snag | false');
   assert.equal(pill('o/tools:docs/SNAGS.md#a-slug'), 'ph-list-bullets | snag: a snag title | ?view=lists&tab=snag | false');
   assert.equal(pill(REGISTRY + ':lists/jot.json#j1'), 'ph-list-bullets | jot: an idea | ?view=lists&tab=jot | false');
@@ -231,9 +231,9 @@ test('a finding is read with its thread, and its card links every subject once',
 test('a note just added takes the card when the chosen chip lets it into the list', async () => {
   await seedKinds();
   data.noteOpen = 'n1';
-  data.noteAbout = 'o/r#30'; data.noteDraft = 'a new one';
+  data.noteAbout = 'o/r#30'; data.noteDraft = 'one more note';
   await data.addNote();
-  assert.equal(data.noteItems.find(n => n.id === data.noteOpen)?.text, 'a new one');
+  assert.equal(data.noteItems.find(n => n.id === data.noteOpen)?.text, 'one more note');
   data.noteKind = 'file'; data.noteOpen = 'n3';
   data.noteAbout = 'o/r#31'; data.noteDraft = 'hidden by the chip';
   await data.addNote();

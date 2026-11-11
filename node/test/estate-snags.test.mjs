@@ -79,13 +79,13 @@ const saved = () => JSON.parse(FILES['lists/snag.json']).items;
 const ids = (xs) => [...xs].map(x => x.id);
 
 const SNAGS = [
-  { id: 'ci-run-silently-not-started', text: 'a commit sat in an open PR with no checks',
-    note: 'The **push** landed and no run started. See [`test.yml`](https://github.com/o/r/blob/main/.github/workflows/test.yml).',
+  { id: 'gate-skipped-the-new-folder', text: 'a gate skipped the folder added that day',
+    note: 'The **gate** read a roster and the folder was not on it. See [`gate.yml`](https://github.com/o/r/blob/main/.github/workflows/gate.yml).',
     repo: 'mehrlander/web-tools', seen: ['2026-08-06', '2026-09-16'], targets: ['mehrlander/web-tools:.github/workflows/test.yml'],
     created_at: '2026-08-06T10:00:00.000Z' },
-  { id: 'rename-called-not-worth-it', text: 'a stale file name was kept because renaming it was called a migration',
+  { id: 'old-label-kept-on-a-button', text: 'a button kept its old label after the action changed',
     repo: 'mehrlander/web-tools', seen: ['2026-10-19'], created_at: '2026-10-19T20:00:00.000Z' },
-  { id: 'branch-install-outlived-the-merge', text: 'a shortcut installed from a branch outlived the merge',
+  { id: 'copy-outlasted-its-source', text: 'a pasted copy outlasted the page it came from',
     repo: 'mehrlander/shortcut-tools', seen: ['2026-09-01'], created_at: '2026-09-01T09:00:00.000Z' },
 ];
 
@@ -121,11 +121,11 @@ test('the snag file is a built-in list, never shown among the created ones', asy
 
 test('rows run last bitten first, and the add box keeps only the snags holding every typed word', async () => {
   await seed();
-  assert.deepEqual(ids(data.snagRows), ['rename-called-not-worth-it', 'ci-run-silently-not-started', 'branch-install-outlived-the-merge']);
-  data.snagDraft = 'open PR checks';
-  assert.deepEqual(ids(data.snagRows), ['ci-run-silently-not-started']);
-  data.snagDraft = 'push';                       // the entry is searched too
-  assert.deepEqual(ids(data.snagRows), ['ci-run-silently-not-started']);
+  assert.deepEqual(ids(data.snagRows), ['old-label-kept-on-a-button', 'gate-skipped-the-new-folder', 'copy-outlasted-its-source']);
+  data.snagDraft = 'gate skipped folder';
+  assert.deepEqual(ids(data.snagRows), ['gate-skipped-the-new-folder']);
+  data.snagDraft = 'roster';                      // the entry is searched too
+  assert.deepEqual(ids(data.snagRows), ['gate-skipped-the-new-folder']);
   data.snagDraft = 'a an';                       // words of two letters or fewer filter nothing
   assert.equal(data.snagRows.length, 3);
   data.snagDraft = '';
@@ -133,21 +133,21 @@ test('rows run last bitten first, and the add box keeps only the snags holding e
 
 test('a new snag takes its id from its first six words, unique in the list, and is seen today', async () => {
   await seed();
-  data.snagDraft = '  A commit sat in an open PR with no checks again  ';
+  data.snagDraft = '  A gate skipped the folder added that day again  ';
   await data.addSnag();
   const it = saved().at(-1);
-  assert.equal(it.id, 'a-commit-sat-in-an-open');
-  assert.equal(it.text, 'A commit sat in an open PR with no checks again');
+  assert.equal(it.id, 'a-gate-skipped-the-folder-added');
+  assert.equal(it.text, 'A gate skipped the folder added that day again');
   assert.equal(it.repo, 'me/tools', 'the repo the app opens on, when none is picked');
   assert.deepEqual(it.seen, [data.todayYmd()]);
   assert.ok(it.created_at);
   assert.equal(data.snagDraft, '');
-  assert.match(SAVES.at(-1).message, /^Snag "A commit sat in an open PR with no checks again" via Web Tools$/);
+  assert.match(SAVES.at(-1).message, /^Snag "A gate skipped the folder added that day again" via Web Tools$/);
 
-  data.snagDraft = 'A commit sat in an open door';
+  data.snagDraft = 'A gate skipped the folder added later';
   data.snagRepo = 'mehrlander/web-tools';
   await data.addSnag();
-  assert.equal(saved().at(-1).id, 'a-commit-sat-in-an-open-2');
+  assert.equal(saved().at(-1).id, 'a-gate-skipped-the-folder-added-2');
   assert.equal(saved().at(-1).repo, 'mehrlander/web-tools');
 });
 
@@ -163,26 +163,26 @@ test('a refused save puts the typed snag back in the box', async () => {
 test('Again adds today to a snag read fresh, and its undo takes back only that date', async () => {
   await seed();
   FILES['lists/snag.json'] = json({ items: [...SNAGS, { id: 'from-a-session', text: 'written elsewhere', repo: 'o/r', seen: ['2026-10-20'] }] });
-  await data.againSnag(data.snagItems.find(x => x.id === 'ci-run-silently-not-started'));
-  const it = saved().find(x => x.id === 'ci-run-silently-not-started');
+  await data.againSnag(data.snagItems.find(x => x.id === 'gate-skipped-the-new-folder'));
+  const it = saved().find(x => x.id === 'gate-skipped-the-new-folder');
   assert.deepEqual(it.seen, ['2026-08-06', '2026-09-16', data.todayYmd()]);
   assert.ok(saved().some(x => x.id === 'from-a-session'), 'a snag written since the pane loaded survives');
-  assert.match(SAVES.at(-1).message, /^Again: "a commit sat in an open PR with no checks" via Web Tools$/);
+  assert.match(SAVES.at(-1).message, /^Again: "a gate skipped the folder added that day" via Web Tools$/);
   await data.takeUndo();
-  assert.deepEqual(saved().find(x => x.id === 'ci-run-silently-not-started').seen, ['2026-08-06', '2026-09-16']);
+  assert.deepEqual(saved().find(x => x.id === 'gate-skipped-the-new-folder').seen, ['2026-08-06', '2026-09-16']);
   assert.ok(saved().some(x => x.id === 'from-a-session'));
 });
 
 test('an edit rewrites the title and the entry, a cleared entry is deleted, and no change writes nothing', async () => {
   await seed();
-  const it = data.snagItems.find(x => x.id === 'ci-run-silently-not-started');
+  const it = data.snagItems.find(x => x.id === 'gate-skipped-the-new-folder');
   data.startSnagEdit(it);
   assert.equal(data.snagOpen, it.id, 'editing opens the entry');
-  data.editDraft = 'a commit sat in an open PR with no checks at all';
+  data.editDraft = 'a gate skipped the folder added that day and the next';
   data.editNote = '';
   await data.commitSnagEdit(it);
   const after = saved().find(x => x.id === it.id);
-  assert.equal(after.text, 'a commit sat in an open PR with no checks at all');
+  assert.equal(after.text, 'a gate skipped the folder added that day and the next');
   assert.equal('note' in after, false, 'cleared means absent, not empty');
 
   const n = SAVES.length;
@@ -194,40 +194,40 @@ test('an edit rewrites the title and the entry, a cleared entry is deleted, and 
 
 test('a delete offers an undo that puts the snag back where it was', async () => {
   await seed();
-  await data.deleteSnag(data.snagItems.find(x => x.id === 'rename-called-not-worth-it'));
-  assert.deepEqual(ids(saved()), ['ci-run-silently-not-started', 'branch-install-outlived-the-merge']);
+  await data.deleteSnag(data.snagItems.find(x => x.id === 'old-label-kept-on-a-button'));
+  assert.deepEqual(ids(saved()), ['gate-skipped-the-new-folder', 'copy-outlasted-its-source']);
   await data.takeUndo();
   assert.deepEqual(ids(saved()), ids(SNAGS));
 });
 
 test('a note reaches a snag at its list address and at the docs/SNAGS.md address older notes carry', async () => {
   await seed();
-  const it = data.snagItems.find(x => x.id === 'ci-run-silently-not-started');
+  const it = data.snagItems.find(x => x.id === 'gate-skipped-the-new-folder');
   data.noteItems = [
-    { id: 'n1', at: '2026-09-17T00:00:00Z', author: 'me', about: 'mehrlander/web-tools:docs/SNAGS.md#ci-run-silently-not-started', text: 'before the move' },
-    { id: 'n2', at: '2026-10-20T00:00:00Z', author: 'me', about: REGISTRY + ':lists/snag.json#ci-run-silently-not-started', text: 'after' },
-    { id: 'n3', at: '2026-10-20T00:00:00Z', author: 'me', about: 'mehrlander/shortcut-tools:docs/SNAGS.md#ci-run-silently-not-started', text: 'a different repo' },
+    { id: 'n1', at: '2026-09-17T00:00:00Z', author: 'me', about: 'mehrlander/web-tools:docs/SNAGS.md#gate-skipped-the-new-folder', text: 'before the move' },
+    { id: 'n2', at: '2026-10-20T00:00:00Z', author: 'me', about: REGISTRY + ':lists/snag.json#gate-skipped-the-new-folder', text: 'after' },
+    { id: 'n3', at: '2026-10-20T00:00:00Z', author: 'me', about: 'mehrlander/shortcut-tools:docs/SNAGS.md#gate-skipped-the-new-folder', text: 'a different repo' },
   ];
   assert.equal(data.notesOn(data.SNAG_PATH, it), 2);
-  assert.equal(data.aboutLabel('mehrlander/web-tools:docs/SNAGS.md#ci-run-silently-not-started'), 'snag: a commit sat in an open PR with no checks');
-  assert.equal(data.aboutLabel(REGISTRY + ':lists/snag.json#ci-run-silently-not-started'), 'snag: a commit sat in an open PR with no checks');
+  assert.equal(data.aboutLabel('mehrlander/web-tools:docs/SNAGS.md#gate-skipped-the-new-folder'), 'snag: a gate skipped the folder added that day');
+  assert.equal(data.aboutLabel(REGISTRY + ':lists/snag.json#gate-skipped-the-new-folder'), 'snag: a gate skipped the folder added that day');
   data.noteItems = [];
 });
 
 test('a card finds its snag by id, and draws the notes left on it at either address as rows', async () => {
   await seed();
-  assert.deepEqual(ids(data.snagFor('rename-called-not-worth-it')), ['rename-called-not-worth-it']);
+  assert.deepEqual(ids(data.snagFor('old-label-kept-on-a-button')), ['old-label-kept-on-a-button']);
   assert.equal(data.snagFor('no-such-snag').length, 0, 'a card whose snag has gone draws nothing');
   assert.deepEqual([...data.snagIds], ids(data.snagRows));
-  const it = data.snagItems.find(x => x.id === 'ci-run-silently-not-started');
+  const it = data.snagItems.find(x => x.id === 'gate-skipped-the-new-folder');
   data.noteItems = [
-    { id: 'n1', at: '2026-09-17T00:00:00Z', author: 'me', about: 'mehrlander/web-tools:docs/SNAGS.md#ci-run-silently-not-started', text: 'before the move' },
-    { id: 'n2', at: '2026-09-18T00:00:00Z', author: 'me', about: 'note:n1', text: 'a reply' },
-    { id: 'n3', at: '2026-10-20T00:00:00Z', author: 'me', about: REGISTRY + ':lists/snag.json#ci-run-silently-not-started', text: 'after' },
+    { id: 'n1', at: '2026-09-17T00:00:00Z', author: 'me', about: 'mehrlander/web-tools:docs/SNAGS.md#gate-skipped-the-new-folder', text: 'before the move' },
+    { id: 'n2', at: '2026-09-18T00:00:00Z', author: 'me', about: 'note:n1', text: 'replied once' },
+    { id: 'n3', at: '2026-10-20T00:00:00Z', author: 'me', about: REGISTRY + ':lists/snag.json#gate-skipped-the-new-folder', text: 'after' },
     { id: 'n4', at: '2026-10-21T00:00:00Z', author: 'me', about: 'mehrlander/web-tools', text: 'about the repo' },
   ];
   assert.equal(data.itemNotes(data.SNAG_PATH, it).map(n => n.id + n.depth).join(' '), 'n30 n10 n21');
-  assert.equal(data.itemNotes(data.SNAG_PATH, data.snagItems.find(x => x.id === 'rename-called-not-worth-it')).length, 0);
+  assert.equal(data.itemNotes(data.SNAG_PATH, data.snagItems.find(x => x.id === 'old-label-kept-on-a-button')).length, 0);
   data.noteItems = [];
 });
 
