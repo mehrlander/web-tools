@@ -18,7 +18,7 @@ The estate's goals are in [`aims.json`](aims.json), shown in Map → Docs → Pu
 
 ## Product boundary
 
-Views of the estate are built into the app. Views of repository content are app views, declared by the owning repo in `.web-tools.json` ([manifest.md](manifest.md)). A page with its own header and navigation, such as the [budget-drs app](https://github.com/mehrlander/home/tree/main/projects/budget-drs/app), is a full app and opens outside Web Tools ([`fullApp`](manifest-fields.csv)).
+Views of the estate are built into the app. Views of repository content are app views, declared by the owning repo in `.web-tools.json` ([manifest.md](manifest.md)). A page with its own header and navigation, such as the [budget-drs app](https://github.com/mehrlander/budget-drs/tree/main/app), is a full app and opens outside Web Tools ([`fullApp`](manifest-fields.csv)).
 
 The app browses and transfers files. `toss-render` runs pages. Artifacts publish snapshots to claude.ai ([artifacts.md](artifacts.md)).
 
@@ -34,7 +34,7 @@ When GitHub rejects the token, the app opens **This browser** (`?view=here`), wh
 
 - `?repo=owner/repo[&ref=…]` opens a repo on its Overview. `?ref=` is repo-scoped and stamps beside `repo`.
 - `?view=<key>` opens a view. The keys, their labels, nav stops, groups, files and docs are rows of [app-routes.csv](app-routes.csv).
-- Second keys: `&tab=` (Project's pills, Map's tabs), `&item=` (State), `&detail=` (Branches), the `&sq=` family (Search), `&file=`, `&path=`, `&window=`. A view leaves its default second key out of the URL.
+- Second keys: `&tab=` (Project's pills, Map's tabs), `&item=` (State, Compactions), `&detail=` (Branches), the `&sq=` family (Search), `&file=`, `&path=`, `&window=`. A view leaves its default second key out of the URL.
 - `&shell=full|nav|none` sets how much chrome surrounds the view (below).
 
 The app's `VIEWS` table is the router: each row names a key, how a link opens it, and what it stamps back. `routeFromUrl` dispatches through it and `deepLinkParams` stamps through it. **Adding a row is the whole of adding an addressable view**, plus its `app-routes.csv` row. [`shell-routing.test.mjs`](../node/test/shell-routing.test.mjs) forbids comparing a view name inside the routing functions and re-parses every row's own stamp; [`app-routes.test.mjs`](../node/test/app-routes.test.mjs) holds `VIEWS` and `app-routes.csv` to each other both ways. The default repo's `repo` key is dropped from addresses as redundant, except on its landing, which would otherwise have no address.

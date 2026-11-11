@@ -12,8 +12,8 @@ restamped, which is why it lives under `data/` beside the doc-growth payload
 rather than under `docs/` beside `tests.csv`. The registry stays the one
 authored account of what each test protects; this is the measurement that
 informs which columns that registry should grow. The reader prompt and the
-same-day reading of the home repository's checks are in home at
-`projects/budget-drs/data/design/probes/2026-09-05-checks-reading/`.
+same-day reading of the home repository's checks are in budget-drs at
+`data/design/probes/2026-09-05-checks-reading/`.
 
 `explanations.csv` is the comparison-grain reading that followed: one row per
 comparison a test file makes, authored from the code rather than by a reader

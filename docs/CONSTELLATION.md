@@ -43,14 +43,19 @@ because an ephemeral container cannot read a sibling session's unmerged branch.
 ## Principle 2: visibility is the (almost) only thing that forces a repo boundary
 
 Once discipline rather than size keeps a repo clean, most reasons to split
-evaporate. "It got big" is the commit rule's job; "it is a different topic" is a
-folder's job. The one thing a folder cannot express is visibility: you cannot
-make one folder of a private repo public, or one folder of a public repo
-private. So the split rule is crisp: a repo boundary exists where a visibility
+evaporate. "It got big" is first the commit rule's job; "it is a different
+topic" is first a folder's job. The one thing a folder cannot express is
+visibility: you cannot make one folder of a private repo public, or one folder
+of a public repo private. So the split rule is crisp: a repo boundary exists where a visibility
 boundary exists, and otherwise usually does not. Generalize "visibility" to the
 unit of publication and access (an independent collaborator set, release surface,
 or the option to open-source one part later) and it covers the near neighbors
-too. Clone weight is a secondary, real, but rarely decisive tiebreaker.
+too.
+
+A boundary can also be earned. A workspace that has grown into a big, discrete
+topic graduates to its own repo once it is cleaner and easier to work with as a
+distinct entity than mixed in with general work, as budget-drs did from home on
+2026-11-10. A new topic still starts as a folder.
 
 ## Principle 3: bootstrapping and staying-in-sync are one operation
 

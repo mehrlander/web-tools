@@ -35,19 +35,19 @@ import { launch as launchChromium } from '../render/chromium.mjs';
 
 const argv = process.argv.slice(2);
 const only = argv.includes('--only') ? new Set(argv[argv.indexOf('--only') + 1].split(',')) : null;
-const WT = 'mehrlander/web-tools', REG = 'mehrlander/web-tools-private', HOME = 'mehrlander/home';
+const WT = 'mehrlander/web-tools', REG = 'mehrlander/web-tools-private', HOME = 'mehrlander/home', BD = 'mehrlander/budget-drs';
 
 const refs = (...xs) => xs.map(x => 'refs=' + x).join('&');
-const CSV = 'projects/budget-drs/data/design/domains.csv';
+const CSV = 'data/design/domains.csv';
 const APP = `${WT}@app-head:app/index.html`;
 const C = (id, what, o) => ({ id, what, ...o });
 const CASES = [
-  C('R1', 'a home CSV at one branch, the web-tools viewer at another',
-    { q: refs(`${WT}@viewer-br`), hash: `data=${HOME}@csv-br:${CSV}` }),
+  C('R1', 'a budget-drs CSV at one branch, the web-tools viewer at another',
+    { q: refs(`${WT}@viewer-br`), hash: `data=${BD}@csv-br:${CSV}` }),
   C('R1b', 'the same CSV addressed without a ref, its version from the selection',
-    { q: refs(`${WT}@viewer-br`, `${HOME}@csv-br`), hash: `data=${HOME}:${CSV}` }),
+    { q: refs(`${WT}@viewer-br`, `${BD}@csv-br`), hash: `data=${BD}:${CSV}` }),
   C('R1c', 'the same CSV, every override removed',
-    { hash: `data=${HOME}:${CSV}` }),
+    { hash: `data=${BD}:${CSV}` }),
   C('R2', 'shortcut-tools page, private data and Web Tools, each from the selection',
     { q: refs(`${REG}@data-br`, `${WT}@lib-br`), addr: `mehrlander/shortcut-tools@page-br:pages/library.html`, readLibrary: true }),
   C('R2d', "the same, the page's own ?data= against the selection",
@@ -61,16 +61,16 @@ const CASES = [
     { wait: 20000, q: refs(`${HOME}@home-br`),
       addr: `${APP}?view=app&appRepo=${HOME}&appPath=projects/budget-drs/submittal/submittal.html` }),
   C('R8', 'the budget-drs app at one branch framing its submittal tenant, one tenant file at another',
-    { wait: 25000, q: refs(`${HOME}@tenant-br:projects/budget-drs/submittal/link-rewrite.js`),
-      addr: `${HOME}@app-br:projects/budget-drs/app/view/app.html?view=submittal` }),
+    { wait: 25000, q: refs(`${BD}@tenant-br:submittal/link-rewrite.js`),
+      addr: `${BD}@app-br:app/view/app.html?view=submittal` }),
   C('R9', 'one changed component over an unchanged app: the app at main, map.js at a branch',
     { wait: 16000, q: refs(`${WT}@comp-br:lib/alpineComponents/map.js`), addr: `${APP}?view=map` }),
   C('R9b', 'the same app without the entry: map.js from the build',
     { wait: 16000, addr: `${APP}?view=map` }),
   C('R10', 'a routed viewer at a path entry, everything else at main',
-    { q: refs(`${WT}@viewer-file-br:pages/data-view.html`), hash: `data=${HOME}:${CSV}` }),
+    { q: refs(`${WT}@viewer-file-br:pages/data-view.html`), hash: `data=${BD}:${CSV}` }),
   C('R12', 'one gh.load file from another ref, the rest of the library at the viewer\'s',
-    { q: refs(`${WT}@viewer-br`, `${WT}@file-br:lib/alpineComponents/viewer.js`), hash: `data=${HOME}:${CSV}` }),
+    { q: refs(`${WT}@viewer-br`, `${WT}@file-br:lib/alpineComponents/viewer.js`), hash: `data=${BD}:${CSV}` }),
   C('R7', 'top mode: the app with the selection, navigated by the app, then reloaded',
     { top: true, wait: 12000, q: `lib=main&${refs(`${REG}@data-br`, `${HOME}@home-br`)}&view=map`, addr: APP }),
   // The renderer's own top mode (?top): the same prelude, inliner, fetch shim
@@ -81,10 +81,10 @@ const CASES = [
     { topRender: true, wait: 20000, q: refs(`${HOME}@tenant-br:projects/budget-drs/submittal/link-rewrite.js`),
       addr: `${HOME}@page-br:projects/budget-drs/submittal/submittal.html` }),
   C('T3', 'renderer top mode: a routed viewer, the CSV at one ref and the viewer at another',
-    { topRender: true, wait: 12000, q: refs(`${WT}@viewer-br`), hash: `data=${HOME}@csv-br:${CSV}` }),
+    { topRender: true, wait: 12000, q: refs(`${WT}@viewer-br`), hash: `data=${BD}@csv-br:${CSV}` }),
   C('T4', 'renderer top mode: the budget-drs app, its relative fetch and its framed tenant, one tenant file at another ref',
-    { topRender: true, wait: 25000, q: `${refs(`${HOME}@tenant-br:projects/budget-drs/submittal/link-rewrite.js`)}&view=submittal`,
-      addr: `${HOME}@app-br:projects/budget-drs/app/view/app.html` }),
+    { topRender: true, wait: 25000, q: `${refs(`${BD}@tenant-br:submittal/link-rewrite.js`)}&view=submittal`,
+      addr: `${BD}@app-br:app/view/app.html` }),
   // A page that writes its query WITHOUT the selection (the app carries its
   // whole query forward, which is why T1 and R7 never saw this): two
   // repositories, a file entry and a folder entry, then a reload, Back, and a
@@ -98,7 +98,7 @@ const CASES = [
       q: `lib=main&${refs(`${HOME}@home-br`, `${REG}@data-br`, `${HOME}@tenant-br:projects/budget-drs/submittal/link-rewrite.js`, `${WT}@comp-br:lib/alpineComponents/`)}&view=map`,
       addr: APP }),
   C('R11', 'framed: the renderer reloaded keeps its selection',
-    { reload: true, q: refs(`${HOME}@csv-br`, `${WT}@viewer-br`), hash: `data=${HOME}:${CSV}` }),
+    { reload: true, q: refs(`${BD}@csv-br`, `${WT}@viewer-br`), hash: `data=${BD}:${CSV}` }),
 ];
 
 // ── stamping ─────────────────────────────────────────────────────────────────

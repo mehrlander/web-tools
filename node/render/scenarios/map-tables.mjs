@@ -17,23 +17,23 @@
 // Registries narrowing instead; TABLES_PICK=<primitive> picks a primitive
 // chip; TABLES_TIP=table pins the table's tip rather than a column's, and
 // TABLES_TIP=none pins none and leaves the page at its top.
-// TABLES_ESTATE=<path to a home checkout> also serves budget-drs's column
+// TABLES_ESTATE=<path to a budget-drs checkout> also serves budget-drs's column
 // lineage as a declared data.columns registry, through a stubbed token and
 // config cache, so the estate half draws.
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-const HOME_COLUMNS = 'projects/budget-drs/data/design/lineage/columns.csv';
+const ESTATE_COLUMNS = 'data/design/lineage/columns.csv';
 
 export default async function (page) {
   const files = {};
   for (const f of ['docs/registries.csv', 'docs/properties.csv', 'docs/vocabularies.csv', 'docs/text-fields.csv',
     'data/csv-census.csv', '.web-tools.json', ...['id', 'label', 'locator', 'value'].map(p => `docs/favicons/primitives/${p}.svg`)])
     files[f] = await page.evaluate(p => fetch('../../' + p).then(r => r.text()), f);
-  const home = process.env.TABLES_ESTATE;
-  if (home) {
-    files[HOME_COLUMNS] = readFileSync(path.join(home, HOME_COLUMNS), 'utf8');
-    files['state/configs.json'] = JSON.stringify({ repos: { 'mehrlander/home': { config: JSON.parse(readFileSync(path.join(home, '.web-tools.json'), 'utf8')) } } });
+  const estate = process.env.TABLES_ESTATE;
+  if (estate) {
+    files[ESTATE_COLUMNS] = readFileSync(path.join(estate, ESTATE_COLUMNS), 'utf8');
+    files['state/configs.json'] = JSON.stringify({ repos: { 'mehrlander/budget-drs': { config: JSON.parse(readFileSync(path.join(estate, '.web-tools.json'), 'utf8')) } } });
   }
   const ok = await page.evaluate((files) => {
     if (!window.Alpine || !window.__shell || !window.GH) return 'no shell';

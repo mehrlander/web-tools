@@ -61,7 +61,7 @@ A payload is read by [`lib/kits/data-payload.js`](../../lib/kits/data-payload.js
       "note": "as exported",     // optional
       "content": "a,b\n1,2\n"    // inline...
     },
-    { "name": "stored.json", "src": "mehrlander/home@main:projects/budget-drs/data/stored.json" }
+    { "name": "domains.csv", "src": "mehrlander/budget-drs@main:data/design/domains.csv" }
   ]                              // ...or by reference, per item
 }
 ```

@@ -339,14 +339,6 @@ test('a page in a repo without the renderer is tossed by web-tools\' renderer', 
   assert.match(d.links[0].url, /^https:\/\/mehrlander\.github\.io\/web-tools\/pages\/toss-render\.html#gh=mehrlander\/budget-wa@/);
 });
 
-test('--width puts ?w= on the renderer, and says so when it cancels ?top', () => {
-  const d = run('pages/session.html', ['--width', '390']);
-  assert.match(d.links[0].url, /toss-render\.html\?w=390#gh=/);
-  const both = run('pages/session.html', ['--width', '390', '--top']);
-  assert.match(both.links[0].url, /toss-render\.html\?top&w=390#gh=/);
-  assert.ok(both.warnings.some(w => /ignores \?top/.test(w)));
-});
-
 // ── the read itself, not the classifier ─────────────────────────────────────
 //
 // Every test above hands the script a file list with --files, which is exactly

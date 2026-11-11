@@ -6,7 +6,6 @@
     python3 python/showing.py --files a.js,b   # a stated file set, no git (tests)
     python3 python/showing.py --at 'gh=o/r&pr=1'   # the page's own address too
     python3 python/showing.py --path docs/x.md     # any file, changed or not
-    python3 python/showing.py --width 390          # render at a phone's width
 
 The rules this executes are not new. docs/showing-mechanisms.csv states them
 a row at a time, in its use, reaches and misses columns, and the app's Map view
@@ -52,10 +51,10 @@ ANOTHER REPO'S PAGES. Run from a checkout other than web-tools (or pass
 repo's page graph. A repo whose pages are framed by one app declares it:
 
     "showing": {"hosted": false,
-                "app": "projects/budget-drs/app/view/app.html",
-                "app_dir": "projects/budget-drs/app/",
-                "views": {"submittal": "projects/budget-drs/submittal/",
-                          "cem": "projects/budget-drs/cem/"}}
+                "app": "app/view/app.html",
+                "app_dir": "app/",
+                "views": {"submittal": "submittal/",
+                          "cem": "cem/"}}
 
 and a change under a view's prefix, or under `app_dir` (the app's own files;
 the folder of `app` when omitted), resolves to
@@ -1316,9 +1315,6 @@ def named(paths, ref, at="", query=""):
 # for a phone. It keeps the page in a frame (toss-render reads ?top only when
 # no ?w= is present), so it outranks ?top, and this says so rather than letting
 # one flag cancel the other unseen.
-def with_width(d, px):
-    if not px:
-        return d
     for l in d.get("links", []) + d.get("documents", []):
         head, sep, frag = l["url"].partition("#")
         if "pages/toss-render.html" in head:
@@ -1359,9 +1355,6 @@ def main():
     ap.add_argument("--path", action="append", default=[], metavar="FILE",
                     help="link this file whether or not the branch changed it (repeatable): a page by its "
                          "toss, a document or data file by the data route, at --ref's commit")
-    ap.add_argument("--width", type=int, default=0, metavar="PX",
-                    help="the width the page renders at (toss-render's ?w=), e.g. 390 for a phone; it keeps "
-                         "the page in a frame, so it outranks --top")
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--pin", choices=["yes", "no"], help="(for tests) treat main's renderer as reading the branch@commit form, or not, instead of asking git")
     ap.add_argument("--branch", default="", help="(for tests, with --files) the branch a link names beside its commit")
@@ -1411,7 +1404,7 @@ def main():
                          [], [diff_remedy(e, a.base, a.ref)], facts)
     if a.top and not d.get("top"):
         d = as_tab(d)
-    d = warn_cap(with_width(host_refs(d, a.refs, a.query), a.width))
+    d = warn_cap(host_refs(d, a.refs, a.query))
     print(json.dumps(d, indent=2) if a.json else "\n".join(lines(d)))
     return 0
 
