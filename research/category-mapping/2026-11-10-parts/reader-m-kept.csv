@@ -1,0 +1,11 @@
+instance,level,basis,per_owner,kinds
+list,arrangement,place,one,single
+item,list,place,many,single
+group,list,place,many,single
+detail,arrangement,place,one,single
+title,entry,content,one,single
+meta,entry,content,many,family
+summary,entry,content,one,single
+body,entry,content,many,family
+links,entry,function,many,family
+actions,entry,function,many,single
