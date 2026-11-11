@@ -28,3 +28,49 @@ test('the registry loader exports the kit\'s own functions', async () => {
   assert.equal(m.joinList(['x;y', 'z']), Csv.join(['x;y', 'z']));
   assert.deepEqual(m.splitList(m.joinList(['x;y', 'z'])), ['x;y', 'z'], 'a delimiter inside a value survives the round trip');
 });
+
+test('list cells keep the next value separate when a value ends in a backslash', async () => {
+  const registry = await import('../build/registries-load.mjs');
+  const { Csv } = (await import('../build/kit-shim.mjs')).loadKit(repoRoot, OWNER);
+  const values = ['folder\\', 'next'];
+  assert.deepEqual(Csv.split(Csv.join(values)), values);
+  const text = registry.writeCsv([{ id: 'paths', values }], ['id', 'values']);
+  const [row] = registry.parseCsv(text);
+  assert.deepEqual(registry.splitList(row.values), values,
+    'a generated registry cell keeps both entries when the browser reads the same format');
+});
+
+test('list escaping round-trips backslashes, semicolons, Unicode and empty values', async () => {
+  const registry = await import('../build/registries-load.mjs');
+  const { Csv } = (await import('../build/kit-shim.mjs')).loadKit(repoRoot, OWNER);
+  const atoms = ['', 'plain', 'café 🚀', ';', '\\', '\\\\', '\\;', ';\\', '\\\\;\\\\',
+    'unknown\\q', 'tail\\', 'comma, "quote"'];
+  const cases = atoms.flatMap(a => [[a], ...atoms.map(b => [a, b])]);
+  cases.push(atoms);
+  for (const values of cases) {
+    assert.deepEqual(Csv.split(Csv.join(values)), values, JSON.stringify(values));
+    assert.deepEqual(registry.splitList(registry.joinList(values)), values, JSON.stringify(values));
+    const text = registry.writeCsv([{ id: 'sample', values }], ['id', 'values']);
+    const [row] = Csv.rows(text);
+    assert.deepEqual(Csv.split(row.values), values, 'serialized registry cell: ' + JSON.stringify(values));
+  }
+});
+
+test('list reads consume recognized escapes once and preserve other backslashes', async () => {
+  const registry = await import('../build/registries-load.mjs');
+  const { Csv } = (await import('../build/kit-shim.mjs')).loadKit(repoRoot, OWNER);
+  for (const split of [Csv.split, registry.splitList]) {
+    assert.deepEqual(split('unknown\\q;tail\\'), ['unknown\\q', 'tail\\']);
+    for (let count = 0; count <= 6; count++) {
+      const text = 'left' + '\\'.repeat(count) + ';right';
+      const left = 'left' + '\\'.repeat(Math.floor(count / 2));
+      const expected = count % 2 ? [left + ';right'] : [left, 'right'];
+      assert.deepEqual(split(text), expected, 'backslashes before separator: ' + count);
+    }
+  }
+  assert.deepEqual(Csv.split(''), [''], 'the low-level decoder retains an empty value');
+  assert.deepEqual(Csv.split(';'), ['', '']);
+  assert.deepEqual(Csv.list(''), [], 'a blank registry cell means no asserted list');
+  assert.deepEqual(Csv.list(' ; value ; '), ['value'], 'list() still trims and drops empty values');
+  assert.equal(Csv.join([]), '', 'an empty array keeps its existing wire format');
+});
