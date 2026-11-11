@@ -19,6 +19,7 @@ import time
 UTC = dt.timezone.utc
 LIMITS = {"prompt": 2000, "response": 4000, "title": 180}
 EVENTS = {"UserPromptSubmit", "PreToolUse", "Stop", "StopFailure", "SessionEnd"}
+BASE_REF = "refs/web-tools/turn-activity"
 
 
 def text(value, limit):
@@ -151,6 +152,18 @@ def capture(payload, env, now=None):
     return repo, path
 
 
+def keep_base(repo, base):
+    """Hold the fetched tip under a local ref, so the next fetch has a commit in common.
+
+    background shares no history with main. Where the clone's fetch refspec covers main only,
+    no push leaves a tracking ref on background, and each fetch by commit receives the whole branch.
+    """
+    try:
+        git(repo, "update-ref", BASE_REF, base)
+    except (OSError, subprocess.SubprocessError):
+        pass
+
+
 def publish(repo, staged):
     """Retry a conditional, single-path update. Never overwrite a newer signal."""
     row = json.loads(Path(staged).read_text(encoding="utf-8"))
@@ -166,6 +179,7 @@ def publish(repo, staged):
             # FETCH_HEAD is not used by the worker. Pin the returned commit for every read.
             base = git(repo, "ls-remote", "origin", "refs/heads/background").decode().split()[0]
             git(repo, "fetch", "--quiet", "--no-tags", "origin", base)
+            keep_base(repo, base)
             try:
                 old = json.loads(git(repo, "show", base + ":" + target))
                 if dt.datetime.fromisoformat(old["updatedAt"]) >= at:
