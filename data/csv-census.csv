@@ -69,7 +69,7 @@ research/category-mapping/2026-11-10-parts/reader-m-kept.csv,10,5,358,"[""instan
 research/category-mapping/2026-11-10-parts/session-five.csv,10,6,523,"[""instance"",""level"",""sits_inside"",""per_parent"",""holds"",""reader_does""]"
 skills/doc-craft/binding/runs.csv,12,9,1238,"[""date"",""target"",""units"",""words_before"",""words_after"",""floor_pct"",""achieved_pct"",""real_losses"",""caught_by""]"
 skills/file-retrieval/sources.csv,9,2,186,"[""source"",""glob""]"
-skills/manifest.csv,63,3,29823,"[""name"",""group"",""description""]"
+skills/manifest.csv,63,3,29854,"[""name"",""group"",""description""]"
 skills/peeves/peeves.csv,60,10,19659,"[""id"",""name"",""area"",""peeve"",""look_for"",""owner"",""detector"",""sessions"",""status"",""merged_into""]"
 tracker/board-tags.csv,14,3,780,"[""task"",""tag"",""value""]"
 tracker/board.csv,106,15,26081,"[""id"",""title"",""status"",""project"",""depends-on"",""opened"",""closed"",""session"",""size"",""awaiting"",""blockedBy"",""file"",""href"",""lastActivity"",""logEntries""]"
