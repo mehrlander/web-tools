@@ -12,6 +12,10 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import jsdomPkg from 'jsdom';
+import { repoRoot } from '../repo-root.mjs';
 import { makeShell, page } from './shell.mjs';
 
 // A shell with its window listeners captured by type, plus a StageIntake stand-in
@@ -221,6 +225,59 @@ test('a read that throws is still an error, and keeps the red', async () => {
   assert.equal(toasts[0].cls, 'alert-error',
     'a failure that a fix could remove is exactly what the error colour is for');
   assert.match(toasts[0].msg, /not loaded/);
+});
+
+test('a deferred clipboard failure releases the app paste button for a retry', { timeout: 5000 }, async t => {
+  const dom = new jsdomPkg.JSDOM('<!doctype html><html><body></body></html>', {
+    url: 'https://localhost/', runScripts: 'outside-only',
+  });
+  t.after(() => dom.window.close());
+  const win = dom.window, doc = win.document;
+  let focused = false, failRead = true, reads = 0;
+  doc.hasFocus = () => focused;
+  doc.execCommand = () => false;
+  Object.defineProperty(win, 'isSecureContext', { value: true });
+  Object.defineProperty(win.navigator, 'clipboard', { value: {
+    readText: async () => {
+      reads++;
+      if (failRead) throw new Error('Clipboard read refused');
+      return 'retry text';
+    },
+  } });
+  win.console.log = () => {};
+  win.console.error = () => {};
+  const { shell, toasts } = makeShell({ browserStore: { repo: '' }, win });
+  const received = [];
+  win.StageIntake = { takeFlavors: async flavors => {
+    received.push(flavors);
+    return { added: [], offers: [] };
+  } };
+  shell.captureCorrespondence = () => null;
+  shell.pasteRoute = async () => false;
+  shell.takeCorrespondence = async () => false;
+  shell.view = 'map';
+  win.eval(readFileSync(join(repoRoot, 'lib/kits/io.js'), 'utf8'));
+
+  const pending = shell.pasteAnywhere();
+  assert.equal(shell.pasteBusy, true);
+  assert.equal(reads, 0, 'the unfocused request waits for a page click');
+  focused = true;
+  doc.dispatchEvent(new win.MouseEvent('click', { bubbles: true }));
+  assert.equal(reads, 1, 'the read starts synchronously inside the click');
+  await pending;
+  assert.equal(shell.pasteBusy, false, 'the failure reaches the app finally block');
+  assert.equal(toasts.length, 1);
+  assert.equal(toasts[0].cls, 'alert-error');
+  assert.match(toasts[0].msg, /Paste unavailable/);
+  assert.equal(doc.querySelector('textarea'), null, 'the failed fallback leaves no input behind');
+
+  failRead = false;
+  await shell.pasteAnywhere();
+  assert.equal(reads, 2, 'the next tap performs a fresh read');
+  assert.equal(received.length, 1);
+  assert.equal(received[0][0].text, 'retry text');
+  assert.equal(shell.pasteBusy, false);
+  assert.equal(shell.view, 'map');
 });
 
 test('a paste that lands routes to the Stage and opens the one item', async () => {
