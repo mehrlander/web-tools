@@ -234,9 +234,14 @@ test('both tabs declare the list and detail, each row a compact item', async () 
   const rows = [...snagRoot().querySelectorAll('[data-snag]')];
   assert.deepEqual(rows.map(r => r.dataset.snag), ['a-count-off-by-one', 'a-door-left-open', 'a-third-thing'], 'last bitten first');
   assert.equal(text(rows[0].querySelector('[data-part="title"]')), 'the row count was off by one after a sort');
-  await until(() => /2$/.test(text(rows[0].querySelector('[data-part="meta"]'))), "the first row's note count");
-  assert.match(text(rows[0].querySelector('[data-part="meta"]')), /^tools ×2 on 2026-10-03 2$/, 'repo, how often, how lately, its notes');
-  assert.match(text(rows[1].querySelector('[data-part="meta"]')), /^tools on 2026-10-02$/, 'no badge for a snag seen once, no count without notes');
+  // One meta line, each fact in a slot of its own: the repo, how often, its
+  // notes, how lately. A slot with nothing to say stays, empty, so the next
+  // one sits where it does on every row.
+  const slots = (row) => [...row.querySelector('[data-part="meta"]').children].map(text);
+  await until(() => slots(rows[0])[2] === '2', "the first row's note count");
+  assert.deepEqual(slots(rows[0]), ['tools', '×2', '2', 'on 2026-10-03']);
+  assert.deepEqual(slots(rows[1]), ['tools', '', '', 'on 2026-10-02'], 'seen once, and no notes');
+  for (const row of rows) assert.equal(row.querySelectorAll('[data-part="meta"]').length, 1);
 });
 
 test("a card holds its snag's title, links, dates, entry and notes, and a row tap moves the card", async () => {
@@ -308,8 +313,13 @@ test('the Note list holds the notes that answer no other, and a card holds the t
   const rows = [...noteRoot().querySelectorAll('[data-note]')];
   assert.deepEqual(rows.map(r => r.dataset.note), ['n4', 'n3', 'n1'], 'newest first, the reply in no row');
   assert.equal(text(rows[1].querySelector('[data-part="title"]')), 'Merged cleanly', 'its first sentence');
-  assert.match(text(rows[2]), /snag: the row count was off by one after a sort .* me 1$/, 'what it is about, its author, its reply');
-  assert.match(text(rows[0]), /tools \/ a-branch .* Landed or overtaken, settled claude\/weed/, "a finding's kind and state");
+  // One meta line: what it is about, a finding's kind and state, the
+  // replies and the age. The last two are the same slots on every row.
+  const slots = (row) => [...row.querySelector('[data-part="meta"]').children].filter(el => el.tagName !== 'TEMPLATE').map(text);
+  assert.deepEqual(slots(rows[2]), ['snag: the row count was off by one after a sort', '1', 'on 2026-10-04'], 'no author: the card has it');
+  assert.deepEqual(slots(rows[1]), ['tools #12', '', 'on 2026-10-06']);
+  assert.deepEqual(slots(rows[0]), ['tools / a-branch', 'Landed or overtaken, settled', '', 'on 2026-10-07'], "a finding's kind and state");
+  for (const row of rows) assert.equal(row.querySelectorAll('[data-part="meta"]').length, 1);
 
   assert.equal(text(head('note')), '1/3', 'the head row repeats nothing the row and the chip say');
   const finding = cardOf('note', 'n4');
@@ -374,6 +384,33 @@ test('a reply being typed survives the card moving, and its form stays open', as
   click(noteRoot().querySelector('[data-note="n1"]'));
   await shown('note', 'n1');
   assert.equal(data.replyTo, null, 'an empty form closes when the card moves');
+});
+
+// What the phone layout rests on, as far as markup can say it; the pixels are
+// measured headless. Without these a card's links wrap to three rows, its
+// icon controls are 24 to 32px targets at a third of the text's tone, and the
+// floating panel button covers a card's last lines.
+test('a card keeps its links to one row, its icon controls thumb-sized on touch, and room under its end', async () => {
+  await open('note', 'n4');
+  const card = cardOf('note', 'n4');
+  const links = card.querySelector('[data-part="links"]');
+  assert.deepEqual([...links.children].map(el => el.tagName), ['DIV', 'BUTTON'], 'the pills, then the funnel');
+  assert.match(links.firstElementChild.className, /flex-nowrap.*overflow-x-auto/, 'one row that scrolls sideways');
+  assert.equal(links.firstElementChild.querySelectorAll('a').length, 2);
+  assert.equal(links.lastElementChild.getAttribute('aria-label'), 'Show only the notes about this');
+  assert.match(card.className, /max-sm:pb-\[calc\(var\(--fab-bottom,1\.5rem\)\+4rem\)\]/, "the note dock's own clearance of the button");
+
+  await open('snag', 'a-count-off-by-one');
+  const snag = cardOf('snag', 'a-count-off-by-one');
+  assert.match(snag.querySelector('[data-part="links"]').className, /flex-nowrap.*overflow-x-auto/);
+  await until(() => snag.querySelector('[aria-label="Reply"]'), 'the notes left on the snag');
+  const controls = [...head('snag').querySelectorAll('[data-part="actions"] button'), ...snag.querySelectorAll('[aria-label="Reply"]'),
+                    links.lastElementChild];
+  assert.equal(controls.length, 7, 'four on the head row, a reply under each of two notes, the funnel');
+  for (const b of controls) {
+    assert.ok(b.className.includes('[@media(hover:none)]:min-h-10') && b.className.includes('[@media(hover:none)]:min-w-10'), text(b) || b.getAttribute('aria-label'));
+    if (b.getAttribute('aria-label') !== 'It happened again today') assert.ok(b.className.includes('[@media(hover:none)]:text-base-content/60'));
+  }
 });
 
 test('a note just added takes the card', async () => {
