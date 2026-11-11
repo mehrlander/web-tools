@@ -181,6 +181,19 @@ class CloudActivityChecks(unittest.TestCase):
         self.assertGreaterEqual(received[0], 120)
         self.assertLess(received[1], 20, received)
 
+    def test_coalesced_publisher_skips_superseded_staged_signal(self):
+        first = activity.capture(self.payload, self.env, self.now)
+        first_at = self.read(first)["updatedAt"]
+        second = activity.capture(dict(self.payload, hook_event_name="Stop", last_assistant_message="Done"),
+                                  self.env, self.now + dt.timedelta(seconds=1))
+        second_at = self.read(second)["updatedAt"]
+        head_before = self.git("rev-parse", "origin/background")
+        activity.publish(*first, expected_at=first_at, coalesce_sec=0.01)
+        self.assertEqual(self.git("rev-parse", "origin/background"), head_before)
+        activity.publish(*second, expected_at=second_at, coalesce_sec=0.01)
+        target = "sessions/activity/" + self.now.strftime("%Y-%m-%d") + "/aabbccdd.json"
+        self.assertEqual(json.loads(self.git("show", "origin/background:" + target))["state"], "idle")
+
 
 if __name__ == "__main__":
     unittest.main()
