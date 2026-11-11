@@ -18,7 +18,7 @@
 //   --help, -h               Show this help message
 
 import { execFileSync } from 'node:child_process';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { mkdtempSync, rmSync, writeFileSync, readFileSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -179,20 +179,30 @@ Options:
   // 7. Create thin Git bundle
   const tempDir = mkdtempSync(path.join(tmpdir(), 'git-change-'));
   const tempBundlePath = path.join(tempDir, 'payload.bundle');
-  const tempRef = `refs/heads/${branch}`;
+  const proposedRef = `refs/heads/${branch}`;
+  const tempRef = `refs/web-tools/git-change/${randomUUID()}`;
   let createdTempRef = false;
 
   try {
-    const existingRefSha = (() => {
-      try { return git(['rev-parse', tempRef]); } catch { return null; }
-    })();
-    if (existingRefSha !== headSha) {
-      git(['update-ref', tempRef, headSha]);
-      createdTempRef = !existingRefSha;
-    }
+    git(['check-ref-format', proposedRef]);
+    git(['update-ref', tempRef, headSha, '0'.repeat(headSha.length)]);
+    createdTempRef = true;
 
     git(['bundle', 'create', tempBundlePath, tempRef, `^${baseSha}`]);
-    const bundleBytes = readFileSync(tempBundlePath);
+    // Keep the advertised destination for a direct git fetch, without ever
+    // writing that branch locally. The pack and its checksum stay untouched.
+    const rawBundle = readFileSync(tempBundlePath);
+    const headerEnd = rawBundle.indexOf('\n\n');
+    const advertised = Buffer.from(`${headSha} ${tempRef}\n`);
+    const refAt = rawBundle.indexOf(advertised);
+    if (headerEnd < 0 || refAt < 0 || refAt + advertised.length > headerEnd + 1) {
+      throw new Error('Generated bundle does not advertise its temporary ref');
+    }
+    const bundleBytes = Buffer.concat([
+      rawBundle.subarray(0, refAt),
+      Buffer.from(`${headSha} ${proposedRef}\n`),
+      rawBundle.subarray(refAt + advertised.length),
+    ]);
     const bundleByteCount = bundleBytes.length;
     const bundleSha256 = createHash('sha256').update(bundleBytes).digest('hex');
     const bundleBase64 = bundleBytes.toString('base64');
@@ -279,7 +289,7 @@ Options:
 
   } finally {
     if (createdTempRef) {
-      try { git(['update-ref', '-d', tempRef]); } catch {}
+      try { git(['update-ref', '-d', tempRef, headSha]); } catch {}
     }
     try { rmSync(tempDir, { recursive: true, force: true }); } catch {}
   }
