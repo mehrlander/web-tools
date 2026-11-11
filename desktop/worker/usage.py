@@ -70,7 +70,7 @@ def codex_windows(data):
     return result
 
 
-def codex_read():
+def codex_call(method):
     binary = shutil.which('codex')
     if not binary:
         folder = Path(os.environ.get('LOCALAPPDATA', '')) / 'OpenAI' / 'Codex' / 'bin'
@@ -119,8 +119,8 @@ def codex_read():
             name='web_tools_now', title='Web Tools Now', version='0.1.0'))))
         response(1)
         send(dict(method='initialized', params={}))
-        send(dict(id=2, method='account/rateLimits/read'))
-        return codex_windows(response(2))
+        send(dict(id=2, method=method))
+        return response(2)
     finally:
         process.terminate()
         try:
@@ -128,6 +128,10 @@ def codex_read():
         except subprocess.TimeoutExpired:
             process.kill()
             process.wait(timeout=3)
+
+
+def codex_read():
+    return codex_windows(codex_call('account/rateLimits/read'))
 
 
 def gemini_windows(data):
@@ -274,6 +278,19 @@ def collect(state, repo):
             entry.update(status='stale', observedAt=old[provider].get('observedAt'), windows=old[provider]['windows'])
         providers.append(entry)
     write_json(state / 'usage.json', dict(schemaVersion=1, providers=providers))
+    try:
+        from claude_tokens import collect as collect_claude_tokens
+        root = Path(os.environ.get('CLAUDE_CONFIG_DIR') or Path.home() / '.claude') / 'projects'
+        collect_claude_tokens(state, root, at)
+    except Exception:
+        # A token-log failure must not block account allowances or their archive.
+        pass
+    try:
+        from usage_history import store
+        store(state, providers, previous.get('providers', []), lambda: codex_call('account/usage/read'), at)
+        write_json(state / 'usage-history-status.json', dict(status='available', checkedAt=at))
+    except Exception:
+        write_json(state / 'usage-history-status.json', dict(status='unavailable', checkedAt=at))
 
 
 def main():
