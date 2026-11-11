@@ -353,3 +353,72 @@ test('node/git-change.mjs: generates a valid envelope and Web Tools Stage link',
   }
 });
 
+
+// Packaging describes a destination; it must not move a local branch to it.
+for (const scenario of [
+  { name: 'new destination', branch: 'codex/package-target' },
+  { name: 'existing destination at another commit', branch: 'codex/package-target', target: 'base' },
+  { name: 'destination already at source head', branch: 'codex/package-target', target: 'head' },
+  { name: 'checked-out destination at a newer commit', branch: 'main', newer: true },
+  { name: 'default current branch', branch: 'main', defaults: true },
+  { name: 'output write failure', branch: 'codex/package-target', target: 'base', failure: 'output' },
+  { name: 'invalid destination', branch: 'codex/invalid..branch', failure: 'branch' },
+  { name: 'annotated tag source', branch: 'codex/package-target', target: 'base', failure: 'tag' },
+]) {
+  test(`node/git-change.mjs: preserves local Git state for ${scenario.name}`, () => {
+    const fixture = createTempGitBundle();
+    try {
+      const { tempDir, baseSha, headSha } = fixture;
+      const git = (...args) => execFileSync('git', args, {
+        cwd: tempDir, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'],
+      }).trim();
+      if (scenario.target) git('branch', scenario.branch, scenario.target === 'base' ? baseSha : headSha);
+      if (scenario.failure === 'tag') git('tag', '-a', 'source-tag', '-m', 'Annotated source', headSha);
+      if (scenario.newer) {
+        writeFileSync(path.join(tempDir, 'file1.txt'), 'A newer checked-out commit\n');
+        git('add', 'file1.txt');
+        git('commit', '-m', 'Newer checked-out commit');
+      }
+      const snapshot = () => ({
+        refs: git('for-each-ref', '--format=%(refname) %(objectname) %(symref)'),
+        head: git('rev-parse', 'HEAD'),
+        branch: git('symbolic-ref', 'HEAD'),
+        index: git('ls-files', '--stage', '-z'),
+        status: git('status', '--porcelain', '-uno'),
+      });
+      const before = snapshot();
+      assert.equal(before.status, '');
+      const outFile = scenario.failure === 'output'
+        ? path.join(tempDir, 'missing-directory', 'output.git-change.json')
+        : path.join(tempDir, 'output.git-change.json');
+      const args = [path.resolve('node/git-change.mjs'), '--base', baseSha,
+        '--out', outFile, '--repo', 'test/repo'];
+      if (!scenario.defaults) args.push('--head', scenario.failure === 'tag' ? 'source-tag' : headSha, '--branch', scenario.branch);
+      const run = () => execFileSync(process.execPath, args, {
+        cwd: tempDir, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'],
+      });
+      if (scenario.failure) {
+        const error = scenario.failure === 'output' ? /ENOENT/
+          : scenario.failure === 'tag' ? /Source head must name a commit object/ : /check-ref-format/;
+        assert.throws(run, error);
+      } else {
+        run();
+        const envelope = JSON.parse(readFileSync(outFile, 'utf8'));
+        assert.equal(envelope.source_head, headSha);
+        assert.equal(envelope.proposed_branch, scenario.branch);
+        const bytes = Buffer.from(envelope.payload.data, 'base64');
+        assert.equal(envelope.payload.byte_count, bytes.length);
+        assert.equal(envelope.payload.sha256, createHash('sha256').update(bytes).digest('hex'));
+        const bundle = path.join(tempDir, 'packaged.bundle');
+        writeFileSync(bundle, bytes);
+        const advertised = `${headSha} refs/heads/${scenario.branch}`;
+        assert.equal(git('bundle', 'list-heads', bundle), advertised);
+        git('bundle', 'verify', bundle);
+        assert.equal(git('bundle', 'unbundle', bundle), advertised);
+      }
+      assert.deepEqual(snapshot(), before, 'packaging must preserve every ref, HEAD, index and tracked working-tree status');
+    } finally {
+      fixture.cleanup();
+    }
+  });
+}
