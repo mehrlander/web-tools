@@ -1929,7 +1929,11 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
     <div x-show="view==='project'" data-find-hoist class="h-full flex flex-col [&_label:has(>input[data-find-box])]:hidden">
         <template x-if="project">
           <div class="flex flex-col h-full min-h-0">
-            <div class="shrink-0 px-6 pt-6">
+            <div class="shrink-0 px-4 sm:px-6 pt-3">
+            <!-- The masthead and the tab row share one line where they fit, and
+                 the tabs wrap under the masthead where they do not: on a phone
+                 the saved row is a fifth of what a landing page gets to draw in. -->
+            <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
             <!-- A project's masthead, on one line: the project mark, which is
                  the project's own icon (its manifest `icon`, an SVG in the repo,
                  drawn in its own colour on a neutral tile; the kanban glyph on
@@ -1938,7 +1942,7 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
                  folder on GitHub), then the name, the App button where the
                  workspace declares a landing (the App tab has no pill of its
                  own), and the repository, which opens the repo. -->
-            <div class="flex items-center gap-2.5 min-w-0">
+            <div class="flex items-center gap-2.5 min-w-[7rem] shrink">
               <button @click="toggleRepoMenu($store.browser.repo, $event.currentTarget, 'projects', { align: 'left' })"
                       class="relative shrink-0 size-9 rounded-xl flex items-center justify-center transition-colors"
                       :class="projectIconSrc($store.browser.repo, project) ? 'bg-base-200 hover:bg-base-300' : 'bg-primary/10 text-primary hover:bg-primary/20'"
@@ -1955,11 +1959,11 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
                         :class="projectPane==='app' ? 'bg-primary/10 ring-1 ring-[var(--color-primary)]/30' : 'hover:bg-base-200'">
                   <i class="ph text-base text-primary" :class="projectLandingFull ? 'ph-arrow-square-out' : 'ph-app-window'"></i></button>
               </template>
-              <button @click="goLanding()" class="min-w-0 truncate font-mono text-xs text-base-content/40 hover:text-primary transition-colors"
+              <button @click="goLanding()" class="hidden sm:block min-w-0 truncate font-mono text-xs text-base-content/40 hover:text-primary transition-colors"
                       :data-title-tip="$store.browser.repo" x-text="$store.browser.repo"></button>
             </div>
 
-            <!-- The tab row, full width under the masthead, every tab named.
+            <!-- The tab row, beside the masthead, every tab named.
                  Below sm a tab is its label alone, which is what lets five
                  fit a phone; the icons return from sm up. Outpost appears
                  where the workspace declares a PowerShell outpost and Board
@@ -1968,7 +1972,7 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
                  place for pages is visible before there are any. Docs is a
                  mode of Files (the switch under this row), not a tab.
                  overflow-x-auto: a clipped tab is an unreachable one. -->
-            <div class="mt-2 inline-flex max-w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden items-center gap-0.5 rounded-lg bg-base-200/60 p-0.5" role="tablist" data-slot="frame:tabs">
+            <div class="shrink-0 inline-flex max-w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden items-center gap-0.5 rounded-lg bg-base-200/60 p-0.5" role="tablist" data-slot="frame:tabs">
               <button role="tab" @click="goProjectTab('overview')" :aria-selected="projectPane==='overview'"
                       class="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-medium transition-colors"
                       :class="projectPane==='overview' ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'">
@@ -1992,6 +1996,7 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
                       class="shrink-0 whitespace-nowrap flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-medium transition-colors"
                       :class="projectTab==='files' || projectTab==='docs' ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'">
                 <i class="ph ph-folder-simple text-base hidden sm:inline"></i>Files</button>
+            </div>
             </div>
 
             <!-- Files has two modes: the folder-at-a-time browser, and Docs,
@@ -2018,7 +2023,7 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
                  as &item=) from a route card in Pages. The FAB carries the
                  bust-out to the full-viewport page. -->
             <template x-if="projectPane==='app' && !fullAppExit">
-              <iframe :src="projectLandingUrl" data-pattern="host" class="grow w-full border-0 bg-base-100 mt-4"
+              <iframe :src="projectLandingUrl" data-pattern="host" class="grow w-full border-0 bg-base-100 mt-2"
                       sandbox="allow-scripts allow-same-origin allow-popups allow-downloads"></iframe>
             </template>
 
