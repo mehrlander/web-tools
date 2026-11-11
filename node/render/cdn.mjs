@@ -743,7 +743,9 @@ export function resolveCdn(rawUrl, repoRoot, ref, headers = {}) {
         const entries = readdirSync(fp, { withFileTypes: true }).map(e => ({
           name: e.name, path: rel ? `${rel}/${e.name}` : e.name,
           type: e.isDirectory() ? 'dir' : 'file',
-          sha: 'local', size: 0, html_url: '', download_url: '',
+          // A file's real size, as GitHub's listing gives it, so a list that
+          // shows sizes does not read 0 on every row in a shot.
+          sha: 'local', size: e.isDirectory() ? 0 : statSync(path.join(fp, e.name)).size, html_url: '', download_url: '',
         }));
         return { kind: 'fulfill', contentType: 'application/json; charset=utf-8',
                  tag: `api ${name} dir ${rel}`, body: JSON.stringify(entries) };
