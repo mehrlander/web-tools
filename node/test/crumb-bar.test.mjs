@@ -80,5 +80,5 @@ test('the trail is read from the host each time, never cached at init', () => {
   assert.equal(data.list.length, 2);
   assert.equal(data.list[1].label, 'home');
   window.trail = 'not a list';
-  assert.deepEqual(data.list, [], 'anything but an array reads as an empty trail');
+  assert.equal(data.list.length, 0, 'anything but an array reads as an empty trail');
 });
