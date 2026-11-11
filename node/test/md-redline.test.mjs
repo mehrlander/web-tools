@@ -133,6 +133,14 @@ test('the same words in other markup is a change with no word to mark', async ()
   assert.equal(host.querySelectorAll('ins, del').length, 0);
 });
 
+test('a reference link resolves in every block, changed or not', async () => {
+  const refs = '\n\n[guide]: https://example.com/guide\n';
+  const { host } = await draw('Read the [guide] first.\n\nThen the old part.' + refs,
+                              'Read the [guide] first.\n\nThen the new part, per the [guide].' + refs);
+  assert.equal(host.querySelectorAll('a[href="https://example.com/guide"]').length, 2);
+  assert.ok(!host.textContent.includes('[guide]'), 'no block shows the link as literal brackets');
+});
+
 test('the handle steps through the marks in document order, and wraps', async () => {
   const { handle } = await draw('One.\n\nTwo.\n\nThree.\n', 'One edited.\n\nTwo.\n\nThree edited.\n');
   assert.equal(handle.at, -1);
