@@ -86,6 +86,10 @@
   /* CM6 merge views render inside the card scroller; let them size naturally. */
   .review-cm .cm-editor { background: transparent; }
   .review-cm .cm-mergeView { background: transparent; }
+  .review-single-file div:has(> [role="tablist"]) { padding-inline: .5rem; }
+  .review-single-file div:has(> [role="tablist"]) > .join > .btn {
+    width: 1.5rem; height: 1.5rem; min-height: 1.5rem; padding: 0;
+  }
 </style>
 </head>
 <body class="min-h-screen text-base-content" :class="mode === 'file' ? 'bg-base-100' : 'bg-base-200'" x-data="reviewApp()" x-cloak>
@@ -114,7 +118,7 @@
   </div>
 </header>
 
-<main class="mx-auto px-4 py-4 flex flex-col gap-3" :class="mode === 'file' && 'w-full min-w-0'">
+<main class="mx-auto flex flex-col gap-3" :class="mode === 'file' ? 'review-single-file w-full min-w-0' : 'px-4 py-4'">
 
   <div x-show="error" class="alert alert-error py-2 px-3 text-sm">
     <i class="ph ph-warning"></i><span x-text="error"></span>
