@@ -2,9 +2,9 @@
 // lists/snag.json): load, last-bitten-first order, the add box filtering to a
 // likely repeat, a new snag's id and repo, Again with its undo, an edit of the
 // title and the entry, a delete with its undo, notes addressed to a snag under
-// its new address and the docs/SNAGS.md one older notes carry, and the entry
-// rendered without letting markup through. Driven over a fake GH; no network,
-// no pixels.
+// its new address and the docs/SNAGS.md one older notes carry, what a snag's
+// card reads, and the entry rendered without letting markup through. Driven
+// over a fake GH; no network, no pixels.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -211,6 +211,23 @@ test('a note reaches a snag at its list address and at the docs/SNAGS.md address
   assert.equal(data.notesOn(data.SNAG_PATH, it), 2);
   assert.equal(data.aboutLabel('mehrlander/web-tools:docs/SNAGS.md#ci-run-silently-not-started'), 'snag: a commit sat in an open PR with no checks');
   assert.equal(data.aboutLabel(REGISTRY + ':lists/snag.json#ci-run-silently-not-started'), 'snag: a commit sat in an open PR with no checks');
+  data.noteItems = [];
+});
+
+test('a card finds its snag by id, and draws the notes left on it at either address as rows', async () => {
+  await seed();
+  assert.deepEqual(ids(data.snagFor('rename-called-not-worth-it')), ['rename-called-not-worth-it']);
+  assert.equal(data.snagFor('no-such-snag').length, 0, 'a card whose snag has gone draws nothing');
+  assert.deepEqual([...data.snagIds], ids(data.snagRows));
+  const it = data.snagItems.find(x => x.id === 'ci-run-silently-not-started');
+  data.noteItems = [
+    { id: 'n1', at: '2026-09-17T00:00:00Z', author: 'me', about: 'mehrlander/web-tools:docs/SNAGS.md#ci-run-silently-not-started', text: 'before the move' },
+    { id: 'n2', at: '2026-09-18T00:00:00Z', author: 'me', about: 'note:n1', text: 'a reply' },
+    { id: 'n3', at: '2026-10-20T00:00:00Z', author: 'me', about: REGISTRY + ':lists/snag.json#ci-run-silently-not-started', text: 'after' },
+    { id: 'n4', at: '2026-10-21T00:00:00Z', author: 'me', about: 'mehrlander/web-tools', text: 'about the repo' },
+  ];
+  assert.equal(data.itemNotes(data.SNAG_PATH, it).map(n => n.id + n.depth).join(' '), 'n30 n10 n21');
+  assert.equal(data.itemNotes(data.SNAG_PATH, data.snagItems.find(x => x.id === 'rename-called-not-worth-it')).length, 0);
   data.noteItems = [];
 });
 

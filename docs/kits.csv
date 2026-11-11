@@ -29,7 +29,7 @@ lib/kits/dictate-record.js,DictateRecord,"an edit to one file as data: its chang
 lib/kits/dictate.js,Dictate,"voice input as a plain text buffer: start the engine, speak, and read `text` back.",1938,no,yes,12,yes
 lib/kits/doc-growth.js,DocGrowth,"a repository's markdown over time, as one bubble chart and one ranking, drawn from the payload python/doc-growth.py writes and the session counts…",289,no,no,3,yes
 lib/kits/doc-index.js,DocIndex,"every estate repo's Markdown, with word counts, kept in the private registry so the Map's Docs tab can read the constellation's documentation in one fetch.",140,no,no,3,yes
-lib/kits/dock-split.js,dockSplit,the drag handle between two panes.,263,no,yes,13,yes
+lib/kits/dock-split.js,dockSplit,the drag handle between two panes.,263,no,yes,14,yes
 lib/kits/docx.js,docxKit,"WordprocessingML (.docx) preparation: what a Word file has to have done to it before a browser renderer draws it faithfully, and what it knows about itself…",512,no,no,1,yes
 lib/kits/dom-shot.js,DomShot,render a live DOM node to a PNG in the browser.,218,no,no,1,yes
 lib/kits/errands.js,Errands,one record for everything a session needs a person's browser to do.,484,no,no,7,yes
@@ -48,7 +48,7 @@ lib/kits/io.js,io,"user data in and out of the page: file picker, file download,
 lib/kits/json-explorer.js,JsonExplorer,"Native, framework-free JSON Explorer & Schema Profiler.",770,no,no,1,yes
 lib/kits/land.js,Land,"where the reader was just sent, and how they get told.",298,no,yes,9,yes
 lib/kits/last-write.js,LastWrite,"the copy this page just committed, for the next fold",70,no,no,5,yes
-lib/kits/linked-swiper.js,linkedSwiper,"a list with a detail: the list beside, or over, a strip of one card per row, the two moving together.",330,no,yes,7,yes
+lib/kits/linked-swiper.js,linkedSwiper,"a list with a detail: the list beside, or over, a strip of one card per row, the two moving together.",330,no,yes,8,yes
 lib/kits/lists.js,Lists,"the registry's lists/ folder, read and written as one kind of file.",235,no,no,4,yes
 lib/kits/look.js,Look,"look markers: a link that lands on a place in a page, says why, and can ring the control to tap.",1764,no,yes,7,yes
 lib/kits/md-diff.js,mdDiff,a markdown change read as the DOCUMENT rather than as its source.,1715,no,yes,18,yes
