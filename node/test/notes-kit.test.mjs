@@ -212,6 +212,54 @@ test('a note is titled by its first sentence, cut at a word when it runs long', 
   assert.equal(N.title('x'.repeat(200), 20), 'x'.repeat(19) + '…', 'a run with no space is cut where it stands');
 });
 
+// The inputs a first sentence cannot be read off in the plain way. Without
+// these a thumbs-up has an empty row, a note that opens on code is titled
+// "js", a long title ends in half an emoji, and "Dr. Smith wrote it." is "Dr".
+test('text with no letter or digit is its own title', () => {
+  assert.equal(N.title('👍'), '👍');
+  assert.equal(N.title('???'), '???');
+  assert.equal(N.title('  👍\n\n  🎉  🎉 '), '👍 🎉 🎉', 'squashed to one line');
+  assert.equal(N.title('!'.repeat(40), 10), '!'.repeat(9) + '…');
+  assert.equal(N.title(' \n '), '');
+});
+
+test("a code fence's own line is not the title", () => {
+  assert.equal(N.title('```js\nconst total = rows.length;\n```'), 'const total = rows.length;');
+  assert.equal(N.title('~~~\nplain text here. And more.\n~~~'), 'plain text here');
+  assert.equal(N.title('```\n```'), '``` ```', 'nothing but fences falls back to the text');
+});
+
+test('a cut never splits a character', () => {
+  const whole = (out, unit) => { assert.ok(out.endsWith('…')); assert.equal(out.slice(0, -1).split(unit).join(''), '', JSON.stringify(out)); };
+  const face = '😀', family = '👨‍👩‍👧', flag = '🇯🇵', accented = 'é';
+  assert.equal(N.title(face.repeat(30), 10), face.repeat(9) + '…');
+  for (const unit of [face, family, flag, accented])
+    for (const max of [4, 5, 6, 7]) whole(N.title(unit.repeat(40), max), unit);
+  assert.equal(N.title(family.repeat(12), 5), family.repeat(4) + '…', 'an emoji of several code points counts as one');
+  assert.equal(N.title(face.repeat(50)), face.repeat(50), 'fifty characters fit in ninety, whatever they weigh');
+  assert.equal(N.title('Shipped it ' + face.repeat(3) + ' and went home early today', 16), 'Shipped it ' + face.repeat(3) + '…');
+});
+
+test('a sentence ends at 。 ؟ and । as it does at a full stop', () => {
+  assert.equal(N.title('これは一つ目の文です。二つ目の文。'), 'これは一つ目の文です');
+  assert.equal(N.title('هل يعمل؟ نعم يعمل.'), 'هل يعمل؟', 'a question keeps its mark');
+  assert.equal(N.title('यह पहला वाक्य है। यह दूसरा है।'), 'यह पहला वाक्य है');
+  assert.equal(N.title('本当ですか？はい。'), '本当ですか？');
+});
+
+test('a full stop after an abbreviation, a number sign or an initialism ends no sentence, and one after a lone capital does', () => {
+  assert.equal(N.title('Dr. Smith wrote it. Nobody read it.'), 'Dr. Smith wrote it');
+  assert.equal(N.title('Dr. Smith wrote it.'), 'Dr. Smith wrote it');
+  assert.equal(N.title('See No. 5'), 'See No. 5');
+  assert.equal(N.title('See No. 5 in the list. Then No. 6.'), 'See No. 5 in the list');
+  assert.equal(N.title('No. That is wrong.'), 'No', 'the word, not the sign: no number follows');
+  assert.equal(N.title('the U.S. market'), 'the U.S. market');
+  assert.equal(N.title('Sold in the U.S. market first. Then abroad.'), 'Sold in the U.S. market first');
+  assert.equal(N.title('This is plan B. We go on.'), 'This is plan B');
+  assert.equal(N.title('Named by H. W. Fowler, e.g. in 1926. Then more.'), 'Named by H. W. Fowler, e.g. in 1926', 'initials in a run still end nothing');
+  assert.equal(N.title('Reviewed by J. Smith. Then merged.'), 'Reviewed by J', 'the case given up: a lone initial reads as a lone capital');
+});
+
 test('a note may vote up or down on a user call, or withdraw with an empty vote, and nothing else', () => {
   const n = N.make({ about: 'a/b:user-calls/x.json', text: 'Still holds.', author: 'gemini', vote: 'up' });
   assert.equal(n.vote, 'up');
