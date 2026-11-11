@@ -113,6 +113,7 @@ const text = (el) => {
   return copy.textContent.replace(/\s+/g, ' ').trim();
 };
 const click = (el) => el.dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true }));
+const type = (input, value) => { input.value = value; input.dispatchEvent(new window.Event('input', { bubbles: true })); };
 const line = (o) => JSON.stringify(o) + '\n';
 
 const SNAGS = [
@@ -159,7 +160,7 @@ async function shown(tab, id) {
 async function load() {
   SAVES = [];
   FILES = { 'lists/snag.json': JSON.stringify({ items: SNAGS }), [NOTES]: NOTE_LINES.map(line).join('') };
-  data.snagDraft = ''; data.editId = null; data.undoOffer = null; data.replyTo = null;
+  data.snagDraft = ''; data.editId = null; data.undoOffer = null; data.replyTo = null; data.replyDrafts = {};
   data.noteAbout = ''; data.noteKind = '';
   await data.loadSnags(reg());
   await data.loadNotes(reg());
@@ -331,12 +332,48 @@ test('a reply is written from the card, under the note it answers', async () => 
   await until(() => card.querySelector('[aria-label="Reply"]'), "the note's reply control");
   click(card.querySelector('[aria-label="Reply"]'));
   await until(() => card.querySelector('form input'), 'the reply form under the note');
-  data.replyDraft = 'agreed';
+  assert.equal(doc.activeElement, card.querySelector('form input'), 'a form the reader opened takes focus');
+  type(card.querySelector('form input'), 'agreed');
   card.querySelector('form').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
   await until(() => JSON.parse(FILES[NOTES].trim().split('\n').at(-1)).text === 'agreed', 'the reply to be saved');
   assert.equal(JSON.parse(FILES[NOTES].trim().split('\n').at(-1)).about, 'note:n3');
   await until(() => /Merged cleanly\. Nothing else to do\. me .* agreed me/.test(text(card)), 'the reply in the card');
   assert.ok(card.isConnected, 'the card is the one the reply was typed in');
+  assert.equal(card.querySelector('form'), null, 'and the form has closed');
+});
+
+// The reader opens Reply, types, and then moves the card: by a row tap, by a
+// swipe, and by an arrow. Each used to close the form and drop the text.
+test('a reply being typed survives the card moving, and its form stays open', async () => {
+  await open('note', 'n3');
+  const card = () => cardOf('note', 'n3');
+  const form = () => card().querySelector('form input');
+  click(card().querySelector('[aria-label="Reply"]'));
+  await until(form, 'the reply form');
+  type(form(), 'not sent yet');
+
+  click(noteRoot().querySelector('[data-note="n1"]'));
+  await shown('note', 'n1');
+  assert.equal(data.replyTo, 'n3', 'a row tap leaves the form open');
+  track('note').scrollTo({ left: 1 });
+  await shown('note', 'n3');
+  assert.equal(form().value, 'not sent yet', 'a swipe back finds the text');
+
+  click(head('note').querySelector('[data-swipe-step="-1"]'));
+  await shown('note', 'n4');
+  assert.equal(form().value, 'not sent yet', 'an arrow leaves it too');
+
+  click(card().querySelector('[aria-label="Reply"]'));
+  await until(() => !form(), 'the reply control to close the form');
+  click(card().querySelector('[aria-label="Reply"]'));
+  await until(form, 'the form again');
+  assert.equal(form().value, 'not sent yet', 'a form closed and opened again comes back with its text');
+  type(form(), '');
+  click(noteRoot().querySelector('[data-note="n3"]'));
+  await shown('note', 'n3');
+  click(noteRoot().querySelector('[data-note="n1"]'));
+  await shown('note', 'n1');
+  assert.equal(data.replyTo, null, 'an empty form closes when the card moves');
 });
 
 test('a note just added takes the card', async () => {

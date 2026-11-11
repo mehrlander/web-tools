@@ -107,11 +107,36 @@ test('adding a note appends one line signed by the login, addressed by the about
 test('a reply is a note about the note', async () => {
   data.noteAbout = '';
   data.startReply({ id: 'nc' });
-  data.replyDraft = 'agreed';
+  data.replyDrafts.nc = 'agreed';
   await data.addReply({ id: 'nc' });
   const last = JSON.parse(FILE.text.trim().split('\n').at(-1));
   assert.equal(last.about, 'note:nc');
   assert.equal(data.replyTo, null);
+  assert.equal(data.replyText({ id: 'nc' }), '', 'a sent reply leaves no draft');
+});
+
+test('what was typed in reply stays with its note when the form closes, and a refused save puts it back', async () => {
+  data.startReply({ id: 'nc' });
+  data.replyDrafts.nc = 'half a thought';
+  data.startReply({ id: 'nc' });
+  assert.equal(data.replyTo, null, 'the control closes the form');
+  data.startReply({ id: 'na' });
+  data.replyDrafts.na = 'another';
+  data.startReply({ id: 'nc' });
+  assert.equal(data.replyText({ id: 'nc' }), 'half a thought', 'and the form comes back with its text');
+  assert.equal(data.replyText({ id: 'na' }), 'another', 'each note keeps its own');
+
+  const req = FakeGH.prototype.req, lines = FILE.text;
+  FakeGH.prototype.req = async function (path, opts) {
+    if (opts?.method === 'PUT') throw Object.assign(new Error('500'), { status: 500 });
+    return req.call(this, path, opts);
+  };
+  await data.addReply({ id: 'nc' });
+  FakeGH.prototype.req = req;
+  assert.equal(FILE.text, lines, 'nothing was written');
+  assert.equal(data.replyTo, 'nc');
+  assert.equal(data.replyText({ id: 'nc' }), 'half a thought');
+  delete data.replyDrafts.nc; delete data.replyDrafts.na; data.replyTo = null;
 });
 
 test('a jot row addresses the next note to that jot, and counts what is already there', async () => {
