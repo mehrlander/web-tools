@@ -16,7 +16,7 @@ lib/alpineComponents/file-review.js,fileReview,"Per-file review dossier: content
 lib/alpineComponents/here-view.js,hereView,"This browser: the GitHub token and why a read failed, a note naming the browser, what this origin stores in localStorage and IndexedDB, and, from the courier,…",932,1,0,1,1,yes
 lib/alpineComponents/idb-importer.js,idbImporter,Modal that pulls records from any IndexedDB store into the data shelf collection,304,0,1,0,0,no
 lib/alpineComponents/idb-tree.js,idbTree,Sidebar tree of IndexedDB databases on this origin with store counts and filter,125,0,1,0,0,no
-lib/alpineComponents/map.js,map,"Map view: the coordination layer made inspectable, in top-level tabs whose subviews each read a committed registry or payload.",16586,1,5,1,30,yes
+lib/alpineComponents/map.js,map,"Map view: the coordination layer made inspectable, in top-level tabs whose subviews each read a committed registry or payload.",16590,1,5,1,30,yes
 lib/alpineComponents/mention.js,mention,In-textarea @-mention picker: type @ to browse the open repo's file tree (path-following + fuzzy) and insert an @path reference,452,0,2,1,0,yes
 lib/alpineComponents/path-picker.js,pathPicker,"A tap-through repo/path selector: a button-shaped trigger opens a navigable tree panel right below (repos, then folders, then files), and selection is taps…",489,2,4,7,0,yes
 lib/alpineComponents/powershell-file.js,powershellFile,"One PowerShell or XAML file: the source in the editor, read-only until Edit, with its browser draft, its Problems and its Outline beside it.",319,1,1,1,0,yes
