@@ -106,7 +106,7 @@ def main():
         print(f"probes: {f.as_posix()}/ {'FAILED' if errs else 'ok'}, {n} probes")
         for e in errs:
             print(f"  {e}")
-    print(f"probes: {without} declared probe folder(s) keep no registry")
+    print(f"probes: {without} declared probe README(s) with no probes.csv beside them")
     sys.exit(1 if failed else 0)
 
 
