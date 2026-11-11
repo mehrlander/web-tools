@@ -80,7 +80,7 @@ test('mounts with no startup warnings or errors', () => {
 test('a missing store is an empty list, not an error', async () => {
   FILE = null;
   await data.loadNotes(reg());
-  assert.equal(data.noteRows.length, 0);
+  assert.equal(data.noteList.length, 0);
   assert.equal(data.noteErr, '');
 });
 
@@ -88,9 +88,10 @@ test('a reply sits under its note, and the about field filters by prefix', async
   FILE = { text: seed.map(line).join(''), sha: 's0' };
   await data.loadNotes(reg());
   data.noteAbout = '';
-  assert.equal(data.noteRows.map(n => n.id + n.depth).join(' '), 'nc0 na0 nb1');
+  assert.equal(data.noteList.map(n => n.id).join(' '), 'nc na', 'the list holds the notes, newest first, and no reply');
+  assert.equal(data.noteFor('na')[0].rows.map(n => n.id + n.depth).join(' '), 'na0 nb1', "the reply is in its note's card");
   data.noteAbout = 'o/r';
-  assert.equal(data.noteRows.map(n => n.id).join(' '), 'na nb');
+  assert.equal(data.noteList.map(n => n.id).join(' '), 'na');
 });
 
 test('adding a note appends one line signed by the login, addressed by the about field', async () => {
@@ -144,10 +145,10 @@ test('a jot row addresses the next note to that jot, and counts what is already 
   const jot = data.jotItems[0];
   data.noteOn(data.JOT_PATH, jot);
   assert.equal(data.noteAbout, 'me/registry:lists/jot.json#j1');
-  assert.equal(data.notesOn(data.JOT_PATH, jot), 0);
+  assert.equal(data.itemNotes(data.JOT_PATH, jot).length, 0);
   data.noteDraft = 'belongs with the branch page work';
   await data.addNote();
-  assert.equal(data.notesOn(data.JOT_PATH, jot), 1);
+  assert.equal(data.itemNotes(data.JOT_PATH, jot).length, 1);
   assert.equal(data.aboutLabel(data.noteAbout), 'jot: an idea');
 });
 
@@ -186,7 +187,7 @@ async function seedKinds() {
 test('the list holds the notes that answer no other, newest first, and the tab counts them', async () => {
   await seedKinds();
   assert.equal(data.noteList.map(n => n.id).join(' '), 'f1 n9 n8 n7 n6 n5 n4 n3 n2 n1');
-  assert.equal(data.noteRows.length, 12, 'the replies are still notes');
+  assert.equal(data.noteItems.length, 12, 'the replies are still notes');
   assert.equal(data.listTabs.find(t => t.key === 'note').count, 10);
   assert.equal(data.noteReplies(data.noteList.at(-1)), 2);
   assert.equal(data.noteTitle(data.noteList.at(-1)), 'Merged cleanly');
@@ -228,7 +229,20 @@ test('a subject is a link pill that opens where the thing lives', async () => {
   assert.equal(pill(REGISTRY + ':lists/snag.json#a-slug'), 'ph-list-bullets | snag: a snag title | ?view=lists&tab=snag | false');
   assert.equal(pill('o/tools:docs/SNAGS.md#a-slug'), 'ph-list-bullets | snag: a snag title | ?view=lists&tab=snag | false');
   assert.equal(pill(REGISTRY + ':lists/jot.json#j1'), 'ph-list-bullets | jot: an idea | ?view=lists&tab=jot | false');
-  assert.equal(pill('o/r:lists/no-such-list.json#x'), 'ph-list-bullets | o/r:lists/no-such-list.json#x |  | false', 'a list this registry does not hold opens nothing');
+});
+
+// A list item's tab is this registry's. Before this check another repo's
+// lists/to-do.json#x switched to the To-do tab here, which does not hold it.
+test('a list item in another repo, or in no list here, links to its file and switches no tab', async () => {
+  await seedKinds();
+  const pill = (about) => { const p = data.aboutPill(about); return [p.icon, p.label, p.href, p.out, typeof p.go].join(' | '); };
+  assert.equal(pill('o/r:lists/to-do.json#x'), 'ph-list-bullets | r to-do.json#x | https://github.com/o/r/blob/HEAD/lists/to-do.json#x | true | undefined');
+  assert.equal(pill('o/r@feat/x:lists/snag.json#a-slug'), 'ph-list-bullets | r snag.json#a-slug | https://github.com/o/r/blob/feat/x/lists/snag.json#a-slug | true | undefined');
+  assert.equal(pill(REGISTRY + ':lists/no-such-list.json#x'), 'ph-list-bullets | registry no-such-list.json#x | https://github.com/me/registry/blob/HEAD/lists/no-such-list.json#x | true | undefined');
+  assert.equal(pill(REGISTRY + ':lists/to-do.json#x'), 'ph-list-bullets | to-do: x | ?view=lists&tab=to-do | false | function', "this registry's own still opens its tab");
+  window.__shell.listsTab = 'note';
+  data.openListItem(window.Notes.subject('o/r:lists/to-do.json#x'));
+  assert.equal(window.__shell.listsTab, 'note');
 });
 
 test('a list item pill opens its Lists tab and picks the snag it names', async () => {

@@ -224,6 +224,23 @@ test('leaving a tab and coming back finds its strip on the row it was left on', 
   await shown('note', 'n1');
 });
 
+// x-show hides a frame late as it reveals a frame late, so a strip asked for
+// in the tick its tab is left still finds a box. Built then, it used up the
+// rebuild the tab is owed on the way back.
+test('a strip asked for as its tab is left is not built, and is on the way back', async () => {
+  await open('snag', 'a-door-left-open');
+  const old = track('snag');
+  data.snagItems = [...data.snagItems];
+  for (let i = 0; i < 4; i++) await Promise.resolve();
+  window.__shell.listsTab = 'note';
+  await until(() => snagRoot().parentElement.style.display === 'none', 'the Snag tab to be hidden');
+  await frames(3);
+  assert.equal(track('snag'), old, 'no strip is built for a tab out of view');
+  old.scrollLeft = 0;
+  await go('snag');
+  await shown('snag', 'a-door-left-open');
+});
+
 test('both tabs declare the list and detail, each row a compact item', async () => {
   await open('snag');
   assert.equal(roots().length, 2);
@@ -288,6 +305,8 @@ test("the head row carries what a row carried: the snag's notes, Again, Edit and
   click(act('Notes about this item'));
   assert.equal(window.__shell.listsTab, 'note');
   assert.equal(data.noteAbout, REGISTRY + ':lists/snag.json#a-count-off-by-one');
+  await until(() => rowIds('note').join() === 'n1', 'the list the count counted: the note at the old address, its reply in its card');
+  await shown('note', 'n1');
   data.noteAbout = '';
 });
 

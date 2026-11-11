@@ -208,9 +208,25 @@ test('a note reaches a snag at its list address and at the docs/SNAGS.md address
     { id: 'n2', at: '2026-10-20T00:00:00Z', author: 'me', about: REGISTRY + ':lists/snag.json#gate-skipped-the-new-folder', text: 'after' },
     { id: 'n3', at: '2026-10-20T00:00:00Z', author: 'me', about: 'mehrlander/shortcut-tools:docs/SNAGS.md#gate-skipped-the-new-folder', text: 'a different repo' },
   ];
-  assert.equal(data.notesOn(data.SNAG_PATH, it), 2);
+  assert.equal(data.itemNotes(data.SNAG_PATH, it).length, 2);
   assert.equal(data.aboutLabel('mehrlander/web-tools:docs/SNAGS.md#gate-skipped-the-new-folder'), 'snag: a gate skipped the folder added that day');
   assert.equal(data.aboutLabel(REGISTRY + ':lists/snag.json#gate-skipped-the-new-folder'), 'snag: a gate skipped the folder added that day');
+  assert.equal(data.aboutLabel('mehrlander/web-tools@main:docs/SNAGS.md#gate-skipped-the-new-folder'), 'snag: a gate skipped the folder added that day',
+    'read as Notes.subject reads it, a ref and all');
+  assert.equal(data.aboutLabel('mehrlander/shortcut-tools:docs/SNAGS.md#gate-skipped-the-new-folder'), 'snag: gate-skipped-the-new-folder',
+    "another repo's snag of that id is not this one");
+
+  // The Note tab opened on the snag lists what the count counted. It
+  // filtered on the list address alone, so a snag whose notes all sit at the
+  // old address showed a count and then an empty list.
+  data.noteKind = '';
+  data.noteAbout = data.itemAbout(data.SNAG_PATH, it);
+  assert.deepEqual(ids(data.noteList), ['n2', 'n1'], 'both addresses, newest first');
+  data.noteAbout = 'mehrlander/web-tools:docs/SNAGS.md#gate-skipped-the-new-folder';
+  assert.deepEqual(ids(data.noteList), ['n2', 'n1'], 'and from the old address the same');
+  data.noteAbout = 'mehrlander/web-tools';
+  assert.deepEqual(ids(data.noteList), ['n1'], 'a prefix that names no snag is a prefix still');
+  data.noteAbout = '';
   data.noteItems = [];
 });
 
