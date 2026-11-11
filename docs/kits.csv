@@ -119,7 +119,7 @@ lib/kits/traffic-log.js,TrafficLog,the app writes down what its calls did worth 
 lib/kits/traffic.js,Traffic,"the pure read of what a page has pulled over the network, and the vocabulary the FAB's Traffic tab renders.",693,yes,no,5,yes
 lib/kits/treemap.js,treemap,pure logic for mapping a file tree as a treemap.,159,no,no,2,yes
 lib/kits/url-params.js,UrlParams,"Reading a page's own input params, fragment first, query as fallback.",149,no,no,10,yes
-lib/kits/usage-chart.js,UsageChart,"a session's context and cost per prompt as one SVG chart, drawn from kits/session-usage.js's reading (SessionUsage.read or SessionUsage.fromExtract).",224,no,no,2,yes
+lib/kits/usage-chart.js,UsageChart,"a session's context and cost per prompt as one SVG chart, drawn from kits/session-usage.js's reading (SessionUsage.read or SessionUsage.fromExtract).",226,no,no,2,yes
 lib/kits/user-calls.js,UserCalls,what waits on the owner (window.UserCalls).,181,no,no,4,yes
 lib/kits/vanilla-demo.js,demo,"the living-documentation demo format, distilled from pages/drop/live-docs-concept.html.",574,no,no,11,yes
 lib/kits/visit-log.js,VisitLog,"turn an address into a storable visit, by allowlist.",309,no,no,2,yes
