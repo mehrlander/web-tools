@@ -86,10 +86,8 @@
   /* CM6 merge views render inside the card scroller; let them size naturally. */
   .review-cm .cm-editor { background: transparent; }
   .review-cm .cm-mergeView { background: transparent; }
-  .review-single-file div:has(> [role="tablist"]) { padding-inline: .5rem; }
-  .review-single-file div:has(> [role="tablist"]) > .join > .btn {
-    width: 1.5rem; height: 1.5rem; min-height: 1.5rem; padding: 0;
-  }
+  .review-single-file { --md-diff-top: 5.25rem; }
+  .review-single-file .md-diff-doc { padding-inline: .5rem; }
 </style>
 </head>
 <body class="min-h-screen text-base-content" :class="mode === 'file' ? 'bg-base-100' : 'bg-base-200'" x-data="reviewApp()" x-cloak>
@@ -100,21 +98,72 @@
       <i class="ph ph-magnifying-glass text-xl text-primary"></i>
       <span class="font-semibold hidden sm:inline">Review</span>
     </a>
-    <div class="min-w-0 flex items-baseline gap-2 font-mono text-xs truncate" x-show="mode !== 'empty'">
+    <div class="min-w-0 flex items-baseline gap-2 font-mono text-xs truncate" x-show="mode === 'changeset'">
       <a :href="window.RepoAddress.github.repo(repo)" target="_blank" class="link link-hover text-primary truncate" x-text="repo"></a>
       <span class="opacity-70 truncate" x-text="rangeLabel"></span>
+    </div>
+    <div x-show="mode === 'file'" class="flex items-center gap-1 min-w-0"
+         :data-title-tip="repo + '@' + head + ':' + path">
+      <div class="min-w-0 flex flex-col leading-tight">
+        <span class="font-mono text-sm truncate" x-text="path.split('/').pop()"></span>
+        <span class="font-mono text-[10px] opacity-60 truncate"
+              x-text="repo + ' · ' + path.slice(0, path.lastIndexOf('/') + 1)"></span>
+      </div>
+      <details class="dropdown dropdown-start shrink-0 max-sm:static" x-show="!!card?.ghLinks?.length" x-ref="fileGh">
+        <summary class="btn btn-ghost btn-xs px-1" aria-label="This file on GitHub">
+          <i class="ph ph-github-logo text-base"></i>
+        </summary>
+        <ul class="dropdown-content menu menu-sm z-30 mt-1 w-56 rounded-box border border-base-300 bg-base-100 p-1 shadow-lg max-sm:right-2 max-sm:left-auto max-sm:top-full">
+          <template x-for="link in (card?.ghLinks || [])" :key="link.label">
+            <li><a :href="link.url" target="_blank" rel="noopener" @click="$refs.fileGh.open = false">
+              <i class="ph" :class="link.icon"></i><span x-text="link.label"></span>
+            </a></li>
+          </template>
+        </ul>
+      </details>
     </div>
     <div class="grow"></div>
     <button x-show="mode !== 'empty'" @click="copyLink()" class="btn btn-ghost btn-xs gap-1" title="Copy a link to this review">
       <i class="ph" :class="linkCopied ? 'ph-check' : 'ph-link'"></i><span class="hidden sm:inline">link</span>
     </button>
-    <a x-show="githubUrl" :href="githubUrl" target="_blank" class="btn btn-ghost btn-xs gap-1" title="Open on GitHub">
+    <a x-show="githubUrl && mode !== 'file'" :href="githubUrl" target="_blank" class="btn btn-ghost btn-xs gap-1" title="Open on GitHub">
       <i class="ph ph-github-logo"></i><span class="hidden sm:inline">GitHub</span>
     </a>
     <button @click="ghAuth.prompt('Paste a GitHub token for private repos and branches.')"
             class="btn btn-ghost btn-xs gap-1" title="Set the stored token">
       <i class="ph ph-key"></i>
     </button>
+  </div>
+  <div x-show="mode === 'file' && card && !['image', 'pdf', 'binary'].includes(card.kind)"
+       data-review-controls class="min-h-8 px-2 flex items-center gap-2">
+    <details x-show="card && !['image', 'pdf', 'binary'].includes(card.kind)"
+             class="dropdown dropdown-start min-w-0" x-ref="fileCompare">
+      <summary class="btn btn-ghost btn-xs gap-1 min-w-0" aria-label="Compare against">
+        <i class="ph ph-git-diff text-base shrink-0"></i>
+        <span class="font-mono text-xs truncate max-w-40"
+              x-text="card?.compareOff ? 'No comparison' : 'vs ' + (card?.baseName || base)"></span>
+        <i class="ph ph-caret-down text-[10px] shrink-0"></i>
+      </summary>
+      <ul class="dropdown-content menu menu-sm z-30 mt-1 w-60 rounded-box border border-base-300 bg-base-100 p-1 shadow-lg">
+        <template x-for="choice in (card?.compareChoices || [])" :key="choice.key">
+          <li><button type="button" :class="choice.on && 'menu-active'"
+                      @click="$refs.fileCompare.open = false; card.pickCompare(choice)" x-text="choice.label"></button></li>
+        </template>
+      </ul>
+    </details>
+    <span x-show="!!card?.changeStats" class="hidden sm:inline font-mono text-[10px] opacity-60 truncate"
+          x-text="card?.changeStats?.added == null ? '' : '+' + card.changeStats.added + ' / −' + card.changeStats.removed"></span>
+    <div class="grow"></div>
+    <div class="join shrink-0" data-review-modes>
+      <template x-for="view in (card?.viewModes || [])" :key="view.key">
+        <button type="button" class="btn btn-xs btn-square join-item"
+                :class="[view.on ? 'btn-active' : 'btn-ghost', view.key === 'split' && 'max-sm:hidden']"
+                :aria-label="view.label" :aria-pressed="view.on" :data-title-tip="view.label"
+                @click="card.pickView(view)">
+          <i class="ph text-base" :class="view.icon"></i>
+        </button>
+      </template>
+    </div>
   </div>
 </header>
 
@@ -227,7 +276,7 @@
             :title="'Read ' + files.length + ' files one at a time'">
       <i class="ph ph-cards-three text-lg max-sm:text-xl"></i></button>
   </div>
-  <div x-show="files.length" :class="mode !== 'file' && 'border border-base-300 rounded-lg overflow-hidden'">
+  <div x-show="files.length" x-ref="fileCards" :class="mode !== 'file' && 'border border-base-300 rounded-lg overflow-hidden'">
     <template x-for="f in files" :key="JSON.stringify([f.repo, f.ref, f.base, f.path, mode])">
       <div x-data="fileReview(f)"></div>
     </template>
@@ -250,6 +299,7 @@ function reviewApp() { return {
   error: '',
   linkCopied: false,
   dumpCopied: false,
+  _chromeTick: 0,
   fPaste: '', fRepo: '', fHead: '', fBase: '', fPath: '',
 
   // Built-in demo targets. Durable by construction: commit SHAs never move and
@@ -271,6 +321,13 @@ function reviewApp() { return {
     await window.__depsReady;
     window.addEventListener('hashchange', () => { if (this.address() !== this.booted) this.boot(); });
     await this.boot();
+  },
+
+  get card() {
+    this._chromeTick;
+    if (this.mode !== 'file') return null;
+    const el = this.$refs.fileCards?.querySelector('[x-data="fileReview(f)"]');
+    return el?._x_dataStack ? window.Alpine.$data(el) : null;
   },
 
   get rangeLabel() {
@@ -306,6 +363,7 @@ function reviewApp() { return {
     this.data = null;
     this.files = [];
     this.mode = 'empty';
+    this._chromeTick++;
 
     const frag = this.booted = this.address();
     if (!frag) return;
@@ -360,10 +418,16 @@ function reviewApp() { return {
 
     if (this.path) {
       this.mode = 'file';
+      const comparison = { repo: this.repo, ref: this.head, base: this.base, baseName: this.base };
+      window.__compareRef = comparison;
+      window.dispatchEvent(new CustomEvent('web-tools:compare-ref', { detail: comparison }));
       this.files = [{
         repo: this.repo, ref: this.head, base: this.base, baseName: this.base,
-        path: this.path, open: true, bare: true,
+        path: this.path, open: true, read: true, hosted: true, stats: true,
+        openOn: /\.(md|markdown)$/i.test(this.path) ? 'mddiff' : /\.html?$/i.test(this.path) ? '' : 'diff',
+        onChrome: () => { this._chromeTick++; },
       }];
+      this.$nextTick(() => { this._chromeTick++; });
       return;
     }
 
