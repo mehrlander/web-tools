@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en" data-theme="winter">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Compactions</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🗜️</text></svg>">
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+
+<!--
+  compactions.html — every compaction summary in the session store, newest
+  first, one opened beside the list.
+
+    #at=<file name without .json>  open that summary, e.g.
+                                   #at=2026-11-03-b2cdc8ac-20261105T032503Z
+
+  The page is lib/alpineComponents/compactions.js, the same component the
+  app's Activity row mounts as its Compactions pane (?view=compactions&item=
+  <id> there); its header says what it reads and how a card is drawn. This
+  page brings the header and the `#at=` address, and the session links go to
+  pages/session.html, since it holds no sessions index of its own.
+
+  The component loads the kits it draws with, so the module below imports
+  the pre-build and nothing else.
+
+  The session view's Cost tab links each compaction mark here.
+-->
+<script type="module">
+  const q = new URLSearchParams(location.search);
+  const ref = q.get('use') || (q.getAll('refs').map(v => (String(v).match(/^mehrlander\/web-tools@([^:]+)$/) || [])[1]).find(Boolean));
+  if (ref) {
+    const src = await fetch(`https://raw.githubusercontent.com/mehrlander/web-tools/${ref}/dist/web-tools.js`, { cache: 'no-store' });
+    if (!src.ok) throw new Error(`?use=${ref}: could not fetch the bundle (HTTP ${src.status})`);
+    const url = URL.createObjectURL(new Blob([await src.text()], { type: 'text/javascript' }));
+    try { await import(url); } finally { URL.revokeObjectURL(url); }
+  } else {
+    await import('../dist/web-tools.js');
+  }
+</script>
+</head>
+<body class="h-dvh flex flex-col bg-base-200 text-base-content overflow-hidden [&[x-cloak]]:hidden" x-data x-cloak>
+  <div x-data="compactions()" class="flex min-h-0 flex-1 flex-col"></div>
+</body>
+</html>

@@ -20,7 +20,7 @@
 //
 //   npm i --no-save --legacy-peer-deps @aiden0z/pptx-renderer@1.3.0 @fontsource/carlito@5.3.0
 //
-// With no --pptx it reads mehrlander/home's committed June deck from a sibling
+// With no --pptx it reads mehrlander/budget-drs's committed June deck from a sibling
 // checkout, which carries both native charts. Not part of `npm test`.
 
 import http from 'node:http';
@@ -36,7 +36,7 @@ const args = process.argv.slice(2);
 const opt = (k) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : null; };
 const shot = opt('--shot');
 const width = Number(opt('--width') || 1000);
-const deck = opt('--pptx') || path.join(root, '..', 'home', 'projects/budget-drs/submittal/deck/friday-director-deck.pptx');
+const deck = opt('--pptx') || path.join(root, '..', 'budget-drs', 'submittal/deck/friday-director-deck.pptx');
 
 if (!existsSync(path.join(root, 'node_modules/@aiden0z/pptx-renderer'))) {
   console.log('The painter is not installed. Run:\n  npm i --no-save --legacy-peer-deps @aiden0z/pptx-renderer@1.3.0 @fontsource/carlito@5.3.0');

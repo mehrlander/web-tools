@@ -2835,6 +2835,8 @@ function app(){ return {
   waitingCall: new URLSearchParams(location.search).get('call') || '',
   userCallIndex: {},      // call id -> the call, from the badge's read
   tendingSeen: false,
+  compactionsSeen: false,
+  compactionsItem: '', // the open summary's file name, without .json, once a reader picks one
   tendingTab: '',   // '' (Open) | 'settled'
   tendingItem: '',  // a finding's note id, when a link names one
   tendingRepo: '',  // a filter handed in from a card or a row; not stamped
@@ -5288,7 +5290,7 @@ function app(){ return {
   // landing with no query is left out, since the App tab is that page at that
   // address already. A route card never mounts a live preview: a landing is a
   // whole app, and a private one is inlined file by file through the contents
-  // API on every mount (home's budget-drs app: 46 files, about 9.7 MB), so six
+  // API on every mount (the budget-drs app: 46 files, about 9.7 MB), so six
   // of them in a grid would load the app six times to draw six previews. It
   // shows its cached shot (`thumb`, loadProjectPageThumbs) or the project's
   // icon instead.
@@ -6700,6 +6702,12 @@ function app(){ return {
     { key: 'state', open(u){ this.goState(u.item); },
       stamp(p){ if (this.stateItem) p.set('item', this.stateItem); } },
     { key: 'traffic', open(){ this.goTraffic(); } },
+    // Compactions: the session store's compaction summaries, an Activity pill.
+    // `item` is the open summary, the key Tending and State use for theirs;
+    // absent, the pane opens on the newest and leaves the address alone.
+    { key: 'compactions',
+      open(u){ this.goCompactions({ item: u.item }); },
+      stamp(p){ if (this.compactionsItem) p.set('item', this.compactionsItem); } },
     // The Search view's address carries the ran search (sq + friends, stamped
     // from searchSeed, which the view updates on each run) AND the file open in
     // it (sfile, an owner/repo[@ref]:path address), so the screen can be shared
@@ -7301,14 +7309,16 @@ function app(){ return {
   // isEstate gates the estate component (it renders the grid and the Stage,
   // switching on this.view, sharing the one lazy mount); estateCtx is the
   // wider context test the sidebar switches on.
-  get isEstate(){ return ['repos', 'stage', 'lists', 'branches', 'activity', 'sessions', 'writes', 'chats', 'state', 'traffic'].includes(this.view); },
+  get isEstate(){ return ['repos', 'stage', 'lists', 'branches', 'activity', 'sessions', 'writes', 'chats', 'compactions', 'state', 'traffic'].includes(this.view); },
   // The Lists view is the one estate pane that FILLS rather than flows: the
   // open list scrolls inside itself, so the page must not scroll and the chain
   // from the pane down to the component root has to carry a definite height.
   // Every other view keeps the ordinary overflow-y-auto column. Held here
   // rather than inside the component because the two ancestors that need the
   // classes are the shell's markup, not the component's.
-  get listsFill(){ return this.view === 'lists'; },
+  // Compactions fills too, for the same reason: its list and its strip each
+  // scroll inside themselves (html-style rule 11).
+  get listsFill(){ return this.view === 'lists' || this.view === 'compactions'; },
   // App views are estate-level (peers of Repos/Stage), so they share
   // the estate sidebar context: the per-repo view list stays hidden and the
   // header reads "Repositories".
@@ -7369,7 +7379,7 @@ function app(){ return {
       // ?view=branches resolves to Branches, and the pill row leads with
       // Sessions, since a chip that moves is a target a reader has to
       // learn twice.
-      { view: 'sessions', views: ['sessions', 'branches', 'writes', 'chats', 'state', 'traffic', 'tending'],
+      { view: 'sessions', views: ['sessions', 'branches', 'writes', 'chats', 'compactions', 'state', 'traffic', 'tending'],
         icon: 'ph-pulse',    label: 'Activity', go: () => this.goSessions() },
       // Waiting: the owner's queue, user calls and proposed edits. Standing
       // with a token, since proposed edits are rarely none and counting them
@@ -7822,6 +7832,22 @@ function app(){ return {
   // cache, so arriving costs no call.
   goTraffic(){ this.estateSeen = true; this.view = 'traffic'; this.syncUrl(); },
   goChats(){ this.estateSeen = true; this.view = 'chats'; this.syncUrl(); },
+  // Mounted on the first visit and kept (compactionsSeen), as Tending is.
+  goCompactions(opts = {}){
+    this.estateSeen = true; this.compactionsSeen = true; this.view = 'compactions';
+    if ('item' in opts) this.compactionsItem = opts.item || '';
+    this.syncUrl();
+  },
+  // A pick inside the pane: the address follows it in place, so Back leaves
+  // the pane rather than walking every summary the reader stepped through.
+  setCompactionsItem(id){
+    if (!id || id === this.compactionsItem) return;
+    this.compactionsItem = id;
+    if (this.view !== 'compactions') return;
+    const restoring = this._restoring;
+    this._restoring = true;
+    try { this.syncUrl(); } finally { this._restoring = restoring; }
+  },
   // `repo` is a filter a Repos card or a branch row hands in, deliberately not
   // stamped: it narrows a reading, and a shared link should open the whole set.
   goTending(opts = {}){
