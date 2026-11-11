@@ -108,6 +108,9 @@
 
   document.addEventListener('alpine:init', () => {
     const esc = s => window.esc(s);   // lib/vanilla-bundle.js, loaded by the boot chain
+    // Each drawn variant's place in the filtered list, for its deck door. Kept
+    // outside the component so that rebuilding it does not redraw the list.
+    let variantAt = new Map();
     Alpine.data('textInstruments', () => ({
       REPO: 'mehrlander/home',
       ROOT: 'projects/text',
@@ -183,6 +186,8 @@
       concept: '',
       filterStanding: '',
       runRows: [],
+      VARIANT_BATCH: 40,
+      variantLimit: 40,
       deckBusy: '',
       probeSel: params.get('probe') || '',
       FACTS: [['method', 'ph-flask', 'Approach'], ['corpus', 'ph-books', 'Corpus'], ['result', 'ph-chart-bar', 'Result'],
@@ -266,6 +271,9 @@
         // list over a card; it only loses the swipe.
         this.swipers = {};
         try { await gh.load('kits/swipe-deck.js'); await gh.load('kits/linked-swiper.js'); } catch (_) {}
+        // A new search or filter starts its list from the first batch again.
+        for (const key of ['variantQ', 'variantAuthor', 'variantPurpose'])
+          this.$watch(key, () => { this.variantLimit = this.VARIANT_BATCH; });
         for (const key of ['filterStanding', 'concept', 'probeBy', 'badgeFilter', 'probeRun', 'runBy'])
           this.$watch(key, () => this.$nextTick(() => this.mountDetail()));
         // Whatever ?pane= asked for, not just the one that used to need it:
@@ -678,11 +686,34 @@
       purposeDef(word) {
         return this.variantIndex?.purposes?.[word] || null;
       },
+      // The collection runs to thousands of variants, and drawing every one
+      // made some 80,000 elements, which a phone does not survive. The groups
+      // are drawn up to a budget (variantLimit) that grows as the reader
+      // nears the end. `all` is the whole group, for its count and its deck;
+      // `items` is what is drawn. An addressed variant is always drawn.
       variantGroups() {
         const rows = this.variantRows;
+        variantAt = new Map(rows.map((row, i) => [row.id, i]));
+        let left = this.variantLimit;
         return this.variantFacet('purpose')
-          .map(({ key }) => ({ purpose: key, items: rows.filter(row => row.purpose === key) }))
-          .filter(group => group.items.length);
+          .map(({ key }) => {
+            const all = rows.filter(row => row.purpose === key);
+            const items = all.slice(0, Math.max(0, left));
+            const open = this.variantOpen && all.find(row => row.id === this.variantOpen);
+            if (open && !items.includes(open)) items.unshift(open);
+            left -= items.length;
+            return { purpose: key, all, items };
+          })
+          .filter(group => group.items.length);   // a group past the budget waits its turn; its pill above still filters to it
+      },
+      variantPlace(p) { return variantAt.get(p.id) ?? 0; },
+      get variantDrawn() { return Math.min(this.variantLimit, this.variantRows.length); },
+      // Draw the next batch when the end of the list comes near the viewport.
+      watchVariantEnd(el) {
+        if (typeof IntersectionObserver !== 'function') { this.variantLimit = Infinity; return; }
+        new IntersectionObserver(entries => {
+          if (entries.some(e => e.isIntersecting) && this.variantLimit < this.variantRows.length) this.variantLimit += this.VARIANT_BATCH;
+        }, { rootMargin: '600px' }).observe(el);
       },
 
       variantPreview(value, limit = 190) {
@@ -1407,14 +1438,14 @@
           <div class="flex items-end gap-2 border-b border-base-300">
             <h2 class="text-sm font-semibold uppercase tracking-wide text-base-content/50 pb-1 grow flex items-baseline gap-2 min-w-0">
               <span x-text="g.purpose"></span>
-              <span class="tabular-nums" x-text="g.items.length"></span>
+              <span class="tabular-nums" x-text="g.all.length"></span>
               <span class="normal-case tracking-normal truncate" x-show="purposeDef(g.purpose)?.gloss"
                     x-text="purposeDef(g.purpose)?.gloss"></span>
             </h2>
             <button class="btn btn-square btn-sm btn-ghost text-primary max-sm:h-10 max-sm:w-10"
                     :aria-label="'Read the ' + g.purpose + ' variants one at a time'"
-                    :title="'Read the ' + g.items.length.toLocaleString() + ' ' + g.purpose + ' variants one at a time'"
-                    @click="openVariantDeck(g.items, 0, g.purpose + ' · ' + (variantAuthor || 'every author'))">
+                    :title="'Read the ' + g.all.length.toLocaleString() + ' ' + g.purpose + ' variants one at a time'"
+                    @click="openVariantDeck(g.all, 0, g.purpose + ' · ' + (variantAuthor || 'every author'))">
               <i class="ph ph-cards-three text-lg"></i>
             </button>
           </div>
@@ -1432,11 +1463,18 @@
               </div>
               <!-- The facts and the acts, under the pair, as in both decks. A
                    proposal chip rides this line too (data-variant-proposals). -->
-              <div data-variant-proposals x-init="$el.replaceWith(variantFoot(p, { deckAt: variantRows.indexOf(p) }))"></div>
+              <div data-variant-proposals x-init="$el.replaceWith(variantFoot(p, { deckAt: variantPlace(p) }))"></div>
             </article>
           </template>
         </section>
       </template>
+
+      <!-- The end of what is drawn: nearing it draws the next batch. -->
+      <div x-show="variantState === 'done' && variantDrawn < variantRows.length" x-init="watchVariantEnd($el)"
+           class="py-6 text-center font-mono text-xs text-base-content/70">
+        <span x-text="variantDrawn.toLocaleString() + ' of ' + variantRows.length.toLocaleString() + ' drawn'"></span>
+        <button type="button" class="btn btn-xs btn-ghost border-base-300 ml-2" @click="variantLimit += VARIANT_BATCH * 5">more</button>
+      </div>
 
       <p x-show="variantState === 'done' && !variantRows.length"
          class="py-16 text-center font-mono text-xs opacity-70">
