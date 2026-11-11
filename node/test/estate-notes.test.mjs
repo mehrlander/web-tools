@@ -206,7 +206,7 @@ test('a subject is a link pill that opens where the thing lives', async () => {
   assert.equal(pill('o/r:lists/no-such-list.json#x'), 'ph-list-bullets | o/r:lists/no-such-list.json#x |  | false', 'a list this registry does not hold opens nothing');
 });
 
-test('a list item pill opens its Lists tab, a snag with its card', async () => {
+test('a list item pill opens its Lists tab and picks the snag it names', async () => {
   await seedKinds();
   data.snagDraft = 'filtering'; data.snagOpen = '';
   data.aboutPill('o/tools:docs/SNAGS.md#a-slug').go();
@@ -228,7 +228,7 @@ test('a finding is read with its thread, and its card links every subject once',
   assert.equal(data.findingState(data.noteList[0]), 'handled');
 });
 
-test('a note just added takes the card when the chosen chip lets it into the list', async () => {
+test('a note just added is the picked note when the chosen chip lets it into the list', async () => {
   await seedKinds();
   data.noteOpen = 'n1';
   data.noteAbout = 'o/r#30'; data.noteDraft = 'one more note';
