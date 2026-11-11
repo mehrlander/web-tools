@@ -79,7 +79,19 @@ const Alpine = await startAlpine(window, [
 const doc = window.document;
 const data = Alpine.$data(doc.getElementById('es'));
 const reg = () => new FakeGH({ repo: REGISTRY });
-const wait = (ms = 60) => new Promise(r => setTimeout(r, ms));
+// The strip settles over a few animation frames and Alpine flushes between
+// them, so every step waits for what it expects to see, never for a count of
+// milliseconds: a fixed wait is a guess that fails when the machine is busy.
+async function until(check, what, ms = 8000) {
+  const t0 = Date.now();
+  for (;;) {
+    let ok = false;
+    try { ok = !!check(); } catch { ok = false; }
+    if (ok) return;
+    if (Date.now() - t0 > ms) assert.fail('timed out waiting for ' + what);
+    await new Promise(r => setTimeout(r, 10));
+  }
+}
 // What a reader sees: the text of everything x-show has not hidden.
 const text = (el) => {
   if (!el) return '';
@@ -106,32 +118,46 @@ const NOTE_LINES = [
 ];
 
 const roots = () => [...doc.querySelectorAll('[data-pattern="list-detail"]')];
-const snagRoot = () => roots()[0];
-const noteRoot = () => roots()[1];
-const selected = (root, key) => [...root.querySelectorAll('[aria-selected="true"]')].map(r => r.getAttribute('data-' + key));
-const head = (root) => root.querySelector('[data-ls="head"]');
-// The card in view: the strip's slide at the selection.
-const cardOf = (root, key, id) => {
-  const ids = [...root.querySelectorAll(`[data-part="list"] [data-${key}]`)].map(r => r.getAttribute('data-' + key));
-  return root.querySelector('.sd-track').children[ids.indexOf(id)];
-};
+const rootOf = (tab) => roots()[tab === 'snag' ? 0 : 1];
+const snagRoot = () => rootOf('snag');
+const noteRoot = () => rootOf('note');
+const rowIds = (tab) => [...rootOf(tab).querySelectorAll(`[data-part="list"] [data-${tab}]`)].map(r => r.getAttribute('data-' + tab));
+const selected = (tab) => [...rootOf(tab).querySelectorAll('[aria-selected="true"]')].map(r => r.getAttribute('data-' + tab));
+const head = (tab) => rootOf(tab).querySelector('[data-ls="head"]');
+// A row's card: the strip's slide at that row's place in the list.
+const cardOf = (tab, id) => rootOf(tab).querySelector('.sd-track')?.children[rowIds(tab).indexOf(id)];
+const picked = (tab) => (tab === 'snag' ? data.snagOpen : data.noteOpen);
+const frames = (n) => new Promise(done => { const step = () => (n-- > 0 ? window.requestAnimationFrame(step) : done()); step(); });
+// The strip is on a row: the component, the list's mark, the track and the
+// drawn card agree, and still agree some frames on. The frames matter: the
+// kit reads the track's place a frame after it scrolls, so a step taken
+// inside that frame would be answered with the row the strip just left.
+async function shown(tab, id) {
+  const on = () => picked(tab) === id && selected(tab).join() === id && text(head(tab)) && text(cardOf(tab, id))
+    && rootOf(tab).querySelector('.sd-track').scrollLeft === rowIds(tab).indexOf(id);
+  for (;;) {
+    await until(on, `the ${tab} strip on ${id}`);
+    await frames(3);
+    if (on()) return;
+  }
+}
 
 // Open a tab on fresh files, then tap a row if one is named. The shell here is
 // a plain object, so the tab is set before the read: the rows arriving are
 // what the root's x-effect hears, and it mounts the strip for the open tab.
-async function open(tab, picked = '') {
+async function open(tab, row = '') {
   SAVES = [];
   FILES = { 'lists/snag.json': JSON.stringify({ items: SNAGS }), [NOTES]: NOTE_LINES.map(line).join('') };
   window.__shell.listsTab = tab;
   data.snagDraft = ''; data.editId = null; data.undoOffer = null; data.replyTo = null;
   data.noteAbout = ''; data.noteKind = '';
-  data.snagOpen = ''; data.noteOpen = '';
   await data.loadSnags(reg());
   await data.loadNotes(reg());
-  await wait();
-  if (picked) {
-    click((tab === 'snag' ? snagRoot() : noteRoot()).querySelector(`[data-${tab}="${picked}"]`));
-    await wait();
+  await until(() => rowIds(tab).length === 3 && rowIds(tab).includes(picked(tab)), `the ${tab} strip to mount`);
+  await shown(tab, picked(tab));
+  if (row) {
+    click(rootOf(tab).querySelector(`[data-${tab}="${row}"]`));
+    await shown(tab, row);
   }
 }
 
@@ -149,16 +175,17 @@ test('both tabs declare the list and detail, each row a compact item', async () 
   const rows = [...snagRoot().querySelectorAll('[data-snag]')];
   assert.deepEqual(rows.map(r => r.dataset.snag), ['a-green-over-nothing', 'a-stale-name', 'a-third-thing'], 'last bitten first');
   assert.equal(text(rows[0].querySelector('[data-part="title"]')), 'a local green over a file nobody listed');
+  await until(() => /2$/.test(text(rows[0].querySelector('[data-part="meta"]'))), "the first row's note count");
   assert.match(text(rows[0].querySelector('[data-part="meta"]')), /^tools ×2 on 2026-10-03 2$/, 'repo, how often, how lately, its notes');
   assert.match(text(rows[1].querySelector('[data-part="meta"]')), /^tools on 2026-10-02$/, 'no badge for a snag seen once, no count without notes');
 });
 
 test('the Snag strip opens on the first row, and a row tap moves the card', async () => {
   await open('snag');
-  assert.equal(data.snagOpen, 'a-green-over-nothing');
-  assert.deepEqual(selected(snagRoot(), 'snag'), ['a-green-over-nothing']);
-  assert.match(text(head(snagRoot())), /^a-green-over-nothing/, 'the head row names the snag by its id');
-  const card = cardOf(snagRoot(), 'snag', 'a-green-over-nothing');
+  await shown('snag', 'a-green-over-nothing');
+  assert.match(text(head('snag')), /^a-green-over-nothing/, 'the head row names the snag by its id');
+  const card = cardOf('snag', 'a-green-over-nothing');
+  await until(() => /Fixed by the gate/.test(text(card)), 'the notes left on the snag');
   assert.equal(text(card.querySelector('[data-part="title"]')), 'a local green over a file nobody listed');
   assert.deepEqual([...card.querySelectorAll('[data-part="links"] button')].map(text), ['python/scan.py', 'node/test/scan.test.mjs']);
   assert.match(text(card.querySelector('[data-part="meta"]')), /Bit 2026-10-01, 2026-10-03/);
@@ -166,37 +193,32 @@ test('the Snag strip opens on the first row, and a row tap moves the card', asyn
   assert.match(text(card), /Seen again on the phone\. me .* Fixed by the gate\. claude\/x/, 'the notes left on it, replies under them');
 
   click(snagRoot().querySelector('[data-snag="a-stale-name"]'));
-  await wait();
-  assert.equal(data.snagOpen, 'a-stale-name');
-  assert.deepEqual(selected(snagRoot(), 'snag'), ['a-stale-name']);
-  assert.match(text(head(snagRoot())), /^a-stale-name/);
-  assert.equal(text(cardOf(snagRoot(), 'snag', 'a-stale-name').querySelector('[data-part="title"]')), 'a stale file name was kept');
+  await shown('snag', 'a-stale-name');
+  assert.match(text(head('snag')), /^a-stale-name/);
+  assert.equal(text(cardOf('snag', 'a-stale-name').querySelector('[data-part="title"]')), 'a stale file name was kept');
 });
 
 test("the head row carries what a row carried: the snag's notes, Again, Edit and Delete", async () => {
   await open('snag', 'a-green-over-nothing');
-  const act = (label) => head(snagRoot()).querySelector(`[data-part="actions"] [aria-label="${label}"]`);
-  assert.equal(text(act('Notes about this item')), '2', 'with the count of its notes');
+  const act = (label) => head('snag').querySelector(`[data-part="actions"] [aria-label="${label}"]`);
+  await until(() => text(act('Notes about this item')) === '2', "the notes button's count");
 
   click(act('It happened again today'));
-  await wait();
-  const again = JSON.parse(FILES['lists/snag.json']).items.find(x => x.id === 'a-green-over-nothing');
-  assert.deepEqual(again.seen, ['2026-10-01', '2026-10-03', data.todayYmd()]);
-  assert.match(text(cardOf(snagRoot(), 'snag', 'a-green-over-nothing').querySelector('[data-part="meta"]')),
-    new RegExp(data.todayYmd()), 'the card redraws from the written list');
+  const today = data.todayYmd();
+  await until(() => JSON.parse(FILES['lists/snag.json']).items.find(x => x.id === 'a-green-over-nothing').seen.at(-1) === today, 'Again to be saved');
+  assert.deepEqual(JSON.parse(FILES['lists/snag.json']).items.find(x => x.id === 'a-green-over-nothing').seen, ['2026-10-01', '2026-10-03', today]);
+  await until(() => text(cardOf('snag', 'a-green-over-nothing').querySelector('[data-part="meta"]')).includes(today),
+    'the card to redraw from the written list');
 
   click(act('Edit'));
-  await wait();
-  const card = cardOf(snagRoot(), 'snag', 'a-green-over-nothing');
-  const fields = card.querySelectorAll('textarea');
-  assert.equal(fields.length, 2, 'the title and the entry');
-  assert.equal(fields[0].value, 'a local green over a file nobody listed');
-  assert.ok(act('Edit').closest('[data-part="actions"]').classList.contains('invisible'), 'the actions step aside and keep their room');
+  const card = cardOf('snag', 'a-green-over-nothing');
+  await until(() => card.querySelectorAll('textarea').length === 2, 'the edit form: the title and the entry');
+  assert.equal(card.querySelectorAll('textarea')[0].value, 'a local green over a file nobody listed');
+  await until(() => act('Edit').closest('[data-part="actions"]').classList.contains('invisible'), 'the actions to step aside');
   data.editDraft = 'a local green over a file nobody read';
   click(card.querySelector('[aria-label="Save"]'));
-  await wait();
-  assert.ok(card.isConnected, 'a write that leaves the rows as they were keeps the card, and the reader\'s place in it');
-  assert.equal(text(card.querySelector('[data-part="title"]')), 'a local green over a file nobody read');
+  await until(() => text(card.querySelector('[data-part="title"]')) === 'a local green over a file nobody read', 'the saved title in the card');
+  assert.ok(card.isConnected, "a write that leaves the rows as they were keeps the card, and the reader's place in it");
 
   click(act('Notes about this item'));
   assert.equal(window.__shell.listsTab, 'note');
@@ -206,74 +228,69 @@ test("the head row carries what a row carried: the snag's notes, Again, Edit and
 
 test('deleting the snag in view hands the card to the row that took its place', async () => {
   await open('snag', 'a-stale-name');
-  assert.match(text(head(snagRoot())), /^a-stale-name/);
-  click(head(snagRoot()).querySelector('[aria-label="Delete"]'));
-  await wait();
-  assert.deepEqual([...snagRoot().querySelectorAll('[data-snag]')].map(r => r.dataset.snag), ['a-green-over-nothing', 'a-third-thing']);
-  assert.equal(data.snagOpen, 'a-third-thing');
-  assert.match(text(head(snagRoot())), /^a-third-thing/);
+  assert.match(text(head('snag')), /^a-stale-name/);
+  click(head('snag').querySelector('[aria-label="Delete"]'));
+  await shown('snag', 'a-third-thing');
+  assert.deepEqual(rowIds('snag'), ['a-green-over-nothing', 'a-third-thing']);
+  assert.match(text(head('snag')), /^a-third-thing/);
 });
 
 test('the add box narrows the list, and the first match takes the card', async () => {
   await open('snag', 'a-green-over-nothing');
   data.snagDraft = 'third thing';
-  await wait();
-  assert.deepEqual([...snagRoot().querySelectorAll('[data-snag]')].map(r => r.dataset.snag), ['a-third-thing']);
-  assert.equal(data.snagOpen, 'a-third-thing');
-  assert.match(text(head(snagRoot())), /^a-third-thing/);
+  await shown('snag', 'a-third-thing');
+  assert.deepEqual(rowIds('snag'), ['a-third-thing']);
+  assert.match(text(head('snag')), /^a-third-thing/);
   data.snagDraft = '';
 });
 
 test('the Note list holds the notes that answer no other, and a card holds the thread', async () => {
-  await open('note');
+  await open('note', 'n4');
   const rows = [...noteRoot().querySelectorAll('[data-note]')];
   assert.deepEqual(rows.map(r => r.dataset.note), ['n4', 'n3', 'n1'], 'newest first, the reply in no row');
   assert.equal(text(rows[1].querySelector('[data-part="title"]')), 'Merged cleanly', 'the first sentence');
   assert.match(text(rows[2]), /snag: a local green over a file nobody listed .* me 1$/, 'what it is about, its author, its reply');
   assert.match(text(rows[0]), /tools \/ a-branch .* Landed or overtaken, settled claude\/tend/, "a finding's kind and state");
 
-  assert.equal(data.noteOpen, 'n4');
-  assert.match(text(head(noteRoot())), /^settled ?Landed or overtaken/);
-  const finding = cardOf(noteRoot(), 'note', 'n4');
+  assert.match(text(head('note')), /^settled ?Landed or overtaken/);
+  const finding = cardOf('note', 'n4');
+  await until(() => /Its one commit is on main/.test(text(finding)), "the finding's reason in its card");
   assert.deepEqual([...finding.querySelectorAll('[data-part="links"] a')].map(a => text(a) + ' ' + a.getAttribute('href')),
     ['tools / a-branch https://mehrlander.github.io/web-tools/pages/branch.html#gh=o/tools@claude/a-branch', 'tools #12 https://github.com/o/tools/pull/12']);
   assert.match(text(finding), /The branch holds nothing main lacks\. claude\/tend .* Its one commit is on main\./);
 
   click(noteRoot().querySelector('[data-note="n1"]'));
-  await wait();
-  assert.match(text(head(noteRoot())), /^List item/, 'a plain note is headed by the kind of thing it is about');
-  const card = cardOf(noteRoot(), 'note', 'n1');
+  await shown('note', 'n1');
+  assert.match(text(head('note')), /^List item/, 'a plain note is headed by the kind of thing it is about');
+  const card = cardOf('note', 'n1');
+  await until(() => /Fixed by the gate/.test(text(card)), 'the reply under the note');
   assert.equal((text(card).match(/Seen again on the phone\./g) || []).length, 1, 'the text once, with no title above it');
   assert.match(text(card), /Seen again on the phone\. me .* Fixed by the gate\. claude\/x/);
 });
 
 test('a reply is written from the card, under the note it answers', async () => {
   await open('note', 'n3');
-  const card = cardOf(noteRoot(), 'note', 'n3');
+  const card = cardOf('note', 'n3');
+  await until(() => card.querySelector('[aria-label="Reply"]'), "the note's reply control");
   click(card.querySelector('[aria-label="Reply"]'));
-  await wait();
-  const box = card.querySelector('form input');
-  assert.ok(box, 'the reply form opens under the note');
+  await until(() => card.querySelector('form input'), 'the reply form under the note');
   data.replyDraft = 'agreed';
   card.querySelector('form').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
-  await wait();
-  const last = JSON.parse(FILES[NOTES].trim().split('\n').at(-1));
-  assert.equal(last.about, 'note:n3');
-  assert.equal(last.text, 'agreed');
+  await until(() => JSON.parse(FILES[NOTES].trim().split('\n').at(-1)).text === 'agreed', 'the reply to be saved');
+  assert.equal(JSON.parse(FILES[NOTES].trim().split('\n').at(-1)).about, 'note:n3');
+  await until(() => /Merged cleanly\. Nothing else to do\. me .* agreed me/.test(text(card)), 'the reply in the card');
   assert.ok(card.isConnected, 'the card is the one the reply was typed in');
-  assert.match(text(card), /Merged cleanly\. Nothing else to do\. me .* agreed me/, 'and it shows the reply');
 });
 
 test('an About chip narrows the list and moves the card to a note it holds', async () => {
   await open('note', 'n4');
   const chips = () => [...noteRoot().parentElement.querySelectorAll('[data-slot="frame:count-chips"] button')];
+  await until(() => chips().length === 4, 'the chips');
   assert.deepEqual(chips().map(text), ['All3', 'Branch1', 'List item1', 'Pull request1']);
   click(chips()[3]);
-  await wait();
-  assert.deepEqual([...noteRoot().querySelectorAll('[data-note]')].map(r => r.dataset.note), ['n3']);
-  assert.equal(data.noteOpen, 'n3');
-  assert.match(text(head(noteRoot())), /^Pull request/);
+  await shown('note', 'n3');
+  assert.deepEqual(rowIds('note'), ['n3']);
+  await until(() => /^Pull request/.test(text(head('note'))), 'the head row for the pull request note');
   click(chips()[3]);
-  await wait();
-  assert.equal(data.noteKind, '', 'a second tap lets the chip go');
+  await until(() => data.noteKind === '', 'a second tap to let the chip go');
 });
