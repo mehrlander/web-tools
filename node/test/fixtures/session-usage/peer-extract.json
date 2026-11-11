@@ -1,0 +1,17 @@
+{
+ "schema": "usage/1",
+ "session": "0ddba11a-0000-4000-8000-000000000000",
+ "short": "0ddba11b",
+ "day": "2026-11-04",
+ "agent_session": "https://claude.ai/code/session_fixture",
+ "opening_ask": "A made-up session for the extract test.",
+ "harness_cost": 12.25,
+ "last_step_at": "2026-11-04T14:00:02.000Z",
+ "context_now": 30004,
+ "prompts": [],
+ "unowned": {"steps": 9, "reloads": 2, "models": {"claude-fable-5-2": {"input": 1, "output": 300, "cache_read": 184000, "cache_write_1h": 2500}, "claude-opus-5-5": {"input": 13, "output": 2020, "cache_read": 352500, "cache_write_1h": 674500, "cache_write_5m": 73000, "reload_written": 362000, "reload_write_1h": 290000, "reload_write_5m": 72000}, "claude-sonnet-5-5": {"input": 1, "output": 600, "cache_read": 191000, "cache_write_1h": 7000}}},
+ "compactions": [
+  {"at": "2026-11-04T12:00:00.000Z", "chars": 5000, "context_before": 198001, "context_after": 170001},
+  {"at": "2026-11-04T14:00:00.000Z", "chars": 11, "context_before": 173501, "context_after": 30004}
+ ]
+}

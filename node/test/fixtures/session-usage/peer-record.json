@@ -1,0 +1,169 @@
+{
+ "schema": 17,
+ "session_id": "0ddba11a-0000-4000-8000-000000000000",
+ "short": "0ddba11b",
+ "day": "2026-11-04",
+ "agent_session": "https://claude.ai/code/session_fixture",
+ "opening_ask": "A made-up session for the extract test.",
+ "cost": {
+  "totalCostUSD": 12.25
+ },
+ "prompts": [
+  {
+   "at": "2026-11-04T09:00:00.000Z",
+   "text": "one",
+   "origin": "peer"
+  },
+  {
+   "at": "2026-11-04T09:20:00.000Z",
+   "text": "peer",
+   "origin": "peer"
+  },
+  {
+   "at": "2026-11-04T11:00:00.000Z",
+   "text": "two",
+   "origin": "peer"
+  },
+  {
+   "at": "2026-11-04T12:30:00.000Z",
+   "text": "three",
+   "origin": "peer"
+  },
+  {
+   "at": "2026-11-04T16:00:00.000Z",
+   "text": "four, no steps",
+   "origin": "peer"
+  }
+ ],
+ "injected": [
+  {
+   "kind": "compaction",
+   "at": "2026-11-04T12:00:00.000Z",
+   "chars": 5000
+  },
+  {
+   "kind": "skill",
+   "at": "2026-11-04T12:00:01.000Z",
+   "chars": 9
+  },
+  {
+   "kind": "compaction",
+   "at": "2026-11-04T14:00:00.000Z",
+   "head": "caf\u00e9 \u2192 next"
+  }
+ ],
+ "responses": [
+  {
+   "at": "2026-11-04T08:59:00.000Z",
+   "model": "claude-opus-5-5",
+   "usage": {
+    "input_tokens": 3,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 180000,
+    "output_tokens": 400
+   }
+  },
+  {
+   "at": "2026-11-04T09:05:00.000Z",
+   "model": "claude-opus-5-5",
+   "usage": {
+    "input_tokens": 1,
+    "cache_read_input_tokens": 180000,
+    "cache_creation_input_tokens": 4000,
+    "output_tokens": 900,
+    "cache_creation": {
+     "ephemeral_1h_input_tokens": 3000,
+     "ephemeral_5m_input_tokens": 1000
+    }
+   }
+  },
+  {
+   "at": "2026-11-04T09:25:00.000Z",
+   "model": "claude-fable-5-2",
+   "usage": {
+    "input_tokens": 1,
+    "cache_read_input_tokens": 184000,
+    "cache_creation_input_tokens": 2500,
+    "output_tokens": 300
+   }
+  },
+  {
+   "at": "2026-11-04T11:00:04.000Z",
+   "model": "claude-opus-5-5",
+   "usage": {
+    "input_tokens": 2,
+    "cache_read_input_tokens": 1000,
+    "cache_creation_input_tokens": 190000,
+    "output_tokens": 200
+   }
+  },
+  {
+   "at": "2026-11-04T11:10:00.000Z",
+   "model": "claude-sonnet-5-5",
+   "usage": {
+    "input_tokens": 1,
+    "cache_read_input_tokens": 191000,
+    "cache_creation_input_tokens": 7000,
+    "output_tokens": 600
+   }
+  },
+  {
+   "at": "2026-11-04T11:20:00.000Z",
+   "model": "claude-opus-5-5",
+   "usage": {
+    "input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 0,
+    "output_tokens": 1
+   }
+  },
+  {
+   "at": "2026-11-04T11:21:00.000Z",
+   "model": "claude-opus-5-5"
+  },
+  {
+   "at": "2026-11-04T12:00:03.000Z",
+   "model": "claude-opus-5-5",
+   "usage": {
+    "input_tokens": 1,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 170000,
+    "output_tokens": 100
+   }
+  },
+  {
+   "at": "2026-11-04T13:45:00.000Z",
+   "model": "claude-opus-5-5",
+   "usage": {
+    "input_tokens": 1,
+    "cache_read_input_tokens": 1500,
+    "cache_creation_input_tokens": 172000,
+    "output_tokens": 120,
+    "cache_creation": {
+     "ephemeral_1h_input_tokens": 100000,
+     "ephemeral_5m_input_tokens": 72000
+    }
+   }
+  },
+  {
+   "at": "2026-11-04T14:00:02.000Z",
+   "model": "claude-opus-5-5",
+   "usage": {
+    "input_tokens": 4,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 30000,
+    "output_tokens": 80
+   }
+  },
+  {
+   "at": "2026-11-04T12:40:00.000Z",
+   "model": "claude-opus-5-5",
+   "usage": {
+    "input_tokens": 1,
+    "cache_read_input_tokens": 170000,
+    "cache_creation_input_tokens": 1500,
+    "output_tokens": 220
+   }
+  }
+ ]
+}
