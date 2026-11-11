@@ -123,7 +123,7 @@ test('the report: a new session law at the head of the note becomes a finding, a
   assert.match(t.run(NEXT_MON), /probe 2, classify 1, report 1 \(unchanged 1, finding 1\); outcome finding/);
   const [n] = t.noteLines();
   assert.equal(n.author, 'scheduled/statutes-rcw');
-  assert.equal(n.about, 'mehrlander/home:projects/budget-drs/data/source/2026-10-09-pension-statutes/html/rcw-41.50.110.html');
+  assert.equal(n.about, 'mehrlander/budget-drs:data/source/2026-10-09-pension-statutes/html/rcw-41.50.110.html');
   assert.match(n.text, /2027 c 12 s 3/);
   assert.match(n.id, /^n[0-9a-z]+$/);
   assert.equal(t.read().tasks['statutes-rcw'].targets['41.50.110'].head, '2027 c 12 s 3');

@@ -34,7 +34,7 @@ Pass every repo the session touches. Use `--fetch` unless refs were fetched in t
 **2. Scope it when the work is known.** If the coming work has a subject, name the paths:
 
 ```
---paths projects/budget-drs/ lib/gh-api.js
+--paths app/view/ lib/gh-api.js
 ```
 
 The report then ends in a collision verdict rather than a list. Only live branches are checked; do not compare paths across the whole estate yourself, since an old branch differs from the base branch mostly by the base branch's own forward drift.

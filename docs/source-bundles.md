@@ -69,7 +69,6 @@ declaration:
 ```json
 "bundles": [
   {
-    "base": "projects/budget-drs",
     "roots": ["data/source", "submittal/source-docs"],
     "table": "data/design/catalog/bundles.csv",
     "fileTable": "data/design/catalog/bundle-files.csv",

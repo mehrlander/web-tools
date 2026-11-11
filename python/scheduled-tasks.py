@@ -409,7 +409,7 @@ class StatutesRcw:
             reached["report"] += 1
             outcomes["finding"] += 1
             notes.append({
-                "about": "mehrlander/home:projects/budget-drs/data/source/2026-10-09-pension-statutes/html/rcw-" + sec + ".html",
+                "about": "mehrlander/budget-drs:data/source/2026-10-09-pension-statutes/html/rcw-" + sec + ".html",
                 "text": (f"RCW {sec} changed: its history note now cites {', '.join(new)}, which the kept copy "
                          f"does not. The page: https://app.leg.wa.gov/RCW/default.aspx?cite={sec}. "
                          "The copy wants a re-trim, and the Law view may want an event."),

@@ -5290,7 +5290,7 @@ function app(){ return {
   // landing with no query is left out, since the App tab is that page at that
   // address already. A route card never mounts a live preview: a landing is a
   // whole app, and a private one is inlined file by file through the contents
-  // API on every mount (home's budget-drs app: 46 files, about 9.7 MB), so six
+  // API on every mount (the budget-drs app: 46 files, about 9.7 MB), so six
   // of them in a grid would load the app six times to draw six previews. It
   // shows its cached shot (`thumb`, loadProjectPageThumbs) or the project's
   // icon instead.
@@ -7494,6 +7494,15 @@ function app(){ return {
   goMap(tab){
     if (tab !== undefined) this.mapTab = MAP_ROUTES.includes(tab) ? tab : MAP_HOME;
     this.mapSeen = true; this.view = 'map'; this.syncUrl();
+  },
+  // One house policy, by its h: name: the address a `h:name` citation links
+  // (?view=map&tab=policy&h=name), reached from inside the app by the finder's
+  // Policies rows. The event is for a Map already mounted, which read the
+  // address once at its init; a first mount reads the stamped address.
+  goPolicy(id){
+    this.mapCtx = { ...this.mapCtx, h: id || '' };
+    this.goMap('policy');
+    document.dispatchEvent(new CustomEvent('web-tools:open-policy', { detail: { id: id || '' } }));
   },
   // A tab tap from inside map(): stamp the URL so back and forward walk the
   // tabs. The component holds its own copy for rendering and watches this one.

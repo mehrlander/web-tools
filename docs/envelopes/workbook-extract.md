@@ -67,7 +67,7 @@ A sheet reading gives one item for each selected sheet that has any content of t
 
 - `formulas` holds only the text the file stores. Cells that share another cell's formula store none of their own, so they arrive with an empty `Formula`, and the item's note counts them. Filling them in would mean rewriting each cell's relative references, which needs a formula engine this kit does not have.
 - `conditional` holds the rules as written. Which cells a rule paints is answered by `xlsxKit.cfApplies`, for the rule types decidable from one cell.
-- `cells` is the shape `Get-WsDetail`, a PowerShell exporter in the [`mehrlander/home`](https://github.com/mehrlander/home) repo, writes, and the fund-balance view there reads ([`workbook-fill.js`](https://github.com/mehrlander/home/blob/main/projects/budget-drs/app/fund-balance/workbook-fill.js)): `{ SheetName, Dimension, MergedCells: ['A1:B1', …], Cells: [{ Address, Formula, Value }, …] }`. `Value` is the cell's cached value as a string with no number format applied, `35624913.378` rather than `35,624,913`, because a reader can parse the first and not the second. `Formula` is `''` for an entered value and `=<text>` for a stored formula. A cell that shares another cell's formula gets `=[fill N] <master formula>`, where N is the shared formula's index in the file and the text is the formula of the cell that stores it. `workbook-fill.js` resolves the marker by shifting the master formula's relative references, so the formula engine stays on that side. The row cap never applies to `cells`, because a partial sheet in this shape would pass for a whole one.
+- `cells` is the shape `Get-WsDetail`, a PowerShell exporter in the [`mehrlander/home`](https://github.com/mehrlander/home) repo, writes, and the budget-drs app's fund-balance view reads ([`workbook-fill.js`](https://github.com/mehrlander/budget-drs/blob/main/app/fund-balance/workbook-fill.js)): `{ SheetName, Dimension, MergedCells: ['A1:B1', …], Cells: [{ Address, Formula, Value }, …] }`. `Value` is the cell's cached value as a string with no number format applied, `35624913.378` rather than `35,624,913`, because a reader can parse the first and not the second. `Formula` is `''` for an entered value and `=<text>` for a stored formula. A cell that shares another cell's formula gets `=[fill N] <master formula>`, where N is the shared formula's index in the file and the text is the formula of the cell that stores it. `workbook-fill.js` resolves the marker by shifting the master formula's relative references, so the formula engine stays on that side. The row cap never applies to `cells`, because a partial sheet in this shape would pass for a whole one.
 - There is no layout reading. `xlsxKit.sheetLayout` returns a sheet's geometry for the viewer's sheet mode; cell appearance is in `styles`.
 
 ## Shared envelope facts
@@ -98,7 +98,7 @@ A repo declares a reception in the `receptions` field of its [`.web-tools.json`]
   "omit": ["hidden"],
   "never": ["CC", "Cash"],
   "readings": ["cells"],
-  "dest": "projects/budget-drs/data/source/{slug}",
+  "dest": "data/source/{slug}",
   "file": "{date}-{time}-{sheet}.json"
 }]
 ```

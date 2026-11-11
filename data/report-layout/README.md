@@ -20,7 +20,7 @@ holds it: both layouts must yield the same amounts under different column keys.
 A working Washington State operating budget workbook, transcribed by hand on
 2026-09-14: the Governor's January update and the two chamber chairs' budgets,
 compared item by item over the 2025-27 biennium's two fiscal years. Nothing in
-the `mehrlander/home` budget-drs workspace carries these version codes, so the
+`mehrlander/budget-drs` carries these version codes, so the
 figures are not derived from committed data anywhere and this file is their only
 copy. The test asserts every subtotal and grand total the source table printed,
 typed in separately from the item rows here, so a transcription slip fails the
