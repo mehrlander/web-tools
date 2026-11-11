@@ -1227,7 +1227,7 @@
        switching often, and a bordered select for the rest. Normal flow, not
        fixed: this page is a tenant, framed as an app view. The title shows
        only when the page stands alone; framed, the app's header names it. -->
-  <header class="px-4 sm:px-6 pt-3 pb-2.5 flex flex-col gap-2.5 border-b border-base-200">
+  <header class="px-4 sm:px-6 pb-2 flex flex-col gap-2 border-b border-base-200" :class="framed ? 'pt-1' : 'pt-3'">
     <div x-show="!framed" class="flex items-center gap-2">
       <i class="ph ph-flask text-xl text-base-content/50"></i>
       <h1 class="text-lg font-semibold">Text Lab</h1>
@@ -1236,9 +1236,9 @@
     <div class="flex items-center gap-0.5 rounded-lg bg-base-200/60 p-0.5 w-fit max-w-full overflow-x-auto" role="tablist" data-slot="frame:tabs">
       <template x-for="key in PANES" :key="key">
         <button role="tab" @click="showPane(key)" :aria-selected="pane === key"
-                class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-base font-medium transition-colors whitespace-nowrap shrink-0"
+                class="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-medium transition-colors whitespace-nowrap shrink-0"
                 :class="pane === key ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'">
-          <i class="ph text-lg" :class="PANE_META[key].icon"></i><span x-text="PANE_META[key].label"></span>
+          <i class="ph text-base" :class="PANE_META[key].icon"></i><span x-text="PANE_META[key].label"></span>
         </button>
       </template>
     </div>
@@ -1358,7 +1358,7 @@
         (probeListHtml, probeCardHtml and the run pair), since the kit fills
         the card itself. data-pattern declares the unit
         (data/ui-units/codebook.md); nothing at runtime reads it. -->
-   <div x-show="listDetail" class="h-full p-2 sm:p-3" data-pattern="list-detail">
+   <div x-show="listDetail" class="h-full p-2" data-pattern="list-detail">
      <div x-show="pane === 'probes'" class="h-full">
        <div x-ref="probeBox" class="h-full">
          <div x-ref="probeList" role="listbox" aria-label="Probes" data-part="list"></div>
