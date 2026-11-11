@@ -69,5 +69,33 @@ compact({...provider,windows:[{...row,durationMinutes:null}]});
 check(!doc.querySelector('[data-elapsed]') && !!doc.querySelector('[data-compact-reset]'),'An unknown period still shows its actual reset without a guessed pace.');
 compact({...provider,windows:[{...row,resetsAt:'2027-01-15T04:59:00Z'}]});
 check(!doc.querySelector('[data-elapsed], [data-over-pace]') && doc.querySelector('[data-compact-reset]').textContent === 'Reset due','Expired periods show reset due without a pace comparison.');
+const {calendarAxis,calendarDay} = window.NowUsage;
+const calendar = (at,options = {}) => calendarAxis({width:280,now:Date.parse(at),timezone:'Pacific time',...options});
+const spring = calendar('2026-03-08T20:00:00Z'), springDay = spring.days.find(day => day.day === '2026-03-08');
+check(spring.timezone === 'America/Los_Angeles' && spring.today === '2026-03-08' && spring.home === '2026-03-05','The calendar names the archive timezone and centers the default week around today.');
+check(springDay.start === Date.parse('2026-03-08T08:00:00Z') && springDay.end === Date.parse('2026-03-09T07:00:00Z'),'Pacific spring change uses the actual 23-hour calendar day.');
+check(spring.x('2026-03-09') - spring.x('2026-03-08') === 40 && spring.x('2026-03-10') - spring.x('2026-03-09') === 40,'A short DST day and a normal day occupy equal calendar columns.');
+check(Math.abs(spring.x('2026-03-08T10:00:00Z') - spring.x('2026-03-08') - 40 * 2 / 23) < .000001,'A reset after the skipped spring hour retains its exact position within that day.');
+const fall = calendar('2026-11-01T20:00:00Z'), fallDay = fall.days.find(day => day.day === '2026-11-01');
+check(fallDay.start === Date.parse('2026-11-01T07:00:00Z') && fallDay.end === Date.parse('2026-11-02T08:00:00Z'),'Pacific fall change uses the actual 25-hour calendar day.');
+check(Math.abs(fall.x('2026-11-01T09:30:00Z') - fall.x('2026-11-01T08:30:00Z') - 40 / 25) < .000001,'The two repeated fall 1:30 times retain distinct chronological positions.');
+for (const [axis,instants] of [[spring,['2026-03-07T21:00:00Z','2026-03-08T08:00:00Z','2026-03-08T10:00:00Z','2026-03-09T07:00:00Z']],[fall,['2026-11-01T08:30:00Z','2026-11-01T09:30:00Z','2026-11-02T08:00:00Z']]]) {
+  check(instants.every(value => Math.abs(axis.time(axis.x(value)) - Date.parse(value)) < .001),'Timestamp and calendar-pixel conversion round trips across DST and exact day boundaries.');
+}
+const bounds = calendar('2026-11-01T20:00:00Z',{dates:['2026-10-01','2026-10-01','2026-02-30','bad'],markers:[{reset:'2026-12-01T12:34:56Z'},{reset:'invalid'}]});
+check(bounds.days[0].day === '2026-10-01' && bounds.days.at(-1).day === '2026-12-01' && bounds.days.filter(day => day.day === '2026-10-01').length === 1,'The calendar includes saved dates and future resets while ignoring malformed or duplicate dates.');
+check(spring.days[0].day === '2026-03-01' && spring.days.at(-1).day === '2026-03-16','The base calendar includes seven earlier days and the boundary nine days after today.');
+check(bounds.x('2000-01-01T00:00:00Z') === 0 && bounds.x('2099-01-01T00:00:00Z') === bounds.days.length * bounds.cell && bounds.time(-1) === bounds.days[0].start && bounds.time(Infinity) === null && bounds.time(1e9) === bounds.days.at(-1).end,'Calendar conversions clamp valid out-of-range values and reject invalid positions.');
+check(bounds.x('2026-02-30') === null && bounds.x('2026-02-30T12:00:00Z') === null && bounds.x('invalid') === null && calendarDay('2026-02-30','Pacific time') === null,'Malformed calendar dates never roll into another date or produce NaN positions.');
+check(calendar('2026-11-01T20:00:00Z',{timezone:'not-a-timezone'}) === null && calendarDay('2026-11-01T20:00:00Z','not-a-timezone') === null,'An unknown archive timezone fails explicitly instead of moving daily readings to the viewer timezone.');
+const deviceTimezone = process.env.TZ;
+try {
+  process.env.TZ = 'Asia/Tokyo';
+  const remote = calendar('2026-11-01T07:30:00Z');
+  check(calendarDay('2026-11-01T06:30:00Z','Pacific time') === '2026-10-31' && remote.today === '2026-11-01' && remote.days.find(day => day.day === '2026-11-01').start === Date.parse('2026-11-01T07:00:00Z'),'A device in another timezone preserves the source dates and Pacific DST boundaries.');
+} finally {
+  if (deviceTimezone === undefined) delete process.env.TZ;
+  else process.env.TZ = deviceTimezone;
+}
 console.log(`${checks} usage display checks passed.`);
 dom.window.close();
