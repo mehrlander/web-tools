@@ -3,7 +3,8 @@
 // web-tools-private, one object whose `text` is the summary. The listing keeps
 // only those files and names each by its file name without `.json`, the id
 // `#at=`, `&item=` and the Cost tab's links address; the parse reads the facts
-// and the nine sections from the object.
+// and the nine sections from the object. The list shows one row per session,
+// and a session's card shows one of its summaries at a time, chosen by a tab.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -86,4 +87,73 @@ test("the Cost tab's compaction name is a listed id", async () => {
     : [{ type: 'file', name: name + '.json', path: 'm/' + name + '.json', size: 1 }] };
   c.rows = await c.list();
   assert.ok(c.byId(name), name);
+});
+
+const TREE = {
+  'sessions/compactions': [{ type: 'dir', name: '2026', path: 'sessions/compactions/2026' }],
+  'sessions/compactions/2026': [{ type: 'dir', name: '11', path: 'sessions/compactions/2026/11' }],
+  'sessions/compactions/2026/11': ['2026-11-03-b2cdc8ac-20261105T032503Z', '2026-11-03-b2cdc8ac-20261107T130000Z',
+    '2026-11-03-b2cdc8ac-20261104T010000Z', '2026-11-06-c0517ab1-20261106T133000Z']
+    .map((n) => ({ type: 'file', name: n + '.json', path: 'sessions/compactions/2026/11/' + n + '.json', size: 1 })),
+};
+const B = '2026-11-03-b2cdc8ac', C1 = '2026-11-06-c0517ab1';
+async function listed(get) {
+  const c = factory(null);
+  c.gh = { ls: async (p) => TREE[p] || [], get };
+  c.rows = await c.list();
+  return c;
+}
+
+test('the list has one row per session, the latest compaction first, and a session keeps its summaries in time order', async () => {
+  const c = await listed();
+  assert.deepEqual(own(c.groups.map((g) => g.id)), [B, C1], 'b2cdc8ac was last compacted on the 7th, after c0517ab1 on the 6th');
+  assert.deepEqual(own(c.groups[0].items.map((r) => r.id)),
+    [B + '-20261104T010000Z', B + '-20261105T032503Z', B + '-20261107T130000Z']);
+  const row = c.rowHtml(c.groups[0]);
+  assert.match(row, new RegExp('data-cmp="' + B + '"'), 'a row is addressed by its session');
+  assert.match(row, /×3/, 'a session compacted more than once says how many times');
+  assert.doesNotMatch(c.rowHtml(c.groups[1]), /×/);
+});
+
+test("a session's card shows its latest summary until another is opened there", async () => {
+  const c = await listed();
+  assert.equal(c.curOf(B), B + '-20261107T130000Z');
+  c.cur[B] = B + '-20261104T010000Z';
+  assert.equal(c.curOf(B), B + '-20261104T010000Z');
+  c.cur[B] = 'gone';
+  assert.equal(c.curOf(B), B + '-20261107T130000Z', 'a summary no longer listed falls back to the latest');
+  assert.equal(c.curOf('2026-01-01-00000000'), '');
+});
+
+test('a context size is written in thousands', () => {
+  const k = window.Compactions.fmtK;
+  assert.deepEqual([785231, 105235, 999, 1000, 1250000, null].map(k), ['785k', '105k', '999', '1k', '1.25M', '?']);
+});
+
+test('a card leads with one line: a tab per compaction, the time, the context in thousands and a link to the session', async () => {
+  const c = await listed(async () => ({ text: JSON.stringify({ ...FILE, context_before: 785231, context_after: 105235 }) }));
+  c.sel = c.curOf(B);
+  const el = window.document.createElement('div');
+  window.document.body.append(el);
+  c.fill(B, el, false);
+  for (let i = 0; i < 10; i++) await new Promise((r) => setTimeout(r, 5));
+  const top = el.querySelector('[data-cmp-top]');
+  const tabs = [...top.querySelectorAll('[role="tab"]')];
+  assert.deepEqual(tabs.map((t) => t.textContent), ['1', '2', '3']);
+  assert.equal(top.querySelector('.tab-active').textContent, '3', 'the latest is open');
+  assert.match(top.textContent, /785k → 105k/);
+  assert.doesNotMatch(top.textContent, /token|character|\bof\b/);
+  assert.equal(top.querySelector('[data-session-link]').getAttribute('aria-label'), 'Open the session');
+  assert.ok(el.querySelector('[data-sec="1"]'), 'the summary is drawn under the line');
+
+  tabs[0].dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  assert.equal(c.sel, B + '-20261104T010000Z', 'a tab opens its summary');
+  assert.equal(el.querySelector('[data-cmp-top] .tab-active').textContent, '1');
+  assert.equal(el.querySelector('[data-usage-chart]').getAttribute('data-usage-chart'), B + '-20261104T010000Z',
+    "the chart stays and is told which summary's drop to pick out");
+
+  const one = window.document.createElement('div');
+  window.document.body.append(one);
+  c.fill(C1, one, false);
+  assert.equal(one.querySelector('[role="tablist"]'), null, 'a session compacted once has no tabs');
 });

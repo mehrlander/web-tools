@@ -108,7 +108,7 @@ test('a session without an extract draws nothing and says nothing', async () => 
   assert.match(host.className, /empty:hidden/);
 });
 
-test('a tap on another compaction\'s mark opens its summary in the list', async () => {
+test('a tap on another compaction\'s mark opens its summary on the same card, and the list stays on the session', async () => {
   const { c } = component({ 'sessions/usage/2026/11/2026-11-04-0ddba11a.json': JSON.stringify(extract) });
   const picks = [];
   c._swiper = { pick: (id) => picks.push(id) };
@@ -118,5 +118,7 @@ test('a tap on another compaction\'s mark opens its summary in the list', async 
   await drawn(host);
   const other = host.querySelector(`[data-name="${SECOND}"] circle`);
   other.dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true }));
-  assert.deepEqual(picks, [SECOND]);
+  assert.equal(c.sel, SECOND, 'the open summary is the tapped one');
+  assert.equal(c.curOf('2026-11-04-0ddba11a'), SECOND, "and it is the one the session's card shows");
+  assert.deepEqual(picks, [], 'the list is not asked to move: the session is the same');
 });
