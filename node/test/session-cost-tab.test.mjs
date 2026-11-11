@@ -1,8 +1,9 @@
 // alpineComponents/session-brief.js: the Cost tab, after Turns, which draws
 // kits/session-usage.js's reading of a measured record as one chart in two
-// panels. Driven over a record handed in whole, with the real kit loaded where
-// the component asks for it; jsdom has no layout, so the chart is drawn by
-// calling the string builder at a width the test names.
+// panels, through kits/usage-chart.js. Driven over a record handed in whole,
+// with the real kits loaded where the component asks for them; jsdom has no
+// layout, so the chart is drawn by calling the string builder at a width the
+// test names.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -38,7 +39,7 @@ window.TOKEN = 'tkn';
 const loads = [];
 window.gh = { load: async (k) => {
   loads.push(k);
-  if (k === 'kits/session-usage.js') new window.Function('window', readFileSync(path.join(repoRoot, 'lib', k), 'utf8'))(window);
+  if (k === 'kits/session-usage.js' || k === 'kits/usage-chart.js') new window.Function('window', readFileSync(path.join(repoRoot, 'lib', k), 'utf8'))(window);
 } };
 window.claudeMark = { svg: () => '<svg></svg>' };
 window.sessionRender = { describe: (r) => ({ title: r.short, subtitle: '' }), turns: (r) => r.replies || [], groups: (t) => t.map((x) => [x]),
@@ -71,6 +72,7 @@ test('pane=cost lands on the tab, after Turns, and reads the record through the 
   assert.deepEqual(tabs.slice(0, 3), ['Overview', 'Turns', 'Cost']);
   assert.equal(data('cost').topPane, 'cost');
   assert.ok(loads.includes('kits/session-usage.js'));
+  assert.ok(loads.includes('kits/usage-chart.js'), 'the chart is the shared kit\'s');
   const u = data('cost').usage;
   assert.equal(u.prompts.length, 2, 'the peer note is not a prompt');
   assert.equal(u.totals.reloads, 1);
