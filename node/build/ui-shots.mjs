@@ -28,7 +28,7 @@
 // keeps its whole height, since the card shows its top square and the deck
 // shows the rest.
 //
-// THE SLOTS are drawn as described above slotJs below. thumbs.csv's pattern
+// THE SLOTS are recorded, not drawn (marksJs below). thumbs.csv's pattern
 // column names the declared pattern.
 //
 // THE RECIPE. A unit's address in units.csv says where it is, and for most
@@ -42,10 +42,11 @@
 // query that opens with # is a fragment, for the pages that route on
 // location.hash.
 //
-// THE COMPONENTS. Beside each store's manifest, components.json records
-// where every Alpine component sat in each shot: per unit and width, a list
-// of { n, box }, the name x-data mounts it by and its box as fractions of
-// the image. The Map's Components tab outlines one component from it.
+// THE OVERLAYS. A shot is the plain page. Beside each store's manifest,
+// overlays.json records what a tab can draw over it: per unit and width,
+// `marks` (the unit's slots: a frame control or the body, with its code's
+// name) and `comps` (every Alpine component, by the name x-data mounts it
+// by), each with its box as fractions of the image.
 //
 // THE OUTPUT, split by visibility like the units tables themselves: public
 // units' shots go to data/ui-units/thumbs/ here, home's to web-tools-private's
@@ -106,55 +107,29 @@ const slotJs = (stage, coded) => `
   const PATS = [...document.querySelectorAll('[data-pattern]')].filter((e) => IN(e) && SHOWN(e));
   const BODY = PATS.find((e) => e.dataset.pattern === ${JSON.stringify(coded)}) || PATS[0];
   const SLOTS = DOCS.flatMap((d) => [...d.querySelectorAll('[data-slot]')]).filter((e) => IN(e) && SHOWN(e));`;
-const drawJs = (stage, coded) => `(() => {
+// NOTHING IS DRAWN ON THE PAGE. The outlines and labels were painted into
+// every shot until 2026-11-12, which gave one image one job: the Map's Pages
+// tab wanted the page's frame and body marked, and its Components tab,
+// showing the same image to say where one component sits, got two outlines
+// about something else. A shot is now the plain page, and what could be
+// marked on it is written beside it (overlays.json) for a tab to draw:
+// `marks`, the unit's slots, each { k: frame|body, n: the code's name } with
+// its box, and `comps`, every Alpine component's box.
+//
+// Only a slot whose code codes.csv names is a mark. The Map marks its
+// toolbar, its filter strip and its list with data-slot values that are no
+// frame code.
+const marksJs = (stage, coded) => `(() => {
   ${slotJs(stage, coded)}
-  const C = ${JSON.stringify(COLOR)}, N = ${JSON.stringify(NAME)};
-  // 1.5px: at 2px the outlines were the heaviest lines in a shot, heavier
-  // than anything on the page they mark.
-  // Only a slot whose code codes.csv names is drawn. The Map marks its
-  // toolbar, its filter strip and its list with data-slot values that are no
-  // frame code, and each drew a box with a raw lowercase label, an empty one
-  // where a tab's toolbar holds nothing.
-  for (const e of SLOTS.filter(e => N[e.dataset.slot])) { e.style.outline = '1.5px solid ' + C.frame; e.style.outlineOffset = '1px'; }
-  if (BODY) { BODY.style.outline = '1.5px dashed ' + C.body; BODY.style.outlineOffset = '-1.5px'; }
-})()`;
-const labelJs = (stage, coded) => `(() => {
-  ${slotJs(stage, coded)}
-  const C = ${JSON.stringify(COLOR)}, N = ${JSON.stringify(NAME)};
-  const layer = document.createElement('div');
-  layer.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:2147483647';
+  const N = ${JSON.stringify(NAME)};
   const at = (e) => { const r = e.getBoundingClientRect(); let left = r.left, top = r.top;
     for (let w = e.ownerDocument.defaultView; w !== window && w.frameElement; w = w.frameElement.ownerDocument.defaultView) {
       const o = w.frameElement.getBoundingClientRect(); left += o.left; top += o.top; }
-    return { left, top }; };
-  // Kept inside the crop: a label that would rise above it sits inside its
-  // slot's top edge, or at the crop's top where the slot starts above it, and
-  // one that would run past the right edge is pulled in.
-  const crop = typeof f === 'string' && f !== 'null' ? JSON.parse(f) : { x: 0, y: 0, w: innerWidth };
-  document.body.append(layer);
-  const tag = (e, text, color) => {
-    const r = at(e), t = document.createElement('div');
-    t.textContent = text;
-    // Bold white on the dimension's colour taken a fifth toward black, and
-    // tight: at 600 on the plain amber the label was the hardest text in a
-    // shot to read, and its padding hid more of the page than its words.
-    t.style.cssText = 'position:absolute;font:800 12px/1.25 system-ui,sans-serif;color:#fff;padding:0 5px;border-radius:3px;'
-      + 'white-space:nowrap;background:color-mix(in srgb, ' + color + ' 80%, #000)';
-    layer.append(t);
-    let left = Math.min(Math.max(crop.x + 2, r.left), crop.x + crop.w - t.offsetWidth - 2);
-    const top = Math.max(2, crop.y + 2, r.top - 9 >= crop.y + 1 ? r.top - 9 : r.top + 2), h = t.offsetHeight;
-    // Two slots sharing a top edge (a search box at the top of its body) would
-    // stack their labels; the later one moves along to the right.
-    for (let hit = true; hit;) {
-      hit = false;
-      for (const p of placed) if (top < p.top + p.h && p.top < top + h && left < p.right + 4 && p.left < left + t.offsetWidth + 4) { left = p.right + 4; hit = true; }
-    }
-    t.style.left = Math.max(2, left) + 'px'; t.style.top = top + 'px';
-    placed.push({ left, right: left + t.offsetWidth, top, h });
-  };
-  const placed = [];
-  for (const e of SLOTS.filter(e => N[e.dataset.slot])) tag(e, N[e.dataset.slot], C.frame);
-  if (BODY) tag(BODY, N['body:' + BODY.dataset.pattern] || BODY.dataset.pattern, C.body);
+    return { x: left, y: top, w: r.width, h: r.height }; };
+  const out = [];
+  for (const e of SLOTS) if (N[e.dataset.slot]) out.push({ k: 'frame', n: N[e.dataset.slot], ...at(e) });
+  if (BODY) out.push({ k: 'body', n: N['body:' + BODY.dataset.pattern] || BODY.dataset.pattern, ...at(BODY) });
+  return out;
 })()`;
 // The app's live GitHub reads are unauthenticated here, and past the hourly
 // limit the app swaps the unit for a token prompt. The answer says so, and a
@@ -162,16 +137,15 @@ const labelJs = (stage, coded) => `(() => {
 const shotJs = (w) => {
   const stage = { ...stageOf(w.u), region: w.r.region || '' };
   const coded = w.c.body || '';
-  return `(async () => { ${drawJs(stage, coded)};
+  return `(async () => {
   const f = await ${w.r.focus ? focusJs(w.r.focus, stage, coded) : "'null'"};
-  ${labelJs(stage, coded)};
+  const marks = ${marksJs(stage, coded)};
   await new Promise((ok) => setTimeout(ok, 100));
   const limited = /API rate limit exceeded/.test(document.body.innerText);
   // WHERE EACH ALPINE COMPONENT SITS, in the window's own pixels: every
   // element whose x-data opens with a name, with its box as the shot is
-  // taken. Nothing is drawn for these. The boxes are written beside the
-  // shots (components.json) so the Map's Components tab can outline the one
-  // component its card is about, over a shot every component shares.
+  // taken, so the Map's Components tab can outline the one component its
+  // card is about, over a shot every component shares.
   const comps = [...document.querySelectorAll('[x-data]')].map((e) => {
     // No backslash classes: this text passes through a template literal and a
     // command line on its way to the page, and \w arrived as a bare w.
@@ -185,7 +159,7 @@ const shotJs = (w) => {
     const h = cs.overflowY === 'visible' ? Math.max(r.height, e.scrollHeight) : r.height;
     return m && w > 1 && h > 1 ? { n: m[1], x: r.left, y: r.top, w, h } : null;
   }).filter(Boolean);
-  return JSON.stringify({ ...(f === 'null' ? {} : JSON.parse(f)), limited, comps, vw: innerWidth, vh: innerHeight }); })()`;
+  return JSON.stringify({ ...(f === 'null' ? {} : JSON.parse(f)), limited, comps, marks, vw: innerWidth, vh: innerHeight }); })()`;
 };
 
 // PNG to a JPEG of the given width, drawn in the same headless browser the
@@ -212,24 +186,24 @@ async function toJpeg(page, png, size, focus, out) {
   writeFileSync(out, Buffer.from(data, 'base64'));
 }
 
-// A shot's component boxes as fractions of the kept image: left, top, width
-// and height, each 0 to 1, a box cut to the part of it the shot keeps and
+// A shot's boxes as fractions of the kept image: left, top, width and
+// height, each 0 to 1, a box cut to the part of it the shot keeps and
 // dropped where the shot keeps none of it. The kept region is toJpeg's: the
 // focus box's left, top and width, and the window's height or the ratio's.
-function compBoxes(read, focus, size) {
+function overlays(read, focus, size) {
   const vw = read?.vw, vh = read?.vh;
-  if (!vw || !vh || !Array.isArray(read.comps)) return [];
+  if (!vw || !vh) return { marks: [], comps: [] };
   const fx = focus ? focus.x : 0, fy = focus ? focus.y : 0;
   const fw = focus ? Math.min(focus.w, vw - fx) : vw;
   const fh = Math.min(vh - fy, size.ratio ? fw * size.ratio : Infinity);
   const r4 = (v) => Math.round(v * 1e4) / 1e4;
-  const out = [];
-  for (const c of read.comps) {
+  const fit = (list) => (Array.isArray(list) ? list : []).flatMap((c) => {
     const x0 = Math.max(c.x, fx), y0 = Math.max(c.y, fy), x1 = Math.min(c.x + c.w, fx + fw), y1 = Math.min(c.y + c.h, fy + fh);
-    if (x1 - x0 < 2 || y1 - y0 < 2) continue;
-    out.push({ n: c.n, box: [r4((x0 - fx) / fw), r4((y0 - fy) / fh), r4((x1 - x0) / fw), r4((y1 - y0) / fh)] });
-  }
-  return out;
+    if (x1 - x0 < 2 || y1 - y0 < 2) return [];
+    const { x, y, w, h, ...rest } = c;
+    return [{ ...rest, box: [r4((x0 - fx) / fw), r4((y0 - fy) / fh), r4((x1 - x0) / fw), r4((y1 - y0) / fh)] }];
+  });
+  return { marks: fit(read.marks), comps: fit(read.comps) };
 }
 
 needHomeModules();
@@ -283,7 +257,7 @@ const worker = async () => {
       const file = `${base}.${kind}.jpg`;
       await toJpeg(resize, png, size, focus, path.join(w.store.thumbs, file));
       row[kind] = file;
-      boxes.get(w.store.name)[w.unit] = { ...(boxes.get(w.store.name)[w.unit] || {}), [kind]: compBoxes(read, focus, size) };
+      boxes.get(w.store.name)[w.unit] = { ...(boxes.get(w.store.name)[w.unit] || {}), [kind]: overlays(read, focus, size) };
       if (kind === 'desk' && focus) { row.focus = `${focus.at} @${focus.y}`; row.pattern = focus.pattern || ''; }
       // The day the shot was TAKEN, which a --reuse run must not move.
       if (kind === 'desk') row.shot_at = statSync(png).mtime.toISOString().slice(0, 10);
@@ -302,9 +276,9 @@ for (const store of STORES) {
   const keep = rowsOf(file).filter(r => !fresh.some(f => f.unit === r.unit));
   const rows = [...keep, ...fresh].sort((a, b) => a.unit.localeCompare(b.unit));
   writeFileSync(file, writeCsv(rows, MANIFEST_COLS));
-  // The component boxes, beside the manifest: this run's units replace their
-  // own entries and every other unit's are kept, as the manifest's rows are.
-  const cfile = path.join(store.thumbs, 'components.json');
+  // The overlays, beside the manifest: this run's units replace their own
+  // entries and every other unit's are kept, as the manifest's rows are.
+  const cfile = path.join(store.thumbs, 'overlays.json');
   const had = existsSync(cfile) ? JSON.parse(readFileSync(cfile, 'utf8')) : {};
   const all = { ...had, ...boxes.get(store.name) };
   writeFileSync(cfile, JSON.stringify(Object.fromEntries(Object.keys(all).sort().map(k => [k, all[k]]))) + '\n');
