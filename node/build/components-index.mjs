@@ -21,6 +21,12 @@
 //   routes     how many rows of docs/app-routes.csv name the file among their
 //              files: above zero, the component draws an app view
 //   views      the keys of those rows, `;`-joined: ?view=<key> opens each
+//   leads      the views it is the top component of, `;`-joined: among the
+//              components a route names, the ones no other of them mounts.
+//              The Files route names file-browser, path-picker and viewer;
+//              file-browser mounts the other two, so it alone leads Files.
+//              A component that leads a view draws that view whole; one a
+//              route names without leading is a piece inside it
 //   loads      how many other files under lib/, pages/ and app/ name its load
 //              path (alpineComponents/<name>.js)
 //   mounts     how many other files there mount it: a line that carries
@@ -38,6 +44,21 @@
 //   kits       the kits it names by load path (kits/<name>.js), `;`-joined
 //   events     the events it sends: every name handed to $dispatch or to
 //              new CustomEvent, `;`-joined
+//   options    the keys it reads off the argument its factory takes
+//              (`cfg.items`, `const { repo } = opts`), `;`-joined in file
+//              order: what a host passes in x-data. A factory whose argument
+//              is used whole, never by key, lists the argument's own name
+//   hears      the events it listens for by name: an Alpine handler
+//              (`@drop-file=`, `x-on:`) or addEventListener, for a name with
+//              a hyphen or a colon in it, which a browser's own events never
+//              have; `;`-joined
+//   codes      the patterns its markup declares, each as `code:count`,
+//              `;`-joined: the values of data-pattern, the detail under the
+//              patterns count
+//   parts      the part names its markup declares (data-part), `;`-joined
+//   setups     how many setups are written for it: the
+//              <template data-setup> blocks in demos/<file>.html beside the
+//              component, which the component stage (demos/index.html) mounts
 //   tested     its basename appears in a file under node/test/
 //
 // Run `npm run components-index` to restamp; `--check` compares instead of
@@ -52,7 +73,7 @@ import { headlineOf } from './kits-index.mjs';
 import { repoRoot } from '../repo-root.mjs';
 
 // Fixed here so a restamp cannot reorder the file.
-export const COMPONENTS_COLS = ['path', 'names', 'gloss', 'lines', 'routes', 'views', 'loads', 'mounts', 'mounted_by', 'pages', 'patterns', 'kits', 'events', 'tested'];
+export const COMPONENTS_COLS = ['path', 'names', 'gloss', 'lines', 'routes', 'views', 'leads', 'loads', 'mounts', 'mounted_by', 'pages', 'patterns', 'kits', 'events', 'options', 'hears', 'codes', 'parts', 'setups', 'tested'];
 
 const GLOSS_MAX = 160;
 const read = (root, rel) => readFileSync(path.join(root, rel), 'utf8');
@@ -89,6 +110,44 @@ export function glossOf(src, base) {
 }
 
 /**
+ * The keys a component reads off its factory's argument, in file order. The
+ * argument is the one parameter of the function handed to Alpine.data; a
+ * local that is assigned from it (`const cfg = opts || {}`, a spread, an
+ * Object.assign) is read as the same thing. A parameter that is never read by
+ * key is returned as its own name: the host passes one value, not a bag.
+ */
+export function optionsOf(src) {
+  const out = [];
+  const add = k => { if (!out.includes(k)) out.push(k); };
+  for (const m of src.matchAll(/Alpine\.data\(\s*['"][\w$]+['"]\s*,\s*(?:async\s+)?(?:function\s*\(\s*([^)]*)\)|\(\s*([^)]*)\)\s*=>)/g)) {
+    const p = (m[1] ?? m[2] ?? '').split('=')[0].trim();
+    if (!/^[A-Za-z_$][\w$]*$/.test(p)) continue;
+    const names = new Set([p]);
+    for (const a of src.matchAll(new RegExp('(?:const|let|var)\\s+(\\w+)\\s*=\\s*(?:Object\\.assign\\([^;]*?\\b' + p + '\\b[^;]*?\\)|' + p + '\\s*(?:\\|\\||\\?\\?)\\s*\\{\\}|\\{[^;]*?\\.\\.\\.' + p + '\\b[^;]*?\\})', 'g'))) names.add(a[1]);
+    const found = [];
+    for (const n of names) {
+      for (const k of src.matchAll(new RegExp('(?<![\\w.$])' + n + '\\??\\.([A-Za-z_]\\w*)', 'g'))) found.push([k.index, k[1]]);
+      for (const d of src.matchAll(new RegExp('(?:const|let)\\s*\\{([^}]*)\\}\\s*=\\s*' + n + '\\b', 'g')))
+        for (const k of d[1].split(',')) { const key = k.split(/[:=]/)[0].trim(); if (/^\w+$/.test(key)) found.push([d.index, key]); }
+    }
+    if (!found.length) add(p);
+    for (const [, k] of found.sort((a, b) => a[0] - b[0])) add(k);
+  }
+  return out;
+}
+
+/** The custom events a file listens for by name (a hyphen or a colon in it). */
+export function hearsOf(src) {
+  const out = new Set();
+  // An attribute, not a mention: the name, any modifiers, then `=` and a
+  // quote, and no word before the @ (owner/repo@ref:path in a comment).
+  for (const m of src.matchAll(/(?<![\w/])(?:@|x-on:)([a-z][a-z0-9]*(?:[-:][a-z0-9]+)+)(?:\.[a-z0-9.-]+)?=["'`\\]/g)) out.add(m[1]);
+  for (const m of src.matchAll(/addEventListener\(\s*['"]([a-z][a-z0-9]*(?:[-:][a-z0-9]+)+)['"]/g)) out.add(m[1]);
+  out.delete('alpine:init'); out.delete('alpine:initialized');
+  return [...out].sort();
+}
+
+/**
  * Derive every row.
  * @param {string} root
  * @returns {object[]} rows, sorted by path
@@ -97,15 +156,22 @@ export function deriveComponents(root) {
   const files = tracked(root);
   const comps = files.filter(f => /^lib\/alpineComponents\/[\w-]+\.js$/.test(f)).sort();
   const tests = files.filter(f => f.startsWith('node/test/')).map(f => read(root, f)).join('\n');
+  // The setups under demos/ mount a component in order to show it. They are
+  // not hosts: counting them would make every component with a setup "shared".
   const readers = files.filter(f =>
-    (f.startsWith('lib/') || f.startsWith('pages/') || f.startsWith('app/')) && /\.(html|js|mjs)$/.test(f));
+    (f.startsWith('lib/') || f.startsWith('pages/') || f.startsWith('app/')) && /\.(html|js|mjs)$/.test(f)
+    && !f.startsWith('lib/alpineComponents/demos/'));
   const sources = new Map(readers.map(f => [f, read(root, f)]));
   const routes = parseCsv(read(root, 'docs/app-routes.csv'));
   const list = (cell) => String(cell || '').split(';').map(x => x.trim()).filter(Boolean);
   const units = files.includes('data/ui-units/units.csv') ? parseCsv(read(root, 'data/ui-units/units.csv')) : [];
   const uniq = (src, re) => [...new Set([...src.matchAll(re)].map(m => m[1]))].sort();
 
-  return comps.map(rel => {
+  const setupsOf = (base) => {
+    const f = 'lib/alpineComponents/demos/' + base.replace(/\.js$/, '.html');
+    return files.includes(f) ? (read(root, f).match(/<template\b[^>]*\bdata-setup=/g) || []).length : 0;
+  };
+  const rows = comps.map(rel => {
     const src = sources.get(rel) ?? read(root, rel);
     const base = path.posix.basename(rel);
     const names = namesOf(src);
@@ -126,6 +192,9 @@ export function deriveComponents(root) {
     }
     const mounts = mounters.length;
     const named = routes.filter(r => list(r.files).includes(rel));
+    const code = src.split('\n').filter(l => !/^\s*\/\//.test(l)).join('\n');
+    const codes = new Map();
+    for (const m of src.matchAll(/\bdata-pattern="([a-z][\w-]*)"/g)) codes.set(m[1], (codes.get(m[1]) || 0) + 1);
     const shows = new Set([rel, ...mounters.filter(f => f.endsWith('.html'))]);
     return {
       path: rel,
@@ -134,6 +203,8 @@ export function deriveComponents(root) {
       lines: src.split('\n').length,
       routes: named.length,
       views: named.map(r => r.key).join(';'),
+      // Filled below, once every row's mounted_by is known.
+      leads: '',
       loads,
       mounts,
       mounted_by: mounters.sort().join(';'),
@@ -141,9 +212,26 @@ export function deriveComponents(root) {
       patterns: (src.match(/\bdata-pattern=/g) || []).length,
       kits: uniq(src, /['"`]kits\/([\w-]+)\.js/g).join(';'),
       events: uniq(src, /(?:\$dispatch|new CustomEvent)\(\s*['"`]([\w:.-]+)['"`]/g).join(';'),
+      // Read off the code alone: a usage example in a comment line names
+      // the events a HOST handles and the keys a host might pass.
+      options: optionsOf(code).join(';'),
+      hears: hearsOf(code).join(';'),
+      codes: [...codes].map(([k, n]) => k + ':' + n).join(';'),
+      parts: uniq(src, /\bdata-part="([a-z][\w-]*)"/g).join(';'),
+      setups: setupsOf(base),
       tested: tests.includes(base) ? 'yes' : 'no',
     };
   });
+  // LEADS: a route's top component. Of the components a route names, the ones
+  // none of the others mounts.
+  const by = new Map(rows.map(r => [r.path, new Set(list(r.mounted_by))]));
+  for (const r of rows) {
+    r.leads = routes.filter(route => {
+      const named = list(route.files).filter(f => by.has(f));
+      return named.includes(r.path) && !named.some(f => f !== r.path && by.get(r.path).has(f));
+    }).map(route => route.key).join(';');
+  }
+  return rows;
 }
 
 // ── CLI: restamp (or --check) docs/components.csv ──────────────────────────
@@ -163,7 +251,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
     process.exit(0);
   }
   writeFileSync(file, bytes);
-  console.log(`components-index: ${rows.length} components; ${rows.filter(r => r.routes).length} draw an app view, `
+  console.log(`components-index: ${rows.length} components; ${rows.filter(r => r.leads).length} lead an app view, ${rows.filter(r => r.setups).length} have a setup, `
     + `${rows.filter(r => r.patterns).length} declare a pattern, ${rows.filter(r => r.tested === 'yes').length} tested`);
   for (const r of rows.filter(r => !r.gloss)) console.log('  no gloss  ' + r.path);
   for (const r of rows.filter(r => !r.names)) console.log('  no Alpine.data name  ' + r.path);

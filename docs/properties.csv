@@ -34,8 +34,9 @@ hook-legs,in_repair,computed,node/build/tools-index.mjs,value,column,yes,yes;no,
 components,names,computed,node/build/components-index.mjs,value,column,yes,,,value,"every name the file registers with Alpine.data, in file order; x-data mounts the component by one of these. Blank is the warning state: a file in the component folder that registers nothing"
 components,gloss,computed,node/build/components-index.mjs,counted,column,yes,,,value,"the first sentence of the component's own description property, or of its leading comment where it has none. Read rather than authored; blank where neither opens with a sentence"
 components,lines,computed,node/build/components-index.mjs,value,column,yes,,,value,file length
-components,routes,computed,node/build/components-index.mjs,value,column,yes,,,value,"how many rows of docs/app-routes.csv name the file among their files; above zero, the component draws an app view"
+components,routes,computed,node/build/components-index.mjs,value,column,yes,,,value,how many rows of docs/app-routes.csv name the file among their files
 components,views,computed,node/build/components-index.mjs,none,column,yes,,,value,"the keys of the docs/app-routes.csv rows that name the file, in that file's order; ?view=<key> opens each"
+components,leads,computed,node/build/components-index.mjs,none,column,yes,,,value,"the app views it draws whole: the keys of the docs/app-routes.csv rows where, of the components the row names, no other mounts this one"
 components,loads,computed,node/build/components-index.mjs,value,column,yes,,,value,"how many other files under lib/, pages/ and app/ name its load path"
 components,mounts,computed,node/build/components-index.mjs,value,column,yes,,,value,"how many other files there carry a line with x-data and one of its names; zero with zero loads is the warning state"
 components,mounted_by,computed,node/build/components-index.mjs,none,column,yes,,,value,the files that mount it by name in x-data
@@ -43,6 +44,11 @@ components,pages,computed,node/build/components-index.mjs,none,column,yes,,,valu
 components,patterns,computed,node/build/components-index.mjs,value,column,yes,,,value,"how many times the file writes data-pattern, the attribute a page's markup declares an arrangement with"
 components,kits,computed,node/build/components-index.mjs,none,column,yes,,,value,the kits it names by load path
 components,events,computed,node/build/components-index.mjs,none,column,yes,,,value,"the events it sends: every name handed to $dispatch or to new CustomEvent"
+components,options,computed,node/build/components-index.mjs,none,column,yes,,,value,"the keys it reads off the argument its factory takes, in file order: what a host passes in x-data. An argument never read by key is listed by its own name"
+components,hears,computed,node/build/components-index.mjs,none,column,yes,,,value,"the events it listens for by name, in an Alpine handler or addEventListener; only names with a hyphen or a colon, which a browser's own events lack"
+components,codes,computed,node/build/components-index.mjs,none,column,yes,,,value,"the patterns its markup declares, each as code:count: the values of data-pattern, which the patterns column totals"
+components,parts,computed,node/build/components-index.mjs,none,column,yes,,,value,the part names its markup declares in data-part
+components,setups,computed,node/build/components-index.mjs,value,column,yes,,,value,"how many setups are written for it: the template data-setup blocks in lib/alpineComponents/demos/<file>.html, which the component stage mounts"
 components,tested,computed,node/build/components-index.mjs,value,column,yes,yes;no,,label,a file under node/test/ names it
 kits,namespace,computed,node/build/kits-index.mjs,value,column,yes,,,value,"the public handle: the last window.<name> assignment in the file, which the shelf's shape rule makes the namespace. Blank is the warning state: a kit nothing can reach by name"
 kits,gloss,computed,node/build/kits-index.mjs,counted,column,yes,,,value,"the first sentence of the kit's own header comment, its filename prefix stripped. The header is the kit's authoritative doc, so this is read rather than authored; blank where the file opens with code, and blanks are counted rather than hidden"

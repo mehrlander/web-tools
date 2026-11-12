@@ -1,0 +1,23 @@
+<!-- Setups for cmEditor (../cm-editor.js), mounted by the component stage
+     (index.html?c=cm-editor). The editor is kits/cm6.js; the component is the
+     Alpine shell over it, so each setup loads the kit first. -->
+
+<template data-setup="Editing JavaScript" data-load="kits/cm6.js">
+  <div x-data="{ chars: 0 }">
+    <div x-data="cmEditor({
+      value: 'const total = rows\n  .filter(r => r.open)\n  .reduce((sum, r) => sum + r.amount, 0);\n',
+      language: 'js',
+      onChange: text => chars = text.length,
+    })" class="h-56 overflow-hidden rounded-lg border border-base-300 [&_.cm-editor]:h-full"></div>
+    <p class="mt-2 text-base tabular-nums text-base-content/60" x-show="chars" x-text="chars + ' characters'"></p>
+  </div>
+</template>
+
+<template data-setup="Read-only HTML, no wrapping" data-load="kits/cm6.js">
+  <div x-data="cmEditor({
+    value: '<nav aria-label=&quot;Breadcrumb&quot; class=&quot;flex min-w-0 flex-1 items-center overflow-x-auto whitespace-nowrap&quot;>\n  <button type=&quot;button&quot;>web-tools</button>\n</nav>\n',
+    language: 'html',
+    wrap: false,
+    readonly: true,
+  })" class="h-40 overflow-hidden rounded-lg border border-base-300 [&_.cm-editor]:h-full"></div>
+</template>

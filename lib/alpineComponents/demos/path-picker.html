@@ -1,0 +1,36 @@
+<!-- Setups for pathPicker (../path-picker.js), mounted by the component stage
+     (index.html?c=path-picker). The picker reads a repo's tree through GitHub,
+     so each setup names a public repo as its root and hands over the page's
+     GitHub client: the default is the app's browser store, which a page
+     without the repo component never fills. -->
+
+<template data-setup="Pick a file, from a trigger">
+  <div x-data="{ picked: '' }" @path-pick="picked = $event.detail.path">
+    <div x-data="pathPicker({
+      mode: 'file',
+      roots: [{ repo: 'mehrlander/web-tools', label: 'web-tools' }],
+      placeholder: 'Browse web-tools for a file',
+      gh: () => window.gh,
+    })"></div>
+    <p class="mt-2 text-base" x-show="picked">Picked <span class="font-mono" x-text="picked"></span></p>
+  </div>
+</template>
+
+<template data-setup="Pick a folder">
+  <div x-data="pathPicker({
+    mode: 'dir',
+    roots: [{ repo: 'mehrlander/web-tools', label: 'web-tools' }],
+    placeholder: 'Choose a folder',
+    gh: () => window.gh,
+  })"></div>
+</template>
+
+<template data-setup="Inline, inside one folder">
+  <div class="h-96 overflow-hidden rounded-lg border border-base-300">
+    <div x-data="pathPicker({
+      inline: true,
+      base: { repo: 'mehrlander/web-tools', dir: 'lib/kits' },
+      gh: () => window.gh,
+    })" class="h-full"></div>
+  </div>
+</template>
