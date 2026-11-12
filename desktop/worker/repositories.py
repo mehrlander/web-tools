@@ -343,6 +343,8 @@ def main():
         from laptop_inventory import InventoryError, publish
         try:
             value = publish(args.root)
+            from local_activity import run
+            value['activity'] = run(args.root, args.state, Path.home(), push=True)
         except (InventoryError, OSError, ValueError, subprocess.TimeoutExpired):
             value = {'state': 'unavailable', 'path': 'state/laptop-files.tsv'}
         print(json.dumps(value))
