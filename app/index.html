@@ -6707,6 +6707,7 @@ function app(){ return {
     { key: 'state', open(u){ this.goState(u.item); },
       stamp(p){ if (this.stateItem) p.set('item', this.stateItem); } },
     { key: 'traffic', open(){ this.goTraffic(); } },
+    { key: 'local', open(){ this.goLocal(); } },
     // Compactions: the session store's compaction summaries, an Activity pill.
     // `item` is the open summary, the key Tending and State use for theirs;
     // absent, the pane opens on the newest and leaves the address alone.
@@ -7314,7 +7315,7 @@ function app(){ return {
   // isEstate gates the estate component (it renders the grid and the Stage,
   // switching on this.view, sharing the one lazy mount); estateCtx is the
   // wider context test the sidebar switches on.
-  get isEstate(){ return ['repos', 'stage', 'lists', 'branches', 'activity', 'sessions', 'writes', 'chats', 'compactions', 'state', 'traffic'].includes(this.view); },
+  get isEstate(){ return ['repos', 'stage', 'lists', 'branches', 'activity', 'sessions', 'writes', 'chats', 'local', 'compactions', 'state', 'traffic'].includes(this.view); },
   // The Lists view is the one estate pane that FILLS rather than flows: the
   // open list scrolls inside itself, so the page must not scroll and the chain
   // from the pane down to the component root has to carry a definite height.
@@ -7384,7 +7385,7 @@ function app(){ return {
       // ?view=branches resolves to Branches, and the pill row leads with
       // Sessions, since a chip that moves is a target a reader has to
       // learn twice.
-      { view: 'sessions', views: ['sessions', 'branches', 'writes', 'chats', 'compactions', 'state', 'traffic', 'tending'],
+      { view: 'sessions', views: ['sessions', 'branches', 'writes', 'chats', 'local', 'compactions', 'state', 'traffic', 'tending'],
         icon: 'ph-pulse',    label: 'Activity', go: () => this.goSessions() },
       // Waiting: the owner's queue, user calls and proposed edits. Standing
       // with a token, since proposed edits are rarely none and counting them
@@ -7832,6 +7833,7 @@ function app(){ return {
   // Branches pane already keeps, and its own deeper read is a control on
   // the pane rather than an arrival cost.
   goWrites(){ this.estateSeen = true; this.view = 'writes'; this.syncUrl(); },
+  goLocal(){ this.estateSeen = true; this.view = 'local'; this.syncUrl(); },
   // Traffic: the calls this page has made since it loaded and the work that
   // made them, from the job and traffic ledgers in memory. It warms nothing and reads no
   // cache, so arriving costs no call.

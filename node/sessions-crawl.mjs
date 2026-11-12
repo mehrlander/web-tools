@@ -107,6 +107,9 @@ const reg = gitPath ? {
   },
   decode: (c) => c,
 } : new GH({ token: writeToken, repo: REGISTRY, ref: 'main' });
+// A Git-backed reader has no save method. Writes still use the authenticated
+// registry client, leaving the observed checkout's working tree untouched.
+const writer = gitPath ? new GH({ token: writeToken, repo: REGISTRY, ref: 'main' }) : reg;
 
 // The first read a new token makes, and so the one that explains itself:
 // GitHub answers a repository the credential cannot see with 404, which reads
@@ -161,7 +164,7 @@ async function saveFold(p, doc, message, base) {
   // A run's writes say so, since its token commits as the owner and its
   // subjects are the app's own (lib/kits/write-kinds.js, the subject contract).
   const via = process.env.GITHUB_ACTIONS === 'true' ? ' via Actions' : '';
-  const res = await reg.save(p, doc, message + via, { sha: base?.sha });
+  const res = await writer.save(p, doc, message + via, { sha: base?.sha });
   written.push(p);
   return res;
 }
