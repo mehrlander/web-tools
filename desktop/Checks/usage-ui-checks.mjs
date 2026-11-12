@@ -97,6 +97,13 @@ check(Math.abs(guides[1].dailyPercent * (guides[1].until-guides[1].from)/8640000
 check(dailyPaceGuides({...guideRow,usedPercent:100},{now:midway,observedAt:midway,status:'available'})[1].dailyPercent === 0,'An exhausted allowance has a zero catch-up rate, not a missing rate.');
 check(dailyPaceGuides(guideRow,{now:midway,observedAt:midway-600001,status:'available'}).length === 1 && dailyPaceGuides(guideRow,{now:weeklyReset,observedAt:weeklyReset,status:'available'}).length === 1,'Stale and expired readings retain only the theoretical even-pace reference.');
 check([null,0,-1,Infinity,NaN].every(durationMinutes=>dailyPaceGuides({...guideRow,durationMinutes}).length===0) && dailyPaceGuides({...guideRow,resetsAt:'bad'}).length===0,'Unknown periods and invalid resets never produce a guide.');
+const realNow = window.Date.now;
+try {
+  let reads = 0;
+  window.Date.now = () => weeklyReset - 1 + reads++;
+  const edgeGuides = dailyPaceGuides(guideRow,{observedAt:weeklyReset-1,status:'available'});
+  check(reads === 1 && edgeGuides[1].from === weeklyReset-1 && edgeGuides[1].until === weeklyReset,'A default-clock guide uses one instant for its rate and interval even at the reset boundary.');
+} finally { window.Date.now = realNow; }
 const calendar = (at,options = {}) => calendarAxis({width:280,now:Date.parse(at),timezone:'Pacific time',...options});
 const spring = calendar('2026-03-08T20:00:00Z'), springDay = spring.days.find(day => day.day === '2026-03-08');
 check(spring.timezone === 'America/Los_Angeles' && spring.today === '2026-03-08' && spring.home === '2026-03-05','The calendar names the archive timezone and centers the default week around today.');

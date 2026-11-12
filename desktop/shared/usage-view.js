@@ -39,8 +39,8 @@
     const start = reset - duration, normal = 100 * 86400000 / duration;
     if (!Number.isFinite(start) || !Number.isFinite(normal)) return [];
     const guides = [{kind:'even',from:start,until:reset,dailyPercent:normal}];
-    const pace = remainingPace(row,options);
-    if (pace) guides.push({kind:'catch-up',from:calendarInstant(options.now ?? Date.now()),until:reset,dailyPercent:pace.availableDailyPercent});
+    const now = calendarInstant(options.now ?? Date.now()), pace = remainingPace(row,{...options,now});
+    if (pace) guides.push({kind:'catch-up',from:now,until:reset,dailyPercent:pace.availableDailyPercent});
     return guides;
   }
   function paceMark(value, compact = false) {
