@@ -132,6 +132,68 @@ class CloudActivityChecks(unittest.TestCase):
             activity.git = original_git
         self.assertEqual(self.git("rev-parse", "origin/background^"), raced[0])
 
+    def objects(self):
+        counts = dict(line.split(": ") for line in self.git("count-objects", "-v").splitlines())
+        return int(counts["count"]) + int(counts["in-pack"])
+
+    def test_second_fetch_is_small_where_the_clone_tracks_main_only(self):
+        # The store's shape: background shares no history with main, and another writer owns most of it.
+        writer = self.root / "writer"
+        subprocess.run(["git", "init", "--initial-branch=background", str(writer)], check=True, capture_output=True)
+
+        def write(*args):
+            return activity.git(writer, *args).decode().strip()
+
+        for setting in (("user.name", "Other writer"), ("user.email", "writer@example.test"), ("commit.gpgsign", "false")):
+            write("config", *setting)
+        write("remote", "add", "origin", str(self.remote))
+        for number in range(40):
+            (writer / ("errand-%d.txt" % number)).write_text(str(number), encoding="utf-8")
+            write("add", ".")
+            write("commit", "-m", "Daemon write %d" % number)
+        write("push", "--force", "origin", "background")
+        self.git("config", "remote.origin.fetch", "+refs/heads/main:refs/remotes/origin/main")
+        self.git("update-ref", "-d", "refs/remotes/origin/background")
+
+        received = []
+        original_git = activity.git
+
+        def counting(repo, *args, **kwargs):
+            if args[0] != "fetch":
+                return original_git(repo, *args, **kwargs)
+            before = self.objects()
+            result = original_git(repo, *args, **kwargs)
+            received.append(self.objects() - before)
+            return result
+
+        activity.git = counting
+        try:
+            activity.publish(*activity.capture(self.payload, self.env, self.now))
+            write("pull", "--quiet", "origin", "background")
+            (writer / "later.txt").write_text("later", encoding="utf-8")
+            write("add", ".")
+            write("commit", "-m", "Daemon write after the turn signal")
+            write("push", "origin", "background")
+            stop = dict(self.payload, hook_event_name="Stop", last_assistant_message="Finished")
+            activity.publish(*activity.capture(stop, self.env, self.now + dt.timedelta(seconds=1)))
+        finally:
+            activity.git = original_git
+        self.assertGreaterEqual(received[0], 120)
+        self.assertLess(received[1], 20, received)
+
+    def test_coalesced_publisher_skips_superseded_staged_signal(self):
+        first = activity.capture(self.payload, self.env, self.now)
+        first_at = self.read(first)["updatedAt"]
+        second = activity.capture(dict(self.payload, hook_event_name="Stop", last_assistant_message="Done"),
+                                  self.env, self.now + dt.timedelta(seconds=1))
+        second_at = self.read(second)["updatedAt"]
+        head_before = self.git("rev-parse", "origin/background")
+        activity.publish(*first, expected_at=first_at, coalesce_sec=0.01)
+        self.assertEqual(self.git("rev-parse", "origin/background"), head_before)
+        activity.publish(*second, expected_at=second_at, coalesce_sec=0.01)
+        target = "sessions/activity/" + self.now.strftime("%Y-%m-%d") + "/aabbccdd.json"
+        self.assertEqual(json.loads(self.git("show", "origin/background:" + target))["state"], "idle")
+
 
 if __name__ == "__main__":
     unittest.main()

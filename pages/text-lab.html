@@ -204,6 +204,18 @@
         on: 'bg-base-100 font-medium shadow-sm',
         off: 'text-base-content/70 hover:text-base-content',
       },
+      // A filter is a labelled row of chips, as the Map view draws them
+      // (map.js mapChip, mapChipOn, mapChipOff): rounded, the chosen one
+      // tinted. The raised segmented control (SEG) is kept for a switch of
+      // view, such as how the list is grouped.
+      FILTER: {
+        row: 'flex items-center gap-2 min-w-0 text-sm',
+        label: 'w-16 shrink-0 text-base-content/60',
+        strip: 'flex flex-nowrap items-center gap-1 min-w-0 overflow-x-auto py-0.5 whitespace-nowrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
+        chip: 'shrink-0 flex items-center gap-1.5 rounded-full px-2.5 py-1 max-sm:px-2 max-sm:py-0.5 text-sm whitespace-nowrap transition-colors cursor-pointer',
+        on: 'bg-primary/10 text-primary',
+        off: 'bg-base-200/60 text-base-content/70 hover:text-base-content',
+      },
       CHIP: 'rounded-md bg-base-200 px-1.5 py-0.5 text-sm text-base-content/80 whitespace-nowrap',
       BADGE_WORDS: {
         asks: { detect: 'detects', compare: 'compares', classify: 'classifies' },
@@ -675,6 +687,7 @@
       },
 
       // The facets are what the collection holds, counted, most common first.
+      variantPick(kind) { return kind === 'purpose' ? this.variantPurpose : this.variantAuthor; },
       variantFacet(kind) {
         const counts = this.variantIndex?.summary?.[kind === 'author' ? 'by_author' : 'by_purpose'] || {};
         return Object.entries(counts).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
@@ -1274,69 +1287,64 @@
       </template>
     </div>
 
-    <!-- variants: search, count, the deck door, author -->
-    <div x-show="pane === 'variants'" class="flex items-center gap-3 flex-wrap">
-      <label class="input input-sm input-bordered flex items-center gap-2 grow max-w-md">
+    <!-- variants: search with the count and the deck door, then one row of
+         filter chips for purpose and one for author, each with its label at
+         the left. A row's chips scroll sideways beside the label; nothing
+         wraps on a phone. -->
+    <div x-show="pane === 'variants'" class="flex items-center gap-2 min-w-0">
+      <label class="input input-sm input-bordered flex items-center gap-2 grow min-w-0 max-w-md">
         <i class="ph ph-magnifying-glass opacity-70"></i>
-        <input type="search" class="grow" data-find-box
-               aria-label="Search variants" placeholder="search text, variant, author, or purpose"
+        <input type="search" class="grow min-w-0" data-find-box
+               aria-label="Search variants" placeholder="search variants"
                x-model="variantQ"
                @input.debounce.250ms="variantOpen = ''; syncVariantAddress()"
                @keydown.escape="variantQ = ''; variantOpen = ''; syncVariantAddress()">
       </label>
-      <span class="text-sm whitespace-nowrap">
-        <span class="font-semibold text-lg tabular-nums" x-text="variantRows.length.toLocaleString()"></span>
-        <span class="text-base-content/50"
-              x-text="variantRows.length === variantTotal ? ' variants' : ' of ' + variantTotal.toLocaleString() + ' variants'"></span>
+      <span class="text-sm whitespace-nowrap shrink-0">
+        <span class="font-semibold tabular-nums" x-text="variantRows.length.toLocaleString()"></span>
+        <span class="text-base-content/70"
+              x-text="variantRows.length === variantTotal ? '' : ' of ' + variantTotal.toLocaleString()"></span>
       </span>
-      <button x-show="variantRows.length" class="btn btn-square btn-sm btn-ghost text-primary max-sm:h-11 max-sm:w-11"
+      <button x-show="variantRows.length" class="btn btn-square btn-sm btn-ghost text-primary shrink-0 max-sm:h-10 max-sm:w-10"
               :aria-label="'Read ' + variantRows.length.toLocaleString() + ' variants one at a time'"
-              :title="'Read ' + variantRows.length.toLocaleString() + ' variants one at a time'"
               @click="openVariantDeck(variantRows)">
         <i class="ph ph-cards-three text-lg"></i>
       </button>
-      <select id="variant-author" class="select select-bordered select-sm w-auto max-w-[16rem]" aria-label="Author"
-              :value="variantAuthor" @change="setVariantFilter('author', $event.target.value)">
-        <option value="">Every author</option>
-        <template x-for="row in variantFacet('author')" :key="row.key">
-          <option :value="row.key" :selected="variantAuthor === row.key" x-text="row.key + ' (' + row.n.toLocaleString() + ')'"></option>
-        </template>
-      </select>
     </div>
 
-    <!-- purposes as a rail, as Search shows repos: few, and switched often -->
-    <div x-show="pane === 'variants' && variantIndex" class="flex flex-wrap items-center gap-1">
-      <button @click="setVariantFilter('purpose', '')"
-              class="badge cursor-pointer transition-opacity"
-              :class="!variantPurpose ? 'badge-primary' : 'badge-ghost opacity-50'">All</button>
-      <template x-for="row in variantFacet('purpose')" :key="row.key">
-        <button @click="setVariantFilter('purpose', variantPurpose === row.key ? '' : row.key)"
-                class="badge cursor-pointer gap-1 transition-opacity"
-                :class="variantPurpose === row.key ? 'badge-primary' : variantPurpose ? 'badge-ghost opacity-70' : 'badge-ghost'"
-                :title="purposeDef(row.key)?.gloss || row.key">
-          <span x-text="row.key"></span><span class="opacity-60 tabular-nums" x-text="row.n.toLocaleString()"></span>
-        </button>
-      </template>
-    </div>
+    <template x-for="kind in ['purpose', 'author']" :key="kind">
+      <div x-show="pane === 'variants' && variantIndex" :class="FILTER.row" data-slot="frame:count-chips">
+        <span :class="FILTER.label" x-text="kind === 'purpose' ? 'Purpose' : 'Author'"></span>
+        <div :class="FILTER.strip" role="group" :aria-label="kind">
+          <button type="button" :class="[FILTER.chip, !variantPick(kind) ? FILTER.on : FILTER.off]" @click="setVariantFilter(kind, '')">All</button>
+          <template x-for="row in variantFacet(kind)" :key="row.key">
+            <button type="button" :class="[FILTER.chip, variantPick(kind) === row.key ? FILTER.on : FILTER.off]"
+                    @click="setVariantFilter(kind, variantPick(kind) === row.key ? '' : row.key)">
+              <span x-text="row.key"></span><span class="opacity-60 tabular-nums" x-text="row.n.toLocaleString()"></span>
+            </button>
+          </template>
+        </div>
+      </div>
+    </template>
 
     <!-- probes: the standings are the filter, then concepts -->
     <!-- probes: the standing counts with the concept picker held in view
          beside them, then the grouping on a row of its own with any filter a
          card's badge has set. Each strip scrolls sideways inside itself, so
          the picker never leaves the viewport. -->
-    <div x-show="pane === 'probes'" class="flex items-center gap-2 min-w-0">
-      <div class="min-w-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden rounded-lg">
-        <div class="whitespace-nowrap" :class="SEG.box" data-slot="frame:count-chips">
-          <template x-for="key in ['worked','mixed','failed','open']" :key="key">
-            <button type="button" class="inline-flex items-center gap-1.5" :class="[SEG.item, filterStanding === key ? SEG.on : SEG.off]"
-                    @click="filterStanding = filterStanding === key ? '' : key">
-              <span class="w-2 h-2 rounded-full" :class="STANDINGS[key].bar"></span>
-              <span class="tabular-nums" x-text="counts[key]"></span><span x-text="key"></span>
-            </button>
-          </template>
-        </div>
+    <div x-show="pane === 'probes'" :class="FILTER.row">
+      <span :class="FILTER.label">Standing</span>
+      <div :class="FILTER.strip" role="group" aria-label="Standing" data-slot="frame:count-chips">
+        <button type="button" :class="[FILTER.chip, !filterStanding ? FILTER.on : FILTER.off]" @click="filterStanding = ''">All</button>
+        <template x-for="key in ['worked','mixed','failed','open']" :key="key">
+          <button type="button" :class="[FILTER.chip, filterStanding === key ? FILTER.on : FILTER.off]"
+                  @click="filterStanding = filterStanding === key ? '' : key">
+            <span class="w-2 h-2 rounded-full" :class="STANDINGS[key].bar"></span>
+            <span x-text="key"></span><span class="opacity-60 tabular-nums" x-text="counts[key]"></span>
+          </button>
+        </template>
       </div>
-      <select id="probe-concept" class="select select-bordered select-sm shrink-0 w-36 sm:w-56 ml-auto sm:ml-0" aria-label="Concept" data-slot="frame:filter-switch"
+      <select id="probe-concept" class="select select-bordered select-sm shrink-0 w-36 sm:w-56 ml-auto" aria-label="Concept" data-slot="frame:filter-switch"
               x-model="concept">
         <option value="">Every concept</option>
         <template x-for="[name, n] in concepts" :key="name">
@@ -1344,41 +1352,48 @@
         </template>
       </select>
     </div>
-    <div x-show="pane === 'probes'" class="flex items-center gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden whitespace-nowrap -mx-4 px-4 sm:-mx-6 sm:px-6">
-      <div class="shrink-0" :class="SEG.box">
-        <span class="pl-2 pr-1 text-sm text-base-content/70">by</span>
-        <template x-for="[key, label] in PROBE_BYS" :key="key">
-          <button type="button" :class="[SEG.item, probeBy === key ? SEG.on : SEG.off]" @click="probeBy = key" x-text="label"></button>
+    <div x-show="pane === 'probes'" :class="FILTER.row">
+      <span :class="FILTER.label">Group by</span>
+      <div :class="FILTER.strip">
+        <div class="shrink-0" :class="SEG.box">
+          <template x-for="[key, label] in PROBE_BYS" :key="key">
+            <button type="button" :class="[SEG.item, probeBy === key ? SEG.on : SEG.off]" @click="probeBy = key" x-text="label"></button>
+          </template>
+        </div>
+        <template x-for="[dim, value] in Object.entries(badgeFilter)" :key="dim">
+          <button type="button" :class="[FILTER.chip, FILTER.on]" @click="toggleBadge(dim, value)">
+            <span x-text="badgeText(dim, value)"></span><i class="ph ph-x"></i>
+          </button>
         </template>
-      </div>
-      <template x-for="[dim, value] in Object.entries(badgeFilter)" :key="dim">
-        <button type="button" class="shrink-0 inline-flex items-center gap-1 rounded-md bg-primary/15 px-2 py-1 text-sm cursor-pointer" @click="toggleBadge(dim, value)">
-          <span x-text="badgeText(dim, value)"></span><i class="ph ph-x"></i>
+        <button type="button" x-show="probeRun" :class="[FILTER.chip, FILTER.on]" @click="probeRun = ''">
+          <i class="ph ph-play-circle"></i><span x-text="(runRows.find(r => r.run === probeRun) || {}).title || probeRun"></span><i class="ph ph-x"></i>
         </button>
-      </template>
-      <button type="button" x-show="probeRun" class="shrink-0 inline-flex items-center gap-1 rounded-md bg-primary/15 px-2 py-1 text-sm cursor-pointer" @click="probeRun = ''">
-        <i class="ph ph-play-circle"></i><span x-text="(runRows.find(r => r.run === probeRun) || {}).title || probeRun"></span><i class="ph ph-x"></i>
-      </button>
+      </div>
     </div>
-    <div x-show="pane === 'runs' && runRows.length" class="flex items-center gap-2 overflow-x-auto whitespace-nowrap -mx-4 px-4 sm:-mx-6 sm:px-6">
-      <div class="shrink-0" :class="SEG.box">
-        <span class="pl-2 pr-1 text-sm text-base-content/70">by</span>
-        <template x-for="[key, label] in RUN_BYS" :key="key">
-          <button type="button" :class="[SEG.item, runBy === key ? SEG.on : SEG.off]" @click="runBy = key" x-text="label"></button>
-        </template>
+    <div x-show="pane === 'runs' && runRows.length" :class="FILTER.row">
+      <span :class="FILTER.label">Group by</span>
+      <div :class="FILTER.strip">
+        <div class="shrink-0" :class="SEG.box">
+          <template x-for="[key, label] in RUN_BYS" :key="key">
+            <button type="button" :class="[SEG.item, runBy === key ? SEG.on : SEG.off]" @click="runBy = key" x-text="label"></button>
+          </template>
+        </div>
       </div>
     </div>
 
     <!-- resources: the states are the filter, then properties -->
-    <div x-show="pane === 'resources'" class="flex flex-wrap items-center gap-1">
-      <template x-for="key in ['held','fetched','absent']" :key="key">
-        <button class="badge badge-sm cursor-pointer gap-1 transition-opacity"
-                :class="filterState === key ? [STATES[key].text, 'badge-outline', 'font-medium'] : 'badge-ghost'"
-                @click="filterState = filterState === key ? '' : key">
-          <span class="tabular-nums" x-text="resCounts[key]"></span><span x-text="key"></span>
-        </button>
-      </template>
-      <select id="resource-rate" class="select select-bordered select-sm w-auto max-w-[16rem] ml-2" aria-label="Property"
+    <div x-show="pane === 'resources'" :class="FILTER.row">
+      <span :class="FILTER.label">State</span>
+      <div :class="FILTER.strip" role="group" aria-label="State" data-slot="frame:count-chips">
+        <button type="button" :class="[FILTER.chip, !filterState ? FILTER.on : FILTER.off]" @click="filterState = ''">All</button>
+        <template x-for="key in ['held','fetched','absent']" :key="key">
+          <button type="button" :class="[FILTER.chip, filterState === key ? FILTER.on : FILTER.off]"
+                  @click="filterState = filterState === key ? '' : key">
+            <span x-text="key"></span><span class="opacity-60 tabular-nums" x-text="resCounts[key]"></span>
+          </button>
+        </template>
+      </div>
+      <select id="resource-rate" class="select select-bordered select-sm shrink-0 w-36 sm:w-56 ml-auto" aria-label="Property"
               x-model="rate">
         <option value="">Every property</option>
         <template x-for="[name, n] in rates" :key="name">

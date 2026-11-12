@@ -3,6 +3,7 @@
 // idb-keyval rides in via the bootstrap's KIT_IMPORTS rewrite.
 
 import 'fake-indexeddb/auto';
+import { IDBDatabase, IDBObjectStore } from 'fake-indexeddb';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { loadKit } from './bootstrap.mjs';
@@ -163,4 +164,110 @@ test('idb.admin: clearStore, replaceAll, deleteStore, deleteDb', async () => {
   await persistence.idb.admin.deleteDb('legacy');
   const names = (await persistence.idb.databases()).map(d => d.name);
   assert.ok(!names.includes('legacy'));
+});
+
+const seedReplacementStore = async (name) => {
+  const db = await new Promise((resolve, reject) => {
+    const req = indexedDB.open(name, 1);
+    req.onupgradeneeded = () => {
+      const store = req.result.createObjectStore('rows', { keyPath: 'id' });
+      store.createIndex('name', 'name', { unique: true });
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+  try {
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction('rows', 'readwrite');
+      tx.oncomplete = resolve;
+      tx.onabort = () => reject(tx.error);
+      tx.objectStore('rows').put({ id: 1, name: 'original' });
+    });
+  } finally { db.close(); }
+};
+
+test('replaceAll preserves the original store when the first record has no key', async () => {
+  const name = 'replace-missing-first-key';
+  await seedReplacementStore(name);
+  await assert.rejects(persistence.idb.admin.replaceAll(name, 'rows', [{ name: 'missing key' }]),
+    { name: 'DataError' });
+  assert.deepEqual(await persistence.idb.readAll(name, 'rows'), [{ id: 1, name: 'original' }]);
+});
+
+test('replaceAll rolls back earlier writes when a later record has an invalid key', async () => {
+  const name = 'replace-invalid-later-key';
+  await seedReplacementStore(name);
+  await assert.rejects(persistence.idb.admin.replaceAll(name, 'rows', [
+    { id: 2, name: 'partial replacement' }, { id: null, name: 'invalid key' },
+  ]), { name: 'DataError' });
+  assert.deepEqual(await persistence.idb.readAll(name, 'rows'), [{ id: 1, name: 'original' }]);
+});
+
+test('replaceAll rolls back when a unique index rejects a later request', async () => {
+  const name = 'replace-unique-index-failure';
+  await seedReplacementStore(name);
+  await assert.rejects(persistence.idb.admin.replaceAll(name, 'rows', [
+    { id: 2, name: 'duplicate' }, { id: 3, name: 'duplicate' },
+  ]), { name: 'ConstraintError' });
+  assert.deepEqual(await persistence.idb.readAll(name, 'rows'), [{ id: 1, name: 'original' }]);
+});
+
+test('replaceAll resolves after the replacement transaction completes', async (t) => {
+  const name = 'replace-commit-completion';
+  await seedReplacementStore(name);
+  let committed = false;
+  const transaction = IDBDatabase.prototype.transaction;
+  t.mock.method(IDBDatabase.prototype, 'transaction', function (...args) {
+    const tx = transaction.apply(this, args);
+    if (this.name === name && args[1] === 'readwrite') {
+      tx.addEventListener('complete', () => { committed = true; });
+    }
+    return tx;
+  });
+  await persistence.idb.admin.replaceAll(name, 'rows', [{ id: 2, name: 'replacement' }]);
+  assert.equal(committed, true, 'a successful request is not yet a committed replacement');
+  assert.deepEqual(await persistence.idb.readAll(name, 'rows'), [{ id: 2, name: 'replacement' }]);
+});
+
+test('replaceAll rejects an abort after a successful put and preserves the original store', async (t) => {
+  const name = 'replace-abort-after-put';
+  await seedReplacementStore(name);
+  const put = IDBObjectStore.prototype.put;
+  t.mock.method(IDBObjectStore.prototype, 'put', function (...args) {
+    const req = put.apply(this, args);
+    if (this.transaction.db.name === name) {
+      req.addEventListener('success', () => this.transaction.abort(), { once: true });
+    }
+    return req;
+  });
+  await assert.rejects(persistence.idb.admin.replaceAll(name, 'rows', [{ id: 2, name: 'replacement' }]),
+    { name: 'AbortError' });
+  assert.deepEqual(await persistence.idb.readAll(name, 'rows'), [{ id: 1, name: 'original' }]);
+});
+
+test('replaceAll permits an empty replacement and keeps duplicate IDs last-write-wins', async () => {
+  const name = 'replace-empty-and-duplicates';
+  await seedReplacementStore(name);
+  await persistence.idb.admin.replaceAll(name, 'rows', [
+    { id: 2, name: 'first' }, { id: 2, name: 'last' },
+  ]);
+  assert.deepEqual(await persistence.idb.readAll(name, 'rows'), [{ id: 2, name: 'last' }]);
+  await persistence.idb.admin.replaceAll(name, 'rows', []);
+  assert.deepEqual(await persistence.idb.readAll(name, 'rows'), []);
+});
+
+test('replaceAll closes its connection when JSON normalization fails', async (t) => {
+  const name = 'replace-json-failure';
+  await seedReplacementStore(name);
+  let closed = false;
+  const close = IDBDatabase.prototype.close;
+  t.mock.method(IDBDatabase.prototype, 'close', function (...args) {
+    if (this.name === name) closed = true;
+    return close.apply(this, args);
+  });
+  const cyclic = [];
+  cyclic.push(cyclic);
+  await assert.rejects(persistence.idb.admin.replaceAll(name, 'rows', cyclic), TypeError);
+  assert.equal(closed, true);
+  assert.deepEqual(await persistence.idb.readAll(name, 'rows'), [{ id: 1, name: 'original' }]);
 });

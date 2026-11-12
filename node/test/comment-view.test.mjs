@@ -9,6 +9,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { makeWindow, loadKit, repoRoot } from './bootstrap.mjs';
 
 const { window } = makeWindow();
@@ -16,6 +17,54 @@ window.eval(readFileSync(path.join(repoRoot, 'lib/vanilla-bundle.js'), 'utf8'));
 loadKit('comment-view.js', { window });
 const CV = window.commentView;
 const WORDS = (s) => (s.match(/[A-Za-z][A-Za-z'’-]+/g) || []).join(' ');
+
+test('Git document references use forward slashes under Windows path rules', () => {
+  const code = `
+import importlib.util, ntpath, types
+spec = importlib.util.spec_from_file_location('comments', 'python/comment-blocks.py')
+m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+m.os = types.SimpleNamespace(path=ntpath)
+resolve = m.resolver(['README.md', 'docs/README.md', 'node/README.md', 'lib/README.md'])
+assert resolve('node/render/example.mjs', 'README.md') == ('node/README.md', None)
+assert resolve('lib/kits/example.js', '../README.md') == ('lib/README.md', None)
+`;
+  const result = spawnSync('python3', ['-X', 'utf8', '-c', code], {cwd:repoRoot,encoding:'utf8',timeout:30000});
+  assert.equal(result.status, 0, result.stderr || result.error?.message);
+});
+
+test('a renamed linked worktree produces the same document references as its primary folder', () => {
+  const code = `
+import importlib.util, pathlib, subprocess, tempfile
+spec = importlib.util.spec_from_file_location('comments', 'python/comment-blocks.py')
+m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+with tempfile.TemporaryDirectory(prefix='comment-paths-') as d:
+    fixture = pathlib.Path(d).resolve()
+    assert fixture.parent == pathlib.Path(tempfile.gettempdir()).resolve()
+    primary = pathlib.Path(d) / 'primary-copy'; primary.mkdir()
+    linked = pathlib.Path(d) / 'another-copy'
+    def git(*args):
+        return subprocess.run(['git', '-C', str(primary), *args], check=True, capture_output=True)
+    git('init', '--initial-branch=main')
+    git('config', 'user.name', 'Comment fixture'); git('config', 'user.email', 'fixture@example.test')
+    git('config', 'commit.gpgsign', 'false'); git('config', 'core.hooksPath', '.git/hooks')
+    git('remote', 'add', 'origin', 'git@github.com:example/project.git')
+    for name in ['README.md', 'docs/README.md', 'node/README.md', 'docs/guide.md']:
+        p = primary / name; p.parent.mkdir(parents=True, exist_ok=True); p.write_text('Fixture document.\\n', encoding='utf-8')
+    (primary / 'node/worker.js').write_text('// Read README.md and project/docs/guide.md for the local documentation and the common rules that each worker follows.\\n', encoding='utf-8')
+    git('add', '.'); git('commit', '-m', 'Comment fixture\\n\\nCo-Authored-By: Codex <codex@openai.com>')
+    git('worktree', 'add', '--quiet', '-b', 'codex/comment-paths', str(linked), 'HEAD')
+    try:
+        a, b = m.build(str(primary), []), m.build(str(linked), [])
+        assert a == b
+        refs = dict(a)['node/worker.js'][0][3]
+        assert refs == ['node/README.md', 'docs/guide.md'], refs
+    finally:
+        assert linked.resolve().parent == fixture
+        git('worktree', 'remove', str(linked))
+`;
+  const result = spawnSync('python3', ['-X', 'utf8', '-c', code], {cwd:repoRoot,encoding:'utf8',timeout:120000});
+  assert.equal(result.status, 0, result.stderr || result.error?.message);
+});
 
 test('the kit finds the blocks the payload holds, in every file it covers', () => {
   const payload = JSON.parse(readFileSync(path.join(repoRoot, 'data/comments/web-tools.json'), 'utf8'));
