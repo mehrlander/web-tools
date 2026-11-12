@@ -284,6 +284,7 @@ test("a card holds its snag's title, links, dates, entry and notes, and a row ta
   await until(() => /Fixed by the gate/.test(text(card)), 'the notes left on the snag');
   assert.equal(text(card.querySelector('[data-part="title"]')), 'the row count was off by one after a sort');
   assert.doesNotMatch(card.querySelector('[data-part="title"]').className, /\bhidden\b/, 'the statement leads the card, in the strip as in a takeover');
+  assert.ok(card.querySelector('[data-lead] [data-part="title"]') && card.querySelector('[data-lead] [data-part="links"]'), 'in one tinted lead with the pills under it');
   assert.deepEqual([...card.querySelectorAll('[data-part="links"] button')].map(text), ['python/scan.py', 'node/test/scan.test.mjs']);
   assert.equal(text(card.querySelector('[data-part="meta"]')), 'a-count-off-by-one tools Bit 2026-10-01, 2026-10-03',
     'the id in full, which is what a citation names, then the repo and the dates');
