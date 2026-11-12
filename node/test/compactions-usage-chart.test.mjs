@@ -60,12 +60,14 @@ test('combined: one short panel, the bars behind the line, dollars on a right ax
   assert.ok((s.match(/data-usage-bar/g) || []).length > 0, 'the cost bars are drawn');
   assert.equal((s.match(/data-usage-right/g) || []).length, 3, 'three dollar labels on the right, level with the three on the left');
   assert.match(s, /data-usage-legend="line"[^>]*>context</);
-  assert.match(s, /data-usage-legend="bar"[^>]*>cost per prompt</, 'at phone width the bars are named and the totals left out');
-  assert.match(s, /data-usage-legend="idle"[^>]*>idle re-load</);
-  const wide = C.svg(u, 700, { ph: 48, combined: true });
-  assert.match(wide, /data-usage-legend="bar"[^>]*>cost per prompt, \$[\d.,]+ total</, "with room, the session's total follows the name");
+  const grey = +(/data-usage-legend="bar"[^>]*>cost \$([\d.,]+)</.exec(s) || [])[1].replace(/,/g, '');
+  const orange = +(/data-usage-legend="idle"[^>]*>idle re-load \$([\d.,]+)</.exec(s) || [])[1].replace(/,/g, '');
+  assert.ok(Math.abs(grey + orange - u.totals.modelled) <= 1, "beside each cost entry, what its colour adds up to: the two make the session's cost");
+  assert.ok(Math.abs(orange - u.totals.reload) <= 0.5);
+  const narrow = C.svg(u, 150, { ph: 48, combined: true });
+  assert.match(narrow, /data-usage-legend="bar"[^>]*>cost</, 'a row too narrow for the figures keeps the names');
+  assert.match(s, /<path [^>]*stroke-opacity="0\.7"/, 'the context line is a touch lighter than its hue');
   assert.equal((s.match(/data-usage-pick/g) || []).length, 1, 'the picked compaction is still picked out');
-
 });
 
 test('the record name and the extract path come from a summary id', () => {
