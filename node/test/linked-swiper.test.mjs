@@ -234,3 +234,12 @@ test('a host\'s own columns replace the default when there is no seam', async ()
   assert.ok(s.root.classList.contains('grid-cols-[minmax(0,290px)_minmax(0,1fr)]'));
   assert.ok(!s.root.classList.contains('grid-cols-[minmax(0,340px)_minmax(0,1fr)]'));
 });
+
+test('a head name with a pill draws it before the title, and one without draws none', () => {
+  const { window } = page();
+  const plain = window.linkedSwiper.head({ title: 'A session' }, 0, 3, 'summary');
+  assert.doesNotMatch(plain, /data-ls-pill/);
+  const marked = window.linkedSwiper.head({ title: 'A session', pill: 2 }, 0, 3, 'summary');
+  assert.match(marked, /<h2[^>]*><span data-ls-pill[^>]*>2<\/span>A session<\/h2>/);
+  assert.match(marked, /data-title-tip="2 A session"/, 'the tip reads the pill with the title');
+});

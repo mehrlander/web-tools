@@ -160,9 +160,9 @@ test('a card is the chart\'s room and the summary, every section open under a he
   assert.equal(el.querySelector('details, [data-sec-nav], [data-sec-go]'), null, 'no fold and no chip: every section is open');
   assert.deepEqual(secs.map((x) => x.firstElementChild.textContent), [0, 5, 7, 6, 8, 1, 2, 3, 4].map((i) => NINE[i]),
     "a heading is the section's name, without the number the reordering would scramble");
-  assert.equal(c.nameOf(id).code, '3 of 3', "the card's head says which of the session's compactions it is");
-  assert.equal(c.nameOf(B + '-20261104T010000Z').code, '1 of 3');
-  assert.equal(c.nameOf(C1 + '-20261106T133000Z').code, '', 'a session compacted once has no index to give');
+  assert.equal(c.nameOf(id).pill, 3, "the card's head carries its compaction's number, for a pill");
+  assert.equal(c.nameOf(B + '-20261104T010000Z').pill, 1);
+  assert.equal(c.nameOf(C1 + '-20261106T133000Z').pill, '', 'a session compacted once has no number to give');
   for (const x of secs) assert.match(x.firstElementChild.className, /\bsticky\b.*--cmp-pad.*\bbg-base-100\b/, 'a heading sticks to the top and covers what scrolls under it');
   assert.ok(box.style.getPropertyValue('--cmp-pad') !== '', "the headings are told the scroller's top padding");
   assert.ok(el.querySelector('[data-sec="3"] pre'), 'a technical section is drawn without being opened');
@@ -219,4 +219,17 @@ test("a note the summary's writer put after a heading's name is kept, in lighter
   assert.equal(h.firstChild.textContent, 'Files and Code Sections');
   assert.match(h.lastChild.className, /font-normal/);
   assert.equal(c.head({ n: 1, name: 'Primary Request and Intent' }).childElementCount, 0);
+});
+
+test('the summaries either side of the one in view are read ahead', async () => {
+  const c = await listed(async () => { throw new Error('404'); });
+  const [b1, b2, b3, c1] = c.order;
+  c.sel = b1;
+  const asked = [];
+  c.read = (id) => { asked.push(id); };
+  const el = (id) => { const x = window.document.createElement('div'); window.document.body.append(x); c.fill(id, x, false); };
+  el(b3); el(c1);
+  assert.deepEqual(asked, [], 'a card two or three away is not read');
+  el(b2); el(b1);
+  assert.deepEqual(asked, [b2, b1], 'the card in view and the one beside it are');
 });
