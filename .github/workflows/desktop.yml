@@ -40,6 +40,7 @@ jobs:
       - name: Check local work evidence and summaries
         run: |
           python desktop/Checks/work-summary-checks.py
+          python desktop/Checks/local-activity-checks.py
           python desktop/Checks/repository-checks.py
           python desktop/Checks/local-file-checks.py
           python desktop/Checks/laptop-inventory-checks.py

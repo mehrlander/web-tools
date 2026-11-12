@@ -32,6 +32,14 @@ function load() {
 
 const S = load();
 
+test('local provider metadata and native title survive title-export joins', () => {
+  const row = S.summarize({ schema: 5, short: 'abc12345', assistant: 'codex', engine: 'codex',
+    venue: 'laptop', title: 'Local work', capture: {state: 'prose'} }, 'blob');
+  assert.equal(row.assistant, 'codex');
+  assert.equal(row.capture.state, 'prose');
+  assert.equal(S.withTitles([row], {byId: {}})[0].title, 'Local work');
+});
+
 // A schema-3 record, trimmed to the fields the summary reads.
 function record(over = {}) {
   return {
