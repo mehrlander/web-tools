@@ -23,6 +23,7 @@ test('query includes path associations and session links reject arbitrary destin
   assert.equal(W.rows({checkouts:[{path:'old-thread',sessions:[{title:'Excel assessment'}]}]}, 'excel old').length, 1);
   assert.equal(W.sessionUrl('javascript:alert(1)'), '');
   assert.ok(W.sessionUrl('aa11bb22').includes('session=aa11bb22'));
+  assert.ok(W.sessionUrl('aa11bb22', 'sessions/2026/09/2026-09-19-aa11bb22.json').includes('pages/session.html#gh='), 'older records open without membership in the capped recent-session cache');
 });
 
 test('a loaded observation mounts checkout rows and survives a failed refresh', async () => {
