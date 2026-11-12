@@ -1,10 +1,11 @@
 // lib/kits/md-diff.js — the redline: the whole document with its changes
 // marked in place, which the viewer's Changes mode draws.
 //
-// What is held here is WHICH blocks are marked and HOW, since that is four
-// rules a reader cannot see being applied: a block mostly rewritten is drawn
-// as two, what left stands before what arrived, a list is read by its items
-// and a table by its rows, and an unchanged block is the host's direct child.
+// What is held here is WHICH blocks are marked and HOW, since that is rules a
+// reader cannot see being applied: a block mostly rewritten is drawn as two,
+// what left stands before what arrived, a list is read by its items and a
+// table by its rows, a stretch added or removed is one band, and an unchanged
+// block is the host's direct child.
 // Run against the real marked and the real jsdiff, as node/test/md-diff.test.mjs
 // is and for its reason.
 //
@@ -71,7 +72,7 @@ test('a small edit is word marks inside one changed block', async () => {
   const block = host.querySelector('[data-md-redline="changed"]');
   assert.equal(block.querySelector('del').textContent, 'small');
   assert.equal(block.querySelector('ins').textContent, 'tiny');
-  assert.ok(block.querySelector(':scope > .md-redline-bar'), 'a changed block carries a bar');
+  assert.equal(block.dataset.mdRedlineMark, 'bar', 'an edited block carries a bar');
 });
 
 test('a block mostly rewritten is the old block, then the new one, unmarked', async () => {
@@ -95,7 +96,26 @@ test('what left stands before what arrived', async () => {
   const { host } = await draw(
     'Keep.\n\n## Old heading\n\nAlpha beta gamma delta.\n\nEnd.\n',
     'Keep.\n\n## New title\n\nEpsilon zeta eta theta.\n\nEnd.\n');
-  assert.deepEqual(read(host).map((r) => r.split(':')[0]), ['removed', 'removed', 'added', 'added']);
+  // And each stretch of one kind is one band and one change.
+  assert.deepEqual(read(host), ['removed: Old heading Alpha beta gamma delta.', 'added: New title Epsilon zeta eta theta.']);
+});
+
+test('a stretch added or removed is one band, and its struck text keeps its colour', async () => {
+  const { host, handle } = await draw('Keep.\n\n## Going\n\nThis leaves.\n\nEnd.\n', 'Keep.\n\nEnd.\n\n## Arriving\n\nThis is new.\n');
+  assert.deepEqual(handle.counts, { changed: 0, added: 1, removed: 1 });
+  const [gone, came] = handle.marks;
+  for (const m of handle.marks) assert.equal(m.dataset.mdRedlineMark, 'band');
+  assert.deepEqual([...gone.children].map((e) => e.tagName), ['H2', 'P'], 'both blocks sit in the one band');
+  assert.deepEqual([...came.children].map((e) => e.tagName), ['H2', 'P']);
+  // The band is a wash with a line above and below; the bar is its left edge.
+  for (const m of handle.marks) {
+    assert.match(m.className, /after:border-y/);
+    assert.match(m.className, /after:border-l-\[6px\]/);
+    assert.match(m.className, /after:bg-\[color-mix\([^\]]*_10%,transparent\)\]/);
+  }
+  assert.match(gone.className, /line-through/);
+  assert.doesNotMatch(gone.className, /opacity-|text-\[color/, 'struck, and at its own colour');
+  assert.doesNotMatch(came.className, /line-through/);
 });
 
 test('a changed list marks its items, and stays one list', async () => {
@@ -107,8 +127,18 @@ test('a changed list marks its items, and stays one list', async () => {
   assert.deepEqual(read(host), [
     'changed: second gets editedchanged slightly', 'removed: third goes', 'added: a fourth arrives here']);
   assert.deepEqual(handle.counts, { changed: 1, added: 1, removed: 1 });
-  for (const li of host.querySelectorAll('li[data-md-redline]')) assert.ok(li.querySelector(':scope > .md-redline-bar'));
+  assert.deepEqual([...host.querySelectorAll('li[data-md-redline]')].map((li) => li.dataset.mdRedlineMark), ['bar', 'band', 'band']);
   assert.equal(host.querySelector('li:not([data-md-redline])').textContent, 'first stays');
+});
+
+test('consecutive list items of one kind are one change, banded from the first', async () => {
+  const { host, handle } = await draw('- stays\n', '- stays\n- new one\n- new two\n');
+  assert.deepEqual(handle.counts, { changed: 0, added: 1, removed: 0 });
+  const added = [...host.querySelectorAll('li[data-md-redline="added"]')];
+  assert.equal(added.length, 2);
+  assert.equal(added[0].dataset.mdRedlineMark, 'band');
+  assert.ok(added[1].hasAttribute('data-md-redline-run'));
+  assert.equal(added[1].dataset.mdRedlineMark, undefined, 'the second item rides the first one\'s band');
 });
 
 test('a removed numbered item keeps its number and the next takes the new one', async () => {
@@ -133,20 +163,19 @@ test('the same words in other markup is a change with no word to mark', async ()
   assert.equal(host.querySelectorAll('ins, del').length, 0);
 });
 
-test('only the bar is lightened: it rests at half strength, full where the reader stepped', async () => {
+test('a bar and a band rest at half strength, and at full strength for the current change', async () => {
   const { host, handle } = await draw('One.\n\nTwo goes away.\n\nThree.\n', 'One edited.\n\nThree.\n');
-  const bar = (m) => m.querySelector(':scope > .md-redline-bar');
-  for (const m of handle.marks) assert.match(bar(m).className, /_50%,transparent\)/, 'a resting bar is the half-strength mix');
+  const [edited, gone] = handle.marks;
+  for (const m of handle.marks) assert.match(m.className, /_50%,transparent\)/, 'at rest, the half-strength mix');
   handle.next();
-  assert.match(bar(handle.marks[0]).className, /(^| )bg-warning( |$)/);
-  assert.doesNotMatch(bar(handle.marks[0]).className, /_50%,transparent\)/);
-  assert.match(bar(handle.marks[1]).className, /_50%,transparent\)/, 'the others stay at rest');
+  assert.match(edited.className, /after:bg-\[var\(--color-warning\)\]/);
+  assert.doesNotMatch(edited.className, /_50%,transparent\)/);
+  assert.match(gone.className, /_50%,transparent\)/, 'the others stay at rest');
+  handle.next();
+  assert.match(gone.className, /after:border-\[color:var\(--color-error\)\]/);
+  assert.match(edited.className, /_50%,transparent\)/);
   // The word marks are md-diff's own, at their own strength.
   assert.match(host.querySelector('ins').className, /bg-success\/20/);
-  // A removed block is dimmed by its text colour: opacity would dim its bar too.
-  const gone = host.querySelector('[data-md-redline="removed"]');
-  assert.doesNotMatch(gone.className, /opacity-/);
-  assert.match(gone.className, /line-through/);
 });
 
 test('a reference link resolves in every block, changed or not', async () => {
