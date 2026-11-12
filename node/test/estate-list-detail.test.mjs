@@ -129,6 +129,11 @@ const SNAGS = [
     created_at: '2026-10-02T10:00:00.000Z' },
   { id: 'a-third-thing', kind: 'behavior', origin: 'session', text: 'a third thing went wrong', repo: 'o/other', seen: ['2026-09-01'], created_at: '2026-09-01T10:00:00.000Z' },
 ];
+const JOTS = [
+  { id: 'j1', text: 'a first idea about the gate', kind: 'writing', created_at: '2026-10-03T10:00:00.000Z' },
+  { id: 'j2', text: 'a second idea, long enough to be cut short in its row and shown whole in its card', created_at: '2026-10-02T10:00:00.000Z' },
+  { id: 'j3', text: 'a third', created_at: '2026-10-01T10:00:00.000Z' },
+];
 const NOTE_LINES = [
   { id: 'n1', at: '2026-10-04T00:00:00Z', author: 'me', about: 'o/tools:docs/SNAGS.md#a-count-off-by-one', text: 'Seen again on the phone.' },
   { id: 'n2', at: '2026-10-05T00:00:00Z', author: 'claude/x', about: 'note:n1', text: 'Fixed by the gate.' },
@@ -138,7 +143,9 @@ const NOTE_LINES = [
 ];
 
 const roots = () => [...doc.querySelectorAll('[data-pattern="list-detail"]')];
-const rootOf = (tab) => roots()[tab === 'snag' ? 0 : 1];
+// A tab's root, found by its list's name: the roots sit in the page in tab order.
+const LISTBOX = { jot: 'Jots', snag: 'Snags', note: 'Notes' };
+const rootOf = (tab) => roots().find(r => r.querySelector(`[role="listbox"][aria-label="${LISTBOX[tab]}"]`));
 const snagRoot = () => rootOf('snag');
 const noteRoot = () => rootOf('note');
 const rowIds = (tab) => [...rootOf(tab).querySelectorAll(`[data-part="list"] [data-${tab}]`)].map(r => r.getAttribute('data-' + tab));
@@ -146,7 +153,7 @@ const selected = (tab) => [...rootOf(tab).querySelectorAll('[aria-selected="true
 const head = (tab) => rootOf(tab).querySelector('[data-ls="head"]');
 // A row's card: the strip's slide at that row's place in the list.
 const cardOf = (tab, id) => rootOf(tab).querySelector('.sd-track')?.children[rowIds(tab).indexOf(id)];
-const picked = (tab) => (tab === 'snag' ? data.snagOpen : data.noteOpen);
+const picked = (tab) => (tab === 'snag' ? data.snagOpen : tab === 'jot' ? data.jotPick : data.noteOpen);
 const frames = (n) => new Promise(done => { const step = () => (n-- > 0 ? window.requestAnimationFrame(step) : done()); step(); });
 // The strip is on a row: the component, the list's mark, the track and the
 // drawn card agree, and still agree some frames on. The frames matter: the
@@ -165,10 +172,11 @@ async function shown(tab, id) {
 // Fresh files, read into the pane.
 async function load() {
   SAVES = [];
-  FILES = { 'lists/snag.json': JSON.stringify({ items: SNAGS }), [NOTES]: NOTE_LINES.map(line).join('') };
-  data.snagDraft = ''; data.editId = null; data.undoOffer = null; data.replyTo = null; data.replyDrafts = {}; data.snagNoteDrafts = {};
-  data.noteAbout = ''; data.noteKind = '';
+  FILES = { 'lists/snag.json': JSON.stringify({ items: SNAGS }), 'lists/jot.json': JSON.stringify({ items: JOTS }), [NOTES]: NOTE_LINES.map(line).join('') };
+  data.snagDraft = ''; data.editId = null; data.undoOffer = null; data.replyTo = null; data.replyDrafts = {}; data.snagNoteDrafts = {}; data.itemNoteDrafts = {};
+  data.noteAbout = ''; data.noteKind = ''; data.listNamesDoc = null;
   await data.loadSnags(reg());
+  await data.loadJots(reg());
   await data.loadNotes(reg());
 }
 const track = (tab) => rootOf(tab)?.querySelector('.sd-track');
@@ -249,7 +257,7 @@ test('a strip asked for as its tab is left is not built, and is on the way back'
 
 test('both tabs declare the list and detail, each row a compact item', async () => {
   await open('snag');
-  assert.equal(roots().length, 2);
+  assert.equal(roots().length, 3, 'the Jot, Snag and Note tabs');
   for (const root of roots()) {
     assert.ok(root.querySelector('[data-part="list"][role="listbox"]'));
     assert.ok(root.querySelector('[data-part="detail"]'));
@@ -340,6 +348,55 @@ test('Edit from the menu puts the form in the card, and the menu button steps as
 
 const noteBox = (card) => card.querySelector('input[aria-label="A note about this snag"]');
 const lastNote = () => JSON.parse(FILES[NOTES].trim().split('\n').at(-1));
+test('the Jot tab is a list over a card: a row is one line, and its card holds the jot in full, its menu and a note box', async () => {
+  await open('jot');
+  const rows = [...rootOf('jot').querySelectorAll('[data-jot]')];
+  assert.deepEqual(rows.map(r => r.dataset.jot), ['j1', 'j2', 'j3'], 'newest first');
+  for (const row of rows) assert.match(row.querySelector('[data-part="title"]').className, /\btruncate\b/, 'one line, cut short where it runs over');
+  const first = cardOf('jot', 'j1');
+  assert.equal(text(first.querySelector('[data-part="body"]')), 'a first idea about the gate');
+  assert.equal(text(first.querySelector('[data-lead] [data-key]')), 'writing', "its kind, as a pill in the card's lead");
+
+  click(rows[1]);
+  await shown('jot', 'j2');
+  const card = cardOf('jot', 'j2');
+  assert.match(text(card.querySelector('[data-part="body"]')), /shown whole in its card$/, 'the text in full');
+  assert.equal(card.querySelector('[data-lead]').style.display, 'none', 'no lead for a jot with no kind');
+  assert.equal(text(head('jot').querySelector('h2')), '', 'a jot has no name: the head row is its counter and controls');
+
+  await menuItem(head('jot'), 'Edit');
+  assert.deepEqual([...head('jot').querySelectorAll('[role="menuitem"]')].map(b => text(b)), ['Move to the to-do list', 'Edit', 'Delete']);
+  click(more(head('jot')));
+  await until(() => !head('jot').querySelector('[role="menu"]'), 'the menu to close on a second tap');
+
+  const box = card.querySelector('input[aria-label="A note about this jot"]');
+  assert.match(box.form.className, /(^| )sticky bottom-0( |$)/, 'held at the foot of the card');
+  type(box, 'worth doing');
+  await until(() => !box.form.querySelector('button[type="submit"]').disabled, 'the send button to wake');
+  box.form.dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
+  await until(() => lastNote().text === 'worth doing', 'the note to be saved');
+  assert.equal(lastNote().about, REGISTRY + ':lists/jot.json#j2', "the jot's own address in its list");
+});
+
+test("a jot Gemini named is titled by that name in its row and its card's head row, until its text changes", async () => {
+  await open('jot', 'j2');
+  const row = () => rootOf('jot').querySelector('[data-jot="j2"] [data-part="title"]');
+  assert.match(text(row()), /^a second idea/, 'its own words, with no name');
+  const j2 = data.jotItems.find(x => x.id === 'j2');
+  data.listNamesDoc = { lists: { jot: { j2: { name: 'Second idea', key: window.Lists.textKey(j2.text) } } } };
+  await until(() => text(row()) === 'Second idea', 'the row to take the name');
+  click(rootOf('jot').querySelector('[data-jot="j1"]'));
+  await shown('jot', 'j1');
+  click(rootOf('jot').querySelector('[data-jot="j2"]'));
+  await shown('jot', 'j2');
+  assert.equal(text(head('jot').querySelector('h2')), 'Second idea', "the card's head row");
+  assert.match(text(cardOf('jot', 'j2').querySelector('[data-part="body"]')), /^a second idea/, 'the card still gives the words in full');
+
+  data.listNamesDoc = { lists: { jot: { j2: { name: 'Second idea', key: 'stale000' } } } };
+  await until(() => /^a second idea/.test(text(row())), 'a name written for other text to be dropped');
+  data.listNamesDoc = null;
+});
+
 test('a note about a snag is written in its card, under its notes, and a card with none has the box too', async () => {
   await open('snag', 'a-door-left-open');
   const bare = cardOf('snag', 'a-door-left-open');
@@ -356,6 +413,9 @@ test('a note about a snag is written in its card, under its notes, and a card wi
     'the box follows the last of the notes');
   assert.match(box.className, /input input-bordered input-sm text-base flex-1 min-w-0/, "the reply form's classes");
   assert.match(form.className, /(^| )sticky bottom-0( |$)/, 'held at the foot of the card whatever is scrolled');
+  assert.match(form.className, /(^| )mt-auto( |$)/, 'and at its lower edge under content shorter than the card');
+  for (let el = form.parentElement; el && !el.classList.contains('sd-slide') && el !== card; el = el.parentElement)
+    assert.match(el.className, /(^| )flex-1( |$)/, 'each wrapper up to the slide passes the height down');
   assert.equal(form.nextElementSibling, null, "the card's last piece, outside the block of notes it would otherwise stay inside");
   type(box, '  Twice more this week.  ');
   await until(() => !form.querySelector('button[type="submit"]').disabled, 'the send control to wake');

@@ -367,19 +367,51 @@ test('the row stands its other controls down while the field is open', async () 
   await settle();
 
   const row = todoRows().find(el => el.textContent.includes('editing me'));
-  const trash = row.querySelector('i.ph-trash')?.closest('button');
-  const pencil = row.querySelector('i.ph-pencil-simple')?.closest('button');
-  assert.ok(trash && pencil, 'both row verbs are present at rest');
+  // x-show is on the menu's wrapper, which holds the More button.
+  const more = row.querySelector('[data-part="actions"]');
+  const flag = row.querySelector('button[aria-label="Clear urgent"]');
+  assert.ok(more && shown(more) && more.querySelector('button[aria-label="More"]'), "the row's menu button is present at rest");
+  assert.ok(flag && shown(flag), 'and the flag of an urgent row');
 
   data.startTodoEdit(data.todoItems[0]);
   await settle();
-  assert.equal(shown(trash), false, 'the trash steps aside mid-edit');
-  assert.equal(shown(pencil), false, 'and so does the pencil that opened it');
+  assert.equal(shown(more), false, 'the menu steps aside mid-edit');
+  assert.equal(shown(flag), false, 'and so does the flag');
 
   data.cancelEdit();
   await settle();
-  assert.equal(shown(trash), true, 'both come back');
-  assert.equal(shown(pencil), true);
+  assert.equal(shown(more), true, 'both come back');
+  assert.equal(shown(flag), true);
+});
+
+test("a to-do row shows the state it has, and its verbs are behind one menu", async () => {
+  await seedTodos([
+    { id: 't1', text: 'plain', done: false, created_at: '2026-09-01T10:00:00Z' },
+    { id: 't2', text: 'dated and flagged', done: false, urgent: true, due: '2026-09-09', created_at: '2026-09-02T10:00:00Z' },
+  ]);
+  window.__shell.view = 'lists';
+  data.editId = null;
+  await settle();
+
+  const rowOf = (words) => todoRows().find(el => el.textContent.includes(words));
+  const plain = rowOf('plain'), busy = rowOf('dated and flagged');
+  // Beside its text a row carries only its menu, unless it has a date or a flag to show.
+  const visible = (row) => [...row.querySelectorAll(':scope > span, :scope > button, :scope > [data-part="actions"]')].filter(shown);
+  assert.equal(visible(plain).length, 2, 'the text and the menu');
+  assert.ok(shown(busy.querySelector('.badge')), 'a due date shows as its chip');
+  assert.ok(shown(busy.querySelector('button[aria-label="Clear urgent"]')), 'and an urgent row its flag');
+  assert.equal(plain.querySelector('i.ph-pencil-simple'), null, 'no verb sits in the row');
+
+  plain.querySelector('[data-part="actions"] button[aria-label="More"]').click();
+  await settle();
+  const items = [...plain.querySelectorAll('[role="menu"] [role="menuitem"]')].map(el => el.getAttribute('aria-label'));
+  assert.deepEqual(items, ['Set a due date', 'Mark urgent', 'Notes', 'Edit', 'Delete']);
+  plain.querySelector('[role="menuitem"][aria-label="Edit"]').click();
+  await settle();
+  assert.equal(data.editId, 't1', 'a menu row runs its verb');
+  assert.equal(plain.querySelector('[role="menu"]'), null, 'and closes the menu');
+  data.cancelEdit();
+  await settle();
 });
 
 test('only one row is ever open, across the whole view', async () => {

@@ -49,7 +49,7 @@ lib/kits/json-explorer.js,JsonExplorer,"Native, framework-free JSON Explorer & S
 lib/kits/land.js,Land,"where the reader was just sent, and how they get told.",298,no,yes,9,yes
 lib/kits/last-write.js,LastWrite,"the copy this page just committed, for the next fold",70,no,no,5,yes
 lib/kits/linked-swiper.js,linkedSwiper,"a list with a detail: the list beside, or over, a strip of one card per row, the two moving together.",347,no,yes,8,yes
-lib/kits/lists.js,Lists,"the registry's lists/ folder, read and written as one kind of file.",266,no,no,4,yes
+lib/kits/lists.js,Lists,"the registry's lists/ folder, read and written as one kind of file.",288,no,no,4,yes
 lib/kits/local-work.js,LocalWork,"Observations establish file presence and Git relationships, never a backup.",28,no,no,1,yes
 lib/kits/look.js,Look,"look markers: a link that lands on a place in a page, says why, and can ring the control to tap.",1764,no,yes,7,yes
 lib/kits/md-diff.js,mdDiff,a markdown change read as the DOCUMENT rather than as its source.,2061,no,yes,19,yes
