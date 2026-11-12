@@ -147,8 +147,8 @@ def publish(repository, files, branch, subject):
     if branch not in ('main', 'background') or not inventory.approved_origin(repository):
         raise ValueError('Private capture destination unavailable')
     for attempt in range(4):
-        inventory.git(repository, 'fetch', '--quiet', '--no-tags', '--no-recurse-submodules', '--no-auto-maintenance',
-                      '--no-write-fetch-head', 'origin', f'+refs/heads/{branch}:refs/remotes/origin/{branch}')
+        inventory.git(repository, 'fetch', '--quiet', '--no-tags', '--no-prune', '--no-prune-tags', '--no-recurse-submodules', '--no-auto-maintenance',
+                      '--no-write-fetch-head', '--refmap=', 'origin', f'+refs/heads/{branch}:refs/remotes/origin/{branch}')
         base = inventory.text(repository, 'rev-parse', f'refs/remotes/origin/{branch}')
         tree = replace_files(repository, base, files)
         if tree == inventory.text(repository, 'rev-parse', base + '^{tree}'): return 'unchanged'

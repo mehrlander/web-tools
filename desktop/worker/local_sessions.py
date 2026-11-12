@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 import re
 import sqlite3
+from urllib.parse import unquote, urlsplit
 
 IDENT = re.compile(r'^[A-Za-z0-9_-]{8,96}$')
 
@@ -169,7 +170,16 @@ def gemini(profile, checkouts, limit=256):
                 steps[item.get('step_index', index)] = item
         prompts, replies, tools, touched, times = [], [], Counter(), [], []
         # Workspace URIs are hints only; tool paths establish additional associations.
-        cwd = str(workspace or '').replace('file:///', '').replace('%3A', ':').replace('%3a', ':')
+        try: workspaces = json.loads(workspace or '[]')
+        except (ValueError, TypeError): workspaces = [workspace] if workspace else []
+        if isinstance(workspaces, str): workspaces = [workspaces]
+        if not isinstance(workspaces, list): workspaces = []
+        for uri in workspaces:
+            if not isinstance(uri, str): continue
+            value = unquote(urlsplit(uri).path) if uri.startswith('file:') else uri
+            if re.match(r'^/[A-Za-z]:', value): value = value[1:]
+            touched.append(value)
+        cwd = ''
         for _, item in sorted(steps.items(), key=lambda x: str(x[0]).zfill(12)):
             at, text = item.get('created_at'), item.get('content')
             if at: times.append(at)

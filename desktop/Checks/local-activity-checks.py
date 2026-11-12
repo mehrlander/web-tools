@@ -51,7 +51,7 @@ class CaptureChecks(unittest.TestCase):
         root.mkdir(parents=True)
         with closing(sqlite3.connect(root / 'conversation_summaries.db')) as db, db:
             db.execute('create table conversation_summaries(conversation_id,title,workspace_uris,killed,last_modified_time)')
-            db.execute('insert into conversation_summaries values(?,?,?,?,?)', ('gemini-0001', 'New root', '', 0, '2026-11-11T00:00:00Z'))
+            db.execute('insert into conversation_summaries values(?,?,?,?,?)', ('gemini-0001', 'New root', json.dumps([(self.root / 'project').as_uri()]), 0, '2026-11-11T00:00:00Z'))
         path = root / 'brain/gemini-0001/.system_generated/logs/transcript.jsonl'
         path.parent.mkdir(parents=True)
         rows = [dict(step_index=0, source='USER_EXPLICIT', type='USER_INPUT', content='Ask', created_at='2026-11-11T00:00:00Z'),
