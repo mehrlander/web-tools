@@ -204,6 +204,18 @@
         on: 'bg-base-100 font-medium shadow-sm',
         off: 'text-base-content/70 hover:text-base-content',
       },
+      // A filter is a labelled row of chips, as the Map view draws them
+      // (map.js mapChip, mapChipOn, mapChipOff): rounded, the chosen one
+      // tinted. The raised segmented control (SEG) is kept for a switch of
+      // view, such as how the list is grouped.
+      FILTER: {
+        row: 'flex items-center gap-2 min-w-0 text-sm',
+        label: 'w-16 shrink-0 text-base-content/60',
+        strip: 'flex flex-nowrap items-center gap-1 min-w-0 overflow-x-auto py-0.5 whitespace-nowrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
+        chip: 'shrink-0 flex items-center gap-1.5 rounded-full px-2.5 py-1 max-sm:px-2 max-sm:py-0.5 text-sm whitespace-nowrap transition-colors cursor-pointer',
+        on: 'bg-primary/10 text-primary',
+        off: 'bg-base-200/60 text-base-content/70 hover:text-base-content',
+      },
       CHIP: 'rounded-md bg-base-200 px-1.5 py-0.5 text-sm text-base-content/80 whitespace-nowrap',
       BADGE_WORDS: {
         asks: { detect: 'detects', compare: 'compares', classify: 'classifies' },
@@ -1276,8 +1288,9 @@
     </div>
 
     <!-- variants: search with the count and the deck door, then one row of
-         pills for purpose and one for author. Each row scrolls sideways
-         inside itself; nothing wraps on a phone. -->
+         filter chips for purpose and one for author, each with its label at
+         the left. A row's chips scroll sideways beside the label; nothing
+         wraps on a phone. -->
     <div x-show="pane === 'variants'" class="flex items-center gap-2 min-w-0">
       <label class="input input-sm input-bordered flex items-center gap-2 grow min-w-0 max-w-md">
         <i class="ph ph-magnifying-glass opacity-70"></i>
@@ -1300,14 +1313,14 @@
     </div>
 
     <template x-for="kind in ['purpose', 'author']" :key="kind">
-      <div x-show="pane === 'variants' && variantIndex" class="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden whitespace-nowrap -mx-4 px-4 sm:-mx-6 sm:px-6">
-        <div :class="SEG.box" role="group" :aria-label="kind">
-          <button type="button" :class="[SEG.item, !variantPick(kind) ? SEG.on : SEG.off]" @click="setVariantFilter(kind, '')"
-                  x-text="kind === 'purpose' ? 'every purpose' : 'every author'"></button>
+      <div x-show="pane === 'variants' && variantIndex" :class="FILTER.row" data-slot="frame:count-chips">
+        <span :class="FILTER.label" x-text="kind === 'purpose' ? 'Purpose' : 'Author'"></span>
+        <div :class="FILTER.strip" role="group" :aria-label="kind">
+          <button type="button" :class="[FILTER.chip, !variantPick(kind) ? FILTER.on : FILTER.off]" @click="setVariantFilter(kind, '')">All</button>
           <template x-for="row in variantFacet(kind)" :key="row.key">
-            <button type="button" class="inline-flex items-center gap-1.5" :class="[SEG.item, variantPick(kind) === row.key ? SEG.on : SEG.off]"
+            <button type="button" :class="[FILTER.chip, variantPick(kind) === row.key ? FILTER.on : FILTER.off]"
                     @click="setVariantFilter(kind, variantPick(kind) === row.key ? '' : row.key)">
-              <span x-text="row.key"></span><span class="font-mono text-xs tabular-nums text-base-content/60" x-text="row.n.toLocaleString()"></span>
+              <span x-text="row.key"></span><span class="opacity-60 tabular-nums" x-text="row.n.toLocaleString()"></span>
             </button>
           </template>
         </div>
@@ -1319,19 +1332,19 @@
          beside them, then the grouping on a row of its own with any filter a
          card's badge has set. Each strip scrolls sideways inside itself, so
          the picker never leaves the viewport. -->
-    <div x-show="pane === 'probes'" class="flex items-center gap-2 min-w-0">
-      <div class="min-w-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden rounded-lg">
-        <div class="whitespace-nowrap" :class="SEG.box" data-slot="frame:count-chips">
-          <template x-for="key in ['worked','mixed','failed','open']" :key="key">
-            <button type="button" class="inline-flex items-center gap-1.5" :class="[SEG.item, filterStanding === key ? SEG.on : SEG.off]"
-                    @click="filterStanding = filterStanding === key ? '' : key">
-              <span class="w-2 h-2 rounded-full" :class="STANDINGS[key].bar"></span>
-              <span class="tabular-nums" x-text="counts[key]"></span><span x-text="key"></span>
-            </button>
-          </template>
-        </div>
+    <div x-show="pane === 'probes'" :class="FILTER.row">
+      <span :class="FILTER.label">Standing</span>
+      <div :class="FILTER.strip" role="group" aria-label="Standing" data-slot="frame:count-chips">
+        <button type="button" :class="[FILTER.chip, !filterStanding ? FILTER.on : FILTER.off]" @click="filterStanding = ''">All</button>
+        <template x-for="key in ['worked','mixed','failed','open']" :key="key">
+          <button type="button" :class="[FILTER.chip, filterStanding === key ? FILTER.on : FILTER.off]"
+                  @click="filterStanding = filterStanding === key ? '' : key">
+            <span class="w-2 h-2 rounded-full" :class="STANDINGS[key].bar"></span>
+            <span x-text="key"></span><span class="opacity-60 tabular-nums" x-text="counts[key]"></span>
+          </button>
+        </template>
       </div>
-      <select id="probe-concept" class="select select-bordered select-sm shrink-0 w-36 sm:w-56 ml-auto sm:ml-0" aria-label="Concept" data-slot="frame:filter-switch"
+      <select id="probe-concept" class="select select-bordered select-sm shrink-0 w-36 sm:w-56 ml-auto" aria-label="Concept" data-slot="frame:filter-switch"
               x-model="concept">
         <option value="">Every concept</option>
         <template x-for="[name, n] in concepts" :key="name">
@@ -1339,41 +1352,48 @@
         </template>
       </select>
     </div>
-    <div x-show="pane === 'probes'" class="flex items-center gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden whitespace-nowrap -mx-4 px-4 sm:-mx-6 sm:px-6">
-      <div class="shrink-0" :class="SEG.box">
-        <span class="pl-2 pr-1 text-sm text-base-content/70">by</span>
-        <template x-for="[key, label] in PROBE_BYS" :key="key">
-          <button type="button" :class="[SEG.item, probeBy === key ? SEG.on : SEG.off]" @click="probeBy = key" x-text="label"></button>
+    <div x-show="pane === 'probes'" :class="FILTER.row">
+      <span :class="FILTER.label">Group by</span>
+      <div :class="FILTER.strip">
+        <div class="shrink-0" :class="SEG.box">
+          <template x-for="[key, label] in PROBE_BYS" :key="key">
+            <button type="button" :class="[SEG.item, probeBy === key ? SEG.on : SEG.off]" @click="probeBy = key" x-text="label"></button>
+          </template>
+        </div>
+        <template x-for="[dim, value] in Object.entries(badgeFilter)" :key="dim">
+          <button type="button" :class="[FILTER.chip, FILTER.on]" @click="toggleBadge(dim, value)">
+            <span x-text="badgeText(dim, value)"></span><i class="ph ph-x"></i>
+          </button>
         </template>
-      </div>
-      <template x-for="[dim, value] in Object.entries(badgeFilter)" :key="dim">
-        <button type="button" class="shrink-0 inline-flex items-center gap-1 rounded-md bg-primary/15 px-2 py-1 text-sm cursor-pointer" @click="toggleBadge(dim, value)">
-          <span x-text="badgeText(dim, value)"></span><i class="ph ph-x"></i>
+        <button type="button" x-show="probeRun" :class="[FILTER.chip, FILTER.on]" @click="probeRun = ''">
+          <i class="ph ph-play-circle"></i><span x-text="(runRows.find(r => r.run === probeRun) || {}).title || probeRun"></span><i class="ph ph-x"></i>
         </button>
-      </template>
-      <button type="button" x-show="probeRun" class="shrink-0 inline-flex items-center gap-1 rounded-md bg-primary/15 px-2 py-1 text-sm cursor-pointer" @click="probeRun = ''">
-        <i class="ph ph-play-circle"></i><span x-text="(runRows.find(r => r.run === probeRun) || {}).title || probeRun"></span><i class="ph ph-x"></i>
-      </button>
+      </div>
     </div>
-    <div x-show="pane === 'runs' && runRows.length" class="flex items-center gap-2 overflow-x-auto whitespace-nowrap -mx-4 px-4 sm:-mx-6 sm:px-6">
-      <div class="shrink-0" :class="SEG.box">
-        <span class="pl-2 pr-1 text-sm text-base-content/70">by</span>
-        <template x-for="[key, label] in RUN_BYS" :key="key">
-          <button type="button" :class="[SEG.item, runBy === key ? SEG.on : SEG.off]" @click="runBy = key" x-text="label"></button>
-        </template>
+    <div x-show="pane === 'runs' && runRows.length" :class="FILTER.row">
+      <span :class="FILTER.label">Group by</span>
+      <div :class="FILTER.strip">
+        <div class="shrink-0" :class="SEG.box">
+          <template x-for="[key, label] in RUN_BYS" :key="key">
+            <button type="button" :class="[SEG.item, runBy === key ? SEG.on : SEG.off]" @click="runBy = key" x-text="label"></button>
+          </template>
+        </div>
       </div>
     </div>
 
     <!-- resources: the states are the filter, then properties -->
-    <div x-show="pane === 'resources'" class="flex flex-wrap items-center gap-1">
-      <template x-for="key in ['held','fetched','absent']" :key="key">
-        <button class="badge badge-sm cursor-pointer gap-1 transition-opacity"
-                :class="filterState === key ? [STATES[key].text, 'badge-outline', 'font-medium'] : 'badge-ghost'"
-                @click="filterState = filterState === key ? '' : key">
-          <span class="tabular-nums" x-text="resCounts[key]"></span><span x-text="key"></span>
-        </button>
-      </template>
-      <select id="resource-rate" class="select select-bordered select-sm w-auto max-w-[16rem] ml-2" aria-label="Property"
+    <div x-show="pane === 'resources'" :class="FILTER.row">
+      <span :class="FILTER.label">State</span>
+      <div :class="FILTER.strip" role="group" aria-label="State" data-slot="frame:count-chips">
+        <button type="button" :class="[FILTER.chip, !filterState ? FILTER.on : FILTER.off]" @click="filterState = ''">All</button>
+        <template x-for="key in ['held','fetched','absent']" :key="key">
+          <button type="button" :class="[FILTER.chip, filterState === key ? FILTER.on : FILTER.off]"
+                  @click="filterState = filterState === key ? '' : key">
+            <span x-text="key"></span><span class="opacity-60 tabular-nums" x-text="resCounts[key]"></span>
+          </button>
+        </template>
+      </div>
+      <select id="resource-rate" class="select select-bordered select-sm shrink-0 w-36 sm:w-56 ml-auto" aria-label="Property"
               x-model="rate">
         <option value="">Every property</option>
         <template x-for="[name, n] in rates" :key="name">
