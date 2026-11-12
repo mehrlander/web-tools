@@ -99,7 +99,7 @@ test('the chart: two panels, a bar and a re-load segment, hues by theme, a compa
   assert.match(light, /width="390"/);
   assert.match(light, /Context after each prompt/);
   assert.match(light, /Cost of each prompt/);
-  assert.match(light, />warm cache</);
+  assert.match(light, />normal cost</);
   assert.match(light, />idle re-load</);
   assert.match(light, /fill="#2a78d6"/);
   assert.match(light, /fill="#eb6834"/);
