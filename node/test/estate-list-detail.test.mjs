@@ -263,9 +263,9 @@ test('both tabs declare the list and detail, each row a compact item', async () 
   for (const row of rows) assert.match(row.querySelector('[data-part="title"]').className, /\btruncate\b/, 'one line, cut short where it runs over');
   assert.equal(text(rows[0].querySelector('[data-part="summary"]')), 'the row count was off by one after a sort');
   // Flair follows the title: an icon for a facet the snag declares, small and quiet.
-  assert.deepEqual([...rows[0].querySelectorAll('[data-flair] > i')].map(i => i.getAttribute('aria-label')), ['Behavior: a session did something unwanted']);
-  assert.ok(rows[0].querySelector('[data-flair] > i.ph-robot'));
-  assert.equal(rows[1].querySelector('[data-flair] > i'), null, 'a snag that declares no facet has none');
+  assert.deepEqual([...rows[0].querySelectorAll('[data-flair] [data-facet] i')].map(i => i.getAttribute('aria-label')), ['Behavior: a session did something unwanted']);
+  assert.ok(rows[0].querySelector('[data-flair] [data-facet="kind"] i.ph-robot'));
+  assert.equal(rows[1].querySelector('[data-flair] [data-facet] i'), null, 'a snag that declares no facet has none');
   assert.ok(rows[0].querySelector('[data-part="title"]').compareDocumentPosition(rows[0].querySelector('[data-flair]')) & window.Node.DOCUMENT_POSITION_FOLLOWING);
   assert.match(rows[0].querySelector('[data-part="summary"]').className, /\bline-clamp-2\b.*\btext-base\b/, 'two lines at most, at the size of the title');
   // Beside the title: how often, its notes, how lately. The repo is its mark,
