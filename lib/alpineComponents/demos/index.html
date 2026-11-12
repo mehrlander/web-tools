@@ -151,6 +151,14 @@
     $('source').hidden = false;
     $('source').href = window.RepoAddress.github.blob(gh.repo, gh.ref || 'main', DIR + base + '.js');
   }
+  // FRAMED, THE WAY OUT IS HERE: a card that frames this page gives it the
+  // whole pane and no row of its own for a link. The address is this page's,
+  // or the toss renderer's around it where a toss rendered it; either way it
+  // is offered only when something frames that address.
+  try {
+    const host = window.parent !== window && /\/toss-render\.html$/.test(window.parent.location.pathname) ? window.parent : window;
+    if (host !== host.top) { $('alone').href = host.location.href; $('alone').hidden = false; }
+  } catch (e) { /* a parent on another origin: no address to offer */ }
   document.body.setAttribute('aria-busy', 'false');
 </script>
 </head>
@@ -164,6 +172,7 @@
     <span class="ml-auto flex shrink-0 items-center gap-1">
       <button id="outline" hidden type="button" aria-pressed="false" class="btn btn-sm btn-ghost gap-1.5"><i class="ph ph-bounding-box"></i>Outline</button>
       <a id="source" hidden target="_blank" rel="noopener" class="btn btn-sm btn-ghost btn-square" aria-label="Open the component's file on GitHub"><i class="ph ph-github-logo"></i></a>
+      <a id="alone" hidden target="_blank" rel="noopener" class="btn btn-sm btn-ghost btn-square" aria-label="Open this demo on its own"><i class="ph ph-arrow-square-out"></i></a>
     </span>
   </div>
   <div id="setups" hidden class="flex min-w-0 items-center gap-2 px-3 pb-1.5">
