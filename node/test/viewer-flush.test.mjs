@@ -1,14 +1,7 @@
-// alpineComponents/viewer.js — the `flush` host option and the Markdown
-// panes' side padding (ViewRegistry.MD_INSET).
-//
-// pages/data-view.html gives the viewer the screen's full width on a phone and
-// asks for `flush`, so the header row and the Markdown panes take 10px of
-// their own: the redline's 6px change bar on the screen's edge and 4px before
-// the text. What is held here is that the option reaches the root as an
-// attribute, that a host which does not ask is left unmarked, and that
-// Preview and Changes carry the same padding, since a difference between them
-// moves the text sideways when a reader switches modes. Where the padding
-// lands is layout, which node/render/scenarios/md-redline.mjs measures.
+// alpineComponents/viewer.js — the `flush` host option. It sets
+// data-viewer-flush on the viewer's root, and Preview and Changes share
+// ViewRegistry.MD_INSET. node/render/scenarios/md-redline.mjs measures the
+// layout.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';

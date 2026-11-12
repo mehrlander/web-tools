@@ -342,8 +342,8 @@
 
       <!-- the shared viewer, embedded: bindStore false so it doesn't track a
            Files view that isn't here, fill so it grows to this column, flush
-           because on a phone this page gives it the screen's full width. It
-           carries its own header (name, size, mode strip, links). -->
+           for the full width on a phone. It carries its own header (name,
+           size, mode strip, links). -->
       <div id="dv-viewer" class="flex flex-col flex-1 min-h-0"
            x-data="viewer({ bindStore: false, fill: true, flush: true, modules: { changes: { base: window.DATA_VIEW_BASE } } })"></div>
     </div>
