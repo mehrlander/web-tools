@@ -122,12 +122,12 @@ const type = (input, value) => { input.value = value; input.dispatchEvent(new wi
 const line = (o) => JSON.stringify(o) + '\n';
 
 const SNAGS = [
-  { id: 'a-count-off-by-one', kind: 'behavior', text: 'the row count was off by one after a sort', note: 'The **sort** ran before the last row arrived.',
+  { id: 'a-count-off-by-one', kind: 'technical', text: 'the row count was off by one after a sort', note: 'The **sort** ran before the last row arrived.',
     repo: 'o/tools', seen: ['2026-10-01', '2026-10-03'], targets: ['o/tools:python/scan.py', 'o/tools:node/test/scan.test.mjs'],
     created_at: '2026-10-01T10:00:00.000Z' },
   { id: 'a-door-left-open', name: 'Stale drawer', text: 'a panel stayed open behind the next one', repo: 'o/tools', seen: ['2026-10-02'],
     created_at: '2026-10-02T10:00:00.000Z' },
-  { id: 'a-third-thing', text: 'a third thing went wrong', repo: 'o/other', seen: ['2026-09-01'], created_at: '2026-09-01T10:00:00.000Z' },
+  { id: 'a-third-thing', kind: 'behavior', origin: 'session', text: 'a third thing went wrong', repo: 'o/other', seen: ['2026-09-01'], created_at: '2026-09-01T10:00:00.000Z' },
 ];
 const NOTE_LINES = [
   { id: 'n1', at: '2026-10-04T00:00:00Z', author: 'me', about: 'o/tools:docs/SNAGS.md#a-count-off-by-one', text: 'Seen again on the phone.' },
@@ -263,9 +263,10 @@ test('both tabs declare the list and detail, each row a compact item', async () 
   for (const row of rows) assert.match(row.querySelector('[data-part="title"]').className, /\btruncate\b/, 'one line, cut short where it runs over');
   assert.equal(text(rows[0].querySelector('[data-part="summary"]')), 'the row count was off by one after a sort');
   // Flair follows the title: an icon for a facet the snag declares, small and quiet.
-  assert.deepEqual([...rows[0].querySelectorAll('[data-flair] [data-facet] i')].map(i => i.getAttribute('aria-label')), ['Behavior: a session did something unwanted']);
-  assert.ok(rows[0].querySelector('[data-flair] [data-facet="kind"] i.ph-robot'));
+  assert.deepEqual([...rows[0].querySelectorAll('[data-flair] [data-facet] i')].map(i => i.getAttribute('aria-label')), ['Technical: something broke']);
+  assert.ok(rows[0].querySelector('[data-flair] [data-facet="kind"] i.ph-bug'));
   assert.equal(rows[1].querySelector('[data-flair] [data-facet] i'), null, 'a snag that declares no facet has none');
+  assert.equal(rows[2].querySelector('[data-flair] [data-facet] i'), null, 'and so has one whose kind and origin are the unmarked values');
   assert.ok(rows[0].querySelector('[data-part="title"]').compareDocumentPosition(rows[0].querySelector('[data-flair]')) & window.Node.DOCUMENT_POSITION_FOLLOWING);
   assert.match(rows[0].querySelector('[data-part="summary"]').className, /\bline-clamp-2\b.*\btext-base\b/, 'two lines at most, at the size of the title');
   // Beside the title: how often, its notes, how lately. The repo is its mark,

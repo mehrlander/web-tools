@@ -210,10 +210,12 @@ test('two quick writes both land: they queue, and a read that lags behind this p
   assert.deepEqual(res.items.map(i => i.id), ['tX', 't4']);
 });
 
-test("an item's flair is one icon for each facet it declares, and nothing for what it does not", () => {
-  assert.deepEqual(L.flair({ id: 'a', kind: 'behavior', origin: 'owner' }).map(f => [f.facet, f.icon]),
-    [['kind', 'ph-robot'], ['origin', 'ph-user']]);
+test("an item's flair is one icon for each facet value the table marks, and nothing for the rest", () => {
+  assert.deepEqual(L.flair({ id: 'a', kind: 'technical', origin: 'owner' }).map(f => [f.facet, f.icon]),
+    [['kind', 'ph-bug'], ['origin', 'ph-user']]);
   assert.deepEqual(L.flair({ id: 'a', kind: 'technical' }).map(f => f.icon), ['ph-bug']);
+  assert.deepEqual(L.flair({ id: 'a', kind: 'behavior', origin: 'session' }), [], 'the unmarked value of each facet');
+  assert.deepEqual(L.flair({ id: 'a', kind: 'behavior', origin: 'owner' }).map(f => f.icon), ['ph-user']);
   assert.equal(L.flair({ id: 'a', kind: 'technical' })[0].tip, 'Technical: something broke');
   assert.deepEqual(L.flair({ id: 'a' }), [], 'an item that declares no facet');
   assert.deepEqual(L.flair({ id: 'a', kind: 'toString', origin: 'elsewhere' }), [], 'a value the table lacks');
