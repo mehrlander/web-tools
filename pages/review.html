@@ -88,33 +88,101 @@
   .review-cm .cm-mergeView { background: transparent; }
 </style>
 </head>
-<body class="min-h-screen bg-base-200 text-base-content" x-data="reviewApp()" x-cloak>
+<body class="min-h-screen text-base-content" :class="mode === 'file' ? 'bg-base-100' : 'bg-base-200'" x-data="reviewApp()" x-cloak>
 
 <header class="bg-base-100 border-b border-base-300 sticky top-0 z-20">
-  <div class="mx-auto px-4 h-12 flex items-center gap-2">
-    <a href="#" @click.prevent="reset()" class="flex items-center gap-2 hover:opacity-80 shrink-0">
+  <div class="mx-auto px-2 h-14 flex items-center gap-1 sm:gap-2">
+    <a x-show="mode !== 'file'" href="#" @click.prevent="reset()" class="flex items-center gap-2 hover:opacity-80 shrink-0" aria-label="Review another file">
       <i class="ph ph-magnifying-glass text-xl text-primary"></i>
       <span class="font-semibold hidden sm:inline">Review</span>
     </a>
-    <div class="min-w-0 flex items-baseline gap-2 font-mono text-xs truncate" x-show="mode !== 'empty'">
+    <div class="min-w-0 flex items-baseline gap-2 font-mono text-xs truncate" x-show="mode === 'changeset'">
       <a :href="window.RepoAddress.github.repo(repo)" target="_blank" class="link link-hover text-primary truncate" x-text="repo"></a>
       <span class="opacity-70 truncate" x-text="rangeLabel"></span>
     </div>
-    <div class="grow"></div>
-    <button x-show="mode !== 'empty'" @click="copyLink()" class="btn btn-ghost btn-xs gap-1" title="Copy a link to this review">
-      <i class="ph" :class="linkCopied ? 'ph-check' : 'ph-link'"></i><span class="hidden sm:inline">link</span>
+    <details x-show="mode === 'file'" class="dropdown dropdown-start min-w-0 flex-1 max-sm:static" x-ref="fileActions"
+             @click.outside="$el.open = false" @keydown.escape="$el.open = false">
+      <summary class="flex h-12 min-w-0 items-center gap-1 rounded px-1 cursor-pointer hover:bg-base-200"
+               aria-label="File and review actions">
+        <div class="min-w-0 flex flex-col leading-tight">
+          <span class="font-mono text-base font-semibold truncate" x-text="path.split('/').pop()"></span>
+          <span class="font-mono text-xs opacity-80 truncate"
+                x-text="repo + ' · ' + path.slice(0, path.lastIndexOf('/') + 1)"></span>
+        </div>
+        <i class="ph ph-caret-down text-sm shrink-0" aria-hidden="true"></i>
+      </summary>
+      <ul class="dropdown-content menu menu-sm z-30 mt-1 w-72 max-w-[calc(100vw-1rem)] rounded-box border border-base-300 bg-base-100 p-1 shadow-lg max-sm:left-2 max-sm:top-full">
+        <li class="menu-title"><span class="font-mono text-xs break-all" x-text="repo + '@' + head + ':' + path"></span></li>
+        <li><button type="button" @click="copyLink()" :aria-label="linkCopied ? 'Link copied' : 'Copy review link'">
+          <i class="ph text-base" :class="linkCopied ? 'ph-check' : 'ph-link'" aria-hidden="true"></i>
+          <span role="status" x-text="linkCopied ? 'Link copied' : 'Copy review link'"></span>
+        </button></li>
+        <li><button type="button" @click="$refs.fileActions.open = false; ghAuth.prompt('Paste a GitHub token for private repos and branches.')">
+          <i class="ph ph-key text-base" aria-hidden="true"></i><span>GitHub access</span>
+        </button></li>
+        <li><button type="button" @click="$refs.fileActions.open = false; reset()">
+          <i class="ph ph-magnifying-glass text-base" aria-hidden="true"></i><span>Review another file</span>
+        </button></li>
+        <li class="menu-title" x-show="!!card?.ghLinks?.length">On GitHub</li>
+        <template x-for="link in (card?.ghLinks || [])" :key="link.label">
+          <li><a :href="link.url" target="_blank" rel="noopener" @click="$refs.fileActions.open = false">
+            <i class="ph text-base" :class="link.icon" aria-hidden="true"></i><span x-text="link.label"></span>
+          </a></li>
+        </template>
+      </ul>
+    </details>
+    <div x-show="mode === 'file' && card && !['image', 'pdf', 'binary'].includes(card.kind)"
+         data-review-controls class="flex items-center gap-1 shrink-0">
+      <details class="dropdown dropdown-end max-sm:static" x-ref="fileCompare"
+               @click.outside="$el.open = false" @keydown.escape="$el.open = false">
+        <summary class="btn btn-ghost btn-sm h-9 gap-1 px-1 max-w-24 sm:max-w-48" aria-label="Compare against"
+                 :data-title-tip="card?.compareOff ? 'No comparison' : 'Compare against ' + (card?.baseName || base)">
+          <span class="font-mono text-sm font-semibold truncate"
+                x-text="card?.compareOff ? 'Compare' : 'vs ' + (card?.baseName || base)"></span>
+          <i class="ph ph-caret-down text-sm shrink-0" aria-hidden="true"></i>
+        </summary>
+        <ul class="dropdown-content menu menu-sm z-30 mt-1 w-60 rounded-box border border-base-300 bg-base-100 p-1 shadow-lg max-sm:right-2 max-sm:left-auto max-sm:top-full">
+          <template x-for="choice in (card?.compareChoices || [])" :key="choice.key">
+            <li><button type="button" :class="choice.on && 'menu-active'"
+                        @click="$refs.fileCompare.open = false; card.pickCompare(choice)" x-text="choice.label"></button></li>
+          </template>
+        </ul>
+      </details>
+      <div class="join shrink-0" data-review-modes>
+        <template x-for="view in (card?.viewModes || [])" :key="view.key">
+          <button type="button" class="btn btn-sm btn-square size-7 sm:size-8 join-item"
+                  :class="[view.on ? 'btn-active' : 'btn-ghost', view.key === 'split' && 'max-sm:hidden']"
+                  :aria-label="view.label" :aria-pressed="view.on" :data-title-tip="view.label"
+                  @click="card.pickView(view)">
+            <i class="ph text-lg" :class="view.icon" aria-hidden="true"></i>
+          </button>
+        </template>
+      </div>
+    </div>
+    <div x-show="mode !== 'file'" class="grow"></div>
+    <button x-show="mode === 'changeset'" @click="copyLink()" class="btn btn-ghost btn-xs gap-1">
+      <i class="ph text-base" :class="linkCopied ? 'ph-check' : 'ph-link'" aria-hidden="true"></i><span x-text="linkCopied ? 'Link copied' : 'Copy link'"></span>
     </button>
-    <a x-show="githubUrl" :href="githubUrl" target="_blank" class="btn btn-ghost btn-xs gap-1" title="Open on GitHub">
-      <i class="ph ph-github-logo"></i><span class="hidden sm:inline">GitHub</span>
+    <a x-show="githubUrl && mode !== 'file'" :href="githubUrl" target="_blank" class="btn btn-ghost btn-xs gap-1" aria-label="Open on GitHub">
+      <i class="ph ph-github-logo text-base"></i><span class="hidden sm:inline">GitHub</span>
     </a>
-    <button @click="ghAuth.prompt('Paste a GitHub token for private repos and branches.')"
-            class="btn btn-ghost btn-xs gap-1" title="Set the stored token">
-      <i class="ph ph-key"></i>
+    <button x-show="mode !== 'file'" @click="ghAuth.prompt('Paste a GitHub token for private repos and branches.')"
+            class="btn btn-ghost btn-xs gap-1">
+      <i class="ph ph-key text-base" aria-hidden="true"></i><span>GitHub access</span>
     </button>
   </div>
 </header>
 
-<main class="mx-auto px-4 py-4 flex flex-col gap-3">
+<main class="mx-auto flex flex-col gap-3" :class="mode === 'file' ? [
+  'review-single-file w-full min-w-0 [--md-diff-top:auto]',
+  '[&_.md-diff-doc]:px-3 [&_.md-diff-doc]:pt-0 [&_.md-diff-doc]:pb-20',
+  'max-[481px]:[&_.md-diff-doc]:pb-36',
+  '[&_.md-diff-nav]:fixed [&_.md-diff-nav]:left-1/2 [&_.md-diff-nav]:-translate-x-1/2',
+  '[&_.md-diff-nav]:bottom-[calc(.75rem+env(safe-area-inset-bottom,0px))]',
+  'max-[384px]:[&_.md-diff-nav]:bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))]',
+  '[&_.md-diff-nav]:m-0 [&_.md-diff-nav]:z-30 [&_.md-diff-nav]:bg-base-100',
+  '[&_.md-diff-nav_.tabular-nums]:opacity-80'
+] : 'px-4 py-4'">
 
   <div x-show="error" class="alert alert-error py-2 px-3 text-sm">
     <i class="ph ph-warning"></i><span x-text="error"></span>
@@ -170,7 +238,7 @@
         </button>
       </div>
       <p class="text-xs opacity-60">
-        Private repos and branches need the stored token (<i class="ph ph-key"></i> above).
+        Private repos and branches need a stored token (GitHub access).
         Links carry refs only; content stays behind the viewer's token.
       </p>
     </div>
@@ -223,8 +291,8 @@
             :title="'Read ' + files.length + ' files one at a time'">
       <i class="ph ph-cards-three text-lg max-sm:text-xl"></i></button>
   </div>
-  <div x-show="files.length" class="border border-base-300 rounded-lg overflow-hidden">
-    <template x-for="f in files" :key="f.path">
+  <div x-show="files.length" x-ref="fileCards" :class="mode !== 'file' && 'border border-base-300 rounded-lg overflow-hidden'">
+    <template x-for="f in files" :key="JSON.stringify([f.repo, f.ref, f.base, f.path, mode])">
       <div x-data="fileReview(f)"></div>
     </template>
   </div>
@@ -246,6 +314,7 @@ function reviewApp() { return {
   error: '',
   linkCopied: false,
   dumpCopied: false,
+  _chromeTick: 0,
   fPaste: '', fRepo: '', fHead: '', fBase: '', fPath: '',
 
   // Built-in demo targets. Durable by construction: commit SHAs never move and
@@ -267,6 +336,13 @@ function reviewApp() { return {
     await window.__depsReady;
     window.addEventListener('hashchange', () => { if (this.address() !== this.booted) this.boot(); });
     await this.boot();
+  },
+
+  get card() {
+    this._chromeTick;
+    if (this.mode !== 'file') return null;
+    const el = this.$refs.fileCards?.querySelector('[x-data="fileReview(f)"]');
+    return el?._x_dataStack ? window.Alpine.$data(el) : null;
   },
 
   get rangeLabel() {
@@ -302,6 +378,7 @@ function reviewApp() { return {
     this.data = null;
     this.files = [];
     this.mode = 'empty';
+    this._chromeTick++;
 
     const frag = this.booted = this.address();
     if (!frag) return;
@@ -314,7 +391,7 @@ function reviewApp() { return {
       await this.open(t);
     } catch (e) {
       this.error = (e.status === 404)
-        ? 'Not found (a private repo or branch needs the stored token — key icon above).'
+        ? 'Not found. For a private repository, set a token using GitHub access.'
         : 'Load failed: ' + (e.message || e);
     }
     this.loading = false;
@@ -356,10 +433,16 @@ function reviewApp() { return {
 
     if (this.path) {
       this.mode = 'file';
+      const comparison = { repo: this.repo, ref: this.head, base: this.base, baseName: this.base };
+      window.__compareRef = comparison;
+      window.dispatchEvent(new CustomEvent('web-tools:compare-ref', { detail: comparison }));
       this.files = [{
         repo: this.repo, ref: this.head, base: this.base, baseName: this.base,
-        path: this.path, open: true,
+        path: this.path, open: true, read: true, hosted: true, stats: true,
+        openOn: /\.(md|markdown)$/i.test(this.path) ? 'mddiff' : /\.html?$/i.test(this.path) ? '' : 'diff',
+        onChrome: () => { this._chromeTick++; },
       }];
+      this.$nextTick(() => { this._chromeTick++; });
       return;
     }
 
