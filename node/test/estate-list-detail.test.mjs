@@ -272,8 +272,8 @@ test('both tabs declare the list and detail, each row a compact item', async () 
   // ahead of the title.
   const slots = (row) => [...row.querySelector('[data-part="meta"]').children].map(text);
   await until(() => slots(rows[0])[1] === '2', "the first row's note count");
-  assert.deepEqual(slots(rows[0]), ['×2', '2', 'age 2026-10-03']);
-  assert.deepEqual(slots(rows[1]), ['', '', 'age 2026-10-02'], 'seen once, and no notes');
+  assert.deepEqual(slots(rows[0]), ['×2', '2', '', 'age 2026-10-03']);
+  assert.deepEqual(slots(rows[1]), ['', '', '', 'age 2026-10-02'], 'seen once, and no notes');
   for (const row of rows) assert.equal(row.querySelectorAll('[data-part="meta"]').length, 1);
 });
 
