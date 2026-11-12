@@ -409,7 +409,16 @@ function gitEvidence(u, repoRoot) {
     const count = (range) => +git('rev-list', '--count', range).stdout.trim() || 0;
     const ahead = count(`${b}..${h}`), behind = count(`${h}..${b}`);
     const status = b === h ? 'identical' : behind === 0 ? 'ahead' : ahead === 0 ? 'behind' : 'diverged';
-    return json({ status, ahead_by: ahead, behind_by: behind }, `${name} compare ${status}`);
+    // The merge base and the files that differ from it, as GitHub's compare
+    // gives them. The viewer's Changes mode reads both.
+    const mb = git('merge-base', b, h).stdout.trim();
+    const files = !mb ? [] : git('diff', '--name-status', '-M', mb, h).stdout.split('\n').filter(Boolean).map((line) => {
+      const [st, from, to] = line.split('\t');
+      return st[0] === 'R' ? { filename: to, previous_filename: from, status: 'renamed' }
+        : { filename: from, status: st[0] === 'A' ? 'added' : st[0] === 'D' ? 'removed' : 'modified' };
+    });
+    return json({ status, ahead_by: ahead, behind_by: behind, ...(mb ? { merge_base_commit: { sha: mb } } : {}), files },
+                `${name} compare ${status}`);
   }
   if (what === 'pulls') {
     // Pull requests are not in git; the crawl's cache in the registry is the
@@ -549,8 +558,12 @@ export function resolveCdn(rawUrl, repoRoot, ref, headers = {}) {
   // from origin's refs in the sibling checkouts. Off by default: the rules
   // above serve the working tree so a render shows uncommitted work, and a
   // witness check needs the recorded objects. tending-findings.mjs sets it.
+  //
+  // SHOT_GIT_API=siblings answers them for the other repositories only, and
+  // this checkout's uncommitted code still runs.
   if (host === 'api.github.com' && process.env.SHOT_GIT_API) {
-    const hit = gitEvidence(u, repoRoot);
+    const own = u.pathname === `/repos/${REPO}` || u.pathname.startsWith(`/repos/${REPO}/`);
+    const hit = process.env.SHOT_GIT_API === 'siblings' && own ? null : gitEvidence(u, repoRoot);
     if (hit) return hit;
   }
 
