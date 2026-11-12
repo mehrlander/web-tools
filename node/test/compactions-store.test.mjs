@@ -158,8 +158,10 @@ test('a card is the chart\'s room and the summary, every section open under a he
   const secs = [...el.querySelectorAll('[data-sec]')];
   assert.deepEqual(secs.map((x) => x.dataset.sec), ['1', '6', '8', '7', '9', '2', '3', '4', '5'], 'the plain-language five, then the technical four');
   assert.equal(el.querySelector('details, [data-sec-nav], [data-sec-go]'), null, 'no fold and no chip: every section is open');
-  assert.deepEqual(secs.map((x) => x.firstElementChild.textContent), [0, 5, 7, 6, 8, 1, 2, 3, 4].map((i) => NINE[i]),
+  assert.deepEqual(secs.map((x) => x.firstElementChild.firstChild.textContent), [0, 5, 7, 6, 8, 1, 2, 3, 4].map((i) => NINE[i]),
     "a heading is the section's name, without the number the reordering would scramble");
+  assert.deepEqual(secs.map((x) => x.querySelector('h3 [data-sec-count]')?.textContent || ''), ['1', '1', '1', '1', '1', '1', '', '1', '1'],
+    'beside the name, how many items its list has; the section rewritten as a code block and a table line has none');
   assert.equal(c.nameOf(id).pill, 3, "the card's head carries its compaction's number, for a pill");
   assert.equal(c.nameOf(B + '-20261104T010000Z').pill, 1);
   assert.equal(c.nameOf(C1 + '-20261106T133000Z').pill, '', 'a session compacted once has no number to give');
@@ -232,4 +234,16 @@ test('the summaries either side of the one in view are read ahead', async () => 
   assert.deepEqual(asked, [], 'a card two or three away is not read');
   el(b2); el(b1);
   assert.deepEqual(asked, [b2, b1], 'the card in view and the one beside it are');
+});
+
+test('a section heading counts the top-level items of its list, and a prose section has no count', () => {
+  const c = factory(null);
+  const listed3 = c.section({ n: 7, name: 'Pending Tasks', text: '   - one\n     - under one\n   - two\n   1. three is a new list\n' });
+  assert.equal(listed3.querySelector('[data-sec-count]').textContent, '3', 'nested items are not counted');
+  assert.equal(listed3.querySelector('[data-sec-count]').getAttribute('aria-label'), '3 items');
+  const prose = c.section({ n: 8, name: 'Current Work', text: '   The session was drafting a README.\n' });
+  assert.equal(prose.querySelector('[data-sec-count]'), null);
+  const noted = c.section({ n: 3, name: 'Files and Code Sections (referenced)', text: '   - a.md\n' });
+  assert.deepEqual([...noted.firstElementChild.childNodes].map((x) => x.textContent), ['Files and Code Sections', '1', ' (referenced)'],
+    "the count sits between the name and the writer's note");
 });
