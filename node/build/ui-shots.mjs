@@ -42,6 +42,11 @@
 // query that opens with # is a fragment, for the pages that route on
 // location.hash.
 //
+// THE COMPONENTS. Beside each store's manifest, components.json records
+// where every Alpine component sat in each shot: per unit and width, a list
+// of { n, box }, the name x-data mounts it by and its box as fractions of
+// the image. The Map's Components tab outlines one component from it.
+//
 // THE OUTPUT, split by visibility like the units tables themselves: public
 // units' shots go to data/ui-units/thumbs/ here, home's to web-tools-private's
 // thumbs/mehrlander/home/ui-units/, the private registry's store for shots of
@@ -133,7 +138,7 @@ const labelJs = (stage, coded) => `(() => {
     // Bold white on the dimension's colour taken a fifth toward black, and
     // tight: at 600 on the plain amber the label was the hardest text in a
     // shot to read, and its padding hid more of the page than its words.
-    t.style.cssText = 'position:absolute;font:700 11px/1.25 system-ui,sans-serif;color:#fff;padding:0 4px;border-radius:3px;'
+    t.style.cssText = 'position:absolute;font:800 12px/1.25 system-ui,sans-serif;color:#fff;padding:0 5px;border-radius:3px;'
       + 'white-space:nowrap;background:color-mix(in srgb, ' + color + ' 80%, #000)';
     layer.append(t);
     let left = Math.min(Math.max(crop.x + 2, r.left), crop.x + crop.w - t.offsetWidth - 2);
@@ -162,7 +167,25 @@ const shotJs = (w) => {
   ${labelJs(stage, coded)};
   await new Promise((ok) => setTimeout(ok, 100));
   const limited = /API rate limit exceeded/.test(document.body.innerText);
-  return f === 'null' ? JSON.stringify(limited ? { limited } : null) : JSON.stringify({ ...JSON.parse(f), limited }); })()`;
+  // WHERE EACH ALPINE COMPONENT SITS, in the window's own pixels: every
+  // element whose x-data opens with a name, with its box as the shot is
+  // taken. Nothing is drawn for these. The boxes are written beside the
+  // shots (components.json) so the Map's Components tab can outline the one
+  // component its card is about, over a shot every component shares.
+  const comps = [...document.querySelectorAll('[x-data]')].map((e) => {
+    // No backslash classes: this text passes through a template literal and a
+    // command line on its way to the page, and \w arrived as a bare w.
+    const m = /^ *([A-Za-z_$][A-Za-z0-9_$]*)/.exec(e.getAttribute('x-data') || '');
+    const r = e.getBoundingClientRect();
+    // A root whose content runs past its own box without being clipped (the
+    // Map's root is as tall as its pane and its tab runs on below) is
+    // measured by what it draws, not by the box it was given.
+    const cs = getComputedStyle(e);
+    const w = cs.overflowX === 'visible' ? Math.max(r.width, e.scrollWidth) : r.width;
+    const h = cs.overflowY === 'visible' ? Math.max(r.height, e.scrollHeight) : r.height;
+    return m && w > 1 && h > 1 ? { n: m[1], x: r.left, y: r.top, w, h } : null;
+  }).filter(Boolean);
+  return JSON.stringify({ ...(f === 'null' ? {} : JSON.parse(f)), limited, comps, vw: innerWidth, vh: innerHeight }); })()`;
 };
 
 // PNG to a JPEG of the given width, drawn in the same headless browser the
@@ -189,6 +212,26 @@ async function toJpeg(page, png, size, focus, out) {
   writeFileSync(out, Buffer.from(data, 'base64'));
 }
 
+// A shot's component boxes as fractions of the kept image: left, top, width
+// and height, each 0 to 1, a box cut to the part of it the shot keeps and
+// dropped where the shot keeps none of it. The kept region is toJpeg's: the
+// focus box's left, top and width, and the window's height or the ratio's.
+function compBoxes(read, focus, size) {
+  const vw = read?.vw, vh = read?.vh;
+  if (!vw || !vh || !Array.isArray(read.comps)) return [];
+  const fx = focus ? focus.x : 0, fy = focus ? focus.y : 0;
+  const fw = focus ? Math.min(focus.w, vw - fx) : vw;
+  const fh = Math.min(vh - fy, size.ratio ? fw * size.ratio : Infinity);
+  const r4 = (v) => Math.round(v * 1e4) / 1e4;
+  const out = [];
+  for (const c of read.comps) {
+    const x0 = Math.max(c.x, fx), y0 = Math.max(c.y, fy), x1 = Math.min(c.x + c.w, fx + fw), y1 = Math.min(c.y + c.h, fy + fh);
+    if (x1 - x0 < 2 || y1 - y0 < 2) continue;
+    out.push({ n: c.n, box: [r4((x0 - fx) / fw), r4((y0 - fy) / fh), r4((x1 - x0) / fw), r4((y1 - y0) / fh)] });
+  }
+  return out;
+}
+
 needHomeModules();
 const work = codedUnits(ONLY);
 console.log(`${work.length} units to shoot, ${JOBS} at a time`);
@@ -196,6 +239,7 @@ console.log(`${work.length} units to shoot, ${JOBS} at a time`);
 const browser = await launch({ args: ['--no-sandbox'] });
 const resize = await (await browser.newContext()).newPage();
 const done = new Map(STORES.map(s => [s.name, []]));
+const boxes = new Map(STORES.map(s => [s.name, {}]));
 const before = new Map(STORES.flatMap(s => rowsOf(path.join(s.thumbs, 'thumbs.csv')).map(r => [r.unit, r])));
 let n = 0;
 const worker = async () => {
@@ -239,6 +283,7 @@ const worker = async () => {
       const file = `${base}.${kind}.jpg`;
       await toJpeg(resize, png, size, focus, path.join(w.store.thumbs, file));
       row[kind] = file;
+      boxes.get(w.store.name)[w.unit] = { ...(boxes.get(w.store.name)[w.unit] || {}), [kind]: compBoxes(read, focus, size) };
       if (kind === 'desk' && focus) { row.focus = `${focus.at} @${focus.y}`; row.pattern = focus.pattern || ''; }
       // The day the shot was TAKEN, which a --reuse run must not move.
       if (kind === 'desk') row.shot_at = statSync(png).mtime.toISOString().slice(0, 10);
@@ -257,5 +302,11 @@ for (const store of STORES) {
   const keep = rowsOf(file).filter(r => !fresh.some(f => f.unit === r.unit));
   const rows = [...keep, ...fresh].sort((a, b) => a.unit.localeCompare(b.unit));
   writeFileSync(file, writeCsv(rows, MANIFEST_COLS));
+  // The component boxes, beside the manifest: this run's units replace their
+  // own entries and every other unit's are kept, as the manifest's rows are.
+  const cfile = path.join(store.thumbs, 'components.json');
+  const had = existsSync(cfile) ? JSON.parse(readFileSync(cfile, 'utf8')) : {};
+  const all = { ...had, ...boxes.get(store.name) };
+  writeFileSync(cfile, JSON.stringify(Object.fromEntries(Object.keys(all).sort().map(k => [k, all[k]]))) + '\n');
   console.log(`${store.name}: ${fresh.length} shot, ${rows.length} in ${path.relative(ESTATE, file)}`);
 }
