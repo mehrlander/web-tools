@@ -342,10 +342,11 @@
 
       <!-- the shared viewer, embedded: bindStore false so it doesn't track a
            Files view that isn't here, fill so it grows to this column, flush
-           for the full width on a phone. It carries its own header (name,
-           size, mode strip, links). -->
+           for the full width on a phone, textInfo for the FAB's Text tab in
+           place of the lines and size. It carries its own header (name, mode
+           strip, links). -->
       <div id="dv-viewer" class="flex flex-col flex-1 min-h-0"
-           x-data="viewer({ bindStore: false, fill: true, flush: true, modules: { changes: { base: window.DATA_VIEW_BASE } } })"></div>
+           x-data="viewer({ bindStore: false, fill: true, flush: true, textInfo: true, modules: { changes: { base: window.DATA_VIEW_BASE } } })"></div>
     </div>
   </template>
 </div>

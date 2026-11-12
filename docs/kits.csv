@@ -105,7 +105,7 @@ lib/kits/source-peek.js,SourcePeek,the hover card behind an exact-file GitHub ju
 lib/kits/src-doc.js,srcDoc,"A RENDERED VIEW OF A SOURCE FILE SAYS SO, AND SAYS WHICH FILE.",118,no,no,8,yes
 lib/kits/stage-handoff.js,StageHandoff,"one paste, two documents",116,no,no,4,no
 lib/kits/standoff.js,Standoff,"The standoff annotation: its invariants, the six edits it admits, and the one serialization both of its writers must agree on.",655,no,no,4,yes
-lib/kits/subject-channel.js,subjectChannel,telling the FAB sidebar what you are looking at.,140,no,no,8,yes
+lib/kits/subject-channel.js,subjectChannel,telling the FAB sidebar what you are looking at.,140,no,no,9,yes
 lib/kits/surface.js,Surface,"the surface envelope, in one place.",206,no,no,1,yes
 lib/kits/swipe-deck.js,swipeDeck,"the house swipe format: a snap-scrolling track of slides, and the fullscreen takeover that frames it.",1738,no,yes,40,yes
 lib/kits/sync-status.js,SyncStatus,"how a synchronization state looks, wherever the estate shows one.",31,no,no,4,yes
