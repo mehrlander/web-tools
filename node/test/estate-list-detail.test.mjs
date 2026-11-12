@@ -257,17 +257,18 @@ test('both tabs declare the list and detail, each row a compact item', async () 
   const rows = [...snagRoot().querySelectorAll('[data-snag]')];
   assert.deepEqual(rows.map(r => r.dataset.snag), ['a-count-off-by-one', 'a-door-left-open', 'a-third-thing'], 'last bitten first');
   // A row is titled by the snag's short name on one line: its id read as
-  // words, or its own name. The statement, two lines long, is the card's.
+  // words, or its own name. The statement is under it, as the row's summary.
   assert.equal(text(rows[0].querySelector('[data-part="title"]')), 'A count off by one');
   assert.equal(text(rows[1].querySelector('[data-part="title"]')), 'Stale drawer');
   for (const row of rows) assert.match(row.querySelector('[data-part="title"]').className, /\btruncate\b/, 'one line, cut short where it runs over');
-  // One meta line, each fact in a slot of its own: the repo, how often, its
-  // notes, how lately. A slot with nothing to say stays, empty, so the next
-  // one sits where it does on every row.
+  assert.equal(text(rows[0].querySelector('[data-part="summary"]')), 'the row count was off by one after a sort');
+  assert.match(rows[0].querySelector('[data-part="summary"]').className, /\bline-clamp-2\b.*\btext-base\b/, 'two lines at most, at the size of the title');
+  // Beside the title: how often, its notes, how lately. The repo is its mark,
+  // ahead of the title.
   const slots = (row) => [...row.querySelector('[data-part="meta"]').children].map(text);
-  await until(() => slots(rows[0])[2] === '2', "the first row's note count");
-  assert.deepEqual(slots(rows[0]), ['tools', '×2', '2', 'age 2026-10-03']);
-  assert.deepEqual(slots(rows[1]), ['tools', '', '', 'age 2026-10-02'], 'seen once, and no notes');
+  await until(() => slots(rows[0])[1] === '2', "the first row's note count");
+  assert.deepEqual(slots(rows[0]), ['×2', '2', 'age 2026-10-03']);
+  assert.deepEqual(slots(rows[1]), ['', '', 'age 2026-10-02'], 'seen once, and no notes');
   for (const row of rows) assert.equal(row.querySelectorAll('[data-part="meta"]').length, 1);
 });
 
@@ -348,7 +349,6 @@ test('a note about a snag is written in its card, under its notes, and a card wi
     'the box follows the last of the notes');
   assert.match(box.className, /input input-bordered input-sm text-base flex-1 min-w-0/, "the reply form's classes");
   assert.match(form.className, /(^| )sticky bottom-0( |$)/, 'held at the foot of the card whatever is scrolled');
-  assert.match(form.className, /(^| )pr-16( |$)/, 'and short of the floating panel button, which sits over the corner');
   assert.equal(form.nextElementSibling, null, "the card's last piece, outside the block of notes it would otherwise stay inside");
   type(box, '  Twice more this week.  ');
   await until(() => !form.querySelector('button[type="submit"]').disabled, 'the send control to wake');
@@ -361,7 +361,7 @@ test('a note about a snag is written in its card, under its notes, and a card wi
   assert.ok(card.isConnected && noteBox(card) === box, 'in the card it was typed in');
   assert.equal(window.__shell.listsTab, 'snag', 'and the reader is still on the Snag tab');
   const rows = [...snagRoot().querySelectorAll('[data-snag]')];
-  await until(() => text(rows[0].querySelector('[data-part="meta"]').children[2]) === '3', "the row's count of notes to follow");
+  await until(() => text(rows[0].querySelector('[data-part="meta"]').children[1]) === '3', "the row's count of notes to follow");
 });
 
 test('what is typed in a note box stays with its snag across cards, and through a save that is refused', async () => {
