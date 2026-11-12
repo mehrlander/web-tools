@@ -284,6 +284,9 @@ test('a wholly new block has one reading, as a wholly removed one does', () => {
     'Keep this paragraph.\n\nA paragraph that is wholly new.\n\nAnd keep this one too.\n',
   ).then(() => {
     assert.deepEqual(stops(), [['added']], 'an added block offers one reading, named');
+    assert.ok(host.querySelector('.md-diff-stops').classList.contains('hidden'),
+      'the added stop stays hidden behind the New marker on initial swipe');
+    assert.equal(host.querySelector('[data-md-diff-new]').textContent, 'New');
     host.remove();
   });
 });
@@ -294,11 +297,15 @@ test('a wholly removed block still has its one reading', () => {
   return mdDiff.render(host,
     'Keep this paragraph.\n\nA paragraph that goes away.\n\nAnd keep this one too.\n',
     'Keep this paragraph.\n\nAnd keep this one too.\n',
-  ).then(() => {
+  ).then((h) => {
     const stops = [...host.querySelectorAll('.md-diff-change')]
       .map((b) => [...b.querySelectorAll('button')].map((x) => x.textContent.trim())
         .filter((t) => /^(old|inline|new|added|removed)$/.test(t)));
     assert.deepEqual(stops, [['removed']]);
+    h.setLayout('side');
+    h.setLayout('swipe');
+    assert.equal(host.querySelector('.md-diff-stops').classList.contains('hidden'), false,
+      'the removed label returns when switching back to swipe');
     host.remove();
   });
 });
@@ -319,6 +326,15 @@ test('with `group`, a stretch of new paragraphs is one container, and reverting 
     assert.equal(box.querySelectorAll('ins').length, 0, 'wholly new text carries no marks');
     assert.ok(box.querySelector('[data-md-diff-new]'), 'its container says New instead');
     assert.ok(box.classList.contains('ring-2'));
+    h.setLayout('side');
+    h.setLayout('swipe');
+    assert.ok(box.querySelector('.md-diff-stops').classList.contains('hidden'),
+      'switching back to swipe keeps the grouped added stop hidden');
+    assert.ok(box.querySelector('[data-md-diff-new]:not(.hidden)'),
+      'the grouped New marker remains visible');
+    const changed = host.querySelectorAll('.md-diff-change')[1];
+    assert.equal(changed.querySelector('.md-diff-stops').classList.contains('hidden'), false,
+      'a changed block restores its stops when switching back to swipe');
     return mdDiff.render(host, base, next);
   }).then(() => {
     assert.equal(host.querySelectorAll('.md-diff-change').length, 4, 'without it, one container per block');
