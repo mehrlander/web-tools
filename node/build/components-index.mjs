@@ -20,14 +20,24 @@
 //   lines      file length
 //   routes     how many rows of docs/app-routes.csv name the file among their
 //              files: above zero, the component draws an app view
+//   views      the keys of those rows, `;`-joined: ?view=<key> opens each
 //   loads      how many other files under lib/, pages/ and app/ name its load
 //              path (alpineComponents/<name>.js)
 //   mounts     how many other files there mount it: a line that carries
 //              x-data and one of its names. A component that draws its own
 //              root is loaded and never mounted by name, so the two differ
+//   mounted_by those files, `;`-joined
+//   pages      the UI units (data/ui-units/units.csv) that show it, `;`-joined:
+//              a unit whose files name the component, or name a page that
+//              mounts it. A mount inside another component is NOT carried
+//              through to that component's units: the viewer mounted in one
+//              tab's deck is not on every page that component draws
 //   patterns   how many times the file writes data-pattern, the attribute a
 //              page's markup declares its body's arrangement with
 //              (data/ui-units/codebook.md, "Declaring a pattern in markup")
+//   kits       the kits it names by load path (kits/<name>.js), `;`-joined
+//   events     the events it sends: every name handed to $dispatch or to
+//              new CustomEvent, `;`-joined
 //   tested     its basename appears in a file under node/test/
 //
 // Run `npm run components-index` to restamp; `--check` compares instead of
@@ -42,7 +52,7 @@ import { headlineOf } from './kits-index.mjs';
 import { repoRoot } from '../repo-root.mjs';
 
 // Fixed here so a restamp cannot reorder the file.
-export const COMPONENTS_COLS = ['path', 'names', 'gloss', 'lines', 'routes', 'loads', 'mounts', 'patterns', 'tested'];
+export const COMPONENTS_COLS = ['path', 'names', 'gloss', 'lines', 'routes', 'views', 'loads', 'mounts', 'mounted_by', 'pages', 'patterns', 'kits', 'events', 'tested'];
 
 const GLOSS_MAX = 160;
 const read = (root, rel) => readFileSync(path.join(root, rel), 'utf8');
@@ -91,6 +101,9 @@ export function deriveComponents(root) {
     (f.startsWith('lib/') || f.startsWith('pages/') || f.startsWith('app/')) && /\.(html|js|mjs)$/.test(f));
   const sources = new Map(readers.map(f => [f, read(root, f)]));
   const routes = parseCsv(read(root, 'docs/app-routes.csv'));
+  const list = (cell) => String(cell || '').split(';').map(x => x.trim()).filter(Boolean);
+  const units = files.includes('data/ui-units/units.csv') ? parseCsv(read(root, 'data/ui-units/units.csv')) : [];
+  const uniq = (src, re) => [...new Set([...src.matchAll(re)].map(m => m[1]))].sort();
 
   return comps.map(rel => {
     const src = sources.get(rel) ?? read(root, rel);
@@ -104,21 +117,30 @@ export function deriveComponents(root) {
       ? new RegExp('x-data[^\\n]*\\b(?:' + names.map(n => n.replace(/[$]/g, '\\$&')).join('|') + ')\\b')
       : null;
     const load = 'alpineComponents/' + base;
-    let mounts = 0, loads = 0;
+    let loads = 0;
+    const mounters = [];
     for (const [f, text] of sources) {
       if (f === rel) continue;
       if (text.includes(load)) loads++;
-      if (mount && mount.test(text)) mounts++;
+      if (mount && mount.test(text)) mounters.push(f);
     }
+    const mounts = mounters.length;
+    const named = routes.filter(r => list(r.files).includes(rel));
+    const shows = new Set([rel, ...mounters.filter(f => f.endsWith('.html'))]);
     return {
       path: rel,
       names: names.join(';'),
       gloss: glossOf(src, base),
       lines: src.split('\n').length,
-      routes: routes.filter(r => String(r.files || '').split(';').map(s => s.trim()).includes(rel)).length,
+      routes: named.length,
+      views: named.map(r => r.key).join(';'),
       loads,
       mounts,
+      mounted_by: mounters.sort().join(';'),
+      pages: units.filter(u => list(u.files).some(f => shows.has(f))).map(u => u.unit).join(';'),
       patterns: (src.match(/\bdata-pattern=/g) || []).length,
+      kits: uniq(src, /['"`]kits\/([\w-]+)\.js/g).join(';'),
+      events: uniq(src, /(?:\$dispatch|new CustomEvent)\(\s*['"`]([\w:.-]+)['"`]/g).join(';'),
       tested: tests.includes(base) ? 'yes' : 'no',
     };
   });

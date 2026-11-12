@@ -7,7 +7,7 @@ order,leg,gloss,watches,runs,stages,mode,in_repair
 6,tests-registry,node/test/ -> the test registry's derived fields,node/test;package.json;node/build/tests-index.mjs,npm run tests-index,docs/tests.csv;docs/tests-authored.csv,regenerates,yes
 7,harness-census,"node/, python/, .claude/, .github/workflows/ or any .md -> the harness census's derived fields",node;python;.claude;skills/hooks;.githooks;.github/workflows;package.json;node/build/tools-index.mjs;docs/harness.csv;*.md,npm run tools-index,docs/harness.csv;docs/hook-legs.csv,regenerates,yes
 8,kits-registry,lib/kits/ -> the kits registry,lib;pages;app;node/test;node/build/kits-index.mjs;docs/kits.csv,npm run kits-index,docs/kits.csv,regenerates,yes
-9,components-registry,lib/alpineComponents/ -> the components registry,lib;pages;app;node/test;docs/app-routes.csv;node/build/components-index.mjs;docs/components.csv,npm run components-index,docs/components.csv,regenerates,yes
+9,components-registry,lib/alpineComponents/ -> the components registry,lib;pages;app;node/test;docs/app-routes.csv;data/ui-units/units.csv;node/build/components-index.mjs;docs/components.csv,npm run components-index,docs/components.csv,regenerates,yes
 10,renders-in,lib/ or pages/ -> the registries' renders_in field,lib;pages;docs/registries.csv;node/build/registries-reach.mjs,npm run registries-reach,docs/registries.csv,regenerates,yes
 11,docs-reach,skills/pages/lib -> the registry's derived fields,skills;lib;pages;docs;node/build/docs-reach.mjs,npm run docs-reach,docs/docs.csv,regenerates,yes
 12,plugin-copies,the traveling docs -> the plugin's copies,docs/CONVERSATION.md;docs/QUALIFIED-WRITING.md;node/build/vendor-docs.mjs,npm run vendor-docs,skills/default/CONVERSATION.md;skills/default/QUALIFIED-WRITING.md,regenerates,yes
