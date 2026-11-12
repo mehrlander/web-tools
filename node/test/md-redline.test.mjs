@@ -178,6 +178,23 @@ test('a bar and a band rest at half strength, and at full strength for the curre
   assert.match(host.querySelector('ins').className, /bg-success\/20/);
 });
 
+test('set marks the current change without scrolling, and -1 clears it', async () => {
+  const { handle } = await draw('One.\n\nTwo.\n\nThree.\n', 'One edited.\n\nTwo.\n\nThree edited.\n');
+  let scrolled = 0;
+  for (const m of handle.marks) m.scrollIntoView = () => { scrolled++; };
+  handle.set(1);
+  assert.equal(handle.at, 1);
+  assert.ok(handle.marks[1].hasAttribute('data-md-redline-here'));
+  assert.equal(scrolled, 0);
+  handle.set(-1);
+  assert.equal(handle.at, -1);
+  assert.equal(handle.marks.filter((m) => m.hasAttribute('data-md-redline-here')).length, 0);
+  handle.set(99);
+  assert.equal(handle.at, -1, 'an index past the marks is none');
+  handle.goto(0);
+  assert.equal(scrolled, 1, 'goto scrolls');
+});
+
 test('a reference link resolves in every block, changed or not', async () => {
   const refs = '\n\n[guide]: https://example.com/guide\n';
   const { host } = await draw('Read the [guide] first.\n\nThen the old part.' + refs,

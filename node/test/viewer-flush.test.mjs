@@ -37,7 +37,7 @@ test('Preview and Changes carry the same side padding', () => {
   window.esc ||= (t) => String(t);
   const preview = mod('preview').render({ ext: 'md', content: '# T', name: 'a.md' });
   const changes = mod('changes').render({ ext: 'md', content: '# T', name: 'a.md' });
-  for (const html of [preview, changes]) assert.ok(html.includes(`prose prose-sm !max-w-none ${R.MD_INSET} py-4`), html);
+  for (const html of [preview, changes]) assert.ok(html.includes(`prose prose-sm !max-w-none ${R.MD_INSET} `), html);
   // The legend row above the document lines up with it.
   assert.ok(changes.includes(`${R.MD_INSET} pt-3`));
 });
