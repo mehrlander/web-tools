@@ -67,9 +67,9 @@ function component(files) {
   c.sel = FIRST;
   return { c, reads };
 }
-const card = (c, id) => {
+const card = (c, id, width = 600) => {
   const box = window.document.createElement('div');
-  Object.defineProperty(box, 'clientWidth', { value: 600 });
+  Object.defineProperty(box, 'clientWidth', { value: width });
   window.document.body.append(box);
   const host = c.chartEl(id, false);
   box.append(host);
@@ -92,9 +92,13 @@ test('the extract is read once a card is current, once per session, and drawn wi
   const svg = host.querySelector('svg');
   assert.ok(svg, 'drawn once the extract arrived');
   assert.match(host.querySelector('[data-picked]').getAttribute('data-name'), new RegExp(SECOND));
-  assert.match(host.querySelector('[data-usage-link]').getAttribute('href'), /session\.html#id=0ddba11a&pane=cost$/);
+  assert.equal(host.querySelector('[data-usage-link]'), null, 'the cost panel is on the card, so no link leads to it');
   assert.equal(svg.getAttribute('width'), '600');
-  assert.match(host.innerHTML, /Cost of each prompt/, 'a card 560px or wider adds the shorter cost panel');
+  assert.match(host.innerHTML, /Cost of each prompt/);
+  assert.equal(svg.getAttribute('height'), '178', 'two short panels: 48 of context and 40 of cost');
+  const phone = card(c, SECOND, 328);
+  await drawn(phone);
+  assert.match(phone.innerHTML, /Cost of each prompt/, 'a phone-width card draws the cost panel too');
 });
 
 test('a session without an extract draws nothing and says nothing', async () => {
