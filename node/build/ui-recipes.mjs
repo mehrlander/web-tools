@@ -208,13 +208,19 @@ export const focusJs = (spec, stage = {}, coded = '') => `(async () => {
         await settle();
         b = box();
       }
-      const x = Math.max(0, b.left);
+      // EDGE: room at each side for the outlines, which are drawn up to three
+      // pixels outside the slot they mark (ui-shots.mjs, slotJs). A crop at
+      // the slots' own edges cut every outline that reached one, which on a
+      // phone is nearly all of them; the room comes out of the page's own
+      // side padding and stops at the window.
+      const EDGE = 6;
+      const x = Math.max(0, b.left - EDGE);
       // 12px of headroom for the label on the topmost slot, never reaching
       // above the unit's own region (the app's header sits over <main>).
       const room = document.querySelector(STAGE.region || (STAGE.outside ? 'body' : (STAGE.sel || 'body')));
       const floor = room && room !== document.body ? room.getBoundingClientRect().top : 0;
       return JSON.stringify({ at: 'slots', x: Math.round(x), y: Math.max(0, Math.round(Math.max(floor, b.top - 12))),
-                              w: Math.round(Math.min(b.right, innerWidth) - x), vw: innerWidth,
+                              w: Math.round(Math.min(b.right + EDGE, innerWidth) - x), vw: innerWidth,
                               pattern: body ? body.getAttribute('data-pattern') : '' });
     }
     const m = /^(top|below):(.+)$/.exec(alt.trim());
