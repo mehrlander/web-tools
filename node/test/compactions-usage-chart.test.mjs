@@ -52,6 +52,20 @@ test('a link at the panel head, drawn in the text colours, never a series hue', 
   assert.doesNotMatch(s, /<text[^>]*fill="#/);
 });
 
+test('combined: one short panel, the bars behind the line, dollars on a right axis, the cost on the legend', () => {
+  const s = C.svg(u, 328, { ph: 48, combined: true, pick: 1 });
+  assert.match(s, /height="88"/, '22 of legend, 48 of panel, 18 for the prompt numbers');
+  assert.doesNotMatch(s, />Context after each prompt<|>Cost of each prompt</);
+  assert.equal((s.match(/data-k="\d+"/g) || []).length, u.prompts.length, 'one hit area per prompt, not two');
+  assert.ok((s.match(/data-usage-bar/g) || []).length > 0, 'the cost bars are drawn');
+  assert.equal((s.match(/data-usage-right/g) || []).length, 3, 'three dollar labels on the right, level with the three on the left');
+  assert.match(s, /data-usage-legend="line"[^>]*>context</);
+  assert.match(s, /data-usage-legend="bar"[^>]*>cost \$[\d.,]+</, "the legend carries the session's cost");
+  assert.equal((s.match(/data-usage-pick/g) || []).length, 1, 'the picked compaction is still picked out');
+  const narrow = C.svg(u, 120, { ph: 48, combined: true });
+  assert.match(narrow, /data-usage-legend="bar"[^>]*>cost</, 'a row too narrow for the figures keeps the names');
+});
+
 test('the record name and the extract path come from a summary id', () => {
   const X = window.Compactions;
   assert.equal(X.recordName(FIRST), '2026-11-04-0ddba11a');
@@ -94,11 +108,11 @@ test('the extract is read once a card is current, once per session, and drawn wi
   assert.match(host.querySelector('[data-picked]').getAttribute('data-name'), new RegExp(SECOND));
   assert.equal(host.querySelector('[data-usage-link]'), null, 'the cost panel is on the card, so no link leads to it');
   assert.equal(svg.getAttribute('width'), '600');
-  assert.match(host.innerHTML, /Cost of each prompt/);
-  assert.equal(svg.getAttribute('height'), '178', 'two short panels: 48 of context and 40 of cost');
+  assert.equal(svg.getAttribute('height'), '88', 'one short panel for context and cost together');
+  assert.ok(host.querySelector('[data-usage-bar]'), 'the cost bars are in it');
   const phone = card(c, SECOND, 328);
   await drawn(phone);
-  assert.match(phone.innerHTML, /Cost of each prompt/, 'a phone-width card draws the cost panel too');
+  assert.ok(phone.querySelector('[data-usage-bar]'), 'at phone width too');
 });
 
 test('a session without an extract draws nothing and says nothing', async () => {

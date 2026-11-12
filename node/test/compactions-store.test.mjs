@@ -115,22 +115,14 @@ test('the list has one row per session, the latest compaction first, and a sessi
   assert.doesNotMatch(c.rowHtml(c.groups[1]), /×/);
 });
 
-test("a session's card opens on its charts, or on its latest summary where it has no usage extract", async () => {
+test("a session's card shows its latest summary until another is opened there", async () => {
   const c = await listed();
-  const USAGE = window.Compactions.USAGE;
-  USAGE.delete(B);
-  assert.equal(c.curOf(B), B, 'the charts, named by the record name, until the extract is known to be missing');
-  USAGE.set(B, null);
-  assert.equal(c.curOf(B), B + '-20261107T130000Z', 'no extract: the latest summary');
+  assert.equal(c.curOf(B), B + '-20261107T130000Z');
   c.cur[B] = B + '-20261104T010000Z';
-  assert.equal(c.curOf(B), B + '-20261104T010000Z', 'a summary opened there stays');
+  assert.equal(c.curOf(B), B + '-20261104T010000Z');
   c.cur[B] = 'gone';
-  assert.equal(c.curOf(B), B + '-20261107T130000Z', 'a summary no longer listed falls back');
-  USAGE.set(B, { prompts: [{}], compactions: [], totals: {} });
-  c.cur[B] = B;
-  assert.equal(c.curOf(B), B, 'with an extract the charts can be opened again');
+  assert.equal(c.curOf(B), B + '-20261107T130000Z', 'a summary no longer listed falls back to the latest');
   assert.equal(c.curOf('2026-01-01-00000000'), '');
-  USAGE.delete(B);
 });
 
 test('a context size is written in thousands', () => {
@@ -138,49 +130,67 @@ test('a context size is written in thousands', () => {
   assert.deepEqual([785231, 105235, 999, 1000, 1250000, null].map(k), ['785k', '105k', '999', '1k', '1.25M', '?']);
 });
 
-test('a card leads with one line of tabs: the charts, then a summary per compaction, with the open tab\'s facts', async () => {
-  // No usage extract can be read here, so the charts tab is disabled and the card lands on its latest summary.
+test('a card: the chart\'s room, then one line with a tab per compaction and the open summary\'s facts, then the summary', async () => {
   const c = await listed(async (p) => {
     if (p.startsWith('sessions/usage/')) throw new Error('404');
     return { text: JSON.stringify({ ...FILE, context_before: 785231, context_after: 105235 }) };
   });
+  await c.listUsage();
+  window.Compactions.USAGE.delete(B);
   c.sel = c.curOf(B);
-  assert.equal(c.sel, B, 'a card starts on its charts');
   const el = window.document.createElement('div');
   window.document.body.append(el);
   c.fill(B, el, false);
+  const box = el.firstElementChild;
+  assert.deepEqual([...box.children].map((x) => Object.keys(x.dataset)[0] || x.className), ['cmpChart', '@container', 'cmpRest'],
+    'the chart is first, the line of tabs under it');
   for (let i = 0; i < 10; i++) await new Promise((r) => setTimeout(r, 5));
-  assert.equal(c.sel, B + '-20261107T130000Z', 'with no extract, the open thing becomes the latest summary');
   const top = el.querySelector('[data-cmp-top]');
   const tabs = [...top.querySelectorAll('[role="tab"]')];
-  assert.deepEqual(tabs.map((t) => t.textContent), ['', '1', '2', '3'], 'the charts tab is an icon, the summaries are numbered');
-  assert.equal(tabs[0].disabled, true, 'a session with no extract has its charts tab disabled, in place');
+  assert.deepEqual(tabs.map((t) => t.textContent), ['1', '2', '3']);
   assert.equal(top.querySelector('.tab-active').textContent, '3', 'the latest is open');
   assert.match(top.textContent, /785k → 105k/);
   assert.doesNotMatch(top.textContent, /token|character|\bof\b/);
   assert.equal(top.querySelector('[data-session-link]').getAttribute('aria-label'), 'Open the session');
   assert.ok(el.querySelector('[data-sec="1"]'), 'the summary is drawn under the line');
   assert.doesNotMatch(el.textContent, /Make the page/, "the session's opening ask is not drawn on the card");
-  assert.ok(el.querySelector('[data-usage-chart]').classList.contains('hidden'), 'a summary is shown without the charts');
 
-  tabs[1].dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  tabs[0].dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true }));
   assert.equal(c.sel, B + '-20261104T010000Z', 'a tab opens its summary');
   assert.equal(el.querySelector('[data-cmp-top] .tab-active').textContent, '1');
+  assert.equal(el.querySelector('[data-usage-chart]').getAttribute('data-usage-chart'), B + '-20261104T010000Z',
+    "the chart stays and is told which summary's drop to pick out");
+
+  const one = window.document.createElement('div');
+  window.document.body.append(one);
+  c.fill(C1, one, false);
+  assert.equal(one.querySelector('[role="tablist"]'), null, 'a session compacted once has no tabs');
 });
 
-test('the charts tab: the session\'s cost in place of a summary\'s facts, and no summary under it', async () => {
+test('the usage listing says which cards keep room for a chart, before any file is read', async () => {
   const c = await listed(async () => { throw new Error('404'); });
-  window.Compactions.USAGE.set(C1, { prompts: [{}], compactions: [], totals: { modelled: 412.4, reloads: 6, reload: 48.2 } });
-  c.sel = c.curOf(C1);
-  const el = window.document.createElement('div');
-  window.document.body.append(el);
-  c.fill(C1, el, false);
-  const top = el.querySelector('[data-cmp-top]');
-  assert.deepEqual([...top.querySelectorAll('[role="tab"]')].map((t) => t.textContent), ['', '1'], 'a session compacted once still has both tabs');
-  assert.equal(top.querySelector('.tab-active').textContent, '', 'the charts tab is open');
-  assert.match(top.textContent, /\$412/);
-  assert.match(top.textContent, /\$48\.20 idle/);
-  assert.equal(el.querySelector('[data-sec]'), null);
-  assert.equal(el.querySelector('[data-usage-chart]').classList.contains('hidden'), false);
-  window.Compactions.USAGE.delete(C1);
+  const USAGE = window.Compactions.USAGE;
+  USAGE.delete(B); USAGE.delete(C1);
+  const usage = {
+    'sessions/usage': [{ type: 'dir', name: '2026', path: 'sessions/usage/2026' }],
+    'sessions/usage/2026': [{ type: 'dir', name: '11', path: 'sessions/usage/2026/11' }],
+    'sessions/usage/2026/11': [{ type: 'file', name: B + '.json', path: 'sessions/usage/2026/11/' + B + '.json' }],
+  };
+  const ls = c.gh.ls;
+  c.gh.ls = async (p) => usage[p] || ls(p);
+  await c.listUsage();
+  assert.equal(c.hasUsage(B), true);
+  assert.equal(c.hasUsage(C1), false);
+  const room = (gid) => {
+    const el = window.document.createElement('div');
+    window.document.body.append(el);
+    c.fill(gid, el, false);
+    return el.querySelector('[data-cmp-chart]');
+  };
+  assert.equal(room(B).classList.contains('hidden'), false, 'a session with an extract keeps the chart\'s room');
+  assert.match(room(B).className, /min-h-\[88px\]/);
+  assert.equal(room(C1).classList.contains('hidden'), true, 'a session without one keeps none');
+  c.gh.ls = async () => { throw new Error('offline'); };
+  await c.listUsage();
+  assert.equal(c.hasUsage(C1), undefined, 'a failed listing leaves it unknown');
 });
