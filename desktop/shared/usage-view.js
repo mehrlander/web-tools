@@ -197,6 +197,9 @@
     }
     return {days,cell,today,home:shift(today,-3),timezone:zone,x,time};
   }
+  function resetMarker() {
+    return '<svg class="history-reset-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 11a9 9 0 1 0-2.6 7.4M21 4v7h-7"/></svg>';
+  }
   const workspaceStyle = document.createElement('style');
   workspaceStyle.textContent = `
     .usage-workspace{display:flex;flex-direction:column;gap:6px;min-width:0;padding-bottom:8px}
@@ -248,20 +251,22 @@
     .daily-partial-key{background:repeating-linear-gradient(135deg,transparent,transparent 2px,#a5a096 2px,#a5a096 3px),#dad5cb}
     .daily-missing-key{background:repeating-linear-gradient(135deg,transparent,transparent 2px,#bcb6ab 2px,#bcb6ab 3px)}
 
-    .usage-calendar{--calendar-row:76px;--daily-height:36px}
+    .usage-calendar{--calendar-row:84px;--daily-height:36px}
     .usage-workspace-timeline .usage-calendar .history-grid{--identity-width:78px}
     .usage-calendar .history-fixed-row{height:var(--calendar-row);min-height:var(--calendar-row)}
     .usage-calendar .timeline-provider{padding:0;min-height:32px}
     .usage-calendar .history-rail-lane{height:var(--calendar-row)}
     .usage-calendar .history-day-grid{position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(to right,#e7e3dc66 0 1px,transparent 1px var(--rail-cell))}
-    .usage-workspace-timeline .usage-calendar .history-baseline{top:24px}
-    .usage-workspace-timeline .usage-calendar .history-usage-marker{top:0;width:44px;height:35px}
-    .usage-workspace-timeline .usage-calendar .history-usage-point{top:18px;width:13px;height:13px;border-width:1.5px}
-    .usage-workspace-timeline .usage-calendar .projected .history-usage-point{border-width:2px}
-    .usage-workspace-timeline .usage-calendar .history-usage-value{top:1px;font-size:12px}
-    .usage-workspace-timeline .usage-calendar .allowance-drop .history-usage-point{border-radius:2px;background:#f5f5f4;border:2px solid var(--color);transform:translateX(-50%) rotate(45deg)}
-    .usage-workspace-timeline .usage-calendar .allowance-drop .history-usage-value{font-size:11px}
-    .usage-calendar .calendar-daily-bars{position:absolute;top:36px;left:0;right:0;height:var(--daily-height)}
+    .usage-workspace-timeline .usage-calendar .history-baseline{top:30px}
+    .usage-workspace-timeline .usage-calendar .history-usage-marker{top:0;width:44px;height:44px}
+    .usage-workspace-timeline .usage-calendar .history-usage-point{top:18px;width:24px;height:24px;border:0;border-radius:0;background:none;color:var(--color)}
+    .history-reset-arrow{display:block;width:100%;height:100%}
+    .usage-workspace-timeline .usage-calendar .history-usage-value{top:0;font-size:14px;line-height:18px;font-weight:650;color:#46413b;padding-inline:2px}
+    .usage-workspace-timeline .usage-calendar .projected .history-usage-point{color:#8b8780;background:none;border:0}
+    .usage-workspace-timeline .usage-calendar .projected .history-usage-value{color:#736e68;font-weight:550}
+    .usage-workspace-timeline .usage-calendar .allowance-drop .history-usage-point{top:23px;width:14px;height:14px;border-radius:2px;background:#f5f5f4;border:2px solid var(--color);transform:translateX(-50%) rotate(45deg)}
+    .usage-workspace-timeline .usage-calendar .allowance-drop .history-usage-value{font-size:13px}
+    .usage-calendar .calendar-daily-bars{position:absolute;top:44px;left:0;right:0;height:var(--daily-height)}
     .usage-calendar .daily-bar{position:absolute;top:0;height:var(--daily-height);padding-inline:2px;gap:0;touch-action:pan-x pan-y pinch-zoom}
     .usage-calendar .daily-bar-track{height:100%;background:none;border-color:#d8d4cc}
     .usage-calendar .daily-bar.missing .daily-bar-track{background:repeating-linear-gradient(135deg,transparent,transparent 3px,#dcd7cd88 3px,#dcd7cd88 4px)}
@@ -273,6 +278,7 @@
     .usage-calendar .history-rail-tools{gap:6px;flex-wrap:nowrap}
     .usage-calendar .history-rail-tools h2{font-size:12px;white-space:nowrap}
     .usage-calendar .history-rail-legend{font-size:10px;gap:3px}
+    .usage-calendar .legend-recorded{width:13px;height:13px;border-radius:0;background:none;color:#79736a}
     .usage-calendar .legend-drop{width:7px;height:7px;border:1.5px solid #8c857c;transform:rotate(45deg);margin-left:3px}
     .usage-calendar .history-rail-month{font-size:10px}
     .usage-calendar .calendar-footer{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:29px;font-size:11px;color:#746f66}
@@ -287,5 +293,5 @@
   function workspace({overview='',timeline='',daily=''} = {}) {
     return `<div class="usage-workspace">${overview?`<section class="usage-workspace-overview" aria-label="Current account allowances">${overview}</section>`:''}${timeline?`<section class="usage-workspace-timeline" aria-label="Reset timeline">${timeline}</section>`:''}${daily?`<section class="usage-workspace-daily" aria-label="Daily allowance history">${daily}</section>`:''}</div>`;
   }
-  window.NowUsage = {render,compact,workspace,calendarAxis,calendarDay};
+  window.NowUsage = {render,compact,workspace,calendarAxis,calendarDay,resetMarker};
 })();
