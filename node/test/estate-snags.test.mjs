@@ -1,7 +1,7 @@
 // alpineComponents/estate.js — the Lists pane's Snag list (kits/lists.js,
 // lists/snag.json): load, last-bitten-first order, the add box filtering to a
-// likely repeat, a row's short name, a new snag's id and repo, Again with its
-// undo, an edit of the title and the entry, a delete with its undo, notes
+// likely repeat, a row's short name, a new snag's id and repo,
+// an edit of the title and the entry, a delete with its undo, notes
 // addressed to a snag under its new address and the docs/SNAGS.md one older
 // notes carry, what a snag's card reads, and the entry rendered without
 // letting markup through. Driven over a fake GH; no network, no pixels.
@@ -173,19 +173,6 @@ test('a refused save puts the typed snag back in the box', async () => {
   await data.addSnag();
   assert.equal(data.snagDraft, 'lost on a refused save');
   assert.equal(data.snagItems.length, 3, 'and the pane shows what the file holds');
-});
-
-test('Again adds today to a snag read fresh, and its undo takes back only that date', async () => {
-  await seed();
-  FILES['lists/snag.json'] = json({ items: [...SNAGS, { id: 'from-a-session', text: 'written elsewhere', repo: 'o/r', seen: ['2026-10-20'] }] });
-  await data.againSnag(data.snagItems.find(x => x.id === 'gate-skipped-the-new-folder'));
-  const it = saved().find(x => x.id === 'gate-skipped-the-new-folder');
-  assert.deepEqual(it.seen, ['2026-08-06', '2026-09-16', data.todayYmd()]);
-  assert.ok(saved().some(x => x.id === 'from-a-session'), 'a snag written since the pane loaded survives');
-  assert.match(SAVES.at(-1).message, /^Again: "a gate skipped the folder added that day" via Web Tools$/);
-  await data.takeUndo();
-  assert.deepEqual(saved().find(x => x.id === 'gate-skipped-the-new-folder').seen, ['2026-08-06', '2026-09-16']);
-  assert.ok(saved().some(x => x.id === 'from-a-session'));
 });
 
 test('an edit rewrites the title and the entry, a cleared entry is deleted, and no change writes nothing', async () => {

@@ -301,7 +301,7 @@ async function menuItem(root, label) {
   return root.querySelector(`[role="menu"] [aria-label="${label}"]`);
 }
 
-test('the head row names the snag, and its menu holds Edit, again and Delete', async () => {
+test('the head row names the snag, and its menu holds Edit and Delete', async () => {
   await open('snag', 'a-count-off-by-one');
   await until(() => more(head('snag')), 'the menu button');
   assert.equal(text(head('snag').querySelector('h2')), 'A count off by one', "the snag's short name");
@@ -310,17 +310,10 @@ test('the head row names the snag, and its menu holds Edit, again and Delete', a
   assert.equal(head('snag').querySelector('[aria-label="Notes about this item"]'), null, "the snag's notes are in its card");
 
   await menuItem(head('snag'), 'Edit');
-  assert.deepEqual([...head('snag').querySelectorAll('[role="menuitem"]')].map(b => text(b)), ['Edit', 'Happened again today', 'Delete']);
-
-  click(await menuItem(head('snag'), 'It happened again today'));
-  const today = data.todayYmd();
-  await until(() => JSON.parse(FILES['lists/snag.json']).items.find(x => x.id === 'a-count-off-by-one').seen.at(-1) === today, 'Again to be saved');
-  assert.deepEqual(JSON.parse(FILES['lists/snag.json']).items.find(x => x.id === 'a-count-off-by-one').seen, ['2026-10-01', '2026-10-03', today]);
-  await until(() => text(cardOf('snag', 'a-count-off-by-one').querySelector('[data-part="meta"]')).includes(today),
-    'the card to redraw from the written list, which keeps the dates');
-  await until(() => !head('snag').querySelector('[role="menu"]'), 'the menu to close on a choice');
-  await data.takeUndo();
-  await until(() => !text(cardOf('snag', 'a-count-off-by-one').querySelector('[data-part="meta"]')).includes(today), 'the undo to take the date back');
+  assert.deepEqual([...head('snag').querySelectorAll('[role="menuitem"]')].map(b => text(b)), ['Edit', 'Delete'],
+    'no control records a repeat: a follow-up on a snag is a note');
+  click(more(head('snag')));
+  await until(() => !head('snag').querySelector('[role="menu"]'), 'the menu to close on a second tap');
 });
 
 test('Edit from the menu puts the form in the card, and the menu button steps aside', async () => {
@@ -354,8 +347,9 @@ test('a note about a snag is written in its card, under its notes, and a card wi
   assert.ok(card.querySelectorAll('[aria-label="Reply"]')[1].compareDocumentPosition(box) & window.Node.DOCUMENT_POSITION_FOLLOWING,
     'the box follows the last of the notes');
   assert.match(box.className, /input input-bordered input-sm text-base flex-1 min-w-0/, "the reply form's classes");
-  assert.match(card.className, /(^| )pb-\[calc\(var\(--fab-bottom,1\.5rem\)\+4rem\)\]/,
-    "the card's end clears the floating panel button at every width: the send control is at the right, where the button floats");
+  assert.match(form.className, /(^| )sticky bottom-0( |$)/, 'held at the foot of the card whatever is scrolled');
+  assert.match(form.className, /(^| )pr-16( |$)/, 'and short of the floating panel button, which sits over the corner');
+  assert.equal(form.nextElementSibling, null, "the card's last piece, outside the block of notes it would otherwise stay inside");
   type(box, '  Twice more this week.  ');
   await until(() => !form.querySelector('button[type="submit"]').disabled, 'the send control to wake');
   form.dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
@@ -365,7 +359,6 @@ test('a note about a snag is written in its card, under its notes, and a card wi
   await until(() => /Twice more this week\. me /.test(text(card)), 'the note among the notes in the card');
   await until(() => box.value === '' && !('a-count-off-by-one' in data.snagNoteDrafts), 'the box to empty once the note is saved');
   assert.ok(card.isConnected && noteBox(card) === box, 'in the card it was typed in');
-  await until(() => SCROLLED.at(-1) === form, 'the box to be kept in view under the note that landed above it');
   assert.equal(window.__shell.listsTab, 'snag', 'and the reader is still on the Snag tab');
   const rows = [...snagRoot().querySelectorAll('[data-snag]')];
   await until(() => text(rows[0].querySelector('[data-part="meta"]').children[2]) === '3', "the row's count of notes to follow");
@@ -643,10 +636,6 @@ test('edit, Again, a note and Delete act from the takeover, and a form is drawn 
   assert.equal(text(under.querySelector('[data-part="title"]')), 'the row count was off by three after a sort', 'and under it');
   assert.equal(JSON.parse(FILES['lists/snag.json']).items.find(x => x.id === 'a-count-off-by-one').text, 'the row count was off by three after a sort');
 
-  click(await menuItem(overlay().querySelector('.sd-subheader'), 'It happened again today'));
-  const today = data.todayYmd();
-  await until(() => JSON.parse(FILES['lists/snag.json']).items.find(x => x.id === 'a-count-off-by-one').seen.at(-1) === today, 'Again to be saved');
-  await until(() => text(card.querySelector('[data-part="meta"]')).includes(today), 'the takeover card to redraw');
   assert.ok(overlay(), 'a write that removes no row leaves the takeover open');
 
   await until(() => noteBox(card), "the takeover card's note box");
