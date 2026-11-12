@@ -255,9 +255,12 @@
     .usage-calendar .history-rail-lane{height:var(--calendar-row)}
     .usage-calendar .history-day-grid{position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(to right,#e7e3dc66 0 1px,transparent 1px var(--rail-cell))}
     .usage-workspace-timeline .usage-calendar .history-baseline{top:24px}
-    .usage-workspace-timeline .usage-calendar .history-usage-marker{top:0;height:33px}
-    .usage-workspace-timeline .usage-calendar .history-usage-point{top:20px}
-    .usage-workspace-timeline .usage-calendar .history-usage-value{top:2px;font-size:11px}
+    .usage-workspace-timeline .usage-calendar .history-usage-marker{top:0;width:44px;height:35px}
+    .usage-workspace-timeline .usage-calendar .history-usage-point{top:18px;width:13px;height:13px;border-width:1.5px}
+    .usage-workspace-timeline .usage-calendar .projected .history-usage-point{border-width:2px}
+    .usage-workspace-timeline .usage-calendar .history-usage-value{top:1px;font-size:12px}
+    .usage-workspace-timeline .usage-calendar .allowance-drop .history-usage-point{border-radius:2px;background:#f5f5f4;border:2px solid var(--color);transform:translateX(-50%) rotate(45deg)}
+    .usage-workspace-timeline .usage-calendar .allowance-drop .history-usage-value{font-size:11px}
     .usage-calendar .calendar-daily-bars{position:absolute;top:36px;left:0;right:0;height:var(--daily-height)}
     .usage-calendar .daily-bar{position:absolute;top:0;height:var(--daily-height);padding-inline:2px;gap:0;touch-action:pan-x pan-y pinch-zoom}
     .usage-calendar .daily-bar-track{height:100%;background:none;border-color:#d8d4cc}
@@ -270,6 +273,7 @@
     .usage-calendar .history-rail-tools{gap:6px;flex-wrap:nowrap}
     .usage-calendar .history-rail-tools h2{font-size:12px;white-space:nowrap}
     .usage-calendar .history-rail-legend{font-size:10px;gap:3px}
+    .usage-calendar .legend-drop{width:7px;height:7px;border:1.5px solid #8c857c;transform:rotate(45deg);margin-left:3px}
     .usage-calendar .history-rail-month{font-size:10px}
     .usage-calendar .calendar-footer{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:29px;font-size:11px;color:#746f66}
     .usage-calendar .calendar-footer button{display:flex;align-items:center;gap:4px;padding:0;min-height:28px;text-align:left}

@@ -48,6 +48,8 @@ jobs:
       - name: Check account allowance normalization and display
         run: |
           python desktop/Checks/usage-checks.py
+          python desktop/Checks/usage-events-checks.py
+          python desktop/Checks/daily-allowance-checks.py
           node desktop/Checks/usage-ui-checks.mjs
       - name: Check companion access and API
         run: node desktop/Checks/companion-checks.mjs
