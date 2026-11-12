@@ -148,8 +148,9 @@ const shotJs = (w) => {
   // card is about, over a shot every component shares.
   const comps = [...document.querySelectorAll('[x-data]')].map((e) => {
     // No backslash classes: this text passes through a template literal and a
-    // command line on its way to the page, and \w arrived as a bare w.
+    // command line on its way to the page, and \\w arrived as a bare w.
     const m = /^ *([A-Za-z_$][A-Za-z0-9_$]*)/.exec(e.getAttribute('x-data') || '');
+    if (!m) return null;
     const r = e.getBoundingClientRect();
     // A root whose content runs past its own box without being clipped (the
     // Map's root is as tall as its pane and its tab runs on below) is
@@ -157,7 +158,26 @@ const shotJs = (w) => {
     const cs = getComputedStyle(e);
     const w = cs.overflowX === 'visible' ? Math.max(r.width, e.scrollWidth) : r.width;
     const h = cs.overflowY === 'visible' ? Math.max(r.height, e.scrollHeight) : r.height;
-    return m && w > 1 && h > 1 ? { n: m[1], x: r.left, y: r.top, w, h } : null;
+    if (w > 1 && h > 1) return { n: m[1], x: r.left, y: r.top, w, h };
+    // A ROOT WITH NO BOX OF ITS OWN still draws: the FAB's root is a strip
+    // 0 px tall under the window and its launcher is a fixed child; a repo
+    // picker's is 0 by 0 around a dropdown. Such a component is measured by
+    // the union of what it draws, less what a component nested in it draws.
+    // A layer that takes no pointer is not a drawing: the FAB lays one over
+    // the whole window to position its parts in, and with it counted the
+    // FAB measured as the whole shot.
+    // One that draws nothing (a closed menu, a reader with no file) is
+    // recorded as mounted and hidden, which is not the same as absent.
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const d of e.querySelectorAll('*')) {
+      if (d.closest('[x-data]') !== e) continue;
+      const q = d.getBoundingClientRect();
+      if (q.width < 2 || q.height < 2) continue;
+      const ds = getComputedStyle(d);
+      if (ds.visibility === 'hidden' || +ds.opacity === 0 || ds.pointerEvents === 'none') continue;
+      x0 = Math.min(x0, q.left); y0 = Math.min(y0, q.top); x1 = Math.max(x1, q.right); y1 = Math.max(y1, q.bottom);
+    }
+    return x1 > x0 && y1 > y0 ? { n: m[1], x: x0, y: y0, w: x1 - x0, h: y1 - y0 } : { n: m[1], hidden: true };
   }).filter(Boolean);
   return JSON.stringify({ ...(f === 'null' ? {} : JSON.parse(f)), limited, comps, marks, vw: innerWidth, vh: innerHeight }); })()`;
 };
@@ -192,18 +212,27 @@ async function toJpeg(page, png, size, focus, out) {
 // focus box's left, top and width, and the window's height or the ratio's.
 function overlays(read, focus, size) {
   const vw = read?.vw, vh = read?.vh;
-  if (!vw || !vh) return { marks: [], comps: [] };
+  if (!vw || !vh) return { marks: [], comps: [], unseen: [] };
   const fx = focus ? focus.x : 0, fy = focus ? focus.y : 0;
   const fw = focus ? Math.min(focus.w, vw - fx) : vw;
   const fh = Math.min(vh - fy, size.ratio ? fw * size.ratio : Infinity);
   const r4 = (v) => Math.round(v * 1e4) / 1e4;
-  const fit = (list) => (Array.isArray(list) ? list : []).flatMap((c) => {
+  // Why a mounted component has no box in the shot: `outside`, it draws
+  // outside the region the shot keeps (the app's header and sidebar, around
+  // a shot cropped to its view's pane), or `hidden`, it draws nothing. A
+  // component that is in neither list was not on the page when the shot was
+  // taken: it opens on a tap, or the page needs an address to mount it.
+  const lost = new Map();
+  const fit = (list, note) => (Array.isArray(list) ? list : []).flatMap((c) => {
+    if (c.hidden) { if (note && !lost.has(c.n)) lost.set(c.n, 'hidden'); return []; }
     const x0 = Math.max(c.x, fx), y0 = Math.max(c.y, fy), x1 = Math.min(c.x + c.w, fx + fw), y1 = Math.min(c.y + c.h, fy + fh);
-    if (x1 - x0 < 2 || y1 - y0 < 2) return [];
+    if (x1 - x0 < 2 || y1 - y0 < 2) { if (note) lost.set(c.n, 'outside'); return []; }
     const { x, y, w, h, ...rest } = c;
     return [{ ...rest, box: [r4((x0 - fx) / fw), r4((y0 - fy) / fh), r4((x1 - x0) / fw), r4((y1 - y0) / fh)] }];
   });
-  return { marks: fit(read.marks), comps: fit(read.comps) };
+  const comps = fit(read.comps, true);
+  const unseen = [...lost].filter(([n]) => !comps.some(c => c.n === n)).map(([n, why]) => ({ n, why }));
+  return { marks: fit(read.marks), comps, unseen };
 }
 
 needHomeModules();

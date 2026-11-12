@@ -127,7 +127,8 @@ export function codedUnits(only = '') {
     const over = Object.fromEntries(rowsOf(path.join(store.tables, 'shots.csv')).map(r => [r.unit, r]));
     for (const c of rowsOf(path.join(store.tables, 'coded.csv'))) {
       const u = units[c.unit];
-      if (!u || u.reachable !== 'yes' || (only && !c.unit.includes(only))) continue;
+      // `only` is one fragment of a unit's id, or several split by commas.
+      if (!u || u.reachable !== 'yes' || (only && !only.split(',').some(o => o && c.unit.includes(o)))) continue;
       const r = derive(u);
       const o = over[c.unit] || {};
       if (o.query) r.query = o.query;
