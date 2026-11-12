@@ -5,9 +5,10 @@
 //     --out node/.preview/md-redline.png --width 500 --height 880 --touch
 //
 // node/test/md-redline.test.mjs holds which blocks are marked and how. What it
-// cannot see is where anything sits, and two of the redline's claims are about
-// that: a marked list item's bar is placed by measurement and has to land in
-// the same margin as a marked paragraph's, and no mark may widen the page.
+// cannot see is where anything sits, and three of the redline's claims are
+// about that: every bar stands on the host's left edge, a marked list item's
+// included though it is placed by measurement; the bars follow the host's
+// padding when it changes; and no mark may widen the page.
 //
 // Drawn in the viewer's own column (`prose prose-sm`, the classes the Changes
 // mode gives its host) on the data view's page, so the typography measured is
@@ -100,7 +101,14 @@ export default async function (page) {
     await new Promise((r) => setTimeout(r, 300));
     const x = (e) => Math.round(e.getBoundingClientRect().left * 10) / 10;
     const bars = [...host.querySelectorAll('.md-redline-bar')];
+    const first = { barX: [...new Set(bars.map(x))], textX: x(host.querySelector('p')) };
+    // A phone under a flush host: 10px of padding, and the bars follow.
+    host.style.paddingLeft = host.style.paddingRight = '10px';
+    await new Promise((r) => setTimeout(r, 300));
     return {
+      wide24: first,
+      barW: [...new Set(bars.map((b) => Math.round(b.getBoundingClientRect().width)))],
+      rest: getComputedStyle(bars[0]).backgroundColor,
       counts: handle.counts, count: handle.count, at: handle.at,
       barX: [...new Set(bars.map(x))],
       liBars: host.querySelectorAll('li[data-md-redline] > .md-redline-bar').length,
@@ -117,9 +125,13 @@ export default async function (page) {
   const fail = (m) => { throw new Error('md-redline: ' + m + ' ' + JSON.stringify(out)); };
   if (!out.count) fail('nothing was marked');
   if (out.liBars < 2) fail('a changed list should mark its items one by one');
-  // One margin for every bar, whatever it sits beside.
-  if (out.barX.length !== 1) fail('the bars do not share one margin');
-  if (out.textX - out.barX[0] !== 14) fail('a bar sits 14px outside the text');
+  // Every bar on the host's left edge, whatever it sits beside, 6px wide.
+  for (const at of [out.wide24, out]) {
+    if (at.barX.length !== 1 || at.barX[0] !== 0) fail('a bar is off the host\'s left edge');
+  }
+  if (out.wide24.textX !== 24 || out.textX !== 10) fail('the text did not follow the host\'s padding');
+  if (out.barW.join() !== '6') fail('a bar is 6px wide');
+  if (!/\/ 0\.5\)$/.test(out.rest)) fail('a resting bar is at half strength');
   // top-0.5 and bottom-0.5: a bar is its item's height less 4px, whatever
   // margin the host's stylesheet gives an item's last child.
   if (out.barH.some((h) => h !== 4)) fail('a list item bar is not its item tall');

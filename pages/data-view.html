@@ -232,12 +232,12 @@
      layered beside the static px-4 would leave the winner to Tailwind's
      stylesheet order, and an inline style wins outright. The static classes
      stay, so nothing flashes unpadded before Alpine starts. -->
-<div x-data="app()" x-init="init()" class="h-full flex flex-col mx-auto px-2 py-2 gap-2 sm:px-4 sm:py-4 sm:gap-3 max-w-6xl"
+<div x-data="app()" x-init="init()" class="h-full flex flex-col mx-auto px-0 py-2 gap-2 sm:px-4 sm:py-4 sm:gap-3 max-w-6xl"
      :style="bleed ? 'padding:0; gap:0; max-width:none' : ''">
 
   <!-- error. GitHub answers 404 (not 401) for a private repo fetched with no
        token, so gh-auth's automatic prompt never fires here; offer it. -->
-  <div x-show="error" x-cloak class="alert alert-error text-sm shrink-0" role="alert">
+  <div x-show="error" x-cloak class="alert alert-error text-sm shrink-0 mx-[10px] sm:mx-0" role="alert">
     <i class="ph ph-warning-circle"></i>
     <div>
       <div x-text="error"></div>
@@ -263,7 +263,7 @@
            notes (the envelope's and the selected item's) collapse behind the
            info toggle: measured 2026-07-25, prose was 132px of the 280px of
            phone chrome while every control cost under 5%. -->
-      <header class="shrink-0" x-show="!bleed && (payload.title || payload.note || srcSpec)">
+      <header class="shrink-0 px-[10px] sm:px-0" x-show="!bleed && (payload.title || payload.note || srcSpec)">
         <div class="flex items-baseline gap-2 flex-wrap">
           <!-- Only when the payload NAMES ITSELF. For a bare addressed file
                `title` is "Data · " plus the basename, which is the same
@@ -314,7 +314,7 @@
            one item, which only an envelope can. It stays out of the note
            demotion on purpose: the 36px strip is how a phone reader knows the
            payload has three files. -->
-      <div x-show="!bleed && items.length > 1" class="shrink-0 flex gap-1 overflow-x-auto pb-1">
+      <div x-show="!bleed && items.length > 1" class="shrink-0 flex gap-1 overflow-x-auto pb-1 px-[10px] sm:px-0">
         <template x-for="(it, i) in items" :key="i">
           <button @click="open(i)" :title="it.note || it.name"
                   class="btn btn-sm shrink-0 font-mono font-normal"
@@ -326,7 +326,7 @@
 
       <!-- the selected item's note, when it has one to add -->
       <p x-show="!bleed && item && item.note && items.length > 1" x-text="item?.note"
-         class="shrink-0 text-sm opacity-70 -mt-1" :class="!notesOpen && 'hidden sm:block'"></p>
+         class="shrink-0 text-sm opacity-70 -mt-1 px-[10px] sm:px-0" :class="!notesOpen && 'hidden sm:block'"></p>
 
       <!-- the way back from full-bleed, floating because the header it would
            live in is exactly what bleed removes. Bottom-LEFT, mirroring the
@@ -341,10 +341,11 @@
         <i class="ph ph-arrows-in-simple text-base"></i></button>
 
       <!-- the shared viewer, embedded: bindStore false so it doesn't track a
-           Files view that isn't here, fill so it grows to this column. It
+           Files view that isn't here, fill so it grows to this column, flush
+           because on a phone this page gives it the screen's full width. It
            carries its own header (name, size, mode strip, links). -->
       <div id="dv-viewer" class="flex flex-col flex-1 min-h-0"
-           x-data="viewer({ bindStore: false, fill: true, modules: { changes: { base: window.DATA_VIEW_BASE } } })"></div>
+           x-data="viewer({ bindStore: false, fill: true, flush: true, modules: { changes: { base: window.DATA_VIEW_BASE } } })"></div>
     </div>
   </template>
 </div>

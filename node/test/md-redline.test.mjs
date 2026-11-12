@@ -133,6 +133,22 @@ test('the same words in other markup is a change with no word to mark', async ()
   assert.equal(host.querySelectorAll('ins, del').length, 0);
 });
 
+test('only the bar is lightened: it rests at half strength, full where the reader stepped', async () => {
+  const { host, handle } = await draw('One.\n\nTwo goes away.\n\nThree.\n', 'One edited.\n\nThree.\n');
+  const bar = (m) => m.querySelector(':scope > .md-redline-bar');
+  for (const m of handle.marks) assert.match(bar(m).className, /_50%,transparent\)/, 'a resting bar is the half-strength mix');
+  handle.next();
+  assert.match(bar(handle.marks[0]).className, /(^| )bg-warning( |$)/);
+  assert.doesNotMatch(bar(handle.marks[0]).className, /_50%,transparent\)/);
+  assert.match(bar(handle.marks[1]).className, /_50%,transparent\)/, 'the others stay at rest');
+  // The word marks are md-diff's own, at their own strength.
+  assert.match(host.querySelector('ins').className, /bg-success\/20/);
+  // A removed block is dimmed by its text colour: opacity would dim its bar too.
+  const gone = host.querySelector('[data-md-redline="removed"]');
+  assert.doesNotMatch(gone.className, /opacity-/);
+  assert.match(gone.className, /line-through/);
+});
+
 test('a reference link resolves in every block, changed or not', async () => {
   const refs = '\n\n[guide]: https://example.com/guide\n';
   const { host } = await draw('Read the [guide] first.\n\nThen the old part.' + refs,
