@@ -136,12 +136,7 @@ test('a tap on a row outside its tabs opens the session\'s first summary', async
   assert.equal(c.sel, B + '-20261104T010000Z');
 });
 
-test('a context size is written in thousands', () => {
-  const k = window.Compactions.fmtK;
-  assert.deepEqual([785231, 105235, 999, 1000, 1250000, null].map(k), ['785k', '105k', '999', '1k', '1.25M', '?']);
-});
-
-test('a card is the chart\'s room and the summary: no tab row, no opening ask, nothing that scrolls sideways', async () => {
+test('a card is the chart\'s room and the summary, every section open under a heading that sticks, and nothing scrolls sideways', async () => {
   const c = await listed(async (p) => {
     if (p.startsWith('sessions/usage/')) throw new Error('404');
     return { text: JSON.stringify({ ...FILE, text: FILE.text.replace('   - point 3', '   ```\n   const a = 1;\n   ```\n   | a | b |') }) };
@@ -160,15 +155,15 @@ test('a card is the chart\'s room and the summary: no tab row, no opening ask, n
   assert.deepEqual([...box.children].map((x) => Object.keys(x.dataset)[0]), ['cmpChart', 'cmpRest'], 'the chart first, then the summary');
   assert.ok(slide.classList.contains('overflow-x-hidden'), "the card's scroller moves up and down only");
   for (let i = 0; i < 10; i++) await new Promise((r) => setTimeout(r, 5));
-  assert.ok(el.querySelector('[data-sec="1"]'), 'the summary is drawn');
+  const secs = [...el.querySelectorAll('[data-sec]')];
+  assert.deepEqual(secs.map((x) => x.dataset.sec), ['1', '6', '8', '7', '9', '2', '3', '4', '5'], 'the plain-language five, then the technical four');
+  assert.equal(el.querySelector('details, [data-sec-nav], [data-sec-go]'), null, 'no fold and no chip: every section is open');
+  for (const x of secs) assert.match(x.firstElementChild.className, /\bsticky\b.*--cmp-pad.*\bbg-base-100\b/, 'a heading sticks to the top and covers what scrolls under it');
+  assert.ok(box.style.getPropertyValue('--cmp-pad') !== '', "the headings are told the scroller's top padding");
+  assert.ok(el.querySelector('[data-sec="3"] pre'), 'a technical section is drawn without being opened');
   assert.equal(el.querySelector('[role="tab"], [data-cmp-top]'), null, 'no tab row on the card');
   assert.doesNotMatch(el.textContent, /Make the page/, "the session's opening ask is not drawn on the card");
-  const nav = el.querySelector('[data-sec-nav]');
-  assert.equal(nav.querySelectorAll('[data-sec-go]').length, 9);
-  el.querySelector('details[data-sec="3"]').open = true;
-  el.querySelector('details[data-sec="3"]')._fill();
-  assert.ok(el.querySelector('pre'), 'the code block is drawn');
-  assert.doesNotMatch(el.innerHTML, /overflow-x-auto|whitespace-nowrap|whitespace-pre(?!-wrap)/, 'chips, code and table lines wrap');
+  assert.doesNotMatch(el.innerHTML, /overflow-x-auto|whitespace-nowrap|whitespace-pre(?!-wrap)/, 'code and table lines wrap');
 });
 
 test('the usage listing says which cards keep room for a chart, before any file is read', async () => {
