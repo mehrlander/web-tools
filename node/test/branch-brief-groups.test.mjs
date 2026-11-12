@@ -312,10 +312,10 @@ test('the header says n/m once, and the cards carry no pager of their own', () =
 test('with one file there is no pager', async () => {
   const keep = data.brief.files;
   data.brief = { ...data.brief, files: [keep[0]] };
-  await tick(6);
   try {
-    assert.equal(data.swipeFiles.length, 1);
     const pager = window.document.querySelector('[data-pager-label]').parentElement;
+    await settle(() => pager.style.display === 'none');
+    assert.equal(data.swipeFiles.length, 1);
     assert.equal(pager.style.display, 'none', 'nothing to page between');
   } finally { data.brief = { ...data.brief, files: keep }; await tick(6); }
 });

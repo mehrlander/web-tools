@@ -86,25 +86,6 @@
   /* CM6 merge views render inside the card scroller; let them size naturally. */
   .review-cm .cm-editor { background: transparent; }
   .review-cm .cm-mergeView { background: transparent; }
-  .review-single-file { --md-diff-top: auto; }
-  .review-single-file .md-diff-doc { padding: 0 .75rem 5rem; }
-  .review-single-file .md-diff-nav {
-    position: fixed;
-    left: 50%;
-    bottom: calc(.75rem + env(safe-area-inset-bottom, 0px));
-    transform: translateX(-50%);
-    margin: 0;
-    z-index: 30;
-    background: var(--color-base-100);
-  }
-  .review-single-file .md-diff-nav .tabular-nums { opacity: .8; }
-  @media (max-width: 480px) {
-    .review-single-file .md-diff-doc { padding-bottom: 9rem; }
-  }
-  /* Leave room for the page or renderer's corner launcher on narrow phones. */
-  @media (max-width: 383px) {
-    .review-single-file .md-diff-nav { bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px)); }
-  }
 </style>
 </head>
 <body class="min-h-screen text-base-content" :class="mode === 'file' ? 'bg-base-100' : 'bg-base-200'" x-data="reviewApp()" x-cloak>
@@ -192,7 +173,16 @@
   </div>
 </header>
 
-<main class="mx-auto flex flex-col gap-3" :class="mode === 'file' ? 'review-single-file w-full min-w-0' : 'px-4 py-4'">
+<main class="mx-auto flex flex-col gap-3" :class="mode === 'file' ? [
+  'review-single-file w-full min-w-0 [--md-diff-top:auto]',
+  '[&_.md-diff-doc]:px-3 [&_.md-diff-doc]:pt-0 [&_.md-diff-doc]:pb-20',
+  'max-[481px]:[&_.md-diff-doc]:pb-36',
+  '[&_.md-diff-nav]:fixed [&_.md-diff-nav]:left-1/2 [&_.md-diff-nav]:-translate-x-1/2',
+  '[&_.md-diff-nav]:bottom-[calc(.75rem+env(safe-area-inset-bottom,0px))]',
+  'max-[384px]:[&_.md-diff-nav]:bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))]',
+  '[&_.md-diff-nav]:m-0 [&_.md-diff-nav]:z-30 [&_.md-diff-nav]:bg-base-100',
+  '[&_.md-diff-nav_.tabular-nums]:opacity-80'
+] : 'px-4 py-4'">
 
   <div x-show="error" class="alert alert-error py-2 px-3 text-sm">
     <i class="ph ph-warning"></i><span x-text="error"></span>
