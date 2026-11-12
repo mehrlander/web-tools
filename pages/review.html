@@ -86,14 +86,31 @@
   /* CM6 merge views render inside the card scroller; let them size naturally. */
   .review-cm .cm-editor { background: transparent; }
   .review-cm .cm-mergeView { background: transparent; }
-  .review-single-file { --md-diff-top: 3.25rem; }
-  .review-single-file .md-diff-doc { padding-inline: .5rem; }
+  .review-single-file { --md-diff-top: auto; }
+  .review-single-file .md-diff-doc { padding: 0 .5rem 5rem; }
+  .review-single-file .md-diff-nav {
+    position: fixed;
+    left: 50%;
+    bottom: calc(.75rem + env(safe-area-inset-bottom, 0px));
+    transform: translateX(-50%);
+    margin: 0;
+    z-index: 30;
+    background: var(--color-base-100);
+  }
+  .review-single-file .md-diff-nav .tabular-nums { opacity: .8; }
+  @media (max-width: 480px) {
+    .review-single-file .md-diff-doc { padding-bottom: 9rem; }
+  }
+  /* Leave room for the page or renderer's corner launcher on narrow phones. */
+  @media (max-width: 383px) {
+    .review-single-file .md-diff-nav { bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px)); }
+  }
 </style>
 </head>
 <body class="min-h-screen text-base-content" :class="mode === 'file' ? 'bg-base-100' : 'bg-base-200'" x-data="reviewApp()" x-cloak>
 
 <header class="bg-base-100 border-b border-base-300 sticky top-0 z-20">
-  <div class="mx-auto px-2 h-12 flex items-center gap-1 sm:gap-2">
+  <div class="mx-auto px-2 h-14 flex items-center gap-1 sm:gap-2">
     <a x-show="mode !== 'file'" href="#" @click.prevent="reset()" class="flex items-center gap-2 hover:opacity-80 shrink-0" aria-label="Review another file">
       <i class="ph ph-magnifying-glass text-xl text-primary"></i>
       <span class="font-semibold hidden sm:inline">Review</span>
@@ -104,14 +121,14 @@
     </div>
     <details x-show="mode === 'file'" class="dropdown dropdown-start min-w-0 flex-1 max-sm:static" x-ref="fileActions"
              @click.outside="$el.open = false" @keydown.escape="$el.open = false">
-      <summary class="flex h-10 min-w-0 items-center gap-1 rounded px-1 cursor-pointer hover:bg-base-200"
+      <summary class="flex h-12 min-w-0 items-center gap-1 rounded px-1 cursor-pointer hover:bg-base-200"
                aria-label="File and review actions">
         <div class="min-w-0 flex flex-col leading-tight">
-          <span class="font-mono text-sm truncate" x-text="path.split('/').pop()"></span>
-          <span class="font-mono text-[10px] opacity-60 truncate"
+          <span class="font-mono text-base font-semibold truncate" x-text="path.split('/').pop()"></span>
+          <span class="font-mono text-xs opacity-80 truncate"
                 x-text="repo + ' · ' + path.slice(0, path.lastIndexOf('/') + 1)"></span>
         </div>
-        <i class="ph ph-caret-down text-xs shrink-0"></i>
+        <i class="ph ph-caret-down text-sm shrink-0" aria-hidden="true"></i>
       </summary>
       <ul class="dropdown-content menu menu-sm z-30 mt-1 w-72 max-w-[calc(100vw-1rem)] rounded-box border border-base-300 bg-base-100 p-1 shadow-lg max-sm:left-2 max-sm:top-full">
         <li class="menu-title"><span class="font-mono text-xs break-all" x-text="repo + '@' + head + ':' + path"></span></li>
@@ -137,11 +154,11 @@
          data-review-controls class="flex items-center gap-1 shrink-0">
       <details class="dropdown dropdown-end max-sm:static" x-ref="fileCompare"
                @click.outside="$el.open = false" @keydown.escape="$el.open = false">
-        <summary class="btn btn-ghost btn-xs h-8 gap-1 px-1 max-w-24 sm:max-w-48" aria-label="Compare against"
+        <summary class="btn btn-ghost btn-sm h-9 gap-1 px-1 max-w-24 sm:max-w-48" aria-label="Compare against"
                  :data-title-tip="card?.compareOff ? 'No comparison' : 'Compare against ' + (card?.baseName || base)">
-          <span class="font-mono text-xs truncate"
+          <span class="font-mono text-sm font-semibold truncate"
                 x-text="card?.compareOff ? 'Compare' : 'vs ' + (card?.baseName || base)"></span>
-          <i class="ph ph-caret-down text-xs shrink-0"></i>
+          <i class="ph ph-caret-down text-sm shrink-0" aria-hidden="true"></i>
         </summary>
         <ul class="dropdown-content menu menu-sm z-30 mt-1 w-60 rounded-box border border-base-300 bg-base-100 p-1 shadow-lg max-sm:right-2 max-sm:left-auto max-sm:top-full">
           <template x-for="choice in (card?.compareChoices || [])" :key="choice.key">
@@ -152,11 +169,11 @@
       </details>
       <div class="join shrink-0" data-review-modes>
         <template x-for="view in (card?.viewModes || [])" :key="view.key">
-          <button type="button" class="btn btn-xs btn-square join-item"
+          <button type="button" class="btn btn-sm btn-square size-7 sm:size-8 join-item"
                   :class="[view.on ? 'btn-active' : 'btn-ghost', view.key === 'split' && 'max-sm:hidden']"
                   :aria-label="view.label" :aria-pressed="view.on" :data-title-tip="view.label"
                   @click="card.pickView(view)">
-            <i class="ph text-base" :class="view.icon"></i>
+            <i class="ph text-lg" :class="view.icon" aria-hidden="true"></i>
           </button>
         </template>
       </div>
