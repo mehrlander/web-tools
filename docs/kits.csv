@@ -51,7 +51,7 @@ lib/kits/last-write.js,LastWrite,"the copy this page just committed, for the nex
 lib/kits/linked-swiper.js,linkedSwiper,"a list with a detail: the list beside, or over, a strip of one card per row, the two moving together.",336,no,yes,8,yes
 lib/kits/lists.js,Lists,"the registry's lists/ folder, read and written as one kind of file.",266,no,no,4,yes
 lib/kits/look.js,Look,"look markers: a link that lands on a place in a page, says why, and can ring the control to tap.",1764,no,yes,7,yes
-lib/kits/md-diff.js,mdDiff,a markdown change read as the DOCUMENT rather than as its source.,1715,no,yes,18,yes
+lib/kits/md-diff.js,mdDiff,a markdown change read as the DOCUMENT rather than as its source.,2061,no,yes,19,yes
 lib/kits/md-doc.js,mdDoc,a markdown document rendered as something you can read and take pieces OUT of.,1017,no,no,17,yes
 lib/kits/md-edit-studio.js,mdEditVariants,"the section editor as a studio: the source and a live reading of the change on one full screen, with no mode to switch.",611,no,no,1,no
 lib/kits/md-edit-tabs.js,mdEditVariants,"Wikipedia's source editor for one markdown section: Write, Preview and Changes over one text box, in place on a wide screen and the whole screen on a phone.",557,no,no,2,no
@@ -105,7 +105,7 @@ lib/kits/source-peek.js,SourcePeek,the hover card behind an exact-file GitHub ju
 lib/kits/src-doc.js,srcDoc,"A RENDERED VIEW OF A SOURCE FILE SAYS SO, AND SAYS WHICH FILE.",118,no,no,8,yes
 lib/kits/stage-handoff.js,StageHandoff,"one paste, two documents",116,no,no,4,no
 lib/kits/standoff.js,Standoff,"The standoff annotation: its invariants, the six edits it admits, and the one serialization both of its writers must agree on.",655,no,no,4,yes
-lib/kits/subject-channel.js,subjectChannel,telling the FAB sidebar what you are looking at.,140,no,no,8,yes
+lib/kits/subject-channel.js,subjectChannel,telling the FAB sidebar what you are looking at.,140,no,no,9,yes
 lib/kits/surface.js,Surface,"the surface envelope, in one place.",206,no,no,1,yes
 lib/kits/swipe-deck.js,swipeDeck,"the house swipe format: a snap-scrolling track of slides, and the fullscreen takeover that frames it.",1738,no,yes,40,yes
 lib/kits/sync-status.js,SyncStatus,"how a synchronization state looks, wherever the estate shows one.",31,no,no,4,yes

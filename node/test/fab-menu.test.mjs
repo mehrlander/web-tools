@@ -1006,3 +1006,18 @@ test('the clipboard reader and the save check ask the same question', async () =
   ]), good, 'the first flavor that IS a token, not the first flavor');
   assert.equal(d._tokenFromFlavors([{ kind: 'text', type: 'text/plain', text: 'nope' }]), '');
 });
+
+// The door other surfaces use (kits/subject-channel.js, and the viewer's
+// figures button): the drawer opens on the tab the event names.
+test('web-tools:open-drawer opens the drawer on the tab it names', async () => {
+  const d = await mountFab();
+  assert.equal(d.open, false);
+  window.dispatchEvent(new window.CustomEvent('web-tools:open-drawer', { detail: { tab: 'text' } }));
+  await tick(2);
+  assert.equal(d.open, true);
+  assert.equal(d.activeTab, 'text');
+  // A tab the FAB does not have leaves the active one alone.
+  window.dispatchEvent(new window.CustomEvent('web-tools:open-drawer', { detail: { tab: 'nope' } }));
+  await tick(2);
+  assert.equal(d.activeTab, 'text');
+});
