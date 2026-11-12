@@ -1254,3 +1254,65 @@ test('a target already clear of the dock gets no room', async () => {
   await wait(30);
   assert.equal(w.document.getElementById('pane').style.paddingBottom, '');
 });
+
+// ── a miss is watched, logged, and can be asked about ─────────────────────
+
+// The console of a realm, as the lines the kit wrote to it.
+const lookLines = (w) => {
+  const lines = [];
+  w.console.info = (...a) => { if (String(a[0]).startsWith('[look]')) lines.push(a.join(' ')); };
+  return lines;
+};
+
+test('an anchor that renders after the miss is landed on, and the miss message goes', async () => {
+  // The app shell on a slow connection: quiet, not busy, and its controls
+  // drawn seconds after the dock had already said "Not on this page".
+  const w = realm('<main></main>');
+  const lines = lookLines(w);
+  w.Look.start([{ at: 'late', say: 'found it' }], { wait: 60 });
+  await wait(150);
+  assert.match(said(w), /^Not on this page: late$/, 'the miss is said first');
+  w.document.querySelector('main').innerHTML = '<p data-at="late">here</p>';
+  await wait(500);
+  assert.equal(said(w), 'found it', 'and the step lands once the anchor is there');
+  assert.equal(w.document.querySelector('[data-look="halo"]').style.display, 'block');
+  assert.equal(lines.length, 2, lines.join('\n'));
+  assert.match(lines[0], /^\[look\] step 1 of 1: not found after [\d.]+ s, late; the page did not say it was busy; looking for 60 s more$/);
+  assert.match(lines[1], /^\[look\] step 1: found [\d.]+ s after the miss, on check \d+; the page drew it late$/);
+});
+
+test('a reader who has moved on is not pulled back when the missed anchor turns up', async () => {
+  const w = realm('<main><p data-at="b">second</p></main>');
+  w.Look.start([{ at: 'late', say: 'first' }, { at: 'b', say: 'second' }], { wait: 60 });
+  await wait(150);
+  assert.match(said(w), /^Not on this page: late$/);
+  card(w).querySelector('[data-go]:not([disabled])').click();
+  await wait(100);
+  assert.equal(said(w), 'second');
+  w.document.querySelector('main').insertAdjacentHTML('beforeend', '<p data-at="late">here</p>');
+  await wait(500);
+  assert.equal(said(w), 'second', 'the watch ended with the step it belonged to');
+});
+
+test('a missed anchor offers Look again, and the console where a page has a FAB', async () => {
+  const w = realm('<main></main>');
+  const lines = lookLines(w);
+  w.Look.start([{ at: 'nowhere', say: 'unused' }], { wait: 60 });
+  await wait(150);
+  const again = card(w).querySelector('[data-again]');
+  assert.equal(again.getAttribute('aria-label'), 'Look again');
+  assert.equal(card(w).querySelector('[data-console]'), null, 'no FAB on the page, so no console to point at');
+  again.click();
+  await wait(150);
+  assert.match(said(w), /^Not on this page: nowhere$/, 'looked again, and said so again');
+  assert.ok(lines.some(l => /step 1: asked to look again/.test(l)), lines.join('\n'));
+
+  const v = realm('<main></main><div x-data="fab()"></div>');
+  let asked = null;
+  v.addEventListener('web-tools:open-drawer', (e) => { asked = e.detail; });
+  v.Look.start([{ at: 'nowhere', say: 'unused' }], { wait: 60 });
+  await wait(150);
+  card(v).querySelector('[data-console]').click();
+  assert.deepEqual({ ...asked }, { console: true }, 'the FAB is asked for its drawer with the console open');
+  assert.equal(card(v).querySelector('[data-say]').style.textWrap || '', '', 'the message wraps where it wraps: no balancing');
+});

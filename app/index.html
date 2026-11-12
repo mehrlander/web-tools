@@ -363,7 +363,7 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
      beneath). The sidebar shows or hides at every width, out by default on a
      wide screen and away on a phone; ?shell= sets how much of this frame a link
      opens with. See the design notes at the end of this file. -->
-<body class="h-dvh flex flex-col overflow-hidden bg-base-100 text-base-content [&_*::highlight(find-pill)]:bg-[rgb(250_204_21/0.45)]" x-data="app()" x-cloak>
+<body class="h-dvh flex flex-col overflow-hidden bg-base-100 text-base-content [&_*::highlight(find-pill)]:bg-[rgb(250_204_21/0.45)]" x-data="app()" x-cloak :aria-busy="_booted ? 'false' : 'true'">
 
 <!-- App-wide drag cue. Purely visual (pointer-events-none), so the drop still
      lands on the window handler wireAppDrop() registered. It stands down on the
