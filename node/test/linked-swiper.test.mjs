@@ -234,3 +234,11 @@ test('a host\'s own columns replace the default when there is no seam', async ()
   assert.ok(s.root.classList.contains('grid-cols-[minmax(0,290px)_minmax(0,1fr)]'));
   assert.ok(!s.root.classList.contains('grid-cols-[minmax(0,340px)_minmax(0,1fr)]'));
 });
+
+test('a head name with href is a link to what the card is about, led by its icon', () => {
+  const { window } = page();
+  const plain = window.linkedSwiper.head({ title: 'A session' }, 0, 3, 'summary');
+  assert.doesNotMatch(plain, /<a /, 'a name without href stays text');
+  const linked = window.linkedSwiper.head({ title: 'A <session>', href: 'session.html#id=ab&x=1', icon: 'ph-terminal-window' }, 0, 3, 'summary');
+  assert.match(linked, /<h2[^>]*><a href="session\.html#id=ab&amp;x=1" data-ls-title[^>]*><i class="ph ph-terminal-window[^"]*"><\/i>A &lt;session&gt;<\/a><\/h2>/);
+});

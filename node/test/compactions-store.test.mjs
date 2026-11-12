@@ -4,7 +4,8 @@
 // only those files and names each by its file name without `.json`, the id
 // `#at=`, `&item=` and the Cost tab's links address; the parse reads the facts
 // and the nine sections from the object. The list shows one row per session,
-// and a session's card shows one of its summaries at a time, chosen by a tab.
+// with a tab per compaction where there is more than one, over one card per
+// summary.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -104,25 +105,35 @@ async function listed(get) {
   return c;
 }
 
-test('the list has one row per session, the latest compaction first, and a session keeps its summaries in time order', async () => {
+test('the list has one row per session, the latest compaction first, with a tab per compaction where there is more than one', async () => {
   const c = await listed();
   assert.deepEqual(own(c.groups.map((g) => g.id)), [B, C1], 'b2cdc8ac was last compacted on the 7th, after c0517ab1 on the 6th');
-  assert.deepEqual(own(c.groups[0].items.map((r) => r.id)),
-    [B + '-20261104T010000Z', B + '-20261105T032503Z', B + '-20261107T130000Z']);
-  const row = c.rowHtml(c.groups[0]);
-  assert.match(row, new RegExp('data-cmp="' + B + '"'), 'a row is addressed by its session');
-  assert.match(row, /×3/, 'a session compacted more than once says how many times');
-  assert.doesNotMatch(c.rowHtml(c.groups[1]), /×/);
+  const ids = [B + '-20261104T010000Z', B + '-20261105T032503Z', B + '-20261107T130000Z'];
+  assert.deepEqual(own(c.groups[0].items.map((r) => r.id)), ids);
+  assert.deepEqual(own(c.order), [...ids, C1 + '-20261106T133000Z'],
+    "the cards run session by session, a session's summaries in the order they were written");
+  const host = window.document.createElement('div');
+  host.innerHTML = c.rowHtml(c.groups[0]) + c.rowHtml(c.groups[1]);
+  const [many, once] = host.children;
+  assert.equal(many.getAttribute('data-cmp-row'), B);
+  assert.equal(many.hasAttribute('data-cmp'), false, 'a row with tabs is not itself a pick: its tabs are');
+  assert.deepEqual([...many.querySelectorAll('[role="tab"]')].map((t) => [t.textContent, t.getAttribute('data-cmp')]), ids.map((id, i) => [String(i + 1), id]));
+  assert.doesNotMatch(many.textContent, /×/);
+  assert.equal(once.getAttribute('data-cmp'), C1 + '-20261106T133000Z', 'a session compacted once is picked by its row');
+  assert.equal(once.querySelector('[role="tab"]'), null);
 });
 
-test("a session's card shows its latest summary until another is opened there", async () => {
-  const c = await listed();
-  assert.equal(c.curOf(B), B + '-20261107T130000Z');
-  c.cur[B] = B + '-20261104T010000Z';
-  assert.equal(c.curOf(B), B + '-20261104T010000Z');
-  c.cur[B] = 'gone';
-  assert.equal(c.curOf(B), B + '-20261107T130000Z', 'a summary no longer listed falls back to the latest');
-  assert.equal(c.curOf('2026-01-01-00000000'), '');
+test('a tap on a row outside its tabs opens the session\'s first summary', async () => {
+  const c = await listed(async () => { throw new Error('404'); });
+  const host = window.document.createElement('div');
+  host.innerHTML = c.rowHtml(c.groups[0]);
+  host.addEventListener('click', (e) => c.rowTap(e));
+  window.document.body.append(host);
+  c.sel = B + '-20261107T130000Z';
+  host.querySelector('[role="tab"]:nth-child(2)').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+  assert.equal(c.sel, B + '-20261107T130000Z', "a tab's tap is the list kit's to answer, not this one's");
+  host.querySelector('.truncate').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+  assert.equal(c.sel, B + '-20261104T010000Z');
 });
 
 test('a context size is written in thousands', () => {
@@ -130,41 +141,34 @@ test('a context size is written in thousands', () => {
   assert.deepEqual([785231, 105235, 999, 1000, 1250000, null].map(k), ['785k', '105k', '999', '1k', '1.25M', '?']);
 });
 
-test('a card: the chart\'s room, then one line with a tab per compaction and the open summary\'s facts, then the summary', async () => {
+test('a card is the chart\'s room and the summary: no tab row, no opening ask, nothing that scrolls sideways', async () => {
   const c = await listed(async (p) => {
     if (p.startsWith('sessions/usage/')) throw new Error('404');
-    return { text: JSON.stringify({ ...FILE, context_before: 785231, context_after: 105235 }) };
+    return { text: JSON.stringify({ ...FILE, text: FILE.text.replace('   - point 3', '   ```\n   const a = 1;\n   ```\n   | a | b |') }) };
   });
   await c.listUsage();
   window.Compactions.USAGE.delete(B);
-  c.sel = c.curOf(B);
+  const id = B + '-20261107T130000Z';
+  c.sel = id;
+  const slide = window.document.createElement('div');
+  slide.className = 'sd-slide overflow-y-auto';
   const el = window.document.createElement('div');
-  window.document.body.append(el);
-  c.fill(B, el, false);
+  slide.append(el);
+  window.document.body.append(slide);
+  c.fill(id, el, false);
   const box = el.firstElementChild;
-  assert.deepEqual([...box.children].map((x) => Object.keys(x.dataset)[0] || x.className), ['cmpChart', '@container', 'cmpRest'],
-    'the chart is first, the line of tabs under it');
+  assert.deepEqual([...box.children].map((x) => Object.keys(x.dataset)[0]), ['cmpChart', 'cmpRest'], 'the chart first, then the summary');
+  assert.ok(slide.classList.contains('overflow-x-hidden'), "the card's scroller moves up and down only");
   for (let i = 0; i < 10; i++) await new Promise((r) => setTimeout(r, 5));
-  const top = el.querySelector('[data-cmp-top]');
-  const tabs = [...top.querySelectorAll('[role="tab"]')];
-  assert.deepEqual(tabs.map((t) => t.textContent), ['1', '2', '3']);
-  assert.equal(top.querySelector('.tab-active').textContent, '3', 'the latest is open');
-  assert.match(top.textContent, /785k → 105k/);
-  assert.doesNotMatch(top.textContent, /token|character|\bof\b/);
-  assert.equal(top.querySelector('[data-session-link]').getAttribute('aria-label'), 'Open the session');
-  assert.ok(el.querySelector('[data-sec="1"]'), 'the summary is drawn under the line');
+  assert.ok(el.querySelector('[data-sec="1"]'), 'the summary is drawn');
+  assert.equal(el.querySelector('[role="tab"], [data-cmp-top]'), null, 'no tab row on the card');
   assert.doesNotMatch(el.textContent, /Make the page/, "the session's opening ask is not drawn on the card");
-
-  tabs[0].dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true }));
-  assert.equal(c.sel, B + '-20261104T010000Z', 'a tab opens its summary');
-  assert.equal(el.querySelector('[data-cmp-top] .tab-active').textContent, '1');
-  assert.equal(el.querySelector('[data-usage-chart]').getAttribute('data-usage-chart'), B + '-20261104T010000Z',
-    "the chart stays and is told which summary's drop to pick out");
-
-  const one = window.document.createElement('div');
-  window.document.body.append(one);
-  c.fill(C1, one, false);
-  assert.equal(one.querySelector('[role="tablist"]'), null, 'a session compacted once has no tabs');
+  const nav = el.querySelector('[data-sec-nav]');
+  assert.equal(nav.querySelectorAll('[data-sec-go]').length, 9);
+  el.querySelector('details[data-sec="3"]').open = true;
+  el.querySelector('details[data-sec="3"]')._fill();
+  assert.ok(el.querySelector('pre'), 'the code block is drawn');
+  assert.doesNotMatch(el.innerHTML, /overflow-x-auto|whitespace-nowrap|whitespace-pre(?!-wrap)/, 'chips, code and table lines wrap');
 });
 
 test('the usage listing says which cards keep room for a chart, before any file is read', async () => {
@@ -181,15 +185,15 @@ test('the usage listing says which cards keep room for a chart, before any file 
   await c.listUsage();
   assert.equal(c.hasUsage(B), true);
   assert.equal(c.hasUsage(C1), false);
-  const room = (gid) => {
+  const room = (id) => {
     const el = window.document.createElement('div');
     window.document.body.append(el);
-    c.fill(gid, el, false);
+    c.fill(id, el, false);
     return el.querySelector('[data-cmp-chart]');
   };
-  assert.equal(room(B).classList.contains('hidden'), false, 'a session with an extract keeps the chart\'s room');
-  assert.match(room(B).className, /min-h-\[88px\]/);
-  assert.equal(room(C1).classList.contains('hidden'), true, 'a session without one keeps none');
+  assert.equal(room(B + '-20261107T130000Z').classList.contains('hidden'), false, 'a session with an extract keeps the chart\'s room');
+  assert.match(room(B + '-20261104T010000Z').className, /min-h-\[82px\]/);
+  assert.equal(room(C1 + '-20261106T133000Z').classList.contains('hidden'), true, 'a session without one keeps none');
   c.gh.ls = async () => { throw new Error('offline'); };
   await c.listUsage();
   assert.equal(c.hasUsage(C1), undefined, 'a failed listing leaves it unknown');
