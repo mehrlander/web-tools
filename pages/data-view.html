@@ -257,54 +257,19 @@
   <template x-if="payload">
     <div class="flex flex-col flex-1 min-h-0 gap-2 sm:gap-3">
 
-      <!-- header: the envelope's title and note, or the addressed file's name.
-           A bare payload usually says everything in the viewer's own header,
-           so this stays quiet unless there is something to add. Below sm the
-           notes (the envelope's and the selected item's) collapse behind the
-           info toggle: measured 2026-07-25, prose was 132px of the 280px of
-           phone chrome while every control cost under 5%. -->
-      <header class="shrink-0 px-[10px] sm:px-0" x-show="!bleed && (payload.title || payload.note || srcSpec)">
+      <!-- header: an envelope's title and note; a bare addressed file has
+           none. Below sm the notes collapse behind the info toggle. -->
+      <header class="shrink-0 px-[10px] sm:px-0" x-show="!bleed && (payload.title || payload.note)">
         <div class="flex items-baseline gap-2 flex-wrap">
-          <!-- Only when the payload NAMES ITSELF. For a bare addressed file
-               `title` is "Data · " plus the basename, which is the same
-               filename the viewer prints directly below and a third copy of
-               what the address beside it already ends with: three rows of
-               chrome for one fact, on the screen with the least room for it.
-               The rule this header already stated for its notes ("a bare
-               payload usually says everything in the viewer's own header")
-               was simply never applied to its own heading. An envelope, or
-               anything carrying a real title, still gets one. -->
           <h1 x-show="payload.title" class="text-lg font-semibold" x-text="title"></h1>
-          <!-- NOT a badge, and it took two tries to see why. A badge is a
-               fixed-height pill that CENTRES its content, so a long address
-               first wrapped inside a box that would not grow (drawing its tail
-               through the `data` badge below), and then, once truncation was
-               added, overflowed both edges at once and showed the middle of
-               the path. Every real repo address is this long at phone width.
-               A plain span truncates the way a path should: keep the head,
-               which is the half the h1 does not carry, since the h1 names the
-               file and this names the repo it came from. -->
-          <!-- `flex-1 min-w-0` rather than `max-w-full`: the address is the
-               one elastic thing in this row, so it should absorb the width
-               and let the kind badge sit beside it. Under max-w-full it took
-               the whole line and pushed the badge onto a row of its own. -->
-          <span x-show="srcSpec" class="font-mono text-xs opacity-60 truncate flex-1 min-w-0"
-                x-text="srcSpec" :title="srcSpec"></span>
-          <!-- Only the informative half of this label survives. "envelope"
-               tells a reader the payload holds several files and that the
-               strip below is theirs; "data" told them the page they are on is
-               the data page, which they can see, and it took a slot beside a
-               path that needed the room. Same rule as the h1 above: a row
-               earns its space by saying something. -->
+          <!-- "envelope" tells a reader the payload holds several files and
+               that the strip below is theirs. -->
           <span x-show="payload.kind === 'envelope'"
                 class="badge badge-sm badge-primary shrink-0">envelope</span>
           <button x-show="hasNotes" @click="notesOpen = !notesOpen"
                   class="sm:hidden btn btn-ghost btn-xs btn-circle self-center" :class="notesOpen && 'text-primary'"
                   :title="notesOpen ? 'Tuck the notes away' : 'Show the notes'">
             <i class="ph ph-info text-base"></i></button>
-          <button @click="bleed = true" class="btn btn-ghost btn-xs btn-circle self-center"
-                  title="Full-bleed: give the whole viewport to the data">
-            <i class="ph ph-arrows-out-simple text-base"></i></button>
         </div>
         <p x-show="payload.note" x-text="payload.note" class="text-sm opacity-70 mt-1"
            :class="!notesOpen && 'hidden sm:block'"></p>
@@ -328,13 +293,9 @@
       <p x-show="!bleed && item && item.note && items.length > 1" x-text="item?.note"
          class="shrink-0 text-sm opacity-70 -mt-1 px-[10px] sm:px-0" :class="!notesOpen && 'hidden sm:block'"></p>
 
-      <!-- the way back from full-bleed, floating because the header it would
-           live in is exactly what bleed removes. Bottom-LEFT, mirroring the
-           FAB's bottom-right: the top corners belong to the viewer's own
-           header controls, which a fixed chip there was measured to cover.
-           Entry lives in the page header, so a bare gz payload with no header
-           never shows either control; that case measured fine (56px of
-           chrome) and has nothing to bleed away. -->
+      <!-- the way back from full-bleed. No control on the page sets bleed;
+           the chart and Excel verify scripts under node/test/ do. Bottom-left,
+           mirroring the FAB's bottom-right. -->
       <button x-show="bleed" x-cloak @click="bleed = false"
               class="fixed bottom-2 left-2 z-40 btn btn-ghost btn-sm btn-circle bg-base-100/70 border border-base-300 shadow-sm"
               title="Back to the page chrome">
@@ -342,10 +303,10 @@
 
       <!-- the shared viewer, embedded: bindStore false so it doesn't track a
            Files view that isn't here, fill so it grows to this column, flush
-           for the full width on a phone, textInfo for the Text stats button.
-           It has its own header (name, mode strip, links). -->
+           for the full width on a phone, textInfo for the Text stats button,
+           location for the line under the name. It has its own header. -->
       <div id="dv-viewer" class="flex flex-col flex-1 min-h-0"
-           x-data="viewer({ bindStore: false, fill: true, flush: true, textInfo: true, modules: { changes: { base: window.DATA_VIEW_BASE } } })"></div>
+           x-data="viewer({ bindStore: false, fill: true, flush: true, textInfo: true, location: true, modules: { changes: { base: window.DATA_VIEW_BASE } } })"></div>
     </div>
   </template>
 </div>
