@@ -47,7 +47,7 @@ docs/manifest-fields.csv,132,6,29140,"[""key"",""type"",""consumer"",""status"",
 docs/map-tabs.csv,42,4,28694,"[""tab"",""gloss"",""refs"",""narrative""]"
 docs/outposts.csv,4,12,2202,"[""id"",""title"",""gloss"",""declared"",""observed"",""reports"",""cadence"",""check"",""record"",""outpost_protocol"",""upkeep"",""doc""]"
 docs/portable.csv,108,6,9725,"[""kind"",""command"",""path"",""title"",""role"",""use""]"
-docs/properties.csv,372,11,58852,"[""registry"",""property"",""mode"",""deriver"",""required"",""form"",""exclusive"",""values"",""references"",""column_primitive"",""gloss""]"
+docs/properties.csv,372,11,58847,"[""registry"",""property"",""mode"",""deriver"",""required"",""form"",""exclusive"",""values"",""references"",""column_primitive"",""gloss""]"
 docs/registries.csv,56,15,25629,"[""id"",""path"",""key"",""identity"",""membership"",""inherits"",""target"",""scope"",""span"",""fields"",""gate"",""key_primitive"",""title"",""gloss"",""renders_in""]"
 docs/routes-kinds.csv,12,15,1370,"[""kind"",""label"",""subject"",""detect"",""exclusive"",""view"",""route"",""shown_by"",""kit"",""unit"",""address"",""aim"",""aim_label"",""aim_hint"",""aim_icon""]"
 docs/routes-modes.csv,7,7,2462,"[""param"",""form"",""carries"",""trust"",""sandbox"",""reach"",""note""]"
