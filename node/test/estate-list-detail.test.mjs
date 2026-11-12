@@ -518,8 +518,10 @@ test('a card keeps its links to one row, its icon controls thumb-sized on touch,
   assert.equal(controls.length, 4, 'the menu button on the head row, a reply under each of two notes, the funnel');
   for (const b of controls) {
     assert.ok(b.className.includes('[@media(hover:none)]:min-h-10') && b.className.includes('[@media(hover:none)]:min-w-10'), text(b) || b.getAttribute('aria-label'));
-    assert.ok(b.className.includes('[@media(hover:none)]:text-base-content/60'));
   }
+  // The head row's menu is as dark as the door beside it. A card's own controls stay quiet.
+  assert.ok(controls[0].className.split(/\s+/).includes('text-base-content'), 'the menu button');
+  for (const b of controls.slice(1)) assert.ok(b.className.includes('[@media(hover:none)]:text-base-content/60'));
 });
 
 test('a note just added takes the card', async () => {
