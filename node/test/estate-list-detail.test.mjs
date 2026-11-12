@@ -174,7 +174,7 @@ async function load() {
   SAVES = [];
   FILES = { 'lists/snag.json': JSON.stringify({ items: SNAGS }), 'lists/jot.json': JSON.stringify({ items: JOTS }), [NOTES]: NOTE_LINES.map(line).join('') };
   data.snagDraft = ''; data.editId = null; data.undoOffer = null; data.replyTo = null; data.replyDrafts = {}; data.snagNoteDrafts = {}; data.itemNoteDrafts = {};
-  data.noteAbout = ''; data.noteKind = '';
+  data.noteAbout = ''; data.noteKind = ''; data.listNamesDoc = null;
   await data.loadSnags(reg());
   await data.loadJots(reg());
   await data.loadNotes(reg());
@@ -376,6 +376,25 @@ test('the Jot tab is a list over a card: a row is one line, and its card holds t
   box.form.dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
   await until(() => lastNote().text === 'worth doing', 'the note to be saved');
   assert.equal(lastNote().about, REGISTRY + ':lists/jot.json#j2', "the jot's own address in its list");
+});
+
+test("a jot Gemini named is titled by that name in its row and its card's head row, until its text changes", async () => {
+  await open('jot', 'j2');
+  const row = () => rootOf('jot').querySelector('[data-jot="j2"] [data-part="title"]');
+  assert.match(text(row()), /^a second idea/, 'its own words, with no name');
+  const j2 = data.jotItems.find(x => x.id === 'j2');
+  data.listNamesDoc = { lists: { jot: { j2: { name: 'Second idea', key: window.Lists.textKey(j2.text) } } } };
+  await until(() => text(row()) === 'Second idea', 'the row to take the name');
+  click(rootOf('jot').querySelector('[data-jot="j1"]'));
+  await shown('jot', 'j1');
+  click(rootOf('jot').querySelector('[data-jot="j2"]'));
+  await shown('jot', 'j2');
+  assert.equal(text(head('jot').querySelector('h2')), 'Second idea', "the card's head row");
+  assert.match(text(cardOf('jot', 'j2').querySelector('[data-part="body"]')), /^a second idea/, 'the card still gives the words in full');
+
+  data.listNamesDoc = { lists: { jot: { j2: { name: 'Second idea', key: 'stale000' } } } };
+  await until(() => /^a second idea/.test(text(row())), 'a name written for other text to be dropped');
+  data.listNamesDoc = null;
 });
 
 test('a note about a snag is written in its card, under its notes, and a card with none has the box too', async () => {
