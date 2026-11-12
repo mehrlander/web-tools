@@ -103,10 +103,14 @@ const slotJs = (stage, coded) => `
   const SLOTS = DOCS.flatMap((d) => [...d.querySelectorAll('[data-slot]')]).filter((e) => IN(e) && SHOWN(e));`;
 const drawJs = (stage, coded) => `(() => {
   ${slotJs(stage, coded)}
-  const C = ${JSON.stringify(COLOR)};
+  const C = ${JSON.stringify(COLOR)}, N = ${JSON.stringify(NAME)};
   // 1.5px: at 2px the outlines were the heaviest lines in a shot, heavier
   // than anything on the page they mark.
-  for (const e of SLOTS) { e.style.outline = '1.5px solid ' + C.frame; e.style.outlineOffset = '1px'; }
+  // Only a slot whose code codes.csv names is drawn. The Map marks its
+  // toolbar, its filter strip and its list with data-slot values that are no
+  // frame code, and each drew a box with a raw lowercase label, an empty one
+  // where a tab's toolbar holds nothing.
+  for (const e of SLOTS.filter(e => N[e.dataset.slot])) { e.style.outline = '1.5px solid ' + C.frame; e.style.outlineOffset = '1px'; }
   if (BODY) { BODY.style.outline = '1.5px dashed ' + C.body; BODY.style.outlineOffset = '-1.5px'; }
 })()`;
 const labelJs = (stage, coded) => `(() => {
@@ -126,8 +130,11 @@ const labelJs = (stage, coded) => `(() => {
   const tag = (e, text, color) => {
     const r = at(e), t = document.createElement('div');
     t.textContent = text;
-    t.style.cssText = 'position:absolute;font:600 11px/1.35 system-ui,sans-serif;color:#fff;padding:1px 6px;border-radius:4px;'
-      + 'box-shadow:0 1px 2px rgba(0,0,0,.25);white-space:nowrap;background:' + color;
+    // Bold white on the dimension's colour taken a fifth toward black, and
+    // tight: at 600 on the plain amber the label was the hardest text in a
+    // shot to read, and its padding hid more of the page than its words.
+    t.style.cssText = 'position:absolute;font:700 11px/1.25 system-ui,sans-serif;color:#fff;padding:0 4px;border-radius:3px;'
+      + 'white-space:nowrap;background:color-mix(in srgb, ' + color + ' 80%, #000)';
     layer.append(t);
     let left = Math.min(Math.max(crop.x + 2, r.left), crop.x + crop.w - t.offsetWidth - 2);
     const top = Math.max(2, crop.y + 2, r.top - 9 >= crop.y + 1 ? r.top - 9 : r.top + 2), h = t.offsetHeight;
@@ -141,7 +148,7 @@ const labelJs = (stage, coded) => `(() => {
     placed.push({ left, right: left + t.offsetWidth, top, h });
   };
   const placed = [];
-  for (const e of SLOTS) tag(e, N[e.dataset.slot] || e.dataset.slot.split(':')[1], C.frame);
+  for (const e of SLOTS.filter(e => N[e.dataset.slot])) tag(e, N[e.dataset.slot], C.frame);
   if (BODY) tag(BODY, N['body:' + BODY.dataset.pattern] || BODY.dataset.pattern, C.body);
 })()`;
 // The app's live GitHub reads are unauthenticated here, and past the hourly
