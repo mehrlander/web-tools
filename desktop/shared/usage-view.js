@@ -33,6 +33,16 @@
     if (![remainingFraction,multiplier,normalDailyPercent,availableDailyPercent].every(Number.isFinite)) return null;
     return {multiplier,remainingPercent,remainingFraction,normalDailyPercent,availableDailyPercent,usedPercent:row.usedPercent,reset,observedAt};
   }
+  function dailyPaceGuides(row, options = {}) {
+    const reset = calendarInstant(row?.resetsAt), minutes = row?.durationMinutes, duration = minutes * 60000;
+    if (reset === null || !Number.isFinite(minutes) || !Number.isFinite(duration) || duration <= 0) return [];
+    const start = reset - duration, normal = 100 * 86400000 / duration;
+    if (!Number.isFinite(start) || !Number.isFinite(normal)) return [];
+    const guides = [{kind:'even',from:start,until:reset,dailyPercent:normal}];
+    const pace = remainingPace(row,options);
+    if (pace) guides.push({kind:'catch-up',from:calendarInstant(options.now ?? Date.now()),until:reset,dailyPercent:pace.availableDailyPercent});
+    return guides;
+  }
   function paceMark(value, compact = false) {
     if (!value) return '';
     const position = value.elapsed.toFixed(1);
@@ -282,6 +292,13 @@
     .usage-workspace-timeline .usage-calendar .allowance-drop .history-usage-point{top:21px;width:14px;height:14px;border-radius:2px;background:#f5f5f4;border:2px solid var(--color);transform:translateX(-50%) rotate(45deg)}
     .usage-workspace-timeline .usage-calendar .allowance-drop .history-usage-value{font-size:13px}
     .usage-calendar .calendar-daily-bars{position:absolute;top:44px;left:0;right:0;height:var(--daily-height)}
+    .calendar-pace-guides{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:2}
+    .calendar-pace-guides line,.calendar-pace-guides path{fill:none;vector-effect:non-scaling-stroke}
+    .calendar-pace-guides .even{stroke:#777166;stroke-width:1;stroke-dasharray:3 3}
+    .calendar-pace-guides .catch-up{stroke:var(--color);stroke-width:2;stroke-linecap:round}
+    .calendar-rate-key{display:flex;align-items:center;gap:5px;white-space:nowrap}
+    .calendar-rate-key i{width:15px;height:0;border-top:1px dashed #777166}
+    .calendar-rate-key i.catch-up{border-top:2px solid #557f74;margin-left:4px}
     .calendar-identity{width:100%;align-self:stretch;display:flex;flex-direction:column;padding:4px 5px 0 0}
     .calendar-provider-row{display:flex;align-items:center;justify-content:space-between;gap:2px}
     .calendar-provider-row .timeline-provider{font-size:13px;gap:4px}
@@ -319,5 +336,5 @@
   function workspace({overview='',timeline='',daily=''} = {}) {
     return `<div class="usage-workspace">${overview?`<section class="usage-workspace-overview" aria-label="Current account allowances">${overview}</section>`:''}${timeline?`<section class="usage-workspace-timeline" aria-label="Reset timeline">${timeline}</section>`:''}${daily?`<section class="usage-workspace-daily" aria-label="Daily allowance history">${daily}</section>`:''}</div>`;
   }
-  window.NowUsage = {render,compact,workspace,calendarAxis,calendarDay,resetMarker,remainingPace};
+  window.NowUsage = {render,compact,workspace,calendarAxis,calendarDay,resetMarker,remainingPace,dailyPaceGuides};
 })();
