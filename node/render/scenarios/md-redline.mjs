@@ -1,4 +1,4 @@
-// kits/md-diff.js — the redline, laid out in a browser.
+// kits/md-diff.js: the redline, laid out in a browser.
 //
 //   node node/render/screenshot.mjs pages/data-view.html \
 //     --script node/render/scenarios/md-redline.mjs \

@@ -1,4 +1,4 @@
-// alpineComponents/viewer.js — the `flush` host option. It sets
+// alpineComponents/viewer.js: the `flush` host option. It sets
 // data-viewer-flush on the viewer's root, and Preview and Changes share
 // ViewRegistry.MD_INSET. node/render/scenarios/md-redline.mjs measures the
 // layout.

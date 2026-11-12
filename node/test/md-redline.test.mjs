@@ -1,4 +1,4 @@
-// lib/kits/md-diff.js — the redline: the whole document with its changes
+// lib/kits/md-diff.js: the redline, the whole document with its changes
 // marked in place, which the viewer's Changes mode draws.
 //
 // What is held here is WHICH blocks are marked and HOW, since that is rules a
