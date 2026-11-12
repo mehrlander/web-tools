@@ -64,6 +64,7 @@ window.__shell = {
 const Alpine = await startAlpine(window, [
   'lib/alpine-bundle.js',
   'lib/kits/surface.js',
+  'lib/kits/notes.js',
   'lib/kits/lists.js',
   'lib/alpineComponents/estate.js',
 ]);
