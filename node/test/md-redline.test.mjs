@@ -111,7 +111,7 @@ test('a stretch added or removed is one band, and its struck text keeps its colo
   for (const m of handle.marks) {
     assert.match(m.className, /after:border-y/);
     assert.match(m.className, /after:border-l-\[6px\]/);
-    assert.match(m.className, /after:bg-\[color-mix\([^\]]*_10%,transparent\)\]/);
+    assert.match(m.className, /after:bg-\[color-mix\([^\]]*_var\(--rl-wash,6%\),transparent\)\]/);
   }
   assert.match(gone.className, /line-through/);
   assert.doesNotMatch(gone.className, /opacity-|text-\[color/, 'struck, and at its own colour');
@@ -163,17 +163,27 @@ test('the same words in other markup is a change with no word to mark', async ()
   assert.equal(host.querySelectorAll('ins, del').length, 0);
 });
 
-test('a bar and a band rest at half strength, and at full strength for the current change', async () => {
+test('the current change has full-strength lines, a deeper left line and a stronger wash', async () => {
   const { host, handle } = await draw('One.\n\nTwo goes away.\n\nThree.\n', 'One edited.\n\nThree.\n');
   const [edited, gone] = handle.marks;
-  for (const m of handle.marks) assert.match(m.className, /_50%,transparent\)/, 'at rest, the half-strength mix');
+  const deep = (hue) => `color-mix(in_oklab,var(--color-${hue})_75%,var(--color-base-content))`;
+  const full = (m) => m.classList.contains('[--rl-wash:10%]');
+  for (const m of handle.marks) {
+    assert.match(m.className, /_50%,transparent\)/, 'at rest, the half-strength mix');
+    assert.equal(full(m), false, 'at rest, the wash keeps its 6% default');
+  }
   handle.next();
-  assert.match(edited.className, /after:bg-\[var\(--color-warning\)\]/);
+  assert.ok(edited.classList.contains(`after:bg-[${deep('warning')}]`), 'a bar is the left line, so it deepens');
   assert.doesNotMatch(edited.className, /_50%,transparent\)/);
+  assert.equal(full(edited), true);
   assert.match(gone.className, /_50%,transparent\)/, 'the others stay at rest');
   handle.next();
-  assert.match(gone.className, /after:border-\[color:var\(--color-error\)\]/);
+  assert.ok(gone.classList.contains('after:border-[color:var(--color-error)]'), 'a band\'s lines above and below are the plain hue');
+  assert.ok(gone.classList.contains(`after:border-l-[color:${deep('error')}]`), 'and its left line is deeper');
+  assert.equal(full(gone), true);
   assert.match(edited.className, /_50%,transparent\)/);
+  assert.equal(full(edited), false);
+  assert.doesNotMatch(edited.className, /base-content/);
   // The word marks are md-diff's own, at their own strength.
   assert.match(host.querySelector('ins').className, /bg-success\/20/);
 });

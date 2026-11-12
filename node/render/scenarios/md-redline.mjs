@@ -118,11 +118,18 @@ export default async function (page) {
       });
     };
     const wide = read(), textWide = Math.round(host.querySelector('p').getBoundingClientRect().left);
+    // The current change, read on the first band and then put back.
+    const was = handle.at, band = handle.marks.findIndex((m) => m.dataset.mdRedlineMark === 'band');
+    handle.set(band);
+    await new Promise((r) => setTimeout(r, 300));          // the page's Tailwind compiles the new classes
+    const a = getComputedStyle(handle.marks[band], '::after');
+    const here = { wash: a.backgroundColor, left: a.borderLeftColor, top: a.borderTopColor };
+    handle.set(was);
     // A phone under a flush host: 10px of padding, and the marks follow.
     host.style.paddingLeft = host.style.paddingRight = '10px';
     await new Promise((r) => setTimeout(r, 300));
     return {
-      counts: handle.counts, count: handle.count, at: handle.at,
+      counts: handle.counts, count: handle.count, at: handle.at, here,
       wide, textWide, tight: read(), textTight: Math.round(host.querySelector('p').getBoundingClientRect().left),
       rows: [...host.querySelectorAll('tr[data-md-redline-row]')].map((r) => r.dataset.mdRedlineRow),
       numbers: [...host.querySelectorAll('ol > li')].map((li) => li.getAttribute('value')),
@@ -147,9 +154,14 @@ export default async function (page) {
       if (m.shape === 'band' && (m.right !== 0 || m.top !== 0 || (m.run === 1 && m.tall !== m.own) || (m.run > 1 && m.tall <= m.own))) fail('a band does not cover its stretch');
       if (m.shape === 'bar' && (m.width !== 6 || m.tall !== m.own - 4)) fail('a bar is not its block tall');
       if (!/\/ 0\.5\)$/.test(m.paint)) fail('a resting mark is at half strength');
-      if (m.shape === 'band' && !/\/ 0\.1\)$/.test(m.wash)) fail('a band carries a light wash');
+      if (m.shape === 'band' && !/\/ 0\.06\)$/.test(m.wash)) fail('a resting band carries a 6% wash');
     }
   }
+  // The current band: a 10% wash, full-strength lines, and a left line that
+  // is not the colour of the lines above and below.
+  if (!/\/ 0\.1\)$/.test(out.here.wash)) fail('the current band carries a 10% wash');
+  if (/\/ [0-9.]+\)$/.test(out.here.top) || /\/ [0-9.]+\)$/.test(out.here.left)) fail('the current band\'s lines are at full strength');
+  if (out.here.left === out.here.top) fail('the current band\'s left line is deeper than its other lines');
   if (out.struck.some((v) => v !== '1 line-through')) fail('removed text is struck at full strength');
   if (out.overflow > 0) fail('the marks widened the page');
   if (out.rows.join() !== 'changed,removed,added') fail('a changed table is read by its rows');

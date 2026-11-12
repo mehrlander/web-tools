@@ -198,7 +198,7 @@ node/render/scenarios/md-diff-jump.mjs,,node/render/scenarios,74,driver,,no,no,n
 node/render/scenarios/md-diff-keys.mjs,,node/render/scenarios,90,driver,,no,no,no
 node/render/scenarios/md-diff-one-height.mjs,,node/render/scenarios,63,driver,,no,no,no
 node/render/scenarios/md-diff-one-stop.mjs,,node/render/scenarios,51,driver,,no,no,no
-node/render/scenarios/md-redline.mjs,,node/render/scenarios,158,driver,,no,no,yes
+node/render/scenarios/md-redline.mjs,,node/render/scenarios,170,driver,,no,no,yes
 node/render/scenarios/nest-probe.mjs,"probe: a nested self-toss's address bar, and the FAB's actions at depth two",node/render/scenarios,44,driver,,no,no,no
 node/render/scenarios/open-drawer.mjs,the FAB drawer open with the take grid scrolled into view,node/render/scenarios,20,driver,,no,no,no
 node/render/scenarios/outline-follows-page.mjs,scroll the page and check every live outline stays on the thing it is drawn around,node/render/scenarios,78,driver,,no,no,no
