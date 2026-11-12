@@ -104,8 +104,10 @@ const slotJs = (stage, coded) => `
 const drawJs = (stage, coded) => `(() => {
   ${slotJs(stage, coded)}
   const C = ${JSON.stringify(COLOR)};
-  for (const e of SLOTS) { e.style.outline = '2px solid ' + C.frame; e.style.outlineOffset = '1px'; }
-  if (BODY) { BODY.style.outline = '2px dashed ' + C.body; BODY.style.outlineOffset = '-2px'; }
+  // 1.5px: at 2px the outlines were the heaviest lines in a shot, heavier
+  // than anything on the page they mark.
+  for (const e of SLOTS) { e.style.outline = '1.5px solid ' + C.frame; e.style.outlineOffset = '1px'; }
+  if (BODY) { BODY.style.outline = '1.5px dashed ' + C.body; BODY.style.outlineOffset = '-1.5px'; }
 })()`;
 const labelJs = (stage, coded) => `(() => {
   ${slotJs(stage, coded)}
