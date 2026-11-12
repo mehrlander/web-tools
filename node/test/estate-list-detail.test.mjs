@@ -394,6 +394,9 @@ test('a note about a snag is written in its card, under its notes, and a card wi
     'the box follows the last of the notes');
   assert.match(box.className, /input input-bordered input-sm text-base flex-1 min-w-0/, "the reply form's classes");
   assert.match(form.className, /(^| )sticky bottom-0( |$)/, 'held at the foot of the card whatever is scrolled');
+  assert.match(form.className, /(^| )mt-auto( |$)/, 'and at its lower edge under content shorter than the card');
+  for (let el = form.parentElement; el && !el.classList.contains('sd-slide') && el !== card; el = el.parentElement)
+    assert.match(el.className, /(^| )flex-1( |$)/, 'each wrapper up to the slide passes the height down');
   assert.equal(form.nextElementSibling, null, "the card's last piece, outside the block of notes it would otherwise stay inside");
   type(box, '  Twice more this week.  ');
   await until(() => !form.querySelector('button[type="submit"]').disabled, 'the send control to wake');
