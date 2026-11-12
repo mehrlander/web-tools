@@ -42,7 +42,7 @@ test('a loaded observation mounts checkout rows and survives a failed refresh', 
   await tick(5);
   const host = browser.document.getElementById('local'), data = Alpine.$data(host);
   assert.equal(host.querySelectorAll('article').length, 1);
-  assert.match(host.textContent, /Working-file changes remain local/);
+  assert.match(host.textContent, /Working-file changes observed/);
   assert.match(host.textContent, /Committed content pushed/);
   assert.match(host.textContent, /1 changed · 0 untracked/);
   fail = true;

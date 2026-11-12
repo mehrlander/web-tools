@@ -52,7 +52,7 @@ def discover(roots, budget=15000):
                     files = [p for p in children if p.is_file() and not p.is_symlink()]
                     if files:
                         loose.append({'scope': label, 'path': path.relative_to(root).as_posix(),
-                                      'state': 'local-only', 'files': len(files),
+                                      'state': 'observed', 'files': len(files),
                                       'examples': sorted(p.name for p in files)[:12], 'coverage': 'immediate files'})
                 if level < depth:
                     stack.extend((p, level + 1) for p in sorted(children, reverse=True) if p.name not in SKIP and p.is_dir())
