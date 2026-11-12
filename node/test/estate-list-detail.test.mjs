@@ -257,18 +257,17 @@ test('both tabs declare the list and detail, each row a compact item', async () 
   const rows = [...snagRoot().querySelectorAll('[data-snag]')];
   assert.deepEqual(rows.map(r => r.dataset.snag), ['a-count-off-by-one', 'a-door-left-open', 'a-third-thing'], 'last bitten first');
   // A row is titled by the snag's short name on one line: its id read as
-  // words, or its own name. The statement is under it, as the row's summary.
+  // words, or its own name. The statement is not in the row: its card leads with it.
   assert.equal(text(rows[0].querySelector('[data-part="title"]')), 'A count off by one');
   assert.equal(text(rows[1].querySelector('[data-part="title"]')), 'Stale drawer');
   for (const row of rows) assert.match(row.querySelector('[data-part="title"]').className, /\btruncate\b/, 'one line, cut short where it runs over');
-  assert.equal(text(rows[0].querySelector('[data-part="summary"]')), 'the row count was off by one after a sort');
+  assert.equal(rows[0].querySelector('[data-part="summary"]'), null, 'a row is its name and what is beside it');
   // Flair follows the title: an icon for a facet the snag declares, small and quiet.
   assert.deepEqual([...rows[0].querySelectorAll('[data-flair] [data-facet] i')].map(i => i.getAttribute('aria-label')), ['Technical: something broke']);
   assert.ok(rows[0].querySelector('[data-flair] [data-facet="kind"] i.ph-bug'));
   assert.equal(rows[1].querySelector('[data-flair] [data-facet] i'), null, 'a snag that declares no facet has none');
   assert.equal(rows[2].querySelector('[data-flair] [data-facet] i'), null, 'and so has one whose kind and origin are the unmarked values');
   assert.ok(rows[0].querySelector('[data-part="title"]').compareDocumentPosition(rows[0].querySelector('[data-flair]')) & window.Node.DOCUMENT_POSITION_FOLLOWING);
-  assert.match(rows[0].querySelector('[data-part="summary"]').className, /\bline-clamp-2\b.*\btext-base\b/, 'two lines at most, at the size of the title');
   // Beside the title: how often, its notes, how lately. The repo is its mark,
   // ahead of the title.
   const slots = (row) => [...row.querySelector('[data-part="meta"]').children].map(text);
@@ -284,6 +283,7 @@ test("a card holds its snag's title, links, dates, entry and notes, and a row ta
   const card = cardOf('snag', 'a-count-off-by-one');
   await until(() => /Fixed by the gate/.test(text(card)), 'the notes left on the snag');
   assert.equal(text(card.querySelector('[data-part="title"]')), 'the row count was off by one after a sort');
+  assert.doesNotMatch(card.querySelector('[data-part="title"]').className, /\bhidden\b/, 'the statement leads the card, in the strip as in a takeover');
   assert.deepEqual([...card.querySelectorAll('[data-part="links"] button')].map(text), ['python/scan.py', 'node/test/scan.test.mjs']);
   assert.equal(text(card.querySelector('[data-part="meta"]')), 'a-count-off-by-one tools Bit 2026-10-01, 2026-10-03',
     'the id in full, which is what a citation names, then the repo and the dates');
