@@ -198,3 +198,25 @@ test('the usage listing says which cards keep room for a chart, before any file 
   await c.listUsage();
   assert.equal(c.hasUsage(C1), undefined, 'a failed listing leaves it unknown');
 });
+
+test('the section in view goes with the reader on a swipe and inside a session, and not to another session by its row', async () => {
+  const c = await listed();
+  const [b1, b2, , c1] = c.order;
+  assert.equal(c.carries(b1, b2, 'list'), true, "a tab of the same session, tapped in the list");
+  assert.equal(c.carries(b2, c1, 'swipe'), true, 'a swipe, into another session too');
+  assert.equal(c.carries(b2, c1, 'list'), false, "another session's row starts at the top");
+  assert.equal(c.carries(b2, c1, 'api'), false);
+  c._deck = {};
+  assert.equal(c.carries(b2, c1, 'api'), true, 'a swipe in the deck arrives through the host');
+  assert.deepEqual(own(c.neighbours(b2)), [b1, c.order[2]], 'the cards either side follow the one in view');
+  assert.deepEqual(own(c.neighbours(b1)), [b2]);
+});
+
+test("a note the summary's writer put after a heading's name is kept, in lighter type", () => {
+  const c = factory(null);
+  const h = c.head({ n: 3, name: 'Files and Code Sections (referenced; no edits survive)' });
+  assert.equal(h.textContent, 'Files and Code Sections (referenced; no edits survive)', 'every word as written');
+  assert.equal(h.firstChild.textContent, 'Files and Code Sections');
+  assert.match(h.lastChild.className, /font-normal/);
+  assert.equal(c.head({ n: 1, name: 'Primary Request and Intent' }).childElementCount, 0);
+});
