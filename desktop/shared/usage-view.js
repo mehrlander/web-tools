@@ -288,11 +288,9 @@
     .calendar-provider-row .timeline-provider .brand{width:15px;height:15px}
     .calendar-provider-row .provider-actions{width:13px;height:28px;flex:none}
     .calendar-provider-row .provider-actions svg{width:12px;height:14px}
-    .calendar-pace{align-self:flex-start;display:flex;align-items:center;min-height:22px;margin-left:19px;padding:0;font-size:14px;line-height:20px;font-weight:600;color:#57534e;font-variant-numeric:tabular-nums}
+    .calendar-pace{align-self:flex-start;display:flex;flex-direction:column;align-items:flex-start;min-height:36px;margin-left:19px;padding:0;font-size:14px;line-height:20px;font-weight:600;color:#57534e;font-variant-numeric:tabular-nums}
+    .calendar-pace-label{font-size:11px;line-height:16px;font-weight:400;white-space:nowrap;color:#746f66}
     .calendar-pace.is-unavailable{color:#817b72;font-weight:400}
-    .calendar-period{display:flex;align-items:center;min-height:22px;margin-left:19px}
-    .calendar-period .period-switch{margin:0;font-size:10px;line-height:15px}
-    .calendar-period .period-switch button{min-height:21px;padding:1px 3px;font-size:10px}
     .usage-calendar .daily-bar{position:absolute;top:0;height:var(--daily-height);padding-inline:2px;gap:0;touch-action:pan-x pan-y pinch-zoom}
     .usage-calendar .daily-bar-track{height:100%;background:none;border-color:#d8d4cc}
     .usage-calendar .daily-bar.missing .daily-bar-track{background:repeating-linear-gradient(135deg,transparent,transparent 3px,#dcd7cd88 3px,#dcd7cd88 4px)}
