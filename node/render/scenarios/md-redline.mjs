@@ -154,7 +154,7 @@ export default async function (page) {
       if (m.shape === 'band' && (m.right !== 0 || m.top !== 0 || (m.run === 1 && m.tall !== m.own) || (m.run > 1 && m.tall <= m.own))) fail('a band does not cover its stretch');
       if (m.shape === 'bar' && (m.width !== 6 || m.tall !== m.own - 4)) fail('a bar is not its block tall');
       if (!/\/ 0\.5\)$/.test(m.paint)) fail('a resting mark is at half strength');
-      if (m.shape === 'band' && !/\/ 0\.06\)$/.test(m.wash)) fail('a resting band carries a 6% wash');
+      if (m.shape === 'band' && !/\/ 0\.04\)$/.test(m.wash)) fail('a resting band carries a 4% wash');
     }
   }
   // The current band: a 10% wash, full-strength lines, and a left line that

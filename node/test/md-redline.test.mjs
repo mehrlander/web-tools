@@ -111,7 +111,7 @@ test('a stretch added or removed is one band, and its struck text keeps its colo
   for (const m of handle.marks) {
     assert.match(m.className, /after:border-y/);
     assert.match(m.className, /after:border-l-\[6px\]/);
-    assert.match(m.className, /after:bg-\[color-mix\([^\]]*_var\(--rl-wash,6%\),transparent\)\]/);
+    assert.match(m.className, /after:bg-\[color-mix\([^\]]*_var\(--rl-wash,4%\),transparent\)\]/);
   }
   assert.match(gone.className, /line-through/);
   assert.doesNotMatch(gone.className, /opacity-|text-\[color/, 'struck, and at its own colour');
@@ -166,11 +166,11 @@ test('the same words in other markup is a change with no word to mark', async ()
 test('the current change has full-strength lines, a deeper left line and a stronger wash', async () => {
   const { host, handle } = await draw('One.\n\nTwo goes away.\n\nThree.\n', 'One edited.\n\nThree.\n');
   const [edited, gone] = handle.marks;
-  const deep = (hue) => `color-mix(in_oklab,var(--color-${hue})_75%,var(--color-base-content))`;
+  const deep = (hue) => `color-mix(in_oklab,var(--color-${hue})_85%,var(--color-base-content))`;
   const full = (m) => m.classList.contains('[--rl-wash:10%]');
   for (const m of handle.marks) {
     assert.match(m.className, /_50%,transparent\)/, 'at rest, the half-strength mix');
-    assert.equal(full(m), false, 'at rest, the wash keeps its 6% default');
+    assert.equal(full(m), false, 'at rest, the wash keeps its 4% default');
   }
   handle.next();
   assert.ok(edited.classList.contains(`after:bg-[${deep('warning')}]`), 'a bar is the left line, so it deepens');
