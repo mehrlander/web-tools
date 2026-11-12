@@ -86,10 +86,9 @@ to labels, counters, and timestamps.
 **8. Content starts at the top.** Do not vertically centre a slide because it
 looks balanced when short; across a deck it moves the first line on every card.
 
-**9. One accent, and it means something.** Colour carries information, not
+**9. Colour means something.** Colour carries information, not
 decoration. Assign it by semantic role, and in a comparison lock each side's
-treatment across every view. Where two concerns compete for the accent, let a
-control pick which one is marked rather than spending a second colour.
+treatment across every view.
 
 **10. A tooltip worth having is worth building.** Prefer text on the page. Do
 not use a `title`: the browser draws it only on mouse hover and outside the
