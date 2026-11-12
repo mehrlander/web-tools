@@ -158,6 +158,11 @@ test('a card is the chart\'s room and the summary, every section open under a he
   const secs = [...el.querySelectorAll('[data-sec]')];
   assert.deepEqual(secs.map((x) => x.dataset.sec), ['1', '6', '8', '7', '9', '2', '3', '4', '5'], 'the plain-language five, then the technical four');
   assert.equal(el.querySelector('details, [data-sec-nav], [data-sec-go]'), null, 'no fold and no chip: every section is open');
+  assert.deepEqual(secs.map((x) => x.firstElementChild.textContent), [0, 5, 7, 6, 8, 1, 2, 3, 4].map((i) => NINE[i]),
+    "a heading is the section's name, without the number the reordering would scramble");
+  assert.equal(c.nameOf(id).code, '3 of 3', "the card's head says which of the session's compactions it is");
+  assert.equal(c.nameOf(B + '-20261104T010000Z').code, '1 of 3');
+  assert.equal(c.nameOf(C1 + '-20261106T133000Z').code, '', 'a session compacted once has no index to give');
   for (const x of secs) assert.match(x.firstElementChild.className, /\bsticky\b.*--cmp-pad.*\bbg-base-100\b/, 'a heading sticks to the top and covers what scrolls under it');
   assert.ok(box.style.getPropertyValue('--cmp-pad') !== '', "the headings are told the scroller's top padding");
   assert.ok(el.querySelector('[data-sec="3"] pre'), 'a technical section is drawn without being opened');
