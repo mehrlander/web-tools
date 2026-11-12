@@ -18,6 +18,21 @@
     const delta = row.usedPercent - elapsed, points = Math.round(Math.abs(delta));
     return {elapsed, over:Math.max(0,delta), text:points ? `${points} percentage points ${delta > 0 ? 'over' : 'under'} even pace` : 'On even pace'};
   }
+  function remainingPace(row, options = {}) {
+    const now = calendarInstant(options.now ?? Date.now()), observedAt = calendarInstant(options.observedAt);
+    const reset = calendarInstant(row?.resetsAt), minutes = row?.durationMinutes;
+    if (options.status !== 'available' || now === null || observedAt === null || reset === null
+        || !valid(row?.usedPercent) || !Number.isFinite(minutes) || minutes <= 0) return null;
+    const duration = minutes * 60000, remaining = reset - now;
+    if (!Number.isFinite(duration) || !Number.isFinite(reset - duration)
+        || remaining <= 0 || now < reset - duration || observedAt < reset - duration
+        || observedAt > now || now - observedAt > 600000) return null;
+    const remainingPercent = 100 - row.usedPercent, remainingFraction = remaining / duration;
+    const multiplier = remainingPercent / 100 / remainingFraction;
+    const normalDailyPercent = 100 * 86400000 / duration, availableDailyPercent = remainingPercent * 86400000 / remaining;
+    if (![remainingFraction,multiplier,normalDailyPercent,availableDailyPercent].every(Number.isFinite)) return null;
+    return {multiplier,remainingPercent,remainingFraction,normalDailyPercent,availableDailyPercent,usedPercent:row.usedPercent,reset,observedAt};
+  }
   function paceMark(value, compact = false) {
     if (!value) return '';
     const position = value.elapsed.toFixed(1);
@@ -251,22 +266,37 @@
     .daily-partial-key{background:repeating-linear-gradient(135deg,transparent,transparent 2px,#a5a096 2px,#a5a096 3px),#dad5cb}
     .daily-missing-key{background:repeating-linear-gradient(135deg,transparent,transparent 2px,#bcb6ab 2px,#bcb6ab 3px)}
 
-    .usage-calendar{--calendar-row:84px;--daily-height:36px}
-    .usage-workspace-timeline .usage-calendar .history-grid{--identity-width:78px}
+    .usage-calendar{--calendar-row:104px;--daily-height:30px}
+    .usage-workspace-timeline .usage-calendar .history-grid{--identity-width:100px}
     .usage-calendar .history-fixed-row{height:var(--calendar-row);min-height:var(--calendar-row)}
     .usage-calendar .timeline-provider{padding:0;min-height:32px}
     .usage-calendar .history-rail-lane{height:var(--calendar-row)}
     .usage-calendar .history-day-grid{position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(to right,#e7e3dc66 0 1px,transparent 1px var(--rail-cell))}
-    .usage-workspace-timeline .usage-calendar .history-baseline{top:30px}
-    .usage-workspace-timeline .usage-calendar .history-usage-marker{top:0;width:44px;height:44px}
-    .usage-workspace-timeline .usage-calendar .history-usage-point{top:18px;width:24px;height:24px;border:0;border-radius:0;background:none;color:var(--color)}
+    .usage-workspace-timeline .usage-calendar .history-baseline{top:54px}
+    .usage-workspace-timeline .usage-calendar .history-usage-marker{top:26px;width:44px;height:44px}
+    .usage-workspace-timeline .usage-calendar .history-usage-point{top:18px;width:20px;height:20px;border:0;border-radius:0;background:none;color:var(--color)}
     .history-reset-arrow{display:block;width:100%;height:100%}
     .usage-workspace-timeline .usage-calendar .history-usage-value{top:0;font-size:14px;line-height:18px;font-weight:650;color:#46413b;padding-inline:2px}
-    .usage-workspace-timeline .usage-calendar .projected .history-usage-point{color:#8b8780;background:none;border:0}
-    .usage-workspace-timeline .usage-calendar .projected .history-usage-value{color:#736e68;font-weight:550}
-    .usage-workspace-timeline .usage-calendar .allowance-drop .history-usage-point{top:23px;width:14px;height:14px;border-radius:2px;background:#f5f5f4;border:2px solid var(--color);transform:translateX(-50%) rotate(45deg)}
+    .usage-workspace-timeline .usage-calendar .pace .history-usage-point{color:#8b8780;background:none;border:0}
+    .usage-workspace-timeline .usage-calendar .pace .history-usage-value{color:#736e68;font-weight:550}
+    .usage-workspace-timeline .usage-calendar .allowance-drop .history-usage-point{top:21px;width:14px;height:14px;border-radius:2px;background:#f5f5f4;border:2px solid var(--color);transform:translateX(-50%) rotate(45deg)}
     .usage-workspace-timeline .usage-calendar .allowance-drop .history-usage-value{font-size:13px}
-    .usage-calendar .calendar-daily-bars{position:absolute;top:44px;left:0;right:0;height:var(--daily-height)}
+    .usage-workspace-timeline .usage-calendar .current{top:0;height:26px}
+    .usage-workspace-timeline .usage-calendar .current .history-usage-point{top:21px;width:5px;height:5px;border-radius:50%;background:var(--color)}
+    .usage-workspace-timeline .usage-calendar .current .history-usage-value{font-size:15px;color:#403d36}
+    .usage-calendar .history-current-unit{font-size:11px;font-weight:400;color:#746f66;margin-left:3px}
+    .usage-workspace-timeline .usage-calendar .current.is-unavailable .history-usage-point{background:#8b8780}
+    .usage-workspace-timeline .usage-calendar .current.is-unavailable .history-usage-value{color:#817b72}
+    .usage-calendar .calendar-daily-bars{position:absolute;top:70px;left:0;right:0;height:var(--daily-height)}
+    .calendar-identity{width:100%;padding-right:5px}
+    .calendar-provider-row{display:flex;align-items:center;justify-content:space-between;gap:2px}
+    .calendar-provider-row .timeline-provider{font-size:13px;gap:4px}
+    .calendar-provider-row .timeline-provider .brand{width:15px;height:15px}
+    .calendar-provider-row .provider-actions{width:13px;height:28px;flex:none}
+    .calendar-provider-row .provider-actions svg{width:12px;height:14px}
+    .calendar-period{display:flex;align-items:center;min-height:22px;margin-left:19px}
+    .calendar-period .period-switch{margin:0;font-size:10px;line-height:15px}
+    .calendar-period .period-switch button{min-height:21px;padding:1px 3px;font-size:10px}
     .usage-calendar .daily-bar{position:absolute;top:0;height:var(--daily-height);padding-inline:2px;gap:0;touch-action:pan-x pan-y pinch-zoom}
     .usage-calendar .daily-bar-track{height:100%;background:none;border-color:#d8d4cc}
     .usage-calendar .daily-bar.missing .daily-bar-track{background:repeating-linear-gradient(135deg,transparent,transparent 3px,#dcd7cd88 3px,#dcd7cd88 4px)}
@@ -277,21 +307,23 @@
     .usage-calendar .daily-selected .daily-bar-track{outline-color:var(--color)}
     .usage-calendar .history-rail-tools{gap:6px;flex-wrap:nowrap}
     .usage-calendar .history-rail-tools h2{font-size:12px;white-space:nowrap}
-    .usage-calendar .history-rail-legend{font-size:10px;gap:3px}
+    .usage-calendar .history-rail-legend{font-size:11px;gap:3px;color:#6f6a61}
     .usage-calendar .legend-recorded{width:13px;height:13px;border-radius:0;background:none;color:#79736a}
+    .usage-calendar .legend-current{width:5px;height:5px;border-radius:50%;background:#77746d}
     .usage-calendar .legend-drop{width:7px;height:7px;border:1.5px solid #8c857c;transform:rotate(45deg);margin-left:3px}
     .usage-calendar .history-rail-month{font-size:10px}
     .usage-calendar .calendar-footer{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:29px;font-size:11px;color:#746f66}
     .usage-calendar .calendar-footer button{display:flex;align-items:center;gap:4px;padding:0;min-height:28px;text-align:left}
     .usage-calendar .calendar-footer svg{width:13px;height:13px}
     .usage-calendar .daily-patterns{min-height:0;gap:8px;font-size:10px}
-    .usage-calendar .calendar-coverage{min-height:18px;color:#817b72;font-size:10px}
+    .usage-calendar .calendar-coverage{display:flex;justify-content:space-between;align-items:center;min-height:22px;color:#746f66;font-size:11px}
+    .usage-calendar .calendar-coverage button{padding:0;color:inherit;min-height:22px}
     .usage-calendar .daily-loading{padding:5px 0;font-size:11px}
-    @media(max-width:350px){.usage-workspace-timeline .usage-calendar .history-grid{--identity-width:68px}.usage-calendar .history-rail-tools{gap:5px}.usage-calendar .history-rail-month{display:none}.usage-calendar .history-rail-tools h2{font-size:11px}.usage-calendar .timeline-provider{font-size:12px}}
+    @media(max-width:350px){.usage-workspace-timeline .usage-calendar .history-grid{--identity-width:94px}.usage-calendar .history-rail-tools{gap:5px}.usage-calendar .history-rail-month{display:none}.usage-calendar .history-rail-tools h2{font-size:11px}.usage-calendar .timeline-provider{font-size:12px}.calendar-provider-row .timeline-provider{font-size:12px;gap:3px}}
   `;
   document.head.append(workspaceStyle);
   function workspace({overview='',timeline='',daily=''} = {}) {
     return `<div class="usage-workspace">${overview?`<section class="usage-workspace-overview" aria-label="Current account allowances">${overview}</section>`:''}${timeline?`<section class="usage-workspace-timeline" aria-label="Reset timeline">${timeline}</section>`:''}${daily?`<section class="usage-workspace-daily" aria-label="Daily allowance history">${daily}</section>`:''}</div>`;
   }
-  window.NowUsage = {render,compact,workspace,calendarAxis,calendarDay,resetMarker};
+  window.NowUsage = {render,compact,workspace,calendarAxis,calendarDay,resetMarker,remainingPace};
 })();
