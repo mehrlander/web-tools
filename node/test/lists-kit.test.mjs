@@ -209,3 +209,13 @@ test('two quick writes both land: they queue, and a read that lags behind this p
   const res = await L.append(reg, 'lists/to-do.json', { id: 't4', text: 'd' }, 'msg');
   assert.deepEqual(res.items.map(i => i.id), ['tX', 't4']);
 });
+
+test("an item's flair is one icon for each facet it declares, and nothing for what it does not", () => {
+  assert.deepEqual(L.flair({ id: 'a', kind: 'behavior', origin: 'owner' }).map(f => [f.facet, f.icon]),
+    [['kind', 'ph-robot'], ['origin', 'ph-user']]);
+  assert.deepEqual(L.flair({ id: 'a', kind: 'technical' }).map(f => f.icon), ['ph-bug']);
+  assert.equal(L.flair({ id: 'a', kind: 'technical' })[0].tip, 'Technical: something broke');
+  assert.deepEqual(L.flair({ id: 'a' }), [], 'an item that declares no facet');
+  assert.deepEqual(L.flair({ id: 'a', kind: 'toString', origin: 'elsewhere' }), [], 'a value the table lacks');
+  assert.deepEqual(L.flair(null), []);
+});

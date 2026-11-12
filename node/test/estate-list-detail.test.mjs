@@ -122,7 +122,7 @@ const type = (input, value) => { input.value = value; input.dispatchEvent(new wi
 const line = (o) => JSON.stringify(o) + '\n';
 
 const SNAGS = [
-  { id: 'a-count-off-by-one', text: 'the row count was off by one after a sort', note: 'The **sort** ran before the last row arrived.',
+  { id: 'a-count-off-by-one', kind: 'behavior', text: 'the row count was off by one after a sort', note: 'The **sort** ran before the last row arrived.',
     repo: 'o/tools', seen: ['2026-10-01', '2026-10-03'], targets: ['o/tools:python/scan.py', 'o/tools:node/test/scan.test.mjs'],
     created_at: '2026-10-01T10:00:00.000Z' },
   { id: 'a-door-left-open', name: 'Stale drawer', text: 'a panel stayed open behind the next one', repo: 'o/tools', seen: ['2026-10-02'],
@@ -262,6 +262,11 @@ test('both tabs declare the list and detail, each row a compact item', async () 
   assert.equal(text(rows[1].querySelector('[data-part="title"]')), 'Stale drawer');
   for (const row of rows) assert.match(row.querySelector('[data-part="title"]').className, /\btruncate\b/, 'one line, cut short where it runs over');
   assert.equal(text(rows[0].querySelector('[data-part="summary"]')), 'the row count was off by one after a sort');
+  // Flair follows the title: an icon for a facet the snag declares, small and quiet.
+  assert.deepEqual([...rows[0].querySelectorAll('[data-flair] > i')].map(i => i.getAttribute('aria-label')), ['Behavior: a session did something unwanted']);
+  assert.ok(rows[0].querySelector('[data-flair] > i.ph-robot'));
+  assert.equal(rows[1].querySelector('[data-flair] > i'), null, 'a snag that declares no facet has none');
+  assert.ok(rows[0].querySelector('[data-part="title"]').compareDocumentPosition(rows[0].querySelector('[data-flair]')) & window.Node.DOCUMENT_POSITION_FOLLOWING);
   assert.match(rows[0].querySelector('[data-part="summary"]').className, /\bline-clamp-2\b.*\btext-base\b/, 'two lines at most, at the size of the title');
   // Beside the title: how often, its notes, how lately. The repo is its mark,
   // ahead of the title.
