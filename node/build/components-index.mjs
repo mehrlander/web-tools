@@ -59,6 +59,11 @@
 //   setups     how many setups are written for it: the
 //              <template data-setup> blocks in demos/<file>.html beside the
 //              component, which the component stage (demos/index.html) mounts
+//   seen_at    where the app shows it for real: the page address its demos
+//              file names in a <template data-seen-at> block, from the site's
+//              root (app/index.html?view=sessions&session=…). A look link to
+//              that page with `component:<name>` lands on it there
+//   seen_label    that block's data-seen: a few words on what the address shows
 //   tested     its basename appears in a file under node/test/
 //
 // Run `npm run components-index` to restamp; `--check` compares instead of
@@ -73,7 +78,7 @@ import { headlineOf } from './kits-index.mjs';
 import { repoRoot } from '../repo-root.mjs';
 
 // Fixed here so a restamp cannot reorder the file.
-export const COMPONENTS_COLS = ['path', 'names', 'gloss', 'lines', 'routes', 'views', 'leads', 'loads', 'mounts', 'mounted_by', 'pages', 'patterns', 'kits', 'events', 'options', 'hears', 'codes', 'parts', 'setups', 'tested'];
+export const COMPONENTS_COLS = ['path', 'names', 'gloss', 'lines', 'routes', 'views', 'leads', 'loads', 'mounts', 'mounted_by', 'pages', 'patterns', 'kits', 'events', 'options', 'hears', 'codes', 'parts', 'setups', 'seen_at', 'seen_label', 'tested'];
 
 const GLOSS_MAX = 160;
 const read = (root, rel) => readFileSync(path.join(root, rel), 'utf8');
@@ -167,9 +172,16 @@ export function deriveComponents(root) {
   const units = files.includes('data/ui-units/units.csv') ? parseCsv(read(root, 'data/ui-units/units.csv')) : [];
   const uniq = (src, re) => [...new Set([...src.matchAll(re)].map(m => m[1]))].sort();
 
-  const setupsOf = (base) => {
+  const demosOf = (base) => {
     const f = 'lib/alpineComponents/demos/' + base.replace(/\.js$/, '.html');
-    return files.includes(f) ? (read(root, f).match(/<template\b[^>]*\bdata-setup=/g) || []).length : 0;
+    return files.includes(f) ? read(root, f).replace(/<!--[\s\S]*?-->/g, '') : '';
+  };
+  const setupsOf = (base) => (demosOf(base).match(/<template\b[^>]*\bdata-setup=/g) || []).length;
+  // The one place the app shows it, where its demos file names one.
+  const seenOf = (base) => {
+    const tag = (demosOf(base).match(/<template\b[^>]*\bdata-seen-at="[^"]*"[^>]*>/) || [''])[0];
+    const attr = (k) => (tag.match(new RegExp('\\b' + k + '="([^"]*)"')) || [])[1] || '';
+    return { at: attr('data-seen-at').replace(/&amp;/g, '&'), as: attr('data-seen') };
   };
   const rows = comps.map(rel => {
     const src = sources.get(rel) ?? read(root, rel);
@@ -219,6 +231,8 @@ export function deriveComponents(root) {
       codes: [...codes].map(([k, n]) => k + ':' + n).join(';'),
       parts: uniq(src, /\bdata-part="([a-z][\w-]*)"/g).join(';'),
       setups: setupsOf(base),
+      seen_at: seenOf(base).at,
+      seen_label: seenOf(base).as,
       tested: tests.includes(base) ? 'yes' : 'no',
     };
   });
@@ -251,7 +265,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
     process.exit(0);
   }
   writeFileSync(file, bytes);
-  console.log(`components-index: ${rows.length} components; ${rows.filter(r => r.leads).length} lead an app view, ${rows.filter(r => r.setups).length} have a setup, `
+  console.log(`components-index: ${rows.length} components; ${rows.filter(r => r.leads).length} lead an app view, ${rows.filter(r => r.setups).length} have a setup, ${rows.filter(r => r.seen_at).length} name where the app shows them, `
     + `${rows.filter(r => r.patterns).length} declare a pattern, ${rows.filter(r => r.tested === 'yes').length} tested`);
   for (const r of rows.filter(r => !r.gloss)) console.log('  no gloss  ' + r.path);
   for (const r of rows.filter(r => !r.names)) console.log('  no Alpine.data name  ' + r.path);

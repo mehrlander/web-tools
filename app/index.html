@@ -698,7 +698,7 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
            second permanent control for a verb reachable by a gesture is the
            kind of thing that accretes until nothing on the row is findable.
            pasteAnywhere() is untouched and still the one implementation. -->
-      <button @click="toggleSidebar()"
+      <button @click="toggleSidebar()" data-at="sidebar-open"
               class="shrink-0 p-1 rounded-lg transition-colors"
               :class="[sidebarOpen ? 'text-primary bg-primary/10' : 'hover:bg-base-200',
                        !showSidebar && 'lg:hidden']"
@@ -741,6 +741,7 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
        that one modifier was the whole reason the desktop sidebar could not be
        put away. -->
   <aside class="fixed inset-y-0 left-0 w-72 max-w-[85vw] z-50 bg-base-100 border-r border-base-300 shadow-xl flex flex-col transition-transform duration-200 ease-out lg:static lg:z-auto lg:shadow-none lg:w-80 xl:w-[22rem] lg:shrink-0"
+         data-at-open="sidebar-open"
          :class="[sidebarOpen ? 'translate-x-0' : '-translate-x-full', (!showSidebar || !sidebarOpen) && 'lg:hidden']">
     <!-- Sidebar top bar: in a repo, a CRUMB TRAIL (crumbBar, sidebarCrumbs).
          Two crumbs earn the bar back. The mark is the route to the dashboard,
@@ -1654,7 +1655,7 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
             <button @click="toggleRepoMenu($store.browser.repo, $event.currentTarget, 'repos', { align: 'left' })"
                     class="relative shrink-0 size-9 rounded-xl flex items-center justify-center transition-colors bg-primary/10 text-primary hover:bg-primary/20"
                     :aria-expanded="!!repoMenuAt && menuKind === 'repos'" aria-haspopup="menu"
-                    :data-title-tip="'Switch repository'" :aria-label="'Switch repository'" data-repo-switch>
+                    :data-title-tip="'Switch repository'" :aria-label="'Switch repository'" data-repo-switch data-at="repo-menu-open">
               <i class="ph-duotone text-xl" :class="repoGlyph($store.browser.repo)"></i>
               <i class="ph-bold ph-caret-down absolute -bottom-0.5 -right-0.5 text-[10px] leading-none rounded-full bg-base-100 p-0.5 text-base-content/60"></i>
             </button>
@@ -2460,7 +2461,7 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
      The pointer handlers are the other half of hover-to-open: entering the
      panel cancels the countdown a trigger's mouseleave started, so the trip
      across the 2 px gap does not close what it is heading for. ─────────── -->
-<div x-show="repoMenuAt" x-cloak @click.outside="repoMenuAt = null"
+<div x-show="repoMenuAt" x-cloak @click.outside="repoMenuAt = null" data-at-open="repo-menu-open"
      @mouseenter="cancelMenuClose()" @mouseleave="hoverLeaveMenu()"
      class="fixed z-[55] max-h-[60vh] overflow-y-auto rounded-lg border border-base-300 bg-base-100 shadow-lg"
      :style="repoMenuStyle">

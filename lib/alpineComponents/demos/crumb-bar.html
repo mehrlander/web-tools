@@ -1,6 +1,11 @@
 <!-- Setups for crumbBar (../crumb-bar.js), mounted by the component stage
      (index.html?c=crumb-bar). Each template is one mount as a host writes it. -->
 
+<!-- Where the app shows it for real: its card on the Map view offers this beside the setups,
+     and a look link to it with component:crumbBar lands on it there. Ahead of the
+     setups, so it is no part of one. -->
+<template data-seen-at="app/index.html?repo=mehrlander/web-tools" data-seen="The trail at the top of the app’s sidebar"></template>
+
 <template data-setup="A short trail">
   <div x-data="{ at: 'docs' }" class="rounded-lg border border-base-300 px-1">
     <nav x-data="crumbBar({ items: () => [

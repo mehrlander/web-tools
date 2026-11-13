@@ -1316,3 +1316,90 @@ test('a missed anchor offers Look again, and the console where a page has a FAB'
   assert.deepEqual({ ...asked }, { console: true }, 'the FAB is asked for its drawer with the console open');
   assert.equal(card(v).querySelector('[data-say]').style.textWrap || '', '', 'the message wraps where it wraps: no balancing');
 });
+
+// ── a component is a place ────────────────────────────────────────────────
+
+// jsdom lays nothing out, so every box is 0 by 0. Here an element is as big as
+// its data-size says ("120x40"), and 0 by 0 without one or while hidden.
+const sized = (w) => {
+  w.Element.prototype.getBoundingClientRect = function () {
+    const [width, height] = this.closest('[hidden]') ? [0, 0] : (this.getAttribute('data-size') || '0x0').split('x').map(Number);
+    return { left: 10, top: 10, right: 10 + width, bottom: 10 + height, width, height };
+  };
+};
+const ringed = (w) => w.document.querySelector('[data-look="halo"]').style.display === 'block';
+
+test('component:<name> lands on the element that mounts it, by the name its x-data opens with', async () => {
+  const w = realm(`<div x-data="crumbBarHost()" data-size="300x40" id="host"></div>
+    <nav x-data="crumbBar({ items: () => [] })" data-size="200x44" id="bar"></nav>
+    <nav x-data=" crumbBar()" data-size="200x44" id="bar2"></nav>`, '', undefined, { before: sized });
+  assert.equal(w.Look.find('component:crumbBar').id, 'bar', 'not the host whose name merely starts the same');
+  assert.equal(w.Look.find('component:crumbBar#2').id, 'bar2', 'and #2 is the second in the page’s order');
+  assert.equal(w.Look.find('component:crumbBar#3'), null);
+  assert.equal(w.Look.find('component:nothing'), null);
+  w.Look.start([{ at: 'component:crumbBar', say: 'the crumb bar' }], { wait: 60 });
+  await wait(120);
+  assert.equal(said(w), 'the crumb bar');
+  assert.ok(ringed(w));
+});
+
+test('a component whose root has no box is ringed by what it draws', () => {
+  // The FAB: a root 0 px tall, a full-window layer that takes no pointer, and
+  // the launcher inside it, which takes the pointer back as the real one does
+  // (pointer-events inherits); plus a nested component whose drawing is its own.
+  const w = realm(`<div x-data="fab()">
+      <div data-size="1280x800" style="pointer-events:none" id="layer">
+        <button data-size="56x56" style="pointer-events:auto" id="launcher">open</button>
+      </div>
+      <div x-data="pathPicker()" data-size="400x300" id="nested"></div>
+    </div>`, '', undefined, { before: sized });
+  assert.equal(w.Look.find('component:fab').id, 'launcher');
+});
+
+test('a component that draws nothing is opened by the control its root names, or said to be hidden', async () => {
+  const body = (opener) => `<button data-at="repo-menu-open" id="open">menu</button>
+    <div x-data="repoMenu()" id="menu" ${opener}><ul hidden data-size="180x120" id="list"></ul></div>`;
+  const w = realm(body('data-at-open="repo-menu-open"'), '', undefined, { before: sized });
+  w.document.getElementById('open').addEventListener('click', () => w.document.getElementById('list').removeAttribute('hidden'));
+  w.Look.start([{ at: 'component:repoMenu', say: 'the repo menu' }], { wait: 60 });
+  await wait(250);
+  assert.equal(said(w), 'the repo menu', 'the opener was clicked and the menu landed on');
+  assert.ok(ringed(w));
+
+  const v = realm(body(''), '', undefined, { before: sized });
+  v.Look.start([{ at: 'component:repoMenu', say: 'unused' }], { wait: 60 });
+  await wait(250);
+  assert.match(said(v), /^Hidden on this page: component:repoMenu$/, 'mounted, drawing nothing, and no opener declared');
+});
+
+test('linkTo writes a look link for the page the reader is on, nested inside a toss', () => {
+  const w = realm('<p>x</p>', 'tab=one', 'https://localhost/app/?view=map');
+  assert.equal(w.Look.linkTo('component:crumbBar', 'the crumb bar'),
+    'https://localhost/app/?view=map#tab=one&show=component%3AcrumbBar&say=the%20crumb%20bar');
+  // The shell of a toss, asked for a place in the page it frames: the page's
+  // fragment follows the address after %23, its own % and & escaped once more.
+  const shell = realm('<p>x</p>', 'gh=o/r@abc:app/index.html?view=map%23show=old',
+    'https://localhost/pages/toss-render.html');
+  assert.equal(shell.Look.linkTo('component:crumbBar', 'a & b', true),
+    'https://localhost/pages/toss-render.html#gh=o/r@abc:app/index.html?view=map%23show=component%253AcrumbBar%26say=a%2520%2526%2520b');
+});
+
+test('a region slid off the side of the window is opened before its target is landed on', async () => {
+  // The app's sidebar on a phone: laid out in full, a screen's width to the
+  // left, with the crumb bar inside it at its full size.
+  const w = realm(`<button data-at="sidebar-open" id="open">menu</button>
+    <aside data-at-open="sidebar-open" id="side"><nav x-data="crumbBar()" id="bar"></nav></aside>`, '', undefined, { before(w) {
+    w.Element.prototype.getBoundingClientRect = function () {
+      const side = w.document.getElementById('side');
+      const left = this.closest('#side') && !side.hasAttribute('data-in') ? -288 : 0;
+      const [width, height] = this.id === 'side' ? [288, 800] : this.id === 'bar' ? [200, 44] : [40, 40];
+      return { left, top: 0, right: left + width, bottom: height, width, height };
+    };
+  } });
+  let clicks = 0;
+  w.document.getElementById('open').addEventListener('click', () => { clicks++; w.document.getElementById('side').setAttribute('data-in', ''); });
+  w.Look.start([{ at: 'component:crumbBar', say: 'the crumb bar' }], { wait: 60 });
+  await wait(250);
+  assert.equal(clicks, 1, 'the sidebar’s opener was clicked once');
+  assert.equal(said(w), 'the crumb bar');
+});

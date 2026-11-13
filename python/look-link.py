@@ -30,6 +30,9 @@ This checks before the link is sent, from the page's source:
 `text:` and `css:` anchors are reported as unchecked: they resolve against the
 rendered page, which a source read cannot see. So is any name on a page that
 sets data-at from script, where a miss here may be a name made at run time.
+A `component:<name>` anchor is unchecked for the same reason, once its name is
+one the hub's registry (docs/components.csv) lists; a name no component
+registers is a miss.
 
 Usage:
     look-link.py anchors PAGE              the anchors a page declares, one a line
@@ -130,9 +133,33 @@ def read_page(text, page=None):
     }
 
 
+# A component anchor names an Alpine component by the name x-data mounts it
+# with (lib/kits/look.js, component()). Whether the page mounts it is the
+# rendered page's to say, but whether any such component exists is not: the
+# hub's registry lists every name, so a misspelt one is a miss here.
+COMPONENT = re.compile(r"^component:([A-Za-z_$][\w$]*)(?:#\d+)?$")
+
+
+def component_names():
+    """Every name a component registers, from the hub's registry beside this
+    script; None where no registry is there to ask."""
+    reg = Path(__file__).resolve().parent.parent / "docs" / "components.csv"
+    if not reg.is_file():
+        return None
+    import csv
+    with reg.open(newline="", encoding="utf-8") as f:
+        return {n for row in csv.DictReader(f) for n in (row.get("names") or "").split(";") if n}
+
+
 def resolve(info, at):
     """How an anchor resolves against a page's source, or None for a miss."""
     if at.startswith(("text:", "css:")):
+        return "unchecked"
+    if at.startswith("component:"):
+        m = COMPONENT.match(at)
+        names = component_names()
+        if not m or (names is not None and m.group(1) not in names):
+            return None
         return "unchecked"
     if at in info["names"]:
         return "name"
@@ -222,7 +249,7 @@ SELECTOR = re.compile(r"[\[\]=>*~+\s]|^[.#]")
 
 
 def looks_like_selector(at):
-    return not at.startswith(("text:", "css:")) and bool(SELECTOR.search(at))
+    return not at.startswith(("text:", "css:", "component:")) and bool(SELECTOR.search(at))
 
 
 def address(at):
