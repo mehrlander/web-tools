@@ -360,9 +360,9 @@ Direction with an unclear standard and weak support. Broad guidance can be usefu
 
 ### Domain page links to GitHub, chats · `P71`
 
-A page of a domain app, an app such as budget-drs's whose subject is a field of work, linking to GitHub or to a chat. This peeve does not concern the Web Tools app, which focuses on interaction with GitHub and AI.
+A page of a domain app, an app such as budget-drs's whose subject is a field of work, linking to or referencing GitHub or a chat. This peeve does not concern the Web Tools app, which focuses on interaction with GitHub and AI.
 
-**Look for:** a link on a domain app page that opens github.com, claude.ai or chatgpt.com; a figure's source given as a chat link
+**Look for:** a link on a domain app page that opens github.com, claude.ai or chatgpt.com; a figure's source given as a chat
 
 **Area:** page-design · **Detector:** reader · **Sessions:** 1 · **Status:** active
 
