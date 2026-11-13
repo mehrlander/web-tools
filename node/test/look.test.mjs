@@ -1404,14 +1404,18 @@ test('a region slid off the side of the window is opened before its target is la
   assert.equal(said(w), 'the crumb bar');
 });
 
-test('component:<name> prefers the instance drawn inside the window', () => {
-  // A strip of three cards, each mounting the component: the first is a
-  // window's width to the left, the second is the one in view.
-  const w = realm(`<div x-data="viewer()" id="prev" data-left="-900"></div>
-    <div x-data="viewer()" id="here" data-left="100"></div>
-    <div x-data="viewer()" id="next" data-left="1100"></div>`, '', undefined, { before(w) {
+test('component:<name> prefers the instance with the most of itself in sight', () => {
+  // A strip of three cards, each mounting the component. The strip clips its
+  // cards and starts at 300, so the first card overlaps the window (it ends
+  // at 300) and none of it shows; the second is the one in view.
+  const w = realm(`<div id="strip" style="overflow:hidden" data-left="300">
+      <div x-data="viewer()" id="prev" data-left="-500"></div>
+      <div x-data="viewer()" id="here" data-left="300"></div>
+      <div x-data="viewer()" id="next" data-left="1100"></div>
+    </div>`, '', undefined, { before(w) {
     w.Element.prototype.getBoundingClientRect = function () {
-      const left = Number(this.getAttribute('data-left') || 0);
+      if (!this.hasAttribute('data-left')) return { left: 0, top: 0, right: 1024, bottom: 768, width: 1024, height: 768 };
+      const left = Number(this.getAttribute('data-left'));
       return { left, top: 10, right: left + 800, bottom: 410, width: 800, height: 400 };
     };
   } });
