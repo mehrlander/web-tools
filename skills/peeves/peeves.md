@@ -358,6 +358,14 @@ Direction with an unclear standard and weak support. Broad guidance can be usefu
 
 **Area:** writing · **Detector:** reader · **Sessions:** 1 · **Status:** active
 
+### Domain page links to GitHub, chats · `P71`
+
+A page of a domain app, an app whose subject is a field of work such as the DRS budget, linking to GitHub or to a chat. A Web Tools app view, whose subject is a repository, keeps its GitHub link.
+
+**Look for:** on a budget-drs app page, a link that opens github.com, claude.ai or chatgpt.com; a figure's source given as a chat link
+
+**Area:** page-design · **Detector:** reader · **Sessions:** 1 · **Status:** active
+
 ## Combined entries
 
 ### Fix the sentence, add no note · `P02`
