@@ -163,18 +163,18 @@
   "desk": {
    "file": "component-viewer.desk.jpg",
    "box": [
-    0,
-    0.5502,
     0.2945,
+    0.5502,
+    0.6859,
     0.4498
    ]
   },
   "phone": {
    "file": "component-viewer.phone.jpg",
    "box": [
-    0,
+    0.0436,
     0.495,
-    0.2,
+    0.9128,
     0.4754
    ]
   }
