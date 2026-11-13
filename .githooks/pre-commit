@@ -228,6 +228,18 @@ if changed lib pages app node/test node/build/kits-index.mjs docs/kits.csv; then
   fi
 fi
 
+# --- leg components-registry: lib/alpineComponents/ -> the components registry -
+# docs/components.csv authors nothing: names, gloss, routes, loads, mounts,
+# patterns and tested are all read off the tree, so a change to a component, to
+# a file that loads or mounts one, or to the app's routes can move a row.
+if changed lib pages app node/test docs/app-routes.csv data/ui-units/units.csv node/build/components-index.mjs docs/components.csv; then
+  if npm run components-index --silent >/dev/null 2>&1; then
+    stage docs/components.csv
+  else
+    echo "build hook: 'npm run components-index' failed — docs/components.csv may be stale" >&2
+  fi
+fi
+
 # --- leg renders-in: lib/ or pages/ -> the registries' renders_in field -------
 # docs/registries.csv is authored everywhere except `renders_in`, the app
 # files that name each registry, stamped the way leg docs-reach stamps reach. Must

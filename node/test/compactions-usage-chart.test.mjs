@@ -29,7 +29,7 @@ const FIRST = '2026-11-04-0ddba11a-20261104T120000Z', SECOND = '2026-11-04-0ddba
 test('the context panel alone: no cost panel, no legend, its own prompt axis', () => {
   const s = C.svg(u, 390, { ph: 96, costPh: 0 });
   assert.match(s, /Context after each prompt/);
-  assert.doesNotMatch(s, />Cost of each prompt<|>warm cache<|>idle re-load</);
+  assert.doesNotMatch(s, />Cost of each prompt<|>normal cost<|>idle re-load</);
   assert.match(s, /height="142"/, '22 above, 96 of panel, 24 for the prompt numbers');
   assert.equal((s.match(/data-k="\d+"/g) || []).length, u.prompts.length, 'one hit area per prompt');
 });
@@ -52,6 +52,24 @@ test('a link at the panel head, drawn in the text colours, never a series hue', 
   assert.doesNotMatch(s, /<text[^>]*fill="#/);
 });
 
+test('combined: one short panel, the bars behind the line, dollars on a right axis, each series named', () => {
+  const s = C.svg(u, 328, { ph: 48, combined: true, pick: 1 });
+  assert.match(s, /height="82"/, '18 of legend, 48 of panel, 16 for the prompt numbers');
+  assert.doesNotMatch(s, />Context after each prompt<|>Cost of each prompt</);
+  assert.equal((s.match(/data-k="\d+"/g) || []).length, u.prompts.length, 'one hit area per prompt, not two');
+  assert.ok((s.match(/data-usage-bar/g) || []).length > 0, 'the cost bars are drawn');
+  assert.equal((s.match(/data-usage-right/g) || []).length, 3, 'three dollar labels on the right, level with the three on the left');
+  assert.match(s, /data-usage-legend="line"[^>]*>context</);
+  const grey = +(/data-usage-legend="bar"[^>]*>normal cost \$([\d.,]+)</.exec(s) || [])[1].replace(/,/g, '');
+  const orange = +(/data-usage-legend="idle"[^>]*>idle re-load \$([\d.,]+)</.exec(s) || [])[1].replace(/,/g, '');
+  assert.ok(Math.abs(grey + orange - u.totals.modelled) <= 1, "beside each cost entry, what its colour adds up to: the two make the session's cost");
+  assert.ok(Math.abs(orange - u.totals.reload) <= 0.5);
+  const narrow = C.svg(u, 150, { ph: 48, combined: true });
+  assert.match(narrow, /data-usage-legend="bar"[^>]*>normal cost</, 'a row too narrow for the figures keeps the names');
+  assert.match(s, /<path [^>]*stroke-opacity="0\.55"/, 'the context line is lighter than its hue');
+  assert.equal((s.match(/data-usage-pick/g) || []).length, 1, 'the picked compaction is still picked out');
+});
+
 test('the record name and the extract path come from a summary id', () => {
   const X = window.Compactions;
   assert.equal(X.recordName(FIRST), '2026-11-04-0ddba11a');
@@ -67,9 +85,9 @@ function component(files) {
   c.sel = FIRST;
   return { c, reads };
 }
-const card = (c, id) => {
+const card = (c, id, width = 600) => {
   const box = window.document.createElement('div');
-  Object.defineProperty(box, 'clientWidth', { value: 600 });
+  Object.defineProperty(box, 'clientWidth', { value: width });
   window.document.body.append(box);
   const host = c.chartEl(id, false);
   box.append(host);
@@ -92,9 +110,13 @@ test('the extract is read once a card is current, once per session, and drawn wi
   const svg = host.querySelector('svg');
   assert.ok(svg, 'drawn once the extract arrived');
   assert.match(host.querySelector('[data-picked]').getAttribute('data-name'), new RegExp(SECOND));
-  assert.match(host.querySelector('[data-usage-link]').getAttribute('href'), /session\.html#id=0ddba11a&pane=cost$/);
+  assert.equal(host.querySelector('[data-usage-link]'), null, 'the cost panel is on the card, so no link leads to it');
   assert.equal(svg.getAttribute('width'), '600');
-  assert.match(host.innerHTML, /Cost of each prompt/, 'a card 560px or wider adds the shorter cost panel');
+  assert.equal(svg.getAttribute('height'), '82', 'one short panel for context and cost together');
+  assert.ok(host.querySelector('[data-usage-bar]'), 'the cost bars are in it');
+  const phone = card(c, SECOND, 328);
+  await drawn(phone);
+  assert.ok(phone.querySelector('[data-usage-bar]'), 'at phone width too');
 });
 
 test('a session without an extract draws nothing and says nothing', async () => {
@@ -108,7 +130,7 @@ test('a session without an extract draws nothing and says nothing', async () => 
   assert.match(host.className, /empty:hidden/);
 });
 
-test('a tap on another compaction\'s mark opens its summary in the list', async () => {
+test('a tap on another compaction\'s mark opens that summary\'s card', async () => {
   const { c } = component({ 'sessions/usage/2026/11/2026-11-04-0ddba11a.json': JSON.stringify(extract) });
   const picks = [];
   c._swiper = { pick: (id) => picks.push(id) };
@@ -118,5 +140,5 @@ test('a tap on another compaction\'s mark opens its summary in the list', async 
   await drawn(host);
   const other = host.querySelector(`[data-name="${SECOND}"] circle`);
   other.dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true }));
-  assert.deepEqual(picks, [SECOND]);
+  assert.deepEqual(picks, [SECOND], 'the strip is asked to go to it');
 });

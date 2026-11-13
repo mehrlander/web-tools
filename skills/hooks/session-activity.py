@@ -152,6 +152,9 @@ def capture(payload, env, now=None):
     return repo, path
 
 
+COALESCE_SECONDS = 2.0
+
+
 def keep_base(repo, base):
     """Hold the fetched tip under a local ref, so the next fetch has a commit in common.
 
@@ -164,9 +167,13 @@ def keep_base(repo, base):
         pass
 
 
-def publish(repo, staged):
+def publish(repo, staged, expected_at=None, coalesce_sec=0.0):
     """Retry a conditional, single-path update. Never overwrite a newer signal."""
+    if coalesce_sec > 0:
+        time.sleep(coalesce_sec)
     row = json.loads(Path(staged).read_text(encoding="utf-8"))
+    if expected_at and row.get("updatedAt") != expected_at:
+        return
     at = dt.datetime.fromisoformat(row["updatedAt"])
     if dt.datetime.now(UTC) - at > dt.timedelta(days=1):
         return
@@ -176,9 +183,13 @@ def publish(repo, staged):
     encoded = json.dumps(row, ensure_ascii=False).encode("utf-8")
     for attempt in range(3):
         try:
+            if attempt > 0:
+                latest = json.loads(Path(staged).read_text(encoding="utf-8"))
+                if dt.datetime.fromisoformat(latest["updatedAt"]) > at:
+                    return
             # FETCH_HEAD is not used by the worker. Pin the returned commit for every read.
             base = git(repo, "ls-remote", "origin", "refs/heads/background").decode().split()[0]
-            git(repo, "fetch", "--quiet", "--no-tags", "origin", base)
+            git(repo, "fetch", "--quiet", "--no-tags", "--no-auto-maintenance", "--no-write-fetch-head", "origin", base)
             keep_base(repo, base)
             try:
                 old = json.loads(git(repo, "show", base + ":" + target))
@@ -203,18 +214,23 @@ def publish(repo, staged):
 
 
 def launch(repo, staged):
+    expected = json.loads(Path(staged).read_text(encoding="utf-8")).get("updatedAt", "")
     options = {"stdin": subprocess.DEVNULL, "stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL}
     if os.name == "nt":
         options["creationflags"] = subprocess.CREATE_NO_WINDOW | subprocess.DETACHED_PROCESS
     else:
         options["start_new_session"] = True
-    subprocess.Popen([sys.executable, str(Path(__file__).resolve()), "--publish", str(repo), str(staged)], **options)
+    cmd = [sys.executable, str(Path(__file__).resolve()), "--publish", str(repo), str(staged)]
+    if expected:
+        cmd.append(expected)
+    subprocess.Popen(cmd, **options)
 
 
 def main():
     try:
-        if len(sys.argv) == 4 and sys.argv[1] == "--publish":
-            publish(Path(sys.argv[2]), Path(sys.argv[3]))
+        if len(sys.argv) in (4, 5) and sys.argv[1] == "--publish":
+            expected = sys.argv[4] if len(sys.argv) == 5 else None
+            publish(Path(sys.argv[2]), Path(sys.argv[3]), expected_at=expected, coalesce_sec=COALESCE_SECONDS)
         else:
             payload = json.load(sys.stdin)
             if isinstance(payload, dict):

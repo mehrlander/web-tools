@@ -4,8 +4,9 @@
 // (the dictate page's autocorrect table) shown as a list, a created list
 // claiming a capability the pane cannot render for it, a list created over an
 // existing file, a list deleted with its items still in it, a built-in list
-// lost or left behind in its old file when it moved to its new name, and two
-// quick writes where a lagging read drops the first.
+// lost or left behind in its old file when it moved to its new name, two
+// quick writes where a lagging read drops the first, and a row titled by a
+// statement two lines long where the item has a short name.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -108,6 +109,19 @@ test('icon names normalize, and anything else falls back to the plain list icon'
   assert.equal(L.icon('<b>'), L.DEFAULT_ICON);
 });
 
+test('an item is named by its own name, and without one by its id read as words', () => {
+  assert.equal(L.itemName({ id: 'a-count-off-by-one', text: 'the row count was off by one after a sort' }), 'A count off by one');
+  assert.equal(L.itemName({ id: 'a-count-off-by-one', name: '  Off by one  ' }), 'Off by one', 'its own name, trimmed');
+  assert.equal(L.itemName({ id: 'a-count-off-by-one', name: '   ' }), 'A count off by one', 'a blank name is no name');
+  assert.equal(L.itemName({ id: 'a-count-off-by-one', name: 7 }), 'A count off by one', 'nor is one that is not text');
+  assert.equal(L.itemName({ id: '404-read-as-empty' }), '404 read as empty', 'a digit has no capital');
+  assert.equal(L.itemName({ id: 'a-gate--skipped-2' }), 'A gate skipped 2', 'a doubled hyphen is one space');
+  assert.equal(L.itemName({ id: 'lmf3k2a9' }), 'Lmf3k2a9', 'an id that is no slug reads as it is');
+  assert.equal(L.itemName({ id: 12 }), '12');
+  assert.equal(L.itemName({}), '');
+  assert.equal(L.itemName(null), '');
+});
+
 test('create names the file from the title, refuses a taken path, and refuses a built-in', async () => {
   const reg = registry({ 'lists/aphorisms.json': json({ title: 'Aphorisms', items: [] }) });
   const list = await L.create(reg, { title: 'Useful words & phrases', icon: 'book-open-text', capabilities: ['done', 'link'] });
@@ -194,4 +208,16 @@ test('two quick writes both land: they queue, and a read that lags behind this p
   reg.elsewhere('lists/to-do.json', json({ items: [{ id: 'tX', text: 'from a phone' }] }));
   const res = await L.append(reg, 'lists/to-do.json', { id: 't4', text: 'd' }, 'msg');
   assert.deepEqual(res.items.map(i => i.id), ['tX', 't4']);
+});
+
+test("an item's flair is one icon for each facet value the table marks, and nothing for the rest", () => {
+  assert.deepEqual(L.flair({ id: 'a', kind: 'technical', origin: 'owner' }).map(f => [f.facet, f.icon]),
+    [['kind', 'ph-bug'], ['origin', 'ph-user']]);
+  assert.deepEqual(L.flair({ id: 'a', kind: 'technical' }).map(f => f.icon), ['ph-bug']);
+  assert.deepEqual(L.flair({ id: 'a', kind: 'behavior', origin: 'session' }), [], 'the unmarked value of each facet');
+  assert.deepEqual(L.flair({ id: 'a', kind: 'behavior', origin: 'owner' }).map(f => f.icon), ['ph-user']);
+  assert.equal(L.flair({ id: 'a', kind: 'technical' })[0].tip, 'Technical: something broke');
+  assert.deepEqual(L.flair({ id: 'a' }), [], 'an item that declares no facet');
+  assert.deepEqual(L.flair({ id: 'a', kind: 'toString', origin: 'elsewhere' }), [], 'a value the table lacks');
+  assert.deepEqual(L.flair(null), []);
 });

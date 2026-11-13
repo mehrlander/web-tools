@@ -38,7 +38,12 @@ test('a branch tip, a compare, and a miss', () => {
   process.env.SHOT_GIT_API = '1';
   try {
     assert.equal(body(ask('branches/HEAD')).commit.sha, head);
-    assert.equal(body(ask(`compare/${head}...HEAD`)).status, 'identical');
+    const same = body(ask(`compare/${head}...HEAD`));
+    assert.equal(same.status, 'identical');
+    // The commit a three-dot compare diffs from, and the files that differ
+    // from it, which the viewer's Changes mode reads.
+    assert.equal(same.merge_base_commit.sha, head);
+    assert.deepEqual(same.files, []);
     const miss = ask('branches/no-such-branch-' + Date.now());
     assert.equal(miss.status, 404);
   } finally { delete process.env.SHOT_GIT_API; }

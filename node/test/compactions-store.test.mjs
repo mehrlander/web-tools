@@ -3,7 +3,9 @@
 // web-tools-private, one object whose `text` is the summary. The listing keeps
 // only those files and names each by its file name without `.json`, the id
 // `#at=`, `&item=` and the Cost tab's links address; the parse reads the facts
-// and the nine sections from the object.
+// and the nine sections from the object. The list shows one row per session,
+// with a tab per compaction where there is more than one, over one card per
+// summary.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -86,4 +88,162 @@ test("the Cost tab's compaction name is a listed id", async () => {
     : [{ type: 'file', name: name + '.json', path: 'm/' + name + '.json', size: 1 }] };
   c.rows = await c.list();
   assert.ok(c.byId(name), name);
+});
+
+const TREE = {
+  'sessions/compactions': [{ type: 'dir', name: '2026', path: 'sessions/compactions/2026' }],
+  'sessions/compactions/2026': [{ type: 'dir', name: '11', path: 'sessions/compactions/2026/11' }],
+  'sessions/compactions/2026/11': ['2026-11-03-b2cdc8ac-20261105T032503Z', '2026-11-03-b2cdc8ac-20261107T130000Z',
+    '2026-11-03-b2cdc8ac-20261104T010000Z', '2026-11-06-c0517ab1-20261106T133000Z']
+    .map((n) => ({ type: 'file', name: n + '.json', path: 'sessions/compactions/2026/11/' + n + '.json', size: 1 })),
+};
+const B = '2026-11-03-b2cdc8ac', C1 = '2026-11-06-c0517ab1';
+async function listed(get) {
+  const c = factory(null);
+  c.gh = { ls: async (p) => TREE[p] || [], get };
+  c.rows = await c.list();
+  return c;
+}
+
+test('the list has one row per session, the latest compaction first, with a tab per compaction where there is more than one', async () => {
+  const c = await listed();
+  assert.deepEqual(own(c.groups.map((g) => g.id)), [B, C1], 'b2cdc8ac was last compacted on the 7th, after c0517ab1 on the 6th');
+  const ids = [B + '-20261104T010000Z', B + '-20261105T032503Z', B + '-20261107T130000Z'];
+  assert.deepEqual(own(c.groups[0].items.map((r) => r.id)), ids);
+  assert.deepEqual(own(c.order), [...ids, C1 + '-20261106T133000Z'],
+    "the cards run session by session, a session's summaries in the order they were written");
+  const host = window.document.createElement('div');
+  host.innerHTML = c.rowHtml(c.groups[0]) + c.rowHtml(c.groups[1]);
+  const [many, once] = host.children;
+  assert.equal(many.getAttribute('data-cmp-row'), B);
+  assert.equal(many.hasAttribute('data-cmp'), false, 'a row with tabs is not itself a pick: its tabs are');
+  assert.deepEqual([...many.querySelectorAll('[role="tab"]')].map((t) => [t.textContent, t.getAttribute('data-cmp')]), ids.map((id, i) => [String(i + 1), id]));
+  assert.doesNotMatch(many.textContent, /×/);
+  assert.equal(once.getAttribute('data-cmp'), C1 + '-20261106T133000Z', 'a session compacted once is picked by its row');
+  assert.equal(once.querySelector('[role="tab"]'), null);
+});
+
+test('a tap on a row outside its tabs opens the session\'s first summary', async () => {
+  const c = await listed(async () => { throw new Error('404'); });
+  const host = window.document.createElement('div');
+  host.innerHTML = c.rowHtml(c.groups[0]);
+  host.addEventListener('click', (e) => c.rowTap(e));
+  window.document.body.append(host);
+  c.sel = B + '-20261107T130000Z';
+  host.querySelector('[role="tab"]:nth-child(2)').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+  assert.equal(c.sel, B + '-20261107T130000Z', "a tab's tap is the list kit's to answer, not this one's");
+  host.querySelector('.truncate').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+  assert.equal(c.sel, B + '-20261104T010000Z');
+});
+
+test('a card is the chart\'s room and the summary, every section open under a heading that sticks, and nothing scrolls sideways', async () => {
+  const c = await listed(async (p) => {
+    if (p.startsWith('sessions/usage/')) throw new Error('404');
+    return { text: JSON.stringify({ ...FILE, text: FILE.text.replace('   - point 3', '   ```\n   const a = 1;\n   ```\n   | a | b |') }) };
+  });
+  await c.listUsage();
+  window.Compactions.USAGE.delete(B);
+  const id = B + '-20261107T130000Z';
+  c.sel = id;
+  const slide = window.document.createElement('div');
+  slide.className = 'sd-slide overflow-y-auto';
+  const el = window.document.createElement('div');
+  slide.append(el);
+  window.document.body.append(slide);
+  c.fill(id, el, false);
+  const box = el.firstElementChild;
+  assert.deepEqual([...box.children].map((x) => Object.keys(x.dataset)[0]), ['cmpChart', 'cmpRest'], 'the chart first, then the summary');
+  assert.ok(slide.classList.contains('overflow-x-hidden'), "the card's scroller moves up and down only");
+  for (let i = 0; i < 10; i++) await new Promise((r) => setTimeout(r, 5));
+  const secs = [...el.querySelectorAll('[data-sec]')];
+  assert.deepEqual(secs.map((x) => x.dataset.sec), ['1', '6', '8', '7', '9', '2', '3', '4', '5'], 'the plain-language five, then the technical four');
+  assert.equal(el.querySelector('details, [data-sec-nav], [data-sec-go]'), null, 'no fold and no chip: every section is open');
+  assert.deepEqual(secs.map((x) => x.firstElementChild.firstChild.textContent), [0, 5, 7, 6, 8, 1, 2, 3, 4].map((i) => NINE[i]),
+    "a heading is the section's name, without the number the reordering would scramble");
+  assert.deepEqual(secs.map((x) => x.querySelector('h3 [data-sec-count]')?.textContent || ''), ['(1)', '(1)', '(1)', '(1)', '(1)', '(1)', '', '(1)', '(1)'],
+    'beside the name, how many items its list has; the section rewritten as a code block and a table line has none');
+  assert.equal(c.nameOf(id).pill, 3, "the card's head carries its compaction's number, for a pill");
+  assert.equal(c.nameOf(B + '-20261104T010000Z').pill, 1);
+  assert.equal(c.nameOf(C1 + '-20261106T133000Z').pill, '', 'a session compacted once has no number to give');
+  for (const x of secs) assert.match(x.firstElementChild.className, /\bsticky\b.*--cmp-pad.*\bbg-base-100\b/, 'a heading sticks to the top and covers what scrolls under it');
+  assert.ok(box.style.getPropertyValue('--cmp-pad') !== '', "the headings are told the scroller's top padding");
+  assert.ok(el.querySelector('[data-sec="3"] pre'), 'a technical section is drawn without being opened');
+  assert.equal(el.querySelector('[role="tab"], [data-cmp-top]'), null, 'no tab row on the card');
+  assert.doesNotMatch(el.textContent, /Make the page/, "the session's opening ask is not drawn on the card");
+  assert.doesNotMatch(el.innerHTML, /overflow-x-auto|whitespace-nowrap|whitespace-pre(?!-wrap)/, 'code and table lines wrap');
+});
+
+test('the usage listing says which cards keep room for a chart, before any file is read', async () => {
+  const c = await listed(async () => { throw new Error('404'); });
+  const USAGE = window.Compactions.USAGE;
+  USAGE.delete(B); USAGE.delete(C1);
+  const usage = {
+    'sessions/usage': [{ type: 'dir', name: '2026', path: 'sessions/usage/2026' }],
+    'sessions/usage/2026': [{ type: 'dir', name: '11', path: 'sessions/usage/2026/11' }],
+    'sessions/usage/2026/11': [{ type: 'file', name: B + '.json', path: 'sessions/usage/2026/11/' + B + '.json' }],
+  };
+  const ls = c.gh.ls;
+  c.gh.ls = async (p) => usage[p] || ls(p);
+  await c.listUsage();
+  assert.equal(c.hasUsage(B), true);
+  assert.equal(c.hasUsage(C1), false);
+  const room = (id) => {
+    const el = window.document.createElement('div');
+    window.document.body.append(el);
+    c.fill(id, el, false);
+    return el.querySelector('[data-cmp-chart]');
+  };
+  assert.equal(room(B + '-20261107T130000Z').classList.contains('hidden'), false, 'a session with an extract keeps the chart\'s room');
+  assert.match(room(B + '-20261104T010000Z').className, /min-h-\[82px\]/);
+  assert.equal(room(C1 + '-20261106T133000Z').classList.contains('hidden'), true, 'a session without one keeps none');
+  c.gh.ls = async () => { throw new Error('offline'); };
+  await c.listUsage();
+  assert.equal(c.hasUsage(C1), undefined, 'a failed listing leaves it unknown');
+});
+
+test('the section in view goes with the reader on a swipe and inside a session, and not to another session by its row', async () => {
+  const c = await listed();
+  const [b1, b2, , c1] = c.order;
+  assert.equal(c.carries(b1, b2, 'list'), true, "a tab of the same session, tapped in the list");
+  assert.equal(c.carries(b2, c1, 'swipe'), true, 'a swipe, into another session too');
+  assert.equal(c.carries(b2, c1, 'list'), false, "another session's row starts at the top");
+  assert.equal(c.carries(b2, c1, 'api'), false);
+  c._deck = {};
+  assert.equal(c.carries(b2, c1, 'api'), true, 'a swipe in the deck arrives through the host');
+  assert.deepEqual(own(c.neighbours(b2)), [b1, c.order[2]], 'the cards either side follow the one in view');
+  assert.deepEqual(own(c.neighbours(b1)), [b2]);
+});
+
+test("a note the summary's writer put after a heading's name is kept, in lighter type", () => {
+  const c = factory(null);
+  const h = c.head({ n: 3, name: 'Files and Code Sections (referenced; no edits survive)' });
+  assert.equal(h.textContent, 'Files and Code Sections (referenced; no edits survive)', 'every word as written');
+  assert.equal(h.firstChild.textContent, 'Files and Code Sections');
+  assert.match(h.lastChild.className, /font-normal/);
+  assert.equal(c.head({ n: 1, name: 'Primary Request and Intent' }).childElementCount, 0);
+});
+
+test('the summaries either side of the one in view are read ahead', async () => {
+  const c = await listed(async () => { throw new Error('404'); });
+  const [b1, b2, b3, c1] = c.order;
+  c.sel = b1;
+  const asked = [];
+  c.read = (id) => { asked.push(id); };
+  const el = (id) => { const x = window.document.createElement('div'); window.document.body.append(x); c.fill(id, x, false); };
+  el(b3); el(c1);
+  assert.deepEqual(asked, [], 'a card two or three away is not read');
+  el(b2); el(b1);
+  assert.deepEqual(asked, [b2, b1], 'the card in view and the one beside it are');
+});
+
+test('a section heading counts the top-level items of its list, and a prose section has no count', () => {
+  const c = factory(null);
+  const listed3 = c.section({ n: 7, name: 'Pending Tasks', text: '   - one\n     - under one\n   - two\n   1. three is a new list\n' });
+  assert.equal(listed3.querySelector('[data-sec-count]').textContent, '(3)', 'nested items are not counted');
+  assert.equal(listed3.querySelector('[data-sec-count]').getAttribute('aria-label'), '3 items');
+  const prose = c.section({ n: 8, name: 'Current Work', text: '   The session was drafting a README.\n' });
+  assert.equal(prose.querySelector('[data-sec-count]'), null);
+  const noted = c.section({ n: 3, name: 'Files and Code Sections (referenced)', text: '   - a.md\n' });
+  assert.deepEqual([...noted.firstElementChild.childNodes].map((x) => x.textContent), ['Files and Code Sections', '(1)', ' (referenced)'],
+    "the count sits between the name and the writer's note");
 });
