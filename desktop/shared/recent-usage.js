@@ -6,7 +6,7 @@
   const counters = ['cacheReadTokens','cacheWriteTokens','inputTokens','outputTokens','measuredSteps','reloads'];
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const count = value => Number.isSafeInteger(value) && value >= 0 ? value : null;
-  const INFO = 'Claude sessions updated within the past hour, largest recorded input context first. Context includes cached input tokens and can predate the latest activity. Recent activity does not confirm that a cache remains available. Open a session for its existing usage details.';
+  const INFO = 'Claude sessions updated within the past hour, largest recorded input context first. Context includes cached input tokens and can predate the latest activity. Recent activity does not confirm that a cache remains available. Select a session to find it in Now.';
 
   function instant(value) {
     if (typeof value === 'string') {
@@ -108,21 +108,7 @@
 
   const compact = value => new Intl.NumberFormat('en-US',{notation:'compact',maximumFractionDigits:1}).format(value).toLowerCase();
   function destination(row) {
-    try {
-      const url = new URL(row.url);
-      if (url.origin === 'https://mehrlander.github.io' && !url.username && !url.password && url.pathname === '/web-tools/app/' && url.searchParams.get('view') === 'sessions' && url.searchParams.get('session')) return url.href;
-    } catch { /* Use the recorded identity when its detail link is absent. */ }
-    if (row.kind === 'cloud' && /^[A-Za-z0-9._-]{1,96}$/.test(row.id || '') && !row.id.includes('..'))
-      return 'https://mehrlander.github.io/web-tools/app/?view=sessions&session=' + encodeURIComponent(row.id);
-    for (const value of [row.url,row.sessionUrl]) {
-      try {
-        const url = new URL(value);
-        if (url.username || url.password || url.protocol !== 'https:') continue;
-        if (url.origin === 'https://mehrlander.github.io' && url.pathname === '/web-tools/app/' && url.searchParams.get('view') === 'sessions' && url.searchParams.get('session')) return url.href;
-        if (url.origin === 'https://claude.ai' && /^\/code\/session_[A-Za-z0-9_-]+\/?$/.test(url.pathname)) return url.href;
-      } catch { /* An unreported destination falls back to Claude. */ }
-    }
-    return 'https://claude.ai/code/';
+    return '#view=now&session=' + encodeURIComponent(String(row.identity || row.id || ''));
   }
   function styles() {
     if (typeof document === 'undefined' || document.getElementById('now-recent-usage-style')) return;
@@ -151,7 +137,7 @@
     return `<section class="nru" aria-label="Claude one-hour cache window"><header class="nru-head" title="${esc(INFO)}"><h2>Claude · 1h cache window</h2><span class="nru-column" title="Last recorded input context, including cached tokens">Context</span></header>${list.length ? `<ul class="nru-list">${list.map(row => {
       const title = String(row.title || 'Claude session'), context = count(row.contextTokens), usageAt = past(row.usageAt,now);
       const label = context === null ? 'Context size not reported' : context.toLocaleString('en-US') + ' context tokens' + (usageAt === null ? '' : ', measured ' + new Date(usageAt).toLocaleString());
-      return `<li><a class="nru-row" data-recent-session="${esc(row.identity)}" href="${esc(destination(row))}" target="_blank" rel="noopener noreferrer" title="${esc(title + '. ' + label)}" aria-label="${esc(title + '. ' + label + '. Open session details')}"><span class="nru-title">${esc(title)}</span><span class="nru-value"${context === null ? ' data-unknown' : ''}>${context === null ? '&#8211;' : compact(context)}</span></a></li>`;
+      return `<li><a class="nru-row" data-recent-session="${esc(row.identity)}" href="${esc(destination(row))}" title="${esc(title + '. ' + label)}" aria-label="${esc(title + '. ' + label + '. Show session in Now')}"><span class="nru-title">${esc(title)}</span><span class="nru-value"${context === null ? ' data-unknown' : ''}>${context === null ? '&#8211;' : compact(context)}</span></a></li>`;
     }).join('')}</ul>` : '<p class="nru-empty">No Claude sessions updated in the past hour.</p>'}</section>`;
   }
   window.NowRecentUsage = {select,render,INFO,LIMIT};

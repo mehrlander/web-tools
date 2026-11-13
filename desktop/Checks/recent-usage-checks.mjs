@@ -75,11 +75,11 @@ rows = select([item('safe',{identity:'safe" data-injected="yes',title:hostile})]
 render(rows);
 check(doc.querySelector('.nru-title').textContent === hostile && !doc.querySelector('img') && !doc.querySelector('[data-injected]'),
   'Titles and session identifiers render as text, rather than becoming markup or attributes.');
-let link = doc.querySelector('a.nru-row'), destination = new URL(link.href);
-check(link.dataset.recentSession === rows[0].identity && destination.origin === 'https://mehrlander.github.io'
-  && destination.pathname === '/web-tools/app/' && destination.searchParams.get('view') === 'sessions' && destination.searchParams.get('session') === 'safe'
-  && link.target === '_blank' && link.rel.split(/\s+/).includes('noopener'),
-  'A compact cloud row directly opens the matching Web Tools session with opener protection.');
+let link = doc.querySelector('a.nru-row'), destination = new URLSearchParams(link.getAttribute('href').slice(1));
+check(link.dataset.recentSession === rows[0].identity && link.getAttribute('href') === '#view=now&session=' + encodeURIComponent(rows[0].identity)
+  && destination.get('view') === 'now' && destination.get('session') === rows[0].identity
+  && !link.hasAttribute('target') && !link.hasAttribute('rel'),
+  'A compact cloud row navigates to the exact encoded session identity in this app\'s Now view.');
 const heading = doc.querySelector('section[aria-label="Claude one-hour cache window"]');
 const explanation = [heading?.getAttribute('title'),heading?.querySelector('header')?.getAttribute('title'),heading?.querySelector('h2')?.getAttribute('title')].filter(Boolean).join(' ');
 check(heading?.querySelector('h2').textContent === 'Claude · 1h cache window' && heading.querySelector('header').textContent.includes('Context')
@@ -95,20 +95,24 @@ check(!doc.querySelector('.nru button,[data-recent-hours],[data-recent-usage-inf
   'The list has no range selector, information button, metric detail, action menu, or detail-rendering API.');
 
 const preferred = 'https://mehrlander.github.io/web-tools/app/?view=sessions&session=recorded-detail';
-render(select([item('alternate-id',{url:preferred})]));
-check(doc.querySelector('a.nru-row').href === preferred,'An existing safe Web Tools session-detail link is preferred over reconstructing a destination.');
-render(select([item('unsafe-code',{url:'javascript:alert(1)'}),item('lookalike',{url:'https://mehrlander.github.io.evil.example/web-tools/app/?view=sessions&session=wrong'}),
+render(select([item('alternate-id',{identity:'cloud:alternate-id',url:preferred})]));
+check(doc.querySelector('a.nru-row').getAttribute('href') === '#view=now&session=cloud%3Aalternate-id',
+  'Even an existing external Web Tools detail URL stays within the current app and uses the feed identity.');
+render(select([item('unsafe-code',{identity:'cloud:unsafe-code&view=files',url:'javascript:alert(1)'}),item('lookalike',{url:'https://mehrlander.github.io.evil.example/web-tools/app/?view=sessions&session=wrong'}),
   item('wrong-view',{url:'https://mehrlander.github.io/web-tools/app/?view=files&session=wrong'})]));
 check([...doc.querySelectorAll('a.nru-row')].every(anchor => {
-  const url = new URL(anchor.href);
-  return url.origin === 'https://mehrlander.github.io' && url.pathname === '/web-tools/app/'
-    && url.searchParams.get('view') === 'sessions' && url.searchParams.get('session') === anchor.dataset.recentSession;
-}), 'Unsafe, lookalike, and unrelated app URLs never become row destinations.');
-render(select([item('local-safe',{kind:'session',place:'laptop',sessionUrl:'https://claude.ai/code/session_LocalSafe'}),
-  item('local-unsafe',{kind:'session',place:'laptop',sessionUrl:'javascript:alert(1)'})]));
-check(doc.querySelector('a[data-recent-session="local-safe"]').href === 'https://claude.ai/code/session_LocalSafe'
-  && doc.querySelector('a[data-recent-session="local-unsafe"]').href === 'https://claude.ai/code/',
-  'Local Claude sessions open an approved Claude session URL or the Claude Code fallback.');
+  const href = anchor.getAttribute('href'), route = new URLSearchParams(href.slice(1));
+  return href === '#view=now&session=' + encodeURIComponent(anchor.dataset.recentSession)
+    && route.get('view') === 'now' && route.get('session') === anchor.dataset.recentSession
+    && [...route.keys()].join(',') === 'view,session' && !anchor.hasAttribute('target') && !anchor.hasAttribute('rel');
+}), 'Hostile external URLs and route-like identity text cannot change the internal Now destination.');
+render(select([item('local-safe',{identity:'session:Claude:local-safe',kind:'session',place:'laptop',sessionUrl:'https://claude.ai/code/session_LocalSafe'}),
+  item('local-unsafe',{identity:'session:Claude:local-unsafe',kind:'session',place:'laptop',sessionUrl:'javascript:alert(1)'})]));
+check([...doc.querySelectorAll('a.nru-row')].every(anchor => anchor.getAttribute('href') === '#view=now&session=' + encodeURIComponent(anchor.dataset.recentSession)),
+  'Local Claude sessions use their full internal feed identities, independent of provider URLs.');
+render(select([],[usage('metadata-only',123456)]));
+check(doc.querySelector('a.nru-row').getAttribute('href') === '#view=now&session=cloud%3Ametadata-only',
+  'A measured session absent from the bounded feed retains its synthesized cloud identity in the internal route.');
 render(select([item('unknown-context')]),{hours:24});
 check(/^[–—-]$/.test(doc.querySelector('.nru-value').textContent.trim()) && !/NaN|undefined|24h/.test(doc.querySelector('.nru').textContent),
   'Missing context remains an unknown dash, while the removed range option never appears.');

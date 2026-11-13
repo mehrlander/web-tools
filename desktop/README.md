@@ -237,8 +237,8 @@ revision of the existing private checkout. The projection keeps session identity
 last measured input context, call time and session-to-date token/cache counters.
 Prompt text, replies and raw transcripts are excluded. The private Usage calendar
 joins these measurements to Claude activity in its fixed one-hour cache-window list,
-ordered by context size. Each compact row links directly to the existing session
-details and shows the last recorded context token count. Context size is not cumulative
+ordered by context size. Each compact row switches to the matching session in Now
+and shows the last recorded context token count. Context size is not cumulative
 spend; recent activity and prior cache reads do not establish a reusable cache or
 its expiry time. Missing sizes remain unknown, and saved measurements retain their
 observation time. Extracts cover the main conversation and update after turns finish.
