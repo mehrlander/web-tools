@@ -43,6 +43,28 @@
    ]
   }
  },
+ "fab": {
+  "page": "app/index.html?repo=mehrlander/web-tools",
+  "shot_at": "2026-11-13",
+  "desk": {
+   "file": "component-fab.desk.jpg",
+   "box": [
+    0.9375,
+    0.9,
+    0.0438,
+    0.07
+   ]
+  },
+  "phone": {
+   "file": "component-fab.phone.jpg",
+   "box": [
+    0.7949,
+    0.9052,
+    0.1436,
+    0.0664
+   ]
+  }
+ },
  "file-review": {
   "page": "pages/review.html#gh=mehrlander/web-tools@main:README.md",
   "shot_at": "2026-11-13",
@@ -74,7 +96,7 @@
     0.2938,
     0.0913,
     0.6875,
-    0.4015
+    0.3515
    ]
   },
   "phone": {
@@ -164,9 +186,9 @@
    "file": "component-viewer.desk.jpg",
    "box": [
     0.2945,
-    0.5502,
+    0.5002,
     0.6859,
-    0.4498
+    0.4685
    ]
   },
   "phone": {

@@ -38,6 +38,9 @@
 //              mounts it. A mount inside another component is NOT carried
 //              through to that component's units: the viewer mounted in one
 //              tab's deck is not on every page that component draws
+//              A component that leads a view is on the units whose files
+//              name it and no others: the page that mounts it does so for
+//              one route, so that page's other units do not show it
 //   patterns   how many times the file writes data-pattern, the attribute a
 //              page's markup declares its body's arrangement with
 //              (data/ui-units/codebook.md, "Declaring a pattern in markup")
@@ -244,6 +247,11 @@ export function deriveComponents(root) {
       const named = list(route.files).filter(f => by.has(f));
       return named.includes(r.path) && !named.some(f => f !== r.path && by.get(r.path).has(f));
     }).map(route => route.key).join(';');
+    // A view's lead is mounted by its page for that route alone (app/index.html
+    // mounts tending() at ?view=tending), so the mount says nothing about the
+    // page's other units. Measured 2026-11-13: carrying it through listed nine
+    // units on each of 12 leads, none of which had the component on screen.
+    if (r.leads) r.pages = units.filter(u => list(u.files).includes(r.path)).map(u => u.unit).join(';');
   }
   return rows;
 }
