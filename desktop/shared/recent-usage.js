@@ -27,7 +27,7 @@
     try {
       const url = new URL(text);
       const match = /^\/code\/(session_[A-Za-z0-9_-]+)\/?$/.exec(url.pathname);
-      return url.protocol === 'https:' && url.hostname === 'claude.ai' && !url.username && !url.password && match ? match[1] : '';
+      return url.protocol === 'https:' && url.hostname === 'claude.ai' && !url.username && !url.password && !url.port && !url.search && !url.hash && match ? match[1] : '';
     } catch { return ''; }
   }
   const textId = value => typeof value === 'string' && value.trim() ? value.trim() : '';
@@ -38,6 +38,27 @@
     return {id:textId(row.id),agentSessionId:agentId(row.agentSessionId),provider,usageAt,
       title:typeof row.title === 'string' ? row.title : '',sessionUrl:typeof row.sessionUrl === 'string' ? row.sessionUrl : '',
       contextTokens:count(row.contextTokens),...Object.fromEntries(counters.map(key => [key,count(row[key])]))};
+  }
+  function matchUsage(item,metadata,options = {}) {
+    const now = instant(options.now ?? Date.now());
+    if (now === null || item?.key !== 'claude' || item.kind !== 'cloud' || item.place && item.place !== 'cloud') return null;
+    const readings = (Array.isArray(metadata?.sessions) ? metadata.sessions : []).map(row=>usageRow(row,now))
+      .filter(row=>row&&row.provider==='claude'&&now-row.usageAt<=24*HOUR).sort((a,b)=>b.usageAt-a.usageAt);
+    const exact = readings.find(row=>row.id&&row.id===item.id);
+    const alias = typeof item.sessionUrl==='string' && /^https:\/\//i.test(item.sessionUrl) ? agentId(item.sessionUrl) : '';
+    const reading = exact || readings.find(row=>!!alias&&/^session_[A-Za-z0-9_-]+$/.test(alias)&&alias===row.agentSessionId);
+    if (!reading) return null;
+    const values = ['inputTokens','cacheReadTokens','cacheWriteTokens','outputTokens'].map(key=>reading[key]);
+    const sum = values.every(value=>value!==null) ? values.reduce((a,b)=>a+b,0) : null;
+    return {...reading,totalTokens:count(sum),saved:metadata?.available===false};
+  }
+  function tokenBadge(item,metadata,options = {}) {
+    const reading=matchUsage(item,metadata,options);
+    if(!reading||reading.outputTokens===null)return '';
+    styles();
+    const label=reading.outputTokens.toLocaleString('en-US')+' output tokens across recorded main-conversation calls'+(reading.saved?' (saved reading)':'')+'. Tap for input and cache counts.';
+    const coin='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><ellipse cx="9" cy="7" rx="6" ry="3"/><path d="M3 7v5c0 1.7 2.7 3 6 3 1.2 0 2.3-.2 3.2-.5M15 7v3M3 11c0 1.7 2.7 3 6 3M12 13c0-1.7 2-3 4.5-3s4.5 1.3 4.5 3-2 3-4.5 3-4.5-1.3-4.5-3Zm0 0v5c0 1.7 2 3 4.5 3s4.5-1.3 4.5-3v-5"/></svg>';
+    return `<button type="button" class="session-token-badge" data-session-tokens="${esc(item.identity||item.id)}" title="${esc(label)}" aria-label="${esc(label)}">${coin}<span>${compact(reading.outputTokens).replace(/[mbt]$/,value=>value.toUpperCase())}</span></button>`;
   }
   function select(items,metadata,options = {}) {
     const now = instant(options.now ?? Date.now());
@@ -127,6 +148,9 @@
 .nru-value{font-size:13px;line-height:20px;font-weight:550;font-variant-numeric:tabular-nums;white-space:nowrap;color:#736b60}
 .nru-value[data-unknown]{color:#a8a29e}
 .nru-empty{padding:6px 12px 9px;color:#746f66;font-size:12px;line-height:18px;margin:0}
+.session-token-badge{display:inline-flex;align-items:center;gap:3px;min-height:18px;padding:0 2px;border:0;background:none;color:#746f66;font:inherit;font-variant-numeric:tabular-nums;white-space:nowrap;cursor:pointer}
+.session-token-badge svg{width:13px;height:13px;flex:none}.session-token-badge:hover{background:#e9e7e1;border-radius:3px}.session-token-badge:focus-visible{outline:2px solid #047857;outline-offset:2px}
+.session-token-breakdown{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px 12px;margin:10px 0;font-size:12px;line-height:18px}.session-token-breakdown dt,.session-token-breakdown dd{margin:0}.session-token-breakdown dd{text-align:right;font-variant-numeric:tabular-nums}
 `;
     document.head.append(style);
   }
@@ -140,5 +164,5 @@
       return `<li><a class="nru-row" data-recent-session="${esc(row.identity)}" href="${esc(destination(row))}" title="${esc(title + '. ' + label)}" aria-label="${esc(title + '. ' + label + '. Show session in Now')}"><span class="nru-title">${esc(title)}</span><span class="nru-value"${context === null ? ' data-unknown' : ''}>${context === null ? '&#8211;' : compact(context)}</span></a></li>`;
     }).join('')}</ul>` : '<p class="nru-empty">No Claude sessions updated in the past hour.</p>'}</section>`;
   }
-  window.NowRecentUsage = {select,render,INFO,LIMIT};
+  window.NowRecentUsage = {select,render,matchUsage,tokenBadge,INFO,LIMIT};
 })();

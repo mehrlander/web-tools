@@ -121,5 +121,73 @@ check(doc.querySelector('section[aria-label="Claude one-hour cache window"]') &&
   && !doc.querySelector('.nru a,.nru button'),'An empty list retains the Claude one-hour label without adding controls.');
 check(doc.querySelectorAll('#now-recent-usage-style').length === 1,'Repeated rendering keeps one shared component stylesheet.');
 
+// Now's token flair uses recorded Claude output, independently of the
+// one-hour context list and independently of cumulative cached-input totals.
+const snapshot = (sessions,extra = {}) => ({sessions,available:true,observedAt:iso(now),...extra});
+const counted = usage('cloud-record',987654,{agentSessionId:'session_counted',inputTokens:10,outputTokens:3000,
+  cacheReadTokens:20,cacheWriteTokens:30,measuredSteps:2,reloads:1,
+  cache_creation:{ephemeral_1h_input_tokens:30},iterations:[{input_tokens:10,output_tokens:3000}],totalTokens:9999999});
+const match = (source,records,extra = {}) => U.matchUsage(source,snapshot(records,extra),{now});
+let measured = match(item('cloud-record'),[counted]);
+check(measured?.outputTokens === 3000 && measured.totalTokens === 3060 && measured.contextTokens === 987654,
+  'Usage matching sums the four disjoint recorded counters once, without adding context, nested cache splits, iterations, or a supplied total.');
+check([
+  item('cloud-record',{key:'codex'}),item('cloud-record',{key:'gemini'}),item('cloud-record',{kind:'errand'}),
+  item('cloud-record',{kind:'session',place:'laptop'}),item('cloud-record',{kind:'cloud',place:'laptop'})
+].every(source => match(source,[counted]) === null && U.tokenBadge(source,snapshot([counted]),{now}) === ''),
+  'Recorded cloud usage is never attributed to another provider, an errand, or a laptop session that happens to share an ID.');
+check(match(item('cloud-record',{place:''}),[counted])?.outputTokens === 3000,
+  'A Claude cloud item remains matchable when its optional place field is empty.');
+measured = match(item('cloud-record',{sessionUrl:'https://claude.ai/code/session_counted'}),
+  [counted,usage('different-record',123,{agentSessionId:'session_counted',outputTokens:9000,usageAt:iso(now-minute)})]);
+check(measured?.id === 'cloud-record' && measured.outputTokens === 3000,
+  'An exact record match takes precedence over a newer agent-link alias when attaching token metadata.');
+check(match(item('other-record',{sessionUrl:'https://claude.ai/code/session_counted'}),[counted])?.id === 'cloud-record'
+  && match(item('session_counted'),[counted]) === null,
+  'Agent fallback requires the full approved Claude session URL, rather than a bare provider ID or a similar record suffix.');
+check(['http://claude.ai/code/session_counted','https://claude.ai.evil.example/code/session_counted',
+  'https://user@claude.ai/code/session_counted','javascript:alert(1)','session_counted'].every(sessionUrl =>
+  match(item('no-exact-match',{sessionUrl}),[counted]) === null),
+  'Insecure, credential-bearing, lookalike, and non-URL agent references cannot attach another session\'s usage.');
+check(match(item('11111111-other'),[usage('11111111',123,{outputTokens:3000})]) === null
+  && match(item('cloud-record'),[{...counted,provider:'codex'}]) === null,
+  'Usage matching does not join short prefixes or metadata from another provider.');
+measured = match(item('cloud-record'),[{...counted,usageAt:iso(now-23*60*minute),outputTokens:1000},
+  {...counted,usageAt:iso(now-minute),outputTokens:2000},{...counted,usageAt:iso(now+minute),outputTokens:9000}]);
+check(measured?.outputTokens === 2000
+  && match(item('cloud-record'),[{...counted,usageAt:iso(now-24*60*minute)}])?.outputTokens === 3000
+  && match(item('cloud-record'),[{...counted,usageAt:iso(now-24*60*minute-1)}]) === null,
+  'Token badges use the latest non-future reading within the inclusive 24-hour metadata window, independently of the context list\'s one-hour scope.');
+check([{inputTokens:-1},{cacheReadTokens:'20'},{cacheWriteTokens:1.5},{outputTokens:Infinity},{inputTokens:true},
+  {inputTokens:Number.MAX_SAFE_INTEGER,outputTokens:1}].every(change => match(item('cloud-record'),[{...counted,...change}])?.totalTokens === null),
+  'Malformed, missing, or overflowing disjoint sums remain unknown rather than producing a misleading recorded total.');
+measured = match(item('cloud-record'),[{...counted,inputTokens:undefined,cacheReadTokens:undefined,cacheWriteTokens:undefined,outputTokens:0}]);
+check(measured?.outputTokens === 0 && measured.totalTokens === null,
+  'A measured zero output is valid even when the other token counters are unavailable.');
+measured = match(item('cloud-record'),[{...counted,inputTokens:0,cacheReadTokens:0,cacheWriteTokens:0,outputTokens:0}]);
+check(measured?.totalTokens === 0,'Four explicitly measured zero counters produce a valid zero total.');
+
+const badge = (source,records,extra = {}) => { doc.querySelector('main').innerHTML = U.tokenBadge(source,snapshot(records,extra),{now}); return doc.querySelector('.session-token-badge'); };
+let tokenButton = badge(item('cloud-record'),[counted]);
+let tokenLabel = (tokenButton?.getAttribute('aria-label') || '') + ' ' + (tokenButton?.getAttribute('title') || '');
+check(tokenButton?.tagName === 'BUTTON' && tokenButton.dataset.sessionTokens === 'cloud-record'
+  && tokenButton.querySelectorAll('svg').length === 1 && /3k/i.test(tokenButton.textContent)
+  && /output tokens/i.test(tokenLabel) && /main.conversation/i.test(tokenLabel) && /recorded/i.test(tokenLabel),
+  'The shared coin badge identifies compact output tokens from recorded main-conversation calls, rather than input context or total token traffic.');
+check(!/[$%]/.test(tokenLabel) && !/current context|quota|warm|cache available/i.test(tokenLabel),
+  'The output badge makes no claim about quota percentage, dollar cost, current context, or a reusable cache.');
+tokenButton = badge(item('cloud-record'),[counted],{available:false});
+tokenLabel = (tokenButton?.getAttribute('aria-label') || '') + ' ' + (tokenButton?.getAttribute('title') || '');
+check(/saved reading/i.test(tokenLabel),'Unavailable metadata retains its measured output with an explicit saved-reading label.');
+tokenButton = badge(item('cloud-record'),[{...counted,inputTokens:undefined,cacheReadTokens:undefined,cacheWriteTokens:undefined,outputTokens:0}]);
+check(tokenButton && /\b0\b/.test(tokenButton.textContent),
+  'The output badge retains a real zero measurement without requiring a complete session total.');
+check([undefined,null,-1,'3000',Infinity].every(outputTokens => U.tokenBadge(item('cloud-record'),snapshot([{...counted,outputTokens}]),{now}) === ''),
+  'Unknown or invalid output values produce no token badge.');
+const badgeIdentity = 'cloud:counted" data-injected="yes<img src=x onerror=alert(1)>';
+tokenButton = badge(item('cloud-record',{identity:badgeIdentity,title:hostile}),[counted]);
+check(tokenButton?.dataset.sessionTokens === badgeIdentity && !doc.querySelector('[data-injected],img'),
+  'Badge identities and labels stay escaped when a token badge is attached to a hostile session title or identity.');
+
 console.log(`${checks} recent session usage checks passed.`);
 dom.window.close();

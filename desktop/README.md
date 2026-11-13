@@ -242,6 +242,11 @@ and shows the last recorded context token count. Context size is not cumulative
 spend; recent activity and prior cache reads do not establish a reusable cache or
 its expiry time. Missing sizes remain unknown, and saved measurements retain their
 observation time. Extracts cover the main conversation and update after turns finish.
+Now session metadata can show the recorded output-token count with a coins icon,
+matching the Web Tools session headline. Tapping the count shows fresh input,
+cache reads, cache writes, output and last measured context separately. These
+counts cover recorded main-conversation calls and do not measure subscription
+allowance consumption. Unsupported session sources omit the badge.
 
 Codex uses the signed-in CLI's documented `account/rateLimits/read` app-server
 method. The CLI manages its own authentication. Each reported bucket and period
