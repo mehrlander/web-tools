@@ -40,11 +40,11 @@ data/column-primitives/2026-09-10-first-population.md,docs/column-primitives.md,
 pages/drop/fills-concepts/1-chain-constructor/PROMPT.md,pages/drop/fills-concepts/2-tagged-factory/PROMPT.md,10,,1 html each was pasted into its own fresh session see catalog md for the cross page analysis;the prompt that generated the pages in this folder aic,10,211
 skills/html-style/SKILL.md,skills/html-style/references/mechanics.md,9,,js https github com mehrlander web tools blob main lib kits title tip js;github com mehrlander web tools blob main lib kits panel tip js;csv https github com mehrlander web tools blob main docs,10,211
 skills/scour/SKILL.md,skills/wayback/SKILL.md,8,,docs environment capabilities md https github com mehrlander web tools blob main docs environment capabilities md the,10,211
+skills/notes/SKILL.md,skills/tend/SKILL.md,8,,lib kits findings js https github com mehrlander web tools blob main lib kits findings js;md https github com mehrlander web tools blob main docs,10,211
 skills/design-sprint/SKILL.md,skills/doc-craft/SKILL.md,8,,user call py https github com mehrlander web tools private blob main user calls user call py,10,211
 pages/drop/fills-concepts/2-tagged-factory/PROMPT.md,pages/drop/fills-concepts/3-reactive-surface/PROMPT.md,8,,each was pasted into its own fresh session see catalog md for the cross page analysis;the prompt that generated the pages in this folder aic,10,211
 pages/drop/fills-concepts/1-chain-constructor/PROMPT.md,pages/drop/fills-concepts/3-reactive-surface/PROMPT.md,8,,each was pasted into its own fresh session see catalog md for the cross page analysis;the prompt that generated the pages in this folder aic,10,211
 docs/environment/container.md,docs/environment/extending.md,8,,a cloud setup script https code claude com docs en claude code on the web environment caching,10,211
-skills/notes/SKILL.md,skills/tend/SKILL.md,7,,lib kits findings js https github com mehrlander web tools blob main lib kits findings js,10,211
 skills/gold-set/SKILL.md,skills/wayback/SKILL.md,7,,docs environment capabilities md https github com mehrlander web tools blob main docs environment capabilities md,10,211
 skills/gold-set/SKILL.md,skills/scour/SKILL.md,7,,docs environment capabilities md https github com mehrlander web tools blob main docs environment capabilities md,10,211
 docs/house-policies.md,skills/look-markers/SKILL.md,7,,lib kits look js https github com mehrlander web tools blob main lib kits look js,10,211
@@ -67,6 +67,7 @@ skills/design-sprint/SKILL.md,skills/tree/SKILL.md,3,,md https github com mehrla
 skills/agents/house-style-critic.md,skills/agents/peeves-critic.md,3,true,do not rewrite name the fix in one clause only where the,10,211
 python/swarm/bold.md,python/swarm/dome.md,3,,write json lines to the output path one edit per line;run the check command and fix every line it reports,10,211
 pages/drop/fills-concepts/3-reactive-surface/PROMPT.md,pages/drop/fills-concepts/CATALOG.md,3,,aic 2 html aic kimi html collection browser html collection browser 2,10,211
+docs/house-policies.md,skills/tend/SKILL.md,3,,js https github com mehrlander web tools blob main lib kits;md https github com mehrlander web tools blob main docs,10,211
 docs/house-policies.md,skills/notes/SKILL.md,3,,js https github com mehrlander web tools blob main lib kits;md https github com mehrlander web tools blob main docs,10,211
 docs/house-policies.md,skills/html-style/references/mechanics.md,3,,js https github com mehrlander web tools blob main lib kits;csv https github com mehrlander web tools blob main docs,10,211
 docs/house-policies.md,skills/design-sprint/SKILL.md,3,,md https github com mehrlander web tools blob main docs conversation md,10,211
