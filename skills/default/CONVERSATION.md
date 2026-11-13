@@ -73,4 +73,4 @@ substituting the current repo in URL templates.
 
 * **Subscribe the workstream PR 📬.** Call the `subscribe_pr_activity` tool once, after opening a PR.
 
-  `go:` states intent, not write authority. Never schedule a check-in. A PR event is news only when it is a failing check on this session's work, a comment or review, a merge (🟣) or close (🔴) not yet reported, or a passing check the user said to wait for (then do the work that was waiting on it). The "status checklist" in the platform prompt refers to the PR on GitHub, not to the closing state.
+  `go:` states intent, not write authority. Schedule no check-in but the one the `check-in` hook asks for. A PR event is news only when it is a failing check on this session's work, a comment or review, a merge (🟣) or close (🔴) not yet reported, or a passing check the user said to wait for (then do the work that was waiting on it). The "status checklist" in the platform prompt refers to the PR on GitHub, not to the closing state.
