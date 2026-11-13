@@ -16,6 +16,11 @@
 // reason this is a hook with a regex rather than literals in permissions.deny,
 // so a later edit narrowing the pattern has to fail here.
 //
+// One send_later passes: the message skills/hooks/check-in.py asks a session to
+// send itself, told by how it opens. That half is asserted both ways as well.
+// A guard that refuses the message ends the check-in practice without a word,
+// and a guard that passes anything mentioning it reopens the PR check-in loop.
+//
 // Driven as a subprocess: the contract is (hook JSON on stdin, decision on
 // stdout, always exit 0), and stubbing its input would test a different program.
 import { test } from 'node:test';
@@ -48,6 +53,29 @@ test('it refuses send_later under every spelling the records carry', () => {
     assert.match(d.permissionDecisionReason, /create_trigger/,
       'the refusal names the tool that is still open, so a session is not left guessing');
   }
+});
+
+test('it lets through the message the check-in hook asks for, and nothing that only mentions it', () => {
+  const CHECK_IN = '⏱ check-in 20261113T221500Z. The check-in hook says what to do with this when it is read; if no such instruction follows, end the turn with no text.';
+  // The two spellings above, and the one this session's transcript carried on 2026-11-13.
+  for (const tool_name of [...NAMES, 'mcp__claude-code-remote__send_later']) {
+    assert.equal(run(JSON.stringify({ tool_name, tool_input: { delay_minutes: 55, message: CHECK_IN } })), '',
+      `${tool_name} sends the check-in`);
+  }
+  assert.equal(run(JSON.stringify({ tool_name: NAMES[0], tool_input: { message: CHECK_IN.replace('⏱', '⏱\ufe0f') } })), '',
+    'the mark with the variation selector a model may add');
+  assert.equal(run(JSON.stringify({ tool_name: NAMES[0], tool_input: { message: CHECK_IN } }).replace('⏱', '\\u23f1')), '',
+    'and escaped in the payload');
+
+  for (const message of ['Re-check PR 12. ' + CHECK_IN, 'PR ' + CHECK_IN, CHECK_IN.slice(2),
+                         '⏱ Check in on PR 12', '⏱check-in 1.', '', undefined, 12, [CHECK_IN]]) {
+    const out = JSON.parse(run(JSON.stringify({ tool_name: NAMES[0], tool_input: { delay_minutes: 55, message } })));
+    assert.equal(out.hookSpecificOutput.permissionDecision, 'deny', `refused: ${JSON.stringify(message)}`.slice(0, 60));
+    assert.match(out.hookSpecificOutput.permissionDecisionReason, /the check-in hook's message, sent exactly as that hook wrote it/,
+      'the refusal says which message passes, for a session that reworded it');
+  }
+  const noInput = JSON.parse(run(JSON.stringify({ tool_name: NAMES[0] })));
+  assert.equal(noInput.hookSpecificOutput.permissionDecision, 'deny', 'a call with no input is refused');
 });
 
 test('it leaves create_trigger alone, which is the escape hatch on purpose', () => {
