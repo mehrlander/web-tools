@@ -18,7 +18,7 @@
 // script and before the shot, whose result they print as `eval: <json>`. That
 // line is how a caller learns anything about the page it got back.
 
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { execFileSync, spawn } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -315,4 +315,31 @@ export async function shoot(r, size, touch, out, evalJs, env = {}) {
   if (evalJs) a.push('--eval', evalJs);
   if (touch) a.push('--touch');
   return run('node', a, HOME);
+}
+
+// The JPEG quality every thumbnail is written at.
+export const QUALITY = 0.72;
+
+// PNG to a JPEG of the given width, drawn in the same headless browser the
+// shots came from, since this checkout carries no image library of its own.
+// The focus box is in CSS pixels; the shot may be at twice that, so it is
+// scaled by the PNG's width over the window's. ratio, when set, cuts the kept
+// height to that fraction of the kept width.
+export async function toJpeg(page, png, size, focus, out) {
+  const src = 'data:image/png;base64,' + readFileSync(png).toString('base64');
+  const data = await page.evaluate(async ({ src, width, ratio, focus, q }) => {
+    const img = new Image();
+    await new Promise((ok, no) => { img.onload = ok; img.onerror = no; img.src = src; });
+    const k = focus ? img.width / focus.vw : 1;
+    const sx = focus ? focus.x * k : 0, sy = focus ? focus.y * k : 0;
+    const sw = focus ? Math.min(focus.w * k, img.width - sx) : img.width;
+    const sh = Math.min(img.height - sy, ratio ? sw * ratio : Infinity);
+    const c = document.createElement('canvas');
+    c.width = width; c.height = Math.round(sh * width / sw);
+    const g = c.getContext('2d');
+    g.imageSmoothingQuality = 'high';
+    g.drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height);
+    return c.toDataURL('image/jpeg', q).split(',')[1];
+  }, { src, width: size.thumb, ratio: size.ratio, focus, q: QUALITY });
+  writeFileSync(out, Buffer.from(data, 'base64'));
 }

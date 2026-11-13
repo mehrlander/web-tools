@@ -1403,3 +1403,18 @@ test('a region slid off the side of the window is opened before its target is la
   assert.equal(clicks, 1, 'the sidebar’s opener was clicked once');
   assert.equal(said(w), 'the crumb bar');
 });
+
+test('component:<name> prefers the instance drawn inside the window', () => {
+  // A strip of three cards, each mounting the component: the first is a
+  // window's width to the left, the second is the one in view.
+  const w = realm(`<div x-data="viewer()" id="prev" data-left="-900"></div>
+    <div x-data="viewer()" id="here" data-left="100"></div>
+    <div x-data="viewer()" id="next" data-left="1100"></div>`, '', undefined, { before(w) {
+    w.Element.prototype.getBoundingClientRect = function () {
+      const left = Number(this.getAttribute('data-left') || 0);
+      return { left, top: 10, right: left + 800, bottom: 410, width: 800, height: 400 };
+    };
+  } });
+  assert.equal(w.Look.find('component:viewer').id, 'here');
+  assert.equal(w.Look.find('component:viewer#1').id, 'prev', 'a number still counts in the page’s order');
+});

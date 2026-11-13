@@ -113,6 +113,7 @@
     "components-index": "node node/build/components-index.mjs",
     "ui-units": "node node/ui-units.mjs",
     "ui-shots": "node node/build/ui-shots.mjs",
+    "component-shots": "node node/build/component-shots.mjs",
     "ui-instances": "node node/build/ui-instances.mjs",
     "test:shortcut-log": "node node/test/shortcut-log-page.mjs",
     "test:shortcuts-page": "node node/test/shortcuts-page.mjs",

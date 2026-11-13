@@ -59,7 +59,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync, statSync } 
 import path from 'node:path';
 import { launch } from '../render/chromium.mjs';
 import { writeCsv } from './registries-load.mjs';
-import { HUB, ESTATE, STORES, rowsOf, slug, codedUnits, focusJs, evalFrom, shoot, needHomeModules, stageOf, PUBLIC_SIBLINGS } from './ui-recipes.mjs';
+import { HUB, ESTATE, STORES, rowsOf, slug, codedUnits, focusJs, evalFrom, shoot, needHomeModules, stageOf, PUBLIC_SIBLINGS, toJpeg, QUALITY } from './ui-recipes.mjs';
 
 const args = process.argv.slice(2);
 const opt = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : d; };
@@ -71,7 +71,6 @@ const REUSE = args.includes('--reuse');
 // content starts low still fills the card once the chrome above it is gone.
 const DESK = { width: 1280, height: 900, thumb: 800, ratio: 10 / 16 };
 const PHONE = { width: 390, height: 844, thumb: 390, ratio: 0 };
-const QUALITY = 0.72;
 const MANIFEST_COLS = ['unit', 'desk', 'phone', 'shot_at', 'recipe', 'focus', 'pattern'];
 const TMP = path.join(HUB, 'node/.preview/ui-shots');
 mkdirSync(TMP, { recursive: true });
@@ -181,30 +180,6 @@ const shotJs = (w) => {
   }).filter(Boolean);
   return JSON.stringify({ ...(f === 'null' ? {} : JSON.parse(f)), limited, comps, marks, vw: innerWidth, vh: innerHeight }); })()`;
 };
-
-// PNG to a JPEG of the given width, drawn in the same headless browser the
-// shots came from, since this checkout carries no image library of its own.
-// The focus box is in CSS pixels; the shot may be at twice that, so it is
-// scaled by the PNG's width over the window's. ratio, when set, cuts the kept
-// height to that fraction of the kept width.
-async function toJpeg(page, png, size, focus, out) {
-  const src = 'data:image/png;base64,' + readFileSync(png).toString('base64');
-  const data = await page.evaluate(async ({ src, width, ratio, focus, q }) => {
-    const img = new Image();
-    await new Promise((ok, no) => { img.onload = ok; img.onerror = no; img.src = src; });
-    const k = focus ? img.width / focus.vw : 1;
-    const sx = focus ? focus.x * k : 0, sy = focus ? focus.y * k : 0;
-    const sw = focus ? Math.min(focus.w * k, img.width - sx) : img.width;
-    const sh = Math.min(img.height - sy, ratio ? sw * ratio : Infinity);
-    const c = document.createElement('canvas');
-    c.width = width; c.height = Math.round(sh * width / sw);
-    const g = c.getContext('2d');
-    g.imageSmoothingQuality = 'high';
-    g.drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height);
-    return c.toDataURL('image/jpeg', q).split(',')[1];
-  }, { src, width: size.thumb, ratio: size.ratio, focus, q: QUALITY });
-  writeFileSync(out, Buffer.from(data, 'base64'));
-}
 
 // A shot's boxes as fractions of the kept image: left, top, width and
 // height, each 0 to 1, a box cut to the part of it the shot keeps and
