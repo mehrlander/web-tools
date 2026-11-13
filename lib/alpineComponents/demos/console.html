@@ -1,0 +1,13 @@
+<!-- Setups for debugConsole (../console.js), mounted by the component stage
+     (index.html?c=console). It renders what the page has logged, so the
+     setup's buttons log something to render. -->
+
+<template data-setup="Rendering what the page logs" data-load="kits/console.js">
+  <div class="mb-2 flex flex-wrap gap-2" x-data>
+    <button class="btn btn-sm" @click="console.log('A line of text')">Log text</button>
+    <button class="btn btn-sm" @click="console.log({ repo: 'web-tools', files: 42, tags: ['kit', 'component'] })">Log an object</button>
+    <button class="btn btn-sm" @click="console.table([{ name: 'map', lines: 16764 }, { name: 'estate', lines: 14997 }])">Log a table</button>
+    <button class="btn btn-sm" @click="console.warn('A warning')">Warn</button>
+  </div>
+  <div x-data="debugConsole()" class="h-80 overflow-auto rounded-lg border border-base-300"></div>
+</template>

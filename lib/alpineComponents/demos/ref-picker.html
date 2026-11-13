@@ -1,0 +1,20 @@
+<!-- Setups for refPicker (../ref-picker.js), mounted by the component stage
+     (index.html?c=ref-picker). The list of refs is read from GitHub when the
+     control is opened. -->
+
+<template data-setup="The refs of one repo">
+  <div x-data="{ ref: '' }" class="flex items-center gap-3">
+    <div x-data="refPicker({
+      repo: 'mehrlander/web-tools',
+      ref: () => ref,
+      defaultRef: 'main',
+      onPick: picked => ref = picked,
+      gh: () => window.gh,
+    })"></div>
+    <span class="text-base">Reading at <span class="font-mono" x-text="ref || 'the default branch'"></span></span>
+  </div>
+</template>
+
+<template data-setup="No repo chosen yet">
+  <div x-data="refPicker({ repo: '' })"></div>
+</template>
