@@ -27,9 +27,9 @@ substituting the current repo in URL templates.
 
 * **Close in one order.** End with the caption, render line, then the state. Include a state when no files changed. A wake (a nudge, stop hook, finished job, PR event, or moved base) that leaves the reader nothing new gets no reply. If the harness then requires visible output, reply with one line naming the wake.
 
-* **Surfacing caption.** Use:
-  `💬 [session](…/pages/session.html#id=<short>) · <N> files · [this turn](…/commit/<sha>)`
-  `<short>` is the first eight characters of `$CLAUDE_CODE_SESSION_ID`. A reply that changed no files carries the link alone. Calculate `<N>` with `git diff origin/main...HEAD --name-only | wc -l`. Omit `this turn` on a single-commit branch. With no session archive checked out, there is no session file, so link the 🌿 branch in place of 💬. Mention files in prose only when something non-obvious must be said about them.
+* **Session detail caption.** Use the latest line the `session-detail-caption` hook supplied:
+  `💬[22](…/pages/session.html#id=<short>) · 1d 2h · 816k · 1 file`
+  `22` counts the owner's messages, `816k` is the context in tokens, `1 file` counts the files changed against `main`, and `<short>` is the session id's first eight characters.
 
 ## A reply that changed files
 
