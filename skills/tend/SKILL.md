@@ -153,12 +153,12 @@ between 30 minutes and a week ago, and has an open pull request or a blocked
 or review-ready status. A message to a session idle for more than 55 minutes
 makes it write its whole context to the prompt cache again
 ([`docs/environment/container.md`](https://github.com/mehrlander/web-tools/blob/main/docs/environment/container.md#the-prompt-cache)).
-Send to such a session only when its usage record (`sessions/usage/` in the
-session archive) puts `context_now` under 150,000 tokens. List the others for
-the owner with that figure, and tend from this session what their records and
-pull requests allow. Send the rest this message. The owner can name sessions
-to skip, or a different window. `<sha>` is a commit that carries this section,
-since a session's checkout or plugin copy may predate it:
+Leave out a session idle that long whose usage record (`sessions/usage/` in
+the session archive) puts `context_now` at 150,000 tokens or more, and list it
+for the owner with that figure. Send every other session this message. The
+owner can name sessions to skip, or a different window. `<sha>` is a commit
+that carries this section, since a session's checkout or plugin copy may
+predate it:
 
 > The user in session <id> ran /tend prod. Tend this session's own work as
 > the Prod section of the tend skill defines it (mehrlander/web-tools,
