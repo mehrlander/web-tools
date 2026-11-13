@@ -2,12 +2,11 @@
 (() => {
   'use strict';
   const LIMIT = 24, HOUR = 3600000;
-  const names = {claude:'Claude',codex:'Codex',gemini:'Gemini'};
+  const names = {claude:'Claude'};
   const counters = ['cacheReadTokens','cacheWriteTokens','inputTokens','outputTokens','measuredSteps','reloads'];
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const count = value => Number.isSafeInteger(value) && value >= 0 ? value : null;
-  const scope = value => typeof value === 'number' && Number.isFinite(value) && value > 0 ? Math.min(24,value) : 1;
-  const INFO = 'Sessions with activity in the selected time window, largest observed input context first. Context readings can predate the latest activity. A recent response does not confirm that a prompt cache remains available. Token details cover all recorded calls, rather than only the selected time window.';
+  const INFO = 'Claude sessions updated within the past hour, largest recorded input context first. Context includes cached input tokens and can predate the latest activity. Recent activity does not confirm that a cache remains available. Open a session for its existing usage details.';
 
   function instant(value) {
     if (typeof value === 'string') {
@@ -43,7 +42,7 @@
   function select(items,metadata,options = {}) {
     const now = instant(options.now ?? Date.now());
     if (now === null) return [];
-    const cutoff = now - scope(options.hours) * HOUR, byRecord = new Map(), byAgent = new Map();
+    const cutoff = now - HOUR, byRecord = new Map(), byAgent = new Map();
     const keep = (map,key,row) => {
       if (key && (!map.has(key) || map.get(key).usageAt < row.usageAt)) map.set(key,row);
     };
@@ -107,59 +106,53 @@
     }).slice(0,LIMIT);
   }
 
-  function age(at,now) {
-    const minutes = Math.floor((now-at)/60000);
-    return minutes < 1 ? 'just now' : minutes < 60 ? minutes + 'm ago' : minutes < 1440 ? Math.floor(minutes/60) + 'h ago' : Math.floor(minutes/1440) + 'd ago';
-  }
   const compact = value => new Intl.NumberFormat('en-US',{notation:'compact',maximumFractionDigits:1}).format(value).toLowerCase();
-  const stamp = at => new Date(at).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
-  const mark = provider => window.assistantMark?.svg(provider,{cls:'nru-mark'}) || `<span class="nru-monogram" aria-hidden="true">${names[provider][0]}</span>`;
-  const icon = name => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${name === 'more' ? 3 : 1.7}" stroke-linecap="round" aria-hidden="true"><path d="${name === 'more' ? 'M12 5h.01M12 12h.01M12 19h.01' : 'M12 8h.01M12 11v6M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0'}"/></svg>`;
+  function destination(row) {
+    try {
+      const url = new URL(row.url);
+      if (url.origin === 'https://mehrlander.github.io' && !url.username && !url.password && url.pathname === '/web-tools/app/' && url.searchParams.get('view') === 'sessions' && url.searchParams.get('session')) return url.href;
+    } catch { /* Use the recorded identity when its detail link is absent. */ }
+    if (row.kind === 'cloud' && /^[A-Za-z0-9._-]{1,96}$/.test(row.id || '') && !row.id.includes('..'))
+      return 'https://mehrlander.github.io/web-tools/app/?view=sessions&session=' + encodeURIComponent(row.id);
+    for (const value of [row.url,row.sessionUrl]) {
+      try {
+        const url = new URL(value);
+        if (url.username || url.password || url.protocol !== 'https:') continue;
+        if (url.origin === 'https://mehrlander.github.io' && url.pathname === '/web-tools/app/' && url.searchParams.get('view') === 'sessions' && url.searchParams.get('session')) return url.href;
+        if (url.origin === 'https://claude.ai' && /^\/code\/session_[A-Za-z0-9_-]+\/?$/.test(url.pathname)) return url.href;
+      } catch { /* An unreported destination falls back to Claude. */ }
+    }
+    return 'https://claude.ai/code/';
+  }
   function styles() {
     if (typeof document === 'undefined' || document.getElementById('now-recent-usage-style')) return;
     const style = document.createElement('style');
     style.id = 'now-recent-usage-style';
     style.textContent = `
-.nru{border-top:1px solid #e7e5e4;margin-top:10px;color:#292524;font-family:inherit}
-.nru *{box-sizing:border-box}.nru button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
-.nru button:focus-visible{outline:2px solid #047857;outline-offset:2px}
-.nru-head{display:flex;align-items:center;gap:8px;padding:10px 12px 7px}.nru-head h2{font-size:12px;font-weight:600;line-height:18px;margin:0;flex:1;min-width:0}
-.nru-range{display:inline-flex;gap:2px;padding:2px;border-radius:6px;background:#e9e7e3;flex-shrink:0}
-.nru-range button{min-width:31px;padding:2px 7px;font-size:10px;line-height:15px;border-radius:4px;color:#78716c}
-.nru-range button[aria-pressed=true]{background:#fff;color:#44403c;box-shadow:0 1px 3px #29252416}
-.nru-info{width:26px;height:26px;display:grid;place-items:center;color:#8a837b!important;flex-shrink:0}.nru-info svg{width:14px;height:14px}
-.nru-list{list-style:none;margin:0;padding:0}.nru-row{display:grid;grid-template-columns:18px minmax(0,1fr) 65px 28px;gap:8px;align-items:start;padding:9px 12px;border-top:1px solid #eae7e2;min-height:62px}
-.nru-provider{padding-top:2px}.nru-mark{display:block;width:17px;height:17px}.nru-monogram{font-size:12px;font-weight:600}
-.nru-provider[data-provider=claude]{color:#cb7852}.nru-provider[data-provider=codex]{color:#119c80}.nru-provider[data-provider=gemini]{color:#3478df}
-.nru-copy{min-width:0}.nru-title{font-size:13px;font-weight:500;line-height:18px;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.nru-meta{font-size:11px;color:#746f66;line-height:16px;margin-top:3px;overflow-wrap:anywhere}
-.nru-metric{text-align:right;padding:0;min-height:40px;font-variant-numeric:tabular-nums;display:flex;flex-direction:column;align-items:flex-end;justify-content:flex-start}
-.nru-value{font-size:15px;line-height:20px;font-weight:550}.nru-unit{font-size:10px;line-height:14px;color:#746f66}.nru-metric[data-unknown] .nru-value{color:#a8a29e}
-.nru-more{width:28px;height:36px;display:grid;place-items:center;color:#8a837b!important;padding:0}.nru-more svg{width:17px;height:17px}
-.nru-empty{padding:12px;color:#8a837b;font-size:12px;line-height:18px;margin:0}.nru-cap{padding:6px 12px;color:#8a837b;font-size:10px;margin:0}
-.nru-detail p{font-size:12px;line-height:18px;margin:6px 0}.nru-detail dl{margin:9px 0;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px 16px;font-size:12px}.nru-detail dt,.nru-detail dd{margin:0}.nru-detail dd{font-variant-numeric:tabular-nums;text-align:right}.nru-detail small{display:block;font-size:11px;line-height:17px;color:#78716c}
+.nru{border-top:1px solid #e7e5e4;margin-top:8px;color:#292524;font-family:inherit}
+.nru *{box-sizing:border-box}
+.nru-head{display:flex;align-items:center;gap:10px;padding:8px 12px 5px}
+.nru-head h2{font-size:12px;font-weight:600;line-height:18px;margin:0;flex:1;min-width:0;color:#a36342}
+.nru-column{font-size:10px;color:#746f66;white-space:nowrap}
+.nru-list{list-style:none;margin:0;padding:0}
+.nru-row{display:grid;grid-template-columns:minmax(0,1fr) max-content;gap:12px;align-items:center;padding:6px 12px;min-height:34px;border-top:1px solid #eae7e2;text-decoration:none;color:inherit}
+.nru-row:hover{background:#eeece7}.nru-row:focus-visible{outline:2px solid #047857;outline-offset:-2px}
+.nru-title{min-width:0;font-size:13px;line-height:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nru-value{font-size:13px;line-height:20px;font-weight:550;font-variant-numeric:tabular-nums;white-space:nowrap;color:#736b60}
+.nru-value[data-unknown]{color:#a8a29e}
+.nru-empty{padding:6px 12px 9px;color:#746f66;font-size:12px;line-height:18px;margin:0}
 `;
     document.head.append(style);
   }
   function render(rows,options = {}) {
     styles();
-    const now = instant(options.now ?? Date.now()) ?? Date.now(), hours = scope(options.hours);
-    const list = (Array.isArray(rows) ? rows : []).filter(row => row && names[row.key]).slice(0,LIMIT);
-    return `<section class="nru" aria-label="Recent sessions"><header class="nru-head"><h2>Recent sessions</h2><div class="nru-range" role="group" aria-label="Recent session time window">${[1,24].map(value => `<button type="button" data-recent-hours="${value}" aria-label="Past ${value === 1 ? 'hour' : '24 hours'}" aria-pressed="${hours === value}">${value}h</button>`).join('')}</div><button type="button" class="nru-info" data-recent-usage-info aria-label="About recent session context">${icon('info')}</button></header>${list.length ? `<ul class="nru-list">${list.map(row => {
-      const title = String(row.title || names[row.key] + ' session'), identity = esc(row.identity), context = count(row.contextTokens);
-      const activityAt = past(row.activityAt,now), usageAt = past(row.usageAt,now);
-      const activity = activityAt === null ? 'Activity time unavailable' : 'Updated ' + age(activityAt,now);
-      const contextAge = usageAt !== null && (activityAt === null || age(usageAt,now) !== age(activityAt,now)) ? ' · Context ' + age(usageAt,now) : '';
-      const place = row.place === 'cloud' ? 'Cloud' : row.place === 'laptop' ? 'Laptop' : '';
-      const label = context === null ? 'Context not recorded' : context.toLocaleString('en-US') + ' input context tokens' + (usageAt === null ? '' : ', recorded ' + stamp(usageAt));
-      return `<li class="nru-row" data-recent-session="${identity}"><span class="nru-provider" data-provider="${row.key}" role="img" aria-label="${names[row.key]}">${mark(row.key)}</span><div class="nru-copy"><div class="nru-title">${esc(title)}</div><div class="nru-meta">${esc((place ? place + ' · ' : '') + activity + contextAge)}</div></div><button type="button" class="nru-metric" data-recent-usage-detail="${identity}"${context === null ? ' data-unknown' : ''} aria-label="${esc(label + ' for ' + title)}"><span class="nru-value">${context === null ? '&#8211;' : compact(context)}</span><span class="nru-unit">context</span></button><button type="button" class="nru-more" data-recent-session-actions="${identity}" aria-label="${esc('Actions for ' + title)}" aria-haspopup="menu" aria-expanded="false">${icon('more')}</button></li>`;
-    }).join('')}</ul>` : `<p class="nru-empty">No sessions active in the past ${hours === 1 ? 'hour' : hours + ' hours'}.</p>`}${Number.isSafeInteger(options.total) && options.total > list.length ? `<p class="nru-cap">Showing ${list.length} of ${options.total} recent sessions.</p>` : ''}</section>`;
+    const now = instant(options.now ?? Date.now()) ?? Date.now();
+    const list = (Array.isArray(rows) ? rows : []).filter(row => row?.key === 'claude' && past(row.activityAt,now) !== null && now-row.activityAt <= HOUR).slice(0,LIMIT);
+    return `<section class="nru" aria-label="Claude one-hour cache window"><header class="nru-head" title="${esc(INFO)}"><h2>Claude · 1h cache window</h2><span class="nru-column" title="Last recorded input context, including cached tokens">Context</span></header>${list.length ? `<ul class="nru-list">${list.map(row => {
+      const title = String(row.title || 'Claude session'), context = count(row.contextTokens), usageAt = past(row.usageAt,now);
+      const label = context === null ? 'Context size not reported' : context.toLocaleString('en-US') + ' context tokens' + (usageAt === null ? '' : ', measured ' + new Date(usageAt).toLocaleString());
+      return `<li><a class="nru-row" data-recent-session="${esc(row.identity)}" href="${esc(destination(row))}" target="_blank" rel="noopener noreferrer" title="${esc(title + '. ' + label)}" aria-label="${esc(title + '. ' + label + '. Open session details')}"><span class="nru-title">${esc(title)}</span><span class="nru-value"${context === null ? ' data-unknown' : ''}>${context === null ? '&#8211;' : compact(context)}</span></a></li>`;
+    }).join('')}</ul>` : '<p class="nru-empty">No Claude sessions updated in the past hour.</p>'}</section>`;
   }
-  function detail(row,options = {}) {
-    styles();
-    const now = instant(options.now ?? Date.now()) ?? Date.now(), usageAt = past(row?.usageAt,now), context = count(row?.contextTokens);
-    const value = key => { const n = count(row?.usage?.[key]); return n === null ? 'Not recorded' : n.toLocaleString('en-US'); };
-    return `<div class="nru-detail"><p>${context === null ? 'Context has not been recorded for this session.' : `${context.toLocaleString('en-US')} input context tokens${usageAt === null ? '.' : ', recorded ' + esc(stamp(usageAt)) + ' (' + esc(age(usageAt,now)) + ').'}`}</p><small>Context is the input read by the last observed model call, including cache reads and writes. Output is separate. A recent response does not confirm that a prompt cache remains available.</small><p><strong>All recorded calls</strong></p><dl>${[['Fresh input','inputTokens'],['Cache read','cacheReadTokens'],['Cache write','cacheWriteTokens'],['Output','outputTokens'],['Model calls','measuredSteps'],['Large rewrites','reloads']].map(([name,key]) => `<dt>${name}</dt><dd>${value(key)}</dd>`).join('')}</dl><small>Token sums cover the recorded session, rather than only the selected time window. Large rewrites follow the recorded cache-write heuristic; the signals do not identify the cause of a rewrite.</small></div>`;
-  }
-  window.NowRecentUsage = {select,render,detail,INFO,LIMIT};
+  window.NowRecentUsage = {select,render,INFO,LIMIT};
 })();

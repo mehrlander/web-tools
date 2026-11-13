@@ -15,10 +15,11 @@ let checks = 0;
 const check = (condition,message) => { assert.ok(condition,message); checks++; };
 const render = (rows,options = {}) => { doc.querySelector('main').innerHTML = U.render(rows,{now,...options}); };
 
-let rows = select([item('record'),item('alias',{sessionUrl:'https://claude.ai/code/session_agent'}),item('record',{key:'codex',identity:'codex-record'})],
-  [usage('record',400000),usage('other',250000,{agentSessionId:'session_agent'})]);
-check(rows.length === 3 && rows[0].contextTokens === 400000 && rows[1].contextTokens === 250000 && rows[2].contextTokens === null,
-  'Record IDs and provider session URLs join usage without attributing Claude readings to another assistant.');
+let rows = select([item('record'),item('alias',{sessionUrl:'https://claude.ai/code/session_agent'}),
+  item('record',{key:'codex',identity:'codex-record'}),item('gemini',{key:'gemini'})],
+  [usage('record',400000),usage('other',250000,{agentSessionId:'session_agent'}),usage('gemini',900000,{provider:'gemini'})]);
+check(rows.length === 2 && rows[0].contextTokens === 400000 && rows[1].contextTokens === 250000 && rows.every(row => row.key === 'claude'),
+  'Record IDs and Claude session URLs join usage, while Codex and Gemini stay outside the Claude list.');
 rows = select([item('record',{sessionUrl:'https://claude.ai/code/session_agent'})],
   [usage('record',100000),usage('other',900000,{agentSessionId:'session_agent',usageAt:iso(now-minute)})]);
 check(rows[0].contextTokens === 100000,'An exact record match takes precedence over an unrelated session-link match.');
@@ -44,8 +45,9 @@ rows = select([item('old',{at:now-2*60*minute}),item('boundary',{at:now-60*minut
   [usage('old',300000,{usageAt:iso(now-minute)})]);
 check(rows.length === 2 && rows[0].id === 'old' && rows[0].activityAt === now-minute && rows[1].id === 'boundary',
   'Actual recent usage can qualify an older session; the hour boundary is inclusive, while errands and invalid or future-only activity are excluded.');
-check(select([item('day',{at:now-23*60*minute})],[],{hours:24}).length === 1 && select([item('day',{at:now-25*60*minute})],[],{hours:24}).length === 0,
-  'The 24-hour window includes older daily activity without admitting sessions outside that window.');
+check(select([item('day',{at:now-23*60*minute}),item('just-outside',{at:now-60*minute-1})],
+  [usage('measured-day',900000,{usageAt:iso(now-2*60*minute)})],{hours:24}).length === 0,
+  'The preceding-hour scope remains fixed even when a caller passes the removed 24-hour option.');
 rows = select([item('recent')],[usage('recent',700000,{usageAt:iso(now+minute)})]);
 check(rows.length === 1 && rows[0].contextTokens === null && rows[0].usageAt === null,'A future usage record cannot supply a context value to otherwise recent activity.');
 check(select([item('bad-date',{at:NaN})],[usage('bad-date',123,{usageAt:'2026-02-30T12:00:00Z'})]).length === 0,
@@ -72,25 +74,47 @@ rows = select([item('safe',{identity:'safe" data-injected="yes',title:hostile})]
   [usage('safe',354031,{usageAt:iso(now-2*60*minute),inputTokens:12,outputTokens:34,cacheReadTokens:56,cacheWriteTokens:78,measuredSteps:3,reloads:1})]);
 render(rows);
 check(doc.querySelector('.nru-title').textContent === hostile && !doc.querySelector('img') && !doc.querySelector('[data-injected]'),
-  'Titles and action identifiers render as text, rather than becoming markup or attributes.');
-check(doc.querySelector('[data-recent-usage-detail]').dataset.recentUsageDetail === rows[0].identity && doc.querySelector('[data-recent-session-actions]').dataset.recentSessionActions === rows[0].identity,
-  'Metric and session-action controls expose the original identity for delegated events.');
-check(doc.querySelector('[data-assistant-mark=claude]') && doc.querySelector('.nru-value').textContent === '354k' && doc.querySelector('.nru-meta').textContent.includes('Context 2h ago'),
-  'A known context renders with the shared provider mark and a separate age when the context reading predates activity.');
-check(doc.querySelector('[data-recent-hours="1"]').getAttribute('aria-pressed') === 'true' && doc.querySelector('[data-recent-usage-info]').getAttribute('aria-label'),
-  'The time-window control and information button have accessible labels and current state.');
-check(!doc.querySelector('.nru').textContent.includes('%') && !/cache|warm/i.test(doc.querySelector('.nru-list').textContent),
-  'The list face shows context without suggesting a cache hit rate or cache availability.');
-doc.querySelector('main').innerHTML = U.detail(rows[0],{now});
-check(doc.body.textContent.includes('All recorded calls') && doc.body.textContent.includes('rather than only the selected time window')
-  && doc.body.textContent.includes('354,031') && doc.body.textContent.includes('78') && !doc.body.textContent.includes('NaN'),
-  'Details distinguish dated input context from token sums over all recorded calls.');
+  'Titles and session identifiers render as text, rather than becoming markup or attributes.');
+let link = doc.querySelector('a.nru-row'), destination = new URL(link.href);
+check(link.dataset.recentSession === rows[0].identity && destination.origin === 'https://mehrlander.github.io'
+  && destination.pathname === '/web-tools/app/' && destination.searchParams.get('view') === 'sessions' && destination.searchParams.get('session') === 'safe'
+  && link.target === '_blank' && link.rel.split(/\s+/).includes('noopener'),
+  'A compact cloud row directly opens the matching Web Tools session with opener protection.');
+const heading = doc.querySelector('section[aria-label="Claude one-hour cache window"]');
+const explanation = [heading?.getAttribute('title'),heading?.querySelector('header')?.getAttribute('title'),heading?.querySelector('h2')?.getAttribute('title')].filter(Boolean).join(' ');
+check(heading?.querySelector('h2').textContent === 'Claude · 1h cache window' && heading.querySelector('header').textContent.includes('Context')
+  && /hour/i.test(explanation) && /cache/i.test(explanation) && /not|cannot|unconfirmed|doesn.t/i.test(explanation),
+  'The fixed Claude heading labels input context and explains that past-hour activity does not establish cache availability.');
+check(doc.querySelector('.nru-value').textContent === '354k' && !doc.querySelector('.nru-meta') && !link.querySelector('svg,[data-assistant-mark]')
+  && !/ago|updated|warm|%/i.test(link.textContent),
+  'Each row contains a compact context amount without provider icons, timestamps, or a cache-state claim.');
+const titleStyle = window.getComputedStyle(doc.querySelector('.nru-title'));
+check(titleStyle.whiteSpace === 'nowrap' && titleStyle.textOverflow === 'ellipsis' && titleStyle.overflow === 'hidden',
+  'Long session titles stay on one line and use ellipsis within the available space.');
+check(!doc.querySelector('.nru button,[data-recent-hours],[data-recent-usage-info],[data-recent-usage-detail],[data-recent-session-actions]') && typeof U.detail === 'undefined',
+  'The list has no range selector, information button, metric detail, action menu, or detail-rendering API.');
+
+const preferred = 'https://mehrlander.github.io/web-tools/app/?view=sessions&session=recorded-detail';
+render(select([item('alternate-id',{url:preferred})]));
+check(doc.querySelector('a.nru-row').href === preferred,'An existing safe Web Tools session-detail link is preferred over reconstructing a destination.');
+render(select([item('unsafe-code',{url:'javascript:alert(1)'}),item('lookalike',{url:'https://mehrlander.github.io.evil.example/web-tools/app/?view=sessions&session=wrong'}),
+  item('wrong-view',{url:'https://mehrlander.github.io/web-tools/app/?view=files&session=wrong'})]));
+check([...doc.querySelectorAll('a.nru-row')].every(anchor => {
+  const url = new URL(anchor.href);
+  return url.origin === 'https://mehrlander.github.io' && url.pathname === '/web-tools/app/'
+    && url.searchParams.get('view') === 'sessions' && url.searchParams.get('session') === anchor.dataset.recentSession;
+}), 'Unsafe, lookalike, and unrelated app URLs never become row destinations.');
+render(select([item('local-safe',{kind:'session',place:'laptop',sessionUrl:'https://claude.ai/code/session_LocalSafe'}),
+  item('local-unsafe',{kind:'session',place:'laptop',sessionUrl:'javascript:alert(1)'})]));
+check(doc.querySelector('a[data-recent-session="local-safe"]').href === 'https://claude.ai/code/session_LocalSafe'
+  && doc.querySelector('a[data-recent-session="local-unsafe"]').href === 'https://claude.ai/code/',
+  'Local Claude sessions open an approved Claude session URL or the Claude Code fallback.');
 render(select([item('unknown-context')]),{hours:24});
-check(doc.querySelector('[data-unknown]') && doc.querySelector('[data-recent-usage-detail]').getAttribute('aria-label').includes('Context not recorded')
-  && doc.querySelector('[data-recent-hours="24"]').getAttribute('aria-pressed') === 'true','Missing context stays explicitly unknown when switching the time window.');
+check(/^[–—-]$/.test(doc.querySelector('.nru-value').textContent.trim()) && !/NaN|undefined|24h/.test(doc.querySelector('.nru').textContent),
+  'Missing context remains an unknown dash, while the removed range option never appears.');
 render([]);
-check(doc.querySelector('section[aria-label="Recent sessions"]') && doc.querySelector('.nru-empty').textContent.includes('past hour')
-  && doc.querySelectorAll('[data-recent-hours]').length === 2,'An empty list retains its labelled section and both time-window controls.');
+check(doc.querySelector('section[aria-label="Claude one-hour cache window"]') && doc.querySelector('.nru-empty').textContent.includes('past hour')
+  && !doc.querySelector('.nru a,.nru button'),'An empty list retains the Claude one-hour label without adding controls.');
 check(doc.querySelectorAll('#now-recent-usage-style').length === 1,'Repeated rendering keeps one shared component stylesheet.');
 
 console.log(`${checks} recent session usage checks passed.`);
