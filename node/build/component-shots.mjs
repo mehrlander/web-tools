@@ -44,9 +44,11 @@ const opt = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] :
 const ONLY = opt('--only', '').split(',').filter(Boolean);
 const JOBS = Math.max(1, +opt('--jobs', 3));
 
-// The unit shots' own sizes (ui-shots.mjs): the desktop window is cut to
-// 16:10, the phone kept whole.
-const SIZES = { desk: { width: 1280, height: 900, thumb: 800, ratio: 10 / 16, touch: false },
+// The unit shots' image sizes (ui-shots.mjs), with the desktop window opened
+// at 16:10 so that nothing is cut from it. A unit shot opens it 900 px tall
+// and cuts the bottom 100, which is where a fixed control such as the FAB's
+// launcher sits.
+const SIZES = { desk: { width: 1280, height: 800, thumb: 800, ratio: 10 / 16, touch: false },
                 phone: { width: 390, height: 844, thumb: 390, ratio: 0, touch: true } };
 const OUT = path.join(HUB, 'data/ui-units/thumbs');
 const TMP = path.join(HUB, 'node/.preview/component-shots');
