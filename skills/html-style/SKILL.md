@@ -1,9 +1,11 @@
 ---
 name: html-style
-description: The binding house style for HTML pages built here, covering what a page looks like rather than how it is built. Read it BEFORE laying out any page and BEFORE any general design, dashboard, or charting skill, which recommend what these rules forbid, such as stat cards, explanatory prose on the page, embedded browsing, and shrunken type. Use when creating or reviewing an HTML page, artifact, single-file web app, dashboard, prototype, web UI component, or browser tool; when asked why a page looks wrong; and whenever the user mentions the style guide, house style, page layout, or stat cards. Building mechanics (DaisyUI 5, Tailwind CSS 4, Alpine.js, tooltips, CDN loading) are in references/mechanics.md.
+description: The binding house conventions for HTML page structure, appearance, interaction, and shared implementations. Read it BEFORE laying out any page and BEFORE any general design, dashboard, or charting skill, which recommend what these rules forbid, such as stat cards, explanatory prose on the page, embedded browsing, and shrunken type. Use when creating or reviewing an HTML page, artifact, single-file web app, dashboard, prototype, web UI component, or browser tool; when asked why a page looks wrong; and whenever the user mentions the style guide, house style, page layout, or stat cards. Building mechanics (DaisyUI 5, Tailwind CSS 4, Alpine.js, tooltips, CDN loading) are in references/mechanics.md.
 ---
 
 # HTML house style
+
+Use this skill to choose a page's structure and interactions, apply the house style, and find the shared implementations.
 
 ## "Project what matters"
 
@@ -24,6 +26,22 @@ what?", then give the compared things one place:
   with each field at the same spot on every card and tab.
 - **Not down a long scroll:** split stacked sections and long forms along the
   dimension the reader compares. A long table is exempt; its rows share columns.
+
+## Shared page patterns
+
+Start with the reader's job and reuse a [standard presentation](https://github.com/mehrlander/web-tools/blob/main/docs/forms/README.md) where one fits. A **deck** is a swipeable sequence of cards. A **takeover** opens content in an expanded reader with a header, content area, navigation, and a return path to the page beneath it (rule 4).
+
+| Page need | Pattern | Shared implementation |
+| --- | --- | --- |
+| Browse one item at a time | A card deck in a takeover | [Swipe Deck](https://github.com/mehrlander/web-tools/blob/main/lib/kits/swipe-deck.js): `open()` (rule 4) |
+| Scan a list while reading details | A list and cards with synchronized selection | [Linked Swiper](https://github.com/mehrlander/web-tools/blob/main/lib/kits/linked-swiper.js), using Swipe Deck's `core()` for the embedded cards (rule 11) |
+| Reveal detail in context | A brief title-tip or an interactive panel-tip | [title-tip](https://github.com/mehrlander/web-tools/blob/main/lib/kits/title-tip.js), [panel-tip](https://github.com/mehrlander/web-tools/blob/main/lib/kits/panel-tip.js) (rule 10) |
+| Adjust adjoining panes | A divider the reader can move | [Dock Split](https://github.com/mehrlander/web-tools/blob/main/lib/kits/dock-split.js) |
+| Read Markdown or its changes | Rendered Markdown with changes marked inline | [Guide Renderer](https://github.com/mehrlander/web-tools/blob/main/lib/kits/guide-render.js), [Markdown Diff](https://github.com/mehrlander/web-tools/blob/main/lib/kits/md-diff.js) (rule 13) |
+
+Kits supply shared behavior; Alpine components render and hold reactive state, often using kits. [Code layers](https://github.com/mehrlander/web-tools/blob/main/docs/code-layers.md) defines the boundary: [cm6.js](https://github.com/mehrlander/web-tools/blob/main/lib/kits/cm6.js) supplies an editor and [cm-editor.js](https://github.com/mehrlander/web-tools/blob/main/lib/alpineComponents/cm-editor.js) wraps the editor in Alpine. Browse [Kits](https://mehrlander.github.io/web-tools/app/?view=map&tab=kits) and [Alpine components](https://github.com/mehrlander/web-tools/tree/main/lib/alpineComponents) for other implementations; read each file's header for its interface.
+
+Simple pages can remain self-contained. Loading shared code is covered by the [loader contract](https://github.com/mehrlander/web-tools/blob/main/docs/loader.md). When the information structure needs development, use [page-design-loop](https://github.com/mehrlander/web-tools/blob/main/skills/page-design-loop/SKILL.md). The [content maturity prototype](https://github.com/mehrlander/web-tools/blob/main/docs/prototypes/content-maturity.html) is background on the progression from a summary to an app view.
 
 ## The rules
 
@@ -47,8 +65,7 @@ refuses these at edit time and `npm run reading-column` lists them; `modal-box`
 sizing is exempt, and an exception takes a `reading-column-ok` comment on the
 line or the line above.
 
-**4. Browsing takes the viewport.** A deck, gallery, diff, or result set uses
-`fixed inset-0 grid grid-rows-[auto_1fr_auto]`:
+**4. Browsing takes the available view.** A deck, gallery, diff, or result set uses the frame below. For expansion over another page, use the Swipe Deck takeover. A takeover fills the window on a phone and the host's content pane on a wide screen; a host may also dock it beside a list.
 
 ```text
 ├── header   identity, controls, counter
@@ -103,29 +120,21 @@ Do not use daisyUI's `tooltip`, `data-tip`, or `cursor-help`. Details are in
 `npm run stranded-titles` lists facts parked in a `title`, and
 `TitleTip.open('#id')` opens one for a shot.
 
-**11. A list with a detail is a list over a strip.** The list sits above,
-capped near 40% of the height, over a strip of one card per item, swiped
-sideways. Each scrolls inside itself; the page does not. A pick in the list
-moves the strip, and a swipe moves the list's selection and keeps it in view.
-Up and Down in the list step the selection as a swipe steps the strip, and
-focus moves with the selected row. The strip's header opens the deck takeover (rule 4) at the card in view, and
-closing it returns to the list at the card where it closed. In a wide pane the
-list sits beside the strip; on a phone it stays in view above the strip. The
-reference is the linked-swiper kit
-([`linked-swiper.js`](https://github.com/mehrlander/web-tools/blob/main/lib/kits/linked-swiper.js)),
-coded `linked-swiper`.
+**11. Keep the list visible while browsing details.** Pair the list with a swipeable sequence of cards, one per item. On a phone, place the list above the cards and limit its height to about 40% of the available space. In a wide pane, place the list beside the cards. Each pane scrolls independently; the page stays still. Selecting a row shows its card. Swiping between cards selects the corresponding row and keeps that row visible. In the list, Up and Down move selection and keyboard focus together. A control in the card header opens the takeover (rule 4) at the card in view. Closing returns to the list at the item last viewed. Use Linked Swiper; the host supplies the action that opens the takeover.
 
-**12. Avoid modal dialogs.** Consider a panel-tip, the deck takeover (rule 4), or another more fluid alternative.
+**12. Avoid modal dialogs.** Consider a panel-tip, the Swipe Deck takeover (rule 4), or another more fluid alternative.
 
 **13. Show the source.** A page presents the publisher's own document rather than a conversion made here, quoted text exactly as written with only highlighting added, and a change inline in the document it changes.
 
 **14. Keep the reader's context.** A link to a row scrolls to it and leaves the other rows in view.
 
-**15. The layout holds still.** A scrollbar appearing, a counter gaining a digit, or a container's content changing moves nothing else: reserve the scrollbar's gutter, give counters `tabular-nums`, and size a container for its largest content.
+**15. Keep the layout stable.** Reserve space for scrollbars and content of varying lengths. For counters, use `tabular-nums` and reserve room for extra digits. Put repeated card controls in a consistent position: in the header or a footer anchored to the card's bottom edge.
 
 **16. An item and its counterparts highlight together.** Where one item appears in two or more places on a page, hovering or tapping any of them marks the others.
 
 **17. A value takes the form its content asks for.** Do not lay out a card's or panel's fields as label-value pairs. A URL or file path is a link, short labels and dates run as one line of items, a sentence runs as text without a label, and an item the card points to leads with an icon and its name in bold. Leave out a field whose value is a placeholder, a value nearly every card shares, or a restatement of another field. A table whose rows share columns is exempt.
+
+**Icon flair** uses small icons beside an item to mark properties such as kind or origin. Explain unfamiliar marks with a title-tip or panel-tip.
 
 ## Handing a page over
 
