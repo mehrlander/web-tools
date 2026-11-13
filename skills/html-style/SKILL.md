@@ -86,10 +86,10 @@ to labels, counters, and timestamps.
 **8. Content starts at the top.** Do not vertically centre a slide because it
 looks balanced when short; across a deck it moves the first line on every card.
 
-**9. Colour means something.** Colour carries information, not decoration.
+**9. Use color to communicate.** Color carries information, not decoration.
 Assign it by semantic role, and in a comparison lock each side's treatment
 across every view. Use it selectively: where most items are ordinary, leave
-them neutral and colour the ones that differ.
+them neutral and color the ones that differ.
 
 **10. A tooltip worth having is worth building.** Prefer text on the page. Do
 not use a `title`: the browser draws it only on mouse hover and outside the
