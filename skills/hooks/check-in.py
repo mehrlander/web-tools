@@ -19,14 +19,18 @@ ids written in one second are told apart by a suffix on the second:
 
 send-later-guard.sh refuses every send_later whose message opens otherwise.
 
-ARMING. On a prompt the owner typed, when no check-in is pending and the
-context is at least FLOOR tokens, the hook asks for the message to be sent with
-a delay of DELAY minutes. FLOOR is the context size above which
+ARMING. On a prompt the owner typed, in a cloud session, when no check-in is
+pending and the context is at least FLOOR tokens, the hook asks for the message
+to be sent with a delay of DELAY minutes. A cloud session is one whose
+environment has CLAUDE_CODE_REMOTE=true, the test .claude/hooks/session-start.sh
+makes; send_later is a tool of that session's remote server, so no other
+session is asked. FLOOR is the context size above which
 lib/kits/session-usage.js counts an idle re-load. The owner's prompt is told
 from a wake as session-detail-caption.py tells it, by how the prompt opens, and
 the context is read as context-size-hint.py reads it. The hook asks again at
-each such prompt until a check-in is pending. A session without a send_later
-tool is asked every time, and the instruction says to ignore it there.
+each such prompt until a check-in is pending. The instruction still says to
+ignore it where there is no send_later tool: a cloud session whose remote
+server did not connect has none.
 
 TRACKING. After a send_later whose message opens with the mark and an id, the
 hook records that id as the latest, that a check-in is pending, and when it
@@ -163,10 +167,17 @@ def owner(prompt):
     return isinstance(prompt, str) and not prompt.lstrip().startswith(NOT_OWNER)
 
 
-def arming(prompt, pending, context, fresh):
-    """The instruction a submitted prompt calls for, or None. `fresh` is the id
-    a message armed now would carry."""
-    if not owner(prompt) or pending or not context or context < FLOOR:
+def cloud(environ):
+    """Whether an environment is a cloud session's, the one kind that has a
+    send_later tool."""
+    return environ.get("CLAUDE_CODE_REMOTE") == "true"
+
+
+def arming(prompt, remote, pending, context, fresh):
+    """The instruction a submitted prompt calls for, or None. `remote` says the
+    session is a cloud session, and `fresh` is the id a message armed now would
+    carry."""
+    if not owner(prompt) or not remote or pending or not context or context < FLOOR:
         return None
     return ARM.format(delay=DELAY, msg=message(fresh))
 
@@ -393,11 +404,11 @@ def on_prompt(payload, path, now):
         state.pop("mark", None)
     state.pop("quiet", None)
     text = None
-    if not waiting(state, now):
+    if cloud(os.environ) and not waiting(state, now):
         transcript = payload.get("transcript_path")
         found = isinstance(transcript, str) and os.path.isfile(transcript)
         fresh = new_id(now, state.get("latest") if isinstance(state.get("latest"), str) else None)
-        text = arming(prompt, False, context_size(transcript) if found else None, fresh)
+        text = arming(prompt, True, False, context_size(transcript) if found else None, fresh)
         if text:
             state.update(latest=fresh, pending=False)
             state.pop("due", None)

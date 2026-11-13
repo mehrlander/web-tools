@@ -68,12 +68,13 @@ print(json.dumps([getattr(hook, name)(*args) for name, args in json.loads(sys.ar
 `, HOOK, JSON.stringify(calls)], { encoding: 'utf8' }));
 }
 
-test('the arming rule: an owner\'s prompt, nothing pending, and a context at or over the floor', () => {
-  const arming = (prompt, pending, context) => ['arming', [prompt, pending, context, 'ID']];
-  const [at, over, under, none, zero, pending, image, ...wakes] = rules([
+test('the arming rule: an owner\'s prompt in a cloud session, nothing pending, and a context at or over the floor', () => {
+  const arming = (prompt, pending, context, remote = true) => ['arming', [prompt, remote, pending, context, 'ID']];
+  const [at, over, under, none, zero, pending, local, image, ...wakes] = rules([
     arming('What next?', false, 150_000), arming('What next?', false, 815_600),
     arming('What next?', false, 149_999), arming('What next?', false, null),
     arming('What next?', false, 0), arming('What next?', true, 815_600),
+    arming('What next?', false, 815_600, false),
     arming(null, false, 815_600), ...WAKES.map(wake => arming(wake, false, 815_600)),
   ]);
   assert.equal(at, ARM('ID'), 'at the floor');
@@ -82,8 +83,13 @@ test('the arming rule: an owner\'s prompt, nothing pending, and a context at or 
   assert.equal(none, null, 'before any response the context is unknown');
   assert.equal(zero, null);
   assert.equal(pending, null, 'one is pending');
+  assert.equal(local, null, 'not a cloud session, so it has no send_later');
   assert.equal(image, null, 'no prompt in the payload');
   wakes.forEach((said, i) => assert.equal(said, null, 'a wake: ' + WAKES[i].slice(0, 24)));
+  const told = (environ) => ['cloud', [environ]];
+  assert.deepEqual(rules([told({ CLAUDE_CODE_REMOTE: 'true' }), told({}), told({ CLAUDE_CODE_REMOTE: 'false' }),
+    told({ CLAUDE_CODE_REMOTE: '1' }), told({ CLAUDE_CODE_REMOTE: '' }), told({ CLAUDE_CODE_REMOTE_SESSION_ID: 'cse_01' })]),
+    [true, false, false, false, false, false], 'a cloud session is CLAUDE_CODE_REMOTE=true and nothing else');
 });
 
 test('the decision on a check-in that was read: duplicate, early, first or second', () => {
@@ -169,12 +175,15 @@ function scratch() {
   const dir = mkdtempSync(path.join(tmpdir(), 'check-in-'));
   const transcript = path.join(dir, 'session.jsonl');
   const file = (session = SESSION) => path.join(dir, 'check-in', session);
-  // `entries` rewrites the transcript whole; null leaves it as it stands.
-  const run = (entries, payload) => {
+  // `entries` rewrites the transcript whole; null leaves it as it stands. The
+  // run is a cloud session's unless `remote` gives the variable another value,
+  // or null for unset, whatever machine the suite itself runs on.
+  const run = (entries, payload, remote = 'true') => {
     if (entries) writeFileSync(transcript, entries.join('\n') + '\n');
+    const env = { ...process.env, TMPDIR: dir, CLAUDE_CODE_REMOTE: remote };
+    if (remote === null) delete env.CLAUDE_CODE_REMOTE;
     const done = spawnSync('python3', [HOOK], {
-      input: JSON.stringify({ transcript_path: transcript, session_id: SESSION, ...payload }),
-      env: { ...process.env, TMPDIR: dir }, encoding: 'utf8' });
+      input: JSON.stringify({ transcript_path: transcript, session_id: SESSION, ...payload }), env, encoding: 'utf8' });
     assert.equal(done.status, 0, 'it exits 0');
     assert.equal(done.stderr, '', 'and prints no traceback');
     if (!done.stdout.trim()) return '';
@@ -252,6 +261,35 @@ test('it says nothing under the floor, on a wake, or to a subagent', () => {
     assert.equal(s.run(big, { hook_event_name: 'UserPromptSubmit', session_id: 'wake-none' }), '', 'no prompt in the payload');
     assert.equal(s.prompt(big, 'What next?', { session_id: 'agent', agent_id: 'a1' }), '', 'a subagent\'s prompt');
     assert.ok(!existsSync(s.file('wake-0')) && !existsSync(s.file('agent')), 'and a wake writes no state');
+  } finally { s.done(); }
+});
+
+test('outside a cloud session it does not ask, and everything else it does stays as it is', () => {
+  const s = scratch();
+  try {
+    const big = [typed('one'), reply(ago(MIN), 815_600)];
+    const ask = { hook_event_name: 'UserPromptSubmit', prompt: 'What next?' };
+    for (const remote of [null, 'false', '1', '']) {
+      assert.equal(s.run(big, ask, remote), '', `CLAUDE_CODE_REMOTE=${remote}`);
+    }
+    assert.ok(!existsSync(s.file()), 'and it writes no state for a prompt it does not answer');
+    const asked = s.run(big, ask);
+    assert.equal(asked, ARM(idOf(asked)), 'the same prompt in a cloud session');
+
+    // The variable gates the asking alone: a message sent is tracked, a
+    // check-in read is judged, and an owner's prompt still starts the count again.
+    const one = '20261113T100000Z';
+    const sending = { hook_event_name: 'PostToolUse', tool_name: SEND_LATER[0], tool_input: { delay_minutes: 55, message: MSG(one) },
+      tool_response: `{"fire_at":"${ago(-55 * MIN)}"}` };
+    assert.equal(s.run(null, sending, null), '');
+    assert.equal(s.state().pending, true);
+    assert.equal(s.state().latest, one);
+    const first = s.run(idle(55 * MIN + 30_000),
+      { hook_event_name: 'PostToolUse', tool_name: 'ReadNotifications', tool_response: batch(scheduled(MSG(one))) }, null);
+    assert.equal(first, FIRST(55, idOf(first)));
+    assert.equal(s.state().ran, 1);
+    assert.equal(s.run(null, ask, null), '', 'one is not asked for here');
+    assert.equal(s.state().ran, 0);
   } finally { s.done(); }
 });
 
