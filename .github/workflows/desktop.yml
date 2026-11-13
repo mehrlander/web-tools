@@ -51,6 +51,8 @@ jobs:
           python desktop/Checks/usage-checks.py
           python desktop/Checks/usage-events-checks.py
           python desktop/Checks/daily-allowance-checks.py
+          python desktop/Checks/session-usage-checks.py
           node desktop/Checks/usage-ui-checks.mjs
+          node desktop/Checks/recent-usage-checks.mjs
       - name: Check companion access and API
         run: node desktop/Checks/companion-checks.mjs

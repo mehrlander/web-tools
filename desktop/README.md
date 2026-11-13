@@ -232,6 +232,16 @@ A trend begins with observed readings, without reconstructing past consumption.
 Expired or stale readings remain labeled; passing a reset never supplies an
 assumed zero.
 
+`worker/session_usage.py` projects recent Claude cloud `usage/1` extracts from one
+revision of the existing private checkout. The projection keeps session identity,
+last measured input context, call time and session-to-date token/cache counters.
+Prompt text, replies and raw transcripts are excluded. The private Usage calendar
+joins these measurements to activity in its compact recent-session list, ordered
+by context size, with one-hour and one-day filters. Context size is not cumulative
+spend; recent activity and prior cache reads do not establish a reusable cache or
+its expiry time. Missing sizes remain unknown, and saved measurements retain their
+observation time. Extracts cover the main conversation and update after turns finish.
+
 Codex uses the signed-in CLI's documented `account/rateLimits/read` app-server
 method. The CLI manages its own authentication. Each reported bucket and period
 remains separate. Gemini uses the existing Antigravity worker's loopback
