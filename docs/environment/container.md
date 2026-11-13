@@ -207,6 +207,22 @@ the user role carries harness-injected turns, a retry notice being the common
 one, so counting user messages overstates how many times the user actually said
 something.
 
+## The prompt cache
+
+*(measured 2026-11-13; tool description quoted the same day)*
+
+A session also runs on a **prompt cache**. A model call writes its context to the cache, and a later call reads that context back at the cache-read price. The cache's lifetime, the **prompt-cache TTL**, is one hour, and the moment the TTL runs out is the **cache cliff**.
+
+**The TTL is documented in a tool description, which has no page to link.** The harness describes its `ScheduleWakeup` tool to a session in these words:
+
+> This session's requests use a 1-hour Anthropic prompt-cache TTL, so effectively every allowed delay (the runtime clamps to [60, 3600]) wakes up with your conversation context still cached. There is no cache cliff inside that range to pace around, and scheduling extra wakeups just to keep the cache warm is pure waste — never do that. (If the session enters usage overage, later requests drop to the 5-minute TTL; don't try to track or preempt that — the guidance here stays the same.)
+
+**For `claude-fable-5-2`, a token written to the cache costs eighty times a token read from it.** The price table in [`lib/kits/session-usage.js`](../../lib/kits/session-usage.js), Anthropic's list prices as of 2026-11-10, gives that model $8 per million input tokens, $0.20 per million tokens read from cache, and twice the input price for a token written to the one-hour cache. The same kit and `web-tools-private sessions/tools/usage.py` define an **idle re-load**: a model call that writes more than half of a context over 150,000 tokens to cache, and is neither the session's first call nor the first after a compaction, since those two write a context for other reasons.
+
+**Measured, the cache cliff sits near 61 minutes.** The measurement read 196 session files from October and November 2026 in the session archive in web-tools-private. It counted the 75,723 model calls made on a context over 150,000 tokens, leaving out calls on the five-minute cache and calls after a compaction or a model switch, and took each gap between one response's time and the next. Of the 75,047 calls with a gap under 58 minutes, 2 were idle re-loads; of the 19 with a gap of 58 to 62 minutes, 6 were; of the 657 with a gap over 62 minutes, all were. The shortest gap that re-loaded was 60.8 minutes and the longest that did not was 61.2.
+
+**Every model call restarts the hour, an automatic one included.** What starts a model call in an idle session is a message from the owner, a GitHub event on a pull request the session is subscribed to, a scheduled task, or a message from another session. Two sessions woken after the cache cliff were measured. On 2026-11-13, web-tools pull request 1283 was merged at 15:03:03 UTC, and the session subscribed to it took the merge event 42 seconds later, having made its last call at 05:25:38 UTC. Its first call after the event wrote 809,737 tokens to cache and read 61,870, on a context of 873,638 tokens. Two more calls each read about 872,000 tokens from the new cache, and the three calls produced about 350 tokens of output. On 2026-11-12, a merge of budget-drs pull request 20 woke a session with a context of 274,000 tokens, which wrote 213,470 tokens to cache.
+
 ## Repository observations
 
 *Observed 2026-05-30.*
