@@ -98,8 +98,7 @@ page, so touch screens and screenshots omit it. One line the page implies is a
 ([`kits/title-tip.js`](https://github.com/mehrlander/web-tools/blob/main/lib/kits/title-tip.js));
 anything tapped, scrolled, or sourced is a **panel-tip**
 ([`kits/panel-tip.js`](https://github.com/mehrlander/web-tools/blob/main/lib/kits/panel-tip.js)).
-A note on one figure opens from a note icon beside that figure, not from text
-under its row.
+A panel-tip about one figure opens from an icon beside that figure.
 Do not use daisyUI's `tooltip`, `data-tip`, or `cursor-help`. Details are in
 [`references/mechanics.md`, "Title-tips and panel-tips"](references/mechanics.md#title-tips-and-panel-tips);
 `npm run stranded-titles` lists facts parked in a `title`, and
@@ -117,7 +116,7 @@ reference is the linked-swiper kit
 ([`linked-swiper.js`](https://github.com/mehrlander/web-tools/blob/main/lib/kits/linked-swiper.js)),
 coded `linked-swiper`.
 
-**12. Avoid modal dialogs and accordions.** A row that expands in place hides part of its list and moves what is under it (rule 15). Show the detail with its row, or consider a panel-tip, a strip under the list (rule 11), the deck takeover (rule 4), or another more fluid alternative.
+**12. Avoid modal dialogs and accordions.** Consider a panel-tip, a strip under the list (rule 11), the deck takeover (rule 4), or another more fluid alternative.
 
 **13. Show the source.** A page presents the publisher's own document rather than a conversion made here, quoted text exactly as written with only highlighting added, and a change inline in the document it changes.
 
