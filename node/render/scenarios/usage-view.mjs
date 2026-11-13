@@ -13,7 +13,8 @@
 // proportions. Such a shot holds what each session was first asked, so it
 // stays out of this repository.
 //
-// USAGE_PANE=spend|calls|reloads|continue|compactions picks the reading.
+// USAGE_PANE=spend|calls|reloads|continue|compactions picks the reading;
+// without it the pane is left on the one it opened on, or a look link chose.
 // USAGE_SCOPE=warm|lapsed picks the Continue chip.
 // USAGE_NOW=<ISO time> sets the page's clock, which Continue reads; without it
 // the clock is twenty minutes after the newest session's last step, so at
@@ -42,7 +43,7 @@ export default async (page, ctx) => {
   if (!files.length) throw new Error('usage-view scenario: no usage extracts under ' + dir);
   const newest = files.map((f) => Date.parse(f.last)).filter(Number.isFinite).sort((a, b) => b - a)[0];
   const now = process.env.USAGE_NOW ? Date.parse(process.env.USAGE_NOW) : newest + 20 * 60000;
-  const pane = process.env.USAGE_PANE || 'spend';
+  const pane = process.env.USAGE_PANE || '';
 
   await page.evaluate(({ files, now }) => {
     Date.now = () => now;
@@ -80,7 +81,7 @@ export default async (page, ctx) => {
   await page.evaluate(async ({ pane, scope, usage }) => {
     const d = new Function('return (' + usage + ')()')();
     if (!d.r) await d.refresh();
-    d.show(pane);
+    if (pane) d.show(pane);
     if (scope) d.scope = scope;
   }, { pane, scope: process.env.USAGE_SCOPE || '', usage: String(usage) });
   await page.waitForFunction(`(${usage})().r`, null, { timeout: 30000 });

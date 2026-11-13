@@ -93,6 +93,8 @@ test('the first visit lists the store by three levels and reads each file once, 
   assert.equal(keptRows.size, 5, 'each read file is kept in this browser under its sha');
   assert.equal(keptRows.get('2026-11-01-aaaa0001').sha, blobSha(store.get('2026-11-01-aaaa0001')));
   assert.match(text($('[data-usage]')), /5 sessions · Oct 20 to Nov 4/);
+  assert.equal($('a[data-usage-source]').getAttribute('href'),
+    'https://github.com/mehrlander/web-tools-private/tree/main/sessions/usage', 'the view\'s jump-over to what it reads');
   assert.deepEqual(problems, [], 'mounting is quiet');
 });
 
