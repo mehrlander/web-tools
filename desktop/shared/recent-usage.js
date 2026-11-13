@@ -148,8 +148,12 @@
 .nru-value{font-size:13px;line-height:20px;font-weight:550;font-variant-numeric:tabular-nums;white-space:nowrap;color:#736b60}
 .nru-value[data-unknown]{color:#a8a29e}
 .nru-empty{padding:6px 12px 9px;color:#746f66;font-size:12px;line-height:18px;margin:0}
-.session-token-badge{display:inline-flex;align-items:center;gap:3px;min-height:18px;padding:0 2px;border:0;background:none;color:#746f66;font:inherit;font-variant-numeric:tabular-nums;white-space:nowrap;cursor:pointer}
-.session-token-badge svg{width:13px;height:13px;flex:none}.session-token-badge:hover{background:#e9e7e1;border-radius:3px}.session-token-badge:focus-visible{outline:2px solid #047857;outline-offset:2px}
+#now .feed-meta{font-size:12px;line-height:20px;min-height:20px;gap:5px;align-items:center}
+#now .feed-meta>svg{width:14px;height:14px}
+#now .feed-meta .session-status{width:20px;height:20px}
+#now .feed-meta .session-status svg{width:16px;height:16px}
+.session-token-badge{display:inline-flex;align-items:center;gap:3px;min-height:20px;padding:0 2px;border:0;background:none;color:#746f66;font:inherit;font-weight:550;font-variant-numeric:tabular-nums;white-space:nowrap;cursor:pointer}
+.session-token-badge svg{width:14px;height:14px;flex:none}.session-token-badge:hover{background:#e9e7e1;border-radius:3px}.session-token-badge:focus-visible{outline:2px solid #047857;outline-offset:2px}
 .session-token-breakdown{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px 12px;margin:10px 0;font-size:12px;line-height:18px}.session-token-breakdown dt,.session-token-breakdown dd{margin:0}.session-token-breakdown dd{text-align:right;font-variant-numeric:tabular-nums}
 `;
     document.head.append(style);
