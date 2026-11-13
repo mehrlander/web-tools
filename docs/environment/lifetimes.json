@@ -50,6 +50,11 @@
       "path": "docs/environment/container.md",
       "anchor": "the-session-transcript"
     },
+    "cache": {
+      "title": "container.md › The prompt cache",
+      "path": "docs/environment/container.md",
+      "anchor": "the-prompt-cache"
+    },
     "refresher": {
       "title": "skills/hooks/refresh-plugin.sh",
       "path": "skills/hooks/refresh-plugin.sh"
@@ -187,6 +192,33 @@
           "source": "outlive"
         }
       ]
+    },
+    {
+      "id": "cache",
+      "name": "Prompt cache",
+      "icon": "ph-memory",
+      "lifetime": "1 hour from the last model call, or 5 minutes in usage overage",
+      "span": [
+        {
+          "from": 0.25,
+          "to": 1,
+          "style": "solid"
+        }
+      ],
+      "ticks": [
+        {
+          "at": 1,
+          "label": "1 h TTL",
+          "evidence": "documented",
+          "source": "cache"
+        },
+        {
+          "at": 1.02,
+          "label": "cliff at 58 to 62 min",
+          "evidence": "measured",
+          "source": "cache"
+        }
+      ]
     }
   ],
   "items": [
@@ -200,6 +232,10 @@
         "start": {
           "state": "used",
           "label": "cloned into the checkouts"
+        },
+        "cliff": {
+          "state": "untouched",
+          "label": "untouched"
         },
         "restart": {
           "state": "untouched",
@@ -228,6 +264,10 @@
       "gloss": "branches proposed for merge, with their reviews and checks",
       "effects": {
         "start": {
+          "state": "untouched",
+          "label": "untouched"
+        },
+        "cliff": {
           "state": "untouched",
           "label": "untouched"
         },
@@ -261,6 +301,10 @@
           "state": "untouched",
           "label": "not read; it ran at the build"
         },
+        "cliff": {
+          "state": "untouched",
+          "label": "untouched"
+        },
         "restart": {
           "state": "untouched",
           "label": "untouched"
@@ -290,6 +334,10 @@
         "start": {
           "state": "used",
           "label": "applied to the session"
+        },
+        "cliff": {
+          "state": "untouched",
+          "label": "untouched"
         },
         "restart": {
           "state": "untouched",
@@ -321,6 +369,10 @@
           "state": "used",
           "label": "set in the session"
         },
+        "cliff": {
+          "state": "untouched",
+          "label": "untouched"
+        },
         "restart": {
           "state": "untouched",
           "label": "untouched"
@@ -350,6 +402,10 @@
           "state": "used",
           "label": "added to the session's context"
         },
+        "cliff": {
+          "state": "untouched",
+          "label": "untouched"
+        },
         "restart": {
           "state": "untouched",
           "label": "untouched"
@@ -378,6 +434,10 @@
         "start": {
           "state": "used",
           "label": "synced into the machine at boot"
+        },
+        "cliff": {
+          "state": "untouched",
+          "label": "untouched"
         },
         "restart": {
           "state": "used",
@@ -409,6 +469,10 @@
         "start": {
           "state": "used",
           "label": "copied into the container"
+        },
+        "cliff": {
+          "state": "untouched",
+          "label": "untouched"
         },
         "restart": {
           "state": "untouched",
@@ -443,6 +507,10 @@
           "state": "used",
           "label": "copied in at the pin"
         },
+        "cliff": {
+          "state": "untouched",
+          "label": "untouched"
+        },
         "restart": {
           "state": "untouched",
           "label": "untouched"
@@ -475,6 +543,10 @@
         "start": {
           "state": "used",
           "label": "copied in"
+        },
+        "cliff": {
+          "state": "untouched",
+          "label": "untouched"
         },
         "restart": {
           "state": "untouched",
@@ -509,6 +581,10 @@
           "state": "used",
           "label": "copied in; the environment report reads it"
         },
+        "cliff": {
+          "state": "untouched",
+          "label": "untouched"
+        },
         "restart": {
           "state": "untouched",
           "label": "untouched"
@@ -541,6 +617,10 @@
           "label": "begin, or come back on a resume",
           "badge": "begins"
         },
+        "cliff": {
+          "state": "used",
+          "label": "in the context the next model call writes again"
+        },
         "restart": {
           "state": "kept",
           "label": "kept"
@@ -572,6 +652,10 @@
           "state": "new",
           "label": "begin, or come back on a resume",
           "badge": "begins"
+        },
+        "cliff": {
+          "state": "used",
+          "label": "in the context the next model call writes again"
         },
         "restart": {
           "state": "kept",
@@ -606,6 +690,10 @@
           "label": "cloned fresh from GitHub",
           "badge": "cloned"
         },
+        "cliff": {
+          "state": "untouched",
+          "label": "untouched"
+        },
         "restart": {
           "state": "kept",
           "label": "kept"
@@ -637,6 +725,10 @@
         "start": {
           "state": "untouched",
           "label": "none yet"
+        },
+        "cliff": {
+          "state": "untouched",
+          "label": "untouched"
         },
         "restart": {
           "state": "kept",
@@ -672,6 +764,10 @@
           "label": "begin",
           "badge": "begins"
         },
+        "cliff": {
+          "state": "untouched",
+          "label": "untouched"
+        },
         "restart": {
           "state": "kept",
           "label": "kept"
@@ -702,6 +798,10 @@
           "state": "new",
           "label": "begin empty",
           "badge": "begins"
+        },
+        "cliff": {
+          "state": "untouched",
+          "label": "untouched"
         },
         "restart": {
           "state": "kept",
@@ -737,6 +837,10 @@
           "label": "moved to main by the refresher",
           "badge": "updated"
         },
+        "cliff": {
+          "state": "untouched",
+          "label": "untouched"
+        },
         "restart": {
           "state": "kept",
           "label": "kept"
@@ -771,6 +875,10 @@
           "label": "installed by session-start scripts",
           "badge": "installed"
         },
+        "cliff": {
+          "state": "untouched",
+          "label": "untouched"
+        },
         "restart": {
           "state": "kept",
           "label": "kept"
@@ -801,6 +909,10 @@
           "state": "new",
           "label": "start",
           "badge": "start"
+        },
+        "cliff": {
+          "state": "untouched",
+          "label": "untouched"
         },
         "restart": {
           "state": "lost",
@@ -837,6 +949,10 @@
           "label": "written at boot",
           "badge": "written"
         },
+        "cliff": {
+          "state": "untouched",
+          "label": "untouched"
+        },
         "restart": {
           "state": "new",
           "label": "written again at boot",
@@ -872,6 +988,10 @@
           "label": "synced at boot",
           "badge": "synced"
         },
+        "cliff": {
+          "state": "untouched",
+          "label": "untouched"
+        },
         "restart": {
           "state": "new",
           "label": "synced again at boot",
@@ -885,6 +1005,42 @@
         "rebuild": {
           "state": "untouched",
           "label": "untouched"
+        },
+        "sync": {
+          "state": "untouched",
+          "label": "untouched"
+        }
+      }
+    },
+    {
+      "id": "cached-context",
+      "name": "cached context",
+      "layer": "cache",
+      "arrives": "copy",
+      "from": "the last model call's context",
+      "gloss": "the context a model call wrote, which later calls read at the cache-read price",
+      "effects": {
+        "start": {
+          "state": "new",
+          "label": "written by the first model call",
+          "badge": "written"
+        },
+        "cliff": {
+          "state": "lost",
+          "label": "written again by the next model call, at the cache-write price",
+          "badge": "gone"
+        },
+        "restart": {
+          "state": "untouched",
+          "label": "not measured"
+        },
+        "reclaim": {
+          "state": "untouched",
+          "label": "not measured"
+        },
+        "rebuild": {
+          "state": "untouched",
+          "label": "not measured"
         },
         "sync": {
           "state": "untouched",
@@ -936,6 +1092,53 @@
           "label": "starts; start hooks run from the snapshot's plugin pin",
           "evidence": "inferred",
           "source": "refresher"
+        },
+        "cache": {
+          "state": "new",
+          "label": "written by the first model call",
+          "evidence": "inferred",
+          "source": "cache"
+        }
+      }
+    },
+    {
+      "id": "cliff",
+      "name": "The prompt cache lapses",
+      "short": "Cache cliff",
+      "icon": "ph-hourglass-low",
+      "trigger": "no model call for 1 hour",
+      "effects": {
+        "github": {
+          "state": "untouched",
+          "label": "untouched"
+        },
+        "settings": {
+          "state": "untouched",
+          "label": "untouched"
+        },
+        "snapshot": {
+          "state": "untouched",
+          "label": "untouched"
+        },
+        "conversation": {
+          "state": "used",
+          "label": "written to the cache again by the next model call",
+          "evidence": "measured",
+          "source": "cache"
+        },
+        "disk": {
+          "state": "untouched",
+          "label": "untouched"
+        },
+        "boot": {
+          "state": "untouched",
+          "label": "untouched"
+        },
+        "cache": {
+          "state": "lost",
+          "label": "gone; the next model call is an idle re-load",
+          "evidence": "measured",
+          "source": "cache"
         }
       }
     },
@@ -975,6 +1178,10 @@
           "label": "processes end; boot files rewritten",
           "evidence": "measured",
           "source": "carries"
+        },
+        "cache": {
+          "state": "untouched",
+          "label": "not measured"
         }
       }
     },
@@ -1016,6 +1223,10 @@
           "label": "gone",
           "evidence": "measured",
           "source": "outlive"
+        },
+        "cache": {
+          "state": "untouched",
+          "label": "not measured"
         }
       }
     },
@@ -1055,6 +1266,10 @@
         "boot": {
           "state": "untouched",
           "label": "untouched"
+        },
+        "cache": {
+          "state": "untouched",
+          "label": "not measured"
         }
       }
     },
@@ -1092,6 +1307,10 @@
           "source": "concurrent"
         },
         "boot": {
+          "state": "untouched",
+          "label": "untouched"
+        },
+        "cache": {
           "state": "untouched",
           "label": "untouched"
         }
@@ -1187,7 +1406,8 @@
         "kind": "idle",
         "label": "idle",
         "ev": {
-          "reclaim": "lost"
+          "reclaim": "lost",
+          "cliff": "lost"
         }
       },
       {
@@ -1242,6 +1462,15 @@
         "label": "restart: disk kept",
         "ev": {
           "restart": "lost"
+        }
+      },
+      {
+        "lane": "a",
+        "at": 3.29,
+        "kind": "cliff",
+        "label": "cache cliff: 1 h idle",
+        "ev": {
+          "cliff": "lost"
         }
       },
       {

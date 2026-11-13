@@ -350,6 +350,14 @@ Edits that weaken guidance that exists to steer away from model intuition. The p
 
 **Area:** writing · **Detector:** reader · **Sessions:** 3 · **Status:** active
 
+### Bare admonishment · `P70`
+
+Direction with an unclear standard and weak support. Broad guidance can be useful when surrounded by more detailed considerations. Otherwise, a directive that points the reader back to their own judgment is typically better left unsaid.
+
+**Look for:** directive language, often not to take some action, based on subjective judgment; a last sentence of a paragraph punctuating an idea without adding clarity
+
+**Area:** writing · **Detector:** reader · **Sessions:** 1 · **Status:** active
+
 ## Combined entries
 
 ### Fix the sentence, add no note · `P02`
