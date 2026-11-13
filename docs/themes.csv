@@ -48,6 +48,7 @@ skills/notes/SKILL.md,skills/tend/SKILL.md,7,,lib kits findings js https github 
 skills/gold-set/SKILL.md,skills/wayback/SKILL.md,7,,docs environment capabilities md https github com mehrlander web tools blob main docs environment capabilities md,10,211
 skills/gold-set/SKILL.md,skills/scour/SKILL.md,7,,docs environment capabilities md https github com mehrlander web tools blob main docs environment capabilities md,10,211
 docs/house-policies.md,skills/look-markers/SKILL.md,7,,lib kits look js https github com mehrlander web tools blob main lib kits look js,10,211
+docs/house-policies.md,skills/html-style/SKILL.md,7,,https github com mehrlander web tools blob main docs code layers md;csv https github com mehrlander web tools blob main docs showing;js https github com mehrlander web tools blob main lib kits,10,211
 docs/environment/capabilities.md,skills/scour/SKILL.md,7,true,the webfetch summarizer sometimes returns anthropic or anthropic's claude agent sdk as page content;webfetch returns a small model's answer rather than the page's markdown,10,211
 docs/envelopes/README.md,docs/envelopes/workbook-extract.md,7,true,no change to lib kits data payload js lib kits data payload js;why this is a profile over data view rather than a sibling,10,211
 docs/house-policies.md,skills/report-distiller/SKILL.md,6,,qualified writing md https github com mehrlander web tools blob main docs qualified writing md,10,211
@@ -60,10 +61,10 @@ skills/load-skill/SKILL.md,skills/web-tools-app/SKILL.md,4,,mcp github get file 
 skills/html-style/references/mechanics.md,skills/look-markers/SKILL.md,4,,html https github com mehrlander web tools blob main lib kits demos;js https github com mehrlander web tools blob main lib,10,211
 lib/kits/README.md,node/README.md,4,,load and build are one contract in docs loader md docs loader md,10,211
 docs/house-policies.md,skills/tree/SKILL.md,4,,conversation md https github com mehrlander web tools blob main docs conversation md,10,211
-docs/house-policies.md,skills/html-style/SKILL.md,4,,csv https github com mehrlander web tools blob main docs showing;js https github com mehrlander web tools blob main lib kits,10,211
 courier/README.md,sites/wsldocs.sos.wa.gov/README.md,4,,which route reaches a page bookmarklets readme md which route reaches a page,10,211
 skills/doc-audit/SKILL.md,skills/passage-reading/SKILL.md,3,,md https github com mehrlander web tools blob main docs envelopes;https mehrlander github io web tools pages toss render html,10,211
 skills/design-sprint/SKILL.md,skills/tree/SKILL.md,3,,md https github com mehrlander web tools blob main docs conversation md,10,211
+skills/design-sprint/SKILL.md,skills/html-style/SKILL.md,3,,https github com mehrlander web tools blob main docs forms readme md,10,211
 skills/agents/house-style-critic.md,skills/agents/peeves-critic.md,3,true,do not rewrite name the fix in one clause only where the,10,211
 python/swarm/bold.md,python/swarm/dome.md,3,,write json lines to the output path one edit per line;run the check command and fix every line it reports,10,211
 pages/drop/fills-concepts/3-reactive-surface/PROMPT.md,pages/drop/fills-concepts/CATALOG.md,3,,aic 2 html aic kimi html collection browser html collection browser 2,10,211
@@ -77,3 +78,4 @@ docs/environment/capabilities.md,docs/environment/extending.md,3,,sessionstart h
 docs/envelopes/approval.md,docs/envelopes/surface.md,3,,schemas profiles approval v1 schema json schemas profiles approval v1 schema json,10,211
 docs/TRACKER.md,skills/tasks/SKILL.md,3,,entry to restamp a fact add a new entry that corrects it,10,211
 docs/CONSTELLATION.md,skills/doc-craft/SKILL.md,3,,principle 5 documentation has four places and everything else is a question,10,211
+README.md,skills/html-style/SKILL.md,3,,https mehrlander github io web tools app view map tab kits;https mehrlander github io web tools pages toss render html,10,211
