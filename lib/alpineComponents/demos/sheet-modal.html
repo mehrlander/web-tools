@@ -1,0 +1,41 @@
+<!-- Setups for sheetModal (../sheet-modal.js), mounted by the component stage
+     (index.html?c=sheet-modal). The overlay opens on a window event the host
+     names; the button sends it. -->
+
+<template data-setup="A read-only panel">
+  <button class="btn btn-primary gap-2" x-data @click="$dispatch('open-details')">
+    <i class="ph ph-tray-arrow-up text-lg"></i>Open details
+  </button>
+  <div x-data="sheetModal({ title: 'Details', openOn: 'open-details' })">
+    <div class="space-y-2 px-5 py-4">
+      <template x-for="i in 8" :key="i">
+        <div class="flex items-center justify-between rounded-lg bg-base-200 px-4 py-3">
+          <span class="font-medium">Record <span x-text="i"></span></span>
+          <span class="badge badge-ghost font-mono" x-text="'#' + (1000 + i)"></span>
+        </div>
+      </template>
+    </div>
+    <div class="sticky bottom-0 flex justify-end border-t border-base-200 bg-base-100 px-5 py-3">
+      <button class="btn btn-ghost" @click="close()">Done</button>
+    </div>
+  </div>
+</template>
+
+<template data-setup="A narrow form">
+  <div x-data="{ saved: '' }" @form-saved.window="saved = $event.detail">
+    <button class="btn btn-primary gap-2" @click="$dispatch('open-form')">
+      <i class="ph ph-pencil-simple text-lg"></i>Open form
+    </button>
+    <span x-show="saved" class="ml-2 text-base">Saved: <span class="font-mono" x-text="saved"></span></span>
+    <div x-data="sheetModal({ title: 'Edit item', openOn: 'open-form', maxWidth: 'max-w-md' })">
+      <form class="space-y-3 px-5 py-4" x-data="{ name: 'Quarterly report' }"
+            @submit.prevent="$dispatch('form-saved', name); close()">
+        <input class="input w-full" x-model="name" aria-label="Name">
+        <div class="flex justify-end gap-2">
+          <button type="button" class="btn btn-ghost" @click="close()">Cancel</button>
+          <button class="btn btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</template>

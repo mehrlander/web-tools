@@ -257,7 +257,9 @@ test('the two sub-tab encodings, counted', () => {
   // pages that carry each.
   // 51 to 52 on 2026-11-09: Docs took Comments, the comment blocks and
   // docstrings in code.
-  assert.equal(params, 52, 'sub-tabs addressed as ?view=<parent>&tab=');
+  // 52 to 53 on 2026-11-11: Browser took Components, the Alpine component
+  // files, beside Kits.
+  assert.equal(params, 53, 'sub-tabs addressed as ?view=<parent>&tab=');
 });
 
 // The Map's row is a copy of the shell's address list, and it is a copy that

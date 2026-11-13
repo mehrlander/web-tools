@@ -274,6 +274,7 @@ hook's `# --- leg` headers, derived into [`docs/hook-legs.csv`](../docs/hook-leg
 | `node/test/` | `npm run tests-index` | `docs/tests.csv`, and rows added or dropped in `docs/tests-authored.csv` |
 | `node/`, `python/`, any markdown | `npm run tools-index` | derived fields in `docs/harness.csv`, and `docs/hook-legs.csv` |
 | `lib/kits/`, or a file that loads a kit | `npm run kits-index` | `docs/kits.csv` |
+| `lib/alpineComponents/`, a file that loads or mounts a component, `docs/app-routes.csv`, or `data/ui-units/units.csv` | `npm run components-index` | `docs/components.csv` |
 | `lib/`, `pages/` | `npm run registries-reach` | `renders_in` in `docs/registries.csv` |
 | skills, `lib/`, `pages/`, `docs/` | `npm run docs-reach` | `reach` and `words` in `docs/docs.csv` |
 | `docs/CONVERSATION.md`, `docs/QUALIFIED-WRITING.md` | `npm run vendor-docs` | the plugin's copies under `skills/default/` |

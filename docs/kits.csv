@@ -13,15 +13,15 @@ lib/kits/chat-render.js,chatRender,"chat transcript renderer: markdown in, reada
 lib/kits/claude-mark.js,claudeMark,"the Claude logomark, from one path.",62,yes,no,5,yes
 lib/kits/closing-state.js,ClosingState,"the conventions' CLOSING STATE, as one vocabulary.",146,no,no,5,yes
 lib/kits/cm6-merge.js,cm6Merge,framework-free CodeMirror 6 *diff* factory: read-only side-by-side and unified merge views over two versions of a text.,162,no,no,9,yes
-lib/kits/cm6.js,cm6,framework-free CodeMirror 6 editor factory.,236,no,yes,19,yes
+lib/kits/cm6.js,cm6,framework-free CodeMirror 6 editor factory.,236,no,yes,20,yes
 lib/kits/code-doc.js,codeDoc,"SOURCE CODE AS A DECLARED RENDER: the second kind, and the one that says what the contract is actually for.",92,no,no,2,yes
 lib/kits/comment-view.js,commentView,"a code file read through its comments: each docstring and comment block laid out as prose in file order, with the code between them folded to one-line bars.",453,no,no,2,yes
 lib/kits/compression.js,compression,Brotli/Gzip/Acorn wrappers + bookmarklet packer.,365,no,yes,7,yes
-lib/kits/console.js,consoleKit,console retention + filter + subscribe layer.,119,yes,no,7,yes
+lib/kits/console.js,consoleKit,console retention + filter + subscribe layer.,119,yes,no,8,yes
 lib/kits/content-index.js,ContentIndex,"a word index over the estate's Markdown, so the Search view's Contents mode answers inside the app.",150,no,no,3,yes
 lib/kits/content-registry.js,ContentRegistry,"the epistemic content registry, read in the browser.",111,no,no,5,yes
 lib/kits/crawl-runs.js,CrawlRuns,The `runs` ring: the few facts about a crawl that its output cannot show.,89,no,no,2,yes
-lib/kits/csv.js,Csv,"CSV, small and shared.",68,no,no,12,yes
+lib/kits/csv.js,Csv,"CSV, small and shared.",68,no,no,13,yes
 lib/kits/data-payload.js,DataPayload,Reading a data toss.,190,no,no,4,yes
 lib/kits/data-shelf.js,dataShelf,shelf record schema + helpers.,73,no,no,1,yes
 lib/kits/dictate-handoff.js,dictateHandoff,carry a draft from a composer on a page to the dictation page.,78,no,no,2,yes
@@ -46,12 +46,12 @@ lib/kits/guide-render.js,GuideRender,"a guide PR body, rendered as something you
 lib/kits/gz-payload.js,GzPayload,"The `#gz=` payload, in one place: text gzipped, then base64url, so a page, a document or a data envelope rides in a link with nothing hosted and no token…",41,no,no,17,yes
 lib/kits/io.js,io,"user data in and out of the page: file picker, file download, blob preview, and the clipboard.",235,no,yes,23,yes
 lib/kits/json-explorer.js,JsonExplorer,"Native, framework-free JSON Explorer & Schema Profiler.",770,no,no,1,yes
-lib/kits/land.js,Land,"where the reader was just sent, and how they get told.",298,no,yes,9,yes
+lib/kits/land.js,Land,"where the reader was just sent, and how they get told.",298,no,yes,10,yes
 lib/kits/last-write.js,LastWrite,"the copy this page just committed, for the next fold",70,no,no,5,yes
 lib/kits/linked-swiper.js,linkedSwiper,"a list with a detail: the list beside, or over, a strip of one card per row, the two moving together.",347,no,yes,8,yes
 lib/kits/lists.js,Lists,"the registry's lists/ folder, read and written as one kind of file.",266,no,no,4,yes
 lib/kits/local-work.js,LocalWork,"Observations establish file presence and Git relationships, never a backup.",28,no,no,1,yes
-lib/kits/look.js,Look,"look markers: a link that lands on a place in a page, says why, and can ring the control to tap.",1764,no,yes,7,yes
+lib/kits/look.js,Look,"look markers: a link that lands on a place in a page, says why, and can ring the control to tap.",1977,no,yes,9,yes
 lib/kits/md-diff.js,mdDiff,a markdown change read as the DOCUMENT rather than as its source.,2061,no,yes,19,yes
 lib/kits/md-doc.js,mdDoc,a markdown document rendered as something you can read and take pieces OUT of.,1017,no,no,17,yes
 lib/kits/md-edit-studio.js,mdEditVariants,"the section editor as a studio: the source and a live reading of the change on one full screen, with no mode to switch.",611,no,no,1,no
