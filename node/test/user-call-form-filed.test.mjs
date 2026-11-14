@@ -99,7 +99,7 @@ test('the decisions are the answer\'s, and nothing is offered to decide', () => 
   assert.equal(mark(2).dataset.decision, 'discarded');
   assert.equal(root().querySelector('[data-act]'), null, 'no Keep, Discard or Note on a closed call');
   const rows = [...root().querySelectorAll('[data-doc-list] [data-doc-row]')];
-  assert.deepEqual(rows.map((r) => r.textContent.replace(/\s+/g, ' ').trim()), ['1 clearer', '2 an order, not a count']);
+  assert.deepEqual(rows.map((r) => r.querySelector('[data-doc-row-n]').parentElement.textContent.replace(/\s+/g, ' ').trim()), ['1 clearer', '2 an order, not a count']);
   assert.deepEqual(rows.map((r) => r.querySelector('[data-doc-row-n]').className.match(/text-(success|error)/)?.[1]), ['success', 'error'],
     'each row\'s number takes the answer\'s decision');
 });

@@ -136,7 +136,8 @@ test('a documentation call shows no PR readiness, even when the PR has conflicts
 test('the edits are listed at the top, each with its summary, and a tap scrolls the document to it', async () => {
   const rows = [...root().querySelectorAll('[data-doc-row]')];
   assert.equal(rows.length, 4, 'one row per edit');
-  assert.match(rows[0].textContent.replace(/\s+/g, ' ').trim(), /^1 clearer$/, 'its number, then its why when it has no proposal');
+  const line = (r) => r.querySelector('[data-doc-row-n]').parentElement.textContent.replace(/\s+/g, ' ').trim();
+  assert.match(line(rows[0]), /^1 clearer$/, 'its number, then its why when it has no proposal');
   assert.match(rows[0].querySelector('[data-doc-row-n]').className, /bg-primary\/15 text-primary/, 'the number a tinted chip, so the list reads as a count');
   const lead = rows[0].querySelector('[data-doc-kind]'), num = rows[0].querySelector('[data-doc-row-n]');
   assert.equal(lead.dataset.docKind, 'clarify');
@@ -154,21 +155,40 @@ test('the edits are listed at the top, each with its summary, and a tap scrolls 
   await tick(2);
   assert.equal(scrolled.at(-1), box(2), 'the document scrolls to the edit');
   assert.equal(data().docActive, 1);
-  assert.match(rows[1].className, /inset_3px_0_0_var\(--color-primary\)/, 'and its row is marked by a bar at its edge, not a fill');
+  assert.match(rows[1].className, /bg-primary\/10/, 'and its row is marked by its background (owner, 2026-11-14)');
+  assert.doesNotMatch(rows[1].className, /inset_3px/, 'with no bar at its edge');
   assert.ok(box(2).hasAttribute('data-md-diff-here'), 'its container is selected in md-diff, so the tap shows even with the edit in view');
   assert.equal(root().querySelectorAll('[data-md-diff-here]').length, 1, 'and only it');
-  assert.match(rows[1].querySelector('[data-doc-row-n]').className, /bg-primary\/15 text-primary border-\[var\(--color-primary\)\]/, 'its number keeps its tint and gains an outline');
+  assert.match(rows[1].querySelector('[data-doc-row-n]').className, /bg-primary\/15 text-primary/, 'its number keeps its tint');
+  assert.doesNotMatch(rows[1].querySelector('[data-doc-row-n]').className, /border/, 'and takes no outline');
   assert.match(mark(2).className, /border-\[var\(--color-primary\)\] bg-base-100/, 'and so does its label on the container');
   rows[1].click();
   await tick(2);
   assert.equal(root().querySelector('[data-md-diff-here]'), null, 'a second tap on the selected row lets it go');
-  assert.match(rows[1].querySelector('[data-doc-row-n]').className, /border-transparent/);
+  assert.doesNotMatch(rows[1].className, /bg-primary\/10/, 'its wash goes');
+  assert.match(rows[1].className, /bg-base-200(?!\/)/, 'and its row stays grey, as the edit in view');
   rows[1].click();
   await tick(2);
   rows[2].click();
   await tick(2);
   assert.equal(scrolled.at(-1), root().querySelector('[data-doc-unplaced="3"]'), 'an edit the file cannot place scrolls to its line');
   assert.equal(root().querySelector('[data-md-diff-here]'), null, 'and selects nothing, having no container');
+});
+
+test('each row ends with the words its edit adds and removes, green and red (owner, 2026-11-14)', () => {
+  const rows = [...root().querySelectorAll('[data-doc-row]')];
+  const shown = (el) => el && el.style.display !== 'none';
+  const words = (r) => [r.querySelector('[data-doc-words-add]'), r.querySelector('[data-doc-words-del]')].map((el) => (shown(el) ? el.textContent : ''));
+  assert.deepEqual(words(rows[0]), ['+1', '−1'], 'One. to First.: a word out, a word in');
+  assert.deepEqual(words(rows[3]), ['+2', '−2'], 'two paragraphs, a word each');
+  assert.match(rows[0].querySelector('[data-doc-words-add]').className, /bg-success\/15/, 'added words in green');
+  assert.match(rows[0].querySelector('[data-doc-words-del]').className, /bg-error\/15/, 'removed words in red');
+  assert.equal(rows[0].querySelector('[data-doc-words]').dataset.titleTip, '1 word added, 1 word removed', 'and the counts say so in a tip');
+  const n = (from, to) => { const { add, del } = data().docWords({ from, to }); return [add, del]; };
+  assert.deepEqual(n('one two three', 'one three four'), [1, 1], 'matched by the longest run of shared words');
+  assert.deepEqual(n('a  b\nc', 'a b c'), [0, 0], 'spacing and line breaks are not words');
+  assert.deepEqual(n('see [the file](a.md)', 'see [the file](b.md)'), [0, 0], 'nor is a link\'s target');
+  assert.equal(data().docWordsTip({ from: 'a\nb', to: 'a b' }), 'No words change');
 });
 
 test('the list shows in Changes only, the one view that draws the edits', async () => {
