@@ -3,15 +3,18 @@
 the line a reply closes with (docs/CONVERSATION.md, "Session detail caption"),
 so that no session works it out by hand.
 
-    💬[22](https://mehrlander.github.io/web-tools/pages/session.html#id=f701fa79) · 1d 2h · 816k · 1 file
+    💬[22](https://mehrlander.github.io/web-tools/pages/session.html#id=f701fa79) · 816k · 11/14 10:14𝖺𝗆 · 1d 2h · 1 file
 
 THE PARTS. 22 counts the messages the owner has typed, and is the link to the
-session page, named by the session id's first eight characters. 1d 2h is the
-time since the first of those messages: 45m under an hour, 7h under a day,
-1d 2h after. 816k is the context in thousands of tokens, read the way
-context-size-hint.py reads it: input_tokens + cache_read_input_tokens +
-cache_creation_input_tokens of the last main-conversation response in the
-transcript's tail. 1 file is `git diff origin/main...HEAD --name-only | wc -l`
+session page, named by the session id's first eight characters. 816k is the
+context in thousands of tokens, read the way context-size-hint.py reads it:
+input_tokens + cache_read_input_tokens + cache_creation_input_tokens of the
+last main-conversation response in the transcript's tail. 11/14 10:14𝖺𝗆 is
+when this run printed the line, in the owner's time zone (OWNER_TZ below):
+month/day, then 12-hour time with 𝖺𝗆 or 𝗉𝗆 in Mathematical Sans-Serif small
+letters. A zone that cannot be loaded gives UTC in 24-hour time and a Z, as
+11/14 18:14Z. 1d 2h is the time since the first of the owner's messages: 45m
+under an hour, 7h under a day, 1d 2h after. 1 file is `git diff origin/main...HEAD --name-only | wc -l`
 summed over the session's checkouts, which are the checkout the project root
 is in and each folder directly under the root that holds a .git. A zero file
 count is left off, and so is a part the transcript cannot supply: the time
@@ -69,6 +72,8 @@ import re
 import sys
 import time
 
+# The owner's time zone, the one setting the printed time reads.
+OWNER_TZ = os.environ.get("OWNER_TZ") or "America/Los_Angeles"
 PAGES = "https://mehrlander.github.io/web-tools/pages/"
 TAIL = 400_000
 USAGE = ("input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens")
@@ -368,6 +373,20 @@ def elapsed(seconds):
     return f"{hours // 24}d {hours % 24}h"
 
 
+def clock(now, zone=OWNER_TZ):
+    """The time `now` as month/day hour:minute in the owner's zone, or in UTC
+    with a Z when the zone cannot be loaded."""
+    from datetime import datetime, timezone
+    try:
+        from zoneinfo import ZoneInfo
+        at = datetime.fromtimestamp(now, ZoneInfo(zone))
+    except Exception:
+        at = datetime.fromtimestamp(now, timezone.utc)
+        return f"{at.month}/{at.day} {at.hour}:{at.minute:02d}Z"
+    marker = "\U0001D5BA\U0001D5C6" if at.hour < 12 else "\U0001D5C9\U0001D5C6"  # 𝖺𝗆, 𝗉𝗆
+    return f"{at.month}/{at.day} {(at.hour + 11) % 12 + 1}:{at.minute:02d}{marker}"
+
+
 def since(first, now):
     """Seconds from an entry's ISO timestamp to now, or None."""
     from datetime import datetime
@@ -409,7 +428,7 @@ def main():
         count_owner(transcript, state)
         context, unanswered = tail_facts(transcript)
     count = state.get("owner") if isinstance(state.get("owner"), int) else 0
-    now = time.time()
+    now = float(os.environ.get("SESSION_CAPTION_NOW") or time.time())  # a fixed clock, for the tests
     age = since(state.get("first"), now)
     if submitting(event, payload, unanswered):
         count += 1
@@ -424,10 +443,11 @@ def main():
         if url:
             glyph = "🌿"
     parts = [f"{glyph}[{count}]({url})" if url else f"{glyph}{count}"]
-    if age is not None:
-        parts.append(elapsed(age))
     if context:
         parts.append(f"{(context + 500) // 1000}k")
+    parts.append(clock(now))
+    if age is not None:
+        parts.append(elapsed(age))
     if files:
         parts.append("1 file" if files == 1 else f"{files} files")
 
