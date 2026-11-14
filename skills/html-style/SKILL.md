@@ -128,7 +128,7 @@ coded `linked-swiper`.
 
 **17. A value takes the form its content asks for.** Do not lay out a card's or panel's fields as label-value pairs. A URL or file path is a link, short labels and dates run as one line of items, a sentence runs as text without a label, and an item the card points to leads with an icon and its name in bold. Leave out a field whose value is a placeholder, a value nearly every card shares, or a restatement of another field. A table whose rows share columns is exempt.
 
-**18. Marks carry categories and relations.** A relation between two values takes a typographic symbol where the symbol reads as easily as the word: `~500` for about 500, `2018 → 2024` for 2018 through 2024. A category an item belongs to, such as its kind or origin, takes a small icon beside the item's name (rule 17), called icon flair; where no stock icon fits, draw a small SVG. Use one mark for each meaning, and do not reuse a mark for another meaning. A mark that repeats down a list may rely on a title-tip for its first reading; a mark that appears once keeps its word beside it.
+**18. Find graphical representations.** Reduce information to small marks that bring out its groupings. Use icons to emphasize categories, and symbols for relations, such as `~500` for about 500 and `2018 → 2024` for 2018 through 2024.
 
 ## Handing a page over
 
