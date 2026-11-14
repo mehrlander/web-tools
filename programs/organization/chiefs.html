@@ -44,10 +44,8 @@
 
   const SEATS = [
     { id: 'owner', group: 'Owner', name: 'Owner', side: 'approves',
-      line: 'Approves. A chief keeps its program’s page current when a session cc’s it, and approves nothing.',
       reports: true },
     { id: 'owner-proxy', group: 'Owner', name: 'owner-proxy', mono: true, side: 'stand-in',
-      line: 'Stands outside the programs as the owner’s stand-in, consulted by any chief.',
       file: 'skills/agents/owner-proxy.md' },
     { id: 'organization', group: 'Chiefs', program: 'Organization', sel: 0,
       cands: [
@@ -64,10 +62,8 @@
       ],
       staff: 'chiefs', mechanisms: [{ name: 'the landings measure', icon: 'ph-chart-bar' }],
       placement: [
-        { title: 'In Organization', rec: true,
-          text: 'The chart of the programs is the estate’s structure, which is Organization’s scope, and Drucker already keeps it; nothing new to charter.' },
-        { title: 'A new Exec program',
-          text: 'A sixth program for the owner himself, above the five; it would govern no files yet and need its own charter, measures and chief.' },
+        { title: 'In Organization', rec: true },
+        { title: 'A new Exec program' },
       ] },
     { id: 'sessions', group: 'Chiefs', program: 'Sessions', sub: true, sel: 0,
       cands: [
@@ -203,8 +199,8 @@
     let h = `<div data-card="${s.id}" class="text-base">`;
     if (!s.cands) {
       h += `<div class="flex items-start gap-4">${mark(s.id, 'size-14')}<div class="min-w-0 pt-1">`
-        + `<p>${esc(s.line)}</p>`
-        + (s.file ? `<p class="mt-1 text-sm">${link(s.file, esc(s.file), 'font-mono text-base-content/60 break-all')}</p>` : '')
+        + `<p data-hl="${s.id}" class="font-semibold ${s.mono ? 'font-mono' : ''}">${esc(s.name)}</p>`
+        + (s.file ? `<p class="mt-1">${link(s.file, esc(s.file), 'font-mono text-xs text-base-content/60 break-all')}</p>` : '')
         + `</div></div>`;
       if (s.reports) {
         const org = byId('organization');
@@ -214,19 +210,17 @@
       return h + `</div>`;
     }
     const c = cur(s);
-    const manager = s.id === 'organization'
-      ? link('programs/organization/manager.md', `the ${esc(s.program)} manager`, 'underline decoration-base-300 underline-offset-2')
-      : `the ${esc(s.program)} manager`;
-    h += `<div class="flex items-start gap-4">${mark(s.id, 'size-14')}<div class="min-w-0">`
+    h += `<div class="flex items-start gap-4"><span data-hl="${s.id}" class="rounded-lg">${mark(s.id, 'size-14')}</span><div class="min-w-0">`
       + `<p class="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-sm">`
       + `<code class="rounded bg-base-200 px-1.5 py-0.5 font-mono text-xs">cc ${esc(c.name)} ${c.emoji}</code>`
-      + `<span class="text-base-content/60">${manager}, given a name and a face</span></p>`
+      + (s.id === 'organization' ? link('programs/organization/manager.md', 'manager.md', 'font-mono text-xs text-base-content/60') : '')
+      + `</p>`
       + `</div></div>`;
 
     h += heading('Figures') + `<div class="flex flex-col gap-2" role="radiogroup" aria-label="${esc(s.program)} chief">`
       + s.cands.map((f, i) => {
         const on = i === s.sel;
-        return `<button type="button" role="radio" aria-checked="${on}" data-fig="${i}"
+        return `<button type="button" role="radio" aria-checked="${on}" data-fig="${i}" ${on ? `data-hl="${s.id}"` : ''}
           class="flex w-full items-start gap-3 rounded-lg border px-3 py-2 text-left transition-colors ${f.invented ? 'border-dashed' : ''}
           ${on ? 'border-primary bg-primary/10' : 'border-base-300 hover:border-primary/50'}">
           <i class="ph ${on ? 'ph-radio-button text-primary' : 'ph-circle text-base-content/30'} mt-0.5 text-xl leading-none shrink-0"></i>
@@ -242,7 +236,7 @@
       + s.placement.map(o => `<div class="rounded-lg border px-3 py-2 ${o.rec ? 'border-success/60' : 'border-base-300'}">
           <div class="flex items-center gap-2"><span class="font-semibold">${esc(o.title)}</span>
           ${o.rec ? '<span class="badge badge-sm badge-soft badge-success">recommended</span>' : ''}</div>
-          <p class="text-base-content/80">${esc(o.text)}</p></div>`).join('') + `</div>`;
+</div>`).join('') + `</div>`;
     return h + `</div>`;
   };
 
@@ -269,6 +263,24 @@
     },
   });
 
+  // Rule 16: a seat named in several places (list row, card head and mark,
+  // seated figure, staff entry) marks them all on hover or tap.
+  const HL = ['outline-2', 'outline-[var(--color-primary)]', '-outline-offset-2'];
+  const seatOf = el => el && el.closest('[data-seat],[data-go],[data-hl]');
+  const keyOf = el => el.dataset.seat || el.dataset.go || el.dataset.hl;
+  const light = (id, on) => {
+    const els = [...document.querySelectorAll(`[data-seat="${id}"],[data-go="${id}"],[data-hl="${id}"]`)];
+    if (id === sel) els.push(...document.querySelectorAll('#card [data-ls="head"] h2'));
+    els.forEach(e => HL.forEach(c => e.classList.toggle(c, on)));
+  };
+  let lit = '';
+  document.addEventListener('pointerover', e => {
+    const el = seatOf(e.target), id = el ? keyOf(el) : '';
+    if (id === lit) return;
+    if (lit) light(lit, false);
+    lit = id; if (id) light(id, true);
+  });
+
   // A figure seats itself; a staff name opens that seat's card.
   document.addEventListener('click', e => {
     const fig = e.target.closest('[data-fig]'), go = e.target.closest('[data-go]');
@@ -290,7 +302,7 @@
     <span class="font-mono text-xs text-base-content/50">2026-11-14</span>
   </header>
   <div id="root">
-    <div id="list" role="listbox" aria-label="Seats"></div>
+    <div id="list" role="listbox" aria-label="Seats" class="[scrollbar-gutter:stable]"></div>
     <div id="card"></div>
   </div>
 </body>
