@@ -189,6 +189,9 @@ test('each row ends with the words its edit adds and removes, green and red (own
   assert.deepEqual(n('a  b\nc', 'a b c'), [0, 0], 'spacing and line breaks are not words');
   assert.deepEqual(n('see [the file](a.md)', 'see [the file](b.md)'), [0, 0], 'nor is a link\'s target');
   assert.equal(data().docWordsTip({ from: 'a\nb', to: 'a b' }), 'No words change');
+  const total = root().querySelector('[data-doc-words-total]');
+  assert.equal(total.textContent.replace(/\s+/g, ' ').trim(), '+5 −5 words', 'the call\'s total names the unit once, beside the file');
+  assert.equal(total.dataset.titleTip, '5 words added, 5 removed, across 4 edits');
 });
 
 test('scrolling the document keeps the edit in view on screen in the list (owner, 2026-11-14)', () => {
