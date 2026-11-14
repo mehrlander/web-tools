@@ -3,19 +3,20 @@
 the line a reply closes with (docs/CONVERSATION.md, "Session detail caption"),
 so that no session works it out by hand.
 
-    💬[22](https://mehrlander.github.io/web-tools/pages/session.html#id=f701fa79) · 816𝗄 · 11/14 10:14𝖺𝗆 · 1𝖽2𝗁 · [✍️1](https://mehrlander.github.io/web-tools/pages/session.html#id=f701fa79)
+    `11/14 10:14am` 💬[22](https://mehrlander.github.io/web-tools/pages/session.html#id=f701fa79) · 816𝗄 · 1𝖽 2𝗁 · [✍️1](https://mehrlander.github.io/web-tools/pages/session.html#id=f701fa79)
 
-THE PARTS. 22 counts the messages the owner has typed, and is the link to the
+THE PARTS. The line opens with when this run printed it, as a code span, in
+the owner's time zone (OWNER_TZ below): month/day, then 12-hour time with a
+plain am or pm. 22 counts the messages the owner has typed, and is the link to the
 session page, named by the session id's first eight characters. 816𝗄 is the
 context in thousands of tokens, read the way context-size-hint.py reads it:
 input_tokens + cache_read_input_tokens + cache_creation_input_tokens of the
-last main-conversation response in the transcript's tail. 11/14 10:14𝖺𝗆 is
-when this run printed the line, in the owner's time zone (OWNER_TZ below):
-month/day, then 12-hour time with 𝖺𝗆 or 𝗉𝗆. Every unit letter in the line is
-written in Mathematical Sans-Serif small letters and the digits stay plain. A zone that cannot be loaded gives UTC in 24-hour
-time and a plain Z, as 11/14 18:14Z. 1𝖽2𝗁 is the time since the first of the
-owner's messages, its parts unspaced: 45𝗆 under an hour, 7𝗁 under a day,
-1𝖽2𝗁 after. ✍️1 counts the files changed against main
+last main-conversation response in the transcript's tail. Every unit letter
+outside the code span is written in Mathematical Sans-Serif small letters and
+the digits stay plain. A zone that cannot be loaded gives UTC in 24-hour
+time and a plain Z, as 11/14 18:14Z. 1𝖽 2𝗁 is the time since the first of the
+owner's messages: 45𝗆 under an hour, 7𝗁 under a day,
+1𝖽 2𝗁 after. ✍️1 counts the files changed against main
 (`git diff origin/main...HEAD --name-only`) in the session's checkouts, which
 are the checkout the project root is in and each folder directly under the
 root that holds a .git, that are documentation, by governing-docs.py beside
@@ -461,7 +462,7 @@ def elapsed(seconds):
     hours = minutes // 60
     if hours < 24:
         return f"{hours}{HOUR}"
-    return f"{hours // 24}{DAY}{hours % 24}{HOUR}"
+    return f"{hours // 24}{DAY} {hours % 24}{HOUR}"
 
 
 def clock(now, zone=OWNER_TZ):
@@ -474,7 +475,7 @@ def clock(now, zone=OWNER_TZ):
     except Exception:
         at = datetime.fromtimestamp(now, timezone.utc)
         return f"{at.month}/{at.day} {at.hour}:{at.minute:02d}Z"
-    marker = "\U0001D5BA" + MINUTE if at.hour < 12 else "\U0001D5C9" + MINUTE  # 𝖺𝗆, 𝗉𝗆
+    marker = "am" if at.hour < 12 else "pm"
     return f"{at.month}/{at.day} {(at.hour + 11) % 12 + 1}:{at.minute:02d}{marker}"
 
 
@@ -538,7 +539,6 @@ def main():
     parts = [f"{glyph}[{count}]({url})" if url else f"{glyph}{count}"]
     if context:
         parts.append(f"{(context + 500) // 1000}{KILO}")
-    parts.append(clock(now))
     if age is not None:
         parts.append(elapsed(age))
     if waiting:
@@ -549,7 +549,7 @@ def main():
     save(path, state)
     print(json.dumps({"hookSpecificOutput": {
         "hookEventName": event,
-        "additionalContext": " · ".join(parts)
+        "additionalContext": f"`{clock(now)}` " + " · ".join(parts)
                              + "\nClose the reply with that line, unchanged, as its session detail caption.",
     }}))
 
