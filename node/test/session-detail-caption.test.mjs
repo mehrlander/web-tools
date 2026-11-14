@@ -108,13 +108,74 @@ const caption = (out, event = 'UserPromptSubmit') => {
   return first;
 };
 
-test('the line: the count as the session link, then the context, the clock, the age and the files', () => {
+test('the line: the count as the session link, then the context, the clock, the age and the waiting docs', () => {
   const s = scratch();
   try {
     checkout(s.root, 'app', { changed: 1 });
     const out = s.run([typed('It is a new day.', ago(26 * HOUR + 30 * MIN)), reply(120_000),
       typed('Ok go ahead.'), reply(815_600)], { prompt: 'What next?' });
-    assert.equal(caption(out), `💬[3](${SESSION_PAGE}) · 816𝗄 · ${STAMP} · 1𝖽2𝗁 · 1 file`);
+    assert.equal(caption(out), `💬[3](${SESSION_PAGE}) · 816𝗄 · ${STAMP} · 1𝖽2𝗁`, 'changed files that are not docs show nothing');
+    doc(checkout(s.root, 'docs-app'), 'docs/guide.md');
+    assert.equal(caption(s.run(null, { prompt: 'And now?' })),
+      `💬[3](${SESSION_PAGE}) · 816𝗄 · ${STAMP} · 1𝖽2𝗁 · [✍️1](${SESSION_PAGE})`);
+  } finally { s.done(); }
+});
+
+// A committed change to each of `paths` on the checkout's branch.
+function doc(co, ...paths) {
+  for (const p of paths) {
+    mkdirSync(path.join(co.repo, path.dirname(p)), { recursive: true });
+    writeFileSync(path.join(co.repo, p), '# ' + p + '\n');
+  }
+  co.git('add', '.');
+  co.git('commit', '-q', '-m', 'docs');
+}
+
+// A user call in the scratch archive, as user-call.py writes one.
+function call(root, slug, { kind = 'documentation', file, status = 'open', created, session = 'f701fa79' } = {}) {
+  const dir = path.join(root, 'archive', 'user-calls');
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(path.join(dir, `${session}-${slug}.json`), JSON.stringify({
+    schema: 'user-call/1', id: `${session}-${slug}`, kind, status, session, slug, file,
+    created: created || '2026-11-14T10:00:00+00:00' }));
+}
+
+test('✍️ counts the changed documents still waiting on the owner\'s sign-off, linked to the call deck', () => {
+  const s = scratch();
+  try {
+    const entries = [typed('one'), reply(50_000)];
+    const waiting = (i) => caption(s.run(entries, { prompt: 'p' + i })).split(' · ')[4];
+    const app = checkout(s.root, 'app', { changed: 1 });
+    doc(app, 'chron/2026/11/entry.md', 'notes/dump/raw.md');
+    assert.equal(waiting(0), undefined, 'no docs: changed files that are not documentation show nothing');
+
+    doc(app, 'docs/guide.md');
+    assert.equal(waiting(1), `[✍️1](${SESSION_PAGE})`, 'a doc with no call waits, linked to the session page');
+
+    call(s.root, 'guide-words', { file: 'acme/app@claude/work:docs/guide.md' });
+    assert.equal(waiting(2), `[✍️1](${SESSION_PAGE}&user-call=guide-words)`, 'an open call: it waits, linked to the call');
+
+    call(s.root, 'guide-words', { file: 'acme/app@claude/work:docs/guide.md', status: 'closed' });
+    assert.equal(waiting(3), undefined, 'a closed call signs it off');
+
+    doc(app, 'README.md', 'docs/other.md', 'skills/x/SKILL.md');
+    call(s.root, 'other-old', { file: 'acme/app:docs/other.md', status: 'closed', created: '2026-11-14T09:00:00+00:00' });
+    call(s.root, 'other-new', { file: 'acme/app@abc:docs/other.md', created: '2026-11-14T11:00:00+00:00' });
+    call(s.root, 'readme-reopened', { file: 'acme/app:README.md', created: '2026-11-14T11:30:00+00:00' });
+    call(s.root, 'readme-done', { file: 'acme/app:README.md', status: 'closed', created: '2026-11-14T12:00:00+00:00' });
+    call(s.root, 'skill-elsewhere', { file: 'acme/lib:skills/x/SKILL.md', status: 'closed' });
+    call(s.root, 'skill-other-session', { file: 'acme/app:skills/x/SKILL.md', status: 'closed', session: 'a0000001' });
+    call(s.root, 'merge-1', { kind: 'merge', status: 'open', created: '2026-11-14T01:00:00+00:00' });
+    assert.equal(waiting(4), `[✍️2](${SESSION_PAGE}&user-call=other-new)`,
+      'mixed: the latest call for a path decides, another repo\'s or session\'s does not cover it, and the link is the first open documentation call');
+  } finally { s.done(); }
+});
+
+test('without the archive there is no ✍️', () => {
+  const s = scratch({ archive: false });
+  try {
+    doc(checkout(s.root, 'app'), 'docs/guide.md');
+    assert.match(caption(s.run([typed('one'), reply(50_000)])), / · 5𝗆$/);
   } finally { s.done(); }
 });
 
@@ -196,20 +257,23 @@ test('the context is the last main-conversation response that used any, rounded 
   } finally { s.done(); }
 });
 
-test('files are summed over the checkouts under the root, and a zero sum is left off', () => {
+test('waiting docs are summed over the checkouts under the root, and a zero sum is left off', () => {
   const s = scratch();
   try {
     const entries = [typed('one'), reply(50_000)];
-    const files = (payload, env) => caption(s.run(entries, payload, env)).split(' · ')[4];
+    const waiting = (payload, env) => caption(s.run(entries, payload, env)).split(' · ')[4];
     mkdirSync(path.join(s.root, 'notes'));
     checkout(s.root, 'quiet');
-    assert.equal(files(), undefined, 'nothing changed: no part and no separator');
-    const app = checkout(s.root, 'app', { changed: 1 });
-    assert.equal(files(), '1 file');
-    checkout(s.root, 'lib', { changed: 2 });
-    assert.equal(files(), '3 files');
-    assert.equal(files({ cwd: app.repo }, { CLAUDE_PROJECT_DIR: app.repo }), '1 file', 'a session rooted in one checkout');
-    assert.equal(files({ cwd: path.join(app.repo, 'src') }, { CLAUDE_PROJECT_DIR: '' }), '1 file',
+    assert.equal(waiting(), undefined, 'nothing changed: no part and no separator');
+    const app = checkout(s.root, 'app');
+    doc(app, 'docs/a.md');
+    assert.equal(waiting(), `[✍️1](${SESSION_PAGE})`);
+    doc(checkout(s.root, 'lib'), 'docs/a.md', 'docs/b.md');
+    assert.equal(waiting(), `[✍️3](${SESSION_PAGE})`);
+    assert.equal(waiting({ cwd: app.repo }, { CLAUDE_PROJECT_DIR: app.repo }), `[✍️1](${SESSION_PAGE})`,
+      'a session rooted in one checkout, the archive its sibling');
+    store(path.join(app.repo, 'src', 'private'));
+    assert.equal(waiting({ cwd: path.join(app.repo, 'src') }, { CLAUDE_PROJECT_DIR: '' }), `[✍️1](${SESSION_PAGE})`,
       'with no project root named, the working directory\'s checkout');
   } finally { s.done(); }
 });
@@ -226,7 +290,7 @@ test('with the archive checked out the count links the session page, wherever th
     store(far);
     assert.match(caption(s.run(entries)), /^🌿/, 'and not found unnamed');
     assert.equal(caption(s.run(entries, {}, { SESSIONS_STORE: path.join(far, 'sessions') })),
-      `💬[1](${SESSION_PAGE}) · 50𝗄 · ${STAMP} · 5𝗆 · 1 file`, 'named by SESSIONS_STORE');
+      `💬[1](${SESSION_PAGE}) · 50𝗄 · ${STAMP} · 5𝗆`, 'named by SESSIONS_STORE');
     store(path.join(s.root, 'private'));
     assert.match(caption(s.run(entries)), /^💬\[1\]\(/, 'a child of the root');
     assert.match(caption(s.run(entries, { cwd: app.repo }, { CLAUDE_PROJECT_DIR: app.repo })), /^💬\[1\]\(/, 'a sibling of the root');
@@ -244,21 +308,23 @@ test('without the archive the count links the branch page of the current checkou
     const app = checkout(s.root, 'app', { changed: 1 });
     const lib = checkout(s.root, 'lib', { changed: 2, branch: 'claude/busy-bell' });
     assert.equal(caption(s.run(entries)),
-      `🌿[1](${PAGES}branch.html#gh=acme/lib@claude/busy-bell) · 50𝗄 · ${STAMP} · 5𝗆 · 3 files`,
+      `🌿[1](${PAGES}branch.html#gh=acme/lib@claude/busy-bell) · 50𝗄 · ${STAMP} · 5𝗆`,
       'from above the checkouts, the one with the most files changed');
     assert.equal(caption(s.run(entries, { cwd: path.join(app.repo, 'src') })),
-      `🌿[1](${PAGES}branch.html#gh=acme/app@claude/work) · 50𝗄 · ${STAMP} · 5𝗆 · 3 files`, 'the one the working directory is in');
+      `🌿[1](${PAGES}branch.html#gh=acme/app@claude/work) · 50𝗄 · ${STAMP} · 5𝗆`, 'the one the working directory is in');
     lib.git('checkout', '-q', '--detach');
     assert.match(caption(s.run(entries)), /^🌿\[1\]\(\S+branch\.html#gh=acme\/lib\) /, 'a detached HEAD names no branch');
   } finally { s.done(); }
 });
 
-test('after a Bash call it speaks only when the file count moved, and asks git only when something did', () => {
+test('after a Bash call it speaks only when the ✍️ count moved, and asks git only when something did', () => {
   const s = scratch();
   try {
-    const app = checkout(s.root, 'app', { changed: 1 });
+    const app = checkout(s.root, 'app');
+    doc(app, 'docs/a.md');
     const bash = (more = {}) => s.run(null, { hook_event_name: 'PostToolUse', tool_name: 'Bash', prompt: undefined, ...more });
-    assert.equal(caption(s.run([typed('one'), reply(50_000)], { prompt: 'two' })), `💬[2](${SESSION_PAGE}) · 50𝗄 · ${STAMP} · 5𝗆 · 1 file`);
+    assert.equal(caption(s.run([typed('one'), reply(50_000)], { prompt: 'two' })),
+      `💬[2](${SESSION_PAGE}) · 50𝗄 · ${STAMP} · 5𝗆 · [✍️1](${SESSION_PAGE})`);
     appendFileSync(s.transcript, typed('two') + '\n' + reply(60_000) + '\n');
     assert.equal(bash(), '', 'nothing moved');
 
@@ -268,13 +334,13 @@ test('after a Bash call it speaks only when the file count moved, and asks git o
     assert.equal(bash(), '', 'the stat mark alone decides');
     renameSync(path.join(app.repo, '.git', 'objects.away'), path.join(app.repo, '.git', 'objects'));
 
-    writeFileSync(path.join(app.repo, 'first-0.txt'), 'edited\n');
-    app.git('commit', '-q', '-am', 'the same file again');
-    assert.equal(bash(), '', 'a commit that leaves the count where it was');
+    app.commit('code', 2);
+    assert.equal(bash(), '', 'a commit of files that are not documentation leaves the count where it was');
 
-    app.commit('second', 2);
+    doc(app, 'docs/b.md');
     assert.equal(bash({ agent_id: 'a1' }), '', 'a subagent\'s Bash call is passed over');
-    assert.equal(caption(bash(), 'PostToolUse'), `💬[2](${SESSION_PAGE}) · 60𝗄 · ${STAMP} · 5𝗆 · 3 files`, 'a commit moved the count');
+    assert.equal(caption(bash(), 'PostToolUse'),
+      `💬[2](${SESSION_PAGE}) · 60𝗄 · ${STAMP} · 5𝗆 · [✍️2](${SESSION_PAGE})`, 'a commit of a doc moved the count');
     assert.equal(bash(), '', 'said once');
 
     app.git('update-ref', 'refs/remotes/origin/main', 'HEAD');
@@ -290,7 +356,7 @@ test('a Bash call with no caption printed yet prints one', () => {
     checkout(s.root, 'app', { changed: 1 });
     writeFileSync(s.transcript, [typed('one'), reply(50_000)].join('\n') + '\n');
     const bash = () => s.run(null, { hook_event_name: 'PostToolUse', tool_name: 'Bash', prompt: undefined });
-    assert.equal(caption(bash(), 'PostToolUse'), `💬[1](${SESSION_PAGE}) · 50𝗄 · ${STAMP} · 5𝗆 · 1 file`);
+    assert.equal(caption(bash(), 'PostToolUse'), `💬[1](${SESSION_PAGE}) · 50𝗄 · ${STAMP} · 5𝗆`);
     assert.equal(bash(), '');
   } finally { s.done(); }
 });
