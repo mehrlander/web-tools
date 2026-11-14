@@ -21,6 +21,13 @@
 // least one session is warm.
 // USAGE_MARK=<n> marks the nth compaction row (1-based) and its dot.
 // USAGE_TIP=<selector> hovers the first match, which opens its title-tip.
+// USAGE_TAP=<selector> taps a match where it stands, with a finger under
+// --touch and the mouse without, and prints `tap: {...}`: the page's address
+// and scroll before and after, what was under the tap, what is marked and
+// what the open title-tip says. USAGE_TAP_NTH=<n> picks the nth match
+// (1-based); `left` picks the leftmost, which on the scatter is a dot with
+// no other over it. The tap goes to the match's own place on the screen, so
+// the driver scrolls nothing to reach it.
 // USAGE_THEME=<daisyUI theme> sets the page's theme, dark for the dark hues.
 //
 // The stand-in answers the two reads the pane makes: the listings under
@@ -75,12 +82,15 @@ export default async (page, ctx) => {
     const el = document.querySelector('[x-data="usage(usageCfg)"]');
     return el && window.Alpine.$data(el);
   };
-  // Opened by its address, the pane has already tried the real store and
-  // failed; either way it reads again, now through the stand-in.
+  // Opened by its address, the pane has already tried the real store. That
+  // read fails where the sandbox has no store, and where a checkout of the
+  // store sits beside this one it lists the files with no blob sha and reads
+  // none (node/render/cdn.mjs answers a sibling's listing that way). Either
+  // way it reads again, now through the stand-in.
   await page.waitForFunction(`(${usage})() && !(${usage})().loading`, null, { timeout: 30000 });
   await page.evaluate(async ({ pane, scope, usage }) => {
     const d = new Function('return (' + usage + ')()')();
-    if (!d.r) await d.refresh();
+    await d.refresh();
     if (pane) d.show(pane);
     if (scope) d.scope = scope;
   }, { pane, scope: process.env.USAGE_SCOPE || '', usage: String(usage) });
@@ -101,5 +111,38 @@ export default async (page, ctx) => {
   if (process.env.USAGE_TIP) {
     await page.locator(process.env.USAGE_TIP).first().hover({ force: true });
     await page.waitForTimeout(400);
+  }
+  if (process.env.USAGE_TAP) {
+    const where = () => ({ address: location.href, scrollX: window.scrollX, scrollY: window.scrollY,
+      scrolled: [...document.querySelectorAll('*')].filter((x) => x.scrollTop || x.scrollLeft).length });
+    const before = await page.evaluate(where);
+    const at = await page.evaluate(({ sel, nth }) => {
+      const all = [...document.querySelectorAll(sel)].map((el) => ({ el, box: el.getBoundingClientRect() })).filter((x) => x.box.width && x.box.height);
+      if (nth === 'left') all.sort((a, b) => a.box.left - b.box.left);
+      const hit = all[nth === 'left' ? 0 : Math.max(0, (+nth || 1) - 1)];
+      if (!hit) return null;
+      const x = hit.box.left + hit.box.width / 2, y = hit.box.top + hit.box.height / 2;
+      return { x, y, onScreen: y >= 0 && y <= innerHeight && x >= 0 && x <= innerWidth };
+    }, { sel: process.env.USAGE_TAP, nth: process.env.USAGE_TAP_NTH || '' });
+    if (!at || !at.onScreen) throw new Error('usage-view scenario: nothing on screen to tap for ' + process.env.USAGE_TAP);
+    const touch = await page.evaluate(() => matchMedia('(hover: none)').matches);
+    if (touch) await page.touchscreen.tap(at.x, at.y); else await page.mouse.click(at.x, at.y);
+    await page.waitForTimeout(600);
+    const after = await page.evaluate(({ where, x, y }) => {
+      const under = document.elementFromPoint(x, y);
+      const marked = [...document.querySelectorAll('[data-usage-marked]')].map((el) => {
+        const box = el.getBoundingClientRect();
+        return { row: el.getAttribute('data-usage-compaction') || el.getAttribute('data-usage-session'), top: Math.round(box.top), onScreen: box.bottom > 0 && box.top < innerHeight };
+      });
+      const tip = document.querySelector('#wt-title-tip[data-open]');
+      const ring = document.querySelector('[data-usage-mark]');
+      return { ...new Function('return (' + where + ')()')(),
+        under: under ? (under.closest('[data-usage-dot]') ? 'dot ' + under.closest('[data-usage-dot]').getAttribute('data-usage-dot')
+          : under.closest('[data-usage-out]') ? 'way out' : under.closest('[data-usage-session], [data-usage-compaction]') ? 'row' : under.tagName.toLowerCase()) : '',
+        marked, faded: document.querySelectorAll('[data-usage-part].opacity-25').length,
+        ring: ring ? ring.getAttribute('visibility') : '', tip: tip ? tip.textContent : '', view: window.__shell?.view || '' };
+    }, { where: String(where), x: at.x, y: at.y });
+    console.log('tap:', JSON.stringify({ at: { x: Math.round(at.x), y: Math.round(at.y) }, touch, before, after,
+      held: before.address === after.address && before.scrollX === after.scrollX && before.scrollY === after.scrollY && before.scrolled === after.scrolled }));
   }
 };
