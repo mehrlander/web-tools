@@ -470,7 +470,7 @@ test('session-menu: a reply ending on its 💬 caption names its session without
   const routes = { 'session-menu.json': { body: MENU }, 'reply-prints.json': { body: PRINTS_DOC } };
   const copied = (caption) => SAID.a0000005[0] + '\n\n' + caption + '\n\n🟢 **Ready to continue:** more.';
   // The session detail caption, then the form replies carried before it.
-  for (const caption of ['💬[22](' + PAGE + 'a0000002) · 816𝗄 · 11/14 10:14𝖺𝗆 · 1𝖽2𝗁 · 1 file',
+  for (const caption of ['💬[22](' + PAGE + 'a0000002) · 816𝗄 · 11/14 10:14𝖺𝗆 · 1𝖽2𝗁 · [✍️1](' + PAGE + 'a0000002&user-call=guide-words)',
                          '💬 [session](' + PAGE + 'a0000002)']) {
     const { fn, sent } = loadRoutes(routes);
     const r = fn({ input: b64(copied(caption)), token: 't' });
