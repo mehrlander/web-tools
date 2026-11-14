@@ -54,7 +54,7 @@ test('consolidations preserve cited IDs and point directly to an entry with the 
     assert.equal(r.status, target.status, `${r.id}: status differs from its target`);
   }
   const active = rows.filter(r => !r.merged_into && r.status === 'active');
-  assert.equal(active.length, 33);
+  assert.equal(active.length, 35);
   assert.equal(rows.filter(r => r.status === 'guidance').length, 7);
   assert.equal(byId.get('P03').merged_into, 'P10', 'the jargon note follows the Term loading consolidation');
 });
