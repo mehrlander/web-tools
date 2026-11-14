@@ -84,3 +84,60 @@ test('reviewers are listed agents, measures are paths or locators, views are app
   }
   assert.deepEqual(gaps, []);
 });
+
+function outsideFences(md) {
+  const out = [];
+  let fenced = false;
+  for (const line of md.split(/\r?\n/)) {
+    if (/^```/.test(line.trim())) { fenced = !fenced; continue; }
+    if (!fenced) out.push(line);
+  }
+  return out.join('\n');
+}
+
+function relativeLinks(md) {
+  const targets = [];
+  for (const m of outsideFences(md).matchAll(/\]\(([^)\s]+)\)/g)) {
+    const raw = m[1].split('#')[0];
+    if (!raw || /^(?:https?:|mailto:)/.test(raw)) continue;
+    targets.push(raw);
+  }
+  return targets;
+}
+
+test('each manager.md aligns with its charter Processes table, and relative links in charters and manager briefs resolve', () => {
+  const gaps = [];
+  for (const { repo, root, e } of declarations()) {
+    if (e?.status === 'proposed' || typeof e?.path !== 'string') continue;
+    const dir = path.join(root, e.path);
+    const charterPath = path.join(dir, 'README.md');
+    if (!existsSync(charterPath)) continue;
+    const charter = readFileSync(charterPath, 'utf8');
+    for (const rel of relativeLinks(charter)) {
+      if (!existsSync(path.resolve(dir, rel))) gaps.push(`${repo}:${e.path}/README.md links missing ${rel}`);
+    }
+    const managerPath = path.join(dir, 'manager.md');
+    if (!existsSync(managerPath)) continue;
+    const manager = readFileSync(managerPath, 'utf8');
+    for (const rel of relativeLinks(manager)) {
+      if (!existsSync(path.resolve(dir, rel))) gaps.push(`${repo}:${e.path}/manager.md links missing ${rel}`);
+    }
+    const procSection = outsideFences(charter).match(/^## Processes\s*\n([\s\S]*?)(?=^## |$(?![\s\S]))/m);
+    if (!procSection) {
+      gaps.push(`${repo}:${e.path}/README.md has manager.md without a ## Processes section`);
+      continue;
+    }
+    if (!procSection[1].includes('(manager.md)')) {
+      gaps.push(`${repo}:${e.path}/README.md ## Processes does not link manager.md`);
+    }
+    const rows = [...procSection[1].matchAll(/^\| ([^|\n]+?) \|/gm)]
+      .map(m => m[1].trim())
+      .filter(cell => cell !== 'Process' && !/^-+$/.test(cell));
+    const headings = [...outsideFences(manager).matchAll(/^## (.+)$/gm)].map(m => m[1].trim());
+    if (JSON.stringify(rows) !== JSON.stringify(headings)) {
+      gaps.push(`${repo}:${e.path} Processes rows ${JSON.stringify(rows)} != manager.md headings ${JSON.stringify(headings)}`);
+    }
+  }
+  assert.deepEqual(gaps, []);
+});
+

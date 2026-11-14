@@ -16,6 +16,14 @@ tab; a program is defined in
 | Delivery | the skills, agents and conventions the `portable` plugin brings into a session, stated in [`MARKETPLACE.md`](../../docs/MARKETPLACE.md) |
 | Automation | the hooks and scheduled jobs indexed in [`harness.csv`](../../docs/harness.csv) |
 
+## Processes
+
+A process is a recurring question or duty the program answers for. A session hands one to the program's manager, an agent briefed by [`manager.md`](manager.md).
+
+| Process | Starts when |
+| --- | --- |
+| Open calls | the owner or a session asks which user calls and stalled handovers are waiting on the owner or hold an unmerged answer |
+
 ## Measures
 
 | Area | Measure | Working means |
