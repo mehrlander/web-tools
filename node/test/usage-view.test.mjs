@@ -413,11 +413,12 @@ test('Re-loads: a one-line row per ender, the dearest first, its bar the dollars
   assert.equal(pane.querySelector('a'), null);
 });
 
-test('Continue: one line a session, an orange bar where lapsed; where warm a grey one, what it becomes, and the minutes left', async () => {
+test('Continue: one line a session, an orange bar where lapsed; where warm one in the text colour, what it becomes, and the minutes left', async () => {
   await show('continue');
   const pane = $('[data-at="usage-continue"]');
   const chips = [...pane.querySelectorAll('[data-slot="frame:count-chips"] button')];
   assert.deepEqual(chips.map(text), ['All 5', 'Warm 1', 'Lapsed 4'], 'each chip counts the rows it narrows to');
+  assert.match(chips[1].querySelector('span').className, /\bbg-base-content\/60\b/, 'the warm chip borrows no hue of the spend');
   const rows = () => [...pane.querySelectorAll('[data-usage-session]')];
   assert.deepEqual(rows().map((a) => a.getAttribute('data-usage-session').slice(11)), ['aaaa0001', 'cccc0003', 'eeee0005', 'bbbb0002', 'dddd0004']);
   assert.match(text(rows()[0]), /^3d A titled session 400k \$3\.20$/, 'how long idle, the name, the context\'s size, the figure');
@@ -426,7 +427,7 @@ test('Continue: one line a session, an orange bar where lapsed; where warm a gre
   assert.match(text(warm), /^15m A made-up session on the dearer model.* 500k \$0\.10 45 min → \$8\.00$/);
   const bars = warm.querySelectorAll('span[style]');
   assert.equal(bars.length, 2);
-  assert.match(bars[0].className, /bg-base-content\/40/, 'grey: what it costs now');
+  assert.match(bars[0].className, /\bbg-base-content\/60\b/, 'the text colour: what it costs now');
   assert.match(bars[1].className, /border-dashed border-\[#eb6834\]/, 'outlined: what it becomes');
   // One scale for all: the dearest lapsed row is 3.20, the warm one becomes 8.00.
   assert.equal(parseFloat(bars[0].style.width) + parseFloat(bars[1].style.width), 100);
