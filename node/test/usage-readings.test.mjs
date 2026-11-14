@@ -52,7 +52,7 @@ test('spend: four parts that add up to the total, and the same four per session,
 });
 
 test('a model with no price adds nothing, and its session is named rather than guessed', () => {
-  assert.deepEqual(r.spend.unpriced, [{ model: 'claude-sonnet-5-5', sessions: 1 }]);
+  assert.deepEqual(r.spend.unpriced, [{ model: 'claude-haiku-4-5', sessions: 1 }]);
   assert.equal(by('dddd0004').cost, 0);
   assert.equal(r.spend.rows.some((s) => s.short === 'dddd0004'), false);
 });
