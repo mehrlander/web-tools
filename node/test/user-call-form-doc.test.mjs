@@ -191,6 +191,29 @@ test('each row ends with the words its edit adds and removes, green and red (own
   assert.equal(data().docWordsTip({ from: 'a\nb', to: 'a b' }), 'No words change');
 });
 
+test('scrolling the document keeps the edit in view on screen in the list (owner, 2026-11-14)', () => {
+  const list = root().querySelector('[data-doc-list]'), row = list.querySelector('[data-doc-row="4"]');
+  const rect = (top, height) => () => ({ top, bottom: top + height, height, left: 0, right: 0, width: 0 });
+  const was = [list.getBoundingClientRect, row.getBoundingClientRect, list.scrollTo];
+  const to = [];
+  list.getBoundingClientRect = rect(100, 80);
+  list.scrollTo = (o) => to.push({ ...o });
+  row.getBoundingClientRect = rect(200, 20);
+  data().docKeepRow(3);
+  assert.deepEqual(to.at(-1), { top: 55, behavior: 'smooth' }, 'a row 40px below the list scrolls it 40px, and three quarters of a row past');
+  list.scrollTop = 55;
+  row.getBoundingClientRect = rect(130, 20);
+  to.length = 0;
+  data().docKeepRow(3);
+  assert.equal(to.length, 0, 'a row already in sight moves nothing');
+  list.scrollTop = 135;
+  row.getBoundingClientRect = rect(60, 20);
+  data().docKeepRow(3);
+  assert.deepEqual(to.at(-1), { top: 80, behavior: 'smooth' }, 'a row above it scrolls the list down to it');
+  [list.getBoundingClientRect, row.getBoundingClientRect, list.scrollTo] = was;
+  list.scrollTop = 0;
+});
+
 test('the list shows in Changes only, the one view that draws the edits', async () => {
   // x-show applies on the next frame, so each check waits for it.
   const list = () => root().querySelector('[data-doc-list]');
