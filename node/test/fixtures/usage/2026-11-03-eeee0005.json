@@ -1,0 +1,18 @@
+{
+ "schema": "usage/1",
+ "session": "eeee0005-0000-4000-8000-000000000005",
+ "short": "eeee0005",
+ "day": "2026-11-03",
+ "agent_session": "https://claude.ai/code/session_fixture_5",
+ "opening_ask": "",
+ "harness_cost": null,
+ "last_step_at": "2026-11-03T22:00:00.000Z",
+ "context_now": 160000,
+ "last_step_model": "claude-opus-5-5",
+ "prompts": [],
+ "unowned": {"steps": 6, "reloads": 1, "models": {"claude-opus-5-5": {"output": 1000, "cache_read": 1000000, "cache_write_1h": 160000, "reload_written": 160000, "reload_write_1h": 160000}}},
+ "compactions": [],
+ "idle_reloads": [
+  {"at": "2026-11-03T22:00:00.000Z", "gap_ms": 5400000, "ender": "task", "model": "claude-opus-5-5", "write_1h": 160000, "write_5m": 0}
+ ]
+}
