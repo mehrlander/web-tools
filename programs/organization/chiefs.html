@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en" data-theme="winter">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Program chiefs</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script>
+  // A proposal page, built 2026-11-14 for the owner and opened in the Web
+  // Tools app's App view, as the program-mark pages under docs/prototypes/
+  // were: a named chief for each of the five programs declared under
+  // `programs` in .web-tools.json, drawn as an org chart (the owner, then
+  // Drucker, then the four chiefs Drucker keeps the chart of). A chief keeps
+  // its program's page current when a session cc's it; the owner approves.
+  // Each card's pills swap in an alternative figure, or an invented name, in
+  // place; every candidate is laid in the same grid cell so a swap moves
+  // nothing. Not app code: a page to choose from, before any chief is wired.
+  window.chiefs = () => ({
+    hot: '',
+    placement: [
+      { key: 'organization', title: 'In Organization', rec: true,
+        text: 'The chart of the programs is the estate’s structure, which is Organization’s scope, and Drucker already keeps it; nothing new to charter.' },
+      { key: 'exec', title: 'A new Exec program', rec: false,
+        text: 'A sixth program for the owner himself, above the five; it would govern no files yet and need its own charter, measures and chief.' },
+    ],
+    programs: [
+      { key: 'organization', program: 'Organization', sel: 0,
+        cands: [
+          { name: 'Drucker', icon: '📋', who: 'Peter Drucker, 1909–2005',
+            blurb: 'Often called the founder of modern management; The Practice of Management (1954) made it a discipline. Keeps the chart of the programs.' },
+          { name: 'Deming', icon: '🔁', who: 'W. Edwards Deming, 1900–1993',
+            blurb: 'Taught Japanese industry statistical quality control from 1950 and spread the plan, do, check, act cycle: fix the system, not the worker.' },
+          { name: 'Linnaeus', icon: '🌿', who: 'Carl Linnaeus, 1707–1778',
+            blurb: 'Systema Naturae (1735) gave every living thing a place in one ranked scheme; a chief for an estate run on registries.' },
+          { name: 'Otlet', icon: '🗂️', who: 'Paul Otlet, 1868–1944',
+            blurb: 'Co-devised the Universal Decimal Classification and built the Mundaneum, a card index of millions of cross-referenced facts.' },
+          { name: 'Compass', icon: '🧭', who: 'invented name', invented: true,
+            blurb: 'Shows where each program sits and which way the estate is pointed, with no borrowed history.' },
+        ],
+        staff: 'chiefs', mechanisms: [{ name: 'the landings measure' }] },
+      { key: 'sessions', program: 'Sessions', sel: 0,
+        cands: [
+          { name: 'Hermes', icon: '🪽', who: 'the Greek gods’ messenger',
+            blurb: 'Carried word between Olympus and mortals on winged sandals; here, how a session’s work reaches the owner.' },
+          { name: 'Iris', icon: '🌈', who: 'messenger of the gods in the Iliad',
+            blurb: 'Travels by the rainbow on the gods’ errands; Hermes’ office under a quieter name.' },
+          { name: 'Terkel', icon: '🎙️', who: 'Studs Terkel, 1912–2008',
+            blurb: 'Recorded thousands of people in their own words, as in Working (1974); a chief for a program that notes each owner message.' },
+          { name: 'Morse', icon: '📡', who: 'Samuel Morse, 1791–1872',
+            blurb: 'Sent “What hath God wrought” from Washington to Baltimore in 1844, the first long-distance telegraph message.' },
+          { name: 'Relay', icon: '📨', who: 'invented name', invented: true,
+            blurb: 'Hands the work on to its reader, which is the whole of the program.' },
+        ],
+        staff: [],
+        mechanisms: [
+          { name: 'Bashō', icon: '🐸', note: 'Haiku notes each owner message', planned: true },
+          { name: 'the check-in hook' },
+          { name: 'the session detail caption hook' },
+          { name: 'the reply check' },
+        ] },
+      { key: 'content', program: 'Content', sel: 0,
+        cands: [
+          { name: 'Strunk', icon: '✒️', who: 'William Strunk Jr., 1869–1946',
+            blurb: 'The Elements of Style (1918) gave the rule “Omit needless words.”' },
+          { name: 'Orwell', icon: '📝', who: 'George Orwell, 1903–1950',
+            blurb: '“Politics and the English Language” (1946) set six rules, among them “If it is possible to cut a word out, always cut it out.”' },
+          { name: 'White', icon: '🕸️', who: 'E. B. White, 1899–1985',
+            blurb: 'Strunk’s student at Cornell, who revised the little book in 1959 into “Strunk and White.”' },
+          { name: 'Gowers', icon: '🏛️', who: 'Sir Ernest Gowers, 1880–1966',
+            blurb: 'Wrote Plain Words (1948) at the Treasury’s request, to cure civil-service prose; a chief for writing read in government.' },
+          { name: 'Quill', icon: '🪶', who: 'invented name', invented: true,
+            blurb: 'The pen that writes and the knife that trims it.' },
+        ],
+        staff: [{ name: 'peeves-critic' }, { name: 'house-style-critic' }, { name: 'the doc-craft review', plain: true }],
+        mechanisms: [] },
+      { key: 'testing', program: 'Testing', sel: 0,
+        cands: [
+          { name: 'Grace', icon: '🐞', who: 'Grace Hopper, 1906–1992',
+            blurb: 'In 1947 her Harvard Mark II team taped a moth into the logbook as the “first actual case of bug being found.”' },
+          { name: 'Feynman', icon: '🧊', who: 'Richard Feynman, 1918–1988',
+            blurb: 'On the Challenger commission (1986) he dunked O-ring rubber in ice water: “reality must take precedence over public relations.”' },
+          { name: 'Hamilton', icon: '🚀', who: 'Margaret Hamilton, born 1936',
+            blurb: 'Led the MIT team that wrote Apollo’s on-board flight software, which shed low-priority work when alarms fired in the Apollo 11 landing.' },
+          { name: 'Popper', icon: '🦢', who: 'Karl Popper, 1902–1994',
+            blurb: 'Held that a claim is scientific only if some test could prove it false.' },
+          { name: 'Bug', icon: '🐛', who: 'invented name', invented: true,
+            blurb: 'Named for what it hunts.' },
+        ],
+        staff: [],
+        mechanisms: [
+          { name: 'the suite', note: 'npm test' },
+          { name: 'page measures' },
+          { name: 'the timing log', planned: true },
+        ] },
+      { key: 'discovery', program: 'Discovery', sel: 0,
+        cands: [
+          { name: 'Darwin', icon: '🐢', who: 'Charles Darwin, 1809–1882',
+            blurb: 'Collected on the Beagle (1831–1836), Galápagos tortoises among it, and gathered for two decades before On the Origin of Species (1859).' },
+          { name: 'Humboldt', icon: '🌋', who: 'Alexander von Humboldt, 1769–1859',
+            blurb: 'Measured everything across five years in the Americas (1799–1804), then tied it together in Kosmos.' },
+          { name: 'Bush', icon: '🔗', who: 'Vannevar Bush, 1890–1974',
+            blurb: '“As We May Think” (1945) imagined the memex, a desk that keeps a researcher’s trails through the sources.' },
+          { name: 'Lovelace', icon: '⚙️', who: 'Ada Lovelace, 1815–1852',
+            blurb: 'Her 1843 notes on Babbage’s Analytical Engine saw it could work on more than numbers, music among them.' },
+          { name: 'Scout', icon: '🔭', who: 'invented name', invented: true,
+            blurb: 'Goes out ahead and comes back with what is there.' },
+        ],
+        staff: [],
+        mechanisms: [
+          { name: 'the scour fan-out' },
+          { name: 'errands to Gemini and Codex' },
+        ] },
+    ],
+    get head() { return this.programs[0]; },
+    get chiefsRow() { return this.programs.slice(1); },
+    cur(p) { return p.cands[p.sel]; },
+    staffOf(p) {
+      return p.staff === 'chiefs'
+        ? this.chiefsRow.map(c => ({ name: this.cur(c).name, icon: this.cur(c).icon, key: c.key }))
+        : p.staff;
+    },
+  });
+</script>
+<script defer src="https://unpkg.com/alpinejs@3.14.8/dist/cdn.min.js"></script>
+</head>
+<body class="min-h-dvh bg-base-200 text-base-content">
+<main x-data="chiefs()" class="flex flex-col px-4 py-5 sm:px-6 lg:px-10">
+
+  <header class="flex flex-wrap items-center gap-x-3 gap-y-1 mb-5">
+    <h1 class="text-xl font-semibold">Program chiefs</h1>
+    <span class="badge badge-sm badge-ghost">proposed</span>
+    <span class="text-xs font-mono text-base-content/50">2026-11-14</span>
+  </header>
+
+  <!-- The owner, with the stand-in any chief may consult. -->
+  <section class="grid grid-cols-1 gap-3 md:grid-cols-2 md:w-2/3 md:mx-auto">
+    <div class="card bg-base-100 border border-primary/30">
+      <div class="card-body p-4 flex-row items-start gap-3">
+        <i class="ph ph-crown text-4xl leading-none text-primary shrink-0"></i>
+        <div class="min-w-0">
+          <div class="font-semibold">Owner</div>
+          <p>Approves. A chief keeps its program's page current when a session cc's it, and approves nothing.</p>
+        </div>
+      </div>
+    </div>
+    <div class="card bg-base-100 border border-dashed border-base-300">
+      <div class="card-body p-4 flex-row items-start gap-3">
+        <i class="ph ph-user-switch text-4xl leading-none text-base-content/60 shrink-0"></i>
+        <div class="min-w-0">
+          <div class="font-semibold">owner-proxy</div>
+          <p>Stands outside the programs as the owner's stand-in, consulted by any chief.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- One card per program: the chief in the seat, then its staff and
+       mechanisms, then the candidates as pills. -->
+  <template x-for="(p, row) in [[head], chiefsRow]" :key="row">
+    <div class="flex flex-col">
+    <div class="w-px h-6 bg-base-300 mx-auto" aria-hidden="true"></div>
+    <section class="grid grid-cols-1 gap-4"
+             :class="row === 0 ? 'md:w-1/2 md:mx-auto w-full' : 'md:grid-cols-2 xl:grid-cols-4'">
+      <template x-for="prog in p" :key="prog.key">
+        <article class="card bg-base-100 border transition-shadow"
+                 :class="hot === prog.key ? 'border-primary ring-2 ring-[var(--color-primary)]/30' : 'border-base-300'"
+                 :data-chief="prog.key" @mouseenter="hot = prog.key" @mouseleave="hot = ''">
+          <div class="card-body p-4 gap-3">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-sm font-medium text-base-content/60" x-text="prog.program"></span>
+              <code class="text-xs font-mono bg-base-200 rounded px-1.5 py-0.5" x-text="'cc ' + cur(prog).name"></code>
+            </div>
+
+            <!-- Every candidate shares one cell; only the chosen is visible. -->
+            <div class="grid">
+              <template x-for="(c, i) in prog.cands" :key="c.name">
+                <div class="col-start-1 row-start-1 flex items-start gap-3"
+                     :class="prog.sel === i ? '' : 'invisible'" :aria-hidden="String(prog.sel !== i)">
+                  <span class="text-4xl leading-none shrink-0" x-text="c.icon"></span>
+                  <div class="min-w-0">
+                    <div class="font-semibold" x-text="c.name"></div>
+                    <div class="text-xs text-base-content/50" x-text="c.who"></div>
+                    <p class="mt-1" x-text="c.blurb"></p>
+                  </div>
+                </div>
+              </template>
+            </div>
+
+            <div x-show="staffOf(prog).length" class="flex flex-col gap-1">
+              <span class="text-xs uppercase tracking-wide text-base-content/50">Staff</span>
+              <div class="flex flex-wrap gap-x-4 gap-y-1">
+                <template x-for="s in staffOf(prog)" :key="s.name">
+                  <span class="inline-flex items-center gap-1.5"
+                        :class="s.key && hot === s.key ? 'text-primary' : ''"
+                        @mouseenter="s.key && (hot = s.key)" @mouseleave="hot = ''">
+                    <span x-show="s.icon" x-text="s.icon"></span>
+                    <span x-text="s.name" :class="s.key || s.plain ? 'font-medium' : 'font-mono'"></span>
+                  </span>
+                </template>
+              </div>
+            </div>
+
+            <div x-show="prog.mechanisms.length" class="flex flex-col gap-1">
+              <span class="text-xs uppercase tracking-wide text-base-content/50">Mechanisms</span>
+              <ul class="flex flex-col gap-1">
+                <template x-for="m in prog.mechanisms" :key="m.name">
+                  <li class="flex flex-wrap items-baseline gap-x-2">
+                    <span x-show="m.icon" x-text="m.icon"></span>
+                    <span class="font-medium" x-text="m.name"></span>
+                    <span x-show="m.note" class="text-base-content/60" x-text="m.note"></span>
+                    <span x-show="m.planned" class="badge badge-sm badge-outline badge-warning">planned</span>
+                  </li>
+                </template>
+              </ul>
+            </div>
+
+            <div class="flex flex-wrap gap-1.5 pt-1 border-t border-base-200" role="radiogroup" :aria-label="prog.program + ' chief'">
+              <template x-for="(c, i) in prog.cands" :key="c.name">
+                <button type="button" role="radio" :aria-checked="String(prog.sel === i)" @click="prog.sel = i"
+                        class="btn btn-xs mt-2"
+                        :class="prog.sel === i ? 'btn-primary' : (c.invented ? 'btn-dash' : 'btn-ghost border-base-300')">
+                  <span x-text="c.icon"></span><span x-text="c.name"></span>
+                </button>
+              </template>
+            </div>
+          </div>
+        </article>
+      </template>
+    </section>
+    </div>
+  </template>
+
+  <!-- Where the chart lives: the owner's two options. -->
+  <section class="flex flex-col gap-3 mt-8">
+    <h2 class="text-sm font-medium text-base-content/60">Where the chart lives</h2>
+    <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+      <template x-for="o in placement" :key="o.key">
+        <div class="card bg-base-100 border" :class="o.rec ? 'border-success/50' : 'border-base-300'">
+          <div class="card-body p-4 gap-1">
+            <div class="flex items-center gap-2">
+              <span class="font-semibold" x-text="o.title"></span>
+              <span x-show="o.rec" class="badge badge-sm badge-success badge-soft">recommended</span>
+            </div>
+            <p x-text="o.text"></p>
+          </div>
+        </div>
+      </template>
+    </div>
+  </section>
+
+</main>
+</body>
+</html>
