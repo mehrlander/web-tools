@@ -237,12 +237,13 @@ test('a deep link opens even when the branch list could not be read at all', asy
   assert.equal(data.detailRow.name, 'claude/feat-b');
 });
 
-// ── &pane= and &file=, the two keys the surfacing caption links with ────────
-// Added 2026-08-26, when the caption stopped enumerating files in chat and
-// started pointing here instead. Both ride `_openFiles`, the seam the verdict
-// chip has used since it shipped, so what these pin is the PARSING and the
-// handing-off: what the slide is given. What the slide then DOES with a file
-// is branch-brief-address.test.mjs, and that it really mounts a deck is
+// ── &pane= and &file=, the two keys a branch link points at files with ──────
+// Added 2026-08-26, when a reply stopped enumerating its files in chat and
+// started pointing here instead (its session detail caption only counts
+// them). Both ride `_openFiles`, the seam the verdict chip has used since it
+// shipped, so what these pin is the PARSING and the handing-off: what the
+// slide is given. What the slide then DOES with a file is
+// branch-brief-address.test.mjs, and that it really mounts a deck is
 // node/render/scenarios/branch-address.mjs, since a deck is a browser gesture.
 
 // Two traps in reading a slide's options back, and both produce the same wrong

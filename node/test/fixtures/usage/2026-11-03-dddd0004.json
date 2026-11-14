@@ -1,0 +1,18 @@
+{
+ "schema": "usage/1",
+ "session": "dddd0004-0000-4000-8000-000000000004",
+ "short": "dddd0004",
+ "day": "2026-11-03",
+ "agent_session": "https://claude.ai/code/session_fixture_4",
+ "opening_ask": "A made-up session on a model the price table lacks.",
+ "harness_cost": null,
+ "last_step_at": "2026-11-03T20:00:00.000Z",
+ "context_now": 50000,
+ "last_step_model": "claude-sonnet-5-5",
+ "prompts": [
+  {"at": "2026-11-03T19:50:00.000Z", "index": 0, "steps": 4, "context": 50000, "reloads": 0, "models": {"claude-sonnet-5-5": {"input": 40, "output": 3000, "cache_read": 120000, "cache_write_1h": 50000}}}
+ ],
+ "unowned": null,
+ "compactions": [],
+ "idle_reloads": []
+}
