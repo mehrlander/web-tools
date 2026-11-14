@@ -82,6 +82,11 @@ app.MapGet("/api/v1/errands", (HttpContext context) => {
     if (context.Request.Headers.IfNoneMatch == etag) return Results.StatusCode(304);
     return Results.Bytes(payload, "application/json; charset=utf-8");
 });
+app.MapGet("/api/v1/usage-history", (HttpContext context) => {
+    if (context.Request.QueryString.HasValue) return Results.BadRequest();
+    return UsageArchiveReader.Read() is { } payload
+        ? Results.Bytes(payload, "application/json; charset=utf-8") : Results.StatusCode(503);
+});
 app.MapGet("/api/v1/computer", (HttpContext context) => {
     if (computer.Latest is not { } value) return Results.StatusCode(503);
     var payload = JsonSerializer.SerializeToUtf8Bytes(value, json);
@@ -119,6 +124,9 @@ app.MapGet("/api/v1/results/{id}", (string id) => collector.Latest is { } activi
 var assets = new Dictionary<string, (string File, string Type)> {
     ["/"] = ("index.html", "text/html; charset=utf-8"),
     ["/phone.js"] = ("phone.js", "text/javascript; charset=utf-8"),
+    ["/phone-usage.js"] = ("phone-usage.js", "text/javascript; charset=utf-8"),
+    ["/phone-usage.css"] = ("phone-usage.css", "text/css; charset=utf-8"),
+    ["/phone-ui.css"] = ("phone-ui.css", "text/css; charset=utf-8"),
     ["/computer.js"] = ("computer.js", "text/javascript; charset=utf-8"),
     ["/devices.js"] = ("devices.js", "text/javascript; charset=utf-8"),
     ["/views.js"] = ("views.js", "text/javascript; charset=utf-8"),
@@ -140,13 +148,16 @@ var assets = new Dictionary<string, (string File, string Type)> {
     ["/vendor/claude-mark.js"] = ("vendor/claude-mark.js", "text/javascript; charset=utf-8"),
     ["/vendor/title-tip.js"] = ("vendor/title-tip.js", "text/javascript; charset=utf-8")
 };
+assets["/vendor/swipe-deck.js"] = ("vendor/swipe-deck.js", "text/javascript; charset=utf-8");
 foreach (var (route, asset) in assets) app.MapGet(route, () => Results.File(Path.Combine(AppContext.BaseDirectory, "phone", asset.File), asset.Type));
 var sampling = Task.Run(() => collector.Run(app.Lifetime.ApplicationStopping));
 var summaries = Task.Run(() => LocalSummaryRunner.Run(app.Lifetime.ApplicationStopping));
+var usageArchive = Task.Run(() => UsageArchiveRunner.Run(app.Lifetime.ApplicationStopping));
 var machineSampling = Task.Run(() => computer.Run(app.Lifetime.ApplicationStopping));
 var repositorySampling = Task.Run(() => repositories.Run(app.Lifetime.ApplicationStopping));
 await app.RunAsync();
 await sampling;
 await summaries;
+await usageArchive;
 await machineSampling;
 await repositorySampling;
