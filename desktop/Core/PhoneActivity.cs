@@ -2,7 +2,10 @@ namespace WebTools.Desktop;
 
 public record PhoneItem(string Key, string Id, string Kind, string Provider, string Location,
     string Title, string State, string Detail, DateTimeOffset At, DateTimeOffset CreatedAt,
-    bool NeedsAttention, bool IsNew, string? Url, SessionCheckpoint? Checkpoint = null, SessionTurn? Turn = null, LocalWork? Work = null, string? SessionUrl = null);
+    bool NeedsAttention, bool IsNew, string? Url, SessionCheckpoint? Checkpoint = null, SessionTurn? Turn = null, LocalWork? Work = null, string? SessionUrl = null,
+    DateTimeOffset? ClaimedAt = null);
+public record PhoneErrandSnapshot(int SchemaVersion, DateTimeOffset ObservedAt, bool QueueAvailable,
+    bool RecordsConnected, DateTimeOffset? SyncedAt, string? Notice, List<PhoneItem> Items);
 public record PhoneSource(bool QueueAvailable, bool RecordsConnected, DateTimeOffset? RecordsSyncedAt,
     string WorkerState, DateTimeOffset? WorkerLogAt, DateTimeOffset? CloudCapturedAt, List<string> Notices,
     WorkerActivity? WorkerActivity = null, List<WorkerActivity>? WorkerReports = null);
@@ -12,6 +15,43 @@ public record PhoneSnapshot(int SchemaVersion, string MachineName, DateTimeOffse
 
 public static class PhoneActivity
 {
+    private static PhoneItem ErrandItem(Errand j) => new("errand:" + j.Id, j.Id, "errand", j.Provider,
+        j.Location, j.Title, j.State, ErrandPreview(j), j.UpdatedAt, j.CreatedAt,
+        j.State == "failed", j.IsNew, NavigationPolicy.ErrandUrl(j.Id, j.State is "reply" or "complete" or "failed"),
+        ClaimedAt: j.ClaimedAt);
+
+    // The worker's message can be a fence opener. Prefer prose outside code,
+    // with a final narrative from the full report when the message has none.
+    public static string ErrandPreview(Errand job)
+    {
+        static List<string> Prose(string? value) {
+            var text = value ?? "";
+            text = text[..Math.Min(text.Length, 20000)];
+            var lines = new List<string>();
+            char fence = '\0';
+            foreach (var raw in text.Split('\n')) {
+                var line = raw.Trim();
+                if (line.StartsWith("```") || line.StartsWith("~~~")) {
+                    if (fence == '\0') fence = line[0];
+                    else if (fence == line[0]) fence = '\0';
+                    continue;
+                }
+                if (fence != '\0' || line.Length == 0 || line[0] is '{' or '[' or '}' or ']' or '"') continue;
+                if (System.Text.RegularExpressions.Regex.IsMatch(line, @"^\P{L}*\*\*[\p{L} ]+:\*\*")) continue;
+                line = System.Text.RegularExpressions.Regex.Replace(line, @"\[([^\]]+)\]\([^)]*\)", "$1");
+                line = line.Replace("`", "").Replace("**", "").TrimStart('#', ' ');
+                if (line.Length > 0) lines.Add(line);
+            }
+            return lines;
+        }
+        var preview = Prose(job.Message).FirstOrDefault() ?? Prose(job.Reply).LastOrDefault() ?? "";
+        return preview[..Math.Min(preview.Length, 320)];
+    }
+
+    public static PhoneErrandSnapshot Errands(LaptopSnapshot snapshot, DateTimeOffset observedAt) =>
+        new(1, observedAt, snapshot.Activity.Revision is not null, snapshot.Activity.Connected,
+            snapshot.Activity.SyncedAt, snapshot.Activity.Notice, snapshot.Activity.Errands.Select(ErrandItem).ToList());
+
     public static bool NeedsAttention(LocalSession session) => session.State == "interrupted"
         || session.Location == "Cloud" && new[] { "needs you", "choice needed", "attention", "direction needed" }
             .Any(s => session.Detail.Contains(s, StringComparison.OrdinalIgnoreCase));
@@ -19,9 +59,7 @@ public static class PhoneActivity
     public static PhoneSnapshot Create(LaptopSnapshot snapshot, DateTimeOffset observedAt, string? error = null)
     {
         var items = snapshot.Activity.Errands.Where(j => j.IsOpen || j.UpdatedAt > observedAt.AddDays(-1))
-            .Select(j => new PhoneItem("errand:" + j.Id, j.Id, "errand", j.Provider, j.Location, j.Title,
-                j.State, j.Message ?? "", j.UpdatedAt, j.CreatedAt, j.State == "failed" && j.IsNew, j.IsNew,
-                NavigationPolicy.ErrandUrl(j.Id, j.State is "reply" or "complete" or "failed"))).ToList();
+            .Select(ErrandItem).ToList();
         items.AddRange(snapshot.Sessions.Items.Concat(snapshot.Cloud.Items).Select(s => new PhoneItem(
             (s.Location == "Cloud" ? "cloud:" : "session:" + s.Provider + ":") + s.Id, s.Id,
             s.Location == "Cloud" ? "cloud" : "session", s.Provider, s.Location, s.Title, s.State,
@@ -43,7 +81,7 @@ public static class PhoneActivity
     {
         var job = snapshot.Activity.Errands.Find(j => j.Id == id && j.State is "reply" or "complete" or "failed");
         if (job is null) return null;
-        var text = job.Reply ?? job.Message ?? "";
+        var text = Activity.Nonblank(job.Reply, job.Message);
         return text[..Math.Min(text.Length, 20000)];
     }
 }

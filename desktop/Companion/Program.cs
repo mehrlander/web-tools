@@ -74,6 +74,14 @@ app.MapGet("/api/v1/now", (HttpContext context) => {
     if (context.Request.Headers.IfNoneMatch == etag) return Results.StatusCode(304);
     return Results.Bytes(payload, "application/json; charset=utf-8");
 });
+app.MapGet("/api/v1/errands", (HttpContext context) => {
+    if (collector.Latest is not { } activity) return Results.StatusCode(503);
+    var payload = JsonSerializer.SerializeToUtf8Bytes(PhoneActivity.Errands(activity.Snapshot, activity.ObservedAt), json);
+    var etag = "\"" + Convert.ToHexString(SHA256.HashData(payload)) + "\"";
+    context.Response.Headers.ETag = etag;
+    if (context.Request.Headers.IfNoneMatch == etag) return Results.StatusCode(304);
+    return Results.Bytes(payload, "application/json; charset=utf-8");
+});
 app.MapGet("/api/v1/computer", (HttpContext context) => {
     if (computer.Latest is not { } value) return Results.StatusCode(503);
     var payload = JsonSerializer.SerializeToUtf8Bytes(value, json);
@@ -120,6 +128,8 @@ var assets = new Dictionary<string, (string File, string Type)> {
     ["/reading.js"] = ("reading.js", "text/javascript; charset=utf-8"),
     ["/now-shared.js"] = ("now-shared.js", "text/javascript; charset=utf-8"),
     ["/usage-view.js"] = ("usage-view.js", "text/javascript; charset=utf-8"),
+    ["/recent-usage.js"] = ("recent-usage.js", "text/javascript; charset=utf-8"),
+    ["/errands-view.js"] = ("errands-view.js", "text/javascript; charset=utf-8"),
     ["/icon.svg"] = ("icon.svg", "image/svg+xml"),
     ["/apple-touch-icon.png"] = ("apple-touch-icon.png", "image/png"),
     ["/manifest.webmanifest"] = ("manifest.webmanifest", "application/manifest+json"),

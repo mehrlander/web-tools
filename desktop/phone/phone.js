@@ -30,7 +30,7 @@
   const selected = () => { try { return new URLSearchParams(location.hash.slice(1)).get('item') || ''; } catch { return ''; } };
 
   function connection() {
-    if (window.NowViews?.active()) { window.NowViews.connection(); return; }
+    if (window.NowViews?.active() && window.NowViews.current?.() !== 'usage') { window.NowViews.connection(); return; }
     const fresh = data && Date.now() - new Date(data.observedAt).getTime() < 15000;
     const live = connected && fresh;
     const text = accessDenied ? 'Access unavailable · Connect with your Tailscale account' : live ? 'Laptop live · Updates automatically' : data ? `${connected ? 'Activity paused' : 'Laptop unreachable'} · Last seen ${stamp(data.observedAt)}` : failures ? 'Laptop unreachable · Waiting for connection' : 'Connecting to your laptop…';
@@ -91,7 +91,20 @@
     return `<button data-pick="worker:gemini" aria-label="Gemini worker details" class="mx-3 mt-2 block w-[calc(100%-1.5rem)] rounded-lg border-l-4 border-blue-400 bg-blue-50 px-2 py-2 text-left active:bg-blue-100"><span class="float-right text-xl text-blue-600" aria-hidden="true">›</span><p class="text-xs font-medium text-blue-900">Gemini worker · Last reported task</p><p class="mt-0.5 text-[13px] leading-5">${escape(report.headline)}</p>${job ? `<p class="mt-1 text-sm text-stone-600">${escape(job.title)}</p>` : ''}<p class="mt-1 text-xs text-stone-500">Reported ${observedTime(report.at)}</p></button>`;
   }
 
+  function renderUsage() {
+    if (!data || !el('usage')) return;
+    const viewport = {left:window.scrollX,top:window.scrollY};
+    const focused = el('usage').contains(document.activeElement) ? document.activeElement : null;
+    const provider = focused?.dataset.usageLink;
+    const usage = window.NowUsage?.render(data.usage || []) || '';
+    html('usage', window.NowUsage?.workspace ? window.NowUsage.workspace({overview:usage}) : usage);
+    if (provider && !focused.isConnected) [...el('usage').querySelectorAll('[data-usage-link]')].find(node => node.dataset.usageLink === provider)?.focus({preventScroll:true});
+    if (window.scrollX !== viewport.left || window.scrollY !== viewport.top) window.scrollTo(viewport.left,viewport.top);
+  }
+
   function render() {
+    renderUsage();
+    if (data) el('machine').textContent = data.machineName;
     if (window.NowViews?.active()) { connection(); return; }
     if (!data) { connection(); return; }
     // Rebuilding open panels can temporarily shorten the document and clamp its scroll position.
@@ -101,7 +114,6 @@
     const focusAction = focus && ['inspect','pick','facet','external','assistant','providerLink','launch','copyTitle','sessionLink','sessionHome'].find(key => focus.dataset[key]);
     const focusKey = focusAction && focus.dataset[focusAction];
     const focusOwner = focus?.dataset.for;
-    el('machine').textContent = data.machineName;
     const waiting = data.items.filter(i => i.state === 'queued');
     html('assistants', ['codex','gemini','claude'].map(key => {
       const items = data.items.filter(i => keyFor(i.provider) === key);
@@ -110,8 +122,7 @@
       const claimed = items.filter(i => i.state === 'claimed').length;
       const needs = items.filter(i => i.needsAttention).length;
       const state = working ? `${working} working` : needs ? `${needs} need you` : queued ? `${queued} waiting` : claimed ? `${claimed} claimed` : items.some(i => i.state === 'quiet') ? 'Quiet' : items.some(i => i.kind === 'cloud') ? 'Recorded' : items.length ? 'Recent' : 'No activity';
-      const usage = window.NowUsage?.compact(data.usage?.find(p => p.provider === key)) || '';
-      return `<div class="relative min-w-0"><button data-assistant="${key}" aria-pressed="${assistant === key}" class="block min-h-11 w-full min-w-0 border-b-2 px-2 py-1 ${assistant === key ? 'border-stone-700 bg-white' : 'border-transparent'}"><span class="flex items-center justify-center gap-1 pr-5 text-xs font-medium ${colours[key]}">${mark(key)}${{codex:'Codex',gemini:'Gemini',claude:'Claude'}[key]}</span><span class="mt-0.5 block text-[10px] text-stone-500">${state}</span><span class="mx-auto mt-1 block min-h-6 max-w-28">${usage}</span></button>${window.NowView.assistantLink(key,{cls:'absolute right-0 top-0'})}</div>`;
+      return `<div class="relative min-w-0"><button data-assistant="${key}" aria-pressed="${assistant === key}" class="block min-h-11 w-full min-w-0 border-b-2 px-2 py-1 ${assistant === key ? 'border-stone-700 bg-white' : 'border-transparent'}"><span class="flex items-center justify-center gap-1 pr-5 text-xs font-medium ${colours[key]}">${mark(key)}${{codex:'Codex',gemini:'Gemini',claude:'Claude'}[key]}</span><span class="mt-0.5 block text-[10px] text-stone-500">${state}</span></button>${window.NowView.assistantLink(key,{cls:'absolute right-0 top-0'})}</div>`;
     }).join(''));
     const items = filtered();
     const notices = [...data.sources.notices];
@@ -322,7 +333,7 @@
     event.preventDefault();
   });
   window.addEventListener('popstate', () => { if (window.NowViews?.active()) return; detail(); if (!selected()) renderPanels(); connection(); window.scrollTo(0,savedScroll); });
-  window.addEventListener('nowviewchange', () => { if (!window.NowViews?.active()) { render(); connection(); } });
+  window.addEventListener('nowviewchange', () => { if (!window.NowViews?.active() || window.NowViews.current?.() === 'usage') { render(); connection(); } });
   document.addEventListener('visibilitychange', () => { clearTimeout(timer); if (!document.hidden) poll(); });
   window.addEventListener('online', poll);
   window.addEventListener('offline', () => { connected = false; connection(); });

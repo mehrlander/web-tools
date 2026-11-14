@@ -232,6 +232,22 @@ A trend begins with observed readings, without reconstructing past consumption.
 Expired or stale readings remain labeled; passing a reset never supplies an
 assumed zero.
 
+`worker/session_usage.py` projects recent Claude cloud `usage/1` extracts from one
+revision of the existing private checkout. The projection keeps session identity,
+last measured input context, call time and session-to-date token/cache counters.
+Prompt text, replies and raw transcripts are excluded. The private Usage calendar
+joins these measurements to Claude activity in its fixed one-hour cache-window list,
+ordered by context size. Each compact row switches to the matching session in Now
+and shows the last recorded context token count. Context size is not cumulative
+spend; recent activity and prior cache reads do not establish a reusable cache or
+its expiry time. Missing sizes remain unknown, and saved measurements retain their
+observation time. Extracts cover the main conversation and update after turns finish.
+Now session metadata can show the recorded output-token count with a coins icon,
+matching the Web Tools session headline. Tapping the count shows fresh input,
+cache reads, cache writes, output and last measured context separately. These
+counts cover recorded main-conversation calls and do not measure subscription
+allowance consumption. Unsupported session sources omit the badge.
+
 Codex uses the signed-in CLI's documented `account/rateLimits/read` app-server
 method. The CLI manages its own authentication. Each reported bucket and period
 remains separate. Gemini uses the existing Antigravity worker's loopback
@@ -316,10 +332,8 @@ The reader fetches the private checkout's `background` branch. It reads requests
 at one immutable Git revision through `ls-tree` and `cat-file --batch`. Fetch
 updates `origin/background` and, for cloud records, `origin/main`; the checkout, index, local edits, and checked-out
 branch are untouched.
-The request's `run.method` assigns its assistant lane: `laptop-daemon` to Gemini, `codex-errand` to Codex, and `claude-errand` to Claude. Unknown methods are skipped. All three methods use the same request, claim and result shape. The method identifies the assistant, not continued execution or the machine running Codex or Claude. The Gemini worker card counts only Gemini errands.
-The latest eighty request filenames and every unresolved request are available;
-the list shows forty matching entries at once. Recent activity remains visible
-as the feed updates, without an acknowledgement step.
+The request's `run.method` assigns its assistant lane: `laptop-daemon` to Gemini, `codex-errand` to Codex, and `claude-errand` to Claude. Unknown methods are skipped. All three methods use the same request, claim and result shape. The method identifies the assistant; `run.venue` distinguishes laptop and cloud execution. A claim does not establish continued execution. The Gemini worker card counts only Gemini errands.
+The phone's Errands view filters by assistant and separates Waiting (oldest first), Taken on (claims and arriving replies), and Results. The read-only `/api/v1/errands` projection includes every open errand and the eighty latest results by update time; Now keeps its one-day result horizon. Selected results read Gemini's `data.reply` or the other agents' `data.report`, falling back to the result message. Request notes remain outside the phone API. The Now shortcut and title dropdown open Errands without initiating work.
 
 The worker's record contract lives in the private repo's
 [`errands/README.md`](https://github.com/mehrlander/web-tools-private/blob/main/errands/README.md).

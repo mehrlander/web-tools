@@ -16,7 +16,7 @@ let snapshot = {schemaVersion:1,machineName:'Fixture laptop',observedAt:now,scan
   item('accepted','claimed'), {...item('cloud','recorded','Claude'),kind:'cloud',location:'Cloud',detail:'Recorded: choice needed',needsAttention:true,url:'https://mehrlander.github.io/web-tools/app/?view=sessions&session=cloud',sessionUrl:'https://claude.ai/code/session_fixture'},
   {...item('result','complete'),title:'A complete result',url:'javascript:alert(1)'}
 ],events:[]};
-const timers = new Map(); let nextTimer = 0, unavailable = false, fetches = 0, replyFetches = 0, checks = 0;
+const timers = new Map(); let nextTimer = 0, unavailable = false, forbidden = false, fetches = 0, replyFetches = 0, checks = 0;
 window.setTimeout = (fn,delay) => { timers.set(++nextTimer,{fn,delay}); return nextTimer; };
 window.clearTimeout = id => timers.delete(id);
 window.scrollTo = () => {};
@@ -24,6 +24,7 @@ window.AbortController = AbortController;
 window.fetch = async path => {
   fetches++;
   if (unavailable) throw new Error('Offline');
+  if (forbidden) return {ok:false,status:403};
   if (path.startsWith('/api/v1/results/')) { replyFetches++; return {ok:true,json:async () => ({reply:'Result <script>alert(1)</script>'})}; }
   return {ok:true,status:200,headers:{get:() => 'etag'},json:async () => structuredClone(snapshot)};
 };
@@ -37,6 +38,7 @@ window.eval(read('../shared/usage-view.js'));
 window.eval(read('../../node_modules/marked/lib/marked.umd.js'));
 window.eval(read('../../node_modules/dompurify/dist/purify.min.js'));
 window.eval(read('../phone/reading.js'));
+window.eval(read('../phone/views.js'));
 window.eval(read('../phone/phone.js'));
 const flush = () => new Promise(resolve => setImmediate(resolve));
 const check = (condition,message) => { assert.ok(condition,message); checks++; };
@@ -48,15 +50,43 @@ await flush();
 check(!doc.querySelector('#tabs,[data-tab]') && doc.querySelectorAll('#assistants [data-assistant]').length === 3 && !doc.querySelector('[role=progressbar]'),'The phone opens straight to activity with assistant filters, no view tabs and no fabricated usage.');
 snapshot.usage = [{provider:'codex',source:'Codex account',status:'available',observedAt:now,windows:[{id:'codex:primary',label:'codex',usedPercent:28,resetsAt:new Date(Date.now()+3600000).toISOString(),durationMinutes:300,history:[]}]}];
 await poll();
-check(doc.querySelector('#assistants [role=progressbar]')?.getAttribute('aria-valuenow') === '28' && doc.querySelector('#assistants [data-compact-reset]'),'Live usage readings and reset information stay in the assistant header.');
+check(doc.querySelector('#usage [role=progressbar]')?.getAttribute('aria-valuenow') === '28' && !doc.querySelector('#assistants [role=progressbar],[data-compact-usage]'),'Live allowances render in Usage while Now keeps activity filters without quota graphics.');
+click('[data-view=usage]');
+check(window.NowViews.current() === 'usage' && window.location.hash === '#view=usage' && doc.querySelector('#view-title').textContent === 'Usage'
+  && !doc.querySelector('#usage').hidden && ['assistants','content','notice','source-times','errands'].every(id => doc.getElementById(id).hidden),
+  'The title menu opens a separate Usage view without mixing activity or errand content into it.');
 const usageClock = window.Date.now;
 window.Date.now = () => usageClock() + 660000; unavailable = true; await poll();
-check(doc.querySelector('#assistants [data-compact-window]').title.includes('last reading') && doc.querySelector('#connection').textContent.includes('Laptop unreachable'),'The header marks old usage readings while the laptop is unreachable.');
+check(doc.querySelector('#usage').textContent.includes('Last reading') && doc.querySelector('#connection').textContent.includes('Laptop unreachable')
+  && !doc.querySelector('#usage').hidden,'Usage retains labelled saved readings and the shared unreachable state.');
 window.Date.now = usageClock; unavailable = false; await poll();
-check(doc.querySelector('#assistants [data-assistant=codex] [role=progressbar]')?.getAttribute('aria-valuenow') === '28','The front-page Codex filter also shows its compact usage reading.');
+check(doc.querySelector('#usage [role=progressbar]')?.getAttribute('aria-valuenow') === '28' && doc.querySelector('#connection').textContent.includes('Laptop live'),'Usage recovers live allowance readings without leaving its view.');
+forbidden = true; await poll();
+check(doc.querySelector('#connection').textContent.includes('Access unavailable') && window.NowViews.current() === 'usage'
+  && !doc.querySelector('#usage').hidden,'An access denial reaches the Usage header without changing its route.');
+forbidden = false; await poll();
 snapshot.usage[0].windows[0].usedPercent = 32;
 await poll();
-check(doc.querySelector('#assistants [data-assistant=codex] [role=progressbar]')?.getAttribute('aria-valuenow') === '32','A quota-only update reaches the front page without switching tabs.');
+check(doc.querySelector('#usage [role=progressbar]')?.getAttribute('aria-valuenow') === '32' && window.location.hash === '#view=usage','A quota-only update reaches Usage without switching views.');
+const originalScrollY = Object.getOwnPropertyDescriptor(window,'scrollY'), originalScrollTo = window.scrollTo;
+let splitTop = 420;
+Object.defineProperty(window,'scrollY',{configurable:true,get:() => splitTop});
+window.scrollTo = (left,top) => {splitTop = typeof left === 'object' ? left.top : top;};
+click('[data-view=now]');
+check(splitTop === 0 && doc.querySelector('#usage').hidden && !doc.querySelector('#content').hidden && !doc.querySelector('#assistants').hidden,
+  'Returning to Now hides Usage and restores the activity view.');
+splitTop = 180; click('[data-view=usage]');
+check(splitTop === 420,'Usage restores its own scroll position independently of Now.');
+const usageSection = doc.querySelector('#usage'), usageHTML = Object.getOwnPropertyDescriptor(window.Element.prototype,'innerHTML');
+Object.defineProperty(usageSection,'innerHTML',{configurable:true,get() {return usageHTML.get.call(this);},set(value) {usageHTML.set.call(this,value);splitTop=0;}});
+doc.querySelector('#usage [data-usage-link=codex]').focus();snapshot.usage[0].windows[0].usedPercent=34;await poll();
+check(splitTop === 420 && doc.activeElement.dataset.usageLink === 'codex' && doc.querySelector('#usage [role=progressbar]').getAttribute('aria-valuenow') === '34',
+  'A changing allowance preserves Usage scroll and link focus even if replacing its content clamps the document.');
+delete usageSection.innerHTML;
+window.history.replaceState(null,'','/');window.dispatchEvent(new window.PopStateEvent('popstate'));
+check(splitTop === 180 && window.NowViews.current() === 'now' && doc.querySelector('#usage').hidden && !doc.querySelector('#content').hidden,
+  'Browser back navigation returns to Now at its own saved position.');
+Object.defineProperty(window,'scrollY',originalScrollY);window.scrollTo=originalScrollTo;
 check(doc.querySelectorAll('#assistants [data-assistant] svg').length === 3,'The phone view shows the three shared assistant marks.');
 const providerLinks = [...doc.querySelectorAll('#assistants [data-provider-link]')];
 check(providerLinks.length === 3 && providerLinks.map(a=>a.href).join('|') === 'https://chatgpt.com/|https://antigravity.google.com/|https://claude.ai/code','All three assistants have a direct launch address, including providers without a quota reading.');
@@ -395,5 +425,18 @@ snapshot.items = snapshot.items.filter(i => i.provider !== 'Gemini'); snapshot.s
 check(!doc.querySelector('#notice').textContent.includes('Gemini errands are waiting'),'Codex and Claude queues never trigger the missing Gemini worker warning.');
 snapshot.items = snapshot.items.filter(i => i.state !== 'queued'); await poll();
 check(['codex','claude'].every(key => doc.querySelector(`[data-assistant=${key}]`).textContent.includes('1 claimed')),'A claim is shown as claimed rather than fabricated running work.');
+const directUsage = new JSDOM(read('../phone/index.html'),{url:'https://fixture.example.ts.net/#view=usage',runScripts:'outside-only',pretendToBeVisual:true});
+const directWindow = directUsage.window;
+directWindow.scrollTo = () => {};
+directWindow.setTimeout = () => 1;directWindow.clearTimeout = () => {};
+directWindow.fetch = async () => ({ok:true,status:200,headers:{get:() => ''},json:async () => structuredClone(snapshot)});
+directWindow.eval(read('../shared/usage-view.js'));directWindow.eval(read('../phone/views.js'));directWindow.eval(read('../phone/phone.js'));
+await flush();
+check(directWindow.NowViews.current() === 'usage' && !directWindow.document.querySelector('#usage').hidden
+  && directWindow.document.querySelector('#content').hidden && directWindow.document.querySelector('#view-title').textContent === 'Usage'
+  && directWindow.document.querySelector('#machine').textContent === 'Fixture laptop'
+  && directWindow.document.querySelector('#usage [role=progressbar]')?.getAttribute('aria-valuenow') === '33',
+  'A direct Usage link loads live readings and machine identity without first visiting Now.');
+directWindow.close();
 console.log(`${checks} phone interaction checks passed.`);
 dom.window.close();

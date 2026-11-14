@@ -18,6 +18,31 @@
     const delta = row.usedPercent - elapsed, points = Math.round(Math.abs(delta));
     return {elapsed, over:Math.max(0,delta), text:points ? `${points} percentage points ${delta > 0 ? 'over' : 'under'} even pace` : 'On even pace'};
   }
+  function remainingPace(row, options = {}) {
+    const now = calendarInstant(options.now ?? Date.now()), observedAt = calendarInstant(options.observedAt);
+    const reset = calendarInstant(row?.resetsAt), minutes = row?.durationMinutes;
+    if (options.status !== 'available' || now === null || observedAt === null || reset === null
+        || !valid(row?.usedPercent) || !Number.isFinite(minutes) || minutes <= 0) return null;
+    const duration = minutes * 60000, remaining = reset - now;
+    if (!Number.isFinite(duration) || !Number.isFinite(reset - duration)
+        || remaining <= 0 || now < reset - duration || observedAt < reset - duration
+        || observedAt > now || now - observedAt > 600000) return null;
+    const remainingPercent = 100 - row.usedPercent, remainingFraction = remaining / duration;
+    const multiplier = remainingPercent / 100 / remainingFraction;
+    const normalDailyPercent = 100 * 86400000 / duration, availableDailyPercent = remainingPercent * 86400000 / remaining;
+    if (![remainingFraction,multiplier,normalDailyPercent,availableDailyPercent].every(Number.isFinite)) return null;
+    return {multiplier,remainingPercent,remainingFraction,normalDailyPercent,availableDailyPercent,usedPercent:row.usedPercent,reset,observedAt};
+  }
+  function dailyPaceGuides(row, options = {}) {
+    const reset = calendarInstant(row?.resetsAt), minutes = row?.durationMinutes, duration = minutes * 60000;
+    if (reset === null || !Number.isFinite(minutes) || !Number.isFinite(duration) || duration <= 0) return [];
+    const start = reset - duration, normal = 100 * 86400000 / duration;
+    if (!Number.isFinite(start) || !Number.isFinite(normal)) return [];
+    const guides = [{kind:'even',from:start,until:reset,dailyPercent:normal}];
+    const now = calendarInstant(options.now ?? Date.now()), pace = remainingPace(row,{...options,now});
+    if (pace) guides.push({kind:'catch-up',from:now,until:reset,dailyPercent:pace.availableDailyPercent});
+    return guides;
+  }
   function paceMark(value, compact = false) {
     if (!value) return '';
     const position = value.elapsed.toFixed(1);
@@ -99,5 +124,217 @@
       return `<section data-usage-provider="${key}" class="px-3 py-2"><div class="flex items-center justify-between gap-2"><div class="flex items-center gap-1"><h2 class="flex items-center gap-1.5 text-[13px] font-semibold ${colours[key]}">${mark}${names[key]}</h2><a data-usage-link="${key}" href="${pages[key]}" target="_blank" rel="noopener noreferrer" aria-label="${linkName}" title="${linkName}${key === 'gemini' ? ' · Model quotas are in Antigravity Settings' : ''}" class="flex size-7 items-center justify-center rounded text-stone-500 hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-emerald-700">${openIcon}</a></div><span class="text-[10px] ${stale && rows.length ? 'text-amber-800' : 'text-stone-500'}">${rows.length ? escape(stale ? 'Last reading · ' + updated.toLowerCase() : updated) : provider?.status === 'available' ? 'No limits reported' : 'Not connected'}</span></div>${rows.length ? rows.map(row => allowance(row,key,stale,now)).join('') + (stale && provider.notice ? `<p class="pb-1 text-[11px] text-amber-800">${escape(provider.notice)}</p>` : '') : `<p class="py-2 text-xs text-stone-500">${escape(provider?.notice || (key === 'claude' ? 'Claude usage is not connected yet.' : 'Waiting for an account reading.'))}</p>`}<p class="text-[10px] text-stone-400">${escape(provider?.source || (key === 'claude' ? 'Claude account' : key === 'gemini' ? 'Antigravity account' : 'Codex account'))}${rows.some(r => r.models?.length > 1) ? ' · Identical model readings grouped' : ''}</p></section>`;
     }).join('')}<p class="px-3 py-2 text-[10px] leading-4 text-stone-500">Fill shows allowance used; the tick marks an even budget pace through the period. Amber shows usage above that pace. This comparison assumes even use, not a forecast. Unknown periods and stale readings have no pace marker. Trends begin with collected readings; resets never imply 0%.</p></section>`;
   }
-  window.NowUsage = {render,compact};
+  const calendarFormatters = new Map();
+  function calendarZone(value) {
+    const zone = value === 'Pacific time' ? 'America/Los_Angeles' : value;
+    if (typeof zone !== 'string' || !zone.trim()) return null;
+    try { return new Intl.DateTimeFormat('en-US',{timeZone:zone}).resolvedOptions().timeZone; }
+    catch { return null; }
+  }
+  function calendarLabel(value) {
+    if (typeof value !== 'string' || !/^(?!0000)\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+    const stamp = Date.parse(value + 'T00:00:00Z');
+    return Number.isFinite(stamp) && new Date(stamp).toISOString().slice(0,10) === value ? value : null;
+  }
+  function calendarInstant(value) {
+    if (typeof value === 'string') {
+      const match = /^(\d{4}-\d{2}-\d{2})T(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?(?:Z|[+-](?:[01]\d|2[0-3]):?[0-5]\d)$/i.exec(value);
+      if (!match || !calendarLabel(match[1])) return null;
+      value = Date.parse(value);
+    } else if (Object.prototype.toString.call(value) === '[object Date]') value = +value;
+    return typeof value === 'number' && Number.isFinite(value) && Number.isFinite(+new Date(value)) ? value : null;
+  }
+  function calendarDateAt(stamp, zone) {
+    let formatter = calendarFormatters.get(zone);
+    if (!formatter) {
+      formatter = new Intl.DateTimeFormat('en-US',{timeZone:zone,year:'numeric',month:'2-digit',day:'2-digit'});
+      calendarFormatters.set(zone,formatter);
+    }
+    const parts = formatter.formatToParts(stamp), part = type => parts.find(value => value.type === type).value;
+    return `${part('year').padStart(4,'0')}-${part('month')}-${part('day')}`;
+  }
+  function calendarDay(value, timezone) {
+    const zone = calendarZone(timezone);
+    if (!zone) return null;
+    const label = calendarLabel(value);
+    if (label) return label;
+    const stamp = calendarInstant(value);
+    return stamp === null ? null : calendarDateAt(stamp,zone);
+  }
+  function calendarAxis({width,now,timezone,dates = [],markers = []} = {}) {
+    const zone = calendarZone(timezone), stamp = calendarInstant(now);
+    if (!zone || stamp === null || !Number.isFinite(width) || width <= 0) return null;
+    const today = calendarDateAt(stamp,zone);
+    // UTC arithmetic advances date labels only. Source-zone instants are found separately.
+    const shift = (day,count) => new Date(Date.parse(day + 'T00:00:00Z') + count * 86400000).toISOString().slice(0,10);
+    const labels = (Array.isArray(dates) ? dates : []).filter(calendarLabel);
+    for (const marker of Array.isArray(markers) ? markers : []) {
+      const reset = calendarInstant(marker?.reset);
+      if (reset !== null) labels.push(calendarDateAt(reset,zone));
+    }
+    let first = shift(today,-7), boundary = shift(today,9);
+    for (const day of labels) {
+      if (day < first) first = day;
+      const end = shift(day,1);
+      if (end > boundary) boundary = end;
+    }
+    function midnight(day) {
+      const nominal = Date.parse(day + 'T00:00:00Z');
+      let low = nominal - 36 * 3600000, high = nominal + 36 * 3600000;
+      // Locate the first instant in the calendar date, including 23/25-hour days.
+      while (low < high) {
+        const middle = Math.floor((low + high) / 2);
+        if (calendarDateAt(middle,zone) < day) low = middle + 1;
+        else high = middle;
+      }
+      return calendarDateAt(low,zone) === day ? low : null;
+    }
+    const boundaries = [];
+    for (let day = first; day <= boundary; day = shift(day,1)) {
+      const start = midnight(day);
+      if (start === null) return null;
+      boundaries.push({day,start});
+    }
+    const days = boundaries.slice(0,-1).map((row,index) => ({...row,end:boundaries[index+1].start}));
+    const cell = width / 7, total = days.length * cell, indices = new Map(days.map((row,index) => [row.day,index]));
+    function x(value) {
+      const day = calendarLabel(value);
+      if (day) return day <= first ? 0 : day >= boundary ? total : (indices.get(day) ?? 0) * cell;
+      const at = calendarInstant(value);
+      if (at === null) return null;
+      if (at <= days[0].start) return 0;
+      if (at >= days.at(-1).end) return total;
+      let low = 0, high = days.length - 1;
+      while (low < high) {
+        const middle = Math.floor((low + high) / 2);
+        if (days[middle].end <= at) low = middle + 1;
+        else high = middle;
+      }
+      const row = days[low];
+      return (low + (at - row.start) / (row.end - row.start)) * cell;
+    }
+    function time(position) {
+      if (!Number.isFinite(position)) return null;
+      if (position <= 0) return days[0].start;
+      if (position >= total) return days.at(-1).end;
+      const index = Math.floor(position / cell), row = days[index];
+      return row.start + (position / cell - index) * (row.end - row.start);
+    }
+    return {days,cell,today,home:shift(today,-3),timezone:zone,x,time};
+  }
+  function resetMarker() {
+    return '<svg class="history-reset-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 11a9 9 0 1 0-2.6 7.4M21 4v7h-7"/></svg>';
+  }
+  const workspaceStyle = document.createElement('style');
+  workspaceStyle.textContent = `
+    .usage-workspace{display:flex;flex-direction:column;gap:6px;min-width:0;padding-bottom:8px}
+    .usage-workspace>section{min-width:0}
+    .usage-workspace .usage-workspace-timeline{border-top:1px solid #e4e2de}
+    .usage-workspace .usage-workspace-daily{min-height:0;border-top:1px solid #e4e2de}
+#usage .usage{border:0}
+.usage-provider-heading{grid-template-rows:26px;min-height:26px}
+.usage-provider-heading .provider-name>span{display:flex;align-items:center;gap:5px}
+.usage-provider-heading .provider-actions{grid-row:1}
+.now-provider-strip{padding-block:7px 6px;border-bottom:1px solid #e4e2de}
+.now-provider-strip .provider-heading{grid-template-rows:22px 17px}
+.usage-workspace-overview .provider-strip{padding-block:8px 10px}
+.usage-workspace-timeline .row-chart{padding-top:0;padding-bottom:6px}
+.usage-workspace-timeline .history-grid{--identity-width:88px}
+.usage-workspace-timeline .history-rail-tools{height:28px;gap:9px;padding:0}
+.history-rail-tools h2{margin:0;font-size:13px;font-weight:600;color:#57534e}
+.history-date-spacer{height:28px}
+.usage-workspace-timeline .history-grid{--reset-lane-height:40px}
+.usage-workspace-timeline .history-fixed-row{min-height:var(--reset-lane-height);display:flex;align-items:center}
+.timeline-provider{display:flex;align-items:center;gap:5px;font-size:13px;font-weight:550;white-space:nowrap}
+.timeline-provider .brand{height:16px;width:16px}
+.usage-workspace-timeline .history-baseline{top:calc(var(--reset-lane-height)/2 - 7px)}
+.usage-workspace-timeline .history-usage-marker{height:calc(var(--reset-lane-height) - 1px)}
+.usage-workspace-timeline .history-usage-point{top:calc(var(--reset-lane-height)/2 - 11px)}
+.usage-workspace-timeline .history-usage-value{top:calc(var(--reset-lane-height)/2 + 1px);font-size:12px}
+.usage-workspace-daily .daily-allowance{padding-top:6px}
+.usage-workspace-daily .daily-date-axis{display:grid;grid-template-columns:86px minmax(0,1fr);gap:10px;color:#8a8175;font-size:11px;line-height:14px}
+.daily-date-axis>div{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;text-align:center}
+.daily-date-axis b{display:block;font-weight:400;color:#6b665f}
+.usage-workspace-daily .daily-allowance-grid{grid-template-columns:minmax(0,1fr);gap:0}
+.usage-workspace-daily .daily-series{display:grid;grid-template-columns:86px minmax(0,1fr);gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid #e7e3dc}
+.usage-workspace-daily .daily-provider{padding:0;min-width:0}
+.usage-workspace-daily .daily-bars{height:clamp(40px,calc((100dvh - 650px)/3 + 40px),56px);gap:4px}
+.usage-workspace-daily .daily-bar{height:100%;gap:0}
+.usage-workspace-daily .daily-bar-track{height:100%}
+.usage-workspace-daily .daily-bar small{display:none}
+.usage-workspace-daily .daily-footer{padding-top:3px;min-height:22px;font-size:11px;color:#746f66}
+@media(max-width:350px){.usage-workspace-timeline .history-grid{--identity-width:76px}.timeline-provider{font-size:11px;gap:4px}.timeline-provider .brand{width:14px;height:14px}.usage-workspace-timeline .history-rail-tools{gap:7px}.usage-workspace-daily .daily-date-axis,.usage-workspace-daily .daily-series{grid-template-columns:76px minmax(0,1fr);gap:8px}.usage-workspace-daily .daily-provider{font-size:13px}}
+
+
+    .daily-caption{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:26px;margin-bottom:3px}
+    .daily-caption h2{margin:0;font-size:12px;font-weight:500;color:#6b665f}
+    .daily-caption button{display:grid;place-items:center;width:27px;height:27px;color:#837b6f;padding:4px}
+    .daily-caption svg{width:14px;height:14px}
+    .daily-patterns{display:flex;justify-content:flex-end;gap:12px;min-height:19px;color:#746f66;font-size:11px}
+    .daily-patterns span{display:flex;align-items:center;gap:4px}
+    .daily-patterns i{display:block;width:12px;height:7px;border:1px solid #b3ada4}
+    .daily-partial-key{background:repeating-linear-gradient(135deg,transparent,transparent 2px,#a5a096 2px,#a5a096 3px),#dad5cb}
+    .daily-missing-key{background:repeating-linear-gradient(135deg,transparent,transparent 2px,#bcb6ab 2px,#bcb6ab 3px)}
+
+    .usage-calendar{--calendar-row:84px;--daily-height:30px}
+    .usage-workspace-timeline .usage-calendar .history-grid{--identity-width:100px}
+    .usage-calendar .history-fixed-row{height:var(--calendar-row);min-height:var(--calendar-row)}
+    .usage-calendar .timeline-provider{padding:0;min-height:32px}
+    .usage-calendar .history-rail-lane{height:var(--calendar-row)}
+    .usage-calendar .history-day-grid{position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(to right,#e7e3dc66 0 1px,transparent 1px var(--rail-cell))}
+    .usage-workspace-timeline .usage-calendar .history-baseline{top:28px}
+    .usage-workspace-timeline .usage-calendar .history-usage-marker{top:0;width:44px;height:44px}
+    .usage-workspace-timeline .usage-calendar .history-usage-point{top:18px;width:20px;height:20px;border:0;border-radius:0;background:none;color:var(--color)}
+    .history-reset-arrow{display:block;width:100%;height:100%}
+    .usage-workspace-timeline .usage-calendar .history-usage-value{top:0;font-size:14px;line-height:18px;font-weight:650;color:#46413b;padding-inline:2px}
+    .usage-workspace-timeline .usage-calendar .upcoming .history-usage-point{color:#8b8780;background:none;border:0}
+    .usage-workspace-timeline .usage-calendar .upcoming .history-usage-value{color:#736e68;font-weight:550}
+    .usage-workspace-timeline .usage-calendar .allowance-drop .history-usage-point{top:21px;width:14px;height:14px;border-radius:2px;background:#f5f5f4;border:2px solid var(--color);transform:translateX(-50%) rotate(45deg)}
+    .usage-workspace-timeline .usage-calendar .allowance-drop .history-usage-value{font-size:13px}
+    .usage-calendar .calendar-daily-bars{position:absolute;top:44px;left:0;right:0;height:var(--daily-height)}
+    .calendar-pace-guides{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:2}
+    .calendar-pace-guides line,.calendar-pace-guides path{fill:none;vector-effect:non-scaling-stroke}
+    .calendar-pace-guides .even{stroke:#777166;stroke-width:1;stroke-dasharray:3 3}
+    .calendar-pace-guides .catch-up{stroke:var(--color);stroke-width:2;stroke-linecap:round}
+    .calendar-rate-key{display:flex;align-items:center;gap:5px;white-space:nowrap}
+    .calendar-rate-key i{width:15px;height:0;border-top:1px dashed #777166}
+    .calendar-rate-key i.catch-up{border-top:2px solid #557f74;margin-left:4px}
+    .calendar-identity{width:100%;align-self:stretch;display:flex;flex-direction:column;padding:4px 5px 0 0}
+    .calendar-provider-row{display:flex;align-items:center;justify-content:space-between;gap:2px}
+    .calendar-provider-row .timeline-provider{font-size:13px;gap:4px}
+    .calendar-provider-row .timeline-provider .brand{width:15px;height:15px}
+    .calendar-provider-row .provider-actions{width:13px;height:28px;flex:none}
+    .calendar-provider-row .provider-actions svg{width:12px;height:14px}
+    .calendar-pace{align-self:flex-start;display:flex;flex-direction:column;align-items:flex-start;min-height:36px;margin-left:19px;padding:0;font-size:14px;line-height:20px;font-weight:600;color:#57534e;font-variant-numeric:tabular-nums}
+    .calendar-pace-label{font-size:11px;line-height:16px;font-weight:400;white-space:nowrap;color:#746f66}
+    .calendar-pace.is-unavailable{color:#817b72;font-weight:400}
+    .usage-calendar .daily-bar{position:absolute;top:0;height:var(--daily-height);padding-inline:2px;gap:0;touch-action:pan-x pan-y pinch-zoom}
+    .usage-calendar .daily-bar-track{height:100%;background:none;border-color:#d8d4cc}
+    .usage-calendar .daily-bar.missing .daily-bar-track{background:repeating-linear-gradient(135deg,transparent,transparent 3px,#dcd7cd88 3px,#dcd7cd88 4px)}
+    .usage-calendar .daily-fill{border-radius:2px 2px 0 0}
+    .usage-calendar .daily-fill,.usage-calendar .daily-zero{background:var(--color)}
+    .usage-calendar .daily-bar.partial .daily-fill{background:repeating-linear-gradient(135deg,transparent,transparent 3px,#f5f5f499 3px,#f5f5f499 4px),var(--color)}
+    .usage-calendar .daily-bar.partial .daily-zero{background:transparent;border-color:var(--color)}
+    .usage-calendar .daily-selected .daily-bar-track{outline-color:var(--color)}
+    .usage-calendar .history-rail-tools{gap:6px;flex-wrap:nowrap}
+    .usage-calendar .history-rail-tools h2{font-size:12px;white-space:nowrap}
+    .usage-calendar .history-rail-legend{font-size:11px;gap:3px;color:#6f6a61}
+    .usage-calendar .legend-recorded{width:13px;height:13px;border-radius:0;background:none;color:#79736a}
+    .usage-calendar .legend-current{width:1px;height:10px;border-radius:0;background:#99958c}
+    .usage-calendar .legend-drop{width:7px;height:7px;border:1.5px solid #8c857c;transform:rotate(45deg);margin-left:3px}
+    .usage-calendar .history-rail-month{font-size:10px}
+    .usage-calendar .calendar-footer{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:29px;font-size:11px;color:#746f66}
+    .usage-calendar .calendar-footer button{display:flex;align-items:center;gap:4px;padding:0;min-height:28px;text-align:left}
+    .usage-calendar .calendar-footer svg{width:13px;height:13px}
+    .usage-calendar .daily-patterns{min-height:0;gap:8px;font-size:10px}
+    .usage-calendar .calendar-coverage{display:flex;justify-content:space-between;align-items:center;min-height:22px;color:#746f66;font-size:11px}
+    .usage-calendar .calendar-coverage button{padding:0;color:inherit;min-height:22px}
+    .usage-calendar .daily-loading{padding:5px 0;font-size:11px}
+    @media(max-width:350px){.usage-workspace-timeline .usage-calendar .history-grid{--identity-width:94px}.usage-calendar .history-rail-tools{gap:5px}.usage-calendar .history-rail-month{display:none}.usage-calendar .history-rail-tools h2{font-size:11px}.usage-calendar .timeline-provider{font-size:12px}.calendar-provider-row .timeline-provider{font-size:12px;gap:3px}}
+  `;
+  document.head.append(workspaceStyle);
+  function workspace({overview='',timeline='',daily=''} = {}) {
+    return `<div class="usage-workspace">${overview?`<section class="usage-workspace-overview" aria-label="Current account allowances">${overview}</section>`:''}${timeline?`<section class="usage-workspace-timeline" aria-label="Reset timeline">${timeline}</section>`:''}${daily?`<section class="usage-workspace-daily" aria-label="Daily allowance history">${daily}</section>`:''}</div>`;
+  }
+  window.NowUsage = {render,compact,workspace,calendarAxis,calendarDay,resetMarker,remainingPace,dailyPaceGuides};
 })();
