@@ -190,7 +190,9 @@ test('each row ends with the words its edit adds and removes, green and red (own
   assert.deepEqual(n('see [the file](a.md)', 'see [the file](b.md)'), [0, 0], 'nor is a link\'s target');
   assert.equal(data().docWordsTip({ from: 'a\nb', to: 'a b' }), 'No words change');
   const total = root().querySelector('[data-doc-words-total]');
-  assert.equal(total.textContent.replace(/\s+/g, ' ').trim(), '+5 −5 words', 'the call\'s total names the unit once, beside the file');
+  assert.equal(total.textContent.replace(/\s+/g, ' ').trim(), 'words +5 −5', 'the call\'s total names the unit once, its label to the left');
+  assert.match(total.className, /ml-auto/, 'and ends the head\'s line, over the rows\' counts');
+  assert.equal(total.nextElementSibling?.dataset.docControls, '', 'after the view switch');
   assert.equal(total.dataset.titleTip, '5 words added, 5 removed, across 4 edits');
 });
 
