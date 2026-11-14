@@ -70,6 +70,18 @@ test('falling below the threshold resets it, so the next crossing speaks again',
   } finally { s.done(); }
 });
 
+test('a zero-usage notice in the model\'s place is skipped, so it clears no band', () => {
+  const s = scratch();
+  try {
+    const notice = JSON.stringify({ type: 'assistant', isSidechain: false,
+      message: { role: 'assistant', model: '<synthetic>', content: [{ type: 'text', text: 'rate limited' }],
+        usage: { input_tokens: 0, cache_creation_input_tokens: 0, cache_read_input_tokens: 0, output_tokens: 0 } } });
+    assert.match(context(s.run([reply(450_000)])), /about 450,000/);
+    assert.equal(s.run([reply(450_000), notice]), '', 'the band stays announced');
+    assert.equal(s.run([reply(450_000), notice, reply(460_000)]), '', 'so the same band is not announced again');
+  } finally { s.done(); }
+});
+
 test('the last main-conversation response counts, not a subagent\'s larger one', () => {
   const s = scratch();
   try {
