@@ -184,6 +184,11 @@ test('each row ends with the words its edit adds and removes, green and red (own
   assert.match(rows[0].querySelector('[data-doc-words-add]').className, /bg-success\/15/, 'added words in green');
   assert.match(rows[0].querySelector('[data-doc-words-del]').className, /bg-error\/15/, 'removed words in red');
   assert.equal(rows[0].querySelector('[data-doc-words]').dataset.titleTip, '1 word added, 1 word removed', 'and the counts say so in a tip');
+  const cap = rows[0].querySelector('[data-doc-words]');
+  assert.match(cap.className, /flex-col/, 'one capsule, green over red, in one column');
+  assert.match(cap.className, /w-11/, 'of one width on every row, so the column is straight');
+  assert.equal(data().docSigned(0, 'add'), '0', 'a half that is none reads 0');
+  assert.match(data().docHalf(0, 'del'), /bg-base-200/, 'in grey');
   const n = (from, to) => { const { add, del } = data().docWords({ from, to }); return [add, del]; };
   assert.deepEqual(n('one two three', 'one three four'), [1, 1], 'matched by the longest run of shared words');
   assert.deepEqual(n('a  b\nc', 'a b c'), [0, 0], 'spacing and line breaks are not words');
@@ -191,6 +196,7 @@ test('each row ends with the words its edit adds and removes, green and red (own
   assert.equal(data().docWordsTip({ from: 'a\nb', to: 'a b' }), 'No words change');
   const total = root().querySelector('[data-doc-words-total]');
   assert.equal(total.textContent.replace(/\s+/g, ' ').trim(), 'words +5 −5', 'the call\'s total names the unit once, its label to the left');
+  assert.match(total.lastElementChild.className, /w-11 flex flex-col/, 'in a capsule like the rows\'');
   const line = total.parentElement;
   assert.equal(line.dataset.docControlsRow, '', 'on the line of the document\'s controls, at every width');
   assert.equal(line.lastElementChild, total, 'which it ends, over the rows\' counts');
