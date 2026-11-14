@@ -114,20 +114,20 @@ test('the line: the count as the session link, then the context, the clock, the 
     checkout(s.root, 'app', { changed: 1 });
     const out = s.run([typed('It is a new day.', ago(26 * HOUR + 30 * MIN)), reply(120_000),
       typed('Ok go ahead.'), reply(815_600)], { prompt: 'What next?' });
-    assert.equal(caption(out), `💬[3](${SESSION_PAGE}) · 816k · ${STAMP} · 1d 2h · 1 file`);
+    assert.equal(caption(out), `💬[3](${SESSION_PAGE}) · 816𝗄 · ${STAMP} · 1𝖽2𝗁 · 1 file`);
   } finally { s.done(); }
 });
 
 test('the time since the first owner message: minutes, then hours, then days and hours', () => {
   const s = scratch();
   try {
-    const cases = [[30_000, '0m'], [45 * MIN + 30_000, '45m'], [59 * MIN + 30_000, '59m'],
-      [60 * MIN + 30_000, '1h'], [7 * HOUR + 30 * MIN, '7h'], [23 * HOUR + 59 * MIN + 30_000, '23h'],
-      [24 * HOUR + 30_000, '1d 0h'], [26 * HOUR + 30 * MIN, '1d 2h'], [74 * HOUR + 30 * MIN, '3d 2h']];
+    const cases = [[30_000, '0𝗆'], [45 * MIN + 30_000, '45𝗆'], [59 * MIN + 30_000, '59𝗆'],
+      [60 * MIN + 30_000, '1𝗁'], [7 * HOUR + 30 * MIN, '7𝗁'], [23 * HOUR + 59 * MIN + 30_000, '23𝗁'],
+      [24 * HOUR + 30_000, '1𝖽0𝗁'], [26 * HOUR + 30 * MIN, '1𝖽2𝗁'], [74 * HOUR + 30 * MIN, '3𝖽2𝗁']];
     cases.forEach(([ms, want], i) => {
       const got = caption(s.run([typed('first', ago(ms)), reply(50_000), typed('later', ago(10_000))],
         { session_id: 'case-' + i }));
-      assert.equal(got, `💬[2](${PAGES}session.html#id=case-${i}) · 50k · ${STAMP} · ${want}`, `${ms} ms ago`);
+      assert.equal(got, `💬[2](${PAGES}session.html#id=case-${i}) · 50𝗄 · ${STAMP} · ${want}`, `${ms} ms ago`);
     });
   } finally { s.done(); }
 });
@@ -153,7 +153,7 @@ test('it counts what the owner typed, and a mid-turn message once', () => {
       typed('two'),
       reply(41_000),
     ]);
-    assert.equal(caption(out), `💬[3](${SESSION_PAGE}) · 41k · ${STAMP} · 5m`);
+    assert.equal(caption(out), `💬[3](${SESSION_PAGE}) · 41𝗄 · ${STAMP} · 5𝗆`);
   } finally { s.done(); }
 });
 
@@ -177,7 +177,7 @@ test('the prompt being submitted is counted once, whether or not the transcript 
 test('a first prompt, before any transcript, is message one at zero minutes', () => {
   const s = scratch();
   try {
-    assert.equal(caption(s.run(null, { prompt: 'Hello' })), `💬[1](${SESSION_PAGE}) · ${STAMP} · 0m`);
+    assert.equal(caption(s.run(null, { prompt: 'Hello' })), `💬[1](${SESSION_PAGE}) · ${STAMP} · 0𝗆`);
   } finally { s.done(); }
 });
 
@@ -185,13 +185,13 @@ test('the context is the last main-conversation response that used any, rounded 
   const s = scratch();
   try {
     const context = (entries, i) => caption(s.run(entries, { session_id: 'case-' + i })).split(' · ')[1];
-    assert.equal(context([typed('one'), reply(350_400)], 0), '350k');
-    assert.equal(context([typed('one'), reply(350_600), reply(900_000, { isSidechain: true })], 1), '351k', 'not a subagent\'s');
+    assert.equal(context([typed('one'), reply(350_400)], 0), '350𝗄');
+    assert.equal(context([typed('one'), reply(350_600), reply(900_000, { isSidechain: true })], 1), '351𝗄', 'not a subagent\'s');
     const notice = line({ type: 'assistant', message: { role: 'assistant', model: '<synthetic>',
       content: [{ type: 'text', text: 'You\'ve reached your limit.' }],
       usage: { input_tokens: 0, cache_creation_input_tokens: 0, cache_read_input_tokens: 0, output_tokens: 0 } } });
-    assert.equal(context([typed('one'), reply(350_400), notice], 2), '350k', 'not a notice written in the model\'s place');
-    assert.equal(caption(s.run([typed('one')], { session_id: 'case-3' })), `💬[1](${PAGES}session.html#id=case-3) · ${STAMP} · 5m`,
+    assert.equal(context([typed('one'), reply(350_400), notice], 2), '350𝗄', 'not a notice written in the model\'s place');
+    assert.equal(caption(s.run([typed('one')], { session_id: 'case-3' })), `💬[1](${PAGES}session.html#id=case-3) · ${STAMP} · 5𝗆`,
       'no response yet: the part is left off');
   } finally { s.done(); }
 });
@@ -226,7 +226,7 @@ test('with the archive checked out the count links the session page, wherever th
     store(far);
     assert.match(caption(s.run(entries)), /^🌿/, 'and not found unnamed');
     assert.equal(caption(s.run(entries, {}, { SESSIONS_STORE: path.join(far, 'sessions') })),
-      `💬[1](${SESSION_PAGE}) · 50k · ${STAMP} · 5m · 1 file`, 'named by SESSIONS_STORE');
+      `💬[1](${SESSION_PAGE}) · 50𝗄 · ${STAMP} · 5𝗆 · 1 file`, 'named by SESSIONS_STORE');
     store(path.join(s.root, 'private'));
     assert.match(caption(s.run(entries)), /^💬\[1\]\(/, 'a child of the root');
     assert.match(caption(s.run(entries, { cwd: app.repo }, { CLAUDE_PROJECT_DIR: app.repo })), /^💬\[1\]\(/, 'a sibling of the root');
@@ -240,14 +240,14 @@ test('without the archive the count links the branch page of the current checkou
   const s = scratch({ archive: false });
   try {
     const entries = [typed('one'), reply(50_000)];
-    assert.equal(caption(s.run(entries)), `💬1 · 50k · ${STAMP} · 5m`, 'no checkout either: the count stands alone');
+    assert.equal(caption(s.run(entries)), `💬1 · 50𝗄 · ${STAMP} · 5𝗆`, 'no checkout either: the count stands alone');
     const app = checkout(s.root, 'app', { changed: 1 });
     const lib = checkout(s.root, 'lib', { changed: 2, branch: 'claude/busy-bell' });
     assert.equal(caption(s.run(entries)),
-      `🌿[1](${PAGES}branch.html#gh=acme/lib@claude/busy-bell) · 50k · ${STAMP} · 5m · 3 files`,
+      `🌿[1](${PAGES}branch.html#gh=acme/lib@claude/busy-bell) · 50𝗄 · ${STAMP} · 5𝗆 · 3 files`,
       'from above the checkouts, the one with the most files changed');
     assert.equal(caption(s.run(entries, { cwd: path.join(app.repo, 'src') })),
-      `🌿[1](${PAGES}branch.html#gh=acme/app@claude/work) · 50k · ${STAMP} · 5m · 3 files`, 'the one the working directory is in');
+      `🌿[1](${PAGES}branch.html#gh=acme/app@claude/work) · 50𝗄 · ${STAMP} · 5𝗆 · 3 files`, 'the one the working directory is in');
     lib.git('checkout', '-q', '--detach');
     assert.match(caption(s.run(entries)), /^🌿\[1\]\(\S+branch\.html#gh=acme\/lib\) /, 'a detached HEAD names no branch');
   } finally { s.done(); }
@@ -258,7 +258,7 @@ test('after a Bash call it speaks only when the file count moved, and asks git o
   try {
     const app = checkout(s.root, 'app', { changed: 1 });
     const bash = (more = {}) => s.run(null, { hook_event_name: 'PostToolUse', tool_name: 'Bash', prompt: undefined, ...more });
-    assert.equal(caption(s.run([typed('one'), reply(50_000)], { prompt: 'two' })), `💬[2](${SESSION_PAGE}) · 50k · ${STAMP} · 5m · 1 file`);
+    assert.equal(caption(s.run([typed('one'), reply(50_000)], { prompt: 'two' })), `💬[2](${SESSION_PAGE}) · 50𝗄 · ${STAMP} · 5𝗆 · 1 file`);
     appendFileSync(s.transcript, typed('two') + '\n' + reply(60_000) + '\n');
     assert.equal(bash(), '', 'nothing moved');
 
@@ -274,11 +274,11 @@ test('after a Bash call it speaks only when the file count moved, and asks git o
 
     app.commit('second', 2);
     assert.equal(bash({ agent_id: 'a1' }), '', 'a subagent\'s Bash call is passed over');
-    assert.equal(caption(bash(), 'PostToolUse'), `💬[2](${SESSION_PAGE}) · 60k · ${STAMP} · 5m · 3 files`, 'a commit moved the count');
+    assert.equal(caption(bash(), 'PostToolUse'), `💬[2](${SESSION_PAGE}) · 60𝗄 · ${STAMP} · 5𝗆 · 3 files`, 'a commit moved the count');
     assert.equal(bash(), '', 'said once');
 
     app.git('update-ref', 'refs/remotes/origin/main', 'HEAD');
-    assert.equal(caption(bash(), 'PostToolUse'), `💬[2](${SESSION_PAGE}) · 60k · ${STAMP} · 5m`, 'main caught up: the part goes');
+    assert.equal(caption(bash(), 'PostToolUse'), `💬[2](${SESSION_PAGE}) · 60𝗄 · ${STAMP} · 5𝗆`, 'main caught up: the part goes');
     app.git('checkout', '-q', '-b', 'claude/next');
     assert.equal(bash(), '', 'a new branch on the same commit');
   } finally { s.done(); }
@@ -290,7 +290,7 @@ test('a Bash call with no caption printed yet prints one', () => {
     checkout(s.root, 'app', { changed: 1 });
     writeFileSync(s.transcript, [typed('one'), reply(50_000)].join('\n') + '\n');
     const bash = () => s.run(null, { hook_event_name: 'PostToolUse', tool_name: 'Bash', prompt: undefined });
-    assert.equal(caption(bash(), 'PostToolUse'), `💬[1](${SESSION_PAGE}) · 50k · ${STAMP} · 5m · 1 file`);
+    assert.equal(caption(bash(), 'PostToolUse'), `💬[1](${SESSION_PAGE}) · 50𝗄 · ${STAMP} · 5𝗆 · 1 file`);
     assert.equal(bash(), '');
   } finally { s.done(); }
 });
@@ -309,7 +309,7 @@ test('the owner count is kept, and a run reads only what was appended since', ()
     appendFileSync(s.transcript, typed('three') + '\n' + reply(9000) + '\n');
     const out = s.run(null);
     assert.equal(count(out), 3);
-    assert.match(caption(out), / · 2h$/, 'the first message\'s time is kept too');
+    assert.match(caption(out), / · 2𝗁$/, 'the first message\'s time is kept too');
 
     // A line still being written is left for the run that finds it whole.
     const half = typed('four');
@@ -337,7 +337,7 @@ test('each session keeps its own state', () => {
 test('anything it was not aimed at passes silently, and it never fails a turn', () => {
   const s = scratch();
   try {
-    assert.equal(caption(s.run(['not json', typed('one'), reply(9000).slice(0, 80)])), `💬[1](${SESSION_PAGE}) · ${STAMP} · 5m`,
+    assert.equal(caption(s.run(['not json', typed('one'), reply(9000).slice(0, 80)])), `💬[1](${SESSION_PAGE}) · ${STAMP} · 5𝗆`,
       'lines it cannot read are skipped');
     assert.equal(caption(s.run(null, { transcript_path: path.join(s.dir, 'missing.jsonl'), session_id: 'sess-x' })),
       `💬[0](${PAGES}session.html#id=sess-x) · ${STAMP}`, 'no transcript and nobody typing: the link alone');
@@ -348,7 +348,7 @@ test('anything it was not aimed at passes silently, and it never fails a turn', 
         encoding: 'utf8' }).trim(), '', `silent on ${input.slice(0, 40)}`);
     }
     writeFileSync(path.join(s.dir, 'session-detail-caption', SESSION), 'not json');
-    assert.equal(caption(s.run(null)), `💬[1](${SESSION_PAGE}) · ${STAMP} · 5m`, 'a state file it cannot read is started again');
+    assert.equal(caption(s.run(null)), `💬[1](${SESSION_PAGE}) · ${STAMP} · 5𝗆`, 'a state file it cannot read is started again');
   } finally { s.done(); }
 });
 

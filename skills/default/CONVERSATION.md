@@ -28,8 +28,8 @@ substituting the current repo in URL templates.
 * **Close in one order.** End with the caption, render line, then the state. Include a state when no files changed. A wake (a nudge, stop hook, finished job, PR event, or moved base) that leaves the reader nothing new gets no reply. If the harness then requires visible output, reply with one line naming the wake.
 
 * **Session detail caption.** Use the latest line the `session-detail-caption` hook supplied:
-  `💬[22](…/pages/session.html#id=<short>) · 816k · 11/14 10:14𝖺𝗆 · 1d 2h · 1 file`
-  `22` counts the owner's messages, `816k` is the context in tokens, `11/14 10:14𝖺𝗆` is when the hook printed the line, in the owner's time zone, `1 file` counts the files changed against `main`, and `<short>` is the session id's first eight characters.
+  `💬[22](…/pages/session.html#id=<short>) · 816𝗄 · 11/14 10:14𝖺𝗆 · 1𝖽2𝗁 · 1 file`
+  `22` counts the owner's messages, `816𝗄` is the context in tokens, `11/14 10:14𝖺𝗆` is when the hook printed the line, in the owner's time zone, `1 file` counts the files changed against `main`, and `<short>` is the session id's first eight characters.
 
 ## A reply that changed files
 
