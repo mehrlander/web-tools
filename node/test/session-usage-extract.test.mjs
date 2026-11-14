@@ -45,7 +45,7 @@ test('read of the record and fromExtract of its extract agree on every prompt an
   // The fixture reaches what it is for: both re-load kinds, a priced and an
   // unpriced model, a compaction inside a prompt, a prompt with no steps.
   assert.deepEqual(a.prompts.map((p) => p.reloads), [0, 1, 1, 0]);
-  assert.deepEqual(a.totals.unpriced, ['claude-sonnet-5-5']);
+  assert.deepEqual(a.totals.unpriced, ['claude-haiku-4-5']);
   assert.deepEqual(a.prompts.map((p) => p.compaction), [false, true, true, false]);
   assert.equal(a.prompts[3].context, null);
   assert.ok(a.totals.reload > 0);

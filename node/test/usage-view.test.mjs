@@ -256,7 +256,7 @@ test('Spend: one bar of four named parts, then a one-line row per session with t
   assert.equal(rows[1].querySelector('[data-usage-part]').parentElement.getAttribute('data-title-tip'),
     'Reads $2.60 · Re-loads $2.00 · Writes $5.20 · Output $1.30 · 3 prompts · 1 re-load', 'the short bar gives its four parts, and the counts, in its tip');
   assert.equal(rows[0].querySelector('a[data-usage-out]').getAttribute('href'), '?view=sessions&session=bbbb0002&pane=cost');
-  assert.match(text(pane), /No price: claude-sonnet-5-5 \(1 session\)/);
+  assert.match(text(pane), /No price: claude-haiku-4-5 \(1 session\)/);
   assert.match(pane.querySelector('[data-usage-part="read"]').className, /bg-\[#2a78d6\]/, 'the chart\'s blue');
   assert.match(pane.querySelector('[data-usage-part="reload"]').className, /bg-\[#eb6834\]/, 'the chart\'s orange');
 });

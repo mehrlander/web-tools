@@ -99,7 +99,7 @@
   },
   {
    "at": "2026-11-04T11:10:00.000Z",
-   "model": "claude-sonnet-5-5",
+   "model": "claude-haiku-4-5",
    "usage": {
     "input_tokens": 1,
     "cache_read_input_tokens": 191000,
