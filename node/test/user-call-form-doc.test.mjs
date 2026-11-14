@@ -191,8 +191,10 @@ test('each row ends with the words its edit adds and removes, green and red (own
   assert.equal(data().docWordsTip({ from: 'a\nb', to: 'a b' }), 'No words change');
   const total = root().querySelector('[data-doc-words-total]');
   assert.equal(total.textContent.replace(/\s+/g, ' ').trim(), 'words +5 −5', 'the call\'s total names the unit once, its label to the left');
-  assert.match(total.className, /ml-auto/, 'and ends the head\'s line, over the rows\' counts');
-  assert.equal(total.nextElementSibling?.dataset.docControls, '', 'after the view switch');
+  const line = total.parentElement;
+  assert.equal(line.dataset.docControlsRow, '', 'on the line of the document\'s controls, at every width');
+  assert.equal(line.lastElementChild, total, 'which it ends, over the rows\' counts');
+  assert.equal(line.firstElementChild.dataset.docControls, '', 'the controls keeping an element of their own');
   assert.equal(total.dataset.titleTip, '5 words added, 5 removed, across 4 edits');
 });
 
