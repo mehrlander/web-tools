@@ -2,6 +2,43 @@
   'use strict';
   const el = id => document.getElementById(id);
   const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const focusStyle = 'focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-[#047857] focus-visible:outline-offset-2';
+  const touchMore = "pointer-coarse:after:content-[''] pointer-coarse:after:absolute pointer-coarse:after:-inset-y-1.5 pointer-coarse:after:-inset-x-[7px]";
+  const statusTones = {working:'text-[#24785d]',waiting:'text-[#a57428]',accepted:'text-[#5879a1]',attention:'text-[#b87832]',quiet:'text-[#938b7d]'};
+  const ui = {
+    assistants:'grid grid-cols-3 gap-2 px-3 pt-2 pb-[7px] border-t-0 bg-stone-100 max-[350px]:gap-[5px] max-[350px]:px-2.5',
+    provider:'phone-provider relative min-w-0',
+    providerFilter:`phone-provider-filter block w-full min-h-[47px] pt-0 pr-5 pb-0.5 pl-0 text-left border-b-2 border-transparent rounded-t aria-pressed:border-[#6f6a61] aria-pressed:bg-[#eae7e1] ${focusStyle}`,
+    providerName:'phone-provider-name flex items-center gap-1 text-[13px] font-semibold leading-5 whitespace-nowrap [&>svg]:size-[18px] [&>svg]:flex-none max-[350px]:text-xs max-[350px]:gap-[3px]',
+    providerCounts:'phone-provider-counts flex flex-wrap gap-y-0.5 gap-x-2 mt-[3px] text-xs tabular-nums leading-4 text-[#827b71] [&_svg]:size-3 max-[350px]:gap-x-[5px]',
+    count:'inline-flex items-center gap-[3px] whitespace-nowrap',
+    providerMore:`phone-provider-more absolute -right-[3px] top-0 grid place-items-center w-6 h-7 text-[#827b71] [&_svg]:size-[17px] ${touchMore} ${focusStyle}`,
+    row:'phone-row grid grid-cols-[20px_minmax(0,1fr)_28px] gap-[7px] py-2.5 px-3 border-b border-[#e9e6e1] bg-white min-w-0 cursor-pointer max-[350px]:px-2.5 max-[350px]:gap-1.5',
+    mark:'phone-mark pt-0.5 [&>svg]:size-5',
+    position:'phone-position block w-5 text-[13px] text-[#a06e35] tabular-nums',
+    pick:`phone-pick block w-full min-h-[22px] p-0 text-left text-[#35312c] ${focusStyle}`,
+    rowTitle:'phone-row-title line-clamp-2 overflow-hidden text-sm font-[550] leading-5 [overflow-wrap:anywhere]',
+    meta:'phone-meta flex items-center flex-wrap gap-y-[3px] gap-x-1.5 mt-1 text-xs leading-5 min-h-5 text-[#827b71] [&>svg]:size-3.5 [&>svg]:flex-none [&_time]:whitespace-nowrap [&_time]:tabular-nums max-[350px]:gap-x-[5px]',
+    status:'phone-status inline-flex items-center justify-center gap-[5px] [&_svg]:size-4 [&_svg]:flex-none',
+    statusButton:`relative size-5 p-0 border-0 bg-transparent pointer-coarse:after:content-[''] pointer-coarse:after:absolute pointer-coarse:after:-inset-y-2.5 pointer-coarse:after:-inset-x-1.5 ${focusStyle}`,
+    summary:'phone-summary line-clamp-2 overflow-hidden mt-[5px] mx-0 mb-0 text-[#7b7368] text-[13px] leading-[19px] [overflow-wrap:anywhere]',
+    more:`phone-more relative grid place-items-center w-7 h-8 p-0 text-[#827b71] flex-none [&_svg]:size-[17px] ${touchMore} ${focusStyle}`,
+    menu:'phone-session-menu fixed z-[60] w-[min(270px,calc(100vw_-_16px))] max-h-[calc(100dvh_-_16px)] overflow-auto bg-white border border-[#e1dcd3] rounded-xl p-[5px] shadow-[0_8px_28px_#29252426] text-[13px] leading-[19px] [&[hidden]]:hidden [&>div]:block [&_p]:text-[11px] [&_p]:leading-[17px] [&_p]:px-2.5 [&_p]:py-[5px] [&_p]:text-[#8a8175]',
+    menuItem:`flex w-full min-h-[42px] items-center py-[9px] px-2.5 border-0 rounded-md bg-transparent text-left whitespace-normal text-[#3f6f61] [font:inherit] no-underline hover:bg-[#f1eee8] ${focusStyle}`,
+    detailHeader:'phone-detail-header flex items-center justify-between sticky top-0 z-[15] min-h-[49px] bg-[#fffffff5] border-b border-[#e7e3dc] py-1 px-3 backdrop-blur-[8px]',
+    back:`phone-back min-h-10 py-[3px] px-1 text-[14px] text-[#686156] ${focusStyle}`,
+    detailArticle:'phone-detail-article pt-[14px] px-4 pb-9',
+    detailTitle:'text-[21px] font-semibold leading-7 [overflow-wrap:anywhere] mt-3 mx-0 mb-[9px] text-[#373129] outline-none',
+    facets:'phone-facets flex gap-[3px] p-[3px] rounded-lg bg-[#efede7] mt-[18px] mx-0 mb-3',
+    facet:`flex-1 min-w-0 min-h-[34px] py-1 px-1.5 text-xs leading-[18px] text-[#7b7265] rounded-[5px] whitespace-nowrap aria-selected:bg-white aria-selected:text-[#3d362c] aria-selected:shadow-[0_1px_3px_#29252414] aria-selected:font-[550] pointer-coarse:min-h-10 ${focusStyle}`,
+    detailBody:'phone-detail-body text-sm leading-[22px] text-[#5e5549] [overflow-wrap:anywhere] min-h-20 [&_p]:my-[.7em] [&_pre]:whitespace-pre-wrap [&_pre]:[overflow-wrap:anywhere] [&_a]:text-[#277b67] [&_a]:underline [&_a]:underline-offset-2',
+    tokenDialog:'phone-token-dialog w-[min(360px,calc(100vw_-_24px))] p-[18px] border border-[#ddd6ca] rounded-[14px] text-[#4b4338] shadow-[0_10px_40px_#29252430] text-xs leading-[18px] backdrop:bg-[#29252430]',
+    dialogTitle:'text-[15px] font-semibold leading-[21px] pr-[25px] mt-0 mx-0 mb-[9px] [overflow-wrap:anywhere]',
+    dialogNote:'my-2 text-[#817565]',
+    dialogCounts:'grid grid-cols-[minmax(0,1fr)_auto] gap-y-[5px] gap-x-3 my-3 [&_dd]:tabular-nums [&_dd]:text-right',
+    dialogClose:'phone-dialog-close absolute right-[7px] top-[5px] size-[34px] text-2xl leading-[18px] text-[#8b8172]'
+  };
+  if (el('assistants')) el('assistants').className=ui.assistants;
   const rendered = new WeakMap();
   const html = (id, value) => {
     const node = el(id);
@@ -20,7 +57,7 @@
     if (item.needsAttention || item.state === 'needs-you') return {glyph:'attention',label:'Needs attention',tone:'attention'};
     return {glyph:paths[item.state] ? item.state : 'idle',label:({quiet:'No recent activity',claimed:'Claimed; awaiting an update',recent:'Recent activity'})[item.state] || labels[item.state] || 'Recorded',tone:({working:'working',reply:'working',queued:'waiting',claimed:'accepted',quiet:'quiet'})[item.state] || 'quiet'};
   }
-  const badge = item => { const value=status(typeof item==='string'?{state:item}:item); return `<span class="phone-status phone-status-${value.tone}" title="${escape(value.label)}">${icon(value.glyph)}<span>${escape(value.label)}</span></span>`; };
+  const badge = item => { const value=status(typeof item==='string'?{state:item}:item); return `<span class="${ui.status} phone-status-${value.tone} ${statusTones[value.tone]}" title="${escape(value.label)}">${icon(value.glyph)}<span>${escape(value.label)}</span></span>`; };
   const age = at => { const seconds = Math.max(0, Math.round((Date.now() - new Date(at).getTime()) / 1000)); return seconds < 60 ? 'just now' : seconds < 3600 ? `${Math.floor(seconds / 60)}m ago` : seconds < 86400 ? `${Math.floor(seconds / 3600)}h ago` : new Date(at).toLocaleDateString(); };
   const observedTime = at => `<time data-at="${escape(at)}" datetime="${escape(at)}" title="${escape(stamp(at))}">${escape(stamp(at))}</time>`;
   const stamp = at => at ? new Date(at).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) : 'Not yet';
@@ -72,7 +109,7 @@
   function row(item, position) {
     const key = escape(item.key), summary = replyPreview(statusText(item));
     const value=status(item);
-    return `<article data-item="${key}" class="phone-row"><span class="phone-mark ${colours[keyFor(item.provider)]}">${position ? `<span class="phone-position">${position}.</span>` : mark(item.provider)}</span><div class="phone-row-content"><button data-pick="${key}" class="phone-pick" aria-label="${escape('Read ' + item.title)}"><span class="phone-row-title">${escape(itemTitle(item))}</span></button><div class="phone-meta"><button class="phone-status phone-status-${value.tone}" data-status="${key}" aria-label="${escape(value.label)}" title="${escape(value.label)}">${icon(value.glyph)}</button><span>${escape(item.provider)}</span>${locationMark(item.location)}${item.work?.agents ? `<span>${item.work.agents} agents</span>` : ''}${observedTime(item.at)}${tokenBadge(item)}</div>${summary ? `<p data-summary class="phone-summary">${escape(summary.slice(0,180))}</p>` : ''}</div><button data-launch="${key}" aria-expanded="${launchKey === item.key}" aria-controls="phone-session-menu" aria-haspopup="menu" aria-label="${escape('Actions for ' + item.title)}" class="phone-more">${icon('more')}</button></article>`;
+    return `<article data-item="${key}" class="${ui.row}"><span class="${ui.mark} ${colours[keyFor(item.provider)]}">${position ? `<span class="${ui.position}">${position}.</span>` : mark(item.provider)}</span><div class="phone-row-content min-w-0"><button data-pick="${key}" class="${ui.pick}" aria-label="${escape('Read ' + item.title)}"><span class="${ui.rowTitle}">${escape(itemTitle(item))}</span></button><div class="${ui.meta}"><button class="${ui.status} ${ui.statusButton} phone-status-${value.tone} ${statusTones[value.tone]}" data-status="${key}" aria-label="${escape(value.label)}" title="${escape(value.label)}">${icon(value.glyph)}</button><span>${escape(item.provider)}</span>${locationMark(item.location)}${item.work?.agents ? `<span>${item.work.agents} agents</span>` : ''}${observedTime(item.at)}${tokenBadge(item)}</div>${summary ? `<p data-summary class="${ui.summary}">${escape(summary.slice(0,180))}</p>` : ''}</div><button data-launch="${key}" aria-expanded="${launchKey === item.key}" aria-controls="phone-session-menu" aria-haspopup="menu" aria-label="${escape('Actions for ' + item.title)}" class="${ui.more}">${icon('more')}</button></article>`;
   }
 
   function group(title, items, empty = '', numbered = false, inline = true) {
@@ -130,7 +167,7 @@
       for(const item of items){const s=status(item),id=s.glyph+'|'+s.label;const v=counts.get(id)||{...s,count:0};v.count++;counts.set(id,v);}
       const states=[...counts.values()], current=states.filter(s=>!['idle','complete'].includes(s.glyph));
       const shown=current.length?current:states.length?states:[{glyph:'idle',label:'No observed activity',tone:'quiet',count:0}];
-      return `<div class="phone-provider"><button data-assistant="${key}" aria-pressed="${assistant === key}" aria-label="${escape({codex:'Codex',gemini:'Gemini',claude:'Claude'}[key] + ': ' + shown.map(s=>s.count+' '+s.label.toLowerCase()).join(', '))}" class="phone-provider-filter"><span class="phone-provider-name ${colours[key]}">${mark(key)}${{codex:'Codex',gemini:'Gemini',claude:'Claude'}[key]}</span><span class="phone-provider-counts">${shown.map(s=>`<span class="phone-status-${s.tone}" title="${escape(s.count+' '+s.label)}">${icon(s.glyph)}<span>${s.count}</span></span>`).join('')}</span></button><button data-provider-menu="${key}" class="phone-provider-more" aria-label="${{codex:'Codex',gemini:'Gemini',claude:'Claude'}[key]} options" aria-haspopup="menu" aria-expanded="${launchKey === 'provider:'+key}">${icon('more')}</button></div>`;
+      return `<div class="${ui.provider}"><button data-assistant="${key}" aria-pressed="${assistant === key}" aria-label="${escape({codex:'Codex',gemini:'Gemini',claude:'Claude'}[key] + ': ' + shown.map(s=>s.count+' '+s.label.toLowerCase()).join(', '))}" class="${ui.providerFilter}"><span class="${ui.providerName} ${colours[key]}">${mark(key)}${{codex:'Codex',gemini:'Gemini',claude:'Claude'}[key]}</span><span class="${ui.providerCounts}">${shown.map(s=>`<span class="phone-status-${s.tone} ${statusTones[s.tone]} ${ui.count}" title="${escape(s.count+' '+s.label)}">${icon(s.glyph)}<span>${s.count}</span></span>`).join('')}</span></button><button data-provider-menu="${key}" class="${ui.providerMore}" aria-label="${{codex:'Codex',gemini:'Gemini',claude:'Claude'}[key]} options" aria-haspopup="menu" aria-expanded="${launchKey === 'provider:'+key}">${icon('more')}</button></div>`;
     }).join(''));
     const items = filtered();
     const notices = [...data.sources.notices];
@@ -164,7 +201,7 @@
     return temporaryItem?.key===key?temporaryItem:null;
   }
   const launchMenu=document.createElement('aside');
-  launchMenu.id='phone-session-menu';launchMenu.className='phone-session-menu';launchMenu.hidden=true;launchMenu.setAttribute('role','menu');launchMenu.setAttribute('aria-label','Session actions');document.body.append(launchMenu);
+  launchMenu.id='phone-session-menu';launchMenu.className=ui.menu;launchMenu.hidden=true;launchMenu.setAttribute('role','menu');launchMenu.setAttribute('aria-label','Session actions');document.body.append(launchMenu);
   function launchAnchor(key=launchKey){
     const scope=selected()?el('detail'):el('overview');
     return [...scope.querySelectorAll(key.startsWith('provider:')?'[data-provider-menu]':'[data-launch]')].find(node=>key.startsWith('provider:')?node.dataset.providerMenu===key.slice(9):node.dataset.launch===key);
@@ -189,7 +226,7 @@
       value=window.NowView.sessionActions(item,{desktop,copied:copiedTitle===item.key});
     }
     if(rendered.get(launchMenu)!==value){launchMenu.innerHTML=value;rendered.set(launchMenu,value);}
-    launchMenu.querySelectorAll('a,button').forEach(node=>{node.setAttribute('role','menuitem');node.tabIndex=-1;});
+    launchMenu.querySelectorAll('a,button').forEach(node=>{node.setAttribute('role','menuitem');node.tabIndex=-1;node.className=ui.menuItem;});
     launchMenu.hidden=false;launchAnchor()?.setAttribute('aria-expanded','true');placeLaunch();
     if(action&&focusKey)[...launchMenu.querySelectorAll('a,button')].find(n=>n.dataset[action]===focusKey)?.focus({preventScroll:true});
   }
@@ -212,8 +249,8 @@
     if(!reading)return;
     closeLaunch();
     const number=n=>Number.isSafeInteger(n)&&n>=0?n.toLocaleString('en-US'):'Not recorded';
-    const panel=document.createElement('dialog');panel.className='phone-token-dialog';panel.setAttribute('aria-label','Recorded session tokens');
-    panel.innerHTML=`<form method="dialog"><button class="phone-dialog-close" aria-label="Close token details">×</button></form><h2>${escape(item.title)}</h2><p>Recorded main-conversation calls · badge shows output</p><dl>${[['Output',reading.outputTokens],['Fresh input',reading.inputTokens],['Cache read',reading.cacheReadTokens],['Cache write',reading.cacheWriteTokens]].map(([label,value])=>`<dt>${label}</dt><dd>${number(value)}</dd>`).join('')}</dl><p>Last input context: ${number(reading.contextTokens)} tokens. Measured ${escape(stamp(new Date(reading.usageAt).toISOString()))}. ${reading.saved?'Saved reading; usage sync is unavailable. ':''}Counts cover all recorded calls. Subagent calls are excluded. Context describes one call.</p>`;
+    const panel=document.createElement('dialog');panel.className=ui.tokenDialog;panel.setAttribute('aria-label','Recorded session tokens');
+    panel.innerHTML=`<form method="dialog"><button class="${ui.dialogClose}" aria-label="Close token details">×</button></form><h2 class="${ui.dialogTitle}">${escape(item.title)}</h2><p class="${ui.dialogNote}">Recorded main-conversation calls · badge shows output</p><dl class="${ui.dialogCounts}">${[['Output',reading.outputTokens],['Fresh input',reading.inputTokens],['Cache read',reading.cacheReadTokens],['Cache write',reading.cacheWriteTokens]].map(([label,value])=>`<dt>${label}</dt><dd>${number(value)}</dd>`).join('')}</dl><p class="${ui.dialogNote}">Last input context: ${number(reading.contextTokens)} tokens. Measured ${escape(stamp(new Date(reading.usageAt).toISOString()))}. ${reading.saved?'Saved reading; usage sync is unavailable. ':''}Counts cover all recorded calls. Subagent calls are excluded. Context describes one call.</p>`;
     document.body.append(panel);const opener=document.activeElement;
     panel.addEventListener('close',()=>{panel.remove();opener?.focus({preventScroll:true});});
     if(panel.showModal)panel.showModal();else panel.setAttribute('open','');
@@ -261,7 +298,7 @@
     let choice=selectedDetails.get(key);
     if(!parts.some(p=>p.id===choice))choice=(parts.find(p=>p.id==='reply')||parts.find(p=>p.id==='summary')||parts[0])?.id||'';
     selectedDetails.set(key,choice);const part=parts.find(p=>p.id===choice),prefix='phone-detail-'+encodeURIComponent(key);
-    return `<div class="phone-facets" role="tablist" aria-label="Detail sections">${parts.map(p=>`<button id="${prefix}-${p.id}" role="tab" data-facet="${p.id}" data-for="${escape(key)}" aria-selected="${p.id===choice}" tabindex="${p.id===choice?0:-1}" aria-controls="${prefix}">${p.label}</button>`).join('')}</div><section id="${prefix}" class="phone-detail-body" role="tabpanel" ${part?`aria-labelledby="${prefix}-${part.id}"`:'aria-label="Detail"'}>${part?.body||'<p>No additional detail captured.</p>'}</section>`;
+    return `<div class="${ui.facets}" role="tablist" aria-label="Detail sections">${parts.map(p=>`<button class="${ui.facet}" id="${prefix}-${p.id}" role="tab" data-facet="${p.id}" data-for="${escape(key)}" aria-selected="${p.id===choice}" tabindex="${p.id===choice?0:-1}" aria-controls="${prefix}">${p.label}</button>`).join('')}</div><section id="${prefix}" class="${ui.detailBody}" role="tabpanel" ${part?`aria-labelledby="${prefix}-${part.id}"`:'aria-label="Detail"'}>${part?.body||'<p>No additional detail captured.</p>'}</section>`;
   }
 
   function detail() {
@@ -276,7 +313,7 @@
     }
     const viewport={left:window.scrollX,top:window.scrollY},focused=document.activeElement,focus=focused?.closest('[data-facet]')?.dataset.facet;
     const focusAction=['launch','sessionTokens','back'].find(name=>focused?.hasAttribute('data-'+name.replace(/[A-Z]/g,c=>'-'+c.toLowerCase()))),focusHeading=focused?.matches('#detail h2');
-    const value = `<header class="phone-detail-header"><button data-back class="phone-back">${backLabel()}</button><button data-launch="${escape(item.key)}" class="phone-more" aria-label="${escape('Actions for '+item.title)}" aria-controls="phone-session-menu" aria-haspopup="menu" aria-expanded="${launchKey===item.key}">${icon('more')}</button></header><div id="detail-connection"></div><article class="phone-detail-article"><div class="phone-meta ${colours[keyFor(item.provider)]}">${mark(item.provider)}<span>${escape(item.provider)}</span>${locationMark(item.location)}</div><h2 tabindex="-1">${escape(item.title)}</h2><div class="phone-meta">${badge(item)}${observedTime(item.at)}${tokenBadge(item)}</div>${itemBody(item)}</article>`;
+    const value = `<header class="${ui.detailHeader}"><button data-back class="${ui.back}">${backLabel()}</button><button data-launch="${escape(item.key)}" class="${ui.more}" aria-label="${escape('Actions for '+item.title)}" aria-controls="phone-session-menu" aria-haspopup="menu" aria-expanded="${launchKey===item.key}">${icon('more')}</button></header><div id="detail-connection"></div><article class="${ui.detailArticle}"><div class="${ui.meta}">${mark(item.provider)}<span>${escape(item.provider)}</span>${locationMark(item.location)}</div><h2 tabindex="-1" class="${ui.detailTitle}">${escape(item.title)}</h2><div class="${ui.meta}">${badge(item)}${observedTime(item.at)}${tokenBadge(item)}</div>${itemBody(item)}</article>`;
     html('detail', value);
     updateTimes();
     if(focus)el('detail').querySelector(`[data-facet="${focus}"]`)?.focus({preventScroll:true});

@@ -1,6 +1,212 @@
 /* One phone Usage view: current allowances, aligned history, and recent Claude context. */
 (() => {
  'use strict';
+ // Tailwind descendant utilities retain the shared calendar geometry and states.
+ const usageUtilities=[
+  // .pu-shell
+  "[&.pu-shell]:[color:rgb(41,_37,_36)]!", "[&.pu-shell]:[font-family:inherit]!", "[&.pu-shell]:[min-width:0px]!", "[&.pu-shell]:[padding-top:0px]!", "[&.pu-shell]:[padding-right:0px]!", "[&.pu-shell]:[padding-bottom:12px]!", "[&.pu-shell]:[padding-left:0px]!", "[&.pu-shell]:[padding:0px_0px_12px]!",
+  // .pu-shell button
+  "[&.pu-shell_button]:[font-family:inherit]!",
+  // .pu-current
+  "[&_.pu-current]:[padding-top:10px]", "[&_.pu-current]:[padding-right:12px]", "[&_.pu-current]:[padding-bottom:12px]", "[&_.pu-current]:[padding-left:12px]", "[&_.pu-current]:[padding:10px_12px_12px]",
+  // .pu-current>h2
+  "[&_.pu-current>h2]:[margin-top:0px]", "[&_.pu-current>h2]:[margin-right:0px]", "[&_.pu-current>h2]:[margin-bottom:8px]", "[&_.pu-current>h2]:[margin-left:0px]", "[&_.pu-current>h2]:[margin:0px_0px_8px]", "[&_.pu-current>h2]:[font-size:11px]", "[&_.pu-current>h2]:[font-weight:550]", "[&_.pu-current>h2]:[color:rgb(120,_113,_108)]",
+  // .pu-accounts
+  "[&_.pu-accounts]:[display:grid]", "[&_.pu-accounts]:[grid-template-columns:repeat(3,minmax(0,1fr))]", "[&_.pu-accounts]:[gap:8px]",
+  // .pu-account
+  "[&_.pu-account]:[display:flex]", "[&_.pu-account]:[flex-direction:column]", "[&_.pu-account]:[gap:5px]", "[&_.pu-account]:[min-width:0px]", "[&_.pu-account]:[padding-top:8px]", "[&_.pu-account]:[padding-right:8px]", "[&_.pu-account]:[padding-bottom:8px]", "[&_.pu-account]:[padding-left:8px]", "[&_.pu-account]:[padding:8px]", "[&_.pu-account]:[text-align:left]", "[&_.pu-account]:[border:1px_solid_rgb(230,_227,_222)]", "[&_.pu-account]:[border-width:1px]", "[&_.pu-account]:[border-style:solid]", "[&_.pu-account]:[border-color:rgb(230,_227,_222)]", "[&_.pu-account]:[border-top:1px_solid_rgb(230,_227,_222)]", "[&_.pu-account]:[border-top-width:1px]", "[&_.pu-account]:[border-top-style:solid]", "[&_.pu-account]:[border-top-color:rgb(230,_227,_222)]", "[&_.pu-account]:[border-right:1px_solid_rgb(230,_227,_222)]", "[&_.pu-account]:[border-right-width:1px]", "[&_.pu-account]:[border-right-style:solid]", "[&_.pu-account]:[border-right-color:rgb(230,_227,_222)]", "[&_.pu-account]:[border-bottom:1px_solid_rgb(230,_227,_222)]", "[&_.pu-account]:[border-bottom-width:1px]", "[&_.pu-account]:[border-bottom-style:solid]", "[&_.pu-account]:[border-bottom-color:rgb(230,_227,_222)]", "[&_.pu-account]:[border-left:1px_solid_rgb(230,_227,_222)]", "[&_.pu-account]:[border-left-width:1px]", "[&_.pu-account]:[border-left-style:solid]", "[&_.pu-account]:[border-left-color:rgb(230,_227,_222)]", "[&_.pu-account]:[border-image:none]", "[&_.pu-account]:[border-radius:9px]", "[&_.pu-account]:[background-image:none]", "[&_.pu-account]:[background-position:0%_0%]", "[&_.pu-account]:[background-size:auto]", "[&_.pu-account]:[background-repeat:repeat]", "[&_.pu-account]:[background-origin:padding-box]", "[&_.pu-account]:[background-clip:border-box]", "[&_.pu-account]:[background-attachment:scroll]", "[&_.pu-account]:[background-color:rgb(255,_255,_255)]", "[&_.pu-account]:[background:rgb(255,_255,_255)]", "[&_.pu-account]:[color:rgb(68,_64,_60)]",
+  // .pu-account:focus-visible
+  "[&_.pu-account:focus-visible]:[outline:2px_solid_var(--account-color)]", "[&_.pu-account:focus-visible]:[outline-offset:2px]",
+  // .pu-account:hover
+  "[&_.pu-account:hover]:[background-image:none]", "[&_.pu-account:hover]:[background-position:0%_0%]", "[&_.pu-account:hover]:[background-size:auto]", "[&_.pu-account:hover]:[background-repeat:repeat]", "[&_.pu-account:hover]:[background-origin:padding-box]", "[&_.pu-account:hover]:[background-clip:border-box]", "[&_.pu-account:hover]:[background-attachment:scroll]", "[&_.pu-account:hover]:[background-color:rgb(250,_249,_247)]", "[&_.pu-account:hover]:[background:rgb(250,_249,_247)]",
+  // .pu-account-name
+  "[&_.pu-account-name]:[display:flex]", "[&_.pu-account-name]:[align-items:center]", "[&_.pu-account-name]:[gap:5px]", "[&_.pu-account-name]:[font-size:13px]", "[&_.pu-account-name]:[font-weight:600]", "[&_.pu-account-name]:[white-space:nowrap]", "[&_.pu-account-name]:[color:var(--account-color)]",
+  // .pu-account .brand
+  "[&_.pu-account_.brand]:[width:16px]", "[&_.pu-account_.brand]:[height:16px]", "[&_.pu-account_.brand]:[flex-grow:0]", "[&_.pu-account_.brand]:[flex-shrink:0]", "[&_.pu-account_.brand]:[flex-basis:auto]", "[&_.pu-account_.brand]:[flex:0_0_auto]",
+  // .pu-account-value
+  "[&_.pu-account-value]:[display:flex]", "[&_.pu-account-value]:[align-items:baseline]", "[&_.pu-account-value]:[gap:4px]", "[&_.pu-account-value]:[font-size:20px]", "[&_.pu-account-value]:[line-height:24px]", "[&_.pu-account-value]:[font-weight:600]", "[&_.pu-account-value]:[font-variant-numeric:tabular-nums]",
+  // .pu-account-value small
+  "[&_.pu-account-value_small]:[font-size:10px]", "[&_.pu-account-value_small]:[font-weight:400]", "[&_.pu-account-value_small]:[color:rgb(138,_129,_118)]",
+  // .pu-account .quota-bar
+  "[&_.pu-account_.quota-bar]:[display:block]", "[&_.pu-account_.quota-bar]:[align-self:stretch]", "[&_.pu-account_.quota-bar]:[height:4px]", "[&_.pu-account_.quota-bar]:[margin-top:0px]", "[&_.pu-account_.quota-bar]:[margin-right:0px]", "[&_.pu-account_.quota-bar]:[margin-bottom:2px]", "[&_.pu-account_.quota-bar]:[margin-left:0px]", "[&_.pu-account_.quota-bar]:[margin:0px_0px_2px]",
+  // .pu-account .quota-bar .elapsed
+  "[&_.pu-account_.quota-bar_.elapsed]:[height:8px]",
+  // .pu-reset-date
+  "[&_.pu-reset-date]:[font-size:11px]", "[&_.pu-reset-date]:[line-height:15px]", "[&_.pu-reset-date]:[white-space:nowrap]", "[&_.pu-reset-date]:[color:rgb(87,_83,_78)]",
+  // .pu-reset-left
+  "[&_.pu-reset-left]:[font-size:10px]", "[&_.pu-reset-left]:[line-height:13px]", "[&_.pu-reset-left]:[white-space:nowrap]", "[&_.pu-reset-left]:[color:rgb(138,_129,_118)]",
+  // .pu-account.is-stale .pu-account-value
+  "[&_.pu-account.is-stale_.pu-account-value]:[color:rgb(138,_129,_118)]",
+  // .pu-account.is-stale .fill
+  "[&_.pu-account.is-stale_.fill]:[background-image:none]", "[&_.pu-account.is-stale_.fill]:[background-position:0%_0%]", "[&_.pu-account.is-stale_.fill]:[background-size:auto]", "[&_.pu-account.is-stale_.fill]:[background-repeat:repeat]", "[&_.pu-account.is-stale_.fill]:[background-origin:padding-box]", "[&_.pu-account.is-stale_.fill]:[background-clip:border-box]", "[&_.pu-account.is-stale_.fill]:[background-attachment:scroll]", "[&_.pu-account.is-stale_.fill]:[background-color:rgb(168,_162,_158)]", "[&_.pu-account.is-stale_.fill]:[background:rgb(168,_162,_158)]",
+  // .pu-shell .usage-workspace
+  "[&.pu-shell_.usage-workspace]:[gap:0px]!", "[&.pu-shell_.usage-workspace]:[padding-top:0px]!", "[&.pu-shell_.usage-workspace]:[padding-right:0px]!", "[&.pu-shell_.usage-workspace]:[padding-bottom:0px]!", "[&.pu-shell_.usage-workspace]:[padding-left:0px]!", "[&.pu-shell_.usage-workspace]:[padding:0px]!",
+  // .pu-shell .usage-workspace-timeline
+  "[&.pu-shell_.usage-workspace-timeline]:[padding-top:0px]!", "[&.pu-shell_.usage-workspace-timeline]:[padding-right:12px]!", "[&.pu-shell_.usage-workspace-timeline]:[padding-bottom:5px]!", "[&.pu-shell_.usage-workspace-timeline]:[padding-left:12px]!", "[&.pu-shell_.usage-workspace-timeline]:[padding:0px_12px_5px]!",
+  // .pu-shell .usage-calendar
+  "[&.pu-shell_.usage-calendar]:[--calendar-row:70px]!", "[&.pu-shell_.usage-calendar]:[padding-top:0px]!", "[&.pu-shell_.usage-calendar]:[padding-right:0px]!", "[&.pu-shell_.usage-calendar]:[padding-bottom:0px]!", "[&.pu-shell_.usage-calendar]:[padding-left:0px]!", "[&.pu-shell_.usage-calendar]:[padding:0px]!",
+  // .pu-shell .history-rail-tools
+  "[&.pu-shell_.history-rail-tools]:[min-height:30px]!",
+  // .pu-shell .history-fixed
+  "[&.pu-shell_.history-fixed]:[background-image:none]!", "[&.pu-shell_.history-fixed]:[background-position:0%_0%]!", "[&.pu-shell_.history-fixed]:[background-size:auto]!", "[&.pu-shell_.history-fixed]:[background-repeat:repeat]!", "[&.pu-shell_.history-fixed]:[background-origin:padding-box]!", "[&.pu-shell_.history-fixed]:[background-clip:border-box]!", "[&.pu-shell_.history-fixed]:[background-attachment:scroll]!", "[&.pu-shell_.history-fixed]:[background-color:rgb(245,_245,_244)]!", "[&.pu-shell_.history-fixed]:[background:rgb(245,_245,_244)]!",
+  // .pu-shell .calendar-pace
+  "[&.pu-shell_.calendar-pace]:[border:0px]!", "[&.pu-shell_.calendar-pace]:[border-width:0px]!", "[&.pu-shell_.calendar-pace]:[border-style:none]!", "[&.pu-shell_.calendar-pace]:[border-color:currentcolor]!", "[&.pu-shell_.calendar-pace]:[border-top:0px]!", "[&.pu-shell_.calendar-pace]:[border-top-width:0px]!", "[&.pu-shell_.calendar-pace]:[border-top-style:none]!", "[&.pu-shell_.calendar-pace]:[border-top-color:currentcolor]!", "[&.pu-shell_.calendar-pace]:[border-right:0px]!", "[&.pu-shell_.calendar-pace]:[border-right-width:0px]!", "[&.pu-shell_.calendar-pace]:[border-right-style:none]!", "[&.pu-shell_.calendar-pace]:[border-right-color:currentcolor]!", "[&.pu-shell_.calendar-pace]:[border-bottom:0px]!", "[&.pu-shell_.calendar-pace]:[border-bottom-width:0px]!", "[&.pu-shell_.calendar-pace]:[border-bottom-style:none]!", "[&.pu-shell_.calendar-pace]:[border-bottom-color:currentcolor]!", "[&.pu-shell_.calendar-pace]:[border-left:0px]!", "[&.pu-shell_.calendar-pace]:[border-left-width:0px]!", "[&.pu-shell_.calendar-pace]:[border-left-style:none]!", "[&.pu-shell_.calendar-pace]:[border-left-color:currentcolor]!", "[&.pu-shell_.calendar-pace]:[border-image:none]!", "[&.pu-shell_.calendar-pace]:[background-image:none]!", "[&.pu-shell_.calendar-pace]:[background-position:0%_0%]!", "[&.pu-shell_.calendar-pace]:[background-size:auto]!", "[&.pu-shell_.calendar-pace]:[background-repeat:repeat]!", "[&.pu-shell_.calendar-pace]:[background-origin:padding-box]!", "[&.pu-shell_.calendar-pace]:[background-clip:border-box]!", "[&.pu-shell_.calendar-pace]:[background-attachment:scroll]!", "[&.pu-shell_.calendar-pace]:[background-color:transparent]!", "[&.pu-shell_.calendar-pace]:[background:transparent]!",
+  // .pu-shell .history-rail-scroll
+  "[&.pu-shell_.history-rail-scroll]:[overscroll-behavior-x:contain]!", "[&.pu-shell_.history-rail-scroll]:[touch-action:pan-x_pan-y]!",
+  // .pu-shell .history-label-leader
+  "[&.pu-shell_.history-label-leader]:[position:absolute]!", "[&.pu-shell_.history-label-leader]:[left:50%]!", "[&.pu-shell_.history-label-leader]:[top:28px]!", "[&.pu-shell_.history-label-leader]:[height:1px]!", "[&.pu-shell_.history-label-leader]:[background-image:none]!", "[&.pu-shell_.history-label-leader]:[background-position:0%_0%]!", "[&.pu-shell_.history-label-leader]:[background-size:auto]!", "[&.pu-shell_.history-label-leader]:[background-repeat:repeat]!", "[&.pu-shell_.history-label-leader]:[background-origin:padding-box]!", "[&.pu-shell_.history-label-leader]:[background-clip:border-box]!", "[&.pu-shell_.history-label-leader]:[background-attachment:scroll]!", "[&.pu-shell_.history-label-leader]:[background-color:currentcolor]!", "[&.pu-shell_.history-label-leader]:[background:currentcolor]!", "[&.pu-shell_.history-label-leader]:[opacity:0.35]!", "[&.pu-shell_.history-label-leader]:[transform-origin:0_50%]!", "[&.pu-shell_.history-label-leader]:[pointer-events:none]!", "[&.pu-shell_.history-label-leader]:[z-index:-1]!",
+  // .pu-shell .history-rail-legend
+  "[&.pu-shell_.history-rail-legend]:[display:flex]!", "[&.pu-shell_.history-rail-legend]:[align-items:center]!", "[&.pu-shell_.history-rail-legend]:[gap:4px]!", "[&.pu-shell_.history-rail-legend]:[color:rgb(120,_113,_108)]!", "[&.pu-shell_.history-rail-legend]:[font-size:10px]!", "[&.pu-shell_.history-rail-legend]:[white-space:nowrap]!",
+  // .pu-shell .history-rail-legend svg
+  "[&.pu-shell_.history-rail-legend_svg]:[width:13px]!", "[&.pu-shell_.history-rail-legend_svg]:[height:13px]!",
+  // .pu-shell .legend-recorded
+  "[&.pu-shell_.legend-recorded]:[display:inline-flex]!", "[&.pu-shell_.legend-recorded]:[width:13px]!", "[&.pu-shell_.legend-recorded]:[height:13px]!",
+  // .pu-shell .legend-recorded svg
+  "[&.pu-shell_.legend-recorded_svg]:[width:13px]!", "[&.pu-shell_.legend-recorded_svg]:[height:13px]!",
+  // .pu-shell .calendar-footer svg
+  "[&.pu-shell_.calendar-footer_svg]:[width:13px]!", "[&.pu-shell_.calendar-footer_svg]:[height:13px]!",
+  // .pu-shell .calendar-coverage svg
+  "[&.pu-shell_.calendar-coverage_svg]:[width:13px]!", "[&.pu-shell_.calendar-coverage_svg]:[height:13px]!",
+  // .pu-saved
+  "[&_.pu-saved]:[margin-top:5px]", "[&_.pu-saved]:[margin-right:0px]", "[&_.pu-saved]:[margin-bottom:0px]", "[&_.pu-saved]:[margin-left:0px]", "[&_.pu-saved]:[margin:5px_0px_0px]", "[&_.pu-saved]:[color:rgb(161,_98,_7)]", "[&_.pu-saved]:[font-size:10px]",
+  // (max-width:350px) .pu-accounts
+  "[@media(max-width:350px)]:[&_.pu-accounts]:[gap:5px]",
+  // (max-width:350px) .pu-account
+  "[@media(max-width:350px)]:[&_.pu-account]:[padding-top:7px]", "[@media(max-width:350px)]:[&_.pu-account]:[padding-right:5px]", "[@media(max-width:350px)]:[&_.pu-account]:[padding-bottom:7px]", "[@media(max-width:350px)]:[&_.pu-account]:[padding-left:5px]", "[@media(max-width:350px)]:[&_.pu-account]:[padding:7px_5px]",
+  // (max-width:350px) .pu-account-name
+  "[@media(max-width:350px)]:[&_.pu-account-name]:[gap:4px]", "[@media(max-width:350px)]:[&_.pu-account-name]:[font-size:12px]",
+  // (max-width:350px) .pu-account .brand
+  "[@media(max-width:350px)]:[&_.pu-account_.brand]:[width:14px]", "[@media(max-width:350px)]:[&_.pu-account_.brand]:[height:14px]",
+  // (max-width:350px) .pu-reset-date
+  "[@media(max-width:350px)]:[&_.pu-reset-date]:[font-size:10px]",
+  // (max-width:350px) .pu-reset-left
+  "[@media(max-width:350px)]:[&_.pu-reset-left]:[font-size:9px]",
+  // .quota-bar
+  "[&_.quota-bar]:[height:6px]", "[&_.quota-bar]:[border-radius:4px]", "[&_.quota-bar]:[background-image:none]", "[&_.quota-bar]:[background-position:0%_0%]", "[&_.quota-bar]:[background-size:auto]", "[&_.quota-bar]:[background-repeat:repeat]", "[&_.quota-bar]:[background-origin:padding-box]", "[&_.quota-bar]:[background-clip:border-box]", "[&_.quota-bar]:[background-attachment:scroll]", "[&_.quota-bar]:[background-color:rgb(229,_227,_223)]", "[&_.quota-bar]:[background:rgb(229,_227,_223)]", "[&_.quota-bar]:[position:relative]", "[&_.quota-bar]:[margin-top:4px]",
+  // .quota-bar .fill
+  "[&_.quota-bar_.fill]:[position:absolute]", "[&_.quota-bar_.fill]:[left:0px]", "[&_.quota-bar_.fill]:[top:0px]", "[&_.quota-bar_.fill]:[bottom:0px]", "[&_.quota-bar_.fill]:[min-width:0px]", "[&_.quota-bar_.fill]:[border-radius:4px]", "[&_.quota-bar_.fill]:[background:var(--color)]",
+  // .quota-bar .elapsed
+  "[&_.quota-bar_.elapsed]:[position:absolute]", "[&_.quota-bar_.elapsed]:[top:-2px]", "[&_.quota-bar_.elapsed]:[width:1px]", "[&_.quota-bar_.elapsed]:[height:10px]", "[&_.quota-bar_.elapsed]:[background-image:none]", "[&_.quota-bar_.elapsed]:[background-position:0%_0%]", "[&_.quota-bar_.elapsed]:[background-size:auto]", "[&_.quota-bar_.elapsed]:[background-repeat:repeat]", "[&_.quota-bar_.elapsed]:[background-origin:padding-box]", "[&_.quota-bar_.elapsed]:[background-clip:border-box]", "[&_.quota-bar_.elapsed]:[background-attachment:scroll]", "[&_.quota-bar_.elapsed]:[background-color:rgb(53,_53,_48)]", "[&_.quota-bar_.elapsed]:[background:rgb(53,_53,_48)]",
+  // .calendar
+  "[&_.calendar]:[margin-top:2px]", "[&_.calendar]:[margin-right:12px]", "[&_.calendar]:[margin-bottom:0px]", "[&_.calendar]:[margin-left:12px]", "[&_.calendar]:[margin:2px_12px_0px]", "[&_.calendar]:[padding-top:6px]", "[&_.calendar]:[border-top:1px_solid_rgb(227,_224,_219)]", "[&_.calendar]:[border-top-width:1px]", "[&_.calendar]:[border-top-style:solid]", "[&_.calendar]:[border-top-color:rgb(227,_224,_219)]", "[&_.calendar]:[padding-bottom:9px]",
+  // .row-chart
+  "[&_.row-chart]:[padding-top:8px]", "[&_.row-chart]:[padding-right:12px]", "[&_.row-chart]:[padding-bottom:0px]", "[&_.row-chart]:[padding-left:12px]", "[&_.row-chart]:[padding:10px_12px_0px]", "[&_.row-chart]:[--identity-width:clamp(190px,56.4vw,260px)]",
+  // (min-width:600px) .calendar
+  "[@media(min-width:600px)]:[&_.calendar]:[margin-inline:20px]",
+  // (min-width:600px) .row-chart
+  "[@media(min-width:600px)]:[&_.row-chart]:[padding-inline:20px]",
+  // (max-width:350px) .row-chart
+  "[@media(max-width:350px)]:[&_.row-chart]:[padding-inline:10px]",
+  // (max-width:350px) .calendar
+  "[@media(max-width:350px)]:[&_.calendar]:[margin-inline:10px]",
+  // .quota-bar.last-reading .fill
+  "[&_.quota-bar.last-reading_.fill]:[background-image:none]", "[&_.quota-bar.last-reading_.fill]:[background-position:0%_0%]", "[&_.quota-bar.last-reading_.fill]:[background-size:auto]", "[&_.quota-bar.last-reading_.fill]:[background-repeat:repeat]", "[&_.quota-bar.last-reading_.fill]:[background-origin:padding-box]", "[&_.quota-bar.last-reading_.fill]:[background-clip:border-box]", "[&_.quota-bar.last-reading_.fill]:[background-attachment:scroll]", "[&_.quota-bar.last-reading_.fill]:[background-color:rgb(168,_164,_155)]", "[&_.quota-bar.last-reading_.fill]:[background:rgb(168,_164,_155)]",
+  // .quota-bar.unavailable
+  "[&_.quota-bar.unavailable]:[background-image:none]", "[&_.quota-bar.unavailable]:[background-position:0%_0%]", "[&_.quota-bar.unavailable]:[background-size:auto]", "[&_.quota-bar.unavailable]:[background-repeat:repeat]", "[&_.quota-bar.unavailable]:[background-origin:padding-box]", "[&_.quota-bar.unavailable]:[background-clip:border-box]", "[&_.quota-bar.unavailable]:[background-attachment:scroll]", "[&_.quota-bar.unavailable]:[background-color:transparent]", "[&_.quota-bar.unavailable]:[background:transparent]", "[&_.quota-bar.unavailable]:[border:1px_solid_rgb(217,_214,_207)]", "[&_.quota-bar.unavailable]:[border-width:1px]", "[&_.quota-bar.unavailable]:[border-style:solid]", "[&_.quota-bar.unavailable]:[border-color:rgb(217,_214,_207)]", "[&_.quota-bar.unavailable]:[border-top:1px_solid_rgb(217,_214,_207)]", "[&_.quota-bar.unavailable]:[border-top-width:1px]", "[&_.quota-bar.unavailable]:[border-top-style:solid]", "[&_.quota-bar.unavailable]:[border-top-color:rgb(217,_214,_207)]", "[&_.quota-bar.unavailable]:[border-right:1px_solid_rgb(217,_214,_207)]", "[&_.quota-bar.unavailable]:[border-right-width:1px]", "[&_.quota-bar.unavailable]:[border-right-style:solid]", "[&_.quota-bar.unavailable]:[border-right-color:rgb(217,_214,_207)]", "[&_.quota-bar.unavailable]:[border-bottom:1px_solid_rgb(217,_214,_207)]", "[&_.quota-bar.unavailable]:[border-bottom-width:1px]", "[&_.quota-bar.unavailable]:[border-bottom-style:solid]", "[&_.quota-bar.unavailable]:[border-bottom-color:rgb(217,_214,_207)]", "[&_.quota-bar.unavailable]:[border-left:1px_solid_rgb(217,_214,_207)]", "[&_.quota-bar.unavailable]:[border-left-width:1px]", "[&_.quota-bar.unavailable]:[border-left-style:solid]", "[&_.quota-bar.unavailable]:[border-left-color:rgb(217,_214,_207)]", "[&_.quota-bar.unavailable]:[border-image:none]",
+  // .history-grid
+  "[&_.history-grid]:[--identity-width:clamp(190px,50vw,212px)]", "[&_.history-grid]:[display:grid]", "[&_.history-grid]:[grid-template-columns:var(--identity-width)_minmax(0,1fr)]", "[&_.history-grid]:[align-items:start]",
+  // .history-fixed
+  "[&_.history-fixed]:[min-width:0px]",
+  // .history-fixed-row
+  "[&_.history-fixed-row]:[min-height:45px]", "[&_.history-fixed-row]:[border-top:1px_solid_rgb(231,_227,_220)]", "[&_.history-fixed-row]:[border-top-width:1px]", "[&_.history-fixed-row]:[border-top-style:solid]", "[&_.history-fixed-row]:[border-top-color:rgb(231,_227,_220)]",
+  // .history-rail-tools
+  "[&_.history-rail-tools]:[height:28px]", "[&_.history-rail-tools]:[display:flex]", "[&_.history-rail-tools]:[align-items:center]", "[&_.history-rail-tools]:[gap:6px]", "[&_.history-rail-tools]:[padding-right:7px]", "[&_.history-rail-tools]:[color:rgb(130,_123,_114)]", "[&_.history-rail-tools]:[font-size:10px]",
+  // .history-rail-legend
+  "[&_.history-rail-legend]:[display:flex]", "[&_.history-rail-legend]:[align-items:center]", "[&_.history-rail-legend]:[gap:4px]", "[&_.history-rail-legend]:[padding-top:0px]", "[&_.history-rail-legend]:[padding-right:0px]", "[&_.history-rail-legend]:[padding-bottom:0px]", "[&_.history-rail-legend]:[padding-left:0px]", "[&_.history-rail-legend]:[padding:0px]", "[&_.history-rail-legend]:[font-size:10px]", "[&_.history-rail-legend]:[white-space:nowrap]", "[&_.history-rail-legend]:[min-height:26px]",
+  // .history-rail-legend svg
+  "[&_.history-rail-legend_svg]:[width:12px]", "[&_.history-rail-legend_svg]:[height:12px]", "[&_.history-rail-legend_svg]:[margin-left:1px]",
+  // .legend-recorded
+  "[&_.legend-recorded]:[width:5px]", "[&_.legend-recorded]:[height:5px]", "[&_.legend-recorded]:[border-radius:50%]", "[&_.legend-recorded]:[background-image:none]", "[&_.legend-recorded]:[background-position:0%_0%]", "[&_.legend-recorded]:[background-size:auto]", "[&_.legend-recorded]:[background-repeat:repeat]", "[&_.legend-recorded]:[background-origin:padding-box]", "[&_.legend-recorded]:[background-clip:border-box]", "[&_.legend-recorded]:[background-attachment:scroll]", "[&_.legend-recorded]:[background-color:rgb(140,_133,_124)]", "[&_.legend-recorded]:[background:rgb(140,_133,_124)]",
+  // .history-rail-month
+  "[&_.history-rail-month]:[margin-left:auto]", "[&_.history-rail-month]:[white-space:nowrap]",
+  // .history-today
+  "[&_.history-today]:[padding-top:0px]", "[&_.history-today]:[padding-right:0px]", "[&_.history-today]:[padding-bottom:0px]", "[&_.history-today]:[padding-left:0px]", "[&_.history-today]:[padding:0px]", "[&_.history-today]:[color:rgb(62,_119,_98)]", "[&_.history-today]:[font-size:10px]", "[&_.history-today]:[min-height:26px]", "[&_.history-today]:[visibility:hidden]",
+  // .history-rail-scroll
+  "[&_.history-rail-scroll]:[min-width:0px]", "[&_.history-rail-scroll]:[overflow-x:auto]", "[&_.history-rail-scroll]:[overflow-y:hidden]", "[&_.history-rail-scroll]:[overscroll-behavior-x:contain]", "[&_.history-rail-scroll]:[touch-action:pan-x_pan-y_pinch-zoom]", "[&_.history-rail-scroll]:[scrollbar-width:none]", "[&_.history-rail-scroll]:[border-left:1px_solid_rgb(231,_227,_220)]", "[&_.history-rail-scroll]:[border-left-width:1px]", "[&_.history-rail-scroll]:[border-left-style:solid]", "[&_.history-rail-scroll]:[border-left-color:rgb(231,_227,_220)]",
+  // .history-rail-scroll::-webkit-scrollbar
+  "[&_.history-rail-scroll::-webkit-scrollbar]:[display:none]",
+  // .history-rail-scroll:focus-visible
+  "[&_.history-rail-scroll:focus-visible]:[outline:2px_solid_#6c8f7d]", "[&_.history-rail-scroll:focus-visible]:[outline-offset:-2px]",
+  // .history-rail-canvas
+  "[&_.history-rail-canvas]:[position:relative]", "[&_.history-rail-canvas]:[min-width:100%]",
+  // .history-rail-dates
+  "[&_.history-rail-dates]:[height:28px]", "[&_.history-rail-dates]:[display:grid]", "[&_.history-rail-dates]:[grid-auto-flow:column]", "[&_.history-rail-dates]:[grid-auto-columns:var(--rail-cell)]", "[&_.history-rail-dates]:[font-size:11px]", "[&_.history-rail-dates]:[line-height:13px]", "[&_.history-rail-dates]:[color:rgb(142,_135,_125)]", "[&_.history-rail-dates]:[text-align:center]",
+  // .history-rail-dates>span
+  "[&_.history-rail-dates>span]:[display:flex]", "[&_.history-rail-dates>span]:[flex-direction:column]", "[&_.history-rail-dates>span]:[align-items:center]", "[&_.history-rail-dates>span]:[padding-top:1px]", "[&_.history-rail-dates>span]:[font-variant-numeric:tabular-nums]",
+  // .history-rail-dates b
+  "[&_.history-rail-dates_b]:[font-weight:400]", "[&_.history-rail-dates_b]:[color:rgb(117,_109,_99)]",
+  // .history-rail-dates .is-today
+  "[&_.history-rail-dates_.is-today]:[font-weight:600]", "[&_.history-rail-dates_.is-today]:[color:rgb(78,_73,_65)]",
+  // .history-rail-dates .is-today b
+  "[&_.history-rail-dates_.is-today_b]:[font-weight:600]", "[&_.history-rail-dates_.is-today_b]:[color:rgb(78,_73,_65)]",
+  // .history-rail-lane
+  "[&_.history-rail-lane]:[position:relative]", "[&_.history-rail-lane]:[border-top:1px_solid_rgb(231,_227,_220)]", "[&_.history-rail-lane]:[border-top-width:1px]", "[&_.history-rail-lane]:[border-top-style:solid]", "[&_.history-rail-lane]:[border-top-color:rgb(231,_227,_220)]",
+  // .history-day-shade
+  "[&_.history-day-shade]:[position:absolute]", "[&_.history-day-shade]:[top:0px]", "[&_.history-day-shade]:[bottom:0px]", "[&_.history-day-shade]:[background-image:none]", "[&_.history-day-shade]:[background-position:0%_0%]", "[&_.history-day-shade]:[background-size:auto]", "[&_.history-day-shade]:[background-repeat:repeat]", "[&_.history-day-shade]:[background-origin:padding-box]", "[&_.history-day-shade]:[background-clip:border-box]", "[&_.history-day-shade]:[background-attachment:scroll]", "[&_.history-day-shade]:[background-color:rgb(239,_237,_232)]", "[&_.history-day-shade]:[background:rgb(239,_237,_232)]", "[&_.history-day-shade]:[pointer-events:none]",
+  // .history-now
+  "[&_.history-now]:[position:absolute]", "[&_.history-now]:[top:0px]", "[&_.history-now]:[bottom:0px]", "[&_.history-now]:[border-left:1px_solid_rgb(153,_149,_140)]", "[&_.history-now]:[border-left-width:1px]", "[&_.history-now]:[border-left-style:solid]", "[&_.history-now]:[border-left-color:rgb(153,_149,_140)]", "[&_.history-now]:[pointer-events:none]",
+  // .history-baseline
+  "[&_.history-baseline]:[position:absolute]", "[&_.history-baseline]:[left:0px]", "[&_.history-baseline]:[right:0px]", "[&_.history-baseline]:[top:21px]", "[&_.history-baseline]:[border-top:1px_solid_rgb(222,_218,_211)]", "[&_.history-baseline]:[border-top-width:1px]", "[&_.history-baseline]:[border-top-style:solid]", "[&_.history-baseline]:[border-top-color:rgb(222,_218,_211)]", "[&_.history-baseline]:[pointer-events:none]",
+  // .history-usage-marker
+  "[&_.history-usage-marker]:[position:absolute]", "[&_.history-usage-marker]:[top:0px]", "[&_.history-usage-marker]:[width:40px]", "[&_.history-usage-marker]:[height:44px]", "[&_.history-usage-marker]:[padding-top:0px]", "[&_.history-usage-marker]:[padding-right:0px]", "[&_.history-usage-marker]:[padding-bottom:0px]", "[&_.history-usage-marker]:[padding-left:0px]", "[&_.history-usage-marker]:[padding:0px]", "[&_.history-usage-marker]:[transform:translateX(-50%)]", "[&_.history-usage-marker]:[color:var(--color)]", "[&_.history-usage-marker]:[z-index:2]", "[&_.history-usage-marker]:[font-size:11px]", "[&_.history-usage-marker]:[font-variant-numeric:tabular-nums]",
+  // .history-usage-point
+  "[&_.history-usage-point]:[position:absolute]", "[&_.history-usage-point]:[left:50%]", "[&_.history-usage-point]:[top:17px]", "[&_.history-usage-point]:[width:7px]", "[&_.history-usage-point]:[height:7px]", "[&_.history-usage-point]:[transform:translateX(-50%)]", "[&_.history-usage-point]:[border-radius:50%]", "[&_.history-usage-point]:[background:var(--color)]", "[&_.history-usage-point]:[border:1px_solid_rgb(245,_245,_244)]", "[&_.history-usage-point]:[border-width:1px]", "[&_.history-usage-point]:[border-style:solid]", "[&_.history-usage-point]:[border-color:rgb(245,_245,_244)]", "[&_.history-usage-point]:[border-top:1px_solid_rgb(245,_245,_244)]", "[&_.history-usage-point]:[border-top-width:1px]", "[&_.history-usage-point]:[border-top-style:solid]", "[&_.history-usage-point]:[border-top-color:rgb(245,_245,_244)]", "[&_.history-usage-point]:[border-right:1px_solid_rgb(245,_245,_244)]", "[&_.history-usage-point]:[border-right-width:1px]", "[&_.history-usage-point]:[border-right-style:solid]", "[&_.history-usage-point]:[border-right-color:rgb(245,_245,_244)]", "[&_.history-usage-point]:[border-bottom:1px_solid_rgb(245,_245,_244)]", "[&_.history-usage-point]:[border-bottom-width:1px]", "[&_.history-usage-point]:[border-bottom-style:solid]", "[&_.history-usage-point]:[border-bottom-color:rgb(245,_245,_244)]", "[&_.history-usage-point]:[border-left:1px_solid_rgb(245,_245,_244)]", "[&_.history-usage-point]:[border-left-width:1px]", "[&_.history-usage-point]:[border-left-style:solid]", "[&_.history-usage-point]:[border-left-color:rgb(245,_245,_244)]", "[&_.history-usage-point]:[border-image:none]",
+  // .projected .history-usage-point
+  "[&_.projected_.history-usage-point]:[background-image:none]", "[&_.projected_.history-usage-point]:[background-position:0%_0%]", "[&_.projected_.history-usage-point]:[background-size:auto]", "[&_.projected_.history-usage-point]:[background-repeat:repeat]", "[&_.projected_.history-usage-point]:[background-origin:padding-box]", "[&_.projected_.history-usage-point]:[background-clip:border-box]", "[&_.projected_.history-usage-point]:[background-attachment:scroll]", "[&_.projected_.history-usage-point]:[background-color:rgb(245,_245,_244)]", "[&_.projected_.history-usage-point]:[background:rgb(245,_245,_244)]", "[&_.projected_.history-usage-point]:[border:1.5px_dashed_var(--color)]",
+  // .history-usage-value
+  "[&_.history-usage-value]:[position:absolute]", "[&_.history-usage-value]:[left:50%]", "[&_.history-usage-value]:[top:27px]", "[&_.history-usage-value]:[line-height:14px]", "[&_.history-usage-value]:[white-space:nowrap]", "[&_.history-usage-value]:[transform:translateX(-50%)]", "[&_.history-usage-value]:[color:rgb(112,_105,_95)]", "[&_.history-usage-value]:[background-image:none]", "[&_.history-usage-value]:[background-position:0%_0%]", "[&_.history-usage-value]:[background-size:auto]", "[&_.history-usage-value]:[background-repeat:repeat]", "[&_.history-usage-value]:[background-origin:padding-box]", "[&_.history-usage-value]:[background-clip:border-box]", "[&_.history-usage-value]:[background-attachment:scroll]", "[&_.history-usage-value]:[background-color:rgb(245,_245,_244)]", "[&_.history-usage-value]:[background:rgb(245,_245,_244)]", "[&_.history-usage-value]:[padding-top:0px]", "[&_.history-usage-value]:[padding-right:1px]", "[&_.history-usage-value]:[padding-bottom:0px]", "[&_.history-usage-value]:[padding-left:1px]", "[&_.history-usage-value]:[padding:0px_1px]",
+  // .recorded .history-usage-value
+  "[&_.recorded_.history-usage-value]:[top:1px]",
+  // .daily-bars
+  "[&_.daily-bars]:[display:grid]", "[&_.daily-bars]:[grid-template-columns:repeat(7,minmax(0,1fr))]", "[&_.daily-bars]:[height:71px]", "[&_.daily-bars]:[gap:3px]", "[&_.daily-bars]:[position:relative]", "[&_.daily-bars]:[touch-action:pan-y]",
+  // .daily-bar
+  "[&_.daily-bar]:[display:flex]", "[&_.daily-bar]:[flex-direction:column]", "[&_.daily-bar]:[min-width:0px]", "[&_.daily-bar]:[padding-top:0px]", "[&_.daily-bar]:[padding-right:0px]", "[&_.daily-bar]:[padding-bottom:0px]", "[&_.daily-bar]:[padding-left:0px]", "[&_.daily-bar]:[padding:0px]", "[&_.daily-bar]:[height:71px]", "[&_.daily-bar]:[gap:3px]",
+  // .daily-bar-track
+  "[&_.daily-bar-track]:[display:block]", "[&_.daily-bar-track]:[position:relative]", "[&_.daily-bar-track]:[height:52px]", "[&_.daily-bar-track]:[width:100%]", "[&_.daily-bar-track]:[border-bottom:1px_solid_rgb(216,_212,_204)]", "[&_.daily-bar-track]:[border-bottom-width:1px]", "[&_.daily-bar-track]:[border-bottom-style:solid]", "[&_.daily-bar-track]:[border-bottom-color:rgb(216,_212,_204)]", "[&_.daily-bar-track]:[background-image:none]", "[&_.daily-bar-track]:[background-position:0%_0%]", "[&_.daily-bar-track]:[background-size:auto]", "[&_.daily-bar-track]:[background-repeat:repeat]", "[&_.daily-bar-track]:[background-origin:padding-box]", "[&_.daily-bar-track]:[background-clip:border-box]", "[&_.daily-bar-track]:[background-attachment:scroll]", "[&_.daily-bar-track]:[background-color:transparent]",
+  // .daily-fill
+  "[&_.daily-fill]:[display:block]", "[&_.daily-fill]:[position:absolute]", "[&_.daily-fill]:[bottom:0px]", "[&_.daily-fill]:[left:0px]", "[&_.daily-fill]:[width:100%]", "[&_.daily-fill]:[border-radius:2px_2px_0_0]", "[&_.daily-fill]:[background:var(--daily-color)]", "[&_.daily-fill]:[opacity:0.82]",
+  // .daily-bar.partial .daily-fill
+  "[&_.daily-bar.partial_.daily-fill]:[opacity:0.75]",
+  // .daily-bar.missing .daily-bar-track
+  "[&_.daily-bar.missing_.daily-bar-track]:[background-image:repeating-linear-gradient(135deg,_transparent,_transparent_3px,_rgba(220,_215,_205,_0.533)_3px,_rgba(220,_215,_205,_0.533)_4px)]", "[&_.daily-bar.missing_.daily-bar-track]:[background-position:0%_0%]", "[&_.daily-bar.missing_.daily-bar-track]:[background-size:auto]", "[&_.daily-bar.missing_.daily-bar-track]:[background-repeat:repeat]", "[&_.daily-bar.missing_.daily-bar-track]:[background-origin:padding-box]", "[&_.daily-bar.missing_.daily-bar-track]:[background-clip:border-box]", "[&_.daily-bar.missing_.daily-bar-track]:[background-attachment:scroll]", "[&_.daily-bar.missing_.daily-bar-track]:[background-color:transparent]", "[&_.daily-bar.missing_.daily-bar-track]:[background:repeating-linear-gradient(135deg,_transparent,_transparent_3px,_rgba(220,_215,_205,_0.533)_3px,_rgba(220,_215,_205,_0.533)_4px)]",
+  // .daily-zero
+  "[&_.daily-zero]:[position:absolute]", "[&_.daily-zero]:[bottom:0px]", "[&_.daily-zero]:[left:50%]", "[&_.daily-zero]:[transform:translateX(-50%)]", "[&_.daily-zero]:[width:3px]", "[&_.daily-zero]:[height:3px]", "[&_.daily-zero]:[background:var(--daily-color)]", "[&_.daily-zero]:[border-radius:50%]",
+  // .daily-bar.partial .daily-zero
+  "[&_.daily-bar.partial_.daily-zero]:[background-image:none]", "[&_.daily-bar.partial_.daily-zero]:[background-position:0%_0%]", "[&_.daily-bar.partial_.daily-zero]:[background-size:auto]", "[&_.daily-bar.partial_.daily-zero]:[background-repeat:repeat]", "[&_.daily-bar.partial_.daily-zero]:[background-origin:padding-box]", "[&_.daily-bar.partial_.daily-zero]:[background-clip:border-box]", "[&_.daily-bar.partial_.daily-zero]:[background-attachment:scroll]", "[&_.daily-bar.partial_.daily-zero]:[background-color:transparent]", "[&_.daily-bar.partial_.daily-zero]:[background:transparent]", "[&_.daily-bar.partial_.daily-zero]:[border:1px_solid_var(--daily-color)]",
+  // .daily-bar.is-today .daily-fill
+  "[&_.daily-bar.is-today_.daily-fill]:[border-top:1px_dashed_rgb(245,_245,_244)]", "[&_.daily-bar.is-today_.daily-fill]:[border-top-width:1px]", "[&_.daily-bar.is-today_.daily-fill]:[border-top-style:dashed]", "[&_.daily-bar.is-today_.daily-fill]:[border-top-color:rgb(245,_245,_244)]",
+  // .daily-bar small
+  "[&_.daily-bar_small]:[display:block]", "[&_.daily-bar_small]:[height:13px]", "[&_.daily-bar_small]:[line-height:13px]", "[&_.daily-bar_small]:[font-size:10px]", "[&_.daily-bar_small]:[color:rgb(138,_129,_117)]", "[&_.daily-bar_small]:[font-variant-numeric:tabular-nums]",
+  // .daily-bar:focus-visible
+  "[&_.daily-bar:focus-visible]:[outline-offset:1px]", "[&_.daily-bar:focus-visible]:[z-index:1]",
+  // .daily-selected .daily-bar-track
+  "[&_.daily-selected_.daily-bar-track]:[outline:1px_solid_var(--daily-color)]", "[&_.daily-selected_.daily-bar-track]:[outline-offset:1px]", "[&_.daily-selected_.daily-bar-track]:[border-radius:2px]",
+  // (max-width:350px) .daily-bars
+  "[@media(max-width:350px)]:[&_.daily-bars]:[gap:2px]",
+  // .daily-loading
+  "[&_.daily-loading]:[padding-top:20px]", "[&_.daily-loading]:[padding-right:12px]", "[&_.daily-loading]:[padding-bottom:20px]", "[&_.daily-loading]:[padding-left:12px]", "[&_.daily-loading]:[padding:20px_12px]", "[&_.daily-loading]:[color:rgb(120,_113,_108)]", "[&_.daily-loading]:[font-size:13px]",
+ ];
+ const dialogUtilities=[
+  // .pu-dialog
+  "[&.pu-dialog]:[max-height:calc(100dvh_-_80px)]", "[&.pu-dialog]:[padding-top:0px]", "[&.pu-dialog]:[padding-right:0px]", "[&.pu-dialog]:[padding-bottom:0px]", "[&.pu-dialog]:[padding-left:0px]", "[&.pu-dialog]:[padding:0px]", "[&.pu-dialog]:[border:1px_solid_rgb(230,_227,_222)]", "[&.pu-dialog]:[border-width:1px]", "[&.pu-dialog]:[border-style:solid]", "[&.pu-dialog]:[border-color:rgb(230,_227,_222)]", "[&.pu-dialog]:[border-top:1px_solid_rgb(230,_227,_222)]", "[&.pu-dialog]:[border-top-width:1px]", "[&.pu-dialog]:[border-top-style:solid]", "[&.pu-dialog]:[border-top-color:rgb(230,_227,_222)]", "[&.pu-dialog]:[border-right:1px_solid_rgb(230,_227,_222)]", "[&.pu-dialog]:[border-right-width:1px]", "[&.pu-dialog]:[border-right-style:solid]", "[&.pu-dialog]:[border-right-color:rgb(230,_227,_222)]", "[&.pu-dialog]:[border-bottom:1px_solid_rgb(230,_227,_222)]", "[&.pu-dialog]:[border-bottom-width:1px]", "[&.pu-dialog]:[border-bottom-style:solid]", "[&.pu-dialog]:[border-bottom-color:rgb(230,_227,_222)]", "[&.pu-dialog]:[border-left:1px_solid_rgb(230,_227,_222)]", "[&.pu-dialog]:[border-left-width:1px]", "[&.pu-dialog]:[border-left-style:solid]", "[&.pu-dialog]:[border-left-color:rgb(230,_227,_222)]", "[&.pu-dialog]:[border-image:none]", "[&.pu-dialog]:[border-radius:14px]", "[&.pu-dialog]:[background-image:none]", "[&.pu-dialog]:[background-position:0%_0%]", "[&.pu-dialog]:[background-size:auto]", "[&.pu-dialog]:[background-repeat:repeat]", "[&.pu-dialog]:[background-origin:padding-box]", "[&.pu-dialog]:[background-clip:border-box]", "[&.pu-dialog]:[background-attachment:scroll]", "[&.pu-dialog]:[background-color:rgb(255,_255,_255)]", "[&.pu-dialog]:[background:rgb(255,_255,_255)]", "[&.pu-dialog]:[color:rgb(41,_37,_36)]", "[&.pu-dialog]:[box-shadow:0_16px_50px_#29252430]", "[&.pu-dialog]:[overflow:auto]",
+  // .pu-dialog::backdrop
+  "[&.pu-dialog::backdrop]:[background-image:none]", "[&.pu-dialog::backdrop]:[background-position:0%_0%]", "[&.pu-dialog::backdrop]:[background-size:auto]", "[&.pu-dialog::backdrop]:[background-repeat:repeat]", "[&.pu-dialog::backdrop]:[background-origin:padding-box]", "[&.pu-dialog::backdrop]:[background-clip:border-box]", "[&.pu-dialog::backdrop]:[background-attachment:scroll]", "[&.pu-dialog::backdrop]:[background-color:rgba(41,_37,_36,_0.208)]", "[&.pu-dialog::backdrop]:[background:rgba(41,_37,_36,_0.208)]",
+  // .pu-dialog>header
+  "[&.pu-dialog>header]:[position:sticky]", "[&.pu-dialog>header]:[top:0px]", "[&.pu-dialog>header]:[z-index:1]", "[&.pu-dialog>header]:[display:flex]", "[&.pu-dialog>header]:[align-items:center]", "[&.pu-dialog>header]:[justify-content:space-between]", "[&.pu-dialog>header]:[padding-top:3px]", "[&.pu-dialog>header]:[padding-right:7px]", "[&.pu-dialog>header]:[padding-bottom:3px]", "[&.pu-dialog>header]:[padding-left:14px]", "[&.pu-dialog>header]:[padding:3px_7px_3px_14px]", "[&.pu-dialog>header]:[border-bottom:1px_solid_rgb(238,_234,_228)]", "[&.pu-dialog>header]:[border-bottom-width:1px]", "[&.pu-dialog>header]:[border-bottom-style:solid]", "[&.pu-dialog>header]:[border-bottom-color:rgb(238,_234,_228)]", "[&.pu-dialog>header]:[background-image:none]", "[&.pu-dialog>header]:[background-position:0%_0%]", "[&.pu-dialog>header]:[background-size:auto]", "[&.pu-dialog>header]:[background-repeat:repeat]", "[&.pu-dialog>header]:[background-origin:padding-box]", "[&.pu-dialog>header]:[background-clip:border-box]", "[&.pu-dialog>header]:[background-attachment:scroll]", "[&.pu-dialog>header]:[background-color:rgb(255,_255,_255)]", "[&.pu-dialog>header]:[background:rgb(255,_255,_255)]",
+  // .pu-dialog h2
+  "[&.pu-dialog_h2]:[margin-top:0px]", "[&.pu-dialog_h2]:[margin-right:0px]", "[&.pu-dialog_h2]:[margin-bottom:0px]", "[&.pu-dialog_h2]:[margin-left:0px]", "[&.pu-dialog_h2]:[margin:0px]", "[&.pu-dialog_h2]:[font-size:15px]", "[&.pu-dialog_h2]:[font-weight:600]",
+  // .pu-dialog [data-usage-close]
+  "[&.pu-dialog_[data-usage-close]]:[width:40px]", "[&.pu-dialog_[data-usage-close]]:[height:40px]", "[&.pu-dialog_[data-usage-close]]:[border:0px]", "[&.pu-dialog_[data-usage-close]]:[border-width:0px]", "[&.pu-dialog_[data-usage-close]]:[border-style:none]", "[&.pu-dialog_[data-usage-close]]:[border-color:currentcolor]", "[&.pu-dialog_[data-usage-close]]:[border-top:0px]", "[&.pu-dialog_[data-usage-close]]:[border-top-width:0px]", "[&.pu-dialog_[data-usage-close]]:[border-top-style:none]", "[&.pu-dialog_[data-usage-close]]:[border-top-color:currentcolor]", "[&.pu-dialog_[data-usage-close]]:[border-right:0px]", "[&.pu-dialog_[data-usage-close]]:[border-right-width:0px]", "[&.pu-dialog_[data-usage-close]]:[border-right-style:none]", "[&.pu-dialog_[data-usage-close]]:[border-right-color:currentcolor]", "[&.pu-dialog_[data-usage-close]]:[border-bottom:0px]", "[&.pu-dialog_[data-usage-close]]:[border-bottom-width:0px]", "[&.pu-dialog_[data-usage-close]]:[border-bottom-style:none]", "[&.pu-dialog_[data-usage-close]]:[border-bottom-color:currentcolor]", "[&.pu-dialog_[data-usage-close]]:[border-left:0px]", "[&.pu-dialog_[data-usage-close]]:[border-left-width:0px]", "[&.pu-dialog_[data-usage-close]]:[border-left-style:none]", "[&.pu-dialog_[data-usage-close]]:[border-left-color:currentcolor]", "[&.pu-dialog_[data-usage-close]]:[border-image:none]", "[&.pu-dialog_[data-usage-close]]:[background-image:none]", "[&.pu-dialog_[data-usage-close]]:[background-position:0%_0%]", "[&.pu-dialog_[data-usage-close]]:[background-size:auto]", "[&.pu-dialog_[data-usage-close]]:[background-repeat:repeat]", "[&.pu-dialog_[data-usage-close]]:[background-origin:padding-box]", "[&.pu-dialog_[data-usage-close]]:[background-clip:border-box]", "[&.pu-dialog_[data-usage-close]]:[background-attachment:scroll]", "[&.pu-dialog_[data-usage-close]]:[background-color:transparent]", "[&.pu-dialog_[data-usage-close]]:[background:none]", "[&.pu-dialog_[data-usage-close]]:[font-style:normal]", "[&.pu-dialog_[data-usage-close]]:[font-variant:normal]", "[&.pu-dialog_[data-usage-close]]:[font-weight:normal]", "[&.pu-dialog_[data-usage-close]]:[font-size:24px]", "[&.pu-dialog_[data-usage-close]]:[line-height:1]", "[&.pu-dialog_[data-usage-close]]:[font-family:sans-serif]", "[&.pu-dialog_[data-usage-close]]:[font:24px_/_1_sans-serif]", "[&.pu-dialog_[data-usage-close]]:[color:rgb(120,_113,_108)]",
+  // .pu-dialog-body
+  "[&.pu-dialog-body]:[padding-top:12px]", "[&.pu-dialog-body]:[padding-right:14px]", "[&.pu-dialog-body]:[padding-bottom:12px]", "[&.pu-dialog-body]:[padding-left:14px]", "[&.pu-dialog-body]:[padding:12px_14px]", "[&.pu-dialog-body]:[font-size:13px]", "[&.pu-dialog-body]:[line-height:1.55]", "[&.pu-dialog-body]:[overflow-wrap:anywhere]",
+  // .pu-dialog-body>p
+  "[&.pu-dialog-body>p]:[margin-top:0px]", "[&.pu-dialog-body>p]:[margin-right:0px]", "[&.pu-dialog-body>p]:[margin-bottom:12px]", "[&.pu-dialog-body>p]:[margin-left:0px]", "[&.pu-dialog-body>p]:[margin:0px_0px_12px]",
+  // .pu-dialog-body .pu-note
+  "[&.pu-dialog-body_.pu-note]:[font-size:11px]", "[&.pu-dialog-body_.pu-note]:[color:rgb(120,_113,_108)]",
+  // .pu-dialog-body>section
+  "[&.pu-dialog-body>section]:[margin-inline:-14px]",
+ ];
+
  const $=id=>document.getElementById(id);
  const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const P={codex:{name:'Codex',color:'#169b7e'},gemini:{name:'Gemini',color:'#2a71ce'},claude:{name:'Claude',color:'#c77d55'}};
@@ -353,7 +559,7 @@ function showDailyDay(key,day){
  }
  function ensureDialog(){
   let dialog=$('phone-usage-dialog');if(dialog)return dialog;
-  dialog=document.createElement('dialog');dialog.id='phone-usage-dialog';dialog.className='pu-dialog';dialog.setAttribute('aria-labelledby','pu-dialog-title');
+  dialog=document.createElement('dialog');dialog.id='phone-usage-dialog';dialog.className='pu-dialog';dialog.classList.add(...dialogUtilities);dialog.setAttribute('aria-labelledby','pu-dialog-title');
   dialog.innerHTML='<header><h2 id="pu-dialog-title"></h2><button type="button" data-usage-close aria-label="Close usage details">×</button></header><div class="pu-dialog-body"></div>';
   dialog.addEventListener('click',event=>{if(event.target===dialog||event.target.closest('[data-usage-close]'))closeTip();});
   dialog.addEventListener('close',()=>{if(dialogFocus?.isConnected)dialogFocus.focus({preventScroll:true});dialogFocus=null;});
@@ -387,6 +593,7 @@ function showDailyDay(key,day){
    if(!host.querySelector('.pu-shell')){
     host.innerHTML=`<div class="pu-shell"><section class="pu-current" aria-label="Current weekly allowances"><h2>Weekly allowances</h2><div class="pu-accounts"></div></section>${NowUsage.workspace({timeline:rowChart()})}<div id="usage-recent-sessions"></div></div>`;
    }
+   const shell=host.querySelector('.pu-shell');if(!shell.dataset.utilities){shell.classList.add(...usageUtilities);shell.dataset.utilities='true';}
    setHTML(host.querySelector('.pu-accounts'),currentAccounts());
    updateTimelineIdentity();
    setHTML($('usage-recent-sessions'),window.NowRecentUsage?.render(cacheRows(),{now})||'');
