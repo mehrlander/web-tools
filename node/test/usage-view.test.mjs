@@ -11,6 +11,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { makeWindow, startAlpine, tick, repoRoot, withBase64 } from './bootstrap.mjs';
 
@@ -80,6 +81,13 @@ const $$ = (sel) => [...host.querySelectorAll(sel)];
 const text = (el) => el.textContent.replace(/\s+/g, ' ').trim();
 const widths = (el) => [...el.querySelectorAll('[data-usage-part]')].map((x) => +x.style.width.replace('%', ''));
 const blobs = () => calls.filter((c) => c.startsWith('git/blobs/'));
+// The page shows an instant as a date in the reader's zone, so what it should
+// say for one is worked out here from the runner's own zone, not written down
+// as one zone's answer. A session's day is shown as its record writes it, in
+// any zone, so those stay written out below.
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const localDay = (iso) => { const d = new Date(iso); return MONTHS[d.getMonth()] + ' ' + d.getDate(); };
+const rx = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 // The pane keeps a clock running for Continue; without this the file never ends.
 test.after(() => { data.destroy(); window.close(); });
 const show = async (key) => { $(`[data-at="usage-tab-${key}"]`).click(); await settle(); };
@@ -92,7 +100,7 @@ test('the first visit lists the store by three levels and reads each file once, 
   assert.equal(data.error, '');
   assert.equal(keptRows.size, 5, 'each read file is kept in this browser under its sha');
   assert.equal(keptRows.get('2026-11-01-aaaa0001').sha, blobSha(store.get('2026-11-01-aaaa0001')));
-  assert.match(text($('[data-usage]')), /5 sessions · Oct 20 to Nov 4/);
+  assert.match(text($('[data-usage]')), new RegExp('5 sessions · Oct 20 to ' + localDay('2026-11-04T09:45:00.000Z')));
   assert.equal($('a[data-usage-source]').getAttribute('href'),
     'https://github.com/mehrlander/web-tools-private/tree/main/sessions/usage', 'the view\'s jump-over to what it reads');
   assert.deepEqual(problems, [], 'mounting is quiet');
@@ -108,7 +116,10 @@ test('five pills, Spend open: each pane is a look anchor whose opener is its pil
     assert.ok($(`[data-at="${pane.getAttribute('data-at-open')}"]`), key + ': its opener is on the page');
     assert.equal(pane.style.display === 'none', key !== 'spend', key + ' shown');
   }
-  assert.ok($('[data-slot="frame:subtabs"]'));
+  const strip = $('[data-slot="frame:subtabs"]');
+  assert.match(strip.className, /\boverflow-x-auto\b/, 'one line that scrolls sideways where it does not fit');
+  assert.doesNotMatch(strip.className, /flex-wrap/, 'and never a pill alone on a second line');
+  for (const t of tabs) assert.match(t.className, /\bshrink-0\b.*\bwhitespace-nowrap\b/);
   assert.ok($('[data-pattern="figure"]'));
 });
 
@@ -132,6 +143,41 @@ test('Spend: one bar of four named parts, then a row per session with the same f
   assert.match(text(pane), /1 session used claude-sonnet-5-5, which has no price here/);
   assert.match(pane.querySelector('[data-usage-part="read"]').className, /bg-\[#2a78d6\]/, 'the chart\'s blue');
   assert.match(pane.querySelector('[data-usage-part="reload"]').className, /bg-\[#eb6834\]/, 'the chart\'s orange');
+});
+
+test('a part of the spend and the bars in its tone are one thing: pointing at one fades the rest', () => {
+  const pane = $('[data-at="usage-spend"]'), root = pane.querySelector(':scope > div');
+  const of = (key) => [...pane.querySelectorAll(`[data-usage-part="${key}"]`)];
+  const faded = (key) => of(key).filter((x) => x.classList.contains('opacity-25')).length;
+  const entry = (key) => of(key).find((x) => x.textContent.trim());
+  const over = (el) => el.dispatchEvent(new window.Event('pointerover', { bubbles: true }));
+  const tap = (el) => el.dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  assert.equal(of('reload').length, 6, 'its legend entry, its segment of the total and one in each of four rows');
+  over(entry('reload').querySelector('span'));
+  assert.deepEqual(['read', 'reload', 'write', 'output'].map(faded), [6, 0, 6, 6], 'from the legend: every other part fades, legend and bars');
+  over(pane.querySelector('a[data-usage-session] [data-usage-part="output"]'));
+  assert.deepEqual(['read', 'reload', 'write', 'output'].map(faded), [6, 6, 6, 0], 'from a session\'s segment: the same, for its part');
+  root.dispatchEvent(new window.Event('pointerleave'));
+  assert.equal(pane.querySelectorAll('.opacity-25').length, 0, 'leaving clears it');
+  // A tap on the total bar or the legend keeps the mark until the next tap.
+  tap(pane.querySelector('[role="img"] [data-usage-part="read"]'));
+  root.dispatchEvent(new window.Event('pointerleave'));
+  assert.deepEqual(['read', 'reload', 'write', 'output'].map(faded), [0, 6, 6, 6], 'a tapped part stays marked');
+  over(entry('write'));
+  assert.equal(faded('write'), 0, 'pointing elsewhere still shows that part');
+  root.dispatchEvent(new window.Event('pointerleave'));
+  assert.equal(faded('read'), 0, 'and leaving returns to the tapped one');
+  tap(entry('read'));
+  assert.equal(pane.querySelectorAll('.opacity-25').length, 0, 'a second tap lets it go');
+  // A tap on a session's row is the row's: it opens the session and keeps no mark.
+  const got = [];
+  const heard = (e) => got.push(e.detail.id);
+  window.document.addEventListener('web-tools:open-session', heard);
+  tap(pane.querySelector('a[data-usage-session] [data-usage-part="reload"]'));
+  window.document.removeEventListener('web-tools:open-session', heard);
+  root.dispatchEvent(new window.Event('pointerleave'));
+  assert.deepEqual(got, ['bbbb0002']);
+  assert.equal(pane.querySelectorAll('.opacity-25').length, 0);
 });
 
 test('a session row opens the session at its Cost tab; a modified click is left to the browser', () => {
@@ -165,7 +211,17 @@ test('Calls: a row per bin, the share of prompts and the share of calls on one s
   assert.equal(bars.length, 2);
   assert.equal(parseFloat(bars[1].style.width), 100, 'the largest share is the scale');
   assert.ok(Math.abs(parseFloat(bars[0].style.width) - 100 * (1 / 7) / (70 / 105)) < 0.05, 'and the other bar is on it');
-  assert.match(bars[1].className, /bg-\[#2a78d6\]/, 'calls in the reads\' blue');
+  assert.match(bars[0].className, /\bborder border-base-content\/60\b/, 'prompts outlined');
+  assert.match(bars[1].className, /\bbg-base-content\/60\b/, 'calls filled, in the same ink');
+  assert.doesNotMatch(pane.innerHTML, /#2a78d6|#3987e5|#eb6834|#d95926|bg-base-content\/(40|20)\b/,
+    'no hue or grey of the spend means something else here');
+  // The legend and the bars mark each other, as the spend's do.
+  const of = (key) => [...pane.querySelectorAll(`[data-usage-part="${key}"]`)];
+  assert.deepEqual([of('prompts').length, of('calls').length], [8, 8], 'a legend entry and a bar in each of seven bins');
+  of('calls')[0].querySelector('span').dispatchEvent(new window.Event('pointerover', { bubbles: true }));
+  assert.deepEqual([of('prompts').filter((x) => x.classList.contains('opacity-25')).length, of('calls').filter((x) => x.classList.contains('opacity-25')).length], [8, 0]);
+  pane.querySelector(':scope > div').dispatchEvent(new window.Event('pointerleave'));
+  assert.equal(pane.querySelectorAll('.opacity-25').length, 0);
 });
 
 test('Re-loads: a row per ender, the dearest first, its bar the dollars its re-loads wrote', async () => {
@@ -233,10 +289,10 @@ test('Compactions: a row each, the estimated cost marked as one, and where a row
   assert.match(text(pane), /^4 compactions cost about \$19\.28 saved \$15\.50 in context reads 1 of 2 paid back · break-even about 8 calls/);
   const rows = [...pane.querySelectorAll('a[data-usage-compaction]')];
   assert.deepEqual(rows.map(text), [
-    'Nov 4 A made-up session on the dearer model: still warm, compacted twice. 0 calls 500k to ? about $0.50',
-    'Nov 3 A made-up session on the dearer model: still warm, compacted twice. 10 calls 900k to 150k about $17.40 $1.50 saved',
-    'Nov 1 A titled session 100 calls 800k to 100k about $1.16 $14.00 saved',
-    'Oct 20 A made-up session in the extract shape of before the re-loads were listed. 600k to 100k about $0.22']);
+    localDay('2026-11-04T09:44:00.000Z') + ' A made-up session on the dearer model: still warm, compacted twice. 0 calls 500k to ? about $0.50',
+    localDay('2026-11-03T15:00:00.000Z') + ' A made-up session on the dearer model: still warm, compacted twice. 10 calls 900k to 150k about $17.40 $1.50 saved',
+    localDay('2026-11-01T10:45:00.000Z') + ' A titled session 100 calls 800k to 100k about $1.16 $14.00 saved',
+    localDay('2026-10-20T17:00:00.000Z') + ' A made-up session in the extract shape of before the re-loads were listed. 600k to 100k about $0.22']);
   for (const row of rows) assert.match(text(row), /about \$/, 'an estimated cost says so wherever it shows');
   assert.match(rows[2].querySelector('[data-title-tip]').getAttribute('data-title-tip'),
     /^An estimate: about \$0\.36 for the summary and \$0\.80 to write the new context, paid back after about 9 calls$/);
@@ -262,7 +318,7 @@ test('the scatter: a dot per compaction with its calls counted, over the break-e
   }
   const paid = /<g data-usage-dot="2026-11-01-aaaa0001-20261101T104500Z"[^>]*>(.*?)<\/g>/.exec(svg)[1];
   assert.match(paid, /fill="#2a78d6"/);
-  assert.match(svg, /data-title-tip="Nov 1 · 800k to 100k · 100 calls after · about \$1\.16 to compact · \$14\.00 saved"/);
+  assert.match(svg, new RegExp('data-title-tip="' + rx(localDay('2026-11-01T10:45:00.000Z') + ' · 800k to 100k · 100 calls after · about $1.16 to compact · $14.00 saved') + '"'));
   assert.match(window.Usage.scatter(data.r.compactions, 600, { dark: true }), /fill="#3987e5"/, 'the dark page\'s blue');
   assert.doesNotMatch(svg, /tabindex/, 'the rows are the keyboard\'s way to a compaction, not 150 tab stops');
 });
@@ -308,7 +364,7 @@ test('reading again fetches only what changed, and forgets a file the store drop
   const rows = $$('[data-at="usage-spend"] a[data-usage-session]');
   assert.deepEqual(rows.map((a) => a.getAttribute('data-usage-session').slice(11)), ['bbbb0002', 'eeee0005', 'aaaa0001']);
   assert.match(text(rows[1]), /\$11\.50$/, 'ten dollars of output more');
-  assert.match(text($('[data-usage]')), /4 sessions · Nov 1 to Nov 4/);
+  assert.match(text($('[data-usage]')), new RegExp('4 sessions · Nov 1 to ' + localDay('2026-11-04T09:45:00.000Z')));
 });
 
 test('a copy this browser kept under the listed sha is not read again', async () => {
@@ -365,4 +421,17 @@ test('without a token nothing is read, and the pane says where usage comes from'
   assert.notEqual(note.style.display, 'none');
   window.TOKEN = 'fixture';
   assert.deepEqual(problems, [], 'no expression failed along the way');
+});
+
+// Run apart, each under its own TZ: a date on the page is the reader's local
+// date for an instant, and the day a record writes for a session's day.
+test('an instant is shown as the reader\'s local date, a session\'s day as written, in any zone', () => {
+  const file = path.join(repoRoot, 'lib/alpineComponents/usage.js');
+  const script = `const w = {}; new Function('window', 'document', require('fs').readFileSync(${JSON.stringify(file)}, 'utf8'))(w, { addEventListener() {} });`
+    + `console.log(JSON.stringify(['2026-11-03', '2026-11-03T15:00:00.000Z', '2026-11-01T10:45:00.000Z'].map(w.Usage.day)));`;
+  const days = (tz) => JSON.parse(execFileSync(process.execPath, ['-e', script], { env: { ...process.env, TZ: tz }, encoding: 'utf8' }));
+  assert.deepEqual(days('UTC'), ['Nov 3', 'Nov 3', 'Nov 1']);
+  assert.deepEqual(days('Asia/Tokyo'), ['Nov 3', 'Nov 4', 'Nov 1'], 'nine hours ahead, the afternoon instant is already the next day');
+  assert.deepEqual(days('Pacific/Pago_Pago'), ['Nov 3', 'Nov 3', 'Oct 31'], 'eleven hours behind, the morning instant is still the day before');
+  assert.equal(window.Usage.day('2026-11-03T15:00:00.000Z'), localDay('2026-11-03T15:00:00.000Z'), 'and in this runner\'s own zone');
 });
