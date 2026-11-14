@@ -6,7 +6,7 @@
   const counters = ['cacheReadTokens','cacheWriteTokens','inputTokens','outputTokens','measuredSteps','reloads'];
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const count = value => Number.isSafeInteger(value) && value >= 0 ? value : null;
-  const INFO = 'Claude sessions updated within the past hour, largest recorded input context first. Context includes cached input tokens and can predate the latest activity. Recent activity does not confirm that a cache remains available. Select a session to find it in Now.';
+  const INFO = 'Claude sessions updated within the past hour, largest recorded input context first. Shading and minutes show time left in that activity window. Context includes cached input tokens and can predate the latest activity. Recent activity does not confirm that a cache remains available. Select a session to find it in Now.';
 
   function instant(value) {
     if (typeof value === 'string') {
@@ -138,15 +138,18 @@
     style.textContent = `
 .nru{border-top:1px solid #e7e5e4;margin-top:8px;color:#292524;font-family:inherit}
 .nru *{box-sizing:border-box}
-.nru-head{display:flex;align-items:center;gap:10px;padding:8px 12px 5px}
+.nru-head,.nru-row{display:grid;grid-template-columns:minmax(0,1fr) 54px 32px;gap:10px;align-items:center}
+.nru-head{padding:8px 12px 5px}
 .nru-head h2{font-size:12px;font-weight:600;line-height:18px;margin:0;flex:1;min-width:0;color:#a36342}
-.nru-column{font-size:10px;color:#746f66;white-space:nowrap}
+.nru-column{font-size:10px;color:#746f66;white-space:nowrap;text-align:right}
 .nru-list{list-style:none;margin:0;padding:0}
-.nru-row{display:grid;grid-template-columns:minmax(0,1fr) max-content;gap:12px;align-items:center;padding:6px 12px;min-height:34px;border-top:1px solid #eae7e2;text-decoration:none;color:inherit}
+.nru-row{position:relative;isolation:isolate;padding:6px 12px;min-height:34px;border-top:1px solid #eae7e2;text-decoration:none;color:inherit}
+.nru-row::before{content:"";position:absolute;inset:0 auto 0 0;width:var(--nru-remaining,0%);background:rgba(192,126,87,.12);pointer-events:none;z-index:-1}
 .nru-row:hover{background:#eeece7}.nru-row:focus-visible{outline:2px solid #047857;outline-offset:-2px}
 .nru-title{min-width:0;font-size:13px;line-height:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.nru-value{font-size:13px;line-height:20px;font-weight:550;font-variant-numeric:tabular-nums;white-space:nowrap;color:#736b60}
+.nru-value{font-size:13px;line-height:20px;font-weight:550;font-variant-numeric:tabular-nums;white-space:nowrap;color:#736b60;text-align:right}
 .nru-value[data-unknown]{color:#a8a29e}
+.nru-time{font-size:12px;line-height:20px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right;color:#945f40}
 .nru-empty{padding:6px 12px 9px;color:#746f66;font-size:12px;line-height:18px;margin:0}
 #now .feed-meta{font-size:12px;line-height:20px;min-height:20px;gap:5px;align-items:center}
 #now .feed-meta>svg{width:14px;height:14px}
@@ -161,11 +164,13 @@
   function render(rows,options = {}) {
     styles();
     const now = instant(options.now ?? Date.now()) ?? Date.now();
-    const list = (Array.isArray(rows) ? rows : []).filter(row => row?.key === 'claude' && past(row.activityAt,now) !== null && now-row.activityAt <= HOUR).slice(0,LIMIT);
-    return `<section class="nru" aria-label="Claude one-hour cache window"><header class="nru-head" title="${esc(INFO)}"><h2>Claude · 1h cache window</h2><span class="nru-column" title="Last recorded input context, including cached tokens">Context</span></header>${list.length ? `<ul class="nru-list">${list.map(row => {
+    const list = (Array.isArray(rows) ? rows : []).filter(row => row?.key === 'claude' && past(row.activityAt,now) !== null && now-past(row.activityAt,now) <= HOUR).slice(0,LIMIT);
+    return `<section class="nru" aria-label="Claude one-hour cache window"><header class="nru-head" title="${esc(INFO)}"><h2>Claude · 1h cache window</h2><span class="nru-column" title="Last recorded input context, including cached tokens">Context</span><span class="nru-column" title="Time left in the one-hour activity window">Left</span></header>${list.length ? `<ul class="nru-list">${list.map(row => {
       const title = String(row.title || 'Claude session'), context = count(row.contextTokens), usageAt = past(row.usageAt,now);
       const label = context === null ? 'Context size not reported' : context.toLocaleString('en-US') + ' context tokens' + (usageAt === null ? '' : ', measured ' + new Date(usageAt).toLocaleString());
-      return `<li><a class="nru-row" data-recent-session="${esc(row.identity)}" href="${esc(destination(row))}" title="${esc(title + '. ' + label)}" aria-label="${esc(title + '. ' + label + '. Show session in Now')}"><span class="nru-title">${esc(title)}</span><span class="nru-value"${context === null ? ' data-unknown' : ''}>${context === null ? '&#8211;' : compact(context)}</span></a></li>`;
+      const remaining = Math.max(0,Math.min(HOUR,HOUR-(now-past(row.activityAt,now))));
+      const minutes = Math.ceil(remaining/60000), timeLabel = minutes + (minutes === 1 ? ' minute' : ' minutes') + ' left in the one-hour activity window since last observed activity';
+      return `<li><a class="nru-row" style="--nru-remaining:${(remaining/HOUR*100).toFixed(3)}%" data-recent-session="${esc(row.identity)}" href="${esc(destination(row))}" title="${esc(title + '. ' + label + '. ' + timeLabel)}" aria-label="${esc(title + '. ' + label + '. ' + timeLabel + '. Show session in Now')}"><span class="nru-title">${esc(title)}</span><span class="nru-value"${context === null ? ' data-unknown' : ''}>${context === null ? '&#8211;' : compact(context)}</span><span class="nru-time">${minutes}m</span></a></li>`;
     }).join('')}</ul>` : '<p class="nru-empty">No Claude sessions updated in the past hour.</p>'}</section>`;
   }
   window.NowRecentUsage = {select,render,matchUsage,tokenBadge,INFO,LIMIT};

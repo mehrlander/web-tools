@@ -121,6 +121,36 @@ check(doc.querySelector('section[aria-label="Claude one-hour cache window"]') &&
   && !doc.querySelector('.nru a,.nru button'),'An empty list retains the Claude one-hour label without adding controls.');
 check(doc.querySelectorAll('#now-recent-usage-style').length === 1,'Repeated rendering keeps one shared component stylesheet.');
 
+// The timer follows observed activity, not archive polling or confirmed cache expiry.
+const timerRow = (age,extra = {}) => ({...item('timed'),activityAt:now-age,contextTokens:123456,...extra});
+render([timerRow(0),timerRow(30*minute),timerRow(60*minute-1000),timerRow(60*minute)]);
+let timed = [...doc.querySelectorAll('.nru-row')];
+check(timed.map(row=>row.querySelector('.nru-time').textContent).join(',') === '60m,30m,1m,0m'
+  && timed.map(row=>row.style.getPropertyValue('--nru-remaining')).join(',') === '100.000%,50.000%,0.028%,0.000%',
+  'Remaining bars shrink from a full hour to zero, with positive partial minutes rounded up at the boundary.');
+check(timed.every(row=>/minutes? left in the one-hour activity window since last observed activity/.test(row.getAttribute('aria-label')))
+  && doc.querySelector('header .nru-column:last-child').textContent === 'Left'
+  && !/cache expir|cache warm/i.test(timed[0].getAttribute('aria-label')),
+  'Minutes are labeled as time remaining in the activity window, without asserting cache expiry.');
+render([timerRow(60*minute+1),timerRow(-1),timerRow(0,{activityAt:NaN}),timerRow(0,{activityAt:null})]);
+check(!doc.querySelector('.nru-row'),'Expired, future and invalid activity anchors do not receive bars or countdowns.');
+rows = select([item('poll-independent',{at:now-40*minute})],
+  [usage('poll-independent',123456,{usageAt:iso(now-2*60*minute)})]);
+render(rows);
+check(doc.querySelector('.nru-time').textContent === '20m' && doc.querySelector('.nru-value').textContent === '123.5k'
+  && doc.querySelector('.nru-row').title.includes(new Date(now-2*60*minute).toLocaleString()),
+  'A fresh archive poll does not reset the activity timer, and older context retains its own measured timestamp.');
+render(rows,{now:now+15*minute});
+check(doc.querySelector('.nru-time').textContent === '5m'
+  && doc.querySelector('.nru-row').style.getPropertyValue('--nru-remaining') === '8.333%',
+  'Rerendering a saved row advances the timer even when no new activity arrives.');
+render([timerRow(30*minute,{contextTokens:null,activityAt:iso(now-30*minute)})]);
+check(doc.querySelector('.nru-time').textContent === '30m' && doc.querySelector('.nru-value').hasAttribute('data-unknown'),
+  'An ISO activity timestamp and unknown context still produce a valid activity timer.');
+render([timerRow(0,{activityAt:'2026-11-01T01:40:00-07:00'})],{now:Date.parse('2026-11-01T01:10:00-08:00')});
+check(doc.querySelector('.nru-time').textContent === '30m',
+  'The countdown uses elapsed time across a daylight-saving clock change.');
+
 // Now's token flair uses recorded Claude output, independently of the
 // one-hour context list and independently of cumulative cached-input totals.
 const snapshot = (sessions,extra = {}) => ({sessions,available:true,observedAt:iso(now),...extra});
