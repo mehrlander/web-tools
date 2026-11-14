@@ -467,13 +467,20 @@ test('session-menu: a first line that only looks like a branch still lets the re
 });
 
 test('session-menu: a reply ending on its 💬 caption names its session without the prints file', () => {
-  const text = SAID.a0000005[0] + '\n\n💬 [session](' + PAGE + 'a0000002)\n\n🟢 **Ready to continue:** more.';
   const routes = { 'session-menu.json': { body: MENU }, 'reply-prints.json': { body: PRINTS_DOC } };
-  const { fn, sent } = loadRoutes(routes);
-  const r = fn({ input: b64(text), token: 't' });
-  assert.equal(r.id, 'a0000002', 'the link, not the words, which are another session\'s');
-  assert.match(header(r.caption).line, /its 💬 link$/);
-  assert.ok(!sent.some(s => s.method && /reply-prints/.test(s.url)));
+  const copied = (caption) => SAID.a0000005[0] + '\n\n' + caption + '\n\n🟢 **Ready to continue:** more.';
+  // The session detail caption, then the form replies carried before it.
+  for (const caption of ['💬[22](' + PAGE + 'a0000002) · 1d 2h · 816k · 1 file',
+                         '💬 [session](' + PAGE + 'a0000002)']) {
+    const { fn, sent } = loadRoutes(routes);
+    const r = fn({ input: b64(copied(caption)), token: 't' });
+    assert.equal(r.id, 'a0000002', 'the link, not the words, which are another session\'s: ' + caption);
+    assert.match(header(r.caption).line, /its 💬 link$/);
+    assert.ok(!sent.some(s => s.method && /reply-prints/.test(s.url)));
+  }
+  // A pull request cited with its session record is another session's link.
+  const cited = loadRoutes(routes).fn({ input: b64(copied('[💬](' + PAGE + 'a0000002)')), token: 't' });
+  assert.doesNotMatch(header(cited.caption).line, /its 💬 link$/);
 });
 
 test('session-menu: a copy no recent session wrote says so, with the index age, and draws the plain menu', () => {

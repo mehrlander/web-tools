@@ -767,8 +767,8 @@ def pick_framed(paths, fr, base, sha, slug, hosted, warn, use_git, at="", query=
 
 
 # An MCP-written PR body or comment turns a URL of this many characters or more
-# into literal text (CONVERSATION.md, "Surfacing caption"; measured in
-# environment/capabilities.md). Chat is untouched, so this is a warning about
+# into literal text (measured in docs/github/mcp.md; CONVERSATION.md, "The PR
+# guide", names the check). Chat is untouched, so this is a warning about
 # WHERE the link may go, not about the link.
 MCP_URL_CAP = 150
 

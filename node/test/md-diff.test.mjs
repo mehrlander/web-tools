@@ -82,6 +82,21 @@ test('blocks ignore leading and trailing blank lines', () => {
   assert.deepEqual(mdDiff.blocks(''), []);
 });
 
+// A CSV has no blank line, so without `rows` it is one block and one changed
+// cell is a change to the whole file.
+test('rows makes each line of a CSV a block, and a changed cell one change', () => {
+  const csv = 'path,subject\ndocs/a.md,"the first, quoted"\ndocs/b.md,the second\n';
+  assert.equal(mdDiff.blocks(csv).length, 1, 'by blank lines the file is one block');
+  const rows = mdDiff.blocks(csv, { rows: true });
+  assert.deepEqual(rows.map((b) => b.text), ['path,subject', 'docs/a.md,"the first, quoted"', 'docs/b.md,the second']);
+  for (const b of rows) assert.equal(csv.slice(b.start, b.start + b.text.length), b.text, 'offsets index the file');
+  const next = csv.replace('the second', 'the other');
+  const changed = mdDiff.align(csv, next, { rows: true }).filter((s) => s.kind !== 'same');
+  assert.equal(changed.length, 1);
+  assert.equal(changed[0].old, 'docs/b.md,the second');
+  assert.equal(changed[0].new, 'docs/b.md,the other');
+});
+
 // ── Alignment ───────────────────────────────────────────────────────────────
 
 const DOC = ['# Title', '', 'Alpha stands first.', '', 'Beta follows.', '', 'Gamma last.'].join('\n');

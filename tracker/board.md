@@ -19,6 +19,7 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Retire `shell`, and name the parts instead of the collection](tasks/retire-shell-name-the-parts-r152bt.md) · M
 - 🎫 [Give the stage a way to carry part of a file](tasks/stage-partial-file-selection-k8mtou.md) · M
 - 🎫 [Convert the title attributes outside the app to title-tips](tasks/stranded-titles-panel-or-drop-o6hqom.md) · M
+- 🎫 [Select tests by what each file reads, and log what each costs](tasks/test-selection-by-reach-p2xtc5.md) · L (awaiting: owner approval of the CLAUDE.md wording (step 4))
 - 🎫 [Split the app reference by view and form, and make the registries one model](tasks/views-forms-and-key-primitive-k5ngay.md) · L
 
 ## In progress
