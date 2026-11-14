@@ -21,9 +21,10 @@ A process is a recurring question or duty the program answers for. A session han
 
 ## Measures
 
-| Process | Measure | Working means |
+| Process or area | Measure | Working means |
 | --- | --- | --- |
 | Landing | [`state/landings.json`](https://github.com/mehrlander/web-tools-private/blob/background/state/landings.json) on web-tools-private's `background` branch: each week's sessions in which the owner asks that question | fewer sessions open on it |
+| Repositories | [`state/vendored.json`](https://github.com/mehrlander/web-tools-private/blob/background/state/vendored.json) on web-tools-private's `background` branch: cross-repo vendored copies compared with their upstream sources (`copies_edited`, `sources_ahead` and missing files) | downstream copies stay unedited and current with their sources |
 
 ## Reviewers
 
