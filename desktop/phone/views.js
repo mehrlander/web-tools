@@ -4,8 +4,9 @@
   const names = {now:'Now',usage:'Usage',errands:'Errands',computer:'Computer',files:'Files'};
   const ids = Object.keys(names), positions = Object.fromEntries(ids.map(id => [id,0]));
   const track = el('view-track'), panels = new Map(ids.map(id => [id,el('panel-' + id)]));
-  const interfaceVersion = '26';
+  const interfaceVersion = '26.1';
   let current = 'now', deck, registration, updateJob, refreshing = false;
+  let startupAligned = false, startupFrame = 0, startupStyles, startupSizes;
   let filesRoute = '#view=files';
   const canonical = value => value === 'devices' ? 'computer' : value === 'repositories' ? 'files' : ids.includes(value) ? value : 'now';
   const route = () => {
@@ -30,6 +31,26 @@
     if (target && !el('overview').hidden) target.scrollTop = value;
   };
   const connection = () => ({errands:window.NowErrands,computer:window.NowComputer,files:window.NowRepositories})[current]?.connection();
+  function horizontalLayoutReady() {
+    if (el('overview').hidden) return false;
+    const width = track.clientWidth, bounds = ids.map(id => panel(id).getBoundingClientRect());
+    if (!width || !bounds[0].height) return false;
+    return bounds.every((box,index) => box.height > 0 && Math.abs(box.width - width) < 2
+      && Math.abs(box.top - bounds[0].top) < 2 && Math.abs(box.left - bounds[0].left - index * bounds[0].width) < 2);
+  }
+  function scheduleStartupAlignment() {
+    if (startupAligned || startupFrame || !deck) return;
+    startupFrame = requestAnimationFrame(() => {
+      startupFrame = 0;
+      if (!horizontalLayoutReady()) return;
+      // Tailwind can turn already full-width stacked panels into a strip
+      // without resizing the track. Align once after that geometry exists.
+      deck.jump(ids.indexOf(current));
+      startupAligned = true;
+      startupStyles?.disconnect();
+      startupSizes?.disconnect();
+    });
+  }
   function closeMenu(focus = false) {
     el('view-menu').hidden = true;
     el('view-picker').setAttribute('aria-expanded','false');
@@ -77,7 +98,8 @@
     // Keep the incoming hash intact. The Now listener resolves a session route
     // after the visible panel and active view agree.
     window.dispatchEvent(new CustomEvent('nowviewchange',{detail:{view:next}}));
-    if (move) deck?.go(ids.indexOf(next),true);
+    if (move && startupAligned) deck?.go(ids.indexOf(next),true);
+    else scheduleStartupAlignment();
     if (changed && next !== 'files') scrollToPanel(positions[next],next);
     connection();
   }
@@ -129,12 +151,21 @@
   },{passive:true});
   window.NowErrands?.mount(el('errands'));
   if (window.swipeDeck?.strip) {
-    deck = window.swipeDeck.strip({el:track,at:() => ids.indexOf(current),onSlide:i => setView(ids[i],true,false)});
-    track.addEventListener('scroll',() => deck.scrolled(),{passive:true});
-    track.addEventListener('scrollend',() => deck.read(),{passive:true});
+    deck = window.swipeDeck.strip({el:track,at:() => ids.indexOf(current),onSlide:i => { if (startupAligned) setView(ids[i],true,false); }});
+    track.addEventListener('scroll',() => { if (startupAligned) deck.scrolled(); },{passive:true});
+    track.addEventListener('scrollend',() => { if (startupAligned) deck.read(); },{passive:true});
+    startupStyles = new MutationObserver(scheduleStartupAlignment);
+    startupStyles.observe(document.head,{childList:true,characterData:true,subtree:true});
+    if (typeof ResizeObserver !== 'undefined') {
+      startupSizes = new ResizeObserver(scheduleStartupAlignment);
+      startupSizes.observe(track);
+      for (const target of panels.values()) startupSizes.observe(target);
+    }
+  } else {
+    startupAligned = true;
   }
   setView(route(),false);
-  deck?.jump(ids.indexOf(current));
+  scheduleStartupAlignment();
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js',{updateViaCache:'none'}).then(value => {
     registration = value;
     updateInterface();

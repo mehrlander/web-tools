@@ -10,7 +10,7 @@ let checks = 0;
 const check = (condition,message) => { assert.ok(condition,message); checks++; };
 const flush = () => new Promise(resolve => setImmediate(resolve));
 
-async function fixture(hash = '') {
+async function fixture(hash = '', options = {}) {
   const errors = [], virtualConsole = new VirtualConsole();
   virtualConsole.on('jsdomError',error => errors.push(error));
   const dom = new JSDOM(html,{url:'https://fixture.example.ts.net/'+hash,runScripts:'outside-only',pretendToBeVisual:true,virtualConsole});
@@ -20,7 +20,13 @@ async function fixture(hash = '') {
   assert.ok(track,'The document supplies the swipe track before navigation mounts.');
   const hosts = {computer:doc.getElementById('computer'),devices:doc.getElementById('devices')};
   const activations = [], historyWrites = [], rafs = new Map();
-  let nextFrame = 0, driver, positions = 0, updates = 0;
+  let nextFrame = 0, driver, positions = 0, updates = 0, horizontal = options.horizontal !== false;
+  const sizeObservers = [];
+  w.ResizeObserver = class {
+    constructor(callback){this.callback=callback;this.targets=new Set();sizeObservers.push(this);}
+    observe(target){this.targets.add(target);}
+    disconnect(){this.targets.clear();}
+  };
   Object.defineProperty(w,'scrollY',{configurable:true,get:() => 0});
   w.scrollTo = () => { throw new Error('Navigation must scroll its panel, not the document.'); };
   if (!('inert' in w.HTMLElement.prototype)) Object.defineProperty(w.HTMLElement.prototype,'inert',{
@@ -33,12 +39,12 @@ async function fixture(hash = '') {
       const pending=[...rafs.values()];rafs.clear();pending.forEach(callback=>callback(w.performance.now()));
     }
   };
-  const box = left => ({left,right:left+390,top:57,bottom:650,width:390,height:593,x:left,y:57,toJSON(){return {};}});
+  const box = (left,top=57) => ({left,right:left+390,top,bottom:top+593,width:390,height:593,x:left,y:top,toJSON(){return {};}});
   Object.defineProperty(track,'clientWidth',{configurable:true,value:390});
   track.getBoundingClientRect = () => box(0);
   track.scrollTo = value => { track.scrollLeft = value.left ?? track.scrollLeft; };
   panels.forEach((node,index) => {
-    node.getBoundingClientRect = () => box(index*390-track.scrollLeft);
+    node.getBoundingClientRect = () => horizontal ? box(index*390-track.scrollLeft) : box(0,57+index*593);
     node.scrollTo = value => { node.scrollTop = typeof value==='number'?value:value.top??node.scrollTop; };
   });
   const module = name => ({connection(){},setActive(value){activations.push([name,value]);}});
@@ -60,7 +66,11 @@ async function fixture(hash = '') {
   w.swipeDeck.strip=options=>{driver=strip(options);return driver;};
   w.eval(views);frames();await flush();frames();
   return {dom,w,doc,panels,panel,track,hosts,activations,historyWrites,errors,frames,
-    driver:()=>driver,positions:()=>positions,updates:()=>updates,serviceWorker};
+    driver:()=>driver,positions:()=>positions,updates:()=>updates,serviceWorker,
+    setHorizontal:value=>{horizontal=value;},
+    notifySize:()=>sizeObservers.filter(observer=>observer.targets.size).forEach(observer=>observer.callback([])),
+    startupObservers:()=>sizeObservers.filter(observer=>observer.targets.size>1).length,
+    restyle:()=>{const style=doc.createElement('style');style.textContent='/* Updated browser utilities */';doc.head.append(style);}};
 }
 
 const h = await fixture();
@@ -128,6 +138,44 @@ try {
   check(native.panel('usage').getAttribute('aria-hidden')!=='true'&&!native.panel('usage').inert&&native.panel('now').inert,'A native slide change updates accessibility state along with the route.');
   check(!native.errors.length,'Native strip navigation has no document-scroll fallback or script errors.');
 } finally {native.dom.window.close();}
+
+const delayed=await fixture('#view=usage',{horizontal:false});
+try {
+  const {w,track,panel}=delayed,historyWrites=delayed.historyWrites.length;
+  track.dispatchEvent(new w.Event('scroll'));track.dispatchEvent(new w.Event('scrollend'));delayed.frames();
+  check(track.clientWidth===390&&track.scrollLeft===0&&w.NowViews.current()==='usage'
+    &&delayed.historyWrites.length===historyWrites&&delayed.startupObservers()===1,
+    'Full-width vertically stacked startup panels neither complete alignment nor let a native reading overwrite the Usage route.');
+  delayed.setHorizontal(true);delayed.restyle();await flush();delayed.frames();
+  check(track.scrollLeft===390&&panel('usage').getBoundingClientRect().left===track.getBoundingClientRect().left
+    &&w.NowViews.current()==='usage'&&!panel('usage').inert&&delayed.startupObservers()===0,
+    'Styles that create horizontal panels at the same track width align Usage and release the startup size observer.');
+  w.NowViews.scrollTo(275,'usage');track.scrollLeft=430;delayed.restyle();delayed.notifySize();await flush();delayed.frames();
+  check(track.scrollLeft===430&&w.NowViews.scrollPosition('usage')===275,
+    'Later stylesheet mutations and unchanged resize notifications preserve a user drag and the panel reading position.');
+  check(!delayed.errors.length,'Delayed utility layout has no navigation or script errors.');
+} finally {delayed.dom.window.close();}
+
+const changedBeforeStyles=await fixture('#view=usage',{horizontal:false});
+try {
+  const {w,track,panel}=changedBeforeStyles;
+  w.NowViews.setView('files');changedBeforeStyles.frames();
+  check(track.scrollLeft===0&&w.NowViews.current()==='files','Selecting another view before styles arrive retains the new destination without aligning stacked panels.');
+  changedBeforeStyles.setHorizontal(true);changedBeforeStyles.notifySize();changedBeforeStyles.frames();
+  check(track.scrollLeft===1560&&w.NowViews.current()==='files'&&!panel('files').inert,
+    'The first horizontal layout aligns the latest selected view rather than the original cold route.');
+} finally {changedBeforeStyles.dom.window.close();}
+
+const hiddenStartup=await fixture('#view=now&session=cloud%3Afixture',{horizontal:false});
+try {
+  const {w,doc,track}=hiddenStartup;
+  doc.getElementById('overview').hidden=true;
+  hiddenStartup.setHorizontal(true);hiddenStartup.restyle();await flush();hiddenStartup.frames();
+  check(hiddenStartup.startupObservers()===1,'A hidden overview during focused detail keeps startup alignment pending.');
+  w.NowViews.setView('usage');hiddenStartup.frames();
+  check(track.scrollLeft===390&&hiddenStartup.startupObservers()===0,
+    'Returning from focused detail completes pending alignment without a permanent frame loop.');
+} finally {hiddenStartup.dom.window.close();}
 
 const explicitRefresh=await fixture();
 try {
