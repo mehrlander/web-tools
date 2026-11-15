@@ -41,8 +41,11 @@ const { window, problems } = makeWindow({ html: `<!doctype html><html><body>
   <div id="form" x-data="userCallForm(window.__form)"></div></body></html>` });
 window.GH = FakeGH;
 // jsdom has no layout: a scroll is recorded, by the element it would bring into view.
-const scrolled = [];
-window.Element.prototype.scrollIntoView = function () { scrolled.push(this); };
+// A row's tap scrolls the document pane alone (owner, 2026-11-14): the test
+// below records the pane's scrollTo, and scrollIntoView, which would also move
+// the deck's sideways track, is recorded apart so it can be held to none.
+const walked = [];
+window.Element.prototype.scrollIntoView = function () { walked.push(this); };
 window.TOKEN = 'tkn';
 window.gh = { load: async () => {} };
 // The marks are the shared kit's, so the form draws what every call draws.
@@ -150,10 +153,17 @@ test('the edits are listed at the top, each with its summary, and a tap scrolls 
   assert.deepEqual(kinds(2), [], 'an edit with no notes has no pill');
   assert.match(rows[1].textContent, /Names the order with Second\./, 'its proposal, marks stripped');
   assert.match(rows[3].textContent, /Third\./, 'else the text it puts in');
-  scrolled.length = 0;
+  // The pane at 100, the edit at 300: scrolled from 0, the edit's top lands
+  // 8px below the pane's, where its overhanging label stays in sight.
+  const pane = root().querySelector('[data-doc-scroll]'), scrolled = [];
+  pane.scrollTo = (o) => scrolled.push(Math.round(o.top));
+  pane.getBoundingClientRect = () => ({ top: 100, bottom: 600, height: 500 });
+  box(2).getBoundingClientRect = () => ({ top: 300, bottom: 340, height: 40 });
+  walked.length = 0;
   rows[1].click();
   await tick(2);
-  assert.equal(scrolled.at(-1), box(2), 'the document scrolls to the edit');
+  assert.equal(scrolled.at(-1), 192, 'the document pane scrolls to the edit');
+  assert.equal(walked.length, 0, 'and only the pane: nothing walks the ancestors, so a deck around the call stays on it (owner, 2026-11-14)');
   assert.equal(data().docActive, 1);
   assert.match(rows[1].className, /bg-primary\/10/, 'and its row is marked by its background (owner, 2026-11-14)');
   assert.doesNotMatch(rows[1].className, /inset_3px/, 'with no bar at its edge');
@@ -169,9 +179,11 @@ test('the edits are listed at the top, each with its summary, and a tap scrolls 
   assert.match(rows[1].className, /bg-base-200(?!\/)/, 'and its row stays grey, as the edit in view');
   rows[1].click();
   await tick(2);
+  root().querySelector('[data-doc-unplaced="3"]').getBoundingClientRect = () => ({ top: 500, bottom: 520, height: 20 });
   rows[2].click();
   await tick(2);
-  assert.equal(scrolled.at(-1), root().querySelector('[data-doc-unplaced="3"]'), 'an edit the file cannot place scrolls to its line');
+  assert.equal(scrolled.at(-1), 392, 'an edit the file cannot place scrolls to its line');
+  assert.equal(walked.length, 0, 'through the pane as well');
   assert.equal(root().querySelector('[data-md-diff-here]'), null, 'and selects nothing, having no container');
 });
 
@@ -186,8 +198,12 @@ test('each row ends with the words its edit adds and removes, green and red (own
   assert.equal(rows[0].querySelector('[data-doc-words]').dataset.titleTip, '1 word added, 1 word removed', 'and the counts say so in a tip');
   const cap = rows[0].querySelector('[data-doc-words]');
   assert.match(cap.className, /flex-col/, 'one capsule, green over red, in one column');
-  assert.match(cap.className, /w-11/, 'of one width on every row, so the column is straight');
+  assert.match(cap.className, /(^|\s)w-6(\s|$)/, 'of one width on every row, so the column is straight: the total\'s, two characters here (owner, 2026-11-14)');
+  assert.ok(rows.every((r) => r.querySelector('[data-doc-words]').className === cap.className), 'the same on every row');
   assert.equal(data().docSigned(0, 'add'), '0', 'a half that is none reads 0');
+  assert.equal(data().docSigned(999, 'del'), '−999', 'three digits as they are');
+  assert.equal(data().docSigned(1234, 'add'), '+1k', 'a thousand and up in k, so no figure passes four characters');
+  assert.equal(data().docSigned(12600, 'add'), '+13k');
   assert.match(data().docHalf(0, 'del'), /bg-base-200/, 'in grey');
   const n = (from, to) => { const { add, del } = data().docWords({ from, to }); return [add, del]; };
   assert.deepEqual(n('one two three', 'one three four'), [1, 1], 'matched by the longest run of shared words');
@@ -196,7 +212,8 @@ test('each row ends with the words its edit adds and removes, green and red (own
   assert.equal(data().docWordsTip({ from: 'a\nb', to: 'a b' }), 'No words change');
   const total = root().querySelector('[data-doc-words-total]');
   assert.equal(total.textContent.replace(/\s+/g, ' ').trim(), 'words +5 −5', 'the call\'s total names the unit once, its label to the left');
-  assert.match(total.lastElementChild.className, /w-11 flex flex-col/, 'in a capsule like the rows\'');
+  assert.match(total.lastElementChild.className, /flex flex-col/, 'in a capsule like the rows\'');
+  assert.equal(total.lastElementChild.className, cap.className.replace(/^shrink-0 /, ''), 'of the rows\' width');
   const line = total.parentElement;
   assert.equal(line.dataset.docControlsRow, '', 'on the line of the document\'s controls, at every width');
   assert.equal(line.lastElementChild, total, 'which it ends, over the rows\' counts');
