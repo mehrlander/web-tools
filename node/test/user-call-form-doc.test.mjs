@@ -136,7 +136,8 @@ test('a documentation call shows no PR readiness, even when the PR has conflicts
 test('the edits are listed at the top, each with its summary, and a tap scrolls the document to it', async () => {
   const rows = [...root().querySelectorAll('[data-doc-row]')];
   assert.equal(rows.length, 4, 'one row per edit');
-  assert.match(rows[0].textContent.replace(/\s+/g, ' ').trim(), /^1 clearer$/, 'its number, then its why when it has no proposal');
+  const line = (r) => r.querySelector('[data-doc-row-n]').parentElement.textContent.replace(/\s+/g, ' ').trim();
+  assert.match(line(rows[0]), /^1 clearer$/, 'its number, then its why when it has no proposal');
   assert.match(rows[0].querySelector('[data-doc-row-n]').className, /bg-primary\/15 text-primary/, 'the number a tinted chip, so the list reads as a count');
   const lead = rows[0].querySelector('[data-doc-kind]'), num = rows[0].querySelector('[data-doc-row-n]');
   assert.equal(lead.dataset.docKind, 'clarify');
@@ -154,21 +155,103 @@ test('the edits are listed at the top, each with its summary, and a tap scrolls 
   await tick(2);
   assert.equal(scrolled.at(-1), box(2), 'the document scrolls to the edit');
   assert.equal(data().docActive, 1);
-  assert.match(rows[1].className, /inset_3px_0_0_var\(--color-primary\)/, 'and its row is marked by a bar at its edge, not a fill');
+  assert.match(rows[1].className, /bg-primary\/10/, 'and its row is marked by its background (owner, 2026-11-14)');
+  assert.doesNotMatch(rows[1].className, /inset_3px/, 'with no bar at its edge');
   assert.ok(box(2).hasAttribute('data-md-diff-here'), 'its container is selected in md-diff, so the tap shows even with the edit in view');
   assert.equal(root().querySelectorAll('[data-md-diff-here]').length, 1, 'and only it');
-  assert.match(rows[1].querySelector('[data-doc-row-n]').className, /bg-primary\/15 text-primary border-\[var\(--color-primary\)\]/, 'its number keeps its tint and gains an outline');
+  assert.match(rows[1].querySelector('[data-doc-row-n]').className, /bg-primary\/15 text-primary/, 'its number keeps its tint');
+  assert.doesNotMatch(rows[1].querySelector('[data-doc-row-n]').className, /border/, 'and takes no outline');
   assert.match(mark(2).className, /border-\[var\(--color-primary\)\] bg-base-100/, 'and so does its label on the container');
   rows[1].click();
   await tick(2);
   assert.equal(root().querySelector('[data-md-diff-here]'), null, 'a second tap on the selected row lets it go');
-  assert.match(rows[1].querySelector('[data-doc-row-n]').className, /border-transparent/);
+  assert.doesNotMatch(rows[1].className, /bg-primary\/10/, 'its wash goes');
+  assert.match(rows[1].className, /bg-base-200(?!\/)/, 'and its row stays grey, as the edit in view');
   rows[1].click();
   await tick(2);
   rows[2].click();
   await tick(2);
   assert.equal(scrolled.at(-1), root().querySelector('[data-doc-unplaced="3"]'), 'an edit the file cannot place scrolls to its line');
   assert.equal(root().querySelector('[data-md-diff-here]'), null, 'and selects nothing, having no container');
+});
+
+test('each row ends with the words its edit adds and removes, green and red (owner, 2026-11-14)', () => {
+  const rows = [...root().querySelectorAll('[data-doc-row]')];
+  const shown = (el) => el && el.style.display !== 'none';
+  const words = (r) => [r.querySelector('[data-doc-words-add]'), r.querySelector('[data-doc-words-del]')].map((el) => (shown(el) ? el.textContent : ''));
+  assert.deepEqual(words(rows[0]), ['+1', '−1'], 'One. to First.: a word out, a word in');
+  assert.deepEqual(words(rows[3]), ['+2', '−2'], 'two paragraphs, a word each');
+  assert.match(rows[0].querySelector('[data-doc-words-add]').className, /bg-success\/15/, 'added words in green');
+  assert.match(rows[0].querySelector('[data-doc-words-del]').className, /bg-error\/15/, 'removed words in red');
+  assert.equal(rows[0].querySelector('[data-doc-words]').dataset.titleTip, '1 word added, 1 word removed', 'and the counts say so in a tip');
+  const cap = rows[0].querySelector('[data-doc-words]');
+  assert.match(cap.className, /flex-col/, 'one capsule, green over red, in one column');
+  assert.match(cap.className, /w-11/, 'of one width on every row, so the column is straight');
+  assert.equal(data().docSigned(0, 'add'), '0', 'a half that is none reads 0');
+  assert.match(data().docHalf(0, 'del'), /bg-base-200/, 'in grey');
+  const n = (from, to) => { const { add, del } = data().docWords({ from, to }); return [add, del]; };
+  assert.deepEqual(n('one two three', 'one three four'), [1, 1], 'matched by the longest run of shared words');
+  assert.deepEqual(n('a  b\nc', 'a b c'), [0, 0], 'spacing and line breaks are not words');
+  assert.deepEqual(n('see [the file](a.md)', 'see [the file](b.md)'), [0, 0], 'nor is a link\'s target');
+  assert.equal(data().docWordsTip({ from: 'a\nb', to: 'a b' }), 'No words change');
+  const total = root().querySelector('[data-doc-words-total]');
+  assert.equal(total.textContent.replace(/\s+/g, ' ').trim(), 'words +5 −5', 'the call\'s total names the unit once, its label to the left');
+  assert.match(total.lastElementChild.className, /w-11 flex flex-col/, 'in a capsule like the rows\'');
+  const line = total.parentElement;
+  assert.equal(line.dataset.docControlsRow, '', 'on the line of the document\'s controls, at every width');
+  assert.equal(line.lastElementChild, total, 'which it ends, over the rows\' counts');
+  assert.equal(line.firstElementChild.dataset.docControls, '', 'the controls keeping an element of their own');
+  assert.equal(total.dataset.titleTip, '5 words added, 5 removed, across 4 edits');
+});
+
+test('scrolling the document keeps the edit in view on screen in the list (owner, 2026-11-14)', () => {
+  const list = root().querySelector('[data-doc-list]'), row = list.querySelector('[data-doc-row="4"]');
+  const rect = (top, height) => () => ({ top, bottom: top + height, height, left: 0, right: 0, width: 0 });
+  const was = [list.getBoundingClientRect, row.getBoundingClientRect, list.scrollTo];
+  const to = [];
+  list.getBoundingClientRect = rect(100, 80);
+  list.scrollTo = (o) => to.push({ ...o });
+  row.getBoundingClientRect = rect(200, 20);
+  data().docKeepRow(3);
+  assert.deepEqual(to.at(-1), { top: 55, behavior: 'smooth' }, 'a row 40px below the list scrolls it 40px, and three quarters of a row past');
+  list.scrollTop = 55;
+  row.getBoundingClientRect = rect(130, 20);
+  to.length = 0;
+  data().docKeepRow(3);
+  assert.equal(to.length, 0, 'a row already in sight moves nothing');
+  list.scrollTop = 135;
+  row.getBoundingClientRect = rect(60, 20);
+  data().docKeepRow(3);
+  assert.deepEqual(to.at(-1), { top: 80, behavior: 'smooth' }, 'a row above it scrolls the list down to it');
+  [list.getBoundingClientRect, row.getBoundingClientRect, list.scrollTo] = was;
+  list.scrollTop = 0;
+});
+
+test('a seam under the list sets its height, with the estate\'s splitter (owner, 2026-11-14)', async () => {
+  const list = root().querySelector('[data-doc-list]'), seam = root().querySelector('[data-doc-seam]');
+  assert.ok(seam, 'a seam sits under the list');
+  assert.equal(seam.previousElementSibling, list, 'right under it');
+  assert.notEqual(seam.style.display, 'none', 'shown for a call with more than one edit');
+  assert.equal(list.style.maxHeight, '160px', 'the list 160px tall until the seam is dragged');
+  assert.doesNotMatch(list.className, /border-b(?!ase)/, 'and the seam, not the list, draws the rule between them');
+  let opts = null;
+  window.dockSplit = { attach: (el, o) => { opts = o; return { destroy() {}, refresh() {} }; } };
+  await data().docSeamAt(seam);
+  assert.equal(opts.axis, 'row', 'a horizontal seam');
+  assert.equal(opts.from, 'start', 'measured from the list\'s top');
+  const was = [list.getBoundingClientRect, seam.closest('[data-doc-edits]').getBoundingClientRect];
+  list.getBoundingClientRect = () => ({ top: 100, bottom: 260, height: 160, left: 0, right: 400, width: 400 });
+  seam.closest('[data-doc-edits]').getBoundingClientRect = () => ({ top: 0, bottom: 600, height: 600, left: 0, right: 400, width: 400 });
+  opts.onChange(50);
+  await tick(1);
+  assert.equal(data().docListH, 250, 'a drag halfway down the 500px below the list\'s top makes the list 250px');
+  assert.equal(list.style.maxHeight, '250px');
+  [list.getBoundingClientRect, seam.closest('[data-doc-edits]').getBoundingClientRect] = was;
+  seam.dispatchEvent(new window.Event('dblclick'));
+  await tick(1);
+  assert.equal(data().docListH, 160, 'a double-click on the seam goes back to 160px');
+  delete window.dockSplit;
+  data()._seam = null;
 });
 
 test('the list shows in Changes only, the one view that draws the edits', async () => {

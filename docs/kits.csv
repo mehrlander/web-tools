@@ -29,7 +29,7 @@ lib/kits/dictate-record.js,DictateRecord,"an edit to one file as data: its chang
 lib/kits/dictate.js,Dictate,"voice input as a plain text buffer: start the engine, speak, and read `text` back.",1938,no,yes,12,yes
 lib/kits/doc-growth.js,DocGrowth,"a repository's markdown over time, as one bubble chart and one ranking, drawn from the payload python/doc-growth.py writes and the session counts…",289,no,no,3,yes
 lib/kits/doc-index.js,DocIndex,"every estate repo's Markdown, with word counts, kept in the private registry so the Map's Docs tab can read the constellation's documentation in one fetch.",140,no,no,3,yes
-lib/kits/dock-split.js,dockSplit,the drag handle between two panes.,263,no,yes,14,yes
+lib/kits/dock-split.js,dockSplit,the drag handle between two panes.,263,no,yes,15,yes
 lib/kits/docx.js,docxKit,"WordprocessingML (.docx) preparation: what a Word file has to have done to it before a browser renderer draws it faithfully, and what it knows about itself…",512,no,no,1,yes
 lib/kits/dom-shot.js,DomShot,render a live DOM node to a PNG in the browser.,218,no,no,1,yes
 lib/kits/errands.js,Errands,one record for everything a session needs a person's browser to do.,484,no,no,7,yes
