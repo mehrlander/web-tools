@@ -324,7 +324,7 @@ Calling a list a ledger, census, catalog or similar term and expecting the word 
 
 ### Modal dialogs · `P67`
 
-Avoid modal dialogs; consider a panel-tip, the deck takeover, or another more fluid alternative.
+Avoid modal dialogs; consider a panel-tip, the Swipe Deck takeover, or another more fluid alternative.
 
 **Look for:** showModal(), modal-box, a dimmed backdrop
 
