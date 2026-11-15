@@ -6,13 +6,13 @@
   const touchMore = "pointer-coarse:after:content-[''] pointer-coarse:after:absolute pointer-coarse:after:-inset-y-1.5 pointer-coarse:after:-inset-x-[7px]";
   const statusTones = {working:'text-[#24785d]',waiting:'text-[#a57428]',accepted:'text-[#5879a1]',attention:'text-[#b87832]',quiet:'text-[#938b7d]'};
   const ui = {
-    assistants:'grid grid-cols-3 gap-2 px-3 pt-2 pb-[7px] border-t-0 bg-stone-100 max-[350px]:gap-[5px] max-[350px]:px-2.5',
+    assistants:'grid grid-cols-3 gap-2 px-3 py-1 border-t-0 bg-stone-100 max-[350px]:gap-1 max-[350px]:px-2',
     provider:'phone-provider relative min-w-0',
-    providerFilter:`phone-provider-filter block w-full min-h-[47px] pt-0 pr-5 pb-0.5 pl-0 text-left border-b-2 border-transparent rounded-t aria-pressed:border-[#6f6a61] aria-pressed:bg-[#eae7e1] ${focusStyle}`,
-    providerName:'phone-provider-name flex items-center gap-1 text-[13px] font-semibold leading-5 whitespace-nowrap [&>svg]:size-[18px] [&>svg]:flex-none max-[350px]:text-xs max-[350px]:gap-[3px]',
-    providerCounts:'phone-provider-counts flex flex-wrap gap-y-0.5 gap-x-2 mt-[3px] text-xs tabular-nums leading-4 text-[#827b71] [&_svg]:size-3 max-[350px]:gap-x-[5px]',
+    providerFilter:`phone-provider-filter flex w-full min-h-[34px] items-center gap-[3px] py-0.5 pr-[18px] pl-0 text-left border-b-2 border-transparent rounded aria-pressed:border-[#6f6a61] aria-pressed:bg-[#eae7e1] ${focusStyle}`,
+    providerName:'phone-provider-name flex shrink-0 items-center gap-[3px] text-[13px] font-semibold leading-5 whitespace-nowrap [&>svg]:size-4 [&>svg]:flex-none max-[350px]:text-xs max-[350px]:gap-0.5 max-[350px]:[&>svg]:size-[13px]',
+    providerCounts:'phone-provider-counts ml-auto flex min-w-0 flex-wrap justify-end gap-x-1 gap-y-0 text-xs tabular-nums leading-4 text-[#827b71] [&_svg]:size-3 max-[350px]:text-[11px] max-[350px]:[&_svg]:size-[11px]',
     count:'inline-flex items-center gap-[3px] whitespace-nowrap',
-    providerMore:`phone-provider-more absolute -right-[3px] top-0 grid place-items-center w-6 h-7 text-[#827b71] [&_svg]:size-[17px] ${touchMore} ${focusStyle}`,
+    providerMore:`phone-provider-more absolute -right-[3px] top-1/2 -translate-y-1/2 grid place-items-center w-[18px] h-7 text-[#827b71] [&_svg]:size-[17px] ${touchMore} ${focusStyle}`,
     row:'phone-row grid grid-cols-[20px_minmax(0,1fr)_28px] gap-[7px] py-2.5 px-3 border-b border-[#e9e6e1] bg-white min-w-0 cursor-pointer max-[350px]:px-2.5 max-[350px]:gap-1.5',
     mark:'phone-mark pt-0.5 [&>svg]:size-5',
     position:'phone-position block w-5 text-[13px] text-[#a06e35] tabular-nums',
