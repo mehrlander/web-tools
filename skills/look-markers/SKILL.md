@@ -48,6 +48,7 @@ amount", not "Click here". `tap` is `true`, or the hand's label (`"Tap to open"`
 | `<name>` | `data-at="<name>"`, else `id="<name>"` | the attribute goes |
 | `text:<words>` | the smallest element whose whole text is those words | the wording changes |
 | `css:<selector>` | the first match | the structure changes |
+| `component:<name>` | the element whose `x-data` opens with that name. The ring goes on that element, or on its largest descendant by area when the element has no size. `component:viewer#2` names the second such element in page order | the component is renamed |
 | `<page>!<at>` | `<at>` on that page, which a walkthrough opens (`pages/branch.html!files`) | the page moves |
 
 Prefer `data-at` names and ids: only they are checked before sending.
@@ -67,8 +68,7 @@ Prefer `data-at` names and ids: only they are checked before sending.
 
 - `data-at="<name>"` on each element a link may name; a bound
   `:data-at="'row-' + r.id"` is checked by its prefix.
-- `data-at-open="<name>"` on a region that starts hidden, naming the control that
-  shows it, so a link into a closed tab opens it first.
+- `data-at-open="<name>"` on a region that starts hidden, or that is laid out beyond the window's left or right edge, naming the control that shows it, so a link into a closed tab, menu or sidebar opens it first.
 - Walkthroughs in `<script type="application/json" id="look-walkthroughs">`, as
   `{ "<name>": [{ "at": …, "say": …, "tap": true }, …] }`.
 - Leave `show`, `tap`, `say`, `walkthrough`, `steps`, `intro` and `stop` to the kit; do

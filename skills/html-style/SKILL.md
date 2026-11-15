@@ -41,7 +41,7 @@ Start with the reader's job and reuse a [standard presentation](https://github.c
 
 Kits supply shared behavior; Alpine components render and hold reactive state, often using kits. [Code layers](https://github.com/mehrlander/web-tools/blob/main/docs/code-layers.md) defines the boundary: [cm6.js](https://github.com/mehrlander/web-tools/blob/main/lib/kits/cm6.js) supplies an editor and [cm-editor.js](https://github.com/mehrlander/web-tools/blob/main/lib/alpineComponents/cm-editor.js) wraps the editor in Alpine. Browse [Kits](https://mehrlander.github.io/web-tools/app/?view=map&tab=kits) and [Alpine components](https://github.com/mehrlander/web-tools/tree/main/lib/alpineComponents) for other implementations; read each file's header for its interface.
 
-Simple pages can remain self-contained. Loading shared code is covered by the [loader contract](https://github.com/mehrlander/web-tools/blob/main/docs/loader.md). When the information structure needs development, use [page-design-loop](https://github.com/mehrlander/web-tools/blob/main/skills/page-design-loop/SKILL.md). The [content maturity prototype](https://github.com/mehrlander/web-tools/blob/main/docs/prototypes/content-maturity.html) is background on the progression from a summary to an app view.
+Simple pages can remain self-contained. Loading shared code is covered by the [loader contract](https://github.com/mehrlander/web-tools/blob/main/docs/loader.md). When the information structure needs development, use [page-design-loop](https://github.com/mehrlander/web-tools/blob/main/skills/page-design-loop/SKILL.md). The [content maturity prototype](https://github.com/mehrlander/web-tools/blob/main/docs/prototypes/content-maturity.html) is background on the progression from a summary to a designed page.
 
 ## The rules
 
@@ -65,7 +65,7 @@ refuses these at edit time and `npm run reading-column` lists them; `modal-box`
 sizing is exempt, and an exception takes a `reading-column-ok` comment on the
 line or the line above.
 
-**4. Browsing takes the available view.** A deck, gallery, diff, or result set uses the frame below. For expansion over another page, use the Swipe Deck takeover. A takeover fills the window on a phone and the host's content pane on a wide screen; a host may also dock it beside a list.
+**4. Browsing takes the available view.** A deck, gallery, diff, or result set uses the frame below, built on a standalone page as `fixed inset-0 grid grid-rows-[auto_1fr_auto]`. For expansion over another page, use the Swipe Deck takeover. A takeover fills the window on a phone and the host's content pane on a wide screen; a host may also dock it beside a list.
 
 ```text
 ├── header   identity, controls, counter
@@ -103,10 +103,10 @@ to labels, counters, and timestamps.
 **8. Content starts at the top.** Do not vertically centre a slide because it
 looks balanced when short; across a deck it moves the first line on every card.
 
-**9. One accent, and it means something.** Colour carries information, not
-decoration. Assign it by semantic role, and in a comparison lock each side's
-treatment across every view. Where two concerns compete for the accent, let a
-control pick which one is marked rather than spending a second colour.
+**9. Use color to communicate.** Color carries information, not decoration.
+Assign it by semantic role, and in a comparison lock each side's treatment
+across every view. Use it selectively: where most items are ordinary, leave
+them neutral and color the ones that differ.
 
 **10. A tooltip worth having is worth building.** Prefer text on the page. Do
 not use a `title`: the browser draws it only on mouse hover and outside the
@@ -115,14 +115,15 @@ page, so touch screens and screenshots omit it. One line the page implies is a
 ([`kits/title-tip.js`](https://github.com/mehrlander/web-tools/blob/main/lib/kits/title-tip.js));
 anything tapped, scrolled, or sourced is a **panel-tip**
 ([`kits/panel-tip.js`](https://github.com/mehrlander/web-tools/blob/main/lib/kits/panel-tip.js)).
+A panel-tip about one figure opens from an icon beside that figure.
 Do not use daisyUI's `tooltip`, `data-tip`, or `cursor-help`. Details are in
 [`references/mechanics.md`, "Title-tips and panel-tips"](references/mechanics.md#title-tips-and-panel-tips);
 `npm run stranded-titles` lists facts parked in a `title`, and
 `TitleTip.open('#id')` opens one for a shot.
 
-**11. Keep the list visible while browsing details.** Pair the list with a swipeable sequence of cards, one per item. On a phone, place the list above the cards and limit its height to about 40% of the available space. In a wide pane, place the list beside the cards. Each pane scrolls independently; the page stays still. Selecting a row shows its card. Swiping between cards selects the corresponding row and keeps that row visible. In the list, Up and Down move selection and keyboard focus together. A control in the card header opens the takeover (rule 4) at the card in view. Closing returns to the list at the item last viewed. Use Linked Swiper; the host supplies the action that opens the takeover.
+**11. Keep the list visible while browsing details.** Pair the list with a strip of swipeable cards, one per item. On a phone, place the list above the cards and limit its height to about 40% of the available space. In a wide pane, place the list beside the cards. Each pane scrolls independently; the page stays still. Selecting a row shows its card. Swiping between cards selects the corresponding row and keeps that row visible. In the list, Up and Down move selection and keyboard focus together. A control in the card header opens the takeover (rule 4) at the card in view. Closing returns to the list at the item last viewed. Use Linked Swiper; the host supplies the action that opens the takeover.
 
-**12. Avoid modal dialogs.** Consider a panel-tip, the Swipe Deck takeover (rule 4), or another more fluid alternative.
+**12. Avoid modal dialogs and accordions.** Consider a panel-tip, a strip under the list (rule 11), the Swipe Deck takeover (rule 4), or another more fluid alternative.
 
 **13. Show the source.** A page presents the publisher's own document rather than a conversion made here, quoted text exactly as written with only highlighting added, and a change inline in the document it changes.
 
@@ -134,7 +135,7 @@ Do not use daisyUI's `tooltip`, `data-tip`, or `cursor-help`. Details are in
 
 **17. A value takes the form its content asks for.** Do not lay out a card's or panel's fields as label-value pairs. A URL or file path is a link, short labels and dates run as one line of items, a sentence runs as text without a label, and an item the card points to leads with an icon and its name in bold. Leave out a field whose value is a placeholder, a value nearly every card shares, or a restatement of another field. A table whose rows share columns is exempt.
 
-**Icon flair** uses small icons beside an item to mark properties such as kind or origin. Explain unfamiliar marks with a title-tip or panel-tip.
+**18. Find graphical representations.** Reduce information to small marks that bring out its groupings. Use icons to emphasize categories, and symbols for relations, such as `~500` for about 500 and `2018 → 2024` for 2018 through 2024.
 
 ## Handing a page over
 

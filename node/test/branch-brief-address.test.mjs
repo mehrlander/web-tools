@@ -4,10 +4,11 @@
 // more keys: `&pane=` names a section and `&file=` opens the file deck on one
 // path. Since the tabs went on 2026-08-31 both sections always render, so
 // `&pane=` no longer picks between them: it says which one the link is about,
-// which buys a scroll to it and, for `files`, the compare a host would defer. They exist because the surfacing caption stopped enumerating files in
-// chat and started linking here instead, so a reply that wants to point at one
-// file needs an address that lands on that file rather than on a list it sits
-// somewhere in.
+// which buys a scroll to it and, for `files`, the compare a host would defer.
+// They exist because a reply does not enumerate its files in chat: its session
+// detail caption counts them and a branch link shows them, so a reply that
+// wants to point at one file needs an address that lands on that file rather
+// than on a list it sits somewhere in.
 //
 // `pane` was already a host option and needed no new machinery. `file` did, and
 // the three clauses below are the ones that decide whether a link opens what it

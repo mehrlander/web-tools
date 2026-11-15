@@ -7,10 +7,10 @@ GitHub and in every downstream reader. The trigger is length and only length:
 a URL of 150 characters or more is wrapped, 149 or fewer survives. The label
 does not count.
 
-The one construct that surprises people is the surfacing caption's slash-joined
-pair. `)/[` does not end the URL token, so the span being measured runs from the
-first URL's first character through the second URL's last, joining punctuation
-and the second label included:
+The one construct that surprises people is a slash-joined pair of links, such
+as `[main](…)/[diff](…)`. `)/[` does not end the URL token, so the span being
+measured runs from the first URL's first character through the second URL's
+last, joining punctuation and the second label included:
 
     span = len(url1) + len(")/[label2](") + len(url2)
 

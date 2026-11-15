@@ -1,0 +1,18 @@
+{
+ "schema": "usage/1",
+ "session": "cccc0003-0000-4000-8000-000000000003",
+ "short": "cccc0003",
+ "day": "2026-10-20",
+ "agent_session": "https://claude.ai/code/session_fixture_3",
+ "opening_ask": "A made-up session in the extract shape of before the re-loads were listed.",
+ "harness_cost": 2.0,
+ "last_step_at": "2026-10-20T18:00:00.000Z",
+ "context_now": 300000,
+ "prompts": [
+  {"at": "2026-10-20T15:00:00.000Z", "index": 0, "steps": 2, "context": 300000, "reloads": 1, "models": {"claude-opus-5-5": {"output": 1000, "cache_read": 500000, "cache_write_1h": 200000, "reload_written": 200000, "reload_write_1h": 200000}}}
+ ],
+ "unowned": null,
+ "compactions": [
+  {"at": "2026-10-20T17:00:00.000Z", "chars": 10000, "context_before": 600000, "context_after": 100000}
+ ]
+}

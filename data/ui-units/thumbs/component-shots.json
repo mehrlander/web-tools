@@ -1,0 +1,204 @@
+{
+ "branch-brief": {
+  "page": "app/index.html?view=branches&detail=mehrlander/web-tools@main",
+  "shot_at": "2026-11-13",
+  "desk": {
+   "file": "component-branch-brief.desk.jpg",
+   "box": [
+    0,
+    0.1525,
+    1,
+    0.8475
+   ]
+  },
+  "phone": {
+   "file": "component-branch-brief.phone.jpg",
+   "box": [
+    0,
+    0.0723,
+    1,
+    0.9277
+   ]
+  }
+ },
+ "crumb-bar": {
+  "page": "app/index.html?repo=mehrlander/web-tools",
+  "shot_at": "2026-11-13",
+  "desk": {
+   "file": "component-crumb-bar.desk.jpg",
+   "box": [
+    0.0094,
+    0.0781,
+    0.2211,
+    0.055
+   ]
+  },
+  "phone": {
+   "file": "component-crumb-bar.phone.jpg",
+   "box": [
+    0.0308,
+    0.0065,
+    0.5615,
+    0.0521
+   ]
+  }
+ },
+ "fab": {
+  "page": "app/index.html?repo=mehrlander/web-tools",
+  "shot_at": "2026-11-13",
+  "desk": {
+   "file": "component-fab.desk.jpg",
+   "box": [
+    0.9375,
+    0.9,
+    0.0438,
+    0.07
+   ]
+  },
+  "phone": {
+   "file": "component-fab.phone.jpg",
+   "box": [
+    0.7949,
+    0.9052,
+    0.1436,
+    0.0664
+   ]
+  }
+ },
+ "file-review": {
+  "page": "pages/review.html#gh=mehrlander/web-tools@main:README.md",
+  "shot_at": "2026-11-13",
+  "desk": {
+   "file": "component-file-review.desk.jpg",
+   "box": [
+    0,
+    0.0712,
+    1,
+    0.9288
+   ]
+  },
+  "phone": {
+   "file": "component-file-review.phone.jpg",
+   "box": [
+    0,
+    0.0675,
+    1,
+    0.9325
+   ]
+  }
+ },
+ "path-picker": {
+  "page": "app/index.html?view=files",
+  "shot_at": "2026-11-13",
+  "desk": {
+   "file": "component-path-picker.desk.jpg",
+   "box": [
+    0.2938,
+    0.0913,
+    0.6875,
+    0.3515
+   ]
+  },
+  "phone": {
+   "file": "component-path-picker.phone.jpg",
+   "box": [
+    0.041,
+    0.0865,
+    0.9179,
+    0.354
+   ]
+  }
+ },
+ "quick-find": {
+  "page": "app/index.html?repo=mehrlander/web-tools",
+  "shot_at": "2026-11-13",
+  "desk": {
+   "file": "component-quick-find.desk.jpg",
+   "box": [
+    0,
+    0.1412,
+    0.2742,
+    0.055
+   ]
+  },
+  "phone": {
+   "file": "component-quick-find.phone.jpg",
+   "box": [
+    0,
+    0.0664,
+    0.7359,
+    0.0521
+   ]
+  }
+ },
+ "ref-switch": {
+  "page": "app/index.html?repo=mehrlander/web-tools",
+  "shot_at": "2026-11-13",
+  "desk": {
+   "file": "component-ref-switch.desk.jpg",
+   "box": [
+    0.7156,
+    0.015,
+    0.25,
+    0.04
+   ]
+  },
+  "phone": {
+   "file": "component-ref-switch.phone.jpg",
+   "box": [
+    0.8103,
+    0.0118,
+    0.0769,
+    0.0427
+   ]
+  }
+ },
+ "repo-menu": {
+  "page": "app/index.html?repo=mehrlander/web-tools",
+  "shot_at": "2026-11-13",
+  "desk": {
+   "file": "",
+   "box": null
+  },
+  "phone": {
+   "file": "",
+   "box": null
+  }
+ },
+ "session-brief": {
+  "page": "app/index.html?view=sessions&session=f78f2596b574e920",
+  "shot_at": "2026-11-13",
+  "desk": {
+   "file": "",
+   "box": null,
+   "refused": true
+  },
+  "phone": {
+   "file": "",
+   "box": null,
+   "refused": true
+  }
+ },
+ "viewer": {
+  "page": "app/index.html?view=files&file=README.md",
+  "shot_at": "2026-11-13",
+  "desk": {
+   "file": "component-viewer.desk.jpg",
+   "box": [
+    0.2945,
+    0.5002,
+    0.6859,
+    0.4685
+   ]
+  },
+  "phone": {
+   "file": "component-viewer.phone.jpg",
+   "box": [
+    0.0436,
+    0.495,
+    0.9128,
+    0.4754
+   ]
+  }
+ }
+}

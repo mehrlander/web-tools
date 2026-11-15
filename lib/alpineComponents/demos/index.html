@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en" data-theme="winter">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Component stage</title>
+<meta name="description" content="One Alpine component from lib/alpineComponents/, mounted live from an authored setup, with the markup that mounts it and the events it sends.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🧩</text></svg>">
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<!--
+  The component stage: one component from lib/alpineComponents/, mounted live.
+
+    ?c=<file base>     the component file, without .js (crumb-bar)
+    &setup=<n>         which of its setups, from 0 (default 0)
+
+  A SETUP is a mount written out: a <template data-setup="name"> block in
+  lib/alpineComponents/demos/<file base>.html, holding the markup a host would
+  write, x-data and all. This page puts that markup on the stage, loads the
+  component's file ahead of Alpine (docs/loader.md, invariant 2: a component
+  registers on alpine:init, so it cannot arrive after Alpine starts), and shows
+  the markup beside what it draws. data-load on a template names further files
+  under lib/ the setup needs first, space-separated.
+
+  With no ?c= it lists the components that have a setup, read off the
+  registry (docs/components.csv, column setups).
+
+  The Map view's Components tab frames this page in a component's card, so the
+  page follows html-style rule 5: no fixed root, sticky chrome, document
+  scrolling. Framed, it declines the FAB (data-no-fab, set below before the
+  boot reads it): a floating button on a specimen stand is a second component
+  in the picture.
+-->
+<script>
+  if (window.self !== window.top) document.documentElement.setAttribute('data-no-fab', '');
+</script>
+<script type="module">
+  await import('https://mehrlander.github.io/web-tools/lib/entry.js');
+
+  const q = new URLSearchParams(location.search);
+  const base = (q.get('c') || '').replace(/[^\w-]/g, '');
+  const $ = id => document.getElementById(id);
+  // The estate's one escape helper (lib/vanilla-bundle.js), which the boot
+  // chain entry.js starts has already run.
+  const esc = window.esc;
+  const here = extra => { const p = new URLSearchParams(location.search); for (const [k, v] of Object.entries(extra)) p.set(k, v); return '?' + p; };
+  const pill = on => 'btn btn-sm shrink-0 ' + (on ? 'btn-neutral' : 'btn-ghost border-base-300');
+  const DIR = 'lib/alpineComponents/';
+
+  // ── No component named: the ones that have a setup ─────────────────────────
+  if (!base) {
+    await gh.load('kits/csv.js');
+    const rows = window.Csv.rows((await gh.get('docs/components.csv')).text).filter(r => +r.setups > 0);
+    $('name').textContent = 'Components with a setup';
+    $('stage').className = 'flex flex-wrap gap-1.5';
+    $('stage').innerHTML = rows.map(r => {
+      const b = r.path.split('/').pop().replace(/\.js$/, '');
+      return '<a class="' + pill(false) + ' font-mono" href="' + esc(here({ c: b })) + '">' + esc(r.names.split(';')[0]) + '()'
+        + '<span class="font-sans tabular-nums text-base-content/50">' + esc(r.setups) + '</span></a>';
+    }).join('');
+    await gh.load('alpine-bundle.js');
+  } else {
+    // ── One component, one setup ─────────────────────────────────────────────
+    const src = (await gh.get(DIR + base + '.js')).text;
+    const names = [...src.matchAll(/Alpine\.data\(\s*['"]([A-Za-z_$][\w$]*)['"]/g)].map(m => m[1]);
+    $('name').textContent = (names[0] || base) + '()';
+    document.title = (names[0] || base) + ' on the stage';
+    // A setup is cut from the file's TEXT, not from a parsed document: the
+    // parser hands attribute values back escaped (=> as =&gt;), and the markup
+    // shown has to be the markup a host types. Each runs from its opening tag
+    // to the last </template> before the next setup, since a setup may hold
+    // templates of its own (x-for).
+    let setups = [];
+    try {
+      const text = (await gh.get(DIR + 'demos/' + base + '.html')).text.replace(/<!--[\s\S]*?-->/g, '');
+      const opens = [...text.matchAll(/<template\b([^>]*\bdata-setup="[^"]*"[^>]*)>/g)];
+      setups = opens.map((m, i) => {
+        const chunk = text.slice(m.index + m[0].length, i + 1 < opens.length ? opens[i + 1].index : text.length);
+        const attr = k => (m[1].match(new RegExp('\\b' + k + '="([^"]*)"')) || [])[1] || '';
+        return { name: attr('data-setup'), load: attr('data-load'), html: chunk.slice(0, chunk.lastIndexOf('</template>')) };
+      });
+    } catch (e) { /* no setups file: the empty state below says so */ }
+    const at = Math.min(Math.max(0, +q.get('setup') || 0), Math.max(0, setups.length - 1));
+    const setup = setups[at];
+
+    if (!setup) {
+      $('stage').innerHTML = '<p class="text-base text-base-content/60">No setup is written for this component yet.</p>';
+    } else {
+      if (setups.length > 1) {
+        $('setups').hidden = false;
+        $('setup-pills').innerHTML = setups.map((s, i) =>
+          '<a class="' + pill(i === at) + '" ' + (i === at ? 'aria-current="true" ' : '') + 'href="' + esc(here({ setup: i })) + '">' + esc(s.name) + '</a>').join('');
+      } else {
+        $('one-setup').hidden = false;
+        $('one-setup').textContent = setup.name;
+      }
+
+      // The markup as written, less its common indent: what a host would type.
+      const lines = setup.html.replace(/^\s*\n/, '').replace(/\s+$/, '').split('\n');
+      const dent = Math.min(...lines.filter(l => l.trim()).map(l => l.match(/^ */)[0].length));
+      $('code').textContent = lines.map(l => l.slice(dent)).join('\n');
+      $('mount').hidden = false;
+
+      // The events the file sends, by the registry's own reading of it
+      // (node/build/components-index.mjs, column events), heard at the window
+      // in the capture phase so one that does not bubble is still seen.
+      const sends = [...new Set([...src.matchAll(/(?:\$dispatch|new CustomEvent)\(\s*['"`]([\w:.-]+)['"`]/g)].map(m => m[1]))];
+      const say = v => { try { const s = JSON.stringify(v, (k, x) => x instanceof ArrayBuffer ? 'ArrayBuffer(' + x.byteLength + ')' : ArrayBuffer.isView(x) ? x.constructor.name + '(' + x.length + ')' : x instanceof Blob ? (x.name || 'Blob') + ' (' + x.size + ' bytes)' : typeof x === 'function' ? 'function' : x); return s && s.length > 220 ? s.slice(0, 219) + '…' : s; } catch { return String(v); } };
+      for (const name of sends) window.addEventListener(name, e => {
+        $('sent').hidden = false;
+        const li = document.createElement('li');
+        li.className = 'flex min-w-0 items-baseline gap-3 border-b border-base-200 py-1';
+        li.innerHTML = '<code class="shrink-0 font-mono font-semibold">' + esc(name) + '</code>'
+          + '<code class="min-w-0 break-all font-mono text-base-content/70">' + esc(e.detail === undefined || e.detail === null ? '' : say(e.detail)) + '</code>';
+        $('sent-list').prepend(li);
+        while ($('sent-list').children.length > 30) $('sent-list').lastElementChild.remove();
+      }, true);
+
+      $('stage').innerHTML = setup.html;
+      for (const extra of setup.load.split(/\s+/).filter(Boolean)) await gh.load(extra);
+      await gh.load('alpineComponents/' + base + '.js');
+      await gh.load('alpine-bundle.js');
+    }
+
+    // ── The outline: what the mounted markup declares, drawn over it ─────────
+    // A box per element that mounts a component (x-data), declares a pattern
+    // or names a part. Off at rest; redrawn while on, since a demo is
+    // something the reader operates and its boxes move.
+    const marks = $('marks'), stage = $('stage');
+    const label = el => el.hasAttribute('x-data') ? (el.getAttribute('x-data').match(/^\s*([A-Za-z_$][\w$]*)\s*\(/) || [])[1]
+      : el.dataset.pattern || el.dataset.part || el.dataset.slot;
+    const draw = () => {
+      const s = stage.getBoundingClientRect();
+      marks.innerHTML = [...stage.querySelectorAll('[x-data],[data-pattern],[data-part],[data-slot]')].map(el => {
+        const r = el.getBoundingClientRect(), text = label(el);
+        if (!text || !r.width || !r.height) return '';
+        const own = el.hasAttribute('x-data');
+        return '<div class="absolute rounded-sm ' + (own ? 'border-2 border-emerald-600' : 'border border-dashed border-base-content/50') + '" ' + `style="left:${r.left - s.left}px;top:${r.top - s.top}px;width:${r.width}px;height:${r.height}px"` + '>'
+          + '<span class="absolute left-0 top-0 -translate-y-full whitespace-nowrap rounded-t-sm px-1 text-xs font-bold text-white ' + (own ? 'bg-emerald-700' : 'bg-neutral') + '">' + esc(text) + '</span></div>';
+      }).join('');
+    };
+    let timer = 0;
+    $('outline').hidden = !setup;
+    $('outline').addEventListener('click', () => {
+      const on = $('outline').getAttribute('aria-pressed') !== 'true';
+      $('outline').setAttribute('aria-pressed', String(on));
+      $('outline').classList.toggle('btn-active', on);
+      clearInterval(timer); marks.innerHTML = '';
+      if (on) { draw(); timer = setInterval(draw, 400); }
+    });
+    $('source').hidden = false;
+    $('source').href = window.RepoAddress.github.blob(gh.repo, gh.ref || 'main', DIR + base + '.js');
+  }
+  // FRAMED, THE WAY OUT IS HERE: a card that frames this page gives it the
+  // whole pane and no row of its own for a link. The address is this page's,
+  // or the toss renderer's around it where a toss rendered it; either way it
+  // is offered only when something frames that address.
+  try {
+    const host = window.parent !== window && /\/toss-render\.html$/.test(window.parent.location.pathname) ? window.parent : window;
+    if (host !== host.top) { $('alone').href = host.location.href; $('alone').hidden = false; }
+  } catch (e) { /* a parent on another origin: no address to offer */ }
+  document.body.setAttribute('aria-busy', 'false');
+</script>
+</head>
+<body class="min-h-dvh bg-base-100 text-base-content" aria-busy="true">
+
+<header class="sticky top-0 z-20 border-b border-base-300 bg-base-100">
+  <div class="flex min-w-0 items-center gap-2 px-3 py-1.5">
+    <i class="ph ph-puzzle-piece shrink-0 text-lg text-base-content/60"></i>
+    <h1 id="name" class="min-w-0 truncate font-mono text-base font-semibold"></h1>
+    <span id="one-setup" hidden class="min-w-0 truncate text-base text-base-content/60"></span>
+    <span class="ml-auto flex shrink-0 items-center gap-1">
+      <button id="outline" hidden type="button" aria-pressed="false" class="btn btn-sm btn-ghost gap-1.5"><i class="ph ph-bounding-box"></i>Outline</button>
+      <a id="source" hidden target="_blank" rel="noopener" class="btn btn-sm btn-ghost btn-square" aria-label="Open the component's file on GitHub"><i class="ph ph-github-logo"></i></a>
+      <a id="alone" hidden target="_blank" rel="noopener" class="btn btn-sm btn-ghost btn-square" aria-label="Open this demo on its own"><i class="ph ph-arrow-square-out"></i></a>
+    </span>
+  </div>
+  <div id="setups" hidden class="flex min-w-0 items-center gap-2 px-3 pb-1.5">
+    <span class="shrink-0 text-sm font-semibold text-base-content/60">Setup</span>
+    <nav id="setup-pills" class="flex min-w-0 flex-nowrap items-center gap-1.5 overflow-x-auto whitespace-nowrap [scrollbar-width:thin]"></nav>
+  </div>
+</header>
+
+<main class="flex flex-col gap-4 p-3">
+  <div class="relative">
+    <div id="stage"></div>
+    <div id="marks" class="pointer-events-none absolute inset-0 z-10"></div>
+  </div>
+  <section id="mount" hidden>
+    <h2 class="mb-1 text-sm font-semibold text-base-content/60">Mounted with</h2>
+    <pre class="overflow-x-auto rounded-lg border border-base-300 bg-base-200 p-3 font-mono text-sm leading-6"><code id="code"></code></pre>
+  </section>
+  <section id="sent" hidden>
+    <h2 class="mb-1 text-sm font-semibold text-base-content/60">Events sent</h2>
+    <ol id="sent-list" class="text-sm"></ol>
+  </section>
+</main>
+
+</body>
+</html>

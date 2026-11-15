@@ -1254,3 +1254,171 @@ test('a target already clear of the dock gets no room', async () => {
   await wait(30);
   assert.equal(w.document.getElementById('pane').style.paddingBottom, '');
 });
+
+// ── a miss is watched, logged, and can be asked about ─────────────────────
+
+// The console of a realm, as the lines the kit wrote to it.
+const lookLines = (w) => {
+  const lines = [];
+  w.console.info = (...a) => { if (String(a[0]).startsWith('[look]')) lines.push(a.join(' ')); };
+  return lines;
+};
+
+test('an anchor that renders after the miss is landed on, and the miss message goes', async () => {
+  // The app shell on a slow connection: quiet, not busy, and its controls
+  // drawn seconds after the dock had already said "Not on this page".
+  const w = realm('<main></main>');
+  const lines = lookLines(w);
+  w.Look.start([{ at: 'late', say: 'found it' }], { wait: 60 });
+  await wait(150);
+  assert.match(said(w), /^Not on this page: late$/, 'the miss is said first');
+  w.document.querySelector('main').innerHTML = '<p data-at="late">here</p>';
+  await wait(500);
+  assert.equal(said(w), 'found it', 'and the step lands once the anchor is there');
+  assert.equal(w.document.querySelector('[data-look="halo"]').style.display, 'block');
+  assert.equal(lines.length, 2, lines.join('\n'));
+  assert.match(lines[0], /^\[look\] step 1 of 1: not found after [\d.]+ s, late; the page did not say it was busy; looking for 60 s more$/);
+  assert.match(lines[1], /^\[look\] step 1: found [\d.]+ s after the miss, on check \d+; the page drew it late$/);
+});
+
+test('a reader who has moved on is not pulled back when the missed anchor turns up', async () => {
+  const w = realm('<main><p data-at="b">second</p></main>');
+  w.Look.start([{ at: 'late', say: 'first' }, { at: 'b', say: 'second' }], { wait: 60 });
+  await wait(150);
+  assert.match(said(w), /^Not on this page: late$/);
+  card(w).querySelector('[data-go]:not([disabled])').click();
+  await wait(100);
+  assert.equal(said(w), 'second');
+  w.document.querySelector('main').insertAdjacentHTML('beforeend', '<p data-at="late">here</p>');
+  await wait(500);
+  assert.equal(said(w), 'second', 'the watch ended with the step it belonged to');
+});
+
+test('a missed anchor offers Look again, and the console where a page has a FAB', async () => {
+  const w = realm('<main></main>');
+  const lines = lookLines(w);
+  w.Look.start([{ at: 'nowhere', say: 'unused' }], { wait: 60 });
+  await wait(150);
+  const again = card(w).querySelector('[data-again]');
+  assert.equal(again.getAttribute('aria-label'), 'Look again');
+  assert.equal(card(w).querySelector('[data-console]'), null, 'no FAB on the page, so no console to point at');
+  again.click();
+  await wait(150);
+  assert.match(said(w), /^Not on this page: nowhere$/, 'looked again, and said so again');
+  assert.ok(lines.some(l => /step 1: asked to look again/.test(l)), lines.join('\n'));
+
+  const v = realm('<main></main><div x-data="fab()"></div>');
+  let asked = null;
+  v.addEventListener('web-tools:open-drawer', (e) => { asked = e.detail; });
+  v.Look.start([{ at: 'nowhere', say: 'unused' }], { wait: 60 });
+  await wait(150);
+  card(v).querySelector('[data-console]').click();
+  assert.deepEqual({ ...asked }, { console: true }, 'the FAB is asked for its drawer with the console open');
+  assert.equal(card(v).querySelector('[data-say]').style.textWrap || '', '', 'the message wraps where it wraps: no balancing');
+});
+
+// ── a component is a place ────────────────────────────────────────────────
+
+// jsdom lays nothing out, so every box is 0 by 0. Here an element is as big as
+// its data-size says ("120x40"), and 0 by 0 without one or while hidden.
+const sized = (w) => {
+  w.Element.prototype.getBoundingClientRect = function () {
+    const [width, height] = this.closest('[hidden]') ? [0, 0] : (this.getAttribute('data-size') || '0x0').split('x').map(Number);
+    return { left: 10, top: 10, right: 10 + width, bottom: 10 + height, width, height };
+  };
+};
+const ringed = (w) => w.document.querySelector('[data-look="halo"]').style.display === 'block';
+
+test('component:<name> lands on the element that mounts it, by the name its x-data opens with', async () => {
+  const w = realm(`<div x-data="crumbBarHost()" data-size="300x40" id="host"></div>
+    <nav x-data="crumbBar({ items: () => [] })" data-size="200x44" id="bar"></nav>
+    <nav x-data=" crumbBar()" data-size="200x44" id="bar2"></nav>`, '', undefined, { before: sized });
+  assert.equal(w.Look.find('component:crumbBar').id, 'bar', 'not the host whose name merely starts the same');
+  assert.equal(w.Look.find('component:crumbBar#2').id, 'bar2', 'and #2 is the second in the page’s order');
+  assert.equal(w.Look.find('component:crumbBar#3'), null);
+  assert.equal(w.Look.find('component:nothing'), null);
+  w.Look.start([{ at: 'component:crumbBar', say: 'the crumb bar' }], { wait: 60 });
+  await wait(120);
+  assert.equal(said(w), 'the crumb bar');
+  assert.ok(ringed(w));
+});
+
+test('a component whose root has no box is ringed by what it draws', () => {
+  // The FAB: a root 0 px tall, a full-window layer that takes no pointer, and
+  // the launcher inside it, which takes the pointer back as the real one does
+  // (pointer-events inherits); plus a nested component whose drawing is its own.
+  const w = realm(`<div x-data="fab()">
+      <div data-size="1280x800" style="pointer-events:none" id="layer">
+        <button data-size="56x56" style="pointer-events:auto" id="launcher">open</button>
+      </div>
+      <div x-data="pathPicker()" data-size="400x300" id="nested"></div>
+    </div>`, '', undefined, { before: sized });
+  assert.equal(w.Look.find('component:fab').id, 'launcher');
+});
+
+test('a component that draws nothing is opened by the control its root names, or said to be hidden', async () => {
+  const body = (opener) => `<button data-at="repo-menu-open" id="open">menu</button>
+    <div x-data="repoMenu()" id="menu" ${opener}><ul hidden data-size="180x120" id="list"></ul></div>`;
+  const w = realm(body('data-at-open="repo-menu-open"'), '', undefined, { before: sized });
+  w.document.getElementById('open').addEventListener('click', () => w.document.getElementById('list').removeAttribute('hidden'));
+  w.Look.start([{ at: 'component:repoMenu', say: 'the repo menu' }], { wait: 60 });
+  await wait(250);
+  assert.equal(said(w), 'the repo menu', 'the opener was clicked and the menu landed on');
+  assert.ok(ringed(w));
+
+  const v = realm(body(''), '', undefined, { before: sized });
+  v.Look.start([{ at: 'component:repoMenu', say: 'unused' }], { wait: 60 });
+  await wait(250);
+  assert.match(said(v), /^Hidden on this page: component:repoMenu$/, 'mounted, drawing nothing, and no opener declared');
+});
+
+test('linkTo writes a look link for the page the reader is on, nested inside a toss', () => {
+  const w = realm('<p>x</p>', 'tab=one', 'https://localhost/app/?view=map');
+  assert.equal(w.Look.linkTo('component:crumbBar', 'the crumb bar'),
+    'https://localhost/app/?view=map#tab=one&show=component%3AcrumbBar&say=the%20crumb%20bar');
+  // The shell of a toss, asked for a place in the page it frames: the page's
+  // fragment follows the address after %23, its own % and & escaped once more.
+  const shell = realm('<p>x</p>', 'gh=o/r@abc:app/index.html?view=map%23show=old',
+    'https://localhost/pages/toss-render.html');
+  assert.equal(shell.Look.linkTo('component:crumbBar', 'a & b', true),
+    'https://localhost/pages/toss-render.html#gh=o/r@abc:app/index.html?view=map%23show=component%253AcrumbBar%26say=a%2520%2526%2520b');
+});
+
+test('a region slid off the side of the window is opened before its target is landed on', async () => {
+  // The app's sidebar on a phone: laid out in full, a screen's width to the
+  // left, with the crumb bar inside it at its full size.
+  const w = realm(`<button data-at="sidebar-open" id="open">menu</button>
+    <aside data-at-open="sidebar-open" id="side"><nav x-data="crumbBar()" id="bar"></nav></aside>`, '', undefined, { before(w) {
+    w.Element.prototype.getBoundingClientRect = function () {
+      const side = w.document.getElementById('side');
+      const left = this.closest('#side') && !side.hasAttribute('data-in') ? -288 : 0;
+      const [width, height] = this.id === 'side' ? [288, 800] : this.id === 'bar' ? [200, 44] : [40, 40];
+      return { left, top: 0, right: left + width, bottom: height, width, height };
+    };
+  } });
+  let clicks = 0;
+  w.document.getElementById('open').addEventListener('click', () => { clicks++; w.document.getElementById('side').setAttribute('data-in', ''); });
+  w.Look.start([{ at: 'component:crumbBar', say: 'the crumb bar' }], { wait: 60 });
+  await wait(250);
+  assert.equal(clicks, 1, 'the sidebar’s opener was clicked once');
+  assert.equal(said(w), 'the crumb bar');
+});
+
+test('component:<name> prefers the instance with the most of itself in sight', () => {
+  // A strip of three cards, each mounting the component. The strip clips its
+  // cards and starts at 300, so the first card overlaps the window (it ends
+  // at 300) and none of it shows; the second is the one in view.
+  const w = realm(`<div id="strip" style="overflow:hidden" data-left="300">
+      <div x-data="viewer()" id="prev" data-left="-500"></div>
+      <div x-data="viewer()" id="here" data-left="300"></div>
+      <div x-data="viewer()" id="next" data-left="1100"></div>
+    </div>`, '', undefined, { before(w) {
+    w.Element.prototype.getBoundingClientRect = function () {
+      if (!this.hasAttribute('data-left')) return { left: 0, top: 0, right: 1024, bottom: 768, width: 1024, height: 768 };
+      const left = Number(this.getAttribute('data-left'));
+      return { left, top: 10, right: left + 800, bottom: 410, width: 800, height: 400 };
+    };
+  } });
+  assert.equal(w.Look.find('component:viewer').id, 'here');
+  assert.equal(w.Look.find('component:viewer#1').id, 'prev', 'a number still counts in the page’s order');
+});
