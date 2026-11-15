@@ -82,6 +82,21 @@ test('walk traces each block back through the pairing, one read per commit, and 
   assert.equal(title.origin.sha, C3.sha);
 });
 
+test('walk loads jsdiff through md-diff when the page has not loaded it', async () => {
+  const saved = window.Diff, real = window.mdDiff.needDiff;
+  let asked = 0;
+  window.Diff = undefined;
+  window.mdDiff.needDiff = async () => { asked++; window.Diff = saved; return saved; };
+  try {
+    const w = await K.walk(DOC, opts());
+    assert.equal(asked, 1);
+    assert.deepEqual(w.chains[1].steps.map(s => s.text), [NOW, BEFORE, FIRST]);
+  } finally {
+    window.Diff = saved;
+    window.mdDiff.needDiff = real;
+  }
+});
+
 test('the limit bounds the reads, and what it cuts stays open rather than guessed', async () => {
   const o = opts({ limit: 2 });
   const w = await K.walk(DOC, o);
