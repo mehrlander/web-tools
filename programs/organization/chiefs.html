@@ -214,7 +214,7 @@
     const c = cur(s);
     // The seated figure leads, beside its mark, as a peeve's sentence leads
     // its card; how a session names it in chat closes the block.
-    h += `<div class="flex items-start gap-4"><span data-hl="${s.id}">${mark(s.id, 'size-14')}</span><div class="flex min-w-0 flex-col gap-1.5">`
+    h += `<div class="flex items-start gap-4"><span data-hl="${s.id}" class="shrink-0">${mark(s.id, 'size-14')}</span><div class="flex min-w-0 flex-col gap-1.5">`
       + `<p class="text-pretty">${esc(c.blurb)}</p>`
       + `<p class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-base-content/60">`
       + `<span class="font-mono">cc ${esc(c.name)} ${c.emoji}</span>`
