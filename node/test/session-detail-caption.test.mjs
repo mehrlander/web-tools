@@ -2,8 +2,9 @@
 // closes with. Driven as a subprocess over a scratch transcript in the
 // harness's shapes and real git checkouts under a scratch project root, with
 // TMPDIR pointed at the scratch folder so each test keeps its own state file.
-// Times are written relative to the clock, half a minute clear of each
-// boundary, because the hook reads the real one.
+// The hook's clock is fixed at NOW through SESSION_CAPTION_NOW and its zone
+// set through OWNER_TZ, so times are written relative to NOW, half a minute
+// clear of each boundary, and every line carries the same STAMP.
 import { test } from 'node:test';
 import assert from 'node:assert';
 import { execFileSync } from 'node:child_process';
@@ -21,7 +22,9 @@ const SESSION_PAGE = PAGES + 'session.html#id=f701fa79';
 const CLOSE = 'Close the reply with that line, unchanged, as its session detail caption.';
 const WAKE = '<task-notification>\n<task-id>a1</task-id>';  // a prompt that is not the owner's
 const MIN = 60_000, HOUR = 60 * MIN;
-const ago = (ms) => new Date(Date.now() - ms).toISOString();
+const NOW = Date.parse('2026-11-14T18:14:00Z');
+const STAMP = '11/14 10:14am';  // NOW in America/Los_Angeles
+const ago = (ms) => new Date(NOW - ms).toISOString();
 // A commit made by a suite running inside a git hook must land in the scratch
 // checkout, not in the repository the hook belongs to.
 const ENV = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith('GIT_')));
@@ -58,7 +61,8 @@ function scratch({ archive = true } = {}) {
     return execFileSync('python3', [HOOK], {
       input: JSON.stringify({ hook_event_name: 'UserPromptSubmit', transcript_path: transcript,
         session_id: SESSION, cwd: root, prompt: WAKE, ...payload }),
-      env: { ...ENV, TMPDIR: dir, CLAUDE_PROJECT_DIR: root, SESSIONS_STORE: '', ...env },
+      env: { ...ENV, TMPDIR: dir, CLAUDE_PROJECT_DIR: root, SESSIONS_STORE: '',
+        SESSION_CAPTION_NOW: String(NOW / 1000), OWNER_TZ: 'America/Los_Angeles', ...env },
       encoding: 'utf8',
     }).trim();
   };
@@ -101,29 +105,91 @@ const caption = (out, event = 'UserPromptSubmit') => {
   const [first, second, ...rest] = d.additionalContext.split('\n');
   assert.equal(second, CLOSE);
   assert.deepEqual(rest, []);
-  return first;
+  assert.ok(first.startsWith(`\`${STAMP}\` `), `the line opens with the stamp: ${first}`);
+  return first.slice(STAMP.length + 3);
 };
 
-test('the line: the count as the session link, then the time, the context and the files', () => {
+test('the line: the count as the session link, then the context, the clock, the age and the waiting docs', () => {
   const s = scratch();
   try {
     checkout(s.root, 'app', { changed: 1 });
     const out = s.run([typed('It is a new day.', ago(26 * HOUR + 30 * MIN)), reply(120_000),
       typed('Ok go ahead.'), reply(815_600)], { prompt: 'What next?' });
-    assert.equal(caption(out), `💬[3](${SESSION_PAGE}) · 1d 2h · 816k · 1 file`);
+    assert.equal(caption(out), `💬[3](${SESSION_PAGE}) · 816𝗄 · 1𝖽 2𝗁`, 'changed files that are not docs show nothing');
+    doc(checkout(s.root, 'docs-app'), 'docs/guide.md');
+    assert.equal(caption(s.run(null, { prompt: 'And now?' })),
+      `💬[3](${SESSION_PAGE}) · 816𝗄 · 1𝖽 2𝗁 · [✍️1](${SESSION_PAGE})`);
+  } finally { s.done(); }
+});
+
+// A committed change to each of `paths` on the checkout's branch.
+function doc(co, ...paths) {
+  for (const p of paths) {
+    mkdirSync(path.join(co.repo, path.dirname(p)), { recursive: true });
+    writeFileSync(path.join(co.repo, p), '# ' + p + '\n');
+  }
+  co.git('add', '.');
+  co.git('commit', '-q', '-m', 'docs');
+}
+
+// A user call in the scratch archive, as user-call.py writes one.
+function call(root, slug, { kind = 'documentation', file, status = 'open', created, session = 'f701fa79' } = {}) {
+  const dir = path.join(root, 'archive', 'user-calls');
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(path.join(dir, `${session}-${slug}.json`), JSON.stringify({
+    schema: 'user-call/1', id: `${session}-${slug}`, kind, status, session, slug, file,
+    created: created || '2026-11-14T10:00:00+00:00' }));
+}
+
+test('✍️ counts the changed documents still waiting on the owner\'s sign-off, linked to the call deck', () => {
+  const s = scratch();
+  try {
+    const entries = [typed('one'), reply(50_000)];
+    const waiting = (i) => caption(s.run(entries, { prompt: 'p' + i })).split(' · ')[3];
+    const app = checkout(s.root, 'app', { changed: 1 });
+    doc(app, 'chron/2026/11/entry.md', 'notes/dump/raw.md');
+    assert.equal(waiting(0), undefined, 'no docs: changed files that are not documentation show nothing');
+
+    doc(app, 'docs/guide.md');
+    assert.equal(waiting(1), `[✍️1](${SESSION_PAGE})`, 'a doc with no call waits, linked to the session page');
+
+    call(s.root, 'guide-words', { file: 'acme/app@claude/work:docs/guide.md' });
+    assert.equal(waiting(2), `[✍️1](${SESSION_PAGE}&user-call=guide-words)`, 'an open call: it waits, linked to the call');
+
+    call(s.root, 'guide-words', { file: 'acme/app@claude/work:docs/guide.md', status: 'closed' });
+    assert.equal(waiting(3), undefined, 'a closed call signs it off');
+
+    doc(app, 'README.md', 'docs/other.md', 'skills/x/SKILL.md');
+    call(s.root, 'other-old', { file: 'acme/app:docs/other.md', status: 'closed', created: '2026-11-14T09:00:00+00:00' });
+    call(s.root, 'other-new', { file: 'acme/app@abc:docs/other.md', created: '2026-11-14T11:00:00+00:00' });
+    call(s.root, 'readme-reopened', { file: 'acme/app:README.md', created: '2026-11-14T11:30:00+00:00' });
+    call(s.root, 'readme-done', { file: 'acme/app:README.md', status: 'closed', created: '2026-11-14T12:00:00+00:00' });
+    call(s.root, 'skill-elsewhere', { file: 'acme/lib:skills/x/SKILL.md', status: 'closed' });
+    call(s.root, 'skill-other-session', { file: 'acme/app:skills/x/SKILL.md', status: 'closed', session: 'a0000001' });
+    call(s.root, 'merge-1', { kind: 'merge', status: 'open', created: '2026-11-14T01:00:00+00:00' });
+    assert.equal(waiting(4), `[✍️2](${SESSION_PAGE}&user-call=other-new)`,
+      'mixed: the latest call for a path decides, another repo\'s or session\'s does not cover it, and the link is the first open documentation call');
+  } finally { s.done(); }
+});
+
+test('without the archive there is no ✍️', () => {
+  const s = scratch({ archive: false });
+  try {
+    doc(checkout(s.root, 'app'), 'docs/guide.md');
+    assert.match(caption(s.run([typed('one'), reply(50_000)])), / · 5𝗆$/);
   } finally { s.done(); }
 });
 
 test('the time since the first owner message: minutes, then hours, then days and hours', () => {
   const s = scratch();
   try {
-    const cases = [[30_000, '0m'], [45 * MIN + 30_000, '45m'], [59 * MIN + 30_000, '59m'],
-      [60 * MIN + 30_000, '1h'], [7 * HOUR + 30 * MIN, '7h'], [23 * HOUR + 59 * MIN + 30_000, '23h'],
-      [24 * HOUR + 30_000, '1d 0h'], [26 * HOUR + 30 * MIN, '1d 2h'], [74 * HOUR + 30 * MIN, '3d 2h']];
+    const cases = [[30_000, '0𝗆'], [45 * MIN + 30_000, '45𝗆'], [59 * MIN + 30_000, '59𝗆'],
+      [60 * MIN + 30_000, '1𝗁'], [7 * HOUR + 30 * MIN, '7𝗁'], [23 * HOUR + 59 * MIN + 30_000, '23𝗁'],
+      [24 * HOUR + 30_000, '1𝖽 0𝗁'], [26 * HOUR + 30 * MIN, '1𝖽 2𝗁'], [74 * HOUR + 30 * MIN, '3𝖽 2𝗁']];
     cases.forEach(([ms, want], i) => {
       const got = caption(s.run([typed('first', ago(ms)), reply(50_000), typed('later', ago(10_000))],
         { session_id: 'case-' + i }));
-      assert.equal(got, `💬[2](${PAGES}session.html#id=case-${i}) · ${want} · 50k`, `${ms} ms ago`);
+      assert.equal(got, `💬[2](${PAGES}session.html#id=case-${i}) · 50𝗄 · ${want}`, `${ms} ms ago`);
     });
   } finally { s.done(); }
 });
@@ -149,7 +215,7 @@ test('it counts what the owner typed, and a mid-turn message once', () => {
       typed('two'),
       reply(41_000),
     ]);
-    assert.equal(caption(out), `💬[3](${SESSION_PAGE}) · 5m · 41k`);
+    assert.equal(caption(out), `💬[3](${SESSION_PAGE}) · 41𝗄 · 5𝗆`);
   } finally { s.done(); }
 });
 
@@ -173,39 +239,42 @@ test('the prompt being submitted is counted once, whether or not the transcript 
 test('a first prompt, before any transcript, is message one at zero minutes', () => {
   const s = scratch();
   try {
-    assert.equal(caption(s.run(null, { prompt: 'Hello' })), `💬[1](${SESSION_PAGE}) · 0m`);
+    assert.equal(caption(s.run(null, { prompt: 'Hello' })), `💬[1](${SESSION_PAGE}) · 0𝗆`);
   } finally { s.done(); }
 });
 
 test('the context is the last main-conversation response that used any, rounded to the thousand', () => {
   const s = scratch();
   try {
-    const context = (entries, i) => caption(s.run(entries, { session_id: 'case-' + i })).split(' · ')[2];
-    assert.equal(context([typed('one'), reply(350_400)], 0), '350k');
-    assert.equal(context([typed('one'), reply(350_600), reply(900_000, { isSidechain: true })], 1), '351k', 'not a subagent\'s');
+    const context = (entries, i) => caption(s.run(entries, { session_id: 'case-' + i })).split(' · ')[1];
+    assert.equal(context([typed('one'), reply(350_400)], 0), '350𝗄');
+    assert.equal(context([typed('one'), reply(350_600), reply(900_000, { isSidechain: true })], 1), '351𝗄', 'not a subagent\'s');
     const notice = line({ type: 'assistant', message: { role: 'assistant', model: '<synthetic>',
       content: [{ type: 'text', text: 'You\'ve reached your limit.' }],
       usage: { input_tokens: 0, cache_creation_input_tokens: 0, cache_read_input_tokens: 0, output_tokens: 0 } } });
-    assert.equal(context([typed('one'), reply(350_400), notice], 2), '350k', 'not a notice written in the model\'s place');
-    assert.equal(caption(s.run([typed('one')], { session_id: 'case-3' })), `💬[1](${PAGES}session.html#id=case-3) · 5m`,
+    assert.equal(context([typed('one'), reply(350_400), notice], 2), '350𝗄', 'not a notice written in the model\'s place');
+    assert.equal(caption(s.run([typed('one')], { session_id: 'case-3' })), `💬[1](${PAGES}session.html#id=case-3) · 5𝗆`,
       'no response yet: the part is left off');
   } finally { s.done(); }
 });
 
-test('files are summed over the checkouts under the root, and a zero sum is left off', () => {
+test('waiting docs are summed over the checkouts under the root, and a zero sum is left off', () => {
   const s = scratch();
   try {
     const entries = [typed('one'), reply(50_000)];
-    const files = (payload, env) => caption(s.run(entries, payload, env)).split(' · ')[3];
+    const waiting = (payload, env) => caption(s.run(entries, payload, env)).split(' · ')[3];
     mkdirSync(path.join(s.root, 'notes'));
     checkout(s.root, 'quiet');
-    assert.equal(files(), undefined, 'nothing changed: no part and no separator');
-    const app = checkout(s.root, 'app', { changed: 1 });
-    assert.equal(files(), '1 file');
-    checkout(s.root, 'lib', { changed: 2 });
-    assert.equal(files(), '3 files');
-    assert.equal(files({ cwd: app.repo }, { CLAUDE_PROJECT_DIR: app.repo }), '1 file', 'a session rooted in one checkout');
-    assert.equal(files({ cwd: path.join(app.repo, 'src') }, { CLAUDE_PROJECT_DIR: '' }), '1 file',
+    assert.equal(waiting(), undefined, 'nothing changed: no part and no separator');
+    const app = checkout(s.root, 'app');
+    doc(app, 'docs/a.md');
+    assert.equal(waiting(), `[✍️1](${SESSION_PAGE})`);
+    doc(checkout(s.root, 'lib'), 'docs/a.md', 'docs/b.md');
+    assert.equal(waiting(), `[✍️3](${SESSION_PAGE})`);
+    assert.equal(waiting({ cwd: app.repo }, { CLAUDE_PROJECT_DIR: app.repo }), `[✍️1](${SESSION_PAGE})`,
+      'a session rooted in one checkout, the archive its sibling');
+    store(path.join(app.repo, 'src', 'private'));
+    assert.equal(waiting({ cwd: path.join(app.repo, 'src') }, { CLAUDE_PROJECT_DIR: '' }), `[✍️1](${SESSION_PAGE})`,
       'with no project root named, the working directory\'s checkout');
   } finally { s.done(); }
 });
@@ -222,7 +291,7 @@ test('with the archive checked out the count links the session page, wherever th
     store(far);
     assert.match(caption(s.run(entries)), /^🌿/, 'and not found unnamed');
     assert.equal(caption(s.run(entries, {}, { SESSIONS_STORE: path.join(far, 'sessions') })),
-      `💬[1](${SESSION_PAGE}) · 5m · 50k · 1 file`, 'named by SESSIONS_STORE');
+      `💬[1](${SESSION_PAGE}) · 50𝗄 · 5𝗆`, 'named by SESSIONS_STORE');
     store(path.join(s.root, 'private'));
     assert.match(caption(s.run(entries)), /^💬\[1\]\(/, 'a child of the root');
     assert.match(caption(s.run(entries, { cwd: app.repo }, { CLAUDE_PROJECT_DIR: app.repo })), /^💬\[1\]\(/, 'a sibling of the root');
@@ -236,25 +305,27 @@ test('without the archive the count links the branch page of the current checkou
   const s = scratch({ archive: false });
   try {
     const entries = [typed('one'), reply(50_000)];
-    assert.equal(caption(s.run(entries)), '💬1 · 5m · 50k', 'no checkout either: the count stands alone');
+    assert.equal(caption(s.run(entries)), `💬1 · 50𝗄 · 5𝗆`, 'no checkout either: the count stands alone');
     const app = checkout(s.root, 'app', { changed: 1 });
     const lib = checkout(s.root, 'lib', { changed: 2, branch: 'claude/busy-bell' });
     assert.equal(caption(s.run(entries)),
-      `🌿[1](${PAGES}branch.html#gh=acme/lib@claude/busy-bell) · 5m · 50k · 3 files`,
+      `🌿[1](${PAGES}branch.html#gh=acme/lib@claude/busy-bell) · 50𝗄 · 5𝗆`,
       'from above the checkouts, the one with the most files changed');
     assert.equal(caption(s.run(entries, { cwd: path.join(app.repo, 'src') })),
-      `🌿[1](${PAGES}branch.html#gh=acme/app@claude/work) · 5m · 50k · 3 files`, 'the one the working directory is in');
+      `🌿[1](${PAGES}branch.html#gh=acme/app@claude/work) · 50𝗄 · 5𝗆`, 'the one the working directory is in');
     lib.git('checkout', '-q', '--detach');
     assert.match(caption(s.run(entries)), /^🌿\[1\]\(\S+branch\.html#gh=acme\/lib\) /, 'a detached HEAD names no branch');
   } finally { s.done(); }
 });
 
-test('after a Bash call it speaks only when the file count moved, and asks git only when something did', () => {
+test('after a Bash call it speaks only when the ✍️ count moved, and asks git only when something did', () => {
   const s = scratch();
   try {
-    const app = checkout(s.root, 'app', { changed: 1 });
+    const app = checkout(s.root, 'app');
+    doc(app, 'docs/a.md');
     const bash = (more = {}) => s.run(null, { hook_event_name: 'PostToolUse', tool_name: 'Bash', prompt: undefined, ...more });
-    assert.equal(caption(s.run([typed('one'), reply(50_000)], { prompt: 'two' })), `💬[2](${SESSION_PAGE}) · 5m · 50k · 1 file`);
+    assert.equal(caption(s.run([typed('one'), reply(50_000)], { prompt: 'two' })),
+      `💬[2](${SESSION_PAGE}) · 50𝗄 · 5𝗆 · [✍️1](${SESSION_PAGE})`);
     appendFileSync(s.transcript, typed('two') + '\n' + reply(60_000) + '\n');
     assert.equal(bash(), '', 'nothing moved');
 
@@ -264,17 +335,17 @@ test('after a Bash call it speaks only when the file count moved, and asks git o
     assert.equal(bash(), '', 'the stat mark alone decides');
     renameSync(path.join(app.repo, '.git', 'objects.away'), path.join(app.repo, '.git', 'objects'));
 
-    writeFileSync(path.join(app.repo, 'first-0.txt'), 'edited\n');
-    app.git('commit', '-q', '-am', 'the same file again');
-    assert.equal(bash(), '', 'a commit that leaves the count where it was');
+    app.commit('code', 2);
+    assert.equal(bash(), '', 'a commit of files that are not documentation leaves the count where it was');
 
-    app.commit('second', 2);
+    doc(app, 'docs/b.md');
     assert.equal(bash({ agent_id: 'a1' }), '', 'a subagent\'s Bash call is passed over');
-    assert.equal(caption(bash(), 'PostToolUse'), `💬[2](${SESSION_PAGE}) · 5m · 60k · 3 files`, 'a commit moved the count');
+    assert.equal(caption(bash(), 'PostToolUse'),
+      `💬[2](${SESSION_PAGE}) · 60𝗄 · 5𝗆 · [✍️2](${SESSION_PAGE})`, 'a commit of a doc moved the count');
     assert.equal(bash(), '', 'said once');
 
     app.git('update-ref', 'refs/remotes/origin/main', 'HEAD');
-    assert.equal(caption(bash(), 'PostToolUse'), `💬[2](${SESSION_PAGE}) · 5m · 60k`, 'main caught up: the part goes');
+    assert.equal(caption(bash(), 'PostToolUse'), `💬[2](${SESSION_PAGE}) · 60𝗄 · 5𝗆`, 'main caught up: the part goes');
     app.git('checkout', '-q', '-b', 'claude/next');
     assert.equal(bash(), '', 'a new branch on the same commit');
   } finally { s.done(); }
@@ -286,7 +357,7 @@ test('a Bash call with no caption printed yet prints one', () => {
     checkout(s.root, 'app', { changed: 1 });
     writeFileSync(s.transcript, [typed('one'), reply(50_000)].join('\n') + '\n');
     const bash = () => s.run(null, { hook_event_name: 'PostToolUse', tool_name: 'Bash', prompt: undefined });
-    assert.equal(caption(bash(), 'PostToolUse'), `💬[1](${SESSION_PAGE}) · 5m · 50k · 1 file`);
+    assert.equal(caption(bash(), 'PostToolUse'), `💬[1](${SESSION_PAGE}) · 50𝗄 · 5𝗆`);
     assert.equal(bash(), '');
   } finally { s.done(); }
 });
@@ -305,7 +376,7 @@ test('the owner count is kept, and a run reads only what was appended since', ()
     appendFileSync(s.transcript, typed('three') + '\n' + reply(9000) + '\n');
     const out = s.run(null);
     assert.equal(count(out), 3);
-    assert.match(caption(out), / · 2h · /, 'the first message\'s time is kept too');
+    assert.match(caption(out), / · 2𝗁$/, 'the first message\'s time is kept too');
 
     // A line still being written is left for the run that finds it whole.
     const half = typed('four');
@@ -333,7 +404,7 @@ test('each session keeps its own state', () => {
 test('anything it was not aimed at passes silently, and it never fails a turn', () => {
   const s = scratch();
   try {
-    assert.equal(caption(s.run(['not json', typed('one'), reply(9000).slice(0, 80)])), `💬[1](${SESSION_PAGE}) · 5m`,
+    assert.equal(caption(s.run(['not json', typed('one'), reply(9000).slice(0, 80)])), `💬[1](${SESSION_PAGE}) · 5𝗆`,
       'lines it cannot read are skipped');
     assert.equal(caption(s.run(null, { transcript_path: path.join(s.dir, 'missing.jsonl'), session_id: 'sess-x' })),
       `💬[0](${PAGES}session.html#id=sess-x)`, 'no transcript and nobody typing: the link alone');
@@ -344,7 +415,23 @@ test('anything it was not aimed at passes silently, and it never fails a turn', 
         encoding: 'utf8' }).trim(), '', `silent on ${input.slice(0, 40)}`);
     }
     writeFileSync(path.join(s.dir, 'session-detail-caption', SESSION), 'not json');
-    assert.equal(caption(s.run(null)), `💬[1](${SESSION_PAGE}) · 5m`, 'a state file it cannot read is started again');
+    assert.equal(caption(s.run(null)), `💬[1](${SESSION_PAGE}) · 5𝗆`, 'a state file it cannot read is started again');
+  } finally { s.done(); }
+});
+
+test('the clock: the owner\'s month/day and 12-hour time, or UTC with a Z', () => {
+  const s = scratch();
+  try {
+    const at = (iso, i, zone = 'America/Los_Angeles') => /^`([^`]+)` /.exec(JSON.parse(s.run([typed('one', ago(5 * MIN))],
+      { session_id: 'clock-' + i }, { SESSION_CAPTION_NOW: String(Date.parse(iso) / 1000), OWNER_TZ: zone }))
+      .hookSpecificOutput.additionalContext)[1];
+    const cases = [['2026-11-14T18:14:00Z', '11/14 10:14am'], ['2026-11-14T23:07:00Z', '11/14 3:07pm'],
+      ['2026-11-14T20:05:00Z', '11/14 12:05pm', 'noon'], ['2026-11-15T08:05:00Z', '11/15 12:05am', 'midnight'],
+      ['2026-07-04T16:30:00Z', '7/4 9:30am', 'one-digit month and day, in daylight time'],
+      ['2026-12-01T07:59:00Z', '11/30 11:59pm', 'the day before in the owner\'s zone']];
+    cases.forEach(([iso, want, why], i) => assert.equal(at(iso, i), want, why || iso));
+    assert.equal(at('2026-11-14T18:14:00Z', 'utc', 'Nowhere/Atlantis'), '11/14 18:14Z', 'a zone that will not load');
+    assert.equal(at('2026-11-14T08:04:00Z', 'utc2', 'Nowhere/Atlantis'), '11/14 8:04Z');
   } finally { s.done(); }
 });
 

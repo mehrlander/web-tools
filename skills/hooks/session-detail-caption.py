@@ -3,19 +3,36 @@
 the line a reply closes with (docs/CONVERSATION.md, "Session detail caption"),
 so that no session works it out by hand.
 
-    💬[22](https://mehrlander.github.io/web-tools/pages/session.html#id=f701fa79) · 1d 2h · 816k · 1 file
+    `11/14 10:14am` 💬[22](https://mehrlander.github.io/web-tools/pages/session.html#id=f701fa79) · 816𝗄 · 1𝖽 2𝗁 · [✍️1](https://mehrlander.github.io/web-tools/pages/session.html#id=f701fa79)
 
-THE PARTS. 22 counts the messages the owner has typed, and is the link to the
-session page, named by the session id's first eight characters. 1d 2h is the
-time since the first of those messages: 45m under an hour, 7h under a day,
-1d 2h after. 816k is the context in thousands of tokens, read the way
-context-size-hint.py reads it: input_tokens + cache_read_input_tokens +
-cache_creation_input_tokens of the last main-conversation response in the
-transcript's tail. 1 file is `git diff origin/main...HEAD --name-only | wc -l`
-summed over the session's checkouts, which are the checkout the project root
-is in and each folder directly under the root that holds a .git. A zero file
-count is left off, and so is a part the transcript cannot supply: the time
+THE PARTS. The line opens with when this run printed it, as a code span, in
+the owner's time zone (OWNER_TZ below): month/day, then 12-hour time with a
+plain am or pm. 22 counts the messages the owner has typed, and is the link to the
+session page, named by the session id's first eight characters. 816𝗄 is the
+context in thousands of tokens, read the way context-size-hint.py reads it:
+input_tokens + cache_read_input_tokens + cache_creation_input_tokens of the
+last main-conversation response in the transcript's tail. Every unit letter
+outside the code span is written in Mathematical Sans-Serif small letters and
+the digits stay plain. A zone that cannot be loaded gives UTC in 24-hour
+time and a plain Z, as 11/14 18:14Z. 1𝖽 2𝗁 is the time since the first of the
+owner's messages: 45𝗆 under an hour, 7𝗁 under a day,
+1𝖽 2𝗁 after. ✍️1 counts the files changed against main
+(`git diff origin/main...HEAD --name-only`) in the session's checkouts, which
+are the checkout the project root is in and each folder directly under the
+root that holds a .git, that are documentation, by governing-docs.py beside
+this file (the test warn-governing-docs.sh applies), and whose wording still
+waits on the owner's sign-off, linked to the session page's deck of calls. A
+zero count is left off, and so is a part the transcript cannot supply: the time
 before any owner message, the context before any response.
+
+THE SIGN-OFF is read from the session's user calls in the archive checkout,
+`user-calls/<short>-<slug>.json` (the private store's user-calls/user-call.py
+holds the schema). A documentation call names its document as
+`owner/repo@ref:path`; a changed document is signed off when the latest such
+call for its repo and path, by `created`, is not `open`, and waiting when that
+call is open or there is none. The ✍️ links the first open documentation call,
+`session.html#id=<short>&user-call=<slug>`, or with none open the session page
+alone. Without the archive there is no ✍️.
 
 THE OWNER'S MESSAGES are told by the harness's own test for a person's words.
 A `user` entry whose origin is {"kind": "human"} is a message typed between
@@ -40,14 +57,15 @@ owner entry carries the same text and no response has followed it.
 THE LINK. The session page exists only where the session archive is checked
 out, found as session-record.sh finds it: a checkout among the project root,
 its children and its siblings whose .web-tools.json declares "sessions" and
-whose store holds tools/on-stop.sh, or SESSIONS_STORE. Without one the count
+whose store holds tools/on-stop.sh, or SESSIONS_STORE, whose checkout is the
+nearest folder above it holding a .git. Without one the count
 links the 🌿 branch page of the current checkout instead: the one the working
 directory is in or, with that directory above the checkouts, the one with the
 most files changed. With no checkout to link either, the count stands alone.
 
-WHEN IT SPEAKS. On UserPromptSubmit, always. On PostToolUse only when the file
-count differs from the one it last printed, so that a reply made after a commit
-carries a fresh count. That second event follows every Bash call, so it first
+WHEN IT SPEAKS. On UserPromptSubmit, always. On PostToolUse only when the ✍️
+count differs from the one it last printed, so that a reply made after a
+commit of a document carries a fresh count. That second event follows every Bash call, so it first
 compares what a commit, a checkout or a fetch moves in each checkout (HEAD, its
 log, the branch's ref, origin/main, packed-refs) by stat, and stops there when
 nothing moved: no git process and no transcript read. UserPromptSubmit always
@@ -57,7 +75,7 @@ conversation's reply. Between two lines the last one stands: a message the
 owner sends mid-turn, and the time and context a turn adds, show in the next.
 
 THE STATE is one small JSON file per session id under the temp directory, as
-context-size-hint.py keeps its marks: the file count last printed, the stat
+context-size-hint.py keeps its marks: the ✍️ count last printed, the stat
 mark, and the owner-message count with the bytes it covers.
 
 Silent and exit 0 on anything else: an unparseable payload, no session id, or
@@ -69,6 +87,8 @@ import re
 import sys
 import time
 
+# The owner's time zone, the one setting the printed time reads.
+OWNER_TZ = os.environ.get("OWNER_TZ") or "America/Los_Angeles"
 PAGES = "https://mehrlander.github.io/web-tools/pages/"
 TAIL = 400_000
 USAGE = ("input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens")
@@ -181,8 +201,8 @@ def mark(repos):
 
 
 def changed(repos):
-    """The files changed against main in each checkout, the git commands run
-    side by side. A checkout with no origin/main counts none."""
+    """The files changed against main in each checkout, as lists of paths, the
+    git commands run side by side. A checkout with no origin/main has none."""
     import subprocess
     runs = []
     for repo in repos:
@@ -192,18 +212,18 @@ def changed(repos):
                 stdout=subprocess.PIPE, stderr=subprocess.DEVNULL))
         except OSError:
             runs.append(None)
-    counts = []
+    names = []
     for run in runs:
-        count = 0
+        found = []
         if run is not None:
             try:
                 out, _ = run.communicate(timeout=4)
                 if run.returncode == 0:
-                    count = len(out.splitlines())
+                    found = out.decode("utf-8", "replace").splitlines()
             except subprocess.TimeoutExpired:
                 run.kill()
-        counts.append(count)
-    return counts
+        names.append(found)
+    return names
 
 
 # ── The transcript ──────────────────────────────────────────────────────────
@@ -310,10 +330,18 @@ def submitting(event, payload, unanswered):
 # ── The line ────────────────────────────────────────────────────────────────
 
 def archive(root):
-    """Whether the session archive is checked out, by session-record.sh's test."""
+    """The session archive's checkout, found by session-record.sh's test, or
+    "" when it is not checked out."""
     explicit = os.environ.get("SESSIONS_STORE")
     if explicit:
-        return os.path.isfile(os.path.join(explicit, "tools", "on-stop.sh"))
+        if not os.path.isfile(os.path.join(explicit, "tools", "on-stop.sh")):
+            return ""
+        here = os.path.abspath(explicit)
+        while not os.path.exists(os.path.join(here, ".git")):
+            if os.path.dirname(here) == here:
+                return os.path.dirname(os.path.abspath(explicit))
+            here = os.path.dirname(here)
+        return here
     folders = [root]
     parent = os.path.dirname(root)
     for base in [root] + ([] if parent in ("", os.sep, ".", root) else [parent]):
@@ -335,8 +363,73 @@ def archive(root):
             continue
         if (isinstance(declared, str) and declared
                 and os.path.isfile(os.path.join(folder, declared, "tools", "on-stop.sh"))):
-            return True
-    return False
+            return folder
+    return ""
+
+
+def origin_slug(repo):
+    """A checkout's owner/repo, lowercased, read from its git config's origin
+    without running git, or ""."""
+    try:
+        _, common = git_dirs(repo)
+        with open(os.path.join(common, "config"), encoding="utf-8") as fh:
+            config = fh.read()
+    except OSError:
+        return ""
+    section = re.search(r'\[remote "origin"\]([^\[]*)', config)
+    url = re.search(r"^\s*url\s*=\s*(\S+)", section.group(1), re.M) if section else None
+    slug = re.search(r"[:/]([^/:]+)/([^/]+?)(?:\.git)?/?$", url.group(1)) if url else None
+    return f"{slug.group(1)}/{slug.group(2)}".lower() if slug else ""
+
+
+def engine():
+    """governing-docs.py, loaded by path since its name is hyphenated."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "governing_docs", os.path.join(os.path.dirname(os.path.abspath(__file__)), "governing-docs.py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def awaiting(repos, names, store, short):
+    """The count of changed documents still waiting on the owner's sign-off,
+    and the slug of the session's first open documentation call, or ""."""
+    docs = []
+    test = None
+    for repo, found in zip(repos, names):
+        found = [rel for rel in found if rel.endswith(".md")]
+        if not found:
+            continue
+        test = test or engine()
+        cache, slug = {}, origin_slug(repo)
+        docs += [(slug, rel) for rel in found if test.documentation(repo, rel, cache)]
+    if not docs:
+        return 0, ""
+    folder = os.path.join(store, "user-calls")
+    try:
+        files = sorted(n for n in os.listdir(folder) if n.startswith(short + "-") and n.endswith(".json"))
+    except OSError:
+        files = []
+    latest, first_open = {}, None
+    for name in files:
+        try:
+            with open(os.path.join(folder, name), encoding="utf-8") as fh:
+                call = json.load(fh)
+        except (OSError, ValueError):
+            continue
+        if not isinstance(call, dict) or call.get("kind") != "documentation":
+            continue
+        named = re.fullmatch(r"([^/\s]+/[^@:\s]+)(?:@[^:\s]+)?:(\S+)", str(call.get("file") or ""))
+        when = str(call.get("created") or "")
+        if call.get("status") == "open" and (first_open is None or when < first_open[0]):
+            first_open = (when, str(call.get("slug") or name[len(short) + 1:-5]))
+        if named:
+            key = (named.group(1).lower(), named.group(2))
+            if key not in latest or when >= latest[key][0]:
+                latest[key] = (when, call.get("status"))
+    waiting = sum(1 for key in docs if key not in latest or latest[key][1] == "open")
+    return waiting, first_open[1] if first_open else ""
 
 
 def branch_page(repos, counts, cwd):
@@ -358,14 +451,32 @@ def branch_page(repos, counts, cwd):
     return f"{PAGES}branch.html#gh={slug.group(1)}/{slug.group(2)}" + (f"@{branch}" if branch else "")
 
 
+# The unit letters, in Mathematical Sans-Serif small letters.
+KILO, DAY, HOUR, MINUTE = "\U0001D5C4", "\U0001D5BD", "\U0001D5C1", "\U0001D5C6"  # 𝗄 𝖽 𝗁 𝗆
+
+
 def elapsed(seconds):
     minutes = max(0, int(seconds)) // 60
     if minutes < 60:
-        return f"{minutes}m"
+        return f"{minutes}{MINUTE}"
     hours = minutes // 60
     if hours < 24:
-        return f"{hours}h"
-    return f"{hours // 24}d {hours % 24}h"
+        return f"{hours}{HOUR}"
+    return f"{hours // 24}{DAY} {hours % 24}{HOUR}"
+
+
+def clock(now, zone=OWNER_TZ):
+    """The time `now` as month/day hour:minute in the owner's zone, or in UTC
+    with a Z when the zone cannot be loaded."""
+    from datetime import datetime, timezone
+    try:
+        from zoneinfo import ZoneInfo
+        at = datetime.fromtimestamp(now, ZoneInfo(zone))
+    except Exception:
+        at = datetime.fromtimestamp(now, timezone.utc)
+        return f"{at.month}/{at.day} {at.hour}:{at.minute:02d}Z"
+    marker = "am" if at.hour < 12 else "pm"
+    return f"{at.month}/{at.day} {(at.hour + 11) % 12 + 1}:{at.minute:02d}{marker}"
 
 
 def since(first, now):
@@ -394,12 +505,14 @@ def main():
 
     repos = checkouts(root)
     moved = mark(repos)
-    if event == "PostToolUse" and state.get("mark") == moved and "files" in state:
+    if event == "PostToolUse" and state.get("mark") == moved and "waiting" in state:
         return
-    counts = changed(repos)
-    files = sum(counts)
+    names = changed(repos)
+    counts = [len(found) for found in names]
+    store = archive(root)
+    waiting, call = awaiting(repos, names, store, session[:8]) if store else (0, "")
     state["mark"] = moved
-    if event == "PostToolUse" and state.get("files") == files:
+    if event == "PostToolUse" and state.get("waiting") == waiting:
         save(path, state)
         return
 
@@ -409,7 +522,7 @@ def main():
         count_owner(transcript, state)
         context, unanswered = tail_facts(transcript)
     count = state.get("owner") if isinstance(state.get("owner"), int) else 0
-    now = time.time()
+    now = float(os.environ.get("SESSION_CAPTION_NOW") or time.time())  # a fixed clock, for the tests
     age = since(state.get("first"), now)
     if submitting(event, payload, unanswered):
         count += 1
@@ -417,25 +530,26 @@ def main():
             age = 0
 
     glyph, url = "💬", ""
-    if archive(root):
+    if store:
         url = f"{PAGES}session.html#id={session[:8]}"
     else:
         url = branch_page(repos, counts, str(payload.get("cwd") or root))
         if url:
             glyph = "🌿"
     parts = [f"{glyph}[{count}]({url})" if url else f"{glyph}{count}"]
+    if context:
+        parts.append(f"{(context + 500) // 1000}{KILO}")
     if age is not None:
         parts.append(elapsed(age))
-    if context:
-        parts.append(f"{(context + 500) // 1000}k")
-    if files:
-        parts.append("1 file" if files == 1 else f"{files} files")
+    if waiting:
+        deck = f"{PAGES}session.html#id={session[:8]}" + (f"&user-call={call}" if call else "")
+        parts.append(f"[✍️{waiting}]({deck})")
 
-    state["files"] = files
+    state["waiting"] = waiting
     save(path, state)
     print(json.dumps({"hookSpecificOutput": {
         "hookEventName": event,
-        "additionalContext": " · ".join(parts)
+        "additionalContext": f"`{clock(now)}` " + " · ".join(parts)
                              + "\nClose the reply with that line, unchanged, as its session detail caption.",
     }}))
 
