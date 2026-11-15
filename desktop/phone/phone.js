@@ -8,7 +8,7 @@
   const ui = {
     assistants:'grid grid-cols-3 gap-2 px-3 py-1 border-t-0 bg-stone-100 max-[350px]:gap-1 max-[350px]:px-2',
     provider:'phone-provider relative min-w-0',
-    providerFilter:`phone-provider-filter flex w-full min-h-[34px] items-center gap-[3px] py-0.5 pr-[18px] pl-0 text-left border-b-2 border-transparent rounded aria-pressed:border-[#6f6a61] aria-pressed:bg-[#eae7e1] ${focusStyle}`,
+    providerFilter:`phone-provider-filter flex h-full w-full min-h-[34px] items-center gap-[3px] py-0.5 pr-[18px] pl-0 text-left border-b-2 border-transparent rounded aria-pressed:border-[#6f6a61] aria-pressed:bg-[#eae7e1] ${focusStyle}`,
     providerName:'phone-provider-name flex shrink-0 items-center gap-[3px] text-[13px] font-semibold leading-5 whitespace-nowrap [&>svg]:size-4 [&>svg]:flex-none max-[350px]:text-xs max-[350px]:gap-0.5 max-[350px]:[&>svg]:size-[13px]',
     providerCounts:'phone-provider-counts ml-auto flex min-w-0 flex-wrap justify-end gap-x-1 gap-y-0 text-xs tabular-nums leading-4 text-[#827b71] [&_svg]:size-3 max-[350px]:text-[11px] max-[350px]:[&_svg]:size-[11px]',
     count:'inline-flex items-center gap-[3px] whitespace-nowrap',
