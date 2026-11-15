@@ -2018,7 +2018,7 @@ test('diffHandoff builds the Diff page address from the staged pair', () => {
   ];
   data.diffA = 0; data.diffB = 1;
   const u = new URL(data.diffHandoff);
-  assert.match(u.pathname, /\/diff-tool\.html$/, 'points at the Diff page');
+  assert.match(u.pathname, /\/pages\/diff-tool\.html$/, 'points at the Diff page, which lives under pages/');
   assert.equal(u.searchParams.get('a'), 'me/a:lib/x.js');
   assert.equal(u.searchParams.get('b'), 'me/b@feat/y:docs/z.md');
 
