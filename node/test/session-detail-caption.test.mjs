@@ -172,6 +172,30 @@ test('✍️ counts the changed documents still waiting on the owner\'s sign-off
   } finally { s.done(); }
 });
 
+test('✍️ counts an open call on a path the test does not take for documentation, and a copy once', () => {
+  const s = scratch();
+  try {
+    const entries = [typed('one'), reply(50_000)];
+    const waiting = (i) => caption(s.run(entries, { prompt: 'q' + i })).split(' · ')[3];
+    const app = checkout(s.root, 'app', { changed: 1 });
+    doc(app, 'notes/dump/raw.md');
+    call(s.root, 'raw-words', { file: 'acme/other@claude/work:notes/dump/raw.md' });
+    assert.equal(waiting(0), `[✍️1](${SESSION_PAGE}&user-call=raw-words)`, 'an open call waits, whatever its path');
+
+    call(s.root, 'raw-words', { file: 'acme/other@claude/work:notes/dump/raw.md', status: 'closed' });
+    for (const p of ['docs/guide.md', 'skills/default/guide.md']) {
+      mkdirSync(path.join(app.repo, path.dirname(p)), { recursive: true });
+      writeFileSync(path.join(app.repo, p), '# the same text\n');
+    }
+    app.git('add', '.');
+    app.git('commit', '-q', '-m', 'a doc and its copy');
+    assert.equal(waiting(1), `[✍️1](${SESSION_PAGE})`, 'a doc and a copy of it with the same text wait as one');
+
+    call(s.root, 'guide-words', { file: 'acme/app@claude/work:docs/guide.md', status: 'closed' });
+    assert.equal(waiting(2), undefined, 'signing off the source signs off its copy');
+  } finally { s.done(); }
+});
+
 test('without the archive there is no ✍️', () => {
   const s = scratch({ archive: false });
   try {
