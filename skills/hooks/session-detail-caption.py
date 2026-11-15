@@ -16,23 +16,27 @@ outside the code span is written in Mathematical Sans-Serif small letters and
 the digits stay plain. A zone that cannot be loaded gives UTC in 24-hour
 time and a plain Z, as 11/14 18:14Z. 1𝖽 2𝗁 is the time since the first of the
 owner's messages: 45𝗆 under an hour, 7𝗁 under a day,
-1𝖽 2𝗁 after. ✍️1 counts the files changed against main
+1𝖽 2𝗁 after. ✍️1 counts the documents whose wording waits on the owner's
+sign-off (THE SIGN-OFF, below), linked to the session page's deck of calls.
+The changed ones are the files changed against main
 (`git diff origin/main...HEAD --name-only`) in the session's checkouts, which
 are the checkout the project root is in and each folder directly under the
 root that holds a .git, that are documentation, by governing-docs.py beside
-this file (the test warn-governing-docs.sh applies), and whose wording still
-waits on the owner's sign-off, linked to the session page's deck of calls. A
+this file (the test warn-governing-docs.sh applies). A
 zero count is left off, and so is a part the transcript cannot supply: the time
 before any owner message, the context before any response.
 
 THE SIGN-OFF is read from the session's user calls in the archive checkout,
 `user-calls/<short>-<slug>.json` (the private store's user-calls/user-call.py
 holds the schema). A documentation call names its document as
-`owner/repo@ref:path`; a changed document is signed off when the latest such
-call for its repo and path, by `created`, is not `open`, and waiting when that
-call is open or there is none. The ✍️ links the first open documentation call,
-`session.html#id=<short>&user-call=<slug>`, or with none open the session page
-alone. Without the archive there is no ✍️.
+`owner/repo@ref:path`, and the latest such call for a repo and path, by
+`created`, decides it: waiting while that call is `open`, signed off once it
+is not. ✍️ counts the paths whose latest call is open, whether or not the test
+above takes the path for documentation, and the changed documents no call
+names; documents with the same text in one checkout count once, so a copy the
+commit hook writes from its source goes with it. The ✍️ links the first open
+documentation call, `session.html#id=<short>&user-call=<slug>`, or with none
+open the session page alone. Without the archive there is no ✍️.
 
 THE OWNER'S MESSAGES are told by the harness's own test for a person's words.
 A `user` entry whose origin is {"kind": "human"} is a message typed between
@@ -393,25 +397,14 @@ def engine():
 
 
 def awaiting(repos, names, store, short):
-    """The count of changed documents still waiting on the owner's sign-off,
-    and the slug of the session's first open documentation call, or ""."""
-    docs = []
-    test = None
-    for repo, found in zip(repos, names):
-        found = [rel for rel in found if rel.endswith(".md")]
-        if not found:
-            continue
-        test = test or engine()
-        cache, slug = {}, origin_slug(repo)
-        docs += [(slug, rel) for rel in found if test.documentation(repo, rel, cache)]
-    if not docs:
-        return 0, ""
+    """The count of documents still waiting on the owner's sign-off, and the
+    slug of the session's first open documentation call, or ""."""
     folder = os.path.join(store, "user-calls")
     try:
         files = sorted(n for n in os.listdir(folder) if n.startswith(short + "-") and n.endswith(".json"))
     except OSError:
         files = []
-    latest, first_open = {}, None
+    latest = {}
     for name in files:
         try:
             with open(os.path.join(folder, name), encoding="utf-8") as fh:
@@ -421,15 +414,34 @@ def awaiting(repos, names, store, short):
         if not isinstance(call, dict) or call.get("kind") != "documentation":
             continue
         named = re.fullmatch(r"([^/\s]+/[^@:\s]+)(?:@[^:\s]+)?:(\S+)", str(call.get("file") or ""))
-        when = str(call.get("created") or "")
-        if call.get("status") == "open" and (first_open is None or when < first_open[0]):
-            first_open = (when, str(call.get("slug") or name[len(short) + 1:-5]))
-        if named:
-            key = (named.group(1).lower(), named.group(2))
-            if key not in latest or when >= latest[key][0]:
-                latest[key] = (when, call.get("status"))
-    waiting = sum(1 for key in docs if key not in latest or latest[key][1] == "open")
-    return waiting, first_open[1] if first_open else ""
+        if not named:
+            continue
+        key, when = (named.group(1).lower(), named.group(2)), str(call.get("created") or "")
+        if key not in latest or when >= latest[key][0]:
+            latest[key] = (when, call.get("status"), str(call.get("slug") or name[len(short) + 1:-5]))
+    open_calls = sorted((when, slug) for when, status, slug in latest.values() if status == "open")
+    # A changed document that no call names waits too. Documents with the same
+    # text in one checkout are one document: a copy the commit hook writes from
+    # its source (skills/default/ from docs/) is signed off with it.
+    uncalled = set()
+    test = None
+    for repo, found in zip(repos, names):
+        found = [rel for rel in found if rel.endswith(".md")]
+        if not found:
+            continue
+        test = test or engine()
+        cache, slug, groups = {}, origin_slug(repo), {}
+        for rel in found:
+            if not test.documentation(repo, rel, cache):
+                continue
+            try:
+                with open(os.path.join(repo, rel), "rb") as fh:
+                    text = fh.read()
+            except OSError:
+                text = rel.encode()
+            groups.setdefault(text, []).append((slug, rel))
+        uncalled.update(tuple(g[0]) for g in groups.values() if not any(k in latest for k in g))
+    return len(open_calls) + len(uncalled), open_calls[0][1] if open_calls else ""
 
 
 def branch_page(repos, counts, cwd):
