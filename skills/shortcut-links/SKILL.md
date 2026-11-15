@@ -11,6 +11,9 @@ perform another task.
 
 Generate links with the commands below and copy the output unchanged.
 Do not construct or edit the URLs by hand.
+Link to the https form each command prints to stderr, after `tappable:`
+or in `run.py`'s 📲 line: the Claude iPhone app does not open a bare
+`shortcuts://` link, and web-tools' `pages/shortcut-run.html` forwards it.
 
 ## Choose a command
 
