@@ -544,11 +544,9 @@ test('the last column cannot be turned off', () => {
   assert.equal(data.tableCols.length, 1, 'a table with no columns has no way back');
 });
 
-test('the branch grain answers the scope off the branch\'s own clock, and Failed is not a window it can answer', () => {
+test('the branch grain answers the scope off the branch\'s own clock', () => {
   data.sessionGrain = 'branch';
   data.sessionScope = 'day';
   assert.equal(data.grainRows.length, 1, 'the branch committed yesterday');
-  data.sessionScope = 'failed';
-  assert.equal(data.grainRows.length, 1, 'shown rather than emptied under a scope about sessions');
   data.sessionScope = 'all';
 });

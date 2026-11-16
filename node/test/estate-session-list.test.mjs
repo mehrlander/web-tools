@@ -162,8 +162,7 @@ test('the list becomes the scope BEFORE a &session= opens, or the deck swipes th
 
 test('the branch grain shows everything under a list, since a branch cannot be in one', () => {
   seed('aaa11111');
-  // Snagged's reasoning, and the same answer: the full list under a scope this
-  // grain cannot answer reads as what it is, where an empty pane under a lit
-  // chip reads as a bug.
+  // The full list under a scope this grain cannot answer reads as what it is,
+  // where an empty pane under a lit chip reads as a bug.
   assert.equal(data.inBranchTableScope({ name: 'feature', date: '2025-01-01' }), true);
 });

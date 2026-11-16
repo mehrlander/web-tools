@@ -309,11 +309,10 @@ async function resultsScenario(viewport) {
   check(label + ' a kind nothing matched is disabled', await page.locator('[data-facet="summary"]').isDisabled());
   check(label + ' a title match marks the term in the row\'s name',
     await page.locator('[data-session-result="a0000002"] [data-match-label] .bg-warning\\/30').textContent() === 'Cobalt');
-  check(label + ' the When row counts the windows', await count('day') === 3 && await count('week') === 4 && await count('month') === 5);
+  check(label + ' the answer is every session, with no time facet', await page.locator('[data-session-facet="when"]').count() === 0);
   await page.locator('[data-facet="said"]').click();
   await readyResults(page, 3);
   assert.deepEqual(new Set(await resultIds(page)), new Set(['a0000001', 'a0000003', 'a0000004'])); checks++;
-  check(label + ' the other rows recount under a facet', await count('day') === 1 && await count('month') === 3);
   check(label + ' the tally says what the facet left', /3 of 5 sessions/.test(await page.locator('[data-pane="search"] [role="status"]').first().textContent()));
   await page.locator('[data-facet="said"]').click();
   await readyResults(page, 5);
@@ -335,13 +334,10 @@ async function resultsScenario(viewport) {
   await search.locator('[data-find-box]').fill('discussion');
   await search.locator('form').evaluate(form => form.requestSubmit());
   await page.waitForFunction(() => new URLSearchParams(location.search).get('sq') === 'discussion');
-  await page.locator('[data-session-hidden]').waitFor({ state: 'visible' });
-  check(label + ' a session that worked in a hidden repo stays out', !(await resultIds(page)).includes('a0000008')
-    && !(await page.locator('[data-session-facet="repo"]').textContent()).includes('veiled'));
-  const shown = (await resultIds(page)).length;
-  await page.locator('[data-session-hidden]').click();
-  await readyResults(page, shown + 1);
-  check(label + ' the Hidden chip shows it again', (await resultIds(page)).includes('a0000008'));
+  await readyResults(page, 4);
+  check(label + ' a session that worked in a hidden repo stays out, with no control to show it',
+    !(await resultIds(page)).includes('a0000008') && !(await page.locator('[data-session-facets]').textContent()).includes('veiled')
+    && await page.locator('[data-session-hidden]').count() === 0);
   await page.goBack();
   await page.goBack();
   await page.goBack();

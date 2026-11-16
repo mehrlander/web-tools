@@ -3,8 +3,8 @@
 // The registry's `hidden` list keeps a repo out of the sidebar, the nav, the
 // Repos grid and the activity crawl. The Sessions view honours it too: a row
 // whose `repos` names a hidden repo stays out of the rows, the tree and the
-// counts until the Hidden chip shows it, and `attached` (every checkout the
-// container held) does not count as working there.
+// counts, with no control on the pane to bring it back, and `attached` (every
+// checkout the container held) does not count as working there.
 //
 // Driven over the same fake GH as estate-session-scope; no network, no pixels.
 
@@ -72,22 +72,15 @@ test('a session that worked in a hidden repo leaves the rows and the tree', () =
   assert.equal(data.sessionRepos.some(r => r.repo === 'fun'), false, 'no chip for the hidden repo');
 });
 
-test('the Hidden chip counts it, and showing brings it back with its repo chip', () => {
-  assert.equal(data.hiddenSessionCount, 1);
-  data.showHiddenSessions = true;
-  try {
-    assert.deepEqual(ids(data.scopedSessions), ['aaaaaaaa', 'bbbbbbbb', 'cccccccc']);
-    assert.deepEqual(ids(data.sessionNodes.filter(n => n.row).map(n => n.row)), ['aaaaaaaa', 'bbbbbbbb', 'cccccccc']);
-    assert.equal(data.sessionRepos.some(r => r.repo === 'fun'), true);
-  } finally {
-    data.showHiddenSessions = false;
-  }
+test('the pane has no control that shows it again', () => {
+  assert.equal('showHiddenSessions' in data, false);
+  assert.equal('hiddenSessionCount' in data, false);
 });
 
-test('with nothing hidden every session shows and the chip has nothing to count', () => {
+test('with nothing hidden every session shows, its repo chip included', () => {
   window.__shell.estateHidden = [];
   try {
-    assert.equal(data.hiddenSessionCount, 0);
+    assert.equal(data.sessionRepos.some(r => r.repo === 'fun'), true);
     assert.deepEqual(ids(data.scopedSessions), ['aaaaaaaa', 'bbbbbbbb', 'cccccccc']);
   } finally {
     window.__shell.estateHidden = ['mehrlander/fun'];
