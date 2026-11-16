@@ -253,7 +253,7 @@
       <span class="badge badge-sm badge-ghost font-mono"><span x-text="files.length"></span> files</span>
       <span class="badge badge-sm badge-ghost font-mono">+<span x-text="totalAdd"></span> / -<span x-text="totalDel"></span></span>
       <span class="grow"></span>
-      <button @click="copyDump()" class="btn btn-ghost btn-xs gap-1" title="Serialized changeset for an LLM session">
+      <button @click="copyDump()" class="btn btn-ghost btn-xs gap-1" data-title-tip="Serialized changeset for an LLM session">
         <i class="ph" :class="dumpCopied ? 'ph-check' : 'ph-copy'"></i>dump
       </button>
     </div>
@@ -288,7 +288,7 @@
   <div x-show="files.length > 1" class="flex justify-end pb-1.5">
     <button @click="openFileDeck(files[0] && files[0].path)"
             class="btn btn-sm btn-square btn-soft btn-primary max-sm:h-11 max-sm:w-11"
-            :title="'Read ' + files.length + ' files one at a time'">
+            :data-title-tip="'Read ' + files.length + ' files one at a time'">
       <i class="ph ph-cards-three text-lg max-sm:text-xl"></i></button>
   </div>
   <div x-show="files.length" x-ref="fileCards" :class="mode !== 'file' && 'border border-base-300 rounded-lg overflow-hidden'">

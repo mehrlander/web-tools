@@ -166,6 +166,22 @@ def default_roots(base):
     # skills/ is reference material, so only the demos join the default set.
     return base + sorted(glob.glob('skills/*/demo.html'))
 
+
+def changed_paths(base='main'):
+    """Files the branch changed against `base`, committed or not, anywhere in
+    the tree: the shape `npm run showing` reads, so a page built in dump/ is
+    seen too. Falls back to a plain diff when a shallow clone has no merge base."""
+    import subprocess
+    def git(*a):
+        r = subprocess.run(['git', *a], capture_output=True, text=True)
+        return r.stdout.split('\0') if r.returncode == 0 else None
+    names = git('diff', '--name-only', '-z', '--merge-base', base)
+    if names is None:
+        names = git('diff', '--name-only', '-z', base) or []
+    names += git('ls-files', '-z', '--others', '--exclude-standard') or []
+    return sorted({n for n in names if n and os.path.isfile(n)
+                   and not set(n.split('/')) & SKIP_DIRS})
+
 def walk(roots):
     for root in roots:
         if os.path.isfile(root):
@@ -184,8 +200,13 @@ def main(argv):
                     help='files or directories to scan (default: lib pages app, plus skills/*/demo.html)')
     ap.add_argument('--check', action='store_true',
                     help='exit 1 when anything is found, for a gate')
+    ap.add_argument('--changed', nargs='?', const='main', metavar='BASE',
+                    help='scan only the files the branch changed against BASE (default main), in any folder')
     args = ap.parse_args(argv[1:])
-    roots = args.roots or default_roots(['lib', 'pages', 'app'])
+    if args.changed:
+        roots = [f for f in changed_paths(args.changed) if os.path.splitext(f)[1] in EXTENSIONS]
+    else:
+        roots = args.roots or default_roots(['lib', 'pages', 'app'])
 
     found = []
     for path in walk(roots):

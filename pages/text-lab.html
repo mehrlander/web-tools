@@ -1459,7 +1459,7 @@
             </h2>
             <button class="btn btn-square btn-sm btn-ghost text-primary max-sm:h-10 max-sm:w-10"
                     :aria-label="'Read the ' + g.purpose + ' variants one at a time'"
-                    :title="'Read the ' + g.all.length.toLocaleString() + ' ' + g.purpose + ' variants one at a time'"
+                    :data-title-tip="'Read the ' + g.all.length.toLocaleString() + ' ' + g.purpose + ' variants one at a time'"
                     @click="openVariantDeck(g.all, 0, g.purpose + ' · ' + (variantAuthor || 'every author'))">
               <i class="ph ph-cards-three text-lg"></i>
             </button>
@@ -1608,7 +1608,7 @@
                    :href="treeUrl(r.dir)" target="_blank" rel="noopener">files<i class="ph ph-arrow-square-out ml-1"></i></a>
                 <button class="btn btn-square btn-sm btn-ghost text-primary max-sm:h-11 max-sm:w-11"
                         :aria-label="'Read ' + r.files.length + ' files one at a time'"
-                        :title="'Read ' + r.files.length + ' files one at a time'"
+                        :data-title-tip="'Read ' + r.files.length + ' files one at a time'"
                         @click="openRunDeck(r)">
                   <i class="ph ph-cards-three text-lg"></i>
                 </button>
