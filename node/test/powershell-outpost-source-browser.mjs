@@ -258,6 +258,23 @@ try {
     assert.equal((await desk.editor()).text, files[C]);
     assert.equal(await desk.page.locator('[data-source-diff]').isVisible(), false);
   });
+  // The editor, the baseline and the parser's review settle here in an order
+  // jsdom does not have, and each of them can open a tab.
+  await check('an address naming Shipped opens it on a file with changes, and a tab picked there is named for the address', async () => {
+    const view = fn => desk.page.evaluate(fn);
+    await desk.select(B); await desk.settled();
+    await desk.page.evaluate(c => { history.pushState(null, '', '?item=' + encodeURIComponent(c) + '&itemtab=shipped'); dispatchEvent(new PopStateEvent('popstate')); }, C);
+    await desk.page.waitForFunction(() => { const v = Alpine.$data(document.querySelector('#mount')); return v.unitReview && !v.unitBusy && v.sourceState === 'editor'; });
+    assert.equal(await view(() => Alpine.$data(document.querySelector('#mount')).visibleUnits.length), 1);
+    assert.equal(await view(() => Alpine.$data(document.querySelector('#mount')).shownTab), 'code');
+    await desk.page.locator('[data-source] .cm-editor').waitFor({ state: 'visible' });
+    await desk.page.locator('[data-detail-tabs] [data-tab=outline]').click();
+    assert.equal(await view(() => window.__shell.powershellOutpostTab), 'outline');
+    await desk.page.locator('[data-detail-tabs] [data-tab=changes]').click();
+    assert.equal(await view(() => window.__shell.powershellOutpostTab), '', 'the tab the file opens on by itself is left out');
+    await desk.page.locator('[data-detail-tabs] [data-tab=code]').click();
+    await view(() => history.replaceState(null, '', location.pathname));
+  });
   await check('Edit in the pane writes a browser draft, and its menu offers the draft actions', async () => {
     await desk.select(B); await desk.settled();
     await desk.page.locator('[data-file-actions] [aria-label="Edit"]').click();
