@@ -49,14 +49,26 @@ The app's `VIEWS` table is the router: each row names a key, how a link opens it
 
 **Repo views.** Overview displays the README. Other views are Pages, Atlas, Config, Files, and Project. A declared landing page renders as an app view.
 
-**Display options.** `?header=` and `?sidebar=` control the header and sidebar. They accompany the view's address and have no `VIEWS` row. Each takes `0` or `1`; an absent parameter means the default, and the app leaves a default out of the URL. Other values read as absent.
+**Display options.** `?header=` and `?sidebar=` control the header and sidebar. They accompany the view's address and have no `VIEWS` row. The app leaves a default out of the URL and reads any value other than `0` or `1` as absent.
 
 | Parameter | Absent | `1` | `0` |
 | --- | --- | --- | --- |
-| `header` | Shown | Shown | Hidden; the FAB's Render tab and the launcher's long-press menu bring it back |
+| `header` | Shown | Shown | Hidden; the [FAB](fab.md)'s Render tab and its long-press menu bring it back |
 | `sidebar` | Starts open on wide screens and closed on phones; closed on app views and with the header hidden | Starts open | Starts closed |
 
-`?sidebar=` sets how the sidebar starts. The header's menu button toggles it either way, and toggling does not change the URL. The menu button sits in the header: with `?header=0`, bringing the header back is the only route to the sidebar. `?shell=full|nav|none`, the preset these two parameters replace, is still read as an alias until 2027-02-01: `full` opens the sidebar on wide screens on every view, app views included; `nav` is `sidebar=0`; `none` is `header=0`. The app rewrites it to the new parameters at the next URL update. `shell-routing.test.mjs` holds these rules. App views take their tab title and iOS Home Screen title and icon from toss-render's `toss-subject-mark` event.
+`?sidebar=` sets only how the sidebar starts: the header's menu button toggles it without changing the URL. The menu button sits in the header and hides with it. [`shell-routing.test.mjs`](../node/test/shell-routing.test.mjs) checks these rules.
+
+**The `?shell=` alias.** `?shell=full|nav|none` is the preset these two parameters replace. Links carrying it remain in PR bodies and artifacts. The app reads it as an alias and rewrites it to the new parameters at the next URL update:
+
+| `?shell=` | Reads as |
+| --- | --- |
+| `full` | The sidebar starts open on wide screens on every view, app views included |
+| `nav` | `sidebar=0` |
+| `none` | `header=0` |
+
+The alias code carries `SUNSET(2027-02-01)` markers, which `npm run sunset` lists. Remove the alias once they come due.
+
+App views take their tab title and iOS Home Screen title and icon from toss-render's `toss-subject-mark` event.
 
 **Ref switch** (`lib/alpineComponents/ref-switch.js`). Enter a branch, tag, or SHA to reload the app through toss-render at that ref (`#gh=…@<ref>:…`, which also pins its library), preserving the current deep link. It puts no `?use=` on the renderer's own query, since that pin kills Safari's web process on an iPhone whenever the renderer hosts a frame (the snag `shell-pin-kills-the-tab`); the FAB and its sidebar around a switched view are therefore main's, and the sidebar's layer strip says so. Search's ref picker changes the browsed repo's ref. The FAB Render tab shows the app ref. A link's selection (`refs=owner/repo@ref[:path]`, [loader.md](loader.md#the-selection)) travels to every view the app frames; a hub view with no ref of its own is displayed at the app's version. The Files view's browsed ref is its own visible choice, which also targets its writes, so the selection does not move it.
 
