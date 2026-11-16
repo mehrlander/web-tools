@@ -6,8 +6,8 @@
 
 - [`scan.py`](scan.py) reads each `.html` and `.js` file in scope and records one row per tooltip: the house title-tip ([`data-title-tip`](../../lib/kits/title-tip.js), written in markup, bound by Alpine or set in a script), a `title` attribute, or daisyUI's `data-tip`. Each row holds the tooltip's words, or the expression that makes them. With `--provenance`, each row also gets the oldest commit in which `git log -S` sees those words enter the file, that commit's agent and claude.ai session, and the commit `git blame` names for the line.
 - [`trace.py`](trace.py) sorts the rows whose text is computed by what the expression reads.
-- Scope in web-tools, at [`2668629`](https://github.com/mehrlander/web-tools/commit/2668629f1): `app/index.html`, `lib/alpineComponents/`, `lib/kits/` and `pages/`, without demos.
-- Scope in budget-drs, at [`52b1b30`](https://github.com/mehrlander/budget-drs/commit/52b1b30a): `app/`, without generated payloads, `tools/` folders and the dated records in `app/workshop/`. budget-drs's own [`tooltips.csv`](https://github.com/mehrlander/budget-drs/blob/main/data/design/catalog/tooltips.csv) holds the same rows plus its data-file cells and two kinds of hover card, browsable in its Data view ([budget-drs#27](https://github.com/mehrlander/budget-drs/pull/27)).
+- Scope in web-tools, at [`2668629`](https://github.com/mehrlander/web-tools/commit/2668629f1): [`app/index.html`](../../app/index.html), [`lib/alpineComponents/`](../../lib/alpineComponents/), [`lib/kits/`](../../lib/kits/) and [`pages/`](../../pages/), without demos.
+- Scope in budget-drs, at [`52b1b30`](https://github.com/mehrlander/budget-drs/commit/52b1b30a): [`app/`](https://github.com/mehrlander/budget-drs/tree/main/app), without generated payloads, `tools/` folders and the dated records in [`app/workshop/`](https://github.com/mehrlander/budget-drs/tree/main/app/workshop). budget-drs's own [`tooltips.csv`](https://github.com/mehrlander/budget-drs/blob/main/data/design/catalog/tooltips.csv) holds the same rows plus its data-file cells and two kinds of hover card, browsable in its Data view ([budget-drs#27](https://github.com/mehrlander/budget-drs/pull/27)).
 - The [diagram](diagram.html) draws the findings.
 
 ## Where the words come from
@@ -42,7 +42,7 @@ One copy shows why a table of tooltips should point at a data file rather than r
 
 ## Who wrote the words
 
-`git blame` names the last commit that touched a line. Both repositories converted their tooltips from `title` attributes to `data-title-tip` in a few large commits that changed the attribute and kept the words; here such a commit is a conversion. For most tooltips, blame names the conversion. The budget-drs count is its 246 tooltips in markup and scripts: the 486 above less its 223 data-file cells and 17 hover-card calls, which have no line of markup to blame.
+`git blame` names the last commit that touched a line. Both repositories converted their tooltips from `title` attributes to `data-title-tip` in a few large commits that changed the attribute and kept the words; here such a commit is a conversion. For most web-tools tooltips, blame names the conversion; in budget-drs it does for fewer than a fifth. The budget-drs count is its 246 tooltips in markup and scripts: the 486 above less its 223 data-file cells and 17 hover-card calls, which have no line of markup to blame.
 
 | | web-tools | budget-drs |
 | --- | --- | --- |
