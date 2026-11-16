@@ -113,6 +113,20 @@ Use `NEW:` or `REPLACE:` only after checking `index.json`, the newest
 `manifests/*.txt`, and the log. Those records can miss recent installations.
 If the status is uncertain, use the shortcut name alone.
 
+### Copy actions
+
+| 📋 [Message-Reaction-Guard](GENERATED_URL) |
+| --- |
+| *Stops a Messages automation on a tapback and notifies instead.* |
+| GENERATED_ACTION_LISTING |
+| ⚡[`/workflows/message-reaction-guard.json`](https://github.com/mehrlander/shortcut-tools/blob/main/workflows/message-reaction-guard.json) |
+
+Follow the Install rules for the sentence, the listing, and the file row, with
+three differences. Take the listing from the `card:` line that
+`python3 tools/pack.py <workflow> --url` prints. Omit `NEW:` and `REPLACE:`,
+since a copy link installs nothing. A workflow without a `name` has no library
+page, so link its file on GitHub.
+
 ### Sequence
 
 Add `--card` to `run.py` to generate the table.
