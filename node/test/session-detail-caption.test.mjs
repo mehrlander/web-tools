@@ -20,7 +20,7 @@ const PAGES = 'https://mehrlander.github.io/web-tools/pages/';
 const SESSION = 'f701fa79-e1c0-5997-b6c3-709182f8e137';
 const SESSION_PAGE = PAGES + 'session.html#id=f701fa79';
 const CLOSE = 'Close the reply with that line, unchanged, as its session detail caption.';
-const WAKE = '<task-notification>\n<task-id>a1</task-id>';  // a prompt that is not the owner's
+const WAKE = '<task-notification>\n<task-id>a1</task-id>';  // a prompt that is not the owner's, of no kind it names
 const MIN = 60_000, HOUR = 60 * MIN;
 const NOW = Date.parse('2026-11-14T18:14:00Z');
 const STAMP = '11/14 10:14am';  // NOW in America/Los_Angeles
@@ -56,11 +56,13 @@ function scratch({ archive = true } = {}) {
   const transcript = path.join(dir, 'session.jsonl');
   // `entries` rewrites the transcript whole, which a harness never does, so a
   // test that runs twice over different entries gives each run its own session.
+  // A run passes no prompt unless it gives one, so that it neither counts an
+  // owner's message nor names what started a turn.
   const run = (entries, payload = {}, env = {}) => {
     if (entries) writeFileSync(transcript, entries.join('\n') + '\n');
     return execFileSync('python3', [HOOK], {
       input: JSON.stringify({ hook_event_name: 'UserPromptSubmit', transcript_path: transcript,
-        session_id: SESSION, cwd: root, prompt: WAKE, ...payload }),
+        session_id: SESSION, cwd: root, ...payload }),
       env: { ...ENV, TMPDIR: dir, CLAUDE_PROJECT_DIR: root, SESSIONS_STORE: '',
         SESSION_CAPTION_NOW: String(NOW / 1000), OWNER_TZ: 'America/Los_Angeles', ...env },
       encoding: 'utf8',
@@ -257,6 +259,47 @@ test('the prompt being submitted is counted once, whether or not the transcript 
       '<system-reminder>x</system-reminder>', 'Another Claude session sent a message'].forEach((prompt, i) =>
       assert.equal(count([typed('one'), reply(9000)], { prompt }, 10 + i), 1, 'not the owner\'s: ' + prompt.slice(0, 20)));
     assert.equal(count([typed('one'), reply(9000)], { prompt: undefined }, 20), 1, 'no prompt in the payload');
+  } finally { s.done(); }
+});
+
+// A queued remote notification's envelope, with the summary that names its origins.
+const queued = (summary) => '<task-notification>\n<task-type>queued-remote-notifications</task-type>\n<status>pending</status>\n' +
+  `<summary>${summary}</summary>\nNotifications are queued for this session (more may arrive before you read them). ` +
+  'Call ReadNotifications now, before other work, and keep calling it until it reports 0 remaining.\n</task-notification>';
+const SCHEDULED = 'scheduled trigger (the stored prompt of a routine or task on this account)';
+const GITHUB = 'GitHub activity on a subscribed PR';
+
+test('a turn the owner did not start names what started it, after the count', () => {
+  const s = scratch();
+  try {
+    const entries = [typed('one'), reply(50_000)];
+    const kinds = [
+      [queued(`1 unread notification (${SCHEDULED}: 1)`), 'scheduled task'],
+      [queued(`1 unread notification (${GITHUB}: 1)`), 'PR event'],
+      [queued(`4 unread notifications (${GITHUB}: 4)`), 'PR event'],
+      [queued(`2 unread notifications (${SCHEDULED}: 1, ${GITHUB}: 1)`), 'scheduled task, PR event'],
+      [queued(`3 unread notifications (${GITHUB}: 2, ${SCHEDULED}: 1)`), 'PR event, scheduled task'],
+      [queued('1 unread notification (message from another Claude session: 1)'), 'agent message'],
+      ['<agent-message from="a1">\n[Subagent hand-back] The report follows:\n  Done.', 'agent message'],
+      ['Another Claude session sent a message:\n<agent-message from="a1">\nreport', 'agent message'],
+      ['<task-notification>\n<task-id>a1</task-id>\n<status>completed</status>\n<summary>Agent "Fix the GitHub activity feed" finished</summary>\n</task-notification>',
+        'agent message'],
+      ['<task-notification>\n<task-id>b1</task-id>\n<summary>Background command "npm test" completed (exit code 0)</summary>\n</task-notification>', 'wake'],
+      [queued('1 unread notification (something new: 1)'), 'wake'],
+      [WAKE, 'wake'],
+      ['[SYSTEM] wake', 'wake'],
+      ['<system-reminder>x</system-reminder>', 'wake'],
+    ];
+    kinds.forEach(([prompt, kind], i) => assert.equal(caption(s.run(entries, { prompt, session_id: 'kind-' + i })),
+      `💬[1](${PAGES}session.html#id=kind-${i}) · ${kind} · 50𝗄 · 5𝗆`, prompt.slice(0, 60)));
+
+    assert.equal(caption(s.run(entries, { prompt: 'What next?', session_id: 'owner' })),
+      `💬[2](${PAGES}session.html#id=owner) · 50𝗄 · 5𝗆`, 'an owner\'s prompt keeps the line as it was');
+    assert.equal(caption(s.run(entries, { session_id: 'none' })), `💬[1](${PAGES}session.html#id=none) · 50𝗄 · 5𝗆`,
+      'no prompt in the payload names no kind');
+    const bash = s.run(entries, { hook_event_name: 'PostToolUse', tool_name: 'Bash', session_id: 'bash',
+      prompt: queued(`1 unread notification (${GITHUB}: 1)`) });
+    assert.equal(caption(bash, 'PostToolUse'), `💬[1](${PAGES}session.html#id=bash) · 50𝗄 · 5𝗆`, 'nor does a Bash call');
   } finally { s.done(); }
 });
 
