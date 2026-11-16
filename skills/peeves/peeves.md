@@ -298,7 +298,7 @@ Source paragraphs broken across lines at an arbitrary width. Paragraphs remain c
 
 ### Percussive negation and contrast · `P64`
 
-Emphasizing distinctions of unclear relevance, or shadow-boxing with implausible suppositions. Watch for any emphatic negation: the word "nothing" is often a flag to rephrase more precisely.
+Emphasizing distinctions of unclear relevance, or shadow-boxing with implausible suppositions. Watch for any emphatic negation: the word "nothing" often flags a statement with a conspicuous gap that the word tries to paper over. Close the gap, or cut the statement.
 
 **Look for:** 'draws no underline', 'adds no claim', 'names no file', 'open no new ones', 'nothing opens it', 'leaves the reader nothing new', 'there is nothing to act on'; repeated 'not X, but Y' contrasts; rejecting an alternative the reader never raised
 
