@@ -176,7 +176,7 @@ document.addEventListener('alpine:init', () => {
       const b = document.createElement('button');
       b.className = 'btn btn-sm btn-circle btn-success shrink-0';
       b.innerHTML = '<i class="ph ph-check text-lg"></i>';
-      b.title = 'Approve';
+      b.dataset.titleTip = 'Approve';
       b.setAttribute('aria-label', 'Approve');
       b.addEventListener('click', () => {
         if (this.sending || this.sent) return;
