@@ -1,7 +1,10 @@
 ---
 id: own-json-tree-retire-vje-i0lcj2
 title: Build our own JSON tree for display, keep vanilla-jsoneditor for editing
-status: backlog
+status: done
+closed: 2026-11-16
+session: claude/json-tree-native-view
+errand: claude-2026-11-16-9bbc33
 opened: 2026-07-25
 size: M
 ---
@@ -105,3 +108,5 @@ has held this task for its whole life.
 - 2026-09-23: PR #760 landed a display-tree prototype, `pages/drop/json-table-tree.html`: an array of records opens as a table in place, nested values open under their rows, children render only when opened, and it loads no editor. It stands alone and does not yet meet Done when (no `tree` module, `viewer.js` unchanged). The design sources are archived in `archive/json-viewers/`.
 - 2026-10-06: Listed JSON Lens as prior work beside the table-tree prototype. Tending pass.
 - 2026-10-07: Decided. Build our own read-only tree as the `tree` display mode, and keep vanilla-jsoneditor as `edit`, loaded only where asked for, as recommended (user call 2708d02c-web-tools-answers).
+- 2026-11-16: sent as Claude errand claude-2026-11-16-9bbc33 (session b805c26a, owner's go); the errand's prompt asks the taker to close this task when the branch work is complete.
+- 2026-11-16: Closed by errand claude-2026-11-16-9bbc33 on `claude/json-tree-native-view` (PR #1331, draft): the viewer's `tree` mode, the console's object rows and the transform workbench's Tree panel draw `kits/json-explorer.js`; vanilla-jsoneditor is the viewer's opt-in `edit` mode, offered only to `viewer({ edit: true })` (popups/idb-nav.html) and imported once, in `ViewRegistry.loadEditor`. `node/test/json-tree-view.test.mjs` holds the view path, both edit round trips and the single import. The "Blocked on one answer" paragraph above predates the 2026-10-07 decision. The merge is the owner's.

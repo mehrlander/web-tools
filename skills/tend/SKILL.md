@@ -186,8 +186,9 @@ before sending it.
 
 Then reply with the sessions messaged and the sessions skipped, each with its
 title, its open work and the lines added to its message, and for a skipped one
-the reason. As the one-line reports arrive, report what each session left
-waiting on the owner.
+the reason; then the sessions left out for their context, each with its
+title, its open work and its `context_now`. As the one-line reports arrive,
+report what each session left waiting on the owner.
 
 A session that receives it works through whichever of these apply, under the
 principles above:
