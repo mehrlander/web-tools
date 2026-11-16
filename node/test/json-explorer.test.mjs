@@ -115,50 +115,50 @@ test('JsonExplorer opens a collection on a tap and offers a way back', () => {
   explorer.destroy();
 });
 
-test('a tap selects a row, and the footer names its path and copies', async () => {
+test('a tap selects a row, and the inspector shows its path and value, each with a copy', async () => {
   const container = window.document.getElementById('c');
   const data = { repos: [{ name: 'web-tools' }], 'odd-key': 7, notes: 'x'.repeat(200) };
   const explorer = JsonExplorer.mount(container, { data, name: 'd.json' });
-  const footer = container.querySelector('[data-selection]');
-  // By icon, since a button's label reads "Copied" for a moment after a copy.
-  const button = (label) => footer.querySelector(label === 'Copy path' ? '.ph-path' : '.ph-copy').closest('button');
+  const pane = container.querySelector('[data-selection]');
+  const copy = (what) => pane.querySelector(`[aria-label="Copy the ${what}"]`);
+  const tick = () => new Promise(r => setTimeout(r, 0));
   let copied = null;
   window.io = { copy: async (t) => { copied = t; return true; } };
   try {
-    assert.ok(footer.classList.contains('hidden'), 'no selection, no footer');
+    assert.ok(pane.classList.contains('hidden'), 'no selection, no inspector');
 
     container.querySelector('[data-path="repos"]').click();
     assert.ok(container.querySelector('[data-path="repos[0]"]'), 'a row that opens still opens on a tap');
-    assert.ok(!footer.classList.contains('hidden'), 'and is selected');
-    await new Promise(r => setTimeout(r, 0));
+    assert.ok(!pane.classList.contains('hidden'), 'and is selected');
+    assert.match(pane.textContent, /list · 1 item/);
+    assert.match(pane.querySelector('pre').textContent, /"name": "web-tools"/, 'a collection shows as indented JSON');
+    await tick();
     assert.ok(container.querySelector('[data-path="repos"]').hasAttribute('data-selected'), 'the selected row is marked after the redraw');
 
     container.querySelector('[data-path="repos[0]"]').click();
     container.querySelector('[data-path="repos[0].name"]').click();
     assert.ok(container.querySelector('[data-path="repos[0].name"]').hasAttribute('data-selected'));
-    assert.match(footer.textContent, /repos\[0\]\.name/);
-    await button('Copy path').click();
-    await new Promise(r => setTimeout(r, 0));
+    assert.match(pane.textContent, /repos\[0\]\.name/);
+    assert.match(pane.textContent, /text · 9 characters/);
+    copy('path').click(); await tick();
     assert.equal(copied, 'repos[0].name');
-    await button('Copy value').click();
-    await new Promise(r => setTimeout(r, 0));
+    copy('value').click(); await tick();
     assert.equal(copied, 'web-tools');
 
     container.querySelector('[data-path="odd-key"]').click();
     assert.ok(!container.querySelector('[data-path="repos[0].name"]').hasAttribute('data-selected'), 'one selection at a time');
-    await button('Copy path').click();
-    await new Promise(r => setTimeout(r, 0));
+    copy('path').click(); await tick();
     assert.equal(copied, '["odd-key"]', 'a key that is not an identifier is bracketed and quoted');
+    copy('value').click(); await tick();
+    assert.equal(copied, '7', 'a number copies as its JSON text');
 
     const notes = container.querySelector('[data-path="notes"]');
-    assert.ok(notes.querySelector('[data-clamp]').classList.contains('line-clamp-3'), 'a long string is clamped');
     notes.click();
-    assert.ok(!notes.querySelector('[data-clamp]').classList.contains('line-clamp-3'), 'and shows in full while selected');
-    assert.match(footer.textContent, /200 characters/);
+    assert.equal(pane.textContent.includes('x'.repeat(200)), true, 'the inspector shows a long string in full');
+    assert.ok(notes.querySelector('[data-clamp]').classList.contains('line-clamp-3'), 'while its row stays clamped');
 
     notes.click();
-    assert.ok(footer.classList.contains('hidden'), 'a second tap clears the selection');
-    assert.ok(notes.querySelector('[data-clamp]').classList.contains('line-clamp-3'), 'and clamps the string again');
+    assert.ok(pane.classList.contains('hidden'), 'a second tap clears the selection');
   } finally {
     delete window.io;
     explorer.destroy();
