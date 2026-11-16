@@ -366,6 +366,14 @@ A page of a domain app, an app such as budget-drs's whose subject is a field of 
 
 **Area:** page-design · **Detector:** reader · **Sessions:** 1 · **Status:** active
 
+### Wall-of-text paragraphs · `P72`
+
+Long, undifferentiated paragraphs in documents or replies that pack several subjects into one block of prose instead of giving distinct topics, mechanisms or steps separate paragraphs or tables.
+
+**Look for:** one long paragraph covering several subjects (such as architecture, clone reads and build outputs in one block); a reply or README passage that shifts topic without a paragraph break
+
+**Area:** writing · **Detector:** reader · **Sessions:** 3 · **Status:** active
+
 ## Combined entries
 
 ### Fix the sentence, add no note · `P02`
@@ -436,9 +444,9 @@ Name things for what they are, not by metaphor or vague umbrella.
 
 ### Link what you mention · `P24`
 
-Link every file, PR, session or page you mention.
+Link every file, folder, PR, session or page you mention; in a directory listing or index, link each entry to the file that resolves what that entry is.
 
-**Look for:** a path or PR number in prose without a link
+**Look for:** a path, folder entry or PR number in prose without a link; a directory bullet that names a folder with no link to the folder's README, page or script
 
 **Owner:** docs/CONVERSATION.md (reference is a link)
 
