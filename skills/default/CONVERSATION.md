@@ -21,7 +21,7 @@ substituting the current repo in URL templates.
   - 🟣 **Merged:** GitHub reports this branch merged. State what shipped in one line. Further edits go in a new PR.
   - 🔴 **Closed:** This branch closed unmerged. State why in one line.
   - ⚫ **Done:** Every workstream merged or closed, and the session has no further step.
-  - 🔵 **Short answer:** The reply answers the question and proposes no next step. Lead with the question in place of the name, then the answer: 🔵 **Did the merge land?** Yes.
+  - 🔵 **Short answer:** The reply answers the question and ends there. Lead with the question in place of the name, then the answer: 🔵 **Did the merge land?** Yes.
 
   Use 🟢 for a closing state that needs only confirmation to proceed; save ⚖️ **Choice needed:** for competing proposals that would go in different directions, and use it only once the question has been fully assessed for an unfamiliar reader: give the question, then `Recommended: <answer>, because <reason>.` Without that assessment, close on 🪧. A request for the reader's judgment of something shown is 👁️‍🗨️; a request for an act or a fact is 🛵.
 
