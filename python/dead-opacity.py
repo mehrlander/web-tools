@@ -174,11 +174,11 @@ def changed_paths(base='main'):
     import subprocess
     def git(*a):
         r = subprocess.run(['git', *a], capture_output=True, text=True)
-        return r.stdout.split('\n') if r.returncode == 0 else None
-    names = git('diff', '--name-only', '--merge-base', base)
+        return r.stdout.split('\0') if r.returncode == 0 else None
+    names = git('diff', '--name-only', '-z', '--merge-base', base)
     if names is None:
-        names = git('diff', '--name-only', base) or []
-    names += git('ls-files', '--others', '--exclude-standard') or []
+        names = git('diff', '--name-only', '-z', base) or []
+    names += git('ls-files', '-z', '--others', '--exclude-standard') or []
     return sorted({n for n in names if n and os.path.isfile(n)
                    and not set(n.split('/')) & SKIP_DIRS})
 
