@@ -94,6 +94,7 @@
     "test:card-pdf": "node node/test/card-pdf.mjs",
     "test:pdf-flow": "node node/test/pdf-flow.mjs",
     "test:pdf-inspect": "node node/test/pdf-inspect-address.mjs",
+    "test:pdf-pinch": "node node/test/pdf-inspect-pinch.mjs",
     "test:pdf-zoom": "node node/test/pdf-zoom.mjs",
     "test:viewer-xlsx": "node node/test/viewer-xlsx.mjs",
     "test:viewer-docx": "node node/test/viewer-docx.mjs",
