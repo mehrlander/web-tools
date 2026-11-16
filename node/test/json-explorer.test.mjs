@@ -115,39 +115,52 @@ test('JsonExplorer opens a collection on a tap and offers a way back', () => {
   explorer.destroy();
 });
 
-test('a tap on a value row opens the row menu with Copy value and Copy path', async () => {
+test('a tap selects a row, and the footer names its path and copies', async () => {
   const container = window.document.getElementById('c');
   const data = { repos: [{ name: 'web-tools' }], 'odd-key': 7, notes: 'x'.repeat(200) };
   const explorer = JsonExplorer.mount(container, { data, name: 'd.json' });
-  let menu = null, copied = null;
-  window.rowMenu = { open: (o) => { menu = o; return () => {}; } };
+  const footer = container.querySelector('[data-selection]');
+  // By icon, since a button's label reads "Copied" for a moment after a copy.
+  const button = (label) => footer.querySelector(label === 'Copy path' ? '.ph-path' : '.ph-copy').closest('button');
+  let copied = null;
   window.io = { copy: async (t) => { copied = t; return true; } };
   try {
+    assert.ok(footer.classList.contains('hidden'), 'no selection, no footer');
+
     container.querySelector('[data-path="repos"]').click();
+    assert.ok(container.querySelector('[data-path="repos[0]"]'), 'a row that opens still opens on a tap');
+    assert.ok(!footer.classList.contains('hidden'), 'and is selected');
+    await new Promise(r => setTimeout(r, 0));
+    assert.ok(container.querySelector('[data-path="repos"]').hasAttribute('data-selected'), 'the selected row is marked after the redraw');
+
     container.querySelector('[data-path="repos[0]"]').click();
     container.querySelector('[data-path="repos[0].name"]').click();
-    assert.deepEqual(Array.from(menu.items, i => i.label), ['Copy value', 'Copy path']);
-    assert.equal(await menu.items[1].run(), 'Copied');
+    assert.ok(container.querySelector('[data-path="repos[0].name"]').hasAttribute('data-selected'));
+    assert.match(footer.textContent, /repos\[0\]\.name/);
+    await button('Copy path').click();
+    await new Promise(r => setTimeout(r, 0));
     assert.equal(copied, 'repos[0].name');
-    await menu.items[0].run();
+    await button('Copy value').click();
+    await new Promise(r => setTimeout(r, 0));
     assert.equal(copied, 'web-tools');
 
     container.querySelector('[data-path="odd-key"]').click();
-    await menu.items[1].run();
+    assert.ok(!container.querySelector('[data-path="repos[0].name"]').hasAttribute('data-selected'), 'one selection at a time');
+    await button('Copy path').click();
+    await new Promise(r => setTimeout(r, 0));
     assert.equal(copied, '["odd-key"]', 'a key that is not an identifier is bracketed and quoted');
-    await menu.items[0].run();
-    assert.equal(copied, '7', 'a number copies as its JSON text');
 
-    container.querySelector('[data-path="notes"]').click();
-    assert.equal(menu.items.at(-1).label, 'Show all', 'a clamped string offers to show all');
-    menu.items.at(-1).run();
-    assert.ok(!container.querySelector('[data-path="notes"] [data-clamp]').classList.contains('line-clamp-3'));
+    const notes = container.querySelector('[data-path="notes"]');
+    assert.ok(notes.querySelector('[data-clamp]').classList.contains('line-clamp-3'), 'a long string is clamped');
+    notes.click();
+    assert.ok(!notes.querySelector('[data-clamp]').classList.contains('line-clamp-3'), 'and shows in full while selected');
+    assert.match(footer.textContent, /200 characters/);
 
-    menu = null;
-    container.querySelector('[data-path="repos"]').click();
-    assert.equal(menu, null, 'a row that opens keeps its tap for opening');
+    notes.click();
+    assert.ok(footer.classList.contains('hidden'), 'a second tap clears the selection');
+    assert.ok(notes.querySelector('[data-clamp]').classList.contains('line-clamp-3'), 'and clamps the string again');
   } finally {
-    delete window.rowMenu; delete window.io;
+    delete window.io;
     explorer.destroy();
   }
 });
