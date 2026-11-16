@@ -1,7 +1,9 @@
 ---
 id: stage-partial-file-selection-k8mtou
 title: Give the stage a way to carry part of a file
-status: backlog
+status: done
+closed: 2026-11-16
+resolution: stale
 opened: 2026-07-26
 size: M
 ---
@@ -53,3 +55,4 @@ Contract lives in `docs/stage.md` and `lib/alpineComponents/stage.js`
   computes the fileset and the stage receives it, which leaves this gap
   visible but not blocking.
 - 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).
+- 2026-11-16: refinement close (session b805c26a, owner's go): no motion since filing; the sibling focus-a-ui-component-f0awt7 closed 2026-10-07, overtaken by the FAB's Region picker. A revival would first settle the range syntax, when a range resolves, and the UI.

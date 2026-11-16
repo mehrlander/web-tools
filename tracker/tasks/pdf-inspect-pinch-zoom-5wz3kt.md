@@ -2,6 +2,7 @@
 id: pdf-inspect-pinch-zoom-5wz3kt
 title: Pinch-zoom and pan for pdf-inspect's page view
 status: backlog
+errand: claude-2026-11-16-c4a308
 opened: 2026-07-26
 size: M
 ---
@@ -60,3 +61,4 @@ axis picker and saved views exist so the gesture is never the only route.
 - 2026-09-17: Marked awaiting zoom strategy (CSS transform then settle vs live re-render).
 - 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).
 - 2026-10-07: Decided. Pinch applies a CSS transform to the canvas and its overlay together, and re-renders at the new scale when the gesture ends, as recommended (user call 2708d02c-web-tools-answers).
+- 2026-11-16: sent as Claude errand claude-2026-11-16-c4a308 (session b805c26a, owner's go); the errand's prompt asks the taker to close this task when the branch work is complete.

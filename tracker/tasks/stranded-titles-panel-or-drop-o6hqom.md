@@ -2,6 +2,7 @@
 id: stranded-titles-panel-or-drop-o6hqom
 title: Convert the title attributes outside the app to title-tips
 status: backlog
+errand: claude-2026-11-16-24829e
 opened: 2026-08-19
 size: M
 priority: low
@@ -74,3 +75,4 @@ and stay.
   carrier. Added `## Related`.
 - 2026-10-15: Claimed on `claude/eager-ride-1lzonz` (PR #965). Thirteen title-only facts on non-controls became title-tips, `cursor-help` is gone from live code, and the scanner reports 24 stranded across lib, app and pages (14 in the app's own files). The larger class is now facts parked in the `title` of a button or link, which the scanner used to call reachable and fine: `npm run stranded-titles -- --facts` lists 59 in the app, and `--script` counts 48 titles set from script. Most of the 59 explain how a control works, so house-style rule 2 (no explanatory prose) argues for trimming them to labels rather than moving them onto the page; that call, and a sentence for mechanics.md saying a title-tip does not go on a control whose tap acts, are with the owner on PR #965.
 - 2026-10-19: PR #965 merged. The owner ruled out `title` everywhere, icon buttons included, so the panel-or-leave question this task was filed to decide is settled: every title becomes a title-tip. The app holds none. Reframed around the rest of the repo, unclaimed, size S to M; the scanner's `--facts` reading was dropped in PR #965.
+- 2026-11-16: sent as Claude errand claude-2026-11-16-24829e (session b805c26a, owner's go); the errand's prompt asks the taker to close this task when the branch work is complete.
