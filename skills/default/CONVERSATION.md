@@ -9,7 +9,7 @@ substituting the current repo in URL templates.
 ## Every reply
 
 * **Closing state.** Use exactly one, last, understandable without the message it closes. Write the glyph at the start of the line, then a bold lead: the name as shown, or for 🔵 the question.
-  - 🟢 **Ready to continue:** The session has a clear path to proceed, approved or implied by user interest. It never instructs the reader. When the next step is merging the branch and nothing else is open, lead **Ready to merge:** instead.
+  - 🟢 **Ready to continue:** The session has a clear path to proceed, approved or implied by user interest. It never instructs the reader. When merging the branch is the only step left, lead **Ready to merge:** instead.
   - ❇️ **Ready to assess:** The session assesses and reports back, without implementing.
   - 🟡 **Pending:** Waiting on an action or dependency, not on direction.
   - 🪧 **Direction needed:** Next steps appear to diverge. Offer to take the reader's direction or to make a full assessment and recommendation.
@@ -17,19 +17,19 @@ substituting the current repo in URL templates.
   - 👁️‍🗨️ **Have a look:** The session shows a page, a draft or a change for the reader's judgment. The whole lead is its look link, `[👁️‍🗨️ **Have a look:**](<url>)`; [Displaying content](#displaying-content) describes look links. Two or more pages, drafts or changes go in that one link, a step on each.
   - ✍️ **Sign-off needed:** Documentation wording, presented as the doc-craft skill asks, waits on the reader's approval. Say what the session will do once it is given.
   - 🟠 **Attention:** A concrete problem must be settled before proceeding.
-  - ⚪ **Clean exit:** Nothing remains here; the reader decides whether to wrap up.
+  - ⚪ **Clean exit:** Every thread here is closed; the reader decides whether to wrap up.
   - 🟣 **Merged:** GitHub reports this branch merged. State what shipped in one line. Further edits go in a new PR.
   - 🔴 **Closed:** This branch closed unmerged. State why in one line.
-  - ⚫ **Done:** Every workstream merged or closed and nothing remains open. Nothing follows.
-  - 🔵 **Short answer:** The question is answered and nothing is proposed. Lead with the question in place of the name, then the answer: 🔵 **Did the merge land?** Yes.
+  - ⚫ **Done:** Every workstream merged or closed, and the session has no further step.
+  - 🔵 **Short answer:** The reply answers the question and proposes no next step. Lead with the question in place of the name, then the answer: 🔵 **Did the merge land?** Yes.
 
   Use 🟢 for a closing state that needs only confirmation to proceed; save ⚖️ **Choice needed:** for competing proposals that would go in different directions, and use it only once the question has been fully assessed for an unfamiliar reader: give the question, then `Recommended: <answer>, because <reason>.` Without that assessment, close on 🪧. A request for the reader's judgment of something shown is 👁️‍🗨️; a request for an act or a fact is 🛵.
 
-* **Close in one order.** End with the caption, render line, then the state. Include a state when no files changed. A wake (a nudge, stop hook, finished job, PR event, or moved base) that leaves the reader nothing new gets no reply. If the harness then requires visible output, reply with one line naming the wake.
+* **Close in one order.** End with the caption, render line, then the state. Include a state when no files changed. Reply to a wake (a nudge, stop hook, finished job, PR event, or moved base) when it brings the reader a result they are waiting for, a problem the session cannot settle, or one of the events listed under [PR events](#pr-events), and end that reply on a state only when the state has changed. For any other wake, end the turn without text; where the harness requires visible output, write the line a hook supplies or, without one, one line that opens with the wake's name, such as `Stop hook:`.
 
 * **Session detail caption.** Use the latest line the `session-detail-caption` hook supplied:
   `` `11/14 10:14am` 💬[22](…/pages/session.html#id=<short>) · 816𝗄 · 1𝖽 2𝗁 · [✍️1](…) ``
-  The opening stamp is when the hook printed the line, in the owner's time zone; `22` counts the owner's messages, `816𝗄` is the context in tokens, `✍️1` counts documentation edits awaiting the owner's sign-off and links the call deck, and `<short>` is the session id's first eight characters.
+  The opening stamp is when the hook printed the line, in the owner's time zone; `22` counts the owner's messages, `816𝗄` is the context in tokens, `✍️1` counts documentation edits awaiting the owner's sign-off and links the call deck, and `<short>` is the session id's first eight characters. On a turn the owner did not start, the hook names what started it after the count, as `💬[22](…) · PR event`.
 
 ## A reply that changed files
 
@@ -55,7 +55,7 @@ substituting the current repo in URL templates.
   🌿 [Open the branch](<branch URL>)
   ```
 
-  List only threads still open, and omit a section with nothing to say.
+  List only threads still open, and omit an empty section.
 
 ## Displaying content
 

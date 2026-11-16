@@ -18,7 +18,7 @@ Instructions growing through rationale, duplicated claims, correction notes and 
 
 Slogans, posturing, emphatic absolutes and sentences that sound profound while saying little.
 
-**Look for:** 'it does one thing', 'is the floor', 'held to', 'carries weight', 'does the work', 'deliberately', 'never' used for emphasis; a sentence that sounds wise and says little
+**Look for:** 'it does one thing', 'is the floor', 'held to', 'carries weight', 'does the work', 'deliberately', 'never' used for emphasis; a sentence that sounds wise and says little; a thing given wants or entitlements in place of an instruction to an actor, as in 'a wake that leaves the reader nothing new gets no reply' or 'a kit that wants Alpine reactivity gets a component wrapper'
 
 **Area:** writing · **Detector:** reader · **Sessions:** 35 · **Status:** active
 
@@ -298,9 +298,9 @@ Source paragraphs broken across lines at an arbitrary width. Paragraphs remain c
 
 ### Percussive negation and contrast · `P64`
 
-Repeated denials of outcomes the reader never expected, or repeated contrasts that manufacture an alternative to reject. Percussive negation and percussive contrast spend attention on those rejected alternatives. A necessary comparison or correction can still state a contrast.
+Emphasizing distinctions of unclear relevance, or shadow-boxing with implausible suppositions. Watch for any emphatic negation: the word "nothing" is often a flag to rephrase more precisely.
 
-**Look for:** 'draws no underline', 'adds no claim', 'names no file', 'open no new ones', 'nothing opens it'; several in one passage; excludes have, be and there is; repeated 'not X, but Y' contrasts; rejecting an alternative the reader never raised
+**Look for:** 'draws no underline', 'adds no claim', 'names no file', 'open no new ones', 'nothing opens it', 'leaves the reader nothing new', 'there is nothing to act on'; repeated 'not X, but Y' contrasts; rejecting an alternative the reader never raised
 
 **Area:** writing · **Detector:** reader · **Sessions:** 5 · **Status:** active
 
