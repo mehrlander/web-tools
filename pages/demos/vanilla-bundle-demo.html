@@ -205,7 +205,7 @@ document.body.innerHTML = '<div id="out" class="text-sm space-y-2"></div>';
 // esc'd: the markup is shown, not run, and the quote cannot close the title.
 ids.out.innerHTML = \`
   <div class="p-2 rounded bg-base-200 font-mono text-xs break-all"
-       title="\${esc(hostile)}">\${esc(hostile)}</div>
+       data-title-tip="\${esc(hostile)}">\${esc(hostile)}</div>
   <div class="text-xs opacity-70">hover the box: the same value rode into the title attribute</div>
   <div class="text-xs opacity-70">esc(null) is \${JSON.stringify(esc(null))}, not the word "null"</div>\`;`
         },

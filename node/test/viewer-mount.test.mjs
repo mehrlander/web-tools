@@ -352,7 +352,7 @@ test('drawSheet draws an external link as an anchor and an internal one for loca
     assert.equal(a.length, 2, 'the javascript: scheme draws no anchor');
     assert.equal(a[0].getAttribute('href'), 'https://ofm.wa.gov/');
     assert.equal(a[0].getAttribute('target'), '_blank');
-    assert.equal(a[0].getAttribute('title'), 'contacts');
+    assert.equal(a[0].getAttribute('data-title-tip'), 'contacts');
     assert.equal(a[1].getAttribute('data-goto'), "'Data'!A1");
     assert.equal(a[1].textContent, 'Data');
   } finally { kit.sheetLayout = was; }

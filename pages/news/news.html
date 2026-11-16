@@ -312,7 +312,7 @@
       </div>
 
       <a :href="window.RepoAddress.github.tree(REPO, DATA_REF, 'news')" target="_blank"
-         class="btn btn-ghost btn-xs btn-square opacity-70 hover:opacity-100" title="home/news on GitHub">
+         class="btn btn-ghost btn-xs btn-square opacity-70 hover:opacity-100" data-title-tip="home/news on GitHub">
         <i class="ph ph-github-logo"></i>
       </a>
     </div>
@@ -451,7 +451,7 @@
           <!-- follow toggle -->
           <input type="checkbox" class="toggle toggle-sm toggle-primary shrink-0"
                  :checked="isActive(s)" @change="toggleFollow(s)"
-                 :title="isActive(s) ? 'Following — click to unfollow' : 'Unfollowed — click to follow'">
+                 :data-title-tip="isActive(s) ? 'Following — click to unfollow' : 'Unfollowed — click to follow'">
 
           <div class="min-w-0 grow">
             <div class="flex items-center gap-2 flex-wrap">
@@ -466,7 +466,7 @@
           </div>
 
           <button class="btn btn-ghost btn-xs btn-square shrink-0"
-                  @click="expanded = (expanded===s.id ? null : s.id)" title="Edit params">
+                  @click="expanded = (expanded===s.id ? null : s.id)" data-title-tip="Edit params">
             <i class="ph" :class="expanded===s.id ? 'ph-caret-up' : 'ph-sliders-horizontal'"></i>
           </button>
         </div>
@@ -515,7 +515,7 @@
     </span>
     <button class="btn btn-ghost btn-sm" @click="resetDraft()" x-show="dirty" :disabled="committing">Discard</button>
     <button class="btn btn-primary btn-sm gap-2" @click="commit()" x-show="dirty"
-            :disabled="!!(committing || invalid)" :title="invalid ? 'Fix the invalid row first' : ''">
+            :disabled="!!(committing || invalid)" :data-title-tip="invalid ? 'Fix the invalid row first' : ''">
       <span x-show="!committing"><i class="ph ph-git-commit"></i> Commit</span>
       <span x-show="committing" class="loading loading-spinner loading-xs"></span>
     </button>

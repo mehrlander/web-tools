@@ -500,7 +500,7 @@ function paint() {
     if (row.name) {
       const t = installTarget(s);
       const b = act('btn btn-xs', installLink(row, t), installLabel(t), 'ph-download-simple');
-      if (t === PASTE && row.settings) b.title = PASTE_NOTE;
+      if (t === PASTE && row.settings) b.dataset.titleTip = PASTE_NOTE;
       bar.append(b);
       bar.append(act('btn btn-xs btn-ghost', runLink(row.name), 'Run', 'ph-play'));
     }
@@ -633,7 +633,7 @@ function detail(row) {
   if (row.name) {
     const t = installTarget(s);
     const b = btn('btn-primary', installLink(row, t), installLabel(t), 'ph-download-simple');
-    if (t === PASTE && row.settings) b.title = PASTE_NOTE;
+    if (t === PASTE && row.settings) b.dataset.titleTip = PASTE_NOTE;
     bar.append(b);
     bar.append(btn('', runLink(row.name), 'Run', 'ph-play'));
   }
