@@ -2,6 +2,7 @@
 id: estate-js-split-6r3ogm
 title: Split estate.js into a component per view
 status: backlog
+errand: claude-2026-11-16-39b58c
 opened: 2026-11-10
 size: L
 ---
@@ -85,3 +86,4 @@ screenshot at desktop and phone width.
 
 - 2026-11-10: filed from the web-tools#1255 session after measuring the file;
   the owner plans to hand it to a fresh session.
+- 2026-11-16: the owner chose "component first" for the order with repos-grid-into-map-reach-1eheiq (session b805c26a): the Repos grid becomes its own component as an early step here, with the estate membership list it builds (entries, which the Branches and Sessions rows and Lists' pin picker also read) moved where every reader can reach it; the Map move then mounts that component. Step 1, the coupling map, went out as Claude errand claude-2026-11-16-39b58c, which also recommends whether Repos or Lists is the pilot.
