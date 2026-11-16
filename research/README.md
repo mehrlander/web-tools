@@ -20,7 +20,7 @@ account links to its own materials. The shared placement rule is in
 - [Fan-out review of the Web Tools app, 2026-10-25](2026-10-25-fan-out-review.md): ranked follow-ups from seven lenses, and which kinds of reading found them.
 - [Policy candidates, 2026-10-29](2026-10-29-policy-candidates/README.md): which of the retired survey's rules become house policies, as a swipe deck.
 - [Code jobs](code-jobs/README.md): whether a model reader finds functions that do one job in several files.
-- [Where tooltip text comes from, 2026-11-16](2026-11-16-tooltip-sources/README.md): every tooltip in web-tools and budget-drs by the source of its words, and what `git blame` misses about who wrote them, with a [diagram](2026-11-16-tooltip-sources/diagram.html).
+- [Where tooltip text comes from, 2026-11-16](2026-11-16-tooltip-sources/README.md): every tooltip in web-tools and [budget-drs](https://github.com/mehrlander/budget-drs) by the route its words take, and which commit `git blame` names for them, with a [diagram](2026-11-16-tooltip-sources/diagram.html).
 
 The Excel research is in `projects/office/research/` in `mehrlander/home`.
 

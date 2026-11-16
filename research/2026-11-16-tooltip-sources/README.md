@@ -1,29 +1,60 @@
 # Where tooltip text comes from
 
-**Question.** Can every tooltip be treated as data: specified one way, reviewed in one table, with how and by whom its text was written shown beside it? The test was to list every tooltip in web-tools and mehrlander/budget-drs and see what the list shows and what it cannot show.
+**Question.** Can every tooltip be treated as data: specified one way, reviewed in one table, with how and by whom its text was written shown beside it? The question has three parts, answered in turn below: where each tooltip's words come from, what git can say about who wrote them, and what could name a tooltip so its row survives a change to the markup around it.
 
-**What was tried.** [`scan.py`](scan.py) reads each `.html` and `.js` file in scope and records one row per tooltip: the house title-tip (`data-title-tip`, bound or assigned in a script), a `title` attribute, or daisyUI's `data-tip`. For each row it records the text, or the expression that makes it. With `--provenance` it adds the oldest commit in which `git log -S` sees those words enter the file, that commit's agent and session, and what `git blame` names for the line. The run covered web-tools at `2668629` (`app/index.html`, `lib/alpineComponents/`, `lib/kits/`, `pages/`, demos excluded) and budget-drs at `b22f0a2` (`app/`, less pipeline outputs, `tools/` folders and `app/workshop/`). budget-drs's own table of the same rows, with its data cells, is `data/design/catalog/tooltips.csv`, browsable in its Data view. The [diagram](diagram.html) draws the findings.
+## What was tried
 
-## Findings
+- [`scan.py`](scan.py) reads each `.html` and `.js` file in scope and records one row per tooltip: the house title-tip ([`data-title-tip`](../../lib/kits/title-tip.js), written in markup, bound by Alpine or set in a script), a `title` attribute, or daisyUI's `data-tip`. Each row holds the tooltip's words, or the expression that makes them. With `--provenance`, each row also gets the oldest commit in which `git log -S` sees those words enter the file, that commit's agent and claude.ai session, and the commit `git blame` names for the line.
+- [`trace.py`](trace.py) sorts the rows whose text is computed by what the expression reads.
+- Scope in web-tools, at [`2668629`](https://github.com/mehrlander/web-tools/commit/2668629f1): `app/index.html`, `lib/alpineComponents/`, `lib/kits/` and `pages/`, without demos.
+- Scope in budget-drs, at [`52b1b30`](https://github.com/mehrlander/budget-drs/commit/52b1b30a): `app/`, without generated payloads, `tools/` folders and the dated records in `app/workshop/`. budget-drs's own [`tooltips.csv`](https://github.com/mehrlander/budget-drs/blob/claude/amazing-turing-e0yl7d/data/design/catalog/tooltips.csv) holds the same rows plus its data-file cells and two kinds of hover card, browsable in its Data view ([budget-drs#27](https://github.com/mehrlander/budget-drs/pull/27)).
+- The [diagram](diagram.html) draws the findings.
 
-**Tooltip text comes from three places.** A tooltip is a way of showing text, not a kind of text, and its words arrive by one of three routes.
+## Where the words come from
 
-| Source | What it is | web-tools | budget-drs |
+A tooltip's words arrive by one of three routes, and a fourth row holds what a scan alone cannot place. Each name is followed by the `form` value budget-drs's table uses for it. Counts are tooltips.
+
+| Route | What it is | web-tools | budget-drs |
 | --- | --- | --- | --- |
-| Borrowed from data | A prose cell of a committed data file that a page shows as a tooltip, such as a tab's note in `view-tabs.csv` | not traced | 223 cells, from five columns of four files |
-| Written for the tooltip | Fixed words in markup, a script or a constant | 461 | 77 |
-| Built at runtime | Fixed words around a slot, such as "Scope to {…}" | 156 | 52 |
-| Computed, not yet traced | A field, a call or a conditional: either borrowed from data or a readout with no authored words | 438 | 134 |
+| From a data file (`data-cell`) | A prose cell of a committed data file that a page shows as a tooltip, such as a tab's note in [`view-tabs.csv`](https://github.com/mehrlander/budget-drs/blob/main/data/design/view-tabs.csv) | none declared | 223 |
+| Written for the tooltip (`literal`) | Fixed words in markup or a script | 461 | 77 |
+| Built at runtime (`template`) | Fixed words around a value filled in at runtime, such as "Scope to {…}" | 164 | 52 |
+| Computed (`expression`) | A value computed at runtime, sorted below | 430 | 134 |
+| **Total** | | **1,055** | **486** |
 
-The last row is the limit of a mechanical scan. `t.gloss` reads text someone wrote for a registry; `newer ? newerCount : null` reads state. Telling them apart means tracing each expression to what it reads.
+web-tools declares no data-file cells because its pages read their data at runtime, so text from a data file appears there among the computed rows. `trace.py` sorts those rows by the names the expression reads:
 
-**Borrowed text belongs to its source.** A gloss is keyed by its subject and often appears somewhere besides a tooltip: budget-drs's view premise is also the phone's info card. A table of tooltips should point at the source's `path#column`, not hold a second copy. The one copy in this run shows why: budget-drs's `app/spend/spend-glosses.csv` reaches a payload the Spend view loads, while `spend.js` renders the sankey glosses from its own `SPEND_GLOSS` constant and nothing reads the payload. Both checks over the file pass, because they test that the payload is built and loaded, not that it is read.
+| Computed, by what it reads | Example | web-tools | budget-drs |
+| --- | --- | --- | --- |
+| Fixed words chosen by a condition | `open ? 'Hide the sidebar' : 'Show the sidebar'` | 77 | 7 |
+| A field or function named for written text (`gloss`, `note`, `tip`, `hint`, `why` and similar) | `t.gloss`, `TIPS.gap` | 138 | 47 |
+| A name or value (`label`, `title`, `path`, `repo` and similar) | `it.label` | 97 | 21 |
+| A count, a number or an error message | `newer ? newerCount : null` | 27 | 2 |
+| Not sorted | `sel`, `status` | 91 | 57 |
 
-**`git blame` names the conversion, not the writing.** For web-tools, `git log -S` finds the commit that introduced the words for 1,042 of 1,055 tooltips, and blame names that same commit for 244. Most of the rest point at three conversion sweeps: 389 at "App: replace every title attribute with a title-tip", 151 at "Convert the remaining title tooltips under pages/ and lib/ to title-tips" and 99 at "Rename the popups: note becomes title-tip, card becomes panel-tip". budget-drs is the same in smaller numbers: 243 found, 115 agreeing, 44 pointing at "budget-drs: switch to title-tip and panel-tip". The introducing commit carries a claude.ai session for 791 web-tools tooltips. Git records a commit, a date, an agent and a session; who chose the words is in the session's prompts, which git does not hold.
+The sort reads identifiers, not what they hold. In a hand check of 30 web-tools rows from a first run, every one of the 22 rows it sorted matched a reading of the code, and 3 of the 8 it left unsorted could have been placed. The budget-drs unsorted count includes its 17 hover-card and sankey-card calls, which `scan.py` does not read. Written text is not necessarily in a data file: `TIPS.gap` reads a table in `usage.js`, and `fileTip(...)` is a function.
 
-**Markup offers no stable key.** A row's name has to come from its file and its words. In a first pass over web-tools at `00913fc`, 273 of 1,054 tooltips sat on an element with a durable name such as an `aria-label`, `data-part` or `x-ref`, so a key that survives a refactor exists only once text moves into a data file, as budget-drs's four files already show.
+One copy shows why a table of tooltips should point at a data file rather than repeat it. budget-drs's [`spend-glosses.csv`](https://github.com/mehrlander/budget-drs/blob/main/app/spend/spend-glosses.csv) is built into `glosses-data.js`, which the app loads, while [`spend.js`](https://github.com/mehrlander/budget-drs/blob/main/app/view/views/spend.js) shows the sankey's glosses from its own `SPEND_GLOSS` constant. `build-spend-glosses.py` and `verify-text-payloads.mjs` both pass, because they check that the generated file is built and loaded, not that anything reads it.
+
+## Who wrote the words
+
+`git blame` names the last commit that touched a line. Both repositories converted their tooltips from `title` attributes to `data-title-tip` in a few large commits that changed the attribute and kept the words; here such a commit is a conversion. For most tooltips, blame names the conversion.
+
+| | web-tools | budget-drs |
+| --- | --- | --- |
+| Tooltips scanned | 1,055 | 246 |
+| `git log -S` finds the commit that introduced the words | 1,042 | 243 |
+| `git blame` names that same commit | 244 | 115 |
+| `git blame` names a conversion | 682 | 44 |
+| `git blame` names another later commit | 116 | 84 |
+| The introducing commit names a claude.ai session | 791 | 216 |
+
+The largest conversions are [`fdb397b`](https://github.com/mehrlander/web-tools/commit/fdb397b27) "App: replace every title attribute with a title-tip" (389), [`744e0a4`](https://github.com/mehrlander/web-tools/commit/744e0a42a) "Convert the remaining title tooltips under pages/ and lib/ to title-tips" (151), [`360ca91`](https://github.com/mehrlander/web-tools/commit/360ca91f3) "Rename the popups" (99) and, in budget-drs, [`17a8e90`](https://github.com/mehrlander/budget-drs/commit/17a8e90be) "switch to title-tip and panel-tip" (44). Git holds the introducing commit, its date, its Co-Authored-By agent and its session. Who chose the words is in that session's prompts, which git does not hold.
+
+## What could name a tooltip
+
+A row's name has to survive markup changing around it. In this run, 278 of 1,055 web-tools tooltips and 63 of 246 budget-drs tooltips have an `aria-label`, `data-part`, `x-ref`, `data-nav` or `id` within two lines, a name that could survive. budget-drs's four data files name each text by its subject instead: a view, a tab, a filter or a sankey node.
 
 ## Standing
 
-Mixed. Every tooltip can be listed and reviewed in one table, and doing so found a defect two checks miss. Writing every tooltip in one table does not hold: borrowed text has an owner already, readouts have no authored words, and a control's label is reviewed as well in place. The plan that follows from this, in budget-drs first and then here, is to keep the list generated, point borrowed rows at their source, and move tooltip-only text into data only where a group of it is worth moving.
-
+Mixed. Every tooltip in scope can be listed in one table, as budget-drs's now is. Writing every tooltip in one table does not hold: text from a data file is already held by that file, counts and states have no written words, and a control's label can be reviewed where it is written.

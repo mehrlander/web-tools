@@ -12,116 +12,122 @@
 
   <header class="flex flex-wrap items-baseline gap-x-4 gap-y-1">
     <h1 class="text-2xl font-semibold">Where tooltip text comes from</h1>
-    <span class="text-xs font-mono text-base-content/60">web-tools 2668629 · budget-drs b22f0a2 · 2026-11-16</span>
+    <span class="flex flex-wrap gap-x-3 text-xs font-mono text-base-content/70">
+      <a class="whitespace-nowrap hover:underline" href="https://github.com/mehrlander/web-tools/commit/2668629f1">web-tools 2668629</a>
+      <a class="whitespace-nowrap hover:underline" href="https://github.com/mehrlander/budget-drs/commit/52b1b30a">budget-drs 52b1b30</a>
+      <span class="whitespace-nowrap">2026-11-16</span>
+    </span>
   </header>
 
-  <!-- The three routes. Each row: where the words are written, how they travel, what the reader sees. -->
-  <section class="flex flex-col gap-3" aria-label="Routes">
-    <div class="grid grid-cols-1 lg:grid-cols-[14rem_minmax(0,1fr)_minmax(0,1fr)_12rem] gap-x-6 text-xs uppercase tracking-wider text-base-content/50 max-lg:hidden">
+  <!-- The four routes, in the README's order. Each row: route, where the words are written, what the reader sees, counts. -->
+  <section class="flex flex-col" aria-label="Routes">
+    <div class="grid grid-cols-[14rem_minmax(0,1fr)_minmax(0,1fr)_12rem] gap-x-6 pb-2 text-xs uppercase tracking-wider text-base-content/70 max-lg:hidden">
       <span>Route</span><span>Written in</span><span>The reader sees</span><span>Tooltips</span>
     </div>
 
-    <!-- borrowed -->
-    <div class="grid grid-cols-1 lg:grid-cols-[14rem_minmax(0,1fr)_minmax(0,1fr)_12rem] gap-x-6 gap-y-2 items-start border-t border-base-300 pt-3">
-      <div class="flex items-center gap-2 font-semibold text-success"><i class="ph ph-database text-xl"></i>Borrowed from data</div>
+    <div class="grid grid-cols-1 lg:grid-cols-[14rem_minmax(0,1fr)_minmax(0,1fr)_12rem] gap-x-6 gap-y-2 items-start border-t border-base-300 py-3">
+      <div class="flex items-center gap-2 font-semibold"><i class="ph ph-database text-xl text-success"></i>From a data file</div>
       <div class="flex flex-wrap items-center gap-2 min-w-0">
-        <code class="badge badge-outline font-mono">view-tabs.csv#note</code>
-        <i class="ph ph-arrow-right text-base-content/40"></i>
-        <code class="badge badge-ghost font-mono">payload</code>
-        <i class="ph ph-arrow-right text-base-content/40"></i>
+        <span class="lg:hidden text-xs uppercase tracking-wider text-base-content/70 w-full">Written in</span>
+        <code class="badge badge-soft font-mono">view-tabs.csv#note</code>
+        <i class="ph ph-arrow-right text-base-content/50"></i>
         <code class="badge badge-ghost font-mono">data-title-tip</code>
       </div>
-      <div class="rounded-box bg-base-200 px-3 py-2 min-w-0">Every budget item flowing across sessions, by enacted change or reconstructed level.</div>
+      <div class="flex flex-col gap-1 min-w-0">
+        <span class="lg:hidden text-xs uppercase tracking-wider text-base-content/70">The reader sees</span>
+        <div class="rounded-box bg-base-200 px-3 py-2">Every budget item flowing across sessions, by enacted change or reconstructed level.</div>
+      </div>
       <div class="flex flex-wrap gap-1.5">
         <span class="badge badge-success badge-soft">budget-drs <b class="tabular-nums">223</b></span>
-        <span class="badge badge-ghost">web-tools not traced</span>
+        <span class="badge badge-ghost">web-tools none declared</span>
       </div>
     </div>
 
-    <!-- computed, untraced: sits between the two routes it may belong to -->
-    <div class="grid grid-cols-1 lg:grid-cols-[14rem_minmax(0,1fr)_minmax(0,1fr)_12rem] gap-x-6 gap-y-2 items-start">
-      <div class="flex items-center gap-2 text-warning font-semibold lg:pl-6"><i class="ph ph-arrows-down-up text-xl"></i>Computed, not traced</div>
+    <div class="grid grid-cols-1 lg:grid-cols-[14rem_minmax(0,1fr)_minmax(0,1fr)_12rem] gap-x-6 gap-y-2 items-start border-t border-base-300 py-3">
+      <div class="flex items-center gap-2 font-semibold"><i class="ph ph-pencil-simple-line text-xl text-base-content/80"></i>Written for the tooltip</div>
       <div class="flex flex-wrap items-center gap-2 min-w-0">
-        <code class="badge badge-outline font-mono">t.gloss</code>
-        <span class="text-base-content/50">or</span>
-        <code class="badge badge-outline font-mono">newer ? newerCount : null</code>
+        <span class="lg:hidden text-xs uppercase tracking-wider text-base-content/70 w-full">Written in</span>
+        <code class="badge badge-soft font-mono">app/index.html</code>
+        <span class="text-base-content/70">markup or a script</span>
       </div>
-      <div class="text-base-content/60 min-w-0">borrowed words, or a readout with none</div>
-      <div class="flex flex-wrap gap-1.5">
-        <span class="badge badge-warning badge-soft">web-tools <b class="tabular-nums">438</b></span>
-        <span class="badge badge-warning badge-soft">budget-drs <b class="tabular-nums">134</b></span>
+      <div class="flex flex-col gap-1 min-w-0">
+        <span class="lg:hidden text-xs uppercase tracking-wider text-base-content/70">The reader sees</span>
+        <div class="rounded-box bg-base-200 px-3 py-2">Open the Repos dashboard</div>
       </div>
-    </div>
-
-    <!-- built at runtime -->
-    <div class="grid grid-cols-1 lg:grid-cols-[14rem_minmax(0,1fr)_minmax(0,1fr)_12rem] gap-x-6 gap-y-2 items-start border-t border-base-300 pt-3">
-      <div class="flex items-center gap-2 font-semibold text-info"><i class="ph ph-puzzle-piece text-xl"></i>Built at runtime</div>
-      <div class="flex flex-wrap items-center gap-2 min-w-0">
-        <code class="badge badge-outline font-mono">'Scope to ' + h.dir</code>
-      </div>
-      <div class="rounded-box bg-base-200 px-3 py-2 min-w-0">Scope to <span class="badge badge-info badge-soft font-mono">{…}</span></div>
-      <div class="flex flex-wrap gap-1.5">
-        <span class="badge badge-info badge-soft">web-tools <b class="tabular-nums">156</b></span>
-        <span class="badge badge-info badge-soft">budget-drs <b class="tabular-nums">52</b></span>
-      </div>
-    </div>
-
-    <!-- tooltip-only -->
-    <div class="grid grid-cols-1 lg:grid-cols-[14rem_minmax(0,1fr)_minmax(0,1fr)_12rem] gap-x-6 gap-y-2 items-start border-t border-base-300 pt-3">
-      <div class="flex items-center gap-2 font-semibold"><i class="ph ph-pencil-simple-line text-xl"></i>Written for the tooltip</div>
-      <div class="flex flex-wrap items-center gap-2 min-w-0">
-        <code class="badge badge-outline font-mono">app/index.html</code>
-        <span class="text-base-content/50">markup · script · constant</span>
-      </div>
-      <div class="rounded-box bg-base-200 px-3 py-2 min-w-0">Open the Repos dashboard</div>
       <div class="flex flex-wrap gap-1.5">
         <span class="badge badge-neutral badge-soft">web-tools <b class="tabular-nums">461</b></span>
         <span class="badge badge-neutral badge-soft">budget-drs <b class="tabular-nums">77</b></span>
       </div>
     </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-[14rem_minmax(0,1fr)_minmax(0,1fr)_12rem] gap-x-6 gap-y-2 items-start border-t border-base-300 py-3">
+      <div class="flex items-center gap-2 font-semibold"><i class="ph ph-puzzle-piece text-xl text-info"></i>Built at runtime</div>
+      <div class="flex flex-wrap items-center gap-2 min-w-0">
+        <span class="lg:hidden text-xs uppercase tracking-wider text-base-content/70 w-full">Written in</span>
+        <code class="badge badge-soft font-mono">'Scope to ' + h.dir</code>
+      </div>
+      <div class="flex flex-col gap-1 min-w-0">
+        <span class="lg:hidden text-xs uppercase tracking-wider text-base-content/70">The reader sees</span>
+        <div class="rounded-box bg-base-200 px-3 py-2">Scope to <span class="badge badge-info badge-soft font-mono">{…}</span></div>
+      </div>
+      <div class="flex flex-wrap gap-1.5">
+        <span class="badge badge-info badge-soft">web-tools <b class="tabular-nums">164</b></span>
+        <span class="badge badge-info badge-soft">budget-drs <b class="tabular-nums">52</b></span>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-[14rem_minmax(0,1fr)_minmax(0,1fr)_12rem] gap-x-6 gap-y-2 items-start border-t border-base-300 py-3">
+      <div class="flex items-center gap-2 font-semibold"><i class="ph ph-function text-xl text-warning"></i>Computed</div>
+      <!-- the computed row, sorted by what the expression reads -->
+      <div class="col-span-full lg:col-start-2 lg:col-span-3 grid grid-cols-[minmax(0,1fr)_auto_auto] gap-x-4 gap-y-1.5 items-center">
+        <span class="text-xs uppercase tracking-wider text-base-content/70">Reads</span>
+        <span class="text-xs uppercase tracking-wider text-base-content/70 text-right">web-tools</span>
+        <span class="text-xs uppercase tracking-wider text-base-content/70 text-right">budget-drs</span>
+
+        <span class="flex flex-wrap items-center gap-2 min-w-0">fixed words chosen by a condition <code class="badge badge-ghost font-mono">open ? 'Hide…' : 'Show…'</code></span>
+        <b class="tabular-nums text-right">77</b><b class="tabular-nums text-right">7</b>
+
+        <span class="flex flex-wrap items-center gap-2 min-w-0">a field or function named for written text <code class="badge badge-ghost font-mono">t.gloss</code></span>
+        <b class="tabular-nums text-right">138</b><b class="tabular-nums text-right">47</b>
+
+        <span class="flex flex-wrap items-center gap-2 min-w-0">a name or value <code class="badge badge-ghost font-mono">it.label</code></span>
+        <b class="tabular-nums text-right">97</b><b class="tabular-nums text-right">21</b>
+
+        <span class="flex flex-wrap items-center gap-2 min-w-0">a count, a number or an error <code class="badge badge-ghost font-mono">newerCount</code></span>
+        <b class="tabular-nums text-right">27</b><b class="tabular-nums text-right">2</b>
+
+        <span class="flex flex-wrap items-center gap-2 min-w-0 text-base-content/70">not sorted</span>
+        <b class="tabular-nums text-right">91</b><b class="tabular-nums text-right">57</b>
+
+        <span class="font-semibold">all computed</span>
+        <b class="tabular-nums text-right border-t border-base-300">430</b><b class="tabular-nums text-right border-t border-base-300">134</b>
+      </div>
+    </div>
   </section>
 
-  <!-- Who wrote it: the commit git blame names, against the commit that introduced the words. -->
+  <!-- Who wrote it: the commit git blame names, against the commit that introduced the words. Neutral shades, so color keeps its meaning from the routes above. -->
   <section class="flex flex-col gap-4" aria-label="Authorship">
-    <h2 class="text-lg font-semibold">The commit blame names, against the commit that introduced the words</h2>
-    <div class="flex flex-wrap gap-3 text-xs">
-      <span class="flex items-center gap-1.5"><span class="inline-block size-3 rounded-sm bg-success"></span>blame names the introducing commit</span>
-      <span class="flex items-center gap-1.5"><span class="inline-block size-3 rounded-sm bg-warning"></span>blame names a title-tip conversion sweep</span>
-      <span class="flex items-center gap-1.5"><span class="inline-block size-3 rounded-sm bg-base-300"></span>blame names another later commit</span>
-      <span class="flex items-center gap-1.5"><span class="inline-block size-3 rounded-sm border border-base-300"></span>no introducing commit found</span>
+    <h2 class="text-lg font-semibold">Which commit <code class="font-mono">git blame</code> names</h2>
+    <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+      <span class="flex items-center gap-1.5"><span class="inline-block size-3 rounded-sm bg-neutral"></span>the commit that introduced the words</span>
+      <span class="flex items-center gap-1.5"><span class="inline-block size-3 rounded-sm bg-base-content/40"></span>a conversion from <code class="font-mono">title</code> to title-tip</span>
+      <span class="flex items-center gap-1.5"><span class="inline-block size-3 rounded-sm bg-base-300"></span>another later commit</span>
     </div>
     <div class="grid grid-cols-[6rem_minmax(0,1fr)] gap-x-3 gap-y-3 items-center">
       <span class="text-sm font-mono">web-tools</span>
       <div class="flex h-7 rounded overflow-hidden text-xs font-mono tabular-nums">
-        <div class="bg-success text-success-content flex items-center px-1.5 w-[23.1%]">244</div>
-        <div class="bg-warning text-warning-content flex items-center px-1.5 w-[60.6%]">639</div>
-        <div class="bg-base-300 flex items-center px-1.5 w-[15.1%]">159</div>
-        <div class="border border-base-300 flex items-center px-1 w-[1.2%]"></div>
+        <div class="bg-neutral text-neutral-content flex items-center px-1.5 w-[23.4%]">244</div>
+        <div class="bg-base-content/40 text-base-100 flex items-center px-1.5 w-[65.5%]">682</div>
+        <div class="bg-base-300 flex items-center px-1.5 w-[11.1%]">116</div>
       </div>
       <span class="text-sm font-mono">budget-drs</span>
       <div class="flex h-7 rounded overflow-hidden text-xs font-mono tabular-nums">
-        <div class="bg-success text-success-content flex items-center px-1.5 w-[46.7%]">115</div>
-        <div class="bg-warning text-warning-content flex items-center px-1.5 w-[17.9%]">44</div>
-        <div class="bg-base-300 flex items-center px-1.5 w-[34.1%]">84</div>
-        <div class="border border-base-300 flex items-center px-1 w-[1.2%]"></div>
+        <div class="bg-neutral text-neutral-content flex items-center px-1.5 w-[47.3%]">115</div>
+        <div class="bg-base-content/40 text-base-100 flex items-center px-1.5 w-[18.1%]">44</div>
+        <div class="bg-base-300 flex items-center px-1.5 w-[34.6%]">84</div>
       </div>
     </div>
-  </section>
-
-  <!-- The one copy: written to data, built and loaded, never read. -->
-  <section class="flex flex-col gap-4" aria-label="The spend glosses">
-    <h2 class="text-lg font-semibold">budget-drs's spend glosses: built and loaded, never read</h2>
-    <div class="flex flex-wrap items-center gap-2">
-      <code class="badge badge-outline font-mono">spend-glosses.csv</code>
-      <i class="ph ph-arrow-right text-base-content/40"></i>
-      <code class="badge badge-outline font-mono">glosses-data.js</code>
-      <i class="ph ph-arrow-right text-base-content/40"></i>
-      <code class="badge badge-outline font-mono">app.html loads it</code>
-      <i class="ph ph-x-circle text-error text-xl"></i>
-      <code class="badge badge-error badge-soft font-mono">spend.js reads SPEND_GLOSS, its own copy</code>
-      <i class="ph ph-arrow-right text-base-content/40"></i>
-      <code class="badge badge-ghost font-mono">sankey card</code>
-    </div>
+    <p class="text-sm text-base-content/70">Of the tooltips whose introducing commit <code class="font-mono">git log -S</code> found: 1,042 of 1,055 in web-tools, 243 of 246 in budget-drs.</p>
   </section>
 
 </main>

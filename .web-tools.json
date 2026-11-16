@@ -94,7 +94,7 @@
   "research": [
     {
       "path": "research/2026-11-16-tooltip-sources/README.md",
-      "label": "Where tooltip text comes from: borrowed, written for the tooltip, or built at runtime",
+      "label": "Where tooltip text comes from, and what git says about who wrote it",
       "kind": "probe"
     },
     {

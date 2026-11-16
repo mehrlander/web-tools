@@ -39,7 +39,7 @@ CONCAT = re.compile(r"""['"]\s*\+|\+\s*['"]""")
 
 
 def skeleton(expr):
-    if "?" in expr:
+    if re.search(r"\?(?![.?])", expr):     # a conditional, not ?. or ??
         return ""
     parts = STRINGS.findall(expr)
     if not parts:
