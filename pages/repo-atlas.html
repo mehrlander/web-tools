@@ -83,10 +83,10 @@
     <div class="flex items-center gap-1.5 min-w-0 max-w-full" data-slot="frame:selector">
       <input id="repoInput" class="field w-56 min-w-0 shrink" placeholder="owner/repo" spellcheck="false">
       <input id="refInput" class="field w-28 min-w-0 shrink" placeholder="ref (default)" spellcheck="false">
-      <button id="goBtn" class="field cursor-pointer hover:border-black/20" title="Load repo">
+      <button id="goBtn" class="field cursor-pointer hover:border-black/20" data-title-tip="Load repo">
         <i class="ph ph-arrow-right"></i>
       </button>
-      <button id="localBtn" class="field cursor-pointer hover:border-black/20" title="Map a local folder (or drop a folder / .zip on the map)">
+      <button id="localBtn" class="field cursor-pointer hover:border-black/20" data-title-tip="Map a local folder (or drop a folder / .zip on the map)">
         <i class="ph ph-folder-open"></i>
       </button>
       <input id="dirInput" type="file" webkitdirectory multiple class="hidden">
@@ -99,7 +99,7 @@
     <div class="grow"></div>
     <div id="statChips" class="flex items-center gap-1.5 text-xs num" style="color:var(--ink-3)"></div>
     <div class="relative">
-      <span id="helpBtn" class="chip cursor-pointer hover:border-black/20 inline-flex items-center" title="Help">
+      <span id="helpBtn" class="chip cursor-pointer hover:border-black/20 inline-flex items-center" data-title-tip="Help">
         <i class="ph ph-question"></i>
       </span>
       <div id="helpPop" class="hidden absolute right-0 top-8 z-40 w-72 rounded-lg p-3 text-xs leading-relaxed"
@@ -133,10 +133,10 @@
       <span style="color:var(--grid)">|</span>
       <span id="wFiles" class="cursor-pointer" >files</span>
     </span>
-    <span id="exportBtn" class="chip cursor-pointer hover:border-black/20" title="Download the map as PNG">
+    <span id="exportBtn" class="chip cursor-pointer hover:border-black/20" data-title-tip="Download the map as PNG">
       <i class="ph ph-download-simple"></i>
     </span>
-    <span id="upBtn" class="chip cursor-pointer hover:border-black/20 hidden" title="Up one level (Backspace)">
+    <span id="upBtn" class="chip cursor-pointer hover:border-black/20 hidden" data-title-tip="Up one level (Backspace)">
       <i class="ph ph-arrow-elbow-left-up"></i> up
     </span>
   </div>
@@ -553,7 +553,7 @@ function renderStats() {
   const r = S.root;
   const refChip = S.source === 'github'
     ? `<a class="chip inline-flex items-center gap-1 hover:border-black/20" target="_blank" rel="noopener"
-          style="color:var(--ink-2)" title="${esc(S.repo)} at ${esc(S.ref)} on GitHub"
+          style="color:var(--ink-2)" data-title-tip="${esc(S.repo)} at ${esc(S.ref)} on GitHub"
           href="${esc(repoGhUrl())}"><i class="ph ph-github-logo"></i>${esc(S.ref)}</a>`
     : `<span class="chip"><i class="ph ph-folder-open"></i> local</span>`;
   $('statChips').innerHTML = r ? `
@@ -567,7 +567,7 @@ function renderViewStats() {
   if (!v) return $('viewStats').innerHTML = '';
   const pct = S.root && S.root.size ? fmtPct(v.size, S.root.size) : '—';
   const ghLink = S.source === 'github'
-    ? ` <a href="${esc(ghUrl('tree', v.path))}" target="_blank" title="Open this folder on GitHub" style="color:var(--ink-3)"><i class="ph ph-arrow-square-out"></i></a>`
+    ? ` <a href="${esc(ghUrl('tree', v.path))}" target="_blank" data-title-tip="Open this folder on GitHub" style="color:var(--ink-3)"><i class="ph ph-arrow-square-out"></i></a>`
     : '';
   $('viewStats').innerHTML = `
     <div class="flex justify-between"><span style="color:var(--ink-3)">Path</span><span class="text-right break-all" style="color:var(--ink)">${esc(v.path || '/')}${ghLink}</span></div>
@@ -610,7 +610,7 @@ function renderBigFiles() {
   $('bigFiles').innerHTML = files.map((f, i) => `
     <div class="filerow flex items-center gap-2 px-1.5 py-1 text-xs" data-i="${i}">
       <span class="inline-block w-2 h-2 rounded-sm shrink-0" style="background:${CATS[f.cat].color}"></span>
-      <span class="truncate" style="color:var(--ink)" title="${esc(f.path)}">${esc(f.name)}</span>
+      <span class="truncate" style="color:var(--ink)" data-title-tip="${esc(f.path)}">${esc(f.name)}</span>
       <span class="grow"></span>
       <span class="num shrink-0" style="color:var(--ink-3)">${fmtBytes(f.size)}</span>
     </div>`).join('') || `<div class="text-xs" style="color:var(--ink-3)">no files</div>`;

@@ -1,7 +1,10 @@
 ---
 id: enforce-house-style-ryz0z5
 title: Gate house-style rule 1 (stat cards) and widen scanner roots
-status: backlog
+status: done
+closed: 2026-11-16
+session: claude/house-style-stat-cards-title-tips
+errand: claude-2026-11-16-24829e
 opened: 2026-08-30
 size: S
 ---
@@ -57,3 +60,5 @@ scanners reach files outside `lib app pages`.
 - 2026-09-01: Rule 3 landed on `claude/map-injection-tab-wrapping-veo5r5` (PR #565), which corrects this task's claim that rule 1 was the only rule with a mechanical tell. The guard ships in the portable plugin rather than under `scripts/`, which also answers the second bullet for this rule: a `PreToolUse` hook is path-independent, so a page built in `dump/` is covered even though the scanners' default roots are not. Rule 1 and the invocation-count reading are the residual.
 - 2026-09-17: Reframed to the residual, rule 1 plus the scanner roots (size M to S). Log entries reordered oldest first, this file having been the tracker's one internally inconsistent log after that day's append.
 - 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).
+- 2026-11-16: sent as Claude errand claude-2026-11-16-24829e (session b805c26a, owner's go); the errand's prompt asks the taker to close this task when the branch work is complete.
+- 2026-11-16: Closed by errand claude-2026-11-16-24829e on `claude/house-style-stat-cards-title-tips` (PR #1326, draft): `skills/hooks/stat-cards.py` and its PreToolUse guard refuse a daisyUI stat card, the suite scans the whole tree for one, aic-2.html is fixed, and `dead-opacity.py` and `stranded-titles.py` gain `--changed` for files outside the default roots. The merge is the owner's.

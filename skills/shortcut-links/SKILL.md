@@ -11,6 +11,11 @@ perform another task.
 
 Generate links with the commands below and copy the output unchanged.
 Do not construct or edit the URLs by hand.
+Each command prints a `shortcuts://` link, which the Claude iPhone app does
+not open, and an https form of it on stderr, after `tappable:` or in
+`run.py`'s 📲 line. Link to the https form: it opens web-tools'
+[`pages/shortcut-run.html`](https://github.com/mehrlander/web-tools/blob/main/pages/shortcut-run.html),
+which passes the `shortcuts://` link on to Shortcuts.
 
 ## Choose a command
 

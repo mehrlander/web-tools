@@ -210,3 +210,13 @@ test('a title set from script is counted on its own line', () => {
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+// Not tooltips, and the task that converted the rest says they stay: an
+// iframe's title is its accessible name, and `data-title` or
+// `data-axis-title` is data that happens to end in "title".
+test('an iframe title and a data-*-title attribute are not reported', () => {
+  const r = scan('<iframe src="x" title="The component, running"></iframe>'
+    + '<a href="#" data-title="t">t</a><svg><text data-axis-title="x">x</text></svg>'
+    + '<span title="still a tooltip">*</span>');
+  assert.deepEqual(r.values, ['still a tooltip']);
+});
