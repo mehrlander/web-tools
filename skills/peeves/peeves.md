@@ -366,15 +366,7 @@ A page of a domain app, an app such as budget-drs's whose subject is a field of 
 
 **Area:** page-design · **Detector:** reader · **Sessions:** 1 · **Status:** active
 
-### Behavior lectures in documentation · `P72`
-
-Documentation that lectures reader behavior or philosophizes about principles instead of stating how a mechanism, format or tool works: inputs, outputs, commands and limits.
-
-**Look for:** a closing moral or maxim in a reference doc; rules telling future authors how to think rather than naming the script, schema or check that runs; general commentary where inputs, outputs and limits belong
-
-**Area:** writing · **Detector:** reader · **Sessions:** 5 · **Status:** active
-
-### Wall-of-text paragraphs · `P73`
+### Wall-of-text paragraphs · `P72`
 
 Long, undifferentiated paragraphs in documents or replies that pack several subjects into one block of prose instead of giving distinct topics, mechanisms or steps separate paragraphs or tables.
 
