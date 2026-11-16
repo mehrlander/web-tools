@@ -247,7 +247,7 @@ async function activityScenario(viewport) {
   check('Activity matches without reading full records', !f.reads.some(p => p.startsWith('sessions/')));
   const ids = () => estate.evaluate(el => Alpine.$data(el).sessionNodes.map(n => n.id));
   assert.deepEqual(new Set(await ids()), new Set(['a0000001', 'a0000002', 'a0000006'])); checks++;
-  await estate.getByRole('button', { name: /Week\s/ }).click();
+  await estate.getByRole('button', { name: 'Week', exact: true }).click();
   await page.waitForFunction(() => new URLSearchParams(location.search).get('ascope') === 'week');
   assert.deepEqual(new Set(await ids()), new Set(['a0000001', 'a0000002', 'a0000003', 'a0000006'])); checks++;
   check('Week remains strict while discussion includes older matches', !(await ids()).includes('a0000004'));
