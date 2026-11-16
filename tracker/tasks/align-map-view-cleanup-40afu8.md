@@ -1,7 +1,9 @@
 ---
 id: align-map-view-cleanup-40afu8
 title: Align the Map view's names, addresses, and warning vocabulary
-status: backlog
+status: done
+closed: 2026-11-16
+resolution: superseded
 opened: 2026-09-17
 size: L
 project: map
@@ -156,3 +158,4 @@ well before minting new tabs.
   after the other. Size stays L on item 2's strength alone.
 - 2026-10-06: #702 and #829 already did item 3 and part of item 2; #872's Delivery lens does not answer item 1. Recorded in Related by the tending pass.
 - 2026-10-23: Item 5's dependency is cleared by registry-authored-derived-split-v3qm2x (web-tools #1087): `docs.reach`'s words are rows of docs/vocabularies.csv. `harness.invocation`'s `none found` stays a derived value of an open grammar with no vocabulary row, so item 5 takes that word from tools-index. The same PR gave the Map a top-level Data tab (Primitives, Census, Registries); Census (`?tab=data`) and Registries kept their keys, so no address in item 2 moved.
+- 2026-11-16: refinement close (session b805c26a, owner's go): items 1 to 4 and 6 are delivered or overtaken by the Map restructure (f704423b moved Portable to ?tab=distribution; cfd42a19 retired the Surfacing tab and Owners). Item 5, one warning vocabulary across tabs, is left unfiled; refile it small if wanted.

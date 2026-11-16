@@ -1,0 +1,17 @@
+<!-- Setups for dropZone (../drop-zone.js), mounted by the component stage
+     (index.html?c=drop-zone). The component reads a file and forgets it; the
+     stage's "Events sent" list shows the drop-file event a host would handle. -->
+
+<template data-setup="Any file">
+  <div x-data="dropZone()"></div>
+</template>
+
+<template data-setup="JSON or Markdown, up to 1 MB, several at once">
+  <div x-data="dropZone({
+    accept: '.json,.md',
+    maxSize: 1048576,
+    multiple: true,
+    idle: 'Drop JSON or Markdown here',
+    hint: 'up to 1 MB each',
+  })"></div>
+</template>

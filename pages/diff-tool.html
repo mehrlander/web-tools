@@ -241,7 +241,7 @@
     <template x-for="t in TABS" :key="t.id">
       <button class="btn btn-xs join-item gap-1"
               :class="tab === t.id ? 'btn-primary' : 'btn-ghost border border-base-300'"
-              @click="tab = t.id" :title="t.label">
+              @click="tab = t.id" :data-title-tip="t.label">
         <i class="ph" :class="t.icon"></i>
         <span class="hidden md:inline" x-text="t.label"></span>
       </button>
@@ -257,12 +257,12 @@
   </div>
   <div class="grow sm:hidden"></div>
 
-  <button class="btn btn-ghost btn-xs btn-square shrink-0" @click="swap()" title="Swap A and B">
+  <button class="btn btn-ghost btn-xs btn-square shrink-0" @click="swap()" data-title-tip="Swap A and B">
     <i class="ph ph-arrows-left-right"></i>
   </button>
 
   <div class="dropdown dropdown-end shrink-0">
-    <button tabindex="0" class="btn btn-ghost btn-xs btn-square" title="More">
+    <button tabindex="0" class="btn btn-ghost btn-xs btn-square" data-title-tip="More">
       <i class="ph ph-dots-three-vertical"></i></button>
     <ul tabindex="0" class="dropdown-content menu menu-sm bg-base-100 rounded-box border border-base-300 shadow-lg z-50 w-64 mt-1">
       <li><a @click="shareLink()"><i class="ph ph-link"></i>Copy share link</a></li>
@@ -300,34 +300,34 @@
       <div class="flex items-center gap-1.5">
         <div class="join">
           <button class="btn btn-xs join-item" :class="view === 'split' ? 'btn-primary' : 'btn-ghost border border-base-300'"
-                  @click="view = 'split'" title="Side by side">
+                  @click="view = 'split'" data-title-tip="Side by side">
             <i class="ph ph-columns"></i><span class="hidden sm:inline ml-1">Split</span></button>
           <button class="btn btn-xs join-item" :class="view === 'unified' ? 'btn-primary' : 'btn-ghost border border-base-300'"
-                  @click="view = 'unified'" title="One column">
+                  @click="view = 'unified'" data-title-tip="One column">
             <i class="ph ph-rows"></i><span class="hidden sm:inline ml-1">Unified</span></button>
         </div>
 
         <span class="vrule"></span>
 
         <button class="btn btn-xs" :class="ignoreWs ? 'btn-primary' : 'btn-ghost border border-base-300'"
-                @click="ignoreWs = !ignoreWs; recompute()" title="Ignore whitespace differences">
+                @click="ignoreWs = !ignoreWs; recompute()" data-title-tip="Ignore whitespace differences">
           <i class="ph ph-text-indent"></i><span class="hidden lg:inline ml-1">Whitespace</span></button>
         <button class="btn btn-xs" :class="ignoreCase ? 'btn-primary' : 'btn-ghost border border-base-300'"
-                @click="ignoreCase = !ignoreCase; recompute()" title="Ignore case differences">
+                @click="ignoreCase = !ignoreCase; recompute()" data-title-tip="Ignore case differences">
           <i class="ph ph-text-aa"></i><span class="hidden lg:inline ml-1">Case</span></button>
         <button class="btn btn-xs" :class="ignoreBlank ? 'btn-primary' : 'btn-ghost border border-base-300'"
-                @click="ignoreBlank = !ignoreBlank; recompute()" title="Ignore blank lines">
+                @click="ignoreBlank = !ignoreBlank; recompute()" data-title-tip="Ignore blank lines">
           <i class="ph ph-arrows-in-line-vertical"></i><span class="hidden lg:inline ml-1">Blank lines</span></button>
 
         <span class="vrule"></span>
 
         <div class="join">
           <button class="btn btn-xs btn-ghost border border-base-300 join-item" :disabled="!numChanges"
-                  @click="goChange(-1)" title="Previous change (p)"><i class="ph ph-caret-up"></i></button>
+                  @click="goChange(-1)" data-title-tip="Previous change (p)"><i class="ph ph-caret-up"></i></button>
           <span class="btn btn-xs join-item no-animation pointer-events-none border border-base-300 border-x-0 font-mono font-normal"
                 x-text="numChanges ? (curChange + 1) + ' / ' + numChanges : 'no changes'"></span>
           <button class="btn btn-xs btn-ghost border border-base-300 join-item" :disabled="!numChanges"
-                  @click="goChange(1)" title="Next change (n)"><i class="ph ph-caret-down"></i></button>
+                  @click="goChange(1)" data-title-tip="Next change (n)"><i class="ph ph-caret-down"></i></button>
         </div>
 
         <button class="btn btn-xs btn-ghost border border-base-300" x-show="gapCount" @click="expandAll()">
@@ -398,7 +398,7 @@
     <span class="text-xs font-semibold uppercase opacity-60 tracking-wide">Preset</span>
     <template x-for="p in PRESETS" :key="p.id">
       <button class="btn btn-xs btn-ghost border border-base-300" @click="applyPreset(p.id)"
-              :title="p.hint" x-text="p.label"></button>
+              :data-title-tip="p.hint" x-text="p.label"></button>
     </template>
   </div>
 
@@ -416,13 +416,13 @@
     <template x-for="(r, i) in rules" :key="i">
       <div class="join">
         <button class="btn btn-xs join-item px-1.5" :class="r.on ? 'btn-primary' : 'btn-ghost border border-base-300'"
-                @click="r.on = !r.on; onRules()" :title="r.on ? 'Rule on' : 'Rule off'">
+                @click="r.on = !r.on; onRules()" :data-title-tip="r.on ? 'Rule on' : 'Rule off'">
           <i class="ph" :class="r.on ? 'ph-check' : 'ph-minus'"></i>
         </button>
         <input x-model="r.find" @input.debounce.400="onRules()" placeholder="find (regex)"
                class="input input-xs join-item w-28 sm:w-40 font-mono text-xs"
                :class="r.bad ? 'input-error' : 'input-bordered'"
-               :title="r.bad ? 'Not a valid regular expression' : 'Regular expression, applied to both sides'">
+               :data-title-tip="r.bad ? 'Not a valid regular expression' : 'Regular expression, applied to both sides'">
         <span class="btn btn-xs join-item no-animation pointer-events-none border border-base-300 border-x-0 px-1">
           <i class="ph ph-arrow-right"></i></span>
         <input x-model="r.replace" @input.debounce.400="onRules()" placeholder="replace"
@@ -469,9 +469,9 @@
                The select keeps its Paste option, which is the mode where the
                textarea below is the input. -->
           <button class="btn btn-ghost btn-xs btn-square shrink-0" @click="pasteInto(id)"
-                  title="Paste the clipboard into this side">
+                  data-title-tip="Paste the clipboard into this side">
             <i class="ph ph-clipboard-text"></i></button>
-          <button class="btn btn-ghost btn-xs btn-square shrink-0" @click="resetSlot(id)" title="Clear this side">
+          <button class="btn btn-ghost btn-xs btn-square shrink-0" @click="resetSlot(id)" data-title-tip="Clear this side">
             <i class="ph ph-x"></i></button>
         </div>
 

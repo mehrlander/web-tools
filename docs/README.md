@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `node/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 16 are named by CLAUDE.md,
-23 by a skill, 42 by a page or component. The remaining 43 are
+23 by a skill, 43 by a page or component. The remaining 43 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -31,6 +31,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`artifacts.md`](artifacts.md) *(orphan)* — Claude Code artifacts and the link-choice matrix
 - [`code-layers.md`](code-layers.md) — the code layers and the admission rule that sorts a new file into one of them
 - [`column-primitives.md`](column-primitives.md) — the column primitives: which of four roles a column plays in its row (id, label, locator, value), the role axis and its crossing with position
+- [`components.csv`](components.csv) — the components registry: every Alpine component file, the names it registers, what it says it is, and what loads and mounts it
 - [`delivery.json`](delivery.json) *(measured)* — historical snapshots of the retired injection routes and an unshipped proposal; current content routes are in Map / Harness / Context
 - [`doc-growth.md`](doc-growth.md) *(orphan)* — the doc-growth chart: what it plots, how to generate its data file for a repo, and what makes the chart misleading
 - [`docs.csv`](docs.csv) — the documentation registry: what each file under docs/ is, on four axes

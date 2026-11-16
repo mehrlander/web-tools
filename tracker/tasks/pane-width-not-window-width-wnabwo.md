@@ -2,6 +2,7 @@
 id: pane-width-not-window-width-wnabwo
 title: Audit the app's views for viewport breakpoints inside the content pane
 status: backlog
+errand: claude-2026-11-16-512733
 project: repo
 opened: 2026-08-23
 size: S
@@ -56,3 +57,4 @@ either reflows or is recorded as deliberately fixed-width.
   asking this task to write its own rule is satisfied), and cut the body from
   581 words. Still unaudited: every view but those three.
 - 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).
+- 2026-11-16: sent as Claude errand claude-2026-11-16-512733 (session b805c26a, owner's go); the errand's prompt asks the taker to close this task when the branch work is complete.

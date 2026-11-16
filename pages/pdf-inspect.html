@@ -102,10 +102,10 @@
     </span>
 
     <button class="btn btn-sm lg:btn-xs btn-primary shrink-0 gap-1" @click="loadSample()"
-            title="Load the built-in 12-page sample">
+            data-title-tip="Load the built-in 12-page sample">
       <i class="ph ph-file-dashed"></i><span>Sample</span>
     </button>
-    <label class="btn btn-sm lg:btn-xs btn-ghost shrink-0 gap-1" title="Open a PDF">
+    <label class="btn btn-sm lg:btn-xs btn-ghost shrink-0 gap-1" data-title-tip="Open a PDF">
       <i class="ph ph-folder-open"></i><span class="hidden sm:inline">Open</span>
       <input type="file" accept="application/pdf,.pdf" class="hidden"
              @change="loadFile($event.target.files[0])">
@@ -113,11 +113,11 @@
 
     <div class="join shrink-0" x-show="mode==='page'">
       <button class="btn btn-sm lg:btn-xs join-item px-2" @click="go(-1)" :disabled="pageNum<=1"
-              title="Previous page"><i class="ph ph-caret-left"></i></button>
+              data-title-tip="Previous page"><i class="ph ph-caret-left"></i></button>
       <span class="btn btn-sm lg:btn-xs join-item no-animation pointer-events-none font-mono whitespace-nowrap px-2"
             x-text="`${pageNum}/${numPages||'-'}`"></span>
       <button class="btn btn-sm lg:btn-xs join-item px-2" @click="go(1)" :disabled="pageNum>=numPages"
-              title="Next page"><i class="ph ph-caret-right"></i></button>
+              data-title-tip="Next page"><i class="ph ph-caret-right"></i></button>
     </div>
 
     <div class="join shrink-0 hidden lg:flex">
@@ -133,10 +133,10 @@
     </button>
 
     <div class="join shrink-0 hidden lg:flex" x-show="mode==='page'">
-      <button class="btn btn-xs join-item px-2" @click="zoom(-1)" title="Zoom out"><i class="ph ph-minus"></i></button>
+      <button class="btn btn-xs join-item px-2" @click="zoom(-1)" data-title-tip="Zoom out"><i class="ph ph-minus"></i></button>
       <button class="btn btn-xs join-item px-2 font-mono" @click="scaleMode='fit'; redraw()"
-              x-text="scaleMode === 'fit' ? 'fit' : scale.toFixed(1) + 'x'" title="Fit to width"></button>
-      <button class="btn btn-xs join-item px-2" @click="zoom(1)" title="Zoom in"><i class="ph ph-plus"></i></button>
+              x-text="scaleMode === 'fit' ? 'fit' : scale.toFixed(1) + 'x'" data-title-tip="Fit to width"></button>
+      <button class="btn btn-xs join-item px-2" @click="zoom(1)" data-title-tip="Zoom in"><i class="ph ph-plus"></i></button>
     </div>
 
     <span class="text-xs opacity-55 font-mono truncate hidden xl:inline" x-text="status"></span>
@@ -145,7 +145,7 @@
          Absent for the sample and for a drop, which have no address to state. -->
     <a x-show="address" x-cloak :href="addressUrl" target="_blank"
        class="text-xs font-mono truncate hidden lg:inline opacity-55 hover:opacity-100 hover:text-primary transition-opacity"
-       :title="address && (address.repo + (address.ref ? '@' + address.ref : '') + ':' + address.path)">
+       :data-title-tip="address && (address.repo + (address.ref ? '@' + address.ref : '') + ':' + address.path)">
       <i class="ph ph-git-branch align-[-0.1em]"></i>
       <span x-text="address && address.path.split('/').pop()"></span>
     </a>
@@ -343,12 +343,12 @@
       </div>
       <div class="flex items-center gap-2">
         <button class="btn btn-sm lg:btn-xs btn-ghost px-2" @click="nudge(-1)"
-                :title="`decrease ${axis}`"><i class="ph ph-minus"></i></button>
+                :data-title-tip="`decrease ${axis}`"><i class="ph ph-minus"></i></button>
         <input type="range" class="range range-sm lg:range-xs flex-1"
                :min="axisMeta[axis].min" :max="axisMeta[axis].max" :step="axisMeta[axis].step"
                :value="axisValue" @input="setAxis(+$event.target.value)">
         <button class="btn btn-sm lg:btn-xs btn-ghost px-2" @click="nudge(1)"
-                :title="`increase ${axis}`"><i class="ph ph-plus"></i></button>
+                :data-title-tip="`increase ${axis}`"><i class="ph ph-plus"></i></button>
         <span class="w-14 lg:w-12 text-right font-mono tabular-nums text-sm"
               x-text="Math.round(axisValue) + axisMeta[axis].unit"></span>
       </div>
@@ -373,7 +373,7 @@
               <i class="ph ph-bookmark-simple"></i><span x-text="v.name"></span>
             </button>
             <button class="btn btn-sm lg:btn-xs join-item px-1.5 btn-ghost" @click="removeView(i)"
-                    :title="`forget ${v.name}`"><i class="ph ph-x"></i></button>
+                    :data-title-tip="`forget ${v.name}`"><i class="ph ph-x"></i></button>
           </span>
         </template>
       </div>
@@ -429,11 +429,11 @@
                   @click="trimMode='drop'; drawStack()">drop</button>
         </div>
         <button class="btn btn-sm lg:btn-xs btn-ghost ml-auto gap-1" @click="proposeTrim()"
-                title="Set the bounds from what recurs across pages">
+                data-title-tip="Set the bounds from what recurs across pages">
           <i class="ph ph-magic-wand"></i>propose
         </button>
         <button class="btn btn-sm lg:btn-xs btn-ghost gap-1" @click="copyKept()"
-                title="Copy the text the trim keeps"><i class="ph ph-copy"></i></button>
+                data-title-tip="Copy the text the trim keeps"><i class="ph ph-copy"></i></button>
       </div>
       <div class="text-xs font-mono opacity-65 mt-2" x-text="trimInfo"></div>
       <div class="max-h-40 overflow-auto text-xs font-mono bg-base-200 rounded p-2 mt-1.5" x-show="furniture.length">

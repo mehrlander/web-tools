@@ -324,7 +324,7 @@ Calling a list a ledger, census, catalog or similar term and expecting the word 
 
 ### Modal dialogs · `P67`
 
-Avoid modal dialogs; consider a panel-tip, the deck takeover, or another more fluid alternative.
+Avoid modal dialogs; consider a panel-tip, the Swipe Deck takeover, or another more fluid alternative.
 
 **Look for:** showModal(), modal-box, a dimmed backdrop
 
@@ -347,6 +347,30 @@ A sentence that turns on "so", presenting one cause as forcing one result.
 Edits that weaken guidance that exists to steer away from model intuition. The problem can involve removing pointed language or softening it with material that emphasizes conventional rationales that the guidance intends to de-emphasize.
 
 **Look for:** a line that steers against model intuition, cut or reworded into a general statement, such as 'especially use of 🟢 where direction has already been set' dropped from a policy urging the assistant to proceed; a caveat, exception or conventional rationale added beside such a line that restores the intuition, such as 'acting on it waits for the owner's word'
+
+**Area:** writing · **Detector:** reader · **Sessions:** 3 · **Status:** active
+
+### Bare admonishment · `P70`
+
+Direction with an unclear standard and weak support. Broad guidance can be useful when surrounded by more detailed considerations. Otherwise, a directive that points the reader back to their own judgment is typically better left unsaid.
+
+**Look for:** directive language, often not to take some action, based on subjective judgment; a last sentence of a paragraph punctuating an idea without adding clarity
+
+**Area:** writing · **Detector:** reader · **Sessions:** 1 · **Status:** active
+
+### Domain page links to GitHub, chats · `P71`
+
+A page of a domain app, an app such as budget-drs's whose subject is a field of work, linking to or referencing GitHub or a chat. This peeve does not concern the Web Tools app, which focuses on interaction with GitHub and AI.
+
+**Look for:** a link on a domain app page that opens github.com, claude.ai or chatgpt.com; a figure's source given as a chat
+
+**Area:** page-design · **Detector:** reader · **Sessions:** 1 · **Status:** active
+
+### Wall-of-text paragraphs · `P72`
+
+Long, undifferentiated paragraphs in documents or replies that pack several subjects into one block of prose instead of giving distinct topics, mechanisms or steps separate paragraphs or tables.
+
+**Look for:** one long paragraph covering several subjects (such as architecture, clone reads and build outputs in one block); a reply or README passage that shifts topic without a paragraph break
 
 **Area:** writing · **Detector:** reader · **Sessions:** 3 · **Status:** active
 
@@ -420,9 +444,9 @@ Name things for what they are, not by metaphor or vague umbrella.
 
 ### Link what you mention · `P24`
 
-Link every file, PR, session or page you mention.
+Link every file, folder, PR, session or page you mention; in a directory listing or index, link each entry to the file that resolves what that entry is.
 
-**Look for:** a path or PR number in prose without a link
+**Look for:** a path, folder entry or PR number in prose without a link; a directory bullet that names a folder with no link to the folder's README, page or script
 
 **Owner:** docs/CONVERSATION.md (reference is a link)
 

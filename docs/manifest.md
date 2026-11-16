@@ -270,6 +270,9 @@ token:
   it with `sessions/tools/errand_runner.py` in web-tools-private. While the
   laptop is awake, the daemon forwards the errand to Gemini and writes Gemini's
   reply to the result file. Declining the errand on the Stage cancels it.
+  A request may carry `notify: {"pr": "owner/repo#N"}` (`file --notify-pr`): the
+  daemon then comments on that pull request when the errand closes, which wakes
+  a session subscribed to it.
 - **`codex-errand`** (venue `personal-laptop`) is a task for Codex on the
   laptop, for work needing that machine's apps or computer use, taken when the
   owner asks Codex to do its errands. File it with

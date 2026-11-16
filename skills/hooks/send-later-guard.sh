@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# PreToolUse: refuse a scheduled self check-in. Events are the only wake.
+# PreToolUse: refuse a scheduled self check-in, all but the one check-in.py
+# asks for. PR events are the only other wake.
 #
 # WHY THIS EXISTS. The harness attaches a drive-to-green posture to a PR a
 # session created and tells it to arm a self check-in about an hour out, re-check
@@ -8,7 +9,13 @@
 # EVERY retained call was a PR or CI check-in, none anything else. One PR drew
 # fourteen. The wakes mostly find that main has moved and spend a merge, a suite
 # run and a push on a branch nobody was waiting for. The user's standing
-# instruction is that a check-in is never wanted; the reader returns and asks.
+# instruction is that a PR check-in is never wanted; the reader returns and asks.
+#
+# WHAT PASSES. A call whose message opens with the check-in mark, the stopwatch
+# and the word: "⏱ check-in". check-in.py asks a session for that one
+# message, 55 minutes ahead, so that the session closes its work out before its
+# prompt cache lapses, and tracks the message once it is sent. The test is how
+# the message opens, so a PR check-in does not pass by being reworded around it.
 #
 # WHY A HOOK RATHER THAN permissions.deny. A settings entry needs the literal
 # tool name, and this tool has more than one: the records carry both
@@ -43,13 +50,22 @@ except Exception:
 if not re.fullmatch(r"mcp__.+__send_later", str(d.get("tool_name", ""))):
     sys.exit(0)
 
+# The mark is spelled by code point, with the variation selector a model may
+# add: the program text arrives on stdin, in whatever encoding the shell has.
+given = d.get("tool_input")
+message = given.get("message") if isinstance(given, dict) else None
+if isinstance(message, str) and re.match("\\s*\u23f1\ufe0f? check-in", message):
+    sys.exit(0)
+
 print(json.dumps({"hookSpecificOutput": {
     "hookEventName": "PreToolUse",
     "permissionDecision": "deny",
     "permissionDecisionReason": (
-        "Refused: PR events already wake this session, and a timed check-in usually "
-        "finds only that main moved. Do not retry or route around it. End the turn; fix a "
-        "red or conflicted PR now. For a reminder the reader asked for, use create_trigger."
+        "Refused: PR events already wake this session, and a timed check-in on a PR "
+        "usually finds only that main moved. Do not retry or route around it. End the turn; "
+        "fix a red or conflicted PR now. For a reminder the reader asked for, use "
+        "create_trigger. The one send_later that passes is the check-in hook's message, "
+        "sent exactly as that hook wrote it."
     ),
 }}))
 PY

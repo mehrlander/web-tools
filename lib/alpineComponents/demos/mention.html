@@ -1,0 +1,10 @@
+<!-- Setups for mention (../mention.js), mounted by the component stage
+     (index.html?c=mention). Typing @ in the box opens the picker. -->
+
+<template data-setup="A path across repos" data-load="gh-store.js alpineComponents/repo.js">
+  <div x-data="mention({
+    bare: true,
+    placeholder: 'Type @ to name a file',
+    roots: [{ repo: 'mehrlander/web-tools', label: 'web-tools' }],
+  })"></div>
+</template>

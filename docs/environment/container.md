@@ -207,6 +207,18 @@ the user role carries harness-injected turns, a retry notice being the common
 one, so counting user messages overstates how many times the user actually said
 something.
 
+## The prompt cache
+
+*(measured 2026-11-13)*
+
+A model call writes its context to the **prompt cache**, and a later call reads that context back at the cache-read price. The cache's lifetime, the **prompt-cache TTL** (time to live), is one hour, or five minutes once the session enters usage overage. The moment the TTL runs out is the **cache cliff**. The terms prompt-cache TTL and cache cliff, and both lifetimes, come from the harness's description of its `ScheduleWakeup` tool, as read on 2026-11-13.
+
+**For `claude-fable-5-2`, a token written to the cache costs eighty times a token read from it**, by the price table in [`lib/kits/session-usage.js`](../../lib/kits/session-usage.js). That kit counts as an **idle re-load** a model call on a context over 150,000 tokens that writes more than half of that context to cache.
+
+**Measured, the cache cliff falls between 58 and 62 minutes after a session's last response.** In 196 session files from October and November 2026, all 657 calls that followed a gap of more than 62 minutes were idle re-loads, and 2 of the 75,047 calls that followed a gap under 58 minutes were.
+
+**A merge woke a subscribed session after the cache cliff, and the session's first call was an idle re-load.** On 2026-11-13 the merge of [web-tools#1283](https://github.com/mehrlander/web-tools/pull/1283) reached the session subscribed to that pull request more than nine hours after the session's last call. The session's first call after the merge wrote 809,737 tokens to cache, on a context of 873,638 tokens.
+
 ## Repository observations
 
 *Observed 2026-05-30.*
