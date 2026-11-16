@@ -91,7 +91,12 @@ INTERACTIVE = {'a', 'button', 'summary', 'label', 'select', 'input', 'details'}
 
 CLICKISH = re.compile(r'(:?href=|@click|x-on:click)')
 TAG = re.compile(r'</?\s*([a-zA-Z][\w:-]*)')
-TITLE = re.compile(r'''(:?title)=(["'])(.*?)\2''', re.S)
+# Anchored, so `data-title=` and `data-axis-title=` (data, not tooltips) never match.
+TITLE = re.compile(r'''(?<![\w-])(:?title)=(["'])(.*?)\2''', re.S)
+
+# An <iframe>'s title is the frame's accessible name, which assistive
+# technology needs; it is not a tooltip and stays.
+NOT_TOOLTIP = {'iframe'}
 XTEXT = re.compile(r'''x-text=(["'])(.*?)\1''', re.S)
 
 SCRIPT_SET = re.compile(r'''(?<![\w$])(?!document\b)[\w$]+\.title\s*=(?!=)|setAttribute\(\s*['"]title['"]''')
@@ -267,7 +272,7 @@ def scan(path):
                     del stack[k:]
                     break
             continue
-        tm = TITLE.search(attrs)
+        tm = None if name in NOT_TOOLTIP else TITLE.search(attrs)
         if tm:
             xm = XTEXT.search(attrs)
             xtext = ' '.join(xm.group(2).split()) if xm else None
