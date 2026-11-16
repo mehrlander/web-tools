@@ -36,6 +36,11 @@ const scoped = [
   record('a0000005', 'Unicode fixture', 'Coordinate 東京 and C++ with regex[a] literally. <img src=x onerror=window.fixtureInjected=1>', 0, 2),
   record('a0000006', 'Unreadable fixture', 'Unavailable record body.', 0, 3),
 ];
+// A session that worked in a repo the registry hides (the fixture's manifest
+// hides fixture-owner/veiled), found only by its own term.
+const veiled = record('a0000008', 'Veiled fixture', 'The ochre discussion happened in a hidden repo.', 0, 5);
+veiled.repos = [{ name: 'veiled' }];
+scoped.push(veiled);
 const notification = record('a0000007', 'Captured notification fixture', 'Ghostterm came from a peer notification.', 0, 4);
 notification.prompts[1].origin = 'peer';
 notification.replies[1].text = 'The reader excludes the peer notification from captured user discussion.';
@@ -58,9 +63,11 @@ function fixture(records, { metadata = false, fail = [], hold = [] } = {}) {
   const months = [...new Set(records.map(r => r.day.slice(0, 7)))];
   const files = {
     'state/sessions.json': JSON.stringify({ generatedAt: new Date(NOW).toISOString(), rows }),
-    'state/configs.json': JSON.stringify({ generatedAt: new Date(NOW).toISOString(), repos: {} }),
+    // The registry's own entry, where the app reads the hidden list from.
+    'state/configs.json': JSON.stringify({ generatedAt: new Date(NOW).toISOString(),
+      repos: { [STORE]: { config: { estate: false, hidden: ['fixture-owner/veiled'] } } } }),
     'state/activity.json': JSON.stringify({ generatedAt: new Date(NOW).toISOString(), repos: {} }),
-    '.web-tools.json': JSON.stringify({ estate: false }),
+    '.web-tools.json': JSON.stringify({ estate: false, hidden: ['fixture-owner/veiled'] }),
     'notes/notes.jsonl': '',
     // The follow-up's rollup: a summary on a cached row, and one session the
     // cache does not hold, which search reaches through its light row.
@@ -324,6 +331,18 @@ async function resultsScenario(viewport) {
   check(label + ' a summary answers, and is quoted', /viridian/.test(await page.locator('[data-session-result="a0000003"] [data-match-in="summary"]').textContent()));
   check(label + ' a session outside the cache is listed by its rollup title', /Outside the cache/.test(await page.locator('[data-session-result="e0000001"]').textContent()));
   check(label + ' the reach chip names the oldest month read', (await page.locator('[data-session-reach]').textContent()).includes(new Date(NOW - 9 * DAY).toISOString().slice(0, 7)));
+  // The registry's hidden list holds here as it does on the Sessions pane.
+  await search.locator('[data-find-box]').fill('discussion');
+  await search.locator('form').evaluate(form => form.requestSubmit());
+  await page.waitForFunction(() => new URLSearchParams(location.search).get('sq') === 'discussion');
+  await page.locator('[data-session-hidden]').waitFor({ state: 'visible' });
+  check(label + ' a session that worked in a hidden repo stays out', !(await resultIds(page)).includes('a0000008')
+    && !(await page.locator('[data-session-facet="repo"]').textContent()).includes('veiled'));
+  const shown = (await resultIds(page)).length;
+  await page.locator('[data-session-hidden]').click();
+  await readyResults(page, shown + 1);
+  check(label + ' the Hidden chip shows it again', (await resultIds(page)).includes('a0000008'));
+  await page.goBack();
   await page.goBack();
   await page.goBack();
   await page.waitForFunction(() => new URLSearchParams(location.search).get('view') === 'sessions');
