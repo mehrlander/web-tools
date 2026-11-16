@@ -39,6 +39,12 @@ window.GH = class {
   static FRESH = { cache: 'no-store' };
   static refFor(repo){ return repo === home ? homeRef : repo === hub ? 'codex/research-preview' : 'main'; }
   constructor(opts){ this.opts = opts; }
+  async req(url){
+    asked.push({ ...this.opts, file: url });
+    const paths = this.opts.repo === home ? ['projects/text/probes/README.md', 'projects/text/probes/probes.csv',
+      'projects/text/probes/view.html', 'projects/text/probes/run.py', 'projects/text/other.md'] : [];
+    return { tree: paths.map(path => ({ path, type: 'blob' })) };
+  }
   async get(file, opts){
     asked.push({ ...this.opts, file, cache: opts?.cache });
     if (file === '.web-tools.json') {
@@ -97,6 +103,14 @@ test('projects may omit a tracker, and research belongs to the nearest project',
   assert.equal(url.searchParams.get('project'), 'projects/text/nested');
   assert.equal(url.searchParams.get('tab'), 'board');
   assert.equal(url.searchParams.get('use'), 'codex/research-preview');
+});
+
+test('a folder account lists the files beside its write-up by kind', async () => {
+  await data.loadResearchTrees();
+  const text = data.researchAccounts.find(r => r.label === 'Text findings');
+  assert.deepEqual([...data.researchParts(text).map(p => p.key + ':' + p.files.length)], ['pages:1', 'data:1', 'scripts:1']);
+  assert.deepEqual([...data.researchParts(data.researchAccounts.find(r => r.label === 'Excel findings'))], []);
+  assert.equal(data.researchDate({ path: 'research/2026-11-16-x/README.md' }), '2026-11-16');
 });
 
 test('a repository on the registry hidden list leaves research, its strip and projects', async () => {
