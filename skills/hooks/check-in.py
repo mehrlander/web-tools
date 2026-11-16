@@ -168,12 +168,16 @@ FIRST = "\n".join((
     "Check-in, first of two. The session has been idle for {n} minutes and its prompt cache "
     "lapses at 60. This turn is automatic: the owner has not written. Spend at most four model "
     "calls on it.",
-    "1. Do work that needs no directional commitment, meaning no choice that is the owner's to "
+    "1. If the session's work is closed (its last reply closed on \u26ab, \u26aa, \U0001f7e3 or "
+    "\U0001f534), close the session out now: unsubscribe from every pull request this session is "
+    "subscribed to, arm no further check-in, and reply with one line saying so. Steps 2 to 4 "
+    "then do not apply.",
+    "2. Do work that needs no directional commitment, meaning no choice that is the owner's to "
     "make. Hand anything longer than two calls to a subagent. Where there is no such work, do "
     "none.",
-    "2. Arm the second check-in: call send_later with delay_minutes {delay} and exactly this "
+    "3. Arm the second check-in: call send_later with delay_minutes {delay} and exactly this "
     "message: \u00ab{msg}\u00bb.",
-    "3. Reply with exactly this line, with no caption and no closing state: \u00abQuiet check-in "
+    "4. Reply with exactly this line, with no caption and no closing state: \u00abQuiet check-in "
     "at {at}: the cache is warm, and a recap follows at {then} if the session stays idle.\u00bb",
 ))
 SECOND = "\n".join((

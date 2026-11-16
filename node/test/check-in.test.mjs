@@ -63,9 +63,10 @@ const DUPLICATE = 'This check-in is a duplicate of one armed later. End the turn
 const EARLY = (n, d, id, at) => `This check-in is early: the session's last response was ${n} minutes ago. Call send_later with delay_minutes ${d} and exactly this message: «${MSG(id)}». Then reply with exactly this line, below any reply that other work in this turn calls for, with no caption and no closing state: «Cache check-in fired while we were talking; moved to ${at}.»`;
 const FIRST = (n, id, at, then) => [
   `Check-in, first of two. The session has been idle for ${n} minutes and its prompt cache lapses at 60. This turn is automatic: the owner has not written. Spend at most four model calls on it.`,
-  '1. Do work that needs no directional commitment, meaning no choice that is the owner\'s to make. Hand anything longer than two calls to a subagent. Where there is no such work, do none.',
-  `2. Arm the second check-in: call send_later with delay_minutes 55 and exactly this message: «${MSG(id)}».`,
-  `3. Reply with exactly this line, with no caption and no closing state: «Quiet check-in at ${at}: the cache is warm, and a recap follows at ${then} if the session stays idle.»`,
+  '1. If the session\'s work is closed (its last reply closed on ⚫, ⚪, 🟣 or 🔴), close the session out now: unsubscribe from every pull request this session is subscribed to, arm no further check-in, and reply with one line saying so. Steps 2 to 4 then do not apply.',
+  '2. Do work that needs no directional commitment, meaning no choice that is the owner\'s to make. Hand anything longer than two calls to a subagent. Where there is no such work, do none.',
+  `3. Arm the second check-in: call send_later with delay_minutes 55 and exactly this message: «${MSG(id)}».`,
+  `4. Reply with exactly this line, with no caption and no closing state: «Quiet check-in at ${at}: the cache is warm, and a recap follows at ${then} if the session stays idle.»`,
 ].join('\n');
 const SECOND = [
   'Check-in, second of two, and the last. The owner has not written since the first. This turn is automatic. Spend at most four model calls on it.',
