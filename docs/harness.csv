@@ -365,6 +365,6 @@ skills/hooks/session-detail-caption.py,"prints the session detail caption a repl
 skills/hooks/session-dispatch.sh,the plugin's dispatcher: runs every checkout's own session-*.sh whatever the project root is,skills/hooks,251,hook:SessionStart,,no,yes,yes
 skills/hooks/session-record.sh,writes a session receipt at Stop where a checkout declares a sessions store; inert elsewhere,skills/hooks,103,hook:Stop,,no,yes,yes
 skills/hooks/stat-cards-guard.sh,,skills/hooks,77,hook:PreToolUse,,no,yes,yes
-skills/hooks/stat-cards.py,,skills/hooks,86,npm:stat-cards,,no,no,yes
+skills/hooks/stat-cards.py,,skills/hooks,86,npm:stat-cards,,no,yes,yes
 skills/hooks/wake-quiet-hint.sh,"after ReadNotifications, says whether the PR events read call for a reply; a failing check or unknown kind counts as work",skills/hooks,100,hook:PostToolUse,,no,yes,yes
 skills/hooks/warn-governing-docs.sh,"warns the model, right after a documentation edit lands, that governing prose needs specific permission; keyed on the sources registry, and silent on research declared in .web-tools.json",skills/hooks,36,hook:PostToolUse,,no,yes,yes
