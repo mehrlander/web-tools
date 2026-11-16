@@ -6,7 +6,7 @@
   const touchMore = "pointer-coarse:after:content-[''] pointer-coarse:after:absolute pointer-coarse:after:-inset-y-1.5 pointer-coarse:after:-inset-x-[7px]";
   const statusTones = {working:'text-[#24785d]',waiting:'text-[#a57428]',accepted:'text-[#5879a1]',attention:'text-[#b87832]',quiet:'text-[#938b7d]'};
   const ui = {
-    assistants:'grid grid-cols-3 gap-2 px-3 py-1 border-t-0 bg-stone-100 max-[350px]:gap-1 max-[350px]:px-2',
+    assistants:'sticky top-0 z-[2] grid grid-cols-3 gap-2 px-3 py-1 border-t-0 bg-stone-100 max-[350px]:gap-1 max-[350px]:px-2',
     provider:'phone-provider relative min-w-0',
     providerFilter:`phone-provider-filter flex h-full w-full min-h-[34px] items-center gap-[3px] py-0.5 pr-[18px] pl-0 text-left border-b-2 border-transparent rounded aria-pressed:border-[#6f6a61] aria-pressed:bg-[#eae7e1] ${focusStyle}`,
     providerName:'phone-provider-name flex shrink-0 items-center gap-[3px] text-[13px] font-semibold leading-5 whitespace-nowrap [&>svg]:size-4 [&>svg]:flex-none max-[350px]:text-xs max-[350px]:gap-0.5 max-[350px]:[&>svg]:size-[13px]',
@@ -39,6 +39,13 @@
     dialogClose:'phone-dialog-close absolute right-[7px] top-[5px] size-[34px] text-2xl leading-[18px] text-[#8b8172]'
   };
   if (el('assistants')) el('assistants').className=ui.assistants;
+  // Status counts can change the strip's height. Keep section headings just
+  // below its measured edge without moving the reader's scroll position.
+  if (window.ResizeObserver && el('assistants')) new ResizeObserver(([entry]) => {
+    const height = entry.target.getBoundingClientRect().height;
+    const panel = el('panel-now'), value = height + 'px';
+    if (height > 0 && panel?.style.getPropertyValue('--phone-assistant-height') !== value) panel?.style.setProperty('--phone-assistant-height',value);
+  }).observe(el('assistants'));
   const rendered = new WeakMap();
   const html = (id, value) => {
     const node = el(id);
@@ -113,7 +120,7 @@
   }
 
   function group(title, items, empty = '', numbered = false, inline = true) {
-    return `<section aria-label="${escape(title)}"><h2 class="flex items-center justify-between px-3 pt-2 pb-1 text-xs font-semibold text-stone-600"><span>${escape(title)}</span>${items.length ? `<span class="font-normal">${items.length}</span>` : ''}</h2>${items.length ? items.map((i,n) => row(i, numbered ? n + 1 : 0, inline)).join('') : `<p class="px-3 py-2 text-[13px] text-stone-500">${escape(empty)}</p>`}</section>`;
+    return `<section aria-label="${escape(title)}"><h2 class="${inline ? 'sticky top-[var(--phone-assistant-height,42px)] z-[1] bg-stone-100 ' : ''}flex items-center justify-between px-3 pt-2 pb-1 text-xs font-semibold text-stone-600"><span>${escape(title)}</span>${items.length ? `<span class="font-normal">${items.length}</span>` : ''}</h2>${items.length ? items.map((i,n) => row(i, numbered ? n + 1 : 0, inline)).join('') : `<p class="px-3 py-2 text-[13px] text-stone-500">${escape(empty)}</p>`}</section>`;
   }
 
   function changeItems() {
