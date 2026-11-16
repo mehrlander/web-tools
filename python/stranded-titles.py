@@ -66,15 +66,18 @@ Usage:
   python3 python/stranded-titles.py [PATH...]      # default: lib/ app/ pages/
   python3 python/stranded-titles.py --all          # every verdict, not just stranded
   python3 python/stranded-titles.py --script       # titles set from script instead
+  python3 python/stranded-titles.py --changed      # only the branch's changed files, in any folder
   npm run stranded-titles
 """
 
+import os
 import re
 import sys
 from collections import Counter
 from pathlib import Path
 
 DEFAULT_ROOTS = ('lib', 'app', 'pages')
+SKIP_DIRS = {'.git', 'node_modules', 'dist', 'archive', '.preview', 'thumbs'}
 SUFFIXES = ('.html', '.js')
 
 # Elements that never nest, so they must not be pushed onto the stack. An
@@ -303,6 +306,22 @@ def script_titles(path):
             for m in SCRIPT_SET.finditer(masked)]
 
 
+
+def changed_paths(base='main'):
+    """Files the branch changed against `base`, committed or not, anywhere in
+    the tree: the shape `npm run showing` reads, so a page built in dump/ is
+    seen too. Falls back to a plain diff when a shallow clone has no merge base."""
+    import subprocess
+    def git(*a):
+        r = subprocess.run(['git', *a], capture_output=True, text=True)
+        return r.stdout.split('\n') if r.returncode == 0 else None
+    names = git('diff', '--name-only', '--merge-base', base)
+    if names is None:
+        names = git('diff', '--name-only', base) or []
+    names += git('ls-files', '--others', '--exclude-standard') or []
+    return sorted({n for n in names if n and os.path.isfile(n)
+                   and not set(n.split('/')) & SKIP_DIRS})
+
 def files_under(roots):
     for r in roots:
         p = Path(r)
@@ -315,7 +334,13 @@ def files_under(roots):
 def main(argv):
     show_all = '--all' in argv
     show_script = '--script' in argv
-    roots = [a for a in argv[1:] if not a.startswith('-')] or list(DEFAULT_ROOTS)
+    if '--changed' in argv:
+        roots = [f for f in changed_paths() if f.endswith(SUFFIXES)]
+        if not roots:
+            print('stranded-titles: no changed .html or .js files')
+            return 0
+    else:
+        roots = [a for a in argv[1:] if not a.startswith('-')] or list(DEFAULT_ROOTS)
     rows, scripted, counts = [], [], Counter()
     for f in files_under(roots):
         for r in scan(f):
