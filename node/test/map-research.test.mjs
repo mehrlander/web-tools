@@ -99,6 +99,19 @@ test('projects may omit a tracker, and research belongs to the nearest project',
   assert.equal(url.searchParams.get('use'), 'codex/research-preview');
 });
 
+test('a repository on the registry hidden list leaves research, its strip and projects', async () => {
+  window.__shell.estateHidden = [home];
+  try {
+    await tick();
+    assert.deepEqual([...data.workSources.map(s => s.repo)], [hub, home], 'the read is unchanged');
+    assert.deepEqual([...data.researchAccounts.map(r => r.repo)], [hub]);
+    assert.ok(!data.researchRepoItems.some(i => i.key === home));
+    assert.ok(!data.workProjectGroups.some(g => g.repo === home));
+  } finally { window.__shell.estateHidden = []; }
+  await tick();
+  assert.equal(data.researchAccounts.length, 5);
+});
+
 test('project research chooses the populated tab and filters without moving files', () => {
   data.showProjectResearch(data.workProjectGroups.find(g => g.repo === home).projects[2]);
   assert.equal(data.mapTab, 'exploration');
