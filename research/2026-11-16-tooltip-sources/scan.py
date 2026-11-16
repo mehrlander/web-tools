@@ -13,7 +13,8 @@ line. It needs full history: on a shallow clone every answer is the cutoff.
 
 The classification matches budget-drs's data/design/catalog/tools/build-tooltips.py:
 `literal` (fixed words), `template` (fixed words around a runtime slot) and
-`expression` (a computed value, which may be borrowed from data or a readout).
+`expression` (a computed value: text read from data or code, or a count or
+state with no written words).
 """
 import argparse
 import csv

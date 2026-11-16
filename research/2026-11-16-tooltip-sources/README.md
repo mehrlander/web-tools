@@ -7,7 +7,7 @@
 - [`scan.py`](scan.py) reads each `.html` and `.js` file in scope and records one row per tooltip: the house title-tip ([`data-title-tip`](../../lib/kits/title-tip.js), written in markup, bound by Alpine or set in a script), a `title` attribute, or daisyUI's `data-tip`. Each row holds the tooltip's words, or the expression that makes them. With `--provenance`, each row also gets the oldest commit in which `git log -S` sees those words enter the file, that commit's agent and claude.ai session, and the commit `git blame` names for the line.
 - [`trace.py`](trace.py) sorts the rows whose text is computed by what the expression reads.
 - Scope in web-tools, at [`2668629`](https://github.com/mehrlander/web-tools/commit/2668629f1): `app/index.html`, `lib/alpineComponents/`, `lib/kits/` and `pages/`, without demos.
-- Scope in budget-drs, at [`52b1b30`](https://github.com/mehrlander/budget-drs/commit/52b1b30a): `app/`, without generated payloads, `tools/` folders and the dated records in `app/workshop/`. budget-drs's own [`tooltips.csv`](https://github.com/mehrlander/budget-drs/blob/claude/amazing-turing-e0yl7d/data/design/catalog/tooltips.csv) holds the same rows plus its data-file cells and two kinds of hover card, browsable in its Data view ([budget-drs#27](https://github.com/mehrlander/budget-drs/pull/27)).
+- Scope in budget-drs, at [`52b1b30`](https://github.com/mehrlander/budget-drs/commit/52b1b30a): `app/`, without generated payloads, `tools/` folders and the dated records in `app/workshop/`. budget-drs's own [`tooltips.csv`](https://github.com/mehrlander/budget-drs/blob/main/data/design/catalog/tooltips.csv) holds the same rows plus its data-file cells and two kinds of hover card, browsable in its Data view ([budget-drs#27](https://github.com/mehrlander/budget-drs/pull/27)).
 - The [diagram](diagram.html) draws the findings.
 
 ## Where the words come from
@@ -26,19 +26,23 @@ web-tools declares no data-file cells because its pages read their data at runti
 
 | Computed, by what it reads | Example | web-tools | budget-drs |
 | --- | --- | --- | --- |
-| Fixed words chosen by a condition | `open ? 'Hide the sidebar' : 'Show the sidebar'` | 77 | 7 |
-| A field or function named for written text (`gloss`, `note`, `tip`, `hint`, `why` and similar) | `t.gloss`, `TIPS.gap` | 138 | 47 |
-| A name or value (`label`, `title`, `path`, `repo` and similar) | `it.label` | 97 | 21 |
-| A count, a number or an error message | `newer ? newerCount : null` | 27 | 2 |
-| Not sorted | `sel`, `status` | 91 | 57 |
+| Fixed words chosen by a condition (`choice`) | `open ? 'Hide the sidebar' : 'Show the sidebar'` | 77 | 7 |
+| A field or function named for written text, such as `gloss`, `note`, `tip`, `hint` or `why` (`prose`) | `t.gloss`, `TIPS.gap` | 138 | 47 |
+| A name or value, such as `label`, `title`, `path` or `repo` (`name`) | `it.label` | 97 | 21 |
+| A count, a number or an error message (`readout`) | `newer ? newerCount : null` | 27 | 2 |
+| Not sorted (`unknown`) | `sel`, `status` | 91 | 57 |
 
-The sort reads identifiers, not what they hold. In a hand check of 30 web-tools rows from a first run, every one of the 22 rows it sorted matched a reading of the code, and 3 of the 8 it left unsorted could have been placed. The budget-drs unsorted count includes its 17 hover-card and sankey-card calls, which `scan.py` does not read. Written text is not necessarily in a data file: `TIPS.gap` reads a table in `usage.js`, and `fileTip(...)` is a function.
+The class names in parentheses are the ones `trace.py` prints. It reads identifiers, not what they hold. In a hand check of 30 web-tools rows from a first run, every one of the 22 rows it sorted matched a reading of the code, and 3 of the 8 it left unsorted could have been placed.
 
-One copy shows why a table of tooltips should point at a data file rather than repeat it. budget-drs's [`spend-glosses.csv`](https://github.com/mehrlander/budget-drs/blob/main/app/spend/spend-glosses.csv) is built into `glosses-data.js`, which the app loads, while [`spend.js`](https://github.com/mehrlander/budget-drs/blob/main/app/view/views/spend.js) shows the sankey's glosses from its own `SPEND_GLOSS` constant. `build-spend-glosses.py` and `verify-text-payloads.mjs` both pass, because they check that the generated file is built and loaded, not that anything reads it.
+The budget-drs unsorted count includes 17 calls that open its own hover cards, which `scan.py` does not read: the card a view's or a tab's name opens (`__tip.show`), and the Spend view's sankey card.
+
+Written text is not necessarily in a data file. `TIPS.gap` reads a table in [`usage.js`](../../lib/alpineComponents/usage.js), and `fileTip(...)` is a function in [`powershell-outpost-view.js`](../../lib/alpineComponents/powershell-outpost-view.js).
+
+One copy shows why a table of tooltips should point at a data file rather than repeat it. budget-drs's [`spend-glosses.csv`](https://github.com/mehrlander/budget-drs/blob/main/app/spend/spend-glosses.csv) is built into [`glosses-data.js`](https://github.com/mehrlander/budget-drs/blob/main/app/spend/glosses-data.js), which the app loads, while [`spend.js`](https://github.com/mehrlander/budget-drs/blob/main/app/view/views/spend.js) shows the sankey's glosses from its own `SPEND_GLOSS` constant. [`build-spend-glosses.py`](https://github.com/mehrlander/budget-drs/blob/main/app/spend/tools/build-spend-glosses.py) and [`verify-text-payloads.mjs`](https://github.com/mehrlander/budget-drs/blob/main/app/lineage/tools/verify-text-payloads.mjs) both pass, because they check that the generated file is built and loaded, not that anything reads it.
 
 ## Who wrote the words
 
-`git blame` names the last commit that touched a line. Both repositories converted their tooltips from `title` attributes to `data-title-tip` in a few large commits that changed the attribute and kept the words; here such a commit is a conversion. For most tooltips, blame names the conversion.
+`git blame` names the last commit that touched a line. Both repositories converted their tooltips from `title` attributes to `data-title-tip` in a few large commits that changed the attribute and kept the words; here such a commit is a conversion. For most tooltips, blame names the conversion. The budget-drs count is its 246 tooltips in markup and scripts: the 486 above less its 223 data-file cells and 17 hover-card calls, which have no line of markup to blame.
 
 | | web-tools | budget-drs |
 | --- | --- | --- |

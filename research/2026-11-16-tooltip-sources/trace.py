@@ -13,8 +13,8 @@ Prints a count per class and writes nothing. The classes, tried in this order:
     readout   a count, a length, a formatted number or an error message
     unknown   anything else, such as a call whose name says nothing
 
-The rule reads identifiers, not what they hold, so it is a heuristic: a `title`
-field may hold a sentence, and a `note` may be generated. The README reports how
+The rule reads identifiers, not what they hold: a `title` field may hold a
+sentence, and a `note` may be generated. The README reports how
 often a hand check of a sample agreed with it.
 """
 import csv
