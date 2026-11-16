@@ -4,11 +4,14 @@ the line a reply closes with (docs/CONVERSATION.md, "Session detail caption"),
 so that no session works it out by hand.
 
     `11/14 10:14am` 💬[22](https://mehrlander.github.io/web-tools/pages/session.html#id=f701fa79) · 816𝗄 · 1𝖽 2𝗁 · [✍️1](https://mehrlander.github.io/web-tools/pages/session.html#id=f701fa79)
+    `11/14 11:12am` 💬[22](https://mehrlander.github.io/web-tools/pages/session.html#id=f701fa79) · scheduled task · 816𝗄 · 1𝖽 3𝗁
 
 THE PARTS. The line opens with when this run printed it, as a code span, in
 the owner's time zone (OWNER_TZ below): month/day, then 12-hour time with a
 plain am or pm. 22 counts the messages the owner has typed, and is the link to the
-session page, named by the session id's first eight characters. 816𝗄 is the
+session page, named by the session id's first eight characters. A turn the
+owner did not start names what started it next (WHAT STARTED THE TURN, below),
+as the second line does. 816𝗄 is the
 context in thousands of tokens, read the way context-size-hint.py reads it:
 input_tokens + cache_read_input_tokens + cache_creation_input_tokens of the
 last main-conversation response in the transcript's tail. Every unit letter
@@ -57,6 +60,21 @@ tests decide it. The event also fires for a task notification or an agent
 message, which the opening of the prompt gives away (NOT_OWNER). And should a
 harness write the entry first, the prompt is already counted when the newest
 owner entry carries the same text and no response has followed it.
+
+WHAT STARTED THE TURN. On UserPromptSubmit for a prompt that is not the
+owner's, the part after the count names its kind, read from the prompt. One
+opening `<agent-message` or "Another Claude" is an agent message. A task
+notification names its kind in its summary. Queued remote notifications list
+their origins there, as "1 unread notification (GitHub activity on a
+subscribed PR: 1)" or "1 unread notification (scheduled trigger (the stored
+prompt of a routine or task on this account): 1)", and a background agent's
+summary reads `Agent "<description>" finished`. GitHub activity is a PR event,
+a scheduled trigger a scheduled task, and another Claude session or a finished
+agent an agent message; a summary that lists two origins names both, in its
+order. Any other prompt is a plain wake. A Stop hook that sends a turn back
+writes a `user` entry opening "Stop hook feedback" and fires no
+UserPromptSubmit (read 2026-11-16 in a Claude Code 2.1.325 transcript), so a
+turn it continues has no line of its own to name it in.
 
 THE LINK. The session page exists only where the session archive is checked
 out, found as session-record.sh finds it: a checkout among the project root,
@@ -331,6 +349,32 @@ def submitting(event, payload, unanswered):
     return unanswered is None or unanswered.strip() != prompt.strip()
 
 
+# The origins a task notification's summary names, and the kind each one is.
+ORIGINS = (("GitHub activity", "PR event"), ("scheduled trigger", "scheduled task"),
+           ("Claude session", "agent message"))
+
+
+def started_by(event, payload):
+    """What started a turn the owner did not start, or "" for an owner's
+    prompt or any other event."""
+    prompt = payload.get("prompt")
+    if event != "UserPromptSubmit" or not isinstance(prompt, str):
+        return ""
+    text = prompt.lstrip()
+    if not text.startswith(NOT_OWNER):
+        return ""
+    if text.startswith(("<agent-message", "Another Claude")):
+        return "agent message"
+    summary = re.search(r"<summary>(.*?)</summary>", text, re.S) if text.startswith("<task-notification") else None
+    if not summary:
+        return "wake"
+    said = summary.group(1).strip()
+    if said.startswith('Agent "'):
+        return "agent message"
+    found = sorted((said.find(phrase), kind) for phrase, kind in ORIGINS if phrase in said)
+    return ", ".join(dict.fromkeys(kind for _, kind in found)) or "wake"
+
+
 # ── The line ────────────────────────────────────────────────────────────────
 
 def archive(root):
@@ -549,6 +593,9 @@ def main():
         if url:
             glyph = "🌿"
     parts = [f"{glyph}[{count}]({url})" if url else f"{glyph}{count}"]
+    kind = started_by(event, payload)
+    if kind:
+        parts.append(kind)
     if context:
         parts.append(f"{(context + 500) // 1000}{KILO}")
     if age is not None:
