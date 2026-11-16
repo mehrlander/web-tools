@@ -3,7 +3,6 @@
 _Generated from tasks/. Do not hand-edit._
 
 ## On deck
-- 🎫 [Gate house-style rule 1 (stat cards) and widen scanner roots](tasks/enforce-house-style-ryz0z5.md) · S
 - 🎫 [Split estate.js into a component per view](tasks/estate-js-split-6r3ogm.md) · L
 - 🎫 [Explore a fuller file history in the Branch view](tasks/file-history-in-branch-view-hxtdep.md) · ? (awaiting: owner to choose a direction; open-ended by request, bolder ideas welcome)
 - 🎫 [Build the lineup, the form for choosing one of several working options](tasks/lineup-choice-form-9vz5w0.md) · L (awaiting: sign-off on the mark's entry in docs/favicons/README.md; the forms README's naming of the lineup waits on documentation call bb564bb3-lineup-forms (web-tools #1151))
@@ -13,7 +12,6 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Draggable column boundaries with live reassignment, in pdf-inspect](tasks/pdf-table-splitter-page-q7vm2d.md) · S
 - 🎫 [Move the Repos grid into Map › Reach](tasks/repos-grid-into-map-reach-1eheiq.md) · L
 - 🎫 [Retire `shell`, and name the parts instead of the collection](tasks/retire-shell-name-the-parts-r152bt.md) · M
-- 🎫 [Convert the title attributes outside the app to title-tips](tasks/stranded-titles-panel-or-drop-o6hqom.md) · M
 - 🎫 [Select tests by what each file reads, and log what each costs](tasks/test-selection-by-reach-p2xtc5.md) · L (awaiting: owner approval of the CLAUDE.md wording (step 4))
 
 ## In progress
@@ -49,6 +47,7 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Reclaim the phone viewport in data-view](tasks/data-view-mobile-chrome-x5plcv.md) (`claude/web-tools-project-tracker-reo5qo`)
 - 🎫 [Read-tracking for docs: which files sessions actually open](tasks/docs-read-tracking-sn9nj8.md) (`claude/show-repo-progress-b8l63x`)
 - 🎫 [A multi-method harness for extracting structure from scanned documents](tasks/document-structure-harness-4mz7wk.md)
+- 🎫 [Gate house-style rule 1 (stat cards) and widen scanner roots](tasks/enforce-house-style-ryz0z5.md) (`claude/house-style-stat-cards-title-tips`)
 - 🎫 [Estate activity signals from a registry activity cache](tasks/estate-activity-signals-cache-38eze9.md) (`claude/branches-view-api-caching-ef4l5d`)
 - 🎫 [Estate cards still carry the retired three-icon cluster](tasks/estate-cards-icon-cluster-txr3os.md) (`claude/web-tools-project-tracker-reo5qo`)
 - 🎫 [Read estate.js's commentary the way show-repo.html's was read](tasks/estate-js-commentary-read-mymt4u.md)
@@ -104,6 +103,7 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Give the stage a way to carry part of a file](tasks/stage-partial-file-selection-k8mtou.md)
 - 🎫 [Converge the stage and surface item schemas](tasks/stage-surface-convergence-kgtosz.md)
 - 🎫 [Stand up the project tracker](tasks/stand-up-project-tracker-3t7h04.md) (`claude/tracker-concept-assessment-yto1m1`)
+- 🎫 [Convert the title attributes outside the app to title-tips](tasks/stranded-titles-panel-or-drop-o6hqom.md) (`claude/house-style-stat-cards-title-tips`)
 - 🎫 [Make the cache-to-surface dependency checkable, not prose](tasks/surface-census-feeds-relation-anle6b.md) (`claude/surface-census-feeds-relation-1v5n23`)
 - 🎫 [Carry commentary on a stage (prompts= link field, seed of a surface schema)](tasks/surface-schema-commentary-on-stage-hqz0uu.md) (`claude/web-tools-diff-review-s0nrq7`)
 - 🎫 [Hold CONVERSATION.md to conversation.csv by content, not by lead-in](tasks/surfacing-gate-content-okwnp6.md) (`claude/elegant-feynman-yp1ox0-retire-csv`)
