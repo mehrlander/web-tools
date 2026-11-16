@@ -62,6 +62,12 @@ function fixture(records, { metadata = false, fail = [], hold = [] } = {}) {
     'state/activity.json': JSON.stringify({ generatedAt: new Date(NOW).toISOString(), repos: {} }),
     '.web-tools.json': JSON.stringify({ estate: false }),
     'notes/notes.jsonl': '',
+    // The follow-up's rollup: a summary on a cached row, and one session the
+    // cache does not hold, which search reaches through its light row.
+    'state/session-topics.json': JSON.stringify({ sessions: {
+      a0000003: { day: records.find(r => r.short === 'a0000003')?.day, title: 'Week title', summary: 'A summary naming viridian.' },
+      e0000001: { day: new Date(NOW - 70 * DAY).toISOString().slice(0, 10), title: 'Outside the cache', summary: 'An older viridian session.' },
+    } }),
     ...Object.fromEntries(records.map(r => [kit.RepoSessionsCache.pathOf({ id: r.short, day: r.day }), JSON.stringify(r)])),
     ...Object.fromEntries(months.map(month => [
       kit.SessionIndex.shardPath(month), JSON.stringify(kit.SessionIndex.buildShard(Object.fromEntries(
@@ -169,6 +175,18 @@ async function openPage(f, viewport, address) {
   return { page, context };
 }
 
+// The Activity filter is the header's find pill: the pane's own box is hidden
+// (data-find-hoist), so the term is typed where a reader types it. Blurring
+// closes the bar without pressing Enter, which now opens the results page.
+async function filterActivity(page, text) {
+  const box = page.locator('#find-pill-box');
+  await page.waitForFunction(() => { const el = window.Alpine && document.querySelector('[x-data^="findPill"]'); return el && Alpine.$data(el).has; });
+  await box.focus();
+  await box.fill(text);
+  return box;
+}
+const discussionSwitch = page => page.locator('[data-session-discussion] input');
+
 async function readyResults(page, count) {
   await page.waitForFunction(n => document.querySelectorAll('[data-session-result]').length === n, count, { timeout: 45000 });
   await page.locator('[data-session-reader]').waitFor({ state: 'visible' });
@@ -210,14 +228,14 @@ async function activityScenario(viewport) {
   const f = fixture(scoped, { metadata: true, fail: ['a0000006'] });
   const { page, context } = await openPage(f, viewport, routeUrl({ view: 'sessions' }));
   const estate = page.locator('[x-data="estate()"]');
-  await page.getByRole('searchbox', { name: 'Search activity' }).fill('cobalt');
-  await page.getByRole('button', { name: /Discussion$/ }).click();
+  await (await filterActivity(page, 'cobalt')).blur();
+  await discussionSwitch(page).check();
   await page.waitForFunction(() => {
     const el = document.querySelector('[x-data="estate()"]');
     return el && Alpine.$data(el).sessionNodes.length === 3;
   }, null, { timeout: 45000 });
   check('cold Activity discussion stays in Day', params(page).get('view') === 'sessions' && !params(page).has('ascope'));
-  check('discussion selection is announced', await page.getByRole('button', { name: /Discussion$/ }).getAttribute('aria-pressed') === 'true');
+  check('discussion selection is announced', await discussionSwitch(page).isChecked());
   check('cold discussion fetched its index', f.reads.some(p => p.startsWith('state/sessions-index/')));
   check('Activity matches without reading full records', !f.reads.some(p => p.startsWith('sessions/')));
   const ids = () => estate.evaluate(el => Alpine.$data(el).sessionNodes.map(n => n.id));
@@ -264,6 +282,55 @@ async function activityScenario(viewport) {
   await context.close();
 }
 
+// Enter in the Activity filter: every session, at every scope, on its row and
+// its conversation, with where each matched.
+async function resultsScenario(viewport) {
+  const f = fixture(scoped, { metadata: true });
+  const { page, context } = await openPage(f, viewport, routeUrl({ view: 'sessions' }));
+  const label = 'results ' + viewport.width;
+  const count = facet => page.locator('[data-session-facet] [data-facet="' + facet + '"]').evaluate(el => +el.lastElementChild.textContent);
+  const box = await filterActivity(page, 'cobalt');
+  check(label + ' the filter bar offers the results page', await page.locator('[data-find-submit-button]').isVisible());
+  await box.press('Enter');
+  await readyResults(page, 5);
+  check(label + ' Enter opens the results page with the term', params(page).get('view') === 'search'
+    && params(page).get('smode') === 'sessions' && params(page).get('sq') === 'cobalt');
+  check(label + ' the results are not held to the Activity scope', !params(page).has('sset') && !params(page).has('sscope'));
+  assert.deepEqual(new Set(await resultIds(page)), new Set(['a0000001', 'a0000002', 'a0000003', 'a0000004', 'a0000006'])); checks++;
+  check(label + ' the In row counts each kind of field, a zero included',
+    await count('title') === 2 && await count('said') === 3 && await count('summary') === 0);
+  check(label + ' a kind nothing matched is disabled', await page.locator('[data-facet="summary"]').isDisabled());
+  check(label + ' a title match marks the term in the row\'s name',
+    await page.locator('[data-session-result="a0000002"] [data-match-label] .bg-warning\\/30').textContent() === 'Cobalt');
+  check(label + ' the When row counts the windows', await count('day') === 3 && await count('week') === 4 && await count('month') === 5);
+  await page.locator('[data-facet="said"]').click();
+  await readyResults(page, 3);
+  assert.deepEqual(new Set(await resultIds(page)), new Set(['a0000001', 'a0000003', 'a0000004'])); checks++;
+  check(label + ' the other rows recount under a facet', await count('day') === 1 && await count('month') === 3);
+  check(label + ' the tally says what the facet left', /3 of 5 sessions/.test(await page.locator('[data-pane="search"] [role="status"]').first().textContent()));
+  await page.locator('[data-facet="said"]').click();
+  await readyResults(page, 5);
+  check(label + ' has no horizontal overflow', await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth) <= 1);
+  if (process.env.SHOTS) {
+    mkdirSync(process.env.SHOTS, { recursive: true });
+    await page.screenshot({ path: path.join(process.env.SHOTS, 'results-' + viewport.width + '.png') });
+  }
+  // The rollup: a summary on a cached row, and a session the cache dropped.
+  const search = page.locator('[data-pane="search"]');
+  await search.locator('[data-find-box]').fill('viridian');
+  await search.locator('form').evaluate(form => form.requestSubmit());
+  await readyResults(page, 2);
+  assert.deepEqual(new Set(await resultIds(page)), new Set(['a0000003', 'e0000001'])); checks++;
+  check(label + ' a summary answers, and is quoted', /viridian/.test(await page.locator('[data-session-result="a0000003"] [data-match-in="summary"]').textContent()));
+  check(label + ' a session outside the cache is listed by its rollup title', /Outside the cache/.test(await page.locator('[data-session-result="e0000001"]').textContent()));
+  check(label + ' the reach chip names the oldest month read', (await page.locator('[data-session-reach]').textContent()).includes(new Date(NOW - 9 * DAY).toISOString().slice(0, 7)));
+  await page.goBack();
+  await page.goBack();
+  await page.waitForFunction(() => new URLSearchParams(location.search).get('view') === 'sessions');
+  check(label + ' Back returns to Activity with its filter', params(page).get('aq') === 'cobalt');
+  await context.close();
+}
+
 async function readerScenario(viewport, label, records = bulk) {
   const began = performance.now();
   const f = fixture(records), count = records.length;
@@ -277,11 +344,13 @@ async function readerScenario(viewport, label, records = bulk) {
   check(label + ' full results are in one list', new Set(await resultIds(page)).size === count
     && await page.locator('[data-session-results]').getAttribute('data-total') === String(count));
   check(label + ' the selected list row shows measured occurrence counts', /2 occurrences.*1 exchange/.test(await page.locator('[data-session-result="' + last + '"]').textContent()));
-  const initialReads = f.reads.filter(p => p.startsWith('sessions/')).length;
+  // Records only: a reader also reads its session's small topics file
+  // (sessions/topics/), which is not a record read.
+  const initialReads = f.reads.filter(p => /^sessions\/\d{4}\//.test(p)).length;
   const mounted = await page.locator('[data-session-reader] [x-data^="sessionBrief("]').count();
-  check(label + ' embedded reader uses bounded record reads and mounts', initialReads <= 3 && mounted <= 3);
   console.log('info ' + label + ' cold ' + count + ' results: ' + Math.round(performance.now() - began)
     + ' ms; ' + initialReads + ' records requested; ' + mounted + ' readers mounted');
+  check(label + ' embedded reader uses bounded record reads and mounts', initialReads <= 3 && mounted <= 3);
   await page.getByRole('button', { name: 'Previous session result', exact: true }).click();
   await page.waitForFunction(id => new URLSearchParams(location.search).get('sitem') === id, records.at(-2).short);
   check(label + ' previous synchronizes list and address', await selected(page) === records.at(-2).short);
@@ -343,7 +412,7 @@ async function staleQueryScenario() {
   const { page, context } = await openPage(f, { width: 1280, height: 900 },
     routeUrl({ view: 'sessions', aq: 'cobalt', discussion: '1' }));
   await within(Promise.race([...f.gates.values()].map(gate => gate.started)), 'the held discussion index request');
-  await page.getByRole('searchbox', { name: 'Search activity' }).fill('東京');
+  await (await filterActivity(page, '東京')).blur();
   await page.waitForFunction(() => new URLSearchParams(location.search).get('aq') === '東京');
   for (const gate of f.gates.values()) gate.release();
   await within(Promise.all([...f.gates.values()].map(gate => gate.done)), 'the superseded index reads to finish');
@@ -413,6 +482,8 @@ try {
   if (part !== 'search') {
     await activityScenario({ width: 1280, height: 900 });
     await activityScenario({ width: 390, height: 844 });
+    await resultsScenario({ width: 1280, height: 900 });
+    await resultsScenario({ width: 390, height: 844 });
   }
   if (part !== 'activity') {
     await readerScenario({ width: 1280, height: 900 }, 'desktop');
