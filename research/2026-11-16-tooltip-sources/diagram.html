@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tooltip sources</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+</head>
+<body class="bg-base-100 text-base-content min-h-dvh">
+<main class="px-4 sm:px-8 py-6 flex flex-col gap-10">
+
+  <header class="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+    <h1 class="text-2xl font-semibold">Where tooltip text comes from</h1>
+    <span class="text-xs font-mono text-base-content/60">web-tools 2668629 · budget-drs b22f0a2 · 2026-11-16</span>
+  </header>
+
+  <!-- The three routes. Each row: where the words are written, how they travel, what the reader sees. -->
+  <section class="flex flex-col gap-3" aria-label="Routes">
+    <div class="grid grid-cols-1 lg:grid-cols-[14rem_minmax(0,1fr)_minmax(0,1fr)_12rem] gap-x-6 text-xs uppercase tracking-wider text-base-content/50 max-lg:hidden">
+      <span>Route</span><span>Written in</span><span>The reader sees</span><span>Tooltips</span>
+    </div>
+
+    <!-- borrowed -->
+    <div class="grid grid-cols-1 lg:grid-cols-[14rem_minmax(0,1fr)_minmax(0,1fr)_12rem] gap-x-6 gap-y-2 items-start border-t border-base-300 pt-3">
+      <div class="flex items-center gap-2 font-semibold text-success"><i class="ph ph-database text-xl"></i>Borrowed from data</div>
+      <div class="flex flex-wrap items-center gap-2 min-w-0">
+        <code class="badge badge-outline font-mono">view-tabs.csv#note</code>
+        <i class="ph ph-arrow-right text-base-content/40"></i>
+        <code class="badge badge-ghost font-mono">payload</code>
+        <i class="ph ph-arrow-right text-base-content/40"></i>
+        <code class="badge badge-ghost font-mono">data-title-tip</code>
+      </div>
+      <div class="rounded-box bg-base-200 px-3 py-2 min-w-0">Every budget item flowing across sessions, by enacted change or reconstructed level.</div>
+      <div class="flex flex-wrap gap-1.5">
+        <span class="badge badge-success badge-soft">budget-drs <b class="tabular-nums">223</b></span>
+        <span class="badge badge-ghost">web-tools not traced</span>
+      </div>
+    </div>
+
+    <!-- computed, untraced: sits between the two routes it may belong to -->
+    <div class="grid grid-cols-1 lg:grid-cols-[14rem_minmax(0,1fr)_minmax(0,1fr)_12rem] gap-x-6 gap-y-2 items-start">
+      <div class="flex items-center gap-2 text-warning font-semibold lg:pl-6"><i class="ph ph-arrows-down-up text-xl"></i>Computed, not traced</div>
+      <div class="flex flex-wrap items-center gap-2 min-w-0">
+        <code class="badge badge-outline font-mono">t.gloss</code>
+        <span class="text-base-content/50">or</span>
+        <code class="badge badge-outline font-mono">newer ? newerCount : null</code>
+      </div>
+      <div class="text-base-content/60 min-w-0">borrowed words, or a readout with none</div>
+      <div class="flex flex-wrap gap-1.5">
+        <span class="badge badge-warning badge-soft">web-tools <b class="tabular-nums">438</b></span>
+        <span class="badge badge-warning badge-soft">budget-drs <b class="tabular-nums">134</b></span>
+      </div>
+    </div>
+
+    <!-- built at runtime -->
+    <div class="grid grid-cols-1 lg:grid-cols-[14rem_minmax(0,1fr)_minmax(0,1fr)_12rem] gap-x-6 gap-y-2 items-start border-t border-base-300 pt-3">
+      <div class="flex items-center gap-2 font-semibold text-info"><i class="ph ph-puzzle-piece text-xl"></i>Built at runtime</div>
+      <div class="flex flex-wrap items-center gap-2 min-w-0">
+        <code class="badge badge-outline font-mono">'Scope to ' + h.dir</code>
+      </div>
+      <div class="rounded-box bg-base-200 px-3 py-2 min-w-0">Scope to <span class="badge badge-info badge-soft font-mono">{…}</span></div>
+      <div class="flex flex-wrap gap-1.5">
+        <span class="badge badge-info badge-soft">web-tools <b class="tabular-nums">156</b></span>
+        <span class="badge badge-info badge-soft">budget-drs <b class="tabular-nums">52</b></span>
+      </div>
+    </div>
+
+    <!-- tooltip-only -->
+    <div class="grid grid-cols-1 lg:grid-cols-[14rem_minmax(0,1fr)_minmax(0,1fr)_12rem] gap-x-6 gap-y-2 items-start border-t border-base-300 pt-3">
+      <div class="flex items-center gap-2 font-semibold"><i class="ph ph-pencil-simple-line text-xl"></i>Written for the tooltip</div>
+      <div class="flex flex-wrap items-center gap-2 min-w-0">
+        <code class="badge badge-outline font-mono">app/index.html</code>
+        <span class="text-base-content/50">markup · script · constant</span>
+      </div>
+      <div class="rounded-box bg-base-200 px-3 py-2 min-w-0">Open the Repos dashboard</div>
+      <div class="flex flex-wrap gap-1.5">
+        <span class="badge badge-neutral badge-soft">web-tools <b class="tabular-nums">461</b></span>
+        <span class="badge badge-neutral badge-soft">budget-drs <b class="tabular-nums">77</b></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Who wrote it: the commit git blame names, against the commit that introduced the words. -->
+  <section class="flex flex-col gap-4" aria-label="Authorship">
+    <h2 class="text-lg font-semibold">The commit blame names, against the commit that introduced the words</h2>
+    <div class="flex flex-wrap gap-3 text-xs">
+      <span class="flex items-center gap-1.5"><span class="inline-block size-3 rounded-sm bg-success"></span>blame names the introducing commit</span>
+      <span class="flex items-center gap-1.5"><span class="inline-block size-3 rounded-sm bg-warning"></span>blame names a title-tip conversion sweep</span>
+      <span class="flex items-center gap-1.5"><span class="inline-block size-3 rounded-sm bg-base-300"></span>blame names another later commit</span>
+      <span class="flex items-center gap-1.5"><span class="inline-block size-3 rounded-sm border border-base-300"></span>no introducing commit found</span>
+    </div>
+    <div class="grid grid-cols-[6rem_minmax(0,1fr)] gap-x-3 gap-y-3 items-center">
+      <span class="text-sm font-mono">web-tools</span>
+      <div class="flex h-7 rounded overflow-hidden text-xs font-mono tabular-nums">
+        <div class="bg-success text-success-content flex items-center px-1.5 w-[23.1%]">244</div>
+        <div class="bg-warning text-warning-content flex items-center px-1.5 w-[60.6%]">639</div>
+        <div class="bg-base-300 flex items-center px-1.5 w-[15.1%]">159</div>
+        <div class="border border-base-300 flex items-center px-1 w-[1.2%]"></div>
+      </div>
+      <span class="text-sm font-mono">budget-drs</span>
+      <div class="flex h-7 rounded overflow-hidden text-xs font-mono tabular-nums">
+        <div class="bg-success text-success-content flex items-center px-1.5 w-[46.7%]">115</div>
+        <div class="bg-warning text-warning-content flex items-center px-1.5 w-[17.9%]">44</div>
+        <div class="bg-base-300 flex items-center px-1.5 w-[34.1%]">84</div>
+        <div class="border border-base-300 flex items-center px-1 w-[1.2%]"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- The one copy: written to data, built and loaded, never read. -->
+  <section class="flex flex-col gap-4" aria-label="The spend glosses">
+    <h2 class="text-lg font-semibold">budget-drs's spend glosses: built and loaded, never read</h2>
+    <div class="flex flex-wrap items-center gap-2">
+      <code class="badge badge-outline font-mono">spend-glosses.csv</code>
+      <i class="ph ph-arrow-right text-base-content/40"></i>
+      <code class="badge badge-outline font-mono">glosses-data.js</code>
+      <i class="ph ph-arrow-right text-base-content/40"></i>
+      <code class="badge badge-outline font-mono">app.html loads it</code>
+      <i class="ph ph-x-circle text-error text-xl"></i>
+      <code class="badge badge-error badge-soft font-mono">spend.js reads SPEND_GLOSS, its own copy</code>
+      <i class="ph ph-arrow-right text-base-content/40"></i>
+      <code class="badge badge-ghost font-mono">sankey card</code>
+    </div>
+  </section>
+
+</main>
+</body>
+</html>
