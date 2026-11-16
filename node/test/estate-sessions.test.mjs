@@ -189,10 +189,9 @@ test('scopes count off the full list, and every scope is a time window or All', 
   ]);
   const by = Object.fromEntries(data.sessionScopes.map(s => [s.key, s.count]));
   assert.equal(by.week, 1);
-  assert.equal(by.month, 2);
   assert.equal(by.all, 3);
-  assert.equal(data.sessionScopes.map(s => s.key).join(','), 'day,week,month,all',
-    'the Snagged scope is gone; the failure count stays on the row');
+  assert.equal(data.sessionScopes.map(s => s.key).join(','), 'day,week,all',
+    'the Snagged and Month scopes are gone; the failure count stays on the row');
 });
 
 test('the repo filter lapses back to All when the scope no longer holds that repo', () => {
