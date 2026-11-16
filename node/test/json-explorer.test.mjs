@@ -115,6 +115,43 @@ test('JsonExplorer opens a collection on a tap and offers a way back', () => {
   explorer.destroy();
 });
 
+test('a tap on a value row opens the row menu with Copy value and Copy path', async () => {
+  const container = window.document.getElementById('c');
+  const data = { repos: [{ name: 'web-tools' }], 'odd-key': 7, notes: 'x'.repeat(200) };
+  const explorer = JsonExplorer.mount(container, { data, name: 'd.json' });
+  let menu = null, copied = null;
+  window.rowMenu = { open: (o) => { menu = o; return () => {}; } };
+  window.io = { copy: async (t) => { copied = t; return true; } };
+  try {
+    container.querySelector('[data-path="repos"]').click();
+    container.querySelector('[data-path="repos[0]"]').click();
+    container.querySelector('[data-path="repos[0].name"]').click();
+    assert.deepEqual(Array.from(menu.items, i => i.label), ['Copy value', 'Copy path']);
+    assert.equal(await menu.items[1].run(), 'Copied');
+    assert.equal(copied, 'repos[0].name');
+    await menu.items[0].run();
+    assert.equal(copied, 'web-tools');
+
+    container.querySelector('[data-path="odd-key"]').click();
+    await menu.items[1].run();
+    assert.equal(copied, '["odd-key"]', 'a key that is not an identifier is bracketed and quoted');
+    await menu.items[0].run();
+    assert.equal(copied, '7', 'a number copies as its JSON text');
+
+    container.querySelector('[data-path="notes"]').click();
+    assert.equal(menu.items.at(-1).label, 'Show all', 'a clamped string offers to show all');
+    menu.items.at(-1).run();
+    assert.ok(!container.querySelector('[data-path="notes"] [data-clamp]').classList.contains('line-clamp-3'));
+
+    menu = null;
+    container.querySelector('[data-path="repos"]').click();
+    assert.equal(menu, null, 'a row that opens keeps its tap for opening');
+  } finally {
+    delete window.rowMenu; delete window.io;
+    explorer.destroy();
+  }
+});
+
 test('JsonExplorer chunk zooming and path navigation', () => {
   const container = window.document.getElementById('c');
   const explorer = JsonExplorer.mount(container, {
