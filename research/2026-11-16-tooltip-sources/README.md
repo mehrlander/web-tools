@@ -5,7 +5,8 @@
 ## What was tried
 
 - [`scan.py`](scan.py) reads each `.html` and `.js` file in scope and records one row per tooltip: the house title-tip ([`data-title-tip`](../../lib/kits/title-tip.js), written in markup, bound by Alpine or set in a script), a `title` attribute, or daisyUI's `data-tip`. Each row holds the tooltip's words, or the expression that makes them. With `--provenance`, each row also gets the oldest commit in which `git log -S` sees those words enter the file, that commit's agent and claude.ai session, and the commit `git blame` names for the line.
-- [`trace.py`](trace.py) sorts the rows whose text is computed by what the expression reads.
+- [`expressions.py`](expressions.py) sorts the rows whose text is computed by what the expression reads.
+- [`findings.py`](findings.py) computes the counts below from those runs into [`findings.js`](findings.js), which the diagram draws.
 - Scope in web-tools, at [`2668629`](https://github.com/mehrlander/web-tools/commit/2668629f1): [`app/index.html`](../../app/index.html), [`lib/alpineComponents/`](../../lib/alpineComponents/), [`lib/kits/`](../../lib/kits/) and [`pages/`](../../pages/), without demos.
 - Scope in budget-drs, at [`52b1b30`](https://github.com/mehrlander/budget-drs/commit/52b1b30a): [`app/`](https://github.com/mehrlander/budget-drs/tree/main/app), without generated payloads, `tools/` folders and the dated records in [`app/workshop/`](https://github.com/mehrlander/budget-drs/tree/main/app/workshop). budget-drs's own [`tooltips.csv`](https://github.com/mehrlander/budget-drs/blob/main/data/design/catalog/tooltips.csv) holds the same rows plus its data-file cells and two kinds of hover card, browsable in its Data view ([budget-drs#27](https://github.com/mehrlander/budget-drs/pull/27)).
 - The [diagram](diagram.html) draws the findings.
@@ -22,7 +23,7 @@ A tooltip's words arrive by one of three routes, and a fourth row holds what a s
 | Computed (`expression`) | A value computed at runtime, sorted below | 430 | 134 |
 | **Total** | | **1,055** | **486** |
 
-web-tools declares no data-file cells because its pages read their data at runtime, so text from a data file appears there among the computed rows. `trace.py` sorts those rows by the names the expression reads:
+web-tools declares no data-file cells because its pages read their data at runtime, so text from a data file appears there among the computed rows. `expressions.py` sorts those rows by the names the expression reads:
 
 | Computed, by what it reads | Example | web-tools | budget-drs |
 | --- | --- | --- | --- |
@@ -32,7 +33,7 @@ web-tools declares no data-file cells because its pages read their data at runti
 | A count, a number or an error message (`readout`) | `newer ? newerCount : null` | 27 | 2 |
 | Not sorted (`unknown`) | `sel`, `status` | 91 | 57 |
 
-The class names in parentheses are the ones `trace.py` prints. It reads identifiers, not what they hold. In a hand check of 30 web-tools rows from a first run, every one of the 22 rows it sorted matched a reading of the code, and 3 of the 8 it left unsorted could have been placed.
+The class names in parentheses are the ones `expressions.py` prints. It reads identifiers, not what they hold. In a hand check of 30 web-tools rows from a first run, every one of the 22 rows it sorted matched a reading of the code, and 3 of the 8 it left unsorted could have been placed.
 
 The budget-drs unsorted count includes 17 calls that open its own hover cards, which `scan.py` does not read: the card a view's or a tab's name opens (`__tip.show`), and the Spend view's sankey card.
 

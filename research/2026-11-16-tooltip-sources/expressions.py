@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Sort scan.py's `expression` rows by what each expression reads.
 
-    python3 trace.py <scan.csv>
+    python3 expressions.py <scan.csv>
 
 Prints a count per class and writes nothing. The classes, tried in this order:
 
