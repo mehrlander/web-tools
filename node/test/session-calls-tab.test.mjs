@@ -63,11 +63,19 @@ window.chatRender = { block: () => window.document.createElement('pre') };
 const decks = [];
 // The deck renders its first slide, so the form it mounts says what it was asked.
 const forms = [];
-window.swipeDeck = { top: () => null, open: (o) => {
+// The real strip and list kits, since the tab is a list over a strip of cards
+// (kits/linked-swiper.js on swipeDeck.core); only the full-screen deck is a
+// stand-in, recording where it opened.
+for (const k of ['lib/vanilla-bundle.js', 'lib/kits/swipe-deck.js', 'lib/kits/linked-swiper.js']) {
+  new window.Function('window', readFileSync(path.join(repoRoot, k), 'utf8'))(window);
+}
+window.Element.prototype.scrollTo = function () {};
+window.swipeDeck.top = () => null;
+window.swipeDeck.open = (o) => {
   decks.push({ count: o.count, start: o.start, title: o.title });
   o.render(o.start, window.document.createElement('div'));
   return { close(){} };
-} };
+};
 // The call page's helpers, as the card's answer buttons reach them: a post is
 // recorded, not sent.
 const posts = [];
@@ -95,6 +103,7 @@ const el = (id) => window.document.getElementById(id);
 const data = (id) => Alpine.$data(el(id));
 const until = async (ok) => { for (let i = 0; i < 60 && !ok(); i++) await tick(2); return ok(); };
 await until(() => data('slide').calls.length === 2 && !data('none').callsLoading);
+await until(() => el('slide').querySelectorAll('[data-session-call]').length === 2);
 
 test('mounting is quiet', () => assert.deepEqual(problems, []));
 
@@ -142,14 +151,23 @@ test('the pane holds one card per call: question, brief, recommendation, state',
   const cards = [...el('slide').querySelectorAll('[data-session-call]')];
   assert.equal(cards.length, 2);
   await until(() => /Answered: Take/.test(cards[1].textContent));
-  assert.match(cards[0].textContent, /Topic Size[\s\S]*Open[\s\S]*Split topics\?[\s\S]*Eleven turns disagree\.[\s\S]*Recommended:\s*Keep them whole/);
+  assert.match(cards[0].textContent, /Approval[\s\S]*Open[\s\S]*Split topics\?[\s\S]*Eleven turns disagree\.[\s\S]*Recommended:\s*Keep them whole/);
+  // The card's head names the call; its first line says the kind.
+  assert.match(el('slide').querySelector('[data-call-strip] [data-ls="head"]').textContent, /Topic Size/);
   assert.match(cards[1].textContent, /Approval[\s\S]*Lean[\s\S]*Answered: Take[\s\S]*Two steps\?/);
 });
 
-test('a card opens the deck of call forms at that call', () => {
-  decks.length = 0;
+test('the list groups the calls and the card\'s door opens the deck of call forms at the call in view', async () => {
+  const rows = [...el('slide').querySelectorAll('[data-call-list] [data-call]')];
+  assert.deepEqual(rows.map((r) => r.getAttribute('data-call')), ['c0ffee01-size', 'c0ffee01-two']);
+  assert.deepEqual([...el('slide').querySelectorAll('[data-call-list] .sticky')].map((h) => h.textContent), ['Other calls']);
   decks.length = 0; forms.length = 0;
   el('slide').querySelectorAll('[data-session-call]')[1].click();
+  assert.deepEqual(decks, [], 'a card is read and answered where it is; a tap on it opens nothing');
+  rows[1].click();
+  await tick(2);
+  assert.equal(data('slide').cSel, 'c0ffee01-two', 'a pick in the list selects the call');
+  el('slide').querySelector('[data-call-strip] [data-swipe-cards]').click();
   assert.deepEqual(decks, [{ count: 2, start: 1, title: 'Calls' }]);
   assert.deepEqual(forms, ['c0ffee01-two']);
 });
