@@ -3,8 +3,8 @@ name: tend
 description: >-
   Cultivate a workspace toward recognized objectives: investigate branches,
   pull requests, trackers and snags, store each conclusion as a finding, and
-  list in the reply each prepared step that needs the owner's word. Run when the owner invokes /tend, or when a session receives a
-  /tend prod request.
+  list in the reply each prepared step that needs the owner's word. Run when
+  the owner invokes /tend, or when a session receives a /tend prod request.
 disable-model-invocation: true
 ---
 
