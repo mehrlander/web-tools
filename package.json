@@ -35,6 +35,7 @@
     "opacity-scan": "python3 python/dead-opacity.py",
     "family-scan": "python3 python/dead-family.py",
     "reading-column": "python3 skills/hooks/reading-column.py",
+    "stat-cards": "python3 skills/hooks/stat-cards.py",
     "icon-scan": "python3 python/blank-icons.py",
     "bool-attr-scan": "python3 python/bound-boolean-attrs.py",
     "css-scan": "python3 python/css-blocks.py",

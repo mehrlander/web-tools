@@ -64,3 +64,4 @@ the suite passes, the nav-stop gate included.
 
 ## Progress log
 - 2026-10-19: filed at the owner's direction after a tend pass (2026-10-18) found the half-step fails the nav-stop gate; Repos stays in the header meanwhile. Next: extract the grid from `estate.js` into its own component.
+- 2026-11-16: the owner chose "component first" (session b805c26a): this move waits on estate-js-split-6r3ogm extracting the grid into its own component, and then mounts that component in Map › Reach. The routing plan above is out of date, since #1091 removed ?view=routes; replan the routing when this starts.

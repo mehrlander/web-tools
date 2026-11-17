@@ -5,6 +5,7 @@
   <title>Legislative Diff Tool</title>
   <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web,npm/diff,npm/diff2html/bundles/js/diff2html.min.js"></script>
+  <script src="../../lib/kits/title-tip.js"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/diff2html/bundles/css/diff2html.min.css">
   <script defer src="https://unpkg.com/alpinejs"></script>
 </head>
@@ -24,7 +25,7 @@
     </div>
 
     <div class="flex items-center gap-2">
-        <button @click="swapSlots()" class="btn btn-xs btn-ghost border-base-300 bg-base-100 h-[28px] min-h-[28px] px-3 border" title="Swap A and B">
+        <button @click="swapSlots()" class="btn btn-xs btn-ghost border-base-300 bg-base-100 h-[28px] min-h-[28px] px-3 border" data-title-tip="Swap A and B">
             <i class="ph ph-arrows-left-right"></i> Swap
         </button>
         <template x-if="viewMode === 'compare'">

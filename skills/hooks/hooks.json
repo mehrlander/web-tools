@@ -63,6 +63,10 @@
           {
             "type": "command",
             "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/reading-column-guard.sh\""
+          },
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/stat-cards-guard.sh\""
           }
         ]
       },
@@ -126,6 +130,16 @@
       },
       {
         "matcher": "mcp__.*__send_later",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/check-in.py\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__.*__update_trigger",
         "hooks": [
           {
             "type": "command",

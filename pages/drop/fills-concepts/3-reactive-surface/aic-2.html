@@ -201,16 +201,7 @@ const app = fill`
                 The page re-renders through one tiny tagged-template helper.
               </p>
             </div>
-            <div class="stats stats-vertical sm:stats-horizontal shadow bg-base-200">
-              <div class="stat">
-                <div class="stat-title">Loaded</div>
-                <div class="stat-value text-2xl">${d => d.items.length}</div>
-              </div>
-              <div class="stat">
-                <div class="stat-title">Showing</div>
-                <div class="stat-value text-2xl">${d => d.visible.length}</div>
-              </div>
-            </div>
+            <div class="badge badge-lg badge-ghost tabular-nums">${d => d.visible.length} of ${d => d.items.length} shown</div>
           </div>
         </header>
 

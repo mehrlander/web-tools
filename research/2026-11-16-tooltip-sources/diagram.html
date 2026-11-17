@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tooltip sources</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<!-- Every count comes from findings.js, which findings.py writes from this probe's runs. -->
+<script src="findings.js"></script>
+<script>
+  document.addEventListener('alpine:init', () => Alpine.data('findings', () => {
+    const F = window.TOOLTIP_FINDINGS;
+    return {
+      F,
+      repos: ['web-tools', 'budget-drs'],
+      // The four routes in the README's order; the words and examples are the probe's, the counts F's.
+      routes: [
+        { form: 'data-cell', name: 'From a data file', icon: 'ph-database', tone: 'success',
+          written: ['view-tabs.csv#note', 'data-title-tip'], sees: 'Every budget item flowing across sessions, by enacted change or reconstructed level.' },
+        { form: 'literal', name: 'Written for the tooltip', icon: 'ph-pencil-simple-line', tone: 'neutral',
+          written: ['app/index.html'], sees: 'Open the Repos dashboard' },
+        { form: 'template', name: 'Built at runtime', icon: 'ph-puzzle-piece', tone: 'info',
+          written: ["'Scope to ' + h.dir"], sees: 'Scope to {…}' },
+      ],
+      classes: [
+        { key: 'choice', name: 'fixed words chosen by a condition', ex: "open ? 'Hide…' : 'Show…'" },
+        { key: 'prose', name: 'a field or function named for written text', ex: 't.gloss' },
+        { key: 'name', name: 'a name or value', ex: 'it.label' },
+        { key: 'readout', name: 'a count, a number or an error', ex: 'newerCount' },
+        { key: 'unknown', name: 'not sorted', ex: '' },
+      ],
+      bars: [
+        { key: 'same', name: 'the commit that introduced the words', cls: 'bg-neutral text-neutral-content' },
+        { key: 'conversion', name: 'a conversion from title to title-tip', cls: 'bg-base-content/40 text-base-100' },
+        { key: 'other', name: 'another later commit', cls: 'bg-base-300' },
+      ],
+      n(v) { return v == null ? '' : v.toLocaleString(); },
+      pct(repo, key) { const b = F.blame[repo]; return (100 * b[key] / b.found).toFixed(1) + '%'; },
+    };
+  }));
+</script>
+<script defer src="https://unpkg.com/alpinejs"></script>
+</head>
+<body class="bg-base-100 text-base-content min-h-dvh">
+<main x-data="findings" class="px-4 sm:px-8 py-6 flex flex-col gap-10">
+
+  <header class="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+    <h1 class="text-2xl font-semibold">Where tooltip text comes from</h1>
+    <span class="flex flex-wrap gap-x-3 text-xs font-mono text-base-content/70">
+      <template x-for="r in repos" :key="r">
+        <a class="whitespace-nowrap hover:underline" :href="'https://github.com/mehrlander/' + r + '/commit/' + F.run[r]" x-text="r + ' ' + F.run[r]"></a>
+      </template>
+      <span class="whitespace-nowrap" x-text="F.run.date"></span>
+    </span>
+  </header>
+
+  <section class="flex flex-col" aria-label="Routes">
+    <div class="grid grid-cols-[14rem_minmax(0,1fr)_minmax(0,1fr)_12rem] gap-x-6 pb-2 text-xs uppercase tracking-wider text-base-content/70 max-lg:hidden">
+      <span>Route</span><span>Written in</span><span>The reader sees</span><span>Tooltips</span>
+    </div>
+
+    <template x-for="rt in routes" :key="rt.form">
+      <div class="grid grid-cols-1 lg:grid-cols-[14rem_minmax(0,1fr)_minmax(0,1fr)_12rem] gap-x-6 gap-y-2 items-start border-t border-base-300 py-3">
+        <div class="flex items-center gap-2 font-semibold"><i class="ph text-xl" :class="[rt.icon, 'text-' + rt.tone]"></i><span x-text="rt.name"></span></div>
+        <div class="flex flex-wrap items-center gap-2 min-w-0">
+          <span class="lg:hidden text-xs uppercase tracking-wider text-base-content/70 w-full">Written in</span>
+          <template x-for="(w, i) in rt.written" :key="i">
+            <span class="flex items-center gap-2"><i x-show="i" class="ph ph-arrow-right text-base-content/50"></i><code class="badge badge-soft font-mono" x-text="w"></code></span>
+          </template>
+        </div>
+        <div class="flex flex-col gap-1 min-w-0">
+          <span class="lg:hidden text-xs uppercase tracking-wider text-base-content/70">The reader sees</span>
+          <div class="rounded-box bg-base-200 px-3 py-2" x-text="rt.sees"></div>
+        </div>
+        <div class="flex flex-wrap gap-1.5">
+          <template x-for="r in repos" :key="r">
+            <span class="badge badge-soft whitespace-nowrap" :class="'badge-' + rt.tone">
+              <span x-text="r"></span>
+              <b class="tabular-nums" x-text="F.routes[rt.form][r] == null ? 'none' : n(F.routes[rt.form][r])"></b>
+            </span>
+          </template>
+        </div>
+      </div>
+    </template>
+
+    <div class="grid grid-cols-1 lg:grid-cols-[14rem_minmax(0,1fr)_minmax(0,1fr)_12rem] gap-x-6 gap-y-2 items-start border-t border-base-300 py-3">
+      <div class="flex items-center gap-2 font-semibold"><i class="ph ph-function text-xl text-warning"></i>Computed</div>
+      <div class="col-span-full lg:col-start-2 lg:col-span-3 grid grid-cols-[minmax(0,1fr)_auto_auto] gap-x-4 gap-y-1.5 items-center">
+        <span class="text-xs uppercase tracking-wider text-base-content/70">Reads</span>
+        <template x-for="r in repos" :key="r"><span class="text-xs uppercase tracking-wider text-base-content/70 text-right" x-text="r"></span></template>
+        <template x-for="c in classes" :key="c.key">
+          <div class="contents">
+            <span class="flex flex-wrap items-center gap-2 min-w-0" :class="c.key === 'unknown' && 'text-base-content/70'">
+              <span x-text="c.name"></span><code x-show="c.ex" class="badge badge-ghost font-mono" x-text="c.ex"></code>
+            </span>
+            <template x-for="r in repos" :key="r"><b class="tabular-nums text-right" x-text="n(F.computed[c.key][r])"></b></template>
+          </div>
+        </template>
+        <span class="font-semibold">all computed</span>
+        <template x-for="r in repos" :key="r"><b class="tabular-nums text-right border-t border-base-300" x-text="n(F.routes.expression[r])"></b></template>
+      </div>
+    </div>
+  </section>
+
+  <section class="flex flex-col gap-4" aria-label="Authorship">
+    <h2 class="text-lg font-semibold">Which commit <code class="font-mono">git blame</code> names</h2>
+    <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+      <template x-for="b in bars" :key="b.key">
+        <span class="flex items-center gap-1.5"><span class="inline-block size-3 rounded-sm" :class="b.cls"></span><span x-text="b.name"></span></span>
+      </template>
+    </div>
+    <div class="grid grid-cols-[6rem_minmax(0,1fr)] gap-x-3 gap-y-3 items-center">
+      <template x-for="r in repos" :key="r">
+        <div class="contents">
+          <span class="text-sm font-mono" x-text="r"></span>
+          <div class="flex h-7 rounded overflow-hidden text-xs font-mono tabular-nums">
+            <template x-for="b in bars" :key="b.key">
+              <div class="flex items-center px-1.5" :class="b.cls" :style="{ width: pct(r, b.key) }" x-text="n(F.blame[r][b.key])"></div>
+            </template>
+          </div>
+        </div>
+      </template>
+    </div>
+    <p class="text-sm text-base-content/70">
+      Of the tooltips whose introducing commit <code class="font-mono">git log -S</code> found:
+      <template x-for="(r, i) in repos" :key="r"><span x-text="(i ? ', ' : '') + n(F.blame[r].found) + ' of ' + n(F.blame[r].scanned) + ' in ' + r"></span></template>.
+    </p>
+  </section>
+
+</main>
+</body>
+</html>

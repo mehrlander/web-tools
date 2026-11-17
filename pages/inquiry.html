@@ -60,7 +60,7 @@
   <div class="grow"></div>
   <span class="badge badge-sm" x-show="env" x-text="answered + '/' + items.length"></span>
   <button @click="ghAuth.prompt('Paste a GitHub token: the envelope and the reply both need it.')"
-          class="btn btn-ghost btn-xs" title="Set the stored token"><i class="ph ph-key"></i></button>
+          class="btn btn-ghost btn-xs" data-title-tip="Set the stored token"><i class="ph ph-key"></i></button>
 </header>
 
 <main class="mx-auto px-3 py-4 flex flex-col gap-3">

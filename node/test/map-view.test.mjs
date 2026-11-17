@@ -1742,7 +1742,7 @@ test('Context\'s address rides with Context alone, and comes back with it', asyn
 
 test('an address that does not open Context arms none of its keys', () => {
   const { shell } = makeShell({ search: '?view=map&tab=tests&ctxtopic=house-style' });
-  assert.deepEqual({ ...shell.mapCtx }, { ctxlens: '', ctxsort: '', ctxtopic: '', ctxsource: '', setintent: '', growthrepo: '', h: '', form: '', about: '' });
+  assert.deepEqual({ ...shell.mapCtx }, { ctxlens: '', ctxsort: '', ctxtopic: '', ctxsource: '', setintent: '', growthrepo: '', h: '', form: '', about: '', program: '' });
 });
 
 test("a policy link's entry rides with the Policies tab alone", async () => {
@@ -1754,6 +1754,31 @@ test("a policy link's entry rides with the Policies tab alone", async () => {
   assert.equal(shell.deepLinkParams().has('h'), false, 'h rode onto another tab');
   const other = makeShell({ search: '?view=map&tab=docs&h=smug' }).shell;
   assert.equal(other.mapCtx.h, '', 'an address that does not open Policies arms none of its keys');
+});
+
+test("a program's page rides with the Programs tab alone, and opening it adds a history entry", async () => {
+  const { shell, history } = makeShell({ search: '?view=map&tab=programs&program=sessions' });
+  assert.equal(shell.mapCtx.program, 'sessions', 'an address that opens Programs arms its page');
+  await shell.routeFromUrl(shell.parseUrl());
+  assert.equal(shell.deepLinkParams().get('program'), 'sessions', 'the page survives the stamp');
+  const calls = [];
+  history.pushState = (a, b, url) => calls.push(['push', url]);
+  history.replaceState = (a, b, url) => calls.push(['replace', url]);
+  shell.setMapCtx({ program: 'testing' }, { push: true });
+  assert.equal(calls.at(-1)[0], 'push', 'a page opened is an entry Back returns from');
+  assert.equal(new URLSearchParams(calls.at(-1)[1].split('?')[1]).get('program'), 'testing');
+  shell.setMapCtx({ program: '' }, { push: true });
+  assert.equal(new URLSearchParams(calls.at(-1)[1].split('?')[1] || '').has('program'), false, 'the list names no program');
+  shell.setMapCtx({ h: 'smug' });
+  assert.equal(calls.at(-1)[0], 'replace', 'without push, a pick still replaces the entry');
+  shell.setMapCtx({ program: 'testing' }, { push: true });
+  shell.goMapTab('docs');
+  assert.equal(shell.deepLinkParams().has('program'), false, 'program rode onto another tab');
+  shell.view = 'sessions';
+  assert.equal(shell.deepLinkParams(new URLSearchParams('view=map&tab=programs&program=sessions')).has('program'), false,
+    'program rode onto another view');
+  const other = makeShell({ search: '?view=map&tab=docs&program=sessions' }).shell;
+  assert.equal(other.mapCtx.program, '', 'an address that does not open Programs arms none of its keys');
 });
 
 test("a form link's row rides with the Forms tab alone", async () => {
@@ -2334,7 +2359,7 @@ test('Peeves presents the reviewed list and resolves merged IDs through their re
   const before = data.peeveQ;
   try {
     data.peeveQ = '';
-    assert.equal(data.peeveRows.length, 33);
+    assert.equal(data.peeveRows.length, 34);
     const names = Array.from(data.peeveRows, p => p.name);
     assert.deepEqual(names, [...names].sort((a, b) => a.localeCompare(b)), 'all active entries share one alphabetical list');
     assert.equal(data.peeveRows.find(p => p.id === 'P10').name, 'Term loading');
