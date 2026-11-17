@@ -20,7 +20,7 @@ tab; a program is defined in
 
 | Area | Measure | Working means |
 | --- | --- | --- |
-| Reply | web-tools-private `state/closings.json` on the `background` branch: the closing state each turn ends on, by day | the share of Choice needed closings falls, while Direction needed and Ready to assess take the replies whose next step is unclear |
+| Reply | web-tools-private `state/closings.json` on the `background` branch: the closing state each turn ends on, by day | the share of Choice needed closings falls, and a reply whose path is already clear closes on Ready to continue |
 | Showing | web-tools-private `state/render-links.json` on the `background` branch: each day's turns that changed a page, sorted by what a reply after the edit gave | every turn that changed a page hands over a render link to it, or says why none reaches and sends a screenshot |
 | Forms | none yet; a candidate is the share of form pages classified in the UI codebook (`data/ui-units/`) | a form met mid-session is recognizable by its kind |
 
@@ -37,6 +37,7 @@ change to a page also goes to
 - How a page looks: the [html-style](../../skills/html-style/SKILL.md) skill.
 - The prose rules in [`QUALIFIED-WRITING.md`](../../docs/QUALIFIED-WRITING.md) and the
   approval of documentation wording ([doc-craft](../../skills/doc-craft/SKILL.md)).
+- The owner's [peeves](../../skills/peeves/peeves.csv), governed by the [Content](../content/README.md) program.
 
 An area whose measure, reviewers and tasks no longer involve the other areas
 could become a program of its own.
