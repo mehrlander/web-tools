@@ -12,7 +12,7 @@ lib/kits/chat-archive.js,chatArchive,"the chat archive as a venue of activity, r
 lib/kits/chat-render.js,chatRender,"chat transcript renderer: markdown in, readable conversation out, with fenced code blocks promoted to live artifacts.",1201,no,no,9,yes
 lib/kits/claude-mark.js,claudeMark,"the Claude logomark, from one path.",62,yes,no,5,yes
 lib/kits/closing-state.js,ClosingState,"the conventions' CLOSING STATE, as one vocabulary.",146,no,no,5,yes
-lib/kits/cm6-merge.js,cm6Merge,framework-free CodeMirror 6 *diff* factory: read-only side-by-side and unified merge views over two versions of a text.,162,no,no,9,yes
+lib/kits/cm6-merge.js,cm6Merge,framework-free CodeMirror 6 *diff* factory: read-only side-by-side and unified merge views over two versions of a text.,162,no,no,10,yes
 lib/kits/cm6.js,cm6,framework-free CodeMirror 6 editor factory.,236,no,yes,20,yes
 lib/kits/code-doc.js,codeDoc,"SOURCE CODE AS A DECLARED RENDER: the second kind, and the one that says what the contract is actually for.",92,no,no,2,yes
 lib/kits/comment-view.js,commentView,"a code file read through its comments: each docstring and comment block laid out as prose in file order, with the code between them folded to one-line bars.",453,no,no,2,yes
@@ -36,7 +36,7 @@ lib/kits/errands.js,Errands,one record for everything a session needs a person's
 lib/kits/estate-search.js,EstateSearch,"The estate's search calls, in one place, with one cache.",574,no,no,9,yes
 lib/kits/export.js,exporter,"export a page to a portable, self-resolving copy: ""download this page plus the data it read()s"" as one zip, optionally with its code inlined.",210,no,yes,9,yes
 lib/kits/file-correspondence.js,FileCorrespondence,Associate submitted text with one file at one repository revision.,184,no,no,2,yes
-lib/kits/file-deck.js,fileDeck,"a changeset's files, read one at a time.",518,no,no,14,yes
+lib/kits/file-deck.js,fileDeck,"a changeset's files, read one at a time.",518,no,no,15,yes
 lib/kits/file-index.js,FileIndex,"the estate's file names, kept in the private registry so the sidebar finder can match a name in every repo on the first keystroke.",197,no,no,3,yes
 lib/kits/findings.js,Findings,"what a tending pass concluded, kept as notes that carry a `finding` object: {""id"":""n…"",""at"":""…"",""author"":""…"",""about"":""<first subject>"",""text"":""<title>"",…",251,no,no,4,yes
 lib/kits/git-attributes.js,GitAttributes,".gitattributes, resolved in the browser as git resolves it.",167,no,no,1,yes
@@ -90,7 +90,7 @@ lib/kits/repo-mark.js,RepoMark,"a repository's mark, resolved from its manifest 
 lib/kits/repo-proposals.js,RepoProposals,Proposals: the write-side counterpart to the reads an errand asks for (lib/kits/errands.js).,652,no,no,2,yes
 lib/kits/repo-sessions-cache.js,RepoSessionsCache,Sessions aggregate for the web-tools ecosystem.,1996,no,no,5,yes
 lib/kits/report-layout.js,ReportLayout,"a report layout, meaning the declared shape of a printed table, kept apart from the rows it prints.",303,no,yes,4,yes
-lib/kits/review-target.js,reviewTarget,parse and mint the address grammar for the review page (pages/review.html).,133,no,no,5,yes
+lib/kits/review-target.js,reviewTarget,parse and mint the address grammar for the review page (pages/review.html).,133,no,no,6,yes
 lib/kits/root-has-prune.js,RootHasPrune,"daisyUI's :root:has() rules, removed from the loaded stylesheet so that a change anywhere in the page stops costing a restyle of all of it.",112,no,no,1,yes
 lib/kits/route-activity.js,routeActivity,"rank the app's own routes by when the code behind each last moved, and join each to the work in flight against it.",358,no,no,6,yes
 lib/kits/route-join.js,RouteJoin,"the app-route join: the hub's own route manifest, and for each open pull request against the hub, the files it touches.",129,no,no,2,yes
