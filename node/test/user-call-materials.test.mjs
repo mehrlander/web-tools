@@ -85,3 +85,57 @@ test('a plain URL, which nothing here can frame, keeps its one way out', () => {
   const m = mat('url');
   assert.equal(m.peek, null);
 });
+
+// A DECISION WITH MATERIALS IS ONE CARD (owner, 2026-11-17): the call is the
+// deck's head bar, the material's name and the pager end the answers, and the
+// brief is a panel-tip off the question.
+const shown = (el) => !!el && el.style.display !== 'none';
+const until = async (ok) => { for (let i = 0; i < 80 && !ok(); i++) await tick(2); return ok(); };
+
+test('a decision with materials is one card: the call heads its deck', () => {
+  assert.equal(data().headed, true);
+  const frame = root().querySelector('[data-call-frame]');
+  assert.ok(frame.classList.contains('rounded-xl') && frame.classList.contains('border'), 'the frame is the card');
+  assert.ok(frame.querySelector(':scope > [data-call-card]') && frame.querySelector(':scope > [data-swipe-section]'), 'the call and the slides share it');
+  const card = root().querySelector('[data-call-card]');
+  assert.ok(!card.classList.contains('rounded-xl'), 'the call is a head bar, not a card of its own');
+  const pager = card.querySelector('[data-mat-pager]');
+  assert.ok(shown(pager), 'the pager ends the answers');
+  assert.match(pager.querySelector('[data-at="call-material"]').textContent, /The change · #12/);
+  assert.match(pager.querySelector('[data-at="call-pager"]').textContent, /1\/4/);
+  assert.ok(!shown(root().querySelector('[data-swipe-section] > .h-10')), "the deck's own head bar steps aside");
+  for (const at of ['call-question', 'call-brief', 'call-take', 'call-adjust', 'call-send'])
+    assert.ok(card.querySelector(`[data-at="${at}"]`), at + ' is named for a look link');
+});
+
+test("the brief is a panel-tip from the question's mark, pinned by a tap and closed by another", async () => {
+  const mark = root().querySelector('[data-brief-tip]');
+  assert.ok(shown(mark));
+  assert.equal([...root().querySelectorAll('[data-call-card] > p')].filter((p) => shown(p) && /widget is ready/.test(p.textContent)).length, 0,
+    'the brief is not drawn on the card');
+  const tip = root().querySelector('[data-at="call-brief-tip"]');
+  mark.click();
+  assert.ok(await until(() => shown(tip)), 'a tap opens it');
+  assert.equal(data().briefPinned, true, 'pinned, with its way out');
+  assert.match(tip.textContent, /The widget is ready\./);
+  mark.click();
+  assert.ok(await until(() => !shown(tip)), 'a second tap closes it');
+  assert.equal(data().briefOpen, false);
+});
+
+test('the pager turns the slides from the head', async () => {
+  root().querySelector('[data-at="call-pager"] button:last-child').click();
+  assert.ok(await until(() => data().at === 1));
+  assert.match(root().querySelector('[data-at="call-material"]').textContent, /widget @ try-it/);
+  data().go(0);
+  await tick(2);
+});
+
+test('a decision whose deck is only its Adjust form keeps two cards and its brief in view', async () => {
+  data().c = { ...CALL, materials: [] };
+  assert.ok(await until(() => !data().headed && !shown(root().querySelector('[data-brief-tip]'))));
+  assert.ok(root().querySelector('[data-call-frame]').classList.contains('contents'), 'no frame around the two');
+  assert.ok(root().querySelector('[data-call-card]').classList.contains('rounded-xl'));
+  assert.ok([...root().querySelectorAll('[data-call-card] > p')].some((p) => shown(p) && /widget is ready/.test(p.textContent)));
+  assert.ok(shown(root().querySelector('[data-swipe-section] > .h-10')), 'the deck keeps its own head bar');
+});
