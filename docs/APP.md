@@ -58,15 +58,7 @@ The app's `VIEWS` table is the router: each row names a key, how a link opens it
 
 `?sidebar=` sets only how the sidebar starts: the header's menu button toggles it without changing the URL. The menu button sits in the header and hides with it. [`shell-routing.test.mjs`](../node/test/shell-routing.test.mjs) checks these rules.
 
-**The `?shell=` alias.** `?shell=full|nav|none` is the preset these two parameters replace. Links carrying it remain in PR bodies and artifacts. The app reads it as an alias and rewrites it to the new parameters at the next URL update:
-
-| `?shell=` | Reads as |
-| --- | --- |
-| `full` | The sidebar starts open on wide screens on every view, app views included |
-| `nav` | `sidebar=0` |
-| `none` | `header=0` |
-
-The alias code carries `SUNSET(2027-02-01)` markers, which `npm run sunset` lists. Remove the alias once they come due.
+**The `?shell=` alias.** `?shell=full|nav|none`, the preset these two parameters replace, still opens and is rewritten to them at the next URL update. Its code carries `SUNSET(2027-02-01)` markers, which `npm run sunset` lists; remove the alias when they come due.
 
 App views take their tab title and iOS Home Screen title and icon from toss-render's `toss-subject-mark` event.
 
