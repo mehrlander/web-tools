@@ -49,8 +49,6 @@ const { window, problems } = makeWindow({
          path: 'data/x.dat', status: 'modified' })"></div>
     <div id="page" x-data="fileReview({ repo: 'mehrlander/web-tools', ref: 'feat/x', base: 'main',
          path: 'pages/a.html', status: 'modified', patch: '@@ -1 +1 @@', read: true, open: true })"></div>
-    <div id="pageAsk" x-data="fileReview({ repo: 'mehrlander/web-tools', ref: 'feat/x', base: 'main',
-         path: 'pages/a.html', status: 'modified', patch: '@@ -1 +1 @@', read: true, open: true, liveOnAsk: true })"></div>
     <div id="pageList" x-data="fileReview({ repo: 'mehrlander/web-tools', ref: 'feat/x', base: 'main',
          path: 'pages/a.html', status: 'modified', open: true })"></div>
     <div id="pageElsewhere" x-data="fileReview({ repo: 'acme/w', ref: 'feat/x', base: 'main',
@@ -816,28 +814,6 @@ test('a reading surface opens an html file on the page; a list opens it on the d
   assert.equal(list.shownPane, 'render', 'the tab is offered either way');
   assert.equal(list.tab, 'diff', 'but a changed-file list is asking how it changed');
   assert.ok(list.panes.some(p => p.id === 'render'), 'and the page is one tap away');
-});
-
-// A host inside another page (a call's deck) passes liveOnAsk: a changed
-// app/index.html is the whole app, crawl and all, and iPhone Safari killed the
-// call page that booted it unasked (2026-11-17). The pane waits for a tap; a
-// host that does not pass it keeps the running page.
-test('liveOnAsk holds the running page behind a tap; without it the page runs', async () => {
-  const el = window.document.getElementById('pageAsk');
-  const d = data('pageAsk');
-  await tick(3);
-  assert.equal(d.tab, 'render', 'the card still lands on the page');
-  assert.equal(el.querySelector('iframe'), null, 'but nothing runs yet');
-  const btn = el.querySelector('[data-live-load]');
-  assert.ok(btn, 'a control asks for it');
-  assert.match(btn.textContent, /Load the page/);
-  btn.click();
-  await tick(3);
-  assert.equal(el.querySelector('iframe')?.getAttribute('src'), d.tossUrl, 'the tap runs the same render');
-  assert.equal(el.querySelector('[data-live-load]'), null);
-  const plain = window.document.getElementById('page');
-  assert.equal(plain.querySelector('iframe')?.getAttribute('src'), data('page').tossUrl, 'no option, no change');
-  assert.equal(plain.querySelector('[data-live-load]'), null);
 });
 
 // The trap: `load()` reads "has a kind" as "is not text" and takes the bytes

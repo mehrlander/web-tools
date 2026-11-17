@@ -254,10 +254,7 @@
         // a host would otherwise defer.
         const pane = q.get('pane') || hash.get('pane') || '';
         const file = q.get('file') || hash.get('file') || '';
-        // `live=ask`: a changed page renders only when the reader asks. A
-        // call's deck frames this page with it; without it nothing changes.
-        const live = (q.get('live') || hash.get('live')) === 'ask' ? 'ask' : '';
-        const view = { pane: pane === 'files' || pane === 'guide' ? pane : '', file, live };
+        const view = { pane: pane === 'files' || pane === 'guide' ? pane : '', file };
         const sources = [];
         if (gh) sources.push('gh=' + gh + (base ? '&base=' + base : ''));
         sources.push(location.hash, location.search);
@@ -327,7 +324,6 @@
                         // `&pane=` names a section and `&file=` opens the file
                         // deck on one path; the component owns what each means.
                         pane: t.pane || '', file: t.file || '',
-                        liveOnAsk: t.live === 'ask',
                         onMeta: (meta) => {
                           if (!meta || !meta.pr) return;
                           // If branch has landed/pruned and fell back to the PR boundary diff,
@@ -337,7 +333,6 @@
                               let h = '#gh=' + meta.repo + '&pr=' + meta.pr;
                               if (meta.pane) h += '&pane=' + meta.pane;
                               if (t.file) h += '&file=' + encodeURIComponent(t.file);
-                              if (t.live) h += '&live=' + t.live;
                               history.replaceState(null, '', h);
                             } catch {}
                           }
