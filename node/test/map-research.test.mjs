@@ -227,6 +227,19 @@ test("a program's title opens its page in the tab, and Back to the list closes i
   } finally { delete window.__shell.setMapCtx; }
 });
 
+test("the list draws no measure charts; a measure's name opens the page on its Measures tab", async () => {
+  window.__shell.setMapCtx = () => {};
+  data.setTab('programs'); await settled();
+  const row = el.querySelector('[data-map-programs] [data-map-program="surfacing"]');
+  assert.equal(el.querySelector('[data-map-programs] [data-map-program-measures]'), null);
+  row.querySelector('[data-map-program-measure]').click();
+  await tick(3);
+  assert.equal(data.programSel, 'surfacing');
+  assert.equal(data.programTab, 'measures');
+  data.closeProgram();
+  await tick(3); await new Promise(r => window.requestAnimationFrame(() => r()));
+});
+
 test('Back and Forward on Programs open the page the address names', async () => {
   const before = window.location.search;
   window.history.replaceState({}, '', '?view=map&tab=programs&program=surfacing');
