@@ -74,9 +74,11 @@ test('JsonExplorer.mount builds the toolbar once and draws the top level as rows
   assert.ok(explorer, 'explorer instance returned');
   assert.ok(container.querySelector('.json-explorer'), 'explorer element mounted');
 
-  const tabs = [...container.querySelectorAll('[role="tablist"] [role="tab"]')]
+  const tabs = [...container.querySelector('[role="tablist"]').querySelectorAll('[role="tab"]')]
     .filter(t => !t.classList.contains('hidden')).map(t => t.textContent.trim());
-  assert.deepEqual(tabs, ['Tree', 'Schema', 'JSON'], 'Table is offered only on an array of records');
+  assert.deepEqual(tabs, ['Tree', 'JSON'], 'Table is offered only on an array of records, and a docked tree has its Schema in the panel');
+  const panelTabs = [...container.querySelectorAll('[data-panel-view]')].map(t => t.textContent.trim());
+  assert.deepEqual(panelTabs, ['Value', 'Schema'], 'the panel switches between Value and Schema');
   assert.equal(container.querySelector('select'), null, 'no chunk select: the tree drills in itself');
 
   const searchInput = container.querySelector('input[type="search"]');
@@ -125,9 +127,14 @@ test('a docked tree keeps a panel: the schema of the opened field, or the select
   let copied = null;
   window.io = { copy: async (t) => { copied = t; return true; } };
   try {
+    assert.equal(container.querySelector('[data-view="schema"]'), null, 'a docked tree has no Schema tab');
     assert.ok(!pane.classList.contains('hidden'), 'with nothing selected the panel is up');
     assert.match(pane.textContent, /d\.json/, 'and names the opened file');
+    pane.querySelector('[data-panel-view="schema"]').click();
     assert.ok(pane.querySelector('table'), 'with its schema');
+    pane.querySelector('[data-panel-view="value"]').click();
+    assert.match(pane.querySelector('pre').textContent, /"odd-key": 7/, 'or its value, as indented JSON');
+    pane.querySelector('[data-panel-view="schema"]').click();
 
     container.querySelector('[data-path="repos"]').click();
     assert.ok(container.querySelector('[data-path="repos[0]"]'), 'a row that opens still opens on a tap');
@@ -145,6 +152,7 @@ test('a docked tree keeps a panel: the schema of the opened field, or the select
     copy('value').click(); await tick();
     assert.equal(copied, 'web-tools');
 
+    assert.ok(pane.querySelector('[role="tablist"]').classList.contains('hidden'), 'a plain value has no Value and Schema switch');
     container.querySelector('[data-path="odd-key"]').click();
     assert.ok(!container.querySelector('[data-path="repos[0].name"]').hasAttribute('data-selected'), 'one selection at a time');
     copy('path').click(); await tick();
@@ -170,6 +178,7 @@ test('an inline tree shows the panel only for a selection', () => {
   const explorer = JsonExplorer.mount(container, { data: { a: 1 }, name: 'i.json', fill: false });
   const pane = container.querySelector('[data-selection]');
   try {
+    assert.ok(container.querySelector('[data-view="schema"]'), 'an inline tree keeps its Schema tab');
     assert.ok(pane.classList.contains('hidden'), 'no selection, no panel');
     container.querySelector('[data-path="a"]').click();
     assert.ok(!pane.classList.contains('hidden'));
