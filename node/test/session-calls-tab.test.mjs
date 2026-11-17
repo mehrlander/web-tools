@@ -106,12 +106,14 @@ test('a framed slide reads its session\'s calls, and only its own', () => {
 // What waits on the owner is the first thing to see (owner, 2026-10-19). Since
 // the view split into two regions (2026-11-09), Calls leads the bottom row,
 // and that region opens on it while a call waits.
-test('the Calls tab leads the bottom row, and opens there while a call waits', async () => {
-  const row = el('slide').querySelector('[data-at="bottom-tabs"]');
+test('the Calls tab leads the one tab row, and the row opens there while a call waits', async () => {
+  // One row since 2026-11-17: Calls, Overview, Turns, Outline, Views, Files,
+  // Record, with Calls first and present only for a session that filed some.
+  const row = el('slide').querySelector('[data-at="tabs"]');
   const tabs = [...row.querySelectorAll('[role=tab]')].map((t) => t.textContent.trim().match(/^[A-Za-z]+/)?.[0]);
   assert.equal(tabs[0], 'Calls');
   await until(() => data('slide').openCallCount === 1);
-  assert.equal(data('slide').bottomPane, 'calls');
+  assert.equal(data('slide').pane, 'calls');
 });
 
 test('the Calls tab shows with a count, tinted while a call waits', async () => {
