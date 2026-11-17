@@ -127,7 +127,7 @@ test('the magnifier turns the title line into the search field, and the ✕ clos
   assert.ok(box, 'the field is in the head');
   assert.equal(head.querySelector('[data-session-title]'), null, 'in place of the title');
   assert.equal(head.querySelector('[data-session-facts]'), null, 'and of the facts, with no extra line');
-  assert.equal(d.pane, 'outline', 'the matches are the Outline tab\'s until Turns takes it in');
+  assert.equal(d.pane, 'turns', 'the search filters the Turns tab');
   const input = box.querySelector('input');
   input.value = 'budget';
   input.dispatchEvent(new window.Event('input', { bubbles: true }));
@@ -212,11 +212,11 @@ test('a hosted view hands the field to the header in place of the title, once, a
   top = null;
 });
 
-test('find= opens the field with its query, and the matches on the Outline tab', () => {
+test('find= opens the field with its query, on the Turns tab', () => {
   const d = data('found');
   assert.equal(d.findShown, true);
   assert.equal(d.findQuery, 'launch');
-  assert.equal(d.pane, 'outline');
+  assert.equal(d.pane, 'turns');
   const input = el('found').querySelector('[role="search"] input');
   assert.equal(input.value, 'launch');
   assert.equal(el('found').querySelector('[data-find-count]').textContent, '1 turn');
