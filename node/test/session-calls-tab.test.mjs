@@ -151,7 +151,9 @@ test('the pane holds one card per call: question, brief, recommendation, state',
   const cards = [...el('slide').querySelectorAll('[data-session-call]')];
   assert.equal(cards.length, 2);
   await until(() => /Answered: Take/.test(cards[1].textContent));
-  assert.match(cards[0].textContent, /Topic Size[\s\S]*Open[\s\S]*Split topics\?[\s\S]*Eleven turns disagree\.[\s\S]*Recommended:\s*Keep them whole/);
+  assert.match(cards[0].textContent, /Approval[\s\S]*Open[\s\S]*Split topics\?[\s\S]*Eleven turns disagree\.[\s\S]*Recommended:\s*Keep them whole/);
+  // The card's head names the call; its first line says the kind.
+  assert.match(el('slide').querySelector('[data-call-strip] [data-ls="head"]').textContent, /Topic Size/);
   assert.match(cards[1].textContent, /Approval[\s\S]*Lean[\s\S]*Answered: Take[\s\S]*Two steps\?/);
 });
 
