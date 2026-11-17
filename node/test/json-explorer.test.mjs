@@ -146,7 +146,8 @@ test('a docked tree keeps a panel: the schema of the opened field, or the select
     container.querySelector('[data-path="repos[0]"]').click();
     container.querySelector('[data-path="repos[0].name"]').click();
     assert.match(pane.textContent, /repos\[0\]\.name/);
-    assert.match(pane.textContent, /text · 9 characters/);
+    assert.equal(pane.querySelector('[data-what]').textContent, 'text · 9 characters');
+    assert.equal(pane.lastElementChild.getAttribute('data-what'), '', 'the type and size sit on a line under the box');
     copy('path').click(); await tick();
     assert.equal(copied, 'repos[0].name');
     copy('value').click(); await tick();
