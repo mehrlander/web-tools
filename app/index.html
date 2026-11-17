@@ -2562,7 +2562,7 @@ const MAP_HOME = 'overview';
 // syncCtxAddress, syncSetAddress, syncGrowthAddress and syncPolicyAddress),
 // each key with the tab it belongs to: Context's grouping, sort, question and
 // source, Set's question, Growth's corpus, the Policies tab's entry, and the
-// program whose page the Programs tab shows (syncProgramAddress).
+// program whose page the Programs tab shows (openProgram, closeProgram).
 const MAP_CTX_TAB = { ctxlens: 'context', ctxsort: 'context', ctxtopic: 'context', ctxsource: 'context', setintent: 'set',
                       growthrepo: 'growth', h: 'policy', form: 'forms', about: 'comments', program: 'programs' };
 const mapCtxOf = get => Object.fromEntries(Object.keys(MAP_CTX_TAB).map(k => [k, get(k) || '']));
