@@ -719,14 +719,14 @@ test('a fact carries its definition on data-title-tip, not in a title', () => {
   // comparison.
   const extras = noted.filter(n => !strip.contains(n));
   // The pages mark, the Gemini summary's note, and the labels on the
-  // icon-only controls: Sessions in Web Tools, Contents, On GitHub, Previous
-  // view, Next view, Open the page in a new tab, Swipe through every view full
-  // screen, Find in conversation, Read n cards one at a time, Open this session
-  // in Claude Code, and the Record tab's Copy as JSON. The Cost tab's three
-  // totals went into the cost panel on 2026-11-17, which draws only when it
-  // is open.
-  assert.equal(extras.length, 13,
-    'the pages mark, the Gemini summary and eleven control labels off the facts line: '
+  // icon-only controls: Sessions in Web Tools, Find in conversation, Read n
+  // cards one at a time, Open this session in Claude Code, and the Record
+  // tab's Copy as JSON. The Cost tab's three totals went into the cost panel
+  // on 2026-11-17, which draws only when it is open; the Views card's six
+  // controls went with its dropdown the same day, and its head is now the
+  // kit's, drawn only for a session with views (session-views.test.mjs).
+  assert.equal(extras.length, 7,
+    'the pages mark, the Gemini summary and five control labels off the facts line: '
     + JSON.stringify(extras.map(n => n.textContent.trim() || n.getAttribute('data-title-tip'))));
   assert.equal(noted.filter(n => strip.contains(n)).length, 0, 'the facts line holds no text fact: each opens its panel');
 });
@@ -851,7 +851,8 @@ test('one container: the views are a tab and the calls are the Calls tab\'s alon
   assert.doesNotMatch(src, /h-\[calc\(100dvh-4\.75rem\)\]/, 'nothing above the tabs is sized to the screen');
   assert.match(src, /x-show="pane === 'views' && work\.views\.length"/, 'the views are a pane');
   assert.match(src, /data-session-views-tab/, 'behind a tab of their own');
-  assert.match(src, /pane === 'views' && Math\.abs\(i - vAt\) <= 1/, 'whose frames wait for it to open');
+  assert.match(src, /linkedSwiper\.attach\(/, 'a list over a strip of cards, through the kit, which draws a card only in view or beside it');
+  assert.doesNotMatch(src, /viewListOpen/, 'and the list is no longer a dropdown inside the card');
 });
 
 test('the FAB is told what a note is about, in the notes store\'s locators', () => {
