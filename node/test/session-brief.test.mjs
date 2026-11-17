@@ -508,8 +508,8 @@ test('pane picks the tab, and an unknown one falls back rather than blanking', (
   assert.equal(at('log'), 'record');
   assert.equal(at('schema'), 'record');
   assert.equal(at('cost'), 'overview');
-  assert.equal(at('turns'), 'overview', 'no topics file, no Turns tab');
-  assert.equal(at('outline'), 'outline');
+  assert.equal(at('turns'), 'turns', 'every session has its turns, with or without a topics file');
+  assert.equal(at('outline'), 'turns', 'the Outline folded into Turns');
   assert.equal(at('nonsense'), 'overview', 'the row\'s own default');
   assert.equal(at(undefined), 'overview');
 });
@@ -540,15 +540,15 @@ test('the row opens on a waiting call, else on the Overview, and a tab shows onl
     return Alpine.$data(el);
   };
   const bare = mount({ short: 'n', schema: 4 });
-  assert.deepEqual([...bare.tabs], ['overview', 'outline', 'record'], 'no calls, turns, views or files');
+  assert.deepEqual([...bare.tabs], ['overview', 'turns', 'record'], 'no calls, views or files');
   assert.equal(bare.pane, 'overview', 'the row opens on the Overview');
 
   const d = mount({ short: 't', schema: 4, files: { 'x/y.js': { read: 1 } } });
-  assert.deepEqual([...d.tabs], ['overview', 'outline', 'files', 'record']);
+  assert.deepEqual([...d.tabs], ['overview', 'turns', 'files', 'record']);
   assert.equal(d.pane, 'overview', 'files alone do not take the row');
   d.work.views = [{ name: 'a.md', key: 'a' }];
   d.calls = [{ id: 'c1', status: 'open' }];
-  assert.deepEqual([...d.tabs], ['calls', 'overview', 'outline', 'views', 'files', 'record'], 'in the row\'s order');
+  assert.deepEqual([...d.tabs], ['calls', 'overview', 'turns', 'views', 'files', 'record'], 'in the row\'s order');
   assert.equal(d.pane, 'calls', 'a call waiting leads');
   d.calls = [{ id: 'c1', status: 'closed' }];
   assert.equal(d.pane, 'overview', 'a closed call does not');
@@ -562,7 +562,7 @@ test('the row opens on a waiting call, else on the Overview, and a tab shows onl
   await tick(4);
   const el = d.$el;
   const names = [...el.querySelectorAll('[data-at="tabs"] [role="tab"]')].map((t) => t.textContent.trim().match(/^[A-Za-z]+/)?.[0]);
-  assert.deepEqual(names, ['Calls', 'Overview', 'Turns', 'Outline', 'Views', 'Files', 'Record']);
+  assert.deepEqual(names, ['Calls', 'Overview', 'Turns', 'Views', 'Files', 'Record']);
   assert.equal(el.querySelectorAll('[role="tablist"][data-at="tabs"]').length, 1, 'one tab row');
   assert.equal(el.querySelector('[data-session-bottom]'), null, 'no second region');
 });
@@ -1132,22 +1132,20 @@ test('turns sent at one instant keep both notes, in turn order', async () => {
   window.__topicsDoc = null;
 });
 
-test('the outline is built once, with the turn notes, when the topics file is prompt', async () => {
-  // It was built bare at settle and again when the file landed: two builds of
-  // every slide's outline, three slides at a time in the swiper, which on a
-  // phone was a memory spike beside a page already near Safari's ceiling.
+test('outside the compact reader no outline is built: Turns reads the turn notes itself', async () => {
+  // The outline was built at settle for every slide, three at a time in the
+  // swiper. Turns took it in on 2026-11-17, and reads Gemini's notes for its
+  // rows and cards from the same file; the outline is the compact reader's.
   const calls = [];
   const was = window.sessionExport.index;
   window.sessionExport.index = (rec, opts) => { calls.push(opts); return { el: window.document.createElement('div') }; };
-  // The file arrives after the record, as it does over the network: the old
-  // order built the outline before it landed and again after.
   window.__topicsDelay = 50;
   try {
     const data = await mountTopics(TOPICS_DOC, 'me/topics-d');
     await new Promise(r => setTimeout(r, 200));
-    assert.equal(calls.length, 1, 'one build, not one bare and one with the notes');
-    assert.ok(calls[0].notes?.[record.prompts[0].at], 'and the one build carries the notes');
-    assert.equal(data.outlineBuilt, true);
+    assert.equal(calls.length, 0, 'no outline built');
+    assert.equal(data.outlineBuilt, false);
+    assert.ok(data.turnNotes()?.[record.prompts[0].at], 'and the notes are there for the Turns tab');
   } finally {
     window.sessionExport.index = was;
     window.__topicsDoc = null;
