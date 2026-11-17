@@ -430,7 +430,7 @@ test('an empty list says which kind of empty it is', async () => {
   assert.match(mount({ short: 'b', schema: 4, files: {} }).filesNote, /No files were opened/);
 });
 
-test('a host resolver turns each row into a real anchor', async () => {
+test('a host resolver gives a file\'s card a real link to the file', async () => {
   window.__linked = {
     repo: STORE,
     record: { short: 'g', schema: 3, files: { 'web-tools/lib/a.js': { edit: 1 } } },
@@ -441,19 +441,20 @@ test('a host resolver turns each row into a real anchor', async () => {
   window.document.body.append(el);
   Alpine.initTree(el);
   await tick(4);
-  assert.equal(Alpine.$data(el).fileRows[0].href, 'https://example.test/web-tools/lib/a.js');
-  // THE RENDER, not just the getter. The first draft picked the element with
-  // <component :is="f.href ? 'a' : 'span'">, which is Vue's idiom and not
-  // Alpine's: it renders an unknown <component> tag showing its children, so
-  // every row looked exactly right and none of them linked. A getter assertion
-  // could never have seen that.
-  const a = el.querySelector('a[href="https://example.test/web-tools/lib/a.js"]');
-  assert.ok(a, 'the row renders an <a> carrying the resolved href');
+  const d = Alpine.$data(el);
+  assert.equal(d.fileRows[0].href, 'https://example.test/web-tools/lib/a.js');
+  // THE RENDER, not just the getter: a file with no branch change to show
+  // draws a card that says so and links the file (the Files tab is a list
+  // over cards since 2026-11-17; session-files.test.mjs drives it).
+  const card = window.document.createElement('div');
+  d.diffsState = 'read';
+  d.fileBody('web-tools/lib/a.js', card);
+  const a = card.querySelector('a[href="https://example.test/web-tools/lib/a.js"]');
+  assert.ok(a, 'the card renders an <a> carrying the resolved href');
   assert.equal(a.getAttribute('target'), '_blank');
-  assert.match(a.textContent.replace(/\s+/g, ''), /^web-tools\/lib\/a\.js$/);
 });
 
-test('an unresolved row renders an anchor with no href, so it is text', async () => {
+test('an unresolved file\'s card draws no link, rather than a dead one', async () => {
   window.__plain = {
     repo: STORE,
     record: { short: 'i', schema: 3, files: { 'x/y.js': { read: 1 } } },
@@ -463,9 +464,10 @@ test('an unresolved row renders an anchor with no href, so it is text', async ()
   window.document.body.append(el);
   Alpine.initTree(el);
   await tick(4);
-  const a = [...el.querySelectorAll('a')].find(n => n.textContent.includes('y.js'));
-  assert.ok(a, 'the row is still drawn');
-  assert.equal(a.getAttribute('href'), null, 'an href-less anchor is plain text, not a dead link');
+  const card = window.document.createElement('div');
+  Alpine.$data(el).fileBody('x/y.js', card);
+  assert.ok(card.querySelector('[data-file-note]'), 'the card is still drawn');
+  assert.equal(card.querySelector('a'), null, 'no link where nothing resolved');
 });
 
 test('a resolver that throws costs its link and nothing else', async () => {
