@@ -60,7 +60,9 @@ test('a PR material opens as the branch page, framed, with GitHub beside its nam
   assert.equal(m.label, 'The change · #12');
   assert.equal(m.href, 'https://mehrlander.github.io/web-tools/pages/branch.html#gh=me/widget&pr=12');
   assert.equal(m.peek.kind, 'html');
-  assert.equal(m.peek.url, m.href);
+  // The framed page runs a changed page only when asked; the link out does not
+  // carry that, so the branch page opened on its own keeps its behaviour.
+  assert.equal(m.peek.url, m.href + '&live=ask');
   assert.equal(m.gh, 'https://github.com/me/widget/pull/12');
 });
 
@@ -68,6 +70,7 @@ test('a branch material does the same, at its branch', () => {
   const m = mat('branch');
   assert.equal(m.href, 'https://mehrlander.github.io/web-tools/pages/branch.html#gh=me/widget@claude%2Ftry-it');
   assert.equal(m.peek.kind, 'html');
+  assert.equal(m.peek.url, m.href + '&live=ask');
   assert.match(m.gh, /^https:\/\/github\.com\/me\/widget\/tree\/claude\/try-it$/);
 });
 
@@ -77,8 +80,26 @@ test('the PR slide frames the page, with no button out to GitHub', async () => {
   const at = data().mats.findIndex((m) => m.src === 'pr');
   const slide = slides[at];
   assert.ok(slide.querySelector('iframe'), 'the slide holds the framed branch page');
-  assert.equal(slide.querySelector('iframe').getAttribute('src'), mat('pr').href);
+  assert.equal(slide.querySelector('iframe').getAttribute('src'), mat('pr').peek.url);
   assert.equal([...slide.querySelectorAll('a')].filter((a) => /github\.com/.test(a.getAttribute('href') || '')).length, 0);
+});
+
+// Each framed page is a whole page booting, and the strip held its neighbours
+// and every slide seen at once inside one iPhone tab (2026-11-17). Only the
+// slide in view holds its frame now; turning away releases it.
+test('only the slide in view holds a framed page', async () => {
+  const frames = () => [...root().querySelectorAll('[data-slide]')].map((s) => !!s.querySelector('iframe'));
+  const pr = data().mats.findIndex((m) => m.src === 'pr');
+  const br = data().mats.findIndex((m) => m.src === 'branch');
+  data().at = pr;
+  await tick(3);
+  assert.deepEqual(frames(), frames().map((_, i) => i === pr), 'the PR slide alone');
+  data().at = br;
+  await tick(3);
+  assert.equal(frames()[pr], false, 'the slide turned away from is released');
+  assert.equal(frames()[br], true, 'and the one in view loads');
+  data().at = pr;
+  await tick(3);
 });
 
 test('a plain URL, which nothing here can frame, keeps its one way out', () => {
