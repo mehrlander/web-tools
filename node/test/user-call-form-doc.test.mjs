@@ -280,14 +280,15 @@ test('the list shows in Changes only, the one view that draws the edits', async 
   assert.ok(await until(() => box(1) && list().style.display !== 'none'), 'back in Changes');
 });
 
-test('an edit md-diff draws as several changes marks each, under the one decision', async () => {
+test('an edit md-diff draws as several changes names it on each, under the one decision', async () => {
   const marks = () => [...root().querySelectorAll('[data-doc-mark][data-doc-edit="4"]')];
   assert.equal(marks().length, 2, 'a two-block edit is two containers');
-  assert.deepEqual(marks().map((m) => m.textContent), ['Edit 4', ''], 'named once, on its first container');
+  assert.deepEqual(marks().map((m) => m.textContent), ['Edit 4 · 1 of 2', 'Edit 4 · 2 of 2'], 'each container names its edit and its place');
+  assert.ok(marks().every((m) => !m.classList.contains('hidden')), 'no container is left unlabelled');
   act(4, 'Discard');
   await tick(2);
   assert.deepEqual(marks().map((m) => m.dataset.decision), ['discarded', 'discarded'], 'both containers show the decision');
-  assert.deepEqual(marks().map((m) => m.textContent), ['Edit 4 · discarded', 'discarded']);
+  assert.deepEqual(marks().map((m) => m.textContent), ['Edit 4 · 1 of 2 · discarded', 'Edit 4 · 2 of 2 · discarded']);
   act(4, 'Discard');
   await tick(2);
 });
