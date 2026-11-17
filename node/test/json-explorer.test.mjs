@@ -115,9 +115,9 @@ test('JsonExplorer opens a collection on a tap and offers a way back', () => {
   explorer.destroy();
 });
 
-test('a tap selects a row, and the inspector shows its path and value, each with a copy', async () => {
+test('a docked tree keeps a panel: the schema of the opened field, or the selection with its copies', async () => {
   const container = window.document.getElementById('c');
-  const data = { repos: [{ name: 'web-tools' }], 'odd-key': 7, notes: 'x'.repeat(200) };
+  const data = { repos: [{ name: 'web-tools', branch: 'main' }], 'odd-key': 7, notes: 'x'.repeat(200) };
   const explorer = JsonExplorer.mount(container, { data, name: 'd.json' });
   const pane = container.querySelector('[data-selection]');
   const copy = (what) => pane.querySelector(`[aria-label="Copy the ${what}"]`);
@@ -125,19 +125,19 @@ test('a tap selects a row, and the inspector shows its path and value, each with
   let copied = null;
   window.io = { copy: async (t) => { copied = t; return true; } };
   try {
-    assert.ok(pane.classList.contains('hidden'), 'no selection, no inspector');
+    assert.ok(!pane.classList.contains('hidden'), 'with nothing selected the panel is up');
+    assert.match(pane.textContent, /d\.json/, 'and names the opened file');
+    assert.ok(pane.querySelector('table'), 'with its schema');
 
     container.querySelector('[data-path="repos"]').click();
     assert.ok(container.querySelector('[data-path="repos[0]"]'), 'a row that opens still opens on a tap');
-    assert.ok(!pane.classList.contains('hidden'), 'and is selected');
     assert.match(pane.textContent, /list · 1 item/);
-    assert.match(pane.querySelector('pre').textContent, /"name": "web-tools"/, 'a collection shows as indented JSON');
+    assert.match(pane.textContent, /branch/, 'a selected list of records shows its fields');
     await tick();
     assert.ok(container.querySelector('[data-path="repos"]').hasAttribute('data-selected'), 'the selected row is marked after the redraw');
 
     container.querySelector('[data-path="repos[0]"]').click();
     container.querySelector('[data-path="repos[0].name"]').click();
-    assert.ok(container.querySelector('[data-path="repos[0].name"]').hasAttribute('data-selected'));
     assert.match(pane.textContent, /repos\[0\]\.name/);
     assert.match(pane.textContent, /text · 9 characters/);
     copy('path').click(); await tick();
@@ -154,13 +154,27 @@ test('a tap selects a row, and the inspector shows its path and value, each with
 
     const notes = container.querySelector('[data-path="notes"]');
     notes.click();
-    assert.equal(pane.textContent.includes('x'.repeat(200)), true, 'the inspector shows a long string in full');
+    assert.equal(pane.textContent.includes('x'.repeat(200)), true, 'the panel shows a long string in full');
     assert.ok(notes.querySelector('[data-clamp]').classList.contains('line-clamp-3'), 'while its row stays clamped');
 
     notes.click();
-    assert.ok(pane.classList.contains('hidden'), 'a second tap clears the selection');
+    assert.match(pane.textContent, /d\.json/, 'a second tap clears the selection, back to the opened file');
   } finally {
     delete window.io;
+    explorer.destroy();
+  }
+});
+
+test('an inline tree shows the panel only for a selection', () => {
+  const container = window.document.getElementById('c');
+  const explorer = JsonExplorer.mount(container, { data: { a: 1 }, name: 'i.json', fill: false });
+  const pane = container.querySelector('[data-selection]');
+  try {
+    assert.ok(pane.classList.contains('hidden'), 'no selection, no panel');
+    container.querySelector('[data-path="a"]').click();
+    assert.ok(!pane.classList.contains('hidden'));
+    assert.match(pane.textContent, /number/);
+  } finally {
     explorer.destroy();
   }
 });
