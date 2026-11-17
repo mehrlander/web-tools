@@ -147,6 +147,11 @@ test('a docked tree keeps a panel: the schema of the opened field, or the select
     container.querySelector('[data-path="repos[0].name"]').click();
     assert.match(pane.textContent, /repos\[0\]\.name/);
     assert.equal(pane.querySelector('[data-what]').textContent, 'text · 9 characters');
+    const label = pane.querySelector('[data-title-tip-lead]');
+    assert.equal(label.textContent, 'path', 'the path is labeled');
+    assert.equal(label.getAttribute('data-title-tip-lead'), '3 steps from the top of d.json');
+    assert.deepEqual(label.getAttribute('data-title-tip').split('\n'),
+      ['repos · list · 1 item', '[0] · object · 2 fields', 'name · text · 9 characters'], 'its title-tip walks the path');
     assert.equal(pane.lastElementChild.getAttribute('data-what'), '', 'the type and size sit on a line under the box');
     copy('path').click(); await tick();
     assert.equal(copied, 'repos[0].name');
