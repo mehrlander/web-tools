@@ -36,6 +36,10 @@ const { window, problems } = makeWindow({ html: `<html><body>
   <div id="inline" x-data="sessionBrief(window.__inline)"></div>
   <div id="hosted" x-data="sessionBrief(window.__hosted)"></div>
   <div id="found" x-data="sessionBrief(window.__found)"></div>
+  <div x-data="{ shell: true }">
+    <div id="slideA" x-data="sessionBrief(window.__slideA)"></div>
+    <div id="slideB" x-data="sessionBrief(window.__slideB)"></div>
+  </div>
 </body></html>` });
 window.claudeMark = { svg: () => '<svg></svg>' };
 window.gh = { load: async () => {} };
@@ -64,6 +68,10 @@ const setChrome = (c) => {
 window.__inline = { record, repo: 'me/private', path: 'sessions/2026/10/2026-10-01-ab12cd34.json' };
 window.__hosted = { record, repo: 'me/private', framed: true, chrome: setChrome };
 window.__found = { record, repo: 'me/private', framed: true, find: 'launch' };
+// Two slides of one deck inside a shell's own scope, as the app mounts them.
+const slideChrome = { A: [], B: [] };
+window.__slideA = { record, repo: 'me/private', framed: true, chrome: (c) => slideChrome.A.push(c) };
+window.__slideB = { record: { ...record, short: 'feedbeef' }, repo: 'me/private', framed: true, chrome: (c) => slideChrome.B.push(c) };
 const { default: Alpine } = await import('alpinejs/dist/module.esm.js');
 window.Alpine = Alpine;
 captureAlpineErrors(Alpine);
@@ -229,4 +237,17 @@ test('the Record tab\'s switch drives the one explorer and follows it', async ()
   const sw = el('inline').querySelector('[data-at="record-view"]');
   assert.deepEqual([...sw.querySelectorAll('[role="tab"]')].map((b) => b.textContent.trim()), ['Tree', 'Schema']);
   assert.ok(el('inline').querySelector('[data-session-record] [data-at="copy"]'), 'copy rides the switch\'s row');
+});
+
+test('inside another component\'s scope, each slide keeps its own head and hands it over', () => {
+  // Alpine writes a property a component never declared to the OUTERMOST
+  // scope, so two slides inside the app's shell shared one: the second slide
+  // read the first's hand-over and never made its own (found 2026-11-17 in the
+  // Sessions deck; a mount with no parent scope, like the ones above, cannot
+  // show it).
+  assert.equal(slideChrome.A.length, 1, 'the first slide handed its facts over');
+  assert.equal(slideChrome.B.length, 1, 'and so did the second');
+  assert.notEqual(slideChrome.A[0].sub, slideChrome.B[0].sub, 'each its own facts line');
+  assert.match(slideChrome.B[0].sub.textContent, /feedbeef/);
+  assert.match(slideChrome.A[0].sub.textContent, /ab12cd34/);
 });
