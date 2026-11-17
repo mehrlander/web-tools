@@ -98,18 +98,23 @@ test('with no host the view draws its head: the title over the facts, the magnif
   assert.match(facts.className, /\bflex-wrap\b/);
   assert.match(facts.className, /\boverflow-hidden\b/, 'one row high, so a fact that does not fit drops out whole');
   assert.ok(head.querySelector('[data-at="find"]'), 'the magnifier');
-  assert.ok(head.querySelector('[data-at="cards"]'), 'and the cards');
+  assert.equal(head.querySelector('[data-at="cards"]'), null, 'and not the cards, which close the tab row');
+  const row = el('inline').querySelector('[data-at="tabs"]').parentElement;
+  assert.ok(row.querySelector('[data-at="cards"]'), 'beside the tabs, where they sat before the row became one');
   assert.equal(el('inline').querySelectorAll('[data-session-facts]').length, 1, 'and no second strip under it');
 });
 
-test('a deck host is handed the facts as its subtitle and the magnifier and cards as actions', () => {
+test('a deck host is handed the facts as its subtitle and the magnifier as its action', async () => {
   assert.equal(el('hosted').querySelector('[data-session-head]'), null, 'the view draws no head of its own');
   const c = chromes.at(-1);
   assert.ok(c.sub?.matches('[data-session-facts]'), 'the facts line is the subtitle');
   assert.equal(c.head, null, 'and the title stays the host\'s');
-  assert.deepEqual(JSON.parse(JSON.stringify(c.actions.map((a) => a.getAttribute('data-at')))), ['find', 'cards']);
-  assert.match(c.actions[1].className, /btn-circle/, 'the kit\'s own cards button, in the header\'s shape');
-  assert.equal(c.actions[1].getAttribute('aria-label'), 'Read 2 cards one at a time');
+  // Only the magnifier, as the design sketch draws the header, so the facts
+  // line keeps the room; the cards close the tab row in both hosts.
+  assert.deepEqual(JSON.parse(JSON.stringify(c.actions.map((a) => a.getAttribute('data-at')))), ['find']);
+  assert.match(c.actions[0].className, /btn-circle/, 'in the header\'s shape');
+  await tick(2);
+  assert.ok(el('hosted').querySelector('[data-at="cards"]'), 'the cards are in the view\'s tab row');
 });
 
 test('the magnifier turns the title line into the search field, and the ✕ closes and clears it', async () => {
