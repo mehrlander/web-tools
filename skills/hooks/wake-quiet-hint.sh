@@ -9,14 +9,15 @@
 # exit 0 on any other tool or an unparseable payload.
 #
 # A batch can also hold a check-in, the message check-in.py has a session send
-# itself. That hook runs after the same read and says how the turn goes: two of
-# its four instructions end the turn with no text, and the other two ask for a
-# reply. Left as they were, the two hooks could contradict each other over such
-# a batch: this one telling a turn to end silent that the other tells to write
-# a recap, or the other ending a turn in which this one found work. So with a
-# check-in in the batch this hook leaves the turn's ending to that one, and
-# says that work and a report these events call for still stand. A batch with
-# no PR event in it gets nothing from this hook, as before.
+# itself. That hook runs after the same read and says how the turn goes: one of
+# its four instructions ends the turn with no text, two ask for one line it
+# supplies, and one asks for a recap. Left as they were, the two hooks could
+# contradict each other over such a batch: this one telling a turn to end
+# silent that the other tells to write a recap, or the other ending a turn in
+# which this one found work. So with a check-in in the batch this hook leaves
+# the turn's ending to that one, and says that work and a report these events
+# call for still stand. A batch with no PR event in it gets nothing from this
+# hook, as before.
 HOOK_PAYLOAD="$(cat)" python3 - <<'PY' 2>/dev/null || exit 0
 import json, os, re, sys
 

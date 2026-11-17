@@ -158,7 +158,7 @@ window.FileCorrespondence = {
   reopen: async c => { shellCalls.push(['reopen', c.id]); },
 };
 window.__shell = {
-  powershellOutpostItem: '',
+  powershellOutpostItem: '', powershellOutpostTab: '',
   syncUrl() { shellCalls.push(['syncUrl']); },
   goStage() { shellCalls.push(['goStage']); },
   pasteAnywhere() { shellCalls.push(['pasteAnywhere', this.powershellOutpostItem]); },
@@ -1281,5 +1281,83 @@ test('Copy GitHub text leaves a byte-order mark off the clipboard, so a paste in
     assert.equal(clip.at(-1), '[PSCustomObject]@{}\r\n', 'the bar button copies the same text');
   } finally {
     files[PROFILE] = saved; advanceHead(); await data.reload();
+  }
+});
+
+// The selected file's own tab rides the address as &itemtab=, beneath &item=.
+// Without it a link to a file with changes can only open on Changes.
+test('the address names the selected file\'s tab: a link opens it, a click writes it, and Back and Forward follow it', async () => {
+  const { Parser, Language } = await import('web-tree-sitter');
+  await Parser.init(); const parser = new Parser();
+  parser.setLanguage(await Language.load(path.join(repoRoot, 'node_modules/tree-sitter-powershell/tree-sitter-powershell.wasm')));
+  new window.Function(readFileSync(path.join(repoRoot, 'lib/kits/powershell-units.js'), 'utf8'))();
+  const units = window.PowerShellUnits;
+  window.PowerShellUnits = { ...units, compare: (a, b, o) => units.compare(a, b, { ...o, parser }) };
+  const mp = `${P}/data/outpost.json`, saved = { manifest: files[mp], profile: files[PROFILE] }, revision = 'e'.repeat(40), shell = window.__shell;
+  const loaded = async () => { await settle(); for (let i = 0; i < 50 && (data.sourceState === 'loading' || data.unitBusy); i++) await tick(2); await settle(); };
+  const pop = async search => { window.history.pushState(null, '', search); window.dispatchEvent(new window.PopStateEvent('popstate')); await loaded(); };
+  const at = (item, tab) => '?item=' + encodeURIComponent(item) + (tab ? '&itemtab=' + tab : '');
+  const tab = key => el.querySelector(`[data-detail-tabs] [data-tab=${key}]`);
+  try {
+    // Profile.ps1 has a pending update over the work set's version, so by itself it opens on Changes.
+    snapshots.set(revision, { ...files });
+    const manifest = JSON.parse(saved.manifest);
+    manifest.pending_adoption.push({ path: 'app/Profile.ps1', transfer: 'changed', since: '2026-11-01', limit: 'Not run' });
+    files[mp] = JSON.stringify(manifest); files[PROFILE] = saved.profile + 'function Get-Later { 1 }\n'; advanceHead();
+    history = { path: PROFILE, until: '2026-11-01T00:00:00Z', revision };
+    data.select(''); await data.reload(); await pop('?x=1');
+    await pop(at(PROFILE));
+    assert.equal(data.stateOf(PROFILE).state, 'pending-changed');
+    assert.ok(data.visibleUnits.length, 'the unit review found the change');
+    assert.equal(data.shownTab, 'changes', 'a link naming no tab opens as it did');
+    assert.deepEqual([...data.detailTabs.map(t => t.label)], ['Changes', 'Adopted', 'Shipped', 'Diff', 'Problems', 'Outline']);
+    // A link naming the tab opens it, in the reader's word or by its key, and
+    // neither the baseline nor the unit review moves the reader to Changes.
+    await pop('?x=1');
+    await pop(at(PROFILE, 'shipped'));
+    assert.equal(data.selected, PROFILE); assert.ok(data.hasChanges && data.unitReview);
+    assert.equal(data.shownTab, 'code', 'Shipped, though the file has changes');
+    assert.equal(tab('code').getAttribute('aria-label'), 'Shipped'); assert.equal(tab('code').getAttribute('aria-selected'), 'true');
+    for (const key of ['adopted', 'diff', 'outline', 'code']) {
+      await pop('?x=1'); await pop(at(PROFILE, key));
+      assert.equal(data.shownTab, key, 'itemtab=' + key);
+    }
+    // A tab the file does not have leaves it where it opens by itself.
+    await pop(at(FORMS, 'adopted'));
+    assert.equal(data.selected, FORMS); assert.ok(!data.detailTabs.some(t => t.key === 'adopted'));
+    assert.equal(data.shownTab, 'code'); assert.equal(data.tabPicked, false);
+    await pop(at(PROFILE, 'nonsense'));
+    assert.equal(data.shownTab, 'changes');
+    // A click names its tab for the shell to stamp, except the tab the file opens on by itself.
+    const stamps = () => shellCalls.filter(c => c[0] === 'syncUrl').length;
+    let n = stamps();
+    tab('code').click(); await settle();
+    assert.equal(shell.powershellOutpostTab, 'code'); assert.equal(stamps(), n + 1); assert.equal(data.shownTab, 'code');
+    tab('outline').click(); await settle();
+    assert.equal(shell.powershellOutpostTab, 'outline');
+    tab('changes').click(); await settle();
+    assert.equal(shell.powershellOutpostTab, '', 'Changes is where this file opens, so the address names no tab');
+    // Back and Forward between tabs of the one file.
+    await pop(at(PROFILE, 'adopted'));
+    assert.equal(data.shownTab, 'adopted'); assert.equal(data.tabPicked, true);
+    await pop(at(PROFILE));
+    assert.equal(data.shownTab, 'changes', 'an address naming no tab is the tab the file opens on');
+    assert.equal(data.tabPicked, false);
+    await pop(at(PROFILE, 'code'));
+    assert.equal(data.shownTab, 'code');
+    // Another file starts with no tab named, and a name's link carries none.
+    tab('outline').click(); await settle();
+    assert.equal(new URL(data.hrefFor(FORMS), 'http://x/').searchParams.get('itemtab'), null);
+    data.select(FORMS); await settle();
+    assert.equal(shell.powershellOutpostTab, '');
+    // A cold link: the shell holds what the address named when the view reads the outpost.
+    data.select(''); await settle();
+    shell.powershellOutpostItem = PROFILE; shell.powershellOutpostTab = 'shipped';
+    await data.reload(); await loaded();
+    assert.equal(data.selected, PROFILE); assert.equal(data.shownTab, 'code');
+    assert.deepEqual(problems, []);
+  } finally {
+    parser.delete(); window.PowerShellUnits = null; history = null;
+    Object.assign(files, { [mp]: saved.manifest, [PROFILE]: saved.profile }); advanceHead(); data.select(''); await data.reload();
   }
 });
