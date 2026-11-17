@@ -12,7 +12,7 @@ description: >-
 
 ## Premise
 
-Some answers are best given against the thing they judge: each edit to a document kept or discarded where it sits, or images picked from a board. A user call puts such a question on a page in the Web Tools app and records the owner's answer where the session reads it. [doc-craft](../doc-craft/SKILL.md) files one for each changed document, and [design-sprint](../design-sprint/SKILL.md) one for each idea board.
+Complex decisions can benefit from rich supporting context. A user call puts a question on a page in the Web Tools app, with the files it concerns rendered beside it. The owner answers there, and the page saves the answer next to the call, where the session reads it. [doc-craft](../doc-craft/SKILL.md) files a user call for each changed document, and [design-sprint](../design-sprint/SKILL.md) one for each idea board.
 
 ## Goal and output
 
