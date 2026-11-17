@@ -696,9 +696,12 @@ test('a fact carries its definition on data-title-tip, not in a title', () => {
   assert.equal(pill[0].getAttribute('aria-label'), 'Checked out: web-tools');
   assert.ok(pill[0].hasAttribute('data-fact-btn'), 'and it opens a panel like the counts do');
   assert.equal(pill[0].querySelectorAll('i.ph').length, d.scopeRepos.length, 'a mark per repository inside it');
-  // The id leads, then the date, in the order the owner settled (2026-11-17).
+  // The date leads. The short id and the running ref left the line on
+  // 2026-11-17 (owner): the reader knows which session is open, and the ref
+  // describes the page, not the session.
   const order = [...strip.children].map((n) => n.getAttribute('data-fact'));
-  assert.deepEqual(order.slice(0, 3), ['id', 'day', 'calls']);
+  assert.deepEqual(order.slice(0, 2), ['day', 'calls']);
+  assert.equal(strip.querySelector('[data-fact="id"], [data-fact="running"]'), null);
 
   // THROUGH THE KIT, NOT A SECOND IMPLEMENTATION OF IT. `kits/title-tip.js` is
   // this estate's tier between a title and a built panel, and a fact's
@@ -725,17 +728,7 @@ test('a fact carries its definition on data-title-tip, not in a title', () => {
   assert.equal(extras.length, 13,
     'the pages mark, the Gemini summary and eleven control labels off the facts line: '
     + JSON.stringify(extras.map(n => n.textContent.trim() || n.getAttribute('data-title-tip'))));
-  const inLine = noted.filter(n => strip.contains(n));
-  assert.deepEqual(inLine.map(n => n.getAttribute('data-fact')), ['id'], 'the facts line\'s one text fact here is the id');
-  // The id's own note, pinned by what it must NOT say. It called the id the
-  // record's filename stem, which it is not: the stem carries the date as well
-  // (2026-08-05-b8fae678), and reading the note as written is what produced a
-  // dead session link on 2026-09-05. The positive wording is free to move; the
-  // conflation is what has to stay fixed.
-  const idNote = strip.querySelector('[data-fact="id"]')?.getAttribute('data-title-tip') || '';
-  assert.equal(strip.querySelector('[data-fact="id"]').textContent, 'b8fae678');
-  assert.ok(idNote.length > 20, 'the id carries a definition');
-  assert.doesNotMatch(idNote, /filename stem/, 'the id is part of the stem, not the whole of it');
+  assert.equal(noted.filter(n => strip.contains(n)).length, 0, 'the facts line holds no text fact: each opens its panel');
 });
 
 test('the kit that draws the title-tips is in the chain that loads them', () => {

@@ -71,7 +71,7 @@ window.__found = { record, repo: 'me/private', framed: true, find: 'launch' };
 // Two slides of one deck inside a shell's own scope, as the app mounts them.
 const slideChrome = { A: [], B: [] };
 window.__slideA = { record, repo: 'me/private', framed: true, chrome: (c) => slideChrome.A.push(c) };
-window.__slideB = { record: { ...record, short: 'feedbeef' }, repo: 'me/private', framed: true, chrome: (c) => slideChrome.B.push(c) };
+window.__slideB = { record: { ...record, short: 'feedbeef', calls_total: 99 }, repo: 'me/private', framed: true, chrome: (c) => slideChrome.B.push(c) };
 const { default: Alpine } = await import('alpinejs/dist/module.esm.js');
 window.Alpine = Alpine;
 captureAlpineErrors(Alpine);
@@ -94,7 +94,9 @@ test('with no host the view draws its head: the title over the facts, the magnif
   assert.equal(title.textContent, 'Find the launch discussion');
   const facts = head.querySelector('[data-session-facts]');
   assert.equal(title.nextElementSibling, facts, 'the facts line under the title');
-  assert.deepEqual([...facts.children].map((n) => n.getAttribute('data-fact')), ['id', 'day', 'calls', 'repos']);
+  // No id and no running ref (owner, 2026-11-17): the reader knows which
+  // session is open, and the ref is about the page, not the session.
+  assert.deepEqual([...facts.children].map((n) => n.getAttribute('data-fact')), ['day', 'calls', 'repos']);
   assert.match(facts.className, /\bflex-wrap\b/);
   assert.match(facts.className, /\boverflow-hidden\b/, 'one row high, so a fact that does not fit drops out whole');
   assert.ok(head.querySelector('[data-at="find"]'), 'the magnifier');
@@ -253,6 +255,6 @@ test('inside another component\'s scope, each slide keeps its own head and hands
   assert.equal(slideChrome.A.length, 1, 'the first slide handed its facts over');
   assert.equal(slideChrome.B.length, 1, 'and so did the second');
   assert.notEqual(slideChrome.A[0].sub, slideChrome.B[0].sub, 'each its own facts line');
-  assert.match(slideChrome.B[0].sub.textContent, /feedbeef/);
-  assert.match(slideChrome.A[0].sub.textContent, /ab12cd34/);
+  assert.match(slideChrome.B[0].sub.querySelector('[data-fact="calls"]').textContent, /99/);
+  assert.match(slideChrome.A[0].sub.querySelector('[data-fact="calls"]').textContent, /^7$/);
 });
