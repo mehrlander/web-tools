@@ -159,6 +159,25 @@ test('a page’s mark pad tucks the launcher into its corner, and a tap brings i
   } finally { host.remove(); }
 });
 
+test('the menu\'s Hide tucks the launcher into the corner on any page, until the handle brings it back', async () => {
+  const { d, host } = await mountFab();
+  const pad = shown => window.dispatchEvent(new window.CustomEvent('mark-pad', { detail: { shown } }));
+  try {
+    d.fabMenu = true; await tick(2);
+    const row = host.querySelector('[data-fab-hide]');
+    assert.ok(row, 'the menu offers Hide');
+    assert.match(row.textContent, /Hide/);
+    row.click(); await tick(2);
+    assert.equal(d.fabMenu, false, 'the row closes the menu');
+    assert.equal(d.tuckNow, true, 'and tucks the launcher with no pad on the page');
+    pad(true); pad(false); await tick(2);
+    assert.equal(d.tuckNow, true, 'a pad coming and going leaves it hidden');
+    host.querySelector('[data-fab-tab]').click(); await tick(2);
+    assert.equal(d.tuckNow, false, 'a tap on the handle brings it back');
+    assert.equal(d.hidden, false);
+  } finally { host.remove(); }
+});
+
 test('a pad that came up before the launcher still tucks it', async () => {
   const pad = doc.createElement('div');
   pad.setAttribute('data-mark-pad', '');
