@@ -375,12 +375,18 @@ test('Areas draws a tile an area: its icon and files, its declared panels, its w
   assert.deepEqual(panels('Forms'), [], 'no declaration and no Measures row of its own: header and fortnight only');
   assert.equal(tile('Forms').querySelector('[data-part="body"]').style.display, 'none');
 
-  // measure: the declared file as weekly columns, the marked category and
-  // its share, its Working means from the target beside them.
+  // measure: the declared file as a sparkline, a bar a week, the marked
+  // category and its share at its end, the months it runs over in its head
+  // in place of an axis, its Working means from the target beside them.
   const m = tile('Reply').querySelector('[data-area-measure]');
   assert.equal(m.dataset.measure, 'closings.json');
-  assert.equal(m.querySelectorAll('[data-week]').length, 2, 'a column a week');
-  assert.match(m.textContent, /Closed\s*50%/, 'the marked category and its share of the last week');
+  const spark = m.querySelector('[data-area-spark]');
+  assert.equal(spark.querySelectorAll('[data-week]').length, 2, 'a bar a week');
+  assert.ok(spark.querySelector('[data-week]').parentElement.classList.contains('h-8'), 'word-sized');
+  assert.match(spark.textContent, /Closed\s*50%/, 'the marked category, then its share of the last week after the bars');
+  assert.match(m.querySelector('[data-panel-head]').textContent.replace(/\s+/g, ' '), /closings\.json Nov\b/, 'one month: its name; no axis under the bars');
+  assert.equal(data.measureRange(p.measures[0]), 'Nov');
+  assert.deepEqual([...data.tileWeeks(p.measures[0]).map(w => w.week)], ['2026-11-02', '2026-11-09']);
   assert.doesNotMatch(m.textContent, /share of Open falls/, 'working means is not printed');
   m.querySelector('[data-area-means]').click(); await tick(3);
   assert.equal(data.chartTip.body.title, 'Working means');
@@ -409,8 +415,9 @@ test('Areas draws a tile an area: its icon and files, its declared panels, its w
   assert.deepEqual([...split.querySelectorAll('[data-breakdown-group]')].map(g => g.dataset.group + ' ' + g.dataset.n), ['hook 2', 'ci 1', 'git 0']);
   assert.match(split.querySelector('[data-panel-head]').textContent, /3 of 5/, 'the rows it counts, of the registry\'s');
 
-  // gallery: glyphs through the Map's marker words, a path as its file's
-  // name peeking the file, thumbnails from raw at the selected revision.
+  // gallery: chips, a chip with its mark through the Map's marker words, a
+  // path as its file's name peeking the file, small thumbnails from raw at
+  // the selected revision, and what is left out as a count.
   const galleries = [...tile('Showing').querySelectorAll('[data-area-gallery]')];
   assert.deepEqual(galleries.map(g => g.dataset.layout), ['icons', 'chips', 'thumbs']);
   const icons = [...galleries[0].querySelectorAll('[data-gallery-item]')];
@@ -420,27 +427,27 @@ test('Areas draws a tile an area: its icon and files, its declared panels, its w
   const chips = [...galleries[1].querySelectorAll('[data-gallery-item]')];
   assert.deepEqual(chips.map(c => c.textContent), ['approval', 'audit'], 'README left out by its pattern');
   const thumbs = [...galleries[2].querySelectorAll('[data-gallery-item]')];
-  assert.equal(thumbs.length, 4, 'a tile one column wide shows two rows of two');
+  assert.equal(thumbs.length, 2, 'a tile one column wide shows one row of two');
   assert.equal(thumbs[0].querySelector('img').getAttribute('src'), 'https://raw.githubusercontent.com/' + hub + '/codex/program-preview/pages/thumbs/p0.png');
   assert.equal(thumbs[0].getAttribute('href'), 'https://mehrlander.github.io/web-tools/pages/p0.html');
-  assert.match(galleries[2].textContent, /and 1 more/);
+  assert.equal(galleries[2].querySelector('[data-gallery-more]').textContent, '+3');
   assert.deepEqual([...tile('Showing').querySelectorAll('[data-area-view]')].map(a => a.textContent.trim()), ['Waiting']);
 
   // Width: a tile asks for its panels' weight, and the grid packs the rows in
   // the charter's order, with no dense reflow. Height: a tile is its own,
-  // so a short one leaves no empty block over its footer, except one that
-  // draws a measure, which stretches to its row.
+  // so a short one leaves no empty block over its footer; a measure's
+  // sparkline is word-sized, so its tile no longer stretches to its row.
   assert.deepEqual(['Reply', 'Showing', 'Forms'].map(k => tile(k).dataset.want), ['3', '3', '1']);
   const grid = page.querySelector('[data-program-tiles]');
   assert.doesNotMatch(grid.className, /dense/);
   assert.ok(grid.classList.contains('items-start'));
-  assert.deepEqual(['Reply', 'Showing', 'Forms'].map(k => tile(k).classList.contains('self-stretch')), [true, false, false],
-    'Reply draws its measure; Showing has none yet, and Forms no panel');
+  assert.deepEqual(['Reply', 'Showing', 'Forms'].map(k => tile(k).classList.contains('self-stretch')), [false, false, false],
+    'Reply draws its measure, and is still its own height');
   assert.equal(page.querySelector('[data-program-tiles]').dataset.cols, '1', 'a pane jsdom gives no width holds one column');
   data.areaCols = 3; await frame();
   assert.deepEqual([...page.querySelectorAll('[data-program-area]')].map(t => t.dataset.area + ':' + t.dataset.span), ['Reply:3', 'Showing:3', 'Forms:3']);
   assert.equal(galleries[2].isConnected ? tile('Showing').querySelectorAll('[data-area-gallery][data-layout="thumbs"] [data-gallery-item]').length : 0, 5,
-    'three columns wide, two rows of six hold all five');
+    'three columns wide, one row of six holds all five');
   data.areaCols = 1; await frame();
 
   // The fortnight: commits to what the area links, a cell a day, a commit
