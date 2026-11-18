@@ -5,21 +5,25 @@
 //
 // `pages/pdf-inspect.html` fits a page to the width on a phone, which draws a
 // US Letter page at about 0.58 and leaves its text unreadable. The stage keeps
-// `touch-none` because a one-finger drag there is a selection, and that also
-// switches off the browser's own pinch. So the page tells the gestures apart
-// by pointer count: one finger selects, two pinch. During a pinch the stage is
-// scaled by a CSS transform; on lift the page is drawn again at the new scale.
+// `touch-none` and tells touch gestures apart itself: one finger pans, two
+// pinch, and a finger held still for a long press selects. During a pinch the
+// stage is scaled by a CSS transform; on lift the page is drawn again at the
+// new scale. A mouse drag selects at once.
 //
-// Claims, all driven by real touch input through the DevTools protocol:
-//   1. one finger still selects, and leaves the scale alone
-//   2. during a spread, the canvas and the overlay scale together
-//   3. on lift the page re-renders at the pinched scale, and the zoom select
+// Claims, driven by real touch input through the DevTools protocol:
+//   1. a tap leaves no selection and no drag box
+//   2. a quick one-finger drag does not select
+//   3. a long press, then a drag, selects, and leaves the scale alone
+//   4. during a spread, the canvas and the overlay scale together
+//   5. on lift the page re-renders at the pinched scale, and the zoom select
 //      shows that scale rather than going blank
-//   4. the page point under the fingers stays under them
-//   5. the overlay's text boxes sit on the ink at the new scale
-//   6. the finger left behind after a pinch does not start a selection
-//   7. a zoomed page's left edge can be scrolled to
-//   8. a pinch in clamps at the page's floor
+//   6. the page point under the fingers stays under them
+//   7. the overlay's text boxes sit on the ink at the new scale
+//   8. the finger left behind after a pinch does not start a selection
+//   9. one finger pans a zoomed page and selects nothing
+//  10. a zoomed page's left edge can be scrolled to
+//  11. a pinch in clamps at the page's floor
+//  12. a mouse drag still selects at once
 //
 // Exits nonzero on any failure. Not part of `npm test` (needs a browser).
 
@@ -136,7 +140,7 @@ const state = () => page.evaluate(() => {
   const box = (el) => { const r = el.getBoundingClientRect(); return { l: r.left, t: r.top, w: r.width, h: r.height }; };
   const sel = document.querySelector('select[x-model="scaleMode"]');
   return {
-    scale: d.scale, scaleMode: d.scaleMode, sel: d.sel.length, W: d.W, H: d.H,
+    scale: d.scale, scaleMode: d.scaleMode, sel: d.sel.length, drag: !!d.drag, W: d.W, H: d.H,
     transform: stage.style.transform, canvas: box(canvas), ov: box(ov), host: box(host),
     canvasW: canvas.width, viewBox: ov.getAttribute('viewBox'),
     selectValue: sel?.value, selectText: sel?.selectedOptions[0]?.textContent || '',
@@ -171,13 +175,29 @@ try {
   const s0 = await state();
   console.log(`fit to width on a phone: scale ${s0.scale.toFixed(2)}`);
 
-  console.log('one finger selects:');
   const c = s0.canvas;
+  console.log('a tap:');
+  await touch('touchStart', [[c.l + 60, c.t + 60]]); await frame();
+  await touch('touchEnd', []); await page.waitForTimeout(500);
+  let s = await state();
+  ok('leaves no selection and no drag box', s.sel === 0 && !s.drag, JSON.stringify({ sel: s.sel, drag: s.drag }));
+
+  console.log('a quick one-finger drag:');
   await touch('touchStart', [[c.l + 10, c.t + 10]]); await frame();
   await touch('touchMove', [[c.l + c.w * 0.8, c.t + c.h * 0.4]]); await frame();
   await touch('touchEnd', []); await frame();
-  let s = await state();
-  ok('a one-finger drag selects text', s.sel > 0, JSON.stringify({ sel: s.sel }));
+  s = await state();
+  ok('does not select', s.sel === 0 && !s.drag, JSON.stringify({ sel: s.sel, drag: s.drag }));
+
+  console.log('a long press, then a drag:');
+  await touch('touchStart', [[c.l + 10, c.t + 10]]);
+  await page.waitForTimeout(550);
+  s = await state();
+  ok('the drag box appears once the press is long enough', s.drag, JSON.stringify({ drag: s.drag }));
+  await touch('touchMove', [[c.l + c.w * 0.8, c.t + c.h * 0.4]]); await frame();
+  await touch('touchEnd', []); await frame();
+  s = await state();
+  ok('selects text', s.sel > 0, JSON.stringify({ sel: s.sel }));
   ok('and leaves the scale alone', s.scale === s0.scale && s.scaleMode === 'fit', `${s.scale} ${s.scaleMode}`);
   // A selection on a phone opens the controls panel over the page; close it,
   // as a reader would, before the next gesture.
@@ -224,7 +244,20 @@ try {
   s = await state();
   ok('does not start a selection', s.sel === 0, JSON.stringify({ sel: s.sel }));
 
-  console.log('panning a zoomed page:');
+  console.log('one finger on a zoomed page:');
+  await reset();
+  await page.evaluate(() => { const h = document.getElementById('scroll'); h.scrollLeft = 200; h.scrollTop = 200; });
+  const pz = await state();
+  const hx = pz.host.l + 200, hy = pz.host.t + 400;
+  await touch('touchStart', [[hx, hy]]); await frame();
+  for (let i = 1; i <= 6; i++) { await touch('touchMove', [[hx - 15 * i, hy - 20 * i]]); await frame(); }
+  await touch('touchEnd', []); await frame();
+  s = await state();
+  ok('pans the page', near(s.scrollLeft - pz.scrollLeft, 90, 2) && near(s.scrollTop - pz.scrollTop, 120, 2),
+     JSON.stringify({ dx: s.scrollLeft - pz.scrollLeft, dy: s.scrollTop - pz.scrollTop }));
+  ok('and selects nothing', s.sel === 0 && !s.drag, JSON.stringify({ sel: s.sel, drag: s.drag }));
+
+  console.log('panning to the edge:');
   await page.evaluate(() => { const h = document.getElementById('scroll'); h.scrollLeft = 0; h.scrollTop = 0; });
   s = await state();
   ok('its left edge can be scrolled to', s.canvas.l >= s.host.l - 1, JSON.stringify({ canvas: s.canvas.l, host: s.host.l }));
@@ -235,6 +268,17 @@ try {
   await page.waitForTimeout(400);
   s = await state();
   ok('clamps at the floor', near(s.scale, 0.4, 0.001), String(s.scale));
+
+  console.log('a mouse drag:');
+  await reset();
+  const m = (await state()).canvas;
+  await page.mouse.move(m.l + 4, m.t + 4);
+  await page.mouse.down();
+  await page.mouse.move(m.l + m.w * 0.8, m.t + m.h * 0.4, { steps: 4 });
+  await page.mouse.up();
+  await frame();
+  s = await state();
+  ok('selects at once', s.sel > 0, JSON.stringify({ sel: s.sel }));
 } finally {
   await browser.close();
   server.close();
