@@ -1152,17 +1152,12 @@ test('the program mark opens every program in the shared menu, the open one mark
   shell.syncUrl = () => {};
   shell.goProgram('sessions', 'changes');
   shell.menuRepo = 'mehrlander/web-tools'; shell.menuKind = 'programs';
-  win.GithubLinks = { pathUrl: (repo, p, ref) => `https://github.com/${repo}/tree/${ref || 'main'}/${p}` };
   const items = shell.repoMenuItems;
-  delete win.GithubLinks;
-  assert.deepEqual(items.map(i => i.label), ['Every program', 'Sessions', 'Testing', 'Sessions on GitHub'],
-    'the Map\'s list, every program, then the open program\'s folder on GitHub');
+  assert.deepEqual(items.map(i => i.label), ['Sessions', 'Testing'],
+    'only the programs: no row for the Map\'s list, none for GitHub');
+  assert.ok(items.every(i => !i.external && typeof i.run === 'function'), 'every row opens a program here');
   assert.deepEqual(items.filter(i => i.current).map(i => i.label), ['Sessions']);
-  assert.match(items.at(-1).url, /github\.com\/mehrlander\/web-tools\/tree\/main\/programs\/sessions/);
   items.find(i => i.label === 'Testing').run();
   assert.equal(shell.programName, 'testing');
   assert.equal(shell.programTab, 'changes', 'the switcher keeps the tab in view');
-  items[0].run();
-  assert.equal(shell.view, 'map');
-  assert.equal(shell.mapTab, 'programs');
 });

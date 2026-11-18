@@ -6331,22 +6331,14 @@ function app(){ return {
                 title: 'Task board: ' + open.board, run: () => this.openProjectBoard(repo, open) },
     ].filter(Boolean);
   },
-  // The Program view's switcher, opened from the program mark: the Map's
-  // Programs list, where every program compares with the others, then every
-  // program under its own icon, the open one's label in primary, then the open
-  // program's folder on GitHub. A program opens on the tab in view where it
-  // has one.
+  // The Program view's switcher, opened from the program mark: every program
+  // under its own icon and nothing else, the open one's label in primary. A
+  // program opens on the tab in view where it has one.
   get programMenuItems(){
     const open = this.view === 'program' ? this.sidebarPrograms.find(p => p.name === this.programName) : null;
-    return [
-      { key: 'programs-list', label: 'Every program', icon: 'ph-gauge', title: 'The Programs tab of the Map',
-        run: () => this.goMap('programs') },
-      ...this.sidebarPrograms.map(p => ({ key: 'program:' + p.key, label: p.label, title: p.repo + ': ' + (p.path || p.name),
-        icon: p.icon, img: window.Programs?.iconSrc(p) || '', current: !!open && p.key === open.key,
-        run: () => this.goProgram(p.name, this.programTab) })),
-      open?.path && { key: 'program-github', label: open.label + ' on GitHub', icon: 'ph-github-logo', external: true,
-                      url: this.projectGithubUrl(open.repo, open), title: open.path + ' on GitHub' },
-    ].filter(Boolean);
+    return this.sidebarPrograms.map(p => ({ key: 'program:' + p.key, label: p.label, title: p.repo + ': ' + (p.path || p.name),
+      icon: p.icon, img: window.Programs?.iconSrc(p) || '', current: !!open && p.key === open.key,
+      run: () => this.goProgram(p.name, this.programTab) }));
   },
   // Rows the CALLER contributed for this opening, ahead of the standard ones.
   // A menu about a repo is opened from somewhere, and that somewhere sometimes

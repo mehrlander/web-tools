@@ -208,21 +208,48 @@ test('Programs lists each declaration on shared columns, with its open tasks fro
 
 // A program's page is the Program view since 2026-11-18 (program-view.test.mjs
 // holds the page). The list opens it: a title on its first tab, a measure's
-// name on Measures.
+// name on Measures. A row is its title, one row of flair (an icon and a count
+// each) and its views; a list among the flair opens in the chart panel-tip
+// rather than under the row.
 test("a program's title opens the Program view, and a measure's name opens it on Measures", async () => {
   const opened = [];
   window.__shell.goProgram = (name, tab) => opened.push([name, tab]);
+  const tip = () => el.querySelector('[data-map-chart-tip]');
   try {
     data.setTab('programs'); await settled();
     const row = el.querySelector('[data-map-programs] [data-map-program="surfacing"]');
     row.querySelector('[data-map-program-open]').click();
     assert.deepEqual(opened.at(-1), ['surfacing', undefined]);
-    row.querySelector('[data-map-program-measure]').click();
+    const flair = [...row.querySelectorAll('[data-map-program-flair]')];
+    assert.deepEqual(flair.map(f => f.dataset.mapProgramFlair), ['governs', 'tasks', 'measures', 'reviewers'], 'one row, in one order');
+    assert.deepEqual(flair.map(f => f.textContent.trim()), ['2', '2', '1', ''], 'counts, the reviewers by their icons');
+    assert.equal(row.querySelector('[data-map-program-measure]'), null, 'no list sits in the row');
+
+    row.querySelector('[data-map-program-flair="measures"]').click(); await settled();
+    assert.equal(data.chartTip?.key, 'measures:' + hub + ':surfacing');
+    assert.equal(data.chartTip.pinned, true, 'a tap pins it');
+    tip().querySelector('[data-chart-tip-link="measure:owner/private@background:state/closings.json"]').click();
     assert.deepEqual(opened.at(-1), ['surfacing', 'measures']);
+    assert.equal(data.chartTip, null, 'following a link closes the panel-tip');
+
+    row.querySelector('[data-map-program-flair="governs"]').click(); await settled();
+    assert.deepEqual([...tip().querySelectorAll('[x-blob]')].slice(1).map(a => a.textContent), ['CONVERSATION.md', 'showing.py'],
+      'the governed paths, by folder, each its own link');
+    assert.deepEqual([...data.chartTip.body.groups.map(g => g.dir)], ['docs/', 'python/']);
+    row.querySelector('[data-map-program-flair="governs"]').click(); await settled();
+    assert.equal(data.chartTip, null, 'its own flair closes it again');
+
+    row.querySelector('[data-map-program-flair="reviewers"]').click(); await settled();
+    assert.deepEqual([...data.chartTip.body.links.map(l => l.label)], ['owner-proxy']);
+    data.closeChartTip();
+
+    const views = row.querySelector('[data-map-program-views]');
+    assert.match(views.className, /overflow-x-auto/, 'the views run on one line that scrolls sideways');
+    assert.match(views.className, /flex-nowrap/);
     assert.equal(el.querySelector('[data-map-program-page]'), null, 'the Map draws no page of its own');
     assert.equal(el.querySelector('[data-map-programs] [data-program-measures]'), null, 'nor any measure charts');
     assert.notEqual(el.querySelector('[data-map-programs]').style.display, 'none', 'the list stays');
-  } finally { delete window.__shell.goProgram; data.setTab('research'); }
+  } finally { delete window.__shell.goProgram; data.closeChartTip(); data.setTab('research'); }
 });
 
 test('Docs omits research folders and declared studies while keeping neighboring documents', () => {
