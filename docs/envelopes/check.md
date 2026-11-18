@@ -2,9 +2,9 @@
 
 A **check** asks the owner to judge, one at a time, the outputs a model or a script made from its inputs. Each output is anchored to a passage of an input. The owner gives it one verdict from a declared set and may add a note.
 
-A `check/1` payload holds them as [runs](#the-payload). 🔷 [pages/check.html](https://mehrlander.github.io/web-tools/pages/check.html) draws each output beside its passage. It saves the owner's verdicts where the session that made the check reads them: the [answers file](#answers).
+A `check/1` payload holds the inputs and outputs as [runs](#the-payload), one input to a run. 🔷 [pages/check.html](https://mehrlander.github.io/web-tools/pages/check.html) draws each output beside its passage. It appends the verdicts to the payload's [answers file](#answers), which the session that made the check reads.
 
-The first producer is [`flag_check.py`](https://github.com/mehrlander/home/blob/main/projects/text/runs/2026-11-06-prompt-sentiment/src/flag_check.py) in [home](https://github.com/mehrlander/home). Its outputs are the preferences a model flagged in the owner's messages, each anchored at the sentence it quotes.
+The first producer is [`flag_check.py`](https://github.com/mehrlander/home/blob/main/projects/text/runs/2026-11-06-prompt-sentiment/src/flag_check.py) in [home](https://github.com/mehrlander/home). The script's outputs are the preferences a model flagged in the owner's messages, each anchored at the sentence it quotes.
 
 ## Delivery
 
