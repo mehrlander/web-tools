@@ -1,9 +1,12 @@
-// alpineComponents/session-brief.js: the Cost tab, after Turns, which draws
-// kits/session-usage.js's reading of a measured record as one chart in two
-// panels, through kits/usage-chart.js. Driven over a record handed in whole,
-// with the real kits loaded where the component asks for them; jsdom has no
-// layout, so the chart is drawn by calling the string builder at a width the
-// test names.
+// alpineComponents/session-brief.js: what a measured session cost, on the
+// Overview (the Cost tab's until 2026-11-17). One line of figures (the main
+// conversation's cost, the prompts, the context's peak, the compactions), a
+// short chart of the context after each prompt, and behind the cost figure a
+// panel with cost per prompt and the harness's own total. kits/session-usage.js
+// reads the record and kits/usage-chart.js draws both charts. Driven over a
+// record handed in whole, with the real kits loaded where the component asks
+// for them; jsdom has no layout, so a chart is drawn by calling the string
+// builder at a width the test names.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -67,59 +70,75 @@ await until(() => data('cost').usage);
 
 test('mounting is quiet', () => assert.deepEqual(problems, []));
 
-test('pane=cost lands on the tab, after Turns, and reads the record through the kit', () => {
+test('pane=cost lands on the Overview, reads the record through the kit, and opens the cost panel', async () => {
   const tabs = [...el('cost').querySelectorAll('[data-at="tabs"] [role="tab"]')].map((t) => t.textContent.trim());
-  assert.deepEqual(tabs.slice(0, 3), ['Overview', 'Turns', 'Cost']);
-  assert.equal(data('cost').topPane, 'cost');
+  assert.ok(!tabs.includes('Cost'), 'the Cost tab is gone');
+  assert.equal(data('cost').pane, 'overview');
   assert.ok(loads.includes('kits/session-usage.js'));
   assert.ok(loads.includes('kits/usage-chart.js'), 'the chart is the shared kit\'s');
   const u = data('cost').usage;
   assert.equal(u.prompts.length, 2, 'the peer note is not a prompt');
   assert.equal(u.totals.reloads, 1);
   assert.equal(u.totals.harness, 3.5);
+  assert.ok(await until(() => data('cost').factTip?.kind === 'cost'), 'the address asked for the cost, so its panel opens once');
+  assert.equal(data('cost').costAsked, false);
 });
 
-test('a record without responses has no Cost tab, and pane=cost falls back', () => {
+test('the cost line: the cost, the prompts, the peak and the compactions, the cost opening its panel', () => {
+  const line = el('cost').querySelector('[data-cost-line]');
+  const parts = [...line.children].map((n) => n.textContent.replace(/\s+/g, ' ').trim());
+  assert.deepEqual(parts.slice(1), ['2 prompts', 'context peak 205k', '1 compaction']);
+  const btn = line.querySelector('[data-at="cost"]');
+  assert.ok(btn.hasAttribute('data-fact-btn'), 'the figure is a control, as the head\'s counts are');
+  assert.match(btn.querySelector('i').className, /ph-coins/, 'the icon beside the figure (house style rule 10)');
+  assert.match(btn.getAttribute('aria-label'), /main conversation/);
+});
+
+test('a record without responses has no cost line, and pane=cost lands on the Overview', () => {
   assert.equal(data('old').measured, false);
-  assert.equal(data('old').topPane, 'overview');
-  const tab = el('old').querySelector('[data-at="cost"]');
-  assert.equal(tab.style.display, 'none');
+  assert.equal(data('old').pane, 'overview');
+  assert.equal(el('old').querySelector('[data-session-cost]').style.display, 'none');
+  assert.equal(data('old').usage, null);
 });
 
-test('the totals carry the list-price caveat once, as a title-tip', () => {
-  const line = el('cost').querySelector('[data-cost-total]');
-  assert.match(line.textContent, /main conversation/);
-  assert.match(line.getAttribute('data-title-tip'), /list prices.*not what a subscription is billed/);
-  assert.equal(el('cost').querySelectorAll('[data-session-cost] [title]').length, 0, 'no fact in a title');
+test('the panel carries the list-price caveat once, as a title-tip, and the harness total beside it', async () => {
+  assert.ok(await until(() => el('cost').querySelector('[data-cost-panel]')));
+  const panel = el('cost').querySelector('[data-cost-panel]');
+  const head = panel.querySelector('[data-cost-total]');
+  assert.match(head.textContent, /main conversation/);
+  assert.match(head.getAttribute('data-title-tip'), /list prices.*not what a subscription is billed/);
+  assert.match(panel.querySelector('[data-cost-harness]').textContent, /harness total\s*\$3\.50/);
+  assert.equal(panel.querySelectorAll('[title]').length, 0, 'no fact in a title');
+  const chart = panel.querySelector('[data-cost-panel-chart]').innerHTML;
+  assert.match(chart, /normal cost/, 'cost per prompt, as bars behind the context line');
+  assert.match(chart, /idle re-load/);
 });
 
-test('the chart: two panels, a bar and a re-load segment, hues by theme, a compaction linked to its summary', () => {
+test('the Overview\'s chart: the context panel alone, short, hues by theme, a compaction linked to its summary', () => {
   const d = data('cost');
-  const light = d.costSvg(d.usage, 390, false, 120);
+  const light = d.costSvg(d.usage, 390, false);
   assert.match(light, /width="390"/);
   assert.match(light, /Context after each prompt/);
-  assert.match(light, /Cost of each prompt/);
-  assert.match(light, />normal cost</);
-  assert.match(light, />idle re-load</);
-  assert.match(light, /fill="#2a78d6"/);
-  assert.match(light, /fill="#eb6834"/);
-  const dark = d.costSvg(d.usage, 390, true, 120);
+  assert.doesNotMatch(light, /Cost of each prompt/, 'cost per prompt is the panel\'s');
+  assert.match(light, /stroke="#2a78d6"/);
+  const dark = d.costSvg(d.usage, 390, true);
   assert.match(dark, /#3987e5/);
-  assert.match(dark, /#d95926/);
   assert.doesNotMatch(dark, /#2a78d6/);
   // Text is drawn in the text colour, never a series colour.
   assert.doesNotMatch(light, /<text[^>]*fill="#/);
   assert.match(light, /href="https:\/\/mehrlander\.github\.io\/web-tools\/pages\/compactions\.html#at=2026-11-03-c0517ab1-20261103T133000Z"/);
-  // One hit area per prompt in each panel, carrying its figures.
+  // One hit area per prompt, carrying its figures.
   const hits = light.match(/data-k="\d+"/g) || [];
-  assert.equal(hits.length, 4);
+  assert.equal(hits.length, 2);
   assert.match(light, /data-title-tip-lead="Prompt 2"/);
+  const h = +light.match(/height="(\d+)"/)[1];
+  assert.ok(h < 110, 'short: ' + h + 'px');
 });
 
 test('a tap goes to that prompt\'s turn, by its place in record.prompts', async () => {
   const d = data('cost');
   const host = el('cost').querySelector('[data-cost-chart]');
-  host.innerHTML = d.costSvg(d.usage, 390, false, 120);
+  host.innerHTML = d.costSvg(d.usage, 390, false);
   d._costHost = host;
   const jumps = [];
   d.goTurn = (i) => jumps.push(i);

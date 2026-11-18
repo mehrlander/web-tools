@@ -293,3 +293,61 @@ test('into() installs a copy of the kit in a frame, once', () => {
   assert.equal(w.TitleTip, first, 'a second call keeps the first copy');
   f.remove();
 });
+
+// A SPOKEN NAME. A `title` on an icon-only button was also its accessible name,
+// and aria-describedby reaches the title-tip only while it is open. So the kit
+// names an element that has no name of its own from its tip, and leaves alone
+// one that has.
+const settle = () => new Promise((r) => setTimeout(r, 0));
+
+test('an icon-only control is named from its title-tip, and the name follows a bound tip', async () => {
+  const b = window.document.createElement('button');
+  b.setAttribute('data-title-tip', 'Close');
+  b.innerHTML = '<i class="ph ph-x"></i>';
+  window.document.body.append(b);
+  TitleTip.refresh();
+  assert.equal(b.getAttribute('aria-label'), 'Close');
+  b.setAttribute('data-title-tip', 'Close the panel');
+  await settle();
+  assert.equal(b.getAttribute('aria-label'), 'Close the panel', 'a changed tip renames the control');
+  b.setAttribute('data-title-tip', '');
+  await settle();
+  assert.equal(b.hasAttribute('aria-label'), false, 'an emptied tip withdraws the name it gave');
+  b.remove();
+});
+
+test('an element with a name of its own keeps it', async () => {
+  const withText = window.document.createElement('button');
+  withText.setAttribute('data-title-tip', 'Saves to the branch');
+  withText.textContent = 'Save';
+  const withLabel = window.document.createElement('button');
+  withLabel.setAttribute('data-title-tip', 'Copy the link');
+  withLabel.setAttribute('aria-label', 'Copy');
+  withLabel.innerHTML = '<i class="ph ph-copy"></i>';
+  const withLabelledby = window.document.createElement('button');
+  withLabelledby.setAttribute('data-title-tip', 'Open');
+  withLabelledby.setAttribute('aria-labelledby', 'a');
+  window.document.body.append(withText, withLabel, withLabelledby);
+  TitleTip.refresh();
+  assert.equal(withText.hasAttribute('aria-label'), false, 'text content is the name');
+  assert.equal(withLabel.getAttribute('aria-label'), 'Copy', 'an author\'s aria-label is never replaced');
+  withLabel.setAttribute('data-title-tip', 'Copy the address');
+  await settle();
+  assert.equal(withLabel.getAttribute('aria-label'), 'Copy', 'nor rewritten when the tip changes');
+  assert.equal(withLabelledby.hasAttribute('aria-label'), false);
+  withText.remove(); withLabel.remove(); withLabelledby.remove();
+});
+
+test('text filled in after the first pass replaces the name the kit gave', async () => {
+  // An x-text span is empty when the kit first looks at it; once Alpine writes
+  // its text, the text is the name and the tip goes back to describing it.
+  const s = window.document.createElement('span');
+  s.setAttribute('data-title-tip', '2026-11-16T18:35:02Z');
+  window.document.body.append(s);
+  TitleTip.refresh();
+  assert.equal(s.getAttribute('aria-label'), '2026-11-16T18:35:02Z');
+  s.textContent = '2026-11-16';
+  await settle();
+  assert.equal(s.hasAttribute('aria-label'), false);
+  s.remove();
+});
