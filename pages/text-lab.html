@@ -1456,11 +1456,11 @@
         const tab = (key, label) => `<button type="button" role="tab" data-exemplar-tab="${key}" aria-selected="${face === key}"`
           + ` class="${this.SEG.item} text-base-content/70 group-data-[tab=${key}]:bg-base-100 group-data-[tab=${key}]:font-medium`
           + ` group-data-[tab=${key}]:text-base-content group-data-[tab=${key}]:shadow-sm">${label}</button>`;
-        return `<div class="group pb-[calc(var(--fab-bottom,1.5rem)+4rem)]${this.marksMode === 'c' ? ' pr-5' : ''}" data-exemplar-body="${esc(p.id)}" data-tab="${face}" data-cites="${this.citeMode}">`
+        return `<div class="group pb-[calc(var(--fab-bottom,1.5rem)+4rem)]${this.marksMode === 'c' ? ' pr-6' : ''}" data-exemplar-body="${esc(p.id)}" data-tab="${face}" data-cites="${this.citeMode}">`
           // Stuck above the slide's own top padding, so no line shows through it.
           + `<div class="sticky -top-8 z-[1] -mt-8 pt-8 -mx-1 px-1 pb-3 bg-base-100 flex items-center justify-between gap-2"><div class="${this.SEG.box}" role="tablist" aria-label="Show">`
           + tab('text', 'Text') + tab('context', 'Context') + `</div>${this.citesControl(p)}</div>`
-          + `<div data-pane="text" class="min-w-0 group-data-[tab=context]:hidden">${this.exemplarDoc(p)}</div>`
+          + `<div data-pane="text" class="min-w-0 pt-2 group-data-[tab=context]:hidden">${this.exemplarDoc(p)}</div>`
           + `<div data-pane="context" class="hidden group-data-[tab=context]:grid gap-8 min-w-0">${this.exemplarContextHtml(p)}</div></div>`;
       },
       // Trial c's way to the citations' look, which a and b keep in the FAB's
@@ -1872,7 +1872,7 @@
             : kind === 'focus' ? [body.querySelectorAll('[data-focus]')[k]] : [...body.querySelectorAll(`[data-cite="${k}"]`)];
           if (!els[0]) return;
           this.scrollToMark(body, els[0]);
-          this.ringMark(els);
+          this.ringMark(kind === 'cite' ? els : [this.ringable(body, els[0])]);
           if (kind === 'focus') { body.dataset.next = String(k + 1); this.noteFocus(id, k); }
           setTimeout(() => this.railDraw(), 400);
         };
@@ -1884,6 +1884,20 @@
       // it is underlined instead, one line through all of its pieces.
       RING: ['ring-2', 'ring-base-content/40', 'ring-offset-4', 'ring-offset-base-100', 'rounded-sm'],
       UNDERLINE: ['underline', 'decoration-2', 'decoration-base-content/60', 'underline-offset-[6px]'],
+      // A RING THE READER SEES WHOLE. A block taller than the card's view
+      // cannot be ringed whole, and a ring the card's edge cuts off reads as
+      // a fault, so such a block is ringed at its opening instead: a focus
+      // passage at its heading line, whose rule still shows how far it runs,
+      // and a caption at its first paragraph.
+      ringable(body, el) {
+        const box = this.scrollerOf(el), row = body.querySelector('[role="tablist"]')?.parentElement;
+        if (!box) return el;
+        const under = row ? Math.max(0, row.getBoundingClientRect().bottom - box.getBoundingClientRect().top) : 0;
+        const room = box.clientHeight - under - 24;
+        if (el.offsetHeight <= room) return el;
+        const open = el.matches('[data-focus]') ? el.firstElementChild : el.querySelector('.guide-body > :first-child, p');
+        return open && open.offsetHeight <= room ? open : el;
+      },
       ringMark(els) {
         clearTimeout(this._ringT);
         const off = () => { for (const [e, c] of this._ringEls || []) e.classList.remove(...c); };
@@ -1902,19 +1916,25 @@
       // Trial c: a rail down the card's right edge, a tick at each mark where
       // the render has it (a bar the length of a focus passage, a short tick a
       // citation) and a box for the part in view, as a diff's minimap draws
-      // one. Each kind keeps its own side of the rail, focus on the left and
-      // citations on the right, since a focus passage holds citations of its
-      // own and a tick drawn over its bar would take the tap meant for the
-      // passage. A tick takes the reader to its mark; anywhere else on the
-      // rail to that point of the piece. Drawn over the card from outside the
+      // one. A tick takes the reader to its mark; anywhere else on the rail
+      // to that point of the piece. Drawn over the card from outside the
       // slides, so it stays put while the piece scrolls.
+      //
+      // A FINGER, NOT A POINTER. Each mark is a target the rail's full width
+      // across and a little into the gutter beside it, its visible bar or
+      // tick drawn inside it: a focus passage owns
+      // its stretch of the rail and a little more, and a citation reaches
+      // halfway to its neighbours. Drawn only as wide as they look (six
+      // pixels), a tap a few pixels off the bar went to a citation inside the
+      // passage, so the card scrolled near the passage and a walkthrough
+      // waiting for the bar never saw it tapped (owner, iPhone, 2026-11-18).
       railMount(card) {
         if (this.marksMode !== 'c' || !card || card.querySelector('[data-rail]')) return;
         card.classList.add('relative');
         const rail = document.createElement('div');
         rail.dataset.rail = '';
         rail.setAttribute('aria-label', 'Marks in this piece');
-        rail.className = 'absolute z-[2] w-4 rounded-sm bg-base-200/70 cursor-pointer';
+        rail.className = 'absolute z-[2] w-5 rounded-sm bg-base-200/70 cursor-pointer';
         rail.hidden = true;
         card.append(rail);
         rail.addEventListener('click', e => this.railClick(e));
@@ -1935,30 +1955,49 @@
         rail.style.top = ((card.querySelector('[data-ls="head"]')?.offsetHeight || 0) + 8) + 'px';
         rail.style.bottom = '8px';
         rail.style.right = (box.offsetWidth - box.clientWidth + 2) + 'px';
-        const b = body.getBoundingClientRect(), pct = v => (v / (b.height || 1) * 100).toFixed(2) + '%';
-        const n = p.focusSpans.length, seen = new Set();
-        const focus = [...body.querySelectorAll('[data-focus]')].map((el, k) => {
-          const r = el.getBoundingClientRect();
-          return `<button type="button" data-rail-go="focus:${k}" aria-label="${n > 1 ? `Focus ${k + 1} of ${n}` : 'Focus'}"`
-            + ` class="absolute left-0.5 w-1.5 min-h-1 rounded-sm bg-base-content/50 hover:bg-base-content/80" style="top:${pct(r.top - b.top)};height:${pct(r.height)}"></button>`;
+        // Positions in the rail's own pixels, a point of the piece to a point
+        // of the rail; a resize redraws.
+        const b = body.getBoundingClientRect(), H = rail.getBoundingClientRect().height || 1;
+        const y = v => (v - b.top) / (b.height || 1) * H, px = v => v.toFixed(1) + 'px';
+        const n = p.focusSpans.length, PAD = 6, CAP = 12, seen = new Set();
+        const bars = [...body.querySelectorAll('[data-focus]')].map((el, k) => {
+          const r = el.getBoundingClientRect(), t = y(r.top), h = Math.max(4, y(r.bottom) - t);
+          return { k, t, h, top: t - PAD, bot: t + h + PAD };
         });
+        const inBar = v => bars.some(f => v >= f.top && v <= f.bot);
         // A hidden citation has no place in the text, so it has none on the
         // rail. A citation whose tick would touch the one above it gets none
-        // either: a phone's rail packs 110 citations into a few hundred pixels,
-        // and a tick drawn under its neighbour is one no tap can reach. Its
-        // place is still the neighbour's, a scroll away.
-        const H = rail.getBoundingClientRect().height || 1;
+        // either: its place is the neighbour's, a scroll away.
         let last = -Infinity;
-        const cites = [...body.querySelectorAll('[data-cite]')].filter(el => el.getClientRects().length && !seen.has(el.dataset.cite) && seen.add(el.dataset.cite)).flatMap(el => {
-          const r = el.getBoundingClientRect(), y = (r.top - b.top) / (b.height || 1) * H;
-          if (y - last < 5) return [];
-          last = y;
-          return [`<button type="button" data-rail-go="cite:${el.dataset.cite}" aria-label="Citation ${+el.dataset.cite + 1}"`
-            + ` class="absolute right-0.5 w-1.5 h-[3px] rounded-full bg-base-content/30 hover:bg-base-content/70" style="top:${pct(r.top - b.top)}"></button>`];
+        const ticks = [];
+        for (const el of body.querySelectorAll('[data-cite]')) {
+          if (!el.getClientRects().length || seen.has(el.dataset.cite)) continue;
+          seen.add(el.dataset.cite);
+          const v = y(el.getBoundingClientRect().top);
+          if (v - last < 5) continue;
+          last = v;
+          ticks.push({ k: +el.dataset.cite, v });
+        }
+        const free = ticks.filter(t => !inBar(t.v));
+        const zones = free.map((t, i) => {
+          let top = Math.max(t.v - CAP, i ? (free[i - 1].v + t.v) / 2 : -Infinity);
+          let bot = Math.min(t.v + CAP, i < free.length - 1 ? (t.v + free[i + 1].v) / 2 : Infinity);
+          for (const f of bars) { if (f.bot > top && f.bot <= t.v) top = f.bot; if (f.top < bot && f.top > t.v) bot = f.top; }
+          return { ...t, top: Math.max(0, top), bot: Math.min(H, bot) };
         });
+        const TICK = 'pointer-events-none absolute right-0.5 h-[3px] w-1.5 rounded-full bg-base-content/30';
+        const cites = zones.map(z => `<button type="button" data-rail-go="cite:${z.k}" aria-label="Citation ${z.k + 1}"`
+            + ` class="group/tick pointer-events-auto absolute -left-2 right-0" style="top:${px(z.top)};height:${px(z.bot - z.top)}">`
+            + `<span class="${TICK} group-hover/tick:bg-base-content/70" style="top:${px(z.v - z.top)}"></span></button>`)
+          .concat(ticks.filter(t => inBar(t.v)).map(t => `<span aria-hidden="true" class="${TICK}" style="top:${px(t.v)}"></span>`));
+        const focus = bars.map(f => `<button type="button" data-rail-go="focus:${f.k}" aria-label="${n > 1 ? `Focus ${f.k + 1} of ${n}` : 'Focus'}"`
+          + ` class="group/bar absolute -left-2 right-0" style="top:${px(f.top)};height:${px(f.bot - f.top)}">`
+          + `<span class="pointer-events-none absolute left-2.5 w-1.5 rounded-sm bg-base-content/50 group-hover/bar:bg-base-content/80" style="top:${px(PAD)};height:${px(f.h)}"></span></button>`);
+        // The citations in one layer a walkthrough can name ("any tick"), the
+        // focus bars over it, so a passage's own stretch of the rail is its.
+        const html = (ticks.length ? `<div data-rail-cites class="pointer-events-none absolute inset-y-0 -left-2 right-0">${cites.join('')}</div>` : '') + focus.join('');
         // Rebuilt only when a tick moved, so a tick a reader (or a look link)
         // is about to tap is still the element on screen when they do.
-        const html = focus.join('') + cites.join('');
         if (rail._ticks !== html) {
           rail.innerHTML = `<div data-rail-view class="absolute inset-x-0 rounded-sm bg-base-content/10 pointer-events-none"></div>` + html;
           rail._ticks = html;
