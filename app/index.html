@@ -600,8 +600,16 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
                          class="grow min-w-0 text-base [&::-webkit-search-cancel-button]:hidden"
                          :placeholder="placeholder"
                          x-model="q" @input="push()" @focus="expand()" @blur="collapse()"
-                         @keydown.enter.prevent="$el.blur()" @keydown.escape.prevent="clear(); $el.blur()">
+                         @keydown.enter.prevent="enter($el)" @keydown.escape.prevent="clear(); $el.blur()">
                   <span x-show="q && shown" class="shrink-0 text-sm tabular-nums text-base-content/50" x-text="shown"></span>
+                  <!-- Where a view's box declares a results page for its term
+                       (data-find-submit), Enter opens it, and this is the same
+                       act for a pointer. Its place is held while there is no
+                       term, so the count beside it does not move. -->
+                  <button type="button" x-show="submit" @pointerdown.prevent @click="enter($refs.box)"
+                          :class="q.trim() ? '' : 'invisible'" data-find-submit-button
+                          class="shrink-0 h-8 px-2 flex items-center gap-1 rounded-md bg-primary/10 text-primary text-sm font-medium">
+                    <i class="ph ph-arrow-elbow-down-left text-base leading-none"></i>Results</button>
                   <button type="button" x-show="q" @pointerdown.prevent @click="clear()" aria-label="Clear the filter"
                           class="shrink-0 -mr-1 h-8 w-8 grid place-items-center rounded-md text-base-content/50 hover:text-base-content">
                     <i class="ph ph-x-circle text-lg leading-none"></i>
@@ -9716,7 +9724,7 @@ function findPill(){
   };
   const scope = () => { const s = window.__shell; return s ? s.view + (s.view === 'map' ? ':' + s.mapTab : '') : ''; };
   return {
-    has: false, open: false, q: '', placeholder: 'Filter', shown: '', also: [], recents: [],
+    has: false, open: false, q: '', placeholder: 'Filter', shown: '', also: [], recents: [], submit: '',
 
     // Retried because a view mounts its component lazily on first visit.
     resolve(){ this.$nextTick(() => [0, 250, 1000, 2500].forEach(ms => setTimeout(() => this.find(), ms))); },
@@ -9734,7 +9742,7 @@ function findPill(){
       watch?.disconnect();
       if (box) {
         watch = new MutationObserver(() => this.mark());
-        watch.observe(viewOf(box), { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['style', 'class', 'data-find-count', 'data-find-noun', 'data-find-also'] });
+        watch.observe(viewOf(box), { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['style', 'class', 'data-find-count', 'data-find-noun', 'data-find-also', 'data-find-submit'] });
       }
       this.mark();
     },
@@ -9847,6 +9855,7 @@ function findPill(){
         let also = [];
         try { also = JSON.parse(d.findAlso || '[]'); } catch {}
         this.also = also.filter(a => a.n > 0).map(a => ({ ...a, text: this.phrase(a.n, a.noun) }));
+        this.submit = d.findSubmit || '';
         if (!box || !terms.length) { reg?.delete('find-pill'); return; }
         const root = this.listOf() || box.closest('section') || viewOf(box);
         if (!reg) return;
@@ -9868,6 +9877,16 @@ function findPill(){
     phrase(n, noun = 'match|matches'){
       const [one, many] = noun.includes('|') ? noun.split('|') : [noun, noun + 's'];
       return n + ' ' + (n === 1 ? one : many);
+    },
+    // Enter closes the bar, as it always has. Where the view's box names a
+    // results page for its term (data-find-submit, a method of the view's own
+    // component, as an Also entry's `go` is), Enter opens that page with the
+    // term as typed: the view's own model may be debounced behind it.
+    enter(el){
+      const t = this.q.trim(), go = this.submit;
+      const view = t && go && box && window.Alpine?.$data(box);
+      el.blur();
+      if (typeof view?.[go] === 'function') view[go](t);
     },
     // An Also entry names a method of the view's own component (the box's
     // scope) and its argument, so the view decides what opening its other
