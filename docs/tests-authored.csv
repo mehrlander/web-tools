@@ -251,6 +251,7 @@ node/test/pdf-flow-start.mjs,behavior,"pdf.flow's `start` lands on the requested
 node/test/pdf-flow.mjs,behavior,"What a gesture MEANS when a PDF is read inside the stage reader's deck of documents: sideways over a page must reach the document deck, and down over it must move the pages without moving the deck."
 node/test/pdf-ink-alignment.mjs,behavior,"Extracted table cells line up with the ink on the page, which jsdom cannot see."
 node/test/pdf-inspect-address.mjs,behavior,"The workbench's page address: a link that names a page must open on it, since the viewer's magnifier now hands over the page under the reader's thumb and a handoff that drops what it was given looks exactly like one never asked."
+node/test/pdf-inspect-pinch.mjs,behavior,"Pinch-zoom on the workbench's page stage: one finger still selects, two fingers scale the canvas and the overlay together and re-render at the new scale on lift, the point under the fingers stays put, the overlay stays on the ink, and the finger left behind after a pinch starts no selection."
 node/test/pdf-kit-browser.mjs,behavior,"The pdf kit against real pdf.js in Chromium, where the worker and fonts actually load."
 node/test/pdf-kit.test.mjs,behavior,"Table recovery from a PDF: clustering, lattice detection, tolerances, and the government-document failure modes."
 node/test/pdf-version-probe.mjs,behavior,The kit still works against the pdf.js versions the estate pins.

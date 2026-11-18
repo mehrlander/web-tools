@@ -3,6 +3,7 @@
 Working files and indexes are never staged, switched, reset, moved or deleted.
 """
 import argparse
+import base64
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 import hashlib
@@ -11,6 +12,9 @@ import os
 from pathlib import Path
 import re
 import sqlite3
+import shutil
+import subprocess
+import tempfile
 import time
 
 import laptop_inventory as inventory
@@ -39,11 +43,8 @@ def discover(roots, budget=15000):
             try:
                 if path.is_symlink() or inventory.linked(path.lstat()): continue
                 if (path / '.git').exists():
-                    repo = repositories.github_name(repositories.git(path, 'config', '--get', 'remote.origin.url'))
-                    common = repositories.git(path, 'rev-parse', '--path-format=absolute', '--git-common-dir')
                     entries.append({'id': repositories.key(str(path.resolve()).casefold()), 'path': path,
-                                    'repo': repo, 'scope': label, 'relative': path.relative_to(root).as_posix(),
-                                    'common': repositories.key(str(common or path).casefold())})
+                                    'scope': label, 'relative': path.relative_to(root).as_posix()})
                     continue
                 children = list(path.iterdir())
                 # Code projects and legacy thread folders are useful units even
@@ -61,28 +62,50 @@ def discover(roots, budget=15000):
     return entries, loose, remaining > 0
 
 
-def observe(entry, state):
+def common_directory(path):
+    """Read standard worktree pointers, falling back to Git for other layouts."""
+    if any(os.environ.get(name) for name in ('GIT_DIR', 'GIT_COMMON_DIR', 'GIT_WORK_TREE')): return None
+    try:
+        directory = path / '.git'
+        if directory.is_file():
+            if directory.stat().st_size > 32768: return None
+            pointer = directory.read_text(encoding='utf-8').rstrip('\r\n')
+            if not pointer.startswith('gitdir: '): return None
+            directory = path / pointer[8:]
+        common = directory / 'commondir'
+        if common.is_file():
+            if common.stat().st_size > 32768: return None
+            directory = directory / common.read_text(encoding='utf-8').rstrip('\r\n')
+        return directory.resolve().as_posix() if directory.is_dir() else None
+    except (OSError, ValueError, UnicodeError): return None
+
+
+def observe(entry, state, comparisons=None):
     path = entry['path']
-    row = repositories.local_status(entry)
+    entry['repo'] = repositories.github_name(repositories.git(path, 'config', '--get', 'remote.origin.url'))
+    common = common_directory(path) or repositories.git(path, 'rev-parse', '--path-format=absolute', '--git-common-dir')
+    entry['common'] = repositories.key(str(common or path).casefold())
+    row = repositories.local_status(entry, activity=True)
     source = repositories.read_source(state, repositories.key(entry['repo'].lower() if entry['repo'] else str(path.resolve()).lower()))
-    cache = {}
+    cache = dict(comparisons or {})
     tracked = repositories.compare(entry, row, repositories.tracking_branch(row, source), source, cache)
     main = repositories.compare(entry, row, source.get('defaultBranch'), source, cache)
     online = 'unknown'
     tips = source.get('tips', {}) if source.get('checkedAt') else {}
-    if row['head'] and any(row['head'] == tip or repositories.git(path, 'merge-base', '--is-ancestor', row['head'], tip) is not None for tip in tips.values()):
+    contained = None
+    if row['head'] and tips and row['head'] not in tips.values():
+        contained = repositories.git(path, 'for-each-ref', '--contains', row['head'], '--format=%(objectname)')
+    if row['head'] and (row['head'] in tips.values() or contained is not None and any(oid in tips.values() for oid in contained.splitlines())):
         online = 'pushed'
     elif tracked['ahead'] is not None and tracked['ahead'] > 0:
         online = 'local-commits'
-    ignored = repositories.git(path, 'ls-files', '--others', '--ignored', '--exclude-standard', '--directory', '-z', strip=False)
-    stash = repositories.git(path, 'stash', 'list', '--format=%H')
     return {'id': entry['id'], 'scope': entry['scope'], 'path': entry['relative'], 'repo': entry['repo'],
             'store': entry['common'], 'branch': row['branch'], 'head': row['head'],
             'changed': row['changed'], 'untracked': row['untracked'], 'conflicts': row['conflicts'],
-            'ignored': None if ignored is None else len([p for p in ignored.split('\0') if p]),
+            'ignored': row['ignored'],
             'publication': online, 'integration': 'incorporated' if main['ahead'] == 0 else 'unknown',
             'tracked': tracked, 'main': main, 'checkedAt': source.get('checkedAt'),
-            'stashes': None if stash is None else len(stash.splitlines()),
+            'stashes': row['stashes'],
             'notice': source.get('notice'), 'state': 'ready' if row['changed'] is not None else 'unavailable'}
 
 
@@ -90,8 +113,12 @@ def build(root, state, profile, legacy=True, limit=1024):
     roots = [('repositories', Path(root), 4), ('code', Path(profile) / 'Code', 2)]
     if legacy: roots.append(('threads', Path(profile) / 'Documents/Codex', 5))
     entries, loose, complete = discover(roots)
-    with ThreadPoolExecutor(max_workers=4) as pool:
-        rows = list(pool.map(lambda e: observe(e, state), entries))
+    try:
+        comparisons = json.loads((Path(state) / 'repository-comparisons.json').read_text(encoding='utf-8'))
+        if not isinstance(comparisons, dict): comparisons = {}
+    except (OSError, ValueError): comparisons = {}
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        rows = list(pool.map(lambda e: observe(e, state, comparisons), entries))
     records, coverage = [], []
     for reader in (local_sessions.codex, local_sessions.gemini):
         try:
@@ -125,7 +152,20 @@ def replace_files(repository, base, files):
         branch = changes
         parts = path.split('/')
         for part in parts[:-1]: branch = branch.setdefault(part, {})
-        branch[parts[-1]] = inventory.text(repository, 'hash-object', '-w', '--stdin', data=body)
+        branch[parts[-1]] = path
+    # One process writes the batch, including unchanged records. Temporary files
+    # contain only the captured bytes and never enter the repository checkout.
+    with tempfile.TemporaryDirectory(prefix='local-conversation-') as scratch:
+        paths = []
+        for index, body in enumerate(files.values()):
+            path = Path(scratch) / str(index)
+            path.write_bytes(body)
+            paths.append(path.as_posix())
+        hashes = inventory.text(repository, 'hash-object', '-w', '--no-filters', '--stdin-paths',
+                                data=('\n'.join(paths) + '\n').encode('utf-8')).splitlines() if paths else []
+        if len(hashes) != len(files) or any(not re.fullmatch(r'[0-9a-f]{40,64}', oid) for oid in hashes):
+            raise inventory.InventoryError('Captured object batch unavailable')
+        blobs = dict(zip(files, hashes))
     def rewrite(revision, additions):
         existing = inventory.tree(repository, revision) if revision else {}
         for name, value in additions.items():
@@ -138,14 +178,54 @@ def replace_files(repository, base, files):
                 existing[key] = b'040000 tree ' + sha.encode() + b'\t' + key
             else:
                 if old and not old.startswith(b'100644 blob '): raise ValueError('Capture destination is not a file')
-                existing[key] = b'100644 blob ' + value.encode() + b'\t' + key
+                existing[key] = b'100644 blob ' + blobs[value].encode() + b'\t' + key
         return inventory.text(repository, 'mktree', '-z', data=b'\0'.join(existing.values()) + b'\0')
     return rewrite(base, changes)
+
+
+def github_api(gh, endpoint, method='GET', payload=None):
+    command = [gh, 'api', endpoint, '--method', method, '--include', '-H', 'Accept: application/vnd.github+json']
+    if payload is not None: command.extend(['--input', '-'])
+    response = subprocess.run(command, input=json.dumps(payload).encode() if payload is not None else None,
+                              capture_output=True, timeout=90, env={**os.environ, 'GH_PROMPT_DISABLED': '1'})
+    status = re.match(rb'HTTP/\S+\s+(\d+)', response.stdout)
+    separator = re.search(rb'\r?\n\r?\n', response.stdout)
+    if not status or not separator: raise inventory.InventoryError('Snapshot response unavailable')
+    return int(status[1]), json.loads(response.stdout[separator.end():])
+
+
+def publish_snapshot(gh, body, subject):
+    endpoint = 'repos/mehrlander/web-tools-private/contents/' + TARGET
+    for attempt in range(4):
+        status, current = github_api(gh, endpoint + '?ref=background')
+        if status not in (200, 404): break
+        payload = {'branch': 'background', 'content': base64.b64encode(body).decode(),
+                   'message': subject + '\n\nCo-Authored-By: Codex <codex@openai.com>\n'}
+        if status == 200:
+            if current.get('type') != 'file' or current.get('path') != TARGET:
+                raise inventory.InventoryError('Snapshot destination is not a file')
+            payload['sha'] = current['sha']
+            if current.get('encoding') == 'base64':
+                previous = base64.b64decode(current.get('content', ''))
+                if previous == body: return 'unchanged'
+                try:
+                    before = datetime.fromisoformat(json.loads(previous)['observedAt'])
+                    candidate = datetime.fromisoformat(json.loads(body)['observedAt'])
+                    if before > candidate: return 'superseded'
+                except (ValueError, KeyError, TypeError): pass
+        status, _ = github_api(gh, endpoint, 'PUT', payload)
+        if status in (200, 201): return 'published'
+        if status not in (409, 422): break
+        time.sleep(.25 * (attempt + 1))
+    raise inventory.InventoryError('Snapshot publication unavailable; no working files changed')
 
 
 def publish(repository, files, branch, subject):
     if branch not in ('main', 'background') or not inventory.approved_origin(repository):
         raise ValueError('Private capture destination unavailable')
+    gh = shutil.which('gh')
+    if branch == 'background' and set(files) == {TARGET} and gh:
+        return publish_snapshot(gh, files[TARGET], subject)
     for attempt in range(4):
         inventory.git(repository, 'fetch', '--quiet', '--no-tags', '--no-prune', '--no-prune-tags', '--no-recurse-submodules', '--no-auto-maintenance',
                       '--no-write-fetch-head', '--refmap=', 'origin', f'+refs/heads/{branch}:refs/remotes/origin/{branch}')

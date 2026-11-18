@@ -267,8 +267,6 @@
       "path": "programs/content",
       "governs": [
         "docs/QUALIFIED-WRITING.md",
-        "skills/peeves/",
-        "docs/house-policies.md",
         "skills/doc-craft/",
         "data/doc-growth/",
         "docs/themes.csv",

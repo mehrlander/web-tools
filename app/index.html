@@ -295,7 +295,7 @@
    directly. The phone was already right, a true fullscreen takeover, and
    spending 3.5rem of a short screen on a nav row the reader is not using would
    have been a regression dressed as consistency. syncDeckFrame() measures the
-   header rather than restating its h-14, since it is conditional (shellMode)
+   header rather than restating its h-14, since it is conditional (headerOn)
    and a hidden header measures 0 for free. */
 @media (min-width:1024px){:root{--deck-top:var(--deck-head,0px)}}
 @media (min-width:1024px){:root[data-deck-pane="inset"]{--deck-left:var(--deck-side,0px);--deck-border:1px}}
@@ -361,8 +361,8 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
      files, stage, branches — plus pinned and recent shortcuts; the actual folder/file
      navigation lives in the main area (breadcrumb + listing, file content
      beneath). The sidebar shows or hides at every width, out by default on a
-     wide screen and away on a phone; ?shell= sets how much of this frame a link
-     opens with. See the design notes at the end of this file. -->
+     wide screen and away on a phone; ?header= and ?sidebar= set how much of
+     this frame a link opens with. See the design notes at the end of this file. -->
 <body class="h-dvh flex flex-col overflow-hidden bg-base-100 text-base-content [&_*::highlight(find-pill)]:bg-[rgb(250_204_21/0.45)]" x-data="app()" x-cloak :aria-busy="_booted ? 'false' : 'true'">
 
 <!-- App-wide drag cue. Purely visual (pointer-events-none), so the drop still
@@ -440,15 +440,15 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
      is doing work; two copies of it on one screen were the redundancy, not the
      mark itself. What the header buys is the width.
 
-     THE WHOLE HEADER IS CONDITIONAL under ?shell=none, which is what makes an
+     THE WHOLE HEADER IS CONDITIONAL under ?header=0, which is what makes an
      unframed link possible at all: every other view here is the shell's own,
      with no standalone page behind it to link to the way an app view or a
      custom landing has one. The way back is the FAB's Render tab, which
-     carries the mode as a bar. ─────────────────────────────────────────── -->
+     carries the header as a toggle. ─────────────────────────────────────────── -->
 <!-- z-[35], one past the Map's pinned tab strip (z-30 below lg), which would
      otherwise paint over the find pill's bar hung from this header; still
      under the sidebar's backdrop (z-40). -->
-<header x-show="shellMode !== 'none'" class="relative shrink-0 z-[35] bg-base-100 border-b border-base-300">
+<header x-show="headerOn" class="relative shrink-0 z-[35] bg-base-100 border-b border-base-300">
   <div class="max-w-full px-4">
     <div class="h-14 flex items-center gap-0.5">
       <!-- App-level views: Activity / Repos / Stage / Tools / Map, the
@@ -600,8 +600,16 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
                          class="grow min-w-0 text-base [&::-webkit-search-cancel-button]:hidden"
                          :placeholder="placeholder"
                          x-model="q" @input="push()" @focus="expand()" @blur="collapse()"
-                         @keydown.enter.prevent="$el.blur()" @keydown.escape.prevent="clear(); $el.blur()">
+                         @keydown.enter.prevent="enter($el)" @keydown.escape.prevent="clear(); $el.blur()">
                   <span x-show="q && shown" class="shrink-0 text-sm tabular-nums text-base-content/50" x-text="shown"></span>
+                  <!-- Where a view's box declares a results page for its term
+                       (data-find-submit), Enter opens it, and this is the same
+                       act for a pointer. Its place is held while there is no
+                       term, so the count beside it does not move. -->
+                  <button type="button" x-show="submit" @pointerdown.prevent @click="enter($refs.box)"
+                          :class="q.trim() ? '' : 'invisible'" data-find-submit-button
+                          class="shrink-0 h-8 px-2 flex items-center gap-1 rounded-md bg-primary/10 text-primary text-sm font-medium">
+                    <i class="ph ph-arrow-elbow-down-left text-base leading-none"></i>Results</button>
                   <button type="button" x-show="q" @pointerdown.prevent @click="clear()" aria-label="Clear the filter"
                           class="shrink-0 -mr-1 h-8 w-8 grid place-items-center rounded-md text-base-content/50 hover:text-base-content">
                     <i class="ph ph-x-circle text-lg leading-none"></i>
@@ -717,7 +725,7 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
 
   <!-- ── Sidebar: repo views + the file tree. One boolean at every width
        (sidebarOpen), overlaying below lg and sitting as a column at lg and up;
-       ?shell= decides which way it starts. ────────────────────────────────── -->
+       ?sidebar= decides which way it starts. ────────────────────────────────── -->
   <div x-show="sidebarOpen" @click="sidebarOpen=false" x-transition.opacity
        class="fixed inset-0 bg-black/30 z-40 lg:hidden" x-cloak></div>
 
@@ -1567,7 +1575,7 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
                     <i class="ph ph-folder"></i><span x-text="g.label"></span>
                     <span class="badge badge-ghost badge-sm" x-text="g.items.length" data-part="meta"></span>
                   </h2>
-                  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  <div class="grid gap-4 @xl:grid-cols-2 @3xl:grid-cols-3">
                     <template x-for="p in g.items" :key="p.href">
                       <div class="card bg-base-100 border border-base-300 shadow-sm overflow-hidden" data-part="item">
 
@@ -1850,7 +1858,7 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
                           <i class="ph ph-folder"></i><span x-text="g.label"></span>
                           <span class="badge badge-ghost badge-sm" x-text="g.items.length" data-part="meta"></span>
                         </h2>
-                        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                        <div class="grid gap-4 @xl:grid-cols-2 @3xl:grid-cols-3">
                           <template x-for="p in g.items" :key="p.href">
                             <div class="card bg-base-100 border border-base-300 shadow-sm overflow-hidden" data-part="item">
                               <div class="relative bg-base-200/40 border-b border-base-300 aspect-[16/10] overflow-hidden" data-part="body">
@@ -2167,7 +2175,7 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
                 <p x-show="!projectPages.length" class="text-base-content/40 italic text-base py-8">
                   No pages in this workspace yet. A page the repo's .web-tools.json lists under this folder, or with this folder as its project, appears here.
                 </p>
-                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-pattern="card-grid" data-part="list">
+                <div class="grid gap-4 @xl:grid-cols-2 @3xl:grid-cols-3" data-pattern="card-grid" data-part="list">
                   <template x-for="pg in projectPages" :key="pg.key">
                     <div class="card bg-base-100 border border-base-300 shadow-sm overflow-hidden" data-part="item">
                       <template x-if="pg.route === null">
@@ -2682,54 +2690,47 @@ function app(){ return {
   _appDrag: 0,
   _dragNote: '',
 
-  // ── The shell mode: how much of the app is drawn around the view ──────────
+  // ── The header, and which way the sidebar starts: ?header= and ?sidebar= ──
   //
-  // A READING parameter, in the class ?use= and ?window= belong to:
-  // it says how to PRESENT the screen, not which screen, so it gets no VIEWS
-  // row and is stamped beside whatever the view table stamps. `full` is the
-  // default and stays out of the URL, so every existing link is unchanged.
+  // READING parameters, in the class ?use= and ?window= belong to: they say
+  // how to PRESENT the screen, not which screen, so they get no VIEWS row and
+  // are stamped beside whatever the view table stamps. Each takes 0 or 1, and
+  // absent means the default, so the parameter has three states: absent, on
+  // and off. A default never appears in the URL, so a bare link stays bare.
   //
-  //   full  header, and the sidebar at its per-width default
-  //   nav   header, sidebar closed at every width (open it from the header)
-  //   none  neither; the view alone, which is what an unframed link wants
+  //   ?header=0    the view alone, no header (absent or 1: the header shows)
+  //   ?sidebar=1   the sidebar starts open; 0, it starts closed. Absent, it
+  //                starts at the default: open on a wide screen, closed on a
+  //                phone, closed on an app view and with the header off.
   //
-  // THE DEFAULT IS PER VIEW, not one constant. An app view opens at `none`:
-  // it is one page some repo promoted, framed whole, and a reader who
-  // addressed it by name asked for that page rather than for the app around
-  // it. A home-screen tile is the case that makes it obvious. Every other
-  // route IS the app and keeps its header.
+  // ?sidebar= says how the sidebar STARTS, not whether it exists: the
+  // header's hamburger toggles it either way, and toggling is not stamped.
   //
-  // Derived per view rather than latched at boot, and that is the whole of why
-  // this is a getter. A latched default would follow the reader out of the app
-  // view and strand the estate dashboard with no nav, reachable only through
-  // the FAB. Deriving it means the shell leaves when you enter an app view and
-  // comes back when you leave, with nothing to remember or clear.
+  // THE TWO ARE NOT INDEPENDENT. The hamburger lives in the header, so with
+  // ?header=0 the only way back to the sidebar is to bring the header back,
+  // from the FAB's Render tab or the launcher's long-press menu. An explicit
+  // ?sidebar=1 is still honored with the header off; nothing then closes a
+  // desktop column but the header's return.
   //
-  // It also keeps the ADDRESS minimal in both directions, since the stamp
-  // compares against this rather than against a constant: `?app=budget-drs`
-  // carries no `shell` key and opens with nav chrome, and turning the header off there
-  // stamps `shell=none`, which is the honest reading of a screen showing the
-  // promoted page bare.
+  // THE SIDEBAR'S DEFAULT IS PER VIEW. An app view opens with it closed: one
+  // page some repo promoted, framed whole, with the header kept for
+  // navigation. Derived per view rather than latched at boot, so the sidebar
+  // comes back when the reader leaves the app view, with nothing to clear.
   //
-  // `none` is not a trap: the FAB's Render tab carries this as a bar (the
-  // `modes` contract below), beside the ref and width bars, since which ref,
-  // what width, and how much shell are three readings of one question. That is
-  // the way back, and it is the same control that sets the mode in the first
-  // place, so nothing needs a second escape hatch parked on the page.
+  // SUNSET(2027-02-01): ?shell=full|nav|none, the preset these two replace,
+  // still reads (readDisplayParams) and is rewritten to them at the next
+  // syncUrl, since links to it sit in PR bodies and artifacts.
   //
-  // Named `shell` because that is already this app's word for the header and
-  // sidebar around a view (the ?shell= parameter in docs/APP.md, and window.__shell
-  // is this object). `chrome` was the first name and was dropped: in a browser
-  // the chrome is the BROWSER's, which is the one thing this cannot touch.
-  // `frame` was dropped too, since the Render tab's width bar already means a
-  // frame, and two meanings in one tab is how a bar gets misread.
-  SHELL_MODES: ['full', 'nav', 'none'],
-  // The reader's explicit choice, '' for none made. Held apart from the mode
-  // because the two answer different questions: what was asked for, and what
-  // this screen opens as when nothing was.
-  _shellChoice: '',
-  get defaultShellMode(){ return this.view === 'app' ? 'nav' : 'full'; },
-  get shellMode(){ return this._shellChoice || this.defaultShellMode; },
+  // The header's choice: '' for none made, '0' hidden, '1' shown. Shown is
+  // every view's default, so a stored choice that agrees with it is cleared
+  // (setHeader), which keeps a toggle from following the reader to the next
+  // view and keeps the state and the address agreeing.
+  _headerChoice: '',
+  get headerOn(){ return this._headerChoice !== '0'; },
+  // How the sidebar starts: '' the default, '1' open, '0' closed. Named for
+  // what it holds, since sidebarOpen (the live state) and showSidebar (whether
+  // there is anything to show) are taken.
+  sidebarStart: '',
 
   // Whether the sidebar is showing. One boolean at every width, which is the
   // whole of the mobile/desktop difference now: below lg it is an overlay with
@@ -2921,8 +2922,8 @@ function app(){ return {
   async init(){
     window.__shell = this;
     // Read before anything paints, so the shell never flashes its full self on
-    // the way to a ?shell=none load. Same read on popstate (restoreFromUrl).
-    this.readShellMode();
+    // the way to a ?header=0 load. Same read on popstate (restoreFromUrl).
+    this.readDisplayParams();
     // Settled once the address has been routed, so a warm that keys on
     // `view` (the auth watcher's) waits for the view to be the linked one.
     this._routed = new Promise(r => { this._routedResolve = r; });
@@ -3090,15 +3091,14 @@ function app(){ return {
       this.routeAuthFail(fail);
     }
 
-    // THE BOOT ROUTE RUNS BEFORE THE WATCHERS BELOW ARE WIRED, so the mode this
-    // arrival settled on is the one change the shellMode watcher never sees.
-    // Re-derive once, here, where the view is final. Without it a cold `?app=`
-    // opened with the header correctly gone (x-show reads the mode live) and
-    // the sidebar still standing as a column beside it, a pairing no navigation
-    // inside the app can produce. Found in a browser, not by the suite, which
-    // is the shape of this bug: every unit was right and only the order was
-    // wrong.
-    this.sidebarOpen = this.defaultSidebarOpen;
+    // THE BOOT ROUTE RUNS BEFORE THE WATCHERS BELOW ARE WIRED, so the start
+    // this arrival settled on is the one change the sidebarStartsOpen watcher
+    // never sees. Re-derive once, here, where the view is final. Without it a
+    // cold `?app=` opened with the sidebar standing as a column beside the
+    // view, a state no navigation inside the app can produce. Found in a
+    // browser, not by the suite, which is the shape of this bug: every unit
+    // was right and only the order was wrong.
+    this.sidebarOpen = this.sidebarStartsOpen;
 
     // A PASTE TAKEN SOMEWHERE ELSE, arriving. The fab's paste row runs on every
     // page carrying the launcher, and off this app there is no Stage to put
@@ -3129,13 +3129,13 @@ function app(){ return {
     this.__installDeckPane();
     this.$watch('sidebarOpen', () => this.syncDeckFrame());
     this.$watch('showSidebar', () => this.syncDeckFrame());
-    // The sidebar re-derives whenever the MODE changes, which is the half a
-    // per-view default cannot do on its own: entering an app view puts the
-    // sidebar away with the header, leaving brings back whatever that width
-    // opens with. Toggling it WITHIN a mode stays the reader's and is not
+    // The sidebar re-derives whenever how it should START changes, which is
+    // the half a per-view default cannot do on its own: entering an app view or
+    // hiding the header puts it away, leaving brings back whatever that width
+    // opens with. Toggling it in between stays the reader's and is not
     // touched here. Ordered before syncDeckFrame, which reads sidebarOpen.
-    this.$watch('shellMode', () => {
-      this.sidebarOpen = this.defaultSidebarOpen;
+    this.$watch('sidebarStartsOpen', () => {
+      this.sidebarOpen = this.sidebarStartsOpen;
       this.syncDeckFrame();
     });
 
@@ -6925,8 +6925,11 @@ function app(){ return {
     // survives a view change and travels with the address the header's ref
     // switch mints (which starts from an empty base, where ?use= must not
     // survive but this must, or a ref switch would silently reframe the page).
-    if (this.shellMode !== this.defaultShellMode) p.set('shell', this.shellMode);
-    else p.delete('shell');
+    if (!this.headerOn) p.set('header', '0'); else p.delete('header');
+    if (this.sidebarStart && (this.sidebarStart === '1') !== this.defaultSidebarOpen)
+      p.set('sidebar', this.sidebarStart);
+    else p.delete('sidebar');
+    p.delete('shell'); // SUNSET(2027-02-01): the preset rewrites to the two above
     for (const k of this.VIEW_KEYS) p.delete(k);
     // The browsed ref rides beside the repo, not on a view. It was the Files
     // view's key while the Files view was the only thing that read it; the
@@ -7258,7 +7261,7 @@ function app(){ return {
       if (url && url.window) this.branchWindow = url.window;
       // Back out of a mode change the way you back out of a view change: the
       // address is the whole state, so a restore re-reads this too.
-      this.readShellMode();
+      this.readDisplayParams();
       await this.ensureBrowser(url?.repo, url?.ref);
       // A miss here is a real address the table cannot open, so land somewhere
       // honest rather than leaving the previous screen up under a new URL.
@@ -8145,7 +8148,7 @@ function app(){ return {
       if (pct >= 20 && pct <= 80) root.style.setProperty('--deck-dock-left', `calc(100vw - ${pct}vw)`);
     } else root.style.removeProperty('--deck-dock-left');
     // MEASURED, not stated. The header is h-14 plus a border, but it is also
-    // conditional (shellMode) and a second copy of its height here would be a
+    // conditional (headerOn) and a second copy of its height here would be a
     // number to keep in step with a class nobody would think to look at. A
     // hidden header measures 0, which is the right answer for free. This sets
     // --deck-head; the CSS maps it into --deck-top only at lg and up, so a
@@ -9156,58 +9159,65 @@ function app(){ return {
     if (v && v.key && !list.some(x => x.key === v.key)) list.unshift(v);
     return list;
   },
-  // ── The shell mode, and the sidebar it decides the opening state of ───────
+  // ── ?header= and ?sidebar=, read and set ──────────────────────────────────
   //
   // Read straight from location.search rather than through parseUrl(), which
   // returns null when the address names no repo, file, or view: a bare
-  // `?shell=none` on the estate is a real link and would otherwise be dropped
+  // `?header=0` on the estate is a real link and would otherwise be dropped
   // on the floor.
-  // Stores whatever valid mode arrived, WITHOUT setShellMode's agreement rule,
+  // Stores whatever valid value arrived, WITHOUT setHeader's agreement rule,
   // because this runs before the route resolves: `this.view` is still the
-  // landing and every address would look like it agreed with `full`. So
-  // `?shell=full&app=budget-drs` would have its own request thrown away. A
-  // redundant incoming mode costs nothing instead: the stamp drops it at the
-  // next syncUrl and the address self-heals.
-  readShellMode(){
-    const v = (new URLSearchParams(location.search).get('shell') || '').trim();
-    this._shellChoice = this.SHELL_MODES.includes(v) ? v : '';
-    this.sidebarOpen = this.defaultSidebarOpen;
+  // landing, so a redundant-looking value cannot be judged yet. A redundant
+  // value costs nothing: the stamp drops it at the next syncUrl and the
+  // address self-heals. A value other than 0 or 1 reads as absent, so a
+  // hand-edited or truncated link cannot hide the header with no way back.
+  readDisplayParams(){
+    const q = new URLSearchParams(location.search);
+    const bit = k => { const v = (q.get(k) || '').trim(); return v === '0' || v === '1' ? v : ''; };
+    let header = bit('header'), sidebar = bit('sidebar');
+    // SUNSET(2027-02-01): the ?shell= preset, read only where the new
+    // parameters say nothing. `full` was the header with the sidebar at its
+    // per-width default, which on an app view meant open on a wide screen, so
+    // the alias asks for that explicitly; `nav` was the header with the
+    // sidebar closed; `none` was neither.
+    const preset = (q.get('shell') || '').trim();
+    const alias = { full: { header: '', sidebar: this.wideViewport ? '1' : '' },
+                    nav:  { header: '', sidebar: '0' },
+                    none: { header: '0', sidebar: '' } }[preset];
+    if (alias) {
+      if (!q.has('header')) header = alias.header;
+      if (!q.has('sidebar')) sidebar = alias.sidebar;
+    }
+    this._headerChoice = header;
+    this.sidebarStart = sidebar;
+    this.sidebarOpen = this.sidebarStartsOpen;
   },
-  // Desktop opens with the sidebar out, a phone with it away, and only the
-  // `full` mode takes that default: the other two are asking for the view.
-  // Matched to the lg breakpoint the sidebar's own classes switch on, so the
-  // default and the layout cannot disagree about what "desktop" means.
+  // What the sidebar opens as when the address names nothing: out on a wide
+  // screen, away on a phone, and away on an app view or with the header off,
+  // which are both asking for the view. Matched to the lg breakpoint the
+  // sidebar's own classes switch on, so the default and the layout cannot
+  // disagree about what "desktop" means.
   get defaultSidebarOpen(){
-    return this.shellMode === 'full' && this.wideViewport;
+    return this.headerOn && this.view !== 'app' && this.wideViewport;
+  },
+  get sidebarStartsOpen(){
+    return this.sidebarStart ? this.sidebarStart === '1' : this.defaultSidebarOpen;
   },
   get wideViewport(){
     try { return window.matchMedia('(min-width: 1024px)').matches; } catch { return true; }
   },
-  setShellMode(mode){
-    if (!this.SHELL_MODES.includes(mode) || mode === this.shellMode) return;
-    if (mode === 'none') this._shellReturn = this.shellMode;
-    // A CHOICE THAT AGREES WITH THE VIEW'S DEFAULT IS NOT A CHOICE, and
-    // clearing it is what keeps a toggle local to the screen it was made on.
-    // Turning the header off on an app view says "this page, bare", which is
-    // already what that view does; latching it as a choice carried `shell=none`
-    // out to the dashboard and left the estate with no nav and only the fab as
-    // the way back. Measured in a browser: two taps on one app view and the
-    // whole app had lost its chrome.
-    //
-    // It also keeps the state and the address agreeing by construction, since
-    // deepLinkParams stamps against exactly this comparison.
-    this._shellChoice = mode === this.defaultShellMode ? '' : mode;
-    this.sidebarOpen = this.defaultSidebarOpen;
+  // A CHOICE THAT AGREES WITH THE DEFAULT IS NOT A CHOICE, and clearing it is
+  // what keeps a toggle local to the screen it was made on. Shown is the
+  // default everywhere, so only hiding is stored. The sidebar's start is a
+  // separate reading and is left alone, so a ?sidebar=0 link whose header goes
+  // off and comes back keeps its sidebar closed rather than springing it out.
+  setHeader(on){
+    on = !!on;
+    if (on === this.headerOn) return;
+    this._headerChoice = on ? '' : '0';
+    this.sidebarOpen = this.sidebarStartsOpen;
     this.syncUrl();
   },
-  // Which header-bearing mode to come back to. The drawer offers ONE control, a
-  // header on/off (see `toggles`), which is a projection of three modes onto
-  // two, so coming back is ambiguous and this holds the answer. Without it,
-  // someone who opened a ?shell=nav link, hid the header and brought it back
-  // would land on `full` and have the sidebar spring out at them, a state they
-  // never asked for and would have to put away by hand.
-  _shellReturn: 'full',
-  setHeader(on){ this.setShellMode(on ? (this._shellReturn || 'full') : 'none'); },
   // Deliberately NOT stamped into the URL. syncUrl pushes a history entry per
   // distinct address, so an addressable sidebar would put one on the stack
   // every time the drawer was tapped and make Back walk them; and the mode
@@ -9227,15 +9237,15 @@ function app(){ return {
   //
   // ONE CONTROL, not three, and the sidebar is deliberately not among them.
   // The sidebar already has two owners a reader can reach: the header's
-  // hamburger in the app, and ?shell=nav in the address. A third copy in the
+  // hamburger in the app, and ?sidebar= in the address. A third copy in the
   // drawer would be a control for the thing standing next to it. What is left
   // is the only part of the shell with no in-app control, since the header
   // cannot carry the button that hides the header.
   get toggles(){
-    const on = this.shellMode !== 'none';
+    const on = this.headerOn;
     return [{
       key: 'header', label: 'Header', icon: 'ph-layout', on,
-      title: on ? 'Hide the header and show the view alone (?shell=none)'
+      title: on ? 'Hide the header and show the view alone (?header=0)'
                 : 'Bring the header back, and its sidebar toggle with it',
       set: v => this.setHeader(v),
     }];
@@ -9251,7 +9261,7 @@ function app(){ return {
   // none. The claim is now true rather than deleted, since the reason it gave
   // was the right one.
   get menu(){
-    const on = this.shellMode !== 'none';
+    const on = this.headerOn;
     return [{
       label: on ? 'Hide the header' : 'Show the header',
       icon: 'ph-layout',
@@ -9714,7 +9724,7 @@ function findPill(){
   };
   const scope = () => { const s = window.__shell; return s ? s.view + (s.view === 'map' ? ':' + s.mapTab : '') : ''; };
   return {
-    has: false, open: false, q: '', placeholder: 'Filter', shown: '', also: [], recents: [],
+    has: false, open: false, q: '', placeholder: 'Filter', shown: '', also: [], recents: [], submit: '',
 
     // Retried because a view mounts its component lazily on first visit.
     resolve(){ this.$nextTick(() => [0, 250, 1000, 2500].forEach(ms => setTimeout(() => this.find(), ms))); },
@@ -9732,7 +9742,7 @@ function findPill(){
       watch?.disconnect();
       if (box) {
         watch = new MutationObserver(() => this.mark());
-        watch.observe(viewOf(box), { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['style', 'class', 'data-find-count', 'data-find-noun', 'data-find-also'] });
+        watch.observe(viewOf(box), { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['style', 'class', 'data-find-count', 'data-find-noun', 'data-find-also', 'data-find-submit'] });
       }
       this.mark();
     },
@@ -9845,6 +9855,7 @@ function findPill(){
         let also = [];
         try { also = JSON.parse(d.findAlso || '[]'); } catch {}
         this.also = also.filter(a => a.n > 0).map(a => ({ ...a, text: this.phrase(a.n, a.noun) }));
+        this.submit = d.findSubmit || '';
         if (!box || !terms.length) { reg?.delete('find-pill'); return; }
         const root = this.listOf() || box.closest('section') || viewOf(box);
         if (!reg) return;
@@ -9866,6 +9877,16 @@ function findPill(){
     phrase(n, noun = 'match|matches'){
       const [one, many] = noun.includes('|') ? noun.split('|') : [noun, noun + 's'];
       return n + ' ' + (n === 1 ? one : many);
+    },
+    // Enter closes the bar, as it always has. Where the view's box names a
+    // results page for its term (data-find-submit, a method of the view's own
+    // component, as an Also entry's `go` is), Enter opens that page with the
+    // term as typed: the view's own model may be debounced behind it.
+    enter(el){
+      const t = this.q.trim(), go = this.submit;
+      const view = t && go && box && window.Alpine?.$data(box);
+      el.blur();
+      if (typeof view?.[go] === 'function') view[go](t);
     },
     // An Also entry names a method of the view's own component (the box's
     // scope) and its argument, so the view decides what opening its other

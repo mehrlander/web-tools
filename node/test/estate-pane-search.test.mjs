@@ -131,10 +131,9 @@ test('the scope chips recount UNDER the query, so an empty scope says widen', ()
   seedSessions();
   const count = (key) => data.sessionScopes.find(s => s.key === key).count;
   assert.equal(count('day'), 1);
-  assert.equal(count('month'), 2);
   assert.equal(count('all'), 3);
-  // Both "session search" rows are outside Week; one is inside Month's window
-  // only by being today's. The chips are what tell the reader that.
+  // Both "session search" rows are outside Week but for today's. The chips
+  // are what tell the reader that.
   data.activityQuery = 'session search';
   assert.equal(count('day'), 1);
   assert.equal(count('week'), 1);

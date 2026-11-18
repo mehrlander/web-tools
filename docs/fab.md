@@ -26,7 +26,7 @@ Under it a WIDTH bar answers the sibling question, what shape the view is render
 
 ## Render: page toggles
 
-Sharing that row, past a hairline, are the page's own `toggles`, the state counterpart to `actions`: a page declares { key, label, icon, on, title, set } and each becomes one on/off control beside the presets. The presets go icon-only under a single Width label so the row holds one line in the FAB sidebar on a phone. The app contributes HEADER there, the way to an unframed view and back; the app's sidebar is not offered, having two owners already (the header's hamburger, and ?shell= in the address).
+Sharing that row, past a hairline, are the page's own `toggles`, the state counterpart to `actions`: a page declares { key, label, icon, on, title, set } and each becomes one on/off control beside the presets. The presets go icon-only under a single Width label so the row holds one line in the FAB sidebar on a phone. The app contributes HEADER there, the way to an unframed view and back; the app's sidebar is not offered, having two owners already (the header's hamburger, and ?sidebar= in the address).
 
 ## Render: the repo and path block
 
