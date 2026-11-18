@@ -119,8 +119,8 @@ test('with none of its kind waiting, the address lands on the Calls tab and open
   decks.length = 0;
   for (const slug of ['readme', 'claude-md']) CALLS['user-calls/c0ffee01-' + slug + '.json'].status = 'closed';
   const d = mountAt('readme');
-  assert.ok(await until(() => d().bottomAsked === 'calls'), 'the Calls tab is asked for');
+  assert.ok(await until(() => d().asked === 'calls'), 'the Calls tab is asked for');
   await tick(20);
-  assert.equal(d().bottomPane, 'calls');
+  assert.equal(d().pane, 'calls');
   assert.deepEqual(decks, [], 'the open decision is another kind, so no deck opens for it');
 });
