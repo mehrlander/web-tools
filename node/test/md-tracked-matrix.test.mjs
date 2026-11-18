@@ -371,3 +371,14 @@ test('a list item\'s last line cut to a stray marker: the cards revert with no e
   assert.deepEqual(out, []);
   assert.equal(runs.length, 2);
 });
+
+// Reached by the walk over skills/doc-craft/SKILL.md on 2026-11-17: a list
+// item's text carried onto the heading after the list left a stray marker,
+// and taking back the heading's card, then the marker's, left a blank line
+// inside the tight list.
+test('a list item\'s text carried onto the heading below: the cards revert with no blank line in the list', () => {
+  const base = 'Lead.\n\n- **One**: first words.\n- **Two**: second words here.\n\n## Next\n\nBody.\n';
+  const { out, runs } = checkAgainst(base, 'Lead.\n\n- **One**: first words.\n- **\n\n## Two**: second words here. Next\n\nBody.\n');
+  assert.deepEqual(out, []);
+  assert.ok(runs.length >= 2);
+});

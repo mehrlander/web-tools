@@ -10,6 +10,7 @@
   // The chain boot. md-diff loads guide-render, md-doc and swipe-deck itself,
   // but naming them here is what makes the demo's dependencies readable.
   await import('https://mehrlander.github.io/web-tools/lib/entry.js');
+  await gh.load('kits/title-tip.js');
   await gh.load('kits/guide-render.js');
   await gh.load('kits/md-doc.js');
   await gh.load('kits/swipe-deck.js');
@@ -198,7 +199,7 @@ Reviewed 2026-09-17. The lane split is settled; the 466 question is not.`;
        the block's own index badge already says. -->
   <span class="indicator">
     <span id="count" class="indicator-item badge badge-xs tabular-nums">0</span>
-    <button id="jump" class="btn btn-xs btn-circle" title="Next change" aria-label="Next change">
+    <button id="jump" class="btn btn-xs btn-circle" data-title-tip="Next change" aria-label="Next change">
       <i class="ph ph-arrow-down text-sm"></i>
     </button>
   </span>

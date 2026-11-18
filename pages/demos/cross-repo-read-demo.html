@@ -150,7 +150,7 @@
           <button class="btn btn-xs" @click="$clip?.(json)"><i class="ph ph-copy"></i> Copy</button>
           <button class="btn btn-xs btn-primary" @click="save()"><i class="ph ph-floppy-disk"></i> Save local copy</button>
           <button class="btn btn-xs btn-secondary" @click="exportZip()" :disabled="busy"
-                  title="Page source + this data, zipped in the right layout. Code still loads from the CDN — local data, not offline.">
+                  data-title-tip="Page source + this data, zipped in the right layout. Code still loads from the CDN — local data, not offline.">
             <i class="ph ph-file-archive"></i> Export
           </button>
         </div>

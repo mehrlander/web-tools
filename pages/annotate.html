@@ -171,7 +171,7 @@
              placeholder="path, or owner/repo[@ref]:path">
       <button @click="load()" class="btn btn-sm btn-primary" :disabled="loading"
               x-text="loading ? 'Loading…' : 'Load'"></button>
-      <button @click="paste()" class="btn btn-sm" title="Annotate text from the clipboard instead">Paste</button>
+      <button @click="paste()" class="btn btn-sm" data-title-tip="Annotate text from the clipboard instead">Paste</button>
     </div>
     <div x-show="err" x-cloak class="alert alert-warning text-sm mb-4"><span x-text="err"></span></div>
     <div id="doc"></div>

@@ -1,16 +1,18 @@
 // skills/hooks/check-in.py: the check-in a session schedules for itself shortly
-// before its prompt cache lapses. No session has run this path live: the last
-// scheduled message any archived session read was on 2026-10-13. So this file
-// stands in for a live run, over the shapes the session archive recorded: the
-// wake's envelope, the ReadNotifications result with the message under its
-// `--- Notification` header, and send_later's result.
+// before its prompt cache lapses. One session has run this path live, from
+// 2026-11-14, and the session archive recorded the shapes it reads: the wake's
+// envelope, the ReadNotifications result with the message under its
+// `--- Notification` header, and send_later's result. update_trigger's result
+// has no recorded call yet, so its shape here is assumed, and the hook falls
+// back to the time it was given.
 //
-// The two rules, arming and the decision on a check-in that was read, are
+// The rules, arming, moving and the decision on a check-in that was read, are
 // called as functions first, a case for each branch. The rest drives the hook
 // as a subprocess over a scratch transcript, with TMPDIR pointed at the scratch
 // folder so each test keeps its own state file. The hook reads the real clock,
 // so times are written relative to it, half a minute clear of each boundary,
 // and `later` moves a state file back in time to stand for minutes passing.
+// The lines it supplies give the owner's time, with OWNER_TZ set to one zone.
 import { test } from 'node:test';
 import assert from 'node:assert';
 import { execFileSync, spawnSync } from 'node:child_process';
@@ -31,23 +33,50 @@ const SEND_LATER = [
   'mcp__Claude_Code_Remote__send_later',
   'mcp__bf7c680d-5fdc-5ef4-b4a0-abadb619bf0a__send_later',
 ];
+// The spellings update_trigger may carry, as send_later does.
+const UPDATE_TRIGGER = ['mcp__claude-code-remote__update_trigger', 'mcp__Claude_Code_Remote__update_trigger'];
+const TRIG = 'trig_014SNmXPbENApVUhjhYkMZ29';
 const MIN = 60_000;
 const ago = (ms) => new Date(Date.now() - ms).toISOString();
+const ZONE = 'America/Los_Angeles';
+// The owner's time as the hook prints it in a supplied line: 12:15pm.
+const clock = (ms) => {
+  const part = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: ZONE, hour: 'numeric', minute: '2-digit', hour12: true })
+    .formatToParts(new Date(ms)).map(p => [p.type, p.value]));
+  return `${part.hour}:${part.minute}${part.dayPeriod.toLowerCase()}`;
+};
+// The times a supplied line gives, each checked against the clock: the owner's
+// time for its offset from when the hook ran, which was a few seconds ago.
+function times(text, ...offsets) {
+  const found = [...text.matchAll(/\b(\d{1,2}:\d\d[ap]m)\b/g)].map(m => m[1]);
+  assert.equal(found.length, offsets.length, 'a time for each offset');
+  found.forEach((at, i) => assert.ok([clock(Date.now() + offsets[i]), clock(Date.now() + offsets[i] - 5000)].includes(at),
+    `${at} is the owner's time ${offsets[i] / MIN} minutes on`));
+  return found;
+}
 
 // ── The texts, as the specification gives them ─────────────────────────────
 const MSG = (id) => `⏱ check-in ${id}. The check-in hook says what to do with this when it is read; if no such instruction follows, end the turn with no text.`;
 const ARM = (id) => `No check-in is pending for this session. Before this reply ends, call the send_later tool with delay_minutes 55 and exactly this message: «${MSG(id)}». Do it once; the check-in hook tracks it from here. If the session has no send_later tool, ignore this.`;
+const MOVE = (trigger, at) => `A check-in is pending for this session, as trigger ${trigger}. Move it to 55 minutes from now: call the update_trigger tool with trigger_id ${trigger} and run_once_at ${at}, sent in the same response as this turn's first other tool call and not in a response of its own. If the turn makes no tool call, skip it.`;
 const DUPLICATE = 'This check-in is a duplicate of one armed later. End the turn with no text.';
-const EARLY = (n, d, id) => `This check-in is early: the session's last response was ${n} minutes ago. Call send_later with delay_minutes ${d} and exactly this message: «${MSG(id)}». Then end the turn with no text.`;
-const FIRST = (n, id) => [
+const EARLY = (n, d, id, at) => `This check-in is early: the session's last response was ${n} minutes ago. Call send_later with delay_minutes ${d} and exactly this message: «${MSG(id)}». Then reply with exactly this line, below any reply that other work in this turn calls for, with no caption and no closing state: «Cache check-in fired while we were talking; moved to ${at}.»`;
+const FIRST = (n, id, at, then) => [
   `Check-in, first of two. The session has been idle for ${n} minutes and its prompt cache lapses at 60. This turn is automatic: the owner has not written. Spend at most four model calls on it.`,
-  '1. If the session\'s work is closed (its last reply closed on ⚫, ⚪, 🟣 or 🔴), close the session out now: unsubscribe from every pull request this session is subscribed to, arm nothing, and reply with one line saying so.',
-  '2. Otherwise write a recap for a reader coming back cold: what the session is for, what waits on the owner as one question per decision, and where to pick up.',
-  '3. Do work that needs no directional commitment, meaning no choice that is the owner\'s to make. Hand anything longer than two calls to a subagent. If there is no such work, say so in one line.',
-  `4. Arm the second check-in: call send_later with delay_minutes 55 and exactly this message: «${MSG(id)}».`,
-  'Close with the caption and one closing state, and say that this is the first of two check-ins.',
+  '1. If the session\'s work is closed (its last reply closed on ⚫, ⚪, 🟣 or 🔴), close the session out now: unsubscribe from every pull request this session is subscribed to, arm no further check-in, and reply with one line saying so. Steps 2 to 4 then do not apply.',
+  '2. Do work that needs no directional commitment, meaning no choice that is the owner\'s to make. Hand anything longer than two calls to a subagent. Where there is no such work, do none.',
+  `3. Arm the second check-in: call send_later with delay_minutes 55 and exactly this message: «${MSG(id)}».`,
+  `4. Reply with exactly this line, with no caption and no closing state: «Quiet check-in at ${at}: the cache is warm, and a recap follows at ${then} if the session stays idle.»`,
 ].join('\n');
-const SECOND = 'Check-in, second of two. The owner has not written since the first. Close the session out in at most three model calls: write a pick-up point wherever one is missing (an open pull request\'s guide, or the recap in the last reply), unsubscribe from every pull request this session is subscribed to, and arm nothing further. Reply with one line: that the session is closed out, and where its pick-up point is.';
+const SECOND = [
+  'Check-in, second of two, and the last. The owner has not written since the first. This turn is automatic. Spend at most four model calls on it.',
+  '1. Write a recap for a reader coming back cold: what the session is for, what waits on the owner as one question per decision, and where to pick up.',
+  '2. Close the session out: write a pick-up point wherever one is missing, such as an open pull request\'s guide; unsubscribe from every pull request this session is subscribed to; and arm no further check-in.',
+  '3. Close with the caption and one closing state, and say that this is the second and last check-in.',
+].join('\n');
+// The first check-in as the hook wrote it a few seconds ago, its times checked.
+const firstOf = (text, n) => FIRST(n, idOf(text), ...times(text, 0, 55 * MIN));
+const earlyOf = (text, n, d) => EARLY(n, d, idOf(text), ...times(text, d * MIN));
 // The prompts that are not the owner's, as session-detail-caption.py tells them.
 const WAKES = ['<task-notification>\n<task-type>queued-remote-notifications</task-type>',
   '<agent-message from="a1">\nreport', '[SYSTEM] wake', '<system-reminder>x</system-reminder>',
@@ -57,7 +86,7 @@ const WAKES = ['<task-notification>\n<task-type>queued-remote-notifications</tas
 const quoted = (text) => /«(.*?)»/s.exec(text)[1];
 const idOf = (text) => /⏱ check-in ([\w:-]+)\./.exec(text)[1];
 
-// ── The two rules, called as functions: one Python process answers the list ─
+// ── The rules, called as functions: one Python process answers the list ────
 function rules(calls) {
   return JSON.parse(execFileSync('python3', ['-c', `
 import importlib.util, json, sys
@@ -65,7 +94,7 @@ spec = importlib.util.spec_from_file_location("check_in", sys.argv[1])
 hook = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(hook)
 print(json.dumps([getattr(hook, name)(*args) for name, args in json.loads(sys.argv[2])]))
-`, HOOK, JSON.stringify(calls)], { encoding: 'utf8' }));
+`, HOOK, JSON.stringify(calls)], { encoding: 'utf8', env: { ...process.env, OWNER_TZ: ZONE } }));
 }
 
 test('the arming rule: an owner\'s prompt in a cloud session, nothing pending, and a context at or over the floor', () => {
@@ -94,31 +123,67 @@ test('the arming rule: an owner\'s prompt in a cloud session, nothing pending, a
 
 test('the decision on a check-in that was read: duplicate, early, first or second', () => {
   const A = '20261113T100000Z', B = '20261113T105500Z';
-  const decide = (read, latest, minutes, ran) => ['decide', [read, latest, minutes, ran, 'NEW']];
+  // Read at 12:15pm in the owner's zone.
+  const NOW = Date.parse('2026-11-16T20:15:00Z') / 1000;
+  const decide = (read, latest, minutes, ran) => ['decide', [read, latest, minutes, ran, 'NEW', NOW]];
+  const first = (n) => ['first', FIRST(n, 'NEW', '12:15pm', '1:10pm')];
   const cases = [
     [decide(A, B, 55, 0), ['duplicate', DUPLICATE], 'the state holds a later id'],
     [decide(A, B, 5, 1), ['duplicate', DUPLICATE], 'a duplicate whatever the idleness or the count'],
     [decide(A, A + '-1', 55, 0), ['duplicate', DUPLICATE], 'an id with a suffix is later than the id it extends'],
-    [decide(B, B, 55, 0), ['first', FIRST(55, 'NEW')], 'the latest id itself'],
-    [decide(B, A, 55, 0), ['first', FIRST(55, 'NEW')], 'an id later than any the state holds'],
-    [decide(A, null, 55, 0), ['first', FIRST(55, 'NEW')], 'a state that holds no id, as in a new container'],
-    [decide(A + '-1', A, 55, 0), ['first', FIRST(55, 'NEW')]],
-    [decide(A, A, 0, 0), ['early', EARLY(0, 55, 'NEW')], 'the session answered this minute'],
-    [decide(A, A, 20, 0), ['early', EARLY(20, 35, 'NEW')]],
-    [decide(A, A, 49, 0), ['early', EARLY(49, 6, 'NEW')], 'the last early minute'],
-    [decide(A, A, 20, 1), ['early', EARLY(20, 35, 'NEW')], 'early after the first has run, too'],
-    [decide(A, A, -3, 0), ['early', EARLY(0, 55, 'NEW')], 'a transcript clock ahead of this one'],
-    [decide(A, A, 50, 0), ['first', FIRST(50, 'NEW')], 'due from the fiftieth minute'],
-    [decide(A, A, 75, 0), ['first', FIRST(75, 'NEW')], 'delivered late'],
+    [decide(B, B, 55, 0), first(55), 'the latest id itself'],
+    [decide(B, A, 55, 0), first(55), 'an id later than any the state holds'],
+    [decide(A, null, 55, 0), first(55), 'a state that holds no id, as in a new container'],
+    [decide(A + '-1', A, 55, 0), first(55)],
+    [decide(A, A, 0, 0), ['early', EARLY(0, 55, 'NEW', '1:10pm')], 'the session answered this minute'],
+    [decide(A, A, 20, 0), ['early', EARLY(20, 35, 'NEW', '12:50pm')]],
+    [decide(A, A, 49, 0), ['early', EARLY(49, 6, 'NEW', '12:21pm')], 'the last early minute'],
+    [decide(A, A, 20, 1), ['early', EARLY(20, 35, 'NEW', '12:50pm')], 'early after the first has run, too'],
+    [decide(A, A, -3, 0), ['early', EARLY(0, 55, 'NEW', '1:10pm')], 'a transcript clock ahead of this one'],
+    [decide(A, A, 50, 0), first(50), 'due from the fiftieth minute'],
+    [decide(A, A, 75, 0), first(75), 'delivered late'],
     [decide(A, A, 55, 1), ['second', SECOND], 'the first has run since the owner last typed'],
     [decide(A, A, 55, 2), ['second', SECOND]],
   ];
   rules(cases.map(([call]) => call)).forEach((got, i) => {
     assert.deepEqual(got, cases[i][1], cases[i][2]);
     assert.doesNotMatch(got[1], /[{}]/, 'no placeholder is left unfilled');
+    assert.doesNotMatch(got[1], /\bnothing\b/, 'and no instruction leans on the word');
   });
   const [[, one]] = rules([decide(A, A, 1, 0)]);
   assert.match(one, /last response was 1 minute ago\. Call send_later with delay_minutes 54 /, 'one minute is singular');
+  assert.match(one, /moved to 1:09pm\.»$/);
+
+  // The supplied lines, word for word as the owner reads them.
+  const line = (text) => /«([^«»]*)»$/.exec(text)[1];
+  assert.equal(line(EARLY(20, 35, 'NEW', '12:50pm')), 'Cache check-in fired while we were talking; moved to 12:50pm.');
+  assert.equal(line(first(55)[1]), 'Quiet check-in at 12:15pm: the cache is warm, and a recap follows at 1:10pm if the session stays idle.');
+
+  // Where the caption hook's clock cannot load the zone, the times are UTC with a Z.
+  const utc = JSON.parse(execFileSync('python3', ['-c', `
+import importlib.util, json, sys
+spec = importlib.util.spec_from_file_location("check_in", sys.argv[1])
+hook = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(hook)
+print(json.dumps(hook.decide("A", "A", 55, 0, "NEW", float(sys.argv[2]))))
+`, HOOK, String(NOW)], { encoding: 'utf8', env: { ...process.env, OWNER_TZ: 'Nowhere/Atlantis' } }));
+  assert.equal(utc[1], FIRST(55, 'NEW', '20:15Z', '21:10Z'));
+});
+
+test('the moving rule: a pending check-in whose trigger is known and whose time is still ahead', () => {
+  const NOW = Date.parse('2026-11-16T20:15:00Z') / 1000;
+  const moving = (trigger, due) => ['moving', [trigger, due, NOW]];
+  const [ahead, soon, past, now, none, odd, noTime] = rules([
+    moving('trig_01VShaFEkBEEiJzCVXgGAnBn', NOW + 40 * 60), moving('trig_01', NOW + 1), moving('trig_01', NOW - 60),
+    moving('trig_01', NOW), moving(null, NOW + 60), moving('trig 01; rm', NOW + 60), moving('trig_01', null),
+  ]);
+  assert.equal(ahead, MOVE('trig_01VShaFEkBEEiJzCVXgGAnBn', '2026-11-16T21:10:00Z'), '55 minutes from now, in UTC');
+  assert.equal(soon, MOVE('trig_01', '2026-11-16T21:10:00Z'), 'however close its time');
+  assert.equal(past, null, 'its time has passed: it has fired, or is about to, and moving it could fire it twice');
+  assert.equal(now, null);
+  assert.equal(none, null, 'no trigger_id to move');
+  assert.equal(odd, null, 'a trigger_id that is not one');
+  assert.equal(noTime, null, 'no time to judge it by');
 });
 
 test('an id is the UTC time it was written, and always sorts after the id it follows', () => {
@@ -180,7 +245,7 @@ function scratch() {
   // or null for unset, whatever machine the suite itself runs on.
   const run = (entries, payload, remote = 'true') => {
     if (entries) writeFileSync(transcript, entries.join('\n') + '\n');
-    const env = { ...process.env, TMPDIR: dir, CLAUDE_CODE_REMOTE: remote };
+    const env = { ...process.env, TMPDIR: dir, CLAUDE_CODE_REMOTE: remote, OWNER_TZ: ZONE };
     if (remote === null) delete env.CLAUDE_CODE_REMOTE;
     const done = spawnSync('python3', [HOOK], {
       input: JSON.stringify({ transcript_path: transcript, session_id: SESSION, ...payload }), env, encoding: 'utf8' });
@@ -196,7 +261,12 @@ function scratch() {
   // send_later's result as the archive recorded it, firing 55 minutes from now.
   const sent = (message, more = {}) => run(null, { hook_event_name: 'PostToolUse', tool_name: SEND_LATER[0],
     tool_input: { delay_minutes: 55, message },
-    tool_response: `{"fire_at":"${ago(-55 * MIN)}","now":"${ago(0)}","trigger_id":"trig_014SNmXPbENApVUhjhYkMZ29"}`, ...more });
+    tool_response: [{ type: 'text', text: `{"fire_at":"${ago(-55 * MIN)}","now":"${ago(0)}","trigger_id":"${TRIG}"}` }], ...more });
+  // update_trigger moving `trigger` to `at`, with a result in the shape get_trigger describes.
+  const moved = (trigger, at, more = {}) => run(null, { hook_event_name: 'PostToolUse', tool_name: UPDATE_TRIGGER[0],
+    tool_input: { trigger_id: trigger, run_once_at: at },
+    tool_response: [{ type: 'text', text: JSON.stringify({ trigger: { id: trigger, name: 'check-in', enabled: true,
+      run_once_at: at, next_run_at: at, created_at: ago(30 * MIN) } }) }], ...more });
   const read = (entries, result, more = {}) =>
     run(entries, { hook_event_name: 'PostToolUse', tool_name: 'ReadNotifications', tool_response: result, ...more });
   const state = (session) => JSON.parse(readFileSync(file(session), 'utf8'));
@@ -213,7 +283,7 @@ function scratch() {
     assert.equal(sent(message), '');
     return idOf(message);
   };
-  return { dir, transcript, file, run, prompt, sent, read, state, later, armed,
+  return { dir, transcript, file, run, prompt, sent, moved, read, state, later, armed,
     done: () => rmSync(dir, { recursive: true, force: true }) };
 }
 
@@ -236,8 +306,85 @@ test('at an owner\'s prompt it asks for the message, and stops asking once the m
     assert.equal(s.sent(message), '');
     assert.equal(s.state().latest, id);
     assert.equal(s.state().pending, true);
-    assert.equal(s.prompt(null, 'And then?'), '', 'one is pending');
-    assert.equal(s.prompt(null, 'And after that?'), '');
+    assert.equal(s.state().trigger, TRIG, 'and the trigger_id the result gave');
+    assert.match(s.prompt(null, 'And then?'), /^A check-in is pending for this session/, 'one is pending: it is moved, not armed again');
+    assert.equal(s.state().latest, id);
+  } finally { s.done(); }
+});
+
+test('at an owner\'s prompt with a check-in pending, it asks for the check-in to be moved 55 minutes on', () => {
+  const s = scratch();
+  try {
+    const id = s.armed();
+    const asked = s.prompt(null, 'And then?');
+    const at = /run_once_at (\S+),/.exec(asked)[1];
+    assert.equal(asked, MOVE(TRIG, at));
+    assert.match(at, /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$/, 'RFC3339, in UTC');
+    assert.ok(Math.abs(Date.parse(at) - (Date.now() + 55 * MIN)) < 10_000, '55 minutes from the prompt');
+    assert.deepEqual(Object.keys(s.state()).sort(), ['due', 'latest', 'pending', 'trigger'], 'asking changes no state');
+    assert.notEqual(s.prompt(null, 'And after that?'), '', 'asked again at each prompt');
+
+    // A wake, a subagent, or a session that is not a cloud one is not asked.
+    WAKES.forEach(wake => assert.equal(s.prompt(null, wake), '', 'a wake: ' + wake.slice(0, 24)));
+    assert.equal(s.prompt(null, 'What next?', { agent_id: 'a1' }), '', 'a subagent\'s prompt');
+    assert.equal(s.run(null, { hook_event_name: 'UserPromptSubmit', prompt: 'What next?' }, null), '', 'outside a cloud session');
+    assert.equal(s.state().latest, id);
+
+    // A send_later result that gave no trigger_id leaves no trigger to move.
+    rmSync(s.file());
+    assert.equal(s.sent(MSG(id), { tool_response: `{"fire_at":"${ago(-55 * MIN)}"}` }), '');
+    assert.equal(s.state().trigger, undefined);
+    assert.equal(s.prompt(null, 'And then?'), '', 'no trigger_id: no move, and none armed while one is pending');
+
+    // Its time has passed but it is unread: it has fired, so it is not moved.
+    assert.equal(s.sent(MSG(id), { tool_response: `{"fire_at":"${ago(2 * MIN)}","trigger_id":"${TRIG}"}` }), '');
+    assert.equal(s.prompt(null, 'And then?'), '', 'two minutes past its time');
+
+    // With none pending, the prompt arms one as before.
+    rmSync(s.file());
+    const armedNow = s.prompt([typed('one'), reply(ago(MIN))]);
+    assert.equal(armedNow, ARM(idOf(armedNow)));
+  } finally { s.done(); }
+});
+
+test('after an update_trigger on the pending check-in, it records when the check-in now fires', () => {
+  const s = scratch();
+  try {
+    // A check-in due in 30 minutes, so that moving it to 55 sets it later.
+    const id = idOf(quoted(s.prompt([typed('one'), reply(ago(MIN))])));
+    assert.equal(s.sent(MSG(id), { tool_response: `{"fire_at":"${ago(-30 * MIN)}","trigger_id":"${TRIG}"}` }), '');
+    const was = s.state().due;
+    const at = /run_once_at (\S+),/.exec(s.prompt(null, 'And then?'))[1];
+    for (const name of UPDATE_TRIGGER) {
+      writeFileSync(s.file(), JSON.stringify({ ...s.state(), due: was }));
+      assert.equal(s.run(null, { hook_event_name: 'PostToolUse', tool_name: name, tool_input: { trigger_id: TRIG, run_once_at: at },
+        tool_response: [{ type: 'text', text: `{"trigger":{"id":"${TRIG}","next_run_at":"${at}"}}` }] }), '');
+      assert.equal(s.state().due, Date.parse(at) / 1000, 'next_run_at in the result, under ' + name);
+    }
+    assert.ok(s.state().due > was);
+    assert.deepEqual([s.state().latest, s.state().pending, s.state().trigger], [id, true, TRIG], 'the rest stands');
+
+    const due = () => s.state().due;
+    const later = new Date(Date.now() + 70 * MIN).toISOString().replace(/\.\d+Z$/, 'Z');
+    assert.equal(s.moved('trig_01Other', later), '');
+    assert.equal(due(), Date.parse(at) / 1000, 'another trigger is not the check-in');
+    assert.equal(s.moved(TRIG, later, { tool_response: { is_error: true, content: 'not found' } }), '');
+    assert.equal(due(), Date.parse(at) / 1000, 'a call that failed');
+    assert.equal(s.moved(TRIG, later, { agent_id: 'a1' }), '');
+    assert.equal(due(), Date.parse(at) / 1000, 'a subagent\'s call');
+    assert.equal(s.moved(TRIG, later, { tool_input: { trigger_id: TRIG, run_once_at: later }, tool_response: 'updated' }), '');
+    assert.equal(due(), Date.parse(later) / 1000, 'no time in the result: the run_once_at it was given');
+    assert.equal(s.moved(TRIG, '2026-11-16T09:00:00[America/Los_Angeles]', { tool_response: 'updated' }), '');
+    assert.equal(due(), Date.parse(later) / 1000, 'a local time is not read as UTC');
+    assert.equal(s.moved(TRIG, later, { tool_response: `{"run_once_at":"${at}"}` }), '');
+    assert.equal(due(), Date.parse(at) / 1000, 'run_once_at in the result before the one it was given');
+
+    // Once the check-in is read, the trigger is settled with it.
+    const first = s.read(idle(55 * MIN + 30_000), batch(scheduled(MSG(id))));
+    assert.match(first, /^Check-in, first of two\./);
+    assert.equal(s.state().trigger, undefined);
+    assert.equal(s.moved(TRIG, later), '');
+    assert.equal(s.state().due, undefined, 'and an update_trigger on it afterwards is passed over');
   } finally { s.done(); }
 });
 
@@ -286,7 +433,7 @@ test('outside a cloud session it does not ask, and everything else it does stays
     assert.equal(s.state().latest, one);
     const first = s.run(idle(55 * MIN + 30_000),
       { hook_event_name: 'PostToolUse', tool_name: 'ReadNotifications', tool_response: batch(scheduled(MSG(one))) }, null);
-    assert.equal(first, FIRST(55, idOf(first)));
+    assert.equal(first, firstOf(first, 55));
     assert.equal(s.state().ran, 1);
     assert.equal(s.run(null, ask, null), '', 'one is not asked for here');
     assert.equal(s.state().ran, 0);
@@ -345,7 +492,7 @@ test('read after 55 idle minutes a check-in is the first of two, and the one it 
     const one = s.armed();
     const first = s.read(idle(55 * MIN + 30_000), batch(scheduled(MSG(one))));
     const two = idOf(first);
-    assert.equal(first, FIRST(55, two));
+    assert.equal(first, firstOf(first, 55));
     assert.ok(one < two, 'the second check-in carries a later id');
     assert.deepEqual(s.state(), { latest: two, pending: false, ran: 1, mark: readFileSync(s.transcript).length });
 
@@ -370,7 +517,7 @@ test('an early check-in is sent again for the minutes that remain, and then come
     // The owner kept the session busy until 20 minutes ago.
     const early = s.read(idle(20 * MIN + 30_000), batch(scheduled(MSG(one))));
     const two = idOf(early);
-    assert.equal(early, EARLY(20, 35, two));
+    assert.equal(early, earlyOf(early, 20, 35));
     assert.ok(one < two);
     assert.equal(s.state().pending, false);
     assert.equal(s.state().ran, undefined, 'an early check-in is not one that ran');
@@ -382,7 +529,7 @@ test('an early check-in is sent again for the minutes that remain, and then come
     s.later(35 * MIN);
     const handling = [...woken(35 * MIN + 4000), reply(ago(35 * MIN - 5000)), reply(ago(35 * MIN - 9000))];
     const due = s.read(idle(55 * MIN + 30_000, handling), batch(scheduled(MSG(two))));
-    assert.equal(due, FIRST(55, idOf(due)), 'idle since the response before the early check-in');
+    assert.equal(due, firstOf(due, 55), 'idle since the response before the early check-in');
     assert.equal(s.state().quiet, undefined);
   } finally { s.done(); }
 });
@@ -396,7 +543,7 @@ test('work in the turn of an early check-in, or a prompt after it, counts as a r
     s.later(35 * MIN);
     const worked = [...woken(35 * MIN + 4000), reply(ago(35 * MIN - 5000)), reply(ago(25 * MIN + 30_000))];
     let again = s.read(idle(55 * MIN + 30_000, worked), batch(scheduled(MSG(idOf(early)))));
-    assert.equal(again, EARLY(25, 30, idOf(again)));
+    assert.equal(again, earlyOf(again, 25, 30));
 
     // The owner wrote two minutes after an early check-in and was answered at
     // once, inside the slack.
@@ -404,13 +551,13 @@ test('work in the turn of an early check-in, or a prompt after it, counts as a r
     early = s.read(idle(20 * MIN + 30_000), batch(scheduled(MSG(s.armed()))));
     assert.equal(s.sent(quoted(early)), '');
     assert.ok(s.state().quiet, 'the time of the response before the early check-in is kept');
-    assert.equal(s.prompt(null, 'One more thing.'), '', 'one is pending');
+    assert.match(s.prompt(null, 'One more thing.'), /^A check-in is pending/, 'one is pending, and is asked to move');
     assert.equal(s.state().quiet, undefined, 'and dropped when the owner types');
     s.later(35 * MIN);
     const answered = [...woken(35 * MIN + 4000), reply(ago(35 * MIN - 5000)),
       typed('One more thing.', ago(33 * MIN + 40_000)), reply(ago(33 * MIN + 30_000))];
     again = s.read(idle(55 * MIN + 30_000, answered), batch(scheduled(MSG(idOf(early)))));
-    assert.equal(again, EARLY(33, 22, idOf(again)));
+    assert.equal(again, earlyOf(again, 33, 22));
   } finally { s.done(); }
 });
 
@@ -430,12 +577,12 @@ test('a check-in older than the latest id is a duplicate, and gives way to the l
     s.later(10 * MIN);
     const handling = [...woken(10 * MIN + 4000), reply(ago(10 * MIN - 5000))];
     const first = s.read(idle(65 * MIN + 30_000, handling), batch(scheduled(MSG(two))));
-    assert.equal(first, FIRST(65, idOf(first)));
+    assert.equal(first, firstOf(first, 65));
 
     // In one batch, the newest id is the one judged.
     rmSync(s.file());
     const both = s.read(idle(55 * MIN + 30_000), batch(scheduled(MSG(one)), scheduled(MSG(two))));
-    assert.equal(both, FIRST(55, idOf(both)));
+    assert.equal(both, firstOf(both, 55));
     assert.ok(two < idOf(both));
   } finally { s.done(); }
 });
@@ -446,11 +593,11 @@ test('a prompt from the owner starts the count again, typed between turns or mid
     // Between turns: UserPromptSubmit sets the count back.
     let first = s.read(idle(55 * MIN + 30_000), batch(scheduled(MSG(s.armed()))));
     assert.equal(s.sent(quoted(first)), '');
-    assert.equal(s.prompt(null, 'Thanks, carry on.'), '', 'one is pending, so it does not ask');
+    assert.match(s.prompt(null, 'Thanks, carry on.'), /^A check-in is pending/, 'one is pending, so it asks to move it, not to arm one');
     assert.equal(s.state().ran, 0);
     assert.equal(s.state().mark, undefined);
     let next = s.read(idle(55 * MIN + 30_000), batch(scheduled(MSG(idOf(first)))));
-    assert.equal(next, FIRST(55, idOf(next)), 'the first of two again');
+    assert.equal(next, firstOf(next, 55), 'the first of two again');
 
     // Mid-turn: no UserPromptSubmit fires, and the transcript holds the message.
     rmSync(s.file());
@@ -459,7 +606,7 @@ test('a prompt from the owner starts the count again, typed between turns or mid
     appendFileSync(s.transcript, [queued('<task-notification>\n<task-id>a1</task-id>', { kind: 'task-notification' }),
       queued('Could we say less?', { kind: 'human' }), reply(ago(55 * MIN + 30_000)), ...woken()].join('\n') + '\n');
     next = s.read(null, batch(scheduled(MSG(idOf(first)))));
-    assert.equal(next, FIRST(55, idOf(next)), 'the owner wrote mid-turn');
+    assert.equal(next, firstOf(next, 55), 'the owner wrote mid-turn');
 
     // A message queued by anything but the owner leaves the count where it was.
     assert.equal(s.sent(quoted(next)), '');
@@ -538,7 +685,8 @@ test('with PR events in the same batch, the two hooks after ReadNotifications do
 
     // A failing check and an early check-in: one hook has work, the other ends the turn silent.
     const work = batch(github('check_run.completed'), scheduled(MSG(one)));
-    assert.match(s.read(idle(20 * MIN + 30_000), work, { session_id: 'case-1' }), /Then end the turn with no text\.$/);
+    assert.match(s.read(idle(20 * MIN + 30_000), work, { session_id: 'case-1' }),
+      /below any reply that other work in this turn calls for, .*moved to \d{1,2}:\d\d[ap]m\.»$/);
     assert.match(quietHint(work), /Work: a failing check\. Act on it/);
     assert.match(quietHint(work), /this work and its reply stand even where that instruction ends the turn with no text/);
 
@@ -563,7 +711,7 @@ test('each session keeps its own state', () => {
     const big = [typed('one'), reply(ago(MIN))];
     const a = quoted(s.prompt(big, 'What next?', { session_id: 'sess-a' }));
     assert.equal(s.sent(a, { session_id: 'sess-a' }), '');
-    assert.equal(s.prompt(big, 'What next?', { session_id: 'sess-a' }), '');
+    assert.match(s.prompt(big, 'What next?', { session_id: 'sess-a' }), /^A check-in is pending/);
     assert.notEqual(s.prompt(big, 'What next?', { session_id: 'sess-b' }), '', 'another session is asked for its own');
     assert.equal(s.state('sess-a').pending, true);
     assert.equal(s.state('sess-b').pending, false);
@@ -597,19 +745,19 @@ test('anything it was not aimed at passes silently, and it never fails a turn', 
   } finally { s.done(); }
 });
 
-test('it is registered on its three events, each in an entry of its own, through the plugin root', () => {
+test('it is registered on its four entries, each of its own, through the plugin root', () => {
   const entries = (event) => (HOOKS_JSON.hooks[event] || [])
     .filter(e => e.hooks.some(h => h.command.includes('check-in.py')));
   const everywhere = Object.keys(HOOKS_JSON.hooks).flatMap(entries);
-  assert.equal(everywhere.length, 3, 'three entries, and no fourth on another event');
-  assert.match(readFileSync(HOOK, 'utf8'), /Removing this script's three entries from hooks\.json ends the\s+practice\./,
+  assert.equal(everywhere.length, 4, 'four entries, and no fifth on another event');
+  assert.match(readFileSync(HOOK, 'utf8'), /Removing this script's four entries from hooks\.json ends the\s+practice\./,
     'the header names the off switch, and its count is the count registered');
   for (const entry of everywhere) {
     assert.equal(entry.hooks.length, 1, 'an entry of its own, so that removing it removes nothing else');
     assert.match(entry.hooks[0].command, /^python3 "\$\{CLAUDE_PLUGIN_ROOT\}\/hooks\/check-in\.py"$/);
   }
   assert.deepEqual(entries('UserPromptSubmit').map(e => e.matcher), ['']);
-  const [reads, sends] = entries('PostToolUse').sort((a, b) => a.matcher < b.matcher ? -1 : 1);
+  const [reads, sends, moves] = entries('PostToolUse').sort((a, b) => a.matcher < b.matcher ? -1 : 1);
   assert.equal(reads.matcher, 'ReadNotifications');
   const sending = new RegExp(`^(?:${sends.matcher})$`);
   for (const name of SEND_LATER) assert.ok(sending.test(name), `${sends.matcher} matches ${name}`);
@@ -617,4 +765,15 @@ test('it is registered on its three events, each in an entry of its own, through
   // The guard and the tracker answer the same calls.
   const guard = HOOKS_JSON.hooks.PreToolUse.find(e => e.hooks.some(h => h.command.includes('send-later-guard.sh')));
   assert.equal(sends.matcher, guard.matcher);
+  const moving = new RegExp(`^(?:${moves.matcher})$`);
+  for (const name of UPDATE_TRIGGER) assert.ok(moving.test(name), `${moves.matcher} matches ${name}`);
+  assert.ok(!moving.test('mcp__claude-code-remote__create_trigger') && !moving.test(SEND_LATER[0]));
+
+  // No guard stands before update_trigger: the one PreToolUse entry that
+  // matches it is the turn reporter, which never refuses, and the send-later
+  // guard stays silent when handed one.
+  const before = HOOKS_JSON.hooks.PreToolUse.filter(e => new RegExp(`^(?:${e.matcher})$`).test(UPDATE_TRIGGER[0]));
+  assert.deepEqual(before.flatMap(e => e.hooks.map(h => path.basename(h.command.split('"')[1] || h.command))), ['session-activity.py']);
+  assert.equal(execFileSync('bash', [GUARD], { input: JSON.stringify({ tool_name: UPDATE_TRIGGER[0],
+    tool_input: { trigger_id: TRIG, run_once_at: '2026-11-16T21:10:00Z' } }), encoding: 'utf8' }).trim(), '');
 });

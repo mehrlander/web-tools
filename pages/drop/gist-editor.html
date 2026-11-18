@@ -7,6 +7,7 @@
 
   <script defer src="https://unpkg.com/alpinejs"></script>
   <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/diff@5/dist/diff.min.js,npm/diff2html@3/bundles/js/diff2html.min.js"></script>
+  <script src="../../lib/kits/title-tip.js"></script>
   <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5,npm/diff2html@3/bundles/css/diff2html.min.css" rel="stylesheet">
 </head>
 
@@ -43,8 +44,8 @@
                 <span class="text-[10px] opacity-60" x-text="new Date(v.committed_at).toLocaleString()"></span>
               </div>
               <div class="flex gap-2">
-                <input type="radio" name="from" :value="v.version" x-model="diff.from" class="radio radio-xs radio-warning" title="Compare From">
-                <input type="radio" name="to" :value="v.version" x-model="diff.to" class="radio radio-xs radio-error" title="Compare To">
+                <input type="radio" name="from" :value="v.version" x-model="diff.from" class="radio radio-xs radio-warning" data-title-tip="Compare From">
+                <input type="radio" name="to" :value="v.version" x-model="diff.to" class="radio radio-xs radio-error" data-title-tip="Compare To">
               </div>
             </li>
           </template>
