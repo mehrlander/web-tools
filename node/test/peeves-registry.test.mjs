@@ -15,7 +15,7 @@ const agents = parseCsv(readFileSync(path.join(repoRoot, 'docs', 'agents.csv'), 
 
 // Entries the owner had removed. Their ids stay unused, so a cited id never
 // shifts meaning.
-const DELETED = ['P09', 'P15', 'P17', 'P19', 'P20', 'P27', 'P40', 'P59', 'P61'];
+const DELETED = ['P09', 'P15', 'P17', 'P19', 'P20', 'P27', 'P40', 'P59', 'P61', 'P73'];
 
 test('ids run P01 upward, missing only the deleted ones, so a cited id never shifts meaning', () => {
   const nums = rows.map(r => Number(r.id.slice(1)));
@@ -54,7 +54,7 @@ test('consolidations preserve cited IDs and point directly to an entry with the 
     assert.equal(r.status, target.status, `${r.id}: status differs from its target`);
   }
   const active = rows.filter(r => !r.merged_into && r.status === 'active');
-  assert.equal(active.length, 33);
+  assert.equal(active.length, 35);
   assert.equal(rows.filter(r => r.status === 'guidance').length, 7);
   assert.equal(byId.get('P03').merged_into, 'P10', 'the jargon note follows the Term loading consolidation');
 });

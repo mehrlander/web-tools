@@ -67,14 +67,17 @@ def discover(root, folders=None):
         return list(pool.map(identify, paths))
 
 
-def local_status(entry):
+def local_status(entry, activity=False):
     path = entry['path']
-    status = git(path, 'status', '--porcelain=v2', '--branch', '--untracked-files=all', timeout=12)
+    details = ('--ignored=matching', '--show-stash') if activity else ()
+    status = git(path, 'status', '--porcelain=v2', '--branch', '--untracked-files=all', *details, timeout=12)
     row = {'key': key(str(path.resolve()).lower()), 'name': path.name[:256], 'branch': '', 'upstream': None,
            'changed': None, 'untracked': None, 'conflicts': None, 'head': None}
+    if activity: row.update(ignored=None, stashes=None)
     if status is None:
         return row
     row.update(changed=0, untracked=0, conflicts=0)
+    if activity: row.update(ignored=0, stashes=0)
     for line in status.splitlines():
         if line.startswith('# branch.oid '):
             row['head'] = line[13:]
@@ -87,6 +90,11 @@ def local_status(entry):
             row['conflicts'] += line.startswith('u ')
         elif line.startswith('? '):
             row['untracked'] += 1
+        elif activity and line.startswith('! '):
+            row['ignored'] += 1
+        elif activity and line.startswith('# stash '):
+            count = line[8:]
+            row['stashes'] = int(count) if count.isdigit() else None
     if not row['upstream'] and row['branch'] and row['branch'] != '(detached)':
         remote = git(path, 'config', '--get', 'branch.' + row['branch'] + '.remote')
         merge = git(path, 'config', '--get', 'branch.' + row['branch'] + '.merge') or ''
@@ -341,15 +349,17 @@ def main():
     args = parser.parse_args()
     if args.publish_laptop_files:
         from laptop_inventory import InventoryError, publish
+        # Preserve Activity within the worker budget before the slower file walk.
+        try:
+            from local_activity import run
+            activity = run(args.root, args.state, Path.home(), push=True)
+        except (InventoryError, OSError, ValueError, subprocess.TimeoutExpired):
+            activity = {'state': 'unavailable'}
         try:
             value = publish(args.root)
         except (InventoryError, OSError, ValueError, subprocess.TimeoutExpired):
             value = {'state': 'unavailable', 'path': 'state/laptop-files.tsv'}
-        try:
-            from local_activity import run
-            value['activity'] = run(args.root, args.state, Path.home(), push=True)
-        except (InventoryError, OSError, ValueError, subprocess.TimeoutExpired):
-            value['activity'] = {'state': 'unavailable'}
+        value['activity'] = activity
         print(json.dumps(value))
         return
     if args.local_files:
