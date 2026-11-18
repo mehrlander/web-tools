@@ -1,5 +1,6 @@
 """Capture from real SQLite fixtures and publish without altering a checkout."""
 import json
+import base64
 from contextlib import closing
 from pathlib import Path
 import sqlite3
@@ -189,6 +190,33 @@ class CaptureChecks(unittest.TestCase):
         arguments = command.call_args.args[0]
         self.assertIn('credential.helper=', arguments)
         self.assertIn("credential.helper=!'C:/Tools With Spaces/gh.exe' auth git-credential", arguments)
+        self.assertEqual(command.call_args.kwargs['env']['GH_PROMPT_DISABLED'], '1')
+
+    def test_snapshot_retries_file_conflicts_without_replacing_a_newer_observation(self):
+        old = json.dumps({'observedAt': '2026-11-13T00:00:00+00:00'}).encode()
+        body = json.dumps({'observedAt': '2026-11-17T00:00:00+00:00'}).encode()
+        def metadata(sha, content):
+            return {'type': 'file', 'path': activity.TARGET, 'sha': sha, 'encoding': 'base64',
+                    'content': base64.b64encode(content).decode()}
+        with patch.object(activity, 'github_api', side_effect=[(200, metadata('first', old)), (409, {}),
+                                                               (200, metadata('next', old)), (200, {})]) as api:
+            self.assertEqual(activity.publish_snapshot('gh', body, 'Fixture'), 'published')
+        self.assertEqual(api.call_args_list[1].args[3]['sha'], 'first')
+        self.assertEqual(api.call_args_list[3].args[3]['sha'], 'next')
+        for call in (api.call_args_list[1], api.call_args_list[3]):
+            self.assertTrue(call.args[1].endswith('/contents/state/local-work.json'))
+            self.assertEqual(call.args[3]['branch'], 'background')
+            self.assertEqual(base64.b64decode(call.args[3]['content']), body)
+            self.assertIn('Co-Authored-By: Codex', call.args[3]['message'])
+        with patch.object(activity, 'github_api', return_value=(200, metadata('new', body))) as api:
+            self.assertEqual(activity.publish_snapshot('gh', old, 'Fixture'), 'superseded')
+            self.assertEqual(api.call_count, 1)
+
+    def test_snapshot_api_parses_headers_without_exposing_response_errors(self):
+        response = subprocess.CompletedProcess([], 0, stdout=b'HTTP/2.0 200 OK\r\nContent-Type: application/json\r\n\r\n{"sha":"fixture"}')
+        with patch.object(activity.subprocess, 'run', return_value=response) as command:
+            self.assertEqual(activity.github_api('gh', 'fixture', 'PUT', {'content': 'bytes'}), (200, {'sha': 'fixture'}))
+        self.assertEqual(json.loads(command.call_args.kwargs['input']), {'content': 'bytes'})
         self.assertEqual(command.call_args.kwargs['env']['GH_PROMPT_DISABLED'], '1')
 
 

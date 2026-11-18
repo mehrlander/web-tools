@@ -3,6 +3,7 @@
 Working files and indexes are never staged, switched, reset, moved or deleted.
 """
 import argparse
+import base64
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 import hashlib
@@ -11,6 +12,8 @@ import os
 from pathlib import Path
 import re
 import sqlite3
+import shutil
+import subprocess
 import tempfile
 import time
 
@@ -180,9 +183,49 @@ def replace_files(repository, base, files):
     return rewrite(base, changes)
 
 
+def github_api(gh, endpoint, method='GET', payload=None):
+    command = [gh, 'api', endpoint, '--method', method, '--include', '-H', 'Accept: application/vnd.github+json']
+    if payload is not None: command.extend(['--input', '-'])
+    response = subprocess.run(command, input=json.dumps(payload).encode() if payload is not None else None,
+                              capture_output=True, timeout=90, env={**os.environ, 'GH_PROMPT_DISABLED': '1'})
+    status = re.match(rb'HTTP/\S+\s+(\d+)', response.stdout)
+    separator = re.search(rb'\r?\n\r?\n', response.stdout)
+    if not status or not separator: raise inventory.InventoryError('Snapshot response unavailable')
+    return int(status[1]), json.loads(response.stdout[separator.end():])
+
+
+def publish_snapshot(gh, body, subject):
+    endpoint = 'repos/mehrlander/web-tools-private/contents/' + TARGET
+    for attempt in range(4):
+        status, current = github_api(gh, endpoint + '?ref=background')
+        if status not in (200, 404): break
+        payload = {'branch': 'background', 'content': base64.b64encode(body).decode(),
+                   'message': subject + '\n\nCo-Authored-By: Codex <codex@openai.com>\n'}
+        if status == 200:
+            if current.get('type') != 'file' or current.get('path') != TARGET:
+                raise inventory.InventoryError('Snapshot destination is not a file')
+            payload['sha'] = current['sha']
+            if current.get('encoding') == 'base64':
+                previous = base64.b64decode(current.get('content', ''))
+                if previous == body: return 'unchanged'
+                try:
+                    before = datetime.fromisoformat(json.loads(previous)['observedAt'])
+                    candidate = datetime.fromisoformat(json.loads(body)['observedAt'])
+                    if before > candidate: return 'superseded'
+                except (ValueError, KeyError, TypeError): pass
+        status, _ = github_api(gh, endpoint, 'PUT', payload)
+        if status in (200, 201): return 'published'
+        if status not in (409, 422): break
+        time.sleep(.25 * (attempt + 1))
+    raise inventory.InventoryError('Snapshot publication unavailable; no working files changed')
+
+
 def publish(repository, files, branch, subject):
     if branch not in ('main', 'background') or not inventory.approved_origin(repository):
         raise ValueError('Private capture destination unavailable')
+    gh = shutil.which('gh')
+    if branch == 'background' and set(files) == {TARGET} and gh:
+        return publish_snapshot(gh, files[TARGET], subject)
     for attempt in range(4):
         inventory.git(repository, 'fetch', '--quiet', '--no-tags', '--no-prune', '--no-prune-tags', '--no-recurse-submodules', '--no-auto-maintenance',
                       '--no-write-fetch-head', '--refmap=', 'origin', f'+refs/heads/{branch}:refs/remotes/origin/{branch}')
