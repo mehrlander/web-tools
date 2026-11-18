@@ -925,6 +925,45 @@ test('goProject: a declaring workspace has an Outpost tab, and its item stamps',
   assert.equal(shell.selectedCorrespondence, null);
 });
 
+// The selected file's own tab rides beneath its &item= as &itemtab=. The view
+// decides which tabs a file has, so the shell carries the word a link used
+// and whatever the view writes back, and drops it with the file it belongs to.
+test('the Outpost file\'s tab rides as &itemtab= beside its item, and leaves with it', () => {
+  const file = 'projects/wps/app/Modules/ISE/Tools/Links.ps1';
+  const { shell } = makeShell({
+    search: '?repo=mehrlander/home&view=project&project=projects/wps&tab=outpost&item=' + file + '&itemtab=shipped',
+    browserStore: { repo: 'mehrlander/home', ref: 'main', defaultRef: 'main' } });
+  shell.estateConfigs = { 'mehrlander/home': { projects: [{ path: 'projects/wps', powershellOutpost: 'projects/wps/data/outpost.json' }] } };
+  shell.refreshProjectPane = () => {};
+  const stamped = () => shell.deepLinkParams(new URLSearchParams('item=stale&itemtab=stale'));
+  // Boot and popstate share the project row, which hands the tab over with the item.
+  shell.routeFor('project').open.call(shell, shell.parseUrl());
+  assert.equal(shell.powershellOutpostItem, file);
+  assert.equal(shell.powershellOutpostTab, 'shipped');
+  assert.equal(stamped().get('itemtab'), 'shipped', 'the address keeps the word the link used');
+  // The view names the tab a reader picks, and '' for the one the file opens on by itself.
+  shell.powershellOutpostTab = 'code';
+  assert.equal(stamped().get('itemtab'), 'code');
+  shell.powershellOutpostTab = '';
+  assert.equal(stamped().get('itemtab'), null, 'the default stays out of the address');
+  assert.equal(stamped().get('item'), file);
+  // An address naming the file alone, as Back reaches, clears a tab held from the one before.
+  shell.powershellOutpostTab = 'outline';
+  shell.goProject('projects/wps', 'outpost', file);
+  assert.equal(shell.powershellOutpostTab, '');
+  // The tab belongs to the file: no file, another pill, another view or another workspace carries none.
+  shell.powershellOutpostTab = 'code';
+  shell.powershellOutpostItem = '';
+  assert.equal(stamped().get('itemtab'), null);
+  shell.powershellOutpostItem = file;
+  shell.goProjectTab('docs');
+  assert.equal(stamped().get('itemtab'), null);
+  shell.view = 'map';
+  assert.equal(stamped().get('itemtab'), null);
+  shell.goProject('projects/other', 'docs');
+  assert.equal(shell.powershellOutpostTab, '');
+});
+
 // A cold link names the tab before the manifest that declares it has been
 // read. Checked against the manifest at that moment, &tab=outpost fell back to
 // the Overview for good; kept as asked, it is drawn once the manifest arrives.

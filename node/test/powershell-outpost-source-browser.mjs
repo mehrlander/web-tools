@@ -88,9 +88,13 @@ ${scripts.map(file => '<script src="/lib/' + file + '"></script>').join('\n')}
 <script defer src="/node_modules/alpinejs/dist/cdn.min.js"></script>
 </head><body class="p-4"><div id="mount" x-data="powershellOutpostView({ path: '${project}', powershellOutpost: '${project}/data/outpost.json' })"></div></body></html>`;
 
+// The same page with the mount in a pane like the app's project pane: a frame
+// as tall as the window whose one child scrolls, padded as the app pads it.
+const paneHtml = html.replace('<body class="p-4"><div id="mount"', '<body class="h-dvh flex flex-col overflow-hidden"><div class="h-16 shrink-0"></div><div class="grow min-h-0 overflow-y-auto px-6 pb-8" data-pane><div id="mount"')
+  .replace('</div></body>', '</div></div></body>');
 const server = http.createServer((req, res) => {
   const pathname = new URL(req.url, 'http://fixture').pathname;
-  if (pathname === '/') { res.writeHead(200, { 'content-type': 'text/html;charset=utf-8' }); return res.end(html); }
+  if (pathname === '/' || pathname === '/pane') { res.writeHead(200, { 'content-type': 'text/html;charset=utf-8' }); return res.end(pathname === '/' ? html : paneHtml); }
   const target = path.resolve(repoRoot, '.' + decodeURIComponent(pathname));
   if (!target.startsWith(repoRoot + path.sep) || !existsSync(target)) { res.writeHead(404); return res.end('Not found'); }
   res.writeHead(200, { 'content-type': typeFor(target) }); res.end(readFileSync(target));
@@ -107,7 +111,7 @@ const display = text => text.replace(/\r\n?|\n/g, '\n');
 
 // One page per scenario. withoutEsm aborts every esm.sh request, which is
 // how the kit fails to load in the field.
-const openPage = async ({ width, height, withoutEsm = false, withoutParser = false }) => {
+const openPage = async ({ width, height, withoutEsm = false, withoutParser = false, pane = false }) => {
   const context = await browser.newContext({ viewport: { width, height } });
   await context.route('**/*', async route => {
     const url = route.request().url();
@@ -120,7 +124,7 @@ const openPage = async ({ width, height, withoutEsm = false, withoutParser = fal
   });
   const page = await context.newPage();
   page.on('pageerror', error => browserErrors.push(error.message));
-  await page.goto(origin + '/');
+  await page.goto(origin + (pane ? '/pane' : '/'));
   await page.waitForFunction(() => { const v = window.Alpine?.$data(document.querySelector('#mount')); return v && !v.loading && v.items.length; });
   const select = p => page.evaluate(p => Alpine.$data(document.querySelector('#mount')).select(p), p);
   const settled = () => page.waitForFunction(() => {
@@ -258,6 +262,23 @@ try {
     assert.equal((await desk.editor()).text, files[C]);
     assert.equal(await desk.page.locator('[data-source-diff]').isVisible(), false);
   });
+  // The editor, the baseline and the parser's review settle here in an order
+  // jsdom does not have, and each of them can open a tab.
+  await check('an address naming Shipped opens it on a file with changes, and a tab picked there is named for the address', async () => {
+    const view = fn => desk.page.evaluate(fn);
+    await desk.select(B); await desk.settled();
+    await desk.page.evaluate(c => { history.pushState(null, '', '?item=' + encodeURIComponent(c) + '&itemtab=shipped'); dispatchEvent(new PopStateEvent('popstate')); }, C);
+    await desk.page.waitForFunction(() => { const v = Alpine.$data(document.querySelector('#mount')); return v.unitReview && !v.unitBusy && v.sourceState === 'editor'; });
+    assert.equal(await view(() => Alpine.$data(document.querySelector('#mount')).visibleUnits.length), 1);
+    assert.equal(await view(() => Alpine.$data(document.querySelector('#mount')).shownTab), 'code');
+    await desk.page.locator('[data-source] .cm-editor').waitFor({ state: 'visible' });
+    await desk.page.locator('[data-detail-tabs] [data-tab=outline]').click();
+    assert.equal(await view(() => window.__shell.powershellOutpostTab), 'outline');
+    await desk.page.locator('[data-detail-tabs] [data-tab=changes]').click();
+    assert.equal(await view(() => window.__shell.powershellOutpostTab), '', 'the tab the file opens on by itself is left out');
+    await desk.page.locator('[data-detail-tabs] [data-tab=code]').click();
+    await view(() => history.replaceState(null, '', location.pathname));
+  });
   await check('Edit in the pane writes a browser draft, and its menu offers the draft actions', async () => {
     await desk.select(B); await desk.settled();
     await desk.page.locator('[data-file-actions] [aria-label="Edit"]').click();
@@ -325,6 +346,38 @@ try {
     if (process.env.SHOTS) await phone.page.screenshot({ path: path.join(process.env.SHOTS, 'tabs-phone.png') });
   });
   await phone.context.close();
+
+  const framed = await openPage({ width: 1500, height: 1000, pane: true });
+  await check('in a pane on a wide screen every tab of the open file ends on the pane\'s bottom edge, whatever is above the tabs, and a phone keeps the document', async () => {
+    const page = framed.page, edge = 1000 - 32;
+    const bottom = sel => page.evaluate(sel => Math.round([...document.querySelectorAll(sel)].find(e => e.getClientRects().length).getBoundingClientRect().bottom), sel);
+    const scrolls = sel => page.evaluate(sel => { const e = [...document.querySelectorAll(sel)].find(e => e.getClientRects().length); return e.scrollHeight > e.clientHeight; }, sel);
+    await framed.select(C); await framed.settled();
+    await page.waitForFunction(() => { const v = Alpine.$data(document.querySelector('#mount')); return v.unitReview && !v.unitBusy; });
+    for (const [tab, box] of [['code', '[data-source-file]'], ['adopted', '[data-adopted] > div'], ['diff', '[data-whole-diff] > div'], ['changes', '[data-tab-body]']]) {
+      await page.locator('[data-detail-tabs] [data-tab=' + tab + ']').click();
+      assert.equal(await bottom(box), edge, tab);
+    }
+    assert.equal(await scrolls('[data-pane]'), false, 'the pane does not scroll');
+    assert.equal(await scrolls('[data-part=detail]'), false, 'nor the file\'s column');
+    await page.locator('[data-detail-tabs] [data-tab=code]').click();
+    await page.locator('[data-source] .cm-editor').waitFor({ state: 'visible' });
+    // Too little room under the tabs: the box takes the column's height less
+    // the tab row, and the column scrolls until the box ends on the same edge.
+    await page.evaluate(() => document.querySelector('[data-detail-tabs]').insertAdjacentHTML('beforebegin', '<div data-tall style="height:600px;flex:none"></div>'));
+    const sizes = await page.evaluate(() => { const c = document.querySelector('[data-part=detail]'); c.scrollTop = c.scrollHeight;
+      return { column: c.clientHeight, box: Math.round(document.querySelector('[data-source-file]').getBoundingClientRect().height), tabs: Math.round(document.querySelector('[data-detail-tabs]').getBoundingClientRect().top - c.getBoundingClientRect().top) }; });
+    assert.equal(sizes.box, sizes.column - 56);
+    assert.equal(sizes.tabs, 0, 'the tabs head the column');
+    assert.equal(await bottom('[data-source-file]'), edge);
+    await page.evaluate(() => document.querySelector('[data-tall]').remove());
+    assert.equal(await bottom('[data-source-file]'), edge, 'and back, once there is room');
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth), false, 'nothing scrolls sideways');
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.waitForFunction(() => document.querySelector('[data-pane]').scrollHeight > document.querySelector('[data-pane]').clientHeight);
+    assert.equal(await page.evaluate(() => Math.round(document.querySelector('[data-source-file]').getBoundingClientRect().height)), 576, 'the box keeps its phone height');
+  });
+  await framed.context.close();
 
   for (const width of [1500, 390]) {
     const selected = await openPage({ width, height: 1000 });
