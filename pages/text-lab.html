@@ -1896,7 +1896,9 @@
       // Trial c: a rail down the card's right edge, a tick at each mark where
       // the render has it (a bar the length of a focus passage, a short tick a
       // citation) and a box for the part in view, as a diff's minimap draws
-      // one. A tick takes the reader to its mark; anywhere else on the rail
+      // one. Each kind keeps its own lane, focus on the left and citations on
+      // the right, since a focus passage holds citations of its own and a
+      // tick drawn over its bar would take the tap meant for the passage. A tick takes the reader to its mark; anywhere else on the rail
       // to that point of the piece. Drawn over the card from outside the
       // slides, so it stays put while the piece scrolls.
       railMount(card) {
@@ -1905,7 +1907,7 @@
         const rail = document.createElement('div');
         rail.dataset.rail = '';
         rail.setAttribute('aria-label', 'Marks in this piece');
-        rail.className = 'absolute z-[2] w-3 rounded-sm bg-base-200/70 cursor-pointer';
+        rail.className = 'absolute z-[2] w-4 rounded-sm bg-base-200/70 cursor-pointer';
         rail.hidden = true;
         card.append(rail);
         rail.addEventListener('click', e => this.railClick(e));
@@ -1931,13 +1933,13 @@
         const focus = [...body.querySelectorAll('[data-focus]')].map((el, k) => {
           const r = el.getBoundingClientRect();
           return `<button type="button" data-rail-go="focus:${k}" aria-label="${n > 1 ? `Focus ${k + 1} of ${n}` : 'Focus'}"`
-            + ` class="absolute left-0 w-full min-h-1 rounded-sm bg-base-content/50 hover:bg-base-content/80" style="top:${pct(r.top - b.top)};height:${pct(r.height)}"></button>`;
+            + ` class="absolute left-0.5 w-1.5 min-h-1 rounded-sm bg-base-content/50 hover:bg-base-content/80" style="top:${pct(r.top - b.top)};height:${pct(r.height)}"></button>`;
         });
         // A hidden citation has no place in the text, so it has none on the rail.
         const cites = [...body.querySelectorAll('[data-cite]')].filter(el => el.getClientRects().length && !seen.has(el.dataset.cite) && seen.add(el.dataset.cite)).map(el => {
           const r = el.getBoundingClientRect();
           return `<button type="button" data-rail-go="cite:${el.dataset.cite}" aria-label="Citation ${+el.dataset.cite + 1}"`
-            + ` class="absolute right-0 w-2 h-[3px] rounded-full bg-base-content/30 hover:bg-base-content/70" style="top:${pct(r.top - b.top)}"></button>`;
+            + ` class="absolute right-0.5 w-1.5 h-[3px] rounded-full bg-base-content/30 hover:bg-base-content/70" style="top:${pct(r.top - b.top)}"></button>`;
         });
         // Rebuilt only when a tick moved, so a tick a reader (or a look link)
         // is about to tap is still the element on screen when they do.
