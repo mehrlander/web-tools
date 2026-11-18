@@ -69,10 +69,15 @@
                  passage to read first, and is read only while it still pins
                  the piece's bytes. The focus is marked with a neutral rule
                  down its edge, since colour here is a standing and a fill is
-                 a selected row. The card's head holds the jump to the focus,
-                 which shows Text, and the door that reads the pieces one at a
-                 time. A ref without `short` or `caption` shows the title's
-                 head and the whole body.
+                 a selected row. The card's head holds the voice, the jump to
+                 the focus, which shows Text, and the door to the deck, whose
+                 header names the piece in view. Reading aloud
+                 (kits/read-aloud.js) speaks Text alone, from the stored
+                 Markdown: no front matter, no caption, and none of the spans
+                 an optional second standoff, <slug>.citations.standoff.json,
+                 labels `citation`. A ref without `short`, `caption` or that
+                 file shows the title's head and the whole body, and speaks
+                 all of it.
 
   Reviewing. Under every pair, in the list and in both decks, one line carries
   the variant's facts and a reader's three acts: vote it up, vote it down, and
@@ -275,6 +280,8 @@
       exemplarError: '',
       exemplarSel: params.get('exemplar') || '',
       exemplarTab: 'text',
+      voice: null,
+      voiceAt: { state: 'idle', id: '' },
       deckParam: params.get('deck') || '',
       deckAt: Math.max(0, parseInt(params.get('at'), 10) || 0),
       loading: true,
@@ -555,7 +562,7 @@
             ids: d.ids, sel: d.sel, body: d.body, name: d.name,
             listMax: 'max-h-[36vh]', wide: 'grid-cols-[minmax(0,26rem)_minmax(0,1fr)]',
             empty: `<p class="p-4 text-base-content/70">${d.empty}</p>`,
-            onPick: id => { d.set(id); this.syncSel(); },
+            onPick: id => { d.set(id); this.syncSel(); if (kind === 'exemplar' && this.voice) this.voice.seek(this.exemplarIds().indexOf(id)); },
             ...(d.deck ? { deck: d.deck } : {}),
             ...(d.head ? { head: d.head } : {}),
           });
@@ -643,6 +650,7 @@
       // page with nothing to read.
       async showPane(name) {
         const pane = this.PANES.includes(name) ? name : 'probes';
+        if (pane !== 'exemplars') this.quietCard();
         this.pane = pane;
         this.syncPaneAddress();
         // Six tabs overflow a phone's strip, so the open one is kept in view.
@@ -1226,7 +1234,7 @@
         this.exemplarState = 'loading';
         this.exemplarError = '';
         try {
-          await Promise.all(['kits/guide-render.js', 'kits/standoff.js'].map(k => gh.load(k)));
+          await Promise.all(['kits/guide-render.js', 'kits/standoff.js', 'kits/read-aloud.js'].map(k => gh.load(k)));
           await window.GuideRender.needMarked();
           const dir = this.EXEMPLARS;
           const names = (await this.home.req(`contents/${dir}?ref=${encodeURIComponent(this.DATA_REF)}`))
@@ -1238,10 +1246,17 @@
             const { fields, bodyAt } = this.exemplarFields(text);
             const so = names.includes(`${id}.standoff.json`)
               ? JSON.parse((await this.home.get(`${dir}/${id}.standoff.json`)).text) : null;
-            const { spans, captions, stale } = this.exemplarFocus(so, text, await this.sha256(bytes), bytes.length);
+            // The citations are a second standoff, optional, at a finer grain
+            // than the paragraphs: what reading aloud leaves out.
+            const cso = names.includes(`${id}.citations.standoff.json`)
+              ? JSON.parse((await this.home.get(`${dir}/${id}.citations.standoff.json`)).text) : null;
+            const digest = await this.sha256(bytes);
+            const { spans, captions, stale } = this.exemplarFocus(so, text, digest, bytes.length);
+            const cites = this.standoffRuns(cso, text, digest, bytes.length);
             const textAt = this.textStart(bodyAt, captions);
             return { ...fields, id, text, bodyAt, textAt, focusSpans: spans, captionSpans: captions, stale, standoff: !!so,
-                     words: this.wordCount(text.slice(textAt)), doc: '', captionDoc: '' };
+                     citationSpans: cites.runs.citation || [], citations: !!cso,
+                     words: this.wordCount(text.slice(textAt)), doc: '', captionDoc: '', speech: '' };
           }));
           this.exemplars = pieces;
           if (!this.exemplarOf(this.exemplarSel)) this.exemplarSel = '';
@@ -1281,30 +1296,35 @@
         } catch (_) { return ''; }   // no SubtleCrypto outside a secure context; the byte count still checks
       },
 
-      // A standoff's runs, as spans of the index this page slices by: `focus`,
-      // the passage to read first, and `caption`, a source's notices and
-      // caption ahead of the text proper. The standoff's offsets count code
-      // points, as Python does, and kits/standoff.js adopts them into UTF-16;
-      // consecutive units of one label are one run. A standoff that no longer
-      // pins these bytes, or does not partition them, marks nothing and says
+      // A standoff's runs by label, as spans of the index this page slices by.
+      // The standoff's offsets count code points, as Python does, and
+      // kits/standoff.js adopts them into UTF-16; consecutive units of one
+      // label are one run, adjacent units included. A standoff that no longer
+      // pins these bytes, or does not partition them, yields nothing and says
       // so (`stale`), rather than marking the wrong text.
-      exemplarFocus(so, text, digest = '', size = null) {
-        const S = window.Standoff, none = stale => ({ spans: [], captions: [], stale });
+      standoffRuns(so, text, digest = '', size = null) {
+        const S = window.Standoff, none = stale => ({ runs: {}, stale });
         if (!so || !S) return none(false);
         const t = so.target || {};
         if ((digest && t.sha256 && t.sha256 !== digest) || (size != null && t.bytes != null && t.bytes !== size)) return none(true);
         const adopted = S.adopt(so, text);
         if (S.check(adopted, text).length) return none(true);
-        const runs = { focus: [], caption: [] };
+        const runs = {};
         let prev = '';
         for (const u of [...adopted.units].sort((a, b) => a.start - b.start)) {
-          const list = runs[u.label];
-          if (list && prev === u.label) list[list.length - 1].end = u.end;
-          else if (list) list.push({ start: u.start, end: u.end });
+          const list = (runs[u.label] ||= []);
+          if (prev === u.label) list[list.length - 1].end = u.end;
+          else list.push({ start: u.start, end: u.end });
           prev = u.label;
         }
-        return { spans: runs.focus.map(s => ({ ...s, words: this.wordCount(text.slice(s.start, s.end)) })),
-                 captions: runs.caption, stale: false };
+        return { runs, stale: false };
+      },
+      // The focus standoff's two runs: `focus`, the passage to read first, and
+      // `caption`, a source's notices and caption ahead of the text proper.
+      exemplarFocus(so, text, digest = '', size = null) {
+        const { runs, stale } = this.standoffRuns(so, text, digest, size);
+        return { spans: (runs.focus || []).map(s => ({ ...s, words: this.wordCount(text.slice(s.start, s.end)) })),
+                 captions: runs.caption || [], stale };
       },
       // Where the text proper starts: past the captions that open the body.
       // Without them, the body is the text.
@@ -1471,6 +1491,80 @@
           if (box) box.scrollTop = (body._at || {})[face] || 0;
         }
       },
+      // ── Reading aloud ──────────────────────────────────────────────────────
+      // What Text shows, spoken: the stored Markdown with the front matter and
+      // the caption cut out, and each span the citations standoff labels
+      // `citation`. kits/read-aloud.js's speechText takes the syntax off. A
+      // citation cut mid-sentence leaves a mark (CUT, a private-use
+      // character speechText carries through), so the tidy that follows
+      // touches only the places a cut was: a comma doubled across it, a
+      // parenthesis it emptied, a comma it stranded before a full stop. A
+      // footnote marker, `[^1]`, is apparatus too, and is not spoken.
+      CUT: '\uE000',
+      speechMarkdown(p) {
+        const cuts = [{ start: 0, end: p.bodyAt, block: true },
+                      ...p.captionSpans.map(c => ({ ...c, block: true })),
+                      ...(p.citationSpans || []).map(c => ({ ...c, block: false }))]
+          .sort((a, b) => a.start - b.start);
+        let out = '', at = 0;
+        for (const c of cuts) {
+          if (c.end <= at) continue;
+          if (c.start > at) out += p.text.slice(at, c.start);
+          out += c.block ? '\n\n' : this.CUT;
+          at = c.end;
+        }
+        return out + p.text.slice(at);
+      },
+      tidySpeech(s) {
+        const C = this.CUT;
+        return String(s)
+          .replace(/\[\^[^\]\s]+\]/g, '')
+          .replace(new RegExp(`[(\\[][\\s,;:]*(?:${C}[\\s,;:]*)+[)\\]]`, 'g'), C)
+          .replace(new RegExp(`[,;:]\\s*${C}(?=\\s*[,;:.!?)\\]])`, 'g'), C)
+          .replace(new RegExp(`([.!?(\\[])\\s*${C}\\s*[,;:]+`, 'g'), `$1${C}`)
+          .replace(new RegExp(`[ \\t]*${C}[ \\t]*`, 'g'), ' ')
+          .replace(/[ \t]+([,;:.!?)\]])/g, '$1')
+          .replace(/([(\[])[ \t]+/g, '$1')
+          .replace(/[ \t]{2,}/g, ' ')
+          .replace(/ ?\n ?/g, '\n')
+          .trim();
+      },
+      speech(p) {
+        if (!p.speech && window.readAloud) p.speech = this.tidySpeech(window.readAloud.speechText(this.speechMarkdown(p)));
+        return p.speech || '';
+      },
+      speechItems(ids) {
+        return ids.map((id, i) => { const p = this.exemplarOf(id); return { key: i, label: this.listTitle(p), md: this.speech(p) }; });
+      },
+      readRate() { try { return Number(localStorage.getItem('wt:readRate')) || 1; } catch (_) { return 1; } },
+      // The card's voice: one player over the list, item `i` being row `i`,
+      // started at the piece in view. As in the deck, the voice drives the
+      // list when it moves on, and a pick in the list re-points the voice.
+      speakCard(id) {
+        const R = window.readAloud;
+        if (!R || !R.supported) return;
+        const ids = this.exemplarIds(), i = ids.indexOf(id);
+        if (i < 0) return;
+        if (!this.voice) {
+          this.voice = R.player({ rate: this.readRate(), onState: s => {
+            this.voiceAt = { state: s.state, id: ids[s.i] || '' };
+            if (s.state !== 'idle' && ids[s.i] && ids[s.i] !== this.exemplarSel) this.swipers?.exemplar?.pick(ids[s.i]);
+            this.swipers?.exemplar?.paint();
+          } });
+          this.voice.load(this.speechItems(ids));
+        }
+        if (this.voice.index === i && this.voice.state !== 'idle' && this.voice.state !== 'done') this.voice.toggle();
+        else this.voice.play(i);
+      },
+      quietCard() { this.voice?.stop(); this.voice = null; this.voiceAt = { state: 'idle', id: '' }; },
+      speakButton(p) {
+        if (!window.readAloud?.supported) return '';
+        const on = this.voiceAt.id === p.id && this.voiceAt.state === 'speaking';
+        const label = on ? 'Pause' : 'Read the text aloud';
+        return `<button type="button" data-exemplar-speak="${esc(p.id)}" aria-pressed="${on}" aria-label="${label}" data-title-tip="${label}"`
+          + ` class="btn btn-ghost btn-xs btn-square flex-none -my-1 max-sm:h-8 max-sm:w-8"><i class="ph ${on ? 'ph-pause' : 'ph-speaker-high'} text-base"></i></button>`;
+      },
+
       // Reading size, set on the pane's own text boxes over guide-render's
       // smaller default, with the headings, paragraph gaps and rules scaled
       // to match. The `!` is needed because the kit's sheet is unlayered.
@@ -1480,14 +1574,15 @@
           + '!text-xl !leading-8 [&_p]:!my-4 [&_h1]:!text-2xl [&_h2]:!text-2xl [&_h3]:!text-xl [&_h4]:font-semibold'
           + ' [&_h2]:!mt-6 [&_h3]:!mt-5 [&_hr]:!my-8 [&_blockquote]:!pl-4 [&>:first-child]:!mt-0 [&>:last-child]:!mb-0';
       },
-      // The card's head: the kit's own row, with the jump to the focus beside
-      // the counter, where every piece with a focus has it.
+      // The card's head: the kit's own row, with the voice and the jump to the
+      // focus beside the counter, in one place on every piece.
       exemplarHead(i, n, tight) {
         const id = this.exemplarIds()[i], p = this.exemplarOf(id) || {};
         const html = window.linkedSwiper.head({ when: this.shortYear(p.year), title: this.listTitle(p) },
           i, n, 'piece', { deck: true, tight });
         const at = html.indexOf('</h2>') + 5;
-        return at > 4 ? html.slice(0, at) + this.focusButton(p) + html.slice(at) : html + this.focusButton(p);
+        const own = this.speakButton(p) + this.focusButton(p);
+        return at > 4 ? html.slice(0, at) + own + html.slice(at) : html + own;
       },
       focusButton(p) {
         if (!p.focusSpans || !p.focusSpans.length) return '';
@@ -1547,11 +1642,14 @@
         return p.doc;
       },
 
-      // A tap on a piece's own controls: its face, or the focus control in the
-      // head, which is outside the piece's body and so names the piece.
+      // A tap on a piece's own controls: its face, or the voice or the focus
+      // control in the head, which is outside the piece's body and so names
+      // the piece.
       exemplarClick(e) {
         const tab = e.target.closest('[data-exemplar-tab]');
         if (tab) { this.setExemplarTab(tab.getAttribute('data-exemplar-tab')); return true; }
+        const voice = e.target.closest('[data-exemplar-speak]');
+        if (voice) { this.speakCard(voice.getAttribute('data-exemplar-speak')); return true; }
         const focus = e.target.closest('[data-exemplar-focus]');
         if (!focus) return false;
         const id = focus.getAttribute('data-exemplar-focus');
@@ -1586,24 +1684,36 @@
       },
 
       // The pieces one at a time, the card in a takeover. Its place follows
-      // the list, so closing it returns to the piece last read.
+      // the list, so closing it returns to the piece last read. The header
+      // names the piece in view and is set again on every slide (the snag
+      // swipe-deck-generic-header); the icon says what kind of slide it is.
+      // The voice is read-aloud's deck action: it starts at the slide in view
+      // and drives the deck, and a swipe re-points it.
       async openExemplarDeck(start = 0) {
         const ids = this.exemplarIds();
         if (!ids.length) return;
         await gh.load('kits/swipe-deck.js');
+        this.quietCard();
         const at = Math.min(Math.max(0, start), ids.length - 1);
-        window.swipeDeck.open({
+        const name = i => { const p = this.exemplarOf(ids[i]) || {};
+          return { title: this.listTitle(p), sub: [this.surnames(p.author), this.shortYear(p.year), p.genre].filter(Boolean).join(' · ') }; };
+        const speaker = window.readAloud?.supported ? window.readAloud.deckAction({
+          items: this.speechItems(ids), title: 'Read the text aloud from this piece' }) : null;
+        let handle = null;
+        handle = window.swipeDeck.open({
           count: ids.length,
           start: at,
-          title: 'Exemplars',
+          title: name(at).title,
+          subtitle: name(at).sub,
           icon: this.PANE_META.exemplars.icon,
           innerClass: 'w-full min-w-0 mx-auto',
+          actions: speaker ? [speaker.action] : [],
           index: i => {
             const p = this.exemplarOf(ids[i]);
             return { title: this.listTitle(p), subtitle: [this.shortAuthor(p.author), this.shortYear(p.year)].join(' · '), group: p.genre };
           },
-          // The header names the piece and holds its focus control, as the
-          // card's head does, while that piece is the one in view.
+          // The focus control is the slide's, so it shows while that piece is
+          // the one in view.
           render: (i, slide, chrome = {}) => {
             const p = this.exemplarOf(ids[i]);
             const el = document.createElement('div');
@@ -1611,20 +1721,24 @@
             el.addEventListener('click', e => this.exemplarClick(e));
             slide.append(el);
             chrome.setChrome?.({
-              sub: Object.assign(document.createElement('span'), { textContent: [this.shortYear(p.year), this.listTitle(p)].join(' · ') }),
               actions: p.focusSpans.length ? [{ icon: 'ph-bookmark-simple', title: `Jump to the focus: ${this.focusLine(p)}`,
                 onClick: () => this.jumpToFocus(el.querySelector('[data-exemplar-body]')) }] : [],
             });
           },
           onSlide: i => {
+            const n = name(i);
+            handle?.setTitle?.(n.title);
+            handle?.setSubtitle?.(n.sub);
+            speaker?.onSlide(i);
             this.exemplarSel = ids[i];
             this.swipers?.exemplar?.show(ids[i]);
             this.syncSel();
             this.syncDeckAddress('exemplars', i);
           },
-          onClose: () => this.syncDeckAddress(''),
+          onClose: () => { speaker?.stop(); this.syncDeckAddress(''); },
         });
         this.syncDeckAddress('exemplars', at);
+        return handle;
       },
 
       get resCounts() {

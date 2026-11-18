@@ -30,6 +30,11 @@ const MODEL = SRC.slice(start, stop);
 const dom = new JSDOM('<!doctype html><html><head></head><body></body></html>');
 globalThis.DOMParser = dom.window.DOMParser;   // guide-render's render() parses with the global
 globalThis.getComputedStyle = dom.window.getComputedStyle.bind(dom.window);
+// A speech engine that records what it is given and never finishes, so a
+// test reads the player's state where it stands.
+const spoken = [];
+globalThis.SpeechSynthesisUtterance = class { constructor(text) { this.text = text; } };
+globalThis.speechSynthesis = { speak(u) { spoken.push(u.text); }, cancel() {}, getVoices: () => [] };
 const kit = (win, name) => new Function('window', readFileSync(path.join(root, 'lib/kits', name), 'utf8'))(win);
 const ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 
@@ -67,7 +72,7 @@ const PIECE = [
   '',
   '## II',
   '',
-  'The law.',
+  'The law, Doe v. Roe, 2 U.S. 2, is plain (Smith v. Jones, 1 U.S. 1).',
   '',
   '[^1]: A note.',
   '',
@@ -120,6 +125,25 @@ function standoff(text, focus, caption = []) {
   };
 }
 
+// The citations standoff the brief describes: `text` and `citation` units at
+// sub-paragraph grain, partitioning the file, in code points.
+const CITES = ['Doe v. Roe, 2 U.S. 2', 'Smith v. Jones, 1 U.S. 1'];
+function citations(text, cites = CITES) {
+  const cp = i => [...text.slice(0, i)].length;
+  const marks = cites.map(c => [text.indexOf(c), text.indexOf(c) + c.length]).sort((a, b) => a[0] - b[0]);
+  const units = [];
+  let at = 0;
+  for (const [s, e] of marks) { if (s > at) units.push([at, s, 'text']); units.push([s, e, 'citation']); at = e; }
+  units.push([at, text.length, 'text']);
+  const bytes = Buffer.from(text, 'utf8');
+  return {
+    kind: 'standoff/1',
+    target: { path: 'p.md', repo: 'mehrlander/home', bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex') },
+    vocabulary: [{ label: 'text' }, { label: 'citation' }],
+    units: units.map(([s, e, label], k) => ({ uid: `c${k + 1}`, start: cp(s), end: cp(e), label })),
+  };
+}
+
 function harness(search = '') {
   const address = new URL(`https://example.test/pages/text-lab.html${search}`);
   const location = { href: address.href, search: address.search, hostname: address.hostname };
@@ -132,6 +156,7 @@ function harness(search = '') {
   kit(window, 'standoff.js');
   kit(window, 'repo-address.js');
   kit(window, 'linked-swiper.js');
+  kit(window, 'read-aloud.js');
   const doc = new Proxy(dom.window.document, {
     get(t, k) {
       if (k === 'addEventListener') return (_name, fn) => fn();
@@ -163,6 +188,7 @@ function home(files) {
 const FILES = () => ({
   'fixture.md': PIECE,
   'fixture.standoff.json': JSON.stringify(standoff(PIECE, FOCUS, CAPTION)),
+  'fixture.citations.standoff.json': JSON.stringify(citations(PIECE)),
   'short.md': PLAIN,
 });
 const render = html => { const el = dom.window.document.createElement('div'); el.innerHTML = html; return el; };
@@ -229,7 +255,7 @@ test('the focus and the caption are found in UTF-16 from a standoff counted in c
   assert.ok(PIECE.slice(model.textStart(bodyAt, captions)).trimStart().startsWith('The Court delivered the opinion.'),
     'the text proper starts past the caption');
   assert.equal(model.textStart(bodyAt, []), bodyAt, 'without a caption the body is the text');
-  const two = model.exemplarFocus(standoff(PIECE, [['## I', 'The facts are these.'], ['## II', 'The law.']]), PIECE);
+  const two = model.exemplarFocus(standoff(PIECE, [['## I', 'The facts are these.'], ['## II', 'The law,']]), PIECE);
   assert.deepEqual(two.spans.map(s => PIECE.slice(s.start, s.end)), ['## I', '## II'], 'separate runs stay separate');
 });
 
@@ -255,12 +281,12 @@ test('the pane reads every piece and standoff once, and lists them by genre', as
   await h.model.loadExemplars();
   await h.model.loadExemplars();
   assert.equal(h.model.exemplarState, 'done');
-  assert.deepEqual(h.loads.sort(), ['kits/guide-render.js', 'kits/standoff.js']);
-  assert.equal(h.model.exemplars.length, 2, 'the standoff is not a piece');
+  assert.deepEqual(h.loads.sort(), ['kits/guide-render.js', 'kits/read-aloud.js', 'kits/standoff.js']);
+  assert.equal(h.model.exemplars.length, 2, 'a standoff is not a piece');
   assert.equal(h.model.exemplarSel, '', 'a slug the folder does not hold is dropped');
   const fixture = h.model.exemplarOf('fixture');
   assert.equal(fixture.focusSpans.length, 1);
-  assert.equal(fixture.words, 24, 'the text proper is counted, not its caption');
+  assert.equal(fixture.words, 38, 'the text proper is counted, not its caption');
   assert.deepEqual(h.model.exemplarOf('short').focusSpans, []);
   assert.deepEqual(h.model.exemplarGroups().map(g => g.name), ['essay', 'opinion'], 'equal groups fall back to the name');
   assert.deepEqual(h.model.exemplarIds(), ['short', 'fixture']);
@@ -300,7 +326,7 @@ test('Context holds the title, the praise, the caption and where the copy came f
   await h.model.loadExemplars();
   const ctx = render(h.model.exemplarCardHtml('fixture')).querySelector('[data-pane="context"]');
   assert.equal(ctx.querySelector('h3').textContent, 'A Fixture: Its Subtitle', 'the full title lives here');
-  assert.match(ctx.textContent, /Ann Writer, Clerk · 1999 · opinion · 24 words/);
+  assert.match(ctx.textContent, /Ann Writer, Clerk · 1999 · opinion · 38 words/);
   const praise = [...ctx.querySelectorAll('a[href^="https://"]')].map(a => [a.textContent, a.getAttribute('href')]);
   assert.deepEqual(praise.slice(0, 2), [['First Reader, A Blog', 'https://a.example/one'], ['Second Reader, Another', 'https://b.example/two']]);
   assert.match(ctx.textContent, /NOTICE: a caption, with an astral mark 𝔄 ahead of the focus\.\s*COURT OF FIXTURES/, 'the caption, rendered');
@@ -345,11 +371,11 @@ test('the focus control sits in the head beside the counter, and finds its own p
   // The door's look is swipe-deck's; only its presence is held here.
   h.window.swipeDeck = { entry: { cls: () => 'btn', title: n => `Read ${n} pieces one at a time`, icon: 'ph-cards-three' } };
   const head = render(h.model.exemplarHead(1, 2, false));
-  const kids = [...head.children].map(e => e.tagName + (e.hasAttribute('data-exemplar-focus') ? ':focus' : ''));
-  assert.deepEqual(kids.slice(0, 2), ['H2', 'BUTTON:focus'], 'after the title, before the counter and the door');
+  const kids = [...head.children].map(e => e.tagName + (e.hasAttribute('data-exemplar-focus') ? ':focus' : e.hasAttribute('data-exemplar-speak') ? ':voice' : ''));
+  assert.deepEqual(kids.slice(0, 3), ['H2', 'BUTTON:voice', 'BUTTON:focus'], 'after the title, before the counter and the door');
   assert.match(head.querySelector('h2').textContent, /Fixture$/, 'the head shows the short title');
   assert.ok(head.querySelector('[data-swipe-cards]'), 'the door stays');
-  assert.match(head.querySelector('[data-exemplar-focus]').getAttribute('data-title-tip'), /12 of 24 words/);
+  assert.match(head.querySelector('[data-exemplar-focus]').getAttribute('data-title-tip'), /12 of 38 words/);
   assert.equal(render(h.model.exemplarHead(0, 2, false)).querySelector('[data-exemplar-focus]'), null, 'a piece with no focus has none');
   const detail = dom.window.document.createElement('div');
   detail.dataset.part = 'detail';
@@ -399,8 +425,7 @@ test('the address keeps the open piece, and the deck keeps its place', async () 
   assert.equal(opened[0].index(1).group, 'opinion');
   const chrome = [];
   opened[0].render(1, dom.window.document.createElement('section'), { setChrome: c => chrome.push(c) });
-  assert.equal(chrome[0].sub.textContent, '1999 · Fixture', 'the deck header names the piece');
-  assert.equal(chrome[0].actions.length, 1, 'and holds its focus control');
+  assert.equal(chrome[0].actions.length, 1, 'the slide holds its focus control');
   opened[0].render(0, dom.window.document.createElement('section'), { setChrome: c => chrome.push(c) });
   assert.deepEqual(chrome[1].actions, [], 'a piece with no focus has none');
   opened[0].onSlide(0);
@@ -419,10 +444,85 @@ test('the address keeps the open piece, and the deck keeps its place', async () 
   assert.equal(opened[1].start, 1);
 });
 
+test('the deck header names the piece in view, and a swipe changes it', async () => {
+  const h = harness('?pane=exemplars');
+  h.model.home = home(FILES());
+  await h.model.loadExemplars();
+  const opened = [], header = [];
+  h.window.swipeDeck = { open: o => {
+    opened.push(o);
+    return { setTitle: t => header.push(['title', t]), setSubtitle: t => header.push(['sub', t]) };
+  } };
+  await h.model.openExemplarDeck(1);
+  assert.equal(opened[0].title, 'Fixture', 'it opens on the name of the slide it opens on, not the kind');
+  assert.equal(opened[0].subtitle, 'Writer · 1999 · opinion');
+  opened[0].onSlide(0);
+  assert.deepEqual(header, [['title', 'A Short Piece'], ['sub', 'Other · 1885 → 1886 · essay']], 'a swipe renames it');
+  opened[0].onSlide(1);
+  assert.deepEqual(header.slice(2), [['title', 'Fixture'], ['sub', 'Writer · 1999 · opinion']]);
+  // The setters are swipe-deck's own: a renamed one would leave the header
+  // generic again, silently.
+  const kitSrc = readFileSync(path.join(root, 'lib/kits/swipe-deck.js'), 'utf8');
+  assert.match(kitSrc, /setTitle: t =>/);
+  assert.match(kitSrc, /setSubtitle: t =>/);
+});
+
+test('reading aloud speaks Text only: no front matter, no caption, no citation, and tidies what a cut leaves', async () => {
+  const h = harness();
+  h.model.home = home(FILES());
+  await h.model.loadExemplars();
+  const fixture = h.model.exemplarOf('fixture');
+  assert.equal(fixture.citationSpans.length, 2);
+  const said = h.model.speech(fixture);
+  assert.equal(said, 'The Court delivered the opinion.\n\nI\n\nThe facts are these.\n\nAnd more facts, with a footnote.\n\nII\n\nThe law, is plain.',
+    'a doubled comma and an emptied parenthesis are tidied, and the footnote marker goes');
+  assert.doesNotMatch(said, /NOTICE|COURT OF FIXTURES|A Fixture|Ann Writer|Doe|Smith/);
+  assert.match(fixture.text, /The law, Doe v\. Roe, 2 U\.S\. 2, is plain \(Smith v\. Jones, 1 U\.S\. 1\)\./, 'the stored piece is untouched');
+  const text = render(h.model.exemplarCardHtml('fixture')).querySelector('[data-pane="text"]').textContent;
+  assert.match(text, /Doe v\. Roe/, 'and Text still shows the citations');
+  assert.equal(h.model.tidySpeech('held, the rule'), 'held, the rule', 'punctuation away from a cut is left alone');
+  for (const [why, files] of [
+    ['no citations file', (() => { const f = FILES(); delete f['fixture.citations.standoff.json']; return f; })()],
+    ['a stale one', (() => { const f = FILES(); f['fixture.citations.standoff.json'] = JSON.stringify({ ...citations(PIECE), target: { bytes: 1, sha256: '0'.repeat(64) } }); return f; })()],
+  ]) {
+    const g = harness();
+    g.model.home = home(files);
+    await g.model.loadExemplars();
+    assert.match(g.model.speech(g.model.exemplarOf('fixture')), /The law, Doe v\. Roe, 2 U\.S\. 2, is plain \(Smith v\. Jones, 1 U\.S\. 1\)\./,
+      `${why}: everything in Text is spoken`);
+  }
+});
+
+test('the card speaks the piece in view from its head, and the deck reads from the slide in view', async () => {
+  const h = harness();
+  h.model.home = home(FILES());
+  await h.model.loadExemplars();
+  spoken.length = 0;
+  assert.match(h.model.exemplarHead(1, 2, false), /data-exemplar-speak="fixture"[^>]*aria-label="Read the text aloud"/);
+  h.model.exemplarClick({ target: render(h.model.exemplarHead(1, 2, false)).querySelector('[data-exemplar-speak] i') });
+  assert.equal(spoken[0], 'The Court delivered the opinion.', 'it starts at the text proper of the piece in view');
+  assert.equal(h.model.voice.state, 'speaking');
+  assert.match(h.model.exemplarHead(1, 2, false), /data-exemplar-speak="fixture"[^>]*aria-label="Pause"/, 'the head says it is speaking');
+  h.model.speakCard('fixture');
+  assert.equal(h.model.voice.state, 'paused', 'a second tap pauses');
+  h.model.showPane('probes').catch(() => {});
+  assert.equal(h.model.voice, null, 'leaving the pane quiets it');
+  const opened = [];
+  h.window.swipeDeck = { open: o => { opened.push(o); return {}; } };
+  await h.model.openExemplarDeck(0);
+  const action = opened[0].actions[0];
+  assert.equal(action.title, 'Read the text aloud from this piece');
+  spoken.length = 0;
+  action.onClick({ active: () => 1, go() {} }, null);
+  assert.equal(spoken[0], 'The Court delivered the opinion.', 'the deck reads from the slide in view, one item a slide');
+  opened[0].onClose();
+});
+
 test('the header comment names the pane, its faces and its address', () => {
   const head = SRC.slice(0, SRC.indexOf('-->'));
   assert.match(head, /\n {4}exemplars {4}projects\/text\/exemplars\/pieces\//);
   assert.match(head, /two faces\. Text is the piece/);
+  assert.match(head, /<slug>\.citations\.standoff\.json/);
   assert.match(head, /\?exemplar=<slug> opens one piece and implies the exemplars pane/);
   assert.match(head, /runs or exemplars/);
   assert.match(SRC, /x-ref="exemplarList" role="listbox"/);
