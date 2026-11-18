@@ -45,7 +45,7 @@ The app's `VIEWS` table is the router: each row names a key, how a link opens it
 
 **Filter.** A view whose container carries `data-find-hoist` hides its own filter box (`data-find-box`), and the header's find pill drives it: a magnifier in the header that opens a bar over the top of the view, at every width. Below `lg` the view also lifts its list under the bar, above the keyboard. Ctrl or Cmd+F opens the view's filter, and a second press is the browser's find. Each box's placeholder names what its filter matches, as "<rows> by <fields>". The Search view and Config keep their boxes.
 
-**Sidebar.** `sidebarOpen` controls an overlay below `lg` and a column at `lg` and above, without changing the URL. Breadcrumbs show the app, repo, and non-default ref. Repo navigation lists views, projects, pins, and recents; estate navigation lists repos, programs, and app views.
+**Sidebar.** `sidebarOpen` controls an overlay below `lg` and a column at `lg` and above, without changing the URL. Breadcrumbs show the app, repo, and non-default ref. Repo navigation lists views, projects, pins, and recents; estate navigation lists repos, [programs](CONSTELLATION.md#projects-and-research), and app views.
 
 **Repo views.** Overview displays the README. Other views are Pages, Atlas, Config, Files, and Project. A declared landing page renders as an app view.
 
