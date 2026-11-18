@@ -34,7 +34,7 @@ When GitHub rejects the token, the app opens **This browser** (`?view=here`), wh
 
 - `?repo=owner/repo[&ref=…]` opens a repo on its Overview. `?ref=` is repo-scoped and stamps beside `repo`.
 - `?view=<key>` opens a view. The keys, their labels, nav stops, groups, files and docs are rows of [app-routes.csv](app-routes.csv).
-- Second keys: `&tab=` (Project's pills, Map's tabs), `&item=` (State, Compactions), `&detail=` (Branches), the `&sq=` family (Search), `&file=`, `&path=`, `&window=`. A view leaves its default second key out of the URL.
+- Second keys: `&tab=` (Project's pills, Program's and Map's tabs), `&item=` (State, Compactions), `&detail=` (Branches), the `&sq=` family (Search), `&file=`, `&path=`, `&window=`. A view leaves its default second key out of the URL.
 - `&header=0|1` and `&sidebar=0|1` set whether the header shows and which way the sidebar starts (below).
 
 The app's `VIEWS` table is the router: each row names a key, how a link opens it, and what it stamps back. `routeFromUrl` dispatches through it and `deepLinkParams` stamps through it. **Adding a row is the whole of adding an addressable view**, plus its `app-routes.csv` row. [`shell-routing.test.mjs`](../node/test/shell-routing.test.mjs) forbids comparing a view name inside the routing functions and re-parses every row's own stamp; [`app-routes.test.mjs`](../node/test/app-routes.test.mjs) holds `VIEWS` and `app-routes.csv` to each other both ways. The default repo's `repo` key is dropped from addresses as redundant, except on its landing, which would otherwise have no address.
@@ -45,7 +45,7 @@ The app's `VIEWS` table is the router: each row names a key, how a link opens it
 
 **Filter.** A view whose container carries `data-find-hoist` hides its own filter box (`data-find-box`), and the header's find pill drives it: a magnifier in the header that opens a bar over the top of the view, at every width. Below `lg` the view also lifts its list under the bar, above the keyboard. Ctrl or Cmd+F opens the view's filter, and a second press is the browser's find. Each box's placeholder names what its filter matches, as "<rows> by <fields>". The Search view and Config keep their boxes.
 
-**Sidebar.** `sidebarOpen` controls an overlay below `lg` and a column at `lg` and above, without changing the URL. Breadcrumbs show the app, repo, and non-default ref. Repo navigation lists views, projects, pins, and recents; estate navigation lists repos and app views.
+**Sidebar.** `sidebarOpen` controls an overlay below `lg` and a column at `lg` and above, without changing the URL. Breadcrumbs show the app, repo, and non-default ref. Repo navigation lists views, projects, pins, and recents; estate navigation lists repos, programs, and app views.
 
 **Repo views.** Overview displays the README. Other views are Pages, Atlas, Config, Files, and Project. A declared landing page renders as an app view.
 
