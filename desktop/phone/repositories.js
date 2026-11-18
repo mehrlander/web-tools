@@ -1,6 +1,8 @@
 (() => {
   'use strict';
   const el=id=>document.getElementById(id);
+  const scrollPosition=()=>window.NowViews?.scrollPosition('files')??window.scrollY;
+  const restoreScroll=top=>window.NowViews?.scrollTo?window.NowViews.scrollTo(top,'files'):window.scrollTo(0,top);
   const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const ago=value=>{const n=Math.max(0,Math.floor((Date.now()-Date.parse(value))/60000));return n<1?'just now':n<60?n+'m ago':n<1440?Math.floor(n/60)+'h ago':Math.floor(n/1440)+'d ago';};
   const stamp=value=>new Date(value).toLocaleString([],{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
@@ -132,8 +134,8 @@
     if(!active)return;
     const params=new URLSearchParams(location.hash.slice(1));if(!['files','repositories'].includes(params.get('view')))return;
     const key=params.get('checkout'),next=params.get('folder')??checkoutFor(key)?.name??'';
-    if(next!==selected){if(!enter)positions.set(selected,scrollY);selected=next;popup=null;window.TitleTip?.close();render();scrollTo(0,positions.get(selected)||0);}
-    else {render();if(enter)scrollTo(0,positions.get(selected)||0);}
+    if(next!==selected){if(!enter)positions.set(selected,scrollPosition());selected=next;popup=null;window.TitleTip?.close();render();restoreScroll(positions.get(selected)||0);}
+    else {render();if(enter)restoreScroll(positions.get(selected)||0);}
     window.NowLocalFiles.setFilter(params.get('filter')||'all');
   }
   function openFolder(path,filter='all'){
@@ -175,5 +177,5 @@
   window.addEventListener('online',poll);window.addEventListener('offline',()=>{connected=false;render();});
   window.addEventListener('resize',positionPanels);window.addEventListener('scroll',positionPanels,{passive:true});
   try{const prior=JSON.parse(localStorage.getItem('web-tools-repositories-snapshot'));if(valid(prior))data=prior;}catch{}
-  window.NowRepositories={connection,comparison,branchControl,tools,rootTools,positionPanels,version:()=>JSON.stringify([popup,sending,message,data]),setActive:value=>{const prior=active;if(prior&&!value)positions.set(selected,scrollY);active=value;clearTimeout(timer);clearTimeout(staleTimer);if(active){route(!prior);poll();}else {popup=null;window.TitleTip?.close();window.NowLocalFiles.stop();window.NowLocalFiles.header(false,false);}}};
+  window.NowRepositories={connection,comparison,branchControl,tools,rootTools,positionPanels,version:()=>JSON.stringify([popup,sending,message,data]),setActive:value=>{const prior=active;if(prior&&!value)positions.set(selected,scrollPosition());active=value;clearTimeout(timer);clearTimeout(staleTimer);if(active){route(!prior);poll();}else {popup=null;window.TitleTip?.close();window.NowLocalFiles.stop();window.NowLocalFiles.header(false,false);}}};
 })();

@@ -108,10 +108,9 @@ public sealed class ErrandReader(string repository)
                         if (pieces.Length > 3) outputs.Add(pieces[2]);
                     } else if (fields.Length == 3 && path.EndsWith(".json", StringComparison.Ordinal)) files[path] = fields[2];
                 }
-                var requests = files.Keys.Where(p => p.StartsWith("errands/requests/", StringComparison.Ordinal) && p.Count(c => c == '/') == 2)
-                    .OrderDescending(StringComparer.Ordinal).ToList();
-                var selected = requests.Take(80).Concat(requests.Where(p => !files.ContainsKey(p.Replace("/requests/", "/results/", StringComparison.Ordinal))))
-                    .Distinct().ToList();
+                // Assistant-prefixed filenames do not sort by completion time.
+                // Join records before retaining the newest results and every open request.
+                var selected = files.Keys.Where(p => p.StartsWith("errands/requests/", StringComparison.Ordinal) && p.Count(c => c == '/') == 2).ToList();
                 var wanted = selected.SelectMany(p => new[] { p, p.Replace("/requests/", "/claims/", StringComparison.Ordinal), p.Replace("/requests/", "/results/", StringComparison.Ordinal) })
                     .Where(files.ContainsKey).ToDictionary(p => p, p => files[p]);
                 foreach (var path in files.Keys.Where(p => p.StartsWith("sessions/activity/", StringComparison.Ordinal)
@@ -138,7 +137,9 @@ public sealed class ErrandReader(string repository)
                     var job = Activity.Join(id, request, claim, result, outputs.Contains(id), seenThrough);
                     if (job is not null) jobs.Add(job);
                 }
-                cached = jobs.OrderByDescending(j => j.IsOpen).ThenByDescending(j => j.UpdatedAt).ToList();
+                cached = jobs.Where(j => j.IsOpen).Concat(jobs.Where(j => !j.IsOpen)
+                    .OrderByDescending(j => j.UpdatedAt).ThenBy(j => j.Id, StringComparer.Ordinal).Take(80))
+                    .OrderByDescending(j => j.IsOpen).ThenByDescending(j => j.UpdatedAt).ToList();
                 cachedSeen = seenThrough;
                 recordNotice = invalid.Count == 0 ? null : $"{invalid.Count} unreadable activity record(s) were omitted. Open Web Tools to inspect the source records.";
                 revision = current;

@@ -2,6 +2,50 @@
   'use strict';
   const el = id => document.getElementById(id);
   const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const focusStyle = 'focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-[#047857] focus-visible:outline-offset-2';
+  const touchMore = "pointer-coarse:after:content-[''] pointer-coarse:after:absolute pointer-coarse:after:-inset-y-1.5 pointer-coarse:after:-inset-x-[7px]";
+  const statusTones = {working:'text-[#24785d]',waiting:'text-[#a57428]',accepted:'text-[#5879a1]',attention:'text-[#b87832]',quiet:'text-[#938b7d]'};
+  const ui = {
+    assistants:'sticky top-0 z-[2] grid grid-cols-3 gap-2 px-3 py-1 border-t-0 bg-stone-100 max-[350px]:gap-1 max-[350px]:px-2',
+    provider:'phone-provider relative min-w-0',
+    providerFilter:`phone-provider-filter block h-full w-full min-h-[42px] pt-0 px-0 pb-0.5 text-left border-b-2 border-transparent rounded aria-pressed:border-[#6f6a61] aria-pressed:bg-[#eae7e1] ${focusStyle}`,
+    providerName:'phone-provider-name flex items-center gap-[3px] pr-[18px] text-[13px] font-semibold leading-5 whitespace-nowrap [&>svg]:size-4 [&>svg]:flex-none max-[350px]:text-xs max-[350px]:gap-0.5 max-[350px]:[&>svg]:size-[13px]',
+    providerCounts:'phone-provider-counts mt-0.5 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0 text-xs tabular-nums leading-4 text-[#827b71] [&_svg]:size-3 max-[350px]:gap-x-1 max-[350px]:text-[11px] max-[350px]:[&_svg]:size-[11px]',
+    count:'inline-flex items-center gap-[3px] whitespace-nowrap',
+    providerMore:`phone-provider-more absolute -right-[3px] top-0 grid place-items-center w-[18px] h-5 text-[#827b71] [&_svg]:size-[17px] pointer-coarse:after:content-[''] pointer-coarse:after:absolute pointer-coarse:after:-top-3 pointer-coarse:after:bottom-0 pointer-coarse:after:-inset-x-[7px] ${focusStyle}`,
+    row:'phone-row grid grid-cols-[20px_minmax(0,1fr)_28px] gap-[7px] py-2.5 px-3 border-b border-[#e9e6e1] bg-white min-w-0 cursor-pointer max-[350px]:px-2.5 max-[350px]:gap-1.5',
+    mark:'phone-mark pt-0.5 [&>svg]:size-5',
+    position:'phone-position block w-5 text-[13px] text-[#a06e35] tabular-nums',
+    pick:`phone-pick block w-full min-h-[22px] p-0 text-left text-[#35312c] ${focusStyle}`,
+    rowTitle:'phone-row-title line-clamp-2 overflow-hidden text-sm font-[550] leading-5 [overflow-wrap:anywhere]',
+    meta:'phone-meta flex items-center flex-wrap gap-y-[3px] gap-x-1.5 mt-1 text-xs leading-5 min-h-5 text-[#827b71] [&>svg]:size-3.5 [&>svg]:flex-none [&_time]:whitespace-nowrap [&_time]:tabular-nums max-[350px]:gap-x-[5px]',
+    status:'phone-status inline-flex items-center justify-center gap-[5px] [&_svg]:size-4 [&_svg]:flex-none',
+    statusButton:`relative size-5 p-0 border-0 bg-transparent pointer-coarse:after:content-[''] pointer-coarse:after:absolute pointer-coarse:after:-inset-y-2.5 pointer-coarse:after:-inset-x-1.5 ${focusStyle}`,
+    summary:'phone-summary line-clamp-2 overflow-hidden mt-[5px] mx-0 mb-0 text-[#7b7368] text-[13px] leading-[19px] [overflow-wrap:anywhere]',
+    more:`phone-more relative grid place-items-center w-7 h-8 p-0 text-[#827b71] flex-none [&_svg]:size-[17px] ${touchMore} ${focusStyle}`,
+    menu:'phone-session-menu fixed z-[60] w-[min(270px,calc(100vw_-_16px))] max-h-[calc(100dvh_-_16px)] overflow-auto bg-white border border-[#e1dcd3] rounded-xl p-[5px] shadow-[0_8px_28px_#29252426] text-[13px] leading-[19px] [&[hidden]]:hidden [&>div]:block [&_p]:text-[11px] [&_p]:leading-[17px] [&_p]:px-2.5 [&_p]:py-[5px] [&_p]:text-[#8a8175]',
+    menuItem:`flex w-full min-h-[42px] items-center py-[9px] px-2.5 border-0 rounded-md bg-transparent text-left whitespace-normal text-[#3f6f61] [font:inherit] no-underline hover:bg-[#f1eee8] ${focusStyle}`,
+    detailHeader:'phone-detail-header flex items-center justify-between sticky top-0 z-[15] min-h-[49px] bg-[#fffffff5] border-b border-[#e7e3dc] py-1 px-3 backdrop-blur-[8px]',
+    back:`phone-back min-h-10 py-[3px] px-1 text-[14px] text-[#686156] ${focusStyle}`,
+    detailArticle:'phone-detail-article pt-[14px] px-4 pb-9',
+    detailTitle:'text-[21px] font-semibold leading-7 [overflow-wrap:anywhere] mt-3 mx-0 mb-[9px] text-[#373129] outline-none',
+    facets:'phone-facets flex gap-[3px] p-[3px] rounded-lg bg-[#efede7] mt-[18px] mx-0 mb-3',
+    facet:`flex-1 min-w-0 min-h-[34px] py-1 px-1.5 text-xs leading-[18px] text-[#7b7265] rounded-[5px] whitespace-nowrap aria-selected:bg-white aria-selected:text-[#3d362c] aria-selected:shadow-[0_1px_3px_#29252414] aria-selected:font-[550] pointer-coarse:min-h-10 ${focusStyle}`,
+    detailBody:'phone-detail-body text-sm leading-[22px] text-[#5e5549] [overflow-wrap:anywhere] min-h-20 [&_p]:my-[.7em] [&_pre]:whitespace-pre-wrap [&_pre]:[overflow-wrap:anywhere] [&_a]:text-[#277b67] [&_a]:underline [&_a]:underline-offset-2',
+    tokenDialog:'phone-token-dialog w-[min(360px,calc(100vw_-_24px))] p-[18px] border border-[#ddd6ca] rounded-[14px] text-[#4b4338] shadow-[0_10px_40px_#29252430] text-xs leading-[18px] backdrop:bg-[#29252430]',
+    dialogTitle:'text-[15px] font-semibold leading-[21px] pr-[25px] mt-0 mx-0 mb-[9px] [overflow-wrap:anywhere]',
+    dialogNote:'my-2 text-[#817565]',
+    dialogCounts:'grid grid-cols-[minmax(0,1fr)_auto] gap-y-[5px] gap-x-3 my-3 [&_dd]:tabular-nums [&_dd]:text-right',
+    dialogClose:'phone-dialog-close absolute right-[7px] top-[5px] size-[34px] text-2xl leading-[18px] text-[#8b8172]'
+  };
+  if (el('assistants')) el('assistants').className=ui.assistants;
+  // Status counts can change the strip's height. Keep section headings just
+  // below its measured edge without moving the reader's scroll position.
+  if (window.ResizeObserver && el('assistants')) new ResizeObserver(([entry]) => {
+    const height = entry.target.getBoundingClientRect().height;
+    const panel = el('panel-now'), value = height + 'px';
+    if (height > 0 && panel?.style.getPropertyValue('--phone-assistant-height') !== value) panel?.style.setProperty('--phone-assistant-height',value);
+  }).observe(el('assistants'));
   const rendered = new WeakMap();
   const html = (id, value) => {
     const node = el(id);
@@ -12,25 +56,37 @@
   const colours = {codex:'text-emerald-700',gemini:'text-blue-700',claude:'text-orange-700'};
   const keyFor = provider => /gemini/i.test(provider) ? 'gemini' : /claude/i.test(provider) ? 'claude' : 'codex';
   const mark = (provider, cls = 'size-5 shrink-0') => window.assistantMark?.svg(keyFor(provider), {cls}) || '';
-  const badge = state => `<span class="rounded px-1.5 py-0.5 text-[10px] ${tones[state] || 'bg-stone-100 text-stone-600'}">${escape(labels[state] || state)}</span>`;
+  const paths = {working:'M3 12h4l3-8 4 16 3-8h4',quiet:'M8 5v14M16 5v14',idle:'M20 12a8 8 0 1 1-16 0 8 8 0 0 1 16 0',queued:'M7 3h10M7 21h10M8 3v5l8 8v5M16 3v5l-8 8v5',claimed:'M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0',reply:'M5 9H2V6m0 3a9 9 0 1 1 1 9',complete:'m5 12 4 4L19 6',failed:'m12 3 10 18H2Zm0 6v5m0 3h.01',attention:'M8 12V7a2 2 0 0 1 4 0v4m0-4a2 2 0 0 1 4 0v5m0-3a2 2 0 0 1 4 0v6c0 4-3 6-7 6-3 0-4-1-6-4l-3-4a2 2 0 0 1 3-2l1 1',more:'M12 5h.01M12 12h.01M12 19h.01'};
+  const icon = name => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${name === 'more' ? 3 : 1.7}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${paths[name] || paths.idle}"/></svg>`;
+  function status(item) {
+    if (item.state === 'failed') return {glyph:'failed',label:'Needs review: failed',tone:'attention'};
+    if (item.state === 'interrupted') return {glyph:'attention',label:'Interrupted',tone:'attention'};
+    if (item.needsAttention || item.state === 'needs-you') return {glyph:'attention',label:'Needs attention',tone:'attention'};
+    return {glyph:paths[item.state] ? item.state : 'idle',label:({quiet:'No recent activity',claimed:'Claimed; awaiting an update',recent:'Recent activity'})[item.state] || labels[item.state] || 'Recorded',tone:({working:'working',reply:'working',queued:'waiting',claimed:'accepted',quiet:'quiet'})[item.state] || 'quiet'};
+  }
+  const badge = item => { const value=status(typeof item==='string'?{state:item}:item); return `<span class="${ui.status} phone-status-${value.tone} ${statusTones[value.tone]}" title="${escape(value.label)}">${icon(value.glyph)}<span>${escape(value.label)}</span></span>`; };
   const age = at => { const seconds = Math.max(0, Math.round((Date.now() - new Date(at).getTime()) / 1000)); return seconds < 60 ? 'just now' : seconds < 3600 ? `${Math.floor(seconds / 60)}m ago` : seconds < 86400 ? `${Math.floor(seconds / 3600)}h ago` : new Date(at).toLocaleDateString(); };
   const observedTime = at => `<time data-at="${escape(at)}" datetime="${escape(at)}" title="${escape(stamp(at))}">${escape(stamp(at))}</time>`;
   const stamp = at => at ? new Date(at).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) : 'Not yet';
   const safeUrl = value => { try { const url = new URL(value); return url.origin === 'https://mehrlander.github.io' && !url.username && !url.password && !url.port && url.pathname.startsWith('/web-tools/') ? url.href : ''; } catch { return ''; } };
   let data, assistant = '', timer, etag = '', failures = 0, pending = false, connected = false, accessDenied = false, savedScroll = 0;
-  let launchKey = '', copiedTitle = '';
+  let launchKey = '', copiedTitle = '', savedKey = '', temporaryItem = null, forceAfterPoll = false;
   const desktop = !/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) && !(navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  const expanded = new Set();
   const selectedDetails = new Map();
-  const panelScrolls = new Map();
   const replies = new Map();
   const filtered = () => (data?.items || []).filter(i => !assistant || keyFor(i.provider) === assistant);
-  const active = i => ['working','quiet','claimed','reply'].includes(i.state);
+  const active = i => ['working','quiet','claimed','reply'].includes(i.state) && !i.needsAttention;
   const recordedChange = change => ({...change,kind:'change',state:'recorded'});
-  const selected = () => { try { return new URLSearchParams(location.hash.slice(1)).get('item') || ''; } catch { return ''; } };
+  const selected = () => { try { const p=new URLSearchParams(location.hash.slice(1)); return p.get('item') || ((!p.get('view') || p.get('view') === 'now') ? p.get('session') || '' : ''); } catch { return ''; } };
+  const backLabel = () => history.state?.nowDetail && history.state?.originView === 'usage' ? '← Usage' : '← Now';
+  const nowScroll = () => window.NowViews?.scrollPosition?.() ?? window.scrollY;
+  const scrollNow = top => window.NowViews?.scrollTo ? window.NowViews.scrollTo(top) : window.scrollTo(0,top);
+  const metadata = () => window.NowPhoneUsage?.sessionUsage?.() || {};
+  const adapted = item => ({...item,key:keyFor(item.provider),identity:item.key,place:String(item.location || '').toLowerCase(),at:Date.parse(item.at)});
+  const tokenBadge = item => window.NowRecentUsage?.tokenBadge?.(adapted(item),metadata(),{now:Date.now()}) || '';
 
   function connection() {
-    if (window.NowViews?.active()) { window.NowViews.connection(); return; }
+    if (window.NowViews?.active() && window.NowViews.current?.() !== 'usage') { window.NowViews.connection(); return; }
     const fresh = data && Date.now() - new Date(data.observedAt).getTime() < 15000;
     const live = connected && fresh;
     const text = accessDenied ? 'Access unavailable · Connect with your Tailscale account' : live ? 'Laptop live · Updates automatically' : data ? `${connected ? 'Activity paused' : 'Laptop unreachable'} · Last seen ${stamp(data.observedAt)}` : failures ? 'Laptop unreachable · Waiting for connection' : 'Connecting to your laptop…';
@@ -57,17 +113,14 @@
     const path = location === 'Cloud' ? '<path d="M6.5 19a4.5 4.5 0 0 1-.8-8.93A6.5 6.5 0 0 1 18.5 9a5 5 0 0 1-.5 10Z"/>' : '<rect x="4" y="3" width="16" height="13" rx="1.5"/><path d="m4 16-2 4h20l-2-4M9 20h6"/>';
     return `<svg data-location="${location}" role="img" aria-label="${label}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" class="inline-block size-3.5 shrink-0 ${location === 'Cloud' ? 'text-sky-700' : 'text-stone-500'}"><title>${label}</title>${path}</svg>`;
   }
-  const fullIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="size-4" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5M3 3l6 6m12-6-6 6M3 21l6-6m12 6-6-6"/></svg>';
-  const externalIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="size-4" aria-hidden="true"><path d="M14 4h6v6M20 4 10 14M10 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5"/></svg>';
-  function row(item, position, inline = true) {
+  function row(item, position) {
     const key = escape(item.key), summary = replyPreview(statusText(item));
-    const external = inline ? `<button data-launch="${key}" aria-expanded="${launchKey === item.key}" aria-controls="launch-${encodeURIComponent(item.key)}" aria-label="Open session options: ${escape(item.title)}" title="Open session" class="absolute right-1 top-1 flex size-11 items-center justify-center rounded text-emerald-900 active:bg-stone-100">${externalIcon}</button>` : '';
-    const launch = inline ? `<div id="launch-${encodeURIComponent(item.key)}" data-launch-panel="${key}" ${launchKey === item.key ? '' : 'hidden'} class="pl-10 pr-3 pb-2">${launchKey === item.key ? window.NowView.sessionActions(item,{desktop,copied:copiedTitle === item.key}) : ''}</div>` : '';
-    return `<article data-item="${key}" class="min-w-0 border-b border-stone-100 bg-white"><div class="relative"><button ${inline ? `data-inspect="${key}" aria-expanded="false" aria-controls="inline-${encodeURIComponent(item.key)}"` : `data-pick="${key}"`} class="block min-h-11 w-full px-3 py-2 text-left active:bg-stone-50"><span class="flex items-start gap-2">${position ? `<span class="w-5 shrink-0 pt-1 text-sm text-amber-700">${position}.</span>` : `<span class="pt-0.5 ${colours[keyFor(item.provider)]}">${mark(item.provider)}</span>`}<span class="min-w-0 flex-1"><span class="flex items-start gap-1 ${external ? 'pr-9' : ''}"><span class="line-clamp-2 min-w-0 flex-1 text-pretty text-[14px] font-medium leading-5">${escape(itemTitle(item))}</span>${inline ? '' : `<span class="shrink-0 pt-0.5 text-stone-400">${fullIcon}</span>`}</span><span class="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px] text-stone-500">${badge(item.state)}<span>${escape(item.provider)}</span>${locationMark(item.location)}${item.work?.agents ? `<span>${item.work.agents} agents</span>` : ''}${observedTime(item.at)}</span>${summary ? `<span data-summary class="mt-1 line-clamp-2 text-pretty text-[13px] leading-[19px] text-stone-600">${escape(summary.slice(0,180))}</span>` : ''}</span></span></button>${external}</div>${launch}${inline ? `<div id="inline-${encodeURIComponent(item.key)}" data-inline="${key}" hidden></div>` : ''}</article>`;
+    const value=status(item);
+    return `<article data-item="${key}" class="${ui.row}"><span class="${ui.mark} ${colours[keyFor(item.provider)]}">${position ? `<span class="${ui.position}">${position}.</span>` : mark(item.provider)}</span><div class="phone-row-content min-w-0"><button data-pick="${key}" class="${ui.pick}" aria-label="${escape('Read ' + item.title)}"><span class="${ui.rowTitle}">${escape(itemTitle(item))}</span></button><div class="${ui.meta}"><button class="${ui.status} ${ui.statusButton} phone-status-${value.tone} ${statusTones[value.tone]}" data-status="${key}" aria-label="${escape(value.label)}" title="${escape(value.label)}">${icon(value.glyph)}</button><span>${escape(item.provider)}</span>${locationMark(item.location)}${item.work?.agents ? `<span>${item.work.agents} agents</span>` : ''}${observedTime(item.at)}${tokenBadge(item)}</div>${summary ? `<p data-summary class="${ui.summary}">${escape(summary.slice(0,180))}</p>` : ''}</div><button data-launch="${key}" aria-expanded="${launchKey === item.key}" aria-controls="phone-session-menu" aria-haspopup="menu" aria-label="${escape('Actions for ' + item.title)}" class="${ui.more}">${icon('more')}</button></article>`;
   }
 
   function group(title, items, empty = '', numbered = false, inline = true) {
-    return `<section aria-label="${escape(title)}"><h2 class="flex items-center justify-between px-3 pt-2 pb-1 text-xs font-semibold text-stone-600"><span>${escape(title)}</span>${items.length ? `<span class="font-normal">${items.length}</span>` : ''}</h2>${items.length ? items.map((i,n) => row(i, numbered ? n + 1 : 0, inline)).join('') : `<p class="px-3 py-2 text-[13px] text-stone-500">${escape(empty)}</p>`}</section>`;
+    return `<section aria-label="${escape(title)}"><h2 class="${inline ? 'sticky top-[var(--phone-assistant-height,50px)] z-[1] bg-stone-100 ' : ''}flex items-center justify-between px-3 pt-2 pb-1 text-xs font-semibold text-stone-600"><span>${escape(title)}</span>${items.length ? `<span class="font-normal">${items.length}</span>` : ''}</h2>${items.length ? items.map((i,n) => row(i, numbered ? n + 1 : 0, inline)).join('') : `<p class="px-3 py-2 text-[13px] text-stone-500">${escape(empty)}</p>`}</section>`;
   }
 
   function changeItems() {
@@ -91,27 +144,37 @@
     return `<button data-pick="worker:gemini" aria-label="Gemini worker details" class="mx-3 mt-2 block w-[calc(100%-1.5rem)] rounded-lg border-l-4 border-blue-400 bg-blue-50 px-2 py-2 text-left active:bg-blue-100"><span class="float-right text-xl text-blue-600" aria-hidden="true">›</span><p class="text-xs font-medium text-blue-900">Gemini worker · Last reported task</p><p class="mt-0.5 text-[13px] leading-5">${escape(report.headline)}</p>${job ? `<p class="mt-1 text-sm text-stone-600">${escape(job.title)}</p>` : ''}<p class="mt-1 text-xs text-stone-500">Reported ${observedTime(report.at)}</p></button>`;
   }
 
-  function render() {
-    if (window.NowViews?.active()) { connection(); return; }
-    if (!data) { connection(); return; }
-    // Rebuilding open panels can temporarily shorten the document and clamp its scroll position.
+  function renderUsage() {
+    if (window.NowPhoneUsage?.update) { window.NowPhoneUsage.update(data); return; }
+    if (!data || !el('usage')) return;
     const viewport = {left:window.scrollX,top:window.scrollY};
-    rememberPanelScroll();
+    const focused = el('usage').contains(document.activeElement) ? document.activeElement : null;
+    const provider = focused?.dataset.usageLink;
+    const usage = window.NowUsage?.render(data.usage || []) || '';
+    html('usage', window.NowUsage?.workspace ? window.NowUsage.workspace({overview:usage}) : usage);
+    if (provider && !focused.isConnected) [...el('usage').querySelectorAll('[data-usage-link]')].find(node => node.dataset.usageLink === provider)?.focus({preventScroll:true});
+    if (window.scrollX !== viewport.left || window.scrollY !== viewport.top) window.scrollTo(viewport.left,viewport.top);
+  }
+
+  function render() {
+    renderUsage();
+    if (data) el('machine').textContent = data.machineName;
+    if (window.NowViews?.active()) { connection(); return; }
+    if (!data) { detail(); connection(); return; }
+    // Rebuilding open panels can temporarily shorten the document and clamp its scroll position.
+    const viewport = {left:window.scrollX,top:nowScroll()};
     const focus = ['content','assistants'].some(id => el(id).contains(document.activeElement)) ? document.activeElement : null;
-    const focusAction = focus && ['inspect','pick','facet','external','assistant','providerLink','launch','copyTitle','sessionLink','sessionHome'].find(key => focus.dataset[key]);
+    const focusAction = focus && ['pick','status','assistant','providerMenu','launch','sessionTokens'].find(key => focus.dataset[key]);
     const focusKey = focusAction && focus.dataset[focusAction];
     const focusOwner = focus?.dataset.for;
-    el('machine').textContent = data.machineName;
     const waiting = data.items.filter(i => i.state === 'queued');
     html('assistants', ['codex','gemini','claude'].map(key => {
       const items = data.items.filter(i => keyFor(i.provider) === key);
-      const working = items.filter(i => i.state === 'working').length;
-      const queued = items.filter(i => i.state === 'queued').length;
-      const claimed = items.filter(i => i.state === 'claimed').length;
-      const needs = items.filter(i => i.needsAttention).length;
-      const state = working ? `${working} working` : needs ? `${needs} need you` : queued ? `${queued} waiting` : claimed ? `${claimed} claimed` : items.some(i => i.state === 'quiet') ? 'Quiet' : items.some(i => i.kind === 'cloud') ? 'Recorded' : items.length ? 'Recent' : 'No activity';
-      const usage = window.NowUsage?.compact(data.usage?.find(p => p.provider === key)) || '';
-      return `<div class="relative min-w-0"><button data-assistant="${key}" aria-pressed="${assistant === key}" class="block min-h-11 w-full min-w-0 border-b-2 px-2 py-1 ${assistant === key ? 'border-stone-700 bg-white' : 'border-transparent'}"><span class="flex items-center justify-center gap-1 pr-5 text-xs font-medium ${colours[key]}">${mark(key)}${{codex:'Codex',gemini:'Gemini',claude:'Claude'}[key]}</span><span class="mt-0.5 block text-[10px] text-stone-500">${state}</span><span class="mx-auto mt-1 block min-h-6 max-w-28">${usage}</span></button>${window.NowView.assistantLink(key,{cls:'absolute right-0 top-0'})}</div>`;
+      const counts=new Map();
+      for(const item of items){const s=status(item),id=s.glyph+'|'+s.label;const v=counts.get(id)||{...s,count:0};v.count++;counts.set(id,v);}
+      const states=[...counts.values()], current=states.filter(s=>!['idle','complete'].includes(s.glyph));
+      const shown=current.length?current:states.length?states:[{glyph:'idle',label:'No observed activity',tone:'quiet',count:0}];
+      return `<div class="${ui.provider}"><button data-assistant="${key}" aria-pressed="${assistant === key}" aria-label="${escape({codex:'Codex',gemini:'Gemini',claude:'Claude'}[key] + ': ' + shown.map(s=>s.count+' '+s.label.toLowerCase()).join(', '))}" class="${ui.providerFilter}"><span class="${ui.providerName} ${colours[key]}">${mark(key)}${{codex:'Codex',gemini:'Gemini',claude:'Claude'}[key]}</span><span class="${ui.providerCounts}">${shown.map(s=>`<span class="phone-status-${s.tone} ${statusTones[s.tone]} ${ui.count}" title="${escape(s.count+' '+s.label)}">${icon(s.glyph)}<span>${s.count}</span></span>`).join('')}</span></button><button data-provider-menu="${key}" class="${ui.providerMore}" aria-label="${{codex:'Codex',gemini:'Gemini',claude:'Claude'}[key]} options" aria-haspopup="menu" aria-expanded="${launchKey === 'provider:'+key}">${icon('more')}</button></div>`;
     }).join(''));
     const items = filtered();
     const notices = [...data.sources.notices];
@@ -126,13 +189,79 @@
     const queue = queued.length ? group(queueTitle,queued,'',true) : assistant === 'gemini' && !data.sources.queueAvailable ? group('Waiting',[],'Queue unavailable') : '';
     html('content', group('In progress',current,'No current work observed') + (needs.length ? group('Needs you',needs) : '') + queue + workerReport(true) + group('Other recent',recent,'No recent activity.'));
     html('source-times', `Errands synced ${escape(stamp(data.sources.recordsSyncedAt))}<br>Cloud records captured ${escape(stamp(data.sources.cloudCapturedAt))}`);
-    renderPanels(); detail(); connection();
+    updateTimes(); detail(); connection(); renderLaunch();
     if (focusAction && !focus.isConnected) [...document.querySelectorAll('#content button,#content a,#assistants button,#assistants a')].find(n => n.dataset[focusAction] === focusKey && n.dataset.for === focusOwner)?.focus({preventScroll:true});
     document.querySelectorAll('time[data-at]').forEach(node => { node.textContent = age(node.dataset.at); });
-    if (window.scrollX !== viewport.left || window.scrollY !== viewport.top) window.scrollTo(viewport.left,viewport.top);
+    if (!selected() && nowScroll() !== viewport.top) scrollNow(viewport.top);
   }
 
-  const findItem = key => data?.items.find(i => i.key === key) || data?.changes?.filter(c => c.key === key).map(recordedChange)[0];
+  function findItem(key) {
+    const direct=data?.items.find(i=>i.key===key)||data?.changes?.filter(c=>c.key===key).map(recordedChange)[0];
+    if(direct)return direct;
+    const value=metadata().sessions?.find(row=>row.provider==='claude'&&'cloud:'+row.id===key),at=Date.parse(value?.usageAt);
+    if(value&&Number.isFinite(at)&&at<=Date.now()&&Date.now()-at<=86400000){
+      const agent=window.NowView.sessionUrl(value.sessionUrl,'claude',false);
+      const known=data?.items.find(i=>i.provider==='Claude'&&i.kind==='cloud'&&(i.id===value.id||agent&&window.NowView.sessionUrl(i.sessionUrl,'claude',false)===agent));
+      temporaryItem=known||{key,id:value.id,kind:'cloud',provider:'Claude',location:'Cloud',title:value.title||'Claude session',state:'recorded',detail:'',at:value.usageAt,createdAt:value.usageAt,needsAttention:false,url:'https://mehrlander.github.io/web-tools/app/?view=sessions&session='+encodeURIComponent(value.id),sessionUrl:value.sessionUrl};
+      return temporaryItem;
+    }
+    return temporaryItem?.key===key?temporaryItem:null;
+  }
+  const launchMenu=document.createElement('aside');
+  launchMenu.id='phone-session-menu';launchMenu.className=ui.menu;launchMenu.hidden=true;launchMenu.setAttribute('role','menu');launchMenu.setAttribute('aria-label','Session actions');document.body.append(launchMenu);
+  function launchAnchor(key=launchKey){
+    const scope=selected()?el('detail'):el('overview');
+    return [...scope.querySelectorAll(key.startsWith('provider:')?'[data-provider-menu]':'[data-launch]')].find(node=>key.startsWith('provider:')?node.dataset.providerMenu===key.slice(9):node.dataset.launch===key);
+  }
+  function closeLaunch(focus=false){const key=launchKey;launchKey='';launchMenu.hidden=true;document.querySelectorAll('[data-launch],[data-provider-menu]').forEach(n=>n.setAttribute('aria-expanded','false'));if(focus)launchAnchor(key)?.focus({preventScroll:true});}
+  function placeLaunch(){
+    const anchor=launchAnchor();if(!anchor){closeLaunch();return;}
+    const r=anchor.getBoundingClientRect(),width=launchMenu.offsetWidth,height=launchMenu.offsetHeight;
+    launchMenu.style.left=Math.max(8,Math.min(innerWidth-width-8,r.right-width))+'px';
+    launchMenu.style.top=Math.max(8,r.bottom+height+6<=innerHeight-8?r.bottom+4:r.top-height-4)+'px';
+  }
+  function renderLaunch(){
+    if(!launchKey)return;
+    const active=document.activeElement,action=['external','providerLink','sessionLink','sessionHome','copyTitle'].find(k=>active?.dataset[k]),focusKey=action&&active.dataset[action];
+    let value;
+    if(launchKey.startsWith('provider:')){
+      const key=launchKey.slice(9),url={codex:'https://chatgpt.com/',gemini:'https://antigravity.google.com/',claude:'https://claude.ai/code'}[key];
+      if(!url){closeLaunch();return;}
+      value=`<a data-provider-link="${key}" href="${url}" target="_blank" rel="noopener noreferrer">Open ${{codex:'ChatGPT',gemini:'Antigravity',claude:'Claude Code'}[key]}</a>`;
+    }else{
+      const item=findItem(launchKey);if(!item){closeLaunch();return;}
+      value=window.NowView.sessionActions(item,{desktop,copied:copiedTitle===item.key});
+    }
+    if(rendered.get(launchMenu)!==value){launchMenu.innerHTML=value;rendered.set(launchMenu,value);}
+    launchMenu.querySelectorAll('a,button').forEach(node=>{node.setAttribute('role','menuitem');node.tabIndex=-1;node.className=ui.menuItem;});
+    launchMenu.hidden=false;launchAnchor()?.setAttribute('aria-expanded','true');placeLaunch();
+    if(action&&focusKey)[...launchMenu.querySelectorAll('a,button')].find(n=>n.dataset[action]===focusKey)?.focus({preventScroll:true});
+  }
+  function openLaunch(key){if(launchKey===key){closeLaunch();return;}closeLaunch();launchKey=key;copiedTitle='';renderLaunch();}
+  function openSession(key){
+    if(typeof key!=='string'||!key||key.length>1024||/[\u0000-\u001f]/.test(key))return;
+    savedScroll=nowScroll();savedKey=key;closeLaunch();assistant='';
+    const route='#view=now&session='+encodeURIComponent(key),originView=window.NowViews?.current?.()==='usage'?'usage':'now';
+    if(location.hash!==route)history.pushState({nowDetail:true,originView},'',route);
+    window.NowViews?.setView?.('now',false);render();detail();connection();window.scrollTo(0,0);
+    el('detail').querySelector('h2')?.focus({preventScroll:true});
+  }
+  function restoreNow(){
+    render();scrollNow(savedScroll);
+    ([...el('content').querySelectorAll('[data-pick]')].find(n=>n.dataset.pick===savedKey)||el('view-picker'))?.focus({preventScroll:true});
+  }
+  function updateTimes(){document.querySelectorAll('time[data-at]').forEach(node=>{node.textContent=age(node.dataset.at);});}
+  function showTokens(key){
+    const item=findItem(key),reading=window.NowRecentUsage?.matchUsage?.(item&&adapted(item),metadata(),{now:Date.now()});
+    if(!reading)return;
+    closeLaunch();
+    const number=n=>Number.isSafeInteger(n)&&n>=0?n.toLocaleString('en-US'):'Not recorded';
+    const panel=document.createElement('dialog');panel.className=ui.tokenDialog;panel.setAttribute('aria-label','Recorded session tokens');
+    panel.innerHTML=`<form method="dialog"><button class="${ui.dialogClose}" aria-label="Close token details">×</button></form><h2 class="${ui.dialogTitle}">${escape(item.title)}</h2><p class="${ui.dialogNote}">Recorded main-conversation calls · badge shows output</p><dl class="${ui.dialogCounts}">${[['Output',reading.outputTokens],['Fresh input',reading.inputTokens],['Cache read',reading.cacheReadTokens],['Cache write',reading.cacheWriteTokens]].map(([label,value])=>`<dt>${label}</dt><dd>${number(value)}</dd>`).join('')}</dl><p class="${ui.dialogNote}">Last input context: ${number(reading.contextTokens)} tokens. Measured ${escape(stamp(new Date(reading.usageAt).toISOString()))}. ${reading.saved?'Saved reading; usage sync is unavailable. ':''}Counts cover all recorded calls. Subagent calls are excluded. Context describes one call.</p>`;
+    document.body.append(panel);const opener=document.activeElement;
+    panel.addEventListener('close',()=>{panel.remove();opener?.focus({preventScroll:true});});
+    if(panel.showModal)panel.showModal();else panel.setAttribute('open','');
+  }
   const markdown = text => window.NowReading?.markdown(text) || `<p class="whitespace-pre-wrap">${escape(text)}</p>`;
   function observedEvents(item, inline) {
     const seen = new Set();
@@ -171,56 +300,33 @@
     if (events.length || item.turn || meaningful || agents) parts.push({id:'activity',label:'Activity',title:'Observed activity',body:`${observation}${item.turn ? `<dl class="mb-2 text-[10px] text-stone-500"><div class="flex flex-wrap gap-x-1"><dt>Turn started</dt><dd>${escape(stamp(item.turn.startedAt))}</dd></div>${item.turn.lastTool ? `<div class="mt-1 flex items-center gap-1"><dt>Last tool</dt><dd class="rounded bg-amber-50 px-1.5 py-0.5 font-medium text-amber-900">${escape(item.turn.lastTool)}</dd></div>` : ''}</dl>` : ''}${meaningful && !events.some(e => e.detail === detail) && !(item.turn?.lastTool && /^Using /.test(detail)) ? markdown(detail) : ''}${events.length ? `<ol class="divide-y divide-stone-100">${events.map(e => `<li class="flex items-start gap-2 py-1.5"><span class="w-12 shrink-0 pt-0.5 text-[10px] text-stone-500">${observedTime(e.at)}</span><div class="min-w-0 flex-1">${markdown(e.detail || labels[e.state] || e.state)}</div></li>`).join('')}</ol>` : agents && !meaningful && !item.turn?.lastTool ? '<p class="text-xs text-stone-500">No detailed action reports captured for this group.</p>' : ''}`});
     return parts;
   }
-  function inlineBody(item) {
-    const parts = detailParts(item,true), key = item.key, id = 'detail-' + encodeURIComponent(key);
-    let choice = selectedDetails.get(key);
-    if (!parts.some(p => p.id === choice)) choice = parts[0]?.id || '';
-    selectedDetails.set(key,choice);
-    const part = parts.find(p => p.id === choice);
-    const tabId = p => id + '-' + p.id;
-    const controls = parts.map(p => `<button id="${tabId(p)}" role="tab" data-facet="${p.id}" data-for="${escape(key)}" aria-label="${p.title}" title="${p.title}" aria-selected="${p.id === choice}" tabindex="${p.id === choice ? 0 : -1}" aria-controls="${id}" class="inline-flex h-6 min-w-0 flex-1 items-center justify-center rounded-full px-2 text-[11px] font-medium whitespace-nowrap ${p.id === choice ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-600 active:bg-white/60'}"><span>${p.label}</span></button>`).join('');
-    return `<div class="pl-10 pr-3 pb-2">${controls ? `<div role="tablist" aria-label="Detail sections" class="mb-1 flex items-center gap-0.5 rounded-full bg-stone-200/80 p-0.5">${controls}</div>` : '<p class="py-2 text-xs text-stone-500">No additional detail captured.</p>'}<div id="${id}" role="tabpanel" ${part ? `aria-labelledby="${tabId(part)}"` : 'aria-label="Detail" hidden'}><div data-panel-scroll="${escape(key + ':' + choice)}" class="max-h-[40dvh] min-w-0 overflow-y-auto overscroll-contain pt-1 pb-1 text-[13px] leading-5 text-stone-700 [overflow-wrap:anywhere]">${part?.body || ''}</div></div></div>`;
-  }
   function itemBody(item) {
-    const url = safeUrl(item.url);
-    return `<div class="mt-4 space-y-5 text-[13px] leading-5 text-stone-700 [overflow-wrap:anywhere]">${detailParts(item,false).map(p => `<section aria-label="${p.title}"><h3 class="mb-2 text-xs font-semibold text-stone-500">${p.title}</h3>${p.body}</section>`).join('')}</div>${url ? `<a class="mt-3 inline-flex min-h-11 items-center gap-1 text-sm text-emerald-800 underline underline-offset-2" href="${escape(url)}" target="_blank" rel="noopener noreferrer">Open in Web Tools ↗</a>` : ''}`;
-  }
-
-  function rememberPanelScroll() {
-    if (!el('overview').hidden) document.querySelectorAll('[data-panel-scroll]').forEach(n => panelScrolls.set(n.dataset.panelScroll,n.scrollTop));
-  }
-  function renderPanels() {
-    document.querySelectorAll('#content [data-inline]').forEach(panel => {
-      const key = panel.dataset.inline, open = expanded.has(key);
-      panel.hidden = !open;
-      const trigger = panel.closest('[data-item]').querySelector('[data-inspect]');
-      trigger?.setAttribute('aria-expanded', String(open));
-      if (!open) { trigger?.querySelector('[data-summary]')?.classList.remove('hidden'); return; }
-      const item = findItem(key);
-      if (!item) return;
-      const focusedFacet = panel.contains(document.activeElement) ? document.activeElement.dataset.facet : '';
-      const value = inlineBody(item);
-      trigger?.querySelector('[data-summary]')?.classList.toggle('hidden', !!selectedDetails.get(key));
-      if (rendered.get(panel) !== value) { panel.innerHTML = value; rendered.set(panel,value); }
-      const scroller = panel.querySelector('[data-panel-scroll]');
-      if (scroller && panelScrolls.has(scroller.dataset.panelScroll)) scroller.scrollTop = panelScrolls.get(scroller.dataset.panelScroll);
-      if (focusedFacet) [...panel.querySelectorAll('[data-facet]')].find(n => n.dataset.facet === focusedFacet)?.focus({preventScroll:true});
-      if (item.kind === 'errand' && ['reply','complete','failed'].includes(item.state) && !replies.has(item.id)) loadReply(item);
-    });
-    document.querySelectorAll('time[data-at]').forEach(node => { node.textContent = age(node.dataset.at); });
+    const parts=detailParts(item,false),key=item.key;
+    let choice=selectedDetails.get(key);
+    if(!parts.some(p=>p.id===choice))choice=(parts.find(p=>p.id==='reply')||parts.find(p=>p.id==='summary')||parts[0])?.id||'';
+    selectedDetails.set(key,choice);const part=parts.find(p=>p.id===choice),prefix='phone-detail-'+encodeURIComponent(key);
+    return `<div class="${ui.facets}" role="tablist" aria-label="Detail sections">${parts.map(p=>`<button class="${ui.facet}" id="${prefix}-${p.id}" role="tab" data-facet="${p.id}" data-for="${escape(key)}" aria-selected="${p.id===choice}" tabindex="${p.id===choice?0:-1}" aria-controls="${prefix}">${p.label}</button>`).join('')}</div><section id="${prefix}" class="${ui.detailBody}" role="tabpanel" ${part?`aria-labelledby="${prefix}-${part.id}"`:'aria-label="Detail"'}>${part?.body||'<p>No additional detail captured.</p>'}</section>`;
   }
 
   function detail() {
+    if(window.NowViews?.active())return;
     const key = selected(), item = findItem(key);
     el('overview').hidden = !!key; el('detail').hidden = !key;
     if (!key) return;
     if (key === 'worker:gemini') { workerDetail(); return; }
     if (!item) {
-      html('detail','<header class="sticky top-0 border-b border-stone-200 bg-white p-3"><button data-back class="min-h-11 px-2 text-base">← Now</button></header><div id="detail-connection"></div><p class="p-4 text-base">Activity is no longer in the current snapshot.</p>');
+      html('detail',`<header class="sticky top-0 border-b border-stone-200 bg-white p-3"><button data-back class="min-h-11 px-2 text-base">${backLabel()}</button></header><div id="detail-connection"></div><p class="p-4 text-base">Activity is no longer in the current snapshot.</p>`);
       return;
     }
-    const value = `<header class="sticky top-0 z-10 flex items-center justify-between border-b border-stone-200 bg-white/95 px-3 py-2 backdrop-blur"><button data-back class="min-h-11 px-2 text-base text-stone-700">← Now</button>${locationMark(item.location)}</header><div id="detail-connection"></div><article class="px-4 pt-5 pb-10"><div class="flex items-center gap-2 ${colours[keyFor(item.provider)]}">${mark(item.provider)}<span class="text-sm">${escape(item.provider)}</span></div><h2 class="mt-3 break-words text-balance text-xl font-semibold leading-7">${escape(item.title)}</h2><div class="mt-3 flex flex-wrap items-center gap-3">${badge(item.state)}<span class="text-xs text-stone-500">${escape(stamp(item.at))}</span></div>${itemBody(item)}</article>`;
+    const viewport={left:window.scrollX,top:window.scrollY},focused=document.activeElement,focus=focused?.closest('[data-facet]')?.dataset.facet;
+    const focusAction=['launch','sessionTokens','back'].find(name=>focused?.hasAttribute('data-'+name.replace(/[A-Z]/g,c=>'-'+c.toLowerCase()))),focusHeading=focused?.matches('#detail h2');
+    const value = `<header class="${ui.detailHeader}"><button data-back class="${ui.back}">${backLabel()}</button><button data-launch="${escape(item.key)}" class="${ui.more}" aria-label="${escape('Actions for '+item.title)}" aria-controls="phone-session-menu" aria-haspopup="menu" aria-expanded="${launchKey===item.key}">${icon('more')}</button></header><div id="detail-connection"></div><article class="${ui.detailArticle}"><div class="${ui.meta}">${mark(item.provider)}<span>${escape(item.provider)}</span>${locationMark(item.location)}</div><h2 tabindex="-1" class="${ui.detailTitle}">${escape(item.title)}</h2><div class="${ui.meta}">${badge(item)}${observedTime(item.at)}${tokenBadge(item)}</div>${itemBody(item)}</article>`;
     html('detail', value);
+    updateTimes();
+    if(focus)el('detail').querySelector(`[data-facet="${focus}"]`)?.focus({preventScroll:true});
+    else if(focusAction)el('detail').querySelector('[data-'+focusAction.replace(/[A-Z]/g,c=>'-'+c.toLowerCase())+']')?.focus({preventScroll:true});
+    else if(focusHeading)el('detail').querySelector('h2')?.focus({preventScroll:true});
+    if(window.scrollY!==viewport.top)window.scrollTo(viewport.left,viewport.top);
     if (item.kind === 'errand' && ['reply','complete','failed'].includes(item.state) && !replies.has(item.id)) loadReply(item);
   }
 
@@ -233,7 +339,7 @@
     const accepted = jobs.filter(i => i.state !== 'queued');
     const status = source.workerState === 'detected' ? 'Process detected' : source.workerState === 'absent' ? 'Process not detected' : 'Process status unavailable';
     const reportRows = (reports.length ? `<ol class="px-4">${reports.map(r => { const job = r.itemId && data.items.find(i => i.kind === 'errand' && i.id === r.itemId); return `<li class="border-b border-stone-100 py-3"><p class="text-xs text-stone-500">${escape(stamp(r.at))}</p><p class="mt-0.5 text-[13px] leading-5">${escape(r.headline)}</p>${job ? `<button data-pick="${escape(job.key)}" class="min-h-11 text-left text-sm text-blue-800">${escape(job.title)} ›</button>` : ''}</li>`; }).join('')}</ol>` : '<p class="px-4 py-3 text-stone-500">No reports available</p>');
-    html('detail', `<header class="sticky top-0 z-10 flex items-center justify-between border-b border-stone-200 bg-white/95 px-3 py-2 backdrop-blur"><button data-back class="min-h-11 px-2 text-base text-stone-700">← Now</button><span class="text-xs text-stone-500">Laptop</span></header><div id="detail-connection"></div><article class="pt-5 pb-10"><div class="px-4"><div class="flex items-center gap-2 text-blue-700">${mark('Gemini')}<h2 class="text-xl font-semibold">Gemini worker</h2></div><p class="mt-3 text-sm text-stone-600">${status}${source.recordsConnected ? '' : ' · Saved queue'}</p><div class="mt-4 flex gap-3 text-sm"><span class="rounded bg-amber-50 px-3 py-2">${source.queueAvailable ? queued.length + ' waiting' : 'Queue unavailable'}</span><span class="rounded bg-blue-50 px-3 py-2">${accepted.length} accepted</span></div></div><section><h3 class="px-3 pt-2 pb-1 text-xs font-semibold text-stone-600">Recent reports</h3>${reportRows}</section>${group('Waiting', queued, source.queueAvailable ? 'Queue clear' : 'Queue unavailable', true, false)}${accepted.length ? group('Accepted by worker',accepted,'',false,false) : ''}<p class="px-4 pt-5 text-xs leading-5 text-stone-500">Reports show the worker’s last recorded tasks. A detected process or accepted errand does not confirm that a task is still running.</p></article>`);
+    html('detail', `<header class="sticky top-0 z-10 flex items-center justify-between border-b border-stone-200 bg-white/95 px-3 py-2 backdrop-blur"><button data-back class="min-h-11 px-2 text-base text-stone-700">${backLabel()}</button><span class="text-xs text-stone-500">Laptop</span></header><div id="detail-connection"></div><article class="pt-5 pb-10"><div class="px-4"><div class="flex items-center gap-2 text-blue-700">${mark('Gemini')}<h2 class="text-xl font-semibold">Gemini worker</h2></div><p class="mt-3 text-sm text-stone-600">${status}${source.recordsConnected ? '' : ' · Saved queue'}</p><div class="mt-4 flex gap-3 text-sm"><span class="rounded bg-amber-50 px-3 py-2">${source.queueAvailable ? queued.length + ' waiting' : 'Queue unavailable'}</span><span class="rounded bg-blue-50 px-3 py-2">${accepted.length} accepted</span></div></div><section><h3 class="px-3 pt-2 pb-1 text-xs font-semibold text-stone-600">Recent reports</h3>${reportRows}</section>${group('Waiting', queued, source.queueAvailable ? 'Queue clear' : 'Queue unavailable', true, false)}${accepted.length ? group('Accepted by worker',accepted,'',false,false) : ''}<p class="px-4 pt-5 text-xs leading-5 text-stone-500">Reports show the worker’s last recorded tasks. A detected process or accepted errand does not confirm that a task is still running.</p></article>`);
   }
 
   const replyRequests = new Set();
@@ -245,7 +351,7 @@
       if (!response.ok) throw new Error('Unavailable');
       const value = await response.json(); replies.set(item.id, value.reply || 'No reply body recorded.');
     } catch { replies.set(item.id, 'Result unavailable. Open the saved result in Web Tools.'); }
-    finally { replyRequests.delete(item.id); if (selected() === item.key) { detail(); connection(); } if (expanded.has(item.key)) render(); }
+    finally { replyRequests.delete(item.id); if (selected() === item.key) { detail(); connection(); } }
   }
 
   async function poll() {
@@ -268,64 +374,69 @@
     } catch { failures++; connected = false; render(); }
     finally {
       clearTimeout(timeout); pending = false;
-      if (!document.hidden) timer = setTimeout(poll, Math.min(15000, 2000 * 2 ** Math.min(failures,3)));
+      if(forceAfterPoll&&!document.hidden){forceAfterPoll=false;etag='';timer=setTimeout(poll,0);}
+      else if (!document.hidden) timer = setTimeout(poll, Math.min(15000, 2000 * 2 ** Math.min(failures,3)));
     }
   }
 
   document.addEventListener('click', event => {
-    const button = event.target.closest('button'); if (!button) return;
-    if (button.dataset.launch) {
-      launchKey = launchKey === button.dataset.launch ? '' : button.dataset.launch;
-      copiedTitle = ''; render(); return;
-    }
+    const button = event.target.closest('button');
+    if (!button) { if(event.target.closest('#phone-session-menu a')){closeLaunch();return;} if(!event.target.closest('#phone-session-menu'))closeLaunch();const card=event.target.closest('#content [data-item]');if(card&&!event.target.closest('a,input,select,textarea'))openSession(card.dataset.item);return; }
+    if(button.dataset.providerMenu){openLaunch('provider:'+button.dataset.providerMenu);return;}
+    if(button.dataset.launch){openLaunch(button.dataset.launch);return;}
     if (button.dataset.copyTitle) {
       const key = button.dataset.copyTitle, item = findItem(key);
-      if (item && navigator.clipboard?.writeText) navigator.clipboard.writeText(item.title).then(() => { copiedTitle = key; render(); }).catch(() => { button.textContent = 'Copy unavailable'; });
+      if (item && navigator.clipboard?.writeText) navigator.clipboard.writeText(item.title).then(() => { copiedTitle = key; renderLaunch(); }).catch(() => { button.textContent = 'Copy unavailable'; });
       else button.textContent = 'Copy unavailable';
       return;
     }
     if (button.dataset.facet) {
       const key = button.dataset.for, facet = button.dataset.facet;
       if (selectedDetails.get(key) === facet) return;
-      rememberPanelScroll();
-      selectedDetails.set(key,facet);
-      renderPanels();
+      closeLaunch();selectedDetails.set(key,facet);
+      detail();el('detail').querySelector(`[data-facet="${facet}"]`)?.focus({preventScroll:true});
       return;
     }
-    if (button.dataset.inspect) {
-      rememberPanelScroll();
-      const key = button.dataset.inspect;
-      if (expanded.has(key)) expanded.delete(key); else expanded.add(key);
-      renderPanels();
-      return;
-    }
-    if (button.dataset.assistant) { assistant = assistant === button.dataset.assistant ? '' : button.dataset.assistant; render(); }
-    if (button.dataset.pick) { rememberPanelScroll(); savedScroll = window.scrollY; history.pushState({nowDetail:true},'', '#item=' + encodeURIComponent(button.dataset.pick)); detail(); connection(); window.scrollTo(0,0); }
+    if(button.dataset.status){selectedDetails.set(button.dataset.status,'activity');openSession(button.dataset.status);return;}
+    if(button.dataset.sessionTokens){showTokens(button.dataset.sessionTokens);return;}
+    if (button.dataset.assistant) { closeLaunch();assistant = assistant === button.dataset.assistant ? '' : button.dataset.assistant; render();return; }
+    if (button.dataset.pick) { openSession(button.dataset.pick);return; }
     if (button.hasAttribute('data-back')) {
+      closeLaunch();
       if (history.state?.nowDetail) history.back();
-      else { history.replaceState(null,'',location.pathname); detail(); window.scrollTo(0,savedScroll); }
+      else { history.replaceState(null,'',location.pathname+location.search+'#view=now'); restoreNow(); }
+      return;
     }
+    if(!event.target.closest('#phone-session-menu'))closeLaunch();
   });
   document.addEventListener('keydown', event => {
-    if (event.key === 'Escape' && launchKey && (event.target.closest('[data-launch-panel]') || event.target.closest('[data-launch]'))) {
-      const key = launchKey; launchKey = ''; render();
-      [...document.querySelectorAll('[data-launch]')].find(n => n.dataset.launch === key)?.focus({preventScroll:true});
-      event.preventDefault(); return;
+    if(event.key==='Escape'&&launchKey){closeLaunch(true);event.preventDefault();return;}
+    const trigger=event.target.closest('[data-launch],[data-provider-menu]');
+    if(trigger&&event.key==='ArrowDown'){event.preventDefault();const key=trigger.dataset.launch||'provider:'+trigger.dataset.providerMenu;if(launchKey!==key)openLaunch(key);launchMenu.querySelector('[role=menuitem]')?.focus({preventScroll:true});return;}
+    if(launchKey&&event.target.closest('#phone-session-menu')&&['ArrowDown','ArrowUp','Home','End'].includes(event.key)){
+      const nodes=[...launchMenu.querySelectorAll('[role=menuitem]')],i=nodes.indexOf(document.activeElement),next=event.key==='Home'?0:event.key==='End'?nodes.length-1:(i+(event.key==='ArrowDown'?1:nodes.length-1))%nodes.length;nodes[next]?.focus({preventScroll:true});event.preventDefault();return;
     }
+    if(event.key==='Tab'&&launchKey)setTimeout(()=>{if(!launchMenu.contains(document.activeElement))closeLaunch();},0);
     const button = event.target.closest('[data-facet]');
     if (!button || !['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) return;
-    const panel = button.closest('[data-inline]'), tabs = [...panel.querySelectorAll('[data-facet]')];
+    const panel = button.closest('.phone-facets'), tabs = [...panel.querySelectorAll('[data-facet]')];
     const index = tabs.indexOf(button), next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
     const facet = tabs[next].dataset.facet;
     tabs[next].click();
     [...panel.querySelectorAll('[data-facet]')].find(n => n.dataset.facet === facet)?.focus({preventScroll:true});
     event.preventDefault();
   });
-  window.addEventListener('popstate', () => { if (window.NowViews?.active()) return; detail(); if (!selected()) renderPanels(); connection(); window.scrollTo(0,savedScroll); });
-  window.addEventListener('nowviewchange', () => { if (!window.NowViews?.active()) { render(); connection(); } });
+  const routeChanged=()=>{closeLaunch();if(window.NowViews?.active())return;if(selected()){savedKey=selected();render();detail();connection();window.scrollTo(0,0);}else restoreNow();};
+  window.addEventListener('popstate',routeChanged);
+  window.addEventListener('hashchange',routeChanged);
+  window.addEventListener('nowviewchange', () => {closeLaunch();if (!window.NowViews?.active() || window.NowViews.current?.() === 'usage') { render(); connection(); } });
+  window.addEventListener('nowusagearchivechange',render);
+  window.addEventListener('resize',()=>{if(launchKey)placeLaunch();});
+  document.addEventListener('scroll',()=>{if(launchKey)closeLaunch();},{capture:true,passive:true});
   document.addEventListener('visibilitychange', () => { clearTimeout(timer); if (!document.hidden) poll(); });
   window.addEventListener('online', poll);
   window.addEventListener('offline', () => { connected = false; connection(); });
   try { const cached = JSON.parse(localStorage.getItem('web-tools-now-snapshot')); if (cached?.schemaVersion === 1 && Array.isArray(cached.items)) data = cached; } catch { }
+  window.NowPhone={refresh:()=>{etag='';if(pending){forceAfterPoll=true;return;}return poll();},openSession,snapshot:()=>data};
   render(); poll();
 })();

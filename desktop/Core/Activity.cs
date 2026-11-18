@@ -8,7 +8,12 @@ public record Errand(string Id, string Title, string Note, string State,
     string? Message, string? Reply, bool HasOutput, bool IsNew, bool HasLocalOutput = false)
 {
     public string Provider { get; init; } = "Gemini";
-    public string Location => Provider == "Gemini" ? "Laptop" : "";
+    public string Venue { get; init; } = "";
+    public DateTimeOffset? ClaimedAt { get; init; }
+    public string Location => Venue switch {
+        "personal-laptop" => "Laptop", "anthropic-cloud" => "Cloud",
+        "" when Provider == "Gemini" => "Laptop", _ => ""
+    };
     public bool IsOpen => State is "queued" or "claimed" or "reply";
 }
 
@@ -87,9 +92,15 @@ public static class Activity
         if (!hasResult) updated = hasClaim ? Date(claim, "claimedAt", created) : created;
         return new(id, Text(request, "title", id), Text(request, "note"), state,
             created, updated, hasClaim ? Text(claim, "by") : Text(result, "by"),
-            Text(result, "message"), Text(data, "reply"), hasOutput,
-            hasResult && updated > seenThrough) { Provider = provider };
+            Text(result, "message"), Nonblank(Text(data, "reply"), Text(data, "report")), hasOutput,
+            hasResult && updated > seenThrough) {
+                Provider = provider, Venue = Text(run, "venue"),
+                ClaimedAt = hasClaim ? Date(claim, "claimedAt", created) : null
+            };
     }
+
+    public static string Nonblank(string? preferred, string? fallback) =>
+        !string.IsNullOrWhiteSpace(preferred) ? preferred : fallback ?? "";
 }
 
 public static class NavigationPolicy
