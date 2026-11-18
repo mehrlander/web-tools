@@ -324,7 +324,7 @@ async function resultsScenario(viewport) {
   }
   // The rollup: a summary on a cached row, and a session the cache dropped.
   const search = page.locator('[data-pane="search"]');
-  await search.locator('[data-find-box]').fill('viridian');
+  await search.locator('[data-find-input]').fill('viridian');
   await search.locator('form').evaluate(form => form.requestSubmit());
   await readyResults(page, 2);
   assert.deepEqual(new Set(await resultIds(page)), new Set(['a0000003', 'e0000001'])); checks++;
@@ -332,7 +332,7 @@ async function resultsScenario(viewport) {
   check(label + ' a session outside the cache is listed by its rollup title', /Outside the cache/.test(await page.locator('[data-session-result="e0000001"]').textContent()));
   check(label + ' the reach chip names the oldest month read', (await page.locator('[data-session-reach]').textContent()).includes(new Date(NOW - 9 * DAY).toISOString().slice(0, 7)));
   // The registry's hidden list holds here as it does on the Sessions pane.
-  await search.locator('[data-find-box]').fill('discussion');
+  await search.locator('[data-find-input]').fill('discussion');
   await search.locator('form').evaluate(form => form.requestSubmit());
   await page.waitForFunction(() => new URLSearchParams(location.search).get('sq') === 'discussion');
   await readyResults(page, 4);
@@ -450,13 +450,13 @@ async function literalScenario() {
   await readyRecord(page, 'a0000005');
   check('Unicode query reaches its original prose', /東京/.test(await briefText(page, 'a0000005')) && params(page).get('sq') === '東京');
   const search = page.locator('[x-data="searchView()"]');
-  await search.locator('[data-find-box]').fill('regex[a]');
+  await search.locator('[data-find-input]').fill('regex[a]');
   await search.locator('form').evaluate(form => form.requestSubmit());
   await readyResults(page, 1);
   await page.waitForFunction(() => new URLSearchParams(location.search).get('sq') === 'regex[a]');
   check('query metacharacters stay literal', (await resultIds(page))[0] === 'a0000005');
   check('captured HTML cannot inject an element', await page.evaluate(() => !window.fixtureInjected && !document.querySelector('[data-session-reader] img[src="x"]')));
-  await search.locator('[data-find-box]').fill('ghostterm');
+  await search.locator('[data-find-input]').fill('ghostterm');
   await search.locator('form').evaluate(form => form.requestSubmit());
   await page.waitForFunction(() => new URLSearchParams(location.search).get('sq') === 'ghostterm');
   await readyResults(page, 1);
@@ -472,7 +472,7 @@ async function queryHistoryScenario() {
     routeUrl({ view: 'search', smode: 'sessions', sq: 'cobalt', sitem: 'a0000001' }));
   await readyResults(page, 5);
   const search = page.locator('[x-data="searchView()"]');
-  await search.locator('[data-find-box]').fill('regex[a]');
+  await search.locator('[data-find-input]').fill('regex[a]');
   await search.locator('form').evaluate(form => form.requestSubmit());
   await page.waitForFunction(() => new URLSearchParams(location.search).get('sq') === 'regex[a]');
   await readyResults(page, 1);
