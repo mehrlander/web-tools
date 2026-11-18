@@ -45,7 +45,7 @@
   // might have read them.
   const SAMPLE = (() => {
     const run = (id, title, blocks, flags) => ({
-      id, title, meta: `${blocks.length} rules · ${flags.length} flags`,
+      id, title, meta: `${blocks.length} rules`,
       source: { blocks: blocks.map(([bid, label, text]) => ({ id: bid, label, text })) },
       outputs: flags.map(([oid, bid, quote, tag, text]) => {
         const t = blocks.find(b => b[0] === bid)[2], s = t.indexOf(quote);
@@ -87,7 +87,7 @@
     info: { btn: 'btn-info', mark: 'bg-info/25', bar: 'bg-info' },
     neutral: { btn: 'btn-neutral', mark: 'bg-base-content/20', bar: 'bg-base-content/50' },
   };
-  const OPEN_MARK = 'bg-primary/15';
+  const OPEN_MARK = 'bg-base-content/10';
   const MARKS = [OPEN_MARK, ...Object.values(TONE).map(t => t.mark)];
   const LIT_MARK = ['ring-2', 'ring-primary'];
   const LIT_ITEM = ['bg-primary/10'];
@@ -112,6 +112,9 @@
     }
     p.verdictOf = Object.fromEntries((p.verdicts || []).map(v => [v.verdict, v]));
     p.tagOf = Object.fromEntries((p.tags || []).map(t => [t.tag, t]));
+    // Widths that keep every output's text starting at one edge (rule 15).
+    p.tagCh = Math.max(0, ...p.runs.flatMap(r => r.outputs.map(o => (p.tagOf[o.tag]?.label || o.tag || '').length)));
+    for (const r of p.runs) r.labelCh = Math.max(0, ...r.outputs.map(o => (r.blockOf[o.anchor?.block]?.label || '').length));
     return p;
   }
 
@@ -180,7 +183,7 @@
     const segs = (P.verdicts || []).map(v => n[v.verdict]
       ? `<span class="${tone(v.verdict).bar}" style="width:${(n[v.verdict] / total * 100).toFixed(1)}%"></span>` : '').join('');
     return `<span class="flex h-1.5 w-14 shrink-0 overflow-hidden rounded-full bg-base-300">${segs}</span>`
-      + `<span class="min-w-[5ch] shrink-0 text-right font-mono text-xs tabular-nums text-base-content/60">${doneOf(n)}/${r.outputs.length}</span>`;
+      + `<span class="min-w-[7ch] shrink-0 text-right font-mono text-xs tabular-nums text-base-content/60">${doneOf(n)}/${r.outputs.length}</span>`;
   }
 
   function rowHTML(r) {
@@ -193,7 +196,7 @@
   function tagHTML(o) {
     if (!o.tag) return '';
     const t = P.tagOf[o.tag] || { label: o.tag };
-    return `<span class="badge badge-sm badge-ghost shrink-0 gap-1">${t.icon ? `<i class="ph ${esc(t.icon)}"></i>` : ''}${esc(t.label || o.tag)}</span>`;
+    return `<span class="badge badge-sm badge-ghost shrink-0 justify-start gap-1" style="min-width:calc(${P.tagCh}ch + 1.75rem)">${t.icon ? `<i class="ph ${esc(t.icon)}"></i>` : ''}${esc(t.label || o.tag)}</span>`;
   }
 
   function controls(r, o) {
@@ -246,7 +249,7 @@
       <section data-item="${esc(keyOf(r.id, o.id))}" data-out="${esc(o.id)}" class="flex flex-col gap-2 rounded-lg ${i ? 'border-t border-base-200 pt-4' : ''}">
         ${line(r, o)}
         <div class="flex items-start gap-2">${tagHTML(o)}<span class="min-w-0">${esc(o.text)}</span></div>
-        ${o.note ? `<p class="text-sm text-base-content/60">${esc(o.note)}</p>` : ''}
+        ${o.note ? `<p class="text-base-content/70">${esc(o.note)}</p>` : ''}
         ${controls(r, o)}
       </section>`).join('')}</div>`;
   }
@@ -263,14 +266,14 @@
     const blocks = r.source.blocks.map(b => `
       <section data-block="${esc(b.id)}" class="flex flex-col gap-1 rounded-md py-2">
         <h3 class="font-mono text-xs text-base-content/50">${esc(b.label || b.id)}</h3>
-        <p class="text-xl leading-8 [overflow-wrap:anywhere]">${marked(r, b)}</p>
+        <p class="whitespace-pre-wrap text-xl leading-8 [overflow-wrap:anywhere]">${marked(r, b)}</p>
       </section>`).join('');
     const items = r.outputs.map((o, i) => `
       <article data-item="${esc(keyOf(r.id, o.id))}" data-out="${esc(o.id)}" class="flex cursor-pointer flex-col gap-2 rounded-lg p-2 ${i ? 'mt-2' : ''}">
         <div class="flex items-start gap-2 text-xl leading-8">
-          <span class="shrink-0 font-mono text-xs leading-8 text-base-content/50">${esc(r.blockOf[o.anchor?.block]?.label || '')}</span>
+          <span class="shrink-0 font-mono text-xs leading-8 text-base-content/50" style="min-width:${r.labelCh}ch">${esc(r.blockOf[o.anchor?.block]?.label || '')}</span>
           ${tagHTML(o).replace('shrink-0', 'mt-1.5 shrink-0')}<span class="min-w-0">${esc(o.text)}</span></div>
-        ${o.note ? `<p class="text-sm text-base-content/60">${esc(o.note)}</p>` : ''}
+        ${o.note ? `<p class="text-xl leading-8 text-base-content/70">${esc(o.note)}</p>` : ''}
         ${controls(r, o)}
       </article>`).join('');
     return `<div data-pair="${esc(r.id)}" data-scope="${esc(r.id)}" class="grid h-full min-h-0 w-full min-w-0">
@@ -409,14 +412,14 @@
     head.innerHTML = `
       <div class="flex min-w-0 flex-1 items-center gap-2">
         <i class="ph ph-list-checks shrink-0 text-xl text-primary"></i>
-        <h1 class="min-w-0 truncate text-lg font-semibold">${esc(P.title || 'Check')}</h1>
+        <h1 class="line-clamp-2 min-w-0 text-lg leading-snug font-semibold" data-title-tip="${esc(P.title || 'Check')}" data-title-tip-bare>${esc(P.title || 'Check')}</h1>
         <span class="min-w-[7ch] shrink-0 font-mono text-xs tabular-nums text-base-content/60">${done}/${total}</span>
       </div>
       <div class="flex min-w-0 items-center gap-2">${status}
         ${S.target ? `<button type="button" id="save" class="btn btn-sm btn-primary min-w-[6.5rem] shrink-0 gap-1" ${n && !S.saving ? '' : 'disabled'}>
           <i class="ph ph-floppy-disk"></i><span>${S.saving ? 'Saving' : n ? 'Save ' + n : 'Save'}</span></button>` : ''}
       </div>
-      ${P.question ? `<p class="w-full truncate text-sm text-base-content/70" data-title-tip="${esc(P.question)}" data-title-tip-bare>${esc(P.question)}</p>` : ''}`;
+      ${P.question ? `<p class="w-full text-sm text-base-content/70">${esc(P.question)}</p>` : ''}`;
   }
 
   // ── mount ───────────────────────────────────────────────────────────────
