@@ -119,3 +119,16 @@ test('the pad says when it comes and goes, so a control in the same corner can m
   handle.destroy();
   assert.deepEqual(heard.at(-1), ['mark-pad', false]);
 });
+
+test('the count keeps inside the disc: the type steps down as the count grows, and the disc does not', () => {
+  const { handle, $ } = pad({ items: () => marks(110, 'citation') });
+  const size = () => $('disc').querySelector('span').className.match(/text-(xs|\[\d+px\])/)[0];
+  assert.equal(size(), 'text-xs', '–/110 is five characters');
+  handle.set(13);
+  assert.equal(size(), 'text-[11px]', '14/110');
+  handle.set(103);
+  assert.equal($('disc').textContent.trim(), '104/110');
+  assert.equal(size(), 'text-[10px]', '104/110');
+  assert.match($('disc').className, /\bsize-14\b/, 'the disc keeps its size');
+  assert.match($('disc').className, /tabular-nums/);
+});
