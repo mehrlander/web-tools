@@ -6975,8 +6975,7 @@ function app(){ return {
   //
   // Defaults stay OUT of the address (see the stamp below), so a plain
   // ?view=sessions link keeps meaning what it has always meant.
-  // ?lens=stars names the lens that became Repos (2026-11-18).
-  sessionLens: (l => l === 'stars' ? 'repos' : l)(new URLSearchParams(location.search).get('lens') || ''),
+  sessionLens: new URLSearchParams(location.search).get('lens') || '',
   sessionGrain: new URLSearchParams(location.search).get('grain') || '',
   goSessionLens(lens, grain){
     if (lens !== undefined) this.sessionLens = lens || '';
