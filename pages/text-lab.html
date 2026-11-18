@@ -1935,11 +1935,19 @@
           return `<button type="button" data-rail-go="focus:${k}" aria-label="${n > 1 ? `Focus ${k + 1} of ${n}` : 'Focus'}"`
             + ` class="absolute left-0.5 w-1.5 min-h-1 rounded-sm bg-base-content/50 hover:bg-base-content/80" style="top:${pct(r.top - b.top)};height:${pct(r.height)}"></button>`;
         });
-        // A hidden citation has no place in the text, so it has none on the rail.
-        const cites = [...body.querySelectorAll('[data-cite]')].filter(el => el.getClientRects().length && !seen.has(el.dataset.cite) && seen.add(el.dataset.cite)).map(el => {
-          const r = el.getBoundingClientRect();
-          return `<button type="button" data-rail-go="cite:${el.dataset.cite}" aria-label="Citation ${+el.dataset.cite + 1}"`
-            + ` class="absolute right-0.5 w-1.5 h-[3px] rounded-full bg-base-content/30 hover:bg-base-content/70" style="top:${pct(r.top - b.top)}"></button>`;
+        // A hidden citation has no place in the text, so it has none on the
+        // rail. A citation whose tick would touch the one above it gets none
+        // either: a phone's rail packs 110 citations into a few hundred pixels,
+        // and a tick drawn under its neighbour is one no tap can reach. Its
+        // place is still the neighbour's, a scroll away.
+        const H = rail.getBoundingClientRect().height || 1;
+        let last = -Infinity;
+        const cites = [...body.querySelectorAll('[data-cite]')].filter(el => el.getClientRects().length && !seen.has(el.dataset.cite) && seen.add(el.dataset.cite)).flatMap(el => {
+          const r = el.getBoundingClientRect(), y = (r.top - b.top) / (b.height || 1) * H;
+          if (y - last < 5) return [];
+          last = y;
+          return [`<button type="button" data-rail-go="cite:${el.dataset.cite}" aria-label="Citation ${+el.dataset.cite + 1}"`
+            + ` class="absolute right-0.5 w-1.5 h-[3px] rounded-full bg-base-content/30 hover:bg-base-content/70" style="top:${pct(r.top - b.top)}"></button>`];
         });
         // Rebuilt only when a tick moved, so a tick a reader (or a look link)
         // is about to tap is still the element on screen when they do.
