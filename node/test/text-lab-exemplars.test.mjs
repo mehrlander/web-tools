@@ -157,6 +157,7 @@ function harness(search = '') {
   kit(window, 'repo-address.js');
   kit(window, 'linked-swiper.js');
   kit(window, 'read-aloud.js');
+  kit(window, 'md-diff.js');
   const doc = new Proxy(dom.window.document, {
     get(t, k) {
       if (k === 'addEventListener') return (_name, fn) => fn();
@@ -281,7 +282,7 @@ test('the pane reads every piece and standoff once, and lists them by genre', as
   await h.model.loadExemplars();
   await h.model.loadExemplars();
   assert.equal(h.model.exemplarState, 'done');
-  assert.deepEqual(h.loads.sort(), ['kits/guide-render.js', 'kits/read-aloud.js', 'kits/standoff.js']);
+  assert.deepEqual(h.loads.sort(), ['kits/guide-render.js', 'kits/md-diff.js', 'kits/read-aloud.js', 'kits/standoff.js']);
   assert.equal(h.model.exemplars.length, 2, 'a standoff is not a piece');
   assert.equal(h.model.exemplarSel, '', 'a slug the folder does not hold is dropped');
   const fixture = h.model.exemplarOf('fixture');
@@ -329,15 +330,20 @@ test('a focus passage is a change container: an outline, its number, and two rea
   dom.window.document.body.replaceChildren(host);
   const sec = host.querySelector('[data-focus]');
   assert.equal(sec.getAttribute('data-reading'), 'text', 'a passage opens on its own words');
+  const PILL = h.window.mdDiff.PILL, mix = h.window.mdDiff.hueMix('--color-base-content', 22);
   assert.match(sec.className, /\bring-1\b/);
-  assert.match(sec.className, /-mx-2 px-2/, 'the outline sits outside the text, which keeps its left edge');
+  assert.ok(sec.className.includes(`ring-[${mix}]`), 'md-diff\'s neutral outline, by md-diff\'s own mix');
+  assert.match(sec.className, /-mx-2 px-2 py-1/, 'the outline sits outside the text, which keeps its left edge');
   assert.doesNotMatch(sec.className, /(^|\s)bg-/, 'an outline, not a fill: a fill is what a selected row wears');
-  assert.match(sec.className, /data-\[reading=context\]:ring-/, 'the outline says which reading is on screen');
+  assert.match(sec.className, /data-\[on\]:ring-2/, 'the selected passage, and only it, wears a heavier outline');
   assert.doesNotMatch(sec.className, /--color-(error|success|warning|info|primary)/, 'in the base colour: colour here is a standing');
-  assert.match(sec.querySelector('.sticky').innerHTML, /ph-bookmark-simple"><\/i>1</, 'its number, top left');
+  const num = sec.querySelector('[data-focus-claim]');
+  assert.equal(num.textContent, '1', 'its number alone');
+  assert.ok(num.className.startsWith(PILL + ' left-1'), 'in md-diff\'s own pill, at the top left');
   const stops = [...sec.querySelectorAll('[data-focus-reading]')];
   assert.deepEqual(stops.map(b => b.textContent), ['text', 'context']);
-  assert.ok(sec.querySelector('.sticky').contains(stops[0]), 'the stops ride the sticky row, so a long passage keeps them in reach');
+  assert.ok(stops[0].parentElement.className.startsWith(PILL + ' right-1'), 'the stops in md-diff\'s pill, at the top right');
+  assert.ok(sec.querySelector('.sticky').contains(stops[0]) && sec.querySelector('.sticky').contains(num), 'both ride the sticky row, so a long passage keeps them in reach');
   const ctx = sec.querySelector('[data-focus-context]');
   assert.match(ctx.className, /hidden group-data-\[reading=context\]\/focus:grid/, 'the background shows only on its reading');
   assert.match(ctx.textContent, /Part I, from "The facts"/, 'what the passage is');
@@ -360,6 +366,8 @@ test('a focus passage is a change container: an outline, its number, and two rea
   assert.ok(sec.hasAttribute('data-on'), 'and it stays selected, not a flash');
   h.model.ringMark([]);
   assert.equal(sec.hasAttribute('data-on'), false, 'until another mark is chosen');
+  assert.equal(h.model.exemplarClick({ target: num }), true);
+  assert.ok(sec.hasAttribute('data-on'), 'a tap on its number claims it, as md-diff\'s index does');
   dom.window.document.body.replaceChildren();
 });
 

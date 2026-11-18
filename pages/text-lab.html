@@ -126,11 +126,11 @@
     ?marks=a|b|c|d trials a way through a piece's marks: a, a Marks tab in
                  the FAB's drawer and a count on the launcher; b, a stepper on
                  the FAB; c, a rail down the card's edge; d, a pad over the FAB
-                 (kits/mark-pad.js), two arrows and a disc between them that
-                 counts the mark in view, stepping through the caption and
-                 focus passages, or the citations once the disc is tapped; the
-                 FAB tucks into its corner while the pad is up. Without it,
-                 nothing.
+                 (kits/mark-pad.js), two arrows and a bookmark between them
+                 that counts the mark in view inside itself, stepping through
+                 the caption and focus passages, or the citations once the
+                 bookmark is tapped; the FAB leaves a handle in its corner
+                 while the pad is up. Without it, nothing.
     ?proposal=<id> and ?pane=proposals are the pre-2026-09-27 names; both are
                  read and the address is rewritten to the new form.
 -->
@@ -299,6 +299,7 @@
       // changes.
       marksMode: ['a', 'b', 'c', 'd'].includes(params.get('marks')) ? params.get('marks') : '',
       padKind: 'marks',
+      _stuckFrame: 0,
       pad: null,
       marksAt: {},
       focusAt: {},
@@ -311,6 +312,9 @@
 
       async init() {
         document.getElementById('boot')?.remove();
+        // A focus passage's pills, stuck or not (focusStuck), in whichever
+        // card or deck slide scrolled.
+        document.addEventListener('scroll', e => this.focusStuck(e && e.target), { capture: true, passive: true });
         gh.load('kits/panel-tip.js').then(() => {
           if (!window.PanelTip || !this.$refs?.tip) return;
           this.tipClose = window.PanelTip.closeHTML(true);
@@ -1261,7 +1265,7 @@
         this.exemplarState = 'loading';
         this.exemplarError = '';
         try {
-          await Promise.all(['kits/guide-render.js', 'kits/standoff.js', 'kits/read-aloud.js'].map(k => gh.load(k)));
+          await Promise.all(['kits/guide-render.js', 'kits/standoff.js', 'kits/read-aloud.js', 'kits/md-diff.js'].map(k => gh.load(k)));
           await window.GuideRender.needMarked();
           const dir = this.EXEMPLARS;
           const names = (await this.home.req(`contents/${dir}?ref=${encodeURIComponent(this.DATA_REF)}`))
@@ -1689,21 +1693,21 @@
         return p.doc;
       },
       // A FOCUS PASSAGE IS A CHANGE CONTAINER, the one md-diff draws for a
-      // change (lib/kits/md-diff.js, container()): an outline whose weight
-      // says which reading is on screen, the passage's number in a pill at the
-      // top left, the stops in a pill at the top right, and `-mx-2 px-2`, so
-      // the outline sits outside the text and the text keeps its left edge.
-      // The pill classes are md-diff's, copied, so the two read as one family.
+      // change (lib/kits/md-diff.js, container()), drawn to its measure: the
+      // outline outside the text (`-mx-2 px-2`), so the text keeps its left
+      // edge, at md-diff's neutral 22%; the passage's number alone in a pill
+      // at the top left and the stops in a pill at the top right, both
+      // centred on the top edge; md-diff's own pill and mix (mdDiff.PILL,
+      // mdDiff.hueMix), imported rather than copied, so the two cannot drift.
+      // The one passage selected, as md-diff's one change, wears a heavier
+      // outline and a filled number. Neutral where md-diff's selection is
+      // yellow: colour on this page is a standing.
       //
       // TWO READINGS, `text` and `context`, where md-diff has old, inline and
       // new: the passage, and the background on it (what the passage is, how
       // long, and who praised the piece, in their words). The background is
       // the piece's, not the passage's, so a piece's passages show the same
-      // praise; only the description's place and the count are their own.
-      //
-      // NO HUE: colour on this page is a standing, so where md-diff colours
-      // each reading, here the outline is held down for the passage and
-      // stronger for the background, and the lit stop says which.
+      // praise; only the description's place and the length are their own.
       //
       // A TAP ON A STOP, NOT A SWIPE. md-diff's readings swipe, which needs
       // every reading the same height (its own account of iOS's snap), and a
@@ -1711,27 +1715,20 @@
       // lines; the card also swipes, between pieces. So the box takes the
       // height of the reading on screen, and the stops are tapped.
       //
-      // THE PILLS STAY IN REACH: they ride a band at the passage's top, in
-      // its own space and opaque, that sticks under the card's own sticky
-      // row, so a reader halfway down Part I still has them, over a band of
-      // page rather than over the prose, until the passage ends. And they sit
-      // together at the LEFT, where md-diff puts the stops at the right: here
-      // the right edge carries what floats over the card (the mark pad and
-      // the FAB on a phone, the rail under ?marks=c), and the stops under the
-      // pad could not be tapped.
-      FOCUS_MIX: pct => `color-mix(in_oklab,var(--color-base-content)_${pct}%,transparent)`,
-      // md-diff's PILL without its place, which the row of two gives here,
-      // and at text-xs, the page's chrome size, where md-diff's is 10px.
-      FOCUS_PILL: 'flex items-center rounded-full border border-base-300 bg-base-100/90 backdrop-blur text-xs leading-none select-none',
+      // THE PILLS STAY IN REACH: they ride a zero-height sticky row at the
+      // passage's top, so a reader halfway down Part I still has them, under
+      // the card's own sticky row, until the passage ends. Once the row has
+      // stuck (data-stuck, focusStuck), a band of the pills' own backing runs
+      // across the passage behind them, so the prose scrolling under them
+      // does not print through.
       focusBox(p, k, total) {
-        const mix = this.FOCUS_MIX, PILL = this.FOCUS_PILL;
+        const D = window.mdDiff, PILL = D ? D.PILL : '';
+        const mix = pct => (D ? D.hueMix('--color-base-content', pct) : 'transparent');
         const sec = document.createElement('section');
         sec.dataset.focus = String(k);
         sec.dataset.reading = 'text';
-        // The outline's weight says whether the passage is the one selected,
-        // its strength which reading is on screen.
-        sec.className = `group/focus relative my-8 -mx-2 px-2 pb-1 rounded-[4px] ring-1 ring-[${mix(22)}] transition-[box-shadow] duration-200`
-          + ` data-[reading=context]:ring-[${mix(60)}] data-[on]:ring-2 data-[on]:ring-[${mix(60)}] data-[on]:data-[reading=context]:ring-[${mix(80)}]`;
+        sec.className = `group/focus relative my-8 rounded-[4px] -mx-2 px-2 py-1 ring-1 ring-[${mix(22)}] transition-[box-shadow] duration-200`
+          + ` data-[on]:ring-2 data-[on]:ring-[${mix(60)}]`;
         // A stop's hit area runs past its drawn edge (the ::before), since a
         // pill ten pixels tall is a hard thing to hit with a thumb.
         const stop = (key) => `<button type="button" data-focus-reading="${key}" aria-pressed="${key === 'text'}"`
@@ -1744,22 +1741,46 @@
           + `<div class="min-w-0 grid gap-2"><div>${esc(r.words)}</div><div class="text-sm leading-6 text-base-content/70">`
           + (r.links.length === 1 ? a(r.links[0].href, r.by || r.links[0].label) : esc(r.by) + r.links.map(l => ' ' + a(l.href, l.label)).join(''))
           + `</div></div></div>`).join('');
-        sec.innerHTML = `<div class="sticky top-11 z-[2] -mx-2 mb-1 flex h-8 items-center gap-1 rounded-t-[4px] bg-base-100 px-1.5">`
-          + `<span class="${PILL} gap-1 px-1.5 py-0.5 tabular-nums font-medium opacity-80 transition-colors`
-          + ` group-data-[on]/focus:opacity-100 group-data-[on]/focus:bg-base-content group-data-[on]/focus:text-base-100"><i class="ph ph-bookmark-simple"></i>${k + 1}</span>`
-          + `<div class="${PILL} gap-0.5 px-0.5 py-0.5" role="group" aria-label="Show this passage as">${stop('text')}${stop('context')}</div></div>`
-          + `<div data-focus-text class="group-data-[reading=context]/focus:hidden"></div>`
-          + `<div data-focus-context class="hidden group-data-[reading=context]/focus:grid gap-4 pt-2 pb-2">`
+        sec.innerHTML = `<div class="sticky top-14 z-10 -mt-1 mb-1 h-0">`
+          + `<div class="absolute -inset-x-2 -top-3 h-6 bg-base-100/90 backdrop-blur hidden group-data-[stuck]/focus:block"></div>`
+          + `<button type="button" data-focus-claim class="${PILL} left-1 cursor-pointer px-1.5 py-0.5 tabular-nums font-medium transition-colors opacity-80`
+          + ` group-data-[on]/focus:opacity-100 group-data-[on]/focus:bg-base-content group-data-[on]/focus:text-base-100 group-data-[on]/focus:border-base-content"`
+          + ` aria-label="Passage ${k + 1}${total > 1 ? ` of ${total}` : ''}">${k + 1}</button>`
+          + `<div class="${PILL} right-1 gap-0.5 px-0.5 py-0.5" style="border-color:color-mix(in oklab,var(--color-base-content) 40%,transparent)"`
+          + ` role="group" aria-label="Show this passage as">${stop('text')}${stop('context')}</div></div>`
+          + `<div data-focus-text class="[&>:first-child]:!mt-0 [&>:last-child]:!mb-0 group-data-[reading=context]/focus:hidden"></div>`
+          + `<div data-focus-context class="hidden group-data-[reading=context]/focus:grid gap-4 pt-3 pb-2">`
           + `<div class="grid gap-1"><div class="font-medium">${esc(p.focus || 'The passage to read first')}</div>`
           + `<div class="text-sm leading-6 text-base-content/70">${words} words</div></div>`
           + praise + `</div>`;
         return sec;
+      },
+      // The pills' row has stuck once it has left the passage's top edge.
+      focusStuck(box) {
+        if (!box || !box.querySelectorAll || this._stuckFrame) return;
+        this._stuckFrame = requestAnimationFrame(() => {
+          this._stuckFrame = 0;
+          for (const sec of box.querySelectorAll('[data-focus]')) {
+            const row = sec.firstElementChild;
+            if (!row) continue;
+            const stuck = row.getBoundingClientRect().top - sec.getBoundingClientRect().top > 1;
+            if (stuck !== sec.hasAttribute('data-stuck')) sec.toggleAttribute('data-stuck', stuck);
+          }
+        });
       },
       // A tap on a stop: the reading the passage shows, and the passage is
       // where the reader now is, so it is the one selected (ringMark). The
       // box follows the reading, so a reader deep in a long passage would be
       // left past the end of a short background: the card goes back to the
       // passage's top.
+      // A tap on a passage's number claims it, as md-diff's index claims a
+      // change: it is selected, and the pad counts it.
+      claimFocus(sec) {
+        if (!sec) return;
+        this.ringMark([sec]);
+        const id = sec.closest('[data-exemplar-body]')?.getAttribute('data-exemplar-body');
+        if (id != null) { this.noteFocus(id, +sec.dataset.focus); this.padFollow(id, 'focus', +sec.dataset.focus); }
+      },
       setFocusReading(sec, r) {
         if (!sec || (r !== 'text' && r !== 'context')) return;
         sec.dataset.reading = r;
@@ -1808,6 +1829,8 @@
         if (cites) { this.setCiteMode(cites.getAttribute('data-exemplar-cites')); return true; }
         const reading = e.target.closest('[data-focus-reading]');
         if (reading) { this.setFocusReading(reading.closest('[data-focus]'), reading.getAttribute('data-focus-reading')); return true; }
+        const claim = e.target.closest('[data-focus-claim]');
+        if (claim) { this.claimFocus(claim.closest('[data-focus]')); return true; }
         const voice = e.target.closest('[data-exemplar-speak]');
         if (voice) { this.speakCard(voice.getAttribute('data-exemplar-speak')); return true; }
         const focus = e.target.closest('[data-exemplar-focus]');
@@ -1999,7 +2022,7 @@
       },
       // SELECTION STAYS, as md-diff's does: the mark the reader was taken to
       // stays marked until another is chosen, rather than flashing and going
-      // out, which left the pad's disc counting a mark the page no longer
+      // out, which left the pad's bookmark counting a mark the page no longer
       // showed. A focus passage already wears an outline, so it is selected
       // rather than ringed (data-on): its outline goes heavier and its number
       // fills, on either reading, as md-diff's badge fills for the change a
