@@ -24,6 +24,10 @@ jobs:
         run: dotnet run --project desktop/Checks/DesktopChecks.csproj
       - name: Build the Windows app
         run: ./desktop/build.ps1
+      - name: Check published provenance and installer preflight
+        run: |
+          ./desktop/build.ps1 -Publish
+          ./desktop/Checks/package-checks.ps1 -PublishedPackageRoot ./desktop/output/app
       - name: Check laptop view interactions
         run: node desktop/Checks/ui-checks.mjs
       - name: Check phone interactions
