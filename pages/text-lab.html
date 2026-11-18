@@ -1520,8 +1520,17 @@
         return String(s)
           .replace(/\[\^[^\]\s]+\]/g, '')
           .replace(new RegExp(`[(\\[][\\s,;:]*(?:${C}[\\s,;:]*)+[)\\]]`, 'g'), C)
-          .replace(new RegExp(`[,;:]\\s*${C}(?=\\s*[,;:.!?)\\]])`, 'g'), C)
-          .replace(new RegExp(`([.!?(\\[])\\s*${C}\\s*[,;:]+`, 'g'), `$1${C}`)
+          // Punctuation on both sides of a cut, closing quotes allowed between:
+          // the first comma stands for a second, and a full stop after it
+          // takes its place, so "turpitude,” ⌧, and" and "decisionmaking,” ⌧."
+          // read "turpitude,” and" and "decisionmaking.”".
+          .replace(new RegExp(`([,;:])([”’"'\\s]*?)\\s*${C}\\s*[,;:]`, 'g'), `$1$2${C}`)
+          .replace(new RegExp(`[,;:]([”’"'\\s]*?)\\s*${C}\\s*([.!?])`, 'g'), `$2$1${C}`)
+          .replace(new RegExp(`[,;:]\\s*${C}(?=\\s*[)\\]])`, 'g'), C)
+          // A sentence ended before the cut, so a comma after it is stray;
+          // after an abbreviation ("Inc.") the sentence goes on and keeps it.
+          .replace(new RegExp(`([.!?(\\[])\\s*${C}\\s*[,;:]+(?=\\s*(?:[A-Z“"]|$))`, 'gm'), `$1${C}`)
+          .replace(new RegExp(`[ \\t]*${C}[ \\t]*(?=[—–])|(?<=[—–])[ \\t]*${C}[ \\t]*`, 'g'), '')
           .replace(new RegExp(`[ \\t]*${C}[ \\t]*`, 'g'), ' ')
           .replace(/[ \t]+([,;:.!?)\]])/g, '$1')
           .replace(/([(\[])[ \t]+/g, '$1')

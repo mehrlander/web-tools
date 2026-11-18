@@ -493,6 +493,21 @@ test('reading aloud speaks Text only: no front matter, no caption, no citation, 
   }
 });
 
+// Cases met in home's real citation standoffs (Judulang, Commerce, the
+// Alaska brief), each a cut beside a closing quote, an abbreviation or a dash.
+test('the tidy mends what a cut leaves beside a closing quote, an abbreviation or a dash', () => {
+  const { model } = harness();
+  const t = s => model.tidySpeech(s.replace(/⌧/g, model.CUT));
+  assert.equal(t('moral turpitude,” ⌧, and so fits'), 'moral turpitude,” and so fits', 'one comma, inside the quote');
+  assert.equal(t('reasoned decisionmaking,” ⌧.\n\nThe District Court'), 'reasoned decisionmaking.”\n\nThe District Court',
+    'a full stop takes the comma\'s place');
+  assert.equal(t('the statutory text,’ ” ⌧. In the view'), 'the statutory text.’ ” In the view');
+  assert.equal(t('Defense Council, Inc.⌧, to govern'), 'Defense Council, Inc., to govern', 'an abbreviation keeps its comma');
+  assert.equal(t('held. ⌧, The next'), 'held. The next', 'a stray comma after a full stop goes');
+  assert.equal(t('the generators⌧—even though'), 'the generators—even though', 'no space before a dash');
+  assert.equal(t('the picketing. ⌧ The funeral'), 'the picketing. The funeral');
+});
+
 test('the card speaks the piece in view from its head, and the deck reads from the slide in view', async () => {
   const h = harness();
   h.model.home = home(FILES());
