@@ -121,9 +121,12 @@
                  filters beside it.
     ?run=<dir>   marks one run in the runs pane and implies that pane.
     ?exemplar=<slug> opens one piece and implies the exemplars pane.
-    ?marks=a|b|c trials a way through a piece's marks: a, a Marks tab in the
-                 FAB's drawer and a count on the launcher; b, a stepper on the
-                 FAB; c, a rail down the card's edge. Without it, nothing.
+    ?marks=a|b|c|d trials a way through a piece's marks: a, a Marks tab in
+                 the FAB's drawer and a count on the launcher; b, a stepper on
+                 the FAB; c, a rail down the card's edge; d, a pair of arrows
+                 beside the FAB (kits/mark-pad.js), stepping through the caption
+                 and focus passages, or the citations once its label is tapped.
+                 Without it, nothing.
     ?proposal=<id> and ?pane=proposals are the pre-2026-09-27 names; both are
                  read and the address is rewritten to the new form.
 -->
@@ -285,10 +288,14 @@
       exemplarTab: 'text',
       voice: null,
       voiceAt: { state: 'idle', id: '' },
-      // ?marks=a|b|c, three trials of a way through a piece's marks (its focus,
-      // its caption, its citations): a, the FAB's Marks tab; b, a stepper on
-      // the FAB; c, a rail down the card's edge. Without it nothing changes.
-      marksMode: ['a', 'b', 'c'].includes(params.get('marks')) ? params.get('marks') : '',
+      // ?marks=a|b|c|d, four trials of a way through a piece's marks (its
+      // focus, its caption, its citations): a, the FAB's Marks tab; b, a
+      // stepper on the FAB; c, a rail down the card's edge; d, the page's own
+      // pair of arrows beside the FAB (kits/mark-pad.js). Without it nothing
+      // changes.
+      marksMode: ['a', 'b', 'c', 'd'].includes(params.get('marks')) ? params.get('marks') : '',
+      padKind: 'marks',
+      pad: null,
       marksAt: {},
       focusAt: {},
       citeMode: 'show',
@@ -334,7 +341,7 @@
           this.$watch(key, () => { this.variantLimit = this.VARIANT_BATCH; });
         for (const key of ['filterStanding', 'concept', 'probeBy', 'badgeFilter', 'probeRun', 'runBy'])
           this.$watch(key, () => this.$nextTick(() => this.mountDetail()));
-        if (this.marksMode === 'a' || this.marksMode === 'b') this.$watch('marksSig', () => this.announceMarks());
+        if (['a', 'b', 'd'].includes(this.marksMode)) this.$watch('marksSig', () => { this.announceMarks(); this.pad?.refresh(); });
         // Whatever ?pane= asked for, not just the one that used to need it:
         // each pane's own guard makes the call a no-op when it has nothing to
         // fetch, so naming a single pane here was a bug waiting for the second.
@@ -1278,6 +1285,7 @@
           if (!this.exemplarOf(this.exemplarSel)) this.exemplarSel = '';
           this.exemplarState = 'done';
           this.announceMarks();
+          if (this.marksMode === 'd') { await gh.load('kits/mark-pad.js'); this.mountPad(); }
           if (this.deckParam === 'exemplars') {
             this.deckParam = '';
             this.$nextTick(() => this.openExemplarDeck(this.deckAt));
@@ -1790,7 +1798,35 @@
         try { if (window.parent && window.parent !== window) say(window.parent); } catch (_) {}
       },
       get marksSig() {
-        return [this.pane, this.exemplarSel, this.exemplars.length, JSON.stringify(this.marksAt), this.citeMode].join('|');
+        return [this.pane, this.exemplarSel, this.exemplars.length, JSON.stringify(this.marksAt), this.citeMode, this.padKind].join('|');
+      },
+      // Trial d: the arrows step through the piece's marked passages, the
+      // caption and each focus, in the order the file has them; a tap on the
+      // label turns them to the citations, one at a time, since an opinion's
+      // hundred are a different walk from its two passages.
+      padItems() {
+        const p = this.pane === 'exemplars' ? this.exemplarOf(this.exemplarSel) : null;
+        if (!p) return [];
+        const c = p.citationSpans || [];
+        if (this.padKind === 'citations' && c.length)
+          return c.map((_, k) => ({ label: `citation ${k + 1} of ${c.length}`, go: () => this.goMark(p.id, 'cite', k) }));
+        return this.markItems(p).filter(m => m.key !== 'citations')
+          .map(m => ({ label: m.key === 'caption' ? 'caption' : m.short.replace(/ (\d+)\/(\d+)$/, ' $1 of $2'), go: m.go }));
+      },
+      mountPad() {
+        if (this.marksMode !== 'd' || this.pad || !window.MarkPad) return;
+        this.pad = window.MarkPad.mount({
+          at: 'marks',
+          items: () => this.padItems(),
+          go: (i, item) => item.go(),
+          scope: () => [this.pane, this.exemplarSel, this.padKind].join('|'),
+          idle: n => this.padKind === 'citations' ? `${n} citations` : `${n} ${n === 1 ? 'mark' : 'marks'}`,
+          kinds: () => (this.exemplarOf(this.exemplarSel)?.citationSpans || []).length
+            ? [{ key: 'marks', label: 'the marked passages', icon: 'ph-bookmark-simple' },
+               { key: 'citations', label: 'the citations', icon: 'ph-paperclip' }] : [],
+          kind: () => this.padKind,
+          choose: k => { this.padKind = k; },
+        });
       },
       // What the FAB reads (its `marks` contract), in trials a and b only.
       get marks() {

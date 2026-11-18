@@ -583,12 +583,31 @@ test('under a FAB trial the page announces its marks to its own window and the o
   h.model.home = home(FILES());
   await h.model.loadExemplars();
   assert.deepEqual(heard, ['page fab:marks', 'shell fab:marks'], 'once the pieces are read, in both windows');
-  assert.match(SRC, /\$watch\('marksSig', \(\) => this\.announceMarks\(\)\)/, 'and again whenever the marks change');
+  assert.match(SRC, /\$watch\('marksSig', \(\) => \{ this\.announceMarks\(\);/, 'and again whenever the marks change');
   const c = harness('?marks=c');
   heard.length = 0;
   Object.assign(c.window, win('page'));
   c.model.announceMarks();
   assert.deepEqual(heard, [], 'the rail is the page\'s own; the FAB is not told');
+});
+
+test('trial d steps through the passages, or the citations once chosen, through the page\'s own pad', async () => {
+  const h = harness('?marks=d&exemplar=fixture');
+  h.model.home = home(FILES());
+  await h.model.loadExemplars();
+  h.model.pane = 'exemplars';
+  assert.ok(h.loads.includes('kits/mark-pad.js'), 'the pad is the page\'s own, loaded under d alone');
+  assert.equal(h.model.marks, null, 'the FAB is not involved');
+  assert.deepEqual(h.model.padItems().map(m => m.label), ['caption', 'focus 1 of 1'], 'by default the passages, in file order');
+  h.model.padKind = 'citations';
+  assert.deepEqual(h.model.padItems().map(m => m.label), ['citation 1 of 2', 'citation 2 of 2'], 'then the citations, one at a time');
+  const went = [];
+  h.model.goMark = (id, kind, k) => went.push([kind, k]);
+  h.model.padItems()[1].go();
+  assert.deepEqual(went, [['cite', 1]]);
+  h.model.pane = 'probes';
+  assert.deepEqual(h.model.padItems(), [], 'no pad on another pane');
+  assert.match(SRC, /\$watch\('marksSig', \(\) => \{ this\.announceMarks\(\); this\.pad\?\.refresh\(\); \}\)/, 'the pad follows every change of marks');
 });
 
 test('the header comment names the pane, its faces and its address', () => {
@@ -598,7 +617,7 @@ test('the header comment names the pane, its faces and its address', () => {
   assert.match(head, /<slug>\.citations\.standoff\.json/);
   assert.match(head, /\?exemplar=<slug> opens one piece and implies the exemplars pane/);
   assert.match(head, /runs or exemplars/);
-  assert.match(head, /\?marks=a\|b\|c trials a way through a piece's marks/);
+  assert.match(head, /\?marks=a\|b\|c\|d trials a way through a piece's marks/);
   assert.match(SRC, /x-ref="exemplarList" role="listbox"/);
   assert.doesNotMatch(SRC, /tip\.kind === 'exemplar'/, 'Context holds what the panel-tip did');
 });
