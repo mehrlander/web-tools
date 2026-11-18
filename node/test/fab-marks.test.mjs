@@ -132,7 +132,7 @@ test('a page’s mark pad tucks the launcher into its corner, and a tap brings i
     assert.equal(root.style.getPropertyValue('--mark-pad-bottom'), '34px');
     const tab = host.querySelector('[data-fab-tab]');
     assert.ok(tab, 'the handle takes a tap of its own');
-    assert.match(tab.className, /rounded-tl-xl/, 'a pull tab: rounded on its inner corner only');
+    assert.match(tab.className, /rounded-tl-2xl/, 'a pull tab: rounded on its inner corner only');
     assert.match(tab.className, /size-\[26px\]/, 'and small, about a quarter of the launcher');
     assert.equal(tab.querySelector('i'), null, 'its grip is drawn, not a glyph');
     tab.click(); await tick(2);
