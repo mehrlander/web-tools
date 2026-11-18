@@ -2,7 +2,7 @@
 
 A **check** asks the owner to judge, one at a time, the outputs a model or a script made from its inputs. Each output is anchored to a passage of an input. The owner gives it one verdict from a declared set and may add a note.
 
-A `check/1` payload holds them as runs, one input and its outputs to a run. 🔷 [pages/check.html](https://mehrlander.github.io/web-tools/pages/check.html) draws each output beside its passage. It saves the owner's verdicts where the session that made the check reads them: the [answers file](#answers).
+A `check/1` payload holds them as [runs](#the-payload). 🔷 [pages/check.html](https://mehrlander.github.io/web-tools/pages/check.html) draws each output beside its passage. It saves the owner's verdicts where the session that made the check reads them: the [answers file](#answers).
 
 The first producer is [`flag_check.py`](https://github.com/mehrlander/home/blob/main/projects/text/runs/2026-11-06-prompt-sentiment/src/flag_check.py) in [home](https://github.com/mehrlander/home). Its outputs are the preferences a model flagged in the owner's messages, each anchored at the sentence it quotes.
 
@@ -33,7 +33,7 @@ A verdict may also have an `icon`, a Phosphor class such as `ph-check`, and a `t
 
 A **run** is one input and the outputs made from it. It has an `id` unique in the payload, a `title`, a `meta` line (a date and a count, say), a `source` and its `outputs`. `source` holds `blocks`, each with `id`, `label` and `text`, and optionally an `address` where the input lives.
 
-An **output** has an `id` unique in its run and a `text`. It may have a `tag`, a `note` (the process's own remark) and an `anchor`. An anchor is `{block, start, end}`: offsets into that block's text, in code points, with `end` exclusive. Where no span applies it is `{block}` alone.
+An **output** has an `id` unique in its run and a `text`. It may have a `tag`, a `note` (the producer's remark, shown under the output) and an `anchor`. An anchor is `{block, start, end}`: offsets into that block's text, in code points, with `end` exclusive. Where no span applies it is `{block}` alone.
 
 ## Answers
 
@@ -49,4 +49,4 @@ Each save appends one JSON line per output whose verdict or note changed, in one
 | `note` | The owner's note, `""` for none |
 | `by` | The GitHub login that saved it |
 
-Lines are not edited. An output's latest line holds its verdict. On load, the page restores each output's verdict from its latest line. A session reading the file counts by the latest line too. The write is `postAnswer` in [`user-call-form.js`](../../lib/alpineComponents/user-call-form.js).
+Lines are not edited. An output's latest line holds its verdict, for the page on load and for any session reading the file. The write is `postAnswer` in [`user-call-form.js`](../../lib/alpineComponents/user-call-form.js).
