@@ -8,7 +8,9 @@
 // A program with status "proposed" has a folder and a mark but no charter,
 // and governs nothing until it is adopted. Its `areas`, the Program view's
 // tiles, name rows of its charter's Areas table, icons the font carries, and
-// registries on disk whose header has every column a panel reads.
+// registries on disk whose header has every column a panel reads. A groups
+// panel draws a chip a group, so it names an icon for every group it draws,
+// and each row's `file` is a file on disk.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
@@ -104,7 +106,7 @@ const FONT = path.join(repoRoot, 'node_modules', '@phosphor-icons', 'web', 'src'
 const glyphs = existsSync(FONT) ? new Set([...readFileSync(FONT, 'utf8').matchAll(/\.ph\.ph-([a-z0-9-]+):before/g)].map(m => 'ph-' + m[1])) : null;
 
 test('every declared area names a charter row, an icon the font carries, and panels that read real columns', () => {
-  const gaps = [], KINDS = ['measure', 'breakdown', 'gallery', 'views'];
+  const gaps = [], KINDS = ['measure', 'breakdown', 'gallery', 'groups', 'views'];
   for (const { repo, root, e } of declarations()) {
     if (!Array.isArray(e?.areas)) continue;
     const id = `${repo}: ${e.name}`, charter = path.join(root, e.path || '', 'README.md');
@@ -121,14 +123,28 @@ test('every declared area names a charter row, an icon the font carries, and pan
           if (!['research', 'repos'].includes(pn.source)) gaps.push(`${id}: ${a.name} gallery source ${pn.source} is not research or repos`);
           continue;
         }
-        if (pn.kind !== 'breakdown' && pn.kind !== 'gallery') continue;
+        if (!['breakdown', 'gallery', 'groups'].includes(pn.kind)) continue;
         const file = path.join(root, pn.registry || '');
         if (!pn.registry || !/\.csv$/.test(pn.registry) || !existsSync(file)) { gaps.push(`${id}: ${a.name} reads ${pn.registry}, which is not a CSV on disk`); continue; }
-        const head = new Set(Object.keys(parseCsv(readFileSync(file, 'utf8'))[0] || {}));
-        const cols = [pn.by, pn.label, pn.icon, pn.glyph, pn.thumb, pn.href, ...Object.keys(pn.where || {})].filter(Boolean);
-        if (pn.kind === 'breakdown' && !pn.by) gaps.push(`${id}: ${a.name} breakdown names no column`);
-        if (pn.kind === 'gallery' && !pn.label) gaps.push(`${id}: ${a.name} gallery names no label column`);
-        for (const c of cols) if (!head.has(c)) gaps.push(`${id}: ${a.name} reads column ${c}, which ${pn.registry} does not have`);
+        const rows = parseCsv(readFileSync(file, 'utf8')), head = new Set(Object.keys(rows[0] || {}));
+        const fileCols = [...String(pn.file || '').matchAll(/\{([^{}]+)\}/g)].map(m => m[1]);
+        const cols = [pn.by, pn.label, pn.icon, pn.glyph, pn.thumb, pn.href, pn.text, ...fileCols, ...Object.keys(pn.where || {})].filter(Boolean);
+        if ((pn.kind === 'breakdown' || pn.kind === 'groups') && !pn.by) gaps.push(`${id}: ${a.name} ${pn.kind} names no column`);
+        if ((pn.kind === 'gallery' || pn.kind === 'groups') && !pn.label) gaps.push(`${id}: ${a.name} ${pn.kind} names no label column`);
+        const missing = cols.filter(c => !head.has(c));
+        for (const c of missing) gaps.push(`${id}: ${a.name} reads column ${c}, which ${pn.registry} does not have`);
+        if (pn.kind !== 'groups' || missing.length) continue;
+        // The rows a groups panel draws, grouped as Programs.groups groups
+        // them: by `by`, or its part before `split`, where `where` lets a row in.
+        const where = Object.entries(pn.where || {}).map(([k, re]) => { try { return [k, new RegExp(re)]; } catch { return [k, /(?!)/]; } });
+        const kept = rows.filter(r => where.every(([k, re]) => re.test(String(r[k] ?? ''))));
+        const keyOf = r => { const k = String(r[pn.by] ?? '').trim(); return pn.split && k.includes(pn.split) ? k.slice(0, k.indexOf(pn.split)) : k; };
+        const drawn = Array.isArray(pn.only) && pn.only.length ? pn.only : [...new Set(kept.map(keyOf))];
+        for (const g of drawn) if (!pn.icons?.[g]) gaps.push(`${id}: ${a.name} draws group ${g || '(empty)'} of ${pn.registry} with no icon`);
+        if (pn.file) for (const r of kept.filter(r => drawn.includes(keyOf(r)))) {
+          const f = pn.file.replace(/\{([^{}]+)\}/g, (_, c) => String(r[c] ?? '').trim());
+          if (!existsSync(path.join(root, f))) gaps.push(`${id}: ${a.name} opens ${f} for a row of ${pn.registry}, which is not on disk`);
+        }
       }
     }
   }

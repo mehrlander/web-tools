@@ -11,7 +11,8 @@
 // view's), the files its Covers cell links less those a panel names, what it
 // covers in a panel-tip, the panels its declaration names (a measure attached
 // by the area's exact name, a registry broken down by a column, a gallery of
-// a registry's rows),
+// a registry's rows, a run of registries as one row of chips that open their
+// rows, a breakdown folded to one line that opens its groups),
 // its width from its panels (half the pane on a phone, side by side) and the
 // rows packed in order, its height its own, and its heat grid: four weeks of
 // commits matched by path, a row a week, in its top line. The views that display it open
@@ -55,6 +56,12 @@ const manifests = {
           { kind: 'gallery', registry: 'docs/docs.csv', where: { path: '^docs/envelopes/(?!README)' }, label: 'path' },
           { kind: 'gallery', registry: 'pages/pages.csv', label: 'label', thumb: 'thumb', href: 'href' },
           { kind: 'views', views: ['?view=waiting'] }] },
+        { name: 'Resources', icon: 'ph-toolbox', panels: [
+          { kind: 'groups', registry: 'skills/manifest.csv', by: 'group', label: 'name', text: 'description', file: 'skills/{name}/SKILL.md',
+            icons: { session: 'ph-terminal-window', prose: 'ph-pen-nib' } },
+          { kind: 'groups', registry: 'docs/agents.csv', by: 'kind', only: ['definition', 'retired'], label: 'id', text: 'role', file: '{path}', icon: 'icon',
+            labels: { definition: 'agents' }, icons: { definition: 'ph-robot' } },
+          { kind: 'breakdown', registry: 'docs/context-sources.csv', by: 'arrives', fold: true, labels: { hook: 'hook output' }, icons: { hook: 'ph-lightning' } }] },
         { name: 'Not in the charter', panels: [{ kind: 'measure' }] }] },
     { name: 'plain', label: 'Plain', path: 'programs/plain' }, { label: 'unnamed' }] },
   [home]: { estate: true, programs: [{ name: 'budget', label: 'Budget', path: 'projects/budget/program' }] },
@@ -88,7 +95,8 @@ const charterMd = ['# Surfacing', '', 'The charter, *rendered*.', '', '## Areas'
   '| Area | Covers |', '| --- | --- |',
   '| Reply | what a reply hands over, in [`CONVERSATION.md`](../../docs/CONVERSATION.md), counted in [`portable.csv`](../../docs/portable.csv) and framed in [`portable.md`](../../docs/portable.md) |',
   '| Showing | the link, from `showing.py` and the [Map](https://example.com/?view=map) |',
-  '| Forms | the forms in [`docs/forms/`](../../docs/forms/) and the [envelopes](../../docs/envelopes/README.md "Envelopes"), again [here](../../docs/forms/) |', '',
+  '| Forms | the forms in [`docs/forms/`](../../docs/forms/) and the [envelopes](../../docs/envelopes/README.md "Envelopes"), again [here](../../docs/forms/) |',
+  '| Resources | what a session is given, in [`MARKETPLACE.md`](../../docs/MARKETPLACE.md), [`context-sources.csv`](../../docs/context-sources.csv) and the [skills](../../skills/manifest.csv) |', '',
   '## Measures', '', '| Area | Measure | Working means |', '| --- | --- | --- |',
   '| Reply | web-tools-private `state/closings.json` on the `background` branch | the share of *Open* falls |',
   '| Showing | none yet; a candidate is `state/closings.json.bak` | every turn hands over a link |',
@@ -109,6 +117,12 @@ const csvs = {
   'docs/harness.csv': 'path,invocation\na.sh,hook:SessionStart\nb.sh,hook:Stop\nc.yml,ci:push\nd.mjs,driver\ne.py,argv\n',
   'docs/docs.csv': 'path,status\ndocs/envelopes/README.md,living\ndocs/envelopes/approval.md,living\ndocs/envelopes/audit.md,record\ndocs/APP.md,living\n',
   'pages/pages.csv': 'top,label,thumb,href\n' + Array.from({ length: 5 }, (_, i) => `main,p${i},thumbs/p${i}.png,p${i}.html`).join('\n') + '\n',
+  'skills/manifest.csv': 'name,group,description\nbake-page,web,Bakes a page.\ncaveman,prose,Says less.\ndefault,session,The conventions.\n'
+    + 'sessions,session,Logs the session.\ntasks,session,Runs the tracker.\n',
+  'docs/agents.csv': 'id,kind,path,icon,role\nportable:closer,definition,skills/agents/closer.md,skills/agents/icons/closer.svg,Weighs the findings.\n'
+    + 'portable:owner-proxy,definition,skills/agents/owner-proxy.md,,Gives the owner\'s view.\ngold-set:reader,inline,skills/gold-set/SKILL.md,,Labels rows.\n',
+  'docs/context-sources.csv': 'id,arrives\n' + ['hook', 'hook', 'hook', 'instructions', 'install', 'message', 'none', 'settings', 'skill', 'tool']
+    .map((a, i) => 's' + i + ',' + a).join('\n') + '\n',
 };
 const asked = [];
 window.GH = class {
@@ -200,7 +214,7 @@ test('the hub is read at the selected revision, and the page opens on its masthe
   assert.equal(page.querySelector('[data-program-measures]'), null, 'the measures mount with their tab');
 
   const areas = [...page.querySelectorAll('[data-program-area]')];
-  assert.deepEqual(areas.map(r => r.dataset.area), ['Reply', 'Showing', 'Forms'],
+  assert.deepEqual(areas.map(r => r.dataset.area), ['Reply', 'Showing', 'Forms', 'Resources'],
     'the rows of the table under Areas only; a declared area the charter lacks gets no tile');
   assert.equal(page.querySelector('[data-part="summary"]'), null, 'what an area covers is not printed on its tile');
   // It opens from the icon beside the name, as the charter writes it.
@@ -304,14 +318,19 @@ test('Programs reads an area declaration, keeping only panels it can draw', () =
       { kind: 'breakdown', registry: 'docs/a.csv' }, { kind: 'breakdown', registry: '../up.csv', by: 'kind' },
       { kind: 'gallery', registry: 'docs/a.json', label: 'name' }, { kind: 'gallery', registry: 'docs/a.csv' },
       { kind: 'gallery', source: 'research', where: { kind: '^probe$' } }, { kind: 'gallery', source: 'elsewhere' },
-      { kind: 'chart' }, { kind: 'views', views: ['?view=sessions', 3] }, { kind: 'measure' }] },
+      { kind: 'chart' }, { kind: 'views', views: ['?view=sessions', 3] }, { kind: 'measure' },
+      { kind: 'groups', registry: 'skills/manifest.csv', by: 'group', label: 'name', text: 'description', file: 'skills/{name}/SKILL.md' },
+      { kind: 'groups', registry: 'skills/manifest.csv', by: 'group' }, { kind: 'groups', registry: 'skills/manifest.csv', label: 'name' },
+      { kind: 'breakdown', registry: 'docs/a.csv', by: 'kind', fold: true }, { kind: 'gallery', registry: 'docs/a.csv', label: 'name', fold: true }] },
     { icon: 'ph-x' }, { name: 'B', icon: 'not-a-glyph' }] }] } }]);
   assert.deepEqual([...p.areas.map(a => a.name)], ['A', 'B'], 'an area names itself');
   assert.equal(p.areas[1].icon, '', 'an icon is a ph- glyph or nothing');
   const kinds = [...p.areas[0].panels.map(pn => pn.kind)];
-  assert.deepEqual(kinds, ['breakdown', 'gallery', 'views', 'measure'],
-    'a breakdown needs a CSV and a column, a gallery a CSV and a label or a source, and the kind must be one of four');
-  const [bd, gal, views] = p.areas[0].panels;
+  assert.deepEqual(kinds, ['breakdown', 'gallery', 'views', 'measure', 'groups', 'breakdown', 'gallery'],
+    'a breakdown needs a CSV and a column, a gallery a CSV and a label or a source, groups a CSV, a column and a label, and the kind must be one of five');
+  const [bd, gal, views] = p.areas[0].panels, [grp, folded, notFolded] = p.areas[0].panels.slice(4);
+  assert.deepEqual([grp.registry, grp.by, grp.label, grp.text, grp.file], ['skills/manifest.csv', 'group', 'name', 'description', 'skills/{name}/SKILL.md']);
+  assert.deepEqual([bd.fold, folded.fold, notFolded.fold], [false, true, false], 'only a breakdown folds');
   assert.deepEqual({ ...bd.icons }, { a: 'ph-x' }, 'group icons are glyphs');
   assert.deepEqual({ ...bd.where }, { k: '^a$' }, 'a pattern that does not compile is dropped');
   assert.equal(gal.source, 'research');
@@ -335,6 +354,26 @@ test('Programs breaks a registry down, packs tiles in order, counts the columns 
   assert.equal(many.groups.length, 6);
   assert.deepEqual({ ...many.rest }, { groups: 3, n: 3 }, 'past six groups, the rest summed');
   assert.deepEqual([...window.Programs.pick([{ a: 'x1' }, { a: 'y' }], { a: '^x' })], [{ a: 'x1' }]);
+  // groups: every group, largest first, its rows in the registry's order, or
+  // those `only` names, in its order, a missing one at nought.
+  const skills = window.Csv.rows(csvs['skills/manifest.csv']);
+  const g = window.Programs.groups(skills, { by: 'group', icons: { session: 'ph-terminal-window' } });
+  assert.deepEqual([...g.groups.map(x => [x.key, x.n, x.icon])], [['session', 3, 'ph-terminal-window'], ['prose', 1, ''], ['web', 1, '']],
+    'all of them, ties by name, none summed as the rest');
+  assert.deepEqual([...g.groups[0].rows.map(r => r.name)], ['default', 'sessions', 'tasks']);
+  assert.deepEqual([g.total, g.of], [5, 5]);
+  const named = window.Programs.groups(window.Csv.rows(csvs['docs/agents.csv']), { by: 'kind', only: ['definition', 'retired'], labels: { definition: 'agents' } });
+  assert.deepEqual([...named.groups.map(x => [x.label, x.n])], [['agents', 2], ['retired', 0]]);
+  assert.deepEqual([named.total, named.of], [2, 3]);
+  assert.equal(window.Programs.groups(Array.from({ length: 9 }, (_, i) => ({ k: 'g' + i })), { by: 'k' }).groups.length, 9,
+    'a chip each, where a breakdown sums past six');
+  // rowFile: a template over the row's columns, whole or nothing.
+  const { rowFile } = window.Programs;
+  assert.equal(rowFile('skills/{name}/SKILL.md', { name: 'caveman' }), 'skills/caveman/SKILL.md');
+  assert.equal(rowFile('{path}', { path: 'skills/agents/closer.md' }), 'skills/agents/closer.md');
+  assert.equal(rowFile('skills/{name}/SKILL.md', { name: '' }), '', 'an empty value opens nothing');
+  assert.equal(rowFile('{path}', { path: '../up.md' }), '', 'nor a path that climbs');
+  assert.equal(rowFile('', { name: 'x' }), '');
 
   const spans = (w, c) => window.Programs.tileSpans(w, c).map(t => t.i + ':' + t.span).join(' ');
   assert.equal(spans([2, 3, 2, 1, 1], 3), '0:3 1:3 2:2 3:1 4:2',
@@ -360,6 +399,10 @@ test('Programs breaks a registry down, packs tiles in order, counts the columns 
   assert.equal(P.panelWeight({ kind: 'gallery', source: 'research' }, null, 2), 1, 'two research rows fit a narrow tile');
   assert.equal(P.panelWeight({ kind: 'gallery', source: 'research' }, null, 3), 2);
   assert.equal(P.panelWeight({ kind: 'breakdown' }), 1);
+  assert.equal(P.panelWeight({ kind: 'groups' }), 1);
+  assert.equal(P.panelWeight({ kind: 'breakdown', fold: true }), 0, 'a folded breakdown is one line, and asks for no width');
+  assert.equal(P.tileWant([{ w: 1 }, { w: 0 }]), 1, 'so a tile of chips and a folded line stays one column wide');
+  assert.equal(P.tileWant([{ w: 0 }]), 1);
   assert.equal(P.tileWant([{ w: 2 }, { w: 1 }, { w: 2 }]), 2, 'at most two');
   assert.equal(P.tileWant([]), 1);
 
@@ -483,9 +526,9 @@ test('Areas draws a tile an area: its icon and files, its declared panels, its w
   assert.equal(page.querySelector('[data-program-tiles]').dataset.cols, '1', 'a pane jsdom gives no width holds one column');
   const spansNow = () => [...page.querySelectorAll('[data-program-area]')].map(t => t.dataset.area + ':' + t.dataset.span);
   data.areaCols = 2; await frame();
-  assert.deepEqual(spansNow(), ['Reply:1', 'Showing:1', 'Forms:1'], 'two columns: every tile half the width, whatever it asked for');
+  assert.deepEqual(spansNow(), ['Reply:1', 'Showing:1', 'Forms:1', 'Resources:1'], 'two columns: every tile half the width, whatever it asked for');
   data.areaCols = 3; await frame();
-  assert.deepEqual(spansNow(), ['Reply:3', 'Showing:2', 'Forms:1']);
+  assert.deepEqual(spansNow(), ['Reply:3', 'Showing:2', 'Forms:1', 'Resources:2']);
   assert.equal(tile('Showing').querySelectorAll('[data-area-gallery][data-layout="thumbs"] [data-gallery-item]').length, 4,
     'two columns wide, one row of four');
   data.areaCols = 1; await frame();
@@ -499,7 +542,8 @@ test('Areas draws a tile an area: its icon and files, its declared panels, its w
   assert.equal(c.areas[1].measure.addr, '', 'a longer file name is not the declared file');
   assert.equal(c.areas[2].measure, null, 'only an exact name attaches a row');
   const act = data.activityOf(p);
-  assert.deepEqual([...act.read].sort(), ['docs/CONVERSATION.md', 'docs/envelopes/README.md', 'docs/forms/', 'docs/portable.csv', 'docs/portable.md'],
+  assert.deepEqual([...act.read].sort(), ['docs/CONVERSATION.md', 'docs/MARKETPLACE.md', 'docs/context-sources.csv', 'docs/envelopes/README.md', 'docs/forms/',
+    'docs/portable.csv', 'docs/portable.md', 'skills/manifest.csv'],
     'every file an area links, a chip left out for its panel included');
   assert.equal(page.querySelector('[data-program-fortnight], [data-program-count-scope]'), null, 'no line over the tiles says what they count');
   assert.equal(page.querySelector('[data-area-activity], [data-area-count], [data-program-area] footer'), null, 'no footer and no count');
@@ -545,6 +589,78 @@ test('Areas draws a tile an area: its icon and files, its declared panels, its w
   assert.equal(page.querySelector('[data-program-areas-read]').style.display, 'none', 'every linked path read');
   assert.ok(asked.some(a => a.file === 'docs/portable.csv' && a.ref === 'codex/program-preview'), 'a registry is read at the selected revision');
   assert.equal(asked.filter(a => a.file === 'docs/harness.csv').length, 1, 'once, however many panels read it');
+  assert.deepEqual(problems, []);
+});
+
+test('a run of groups panels draws one row of chips that open their rows, and a folded breakdown one line that opens its groups', async () => {
+  const page = el.querySelector('[data-program-page]');
+  for (let i = 0; i < 30 && Object.values(data.registries).some(r => r.state === 'loading'); i++) await tick();
+  await frame();
+  const tile = page.querySelector('[data-program-area][data-area="Resources"]');
+  assert.deepEqual([...tile.querySelectorAll('[data-panel]')].map(s => s.dataset.panel), ['groups', 'breakdown'],
+    'two groups panels one after the other draw as one');
+  assert.equal(tile.dataset.want, '1', 'chips and a folded line ask for one column');
+  assert.deepEqual([...tile.querySelectorAll('[data-area-doc]')].map(a => a.textContent.trim()), ['MARKETPLACE.md'],
+    'the registries the chips\' head and the folded line name are not named again');
+
+  // The chips: each registry named once in the head with its count, a
+  // manifest by its folder; then a chip a group across both, in one row.
+  const groups = tile.querySelector('[data-area-groups]');
+  assert.equal(groups.querySelector('[data-panel-head]').textContent.replace(/\s+/g, ' ').trim(), 'skills 5 · agents 2');
+  const chips = [...groups.querySelectorAll('[data-groups-chip]')];
+  assert.deepEqual(chips.map(c => c.dataset.registry.split('/').pop() + ':' + c.dataset.group + ' ' + c.textContent.trim()),
+    ['manifest.csv:session 3', 'manifest.csv:prose 1', 'manifest.csv:web 1', 'agents.csv:definition 2', 'agents.csv:retired 0'],
+    'largest first, ties by name, then the next registry\'s in the order its only names');
+  assert.equal(new Set(chips.map(c => c.parentElement)).size, 1, 'one row');
+  assert.ok(chips[0].querySelector('i.ph-duotone.ph-terminal-window'), 'its declared icon');
+  assert.ok(chips[2].querySelector('i.ph-circle'), 'a plain circle where none is declared');
+  assert.equal(chips[4].disabled, true, 'a group at nought is drawn, dimmed, and opens nothing');
+  assert.deepEqual([chips[0].getAttribute('aria-haspopup'), chips[0].getAttribute('aria-label')], ['dialog', 'session: 3']);
+
+  // A chip opens its group's rows in the chart panel-tip: a name each in
+  // bold, which opens its file, and its text.
+  chips[0].click(); await tick(3);
+  const tip = el.querySelector('[data-program-chart-tip]');
+  assert.equal(chips[0].getAttribute('aria-expanded'), 'true');
+  assert.deepEqual([data.chartTip.body.title, data.chartTip.body.sub], ['Session', '3 of 5 in skills']);
+  assert.equal(data.chartTip.body.sourceTip, 'Open skills/manifest.csv', 'the registry, peeked from beside the title');
+  const items = [...tip.querySelectorAll('[data-chart-tip-item]')];
+  assert.deepEqual(items.map(li => li.querySelector('button').textContent + ' | ' + li.querySelector('p').textContent),
+    ['default | The conventions.', 'sessions | Logs the session.', 'tasks | Runs the tracker.'], 'the registry\'s order');
+  assert.ok(items[0].querySelector('button').classList.contains('font-semibold'), 'a name in bold');
+  assert.ok(items[0].querySelector('p').classList.contains('line-clamp-2'), 'its text two lines at most');
+  assert.equal(items[0].dataset.file, 'skills/default/SKILL.md', 'the file the declaration\'s template names');
+  const opened = [], was = window.open;
+  window.open = u => { opened.push(u); };
+  try { items[1].querySelector('button').click(); await tick(3); } finally { window.open = was; }
+  assert.deepEqual(opened, ['https://github.com/' + hub + '/blob/codex/program-preview/skills/sessions/SKILL.md'],
+    'a name opens its file as the charter does: the deck, or GitHub without it');
+  assert.equal(data.chartTip, null, 'and the panel-tip closes');
+
+  chips[3].click(); await tick(3);
+  assert.deepEqual([data.chartTip.body.title, data.chartTip.body.sub], ['Agents', '2 of 3 in agents'], 'against the registry\'s rows');
+  const agents = [...tip.querySelectorAll('[data-chart-tip-item]')];
+  assert.deepEqual(agents.map(li => li.querySelector('button').textContent), ['closer', 'owner-proxy'], 'a namespaced name by its last part');
+  assert.equal(agents[0].dataset.file, 'skills/agents/closer.md');
+  assert.equal(agents[0].querySelector('img').getAttribute('src'), 'https://raw.githubusercontent.com/' + hub + '/codex/program-preview/skills/agents/icons/closer.svg',
+    'its own mark, where its row names one');
+  assert.equal(agents[1].querySelector('img').style.display, 'none');
+  data.closeChartTip(); await tick();
+
+  // The folded breakdown: its head line alone, which opens every group.
+  const fold = tile.querySelector('[data-area-breakdown][data-fold]');
+  assert.equal(fold.dataset.registry, 'docs/context-sources.csv');
+  assert.equal(fold.querySelectorAll('[data-breakdown-group]').length, 0, 'no line a group');
+  const line = fold.querySelector('button[data-panel-head]');
+  assert.equal(line.textContent.replace(/\s+/g, ' ').trim(), 'context-sources by arrives 10');
+  line.click(); await tick(3);
+  assert.equal(line.getAttribute('aria-expanded'), 'true');
+  assert.deepEqual([data.chartTip.body.title, data.chartTip.body.sub], ['context-sources', 'by arrives · 10']);
+  assert.deepEqual([...data.chartTip.body.rows.map(r => r.label + ' ' + r.n + ' ' + r.share)],
+    ['hook output 3 30%', 'install 1 10%', 'instructions 1 10%', 'message 1 10%', 'none 1 10%', 'settings 1 10%', 'skill 1 10%', 'tool 1 10%'],
+    'every group, where a drawn breakdown sums past six');
+  assert.ok(tip.querySelector('i.ph-lightning'), 'a group\'s icon beside its label');
+  data.closeChartTip(); await tick();
   assert.deepEqual(problems, []);
 });
 

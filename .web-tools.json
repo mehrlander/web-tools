@@ -207,9 +207,16 @@
           { "kind": "gallery", "registry": "data/ui-units/codes.csv", "where": { "axis": "^answer$" }, "label": "name", "icon": "icon" },
           { "kind": "gallery", "registry": "docs/docs.csv", "where": { "path": "^docs/envelopes/(?!README)[^/]+\\.md$" }, "label": "path" }
         ] },
-        { "name": "Delivery", "icon": "ph-package", "panels": [
-          { "kind": "breakdown", "registry": "docs/portable.csv", "by": "kind",
-            "icons": { "skill": "ph-sparkle", "script": "ph-terminal-window", "doc": "ph-file-text", "agent": "ph-robot", "dir": "ph-folder" } }
+        { "name": "Resources", "icon": "ph-toolbox", "panels": [
+          { "kind": "groups", "registry": "skills/manifest.csv", "by": "group", "label": "name", "text": "description", "file": "skills/{name}/SKILL.md",
+            "icons": { "session": "ph-terminal-window", "prose": "ph-pen-nib", "web": "ph-browser", "documents": "ph-files", "device": "ph-device-mobile", "windows": "ph-windows-logo" } },
+          { "kind": "groups", "registry": "docs/agents.csv", "by": "kind", "only": ["definition"], "label": "id", "text": "role", "file": "{path}", "icon": "icon",
+            "labels": { "definition": "agents" }, "icons": { "definition": "ph-robot" } },
+          { "kind": "breakdown", "registry": "docs/context-sources.csv", "by": "arrives", "fold": true,
+            "labels": { "instructions": "instructions", "skill-listing": "skill listing", "skill": "skill", "hook": "hook output", "settings": "settings",
+              "install": "install", "tool": "tool results", "message": "message", "continuity": "carried forward", "none": "configures only" },
+            "icons": { "instructions": "ph-file-text", "skill-listing": "ph-list-bullets", "skill": "ph-sparkle", "hook": "ph-lightning", "settings": "ph-gear",
+              "install": "ph-download-simple", "tool": "ph-wrench", "message": "ph-chat-text", "continuity": "ph-arrow-u-down-left", "none": "ph-sliders-horizontal" } }
         ] },
         { "name": "Automation", "panels": [
           { "kind": "breakdown", "registry": "docs/harness.csv", "by": "invocation", "split": ":", "only": ["hook", "ci", "git", "session"],
