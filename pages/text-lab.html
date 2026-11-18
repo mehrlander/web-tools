@@ -1721,7 +1721,8 @@
       // the card's own sticky row, until the passage ends. Once the row has
       // stuck (data-stuck, focusStuck), an opaque band of the page runs across
       // the passage behind them, so the prose scrolling under them does not
-      // print through, as it did even through md-diff's own 90% backing.
+      // print through, as it did even through md-diff's own 90% backing. On a
+      // selected passage the band is the wash laid over the page, opaque.
       focusBox(p, k, total) {
         const D = window.mdDiff, PILL = D ? D.PILL : '';
         const mix = pct => (D ? D.hueMix('--color-base-content', pct) : 'transparent');
@@ -1743,7 +1744,7 @@
           + (r.links.length === 1 ? a(r.links[0].href, r.by || r.links[0].label) : esc(r.by) + r.links.map(l => ' ' + a(l.href, l.label)).join(''))
           + `</div></div></div>`).join('');
         sec.innerHTML = `<div class="sticky top-14 z-10 -mx-2 -mt-1 mb-1 h-0">`
-          + `<div class="absolute inset-x-0 -top-3 h-6 bg-base-100 hidden group-data-[stuck]/focus:block"></div>`
+          + `<div class="absolute inset-x-0 -top-3 h-6 bg-base-100 group-data-[on]/focus:bg-[color-mix(in_oklab,var(--color-base-content)_5%,var(--color-base-100))] hidden group-data-[stuck]/focus:block"></div>`
           + `<button type="button" data-focus-claim class="${PILL} left-1 cursor-pointer px-1.5 py-0.5 tabular-nums font-medium transition-colors opacity-80`
           + ` group-data-[on]/focus:opacity-100 group-data-[on]/focus:bg-[${mix(20)}] group-data-[on]/focus:!border-[${mix(60)}]"`
           + ` aria-label="Passage ${k + 1}${total > 1 ? ` of ${total}` : ''}">${k + 1}</button>`
