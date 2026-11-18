@@ -4,7 +4,8 @@
 // companions count the sessions it shares with each other repo, with that
 // repo's own total beside them; a companion sits nearer the hub the larger
 // the share of the hub's sessions it was in, and the nearest and largest
-// leads from twelve o'clock.
+// leads from twelve o'clock. A repo's sessions per day are counted over the
+// span of every session's days.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -18,7 +19,7 @@ window.esc = (s) => String(s);
 new window.Function(readFileSync(path.join(repoRoot, 'lib/alpineComponents/session-repos.js'), 'utf8'))();
 // Results come from the jsdom realm; copied out so deepEqual compares values.
 const own = (x) => JSON.parse(JSON.stringify(x));
-const { model, orbit, ALL } = window.SessionRepos;
+const { model, orbit, span, ALL } = window.SessionRepos;
 
 const row = (id, day, repos) => ({ id, day, repos: repos.map(([name, branch]) => ({ name, branch })) });
 const ROWS = [
@@ -60,4 +61,12 @@ test('a companion in more of the hub sessions sits nearer, and the nearest leads
   assert.ok(dist[0] < dist[1] && dist[1] < dist[2], 'distance grows as the share falls');
   assert.ok(pts[0].size > pts[1].size && pts[1].size > pts[2].size, 'size grows with sessions shared');
   assert.ok(Math.atan2(pts[0].y, pts[0].x) < 0 && pts[0].x > 0, 'the first sits just clockwise of twelve');
+});
+
+test('sessions are counted per day, and the span holds every day between', () => {
+  const m = model(ROWS);
+  assert.deepEqual(own(m.repos.find(e => e.name === 'home').days), { '2026-11-01': 1, '2026-11-02': 1, '2026-11-03': 1 });
+  assert.equal(m.all.days['2026-11-05'], 1);
+  assert.deepEqual(own(span('2026-10-30', '2026-11-02')), ['2026-10-30', '2026-10-31', '2026-11-01', '2026-11-02']);
+  assert.deepEqual(own(span('', '2026-11-02')), []);
 });
