@@ -83,9 +83,30 @@ test('a page’s marks add a Marks tab, are read at paint time, and step the pag
   } finally { page.remove(); host.remove(); }
 });
 
+// In a toss the page lives in its own Alpine, which the FAB's effects cannot
+// watch, so the FAB repaints on the page's word instead: a fab:marks event
+// bumps the tick that pageMarks reads.
+test('a fab:marks event finds the page and repaints what reads the marks', async () => {
+  const page = doc.createElement('div');
+  page.setAttribute('x-data', 'markedPage');
+  const { d, host } = await mountFab();
+  try {
+    assert.equal(d.pageMarks, null, 'mounted before the page');
+    doc.body.append(page);
+    Alpine.initTree(page);
+    const tick = d._marksTick;
+    window.dispatchEvent(new window.CustomEvent('fab:marks'));
+    assert.equal(d._marksTick, tick + 1);
+    assert.equal(d.pageMarks.items.length, 2, 'found on the page\'s word');
+  } finally { page.remove(); host.remove(); }
+});
+
 test('the launcher shows a count or a stepper, by the page’s style, and the pane exists', () => {
   assert.match(SRC, /x-show="pageMarks && pageMarks\.style !== 'stepper'"[^>]*data-fab-marks-count/);
   assert.match(SRC, /x-show="pageMarks && pageMarks\.style === 'stepper'"[^>]*data-fab-marks-stepper/);
   assert.match(SRC, /x-show="activeTab === 'marks'"[^>]*data-fab-marks/, 'the Marks tab has a pane');
-  assert.match(SRC, /window\.addEventListener\('fab:marks', \(\) => this\.findMarks\(\)\)/, 'a page whose marks arrive later can say so');
+  assert.match(SRC, /window\.addEventListener\('fab:marks', \(\) => \{ this\.findMarks\(\); this\._marksTick\+\+; \}\)/,
+    'a page whose marks arrive later, or change, can say so, and the launcher repaints on its word');
+  assert.match(SRC, /if \(window\.__tossFrame\) \{\s*try \{ const w = window\.__tossFrame\.contentWindow/,
+    'in a toss the frame is searched as soon as the renderer has stamped it, not once the drawer has a subject');
 });

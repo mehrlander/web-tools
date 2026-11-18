@@ -568,6 +568,23 @@ test('?marks= trials offer the piece\'s marks in file order, and the default off
   assert.match(c.exemplarHead(1, 2, false), /focus 1\/1/, 'the head\'s chip says which passage');
 });
 
+test('under a FAB trial the page announces its marks to its own window and the one framing it', async () => {
+  const h = harness('?marks=b&exemplar=fixture');
+  const heard = [];
+  const win = name => ({ CustomEvent: class { constructor(t) { this.type = t; } }, dispatchEvent: e => heard.push(name + ' ' + e.type) });
+  Object.assign(h.window, win('page'));
+  h.window.parent = win('shell');
+  h.model.home = home(FILES());
+  await h.model.loadExemplars();
+  assert.deepEqual(heard, ['page fab:marks', 'shell fab:marks'], 'once the pieces are read, in both windows');
+  assert.match(SRC, /\$watch\('marksSig', \(\) => this\.announceMarks\(\)\)/, 'and again whenever the marks change');
+  const c = harness('?marks=c');
+  heard.length = 0;
+  Object.assign(c.window, win('page'));
+  c.model.announceMarks();
+  assert.deepEqual(heard, [], 'the rail is the page\'s own; the FAB is not told');
+});
+
 test('the header comment names the pane, its faces and its address', () => {
   const head = SRC.slice(0, SRC.indexOf('-->'));
   assert.match(head, /\n {4}exemplars {4}projects\/text\/exemplars\/pieces\//);

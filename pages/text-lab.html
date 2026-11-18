@@ -334,6 +334,7 @@
           this.$watch(key, () => { this.variantLimit = this.VARIANT_BATCH; });
         for (const key of ['filterStanding', 'concept', 'probeBy', 'badgeFilter', 'probeRun', 'runBy'])
           this.$watch(key, () => this.$nextTick(() => this.mountDetail()));
+        if (this.marksMode === 'a' || this.marksMode === 'b') this.$watch('marksSig', () => this.announceMarks());
         // Whatever ?pane= asked for, not just the one that used to need it:
         // each pane's own guard makes the call a no-op when it has nothing to
         // fetch, so naming a single pane here was a bug waiting for the second.
@@ -1276,7 +1277,7 @@
           this.exemplars = pieces;
           if (!this.exemplarOf(this.exemplarSel)) this.exemplarSel = '';
           this.exemplarState = 'done';
-          if (this.marksMode) window.dispatchEvent?.(new CustomEvent('fab:marks'));
+          this.announceMarks();
           if (this.deckParam === 'exemplars') {
             this.deckParam = '';
             this.$nextTick(() => this.openExemplarDeck(this.deckAt));
@@ -1766,6 +1767,18 @@
           choice: { value: this.citeMode, options: [['show', 'Show'], ['dim', 'Dim'], ['hide', 'Hide']], set: v => this.setCiteMode(v) },
           go: () => this.goMark(p.id, 'cite', 0) });
         return items.sort((a, b) => a.at - b.at);
+      },
+      // The FAB's word that the marks changed, to this window and to the one
+      // framing it: in a toss the FAB on screen is the renderer's, outside the
+      // frame, and cannot watch this page's state (fab.js, "the toss").
+      announceMarks() {
+        if (this.marksMode !== 'a' && this.marksMode !== 'b') return;
+        const say = w => { try { w.dispatchEvent(new w.CustomEvent('fab:marks')); } catch (_) {} };
+        say(window);
+        try { if (window.parent && window.parent !== window) say(window.parent); } catch (_) {}
+      },
+      get marksSig() {
+        return [this.pane, this.exemplarSel, this.exemplars.length, JSON.stringify(this.marksAt), this.citeMode].join('|');
       },
       // What the FAB reads (its `marks` contract), in trials a and b only.
       get marks() {
