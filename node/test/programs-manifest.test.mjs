@@ -6,7 +6,9 @@
 // governed path exists, no file answers
 // to two programs, and every reviewer is an agent docs/agents.csv lists.
 // A program with status "proposed" has a folder and a mark but no charter,
-// and governs nothing until it is adopted.
+// and governs nothing until it is adopted. Its `areas`, the Program view's
+// tiles, name rows of its charter's Areas table, icons the font carries, and
+// registries on disk whose header has every column a panel reads.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
@@ -81,6 +83,54 @@ test('reviewers are listed agents, measures are paths or locators, views are app
       if (!qualified && !existsSync(path.join(root, m))) gaps.push(`${repo}: ${e.name} measure ${m} is neither a locator nor a file`);
     }
     for (const v of e?.views || []) if (!/^\?view=[\w-]+/.test(v)) gaps.push(`${repo}: ${e.name} view ${v} is not an app address`);
+  }
+  assert.deepEqual(gaps, []);
+});
+
+// The Areas table's first column, as the Program view reads it (program.js,
+// mdSectionTable): the rows of the first table under `## Areas`.
+const charterAreas = md => {
+  const lines = md.split('\n'), at = lines.findIndex(l => l.trim().toLowerCase() === '## areas');
+  if (at < 0) return [];
+  let i = at + 1;
+  while (i < lines.length && !/^#{1,2}\s/.test(lines[i]) && !lines[i].trim().startsWith('|')) i++;
+  const out = [];
+  for (let j = i + 2; j < lines.length && lines[j].trim().startsWith('|'); j++) out.push(lines[j].split('|')[1].trim());
+  return out;
+};
+// The installed font's names, where it is installed; an icon class names
+// one or draws nothing (python/blank-icons.py, which reads no JSON).
+const FONT = path.join(repoRoot, 'node_modules', '@phosphor-icons', 'web', 'src', 'regular', 'style.css');
+const glyphs = existsSync(FONT) ? new Set([...readFileSync(FONT, 'utf8').matchAll(/\.ph\.ph-([a-z0-9-]+):before/g)].map(m => 'ph-' + m[1])) : null;
+
+test('every declared area names a charter row, an icon the font carries, and panels that read real columns', () => {
+  const gaps = [], KINDS = ['measure', 'breakdown', 'gallery', 'views'];
+  for (const { repo, root, e } of declarations()) {
+    if (!Array.isArray(e?.areas)) continue;
+    const id = `${repo}: ${e.name}`, charter = path.join(root, e.path || '', 'README.md');
+    const rows = existsSync(charter) ? charterAreas(readFileSync(charter, 'utf8')) : [];
+    for (const a of e.areas) {
+      if (!rows.includes(a?.name)) gaps.push(`${id} declares area ${a?.name}, which its charter's Areas table does not name`);
+      const icons = [a?.icon, ...(a?.panels || []).flatMap(pn => Object.values(pn?.icons || {}))].filter(x => x !== undefined);
+      for (const i of icons) if (typeof i !== 'string' || !i.startsWith('ph-') || (glyphs && !glyphs.has(i))) gaps.push(`${id}: ${a.name} names icon ${i}, which the font does not carry`);
+      for (const pn of a?.panels || []) {
+        if (!KINDS.includes(pn?.kind)) { gaps.push(`${id}: ${a.name} has a panel of kind ${pn?.kind}`); continue; }
+        for (const v of pn.views || []) if (!/^\?view=[\w-]+/.test(v)) gaps.push(`${id}: ${a.name} view ${v} is not an app address`);
+        for (const re of Object.values(pn.where || {})) { try { new RegExp(re); } catch { gaps.push(`${id}: ${a.name} where ${re} is not a pattern`); } }
+        if (pn.kind === 'gallery' && pn.source) {
+          if (!['research', 'repos'].includes(pn.source)) gaps.push(`${id}: ${a.name} gallery source ${pn.source} is not research or repos`);
+          continue;
+        }
+        if (pn.kind !== 'breakdown' && pn.kind !== 'gallery') continue;
+        const file = path.join(root, pn.registry || '');
+        if (!pn.registry || !/\.csv$/.test(pn.registry) || !existsSync(file)) { gaps.push(`${id}: ${a.name} reads ${pn.registry}, which is not a CSV on disk`); continue; }
+        const head = new Set(Object.keys(parseCsv(readFileSync(file, 'utf8'))[0] || {}));
+        const cols = [pn.by, pn.label, pn.icon, pn.glyph, pn.thumb, pn.href, ...Object.keys(pn.where || {})].filter(Boolean);
+        if (pn.kind === 'breakdown' && !pn.by) gaps.push(`${id}: ${a.name} breakdown names no column`);
+        if (pn.kind === 'gallery' && !pn.label) gaps.push(`${id}: ${a.name} gallery names no label column`);
+        for (const c of cols) if (!head.has(c)) gaps.push(`${id}: ${a.name} reads column ${c}, which ${pn.registry} does not have`);
+      }
+    }
   }
   assert.deepEqual(gaps, []);
 });

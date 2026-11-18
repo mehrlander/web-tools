@@ -7,9 +7,12 @@
 // charter, the measures drawn in their tab, and the signed-out read limits.
 // Also window.Programs, the one reading of a declaration that the Map's list,
 // this view and the shell's sidebar share, and the Areas tab drawn from the
-// charter: the spine (a node an area, filled where a measure attaches), a card
-// an area with the files its Covers cell links, its measure attached by the
-// area's exact name, and its commits of the last fortnight matched by path.
+// charter and the manifest: a tile an area, its icon (declared, else its Map
+// view's), the files its Covers cell links, what it covers in a panel-tip,
+// the panels its declaration names (a measure attached by the area's exact
+// name, a registry broken down by a column, a gallery of a registry's rows),
+// its width from its panels and the rows packed without holes, and its commits
+// of the last fortnight matched by path.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -39,7 +42,17 @@ const manifests = {
     programs: [{ name: 'surfacing', label: 'Surfacing', icon: 'ph-megaphone', path: 'programs/surfacing',
       scope: 'replies and render links', governs: ['docs/CONVERSATION.md', 'python/showing.py'],
       measures: ['owner/private@background:state/closings.json'],
-      reviewers: ['portable:owner-proxy'], views: ['?view=map&tab=showing', '?view=waiting'] },
+      reviewers: ['portable:owner-proxy'], views: ['?view=map&tab=showing', '?view=waiting'],
+      areas: [
+        { name: 'Reply', icon: 'ph-chat-circle-text', panels: [{ kind: 'measure' },
+          { kind: 'breakdown', registry: 'docs/portable.csv', by: 'kind', icons: { skill: 'ph-sparkle', doc: 'not-a-glyph' } }] },
+        { name: 'Showing', icon: 'showing.svg', panels: [{ kind: 'measure' },
+          { kind: 'gallery', registry: 'docs/showing-mechanisms.csv', label: 'label', glyph: 'glyph' },
+          { kind: 'breakdown', registry: 'docs/harness.csv', by: 'invocation', split: ':', only: ['hook', 'ci', 'git'] },
+          { kind: 'gallery', registry: 'docs/docs.csv', where: { path: '^docs/envelopes/(?!README)' }, label: 'path' },
+          { kind: 'gallery', registry: 'pages/pages.csv', label: 'label', thumb: 'thumb', href: 'href' },
+          { kind: 'views', views: ['?view=waiting'] }] },
+        { name: 'Not in the charter', panels: [{ kind: 'measure' }] }] },
     { name: 'plain', label: 'Plain', path: 'programs/plain' }, { label: 'unnamed' }] },
   [home]: { estate: true, programs: [{ name: 'budget', label: 'Budget', path: 'projects/budget/program' }] },
   'mehrlander/hidden': { estate: true, programs: [{ name: 'secret', label: 'Secret' }] },
@@ -81,6 +94,14 @@ const notes = [
 const closings = { generated: '2026-11-14T00:00:00Z', states: { ok: 'Closed', open: 'Open' },
   summary: { columns: ['week', 'from', 'turns', 'Closed'] }, caveats: ['A caveat'],
   days: [{ day: '2026-11-03', closings: { ok: 3, open: 1 } }, { day: '2026-11-10', closings: { ok: 2, open: 2 } }] };
+// The registries the fixture's tiles read.
+const csvs = {
+  'docs/portable.csv': 'kind,path\nskill,a\nscript,b\nskill,c\ndoc,d\nskill,e\nscript,f\n',
+  'docs/showing-mechanisms.csv': 'key,glyph,label\nhosted,diamond,Deployed page\ntoss,disc,Toss\nnone,x,No link\n',
+  'docs/harness.csv': 'path,invocation\na.sh,hook:SessionStart\nb.sh,hook:Stop\nc.yml,ci:push\nd.mjs,driver\ne.py,argv\n',
+  'docs/docs.csv': 'path,status\ndocs/envelopes/README.md,living\ndocs/envelopes/approval.md,living\ndocs/envelopes/audit.md,record\ndocs/APP.md,living\n',
+  'pages/pages.csv': 'top,label,thumb,href\n' + Array.from({ length: 5 }, (_, i) => `main,p${i},thumbs/p${i}.png,p${i}.html`).join('\n') + '\n',
+};
 const asked = [];
 window.GH = class {
   static FRESH = { cache: 'no-store' };
@@ -101,6 +122,7 @@ window.GH = class {
       return { text: 'id,title,status,project,href\na,A,backlog,surfacing,tasks/a.md\nb,B,done,surfacing,tasks/b.md\n'
         + 'c,C,in-progress,app,tasks/c.md\ne,Draft the page,in-progress,surfacing,tasks/e.md\n' };
     if (file === 'programs/surfacing/README.md') return { text: charterMd };
+    if (csvs[file]) return { text: csvs[file] };
     if (file === 'programs/plain/README.md') return { text: '# Plain\n\nA charter with [no areas](../../docs/APP.md).\n\n## Measures\n\n| A | B |\n| --- | --- |\n| x | y |\n' };
     if (file === 'notes/notes.jsonl' && this.opts.repo === 'mehrlander/web-tools-private')
       return { text: notes.map(n => JSON.stringify(n)).join('\n') + '\n' };
@@ -159,7 +181,8 @@ test('the hub is read at the selected revision, and the page opens on its masthe
   assert.equal(page.querySelector('h1').textContent, 'Surfacing');
   assert.ok(page.querySelector('[data-program-charter-open]'), 'the charter opens from beside the name');
   assert.equal(page.querySelector('[data-program-repo]').textContent, hub);
-  assert.equal(page.querySelector('[data-program-scope]').textContent, 'replies and render links');
+  assert.equal(page.querySelector('[data-program-scope]'), null, 'the scope is the Map list\'s, not repeated over the tiles');
+  assert.doesNotMatch(page.querySelector('[data-program-body]').textContent, /replies and render links/);
   assert.deepEqual([...page.querySelectorAll('[data-program-tab]')].map(b => b.dataset.programTab),
     ['areas', 'measures', 'changes', 'tasks', 'notes']);
   assert.equal(page.querySelector('[role="tab"][aria-selected="true"]').dataset.programTab, 'areas', 'the page opens on Areas');
@@ -169,14 +192,22 @@ test('the hub is read at the selected revision, and the page opens on its masthe
   assert.equal(page.querySelector('[data-program-measures]'), null, 'the measures mount with their tab');
 
   const areas = [...page.querySelectorAll('[data-program-area]')];
-  assert.deepEqual(areas.map(r => r.dataset.area), ['Reply', 'Showing', 'Forms'], 'the rows of the table under Areas only');
-  const link = areas[0].querySelector('[data-part="summary"] a');
+  assert.deepEqual(areas.map(r => r.dataset.area), ['Reply', 'Showing', 'Forms'],
+    'the rows of the table under Areas only; a declared area the charter lacks gets no tile');
+  assert.equal(page.querySelector('[data-part="summary"]'), null, 'what an area covers is not printed on its tile');
+  // It opens from the icon beside the name, as the charter writes it.
+  areas[0].querySelector('[data-area-covers]').click(); await tick(3);
+  const tip = el.querySelector('[data-program-chart-tip]'), link = tip.querySelector('a');
+  assert.equal(data.chartTip.body.title, 'Reply');
   assert.equal(link.getAttribute('href'), 'https://github.com/' + hub + '/blob/codex/program-preview/docs/CONVERSATION.md',
     'a relative link resolves from the charter\'s folder');
   assert.equal(link.textContent, 'CONVERSATION.md');
   assert.equal(link.querySelector('code'), null, 'a linked file name takes the sentence\'s type');
-  assert.equal(areas[1].querySelector('[data-part="summary"] code')?.textContent, 'showing.py', 'inline code stays code');
-  assert.equal(areas[1].querySelector('[data-part="summary"] a').getAttribute('href'), 'https://example.com/?view=map');
+  data.closeChartTip();
+  areas[1].querySelector('[data-area-covers]').click(); await tick(3);
+  assert.equal(tip.querySelector('code')?.textContent, 'showing.py', 'inline code stays code');
+  assert.equal(tip.querySelector('a').getAttribute('href'), 'https://example.com/?view=map');
+  data.closeChartTip(); await tick();
 
   const views = [...page.querySelectorAll('[data-program-views] a')];
   assert.deepEqual(views.map(a => a.textContent.trim()), ['Showing', 'Waiting'], 'the views ride under the masthead');
@@ -230,104 +261,192 @@ test('a program\'s colour is its drawn mark\'s first fill, read with its icon', 
     'the tab carries the colour as --program');
 });
 
-test('Areas draws a spine of numbered nodes and a card an area, each with what it links, its measure and its fortnight', async () => {
+test('Programs reads an area declaration, keeping only panels it can draw', () => {
+  const [p] = window.Programs.rows([{ repo: hub, config: { programs: [{ name: 'x', areas: [
+    { name: 'A', icon: 'ph-books', panels: [
+      { kind: 'breakdown', registry: 'docs/a.csv', by: 'kind', icons: { a: 'ph-x', b: 'url(x)' }, where: { k: '^a$', bad: '(' } },
+      { kind: 'breakdown', registry: 'docs/a.csv' }, { kind: 'breakdown', registry: '../up.csv', by: 'kind' },
+      { kind: 'gallery', registry: 'docs/a.json', label: 'name' }, { kind: 'gallery', registry: 'docs/a.csv' },
+      { kind: 'gallery', source: 'research', where: { kind: '^probe$' } }, { kind: 'gallery', source: 'elsewhere' },
+      { kind: 'chart' }, { kind: 'views', views: ['?view=sessions', 3] }, { kind: 'measure' }] },
+    { icon: 'ph-x' }, { name: 'B', icon: 'not-a-glyph' }] }] } }]);
+  assert.deepEqual([...p.areas.map(a => a.name)], ['A', 'B'], 'an area names itself');
+  assert.equal(p.areas[1].icon, '', 'an icon is a ph- glyph or nothing');
+  const kinds = [...p.areas[0].panels.map(pn => pn.kind)];
+  assert.deepEqual(kinds, ['breakdown', 'gallery', 'views', 'measure'],
+    'a breakdown needs a CSV and a column, a gallery a CSV and a label or a source, and the kind must be one of four');
+  const [bd, gal, views] = p.areas[0].panels;
+  assert.deepEqual({ ...bd.icons }, { a: 'ph-x' }, 'group icons are glyphs');
+  assert.deepEqual({ ...bd.where }, { k: '^a$' }, 'a pattern that does not compile is dropped');
+  assert.equal(gal.source, 'research');
+  assert.deepEqual([...views.views], ['?view=sessions']);
+  assert.ok(bd.sig && bd.sig !== gal.sig, 'each panel carries its own signature');
+  assert.equal(window.Programs.rows([{ repo: hub, config: { programs: [{ name: 'y' }] } }])[0].areas.length, 0, 'no declaration, no areas');
+});
+
+test('Programs breaks a registry down, packs tiles without holes, and finds an area its icon', () => {
+  const rows = window.Csv.rows(csvs['docs/harness.csv']);
+  const all = window.Programs.breakdown(rows, { by: 'invocation', split: ':' });
+  assert.deepEqual([...all.groups.map(g => [g.key, g.n])], [['hook', 2], ['argv', 1], ['ci', 1], ['driver', 1]],
+    'by the part before the split, largest first, then by name');
+  assert.equal(all.total, 5);
+  assert.equal(all.groups[1].pct, 50, 'a bar against the largest group');
+  const only = window.Programs.breakdown(rows, { by: 'invocation', split: ':', only: ['hook', 'ci', 'git'], labels: { ci: 'workflows' }, icons: { hook: 'ph-lightning' } });
+  assert.deepEqual([...only.groups.map(g => [g.label, g.n, g.icon])], [['hook', 2, 'ph-lightning'], ['workflows', 1, ''], ['git', 0, '']],
+    'the groups named, in their order, a missing one at nought');
+  assert.deepEqual([only.total, only.of], [3, 5]);
+  const many = window.Programs.breakdown(Array.from({ length: 9 }, (_, i) => ({ k: 'g' + i })), { by: 'k' });
+  assert.equal(many.groups.length, 6);
+  assert.deepEqual({ ...many.rest }, { groups: 3, n: 3 }, 'past six groups, the rest summed');
+  assert.deepEqual([...window.Programs.pick([{ a: 'x1' }, { a: 'y' }], { a: '^x' })], [{ a: 'x1' }]);
+
+  const spans = (w, c) => window.Programs.tileSpans(w, c).map(t => t.i + ':' + t.span).join(' ');
+  assert.equal(spans([2, 3, 2, 1, 1], 3), '0:2 3:1 1:3 2:2 4:1', 'a row takes the first later tile that fits its gap');
+  assert.equal(spans([2, 2], 3), '0:3 1:3', 'a gap nothing fits goes to the row\'s tile');
+  assert.equal(spans([1, 1], 3), '0:2 1:1', 'shared out from the first');
+  assert.equal(spans([1, 1, 1, 1, 1], 4), '0:1 1:1 2:1 3:1 4:4');
+  assert.equal(spans([3, 2], 1), '0:1 1:1', 'one column: every tile one wide, in order');
+  for (const c of [1, 2, 3, 4]) {
+    const out = window.Programs.tileSpans([2, 1, 3, 1, 2, 1, 1], c);
+    assert.ok(out.every(t => t.span <= c));
+    assert.equal(out.reduce((n, t) => n + t.span, 0) % c, 0, c + ' columns: every row full');
+  }
+  const P = window.Programs;
+  assert.equal(P.panelWeight({ kind: 'measure' }, { measure: { addr: 'x' } }), 2, 'a drawn measure asks for two');
+  assert.equal(P.panelWeight({ kind: 'measure' }, { measure: { addr: '' } }), 1);
+  assert.equal(P.panelWeight({ kind: 'gallery', thumb: 'thumb' }), 2);
+  assert.equal(P.panelWeight({ kind: 'gallery', source: 'research' }, null, 2), 1, 'two research rows fit a narrow tile');
+  assert.equal(P.panelWeight({ kind: 'gallery', source: 'research' }, null, 3), 2);
+  assert.equal(P.panelWeight({ kind: 'breakdown' }), 1);
+  assert.equal(P.tileWant([{ w: 2 }, { w: 1 }, { w: 2 }]), 3, 'at most three');
+  assert.equal(P.tileWant([]), 1);
+
+  const prog = { views: ['?view=map&tab=showing', '?view=waiting'] };
+  assert.equal(P.areaIcon(prog, 'Showing', { icon: 'ph-books' }), 'ph-books', 'a declared icon first');
+  assert.equal(P.areaIcon(prog, 'Showing', null), 'ph-paper-plane-tilt', 'else its Map view\'s');
+  assert.equal(P.areaIcon(prog, 'Waiting', null), 'ph-circle-dashed', 'a view outside the Map has only the door, which is no icon');
+});
+
+test('Areas draws a tile an area: its icon and files, its declared panels, its width and its fortnight', async () => {
   const p = data.page, page = el.querySelector('[data-program-page]');
-  for (let i = 0; i < 30 && data.measureState(p.measures[0]) !== 'ok'; i++) await tick();
+  for (let i = 0; i < 30 && (data.measureState(p.measures[0]) !== 'ok' || Object.values(data.registries).some(r => r.state === 'loading')); i++) await tick();
   await frame();
   assert.ok(page.querySelector('[data-program-areas] [data-pattern="card-grid"] [data-part="list"]'), 'a card grid, declared');
+  assert.equal(page.querySelector('[data-program-spine]'), null, 'no spine');
+  const tile = key => page.querySelector(`[data-program-area][data-area="${key}"]`);
 
-  // The spine: one node an area in the charter's order, numbered, filled
-  // where a measure attaches by the area's exact name.
-  const nodes = [...page.querySelectorAll('[data-program-spine] [data-spine-node]')];
-  assert.deepEqual(nodes.map(n => n.dataset.spineNode), ['Reply', 'Showing', 'Forms']);
-  assert.deepEqual(nodes.map(n => n.querySelector('span').textContent), ['1', '2', '3']);
-  assert.deepEqual(nodes.map(n => n.dataset.measured), ['true', 'false', 'false'],
-    'Reply\'s row names a declared file; Showing\'s says none yet; "Forms and more" is not Forms');
-  const c = data.charterOf(p);
-  assert.equal(c.areas[0].measure.addr, p.measures[0]);
-  assert.equal(c.areas[1].measure.addr, '', 'a longer file name is not the declared file');
-  assert.equal(c.areas[2].measure, null, 'only an exact name attaches a row');
-
-  // A card: the index chip and the name, then the files its Covers cell
-  // links, each once, a folder to its tree and a file to the deck.
-  const card = key => page.querySelector(`[data-program-area][data-area="${key}"]`);
-  assert.equal(card('Reply').querySelector('[data-part="title"]').textContent.replace(/\s+/g, ' ').trim(), '1 Reply');
-  const docs = key => [...card(key).querySelectorAll('[data-area-doc]')];
+  // The header: the icon in the program's colour, declared or its view's,
+  // and the files its Covers cell links, each once, a folder to its tree.
+  const icon = key => tile(key).querySelector('[data-area-icon]').dataset.icon;
+  assert.deepEqual(['Reply', 'Showing', 'Forms'].map(icon), ['ph-chat-circle-text', 'ph-paper-plane-tilt', 'ph-circle-dashed'],
+    'declared; else the Showing view\'s, since a path is no glyph; else a dashed circle');
+  assert.match(tile('Reply').querySelector('[data-area-icon]').className, /var\(--program\)/, 'drawn in the program\'s colour');
+  assert.equal(tile('Reply').querySelector('[data-part="title"]').textContent.trim(), 'Reply');
+  const docs = key => [...tile(key).querySelectorAll('[data-area-doc]')];
   assert.deepEqual(docs('Reply').map(a => a.textContent.trim()), ['CONVERSATION.md']);
   assert.deepEqual(docs('Forms').map(a => a.textContent.trim()), ['docs/forms/', 'envelopes/README.md'],
     'a folder by its path, an index file with its folder, and a second link to one path dropped');
   assert.equal(docs('Forms')[0].getAttribute('href'), 'https://github.com/' + hub + '/tree/codex/program-preview/docs/forms');
   assert.equal(docs('Forms')[0].hasAttribute('data-peek'), false, 'a folder has no peek');
   assert.ok(docs('Forms')[1].querySelector('i').classList.contains('ph-file-text'));
-  assert.equal(docs('Reply')[0].getAttribute('href'), 'https://github.com/' + hub + '/blob/codex/program-preview/docs/CONVERSATION.md');
-  assert.equal(card('Showing').querySelector('[data-area-docs]').style.display, 'none', 'no repository link, no line');
-  // A file in the line and its link in the sentence mark each other.
-  const inSentence = card('Reply').querySelector('[data-part="summary"] a[data-doc="docs/CONVERSATION.md"]');
-  assert.ok(inSentence, 'the sentence\'s link carries its path');
-  docs('Reply')[0].dispatchEvent(new window.Event('mouseenter')); await tick();
-  assert.ok(inSentence.classList.contains('bg-primary/10'), 'the line marks the sentence');
-  docs('Reply')[0].dispatchEvent(new window.Event('mouseleave')); await tick();
-  assert.equal(inSentence.classList.contains('bg-primary/10'), false);
-  inSentence.dispatchEvent(new window.MouseEvent('mouseover', { bubbles: true })); await tick();
-  assert.ok(docs('Reply')[0].classList.contains('text-primary'), 'and the sentence the line');
-  card('Reply').querySelector('[data-part="summary"]').dispatchEvent(new window.Event('mouseleave')); await tick();
-  const opened = [];
-  const was = window.open;
+  assert.equal(tile('Showing').querySelector('[data-area-docs]').style.display, 'none', 'no repository link, no chips');
+  const opened = [], was = window.open;
   window.open = (u) => { opened.push(u); };
   try { docs('Reply')[0].click(); await tick(3); } finally { window.open = was; }
   assert.deepEqual(opened, ['https://github.com/' + hub + '/blob/codex/program-preview/docs/CONVERSATION.md'],
     'a file opens as the charter does: the deck, or GitHub without it');
 
-  // The measure: the declared file drawn as weekly columns, its marked
-  // category and share, and the row's Working means; a row with none yet
-  // gives the charter's own words, muted; no row, no slot.
-  const m = card('Reply').querySelector('[data-area-measure]');
+  // The panels, as declared; an area the manifest leaves out keeps its
+  // measure, and Forms, whose Measures row names another area, has none.
+  const panels = key => [...tile(key).querySelectorAll('[data-panel]')].map(s => s.dataset.panel);
+  assert.deepEqual(panels('Reply'), ['measure', 'breakdown']);
+  assert.deepEqual(panels('Showing'), ['measure', 'gallery', 'breakdown', 'gallery', 'gallery', 'views']);
+  assert.deepEqual(panels('Forms'), [], 'no declaration and no Measures row of its own: header and fortnight only');
+  assert.equal(tile('Forms').querySelector('[data-part="body"]').style.display, 'none');
+
+  // measure: the declared file as weekly columns, the marked category and
+  // its share, its Working means from the target beside them.
+  const m = tile('Reply').querySelector('[data-area-measure]');
   assert.equal(m.dataset.measure, 'closings.json');
-  assert.equal(m.querySelectorAll('[data-chart-tip]').length, 2, 'a column a week');
+  assert.equal(m.querySelectorAll('[data-week]').length, 2, 'a column a week');
   assert.match(m.textContent, /Closed\s*50%/, 'the marked category and its share of the last week');
-  assert.match(m.textContent, /the share of Open falls/);
-  assert.ok(m.querySelector('em'), 'the cell\'s Markdown kept');
-  const none = card('Showing').querySelector('[data-area-measure="none"]');
+  assert.doesNotMatch(m.textContent, /share of Open falls/, 'working means is not printed');
+  m.querySelector('[data-area-means]').click(); await tick(3);
+  assert.equal(data.chartTip.body.title, 'Working means');
+  assert.deepEqual([...data.chartTip.body.notes], ['the share of Open falls']);
+  data.closeChartTip();
+  const none = tile('Showing').querySelector('[data-area-measure="none"]');
+  assert.match(none.textContent, /No measure yet/);
   assert.match(none.textContent, /none yet; a candidate is state\/closings\.json\.bak/);
-  assert.match(none.textContent, /every turn hands over a link/);
-  assert.equal(card('Forms').querySelector('[data-area-measure]'), null);
+  none.querySelector('[data-area-means]').click(); await tick(3);
+  assert.deepEqual([...data.chartTip.body.notes], ['every turn hands over a link']);
+  data.closeChartTip();
+
+  // breakdown: a bar a group against the largest, its icon where declared.
+  const bd = tile('Reply').querySelector('[data-area-breakdown]');
+  assert.equal(bd.dataset.registry, 'docs/portable.csv');
+  const groups = [...bd.querySelectorAll('[data-breakdown-group]')];
+  assert.deepEqual(groups.map(g => g.dataset.group + ' ' + g.dataset.n), ['skill 3', 'script 2', 'doc 1']);
+  assert.ok(groups[0].querySelector('i.ph-sparkle'), 'a declared group icon');
+  assert.match(groups[1].querySelector('[data-bar]').getAttribute('style'), /width:\s*66\.7%/);
+  assert.match(bd.querySelector('[data-panel-head]').textContent.replace(/\s+/g, ' '), /portable by kind 6/);
+  const split = tile('Showing').querySelector('[data-area-breakdown][data-registry="docs/harness.csv"]');
+  assert.deepEqual([...split.querySelectorAll('[data-breakdown-group]')].map(g => g.dataset.group + ' ' + g.dataset.n), ['hook 2', 'ci 1', 'git 0']);
+  assert.match(split.querySelector('[data-panel-head]').textContent, /3 of 5/, 'the rows it counts, of the registry\'s');
+
+  // gallery: glyphs through the Map's marker words, a path as its file's
+  // name peeking the file, thumbnails from raw at the selected revision.
+  const galleries = [...tile('Showing').querySelectorAll('[data-area-gallery]')];
+  assert.deepEqual(galleries.map(g => g.dataset.layout), ['icons', 'chips', 'thumbs']);
+  const icons = [...galleries[0].querySelectorAll('[data-gallery-item]')];
+  assert.deepEqual(icons.map(i => i.lastElementChild.textContent), ['Deployed page', 'Toss', 'No link']);
+  assert.deepEqual(icons.map(i => i.querySelector('span[x-html]').textContent.trim()), ['🔷', '🥏', ''], 'the Map\'s marker for each word');
+  assert.ok(icons[2].querySelector('.ph-minus'), 'a word with no marker draws a dash');
+  const chips = [...galleries[1].querySelectorAll('[data-gallery-item]')];
+  assert.deepEqual(chips.map(c => c.textContent), ['approval', 'audit'], 'README left out by its pattern');
+  const thumbs = [...galleries[2].querySelectorAll('[data-gallery-item]')];
+  assert.equal(thumbs.length, 4, 'a tile one column wide shows two rows of two');
+  assert.equal(thumbs[0].querySelector('img').getAttribute('src'), 'https://raw.githubusercontent.com/' + hub + '/codex/program-preview/pages/thumbs/p0.png');
+  assert.equal(thumbs[0].getAttribute('href'), 'https://mehrlander.github.io/web-tools/pages/p0.html');
+  assert.match(galleries[2].textContent, /and 1 more/);
+  assert.deepEqual([...tile('Showing').querySelectorAll('[data-area-view]')].map(a => a.textContent.trim()), ['Waiting']);
+
+  // Width: a tile asks for its panels' weight, and the grid packs the rows.
+  assert.deepEqual(['Reply', 'Showing', 'Forms'].map(k => tile(k).dataset.want), ['3', '3', '1']);
+  assert.equal(page.querySelector('[data-program-tiles]').dataset.cols, '1', 'a pane jsdom gives no width holds one column');
+  data.areaCols = 3; await frame();
+  assert.deepEqual([...page.querySelectorAll('[data-program-area]')].map(t => t.dataset.area + ':' + t.dataset.span), ['Reply:3', 'Showing:3', 'Forms:3']);
+  assert.equal(galleries[2].isConnected ? tile('Showing').querySelectorAll('[data-area-gallery][data-layout="thumbs"] [data-gallery-item]').length : 0, 5,
+    'three columns wide, two rows of six hold all five');
+  data.areaCols = 1; await frame();
 
   // The fortnight: commits to what the area links, a cell a day, a commit
   // under two of its links counted once, one before the fortnight not at all.
+  const c = data.charterOf(p);
+  assert.equal(c.areas[0].measure.addr, p.measures[0]);
+  assert.equal(c.areas[1].measure.addr, '', 'a longer file name is not the declared file');
+  assert.equal(c.areas[2].measure, null, 'only an exact name attaches a row');
   const act = data.activityOf(p);
   assert.deepEqual([...act.read].sort(), ['docs/CONVERSATION.md', 'docs/envelopes/README.md', 'docs/forms/']);
   const areaReads = asked.filter(a => a.file.startsWith('commits?') && new URLSearchParams(a.file.slice(8)).get('since'));
   assert.ok(areaReads.every(a => new URLSearchParams(a.file.slice(8)).get('per_page') === '100'));
   const forms = data.areaDays(p, c.areas[2]);
   assert.equal(forms.count, 2);
-  assert.equal(card('Forms').querySelector('[data-area-count]').textContent.trim(), '2');
-  assert.equal(nodes[2].textContent.replace(/\s+/g, ' ').trim(), '3 Forms 2', 'the node carries the same count');
-  const cells = [...card('Forms').querySelectorAll('[data-area-activity] [data-day]')];
+  assert.equal(tile('Forms').querySelector('[data-area-count]').textContent.trim(), '2');
+  const cells = [...tile('Forms').querySelectorAll('[data-area-activity] [data-day]')];
   assert.equal(cells.length, 14);
   assert.deepEqual(cells.map(b => +b.dataset.n).filter(Boolean), [1, 1]);
   assert.equal(cells.at(-2).dataset.n, '1', 'yesterday');
   assert.equal(data.areaDays(p, c.areas[1]), null, 'an area that links no file has no fortnight');
-  assert.equal(card('Showing').querySelectorAll('[data-day]').length, 0);
+  assert.equal(tile('Showing').querySelectorAll('[data-day]').length, 0);
   assert.equal(data.areaDays(p, c.areas[0]).count,
     commits['docs/CONVERSATION.md'].filter(x => x.commit.committer.date >= data.areaDays(p, c.areas[0]).days[0].day).length);
   cells.at(-2).click(); await tick(3); await frame();
   assert.deepEqual([...(data.chartTip?.body?.rows || []).map(r => r.label)], ['Forms and envelopes'], 'a day opens its commits');
   data.closeChartTip();
-
-  // A node and its card mark each other, and a tap on a node selects its card.
-  nodes[2].dispatchEvent(new window.Event('mouseenter')); await tick();
-  assert.match(card('Forms').className, /55%/, 'hovering a node marks its card');
-  nodes[2].dispatchEvent(new window.Event('mouseleave'));
-  card('Reply').dispatchEvent(new window.Event('mouseenter')); await tick();
-  assert.match(nodes[0].querySelector('span').className, /scale-110/, 'hovering a card marks its node');
-  card('Reply').dispatchEvent(new window.Event('mouseleave')); await tick();
-  assert.equal(page.querySelector('[data-program-area][aria-current="true"]'), null, 'nothing selected until a tap');
-  nodes[1].click(); await tick();
-  assert.equal(card('Showing').getAttribute('aria-current'), 'true');
-  assert.equal(nodes[1].getAttribute('aria-current'), 'true');
-  nodes[1].dispatchEvent(new window.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })); await tick();
-  assert.equal(data.areaSelOf(p), 'Forms', 'the arrow keys step along the spine');
   assert.equal(page.querySelector('[data-program-areas-read]').style.display, 'none', 'every linked path read');
+  assert.ok(asked.some(a => a.file === 'docs/portable.csv' && a.ref === 'codex/program-preview'), 'a registry is read at the selected revision');
+  assert.equal(asked.filter(a => a.file === 'docs/harness.csv').length, 1, 'once, however many panels read it');
   assert.deepEqual(problems, []);
 });
 
@@ -420,6 +539,11 @@ test('signed in, the estate repositories add their programs, except a hidden one
 });
 
 test("signed out, a program's page reads fewer paths and leaves out the notes", async () => {
+  // A registry signed out comes from raw.githubusercontent, which spends none
+  // of the anonymous API calls the commit reads need.
+  const fetched = [];
+  window.fetch = async u => { fetched.push(u); const f = Object.keys(csvs).find(k => u.endsWith('/' + k));
+    return f ? { ok: true, status: 200, text: async () => csvs[f] } : { ok: false, status: 404, text: async () => '' }; };
   window.TOKEN = ''; window.__shell._authState = 'public';
   try {
     await settled();
@@ -445,7 +569,12 @@ test("signed out, a program's page reads fewer paths and leaves out the notes", 
     assert.equal(act.read.length, 8, 'signed out, the first eight linked paths');
     assert.ok(data.areaDays(wide, areas[3]), 'an area whose links were read');
     assert.equal(data.areaDays(wide, areas[4]), null, 'one whose links were not is unread, not quiet');
+    for (let i = 0; i < 20 && Object.values(data.registries).some(r => r.state === 'loading' || r.authed); i++) await tick();
+    assert.ok(fetched.includes('https://raw.githubusercontent.com/' + hub + '/codex/program-preview/docs/portable.csv'));
+    assert.equal(data.regOf(p, 'docs/portable.csv').state, 'ok');
+    assert.equal(data.galleryOf(p, { source: 'repos' }).state, 'locked', 'the estate\'s repositories need a token');
   } finally {
+    delete window.fetch;
     window.TOKEN = 'fixture-token'; window.__shell._authState = 'auth';
     await settled();
   }
