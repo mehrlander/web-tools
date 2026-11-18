@@ -173,7 +173,8 @@ test('the hub is read at the selected revision, and the page opens on its masthe
   const link = areas[0].querySelector('[data-part="summary"] a');
   assert.equal(link.getAttribute('href'), 'https://github.com/' + hub + '/blob/codex/program-preview/docs/CONVERSATION.md',
     'a relative link resolves from the charter\'s folder');
-  assert.equal(link.querySelector('code')?.textContent, 'CONVERSATION.md');
+  assert.equal(link.textContent, 'CONVERSATION.md');
+  assert.equal(link.querySelector('code'), null, 'a linked file name takes the sentence\'s type');
   assert.equal(areas[1].querySelector('[data-part="summary"] code')?.textContent, 'showing.py', 'inline code stays code');
   assert.equal(areas[1].querySelector('[data-part="summary"] a').getAttribute('href'), 'https://example.com/?view=map');
 
