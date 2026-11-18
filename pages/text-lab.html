@@ -1888,7 +1888,9 @@
       // cannot be ringed whole, and a ring the card's edge cuts off reads as
       // a fault, so such a block is ringed at its opening instead: a focus
       // passage at its heading line, whose rule still shows how far it runs,
-      // and a caption at its first paragraph.
+      // and a caption at its first paragraph, or at its own icon where even
+      // that is taller than the view, as the notice that opens an opinion is
+      // on a phone.
       ringable(body, el) {
         const box = this.scrollerOf(el), row = body.querySelector('[role="tablist"]')?.parentElement;
         if (!box) return el;
@@ -1896,7 +1898,8 @@
         const room = box.clientHeight - under - 24;
         if (el.offsetHeight <= room) return el;
         const open = el.matches('[data-focus]') ? el.firstElementChild : el.querySelector('.guide-body > :first-child, p');
-        return open && open.offsetHeight <= room ? open : el;
+        if (open && open.offsetHeight <= room) return open;
+        return el.querySelector(':scope > [aria-label]') || el;
       },
       ringMark(els) {
         clearTimeout(this._ringT);
