@@ -952,16 +952,15 @@ test('the histogram reads the whole store, not the scoped list', () => {
   data.sessionScope = 'all';
 });
 
-test('the star panel names a session the way a row does', () => {
+test('the Repos lens names a session the way a row does', () => {
+  // The lens (alpineComponents/session-repos.js) names its picked session
+  // through the config this pane hands it, so the name and glyph are the
+  // list row's own rather than a second way of naming a session.
   const row = withState('a1', 'ready');
-  data.sessionScope = 'all';
-  data.sessionRepoFilter = '';
-  data.sessionStateFilter = '';
-  data.sessionRows_ = [row];
-  const star = data.lensStars[0];
-  assert.equal(star.id, 'a1');
-  assert.equal(star.label, data.sessionLabel(row), 'the same name the list row draws');
-  assert.equal(data.sessionStateMark(star), '🟢', 'and the same glyph');
+  const cfg = data.sessionReposConfig();
+  assert.equal(cfg.label(row), data.sessionLabel(row), 'the same name the list row draws');
+  assert.equal(cfg.state(row)[0], '🟢', 'and the same glyph');
+  assert.equal(cfg.state({ ...row, state: '' }), null, 'no glyph where the session closed in no state');
 });
 
 test('a rebuilt row reaches the screen, rather than freezing at first paint', async () => {

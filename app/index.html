@@ -6975,7 +6975,8 @@ function app(){ return {
   //
   // Defaults stay OUT of the address (see the stamp below), so a plain
   // ?view=sessions link keeps meaning what it has always meant.
-  sessionLens: new URLSearchParams(location.search).get('lens') || '',
+  // ?lens=stars names the lens that became Repos (2026-11-18).
+  sessionLens: (l => l === 'stars' ? 'repos' : l)(new URLSearchParams(location.search).get('lens') || ''),
   sessionGrain: new URLSearchParams(location.search).get('grain') || '',
   goSessionLens(lens, grain){
     if (lens !== undefined) this.sessionLens = lens || '';
@@ -7337,7 +7338,7 @@ function app(){ return {
   // classes are the shell's markup, not the component's.
   // Compactions fills too, for the same reason: its list and its strip each
   // scroll inside themselves (html-style rule 11).
-  get listsFill(){ return this.view === 'lists' || this.view === 'compactions'; },
+  get listsFill(){ return this.view === 'lists' || this.view === 'compactions' || (this.view === 'sessions' && this.sessionLens === 'repos'); },
   // App views are estate-level (peers of Repos/Stage), so they share
   // the estate sidebar context: the per-repo view list stays hidden and the
   // header reads "Repositories".
