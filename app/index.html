@@ -2597,6 +2597,9 @@ const PROJECT_ICONS_ASKED = new Set();
 // mark files repoMarkHtml reads, by file.
 const HUB_MARKS_ASKED = new Set();
 const REPO_MARKS_ASKED = new Set();
+// And whether the sidebar's Programs has asked for the hub's own manifest
+// (sidebarPrograms), once a page.
+const HUB_MANIFEST_ASKED = { done: false };
 
 // The links board's item kinds, as the shell renders them. It carries only the
 // glyph fallbacks pages/links.html uses, since the shell shows a rail item as a
@@ -9283,15 +9286,14 @@ function app(){ return {
     if (!window.Programs) return [];
     const s = Alpine.store('browser'), hub = this.DEFAULT_REPO;
     const hubCfg = this.estateConfigs?.[hub] || (s.repo === hub ? s.config : null) || this.hubManifest;
-    if (!hubCfg && s.repo !== hub && !this._hubManifestAsked) {
-      this._hubManifestAsked = true;
+    if (!hubCfg && s.repo !== hub && !HUB_MANIFEST_ASKED.done) {
+      HUB_MANIFEST_ASKED.done = true;
       queueMicrotask(() => this.loadHubManifest());
     }
     const sources = [hubCfg && { repo: hub, ref: '', config: hubCfg },
       ...this.estateRepos.filter(r => r.repo !== hub).map(r => ({ repo: r.repo, ref: '', config: this.estateConfigs?.[r.repo] }))];
     return window.Programs.rows(sources.filter(x => x && x.config));
   },
-  _hubManifestAsked: false,
   // A program's own icon, an SVG drawn in its own colour like a project's.
   programIconSrc(p){ return window.Programs?.iconSrc(p) || ''; },
   async loadHubManifest(){
