@@ -1479,7 +1479,7 @@
         const read = this.readClass();
         const out = '<i class="ph ph-arrow-square-out ml-1"></i>';
         const a = (href, label, cls = '') => `<a class="link link-hover ${cls}" href="${esc(href)}" target="_blank" rel="noopener">${esc(label)}${out}</a>`;
-        const part = (icon, label, body) => `<div class="flex gap-3"><i class="ph ${icon} text-xl mt-1 shrink-0 text-base-content/60" role="img" aria-label="${label}"></i>`
+        const part = (icon, label, body) => `<div class="flex gap-3"><i class="ph ${icon} text-xl mt-1 self-start shrink-0 text-base-content/60" role="img" aria-label="${label}"></i>`
           + `<div class="min-w-0 grid gap-2 grow">${body}</div></div>`;
         const facts = [p.author, this.shortYear(p.year), p.genre, `${p.words.toLocaleString()} words`].filter(Boolean).join(' · ');
         const head = `<div class="grid gap-1"><h3 class="text-2xl leading-9 font-medium">${esc(p.title || p.id)}</h3>`
