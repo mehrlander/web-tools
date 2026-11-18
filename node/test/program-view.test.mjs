@@ -13,8 +13,8 @@
 // by the area's exact name, a registry broken down by a column, a gallery of
 // a registry's rows),
 // its width from its panels (half the pane on a phone, side by side) and the
-// rows packed in order, its height its own, and its heat grid: seven weeks of
-// commits matched by path, in its top line. The views that display it open
+// rows packed in order, its height its own, and its heat grid: four weeks of
+// commits matched by path, a row a week, in its top line. The views that display it open
 // from the masthead in the shell's anchored menu.
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -70,13 +70,14 @@ const commits = {
   'docs/CONVERSATION.md': [commit('c3c3c3c3c3', '2026-11-10T12:00:00Z', 'Both files at once\n\nBody'), commit('c1c1c1c1c1', '2026-11-01T12:00:00Z', 'The oldest')],
   'python/showing.py': [commit('c3c3c3c3c3', '2026-11-10T12:00:00Z', 'Both files at once\n\nBody'), commit('c2c2c2c2c2', '2026-11-05T12:00:00Z', 'The middle one')],
   // The Forms area's two links: one commit under both, one under the folder
-  // alone, one three weeks back, inside the heat grid's seven weeks and past
-  // a fortnight, and one older than the grid.
+  // alone, one twenty days back, inside the heat grid's four weeks whatever
+  // the weekday and past a fortnight, and one older than the grid.
   'docs/forms': [commit('a1a1a1a1a1', ago(1), 'Forms and envelopes'), commit('a2a2a2a2a2', ago(3), 'A form'),
     commit('a4a4a4a4a4', ago(20), 'Three weeks back'), commit('a3a3a3a3a3', ago(60), 'Long ago')],
   'docs/envelopes/README.md': [commit('a1a1a1a1a1', ago(1), 'Forms and envelopes')],
-  // A busy file, past a page of a hundred inside the grid's weeks.
-  'docs/a0.md': Array.from({ length: 130 }, (_, i) => commit('b' + String(i).padStart(9, '0'), ago(1 + i % 30), 'Busy ' + i)),
+  // A busy file, past a page of a hundred inside the grid's weeks: the last
+  // twenty days, which the four weeks hold whatever the weekday.
+  'docs/a0.md': Array.from({ length: 130 }, (_, i) => commit('b' + String(i).padStart(9, '0'), ago(1 + i % 20), 'Busy ' + i)),
 };
 const charterAbout = hub + ':programs/surfacing/README.md';
 // A charter whose Areas table the page lists: links resolve from the charter's
@@ -264,22 +265,25 @@ test('Programs reads a charter cell\'s links, resolves them as repository paths,
   assert.equal(r.days[13].n, 2);
   assert.deepEqual([...r.days[13].commits.map(c => c.sha)], ['a', 'b']);
 
-  // The heat grid: seven columns of a week, Monday to Sunday down each, the
-  // newest at the right, so on a Wednesday the last four cells are to come.
+  // The heat grid as a calendar: four rows of a week, Monday to Sunday along
+  // each, the newest at the bottom, so on a Wednesday the last four cells are
+  // to come.
   const { heatStart, heatDays } = window.Programs;
   assert.equal(new Date(2026, 10, 18).getDay(), 3, 'the 18th is a Wednesday');
-  assert.equal(heatStart(now, 7).getTime(), new Date(2026, 9, 5).getTime(), 'the Monday six weeks before this week\'s');
-  const g = heatDays([...pool, { sha: 'f', date: at(2026, 9, 5), paths: ['docs/x.md'] }, { sha: 'g', date: at(2026, 9, 4), paths: ['docs/x.md'] }],
-    ['docs/x.md', 'docs/f/'], now, 7);
-  assert.equal(g.days.length, 49, 'a seven by seven square');
-  assert.deepEqual([g.first, g.last], ['2026-10-05', '2026-11-18']);
-  assert.equal(g.days[44].day, '2026-11-18', 'today, the Wednesday of the last column');
-  assert.deepEqual([...g.days.slice(45).map(d => d.day + (d.future ? '+' : ''))], ['2026-11-19+', '2026-11-20+', '2026-11-21+', '2026-11-22+'],
+  assert.equal(heatStart(now, 4).getTime(), new Date(2026, 9, 26).getTime(), 'the Monday three weeks before this week\'s');
+  assert.equal(heatStart(now).getTime(), heatStart(now, 4).getTime(), 'four weeks unless told otherwise');
+  const g = heatDays([...pool, { sha: 'f', date: at(2026, 9, 26), paths: ['docs/x.md'] }, { sha: 'g', date: at(2026, 9, 25), paths: ['docs/x.md'] }],
+    ['docs/x.md', 'docs/f/'], now, 4);
+  assert.equal(g.days.length, 28, 'four rows of seven');
+  assert.deepEqual([g.first, g.last], ['2026-10-26', '2026-11-18']);
+  assert.deepEqual([0, 7, 14, 21].map(i => new Date(g.days[i].day + 'T12:00:00').getDay()), [1, 1, 1, 1], 'each row opens on a Monday');
+  assert.equal(g.days[23].day, '2026-11-18', 'today, the Wednesday of the last row');
+  assert.deepEqual([...g.days.slice(24).map(d => d.day + (d.future ? '+' : ''))], ['2026-11-19+', '2026-11-20+', '2026-11-21+', '2026-11-22+'],
     'the rest of this week, blank');
   assert.equal(g.days.filter(d => d.future).length, 4);
   assert.equal(g.count, 5, 'the window\'s first Monday counts and the Sunday before it does not');
-  assert.equal(heatDays([], ['a'], new Date(2026, 10, 22, 9).getTime(), 7).days.filter(d => d.future).length, 0, 'on a Sunday the square is full');
-  assert.equal(heatDays([], ['a'], new Date(2026, 10, 16, 9).getTime(), 7).days.filter(d => d.future).length, 6, 'on a Monday one cell is today');
+  assert.equal(heatDays([], ['a'], new Date(2026, 10, 22, 9).getTime(), 4).days.filter(d => d.future).length, 0, 'on a Sunday the last row is full');
+  assert.equal(heatDays([], ['a'], new Date(2026, 10, 16, 9).getTime(), 4).days.filter(d => d.future).length, 6, 'on a Monday one cell is today');
 });
 
 test('a program\'s colour is its drawn mark\'s first fill, read with its icon', async () => {
@@ -486,10 +490,10 @@ test('Areas draws a tile an area: its icon and files, its declared panels, its w
     'two columns wide, one row of four');
   data.areaCols = 1; await frame();
 
-  // The heat grid: in the top line beside the name, the icon's size; a
-  // column a week and a row a weekday, each day shaded by its commits to
+  // The heat grid: in the top line beside the name, the icon's height; a
+  // row a week and a column a weekday, each day shaded by its commits to
   // what the area links, a commit under two of its links counted once, one
-  // before the grid's seven weeks not at all, and no footer or count.
+  // before the grid's four weeks not at all, and no footer or count.
   const c = data.charterOf(p);
   assert.equal(c.areas[0].measure.addr, p.measures[0]);
   assert.equal(c.areas[1].measure.addr, '', 'a longer file name is not the declared file');
@@ -501,16 +505,24 @@ test('Areas draws a tile an area: its icon and files, its declared panels, its w
   assert.equal(page.querySelector('[data-area-activity], [data-area-count], [data-program-area] footer'), null, 'no footer and no count');
   const areaReads = asked.filter(a => a.file.startsWith('commits?') && new URLSearchParams(a.file.slice(8)).get('since'));
   assert.ok(areaReads.length && areaReads.every(a => new URLSearchParams(a.file.slice(8)).get('per_page') === '100'));
-  const start = window.Programs.heatStart(Date.now(), 7);
+  const start = window.Programs.heatStart(Date.now(), 4);
   assert.ok(areaReads.every(a => new URLSearchParams(a.file.slice(8)).get('since') === start.toISOString()), 'read from the grid\'s first Monday');
   const forms = data.areaDays(p, c.areas[2]);
-  assert.equal(forms.count, 3, 'three weeks back counts, past the old fortnight; long ago does not');
+  assert.equal(forms.count, 3, 'twenty days back counts, past the old fortnight; long ago does not');
   const heat = tile('Forms').querySelector('[data-area-heat]');
   assert.ok(heat.closest('[data-part="title"]'), 'on the top line, with the icon and the name');
-  assert.ok(heat.classList.contains('size-7') && tile('Forms').querySelector('[data-area-icon]').classList.contains('size-7'), 'the icon\'s size');
+  assert.ok(heat.classList.contains('h-7') && tile('Forms').querySelector('[data-area-icon]').classList.contains('size-7'), 'the icon\'s height');
+  assert.ok(heat.classList.contains('grid-cols-[repeat(7,6px)]') && heat.classList.contains('grid-rows-[repeat(4,6px)]')
+    && !heat.classList.contains('grid-flow-col'), 'seven columns of a weekday and four rows of a week, filled a row at a time');
+  const name = tile('Forms').querySelector('[data-part="title"] h3');
+  assert.ok(name.classList.contains('truncate') && name.hasAttribute('data-title-tip-bare'), 'the name cut short before the grid gives way, whole in a title-tip');
+  assert.ok(heat.classList.contains('shrink-0'));
   assert.equal(heat.dataset.areaState, 'ok');
   const cells = [...heat.querySelectorAll('[data-day]')];
-  assert.equal(cells.length, 49);
+  assert.equal(cells.length, 28, 'four weeks of seven days');
+  assert.equal(new Date(cells[0].dataset.day + 'T12:00:00').getDay(), 1, 'the oldest row opens on a Monday');
+  assert.equal(cells[0].dataset.day, [start.getFullYear(), start.getMonth() + 1, start.getDate()].map(n => String(n).padStart(2, '0')).join('-'),
+    'at the top left, the window\'s first day');
   assert.deepEqual(cells.map(b => +b.dataset.n).filter(Boolean), [1, 1, 1]);
   const dk = d => { const t = new Date(); t.setDate(t.getDate() - d); return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0'); };
   const yesterday = cells.find(b => b.dataset.day === dk(1));
@@ -520,7 +532,7 @@ test('Areas draws a tile an area: its icon and files, its declared panels, its w
   const future = cells.filter(b => b.hasAttribute('data-future'));
   assert.equal(future.length, 6 - (new Date().getDay() + 6) % 7, 'the days still to come this week');
   assert.ok(future.every(b => /transparent/.test(b.getAttribute('style'))), 'and left blank');
-  assert.equal(cells.indexOf(cells.find(b => b.dataset.day === dk(0))), 48 - future.length, 'today, before them');
+  assert.equal(cells.indexOf(cells.find(b => b.dataset.day === dk(0))), 27 - future.length, 'today, before them, in the bottom row');
   assert.match(heat.dataset.titleTip, /^[A-Z][a-z]+ \d+ → ([A-Z][a-z]+ )?\d+ · 3 commits$/, 'its span and count in a title-tip');
   assert.equal(data.areaDays(p, c.areas[1]), null, 'an area that links no file has no grid');
   assert.equal(tile('Showing').querySelector('[data-area-heat]'), null);
