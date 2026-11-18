@@ -1741,8 +1741,8 @@
           + `<div class="min-w-0 grid gap-2"><div>${esc(r.words)}</div><div class="text-sm leading-6 text-base-content/70">`
           + (r.links.length === 1 ? a(r.links[0].href, r.by || r.links[0].label) : esc(r.by) + r.links.map(l => ' ' + a(l.href, l.label)).join(''))
           + `</div></div></div>`).join('');
-        sec.innerHTML = `<div class="sticky top-14 z-10 -mt-1 mb-1 h-0">`
-          + `<div class="absolute -inset-x-2 -top-3 h-6 bg-base-100/90 backdrop-blur hidden group-data-[stuck]/focus:block"></div>`
+        sec.innerHTML = `<div class="sticky top-14 z-10 -mx-2 -mt-1 mb-1 h-0">`
+          + `<div class="absolute inset-x-0 -top-3 h-6 bg-base-100/90 backdrop-blur hidden group-data-[stuck]/focus:block"></div>`
           + `<button type="button" data-focus-claim class="${PILL} left-1 cursor-pointer px-1.5 py-0.5 tabular-nums font-medium transition-colors opacity-80`
           + ` group-data-[on]/focus:opacity-100 group-data-[on]/focus:bg-base-content group-data-[on]/focus:text-base-100 group-data-[on]/focus:border-base-content"`
           + ` aria-label="Passage ${k + 1}${total > 1 ? ` of ${total}` : ''}">${k + 1}</button>`
