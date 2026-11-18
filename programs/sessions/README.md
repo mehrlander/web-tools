@@ -37,7 +37,6 @@ change to a page also goes to
 - How a page looks: the [html-style](../../skills/html-style/SKILL.md) skill.
 - The prose rules in [`QUALIFIED-WRITING.md`](../../docs/QUALIFIED-WRITING.md) and the
   approval of documentation wording ([doc-craft](../../skills/doc-craft/SKILL.md)).
-- The owner's [peeves](../../skills/peeves/peeves.csv), governed by the [Content](../content/README.md) program.
 
 An area whose measure, reviewers and tasks no longer involve the other areas
 could become a program of its own.
