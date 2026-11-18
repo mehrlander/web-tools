@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="en" data-theme="winter">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Check</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<!--
+  check.html: the check form (docs/envelopes/check.md). The owner judges what
+  an AI process made from its input, item by item, and the verdicts are
+  appended beside the payload for the session that asked.
+
+    ?src=owner/repo[@ref]:path   a committed check/1 payload, read and saved
+                                 through the viewer's token (also #src=)
+    #gz=<base64url>              a gzipped payload carried in the link
+    (neither)                    the embedded sample
+
+  A list of runs over a strip of cards (html-style rule 11, linked-swiper);
+  the card's door opens the runs as a deck whose slides split input and
+  output with a dock-split seam, side by side when the slide is wide. An
+  output item and the passage it rests on light together (rule 16).
+-->
+<script type="module">
+  const use = new URLSearchParams(location.search).get('use');
+  if (use) {
+    const r = await fetch(`https://raw.githubusercontent.com/mehrlander/web-tools/${use}/dist/web-tools.js`, { cache: 'no-store' });
+    if (!r.ok) throw new Error(`?use=${use}: could not fetch the bundle (HTTP ${r.status})`);
+    const url = URL.createObjectURL(new Blob([await r.text()], { type: 'text/javascript' }));
+    try { await import(url); } finally { URL.revokeObjectURL(url); }
+  } else {
+    await import('../dist/web-tools.js');
+  }
+  await gh.load('kits/gz-payload.js');
+  await gh.load('kits/swipe-deck.js');
+  await gh.load('kits/dock-split.js');
+  await gh.load('kits/title-tip.js');
+  await gh.load('kits/linked-swiper.js');
+  await gh.load('alpineComponents/user-call-form.js');
+
+  const esc = window.esc;
+  const $ = id => document.getElementById(id);
+
+  // The sample: two of the house style's rules, as a preference flagger
+  // might have read them.
+  const SAMPLE = (() => {
+    const run = (id, title, blocks, flags) => ({
+      id, title, meta: `${blocks.length} rules · ${flags.length} flags`,
+      source: { blocks: blocks.map(([bid, label, text]) => ({ id: bid, label, text })) },
+      outputs: flags.map(([oid, bid, quote, tag, text]) => {
+        const t = blocks.find(b => b[0] === bid)[2], s = t.indexOf(quote);
+        return { id: oid, text, tag, anchor: { block: bid, start: s, end: s + quote.length } };
+      }),
+    });
+    return {
+      kind: 'check/1', title: 'Sample check', question: 'Is the flagged sentence a standing preference, with this stance?',
+      verdicts: [
+        { verdict: 'right', label: 'Right', gloss: 'a standing preference, with the stance the flag gives it', icon: 'ph-check', tone: 'success' },
+        { verdict: 'wrong', label: 'Wrong', gloss: 'not a standing preference', icon: 'ph-x', tone: 'error' },
+        { verdict: 'stance', label: 'Flip', gloss: 'a standing preference, with the opposite stance', icon: 'ph-arrows-left-right', tone: 'warning' },
+      ],
+      tags: [{ tag: 'like', label: 'like', icon: 'ph-thumbs-up' }, { tag: 'dislike', label: 'dislike', icon: 'ph-thumbs-down' }],
+      runs: [
+        run('rules-1-2', 'House style, rules 1 and 2', [
+          ['r1', 'Rule 1', 'No stat cards. A row of tiles, each a label over a big number, spends the page\'s best space on figures with no comparison, baseline, denominator, or movement. Show a count with the content or controls that give it context.'],
+          ['r2', 'Rule 2', 'No explanatory prose. GitHub doesn\'t explain and neither should we. Use structure, labels, and controls to show relationships.'],
+        ], [
+          ['r1.1', 'r1', 'No stat cards.', 'dislike', 'stat cards'],
+          ['r1.2', 'r1', 'Show a count with the content or controls that give it context.', 'like', 'counts shown with their context'],
+          ['r2.1', 'r2', 'GitHub doesn\'t explain and neither should we.', 'like', 'GitHub\'s way of explaining'],
+        ]),
+        run('rules-9-15', 'House style, rules 9 and 15', [
+          ['r9', 'Rule 9', 'Use color to communicate. Color carries information, not decoration. Where most items are ordinary, leave them neutral and color the ones that differ.'],
+          ['r15', 'Rule 15', 'Keep the layout stable. Reserve space for scrollbars and content of varying lengths.'],
+        ], [
+          ['r9.1', 'r9', 'Color carries information, not decoration.', 'like', 'color that carries information'],
+          ['r15.1', 'r15', 'Keep the layout stable.', 'like', 'a layout that holds still'],
+        ]),
+      ],
+    };
+  })();
+
+  const TONE = {
+    success: { btn: 'btn-success', mark: 'bg-success/30', bar: 'bg-success' },
+    error: { btn: 'btn-error', mark: 'bg-error/25', bar: 'bg-error' },
+    warning: { btn: 'btn-warning', mark: 'bg-warning/40', bar: 'bg-warning' },
+    info: { btn: 'btn-info', mark: 'bg-info/25', bar: 'bg-info' },
+    neutral: { btn: 'btn-neutral', mark: 'bg-base-content/20', bar: 'bg-base-content/50' },
+  };
+  const OPEN_MARK = 'bg-primary/15';
+  const MARKS = [OPEN_MARK, ...Object.values(TONE).map(t => t.mark)];
+  const LIT_MARK = ['ring-2', 'ring-primary'];
+  const LIT_ITEM = ['bg-primary/10'];
+
+  // ── the payload ─────────────────────────────────────────────────────────
+  const srcSpec = window.UrlParams.get('src') || '';
+  const gz = window.UrlParams.get('gz') || '';
+  const src = srcSpec ? window.RepoAddress.parse(srcSpec) : null;
+  const S = { p: null, err: '', saving: false, saveErr: '', savedAt: 0, savedN: 0, target: null };
+  const cur = new Map(), saved = new Map();
+  const keyOf = (run, out) => run + '|' + out;
+
+  // Offsets arrive in code points; a JS string counts UTF-16 units.
+  const u16 = (t, cp) => { let i = 0; for (let n = 0; n < cp && i < t.length; n++) i += t.codePointAt(i) > 0xffff ? 2 : 1; return i; };
+  function adopt(p) {
+    for (const r of p.runs) {
+      r.blockOf = Object.fromEntries(r.source.blocks.map(b => [b.id, b]));
+      for (const o of r.outputs) {
+        const a = o.anchor || {}, b = r.blockOf[a.block];
+        o.span = b && Number.isInteger(a.start) && Number.isInteger(a.end) ? [u16(b.text, a.start), u16(b.text, a.end)] : null;
+      }
+    }
+    p.verdictOf = Object.fromEntries((p.verdicts || []).map(v => [v.verdict, v]));
+    p.tagOf = Object.fromEntries((p.tags || []).map(t => [t.tag, t]));
+    return p;
+  }
+
+  function targetOf(p) {
+    const a = p.answers && window.RepoAddress.parse(p.answers);
+    if (a) return a;
+    if (!src) return null;
+    return { repo: src.repo, ref: src.ref, path: p.answers || src.path.replace(/\.json$/, '') + '.answers.jsonl' };
+  }
+  const client = t => new window.GH({ token: window.TOKEN, repo: t.repo, ...(t.ref ? { ref: t.ref } : {}) });
+
+  async function readAnswers() {
+    if (!S.target) return;
+    try {
+      const text = (await client(S.target).get(S.target.path, window.GH.FRESH)).text;
+      for (const l of text.split('\n')) {
+        if (!l.trim()) continue;
+        const e = JSON.parse(l);
+        if (e.run != null && e.output != null) saved.set(keyOf(e.run, e.output), { verdict: e.verdict || '', note: e.note || '' });
+      }
+    } catch (e) { if (e?.status !== 404) S.saveErr = 'Could not read the answers: ' + (e?.message || e); }
+  }
+
+  // Unsaved verdicts are kept in this browser until they are saved.
+  const DRAFT = 'check:draft:' + (srcSpec || (gz ? 'gz:' + gz.slice(0, 40) : 'sample'));
+  const draft = () => { try { return JSON.parse(localStorage.getItem(DRAFT) || '{}'); } catch { return {}; } };
+  const keepDraft = () => {
+    const d = {};
+    for (const k of dirtyKeys()) d[k] = cur.get(k);
+    try { Object.keys(d).length ? localStorage.setItem(DRAFT, JSON.stringify(d)) : localStorage.removeItem(DRAFT); } catch {}
+  };
+
+  const stateOf = k => cur.get(k) || saved.get(k) || { verdict: '', note: '' };
+  const same = (a, b) => (a?.verdict || '') === (b?.verdict || '') && (a?.note || '').trim() === (b?.note || '').trim();
+  const dirtyKeys = () => [...cur.keys()].filter(k => !same(cur.get(k), saved.get(k)));
+
+  try {
+    if (gz) S.p = JSON.parse(await window.GzPayload.decode(gz));
+    else if (src) S.p = JSON.parse((await client(src).get(src.path)).text);
+    else S.p = SAMPLE;
+    if (S.p?.kind !== 'check/1') throw new Error('not a check/1 payload');
+    adopt(S.p);
+    S.target = targetOf(S.p);
+    await readAnswers();
+    for (const [k, v] of Object.entries(draft())) cur.set(k, v);
+  } catch (e) {
+    S.err = (src ? 'Could not read ' + srcSpec : 'Could not read the payload') + ': ' + (e?.message || e)
+      + (src && !window.TOKEN ? '. It needs your GitHub token.' : '');
+  }
+
+  // ── drawing ─────────────────────────────────────────────────────────────
+  const P = S.p;
+  const runs = () => P.runs;
+  const runOf = id => P.runs.find(r => r.id === id);
+  const tone = v => TONE[P.verdictOf[v]?.tone] || TONE.neutral;
+  const markClass = (run, out) => { const v = stateOf(keyOf(run, out)).verdict; return v ? tone(v).mark : OPEN_MARK; };
+  const counts = r => {
+    const n = {};
+    for (const o of r.outputs) { const v = stateOf(keyOf(r.id, o.id)).verdict; if (v) n[v] = (n[v] || 0) + 1; }
+    return n;
+  };
+  const doneOf = n => Object.values(n).reduce((a, b) => a + b, 0);
+
+  function bar(r) {
+    const n = counts(r), total = r.outputs.length || 1;
+    const segs = (P.verdicts || []).map(v => n[v.verdict]
+      ? `<span class="${tone(v.verdict).bar}" style="width:${(n[v.verdict] / total * 100).toFixed(1)}%"></span>` : '').join('');
+    return `<span class="flex h-1.5 w-14 shrink-0 overflow-hidden rounded-full bg-base-300">${segs}</span>`
+      + `<span class="min-w-[5ch] shrink-0 text-right font-mono text-xs tabular-nums text-base-content/60">${doneOf(n)}/${r.outputs.length}</span>`;
+  }
+
+  function rowHTML(r) {
+    return `<div role="option" tabindex="-1" data-run="${esc(r.id)}" aria-selected="false"
+      class="flex cursor-pointer flex-col gap-0.5 border-b border-base-200 px-2.5 py-1.5 outline-none hover:bg-base-200 focus-visible:outline-2 focus-visible:outline-[var(--color-primary)] aria-selected:bg-primary/10">
+      <span class="truncate font-medium">${esc(r.title)}</span>
+      <div class="flex items-center gap-2"><span class="min-w-0 flex-1 truncate text-sm text-base-content/60">${esc(r.meta || '')}</span><span data-bar class="flex items-center gap-1.5">${bar(r)}</span></div></div>`;
+  }
+
+  function tagHTML(o) {
+    if (!o.tag) return '';
+    const t = P.tagOf[o.tag] || { label: o.tag };
+    return `<span class="badge badge-sm badge-ghost shrink-0 gap-1">${t.icon ? `<i class="ph ${esc(t.icon)}"></i>` : ''}${esc(t.label || o.tag)}</span>`;
+  }
+
+  function controls(r, o) {
+    const s = stateOf(keyOf(r.id, o.id));
+    return `<div class="flex items-center gap-2">
+      <div class="join shrink-0" role="radiogroup" aria-label="Verdict">${(P.verdicts || []).map(v => {
+        const on = s.verdict === v.verdict;
+        return `<button type="button" role="radio" aria-checked="${on}" data-verdict="${esc(v.verdict)}" data-title-tip="${esc(v.gloss || v.label)}"
+          class="btn btn-sm join-item gap-1 px-2.5 ${on ? tone(v.verdict).btn : 'border-base-300 bg-base-100 font-normal'}">${v.icon ? `<i class="ph ${esc(v.icon)}"></i>` : ''}${esc(v.label || v.verdict)}</button>`;
+      }).join('')}</div>
+      <input data-note value="${esc(s.note)}" placeholder="Note" aria-label="Note" class="input input-sm min-w-0 flex-1 max-sm:text-base">
+    </div>`;
+  }
+
+  // A block's text with each anchored span marked; overlapping spans split
+  // into runs that carry every output resting on them.
+  function marked(r, b, only) {
+    const spans = r.outputs.filter(o => o.span && o.anchor.block === b.id && (!only || only.includes(o.id)));
+    const cuts = [...new Set([0, b.text.length, ...spans.flat().flatMap(o => o.span)])].sort((x, y) => x - y);
+    let h = '';
+    for (let i = 0; i + 1 < cuts.length; i++) {
+      const [a, z] = [cuts[i], cuts[i + 1]], on = spans.filter(o => o.span[0] <= a && o.span[1] >= z);
+      const t = esc(b.text.slice(a, z));
+      h += on.length ? `<mark data-run="${esc(r.id)}" data-outs="${esc(on.map(o => o.id).join(' '))}" class="cursor-pointer rounded-sm text-inherit box-decoration-clone ${markClass(r.id, on[0].id)}">${t}</mark>` : t;
+    }
+    return h;
+  }
+
+  // The input line an item rests on, for the strip: its span with a little
+  // of the text around it.
+  function line(r, o) {
+    const b = r.blockOf[o.anchor?.block];
+    if (!b) return '';
+    const [s, e] = o.span || [0, Math.min(b.text.length, 160)];
+    const cut = (t, keep, end) => {
+      if (t.length <= keep) return t;
+      const x = end ? t.slice(t.length - keep) : t.slice(0, keep);
+      return end ? '…' + x.replace(/^\S*\s/, '') : x.replace(/\s\S*$/, '') + '…';
+    };
+    const pre = esc(cut(b.text.slice(0, s), 70, true)), post = esc(cut(b.text.slice(e), 70, false));
+    const mid = o.span ? `<mark data-run="${esc(r.id)}" data-outs="${esc(o.id)}" class="rounded-sm text-inherit box-decoration-clone ${markClass(r.id, o.id)}">${esc(b.text.slice(s, e))}</mark>` : esc(b.text.slice(s, e));
+    return `<button type="button" data-line="${esc(o.id)}" class="w-full rounded-md border-l-2 border-base-300 bg-base-200/60 px-2.5 py-1.5 text-left hover:bg-base-200">
+      <span class="mr-1.5 font-mono text-xs text-base-content/50">${esc(b.label || b.id)}</span><span class="text-base-content/70">${pre}</span>${mid}<span class="text-base-content/70">${post}</span></button>`;
+  }
+
+  function cardBody(id) {
+    const r = runOf(id);
+    if (!r.outputs.length) return '<p class="text-base-content/60">No outputs.</p>';
+    return `<div class="flex flex-col gap-4" data-scope="${esc(r.id)}">${r.outputs.map((o, i) => `
+      <section data-item="${esc(keyOf(r.id, o.id))}" data-out="${esc(o.id)}" class="flex flex-col gap-2 rounded-lg ${i ? 'border-t border-base-200 pt-4' : ''}">
+        ${line(r, o)}
+        <div class="flex items-start gap-2">${tagHTML(o)}<span class="min-w-0">${esc(o.text)}</span></div>
+        ${o.note ? `<p class="text-sm text-base-content/60">${esc(o.note)}</p>` : ''}
+        ${controls(r, o)}
+      </section>`).join('')}</div>`;
+  }
+
+  // The takeover's slide: the input over the output on a phone, beside it
+  // when the slide is wide, a dock-split seam between them.
+  const WIDE = 900;
+  const splitKey = axis => 'check:split:' + axis;
+  const splitOf = axis => { try { const v = +localStorage.getItem(splitKey(axis)); return v > 0 ? v : (axis === 'col' ? 55 : 45); } catch { return axis === 'col' ? 55 : 45; } };
+  const split = { col: splitOf('col'), row: splitOf('row') };
+  const slides = new Map();
+
+  function pairHTML(r) {
+    const blocks = r.source.blocks.map(b => `
+      <section data-block="${esc(b.id)}" class="flex flex-col gap-1 rounded-md py-2">
+        <h3 class="font-mono text-xs text-base-content/50">${esc(b.label || b.id)}</h3>
+        <p class="text-base leading-7 [overflow-wrap:anywhere] sm:text-lg sm:leading-8">${marked(r, b)}</p>
+      </section>`).join('');
+    const items = r.outputs.map((o, i) => `
+      <article data-item="${esc(keyOf(r.id, o.id))}" data-out="${esc(o.id)}" class="flex cursor-pointer flex-col gap-2 rounded-lg p-2 ${i ? 'mt-2' : ''}">
+        <div class="flex items-start gap-2 text-base leading-7 sm:text-lg sm:leading-8">
+          <span class="shrink-0 font-mono text-xs leading-7 text-base-content/50 sm:leading-8">${esc(r.blockOf[o.anchor?.block]?.label || '')}</span>
+          ${tagHTML(o).replace('shrink-0', 'mt-1.5 shrink-0 sm:mt-2')}<span class="min-w-0">${esc(o.text)}</span></div>
+        ${o.note ? `<p class="text-sm text-base-content/60">${esc(o.note)}</p>` : ''}
+        ${controls(r, o)}
+      </article>`).join('');
+    return `<div data-pair="${esc(r.id)}" data-scope="${esc(r.id)}" class="grid h-full min-h-0 w-full min-w-0">
+      <div data-pane="in" class="relative min-h-0 min-w-0 overflow-y-auto overscroll-contain px-4 py-2 [scrollbar-gutter:stable]">${blocks}</div>
+      <div data-seam></div>
+      <div data-pane="out" class="relative min-h-0 min-w-0 overflow-y-auto overscroll-contain px-2 py-2 [scrollbar-gutter:stable]">${items || '<p class="p-2 text-base-content/60">No outputs.</p>'}</div>
+    </div>`;
+  }
+
+  function orient(pair, st) {
+    const axis = pair.clientWidth >= WIDE ? 'col' : 'row';
+    const lay = () => {
+      const tpl = `minmax(0,${split[axis]}%) 14px minmax(0,1fr)`;
+      pair.style.gridTemplateColumns = axis === 'col' ? tpl : 'minmax(0,1fr)';
+      pair.style.gridTemplateRows = axis === 'col' ? 'minmax(0,1fr)' : tpl;
+    };
+    if (st.axis === axis) { lay(); return; }
+    st.axis = axis;
+    st.seam?.destroy();
+    lay();
+    st.seam = window.dockSplit.attach(pair.querySelector('[data-seam]'), {
+      axis, from: 'start', min: 15, max: 85, label: 'Resize the input',
+      bounds: () => pair.getBoundingClientRect(),
+      value: () => split[axis],
+      onChange: pct => { split[axis] = pct; for (const s of slides.values()) s.lay?.(); },
+      onCommit: pct => { try { localStorage.setItem(splitKey(axis), String(pct)); } catch {} },
+    });
+    st.lay = () => { if (st.axis === axis) lay(); };
+  }
+
+  // ── lighting counterparts (rule 16) ─────────────────────────────────────
+  function light(scope, outs, on) {
+    if (!scope) return;
+    for (const m of scope.querySelectorAll('mark[data-outs]'))
+      if (m.dataset.outs.split(' ').some(x => outs.includes(x))) LIT_MARK.forEach(c => m.classList.toggle(c, on));
+    for (const it of scope.querySelectorAll('[data-out]'))
+      if (outs.includes(it.dataset.out)) LIT_ITEM.forEach(c => it.classList.toggle(c, on));
+  }
+  let hot = null;
+  const unhot = () => { if (hot) light(hot.scope, hot.outs, false); hot = null; };
+  const outsAt = el => {
+    const m = el.closest('mark[data-outs]');
+    if (m) return m.dataset.outs.split(' ');
+    const it = el.closest('[data-out]');
+    return it ? [it.dataset.out] : null;
+  };
+  document.addEventListener('pointerover', e => {
+    const scope = e.target.closest?.('[data-scope]'), outs = scope && outsAt(e.target);
+    if (hot && hot.scope === scope && String(hot.outs) === String(outs)) return;
+    unhot();
+    if (outs) { hot = { scope, outs }; light(scope, outs, true); }
+  });
+
+  // A tap in the takeover holds the light and brings the counterpart into
+  // view in the other pane.
+  let held = null;
+  const into = (pane, el) => {
+    if (!pane || !el) return;
+    const top = el.getBoundingClientRect().top - pane.getBoundingClientRect().top + pane.scrollTop;
+    pane.scrollTo({ top: Math.max(0, top - pane.clientHeight / 3), behavior: 'smooth' });
+  };
+  function hold(pair, outs, from) {
+    if (held) light(held.pair, held.outs, false);
+    held = { pair, outs };
+    light(pair, outs, true);
+    const r = runOf(pair.dataset.pair);
+    if (from !== 'in') {
+      const o = r.outputs.find(x => x.id === outs[0]);
+      const at = pair.querySelector(`[data-pane="in"] mark[data-outs~="${CSS.escape(outs[0])}"]`)
+        || pair.querySelector(`[data-pane="in"] [data-block="${CSS.escape(o?.anchor?.block || '')}"]`);
+      into(pair.querySelector('[data-pane="in"]'), at);
+    }
+    if (from !== 'out') into(pair.querySelector('[data-pane="out"]'), pair.querySelector(`[data-pane="out"] [data-out="${CSS.escape(outs[0])}"]`));
+  }
+
+  // ── verdicts and notes ──────────────────────────────────────────────────
+  function paintItem(run, out) {
+    const k = keyOf(run, out), s = stateOf(k);
+    for (const it of document.querySelectorAll(`[data-item="${CSS.escape(k)}"]`)) {
+      for (const b of it.querySelectorAll('[data-verdict]')) {
+        const on = s.verdict === b.dataset.verdict;
+        b.setAttribute('aria-checked', String(on));
+        Object.values(TONE).forEach(t => b.classList.remove(t.btn));
+        ['border-base-300', 'bg-base-100', 'font-normal'].forEach(c => b.classList.toggle(c, !on));
+        if (on) b.classList.add(tone(b.dataset.verdict).btn);
+      }
+    }
+    const mc = markClass(run, out);
+    for (const m of document.querySelectorAll(`mark[data-run="${CSS.escape(run)}"]`)) {
+      const outs = m.dataset.outs.split(' ');
+      if (outs[0] !== out) continue;
+      MARKS.forEach(c => m.classList.remove(c));
+      m.classList.add(mc);
+    }
+    const row = $('list')?.querySelector(`[data-run="${CSS.escape(run)}"] [data-bar]`);
+    if (row) row.innerHTML = bar(runOf(run));
+  }
+
+  function setState(run, out, patch) {
+    const k = keyOf(run, out);
+    cur.set(k, { ...stateOf(k), ...patch });
+    keepDraft();
+    paintHead();
+  }
+
+  async function save() {
+    const keys = dirtyKeys();
+    if (!keys.length || !S.target || S.saving) return;
+    S.saving = true; S.saveErr = ''; paintHead();
+    try {
+      const at = new Date().toISOString();
+      const entries = keys.map(k => {
+        const [run, output] = k.split('|'), s = cur.get(k);
+        return { at: s.at || at, run, output, verdict: s.verdict || null, note: (s.note || '').trim() };
+      });
+      await window.UserCallForm.postAnswer({ repo: S.target.repo, ref: S.target.ref || 'main', path: S.target.path, entries });
+      for (const k of keys) saved.set(k, { verdict: cur.get(k).verdict || '', note: (cur.get(k).note || '').trim() });
+      S.savedAt = Date.now(); S.savedN = keys.length;
+      keepDraft();
+    } catch (e) {
+      S.saveErr = 'Not saved: ' + (e?.message || e) + (window.TOKEN ? '' : '. It needs your GitHub token.');
+    }
+    S.saving = false; paintHead();
+  }
+
+  const ago = t => { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? 'just now' : m < 60 ? m + 'm ago' : Math.round(m / 60) + 'h ago'; };
+  function paintHead() {
+    const head = $('head');
+    if (!P) { head.innerHTML = `<h1 class="text-lg font-semibold">Check</h1>`; return; }
+    const total = P.runs.reduce((a, r) => a + r.outputs.length, 0);
+    const done = P.runs.reduce((a, r) => a + doneOf(counts(r)), 0);
+    const n = dirtyKeys().length;
+    const status = S.saveErr ? `<span class="min-w-0 truncate text-sm text-error" data-title-tip="${esc(S.saveErr)}">${esc(S.saveErr)}</span>`
+      : !S.target ? `<span class="text-sm text-base-content/60">Kept in this browser</span>`
+      : S.savedAt && !n ? `<span class="text-sm text-base-content/60">Saved ${S.savedN} · ${ago(S.savedAt)}</span>` : '';
+    head.innerHTML = `
+      <div class="flex min-w-0 flex-1 items-center gap-2">
+        <i class="ph ph-list-checks shrink-0 text-xl text-primary"></i>
+        <h1 class="min-w-0 truncate text-lg font-semibold">${esc(P.title || 'Check')}</h1>
+        <span class="min-w-[7ch] shrink-0 font-mono text-xs tabular-nums text-base-content/60">${done}/${total}</span>
+      </div>
+      <div class="flex min-w-0 items-center gap-2">${status}
+        ${S.target ? `<button type="button" id="save" class="btn btn-sm btn-primary min-w-[6.5rem] shrink-0 gap-1" ${n && !S.saving ? '' : 'disabled'}>
+          <i class="ph ph-floppy-disk"></i><span>${S.saving ? 'Saving' : n ? 'Save ' + n : 'Save'}</span></button>` : ''}
+      </div>
+      ${P.question ? `<p class="w-full truncate text-sm text-base-content/70" data-title-tip="${esc(P.question)}" data-title-tip-bare>${esc(P.question)}</p>` : ''}`;
+  }
+
+  // ── mount ───────────────────────────────────────────────────────────────
+  paintHead();
+  if (!P) {
+    $('root').innerHTML = `<p class="p-2 text-error">${esc(S.err)}</p>`;
+  } else {
+    $('root').innerHTML = `<div id="list" role="listbox" aria-label="Runs" class="[scrollbar-gutter:stable]"></div><div id="card"></div>`;
+    const list = $('list');
+    list.innerHTML = runs().map(rowHTML).join('');
+    let sel = (() => { const h = window.UrlParams.get('run'); return runOf(h) ? h : runs()[0]?.id; })();
+    let deck = null, focus = null;
+
+    const openDeck = (at) => {
+      const start = Math.max(0, runs().findIndex(r => r.id === sel));
+      const r0 = runs()[start];
+      deck = swipeDeck.open({
+        count: runs().length, start, title: r0.title, subtitle: r0.meta || '', icon: 'ph-list-checks',
+        slideScroll: false, innerClass: 'h-full w-full min-w-0',
+        index: i => ({ title: runs()[i].title, subtitle: runs()[i].meta || '' }),
+        render: (i, slide) => {
+          const r = runs()[i];
+          slides.get(slide)?.ro?.disconnect();
+          slide.innerHTML = pairHTML(r);
+          const pair = slide.querySelector('[data-pair]'), st = {};
+          slides.set(slide, st);
+          requestAnimationFrame(() => {
+            orient(pair, st);
+            st.ro = new ResizeObserver(() => orient(pair, st));
+            st.ro.observe(pair);
+            if (focus && focus.run === r.id) { hold(pair, [focus.out]); focus = null; }
+          });
+        },
+        release: (i, slide) => { const st = slides.get(slide); st?.ro?.disconnect(); st?.seam?.destroy(); slides.delete(slide); },
+        onSlide: i => {
+          const r = runs()[i];
+          sel = r.id;
+          deck?.setTitle(r.title); deck?.setSubtitle(r.meta || '');
+          swiper.show(r.id);
+        },
+        onClose: () => { deck = null; held = null; },
+      });
+      if (at) requestAnimationFrame(() => {
+        const pair = deck?.el.querySelector(`[data-pair="${CSS.escape(at.run)}"]`);
+        if (pair) { hold(pair, [at.out]); focus = null; }
+      });
+    };
+
+    const swiper = linkedSwiper.attach({
+      root: $('root'), list, card: $('card'), key: 'run', noun: 'run',
+      ids: () => runs().map(r => r.id), sel: () => sel, listMax: 'max-h-[40dvh]',
+      name: id => ({ title: runOf(id).title }),
+      body: cardBody,
+      onPick: id => { sel = id; },
+      deck: () => openDeck(null),
+    });
+
+    document.addEventListener('click', e => {
+      if (e.target.closest('#save')) return save();
+      const v = e.target.closest('[data-verdict]');
+      const item = e.target.closest('[data-item]');
+      if (v && item) {
+        const [run, out] = item.dataset.item.split('|');
+        setState(run, out, { verdict: stateOf(keyOf(run, out)).verdict === v.dataset.verdict ? '' : v.dataset.verdict, at: new Date().toISOString() });
+        paintItem(run, out);
+        return;
+      }
+      const ln = e.target.closest('[data-line]');
+      if (ln && item) {
+        const [run, out] = item.dataset.item.split('|');
+        focus = { run, out };
+        openDeck(focus);
+        return;
+      }
+      const pair = e.target.closest('[data-pair]');
+      if (!pair || e.target.closest('input,button')) return;
+      const m = e.target.closest('mark[data-outs]');
+      if (m) return hold(pair, m.dataset.outs.split(' '), 'in');
+      const it = e.target.closest('[data-out]');
+      if (it) hold(pair, [it.dataset.out], 'out');
+    });
+
+    document.addEventListener('input', e => {
+      const n = e.target.closest('[data-note]'), item = n && n.closest('[data-item]');
+      if (!item) return;
+      const [run, out] = item.dataset.item.split('|');
+      setState(run, out, { note: n.value });
+      for (const other of document.querySelectorAll(`[data-item="${CSS.escape(item.dataset.item)}"] [data-note]`))
+        if (other !== n) other.value = n.value;
+    });
+  }
+</script>
+</head>
+<body class="flex h-dvh flex-col gap-2.5 bg-base-200 p-3 max-sm:p-2">
+  <header id="head" class="flex flex-none flex-wrap items-center gap-x-3 gap-y-0.5 px-1"></header>
+  <main id="root" class="flex min-h-0 flex-auto flex-col"><span class="loading loading-dots loading-md m-auto text-base-content/40"></span></main>
+</body>
+</html>
