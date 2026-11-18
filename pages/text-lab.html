@@ -1759,10 +1759,16 @@
         this.focusAt = { ...this.focusAt, [id]: k };
         if (this.marksMode === 'c') this.swipers?.exemplar?.paint();
       },
-      // Below the stuck face toggle, with a little room.
+      // Below the stuck face toggle, with a little room. On a phone the list
+      // stands above the card and the card starts halfway down, so the page
+      // brings the card up first: the mark is what the reader asked to read,
+      // and a look link's dock covers the lower half of the screen.
       scrollToMark(body, el) {
         const box = this.scrollerOf(el);
         if (!box) return el.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        const card = this.$refs?.exemplarCard;
+        if (card?.contains(box) && card.getBoundingClientRect().top > 8)
+          window.scrollTo({ top: window.scrollY + card.getBoundingClientRect().top - 8, behavior: 'smooth' });
         const top = box.getBoundingClientRect().top;
         const bar = body.querySelector('[role="tablist"]')?.parentElement;
         const under = bar ? Math.max(0, bar.getBoundingClientRect().bottom - top) : 0;   // below the stuck toggle
