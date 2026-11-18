@@ -335,7 +335,8 @@ test('a focus passage is a change container: an outline, its number, and two rea
   assert.ok(sec.className.includes(`ring-[${mix}]`), 'md-diff\'s neutral outline, by md-diff\'s own mix');
   assert.match(sec.className, /-mx-2 px-2 py-1/, 'the outline sits outside the text, which keeps its left edge');
   assert.doesNotMatch(sec.className, /(^|\s)bg-/, 'an outline, not a fill: a fill is what a selected row wears');
-  assert.match(sec.className, /data-\[on\]:ring-2/, 'the selected passage, and only it, wears a heavier outline');
+  assert.match(sec.className, /data-\[on\]:bg-\[/, 'the selected passage, and only it, takes a faint wash, as md-diff\'s selected change does');
+  assert.doesNotMatch(sec.className, /ring-2/, 'and keeps its outline: md-diff\'s selection never thickens the ring');
   assert.doesNotMatch(sec.className, /--color-(error|success|warning|info|primary)/, 'in the base colour: colour here is a standing');
   const num = sec.querySelector('[data-focus-claim]');
   assert.equal(num.textContent, '1', 'its number alone');
@@ -358,7 +359,7 @@ test('a focus passage is a change container: an outline, its number, and two rea
   assert.deepEqual(stops.map(b => b.getAttribute('aria-pressed')), ['false', 'true']);
   assert.deepEqual(went, ['0'], 'back to the top of the passage, since the box follows the reading');
   assert.ok(sec.hasAttribute('data-on'), 'the passage the reader picked is the one selected');
-  assert.match(sec.className, /data-\[on\]:ring-2/, 'selected, its outline is heavier on either reading');
+  assert.match(sec.className, /data-\[on\]:bg-\[/, 'selected, it is washed on either reading');
   assert.doesNotMatch(sec.querySelector('[data-focus-context]').textContent, /passage 1 of/, 'the count is the pill\'s and the pad\'s, not said again');
   assert.equal(h.model.focusAt.fixture, 0, 'and the passage is where the reader now is');
   h.model.exemplarClick({ target: host.querySelector('[data-focus-reading="text"]') });

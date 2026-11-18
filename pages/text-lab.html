@@ -1699,9 +1699,10 @@
       // at the top left and the stops in a pill at the top right, both
       // centred on the top edge; md-diff's own pill and mix (mdDiff.PILL,
       // mdDiff.hueMix), imported rather than copied, so the two cannot drift.
-      // The one passage selected, as md-diff's one change, wears a heavier
-      // outline and a filled number. Neutral where md-diff's selection is
-      // yellow: colour on this page is a standing.
+      // The one passage selected is marked as md-diff marks its one change:
+      // the outline stays as it is, a faint wash fills the box, and the number
+      // fills. Neutral where md-diff's selection is yellow: colour on this page
+      // is a standing.
       //
       // TWO READINGS, `text` and `context`, where md-diff has old, inline and
       // new: the passage, and the background on it (what the passage is, how
@@ -1727,8 +1728,8 @@
         const sec = document.createElement('section');
         sec.dataset.focus = String(k);
         sec.dataset.reading = 'text';
-        sec.className = `group/focus relative my-8 rounded-[4px] -mx-2 px-2 py-1 ring-1 ring-[${mix(22)}] transition-[box-shadow] duration-200`
-          + ` data-[on]:ring-2 data-[on]:ring-[${mix(60)}]`;
+        sec.className = `group/focus relative my-8 rounded-[4px] -mx-2 px-2 py-1 ring-1 ring-[${mix(22)}] transition-colors duration-200`
+          + ` data-[on]:bg-[${mix(5)}]`;
         // A stop's hit area runs past its drawn edge (the ::before), since a
         // pill ten pixels tall is a hard thing to hit with a thumb.
         const stop = (key) => `<button type="button" data-focus-reading="${key}" aria-pressed="${key === 'text'}"`
@@ -1744,7 +1745,7 @@
         sec.innerHTML = `<div class="sticky top-14 z-10 -mx-2 -mt-1 mb-1 h-0">`
           + `<div class="absolute inset-x-0 -top-3 h-6 bg-base-100 hidden group-data-[stuck]/focus:block"></div>`
           + `<button type="button" data-focus-claim class="${PILL} left-1 cursor-pointer px-1.5 py-0.5 tabular-nums font-medium transition-colors opacity-80`
-          + ` group-data-[on]/focus:opacity-100 group-data-[on]/focus:bg-base-content group-data-[on]/focus:text-base-100 group-data-[on]/focus:border-base-content"`
+          + ` group-data-[on]/focus:opacity-100 group-data-[on]/focus:bg-[${mix(20)}] group-data-[on]/focus:!border-[${mix(60)}]"`
           + ` aria-label="Passage ${k + 1}${total > 1 ? ` of ${total}` : ''}">${k + 1}</button>`
           + `<div class="${PILL} right-1 gap-0.5 px-0.5 py-0.5 !border-[${mix(40)}]"`
           + ` role="group" aria-label="Show this passage as">${stop('text')}${stop('context')}</div></div>`
@@ -2024,9 +2025,9 @@
       // stays marked until another is chosen, rather than flashing and going
       // out, which left the pad's bookmark counting a mark the page no longer
       // showed. A focus passage already wears an outline, so it is selected
-      // rather than ringed (data-on): its outline goes heavier and its number
-      // fills, on either reading, as md-diff's badge fills for the change a
-      // reader is on, in the base colour.
+      // rather than ringed (data-on): a faint wash fills it and its number
+      // fills, on either reading, as md-diff marks the change a reader is on,
+      // in the base colour.
       ringMark(els) {
         for (const [e, c] of this._ringEls || []) c ? e.classList.remove(...c) : e.removeAttribute('data-on');
         this._ringEls = [].concat(els).filter(Boolean).map(e => [e, e.matches('[data-focus]') ? null : e.matches('[data-cite]') ? this.UNDERLINE : this.RING]);
