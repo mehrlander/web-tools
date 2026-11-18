@@ -1921,8 +1921,8 @@
       // slides, so it stays put while the piece scrolls.
       //
       // A FINGER, NOT A POINTER. Each mark is a target the rail's full width
-      // across and a little into the gutter beside it, its visible bar or
-      // tick drawn inside it: a focus passage owns
+      // across, out into the gutter on its left and to the card's edge on its
+      // right, its visible bar or tick drawn inside it: a focus passage owns
       // its stretch of the rail and a little more, and a citation reaches
       // halfway to its neighbours. Drawn only as wide as they look (six
       // pixels), a tap a few pixels off the bar went to a citation inside the
@@ -1985,17 +1985,17 @@
           for (const f of bars) { if (f.bot > top && f.bot <= t.v) top = f.bot; if (f.top < bot && f.top > t.v) bot = f.top; }
           return { ...t, top: Math.max(0, top), bot: Math.min(H, bot) };
         });
-        const TICK = 'pointer-events-none absolute right-0.5 h-[3px] w-1.5 rounded-full bg-base-content/30';
+        const TICK = 'pointer-events-none absolute right-1 h-[3px] w-1.5 rounded-full bg-base-content/30';
         const cites = zones.map(z => `<button type="button" data-rail-go="cite:${z.k}" aria-label="Citation ${z.k + 1}"`
-            + ` class="group/tick pointer-events-auto absolute -left-2 right-0" style="top:${px(z.top)};height:${px(z.bot - z.top)}">`
+            + ` class="group/tick pointer-events-auto absolute -left-2 -right-0.5" style="top:${px(z.top)};height:${px(z.bot - z.top)}">`
             + `<span class="${TICK} group-hover/tick:bg-base-content/70" style="top:${px(z.v - z.top)}"></span></button>`)
           .concat(ticks.filter(t => inBar(t.v)).map(t => `<span aria-hidden="true" class="${TICK}" style="top:${px(t.v)}"></span>`));
         const focus = bars.map(f => `<button type="button" data-rail-go="focus:${f.k}" aria-label="${n > 1 ? `Focus ${f.k + 1} of ${n}` : 'Focus'}"`
-          + ` class="group/bar absolute -left-2 right-0" style="top:${px(f.top)};height:${px(f.bot - f.top)}">`
+          + ` class="group/bar absolute -left-2 -right-0.5" style="top:${px(f.top)};height:${px(f.bot - f.top)}">`
           + `<span class="pointer-events-none absolute left-2.5 w-1.5 rounded-sm bg-base-content/50 group-hover/bar:bg-base-content/80" style="top:${px(PAD)};height:${px(f.h)}"></span></button>`);
         // The citations in one layer a walkthrough can name ("any tick"), the
         // focus bars over it, so a passage's own stretch of the rail is its.
-        const html = (ticks.length ? `<div data-rail-cites class="pointer-events-none absolute inset-y-0 -left-2 right-0">${cites.join('')}</div>` : '') + focus.join('');
+        const html = (ticks.length ? `<div data-rail-cites class="pointer-events-none absolute inset-y-0 -left-2 -right-0.5">${cites.join('')}</div>` : '') + focus.join('');
         // Rebuilt only when a tick moved, so a tick a reader (or a look link)
         // is about to tap is still the element on screen when they do.
         if (rail._ticks !== html) {
