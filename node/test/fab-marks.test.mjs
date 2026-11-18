@@ -141,3 +141,17 @@ test('a page’s mark pad tucks the launcher into its corner, and a tap brings i
     assert.equal(root.style.getPropertyValue('--mark-pad-bottom'), '');
   } finally { host.remove(); }
 });
+
+test('a pad that came up before the launcher still tucks it', async () => {
+  const pad = doc.createElement('div');
+  pad.setAttribute('data-mark-pad', '');
+  doc.body.append(pad);
+  const { d, host } = await mountFab();
+  try {
+    await new Promise(r => window.setTimeout(r, 5)); await tick(2);
+    assert.equal(d.tuckNow, true, 'the page booted first, and the pad is on screen');
+  } finally {
+    host.remove(); pad.remove();
+    window.dispatchEvent(new window.CustomEvent('mark-pad', { detail: { shown: false } }));
+  }
+});
