@@ -2,18 +2,19 @@
 
 A **check** asks the owner to judge the outputs a model or a script made from an input, one at a time. Each output rests on a passage of the input. The owner gives it one verdict from a declared set and may add a note.
 
-A `check/1` payload holds the input and the outputs. 🔷 [pages/check.html](https://mehrlander.github.io/web-tools/pages/check.html) draws each output beside its passage. It appends the owner's verdicts to an answers file beside the payload, where the session that made the check reads them.
+A `check/1` payload holds the input and the outputs. 🔷 [pages/check.html](https://mehrlander.github.io/web-tools/pages/check.html) draws each output beside its passage. It appends the owner's verdicts to an answers file beside the payload. The session that made the check reads them there.
 
 The first producer is [`flag_check.py`](https://github.com/mehrlander/home/blob/main/projects/text/runs/2026-11-06-prompt-sentiment/src/flag_check.py) in home. Its outputs are the preferences a model flagged in the owner's messages, each anchored at the sentence it quotes.
 
 ## Delivery
 
-The page reads `#gz=` before `?src=`, and shows its embedded sample, two of the house style's rules, when it has neither:
+The page reads `#gz=` before `?src=`:
 
 | channel | form | use when |
 | --- | --- | --- |
 | `?src=<spec>` or `#src=<spec>` | `owner/repo[@ref]:path`, read through the viewer's GitHub token | a committed payload, private ones included |
 | `#gz=<base64url>` | a gzipped `check/1` payload in the fragment | a small payload with no commit |
+| (none) | the page's embedded sample, flags on rules 1, 2, 9 and 15 of the [house style](../../skills/html-style/SKILL.md) | a look at the page |
 
 ## The payload
 
@@ -22,11 +23,13 @@ The page reads `#gz=` before `?src=`, and shows its embedded sample, two of the 
 | `kind` | `check/1` |
 | `title` | What is being checked |
 | `question` | What a verdict answers, such as *is this flag right?* |
-| `verdicts` | In order, each with `verdict` (the value written), `label` (the button) and `gloss`, and optionally an `icon` (a Phosphor class such as `ph-check`) and a `tone`, the colour of the chosen button and its marks: `success`, `error`, `warning`, `info` or `neutral` |
+| `verdicts` | In order, each with `verdict` (the value written), `label` (the button) and `gloss` |
 | `tags` | Optional: the values an output's `tag` takes, each with `tag`, `label` and optionally an `icon` |
-| `answers` | Optional: the answers file. A repo path is read in the payload's repository at the payload's ref; an `owner/repo[@ref]:path` address names its own, and is the only form a `#gz=` payload can save to. Default: the payload's path with `.json` replaced by `.answers.jsonl` |
+| `answers` | Optional: the answers file. A repo path is read in the payload's repository at the payload's ref; an `owner/repo[@ref]:path` address names its own. A `#gz=` payload saves only to an address. Default: the payload's path with `.json` replaced by `.answers.jsonl` |
 | `made` | Optional: `by` (the producer's address) and `from` (the addresses it read) |
 | `runs` | In order |
+
+A verdict may also have an `icon`, a Phosphor class such as `ph-check`, and a `tone`, the colour of its chosen button and of its marks: `success`, `error`, `warning`, `info` or `neutral`.
 
 A **run** is one input and the outputs made from it. It has an `id` unique in the payload, a `title`, a `meta` line (a date and a count, say), a `source` and its `outputs`. `source` holds `blocks`, each with `id`, `label` and `text`, and optionally an `address` where the input lives.
 
