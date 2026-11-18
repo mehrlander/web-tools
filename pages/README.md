@@ -21,7 +21,6 @@ the link-dense text twin of the visual index above.
 | `branch` | Branch | [view](https://mehrlander.github.io/web-tools/pages/branch.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/branch.html) |
 | `cat-map` | Category map | [view](https://mehrlander.github.io/web-tools/pages/cat-map.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/cat-map.html) |
 | `chat-results` | Chat Search Results | [view](https://mehrlander.github.io/web-tools/pages/chat-results.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/chat-results.html) |
-| `check` | Check | [view](https://mehrlander.github.io/web-tools/pages/check.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/check.html) |
 | `citations` | Citations | [view](https://mehrlander.github.io/web-tools/pages/citations.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/citations.html) |
 | `compactions` | Compactions | [view](https://mehrlander.github.io/web-tools/pages/compactions.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/compactions.html) |
 | `compression-helper` | Compression Helper (v5) | [view](https://mehrlander.github.io/web-tools/pages/compression-helper.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/compression-helper.html) |
@@ -37,6 +36,7 @@ the link-dense text twin of the visual index above.
 | `image-board` | Image board | [view](https://mehrlander.github.io/web-tools/pages/image-board.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/image-board.html) |
 | `index` | web-tools | [view](https://mehrlander.github.io/web-tools/pages/index.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/index.html) |
 | `inquiry` | Inquiry | [view](https://mehrlander.github.io/web-tools/pages/inquiry.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/inquiry.html) |
+| `inspection` | Inspection | [view](https://mehrlander.github.io/web-tools/pages/inspection.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/inspection.html) |
 | `launcher` | Popup Launcher · setup | [view](https://mehrlander.github.io/web-tools/pages/launcher.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/launcher.html) |
 | `links` | Links | [view](https://mehrlander.github.io/web-tools/pages/links.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/links.html) |
 | `passage-reader` | Passage reader | [view](https://mehrlander.github.io/web-tools/pages/passage-reader.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/passage-reader.html) |

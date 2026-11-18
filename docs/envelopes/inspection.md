@@ -1,10 +1,10 @@
-# Check: the envelope contract
+# Inspection: the envelope contract
 
-A **check** asks the owner to judge, one at a time, the outputs a model or a script made from its inputs. Each output is anchored to a passage of an input. The owner gives it one verdict from a declared set and may add a note.
+An **inspection** asks the owner to judge, one at a time, the outputs a model or a script made from its inputs. Each output is anchored to a passage of an input. The owner gives it one verdict from a declared set and may add a note.
 
-A `check/1` payload holds the inputs and outputs as [runs](#the-payload), one input to a run. 🔷 [pages/check.html](https://mehrlander.github.io/web-tools/pages/check.html) draws each output beside its passage. It appends the verdicts to the payload's [answers file](#answers), which the session that made the check reads.
+An `inspection/1` payload holds the inputs and outputs as [runs](#the-payload), one input to a run. 🔷 [pages/inspection.html](https://mehrlander.github.io/web-tools/pages/inspection.html) draws each output beside its passage. It appends the verdicts to the payload's [answers file](#answers), which the session that made the inspection reads.
 
-The first producer is [`flag_check.py`](https://github.com/mehrlander/home/blob/main/projects/text/runs/2026-11-06-prompt-sentiment/src/flag_check.py) in [home](https://github.com/mehrlander/home). The script's outputs are the preferences a model flagged in the owner's messages, each anchored at the sentence it quotes.
+The first producer is [`flag_inspection.py`](https://github.com/mehrlander/home/blob/main/projects/text/runs/2026-11-06-prompt-sentiment/src/flag_inspection.py) in [home](https://github.com/mehrlander/home). The script's outputs are the preferences a model flagged in the owner's messages, each anchored at the sentence it quotes.
 
 ## Delivery
 
@@ -13,15 +13,15 @@ The page reads `#gz=` before `?src=`:
 | channel | form | use when |
 | --- | --- | --- |
 | `?src=<spec>` or `#src=<spec>` | `owner/repo[@ref]:path`, read through the viewer's GitHub token | a committed payload, private ones included |
-| `#gz=<base64url>` | a gzipped `check/1` payload in the fragment | a small payload with no commit |
+| `#gz=<base64url>` | a gzipped `inspection/1` payload in the fragment | a small payload with no commit |
 | (none) | the page's embedded sample: two runs over rules 1, 2, 9 and 15 of the [house style](../../skills/html-style/SKILL.md#the-rules) | a look at the page |
 
 ## The payload
 
 | Field | Holds |
 | --- | --- |
-| `kind` | `check/1` |
-| `title` | What is being checked |
+| `kind` | `inspection/1` |
+| `title` | What is being inspected |
 | `question` | What a verdict answers, such as *is this flag right?* |
 | `verdicts` | In order, each with `verdict` (the value written), `label` (the button) and `gloss` (its meaning, in a line) |
 | `tags` | Optional: the values an output's `tag` takes, each with `tag`, `label` and optionally an `icon` |

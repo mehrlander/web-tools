@@ -6,7 +6,6 @@ main,,bench,Bench,bench.html,thumbs/bench.png,https://github.com/mehrlander/web-
 main,,branch,Branch,branch.html,thumbs/branch.png,https://github.com/mehrlander/web-tools/blob/main/pages/branch.html,
 main,,cat-map,Category map,cat-map.html,thumbs/cat-map.png,https://github.com/mehrlander/web-tools/blob/main/pages/cat-map.html,"What kind of thing is it? A poster per question: the two characteristics that decide the word, the estate's own files in each box, the words that add to it, the names to fix and the calls left open."
 main,,chat-results,Chat Search Results,chat-results.html,thumbs/chat-results.png,https://github.com/mehrlander/web-tools/blob/main/pages/chat-results.html,
-main,,check,Check,check.html,thumbs/check.png,https://github.com/mehrlander/web-tools/blob/main/pages/check.html,
 main,,citations,Citations,citations.html,thumbs/citations.png,https://github.com/mehrlander/web-tools/blob/main/pages/citations.html,
 main,,compactions,Compactions,compactions.html,thumbs/compactions.png,https://github.com/mehrlander/web-tools/blob/main/pages/compactions.html,
 main,,compression-helper,Compression Helper (v5),compression-helper.html,thumbs/compression-helper.png,https://github.com/mehrlander/web-tools/blob/main/pages/compression-helper.html,Compression bookmarklet packer.
@@ -21,6 +20,7 @@ main,,gist-editor,Gist Editor,gist-editor.html,thumbs/gist-editor.png,https://gi
 main,,idea-board,Idea board,idea-board.html,thumbs/idea-board.png,https://github.com/mehrlander/web-tools/blob/main/pages/idea-board.html,
 main,,image-board,Image board,image-board.html,thumbs/image-board.png,https://github.com/mehrlander/web-tools/blob/main/pages/image-board.html,
 main,,inquiry,Inquiry,inquiry.html,thumbs/inquiry.png,https://github.com/mehrlander/web-tools/blob/main/pages/inquiry.html,
+main,,inspection,Inspection,inspection.html,thumbs/inspection.png,https://github.com/mehrlander/web-tools/blob/main/pages/inspection.html,
 main,,launcher,Popup Launcher · setup,launcher.html,thumbs/launcher.png,https://github.com/mehrlander/web-tools/blob/main/pages/launcher.html,"Popup launcher setup — paste a token, copy out the bookmarklet."
 main,,links,Links,links.html,thumbs/links.png,https://github.com/mehrlander/web-tools/blob/main/pages/links.html,"home's bookmarks board: a pinned rail, areas of links, and an area's markdown dossier, all editable in place."
 main,,passage-reader,Passage reader,passage-reader.html,thumbs/passage-reader.png,https://github.com/mehrlander/web-tools/blob/main/pages/passage-reader.html,

@@ -3,15 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Check</title>
+<title>Inspection</title>
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
 <!--
-  check.html: the check form (docs/envelopes/check.md). The owner judges what
-  an AI process made from its input, item by item, and the verdicts are
-  appended beside the payload for the session that asked.
+  inspection.html: the inspection form (docs/envelopes/inspection.md). The
+  owner judges what an AI process made from its input, item by item, and the
+  verdicts are appended beside the payload for the session that asked.
 
-    ?src=owner/repo[@ref]:path   a committed check/1 payload, read and saved
+    ?src=owner/repo[@ref]:path   a committed inspection/1 payload, read and saved
                                  through the viewer's token (also #src=)
     #gz=<base64url>              a gzipped payload carried in the link
     (neither)                    the embedded sample
@@ -53,7 +53,7 @@
       }),
     });
     return {
-      kind: 'check/1', title: 'Sample check', question: 'Is the flagged sentence a standing preference, with this stance?',
+      kind: 'inspection/1', title: 'Sample inspection', question: 'Is the flagged sentence a standing preference, with this stance?',
       verdicts: [
         { verdict: 'right', label: 'Right', gloss: 'a standing preference, with the stance the flag gives it', icon: 'ph-check', tone: 'success' },
         { verdict: 'wrong', label: 'Wrong', gloss: 'not a standing preference', icon: 'ph-x', tone: 'error' },
@@ -139,7 +139,7 @@
   }
 
   // Unsaved verdicts are kept in this browser until they are saved.
-  const DRAFT = 'check:draft:' + (srcSpec || (gz ? 'gz:' + gz.slice(0, 40) : 'sample'));
+  const DRAFT = 'inspection:draft:' + (srcSpec || (gz ? 'gz:' + gz.slice(0, 40) : 'sample'));
   const draft = () => { try { return JSON.parse(localStorage.getItem(DRAFT) || '{}'); } catch { return {}; } };
   const keepDraft = () => {
     const d = {};
@@ -155,7 +155,7 @@
     if (gz) S.p = JSON.parse(await window.GzPayload.decode(gz));
     else if (src) S.p = JSON.parse((await client(src).get(src.path)).text);
     else S.p = SAMPLE;
-    if (S.p?.kind !== 'check/1') throw new Error('not a check/1 payload');
+    if (S.p?.kind !== 'inspection/1') throw new Error('not an inspection/1 payload');
     adopt(S.p);
     S.target = targetOf(S.p);
     await readAnswers();
@@ -257,7 +257,7 @@
   // The takeover's slide: the input over the output on a phone, beside it
   // when the slide is wide, a dock-split seam between them.
   const WIDE = 900;
-  const splitKey = axis => 'check:split:' + axis;
+  const splitKey = axis => 'inspection:split:' + axis;
   const splitOf = axis => { try { const v = +localStorage.getItem(splitKey(axis)); return v > 0 ? v : (axis === 'col' ? 55 : 45); } catch { return axis === 'col' ? 55 : 45; } };
   const split = { col: splitOf('col'), row: splitOf('row') };
   const slides = new Map();
@@ -402,7 +402,7 @@
   const ago = t => { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? 'just now' : m < 60 ? m + 'm ago' : Math.round(m / 60) + 'h ago'; };
   function paintHead() {
     const head = $('head');
-    if (!P) { head.innerHTML = `<h1 class="text-lg font-semibold">Check</h1>`; return; }
+    if (!P) { head.innerHTML = `<h1 class="text-lg font-semibold">Inspection</h1>`; return; }
     const total = P.runs.reduce((a, r) => a + r.outputs.length, 0);
     const done = P.runs.reduce((a, r) => a + doneOf(counts(r)), 0);
     const n = dirtyKeys().length;
@@ -412,7 +412,7 @@
     head.innerHTML = `
       <div class="flex min-w-0 flex-1 items-center gap-2">
         <i class="ph ph-list-checks shrink-0 text-xl text-primary"></i>
-        <h1 class="line-clamp-2 min-w-0 text-lg leading-snug font-semibold" data-title-tip="${esc(P.title || 'Check')}" data-title-tip-bare>${esc(P.title || 'Check')}</h1>
+        <h1 class="line-clamp-2 min-w-0 text-lg leading-snug font-semibold" data-title-tip="${esc(P.title || 'Inspection')}" data-title-tip-bare>${esc(P.title || 'Inspection')}</h1>
         <span class="min-w-[7ch] shrink-0 font-mono text-xs tabular-nums text-base-content/60">${done}/${total}</span>
       </div>
       <div class="flex min-w-0 items-center gap-2">${status}
