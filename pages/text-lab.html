@@ -1933,12 +1933,19 @@
           return `<button type="button" data-rail-go="focus:${k}" aria-label="${n > 1 ? `Focus ${k + 1} of ${n}` : 'Focus'}"`
             + ` class="absolute left-0 w-full min-h-1 rounded-sm bg-base-content/50 hover:bg-base-content/80" style="top:${pct(r.top - b.top)};height:${pct(r.height)}"></button>`;
         });
-        const cites = [...body.querySelectorAll('[data-cite]')].filter(el => !seen.has(el.dataset.cite) && seen.add(el.dataset.cite)).map(el => {
+        // A hidden citation has no place in the text, so it has none on the rail.
+        const cites = [...body.querySelectorAll('[data-cite]')].filter(el => el.getClientRects().length && !seen.has(el.dataset.cite) && seen.add(el.dataset.cite)).map(el => {
           const r = el.getBoundingClientRect();
           return `<button type="button" data-rail-go="cite:${el.dataset.cite}" aria-label="Citation ${+el.dataset.cite + 1}"`
             + ` class="absolute right-0 w-2 h-[3px] rounded-full bg-base-content/30 hover:bg-base-content/70" style="top:${pct(r.top - b.top)}"></button>`;
         });
-        rail.innerHTML = `<div data-rail-view class="absolute inset-x-0 rounded-sm bg-base-content/10 pointer-events-none"></div>` + focus.join('') + cites.join('');
+        // Rebuilt only when a tick moved, so a tick a reader (or a look link)
+        // is about to tap is still the element on screen when they do.
+        const html = focus.join('') + cites.join('');
+        if (rail._ticks !== html) {
+          rail.innerHTML = `<div data-rail-view class="absolute inset-x-0 rounded-sm bg-base-content/10 pointer-events-none"></div>` + html;
+          rail._ticks = html;
+        }
         this.railView();
       },
       railView() {
