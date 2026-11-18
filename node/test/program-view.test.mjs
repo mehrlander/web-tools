@@ -304,6 +304,7 @@ test('Programs breaks a registry down, packs tiles without holes, and finds an a
   assert.equal(spans([2, 3, 2, 1, 1], 3), '0:2 3:1 1:3 2:2 4:1', 'a row takes the first later tile that fits its gap');
   assert.equal(spans([2, 2], 3), '0:3 1:3', 'a gap nothing fits goes to the row\'s tile');
   assert.equal(spans([1, 1], 3), '0:2 1:1', 'shared out from the first');
+  assert.equal(window.Programs.tileSpans([1, 1], 3, [false, true]).map(t => t.span).join(), '1,2', 'a tile of views alone grows last');
   assert.equal(spans([1, 1, 1, 1, 1], 4), '0:1 1:1 2:1 3:1 4:4');
   assert.equal(spans([3, 2], 1), '0:1 1:1', 'one column: every tile one wide, in order');
   for (const c of [1, 2, 3, 4]) {
@@ -350,6 +351,11 @@ test('Areas draws a tile an area: its icon and files, its declared panels, its w
   assert.equal(docs('Forms')[0].hasAttribute('data-peek'), false, 'a folder has no peek');
   assert.ok(docs('Forms')[1].querySelector('i').classList.contains('ph-file-text'));
   assert.equal(tile('Showing').querySelector('[data-area-docs]').style.display, 'none', 'no repository link, no chips');
+  // A file in the chips and the same file heading a panel mark each other.
+  const chip = docs('Reply')[0];
+  chip.dispatchEvent(new window.Event('mouseenter')); await tick();
+  assert.ok(chip.classList.contains('bg-primary/10'));
+  chip.dispatchEvent(new window.Event('mouseleave')); await tick();
   const opened = [], was = window.open;
   window.open = (u) => { opened.push(u); };
   try { docs('Reply')[0].click(); await tick(3); } finally { window.open = was; }
@@ -390,6 +396,10 @@ test('Areas draws a tile an area: its icon and files, its declared panels, its w
   assert.ok(groups[0].querySelector('i.ph-sparkle'), 'a declared group icon');
   assert.match(groups[1].querySelector('[data-bar]').getAttribute('style'), /width:\s*66\.7%/);
   assert.match(bd.querySelector('[data-panel-head]').textContent.replace(/\s+/g, ' '), /portable by kind 6/);
+  const head = bd.querySelector('[data-panel-file="docs/portable.csv"]');
+  head.dispatchEvent(new window.Event('mouseenter')); await tick();
+  assert.ok(head.classList.contains('bg-primary/10'), 'a panel\'s file marks under the pointer, as its chip would');
+  head.dispatchEvent(new window.Event('mouseleave')); await tick();
   const split = tile('Showing').querySelector('[data-area-breakdown][data-registry="docs/harness.csv"]');
   assert.deepEqual([...split.querySelectorAll('[data-breakdown-group]')].map(g => g.dataset.group + ' ' + g.dataset.n), ['hook 2', 'ci 1', 'git 0']);
   assert.match(split.querySelector('[data-panel-head]').textContent, /3 of 5/, 'the rows it counts, of the registry\'s');
