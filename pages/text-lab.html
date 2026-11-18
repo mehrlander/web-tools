@@ -1748,7 +1748,7 @@
           + ` aria-label="Passage ${k + 1}${total > 1 ? ` of ${total}` : ''}">${k + 1}</button>`
           + `<div class="${PILL} right-1 gap-0.5 px-0.5 py-0.5" style="border-color:color-mix(in oklab,var(--color-base-content) 40%,transparent)"`
           + ` role="group" aria-label="Show this passage as">${stop('text')}${stop('context')}</div></div>`
-          + `<div data-focus-text class="[&>:first-child]:!mt-0 [&>:last-child]:!mb-0 group-data-[reading=context]/focus:hidden"></div>`
+          + `<div data-focus-text class="[&>:first-child]:!mt-0 [&>:first-child>:first-child]:!mt-0 [&>:last-child]:!mb-0 [&>:last-child>:last-child]:!mb-0 group-data-[reading=context]/focus:hidden"></div>`
           + `<div data-focus-context class="hidden group-data-[reading=context]/focus:grid gap-4 pt-3 pb-2">`
           + `<div class="grid gap-1"><div class="font-medium">${esc(p.focus || 'The passage to read first')}</div>`
           + `<div class="text-sm leading-6 text-base-content/70">${words} words</div></div>`
