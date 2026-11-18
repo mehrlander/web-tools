@@ -1902,10 +1902,11 @@
       // Trial c: a rail down the card's right edge, a tick at each mark where
       // the render has it (a bar the length of a focus passage, a short tick a
       // citation) and a box for the part in view, as a diff's minimap draws
-      // one. Each kind keeps its own lane, focus on the left and citations on
-      // the right, since a focus passage holds citations of its own and a
-      // tick drawn over its bar would take the tap meant for the passage. A tick takes the reader to its mark; anywhere else on the rail
-      // to that point of the piece. Drawn over the card from outside the
+      // one. Each kind keeps its own side of the rail, focus on the left and
+      // citations on the right, since a focus passage holds citations of its
+      // own and a tick drawn over its bar would take the tap meant for the
+      // passage. A tick takes the reader to its mark; anywhere else on the
+      // rail to that point of the piece. Drawn over the card from outside the
       // slides, so it stays put while the piece scrolls.
       railMount(card) {
         if (this.marksMode !== 'c' || !card || card.querySelector('[data-rail]')) return;
