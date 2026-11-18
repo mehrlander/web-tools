@@ -110,3 +110,34 @@ test('the launcher shows a count or a stepper, by the page’s style, and the pa
   assert.match(SRC, /if \(window\.__tossFrame\) \{\s*try \{ const w = window\.__tossFrame\.contentWindow/,
     'in a toss the frame is searched as soon as the renderer has stamped it, not once the drawer has a subject');
 });
+
+// The tuck, a trial beside the contract (pages/text-lab.html ?marks=d): a
+// page's mark pad stands in the launcher's column, so while it is up the
+// launcher steps aside to a stub in the corner and tells the pad where to
+// stand; a tap on the stub brings it back until the pad next comes up.
+test('a page’s mark pad tucks the launcher into its corner, and a tap brings it back', async () => {
+  const { d, host } = await mountFab();
+  const root = doc.documentElement;
+  const pad = shown => window.dispatchEvent(new window.CustomEvent('mark-pad', { detail: { shown } }));
+  try {
+    assert.equal(d.tuckNow, false, 'no pad, no tuck');
+    pad(true); await tick(2);
+    assert.equal(d.tuckNow, true);
+    assert.match(root.style.getPropertyValue('--mark-pad-bottom'), /var\(--fab-bottom/, 'the pad is told to come down');
+    const cover = host.querySelector('[aria-label="Bring back the web-tools panel button"]');
+    assert.ok(cover, 'the stub takes a tap of its own');
+    cover.click(); await tick(2);
+    assert.equal(d.tuckNow, false, 'the tap brings the launcher back');
+    assert.equal(root.style.getPropertyValue('--mark-pad-bottom'), '', 'and the pad goes back over it');
+    pad(true); await tick(2);
+    assert.equal(d.tuckNow, false, 'and it stays back while that pad is up');
+    pad(false); pad(true); await tick(2);
+    assert.equal(d.tuckNow, true, 'until the pad next comes up');
+    d.open = true; await tick(2);
+    assert.equal(d.tuckNow, false, 'an open drawer is never tucked');
+    d.open = false;
+    pad(false); await tick(2);
+    assert.equal(d.tuckNow, false);
+    assert.equal(root.style.getPropertyValue('--mark-pad-bottom'), '');
+  } finally { host.remove(); }
+});

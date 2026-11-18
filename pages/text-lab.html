@@ -67,11 +67,13 @@
                  standoff/1, mapped onto the render by kits/standoff.js) says
                  which paragraphs are the caption and which the focus, the
                  passage to read first, and is read only while it still pins
-                 the piece's bytes. The focus is marked with a neutral rule
-                 down its edge, since colour here is a standing and a fill is
-                 a selected row. The card's head holds the voice, the jump to
-                 the focus, which shows Text, and the door to the deck, whose
-                 header names the piece in view. Reading aloud
+                 the piece's bytes. Each focus passage is a container in
+                 md-diff's manner, an outline with its number and two stops,
+                 text and context: the passage, or the background on it (what
+                 it is, its length, and the piece's praise). Neutral, since
+                 colour here is a standing. The card's head holds the voice,
+                 the jump to the focus, which shows Text, and the door to the
+                 deck, whose header names the piece in view. Reading aloud
                  (kits/read-aloud.js) speaks Text alone, from the stored
                  Markdown: no front matter, no caption, and none of the spans
                  an optional second standoff, <slug>.citations.standoff.json,
@@ -123,10 +125,12 @@
     ?exemplar=<slug> opens one piece and implies the exemplars pane.
     ?marks=a|b|c|d trials a way through a piece's marks: a, a Marks tab in
                  the FAB's drawer and a count on the launcher; b, a stepper on
-                 the FAB; c, a rail down the card's edge; d, a pair of arrows
-                 beside the FAB (kits/mark-pad.js), stepping through the caption
-                 and focus passages, or the citations once its label is tapped.
-                 Without it, nothing.
+                 the FAB; c, a rail down the card's edge; d, a pad over the FAB
+                 (kits/mark-pad.js), two arrows and a disc between them that
+                 counts the mark in view, stepping through the caption and
+                 focus passages, or the citations once the disc is tapped; the
+                 FAB tucks into its corner while the pad is up. Without it,
+                 nothing.
     ?proposal=<id> and ?pane=proposals are the pre-2026-09-27 names; both are
                  read and the address is rewritten to the new form.
 -->
@@ -1648,9 +1652,9 @@
       // footnote: kits/standoff.js maps each text node back to its offset in
       // the file, a top-level block takes the offset of its first text, and a
       // run of blocks inside one focus span is wrapped. A block with no text of
-      // its own (a rule, an image) joins a passage only from inside one. The
-      // mark is a neutral rule down the passage's edge, with no fill: a fill
-      // here is what a selected row wears.
+      // its own (a rule, an image) joins a passage only from inside one. Each
+      // passage is a container (focusBox) with two readings, the passage and
+      // the background on it.
       exemplarDoc(p) {
         if (p.doc) return p.doc;
         const G = window.GuideRender, S = window.Standoff;
@@ -1674,20 +1678,86 @@
             if (k < 0) { i++; continue; }
             let j = i;
             while (j < blocks.length && which[j] === k) j++;
-            const wrap = document.createElement('section');
-            wrap.dataset.focus = String(k);
-            wrap.className = 'my-8 border-l-2 border-base-content/40 pl-5';
-            wrap.innerHTML = `<div class="flex items-baseline gap-1.5 text-sm leading-6 text-base-content/60"><i class="ph ph-bookmark-simple self-center"></i><span>`
-              + esc([p.focus || 'focus', total > 1 ? `${k + 1} of ${total}` : '', `${p.focusSpans[k].words.toLocaleString()} words`].filter(Boolean).join(' · '))
-              + `</span></div>`;
+            const wrap = this.focusBox(p, k, total);
             blocks[i].before(wrap);
-            wrap.append(...blocks.slice(i, j));
+            wrap.querySelector('[data-focus-text]').append(...blocks.slice(i, j));
             i = j;
           }
         }
         if (cites.length) this.wrapCitations(box, cites);
         p.doc = box.outerHTML;
         return p.doc;
+      },
+      // A FOCUS PASSAGE IS A CHANGE CONTAINER, the one md-diff draws for a
+      // change (lib/kits/md-diff.js, container()): an outline whose weight
+      // says which reading is on screen, the passage's number in a pill at the
+      // top left, the stops in a pill at the top right, and `-mx-2 px-2`, so
+      // the outline sits outside the text and the text keeps its left edge.
+      // The pill classes are md-diff's, copied, so the two read as one family.
+      //
+      // TWO READINGS, `text` and `context`, where md-diff has old, inline and
+      // new: the passage, and the background on it (what the passage is, how
+      // long, and who praised the piece, in their words). The background is
+      // the piece's, not the passage's, so a piece's passages show the same
+      // praise; only the description's place and the count are their own.
+      //
+      // NO HUE: colour on this page is a standing, so where md-diff colours
+      // each reading, here the outline is held down for the passage and
+      // stronger for the background, and the lit stop says which.
+      //
+      // A TAP ON A STOP, NOT A SWIPE. md-diff's readings swipe, which needs
+      // every reading the same height (its own account of iOS's snap), and a
+      // passage runs to thousands of words against a background of a few
+      // lines; the card also swipes, between pieces. So the box takes the
+      // height of the reading on screen, and the stops are tapped.
+      //
+      // THE PILLS STAY IN REACH: they ride a zero-height sticky row at the
+      // passage's top, so a reader halfway down Part I still has them, under
+      // the card's own sticky row, until the passage ends.
+      FOCUS_MIX: pct => `color-mix(in_oklab,var(--color-base-content)_${pct}%,transparent)`,
+      FOCUS_PILL: 'absolute -top-2 z-10 flex items-center rounded-full border border-base-300 bg-base-100/90 backdrop-blur text-[10px] leading-none select-none',
+      focusBox(p, k, total) {
+        const mix = this.FOCUS_MIX, PILL = this.FOCUS_PILL;
+        const sec = document.createElement('section');
+        sec.dataset.focus = String(k);
+        sec.dataset.reading = 'text';
+        sec.className = `group/focus relative my-8 -mx-2 px-2 py-1 rounded-[4px] ring-1 ring-[${mix(22)}] transition-[box-shadow] duration-200`
+          + ` data-[reading=context]:ring-[${mix(60)}] data-[hit]:ring-2 data-[hit]:ring-[${mix(80)}]`;
+        // A stop's hit area runs past its drawn edge (the ::before), since a
+        // pill ten pixels tall is a hard thing to hit with a thumb.
+        const stop = (key) => `<button type="button" data-focus-reading="${key}" aria-pressed="${key === 'text'}"`
+          + ` class="relative cursor-pointer rounded-full px-1.5 py-0.5 transition-colors text-[${mix(85)}] opacity-55`
+          + ` before:absolute before:-inset-y-2 before:inset-x-0 before:content-['']`
+          + ` group-data-[reading=${key}]/focus:opacity-100 group-data-[reading=${key}]/focus:font-medium group-data-[reading=${key}]/focus:bg-[${mix(20)}]">${key}</button>`;
+        const words = p.focusSpans[k].words.toLocaleString();
+        const a = (href, label) => `<a class="link link-hover" href="${esc(href)}" target="_blank" rel="noopener">${esc(label)}<i class="ph ph-arrow-square-out ml-1"></i></a>`;
+        const praise = this.recognitions(p).map(r => `<div class="flex gap-3"><i class="ph ph-quotes text-xl mt-1 self-start shrink-0 text-base-content/60" role="img" aria-label="Praised"></i>`
+          + `<div class="min-w-0 grid gap-2"><div>${esc(r.words)}</div><div class="text-sm leading-6 text-base-content/70">`
+          + (r.links.length === 1 ? a(r.links[0].href, r.by || r.links[0].label) : esc(r.by) + r.links.map(l => ' ' + a(l.href, l.label)).join(''))
+          + `</div></div></div>`).join('');
+        sec.innerHTML = `<div class="sticky top-15 z-[2] h-0">`
+          + `<span class="${PILL} left-1 gap-1 px-1.5 py-0.5 tabular-nums font-medium opacity-80 transition-colors`
+          + ` group-data-[hit]/focus:opacity-100 group-data-[hit]/focus:bg-base-content group-data-[hit]/focus:text-base-100"><i class="ph ph-bookmark-simple"></i>${k + 1}</span>`
+          + `<div class="${PILL} right-1 gap-0.5 px-0.5 py-0.5" role="group" aria-label="Show this passage as">${stop('text')}${stop('context')}</div></div>`
+          + `<div data-focus-text class="group-data-[reading=context]/focus:hidden"></div>`
+          + `<div data-focus-context class="hidden group-data-[reading=context]/focus:grid gap-4 pt-5 pb-2">`
+          + `<div class="grid gap-1"><div class="text-base leading-7 font-medium">${esc(p.focus || 'The passage to read first')}</div>`
+          + `<div class="text-sm leading-6 text-base-content/70">${esc([total > 1 ? `passage ${k + 1} of ${total}` : '', `${words} words`].filter(Boolean).join(' · '))}</div></div>`
+          + praise + `</div>`;
+        return sec;
+      },
+      // A tap on a stop: the reading the passage shows, and the passage is
+      // where the reader now is. The box follows the reading, so a reader deep
+      // in a long passage would be left past the end of a short background:
+      // the card goes back to the passage's top.
+      setFocusReading(sec, r) {
+        if (!sec || (r !== 'text' && r !== 'context')) return;
+        sec.dataset.reading = r;
+        for (const b of sec.querySelectorAll('[data-focus-reading]')) b.setAttribute('aria-pressed', String(b.getAttribute('data-focus-reading') === r));
+        const body = sec.closest('[data-exemplar-body]'), id = body?.getAttribute('data-exemplar-body');
+        if (body) this.scrollToMark(body, sec);
+        if (id != null) { this.noteFocus(id, +sec.dataset.focus); this.padFollow(id, 'focus', +sec.dataset.focus); }
+        if (this.marksMode === 'c') setTimeout(() => this.railDraw(), 50);
       },
       // Each citation's text wrapped where the render drew it, cut at its own
       // edges inside the mapped text nodes, so it can be found, dimmed or
@@ -1725,6 +1795,8 @@
         if (tab) { this.setExemplarTab(tab.getAttribute('data-exemplar-tab')); return true; }
         const cites = e.target.closest('[data-exemplar-cites]');
         if (cites) { this.setCiteMode(cites.getAttribute('data-exemplar-cites')); return true; }
+        const reading = e.target.closest('[data-focus-reading]');
+        if (reading) { this.setFocusReading(reading.closest('[data-focus]'), reading.getAttribute('data-focus-reading')); return true; }
         const voice = e.target.closest('[data-exemplar-speak]');
         if (voice) { this.speakCard(voice.getAttribute('data-exemplar-speak')); return true; }
         const focus = e.target.closest('[data-exemplar-focus]');
@@ -1754,6 +1826,7 @@
         body.dataset.next = String(k + 1);
         this.scrollToMark(body, marks[k]);
         this.noteFocus(body.getAttribute('data-exemplar-body'), k);
+        this.padFollow(body.getAttribute('data-exemplar-body'), 'focus', k);
       },
       noteFocus(id, k) {
         this.focusAt = { ...this.focusAt, [id]: k };
@@ -1815,9 +1888,19 @@
         if (!p) return [];
         const c = p.citationSpans || [];
         if (this.padKind === 'citations' && c.length)
-          return c.map((_, k) => ({ label: `citation ${k + 1} of ${c.length}`, go: () => this.goMark(p.id, 'cite', k) }));
+          return c.map((_, k) => ({ key: 'cite' + k, label: `citation ${k + 1} of ${c.length}`, go: () => this.goMark(p.id, 'cite', k) }));
         return this.markItems(p).filter(m => m.key !== 'citations')
-          .map(m => ({ label: m.key === 'caption' ? 'caption' : m.short.replace(/ (\d+)\/(\d+)$/, ' $1 of $2'), go: m.go }));
+          .map(m => ({ key: m.key, label: m.key === 'caption' ? 'caption' : m.short.replace(/ (\d+)\/(\d+)$/, ' $1 of $2'), go: m.go }));
+      },
+      // A mark the reader reached another way (its passage's stops, the
+      // focus jump, the rail, the FAB's list) is where they are, so the pad
+      // counts it and its next arrow goes on from it, as md-diff's strip goes
+      // on from the change a reader last claimed.
+      padFollow(id, kind, k = 0) {
+        if (!this.pad || id !== this.exemplarSel) return;
+        const key = kind === 'cite' ? 'cite' + k : kind === 'focus' ? 'focus' + k : 'caption';
+        const i = this.padItems().findIndex(it => it.key === key);
+        if (i >= 0) this.pad.set(i);
       },
       mountPad() {
         if (this.marksMode !== 'd' || this.pad || !window.MarkPad) return;
@@ -1865,6 +1948,7 @@
         if (!body) return;
         const key = kind === 'focus' ? 'focus' + k : kind === 'cite' ? 'citations' : 'caption';
         this.marksAt = { ...this.marksAt, [id]: this.markItems(this.exemplarOf(id)).findIndex(m => m.key === key) };
+        this.padFollow(id, kind, k);
         if (kind === 'cite' && this.citeMode === 'hide') this.setCiteMode('dim');
         const go = () => {
           // A citation across an italic is several pieces, and all of them ring.
@@ -1886,27 +1970,30 @@
       UNDERLINE: ['underline', 'decoration-2', 'decoration-base-content/60', 'underline-offset-[6px]'],
       // A RING THE READER SEES WHOLE. A block taller than the card's view
       // cannot be ringed whole, and a ring the card's edge cuts off reads as
-      // a fault, so such a block is ringed at its opening instead: a focus
-      // passage at its heading line, whose rule still shows how far it runs,
-      // and a caption at its first paragraph, or at its own icon where even
-      // that is taller than the view, as the notice that opens an opinion is
-      // on a phone.
+      // a fault, so such a block is ringed at its opening instead: a caption
+      // at its first paragraph, or at its own icon where even that is taller
+      // than the view, as the notice that opens an opinion is on a phone. A
+      // focus passage has an outline of its own and marks itself (ringMark).
       ringable(body, el) {
+        if (el.matches('[data-focus]')) return el;
         const box = this.scrollerOf(el), row = body.querySelector('[role="tablist"]')?.parentElement;
         if (!box) return el;
         const under = row ? Math.max(0, row.getBoundingClientRect().bottom - box.getBoundingClientRect().top) : 0;
         const room = box.clientHeight - under - 24;
         if (el.offsetHeight <= room) return el;
-        const open = el.matches('[data-focus]') ? el.firstElementChild : el.querySelector('.guide-body > :first-child, p');
+        const open = el.querySelector('.guide-body > :first-child, p');
         if (open && open.offsetHeight <= room) return open;
         return el.querySelector(':scope > [aria-label]') || el;
       },
+      // A focus passage already wears an outline, so it is not ringed again:
+      // its outline strengthens and its number fills (data-hit), as md-diff's
+      // badge fills for the change a reader is on, in the base colour.
       ringMark(els) {
         clearTimeout(this._ringT);
-        const off = () => { for (const [e, c] of this._ringEls || []) e.classList.remove(...c); };
+        const off = () => { for (const [e, c] of this._ringEls || []) c ? e.classList.remove(...c) : e.removeAttribute('data-hit'); };
         off();
-        this._ringEls = [].concat(els).filter(Boolean).map(e => [e, e.matches('[data-cite]') ? this.UNDERLINE : this.RING]);
-        for (const [e, c] of this._ringEls) e.classList.add(...c);
+        this._ringEls = [].concat(els).filter(Boolean).map(e => [e, e.matches('[data-focus]') ? null : e.matches('[data-cite]') ? this.UNDERLINE : this.RING]);
+        for (const [e, c] of this._ringEls) c ? e.classList.add(...c) : e.setAttribute('data-hit', '');
         this._ringT = setTimeout(off, 2400);
       },
       setCiteMode(v) {

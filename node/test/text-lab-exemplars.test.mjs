@@ -307,17 +307,54 @@ test('Text is the piece from the text proper on, with its focus marked over the 
   assert.match(text.querySelector('p').textContent, /^The Court delivered the opinion\.$/, 'Text opens on the text proper');
   const marks = text.querySelectorAll('[data-focus]');
   assert.equal(marks.length, 1);
-  assert.deepEqual([...marks[0].querySelectorAll('h2, p')].map(e => e.textContent),
+  assert.deepEqual([...marks[0].querySelectorAll('[data-focus-text] h2, [data-focus-text] p')].map(e => e.textContent),
     ['I', 'The facts are these.', 'And more facts, with a footnote.[^1]'], 'the passage and nothing else');
-  assert.match(marks[0].textContent, /Part I, from "The facts" · 12 words/, 'the passage names itself');
-  assert.match(marks[0].className, /border-l-2/);
-  assert.doesNotMatch(marks[0].className, /\bbg-/, 'a rule, not a fill: a fill is what a selected row wears');
   const ii = [...text.querySelectorAll('h2')].find(e => e.textContent === 'II');
   assert.ok(ii && !ii.closest('[data-focus]'), 'the next part stays outside');
   assert.match(marks[0].closest('.guide-body').className, /!text-xl !leading-8/, 'the text is set at reading size');
-  assert.doesNotMatch(text.textContent, /First: "plain"|The Press/, 'nothing about the piece is in Text');
+  const reading = text.cloneNode(true);
+  reading.querySelectorAll('[data-focus-context]').forEach(e => e.remove());
+  assert.doesNotMatch(reading.textContent, /First: "plain"|The Press/, 'nothing about the piece is in the text itself');
   assert.equal(card.querySelector('[data-exemplar-focus], [data-exemplar-source]'), null, 'no jump in the body and no panel-tip');
   assert.ok(h.model.exemplarOf('fixture').doc, 'the render is kept');
+});
+
+test('a focus passage is a change container: an outline, its number, and two readings, the text and the background', async () => {
+  const h = harness();
+  h.model.home = home(FILES());
+  await h.model.loadExemplars();
+  const host = dom.window.document.createElement('div');
+  host.dataset.part = 'detail';
+  host.innerHTML = h.model.exemplarCardHtml('fixture');
+  dom.window.document.body.replaceChildren(host);
+  const sec = host.querySelector('[data-focus]');
+  assert.equal(sec.getAttribute('data-reading'), 'text', 'a passage opens on its own words');
+  assert.match(sec.className, /\bring-1\b/);
+  assert.match(sec.className, /-mx-2 px-2/, 'the outline sits outside the text, which keeps its left edge');
+  assert.doesNotMatch(sec.className, /(^|\s)bg-/, 'an outline, not a fill: a fill is what a selected row wears');
+  assert.match(sec.className, /data-\[reading=context\]:ring-/, 'the outline says which reading is on screen');
+  assert.doesNotMatch(sec.className, /--color-(error|success|warning|info|primary)/, 'in the base colour: colour here is a standing');
+  assert.match(sec.querySelector('.sticky').innerHTML, /ph-bookmark-simple"><\/i>1</, 'its number, top left');
+  const stops = [...sec.querySelectorAll('[data-focus-reading]')];
+  assert.deepEqual(stops.map(b => b.textContent), ['text', 'context']);
+  assert.ok(sec.querySelector('.sticky').contains(stops[0]), 'the stops ride the sticky row, so a long passage keeps them in reach');
+  const ctx = sec.querySelector('[data-focus-context]');
+  assert.match(ctx.className, /hidden group-data-\[reading=context\]\/focus:grid/, 'the background shows only on its reading');
+  assert.match(ctx.textContent, /Part I, from "The facts"/, 'what the passage is');
+  assert.match(ctx.textContent, /12 words/);
+  assert.match(ctx.textContent, /First: "plain"/, 'and the praise, which is the piece\'s');
+  assert.deepEqual([...ctx.querySelectorAll('a[href^="https://"]')].map(a => a.getAttribute('href')), ['https://a.example/one', 'https://b.example/two']);
+  // A tap on a stop shows that reading and keeps the reader at the passage.
+  const went = [];
+  h.model.scrollToMark = (b, el) => went.push(el.getAttribute('data-focus'));
+  assert.equal(h.model.exemplarClick({ target: host.querySelector('[data-focus-reading="context"]') }), true);
+  assert.equal(sec.getAttribute('data-reading'), 'context');
+  assert.deepEqual(stops.map(b => b.getAttribute('aria-pressed')), ['false', 'true']);
+  assert.deepEqual(went, ['0'], 'back to the top of the passage, since the box follows the reading');
+  assert.equal(h.model.focusAt.fixture, 0, 'and the passage is where the reader now is');
+  h.model.exemplarClick({ target: host.querySelector('[data-focus-reading="text"]') });
+  assert.equal(sec.getAttribute('data-reading'), 'text');
+  dom.window.document.body.replaceChildren();
 });
 
 test('Context holds the title, the praise, the caption and where the copy came from', async () => {
@@ -605,6 +642,14 @@ test('trial d steps through the passages, or the citations once chosen, through 
   h.model.goMark = (id, kind, k) => went.push([kind, k]);
   h.model.padItems()[1].go();
   assert.deepEqual(went, [['cite', 1]]);
+  // A mark reached another way is where the reader is, so the pad counts it.
+  const placed = [];
+  h.model.pad = { set: i => placed.push(i) };
+  h.model.padKind = 'marks';
+  h.model.padFollow('fixture', 'focus', 0);
+  h.model.padFollow('another', 'focus', 0);
+  assert.deepEqual(placed, [1], 'the passage is the second mark, after the caption; another piece is not the pad\'s');
+  h.model.pad = null;
   h.model.pane = 'probes';
   assert.deepEqual(h.model.padItems(), [], 'no pad on another pane');
   assert.match(SRC, /\$watch\('marksSig', \(\) => \{ this\.announceMarks\(\); this\.pad\?\.refresh\(\); \}\)/, 'the pad follows every change of marks');
