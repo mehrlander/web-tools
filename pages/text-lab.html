@@ -1987,7 +1987,7 @@
         });
         const TICK = 'pointer-events-none absolute right-1 h-[3px] w-1.5 rounded-full bg-base-content/30';
         const cites = zones.map(z => `<button type="button" data-rail-go="cite:${z.k}" aria-label="Citation ${z.k + 1}"`
-            + ` class="group/tick pointer-events-auto absolute -left-2 -right-0.5" style="top:${px(z.top)};height:${px(z.bot - z.top)}">`
+            + ` class="group/tick pointer-events-auto absolute inset-x-0" style="top:${px(z.top)};height:${px(z.bot - z.top)}">`
             + `<span class="${TICK} group-hover/tick:bg-base-content/70" style="top:${px(z.v - z.top)}"></span></button>`)
           .concat(ticks.filter(t => inBar(t.v)).map(t => `<span aria-hidden="true" class="${TICK}" style="top:${px(t.v)}"></span>`));
         const focus = bars.map(f => `<button type="button" data-rail-go="focus:${f.k}" aria-label="${n > 1 ? `Focus ${f.k + 1} of ${n}` : 'Focus'}"`
