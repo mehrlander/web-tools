@@ -1711,9 +1711,10 @@
       // lines; the card also swipes, between pieces. So the box takes the
       // height of the reading on screen, and the stops are tapped.
       //
-      // THE PILLS STAY IN REACH: they ride a zero-height sticky row at the
-      // passage's top, so a reader halfway down Part I still has them, under
-      // the card's own sticky row, until the passage ends. And they sit
+      // THE PILLS STAY IN REACH: they ride a band at the passage's top, in
+      // its own space and opaque, that sticks under the card's own sticky
+      // row, so a reader halfway down Part I still has them, over a band of
+      // page rather than over the prose, until the passage ends. And they sit
       // together at the LEFT, where md-diff puts the stops at the right: here
       // the right edge carries what floats over the card (the mark pad and
       // the FAB on a phone, the rail under ?marks=c), and the stops under the
@@ -1727,8 +1728,10 @@
         const sec = document.createElement('section');
         sec.dataset.focus = String(k);
         sec.dataset.reading = 'text';
-        sec.className = `group/focus relative my-8 -mx-2 px-2 py-1 rounded-[4px] ring-1 ring-[${mix(22)}] transition-[box-shadow] duration-200`
-          + ` data-[reading=context]:ring-[${mix(60)}] data-[hit]:ring-2 data-[hit]:ring-[${mix(80)}]`;
+        // The outline's weight says whether the passage is the one selected,
+        // its strength which reading is on screen.
+        sec.className = `group/focus relative my-8 -mx-2 px-2 pb-1 rounded-[4px] ring-1 ring-[${mix(22)}] transition-[box-shadow] duration-200`
+          + ` data-[reading=context]:ring-[${mix(60)}] data-[on]:ring-2 data-[on]:ring-[${mix(60)}] data-[on]:data-[reading=context]:ring-[${mix(80)}]`;
         // A stop's hit area runs past its drawn edge (the ::before), since a
         // pill ten pixels tall is a hard thing to hit with a thumb.
         const stop = (key) => `<button type="button" data-focus-reading="${key}" aria-pressed="${key === 'text'}"`
@@ -1741,27 +1744,29 @@
           + `<div class="min-w-0 grid gap-2"><div>${esc(r.words)}</div><div class="text-sm leading-6 text-base-content/70">`
           + (r.links.length === 1 ? a(r.links[0].href, r.by || r.links[0].label) : esc(r.by) + r.links.map(l => ' ' + a(l.href, l.label)).join(''))
           + `</div></div></div>`).join('');
-        sec.innerHTML = `<div class="sticky top-15 z-[2] h-0"><div class="absolute -top-2 left-1 flex items-center gap-1">`
+        sec.innerHTML = `<div class="sticky top-11 z-[2] -mx-2 mb-1 flex h-8 items-center gap-1 rounded-t-[4px] bg-base-100 px-1.5">`
           + `<span class="${PILL} gap-1 px-1.5 py-0.5 tabular-nums font-medium opacity-80 transition-colors`
-          + ` group-data-[hit]/focus:opacity-100 group-data-[hit]/focus:bg-base-content group-data-[hit]/focus:text-base-100"><i class="ph ph-bookmark-simple"></i>${k + 1}</span>`
-          + `<div class="${PILL} gap-0.5 px-0.5 py-0.5" role="group" aria-label="Show this passage as">${stop('text')}${stop('context')}</div></div></div>`
+          + ` group-data-[on]/focus:opacity-100 group-data-[on]/focus:bg-base-content group-data-[on]/focus:text-base-100"><i class="ph ph-bookmark-simple"></i>${k + 1}</span>`
+          + `<div class="${PILL} gap-0.5 px-0.5 py-0.5" role="group" aria-label="Show this passage as">${stop('text')}${stop('context')}</div></div>`
           + `<div data-focus-text class="group-data-[reading=context]/focus:hidden"></div>`
-          + `<div data-focus-context class="hidden group-data-[reading=context]/focus:grid gap-4 pt-5 pb-2">`
+          + `<div data-focus-context class="hidden group-data-[reading=context]/focus:grid gap-4 pt-2 pb-2">`
           + `<div class="grid gap-1"><div class="font-medium">${esc(p.focus || 'The passage to read first')}</div>`
-          + `<div class="text-sm leading-6 text-base-content/70">${esc([total > 1 ? `passage ${k + 1} of ${total}` : '', `${words} words`].filter(Boolean).join(' · '))}</div></div>`
+          + `<div class="text-sm leading-6 text-base-content/70">${words} words</div></div>`
           + praise + `</div>`;
         return sec;
       },
       // A tap on a stop: the reading the passage shows, and the passage is
-      // where the reader now is. The box follows the reading, so a reader deep
-      // in a long passage would be left past the end of a short background:
-      // the card goes back to the passage's top.
+      // where the reader now is, so it is the one selected (ringMark). The
+      // box follows the reading, so a reader deep in a long passage would be
+      // left past the end of a short background: the card goes back to the
+      // passage's top.
       setFocusReading(sec, r) {
         if (!sec || (r !== 'text' && r !== 'context')) return;
         sec.dataset.reading = r;
         for (const b of sec.querySelectorAll('[data-focus-reading]')) b.setAttribute('aria-pressed', String(b.getAttribute('data-focus-reading') === r));
         const body = sec.closest('[data-exemplar-body]'), id = body?.getAttribute('data-exemplar-body');
         if (body) this.scrollToMark(body, sec);
+        this.ringMark([sec]);
         if (id != null) { this.noteFocus(id, +sec.dataset.focus); this.padFollow(id, 'focus', +sec.dataset.focus); }
         if (this.marksMode === 'c') setTimeout(() => this.railDraw(), 50);
       },
@@ -1831,6 +1836,7 @@
         const k = (Number(body.dataset.next) || 0) % marks.length;
         body.dataset.next = String(k + 1);
         this.scrollToMark(body, marks[k]);
+        this.ringMark([marks[k]]);
         this.noteFocus(body.getAttribute('data-exemplar-body'), k);
         this.padFollow(body.getAttribute('data-exemplar-body'), 'focus', k);
       },
@@ -1947,8 +1953,8 @@
         const inView = b => { const r = b.getBoundingClientRect(); return r.right > 1 && r.left < innerWidth - 1; };
         return all.find(b => b.closest('.sd-overlay') && inView(b)) || all.find(inView) || all[0] || null;
       },
-      // Show the mark's face, scroll to it, and ring it a moment, in the base
-      // colour: colour on this page is a standing.
+      // Show the mark's face, scroll to it, and mark it until another is
+      // chosen, in the base colour: colour on this page is a standing.
       goMark(id, kind, k = 0) {
         const body = this.visibleBody(id);
         if (!body) return;
@@ -1991,16 +1997,17 @@
         if (open && open.offsetHeight <= room) return open;
         return el.querySelector(':scope > [aria-label]') || el;
       },
-      // A focus passage already wears an outline, so it is not ringed again:
-      // its outline strengthens and its number fills (data-hit), as md-diff's
-      // badge fills for the change a reader is on, in the base colour.
+      // SELECTION STAYS, as md-diff's does: the mark the reader was taken to
+      // stays marked until another is chosen, rather than flashing and going
+      // out, which left the pad's disc counting a mark the page no longer
+      // showed. A focus passage already wears an outline, so it is selected
+      // rather than ringed (data-on): its outline goes heavier and its number
+      // fills, on either reading, as md-diff's badge fills for the change a
+      // reader is on, in the base colour.
       ringMark(els) {
-        clearTimeout(this._ringT);
-        const off = () => { for (const [e, c] of this._ringEls || []) c ? e.classList.remove(...c) : e.removeAttribute('data-hit'); };
-        off();
+        for (const [e, c] of this._ringEls || []) c ? e.classList.remove(...c) : e.removeAttribute('data-on');
         this._ringEls = [].concat(els).filter(Boolean).map(e => [e, e.matches('[data-focus]') ? null : e.matches('[data-cite]') ? this.UNDERLINE : this.RING]);
-        for (const [e, c] of this._ringEls) c ? e.classList.add(...c) : e.setAttribute('data-hit', '');
-        this._ringT = setTimeout(off, 2400);
+        for (const [e, c] of this._ringEls) c ? e.classList.add(...c) : e.setAttribute('data-on', '');
       },
       setCiteMode(v) {
         this.citeMode = v;

@@ -123,7 +123,12 @@ test('a page’s mark pad tucks the launcher into its corner, and a tap brings i
     assert.equal(d.tuckNow, false, 'no pad, no tuck');
     pad(true); await tick(2);
     assert.equal(d.tuckNow, true);
-    assert.match(root.style.getPropertyValue('--mark-pad-bottom'), /var\(--fab-bottom/, 'the pad is told to come down');
+    assert.equal(root.style.getPropertyValue('--mark-pad-bottom'), 'calc(0.5rem + 2.25rem + 0.5rem)', 'the pad is told to come down, to just above the stub');
+    root.setAttribute('data-deck-open', ''); await tick(2);
+    assert.equal(d.deckOpen, true);
+    assert.equal(root.style.getPropertyValue('--mark-pad-bottom'), 'calc(5rem + 2.25rem + 0.5rem)', 'over an open deck the stub and the pad stand above its footer');
+    root.removeAttribute('data-deck-open'); await tick(2);
+    assert.equal(root.style.getPropertyValue('--mark-pad-bottom'), 'calc(0.5rem + 2.25rem + 0.5rem)');
     const cover = host.querySelector('[aria-label="Bring back the web-tools panel button"]');
     assert.ok(cover, 'the stub takes a tap of its own');
     cover.click(); await tick(2);

@@ -351,9 +351,15 @@ test('a focus passage is a change container: an outline, its number, and two rea
   assert.equal(sec.getAttribute('data-reading'), 'context');
   assert.deepEqual(stops.map(b => b.getAttribute('aria-pressed')), ['false', 'true']);
   assert.deepEqual(went, ['0'], 'back to the top of the passage, since the box follows the reading');
+  assert.ok(sec.hasAttribute('data-on'), 'the passage the reader picked is the one selected');
+  assert.match(sec.className, /data-\[on\]:ring-2/, 'selected, its outline is heavier on either reading');
+  assert.doesNotMatch(sec.querySelector('[data-focus-context]').textContent, /passage 1 of/, 'the count is the pill\'s and the pad\'s, not said again');
   assert.equal(h.model.focusAt.fixture, 0, 'and the passage is where the reader now is');
   h.model.exemplarClick({ target: host.querySelector('[data-focus-reading="text"]') });
   assert.equal(sec.getAttribute('data-reading'), 'text');
+  assert.ok(sec.hasAttribute('data-on'), 'and it stays selected, not a flash');
+  h.model.ringMark([]);
+  assert.equal(sec.hasAttribute('data-on'), false, 'until another mark is chosen');
   dom.window.document.body.replaceChildren();
 });
 
