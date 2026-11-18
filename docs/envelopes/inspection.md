@@ -2,7 +2,7 @@
 
 An **inspection** asks the owner to judge, one at a time, the outputs a model or a script made from its inputs. Each output is anchored to a passage of an input. The owner gives it one verdict from a declared set and may add a note.
 
-An `inspection/1` payload holds the inputs and outputs as [runs](#the-payload), one input to a run. 🔷 [pages/inspection.html](https://mehrlander.github.io/web-tools/pages/inspection.html) draws each output beside its passage. It appends the verdicts to the payload's [answers file](#answers), which the session that made the inspection reads.
+An `inspection/1` payload holds the inputs and outputs as [runs](#the-payload), one input to a run. 🔷 [pages/inspection.html](https://mehrlander.github.io/web-tools/pages/inspection.html) draws each output under its passage. It appends the verdicts to the payload's [answers file](#answers), which the session that made the inspection reads.
 
 The first producer is [`flag_inspection.py`](https://github.com/mehrlander/home/blob/main/projects/text/runs/2026-11-06-prompt-sentiment/src/flag_inspection.py) in [home](https://github.com/mehrlander/home). The script's outputs are the preferences a model flagged in the owner's messages, each anchored at the sentence it quotes.
 

@@ -16,10 +16,12 @@
     #gz=<base64url>              a gzipped payload carried in the link
     (neither)                    the embedded sample
 
-  A list of runs over a strip of cards (html-style rule 11, linked-swiper);
-  the card's door opens the runs as a deck whose slides split input and
-  output with a dock-split seam, side by side when the slide is wide. An
-  output item and the passage it rests on light together (rule 16).
+  A list of runs over a strip of one card per output, a run's outputs its
+  row's tabs (html-style rule 11, linked-swiper's sub-items); the card's door
+  opens the same cards as a deck. A card is the run's input, scrolled to the
+  passage its output rests on, over the output and its verdict. The other
+  outputs' passages stay marked, and a tap on one goes to its card; a passage
+  and its tab light together (rule 16).
 -->
 <script type="module">
   const use = new URLSearchParams(location.search).get('use');
@@ -33,7 +35,6 @@
   }
   await gh.load('kits/gz-payload.js');
   await gh.load('kits/swipe-deck.js');
-  await gh.load('kits/dock-split.js');
   await gh.load('kits/title-tip.js');
   await gh.load('kits/linked-swiper.js');
   await gh.load('alpineComponents/user-call-form.js');
@@ -89,8 +90,9 @@
   };
   const OPEN_MARK = 'bg-base-content/10';
   const MARKS = [OPEN_MARK, ...Object.values(TONE).map(t => t.mark)];
-  const LIT_MARK = ['ring-2', 'ring-primary'];
-  const LIT_ITEM = ['bg-primary/10'];
+  // The card's own passage, and a passage or tab under the pointer.
+  const CUR = 'ring-2 ring-primary';
+  const HOT = ['ring-1', 'ring-primary'];
 
   // ── the payload ─────────────────────────────────────────────────────────
   const srcSpec = window.UrlParams.get('src') || '';
@@ -112,9 +114,8 @@
     }
     p.verdictOf = Object.fromEntries((p.verdicts || []).map(v => [v.verdict, v]));
     p.tagOf = Object.fromEntries((p.tags || []).map(t => [t.tag, t]));
-    // Widths that keep every output's text starting at one edge (rule 15).
+    // The tags' one width, so every output's text starts at one edge (rule 15).
     p.tagCh = Math.max(0, ...p.runs.flatMap(r => r.outputs.map(o => (p.tagOf[o.tag]?.label || o.tag || '').length)));
-    for (const r of p.runs) r.labelCh = Math.max(0, ...r.outputs.map(o => (r.blockOf[o.anchor?.block]?.label || '').length));
     return p;
   }
 
@@ -169,34 +170,27 @@
   const P = S.p;
   const runs = () => P.runs;
   const runOf = id => P.runs.find(r => r.id === id);
+  const outOf = (run, out) => runOf(run)?.outputs.find(o => o.id === out) || null;
   const tone = v => TONE[P.verdictOf[v]?.tone] || TONE.neutral;
   const markClass = (run, out) => { const v = stateOf(keyOf(run, out)).verdict; return v ? tone(v).mark : OPEN_MARK; };
-  const counts = r => {
-    const n = {};
-    for (const o of r.outputs) { const v = stateOf(keyOf(r.id, o.id)).verdict; if (v) n[v] = (n[v] || 0) + 1; }
-    return n;
-  };
-  const doneOf = n => Object.values(n).reduce((a, b) => a + b, 0);
+  const doneOf = r => r.outputs.filter(o => stateOf(keyOf(r.id, o.id)).verdict).length;
+  const countOf = r => doneOf(r) + '/' + r.outputs.length;
+  let swiper = null;
 
-  function bar(r) {
-    const n = counts(r), total = r.outputs.length || 1;
-    const segs = (P.verdicts || []).map(v => n[v.verdict]
-      ? `<span class="${tone(v.verdict).bar}" style="width:${(n[v.verdict] / total * 100).toFixed(1)}%"></span>` : '').join('');
-    return `<span class="flex h-1.5 w-14 shrink-0 overflow-hidden rounded-full bg-base-300">${segs}</span>`
-      + `<span class="min-w-[7ch] shrink-0 text-right font-mono text-xs tabular-nums text-base-content/60">${doneOf(n)}/${r.outputs.length}</span>`;
-  }
-
+  // A row: the run's title over its meta, its outputs' tabs (the kit draws
+  // them in data-ls-tabs) and how many have a verdict.
   function rowHTML(r) {
     return `<div role="option" tabindex="-1" data-run="${esc(r.id)}" aria-selected="false"
-      class="flex cursor-pointer flex-col gap-0.5 border-b border-base-200 px-2.5 py-1.5 outline-none hover:bg-base-200 focus-visible:outline-2 focus-visible:outline-[var(--color-primary)] aria-selected:bg-primary/10">
+      class="flex cursor-pointer flex-col border-b border-base-200 px-2.5 py-1 outline-none hover:bg-base-200 focus-visible:outline-2 focus-visible:outline-[var(--color-primary)] aria-selected:bg-primary/10">
       <span class="truncate font-medium" data-title-tip="${esc(r.title)}" data-title-tip-bare>${esc(r.title)}</span>
-      <div class="flex items-center gap-2"><span class="min-w-0 flex-1 truncate text-sm text-base-content/60">${esc(r.meta || '')}</span><span data-bar class="flex items-center gap-1.5">${bar(r)}</span></div></div>`;
+      <div class="flex min-h-7 items-center gap-2"><span class="min-w-0 flex-1 truncate text-sm text-base-content/60">${esc(r.meta || '')}</span><span data-ls-tabs></span>
+        <span data-count class="min-w-[5ch] shrink-0 text-right font-mono text-xs tabular-nums text-base-content/60">${countOf(r)}</span></div></div>`;
   }
 
-  function tagHTML(o) {
+  function tagHTML(o, big) {
     if (!o.tag) return '';
     const t = P.tagOf[o.tag] || { label: o.tag };
-    return `<span class="badge badge-sm badge-ghost shrink-0 justify-start gap-1" style="min-width:calc(${P.tagCh}ch + 1.75rem)">${t.icon ? `<i class="ph ${esc(t.icon)}"></i>` : ''}${esc(t.label || o.tag)}</span>`;
+    return `<span class="badge badge-sm badge-ghost ${big ? 'mt-1.5' : 'mt-1'} shrink-0 justify-start gap-1" style="min-width:calc(${P.tagCh}ch + 1.75rem)">${t.icon ? `<i class="ph ${esc(t.icon)}"></i>` : ''}${esc(t.label || o.tag)}</span>`;
   }
 
   function controls(r, o) {
@@ -212,142 +206,83 @@
   }
 
   // A block's text with each anchored span marked; overlapping spans split
-  // into runs that carry every output resting on them.
-  function marked(r, b, only) {
-    const spans = r.outputs.filter(o => o.span && o.anchor.block === b.id && (!only || only.includes(o.id)));
-    const cuts = [...new Set([0, b.text.length, ...spans.flat().flatMap(o => o.span)])].sort((x, y) => x - y);
+  // into runs that carry every output resting on them. The card's own output
+  // leads a run it rests on, and that run is ringed.
+  function marked(r, b, own) {
+    const spans = r.outputs.filter(o => o.span && o.anchor.block === b.id);
+    const cuts = [...new Set([0, b.text.length, ...spans.flatMap(o => o.span)])].sort((x, y) => x - y);
     let h = '';
     for (let i = 0; i + 1 < cuts.length; i++) {
       const [a, z] = [cuts[i], cuts[i + 1]], on = spans.filter(o => o.span[0] <= a && o.span[1] >= z);
       const t = esc(b.text.slice(a, z));
-      h += on.length ? `<mark data-run="${esc(r.id)}" data-outs="${esc(on.map(o => o.id).join(' '))}" class="cursor-pointer rounded-sm text-inherit box-decoration-clone ${markClass(r.id, on[0].id)}">${t}</mark>` : t;
+      if (!on.length) { h += t; continue; }
+      const mine = !!own && on.includes(own), lead = mine ? own : on[0];
+      h += `<mark data-run="${esc(r.id)}" data-outs="${esc(on.map(o => o.id).join(' '))}" data-lead="${esc(lead.id)}"${mine ? ' data-cur' : ''}`
+        + ` class="cursor-pointer rounded-sm text-inherit box-decoration-clone ${markClass(r.id, lead.id)}${mine ? ' ' + CUR : ''}">${t}</mark>`;
     }
     return h;
   }
 
-  // The input line an item rests on, for the strip: its span with a little
-  // of the text around it.
-  function line(r, o) {
-    const b = r.blockOf[o.anchor?.block];
-    if (!b) return '';
-    const [s, e] = o.span || [0, Math.min(b.text.length, 160)];
-    const cut = (t, keep, end) => {
-      if (t.length <= keep) return t;
-      const x = end ? t.slice(t.length - keep) : t.slice(0, keep);
-      return end ? '…' + x.replace(/^\S*\s/, '') : x.replace(/\s\S*$/, '') + '…';
-    };
-    const pre = esc(cut(b.text.slice(0, s), 70, true)), post = esc(cut(b.text.slice(e), 70, false));
-    const mid = o.span ? `<mark data-run="${esc(r.id)}" data-outs="${esc(o.id)}" class="rounded-sm text-inherit box-decoration-clone ${markClass(r.id, o.id)}">${esc(b.text.slice(s, e))}</mark>` : esc(b.text.slice(s, e));
-    return `<button type="button" data-line="${esc(o.id)}" class="w-full rounded-md border-l-2 border-base-300 bg-base-200/60 px-2.5 py-1.5 text-left hover:bg-base-200">
-      <span class="mr-1.5 font-mono text-xs text-base-content/50">${esc(b.label || b.id)}</span><span class="text-base-content/70">${pre}</span>${mid}<span class="text-base-content/70">${post}</span></button>`;
-  }
-
-  function cardBody(id) {
-    const r = runOf(id);
-    if (!r.outputs.length) return '<p class="text-base-content/60">No outputs.</p>';
-    return `<div class="flex flex-col gap-4" data-scope="${esc(r.id)}">${r.outputs.map((o, i) => `
-      <section data-item="${esc(keyOf(r.id, o.id))}" data-out="${esc(o.id)}" class="flex flex-col gap-2 rounded-lg ${i ? 'border-t border-base-200 pt-4' : ''}">
-        ${line(r, o)}
-        <div class="flex items-start gap-2">${tagHTML(o)}<span class="min-w-0">${esc(o.text)}</span></div>
+  // A card, in the strip and in the deck: the run's input over one output,
+  // its tag, its words, its verdict and note. The words keep two lines, so
+  // the input does not change height from card to card (rule 15). place()
+  // scrolls the input to the output's passage.
+  function cardHTML(r, o, big) {
+    const pad = big ? 'px-4' : 'px-3.5';
+    const blocks = r.source.blocks.map(b => `
+      <section data-block="${esc(b.id)}" class="flex flex-col py-1.5">
+        <h3 class="font-mono text-xs text-base-content/50">${esc(b.label || b.id)}</h3>
+        <p class="whitespace-pre-wrap [overflow-wrap:anywhere]">${marked(r, b, o)}</p>
+      </section>`).join('');
+    const out = !o ? `<p class="flex-none border-t border-base-200 ${pad} py-2.5 text-base-content/60">No outputs.</p>` : `
+      <div data-item="${esc(keyOf(r.id, o.id))}" data-out="${esc(o.id)}" class="flex flex-none flex-col gap-2 border-t border-base-200 ${pad} py-2.5">
+        <div class="flex min-h-[2lh] items-start gap-2">${tagHTML(o, big)}<span class="min-w-0">${esc(o.text)}</span></div>
         ${o.note ? `<p class="text-base-content/70">${esc(o.note)}</p>` : ''}
         ${controls(r, o)}
-      </section>`).join('')}</div>`;
+      </div>`;
+    return `<div data-scope="${esc(r.id)}" data-flag="${esc(o?.id || '')}" class="flex h-full min-h-0 flex-col ${big ? 'text-xl leading-8' : 'text-base leading-7'}">
+      <div data-pane="in" class="min-h-0 flex-1 overflow-y-auto overscroll-contain ${pad} py-1 [scrollbar-gutter:stable]">${blocks}</div>${out}</div>`;
   }
 
-  // The takeover's slide: the input over the output on a phone, beside it
-  // when the slide is wide, a dock-split seam between them.
-  const WIDE = 900;
-  const splitKey = axis => 'inspection:split:' + axis;
-  const splitOf = axis => { try { const v = +localStorage.getItem(splitKey(axis)); return v > 0 ? v : (axis === 'col' ? 55 : 45); } catch { return axis === 'col' ? 55 : 45; } };
-  const split = { col: splitOf('col'), row: splitOf('row') };
-  const slides = new Map();
-
-  function pairHTML(r) {
-    const blocks = r.source.blocks.map(b => `
-      <section data-block="${esc(b.id)}" class="flex flex-col gap-1 rounded-md py-2">
-        <h3 class="font-mono text-xs text-base-content/50">${esc(b.label || b.id)}</h3>
-        <p class="whitespace-pre-wrap text-xl leading-8 [overflow-wrap:anywhere]">${marked(r, b)}</p>
-      </section>`).join('');
-    const items = r.outputs.map((o, i) => `
-      <article data-item="${esc(keyOf(r.id, o.id))}" data-out="${esc(o.id)}" class="flex cursor-pointer flex-col gap-2 rounded-lg p-2 ${i ? 'mt-2' : ''}">
-        <div class="flex items-start gap-2 text-xl leading-8">
-          <span class="shrink-0 font-mono text-xs leading-8 text-base-content/50" style="min-width:${r.labelCh}ch">${esc(r.blockOf[o.anchor?.block]?.label || '')}</span>
-          ${tagHTML(o).replace('shrink-0', 'mt-1.5 shrink-0')}<span class="min-w-0">${esc(o.text)}</span></div>
-        ${o.note ? `<p class="text-xl leading-8 text-base-content/70">${esc(o.note)}</p>` : ''}
-        ${controls(r, o)}
-      </article>`).join('');
-    return `<div data-pair="${esc(r.id)}" data-scope="${esc(r.id)}" class="grid h-full min-h-0 w-full min-w-0">
-      <div data-pane="in" class="relative min-h-0 min-w-0 overflow-y-auto overscroll-contain px-4 py-2 [scrollbar-gutter:stable]">${blocks}</div>
-      <div data-seam></div>
-      <div data-pane="out" class="relative min-h-0 min-w-0 overflow-y-auto overscroll-contain px-2 py-2 [scrollbar-gutter:stable]">${items || '<p class="p-2 text-base-content/60">No outputs.</p>'}</div>
-    </div>`;
-  }
-
-  function orient(pair, st) {
-    const axis = pair.clientWidth >= WIDE ? 'col' : 'row';
-    const lay = () => {
-      const tpl = `minmax(0,${split[axis]}%) 14px minmax(0,1fr)`;
-      pair.style.gridTemplateColumns = axis === 'col' ? tpl : 'minmax(0,1fr)';
-      pair.style.gridTemplateRows = axis === 'col' ? 'minmax(0,1fr)' : tpl;
-    };
-    if (st.axis === axis) { lay(); return; }
-    st.axis = axis;
-    st.seam?.destroy();
-    lay();
-    st.seam = window.dockSplit.attach(pair.querySelector('[data-seam]'), {
-      axis, from: 'start', min: 15, max: 85, label: 'Resize the input',
-      bounds: () => pair.getBoundingClientRect(),
-      value: () => split[axis],
-      onChange: pct => { split[axis] = pct; for (const s of slides.values()) s.lay?.(); },
-      onCommit: pct => { try { localStorage.setItem(splitKey(axis), String(pct)); } catch {} },
+  // The output's passage a third of the way down the input, once the card
+  // has a height.
+  function place(el, tries = 8) {
+    requestAnimationFrame(() => {
+      const pane = el.querySelector('[data-pane="in"]'), at = pane?.querySelector('mark[data-cur]');
+      if (!at) return;
+      if (!pane.clientHeight) { if (tries) place(el, tries - 1); return; }
+      const top = at.getBoundingClientRect().top - pane.getBoundingClientRect().top + pane.scrollTop;
+      pane.scrollTop = Math.max(0, top - pane.clientHeight / 3);
     });
-    st.lay = () => { if (st.axis === axis) lay(); };
   }
 
   // ── lighting counterparts (rule 16) ─────────────────────────────────────
-  function light(scope, outs, on) {
-    if (!scope) return;
-    for (const m of scope.querySelectorAll('mark[data-outs]'))
-      if (m.dataset.outs.split(' ').some(x => outs.includes(x))) LIT_MARK.forEach(c => m.classList.toggle(c, on));
-    for (const it of scope.querySelectorAll('[data-out]'))
-      if (outs.includes(it.dataset.out)) LIT_ITEM.forEach(c => it.classList.toggle(c, on));
-  }
-  let hot = null;
-  const unhot = () => { if (hot) light(hot.scope, hot.outs, false); hot = null; };
-  const outsAt = el => {
-    const m = el.closest('mark[data-outs]');
-    if (m) return m.dataset.outs.split(' ');
-    const it = el.closest('[data-out]');
-    return it ? [it.dataset.out] : null;
-  };
+  // A passage and its output's tab in the list light together.
+  let hot = [], hotKey = '';
   document.addEventListener('pointerover', e => {
-    const scope = e.target.closest?.('[data-scope]'), outs = scope && outsAt(e.target);
-    if (hot && hot.scope === scope && String(hot.outs) === String(outs)) return;
-    unhot();
-    if (outs) { hot = { scope, outs }; light(scope, outs, true); }
+    if (!P) return;
+    const t = e.target instanceof Element ? e.target : null;
+    const m = t?.closest('mark[data-outs]'), tab = !m && t?.closest('#list [data-ls-sub]');
+    const run = m ? m.dataset.run : tab ? tab.closest('[data-run]')?.dataset.run : '';
+    const outs = run ? (m ? m.dataset.outs.split(' ') : [tab.dataset.lsSub]) : [];
+    const k = run ? run + '|' + outs.join(' ') : '';
+    if (k === hotKey) return;
+    for (const el of hot) el.classList.remove(...HOT);
+    hotKey = k; hot = [];
+    if (!run) return;
+    const R = CSS.escape(run);
+    for (const x of document.querySelectorAll(`mark[data-run="${R}"]:not([data-cur])`))
+      if (x.dataset.outs.split(' ').some(o => outs.includes(o))) hot.push(x);
+    for (const o of outs) hot.push(...$('list').querySelectorAll(`[data-run="${R}"] [data-ls-sub="${CSS.escape(o)}"]`));
+    for (const el of hot) el.classList.add(...HOT);
   });
 
-  // A tap in the takeover holds the light and brings the counterpart into
-  // view in the other pane.
-  let held = null;
-  const into = (pane, el) => {
-    if (!pane || !el) return;
-    const top = el.getBoundingClientRect().top - pane.getBoundingClientRect().top + pane.scrollTop;
-    pane.scrollTo({ top: Math.max(0, top - pane.clientHeight / 3), behavior: 'smooth' });
+  // Where a tap on a passage goes: its first output, or on the card's own
+  // passage the next output that shares it.
+  const nextOut = m => {
+    const outs = m.dataset.outs.split(' '), i = outs.indexOf(m.closest('[data-flag]')?.dataset.flag);
+    return i < 0 ? outs[0] : outs.length > 1 ? outs[(i + 1) % outs.length] : null;
   };
-  function hold(pair, outs, from) {
-    if (held) light(held.pair, held.outs, false);
-    held = { pair, outs };
-    light(pair, outs, true);
-    const r = runOf(pair.dataset.pair);
-    if (from !== 'in') {
-      const o = r.outputs.find(x => x.id === outs[0]);
-      const at = pair.querySelector(`[data-pane="in"] mark[data-outs~="${CSS.escape(outs[0])}"]`)
-        || pair.querySelector(`[data-pane="in"] [data-block="${CSS.escape(o?.anchor?.block || '')}"]`);
-      into(pair.querySelector('[data-pane="in"]'), at);
-    }
-    if (from !== 'out') into(pair.querySelector('[data-pane="out"]'), pair.querySelector(`[data-pane="out"] [data-out="${CSS.escape(outs[0])}"]`));
-  }
 
   // ── verdicts and notes ──────────────────────────────────────────────────
   function paintItem(run, out) {
@@ -362,14 +297,13 @@
       }
     }
     const mc = markClass(run, out);
-    for (const m of document.querySelectorAll(`mark[data-run="${CSS.escape(run)}"]`)) {
-      const outs = m.dataset.outs.split(' ');
-      if (outs[0] !== out) continue;
-      MARKS.forEach(c => m.classList.remove(c));
+    for (const m of document.querySelectorAll(`mark[data-run="${CSS.escape(run)}"][data-lead="${CSS.escape(out)}"]`)) {
+      m.classList.remove(...MARKS);
       m.classList.add(mc);
     }
-    const row = $('list')?.querySelector(`[data-run="${CSS.escape(run)}"] [data-bar]`);
-    if (row) row.innerHTML = bar(runOf(run));
+    const count = $('list')?.querySelector(`[data-run="${CSS.escape(run)}"] [data-count]`);
+    if (count) count.textContent = countOf(runOf(run));
+    swiper?.tabs(run);
   }
 
   function setState(run, out, patch) {
@@ -404,7 +338,7 @@
     const head = $('head');
     if (!P) { head.innerHTML = `<h1 class="text-lg font-semibold">Inspection</h1>`; return; }
     const total = P.runs.reduce((a, r) => a + r.outputs.length, 0);
-    const done = P.runs.reduce((a, r) => a + doneOf(counts(r)), 0);
+    const done = P.runs.reduce((a, r) => a + doneOf(r), 0);
     const n = dirtyKeys().length;
     const status = S.saveErr ? `<span class="min-w-0 truncate text-sm text-error" data-title-tip="${esc(S.saveErr)}">${esc(S.saveErr)}</span>`
       : !S.target ? `<span class="text-sm text-base-content/60">Kept in this browser</span>`
@@ -431,75 +365,64 @@
     const list = $('list');
     list.innerHTML = runs().map(rowHTML).join('');
     let sel = (() => { const h = window.UrlParams.get('run'); return runOf(h) ? h : runs()[0]?.id; })();
-    let deck = null, focus = null;
+    let selOut = null, deck = null;
 
-    const openDeck = (at) => {
-      const start = Math.max(0, runs().findIndex(r => r.id === sel));
-      const r0 = runs()[start];
+    // The deck holds the strip's cards, in the strip's order.
+    const named = c => {
+      const r = runOf(c.id);
+      return { title: r.title, subtitle: [c.n > 1 ? `output ${c.j + 1} of ${c.n}` : '', r.meta].filter(Boolean).join(' · ') };
+    };
+    const openDeck = () => {
+      const cards = swiper.slides();
+      const start = Math.max(0, cards.findIndex(c => c.id === sel && (c.sub ?? null) === selOut));
       deck = swipeDeck.open({
-        count: runs().length, start, title: r0.title, subtitle: r0.meta || '', icon: 'ph-list-checks',
+        count: cards.length, start, ...named(cards[start]), icon: 'ph-list-checks',
         slideScroll: false, innerClass: 'h-full w-full min-w-0',
-        index: i => ({ title: runs()[i].title, subtitle: runs()[i].meta || '' }),
-        render: (i, slide) => {
-          const r = runs()[i];
-          slides.get(slide)?.ro?.disconnect();
-          slide.innerHTML = pairHTML(r);
-          const pair = slide.querySelector('[data-pair]'), st = {};
-          slides.set(slide, st);
-          requestAnimationFrame(() => {
-            orient(pair, st);
-            st.ro = new ResizeObserver(() => orient(pair, st));
-            st.ro.observe(pair);
-            if (focus && focus.run === r.id) { hold(pair, [focus.out]); focus = null; }
-          });
-        },
-        release: (i, slide) => { const st = slides.get(slide); st?.ro?.disconnect(); st?.seam?.destroy(); slides.delete(slide); },
+        index: i => ({ ...named(cards[i]), group: cards[i].id }),
+        render: (i, slide) => { const c = cards[i]; slide.innerHTML = cardHTML(runOf(c.id), outOf(c.id, c.sub), true); place(slide); },
         onSlide: i => {
-          const r = runs()[i];
-          sel = r.id;
-          deck?.setTitle(r.title); deck?.setSubtitle(r.meta || '');
-          swiper.show(r.id);
+          const c = cards[i], n = named(c);
+          sel = c.id; selOut = c.sub ?? null;
+          deck?.setTitle(n.title); deck?.setSubtitle(n.subtitle);
+          swiper.show(c.id, c.sub);
         },
-        onClose: () => { deck = null; held = null; },
-      });
-      if (at) requestAnimationFrame(() => {
-        const pair = deck?.el.querySelector(`[data-pair="${CSS.escape(at.run)}"]`);
-        if (pair) { hold(pair, [at.out]); focus = null; }
+        onClose: () => { deck = null; },
       });
     };
+    // To an output's card: the deck's when the tap was in it, else the strip's.
+    const go = (run, out, inDeck) => {
+      if (inDeck && deck) deck.deck.go(swiper.slides().findIndex(c => c.id === run && c.sub === out), 'instant');
+      else swiper.pick(run, out);
+    };
 
-    const swiper = linkedSwiper.attach({
-      root: $('root'), list, card: $('card'), key: 'run', noun: 'run',
-      ids: () => runs().map(r => r.id), sel: () => sel, listMax: 'max-h-[40dvh]',
+    swiper = linkedSwiper.attach({
+      root: $('root'), list, card: $('card'), key: 'run', noun: 'output', subNoun: 'output',
+      ids: () => runs().map(r => r.id), sel: () => sel,
+      subs: id => runOf(id).outputs.map(o => o.id), selSub: () => selOut,
+      tab: (id, out, j, n) => {
+        const v = stateOf(keyOf(id, out)).verdict;
+        return { cls: v ? tone(v).mark : '', aria: `Output ${j + 1} of ${n}` + (v ? ', ' + (P.verdictOf[v]?.label || v) : '') };
+      },
+      // Room for a run's meta beside six tabs and its count (rule 15).
+      wide: 'grid-cols-[minmax(0,380px)_minmax(0,1fr)]',
+      listMax: 'max-h-[40dvh]', slideScroll: false, innerClass: 'h-full w-full min-w-0',
       name: id => ({ title: runOf(id).title }),
-      body: cardBody,
-      onPick: id => { sel = id; },
-      deck: () => openDeck(null),
+      body: (id, el, out) => { el.innerHTML = cardHTML(runOf(id), outOf(id, out), false); place(el); },
+      onPick: (id, via, out) => { sel = id; selOut = out ?? null; },
+      deck: openDeck,
     });
 
     document.addEventListener('click', e => {
       if (e.target.closest('#save')) return save();
-      const v = e.target.closest('[data-verdict]');
-      const item = e.target.closest('[data-item]');
+      const v = e.target.closest('[data-verdict]'), item = e.target.closest('[data-item]');
       if (v && item) {
         const [run, out] = item.dataset.item.split('|');
         setState(run, out, { verdict: stateOf(keyOf(run, out)).verdict === v.dataset.verdict ? '' : v.dataset.verdict, at: new Date().toISOString() });
         paintItem(run, out);
         return;
       }
-      const ln = e.target.closest('[data-line]');
-      if (ln && item) {
-        const [run, out] = item.dataset.item.split('|');
-        focus = { run, out };
-        openDeck(focus);
-        return;
-      }
-      const pair = e.target.closest('[data-pair]');
-      if (!pair || e.target.closest('input,button')) return;
-      const m = e.target.closest('mark[data-outs]');
-      if (m) return hold(pair, m.dataset.outs.split(' '), 'in');
-      const it = e.target.closest('[data-out]');
-      if (it) hold(pair, [it.dataset.out], 'out');
+      const m = e.target.closest('mark[data-outs]'), to = m && nextOut(m);
+      if (to) go(m.dataset.run, to, !!deck?.el.contains(m));
     });
 
     document.addEventListener('input', e => {
