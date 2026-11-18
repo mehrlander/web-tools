@@ -1450,10 +1450,20 @@
           + ` group-data-[tab=${key}]:text-base-content group-data-[tab=${key}]:shadow-sm">${label}</button>`;
         return `<div class="group pb-[calc(var(--fab-bottom,1.5rem)+4rem)]${this.marksMode === 'c' ? ' pr-5' : ''}" data-exemplar-body="${esc(p.id)}" data-tab="${face}" data-cites="${this.citeMode}">`
           // Stuck above the slide's own top padding, so no line shows through it.
-          + `<div class="sticky -top-8 z-[1] -mt-8 pt-8 -mx-1 px-1 pb-3 bg-base-100"><div class="${this.SEG.box}" role="tablist" aria-label="Show">`
-          + tab('text', 'Text') + tab('context', 'Context') + `</div></div>`
+          + `<div class="sticky -top-8 z-[1] -mt-8 pt-8 -mx-1 px-1 pb-3 bg-base-100 flex items-center justify-between gap-2"><div class="${this.SEG.box}" role="tablist" aria-label="Show">`
+          + tab('text', 'Text') + tab('context', 'Context') + `</div>${this.citesControl(p)}</div>`
           + `<div data-pane="text" class="min-w-0 group-data-[tab=context]:hidden">${this.exemplarDoc(p)}</div>`
           + `<div data-pane="context" class="hidden group-data-[tab=context]:grid gap-8 min-w-0">${this.exemplarContextHtml(p)}</div></div>`;
+      },
+      // Trial c's way to the citations' look, which a and b keep in the FAB's
+      // list: three ways to draw them, beside the faces, while Text shows.
+      citesControl(p) {
+        if (this.marksMode !== 'c' || !(p.citationSpans || []).length) return '';
+        const one = (key, icon, label) => `<button type="button" data-exemplar-cites="${key}" aria-pressed="${this.citeMode === key}"`
+          + ` aria-label="${label}" data-title-tip="${label}" class="${this.SEG.item} px-2 text-base-content/70 group-data-[cites=${key}]:bg-base-100`
+          + ` group-data-[cites=${key}]:text-base-content group-data-[cites=${key}]:shadow-sm"><i class="ph ${icon} text-base"></i></button>`;
+        return `<div class="${this.SEG.box} group-data-[tab=context]:hidden" role="group" aria-label="Citations">`
+          + one('show', 'ph-eye', 'Citations shown') + one('dim', 'ph-circle-half', 'Citations dimmed') + one('hide', 'ph-eye-slash', 'Citations hidden') + `</div>`;
       },
       // Context: each part led by an icon, its sentences at the text's size and
       // its names, links and dates at the size of a label.
@@ -1705,6 +1715,8 @@
       exemplarClick(e) {
         const tab = e.target.closest('[data-exemplar-tab]');
         if (tab) { this.setExemplarTab(tab.getAttribute('data-exemplar-tab')); return true; }
+        const cites = e.target.closest('[data-exemplar-cites]');
+        if (cites) { this.setCiteMode(cites.getAttribute('data-exemplar-cites')); return true; }
         const voice = e.target.closest('[data-exemplar-speak]');
         if (voice) { this.speakCard(voice.getAttribute('data-exemplar-speak')); return true; }
         const focus = e.target.closest('[data-exemplar-focus]');
@@ -1841,6 +1853,7 @@
       setCiteMode(v) {
         this.citeMode = v;
         for (const b of document.querySelectorAll('[data-exemplar-body]')) b.setAttribute('data-cites', v);
+        for (const b of document.querySelectorAll('[data-exemplar-cites]')) b.setAttribute('aria-pressed', String(b.getAttribute('data-exemplar-cites') === v));
         setTimeout(() => this.railDraw(), 50);
       },
 

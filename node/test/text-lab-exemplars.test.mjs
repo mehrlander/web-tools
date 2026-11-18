@@ -566,6 +566,12 @@ test('?marks= trials offer the piece\'s marks in file order, and the default off
   const c = await marked('?marks=c');
   assert.equal(c.marks, null, 'the rail is the card\'s own, not the FAB\'s');
   assert.match(c.exemplarHead(1, 2, false), /focus 1\/1/, 'the head\'s chip says which passage');
+  const cc = render(c.exemplarCardHtml('fixture'));
+  assert.deepEqual([...cc.querySelectorAll('[data-exemplar-cites]')].map(b => b.dataset.exemplarCites), ['show', 'dim', 'hide'],
+    'trial c draws the citations\' look beside the faces');
+  c.exemplarClick({ target: cc.querySelector('[data-exemplar-cites="dim"] i') });
+  assert.equal(c.citeMode, 'dim');
+  assert.equal(render(a.exemplarCardHtml('fixture')).querySelector('[data-exemplar-cites]'), null, 'a and b keep it in the FAB');
 });
 
 test('under a FAB trial the page announces its marks to its own window and the one framing it', async () => {
