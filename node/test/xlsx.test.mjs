@@ -773,6 +773,12 @@ test('number formats: the codes a budget workbook actually carries', () => {
   assert.equal(at('#,##0;[Red](#,##0)', -1234), '(1,234)');
   // A zero section is its own answer.
   assert.equal(at('#,##0;(#,##0);"-"', 0), '-');
+  // A comma after the last digit place scales by a thousand and is not
+  // printed, also where the code groups too.
+  assert.equal(at('#,##0.0,,', 489775265.23), '489.8');
+  assert.equal(at('#,##0,', 489775265.23), '489,775');
+  assert.equal(at('0.0,,"M"', 2500000), '2.5M');
+  assert.equal(at('0,', 1234), '1');
 });
 
 test('number formats: literals, padding and fill characters', () => {
