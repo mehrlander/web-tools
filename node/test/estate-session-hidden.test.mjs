@@ -36,6 +36,7 @@ window.__shell = {
   refreshConfigCache() {}, refreshActivity() {}, refreshSessions() {},
   anchorMenu: () => ({}),
   estateHidden: ['mehrlander/fun'], estateHiddenReady: true,
+  accountRepoNames: ['mehrlander/budget-drs-acfr', 'mehrlander/site.github.io'],
 };
 
 const Alpine = await startAlpine(window, [
@@ -85,4 +86,13 @@ test('with nothing hidden every session shows, its repo chip included', () => {
   } finally {
     window.__shell.estateHidden = ['mehrlander/fun'];
   }
+});
+
+test('a renamed folder is read as the repo it was cloned from', () => {
+  // budget-drs-acfr.partial: a sparse clone a session renamed, recorded under
+  // the folder's name before record.py named checkouts by their origin.
+  assert.equal(data.knownRepoName('budget-drs-acfr.partial'), 'budget-drs-acfr');
+  assert.equal(data.knownRepoName('site.github.io'), 'site.github.io', 'a repo whose own name has a dot keeps it');
+  assert.equal(data.knownRepoName('notes.bak'), 'notes.bak', 'a stem the account has no repo by is left alone');
+  assert.equal(data.sessionRepoName({ name: 'mehrlander/budget-drs-acfr.partial' }), 'budget-drs-acfr');
 });
