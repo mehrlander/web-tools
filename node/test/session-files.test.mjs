@@ -81,15 +81,18 @@ test('a changed file\'s card is the branch page\'s card, on the branch\'s change
 });
 
 test('a file only read, changed off the branch, or in a scratchpad says which', async () => {
-  const note = async (p) => {
+  // Waits for the note it expects rather than for a fixed number of ticks:
+  // a pick re-renders the strip asynchronously, and on a loaded CI runner six
+  // ticks once read the previous pick's notes (Tests run 7460, 2026-11-18).
+  const note = async (p, want) => {
     d._fileSwiper.pick(p);
-    await tick(6);
-    const n = [...el.querySelectorAll('[data-file-strip] [data-file-note]')];
-    return n.map((x) => x.textContent).join(' | ');
+    const text = () => [...el.querySelectorAll('[data-file-strip] [data-file-note]')].map((x) => x.textContent).join(' | ');
+    await until(() => want.test(text()), 'the note for ' + p);
+    return text();
   };
-  assert.match(await note('web-tools/docs/b.md'), /Read, not changed/);
-  assert.match(await note('web-tools/lib/c.js'), /not in its branch's change/);
-  assert.match(await note('scratchpad/notes.txt'), /scratchpad/);
+  assert.match(await note('web-tools/docs/b.md', /Read, not changed/), /Read, not changed/);
+  assert.match(await note('web-tools/lib/c.js', /not in its branch's change/), /not in its branch's change/);
+  assert.match(await note('scratchpad/notes.txt', /scratchpad/), /scratchpad/);
 });
 
 test('the door opens the branch\'s changed files full screen at the file', async () => {
