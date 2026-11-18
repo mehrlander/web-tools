@@ -1567,7 +1567,7 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
                     <i class="ph ph-folder"></i><span x-text="g.label"></span>
                     <span class="badge badge-ghost badge-sm" x-text="g.items.length" data-part="meta"></span>
                   </h2>
-                  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  <div class="grid gap-4 @xl:grid-cols-2 @3xl:grid-cols-3">
                     <template x-for="p in g.items" :key="p.href">
                       <div class="card bg-base-100 border border-base-300 shadow-sm overflow-hidden" data-part="item">
 
@@ -1850,7 +1850,7 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
                           <i class="ph ph-folder"></i><span x-text="g.label"></span>
                           <span class="badge badge-ghost badge-sm" x-text="g.items.length" data-part="meta"></span>
                         </h2>
-                        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                        <div class="grid gap-4 @xl:grid-cols-2 @3xl:grid-cols-3">
                           <template x-for="p in g.items" :key="p.href">
                             <div class="card bg-base-100 border border-base-300 shadow-sm overflow-hidden" data-part="item">
                               <div class="relative bg-base-200/40 border-b border-base-300 aspect-[16/10] overflow-hidden" data-part="body">
@@ -2167,7 +2167,7 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
                 <p x-show="!projectPages.length" class="text-base-content/40 italic text-base py-8">
                   No pages in this workspace yet. A page the repo's .web-tools.json lists under this folder, or with this folder as its project, appears here.
                 </p>
-                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-pattern="card-grid" data-part="list">
+                <div class="grid gap-4 @xl:grid-cols-2 @3xl:grid-cols-3" data-pattern="card-grid" data-part="list">
                   <template x-for="pg in projectPages" :key="pg.key">
                     <div class="card bg-base-100 border border-base-300 shadow-sm overflow-hidden" data-part="item">
                       <template x-if="pg.route === null">
