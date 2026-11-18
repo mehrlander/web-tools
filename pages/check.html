@@ -186,7 +186,7 @@
   function rowHTML(r) {
     return `<div role="option" tabindex="-1" data-run="${esc(r.id)}" aria-selected="false"
       class="flex cursor-pointer flex-col gap-0.5 border-b border-base-200 px-2.5 py-1.5 outline-none hover:bg-base-200 focus-visible:outline-2 focus-visible:outline-[var(--color-primary)] aria-selected:bg-primary/10">
-      <span class="truncate font-medium">${esc(r.title)}</span>
+      <span class="line-clamp-2 font-medium">${esc(r.title)}</span>
       <div class="flex items-center gap-2"><span class="min-w-0 flex-1 truncate text-sm text-base-content/60">${esc(r.meta || '')}</span><span data-bar class="flex items-center gap-1.5">${bar(r)}</span></div></div>`;
   }
 
@@ -263,13 +263,13 @@
     const blocks = r.source.blocks.map(b => `
       <section data-block="${esc(b.id)}" class="flex flex-col gap-1 rounded-md py-2">
         <h3 class="font-mono text-xs text-base-content/50">${esc(b.label || b.id)}</h3>
-        <p class="text-base leading-7 [overflow-wrap:anywhere] sm:text-lg sm:leading-8">${marked(r, b)}</p>
+        <p class="text-xl leading-8 [overflow-wrap:anywhere]">${marked(r, b)}</p>
       </section>`).join('');
     const items = r.outputs.map((o, i) => `
       <article data-item="${esc(keyOf(r.id, o.id))}" data-out="${esc(o.id)}" class="flex cursor-pointer flex-col gap-2 rounded-lg p-2 ${i ? 'mt-2' : ''}">
-        <div class="flex items-start gap-2 text-base leading-7 sm:text-lg sm:leading-8">
-          <span class="shrink-0 font-mono text-xs leading-7 text-base-content/50 sm:leading-8">${esc(r.blockOf[o.anchor?.block]?.label || '')}</span>
-          ${tagHTML(o).replace('shrink-0', 'mt-1.5 shrink-0 sm:mt-2')}<span class="min-w-0">${esc(o.text)}</span></div>
+        <div class="flex items-start gap-2 text-xl leading-8">
+          <span class="shrink-0 font-mono text-xs leading-8 text-base-content/50">${esc(r.blockOf[o.anchor?.block]?.label || '')}</span>
+          ${tagHTML(o).replace('shrink-0', 'mt-1.5 shrink-0')}<span class="min-w-0">${esc(o.text)}</span></div>
         ${o.note ? `<p class="text-sm text-base-content/60">${esc(o.note)}</p>` : ''}
         ${controls(r, o)}
       </article>`).join('');
