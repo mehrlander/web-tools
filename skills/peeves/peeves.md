@@ -376,9 +376,9 @@ Long, undifferentiated paragraphs in documents or replies that pack several subj
 
 ### Death by sentence · `P74`
 
-One sentence carrying several claims, such as a condition, a mechanism and a result, that would each stand as a sentence. Split it into those sentences. Adding a qualifier to clarify a pronoun only lengthens the sentence.
+A sentence that won’t end. Find bite size ideas that build into the larger point. If support is needed, add it after the period. Break up complex sentences.
 
-**Look for:** claims strung together with "and", "which" or a clause opening on an -ing verb, as in 'When a view's `data-find-box` element also carries `data-find-submit`, naming a method of the view, the find pill's bar shows a Results button, and Enter or that button passes the text typed in the bar to the method.'
+**Look for:** a second complete claim joined on with ", and", ", which", ", so" or ", because"; a clause opening on an -ing verb tacked onto the end; conditions stacked before the main clause; a qualifier added to answer a reviewer's question, as in 'When a view's `data-find-box` element also carries `data-find-submit`, naming a method of the view, the find pill's bar shows a Results button, and Enter or that button passes the text typed in the bar to the method.'
 
 **Area:** writing · **Detector:** reader · **Sessions:** 1 · **Status:** active
 
