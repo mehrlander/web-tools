@@ -8,6 +8,7 @@
 <link href="https://cdn.jsdelivr.net/combine/npm/codemirror@5/lib/codemirror.min.css,npm/codemirror@5/theme/neo.css" rel="stylesheet">
 
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web,npm/codemirror@5/lib/codemirror.min.js,npm/codemirror@5/mode/xml/xml.min.js,npm/codemirror@5/mode/javascript/javascript.min.js,npm/codemirror@5/mode/css/css.min.js,npm/codemirror@5/mode/htmlmixed/htmlmixed.min.js"></script>
+<script src="../../lib/kits/title-tip.js"></script>
 </head>
 
 <body class="min-h-dvh font-sans text-zinc-800 antialiased selection:bg-zinc-200 selection:text-zinc-900">
@@ -236,7 +237,7 @@
     if (cfg.kind === 'context') {
       chip.classList.add('cursor-pointer', 'hover:bg-zinc-50', 'transition');
       chip.setAttribute('role', 'button');
-      chip.setAttribute('title', 'View host template');
+      chip.setAttribute('data-title-tip', 'View host template');
       chip.append(el('i', { class: 'ph ph-arrow-square-out text-[10px] text-zinc-400' }));
       const openHost = buildHostDialog(cfg.context);
       chip.addEventListener('click', openHost);

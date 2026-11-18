@@ -65,3 +65,4 @@ reproduced and held by a test; one-pointer selection still works.
   (cross-window font rendering, the data-URL relay) retired with the popup.
 - 2026-09-04: Body cut from 595 words.
 - 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).
+- 2026-11-16: refinement pass (session b805c26a): left in backlog, since no one has asked for it since 2026-09-04. The pinch-zoom errand claude-2026-11-16-c4a308 rewrites the stage's pointer handling and was asked to leave room for these dividers.

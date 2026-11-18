@@ -1,7 +1,9 @@
 ---
 id: views-forms-and-key-primitive-k5ngay
 title: Split the app reference by view and form, and make the registries one model
-status: backlog
+status: done
+closed: 2026-11-16
+resolution: superseded
 opened: 2026-09-22
 project: app
 size: L
@@ -145,3 +147,4 @@ the FAB captions a deck slide by its type with a deck row above it;
 - 2026-10-23: part 3 done on claude/hopeful-lamport-1cbnuy (web-tools #1087). `key_primitive` replaced `area`: a key is a locator if and only if its identity is `path` or `path:<prefix>`, and properties-registry.test.mjs checks that every such key names something in the tree. One departure from the text above: `assistant-branches` stays an id, since nothing can check that a merged branch still exists. Of the five loose registries, `aims-reading` took a `path` identity and became a locator; `tracker-tasks`, `assistant-branches`, `themes` and `sources` are ids. The Registries tab, now under the Map's Data tab, groups by it. Parts 2 and 4 remain.
 - 2026-10-24: part 1's view half reversed on the owner's call, on claude/views-registry: `docs/views/` and the app-routes `doc` column retired; `docs/forms/` stays. Parts 2 and 4 remain.
 - 2026-10-25: the form half reversed too, on claude/forms-and-wording: `docs/forms/branch.md`, `session.md` and the subjects `doc` column retired; `docs/forms/README.md` stays. Parts 2 and 4 remain.
+- 2026-11-16: refinement close (session b805c26a, owner's go): part 1 was built and reversed on the owner's call (#1091, #1100); part 3 shipped (#1087, key_primitive in docs/registries.csv); parts 2 and 4 are untouched, and part 2 conflicts with fab.js _typeLayers, which reads the type from the address. Refile 2 or 4 as small tasks if still wanted.

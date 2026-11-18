@@ -93,6 +93,11 @@
   ],
   "research": [
     {
+      "path": "research/2026-11-16-tooltip-sources/README.md",
+      "label": "Where tooltip text comes from, and what git says about who wrote it",
+      "kind": "probe"
+    },
+    {
       "path": "research/2026-10-29-policy-candidates/README.md",
       "label": "Policy candidates: which survey rules become house policies",
       "kind": "probe"

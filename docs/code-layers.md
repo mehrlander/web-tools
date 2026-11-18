@@ -35,8 +35,8 @@ folder, the files any document names and any test exercises.
   [`lib/gh-boot.js`](../lib/gh-boot.js), with `FAB_BOOT` for the FAB's
   conditional loads. A boot-loaded file stays in the folder its attachment gives
   it.
-- **A kit that wants Alpine reactivity gets a component wrapper** rather than
-  becoming a component.
+- **When a kit needs Alpine reactivity, wrap it in a component** rather than
+  turning the kit into one.
   [`cm-editor.js`](../lib/alpineComponents/cm-editor.js) over
   [`cm6.js`](../lib/kits/cm6.js) is the reference pair.
 - **A page-free module that registers a namespace stays a kit.** `lib/ops/` takes

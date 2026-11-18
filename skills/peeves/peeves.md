@@ -18,7 +18,7 @@ Instructions growing through rationale, duplicated claims, correction notes and 
 
 Slogans, posturing, emphatic absolutes and sentences that sound profound while saying little.
 
-**Look for:** 'it does one thing', 'is the floor', 'held to', 'carries weight', 'does the work', 'deliberately', 'never' used for emphasis; a sentence that sounds wise and says little
+**Look for:** 'it does one thing', 'is the floor', 'held to', 'carries weight', 'does the work', 'deliberately', 'never' used for emphasis; a sentence that sounds wise and says little; a thing given wants or entitlements in place of an instruction to an actor, as in 'a wake that leaves the reader nothing new gets no reply' or 'a kit that wants Alpine reactivity gets a component wrapper'
 
 **Area:** writing · **Detector:** reader · **Sessions:** 35 · **Status:** active
 
@@ -298,9 +298,9 @@ Source paragraphs broken across lines at an arbitrary width. Paragraphs remain c
 
 ### Percussive negation and contrast · `P64`
 
-Repeated denials of outcomes the reader never expected, or repeated contrasts that manufacture an alternative to reject. Percussive negation and percussive contrast spend attention on those rejected alternatives. A necessary comparison or correction can still state a contrast.
+Emphasizing distinctions of unclear relevance, or shadow-boxing with implausible suppositions. Watch for any blanket negation: the word "nothing" is often a flag that the preceding statement leaves some conspicuous gap that the term then tries to paper over. Close the gap, and avoid the patch.
 
-**Look for:** 'draws no underline', 'adds no claim', 'names no file', 'open no new ones', 'nothing opens it'; several in one passage; excludes have, be and there is; repeated 'not X, but Y' contrasts; rejecting an alternative the reader never raised
+**Look for:** 'draws no underline', 'adds no claim', 'names no file', 'open no new ones', 'nothing opens it', 'leaves the reader nothing new', 'there is nothing to act on'; repeated 'not X, but Y' contrasts; rejecting an alternative the reader never raised
 
 **Area:** writing · **Detector:** reader · **Sessions:** 5 · **Status:** active
 
@@ -324,7 +324,7 @@ Calling a list a ledger, census, catalog or similar term and expecting the word 
 
 ### Modal dialogs · `P67`
 
-Avoid modal dialogs; consider a panel-tip, the deck takeover, or another more fluid alternative.
+Avoid modal dialogs; consider a panel-tip, the Swipe Deck takeover, or another more fluid alternative.
 
 **Look for:** showModal(), modal-box, a dimmed backdrop
 
@@ -365,6 +365,14 @@ A page of a domain app, an app such as budget-drs's whose subject is a field of 
 **Look for:** a link on a domain app page that opens github.com, claude.ai or chatgpt.com; a figure's source given as a chat
 
 **Area:** page-design · **Detector:** reader · **Sessions:** 1 · **Status:** active
+
+### Wall-of-text paragraphs · `P72`
+
+Long, undifferentiated paragraphs in documents or replies that pack several subjects into one block of prose instead of giving distinct topics, mechanisms or steps separate paragraphs or tables.
+
+**Look for:** one long paragraph covering several subjects (such as architecture, clone reads and build outputs in one block); a reply or README passage that shifts topic without a paragraph break
+
+**Area:** writing · **Detector:** reader · **Sessions:** 3 · **Status:** active
 
 ## Combined entries
 
@@ -436,9 +444,9 @@ Name things for what they are, not by metaphor or vague umbrella.
 
 ### Link what you mention · `P24`
 
-Link every file, PR, session or page you mention.
+Link every file, folder, PR, session or page you mention; in a directory listing or index, link each entry to the file that resolves what that entry is.
 
-**Look for:** a path or PR number in prose without a link
+**Look for:** a path, folder entry or PR number in prose without a link; a directory bullet that names a folder with no link to the folder's README, page or script
 
 **Owner:** docs/CONVERSATION.md (reference is a link)
 

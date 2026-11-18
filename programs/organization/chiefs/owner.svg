@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="the owner">
+  <title>the owner</title>
+  <desc>A crown of three points over its band, for the owner, who approves what the chiefs propose, in slate-600, a colour no program uses. Drawn on the drawn-mark box and rules (docs/favicons/README.md): solid ink in one colour, no strokes, and every gap at least 2.5 units.</desc>
+  <g fill="#475569">
+    <path d="M4.5 20.5 L4.5 8 L10.75 13.5 L16 4.5 L21.25 13.5 L27.5 8 L27.5 20.5 Z"/>
+    <rect x="4.5" y="23" width="23" height="5" rx="1.25"/>
+  </g>
+</svg>

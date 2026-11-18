@@ -1,7 +1,9 @@
 ---
 id: brief-from-the-pages-gallery-7d4031
 title: Reach the take-away menu from the app's Pages gallery
-status: backlog
+status: done
+closed: 2026-11-16
+resolution: dropped
 opened: 2026-07-26
 size: S
 ---
@@ -48,3 +50,4 @@ gallery link should carry that too rather than being retrofitted twice.
   with its only mount (`nav-repo.html`). The design is unaffected: the card
   still holds a path and still has to link into the FAB rather than rebuild it.
 - 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).
+- 2026-11-16: refinement close (session b805c26a, owner's go to use judgment): untouched since 2026-07-26, and the take menu has since moved to the FAB's Render tab (Take). Reopen if a gallery card opening its page on the take menu is still wanted.
