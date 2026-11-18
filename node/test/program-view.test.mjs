@@ -2,17 +2,19 @@
 // a space of its own, at ?view=program&program=<name>. It was a page inside the
 // Map's Programs tab until 2026-11-18, and these checks moved with it from
 // map-research.test.mjs: the masthead, the tabs and which of them a program
-// gets, the marks that open the tab they count, the charter's Areas table, the
+// gets, the count each carries as a badge, the charter's Areas table, the
 // commits joined by sha, the open tasks from board.csv, the notes on the
 // charter, the measures drawn in their tab, and the signed-out read limits.
 // Also window.Programs, the one reading of a declaration that the Map's list,
 // this view and the shell's sidebar share, and the Areas tab drawn from the
 // charter and the manifest: a tile an area, its icon (declared, else its Map
-// view's), the files its Covers cell links, what it covers in a panel-tip,
-// the panels its declaration names (a measure attached by the area's exact
-// name, a registry broken down by a column, a gallery of a registry's rows),
-// its width from its panels and the rows packed without holes, and its commits
-// of the last fortnight matched by path.
+// view's), the files its Covers cell links less those a panel names, what it
+// covers in a panel-tip, the panels its declaration names (a measure attached
+// by the area's exact name, a registry broken down by a column, a gallery of
+// a registry's rows),
+// its width from its panels and the rows packed in order without holes, its
+// height its own unless it draws a measure, and its commits of the last
+// fortnight matched by path.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -78,7 +80,7 @@ const charterAbout = hub + ':programs/surfacing/README.md';
 // the file its Measure cell names.
 const charterMd = ['# Surfacing', '', 'The charter, *rendered*.', '', '## Areas', '',
   '| Area | Covers |', '| --- | --- |',
-  '| Reply | what a reply hands over, in [`CONVERSATION.md`](../../docs/CONVERSATION.md) |',
+  '| Reply | what a reply hands over, in [`CONVERSATION.md`](../../docs/CONVERSATION.md), counted in [`portable.csv`](../../docs/portable.csv) and framed in [`portable.md`](../../docs/portable.md) |',
   '| Showing | the link, from `showing.py` and the [Map](https://example.com/?view=map) |',
   '| Forms | the forms in [`docs/forms/`](../../docs/forms/) and the [envelopes](../../docs/envelopes/README.md "Envelopes"), again [here](../../docs/forms/) |', '',
   '## Measures', '', '| Area | Measure | Working means |', '| --- | --- | --- |',
@@ -284,7 +286,7 @@ test('Programs reads an area declaration, keeping only panels it can draw', () =
   assert.equal(window.Programs.rows([{ repo: hub, config: { programs: [{ name: 'y' }] } }])[0].areas.length, 0, 'no declaration, no areas');
 });
 
-test('Programs breaks a registry down, packs tiles without holes, and finds an area its icon', () => {
+test('Programs breaks a registry down, packs tiles in order without holes, and finds an area its icon', () => {
   const rows = window.Csv.rows(csvs['docs/harness.csv']);
   const all = window.Programs.breakdown(rows, { by: 'invocation', split: ':' });
   assert.deepEqual([...all.groups.map(g => [g.key, g.n])], [['hook', 2], ['argv', 1], ['ci', 1], ['driver', 1]],
@@ -301,7 +303,8 @@ test('Programs breaks a registry down, packs tiles without holes, and finds an a
   assert.deepEqual([...window.Programs.pick([{ a: 'x1' }, { a: 'y' }], { a: '^x' })], [{ a: 'x1' }]);
 
   const spans = (w, c) => window.Programs.tileSpans(w, c).map(t => t.i + ':' + t.span).join(' ');
-  assert.equal(spans([2, 3, 2, 1, 1], 3), '0:2 3:1 1:3 2:2 4:1', 'a row takes the first later tile that fits its gap');
+  assert.equal(spans([2, 3, 2, 1, 1], 3), '0:3 1:3 2:2 3:1 4:3',
+    'in order: a gap the next tile does not fit widens the row\'s tile, and no later tile is pulled forward into it');
   assert.equal(spans([2, 2], 3), '0:3 1:3', 'a gap nothing fits goes to the row\'s tile');
   assert.equal(spans([1, 1], 3), '0:2 1:1', 'shared out from the first');
   assert.equal(window.Programs.tileSpans([1, 1], 3, [false, true]).map(t => t.span).join(), '1,2', 'a tile of views alone grows last');
@@ -309,6 +312,7 @@ test('Programs breaks a registry down, packs tiles without holes, and finds an a
   assert.equal(spans([3, 2], 1), '0:1 1:1', 'one column: every tile one wide, in order');
   for (const c of [1, 2, 3, 4]) {
     const out = window.Programs.tileSpans([2, 1, 3, 1, 2, 1, 1], c);
+    assert.deepEqual([...out.map(t => t.i)], [0, 1, 2, 3, 4, 5, 6], c + ' columns: in the order given');
     assert.ok(out.every(t => t.span <= c));
     assert.equal(out.reduce((n, t) => n + t.span, 0) % c, 0, c + ' columns: every row full');
   }
@@ -344,14 +348,15 @@ test('Areas draws a tile an area: its icon and files, its declared panels, its w
   assert.match(tile('Reply').querySelector('[data-area-icon]').className, /var\(--program\)/, 'drawn in the program\'s colour');
   assert.equal(tile('Reply').querySelector('[data-part="title"]').textContent.trim(), 'Reply');
   const docs = key => [...tile(key).querySelectorAll('[data-area-doc]')];
-  assert.deepEqual(docs('Reply').map(a => a.textContent.trim()), ['CONVERSATION.md']);
+  assert.deepEqual(docs('Reply').map(a => a.textContent.trim()), ['CONVERSATION.md', 'portable.md'],
+    'a file a panel\'s head names (its breakdown\'s portable.csv) is not named again; another file of that name is');
   assert.deepEqual(docs('Forms').map(a => a.textContent.trim()), ['docs/forms/', 'envelopes/README.md'],
     'a folder by its path, an index file with its folder, and a second link to one path dropped');
   assert.equal(docs('Forms')[0].getAttribute('href'), 'https://github.com/' + hub + '/tree/codex/program-preview/docs/forms');
   assert.equal(docs('Forms')[0].hasAttribute('data-peek'), false, 'a folder has no peek');
   assert.ok(docs('Forms')[1].querySelector('i').classList.contains('ph-file-text'));
   assert.equal(tile('Showing').querySelector('[data-area-docs]').style.display, 'none', 'no repository link, no chips');
-  // A file in the chips and the same file heading a panel mark each other.
+  // A chip marks under the pointer, as a panel's file does.
   const chip = docs('Reply')[0];
   chip.dispatchEvent(new window.Event('mouseenter')); await tick();
   assert.ok(chip.classList.contains('bg-primary/10'));
@@ -421,8 +426,16 @@ test('Areas draws a tile an area: its icon and files, its declared panels, its w
   assert.match(galleries[2].textContent, /and 1 more/);
   assert.deepEqual([...tile('Showing').querySelectorAll('[data-area-view]')].map(a => a.textContent.trim()), ['Waiting']);
 
-  // Width: a tile asks for its panels' weight, and the grid packs the rows.
+  // Width: a tile asks for its panels' weight, and the grid packs the rows in
+  // the charter's order, with no dense reflow. Height: a tile is its own,
+  // so a short one leaves no empty block over its footer, except one that
+  // draws a measure, which stretches to its row.
   assert.deepEqual(['Reply', 'Showing', 'Forms'].map(k => tile(k).dataset.want), ['3', '3', '1']);
+  const grid = page.querySelector('[data-program-tiles]');
+  assert.doesNotMatch(grid.className, /dense/);
+  assert.ok(grid.classList.contains('items-start'));
+  assert.deepEqual(['Reply', 'Showing', 'Forms'].map(k => tile(k).classList.contains('self-stretch')), [true, false, false],
+    'Reply draws its measure; Showing has none yet, and Forms no panel');
   assert.equal(page.querySelector('[data-program-tiles]').dataset.cols, '1', 'a pane jsdom gives no width holds one column');
   data.areaCols = 3; await frame();
   assert.deepEqual([...page.querySelectorAll('[data-program-area]')].map(t => t.dataset.area + ':' + t.dataset.span), ['Reply:3', 'Showing:3', 'Forms:3']);
@@ -437,7 +450,10 @@ test('Areas draws a tile an area: its icon and files, its declared panels, its w
   assert.equal(c.areas[1].measure.addr, '', 'a longer file name is not the declared file');
   assert.equal(c.areas[2].measure, null, 'only an exact name attaches a row');
   const act = data.activityOf(p);
-  assert.deepEqual([...act.read].sort(), ['docs/CONVERSATION.md', 'docs/envelopes/README.md', 'docs/forms/']);
+  assert.deepEqual([...act.read].sort(), ['docs/CONVERSATION.md', 'docs/envelopes/README.md', 'docs/forms/', 'docs/portable.csv', 'docs/portable.md'],
+    'every file an area links, a chip left out for its panel included');
+  assert.match(page.querySelector('[data-program-fortnight]').textContent.replace(/\s+/g, ' '), /commits to each area's files\s*[A-Z][a-z]+ \d+ → /,
+    'what a tile\'s count covers, said once beside the fortnight');
   const areaReads = asked.filter(a => a.file.startsWith('commits?') && new URLSearchParams(a.file.slice(8)).get('since'));
   assert.ok(areaReads.every(a => new URLSearchParams(a.file.slice(8)).get('per_page') === '100'));
   const forms = data.areaDays(p, c.areas[2]);
@@ -460,15 +476,22 @@ test('Areas draws a tile an area: its icon and files, its declared panels, its w
   assert.deepEqual(problems, []);
 });
 
-test('each mark opens the tab it counts, and the tabs hold the changes, tasks, notes and measures', async () => {
+test('each tab carries its count as a badge, and the tabs hold the changes, tasks, notes and measures', async () => {
   const p = data.page, page = el.querySelector('[data-program-page]');
-  const marks = Object.fromEntries([...page.querySelectorAll('[data-program-mark]')]
-    .map(b => [b.dataset.programMark, b.style.display === 'none' ? null : b.textContent.trim()]));
-  assert.equal(marks.tasks, '2 open');
-  assert.equal(marks.changes, data.recent(p) + ' in 14 days');
-  assert.equal(marks.notes, '2 notes');
+  assert.equal(page.querySelector('[data-program-marks], [data-program-mark]'), null, 'no row of counts apart from the tabs');
+  const badges = Object.fromEntries([...page.querySelectorAll('[data-program-tab]')].map(b => {
+    const n = b.querySelector('[data-program-badge]');
+    return [b.dataset.programTab, n && n.style.display !== 'none' ? n.textContent.trim() : null];
+  }));
+  assert.equal(badges.tasks, '2', 'the open tasks');
+  assert.equal(badges.changes, data.recent(p) ? String(data.recent(p)) : null, 'the commits of the last fortnight, none drawn at nought');
+  assert.equal(badges.notes, '2');
+  assert.equal(badges.areas, null, 'a tab with no count has no badge');
+  assert.equal(badges.measures, null);
+  assert.match(page.querySelector('[data-program-badge="changes"]').dataset.titleTip, /^Commits in the last 14 days, among the latest read from 2 governed paths$/,
+    'the one count whose window its tab does not say');
 
-  page.querySelector('[data-program-mark="changes"]').click(); await frame();
+  page.querySelector('[data-program-tab="changes"]').click(); await frame();
   assert.equal(window.__shell.programTab, 'changes', 'the tab is the shell\'s, so the address carries it');
   assert.ok(shown('[data-program-commits]'));
   assert.equal(shown('[data-program-areas]'), false);
@@ -484,7 +507,7 @@ test('each mark opens the tab it counts, and the tabs hold the changes, tasks, n
   assert.ok(reads.length && reads.every(a => a.repo === hub && new URLSearchParams(a.file.slice(8)).get('per_page') === '5'),
     'the Changes tab reads five a governed path');
 
-  page.querySelector('[data-program-mark="tasks"]').click(); await frame();
+  page.querySelector('[data-program-tab="tasks"]').click(); await frame();
   assert.equal(window.__shell.programTab, 'tasks');
   assert.ok(shown('[data-program-tasks]'));
   assert.equal(shown('[data-program-commits]'), false);
@@ -564,7 +587,7 @@ test("signed out, a program's page reads fewer paths and leaves out the notes", 
     await frame();
     assert.equal(el.querySelector('[data-program-notes]').style.display, 'none');
     assert.equal(el.querySelector('[data-program-tab="notes"]'), null, 'signed out, no Notes tab');
-    assert.equal(el.querySelector('[data-program-mark="notes"]').style.display, 'none', 'nor a count of notes');
+    assert.equal(data.tabCount(p, 'notes'), 0, 'nor a count of notes');
     const big = { ...p, key: 'x:big', governs: Array.from({ length: 12 }, (_, i) => 'docs/f' + i + '.md') };
     await data.loadCommits(big);
     assert.equal(data.commitsOf(big).read, 8, 'signed out, the first eight governed paths');
