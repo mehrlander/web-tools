@@ -48,6 +48,10 @@ Traffic answers the size question in three bands that do not share a unit: BOOT 
 
 Text reads what the page says, as against Render, Inspect and Traffic, which report how it was delivered. [`node/test/fab-text.test.mjs`](../node/test/fab-text.test.mjs) states what the tab reports and which of its figures are gated.
 
+## Marks
+
+A page whose document carries annotations offers them through `marks`, the opt-in contract beside `actions`, `toggles`, `menu` and `about`: one row a kind of mark, each with the page's own move to it. While a page offers marks the strip gains a Marks tab, and the launcher carries either a count of them in its free top-left corner or, where the page asks for `style: 'stepper'`, arrows and the name of the mark in view beside the disc. A row closes the drawer and runs the page's move; a row may carry one choice the page applies in place. Only pages/text-lab.html offers marks, and only under `?marks=a` or `?marks=b`, as a trial; [`node/test/fab-marks.test.mjs`](../node/test/fab-marks.test.mjs) holds the contract.
+
 ## Notes and the annotator
 
 About holds notes for the page or the selected item, with a composer at the bottom. Item / Page chooses the subject named above the field. Each subject keeps its own draft. Save note appends a signed, dated note to the private [notes store](../skills/notes/SKILL.md); a failed save keeps the draft. The notes above the composer follow that subject, including replies and notes on entries consolidated into it.

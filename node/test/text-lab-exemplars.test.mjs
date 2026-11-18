@@ -533,6 +533,41 @@ test('the card speaks the piece in view from its head, and the deck reads from t
   opened[0].onClose();
 });
 
+test('?marks= trials offer the piece\'s marks in file order, and the default offers none', async () => {
+  const marked = async (q) => {
+    const h = harness(q);
+    h.model.home = home(FILES());
+    await h.model.loadExemplars();
+    h.model.pane = 'exemplars';
+    h.model.exemplarSel = 'fixture';
+    return h.model;
+  };
+  const plain = await marked('');
+  assert.equal(plain.marks, null, 'without ?marks= the FAB is offered nothing');
+  assert.equal(render(plain.exemplarCardHtml('fixture')).querySelector('[data-cite]'), null, 'and the render is unchanged');
+  const a = await marked('?marks=a');
+  assert.equal(a.marks.style, 'tab');
+  assert.deepEqual(a.marks.items.map(m => m.key), ['caption', 'focus0', 'citations'], 'in the order the file has them');
+  const cites = a.marks.items[2];
+  assert.equal(cites.count, 2, 'every citation is one row');
+  const card = render(a.exemplarCardHtml('fixture'));
+  assert.deepEqual([...new Set([...card.querySelectorAll('[data-cite]')].map(e => e.dataset.cite))], ['0', '1']);
+  assert.equal([...card.querySelectorAll('[data-cite="0"]')].map(e => e.textContent).join(''), 'Doe v. Roe, 2 U.S. 2', 'cut at its own edges');
+  cites.choice.set('dim');
+  assert.equal(a.citeMode, 'dim');
+  assert.match(render(a.exemplarCardHtml('fixture')).innerHTML, /data-cites="dim"/, 'a card drawn later is drawn the same way');
+  const went = [];
+  a.goMark = (id, kind, k) => went.push([id, kind, k]);
+  a.stepMark(1);
+  a.stepMark(-1);
+  assert.deepEqual(went.map(w => w.slice(0, 2).join(' ')), ['fixture caption', 'fixture cite'], 'a first step forward is the first mark; back is the last');
+  const b = await marked('?marks=b');
+  assert.equal(b.marks.style, 'stepper');
+  const c = await marked('?marks=c');
+  assert.equal(c.marks, null, 'the rail is the card\'s own, not the FAB\'s');
+  assert.match(c.exemplarHead(1, 2, false), /focus 1\/1/, 'the head\'s chip says which passage');
+});
+
 test('the header comment names the pane, its faces and its address', () => {
   const head = SRC.slice(0, SRC.indexOf('-->'));
   assert.match(head, /\n {4}exemplars {4}projects\/text\/exemplars\/pieces\//);
@@ -540,6 +575,7 @@ test('the header comment names the pane, its faces and its address', () => {
   assert.match(head, /<slug>\.citations\.standoff\.json/);
   assert.match(head, /\?exemplar=<slug> opens one piece and implies the exemplars pane/);
   assert.match(head, /runs or exemplars/);
+  assert.match(head, /\?marks=a\|b\|c trials a way through a piece's marks/);
   assert.match(SRC, /x-ref="exemplarList" role="listbox"/);
   assert.doesNotMatch(SRC, /tip\.kind === 'exemplar'/, 'Context holds what the panel-tip did');
 });

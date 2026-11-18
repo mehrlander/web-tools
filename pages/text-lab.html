@@ -121,6 +121,9 @@
                  filters beside it.
     ?run=<dir>   marks one run in the runs pane and implies that pane.
     ?exemplar=<slug> opens one piece and implies the exemplars pane.
+    ?marks=a|b|c trials a way through a piece's marks: a, a Marks tab in the
+                 FAB's drawer and a count on the launcher; b, a stepper on the
+                 FAB; c, a rail down the card's edge. Without it, nothing.
     ?proposal=<id> and ?pane=proposals are the pre-2026-09-27 names; both are
                  read and the address is rewritten to the new form.
 -->
@@ -282,6 +285,13 @@
       exemplarTab: 'text',
       voice: null,
       voiceAt: { state: 'idle', id: '' },
+      // ?marks=a|b|c, three trials of a way through a piece's marks (its focus,
+      // its caption, its citations): a, the FAB's Marks tab; b, a stepper on
+      // the FAB; c, a rail down the card's edge. Without it nothing changes.
+      marksMode: ['a', 'b', 'c'].includes(params.get('marks')) ? params.get('marks') : '',
+      marksAt: {},
+      focusAt: {},
+      citeMode: 'show',
       deckParam: params.get('deck') || '',
       deckAt: Math.max(0, parseInt(params.get('at'), 10) || 0),
       loading: true,
@@ -562,7 +572,11 @@
             ids: d.ids, sel: d.sel, body: d.body, name: d.name,
             listMax: 'max-h-[36vh]', wide: 'grid-cols-[minmax(0,26rem)_minmax(0,1fr)]',
             empty: `<p class="p-4 text-base-content/70">${d.empty}</p>`,
-            onPick: id => { d.set(id); this.syncSel(); if (kind === 'exemplar' && this.voice) this.voice.seek(this.exemplarIds().indexOf(id)); },
+            onPick: id => {
+              d.set(id); this.syncSel();
+              if (kind === 'exemplar' && this.voice) this.voice.seek(this.exemplarIds().indexOf(id));
+              if (kind === 'exemplar' && this.marksMode === 'c') setTimeout(() => this.railDraw(), 300);
+            },
             ...(d.deck ? { deck: d.deck } : {}),
             ...(d.head ? { head: d.head } : {}),
           });
@@ -571,6 +585,7 @@
         }
         this.syncSel();
         requestAnimationFrame(() => this.swipers[kind]?.show(String(d.sel())));
+        if (kind === 'exemplar' && this.marksMode === 'c') { this.railMount(d.card); setTimeout(() => this.railDraw(), 300); }
       },
       // One listener per card and per list, for the lifetime of the page: the
       // kit redraws their contents and leaves the elements themselves alone.
@@ -1261,6 +1276,7 @@
           this.exemplars = pieces;
           if (!this.exemplarOf(this.exemplarSel)) this.exemplarSel = '';
           this.exemplarState = 'done';
+          if (this.marksMode) window.dispatchEvent?.(new CustomEvent('fab:marks'));
           if (this.deckParam === 'exemplars') {
             this.deckParam = '';
             this.$nextTick(() => this.openExemplarDeck(this.deckAt));
@@ -1431,7 +1447,7 @@
         const tab = (key, label) => `<button type="button" role="tab" data-exemplar-tab="${key}" aria-selected="${face === key}"`
           + ` class="${this.SEG.item} text-base-content/70 group-data-[tab=${key}]:bg-base-100 group-data-[tab=${key}]:font-medium`
           + ` group-data-[tab=${key}]:text-base-content group-data-[tab=${key}]:shadow-sm">${label}</button>`;
-        return `<div class="group pb-[calc(var(--fab-bottom,1.5rem)+4rem)]" data-exemplar-body="${esc(p.id)}" data-tab="${face}">`
+        return `<div class="group pb-[calc(var(--fab-bottom,1.5rem)+4rem)]${this.marksMode === 'c' ? ' pr-5' : ''}" data-exemplar-body="${esc(p.id)}" data-tab="${face}" data-cites="${this.citeMode}">`
           // Stuck above the slide's own top padding, so no line shows through it.
           + `<div class="sticky -top-8 z-[1] -mt-8 pt-8 -mx-1 px-1 pb-3 bg-base-100"><div class="${this.SEG.box}" role="tablist" aria-label="Show">`
           + tab('text', 'Text') + tab('context', 'Context') + `</div></div>`
@@ -1490,6 +1506,7 @@
           for (const b of body.querySelectorAll('[data-exemplar-tab]')) b.setAttribute('aria-selected', String(b.getAttribute('data-exemplar-tab') === face));
           if (box) box.scrollTop = (body._at || {})[face] || 0;
         }
+        if (this.marksMode === 'c') requestAnimationFrame(() => this.railDraw());
       },
       // ── Reading aloud ──────────────────────────────────────────────────────
       // What Text shows, spoken: the stored Markdown with the front matter and
@@ -1597,7 +1614,8 @@
         if (!p.focusSpans || !p.focusSpans.length) return '';
         return `<button type="button" data-exemplar-focus="${esc(p.id)}" class="btn btn-ghost btn-xs gap-1 px-1.5 font-normal flex-none -my-1 max-sm:h-8"`
           + ` aria-label="Jump to the focus" data-title-tip="${esc(this.focusLine(p))}">`
-          + `<i class="ph ph-bookmark-simple text-base"></i><span class="font-mono text-xs">focus</span></button>`;
+          + `<i class="ph ph-bookmark-simple text-base"></i><span class="font-mono text-xs tabular-nums">${this.marksMode === 'c'
+            ? `focus ${(this.focusAt[p.id] || 0) + 1}/${p.focusSpans.length}` : 'focus'}</span></button>`;
       },
       focusLine(p) {
         const n = p.focusSpans.length, fw = p.focusSpans.reduce((s, f) => s + f.words, 0);
@@ -1621,8 +1639,9 @@
         const box = document.createElement('div');
         box.className = this.readClass();
         box.innerHTML = G.render(p.text.slice(p.textAt), { knownRefs: [this.DATA_REF, 'main'] }).html;
+        const cites = this.marksMode && S ? p.citationSpans || [] : [];
+        if ((p.focusSpans.length || cites.length) && S) S.mapText(box, p.text, p.textAt);
         if (p.focusSpans.length && S) {
-          S.mapText(box, p.text, p.textAt);
           const blocks = [...box.children];
           const own = blocks.map(b => {
             const s = b.matches('[data-src]') ? b : b.querySelector('[data-src]');
@@ -1647,8 +1666,36 @@
             i = j;
           }
         }
+        if (cites.length) this.wrapCitations(box, cites);
         p.doc = box.outerHTML;
         return p.doc;
+      },
+      // Each citation's text wrapped where the render drew it, cut at its own
+      // edges inside the mapped text nodes, so it can be found, dimmed or
+      // hidden in Text. One citation across an italic is several pieces with
+      // one index.
+      wrapCitations(box, cites) {
+        for (const sp of [...box.querySelectorAll('[data-src]')]) {
+          const node = sp.firstChild;
+          if (!node || node.nodeType !== 3) continue;
+          const s = +sp.dataset.src, raw = node.data, e = s + raw.length;
+          const hits = cites.map((c, k) => ({ ...c, k })).filter(c => c.start < e && c.end > s);
+          if (!hits.length) continue;
+          const frag = document.createDocumentFragment();
+          let cur = s;
+          for (const c of hits) {
+            const a = Math.max(s, c.start), b = Math.min(e, c.end);
+            if (a > cur) frag.append(raw.slice(cur - s, a - s));
+            const w = document.createElement('span');
+            w.dataset.cite = String(c.k);
+            w.className = 'transition-opacity group-data-[cites=dim]:opacity-40 group-data-[cites=hide]:hidden';
+            w.textContent = raw.slice(a - s, b - s);
+            frag.append(w);
+            cur = b;
+          }
+          if (cur < e) frag.append(raw.slice(cur - s));
+          sp.replaceChildren(frag);
+        }
       },
 
       // A tap on a piece's own controls: its face, or the voice or the focus
@@ -1684,12 +1731,169 @@
         }
         const k = (Number(body.dataset.next) || 0) % marks.length;
         body.dataset.next = String(k + 1);
-        const mark = marks[k], box = this.scrollerOf(mark);
-        if (!box) return mark.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        this.scrollToMark(body, marks[k]);
+        this.noteFocus(body.getAttribute('data-exemplar-body'), k);
+      },
+      noteFocus(id, k) {
+        this.focusAt = { ...this.focusAt, [id]: k };
+        if (this.marksMode === 'c') this.swipers?.exemplar?.paint();
+      },
+      // Below the stuck face toggle, with a little room.
+      scrollToMark(body, el) {
+        const box = this.scrollerOf(el);
+        if (!box) return el.scrollIntoView({ block: 'start', behavior: 'smooth' });
         const top = box.getBoundingClientRect().top;
         const bar = body.querySelector('[role="tablist"]')?.parentElement;
         const under = bar ? Math.max(0, bar.getBoundingClientRect().bottom - top) : 0;   // below the stuck toggle
-        box.scrollTo({ top: box.scrollTop + mark.getBoundingClientRect().top - top - under - 12, behavior: 'smooth' });
+        box.scrollTo({ top: box.scrollTop + el.getBoundingClientRect().top - top - under - 12, behavior: 'smooth' });
+      },
+
+      // ── Marks: three trials (?marks=a|b|c) ────────────────────────────────
+      // A piece's marks, one row a kind, in the order the file has them: the
+      // caption (shown in Context), each focus passage, and the citations as
+      // one row, since an opinion carries seventy to a hundred and twenty.
+      markItems(p) {
+        if (!p) return [];
+        const items = [], n = p.focusSpans.length, c = p.citationSpans || [];
+        const prose = (a, b) => this.variantPreview(window.readAloud ? window.readAloud.speechText(p.text.slice(a, b)) : p.text.slice(a, b), 90);
+        if (p.captionSpans.length) items.push({ key: 'caption', at: p.captionSpans[0].start, icon: 'ph-scroll', label: 'Caption', short: 'caption',
+          sub: prose(p.captionSpans[0].start, p.captionSpans[0].end), go: () => this.goMark(p.id, 'caption') });
+        p.focusSpans.forEach((f, k) => items.push({ key: 'focus' + k, at: f.start, icon: 'ph-bookmark-simple',
+          label: n > 1 ? `Focus ${k + 1} of ${n}` : 'Focus', short: `focus ${k + 1}/${n}`,
+          sub: [p.focus, `${f.words.toLocaleString()} words`].filter(Boolean).join(' · '), go: () => this.goMark(p.id, 'focus', k) }));
+        if (c.length && this.marksMode) items.push({ key: 'citations', at: c[0].start, icon: 'ph-paperclip', label: 'Citations',
+          short: `citations ${c.length}`, count: c.length, sub: prose(c[0].start, c[0].end),
+          choice: { value: this.citeMode, options: [['show', 'Show'], ['dim', 'Dim'], ['hide', 'Hide']], set: v => this.setCiteMode(v) },
+          go: () => this.goMark(p.id, 'cite', 0) });
+        return items.sort((a, b) => a.at - b.at);
+      },
+      // What the FAB reads (its `marks` contract), in trials a and b only.
+      get marks() {
+        if ((this.marksMode !== 'a' && this.marksMode !== 'b') || this.pane !== 'exemplars') return null;
+        const p = this.exemplarOf(this.exemplarSel);
+        if (!p) return null;
+        const items = this.markItems(p);
+        return { title: this.listTitle(p), style: this.marksMode === 'b' ? 'stepper' : 'tab', items,
+                 at: items[this.marksAt[p.id]] || null, step: d => this.stepMark(d) };
+      },
+      stepMark(d) {
+        const p = this.exemplarOf(this.exemplarSel), items = this.markItems(p);
+        if (!items.length) return;
+        const i = this.marksAt[p.id] ?? -1;
+        const to = i < 0 ? (d > 0 ? 0 : items.length - 1) : Math.max(0, Math.min(items.length - 1, i + d));
+        items[to].go();
+      },
+      // The body on screen for a piece: the deck's when one is open over the
+      // card, else the card's.
+      visibleBody(id) {
+        const all = [...document.querySelectorAll('[data-exemplar-body]')]
+          .filter(b => b.getAttribute('data-exemplar-body') === id && b.getClientRects().length);
+        const inView = b => { const r = b.getBoundingClientRect(); return r.right > 1 && r.left < innerWidth - 1; };
+        return all.find(b => b.closest('.sd-overlay') && inView(b)) || all.find(inView) || all[0] || null;
+      },
+      // Show the mark's face, scroll to it, and ring it a moment, in the base
+      // colour: colour on this page is a standing.
+      goMark(id, kind, k = 0) {
+        const body = this.visibleBody(id);
+        if (!body) return;
+        const key = kind === 'focus' ? 'focus' + k : kind === 'cite' ? 'citations' : 'caption';
+        this.marksAt = { ...this.marksAt, [id]: this.markItems(this.exemplarOf(id)).findIndex(m => m.key === key) };
+        if (kind === 'cite' && this.citeMode === 'hide') this.setCiteMode('dim');
+        const go = () => {
+          // A citation across an italic is several pieces, and all of them ring.
+          const els = kind === 'caption' ? [body.querySelector('[aria-label="Caption"]')?.parentElement]
+            : kind === 'focus' ? [body.querySelectorAll('[data-focus]')[k]] : [...body.querySelectorAll(`[data-cite="${k}"]`)];
+          if (!els[0]) return;
+          this.scrollToMark(body, els[0]);
+          this.ringMark(els);
+          if (kind === 'focus') { body.dataset.next = String(k + 1); this.noteFocus(id, k); }
+          setTimeout(() => this.railDraw(), 400);
+        };
+        const face = kind === 'caption' ? 'context' : 'text';
+        if (body.getAttribute('data-tab') !== face) { this.setExemplarTab(face); requestAnimationFrame(go); } else go();
+      },
+      // A block mark rings. A citation runs inside a sentence and across
+      // italics in several pieces, where a ring a piece is a row of boxes, so
+      // it is underlined instead, one line through all of its pieces.
+      RING: ['ring-2', 'ring-base-content/40', 'ring-offset-4', 'ring-offset-base-100', 'rounded-sm'],
+      UNDERLINE: ['underline', 'decoration-2', 'decoration-base-content/60', 'underline-offset-[6px]'],
+      ringMark(els) {
+        clearTimeout(this._ringT);
+        const off = () => { for (const [e, c] of this._ringEls || []) e.classList.remove(...c); };
+        off();
+        this._ringEls = [].concat(els).filter(Boolean).map(e => [e, e.matches('[data-cite]') ? this.UNDERLINE : this.RING]);
+        for (const [e, c] of this._ringEls) e.classList.add(...c);
+        this._ringT = setTimeout(off, 2400);
+      },
+      setCiteMode(v) {
+        this.citeMode = v;
+        for (const b of document.querySelectorAll('[data-exemplar-body]')) b.setAttribute('data-cites', v);
+        setTimeout(() => this.railDraw(), 50);
+      },
+
+      // Trial c: a rail down the card's right edge, a tick at each mark where
+      // the render has it (a bar the length of a focus passage, a short tick a
+      // citation) and a box for the part in view, as a diff's minimap draws
+      // one. A tick takes the reader to its mark; anywhere else on the rail
+      // to that point of the piece. Drawn over the card from outside the
+      // slides, so it stays put while the piece scrolls.
+      railMount(card) {
+        if (this.marksMode !== 'c' || !card || card.querySelector('[data-rail]')) return;
+        card.classList.add('relative');
+        const rail = document.createElement('div');
+        rail.dataset.rail = '';
+        rail.setAttribute('aria-label', 'Marks in this piece');
+        rail.className = 'absolute z-[2] w-3 rounded-sm bg-base-200/70 cursor-pointer';
+        rail.hidden = true;
+        card.append(rail);
+        rail.addEventListener('click', e => this.railClick(e));
+        card.addEventListener('scroll', () => this.railView(), true);
+        if (typeof ResizeObserver === 'function') new ResizeObserver(() => this.railDraw()).observe(card);
+      },
+      railParts() {
+        const card = this.$refs?.exemplarCard, rail = card?.querySelector('[data-rail]');
+        const p = this.exemplarOf(this.exemplarSel);
+        const body = rail && p ? [...card.querySelectorAll('[data-exemplar-body]')].find(b => b.getAttribute('data-exemplar-body') === p.id) : null;
+        return { card, rail, p, body, box: body && this.scrollerOf(body) };
+      },
+      railDraw() {
+        const { card, rail, p, body, box } = this.railParts();
+        if (!rail) return;
+        if (!body || !box || body.getAttribute('data-tab') !== 'text' || !(p.focusSpans.length || (p.citationSpans || []).length)) { rail.hidden = true; return; }
+        rail.hidden = false;
+        rail.style.top = ((card.querySelector('[data-ls="head"]')?.offsetHeight || 0) + 8) + 'px';
+        rail.style.bottom = '8px';
+        rail.style.right = (box.offsetWidth - box.clientWidth + 2) + 'px';
+        const b = body.getBoundingClientRect(), pct = v => (v / (b.height || 1) * 100).toFixed(2) + '%';
+        const n = p.focusSpans.length, seen = new Set();
+        const focus = [...body.querySelectorAll('[data-focus]')].map((el, k) => {
+          const r = el.getBoundingClientRect();
+          return `<button type="button" data-rail-go="focus:${k}" aria-label="${n > 1 ? `Focus ${k + 1} of ${n}` : 'Focus'}"`
+            + ` class="absolute left-0 w-full min-h-1 rounded-sm bg-base-content/50 hover:bg-base-content/80" style="top:${pct(r.top - b.top)};height:${pct(r.height)}"></button>`;
+        });
+        const cites = [...body.querySelectorAll('[data-cite]')].filter(el => !seen.has(el.dataset.cite) && seen.add(el.dataset.cite)).map(el => {
+          const r = el.getBoundingClientRect();
+          return `<button type="button" data-rail-go="cite:${el.dataset.cite}" aria-label="Citation ${+el.dataset.cite + 1}"`
+            + ` class="absolute right-0 w-2 h-[3px] rounded-full bg-base-content/30 hover:bg-base-content/70" style="top:${pct(r.top - b.top)}"></button>`;
+        });
+        rail.innerHTML = `<div data-rail-view class="absolute inset-x-0 rounded-sm bg-base-content/10 pointer-events-none"></div>` + focus.join('') + cites.join('');
+        this.railView();
+      },
+      railView() {
+        const { rail, body, box } = this.railParts();
+        const v = rail?.querySelector('[data-rail-view]');
+        if (!v || !box) return;
+        const b = body.getBoundingClientRect(), r = box.getBoundingClientRect();
+        v.style.top = Math.max(0, (r.top - b.top) / b.height * 100) + '%';
+        v.style.height = Math.min(100, r.height / b.height * 100) + '%';
+      },
+      railClick(e) {
+        const { rail, p, body, box } = this.railParts();
+        if (!p || !box) return;
+        const hit = e.target.closest('[data-rail-go]');
+        if (hit) { const [kind, k] = hit.getAttribute('data-rail-go').split(':'); return this.goMark(p.id, kind, +k); }
+        const r = rail.getBoundingClientRect(), f = (e.clientY - r.top) / r.height;
+        box.scrollTo({ top: Math.max(0, f * body.offsetHeight - box.clientHeight / 2), behavior: 'smooth' });
       },
 
       // The pieces one at a time, the card in a takeover. Its place follows
