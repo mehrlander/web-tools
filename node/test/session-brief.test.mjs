@@ -430,7 +430,7 @@ test('an empty list says which kind of empty it is', async () => {
   assert.match(mount({ short: 'b', schema: 4, files: {} }).filesNote, /No files were opened/);
 });
 
-test('a host resolver turns each row into a real anchor', async () => {
+test('a host resolver gives a file\'s card a real link to the file', async () => {
   window.__linked = {
     repo: STORE,
     record: { short: 'g', schema: 3, files: { 'web-tools/lib/a.js': { edit: 1 } } },
@@ -441,19 +441,20 @@ test('a host resolver turns each row into a real anchor', async () => {
   window.document.body.append(el);
   Alpine.initTree(el);
   await tick(4);
-  assert.equal(Alpine.$data(el).fileRows[0].href, 'https://example.test/web-tools/lib/a.js');
-  // THE RENDER, not just the getter. The first draft picked the element with
-  // <component :is="f.href ? 'a' : 'span'">, which is Vue's idiom and not
-  // Alpine's: it renders an unknown <component> tag showing its children, so
-  // every row looked exactly right and none of them linked. A getter assertion
-  // could never have seen that.
-  const a = el.querySelector('a[href="https://example.test/web-tools/lib/a.js"]');
-  assert.ok(a, 'the row renders an <a> carrying the resolved href');
+  const d = Alpine.$data(el);
+  assert.equal(d.fileRows[0].href, 'https://example.test/web-tools/lib/a.js');
+  // THE RENDER, not just the getter: a file with no branch change to show
+  // draws a card that says so and links the file (the Files tab is a list
+  // over cards since 2026-11-17; session-files.test.mjs drives it).
+  const card = window.document.createElement('div');
+  d.diffsState = 'read';
+  d.fileBody('web-tools/lib/a.js', card);
+  const a = card.querySelector('a[href="https://example.test/web-tools/lib/a.js"]');
+  assert.ok(a, 'the card renders an <a> carrying the resolved href');
   assert.equal(a.getAttribute('target'), '_blank');
-  assert.match(a.textContent.replace(/\s+/g, ''), /^web-tools\/lib\/a\.js$/);
 });
 
-test('an unresolved row renders an anchor with no href, so it is text', async () => {
+test('an unresolved file\'s card draws no link, rather than a dead one', async () => {
   window.__plain = {
     repo: STORE,
     record: { short: 'i', schema: 3, files: { 'x/y.js': { read: 1 } } },
@@ -463,9 +464,10 @@ test('an unresolved row renders an anchor with no href, so it is text', async ()
   window.document.body.append(el);
   Alpine.initTree(el);
   await tick(4);
-  const a = [...el.querySelectorAll('a')].find(n => n.textContent.includes('y.js'));
-  assert.ok(a, 'the row is still drawn');
-  assert.equal(a.getAttribute('href'), null, 'an href-less anchor is plain text, not a dead link');
+  const card = window.document.createElement('div');
+  Alpine.$data(el).fileBody('x/y.js', card);
+  assert.ok(card.querySelector('[data-file-note]'), 'the card is still drawn');
+  assert.equal(card.querySelector('a'), null, 'no link where nothing resolved');
 });
 
 test('a resolver that throws costs its link and nothing else', async () => {
@@ -501,18 +503,36 @@ test('pane picks the tab, and an unknown one falls back rather than blanking', (
     return Alpine.$data(el).pane;
   };
   assert.equal(at('files'), 'files');
-  assert.equal(at('raw'), 'log', 'the record tab\'s old name still lands on it');
-  assert.equal(at('schema'), 'schema');
-  assert.equal(at('turns'), 'overview', 'no topics file, no Turns tab');
-  assert.equal(at('outline'), 'outline');
-  assert.equal(at('nonsense'), 'overview', 'the top region\'s own default');
+  assert.equal(at('record'), 'record');
+  // The tabs that went on 2026-11-17 land where their content went: Log and
+  // Schema are the Record tab's switch, and Cost is the Overview's cost line.
+  assert.equal(at('raw'), 'record', 'the record tab\'s oldest name still lands on it');
+  assert.equal(at('log'), 'record');
+  assert.equal(at('schema'), 'record');
+  assert.equal(at('cost'), 'overview');
+  assert.equal(at('turns'), 'turns', 'every session has its turns, with or without a topics file');
+  assert.equal(at('outline'), 'turns', 'the Outline folded into Turns');
+  assert.equal(at('nonsense'), 'overview', 'the row\'s own default');
   assert.equal(at(undefined), 'overview');
 });
 
-// Two regions, each with its own default (owner, 2026-11-09): the top opens on
-// the overview; the bottom opens on a call while one waits, else on the views,
-// else on the files, and is absent when the session left none of the three.
-test('each region opens on its own default, and the bottom goes when it has nothing', () => {
+test('pane=log and pane=schema set the Record tab\'s switch', () => {
+  const at = (pane) => {
+    window.__p = { repo: STORE, record: { short: 'p', schema: 4 }, pane };
+    const el = window.document.createElement('div');
+    el.setAttribute('x-data', 'sessionBrief(window.__p)');
+    window.document.body.append(el);
+    Alpine.initTree(el);
+    return Alpine.$data(el).recView;
+  };
+  assert.equal(at('schema'), 'schema');
+  assert.equal(at('log'), 'tree');
+  assert.equal(at('record'), 'tree', 'the tree by default');
+});
+
+// One tab row (owner, 2026-11-17): it opens on Calls while a call waits on the
+// owner, else on the Overview, and a tab shows only when it has something.
+test('the row opens on a waiting call, else on the Overview, and a tab shows only with something in it', async () => {
   const mount = (record) => {
     window.__tabs = { repo: STORE, record };
     const el = window.document.createElement('div');
@@ -522,26 +542,31 @@ test('each region opens on its own default, and the bottom goes when it has noth
     return Alpine.$data(el);
   };
   const bare = mount({ short: 'n', schema: 4 });
-  assert.deepEqual([...bare.bottomTabs], [], 'no calls, views or files: no bottom region');
-  assert.equal(bare.bottomPane, '');
-  assert.equal(bare.topPane, 'overview', 'the top opens on the overview');
+  assert.deepEqual([...bare.tabs], ['overview', 'turns', 'record'], 'no calls, views or files');
+  assert.equal(bare.pane, 'overview', 'the row opens on the Overview');
 
   const d = mount({ short: 't', schema: 4, files: { 'x/y.js': { read: 1 } } });
-  assert.deepEqual([...d.bottomTabs], ['files']);
-  assert.equal(d.bottomPane, 'files');
+  assert.deepEqual([...d.tabs], ['overview', 'turns', 'files', 'record']);
+  assert.equal(d.pane, 'overview', 'files alone do not take the row');
   d.work.views = [{ name: 'a.md', key: 'a' }];
-  assert.equal(d.bottomPane, 'views', 'views lead the files');
   d.calls = [{ id: 'c1', status: 'open' }];
-  assert.deepEqual([...d.bottomTabs], ['calls', 'views', 'files']);
-  assert.equal(d.bottomPane, 'calls', 'a call waiting leads');
+  assert.deepEqual([...d.tabs], ['calls', 'overview', 'turns', 'views', 'files', 'record'], 'in the row\'s order');
+  assert.equal(d.pane, 'calls', 'a call waiting leads');
   d.calls = [{ id: 'c1', status: 'closed' }];
-  assert.equal(d.bottomPane, 'views', 'a closed call does not');
+  assert.equal(d.pane, 'overview', 'a closed call does not');
   d.pane = 'files';
-  assert.equal(d.bottomPane, 'files', 'a tab asked for holds');
-  assert.equal(d.topPane, 'overview', 'and leaves the other region alone');
-  d.pane = 'outline';
-  assert.equal(d.topPane, 'outline');
-  assert.equal(d.bottomPane, 'files', 'each region keeps its own tab');
+  assert.equal(d.pane, 'files', 'a tab asked for holds');
+  d.calls = [{ id: 'c2', status: 'open' }];
+  assert.equal(d.pane, 'files', 'and holds when a call arrives after it');
+  d.pane = 'cost';
+  assert.equal(d.pane, 'overview', 'an old name lands where its content went');
+  // The tabs, in one row, in that order, and the ones that went are gone.
+  await tick(4);
+  const el = d.$el;
+  const names = [...el.querySelectorAll('[data-at="tabs"] [role="tab"]')].map((t) => t.textContent.trim().match(/^[A-Za-z]+/)?.[0]);
+  assert.deepEqual(names, ['Calls', 'Overview', 'Turns', 'Views', 'Files', 'Record']);
+  assert.equal(el.querySelectorAll('[role="tablist"][data-at="tabs"]').length, 1, 'one tab row');
+  assert.equal(el.querySelector('[data-session-bottom]'), null, 'no second region');
 });
 
 test('start opens the deck on one card, which is what makes an exchange addressable', async () => {
@@ -643,28 +668,26 @@ test('a clamped box is never a button, because Safari sizes one from its unclipp
 test('a fact carries its definition on data-title-tip, not in a title', () => {
   const d = lent();
   const el = window.document.getElementById('lent');
-  // Half the strip is exact about something the plain word is not, so the
+  // Half the facts line is exact about something the plain word is not, so the
   // definitions are load-bearing. They rode in a `title` with `cursor-help`:
   // no touch screen shows one and no screenshot captures one.
   assert.equal(el.querySelectorAll('.cursor-help').length, 0);
-  // Scoped to the strip and the head, not the whole view: the icon-only
-  // controls below carry their labels too, as title-tips since 2026-10-16 (a
-  // `title` before that). What may not sit in a title is a FACT.
-  const strip = el.querySelector('.flex.flex-wrap.items-center.gap-x-2\\.5');
-  assert.ok(strip, 'the facts strip');
+  // The facts line is the head's (buildHead), drawn here because this slide's
+  // host lends no header; a deck host's header carries the same element.
+  // Scoped to it, not the whole view: the icon-only controls carry their
+  // labels too, as title-tips since 2026-10-16. What may not sit in a title is
+  // a FACT.
+  const strip = el.querySelector('[data-session-facts]');
+  assert.ok(strip, 'the facts line');
   assert.equal(strip.querySelectorAll('[title]').length, 0, 'no fact is stranded in a title');
-  // Three kinds of fact since 2026-10-22, and each carries its words its own
-  // way. A TEXT fact (day, ran) has its definition on a title-tip. A GLYPH fact
-  // is a button whose panel names the unit, so it carries an aria-label rather
-  // than a title-tip, which a hover would draw over the panel it opens. The
-  // SCOPE is one pill holding each repository's mark, and a button of the
-  // same kind: it opens the checkouts panel (owner, 2026-10-22).
-  const text = d.strip.filter(f => !f.panel && f.k !== 'repos');
+  // Two kinds of fact. A TEXT fact (the id, and the running ref off main) has
+  // its definition on a title-tip. A GLYPH fact (the date, the counts, the
+  // scope, Gemini's count) is a button whose panel names the unit, so it
+  // carries an aria-label rather than a title-tip, which a hover would draw
+  // over the panel it opens.
   const glyphs = d.strip.filter(f => f.panel);
-  assert.deepEqual(Array.from(text, f => f.k), [], 'every fact is a glyph or the date, each opening its panel');
-  // The Gemini mark is a button of the same kind and no fact of the record's;
-  // its own tests are below, with the topics file.
-  const buttons = [...strip.querySelectorAll('[data-fact-btn]:not([data-gemini-mark])')];
+  assert.deepEqual(Array.from(d.strip.filter(f => !f.panel), f => f.k), [], 'every strip fact opens its panel');
+  const buttons = [...strip.querySelectorAll('[data-fact-btn]:not([data-fact="gemini"])')];
   assert.equal(buttons.length, glyphs.length, 'one button per glyph fact');
   for (const b of buttons) {
     assert.ok(!b.hasAttribute('data-title-tip'), 'a glyph fact draws no title-tip over its panel');
@@ -675,60 +698,39 @@ test('a fact carries its definition on data-title-tip, not in a title', () => {
   assert.equal(pill[0].getAttribute('aria-label'), 'Checked out: web-tools');
   assert.ok(pill[0].hasAttribute('data-fact-btn'), 'and it opens a panel like the counts do');
   assert.equal(pill[0].querySelectorAll('i.ph').length, d.scopeRepos.length, 'a mark per repository inside it');
+  // The date leads. The short id and the running ref left the line on
+  // 2026-11-17 (owner): the reader knows which session is open, and the ref
+  // describes the page, not the session.
+  const order = [...strip.children].map((n) => n.getAttribute('data-fact'));
+  assert.deepEqual(order.slice(0, 2), ['day', 'calls']);
+  assert.equal(strip.querySelector('[data-fact="id"], [data-fact="running"]'), null);
 
-  // THROUGH THE KIT, NOT A SECOND IMPLEMENTATION OF IT. `kits/title-tip.js` is this
-  // estate's tier between a title and a built panel, and a strip definition is
-  // what that kit calls its own case: a string a reader looks at. This file
-  // hand-rolled a tap-to-reveal line for one commit, which was that kit again
-  // with no keyboard, no screen reader and no affordance before the tap.
+  // THROUGH THE KIT, NOT A SECOND IMPLEMENTATION OF IT. `kits/title-tip.js` is
+  // this estate's tier between a title and a built panel, and a fact's
+  // definition is what that kit calls its own case: a string a reader looks at.
   const noted = [...el.querySelectorAll('[data-title-tip]')]
     .filter(n => !n.closest('[role="search"]') && !n.hasAttribute('data-scope-pill'));
-  // Every fact, plus notes that are not facts about the SESSION: the id, the
-  // `running <ref>` marker naming the ref this page's own code booted from,
-  // the pages mark, and the follow-up summary's note saying Gemini wrote it,
-  // not the record. The scope row's microphone was the fifth until it came
-  // off on 2026-10-22. They are found
-  // by SUBTRACTING the strip rather than by matching their own text, so the
-  // count stays exact without a second list to keep in step.
+  // Every note that is not a fact about the SESSION, found by subtracting the
+  // facts line rather than by matching their own text, so the count stays
+  // exact without a second list to keep in step.
   //
   // TWICE NOW A BRANCH HAS ADDED ONE while this count was written on main, and
   // both times the merge is what taught the gate about it. That is the gate
   // working: a note is cheap to add and this is the only thing that asks what
   // it is for, so it is raised by naming the newcomer, never by loosening the
   // comparison.
-  const shownValues = new Set(text.map(f => String(f.v) + (f.unit ? ' ' + f.unit : '')));
-  const extras = noted.filter(n => !shownValues.has(n.textContent.replace(/\s+/g, ' ').trim()));
-  // The other ten are the labels on the icon-only controls: Sessions in Web
-  // Tools, Contents, On GitHub, Previous view, Next view, Open the page in a new
-  // tab, Swipe through every view full screen, Find in conversation, Read n
-  // cards one at a time, and Open this session in Claude Code. The fifteenth is
-  // Copy as JSON, the Log tab's copy in the tab row. The last three are the
-  // Cost tab's totals line (2026-11-10): the modelled total's list-price
-  // caveat, what the harness total counts, and what an idle re-load is.
-  assert.equal(extras.length, 18,
-    'the id, the running-ref marker, the pages mark, the Gemini summary, the Log tab\'s copy, the Cost tab\'s three totals and ten control labels off-strip: '
+  const extras = noted.filter(n => !strip.contains(n));
+  // The pages mark, the Gemini summary's note, and the labels on the
+  // icon-only controls: Sessions in Web Tools, Find in conversation, Read n
+  // cards one at a time, Open this session in Claude Code, and the Record
+  // tab's Copy as JSON. The Cost tab's three totals went into the cost panel
+  // on 2026-11-17, which draws only when it is open; the Views card's six
+  // controls went with its dropdown the same day, and its head is now the
+  // kit's, drawn only for a session with views (session-views.test.mjs).
+  assert.equal(extras.length, 7,
+    'the pages mark, the Gemini summary and five control labels off the facts line: '
     + JSON.stringify(extras.map(n => n.textContent.trim() || n.getAttribute('data-title-tip'))));
-  assert.equal(noted.length, text.length + 18, 'every text fact and those eighteen, and nothing else');
-  // MATCHED ON THE VALUE, not on the fact's name, because the name is no longer
-  // drawn: the strip renders `2026-08-05` and `40 calls`, so a lookup keyed on
-  // "day" or "calls" would find the definition of whichever fact happened to
-  // start with those letters. The rendered text is what a reader points at, so
-  // it is what the note has to be attached to.
-  const byNote = new Map(noted.map(n => [n.textContent.replace(/\s+/g, ' ').trim(), n.getAttribute('data-title-tip')]));
-  for (const f of text) {
-    const shown = String(f.v) + (f.unit ? ' ' + f.unit : '');
-    assert.ok(byNote.has(shown), 'strip row ' + f.k + ' is on the page as "' + shown + '"');
-    assert.equal(byNote.get(shown), f.t,
-      'and states the definition the strip carries, not a copy of it');
-  }
-  // The id's own note, pinned by what it must NOT say. It called the id the
-  // record's filename stem, which it is not: the stem carries the date as well
-  // (2026-08-05-b8fae678), and reading the note as written is what produced a
-  // dead session link on 2026-09-05. The positive wording is free to move; the
-  // conflation is what has to stay fixed.
-  const idNote = noted.find(n => /^\(/.test(n.textContent))?.getAttribute('data-title-tip') || '';
-  assert.ok(idNote.length > 20, 'the id carries a definition');
-  assert.doesNotMatch(idNote, /filename stem/, 'the id is part of the stem, not the whole of it');
+  assert.equal(noted.filter(n => strip.contains(n)).length, 0, 'the facts line holds no text fact: each opens its panel');
 });
 
 test('the kit that draws the title-tips is in the chain that loads them', () => {
@@ -849,9 +851,10 @@ test('one container: the views are a tab and the calls are the Calls tab\'s alon
   assert.doesNotMatch(now, /data-views/, 'and no views card');
   assert.match(now, /<div x-show="now" data-peek-host/, 'the card is the action message, where there is one');
   assert.doesNotMatch(src, /h-\[calc\(100dvh-4\.75rem\)\]/, 'nothing above the tabs is sized to the screen');
-  assert.match(src, /x-show="bottomPane === 'views' && work\.views\.length"/, 'the views are a pane');
+  assert.match(src, /x-show="pane === 'views' && work\.views\.length"/, 'the views are a pane');
   assert.match(src, /data-session-views-tab/, 'behind a tab of their own');
-  assert.match(src, /bottomPane === 'views' && Math\.abs\(i - vAt\) <= 1/, 'whose frames wait for it to open');
+  assert.match(src, /linkedSwiper\.attach\(/, 'a list over a strip of cards, through the kit, which draws a card only in view or beside it');
+  assert.doesNotMatch(src, /viewListOpen/, 'and the list is no longer a dropdown inside the card');
 });
 
 test('the FAB is told what a note is about, in the notes store\'s locators', () => {
@@ -1131,22 +1134,20 @@ test('turns sent at one instant keep both notes, in turn order', async () => {
   window.__topicsDoc = null;
 });
 
-test('the outline is built once, with the turn notes, when the topics file is prompt', async () => {
-  // It was built bare at settle and again when the file landed: two builds of
-  // every slide's outline, three slides at a time in the swiper, which on a
-  // phone was a memory spike beside a page already near Safari's ceiling.
+test('outside the compact reader no outline is built: Turns reads the turn notes itself', async () => {
+  // The outline was built at settle for every slide, three at a time in the
+  // swiper. Turns took it in on 2026-11-17, and reads Gemini's notes for its
+  // rows and cards from the same file; the outline is the compact reader's.
   const calls = [];
   const was = window.sessionExport.index;
   window.sessionExport.index = (rec, opts) => { calls.push(opts); return { el: window.document.createElement('div') }; };
-  // The file arrives after the record, as it does over the network: the old
-  // order built the outline before it landed and again after.
   window.__topicsDelay = 50;
   try {
     const data = await mountTopics(TOPICS_DOC, 'me/topics-d');
     await new Promise(r => setTimeout(r, 200));
-    assert.equal(calls.length, 1, 'one build, not one bare and one with the notes');
-    assert.ok(calls[0].notes?.[record.prompts[0].at], 'and the one build carries the notes');
-    assert.equal(data.outlineBuilt, true);
+    assert.equal(calls.length, 0, 'no outline built');
+    assert.equal(data.outlineBuilt, false);
+    assert.ok(data.turnNotes()?.[record.prompts[0].at], 'and the notes are there for the Turns tab');
   } finally {
     window.sessionExport.index = was;
     window.__topicsDoc = null;
