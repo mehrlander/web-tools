@@ -37,7 +37,15 @@ An **output** has an `id` unique in its run and a `text`. It may have a `tag`, a
 
 ## Answers
 
-A repo path in `answers` is read in the payload's repository, at the payload's ref. Without `answers`, the file is the payload's path with `.json` replaced by `.answers.jsonl`. A `#gz=` payload has no path, and saves only to an address. The commit lands on the ref the answers file is read at: the payload's ref for a repo path, the address's own ref otherwise, and `main` when neither names one.
+Where the answers file is, and the ref each save commits to:
+
+| `answers` | The file | The commit lands on |
+| --- | --- | --- |
+| absent | the payload's path, `.json` replaced by `.answers.jsonl` | the payload's ref, else `main` |
+| a repo path | that path in the payload's repository | the payload's ref, else `main` |
+| an `owner/repo[@ref]:path` address | that file | the address's ref, else `main` |
+
+A `#gz=` payload has no path, and saves only to an address.
 
 Each save appends one JSON line per output whose verdict or note changed, in one commit:
 
