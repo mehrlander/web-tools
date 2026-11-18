@@ -189,7 +189,7 @@
   function rowHTML(r) {
     return `<div role="option" tabindex="-1" data-run="${esc(r.id)}" aria-selected="false"
       class="flex cursor-pointer flex-col gap-0.5 border-b border-base-200 px-2.5 py-1.5 outline-none hover:bg-base-200 focus-visible:outline-2 focus-visible:outline-[var(--color-primary)] aria-selected:bg-primary/10">
-      <span class="truncate font-medium">${esc(r.title)}</span>
+      <span class="truncate font-medium" data-title-tip="${esc(r.title)}" data-title-tip-bare>${esc(r.title)}</span>
       <div class="flex items-center gap-2"><span class="min-w-0 flex-1 truncate text-sm text-base-content/60">${esc(r.meta || '')}</span><span data-bar class="flex items-center gap-1.5">${bar(r)}</span></div></div>`;
   }
 
