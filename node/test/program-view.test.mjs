@@ -12,9 +12,10 @@
 // covers in a panel-tip, the panels its declaration names (a measure attached
 // by the area's exact name, a registry broken down by a column, a gallery of
 // a registry's rows),
-// its width from its panels and the rows packed in order without holes, its
-// height its own unless it draws a measure, and its commits of the last
-// fortnight matched by path.
+// its width from its panels (half the pane on a phone, side by side) and the
+// rows packed in order, its height its own, and its heat grid: seven weeks of
+// commits matched by path, in its top line. The views that display it open
+// from the masthead in the shell's anchored menu.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -69,9 +70,13 @@ const commits = {
   'docs/CONVERSATION.md': [commit('c3c3c3c3c3', '2026-11-10T12:00:00Z', 'Both files at once\n\nBody'), commit('c1c1c1c1c1', '2026-11-01T12:00:00Z', 'The oldest')],
   'python/showing.py': [commit('c3c3c3c3c3', '2026-11-10T12:00:00Z', 'Both files at once\n\nBody'), commit('c2c2c2c2c2', '2026-11-05T12:00:00Z', 'The middle one')],
   // The Forms area's two links: one commit under both, one under the folder
-  // alone, and one older than the fortnight.
-  'docs/forms': [commit('a1a1a1a1a1', ago(1), 'Forms and envelopes'), commit('a2a2a2a2a2', ago(3), 'A form'), commit('a3a3a3a3a3', ago(20), 'Long ago')],
+  // alone, one three weeks back, inside the heat grid's seven weeks and past
+  // a fortnight, and one older than the grid.
+  'docs/forms': [commit('a1a1a1a1a1', ago(1), 'Forms and envelopes'), commit('a2a2a2a2a2', ago(3), 'A form'),
+    commit('a4a4a4a4a4', ago(20), 'Three weeks back'), commit('a3a3a3a3a3', ago(60), 'Long ago')],
   'docs/envelopes/README.md': [commit('a1a1a1a1a1', ago(1), 'Forms and envelopes')],
+  // A busy file, past a page of a hundred inside the grid's weeks.
+  'docs/a0.md': Array.from({ length: 130 }, (_, i) => commit('b' + String(i).padStart(9, '0'), ago(1 + i % 30), 'Busy ' + i)),
 };
 const charterAbout = hub + ':programs/surfacing/README.md';
 // A charter whose Areas table the page lists: links resolve from the charter's
@@ -112,8 +117,8 @@ window.GH = class {
   async req(url){
     asked.push({ ...this.opts, file: url });
     if (url.startsWith('commits?')) {
-      const q = new URLSearchParams(url.slice(8)), since = q.get('since');
-      return (commits[q.get('path')] || []).filter(c => !since || c.commit.committer.date >= since);
+      const q = new URLSearchParams(url.slice(8)), since = q.get('since'), per = +q.get('per_page') || 30, page = +q.get('page') || 1;
+      return (commits[q.get('path')] || []).filter(c => !since || c.commit.committer.date >= since).slice((page - 1) * per, page * per);
     }
     return [];
   }
@@ -211,12 +216,20 @@ test('the hub is read at the selected revision, and the page opens on its masthe
   assert.equal(tip.querySelector('a').getAttribute('href'), 'https://example.com/?view=map');
   data.closeChartTip(); await tick();
 
-  const views = [...page.querySelectorAll('[data-program-views] a')];
-  assert.deepEqual(views.map(a => a.textContent.trim()), ['Showing', 'Waiting'], 'the views ride under the masthead');
-  assert.equal(new URL(views[0].href).searchParams.get('tab'), 'showing');
-  assert.equal(new URL(views[0].href).searchParams.get('use'), 'codex/program-preview', 'a view link keeps the preview');
-  views[0].click();
+  // The views that display it open from the Map's mark on the masthead, in
+  // the shell's anchored menu, rather than taking a line under it.
+  assert.equal(page.querySelector('[data-program-views]'), null, 'no row of views under the masthead');
+  const mast = page.querySelector('[data-part="title"]');
+  assert.ok(mast.querySelector('[data-program-views-open] i.ph-compass'), 'the Map\'s mark, beside the name');
+  assert.ok(mast.querySelector('[data-program-refresh]'), 'and the refresh on the same line, so no line holds only it');
+  mast.querySelector('[data-program-views-open]').click();
+  const viewsMenu = menus.at(-1);
+  assert.deepEqual([viewsMenu.repo, viewsMenu.kind, viewsMenu.opts.align], [hub, 'views', 'left']);
+  assert.deepEqual([...viewsMenu.opts.extra.map(r => [r.label, r.icon])], [['Showing', 'ph-paper-plane-tilt'], ['Waiting', 'ph-arrow-square-out']],
+    'a row a declared view, under its icon');
+  viewsMenu.opts.extra[0].run();
   assert.deepEqual(maps.at(-1), 'showing', 'a Map view opens in place');
+  assert.equal(new URL(data.viewHref(data.page.views[0])).searchParams.get('use'), 'codex/program-preview', 'a view\'s address keeps the preview');
 
   page.querySelector('[data-program-switch]').click();
   assert.deepEqual(JSON.parse(JSON.stringify(menus.at(-1))), { repo: hub, kind: 'programs', opts: { align: 'left' } },
@@ -250,6 +263,23 @@ test('Programs reads a charter cell\'s links, resolves them as repository paths,
   assert.equal(r.count, 3, 'two today and one on the first day; a day before it and another file do not count');
   assert.equal(r.days[13].n, 2);
   assert.deepEqual([...r.days[13].commits.map(c => c.sha)], ['a', 'b']);
+
+  // The heat grid: seven columns of a week, Monday to Sunday down each, the
+  // newest at the right, so on a Wednesday the last four cells are to come.
+  const { heatStart, heatDays } = window.Programs;
+  assert.equal(new Date(2026, 10, 18).getDay(), 3, 'the 18th is a Wednesday');
+  assert.equal(heatStart(now, 7).getTime(), new Date(2026, 9, 5).getTime(), 'the Monday six weeks before this week\'s');
+  const g = heatDays([...pool, { sha: 'f', date: at(2026, 9, 5), paths: ['docs/x.md'] }, { sha: 'g', date: at(2026, 9, 4), paths: ['docs/x.md'] }],
+    ['docs/x.md', 'docs/f/'], now, 7);
+  assert.equal(g.days.length, 49, 'a seven by seven square');
+  assert.deepEqual([g.first, g.last], ['2026-10-05', '2026-11-18']);
+  assert.equal(g.days[44].day, '2026-11-18', 'today, the Wednesday of the last column');
+  assert.deepEqual([...g.days.slice(45).map(d => d.day + (d.future ? '+' : ''))], ['2026-11-19+', '2026-11-20+', '2026-11-21+', '2026-11-22+'],
+    'the rest of this week, blank');
+  assert.equal(g.days.filter(d => d.future).length, 4);
+  assert.equal(g.count, 5, 'the window\'s first Monday counts and the Sunday before it does not');
+  assert.equal(heatDays([], ['a'], new Date(2026, 10, 22, 9).getTime(), 7).days.filter(d => d.future).length, 0, 'on a Sunday the square is full');
+  assert.equal(heatDays([], ['a'], new Date(2026, 10, 16, 9).getTime(), 7).days.filter(d => d.future).length, 6, 'on a Monday one cell is today');
 });
 
 test('a program\'s colour is its drawn mark\'s first fill, read with its icon', async () => {
@@ -286,7 +316,7 @@ test('Programs reads an area declaration, keeping only panels it can draw', () =
   assert.equal(window.Programs.rows([{ repo: hub, config: { programs: [{ name: 'y' }] } }])[0].areas.length, 0, 'no declaration, no areas');
 });
 
-test('Programs breaks a registry down, packs tiles in order without holes, and finds an area its icon', () => {
+test('Programs breaks a registry down, packs tiles in order, counts the columns a width holds, and finds an area its icon', () => {
   const rows = window.Csv.rows(csvs['docs/harness.csv']);
   const all = window.Programs.breakdown(rows, { by: 'invocation', split: ':' });
   assert.deepEqual([...all.groups.map(g => [g.key, g.n])], [['hook', 2], ['argv', 1], ['ci', 1], ['driver', 1]],
@@ -303,27 +333,30 @@ test('Programs breaks a registry down, packs tiles in order without holes, and f
   assert.deepEqual([...window.Programs.pick([{ a: 'x1' }, { a: 'y' }], { a: '^x' })], [{ a: 'x1' }]);
 
   const spans = (w, c) => window.Programs.tileSpans(w, c).map(t => t.i + ':' + t.span).join(' ');
-  assert.equal(spans([2, 3, 2, 1, 1], 3), '0:3 1:3 2:2 3:1 4:3',
+  assert.equal(spans([2, 3, 2, 1, 1], 3), '0:3 1:3 2:2 3:1 4:2',
     'in order: a gap the next tile does not fit widens the row\'s tile, and no later tile is pulled forward into it');
   assert.equal(spans([2, 2], 3), '0:3 1:3', 'a gap nothing fits goes to the row\'s tile');
   assert.equal(spans([1, 1], 3), '0:2 1:1', 'shared out from the first');
   assert.equal(window.Programs.tileSpans([1, 1], 3, [false, true]).map(t => t.span).join(), '1,2', 'a tile of views alone grows last');
-  assert.equal(spans([1, 1, 1, 1, 1], 4), '0:1 1:1 2:1 3:1 4:4');
+  assert.equal(spans([1, 1, 1, 1, 1], 4), '0:1 1:1 2:1 3:1 4:2', 'a last tile alone grows to twice its ask, not across the row');
   assert.equal(spans([3, 2], 1), '0:1 1:1', 'one column: every tile one wide, in order');
   for (const c of [1, 2, 3, 4]) {
-    const out = window.Programs.tileSpans([2, 1, 3, 1, 2, 1, 1], c);
+    const wants = [2, 1, 3, 1, 2, 1, 1], out = window.Programs.tileSpans(wants, c);
     assert.deepEqual([...out.map(t => t.i)], [0, 1, 2, 3, 4, 5, 6], c + ' columns: in the order given');
     assert.ok(out.every(t => t.span <= c));
-    assert.equal(out.reduce((n, t) => n + t.span, 0) % c, 0, c + ' columns: every row full');
+    assert.ok(out.every(t => t.span <= 2 * Math.min(c, wants[t.i])), c + ' columns: no tile past twice its ask');
   }
+  // Two half-width tiles wherever two can stand, a 360px phone included;
+  // a wide pane holds as many 13rem tracks as fit.
+  assert.deepEqual([200, 328, 358, 600, 881, 1400].map(P => window.Programs.tileCols(P)), [1, 2, 2, 2, 4, 6]);
   const P = window.Programs;
-  assert.equal(P.panelWeight({ kind: 'measure' }, { measure: { addr: 'x' } }), 2, 'a drawn measure asks for two');
+  assert.equal(P.panelWeight({ kind: 'measure' }, { measure: { addr: 'x' } }), 1, 'a drawn measure fits a half-width tile');
   assert.equal(P.panelWeight({ kind: 'measure' }, { measure: { addr: '' } }), 1);
   assert.equal(P.panelWeight({ kind: 'gallery', thumb: 'thumb' }), 2);
   assert.equal(P.panelWeight({ kind: 'gallery', source: 'research' }, null, 2), 1, 'two research rows fit a narrow tile');
   assert.equal(P.panelWeight({ kind: 'gallery', source: 'research' }, null, 3), 2);
   assert.equal(P.panelWeight({ kind: 'breakdown' }), 1);
-  assert.equal(P.tileWant([{ w: 2 }, { w: 1 }, { w: 2 }]), 3, 'at most three');
+  assert.equal(P.tileWant([{ w: 2 }, { w: 1 }, { w: 2 }]), 2, 'at most two');
   assert.equal(P.tileWant([]), 1);
 
   const prog = { views: ['?view=map&tab=showing', '?view=waiting'] };
@@ -332,7 +365,7 @@ test('Programs breaks a registry down, packs tiles in order without holes, and f
   assert.equal(P.areaIcon(prog, 'Waiting', null), 'ph-circle-dashed', 'a view outside the Map has only the door, which is no icon');
 });
 
-test('Areas draws a tile an area: its icon and files, its declared panels, its width and its fortnight', async () => {
+test('Areas draws a tile an area: its icon and files, its declared panels, its width and its heat grid', async () => {
   const p = data.page, page = el.querySelector('[data-program-page]');
   for (let i = 0; i < 30 && (data.measureState(p.measures[0]) !== 'ok' || Object.values(data.registries).some(r => r.state === 'loading')); i++) await tick();
   await frame();
@@ -382,9 +415,9 @@ test('Areas draws a tile an area: its icon and files, its declared panels, its w
   assert.equal(m.dataset.measure, 'closings.json');
   const spark = m.querySelector('[data-area-spark]');
   assert.equal(spark.querySelectorAll('[data-week]').length, 2, 'a bar a week');
-  assert.ok(spark.querySelector('[data-week]').parentElement.classList.contains('h-8'), 'word-sized');
+  assert.ok(spark.querySelector('[data-week]').parentElement.classList.contains('h-6'), 'word-sized, on its own line under the share');
   assert.match(spark.textContent, /Closed\s*50%/, 'the marked category, then its share of the last week after the bars');
-  assert.match(m.querySelector('[data-panel-head]').textContent.replace(/\s+/g, ' '), /closings\.json Nov\b/, 'one month: its name; no axis under the bars');
+  assert.match(m.querySelector('[data-panel-head]').textContent.replace(/\s+/g, ' '), /closings Nov\b/, 'one month: its name; no axis under the bars');
   assert.equal(data.measureRange(p.measures[0]), 'Nov');
   assert.deepEqual([...data.tileWeeks(p.measures[0]).map(w => w.week)], ['2026-11-02', '2026-11-09']);
   assert.doesNotMatch(m.textContent, /share of Open falls/, 'working means is not printed');
@@ -433,25 +466,30 @@ test('Areas draws a tile an area: its icon and files, its declared panels, its w
   assert.equal(galleries[2].querySelector('[data-gallery-more]').textContent, '+3');
   assert.deepEqual([...tile('Showing').querySelectorAll('[data-area-view]')].map(a => a.textContent.trim()), ['Waiting']);
 
-  // Width: a tile asks for its panels' weight, and the grid packs the rows in
-  // the charter's order, with no dense reflow. Height: a tile is its own,
-  // so a short one leaves no empty block over its footer; a measure's
-  // sparkline is word-sized, so its tile no longer stretches to its row.
-  assert.deepEqual(['Reply', 'Showing', 'Forms'].map(k => tile(k).dataset.want), ['3', '3', '1']);
+  // Width: on a phone's two columns every tile takes one, side by side;
+  // where the pane holds more, a tile asks for its panels' weight and the
+  // grid packs the rows in the charter's order, with no dense reflow. Height:
+  // a tile is its own.
+  assert.deepEqual(['Reply', 'Showing', 'Forms'].map(k => tile(k).dataset.want), ['2', '2', '1']);
   const grid = page.querySelector('[data-program-tiles]');
   assert.doesNotMatch(grid.className, /dense/);
   assert.ok(grid.classList.contains('items-start'));
   assert.deepEqual(['Reply', 'Showing', 'Forms'].map(k => tile(k).classList.contains('self-stretch')), [false, false, false],
     'Reply draws its measure, and is still its own height');
   assert.equal(page.querySelector('[data-program-tiles]').dataset.cols, '1', 'a pane jsdom gives no width holds one column');
+  const spansNow = () => [...page.querySelectorAll('[data-program-area]')].map(t => t.dataset.area + ':' + t.dataset.span);
+  data.areaCols = 2; await frame();
+  assert.deepEqual(spansNow(), ['Reply:1', 'Showing:1', 'Forms:1'], 'two columns: every tile half the width, whatever it asked for');
   data.areaCols = 3; await frame();
-  assert.deepEqual([...page.querySelectorAll('[data-program-area]')].map(t => t.dataset.area + ':' + t.dataset.span), ['Reply:3', 'Showing:3', 'Forms:3']);
-  assert.equal(galleries[2].isConnected ? tile('Showing').querySelectorAll('[data-area-gallery][data-layout="thumbs"] [data-gallery-item]').length : 0, 5,
-    'three columns wide, one row of six holds all five');
+  assert.deepEqual(spansNow(), ['Reply:3', 'Showing:2', 'Forms:1']);
+  assert.equal(tile('Showing').querySelectorAll('[data-area-gallery][data-layout="thumbs"] [data-gallery-item]').length, 4,
+    'two columns wide, one row of four');
   data.areaCols = 1; await frame();
 
-  // The fortnight: commits to what the area links, a cell a day, a commit
-  // under two of its links counted once, one before the fortnight not at all.
+  // The heat grid: in the top line beside the name, the icon's size; a
+  // column a week and a row a weekday, each day shaded by its commits to
+  // what the area links, a commit under two of its links counted once, one
+  // before the grid's seven weeks not at all, and no footer or count.
   const c = data.charterOf(p);
   assert.equal(c.areas[0].measure.addr, p.measures[0]);
   assert.equal(c.areas[1].measure.addr, '', 'a longer file name is not the declared file');
@@ -459,23 +497,38 @@ test('Areas draws a tile an area: its icon and files, its declared panels, its w
   const act = data.activityOf(p);
   assert.deepEqual([...act.read].sort(), ['docs/CONVERSATION.md', 'docs/envelopes/README.md', 'docs/forms/', 'docs/portable.csv', 'docs/portable.md'],
     'every file an area links, a chip left out for its panel included');
-  assert.match(page.querySelector('[data-program-fortnight]').textContent.replace(/\s+/g, ' '), /commits to each area's files\s*[A-Z][a-z]+ \d+ → /,
-    'what a tile\'s count covers, said once beside the fortnight');
+  assert.equal(page.querySelector('[data-program-fortnight], [data-program-count-scope]'), null, 'no line over the tiles says what they count');
+  assert.equal(page.querySelector('[data-area-activity], [data-area-count], [data-program-area] footer'), null, 'no footer and no count');
   const areaReads = asked.filter(a => a.file.startsWith('commits?') && new URLSearchParams(a.file.slice(8)).get('since'));
-  assert.ok(areaReads.every(a => new URLSearchParams(a.file.slice(8)).get('per_page') === '100'));
+  assert.ok(areaReads.length && areaReads.every(a => new URLSearchParams(a.file.slice(8)).get('per_page') === '100'));
+  const start = window.Programs.heatStart(Date.now(), 7);
+  assert.ok(areaReads.every(a => new URLSearchParams(a.file.slice(8)).get('since') === start.toISOString()), 'read from the grid\'s first Monday');
   const forms = data.areaDays(p, c.areas[2]);
-  assert.equal(forms.count, 2);
-  assert.equal(tile('Forms').querySelector('[data-area-count]').textContent.trim(), '2');
-  const cells = [...tile('Forms').querySelectorAll('[data-area-activity] [data-day]')];
-  assert.equal(cells.length, 14);
-  assert.deepEqual(cells.map(b => +b.dataset.n).filter(Boolean), [1, 1]);
-  assert.equal(cells.at(-2).dataset.n, '1', 'yesterday');
-  assert.equal(data.areaDays(p, c.areas[1]), null, 'an area that links no file has no fortnight');
-  assert.equal(tile('Showing').querySelectorAll('[data-day]').length, 0);
+  assert.equal(forms.count, 3, 'three weeks back counts, past the old fortnight; long ago does not');
+  const heat = tile('Forms').querySelector('[data-area-heat]');
+  assert.ok(heat.closest('[data-part="title"]'), 'on the top line, with the icon and the name');
+  assert.ok(heat.classList.contains('size-7') && tile('Forms').querySelector('[data-area-icon]').classList.contains('size-7'), 'the icon\'s size');
+  assert.equal(heat.dataset.areaState, 'ok');
+  const cells = [...heat.querySelectorAll('[data-day]')];
+  assert.equal(cells.length, 49);
+  assert.deepEqual(cells.map(b => +b.dataset.n).filter(Boolean), [1, 1, 1]);
+  const dk = d => { const t = new Date(); t.setDate(t.getDate() - d); return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0'); };
+  const yesterday = cells.find(b => b.dataset.day === dk(1));
+  assert.equal(yesterday.dataset.n, '1', 'yesterday');
+  assert.match(yesterday.getAttribute('style'), /color-mix\(in oklab, var\(--program\) \d+%/, 'shaded in the program\'s colour');
+  assert.match(cells.find(b => b.dataset.n === '0' && !b.hasAttribute('data-future')).getAttribute('style'), /var\(--color-base-content\)/, 'a quiet day faint and neutral');
+  const future = cells.filter(b => b.hasAttribute('data-future'));
+  assert.equal(future.length, 6 - (new Date().getDay() + 6) % 7, 'the days still to come this week');
+  assert.ok(future.every(b => /transparent/.test(b.getAttribute('style'))), 'and left blank');
+  assert.equal(cells.indexOf(cells.find(b => b.dataset.day === dk(0))), 48 - future.length, 'today, before them');
+  assert.match(heat.dataset.titleTip, /^[A-Z][a-z]+ \d+ → ([A-Z][a-z]+ )?\d+ · 3 commits$/, 'its span and count in a title-tip');
+  assert.equal(data.areaDays(p, c.areas[1]), null, 'an area that links no file has no grid');
+  assert.equal(tile('Showing').querySelector('[data-area-heat]'), null);
   assert.equal(data.areaDays(p, c.areas[0]).count,
     commits['docs/CONVERSATION.md'].filter(x => x.commit.committer.date >= data.areaDays(p, c.areas[0]).days[0].day).length);
-  cells.at(-2).click(); await tick(3); await frame();
+  yesterday.click(); await tick(3); await frame();
   assert.deepEqual([...(data.chartTip?.body?.rows || []).map(r => r.label)], ['Forms and envelopes'], 'a day opens its commits');
+  assert.equal(heat.hasAttribute('data-title-tip'), false, 'and the span\'s title-tip stands aside while it is open');
   data.closeChartTip();
   assert.equal(page.querySelector('[data-program-areas-read]').style.display, 'none', 'every linked path read');
   assert.ok(asked.some(a => a.file === 'docs/portable.csv' && a.ref === 'codex/program-preview'), 'a registry is read at the selected revision');
@@ -608,6 +661,8 @@ test("signed out, a program's page reads fewer paths and leaves out the notes", 
     assert.equal(act.total, 10);
     assert.equal(act.read.length, 8, 'signed out, the first eight linked paths');
     assert.ok(data.areaDays(wide, areas[3]), 'an area whose links were read');
+    assert.equal(data.areaDays(wide, areas[0]).count, 130, 'a busy file read past its first page');
+    assert.ok(asked.some(a => a.file.includes('path=docs%2Fa0.md') && a.file.includes('&page=2')));
     assert.equal(data.areaDays(wide, areas[4]), null, 'one whose links were not is unread, not quiet');
     for (let i = 0; i < 20 && Object.values(data.registries).some(r => r.state === 'loading' || r.authed); i++) await tick();
     assert.ok(fetched.includes('https://raw.githubusercontent.com/' + hub + '/codex/program-preview/docs/portable.csv'));

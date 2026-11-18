@@ -6272,6 +6272,9 @@ function app(){ return {
     if (this.menuKind === 'github') return this.githubMenuItems;
     if (this.menuKind === 'projects') return this.projectMenuItems;
     if (this.menuKind === 'programs') return this.programMenuItems;
+    // The Program view's views, opened from the Map's mark on its masthead:
+    // every row is the caller's, each with its own run.
+    if (this.menuKind === 'views') return this.menuExtra;
     if (this.menuKind === 'repos') return this.estateRepoMenuItems;
     if (this.menuKind !== 'repo') return [...this.menuExtra, ...this.repoActionItems];
     // THE REPO, TWICE, then where it goes on GitHub, as one FLAT list. The two
@@ -6347,7 +6350,8 @@ function app(){ return {
   // meaningless from the sidebar, and an estate card with a nested -private
   // companion contributes its face switch. Each carries its own `run`, so the
   // shell hosts them without knowing what they do. Accepted for the actions
-  // and repo kinds alike; the GitHub list stays purely destinations.
+  // and repo kinds alike, and the whole of the views kind (the Program view's
+  // views); the GitHub list stays purely destinations.
   menuExtra: [],
   // Things you do TO a repo, not inside one, and by now a SHORT list, because
   // every row that left had somewhere better to be:
