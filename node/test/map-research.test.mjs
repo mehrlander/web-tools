@@ -209,7 +209,9 @@ test("a program's title opens its page in the tab, and Back to the list closes i
   try {
     data.setTab('programs'); await settled();
     el.querySelector('[data-map-programs] [data-map-program="surfacing"] [data-map-program-open]').click();
-    await tick(3);
+    // Wait for the list to hide rather than a fixed count of ticks, which a
+    // loaded CI runner can outlast.
+    for (let i = 0; i < 100 && el.querySelector('[data-map-programs]').style.display !== 'none'; i++) await new Promise(r => setTimeout(r, 20));
     assert.equal(data.programSel, 'surfacing');
     assert.deepEqual(stamped.at(-1), [{ program: 'surfacing' }, { push: true }], 'opening stamps the address as a new entry');
     assert.equal(el.querySelector('[data-map-programs]').style.display, 'none', 'the page takes the list\'s place');
