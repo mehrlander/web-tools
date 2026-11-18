@@ -1719,8 +1719,9 @@
       // the FAB on a phone, the rail under ?marks=c), and the stops under the
       // pad could not be tapped.
       FOCUS_MIX: pct => `color-mix(in_oklab,var(--color-base-content)_${pct}%,transparent)`,
-      // md-diff's PILL without its place, which the row of two gives here.
-      FOCUS_PILL: 'flex items-center rounded-full border border-base-300 bg-base-100/90 backdrop-blur text-[10px] leading-none select-none',
+      // md-diff's PILL without its place, which the row of two gives here,
+      // and at text-xs, the page's chrome size, where md-diff's is 10px.
+      FOCUS_PILL: 'flex items-center rounded-full border border-base-300 bg-base-100/90 backdrop-blur text-xs leading-none select-none',
       focusBox(p, k, total) {
         const mix = this.FOCUS_MIX, PILL = this.FOCUS_PILL;
         const sec = document.createElement('section');
@@ -1746,7 +1747,7 @@
           + `<div class="${PILL} gap-0.5 px-0.5 py-0.5" role="group" aria-label="Show this passage as">${stop('text')}${stop('context')}</div></div></div>`
           + `<div data-focus-text class="group-data-[reading=context]/focus:hidden"></div>`
           + `<div data-focus-context class="hidden group-data-[reading=context]/focus:grid gap-4 pt-5 pb-2">`
-          + `<div class="grid gap-1"><div class="text-base leading-7 font-medium">${esc(p.focus || 'The passage to read first')}</div>`
+          + `<div class="grid gap-1"><div class="font-medium">${esc(p.focus || 'The passage to read first')}</div>`
           + `<div class="text-sm leading-6 text-base-content/70">${esc([total > 1 ? `passage ${k + 1} of ${total}` : '', `${words} words`].filter(Boolean).join(' · '))}</div></div>`
           + praise + `</div>`;
         return sec;
