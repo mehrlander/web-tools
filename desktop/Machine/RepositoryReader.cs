@@ -63,7 +63,7 @@ public sealed class RepositoryReader
         using var process = Process.Start(start);
         if (process is null) return null;
         using var budget = CancellationTokenSource.CreateLinkedTokenSource(stop);
-        budget.CancelAfter(TimeSpan.FromSeconds(publish ? 600 : files ? 180 : key is null ? 90 : 240));
+        budget.CancelAfter(TimeSpan.FromSeconds(publish ? 1800 : files ? 180 : key is null ? 90 : 240));
         using var cancel = budget.Token.Register(() => { try { if (!process.HasExited) process.Kill(entireProcessTree: true); } catch (InvalidOperationException) { } });
         // Ignore diagnostics; raw Git errors can contain credential-helper or path details.
         process.BeginErrorReadLine();
