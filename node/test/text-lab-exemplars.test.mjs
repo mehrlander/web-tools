@@ -116,6 +116,7 @@ function harness(search = '') {
   kit(window, 'guide-render.js');
   kit(window, 'standoff.js');
   kit(window, 'repo-address.js');
+  kit(window, 'linked-swiper.js');
   const doc = new Proxy(dom.window.document, {
     get(t, k) {
       if (k === 'addEventListener') return (_name, fn) => fn();
@@ -240,21 +241,77 @@ test('the card marks its focus over the render and pairs each praise with its so
   assert.equal(marks.length, 1);
   assert.deepEqual([...marks[0].querySelectorAll('h2, p')].map(e => e.textContent),
     ['I', 'The facts are these.', 'And more facts, with a footnote.[^1]'], 'the passage and nothing else');
-  assert.match(marks[0].textContent, /focus · 12 words/);
+  assert.match(marks[0].textContent, /Part I, from "The facts" · 12 words/, 'the passage names itself');
+  assert.match(marks[0].className, /border-l-2/);
+  assert.doesNotMatch(marks[0].className, /\bbg-/, 'a rule, not a fill: a fill is what a selected row wears');
   const ii = [...card.querySelectorAll('h2')].find(e => e.textContent === 'II');
   assert.ok(ii && !ii.closest('[data-focus]'), 'the next part stays outside');
-  assert.ok(card.querySelector('[data-exemplar-focus]'), 'a piece with a marked focus offers the jump');
+  assert.equal(card.querySelector('[data-exemplar-focus]'), null, 'the jump is in the head, not in the body');
+  const read = /!text-xl !leading-8/;
+  assert.match(marks[0].closest('.guide-body').className, read, 'the text is set at reading size');
+  assert.match(card.querySelector('[data-exemplar-body] .guide-body').className, read, 'and so is the praise beside it');
   const praise = [...card.querySelectorAll('a[href^="https://"]')].map(a => [a.textContent, a.getAttribute('href')]);
   assert.deepEqual(praise, [['First Reader, A Blog', 'https://a.example/one'], ['Second Reader, Another', 'https://b.example/two']]);
+  assert.equal(card.querySelector('h3').textContent, 'Its Subtitle', 'the body title is only what the head lacks');
   assert.equal(card.querySelector('[data-exemplar-source]').getAttribute('data-exemplar-source'), 'fixture');
   assert.ok(h.model.exemplarOf('fixture').doc, 'the render is kept');
   assert.equal(h.model.exemplarCardHtml('fixture'), h.model.exemplarCardHtml('fixture'));
   const plain = dom.window.document.createElement('div');
   plain.innerHTML = h.model.exemplarCardHtml('short');
-  assert.equal(plain.querySelector('[data-focus], [data-exemplar-focus]'), null, 'no focus, no mark and no jump');
+  assert.equal(plain.querySelector('[data-focus], [data-exemplar-focus], h3'), null, 'no focus, no mark, and no title the head already shows');
   assert.doesNotMatch(plain.textContent, /none found/, 'a placeholder draws nothing');
   assert.deepEqual(h.model.links(PIECE.match(/source_page: "(.*)"/)[1]).map(l => l.label), ['press.example', 'page.png'],
     'a second address on one host is named by its file');
+});
+
+test('the body title is what the full title adds to the head', () => {
+  const { model } = harness();
+  const rest = (title, year) => model.titleRest({ title, year });
+  assert.equal(rest('Snyder v. Phelps, 562 U.S. 443 (2011): Opinion of the Court', '2011'), 'Opinion of the Court',
+    'the year the head shows is not said twice');
+  assert.equal(rest('Preface (to A Plain English Handbook: How to create clear SEC disclosure documents)', '1998'),
+    'to A Plain English Handbook: How to create clear SEC disclosure documents');
+  assert.equal(rest('Atchafalaya', '1987'), '');
+  assert.equal(rest('A Case (1990): Opinion', '2011'), '(1990): Opinion', 'a year the head does not show stays');
+});
+
+test('the focus control sits in the head beside the counter, and finds its own piece', async () => {
+  const h = harness();
+  h.model.home = home(FILES());
+  await h.model.loadExemplars();
+  // The door's look is swipe-deck's; only its presence is held here.
+  h.window.swipeDeck = { entry: { cls: () => 'btn', title: n => `Read ${n} pieces one at a time`, icon: 'ph-cards-three' } };
+  const head = dom.window.document.createElement('div');
+  head.innerHTML = h.model.exemplarHead(1, 2, false);
+  const kids = [...head.children].map(e => e.tagName + (e.hasAttribute('data-exemplar-focus') ? ':focus' : ''));
+  assert.deepEqual(kids.slice(0, 2), ['H2', 'BUTTON:focus'], 'after the title, before the counter and the door');
+  assert.ok(head.querySelector('[data-swipe-cards]'), 'the door stays');
+  assert.match(head.querySelector('[data-exemplar-focus]').getAttribute('data-title-tip'), /12 of 29 words/);
+  const bare = dom.window.document.createElement('div');
+  bare.innerHTML = h.model.exemplarHead(0, 2, false);
+  assert.equal(bare.querySelector('[data-exemplar-focus]'), null, 'a piece with no focus has none');
+  // A tap on it scrolls that piece's body, wherever the strip holds it.
+  const detail = dom.window.document.createElement('div');
+  detail.dataset.part = 'detail';
+  detail.innerHTML = head.innerHTML + '<section>' + h.model.exemplarCardHtml('short') + '</section><section>' + h.model.exemplarCardHtml('fixture') + '</section>';
+  const jumped = [];
+  h.model.jumpToFocus = body => jumped.push(body.getAttribute('data-exemplar-body'));
+  assert.equal(h.model.exemplarClick({ target: detail.querySelector('[data-exemplar-focus] i') }), true);
+  assert.deepEqual(jumped, ['fixture']);
+});
+
+test('a stale standoff leaves the piece unmarked and says nothing in its place', async () => {
+  const files = FILES();
+  files['fixture.standoff.json'] = JSON.stringify({ ...standoff(PIECE, [['## I', '## II']]),
+    target: { path: 'p.md', bytes: 1, sha256: '0'.repeat(64) } });
+  const h = harness();
+  h.model.home = home(files);
+  await h.model.loadExemplars();
+  assert.equal(h.model.exemplarOf('fixture').stale, true);
+  const card = dom.window.document.createElement('div');
+  card.innerHTML = h.model.exemplarHead(1, 2, false) + h.model.exemplarCardHtml('fixture');
+  assert.equal(card.querySelector('[data-focus], [data-exemplar-focus]'), null);
+  assert.doesNotMatch(card.textContent, /unmarked|standoff/);
 });
 
 test('the address keeps the open piece, and the deck keeps its place', async () => {
@@ -275,6 +332,13 @@ test('the address keeps the open piece, and the deck keeps its place', async () 
   assert.equal(opened[0].count, 2);
   assert.equal(opened[0].start, 1, 'a slide past the end is clamped to the last one');
   assert.equal(opened[0].index(1).group, 'opinion');
+  const chrome = [];
+  const slide = dom.window.document.createElement('section');
+  opened[0].render(1, slide, { setChrome: c => chrome.push(c) });
+  assert.equal(chrome[0].sub.textContent, '1999 · A Fixture', 'the deck header names the piece the body no longer titles');
+  assert.equal(chrome[0].actions.length, 1, 'and holds its focus control');
+  opened[0].render(0, dom.window.document.createElement('section'), { setChrome: c => chrome.push(c) });
+  assert.deepEqual(chrome[1].actions, [], 'a piece with no focus has none');
   opened[0].onSlide(0);
   const at = new URL(h.location.href).searchParams;
   assert.equal(at.get('deck'), 'exemplars');

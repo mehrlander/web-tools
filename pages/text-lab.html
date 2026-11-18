@@ -58,15 +58,16 @@
                  for its clarity, kept whole where the source allows (that
                  folder's README states the format). The same list with a
                  detail, grouped by genre. A piece's card is its reader: who
-                 praised it and in their words, a jump to its focus, then the
-                 text rendered by kits/guide-render.js. The focus is the passage
-                 to read first. It is marked from the piece's standoff
+                 praised it and in their words, then the text rendered by
+                 kits/guide-render.js at reading size. The focus is the
+                 passage to read first. It is marked from the piece's standoff
                  (<slug>.standoff.json, standoff/1, mapped onto the render by
                  kits/standoff.js) only while that still pins the piece's
-                 bytes, and in a grey wash, since colour here is a standing.
-                 Where the text came from and how it was converted is a
-                 panel-tip, and the door in the card's head reads the pieces
-                 one at a time.
+                 bytes, with a neutral rule down its edge, since colour here
+                 is a standing and a fill is a selected row. The card's head
+                 holds the jump to the focus and the door that reads the
+                 pieces one at a time. Where the text came from and how it was
+                 converted is a panel-tip.
 
   Reviewing. Under every pair, in the list and in both decks, one line carries
   the variant's facts and a reader's three acts: vote it up, vote it down, and
@@ -506,6 +507,7 @@
           listHtml: () => this.exemplarListHtml(), body: id => this.exemplarCardHtml(id),
           name: id => { const p = this.exemplarOf(id) || {}; return { when: this.shortYear(p.year), title: this.shortTitle(p.title || id) }; },
           deck: () => this.openExemplarDeck(Math.max(0, this.exemplarIds().indexOf(this.exemplarSel))),
+          head: ({ i, n, tight }) => this.exemplarHead(i, n, tight),
           empty: 'No pieces.',
         };
         return kind === 'probe' ? {
@@ -549,6 +551,7 @@
             empty: `<p class="p-4 text-base-content/70">${d.empty}</p>`,
             onPick: id => { d.set(id); this.syncSel(); },
             ...(d.deck ? { deck: d.deck } : {}),
+            ...(d.head ? { head: d.head } : {}),
           });
         } else {
           this.swipers[kind].mount();
@@ -1367,40 +1370,72 @@
         return this.exemplarGroups().map(g => this.groupHtml(g.name, g.items.length)
           + g.items.map(p => this.exemplarRowHtml(p)).join('')).join('');
       },
-      // A piece's card is its reader: the title, one line of facts with the
-      // source's panel-tip beside it, the praise, the way to the focus, and
-      // then the text. The deck draws the same card, one piece a slide.
+      // A piece's card is its reader: what its title says beyond the head's,
+      // one line of facts with the source's panel-tip beside it, the praise,
+      // and then the text. The way to the focus sits in the card's head, so it
+      // is in one place on every piece. The deck draws the same body, with the
+      // head's title and the focus control in its own header.
       exemplarCardHtml(id) {
         const p = this.exemplarOf(id);
         if (!p) return '';
         const facts = [p.author, this.shortYear(p.year), p.genre, this.shortExtent(p)].filter(Boolean).join(' · ');
         const out = '<i class="ph ph-arrow-square-out ml-1"></i>';
-        const prose = window.GuideRender ? window.GuideRender.bodyClass('page') : '';
+        const read = this.readClass();
         const praise = this.recognitions(p).map(r => {
           const by = r.links.length === 1
             ? `<a class="link link-hover" href="${esc(r.links[0].href)}" target="_blank" rel="noopener">${esc(r.by || r.links[0].label)}${out}</a>`
             : esc(r.by) + r.links.map(l => ` <a class="link link-hover ml-2" href="${esc(l.href)}" target="_blank" rel="noopener">${esc(l.label)}${out}</a>`).join('');
           // The praise is read beside the text, so it takes the text's size.
-          return `<div class="flex gap-3"><i class="ph ph-quotes text-lg shrink-0 text-base-content/60" role="img" aria-label="Praised"></i>`
-            + `<div class="min-w-0 grid gap-1"><div class="${prose}"><p>${esc(r.words)}</p></div>`
+          return `<div class="flex gap-3"><i class="ph ph-quotes text-xl mt-1 shrink-0 text-base-content/60" role="img" aria-label="Praised"></i>`
+            + `<div class="min-w-0 grid gap-1"><div class="${read}"><p>${esc(r.words)}</p></div>`
             + `<p class="text-sm text-base-content/70">${by}</p></div></div>`;
         }).join('');
-        const n = p.focusSpans.length, fw = p.focusSpans.reduce((s, f) => s + f.words, 0);
-        const focus = !p.focus ? '' : n
-          ? `<button type="button" data-exemplar-focus class="flex items-center gap-2.5 rounded-lg border border-base-300 px-3 py-2 text-left cursor-pointer hover:bg-base-200">`
-            + `<i class="ph ph-bookmark-simple text-xl shrink-0"></i><span class="min-w-0 grow"><span class="block text-sm font-semibold">${esc(p.focus)}</span>`
-            + `<span class="block text-xs text-base-content/70 tabular-nums">${esc(`${fw.toLocaleString()} of ${p.words.toLocaleString()} words`
-              + (n > 1 ? ` · ${n} passages` : ''))}</span></span><i class="ph ph-arrow-down shrink-0"></i></button>`
-          : `<div class="flex items-center gap-2.5 rounded-lg border border-base-300 px-3 py-2">`
-            + `<i class="ph ph-bookmark-simple text-xl shrink-0 text-base-content/60"></i><span class="min-w-0 grow"><span class="block text-sm font-semibold">${esc(p.focus)}</span>`
-            + `<span class="block font-mono text-xs text-base-content/60">${p.stale ? 'unmarked: the standoff no longer pins this text' : 'unmarked: no standoff'}</span></span></div>`;
-        return `<div class="grid gap-4" data-exemplar-body="${esc(p.id)}">`
-          + `<h3 class="text-xl leading-8 font-medium">${esc(p.title || p.id)}</h3>`
+        const rest = this.titleRest(p);
+        return `<div class="grid gap-5 pb-[calc(var(--fab-bottom,1.5rem)+4rem)]" data-exemplar-body="${esc(p.id)}">`
+          + (rest ? `<h3 class="text-2xl leading-9 font-medium">${esc(rest)}</h3>` : '')
           + `<p class="text-sm leading-6 text-base-content/70">${esc(facts)}`
           + `<button type="button" data-exemplar-source="${esc(p.id)}" data-tip-btn class="btn btn-ghost btn-xs btn-square ml-1 -my-1 align-middle max-sm:h-8 max-sm:w-8" aria-label="Where the text came from">`
           + `<i class="ph ph-info text-lg"></i></button></p>`
-          + praise + focus
-          + `<div class="min-w-0 border-t border-base-200 pt-4">${this.exemplarDoc(p)}</div></div>`;
+          + praise
+          + `<div class="min-w-0 border-t border-base-200 pt-5">${this.exemplarDoc(p)}</div></div>`;
+      },
+      // What the full title says that the head's short title does not: the
+      // rest after it, less a year the head already shows and the brackets
+      // round the remainder. Empty where the two are one title.
+      titleRest(p) {
+        const full = String(p.title || ''), year = this.shortYear(p.year);
+        return full.slice(this.shortTitle(full).length)
+          .replace(/^\s*\((\d{4})\)/, (m, y) => y === year ? '' : m)
+          .replace(/^[\s:]+/, '').replace(/^\((.*)\)$/, '$1').trim();
+      },
+      // Reading size, set on the pane's own text boxes over guide-render's
+      // smaller default, with the headings, paragraph gaps and rules scaled
+      // to match. The `!` is needed because the kit's sheet is unlayered.
+      readClass() {
+        const G = window.GuideRender;
+        return (G ? G.bodyClass('page') + ' ' : '')
+          + '!text-xl !leading-8 [&_p]:!my-4 [&_h1]:!text-2xl [&_h2]:!text-2xl [&_h3]:!text-xl [&_h4]:font-semibold'
+          + ' [&_h2]:!mt-6 [&_h3]:!mt-5 [&_hr]:!my-8 [&_blockquote]:!pl-4';
+      },
+      // The card's head: the kit's own row, with the jump to the focus beside
+      // the counter, where every piece with a focus has it.
+      exemplarHead(i, n, tight) {
+        const id = this.exemplarIds()[i], p = this.exemplarOf(id) || {};
+        const html = window.linkedSwiper.head({ when: this.shortYear(p.year), title: this.shortTitle(p.title || id) },
+          i, n, 'piece', { deck: true, tight });
+        const at = html.indexOf('</h2>') + 5;
+        return at > 4 ? html.slice(0, at) + this.focusButton(p) + html.slice(at) : html + this.focusButton(p);
+      },
+      focusButton(p) {
+        if (!p.focusSpans || !p.focusSpans.length) return '';
+        return `<button type="button" data-exemplar-focus="${esc(p.id)}" class="btn btn-ghost btn-xs gap-1 px-1.5 font-normal flex-none -my-1 max-sm:h-8"`
+          + ` aria-label="Jump to the focus" data-title-tip="${esc(this.focusLine(p))}">`
+          + `<i class="ph ph-bookmark-simple text-base"></i><span class="font-mono text-xs">focus</span></button>`;
+      },
+      focusLine(p) {
+        const n = p.focusSpans.length, fw = p.focusSpans.reduce((s, f) => s + f.words, 0);
+        return [p.focus, `${fw.toLocaleString()} of ${p.words.toLocaleString()} words`, n > 1 ? `${n} passages` : '']
+          .filter(Boolean).join(' · ');
       },
 
       // The text, rendered once a piece and kept. The focus is marked over the
@@ -1409,13 +1444,14 @@
       // its offset in the file, a top-level block takes the offset of its first
       // text, and a run of blocks inside one focus span is wrapped. A block
       // with no text of its own (a rule, an image) joins a passage only from
-      // inside one.
+      // inside one. The mark is a neutral rule down the passage's edge, with
+      // no fill: a fill here is what a selected row wears.
       exemplarDoc(p) {
         if (p.doc) return p.doc;
         const G = window.GuideRender, S = window.Standoff;
         if (!G || !window.marked) return '';
         const box = document.createElement('div');
-        box.className = G.bodyClass('page');
+        box.className = this.readClass();
         box.innerHTML = G.render(p.text.slice(p.bodyAt), { knownRefs: [this.DATA_REF, 'main'] }).html;
         if (p.focusSpans.length && S) {
           S.mapText(box, p.text, p.bodyAt);
@@ -1434,9 +1470,9 @@
             while (j < blocks.length && which[j] === k) j++;
             const wrap = document.createElement('section');
             wrap.dataset.focus = String(k);
-            wrap.className = 'my-4 rounded-lg bg-base-200/70 px-4 py-3';
-            wrap.innerHTML = `<div class="flex items-center gap-1.5 font-mono text-xs text-base-content/60"><i class="ph ph-bookmark-simple"></i><span>`
-              + esc(['focus', total > 1 ? `${k + 1} of ${total}` : '', `${p.focusSpans[k].words.toLocaleString()} words`].filter(Boolean).join(' · '))
+            wrap.className = 'my-8 border-l-2 border-base-content/40 pl-5';
+            wrap.innerHTML = `<div class="flex items-baseline gap-1.5 text-sm leading-6 text-base-content/60"><i class="ph ph-bookmark-simple self-center"></i><span>`
+              + esc([p.focus || 'focus', total > 1 ? `${k + 1} of ${total}` : '', `${p.focusSpans[k].words.toLocaleString()} words`].filter(Boolean).join(' · '))
               + `</span></div>`;
             blocks[i].before(wrap);
             wrap.append(...blocks.slice(i, j));
@@ -1447,23 +1483,29 @@
         return p.doc;
       },
 
-      // A tap on a piece's own controls, in the strip or in the deck.
+      // A tap on a piece's own controls in the card. The focus control is in
+      // the head, outside the piece's body, so it names the piece it serves.
       exemplarClick(e) {
         const focus = e.target.closest('[data-exemplar-focus]');
-        if (focus) { this.jumpToFocus(focus); return true; }
+        if (focus) {
+          const id = focus.getAttribute('data-exemplar-focus');
+          const scope = focus.closest('[data-part="detail"]') || document;
+          this.jumpToFocus([...scope.querySelectorAll('[data-exemplar-body]')].find(el => el.getAttribute('data-exemplar-body') === id));
+          return true;
+        }
         const src = e.target.closest('[data-exemplar-source]');
         if (!src) return false;
         const p = this.exemplarOf(src.getAttribute('data-exemplar-source'));
         if (p) this.openTip('exemplar', p, src);
         return true;
       },
-      // Scroll whatever holds the piece, a card's slide or the deck's, to its
-      // next focus passage, and back to the first after the last.
-      jumpToFocus(btn) {
-        const marks = [...(btn.closest('[data-exemplar-body]')?.querySelectorAll('[data-focus]') || [])];
+      // Scroll whatever holds a piece's body, a card's slide or the deck's, to
+      // its next focus passage, and back to the first after the last.
+      jumpToFocus(body) {
+        const marks = [...(body?.querySelectorAll('[data-focus]') || [])];
         if (!marks.length) return;
-        const k = (Number(btn.dataset.next) || 0) % marks.length;
-        btn.dataset.next = String(k + 1);
+        const k = (Number(body.dataset.next) || 0) % marks.length;
+        body.dataset.next = String(k + 1);
         const mark = marks[k];
         let box = mark.parentElement;
         while (box && box !== document.body
@@ -1489,11 +1531,19 @@
             const p = this.exemplarOf(ids[i]);
             return { title: this.shortTitle(p.title), subtitle: [this.shortAuthor(p.author), this.shortYear(p.year)].join(' · '), group: p.genre };
           },
-          render: (i, slide) => {
+          // The header names the piece and holds its focus control, as the
+          // card's head does, while that piece is the one in view.
+          render: (i, slide, chrome = {}) => {
+            const p = this.exemplarOf(ids[i]);
             const el = document.createElement('div');
             el.innerHTML = this.exemplarCardHtml(ids[i]);
             el.addEventListener('click', e => this.exemplarClick(e));
             slide.append(el);
+            chrome.setChrome?.({
+              sub: Object.assign(document.createElement('span'), { textContent: [this.shortYear(p.year), this.shortTitle(p.title)].join(' · ') }),
+              actions: p.focusSpans.length ? [{ icon: 'ph-bookmark-simple', title: `Jump to the focus: ${this.focusLine(p)}`,
+                onClick: () => this.jumpToFocus(el.querySelector('[data-exemplar-body]')) }] : [],
+            });
           },
           onSlide: i => {
             this.exemplarSel = ids[i];
