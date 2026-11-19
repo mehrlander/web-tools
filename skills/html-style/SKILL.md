@@ -137,7 +137,7 @@ Do not use daisyUI's `tooltip`, `data-tip`, or `cursor-help`. Details are in
 
 **18. Find graphical representations.** Reduce information to small marks that bring out its groupings. Use icons to emphasize categories, and symbols for relations, such as `~500` for about 500 and `2018 → 2024` for 2018 through 2024.
 
-**19. Themes.** Set one light daisyUI theme on `<html>`: `winter` for a new page. Do not provide dark mode.
+**19. Themes.** Pages may use daisyUI themes, most often `winter`. Do not provide dark mode.
 
 ## Handing a page over
 
