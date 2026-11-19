@@ -1746,13 +1746,13 @@ test('an address that does not open Context arms none of its keys', () => {
 });
 
 test("a policy link's entry rides with the Policies tab alone", async () => {
-  const { shell } = makeShell({ search: '?view=map&tab=policy&h=smug' });
-  assert.equal(shell.mapCtx.h, 'smug', 'an address that opens Policies arms its entry');
+  const { shell } = makeShell({ search: '?view=map&tab=policy&h=dash' });
+  assert.equal(shell.mapCtx.h, 'dash', 'an address that opens Policies arms its entry');
   await shell.routeFromUrl(shell.parseUrl());
-  assert.equal(shell.deepLinkParams().get('h'), 'smug', 'the entry survives the stamp');
+  assert.equal(shell.deepLinkParams().get('h'), 'dash', 'the entry survives the stamp');
   shell.goMapTab('docs');
   assert.equal(shell.deepLinkParams().has('h'), false, 'h rode onto another tab');
-  const other = makeShell({ search: '?view=map&tab=docs&h=smug' }).shell;
+  const other = makeShell({ search: '?view=map&tab=docs&h=dash' }).shell;
   assert.equal(other.mapCtx.h, '', 'an address that does not open Policies arms none of its keys');
 });
 
@@ -1769,7 +1769,7 @@ test("a program's page rides with the Programs tab alone, and opening it adds a 
   assert.equal(new URLSearchParams(calls.at(-1)[1].split('?')[1]).get('program'), 'testing');
   shell.setMapCtx({ program: '' }, { push: true });
   assert.equal(new URLSearchParams(calls.at(-1)[1].split('?')[1] || '').has('program'), false, 'the list names no program');
-  shell.setMapCtx({ h: 'smug' });
+  shell.setMapCtx({ h: 'dash' });
   assert.equal(calls.at(-1)[0], 'replace', 'without push, a pick still replaces the entry');
   shell.setMapCtx({ program: 'testing' }, { push: true });
   shell.goMapTab('docs');
